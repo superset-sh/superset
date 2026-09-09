@@ -2226,9 +2226,6 @@ msgstr "自動化（{myFailedCount}個失敗）"
 msgid "Automations & event triggers"
 msgstr "自動化與事件觸發"
 
-msgid "Automations docs"
-msgstr "自動化文件"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "自動化，{myFailedCount}個失敗"
 
@@ -2359,6 +2356,9 @@ msgstr "基於PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "基於最近30天的{0}個token，統計{1}。"
+
+msgid "Become a design partner"
+msgstr "成為共創夥伴"
 
 msgid "Before"
 msgstr "變更前"
@@ -2561,6 +2561,9 @@ msgstr "瀏覽歷史"
 
 msgid "Bug"
 msgstr "蟲子"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "共創 Superset 的雲端未來"
 
 msgid "Building the last piece of software"
 msgstr "打造最後一款軟體"
@@ -3268,6 +3271,9 @@ msgstr "關閉此終端將結束正在執行的處理程序。"
 
 msgid "Cloud"
 msgstr "雲端"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "雲端版本即將推出。成為共創夥伴"
 
 msgid "Cloud sandboxes"
 msgstr "雲端沙箱"
@@ -4012,6 +4018,9 @@ msgstr "無法連線到主機以載入此拉取請求。"
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "無法連線主機以開始更新。請確認主機在線上後重試。"
 
+msgid "Could not reach the server."
+msgstr "無法連線到伺服器。"
+
 msgid "Could not reach this workspace's machine"
 msgstr "無法連線到這個工作區所在的機器"
 
@@ -4257,11 +4266,11 @@ msgstr "建立團隊"
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "在我的MacBook上為認證功能建立一個工作區"
 
+msgid "Create again"
+msgstr "再次建立"
+
 msgid "Create an account"
 msgstr "建立帳戶"
-
-msgid "Create an automation with an agent"
-msgstr "用代理程式建立自動化"
 
 msgid "Create failed: {message}"
 msgstr "建立失敗：{message}"
@@ -4882,6 +4891,9 @@ msgstr "語音輸入"
 msgid "Dictation is not available on this device"
 msgstr "此裝置不支援語音輸入"
 
+msgid "Didn't hear back"
+msgstr "未收到回應"
+
 msgid "diff"
 msgstr "差異"
 
@@ -5479,9 +5491,6 @@ msgstr "每個代理程式都跑在自己的Git worktree裡，十個代理程式
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "每個維度都在為下一等級出力。保持住，等級自然會來。"
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "每週五下午4點，根據本週合併的PR起草釋出說明"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "每週五下午4點，根據本週合併的PR起草釋出說明。"
 
@@ -5502,9 +5511,6 @@ msgstr "每週三上午9點，回顧本週合併的PR，更新被它們改過時
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "每個工作日上午9點，閱讀新的GitHub議題，打上標籤，並起草初步回覆供我審閱。"
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "每個工作日上午9點，分類新的GitHub議題並起草回覆供我審閱"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "所有人都在爭論這能否推廣。這場爭論本身就說明這一級別已經達到了。"
@@ -8467,6 +8473,9 @@ msgstr "更多{kindLower}主題"
 msgid "More actions"
 msgstr "更多操作"
 
+msgid "More options"
+msgstr "更多選項"
+
 msgid "More pages"
 msgstr "更多頁面"
 
@@ -8631,6 +8640,9 @@ msgstr "換對手"
 msgid "New chat"
 msgstr "新建聊天"
 
+msgid "New cloud workspace"
+msgstr "新建雲端工作區"
+
 msgid "New environment"
 msgstr "新增環境"
 
@@ -8772,9 +8784,6 @@ msgstr "下一級：{nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "不錯，準備好就開個PR。"
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "每晚2點，找一個小bug，修好它並提一個PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -8990,6 +8999,9 @@ msgstr "無圖示"
 
 msgid "No Internet Connection"
 msgstr "無網路連線"
+
+msgid "No internet connection."
+msgstr "沒有網際網路連線。"
 
 msgid "No issues found."
 msgstr "未找到議題。"
@@ -10895,9 +10907,6 @@ msgstr "公開"
 msgid "Public leaderboard"
 msgstr "公開排行榜"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "從代理程式或CLI釋出一個頁面，它就會出現在這裡。"
-
 msgid "Published"
 msgstr "發布時間"
 
@@ -12640,6 +12649,9 @@ msgstr "深淺以該開發者最忙的一天為基準"
 msgid "Share"
 msgstr "分享"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "分享設計和報告，讓你的代理程式處理回饋。"
+
 msgid "Share page"
 msgstr "分享頁面"
 
@@ -13342,6 +13354,9 @@ msgstr "第{0}步，共2步"
 msgid "Step {step}: {name}"
 msgstr "第{step}步：{name}"
 
+msgid "Still can't reach the host."
+msgstr "仍然無法連線到主機。"
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "仍在處理 — 大儲存庫可能需要幾分鐘。你可以離開；工作區就緒後會出現在首頁。"
 
@@ -13452,9 +13467,6 @@ msgstr "套件，以及共享應用元件。點選任意匯入路徑即可複製
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Superset與受監控的終端處理程序樹佔用的CPU總和。超過100%表示有多個CPU核心處於繁忙狀態。持續偏高通常會導致介面卡頓和耗電增加。"
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "每天早上站會前總結失敗的CI執行"
 
 msgid "Summary"
 msgstr "摘要"
@@ -14076,6 +14088,9 @@ msgstr "主機以 {0} 而非 {targetVersion} 恢復。"
 msgid "The host did not come back within fifteen minutes."
 msgstr "主機未在十五分鐘內恢復。"
 
+msgid "The host hasn't answered."
+msgstr "主機未回應。"
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "該主機沒有連線到Superset中繼。如果就是此裝置，請在「設定>遠端存取」中開啟「允許遠端存取通過中繼存取此裝置」，然後重試。"
 
@@ -14241,6 +14256,9 @@ msgstr "網頁版代理程式介面目前是隻讀預覽。"
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "工作區尚未就緒。請重試。"
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "工作區可能仍已建立。如果出現，此畫面會開啟它。"
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "worktree及其中所有未提交的更改都會被移除。此操作無法復原。"
@@ -14563,9 +14581,6 @@ msgstr "等級"
 
 msgid "Time range"
 msgstr "時間範圍"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "等待主機建立工作區逾時。"
 
 msgid "Title"
 msgstr "標題"
@@ -15487,17 +15502,14 @@ msgstr "我們只會用它給你傳送下載連結。"
 msgid "We're hiring"
 msgstr "我們在招聘"
 
-msgid "We're hiring engineers"
-msgstr "我們正在招聘工程師"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "我們在舊金山招聘工程師"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "我們正在舊金山招募工程師。與我們一起打造第一個軟體工廠平台。"
 
 msgid "We're hiring in San Francisco"
 msgstr "我們在舊金山招聘"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "我們正在尋找共創夥伴，共同打造雲端產品。請告訴我們您的工作流程，我們會與您聯絡，探討合作機會。"
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "我們正在重做這個功能，敬請期待。"
@@ -15620,6 +15632,9 @@ msgstr "我們正在構建什麼"
 msgid "What we're building now and next."
 msgstr "我們正在做什麼，接下來做什麼。"
 
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "您想用雲端 Superset 建構什麼？"
+
 msgid "What would you like to know?"
 msgstr "你想了解什麼？"
 
@@ -15706,6 +15721,9 @@ msgstr "帶標籤"
 
 msgid "with or without attachments"
 msgstr "有無附件均可"
+
+msgid "Work email"
+msgstr "工作電子郵件"
 
 msgid "Work from tickets"
 msgstr "從工單開始工作"

@@ -2226,9 +2226,6 @@ msgstr "Otomatisasi ({myFailedCount} gagal)"
 msgid "Automations & event triggers"
 msgstr "Otomatisasi & pemicu event"
 
-msgid "Automations docs"
-msgstr "Dokumentasi otomatisasi"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Otomatisasi, {myFailedCount} gagal"
 
@@ -2359,6 +2356,9 @@ msgstr "berdasarkan PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "Berdasarkan {0} token dalam 30 hari terakhir, menghitung {1}."
+
+msgid "Become a design partner"
+msgstr "Jadi mitra pengembangan"
 
 msgid "Before"
 msgstr "Sebelum"
@@ -2561,6 +2561,9 @@ msgstr "Riwayat penjelajahan"
 
 msgid "Bug"
 msgstr "Bug"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "Bangun masa depan Superset di komputasi awan"
 
 msgid "Building the last piece of software"
 msgstr "Membangun perangkat lunak yang terakhir"
@@ -3268,6 +3271,9 @@ msgstr "Menutup terminal ini akan menghentikan proses yang berjalan."
 
 msgid "Cloud"
 msgstr "Cloud"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "Versi awan segera hadir. Jadi mitra pengembangan"
 
 msgid "Cloud sandboxes"
 msgstr "Sandbox cloud"
@@ -4012,6 +4018,9 @@ msgstr "Tidak bisa menjangkau host untuk memuat pull request ini."
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Tidak dapat menjangkau host untuk memulai pembaruan. Pastikan host online lalu coba lagi."
 
+msgid "Could not reach the server."
+msgstr "Tidak dapat menjangkau server."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Tidak bisa menjangkau mesin workspace ini"
 
@@ -4257,11 +4266,11 @@ msgstr "Buat sebuah tim"
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "Buat workspace untuk fitur auth di MacBook saya"
 
+msgid "Create again"
+msgstr "Buat lagi"
+
 msgid "Create an account"
 msgstr "Buat akun"
-
-msgid "Create an automation with an agent"
-msgstr "Buat otomatisasi dengan agen"
 
 msgid "Create failed: {message}"
 msgstr "Gagal membuat: {message}"
@@ -4882,6 +4891,9 @@ msgstr "Dikte"
 msgid "Dictation is not available on this device"
 msgstr "Dikte tidak tersedia di perangkat ini"
 
+msgid "Didn't hear back"
+msgstr "Tidak ada respons"
+
 msgid "diff"
 msgstr "diff"
 
@@ -5479,9 +5491,6 @@ msgstr "Tiap agen berjalan di worktree Git-nya sendiri, jadi sepuluh agen bisa b
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Setiap sumbu sudah menopang untuk tingkat berikutnya. Pertahankan, tingkatnya akan menyusul."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Tiap Jumat jam 4 sore, susun draf catatan rilis dari PR yang di-merge minggu ini"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Tiap Jumat jam 4 sore, susun draf catatan rilis dari PR yang di-merge minggu ini."
 
@@ -5502,9 +5511,6 @@ msgstr "Tiap Rabu jam 9 pagi, tinjau PR yang di-merge minggu ini dan perbarui do
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Tiap hari kerja jam 9 pagi, baca issue GitHub baru, terapkan label, dan susun draf balasan pertama untuk saya review."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Tiap hari kerja jam 9 pagi, triase issue GitHub baru dan susun draf balasan untuk saya review"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Semua orang berdebat apakah ini bisa digeneralisasi. Perdebatan itu justru tanda bahwa levelnya sudah tercapai."
@@ -8467,6 +8473,9 @@ msgstr "Tema {kindLower} lainnya"
 msgid "More actions"
 msgstr "Aksi lainnya"
 
+msgid "More options"
+msgstr "Opsi lainnya"
+
 msgid "More pages"
 msgstr "Halaman lainnya"
 
@@ -8631,6 +8640,9 @@ msgstr "penantang baru"
 msgid "New chat"
 msgstr "Chat baru"
 
+msgid "New cloud workspace"
+msgstr "Workspace cloud baru"
+
 msgid "New environment"
 msgstr "Environment baru"
 
@@ -8772,9 +8784,6 @@ msgstr "Berikutnya: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Bagus, buka PR kalau sudah siap."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Tiap malam jam 2, cari satu bug kecil, perbaiki, dan buka PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -8990,6 +8999,9 @@ msgstr "Tanpa ikon"
 
 msgid "No Internet Connection"
 msgstr "Tidak Ada Koneksi Internet"
+
+msgid "No internet connection."
+msgstr "Tidak ada koneksi internet."
 
 msgid "No issues found."
 msgstr "Tidak ada issue ditemukan."
@@ -10895,9 +10907,6 @@ msgstr "Publik"
 msgid "Public leaderboard"
 msgstr "Papan peringkat publik"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Publikasikan halaman dari agen atau CLI dan halaman itu akan muncul di sini."
-
 msgid "Published"
 msgstr "Diterbitkan"
 
@@ -12640,6 +12649,9 @@ msgstr "Kepekatan warna relatif terhadap hari tersibuk pengembang ini"
 msgid "Share"
 msgstr "Bagikan"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Bagikan desain dan laporan. Biarkan agen Anda menangani masukan."
+
 msgid "Share page"
 msgstr "Bagikan halaman"
 
@@ -13342,6 +13354,9 @@ msgstr "Langkah {0} dari 2"
 msgid "Step {step}: {name}"
 msgstr "Langkah {step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "Host masih tidak dapat dijangkau."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Masih berjalan — repo besar bisa makan beberapa menit. Anda boleh keluar; workspace-nya akan muncul di Beranda saat siap."
 
@@ -13452,9 +13467,6 @@ msgstr "untuk UI agen, dan komponen aplikasi bersama. Klik path impor mana pun u
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Jumlah CPU yang dipakai Superset dan pohon proses terminal yang dipantau. Di atas 100% berarti beberapa inti CPU sedang sibuk. Nilai tinggi yang bertahan lama biasanya membuat UI terasa lambat dan baterai lebih boros."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Rangkum run CI yang gagal tiap pagi sebelum standup"
 
 msgid "Summary"
 msgstr "Ringkasan"
@@ -14076,6 +14088,9 @@ msgstr "Host kembali dengan {0}, bukan {targetVersion}."
 msgid "The host did not come back within fifteen minutes."
 msgstr "Host tidak kembali dalam lima belas menit."
 
+msgid "The host hasn't answered."
+msgstr "Host tidak merespons."
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host tidak terhubung ke relay Superset. Kalau ini perangkatnya, aktifkan \"Izinkan akses jarak jauh ke perangkat ini melalui relay\" di Pengaturan > Akses Jarak Jauh, lalu coba lagi."
 
@@ -14241,6 +14256,9 @@ msgstr "UI agen di web masih pratinjau baca-saja untuk saat ini."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "Workspace belum siap. Coba lagi."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "Workspace mungkin tetap dibuat. Layar ini akan membukanya jika muncul."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree beserta perubahan yang belum di-commit akan dihapus. Ini tidak bisa dibatalkan."
@@ -14563,9 +14581,6 @@ msgstr "Tingkat"
 
 msgid "Time range"
 msgstr "Rentang waktu"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "Kehabisan waktu menunggu host membuat workspace."
 
 msgid "Title"
 msgstr "Judul"
@@ -15487,17 +15502,14 @@ msgstr "Kami hanya memakainya untuk mengirim tautan unduhan Anda."
 msgid "We're hiring"
 msgstr "Kami sedang merekrut"
 
-msgid "We're hiring engineers"
-msgstr "Kami sedang merekrut engineer"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "Kami sedang merekrut engineer di San Francisco"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "Kami merekrut engineer di San Francisco. Bantu kami membangun platform software factory pertama."
 
 msgid "We're hiring in San Francisco"
 msgstr "Kami sedang merekrut di San Francisco"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "Kami mencari mitra pengembangan untuk membantu membentuk layanan awan kami. Ceritakan alur kerja Anda dan kami akan menghubungi Anda untuk menjajaki kerja sama."
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "Kami sedang membangun ulang fitur ini. Cek lagi nanti."
@@ -15620,6 +15632,9 @@ msgstr "Yang Sedang Kami Bangun"
 msgid "What we're building now and next."
 msgstr "Apa yang kami bangun sekarang dan berikutnya."
 
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "Apa yang ingin Anda bangun dengan Superset di komputasi awan?"
+
 msgid "What would you like to know?"
 msgstr "Apa yang ingin Anda ketahui?"
 
@@ -15706,6 +15721,9 @@ msgstr "Dengan label"
 
 msgid "with or without attachments"
 msgstr "dengan atau tanpa lampiran"
+
+msgid "Work email"
+msgstr "Email kerja"
 
 msgid "Work from tickets"
 msgstr "Bekerja dari tiket"

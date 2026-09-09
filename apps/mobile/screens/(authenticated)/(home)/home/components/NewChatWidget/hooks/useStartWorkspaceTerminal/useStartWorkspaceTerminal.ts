@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -101,7 +102,7 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 						message: "Could not start agent",
 					}),
 				),
-				error instanceof Error ? error.message : String(error),
+				errorCopy(error),
 			);
 		},
 	});

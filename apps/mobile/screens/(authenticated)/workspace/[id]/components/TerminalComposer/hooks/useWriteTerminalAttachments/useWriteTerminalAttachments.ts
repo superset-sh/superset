@@ -8,6 +8,7 @@ import { useMutation } from "@tanstack/react-query";
 import { File } from "expo-file-system";
 import { Alert } from "react-native";
 import type { PromptInputAttachmentItem } from "@/components/ai-elements/prompt-input";
+import { errorCopy } from "@/lib/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 
 export interface TerminalAttachmentTarget {
@@ -77,7 +78,7 @@ export function useWriteTerminalAttachments() {
 						message: "Could not attach files",
 					}),
 				),
-				error instanceof Error ? error.message : String(error),
+				errorCopy(error),
 			);
 		},
 	});

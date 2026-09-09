@@ -2226,9 +2226,6 @@ msgstr "オートメーション({myFailedCount}件失敗中)"
 msgid "Automations & event triggers"
 msgstr "オートメーションとイベントトリガー"
 
-msgid "Automations docs"
-msgstr "オートメーションのドキュメント"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "オートメーション、{myFailedCount}件が失敗中"
 
@@ -2359,6 +2356,9 @@ msgstr "PR #{0} をベースに"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "過去30日間の{0}トークンに基づく({1}を集計)。"
+
+msgid "Become a design partner"
+msgstr "共同開発パートナーになる"
 
 msgid "Before"
 msgstr "変更前"
@@ -2561,6 +2561,9 @@ msgstr "閲覧履歴"
 
 msgid "Bug"
 msgstr "バグ"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "クラウドでSupersetの未来を築く"
 
 msgid "Building the last piece of software"
 msgstr "最後のソフトウェアを作る"
@@ -3268,6 +3271,9 @@ msgstr "このターミナルを閉じると実行中のプロセスが終了し
 
 msgid "Cloud"
 msgstr "クラウド"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "クラウド版が近日登場。共同開発パートナーを募集中"
 
 msgid "Cloud sandboxes"
 msgstr "クラウドサンドボックス"
@@ -4012,6 +4018,9 @@ msgstr "このプルリクエストを読み込むためのホストに接続で
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "更新を開始するためにホストに接続できませんでした。オンラインであることを確認して、もう一度お試しください。"
 
+msgid "Could not reach the server."
+msgstr "サーバーに接続できませんでした。"
+
 msgid "Could not reach this workspace's machine"
 msgstr "このワークスペースのマシンに接続できませんでした"
 
@@ -4257,11 +4266,11 @@ msgstr "チームを作成"
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "MacBookに認証機能用のワークスペースを作って"
 
+msgid "Create again"
+msgstr "もう一度作成"
+
 msgid "Create an account"
 msgstr "アカウントを作成"
-
-msgid "Create an automation with an agent"
-msgstr "エージェントでオートメーションを作成"
 
 msgid "Create failed: {message}"
 msgstr "作成に失敗しました: {message}"
@@ -4882,6 +4891,9 @@ msgstr "音声入力"
 msgid "Dictation is not available on this device"
 msgstr "このデバイスでは音声入力を利用できません"
 
+msgid "Didn't hear back"
+msgstr "応答がありません"
+
 msgid "diff"
 msgstr "差分"
 
@@ -5479,9 +5491,6 @@ msgstr "各エージェントは専用のGitワークツリーで動くため、
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "すべての軸が次のティアのために働いています。これを維持すればティアは付いてきます。"
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "毎週金曜午後4時に、今週マージされたPRからリリースノートの下書きを作成する"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "毎週金曜午後4時に、今週マージされたPRからリリースノートの下書きを作成する。"
 
@@ -5502,9 +5511,6 @@ msgstr "毎週水曜午前9時に、今週マージされたPRを確認し、古
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "平日午前9時に、新しいGitHub issueを読み、ラベルを付け、レビュー用の返信を下書きする。"
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "平日午前9時に新しいGitHub issueをトリアージし、レビュー用の返信を下書きする"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "これが一般化するかどうかで議論が起きます。その議論こそ、このレベルに到達した証拠です。"
@@ -8467,6 +8473,9 @@ msgstr "他の{kindLower}テーマ"
 msgid "More actions"
 msgstr "その他の操作"
 
+msgid "More options"
+msgstr "その他のオプション"
+
 msgid "More pages"
 msgstr "その他のページ"
 
@@ -8631,6 +8640,9 @@ msgstr "別の対戦相手"
 msgid "New chat"
 msgstr "新しいチャット"
 
+msgid "New cloud workspace"
+msgstr "新規クラウドワークスペース"
+
 msgid "New environment"
 msgstr "新しい環境"
 
@@ -8772,9 +8784,6 @@ msgstr "次: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "いいですね。準備ができたらPRを作成してください。"
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "毎晩午前2時に小さなバグを1つ見つけて修正し、PRを作成する"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -8990,6 +8999,9 @@ msgstr "アイコンなし"
 
 msgid "No Internet Connection"
 msgstr "インターネット接続がありません"
+
+msgid "No internet connection."
+msgstr "インターネット接続がありません。"
 
 msgid "No issues found."
 msgstr "Issueが見つかりません。"
@@ -10895,9 +10907,6 @@ msgstr "パブリック"
 msgid "Public leaderboard"
 msgstr "公開リーダーボード"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "エージェントまたはCLIからページを公開すると、ここに表示されます。"
-
 msgid "Published"
 msgstr "公開日"
 
@@ -12640,6 +12649,9 @@ msgstr "濃さはこの開発者の最も活動量が多い日を基準にして
 msgid "Share"
 msgstr "共有"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "デザインやレポートを共有しましょう。フィードバックへの対応はエージェントに任せられます。"
+
 msgid "Share page"
 msgstr "ページを共有"
 
@@ -13342,6 +13354,9 @@ msgstr "ステップ {0} / 2"
 msgid "Step {step}: {name}"
 msgstr "ステップ{step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "ホストにまだ接続できません。"
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "処理を続けています — 大きなリポジトリでは数分かかることがあります。画面を離れても構いません。準備ができるとホームに表示されます。"
 
@@ -13452,9 +13467,6 @@ msgstr "スイート、そして共有アプリコンポーネントです。イ
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Supersetと監視対象のターミナルプロセスツリーが使用するCPUの合計。100%を超える場合は複数のCPUコアが動作しています。高い値が続くと、通常はUIの動作が重くなり、バッテリー消費も増えます。"
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "毎朝スタンドアップ前に失敗したCI実行をまとめる"
 
 msgid "Summary"
 msgstr "概要"
@@ -14076,6 +14088,9 @@ msgstr "ホストは{targetVersion}ではなく{0}で復帰しました。"
 msgid "The host did not come back within fifteen minutes."
 msgstr "ホストが15分以内に復帰しませんでした。"
 
+msgid "The host hasn't answered."
+msgstr "ホストからの応答がありません。"
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "ホストがSupersetリレーに接続されていません。このデバイスの場合は、設定 > リモートアクセスで「リレー経由でこのデバイスへのリモートアクセスを許可」をオンにしてから再試行してください。"
 
@@ -14241,6 +14256,9 @@ msgstr "Web版のエージェントUIは現時点では読み取り専用のプ�
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "ワークスペースの準備がまだできていません。もう一度お試しください。"
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "ワークスペースは作成されている可能性があります。表示された場合、この画面で開きます。"
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "ワークツリーと未コミットの変更が削除されます。この操作は元に戻せません。"
@@ -14563,9 +14581,6 @@ msgstr "ティア"
 
 msgid "Time range"
 msgstr "期間"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "ホストがワークスペースを作成するのを待つ間にタイムアウトしました。"
 
 msgid "Title"
 msgstr "タイトル"
@@ -15487,17 +15502,14 @@ msgstr "ダウンロードリンクの送信にのみ使用します。"
 msgid "We're hiring"
 msgstr "採用中"
 
-msgid "We're hiring engineers"
-msgstr "エンジニアを募集中"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "サンフランシスコでエンジニアを募集中"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "サンフランシスコでエンジニアを募集中。最初のソフトウェアファクトリープラットフォームを一緒に作りましょう。"
 
 msgid "We're hiring in San Francisco"
 msgstr "サンフランシスコで採用中"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "クラウド版を一緒に作り上げる共同開発パートナーを募集しています。ワークフローについてお聞かせください。協力の可能性について、こちらからご連絡します。"
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "この機能は作り直し中です。しばらくお待ちください。"
@@ -15620,6 +15632,9 @@ msgstr "いま作っているもの"
 msgid "What we're building now and next."
 msgstr "いま作っているものと、次に作るもの。"
 
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "クラウド上のSupersetで何を作りたいですか？"
+
 msgid "What would you like to know?"
 msgstr "何を知りたいですか?"
 
@@ -15706,6 +15721,9 @@ msgstr "ラベルあり"
 
 msgid "with or without attachments"
 msgstr "添付の有無を問わず"
+
+msgid "Work email"
+msgstr "勤務先のメールアドレス"
 
 msgid "Work from tickets"
 msgstr "チケットから作業を始める"

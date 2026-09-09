@@ -22,6 +22,7 @@ import { tokenizeCode } from "@/components/ai-elements/code-block";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import {
@@ -423,7 +424,7 @@ export function FilesChangedScreen() {
 									t({
 										message: "Could not delete file",
 									}),
-									cause instanceof Error ? cause.message : String(cause),
+									errorCopy(cause),
 								);
 							});
 					},

@@ -2226,9 +2226,6 @@ msgstr "Automations ({myFailedCount} failing)"
 msgid "Automations & event triggers"
 msgstr "Automations & event triggers"
 
-msgid "Automations docs"
-msgstr "Automations docs"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automations, {myFailedCount} failing"
 
@@ -2359,6 +2356,9 @@ msgstr "based off PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "Based on {0} tokens in the last 30 days, counting {1}."
+
+msgid "Become a design partner"
+msgstr "Become a design partner"
 
 msgid "Before"
 msgstr "Before"
@@ -2561,6 +2561,9 @@ msgstr "Browsing history"
 
 msgid "Bug"
 msgstr "Bug"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "Build the future of Superset in the cloud"
 
 msgid "Building the last piece of software"
 msgstr "Building the last piece of software"
@@ -3268,6 +3271,9 @@ msgstr "Closing this terminal will end the running process."
 
 msgid "Cloud"
 msgstr "Cloud"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "Cloud is coming. Become a design partner"
 
 msgid "Cloud sandboxes"
 msgstr "Cloud sandboxes"
@@ -4012,6 +4018,9 @@ msgstr "Could not reach the host to load this pull request."
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Could not reach the host to start the update. Check that it is online and try again."
 
+msgid "Could not reach the server."
+msgstr "Could not reach the server."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Could not reach this workspace's machine"
 
@@ -4257,11 +4266,11 @@ msgstr "Create a team"
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "Create a workspace for the auth feature on my MacBook"
 
+msgid "Create again"
+msgstr "Create again"
+
 msgid "Create an account"
 msgstr "Create an account"
-
-msgid "Create an automation with an agent"
-msgstr "Create an automation with an agent"
 
 msgid "Create failed: {message}"
 msgstr "Create failed: {message}"
@@ -4882,6 +4891,9 @@ msgstr "Dictate"
 msgid "Dictation is not available on this device"
 msgstr "Dictation is not available on this device"
 
+msgid "Didn't hear back"
+msgstr "Didn't hear back"
+
 msgid "diff"
 msgstr "diff"
 
@@ -5479,9 +5491,6 @@ msgstr "Every agent runs in its own Git worktree, so ten agents can work on ten 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Every Friday at 4pm, draft release notes from this week's merged PRs"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Every Friday at 4pm, draft release notes from this week's merged PRs."
 
@@ -5502,9 +5511,6 @@ msgstr "Every Wednesday at 9am, review this week's merged PRs and update any doc
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
@@ -8467,6 +8473,9 @@ msgstr "More {kindLower} themes"
 msgid "More actions"
 msgstr "More actions"
 
+msgid "More options"
+msgstr "More options"
+
 msgid "More pages"
 msgstr "More pages"
 
@@ -8631,6 +8640,9 @@ msgstr "new challengers"
 msgid "New chat"
 msgstr "New chat"
 
+msgid "New cloud workspace"
+msgstr "New cloud workspace"
+
 msgid "New environment"
 msgstr "New environment"
 
@@ -8772,9 +8784,6 @@ msgstr "Next: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Nice, open a PR when ready."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Nightly at 2am, find one small bug, fix it, and open a PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -8990,6 +8999,9 @@ msgstr "No icon"
 
 msgid "No Internet Connection"
 msgstr "No Internet Connection"
+
+msgid "No internet connection."
+msgstr "No internet connection."
 
 msgid "No issues found."
 msgstr "No issues found."
@@ -10895,9 +10907,6 @@ msgstr "Public"
 msgid "Public leaderboard"
 msgstr "Public leaderboard"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Publish a page from an agent or the CLI and it will show up here."
-
 msgid "Published"
 msgstr "Published"
 
@@ -12640,6 +12649,9 @@ msgstr "Shade is relative to this developer's busiest day"
 msgid "Share"
 msgstr "Share"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Share designs and reports. Let your agent handle the feedback."
+
 msgid "Share page"
 msgstr "Share page"
 
@@ -13342,6 +13354,9 @@ msgstr "Step {0} of 2"
 msgid "Step {step}: {name}"
 msgstr "Step {step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "Still can't reach the host."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 
@@ -13452,9 +13467,6 @@ msgstr "suite for agent UIs, and shared app components. Click any import path to
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Summarize failed CI runs every morning before standup"
 
 msgid "Summary"
 msgstr "Summary"
@@ -14076,6 +14088,9 @@ msgstr "The host came back on {0}, not {targetVersion}."
 msgid "The host did not come back within fifteen minutes."
 msgstr "The host did not come back within fifteen minutes."
 
+msgid "The host hasn't answered."
+msgstr "The host hasn't answered."
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 
@@ -14241,6 +14256,9 @@ msgstr "The web agents UI is a read-only preview for now."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "The workspace is not ready yet. Try again."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "The workspace may still have been created. This screen opens it if it appears."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "The worktree and any uncommitted changes will be removed. This cannot be undone."
@@ -14563,9 +14581,6 @@ msgstr "Tier"
 
 msgid "Time range"
 msgstr "Time range"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "Timed out waiting for the host to create the workspace."
 
 msgid "Title"
 msgstr "Title"
@@ -15487,17 +15502,14 @@ msgstr "We'll only use this to send your download link."
 msgid "We're hiring"
 msgstr "We're hiring"
 
-msgid "We're hiring engineers"
-msgstr "We're hiring engineers"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "We're hiring engineers in San Francisco"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 
 msgid "We're hiring in San Francisco"
 msgstr "We're hiring in San Francisco"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "We're rebuilding this feature. Check back soon."
@@ -15620,6 +15632,9 @@ msgstr "What We're Building"
 msgid "What we're building now and next."
 msgstr "What we're building now and next."
 
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "What would you like to build with Superset in the cloud?"
+
 msgid "What would you like to know?"
 msgstr "What would you like to know?"
 
@@ -15706,6 +15721,9 @@ msgstr "With label"
 
 msgid "with or without attachments"
 msgstr "with or without attachments"
+
+msgid "Work email"
+msgstr "Work email"
 
 msgid "Work from tickets"
 msgstr "Work from tickets"

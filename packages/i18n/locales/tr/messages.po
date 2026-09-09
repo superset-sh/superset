@@ -2226,9 +2226,6 @@ msgstr "Otomasyonlar ({myFailedCount} başarısız)"
 msgid "Automations & event triggers"
 msgstr "Otomasyonlar ve olay tetikleyicileri"
 
-msgid "Automations docs"
-msgstr "Otomasyon belgeleri"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Otomasyonlar, {myFailedCount} başarısız"
 
@@ -2359,6 +2356,9 @@ msgstr "PR #{0} temel alınarak"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "Son 30 gündeki {0} token temel alınmıştır; {1} sayılıyor."
+
+msgid "Become a design partner"
+msgstr "Geliştirme ortağı olun"
 
 msgid "Before"
 msgstr "Önce"
@@ -2561,6 +2561,9 @@ msgstr "Tarama geçmişi"
 
 msgid "Bug"
 msgstr "Böcek"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "Superset’in buluttaki geleceğini inşa edin"
 
 msgid "Building the last piece of software"
 msgstr "Son yazılım parçasını inşa etmek"
@@ -3268,6 +3271,9 @@ msgstr "Bu terminali kapatmak çalışan süreci sonlandırır."
 
 msgid "Cloud"
 msgstr "Bulut"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "Bulut sürümü yakında. Geliştirme ortağı olun"
 
 msgid "Cloud sandboxes"
 msgstr "Bulut sandbox'ları"
@@ -4012,6 +4018,9 @@ msgstr "Bu pull request'i yüklemek için host'a erişilemedi."
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Güncellemeyi başlatmak için ana makineye ulaşılamadı. Çevrimiçi olduğundan emin olup tekrar deneyin."
 
+msgid "Could not reach the server."
+msgstr "Sunucuya ulaşılamadı."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Bu çalışma alanının makinesine erişilemedi"
 
@@ -4257,11 +4266,11 @@ msgstr "Takım oluştur"
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "MacBook'umda auth özelliği için bir çalışma alanı oluştur"
 
+msgid "Create again"
+msgstr "Yeniden oluştur"
+
 msgid "Create an account"
 msgstr "Hesap oluşturun"
-
-msgid "Create an automation with an agent"
-msgstr "Bir ajanla otomasyon oluştur"
 
 msgid "Create failed: {message}"
 msgstr "Oluşturulamadı: {message}"
@@ -4882,6 +4891,9 @@ msgstr "Sesle yaz"
 msgid "Dictation is not available on this device"
 msgstr "Bu cihazda sesle yazma kullanılamıyor"
 
+msgid "Didn't hear back"
+msgstr "Yanıt alınamadı"
+
 msgid "diff"
 msgstr "fark"
 
@@ -5479,9 +5491,6 @@ msgstr "Her ajan kendi Git worktree'sinde çalışır, böylece on ajan tek bir 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Her eksen bir sonraki katman için üzerine düşeni yapıyor. Bunu sürdür, katman kendiliğinden gelir."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Her cuma 16.00'da bu haftanın birleştirilen PR'larından sürüm notları taslağı hazırla"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Her cuma 16.00'da bu haftanın birleştirilen PR'larından sürüm notları taslağı hazırla."
 
@@ -5502,9 +5511,6 @@ msgstr "Her çarşamba 09.00'da bu haftanın birleştirilen PR'larını incele v
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Her hafta içi 09.00'da yeni GitHub issue'larını oku, etiket uygula ve incelemem için ilk yanıt taslağını hazırla."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Her hafta içi 09.00'da yeni GitHub issue'larını sınıflandır ve incelemem için yanıt taslakları hazırla"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Herkes bunun genellenebilir olup olmadığını tartışır. Bu tartışma, düzeye ulaşıldığının işaretidir."
@@ -8467,6 +8473,9 @@ msgstr "Daha fazla {kindLower} tema"
 msgid "More actions"
 msgstr "Diğer eylemler"
 
+msgid "More options"
+msgstr "Diğer seçenekler"
+
 msgid "More pages"
 msgstr "Daha fazla sayfa"
 
@@ -8631,6 +8640,9 @@ msgstr "yeni rakipler"
 msgid "New chat"
 msgstr "Yeni sohbet"
 
+msgid "New cloud workspace"
+msgstr "Yeni bulut çalışma alanı"
+
 msgid "New environment"
 msgstr "Yeni ortam"
 
@@ -8772,9 +8784,6 @@ msgstr "Sonraki: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Güzel, hazır olduğunda bir PR aç."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Her gece 02.00'de küçük bir hata bul, düzelt ve PR aç"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -8990,6 +8999,9 @@ msgstr "Simge yok"
 
 msgid "No Internet Connection"
 msgstr "İnternet bağlantısı yok"
+
+msgid "No internet connection."
+msgstr "İnternet bağlantısı yok."
 
 msgid "No issues found."
 msgstr "Issue bulunamadı."
@@ -10895,9 +10907,6 @@ msgstr "Herkese açık"
 msgid "Public leaderboard"
 msgstr "Herkese açık lider tablosu"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Bir ajandan veya CLI'den sayfa yayımlayın, burada görünsün."
-
 msgid "Published"
 msgstr "Yayınlanma"
 
@@ -12640,6 +12649,9 @@ msgstr "Renk koyuluğu bu geliştiricinin en yoğun gününe göredir"
 msgid "Share"
 msgstr "Paylaş"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Tasarımları ve raporları paylaşın. Geri bildirimleri ajanınız ele alsın."
+
 msgid "Share page"
 msgstr "Sayfayı paylaş"
 
@@ -13342,6 +13354,9 @@ msgstr "Adım {0} / 2"
 msgid "Step {step}: {name}"
 msgstr "Adım {step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "Host'a hâlâ ulaşılamıyor."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Hâlâ çalışıyor — büyük depolar birkaç dakika sürebilir. Ayrılabilirsiniz; çalışma alanı hazır olduğunda Ana sayfada görünecek."
 
@@ -13452,9 +13467,6 @@ msgstr "paketi ve paylaşılan uygulama bileşenleri. Kopyalamak için herhangi 
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Superset ve izlenen terminal süreç ağaçlarının kullandığı CPU toplamı. %100'ün üzeri, birden fazla CPU çekirdeğinin meşgul olduğu anlamına gelir. Sürekli yüksek değerler genellikle arayüzde yavaşlığa ve daha hızlı pil tüketimine yol açar."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Her sabah standup'tan önce başarısız CI çalıştırmalarını özetle"
 
 msgid "Summary"
 msgstr "Özet"
@@ -14076,6 +14088,9 @@ msgstr "Ana makine {targetVersion} yerine {0} ile geri döndü."
 msgid "The host did not come back within fifteen minutes."
 msgstr "Ana makine on beş dakika içinde geri gelmedi."
 
+msgid "The host hasn't answered."
+msgstr "Host yanıt vermedi."
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host, Superset rölesine bağlı değil. Bu cihazsa Ayarlar > Uzaktan erişim bölümünde \"Uzaktan erişimnın bu cihaza röle üzerinden erişmesine izin ver\" seçeneğini açıp yeniden deneyin."
 
@@ -14241,6 +14256,9 @@ msgstr "Web ajan arayüzü şimdilik salt okunur bir önizlemedir."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "Çalışma alanı henüz hazır değil. Yeniden deneyin."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "Çalışma alanı yine de oluşturulmuş olabilir. Göründüğünde bu ekran onu açar."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree ve commit'lenmemiş tüm değişiklikler kaldırılacak. Bu geri alınamaz."
@@ -14563,9 +14581,6 @@ msgstr "Katman"
 
 msgid "Time range"
 msgstr "Zaman aralığı"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "Host'un çalışma alanını oluşturması beklenirken zaman aşımına uğrandı."
 
 msgid "Title"
 msgstr "Başlık"
@@ -15487,17 +15502,14 @@ msgstr "Bunu yalnızca indirme bağlantınızı göndermek için kullanacağız.
 msgid "We're hiring"
 msgstr "İşe alıyoruz"
 
-msgid "We're hiring engineers"
-msgstr "Mühendis arıyoruz"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "San Francisco'da mühendis arıyoruz"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "San Francisco'da mühendis arıyoruz. İlk yazılım fabrikası platformunu kurmamıza yardım edin."
 
 msgid "We're hiring in San Francisco"
 msgstr "San Francisco'da işe alıyoruz"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "Bulut ürünümüzü şekillendirmeye yardımcı olacak geliştirme ortakları arıyoruz. İş akışınızı anlatın; birlikte çalışma fırsatlarını değerlendirmek için sizinle iletişime geçelim."
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "Bu özelliği yeniden yapıyoruz. Yakında tekrar bakın."
@@ -15620,6 +15632,9 @@ msgstr "Ne geliştiriyoruz"
 msgid "What we're building now and next."
 msgstr "Şimdi ve sırada ne geliştiriyoruz."
 
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "Bulutta Superset ile ne geliştirmek istersiniz?"
+
 msgid "What would you like to know?"
 msgstr "Ne öğrenmek istersiniz?"
 
@@ -15706,6 +15721,9 @@ msgstr "Etiketli"
 
 msgid "with or without attachments"
 msgstr "ekli veya eksiz"
+
+msgid "Work email"
+msgstr "İş e-postası"
 
 msgid "Work from tickets"
 msgstr "Biletlerden çalışma"

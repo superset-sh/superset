@@ -2226,9 +2226,6 @@ msgstr "Automazioni ({myFailedCount} in errore)"
 msgid "Automations & event triggers"
 msgstr "Automazioni e trigger da eventi"
 
-msgid "Automations docs"
-msgstr "Documentazione automazioni"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automazioni, {myFailedCount} in errore"
 
@@ -2359,6 +2356,9 @@ msgstr "basato sulla PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "In base a {0} token negli ultimi 30 giorni, contando {1}."
+
+msgid "Become a design partner"
+msgstr "Diventa partner di progettazione"
 
 msgid "Before"
 msgstr "Prima"
@@ -2561,6 +2561,9 @@ msgstr "Cronologia di navigazione"
 
 msgid "Bug"
 msgstr "Bug"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "Costruisci il futuro di Superset nel cloud"
 
 msgid "Building the last piece of software"
 msgstr "Costruiamo l'ultimo pezzo di software"
@@ -3268,6 +3271,9 @@ msgstr "Chiudendo questo terminale terminerai il processo in esecuzione."
 
 msgid "Cloud"
 msgstr "Cloud"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "Il cloud sta arrivando. Diventa partner di progettazione"
 
 msgid "Cloud sandboxes"
 msgstr "Sandbox nel cloud"
@@ -4012,6 +4018,9 @@ msgstr "Impossibile raggiungere l'host per caricare questa pull request."
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Impossibile raggiungere l'host per avviare l'aggiornamento. Verifica che sia online e riprova."
 
+msgid "Could not reach the server."
+msgstr "Impossibile raggiungere il server."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Impossibile raggiungere la macchina di questo workspace"
 
@@ -4257,11 +4266,11 @@ msgstr "Crea un team"
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "Crea un workspace per la funzione di autenticazione sul mio MacBook"
 
+msgid "Create again"
+msgstr "Crea di nuovo"
+
 msgid "Create an account"
 msgstr "Crea un account"
-
-msgid "Create an automation with an agent"
-msgstr "Crea un'automazione con un agente"
 
 msgid "Create failed: {message}"
 msgstr "Creazione non riuscita: {message}"
@@ -4882,6 +4891,9 @@ msgstr "Detta"
 msgid "Dictation is not available on this device"
 msgstr "La dettatura non è disponibile su questo dispositivo"
 
+msgid "Didn't hear back"
+msgstr "Nessuna risposta"
+
 msgid "diff"
 msgstr "diff"
 
@@ -5479,9 +5491,6 @@ msgstr "Ogni agente gira nel proprio worktree Git, così dieci agenti possono la
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Ogni asse fa la sua parte per il livello successivo. Mantienilo e il livello arriva da sé."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Ogni venerdì alle 16, prepara le note di rilascio dalle PR unite questa settimana"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Ogni venerdì alle 16, prepara le note di rilascio dalle PR unite questa settimana."
 
@@ -5502,9 +5511,6 @@ msgstr "Ogni mercoledì alle 9, rivedi le PR unite questa settimana e aggiorna l
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Ogni giorno feriale alle 9, leggi le nuove issue GitHub, applica le etichette e prepara una prima risposta da rivedere."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Ogni giorno feriale alle 9, smista le nuove issue GitHub e prepara le risposte da rivedere"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Tutti discutono se questo sia generalizzabile. Quella discussione è il segno che il livello è stato raggiunto."
@@ -8467,6 +8473,9 @@ msgstr "Altri temi {kindLower}"
 msgid "More actions"
 msgstr "Altre azioni"
 
+msgid "More options"
+msgstr "Altre opzioni"
+
 msgid "More pages"
 msgstr "Altre pagine"
 
@@ -8631,6 +8640,9 @@ msgstr "nuovi sfidanti"
 msgid "New chat"
 msgstr "Nuova chat"
 
+msgid "New cloud workspace"
+msgstr "Nuovo workspace cloud"
+
 msgid "New environment"
 msgstr "Nuovo ambiente"
 
@@ -8772,9 +8784,6 @@ msgstr "Avanti: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Ottimo, apri una PR quando è pronta."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Ogni notte alle 2, trova un piccolo bug, correggilo e apri una PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -8990,6 +8999,9 @@ msgstr "Nessuna icona"
 
 msgid "No Internet Connection"
 msgstr "Nessuna connessione a internet"
+
+msgid "No internet connection."
+msgstr "Nessuna connessione a Internet."
 
 msgid "No issues found."
 msgstr "Nessuna issue trovata."
@@ -10895,9 +10907,6 @@ msgstr "Pubblico"
 msgid "Public leaderboard"
 msgstr "Classifica pubblica"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Pubblica una pagina da un agente o dalla CLI e comparirà qui."
-
 msgid "Published"
 msgstr "Pubblicato"
 
@@ -12640,6 +12649,9 @@ msgstr "L'intensità è relativa al giorno più intenso di questo sviluppatore"
 msgid "Share"
 msgstr "Condividi"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Condividi design e report. Lascia che il tuo agente gestisca il feedback."
+
 msgid "Share page"
 msgstr "Condividi la pagina"
 
@@ -13342,6 +13354,9 @@ msgstr "Passaggio {0} di 2"
 msgid "Step {step}: {name}"
 msgstr "Passaggio {step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "L'host resta irraggiungibile."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Ancora al lavoro — i repo grandi possono richiedere qualche minuto. Puoi uscire; il workspace comparirà nella Home quando è pronto."
 
@@ -13452,9 +13467,6 @@ msgstr "per le interfacce degli agenti e i componenti condivisi dell'app. Clicca
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Somma della CPU usata da Superset e dagli alberi di processi dei terminali monitorati. Oltre il 100% significa che più core della CPU sono occupati. Valori alti prolungati di solito causano lentezza dell'interfaccia e maggiore consumo della batteria."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Riassumi le esecuzioni CI fallite ogni mattina prima dello standup"
 
 msgid "Summary"
 msgstr "Riepilogo"
@@ -14076,6 +14088,9 @@ msgstr "L'host è tornato alla {0}, non alla {targetVersion}."
 msgid "The host did not come back within fifteen minutes."
 msgstr "L’host non è tornato disponibile entro quindici minuti."
 
+msgid "The host hasn't answered."
+msgstr "L'host non ha risposto."
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "L'host non è connesso al relay di Superset. Se è questo dispositivo, attiva \"Consenti l'accesso remoto a questo dispositivo tramite relay\" in Impostazioni > Accesso remoto, poi riprova."
 
@@ -14241,6 +14256,9 @@ msgstr "L'interfaccia web degli agenti è per ora un'anteprima in sola lettura."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "Il workspace non è ancora pronto. Riprova."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "Il workspace potrebbe essere stato creato comunque. Questa schermata lo apre se compare."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Il worktree e le eventuali modifiche non committate verranno rimossi. L'operazione non può essere annullata."
@@ -14563,9 +14581,6 @@ msgstr "Livello"
 
 msgid "Time range"
 msgstr "Periodo"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "Tempo scaduto in attesa che l'host creasse il workspace."
 
 msgid "Title"
 msgstr "Titolo"
@@ -15487,17 +15502,14 @@ msgstr "La useremo solo per inviarti il link di download."
 msgid "We're hiring"
 msgstr "Stiamo assumendo"
 
-msgid "We're hiring engineers"
-msgstr "Stiamo assumendo ingegneri"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "Stiamo assumendo ingegneri a San Francisco"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "Stiamo assumendo ingegneri a San Francisco. Aiutaci a costruire la prima piattaforma di software factory."
 
 msgid "We're hiring in San Francisco"
 msgstr "Stiamo assumendo a San Francisco"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "Cerchiamo partner di progettazione per dare forma alla nostra offerta cloud. Raccontaci come lavori e ti contatteremo per valutare una collaborazione."
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "Stiamo ricostruendo questa funzione. Torna a controllare presto."
@@ -15620,6 +15632,9 @@ msgstr "Cosa stiamo costruendo"
 msgid "What we're building now and next."
 msgstr "Cosa stiamo costruendo ora e dopo."
 
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "Cosa vorresti creare con Superset nel cloud?"
+
 msgid "What would you like to know?"
 msgstr "Cosa vorresti sapere?"
 
@@ -15706,6 +15721,9 @@ msgstr "Con etichetta"
 
 msgid "with or without attachments"
 msgstr "con o senza allegati"
+
+msgid "Work email"
+msgstr "Email di lavoro"
 
 msgid "Work from tickets"
 msgstr "Lavora dai ticket"

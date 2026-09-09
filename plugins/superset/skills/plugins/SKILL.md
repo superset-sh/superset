@@ -2,7 +2,7 @@
 name: plugins
 description: Install Superset plugins, connect the accounts they need, and call their MCP tools through the credential proxy. Use when the user wants a plugin installed, removed, enabled, or connected, asks what tools a plugin exposes, wants to call one, adds a marketplace, or asks why a plugin's tools are not available.
 argument-hint: what you want to install, connect, or call
-allowed-tools: Bash(superset plugins:*) Bash(superset mcp:*) Bash(superset marketplace:*) Bash(superset skills:*)
+allowed-tools: Bash(superset plugins:*) Bash(superset mcp:*) Bash(superset skills:*)
 ---
 
 # Plugins and their tools
@@ -53,7 +53,7 @@ which they want rather than picking.
 
 ## 4. Call its tools
 
-Address a connection by id, from the PLUGIN ID column of `superset plugins list`. That is a
+Address a connection by id, from the `PLUGIN ID` column of `superset plugins list`. That is a
 *connection* id, so a plugin with two connected accounts has two, one per account. Pick the
 account deliberately; there is no default, and a plugin name is not accepted here.
 
@@ -67,7 +67,9 @@ echo '{"team":"ENG","title":"..."}' | superset mcp call-tool create_issue --conn
 ```
 
 List the tools before calling one. Names and argument schemas come from the plugin's server,
-not from anything in this repo, and they change between versions.
+not from anything in this repo, and they change between versions. The `integrations` skill
+covers this end in full: reading a tool's arguments, choosing an account, parsing the
+result.
 
 The call goes out from Superset's API, which attaches the credential. That is why this
 works with no token on the machine, and why a network-restricted sandbox can still reach a
@@ -85,14 +87,18 @@ plugin's tools.
 ## 5. Turn things off
 
 ```bash
-superset plugins remove linear        # uninstall, and reap the skills it provisioned
-superset marketplace list
-superset marketplace install owner/repo          # add a third-party marketplace
-superset marketplace remove <name>
+superset plugins uninstall linear     # uninstall, and reap the skills it provisioned
+superset plugins disable linear       # keep the install, stop provisioning its skills
+superset plugins marketplace list
+superset plugins marketplace add owner/repo      # add a third-party marketplace
+superset plugins marketplace remove <name>
 ```
 
-`remove` reaps only what the plugin provisioned; hand-written skills in the same directory
-are left alone.
+`uninstall` reaps only what the plugin provisioned; hand-written skills in the same directory
+are left alone. It removes the plugin locally even when the account call fails, and says so.
+Read that message: the stored credential is revoked as part of the account removal, so an
+unconfirmed removal means the skills are gone from this machine while the connection lives
+on. Check with `superset plugins connections --plugin <name>` and run `uninstall` again.
 
 ## Anti-patterns
 

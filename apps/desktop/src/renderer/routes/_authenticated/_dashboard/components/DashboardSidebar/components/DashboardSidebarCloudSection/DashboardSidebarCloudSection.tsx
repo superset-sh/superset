@@ -1,11 +1,17 @@
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useMemo } from "react";
+import { LuPlus } from "react-icons/lu";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { CLOUD_HOST_ID } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/DevicePicker";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useOpenNewWorkspaceModalForHost } from "renderer/stores/new-workspace-modal";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import {
 	type CloudPullRequestRef,
@@ -39,6 +45,12 @@ export function DashboardSidebarCloudSection({
 	const { t } = useLingui();
 	const { workspaces: cloudWorkspaces } = useCloudWorkspaces();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	// The same flag that offers Cloud in the device picker, and the same
+	// audience the API allows (`assertInternal`). Undefined means the flags
+	// haven't resolved, which is neither a yes nor a no.
+	const cloudFlag = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
+	const isCloudEnabled = cloudFlag === true;
+	const openNewWorkspaceModalForHost = useOpenNewWorkspaceModalForHost();
 	const isSectionCollapsed = useSidebarSectionsCollapseStore(
 		(s) => s.collapsed.cloud,
 	);
@@ -178,7 +190,17 @@ export function DashboardSidebarCloudSection({
 		localStateRows,
 	]);
 
-	if (rows.length === 0) return null;
+	// A definite no takes the rows with it. The list query is gated on the same
+	// flag, but react-query keeps what it already fetched when a query is
+	// disabled, so a flag that flips off mid-session would otherwise leave the
+	// section it gates on screen.
+	if (cloudFlag === false) return null;
+	// The header carries the only way to create a cloud workspace, so it stays
+	// at zero rows like the Sessions header does — a user with no cloud
+	// workspaces is exactly who needs the "+". Only on a definite yes, so
+	// unresolved flags don't leave an empty Cloud section behind; the
+	// collapsed rail has no headers, so there it is still rows or nothing.
+	if (rows.length === 0 && (isCollapsed || !isCloudEnabled)) return null;
 
 	if (isCollapsed) {
 		return (
@@ -201,7 +223,29 @@ export function DashboardSidebarCloudSection({
 			<DashboardSidebarSectionHeader
 				label={t({ message: "Cloud" })}
 				section="cloud"
-			/>
+			>
+				{isCloudEnabled && (
+					<Tooltip delayDuration={700}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								aria-label={t({ message: "New cloud workspace" })}
+								onClick={(event) => {
+									event.stopPropagation();
+									openNewWorkspaceModalForHost(CLOUD_HOST_ID);
+								}}
+								onKeyDown={(event) => event.stopPropagation()}
+								className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+							>
+								<LuPlus className="size-3.5" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">
+							<Trans>New cloud workspace</Trans>
+						</TooltipContent>
+					</Tooltip>
+				)}
+			</DashboardSidebarSectionHeader>
 			{!isSectionCollapsed &&
 				rows.map((workspace) => (
 					<DashboardSidebarWorkspaceItem

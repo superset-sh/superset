@@ -2226,9 +2226,6 @@ msgstr "Automatizace (selhává: {myFailedCount})"
 msgid "Automations & event triggers"
 msgstr "Automatizace a spouštěče událostí"
 
-msgid "Automations docs"
-msgstr "Dokumentace k automatizacím"
-
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automatizace, selhává: {myFailedCount}"
 
@@ -2359,6 +2356,9 @@ msgstr "na základě PR #{0}"
 #. placeholder {1}: preview.providers.join(" and ")
 msgid "Based on {0} tokens in the last 30 days, counting {1}."
 msgstr "Na základě {0} tokenů za posledních 30 dní, počítáno z {1}."
+
+msgid "Become a design partner"
+msgstr "Staňte se partnerem pro vývoj"
 
 msgid "Before"
 msgstr "Před"
@@ -2561,6 +2561,9 @@ msgstr "Historie prohlížení"
 
 msgid "Bug"
 msgstr "Brouk"
+
+msgid "Build the future of Superset in the cloud"
+msgstr "Tvořte budoucnost Superset v cloudu"
 
 msgid "Building the last piece of software"
 msgstr "Stavíme poslední kus softwaru"
@@ -3268,6 +3271,9 @@ msgstr "Zavřením tohoto terminálu ukončíte běžící proces."
 
 msgid "Cloud"
 msgstr "Cloud"
+
+msgid "Cloud is coming. Become a design partner"
+msgstr "Cloud přichází. Staňte se partnerem pro vývoj"
 
 msgid "Cloud sandboxes"
 msgstr "Cloudové sandboxy"
@@ -4012,6 +4018,9 @@ msgstr "Nepodařilo se spojit s hostem a načíst tento pull request."
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Nepodařilo se spojit s hostitelem a zahájit aktualizaci. Zkontrolujte, že je online, a zkuste to znovu."
 
+msgid "Could not reach the server."
+msgstr "Nepodařilo se spojit se serverem."
+
 msgid "Could not reach this workspace's machine"
 msgstr "Nepodařilo se spojit s počítačem tohoto pracovního prostoru"
 
@@ -4257,11 +4266,11 @@ msgstr "Vytvořit tým"
 msgid "Create a workspace for the auth feature on my MacBook"
 msgstr "Vytvoř na mém MacBooku pracovní prostor pro funkci auth"
 
+msgid "Create again"
+msgstr "Vytvořit znovu"
+
 msgid "Create an account"
 msgstr "Vytvořit účet"
-
-msgid "Create an automation with an agent"
-msgstr "Vytvořit automatizaci s agentem"
 
 msgid "Create failed: {message}"
 msgstr "Vytvoření selhalo: {message}"
@@ -4882,6 +4891,9 @@ msgstr "Diktovat"
 msgid "Dictation is not available on this device"
 msgstr "Diktování není na tomto zařízení dostupné"
 
+msgid "Didn't hear back"
+msgstr "Bez odpovědi"
+
 msgid "diff"
 msgstr "rozdíl"
 
@@ -5479,9 +5491,6 @@ msgstr "Každý agent běží ve vlastním git worktree, takže deset agentů m�
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Každá osa táhne na další úroveň. Udržte to a úroveň přijde sama."
 
-msgid "Every Friday at 4pm, draft release notes from this week's merged PRs"
-msgstr "Každý pátek v 16:00 sepiš poznámky k vydání ze sloučených PR za tento týden"
-
 msgid "Every Friday at 4pm, draft release notes from this week's merged PRs."
 msgstr "Každý pátek v 16:00 sepiš poznámky k vydání ze sloučených PR za tento týden."
 
@@ -5502,9 +5511,6 @@ msgstr "Každou středu v 9:00 projdi sloučené PR za tento týden a aktualizuj
 
 msgid "Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review."
 msgstr "Každý všední den v 9:00 přečti nové GitHub issues, přiřaď štítky a připrav první odpověď ke kontrole."
-
-msgid "Every weekday at 9am, triage new GitHub issues and draft replies for my review"
-msgstr "Každý všední den v 9:00 roztřiď nové GitHub issues a připrav odpovědi ke kontrole"
 
 msgid "Everyone argues about whether this generalizes. That argument is the sign the level was reached."
 msgstr "Všichni se dohadují, jestli se to dá zobecnit. Právě ten spor je známkou toho, že úroveň byla dosažena."
@@ -8467,6 +8473,9 @@ msgstr "Další {kindLower} motivy"
 msgid "More actions"
 msgstr "Další akce"
 
+msgid "More options"
+msgstr "Další možnosti"
+
 msgid "More pages"
 msgstr "Další stránky"
 
@@ -8631,6 +8640,9 @@ msgstr "noví vyzyvatelé"
 msgid "New chat"
 msgstr "Nový chat"
 
+msgid "New cloud workspace"
+msgstr "Nový cloudový pracovní prostor"
+
 msgid "New environment"
 msgstr "Nové prostředí"
 
@@ -8772,9 +8784,6 @@ msgstr "Další: {nextLabel}"
 
 msgid "Nice, open a PR when ready."
 msgstr "Super, až budeš mít hotovo, otevři PR."
-
-msgid "Nightly at 2am, find one small bug, fix it, and open a PR"
-msgstr "Každou noc ve 2:00 najdi jednu malou chybu, oprav ji a otevři PR"
 
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
@@ -8990,6 +8999,9 @@ msgstr "Bez ikony"
 
 msgid "No Internet Connection"
 msgstr "Bez připojení k internetu"
+
+msgid "No internet connection."
+msgstr "Není připojení k internetu."
 
 msgid "No issues found."
 msgstr "Nenalezeny žádné issues."
@@ -10895,9 +10907,6 @@ msgstr "Veřejný"
 msgid "Public leaderboard"
 msgstr "Veřejný žebříček"
 
-msgid "Publish a page from an agent or the CLI and it will show up here."
-msgstr "Zveřejněte stránku z agenta nebo z CLI a objeví se tady."
-
 msgid "Published"
 msgstr "Publikováno"
 
@@ -12640,6 +12649,9 @@ msgstr "Sytost barvy se vztahuje k nejrušnějšímu dni tohoto vývojáře"
 msgid "Share"
 msgstr "Sdílet"
 
+msgid "Share designs and reports. Let your agent handle the feedback."
+msgstr "Sdílejte návrhy a zprávy. Zpětnou vazbu nechte na svém agentovi."
+
 msgid "Share page"
 msgstr "Sdílet stránku"
 
@@ -13342,6 +13354,9 @@ msgstr "Krok {0} ze 2"
 msgid "Step {step}: {name}"
 msgstr "Krok {step}: {name}"
 
+msgid "Still can't reach the host."
+msgstr "Host je stále nedostupný."
+
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Stále pracuji — u velkých repozitářů to může trvat pár minut. Můžete odejít; pracovní prostor se objeví na úvodní obrazovce, až bude hotový."
 
@@ -13452,9 +13467,6 @@ msgstr "pro UI agentů a sdílené komponenty aplikace. Kliknutím na libovolnou
 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Součet CPU využitého Supersetem a sledovanými stromy procesů terminálu. Přes 100 % znamená, že je vytíženo více jader. Dlouhodobě vysoké hodnoty obvykle způsobují sekání UI a rychlejší vybíjení baterie."
-
-msgid "Summarize failed CI runs every morning before standup"
-msgstr "Každé ráno před standupem shrň neúspěšné běhy CI"
 
 msgid "Summary"
 msgstr "Souhrn"
@@ -14076,6 +14088,9 @@ msgstr "Hostitel se vrátil s verzí {0}, ne {targetVersion}."
 msgid "The host did not come back within fifteen minutes."
 msgstr "Hostitel se neobnovil do patnácti minut."
 
+msgid "The host hasn't answered."
+msgstr "Host neodpověděl."
+
 msgid "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 msgstr "Host není připojený k Superset relay. Pokud jde o toto zařízení, zapněte „Povolit vzdálený přístup k tomuto zařízení přes relay“ v Nastavení > Vzdálený přístup a zkuste to znovu."
 
@@ -14241,6 +14256,9 @@ msgstr "Webové rozhraní agentů je zatím náhled jen pro čtení."
 
 msgid "The workspace is not ready yet. Try again."
 msgstr "Pracovní prostor ještě není připravený. Zkuste to znovu."
+
+msgid "The workspace may still have been created. This screen opens it if it appears."
+msgstr "Pracovní prostor mohl přesto vzniknout. Tato obrazovka ho otevře, jakmile se objeví."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree a všechny necommitnuté změny budou odstraněny. Tuto akci nelze vrátit zpět."
@@ -14563,9 +14581,6 @@ msgstr "Tarif"
 
 msgid "Time range"
 msgstr "Časové období"
-
-msgid "Timed out waiting for the host to create the workspace."
-msgstr "Vypršel čas při čekání, až host vytvoří pracovní prostor."
 
 msgid "Title"
 msgstr "Název"
@@ -15487,17 +15502,14 @@ msgstr "Použijeme ho jen k odeslání odkazu ke stažení."
 msgid "We're hiring"
 msgstr "Nabíráme"
 
-msgid "We're hiring engineers"
-msgstr "Nabíráme inženýry"
-
-msgid "We're hiring engineers in San Francisco"
-msgstr "Nabíráme inženýry v San Franciscu"
-
 msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
 msgstr "Nabíráme inženýry v San Franciscu. Pomozte nám postavit první platformu softwarové továrny."
 
 msgid "We're hiring in San Francisco"
 msgstr "Nabíráme v San Franciscu"
+
+msgid "We're looking for design partners to help shape our cloud offering. Tell us about your workflow and we'll be in touch to explore working together."
+msgstr "Hledáme partnery pro vývoj, kteří pomohou utvářet naši cloudovou nabídku. Popište nám svůj pracovní postup a ozveme se vám, abychom probrali možnosti spolupráce."
 
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "Tuto funkci předěláváme. Zkuste to brzy znovu."
@@ -15620,6 +15632,9 @@ msgstr "Co stavíme"
 msgid "What we're building now and next."
 msgstr "Co stavíme teď a co bude dál."
 
+msgid "What would you like to build with Superset in the cloud?"
+msgstr "Co byste chtěli vytvořit se Superset v cloudu?"
+
 msgid "What would you like to know?"
 msgstr "Co byste chtěli vědět?"
 
@@ -15706,6 +15721,9 @@ msgstr "S popiskem"
 
 msgid "with or without attachments"
 msgstr "s přílohou i bez ní"
+
+msgid "Work email"
+msgstr "Pracovní e-mail"
 
 msgid "Work from tickets"
 msgstr "Práce z ticketů"

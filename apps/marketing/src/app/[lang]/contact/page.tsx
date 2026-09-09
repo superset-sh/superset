@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
 import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
-import { ContactForm } from "./components/ContactForm";
+import { ContactForm } from "../components/ContactForm";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();

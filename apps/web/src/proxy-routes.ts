@@ -5,6 +5,10 @@ const otherPublicRoutes = [
 	"/api/auth/desktop",
 	"/accept-invitation",
 	"/cli/auth/code",
+	// Deep link passthroughs: they render nothing but a bounce into the desktop
+	// app, so a sign-in wall only strands the recipient of a shared link.
+	"/tasks",
+	"/automations",
 ] as const;
 
 const publicRoutes = [...authPageRoutes, ...otherPublicRoutes] as const;

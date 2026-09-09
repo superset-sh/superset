@@ -8,13 +8,21 @@ import {
 	DropdownMenuSeparator,
 } from "@superset/ui/dropdown-menu";
 import type { ReactNode } from "react";
-import { LuClock, LuPause, LuPencil, LuPlay, LuTrash2 } from "react-icons/lu";
+import {
+	LuClock,
+	LuLink,
+	LuPause,
+	LuPencil,
+	LuPlay,
+	LuTrash2,
+} from "react-icons/lu";
 
 interface AutomationActionsMenuItemsProps {
 	kind: "context" | "dropdown";
 	isOwner: boolean;
 	enabled: boolean;
 	onEdit: () => void;
+	onCopyLink: () => void;
 	onRunNow: () => void;
 	onToggleEnabled: () => void;
 	onHistory: () => void;
@@ -26,6 +34,7 @@ export function AutomationActionsMenuItems({
 	isOwner,
 	enabled,
 	onEdit,
+	onCopyLink,
 	onRunNow,
 	onToggleEnabled,
 	onHistory,
@@ -59,6 +68,15 @@ export function AutomationActionsMenuItems({
 					<>
 						<LuPencil className="size-4" />
 						{isOwner ? <Trans>Edit</Trans> : <Trans>View</Trans>}
+					</>
+				),
+			})}
+			{renderItem({
+				onSelect: onCopyLink,
+				children: (
+					<>
+						<LuLink className="size-4" />
+						<Trans>Copy link</Trans>
 					</>
 				),
 			})}

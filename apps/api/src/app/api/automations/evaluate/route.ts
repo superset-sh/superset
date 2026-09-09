@@ -45,8 +45,8 @@ function scheduleFromConfig(
  * sweep finished, and a sweep that is still going is not worth joining.
  */
 async function sweepUndispatched() {
-	const sweep = await singleFlight("automations.redispatch", () =>
-		redispatchUndispatched(),
+	const sweep = await singleFlight("automations.redispatch", (tx) =>
+		redispatchUndispatched(tx),
 	);
 	return sweep.ran ? sweep.result : { skipped: true };
 }

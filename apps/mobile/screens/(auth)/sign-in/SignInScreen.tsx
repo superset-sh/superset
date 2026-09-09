@@ -1,4 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { useState } from "react";
@@ -7,6 +7,7 @@ import { Image, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { signIn } from "@/lib/auth/client";
 import { env } from "@/lib/env";
+import { errorCopy } from "@/lib/errors";
 import { openUrl } from "@/lib/open-url";
 
 import { DevSignInOptions } from "./components/DevSignInOptions";
@@ -18,7 +19,6 @@ const TERMS_URL = "https://superset.sh/terms";
 const PRIVACY_URL = "https://superset.sh/privacy";
 
 export function SignInScreen() {
-	const { t } = useLingui();
 	const [error, setError] = useState<string | null>(null);
 
 	const handleSignIn = async (provider: SocialProvider) => {
@@ -29,14 +29,8 @@ export function SignInScreen() {
 				callbackURL: "/",
 			});
 		} catch (err) {
-			const message =
-				err instanceof Error
-					? err.message
-					: t({
-							message: "Something went wrong",
-						});
 			console.error("[sign-in] Error:", err);
-			setError(message);
+			setError(errorCopy(err));
 		}
 	};
 
@@ -84,14 +78,8 @@ export function SignInScreen() {
 			) {
 				return;
 			}
-			const message =
-				err instanceof Error
-					? err.message
-					: t({
-							message: "Something went wrong",
-						});
 			console.error("[sign-in] Apple error:", err);
-			setError(message);
+			setError(errorCopy(err));
 		}
 	};
 

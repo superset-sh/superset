@@ -4,6 +4,7 @@ import { randomUUID } from "expo-crypto";
 import { File } from "expo-file-system";
 import { useRouter } from "expo-router";
 import { getHostWorkspacesQueryKey } from "@/hooks/useHostWorkspaces";
+import { errorCopy, transportFailureKind } from "@/lib/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import { getHostTerminalsQueryKey } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
@@ -61,6 +62,10 @@ export function useCreateTerminalWorkspace() {
 			if (replace) router.replace(href);
 			else router.push(href);
 
+			// Attachments upload before the create is sent, so a failure there
+			// proves the workspace was never requested — only a failure at or
+			// after the create itself leaves the outcome unknown.
+			let createRequested = false;
 			try {
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				const attachmentIds = await Promise.all(
@@ -92,6 +97,7 @@ export function useCreateTerminalWorkspace() {
 				};
 
 				try {
+					createRequested = true;
 					await client.workspaces.createEnqueued.mutate(createInput);
 				} catch (error) {
 					if (!isMissingProcedureError(error)) throw error;
@@ -124,13 +130,20 @@ export function useCreateTerminalWorkspace() {
 				});
 				return { workspaceId };
 			} catch (error) {
-				const failureReason =
-					error instanceof Error ? error.message : String(error);
-				failPending(workspaceId, failureReason);
+				// A transport failure proves nothing about the worktree: the
+				// relay's 30s cap can reject a create the host went on to
+				// finish. Say so rather than asserting a failure.
+				const kind = transportFailureKind(error);
+				failPending(workspaceId, {
+					outcome: kind && createRequested ? "unknown" : "failed",
+					message: errorCopy(error),
+				});
 				posthog.capture("workspace_create_failed", {
 					project_id: target.projectId,
 					host_kind: "remote",
 					source: "mobile_composer",
+					// Stable English, never the display copy above.
+					failure_kind: kind ?? "server",
 				});
 				throw error;
 			}

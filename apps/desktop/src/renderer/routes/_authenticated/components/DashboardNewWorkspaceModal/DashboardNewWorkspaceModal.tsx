@@ -16,6 +16,7 @@ import { newWorkspaceAttachmentsStore } from "renderer/stores/new-workspace-atta
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
+	usePreSelectedHostId,
 	usePreSelectedProjectId,
 	usePreSelectedSession,
 } from "renderer/stores/new-workspace-modal";
@@ -48,6 +49,7 @@ export function DashboardNewWorkspaceModal() {
 	const closeModal = useCloseNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
 	const preSelectedSession = usePreSelectedSession();
+	const preSelectedHostId = usePreSelectedHostId();
 	const navigate = useNavigate();
 	const variant = useNewWorkspaceScreenVariant(isOpen);
 	const isScreen = variant === "test";
@@ -59,17 +61,20 @@ export function DashboardNewWorkspaceModal() {
 		closeModal();
 		void navigate({
 			to: "/new-workspace",
-			search: preSelectedSession
-				? { session: true }
-				: preSelectedProjectId
-					? { projectId: preSelectedProjectId }
-					: undefined,
+			search: {
+				session: preSelectedSession ? true : undefined,
+				projectId: preSelectedSession
+					? undefined
+					: (preSelectedProjectId ?? undefined),
+				host: preSelectedHostId ?? undefined,
+			},
 		});
 	}, [
 		isScreen,
 		isOpen,
 		closeModal,
 		navigate,
+		preSelectedHostId,
 		preSelectedProjectId,
 		preSelectedSession,
 	]);
@@ -103,6 +108,7 @@ export function DashboardNewWorkspaceModal() {
 							isOpen={isOpen}
 							preSelectedProjectId={preSelectedProjectId}
 							preSelectedSession={preSelectedSession}
+							preSelectedHostId={preSelectedHostId}
 						/>
 					</DialogContent>
 				</Dialog>

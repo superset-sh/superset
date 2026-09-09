@@ -29,6 +29,22 @@ const qstash = new Client({
 	retry: { retries: 1, backoff: () => 150 },
 });
 
+/**
+ * Ceiling on one publish, covering both of the client's attempts and the
+ * backoff between them.
+ *
+ * The client takes neither a timeout nor an `AbortSignal` — it builds its
+ * fetch options from method, headers, body and keepalive and nothing else — so
+ * without this a publish is bounded only by the platform's fetch defaults,
+ * which is minutes. (`publishJSON` does take a `timeout`, but that is the
+ * ceiling QStash puts on calling our consumer, not on this call.) Both callers
+ * have a far shorter clock over them: the webhook route answers Linear inside
+ * five seconds, and `jobs/sweep-abandoned` holds an advisory lock open across
+ * its publishes. Three seconds is an order of magnitude above a healthy
+ * publish and still leaves the webhook route most of Linear's five.
+ */
+const PUBLISH_TIMEOUT_MS = 3_000;
+
 export const PROCESS_PATH =
 	"/api/integrations/linear/jobs/process-delivery" as const;
 const PROCESS_URL = `${env.NEXT_PUBLIC_API_URL}${PROCESS_PATH}`;
@@ -50,9 +66,10 @@ export const linearDeliveryWorkSchema = z.object({
 export type LinearDeliveryWork = z.infer<typeof linearDeliveryWorkSchema>;
 
 /**
- * Throws if QStash will not take the message. The caller must not acknowledge
- * a delivery it has failed to queue: the row is durable but nothing would ever
- * pick it up, and a webhook lost in silence is worse than one Linear retries.
+ * Throws if QStash will not take the message, or does not answer inside
+ * `PUBLISH_TIMEOUT_MS`. The caller must not acknowledge a delivery it has
+ * failed to queue: the row is durable but nothing would ever pick it up, and a
+ * webhook lost in silence is worse than one Linear retries.
  */
 export async function enqueueLinearDelivery(
 	work: LinearDeliveryWork,
@@ -65,9 +82,32 @@ export async function enqueueLinearDelivery(
 	// right lifetime — the route queues nothing whose row is already carried
 	// through, and `recordWebhookDelivery` reopens a failed one so a redelivery
 	// is queued again. A duplicate that does get through costs one query.
-	await qstash.publishJSON({
+	const publish = qstash.publishJSON({
 		url: PROCESS_URL,
 		body: { ...work, receivedAt: work.receivedAt.toISOString() },
 		retries: 3,
 	});
+
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	try {
+		await Promise.race([
+			publish,
+			new Promise<never>((_resolve, reject) => {
+				timer = setTimeout(
+					() =>
+						reject(
+							new Error(`QStash publish exceeded ${PUBLISH_TIMEOUT_MS}ms`),
+						),
+					PUBLISH_TIMEOUT_MS,
+				);
+			}),
+		]);
+	} finally {
+		clearTimeout(timer);
+		// Nothing can cancel the fetch, so a publish this stopped waiting for is
+		// still in flight and may land, or reject, long after the throw. Nobody
+		// is reading it by then; this keeps it off the unhandled-rejection path.
+		// A late success costs the one duplicate query priced above.
+		publish.catch(() => {});
+	}
 }

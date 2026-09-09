@@ -30,6 +30,7 @@ import { isInsideSessionsRoot } from "../workspace-creation/shared/session-paths
 import { isInsideProjectWorktreesRoot } from "../workspace-creation/shared/worktree-paths";
 import { cleanupGitOps, isIndeterminateGitTaskFailure } from "./git-ops";
 import { isMainWorkspace } from "./is-main-workspace";
+import { removeDirectoryTree } from "./remove-directory-tree";
 
 /**
  * Process-local guard against concurrent destroys of the same workspace.
@@ -576,7 +577,7 @@ async function runDestroyPhases(
 					);
 				} else {
 					try {
-						await rm(local.worktreePath, { recursive: true, force: true });
+						await removeDirectoryTree(local.worktreePath);
 					} catch (err) {
 						const message = err instanceof Error ? err.message : String(err);
 						throw new TRPCError({

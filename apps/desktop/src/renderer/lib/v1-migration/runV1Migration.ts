@@ -1,5 +1,6 @@
 import type { HostServiceClient } from "renderer/lib/host-service-client";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { migrateV1Groups, type V1GroupTarget } from "./groups";
 import type { V1MigrationIpc } from "./ipc";
 import {
 	isTerminalStatus,
@@ -45,6 +46,7 @@ export interface V1MigrationSummary {
 }
 
 export interface RunV1MigrationDeps {
+	groupTarget?: V1GroupTarget;
 	organizationId: string;
 	hostClient: HostServiceClient;
 	/** Electron-main reads/writes; inject fakes in tests. */
@@ -117,8 +119,12 @@ export async function runV1Migration(
 		await flush();
 		workspaces = await migrateWorkspaces(deps, ledger, outcomes);
 		await flush();
+		const groups = await migrateV1Groups(deps);
 		settings = await migrateSettings(deps, ledger, outcomes);
 		await flush();
+		for (const key of Object.keys(settings) as (keyof KindSummary)[]) {
+			settings[key] += groups[key];
+		}
 		terminals = await migrateTerminals(deps, ledger, outcomes);
 		await flush();
 		presets = await migratePresets(deps, ledger, outcomes);

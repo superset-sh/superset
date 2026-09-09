@@ -41,12 +41,9 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-	LuCircleHelp,
-	LuPlus,
 	LuRotateCw,
 	LuSearch,
 	LuSearchX,
-	LuSparkles,
 	LuTerminal,
 	LuTriangleAlert,
 	LuX,
@@ -58,6 +55,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { DATA_TABLE_HEAD_CELL } from "renderer/routes/_authenticated/_dashboard/components/DataTableHeader";
+import { FeatureHeader } from "renderer/routes/_authenticated/_dashboard/components/FeatureHeader";
 import {
 	SortableHeader,
 	type SortDirection,
@@ -633,62 +631,18 @@ function AutomationsPage() {
 
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
-					<div className="flex items-center justify-between">
-						<h1 className="text-xl font-semibold tracking-tight">
-							<Trans>Automations</Trans>
-						</h1>
-						<div className="flex items-center gap-2">
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										asChild
-										variant="ghost"
-										size="icon-sm"
-										className="size-8 text-muted-foreground"
-									>
-										<a
-											href={`${COMPANY.DOCS_URL}/automations`}
-											target="_blank"
-											rel="noreferrer"
-											aria-label={t({
-												message: "Automations docs",
-											})}
-										>
-											<LuCircleHelp className="size-4" />
-										</a>
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent>
-									<Trans>Automations docs</Trans>
-								</TooltipContent>
-							</Tooltip>
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								className="h-8 gap-1.5 px-3"
-								disabled={creatingWithAgent}
-								onClick={handleCreateWithAgent}
-							>
-								<LuSparkles className="size-4" />
-								<span>
-									<Trans>Create with AI</Trans>
-								</span>
-							</Button>
-							<Button
-								type="button"
-								size="sm"
-								className="h-8 gap-1.5 px-3"
-								disabled={createMutation.isPending}
-								onClick={() => createMutation.mutate(null)}
-							>
-								<LuPlus className="size-4" />
-								<span>
-									<Trans>New automation</Trans>
-								</span>
-							</Button>
-						</div>
-					</div>
+					<FeatureHeader
+						title={<Trans>Automations</Trans>}
+						docsUrl={`${COMPANY.DOCS_URL}/automations`}
+						onCreate={handleCreateWithAgent}
+						isCreating={creatingWithAgent}
+						showCreate={!orgEmpty}
+						secondaryAction={{
+							label: <Trans>New automation</Trans>,
+							onSelect: () => createMutation.mutate(null),
+							disabled: createMutation.isPending,
+						}}
+					/>
 
 					{/* Zero-count stats and search are noise while a tab is empty;
 					    with nothing in the org at all the tabs go too. */}
@@ -839,6 +793,9 @@ function AutomationsPage() {
 								<AutomationsEmptyState
 									onSelectTemplate={handleSelectTemplate}
 									onCreateWithAgent={handleCreateWithAgent}
+									isCreating={creatingWithAgent}
+									onCreateManually={() => createMutation.mutate(null)}
+									isCreatingManually={createMutation.isPending}
 								/>
 							</div>
 						) : showTeamEmptyState ? (

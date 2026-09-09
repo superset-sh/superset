@@ -7,6 +7,7 @@ import {
 	getHostWorkspacesQueryKey,
 	type HostWorkspaceRow,
 } from "@/hooks/useHostWorkspaces";
+import { errorCopy, isTransportError } from "@/lib/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { isTrpcErrorWithData } from "@/lib/host-service/errors";
 
@@ -184,5 +185,8 @@ function failureDetail(error: unknown): string | undefined {
 	) {
 		return undefined;
 	}
-	return error instanceof Error ? error.message : undefined;
+	// A transport failure is silent here for the same reason: the fresh list
+	// above answered, so a dropped connection is not what stopped the delete.
+	if (isTransportError(error)) return undefined;
+	return errorCopy(error);
 }
