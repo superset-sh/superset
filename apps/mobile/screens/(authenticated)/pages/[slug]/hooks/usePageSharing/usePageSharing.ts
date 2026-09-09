@@ -27,8 +27,6 @@ export function usePageSharingActions(
 	slug: string | undefined,
 ) {
 	const queryClient = useQueryClient();
-	// The pulled page carries both visibility and sharedVersion, so it is what
-	// the sheet renders from and what has to be refetched after either change.
 	const invalidate = useCallback(() => {
 		void queryClient.invalidateQueries({
 			queryKey: ["cloud", "page", "pull", slug],

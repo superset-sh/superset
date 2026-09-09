@@ -35,7 +35,9 @@ export function ComposeCommentSheet() {
 					placeholder={t({ message: "Write a comment" })}
 					pending={createThread.isPending}
 					onSubmit={async (body) => {
-						if (!version || !anchor) return;
+						if (version == null || anchor == null) {
+							throw new Error("This page is no longer open for comments");
+						}
 						await createThread.mutateAsync({ version, anchor, body });
 						clear();
 						router.back();

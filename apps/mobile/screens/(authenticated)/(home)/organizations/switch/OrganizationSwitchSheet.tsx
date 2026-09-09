@@ -12,8 +12,6 @@ export function OrganizationSwitchSheet() {
 	const { t } = useLingui();
 	const router = useRouter();
 	const theme = useTheme();
-	// The session carries the active org's plan, so the paywall gate only
-	// re-evaluates once it is refetched.
 	const { refetch } = useSession();
 	const { organizations, activeOrganizationId, switchOrganization } =
 		useOrganizations();

@@ -31,8 +31,12 @@ interface PageFrameProps {
 	onError: () => void;
 }
 
-function documentUrl(url: string): string {
-	return url.split("#")[0];
+function sameOrigin(url: string, src: string): boolean {
+	try {
+		return new URL(url).origin === new URL(src).origin;
+	} catch {
+		return false;
+	}
 }
 
 export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
@@ -73,7 +77,7 @@ export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
 				onHttpError={onError}
 				onShouldStartLoadWithRequest={(request) => {
 					if (!request.isTopFrame) return true;
-					if (documentUrl(request.url) === documentUrl(src)) return true;
+					if (sameOrigin(request.url, src)) return true;
 					if (request.navigationType === "click") openLink(request.url);
 					return false;
 				}}

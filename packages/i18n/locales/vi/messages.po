@@ -9687,6 +9687,9 @@ msgstr "Chỉ chủ sở hữu mới xem được lịch sử prompt"
 msgid "Only the person who created this page can change it"
 msgstr "Chỉ người tạo trang này mới thay đổi được"
 
+msgid "Only the person who created this page can change these."
+msgstr "Chỉ người tạo trang này mới có thể thay đổi."
+
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Chỉ tác giả của luồng hoặc chủ sở hữu trang mới xóa được"
 

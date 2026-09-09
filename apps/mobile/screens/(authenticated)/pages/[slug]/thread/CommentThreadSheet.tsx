@@ -12,17 +12,11 @@ import {
 } from "../hooks/usePageComments";
 import { usePageCommentStore } from "../stores/pageCommentStore";
 
-/**
- * The scroll view must stay the sheet's only layout child (formSheet
- * cold-mount flex bug); title/toolbar render null into the native bar.
- */
 export function CommentThreadSheet() {
 	const { t } = useLingui();
 	const router = useRouter();
 	const { slug } = useLocalSearchParams<{ slug: string }>();
 	const scrollRef = useRef<ScrollView>(null);
-	// A long thread would otherwise open at its oldest comment, with the
-	// composer off-screen — the newest message is what you came for.
 	const settled = useRef(false);
 	const [resolving, setResolving] = useState(false);
 	const threadId = usePageCommentStore((state) => state.threadId);

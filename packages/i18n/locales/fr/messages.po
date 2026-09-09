@@ -9687,6 +9687,9 @@ msgstr "Seul le propriétaire peut consulter l'historique des prompts"
 msgid "Only the person who created this page can change it"
 msgstr "Seule la personne qui a créé cette page peut la modifier"
 
+msgid "Only the person who created this page can change these."
+msgstr "Seule la personne qui a créé cette page peut les modifier."
+
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Seul l'auteur du fil ou le propriétaire de la page peut le supprimer"
 

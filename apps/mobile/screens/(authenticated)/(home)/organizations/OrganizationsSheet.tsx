@@ -8,12 +8,6 @@ import { useTheme } from "@/hooks/useTheme";
 import { OrganizationAvatar } from "@/screens/(authenticated)/components/OrganizationAvatar";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 
-/**
- * The organization's home: everything that belongs to the org rather than to
- * one workspace. Pages lives here beside switching and settings — it is not a
- * step in the workspace flow the home list is built around, and Tasks and
- * Automations will want the same shelf.
- */
 export function OrganizationsSheet() {
 	const { t } = useLingui();
 	const router = useRouter();

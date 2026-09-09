@@ -4,18 +4,13 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { ArrowUp } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { Alert, Pressable, TextInput, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useSession } from "@/lib/auth/client";
+import { errorCopy } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
-/**
- * The composer the rest of the app uses, at comment scale: your avatar, a
- * single pill that grows with the text, and a send button that only lights up
- * when there is something to send. No quoted anchor — the block itself is
- * still outlined on the page behind this sheet, which says it better.
- */
 export function CommentComposer({
 	placeholder,
 	autoFocus = false,
@@ -36,8 +31,12 @@ export function CommentComposer({
 	const send = async () => {
 		if (!canSend) return;
 		void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-		setBody("");
-		await onSubmit(trimmed).catch(() => setBody(trimmed));
+		try {
+			await onSubmit(trimmed);
+			setBody("");
+		} catch (error) {
+			Alert.alert(t({ message: "Comment not posted" }), errorCopy(error));
+		}
 	};
 
 	return (

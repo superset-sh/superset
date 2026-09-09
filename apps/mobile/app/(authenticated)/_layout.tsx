@@ -43,7 +43,7 @@ export default function AuthenticatedLayout() {
 	if (
 		unpaid &&
 		pathname !== "/" &&
-		pathname !== "/organizations" &&
+		!pathname.startsWith("/organizations") &&
 		!pathname.startsWith("/settings")
 	) {
 		return <Redirect href="/(authenticated)/(home)" />;
@@ -66,7 +66,7 @@ export default function AuthenticatedLayout() {
 					title: t({ message: "Filter" }),
 					sheetAllowedDetents: [0.4],
 					sheetGrabberVisible: true,
-					...pageScreenOptions,
+					...glassHeaderOptions,
 				}}
 			/>
 			<Stack.Screen
@@ -84,7 +84,7 @@ export default function AuthenticatedLayout() {
 					title: "",
 					sheetAllowedDetents: [0.6, 1.0],
 					sheetGrabberVisible: true,
-					...pageScreenOptions,
+					...glassHeaderOptions,
 				}}
 			/>
 			<Stack.Screen
@@ -94,7 +94,7 @@ export default function AuthenticatedLayout() {
 					title: t({ message: "Write a comment" }),
 					sheetAllowedDetents: [0.5],
 					sheetGrabberVisible: true,
-					...pageScreenOptions,
+					...glassHeaderOptions,
 				}}
 			/>
 			<Stack.Screen
@@ -104,7 +104,7 @@ export default function AuthenticatedLayout() {
 					title: t({ message: "Quick feedback" }),
 					sheetAllowedDetents: [0.6],
 					sheetGrabberVisible: true,
-					...pageScreenOptions,
+					...glassHeaderOptions,
 				}}
 			/>
 			<Stack.Screen
@@ -114,7 +114,7 @@ export default function AuthenticatedLayout() {
 					title: t({ message: "Comment" }),
 					sheetAllowedDetents: [0.7],
 					sheetGrabberVisible: true,
-					...pageScreenOptions,
+					...glassHeaderOptions,
 				}}
 			/>
 			<Stack.Screen
@@ -124,7 +124,7 @@ export default function AuthenticatedLayout() {
 					title: t({ message: "All comments" }),
 					sheetAllowedDetents: [1.0],
 					sheetGrabberVisible: true,
-					...pageScreenOptions,
+					...glassHeaderOptions,
 				}}
 			/>
 			<Stack.Screen
@@ -134,7 +134,7 @@ export default function AuthenticatedLayout() {
 					title: t({ message: "Share page" }),
 					sheetAllowedDetents: [0.75],
 					sheetGrabberVisible: true,
-					...pageScreenOptions,
+					...glassHeaderOptions,
 				}}
 			/>
 			<Stack.Screen

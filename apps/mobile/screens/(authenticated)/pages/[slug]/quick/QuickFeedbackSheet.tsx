@@ -1,7 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { Alert, Pressable, ScrollView, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -32,33 +32,42 @@ export function QuickFeedbackSheet() {
 	};
 
 	return (
-		<ScrollView
-			className="bg-background flex-1"
-			contentInsetAdjustmentBehavior="automatic"
-		>
-			<View className="px-4 py-2">
-				{QUICK_PRESETS.map((preset) => {
-					const label = i18n._(preset.body);
-					return (
-						<Pressable
-							key={preset.id}
-							accessibilityRole="button"
-							disabled={createThread.isPending}
-							onPress={() => void pick(label)}
-							className={cn(
-								"min-h-11 flex-row items-center gap-3 rounded-xl px-2 py-3 active:opacity-60",
-								createThread.isPending && "opacity-50",
-							)}
-						>
-							<Icon
-								as={preset.icon}
-								className="text-muted-foreground size-4.5"
-							/>
-							<Text className="text-[15px]">{label}</Text>
-						</Pressable>
-					);
-				})}
-			</View>
-		</ScrollView>
+		<>
+			<Stack.Toolbar placement="left">
+				<Stack.Toolbar.Button
+					accessibilityLabel={t({ message: "Close" })}
+					icon="xmark"
+					onPress={() => router.back()}
+				/>
+			</Stack.Toolbar>
+			<ScrollView
+				className="bg-background flex-1"
+				contentInsetAdjustmentBehavior="automatic"
+			>
+				<View className="px-4 py-2">
+					{QUICK_PRESETS.map((preset) => {
+						const label = i18n._(preset.body);
+						return (
+							<Pressable
+								key={preset.id}
+								accessibilityRole="button"
+								disabled={createThread.isPending}
+								onPress={() => void pick(label)}
+								className={cn(
+									"min-h-11 flex-row items-center gap-3 rounded-xl px-2 py-3 active:opacity-60",
+									createThread.isPending && "opacity-50",
+								)}
+							>
+								<Icon
+									as={preset.icon}
+									className="text-muted-foreground size-4.5"
+								/>
+								<Text className="text-[15px]">{label}</Text>
+							</Pressable>
+						);
+					})}
+				</View>
+			</ScrollView>
+		</>
 	);
 }

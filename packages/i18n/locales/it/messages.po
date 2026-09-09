@@ -9687,6 +9687,9 @@ msgstr "Solo il proprietario può vedere la cronologia dei prompt"
 msgid "Only the person who created this page can change it"
 msgstr "Solo chi ha creato questa pagina può modificarla"
 
+msgid "Only the person who created this page can change these."
+msgstr "Solo chi ha creato questa pagina può modificarli."
+
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Solo l'autore del thread o il proprietario della pagina può eliminarlo"
 

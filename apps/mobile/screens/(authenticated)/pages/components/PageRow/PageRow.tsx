@@ -10,11 +10,6 @@ import type { OrgPage } from "../../hooks/usePages";
 
 const EDIT_THRESHOLD_MS = 60_000;
 
-/**
- * Visibility rides with the title because it qualifies the page, not the
- * authorship — which leaves the second line to say who and when, with the
- * owner's initials carrying the who.
- */
 export function PageRow({ page }: { page: OrgPage }) {
 	const router = useRouter();
 

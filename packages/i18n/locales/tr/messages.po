@@ -9687,6 +9687,9 @@ msgstr "İstem geçmişini yalnızca sahibi görebilir"
 msgid "Only the person who created this page can change it"
 msgstr "Bu sayfayı yalnızca oluşturan kişi değiştirebilir"
 
+msgid "Only the person who created this page can change these."
+msgstr "Bunları yalnızca bu sayfayı oluşturan kişi değiştirebilir."
+
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Konuyu yalnızca yazarı veya sayfanın sahibi silebilir"
 

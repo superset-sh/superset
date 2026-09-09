@@ -9687,6 +9687,9 @@ msgstr "Историю промптов может смотреть только
 msgid "Only the person who created this page can change it"
 msgstr "Изменить эту страницу может только тот, кто её создал"
 
+msgid "Only the person who created this page can change these."
+msgstr "Изменить это может только тот, кто создал эту страницу."
+
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Удалить может только автор ветки или владелец страницы"
 

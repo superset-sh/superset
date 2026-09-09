@@ -77,6 +77,7 @@ export function PageDetailScreen({
 	const [failedSrc, setFailedSrc] = useState<string | null>(null);
 	const [frameEpoch, setFrameEpoch] = useState(0);
 	const [commentMode, setCommentMode] = useState(false);
+	const [focused, setFocused] = useState(true);
 	const [selection, setSelection] = useState<Selection | null>(null);
 	const [rects, setRects] = useState<Record<string, FrameRect>>({});
 	const [container, setContainer] = useState({ width: 0, height: 0 });
@@ -123,18 +124,20 @@ export function PageDetailScreen({
 
 	useFocusEffect(
 		useCallback(() => {
+			setFocused(true);
 			setFrameEpoch((epoch) => epoch + 1);
 			void comments.refetch();
+			return () => setFocused(false);
 		}, [comments.refetch]),
 	);
 
 	useEffect(() => {
-		if (restoredScroll.current || frameEpoch === 0) return;
+		if (restoredScroll.current || !loaded) return;
 		const y = Number(scrollY);
 		if (!Number.isFinite(y) || y <= 0) return;
 		restoredScroll.current = true;
 		send({ type: "restore-scroll", y });
-	}, [frameEpoch, scrollY, send]);
+	}, [loaded, scrollY, send]);
 
 	const onFrameMessage = useCallback((message: FrameMessage) => {
 		if (message.type === "ready") setFrameEpoch((epoch) => epoch + 1);
@@ -191,7 +194,6 @@ export function PageDetailScreen({
 		(route: "compose" | "quick") => {
 			if (!selection || !pageId || !version) return;
 			setPick({ pageId, version, anchor: selection.anchor });
-			setSelection(null);
 			router.push({
 				pathname:
 					route === "compose"
@@ -262,9 +264,6 @@ export function PageDetailScreen({
 						setCommentMode((enabled) => !enabled);
 					}}
 				/>
-				{/* Comments sits beside share, and is rendered whatever the count:
-				    a control that appears only once a page has feedback is one the
-				    first commenter never finds. */}
 				<Stack.Toolbar.Button
 					icon="bubble.left.and.bubble.right"
 					accessibilityLabel={t({ message: "Show all comments" })}
@@ -358,14 +357,16 @@ export function PageDetailScreen({
 									}}
 									className="absolute rounded-sm border border-blue-500 bg-blue-500/10"
 								/>
-								<SelectionToolbar
-									rect={selection.rect}
-									container={container}
-									onComment={() => openSheet("compose")}
-									onQuickMenu={() => openSheet("quick")}
-									onQuick={(body) => void postQuick(body)}
-									onDismiss={() => setSelection(null)}
-								/>
+								{focused ? (
+									<SelectionToolbar
+										rect={selection.rect}
+										container={container}
+										onComment={() => openSheet("compose")}
+										onQuickMenu={() => openSheet("quick")}
+										onQuick={(body) => void postQuick(body)}
+										onDismiss={() => setSelection(null)}
+									/>
+								) : null}
 							</>
 						) : null}
 					</View>

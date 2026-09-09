@@ -9,11 +9,6 @@ import type { ServerThread } from "../../hooks/usePageComments";
 
 type Comment = ServerThread["comments"][number];
 
-/**
- * Name and time on one line, body beneath, actions under that — the shape a
- * phone reader already knows from every social comment list. No card: the row
- * is the unit, and a border around each thread only adds edges to scan past.
- */
 export function CommentRow({
 	comment,
 	onReply,

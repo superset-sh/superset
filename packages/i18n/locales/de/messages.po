@@ -9687,6 +9687,9 @@ msgstr "Nur der Eigentümer kann den Prompt-Verlauf sehen"
 msgid "Only the person who created this page can change it"
 msgstr "Nur wer diese Seite erstellt hat, kann sie ändern"
 
+msgid "Only the person who created this page can change these."
+msgstr "Nur wer diese Seite erstellt hat, kann das ändern."
+
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Nur der Autor des Threads oder der Inhaber der Seite kann ihn löschen"
 

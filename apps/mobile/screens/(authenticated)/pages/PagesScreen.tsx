@@ -17,6 +17,7 @@ export function PagesScreen() {
 	const pages = usePagesQuery();
 	const scope = usePagesFilterStore((state) => state.scope);
 	const hasHydrated = usePagesFilterStore((state) => state.hasHydrated);
+	const offline = pages.status === "pending" && pages.fetchStatus === "paused";
 
 	const visible = useMemo(
 		() => (pages.data ?? NO_PAGES).filter((page) => matchesScope(page, scope)),
@@ -34,8 +35,6 @@ export function PagesScreen() {
 		[],
 	);
 
-	// The saved scope arrives after AsyncStorage answers; rendering "All"
-	// first would flash every page before narrowing to the one you chose.
 	if (pages.isLoading || !hasHydrated) {
 		return (
 			<View className="bg-background flex-1 items-center justify-center">
@@ -75,13 +74,15 @@ export function PagesScreen() {
 				ListEmptyComponent={
 					<View className="items-center justify-center px-8 py-20">
 						<Text className="text-muted-foreground text-center">
-							{pages.error
-								? t({ message: "Pages could not be loaded" })
-								: scope === "all"
-									? t({ message: "No pages yet" })
-									: t({ message: "No pages match this filter" })}
+							{offline
+								? t({ message: "You are offline" })
+								: pages.error
+									? t({ message: "Pages could not be loaded" })
+									: scope === "all"
+										? t({ message: "No pages yet" })
+										: t({ message: "No pages match this filter" })}
 						</Text>
-						{pages.error || scope !== "all" ? null : (
+						{offline || pages.error || scope !== "all" ? null : (
 							<Text className="text-muted-foreground/70 mt-1 text-center text-sm">
 								{t({
 									message: "Ask an agent to publish one from the desktop app.",

@@ -9687,6 +9687,9 @@ msgstr "소유자만 프롬프트 기록을 볼 수 있습니다"
 msgid "Only the person who created this page can change it"
 msgstr "이 페이지를 만든 사람만 변경할 수 있습니다"
 
+msgid "Only the person who created this page can change these."
+msgstr "이 페이지를 만든 사람만 변경할 수 있습니다."
+
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "스레드 작성자 또는 페이지 소유자만 삭제할 수 있습니다"
 

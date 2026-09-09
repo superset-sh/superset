@@ -11,10 +11,6 @@ import { usePageCommentStore } from "../stores/pageCommentStore";
 
 const VISIBLE_REPLIES = 2;
 
-/**
- * Every thread on the page as one flat list: the root comment reads as the
- * row, its replies indent beneath it, and the rest collapse behind a count.
- */
 export function AllCommentsSheet() {
 	const { t } = useLingui();
 	const router = useRouter();

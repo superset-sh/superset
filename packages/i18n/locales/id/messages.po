@@ -9687,6 +9687,9 @@ msgstr "Hanya pemilik yang bisa melihat riwayat prompt"
 msgid "Only the person who created this page can change it"
 msgstr "Hanya orang yang membuat halaman ini yang bisa mengubahnya"
 
+msgid "Only the person who created this page can change these."
+msgstr "Hanya orang yang membuat halaman ini yang dapat mengubahnya."
+
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Hanya penulis thread atau pemilik halaman yang bisa menghapusnya"
 

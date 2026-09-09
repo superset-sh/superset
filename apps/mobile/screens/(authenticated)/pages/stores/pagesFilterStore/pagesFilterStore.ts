@@ -2,16 +2,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-/**
- * Desktop's scopes minus "pinned" — favouriting is desktop-only, and a tab
- * that is always empty here is worse than no tab.
- */
 export const PAGE_SCOPES = ["all", "team", "mine"] as const;
 export type PageScope = (typeof PAGE_SCOPES)[number];
 
 interface PagesFilterStore {
 	scope: PageScope;
-	/** False until AsyncStorage has answered — the saved scope isn't here yet. */
 	hasHydrated: boolean;
 	setScope: (scope: PageScope) => void;
 }

@@ -16,6 +16,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { useSession } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 import { usePageQuery } from "../../hooks/usePages";
 import {
@@ -27,15 +28,11 @@ import {
 
 const COPIED_MS = 1500;
 
-/**
- * Desktop's share popover as a sheet. The two selects become lists of rows —
- * a phone has the height for them, and a row you tap beats a picker that
- * opens another picker.
- */
 export function PageShareSheet() {
 	const { t } = useLingui();
 	const router = useRouter();
 	const { slug } = useLocalSearchParams<{ slug: string }>();
+	const { data: session } = useSession();
 	const [copied, setCopied] = useState(false);
 
 	const page = usePageQuery(slug);
@@ -50,7 +47,12 @@ export function PageShareSheet() {
 	const visibility = (page.data?.visibility ?? "just_me") as PageVisibility;
 	const sharedVersion = page.data?.sharedVersion ?? null;
 	const latestVersion = page.data?.latestVersion ?? null;
+	const editable =
+		page.data !== undefined &&
+		session?.user.id !== undefined &&
+		page.data.createdByUserId === session.user.id;
 	const busy = setVisibility.isPending || setSharedVersion.isPending;
+	const locked = busy || !editable;
 
 	const copyLink = async () => {
 		const url = page.data?.url;
@@ -128,6 +130,15 @@ export function PageShareSheet() {
 					</Text>
 				)}
 
+				{page.data && !editable ? (
+					<Text className="text-muted-foreground mb-4 text-xs">
+						{t({
+							message:
+								"Only the person who created this page can change these.",
+						})}
+					</Text>
+				) : null}
+
 				<SectionLabel>{t({ message: "General access" })}</SectionLabel>
 				<Text className="text-muted-foreground mb-1.5 text-xs">
 					{t({ message: "Who can open this page from its link" })}
@@ -136,14 +147,14 @@ export function PageShareSheet() {
 					icon={Lock}
 					label={t({ message: "Only you" })}
 					selected={visibility === "just_me"}
-					disabled={busy}
+					disabled={locked}
 					onPress={() => setVisibility.mutate("just_me")}
 				/>
 				<ChoiceRow
 					icon={Building2}
 					label={t({ message: "Anyone in your organization" })}
 					selected={visibility === "org"}
-					disabled={busy}
+					disabled={locked}
 					onPress={() => setVisibility.mutate("org")}
 				/>
 
@@ -164,7 +175,7 @@ export function PageShareSheet() {
 							: t({ message: `Latest (v${latestVersion})` })
 					}
 					selected={sharedVersion === null}
-					disabled={busy}
+					disabled={locked}
 					onPress={() => setSharedVersion.mutate(null)}
 				/>
 				{(versions.data ?? [])
@@ -175,7 +186,7 @@ export function PageShareSheet() {
 							label={t({ message: `Version ${entry.version}` })}
 							detail={entry.label ?? formatDate(entry.createdAt)}
 							selected={sharedVersion === entry.version}
-							disabled={busy}
+							disabled={locked}
 							onPress={() => setSharedVersion.mutate(entry.version)}
 						/>
 					))}

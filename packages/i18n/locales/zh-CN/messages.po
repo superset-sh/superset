@@ -9687,6 +9687,9 @@ msgstr "只有所有者能查看提示词历史"
 msgid "Only the person who created this page can change it"
 msgstr "只有创建此页面的人才能修改它"
 
+msgid "Only the person who created this page can change these."
+msgstr "只有创建此页面的人才能更改这些设置。"
+
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "只有讨论串的作者或页面所有者才能删除它"
 

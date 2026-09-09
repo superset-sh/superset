@@ -9687,6 +9687,9 @@ msgstr "プロンプト履歴を表示できるのは所有者のみです"
 msgid "Only the person who created this page can change it"
 msgstr "このページを変更できるのは作成者のみです"
 
+msgid "Only the person who created this page can change these."
+msgstr "このページを作成した人だけが変更できます。"
+
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "スレッドを削除できるのはスレッドの投稿者かページのオーナーのみです"
 

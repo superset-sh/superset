@@ -9687,6 +9687,9 @@ msgstr "Historii promptů může zobrazit jen vlastník"
 msgid "Only the person who created this page can change it"
 msgstr "Tuto stránku může měnit jen ten, kdo ji vytvořil"
 
+msgid "Only the person who created this page can change these."
+msgstr "Tuto stránku může měnit jen ten, kdo ji vytvořil."
+
 msgid "Only the thread's author or the page's owner can delete it"
 msgstr "Smazat ho může jen autor vlákna nebo vlastník stránky"
 
