@@ -47,6 +47,9 @@ struct AgentActivityAttributes: ActivityAttributes {
 		var rows: [AgentRow]
 		/// "+6 more working", or nil when nothing was dropped.
 		var more: String?
+		/// Every agent, not just the rows that fit. `rows` is capped at four,
+		/// so the Dynamic Island would otherwise say "4" for a fleet of nine.
+		var totalCount: Int
 		/// Most urgent state in the fleet — tints the Dynamic Island.
 		var topState: String
 		/// Shown instead of the headline once ActivityKit marks the activity

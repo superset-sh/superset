@@ -58,6 +58,10 @@ export function useAgentLiveActivity({
 	// Bumped on every run so a slow icon download cannot post a snapshot the
 	// hook has already moved past — or resurrect one after unmount.
 	const runId = useRef(0);
+	// One delivery at a time. Two effect runs could otherwise both find no
+	// activity mid-await and each start one, leaving a second card behind.
+	const inFlight = useRef(false);
+	const queued = useRef<(() => Promise<void>) | null>(null);
 	// Icons are cached once per project per launch: the file already on disk
 	// is reused, so this only ever pays for projects newly on the card.
 	const cachedIcons = useRef<Map<string, string>>(new Map());
@@ -130,6 +134,7 @@ export function useAgentLiveActivity({
 						other: "# agents working",
 					}),
 			rows: shown,
+			totalCount: total,
 			topState: shown[0]?.state ?? "working",
 			machineName: "",
 			staleDetail: t({ message: "Not updating", context: "agent status" }),
@@ -144,11 +149,10 @@ export function useAgentLiveActivity({
 		// The card is only worth waking for when something it shows changed.
 		const payload = JSON.stringify(snapshot);
 		if (payload === lastPayload.current) return;
-		lastPayload.current = payload;
 
 		runId.current += 1;
 		const generation = runId.current;
-		void (async () => {
+		const deliver = async () => {
 			for (const row of shown) {
 				const project = workspaceById.get(row.workspaceId)?.projectId;
 				const icon = project ? projectById.get(project) : undefined;
@@ -192,10 +196,32 @@ export function useAgentLiveActivity({
 				} else {
 					activityId.current = await LiveActivity.start(withIcons);
 				}
+				// Only now is the payload really delivered: marking it earlier
+				// would swallow the retry after a failure.
+				lastPayload.current = payload;
 			} catch {
 				// Denied, or the device is at its concurrent-activity limit.
 				activityId.current = null;
 				lastPayload.current = null;
+			}
+		};
+
+		if (inFlight.current) {
+			// Keep only the newest — intermediate states are not worth showing.
+			queued.current = deliver;
+			return;
+		}
+		void (async () => {
+			inFlight.current = true;
+			try {
+				let next: (() => Promise<void>) | null = deliver;
+				while (next) {
+					await next();
+					next = queued.current;
+					queued.current = null;
+				}
+			} finally {
+				inFlight.current = false;
 			}
 		})();
 	}, [terminalsByWorkspace, workspaces, projects, enabled, t]);

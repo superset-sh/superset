@@ -25,6 +25,8 @@ export interface AgentSnapshot {
 	headline: string;
 	rows: AgentRow[];
 	more?: string;
+	/** Every agent, not just the rows that fit on the card. */
+	totalCount: number;
 	topState: AgentRow["state"];
 	staleDetail?: string;
 	machineName: string;

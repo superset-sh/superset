@@ -19,6 +19,7 @@ struct AgentSnapshotRecord: Record {
   @Field var headline: String = ""
   @Field var rows: [AgentRowRecord] = []
   @Field var more: String? = nil
+  @Field var totalCount: Int = 0
   @Field var topState: String = "working"
   @Field var staleDetail: String = ""
   @Field var machineName: String = ""
@@ -37,6 +38,7 @@ private func contentState(
         status: $0.status, state: $0.state, elapsed: $0.elapsed, isQuiet: $0.isQuiet)
     },
     more: snapshot.more,
+    totalCount: snapshot.totalCount,
     topState: snapshot.topState,
     staleDetail: snapshot.staleDetail
   )

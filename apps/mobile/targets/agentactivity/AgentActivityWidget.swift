@@ -180,7 +180,7 @@ struct AgentActivityWidget: Widget {
 			} compactTrailing: {
 				// The island is a single tap target by design, so it shows the
 				// count rather than pretending to be a list.
-				Text("\(context.state.rows.count)")
+				Text("\(context.state.totalCount)")
 					.font(.system(size: 14, weight: .medium))
 					.monospacedDigit()
 			} minimal: {
