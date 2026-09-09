@@ -760,6 +760,9 @@ msgstr "{name} ist integriert und kann nicht ersetzt werden"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} ist nicht hinzugefügt"
 
+msgid "{needing} needs you · {total} agents"
+msgstr "{needing} wartet auf dich · {total} Agenten"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} der Klicks"
 
@@ -877,6 +880,9 @@ msgstr "{toolName} unterbrochen"
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Die Prüfung wurde bestanden} other {Alle # Prüfungen bestanden}}"
 
+msgid "{total} agents working"
+msgstr "{total} Agenten arbeiten"
+
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub-Issue} other {GitHub-Issues}}"
 
@@ -961,6 +967,9 @@ msgstr "⇧ Klick"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# Datei} other {# Dateien}}"
+
+msgid "+{hidden} more"
+msgstr "+{hidden} weitere"
 
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} früher"
@@ -5653,6 +5662,10 @@ msgstr "fehlgeschlagen"
 msgid "Failed"
 msgstr "Fehlgeschlagen"
 
+msgctxt "agent status"
+msgid "Failed"
+msgstr "Fehlgeschlagen"
+
 msgid "Failed <0>· 7d</0>"
 msgstr "Fehlgeschlagen <0>· 7 T.</0>"
 
@@ -8586,6 +8599,10 @@ msgstr "Update nötig"
 msgid "Needs update"
 msgstr "Update nötig"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Wartet auf dich"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9369,6 +9386,10 @@ msgstr "Auf diesem Host nicht eingerichtet"
 
 msgid "not sorted"
 msgstr "nicht sortiert"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Keine Updates"
 
 msgid "Notes"
 msgstr "Notizen"
@@ -11756,6 +11777,10 @@ msgstr "Meinen Rang anzeigen"
 
 msgid "Review"
 msgstr "Review"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "Prüfen"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Review- und CI-Warteschlangen fressen die Gewinne der Agenten auf."
@@ -15719,6 +15744,10 @@ msgstr "Workflow-Lauf abgeschlossen…"
 msgid "Workflow Tutorials"
 msgstr "Workflow-Tutorials"
 
+msgid "Working"
+msgstr "Arbeitet"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "Arbeitet"
 

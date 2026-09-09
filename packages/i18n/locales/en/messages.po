@@ -760,6 +760,9 @@ msgstr "{name} is built in and cannot be replaced"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} is not added"
 
+msgid "{needing} needs you · {total} agents"
+msgstr "{needing} needs you · {total} agents"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} of clicks"
 
@@ -877,6 +880,9 @@ msgstr "{toolName} interrupted"
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {The check passed} other {All # checks passed}}"
 
+msgid "{total} agents working"
+msgstr "{total} agents working"
+
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 
@@ -961,6 +967,9 @@ msgstr "⇧ click"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# file} other {# files}}"
+
+msgid "+{hidden} more"
+msgstr "+{hidden} more"
 
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} earlier"
@@ -5653,6 +5662,10 @@ msgstr "failed"
 msgid "Failed"
 msgstr "Failed"
 
+msgctxt "agent status"
+msgid "Failed"
+msgstr "Failed"
+
 msgid "Failed <0>· 7d</0>"
 msgstr "Failed <0>· 7d</0>"
 
@@ -8586,6 +8599,10 @@ msgstr "needs update"
 msgid "Needs update"
 msgstr "Needs update"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Needs you"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9369,6 +9386,10 @@ msgstr "Not set up on this host"
 
 msgid "not sorted"
 msgstr "not sorted"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Not updating"
 
 msgid "Notes"
 msgstr "Notes"
@@ -11754,6 +11775,10 @@ msgstr "Reveal in sidebar"
 msgid "Reveal my rank"
 msgstr "Reveal my rank"
 
+msgid "Review"
+msgstr "Review"
+
+msgctxt "agent status"
 msgid "Review"
 msgstr "Review"
 
@@ -15719,6 +15744,10 @@ msgstr "Workflow run completed…"
 msgid "Workflow Tutorials"
 msgstr "Workflow Tutorials"
 
+msgid "Working"
+msgstr "Working"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "Working"
 

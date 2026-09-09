@@ -760,6 +760,9 @@ msgstr "{name} yerleşiktir ve değiştirilemez"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} eklenmedi"
 
+msgid "{needing} needs you · {total} agents"
+msgstr "{needing} seni bekliyor · {total} ajan"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "tıklamaların {nonBrandPct}"
 
@@ -877,6 +880,9 @@ msgstr "{toolName} kesildi"
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {# kontrolün tümü geçti} other {# kontrolün tümü geçti}}"
 
+msgid "{total} agents working"
+msgstr "{total} ajan çalışıyor"
+
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub issue} other {GitHub issue}}"
 
@@ -961,6 +967,9 @@ msgstr "⇧ tık"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# dosya} other {# dosya}}"
+
+msgid "+{hidden} more"
+msgstr "+{hidden} daha"
 
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} daha önce"
@@ -5653,6 +5662,10 @@ msgstr "başarısız"
 msgid "Failed"
 msgstr "Başarısız"
 
+msgctxt "agent status"
+msgid "Failed"
+msgstr "Başarısız"
+
 msgid "Failed <0>· 7d</0>"
 msgstr "Başarısız <0>· 7g</0>"
 
@@ -8586,6 +8599,10 @@ msgstr "güncelleme gerekli"
 msgid "Needs update"
 msgstr "Güncelleme gerekli"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Seni bekliyor"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9369,6 +9386,10 @@ msgstr "Bu host'ta kurulu değil"
 
 msgid "not sorted"
 msgstr "sıralanmamış"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Güncellenmiyor"
 
 msgid "Notes"
 msgstr "Notlar"
@@ -11754,6 +11775,10 @@ msgstr "Kenar çubuğunda göster"
 msgid "Reveal my rank"
 msgstr "Sıralamamı göster"
 
+msgid "Review"
+msgstr "İnceleme"
+
+msgctxt "agent status"
 msgid "Review"
 msgstr "İnceleme"
 
@@ -15719,6 +15744,10 @@ msgstr "Workflow çalıştırması tamamlandı…"
 msgid "Workflow Tutorials"
 msgstr "İş akışı eğitimleri"
 
+msgid "Working"
+msgstr "Çalışıyor"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "Çalışıyor"
 
