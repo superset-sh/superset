@@ -1142,7 +1142,13 @@ test(
 			initialCommand: `exec bash '${path.join(TEST_HOME, "size.sh")}'`,
 		});
 		if ("error" in session) assert.fail(session.error);
-		__setClientPingIntervalForTesting(150);
+		// The desktop client answers pings, so the host holds it to the protocol
+		// too: it is dropped after CLIENT_PONG_MISS_LIMIT silent sweeps like any
+		// other. Keep the interval well above any event-loop stall this process
+		// could have while writing PTY bytes into xterm, or a slow machine drops
+		// the desktop and the failure surfaces as a confusing waitVisible
+		// timeout instead of the assertion under test.
+		__setClientPingIntervalForTesting(1_000);
 
 		const desktop = new SeqRenderer({ cols: 120, rows: 30 });
 		// A build predating pong: the host never hears one, so it must never
@@ -1175,7 +1181,7 @@ test(
 			await legacyPhone.waitSynced();
 			assert.equal(await probeSize(), "20x45");
 			// Several sweeps' worth of silence, well past the miss limit.
-			await sleep(1_000);
+			await sleep(3_500);
 			assert.equal(
 				await probeSize(),
 				"20x45",
@@ -1193,9 +1199,10 @@ test(
 			// peer never sends, and the desktop stayed at phone width until the
 			// host-service restarted.
 			phone.answerPings = false;
+			// The drop lands two silent sweeps after the last pong, so ~3s here.
 			await Promise.race([
 				phone.droppedByHost,
-				sleep(5_000).then(() => {
+				sleep(15_000).then(() => {
 					throw new Error("host never dropped the silent client");
 				}),
 			]);
