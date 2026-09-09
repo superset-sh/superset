@@ -109,6 +109,7 @@ export function PageViewer({
 
 	return (
 		<CommentProvider
+			key={resolvedPageId}
 			store={store}
 			enabled={commentsEnabled}
 			onEnabledChange={onCommentsEnabledChange}

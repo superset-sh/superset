@@ -92,6 +92,7 @@ export function SelectionToolbar({
 			<ToolbarButton
 				label={t({ message: "Quick feedback" })}
 				active={menuOpen}
+				expanded={menuOpen}
 				onClick={() => setMenuOpen((open) => !open)}
 			>
 				<Zap className="size-4" />
@@ -120,11 +121,13 @@ export function SelectionToolbar({
 function ToolbarButton({
 	label,
 	active,
+	expanded,
 	onClick,
 	children,
 }: {
 	label: string;
 	active?: boolean;
+	expanded?: boolean;
 	onClick: () => void;
 	children: React.ReactNode;
 }) {
@@ -133,6 +136,8 @@ function ToolbarButton({
 			type="button"
 			aria-label={label}
 			title={label}
+			aria-haspopup={expanded === undefined ? undefined : "menu"}
+			aria-expanded={expanded}
 			onClick={onClick}
 			className={cn(
 				"flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",

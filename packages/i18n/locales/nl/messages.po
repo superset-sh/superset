@@ -15918,7 +15918,7 @@ msgid "Would you like to reassign it?"
 msgstr "Wil je hem opnieuw toewijzen?"
 
 msgid "Write a comment"
-msgstr "Schrijf een reactie"
+msgstr "Schrijf een opmerking"
 
 msgid "Write a comment…"
 msgstr "Schrijf een opmerking…"

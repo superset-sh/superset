@@ -2041,7 +2041,7 @@ msgid "ascending"
 msgstr "升序"
 
 msgid "Ask for this to be removed"
-msgstr "請求刪除此處"
+msgstr "要求移除這項"
 
 msgid "Ask the agent…"
 msgstr "向代理程式提問…"
@@ -2986,7 +2986,7 @@ msgid "CI failed"
 msgstr "CI失敗"
 
 msgid "Clarify this"
-msgstr "請說明這裡"
+msgstr "請釐清這一點"
 
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code、Codex和OpenCode是代理程式；Superset是你同時執行它們的地方。每個任務都有自己隔離的Git worktree，十個代理程式可以同時在十個分支上工作，而你在一處監控、審查併合併。"
@@ -4720,7 +4720,7 @@ msgid "Delete team"
 msgstr "刪除團隊"
 
 msgid "Delete this"
-msgstr "刪除此處"
+msgstr "刪除這項"
 
 msgid "Delete this workspace?"
 msgstr "刪除這個工作區？"
@@ -8816,7 +8816,7 @@ msgid "Next: {nextLabel}"
 msgstr "下一級：{nextLabel}"
 
 msgid "Nice approach"
-msgstr "想法不錯"
+msgstr "做法不錯"
 
 msgid "Nice, open a PR when ready."
 msgstr "不錯，準備好就開個PR。"
@@ -15354,7 +15354,7 @@ msgid "Verify Kbd stays visible inside tooltips"
 msgstr "確認Kbd在tooltip中仍然可見"
 
 msgid "Verify this"
-msgstr "請核實此處"
+msgstr "請驗證這一點"
 
 msgid "Verify your identity"
 msgstr "驗證你的身份"
@@ -15918,7 +15918,7 @@ msgid "Would you like to reassign it?"
 msgstr "要重新分配嗎？"
 
 msgid "Write a comment"
-msgstr "撰寫留言"
+msgstr "撰寫評論"
 
 msgid "Write a comment…"
 msgstr "寫下評論…"

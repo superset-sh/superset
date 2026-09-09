@@ -327,7 +327,9 @@ export function PageCommentsView({
 								anchorText: selection.anchor.text,
 								body: i18n._(body),
 								intent,
-							}).catch(() => {});
+							}).catch((error) => {
+								console.error("Quick feedback failed to post", error);
+							});
 						}}
 						onDismiss={clearSelection}
 					/>

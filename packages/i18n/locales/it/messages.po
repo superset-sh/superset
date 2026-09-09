@@ -4720,7 +4720,7 @@ msgid "Delete team"
 msgstr "Elimina il team"
 
 msgid "Delete this"
-msgstr "Rimuovere questo"
+msgstr "Elimina questo"
 
 msgid "Delete this workspace?"
 msgstr "Eliminare questo workspace?"

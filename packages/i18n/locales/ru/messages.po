@@ -11047,7 +11047,7 @@ msgid "Quick Create Workspace"
 msgstr "Быстро создать рабочую область"
 
 msgid "Quick feedback"
-msgstr "Быстрый отзыв"
+msgstr "Быстрая обратная связь"
 
 msgid "Quick Open File"
 msgstr "Быстро открыть файл"

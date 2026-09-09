@@ -4720,7 +4720,7 @@ msgid "Delete team"
 msgstr "Takımı sil"
 
 msgid "Delete this"
-msgstr "Bunu kaldır"
+msgstr "Bunu sil"
 
 msgid "Delete this workspace?"
 msgstr "Bu çalışma alanı silinsin mi?"

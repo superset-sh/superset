@@ -241,16 +241,20 @@ export function CommentProvider({
 	const createThread = useCallback<CommentStore["createThread"]>(
 		async (input) => {
 			const composing = draft;
+			const picked = selection;
 			setDraft(null);
 			setSelection(null);
 			try {
 				await store.createThread(input);
 			} catch (error) {
+				// A quick action posts straight from a pick, with no draft to fall
+				// back to, so the target has to come back or it is unrecoverable.
 				if (composing) setDraft({ ...composing, body: input.body });
+				else if (picked) setSelection(picked);
 				throw error;
 			}
 		},
-		[draft, store],
+		[draft, selection, store],
 	);
 
 	const addReply = useCallback<CommentStore["addReply"]>(
