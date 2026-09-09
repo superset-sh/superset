@@ -207,16 +207,32 @@ const runtimeJs = /* js */ `
 	var isVisible = true;
 
 	/**
-	 * First attach of this page. Idempotent so the backstop timer and RN's
-	 * answer can race harmlessly.
+	 * This page has committed to a session — set by whichever of RN's attach,
+	 * a switch, or the backstop timer gets there first. Anything arriving
+	 * afterwards must not dial again: two sockets on one xterm both count into
+	 * seq, which corrupts the anchor the next catch-up is measured from.
 	 */
 	var started = false;
-	function beginSession(id, restore) {
-		if (started) return;
-		started = true;
+
+	function claimStart() {
 		if (startTimer !== null) {
 			clearTimeout(startTimer);
 			startTimer = null;
+		}
+		if (started) return false;
+		started = true;
+		return true;
+	}
+
+	/** First attach of this page, from RN's answer to "ready". */
+	function beginSession(id, restore) {
+		if (!claimStart()) {
+			// The backstop fired, or a switch landed first. The session is
+			// already running, so don't repaint or redial — but a backstop
+			// start has no terminal id, and without one this page can never
+			// file a snapshot. Adopt it.
+			if (terminalId === null && id !== null) terminalId = id;
+			return;
 		}
 		if (id !== null) terminalId = id;
 		applyRestore(restore);
@@ -474,6 +490,10 @@ const runtimeJs = /* js */ `
 			// coming back to this tab should cost a delta, not a replay.
 			exportSnapshot();
 			generation += 1;
+			// A switch can beat RN's answer to "ready" (the active tab can
+			// resolve while the page is still booting), so it has to claim the
+			// start itself or the later attach opens a second socket.
+			claimStart();
 			terminated = false;
 			attempts = 0;
 			everAttached = false;
@@ -490,13 +510,27 @@ const runtimeJs = /* js */ `
 				} catch (error) {}
 			}
 			exitSelectMode();
-			term.reset();
-			// reset() fires neither onScroll nor onWriteParsed, so the scrollbar
-			// and the at-bottom flag would still describe the session we left.
-			scheduleScrollbar();
-			terminalId = message.terminalId;
-			applyRestore(message.restore);
-			connect();
+			// term.reset() clears the buffer synchronously but does NOT discard
+			// what is already queued in xterm's write buffer, so bytes from the
+			// session being left would be parsed into the one being entered —
+			// above its restored content. An empty write's callback runs once
+			// everything queued before it has been parsed, which is the barrier
+			// this needs.
+			var switchGen = generation;
+			var nextTerminalId = message.terminalId;
+			var nextRestore = message.restore;
+			term.write("", function () {
+				// A second switch while this was pending owns the page now.
+				if (switchGen !== generation) return;
+				term.reset();
+				// reset() fires neither onScroll nor onWriteParsed, so the
+				// scrollbar and the at-bottom flag would still describe the
+				// session we left.
+				scheduleScrollbar();
+				terminalId = nextTerminalId;
+				applyRestore(nextRestore);
+				connect();
+			});
 		} else if (message.type === "attach") {
 			beginSession(message.terminalId, message.restore);
 		} else if (message.type === "copySelection") {
