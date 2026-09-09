@@ -37,11 +37,6 @@ interface Selection {
 	rect: FrameRect;
 }
 
-/**
- * The runtime re-posts every tracked rect once per animation frame while the
- * page scrolls, so a fresh object each time would re-render this screen — and
- * the frame under it — at 60fps for anchors that never moved.
- */
 function sameRects(
 	a: Record<string, FrameRect>,
 	b: Record<string, FrameRect>,
@@ -78,15 +73,8 @@ export function PageDetailScreen({
 	const scrollYRef = useRef(0);
 	const restoredScroll = useRef(false);
 
-	// Tracked per URL, not as a flag: a ticket that rolls over swaps `viewUrl`
-	// for one that has not loaded yet, and a stale `true` would show the frame
-	// blank with no spinner.
 	const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
 	const [failedSrc, setFailedSrc] = useState<string | null>(null);
-	// Bumped whenever the runtime announces itself, and whenever this screen is
-	// focused again. The runtime emits rects from a requestAnimationFrame, which
-	// iOS throttles while a sheet covers the WebView — anything sent under a
-	// sheet is dropped, so the anchors have to be resent once it closes.
 	const [frameEpoch, setFrameEpoch] = useState(0);
 	const [commentMode, setCommentMode] = useState(false);
 	const [selection, setSelection] = useState<Selection | null>(null);
@@ -99,6 +87,8 @@ export function PageDetailScreen({
 	const viewUrl = page.data?.viewUrl;
 	const loaded = viewUrl !== undefined && loadedSrc === viewUrl;
 	const frameFailed = viewUrl !== undefined && failedSrc === viewUrl;
+	const offline = page.status === "pending" && page.fetchStatus === "paused";
+
 	const comments = usePageCommentsQuery(pageId);
 	const { createThread } = usePageCommentActions(pageId);
 	const setPick = usePageCommentStore((state) => state.setPick);
@@ -120,8 +110,6 @@ export function PageDetailScreen({
 		send({ type: "set-mode", enabled: commentMode });
 	}, [commentMode, frameEpoch, send]);
 
-	// The runtime resolves anchors to live rects; without this the pins have
-	// nowhere to sit. Resent whenever the thread set changes.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: frameEpoch resends the anchor set to a runtime that just restarted
 	useEffect(() => {
 		send({
@@ -133,8 +121,6 @@ export function PageDetailScreen({
 		});
 	}, [threads, frameEpoch, send]);
 
-	// A comment posted from a sheet lands while this screen is covered; the
-	// refetch and the resend both have to happen when it comes back.
 	useFocusEffect(
 		useCallback(() => {
 			setFrameEpoch((epoch) => epoch + 1);
@@ -217,8 +203,6 @@ export function PageDetailScreen({
 		[pageId, router, selection, setPick, slug, version],
 	);
 
-	// An expired ticket is the likely failure, and only a fresh pull can mint
-	// one — reloading the same URL would fail the same way.
 	const retryFrame = useCallback(async () => {
 		setFailedSrc(null);
 		setLoadedSrc(null);
@@ -278,6 +262,9 @@ export function PageDetailScreen({
 						setCommentMode((enabled) => !enabled);
 					}}
 				/>
+				{/* Comments sits beside share, and is rendered whatever the count:
+				    a control that appears only once a page has feedback is one the
+				    first commenter never finds. */}
 				<Stack.Toolbar.Button
 					icon="bubble.left.and.bubble.right"
 					accessibilityLabel={t({ message: "Show all comments" })}
@@ -289,18 +276,30 @@ export function PageDetailScreen({
 						});
 					}}
 				/>
+				<Stack.Toolbar.Button
+					icon="square.and.arrow.up"
+					accessibilityLabel={t({ message: "Share this page" })}
+					onPress={() => {
+						void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+						router.push({
+							pathname: "/(authenticated)/pages/[slug]/share",
+							params: { slug },
+						});
+					}}
+				/>
 			</Stack.Toolbar>
 
-			{page.error ? (
+			{page.error || offline ? (
 				<View className="flex-1 items-center justify-center px-8">
 					<Text className="text-center font-medium">
-						{t({ message: "This page could not be opened" })}
+						{offline
+							? t({ message: "You are offline" })
+							: t({ message: "This page could not be opened" })}
 					</Text>
 					<Text className="text-muted-foreground mt-1 text-center text-sm">
-						{t({
-							message:
-								"It may have been deleted, or it belongs to another organization.",
-						})}
+						{offline
+							? t({ message: "It will open once the connection is back." })
+							: errorCopy(page.error)}
 					</Text>
 				</View>
 			) : null}
@@ -321,8 +320,6 @@ export function PageDetailScreen({
 						onError={() => setFailedSrc(viewUrl)}
 					/>
 
-					{/* Clipped, or a pin on an element scrolled out of view draws over
-					    the navigation bar and stays tappable there. */}
 					<View
 						className="absolute inset-0 overflow-hidden"
 						pointerEvents="box-none"
@@ -409,7 +406,7 @@ export function PageDetailScreen({
 				</View>
 			) : null}
 
-			{page.error || frameFailed || loaded ? null : (
+			{page.error || offline || frameFailed || loaded ? null : (
 				<View className="absolute inset-0 items-center justify-center">
 					<Spinner className="size-5" />
 				</View>

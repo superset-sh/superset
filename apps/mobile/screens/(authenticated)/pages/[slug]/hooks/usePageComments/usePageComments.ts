@@ -26,7 +26,6 @@ export function usePageCommentsQuery(pageId: string | undefined) {
 	});
 }
 
-/** Threads that carry an element anchor — the only ones that can render a pin. */
 export function toAnchoredThreads(rows: ServerThread[]): AnchoredThread[] {
 	return rows.flatMap((row) =>
 		row.anchor
@@ -84,9 +83,6 @@ export function usePageCommentActions(pageId: string | undefined) {
 		onSuccess: invalidate,
 	});
 
-	// Resolving is a toggle the reader is looking at: the icon has to flip on
-	// the tap and flip back only if the server refuses, never sit on the old
-	// server value for a round-trip.
 	const setResolved = useMutation({
 		mutationFn: (input: { threadId: string; resolved: boolean }) =>
 			apiClient.pageComment.resolve.mutate(input),

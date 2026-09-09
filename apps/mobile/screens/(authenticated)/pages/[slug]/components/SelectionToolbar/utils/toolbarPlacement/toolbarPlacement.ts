@@ -3,11 +3,6 @@ import type { FrameRect } from "@superset/shared/page-comments-runtime";
 const GAP = 8;
 const EDGE = 8;
 
-/**
- * Above the picked element when there is room, below it otherwise, and always
- * clamped inside the frame — a pick near an edge would otherwise put the bar
- * where no thumb can reach it.
- */
 export function toolbarPlacement({
 	rect,
 	container,

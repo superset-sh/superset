@@ -673,14 +673,14 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# dòng ẩn} other {# dòng ẩn}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, other {# phản hồi nữa}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Hiện # dòng ẩn} other {Hiện # dòng ẩn}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {Hiển thị # phản hồi} other {Hiển thị # phản hồi}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, other {Xem thêm # phản hồi}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Hiện thêm # frame} other {Hiện thêm # frame}}"
@@ -4114,9 +4114,6 @@ msgstr "Không thể cập nhật skill"
 msgid "Could not update the branch"
 msgstr "Không thể cập nhật nhánh"
 
-msgid "Could not update this comment"
-msgstr "Không thể cập nhật bình luận này"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Không xác minh được thông tin đăng nhập: {reason}"
@@ -6263,6 +6260,9 @@ msgstr "Lọc host"
 msgid "Filter hosts..."
 msgstr "Lọc host..."
 
+msgid "Filter pages"
+msgstr "Lọc trang"
+
 msgid "Filter projects"
 msgstr "Lọc dự án"
 
@@ -7474,6 +7474,9 @@ msgstr "Issue…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Có thể nó đã bị xóa, hoặc thuộc về một tổ chức khác."
+
+msgid "It will open once the connection is back."
+msgstr "Trang sẽ mở khi có kết nối trở lại."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "Nó sẽ tự kết nối lại khi máy hoạt động trở lại. Kéo để kiểm tra lại."
@@ -9145,6 +9148,9 @@ msgstr "Chưa chọn tổ chức nào"
 
 msgid "No pages match"
 msgstr "Không có trang nào khớp"
+
+msgid "No pages match this filter"
+msgstr "Không có trang nào khớp với bộ lọc này"
 
 msgid "No pages yet"
 msgstr "Chưa có trang nào"
@@ -11560,9 +11566,6 @@ msgstr "Đã thay thế 1 tệp trong {where}"
 msgid "Reply"
 msgstr "Trả lời"
 
-msgid "Reply not posted"
-msgstr "Chưa đăng được trả lời"
-
 msgid "Reply to thread…"
 msgstr "Trả lời luồng…"
 
@@ -12764,6 +12767,9 @@ msgstr "Chia sẻ thiết kế và báo cáo. Hãy để agent của bạn xử 
 msgid "Share page"
 msgstr "Chia sẻ trang"
 
+msgid "Share this page"
+msgstr "Chia sẻ trang này"
+
 msgid "Share via…"
 msgstr "Chia sẻ qua…"
 
@@ -13895,6 +13901,9 @@ msgstr "Trò chuyện với Superset"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "Chạm vào bất kỳ đâu trên trang để bình luận"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "Chạm nút lấy nét để bình luận về một khối."
 
 msgid "Target agent"
 msgstr "Agent đích"
@@ -16066,6 +16075,9 @@ msgstr "Bạn không phải thành viên của tổ chức này"
 
 msgid "You are not authorized to perform this action."
 msgstr "Bạn không được phép thực hiện thao tác này."
+
+msgid "You are offline"
+msgstr "Bạn đang ngoại tuyến"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "Bạn đang dùng <0>gói {currentPlanLabel}</0>. Nếu có thắc mắc hoặc cần hỗ trợ thêm về gói của mình, hãy <1>liên hệ với chúng tôi<2/></1>."

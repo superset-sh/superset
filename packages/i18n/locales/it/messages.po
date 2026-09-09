@@ -673,14 +673,14 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# riga nascosta} other {# righe nascoste}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, one {# altra risposta} other {# altre risposte}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Mostra # riga nascosta} other {Mostra # righe nascoste}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {Mostra # risposta} other {Mostra # risposte}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, one {Mostra # altra risposta} other {Mostra # altre risposte}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Mostra # altro frame} other {Mostra altri # frame}}"
@@ -4114,9 +4114,6 @@ msgstr "Impossibile aggiornare la skill"
 msgid "Could not update the branch"
 msgstr "Impossibile aggiornare il branch"
 
-msgid "Could not update this comment"
-msgstr "Impossibile aggiornare questo commento"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Impossibile verificare la credenziale: {reason}"
@@ -6263,6 +6260,9 @@ msgstr "Filtra gli host"
 msgid "Filter hosts..."
 msgstr "Filtra gli host..."
 
+msgid "Filter pages"
+msgstr "Filtra le pagine"
+
 msgid "Filter projects"
 msgstr "Filtra progetti"
 
@@ -7474,6 +7474,9 @@ msgstr "Issue…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Potrebbe essere stata eliminata oppure appartiene a un'altra organizzazione."
+
+msgid "It will open once the connection is back."
+msgstr "Si aprirà al ritorno della connessione."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "Si riconnetterà da solo quando la macchina tornerà attiva. Trascina per ricontrollare."
@@ -9145,6 +9148,9 @@ msgstr "Nessuna organizzazione selezionata"
 
 msgid "No pages match"
 msgstr "Nessuna pagina corrisponde"
+
+msgid "No pages match this filter"
+msgstr "Nessuna pagina corrisponde a questo filtro"
 
 msgid "No pages yet"
 msgstr "Ancora nessuna pagina"
@@ -11560,9 +11566,6 @@ msgstr "Sostituito 1 file in {where}"
 msgid "Reply"
 msgstr "Rispondi"
 
-msgid "Reply not posted"
-msgstr "Risposta non pubblicata"
-
 msgid "Reply to thread…"
 msgstr "Rispondi al thread…"
 
@@ -12764,6 +12767,9 @@ msgstr "Condividi design e report. Lascia che il tuo agente gestisca il feedback
 msgid "Share page"
 msgstr "Condividi la pagina"
 
+msgid "Share this page"
+msgstr "Condividi questa pagina"
+
 msgid "Share via…"
 msgstr "Condividi tramite…"
 
@@ -13895,6 +13901,9 @@ msgstr "Parla con Superset"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "Tocca un elemento della pagina per commentarlo"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "Tocca il pulsante di messa a fuoco per commentare un blocco."
 
 msgid "Target agent"
 msgstr "Agente di destinazione"
@@ -16066,6 +16075,9 @@ msgstr "Non sei membro di questa organizzazione"
 
 msgid "You are not authorized to perform this action."
 msgstr "Non sei autorizzato a eseguire questa azione."
+
+msgid "You are offline"
+msgstr "Sei offline"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "Sei sul <0>piano {currentPlanLabel}</0>. Se hai domande o vuoi ulteriore supporto sul tuo piano, <1>contattaci<2/></1>."

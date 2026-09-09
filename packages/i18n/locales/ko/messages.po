@@ -673,14 +673,14 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {숨겨진 #줄} other {숨겨진 #줄}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, other {답글 #개 더}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {숨겨진 #줄 보기} other {숨겨진 #줄 보기}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {답글 #개 표시} other {답글 #개 표시}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, other {답글 #개 더 보기}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {프레임 #개 더 보기} other {프레임 #개 더 보기}}"
@@ -4114,9 +4114,6 @@ msgstr "스킬을 업데이트할 수 없습니다"
 msgid "Could not update the branch"
 msgstr "브랜치를 업데이트할 수 없습니다"
 
-msgid "Could not update this comment"
-msgstr "이 코멘트를 업데이트할 수 없습니다"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "자격 증명을 확인하지 못했습니다: {reason}"
@@ -6263,6 +6260,9 @@ msgstr "호스트 필터"
 msgid "Filter hosts..."
 msgstr "호스트 필터..."
 
+msgid "Filter pages"
+msgstr "페이지 필터"
+
 msgid "Filter projects"
 msgstr "프로젝트 필터"
 
@@ -7474,6 +7474,9 @@ msgstr "이슈…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "삭제되었거나 다른 조직에 속한 페이지일 수 있습니다."
+
+msgid "It will open once the connection is back."
+msgstr "연결이 복구되면 열립니다."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "컴퓨터가 돌아오면 자동으로 다시 연결됩니다. 당겨서 다시 확인하세요."
@@ -9145,6 +9148,9 @@ msgstr "선택된 조직이 없습니다"
 
 msgid "No pages match"
 msgstr "일치하는 페이지 없음"
+
+msgid "No pages match this filter"
+msgstr "이 필터와 일치하는 페이지가 없습니다"
 
 msgid "No pages yet"
 msgstr "아직 페이지가 없습니다"
@@ -11560,9 +11566,6 @@ msgstr "{where}에서 파일 1개를 바꿨습니다"
 msgid "Reply"
 msgstr "답글"
 
-msgid "Reply not posted"
-msgstr "답글을 게시하지 못했습니다"
-
 msgid "Reply to thread…"
 msgstr "스레드에 답글…"
 
@@ -12764,6 +12767,9 @@ msgstr "디자인과 보고서를 공유하세요. 피드백 처리는 에이전
 msgid "Share page"
 msgstr "페이지 공유"
 
+msgid "Share this page"
+msgstr "이 페이지 공유"
+
 msgid "Share via…"
 msgstr "공유 방법…"
 
@@ -13895,6 +13901,9 @@ msgstr "Superset에 문의하기"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "페이지의 아무 곳이나 탭하여 댓글을 남기세요"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "포커스 버튼을 눌러 블록에 댓글을 남기세요."
 
 msgid "Target agent"
 msgstr "대상 에이전트"
@@ -16066,6 +16075,9 @@ msgstr "이 조직의 멤버가 아닙니다"
 
 msgid "You are not authorized to perform this action."
 msgstr "이 동작을 수행할 권한이 없습니다."
+
+msgid "You are offline"
+msgstr "오프라인 상태입니다"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "현재 <0>{currentPlanLabel} 플랜</0>을 사용 중입니다. 플랜에 대해 궁금한 점이 있거나 도움이 필요하면 <1>문의해 주세요<2/></1>."

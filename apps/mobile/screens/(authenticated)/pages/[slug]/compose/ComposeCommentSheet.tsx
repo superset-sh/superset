@@ -1,38 +1,18 @@
 import { useLingui } from "@lingui/react/macro";
 import { Stack, useRouter } from "expo-router";
-import { useState } from "react";
-import { Alert, ScrollView, TextInput, View } from "react-native";
-import { Text } from "@/components/ui/text";
-import { errorCopy } from "@/lib/errors";
-import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
+import { ScrollView } from "react-native";
+import { CommentComposer } from "../components/CommentComposer";
 import { usePageCommentActions } from "../hooks/usePageComments";
 import { usePageCommentStore } from "../stores/pageCommentStore";
 
 export function ComposeCommentSheet() {
 	const { t } = useLingui();
 	const router = useRouter();
-	const [body, setBody] = useState("");
 	const pageId = usePageCommentStore((state) => state.pageId);
 	const version = usePageCommentStore((state) => state.version);
 	const anchor = usePageCommentStore((state) => state.anchor);
 	const clear = usePageCommentStore((state) => state.clear);
 	const { createThread } = usePageCommentActions(pageId ?? undefined);
-	const trimmed = body.trim();
-
-	// The draft stays in the box on failure, so the alert is the only thing
-	// telling the difference between "not posted" and "not submitted".
-	const submit = async () => {
-		if (trimmed.length === 0 || !version || !anchor || createThread.isPending)
-			return;
-		try {
-			await createThread.mutateAsync({ version, anchor, body: trimmed });
-		} catch (error) {
-			Alert.alert(t({ message: "Comment not posted" }), errorCopy(error));
-			return;
-		}
-		clear();
-		router.back();
-	};
 
 	return (
 		<>
@@ -48,42 +28,19 @@ export function ComposeCommentSheet() {
 				className="bg-background flex-1"
 				contentInsetAdjustmentBehavior="automatic"
 				keyboardShouldPersistTaps="handled"
-				contentContainerClassName="pb-10 pt-2"
+				contentContainerClassName="px-4 pb-10 pt-2"
 			>
-				{anchor?.text ? (
-					<View className="border-border mx-3 mb-3 border-l-2 pl-2">
-						<Text
-							className="text-muted-foreground text-[13px]"
-							numberOfLines={4}
-						>
-							{anchor.text}
-						</Text>
-					</View>
-				) : null}
-
-				<TextInput
+				<CommentComposer
 					autoFocus
-					className="border-border text-foreground mx-3 min-h-32 rounded-xl border px-3.5 py-3 text-[15px]"
-					multiline
-					onChangeText={setBody}
 					placeholder={t({ message: "Write a comment" })}
-					placeholderTextColor="#6b7280"
-					value={body}
+					pending={createThread.isPending}
+					onSubmit={async (body) => {
+						if (!version || !anchor) return;
+						await createThread.mutateAsync({ version, anchor, body });
+						clear();
+						router.back();
+					}}
 				/>
-
-				<PressableScale
-					className={
-						trimmed.length > 0
-							? "bg-primary mx-3 mt-3 items-center rounded-xl py-3"
-							: "bg-primary/40 mx-3 mt-3 items-center rounded-xl py-3"
-					}
-					disabled={trimmed.length === 0 || createThread.isPending}
-					onPress={() => void submit()}
-				>
-					<Text className="text-primary-foreground font-semibold text-[15px]">
-						{t({ message: "Post" })}
-					</Text>
-				</PressableScale>
 			</ScrollView>
 		</>
 	);

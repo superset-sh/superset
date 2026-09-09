@@ -673,14 +673,14 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# baris tersembunyi} other {# baris tersembunyi}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, other {# balasan lagi}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Tampilkan # baris tersembunyi} other {Tampilkan # baris tersembunyi}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {Tampilkan # balasan} other {Tampilkan # balasan}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, other {Lihat # balasan lagi}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Tampilkan # frame lagi} other {Tampilkan # frame lagi}}"
@@ -4114,9 +4114,6 @@ msgstr "Tidak bisa memperbarui skill"
 msgid "Could not update the branch"
 msgstr "Tidak bisa memperbarui branch"
 
-msgid "Could not update this comment"
-msgstr "Tidak bisa memperbarui komentar ini"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Tidak dapat memverifikasi kredensial: {reason}"
@@ -6263,6 +6260,9 @@ msgstr "Filter host"
 msgid "Filter hosts..."
 msgstr "Filter host..."
 
+msgid "Filter pages"
+msgstr "Filter halaman"
+
 msgid "Filter projects"
 msgstr "Filter proyek"
 
@@ -7474,6 +7474,9 @@ msgstr "Issue…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Mungkin sudah dihapus, atau milik organisasi lain."
+
+msgid "It will open once the connection is back."
+msgstr "Akan terbuka saat koneksi kembali."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "Host akan tersambung sendiri begitu mesinnya kembali. Tarik untuk memeriksa lagi."
@@ -9145,6 +9148,9 @@ msgstr "Tidak ada organisasi yang dipilih"
 
 msgid "No pages match"
 msgstr "Tidak ada halaman yang cocok"
+
+msgid "No pages match this filter"
+msgstr "Tidak ada halaman yang cocok dengan filter ini"
 
 msgid "No pages yet"
 msgstr "Belum ada halaman"
@@ -11560,9 +11566,6 @@ msgstr "Mengganti 1 file di {where}"
 msgid "Reply"
 msgstr "Balas"
 
-msgid "Reply not posted"
-msgstr "Balasan tidak terkirim"
-
 msgid "Reply to thread…"
 msgstr "Balas thread…"
 
@@ -12764,6 +12767,9 @@ msgstr "Bagikan desain dan laporan. Biarkan agen Anda menangani masukan."
 msgid "Share page"
 msgstr "Bagikan halaman"
 
+msgid "Share this page"
+msgstr "Bagikan halaman ini"
+
 msgid "Share via…"
 msgstr "Bagikan lewat…"
 
@@ -13895,6 +13901,9 @@ msgstr "Bicara dengan Superset"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "Ketuk apa saja di halaman untuk mengomentarinya"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "Ketuk tombol fokus untuk mengomentari blok."
 
 msgid "Target agent"
 msgstr "Agen tujuan"
@@ -16066,6 +16075,9 @@ msgstr "Anda bukan anggota organisasi ini"
 
 msgid "You are not authorized to perform this action."
 msgstr "Anda tidak berwenang melakukan tindakan ini."
+
+msgid "You are offline"
+msgstr "Anda sedang offline"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "Anda memakai <0>paket {currentPlanLabel}</0>. Kalau ada pertanyaan atau butuh bantuan lebih lanjut soal paket Anda, <1>hubungi kami<2/></1>."

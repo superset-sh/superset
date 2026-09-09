@@ -8,13 +8,6 @@ import { forwardRef, useImperativeHandle, useRef } from "react";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { useOpenLink } from "@/hooks/useOpenLink";
 
-/**
- * The comment runtime inside the page posts with `parent.postMessage`. In a
- * WebView the page is the top document, so `parent === window` and that lands
- * as a message event on its own window — this forwards those to the native
- * side. Host messages travel the other way as a plain `window.postMessage`,
- * which is what the runtime already listens for. Neither side needs changing.
- */
 const BRIDGE = `(() => {
 	if (window.__supersetCommentBridge) return;
 	window.__supersetCommentBridge = true;
@@ -38,7 +31,6 @@ interface PageFrameProps {
 	onError: () => void;
 }
 
-/** Everything before the fragment: two URLs that differ only by `#…` are one document. */
 function documentUrl(url: string): string {
 	return url.split("#")[0];
 }
@@ -80,9 +72,6 @@ export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
 				onError={onError}
 				onHttpError={onError}
 				onShouldStartLoadWithRequest={(request) => {
-					// Subframes and in-page jump links are the page loading itself; only
-					// a click that leaves the document belongs in the browser — and the
-					// signed ticket travels with the document URL, so it must not.
 					if (!request.isTopFrame) return true;
 					if (documentUrl(request.url) === documentUrl(src)) return true;
 					if (request.navigationType === "click") openLink(request.url);

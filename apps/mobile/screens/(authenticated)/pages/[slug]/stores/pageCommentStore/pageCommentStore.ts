@@ -1,11 +1,6 @@
 import type { CommentAnchor } from "@superset/shared/page-comments-runtime";
 import { create } from "zustand";
 
-/**
- * The pick a sheet route is about to act on. Transient and deliberately not
- * persisted: it belongs to one selection in one page, and a pick that outlived
- * the screen would post an anchor against whatever page opened next.
- */
 interface PageCommentStore {
 	pageId: string | null;
 	version: number | null;

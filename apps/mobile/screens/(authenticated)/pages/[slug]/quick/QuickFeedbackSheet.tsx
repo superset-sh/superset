@@ -18,9 +18,6 @@ export function QuickFeedbackSheet() {
 	const clear = usePageCommentStore((state) => state.clear);
 	const { createThread } = usePageCommentActions(pageId ?? undefined);
 
-	// The sheet closes on success only. Dismissing first would leave a failed
-	// post with nowhere to report itself, and a second tap during the dismiss
-	// animation would file the same feedback twice.
 	const pick = async (body: string) => {
 		if (!version || !anchor || createThread.isPending) return;
 		void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

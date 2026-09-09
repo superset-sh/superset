@@ -673,14 +673,14 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {非表示の#行} other {非表示の#行}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, other {他 # 件の返信}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {非表示の#行を表示} other {非表示の#行を表示}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {#件の返信を表示} other {#件の返信を表示}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, other {他 # 件の返信を表示}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {さらに#件のフレームを表示} other {さらに#件のフレームを表示}}"
@@ -4114,9 +4114,6 @@ msgstr "スキルを更新できませんでした"
 msgid "Could not update the branch"
 msgstr "ブランチを更新できませんでした"
 
-msgid "Could not update this comment"
-msgstr "このコメントを更新できませんでした"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "認証情報を確認できませんでした: {reason}"
@@ -6263,6 +6260,9 @@ msgstr "ホストを絞り込み"
 msgid "Filter hosts..."
 msgstr "ホストを絞り込み..."
 
+msgid "Filter pages"
+msgstr "ページを絞り込む"
+
 msgid "Filter projects"
 msgstr "プロジェクトを絞り込み"
 
@@ -7474,6 +7474,9 @@ msgstr "Issue…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "削除されたか、別の組織に属している可能性があります。"
+
+msgid "It will open once the connection is back."
+msgstr "接続が戻ると開きます。"
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "マシンが復帰すれば自動的に再接続します。引っ張って再確認できます。"
@@ -9145,6 +9148,9 @@ msgstr "組織が選択されていません"
 
 msgid "No pages match"
 msgstr "一致するページがありません"
+
+msgid "No pages match this filter"
+msgstr "このフィルターに一致するページはありません"
 
 msgid "No pages yet"
 msgstr "ページはまだありません"
@@ -11560,9 +11566,6 @@ msgstr "1件のファイルを{where}で置き換えました"
 msgid "Reply"
 msgstr "返信"
 
-msgid "Reply not posted"
-msgstr "返信を投稿できませんでした"
-
 msgid "Reply to thread…"
 msgstr "スレッドに返信…"
 
@@ -12764,6 +12767,9 @@ msgstr "デザインやレポートを共有しましょう。フィードバッ
 msgid "Share page"
 msgstr "ページを共有"
 
+msgid "Share this page"
+msgstr "このページを共有"
+
 msgid "Share via…"
 msgstr "共有方法を選択…"
 
@@ -13895,6 +13901,9 @@ msgstr "Supersetに相談する"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "ページ上の要素をタップしてコメントできます"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "フォーカスボタンをタップしてブロックにコメントできます。"
 
 msgid "Target agent"
 msgstr "対象のエージェント"
@@ -16066,6 +16075,9 @@ msgstr "この組織のメンバーではありません"
 
 msgid "You are not authorized to perform this action."
 msgstr "この操作を行う権限がありません。"
+
+msgid "You are offline"
+msgstr "オフラインです"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "現在<0>{currentPlanLabel}プラン</0>をご利用中です。プランについてご質問やサポートが必要な場合は、<1>お問い合わせ<2/></1>ください。"

@@ -60,6 +60,16 @@ export default function AuthenticatedLayout() {
 				options={{ ...pageScreenOptions, title: t({ message: "Pages" }) }}
 			/>
 			<Stack.Screen
+				name="pages/filter"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Filter" }),
+					sheetAllowedDetents: [0.4],
+					sheetGrabberVisible: true,
+					...pageScreenOptions,
+				}}
+			/>
+			<Stack.Screen
 				name="pages/[slug]/index"
 				options={{
 					...pageScreenOptions,
@@ -113,6 +123,16 @@ export default function AuthenticatedLayout() {
 					presentation: "formSheet",
 					title: t({ message: "All comments" }),
 					sheetAllowedDetents: [1.0],
+					sheetGrabberVisible: true,
+					...pageScreenOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/share"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Share page" }),
+					sheetAllowedDetents: [0.75],
 					sheetGrabberVisible: true,
 					...pageScreenOptions,
 				}}

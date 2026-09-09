@@ -1,12 +1,10 @@
 import { useLingui } from "@lingui/react/macro";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
-import { Alert, ScrollView, TextInput, View } from "react-native";
-import { Spinner } from "@/components/ui/spinner";
+import { ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/text";
-import { errorCopy } from "@/lib/errors";
-import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { usePageQuery } from "../../hooks/usePages";
+import { CommentComposer } from "../components/CommentComposer";
 import { CommentRow } from "../components/CommentRow";
 import {
 	usePageCommentActions,
@@ -22,11 +20,11 @@ export function CommentThreadSheet() {
 	const { t } = useLingui();
 	const router = useRouter();
 	const { slug } = useLocalSearchParams<{ slug: string }>();
-	const [body, setBody] = useState("");
 	const scrollRef = useRef<ScrollView>(null);
-	// A long thread would otherwise open at its oldest comment, with the reply
-	// box off-screen — the newest message and the composer are what you came for.
+	// A long thread would otherwise open at its oldest comment, with the
+	// composer off-screen — the newest message is what you came for.
 	const settled = useRef(false);
+	const [resolving, setResolving] = useState(false);
 	const threadId = usePageCommentStore((state) => state.threadId);
 
 	const page = usePageQuery(slug);
@@ -37,34 +35,6 @@ export function CommentThreadSheet() {
 		() => (comments.data ?? []).find((row) => row.id === threadId),
 		[comments.data, threadId],
 	);
-	const trimmed = body.trim();
-	const loading = page.isLoading || comments.isLoading;
-
-	const toggleResolved = async () => {
-		if (!thread) return;
-		try {
-			await setResolved.mutateAsync({
-				threadId: thread.id,
-				resolved: !thread.resolved,
-			});
-		} catch (error) {
-			Alert.alert(
-				t({ message: "Could not update this comment" }),
-				errorCopy(error),
-			);
-		}
-	};
-
-	const postReply = async () => {
-		if (!thread || trimmed.length === 0 || reply.isPending) return;
-		try {
-			await reply.mutateAsync({ threadId: thread.id, body: trimmed });
-		} catch (error) {
-			Alert.alert(t({ message: "Reply not posted" }), errorCopy(error));
-			return;
-		}
-		setBody("");
-	};
 
 	return (
 		<>
@@ -84,7 +54,17 @@ export function CommentThreadSheet() {
 								: t({ message: "Resolve" })
 						}
 						icon={thread.resolved ? "arrow.uturn.backward" : "checkmark"}
-						onPress={() => void toggleResolved()}
+						onPress={async () => {
+							if (resolving) return;
+							setResolving(true);
+							await setResolved
+								.mutateAsync({
+									threadId: thread.id,
+									resolved: !thread.resolved,
+								})
+								.catch(() => {});
+							setResolving(false);
+						}}
 					/>
 				</Stack.Toolbar>
 			) : null}
@@ -94,7 +74,7 @@ export function CommentThreadSheet() {
 				className="bg-background flex-1"
 				contentInsetAdjustmentBehavior="automatic"
 				keyboardShouldPersistTaps="handled"
-				contentContainerClassName="pb-10 pt-2"
+				contentContainerClassName="px-4 pb-10 pt-1"
 				onContentSizeChange={() => {
 					if (settled.current || !thread) return;
 					settled.current = true;
@@ -103,50 +83,26 @@ export function CommentThreadSheet() {
 			>
 				{thread ? (
 					<>
-						{thread.anchorText ? (
-							<View className="border-border mx-3 mb-3 border-l-2 pl-2">
-								<Text
-									className="text-muted-foreground text-[13px]"
-									numberOfLines={4}
-								>
-									{thread.anchorText}
-								</Text>
-							</View>
-						) : null}
-
-						{thread.comments.map((comment) => (
-							<CommentRow key={comment.id} comment={comment} />
+						{thread.comments.map((comment, index) => (
+							<CommentRow
+								key={comment.id}
+								comment={comment}
+								indented={index > 0}
+							/>
 						))}
 
-						<TextInput
-							className="border-border text-foreground mx-3 mt-3 min-h-20 rounded-xl border px-3.5 py-3 text-[15px]"
-							multiline
-							onChangeText={setBody}
-							placeholder={t({ message: "Reply" })}
-							placeholderTextColor="#6b7280"
-							value={body}
-						/>
-
-						<PressableScale
-							className={
-								trimmed.length > 0
-									? "bg-primary mx-3 mt-3 items-center rounded-xl py-3"
-									: "bg-primary/40 mx-3 mt-3 items-center rounded-xl py-3"
-							}
-							disabled={trimmed.length === 0 || reply.isPending}
-							onPress={() => void postReply()}
-						>
-							<Text className="text-primary-foreground font-semibold text-[15px]">
-								{t({ message: "Reply" })}
-							</Text>
-						</PressableScale>
+						<View className="pt-3">
+							<CommentComposer
+								placeholder={t({ message: "Reply" })}
+								pending={reply.isPending}
+								onSubmit={async (body) => {
+									await reply.mutateAsync({ threadId: thread.id, body });
+								}}
+							/>
+						</View>
 					</>
-				) : loading ? (
-					<View className="items-center justify-center py-20">
-						<Spinner className="size-5" />
-					</View>
 				) : (
-					<View className="items-center justify-center py-20">
+					<View className="items-center justify-center py-24">
 						<Text className="text-muted-foreground">
 							{t({ message: "This comment is no longer here" })}
 						</Text>

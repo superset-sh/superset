@@ -673,14 +673,14 @@ msgstr "{gate}：{statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {#行已隱藏} other {#行已隱藏}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, other {另外 # 則回覆}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {顯示#行隱藏內容} other {顯示#行隱藏內容}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {顯示 # 則回覆} other {顯示 # 則回覆}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, other {查看另外 # 則回覆}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {再顯示#個堆疊框架} other {再顯示#個堆疊框架}}"
@@ -4114,9 +4114,6 @@ msgstr "無法更新技能"
 msgid "Could not update the branch"
 msgstr "無法更新分支"
 
-msgid "Could not update this comment"
-msgstr "無法更新此評論"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "無法驗證憑證：{reason}"
@@ -6263,6 +6260,9 @@ msgstr "篩選主機"
 msgid "Filter hosts..."
 msgstr "篩選主機..."
 
+msgid "Filter pages"
+msgstr "篩選頁面"
+
 msgid "Filter projects"
 msgstr "篩選專案"
 
@@ -7474,6 +7474,9 @@ msgstr "議題…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "它可能已被刪除，或屬於另一個組織。"
+
+msgid "It will open once the connection is back."
+msgstr "網路恢復後會自動開啟。"
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "機器恢復後它會自動重新連線。下拉可再次檢查。"
@@ -9145,6 +9148,9 @@ msgstr "未選擇組織"
 
 msgid "No pages match"
 msgstr "沒有匹配的頁面"
+
+msgid "No pages match this filter"
+msgstr "沒有頁面符合此篩選條件"
 
 msgid "No pages yet"
 msgstr "還沒有頁面"
@@ -11560,9 +11566,6 @@ msgstr "已替換{where}中的1個檔案"
 msgid "Reply"
 msgstr "回覆"
 
-msgid "Reply not posted"
-msgstr "回覆未發布"
-
 msgid "Reply to thread…"
 msgstr "回覆討論串…"
 
@@ -12764,6 +12767,9 @@ msgstr "分享設計和報告，讓你的代理程式處理回饋。"
 msgid "Share page"
 msgstr "分享頁面"
 
+msgid "Share this page"
+msgstr "分享此頁面"
+
 msgid "Share via…"
 msgstr "分享方式…"
 
@@ -13895,6 +13901,9 @@ msgstr "聯絡Superset"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "點按頁面上的任何元素即可留言"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "點按聚焦按鈕即可留言某個區塊。"
 
 msgid "Target agent"
 msgstr "目標代理程式"
@@ -16066,6 +16075,9 @@ msgstr "你不是此組織的成員"
 
 msgid "You are not authorized to perform this action."
 msgstr "你沒有執行此操作的權限。"
+
+msgid "You are offline"
+msgstr "你已離線"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "你目前使用的是<0>{currentPlanLabel}方案</0>。如有任何疑問，或希望就方案獲得進一步支援，請<1>聯絡我們<2/></1>。"

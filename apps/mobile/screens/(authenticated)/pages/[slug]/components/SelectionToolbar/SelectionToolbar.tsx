@@ -15,7 +15,6 @@ import { Icon } from "@/components/ui/icon";
 import { APPROVE_BODY, DELETE_BODY } from "./constants";
 import { toolbarPlacement } from "./utils/toolbarPlacement";
 
-// Five 44pt targets plus the divider — the iOS minimum, not the desktop 32px.
 const SIZE = { width: 252, height: 52 };
 
 interface SelectionToolbarProps {

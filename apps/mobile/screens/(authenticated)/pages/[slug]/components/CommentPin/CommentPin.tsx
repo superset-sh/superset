@@ -13,11 +13,6 @@ interface CommentPinProps {
 	onPress: () => void;
 }
 
-/**
- * Centred on its anchor point, like desktop's CommentBubble — `pinPointOf`
- * insets that point by half a pin so a centred pin stays inside the element
- * it belongs to, an invariant any other anchoring breaks.
- */
 export function CommentPin({
 	point,
 	stackIndex,

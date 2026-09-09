@@ -673,14 +673,14 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# скрытая строка} few {# скрытые строки} many {# скрытых строк} other {# скрытой строки}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, one {# ещё ответ} few {# ещё ответа} many {# ещё ответов} other {# ещё ответа}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Показать # скрытую строку} few {Показать # скрытые строки} many {Показать # скрытых строк} other {Показать # скрытых строк}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {Показать # ответ} few {Показать # ответа} many {Показать # ответов} other {Показать # ответа}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, one {Показать ещё # ответ} few {Показать ещё # ответа} many {Показать ещё # ответов} other {Показать ещё # ответа}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Показать ещё # кадр} few {Показать ещё # кадра} many {Показать ещё # кадров} other {Показать ещё # кадра}}"
@@ -4114,9 +4114,6 @@ msgstr "Не удалось обновить навык"
 msgid "Could not update the branch"
 msgstr "Не удалось обновить ветку"
 
-msgid "Could not update this comment"
-msgstr "Не удалось обновить комментарий"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Не удалось проверить учётные данные: {reason}"
@@ -6263,6 +6260,9 @@ msgstr "Фильтр хостов"
 msgid "Filter hosts..."
 msgstr "Фильтр хостов..."
 
+msgid "Filter pages"
+msgstr "Фильтровать страницы"
+
 msgid "Filter projects"
 msgstr "Фильтровать проекты"
 
@@ -7474,6 +7474,9 @@ msgstr "Задача…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Возможно, она удалена или принадлежит другой организации."
+
+msgid "It will open once the connection is back."
+msgstr "Страница откроется, когда связь вернётся."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "Он переподключится сам, когда машина вернётся. Потяните, чтобы проверить снова."
@@ -9145,6 +9148,9 @@ msgstr "Организация не выбрана"
 
 msgid "No pages match"
 msgstr "Нет подходящих страниц"
+
+msgid "No pages match this filter"
+msgstr "Нет страниц, соответствующих этому фильтру"
 
 msgid "No pages yet"
 msgstr "Страниц пока нет"
@@ -11560,9 +11566,6 @@ msgstr "В {where} заменён 1 файл"
 msgid "Reply"
 msgstr "Ответить"
 
-msgid "Reply not posted"
-msgstr "Ответ не отправлен"
-
 msgid "Reply to thread…"
 msgstr "Ответить в ветке…"
 
@@ -12764,6 +12767,9 @@ msgstr "Делитесь дизайнами и отчётами. Пусть ва
 msgid "Share page"
 msgstr "Поделиться страницей"
 
+msgid "Share this page"
+msgstr "Поделиться этой страницей"
+
 msgid "Share via…"
 msgstr "Поделиться через…"
 
@@ -13895,6 +13901,9 @@ msgstr "Напишите в Superset"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "Коснитесь любого элемента страницы, чтобы прокомментировать его"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "Нажмите кнопку фокуса, чтобы прокомментировать блок."
 
 msgid "Target agent"
 msgstr "Целевой агент"
@@ -16066,6 +16075,9 @@ msgstr "Вы не участник этой организации"
 
 msgid "You are not authorized to perform this action."
 msgstr "У вас нет прав на это действие."
+
+msgid "You are offline"
+msgstr "Нет подключения"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "У вас <0>тариф {currentPlanLabel}</0>. Если есть вопросы или нужна помощь с тарифом, <1>напишите нам<2/></1>."

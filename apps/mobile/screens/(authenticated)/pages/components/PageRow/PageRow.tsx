@@ -1,4 +1,5 @@
 import { formatDate } from "@superset/i18n/format";
+import { getInitials } from "@superset/shared/names";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { FileText, Globe, Lock } from "lucide-react-native";
@@ -9,14 +10,16 @@ import type { OrgPage } from "../../hooks/usePages";
 
 const EDIT_THRESHOLD_MS = 60_000;
 
+/**
+ * Visibility rides with the title because it qualifies the page, not the
+ * authorship — which leaves the second line to say who and when, with the
+ * owner's initials carrying the who.
+ */
 export function PageRow({ page }: { page: OrgPage }) {
 	const router = useRouter();
 
 	const edited = new Date(page.updatedAt).getTime();
 	const created = new Date(page.createdAt).getTime();
-	// Absolute, not relative: Hermes ships no Intl.RelativeTimeFormat and
-	// lib/intl-polyfills only installs Locale and PluralRules, so
-	// formatRelativeTime throws on render here. Intl.DateTimeFormat is native.
 	const timestamp = formatDate(
 		edited - created > EDIT_THRESHOLD_MS ? edited : created,
 	);
@@ -28,7 +31,7 @@ export function PageRow({ page }: { page: OrgPage }) {
 			accessibilityLabel={page.title ?? page.slug}
 			onPress={() =>
 				router.push({
-					pathname: "/(authenticated)/pages/[slug]/preview",
+					pathname: "/(authenticated)/pages/[slug]",
 					params: { slug: page.slug },
 				})
 			}
@@ -48,14 +51,24 @@ export function PageRow({ page }: { page: OrgPage }) {
 			</View>
 
 			<View className="flex-1">
-				<Text className="text-[15px] font-medium" numberOfLines={1}>
-					{page.title ?? page.slug}
-				</Text>
-				<View className="flex-row items-center gap-1">
+				<View className="flex-row items-center gap-1.5">
+					<Text className="shrink text-[15px] font-medium" numberOfLines={1}>
+						{page.title ?? page.slug}
+					</Text>
 					<Icon
 						as={page.visibility === "org" ? Globe : Lock}
-						className="text-muted-foreground size-3"
+						className="text-muted-foreground size-3 shrink-0"
 					/>
+				</View>
+
+				<View className="flex-row items-center gap-1.5">
+					{page.ownerName ? (
+						<View className="bg-muted size-4 shrink-0 items-center justify-center rounded-full">
+							<Text className="text-muted-foreground text-[8px] font-medium">
+								{getInitials(page.ownerName) || "?"}
+							</Text>
+						</View>
+					) : null}
 					<Text
 						className="text-muted-foreground shrink text-xs"
 						numberOfLines={1}

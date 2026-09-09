@@ -673,14 +673,14 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# gizli satır} other {# gizli satır}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, one {# yanıt daha} other {# yanıt daha}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {# gizli satırı göster} other {# gizli satırı göster}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {# yanıtı göster} other {# yanıtı göster}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, one {# yanıt daha göster} other {# yanıt daha göster}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {# çerçeve daha göster} other {# çerçeve daha göster}}"
@@ -4114,9 +4114,6 @@ msgstr "Beceri güncellenemedi"
 msgid "Could not update the branch"
 msgstr "Dal güncellenemedi"
 
-msgid "Could not update this comment"
-msgstr "Bu yorum güncellenemedi"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Kimlik bilgisi doğrulanamadı: {reason}"
@@ -6263,6 +6260,9 @@ msgstr "Host'ları filtrele"
 msgid "Filter hosts..."
 msgstr "Host'ları filtrele..."
 
+msgid "Filter pages"
+msgstr "Sayfaları filtrele"
+
 msgid "Filter projects"
 msgstr "Projeleri filtrele"
 
@@ -7474,6 +7474,9 @@ msgstr "Issue…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Silinmiş olabilir veya başka bir kuruluşa ait olabilir."
+
+msgid "It will open once the connection is back."
+msgstr "Bağlantı geri geldiğinde açılacak."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "Makine geri döndüğünde kendiliğinden yeniden bağlanır. Yeniden denetlemek için aşağı çekin."
@@ -9145,6 +9148,9 @@ msgstr "Kuruluş seçilmedi"
 
 msgid "No pages match"
 msgstr "Eşleşen sayfa yok"
+
+msgid "No pages match this filter"
+msgstr "Bu filtreyle eşleşen sayfa yok"
 
 msgid "No pages yet"
 msgstr "Henüz sayfa yok"
@@ -11560,9 +11566,6 @@ msgstr "{where} konumunda 1 dosya değiştirildi"
 msgid "Reply"
 msgstr "Yanıtla"
 
-msgid "Reply not posted"
-msgstr "Yanıt gönderilmedi"
-
 msgid "Reply to thread…"
 msgstr "Konuya yanıt verin…"
 
@@ -12764,6 +12767,9 @@ msgstr "Tasarımları ve raporları paylaşın. Geri bildirimleri ajanınız ele
 msgid "Share page"
 msgstr "Sayfayı paylaş"
 
+msgid "Share this page"
+msgstr "Bu sayfayı paylaş"
+
 msgid "Share via…"
 msgstr "Şununla paylaş…"
 
@@ -13895,6 +13901,9 @@ msgstr "Superset ile konuşun"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "Yorum yapmak için sayfadaki herhangi bir yere dokun"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "Bir bloğa yorum yapmak için odak düğmesine dokun."
 
 msgid "Target agent"
 msgstr "Hedef ajan"
@@ -16066,6 +16075,9 @@ msgstr "Bu kuruluşun üyesi değilsiniz"
 
 msgid "You are not authorized to perform this action."
 msgstr "Bu işlemi yapma yetkiniz yok."
+
+msgid "You are offline"
+msgstr "Çevrimdışısınız"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "<0>{currentPlanLabel} planındasınız</0>. Sorularınız varsa veya planınızla ilgili destek isterseniz <1>bize ulaşın<2/></1>."

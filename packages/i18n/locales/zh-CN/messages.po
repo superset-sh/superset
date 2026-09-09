@@ -673,14 +673,14 @@ msgstr "{gate}：{statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {#行已隐藏} other {#行已隐藏}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, other {另外 # 条回复}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {显示#行隐藏内容} other {显示#行隐藏内容}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {显示 # 条回复} other {显示 # 条回复}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, other {查看另外 # 条回复}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {再显示#个栈帧} other {再显示#个栈帧}}"
@@ -4114,9 +4114,6 @@ msgstr "无法更新技能"
 msgid "Could not update the branch"
 msgstr "无法更新分支"
 
-msgid "Could not update this comment"
-msgstr "无法更新此评论"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "无法验证凭据：{reason}"
@@ -6263,6 +6260,9 @@ msgstr "筛选主机"
 msgid "Filter hosts..."
 msgstr "筛选主机..."
 
+msgid "Filter pages"
+msgstr "筛选页面"
+
 msgid "Filter projects"
 msgstr "筛选项目"
 
@@ -7474,6 +7474,9 @@ msgstr "议题…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "它可能已被删除，或属于另一个组织。"
+
+msgid "It will open once the connection is back."
+msgstr "网络恢复后会自动打开。"
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "机器恢复后它会自动重新连接。下拉可再次检查。"
@@ -9145,6 +9148,9 @@ msgstr "未选择组织"
 
 msgid "No pages match"
 msgstr "没有匹配的页面"
+
+msgid "No pages match this filter"
+msgstr "没有页面符合此筛选条件"
 
 msgid "No pages yet"
 msgstr "还没有页面"
@@ -11560,9 +11566,6 @@ msgstr "已替换{where}中的1个文件"
 msgid "Reply"
 msgstr "回复"
 
-msgid "Reply not posted"
-msgstr "回复未发布"
-
 msgid "Reply to thread…"
 msgstr "回复讨论串…"
 
@@ -12764,6 +12767,9 @@ msgstr "分享设计和报告，让你的智能体处理反馈。"
 msgid "Share page"
 msgstr "分享页面"
 
+msgid "Share this page"
+msgstr "分享此页面"
+
 msgid "Share via…"
 msgstr "分享方式…"
 
@@ -13895,6 +13901,9 @@ msgstr "联系Superset"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "点按页面上的任意元素即可评论"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "点按聚焦按钮即可评论某个区块。"
 
 msgid "Target agent"
 msgstr "目标智能体"
@@ -16066,6 +16075,9 @@ msgstr "你不是此组织的成员"
 
 msgid "You are not authorized to perform this action."
 msgstr "你没有执行此操作的权限。"
+
+msgid "You are offline"
+msgstr "你已离线"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "你当前使用的是<0>{currentPlanLabel}方案</0>。如有任何疑问，或希望就方案获得进一步支持，请<1>联系我们<2/></1>。"

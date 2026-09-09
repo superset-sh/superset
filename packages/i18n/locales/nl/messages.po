@@ -673,14 +673,14 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# verborgen regel} other {# verborgen regels}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, one {# reactie meer} other {# reacties meer}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {# verborgen regel tonen} other {# verborgen regels tonen}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {# reactie tonen} other {# reacties tonen}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, one {# reactie meer weergeven} other {# reacties meer weergeven}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {# frame meer tonen} other {# frames meer tonen}}"
@@ -4114,9 +4114,6 @@ msgstr "Kan skill niet bijwerken"
 msgid "Could not update the branch"
 msgstr "Kan de branch niet bijwerken"
 
-msgid "Could not update this comment"
-msgstr "Kan deze opmerking niet bijwerken"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Kon de inloggegevens niet verifiëren: {reason}"
@@ -6263,6 +6260,9 @@ msgstr "Hosts filteren"
 msgid "Filter hosts..."
 msgstr "Hosts filteren..."
 
+msgid "Filter pages"
+msgstr "Pagina's filteren"
+
 msgid "Filter projects"
 msgstr "Projecten filteren"
 
@@ -7474,6 +7474,9 @@ msgstr "Issue…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Mogelijk is die verwijderd, of hoort die bij een andere organisatie."
+
+msgid "It will open once the connection is back."
+msgstr "De pagina opent zodra de verbinding terug is."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "De verbinding herstelt zich vanzelf zodra de machine terug is. Trek omlaag om opnieuw te controleren."
@@ -9145,6 +9148,9 @@ msgstr "Geen organisatie geselecteerd"
 
 msgid "No pages match"
 msgstr "Geen overeenkomende pagina's"
+
+msgid "No pages match this filter"
+msgstr "Geen pagina's komen overeen met dit filter"
 
 msgid "No pages yet"
 msgstr "Nog geen pagina's"
@@ -11560,9 +11566,6 @@ msgstr "1 bestand vervangen in {where}"
 msgid "Reply"
 msgstr "Antwoorden"
 
-msgid "Reply not posted"
-msgstr "Antwoord niet geplaatst"
-
 msgid "Reply to thread…"
 msgstr "Reageren op thread…"
 
@@ -12764,6 +12767,9 @@ msgstr "Deel ontwerpen en rapporten. Laat je agent de feedback verwerken."
 msgid "Share page"
 msgstr "Pagina delen"
 
+msgid "Share this page"
+msgstr "Deze pagina delen"
+
 msgid "Share via…"
 msgstr "Delen via…"
 
@@ -13895,6 +13901,9 @@ msgstr "Praat met Superset"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "Tik op iets op de pagina om erop te reageren"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "Tik op de focusknop om op een blok te reageren."
 
 msgid "Target agent"
 msgstr "Doelagent"
@@ -16066,6 +16075,9 @@ msgstr "Je bent geen lid van deze organisatie"
 
 msgid "You are not authorized to perform this action."
 msgstr "Je bent niet bevoegd om deze actie uit te voeren."
+
+msgid "You are offline"
+msgstr "Je bent offline"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "Je zit op het <0>{currentPlanLabel}-plan</0>. Heb je vragen of wil je meer hulp bij je plan, <1>neem dan contact op<2/></1>."

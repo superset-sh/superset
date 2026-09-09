@@ -673,14 +673,14 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# skrytý řádek} few {# skryté řádky} many {# skrytého řádku} other {# skrytých řádků}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, one {# další odpověď} few {# další odpovědi} many {# další odpovědi} other {# dalších odpovědí}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Zobrazit # skrytý řádek} few {Zobrazit # skryté řádky} many {Zobrazit # skrytého řádku} other {Zobrazit # skrytých řádků}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {Zobrazit # odpověď} few {Zobrazit # odpovědi} many {Zobrazit # odpovědi} other {Zobrazit # odpovědí}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, one {Zobrazit # další odpověď} few {Zobrazit # další odpovědi} many {Zobrazit # další odpovědi} other {Zobrazit # dalších odpovědí}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Zobrazit ještě # rámec} few {Zobrazit ještě # rámce} many {Zobrazit ještě # rámce} other {Zobrazit ještě # rámců}}"
@@ -4114,9 +4114,6 @@ msgstr "Skill se nepodařilo aktualizovat"
 msgid "Could not update the branch"
 msgstr "Nepodařilo se aktualizovat větev"
 
-msgid "Could not update this comment"
-msgstr "Tento komentář se nepodařilo aktualizovat"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Přihlašovací údaje se nepodařilo ověřit: {reason}"
@@ -6263,6 +6260,9 @@ msgstr "Filtrovat hosty"
 msgid "Filter hosts..."
 msgstr "Filtrovat hosty..."
 
+msgid "Filter pages"
+msgstr "Filtrovat stránky"
+
 msgid "Filter projects"
 msgstr "Filtrovat projekty"
 
@@ -7474,6 +7474,9 @@ msgstr "Issue…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Mohla být smazána nebo patří jiné organizaci."
+
+msgid "It will open once the connection is back."
+msgstr "Otevře se, jakmile se připojení vrátí."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "Připojí se sám, jakmile bude počítač zpět. Zkontrolujte znovu stažením dolů."
@@ -9145,6 +9148,9 @@ msgstr "Není vybraná žádná organizace"
 
 msgid "No pages match"
 msgstr "Žádná stránka neodpovídá"
+
+msgid "No pages match this filter"
+msgstr "Tomuto filtru neodpovídají žádné stránky"
 
 msgid "No pages yet"
 msgstr "Zatím žádné stránky"
@@ -11560,9 +11566,6 @@ msgstr "Nahrazen 1 soubor v {where}"
 msgid "Reply"
 msgstr "Odpovědět"
 
-msgid "Reply not posted"
-msgstr "Odpověď se nepodařilo odeslat"
-
 msgid "Reply to thread…"
 msgstr "Odpovědět do vlákna…"
 
@@ -12764,6 +12767,9 @@ msgstr "Sdílejte návrhy a zprávy. Zpětnou vazbu nechte na svém agentovi."
 msgid "Share page"
 msgstr "Sdílet stránku"
 
+msgid "Share this page"
+msgstr "Sdílet tuto stránku"
+
 msgid "Share via…"
 msgstr "Sdílet přes…"
 
@@ -13895,6 +13901,9 @@ msgstr "Napište nám"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "Klepnutím na cokoli na stránce to okomentuješ"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "Klepnutím na tlačítko zaměření okomentuješ blok."
 
 msgid "Target agent"
 msgstr "Cílový agent"
@@ -16066,6 +16075,9 @@ msgstr "Nejste členem této organizace"
 
 msgid "You are not authorized to perform this action."
 msgstr "K této akci nemáte oprávnění."
+
+msgid "You are offline"
+msgstr "Jste offline"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "Máte <0>tarif {currentPlanLabel}</0>. Pokud máte dotazy nebo potřebujete s tarifem pomoct, <1>ozvěte se nám<2/></1>."

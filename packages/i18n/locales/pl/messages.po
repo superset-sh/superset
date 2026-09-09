@@ -673,14 +673,14 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# ukryty wiersz} few {# ukryte wiersze} many {# ukrytych wierszy} other {# ukrytego wiersza}}"
 
-msgid "{hidden, plural, one {# more reply} other {# more replies}}"
-msgstr "{hidden, plural, one {# kolejna odpowiedź} few {# kolejne odpowiedzi} many {# kolejnych odpowiedzi} other {# kolejnej odpowiedzi}}"
-
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Pokaż # ukryty wiersz} few {Pokaż # ukryte wiersze} many {Pokaż # ukrytych wierszy} other {Pokaż # ukrytego wiersza}}"
 
 msgid "{hidden, plural, one {Show # reply} other {Show # replies}}"
 msgstr "{hidden, plural, one {Pokaż # odpowiedź} few {Pokaż # odpowiedzi} many {Pokaż # odpowiedzi} other {Pokaż # odpowiedzi}}"
+
+msgid "{hidden, plural, one {View # more reply} other {View # more replies}}"
+msgstr "{hidden, plural, one {Pokaż # kolejną odpowiedź} few {Pokaż # kolejne odpowiedzi} many {Pokaż # kolejnych odpowiedzi} other {Pokaż # kolejnej odpowiedzi}}"
 
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Pokaż # kolejną ramkę} few {Pokaż # kolejne ramki} many {Pokaż # kolejnych ramek} other {Pokaż # kolejnej ramki}}"
@@ -4114,9 +4114,6 @@ msgstr "Nie udało się zaktualizować umiejętności"
 msgid "Could not update the branch"
 msgstr "Nie udało się zaktualizować gałęzi"
 
-msgid "Could not update this comment"
-msgstr "Nie udało się zaktualizować komentarza"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Nie udało się zweryfikować poświadczeń: {reason}"
@@ -6263,6 +6260,9 @@ msgstr "Filtruj hosty"
 msgid "Filter hosts..."
 msgstr "Filtruj hosty..."
 
+msgid "Filter pages"
+msgstr "Filtruj strony"
+
 msgid "Filter projects"
 msgstr "Filtruj projekty"
 
@@ -7474,6 +7474,9 @@ msgstr "Zgłoszenie…"
 
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Mogła zostać usunięta lub należy do innej organizacji."
+
+msgid "It will open once the connection is back."
+msgstr "Otworzy się po powrocie połączenia."
 
 msgid "It will reconnect on its own once the machine is back. Pull to check again."
 msgstr "Połączy się sam, gdy maszyna wróci. Pociągnij, aby sprawdzić ponownie."
@@ -9145,6 +9148,9 @@ msgstr "Nie wybrano organizacji"
 
 msgid "No pages match"
 msgstr "Brak pasujących stron"
+
+msgid "No pages match this filter"
+msgstr "Żadne strony nie pasują do tego filtra"
 
 msgid "No pages yet"
 msgstr "Brak stron"
@@ -11560,9 +11566,6 @@ msgstr "Zastąpiono 1 plik w {where}"
 msgid "Reply"
 msgstr "Odpowiedz"
 
-msgid "Reply not posted"
-msgstr "Odpowiedź nie została opublikowana"
-
 msgid "Reply to thread…"
 msgstr "Odpowiedz w wątku…"
 
@@ -12764,6 +12767,9 @@ msgstr "Udostępniaj projekty i raporty. Pozwól agentowi zająć się opiniami.
 msgid "Share page"
 msgstr "Udostępnij stronę"
 
+msgid "Share this page"
+msgstr "Udostępnij tę stronę"
+
 msgid "Share via…"
 msgstr "Udostępnij przez…"
 
@@ -13895,6 +13901,9 @@ msgstr "Napisz do Superset"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "Dotknij dowolnego elementu strony, aby go skomentować"
+
+msgid "Tap the focus button to comment on a block."
+msgstr "Dotknij przycisku ostrości, aby skomentować blok."
 
 msgid "Target agent"
 msgstr "Agent docelowy"
@@ -16066,6 +16075,9 @@ msgstr "Nie jesteś członkiem tej organizacji"
 
 msgid "You are not authorized to perform this action."
 msgstr "Nie masz uprawnień do wykonania tej akcji."
+
+msgid "You are offline"
+msgstr "Jesteś offline"
 
 msgid "You are on the <0>{currentPlanLabel} plan</0>. If you have any questions or would like further support with your plan, <1>contact us<2/></1>."
 msgstr "Korzystasz z <0>planu {currentPlanLabel}</0>. Jeśli masz pytania lub potrzebujesz pomocy z planem, <1>napisz do nas<2/></1>."
