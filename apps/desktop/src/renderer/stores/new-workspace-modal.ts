@@ -8,29 +8,12 @@ interface PendingWorkspace {
 	status: "preparing" | "generating-branch" | "creating";
 }
 
-/** Snapshot of the draft stashed before modal close, restored on failure. */
-export interface StashedDraft {
-	selectedProjectId: string | null;
-	/** True when the stashed draft had "No project" (session) selected. */
-	isSession: boolean;
-	prompt: string;
-	workspaceName: string;
-	workspaceNameEdited: boolean;
-	branchName: string;
-	branchNameEdited: boolean;
-	compareBaseBranch: string | null;
-	runSetupScript: boolean;
-	linkedIssues: unknown[];
-	linkedPR: unknown | null;
-}
-
 interface NewWorkspaceModalState {
 	isOpen: boolean;
 	preSelectedProjectId: string | null;
 	/** Open with "No project" (session) preselected. */
 	preSelectedSession: boolean;
 	pendingWorkspace: PendingWorkspace | null;
-	stashedDraft: StashedDraft | null;
 	openModal: (projectId?: string) => void;
 	openSessionModal: () => void;
 	closeModal: () => void;
@@ -40,19 +23,15 @@ interface NewWorkspaceModalState {
 		id: string,
 		status: PendingWorkspace["status"],
 	) => void;
-	stashDraft: (draft: StashedDraft) => void;
-	clearStashedDraft: () => void;
-	restoreStashedDraft: () => StashedDraft | null;
 }
 
 export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 	devtools(
-		(set, get) => ({
+		(set) => ({
 			isOpen: false,
 			preSelectedProjectId: null,
 			preSelectedSession: false,
 			pendingWorkspace: null,
-			stashedDraft: null,
 
 			openModal: (projectId?: string) => {
 				set({
@@ -97,28 +76,6 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 					};
 				});
 			},
-
-			stashDraft: (draft: StashedDraft) => {
-				set({ stashedDraft: draft });
-			},
-
-			clearStashedDraft: () => {
-				set({ stashedDraft: null });
-			},
-
-			/** Pops the stash: returns it and clears. Also reopens the modal. */
-			restoreStashedDraft: () => {
-				const stashed = get().stashedDraft;
-				if (stashed) {
-					set({
-						stashedDraft: null,
-						isOpen: true,
-						preSelectedProjectId: stashed.selectedProjectId,
-						preSelectedSession: stashed.isSession,
-					});
-				}
-				return stashed;
-			},
 		}),
 		{ name: "NewWorkspaceModalStore" },
 	),
@@ -144,9 +101,3 @@ export const useClearPendingWorkspace = () =>
 	useNewWorkspaceModalStore((state) => state.clearPendingWorkspace);
 export const useSetPendingWorkspaceStatus = () =>
 	useNewWorkspaceModalStore((state) => state.setPendingWorkspaceStatus);
-export const useStashDraft = () =>
-	useNewWorkspaceModalStore((state) => state.stashDraft);
-export const useClearStashedDraft = () =>
-	useNewWorkspaceModalStore((state) => state.clearStashedDraft);
-export const useRestoreStashedDraft = () =>
-	useNewWorkspaceModalStore((state) => state.restoreStashedDraft);

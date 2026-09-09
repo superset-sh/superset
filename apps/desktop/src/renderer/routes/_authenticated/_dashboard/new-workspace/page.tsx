@@ -18,8 +18,8 @@ export const Route = createFileRoute(
 });
 
 /**
- * Experiment test arm (new-workspace-screen): the create surface as a real
- * route. Store opens are redirected here by DashboardNewWorkspaceModal.
+ * The v2 create surface. It is a real route, not a dialog — every "new
+ * workspace" entry point navigates here via `useOpenNewWorkspace`.
  */
 function NewWorkspacePage() {
 	const { projectId, session } = Route.useSearch();

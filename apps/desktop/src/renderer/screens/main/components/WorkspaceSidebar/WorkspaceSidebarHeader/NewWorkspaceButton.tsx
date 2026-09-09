@@ -2,9 +2,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useMatchRoute } from "@tanstack/react-router";
 import { LuPlus } from "react-icons/lu";
 import { SidebarKbdHint } from "renderer/components/SidebarKbdHint";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { STROKE_WIDTH_THICK } from "../constants";
 
 interface NewWorkspaceButtonProps {
@@ -14,7 +14,7 @@ interface NewWorkspaceButtonProps {
 export function NewWorkspaceButton({
 	isCollapsed = false,
 }: NewWorkspaceButtonProps) {
-	const openModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 	const shortcutText = useHotkeyDisplay("NEW_WORKSPACE").text;
 
 	// Derive current workspace from route to pre-select project in modal
@@ -34,7 +34,7 @@ export function NewWorkspaceButton({
 
 	const handleClick = () => {
 		const projectId = currentWorkspace?.projectId;
-		openModal(projectId);
+		openNewWorkspace(projectId);
 	};
 
 	if (isCollapsed) {

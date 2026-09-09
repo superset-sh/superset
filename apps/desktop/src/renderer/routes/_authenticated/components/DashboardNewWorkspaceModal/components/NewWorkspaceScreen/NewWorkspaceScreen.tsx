@@ -44,6 +44,7 @@ import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferen
 import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference";
 import { useAgentModePreference } from "renderer/hooks/useAgentModePreference";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { CLOUD_AGENT_CHOICES } from "renderer/hooks/useV2AgentChoices/cloud-agent-choices";
 import { track } from "renderer/lib/analytics";
@@ -92,7 +93,6 @@ import {
 	PILL_BUTTON_CLASS,
 	type WorkspaceCreateAgent,
 } from "../DashboardNewWorkspaceForm/PromptGroup/types";
-import { useSelectedHostProjectIds } from "../DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { SymmetricResizeHandles } from "../SymmetricResizeHandles";
 import { AttachmentCard } from "./components/AttachmentCard";
 import { SamplePromptCards } from "./components/SamplePromptCards";
@@ -122,10 +122,8 @@ interface NewWorkspaceScreenProps {
 }
 
 /**
- * Experiment test arm (new-workspace-screen flag): a purpose-built full-screen
- * take on workspace creation for new users — heading, sample prompts, and a
- * minimal composer. Independent of the control modal's PromptGroup so the two
- * arms can evolve separately.
+ * The v2 workspace-creation surface: heading, sample prompts, and a minimal
+ * composer, filling the window rather than a dialog.
  */
 export function NewWorkspaceScreen({
 	isOpen,

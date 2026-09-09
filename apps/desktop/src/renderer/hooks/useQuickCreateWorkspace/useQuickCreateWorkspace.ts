@@ -3,8 +3,8 @@ import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 
@@ -21,7 +21,7 @@ export function useQuickCreateWorkspace() {
 	const { machineId } = useLocalHostService();
 	const { projects: hostProjects } = useHostProjects();
 	const { submit } = useWorkspaceCreates();
-	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 
 	return useCallback(
 		(projectIdHint?: string | null) => {
@@ -32,7 +32,7 @@ export function useQuickCreateWorkspace() {
 				null;
 
 			if (!projectId || !machineId) {
-				openNewWorkspaceModal();
+				openNewWorkspace();
 				return;
 			}
 
@@ -67,6 +67,6 @@ export function useQuickCreateWorkspace() {
 				},
 			);
 		},
-		[hostProjects, machineId, navigate, openNewWorkspaceModal, submit, t],
+		[hostProjects, machineId, navigate, openNewWorkspace, submit, t],
 	);
 }

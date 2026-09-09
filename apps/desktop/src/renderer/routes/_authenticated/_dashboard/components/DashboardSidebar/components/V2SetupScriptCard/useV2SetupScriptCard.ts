@@ -1,9 +1,9 @@
 import { useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import type { SidebarCardEntry } from "renderer/components/SidebarCardSlot";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useV2SetupCardDismissalsStore } from "renderer/stores/v2-setup-card-dismissals";
 import setupScriptPrompt from "./setup-script-prompt.md?raw";
 
@@ -17,7 +17,7 @@ export function useV2SetupScriptCard({
 	projectName: string | null;
 }): SidebarCardEntry | null {
 	const { t } = useLingui();
-	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 	const isDismissed = useV2SetupCardDismissalsStore((s) =>
 		projectId ? s.isDismissed(projectId) : false,
 	);
@@ -60,7 +60,7 @@ export function useV2SetupScriptCard({
 			const draftStore = useNewWorkspaceDraftStore.getState();
 			draftStore.resetDraft();
 			draftStore.updateDraft({ prompt: setupScriptPrompt });
-			openNewWorkspaceModal(projectId);
+			openNewWorkspace(projectId);
 		},
 		onDismiss: () => dismiss(projectId),
 	};
