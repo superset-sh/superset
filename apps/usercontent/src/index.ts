@@ -47,26 +47,32 @@ function ticketSeconds(claims: PageTicketClaims): number {
 
 /**
  * The colo cache holding a version's rendered document. The storage key names
- * one page at one version, and neither its bytes nor the script tag added to
- * them ever change — a publish writes a new version under a new key — so a
- * hit needs no revalidation. Internal: nothing routes to this host.
+ * one page at one version and a publish writes a new version under a new key,
+ * so the stored bytes never change — but what this Worker injects into them
+ * does, on any deploy that moves the runtime or retunes the theme. The render
+ * revision is what keeps a hit needing no revalidation while still expiring
+ * the day-old copies a theme change would otherwise strand.
+ * Internal: nothing routes to this host.
  */
 function documentCacheKey(storageKey: string): Request {
-	return new Request(`https://document.usercontent.internal/${storageKey}`);
+	return new Request(
+		`https://document.usercontent.internal/${RENDER_REVISION}/${storageKey}`,
+	);
 }
 
 const CACHED_DOCUMENT_TTL_SECONDS = 24 * 60 * 60;
 
 /**
- * A short, stable name for the rendering policy a response carries. The ETag
- * has to change when the policy does: a `304` sends no body and no fresh
- * headers, so naming the version alone would leave readers on the old
- * `Content-Security-Policy` until the page happened to publish again.
+ * A short, stable name for a string that a cached answer was built with, so
+ * changing it expires what it produced. Two callers: the ETag, because a `304`
+ * sends no body and no fresh headers and would otherwise leave readers on the
+ * old `Content-Security-Policy`; and the document cache key, because the theme
+ * and runtime tag are injected into the bytes it holds.
  */
-function policyRevision(policy: string): string {
+function revisionOf(input: string): string {
 	let hash = 0x811c9dc5;
-	for (let index = 0; index < policy.length; index++) {
-		hash ^= policy.charCodeAt(index);
+	for (let index = 0; index < input.length; index++) {
+		hash ^= input.charCodeAt(index);
 		hash = Math.imul(hash, 0x01000193);
 	}
 	return (hash >>> 0).toString(36);
@@ -93,6 +99,14 @@ function ifNoneMatchSatisfied(
 		.split(",")
 		.some((candidate) => weakTag(candidate.trim()) === target);
 }
+
+/**
+ * What this Worker injects into a stored document. A deploy that changes either
+ * has to miss the cache rather than serve last week's theme for a day.
+ */
+const RENDER_REVISION = revisionOf(
+	`${RUNTIME_SCRIPT_PATH}\u0000${PAGE_THEME_CSS}`,
+);
 
 function baseHost(c: Context<AppContext>): string {
 	return new URL(c.env.USERCONTENT_URL).host;
@@ -200,7 +214,7 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 	);
 	// What a page serves at a version never changes, so the version names it —
 	// together with the policy, which a `304` has no other way to refresh.
-	const etag = `W/"${version}.${policyRevision(policy)}"`;
+	const etag = `W/"${version}.${revisionOf(policy)}"`;
 	if (ifNoneMatchSatisfied(c.req.header("if-none-match"), etag)) {
 		return new Response(null, {
 			status: 304,
