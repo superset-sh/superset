@@ -673,6 +673,9 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 
+msgid "{hidden, plural, one {# more reply} other {# more replies}}"
+msgstr "{hidden, plural, one {# more reply} other {# more replies}}"
+
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 
@@ -2052,6 +2055,12 @@ msgstr "As last reported. The host must be online to update."
 msgid "ascending"
 msgstr "ascending"
 
+msgid "Ask an agent to publish one from the desktop app."
+msgstr "Ask an agent to publish one from the desktop app."
+
+msgid "Ask for this to be removed"
+msgstr "Ask for this to be removed"
+
 msgid "Ask the agent…"
 msgstr "Ask the agent…"
 
@@ -2994,6 +3003,9 @@ msgstr "Choose which agent watches this page for comments"
 msgid "CI failed"
 msgstr "CI failed"
 
+msgid "Clarify this"
+msgstr "Clarify this"
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 
@@ -3665,6 +3677,9 @@ msgstr "Consent finished but Microsoft did not issue a token for the tenant."
 
 msgid "Consent was not granted. A tenant administrator has to approve."
 msgstr "Consent was not granted. A tenant administrator has to approve."
+
+msgid "Consider alternatives"
+msgstr "Consider alternatives"
 
 msgid "Console"
 msgstr "Console"
@@ -4722,6 +4737,9 @@ msgstr "Delete session \"{workspaceName}\"?"
 msgid "Delete team"
 msgstr "Delete team"
 
+msgid "Delete this"
+msgstr "Delete this"
+
 msgid "Delete this workspace?"
 msgstr "Delete this workspace?"
 
@@ -5409,6 +5427,9 @@ msgstr "Engineering deep-dives and launches."
 
 msgid "Enjoying Superset?"
 msgstr "Enjoying Superset?"
+
+msgid "Ensure no regression"
+msgstr "Ensure no regression"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Enter a parent directory on {hostName}"
@@ -6655,6 +6676,9 @@ msgstr "GitHub username"
 
 msgid "GitHub username…"
 msgstr "GitHub username…"
+
+msgid "Give me an example"
+msgstr "Give me an example"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Give your key a descriptive name to remember where it's used."
@@ -8076,6 +8100,9 @@ msgstr "Long-hover shortcut-only tooltip; its chip style is now the TooltipConte
 msgid "Looking for installed browsers…"
 msgstr "Looking for installed browsers…"
 
+msgid "Looks good"
+msgstr "Looks good"
+
 msgid "Low"
 msgstr "Low"
 
@@ -8201,6 +8228,9 @@ msgstr "Marketplace"
 
 msgid "Marking ready for review..."
 msgstr "Marking ready for review..."
+
+msgid "Match existing patterns"
+msgstr "Match existing patterns"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
@@ -8385,6 +8415,9 @@ msgstr "Missing auth state"
 
 msgid "Missing authorization code. Re-run"
 msgstr "Missing authorization code. Re-run"
+
+msgid "Missing overview"
+msgstr "Missing overview"
 
 msgid "Missing required authorization parameters."
 msgstr "Missing required authorization parameters."
@@ -8611,6 +8644,9 @@ msgstr "Needs permission"
 msgid "Needs review"
 msgstr "Needs review"
 
+msgid "Needs tests"
+msgstr "Needs tests"
+
 msgid "needs update"
 msgstr "needs update"
 
@@ -8805,6 +8841,9 @@ msgstr "Next:"
 msgid "Next: {nextLabel}"
 msgstr "Next: {nextLabel}"
 
+msgid "Nice approach"
+msgstr "Nice approach"
+
 msgid "Nice, open a PR when ready."
 msgstr "Nice, open a PR when ready."
 
@@ -8920,6 +8959,9 @@ msgstr "No commands found."
 
 msgid "No comment body"
 msgstr "No comment body"
+
+msgid "No comments on this page yet"
+msgstr "No comments on this page yet"
 
 msgid "No comments yet."
 msgstr "No comments yet."
@@ -10177,6 +10219,9 @@ msgstr "Other ways to reach us"
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 
+msgid "Out of scope"
+msgstr "Out of scope"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 
@@ -10258,6 +10303,9 @@ msgstr "Page views"
 
 msgid "Pages"
 msgstr "Pages"
+
+msgid "Pages could not be loaded"
+msgstr "Pages could not be loaded"
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
@@ -11034,6 +11082,9 @@ msgstr "Quick create workspace"
 msgid "Quick Create Workspace"
 msgstr "Quick Create Workspace"
 
+msgid "Quick feedback"
+msgstr "Quick feedback"
+
 msgid "Quick Open File"
 msgstr "Quick Open File"
 
@@ -11461,6 +11512,9 @@ msgstr "Renders a registered hotkey inside dropdown/menubar items"
 msgid "Renews {0}."
 msgstr "Renews {0}."
 
+msgid "Reopen"
+msgstr "Reopen"
+
 msgid "Reopen Closed Tab"
 msgstr "Reopen Closed Tab"
 
@@ -11613,6 +11667,9 @@ msgstr "Resize left edge"
 
 msgid "Resize right edge"
 msgstr "Resize right edge"
+
+msgid "Resolve"
+msgstr "Resolve"
 
 msgid "Resolve all"
 msgstr "Resolve all"
@@ -13821,6 +13878,9 @@ msgstr "Taking longer than usual. It keeps going if you leave."
 msgid "Talk to Superset"
 msgstr "Talk to Superset"
 
+msgid "Tap anything on the page to comment on it"
+msgstr "Tap anything on the page to comment on it"
+
 msgid "Target agent"
 msgstr "Target agent"
 
@@ -14366,6 +14426,9 @@ msgstr "This closes every terminal session — in this workspace and any others 
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
+
+msgid "This comment is no longer here"
+msgstr "This comment is no longer here"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "This deletes the saved scrollback used for reboot/crash recovery."
@@ -15349,6 +15412,9 @@ msgstr "Verified through sign-in"
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Verify Kbd stays visible inside tooltips"
 
+msgid "Verify this"
+msgstr "Verify this"
+
 msgid "Verify your identity"
 msgstr "Verify your identity"
 
@@ -15913,6 +15979,9 @@ msgstr "Worktrees with uncommitted changes are left on disk."
 
 msgid "Would you like to reassign it?"
 msgstr "Would you like to reassign it?"
+
+msgid "Write a comment"
+msgstr "Write a comment"
 
 msgid "Write a comment…"
 msgstr "Write a comment…"

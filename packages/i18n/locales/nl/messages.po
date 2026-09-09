@@ -673,6 +673,9 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# verborgen regel} other {# verborgen regels}}"
 
+msgid "{hidden, plural, one {# more reply} other {# more replies}}"
+msgstr "{hidden, plural, one {# reactie meer} other {# reacties meer}}"
+
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {# verborgen regel tonen} other {# verborgen regels tonen}}"
 
@@ -2052,6 +2055,12 @@ msgstr "Zoals laatst gemeld. De host moet online zijn om bij te werken."
 msgid "ascending"
 msgstr "oplopend"
 
+msgid "Ask an agent to publish one from the desktop app."
+msgstr "Vraag een agent om er een te publiceren vanuit de desktop-app."
+
+msgid "Ask for this to be removed"
+msgstr "Vraag om verwijdering"
+
 msgid "Ask the agent…"
 msgstr "Vraag het de agent…"
 
@@ -2994,6 +3003,9 @@ msgstr "Kies welke agent deze pagina volgt voor reacties"
 msgid "CI failed"
 msgstr "CI mislukt"
 
+msgid "Clarify this"
+msgstr "Verduidelijk dit"
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex en OpenCode zijn de agents; Superset is waar je er veel tegelijk draait. Elke taak krijgt een eigen geïsoleerde Git-worktree, dus tien agents kunnen tegelijk aan tien branches werken terwijl jij vanuit één plek volgt, reviewt en merget."
 
@@ -3665,6 +3677,9 @@ msgstr "De toestemming is afgerond, maar Microsoft heeft geen token voor de tena
 
 msgid "Consent was not granted. A tenant administrator has to approve."
 msgstr "Er is geen toestemming gegeven. Een tenantbeheerder moet dit goedkeuren."
+
+msgid "Consider alternatives"
+msgstr "Overweeg alternatieven"
 
 msgid "Console"
 msgstr "Console"
@@ -4722,6 +4737,9 @@ msgstr "Sessie \"{workspaceName}\" verwijderen?"
 msgid "Delete team"
 msgstr "Team verwijderen"
 
+msgid "Delete this"
+msgstr "Dit verwijderen"
+
 msgid "Delete this workspace?"
 msgstr "Deze werkruimte verwijderen?"
 
@@ -5409,6 +5427,9 @@ msgstr "Technische verdiepingen en lanceringen."
 
 msgid "Enjoying Superset?"
 msgstr "Bevalt Superset?"
+
+msgid "Ensure no regression"
+msgstr "Zorg dat er geen regressie is"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Voer een bovenliggende map op {hostName} in"
@@ -6655,6 +6676,9 @@ msgstr "GitHub-gebruikersnaam"
 
 msgid "GitHub username…"
 msgstr "GitHub-gebruikersnaam…"
+
+msgid "Give me an example"
+msgstr "Geef een voorbeeld"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Geef je sleutel een duidelijke naam zodat je weet waar hij wordt gebruikt."
@@ -8076,6 +8100,9 @@ msgstr "Tooltip met alleen de sneltoets bij lang hoveren; de chipstijl is nu de 
 msgid "Looking for installed browsers…"
 msgstr "Zoeken naar geïnstalleerde browsers…"
 
+msgid "Looks good"
+msgstr "Ziet er goed uit"
+
 msgid "Low"
 msgstr "Laag"
 
@@ -8201,6 +8228,9 @@ msgstr "Marketplace"
 
 msgid "Marking ready for review..."
 msgstr "Markeren als klaar voor review…"
+
+msgid "Match existing patterns"
+msgstr "Volg bestaande patronen"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Koppel sneltoetsen aan de opschriften op je toetsenbord (bijv. ⌘Z werkt altijd op de toets met \"Z\" — fysiek KeyY op QWERTZ). Staat dit uit, dan zijn sneltoetsen aan fysieke toetsposities gekoppeld en negeren ze de huidige invoerbron."
@@ -8385,6 +8415,9 @@ msgstr "Auth-state ontbreekt"
 
 msgid "Missing authorization code. Re-run"
 msgstr "Autorisatiecode ontbreekt. Voer opnieuw uit"
+
+msgid "Missing overview"
+msgstr "Overzicht ontbreekt"
 
 msgid "Missing required authorization parameters."
 msgstr "Vereiste autorisatieparameters ontbreken."
@@ -8611,6 +8644,9 @@ msgstr "Toestemming nodig"
 msgid "Needs review"
 msgstr "Review nodig"
 
+msgid "Needs tests"
+msgstr "Heeft tests nodig"
+
 msgid "needs update"
 msgstr "update nodig"
 
@@ -8805,6 +8841,9 @@ msgstr "Volgende:"
 msgid "Next: {nextLabel}"
 msgstr "Volgende: {nextLabel}"
 
+msgid "Nice approach"
+msgstr "Goede aanpak"
+
 msgid "Nice, open a PR when ready."
 msgstr "Mooi, open een PR als het klaar is."
 
@@ -8920,6 +8959,9 @@ msgstr "Geen opdrachten gevonden."
 
 msgid "No comment body"
 msgstr "Geen tekst in de opmerking"
+
+msgid "No comments on this page yet"
+msgstr "Nog geen reacties op deze pagina"
 
 msgid "No comments yet."
 msgstr "Nog geen opmerkingen."
@@ -10177,6 +10219,9 @@ msgstr "Andere manieren om ons te bereiken"
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "Onze inschatting per augustus 2026, op basis van ons eigen team en de teams die we van dichtbij volgen. F3 staat grotendeels open. F4 staat grotendeels dicht. Dat gat is het werk."
 
+msgid "Out of scope"
+msgstr "Buiten scope"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Uitkomst erin, software eruit. Mensen specificeren intentie, randvoorwaarden en budget. De fabriek plant zichzelf, levert continu, monitort wat ze opleverde en rolt zichzelf terug. De meeste wijzigingen mergen zonder mens in de lus, en het aantal incidenten stijgt niet."
 
@@ -10258,6 +10303,9 @@ msgstr "Paginaweergaven"
 
 msgid "Pages"
 msgstr "Pagina's"
+
+msgid "Pages could not be loaded"
+msgstr "Pagina's konden niet worden geladen"
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Pagina's waarop sessies begonnen, met het aandeel dat vertrok zonder een tweede pagina. De vergelijkingspagina's zijn het SEO-oppervlak."
@@ -11034,6 +11082,9 @@ msgstr "Werkruimte snel aanmaken"
 msgid "Quick Create Workspace"
 msgstr "Werkruimte snel aanmaken"
 
+msgid "Quick feedback"
+msgstr "Snelle feedback"
+
 msgid "Quick Open File"
 msgstr "Bestand snel openen"
 
@@ -11461,6 +11512,9 @@ msgstr "Toont een geregistreerde sneltoets in dropdown-/menubalkitems"
 msgid "Renews {0}."
 msgstr "Verlengt {0}."
 
+msgid "Reopen"
+msgstr "Heropenen"
+
 msgid "Reopen Closed Tab"
 msgstr "Gesloten tabblad heropenen"
 
@@ -11613,6 +11667,9 @@ msgstr "Linkerrand verslepen"
 
 msgid "Resize right edge"
 msgstr "Rechterrand verslepen"
+
+msgid "Resolve"
+msgstr "Oplossen"
 
 msgid "Resolve all"
 msgstr "Alles oplossen"
@@ -13821,6 +13878,9 @@ msgstr "Duurt langer dan gewoonlijk. Het gaat door als je weggaat."
 msgid "Talk to Superset"
 msgstr "Praat met Superset"
 
+msgid "Tap anything on the page to comment on it"
+msgstr "Tik op iets op de pagina om erop te reageren"
+
 msgid "Target agent"
 msgstr "Doelagent"
 
@@ -14366,6 +14426,9 @@ msgstr "Hiermee worden alle terminalsessies gesloten — in deze werkruimte en i
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Hiermee wordt elke terminalsessie van je organisatie{runningCountSuffix} gesloten en start een verse daemon."
+
+msgid "This comment is no longer here"
+msgstr "Deze reactie is er niet meer"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Hiermee wordt de opgeslagen scrollback voor herstel na herstart of crash verwijderd."
@@ -15349,6 +15412,9 @@ msgstr "Geverifieerd via inloggen"
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Controleren of Kbd zichtbaar blijft in tooltips"
 
+msgid "Verify this"
+msgstr "Controleer dit"
+
 msgid "Verify your identity"
 msgstr "Je identiteit verifiëren"
 
@@ -15913,6 +15979,9 @@ msgstr "Worktrees met niet-gecommitte wijzigingen blijven op de schijf staan."
 
 msgid "Would you like to reassign it?"
 msgstr "Wil je hem opnieuw toewijzen?"
+
+msgid "Write a comment"
+msgstr "Schrijf een reactie"
 
 msgid "Write a comment…"
 msgstr "Schrijf een opmerking…"

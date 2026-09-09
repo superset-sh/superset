@@ -673,6 +673,9 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {숨겨진 #줄} other {숨겨진 #줄}}"
 
+msgid "{hidden, plural, one {# more reply} other {# more replies}}"
+msgstr "{hidden, plural, other {답글 #개 더}}"
+
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {숨겨진 #줄 보기} other {숨겨진 #줄 보기}}"
 
@@ -2052,6 +2055,12 @@ msgstr "마지막으로 보고된 값입니다. 업데이트하려면 호스트�
 msgid "ascending"
 msgstr "오름차순"
 
+msgid "Ask an agent to publish one from the desktop app."
+msgstr "데스크톱 앱에서 에이전트에게 게시를 요청하세요."
+
+msgid "Ask for this to be removed"
+msgstr "삭제 요청"
+
 msgid "Ask the agent…"
 msgstr "에이전트에게 물어보세요…"
 
@@ -2994,6 +3003,9 @@ msgstr "이 페이지의 댓글을 감시할 에이전트 선택"
 msgid "CI failed"
 msgstr "CI 실패"
 
+msgid "Clarify this"
+msgstr "이것을 명확히 해 주세요"
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex, OpenCode는 에이전트이고, Superset은 그 여럿을 한꺼번에 돌리는 곳입니다. 작업마다 격리된 Git worktree가 생기므로 에이전트 열 개가 브랜치 열 개에서 동시에 작업하는 동안 한곳에서 관찰하고, 리뷰하고, 머지할 수 있습니다."
 
@@ -3665,6 +3677,9 @@ msgstr "동의는 완료되었지만 Microsoft가 테넌트용 토큰을 발급�
 
 msgid "Consent was not granted. A tenant administrator has to approve."
 msgstr "동의가 부여되지 않았습니다. 테넌트 관리자가 승인해야 합니다."
+
+msgid "Consider alternatives"
+msgstr "대안을 검토해 주세요"
 
 msgid "Console"
 msgstr "콘솔"
@@ -4722,6 +4737,9 @@ msgstr "세션 \"{workspaceName}\"을(를) 삭제할까요?"
 msgid "Delete team"
 msgstr "팀 삭제"
 
+msgid "Delete this"
+msgstr "이것을 삭제"
+
 msgid "Delete this workspace?"
 msgstr "이 워크스페이스를 삭제할까요?"
 
@@ -5409,6 +5427,9 @@ msgstr "엔지니어링 심층 글과 출시 소식."
 
 msgid "Enjoying Superset?"
 msgstr "Superset이 마음에 드시나요?"
+
+msgid "Ensure no regression"
+msgstr "회귀가 없는지 확인해 주세요"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName}의 상위 디렉터리를 입력하세요"
@@ -6655,6 +6676,9 @@ msgstr "GitHub 사용자 이름"
 
 msgid "GitHub username…"
 msgstr "GitHub 사용자 이름…"
+
+msgid "Give me an example"
+msgstr "예시를 보여주세요"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "어디에 사용하는 키인지 알 수 있도록 설명이 담긴 이름을 지정하세요."
@@ -8076,6 +8100,9 @@ msgstr "오래 호버하면 단축키만 보여 주는 툴팁이며, 그 칩 스
 msgid "Looking for installed browsers…"
 msgstr "설치된 브라우저를 찾는 중…"
 
+msgid "Looks good"
+msgstr "좋아 보입니다"
+
 msgid "Low"
 msgstr "낮음"
 
@@ -8201,6 +8228,9 @@ msgstr "마켓플레이스"
 
 msgid "Marking ready for review..."
 msgstr "리뷰 준비 완료로 표시하는 중…"
+
+msgid "Match existing patterns"
+msgstr "기존 패턴을 따라 주세요"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "키보드에 인쇄된 문자에 맞춰 단축키를 매핑합니다(예: ⌘Z는 항상 \"Z\"라고 적힌 키에서 동작하며, QWERTZ에서는 물리 키 KeyY입니다). 끄면 단축키가 물리적 키 위치에 고정되며 현재 입력 소스를 무시합니다."
@@ -8385,6 +8415,9 @@ msgstr "인증 상태 누락"
 
 msgid "Missing authorization code. Re-run"
 msgstr "인증 코드가 없습니다. 다시 실행하세요"
+
+msgid "Missing overview"
+msgstr "개요가 없음"
 
 msgid "Missing required authorization parameters."
 msgstr "필수 인증 매개변수가 없습니다."
@@ -8611,6 +8644,9 @@ msgstr "권한 필요"
 msgid "Needs review"
 msgstr "리뷰 필요"
 
+msgid "Needs tests"
+msgstr "테스트 필요"
+
 msgid "needs update"
 msgstr "업데이트 필요"
 
@@ -8805,6 +8841,9 @@ msgstr "다음:"
 msgid "Next: {nextLabel}"
 msgstr "다음: {nextLabel}"
 
+msgid "Nice approach"
+msgstr "좋은 접근"
+
 msgid "Nice, open a PR when ready."
 msgstr "좋아요, 준비되면 PR을 올려 주세요."
 
@@ -8920,6 +8959,9 @@ msgstr "명령을 찾을 수 없습니다."
 
 msgid "No comment body"
 msgstr "코멘트 본문 없음"
+
+msgid "No comments on this page yet"
+msgstr "이 페이지에는 아직 댓글이 없습니다"
 
 msgid "No comments yet."
 msgstr "아직 코멘트가 없습니다."
@@ -10177,6 +10219,9 @@ msgstr "다른 문의 방법"
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "2026년 8월 기준, 우리 팀과 가까이 지켜보는 팀들을 바탕으로 한 판단입니다. F3은 대부분 열렸고, F4는 대부분 닫혀 있습니다. 그 간극이 곧 해야 할 일입니다."
 
+msgid "Out of scope"
+msgstr "범위를 벗어남"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "결과를 넣으면 소프트웨어가 나옵니다. 사람은 의도와 제약, 예산을 정합니다. 공장은 스스로 일정을 짜고, 계속 출시하고, 출시한 것을 관찰하고, 스스로 되돌립니다. 대부분의 변경이 사람의 개입 없이 머지되고, 장애율은 오르지 않습니다."
 
@@ -10258,6 +10303,9 @@ msgstr "페이지뷰"
 
 msgid "Pages"
 msgstr "페이지"
+
+msgid "Pages could not be loaded"
+msgstr "페이지를 불러오지 못했습니다"
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "세션이 시작된 페이지와 두 번째 페이지 없이 떠난 비율. 비교 페이지가 SEO의 주 무대입니다."
@@ -11034,6 +11082,9 @@ msgstr "워크스페이스 빠른 생성"
 msgid "Quick Create Workspace"
 msgstr "워크스페이스 빠른 생성"
 
+msgid "Quick feedback"
+msgstr "빠른 피드백"
+
 msgid "Quick Open File"
 msgstr "파일 빠른 열기"
 
@@ -11461,6 +11512,9 @@ msgstr "드롭다운/메뉴 바 항목 안에 등록된 단축키를 렌더링�
 msgid "Renews {0}."
 msgstr "{0}에 갱신됩니다."
 
+msgid "Reopen"
+msgstr "다시 열기"
+
 msgid "Reopen Closed Tab"
 msgstr "닫은 탭 다시 열기"
 
@@ -11613,6 +11667,9 @@ msgstr "왼쪽 가장자리 크기 조절"
 
 msgid "Resize right edge"
 msgstr "오른쪽 가장자리 크기 조절"
+
+msgid "Resolve"
+msgstr "해결"
 
 msgid "Resolve all"
 msgstr "모두 해결"
@@ -13821,6 +13878,9 @@ msgstr "평소보다 오래 걸리고 있습니다. 화면을 나가도 계속 �
 msgid "Talk to Superset"
 msgstr "Superset에 문의하기"
 
+msgid "Tap anything on the page to comment on it"
+msgstr "페이지의 아무 곳이나 탭하여 댓글을 남기세요"
+
 msgid "Target agent"
 msgstr "대상 에이전트"
 
@@ -14366,6 +14426,9 @@ msgstr "이 워크스페이스를 포함한 모든 워크스페이스의 터미�
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "조직의 모든 터미널 세션{runningCountSuffix}이 닫히고 새 데몬이 시작됩니다."
+
+msgid "This comment is no longer here"
+msgstr "이 댓글은 더 이상 없습니다"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "재부팅/충돌 복구에 사용하는 저장된 스크롤백을 삭제합니다."
@@ -15349,6 +15412,9 @@ msgstr "로그인으로 확인됨"
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "툴팁 안에서 Kbd가 계속 보이는지 확인"
 
+msgid "Verify this"
+msgstr "이것을 확인해 주세요"
+
 msgid "Verify your identity"
 msgstr "신원 확인"
 
@@ -15913,6 +15979,9 @@ msgstr "커밋되지 않은 변경 사항이 있는 worktree는 디스크에 남
 
 msgid "Would you like to reassign it?"
 msgstr "다시 지정할까요?"
+
+msgid "Write a comment"
+msgstr "댓글 작성"
 
 msgid "Write a comment…"
 msgstr "댓글을 작성하세요…"

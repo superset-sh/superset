@@ -563,8 +563,20 @@ export function HomeScreen() {
 						: undefined,
 				}}
 			/>
-			{!cloudScope && selectedHost && !selectedHost.isOnline ? null : (
-				<Stack.Toolbar placement="right">
+			{/* Pages stay reachable while a machine is offline — they're served by
+			    the cloud, not by the host whose list is hidden below. */}
+			<Stack.Toolbar placement="right">
+				<Stack.Toolbar.Button
+					icon="doc.text"
+					accessibilityLabel={t({
+						message: "Pages",
+					})}
+					onPress={() => {
+						void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+						router.push("/(authenticated)/(home)/pages");
+					}}
+				/>
+				{!cloudScope && selectedHost && !selectedHost.isOnline ? null : (
 					<Stack.Toolbar.Button
 						icon="magnifyingglass"
 						accessibilityLabel={t({
@@ -575,8 +587,8 @@ export function HomeScreen() {
 							router.push("/(authenticated)/(home)/search");
 						}}
 					/>
-				</Stack.Toolbar>
-			)}
+				)}
+			</Stack.Toolbar>
 			{!cloudScope && selectedHost && !selectedHost.isOnline ? (
 				<View
 					className="bg-background flex-1"

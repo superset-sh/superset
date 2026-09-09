@@ -673,6 +673,9 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# riga nascosta} other {# righe nascoste}}"
 
+msgid "{hidden, plural, one {# more reply} other {# more replies}}"
+msgstr "{hidden, plural, one {# altra risposta} other {# altre risposte}}"
+
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Mostra # riga nascosta} other {Mostra # righe nascoste}}"
 
@@ -2052,6 +2055,12 @@ msgstr "Ultimo valore riportato. L'host deve essere online per aggiornarsi."
 msgid "ascending"
 msgstr "crescente"
 
+msgid "Ask an agent to publish one from the desktop app."
+msgstr "Chiedi a un agente di pubblicarne una dall'app desktop."
+
+msgid "Ask for this to be removed"
+msgstr "Chiedi di rimuoverlo"
+
 msgid "Ask the agent…"
 msgstr "Chiedi all'agente…"
 
@@ -2994,6 +3003,9 @@ msgstr "Scegli quale agente osserva i commenti di questa pagina"
 msgid "CI failed"
 msgstr "CI fallita"
 
+msgid "Clarify this"
+msgstr "Chiarisci questo"
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex e OpenCode sono gli agenti; Superset è dove ne fai girare molti insieme. Ogni task ha il proprio worktree Git isolato, così dieci agenti possono lavorare su dieci branch contemporaneamente mentre tu monitori, rivedi e unisci da un unico posto."
 
@@ -3665,6 +3677,9 @@ msgstr "Il consenso è stato completato ma Microsoft non ha emesso un token per 
 
 msgid "Consent was not granted. A tenant administrator has to approve."
 msgstr "Il consenso non è stato concesso. Deve approvarlo un amministratore del tenant."
+
+msgid "Consider alternatives"
+msgstr "Valuta alternative"
 
 msgid "Console"
 msgstr "Console"
@@ -4722,6 +4737,9 @@ msgstr "Eliminare la sessione \"{workspaceName}\"?"
 msgid "Delete team"
 msgstr "Elimina il team"
 
+msgid "Delete this"
+msgstr "Elimina questo"
+
 msgid "Delete this workspace?"
 msgstr "Eliminare questo workspace?"
 
@@ -5409,6 +5427,9 @@ msgstr "Approfondimenti tecnici e lanci."
 
 msgid "Enjoying Superset?"
 msgstr "Ti piace Superset?"
+
+msgid "Ensure no regression"
+msgstr "Assicurati che non ci siano regressioni"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Inserisci una directory padre su {hostName}"
@@ -6655,6 +6676,9 @@ msgstr "Nome utente GitHub"
 
 msgid "GitHub username…"
 msgstr "Nome utente GitHub…"
+
+msgid "Give me an example"
+msgstr "Fammi un esempio"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Dai alla chiave un nome descrittivo per ricordare dove viene usata."
@@ -8076,6 +8100,9 @@ msgstr "Tooltip con sola scorciatoia su hover prolungato; il suo stile chip è o
 msgid "Looking for installed browsers…"
 msgstr "Ricerca dei browser installati…"
 
+msgid "Looks good"
+msgstr "Mi sembra buono"
+
 msgid "Low"
 msgstr "Bassa"
 
@@ -8201,6 +8228,9 @@ msgstr "Marketplace"
 
 msgid "Marking ready for review..."
 msgstr "Contrassegno come pronta per la revisione…"
+
+msgid "Match existing patterns"
+msgstr "Segui i pattern esistenti"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Adatta le scorciatoie alle etichette della tua tastiera (es. ⌘Z si attiva sempre sul tasto etichettato \"Z\" — fisicamente KeyY su QWERTZ). Quando è disattivata, le scorciatoie sono ancorate alle posizioni fisiche dei tasti e ignorano la sorgente di input attuale."
@@ -8385,6 +8415,9 @@ msgstr "Stato di autenticazione mancante"
 
 msgid "Missing authorization code. Re-run"
 msgstr "Codice di autorizzazione mancante. Riesegui"
+
+msgid "Missing overview"
+msgstr "Manca una panoramica"
 
 msgid "Missing required authorization parameters."
 msgstr "Parametri di autorizzazione obbligatori mancanti."
@@ -8611,6 +8644,9 @@ msgstr "Richiede un'autorizzazione"
 msgid "Needs review"
 msgstr "Richiede revisione"
 
+msgid "Needs tests"
+msgstr "Servono test"
+
 msgid "needs update"
 msgstr "da aggiornare"
 
@@ -8805,6 +8841,9 @@ msgstr "Successivo:"
 msgid "Next: {nextLabel}"
 msgstr "Avanti: {nextLabel}"
 
+msgid "Nice approach"
+msgstr "Buon approccio"
+
 msgid "Nice, open a PR when ready."
 msgstr "Ottimo, apri una PR quando è pronta."
 
@@ -8920,6 +8959,9 @@ msgstr "Nessun comando trovato."
 
 msgid "No comment body"
 msgstr "Nessun corpo del commento"
+
+msgid "No comments on this page yet"
+msgstr "Ancora nessun commento in questa pagina"
 
 msgid "No comments yet."
 msgstr "Ancora nessun commento."
@@ -10177,6 +10219,9 @@ msgstr "Altri modi per contattarci"
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "La nostra lettura ad agosto 2026, basata sul nostro team e sui team che seguiamo da vicino. F3 è quasi tutto aperto. F4 è quasi tutto chiuso. Quel divario è il lavoro da fare."
 
+msgid "Out of scope"
+msgstr "Fuori ambito"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "Entra un obiettivo, esce del software. Gli umani specificano intento, vincoli e budget. La fabbrica si programma da sola, rilascia in continuo, monitora ciò che ha rilasciato e torna indietro da sola. La maggior parte delle modifiche viene unita senza un umano nel ciclo, e il tasso di incidenti non sale."
 
@@ -10258,6 +10303,9 @@ msgstr "Visualizzazioni di pagina"
 
 msgid "Pages"
 msgstr "Pagine"
+
+msgid "Pages could not be loaded"
+msgstr "Impossibile caricare le pagine"
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Pagine su cui sono iniziate le sessioni, con la quota che se n'è andata senza una seconda pagina. Le pagine di confronto sono la superficie SEO."
@@ -11034,6 +11082,9 @@ msgstr "Crea workspace rapido"
 msgid "Quick Create Workspace"
 msgstr "Crea workspace rapido"
 
+msgid "Quick feedback"
+msgstr "Feedback rapido"
+
 msgid "Quick Open File"
 msgstr "Apertura rapida file"
 
@@ -11461,6 +11512,9 @@ msgstr "Renderizza una scorciatoia registrata dentro le voci dei menu a discesa 
 msgid "Renews {0}."
 msgstr "Si rinnova il {0}."
 
+msgid "Reopen"
+msgstr "Riapri"
+
 msgid "Reopen Closed Tab"
 msgstr "Riapri la scheda chiusa"
 
@@ -11613,6 +11667,9 @@ msgstr "Ridimensiona il bordo sinistro"
 
 msgid "Resize right edge"
 msgstr "Ridimensiona il bordo destro"
+
+msgid "Resolve"
+msgstr "Risolvi"
 
 msgid "Resolve all"
 msgstr "Risolvi tutto"
@@ -13821,6 +13878,9 @@ msgstr "Ci sta mettendo più del solito. Continua anche se esci."
 msgid "Talk to Superset"
 msgstr "Parla con Superset"
 
+msgid "Tap anything on the page to comment on it"
+msgstr "Tocca un elemento della pagina per commentarlo"
+
 msgid "Target agent"
 msgstr "Agente di destinazione"
 
@@ -14366,6 +14426,9 @@ msgstr "Questo chiude tutte le sessioni del terminale — in questo workspace e 
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Questo chiude tutte le sessioni del terminale della tua organizzazione{runningCountSuffix} e avvia un daemon nuovo."
+
+msgid "This comment is no longer here"
+msgstr "Questo commento non è più qui"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Questo elimina lo scrollback salvato usato per il ripristino dopo riavvio o crash."
@@ -15349,6 +15412,9 @@ msgstr "Verificato tramite accesso"
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Verifica che Kbd resti visibile dentro i tooltip"
 
+msgid "Verify this"
+msgstr "Verifica questo"
+
 msgid "Verify your identity"
 msgstr "Verificare la tua identità"
 
@@ -15913,6 +15979,9 @@ msgstr "I worktree con modifiche non committate restano sul disco."
 
 msgid "Would you like to reassign it?"
 msgstr "Vuoi riassegnarla?"
+
+msgid "Write a comment"
+msgstr "Scrivi un commento"
 
 msgid "Write a comment…"
 msgstr "Scrivi un commento…"

@@ -673,6 +673,9 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {# скрытая строка} few {# скрытые строки} many {# скрытых строк} other {# скрытой строки}}"
 
+msgid "{hidden, plural, one {# more reply} other {# more replies}}"
+msgstr "{hidden, plural, one {# ещё ответ} few {# ещё ответа} many {# ещё ответов} other {# ещё ответа}}"
+
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {Показать # скрытую строку} few {Показать # скрытые строки} many {Показать # скрытых строк} other {Показать # скрытых строк}}"
 
@@ -2052,6 +2055,12 @@ msgstr "По последним данным. Для обновления хос
 msgid "ascending"
 msgstr "по возрастанию"
 
+msgid "Ask an agent to publish one from the desktop app."
+msgstr "Попросите агента опубликовать её из десктопного приложения."
+
+msgid "Ask for this to be removed"
+msgstr "Попросить удалить"
+
 msgid "Ask the agent…"
 msgstr "Спросите агента…"
 
@@ -2994,6 +3003,9 @@ msgstr "Выберите, какой агент отслеживает комм�
 msgid "CI failed"
 msgstr "CI упал"
 
+msgid "Clarify this"
+msgstr "Уточнить это"
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex и OpenCode — это агенты; Superset — место, где вы запускаете их много сразу. У каждой задачи свой изолированный Git worktree, поэтому десять агентов могут работать над десятью ветками одновременно, пока вы следите, проверяете и объединяете из одного места."
 
@@ -3665,6 +3677,9 @@ msgstr "Согласие получено, но Microsoft не выдал ток
 
 msgid "Consent was not granted. A tenant administrator has to approve."
 msgstr "Согласие не выдано. Его должен одобрить администратор тенанта."
+
+msgid "Consider alternatives"
+msgstr "Рассмотри альтернативы"
 
 msgid "Console"
 msgstr "Консоль"
@@ -4722,6 +4737,9 @@ msgstr "Удалить сессию «{workspaceName}»?"
 msgid "Delete team"
 msgstr "Удалить команду"
 
+msgid "Delete this"
+msgstr "Удалить это"
+
 msgid "Delete this workspace?"
 msgstr "Удалить эту рабочую область?"
 
@@ -5409,6 +5427,9 @@ msgstr "Инженерные разборы и запуски."
 
 msgid "Enjoying Superset?"
 msgstr "Нравится Superset?"
+
+msgid "Ensure no regression"
+msgstr "Убедись, что нет регрессии"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Введите родительскую папку на {hostName}"
@@ -6655,6 +6676,9 @@ msgstr "Имя пользователя GitHub"
 
 msgid "GitHub username…"
 msgstr "Имя пользователя GitHub…"
+
+msgid "Give me an example"
+msgstr "Приведи пример"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Дайте ключу понятное название, чтобы помнить, где он используется."
@@ -8076,6 +8100,9 @@ msgstr "Подсказка только с сочетанием клавиш п�
 msgid "Looking for installed browsers…"
 msgstr "Поиск установленных браузеров…"
 
+msgid "Looks good"
+msgstr "Выглядит хорошо"
+
 msgid "Low"
 msgstr "Низкий"
 
@@ -8201,6 +8228,9 @@ msgstr "Маркетплейс"
 
 msgid "Marking ready for review..."
 msgstr "Помечается как готово к ревью…"
+
+msgid "Match existing patterns"
+msgstr "Следуй существующим шаблонам"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Привязывать сочетания к обозначениям на вашей клавиатуре (например, ⌘Z всегда срабатывает на клавише с надписью «Z» — физическая KeyY на QWERTZ). Когда выключено, сочетания привязаны к физическим позициям клавиш и не зависят от текущего источника ввода."
@@ -8385,6 +8415,9 @@ msgstr "Отсутствует состояние аутентификации"
 
 msgid "Missing authorization code. Re-run"
 msgstr "Нет кода авторизации. Выполните заново"
+
+msgid "Missing overview"
+msgstr "Не хватает обзора"
 
 msgid "Missing required authorization parameters."
 msgstr "Не хватает обязательных параметров авторизации."
@@ -8611,6 +8644,9 @@ msgstr "Нужно разрешение"
 msgid "Needs review"
 msgstr "Нужно ревью"
 
+msgid "Needs tests"
+msgstr "Нужны тесты"
+
 msgid "needs update"
 msgstr "нужно обновить"
 
@@ -8805,6 +8841,9 @@ msgstr "Далее:"
 msgid "Next: {nextLabel}"
 msgstr "Далее: {nextLabel}"
 
+msgid "Nice approach"
+msgstr "Хороший подход"
+
 msgid "Nice, open a PR when ready."
 msgstr "Отлично, открой PR, когда будет готово."
 
@@ -8920,6 +8959,9 @@ msgstr "Команды не найдены."
 
 msgid "No comment body"
 msgstr "Нет текста комментария"
+
+msgid "No comments on this page yet"
+msgstr "На этой странице пока нет комментариев"
 
 msgid "No comments yet."
 msgstr "Комментариев пока нет."
@@ -10177,6 +10219,9 @@ msgstr "Другие способы связаться"
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "Наша оценка на август 2026 года по нашей команде и командам, за которыми мы внимательно следим. F3 в основном открыт. F4 в основном закрыт. Этот разрыв и есть работа."
 
+msgid "Out of scope"
+msgstr "Вне рамок"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "На входе результат, на выходе софт. Люди задают намерение, ограничения и бюджет. Фабрика сама планирует, непрерывно выпускает, следит за выпущенным и сама откатывается. Большинство изменений сливается без человека в контуре, а частота инцидентов не растёт."
 
@@ -10258,6 +10303,9 @@ msgstr "Просмотры страниц"
 
 msgid "Pages"
 msgstr "Страницы"
+
+msgid "Pages could not be loaded"
+msgstr "Не удалось загрузить страницы"
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "Страницы, с которых начались сессии, и доля ушедших без второй страницы. Страницы сравнения — это SEO-поверхность."
@@ -11034,6 +11082,9 @@ msgstr "Быстро создать рабочую область"
 msgid "Quick Create Workspace"
 msgstr "Быстро создать рабочую область"
 
+msgid "Quick feedback"
+msgstr "Быстрый отзыв"
+
 msgid "Quick Open File"
 msgstr "Быстро открыть файл"
 
@@ -11461,6 +11512,9 @@ msgstr "Рендерит зарегистрированное сочетание
 msgid "Renews {0}."
 msgstr "Продлевается {0}."
 
+msgid "Reopen"
+msgstr "Открыть снова"
+
 msgid "Reopen Closed Tab"
 msgstr "Открыть заново закрытую вкладку"
 
@@ -11613,6 +11667,9 @@ msgstr "Изменить размер по левому краю"
 
 msgid "Resize right edge"
 msgstr "Изменить размер по правому краю"
+
+msgid "Resolve"
+msgstr "Решить"
 
 msgid "Resolve all"
 msgstr "Закрыть все"
@@ -13821,6 +13878,9 @@ msgstr "Дольше обычного. Процесс продолжится, д
 msgid "Talk to Superset"
 msgstr "Напишите в Superset"
 
+msgid "Tap anything on the page to comment on it"
+msgstr "Коснитесь любого элемента страницы, чтобы прокомментировать его"
+
 msgid "Target agent"
 msgstr "Целевой агент"
 
@@ -14366,6 +14426,9 @@ msgstr "Это закроет все сессии терминала — в эт
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Это закроет все сессии терминала вашей организации{runningCountSuffix} и запустит новый демон."
+
+msgid "This comment is no longer here"
+msgstr "Этого комментария больше нет"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Это удалит сохранённую прокрутку, используемую для восстановления после перезагрузки или сбоя."
@@ -15349,6 +15412,9 @@ msgstr "Подтверждено при входе"
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "Проверить, что Kbd остаётся видимым внутри tooltip"
 
+msgid "Verify this"
+msgstr "Проверить это"
+
 msgid "Verify your identity"
 msgstr "проверять вашу личность"
 
@@ -15913,6 +15979,9 @@ msgstr "Worktree с незакоммиченными изменениями ос
 
 msgid "Would you like to reassign it?"
 msgstr "Переназначить?"
+
+msgid "Write a comment"
+msgstr "Написать комментарий"
 
 msgid "Write a comment…"
 msgstr "Напишите комментарий…"

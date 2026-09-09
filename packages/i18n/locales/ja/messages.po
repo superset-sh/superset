@@ -673,6 +673,9 @@ msgstr "{gate}: {statusLabel}"
 msgid "{hidden, plural, one {# hidden line} other {# hidden lines}}"
 msgstr "{hidden, plural, one {非表示の#行} other {非表示の#行}}"
 
+msgid "{hidden, plural, one {# more reply} other {# more replies}}"
+msgstr "{hidden, plural, other {他 # 件の返信}}"
+
 msgid "{hidden, plural, one {Show # hidden line} other {Show # hidden lines}}"
 msgstr "{hidden, plural, one {非表示の#行を表示} other {非表示の#行を表示}}"
 
@@ -2052,6 +2055,12 @@ msgstr "最後に報告された値です。更新するにはホストがオン
 msgid "ascending"
 msgstr "昇順"
 
+msgid "Ask an agent to publish one from the desktop app."
+msgstr "デスクトップアプリからエージェントに公開してもらいましょう。"
+
+msgid "Ask for this to be removed"
+msgstr "削除を依頼"
+
 msgid "Ask the agent…"
 msgstr "エージェントに質問…"
 
@@ -2994,6 +3003,9 @@ msgstr "このページのコメントを監視するエージェントを選択
 msgid "CI failed"
 msgstr "CIが失敗しました"
 
+msgid "Clarify this"
+msgstr "これを明確にして"
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code、Codex、OpenCodeはエージェントであり、Supersetはそれらを同時に何体も動かす場所です。タスクごとに独立したGitワークツリーが割り当てられるので、10体のエージェントが10本のブランチで同時に作業する間、1か所から監視・レビュー・マージができます。"
 
@@ -3665,6 +3677,9 @@ msgstr "同意は完了しましたが、Microsoftがテナント用のトーク
 
 msgid "Consent was not granted. A tenant administrator has to approve."
 msgstr "同意が付与されませんでした。テナント管理者の承認が必要です。"
+
+msgid "Consider alternatives"
+msgstr "代替案を検討して"
 
 msgid "Console"
 msgstr "コンソール"
@@ -4722,6 +4737,9 @@ msgstr "セッション「{workspaceName}」を削除しますか?"
 msgid "Delete team"
 msgstr "チームを削除"
 
+msgid "Delete this"
+msgstr "これを削除"
+
 msgid "Delete this workspace?"
 msgstr "このワークスペースを削除しますか?"
 
@@ -5409,6 +5427,9 @@ msgstr "技術の深掘りとリリース情報。"
 
 msgid "Enjoying Superset?"
 msgstr "Supersetを気に入っていただけましたか?"
+
+msgid "Ensure no regression"
+msgstr "デグレがないことを確認して"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName}の親ディレクトリを入力してください"
@@ -6655,6 +6676,9 @@ msgstr "GitHubのユーザー名"
 
 msgid "GitHub username…"
 msgstr "GitHubユーザー名…"
+
+msgid "Give me an example"
+msgstr "例を挙げて"
 
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "どこで使うキーか分かる名前を付けてください。"
@@ -8076,6 +8100,9 @@ msgstr "長めのホバーでショートカットだけを出すtooltip。そ�
 msgid "Looking for installed browsers…"
 msgstr "インストール済みブラウザを検索中…"
 
+msgid "Looks good"
+msgstr "良さそう"
+
 msgid "Low"
 msgstr "低"
 
@@ -8201,6 +8228,9 @@ msgstr "マーケットプレイス"
 
 msgid "Marking ready for review..."
 msgstr "レビュー準備完了にしています…"
+
+msgid "Match existing patterns"
+msgstr "既存のパターンに合わせて"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "ショートカットをキーボードの刻印に合わせます(例: ⌘Zは常に「Z」と刻印されたキーで発火 — QWERTZでは物理KeyY)。オフの場合、ショートカットは物理キー位置に固定され、現在の入力ソースを無視します。"
@@ -8385,6 +8415,9 @@ msgstr "認証ステートがありません"
 
 msgid "Missing authorization code. Re-run"
 msgstr "認可コードがありません。再実行してください"
+
+msgid "Missing overview"
+msgstr "概要が不足"
 
 msgid "Missing required authorization parameters."
 msgstr "必要な認可パラメーターがありません。"
@@ -8611,6 +8644,9 @@ msgstr "許可が必要"
 msgid "Needs review"
 msgstr "レビューが必要"
 
+msgid "Needs tests"
+msgstr "テストが必要"
+
 msgid "needs update"
 msgstr "要更新"
 
@@ -8805,6 +8841,9 @@ msgstr "次:"
 msgid "Next: {nextLabel}"
 msgstr "次: {nextLabel}"
 
+msgid "Nice approach"
+msgstr "良いアプローチ"
+
 msgid "Nice, open a PR when ready."
 msgstr "いいですね。準備ができたらPRを作成してください。"
 
@@ -8920,6 +8959,9 @@ msgstr "コマンドが見つかりません。"
 
 msgid "No comment body"
 msgstr "コメント本文はありません"
+
+msgid "No comments on this page yet"
+msgstr "このページにはまだコメントがありません"
 
 msgid "No comments yet."
 msgstr "コメントはまだありません。"
@@ -10177,6 +10219,9 @@ msgstr "その他の連絡方法"
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "2026年8月時点の当社の見立てです。自チームと、近くで見ているチームの実態にもとづいています。F3はほぼ通過済み、F4はほぼ未通過。この差が、これからの仕事です。"
 
+msgid "Out of scope"
+msgstr "スコープ外"
+
 msgid "Outcome in, software out. Humans specify intent, constraints, and budget. The factory schedules itself, ships continuously, monitors what it shipped, and rolls itself back. Most changes merge with no human in the loop, and the incident rate does not rise."
 msgstr "成果を入力すれば、ソフトウェアが出てきます。人間は意図、制約、予算を指定します。工場は自らスケジュールを組み、継続的に出荷し、出荷したものを監視し、自らロールバックします。ほとんどの変更は人間を介さずマージされ、それでもインシデント率は上がりません。"
 
@@ -10258,6 +10303,9 @@ msgstr "ページビュー"
 
 msgid "Pages"
 msgstr "ページ"
+
+msgid "Pages could not be loaded"
+msgstr "ページを読み込めませんでした"
 
 msgid "Pages sessions started on, with the share that left without a second page. The compare pages are the SEO surface."
 msgstr "セッションが開始したページと、2ページ目を見ずに離脱した割合。比較ページが SEO の主戦場です。"
@@ -11034,6 +11082,9 @@ msgstr "ワークスペースをクイック作成"
 msgid "Quick Create Workspace"
 msgstr "ワークスペースをクイック作成"
 
+msgid "Quick feedback"
+msgstr "クイックフィードバック"
+
 msgid "Quick Open File"
 msgstr "ファイルをクイックオープン"
 
@@ -11461,6 +11512,9 @@ msgstr "ドロップダウンやメニューバーの項目内に登録済みホ
 msgid "Renews {0}."
 msgstr "{0}に更新されます。"
 
+msgid "Reopen"
+msgstr "再オープン"
+
 msgid "Reopen Closed Tab"
 msgstr "閉じたタブを再度開く"
 
@@ -11613,6 +11667,9 @@ msgstr "左端をリサイズ"
 
 msgid "Resize right edge"
 msgstr "右端をリサイズ"
+
+msgid "Resolve"
+msgstr "解決する"
 
 msgid "Resolve all"
 msgstr "すべて解決"
@@ -13821,6 +13878,9 @@ msgstr "いつもより時間がかかっています。画面を離れても処
 msgid "Talk to Superset"
 msgstr "Supersetに相談する"
 
+msgid "Tap anything on the page to comment on it"
+msgstr "ページ上の要素をタップしてコメントできます"
+
 msgid "Target agent"
 msgstr "対象のエージェント"
 
@@ -14366,6 +14426,9 @@ msgstr "このワークスペースと他のワークスペースのすべての
 
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "組織のすべてのターミナルセッション{runningCountSuffix}を閉じ、新しいデーモンを起動します。"
+
+msgid "This comment is no longer here"
+msgstr "このコメントはもうありません"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "再起動やクラッシュからの復旧に使う保存済みスクロールバックを削除します。"
@@ -15349,6 +15412,9 @@ msgstr "サインインで確認済み"
 msgid "Verify Kbd stays visible inside tooltips"
 msgstr "tooltip内でKbdが見えたままか確認する"
 
+msgid "Verify this"
+msgstr "これを確認して"
+
 msgid "Verify your identity"
 msgstr "本人確認"
 
@@ -15913,6 +15979,9 @@ msgstr "未コミットの変更があるワークツリーはディスクに残
 
 msgid "Would you like to reassign it?"
 msgstr "割り当て直しますか?"
+
+msgid "Write a comment"
+msgstr "コメントを書く"
 
 msgid "Write a comment…"
 msgstr "コメントを入力…"
