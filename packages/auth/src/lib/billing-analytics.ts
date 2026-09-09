@@ -77,8 +77,14 @@ export async function captureBillingEvent({
 		let attribution: "initiator" | "owner" = "initiator";
 
 		if (!distinctId) {
-			const [owner] = await getOrganizationOwners(organizationId);
-			distinctId = owner?.id ?? null;
+			// Lowest id, not first row: the query is unordered, so on a retry an
+			// organization with several owners could pick a different one. The uuid
+			// and timestamp would still match but the distinct id would not, and
+			// de-duplication needs all three.
+			const owners = await getOrganizationOwners(organizationId);
+			distinctId =
+				owners.map((owner) => owner.id).sort((a, b) => a.localeCompare(b))[0] ??
+				null;
 			attribution = "owner";
 		}
 
