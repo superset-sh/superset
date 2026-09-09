@@ -54,17 +54,24 @@ async function createTempGitRepo(): Promise<string> {
 
 function createRecordingApiStub() {
 	const calls: string[] = [];
+	// Map github repo URL (lowercased) -> candidate ids to return, so a test
+	// can simulate which remotes resolve to which cloud projects. Uses the
+	// same v2Project.findByGitHubRemote shape.
+	const byRemoteUrl = new Map<string, string[]>();
 	const api = {
 		v2Project: {
 			findByGitHubRemote: {
-				query: async () => {
+				query: async ({ repoCloneUrl }: { repoCloneUrl: string }) => {
 					calls.push("v2Project.findByGitHubRemote");
-					return { candidates: [] };
+					const ids = byRemoteUrl.get(repoCloneUrl.toLowerCase()) ?? [];
+					return {
+						candidates: ids.map((id) => ({ id, name: id })),
+					};
 				},
 			},
 		},
 	};
-	return { api, calls };
+	return { api, calls, byRemoteUrl };
 }
 
 function createTestContext(db: HostDb, api: unknown): HostServiceContext {
@@ -127,6 +134,88 @@ describe("findByPath walkAllRemotes (v1 importer)", () => {
 
 		expect(result.candidates).toHaveLength(0);
 		expect(calls).toContain("v2Project.findByGitHubRemote");
+	});
+
+	it("marks origin-derived candidates viaOrigin and ranks them first", async () => {
+		const db = createTestDb();
+		const { api, byRemoteUrl } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const root = await createTempGitRepo();
+
+		// Set up the exact #7241 shape: a repo with origin -> owner/kogan and a
+		// secondary `oms-service` remote -> owner/oms-service. Only the
+		// secondary remote is a cloud v2 project; the origin repo is not yet
+		// imported, so its lookup returns no candidates.
+		await (async () => {
+			const git = createUserSimpleGit(root);
+			const remoteUrls = new Map([
+				["origin", "https://github.com/owner/kogan.git"],
+				["oms-service", "https://github.com/owner/oms-service.git"],
+			]);
+			for (const [name, url] of remoteUrls) {
+				await git.raw(["remote", "add", name, url]);
+			}
+		})();
+		// The hijack candidate is the oms-service project.
+		byRemoteUrl.set("https://github.com/owner/oms-service", [
+			"7efcc5af-oms-service",
+		]);
+
+		const caller = createCallerFactory(projectRouter)(ctx);
+		const result = await caller.findByPath({
+			repoPath: root,
+			walkAllRemotes: true,
+		});
+
+		expect(result.hasOriginRemote).toBe(true);
+		expect(result.candidates).toHaveLength(1);
+		expect(result.candidates[0]).toEqual(
+			expect.objectContaining({
+				id: "7efcc5af-oms-service",
+				source: "remote",
+				viaOrigin: false,
+			}),
+		);
+	});
+
+	it("origin-derived candidate wins the sort over a secondary-remote one", async () => {
+		const db = createTestDb();
+		const { api, byRemoteUrl } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const root = await createTempGitRepo();
+
+		// origin and a secondary remote BOTH map to a (distinct) cloud project:
+		// the origin one must sort first so `candidates[0]` is this repo's own.
+		await (async () => {
+			const git = createUserSimpleGit(root);
+			await git.raw([
+				"remote",
+				"add",
+				"origin",
+				"https://github.com/owner/myrepo.git",
+			]);
+			await git.raw([
+				"remote",
+				"add",
+				"upstream",
+				"https://github.com/other/upstream.git",
+			]);
+		})();
+		byRemoteUrl.set("https://github.com/owner/myrepo", ["myrepo-id"]);
+		byRemoteUrl.set("https://github.com/other/upstream", ["upstream-id"]);
+
+		const caller = createCallerFactory(projectRouter)(ctx);
+		const result = await caller.findByPath({
+			repoPath: root,
+			walkAllRemotes: true,
+		});
+
+		expect(result.candidates.map((c) => c.id)).toEqual([
+			"myrepo-id",
+			"upstream-id",
+		]);
+		expect(result.candidates[0]?.viaOrigin).toBe(true);
+		expect(result.candidates[1]?.viaOrigin).toBe(false);
 	});
 });
 

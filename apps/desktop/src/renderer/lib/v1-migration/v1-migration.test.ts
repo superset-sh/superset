@@ -10,11 +10,17 @@ import { planHostBranchPrefix, planProjectPrefs } from "./settings";
 import { planTerminalMigration, resolveMigratedPaneResume } from "./terminals";
 import { planWorkspaceAdoptions } from "./workspaces";
 
-type Candidate = { id: string; source: string };
-const findByPath = (candidates: Candidate[], cloudErrors: unknown[] = []) =>
+type Candidate = { id: string; source: string; viaOrigin?: boolean };
+const findByPath = (
+	candidates: Candidate[],
+	cloudErrors: unknown[] = [],
+	hasOriginRemote = false,
+) =>
 	// Structural subset of ProjectFindByPathResult — decideProjectImport only
-	// reads candidates/cloudErrors.
-	({ candidates, cloudErrors }) as Parameters<typeof decideProjectImport>[0];
+	// reads candidates/cloudErrors/hasOriginRemote.
+	({ candidates, cloudErrors, hasOriginRemote }) as Parameters<
+		typeof decideProjectImport
+	>[0];
 
 describe("decideProjectImport", () => {
 	test("local-path candidate means already imported", () => {
@@ -50,6 +56,52 @@ describe("decideProjectImport", () => {
 			decideProjectImport(findByPath([{ id: "a", source: "github-remote" }])),
 		).toEqual({ kind: "import" });
 		expect(decideProjectImport(findByPath([]))).toEqual({ kind: "import" });
+	});
+
+	test("lone non-origin remote candidate on a repo with origin is skipped (multi-remote hijack #7241)", () => {
+		// kogan/kogan has origin -> kogan/kogan (no v2 project yet) and a
+		// secondary `oms-service` remote -> kogan/oms-service which IS a v2
+		// project. The importer must NOT silently link kogan/kogan into the
+		// oms-service project. Only one candidate comes back (via the
+		// secondary remote), so the multi-candidate guard can't help — the
+		// viaOrigin/hasOriginRemote guard rejects it instead.
+		expect(
+			decideProjectImport(
+				findByPath(
+					[{ id: "oms-a", source: "remote", viaOrigin: false }],
+					[],
+					true, // repo has an origin remote
+				),
+			),
+		).toEqual({ kind: "skip", reason: "non-origin-only" });
+	});
+
+	test("lone origin remote candidate is imported even on a repo with origin", () => {
+		expect(
+			decideProjectImport(
+				findByPath(
+					[{ id: "my-repo", source: "github-remote", viaOrigin: true }],
+					[],
+					true,
+				),
+			),
+		).toEqual({ kind: "import" });
+	});
+
+	test("lone non-origin candidate imports when the repo has NO origin remote", () => {
+		// A fork/mirror-only clone (no origin, only upstream/secondary remotes)
+		// still knows what project it tracks through its one remote — don't
+		// block it. The guard only fires when origin exists (i.e. the repo has
+		// a canonical identity the candidate didn't match).
+		expect(
+			decideProjectImport(
+				findByPath(
+					[{ id: "upstream-a", source: "github-remote", viaOrigin: false }],
+					[],
+					false,
+				),
+			),
+		).toEqual({ kind: "import" });
 	});
 });
 

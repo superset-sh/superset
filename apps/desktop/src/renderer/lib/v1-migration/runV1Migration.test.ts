@@ -60,8 +60,17 @@ class FakeHost {
 					query: async ({ repoPath }: { repoPath: string }) => {
 						const local = this.projects.find((p) => p.repoPath === repoPath);
 						return {
-							candidates: local ? [{ id: local.id, source: "local-path" }] : [],
+							candidates: local
+								? [
+										{
+											id: local.id,
+											source: "local-path" as const,
+											viaOrigin: true,
+										},
+									]
+								: [],
 							cloudErrors: [],
+							hasOriginRemote: false,
 						};
 					},
 				},
