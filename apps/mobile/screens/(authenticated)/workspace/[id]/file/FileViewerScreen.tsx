@@ -45,9 +45,7 @@ export function FileViewerScreen() {
 	});
 
 	const contents = query.data?.newFile.contents ?? "";
-	const fileName =
-		path?.split("/").pop() ??
-		t({ id: "mobile.fileViewer.fallbackName", message: "File" });
+	const fileName = path?.split("/").pop() ?? t({ message: "File" });
 	const directory = path?.includes("/")
 		? path.slice(0, path.lastIndexOf("/"))
 		: null;
@@ -74,7 +72,6 @@ export function FileViewerScreen() {
 					<Stack.Toolbar.Menu
 						icon="ellipsis"
 						accessibilityLabel={t({
-							id: "mobile.fileViewer.actions",
 							message: "File actions",
 						})}
 					>
@@ -83,7 +80,6 @@ export function FileViewerScreen() {
 							onPress={() => void Clipboard.setStringAsync(path ?? "")}
 						>
 							{t({
-								id: "mobile.fileViewer.copyRelativePath",
 								message: "Copy relative path",
 							})}
 						</Stack.Toolbar.MenuAction>
@@ -92,7 +88,6 @@ export function FileViewerScreen() {
 							onPress={() => void Clipboard.setStringAsync(fileName)}
 						>
 							{t({
-								id: "mobile.fileViewer.copyFileName",
 								message: "Copy file name",
 							})}
 						</Stack.Toolbar.MenuAction>
@@ -100,7 +95,7 @@ export function FileViewerScreen() {
 							icon="square.and.arrow.up"
 							onPress={() => void Share.share({ message: contents })}
 						>
-							{t({ id: "mobile.fileViewer.shareVia", message: "Share via…" })}
+							{t({ message: "Share via…" })}
 						</Stack.Toolbar.MenuAction>
 					</Stack.Toolbar.Menu>
 				</Stack.Toolbar>
@@ -117,17 +112,13 @@ export function FileViewerScreen() {
 				) : query.isError ? (
 					<View className="items-center px-10 py-20">
 						<Text className="text-muted-foreground text-center text-sm">
-							<Trans id="mobile.fileViewer.loadFailed">
-								Could not load this file.
-							</Trans>
+							<Trans>Could not load this file.</Trans>
 						</Text>
 					</View>
 				) : contents.length === 0 ? (
 					<View className="items-center px-10 py-20">
 						<Text className="text-muted-foreground text-center text-sm">
-							<Trans id="mobile.fileViewer.empty">
-								This file is empty or was deleted.
-							</Trans>
+							<Trans>This file is empty or was deleted.</Trans>
 						</Text>
 					</View>
 				) : (

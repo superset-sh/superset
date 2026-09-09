@@ -1,4 +1,4 @@
-import { dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { automations, automationTriggers } from "@superset/db/schema";
 import {
 	findGoogleConnection,
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 	);
 	if (rejected) return rejected;
 
-	const owners = await dbWs
+	const owners = await db
 		.selectDistinct({
 			organizationId: automationTriggers.organizationId,
 			ownerUserId: automations.ownerUserId,

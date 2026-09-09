@@ -123,7 +123,6 @@ export function DesignModePopover({
 			} catch (error) {
 				toast.error(
 					t({
-						id: "workspace.browserPane.designStageFeedbackFailed",
 						message: "Couldn't stage design feedback",
 					}),
 					{
@@ -137,7 +136,6 @@ export function DesignModePopover({
 				if (!onCreateNewAgentSession) {
 					toast.error(
 						t({
-							id: "workspace.browserPane.designNewAgentSessionFailed",
 							message: "Couldn't start a new agent session",
 						}),
 					);
@@ -163,7 +161,6 @@ export function DesignModePopover({
 				});
 				toast.success(
 					t({
-						id: "workspace.browserPane.designSentToAgent",
 						message: "Sent to agent",
 					}),
 				);
@@ -178,7 +175,7 @@ export function DesignModePopover({
 	};
 
 	return (
-		<div className="absolute z-20" style={style}>
+		<div className="pointer-events-auto absolute z-20" style={style}>
 			<form
 				className="overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-[0_4px_16px_-4px_rgba(0,0,0,0.25),0_2px_4px_-2px_rgba(0,0,0,0.12)]"
 				onSubmit={(e) => {
@@ -217,7 +214,6 @@ export function DesignModePopover({
 							autoGrow();
 						}}
 						placeholder={t({
-							id: "workspace.browserPane.designCommentPlaceholder",
 							message: "Describe the change…",
 						})}
 						rows={1}
@@ -232,7 +228,6 @@ export function DesignModePopover({
 								type="button"
 								onClick={onDismiss}
 								aria-label={t({
-									id: "workspace.browserPane.designPickDifferentElementAria",
 									message: "Pick a different element",
 								})}
 								className="inline-flex h-6 shrink-0 items-center gap-0.5 rounded-full border border-border/60 px-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
@@ -242,9 +237,7 @@ export function DesignModePopover({
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom">
-							<Trans id="workspace.browserPane.designPickDifferentElement">
-								Pick a different element (esc)
-							</Trans>
+							<Trans>Pick a different element (esc)</Trans>
 						</TooltipContent>
 					</Tooltip>
 					<AgentPickerSelect
@@ -257,7 +250,6 @@ export function DesignModePopover({
 						type="submit"
 						disabled={!canSubmit}
 						aria-label={t({
-							id: "workspace.browserPane.designSendToAgentAria",
 							message: "Send to agent",
 						})}
 						className="ml-auto grid size-6 shrink-0 place-items-center rounded-full bg-foreground text-background transition-opacity hover:opacity-90 disabled:opacity-35"

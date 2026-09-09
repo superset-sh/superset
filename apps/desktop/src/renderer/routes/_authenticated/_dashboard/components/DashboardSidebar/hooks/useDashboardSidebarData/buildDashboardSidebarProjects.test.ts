@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { SESSIONS_TAG_SCOPE } from "@superset/shared/workspace-tags";
 import {
 	buildSidebarFolderKey,
 	deriveTagFolders,
@@ -8,7 +9,6 @@ import {
 	buildDashboardSidebarPinnedWorkspaces,
 	buildDashboardSidebarProjects,
 	buildDashboardSidebarSessions,
-	buildDashboardSidebarSessionWorkspaces,
 	partitionSidebarWorkspacesByPinned,
 	type SidebarProjectInput,
 	type SidebarSectionInput,
@@ -64,6 +64,7 @@ function makeWorkspace(
 		taskId: null,
 		createdAt: DATE,
 		updatedAt: DATE,
+		lastActivityAt: null,
 		tabOrder: 1,
 		sectionId: null,
 		pinnedAt: null,
@@ -263,7 +264,7 @@ describe("sessions (null projectId)", () => {
 	});
 
 	it("orders the Sessions section by tabOrder with no repo affordances", () => {
-		const rows = buildDashboardSidebarSessionWorkspaces({
+		const { workspaces: rows } = buildDashboardSidebarSessions({
 			sessionSidebarWorkspaces: [
 				makeWorkspace({
 					id: "session-b",
@@ -278,6 +279,7 @@ describe("sessions (null projectId)", () => {
 					tabOrder: 1,
 				}),
 			],
+			sidebarSections: [],
 			machineId: MACHINE_ID,
 			pullRequestsByWorkspaceId: new Map(),
 		});
@@ -288,54 +290,88 @@ describe("sessions (null projectId)", () => {
 		expect(rows[0].branchExistsOnRemote).toBe(false);
 	});
 
-	it("groups sessions by their normalized tag and leaves untagged rows above groups", () => {
+	it("files sessions into Sessions-scoped tag folders, untagged rows above the folders", () => {
+		const sessionSidebarWorkspaces = [
+			makeWorkspace({
+				id: "tagged-late",
+				projectId: null,
+				type: "session",
+				tabOrder: 4,
+				tags: ["Zeta"],
+			}),
+			makeWorkspace({
+				id: "untagged",
+				projectId: null,
+				type: "session",
+				tabOrder: 3,
+				tags: [],
+			}),
+			makeWorkspace({
+				id: "multi-tag",
+				projectId: null,
+				type: "session",
+				tabOrder: 2,
+				tags: ["zeta", " Alpha "],
+			}),
+			makeWorkspace({
+				id: "tagged-early",
+				projectId: null,
+				type: "session",
+				tabOrder: 1,
+				tags: ["ZETA"],
+			}),
+		];
+		// Folders come from the same derivation the sidebar uses for projects;
+		// derived folders sort after every stored row.
+		const sidebarSections: SidebarSectionInput[] = deriveTagFolders(
+			[],
+			sessionSidebarWorkspaces,
+			{
+				...EMPTY_TAG_FOLDER_CONTEXT,
+				tagSettings: [
+					{
+						projectId: SESSIONS_TAG_SCOPE,
+						tag: "zeta",
+						displayName: "Session QA",
+						color: "#3b82f6",
+					},
+				],
+			},
+		).map((folder) => ({
+			id: folder.sectionId,
+			projectId: folder.projectId,
+			name: folder.name,
+			createdAt: folder.createdAt,
+			isCollapsed: folder.isCollapsed,
+			tabOrder: folder.tabOrder,
+			color: folder.color,
+			tag: folder.tag,
+		}));
 		const sessions = buildDashboardSidebarSessions({
-			sessionSidebarWorkspaces: [
-				makeWorkspace({
-					id: "tagged-late",
-					projectId: null,
-					type: "session",
-					tabOrder: 4,
-					tags: ["Zeta"],
-				}),
-				makeWorkspace({
-					id: "untagged",
-					projectId: null,
-					type: "session",
-					tabOrder: 3,
-					tags: [],
-				}),
-				makeWorkspace({
-					id: "multi-tag",
-					projectId: null,
-					type: "session",
-					tabOrder: 2,
-					tags: ["zeta", " Alpha "],
-				}),
-				makeWorkspace({
-					id: "tagged-early",
-					projectId: null,
-					type: "session",
-					tabOrder: 1,
-					tags: ["ZETA"],
-				}),
-			],
+			sessionSidebarWorkspaces,
+			sidebarSections,
 			machineId: MACHINE_ID,
 			pullRequestsByWorkspaceId: new Map(),
 		});
 
-		expect(sessions.ungroupedWorkspaces.map((row) => row.id)).toEqual([
+		expect(
+			sessions.children.map((child) =>
+				child.type === "workspace"
+					? child.workspace.id
+					: `${child.section.id}:[${child.section.workspaces.map((row) => row.id).join(",")}]`,
+			),
+		).toEqual([
 			"untagged",
+			`${buildSidebarFolderKey(SESSIONS_TAG_SCOPE, "alpha")}:[multi-tag]`,
+			`${buildSidebarFolderKey(SESSIONS_TAG_SCOPE, "zeta")}:[tagged-early,tagged-late]`,
 		]);
-		expect(sessions.tagGroups.map((group) => group.tag)).toEqual([
-			"alpha",
-			"zeta",
-		]);
-		expect(sessions.tagGroups[1].workspaces.map((row) => row.id)).toEqual([
-			"tagged-early",
-			"tagged-late",
-		]);
-		expect(sessions.orderedWorkspaces.map((row) => row.id)).toEqual([
+		const zeta = sessions.children[2];
+		expect(zeta.type === "section" && zeta.section).toMatchObject({
+			projectId: SESSIONS_TAG_SCOPE,
+			name: "Session QA",
+			color: "#3b82f6",
+		});
+		expect(sessions.workspaces.map((row) => row.id)).toEqual([
 			"untagged",
 			"multi-tag",
 			"tagged-early",

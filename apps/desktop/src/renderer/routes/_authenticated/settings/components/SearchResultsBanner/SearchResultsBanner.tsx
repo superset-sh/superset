@@ -20,7 +20,6 @@ export function SearchResultsBanner({
 			<p className="flex-1 truncate text-xs text-muted-foreground">
 				{hasMatches ? (
 					<Plural
-						id="settings.components.searchResultsBanner.matchCount"
 						value={matchCount}
 						one={
 							<>
@@ -40,16 +39,13 @@ export function SearchResultsBanner({
 						}
 					/>
 				) : (
-					<Trans id="settings.components.searchResultsBanner.noResults">
-						No results for &ldquo;{query}&rdquo;
-					</Trans>
+					<Trans>No results for &ldquo;{query}&rdquo;</Trans>
 				)}
 			</p>
 			<button
 				type="button"
 				onClick={onClear}
 				aria-label={t({
-					id: "settings.components.searchResultsBanner.clearSearch",
 					message: "Clear search",
 				})}
 				className="shrink-0 rounded-sm p-0.5 text-muted-foreground hover:text-foreground transition-colors"

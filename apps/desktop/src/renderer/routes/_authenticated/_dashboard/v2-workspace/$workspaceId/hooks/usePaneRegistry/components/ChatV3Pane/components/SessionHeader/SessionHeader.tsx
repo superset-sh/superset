@@ -8,28 +8,25 @@ import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
 
 const STATUS_LABELS: Record<SessionStatus, MessageDescriptor> = {
-	starting: msg({ id: "workspace.chat.statusStarting", message: "Starting" }),
-	running: msg({ id: "workspace.chat.statusWorking", message: "Working" }),
+	starting: msg({ message: "Starting" }),
+	running: msg({ message: "Working" }),
 	awaiting_input: msg({
-		id: "workspace.chat.statusNeedsInput",
 		message: "Needs input",
 	}),
-	idle: msg({ id: "workspace.chat.statusIdle", message: "Idle" }),
+	idle: msg({ message: "Idle" }),
 	not_loaded: msg({
-		id: "workspace.chat.statusNotLoaded",
 		message: "Not loaded",
 	}),
-	offline: msg({ id: "workspace.chat.statusOffline", message: "Offline" }),
-	dead: msg({ id: "workspace.chat.statusDead", message: "Dead" }),
+	offline: msg({ message: "Offline" }),
+	dead: msg({ message: "Dead" }),
 };
 
 const CONNECTION_LABELS: Record<StreamStatus, MessageDescriptor> = {
 	connecting: msg({
-		id: "workspace.chat.connectionConnecting",
 		message: "Connecting",
 	}),
-	open: msg({ id: "workspace.chat.connectionLive", message: "Live" }),
-	closed: msg({ id: "workspace.chat.connectionOffline", message: "Offline" }),
+	open: msg({ message: "Live" }),
+	closed: msg({ message: "Offline" }),
 };
 
 export function SessionHeader({

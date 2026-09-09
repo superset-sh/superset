@@ -13,6 +13,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { isOptimisticId } from "../../utils/optimisticId";
 
 export interface PageCommentUser {
 	id: string;
@@ -25,6 +26,7 @@ export interface PageComment {
 	authorName: string;
 	authorImage: string | null;
 	authorKind: "human" | "agent";
+	authorUserId: string | null;
 	body: string;
 	createdAt: number;
 }
@@ -35,11 +37,13 @@ export interface CommentThread {
 	comments: PageComment[];
 	resolved: boolean;
 	version: number;
+	createdByUserId: string | null;
 }
 
 export interface CommentDraft {
 	anchor: CommentAnchor;
 	rect: FrameRect;
+	body?: string;
 }
 
 export interface CommentStore {
@@ -62,12 +66,21 @@ export interface CommentStore {
 
 interface CommentContextValue extends CommentStore {
 	user: PageCommentUser;
+	canEdit: (comment: PageComment) => boolean;
+	canDeleteThread: (thread: CommentThread) => boolean;
 	submitting: boolean;
 	busyThreadId: string | null;
 	framePointerDownAt: number;
 	notifyFramePointerDown: () => void;
 	enabled: boolean;
 	toggleEnabled: () => void;
+	/**
+	 * Whether the thread list is showing. Separate from `enabled`, which is
+	 * pin-placement mode: on a narrow viewport the list is a sheet you open to
+	 * read, and reading should not arm the page for a stray tap.
+	 */
+	panelOpen: boolean;
+	setPanelOpen: (open: boolean) => void;
 	draft: CommentDraft | null;
 	openDraft: (draft: CommentDraft) => void;
 	discardDraft: () => void;
@@ -107,12 +120,14 @@ function sameRect(
 export function CommentProvider({
 	user,
 	store,
+	pageOwnerId,
 	enabled: controlledEnabled,
 	onEnabledChange,
 	children,
 }: {
 	user: PageCommentUser;
 	store: CommentStore;
+	pageOwnerId?: string | null;
 	enabled?: boolean;
 	onEnabledChange?: (enabled: boolean) => void;
 	children: ReactNode;
@@ -130,6 +145,7 @@ export function CommentProvider({
 		[controlledEnabled, onEnabledChange],
 	);
 	const [draft, setDraft] = useState<CommentDraft | null>(null);
+	const [panelOpen, setPanelOpenState] = useState(false);
 	const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
 	const [hoverRect, setHoverRect] = useState<FrameRect | null>(null);
 	const [rects, setRectState] = useState<Record<string, FrameRect | null>>({});
@@ -149,6 +165,11 @@ export function CommentProvider({
 			return !previous;
 		});
 	}, [setEnabled]);
+
+	const setPanelOpen = useCallback((open: boolean) => {
+		setPanelOpenState(open);
+		if (!open) setActiveThreadId(null);
+	}, []);
 
 	const openDraft = useCallback((next: CommentDraft) => {
 		setActiveThreadId(null);
@@ -196,22 +217,35 @@ export function CommentProvider({
 
 	const createThread = useCallback<CommentStore["createThread"]>(
 		async (input) => {
-			const ok = await runSubmit(() => store.createThread(input));
-			if (ok) setDraft(null);
+			const composing = draft;
+			setDraft(null);
+			try {
+				await store.createThread(input);
+			} catch (error) {
+				if (composing) setDraft({ ...composing, body: input.body });
+				throw error;
+			}
 		},
-		[runSubmit, store],
+		[draft, store],
 	);
 
 	const addReply = useCallback<CommentStore["addReply"]>(
 		async (threadId, body) => {
-			await runSubmit(() => store.addReply(threadId, body));
+			if (isOptimisticId(threadId)) return;
+			await store.addReply(threadId, body);
 		},
-		[runSubmit, store],
+		[store],
 	);
 
 	const editComment = useCallback<CommentStore["editComment"]>(
 		async (threadId, commentId, body) => {
-			await runSubmit(() => store.editComment(threadId, commentId, body));
+			if (isOptimisticId(threadId) || isOptimisticId(commentId)) return;
+			// Rethrown, unlike the thread actions: the editor holds text that is
+			// only on screen, so its caller has to know the save did not land.
+			const saved = await runSubmit(() =>
+				store.editComment(threadId, commentId, body),
+			);
+			if (!saved) throw new Error("Edit failed");
 		},
 		[runSubmit, store],
 	);
@@ -231,19 +265,43 @@ export function CommentProvider({
 	);
 
 	const setResolved = useCallback<CommentStore["setResolved"]>(
-		(threadId, resolved) =>
-			runThreadAction(threadId, () => store.setResolved(threadId, resolved)),
+		async (threadId, resolved) => {
+			if (isOptimisticId(threadId)) return;
+			await runThreadAction(threadId, () =>
+				store.setResolved(threadId, resolved),
+			);
+		},
 		[runThreadAction, store],
 	);
 
 	const deleteThread = useCallback<CommentStore["deleteThread"]>(
-		(threadId) => runThreadAction(threadId, () => store.deleteThread(threadId)),
+		async (threadId) => {
+			if (isOptimisticId(threadId)) return;
+			await runThreadAction(threadId, () => store.deleteThread(threadId));
+		},
 		[runThreadAction, store],
+	);
+
+	const canEdit = useCallback(
+		(comment: PageComment) =>
+			comment.authorUserId !== null && comment.authorUserId === user.id,
+		[user.id],
+	);
+
+	const canDeleteThread = useCallback(
+		(thread: CommentThread) =>
+			thread.createdByUserId === user.id ||
+			(pageOwnerId !== null && pageOwnerId !== undefined
+				? pageOwnerId === user.id
+				: false),
+		[user.id, pageOwnerId],
 	);
 
 	const value = useMemo<CommentContextValue>(
 		() => ({
 			user,
+			canEdit,
+			canDeleteThread,
 			threads: store.threads,
 			isLoading: store.isLoading,
 			addReply,
@@ -257,6 +315,8 @@ export function CommentProvider({
 			notifyFramePointerDown,
 			enabled,
 			toggleEnabled,
+			panelOpen,
+			setPanelOpen,
 			draft,
 			openDraft,
 			discardDraft,
@@ -270,6 +330,8 @@ export function CommentProvider({
 		}),
 		[
 			user,
+			canEdit,
+			canDeleteThread,
 			store.threads,
 			store.isLoading,
 			addReply,
@@ -283,6 +345,8 @@ export function CommentProvider({
 			notifyFramePointerDown,
 			enabled,
 			toggleEnabled,
+			panelOpen,
+			setPanelOpen,
 			draft,
 			openDraft,
 			discardDraft,

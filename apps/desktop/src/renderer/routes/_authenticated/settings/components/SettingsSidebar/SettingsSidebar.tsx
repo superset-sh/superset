@@ -36,13 +36,13 @@ export function SettingsSidebar() {
 			>
 				<HiArrowLeft className="h-4 w-4" />
 				<span>
-					<Trans id="settings.components.settingsSidebar.back">Back</Trans>
+					<Trans>Back</Trans>
 				</span>
 			</Link>
 
 			{/* Settings title */}
 			<h1 className="text-lg font-semibold px-3 mb-4">
-				<Trans id="settings.components.settingsSidebar.title">Settings</Trans>
+				<Trans>Settings</Trans>
 			</h1>
 
 			{/* Search input */}
@@ -51,7 +51,6 @@ export function SettingsSidebar() {
 				<input
 					type="text"
 					placeholder={t({
-						id: "settings.components.settingsSidebar.searchPlaceholder",
 						message: "Search settings...",
 					})}
 					value={searchQuery}
@@ -82,9 +81,7 @@ export function SettingsSidebar() {
 				>
 					<HiArrowTopRightOnSquare className="h-4 w-4" />
 					<span>
-						<Trans id="settings.components.settingsSidebar.documentation">
-							Documentation
-						</Trans>
+						<Trans>Documentation</Trans>
 					</span>
 				</a>
 			</div>

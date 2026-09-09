@@ -131,7 +131,12 @@ function listOrdered(db: HostDb): HostAgentConfigRow[] {
 		.all();
 }
 
-function seedDefaultsIfEmpty(db: HostDb): HostAgentConfigRow[] {
+/**
+ * Exported for the sandbox boot: a freshly forked cloud workspace launches
+ * an agent before any client has listed its agents, which is what normally
+ * seeds the defaults.
+ */
+export function seedDefaultsIfEmpty(db: HostDb): HostAgentConfigRow[] {
 	const existing = listOrdered(db);
 	if (existing.length > 0) return existing;
 	const seeds = getDefaultSeedPresets().map((preset, index) =>

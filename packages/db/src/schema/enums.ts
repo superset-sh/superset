@@ -69,6 +69,10 @@ export const cloudWorkspaceStatusValues = [
 export const cloudWorkspaceStatusEnum = z.enum(cloudWorkspaceStatusValues);
 export type CloudWorkspaceStatus = z.infer<typeof cloudWorkspaceStatusEnum>;
 
+export const environmentSourceKindValues = ["image", "fork"] as const;
+export const environmentSourceKindEnum = z.enum(environmentSourceKindValues);
+export type EnvironmentSourceKind = z.infer<typeof environmentSourceKindEnum>;
+
 export const workspaceTypeValues = ["local", "cloud"] as const;
 export const workspaceTypeEnum = z.enum(workspaceTypeValues);
 export type WorkspaceType = z.infer<typeof workspaceTypeEnum>;
@@ -164,3 +168,11 @@ export type PageCommentAuthorKind = z.infer<typeof pageCommentAuthorKindEnum>;
 export const leaderboardVisibilityValues = ["public", "hidden"] as const;
 export const leaderboardVisibilityEnum = z.enum(leaderboardVisibilityValues);
 export type LeaderboardVisibility = z.infer<typeof leaderboardVisibilityEnum>;
+
+export const handleOwnerTypeValues = [
+	"user",
+	"organization",
+	"reserved",
+] as const;
+export const handleOwnerTypeEnum = z.enum(handleOwnerTypeValues);
+export type HandleOwnerType = z.infer<typeof handleOwnerTypeEnum>;

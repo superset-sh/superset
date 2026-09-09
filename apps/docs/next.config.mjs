@@ -22,14 +22,6 @@ const config = {
 	experimental: {
 		swcPlugins: [["@lingui/swc-plugin", {}]],
 	},
-	images: {
-		remotePatterns: [
-			{
-				protocol: "https",
-				hostname: "*.public.blob.vercel-storage.com",
-			},
-		],
-	},
 	async redirects() {
 		return [
 			{
@@ -44,6 +36,11 @@ const config = {
 				permanent: true,
 			},
 			// Old top-level entry points from the previous docs structure (were 404ing).
+			{
+				source: "/guides/workspace-management",
+				destination: "/workspaces",
+				permanent: true,
+			},
 			{
 				source: "/getting-started",
 				destination: "/overview",

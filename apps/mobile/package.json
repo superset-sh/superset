@@ -3,6 +3,7 @@
 	"version": "1.0.0",
 	"main": "expo-router/entry",
 	"scripts": {
+		"predev": "bun run --filter=@superset/i18n build",
 		"dev": "EXPO_UNSTABLE_MCP_SERVER=1 expo start",
 		"android": "expo run:android",
 		"ios": "expo run:ios",
@@ -20,6 +21,7 @@
 		"@better-auth/expo": "1.6.22",
 		"@expo/ui": "57.0.12",
 		"@expo/vector-icons": "15.1.1",
+		"@formatjs/intl-locale": "5.3.10",
 		"@formatjs/intl-pluralrules": "6.3.13",
 		"@legendapp/list": "3.0.3",
 		"@lingui/core": "6.6.0",
@@ -130,6 +132,7 @@
 	},
 	"devDependencies": {
 		"@babel/preset-typescript": "7.29.7",
+		"@bacons/apple-targets": "5.0.0",
 		"@lingui/babel-plugin-lingui-macro": "6.6.0",
 		"@storybook/addon-ondevice-actions": "10.4.2",
 		"@storybook/addon-ondevice-controls": "10.4.2",
@@ -139,6 +142,7 @@
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
 		"@xterm/addon-fit": "0.12.0-beta.289",
+		"@xterm/addon-serialize": "0.15.0-beta.289",
 		"@xterm/xterm": "6.1.0-beta.302",
 		"babel-preset-expo": "57.0.7",
 		"expo-mcp": "0.2.4",

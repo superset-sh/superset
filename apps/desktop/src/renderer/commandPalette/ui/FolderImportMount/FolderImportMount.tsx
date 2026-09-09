@@ -13,7 +13,6 @@ export function FolderImportMount() {
 		onError: (message) => {
 			toast.error(
 				t({
-					id: "commandPalette.folderImport.failedWithMessage",
 					message: `Import failed: ${message}`,
 				}),
 			);
@@ -21,17 +20,14 @@ export function FolderImportMount() {
 		onMultipleProjects: ({ candidates }) => {
 			toast.error(
 				t({
-					id: "commandPalette.folderImport.failed",
 					message: "Import failed",
 				}),
 				{
 					description: t({
-						id: "commandPalette.folderImport.multipleProjects",
 						message: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
 					}),
 					action: {
 						label: t({
-							id: "commandPalette.folderImport.openProjects",
 							message: "Open Projects",
 						}),
 						onClick: () => navigate({ to: "/settings/projects" }),
@@ -53,7 +49,6 @@ export function FolderImportMount() {
 			if (result) {
 				toast.success(
 					t({
-						id: "commandPalette.folderImport.ready",
 						message: "Project ready — open it from the sidebar.",
 					}),
 				);

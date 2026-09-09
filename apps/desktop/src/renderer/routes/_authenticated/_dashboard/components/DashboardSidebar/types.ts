@@ -48,6 +48,12 @@ export interface DashboardSidebarWorkspace {
 	behindCount: number | null;
 	createdAt: Date;
 	updatedAt: Date;
+	/**
+	 * Epoch ms of the newest agent lifecycle event, stamped by the workspace's
+	 * host. Null when the host predates the column (rank by `updatedAt`).
+	 * Unlike `updatedAt` it never moves on metadata writes.
+	 */
+	lastActivityAt: number | null;
 	taskId: string | null;
 	isPinned: boolean;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
@@ -75,18 +81,15 @@ export interface DashboardSidebarSection {
 	workspaces: DashboardSidebarWorkspace[];
 }
 
-/** A derived Sessions lane. Sessions have no project-scoped folder settings,
- * so the normalized workspace tag is both its identity and display name. */
-export interface DashboardSidebarSessionTagGroup {
-	tag: string;
-	workspaces: DashboardSidebarWorkspace[];
-}
-
+/**
+ * The Sessions lane: project-less workspaces and their tag folders, shaped
+ * exactly like a project's children so the same list rendering and DnD
+ * apply. Folder ids are keyed by the Sessions tag scope.
+ */
 export interface DashboardSidebarSessions {
-	ungroupedWorkspaces: DashboardSidebarWorkspace[];
-	tagGroups: DashboardSidebarSessionTagGroup[];
-	/** Flat render order consumed by the existing single Sessions DnD lane. */
-	orderedWorkspaces: DashboardSidebarWorkspace[];
+	children: DashboardSidebarProjectChild[];
+	/** Every session in render order (ungrouped and grouped), for flat consumers. */
+	workspaces: DashboardSidebarWorkspace[];
 }
 
 export type DashboardSidebarProjectChild =
@@ -98,6 +101,14 @@ export type DashboardSidebarProjectChild =
 			type: "section";
 			section: DashboardSidebarSection;
 	  };
+
+/** A project hidden from the sidebar on this device; shown only in the restore list. */
+export interface DashboardSidebarHiddenProject {
+	id: string;
+	name: string;
+	iconUrl: string | null;
+	color: string | null;
+}
 
 export interface DashboardSidebarProject {
 	id: string;
@@ -111,4 +122,19 @@ export interface DashboardSidebarProject {
 	updatedAt: Date;
 	isCollapsed: boolean;
 	children: DashboardSidebarProjectChild[];
+}
+
+export type DashboardSidebarGithubHoldReason =
+	| "unreachable"
+	| "rate-limited"
+	| "auth";
+
+/**
+ * Why a host's PR sweep is paused. Mirrors the host-service gate status:
+ * existing PR chips stay, new pull requests cannot be detected until `until`.
+ */
+export interface DashboardSidebarGithubStatus {
+	reason: DashboardSidebarGithubHoldReason;
+	since: number;
+	until: number;
 }

@@ -45,13 +45,10 @@ export function ImportWorktreesDialog({
 			<DialogContent className="max-w-md">
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="dashboard.sidebar.importWorktrees.title">
-							Import untracked worktrees
-						</Trans>
+						<Trans>Import untracked worktrees</Trans>
 					</DialogTitle>
 					<DialogDescription>
 						<Plural
-							id="dashboard.sidebar.importWorktrees.description"
 							value={count}
 							one="# worktree in this repository has no workspace. It will be imported as a workspace."
 							other="# worktrees in this repository have no workspace. They will be imported as workspaces."
@@ -96,9 +93,7 @@ export function ImportWorktreesDialog({
 						htmlFor="import-worktrees-run-setup"
 						className="cursor-pointer text-[13px] font-normal text-muted-foreground"
 					>
-						<Trans id="dashboard.sidebar.importWorktrees.runSetupLabel">
-							Run setup script in each imported workspace
-						</Trans>
+						<Trans>Run setup script in each imported workspace</Trans>
 					</Label>
 				</div>
 				<DialogFooter>
@@ -107,19 +102,16 @@ export function ImportWorktreesDialog({
 						onClick={() => onOpenChange(false)}
 						disabled={isImporting}
 					>
-						<Trans id="dashboard.sidebar.importWorktrees.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button
 						onClick={() => onConfirm({ runSetup })}
 						disabled={isImporting}
 					>
 						{isImporting ? (
-							<Trans id="dashboard.sidebar.importWorktrees.importing">
-								Importing…
-							</Trans>
+							<Trans>Importing…</Trans>
 						) : (
 							<Plural
-								id="dashboard.sidebar.importWorktrees.confirm"
 								value={count}
 								one="Import # worktree"
 								other="Import # worktrees"

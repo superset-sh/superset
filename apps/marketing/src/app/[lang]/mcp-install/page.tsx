@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
@@ -13,14 +14,16 @@ import { McpInstall } from "./components/McpInstall";
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
 	return {
-		title: i18n._({
-			id: "marketing.meta.mcpInstall.title",
-			message: "MCP Server",
-		}),
+		title: i18n._(
+			msg({
+				message: "MCP Server",
+			}),
+		),
 		description: i18n._({
-			id: "marketing.meta.mcpInstall.description",
-			message:
-				"Connect Claude, Codex, Cursor, or any MCP client to {companyName}. Create tasks, spin up workspaces, launch agents, and run automations straight from your AI agent.",
+			...msg({
+				message:
+					"Connect Claude, Codex, Cursor, or any MCP client to {companyName}. Create tasks, spin up workspaces, launch agents, and run automations straight from your AI agent.",
+			}),
 			values: { companyName: COMPANY.NAME },
 		}),
 		alternates: localizedAlternates(lang, "/mcp-install"),
@@ -39,15 +42,13 @@ export default async function McpPage() {
 					<GridCross className="top-0 right-0" />
 
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						<Trans id="marketing.mcpInstall.hero.eyebrow">MCP Server</Trans>
+						<Trans>MCP Server</Trans>
 					</span>
 					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-						<Trans id="marketing.mcpInstall.hero.title">
-							Install Superset MCP in your client
-						</Trans>
+						<Trans>Install Superset MCP in your client</Trans>
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						<Trans id="marketing.mcpInstall.hero.subtitle">
+						<Trans>
 							Connect Claude, Codex, Cursor, or any{" "}
 							<a
 								href="https://modelcontextprotocol.io"
@@ -68,7 +69,7 @@ export default async function McpPage() {
 					<div className="mt-8">
 						<McpInstall />
 						<p className="text-sm text-muted-foreground mt-4">
-							<Trans id="marketing.mcpInstall.install.help">
+							<Trans>
 								Pick your agent for a one-line install, or copy the config by
 								hand. Every client, including OAuth and API key setup, is
 								covered in the{" "}
@@ -92,18 +93,14 @@ export default async function McpPage() {
 			<section className="relative border-b border-border">
 				<div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						<Trans id="marketing.mcpInstall.capabilities.eyebrow">
-							Capabilities
-						</Trans>
+						<Trans>Capabilities</Trans>
 					</span>
 					<h2 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground mt-4 mb-8">
-						<Trans id="marketing.mcpInstall.capabilities.title">
-							What your agent can do
-						</Trans>
+						<Trans>What your agent can do</Trans>
 					</h2>
 					<McpCapabilities />
 					<p className="text-sm text-muted-foreground mt-10">
-						<Trans id="marketing.mcpInstall.capabilities.toolsReference">
+						<Trans>
 							See the{" "}
 							<a
 								href={`${COMPANY.DOCS_URL}/mcp-server#available-tools`}
@@ -121,10 +118,10 @@ export default async function McpPage() {
 			<section className="relative border-b border-border">
 				<div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						<Trans id="marketing.mcpInstall.examples.eyebrow">Try it</Trans>
+						<Trans>Try it</Trans>
 					</span>
 					<h2 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground mt-4 mb-8">
-						<Trans id="marketing.mcpInstall.examples.title">Just ask</Trans>
+						<Trans>Just ask</Trans>
 					</h2>
 					<McpExamples />
 				</div>
@@ -134,15 +131,13 @@ export default async function McpPage() {
 			<section className="relative">
 				<div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						<Trans id="marketing.mcpInstall.auth.eyebrow">Authentication</Trans>
+						<Trans>Authentication</Trans>
 					</span>
 					<h2 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground mt-4 mb-3">
-						<Trans id="marketing.mcpInstall.auth.title">
-							OAuth by default, API keys for CI
-						</Trans>
+						<Trans>OAuth by default, API keys for CI</Trans>
 					</h2>
 					<p className="text-muted-foreground max-w-lg">
-						<Trans id="marketing.mcpInstall.auth.body">
+						<Trans>
 							Interactive clients authorize over OAuth 2.1 in your browser,
 							scoped to your active organization. For headless environments and
 							CI, generate an API key from Settings → API Keys in the desktop

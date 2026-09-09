@@ -74,9 +74,7 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 				: 0;
 
 	const label =
-		currentLevel === 0
-			? t({ id: "components.bubbleMenuToolbar.textStyleText", message: "Text" })
-			: `H${currentLevel}`;
+		currentLevel === 0 ? t({ message: "Text" }) : `H${currentLevel}`;
 
 	const handleSelect = useCallback(
 		(level: number, e: React.MouseEvent) => {
@@ -100,7 +98,6 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 			<button
 				type="button"
 				title={t({
-					id: "components.bubbleMenuToolbar.textStyle",
 					message: "Text style",
 				})}
 				className={`flex items-center gap-0.5 h-7 px-1.5 rounded text-xs font-medium hover:bg-accent/80 ${
@@ -121,9 +118,7 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 					xmlns="http://www.w3.org/2000/svg"
 				>
 					<title>
-						<Trans id="components.bubbleMenuToolbar.textStyleDropdownCaret">
-							dropdown
-						</Trans>
+						<Trans>dropdown</Trans>
 					</title>
 					<path
 						d="M3 5L6 8L9 5"
@@ -140,28 +135,24 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 						{
 							level: 0,
 							label: t({
-								id: "components.bubbleMenuToolbar.paragraph",
 								message: "Paragraph",
 							}),
 						},
 						{
 							level: 1,
 							label: t({
-								id: "components.bubbleMenuToolbar.heading1",
 								message: "Heading 1",
 							}),
 						},
 						{
 							level: 2,
 							label: t({
-								id: "components.bubbleMenuToolbar.heading2",
 								message: "Heading 2",
 							}),
 						},
 						{
 							level: 3,
 							label: t({
-								id: "components.bubbleMenuToolbar.heading3",
 								message: "Heading 3",
 							}),
 						},
@@ -237,7 +228,6 @@ function ListDropdown({ editor }: { editor: Editor }) {
 			<button
 				type="button"
 				title={t({
-					id: "components.bubbleMenuToolbar.list",
 					message: "List",
 				})}
 				className={`flex items-center gap-0.5 h-7 px-1.5 rounded hover:bg-accent/80 ${
@@ -258,9 +248,7 @@ function ListDropdown({ editor }: { editor: Editor }) {
 					xmlns="http://www.w3.org/2000/svg"
 				>
 					<title>
-						<Trans id="components.bubbleMenuToolbar.listDropdownCaret">
-							dropdown
-						</Trans>
+						<Trans>dropdown</Trans>
 					</title>
 					<path
 						d="M3 5L6 8L9 5"
@@ -281,9 +269,7 @@ function ListDropdown({ editor }: { editor: Editor }) {
 						onMouseDown={(e) => handleSelect("bullet", e)}
 					>
 						<HiOutlineListBullet className="size-4" />
-						<Trans id="components.bubbleMenuToolbar.bulletList">
-							Bullet list
-						</Trans>
+						<Trans>Bullet list</Trans>
 					</button>
 					<button
 						type="button"
@@ -293,9 +279,7 @@ function ListDropdown({ editor }: { editor: Editor }) {
 						onMouseDown={(e) => handleSelect("ordered", e)}
 					>
 						<HiOutlineNumberedList className="size-4" />
-						<Trans id="components.bubbleMenuToolbar.numberedList">
-							Numbered list
-						</Trans>
+						<Trans>Numbered list</Trans>
 					</button>
 					<button
 						type="button"
@@ -305,7 +289,7 @@ function ListDropdown({ editor }: { editor: Editor }) {
 						onMouseDown={(e) => handleSelect("task", e)}
 					>
 						<RiCheckboxCircleLine className="size-4" />
-						<Trans id="components.bubbleMenuToolbar.checklist">Checklist</Trans>
+						<Trans>Checklist</Trans>
 					</button>
 				</div>
 			)}
@@ -361,7 +345,6 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 					}}
 					onBlur={cancelLink}
 					placeholder={t({
-						id: "components.bubbleMenuToolbar.enterUrlPlaceholder",
 						message: "Enter URL...",
 					})}
 					className="bg-transparent text-sm outline-none w-48 text-foreground placeholder:text-muted-foreground"
@@ -378,7 +361,6 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 
 			<ToolbarButton
 				title={t({
-					id: "components.bubbleMenuToolbar.bold",
 					message: "Bold",
 				})}
 				isActive={editor.isActive("bold")}
@@ -392,7 +374,6 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 
 			<ToolbarButton
 				title={t({
-					id: "components.bubbleMenuToolbar.italic",
 					message: "Italic",
 				})}
 				isActive={editor.isActive("italic")}
@@ -406,7 +387,6 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 
 			<ToolbarButton
 				title={t({
-					id: "components.bubbleMenuToolbar.underline",
 					message: "Underline",
 				})}
 				isActive={editor.isActive("underline")}
@@ -420,7 +400,6 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 
 			<ToolbarButton
 				title={t({
-					id: "components.bubbleMenuToolbar.strikethrough",
 					message: "Strikethrough",
 				})}
 				isActive={editor.isActive("strike")}
@@ -434,7 +413,6 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 
 			<ToolbarButton
 				title={t({
-					id: "components.bubbleMenuToolbar.inlineCode",
 					message: "Inline code",
 				})}
 				isActive={editor.isActive("code")}
@@ -450,7 +428,6 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 
 			<ToolbarButton
 				title={t({
-					id: "components.bubbleMenuToolbar.link",
 					message: "Link",
 				})}
 				isActive={editor.isActive("link")}
@@ -469,7 +446,6 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 
 			<ToolbarButton
 				title={t({
-					id: "components.bubbleMenuToolbar.blockquote",
 					message: "Blockquote",
 				})}
 				isActive={editor.isActive("blockquote")}
@@ -483,7 +459,6 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 
 			<ToolbarButton
 				title={t({
-					id: "components.bubbleMenuToolbar.codeBlock",
 					message: "Code block",
 				})}
 				isActive={editor.isActive("codeBlock")}

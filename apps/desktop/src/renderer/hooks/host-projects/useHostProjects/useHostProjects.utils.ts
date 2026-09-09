@@ -25,7 +25,7 @@ export interface HostProjectRow {
 	color: string | null;
 	createdAt: number;
 	updatedAt: number;
-	/** Absent when served by an older host. */
+	/** @deprecated Mixed-version fallback; canonical reads use tagFolders. */
 	tagSettings?: HostTagSetting[];
 }
 
@@ -54,7 +54,7 @@ export interface HostProjectItem {
 	hostReachable: boolean;
 	createdAt: number;
 	updatedAt: number;
-	/** Tag-folder presentation (host-side); absent from older hosts. */
+	/** @deprecated Mixed-version fallback; canonical reads use tagFolders. */
 	tagSettings?: HostTagSetting[];
 }
 
@@ -64,6 +64,13 @@ export interface HostProjectsQueryTarget {
 	/** Null when the host is known but unreachable (offline remote). */
 	hostUrl: string | null;
 	isLocal: boolean;
+}
+
+/** One host's unmerged project rows, retained for host-specific adapters. */
+export interface HostProjectRowsResult {
+	target: HostProjectsQueryTarget;
+	rows: HostProjectRow[] | undefined;
+	reachable: boolean;
 }
 
 export interface HostRowForTargets {
@@ -156,6 +163,7 @@ export function normalizeHostProjectRow(
 		color: row.color ?? null,
 		createdAt: row.createdAt ?? 0,
 		updatedAt: row.updatedAt ?? row.createdAt ?? 0,
+		tagSettings: row.tagSettings,
 	};
 }
 
@@ -261,8 +269,8 @@ export function applyProjectChangedEvent(
 		color: snapshot.color ?? null,
 		createdAt: snapshot.createdAt,
 		updatedAt: snapshot.updatedAt,
-		// Optional on the wire: an emitter without settings at hand (or an
-		// older host) omits it — keep the row's last known set.
+		// Old hosts publish settings on project snapshots. New hosts may retain
+		// the field as a compatibility adapter; omission keeps the last value.
 		tagSettings: snapshot.tagSettings ?? existing?.tagSettings,
 	};
 	if (!rows) return [nextRow];
@@ -280,11 +288,7 @@ export function applyProjectChangedEvent(
 export function mergeHostProjects({
 	hostResults,
 }: {
-	hostResults: Array<{
-		target: HostProjectsQueryTarget;
-		rows: HostProjectRow[] | undefined;
-		reachable: boolean;
-	}>;
+	hostResults: HostProjectRowsResult[];
 }): HostProjectItem[] {
 	const byKey = new Map<string, HostProjectItem>();
 
@@ -331,10 +335,6 @@ export function mergeHostProjects({
 				existing.icon = row.icon;
 				existing.color = row.color;
 			}
-			// Tag settings: a replica that has them beats one that doesn't
-			// (older host); among replicas that do, the local host wins, same
-			// as icon/color. Mutations write to every serving host, so
-			// replicas stay aligned in practice.
 			if (
 				row.tagSettings !== undefined &&
 				(existing.tagSettings === undefined || result.target.isLocal)

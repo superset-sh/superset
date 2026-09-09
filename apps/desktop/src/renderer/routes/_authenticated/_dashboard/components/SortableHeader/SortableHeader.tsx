@@ -34,16 +34,15 @@ export function SortableHeader<F extends string>({
 			: LuChevronDown;
 	const sortLabel = isActive
 		? sortDirection === "asc"
-			? t({ id: "dashboard.sortableHeader.ascending", message: "ascending" })
-			: t({ id: "dashboard.sortableHeader.descending", message: "descending" })
-		: t({ id: "dashboard.sortableHeader.notSorted", message: "not sorted" });
+			? t({ message: "ascending" })
+			: t({ message: "descending" })
+		: t({ message: "not sorted" });
 
 	return (
 		<button
 			type="button"
 			onClick={() => onSort(field)}
 			aria-label={t({
-				id: "dashboard.sortableHeader.sortBy",
 				message: `Sort by ${label}, currently ${sortLabel}`,
 			})}
 			className={cn(

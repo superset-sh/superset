@@ -16,25 +16,24 @@ const GROUPS: { state: ReviewerState; title: MessageDescriptor }[] = [
 	{
 		state: "CHANGES_REQUESTED",
 		title: msg({
-			id: "mobile.reviewers.requestedChanges",
 			message: "Requested Changes",
 		}),
 	},
 	{
 		state: "APPROVED",
-		title: msg({ id: "mobile.reviewers.approved", message: "Approved" }),
+		title: msg({ message: "Approved" }),
 	},
 	{
 		state: "REQUESTED",
-		title: msg({ id: "mobile.reviewers.assigned", message: "Assigned" }),
+		title: msg({ message: "Assigned" }),
 	},
 	{
 		state: "COMMENTED",
-		title: msg({ id: "mobile.reviewers.commented", message: "Commented" }),
+		title: msg({ message: "Commented" }),
 	},
 	{
 		state: "DISMISSED",
-		title: msg({ id: "mobile.reviewers.dismissed", message: "Dismissed" }),
+		title: msg({ message: "Dismissed" }),
 	},
 ];
 
@@ -55,13 +54,12 @@ export function ReviewersSheet({
 		<>
 			<Stack.Screen
 				options={{
-					title: t({ id: "mobile.reviewers.title", message: "Reviewers" }),
+					title: t({ message: "Reviewers" }),
 				}}
 			/>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					icon="xmark"
@@ -75,9 +73,7 @@ export function ReviewersSheet({
 			>
 				{groups.length === 0 ? (
 					<Text className="text-muted-foreground text-[15px]">
-						<Trans id="mobile.reviewers.empty">
-							No reviewers assigned yet.
-						</Trans>
+						<Trans>No reviewers assigned yet.</Trans>
 					</Text>
 				) : null}
 				{groups.map((group) => (

@@ -1,13 +1,17 @@
-import { existsSync, statSync } from "node:fs";
+import { existsSync, lstatSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { pullRequests } from "../../../db/schema";
+import { pullRequests, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { coercePullRequestState } from "../../../runtime/pull-requests/utils/pull-request-mappers";
-import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
+import {
+	removeDevAppProfile,
+	runTeardown,
+	type TeardownResult,
+} from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import type { GitTaskEnv } from "../../../workers/tasks/git";
@@ -26,6 +30,7 @@ import { isInsideSessionsRoot } from "../workspace-creation/shared/session-paths
 import { isInsideProjectWorktreesRoot } from "../workspace-creation/shared/worktree-paths";
 import { cleanupGitOps, isIndeterminateGitTaskFailure } from "./git-ops";
 import { isMainWorkspace } from "./is-main-workspace";
+import { removeDirectoryTree } from "./remove-directory-tree";
 
 /**
  * Process-local guard against concurrent destroys of the same workspace.
@@ -365,6 +370,16 @@ function isMissingDirectory(path: string): boolean {
 	}
 }
 
+/** Like isMissingDirectory, but does not follow a final symlink: a dangling
+ * link at the worktree path is still an entry to remove, not an absence. */
+function isMissingPath(path: string): boolean {
+	try {
+		return lstatSync(path, { throwIfNoEntry: false }) === undefined;
+	} catch {
+		return false;
+	}
+}
+
 function archiveReasonFor(
 	ctx: HostServiceContext,
 	local: { pullRequestId: string | null },
@@ -514,8 +529,9 @@ async function runDestroyPhases(
 			// treat that like "still registered" and block rather than risk
 			// orphaning disk past the archive commit point.
 			let stillRegistered = true;
+			let removeError: string | undefined;
 			try {
-				({ stillRegistered } = await cleanupGitOps.removeWorktree({
+				({ stillRegistered, removeError } = await cleanupGitOps.removeWorktree({
 					repoPath: project.repoPath,
 					worktreePath: local.worktreePath,
 					gitEnv: repoGitEnv,
@@ -533,10 +549,53 @@ async function runDestroyPhases(
 				// retryable instead of orphaning disk past the commit point.
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: `Failed to remove worktree at ${local.worktreePath}`,
+					message: `Failed to remove worktree at ${local.worktreePath}${
+						removeError ? `: ${removeError}` : ""
+					}`,
 				});
 			}
-			worktreeRemoved = true;
+			if (!isMissingPath(local.worktreePath)) {
+				// Unregistered is not removed: git's unregistration and its
+				// recursive delete are not atomic, so `remove --force --force`
+				// can drop the registration and still fail partway through
+				// deleting files (locked file, live writer). Trusting the
+				// registry alone silently orphaned the folder — no list shows
+				// it, and a retry reports success without touching it (#6730).
+				// Fall back to the same guarded direct removal the other
+				// branches use.
+				const worktreeBaseDir =
+					project.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
+				if (
+					!isInsideProjectWorktreesRoot(
+						local.worktreePath,
+						project.id,
+						worktreeBaseDir,
+					)
+				) {
+					warnings.push(
+						`Worktree at ${local.worktreePath} is no longer registered with git, but its folder is outside the managed worktrees root and was left on disk`,
+					);
+				} else {
+					try {
+						await removeDirectoryTree(local.worktreePath);
+					} catch (err) {
+						const message = err instanceof Error ? err.message : String(err);
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: `Worktree at ${local.worktreePath} is no longer registered with git, but its folder could not be removed: ${message}${
+								removeError ? ` (git worktree remove: ${removeError})` : ""
+							}`,
+						});
+					}
+				}
+			}
+			// The outside-root branch above leaves the folder in place, so
+			// report removal from the final disk state rather than assuming
+			// this path always cleared it (#6785 review). `isMissingPath`
+			// rather than `existsSync`: a leftover this process cannot read,
+			// or a dangling symlink, still exists and must not be reported
+			// as removed.
+			worktreeRemoved = isMissingPath(local.worktreePath);
 		}
 	}
 
@@ -568,6 +627,22 @@ async function runDestroyPhases(
 			const message = err instanceof Error ? err.message : String(err);
 			warnings.push(`Failed to invalidate label cache: ${message}`);
 		}
+
+		// The desktop dev app profile, last: every throw above un-archives the
+		// workspace and hands it back to the user, and a workspace that came
+		// back must still have its logins and browser storage. By here nothing
+		// can roll the delete back. Swallows its own failures — reclaiming
+		// disk must never fail a delete.
+		if (sharesProfileWithLiveWorkspace(ctx, local)) {
+			// The profile directory is keyed by name alone, so same-named
+			// workspaces share one. Reaping it here would wipe the survivor's
+			// browser storage on a delete it had nothing to do with.
+			warnings.push(
+				`Left the dev app profile for "${local.name}" on disk: another workspace shares that name`,
+			);
+		} else {
+			await removeDevAppProfile({ workspaceName: local.name });
+		}
 	}
 
 	return {
@@ -579,6 +654,42 @@ async function runDestroyPhases(
 		branchDeleted,
 		warnings,
 	};
+}
+
+/**
+ * True when a live workspace still answers to this name. The dev app derives
+ * its profile directory from the workspace name alone, so same-named
+ * workspaces share one — and the survivor must keep it.
+ *
+ * Reads fail closed (assume shared): leaving a directory on disk is the
+ * recoverable mistake, and the startup sweep collects it once it goes stale.
+ */
+function sharesProfileWithLiveWorkspace(
+	ctx: HostServiceContext,
+	local: { id: string; name: string },
+): boolean {
+	// Defensive: rows written before the name column was backfilled carry ""
+	// and test fixtures carry nothing at all. Neither names a profile.
+	if (typeof local.name !== "string" || !local.name.trim()) return false;
+	const profileKey = local.name.trim();
+	try {
+		// Compared trimmed in JS rather than matched in SQL: the profile key is
+		// the trimmed name, so "foo" and " foo" share a directory that an
+		// equality match would miss. The row count here is per host, and this
+		// path already does far heavier work.
+		const rows = ctx.db.query.workspaces
+			.findMany({
+				columns: { id: true, name: true },
+				where: isNull(workspaces.archivedAt),
+			})
+			.sync();
+		return rows.some(
+			(row) => row.id !== local.id && row.name?.trim() === profileKey,
+		);
+	} catch (err) {
+		console.warn("[workspace-cleanup] profile name-sharing lookup failed", err);
+		return true;
+	}
 }
 
 function formatTeardownWarning(

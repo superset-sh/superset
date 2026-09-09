@@ -173,22 +173,16 @@ export const FileDiffTool = ({
 			<ShimmerLabel className="text-xs text-foreground" isShimmering>
 				{isWriteMode
 					? t({
-							id: "ui.fileDiffTool.writingFile",
 							message: "Writing file...",
 						})
 					: t({
-							id: "ui.fileDiffTool.editingFile",
 							message: "Editing file...",
 						})}
 			</ShimmerLabel>
 		) : (
 			<span className="min-w-0 truncate text-muted-foreground">
 				<span className="text-foreground">
-					{isWriteMode ? (
-						<Trans id="ui.fileDiffTool.wrote">Wrote</Trans>
-					) : (
-						<Trans id="ui.fileDiffTool.edited">Edited</Trans>
-					)}
+					{isWriteMode ? <Trans>Wrote</Trans> : <Trans>Edited</Trans>}
 				</span>{" "}
 				{canOpenFile && filePath ? (
 					<button
@@ -203,9 +197,7 @@ export const FileDiffTool = ({
 					</button>
 				) : (
 					<span className="text-foreground">
-						{filePath
-							? extractFilename(filePath)
-							: t({ id: "ui.fileDiffTool.fileFallback", message: "file" })}
+						{filePath ? extractFilename(filePath) : t({ message: "file" })}
 					</span>
 				)}
 			</span>
@@ -232,24 +224,21 @@ export const FileDiffTool = ({
 					<button
 						type="button"
 						aria-label={t({
-							id: "ui.fileDiffTool.openFileLabel",
 							message: `Open ${filePath}`,
 						})}
 						className="mr-1 flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
 					>
 						<ExternalLinkIcon className="h-3 w-3" />
-						<Trans id="ui.fileDiffTool.open">Open</Trans>
+						<Trans>Open</Trans>
 						<ChevronDownIcon className="h-3 w-3" />
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end">
 					<DropdownMenuItem onClick={() => onFilePathClick?.(filePath)}>
-						<Trans id="ui.fileDiffTool.openInFilePane">Open in File pane</Trans>
+						<Trans>Open in File pane</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={() => onDiffPathClick?.(filePath)}>
-						<Trans id="ui.fileDiffTool.openInChangesPane">
-							Open in Changes pane
-						</Trans>
+						<Trans>Open in Changes pane</Trans>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
@@ -257,14 +246,13 @@ export const FileDiffTool = ({
 			<button
 				type="button"
 				aria-label={t({
-					id: "ui.fileDiffTool.openFileLabel",
 					message: `Open ${filePath}`,
 				})}
 				className="mr-1 flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
 				onClick={() => onFilePathClick?.(filePath)}
 			>
 				<ExternalLinkIcon className="h-3 w-3" />
-				<Trans id="ui.fileDiffTool.open">Open</Trans>
+				<Trans>Open</Trans>
 			</button>
 		) : undefined;
 

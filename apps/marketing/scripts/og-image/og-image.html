@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Superset social preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..600&display=block" rel="stylesheet">
+<style>
+  html,body{margin:0;background:#0a0a0a}
+  body{width:1200px;height:630px;overflow:hidden;position:relative;font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-feature-settings:"cv01","ss03";color:#fff;-webkit-font-smoothing:antialiased}
+  /* Brand-orange light streaks, Raycast-style */
+  .streaks{position:absolute;inset:-200px;overflow:hidden;pointer-events:none}
+  .streak{position:absolute;top:-40%;height:180%;width:220px;transform:rotate(-34deg);filter:blur(9px);background:linear-gradient(90deg,rgba(210,86,17,0),rgba(158,64,10,.35) 18%,rgba(210,86,17,.75) 42%,rgba(232,128,74,.95) 50%,rgba(210,86,17,.75) 58%,rgba(158,64,10,.35) 82%,rgba(210,86,17,0));opacity:.9}
+  .s1{left:60px;width:140px;opacity:.5}
+  .s2{left:520px;width:90px;opacity:.55}
+  .s3{left:1040px;width:300px;opacity:.95}
+  .s4{left:1400px;width:120px;opacity:.7}
+  .vignette{position:absolute;inset:0;background:radial-gradient(ellipse 70% 80% at 50% 45%,rgba(10,10,10,0) 30%,rgba(10,10,10,.55) 70%,#0a0a0a 100%)}
+  .darken{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,10,.25),rgba(10,10,10,.1) 40%,rgba(10,10,10,.5))}
+  .grain{position:absolute;inset:0;opacity:.3;mix-blend-mode:overlay;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");background-size:220px 220px}
+  .top{position:absolute;left:0;right:0;top:54px;display:flex;flex-direction:column;align-items:center;gap:26px}
+  h1{margin:0;font-size:50px;font-weight:600;letter-spacing:-0.03em;line-height:1.1;word-spacing:.08em;text-align:center;white-space:nowrap;background:linear-gradient(180deg,#ffffff 20%,#c9c9c9);-webkit-background-clip:text;background-clip:text;color:transparent}
+  h1 .br{padding:.04em .22em;background-image:linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a);background-repeat:no-repeat;background-size:.15em 4px,4px .15em,.15em 4px,4px .15em,.15em 4px,4px .15em,.15em 4px,4px .15em;background-position:0 0,0 0,100% 0,100% 0,0 100%,0 100%,100% 100%,100% 100%}
+  .win{position:absolute;left:50%;top:286px;transform:translateX(-50%);width:1080px;height:420px;border-radius:12px;background:#0f0f0f;border:1px solid rgba(232,128,74,.55);box-shadow:0 0 0 1px rgba(0,0,0,.7),0 0 60px rgba(210,86,17,.28),0 30px 90px rgba(0,0,0,.65);overflow:hidden}
+  .win img{display:block;width:100%;height:auto}
+  .fade{position:absolute;left:0;right:0;bottom:0;height:140px;background:linear-gradient(180deg,rgba(10,10,10,0),rgba(10,10,10,.9) 70%,#0a0a0a)}
+</style></head><body>
+<div class="streaks"><div class="streak s1"></div><div class="streak s2"></div><div class="streak s3"></div><div class="streak s4"></div></div>
+<div class="vignette"></div>
+<div class="darken"></div>
+<div class="grain"></div>
+<div class="top">
+  <img src="../../public/title.svg" alt="Superset" style="height:70px">
+  <h1>Bring Any Agent. <span class="br">Orchestrate Them All.</span></h1>
+</div>
+<div class="win"><img src="screenshot.png" alt="Superset workspace with Claude and Codex tabs"></div>
+<div class="fade"></div>
+</body></html>

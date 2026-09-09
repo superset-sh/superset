@@ -54,6 +54,29 @@ function normalizePullRequestState(
 	return state.toLowerCase() === "closed" ? "CLOSED" : "OPEN";
 }
 
+// GitHub stamps merged_at as ISO 8601 UTC (`2026-05-01T10:00:00Z`), optionally
+// with fractional seconds.
+const MERGED_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+
+// GitHub's merged_at is the authoritative merge time. A non-null value means
+// merged even when it fails to parse; the state keeps that meaning and only
+// the timestamp is dropped.
+//
+// Date.parse alone is far looser than the format above and silently invents a
+// merge time from a value GitHub never sent: it reads a missing zone marker as
+// local time, so the same payload lands on a different instant per host, and it
+// rolls impossible calendar dates forward, so `2026-02-31T10:00:00Z` would be
+// stored as March 3. Pin the format, then require the parse to render back to
+// the value we were given, which only a real calendar date does.
+export function parseMergedAt(mergedAt: string | null): number | null {
+	if (!mergedAt || !MERGED_AT.test(mergedAt)) return null;
+	const parsed = Date.parse(mergedAt);
+	if (Number.isNaN(parsed)) return null;
+	return new Date(parsed).toISOString().startsWith(mergedAt.slice(0, 19))
+		? parsed
+		: null;
+}
+
 function normalizePullRequest(raw: unknown): GitHubPullRequestNode | null {
 	if (!isRecord(raw) || !isRecord(raw.head)) return null;
 	const headRepo = isRecord(raw.head.repo) ? raw.head.repo : null;
@@ -85,15 +108,13 @@ function normalizePullRequest(raw: unknown): GitHubPullRequestNode | null {
 	const headFullName = repoName
 		? `${ownerLogin}/${repoName}`.toLowerCase()
 		: null;
+	const mergedAt = typeof raw.merged_at === "string" ? raw.merged_at : null;
 
 	return {
 		number: raw.number,
 		title: raw.title,
 		url: raw.html_url,
-		state: normalizePullRequestState(
-			raw.state,
-			typeof raw.merged_at === "string" ? raw.merged_at : null,
-		),
+		state: normalizePullRequestState(raw.state, mergedAt),
 		isDraft: raw.draft === true,
 		headRefName: raw.head.ref,
 		headRefOid: raw.head.sha,
@@ -105,6 +126,7 @@ function normalizePullRequest(raw: unknown): GitHubPullRequestNode | null {
 			typeof raw.updated_at === "string"
 				? raw.updated_at
 				: new Date(0).toISOString(),
+		mergedAt: parseMergedAt(mergedAt),
 	};
 }
 

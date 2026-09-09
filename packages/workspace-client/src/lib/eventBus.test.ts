@@ -172,6 +172,34 @@ describe("eventBus", () => {
 		expect(bus.getConnectionStatus().state).toBe("open");
 	});
 
+	it("caps automatic retry backoff so a recovered host is reached promptly", async () => {
+		const attempts: number[] = [];
+		const server = Bun.serve({
+			port: 0,
+			fetch(request, instance) {
+				attempts.push(Date.now());
+				// Enough failures to grow past five seconds without the cap.
+				if (attempts.length < 9)
+					return new Response("offline", { status: 503 });
+				if (instance.upgrade(request)) return;
+				return new Response("no", { status: 400 });
+			},
+			websocket: { message() {} },
+		});
+		const bus = getEventBus(`http://127.0.0.1:${server.port}`, () => "tok");
+		cleanups.push(bus.retain());
+		cleanups.push(() => server.stop(true));
+		await waitFor(() => bus.getConnectionStatus().state === "open", 30_000);
+		expect(attempts).toHaveLength(9);
+		const previousAttempt = attempts[7];
+		const finalAttempt = attempts[8];
+		if (previousAttempt === undefined || finalAttempt === undefined) {
+			throw new Error("Expected nine connection attempts");
+		}
+		// Allow scheduler jitter, but reject the uncapped 6.27s ninth dial.
+		expect(finalAttempt - previousAttempt).toBeLessThan(5_750);
+	}, 35_000);
+
 	it("closes the connection when the last listener unsubscribes", async () => {
 		const host = makeHostServer();
 		const bus = getEventBus(host.hostUrl, () => "tok");
@@ -184,5 +212,123 @@ describe("eventBus", () => {
 		// And no zombie reconnect afterwards.
 		await Bun.sleep(1_500);
 		expect(host.clientCount()).toBe(0);
+	});
+
+	it("an active git-watch keeps the connection alive after its last listener/retainer releases", async () => {
+		const host = makeHostServer();
+		const bus = getEventBus(host.hostUrl, () => "tok");
+		const off = bus.on("git:changed", "*", () => {});
+		bus.watchGit("ws-1");
+		cleanups.push(() => host.server.stop(true));
+		await waitFor(() => host.clientCount() === 1);
+		expect(host.upgrades.length).toBe(1);
+
+		// Simulates a sibling effect's cleanup running first and releasing
+		// this connection's only listener — a real, order-dependent scenario
+		// in a multi-effect component (see DashboardSidebarWorkspaceStatus-
+		// Provider: the listener-registration effect's cleanup runs before
+		// the git-watch-release effect's, on full unmount). Before
+		// maybeCleanupConnection() also checked the watch maps, this alone
+		// would close the connection out from under still-active git-watch
+		// interest.
+		off();
+		await Bun.sleep(300);
+		expect(host.clientCount()).toBe(1);
+
+		// The true last release, via a *fresh* getEventBus() call — matching
+		// the real call site (getHostEventBus(hostUrl).unwatchGit(...), never
+		// the same cached handle). Closes the same still-open connection
+		// cleanly: no stray reconnect, and only the one upgrade ever occurs.
+		getEventBus(host.hostUrl, () => "tok").unwatchGit("ws-1");
+		await waitFor(() => host.clientCount() === 0);
+		await Bun.sleep(300);
+		expect(host.upgrades.length).toBe(1);
+		expect(host.clientCount()).toBe(0);
+	});
+
+	it("releasing interest via a fresh handle, after the connection's last watcher already closed it, does not strand a new connection", async () => {
+		const host = makeHostServer();
+		const bus = getEventBus(host.hostUrl, () => "tok");
+		bus.watchGit("ws-1");
+		cleanups.push(() => host.server.stop(true));
+		await waitFor(() => host.clientCount() === 1);
+		expect(host.upgrades.length).toBe(1);
+
+		// The true last release for this connection (no listeners/retainers
+		// were ever added), so it should close now.
+		bus.unwatchGit("ws-1");
+		await waitFor(() => host.clientCount() === 0);
+
+		// A redundant *fresh* getEventBus() call releasing the same interest
+		// again (e.g. a duplicate cleanup) — matching the real call site
+		// (getHostEventBus(hostUrl).unwatchGit(...), never the same cached
+		// handle). getEventBus() unconditionally (re)creates a
+		// ConnectionState if none exists; before this fix, nothing ever
+		// closed the socket it opens back down (unwatchGit/unwatchFs never
+		// called maybeCleanupConnection), so it would dial in and reconnect
+		// forever (a second real upgrade hits the server, `host.upgrades.
+		// length` reaches 2, and `clientCount()` gets stuck at 1).
+		getEventBus(host.hostUrl, () => "tok").unwatchGit("ws-1");
+
+		// With the fix, maybeCleanupConnection closes the fresh connection
+		// synchronously — fast enough that it never even dials out. No
+		// second upgrade ever reaches the server, and no client lingers.
+		await Bun.sleep(1_500);
+		expect(host.upgrades.length).toBe(1);
+		expect(host.clientCount()).toBe(0);
+	});
+
+	it("a handle minted before its connection was torn down binds to the live connection, not the dead one", async () => {
+		const host = makeHostServer();
+		// Minted with no hold yet — a WorkspaceHostGate's useMemo during the
+		// render that switches workspaces, while the outgoing tree still holds
+		// the connection.
+		const early = getEventBus(host.hostUrl, () => "tok");
+		const outgoing = getEventBus(host.hostUrl, () => "tok");
+		const release = outgoing.on("git:changed", "*", () => {});
+		cleanups.push(() => host.server.stop(true));
+		await waitFor(() => host.clientCount() === 1);
+
+		// The outgoing tree's cleanup runs before the incoming tree's effects
+		// and is the last hold: the connection closes and leaves the registry.
+		release();
+		await waitFor(() => host.clientCount() === 0);
+
+		// The incoming gate now takes its hold through the early handle. Bound
+		// to the dead entry, it would sit on a socket that never dials again
+		// and report "closed" for as long as it stayed mounted.
+		cleanups.push(early.retain());
+		cleanups.push(early.subscribeConnectionStatus(() => {}));
+		await waitFor(() => early.getConnectionStatus().state === "open");
+		expect(host.clientCount()).toBe(1);
+		expect(host.upgrades.length).toBe(2);
+	});
+
+	it("a git:watch the host rejects for its cap is re-sent by the next watchGit", async () => {
+		const host = makeHostServer();
+		const bus = getEventBus(host.hostUrl, () => "tok");
+		cleanups.push(bus.retain());
+		cleanups.push(() => host.server.stop(true));
+		const watchesFor = (workspaceId: string) =>
+			host.commands.filter(
+				(c) => c.type === "git:watch" && c.workspaceId === workspaceId,
+			).length;
+
+		bus.watchGit("ws-1");
+		await waitFor(() => watchesFor("ws-1") === 1);
+
+		// The host never registered it. Without dropping the local entry, the
+		// refcount would suppress every later watchGit for this workspace and
+		// its git:changed listeners would stay silent for the session.
+		host.push({
+			type: "error",
+			code: "git-watch-cap",
+			workspaceId: "ws-1",
+			message: "Too many git watches for this client",
+		});
+		await Bun.sleep(150);
+
+		bus.watchGit("ws-1");
+		await waitFor(() => watchesFor("ws-1") === 2);
 	});
 });

@@ -43,21 +43,18 @@ export const NOTION_SENTENCES: Record<NotionTriggerEvent, SentencePart[]> = {
 export const NOTION_MENU: TriggerMenuEntry<NotionConfig>[] = [
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.notion.menuRowsChanged",
 			message: "Rows changed",
 		}),
 		"data_source.content_updated",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.notion.menuCommentAdded",
 			message: "Comment added",
 		}),
 		"comment.created",
 	),
 	leaf(
 		msg({
-			id: "dashboard.automations.providers.notion.menuCommentMentions",
 			message: "Comment mentions user",
 		}),
 		"comment.mentioned",

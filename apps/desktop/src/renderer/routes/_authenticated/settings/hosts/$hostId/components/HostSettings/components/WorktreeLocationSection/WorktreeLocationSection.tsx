@@ -42,14 +42,13 @@ export function WorktreeLocationSection({
 				<h3 className="text-sm font-medium">
 					<HighlightText
 						text={t({
-							id: "settings.hosts.worktrees.label",
 							message: "Worktrees",
 						})}
 						query={searchQuery}
 					/>
 				</h3>
 				<p className="mt-0.5 text-sm text-muted-foreground">
-					<Trans id="settings.hosts.worktrees.hint">
+					<Trans>
 						Default location for new worktree workspaces on this host.
 					</Trans>
 				</p>
@@ -62,7 +61,6 @@ export function WorktreeLocationSection({
 				isRemoteTarget={isRemoteTarget}
 				disabled={disabled}
 				browseTitle={t({
-					id: "settings.hosts.worktrees.browseTitle",
 					message: "Select default worktree location",
 				})}
 				onSelect={(path) => setLocation.mutate(path)}
@@ -70,9 +68,7 @@ export function WorktreeLocationSection({
 			/>
 			{!canEdit ? (
 				<p className="text-xs text-muted-foreground">
-					<Trans id="settings.hosts.worktrees.ownerOnly">
-						Only host owners can change this location.
-					</Trans>
+					<Trans>Only host owners can change this location.</Trans>
 				</p>
 			) : null}
 		</section>

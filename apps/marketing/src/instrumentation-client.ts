@@ -42,6 +42,11 @@ async function initPosthog() {
 	posthog.register({
 		app_name: "marketing",
 		domain: window.location.hostname,
+		// The URL decides the language (bare paths are English); the server
+		// writes the resolved locale into <html lang>, and every language
+		// switch is a full navigation that re-runs this init.
+		app_locale: document.documentElement.lang,
+		app_locale_source: "url",
 	});
 
 	setPosthogInstance(posthog);
@@ -58,7 +63,6 @@ async function initSentry() {
 		dsn: env.NEXT_PUBLIC_SENTRY_DSN_MARKETING,
 		environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 		enabled: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production",
-		tracesSampleRate: 0.01,
 		replaysSessionSampleRate: 0,
 		replaysOnErrorSampleRate: 0,
 		sendDefaultPii: true,

@@ -1,4 +1,5 @@
 import {
+	type Activators,
 	type CollisionDetection,
 	closestCenter,
 	type DragEndEvent,
@@ -10,12 +11,19 @@ import {
 	MouseSensor,
 	pointerWithin,
 	rectIntersection,
+	type Sensor,
+	type SensorOptions,
 	TouchSensor,
 	type UniqueIdentifier,
 	useSensor,
 	useSensors,
 } from "@dnd-kit/core";
-import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import {
+	arrayMove,
+	type SortingStrategy,
+	sortableKeyboardCoordinates,
+	verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import {
 	createContext,
 	useCallback,
@@ -26,6 +34,11 @@ import {
 	useState,
 } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { laneProjectIdForScope } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import {
+	useWorkspaceTransactionsStore,
+	type WorkspaceTransactionSnapshot,
+} from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarPinnedWorkspace,
 	DashboardSidebarProject,
@@ -33,6 +46,12 @@ import type {
 	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import {
+	buildTopLevelUnits,
+	closestUnitCenter,
+	createSectionUnitSortingStrategy,
+	findUnitIndex,
+} from "./sectionUnits";
 
 // ── ID helpers ───────────────────────────────────────────────────────
 
@@ -52,6 +71,14 @@ export const parseId = (id: UniqueIdentifier) => {
 		return { type: "section" as const, realId: s.slice(SEC.length) };
 	return null;
 };
+
+const workspaceIdsOf = (ids: UniqueIdentifier[]): ReadonlySet<string> =>
+	new Set(
+		ids.flatMap((id) => {
+			const parsed = parseId(id);
+			return parsed?.type === "workspace" ? [parsed.realId] : [];
+		}),
+	);
 
 // ── Containers ───────────────────────────────────────────────────────
 //
@@ -162,12 +189,58 @@ function collectMembership(
 
 function buildMembership(
 	projects: DashboardSidebarProject[],
+	sessionChildren: DashboardSidebarProjectChild[],
 ): Record<string, string> {
 	const membership: Record<string, string> = {};
 	for (const project of projects) {
 		collectMembership(project.children, membership);
 	}
+	collectMembership(sessionChildren, membership);
 	return membership;
+}
+
+function fingerprintChildren(children: DashboardSidebarProjectChild[]): string {
+	return children
+		.map((c) =>
+			c.type === "workspace"
+				? c.workspace.id
+				: `s:${c.section.id}:${c.section.workspaces.map((w) => w.id).join("|")}`,
+		)
+		.join(",");
+}
+
+/**
+ * True while a host write started by the last drop (a tag strip/add) has not
+ * settled. Only `update` transactions for the rows that drop wrote count:
+ * a rename elsewhere, or a pending create/delete, must not hold the model.
+ */
+export function hasInFlightRowWrite(
+	transactions: Record<string, Pick<WorkspaceTransactionSnapshot, "type">>,
+	dropWriteIds: ReadonlySet<string>,
+): boolean {
+	for (const workspaceId of dropWriteIds) {
+		if (transactions[workspaceId]?.type === "update") return true;
+	}
+	return false;
+}
+
+/**
+ * What the external-data sync effect should do this run. After a hold ends
+ * the model is reconciled even when the fingerprint matches what was last
+ * synced: a rejected write can roll the props back to exactly the pre-drop
+ * shape, and nothing else would ever replace the optimistic order.
+ */
+export function planExternalSync(input: {
+	inFlight: boolean;
+	wasHeld: boolean;
+	fingerprint: string;
+	prevFingerprint: string;
+}): "hold" | "sync" | "skip" {
+	if (input.inFlight) return "hold";
+	if (input.wasHeld || input.fingerprint !== input.prevFingerprint) {
+		return "sync";
+	}
+	return "skip";
 }
 
 /**
@@ -243,11 +316,14 @@ export interface DashboardSidebarDndValue {
 	pinnedItems: UniqueIdentifier[];
 	sessionItems: UniqueIdentifier[];
 	projectItems: Record<string, UniqueIdentifier[]>;
-	getProjectSortableItems: (projectId: string) => UniqueIdentifier[];
+	/** Sorting strategy for a container's SortableContext (see the hook). */
+	getContainerSortingStrategy: (containerId: string) => SortingStrategy;
 	activeId: UniqueIdentifier | null;
 	activeType: "project" | "workspace" | "section" | null;
 	/** Container currently holding the active workspace/section, if any. */
 	activeContainer: string | null;
+	/** Real id of the section being dragged, if the active item is a section. */
+	activeSectionId: string | null;
 	/**
 	 * The dragged workspace's home container ("sessions" or its project id) —
 	 * the only non-pinned container it may be dropped into.
@@ -258,14 +334,8 @@ export interface DashboardSidebarDndValue {
 	projectsById: Map<string, DashboardSidebarProject>;
 	groupInfo: Map<string, { sectionId: string; color: string | null }>;
 	collapsedSectionIds: Set<string>;
-	/**
-	 * Height (px) of the rows hidden by an active section drag. Rendered as a
-	 * spacer at the end of the sidebar scroller so the pickup doesn't shrink
-	 * scrollHeight: a shrink clamps scrollTop when scrolled near the bottom,
-	 * and dnd-kit folds that scroll delta into the DragOverlay transform —
-	 * the ghost then rides the collapsed height away from the cursor.
-	 */
-	sectionDragSpacerPx: number;
+	/** Rows and folders are a sorted view: their sortables are inert. */
+	isChildDragDisabled: boolean;
 }
 
 const DashboardSidebarDndContext =
@@ -285,49 +355,118 @@ export function useDashboardSidebarDnd(): DashboardSidebarDndValue {
 
 // ── Hook ─────────────────────────────────────────────────────────────
 
+type GatedSensorOptions<Options extends SensorOptions> = Options & {
+	/** True = never activate a drag, whatever the pointer does. */
+	disabled?: boolean;
+};
+
+/**
+ * A sensor that declines to activate while `disabled` is set in its options.
+ * dnd-kit spreads the sensor list into a hook dependency array, so disabling
+ * by swapping in an empty list trips React's "changed size between renders"
+ * warning; keeping the list constant and gating at the activator keeps every
+ * sortable, listener, and hook exactly as it is in the enabled state.
+ */
+function gateSensor<Options extends SensorOptions>(
+	Base: Sensor<Options>,
+): Sensor<GatedSensorOptions<Options>> {
+	const activators: Activators<GatedSensorOptions<Options>> =
+		Base.activators.map(({ eventName, handler }) => ({
+			eventName,
+			handler: (event, options, context) =>
+				options.disabled ? false : handler(event, options, context),
+		}));
+	return class extends Base {
+		static activators = activators;
+	};
+}
+
+const GatedMouseSensor = gateSensor(MouseSensor);
+const GatedTouchSensor = gateSensor(TouchSensor);
+const GatedKeyboardSensor = gateSensor(KeyboardSensor);
+
 interface UseSidebarDndOptions {
-	/** Projects in their current display order. */
+	/** Projects in their current display order (already sorted/filtered). */
 	projects: DashboardSidebarProject[];
 	pinnedWorkspaces: DashboardSidebarPinnedWorkspace[];
-	sessionWorkspaces: DashboardSidebarWorkspace[];
+	/** The Sessions lane, shaped like a project's children (rows + folders). */
+	sessionChildren: DashboardSidebarProjectChild[];
 	onReorderProjects: (projectIds: string[]) => void;
+	/**
+	 * True while a filter hides projects: the rendered project list is a
+	 * subset of the manual order, so committing a drop would rewrite tabOrder
+	 * against the view. The sort modes never reorder projects, so they do not
+	 * set this — a project stays draggable while its workspaces are sorted.
+	 */
+	projectDragDisabled?: boolean;
+	/**
+	 * True while a non-manual sort or an active filter means every project's
+	 * child list is a transformed view of the manual order. Committing a drop
+	 * there would corrupt the real order of reordered/hidden siblings, so
+	 * every row drag (workspaces, folders, pinned, sessions) is inert —
+	 * including in the unsorted Pinned and Sessions lanes, whose drags can
+	 * land in a project.
+	 */
+	childDragDisabled?: boolean;
 }
 
 export function useSidebarDnd({
 	projects,
 	pinnedWorkspaces,
-	sessionWorkspaces,
+	sessionChildren,
 	onReorderProjects,
+	projectDragDisabled = false,
+	childDragDisabled = false,
 }: UseSidebarDndOptions) {
 	const {
 		reorderPinnedWorkspaces,
 		reorderProjectChildren,
-		moveWorkspaceToSectionAtIndex,
+		setSectionWorkspaceOrder,
 		setWorkspacePinned,
 	} = useDashboardSidebarState();
 
+	const noDragsPossible = projectDragDisabled && childDragDisabled;
+	// useSensor memoizes on the options object's identity, and this hook
+	// re-renders on every hovered-row change mid-drag. Inline option literals
+	// therefore rebuilt the sensor list each time, which recomputed every
+	// sortable's `listeners` and busted the memo that keeps each project's
+	// section subtree (rows, menus, dialogs) out of the per-move render.
+	const sensorOptions = useMemo(
+		() => ({
+			// 5px absorbs the 1-3px of jitter a real click carries without
+			// turning it into a pickup; anything smaller starts reordering rows
+			// on sloppy clicks. The trailing click after an activated drag is
+			// already swallowed by dnd-kit (capture-phase document click
+			// listener installed at activation, detached one event loop after
+			// the drag ends).
+			mouse: {
+				activationConstraint: { distance: 5 },
+				disabled: noDragsPossible,
+			},
+			touch: {
+				activationConstraint: { delay: 200, tolerance: 5 },
+				disabled: noDragsPossible,
+			},
+			keyboard: {
+				coordinateGetter: sortableKeyboardCoordinates,
+				disabled: noDragsPossible,
+			},
+		}),
+		[noDragsPossible],
+	);
 	const sensors = useSensors(
-		// 5px absorbs the 1-3px of jitter a real click carries without turning
-		// it into a pickup; anything smaller starts reordering rows on sloppy
-		// clicks. The trailing click after an activated drag is already
-		// swallowed by dnd-kit (capture-phase document click listener installed
-		// at activation, detached one event loop after the drag ends).
-		useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-		useSensor(TouchSensor, {
-			activationConstraint: { delay: 200, tolerance: 5 },
-		}),
-		useSensor(KeyboardSensor, {
-			coordinateGetter: sortableKeyboardCoordinates,
-		}),
+		useSensor(GatedMouseSensor, sensorOptions.mouse),
+		useSensor(GatedTouchSensor, sensorOptions.touch),
+		useSensor(GatedKeyboardSensor, sensorOptions.keyboard),
 	);
 
 	const [items, setItems] = useState<SidebarDndItems>(() => ({
 		pinned: pinnedWorkspaces.map((ws) => wsId(ws.id)),
-		sessions: sessionWorkspaces.map((ws) => wsId(ws.id)),
+		sessions: buildFlatItems(sessionChildren),
 		byProject: Object.fromEntries(
 			projects.map((project) => [project.id, buildFlatItems(project.children)]),
 		),
-		membership: buildMembership(projects),
+		membership: buildMembership(projects, sessionChildren),
 	}));
 	// Drag handlers read AND write these refs synchronously: pointer events can
 	// batch faster than React re-renders (especially under main-thread stalls),
@@ -372,44 +511,68 @@ export function useSidebarDnd({
 
 	// Sync from external data when items or their order/membership changes
 	const prevFingerprintRef = useRef("");
+	// Workspace ids whose host rows the last drop may have written, set by the
+	// drop handler before it persists; cleared once their writes settle.
+	const dropWriteIdsRef = useRef<ReadonlySet<string>>(new Set());
+	const heldRef = useRef(false);
+	const workspaceTransactionsById = useWorkspaceTransactionsStore(
+		(state) => state.byWorkspaceId,
+	);
 	useEffect(() => {
 		if (activeId || activeIdRef.current) return; // Don't reset during active drag
+		// A drop across a folder boundary strips or adds a host tag. The host
+		// cache is patched before the request goes out, but its observers
+		// re-render on a later task, so on the drop commit the props still
+		// carry the old tag and would re-file the row into the folder it just
+		// left (visible as the row snapping back, then jumping once the write
+		// lands). Hold the drag model while that drop's host writes are in
+		// flight; the store clears on success or failure and this effect
+		// re-runs against converged data.
 		const fingerprint = [
 			pinnedWorkspaces.map((ws) => ws.id).join("|"),
-			sessionWorkspaces.map((ws) => ws.id).join("|"),
+			fingerprintChildren(sessionChildren),
 			projects
 				.map(
-					(project) =>
-						`${project.id}:${project.children
-							.map((c) =>
-								c.type === "workspace"
-									? c.workspace.id
-									: `s:${c.section.id}:${c.section.workspaces.map((w) => w.id).join("|")}`,
-							)
-							.join(",")}`,
+					(project) => `${project.id}:${fingerprintChildren(project.children)}`,
 				)
 				.join(";"),
 		].join("\n");
-		if (fingerprint !== prevFingerprintRef.current) {
+		const plan = planExternalSync({
+			inFlight: hasInFlightRowWrite(
+				workspaceTransactionsById,
+				dropWriteIdsRef.current,
+			),
+			wasHeld: heldRef.current,
+			fingerprint,
+			prevFingerprint: prevFingerprintRef.current,
+		});
+		if (plan === "hold") {
+			heldRef.current = true;
+			return;
+		}
+		dropWriteIdsRef.current = new Set();
+		heldRef.current = false;
+		if (plan === "sync") {
 			prevFingerprintRef.current = fingerprint;
 			commitDragItems({
 				pinned: pinnedWorkspaces.map((ws) => wsId(ws.id)),
-				sessions: sessionWorkspaces.map((ws) => wsId(ws.id)),
+				sessions: buildFlatItems(sessionChildren),
 				byProject: Object.fromEntries(
 					projects.map((project) => [
 						project.id,
 						buildFlatItems(project.children),
 					]),
 				),
-				membership: buildMembership(projects),
+				membership: buildMembership(projects, sessionChildren),
 			});
 		}
 	}, [
 		projects,
 		pinnedWorkspaces,
-		sessionWorkspaces,
+		sessionChildren,
 		activeId,
 		commitDragItems,
+		workspaceTransactionsById,
 	]);
 
 	// ── Lookups ──────────────────────────────────────────────────────
@@ -417,9 +580,8 @@ export function useSidebarDnd({
 	const workspacesById = useMemo(() => {
 		const map = new Map<string, DashboardSidebarWorkspace>();
 		for (const ws of pinnedWorkspaces) map.set(ws.id, ws);
-		for (const ws of sessionWorkspaces) map.set(ws.id, ws);
-		for (const project of projects) {
-			for (const child of project.children) {
+		const collect = (children: DashboardSidebarProjectChild[]) => {
+			for (const child of children) {
 				if (child.type === "workspace") {
 					map.set(child.workspace.id, child.workspace);
 				} else {
@@ -428,21 +590,23 @@ export function useSidebarDnd({
 					}
 				}
 			}
-		}
+		};
+		collect(sessionChildren);
+		for (const project of projects) collect(project.children);
 		return map;
-	}, [projects, pinnedWorkspaces, sessionWorkspaces]);
+	}, [projects, pinnedWorkspaces, sessionChildren]);
 
 	const sectionsById = useMemo(() => {
 		const map = new Map<string, DashboardSidebarSection>();
-		for (const project of projects) {
-			for (const child of project.children) {
-				if (child.type === "section") {
-					map.set(child.section.id, child.section);
-				}
+		const collect = (children: DashboardSidebarProjectChild[]) => {
+			for (const child of children) {
+				if (child.type === "section") map.set(child.section.id, child.section);
 			}
-		}
+		};
+		collect(sessionChildren);
+		for (const project of projects) collect(project.children);
 		return map;
-	}, [projects]);
+	}, [projects, sessionChildren]);
 
 	const projectsById = useMemo(
 		() => new Map(projects.map((project) => [project.id, project])),
@@ -475,22 +639,10 @@ export function useSidebarDnd({
 		? (containerById.get(activeId) ?? null)
 		: null;
 
-	// Matches the sidebar workspace row height (h-8).
-	const SIDEBAR_ROW_PX = 32;
-	const sectionDragSpacerPx = useMemo(() => {
-		if (activeType !== "section" || !activeContainer) return 0;
-		const list = items.byProject[activeContainer] ?? [];
-		let hiddenRows = 0;
-		for (const id of list) {
-			const sectionFlatId = items.membership[String(id)];
-			if (!sectionFlatId) continue;
-			const parsed = parseId(sectionFlatId);
-			const section = parsed ? sectionsById.get(parsed.realId) : undefined;
-			// Members of collapsed sections are already zero-height before the drag.
-			if (section && !section.isCollapsed) hiddenRows++;
-		}
-		return hiddenRows * SIDEBAR_ROW_PX;
-	}, [activeType, activeContainer, items, sectionsById]);
+	const activeSectionId = useMemo(() => {
+		if (!activeId || activeType !== "section") return null;
+		return parseId(activeId)?.realId ?? null;
+	}, [activeId, activeType]);
 
 	const activeWorkspaceHome = useMemo(() => {
 		if (!activeId || activeType !== "workspace") return null;
@@ -522,14 +674,8 @@ export function useSidebarDnd({
 	// drop handler: simulate the arrayMove, then read the landing neighbors.
 	const predictedColor = useMemo(() => {
 		if (!activeId || !overId || activeType !== "workspace") return null;
-		if (
-			!activeContainer ||
-			activeContainer === PINNED_CONTAINER ||
-			activeContainer === SESSIONS_CONTAINER
-		) {
-			return null;
-		}
-		const list = items.byProject[activeContainer] ?? [];
+		if (!activeContainer || activeContainer === PINNED_CONTAINER) return null;
+		const list = getContainerList(items, activeContainer);
 		const oldIndex = list.indexOf(activeId);
 		const overIndex = list.indexOf(overId);
 		if (oldIndex === -1 || overIndex === -1) return null;
@@ -546,19 +692,25 @@ export function useSidebarDnd({
 		return sec?.color ?? null;
 	}, [activeId, overId, activeType, activeContainer, items, sectionsById]);
 
-	// When dragging a section, its project's SortableContext collapses to the
-	// top-level units — section headers and ungrouped rows — so the section can
-	// sort against both (grouped rows hide and move with their header). Other
-	// projects (and idle projects) keep everything.
-	const getProjectSortableItems = useCallback(
-		(projectId: string) => {
-			const list = items.byProject[projectId] ?? [];
-			if (activeType === "section" && activeContainer === projectId) {
-				return list.filter((id) => isSec(id) || !items.membership[String(id)]);
+	// A section drag sorts top-level units — section headers (carrying their
+	// member rows) and ungrouped rows. The flat item list and every row's
+	// height stay exactly as they were: nothing collapses at pickup, so the
+	// header never shifts under the pointer (a shift there is what dnd-kit
+	// "compensates" by scrolling the sidebar, and what left the ghost off the
+	// cursor when it couldn't). The unit strategy moves each group as one
+	// block, the dragged group included.
+	const getContainerSortingStrategy = useCallback(
+		(containerId: string): SortingStrategy => {
+			if (activeType === "section" && activeContainer === containerId) {
+				return createSectionUnitSortingStrategy(
+					getContainerList(items, containerId),
+					items.membership,
+					isSec,
+				);
 			}
-			return list;
+			return verticalListSortingStrategy;
 		},
-		[items.byProject, items.membership, activeType, activeContainer],
+		[items, activeType, activeContainer],
 	);
 
 	// The sidebar data builder always sorts local main workspaces first,
@@ -633,19 +785,19 @@ export function useSidebarDnd({
 			}
 
 			if (type === "section") {
-				// Stock closestCenter is safe here because SectionDragSpacer keeps
-				// scrollHeight constant at pickup (no scrollTop clamp to desync
-				// dnd-kit's scroll compensation) and the drag-collapse is instant
-				// (the member-unregister re-measure sees the final layout).
+				// Closest unit center within the section's own project. Unit rects
+				// come from the transform-agnostic droppable rects, so the hop
+				// past a group happens when the ghost's center crosses the group's
+				// un-displaced center — no feedback from the displacement itself.
+				const current = itemsRef.current;
 				const container = containerByIdRef.current.get(args.active.id);
-				return closestCenter({
-					...args,
-					droppableContainers: args.droppableContainers.filter(
-						(candidate) =>
-							container != null &&
-							containerByIdRef.current.get(candidate.id) === container,
-					),
-				});
+				if (!container) return [];
+				const units = buildTopLevelUnits(
+					getContainerList(current, container),
+					current.membership,
+					isSec,
+				);
+				return closestUnitCenter(units)(args);
 			}
 
 			if (type === "workspace") {
@@ -692,12 +844,15 @@ export function useSidebarDnd({
 
 	// ── Persistence ──────────────────────────────────────────────────
 
-	const commitProjectToDb = useCallback(
+	// `container` is a project id or SESSIONS_CONTAINER; the Sessions lane's
+	// rows carry projectId null, so map before persisting.
+	const commitContainerToDb = useCallback(
 		(
-			projectId: string,
+			container: string,
 			list: UniqueIdentifier[],
 			membership: Record<string, string>,
 		) => {
+			const projectId = laneProjectIdForScope(container);
 			const parsed = parseFlatItems(list, membership);
 
 			// Top-level order (ungrouped workspaces + sections interleaved)
@@ -705,12 +860,10 @@ export function useSidebarDnd({
 
 			// Each section's workspace order
 			for (const [sectionId, wsIds] of Object.entries(parsed.sections)) {
-				for (let i = 0; i < wsIds.length; i++) {
-					moveWorkspaceToSectionAtIndex(wsIds[i], projectId, sectionId, i);
-				}
+				setSectionWorkspaceOrder(projectId, sectionId, wsIds);
 			}
 		},
-		[reorderProjectChildren, moveWorkspaceToSectionAtIndex],
+		[reorderProjectChildren, setSectionWorkspaceOrder],
 	);
 
 	const persistWorkspaceDrop = useCallback(
@@ -746,26 +899,13 @@ export function useSidebarDnd({
 				setWorkspacePinned(workspaceId, ws.projectId, false);
 			}
 
-			if (container === SESSIONS_CONTAINER) {
-				reorderProjectChildren(
-					null,
-					containerList.flatMap((id) => {
-						const parsed = parseId(id);
-						if (parsed?.type !== "workspace") return [];
-						return [{ type: "workspace" as const, id: parsed.realId }];
-					}),
-				);
-				return;
-			}
-
-			commitProjectToDb(container, containerList, membership);
+			commitContainerToDb(container, containerList, membership);
 		},
 		[
 			workspacesById,
 			reorderPinnedWorkspaces,
-			reorderProjectChildren,
 			setWorkspacePinned,
-			commitProjectToDb,
+			commitContainerToDb,
 		],
 	);
 
@@ -826,8 +966,7 @@ export function useSidebarDnd({
 			// landing group's accent (or none) while still mid-drag.
 			const membership = { ...next.membership };
 			const sectionFlatId =
-				targetContainer !== PINNED_CONTAINER &&
-				targetContainer !== SESSIONS_CONTAINER
+				targetContainer !== PINNED_CONTAINER
 					? membershipFromNeighbors(target, membership, active.id)
 					: null;
 			if (sectionFlatId) {
@@ -874,51 +1013,34 @@ export function useSidebarDnd({
 
 			if (type === "section") {
 				const container = containerByIdRef.current.get(active.id);
-				if (!container || !projectIds.has(container) || active.id === over.id) {
+				if (
+					!container ||
+					container === PINNED_CONTAINER ||
+					active.id === over.id
+				) {
 					return;
 				}
-				const list = current.byProject[container] ?? [];
+				const list = getContainerList(current, container);
 
-				// Section drag: the SortableContext held top-level units — section
-				// headers and ungrouped rows. Collapse the flat list into those
-				// units (a section unit carries its member rows), reorder the
-				// dragged section among them, and flatten back out. Sections sort
+				// Section drag: reorder among top-level units (a section unit
+				// carries its member rows) and flatten back out. Sections sort
 				// against ungrouped rows exactly like any other item.
-				interface TopLevelUnit {
-					key: UniqueIdentifier;
-					ids: UniqueIdentifier[];
-				}
-				const units: TopLevelUnit[] = [];
-				const unitBySection = new Map<string, TopLevelUnit>();
-				for (const id of list) {
-					if (isSec(id)) {
-						const unit: TopLevelUnit = { key: id, ids: [id] };
-						units.push(unit);
-						unitBySection.set(String(id), unit);
-						continue;
-					}
-					const sectionFlatId = current.membership[String(id)];
-					const owner = sectionFlatId
-						? unitBySection.get(sectionFlatId)
-						: undefined;
-					if (owner) {
-						owner.ids.push(id);
-					} else {
-						units.push({ key: id, ids: [id] });
-					}
-				}
-
-				const oldIdx = units.findIndex((unit) => unit.key === active.id);
-				const newIdx = units.findIndex((unit) => unit.key === over.id);
+				const units = buildTopLevelUnits(list, current.membership, isSec);
+				const oldIdx = findUnitIndex(units, active.id);
+				const newIdx = findUnitIndex(units, over.id);
 				if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return;
 
 				const rebuilt = arrayMove(units, oldIdx, newIdx).flatMap(
 					(unit) => unit.ids,
 				);
 
-				const newList = normalizeMainFirst(rebuilt);
+				const newList =
+					container === SESSIONS_CONTAINER
+						? rebuilt
+						: normalizeMainFirst(rebuilt);
 				commitDragItems(withContainerList(current, container, newList));
-				commitProjectToDb(container, newList, current.membership);
+				dropWriteIdsRef.current = workspaceIdsOf(newList);
+				commitContainerToDb(container, newList, current.membership);
 				return;
 			}
 
@@ -990,8 +1112,7 @@ export function useSidebarDnd({
 					}
 				} else {
 					const sectionFlatId =
-						targetContainer !== PINNED_CONTAINER &&
-						targetContainer !== SESSIONS_CONTAINER
+						targetContainer !== PINNED_CONTAINER
 							? membershipFromNeighbors(targetList, membership, active.id)
 							: null;
 					if (sectionFlatId) {
@@ -1007,6 +1128,10 @@ export function useSidebarDnd({
 				});
 
 				if (!unchanged) {
+					dropWriteIdsRef.current = workspaceIdsOf([
+						...targetList,
+						...getContainerList(next, sourceContainer),
+					]);
 					persistWorkspaceDrop(
 						parsed.realId,
 						targetContainer,
@@ -1022,7 +1147,7 @@ export function useSidebarDnd({
 			projectIds,
 			onReorderProjects,
 			normalizeMainFirst,
-			commitProjectToDb,
+			commitContainerToDb,
 			persistWorkspaceDrop,
 			commitDragItems,
 		],
@@ -1064,31 +1189,33 @@ export function useSidebarDnd({
 			pinnedItems: items.pinned,
 			sessionItems: items.sessions,
 			projectItems: items.byProject,
-			getProjectSortableItems,
+			getContainerSortingStrategy,
 			activeId,
 			activeType,
 			activeContainer,
+			activeSectionId,
 			activeWorkspaceHome,
 			workspacesById,
 			sectionsById,
 			projectsById,
 			groupInfo,
 			collapsedSectionIds,
-			sectionDragSpacerPx,
+			isChildDragDisabled: childDragDisabled,
 		}),
 		[
 			items,
-			getProjectSortableItems,
+			getContainerSortingStrategy,
 			activeId,
 			activeType,
 			activeContainer,
+			activeSectionId,
 			activeWorkspaceHome,
 			workspacesById,
 			sectionsById,
 			projectsById,
 			groupInfo,
 			collapsedSectionIds,
-			sectionDragSpacerPx,
+			childDragDisabled,
 		],
 	);
 

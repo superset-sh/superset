@@ -15,15 +15,15 @@ import { formatRangeLabel } from "@/app/[lang]/utils/formatRangeLabel";
 const PRESETS: Array<{ id: LeaderboardPeriod; label: MessageDescriptor }> = [
 	{
 		id: "all",
-		label: msg({ id: "marketing.leaderboard.range.all", message: "All" }),
+		label: msg({ message: "All" }),
 	},
 	{
 		id: "7d",
-		label: msg({ id: "marketing.leaderboard.range.7d", message: "7D" }),
+		label: msg({ message: "7D" }),
 	},
 	{
 		id: "30d",
-		label: msg({ id: "marketing.leaderboard.range.30d", message: "30D" }),
+		label: msg({ message: "30D" }),
 	},
 ];
 
@@ -51,7 +51,6 @@ export function RangeTabs({
 	return (
 		<PillTabs
 			label={t({
-				id: "marketing.leaderboard.range.ariaLabel",
 				message: "Date range",
 			})}
 			value={customActive ? null : value.period}
@@ -76,7 +75,6 @@ export function RangeTabs({
 						{formatRangeLabel(
 							value.custom,
 							t({
-								id: "marketing.leaderboard.range.custom",
 								message: "Custom",
 							}),
 						)}

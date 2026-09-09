@@ -1,4 +1,4 @@
-import type { RelayAffinityProbe } from "@superset/workspace-client";
+import type { RelayHostProbe } from "@superset/workspace-client";
 
 export type TerminalFailureCategory =
 	| "relay-unreachable"
@@ -15,10 +15,11 @@ export interface TerminalFailureClassification {
 
 /**
  * Cause of a failed terminal WS from the `_whoowns` probe. `stream-blocked`
- * (host present but WS drops) is the relay-routing fingerprint, e.g. cross-region.
+ * means the host is connected to the relay but the stream itself did not
+ * come up: the host could not dial back in time.
  */
 export function classifyTerminalFailure(
-	probe: RelayAffinityProbe | null,
+	probe: RelayHostProbe | null,
 	isHostUrl: boolean,
 ): TerminalFailureClassification {
 	// Local terminals never hit the relay; don't guess a cause.
@@ -56,10 +57,10 @@ export function classifyTerminalFailure(
 		};
 	}
 	if (probe.status === 200) {
-		const where = probe.region ? ` (region ${probe.region})` : "";
 		return {
 			category: "stream-blocked",
-			message: `The host is online${where} but the terminal stream couldn't connect. This is usually a relay routing issue, not the host.`,
+			message:
+				"The host is online but the terminal stream couldn't connect. This is usually temporary.",
 		};
 	}
 	return {

@@ -22,11 +22,9 @@ export function BurnByVendorTile() {
 	return (
 		<InsightTileFrame
 			title={t({
-				id: "admin.burnByVendor.title",
 				message: "Burn by vendor (Mercury)",
 			})}
 			description={t({
-				id: "admin.burnByVendor.description",
 				message: "Avg monthly outflow per counterparty, last 3 complete months",
 			})}
 			lastRefresh={query.data?.available ? query.data.asOf : null}
@@ -36,7 +34,6 @@ export function BurnByVendorTile() {
 			emptyLabel={
 				unavailableReason
 					? t({
-							id: "admin.tile.unavailableReason",
 							message: `Unavailable: ${unavailableReason}`,
 						})
 					: undefined

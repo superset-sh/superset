@@ -3,7 +3,8 @@ import { DEFAULT_LOCALE } from "../locales";
 
 // Locale-aware wrappers around Intl.*. Every user-facing number, currency,
 // and date goes through these instead of hardcoding a locale — the active
-// locale comes from the shared i18n instance, and I18nProvider remounts its
+// locale defaults to the shared instance. SSR callers can pass their request's
+// locale explicitly. I18nProvider remounts its
 // subtree on locale change so formatted output re-renders everywhere.
 //
 // Constructing an Intl formatter per call costs single-digit microseconds
@@ -17,8 +18,9 @@ export function getActiveLocale(): string {
 export function formatNumber(
 	value: number,
 	options?: Intl.NumberFormatOptions,
+	locale = getActiveLocale(),
 ): string {
-	return new Intl.NumberFormat(getActiveLocale(), options).format(value);
+	return new Intl.NumberFormat(locale, options).format(value);
 }
 
 // 0.123 -> "12.3%"
@@ -31,6 +33,18 @@ export function formatPercent(
 		maximumFractionDigits: 1,
 		...options,
 	});
+}
+
+export function formatList(
+	values: string[],
+	options?: Intl.ListFormatOptions,
+	locale = getActiveLocale(),
+): string {
+	return new Intl.ListFormat(locale, {
+		style: "long",
+		type: "conjunction",
+		...options,
+	}).format(values);
 }
 
 // 123400 -> "123K"
@@ -66,8 +80,9 @@ export function formatDate(
 		month: "short",
 		day: "numeric",
 	},
+	locale = getActiveLocale(),
 ): string {
-	return new Intl.DateTimeFormat(getActiveLocale(), options).format(date);
+	return new Intl.DateTimeFormat(locale, options).format(date);
 }
 
 export function formatDateTime(

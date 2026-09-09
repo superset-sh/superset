@@ -20,7 +20,7 @@ export function MobileSearchIcon({ className }: MobileSearchIconProps) {
 	return (
 		<button
 			type="button"
-			aria-label={t({ id: "docs.search.label", message: "Search" })}
+			aria-label={t({ message: "Search" })}
 			onClick={handleSearchClick}
 			className={cn(
 				"flex items-center justify-center size-8 p-2 navbar:hidden hover:text-foreground transition-colors",

@@ -1,7 +1,14 @@
-export function detectLanguage(filePath: string): string {
-	const ext = filePath.split(".").pop()?.toLowerCase();
+// Files identified by name rather than extension, keyed by the lowercased
+// filename stem so `Dockerfile.prod` and `Containerfile.base` still match.
+const languageByStem = new Map([
+	["dockerfile", "dockerfile"],
+	["containerfile", "dockerfile"],
+	["makefile", "makefile"],
+	["gnumakefile", "makefile"],
+]);
 
-	const languageMap: Record<string, string> = {
+const languageByExtension = new Map(
+	Object.entries({
 		// JavaScript/TypeScript
 		ts: "typescript",
 		tsx: "typescript",
@@ -56,7 +63,19 @@ export function detectLanguage(filePath: string): string {
 		sql: "sql",
 		graphql: "graphql",
 		gql: "graphql",
-	};
+	}),
+);
 
-	return languageMap[ext || ""] || "plaintext";
+/**
+ * Language id for the CodeMirror editor, from the file's basename: a known
+ * extension wins (`Dockerfile.md` is markdown), then a known stem
+ * (`Dockerfile.prod` is a Dockerfile), else `"plaintext"`.
+ */
+export function detectLanguage(filePath: string): string {
+	const fileName = filePath.split(/[/\\]/).pop()?.toLowerCase() ?? "";
+	const [stem = "", ...rest] = fileName.split(".");
+	const ext = rest.at(-1) ?? "";
+	return (
+		languageByExtension.get(ext) ?? languageByStem.get(stem) ?? "plaintext"
+	);
 }

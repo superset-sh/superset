@@ -8,18 +8,27 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
+import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 import { getHostTerminalsQueryKey } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import { AgentMark } from "@/screens/(authenticated)/(home)/new-session/agent";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
+import {
+	agentLaunchPresetId,
+	describeAgentLaunchPreferences,
+	resolveAgentLaunchPreferences,
+} from "@/screens/(authenticated)/hooks/useAgentLaunchPreferences";
 import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
 
 /**
  * Bottom sheet for the tab strip's + — the host's agent presets plus a plain
- * shell, each row launching a new session and landing on its tab.
+ * shell, each row launching a new session and landing on its tab. An agent
+ * launches with the model and effort the home composer remembered for it,
+ * shown under its name so the row says what it starts.
  */
 export function NewSessionSheet() {
 	const { t } = useLingui();
@@ -37,6 +46,18 @@ export function NewSessionSheet() {
 		hostUrl,
 	});
 	const presets = presetsQuery.data ?? [];
+	const modelByAgent = useNewSessionPreferencesStore(
+		(state) => state.modelByAgent,
+	);
+	const effortByAgent = useNewSessionPreferencesStore(
+		(state) => state.effortByAgent,
+	);
+	const launchFor = (preset: (typeof presets)[number]) =>
+		resolveAgentLaunchPreferences(
+			agentLaunchPresetId(preset),
+			modelByAgent,
+			effortByAgent,
+		);
 
 	// The launching row shows a spinner; every row locks until the launch
 	// resolves so a double-tap can't start two sessions.
@@ -49,13 +70,11 @@ export function NewSessionSheet() {
 		if (isResolving) isLoading = true;
 		else
 			notice = t({
-				id: "mobile.newSession.hostUnreachable",
 				message: "Could not reach this workspace's machine",
 			});
 	} else if (presets.length === 0) {
 		if (presetsQuery.isError) {
 			notice = t({
-				id: "mobile.newSession.presetsLoadFailed",
 				message: "Could not load presets from the host",
 			});
 			canRetry = true;
@@ -63,28 +82,30 @@ export function NewSessionSheet() {
 			isLoading = true;
 		} else {
 			notice = t({
-				id: "mobile.newSession.noAgents",
 				message: "No agents configured on this machine",
 			});
 		}
 	}
 
-	const launch = async (agentId: string | null) => {
+	const launch = async (preset: (typeof presets)[number] | null) => {
 		if (!workspace || !hostUrl || launchingKey !== null) return;
-		setLaunchingKey(agentId ?? "shell");
+		setLaunchingKey(preset?.presetId ?? "shell");
 		try {
 			const client = getHostServiceClientByUrl(hostUrl);
 			let terminalId: string;
-			if (agentId === null) {
+			if (preset === null) {
 				const created = await client.terminal.createSession.mutate({
 					workspaceId: workspace.id,
 				});
 				terminalId = created.terminalId;
 			} else {
+				const { model, effort } = launchFor(preset);
 				const result = await client.agents.run.mutate({
 					workspaceId: workspace.id,
-					agent: agentId,
+					agent: preset.presetId,
 					prompt: "",
+					model: model?.id,
+					effort: effort?.id,
 				});
 				if (result.kind !== "terminal") {
 					throw new Error(`${result.label} did not start a terminal session`);
@@ -103,10 +124,9 @@ export function NewSessionSheet() {
 			setLaunchingKey(null);
 			Alert.alert(
 				t({
-					id: "mobile.newSession.startFailed",
 					message: "Could not start session",
 				}),
-				error instanceof Error ? error.message : String(error),
+				errorCopy(error),
 			);
 		}
 	};
@@ -123,7 +143,6 @@ export function NewSessionSheet() {
 				<Stack.Toolbar.Button
 					icon="xmark"
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					onPress={() => router.back()}
@@ -140,7 +159,7 @@ export function NewSessionSheet() {
 							onPress={() => void presetsQuery.refetch()}
 						>
 							<Text>
-								<Trans id="mobile.common.tryAgain">Try again</Trans>
+								<Trans>Try again</Trans>
 							</Text>
 						</Button>
 					) : null}
@@ -157,14 +176,17 @@ export function NewSessionSheet() {
 						/>
 					}
 					label={preset.label}
+					subtitle={
+						describeAgentLaunchPreferences(launchFor(preset)) ?? undefined
+					}
 					trailing={launchingKey === preset.presetId ? spinner : undefined}
-					onPress={() => void launch(preset.presetId)}
+					onPress={() => void launch(preset)}
 				/>
 			))}
 			{presets.length > 0 ? (
 				<ListRow
 					icon={<SquareTerminal size={19} color={theme.mutedForeground} />}
-					label={t({ id: "mobile.newSession.shell", message: "Shell" })}
+					label={t({ message: "Shell" })}
 					trailing={launchingKey === "shell" ? spinner : undefined}
 					onPress={() => void launch(null)}
 					isLast

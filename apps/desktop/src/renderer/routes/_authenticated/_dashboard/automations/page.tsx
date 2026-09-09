@@ -41,12 +41,9 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-	LuCircleHelp,
-	LuPlus,
 	LuRotateCw,
 	LuSearch,
 	LuSearchX,
-	LuSparkles,
 	LuTerminal,
 	LuTriangleAlert,
 	LuX,
@@ -58,6 +55,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { DATA_TABLE_HEAD_CELL } from "renderer/routes/_authenticated/_dashboard/components/DataTableHeader";
+import { FeatureHeader } from "renderer/routes/_authenticated/_dashboard/components/FeatureHeader";
 import {
 	SortableHeader,
 	type SortDirection,
@@ -146,7 +144,6 @@ function AutomationsPage() {
 		onSuccess: (_, { name }) =>
 			toast.success(
 				t({
-					id: "dashboard.automations.page.runNowToast",
 					message: `Running "${name}" now`,
 				}),
 			),
@@ -163,7 +160,6 @@ function AutomationsPage() {
 			toast.error(
 				message ??
 					t({
-						id: "dashboard.automations.page.runNowFailedToast",
 						message: "Failed to trigger run",
 					}),
 			);
@@ -191,7 +187,6 @@ function AutomationsPage() {
 			if (retried > 0) {
 				toast.success(
 					t({
-						id: "dashboard.automations.page.retryingToast",
 						message: plural(retried, {
 							one: "Retrying # automation",
 							other: "Retrying # automations",
@@ -220,11 +215,9 @@ function AutomationsPage() {
 						? i18n._(STALE_AGENT_HELP)
 						: (message ??
 							t({
-								id: "dashboard.automations.page.retryFailedToast",
 								message: "Failed to retry automation",
 							}))
 					: t({
-							id: "dashboard.automations.page.retryFailedCountToast",
 							message: `Failed to retry ${failedCount} of ${totalCount} automations`,
 						}),
 			);
@@ -248,11 +241,9 @@ function AutomationsPage() {
 			toast.success(
 				enabled
 					? t({
-							id: "dashboard.automations.page.resumedToast",
 							message: `"${name}" resumed`,
 						})
 					: t({
-							id: "dashboard.automations.page.pausedToast",
 							message: `"${name}" paused`,
 						}),
 			);
@@ -262,7 +253,6 @@ function AutomationsPage() {
 				errorMessage(
 					error,
 					t({
-						id: "dashboard.automations.page.updateFailedToast",
 						message: "Failed to update automation",
 					}),
 				),
@@ -277,7 +267,6 @@ function AutomationsPage() {
 			setPendingDelete(null);
 			toast.success(
 				t({
-					id: "dashboard.automations.page.deletedToast",
 					message: `"${name}" deleted`,
 				}),
 			);
@@ -287,7 +276,6 @@ function AutomationsPage() {
 				errorMessage(
 					error,
 					t({
-						id: "dashboard.automations.page.deleteFailedToast",
 						message: "Failed to delete automation",
 					}),
 				),
@@ -490,7 +478,6 @@ function AutomationsPage() {
 				name: template
 					? i18n._(template.name)
 					: t({
-							id: "dashboard.automations.page.untitledName",
 							message: "Untitled",
 						}),
 				prompt: template?.prompt ?? "",
@@ -518,7 +505,6 @@ function AutomationsPage() {
 			toast.error(
 				message ||
 					t({
-						id: "dashboard.automations.page.createFailedToast",
 						message: "Failed to create automation",
 					}),
 			);
@@ -539,7 +525,6 @@ function AutomationsPage() {
 		if (!machineId) {
 			toast.error(
 				t({
-					id: "dashboard.automations.page.hostServiceNotRunningToast",
 					message: "Host service is not running",
 				}),
 			);
@@ -552,7 +537,6 @@ function AutomationsPage() {
 		if (!agent) {
 			toast.error(
 				t({
-					id: "dashboard.automations.page.noTerminalAgentToast",
 					message: "No terminal agent is configured on this device",
 				}),
 			);
@@ -647,69 +631,18 @@ function AutomationsPage() {
 
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
-					<div className="flex items-center justify-between">
-						<h1 className="text-xl font-semibold tracking-tight">
-							<Trans id="dashboard.automations.page.title">Automations</Trans>
-						</h1>
-						<div className="flex items-center gap-2">
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										asChild
-										variant="ghost"
-										size="icon-sm"
-										className="size-8 text-muted-foreground"
-									>
-										<a
-											href={`${COMPANY.DOCS_URL}/automations`}
-											target="_blank"
-											rel="noreferrer"
-											aria-label={t({
-												id: "dashboard.automations.page.docsAriaLabel",
-												message: "Automations docs",
-											})}
-										>
-											<LuCircleHelp className="size-4" />
-										</a>
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent>
-									<Trans id="dashboard.automations.page.docsTooltip">
-										Automations docs
-									</Trans>
-								</TooltipContent>
-							</Tooltip>
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								className="h-8 gap-1.5 px-3"
-								disabled={creatingWithAgent}
-								onClick={handleCreateWithAgent}
-							>
-								<LuSparkles className="size-4" />
-								<span>
-									<Trans id="dashboard.automations.page.createWithAi">
-										Create with AI
-									</Trans>
-								</span>
-							</Button>
-							<Button
-								type="button"
-								size="sm"
-								className="h-8 gap-1.5 px-3"
-								disabled={createMutation.isPending}
-								onClick={() => createMutation.mutate(null)}
-							>
-								<LuPlus className="size-4" />
-								<span>
-									<Trans id="dashboard.automations.page.newAutomation">
-										New automation
-									</Trans>
-								</span>
-							</Button>
-						</div>
-					</div>
+					<FeatureHeader
+						title={<Trans>Automations</Trans>}
+						docsUrl={`${COMPANY.DOCS_URL}/automations`}
+						onCreate={handleCreateWithAgent}
+						isCreating={creatingWithAgent}
+						showCreate={!orgEmpty}
+						secondaryAction={{
+							label: <Trans>New automation</Trans>,
+							onSelect: () => createMutation.mutate(null),
+							disabled: createMutation.isPending,
+						}}
+					/>
 
 					{/* Zero-count stats and search are noise while a tab is empty;
 					    with nothing in the org at all the tabs go too. */}
@@ -743,9 +676,7 @@ function AutomationsPage() {
 										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
 									>
 										<span className="text-sm">
-											<Trans id="dashboard.automations.page.tabMine">
-												Mine
-											</Trans>
+											<Trans>Mine</Trans>
 										</span>
 										<span className="ml-1 tabular-nums text-xs text-muted-foreground">
 											{mineCount}
@@ -756,9 +687,7 @@ function AutomationsPage() {
 										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
 									>
 										<span className="text-sm">
-											<Trans id="dashboard.automations.page.tabTeam">
-												Team
-											</Trans>
+											<Trans>Team</Trans>
 										</span>
 										<span className="ml-1 tabular-nums text-xs text-muted-foreground">
 											{teamCount}
@@ -786,9 +715,7 @@ function AutomationsPage() {
 														)}
 													/>
 													<span>
-														<Trans id="dashboard.automations.page.retryAll">
-															Retry all
-														</Trans>
+														<Trans>Retry all</Trans>
 													</span>
 													<span className="tabular-nums text-xs text-muted-foreground">
 														{failedMine.length}
@@ -796,7 +723,7 @@ function AutomationsPage() {
 												</Button>
 											</TooltipTrigger>
 											<TooltipContent>
-												<Trans id="dashboard.automations.page.retryAllTooltip">
+												<Trans>
 													Retry every automation whose last run failed
 												</Trans>
 											</TooltipContent>
@@ -808,11 +735,9 @@ function AutomationsPage() {
 											value={search}
 											onChange={(e) => setSearch(e.target.value)}
 											placeholder={t({
-												id: "dashboard.automations.page.searchPlaceholder",
 												message: "Search",
 											})}
 											aria-label={t({
-												id: "dashboard.automations.page.searchAriaLabel",
 												message: "Search automations",
 											})}
 											className="h-8 w-44 pl-8"
@@ -840,17 +765,13 @@ function AutomationsPage() {
 										<LuTriangleAlert />
 									</EmptyMedia>
 									<EmptyTitle>
-										<Trans id="dashboard.automations.page.loadErrorTitle">
-											Couldn't load automations
-										</Trans>
+										<Trans>Couldn't load automations</Trans>
 									</EmptyTitle>
 									<EmptyDescription className="select-text cursor-text">
 										{automationsError instanceof Error ? (
 											automationsError.message
 										) : (
-											<Trans id="dashboard.automations.page.loadErrorFallback">
-												The request failed.
-											</Trans>
+											<Trans>The request failed.</Trans>
 										)}
 									</EmptyDescription>
 								</EmptyHeader>
@@ -863,9 +784,7 @@ function AutomationsPage() {
 								>
 									<LuRotateCw className="size-4" />
 									<span>
-										<Trans id="dashboard.automations.page.tryAgain">
-											Try again
-										</Trans>
+										<Trans>Try again</Trans>
 									</span>
 								</Button>
 							</Empty>
@@ -874,6 +793,9 @@ function AutomationsPage() {
 								<AutomationsEmptyState
 									onSelectTemplate={handleSelectTemplate}
 									onCreateWithAgent={handleCreateWithAgent}
+									isCreating={creatingWithAgent}
+									onCreateManually={() => createMutation.mutate(null)}
+									isCreatingManually={createMutation.isPending}
 								/>
 							</div>
 						) : showTeamEmptyState ? (
@@ -886,12 +808,10 @@ function AutomationsPage() {
 										<LuSearchX />
 									</EmptyMedia>
 									<EmptyTitle>
-										<Trans id="dashboard.automations.page.teamEmptyTitle">
-											No team automations
-										</Trans>
+										<Trans>No team automations</Trans>
 									</EmptyTitle>
 									<EmptyDescription>
-										<Trans id="dashboard.automations.page.teamEmptyDescription">
+										<Trans>
 											Nobody on your team has shared automations yet.
 										</Trans>
 									</EmptyDescription>
@@ -911,7 +831,6 @@ function AutomationsPage() {
 												<SortableHeader
 													field="name"
 													label={t({
-														id: "dashboard.automations.page.nameColumn",
 														message: "Name",
 													})}
 													sortField={sortField}
@@ -926,7 +845,6 @@ function AutomationsPage() {
 													<SortableHeader
 														field="owner"
 														label={t({
-															id: "dashboard.automations.page.ownerColumn",
 															message: "Owner",
 														})}
 														sortField={sortField}
@@ -941,7 +859,6 @@ function AutomationsPage() {
 												<SortableHeader
 													field="schedule"
 													label={t({
-														id: "dashboard.automations.page.scheduleColumn",
 														message: "Schedule",
 													})}
 													sortField={sortField}
@@ -955,7 +872,6 @@ function AutomationsPage() {
 												<SortableHeader
 													field="status"
 													label={t({
-														id: "dashboard.automations.page.statusColumn",
 														message: "Status",
 													})}
 													sortField={sortField}
@@ -969,9 +885,7 @@ function AutomationsPage() {
 												{/* Sortable heads are buttons, which Chrome's UA sheet
 												    exempts from the header's `uppercase` — match them. */}
 												<span className="normal-case">
-													<Trans id="dashboard.automations.page.lastRunColumn">
-														Last run
-													</Trans>
+													<Trans>Last run</Trans>
 												</span>
 											</TableHead>
 											<TableHead
@@ -986,9 +900,7 @@ function AutomationsPage() {
 													colSpan={columnCount}
 													className="h-24 text-center text-sm text-muted-foreground"
 												>
-													<Trans id="dashboard.automations.page.noMatches">
-														No automations match
-													</Trans>
+													<Trans>No automations match</Trans>
 												</TableCell>
 											</TableRow>
 										) : sortField ? (
@@ -998,7 +910,6 @@ function AutomationsPage() {
 												{needsAttention.length > 0 &&
 													sectionRow(
 														t({
-															id: "dashboard.automations.page.sectionNeedsAttention",
 															message: "Needs attention",
 														}),
 														true,
@@ -1007,7 +918,6 @@ function AutomationsPage() {
 												{upNext.length > 0 &&
 													sectionRow(
 														t({
-															id: "dashboard.automations.page.sectionUpNext",
 															message: "Up next",
 														}),
 													)}
@@ -1015,7 +925,6 @@ function AutomationsPage() {
 												{pausedVisible.length > 0 &&
 													sectionRow(
 														t({
-															id: "dashboard.automations.page.sectionPaused",
 															message: "Paused",
 														}),
 													)}
@@ -1032,7 +941,7 @@ function AutomationsPage() {
 						<div className="relative mt-4 flex items-center gap-2.5 rounded-lg border border-border/60 px-3 py-2 pr-9">
 							<LuTerminal className="size-3.5 shrink-0 text-muted-foreground" />
 							<p className="min-w-0 truncate text-xs text-muted-foreground">
-								<Trans id="dashboard.automations.page.cliHint">
+								<Trans>
 									Tell any agent to use the{" "}
 									<code className="select-text cursor-text rounded bg-accent/60 px-1 py-0.5 font-mono text-[11px] text-foreground">
 										superset
@@ -1045,9 +954,7 @@ function AutomationsPage() {
 									rel="noreferrer"
 									className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80"
 								>
-									<Trans id="dashboard.automations.page.cliDocsLink">
-										CLI docs
-									</Trans>
+									<Trans>CLI docs</Trans>
 								</a>
 							</p>
 							<Button
@@ -1056,7 +963,6 @@ function AutomationsPage() {
 								size="icon-sm"
 								onClick={() => setCliHintDismissed(true)}
 								aria-label={t({
-									id: "dashboard.automations.page.dismissAriaLabel",
 									message: "Dismiss",
 								})}
 								className="absolute right-1.5 top-1/2 size-6 -translate-y-1/2 text-muted-foreground hover:text-foreground"
@@ -1085,13 +991,11 @@ function AutomationsPage() {
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							<Trans id="dashboard.automations.page.deleteDialogTitle">
-								Delete automation?
-							</Trans>
+							<Trans>Delete automation?</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription>
 							{pendingDelete ? (
-								<Trans id="dashboard.automations.page.deleteDialogDescription">
+								<Trans>
 									"{pendingDelete.name}" will stop firing and its run history
 									will be removed. This can't be undone.
 								</Trans>
@@ -1100,9 +1004,7 @@ function AutomationsPage() {
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>
-							<Trans id="dashboard.automations.page.deleteDialogCancel">
-								Cancel
-							</Trans>
+							<Trans>Cancel</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction
 							disabled={deleteMutation.isPending}
@@ -1115,9 +1017,7 @@ function AutomationsPage() {
 								}
 							}}
 						>
-							<Trans id="dashboard.automations.page.deleteDialogConfirm">
-								Delete
-							</Trans>
+							<Trans>Delete</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

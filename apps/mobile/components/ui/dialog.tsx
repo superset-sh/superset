@@ -93,7 +93,7 @@ function DialogContent({
 							)}
 						/>
 						<Text className="sr-only">
-							<Trans id="mobile.common.close">Close</Trans>
+							<Trans>Close</Trans>
 						</Text>
 					</DialogPrimitive.Close>
 				</DialogPrimitive.Content>

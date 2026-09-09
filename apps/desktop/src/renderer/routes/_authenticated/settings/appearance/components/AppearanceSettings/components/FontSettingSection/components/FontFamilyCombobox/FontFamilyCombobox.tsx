@@ -113,13 +113,7 @@ export function FontFamilyCombobox({
 						className="truncate"
 						style={{ fontFamily: `"${displayLabel}"` }}
 					>
-						{fontsLoading ? (
-							<Trans id="settings.appearance.fontCombobox.loadingFonts">
-								Loading fonts...
-							</Trans>
-						) : (
-							displayLabel
-						)}
+						{fontsLoading ? <Trans>Loading fonts...</Trans> : displayLabel}
 					</span>
 					<ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
 				</Button>
@@ -128,7 +122,6 @@ export function FontFamilyCombobox({
 				<Command shouldFilter={true}>
 					<CommandInput
 						placeholder={t({
-							id: "settings.appearance.fontCombobox.searchPlaceholder",
 							message: "Search fonts...",
 						})}
 						value={search}
@@ -142,20 +135,15 @@ export function FontFamilyCombobox({
 									className="w-full text-center cursor-pointer hover:underline"
 									onClick={() => selectFont(search.trim())}
 								>
-									<Trans id="settings.appearance.fontCombobox.useCustomEmpty">
-										Use &ldquo;{search.trim()}&rdquo;
-									</Trans>
+									<Trans>Use &ldquo;{search.trim()}&rdquo;</Trans>
 								</button>
 							) : (
-								<Trans id="settings.appearance.fontCombobox.noFontsFound">
-									No fonts found.
-								</Trans>
+								<Trans>No fonts found.</Trans>
 							)}
 						</CommandEmpty>
 						{allowCustomEntry && !hasExactMatch && search.trim() && (
 							<CommandGroup
 								heading={t({
-									id: "settings.appearance.fontCombobox.groupCustom",
 									message: "Custom",
 								})}
 							>
@@ -164,23 +152,19 @@ export function FontFamilyCombobox({
 									onSelect={() => selectFont(search.trim())}
 								>
 									<span className="truncate flex-1">
-										<Trans id="settings.appearance.fontCombobox.useCustomOption">
-											Use &ldquo;{search.trim()}&rdquo;
-										</Trans>
+										<Trans>Use &ldquo;{search.trim()}&rdquo;</Trans>
 									</span>
 								</CommandItem>
 							</CommandGroup>
 						)}
 						{renderGroup(
 							t({
-								id: "settings.appearance.fontCombobox.groupNerdFonts",
 								message: "Nerd Fonts",
 							}),
 							nerdFonts,
 						)}
 						{renderGroup(
 							t({
-								id: "settings.appearance.fontCombobox.groupMonospace",
 								message: "Monospace",
 							}),
 							monoFonts,
@@ -188,7 +172,6 @@ export function FontFamilyCombobox({
 						{variant !== "terminal" &&
 							renderGroup(
 								t({
-									id: "settings.appearance.fontCombobox.groupOther",
 									message: "Other",
 								}),
 								otherFonts,

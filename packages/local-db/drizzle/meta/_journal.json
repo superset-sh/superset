@@ -386,6 +386,13 @@
       "when": 1787935829941,
       "tag": "0054_add_terminal_copy_on_select_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "6",
+      "when": 1788309290755,
+      "tag": "0055_drop_clerk_columns",
+      "breakpoints": true
     }
   ]
 }

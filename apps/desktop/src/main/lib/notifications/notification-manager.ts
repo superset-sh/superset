@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import type {
 	AgentLifecycleEvent,
@@ -70,24 +71,28 @@ export class NotificationManager {
 		const notification = this.deps.createNotification({
 			title: isWaiting
 				? i18n._({
-						id: "main.notification.awaitingResponse.title",
-						message: "Awaiting Response — {workspaceName}",
+						...msg({
+							message: "Awaiting Response — {workspaceName}",
+						}),
 						values: { workspaceName },
 					})
 				: i18n._({
-						id: "main.notification.agentComplete.title",
-						message: "Agent Complete — {workspaceName}",
+						...msg({
+							message: "Agent Complete — {workspaceName}",
+						}),
 						values: { workspaceName },
 					}),
 			body: isWaiting
 				? i18n._({
-						id: "main.notification.awaitingResponse.body",
-						message: '"{title}" is waiting for your reply',
+						...msg({
+							message: '"{title}" is waiting for your reply',
+						}),
 						values: { title },
 					})
 				: i18n._({
-						id: "main.notification.agentComplete.body",
-						message: '"{title}" has finished its task',
+						...msg({
+							message: '"{title}" has finished its task',
+						}),
 						values: { title },
 					}),
 			silent: true,

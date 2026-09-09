@@ -103,7 +103,6 @@ export function BranchPickerScreen() {
 				if (!organizationId) return null;
 				return apiClient.cloudWorkspace.listBranches.query({
 					organizationId,
-					projectId,
 					query: trimmedQuery || undefined,
 				});
 			}
@@ -156,7 +155,6 @@ export function BranchPickerScreen() {
 						className="rounded-full pl-9"
 						onChangeText={setQuery}
 						placeholder={t({
-							id: "mobile.branchPicker.placeholder",
 							message: "Branches...",
 						})}
 						value={query}
@@ -177,7 +175,7 @@ export function BranchPickerScreen() {
 							className="pb-1 pt-3 text-sm font-semibold"
 							style={{ color: theme.mutedForeground }}
 						>
-							<Trans id="mobile.branchPicker.default">Default</Trans>
+							<Trans>Default</Trans>
 						</Text>
 						<BranchRow
 							name={defaultBranch}
@@ -192,8 +190,8 @@ export function BranchPickerScreen() {
 						style={{ color: theme.mutedForeground }}
 					>
 						{trimmedQuery
-							? t({ id: "mobile.branchPicker.branches", message: "Branches" })
-							: t({ id: "mobile.branchPicker.recents", message: "Recents" })}
+							? t({ message: "Branches" })
+							: t({ message: "Recents" })}
 					</Text>
 				) : null}
 				{branches.map((branch) => (
@@ -217,7 +215,7 @@ export function BranchPickerScreen() {
 						className="py-6 text-center text-sm"
 						style={{ color: theme.mutedForeground }}
 					>
-						<Trans id="mobile.branchPicker.empty">No branches found</Trans>
+						<Trans>No branches found</Trans>
 					</Text>
 				) : null}
 			</ScrollView>

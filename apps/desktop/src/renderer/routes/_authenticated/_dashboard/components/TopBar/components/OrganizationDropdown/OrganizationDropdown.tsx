@@ -48,7 +48,6 @@ export function OrganizationDropdown({
 		onError: (error) =>
 			toast.error(
 				t({
-					id: "dashboard.topBar.organizationDropdown.openWindowFailed",
 					message: `Failed to open new window: ${error.message}`,
 				}),
 			),
@@ -76,7 +75,6 @@ export function OrganizationDropdown({
 		activeOrganization?.name ??
 		userName ??
 		t({
-			id: "dashboard.topBar.organizationDropdown.organizationFallback",
 			message: "Organization",
 		});
 
@@ -98,7 +96,6 @@ export function OrganizationDropdown({
 				type="button"
 				className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-fill-hover"
 				aria-label={t({
-					id: "dashboard.topBar.organizationDropdown.menuCollapsed",
 					message: "Organization menu",
 				})}
 			>
@@ -114,7 +111,6 @@ export function OrganizationDropdown({
 				type="button"
 				className="group flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground min-w-0"
 				aria-label={t({
-					id: "dashboard.topBar.organizationDropdown.menuExpanded",
 					message: "Organization menu",
 				})}
 			>
@@ -132,7 +128,6 @@ export function OrganizationDropdown({
 				type="button"
 				className="group no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
 				aria-label={t({
-					id: "dashboard.topBar.organizationDropdown.menuTopbar",
 					message: "Organization menu",
 				})}
 			>
@@ -170,9 +165,7 @@ export function OrganizationDropdown({
 					>
 						<FiUsers className="h-4 w-4" />
 						<span>
-							<Trans id="dashboard.topBar.orgDropdown.manageMembers">
-								Manage members
-							</Trans>
+							<Trans>Manage members</Trans>
 						</span>
 					</DropdownMenuItem>
 					{organizations && organizations.length > 0 && (
@@ -180,9 +173,7 @@ export function OrganizationDropdown({
 							<DropdownMenuSubTrigger className="gap-2">
 								<HiOutlineArrowsRightLeft className="h-4 w-4" />
 								<span>
-									<Trans id="dashboard.topBar.orgDropdown.switchOrganization">
-										Switch organization
-									</Trans>
+									<Trans>Switch organization</Trans>
 								</span>
 							</DropdownMenuSubTrigger>
 							<DropdownMenuSubContent>
@@ -217,9 +208,7 @@ export function OrganizationDropdown({
 								>
 									<HiOutlinePlus className="h-4 w-4" />
 									<span>
-										<Trans id="dashboard.topBar.orgDropdown.createOrganization">
-											Create organization
-										</Trans>
+										<Trans>Create organization</Trans>
 									</span>
 								</DropdownMenuItem>
 							</DropdownMenuSubContent>
@@ -229,9 +218,7 @@ export function OrganizationDropdown({
 					<DropdownMenuItem onSelect={() => openNewWindow.mutate()}>
 						<HiOutlineWindow className="h-4 w-4" />
 						<span>
-							<Trans id="dashboard.topBar.orgDropdown.newWindow">
-								New window
-							</Trans>
+							<Trans>New window</Trans>
 						</span>
 					</DropdownMenuItem>
 
@@ -243,7 +230,7 @@ export function OrganizationDropdown({
 					<DropdownMenuItem onSelect={handleSignOut} className="gap-2">
 						<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
 						<span>
-							<Trans id="dashboard.topBar.orgDropdown.logOut">Log out</Trans>
+							<Trans>Log out</Trans>
 						</span>
 					</DropdownMenuItem>
 				</DropdownMenuContent>

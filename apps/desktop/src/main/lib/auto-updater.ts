@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { statfsSync } from "node:fs";
+import { msg } from "@lingui/core/macro";
 import * as Sentry from "@sentry/electron/main";
 import { i18n } from "@superset/i18n";
 import { app, dialog } from "electron";
@@ -67,23 +68,24 @@ export type { AutoUpdateStatusEvent } from "shared/auto-update";
 
 export const autoUpdateEmitter = new EventEmitter();
 
-// Network errors that don't need to be shown to the user
-// These are transient/expected and will resolve on retry
+// Network errors that don't need to be shown to the user or reported: they are
+// transient and the next check retries. Chromium names every transport failure
+// net::ERR_* (timeouts, HTTP/2 resets, a laptop suspending mid-download, a
+// proxy's certificate), and none of them is a defect in the feed or artifact —
+// an enumerated list was reporting ~800 of the unlisted ones a day.
 const SILENT_ERROR_PATTERNS = [
-	"net::ERR_INTERNET_DISCONNECTED",
-	"net::ERR_NETWORK_CHANGED",
-	"net::ERR_CONNECTION_REFUSED",
-	"net::ERR_NAME_NOT_RESOLVED",
-	"net::ERR_CONNECTION_TIMED_OUT",
-	"net::ERR_CONNECTION_RESET",
+	"net::ERR_",
 	"ENOTFOUND",
 	"ETIMEDOUT",
 	"ECONNREFUSED",
 	"ECONNRESET",
 ];
 
+// Certificate failures are the exception: a proxy that rewrites TLS is
+// permanent, so the user needs to see why updates never arrive.
 function isNetworkError(error: Error | string): boolean {
 	const message = typeof error === "string" ? error : error.message;
+	if (message.includes("net::ERR_CERT_")) return false;
 	return SILENT_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
 }
 
@@ -144,6 +146,13 @@ export function getUpdateStatus(): AutoUpdateStatusEvent {
 	};
 }
 
+// True from the moment electron-updater hands the archive to Squirrel.Mac,
+// which unpacks ~2GB into ~/Library/Caches/<appId>.ShipIt and then verifies it.
+// That work outlives the download promise, so it is also the window in which a
+// second check must not start: Squirrel gates its own check on a ReactiveObjC
+// command that is disabled until the app relaunches, so a repeat check cannot
+// stage anything newer — it only re-downloads the archive and points a second
+// staging run at the same cache directory.
 export function isUpdateReadyToInstall(): boolean {
 	return isInstalling || currentStatus === AUTO_UPDATE_STATUS.READY;
 }
@@ -192,6 +201,12 @@ export function checkForUpdates(): void {
 	if (env.NODE_ENV === "development" || !IS_AUTO_UPDATE_PLATFORM) {
 		return;
 	}
+	if (isUpdateReadyToInstall()) {
+		log.info(
+			`[auto-updater] Check skipped: ${currentVersion} is already staged and installs on restart`,
+		);
+		return;
+	}
 	isDismissed = false;
 	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	autoUpdater
@@ -212,21 +227,42 @@ export function checkForUpdatesInteractive(): void {
 	if (env.NODE_ENV === "development") {
 		dialog.showMessageBox({
 			type: "info",
-			title: i18n._({ id: "main.update.dialog.title", message: "Updates" }),
-			message: i18n._({
-				id: "main.update.disabledInDev",
-				message: "Auto-updates are disabled in development mode.",
-			}),
+			title: i18n._(msg({ message: "Updates" })),
+			message: i18n._(
+				msg({
+					message: "Auto-updates are disabled in development mode.",
+				}),
+			),
 		});
 		return;
 	}
 	if (!IS_AUTO_UPDATE_PLATFORM) {
 		dialog.showMessageBox({
 			type: "info",
-			title: i18n._({ id: "main.update.dialog.title", message: "Updates" }),
-			message: i18n._({
-				id: "main.update.unsupportedPlatform",
-				message: "Auto-updates are only available on macOS and Linux.",
+			title: i18n._(msg({ message: "Updates" })),
+			message: i18n._(
+				msg({
+					message: "Auto-updates are only available on macOS and Linux.",
+				}),
+			),
+		});
+		return;
+	}
+
+	if (isUpdateReadyToInstall()) {
+		dialog.showMessageBox({
+			type: "info",
+			title: i18n._(msg({ message: "Updates" })),
+			message: i18n._(
+				msg({
+					message: "An update is ready to install.",
+				}),
+			),
+			detail: i18n._({
+				...msg({
+					message: "Version {version} installs the next time you restart.",
+				}),
+				values: { version: currentVersion },
 			}),
 		});
 		return;
@@ -246,17 +282,20 @@ export function checkForUpdatesInteractive(): void {
 				emitStatus(AUTO_UPDATE_STATUS.IDLE);
 				dialog.showMessageBox({
 					type: "info",
-					title: i18n._({
-						id: "main.update.upToDate.title",
-						message: "No Updates",
-					}),
-					message: i18n._({
-						id: "main.update.upToDate.message",
-						message: "You're up to date!",
-					}),
+					title: i18n._(
+						msg({
+							message: "No Updates",
+						}),
+					),
+					message: i18n._(
+						msg({
+							message: "You're up to date!",
+						}),
+					),
 					detail: i18n._({
-						id: "main.update.upToDate.detail",
-						message: "Version {version} is the latest version.",
+						...msg({
+							message: "Version {version} is the latest version.",
+						}),
 						values: { version: app.getVersion() },
 					}),
 				});
@@ -268,15 +307,17 @@ export function checkForUpdatesInteractive(): void {
 				emitStatus(AUTO_UPDATE_STATUS.IDLE);
 				dialog.showMessageBox({
 					type: "info",
-					title: i18n._({
-						id: "main.update.offline.title",
-						message: "No Internet Connection",
-					}),
-					message: i18n._({
-						id: "main.update.offline.message",
-						message:
-							"Unable to check for updates. Please check your internet connection.",
-					}),
+					title: i18n._(
+						msg({
+							message: "No Internet Connection",
+						}),
+					),
+					message: i18n._(
+						msg({
+							message:
+								"Unable to check for updates. Please check your internet connection.",
+						}),
+					),
 				});
 				return;
 			}
@@ -284,14 +325,16 @@ export function checkForUpdatesInteractive(): void {
 			emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 			dialog.showMessageBox({
 				type: "error",
-				title: i18n._({
-					id: "main.update.error.title",
-					message: "Update Error",
-				}),
-				message: i18n._({
-					id: "main.update.error.message",
-					message: "Failed to check for updates. Please try again later.",
-				}),
+				title: i18n._(
+					msg({
+						message: "Update Error",
+					}),
+				),
+				message: i18n._(
+					msg({
+						message: "Failed to check for updates. Please try again later.",
+					}),
+				),
 			});
 		});
 }
@@ -393,13 +436,16 @@ export function setupAutoUpdater(): void {
 		);
 		void clearCachedUpdate(`error: ${error?.message ?? "unknown"}`);
 		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
-		if (
-			!isEnvironmentUpdateError(
-				error?.message ?? String(error),
-				freeStagingBytes(),
-			)
-		) {
-			Sentry.captureException(redactUpdateError(error));
+		const freeBytes = freeStagingBytes();
+		if (!isEnvironmentUpdateError(error?.message ?? String(error), freeBytes)) {
+			// Squirrel unpacks the archive beside itself under the same volume, so
+			// how much room it had is the one fact that separates a release defect
+			// from a machine that could never have held the staged copy. The
+			// classifier reads it and then throws it away; report it too, or every
+			// staging failure arrives undecidable.
+			Sentry.captureException(redactUpdateError(error), {
+				contexts: { update_staging: { free_bytes: freeBytes } },
+			});
 		}
 	});
 

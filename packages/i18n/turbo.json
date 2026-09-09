@@ -1,0 +1,20 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"extends": ["//"],
+	"tasks": {
+		// `lingui compile` turns the committed messages.po sources into the
+		// runtime catalogs src/index.ts imports. Dependents pick this up through
+		// the root pipeline's `^build`; i18n's own typecheck and test need it
+		// too, hence the self-dependency below.
+		"build": {
+			"inputs": ["locales/*/messages.po", "lingui.config.ts", "package.json"],
+			"outputs": ["locales/*/messages.ts"]
+		},
+		"typecheck": {
+			"dependsOn": ["^build", "^build:types", "build"]
+		},
+		"test": {
+			"dependsOn": ["^build", "build"]
+		}
+	}
+}

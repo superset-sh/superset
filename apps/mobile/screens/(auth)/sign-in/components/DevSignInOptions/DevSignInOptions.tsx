@@ -5,6 +5,7 @@ import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { signIn, signUp } from "@/lib/auth/client";
+import { errorCopy } from "@/lib/errors";
 
 const DEV_EMAIL = "admin@local.test";
 const DEV_PASSWORD = "supersetdev";
@@ -45,15 +46,8 @@ export function DevSignInOptions() {
 				throw new Error(res.error.message);
 			}
 		} catch (err) {
-			const message =
-				err instanceof Error
-					? err.message
-					: t({
-							id: "mobile.common.somethingWentWrong",
-							message: "Something went wrong",
-						});
 			console.error("[dev-sign-in] Error:", err);
-			setError(message);
+			setError(errorCopy(err));
 		} finally {
 			setIsLoading(false);
 		}
@@ -62,23 +56,22 @@ export function DevSignInOptions() {
 	const handlePromptSignIn = async () => {
 		const email = (
 			await prompt({
-				title: t({ id: "mobile.devSignIn.title", message: "Dev sign in" }),
-				message: t({ id: "mobile.signIn.email.emailLabel", message: "Email" }),
+				title: t({ message: "Dev sign in" }),
+				message: t({ message: "Email" }),
 				defaultValue: DEV_EMAIL,
-				confirmText: t({ id: "mobile.common.next", message: "Next" }),
+				confirmText: t({ message: "Next" }),
 				selectText: true,
 			})
 		)?.trim();
 		if (!email) return;
 
 		const password = await prompt({
-			title: t({ id: "mobile.devSignIn.title", message: "Dev sign in" }),
+			title: t({ message: "Dev sign in" }),
 			message: t({
-				id: "mobile.signIn.email.passwordLabel",
 				message: `Password for ${email}`,
 			}),
 			defaultValue: DEV_PASSWORD,
-			confirmText: t({ id: "mobile.signIn.email.confirm", message: "Sign in" }),
+			confirmText: t({ message: "Sign in" }),
 			selectText: true,
 		});
 		if (!password) return;
@@ -98,9 +91,8 @@ export function DevSignInOptions() {
 			>
 				<Text>
 					{isLoading
-						? t({ id: "mobile.devSignIn.signingIn", message: "Signing in..." })
+						? t({ message: "Signing in..." })
 						: t({
-								id: "mobile.devSignIn.asLocalAdmin",
 								message: "Sign in as Local Admin (dev)",
 							})}
 				</Text>
@@ -113,9 +105,7 @@ export function DevSignInOptions() {
 				className="w-4/5"
 			>
 				<Text>
-					<Trans id="mobile.devSignIn.withEmail">
-						Sign in with email (dev)
-					</Trans>
+					<Trans>Sign in with email (dev)</Trans>
 				</Text>
 			</Button>
 			{error && (

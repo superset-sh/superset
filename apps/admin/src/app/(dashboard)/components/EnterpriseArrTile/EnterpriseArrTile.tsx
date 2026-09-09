@@ -30,24 +30,20 @@ export function EnterpriseArrTile() {
 	return (
 		<InsightTileFrame
 			title={t({
-				id: "admin.enterpriseArr.title",
 				message: "Enterprise ARR by account",
 			})}
 			description={
 				data?.available
 					? t({
-							id: "admin.enterpriseArr.summary",
 							message: `$${data.arrUsd.toLocaleString()}/yr across ${accounts.length} logos — already inside MRR, not additive`,
 						}) +
 						(data.unbilledLogos > 0
 							? t({
-									id: "admin.enterpriseArr.unbilledSuffix",
 									message: `. ${data.unbilledLogos} not yet modeled as Stripe subscriptions`,
 								})
 							: "")
 					: (data?.reason ??
 						t({
-							id: "admin.enterpriseArr.descriptionFallback",
 							message: "Annualized enterprise Stripe subscriptions",
 						}))
 			}
@@ -55,7 +51,6 @@ export function EnterpriseArrTile() {
 			error={query.error}
 			empty={accounts.length === 0}
 			emptyLabel={t({
-				id: "admin.enterpriseArr.empty",
 				message: "No active enterprise accounts",
 			})}
 		>
@@ -83,7 +78,6 @@ export function EnterpriseArrTile() {
 									{account.billed
 										? `$${account.arrUsd.toLocaleString()}/yr`
 										: t({
-												id: "admin.enterpriseArr.unbilled",
 												message: "unbilled",
 											})}
 								</span>

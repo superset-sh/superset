@@ -1,5 +1,6 @@
 "use client";
 
+import { getInitials } from "@superset/shared/names";
 import {
 	FRAME_CHANNEL,
 	type FrameMessage,
@@ -9,7 +10,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useComments } from "../../providers/CommentProvider";
 import { CommentBubble, pinClassName } from "./components/CommentBubble";
-import { CommentPopover, initialsOf } from "./components/CommentPopover";
+import { CommentPopover } from "./components/CommentPopover";
 import { PageFrame } from "./components/PageFrame";
 import {
 	PIN_SIZE,
@@ -24,6 +25,11 @@ interface PageCommentsViewProps {
 	title: string;
 	initialScrollY?: number;
 	onScrollYChange?: (y: number) => void;
+	/**
+	 * A press inside the frame. It never bubbles into the host document, so a
+	 * host that focuses on click (a pane) hears about it here instead.
+	 */
+	onFramePointerDown?: () => void;
 }
 
 export function PageCommentsView({
@@ -31,10 +37,13 @@ export function PageCommentsView({
 	title,
 	initialScrollY,
 	onScrollYChange,
+	onFramePointerDown,
 }: PageCommentsViewProps) {
 	const scrollYRef = useRef(initialScrollY ?? 0);
 	const onScrollYChangeRef = useRef(onScrollYChange);
 	onScrollYChangeRef.current = onScrollYChange;
+	const onFramePointerDownRef = useRef(onFramePointerDown);
+	onFramePointerDownRef.current = onFramePointerDown;
 	const frameRef = useRef<HTMLIFrameElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [container, setContainer] = useState({ width: 0, height: 0 });
@@ -51,6 +60,8 @@ export function PageCommentsView({
 		discardDraft,
 		activeThreadId,
 		setActiveThreadId,
+		panelOpen,
+		setPanelOpen,
 		hoverRect,
 		setHoverRect,
 		rects,
@@ -67,7 +78,7 @@ export function PageCommentsView({
 
 	/**
 	 * Escape peels one layer at a time: the draft you are composing, then an
-	 * open thread, then comment mode itself.
+	 * open thread, then the panel, then comment mode itself.
 	 */
 	const dismiss = useCallback(() => {
 		if (submitting) return;
@@ -79,13 +90,19 @@ export function PageCommentsView({
 			setActiveThreadId(null);
 			return;
 		}
+		if (panelOpen) {
+			setPanelOpen(false);
+			return;
+		}
 		if (enabled) toggleEnabled();
 	}, [
 		activeThreadId,
 		discardDraft,
 		draft,
 		enabled,
+		panelOpen,
 		setActiveThreadId,
+		setPanelOpen,
 		submitting,
 		toggleEnabled,
 	]);
@@ -108,7 +125,10 @@ export function PageCommentsView({
 		[frameOrigin],
 	);
 
-	const popoverOpen = Boolean(draft || activeThreadId);
+	const popoverThread = panelOpen
+		? null
+		: threads.find((thread) => thread.id === activeThreadId);
+	const popoverOpen = Boolean(draft || popoverThread);
 	useEffect(() => {
 		const element = containerRef.current;
 		if (!element) return;
@@ -147,6 +167,7 @@ export function PageCommentsView({
 			}
 			if (data.type === "hover") setHoverRect(data.rect);
 			if (data.type === "pointer-down") {
+				onFramePointerDownRef.current?.();
 				notifyFramePointerDown();
 				if (!submitting) {
 					discardDraft();
@@ -207,8 +228,7 @@ export function PageCommentsView({
 	);
 	const stackIndex = useMemo(() => stackPins(pins), [pins]);
 
-	const activeThread = threads.find((thread) => thread.id === activeThreadId);
-	const activePoint = activeThread ? pinPoints.get(activeThread.id) : null;
+	const activePoint = popoverThread ? pinPoints.get(popoverThread.id) : null;
 	const draftPoint = draft ? pinPointOf(draft.rect, draft.anchor) : null;
 
 	return (
@@ -242,7 +262,7 @@ export function PageCommentsView({
 						}}
 						className={pinClassName({ resolved: false, active: false })}
 					>
-						{initialsOf(user.name)}
+						{getInitials(user.name) || "?"}
 					</div>
 				) : null}
 
@@ -255,7 +275,7 @@ export function PageCommentsView({
 							key={thread.id}
 							point={point}
 							stackIndex={stackIndex[thread.id] ?? 0}
-							initials={initialsOf(first?.authorName ?? "?")}
+							initials={getInitials(first?.authorName) || "?"}
 							count={thread.comments.length}
 							resolved={thread.resolved}
 							active={thread.id === activeThreadId}
@@ -276,6 +296,7 @@ export function PageCommentsView({
 						point={draftPoint}
 						container={container}
 						thread={null}
+						initialValue={draft.body}
 						onDismiss={discardDraft}
 						onSubmit={(body) =>
 							createThread({
@@ -287,21 +308,21 @@ export function PageCommentsView({
 					/>
 				) : null}
 
-				{activeThread && activePoint ? (
+				{popoverThread && activePoint ? (
 					<CommentPopover
-						key={activeThread.id}
+						key={popoverThread.id}
 						point={activePoint}
 						container={container}
-						thread={activeThread}
+						thread={popoverThread}
 						onDismiss={() => setActiveThreadId(null)}
-						onSubmit={(body) => addReply(activeThread.id, body)}
+						onSubmit={(body) => addReply(popoverThread.id, body)}
 						onEdit={(commentId, body) =>
-							editComment(activeThread.id, commentId, body)
+							editComment(popoverThread.id, commentId, body)
 						}
 						onToggleResolved={() =>
-							setResolved(activeThread.id, !activeThread.resolved)
+							setResolved(popoverThread.id, !popoverThread.resolved)
 						}
-						onDelete={() => deleteThread(activeThread.id)}
+						onDelete={() => deleteThread(popoverThread.id)}
 					/>
 				) : null}
 			</div>

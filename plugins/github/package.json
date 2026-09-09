@@ -1,0 +1,10 @@
+{
+	"name": "@superset-plugins/github",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"publish": "superset plugins publish github",
+		"check": "superset plugins check github"
+	}
+}

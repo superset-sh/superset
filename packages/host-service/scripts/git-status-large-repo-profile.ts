@@ -4,7 +4,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { monitorEventLoopDelay } from "node:perf_hooks";
 import type { HostDb } from "../src/db";
-import { EventBus } from "../src/events/event-bus";
+import { EventBus, MAX_GIT_WATCHES_PER_CLIENT } from "../src/events/event-bus";
 import { GitWatcher } from "../src/events/git-watcher";
 import type { ServerMessage } from "../src/events/types";
 import { WorkspaceFilesystemManager } from "../src/runtime/filesystem";
@@ -171,6 +171,13 @@ function parseArgs(argv: string[]): Options {
 	if (options.concurrency < 1)
 		throw new Error("concurrency must be at least 1");
 	if (options.workspaces < 1) throw new Error("workspaces must be at least 1");
+	// One mock client registers every workspace; past the bus cap its
+	// git:watch commands are rejected and the counts silently under-report.
+	if (options.workspaces > MAX_GIT_WATCHES_PER_CLIENT) {
+		throw new Error(
+			`workspaces must be at most ${MAX_GIT_WATCHES_PER_CLIENT} (the per-client git:watch cap)`,
+		);
+	}
 
 	return options;
 }
@@ -517,6 +524,10 @@ async function runEventBusScenario(
 		}
 	};
 
+	// Command rejections the bus sends back (e.g. the per-client git:watch
+	// cap). Silently ignoring them would leave watchers unattached and the
+	// counts under-reported, so the run fails loudly instead.
+	const busErrors: string[] = [];
 	const socket: {
 		readyState: number;
 		send: (data: string) => void;
@@ -525,6 +536,10 @@ async function runEventBusScenario(
 		readyState: 1,
 		send: (data) => {
 			const message = JSON.parse(data) as ServerMessage;
+			if (message.type === "error") {
+				busErrors.push(message.message);
+				return;
+			}
 			if (
 				message.type !== "git:changed" ||
 				!workspaceIdSet.has(message.workspaceId)
@@ -564,6 +579,26 @@ async function runEventBusScenario(
 	lastSummary = null;
 	await writeFile(gitLogPath, "");
 	eventBus.handleOpen(socket);
+	// GitWatcher only watches a workspace while someone holds interest
+	// (#6729) — the earlier direct rescan() call no longer attaches anything
+	// on its own, so this profile needs to register interest per workspace
+	// explicitly, same as a real client would.
+	for (const workspaceId of workspaceIds) {
+		eventBus.handleMessage(
+			socket,
+			JSON.stringify({ type: "git:watch", workspaceId }),
+		);
+	}
+	if (busErrors.length > 0) {
+		throw new Error(
+			`event bus rejected ${busErrors.length} git:watch command(s): ${busErrors[0]}`,
+		);
+	}
+	// Let every watcher's async attach chain (DB lookup + `git rev-parse`
+	// subprocess) settle before measuring — otherwise that overhead bleeds
+	// into the steady-state window this profile exists to isolate. Mirrors
+	// gitignored-churn-bench.ts's settle after its own git:watch send.
+	await sleep(GIT_DIR_WARMUP_SETTLE_MS);
 	const stopEventLoopMonitor = startEventLoopMonitor();
 	const startedAt = performance.now();
 
@@ -785,6 +820,42 @@ async function prepareProfileWorktrees(options: Options): Promise<string[]> {
 	return paths;
 }
 
+/**
+ * Best-effort extraction of a bound workspace id from a drizzle predicate
+ * (e.g. `and(eq(workspaces.id, x), isNull(workspaces.archivedAt))`, as
+ * `GitWatcher.attachFromDb` builds), without depending on drizzle's exact SQL
+ * tree shape beyond `value`/`queryChunks` — the same two properties the
+ * `findFirst` mock below already relies on. Only follows those two keys, so
+ * it never walks into a column's `table` (which circularly references its
+ * own `columns`, including itself).
+ */
+function findBoundWorkspaceId(
+	node: unknown,
+	knownIds: ReadonlySet<string>,
+	seen = new Set<unknown>(),
+): string | undefined {
+	if (typeof node === "string") return knownIds.has(node) ? node : undefined;
+	if (node === null || typeof node !== "object") return undefined;
+	if (seen.has(node)) return undefined;
+	seen.add(node);
+	if (Array.isArray(node)) {
+		for (const item of node) {
+			const found = findBoundWorkspaceId(item, knownIds, seen);
+			if (found) return found;
+		}
+		return undefined;
+	}
+	const obj = node as { value?: unknown; queryChunks?: unknown };
+	if ("value" in obj) {
+		const found = findBoundWorkspaceId(obj.value, knownIds, seen);
+		if (found) return found;
+	}
+	if (Array.isArray(obj.queryChunks)) {
+		return findBoundWorkspaceId(obj.queryChunks, knownIds, seen);
+	}
+	return undefined;
+}
+
 function createWorkspaceDb(
 	worktreePathByWorkspaceId: Map<string, string>,
 ): HostDb {
@@ -792,10 +863,30 @@ function createWorkspaceDb(
 		worktreePathByWorkspaceId,
 		([id, worktreePath]) => ({ id, worktreePath }),
 	);
+	const knownIds = new Set(worktreePathByWorkspaceId.keys());
 	return {
 		select: () => ({
 			from: () => ({
 				all: () => workspaceRows,
+				// GitWatcher.attachFromDb's select().from().where(...).get() path
+				// (added alongside the lazy-registration fix, #6729) — the mock
+				// above only ever supported the bulk .all() the old eager rescan
+				// used, so this lookup used to throw, get silently caught, and
+				// leave every workspace unattached (the profile then measured
+				// zero watcher activity, per code review on that PR).
+				where: (predicate: unknown) => {
+					const matchedId = findBoundWorkspaceId(predicate, knownIds);
+					// No bound id means rescan()'s `isNull(archivedAt)` scan: it must
+					// see every row, or the 30s sweep reads "nothing exists" and
+					// tears down every watcher mid-profile.
+					const matched = matchedId
+						? workspaceRows.filter((row) => row.id === matchedId)
+						: workspaceRows;
+					return {
+						all: () => matched,
+						get: () => matched[0],
+					};
+				},
 			}),
 		}),
 		query: {

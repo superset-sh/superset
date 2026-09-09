@@ -138,10 +138,10 @@ export const Paywall = () => {
 
 				<div className="box-border flex items-center justify-between border-t bg-background px-5 py-4">
 					<Button variant="outline" onClick={() => handleOpenChange(false)}>
-						<Trans id="components.paywall.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button onClick={handleUpgrade}>
-						<Trans id="components.paywall.upgradeCta">Get Superset Pro</Trans>
+						<Trans>Get Superset Pro</Trans>
 					</Button>
 				</div>
 			</DialogContent>

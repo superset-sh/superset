@@ -1,8 +1,8 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createInMemoryMcpClient } from "@superset/mcp/in-memory";
+import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
-import { getRelayUrl } from "@/lib/relay-url";
 
 interface McpTool {
 	name: string;
@@ -24,7 +24,7 @@ export async function createSupersetMcpClient({
 		organizationId,
 		userId,
 		clientLabel: SLACK_CLIENT_LABEL,
-		relayUrl: await getRelayUrl(userId),
+		relayUrl: env.RELAY_URL,
 		onToolCall: (event) => {
 			posthog.capture({
 				distinctId: event.userId,

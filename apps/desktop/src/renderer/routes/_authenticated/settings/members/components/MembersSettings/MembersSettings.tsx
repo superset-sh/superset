@@ -97,10 +97,10 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 			<div className="p-8">
 				<div className="max-w-5xl">
 					<h2 className="text-2xl font-semibold">
-						<Trans id="settings.members.title">Members</Trans>
+						<Trans>Members</Trans>
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						<Trans id="settings.members.subtitle">
+						<Trans>
 							Invite and manage members, assign roles, and control permissions
 						</Trans>
 					</p>
@@ -124,7 +124,6 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 						<h3 className="text-lg font-semibold">
 							<HighlightText
 								text={t({
-									id: "settings.members.teamMembersTitle",
 									message: "Team Members",
 								})}
 								query={searchQuery}
@@ -148,7 +147,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 								</div>
 							) : members.length === 0 ? (
 								<div className="text-center py-12 text-muted-foreground border rounded-lg">
-									<Trans id="settings.members.emptyState">No members yet</Trans>
+									<Trans>No members yet</Trans>
 								</div>
 							) : (
 								<div className="border rounded-lg">
@@ -156,18 +155,16 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 										<TableHeader>
 											<TableRow>
 												<TableHead>
-													<Trans id="settings.members.columnName">Name</Trans>
+													<Trans>Name</Trans>
 												</TableHead>
 												<TableHead>
-													<Trans id="settings.members.columnEmail">Email</Trans>
+													<Trans>Email</Trans>
 												</TableHead>
 												<TableHead>
-													<Trans id="settings.members.columnRole">Role</Trans>
+													<Trans>Role</Trans>
 												</TableHead>
 												<TableHead>
-													<Trans id="settings.members.columnJoined">
-														Joined
-													</Trans>
+													<Trans>Joined</Trans>
 												</TableHead>
 												<TableHead className="w-[50px]" />
 											</TableRow>
@@ -196,8 +193,8 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 																	>
 																		{member.name ||
 																			t({
-																				id: "settings.members.unknownName",
 																				message: "Unknown",
+																				context: "person",
 																			})}
 																	</span>
 																	{isCurrentUserRow && (
@@ -205,9 +202,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 																			variant="secondary"
 																			className="text-xs"
 																		>
-																			<Trans id="settings.members.youBadge">
-																				You
-																			</Trans>
+																			<Trans>You</Trans>
 																		</Badge>
 																	)}
 																	{member.deletionRequestedAt && (
@@ -215,9 +210,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 																			variant="outline"
 																			className="text-xs text-muted-foreground"
 																		>
-																			<Trans id="settings.members.deactivatedBadge">
-																				Deactivated
-																			</Trans>
+																			<Trans>Deactivated</Trans>
 																		</Badge>
 																	)}
 																</div>

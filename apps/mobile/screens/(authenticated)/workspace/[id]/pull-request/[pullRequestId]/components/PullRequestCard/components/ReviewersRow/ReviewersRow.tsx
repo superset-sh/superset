@@ -28,7 +28,6 @@ export function ReviewersRow({
 		return (
 			<CardRow
 				label={t({
-					id: "mobile.reviewers.noneAssigned",
 					message: "No Reviewers Assigned",
 				})}
 				muted
@@ -46,26 +45,22 @@ export function ReviewersRow({
 	const actorVerb = actor
 		? actor.state === "CHANGES_REQUESTED"
 			? t({
-					id: "mobile.reviewers.requestedChanges",
 					message: "Requested Changes",
 				})
 			: actor.state === "APPROVED"
-				? t({ id: "mobile.reviewers.approved", message: "Approved" })
+				? t({ message: "Approved" })
 				: actor.state === "DISMISSED"
 					? t({
-							id: "mobile.reviewers.reviewDismissed",
 							message: "Review Dismissed",
 						})
-					: t({ id: "mobile.reviewers.commented", message: "Commented" })
+					: t({ message: "Commented" })
 		: null;
 	const label =
 		actor && actorVerb
 			? t({
-					id: "mobile.reviewers.actorLabel",
 					message: `${actor.login} ${actorVerb}`,
 				})
 			: t({
-					id: "mobile.pullRequest.headline.waitingForReview",
 					message: "Waiting for Review",
 				});
 
@@ -78,7 +73,6 @@ export function ReviewersRow({
 			subLabel={
 				waiting > 0 && actor
 					? t({
-							id: "mobile.reviewers.waitingCount",
 							message: `${waiting} Waiting`,
 						})
 					: null

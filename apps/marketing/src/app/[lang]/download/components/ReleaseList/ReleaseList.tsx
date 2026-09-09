@@ -1,6 +1,6 @@
 "use client";
 
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { formatNumber } from "@superset/i18n/format";
 import { COMPANY } from "@superset/shared/constants";
 import { FaApple, FaLinux, FaWindows } from "react-icons/fa";
@@ -33,9 +33,9 @@ const PLATFORM_GRID_CLASS: Record<number, string> = {
 	3: "md:grid-cols-3",
 };
 
-function formatSize(sizeBytes: number): string {
+function formatSize(sizeBytes: number, locale: string): string {
 	// Unit symbol is not translated; the number is
-	return `${formatNumber(sizeBytes / BYTES_PER_MB, { maximumFractionDigits: 0 })} MB`;
+	return `${formatNumber(sizeBytes / BYTES_PER_MB, { maximumFractionDigits: 0 }, locale)} MB`;
 }
 
 interface ReleaseListProps {
@@ -43,6 +43,7 @@ interface ReleaseListProps {
 }
 
 export function ReleaseList({ releases }: ReleaseListProps) {
+	const { i18n } = useLingui();
 	if (releases.length === 0) {
 		// The catalog is best-effort: if GitHub is unreachable the page still has
 		// the platform-aware button above, so point at the source instead of
@@ -53,9 +54,7 @@ export function ReleaseList({ releases }: ReleaseListProps) {
 					href={`${COMPANY.GITHUB_URL}/releases`}
 					className="inline-flex items-center gap-1 text-brand text-sm transition-colors hover:text-brand-light"
 				>
-					<Trans id="marketing.download.allReleases">
-						All releases on GitHub
-					</Trans>
+					<Trans>All releases on GitHub</Trans>
 					<HiMiniArrowRight className="size-3.5" />
 				</a>
 			</section>
@@ -65,7 +64,7 @@ export function ReleaseList({ releases }: ReleaseListProps) {
 	return (
 		<section id="all-downloads" className="border-border border-t pt-12">
 			<p className="max-w-2xl font-light text-foreground text-xl sm:text-2xl">
-				<Trans id="marketing.download.availability">
+				<Trans>
 					The Superset desktop app is available for macOS and Linux.
 				</Trans>
 			</p>
@@ -84,11 +83,11 @@ export function ReleaseList({ releases }: ReleaseListProps) {
 								</span>
 								{index === 0 ? (
 									<span className="rounded-[2px] border border-brand/40 bg-brand/10 px-2 py-0.5 font-mono text-brand text-xs">
-										<Trans id="marketing.download.latestTag">Latest</Trans>
+										<Trans>Latest</Trans>
 									</span>
 								) : null}
 								<span className="font-mono text-muted-foreground text-xs">
-									{formatReleaseDate(release.publishedAt)}
+									{formatReleaseDate(release.publishedAt, i18n.locale)}
 								</span>
 							</span>
 							<HiMiniChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
@@ -128,7 +127,7 @@ export function ReleaseList({ releases }: ReleaseListProps) {
 															<span>{asset.label}</span>
 															<span className="flex shrink-0 items-center gap-2">
 																<span className="font-mono text-muted-foreground text-xs">
-																	{formatSize(asset.sizeBytes)}
+																	{formatSize(asset.sizeBytes, i18n.locale)}
 																</span>
 																<HiMiniArrowDownTray className="size-4 transition-colors group-hover/asset:text-brand" />
 															</span>
@@ -145,9 +144,7 @@ export function ReleaseList({ releases }: ReleaseListProps) {
 								href={release.notesUrl}
 								className="mt-4 inline-flex items-center gap-1 text-brand text-sm transition-colors hover:text-brand-light"
 							>
-								<Trans id="marketing.download.releaseNotes">
-									View release notes
-								</Trans>
+								<Trans>View release notes</Trans>
 								<HiMiniArrowRight className="size-3.5" />
 							</a>
 						</div>
@@ -159,9 +156,7 @@ export function ReleaseList({ releases }: ReleaseListProps) {
 				href={`${COMPANY.GITHUB_URL}/releases`}
 				className="mt-6 inline-flex items-center gap-1 text-muted-foreground text-sm transition-colors hover:text-foreground"
 			>
-				<Trans id="marketing.download.allReleases">
-					All releases on GitHub
-				</Trans>
+				<Trans>All releases on GitHub</Trans>
 				<HiMiniArrowRight className="size-3.5" />
 			</a>
 		</section>

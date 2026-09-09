@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -6,14 +7,20 @@ import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { CloudWorkspaceRow } from "@/hooks/useCloudWorkspaces";
 import { getCloudWorkspacesQueryKey } from "@/hooks/useCloudWorkspaces";
 import { useSession } from "@/lib/auth/client";
+import { errorCopy, transportFailureKind } from "@/lib/errors";
 import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
-import type { NewChatTarget } from "../useNewChatTargets";
 
 interface CreateCloudWorkspaceArgs {
-	target: NewChatTarget;
 	/** Null means the repo's default branch, resolved by the branch query. */
 	branch: string | null;
+	/** Null when no environment exists yet; create cannot proceed without one. */
+	environmentId: string | null;
+	/** Built-in agent to launch with the message as its prompt; null for none. */
+	agent: string | null;
+	/** Null launches the agent's own default. Ignored without an agent. */
+	model: string | null;
+	effort: string | null;
 	message: PromptInputMessage;
 }
 
@@ -31,11 +38,19 @@ export function useCreateCloudWorkspace() {
 
 	return useMutation({
 		mutationFn: async ({
-			target,
 			branch,
+			environmentId,
+			agent,
+			model,
+			effort,
 			message,
 		}: CreateCloudWorkspaceArgs) => {
 			if (!organizationId) throw new Error("No active organization");
+			if (!environmentId) {
+				throw new Error(
+					"Add an environment in Settings before creating a cloud workspace",
+				);
+			}
 			if (message.attachments.length > 0) {
 				// Attachments today are written to a host, and this workspace's
 				// host doesn't exist yet — blob-backed attachments are the fix.
@@ -43,27 +58,34 @@ export function useCreateCloudWorkspace() {
 					"Attachments are not supported for cloud workspaces yet",
 				);
 			}
+			// Only with something to say: an empty prompt leaves it idle.
+			const launchAgent = agent && message.text.trim() ? agent : undefined;
 			return apiClient.cloudWorkspace.create.mutate({
 				organizationId,
-				projectId: target.projectId,
+				environmentId,
 				prompt: message.text.trim() || undefined,
 				// Omitted when unresolved: the server falls back to the repo's
 				// actual default branch, which the client must not guess.
 				branch: branch ?? undefined,
+				agent: launchAgent,
+				model: launchAgent ? (model ?? undefined) : undefined,
+				effort: launchAgent ? (effort ?? undefined) : undefined,
 			});
 		},
-		onSuccess: (row: CloudWorkspaceRow, { target, branch }) => {
+		onSuccess: (
+			row: CloudWorkspaceRow,
+			{ branch, agent, model, effort, message },
+		) => {
 			// The API emits `workspace_created`; this is only the client asking.
 			posthog.capture("workspace_create_requested", {
 				workspace_id: row.id,
-				project_id: target.projectId,
 				organization_id: organizationId,
 				host_kind: "cloud",
 				source: "mobile_composer",
 				base_branch: branch,
-				// Nothing launches on a cloud create today; the prompt only feeds
-				// the server-side auto-name.
-				agent: null,
+				agent: agent && message.text.trim() ? agent : null,
+				model,
+				effort,
 			});
 			// Seed the list before navigating: the workspace screen decides
 			// between "provisioning" and "not found" off this cache, and even
@@ -75,20 +97,22 @@ export function useCreateCloudWorkspace() {
 			void queryClient.invalidateQueries({ queryKey: key });
 			router.push(`/(authenticated)/workspace/${row.id}`);
 		},
-		onError: (error, { target, branch }) => {
+		onError: (error, { branch }) => {
 			posthog.capture("workspace_create_failed", {
-				project_id: target.projectId,
 				organization_id: organizationId,
 				host_kind: "cloud",
 				source: "mobile_composer",
 				base_branch: branch,
+				// Stable English, never the display copy below.
+				failure_kind: transportFailureKind(error) ?? "server",
 			});
 			Alert.alert(
-				i18n._({
-					id: "mobile.cloudWorkspace.createFailed",
-					message: "Could not create cloud workspace",
-				}),
-				error instanceof Error ? error.message : String(error),
+				i18n._(
+					msg({
+						message: "Could not create cloud workspace",
+					}),
+				),
+				errorCopy(error),
 			);
 		},
 	});

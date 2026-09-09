@@ -5,6 +5,7 @@
  * lib/native/ in the distribution bundle.
  */
 import { existsSync, mkdirSync } from "node:fs";
+import { linguiMacroPlugin } from "@superset/i18n/bun-plugin";
 
 const outdir = "dist";
 if (!existsSync(outdir)) {
@@ -13,6 +14,7 @@ if (!existsSync(outdir)) {
 
 const result = await Bun.build({
 	entrypoints: ["src/serve.ts"],
+	plugins: [linguiMacroPlugin],
 	target: "node",
 	outdir,
 	naming: "host-service.js",
@@ -24,22 +26,6 @@ const result = await Bun.build({
 		"better-sqlite3",
 		"node-pty",
 		"@parcel/watcher",
-		"libsql",
-		"onnxruntime-node",
-		"@anush008/tokenizers",
-		"@anush008/tokenizers-darwin-universal",
-		"@anush008/tokenizers-linux-x64-gnu",
-		"@anush008/tokenizers-linux-arm64-gnu",
-		"@anush008/tokenizers-win32-x64-msvc",
-		"@mastra/duckdb",
-		"@duckdb/node-api",
-		"@duckdb/node-bindings",
-		"@duckdb/node-bindings-darwin-arm64",
-		"@duckdb/node-bindings-darwin-x64",
-		"@duckdb/node-bindings-linux-x64",
-		"@duckdb/node-bindings-linux-arm64",
-		"@duckdb/node-bindings-win32-x64",
-		"@duckdb/node-bindings-win32-arm64",
 		// Optional peer of webdriverio; the browser-driver code path never
 		// executes at runtime, so these must not be bundled.
 		"puppeteer-core",
@@ -59,6 +45,7 @@ if (!result.success) {
 // resolution finds it next to host-service.js (see host-worker-pool.ts).
 const workerResult = await Bun.build({
 	entrypoints: ["src/workers/host-worker.ts"],
+	plugins: [linguiMacroPlugin],
 	target: "node",
 	outdir,
 	naming: "host-worker.js",

@@ -2,6 +2,7 @@
 // the git/readGitIdentity worker task can bundle this module.
 
 import { execFile } from "node:child_process";
+import { homedir } from "node:os";
 import { promisify } from "node:util";
 import type { SimpleGit } from "simple-git";
 import { createUserSimpleGit } from "./simple-git";
@@ -49,13 +50,20 @@ export async function getGitHubUsernameViaGh(
  * Git identity used to preview `author`/`github` branch prefixes in settings.
  * `shellEnv` is only for the `gh` spawn; the git config read keeps the
  * process env — simple-git rejects env containing GIT_EDITOR as unsafe.
+ *
+ * The config read is anchored at the home directory rather than left to
+ * simple-git's default of the process working directory: this runs in a
+ * worker, and a worker must not depend on where the host was launched — that
+ * directory can be deleted while the host runs (HOST-SERVICE-5D), and which
+ * repository it happened to be would otherwise decide whose name a global
+ * setting previews.
  */
 export async function readGitIdentity(
 	shellEnv: Record<string, string>,
 ): Promise<ResolvedGitInfo> {
 	const [githubUsername, authorName] = await Promise.all([
 		getGitHubUsernameViaGh(shellEnv),
-		getGitAuthorName(createUserSimpleGit()),
+		getGitAuthorName(createUserSimpleGit(homedir())),
 	]);
 	return { githubUsername, authorName };
 }

@@ -1,0 +1,1 @@
+export { PostHogQueryLink } from "./PostHogQueryLink";

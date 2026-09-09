@@ -5,12 +5,8 @@ import { Client } from "@upstash/qstash";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
-import { objectExists, putObject, storageEnv } from "../../lib/r2";
-import {
-	mintPageTicket,
-	usercontentBaseUrl,
-	writePageManifest,
-} from "./storage";
+import { objectExists, putObject } from "../../lib/r2";
+import { mintPageTicket, writePageManifest } from "./storage";
 
 export const PAGE_THUMBNAIL_JOB_PATH = "/api/pages/jobs/thumbnail";
 
@@ -108,7 +104,7 @@ export async function generatePageThumbnail({
 	await writePageManifest(pageId);
 
 	const url = pageViewUrl({
-		baseUrl: usercontentBaseUrl(),
+		baseUrl: env.USERCONTENT_URL,
 		pageId,
 		version,
 		ticket: await mintPageTicket(page, {
@@ -118,7 +114,7 @@ export async function generatePageThumbnail({
 	});
 
 	const response = await fetch(
-		`https://api.cloudflare.com/client/v4/accounts/${storageEnv().accountId}/browser-rendering/screenshot?cacheTTL=0`,
+		`https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/browser-rendering/screenshot?cacheTTL=0`,
 		{
 			method: "POST",
 			headers: {
@@ -153,6 +149,7 @@ export async function generatePageThumbnail({
 		key,
 		body: new Uint8Array(await response.arrayBuffer()),
 		contentType: "image/jpeg",
+		bucket: "private",
 	});
 	return "generated";
 }

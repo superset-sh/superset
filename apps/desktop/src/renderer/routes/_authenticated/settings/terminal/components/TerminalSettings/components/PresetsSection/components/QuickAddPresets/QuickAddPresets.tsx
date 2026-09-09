@@ -45,9 +45,7 @@ export function QuickAddPresets({
 			<DropdownMenuTrigger asChild>
 				<Button size="sm" variant="outline" disabled={isAddDisabled}>
 					<LuPlus className="size-4" />
-					<Trans id="settings.terminal.quickAdd.importAgent">
-						Import agent
-					</Trans>
+					<Trans>Import agent</Trans>
 					<LuChevronDown className="size-4 opacity-60" />
 				</Button>
 			</DropdownMenuTrigger>
@@ -101,7 +99,7 @@ export function QuickAddPresets({
 				<DropdownMenuItem onSelect={() => navigate({ to: "/settings/agents" })}>
 					<LuSettings className="size-4 shrink-0 text-muted-foreground" />
 					<span className="flex-1">
-						<Trans id="settings.terminal.quickAdd.addAgents">Add agents…</Trans>
+						<Trans>Add agents…</Trans>
 					</span>
 				</DropdownMenuItem>
 			</DropdownMenuContent>

@@ -34,8 +34,9 @@ export const ENFORCED_DIRS: readonly string[] = [
 	"apps/desktop/src/renderer/routes/_authenticated/settings/integrations",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/keyboard",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/links",
+	// settings/models is absent, not un-enforced: the Models page and the
+	// provider chain behind it were deleted, so the directory no longer exists.
 	"apps/desktop/src/renderer/routes/_authenticated/settings/members",
-	"apps/desktop/src/renderer/routes/_authenticated/settings/models",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/organization",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/permissions",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/presets",

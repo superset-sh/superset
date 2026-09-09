@@ -38,7 +38,7 @@ await run({
 
 	const result = await Bun.build({
 		entrypoints: [entryPath],
-		plugins: [createCommandsPlugin({ commandsDir })],
+		plugins: [createCommandsPlugin({ commandsDir }), ...(config.plugins ?? [])],
 		compile: target ? { target, outfile } : { outfile },
 		define: config.define,
 	});

@@ -160,7 +160,6 @@ export function AgentCard({
 				error instanceof Error
 					? error.message
 					: t({
-							id: "settings.agents.card.updateFailed",
 							message: "Failed to update agent settings",
 						}),
 			);
@@ -204,7 +203,6 @@ export function AgentCard({
 			const presetLabel = preset.label;
 			toast.success(
 				t({
-					id: "settings.agents.card.resetSuccess",
 					message: `${presetLabel} reset to defaults`,
 				}),
 			);
@@ -213,7 +211,6 @@ export function AgentCard({
 				error instanceof Error
 					? error.message
 					: t({
-							id: "settings.agents.card.resetFailed",
 							message: "Failed to reset agent settings",
 						}),
 			);

@@ -115,7 +115,6 @@ export function TurnGroupSection({
 									}
 								/>
 								<Plural
-									id="workspace.chat.toolCallCount"
 									value={entry.items.length}
 									one="# tool call"
 									other="# tool calls"
@@ -132,7 +131,7 @@ export function TurnGroupSection({
 			})}
 			{group.turn?.status === "failed" && (
 				<div className="text-xs text-destructive">
-					<Trans id="workspace.chat.turnFailed">
+					<Trans>
 						Turn failed
 						{group.turn.error ? `: ${group.turn.error.message}` : ""}
 					</Trans>
@@ -140,7 +139,7 @@ export function TurnGroupSection({
 			)}
 			{group.turn?.status === "interrupted" && (
 				<div className="text-xs text-muted-foreground">
-					<Trans id="workspace.chat.turnInterrupted">Interrupted</Trans>
+					<Trans>Interrupted</Trans>
 				</div>
 			)}
 		</div>

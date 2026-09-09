@@ -1,4 +1,5 @@
 import {
+	CopyObjectCommand,
 	DeleteObjectsCommand,
 	GetObjectCommand,
 	HeadObjectCommand,
@@ -8,44 +9,28 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "../env";
 
-export function storageEnv(): {
-	accountId: string;
-	accessKeyId: string;
-	secretAccessKey: string;
-	bucket: string;
-} {
-	const {
-		CLOUDFLARE_ACCOUNT_ID,
-		R2_ACCESS_KEY_ID,
-		R2_SECRET_ACCESS_KEY,
-		R2_PRIVATE_BUCKET,
-	} = env;
-	if (
-		!CLOUDFLARE_ACCOUNT_ID ||
-		!R2_ACCESS_KEY_ID ||
-		!R2_SECRET_ACCESS_KEY ||
-		!R2_PRIVATE_BUCKET
-	) {
-		throw new Error("R2 storage is not configured");
-	}
-	return {
-		accountId: CLOUDFLARE_ACCOUNT_ID,
-		accessKeyId: R2_ACCESS_KEY_ID,
-		secretAccessKey: R2_SECRET_ACCESS_KEY,
-		bucket: R2_PRIVATE_BUCKET,
-	};
+/**
+ * Which bucket an operation addresses. Named rather than defaulted: the two
+ * differ in who can read them, and a public write that silently landed in the
+ * private bucket would surface as a broken image rather than an error.
+ */
+export type Bucket = "private" | "public";
+
+function bucketName(bucket: Bucket): string {
+	return bucket === "public" ? env.R2_PUBLIC_BUCKET : env.R2_PRIVATE_BUCKET;
 }
 
 let client: S3Client | null = null;
 
 function s3(): S3Client {
 	if (!client) {
-		const { accountId, accessKeyId, secretAccessKey } = storageEnv();
 		client = new S3Client({
 			region: "auto",
-			endpoint:
-				env.R2_ENDPOINT ?? `https://${accountId}.r2.cloudflarestorage.com`,
-			credentials: { accessKeyId, secretAccessKey },
+			endpoint: env.R2_ENDPOINT,
+			credentials: {
+				accessKeyId: env.R2_ACCESS_KEY_ID,
+				secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+			},
 			// Path-style keeps emulators working and R2 accepts it.
 			forcePathStyle: true,
 			// R2 rejects the SDK's default CRC32 request checksums; Cloudflare's
@@ -55,10 +40,6 @@ function s3(): S3Client {
 		});
 	}
 	return client;
-}
-
-function bucket(): string {
-	return storageEnv().bucket;
 }
 
 function isMissing(error: unknown): boolean {
@@ -77,14 +58,19 @@ export async function putObject({
 	key,
 	body,
 	contentType,
+	bucket,
+	cacheControl,
 }: {
 	key: string;
 	body: Uint8Array | string;
 	contentType: string;
+	bucket: Bucket;
+	cacheControl?: string;
 }): Promise<void> {
 	await s3().send(
 		new PutObjectCommand({
-			Bucket: bucket(),
+			CacheControl: cacheControl,
+			Bucket: bucketName(bucket),
 			Key: key,
 			Body: body,
 			ContentType: contentType,
@@ -92,14 +78,44 @@ export async function putObject({
 	);
 }
 
+/**
+ * A server-side copy within the private bucket: the bytes never leave
+ * storage. The stored type is replaced, not carried over, so what the copy
+ * serves as is decided here rather than by whoever uploaded the source.
+ */
+export async function copyObject({
+	sourceKey,
+	key,
+	contentType,
+}: {
+	sourceKey: string;
+	key: string;
+	contentType: string;
+}): Promise<void> {
+	const bucket = bucketName("private");
+	await s3().send(
+		new CopyObjectCommand({
+			Bucket: bucket,
+			CopySource: `${bucket}/${sourceKey}`,
+			Key: key,
+			ContentType: contentType,
+			MetadataDirective: "REPLACE",
+		}),
+	);
+}
+
 /** The object's response, streaming, or null when it does not exist. */
 export async function getObject(
 	key: string,
-	{ range }: { range?: string } = {},
+	{ range, bucket = "private" }: { range?: string; bucket?: Bucket } = {},
 ): Promise<Response | null> {
 	try {
 		const result = await s3().send(
-			new GetObjectCommand({ Bucket: bucket(), Key: key, Range: range }),
+			new GetObjectCommand({
+				Bucket: bucketName(bucket),
+				Key: key,
+				Range: range,
+			}),
 		);
 		if (!result.Body) return null;
 		return new Response(result.Body.transformToWebStream(), {
@@ -120,10 +136,11 @@ export async function getObject(
 /** Size and stored content type, or null when the object does not exist. */
 export async function headObject(
 	key: string,
+	{ bucket = "private" }: { bucket?: Bucket } = {},
 ): Promise<{ sizeBytes: number; contentType: string | null } | null> {
 	try {
 		const result = await s3().send(
-			new HeadObjectCommand({ Bucket: bucket(), Key: key }),
+			new HeadObjectCommand({ Bucket: bucketName(bucket), Key: key }),
 		);
 		return {
 			sizeBytes: result.ContentLength ?? 0,
@@ -135,17 +152,23 @@ export async function headObject(
 	}
 }
 
-export async function objectExists(key: string): Promise<boolean> {
-	return (await headObject(key)) !== null;
+export async function objectExists(
+	key: string,
+	{ bucket = "private" }: { bucket?: Bucket } = {},
+): Promise<boolean> {
+	return (await headObject(key, { bucket })) !== null;
 }
 
 /** Deletes are idempotent and batched; a missing key is not an error. */
-export async function deleteObjects(keys: readonly string[]): Promise<void> {
+export async function deleteObjects(
+	keys: readonly string[],
+	{ bucket = "private" }: { bucket?: Bucket } = {},
+): Promise<void> {
 	for (let i = 0; i < keys.length; i += 1000) {
 		const batch = keys.slice(i, i + 1000);
 		const result = await s3().send(
 			new DeleteObjectsCommand({
-				Bucket: bucket(),
+				Bucket: bucketName(bucket),
 				Delete: {
 					Objects: batch.map((key) => ({ Key: key })),
 					Quiet: true,
@@ -169,7 +192,7 @@ export async function presignedGetUrl(
 ): Promise<string> {
 	return getSignedUrl(
 		s3(),
-		new GetObjectCommand({ Bucket: bucket(), Key: key }),
+		new GetObjectCommand({ Bucket: bucketName("private"), Key: key }),
 		{ expiresIn: expiresInSeconds },
 	);
 }
@@ -193,7 +216,7 @@ export async function presignedPutUrl({
 	const url = await getSignedUrl(
 		s3(),
 		new PutObjectCommand({
-			Bucket: bucket(),
+			Bucket: bucketName("private"),
 			Key: key,
 			ContentType: contentType,
 			ContentLength: contentLength,

@@ -116,7 +116,6 @@ export function SlugDialog({
 			setSlugAvailable(null);
 			toast.success(
 				t({
-					id: "settings.organization.slugUpdatedToast",
 					message: "Organization URL updated!",
 				}),
 			);
@@ -124,7 +123,6 @@ export function SlugDialog({
 			const message = errorMessage(
 				error,
 				t({
-					id: "settings.organization.slugUpdateFailedToast",
 					message: "Failed to update URL",
 				}),
 			);
@@ -136,7 +134,6 @@ export function SlugDialog({
 		if (isCheckingSlug) {
 			return {
 				text: t({
-					id: "settings.organization.slugChecking",
 					message: "Checking...",
 				}),
 				className: "text-muted-foreground",
@@ -145,7 +142,6 @@ export function SlugDialog({
 		if (slugAvailable === true) {
 			return {
 				text: t({
-					id: "settings.organization.slugAvailable",
 					message: "Available",
 				}),
 				className: "text-green-600",
@@ -153,7 +149,7 @@ export function SlugDialog({
 		}
 		if (slugAvailable === false) {
 			return {
-				text: t({ id: "settings.organization.slugTaken", message: "Taken" }),
+				text: t({ message: "Taken" }),
 				className: "text-destructive",
 			};
 		}
@@ -167,12 +163,10 @@ export function SlugDialog({
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="settings.organization.slugDialogTitle">
-							Change organization slug
-						</Trans>
+						<Trans>Change organization slug</Trans>
 					</DialogTitle>
 					<DialogDescription>
-						<Trans id="settings.organization.slugDialogDescription">
+						<Trans>
 							This will change your organization's public URL. Make sure to
 							update any bookmarks or shared links.
 						</Trans>
@@ -189,9 +183,7 @@ export function SlugDialog({
 							render={({ field }) => (
 								<>
 									<FormLabel>
-										<Trans id="settings.organization.slugLabel">
-											Organization slug
-										</Trans>
+										<Trans>Organization slug</Trans>
 									</FormLabel>
 									<FormControl>
 										<div className="relative">
@@ -219,7 +211,7 @@ export function SlugDialog({
 									setSlugAvailable(null);
 								}}
 							>
-								<Trans id="settings.organization.slugCancel">Cancel</Trans>
+								<Trans>Cancel</Trans>
 							</Button>
 							<Button
 								type="submit"
@@ -229,7 +221,7 @@ export function SlugDialog({
 									slugValue === currentSlug
 								}
 							>
-								<Trans id="settings.organization.slugSave">Save</Trans>
+								<Trans>Save</Trans>
 							</Button>
 						</DialogFooter>
 					</form>

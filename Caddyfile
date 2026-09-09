@@ -1,9 +1,0 @@
-{
-auto_https disable_redirects
-}
-
-https://localhost:{$CADDY_ELECTRIC_PORT} {
-reverse_proxy localhost:{$WRANGLER_PORT} {
-flush_interval -1
-}
-}

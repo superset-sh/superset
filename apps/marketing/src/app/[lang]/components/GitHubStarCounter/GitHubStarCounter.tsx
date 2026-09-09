@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { formatStarCount, getGitHubRepoSlug } from "@/lib/github";
@@ -53,8 +54,9 @@ export async function GitHubStarCounter() {
 			rel="noopener noreferrer"
 			className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors p-1"
 			aria-label={i18n._({
-				id: "marketing.nav.githubStars",
-				message: "{count} GitHub stars",
+				...msg({
+					message: "{count} GitHub stars",
+				}),
 				values: { count: stars },
 			})}
 		>

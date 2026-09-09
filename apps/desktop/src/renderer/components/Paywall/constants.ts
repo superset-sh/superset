@@ -32,11 +32,9 @@ export const PRO_FEATURES: ProFeature[] = [
 	{
 		id: "remote-access",
 		title: msg({
-			id: "components.paywall.remoteAccess.title",
 			message: "Remote Access",
 		}),
 		description: msg({
-			id: "components.paywall.remoteAccess.description",
 			message:
 				"Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client.",
 		}),
@@ -47,11 +45,9 @@ export const PRO_FEATURES: ProFeature[] = [
 	{
 		id: "team-collaboration",
 		title: msg({
-			id: "components.paywall.teamCollaboration.title",
 			message: "Team Collaboration",
 		}),
 		description: msg({
-			id: "components.paywall.teamCollaboration.description",
 			message:
 				"Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents.",
 		}),
@@ -62,11 +58,9 @@ export const PRO_FEATURES: ProFeature[] = [
 	{
 		id: "tasks",
 		title: msg({
-			id: "components.paywall.tasks.title",
 			message: "Tasks",
 		}),
 		description: msg({
-			id: "components.paywall.tasks.description",
 			message:
 				"Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset.",
 		}),
@@ -77,11 +71,9 @@ export const PRO_FEATURES: ProFeature[] = [
 	{
 		id: "slack-integration",
 		title: msg({
-			id: "components.paywall.slackIntegration.title",
 			message: "Slack Integration",
 		}),
 		description: msg({
-			id: "components.paywall.slackIntegration.description",
 			message:
 				"Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts.",
 		}),
@@ -92,11 +84,9 @@ export const PRO_FEATURES: ProFeature[] = [
 	{
 		id: "mobile-app",
 		title: msg({
-			id: "components.paywall.mobileApp.title",
 			message: "Mobile App",
 		}),
 		description: msg({
-			id: "components.paywall.mobileApp.description",
 			message:
 				"Monitor workspaces and manage tasks on the go. Continue conversations from anywhere.",
 		}),

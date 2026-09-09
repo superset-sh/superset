@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import type { ComponentProps, ReactNode } from "react";
 import { i18n } from "../../lib/i18n";
 import { cn } from "../../lib/utils";
@@ -38,10 +39,11 @@ export type ModelSelectorContentProps = ComponentProps<typeof DialogContent> & {
 export const ModelSelectorContent = ({
 	className,
 	children,
-	title = i18n._({
-		id: "ui.modelSelector.title",
-		message: "Model Selector",
-	}),
+	title = i18n._(
+		msg({
+			message: "Model Selector",
+		}),
+	),
 	...props
 }: ModelSelectorContentProps) => (
 	<DialogContent className={cn("p-0", className)} {...props}>
@@ -177,8 +179,9 @@ export const ModelSelectorLogo = ({
 	<img
 		{...props}
 		alt={i18n._({
-			id: "ui.modelSelector.logoAlt",
-			message: "{provider} logo",
+			...msg({
+				message: "{provider} logo",
+			}),
 			values: { provider },
 		})}
 		className={cn("size-3 dark:invert", className)}

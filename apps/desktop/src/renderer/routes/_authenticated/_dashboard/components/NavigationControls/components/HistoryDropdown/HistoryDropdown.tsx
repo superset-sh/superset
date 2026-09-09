@@ -57,9 +57,7 @@ function WorkspaceRow({
 			{ws ? (
 				<>
 					<span className="text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
-						<Trans id="dashboard.historyDropdown.workspaceKind">
-							Workspace
-						</Trans>
+						<Trans>Workspace</Trans>
 					</span>
 					<span className="flex items-center justify-center w-4 shrink-0">
 						<span
@@ -74,14 +72,10 @@ function WorkspaceRow({
 			) : (
 				<>
 					<span className="text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
-						<Trans id="dashboard.historyDropdown.workspaceKindUnknown">
-							Workspace
-						</Trans>
+						<Trans>Workspace</Trans>
 					</span>
 					<span className="truncate text-xs font-normal text-muted-foreground flex-1 min-w-0">
-						<Trans id="dashboard.historyDropdown.unknownWorkspace">
-							Unknown
-						</Trans>
+						<Trans>Unknown</Trans>
 					</span>
 				</>
 			)}
@@ -112,13 +106,7 @@ function V2WorkspaceRow({
 			onSelect={onSelect}
 		>
 			<span className="text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
-				{ws ? (
-					ws.projectName
-				) : (
-					<Trans id="dashboard.historyDropdown.v2WorkspaceKind">
-						Workspace
-					</Trans>
-				)}
+				{ws ? ws.projectName : <Trans>Workspace</Trans>}
 			</span>
 			<span className="flex items-center justify-center w-4 shrink-0">
 				<LuGitBranch
@@ -132,11 +120,7 @@ function V2WorkspaceRow({
 					!ws && "text-muted-foreground",
 				)}
 			>
-				{ws ? (
-					ws.branch
-				) : (
-					<Trans id="dashboard.historyDropdown.unknownBranch">Unknown</Trans>
-				)}
+				{ws ? ws.branch : <Trans>Unknown</Trans>}
 			</span>
 		</DropdownMenuItem>
 	);
@@ -166,7 +150,7 @@ function AutomationRow({
 			onSelect={onSelect}
 		>
 			<span className="text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
-				<Trans id="dashboard.historyDropdown.automationKind">Automation</Trans>
+				<Trans>Automation</Trans>
 			</span>
 			<span className="flex items-center justify-center w-4 shrink-0">
 				{presetIcon ? (
@@ -181,13 +165,7 @@ function AutomationRow({
 					!automation && "text-muted-foreground",
 				)}
 			>
-				{automation ? (
-					automation.name
-				) : (
-					<Trans id="dashboard.historyDropdown.unknownAutomation">
-						Unknown
-					</Trans>
-				)}
+				{automation ? automation.name : <Trans>Unknown</Trans>}
 			</span>
 		</DropdownMenuItem>
 	);
@@ -240,10 +218,10 @@ function TaskRow({
 			) : (
 				<>
 					<span className="text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
-						<Trans id="dashboard.historyDropdown.taskKind">Task</Trans>
+						<Trans>Task</Trans>
 					</span>
 					<span className="truncate text-xs font-normal text-muted-foreground flex-1 min-w-0">
-						<Trans id="dashboard.historyDropdown.unknownTask">Unknown</Trans>
+						<Trans>Unknown</Trans>
 					</span>
 				</>
 			)}
@@ -345,9 +323,7 @@ export function HistoryDropdown() {
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="dashboard.historyDropdown.tooltipDisabled">
-						Recently viewed
-					</Trans>
+					<Trans>Recently viewed</Trans>
 				</TooltipContent>
 			</Tooltip>
 		);
@@ -367,14 +343,12 @@ export function HistoryDropdown() {
 					</DropdownMenuTrigger>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="dashboard.historyDropdown.tooltip">Recently viewed</Trans>
+					<Trans>Recently viewed</Trans>
 				</TooltipContent>
 			</Tooltip>
 			<DropdownMenuContent align="start" className="w-80">
 				<DropdownMenuLabel>
-					<Trans id="dashboard.historyDropdown.menuLabel">
-						Recently Viewed
-					</Trans>
+					<Trans>Recently Viewed</Trans>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				{filteredEntries.map((entry) => {

@@ -15,11 +15,9 @@ const AUTOMATIONS: {
 	{
 		name: "daily-triage",
 		schedule: msg({
-			id: "marketing.features.automations.schedule.daily",
 			message: "daily 9:00",
 		}),
 		lastRun: msg({
-			id: "marketing.features.automations.lastRun.running",
 			message: "running",
 		}),
 		running: true,
@@ -27,33 +25,27 @@ const AUTOMATIONS: {
 	{
 		name: "changelog-draft",
 		schedule: msg({
-			id: "marketing.features.automations.schedule.sunday",
 			message: "sun 11:00",
 		}),
 		lastRun: msg({
-			id: "marketing.features.automations.lastRun.twoHoursAgo",
 			message: "2h ago",
 		}),
 	},
 	{
 		name: "dep-upgrades",
 		schedule: msg({
-			id: "marketing.features.automations.schedule.weekly",
 			message: "weekly",
 		}),
 		lastRun: msg({
-			id: "marketing.features.automations.lastRun.oneDayAgo",
 			message: "1d ago",
 		}),
 	},
 	{
 		name: "roadmap-sync",
 		schedule: msg({
-			id: "marketing.features.automations.schedule.monthly",
 			message: "monthly",
 		}),
 		lastRun: msg({
-			id: "marketing.features.automations.lastRun.threeDaysAgo",
 			message: "3d ago",
 		}),
 	},
@@ -63,21 +55,18 @@ const LOG_LINES: { id: string; message: MessageDescriptor }[] = [
 	{
 		id: "triaging",
 		message: msg({
-			id: "marketing.features.automations.log.triaging",
 			message: "triaging 12 new issues…",
 		}),
 	},
 	{
 		id: "drafted",
 		message: msg({
-			id: "marketing.features.automations.log.drafted",
 			message: "drafted 3 support replies",
 		}),
 	},
 	{
 		id: "opened-pr",
 		message: msg({
-			id: "marketing.features.automations.log.openedPr",
 			message: "opened PR #841 for review",
 		}),
 	},
@@ -112,17 +101,13 @@ export function AutomationsDemo() {
 			<div className="p-4 font-mono text-[11px] leading-relaxed">
 				<div className="grid grid-cols-[1fr_auto_auto] gap-x-6 gap-y-2">
 					<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-						<Trans id="marketing.features.automations.column.name">Name</Trans>
+						<Trans>Name</Trans>
 					</div>
 					<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-						<Trans id="marketing.features.automations.column.schedule">
-							Schedule
-						</Trans>
+						<Trans>Schedule</Trans>
 					</div>
 					<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-						<Trans id="marketing.features.automations.column.lastRun">
-							Last run
-						</Trans>
+						<Trans>Last run</Trans>
 					</div>
 					{AUTOMATIONS.map((automation, index) => (
 						<m.div
@@ -138,10 +123,7 @@ export function AutomationsDemo() {
 							</div>
 							{automation.running ? (
 								<div className="text-brand-light">
-									⠋{" "}
-									<Trans id="marketing.features.automations.running">
-										running
-									</Trans>
+									⠋ <Trans>running</Trans>
 								</div>
 							) : (
 								<div className="text-muted-foreground/55">

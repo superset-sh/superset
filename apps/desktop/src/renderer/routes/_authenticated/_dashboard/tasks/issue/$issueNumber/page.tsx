@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import { WorkItemDetailHeader } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailHeader";
@@ -16,7 +17,6 @@ import {
 	type LinkedIssue,
 	useNewWorkspaceDraftStore,
 } from "renderer/stores/new-workspace-draft";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { Route as TasksLayoutRoute } from "../../layout";
 import { tasksSearchFromFilters } from "../../stores/tasks-filter-state";
 
@@ -44,7 +44,7 @@ function IssueDetailPage() {
 		(state) => state.selectProject,
 	);
 	const resetDraft = useNewWorkspaceDraftStore((state) => state.resetDraft);
-	const openModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 
 	// `project` identifies this issue's repo, not the list filter: falling back
 	// to it would rewrite an "all repositories" view to a single repo on back.
@@ -101,7 +101,7 @@ function IssueDetailPage() {
 		resetDraft();
 		selectProject(projectId);
 		updateDraft({ hostId, linkedIssues: [linkedIssue] });
-		openModal(projectId);
+		openNewWorkspace(projectId);
 	};
 
 	const isClosed = data?.state.toLowerCase() === "closed";
@@ -112,11 +112,9 @@ function IssueDetailPage() {
 			itemNumber={data?.number ?? issueNumber}
 			icon={<StateIcon className={`size-4 shrink-0 ${stateIconClass}`} />}
 			backLabel={t({
-				id: "dashboard.tasks.issueDetail.backToIssues",
 				message: "Back to GitHub issues",
 			})}
 			externalLabel={t({
-				id: "dashboard.tasks.issueDetail.openInGithub",
 				message: "Open issue in GitHub",
 			})}
 			url={data?.url ?? null}
@@ -131,7 +129,6 @@ function IssueDetailPage() {
 				{header}
 				<WorkItemDetailState
 					message={t({
-						id: "dashboard.tasks.issueDetail.invalidLink",
 						message: "This issue link is invalid.",
 					})}
 					isError
@@ -146,7 +143,6 @@ function IssueDetailPage() {
 				{header}
 				<WorkItemDetailState
 					message={t({
-						id: "dashboard.tasks.issueDetail.chooseProject",
 						message:
 							"Choose a project from GitHub issues before opening an issue.",
 					})}
@@ -163,12 +159,10 @@ function IssueDetailPage() {
 					message={
 						areProjectsReady
 							? t({
-									id: "dashboard.tasks.issueDetail.projectUnavailable",
 									message:
 										"This project is no longer available on your devices.",
 								})
 							: t({
-									id: "dashboard.tasks.issueDetail.loadingProject",
 									message: "Loading project…",
 								})
 					}
@@ -185,7 +179,6 @@ function IssueDetailPage() {
 				{header}
 				<WorkItemDetailState
 					message={t({
-						id: "dashboard.tasks.issueDetail.hostUnavailable",
 						message: "The device that hosts this project is unavailable.",
 					})}
 					isError
@@ -200,7 +193,6 @@ function IssueDetailPage() {
 				{header}
 				<WorkItemDetailState
 					message={t({
-						id: "dashboard.tasks.issueDetail.loadingIssue",
 						message: "Loading issue…",
 					})}
 					isLoading
@@ -218,7 +210,6 @@ function IssueDetailPage() {
 						error instanceof Error
 							? error.message
 							: t({
-									id: "dashboard.tasks.issueDetail.notFound",
 									message: "Issue not found.",
 								})
 					}
@@ -247,9 +238,7 @@ function IssueDetailPage() {
 							<>
 								<span aria-hidden>·</span>
 								<span className="min-w-0 break-words">
-									<Trans id="dashboard.tasks.issueDetail.byAuthor">
-										by {data.author}
-									</Trans>
+									<Trans>by {data.author}</Trans>
 								</span>
 							</>
 						)}
@@ -259,9 +248,7 @@ function IssueDetailPage() {
 						<MarkdownRenderer content={data.body} />
 					) : (
 						<p className="text-sm italic text-muted-foreground">
-							<Trans id="dashboard.tasks.issueDetail.noDescription">
-								No description provided.
-							</Trans>
+							<Trans>No description provided.</Trans>
 						</p>
 					)}
 				</div>

@@ -119,7 +119,6 @@ export const actionsProvider: CommandProvider = {
 			{
 				id: "actions.toggleTheme",
 				title: msg({
-					id: "commandPalette.actions.toggleTheme",
 					message: "Toggle theme",
 				}),
 				section: "actions",
@@ -132,11 +131,9 @@ export const actionsProvider: CommandProvider = {
 				id: "actions.toggleNotificationSounds",
 				title: context.notificationSoundsMuted
 					? msg({
-							id: "commandPalette.actions.unmuteNotifications",
 							message: "Unmute notifications",
 						})
 					: msg({
-							id: "commandPalette.actions.muteNotifications",
 							message: "Mute notifications",
 						}),
 				section: "actions",
@@ -150,7 +147,6 @@ export const actionsProvider: CommandProvider = {
 			{
 				id: "actions.toggleLeftSidebar",
 				title: msg({
-					id: "commandPalette.actions.toggleLeftSidebar",
 					message: "Toggle left sidebar",
 				}),
 				section: "actions",
@@ -164,7 +160,6 @@ export const actionsProvider: CommandProvider = {
 			commands.push({
 				id: "actions.toggleRightSidebar",
 				title: msg({
-					id: "commandPalette.actions.toggleRightSidebar",
 					message: "Toggle right sidebar",
 				}),
 				section: "actions",
@@ -178,7 +173,6 @@ export const actionsProvider: CommandProvider = {
 			{
 				id: "actions.showShortcuts",
 				title: msg({
-					id: "commandPalette.actions.showShortcuts",
 					message: "Show keyboard shortcuts",
 				}),
 				section: "actions",
@@ -190,7 +184,6 @@ export const actionsProvider: CommandProvider = {
 			{
 				id: "actions.checkUpdates",
 				title: msg({
-					id: "commandPalette.actions.checkUpdates",
 					message: "Check for updates",
 				}),
 				section: "actions",
@@ -203,8 +196,9 @@ export const actionsProvider: CommandProvider = {
 						const message = errorMessage(error);
 						toast.error(
 							i18n._({
-								id: "commandPalette.actions.checkUpdatesFailed",
-								message: "Failed to check for updates: {message}",
+								...msg({
+									message: "Failed to check for updates: {message}",
+								}),
 								values: { message },
 							}),
 						);
@@ -214,7 +208,6 @@ export const actionsProvider: CommandProvider = {
 			{
 				id: "actions.newWindow",
 				title: msg({
-					id: "commandPalette.actions.newWindow",
 					message: "New window",
 				}),
 				section: "actions",
@@ -227,8 +220,9 @@ export const actionsProvider: CommandProvider = {
 						const message = errorMessage(error);
 						toast.error(
 							i18n._({
-								id: "commandPalette.actions.newWindowFailed",
-								message: "Failed to open new window: {message}",
+								...msg({
+									message: "Failed to open new window: {message}",
+								}),
 								values: { message },
 							}),
 						);
@@ -242,10 +236,9 @@ export const actionsProvider: CommandProvider = {
 			commands.push(
 				{
 					id: "dev.simulateUpdateDownloading",
-					title: {
-						id: "commandPalette.dev",
+					title: msg({
 						message: "Simulate update: downloading",
-					},
+					}),
 					section: "dev",
 					icon: DownloadIcon,
 					keywords: ["update", "dev", "simulate", "test"],
@@ -255,10 +248,9 @@ export const actionsProvider: CommandProvider = {
 				},
 				{
 					id: "dev.simulateUpdateReady",
-					title: {
-						id: "commandPalette.dev",
+					title: msg({
 						message: "Simulate update: ready",
-					},
+					}),
 					section: "dev",
 					icon: CircleCheckIcon,
 					keywords: ["update", "dev", "simulate", "test"],
@@ -268,10 +260,9 @@ export const actionsProvider: CommandProvider = {
 				},
 				{
 					id: "dev.simulateUpdateError",
-					title: {
-						id: "commandPalette.dev",
+					title: msg({
 						message: "Simulate update: error",
-					},
+					}),
 					section: "dev",
 					icon: TriangleAlertIcon,
 					keywords: ["update", "dev", "simulate", "test"],
@@ -281,7 +272,7 @@ export const actionsProvider: CommandProvider = {
 				},
 				{
 					id: "dev.previewNoticeInfo",
-					title: { id: "commandPalette.dev", message: "Preview notice: info" },
+					title: msg({ message: "Preview notice: info" }),
 					section: "dev",
 					icon: InfoIcon,
 					keywords: PREVIEW_KEYWORDS,
@@ -289,10 +280,9 @@ export const actionsProvider: CommandProvider = {
 				},
 				{
 					id: "dev.previewNoticeWarning",
-					title: {
-						id: "commandPalette.dev",
+					title: msg({
 						message: "Preview notice: warning",
-					},
+					}),
 					section: "dev",
 					icon: TriangleAlertIcon,
 					keywords: PREVIEW_KEYWORDS,
@@ -300,10 +290,9 @@ export const actionsProvider: CommandProvider = {
 				},
 				{
 					id: "dev.previewNoticeBlocking",
-					title: {
-						id: "commandPalette.dev",
+					title: msg({
 						message: "Preview notice: blocking (update required)",
-					},
+					}),
 					section: "dev",
 					icon: OctagonAlertIcon,
 					keywords: PREVIEW_KEYWORDS,
@@ -311,10 +300,9 @@ export const actionsProvider: CommandProvider = {
 				},
 				{
 					id: "dev.previewNoticePostUpdate",
-					title: {
-						id: "commandPalette.dev",
+					title: msg({
 						message: "Preview notice: post-update announcement",
-					},
+					}),
 					section: "dev",
 					icon: MegaphoneIcon,
 					keywords: PREVIEW_KEYWORDS,
@@ -322,10 +310,9 @@ export const actionsProvider: CommandProvider = {
 				},
 				{
 					id: "dev.previewNoticePreUpdate",
-					title: {
-						id: "commandPalette.dev",
+					title: msg({
 						message: "Preview notice: pre-update confirm",
-					},
+					}),
 					section: "dev",
 					icon: DownloadIcon,
 					keywords: PREVIEW_KEYWORDS,
@@ -341,7 +328,7 @@ export const actionsProvider: CommandProvider = {
 				},
 				{
 					id: "dev.clearNoticePreview",
-					title: { id: "commandPalette.dev", message: "Clear notice preview" },
+					title: msg({ message: "Clear notice preview" }),
 					section: "dev",
 					icon: XIcon,
 					keywords: PREVIEW_KEYWORDS,
@@ -349,10 +336,9 @@ export const actionsProvider: CommandProvider = {
 				},
 				{
 					id: "dev.previewStarNagToast",
-					title: {
-						id: "commandPalette.dev",
+					title: msg({
 						message: "Preview: GitHub star nag toast",
-					},
+					}),
 					section: "dev",
 					icon: StarIcon,
 					keywords: ["star", "github", "nag", "dev", "preview", "test"],
@@ -364,10 +350,9 @@ export const actionsProvider: CommandProvider = {
 				},
 				{
 					id: "dev.resetStarNagState",
-					title: {
-						id: "commandPalette.dev",
+					title: msg({
 						message: "Reset GitHub star nag state",
-					},
+					}),
 					section: "dev",
 					icon: RefreshCwIcon,
 					keywords: ["star", "github", "nag", "dev", "reset", "test"],

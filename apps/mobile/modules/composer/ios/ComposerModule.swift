@@ -12,12 +12,13 @@ public final class ComposerModule: Module {
         "onAttachmentsPress",
         "onDictationError",
         "onModelPress",
+        "onLaunchOptionPress",
         "onChipPress",
         "onQuickKeyPress",
         "onSessionTabPress",
         "onSessionTabClose",
         "onSessionTabCopyId",
-        "onSessionActionPress",
+        "onQuickKeysActionPress",
         "onNewSessionPress",
         "onAllSessionsPress",
         "onPaste",
@@ -59,6 +60,12 @@ public final class ComposerModule: Module {
         }
       }
 
+      Prop("launchOptions") { (view: ComposerAnchorView, options: [ComposerMenuOption]) in
+        withAnimation(ComposerMetrics.controlSwap) {
+          view.overlay.model.launchOptions = options
+        }
+      }
+
       /// Send becomes a spinner and the mic steps aside, which relays out the
       /// control row — same transaction rule as everything else that moves it.
       Prop("isSending") { (view: ComposerAnchorView, isSending: Bool) in
@@ -90,14 +97,16 @@ public final class ComposerModule: Module {
         }
       }
 
-      /// The strip's leading control, or nothing. Guarded for the reason
+      /// The control beside the quick keys, or nothing. Guarded for the reason
       /// `sessionTabs` is: the caller rebuilds this object every render, and an
       /// unguarded assignment would open a layout transaction on a chip that
-      /// has not changed.
-      Prop("sessionAction") { (view: ComposerAnchorView, action: ComposerSessionAction?) in
-        guard view.overlay.model.sessionAction != action else { return }
+      /// has not changed. Arriving pushes the keys over and narrows the bar
+      /// behind them; the transaction is what makes that a slide rather than
+      /// a jump. See `ComposerQuickKeys`.
+      Prop("quickKeysAction") { (view: ComposerAnchorView, action: ComposerQuickKeysAction?) in
+        guard view.overlay.model.quickKeysAction != action else { return }
         withAnimation(ComposerMetrics.growth) {
-          view.overlay.model.sessionAction = action
+          view.overlay.model.quickKeysAction = action
         }
       }
 
@@ -175,12 +184,13 @@ final class ComposerAnchorView: ExpoView {
   private let onAttachmentsPress = EventDispatcher()
   private let onDictationError = EventDispatcher()
   private let onModelPress = EventDispatcher()
+  private let onLaunchOptionPress = EventDispatcher()
   private let onChipPress = EventDispatcher()
   private let onQuickKeyPress = EventDispatcher()
   private let onSessionTabPress = EventDispatcher()
   private let onSessionTabClose = EventDispatcher()
   private let onSessionTabCopyId = EventDispatcher()
-  private let onSessionActionPress = EventDispatcher()
+  private let onQuickKeysActionPress = EventDispatcher()
   private let onNewSessionPress = EventDispatcher()
   private let onAllSessionsPress = EventDispatcher()
   private let onPaste = EventDispatcher()
@@ -199,6 +209,9 @@ final class ComposerAnchorView: ExpoView {
       self?.onDictationError(["message": message])
     }
     overlay.model.onModelPress = { [weak self] in self?.onModelPress([:]) }
+    overlay.model.onLaunchOptionPress = { [weak self] id in
+      self?.onLaunchOptionPress(["id": id])
+    }
     overlay.model.onQuickKeyPress = { [weak self] id in
       self?.onQuickKeyPress(["id": id])
     }
@@ -211,8 +224,8 @@ final class ComposerAnchorView: ExpoView {
     overlay.model.onSessionTabCopyId = { [weak self] id in
       self?.onSessionTabCopyId(["id": id])
     }
-    overlay.model.onSessionActionPress = { [weak self] in
-      self?.onSessionActionPress([:])
+    overlay.model.onQuickKeysActionPress = { [weak self] in
+      self?.onQuickKeysActionPress([:])
     }
     overlay.model.onNewSessionPress = { [weak self] in self?.onNewSessionPress([:]) }
     overlay.model.onAllSessionsPress = { [weak self] in self?.onAllSessionsPress([:]) }

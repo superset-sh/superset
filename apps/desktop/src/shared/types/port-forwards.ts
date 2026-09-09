@@ -1,5 +1,5 @@
 export interface ForwardTarget {
-	/** Host-service URL for the host, e.g. https://relay2.superset.sh/hosts/<orgId>:<machineId>. */
+	/** Host-service URL for the host, e.g. https://relay.superset.sh/hosts/<orgId>:<machineId>. */
 	hostUrl: string;
 	workspaceId: string;
 	remotePort: number;

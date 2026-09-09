@@ -65,7 +65,6 @@ export function ProjectSectionHeader({
 			{onNewWorkspace ? (
 				<Button
 					accessibilityLabel={t({
-						id: "mobile.home.newWorkspaceIn",
 						message: `New workspace in ${name}`,
 					})}
 					ph-label="project-header-new-workspace"

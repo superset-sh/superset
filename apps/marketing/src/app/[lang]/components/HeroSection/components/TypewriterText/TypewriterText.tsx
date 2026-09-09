@@ -10,6 +10,8 @@ interface TextSegment {
 	render?: (visibleText: string) => React.ReactNode;
 	/** Overrides the caret style while this segment is being typed */
 	cursorClassName?: string;
+	/** Extra pause, in ms, before this segment's first character is typed */
+	delayBefore?: number;
 }
 
 interface TypewriterTextProps {
@@ -47,17 +49,33 @@ export function TypewriterText({
 		return () => clearTimeout(startTimeout);
 	}, [delay]);
 
+	// Kept a plain number so the typing effect below depends only on
+	// primitives; `segments` is rebuilt by the caller on every render
+	let pauseBeforeNext = 0;
+	if (segments) {
+		let offset = 0;
+		for (const segment of segments) {
+			// Guard on the segment being non-empty, not on offset: an empty
+			// segment shares its successor's offset and would swallow the pause
+			if (segment.text.length > 0 && offset === displayedText.length) {
+				pauseBeforeNext = segment.delayBefore ?? 0;
+				break;
+			}
+			offset += segment.text.length;
+		}
+	}
+
 	useEffect(() => {
 		if (!isTyping) return;
 
 		if (displayedText.length < fullText.length) {
 			const timeout = setTimeout(() => {
 				setDisplayedText(fullText.slice(0, displayedText.length + 1));
-			}, speed);
+			}, speed + pauseBeforeNext);
 
 			return () => clearTimeout(timeout);
 		}
-	}, [displayedText, isTyping, speed, fullText]);
+	}, [displayedText, isTyping, speed, fullText, pauseBeforeNext]);
 
 	const isTypingComplete = isTyping && displayedText.length === fullText.length;
 

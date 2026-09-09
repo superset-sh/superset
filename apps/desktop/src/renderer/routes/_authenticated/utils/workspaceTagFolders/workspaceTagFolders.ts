@@ -1,6 +1,8 @@
 import {
 	normalizeWorkspaceTag,
 	normalizeWorkspaceTags,
+	SESSIONS_TAG_SCOPE,
+	tagFolderScope,
 	WORKSPACE_TAG_MAX_LENGTH,
 } from "@superset/shared/workspace-tags";
 
@@ -54,12 +56,15 @@ export interface TagFolderSectionInput {
  */
 export interface TagFolderWorkspaceInput {
 	id: string;
-	/** Null for project-less "session" workspaces — never groupable. */
+	/**
+	 * Null for project-less "session" workspaces; their folders are keyed by
+	 * SESSIONS_TAG_SCOPE (see the shared `tagFolderScope`).
+	 */
 	projectId: string | null;
 	tags?: readonly string[] | null;
 }
 
-/** One tag folder's host-side presentation (workspace_tag_settings). */
+/** One tag folder's host-side presentation (`tag_folder_settings`). */
 export interface TagFolderSettingInput {
 	projectId: string;
 	tag: string;
@@ -69,9 +74,9 @@ export interface TagFolderSettingInput {
 }
 
 /**
- * Cross-cutting presentation context for the union: host-side settings
- * (display name, color, order that follow the user across devices) and the
- * per-project hidden-tag list (a hidden folder leaves the union entirely —
+ * Cross-cutting presentation context for the union: host-local settings
+ * (display name, color, order) and the per-project hidden-tag list (a hidden
+ * folder leaves the union entirely —
  * members render top-level — without touching anyone's tags). REQUIRED so
  * every membership pass applies the same view; two passes disagreeing on
  * hidden is the same bug class as two membership derivations.
@@ -92,8 +97,54 @@ export interface TagFolderSection extends TagFolderSectionInput {
 	isDerived: boolean;
 }
 
+export interface SessionTagFolder {
+	tag: string;
+	name: string;
+	color: string | null;
+}
+
+/**
+ * The project-less Sessions folders, with host presentation applied. Keeping
+ * this beside `deriveTagFolders` gives the sidebar and move menus one rule for
+ * names, colours, normalization, and scope isolation.
+ */
+export function deriveSessionTagFolders(
+	workspaces: readonly TagFolderWorkspaceInput[],
+	settings: readonly TagFolderSettingInput[],
+): SessionTagFolder[] {
+	const settingsByTag = new Map(
+		settings.flatMap((setting) => {
+			if (setting.projectId !== SESSIONS_TAG_SCOPE) return [];
+			const tag = normalizeWorkspaceTag(setting.tag);
+			return tag == null ? [] : [[tag, setting] as const];
+		}),
+	);
+	const tags = new Set<string>();
+	for (const workspace of workspaces) {
+		if (workspace.projectId !== null) continue;
+		for (const tag of normalizeWorkspaceTags(workspace.tags)) tags.add(tag);
+	}
+	return [...tags].sort().map((tag) => {
+		const setting = settingsByTag.get(tag);
+		return {
+			tag,
+			name: setting?.displayName ?? tag,
+			color: setting?.color ?? null,
+		};
+	});
+}
+
 /** `${projectId}:${tag}` — addressable without a stored row; the tag is
  * recoverable from the key alone. `tag` must already be normalized. */
+/**
+ * Inverse of the shared `tagFolderScope`: the projectId the lane's workspace
+ * rows carry (null for the Sessions lane). Folder rows and host tag settings
+ * are keyed by the scope; workspaces never are.
+ */
+export function laneProjectIdForScope(scope: string): string | null {
+	return scope === SESSIONS_TAG_SCOPE ? null : scope;
+}
+
 export function buildSidebarFolderKey(projectId: string, tag: string): string {
 	return `${projectId}:${tag}`;
 }
@@ -172,13 +223,13 @@ export function deriveTagFolders(
 
 	const uncoveredTagsByProjectId = new Map<string, Set<string>>();
 	for (const workspace of workspaces) {
-		if (workspace.projectId == null) continue;
+		const scope = tagFolderScope(workspace.projectId);
 		for (const tag of normalizeWorkspaceTags(workspace.tags)) {
-			if (coveredTagsByProjectId.get(workspace.projectId)?.has(tag)) continue;
-			let uncovered = uncoveredTagsByProjectId.get(workspace.projectId);
+			if (coveredTagsByProjectId.get(scope)?.has(tag)) continue;
+			let uncovered = uncoveredTagsByProjectId.get(scope);
 			if (!uncovered) {
 				uncovered = new Set();
-				uncoveredTagsByProjectId.set(workspace.projectId, uncovered);
+				uncoveredTagsByProjectId.set(scope, uncovered);
 			}
 			uncovered.add(tag);
 		}

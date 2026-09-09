@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import * as Clipboard from "expo-clipboard";
 import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon } from "lucide-react-native";
@@ -106,10 +107,11 @@ export const EnvironmentVariablesTitle = ({
 }: EnvironmentVariablesTitleProps) => (
 	<Text className={cn("font-medium text-sm", className)} {...props}>
 		{children ??
-			i18n._({
-				id: "mobile.envVars.title",
-				message: "Environment Variables",
-			})}
+			i18n._(
+				msg({
+					message: "Environment Variables",
+				}),
+			)}
 	</Text>
 );
 
@@ -136,10 +138,11 @@ export const EnvironmentVariablesToggle = ({
 				className="size-3.5 text-muted-foreground"
 			/>
 			<Switch
-				accessibilityLabel={i18n._({
-					id: "mobile.envVars.toggleVisibility",
-					message: "Toggle value visibility",
-				})}
+				accessibilityLabel={i18n._(
+					msg({
+						message: "Toggle value visibility",
+					}),
+				)}
 				checked={checked ?? showValues}
 				onCheckedChange={onCheckedChange ?? setShowValues}
 				{...props}
@@ -337,10 +340,7 @@ export const EnvironmentVariableRequired = ({
 }: EnvironmentVariableRequiredProps) => (
 	<Badge className={className} variant="secondary" {...props}>
 		{children == null || typeof children === "string" ? (
-			<Text>
-				{children ??
-					i18n._({ id: "mobile.envVars.required", message: "Required" })}
-			</Text>
+			<Text>{children ?? i18n._(msg({ message: "Required" }))}</Text>
 		) : (
 			children
 		)}

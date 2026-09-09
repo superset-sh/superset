@@ -7,6 +7,12 @@ import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-section
 interface DashboardSidebarSectionHeaderProps {
 	label: string;
 	section: SidebarSectionKey;
+	/**
+	 * Omit the label, chevron, and spacer so a child control can take the
+	 * whole row (the Projects header's expanded filter input). The strip
+	 * still toggles the section on click, so that control must stopPropagation.
+	 */
+	labelHidden?: boolean;
 	/** Right-aligned actions; they must stopPropagation on click/keydown so they don't toggle the collapse. */
 	children?: ReactNode;
 }
@@ -20,6 +26,7 @@ interface DashboardSidebarSectionHeaderProps {
 export function DashboardSidebarSectionHeader({
 	label,
 	section,
+	labelHidden = false,
 	children,
 }: DashboardSidebarSectionHeaderProps) {
 	const isCollapsed = useSidebarSectionsCollapseStore(
@@ -32,6 +39,9 @@ export function DashboardSidebarSectionHeader({
 		<div
 			role="button"
 			tabIndex={0}
+			// The visible label is the accessible name; keep it when the label is
+			// hidden so the toggle is never an unnamed button.
+			aria-label={label}
 			onClick={() => toggle(section)}
 			onKeyDown={(event) => {
 				if (event.key === "Enter" || event.key === " ") {
@@ -41,16 +51,20 @@ export function DashboardSidebarSectionHeader({
 			}}
 			className="group flex h-7 w-full shrink-0 items-center gap-1.5 pl-4 pr-2 text-[10px] font-semibold uppercase tracking-[0.075em] text-muted-foreground transition-colors"
 		>
-			<span className="min-w-0 truncate text-left">{label}</span>
-			<HiChevronRight
-				className={cn(
-					"size-3 shrink-0 text-muted-foreground transition-[opacity,transform] duration-150",
-					isCollapsed
-						? "opacity-100"
-						: "rotate-90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
-				)}
-			/>
-			<div className="min-w-0 flex-1" />
+			{!labelHidden && (
+				<>
+					<span className="min-w-0 truncate text-left">{label}</span>
+					<HiChevronRight
+						className={cn(
+							"size-3 shrink-0 text-muted-foreground transition-[opacity,transform] duration-150",
+							isCollapsed
+								? "opacity-100"
+								: "rotate-90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
+						)}
+					/>
+					<div className="min-w-0 flex-1" />
+				</>
+			)}
 			{children}
 		</div>
 	);

@@ -26,7 +26,6 @@ export function TerminalPageWatchChip({
 				<span
 					role="img"
 					aria-label={t({
-						id: "workspace.terminalPane.watchingAria",
 						message: "Pages this agent is watching for comments",
 					})}
 					className="flex h-5 items-center gap-1 rounded px-1 text-muted-foreground/70 text-xs"
@@ -38,7 +37,6 @@ export function TerminalPageWatchChip({
 			<TooltipContent side="bottom" className="max-w-64">
 				<div className="flex flex-col gap-1">
 					<Plural
-						id="workspace.terminalPane.watchingPageCount"
 						value={mine.length}
 						one="Watching # page for comments"
 						other="Watching # pages for comments"

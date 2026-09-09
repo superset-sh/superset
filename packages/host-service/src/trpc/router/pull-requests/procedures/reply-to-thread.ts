@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
-import { actionRejectionError } from "../../github/github";
+import { replyToReviewComment } from "../../git/utils/reply-to-review-comment";
 import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
 
 const replyToThreadInputSchema = z.object({
@@ -13,21 +13,19 @@ const replyToThreadInputSchema = z.object({
 	body: z.string().trim().min(1),
 });
 
+// Project+PR scoped, unlike git.replyToReviewThread (workspaceId scoped —
+// it resolves the PR via a workspace's DB row). The Code tab browses a PR
+// directly, with no workspace necessarily linked to it.
 export const replyToThread = protectedProcedure
 	.input(replyToThreadInputSchema)
 	.mutation(async ({ ctx, input }) => {
 		const repo = await resolveGithubRepo(ctx, input.projectId);
 		const octokit = await ctx.github();
-		try {
-			const { data } = await octokit.pulls.createReplyForReviewComment({
-				owner: repo.owner,
-				repo: repo.name,
-				pull_number: input.prNumber,
-				comment_id: input.commentId,
-				body: input.body,
-			});
-			return { id: data.id };
-		} catch (error) {
-			throw actionRejectionError(error, "GitHub refused the reply.");
-		}
+		return replyToReviewComment(octokit, {
+			owner: repo.owner,
+			repo: repo.name,
+			prNumber: input.prNumber,
+			commentId: input.commentId,
+			body: input.body,
+		});
 	});

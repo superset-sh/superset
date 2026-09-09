@@ -8,7 +8,6 @@ import { useEffect, useRef, useState } from "react";
 import { HiCheck } from "react-icons/hi2";
 
 const GENERATING_STATUS: MessageDescriptor = msg({
-	id: "marketing.features.parallel.generating",
 	message: "Generating",
 });
 
@@ -163,9 +162,7 @@ export function ParallelExecutionDemo() {
 					{/* In Progress Section */}
 					<div className="p-3">
 						<div className="mb-2 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/65">
-							<Trans id="marketing.features.parallel.inProgress">
-								In Progress
-							</Trans>{" "}
+							<Trans>In Progress</Trans>{" "}
 							<span className="text-muted-foreground/40">
 								{IN_PROGRESS_TASKS.length}
 							</span>
@@ -199,9 +196,7 @@ export function ParallelExecutionDemo() {
 					{/* Ready for Review Section */}
 					<div className="p-3 pt-0">
 						<div className="mb-2 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/65">
-							<Trans id="marketing.features.parallel.readyForReview">
-								Ready for Review
-							</Trans>{" "}
+							<Trans>Ready for Review</Trans>{" "}
 							<span className="text-muted-foreground/40">
 								{READY_FOR_REVIEW.length}
 							</span>
@@ -258,9 +253,7 @@ export function ParallelExecutionDemo() {
 							<span className="text-muted-foreground/55">❯</span>
 							<span className="h-3.5 w-[7px] bg-foreground/60" />
 							<span className="flex-1 font-mono text-[11px] text-muted-foreground/40">
-								<Trans id="marketing.features.parallel.promptPlaceholder">
-									Type a task for Claude…
-								</Trans>
+								<Trans>Type a task for Claude…</Trans>
 							</span>
 						</div>
 					</div>

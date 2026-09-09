@@ -2,6 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { formatTokens } from "../../utils/formatUsage";
+import { MeterBar } from "../MeterBar";
 
 interface Segment {
 	id: string;
@@ -26,20 +27,19 @@ export function TokenSplitBar({
 	const segments: Segment[] = [
 		{
 			id: "input",
-			label: msg({ id: "marketing.models.split.input", message: "Input" }),
+			label: msg({ message: "Input" }),
 			tokens: split.uncachedInput,
 			color: "#d25611",
 		},
 		{
 			id: "output",
-			label: msg({ id: "marketing.models.split.output", message: "Output" }),
+			label: msg({ message: "Output" }),
 			tokens: split.output,
 			color: "#c19a5b",
 		},
 		{
 			id: "cacheRead",
 			label: msg({
-				id: "marketing.models.split.cacheRead",
 				message: "Cache read",
 			}),
 			tokens: split.cachedInput,
@@ -48,7 +48,6 @@ export function TokenSplitBar({
 		{
 			id: "cacheWrite",
 			label: msg({
-				id: "marketing.models.split.cacheWrite",
 				message: "Cache write",
 			}),
 			tokens: split.cacheWrite5m + split.cacheWrite1h,
@@ -60,7 +59,7 @@ export function TokenSplitBar({
 	if (total === 0) {
 		return (
 			<p className="text-sm text-muted-foreground">
-				<Trans id="marketing.usage.noneInRange">No usage in this range.</Trans>
+				<Trans>No usage in this range.</Trans>
 			</p>
 		);
 	}
@@ -79,15 +78,7 @@ export function TokenSplitBar({
 								{formatTokens(segment.tokens)} · {percent.toFixed(0)}%
 							</span>
 						</div>
-						<div className="h-1.5 bg-foreground/[0.06] rounded-full overflow-hidden">
-							<div
-								className="h-full"
-								style={{
-									width: `${Math.max(percent, percent > 0 ? 0.5 : 0)}%`,
-									backgroundColor: segment.color,
-								}}
-							/>
-						</div>
+						<MeterBar value={percent / 100} color={segment.color} />
 					</div>
 				);
 			})}

@@ -80,6 +80,7 @@ export async function adoptExistingWorktree(
 		api: ctx.api,
 		organizationId: ctx.organizationId,
 		clientMachineId: ctx.clientMachineId,
+		userId: ctx.userId,
 	};
 
 	if (existingWorkspaceId) {

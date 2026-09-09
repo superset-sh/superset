@@ -73,9 +73,7 @@ export function TableContent({
 				<div className="flex flex-col items-center gap-2 text-muted-foreground">
 					<HiCheckCircle className="h-8 w-8" />
 					<span className="text-sm">
-						<Trans id="dashboard.tasks.tableContent.empty">
-							No tasks found
-						</Trans>
+						<Trans>No tasks found</Trans>
 					</span>
 				</div>
 			</div>

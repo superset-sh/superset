@@ -18,10 +18,10 @@ export function HowItWorksSection() {
 					transition={{ duration: 0.5 }}
 				>
 					<span className="text-sm font-mono uppercase tracking-widest text-brand">
-						<Trans id="marketing.howItWorks.eyebrow">How it works</Trans>
+						<Trans>How it works</Trans>
 					</span>
 					<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight leading-[1.1] text-foreground">
-						<Trans id="marketing.howItWorks.headline">
+						<Trans>
 							The best agent will change.
 							<br />
 							Your workflow shouldn&apos;t.

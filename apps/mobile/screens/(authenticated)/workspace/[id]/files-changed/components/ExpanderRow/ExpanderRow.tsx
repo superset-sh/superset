@@ -23,14 +23,13 @@ export function ExpanderRow({
 	if (hidden <= EXPAND_CHUNK_LINES) {
 		return (
 			<PressableScale
-				className="bg-sky-500/10 border-sky-500/15 flex-row items-center gap-2 border-y px-4"
+				className="bg-muted/40 border-border flex-row items-center gap-2 border-y px-4"
 				style={{ height: EXPANDER_ROW_HEIGHT }}
 				onPress={() => onExpand(row.path, [newStart, newEnd])}
 			>
-				<Icon as={ChevronsUpDown} className="text-sky-400 size-4" />
-				<Text className="text-sky-400 text-[13px]">
+				<Icon as={ChevronsUpDown} className="text-muted-foreground size-4" />
+				<Text className="text-muted-foreground text-[13px]">
 					<Plural
-						id="mobile.diff.showHiddenLines"
 						value={hidden}
 						one="Show # hidden line"
 						other="Show # hidden lines"
@@ -41,12 +40,11 @@ export function ExpanderRow({
 	}
 	return (
 		<View
-			className="bg-sky-500/10 border-sky-500/15 flex-row items-center border-y"
+			className="bg-muted/40 border-border flex-row items-center border-y"
 			style={{ height: EXPANDER_ROW_HEIGHT }}
 		>
 			<PressableScale
 				accessibilityLabel={t({
-					id: "mobile.diff.showLinesAfter",
 					message: "Show lines after the change above",
 				})}
 				className="flex-row items-center gap-2 px-4 py-2"
@@ -55,19 +53,22 @@ export function ExpanderRow({
 					onExpand(row.path, [newStart, newStart + EXPAND_CHUNK_LINES - 1])
 				}
 			>
-				<Icon as={ChevronsDown} className="text-sky-400 size-4" />
+				<Icon as={ChevronsDown} className="text-muted-foreground size-4" />
 			</PressableScale>
-			<Text className="text-muted-foreground flex-1 text-center text-[12px]">
-				<Plural
-					id="mobile.diff.hiddenLines"
-					value={hidden}
-					one="# hidden line"
-					other="# hidden lines"
-				/>
-			</Text>
+			{/* The chevrons step through EXPAND_CHUNK_LINES at a time; this opens
+			    the rest in one go. No accessibility label of its own — the count
+			    it already renders is what a screen reader should read out. */}
+			<PressableScale
+				className="flex-1 py-2"
+				hitSlop={6}
+				onPress={() => onExpand(row.path, [newStart, newEnd])}
+			>
+				<Text className="text-muted-foreground text-center text-[12px]">
+					<Plural value={hidden} one="# hidden line" other="# hidden lines" />
+				</Text>
+			</PressableScale>
 			<PressableScale
 				accessibilityLabel={t({
-					id: "mobile.diff.showLinesBefore",
 					message: "Show lines before the change below",
 				})}
 				className="flex-row items-center gap-2 px-4 py-2"
@@ -76,7 +77,7 @@ export function ExpanderRow({
 					onExpand(row.path, [newEnd - EXPAND_CHUNK_LINES + 1, newEnd])
 				}
 			>
-				<Icon as={ChevronsUp} className="text-sky-400 size-4" />
+				<Icon as={ChevronsUp} className="text-muted-foreground size-4" />
 			</PressableScale>
 		</View>
 	);

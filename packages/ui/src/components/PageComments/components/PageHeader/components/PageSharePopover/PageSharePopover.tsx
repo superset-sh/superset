@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { getInitials } from "@superset/shared/names";
 import { Building2, Check, Link2, Lock } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../../../ui/avatar";
@@ -30,15 +31,6 @@ import type {
 } from "../../types";
 
 const LATEST = "latest";
-
-function initialsOf(name: string): string {
-	const parts = name.trim().split(/\s+/).filter(Boolean);
-	if (parts.length === 0) return "?";
-	return parts
-		.slice(0, 2)
-		.map((part) => part[0]?.toUpperCase() ?? "")
-		.join("");
-}
 
 interface PageSharePopoverProps {
 	page: PageHeaderPage;
@@ -87,7 +79,6 @@ export function PageSharePopover({
 		} catch {
 			toast.error(
 				t({
-					id: "ui.pageShare.copyFailed",
 					message: "Could not copy the link",
 				}),
 			);
@@ -107,7 +98,6 @@ export function PageSharePopover({
 				error instanceof Error
 					? error.message
 					: t({
-							id: "ui.pageShare.visibilityFailed",
 							message: "Could not change who can see this page",
 						}),
 			);
@@ -140,7 +130,7 @@ export function PageSharePopover({
 			<PopoverContent align="end" className="w-80 p-0">
 				<div className="flex items-center justify-between gap-2 px-3 py-2.5">
 					<span className="font-medium text-sm">
-						<Trans id="ui.pageShare.title">Share page</Trans>
+						<Trans>Share page</Trans>
 					</span>
 					<Button size="xs" variant="ghost" onClick={() => void copyLink()}>
 						{copied ? (
@@ -148,11 +138,7 @@ export function PageSharePopover({
 						) : (
 							<Link2 className="size-3.5" />
 						)}
-						{copied ? (
-							<Trans id="ui.pageShare.copied">Copied</Trans>
-						) : (
-							<Trans id="ui.pageShare.copyLink">Copy link</Trans>
-						)}
+						{copied ? <Trans>Copied</Trans> : <Trans>Copy link</Trans>}
 					</Button>
 				</div>
 
@@ -160,14 +146,14 @@ export function PageSharePopover({
 
 				<div className="space-y-2 px-3 py-2.5">
 					<Label className="font-medium text-sm">
-						<Trans id="ui.pageShare.peopleWithAccess">People with access</Trans>
+						<Trans>People with access</Trans>
 					</Label>
 					{owner ? (
 						<div className="flex items-center gap-2">
 							<Avatar className="size-6">
 								{owner.image ? <AvatarImage src={owner.image} /> : null}
 								<AvatarFallback className="text-[10px]">
-									{initialsOf(owner.name)}
+									{getInitials(owner.name) || "?"}
 								</AvatarFallback>
 							</Avatar>
 							<div className="min-w-0 flex-1">
@@ -177,14 +163,12 @@ export function PageSharePopover({
 								</p>
 							</div>
 							<span className="shrink-0 text-muted-foreground text-xs">
-								<Trans id="ui.pageShare.owner">Owner</Trans>
+								<Trans>Owner</Trans>
 							</span>
 						</div>
 					) : (
 						<p className="text-muted-foreground text-xs">
-							<Trans id="ui.pageShare.ownerMissing">
-								The owner's account no longer exists.
-							</Trans>
+							<Trans>The owner's account no longer exists.</Trans>
 						</p>
 					)}
 				</div>
@@ -194,12 +178,10 @@ export function PageSharePopover({
 				<div className="space-y-2 px-3 py-2.5">
 					<div className="space-y-0.5">
 						<Label className="font-medium text-sm">
-							<Trans id="ui.pageShare.generalAccess">General access</Trans>
+							<Trans>General access</Trans>
 						</Label>
 						<p className="text-muted-foreground text-xs">
-							<Trans id="ui.pageShare.generalAccessHint">
-								Who can open this page from its link
-							</Trans>
+							<Trans>Who can open this page from its link</Trans>
 						</p>
 					</div>
 					<Select
@@ -215,13 +197,11 @@ export function PageSharePopover({
 						<SelectContent>
 							<SelectItem value="just_me">
 								<Lock className="size-3.5 text-muted-foreground" />
-								<Trans id="ui.pageShare.visibilityJustMe">Only you</Trans>
+								<Trans>Only you</Trans>
 							</SelectItem>
 							<SelectItem value="org">
 								<Building2 className="size-3.5 text-muted-foreground" />
-								<Trans id="ui.pageShare.visibilityOrg">
-									Anyone in your organization
-								</Trans>
+								<Trans>Anyone in your organization</Trans>
 							</SelectItem>
 						</SelectContent>
 					</Select>
@@ -232,15 +212,13 @@ export function PageSharePopover({
 				<div className="space-y-2 px-3 py-2.5">
 					<div className="space-y-0.5">
 						<Label className="font-medium text-sm">
-							<Trans id="ui.pageShare.sharedVersion">Shared version</Trans>
+							<Trans>Shared version</Trans>
 						</Label>
 						<p className="text-muted-foreground text-xs">
 							{sharedVersion === null ? (
-								<Trans id="ui.pageShare.sharedVersionLatestHint">
-									Everyone sees new versions as they are published
-								</Trans>
+								<Trans>Everyone sees new versions as they are published</Trans>
 							) : (
-								<Trans id="ui.pageShare.sharedVersionPinnedHint">
+								<Trans>
 									Everyone stays on v{sharedVersion} until you change this
 								</Trans>
 							)}
@@ -256,7 +234,6 @@ export function PageSharePopover({
 								() =>
 									onSetSharedVersion(value === LATEST ? null : Number(value)),
 								t({
-									id: "ui.pageShare.sharedVersionFailed",
 									message: "Could not change the shared version",
 								}),
 							)
@@ -268,9 +245,8 @@ export function PageSharePopover({
 						<SelectContent>
 							<SelectItem value={LATEST}>
 								{latestVersion === null
-									? t({ id: "ui.pageShare.latest", message: "Latest" })
+									? t({ message: "Latest" })
 									: t({
-											id: "ui.pageShare.latestWithVersion",
 											message: `Latest (v${latestVersion})`,
 										})}
 							</SelectItem>
@@ -278,10 +254,8 @@ export function PageSharePopover({
 								const version = entry.version;
 								return (
 									<SelectItem key={version} value={String(version)}>
-										<Trans id="ui.pageShare.versionOption">
-											Version {version}
-										</Trans>{" "}
-										· {entry.label ?? relativeTime(entry.createdAt)}
+										<Trans>Version {version}</Trans> ·{" "}
+										{entry.label ?? relativeTime(entry.createdAt)}
 									</SelectItem>
 								);
 							})}

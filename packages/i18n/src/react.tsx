@@ -1,7 +1,8 @@
 "use client";
 
+import { type Messages, setupI18n } from "@lingui/core";
 import { I18nProvider as LinguiI18nProvider } from "@lingui/react";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { i18n, inferLocale, initI18n } from "./index";
 import {
 	LOCALE_COOKIE,
@@ -16,20 +17,30 @@ import {
 // English, which threw a hydration mismatch on every translated client
 // string for every non-English user ("Search docs..." vs "Tìm trong tài
 // liệu..."). The provider switches to the inferred or chosen locale after
-// mount instead; the brief default-language flash on client chrome is the
-// price of hydration correctness, and server-component content (marketing
-// pages) is localized in the HTML itself and never hydrates.
+// mount instead unless the server supplies a locale and its catalog. That
+// snapshot translates the initial HTML and hydration with a request-local
+// instance, without activating a shared singleton during concurrent SSR.
 initI18n();
 
 export function I18nProvider({
 	children,
 	locale,
+	initialMessages,
 }: {
 	children: ReactNode;
 	// Explicit locale (persisted setting, device locale). Omitted: the
 	// module-scope inference above stands.
 	locale?: SupportedLocale;
+	/** Server-resolved catalog for translated SSR and matching hydration. */
+	initialMessages?: Messages;
 }) {
+	const renderI18n = useMemo(
+		() =>
+			locale && initialMessages
+				? setupI18n({ locale, messages: { [locale]: initialMessages } })
+				: i18n,
+		[locale, initialMessages],
+	);
 	// Remount the subtree when the locale changes: Trans/useLingui consumers
 	// re-render via Lingui's own subscription, but plain formatter calls
 	// (@superset/i18n/format) read the locale imperatively and only refresh on
@@ -54,7 +65,7 @@ export function I18nProvider({
 		}
 	}, [locale]);
 	return (
-		<LinguiI18nProvider key={activeLocale} i18n={i18n}>
+		<LinguiI18nProvider key={activeLocale} i18n={renderI18n}>
 			{children}
 		</LinguiI18nProvider>
 	);
@@ -69,6 +80,12 @@ interface LanguageSwitcherProps {
 	 * where applying a choice is a navigation.
 	 */
 	onSelect?: (locale: SupportedLocale) => void;
+	/**
+	 * Called with the chosen and the outgoing locale before the choice is
+	 * applied, so apps can record the switch ahead of the reload or
+	 * navigation that follows.
+	 */
+	onChange?: (next: SupportedLocale, current: SupportedLocale) => void;
 	/**
 	 * Server-resolved effective locale, when the caller knows it. Client
 	 * components server-render through the non-RSC module instance, whose
@@ -98,6 +115,7 @@ export function LanguageSwitcher({
 	label,
 	locale,
 	onSelect,
+	onChange,
 	className,
 }: LanguageSwitcherProps) {
 	// The effective locale: starts at the module's current value (the server
@@ -118,6 +136,7 @@ export function LanguageSwitcher({
 			value={value}
 			onChange={(event) => {
 				const next = event.target.value as SupportedLocale;
+				onChange?.(next, value);
 				if (onSelect) {
 					onSelect(next);
 					return;

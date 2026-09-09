@@ -56,15 +56,14 @@ export function LineCommentSheet() {
 			<Stack.Screen
 				options={{
 					title: anchor?.editingDraftId
-						? t({ id: "mobile.lineComment.editTitle", message: "Edit comment" })
-						: t({ id: "mobile.nav.addComment.title", message: "Add comment" }),
+						? t({ message: "Edit comment" })
+						: t({ message: "Add comment" }),
 				}}
 			/>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					icon="xmark"
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					onPress={() => {
@@ -99,7 +98,6 @@ export function LineCommentSheet() {
 					multiline
 					onChangeText={setBody}
 					placeholder={t({
-						id: "mobile.lineComment.placeholder",
 						message: "Leave a comment…",
 					})}
 					placeholderTextColor="#6b7280"
@@ -116,8 +114,8 @@ export function LineCommentSheet() {
 				>
 					<Text className="text-primary-foreground font-semibold text-[15px]">
 						{anchor?.editingDraftId
-							? t({ id: "mobile.common.save", message: "Save" })
-							: t({ id: "mobile.lineComment.submit", message: "Comment" })}
+							? t({ message: "Save" })
+							: t({ message: "Comment" })}
 					</Text>
 				</PressableScale>
 			</ScrollView>

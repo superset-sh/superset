@@ -1,11 +1,14 @@
 import type {
 	AgentLifecycleEventType,
 	ClientMessage,
+	DistributiveOmit,
 	ServerMessage,
+	TerminalLifecycleMessage,
 } from "@superset/host-service/events";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
+import { DIAL_TIMEOUT_MS } from "@superset/shared/tunnel-protocol";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
-import type { RelayAffinityProbe } from "./primeRelayAffinity";
+import type { RelayHostProbe } from "./probeRelayHost";
 import { createRelaySocket, type RelaySocket } from "./relaySocket";
 
 export type { AgentIdentity };
@@ -20,6 +23,7 @@ type EventType =
 	| "workspace:changed"
 	| "workspace:create-settled"
 	| "project:changed"
+	| "tag-folders:changed"
 	| "page-watch:changed";
 
 interface FsEventsPayload {
@@ -46,13 +50,10 @@ export interface AgentBindingsChangedPayload {
 	occurredAt: number;
 }
 
-export interface TerminalLifecyclePayload {
-	eventType: "exit";
-	terminalId: string;
-	exitCode: number;
-	signal: number;
-	occurredAt: number;
-}
+export type TerminalLifecyclePayload = DistributiveOmit<
+	TerminalLifecycleMessage,
+	"type" | "workspaceId"
+>;
 
 type PortChangedMessage = Extract<ServerMessage, { type: "port:changed" }>;
 
@@ -109,6 +110,17 @@ export interface PageWatchChangedPayload {
 	occurredAt: number;
 }
 
+type TagFoldersChangedMessage = Extract<
+	ServerMessage,
+	{ type: "tag-folders:changed" }
+>;
+
+export interface TagFoldersChangedPayload {
+	/** The scope's full set after the change — empty when all were removed. */
+	settings: TagFoldersChangedMessage["settings"];
+	occurredAt: TagFoldersChangedMessage["occurredAt"];
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
@@ -130,12 +142,14 @@ type EventListener<T extends EventType> = T extends "fs:events"
 									) => void
 								: T extends "project:changed"
 									? (projectId: string, payload: ProjectChangedPayload) => void
-									: T extends "page-watch:changed"
-										? (
-												workspaceId: string,
-												payload: PageWatchChangedPayload,
-											) => void
-										: never;
+									: T extends "tag-folders:changed"
+										? (scope: string, payload: TagFoldersChangedPayload) => void
+										: T extends "page-watch:changed"
+											? (
+													workspaceId: string,
+													payload: PageWatchChangedPayload,
+												) => void
+											: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -144,7 +158,10 @@ interface ListenerEntry {
 }
 
 const RECONNECT_BASE_MS = 1_000;
-const RECONNECT_MAX_MS = 30_000;
+// Keep recovery responsive without a second timer forcing reconnect(). A
+// forced retry can abort a healthy relay handshake, which may take up to
+// DIAL_TIMEOUT_MS. Backoff runs only after an attempt finishes or fails.
+const RECONNECT_MAX_MS = 5_000;
 // Definitive access denial (preflight 403): the relay will keep saying no, so
 // exponential 1-30s retries just hammer it. Poll slowly instead of stopping
 // outright so access granted later (host sharing) is picked up eventually.
@@ -165,7 +182,7 @@ export interface HostConnectionStatus {
 	 * 401/403 unauthorized, null for a direct (non-relay) host URL or when the
 	 * relay itself couldn't be reached. Names *why* the socket is down.
 	 */
-	probe: RelayAffinityProbe | null;
+	probe: RelayHostProbe | null;
 }
 
 type ConnectionStatusListener = (status: HostConnectionStatus) => void;
@@ -177,6 +194,8 @@ interface ConnectionState {
 	fsWatchedWorkspaces: Map<string, number>;
 	/** Refcounted per-file watches, keyed `${workspaceId}\0${absolutePath}`. */
 	fsWatchedFiles: Map<string, number>;
+	/** Refcounted `git:watch` interest — drives GitWatcher's registration (#6729). */
+	gitWatchedWorkspaces: Map<string, number>;
 	/** Replaced, never mutated, so `useSyncExternalStore` snapshots stay stable. */
 	status: HostConnectionStatus;
 	statusListeners: Set<ConnectionStatusListener>;
@@ -186,19 +205,36 @@ function fileWatchKey(workspaceId: string, absolutePath: string): string {
 	return `${workspaceId}\0${absolutePath}`;
 }
 
+function probesEqual(
+	left: RelayHostProbe | null,
+	right: RelayHostProbe | null,
+): boolean {
+	if (left === right) return true;
+	if (left === null || right === null) return false;
+	return left.status === right.status;
+}
+
 function setConnectionStatus(
 	state: ConnectionState,
-	next: { state?: HostConnectionState; probe?: RelayAffinityProbe | null },
+	next: { state?: HostConnectionState; probe?: RelayHostProbe | null },
 ): void {
 	const current = state.status;
 	const nextState = next.state ?? current.state;
 	const nextProbe = "probe" in next ? (next.probe ?? null) : current.probe;
-	if (nextState === current.state && nextProbe === current.probe) return;
+	// Value-compare probes: the preflight allocates a fresh result object per
+	// dial, so identity comparison republished an unchanged 503 on every
+	// backoff attempt — fanning a no-op "transition" out to every status
+	// subscriber (and their React commits) for as long as a host stayed down.
+	if (nextState === current.state && probesEqual(nextProbe, current.probe)) {
+		return;
+	}
 
 	state.status = {
 		state: nextState,
 		since: nextState === current.state ? current.since : Date.now(),
-		probe: nextProbe,
+		// Keep the old probe object when only the state moved, so subscribers
+		// keying on probe identity don't re-derive from an equal value.
+		probe: probesEqual(nextProbe, current.probe) ? current.probe : nextProbe,
 	};
 	for (const listener of state.statusListeners) listener(state.status);
 }
@@ -220,9 +256,17 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 	}
 
 	if (message.type === "error") {
-		// Server-side bus errors aren't actionable from the client; the
-		// reconnect loop already handles transient failures, and logging
-		// here just floods the console when a host bounces offline.
+		// A git:watch the host capped never took effect: drop the local
+		// interest entry so the next watchGit() re-sends instead of treating
+		// the watch as live forever. Other bus errors aren't actionable here —
+		// the reconnect loop covers transient failures, and logging them
+		// floods the console when a host bounces offline.
+		if (message.code === "git-watch-cap" && message.workspaceId) {
+			state.gitWatchedWorkspaces.delete(message.workspaceId);
+			console.warn("[eventBus] git:watch rejected by the host's cap", {
+				workspaceId: message.workspaceId,
+			});
+		}
 		return;
 	}
 
@@ -244,7 +288,9 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				? message.workspaceId
 				: message.type === "project:changed"
 					? message.projectId
-					: null;
+					: message.type === "tag-folders:changed"
+						? message.scope
+						: null;
 
 		if (
 			workspaceId &&
@@ -278,15 +324,10 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				{ occurredAt: message.occurredAt },
 			);
 		} else if (message.type === "terminal:lifecycle") {
+			const { type: _type, workspaceId, ...payload } = message;
 			(entry.callback as EventListener<"terminal:lifecycle">)(
-				message.workspaceId,
-				{
-					eventType: message.eventType,
-					terminalId: message.terminalId,
-					exitCode: message.exitCode,
-					signal: message.signal,
-					occurredAt: message.occurredAt,
-				},
+				workspaceId,
+				payload,
 			);
 		} else if (message.type === "page-watch:changed") {
 			(entry.callback as EventListener<"page-watch:changed">)(
@@ -321,6 +362,11 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				project: message.project,
 				occurredAt: message.occurredAt,
 			});
+		} else if (message.type === "tag-folders:changed") {
+			(entry.callback as EventListener<"tag-folders:changed">)(message.scope, {
+				settings: message.settings,
+				occurredAt: message.occurredAt,
+			});
 		}
 	}
 }
@@ -334,7 +380,7 @@ function getOrCreateConnection(
 	const existing = connections.get(key);
 	if (existing) return existing;
 
-	// createRelaySocket runs the fly-affinity preflight and re-signs the URL
+	// createRelaySocket runs the host probe and re-signs the URL
 	// with a fresh token before every attempt; backoff and reconnection live
 	// inside partysocket. Buffering is disabled so command semantics stay
 	// "send only while open" — watches are replayed from state on each open.
@@ -352,6 +398,9 @@ function getOrCreateConnection(
 		accessDeniedRetryMs: ACCESS_DENIED_RETRY_MS,
 		minReconnectionDelay: RECONNECT_BASE_MS,
 		maxReconnectionDelay: RECONNECT_MAX_MS,
+		// Relay upgrades wait for the host's dial-back (DIAL_TIMEOUT_MS);
+		// partysocket's 4s default gave up on attempts the host was answering.
+		connectionTimeout: DIAL_TIMEOUT_MS + 2_000,
 		maxEnqueuedMessages: 0,
 		onProbe: (probe) => {
 			setConnectionStatus(state, { probe });
@@ -364,6 +413,7 @@ function getOrCreateConnection(
 		listeners: new Set(),
 		fsWatchedWorkspaces: new Map(),
 		fsWatchedFiles: new Map(),
+		gitWatchedWorkspaces: new Map(),
 		status: { state: "connecting", since: Date.now(), probe: null },
 		statusListeners: new Set(),
 	};
@@ -392,6 +442,12 @@ function getOrCreateConnection(
 					absolutePath,
 				});
 			}
+		}
+		// Re-send all active git:watch commands — a fresh connection means the
+		// server-side GitWatcher interest count from the old socket is gone
+		// (event-bus.ts's cleanupClient unwatches on close).
+		for (const workspaceId of state.gitWatchedWorkspaces.keys()) {
+			sendCommand(state, { type: "git:watch", workspaceId });
 		}
 	});
 	socket.addEventListener("message", (event) => {
@@ -427,7 +483,10 @@ function maybeCleanupConnection(hostUrl: string): void {
 	if (
 		state.refCount > 0 ||
 		state.listeners.size > 0 ||
-		state.statusListeners.size > 0
+		state.statusListeners.size > 0 ||
+		state.fsWatchedWorkspaces.size > 0 ||
+		state.fsWatchedFiles.size > 0 ||
+		state.gitWatchedWorkspaces.size > 0
 	) {
 		return;
 	}
@@ -453,6 +512,14 @@ export interface EventBusHandle {
 	 */
 	watchFsFile(workspaceId: string, absolutePath: string): void;
 	unwatchFsFile(workspaceId: string, absolutePath: string): void;
+	/**
+	 * Register interest in a workspace's `git:changed` events. The host's
+	 * `GitWatcher` only watches a workspace while at least one client holds
+	 * interest via this call (see #6729) — a `git:changed` listener added via
+	 * `on()` without a matching `watchGit()` will never fire.
+	 */
+	watchGit(workspaceId: string): void;
+	unwatchGit(workspaceId: string): void;
 	retain(): () => void;
 	/** Live reachability of this host, as observed on the real data path. */
 	getConnectionStatus(): HostConnectionStatus;
@@ -475,7 +542,17 @@ export function getEventBus(
 	 */
 	getUrlParams?: () => Record<string, string> | null,
 ): EventBusHandle {
-	const state = getOrCreateConnection(hostUrl, getWsToken, getUrlParams);
+	// Resolve the connection per call, never once at creation. A handle is
+	// typically minted during render (a useMemo) and only takes its hold in an
+	// effect; when the connection's last holder releases in between — the
+	// outgoing tree of a workspace switch cleaning up in the same commit — the
+	// entry minted against is closed and gone from the registry. A handle
+	// bound to it would pin its caller to a socket that never dials again and
+	// report "closed" for as long as it stayed mounted, behind a workspace
+	// whose other subscribers were already live on a fresh connection.
+	const live = () => getOrCreateConnection(hostUrl, getWsToken, getUrlParams);
+	// Release paths must not mint a connection nobody will ever hold.
+	const peek = () => connections.get(hostUrl);
 
 	return {
 		on<T extends EventType>(
@@ -488,6 +565,7 @@ export function getEventBus(
 				workspaceId,
 				callback: listener as (...args: unknown[]) => void,
 			};
+			const state = live();
 			state.listeners.add(entry);
 
 			return () => {
@@ -497,6 +575,7 @@ export function getEventBus(
 		},
 
 		watchFs(workspaceId: string): void {
+			const state = live();
 			const count = state.fsWatchedWorkspaces.get(workspaceId) ?? 0;
 			state.fsWatchedWorkspaces.set(workspaceId, count + 1);
 			if (count === 0) {
@@ -505,16 +584,43 @@ export function getEventBus(
 		},
 
 		unwatchFs(workspaceId: string): void {
+			const state = peek();
+			if (!state) return;
 			const count = state.fsWatchedWorkspaces.get(workspaceId) ?? 0;
 			if (count <= 1) {
 				state.fsWatchedWorkspaces.delete(workspaceId);
 				sendCommand(state, { type: "fs:unwatch", workspaceId });
+				// Mirrors on()'s and retain()'s cleanup: a watch is a hold too.
+				maybeCleanupConnection(hostUrl);
 			} else {
 				state.fsWatchedWorkspaces.set(workspaceId, count - 1);
 			}
 		},
 
+		watchGit(workspaceId: string): void {
+			const state = live();
+			const count = state.gitWatchedWorkspaces.get(workspaceId) ?? 0;
+			state.gitWatchedWorkspaces.set(workspaceId, count + 1);
+			if (count === 0) {
+				sendCommand(state, { type: "git:watch", workspaceId });
+			}
+		},
+
+		unwatchGit(workspaceId: string): void {
+			const state = peek();
+			if (!state) return;
+			const count = state.gitWatchedWorkspaces.get(workspaceId) ?? 0;
+			if (count <= 1) {
+				state.gitWatchedWorkspaces.delete(workspaceId);
+				sendCommand(state, { type: "git:unwatch", workspaceId });
+				maybeCleanupConnection(hostUrl);
+			} else {
+				state.gitWatchedWorkspaces.set(workspaceId, count - 1);
+			}
+		},
+
 		watchFsFile(workspaceId: string, absolutePath: string): void {
+			const state = live();
 			const key = fileWatchKey(workspaceId, absolutePath);
 			const count = state.fsWatchedFiles.get(key) ?? 0;
 			state.fsWatchedFiles.set(key, count + 1);
@@ -528,6 +634,8 @@ export function getEventBus(
 		},
 
 		unwatchFsFile(workspaceId: string, absolutePath: string): void {
+			const state = peek();
+			if (!state) return;
 			const key = fileWatchKey(workspaceId, absolutePath);
 			const count = state.fsWatchedFiles.get(key) ?? 0;
 			if (count <= 1) {
@@ -537,6 +645,7 @@ export function getEventBus(
 					workspaceId,
 					absolutePath,
 				});
+				maybeCleanupConnection(hostUrl);
 			} else {
 				state.fsWatchedFiles.set(key, count - 1);
 			}
@@ -547,6 +656,7 @@ export function getEventBus(
 		 * Returns a release function.
 		 */
 		retain(): () => void {
+			const state = live();
 			state.refCount++;
 			return () => {
 				state.refCount = Math.max(0, state.refCount - 1);
@@ -555,10 +665,11 @@ export function getEventBus(
 		},
 
 		getConnectionStatus(): HostConnectionStatus {
-			return state.status;
+			return live().status;
 		},
 
 		subscribeConnectionStatus(listener: ConnectionStatusListener): () => void {
+			const state = live();
 			state.statusListeners.add(listener);
 			return () => {
 				state.statusListeners.delete(listener);
@@ -567,6 +678,7 @@ export function getEventBus(
 		},
 
 		reconnect(): void {
+			const state = live();
 			// The synthetic close partysocket dispatches lands first, so publish
 			// "connecting" after it — otherwise the retry reads as a fresh failure.
 			state.socket.reconnect(1000, "manual reconnect");

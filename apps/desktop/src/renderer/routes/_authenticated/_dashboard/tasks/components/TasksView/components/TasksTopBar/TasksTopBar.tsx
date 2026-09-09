@@ -89,11 +89,9 @@ export function TasksTopBar({
 	const { t } = useLingui();
 	const taskSourceLabels: Record<TaskSource, string> = {
 		tasks: t({
-			id: "dashboard.tasks.topBar.sourceLinear",
 			message: "Linear",
 		}),
 		issues: t({
-			id: "dashboard.tasks.topBar.sourceGithubIssues",
 			message: "GitHub issues",
 		}),
 	};
@@ -131,16 +129,13 @@ export function TasksTopBar({
 										showIssues ? onClearIssueSelection : onClearSelection
 									}
 									aria-label={t({
-										id: "dashboard.tasks.topBar.clearSelection",
 										message: "Clear selection",
 									})}
 								>
 									<HiXMark />
 								</Button>
 								<span className="text-sm font-medium">
-									<Trans id="dashboard.tasks.topBar.selectedCount">
-										{selectedCount} selected
-									</Trans>
+									<Trans>{selectedCount} selected</Trans>
 								</span>
 								<div className="h-4 w-px shrink-0 bg-border" />
 								{showIssues ? (
@@ -207,9 +202,7 @@ export function TasksTopBar({
 									<>
 										<div className="flex items-center gap-2">
 											<span className="text-xs text-muted-foreground">
-												<Trans id="dashboard.tasks.topBar.repository">
-													Repository
-												</Trans>
+												<Trans>Repository</Trans>
 											</span>
 											<ProjectFilter
 												value={projectFilters}
@@ -241,25 +234,22 @@ export function TasksTopBar({
 								>
 									<HiOutlinePencilSquare className="size-4" />
 									<span className="hidden @4xl:inline">
-										<Trans id="dashboard.tasks.topBar.newTask">New task</Trans>
+										<Trans>New task</Trans>
 									</span>
 								</Button>
 
 								<fieldset
 									className="flex items-center rounded-md border bg-muted/30 p-0.5"
 									aria-label={t({
-										id: "dashboard.tasks.topBar.taskLayout",
 										message: "Task layout",
 									})}
 								>
 									<button
 										type="button"
 										title={t({
-											id: "dashboard.tasks.topBar.tableView",
 											message: "Table view",
 										})}
 										aria-label={t({
-											id: "dashboard.tasks.topBar.tableView",
 											message: "Table view",
 										})}
 										aria-pressed={viewMode === "table"}
@@ -276,11 +266,9 @@ export function TasksTopBar({
 									<button
 										type="button"
 										title={t({
-											id: "dashboard.tasks.topBar.boardView",
 											message: "Board view",
 										})}
 										aria-label={t({
-											id: "dashboard.tasks.topBar.boardView",
 											message: "Board view",
 										})}
 										aria-pressed={viewMode === "board"}
@@ -304,22 +292,18 @@ export function TasksTopBar({
 							placeholder={
 								showIssues
 									? t({
-											id: "dashboard.tasks.topBar.searchIssuesPlaceholder",
 											message: "Search GitHub issues…",
 										})
 									: t({
-											id: "dashboard.tasks.topBar.searchTasksPlaceholder",
 											message: "Search tasks…",
 										})
 							}
 							label={
 								showIssues
 									? t({
-											id: "dashboard.tasks.topBar.searchIssuesLabel",
 											message: "Search GitHub issues",
 										})
 									: t({
-											id: "dashboard.tasks.topBar.searchTasksLabel",
 											message: "Search tasks",
 										})
 							}

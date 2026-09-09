@@ -61,12 +61,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		<div className="p-6 max-w-5xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.appearance.title">Appearance</Trans>
+					<Trans>Appearance</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					<Trans id="settings.appearance.subtitle">
-						Customize how Superset looks on your device
-					</Trans>
+					<Trans>Customize how Superset looks on your device</Trans>
 				</p>
 			</div>
 

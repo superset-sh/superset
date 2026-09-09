@@ -70,6 +70,7 @@ export const createAutomationSchema = z
 export const updateAutomationSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1).max(200).optional(),
+	prompt: z.string().max(100_000).optional(),
 	agent: agentSchema.optional(),
 	targetHostId: z.string().min(1).nullish(),
 	// Explicit null switches the automation to session mode; undefined keeps

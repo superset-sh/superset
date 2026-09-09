@@ -51,25 +51,15 @@ export function SearchScreen() {
 	const selectedHost = useSelectedHost();
 	const cloudScope = useWorkspaceScope() === "cloud";
 	const { workspaces } = useHostWorkspaces(selectedHost);
-	const { items: cloudItems, targets: sandboxes } = useCloudWorkspaceItems();
+	const { items: cloudItems } = useCloudWorkspaceItems();
 	const { projects } = useHostProjects(selectedHost);
 	const pinnedAt = usePinnedWorkspacesStore((state) => state.pinnedAt);
 
 	// Same hosts the home list polls, so the query keys are shared and the
 	// sheet decorates from cache instead of paying its own fan-out.
 	const terminalHosts = useMemo<TerminalsHost[]>(
-		() =>
-			cloudScope
-				? sandboxes.map((sandbox) => ({
-						organizationId: sandbox.organizationId,
-						machineId: sandbox.workspaceId,
-						isOnline: true,
-						refetchIntervalMs: 30_000,
-					}))
-				: selectedHost
-					? [selectedHost]
-					: [],
-		[selectedHost, sandboxes, cloudScope],
+		() => (cloudScope || !selectedHost ? [] : [selectedHost]),
+		[selectedHost, cloudScope],
 	);
 	const { terminalsByWorkspace } = useHostsTerminals(terminalHosts);
 
@@ -173,7 +163,6 @@ export function SearchScreen() {
 				<Stack.Toolbar.Button
 					icon="xmark"
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					onPress={() => router.back()}
@@ -182,7 +171,6 @@ export function SearchScreen() {
 			<Stack.SearchBar
 				ref={searchBarRef}
 				placeholder={t({
-					id: "mobile.home.searchWorkspaces",
 					message: "Search workspaces",
 				})}
 				placement="stacked"
@@ -208,14 +196,12 @@ export function SearchScreen() {
 						<Text className="text-muted-foreground px-4 pb-1 pt-2 font-semibold text-xs">
 							{cloudScope ? (
 								<Plural
-									id="mobile.search.resultsInCloud"
 									value={results.length}
 									one="# result in Cloud"
 									other="# results in Cloud"
 								/>
 							) : (
 								<Plural
-									id="mobile.search.resultsOnHost"
 									value={results.length}
 									one="# result on this host"
 									other="# results on this host"
@@ -262,16 +248,13 @@ export function SearchScreen() {
 						<Text className="text-muted-foreground text-sm">
 							{searching
 								? t({
-										id: "mobile.search.noMatches",
 										message: "No workspaces match your search",
 									})
 								: cloudScope
 									? t({
-											id: "mobile.home.emptyCloud",
 											message: "No cloud workspaces yet",
 										})
 									: t({
-											id: "mobile.search.emptyHost",
 											message: "No workspaces on this host yet",
 										})}
 						</Text>

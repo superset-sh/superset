@@ -41,18 +41,14 @@ export function HomePaywallScreen() {
 
 				<View className="items-center gap-2">
 					<Text className="text-2xl font-semibold text-foreground">
-						<Trans id="mobile.paywall.title">
-							Superset Mobile is part of Pro
-						</Trans>
+						<Trans>Superset Mobile is part of Pro</Trans>
 					</Text>
 					<Text className="text-center text-base text-muted-foreground">
 						{activeOrganization
 							? t({
-									id: "mobile.paywall.descriptionNamed",
 									message: `${activeOrganization.name} is on the Free plan. Superset Mobile is available for organizations on Pro.`,
 								})
 							: t({
-									id: "mobile.paywall.description",
 									message:
 										"This organization is on the Free plan. Superset Mobile is available for organizations on Pro.",
 								})}
@@ -61,7 +57,7 @@ export function HomePaywallScreen() {
 
 				<Button size="lg" className="w-4/5" onPress={() => void refetch()}>
 					<Text>
-						<Trans id="mobile.paywall.refresh">Refresh</Trans>
+						<Trans>Refresh</Trans>
 					</Text>
 				</Button>
 			</View>

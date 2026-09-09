@@ -48,7 +48,6 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 
 	const hostOptions = useMemo<HostSelectOption[]>(() => {
 		const thisDeviceLabel = t({
-			id: "settings.git.v2ThisDevice",
 			message: "This device",
 		});
 		const options: HostSelectOption[] = [];
@@ -87,7 +86,6 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 	const isRemoteTarget = Boolean(selectedHost && !selectedHost.isLocal);
 	const isHostOnline = selectedHost?.isOnline ?? true;
 	const thisDeviceLower = t({
-		id: "settings.git.v2ThisDeviceLower",
 		message: "this device",
 	});
 	const selectedHostName = selectedHost?.isLocal
@@ -152,7 +150,6 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 				errorMessage(
 					err,
 					t({
-						id: "settings.git.updateBranchPrefixError",
 						message: "Failed to update branch prefix",
 					}),
 				),
@@ -179,10 +176,10 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 			<header className="mb-8 flex items-center justify-between gap-4">
 				<div className="min-w-0">
 					<h2 className="text-xl font-semibold">
-						<Trans id="settings.git.v2Title">Git &amp; worktrees</Trans>
+						<Trans>Git &amp; worktrees</Trans>
 					</h2>
 					<p className="mt-1 text-sm text-muted-foreground">
-						<Trans id="settings.git.v2Subtitle">
+						<Trans>
 							Branch behavior for new workspaces on this device. Projects can
 							override the prefix individually.
 						</Trans>
@@ -206,14 +203,11 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 			<section>
 				<SettingsRow
 					label={t({
-						id: "settings.git.v2BranchPrefixLabel",
 						message: "Branch prefix",
 					})}
 					hint={
 						<>
-							<Trans id="settings.git.v2BranchPrefixHint">
-								Group new branches under a folder.
-							</Trans>{" "}
+							<Trans>Group new branches under a folder.</Trans>{" "}
 							<code className="rounded bg-muted px-1.5 py-0.5 text-foreground">
 								{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
 							</code>
@@ -234,11 +228,9 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 				</SettingsRow>
 				<SettingsRow
 					label={t({
-						id: "settings.git.v2WorktreeLocationLabel",
 						message: "Worktree location",
 					})}
 					hint={t({
-						id: "settings.git.v2WorktreeLocationHint",
 						message: `Base directory for new worktrees on ${selectedHostName}.`,
 					})}
 				>
@@ -257,7 +249,6 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 							setWorktreeBaseDir.isPending
 						}
 						browseTitle={t({
-							id: "settings.git.v2BrowseTitle",
 							message: "Select default worktree location",
 						})}
 						onSelect={(path) => setWorktreeBaseDir.mutate(path)}

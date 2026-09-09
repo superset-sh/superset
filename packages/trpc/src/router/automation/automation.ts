@@ -17,13 +17,14 @@ import {
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, asc, desc, eq, ilike } from "drizzle-orm";
 import { z } from "zod";
-import { resolveUserRelayUrl } from "../../lib/relay-url";
+import { env } from "../../env";
 import { protectedProcedure, userError } from "../../trpc";
 import { joinSlackTriggerChannels } from "../integration/slack/joinChannels";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { dispatchAutomation } from "./dispatch";
 import {
 	automationBaseColumns,
+	automationNotFound,
 	getAutomationForUser,
 	NO_SCHEDULE,
 	promptSourceFromSession,
@@ -254,11 +255,7 @@ export const automationRouter = {
 			// Reads are org-scoped (Team tab links to any member's automation);
 			// mutations stay owner-scoped via getAutomationForUser.
 			if (!row) {
-				throw userError({
-					code: "NOT_FOUND",
-					message: "Automation not found",
-					i18nKey: "serverError.automation.automationNotFound",
-				});
+				throw await automationNotFound(input.id, ctx.session.user.id);
 			}
 
 			// The whole set, since the editor saves it as one and needs the ids to
@@ -556,6 +553,7 @@ export const automationRouter = {
 						v2ProjectId: nextProjectId,
 						v2WorkspaceId: nextWorkspaceId,
 						tags: input.tags ?? existing.tags,
+						prompt: input.prompt ?? existing.prompt,
 					})
 					.where(eq(automations.id, input.id))
 					.returning();
@@ -568,6 +566,16 @@ export const automationRouter = {
 					});
 				}
 
+				// Only on a real change, so saving a scope tweak doesn't mint a
+				// version identical to the last one.
+				if (input.prompt !== undefined && input.prompt !== existing.prompt) {
+					await recordPromptVersion(tx, {
+						automationId: row.id,
+						authorUserId: ctx.session.user.id,
+						content: input.prompt,
+						source: promptSourceFromSession(ctx.session),
+					});
+				}
 				if (input.triggers) {
 					await saveTriggerSet(tx, {
 						automationId: row.id,
@@ -623,11 +631,7 @@ export const automationRouter = {
 				)
 				.limit(1);
 			if (!existing) {
-				throw userError({
-					code: "NOT_FOUND",
-					message: "Automation not found",
-					i18nKey: "serverError.automation.automationNotFound",
-				});
+				throw await automationNotFound(input.id, ctx.session.user.id);
 			}
 			return existing;
 		}),
@@ -688,7 +692,7 @@ export const automationRouter = {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			await getAutomationForUser(ctx.session.user.id, organizationId, input.id);
 
-			await dbWs.delete(automations).where(eq(automations.id, input.id));
+			await db.delete(automations).where(eq(automations.id, input.id));
 
 			return { ok: true };
 		}),
@@ -762,7 +766,7 @@ export const automationRouter = {
 			const outcome = await dispatchAutomation({
 				automation,
 				scheduledFor: new Date(),
-				relayUrl: await resolveUserRelayUrl(automation.ownerUserId),
+				relayUrl: env.RELAY_URL,
 			});
 
 			if (outcome.status === "conflict") {

@@ -113,11 +113,9 @@ export const AUTOMATIONS: AutomationRow[] = [
 	{
 		name: "daily-triage",
 		schedule: msg({
-			id: "marketing.hero.mockup.schedule.daily",
 			message: "daily 9:00",
 		}),
 		lastRun: msg({
-			id: "marketing.hero.mockup.lastRun.running",
 			message: "running",
 		}),
 		running: true,
@@ -125,33 +123,27 @@ export const AUTOMATIONS: AutomationRow[] = [
 	{
 		name: "changelog-draft",
 		schedule: msg({
-			id: "marketing.hero.mockup.schedule.sunday",
 			message: "sun 11:00",
 		}),
 		lastRun: msg({
-			id: "marketing.hero.mockup.lastRun.twoHoursAgo",
 			message: "✓ 2h ago",
 		}),
 	},
 	{
 		name: "dep-upgrades",
 		schedule: msg({
-			id: "marketing.hero.mockup.schedule.weekly",
 			message: "weekly",
 		}),
 		lastRun: msg({
-			id: "marketing.hero.mockup.lastRun.oneDayAgo",
 			message: "✓ 1d ago",
 		}),
 	},
 	{
 		name: "roadmap-sync",
 		schedule: msg({
-			id: "marketing.hero.mockup.schedule.monthly",
 			message: "monthly",
 		}),
 		lastRun: msg({
-			id: "marketing.hero.mockup.lastRun.threeDaysAgo",
 			message: "✓ 3d ago",
 		}),
 	},

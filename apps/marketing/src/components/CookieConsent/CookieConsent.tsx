@@ -42,7 +42,7 @@ export function CookieConsent() {
 					className="fixed bottom-4 left-4 z-50 max-w-xs rounded-lg border border-border bg-card p-4 shadow-lg"
 				>
 					<p className="text-sm text-muted-foreground">
-						<Trans id="marketing.cookies.message">
+						<Trans>
 							We only collect analytics cookies so we can improve your
 							experience.
 						</Trans>
@@ -50,17 +50,15 @@ export function CookieConsent() {
 					<div className="mt-3 flex items-center justify-between">
 						<Button variant="link" asChild className="px-0">
 							<Link href="/privacy">
-								<Trans id="marketing.cookies.privacyPolicy">
-									Privacy policy
-								</Trans>
+								<Trans>Privacy policy</Trans>
 							</Link>
 						</Button>
 						<div className="flex items-center gap-2">
 							<Button variant="outline" onClick={handleOptOut}>
-								<Trans id="marketing.cookies.optOut">Opt-out</Trans>
+								<Trans>Opt-out</Trans>
 							</Button>
 							<Button variant="outline" onClick={handleAccept}>
-								<Trans id="marketing.cookies.accept">Accept</Trans>
+								<Trans>Accept</Trans>
 							</Button>
 						</div>
 					</div>

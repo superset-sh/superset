@@ -2,6 +2,7 @@ export {
 	type AccessibleV2Workspace,
 	type UseAccessibleV2WorkspacesResult,
 	useAccessibleV2Workspaces,
+	type V2WorkspaceCreatorOption,
 	type V2WorkspaceHostOption,
 	type V2WorkspaceHostType,
 	type V2WorkspacePrChecksStatus,

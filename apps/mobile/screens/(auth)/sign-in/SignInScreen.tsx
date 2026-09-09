@@ -1,4 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { useState } from "react";
@@ -7,6 +7,7 @@ import { Image, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { signIn } from "@/lib/auth/client";
 import { env } from "@/lib/env";
+import { errorCopy } from "@/lib/errors";
 import { openUrl } from "@/lib/open-url";
 
 import { DevSignInOptions } from "./components/DevSignInOptions";
@@ -18,7 +19,6 @@ const TERMS_URL = "https://superset.sh/terms";
 const PRIVACY_URL = "https://superset.sh/privacy";
 
 export function SignInScreen() {
-	const { t } = useLingui();
 	const [error, setError] = useState<string | null>(null);
 
 	const handleSignIn = async (provider: SocialProvider) => {
@@ -29,15 +29,8 @@ export function SignInScreen() {
 				callbackURL: "/",
 			});
 		} catch (err) {
-			const message =
-				err instanceof Error
-					? err.message
-					: t({
-							id: "mobile.common.somethingWentWrong",
-							message: "Something went wrong",
-						});
 			console.error("[sign-in] Error:", err);
-			setError(message);
+			setError(errorCopy(err));
 		}
 	};
 
@@ -85,15 +78,8 @@ export function SignInScreen() {
 			) {
 				return;
 			}
-			const message =
-				err instanceof Error
-					? err.message
-					: t({
-							id: "mobile.common.somethingWentWrong",
-							message: "Something went wrong",
-						});
 			console.error("[sign-in] Apple error:", err);
-			setError(message);
+			setError(errorCopy(err));
 		}
 	};
 
@@ -106,10 +92,10 @@ export function SignInScreen() {
 
 			<View className="items-center gap-2">
 				<Text className="text-2xl font-semibold text-foreground">
-					<Trans id="mobile.signIn.title">Welcome to Superset</Trans>
+					<Trans>Welcome to Superset</Trans>
 				</Text>
 				<Text className="text-base text-muted-foreground">
-					<Trans id="mobile.signIn.subtitle">Sign in to get started</Trans>
+					<Trans>Sign in to get started</Trans>
 				</Text>
 			</View>
 
@@ -138,7 +124,7 @@ export function SignInScreen() {
 			)}
 
 			<Text className="text-center text-xs text-muted-foreground/70">
-				<Trans id="mobile.signIn.legal">
+				<Trans>
 					By signing in, you agree to our{"\n"}
 					<Text
 						className="text-xs text-muted-foreground underline"

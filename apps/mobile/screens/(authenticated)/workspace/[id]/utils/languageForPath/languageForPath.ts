@@ -19,6 +19,7 @@ const LANGUAGE_BY_EXTENSION: Record<string, string> = {
 	yml: "yaml",
 	yaml: "yaml",
 	sql: "sql",
+	swift: "swift",
 	sh: "bash",
 	bash: "bash",
 	zsh: "bash",

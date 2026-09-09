@@ -22,7 +22,7 @@ import {
 	SidebarRail,
 } from "@superset/ui/sidebar";
 import { usePathname } from "next/navigation";
-import { LuChevronRight, LuHouse } from "react-icons/lu";
+import { LuChevronRight, LuHouse, LuTrendingUp } from "react-icons/lu";
 
 import { AppSidebarHeader } from "./components/AppSidebarHeader";
 import { NavUser, type SidebarUser } from "./components/NavUser";
@@ -30,9 +30,14 @@ import { SearchForm } from "./components/SearchForm";
 
 const topLevelNav = [
 	{
-		title: msg({ id: "admin.nav.home", message: "Home" }),
+		title: msg({ message: "Home" }),
 		url: "/",
 		icon: LuHouse,
+	},
+	{
+		title: msg({ message: "Growth" }),
+		url: "/growth",
+		icon: LuTrendingUp,
 	},
 ];
 

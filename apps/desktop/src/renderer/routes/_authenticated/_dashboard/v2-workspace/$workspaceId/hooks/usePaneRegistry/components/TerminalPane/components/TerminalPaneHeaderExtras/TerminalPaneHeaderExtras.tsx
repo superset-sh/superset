@@ -3,6 +3,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { SquarePen } from "lucide-react";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import type { SubagentPaneData } from "../../../../../../types";
 import {
 	terminalRichInputOpenStore,
 	useTerminalRichInputOpen,
@@ -11,6 +12,7 @@ import { TerminalConnectionIndicator } from "./components/TerminalConnectionIndi
 import { TerminalIdCopyMenu } from "./components/TerminalIdCopyMenu";
 import { TerminalPageWatchChip } from "./components/TerminalPageWatchChip";
 import { TerminalSessionHandoffMenu } from "./components/TerminalSessionHandoffMenu";
+import { TerminalSubagentsMenu } from "./components/TerminalSubagentsMenu";
 
 interface TerminalPaneHeaderExtrasProps {
 	workspaceId: string;
@@ -22,6 +24,8 @@ interface TerminalPaneHeaderExtrasProps {
 		prompt: string;
 		forkSessionId?: string;
 	}) => Promise<{ terminalId: string } | null>;
+	/** Open (or focus) the live transcript pane for one of this agent's subagents. */
+	onOpenSubagent: (data: SubagentPaneData) => void;
 }
 
 /**
@@ -35,6 +39,7 @@ export function TerminalPaneHeaderExtras({
 	terminalId,
 	terminalInstanceId,
 	onCreateNewAgentSession,
+	onOpenSubagent,
 }: TerminalPaneHeaderExtrasProps) {
 	const { t } = useLingui();
 	const isOpen = useTerminalRichInputOpen();
@@ -42,16 +47,19 @@ export function TerminalPaneHeaderExtras({
 	const label =
 		hotkeyText === "Unassigned"
 			? t({
-					id: "workspace.terminalPane.richInputLabel",
 					message: "Rich input",
 				})
 			: t({
-					id: "workspace.terminalPane.richInputLabelWithHotkey",
 					message: `Rich input (${hotkeyText})`,
 				});
 
 	return (
 		<div className="flex items-center">
+			<TerminalSubagentsMenu
+				workspaceId={workspaceId}
+				terminalId={terminalId}
+				onOpenSubagent={onOpenSubagent}
+			/>
 			<TerminalConnectionIndicator
 				terminalId={terminalId}
 				terminalInstanceId={terminalInstanceId}

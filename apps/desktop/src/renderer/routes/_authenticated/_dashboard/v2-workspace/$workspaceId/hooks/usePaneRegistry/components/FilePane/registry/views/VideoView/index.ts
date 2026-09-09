@@ -5,7 +5,7 @@ import { VideoView } from "./VideoView";
 
 export const videoView: FileView = {
 	id: "video",
-	label: msg({ id: "workspace.filePane.viewVideo", message: "Video" }),
+	label: msg({ message: "Video" }),
 	match: (filePath) => isPreviewableVideoFile(filePath),
 	priority: "exclusive",
 	documentKind: "bytes",

@@ -10,24 +10,21 @@ const isMac =
 // The chords themselves never translate (glossary), but the verb around them
 // does — so each label is one message with the glyph baked into the source.
 const MAC_LABELS: Record<LinkTier, MessageDescriptor> = {
-	plain: msg({ id: "clickPolicy.modifier.plain", message: "click" }),
-	shift: msg({ id: "clickPolicy.modifier.mac.shift", message: "⇧ click" }),
-	meta: msg({ id: "clickPolicy.modifier.mac.meta", message: "⌘ click" }),
+	plain: msg({ message: "click" }),
+	shift: msg({ message: "⇧ click" }),
+	meta: msg({ message: "⌘ click" }),
 	metaShift: msg({
-		id: "clickPolicy.modifier.mac.metaShift",
 		message: "⌘⇧ click",
 	}),
 };
 
 const NON_MAC_LABELS: Record<LinkTier, MessageDescriptor> = {
-	plain: msg({ id: "clickPolicy.modifier.plain", message: "click" }),
+	plain: msg({ message: "click" }),
 	shift: msg({
-		id: "clickPolicy.modifier.shift",
 		message: "Shift+click",
 	}),
-	meta: msg({ id: "clickPolicy.modifier.meta", message: "Ctrl+click" }),
+	meta: msg({ message: "Ctrl+click" }),
 	metaShift: msg({
-		id: "clickPolicy.modifier.metaShift",
 		message: "Ctrl+Shift+click",
 	}),
 };

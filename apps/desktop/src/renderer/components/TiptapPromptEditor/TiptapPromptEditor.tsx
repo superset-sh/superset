@@ -96,7 +96,6 @@ export function TiptapPromptEditor({
 	const resolvedPlaceholder =
 		placeholder ??
 		t({
-			id: "components.tiptapPromptEditor.placeholder",
 			message: "Ask to make changes, @mention files, run /commands",
 		});
 	const controller = usePromptInputController();
@@ -715,9 +714,7 @@ export function TiptapPromptEditor({
 					>
 						{focusShortcutText && !isFocused && (
 							<span className="pointer-events-none absolute top-0 right-3 flex h-full items-center text-xs text-muted-foreground/50">
-								<Trans id="components.tiptapPromptEditor.toFocus">
-									{focusShortcutText} to focus
-								</Trans>
+								<Trans>{focusShortcutText} to focus</Trans>
 							</span>
 						)}
 						<EditorContent editor={editor} />
@@ -759,7 +756,6 @@ export function TiptapPromptEditor({
 						<Command shouldFilter={false}>
 							<CommandInput
 								placeholder={t({
-									id: "components.tiptapPromptEditor.searchFilesPlaceholder",
 									message: "Search files...",
 								})}
 								value={mentionState?.query ?? ""}
@@ -773,20 +769,15 @@ export function TiptapPromptEditor({
 								{mentionFiles.length === 0 && (
 									<CommandEmpty className="px-2 py-3 text-left text-xs text-muted-foreground">
 										{!mentionState?.query ? (
-											<Trans id="components.tiptapPromptEditor.typeToSearchFiles">
-												Type to search files...
-											</Trans>
+											<Trans>Type to search files...</Trans>
 										) : (
-											<Trans id="components.tiptapPromptEditor.noFileResults">
-												No results found.
-											</Trans>
+											<Trans>No results found.</Trans>
 										)}
 									</CommandEmpty>
 								)}
 								{mentionFiles.length > 0 && (
 									<CommandGroup
 										heading={t({
-											id: "components.tiptapPromptEditor.filesHeading",
 											message: "Files",
 										})}
 									>

@@ -73,7 +73,6 @@ export function AgentPicker({
 					label={
 						selectedLabel ??
 						t({
-							id: "dashboard.automations.agentPicker.selectAgent",
 							message: "Select agent",
 						})
 					}
@@ -105,9 +104,7 @@ export function AgentPicker({
 				<DropdownMenuItem onSelect={() => navigate({ to: "/settings/agents" })}>
 					<LuSettings className="size-4 shrink-0" />
 					<span className="flex-1">
-						<Trans id="dashboard.automations.agentPicker.configureAgents">
-							Configure agents…
-						</Trans>
+						<Trans>Configure agents…</Trans>
 					</span>
 				</DropdownMenuItem>
 			</DropdownMenuContent>

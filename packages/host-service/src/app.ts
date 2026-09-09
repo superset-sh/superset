@@ -1,7 +1,7 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
-import { ChatService } from "@superset/provider-auth/server";
+import { SUPERSET_USER_ID_HEADER } from "@superset/shared/host-routing";
 import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
@@ -17,6 +17,7 @@ import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
 import { runArchivedWorkspaceReconcile } from "./runtime/archived-workspace-reconcile";
 import { registerBrowserCdpRoute } from "./runtime/browser-bridge/browser-cdp-route";
+import { registerDesktopRoute } from "./runtime/desktop";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitEnvResolver, createGitFactory } from "./runtime/git";
@@ -24,6 +25,7 @@ import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { runProjectBackfill } from "./runtime/project-backfill";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
 import {
+	launchSandboxAgentOnce,
 	readSandboxIdentity,
 	runSandboxSelfSeed,
 } from "./runtime/sandbox-self-seed";
@@ -42,7 +44,11 @@ import {
 	execGh as defaultExecGh,
 	type ExecGh,
 } from "./trpc/router/workspace-creation/utils/exec-gh";
-import type { ApiClient, BrowserBridgeConfig } from "./types";
+import type {
+	ApiClient,
+	BrowserBridgeConfig,
+	HostServiceContext,
+} from "./types";
 import { getHostWorkerPool } from "./workers/host-worker-pool";
 import { gitWorkspaceRefsTask } from "./workers/tasks/git";
 
@@ -65,14 +71,13 @@ export interface CreateAppOptions {
 	 * Test-harness override hooks. Production never sets these — `createApp`
 	 * builds each subsystem itself when omitted. `db` is overridden so tests
 	 * can swap in `bun:sqlite` (better-sqlite3 isn't loadable under Bun;
-	 * prod uses it on bundled Node). `api`, `github`, and `chatService` are
-	 * overridden to keep tests off the network and out of provider-auth storage.
+	 * prod uses it on bundled Node). `api` and `github` are overridden to
+	 * keep tests off the network.
 	 */
 	db?: HostDb;
 	api?: ApiClient;
 	github?: () => Promise<Octokit>;
 	execGh?: ExecGh;
-	chatService?: ChatService;
 }
 
 export interface CreateAppResult {
@@ -81,6 +86,12 @@ export interface CreateAppResult {
 	api: ApiClient;
 	db: HostDb;
 	eventBus: EventBus;
+	/**
+	 * In a sandbox, runs the agent the workspace was created with. Call once
+	 * the server is listening; a no-op everywhere else and on every boot after
+	 * the first.
+	 */
+	launchSandboxAgent: () => Promise<void>;
 	dispose: () => Promise<void>;
 }
 
@@ -148,10 +159,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		},
 	});
 	pullRequestRuntime.start();
-	// Provider auth (Anthropic / OpenAI OAuth + API keys) is per-machine, not
-	// per-workspace. ChatService is a long-lived singleton wrapping the
-	// provider auth storage; the `host.auth.*` router proxies to it.
-	const chatService = options.chatService ?? new ChatService();
 
 	// Chat v3 runtime (plans/chat-v3-pane-mount.md). Registered unconditionally:
 	// the routes sit behind the same auth as every other host route, and the
@@ -172,6 +179,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				"Authorization",
 				"trpc-accept",
 				"x-superset-client-machine-id",
+				SUPERSET_USER_ID_HEADER,
 			],
 		}),
 	);
@@ -230,7 +238,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	pageWatch.subscribeToTerminalEvents(eventBus);
 
 	const runtime = {
-		auth: chatService,
 		filesystem,
 		pullRequests: pullRequestRuntime,
 		pageWatch,
@@ -302,6 +309,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	app.use("/events", wsAuth);
 	app.use("/chat-v3/*", wsAuth);
 	app.use("/browser/*", wsAuth);
+	app.use("/desktop/*", wsAuth);
 	app.use("/fwd", wsAuth);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
@@ -310,6 +318,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		upgradeWebSocket,
 		getBridge: () => config.browserBridge,
 	});
+	registerDesktopRoute({ app, upgradeWebSocket });
 	registerForwardMuxRoute({
 		app,
 		upgradeWebSocket,
@@ -329,7 +338,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		trpcServer({
 			router: appRouter,
 			// Renderer clients send every request (including queries) as POST —
-			// see WorkspaceClientProvider/host-service-client's methodOverride —
+			// see createHostServiceLinks in @superset/workspace-client —
 			// so a query with a large input (e.g. git.getDiffBulk's file-path
 			// list, or a same-tick batch across many workspaces) doesn't produce
 			// a GET URL long enough to blow past the header-size limit. Without
@@ -352,6 +361,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					isAuthenticated,
 					clientMachineId:
 						c.req.header("x-superset-client-machine-id") ?? undefined,
+					userId: c.req.header(SUPERSET_USER_ID_HEADER)?.trim() || undefined,
 					browserBridge: config.browserBridge,
 				} as Record<string, unknown>;
 			},
@@ -378,6 +388,16 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		} catch (err) {
 			console.warn("[host-service] chatV3.dispose failed:", err);
 		}
+		// Retire the host-worker threads (and reap their in-flight git
+		// children) here rather than leaving them to process.exit(): exit joins
+		// every Worker, and a worker wedged in native code hangs that join
+		// forever. The desktop entry point bounds this dispose with a deadline
+		// and hard-exits past it.
+		try {
+			await getHostWorkerPool().dispose();
+		} catch (err) {
+			console.warn("[host-service] hostWorkerPool.dispose failed:", err);
+		}
 		try {
 			eventBus.close();
 		} catch (err) {
@@ -397,5 +417,34 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}
 	};
 
-	return { app, injectWebSocket, api, db, eventBus, dispose };
+	const launchSandboxAgent = async () => {
+		if (!sandboxIdentity?.launch) return;
+		await launchSandboxAgentOnce(
+			{
+				git,
+				credentials: providers.credentials,
+				github,
+				execGh,
+				api,
+				db,
+				runtime,
+				eventBus,
+				terminalAgentStore,
+				organizationId: config.organizationId,
+				isAuthenticated: true,
+				browserBridge: config.browserBridge,
+			} as HostServiceContext,
+			sandboxIdentity,
+		);
+	};
+
+	return {
+		app,
+		injectWebSocket,
+		api,
+		db,
+		eventBus,
+		launchSandboxAgent,
+		dispose,
+	};
 }

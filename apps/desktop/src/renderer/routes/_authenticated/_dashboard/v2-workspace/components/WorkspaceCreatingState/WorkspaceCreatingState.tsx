@@ -22,7 +22,6 @@ const WORKTREE_STEPS: readonly Step[] = [
 	{
 		id: "preparing",
 		label: msg({
-			id: "workspace.states.creatingStepPreparing",
 			message: "Preparing",
 		}),
 		doneAt: 1,
@@ -30,7 +29,6 @@ const WORKTREE_STEPS: readonly Step[] = [
 	{
 		id: "syncing",
 		label: msg({
-			id: "workspace.states.creatingStepSyncing",
 			message: "Syncing with remote",
 		}),
 		doneAt: 4,
@@ -38,7 +36,6 @@ const WORKTREE_STEPS: readonly Step[] = [
 	{
 		id: "verifying",
 		label: msg({
-			id: "workspace.states.creatingStepVerifying",
 			message: "Verifying base branch",
 		}),
 		doneAt: 5,
@@ -46,7 +43,6 @@ const WORKTREE_STEPS: readonly Step[] = [
 	{
 		id: "fetching",
 		label: msg({
-			id: "workspace.states.creatingStepFetching",
 			message: "Fetching latest changes",
 		}),
 		doneAt: 15,
@@ -54,7 +50,6 @@ const WORKTREE_STEPS: readonly Step[] = [
 	{
 		id: "creating_worktree",
 		label: msg({
-			id: "workspace.states.creatingStepWorktree",
 			message: "Creating git worktree",
 		}),
 		doneAt: 18,
@@ -62,7 +57,6 @@ const WORKTREE_STEPS: readonly Step[] = [
 	{
 		id: "copying_config",
 		label: msg({
-			id: "workspace.states.creatingStepCopyingConfig",
 			message: "Copying configuration",
 		}),
 		doneAt: 20,
@@ -70,7 +64,6 @@ const WORKTREE_STEPS: readonly Step[] = [
 	{
 		id: "finalizing",
 		label: msg({
-			id: "workspace.states.creatingStepFinalizing",
 			message: "Finalizing setup",
 		}),
 		doneAt: 23,
@@ -84,7 +77,6 @@ const SESSION_STEPS: readonly Step[] = [
 	{
 		id: "preparing",
 		label: msg({
-			id: "workspace.states.creatingSessionStepPreparing",
 			message: "Preparing",
 		}),
 		doneAt: 1,
@@ -92,7 +84,6 @@ const SESSION_STEPS: readonly Step[] = [
 	{
 		id: "initializing",
 		label: msg({
-			id: "workspace.states.creatingSessionStepInitializing",
 			message: "Initializing session",
 		}),
 		doneAt: 3,
@@ -100,7 +91,6 @@ const SESSION_STEPS: readonly Step[] = [
 	{
 		id: "finalizing",
 		label: msg({
-			id: "workspace.states.creatingSessionStepFinalizing",
 			message: "Finalizing setup",
 		}),
 		doneAt: 5,
@@ -148,18 +138,15 @@ export function WorkspaceCreatingState({
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
 						{isSession
 							? t({
-									id: "workspace.states.creatingSessionTitle",
 									message: "Creating session",
 								})
 							: t({
-									id: "workspace.states.creatingWorkspaceTitle",
 									message: "Creating workspace",
 								})}
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
 						{name ||
 							t({
-								id: "workspace.states.creatingUntitled",
 								message: "Untitled workspace",
 							})}
 					</p>
@@ -205,9 +192,7 @@ export function WorkspaceCreatingState({
 							{formatElapsed(elapsed)}
 						</span>
 						<span>
-							<Trans id="workspace.states.creatingTypicalDuration">
-								~{totalSeconds}s typical
-							</Trans>
+							<Trans>~{totalSeconds}s typical</Trans>
 						</span>
 					</div>
 				</div>
@@ -216,12 +201,12 @@ export function WorkspaceCreatingState({
 					<div className="flex w-full flex-col gap-2 border-t border-border/60 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-500">
 						<p className="select-text cursor-text text-[12px] leading-relaxed text-muted-foreground">
 							{isSession ? (
-								<Trans id="workspace.states.creatingStuckSessionBody">
+								<Trans>
 									This is taking longer than usual. The session may already be
 									ready — reloading can pick it up.
 								</Trans>
 							) : (
-								<Trans id="workspace.states.creatingStuckWorkspaceBody">
+								<Trans>
 									This is taking longer than usual. The workspace may already be
 									ready — reloading can pick it up.
 								</Trans>
@@ -238,9 +223,7 @@ export function WorkspaceCreatingState({
 								strokeWidth={2}
 								aria-hidden="true"
 							/>
-							<Trans id="workspace.states.creatingReloadWindow">
-								Reload window
-							</Trans>
+							<Trans>Reload window</Trans>
 						</Button>
 					</div>
 				)}

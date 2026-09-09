@@ -15,12 +15,17 @@ import {
 	markV1MigrationComplete,
 	setV1FollowUpPending,
 } from "renderer/lib/v1-migration/completion";
+import {
+	migrateV1Groups,
+	type V1GroupTarget,
+} from "renderer/lib/v1-migration/groups";
 import { electronV1MigrationIpc } from "renderer/lib/v1-migration/ipc";
 import { v1MigrationEventProps } from "renderer/lib/v1-migration/telemetry";
 import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { buildSidebarFolderKey } from "renderer/routes/_authenticated/utils/workspaceTagFolders/workspaceTagFolders";
 import { appendPendingMigratedTerminals } from "renderer/stores/workspace-creates/appendPendingMigratedTerminals";
 
 /**
@@ -28,10 +33,12 @@ import { appendPendingMigratedTerminals } from "renderer/stores/workspace-create
  * runs one pass per boot once the preconditions hold, records everything in
  * the ledger, and marks the org complete when the flip gate (projects +
  * workspaces) is satisfied — the NEXT launch then lands on v2 with data
- * already in place. On the v2 surface it keeps running only while there is
+ * already in place. On the v2 surface the full pass runs while there is
  * outstanding work: best-effort kinds (settings/presets/terminals) that
  * were still failing when the gate completed (D4), or everything on
  * machines the forced-flip backstop moved before their gate completed.
+ * Completed v2 migrations still run the ledger-guarded group backfill, since
+ * older passes omitted groups entirely.
  * Cross-instance single-flight via a main-process lock file; failures retry
  * next boot.
  */
@@ -63,11 +70,12 @@ export function V1AutoMigration() {
 		if (!organizationId || !onboarded || !activeHostUrl || !agentsSettled) {
 			return;
 		}
+		let groupsOnly = false;
 		if (isV2CloudEnabled) {
 			const followUp =
 				isV1FollowUpPending(organizationId) ||
 				(isV1ForcedFlipActive() && !isV1MigrationComplete(organizationId));
-			if (!followUp) return;
+			groupsOnly = !followUp;
 		} else if (migrationFlagEnabled !== true) {
 			return;
 		}
@@ -84,7 +92,34 @@ export function V1AutoMigration() {
 				if (!lock.acquired) return;
 				locked = true;
 
+				const groupTarget: V1GroupTarget = (group, projectId, tag) => {
+					const sectionId = buildSidebarFolderKey(projectId, tag);
+					if (collections.v2SidebarSections.get(sectionId)) return;
+					collections.v2SidebarSections.insert({
+						sectionId,
+						projectId,
+						tag,
+						name: group.name.trim() || tag,
+						color: group.color,
+						tabOrder: group.tabOrder,
+						isCollapsed: group.isCollapsed ?? false,
+						createdAt: new Date(group.createdAt ?? Date.now()),
+					});
+				};
+				// Older completed migrations never imported v1 groups. Backfill on
+				// v2 boots too; the ledger preserves later v2 customizations.
+				if (groupsOnly) {
+					await migrateV1Groups({
+						groupTarget,
+						organizationId,
+						hostClient: getHostServiceClientByUrl(hostUrl),
+						ipc: electronV1MigrationIpc,
+					});
+					return;
+				}
+
 				const summary = await runV1Migration({
+					groupTarget,
 					organizationId,
 					hostClient: getHostServiceClientByUrl(hostUrl),
 					ipc: electronV1MigrationIpc,

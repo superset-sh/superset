@@ -17,11 +17,12 @@ export function V2WorkspacesBoardColumn({
 	workspaces,
 }: V2WorkspacesBoardColumnProps) {
 	return (
-		<div className="flex w-[280px] min-w-[280px] shrink-0 flex-col">
-			{/* Column header — matches Linear style */}
-			<div className="mb-1 flex items-center gap-2 px-2 py-1.5">
+		// Linear-style lane: a surface one step above the page so the cards
+		// read as items sitting in a column rather than floating on the canvas.
+		<div className="flex w-[280px] min-w-[280px] shrink-0 flex-col rounded-lg bg-muted/30">
+			<div className="flex items-center gap-2 px-3 pt-2.5 pb-2">
 				<BoardColumnIcon column={column} />
-				<span className="truncate text-sm font-medium">
+				<span className="truncate text-[13px] font-medium">
 					{i18n._(BOARD_COLUMN_LABELS[column])}
 				</span>
 				<span className="text-xs tabular-nums text-muted-foreground">
@@ -29,7 +30,7 @@ export function V2WorkspacesBoardColumn({
 				</span>
 			</div>
 
-			<div className="flex min-h-[60px] flex-1 flex-col gap-1 overflow-y-auto rounded-md p-0.5">
+			<div className="flex min-h-[60px] flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
 				{workspaces.map((workspace) => (
 					<V2WorkspacesBoardCard key={workspace.id} workspace={workspace} />
 				))}

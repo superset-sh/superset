@@ -47,14 +47,13 @@ export function LinkBehaviorSetting() {
 				<Label htmlFor="terminal-link-behavior" className="text-sm font-medium">
 					<HighlightText
 						text={t({
-							id: "settings.terminal.linkBehavior.label",
 							message: "Terminal file links",
 						})}
 						query={searchQuery}
 					/>
 				</Label>
 				<p className="text-xs text-muted-foreground">
-					<Trans id="settings.terminal.linkBehavior.hint">
+					<Trans>
 						Choose how to open file paths when Cmd+clicking in the terminal
 					</Trans>
 				</p>
@@ -73,14 +72,10 @@ export function LinkBehaviorSetting() {
 				</SelectTrigger>
 				<SelectContent>
 					<SelectItem value="external-editor">
-						<Trans id="settings.terminal.linkBehavior.externalEditor">
-							External editor
-						</Trans>
+						<Trans>External editor</Trans>
 					</SelectItem>
 					<SelectItem value="file-viewer">
-						<Trans id="settings.terminal.linkBehavior.fileViewer">
-							File viewer
-						</Trans>
+						<Trans>File viewer</Trans>
 					</SelectItem>
 				</SelectContent>
 			</Select>

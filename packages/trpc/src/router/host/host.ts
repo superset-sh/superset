@@ -1,5 +1,6 @@
 import { db, dbWs } from "@superset/db/client";
 import {
+	members,
 	subscriptions,
 	users,
 	v2Hosts,
@@ -14,13 +15,19 @@ import {
 	buildHostRoutingKey,
 	parseHostRoutingKey,
 } from "@superset/shared/host-routing";
+import { HOST_INSTALL_SOURCES } from "@superset/shared/host-version";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { env } from "../../env";
 import { emitAppFirstOpened } from "../../lib/activation-events";
 import { fetchRelayPresence } from "../../lib/relay-presence";
-import { resolveUserRelayUrl } from "../../lib/relay-url";
 import { jwtProcedure, userError } from "../../trpc";
+import { registerHost } from "./registration";
+import {
+	authorizeHostUpdate,
+	hostUpdateAuthorizationSchema,
+} from "./update-access";
 
 // Registering a first host means the app is installed and running, so it
 // also marks the user as first-opened for the activation automation.
@@ -46,15 +53,42 @@ async function emitFirstHostEvent(userId: string) {
 	}
 }
 
+async function isHostOwner(
+	organizationId: string,
+	machineId: string,
+	userId: string,
+	database: Pick<typeof db, "select"> = db,
+): Promise<boolean> {
+	const [owner] = await database
+		.select({ hostId: v2UsersHosts.hostId })
+		.from(v2UsersHosts)
+		.innerJoin(
+			members,
+			and(
+				eq(members.organizationId, v2UsersHosts.organizationId),
+				eq(members.userId, v2UsersHosts.userId),
+			),
+		)
+		.where(
+			and(
+				eq(v2UsersHosts.organizationId, organizationId),
+				eq(v2UsersHosts.hostId, machineId),
+				eq(v2UsersHosts.userId, userId),
+				eq(v2UsersHosts.role, "owner"),
+			),
+		)
+		.limit(1);
+	return !!owner;
+}
+
 export const hostRouter = {
 	/**
-	 * The relay every client and host of this user must use. Resolved here so
-	 * one authenticated answer serves the desktop, its host-service, the CLI
-	 * and the web app — client-side flag evaluation raced identification and
-	 * silently fell back, which split hosts and clients across two relays.
+	 * The relay every client and host of this user must use. Answered here so
+	 * the desktop, its host-service, the CLI and the web app all read one
+	 * value instead of resolving it separately and landing on different relays.
 	 */
-	relayEndpoint: jwtProcedure.query(async ({ ctx }) => {
-		return { url: await resolveUserRelayUrl(ctx.userId) };
+	relayEndpoint: jwtProcedure.query(() => {
+		return { url: env.RELAY_URL };
 	}),
 
 	list: jwtProcedure
@@ -72,9 +106,11 @@ export const hostRouter = {
 				.select({
 					machineId: v2Hosts.machineId,
 					name: v2Hosts.name,
-					isOnline: v2Hosts.isOnline,
 					wakeCommand: v2Hosts.wakeCommand,
 					organizationId: v2Hosts.organizationId,
+					version: v2Hosts.version,
+					platform: v2Hosts.platform,
+					installSource: v2Hosts.installSource,
 				})
 				.from(v2Hosts)
 				.innerJoin(
@@ -91,13 +127,12 @@ export const hostRouter = {
 					),
 				);
 
-			// The relay's DOs are the presence authority; the DB flag is only
-			// the fallback for hosts still on the v1 relay, which keeps writing
-			// it. Callers' own bearer token is forwarded for the access checks.
+			// The relay's Durable Objects are the presence authority. Callers'
+			// own bearer token is forwarded for the access checks.
 			const bearer = ctx.headers.get("authorization")?.slice("Bearer ".length);
 			const presence = bearer
 				? await fetchRelayPresence(
-						await resolveUserRelayUrl(ctx.userId),
+						env.RELAY_URL,
 						bearer,
 						rows.map((row) =>
 							buildHostRoutingKey(row.organizationId, row.machineId),
@@ -110,9 +145,12 @@ export const hostRouter = {
 				name: row.name,
 				online:
 					presence?.[buildHostRoutingKey(row.organizationId, row.machineId)]
-						?.online ?? row.isOnline,
+						?.online ?? false,
 				wakeCommand: row.wakeCommand,
 				organizationId: row.organizationId,
+				version: row.version,
+				platform: row.platform,
+				installSource: row.installSource,
 			}));
 		}),
 
@@ -122,6 +160,13 @@ export const hostRouter = {
 				organizationId: z.string().uuid(),
 				machineId: z.string().min(1),
 				name: z.string().min(1),
+				// The build serving this host. A host-service reports these once
+				// per process, at registration; a restart re-registers, so they
+				// stay exact without any heartbeat. Optional so host-services that
+				// predate the fields keep registering.
+				version: z.string().min(1).max(64).optional(),
+				platform: z.string().min(1).max(32).optional(),
+				installSource: z.enum(HOST_INSTALL_SOURCES).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -133,27 +178,42 @@ export const hostRouter = {
 				});
 			}
 
-			const [inserted] = await dbWs
-				.insert(v2Hosts)
-				.values({
-					organizationId: input.organizationId,
-					machineId: input.machineId,
-					name: input.name,
-					createdByUserId: ctx.userId,
-				})
-				.onConflictDoNothing({
-					target: [v2Hosts.organizationId, v2Hosts.machineId],
-				})
-				.returning();
-
-			const host =
-				inserted ??
-				(await db.query.v2Hosts.findFirst({
-					where: and(
-						eq(v2Hosts.organizationId, input.organizationId),
-						eq(v2Hosts.machineId, input.machineId),
-					),
-				}));
+			const scope = and(
+				eq(v2Hosts.organizationId, input.organizationId),
+				eq(v2Hosts.machineId, input.machineId),
+			);
+			const { host, inserted } = await dbWs.transaction(async (tx) =>
+				registerHost(input, {
+					insert: async () =>
+						(
+							await tx
+								.insert(v2Hosts)
+								.values({ ...input, createdByUserId: ctx.userId })
+								.onConflictDoNothing({
+									target: [v2Hosts.organizationId, v2Hosts.machineId],
+								})
+								.returning()
+						)[0],
+					grantOwner: async () => {
+						await tx
+							.insert(v2UsersHosts)
+							.values({
+								organizationId: input.organizationId,
+								userId: ctx.userId,
+								hostId: input.machineId,
+								role: "owner",
+							})
+							.onConflictDoNothing();
+					},
+					isOwner: () =>
+						isHostOwner(input.organizationId, input.machineId, ctx.userId, tx),
+					update: async (metadata) =>
+						(
+							await tx.update(v2Hosts).set(metadata).where(scope).returning()
+						)[0],
+					read: () => tx.query.v2Hosts.findFirst({ where: scope }),
+				}),
+			);
 
 			if (!host) {
 				throw userError({
@@ -163,30 +223,18 @@ export const hostRouter = {
 				});
 			}
 
-			if (host.createdByUserId === ctx.userId) {
-				await dbWs
-					.insert(v2UsersHosts)
-					.values({
-						organizationId: input.organizationId,
-						userId: ctx.userId,
-						hostId: host.machineId,
-						role: "owner",
-					})
-					.onConflictDoNothing({
-						target: [
-							v2UsersHosts.organizationId,
-							v2UsersHosts.userId,
-							v2UsersHosts.hostId,
-						],
-					});
-			}
-
 			if (inserted) {
 				await emitFirstHostEvent(ctx.userId);
 			}
 
 			return host;
 		}),
+
+	// The host uses its own owner credential to check the relay-authenticated
+	// requester. Neither organization membership nor a claimed machine id is enough.
+	authorizeUpdate: jwtProcedure
+		.input(hostUpdateAuthorizationSchema)
+		.query(({ ctx, input }) => authorizeHostUpdate(ctx, input, isHostOwner)),
 
 	checkAccess: jwtProcedure
 		.input(z.object({ hostId: z.string().min(1) }))
@@ -228,53 +276,6 @@ export const hostRouter = {
 			return { allowed, paidPlan };
 		}),
 
-	setOnline: jwtProcedure
-		.input(z.object({ hostId: z.string().min(1), isOnline: z.boolean() }))
-		.mutation(async ({ ctx, input }) => {
-			const parsed = parseHostRoutingKey(input.hostId);
-			if (!parsed) {
-				throw userError({
-					code: "BAD_REQUEST",
-					message: "Invalid hostId",
-					i18nKey: "serverError.host.invalidHostid",
-				});
-			}
-			if (!ctx.organizationIds.includes(parsed.organizationId)) {
-				throw userError({
-					code: "FORBIDDEN",
-					message: "No access to this host",
-					i18nKey: "serverError.host.noAccessToThisHost",
-				});
-			}
-
-			const access = await db.query.v2UsersHosts.findFirst({
-				where: and(
-					eq(v2UsersHosts.userId, ctx.userId),
-					eq(v2UsersHosts.organizationId, parsed.organizationId),
-					eq(v2UsersHosts.hostId, parsed.machineId),
-				),
-				columns: { hostId: true },
-			});
-			if (!access) {
-				throw userError({
-					code: "FORBIDDEN",
-					message: "No access to this host",
-					i18nKey: "serverError.host.noAccessToThisHost",
-				});
-			}
-
-			await db
-				.update(v2Hosts)
-				.set({ isOnline: input.isOnline })
-				.where(
-					and(
-						eq(v2Hosts.organizationId, parsed.organizationId),
-						eq(v2Hosts.machineId, parsed.machineId),
-					),
-				);
-			return { success: true };
-		}),
-
 	setWakeCommand: jwtProcedure
 		.input(
 			z.object({
@@ -311,7 +312,7 @@ export const hostRouter = {
 				});
 			}
 
-			await dbWs
+			await db
 				.update(v2Hosts)
 				.set({ wakeCommand: input.wakeCommand })
 				.where(

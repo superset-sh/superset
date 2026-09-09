@@ -43,11 +43,9 @@ export function ChurnHeatmapTile() {
 	return (
 		<InsightTileFrame
 			title={t({
-				id: "admin.churnHeatmap.title",
 				message: "Paid churn — cohort survival",
 			})}
 			description={t({
-				id: "admin.churnHeatmap.description",
 				message:
 					"% of subscriptions started each month still active k months later (Neon, enterprise excluded)",
 			})}
@@ -58,16 +56,14 @@ export function ChurnHeatmapTile() {
 			<CohortGrid
 				columnLabels={offsets.map((offset) =>
 					t({
-						id: "admin.churnHeatmap.monthColumn",
 						message: `Month ${offset}`,
 					}),
 				)}
 				rows={rows}
 				labelHeader={t({
-					id: "admin.churnHeatmap.cohortHeader",
 					message: "Cohort",
 				})}
-				sizeHeader={t({ id: "admin.churnHeatmap.subsHeader", message: "Subs" })}
+				sizeHeader={t({ message: "Subs" })}
 			/>
 		</InsightTileFrame>
 	);

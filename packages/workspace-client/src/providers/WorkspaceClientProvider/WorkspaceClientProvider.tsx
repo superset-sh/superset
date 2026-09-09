@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchStreamLink, TRPCClientError } from "@trpc/client";
+import { TRPCClientError } from "@trpc/client";
 import { createContext, type ReactNode, useContext } from "react";
-import superjson from "superjson";
+import { createHostServiceLinks } from "../../lib/hostServiceLinks";
 import { workspaceTrpc } from "../../workspace-trpc";
 
 const STALE_TIME_MS = 5_000;
@@ -93,20 +93,7 @@ function getWorkspaceClients(
 	});
 
 	const trpcClient = workspaceTrpc.createClient({
-		links: [
-			httpBatchStreamLink({
-				url: `${hostUrl}/trpc`,
-				transformer: superjson,
-				headers: headers ?? (() => ({})),
-				// host-service is a local connection with no HTTP cache in front of
-				// it, so there's no upside to GET. Forcing POST puts query inputs in
-				// the request body instead of the URL — without this, a query with a
-				// large input (e.g. git.getDiffBulk's file-path list) can produce a
-				// GET URL long enough to blow past the server's HTTP header-size
-				// limit, failing even the CORS preflight before it reaches the route.
-				methodOverride: "POST",
-			}),
-		],
+		links: createHostServiceLinks({ url: `${hostUrl}/trpc`, headers }),
 	});
 
 	const getWsToken = wsToken ?? (() => null);

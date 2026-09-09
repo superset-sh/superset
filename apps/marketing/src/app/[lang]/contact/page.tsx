@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
@@ -5,18 +6,20 @@ import type { Metadata } from "next";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
 import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
-import { ContactForm } from "./components/ContactForm";
+import { ContactForm } from "../components/ContactForm";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
 	return {
-		title: i18n._({
-			id: "marketing.meta.contact.title",
-			message: "Contact",
-		}),
+		title: i18n._(
+			msg({
+				message: "Contact",
+			}),
+		),
 		description: i18n._({
-			id: "marketing.meta.contact.description",
-			message: "Get in touch with the {companyName} team.",
+			...msg({
+				message: "Get in touch with the {companyName} team.",
+			}),
 			values: { companyName: COMPANY.NAME },
 		}),
 		alternates: localizedAlternates(lang, "/contact"),
@@ -48,13 +51,13 @@ export default async function ContactPage() {
 					<GridCross className="top-0 right-0" />
 
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						<Trans id="marketing.contact.hero.eyebrow">Contact</Trans>
+						<Trans>Contact</Trans>
 					</span>
 					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-						<Trans id="marketing.contact.hero.title">Talk to Superset</Trans>
+						<Trans>Talk to Superset</Trans>
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						<Trans id="marketing.contact.hero.subtitle">
+						<Trans>
 							Questions, feedback, support, or anything else. Send a note and
 							we&apos;ll route it to the right person.
 						</Trans>
@@ -70,12 +73,10 @@ export default async function ContactPage() {
 
 				<section className="mt-16 border-t border-border pt-10">
 					<h2 className="text-xl font-medium text-foreground">
-						<Trans id="marketing.contact.otherWays.title">
-							Other ways to reach us
-						</Trans>
+						<Trans>Other ways to reach us</Trans>
 					</h2>
 					<p className="text-muted-foreground mt-3">
-						<Trans id="marketing.contact.otherWays.email">
+						<Trans>
 							Superset is built by a team based in San Francisco, California.
 							For product support or account questions, email{" "}
 							<a className="text-foreground underline" href={COMPANY.MAIL_TO}>
@@ -94,7 +95,7 @@ export default async function ContactPage() {
 						</Trans>
 					</p>
 					<p className="text-muted-foreground mt-3">
-						<Trans id="marketing.contact.otherWays.community">
+						<Trans>
 							For bug reports and feature requests, the fastest path is a GitHub
 							issue at{" "}
 							<a
@@ -125,7 +126,7 @@ export default async function ContactPage() {
 						</Trans>
 					</p>
 					<p className="text-muted-foreground mt-3">
-						<Trans id="marketing.contact.otherWays.status">
+						<Trans>
 							Service availability is published at{" "}
 							<a
 								className="text-foreground underline"

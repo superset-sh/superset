@@ -38,6 +38,10 @@ final class ComposerModel {
   /// `ComposerModelPicker`.
   var selectedModel: ComposerMenuOption?
 
+  /// Per-agent launch settings drawn after the agent — model, effort — each a
+  /// chevron button reporting its id. Empty for agents that have none.
+  var launchOptions: [ComposerMenuOption] = []
+
   /// A submit is in flight. The caller owns this — only it knows when delivery
   /// finished — and while it is true the send button shows a spinner and the
   /// mic gets out of the way.
@@ -60,9 +64,9 @@ final class ComposerModel {
   /// has no catalog. See `ComposerSessionTabLabels`.
   var sessionTabLabels = ComposerSessionTabLabels()
 
-  /// The strip's leading control. Nil on every surface with nothing to link
-  /// to, which is all of them but the workspace terminal.
-  var sessionAction: ComposerSessionAction?
+  /// The control beside the quick keys. Nil on every surface with nothing to
+  /// link to, which is all of them but the workspace terminal.
+  var quickKeysAction: ComposerQuickKeysAction?
 
   /// What the active agent can run behind `/` (or `$`). Empty hides the
   /// suggestion panel entirely — a plain shell, an agent without discovery,
@@ -112,6 +116,7 @@ final class ComposerModel {
   /// round trip.
   @ObservationIgnored var onDictationError: ((String) -> Void)?
   @ObservationIgnored var onModelPress: (() -> Void)?
+  @ObservationIgnored var onLaunchOptionPress: ((String) -> Void)?
   @ObservationIgnored var onChipPress: ((String) -> Void)?
   @ObservationIgnored var onQuickKeyPress: ((String) -> Void)?
   /// The session strip reports by id and knows nothing else. Selecting swaps
@@ -123,8 +128,9 @@ final class ComposerModel {
   @ObservationIgnored var onSessionTabCopyId: ((String) -> Void)?
   @ObservationIgnored var onNewSessionPress: (() -> Void)?
   @ObservationIgnored var onAllSessionsPress: (() -> Void)?
-  /// The leading control was pressed. Where it goes is React Native's to know.
-  @ObservationIgnored var onSessionActionPress: (() -> Void)?
+  /// The control beside the quick keys was pressed. Where it goes is React
+  /// Native's to know.
+  @ObservationIgnored var onQuickKeysActionPress: (() -> Void)?
   /// Files and images pasted into the field, already written to disk. The tray
   /// lives in React Native, so the composer hands over URIs and lets it add
   /// them the same way the pickers do.

@@ -20,7 +20,7 @@ export function ThemeSwatch({ theme }: { theme: Theme }) {
 				className="text-[9px] leading-none"
 				style={{ color: isDark ? "#fff" : "#000", opacity: 0.9 }}
 			>
-				<Trans id="components.themeSwatch.fontSample">Aa</Trans>
+				<Trans>Aa</Trans>
 			</span>
 		</div>
 	);

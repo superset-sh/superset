@@ -14,6 +14,7 @@ interface ReviewTabContentProps {
 	isError: boolean;
 	isCommentsLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	onOpenPullRequest?: (prNumber: number) => void;
 	onOpenInDiff?: (
 		path: string,
 		line?: number,
@@ -30,14 +31,13 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	isError,
 	isCommentsLoading,
 	onOpenComment,
+	onOpenPullRequest,
 	onOpenInDiff,
 }: ReviewTabContentProps) {
 	if (isError) {
 		return (
 			<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-				<Trans id="workspace.reviewTab.loadError">
-					Unable to load review status
-				</Trans>
+				<Trans>Unable to load review status</Trans>
 			</div>
 		);
 	}
@@ -45,7 +45,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	if (isLoading && !pr) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				<Trans id="workspace.reviewTab.loading">Loading review...</Trans>
+				<Trans>Loading review...</Trans>
 			</div>
 		);
 	}
@@ -53,7 +53,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	if (!pr) {
 		return (
 			<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-				<Trans id="workspace.reviewTab.noPr">
+				<Trans>
 					Open a pull request to view review status, checks, and comments.
 				</Trans>
 			</div>
@@ -62,7 +62,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 
 	return (
 		<div className="flex h-full min-h-0 min-w-0 flex-col overflow-x-hidden overflow-y-auto">
-			<PRHeader pr={pr} />
+			<PRHeader pr={pr} onOpenPullRequest={onOpenPullRequest} />
 
 			<div className="my-1 border-b border-border/70" />
 

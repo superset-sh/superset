@@ -141,7 +141,6 @@ export function useTasksTable({
 			columnHelper.accessor((row) => row.status, {
 				id: "status",
 				header: t({
-					id: "dashboard.tasks.table.headerStatus",
 					message: "Status",
 				}),
 				filterFn: (row, _columnId, filterValue: TabValue) => {
@@ -206,7 +205,6 @@ export function useTasksTable({
 							}
 							onClick={(e) => e.stopPropagation()}
 							aria-label={t({
-								id: "dashboard.tasks.table.selectTask",
 								message: "Select task",
 							})}
 							className="cursor-pointer"
@@ -217,7 +215,6 @@ export function useTasksTable({
 
 			columnHelper.accessor("priority", {
 				header: t({
-					id: "dashboard.tasks.table.headerPriority",
 					message: "Priority",
 				}),
 				cell: (info) => {
@@ -228,7 +225,6 @@ export function useTasksTable({
 
 			columnHelper.accessor("slug", {
 				header: t({
-					id: "dashboard.tasks.table.headerId",
 					message: "ID",
 				}),
 				cell: (info) => {
@@ -243,7 +239,6 @@ export function useTasksTable({
 
 			columnHelper.accessor("title", {
 				header: t({
-					id: "dashboard.tasks.table.headerTitle",
 					message: "Title",
 				}),
 				cell: (info) => {
@@ -279,7 +274,6 @@ export function useTasksTable({
 
 			columnHelper.accessor("assigneeId", {
 				header: t({
-					id: "dashboard.tasks.table.headerAssignee",
 					message: "Assignee",
 				}),
 				filterFn: (row, _columnId, filterValue: string) => {
@@ -302,7 +296,6 @@ export function useTasksTable({
 
 			columnHelper.accessor("createdAt", {
 				header: t({
-					id: "dashboard.tasks.table.headerCreated",
 					message: "Created",
 				}),
 				cell: (info) => {

@@ -57,7 +57,6 @@ export function ProjectLocationSection({
 		if (!hostUrl) {
 			toast.error(
 				t({
-					id: "settings.project.location.hostUnavailablePickToast",
 					message: `Host unavailable: ${hostName}`,
 				}),
 			);
@@ -80,7 +79,6 @@ export function ProjectLocationSection({
 		if (path === currentPath) {
 			toast.info(
 				t({
-					id: "settings.project.location.alreadyThereToast",
 					message: "Project is already at that location",
 				}),
 			);
@@ -89,7 +87,6 @@ export function ProjectLocationSection({
 		if (!hostUrl) {
 			toast.error(
 				t({
-					id: "settings.project.location.hostUnavailableRelocateToast",
 					message: `Host unavailable: ${hostName}`,
 				}),
 			);
@@ -105,7 +102,6 @@ export function ProjectLocationSection({
 		}
 		const path = await pickPath(
 			t({
-				id: "settings.project.location.pickDialogTitle",
 				message: "Select new project location",
 			}),
 		);
@@ -118,7 +114,6 @@ export function ProjectLocationSection({
 		if (!hostUrl) {
 			toast.error(
 				t({
-					id: "settings.project.location.hostUnavailableConfirmToast",
 					message: `Host unavailable: ${hostName}`,
 				}),
 			);
@@ -133,7 +128,6 @@ export function ProjectLocationSection({
 			});
 			toast.success(
 				t({
-					id: "settings.project.location.relocatedToast",
 					message: `Project relocated to ${result.repoPath}`,
 				}),
 			);
@@ -168,7 +162,6 @@ export function ProjectLocationSection({
 								onClick={handleChange}
 								disabled={selectDirectory.isPending || isSubmitting}
 								aria-label={t({
-									id: "settings.project.location.changeLocation",
 									message: "Change location",
 								})}
 							>
@@ -176,18 +169,14 @@ export function ProjectLocationSection({
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent>
-							<Trans id="settings.project.location.changeLocation">
-								Change location
-							</Trans>
+							<Trans>Change location</Trans>
 						</TooltipContent>
 					</Tooltip>
 				</div>
 			) : (
 				<div className="flex items-center gap-3">
 					<span className="text-sm text-muted-foreground">
-						<Trans id="settings.project.location.notSetUp">
-							Not set up on {hostName}
-						</Trans>
+						<Trans>Not set up on {hostName}</Trans>
 					</span>
 					<Button
 						type="button"
@@ -196,9 +185,7 @@ export function ProjectLocationSection({
 						onClick={() => setSetupOpen(true)}
 						disabled={!hostUrl}
 					>
-						<Trans id="settings.project.location.setUpProject">
-							Set up project…
-						</Trans>
+						<Trans>Set up project…</Trans>
 					</Button>
 				</div>
 			)}
@@ -222,15 +209,12 @@ export function ProjectLocationSection({
 				hostName={hostName}
 				initialPath={currentPath ?? undefined}
 				title={t({
-					id: "settings.project.location.browseTitle",
 					message: "Change project location",
 				})}
 				description={t({
-					id: "settings.project.location.browseDescription",
 					message: `Pick the new project folder on ${hostName}.`,
 				})}
 				confirmLabel={t({
-					id: "settings.project.location.browseConfirmLabel",
 					message: "Use this folder",
 				})}
 				onPick={(path) => {
@@ -247,28 +231,24 @@ export function ProjectLocationSection({
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							<Trans id="settings.project.location.relocateTitle">
-								Relocate project?
-							</Trans>
+							<Trans>Relocate project?</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription asChild>
 							<div className="space-y-3 text-sm select-text cursor-text">
 								<div>
 									<div className="text-muted-foreground text-xs">
-										<Trans id="settings.project.location.relocateFrom">
-											From
-										</Trans>
+										<Trans>From</Trans>
 									</div>
 									<div className="font-mono break-all">{currentPath}</div>
 								</div>
 								<div>
 									<div className="text-muted-foreground text-xs">
-										<Trans id="settings.project.location.relocateTo">To</Trans>
+										<Trans>To</Trans>
 									</div>
 									<div className="font-mono break-all">{pendingPath}</div>
 								</div>
 								<p className="text-muted-foreground">
-									<Trans id="settings.project.location.relocateWarning">
+									<Trans>
 										Existing worktrees under the old path will be orphaned. You
 										can re-import them from the worktrees flow.
 									</Trans>
@@ -278,9 +258,7 @@ export function ProjectLocationSection({
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={isSubmitting}>
-							<Trans id="settings.project.location.relocateCancel">
-								Cancel
-							</Trans>
+							<Trans>Cancel</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={(e) => {
@@ -290,11 +268,9 @@ export function ProjectLocationSection({
 							disabled={isSubmitting}
 						>
 							{isSubmitting ? (
-								<Trans id="settings.project.location.relocating">
-									Relocating…
-								</Trans>
+								<Trans>Relocating…</Trans>
 							) : (
-								<Trans id="settings.project.location.relocate">Relocate</Trans>
+								<Trans>Relocate</Trans>
 							)}
 						</AlertDialogAction>
 					</AlertDialogFooter>

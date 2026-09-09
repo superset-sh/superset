@@ -45,6 +45,7 @@ export const darkTheme: Theme = {
 		destructiveForeground: "#ffcccc",
 		warning: "#e5c07b",
 		warningForeground: "#000000",
+		success: "#5fb37f",
 
 		// Borders - subtle warm gray
 		border: "#2a2827",

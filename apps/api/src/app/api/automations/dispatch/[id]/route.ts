@@ -1,8 +1,8 @@
-import { dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { automations } from "@superset/db/schema";
 import { dispatchAutomation } from "@superset/trpc/automation-dispatch";
 import { eq } from "drizzle-orm";
-import { getRelayUrl } from "@/lib/relay-url";
+import { env } from "@/env";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 import { runPayloadSchema } from "../../runPayloadSchema";
 
@@ -28,7 +28,7 @@ export async function POST(
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
 	}
 
-	const [automation] = await dbWs
+	const [automation] = await db
 		.select()
 		.from(automations)
 		.where(eq(automations.id, parsed.data.automationId))
@@ -41,9 +41,7 @@ export async function POST(
 		return Response.json({ ok: true, skipped: "disabled" });
 	}
 
-	// The owner's host may be on an overridden relay (relay-url-override);
-	// env.RELAY_URL alone reaches only hosts still on the default relay.
-	const relayUrl = await getRelayUrl(automation.ownerUserId);
+	const relayUrl = env.RELAY_URL;
 	const outcome = await dispatchAutomation(
 		"scheduledFor" in parsed.data
 			? {

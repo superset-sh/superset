@@ -69,7 +69,6 @@ export default function SignInPage() {
 			console.error("Sign in failed:", err);
 			setError(
 				t({
-					id: "web.signIn.error",
 					message: "Failed to sign in. Please try again.",
 				}),
 			);
@@ -91,7 +90,6 @@ export default function SignInPage() {
 			console.error("Sign in failed:", err);
 			setError(
 				t({
-					id: "web.signIn.error",
 					message: "Failed to sign in. Please try again.",
 				}),
 			);
@@ -130,7 +128,7 @@ export default function SignInPage() {
 			setError(
 				err instanceof Error
 					? err.message
-					: t({ id: "web.signIn.devError", message: "Dev sign-in failed" }),
+					: t({ message: "Dev sign-in failed" }),
 			);
 			setIsLoadingDev(false);
 		}
@@ -140,7 +138,7 @@ export default function SignInPage() {
 
 	const lastUsedBadge = (
 		<span className="bg-muted text-muted-foreground absolute right-3 rounded-full px-2 py-0.5 text-xs">
-			<Trans id="web.signIn.lastUsed">Last used</Trans>
+			<Trans>Last used</Trans>
 		</span>
 	);
 
@@ -148,12 +146,10 @@ export default function SignInPage() {
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
 			<div className="flex flex-col space-y-2 text-center">
 				<h1 className="text-2xl font-semibold tracking-tight">
-					<Trans id="web.signIn.title">Welcome back</Trans>
+					<Trans>Welcome back</Trans>
 				</h1>
 				<p className="text-muted-foreground text-sm">
-					<Trans id="web.signIn.subtitle">
-						Sign in to continue to Superset
-					</Trans>
+					<Trans>Sign in to continue to Superset</Trans>
 				</p>
 			</div>
 			<div className="grid gap-4">
@@ -168,11 +164,9 @@ export default function SignInPage() {
 						className="relative w-full"
 					>
 						{isLoadingDev ? (
-							<Trans id="web.signIn.signingIn">Signing in...</Trans>
+							<Trans>Signing in...</Trans>
 						) : (
-							<Trans id="web.signIn.devButton">
-								Sign in as Local Admin (dev)
-							</Trans>
+							<Trans>Sign in as Local Admin (dev)</Trans>
 						)}
 						{lastUsedMethod === "dev" && lastUsedBadge}
 					</Button>
@@ -185,9 +179,9 @@ export default function SignInPage() {
 				>
 					<FaGithub className="mr-2 size-4" />
 					{isLoadingGithub ? (
-						<Trans id="web.signIn.loading">Loading...</Trans>
+						<Trans>Loading...</Trans>
 					) : (
-						<Trans id="web.signIn.withGithub">Sign in with GitHub</Trans>
+						<Trans>Sign in with GitHub</Trans>
 					)}
 					{lastUsedMethod === "github" && lastUsedBadge}
 				</Button>
@@ -199,14 +193,14 @@ export default function SignInPage() {
 				>
 					<FcGoogle className="mr-2 size-4" />
 					{isLoadingGoogle ? (
-						<Trans id="web.signIn.loading">Loading...</Trans>
+						<Trans>Loading...</Trans>
 					) : (
-						<Trans id="web.signIn.withGoogle">Sign in with Google</Trans>
+						<Trans>Sign in with Google</Trans>
 					)}
 					{lastUsedMethod === "google" && lastUsedBadge}
 				</Button>
 				<p className="text-muted-foreground px-8 text-center text-sm">
-					<Trans id="web.signIn.legal">
+					<Trans>
 						By clicking continue, you agree to our{" "}
 						<a
 							href={`${env.NEXT_PUBLIC_MARKETING_URL}/terms`}
@@ -229,7 +223,7 @@ export default function SignInPage() {
 					</Trans>
 				</p>
 				<p className="text-center text-sm">
-					<Trans id="web.signIn.signUpPrompt">
+					<Trans>
 						Don&apos;t have an account?{" "}
 						<Link
 							href="/sign-up"

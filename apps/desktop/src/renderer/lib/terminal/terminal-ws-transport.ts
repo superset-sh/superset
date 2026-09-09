@@ -1,4 +1,5 @@
-import type { RelayAffinityProbe } from "@superset/workspace-client";
+import { DIAL_TIMEOUT_MS } from "@superset/shared/tunnel-protocol";
+import type { RelayHostProbe } from "@superset/workspace-client";
 import {
 	createRelaySocket,
 	type RelaySocket,
@@ -55,7 +56,11 @@ type TerminalServerMessage =
 			epoch: string;
 			seq: number;
 			mode: "exact" | "tail" | "reanchor";
-	  };
+	  }
+	// Liveness probe. The host drops a client that answered before and then
+	// went silent, so a half-open socket can't keep its dims in the PTY size
+	// minimum for everyone else.
+	| { type: "ping" };
 
 export interface TerminalTransport {
 	connectionState: ConnectionState;
@@ -129,7 +134,7 @@ export interface TerminalTransport {
 	 * (already logged); its guaranteed follow-up close skips the generic log. */
 	_connHadRetryableError: boolean;
 	/** Internal: last `_whoowns` preflight probe, used to classify a failure. */
-	_lastProbe: RelayAffinityProbe | null;
+	_lastProbe: RelayHostProbe | null;
 	/**
 	 * Token carried on the URL the caller passed. Reused as-is for local (PSK)
 	 * hosts, whose token doesn't rotate; relay hosts re-sign per dial via
@@ -267,7 +272,6 @@ function maybeSurfaceDiagnosis(
 				? closeEvent.reason || undefined
 				: undefined,
 		preflight_status: transport._lastProbe?.status ?? null,
-		tunnel_region: transport._lastProbe?.region ?? null,
 		reconnect_attempts: effectiveFailureCount(
 			transport._attachRetry,
 			transport._socket?.retryCount ?? 0,
@@ -645,7 +649,6 @@ export function connect(
 			posthog.capture("terminal_connect_failed", {
 				endpoint: formatWsEndpoint(transport.currentUrl),
 				preflight_status: transport._lastProbe?.status ?? null,
-				tunnel_region: transport._lastProbe?.region ?? null,
 				reconnect_attempts: transport._socket?.retryCount ?? 0,
 				category: diagnosis.category,
 			});
@@ -655,6 +658,10 @@ export function connect(
 		},
 		minReconnectionDelay: BASE_RECONNECT_DELAY,
 		maxReconnectionDelay: MAX_RECONNECT_DELAY,
+		// The relay holds the upgrade until the host dials back, up to
+		// DIAL_TIMEOUT_MS. partysocket's 4s default cancelled attempts the host
+		// was still answering, and every retry cost the host another dial.
+		connectionTimeout: DIAL_TIMEOUT_MS + 2_000,
 		// send() is a no-op unless open; we gate writes on connectionState anyway.
 		maxEnqueuedMessages: 0,
 	});
@@ -700,6 +707,11 @@ function attachSocketListeners(
 		} catch {
 			transport._writeCoalescer?.flushSync();
 			terminal.writeln("\r\n[terminal] invalid server payload");
+			return;
+		}
+
+		if (message.type === "ping") {
+			socket.send(JSON.stringify({ type: "pong" }));
 			return;
 		}
 

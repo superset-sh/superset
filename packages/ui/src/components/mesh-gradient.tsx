@@ -12,7 +12,7 @@ interface MeshGradientProps {
 interface GradientInstance {
 	initGradient: (selector: string) => void;
 	disconnect?: () => void;
-	pause?: () => void;
+	waitForCssVars?: () => void;
 	el?: HTMLElement | null;
 	conf?: { playing?: boolean };
 	uniforms?: {
@@ -64,14 +64,17 @@ export function MeshGradient({
 		const gradient = new Gradient() as GradientInstance;
 
 		const teardown = () => {
-			if (gradient.pause) {
-				gradient.pause();
-			}
 			if (gradient.conf) {
 				gradient.conf.playing = false;
 			}
-			// stripe-gradient's delayed init reads both el.parentElement and el
-			// children after we unmount, so the decoy needs a parent AND a child.
+			// Nothing the library exposes stops what it has already scheduled:
+			// `pause` is only the assignment above and `disconnect` drops window
+			// listeners. Its CSS-variable poll reschedules itself for 200 frames,
+			// then rebuilds the material from the empty colour list a detached
+			// canvas reports, which throws (WEB-30); its isLoaded hook walks
+			// el.parentElement three seconds later. So end the poll, and leave
+			// the hook a decoy element with both a parent AND a child.
+			gradient.waitForCssVars = () => {};
 			const dummy = document.createElement("div");
 			dummy.appendChild(document.createElement("div"));
 			document.createElement("div").appendChild(dummy);

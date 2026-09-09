@@ -12,7 +12,7 @@ export function PlanRow({ item }: { item: Plan }) {
 	return (
 		<div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/30 p-2">
 			<span className="text-xs font-medium text-muted-foreground">
-				<Trans id="workspace.chat.planLabel">Plan</Trans>
+				<Trans>Plan</Trans>
 			</span>
 			{item.entries.map((entry, index) => {
 				const Icon = ICON_BY_STATUS[entry.status];

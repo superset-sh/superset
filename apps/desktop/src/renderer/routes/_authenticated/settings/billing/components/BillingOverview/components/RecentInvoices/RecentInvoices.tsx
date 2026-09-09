@@ -26,7 +26,7 @@ export function RecentInvoices() {
 	return (
 		<div>
 			<h3 className="text-sm font-medium mb-2">
-				<Trans id="settings.billing.invoicesTitle">Recent invoices</Trans>
+				<Trans>Recent invoices</Trans>
 			</h3>
 			<div className="divide-y divide-border">
 				{invoices.map((invoice) => (
@@ -55,11 +55,9 @@ export function RecentInvoices() {
 									className="border-warning/30 bg-warning/10 text-warning"
 								>
 									{invoice.status === "uncollectible" ? (
-										<Trans id="settings.billing.invoiceUncollectible">
-											Uncollectible
-										</Trans>
+										<Trans>Uncollectible</Trans>
 									) : (
-										<Trans id="settings.billing.invoiceUnpaid">Unpaid</Trans>
+										<Trans>Unpaid</Trans>
 									)}
 								</Badge>
 							)}
@@ -78,9 +76,9 @@ export function RecentInvoices() {
 								)}
 							>
 								{invoice.isUnpaid ? (
-									<Trans id="settings.billing.invoicePayNow">Pay now</Trans>
+									<Trans>Pay now</Trans>
 								) : (
-									<Trans id="settings.billing.invoiceView">View</Trans>
+									<Trans>View</Trans>
 								)}
 								<HiArrowTopRightOnSquare className="h-3 w-3" />
 							</button>

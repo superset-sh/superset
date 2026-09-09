@@ -1,9 +1,15 @@
-import { dbWs } from "@superset/db/client";
 import { sql } from "drizzle-orm";
 
+import { singleFlight } from "@/lib/singleFlight";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Matches enforce-retention. A batch measured 224 s in production, so on the
+ * platform default this route was killed before its first batch returned.
+ */
+export const maxDuration = 300;
 
 /**
  * Matches ingest.webhook_events. These are the same provider bodies, kept a
@@ -62,8 +68,10 @@ export async function POST(request: Request): Promise<Response> {
 	// scan re-skips everything it already cleared on every batch.
 	let cursor: string | null = null;
 
+	let skipped = false;
 	while (Date.now() - startedAt < TIME_BUDGET_MS && pruned < MAX_ROWS_PER_RUN) {
-		const result = await dbWs.execute(sql`
+		const attempt = await singleFlight("automations.prune-payloads", (tx) =>
+			tx.execute(sql`
 			WITH batch AS (
 				SELECT id, received_at
 				FROM automation_events
@@ -89,9 +97,14 @@ export async function POST(request: Request): Promise<Response> {
 			WHERE e.id = batch.id
 			  AND e.payload IS NOT NULL
 			RETURNING batch.received_at
-		`);
+		`),
+		);
+		if (!attempt.ran) {
+			skipped = true;
+			break;
+		}
 
-		const returned = result.rows as Array<{ received_at: string }>;
+		const returned = attempt.result.rows as Array<{ received_at: string }>;
 		pruned += returned.length;
 		batches++;
 		if (returned.length < BATCH_SIZE) break;
@@ -102,8 +115,12 @@ export async function POST(request: Request): Promise<Response> {
 	return Response.json({
 		pruned,
 		batches,
+		// Another run held the lock; its batches count for this tick.
+		skipped,
 		// Whether the run stopped on a limit rather than running out of work.
 		more:
-			pruned >= MAX_ROWS_PER_RUN || Date.now() - startedAt >= TIME_BUDGET_MS,
+			skipped ||
+			pruned >= MAX_ROWS_PER_RUN ||
+			Date.now() - startedAt >= TIME_BUDGET_MS,
 	});
 }

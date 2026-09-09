@@ -20,7 +20,6 @@ import {
 	usePromptInputAttachments,
 	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
-import { Button } from "@superset/ui/button";
 import {
 	Command,
 	CommandEmpty,
@@ -38,19 +37,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-	ArrowUpIcon,
-	ExternalLinkIcon,
-	PaperclipIcon,
-	PlusIcon,
-} from "lucide-react";
+import { ArrowUpIcon, PaperclipIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-	GoArrowUpRight,
-	GoGitBranch,
-	GoGlobe,
-	GoIssueOpened,
-} from "react-icons/go";
+import { GoIssueOpened } from "react-icons/go";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuFolderGit, LuFolderOpen, LuGitPullRequest } from "react-icons/lu";
 import { AgentSelect } from "renderer/components/AgentSelect";
@@ -58,7 +47,6 @@ import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
@@ -70,6 +58,7 @@ import {
 } from "renderer/stores/new-workspace-modal";
 import type { LinkedPR } from "../../NewWorkspaceModalDraftContext";
 import { useNewWorkspaceModalDraft } from "../../NewWorkspaceModalDraftContext";
+import { CompareBaseBranchPickerInline } from "./components/CompareBaseBranchPickerInline";
 import { GitHubIssueLinkCommand } from "./components/GitHubIssueLinkCommand";
 import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
@@ -135,9 +124,7 @@ function AttachmentButtons({
 					</PromptInputButton>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="components.promptGroup.addAttachment">
-						Add attachment
-					</Trans>
+					<Trans>Add attachment</Trans>
 				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
@@ -150,9 +137,7 @@ function AttachmentButtons({
 					</PromptInputButton>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="components.promptGroup.linkGithubIssue">
-						Link GitHub issue
-					</Trans>
+					<Trans>Link GitHub issue</Trans>
 				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
@@ -165,9 +150,7 @@ function AttachmentButtons({
 					</PromptInputButton>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="components.promptGroup.linkPullRequest">
-						Link pull request
-					</Trans>
+					<Trans>Link pull request</Trans>
 				</TooltipContent>
 			</Tooltip>
 		</div>
@@ -208,11 +191,7 @@ function ProjectPickerPill({
 						/>
 					)}
 					<span className="truncate">
-						{selectedProject?.name ?? (
-							<Trans id="components.promptGroup.selectProject">
-								Select project
-							</Trans>
-						)}
+						{selectedProject?.name ?? <Trans>Select project</Trans>}
 					</span>
 					<HiChevronUpDown className="size-3 shrink-0 text-muted-foreground" />
 				</PromptInputButton>
@@ -225,15 +204,12 @@ function ProjectPickerPill({
 				<Command>
 					<CommandInput
 						placeholder={t({
-							id: "components.promptGroup.searchProjectsPlaceholder",
 							message: "Search projects...",
 						})}
 					/>
 					<CommandList>
 						<CommandEmpty>
-							<Trans id="components.promptGroup.noProjectsFound">
-								No projects found.
-							</Trans>
+							<Trans>No projects found.</Trans>
 						</CommandEmpty>
 						<CommandGroup>
 							{recentProjects.map((project) => (
@@ -270,9 +246,7 @@ function ProjectPickerPill({
 								}}
 							>
 								<LuFolderOpen className="size-4" />
-								<Trans id="components.promptGroup.openProject">
-									Open project
-								</Trans>
+								<Trans>Open project</Trans>
 							</CommandItem>
 							<CommandItem
 								forceMount
@@ -282,298 +256,9 @@ function ProjectPickerPill({
 								}}
 							>
 								<LuFolderGit className="size-4" />
-								<Trans id="components.promptGroup.newProject">
-									New project
-								</Trans>
+								<Trans>New project</Trans>
 							</CommandItem>
 						</CommandGroup>
-					</CommandList>
-				</Command>
-			</PopoverContent>
-		</Popover>
-	);
-}
-
-function CompareBaseBranchPickerInline({
-	effectiveCompareBaseBranch,
-	defaultBranch,
-	isBranchesLoading,
-	isBranchesError,
-	branches,
-	worktreeBranches,
-	openableWorktrees,
-	activeWorkspacesByBranch,
-	externalWorktreeBranches,
-	modKey,
-	onSelectCompareBaseBranch,
-	onOpenWorktree,
-	onOpenActiveWorkspace,
-}: {
-	effectiveCompareBaseBranch: string | null;
-	defaultBranch?: string;
-	isBranchesLoading: boolean;
-	isBranchesError: boolean;
-	branches: Array<{ name: string; lastCommitDate: number; isLocal: boolean }>;
-	worktreeBranches: Set<string>;
-	openableWorktrees: Map<string, OpenableWorktreeAction>;
-	activeWorkspacesByBranch: Map<string, string>;
-	externalWorktreeBranches: Set<string>;
-	modKey: string;
-	onSelectCompareBaseBranch: (branchName: string) => void;
-	onOpenWorktree: (action: OpenableWorktreeAction) => void;
-	onOpenActiveWorkspace: (workspaceId: string) => void;
-}) {
-	const { t } = useLingui();
-	const [open, setOpen] = useState(false);
-	const [branchSearch, setBranchSearch] = useState("");
-	const [filterMode, setFilterMode] = useState<"all" | "worktrees">("all");
-
-	const filteredBranches = useMemo(() => {
-		if (!branches.length) return [];
-		if (!branchSearch) return branches;
-		const searchLower = branchSearch.toLowerCase();
-		return branches.filter((branch) =>
-			branch.name.toLowerCase().includes(searchLower),
-		);
-	}, [branches, branchSearch]);
-
-	const displayBranches = useMemo(() => {
-		if (filterMode === "all") return filteredBranches;
-		return filteredBranches.filter((b) => worktreeBranches.has(b.name));
-	}, [filteredBranches, filterMode, worktreeBranches]);
-
-	if (isBranchesError) {
-		return (
-			<span className="text-xs text-destructive">
-				<Trans id="components.promptGroup.branchesLoadFailed">
-					Failed to load branches
-				</Trans>
-			</span>
-		);
-	}
-
-	return (
-		<Popover
-			open={open}
-			onOpenChange={(v) => {
-				setOpen(v);
-				if (!v) {
-					setBranchSearch("");
-					setFilterMode("all");
-				}
-			}}
-		>
-			<PopoverTrigger asChild>
-				<button
-					type="button"
-					disabled={isBranchesLoading}
-					className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 min-w-0 max-w-full"
-				>
-					<GoGitBranch className="size-3 shrink-0" />
-					{isBranchesLoading ? (
-						<span className="h-2.5 w-14 rounded-sm bg-muted-foreground/15 animate-pulse" />
-					) : (
-						<span className="font-mono truncate">
-							{effectiveCompareBaseBranch || "..."}
-						</span>
-					)}
-					<HiChevronUpDown className="size-3 shrink-0" />
-				</button>
-			</PopoverTrigger>
-			<PopoverContent
-				className="w-96 p-0"
-				align="start"
-				onWheel={(event) => event.stopPropagation()}
-			>
-				<Command shouldFilter={false}>
-					<div className="flex items-center gap-0.5 rounded-md bg-muted/40 p-0.5 mx-2 mt-2">
-						{(["all", "worktrees"] as const).map((value) => {
-							const count =
-								value === "all"
-									? branches.length
-									: branches.filter((b) => worktreeBranches.has(b.name)).length;
-							return (
-								<button
-									key={value}
-									type="button"
-									onClick={() => setFilterMode(value)}
-									className={cn(
-										"flex-1 rounded px-2 py-1 text-xs text-center transition-colors",
-										filterMode === value
-											? "bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground",
-									)}
-								>
-									{value === "all" ? (
-										<Trans id="components.promptGroup.branchFilterAll">
-											All
-										</Trans>
-									) : (
-										<Trans id="components.promptGroup.branchFilterWorktrees">
-											Worktrees
-										</Trans>
-									)}
-									<span className="ml-1 text-foreground/40">{count}</span>
-								</button>
-							);
-						})}
-					</div>
-					<CommandInput
-						placeholder={t({
-							id: "components.promptGroup.searchBranchesPlaceholder",
-							message: "Search branches...",
-						})}
-						value={branchSearch}
-						onValueChange={setBranchSearch}
-					/>
-					<CommandList className="max-h-[400px]">
-						<CommandEmpty>
-							<Trans id="components.promptGroup.noBranchesFound">
-								No branches found
-							</Trans>
-						</CommandEmpty>
-						{displayBranches.map((branch) => {
-							const openAction = openableWorktrees.get(branch.name);
-							const activeWorkspaceId = activeWorkspacesByBranch.get(
-								branch.name,
-							);
-							const isExternal = externalWorktreeBranches.has(branch.name);
-							const hasExistingWorkspace = !!(activeWorkspaceId || openAction);
-
-							// Determine icon based on state - all same color
-							let icon: React.ReactNode;
-							if (activeWorkspaceId) {
-								icon = (
-									<GoArrowUpRight className="size-3.5 shrink-0 text-muted-foreground" />
-								);
-							} else if (openAction) {
-								icon = (
-									<ExternalLinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
-								);
-							} else if (branch.isLocal) {
-								icon = (
-									<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-								);
-							} else {
-								icon = (
-									<GoGlobe className="size-3.5 shrink-0 text-muted-foreground" />
-								);
-							}
-
-							return (
-								<CommandItem
-									key={branch.name}
-									value={branch.name}
-									onSelect={() => {
-										if (activeWorkspaceId) {
-											onOpenActiveWorkspace(activeWorkspaceId);
-										} else if (openAction) {
-											onOpenWorktree(openAction);
-										} else {
-											onSelectCompareBaseBranch(branch.name);
-										}
-										setOpen(false);
-									}}
-									className="group h-11 flex items-center justify-between gap-3 px-3"
-								>
-									<span className="flex items-center gap-2.5 truncate flex-1 min-w-0">
-										{icon}
-										<span className="truncate font-mono text-xs">
-											{branch.name}
-										</span>
-
-										{/* Inline badges */}
-										<span className="flex items-center gap-1.5 shrink-0">
-											{branch.name === defaultBranch && (
-												<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-													<Trans id="components.promptGroup.defaultBranchBadge">
-														default
-													</Trans>
-												</span>
-											)}
-											{isExternal && !activeWorkspaceId && (
-												<span className="text-[10px] text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
-													<Trans id="components.promptGroup.externalBranchBadge">
-														external
-													</Trans>
-												</span>
-											)}
-										</span>
-									</span>
-
-									{/* Right side: time + buttons */}
-									<span className="flex items-center gap-2 shrink-0">
-										{branch.lastCommitDate > 0 && (
-											<span className="text-[11px] text-muted-foreground/70 group-data-[selected=true]:hidden">
-												{formatRelativeTime(branch.lastCommitDate)}
-											</span>
-										)}
-
-										{/* Show checkmark for selected base branch when not hovering */}
-										{!hasExistingWorkspace &&
-											effectiveCompareBaseBranch === branch.name && (
-												<HiCheck className="size-4 text-primary group-data-[selected=true]:hidden" />
-											)}
-
-										{/* Action buttons - show on hover/select */}
-										<span className="hidden group-data-[selected=true]:flex items-center gap-1.5">
-											{hasExistingWorkspace && (
-												<Button
-													size="sm"
-													variant="ghost"
-													className="h-7 px-2.5 text-xs font-medium hover:bg-accent/10 hover:text-accent-foreground"
-													onClick={(e) => {
-														e.stopPropagation();
-														if (activeWorkspaceId) {
-															onOpenActiveWorkspace(activeWorkspaceId);
-														} else if (openAction) {
-															onOpenWorktree(openAction);
-														}
-														setOpen(false);
-													}}
-												>
-													<GoArrowUpRight className="size-3.5 mr-1" />
-													<Trans id="components.promptGroup.openWorkspace">
-														Open
-													</Trans>
-													<span className="ml-1 text-[10px] opacity-60">↵</span>
-												</Button>
-											)}
-											<Button
-												size="sm"
-												className="h-7 px-2.5 text-xs font-medium"
-												onClick={(e) => {
-													e.stopPropagation();
-													onSelectCompareBaseBranch(branch.name);
-													setOpen(false);
-												}}
-											>
-												{hasExistingWorkspace ? (
-													<>
-														<PlusIcon className="size-3.5 mr-1" />
-														<Trans id="components.promptGroup.createAlongsideExisting">
-															Create
-														</Trans>
-														<span className="ml-1 text-[10px] opacity-70">
-															{modKey}↵
-														</span>
-													</>
-												) : (
-													<>
-														<Trans id="components.promptGroup.createWorkspace">
-															Create
-														</Trans>
-														<span className="ml-1 text-[10px] opacity-70">
-															↵
-														</span>
-													</>
-												)}
-											</Button>
-										</span>
-									</span>
-								</CommandItem>
-							);
-						})}
 					</CommandList>
 				</Command>
 			</PopoverContent>
@@ -782,7 +467,6 @@ function PromptGroupInner({
 			if (!projectId) {
 				toast.error(
 					t({
-						id: "components.promptGroup.selectProjectFirst",
 						message: "Select a project first",
 					}),
 				);
@@ -844,7 +528,6 @@ function PromptGroupInner({
 							console.warn("[PromptGroup] AI generation timeout");
 							toast.info(
 								t({
-									id: "components.promptGroup.branchNameTimeout",
 									message: "Using random branch name (AI generation timed out)",
 								}),
 							);
@@ -856,7 +539,6 @@ function PromptGroupInner({
 							console.error("[PromptGroup] AI auth error:", error);
 							toast.error(
 								t({
-									id: "components.promptGroup.aiAuthFailed",
 									message:
 										"AI authentication failed. Please check your AI settings.",
 								}),
@@ -867,7 +549,6 @@ function PromptGroupInner({
 							console.warn("[PromptGroup] AI generation failed:", error);
 							toast.info(
 								t({
-									id: "components.promptGroup.branchNameUnavailable",
 									message:
 										"Using random branch name (AI generation unavailable)",
 								}),
@@ -894,7 +575,6 @@ function PromptGroupInner({
 							err instanceof Error
 								? err.message
 								: t({
-										id: "components.promptGroup.processAttachmentsFailed",
 										message: "Failed to process attachments",
 									}),
 						);
@@ -1027,7 +707,6 @@ ${sanitizeText(truncatedBody)}`;
 						error instanceof Error
 							? error.message
 							: t({
-									id: "components.promptGroup.prepareLaunchFailed",
 									message: "Failed to prepare agent launch",
 								}),
 					);
@@ -1044,18 +723,15 @@ ${sanitizeText(truncatedBody)}`;
 						),
 						{
 							loading: t({
-								id: "components.promptGroup.creatingFromPr",
 								message: `Creating workspace from PR #${linkedPR.prNumber}...`,
 							}),
 							success: t({
-								id: "components.promptGroup.createdFromPr",
 								message: "Workspace created from PR",
 							}),
 							error: (err) =>
 								err instanceof Error
 									? err.message
 									: t({
-											id: "components.promptGroup.createFromPrFailed",
 											message: "Failed to create workspace from PR",
 										}),
 						},
@@ -1096,18 +772,15 @@ ${sanitizeText(truncatedBody)}`;
 					),
 					{
 						loading: t({
-							id: "components.promptGroup.creatingWorkspace",
 							message: "Creating workspace...",
 						}),
 						success: t({
-							id: "components.promptGroup.workspaceCreated",
 							message: "Workspace created",
 						}),
 						error: (err) =>
 							errorMessage(
 								err,
 								t({
-									id: "components.promptGroup.createWorkspaceFailed",
 									message: "Failed to create workspace",
 								}),
 							),
@@ -1193,18 +866,15 @@ ${sanitizeText(truncatedBody)}`;
 					}),
 					{
 						loading: t({
-							id: "components.promptGroup.openingWorktree",
 							message: "Opening worktree...",
 						}),
 						success: t({
-							id: "components.promptGroup.worktreeOpened",
 							message: "Worktree opened",
 						}),
 						error: (err) =>
 							errorMessage(
 								err,
 								t({
-									id: "components.promptGroup.openWorktreeFailed",
 									message: "Failed to open worktree",
 								}),
 							),
@@ -1218,18 +888,15 @@ ${sanitizeText(truncatedBody)}`;
 					}),
 					{
 						loading: t({
-							id: "components.promptGroup.openingWorktree",
 							message: "Opening worktree...",
 						}),
 						success: t({
-							id: "components.promptGroup.worktreeOpened",
 							message: "Worktree opened",
 						}),
 						error: (err) =>
 							errorMessage(
 								err,
 								t({
-									id: "components.promptGroup.openWorktreeFailed",
 									message: "Failed to open worktree",
 								}),
 							),
@@ -1297,7 +964,6 @@ ${sanitizeText(truncatedBody)}`;
 				<Input
 					className="border-none bg-transparent dark:bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
 					placeholder={t({
-						id: "components.promptGroup.workspaceNamePlaceholder",
 						message: "Workspace name (optional)",
 					})}
 					value={workspaceName}
@@ -1319,7 +985,6 @@ ${sanitizeText(truncatedBody)}`;
 							"border-none bg-transparent dark:bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
 						)}
 						placeholder={t({
-							id: "components.promptGroup.branchNamePlaceholder",
 							message: "branch name",
 						})}
 						value={branchName}
@@ -1409,7 +1074,6 @@ ${sanitizeText(truncatedBody)}`;
 				<PromptInputTextarea
 					autoFocus
 					placeholder={t({
-						id: "components.promptGroup.promptPlaceholder",
 						message: "What do you want to do?",
 					})}
 					className="min-h-10"
@@ -1422,7 +1086,6 @@ ${sanitizeText(truncatedBody)}`;
 							agents={enabledAgentPresets}
 							value={selectedAgent}
 							placeholder={t({
-								id: "components.promptGroup.noAgentPlaceholder",
 								message: "No agent",
 							})}
 							onValueChange={setSelectedAgent}
@@ -1431,7 +1094,6 @@ ${sanitizeText(truncatedBody)}`;
 							iconClassName="size-3 object-contain"
 							allowNone
 							noneLabel={t({
-								id: "components.promptGroup.noAgentLabel",
 								message: "No agent",
 							})}
 							noneValue="none"
@@ -1503,9 +1165,7 @@ ${sanitizeText(truncatedBody)}`;
 								className="flex items-center gap-1 text-xs text-muted-foreground"
 							>
 								<LuGitPullRequest className="size-3 shrink-0" />
-								<Trans id="components.promptGroup.basedOffPr">
-									based off PR #{linkedPR.prNumber}
-								</Trans>
+								<Trans>based off PR #{linkedPR.prNumber}</Trans>
 							</motion.span>
 						) : (
 							<motion.div
@@ -1536,9 +1196,7 @@ ${sanitizeText(truncatedBody)}`;
 					</AnimatePresence>
 				</div>
 				<span className="text-[11px] text-muted-foreground/50">
-					<Trans id="components.promptGroup.pressToCreate">
-						{modKey}↵ to create
-					</Trans>
+					<Trans>{modKey}↵ to create</Trans>
 				</span>
 			</div>
 		</div>

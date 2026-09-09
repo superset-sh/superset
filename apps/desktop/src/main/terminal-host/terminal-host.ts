@@ -1,5 +1,8 @@
 import type { Socket } from "node:net";
-import { TerminalAttachCanceledError } from "../lib/terminal/errors";
+import {
+	TerminalAttachCanceledError,
+	TerminalSpawnFailedError,
+} from "../lib/terminal/errors";
 import type {
 	CancelCreateOrAttachRequest,
 	ClearScrollbackRequest,
@@ -157,10 +160,9 @@ export class TerminalHost {
 				throwIfAborted(pendingAttach.abortController.signal);
 
 				if (!session.isAlive || session.pid === null) {
+					const cause = session.describeSpawnFailure();
 					void session.dispose();
-					throw new Error(
-						"Session spawn failed: PTY process exited immediately",
-					);
+					throw new TerminalSpawnFailedError(cause);
 				}
 
 				this.sessions.set(sessionId, session);

@@ -42,17 +42,14 @@ export function CurrentPlanCard({
 			? null
 			: isCancelingAtPeriodEnd && cancelAt
 				? t({
-						id: "settings.billing.plan.cancelsOn",
 						message: `Cancels ${format(new Date(cancelAt), "MMMM d, yyyy")} — downgrades to Free at the end of the billing period.`,
 					})
 				: isEnterprise
 					? t({
-							id: "settings.billing.plan.managedByAdmin",
 							message: "Managed by your organization admin.",
 						})
 					: isPaidPlan && periodEnd
 						? t({
-								id: "settings.billing.plan.renewsOn",
 								message: `Renews ${format(new Date(periodEnd), "MMMM d, yyyy")}.`,
 							})
 						: `${i18n._(plan.description)}.`;
@@ -62,9 +59,7 @@ export function CurrentPlanCard({
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-2">
 					<span className="text-sm font-medium">
-						<Trans id="settings.billing.plan.currentPlanName">
-							{i18n._(plan.name)} plan
-						</Trans>
+						<Trans>{i18n._(plan.name)} plan</Trans>
 					</span>
 					{isPaidPlan && (
 						<span className="inline-flex items-center rounded-md bg-foreground px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-background">
@@ -87,13 +82,9 @@ export function CurrentPlanCard({
 							className="text-primary"
 						>
 							{isRestoring ? (
-								<Trans id="settings.billing.plan.restoringButton">
-									Restoring...
-								</Trans>
+								<Trans>Restoring...</Trans>
 							) : (
-								<Trans id="settings.billing.plan.restoreButton">
-									Restore plan
-								</Trans>
+								<Trans>Restore plan</Trans>
 							)}
 						</Button>
 					) : (
@@ -105,13 +96,9 @@ export function CurrentPlanCard({
 							className="text-muted-foreground hover:text-destructive"
 						>
 							{isCanceling ? (
-								<Trans id="settings.billing.plan.cancelingButton">
-									Canceling...
-								</Trans>
+								<Trans>Canceling...</Trans>
 							) : (
-								<Trans id="settings.billing.plan.cancelButton">
-									Cancel plan
-								</Trans>
+								<Trans>Cancel plan</Trans>
 							)}
 						</Button>
 					)}

@@ -58,9 +58,7 @@ export function SlashCommandMenu({
 							</span>
 							{cmd.kind === "builtin" && (
 								<span className="rounded-sm border border-border/70 bg-muted/40 px-1 py-0.5 font-mono text-[10px] text-muted-foreground uppercase leading-none">
-									<Trans id="components.slashCommandMenu.builtinBadge">
-										builtin
-									</Trans>
+									<Trans>builtin</Trans>
 								</span>
 							)}
 							{cmd.argumentHint && (
@@ -76,7 +74,7 @@ export function SlashCommandMenu({
 						)}
 						{cmd.aliases.length > 0 && (
 							<span className="text-muted-foreground pl-4 font-mono">
-								<Trans id="components.slashCommandMenu.aliases">
+								<Trans>
 									aliases: {cmd.aliases.map((alias) => `/${alias}`).join(", ")}
 								</Trans>
 							</span>

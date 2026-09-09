@@ -2,6 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
+import { rawErrorMessage } from "@superset/i18n/errors";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -71,20 +72,17 @@ type ComparisonSection = {
 const PLAN_CARDS: PlanCardData[] = [
 	{
 		id: "free",
-		name: msg({ id: "settings.billing.plans.cardFreeName", message: "Free" }),
-		price: msg({ id: "settings.billing.plans.cardFreePrice", message: "$0" }),
+		name: msg({ message: "Free" }),
+		price: msg({ message: "$0" }),
 		priceNote: msg({
-			id: "settings.billing.plans.cardFreePriceNote",
 			message: "per user/month",
 		}),
 		billingText: msg({
-			id: "settings.billing.plans.cardFreeBilling",
 			message: "Free for everyone",
 		}),
 		actions: [
 			{
 				label: msg({
-					id: "settings.billing.plans.cardFreeCurrentPlan",
 					message: "Current plan",
 				}),
 				action: "current",
@@ -94,28 +92,23 @@ const PLAN_CARDS: PlanCardData[] = [
 	},
 	{
 		id: "pro",
-		name: msg({ id: "settings.billing.plans.cardProName", message: "Pro" }),
+		name: msg({ message: "Pro" }),
 		price: {
 			monthly: msg({
-				id: "settings.billing.plans.cardProPriceMonthly",
 				message: "$20",
 			}),
 			yearly: msg({
-				id: "settings.billing.plans.cardProPriceYearly",
 				message: "$15",
 			}),
 		},
 		priceNote: msg({
-			id: "settings.billing.plans.cardProPriceNote",
 			message: "per user/month",
 		}),
 		billingText: {
 			monthly: msg({
-				id: "settings.billing.plans.cardProBillingMonthly",
 				message: "Billed monthly",
 			}),
 			yearly: msg({
-				id: "settings.billing.plans.cardProBillingYearly",
 				message: "Billed yearly",
 			}),
 		},
@@ -123,7 +116,6 @@ const PLAN_CARDS: PlanCardData[] = [
 		actions: [
 			{
 				label: msg({
-					id: "settings.billing.plans.cardProUpgrade",
 					message: "Upgrade",
 				}),
 				action: "upgrade",
@@ -134,21 +126,17 @@ const PLAN_CARDS: PlanCardData[] = [
 	{
 		id: "enterprise",
 		name: msg({
-			id: "settings.billing.plans.cardEnterpriseName",
 			message: "Enterprise",
 		}),
 		price: msg({
-			id: "settings.billing.plans.cardEnterprisePrice",
 			message: "Custom pricing",
 		}),
 		billingText: msg({
-			id: "settings.billing.plans.cardEnterpriseBilling",
 			message: "Billed yearly",
 		}),
 		actions: [
 			{
 				label: msg({
-					id: "settings.billing.plans.cardEnterpriseRequestTrial",
 					message: "Request a trial",
 				}),
 				action: "contact",
@@ -159,35 +147,30 @@ const PLAN_CARDS: PlanCardData[] = [
 ];
 
 const VALUE_ONE = msg({
-	id: "settings.billing.plans.valueOne",
 	message: "1",
 });
 const VALUE_UNLIMITED = msg({
-	id: "settings.billing.plans.valueUnlimited",
 	message: "Unlimited",
 });
 
 const COMPARISON_SECTIONS: ComparisonSection[] = [
 	{
-		title: msg({ id: "settings.billing.plans.sectionUsage", message: "Usage" }),
+		title: msg({ message: "Usage" }),
 		rows: [
 			{
 				label: msg({
-					id: "settings.billing.plans.rowTeamMembers",
 					message: "Team members",
 				}),
 				values: [VALUE_ONE, VALUE_UNLIMITED, VALUE_UNLIMITED],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowWorkspaces",
 					message: "Workspaces",
 				}),
 				values: [VALUE_UNLIMITED, VALUE_UNLIMITED, VALUE_UNLIMITED],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowProjects",
 					message: "Projects",
 				}),
 				values: [VALUE_UNLIMITED, VALUE_UNLIMITED, VALUE_UNLIMITED],
@@ -196,33 +179,28 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 	},
 	{
 		title: msg({
-			id: "settings.billing.plans.sectionFeatures",
 			message: "Features",
 		}),
 		rows: [
 			{
 				label: msg({
-					id: "settings.billing.plans.rowDesktopApp",
 					message: "Desktop app",
 				}),
 				values: [true, true, true],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowLocalWorkspaces",
 					message: "Local workspaces",
 				}),
 				values: [true, true, true],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowRemoteAccess",
 					message: "Remote access",
 				}),
 				values: [null, true, true],
 				badge: {
 					label: msg({
-						id: "settings.billing.plans.badgeBeta",
 						message: "Beta",
 					}),
 					variant: "default",
@@ -230,20 +208,17 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowAutomations",
 					message: "Automations",
 				}),
 				values: [true, true, true],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowMobileApp",
 					message: "Mobile app",
 				}),
 				values: [null, true, true],
 				badge: {
 					label: msg({
-						id: "settings.billing.plans.badgeComingSoon",
 						message: "Coming soon",
 					}),
 					variant: "secondary",
@@ -251,28 +226,24 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowGithubIntegration",
 					message: "GitHub integration",
 				}),
 				values: [true, true, true],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowLinearIntegration",
 					message: "Linear integration",
 				}),
 				values: [null, true, true],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowSlackIntegration",
 					message: "Slack integration",
 				}),
 				values: [null, true, true],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowTeamCollaboration",
 					message: "Team collaboration",
 				}),
 				values: [null, true, true],
@@ -281,27 +252,23 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 	},
 	{
 		title: msg({
-			id: "settings.billing.plans.sectionSupport",
 			message: "Support",
 		}),
 		rows: [
 			{
 				label: msg({
-					id: "settings.billing.plans.rowPrioritySupport",
 					message: "Priority support",
 				}),
 				values: [null, true, true],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowUptimeSla",
 					message: "Uptime SLA",
 				}),
 				values: [null, null, true],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowCustomContracts",
 					message: "Custom contracts",
 				}),
 				values: [null, null, true],
@@ -310,34 +277,29 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 	},
 	{
 		title: msg({
-			id: "settings.billing.plans.sectionSecurity",
 			message: "Security",
 		}),
 		rows: [
 			{
 				label: msg({
-					id: "settings.billing.plans.rowSsoSaml",
 					message: "SSO/SAML",
 				}),
 				values: [null, null, true],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowIpRestrictions",
 					message: "IP restrictions",
 				}),
 				values: [null, null, true],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowScimProvisioning",
 					message: "SCIM provisioning",
 				}),
 				values: [null, null, true],
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowAuditLog",
 					message: "Audit log",
 				}),
 				values: [null, null, true],
@@ -420,10 +382,9 @@ function PlansPage() {
 		membersData && membersData.length > 0 ? membersData.length : undefined;
 
 	const currentPlanLabelByTier: Record<PlanTier, string> = {
-		free: t({ id: "settings.billing.plans.tierFree", message: "Free" }),
-		pro: t({ id: "settings.billing.plans.tierPro", message: "Pro" }),
+		free: t({ message: "Free" }),
+		pro: t({ message: "Pro" }),
 		enterprise: t({
-			id: "settings.billing.plans.tierEnterprise",
 			message: "Enterprise",
 		}),
 	};
@@ -480,7 +441,6 @@ function PlansPage() {
 				});
 				toast.success(
 					t({
-						id: "settings.billing.plans.planRestoredToast",
 						message: "Plan restored",
 					}),
 				);
@@ -492,6 +452,19 @@ function PlansPage() {
 		}
 
 		if (memberCount === undefined) return;
+
+		// The actual intent-to-pay step — this is what mints the Stripe Checkout
+		// session. `paywall_upgrade_clicked` only navigates to this page.
+		// `previous_plan` separates a new conversion (`free`) from an existing
+		// subscriber changing billing interval (`pro`), which shares this action.
+		const checkoutProperties = {
+			plan: "pro",
+			annual: isYearly,
+			seats: memberCount,
+			previous_plan: currentPlan,
+			source: "billing_plans",
+		};
+		track("checkout_started", checkoutProperties);
 
 		setIsUpgrading(true);
 		try {
@@ -509,8 +482,20 @@ function PlansPage() {
 				{
 					onSuccess: (ctx) => {
 						if (ctx.data?.url) {
+							// Last thing we can see client-side; everything after this
+							// happens on Stripe and comes back through the webhook.
+							track("checkout_redirected", checkoutProperties);
 							window.open(ctx.data.url, "_blank");
 						}
+					},
+					// Better Auth resolves rather than throws, so without this hook a
+					// failed checkout is invisible: the button just resets.
+					onError: (ctx) => {
+						track("checkout_failed", {
+							...checkoutProperties,
+							status: ctx.response?.status,
+							error: rawErrorMessage(ctx.error),
+						});
 					},
 				},
 			);
@@ -524,7 +509,7 @@ function PlansPage() {
 		if (value === null || value === false) {
 			return (
 				<span className="sr-only">
-					<Trans id="settings.billing.plans.notIncluded">Not included</Trans>
+					<Trans>Not included</Trans>
 				</span>
 			);
 		}
@@ -551,15 +536,15 @@ function PlansPage() {
 				<Button variant="ghost" size="sm" asChild>
 					<Link to="/settings/billing">
 						<HiArrowLeft className="h-4 w-4" />
-						<Trans id="settings.billing.plans.backToBilling">Billing</Trans>
+						<Trans>Billing</Trans>
 					</Link>
 				</Button>
 				<div>
 					<h2 className="text-xl font-semibold">
-						<Trans id="settings.billing.plans.title">Plans</Trans>
+						<Trans>Plans</Trans>
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						<Trans id="settings.billing.plans.subtitle">
+						<Trans>
 							You are on the{" "}
 							<span className="text-foreground font-medium">
 								{currentPlanLabel} plan
@@ -621,11 +606,9 @@ function PlansPage() {
 											{
 												label: isCurrent
 													? t({
-															id: "settings.billing.plans.currentPlanAction",
 															message: "Current plan",
 														})
 													: t({
-															id: "settings.billing.plans.includedInEnterprise",
 															message: "Included in Enterprise",
 														}),
 												action: "current" as const,
@@ -637,11 +620,9 @@ function PlansPage() {
 											{
 												label: isRestoring
 													? t({
-															id: "settings.billing.plans.restoringAction",
 															message: "Restoring...",
 														})
 													: t({
-															id: "settings.billing.plans.restoreAction",
 															message: "Restore plan",
 														}),
 												action: "restore" as const,
@@ -659,7 +640,6 @@ function PlansPage() {
 											planActions = [
 												{
 													label: t({
-														id: "settings.billing.plans.currentPlanAction",
 														message: "Current plan",
 													}),
 													action: "current" as const,
@@ -671,16 +651,13 @@ function PlansPage() {
 												{
 													label: isUpgrading
 														? t({
-																id: "settings.billing.plans.changingAction",
 																message: "Changing...",
 															})
 														: isYearly
 															? t({
-																	id: "settings.billing.plans.changeToAnnual",
 																	message: "Change to Annual",
 																})
 															: t({
-																	id: "settings.billing.plans.changeToMonthly",
 																	message: "Change to Monthly",
 																}),
 													action: "upgrade" as const,
@@ -692,7 +669,6 @@ function PlansPage() {
 										planActions = [
 											{
 												label: t({
-													id: "settings.billing.plans.currentPlanAction",
 													message: "Current plan",
 												}),
 												action: "current" as const,
@@ -703,7 +679,6 @@ function PlansPage() {
 										planActions = [
 											{
 												label: t({
-													id: "settings.billing.plans.startsOn",
 													message: `Starts ${cancelAt ? format(new Date(cancelAt), "MMMM d, yyyy") : ""}`,
 												}),
 												action: "current" as const,
@@ -715,11 +690,9 @@ function PlansPage() {
 											{
 												label: isCanceling
 													? t({
-															id: "settings.billing.plans.downgradingAction",
 															message: "Downgrading...",
 														})
 													: t({
-															id: "settings.billing.plans.downgradeToFree",
 															message: "Downgrade to Free",
 														}),
 												action: "downgrade" as const,
@@ -770,7 +743,6 @@ function PlansPage() {
 														checked={isYearly}
 														onCheckedChange={setIsYearly}
 														aria-label={t({
-															id: "settings.billing.plans.billedYearlyToggle",
 															message: "Billed yearly",
 														})}
 													/>

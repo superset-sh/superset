@@ -10,7 +10,6 @@ export function Soc2Badge({ size = 96, className }: Soc2BadgeProps) {
 	const { t } = useLingui();
 	const ringId = useId();
 	const badgeLabel = t({
-		id: "marketing.soc2.badgeLabel",
 		message: "SOC 2 Type II compliant",
 	});
 

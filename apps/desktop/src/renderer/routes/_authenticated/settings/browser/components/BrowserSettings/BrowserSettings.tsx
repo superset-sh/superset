@@ -58,12 +58,10 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.browser.title">Browser</Trans>
+					<Trans>Browser</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					<Trans id="settings.browser.subtitle">
-						Configure the in-app browser
-					</Trans>
+					<Trans>Configure the in-app browser</Trans>
 				</p>
 			</div>
 
@@ -74,14 +72,13 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 							<Label htmlFor="browser-homepage" className="text-sm font-medium">
 								<HighlightText
 									text={t({
-										id: "settings.browser.homepageLabel",
 										message: "Browser homepage",
 									})}
 									query={searchQuery}
 								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								<Trans id="settings.browser.homepageHint">
+								<Trans>
 									The page new in-app browser tabs open to. Leave empty for a
 									blank page.
 								</Trans>
@@ -108,14 +105,13 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 							<Label className="text-sm font-medium">
 								<HighlightText
 									text={t({
-										id: "settings.browser.importLabel",
 										message: "Import settings from another browser",
 									})}
 									query={searchQuery}
 								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								<Trans id="settings.browser.importHint">
+								<Trans>
 									Copy browsing history and logins from Chrome, Brave, Arc, or
 									another Chromium browser into Superset.
 								</Trans>
@@ -128,7 +124,7 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 							onClick={() => setIsImportOpen(true)}
 						>
 							<TbDownload className="size-4" />
-							<Trans id="settings.browser.importButton">Import…</Trans>
+							<Trans>Import…</Trans>
 						</Button>
 					</div>
 				)}

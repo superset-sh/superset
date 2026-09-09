@@ -41,7 +41,6 @@ export function AgentPickerSelect({
 			>
 				<SelectValue
 					placeholder={t({
-						id: "workspace.agentCommentComposer.chooseAgentPlaceholder",
 						message: "Choose agent",
 					})}
 				/>
@@ -50,9 +49,7 @@ export function AgentPickerSelect({
 				{sessions.length > 0 ? (
 					<SelectGroup>
 						<SelectLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
-							<Trans id="workspace.agentCommentComposer.activeSessions">
-								Active sessions
-							</Trans>
+							<Trans>Active sessions</Trans>
 						</SelectLabel>
 						{sessions.map((session) => (
 							<SelectItem
@@ -69,9 +66,7 @@ export function AgentPickerSelect({
 				{configs.length > 0 ? (
 					<SelectGroup>
 						<SelectLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
-							<Trans id="workspace.agentCommentComposer.startNewSession">
-								Start new session
-							</Trans>
+							<Trans>Start new session</Trans>
 						</SelectLabel>
 						{configs.map((config) => (
 							<SelectItem

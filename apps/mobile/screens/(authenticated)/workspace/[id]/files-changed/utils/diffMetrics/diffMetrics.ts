@@ -6,7 +6,6 @@ export const CODE_PADDING_RIGHT = 16;
 
 // Deterministic row heights — the virtualizer gets exact sizes so nothing
 // shifts as content renders in.
-export const HUNK_ROW_HEIGHT = 28;
 export const EXPANDER_ROW_HEIGHT = 38;
 export const FILE_HEADER_HEIGHT = 56;
 export const NOTE_ROW_HEIGHT = 48;

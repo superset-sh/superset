@@ -22,7 +22,6 @@ export function EndpointChip({
 	const resolvedPlaceholder =
 		placeholder ??
 		t({
-			id: "dashboard.automations.endpointChip.saveToGetUrl",
 			message: "Save to get URL",
 		});
 	if (!url) {
@@ -46,14 +45,12 @@ export function EndpointChip({
 							() =>
 								toast.success(
 									t({
-										id: "dashboard.automations.endpointChip.urlCopiedToast",
 										message: "URL copied",
 									}),
 								),
 							() =>
 								toast.error(
 									t({
-										id: "dashboard.automations.endpointChip.copyFailedToast",
 										message: "Copy failed",
 									}),
 								),

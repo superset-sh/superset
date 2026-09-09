@@ -35,9 +35,7 @@ export function FilesTabDropOverlay({ target }: FilesTabDropOverlayProps) {
 				<div className="flex max-w-[90%] items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground shadow">
 					<FileUp className="size-3.5 shrink-0" />
 					<span className="truncate">
-						<Trans id="workspace.filesTabDropOverlay.dropInto">
-							Drop into {label}
-						</Trans>
+						<Trans>Drop into {label}</Trans>
 					</span>
 				</div>
 			</div>

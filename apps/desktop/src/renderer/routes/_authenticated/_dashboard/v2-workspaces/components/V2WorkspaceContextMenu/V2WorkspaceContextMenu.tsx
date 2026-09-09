@@ -107,18 +107,15 @@ export function V2WorkspaceContextMenu({
 			await copyToClipboard(workspace.branch);
 			toast.success(
 				t({
-					id: "dashboard.workspaces.contextMenu.branchNameCopied",
 					message: "Branch name copied",
 				}),
 			);
 		} catch (error) {
 			toast.error(
 				t({
-					id: "dashboard.workspaces.contextMenu.copyBranchNameFailed",
 					message: `Failed to copy branch name: ${errorMessage(
 						error,
 						t({
-							id: "dashboard.workspaces.contextMenu.unknownError",
 							message: "Unknown error",
 						}),
 					)}`,
@@ -150,13 +147,11 @@ export function V2WorkspaceContextMenu({
 			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
 				<ContextMenuItem onSelect={open}>
 					<LuArrowUpRight className="size-4" />
-					<Trans id="dashboard.workspaces.contextMenu.open">Open</Trans>
+					<Trans>Open</Trans>
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={handleCopyBranchName}>
 					<LuGitBranch className="size-4" />
-					<Trans id="dashboard.workspaces.contextMenu.copyBranchName">
-						Copy Branch Name
-					</Trans>
+					<Trans>Copy Branch Name</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				{workspace.isInSidebar ? (
@@ -165,16 +160,12 @@ export function V2WorkspaceContextMenu({
 						disabled={isCurrentRoute}
 					>
 						<LuPanelLeftClose className="size-4" />
-						<Trans id="dashboard.workspaces.contextMenu.unpinFromSidebar">
-							Hide from Sidebar
-						</Trans>
+						<Trans>Hide from Sidebar</Trans>
 					</ContextMenuItem>
 				) : (
 					<ContextMenuItem onSelect={addToSidebar}>
 						<LuPanelLeftOpen className="size-4" />
-						<Trans id="dashboard.workspaces.contextMenu.pinToSidebar">
-							Show on Sidebar
-						</Trans>
+						<Trans>Show on Sidebar</Trans>
 					</ContextMenuItem>
 				)}
 				{!isMainWorkspace ? (
@@ -185,7 +176,7 @@ export function V2WorkspaceContextMenu({
 							className="text-destructive focus:text-destructive"
 						>
 							<LuTrash2 className="size-4 text-destructive" />
-							<Trans id="dashboard.workspaces.contextMenu.delete">Delete</Trans>
+							<Trans>Delete</Trans>
 						</ContextMenuItem>
 					</>
 				) : null}

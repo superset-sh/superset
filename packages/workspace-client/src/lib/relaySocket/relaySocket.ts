@@ -1,8 +1,5 @@
 import { WebSocket as ReconnectingWebSocket } from "partysocket";
-import {
-	primeRelayAffinity,
-	type RelayAffinityProbe,
-} from "../primeRelayAffinity";
+import { probeRelayHost, type RelayHostProbe } from "../probeRelayHost";
 
 export interface RelaySocketOptions {
 	/** URL for this attempt, WITHOUT the auth token — the wrapper signs it. */
@@ -20,12 +17,13 @@ export interface RelaySocketOptions {
 	/** Keep re-probing at this cadence after a 403 instead of closing. */
 	accessDeniedRetryMs?: number;
 	/**
-	 * Called with the `_whoowns` preflight result before every WS attempt (null
+	 * Called with the `_whoowns` probe result before every WS attempt (null
 	 * when the URL isn't relay-routed or the relay is unreachable). Lets callers
 	 * surface *why* a stream is down — host offline (503), unauthorized (401),
-	 * relay routing (502/200) — which the WS upgrade status otherwise hides.
+	 * host present but not answering (502/504/200) — which the WS upgrade status
+	 * otherwise hides.
 	 */
-	onProbe?: (probe: RelayAffinityProbe | null) => void;
+	onProbe?: (probe: RelayHostProbe | null) => void;
 	minReconnectionDelay?: number;
 	maxReconnectionDelay?: number;
 	maxRetries?: number;
@@ -47,18 +45,27 @@ function signUrl(url: string, token: string | null): string {
 	return u.toString();
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 /**
  * Reconnecting WebSocket for host-service endpoints (direct or relay-fronted).
  * partysocket evaluates the async URL provider before EVERY attempt, so each
  * dial carries a fresh token — the class of bug where a reconnect loop reuses
  * a URL signed with an hourly-rotated JWT (PR #5628) can't recur here. The
- * provider also runs the `_whoowns` preflight (fly edge affinity + the only
- * place a browser client can observe the upgrade's real HTTP status).
+ * provider also runs the `_whoowns` probe, the only place a browser client
+ * can observe the upgrade's real HTTP status.
  */
 export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 	let socket: ReconnectingWebSocket | null = null;
+	let cancelAccessDeniedWait: (() => void) | undefined;
+	const waitAfterAccessDenied = (ms: number) =>
+		new Promise<void>((resolve) => {
+			const finish = () => {
+				clearTimeout(timer);
+				cancelAccessDeniedWait = undefined;
+				resolve();
+			};
+			const timer = setTimeout(finish, ms);
+			cancelAccessDeniedWait = finish;
+		});
 
 	// Per-dial epoch so a slow preflight from a superseded dial (URL swap,
 	// reconnect) can't publish its probe after a newer dial has started —
@@ -68,14 +75,14 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 	const provider = async (): Promise<string> => {
 		const epoch = ++probeEpoch;
 		const url = signUrl(await opts.buildUrl(), await opts.getToken());
-		const probe = await primeRelayAffinity(url);
+		const probe = await probeRelayHost(url);
 		if (epoch === probeEpoch) opts.onProbe?.(probe);
 		if (probe?.status === 403) {
 			opts.onAccessDenied?.();
 			if (opts.accessDeniedRetryMs == null) {
 				socket?.close(1000, "relay access denied");
 			} else {
-				await sleep(opts.accessDeniedRetryMs);
+				await waitAfterAccessDenied(opts.accessDeniedRetryMs);
 			}
 			// Rejecting aborts this attempt; partysocket surfaces it as an error
 			// event and re-enters its backoff loop (no-op once close() was called).
@@ -91,6 +98,20 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 		connectionTimeout: opts.connectionTimeout,
 		maxEnqueuedMessages: opts.maxEnqueuedMessages ?? 0,
 	});
+
+	// The URL provider holds partysocket's connection lock while awaiting the
+	// denial cooldown. Wake it on explicit retry/close so the provider settles
+	// promptly and the native retry loop can honor the user's action.
+	const reconnect = socket.reconnect.bind(socket);
+	socket.reconnect = (code, reason) => {
+		cancelAccessDeniedWait?.();
+		reconnect(code, reason);
+	};
+	const close = socket.close.bind(socket);
+	socket.close = (code, reason) => {
+		cancelAccessDeniedWait?.();
+		close(code, reason);
+	};
 
 	return socket;
 }

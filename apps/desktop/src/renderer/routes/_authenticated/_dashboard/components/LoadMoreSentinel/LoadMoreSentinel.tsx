@@ -27,9 +27,7 @@ export function LoadMoreSentinel({
 				<>
 					<LuRefreshCw className="size-3.5 animate-spin motion-reduce:animate-none" />
 					<span>
-						<Trans id="dashboard.loadMoreSentinel.loadingMore">
-							Loading more…
-						</Trans>
+						<Trans>Loading more…</Trans>
 					</span>
 				</>
 			)}

@@ -54,12 +54,12 @@ export function ForecastChart() {
 		<figure className="border border-border p-4 md:p-6">
 			<figcaption>
 				<span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-					<Trans id="marketing.factory.forecastChart.caption">
+					<Trans>
 						Fig. 2 · Merged changes written by agents, zero human edits
 					</Trans>
 				</span>
 				<span className="block text-xs text-muted-foreground mt-1">
-					<Trans id="marketing.factory.forecastChart.subcaption">
+					<Trans>
 						Industry median, our estimate. Dashed is forecast. The first F4
 						teams cross the gate earlier.
 					</Trans>
@@ -71,7 +71,6 @@ export function ForecastChart() {
 					className="w-full h-auto touch-none"
 					role="img"
 					aria-label={t({
-						id: "marketing.factory.forecastChart.ariaLabel",
 						message:
 							"Line chart: the share of merged changes written by agents with zero human edits rises from about 1 percent in 2024 to an estimated 27 percent today, with a forecast crossing the 50 percent F4 gate during 2027",
 					})}
@@ -132,9 +131,7 @@ export function ForecastChart() {
 						className="fill-foreground/70 font-mono"
 						fontSize={10}
 					>
-						<Trans id="marketing.factory.forecastChart.gateLine">
-							F4 gate · {F4_GATE_SHARE}%
-						</Trans>
+						<Trans>F4 gate · {F4_GATE_SHARE}%</Trans>
 					</text>
 
 					{/* Today marker */}
@@ -154,7 +151,7 @@ export function ForecastChart() {
 						className="fill-brand font-mono"
 						fontSize={10}
 					>
-						<Trans id="marketing.factory.forecastChart.today">TODAY</Trans>
+						<Trans>TODAY</Trans>
 					</text>
 
 					<path
@@ -201,9 +198,7 @@ export function ForecastChart() {
 						{hoveredPoint.forecast && (
 							<span className="text-brand">
 								{" · "}
-								<Trans id="marketing.factory.forecastChart.forecastNote">
-									forecast
-								</Trans>
+								<Trans>forecast</Trans>
 							</span>
 						)}
 					</div>

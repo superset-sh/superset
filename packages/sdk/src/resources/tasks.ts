@@ -24,7 +24,7 @@ export class TaskStatuses extends APIResource {
 	 */
 	list(options?: RequestOptions): APIPromise<TaskStatusListResponse> {
 		return this._client.query<TaskStatusListResponse>(
-			"task.statuses.list",
+			{ method: "tasks.statuses.list", procedure: "task.statuses.list" },
 			undefined,
 			options,
 		);
@@ -47,7 +47,7 @@ export class Tasks extends APIResource {
 	 */
 	create(body: TaskCreateParams, options?: RequestOptions): APIPromise<Task> {
 		return this._client
-			.mutation<CreateOrUpdateWire>("task.create", body, options)
+			.mutation<CreateOrUpdateWire>({ method: "tasks.create", procedure: "task.create" }, body, options)
 			._thenUnwrap((r) => r.task);
 	}
 
@@ -67,7 +67,7 @@ export class Tasks extends APIResource {
 		options?: RequestOptions,
 	): APIPromise<Task | null> {
 		return this._client.query<Task | null>(
-			"task.byIdOrSlug",
+			{ method: "tasks.retrieve", procedure: "task.byIdOrSlug" },
 			idOrSlug,
 			options,
 		);
@@ -88,7 +88,7 @@ export class Tasks extends APIResource {
 		options?: RequestOptions,
 	): APIPromise<TaskListResponse> {
 		return this._client
-			.query<Array<ListRowWire>>("task.list", query ?? undefined, options)
+			.query<Array<ListRowWire>>({ method: "tasks.list", procedure: "task.list" }, query ?? undefined, options)
 			._thenUnwrap((rows) =>
 				rows.map((row) => ({
 					...row.task,
@@ -106,7 +106,7 @@ export class Tasks extends APIResource {
 	 */
 	update(body: TaskUpdateParams, options?: RequestOptions): APIPromise<Task> {
 		return this._client
-			.mutation<CreateOrUpdateWire>("task.update", body, options)
+			.mutation<CreateOrUpdateWire>({ method: "tasks.update", procedure: "task.update" }, body, options)
 			._thenUnwrap((r) => r.task);
 	}
 
@@ -115,7 +115,7 @@ export class Tasks extends APIResource {
 	 */
 	delete(id: string, options?: RequestOptions): APIPromise<void> {
 		return this._client
-			.mutation<DeleteWire>("task.delete", id, options)
+			.mutation<DeleteWire>({ method: "tasks.delete", procedure: "task.delete" }, id, options)
 			._thenUnwrap(() => undefined);
 	}
 }

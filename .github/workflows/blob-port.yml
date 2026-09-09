@@ -1,0 +1,75 @@
+name: Finish the Blob port
+
+# Reports by default and changes nothing. The two mutating modes each need
+# their own confirmation, because both rewrite production rows.
+#
+# Deliberately does NOT take BLOB_READ_WRITE_TOKEN: a page version is
+# identified as unmigrated by comparing its storage key to the one the
+# registry would give it, and legacy avatars are repointed at an object
+# already in R2. Nothing here reads Vercel Blob.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "report changes nothing"
+        type: choice
+        options:
+          - report
+          - repoint-avatars
+          - delete-legacy-pages
+        default: report
+      confirm:
+        description: 'Required for either mutating mode: type "port"'
+        type: string
+        default: ""
+
+concurrency:
+  group: blob-port
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  port:
+    name: Blob port
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+
+    steps:
+      - name: Require confirmation to write
+        if: inputs.mode != 'report' && inputs.confirm != 'port'
+        run: |
+          echo "::error::Refusing to change rows: re-run with confirm set to 'port'."
+          exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Run (${{ inputs.mode }})
+        env:
+          SKIP_ENV_VALIDATION: "1"
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_PRIVATE_BUCKET: ${{ secrets.R2_PRIVATE_BUCKET }}
+          R2_PUBLIC_BUCKET: ${{ secrets.R2_PUBLIC_BUCKET }}
+          STATIC_URL: ${{ secrets.STATIC_URL }}
+        run: |
+          bun packages/trpc/scripts/blob-port.ts \
+            ${{ inputs.mode == 'repoint-avatars' && '--repoint-avatars' || '' }} \
+            ${{ inputs.mode == 'delete-legacy-pages' && '--delete-legacy-pages' || '' }}

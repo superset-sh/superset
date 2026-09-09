@@ -64,6 +64,7 @@ import {
 	MIN_TERMINAL_PARKED_RUNTIME_CAP,
 } from "shared/constants";
 import { normalizePresetProjectIds } from "shared/preset-project-targeting";
+import { getPresetsForTriggerField } from "shared/preset-trigger-selection";
 import {
 	CUSTOM_RINGTONE_ID,
 	DEFAULT_RINGTONE_ID,
@@ -82,7 +83,7 @@ import {
 	updateCustomAgentInputSchema,
 } from "./agent-preset-router.utils";
 import {
-	clearImportedCliTerminalScripts,
+	acknowledgeCliTerminalScripts,
 	isPendingCliTerminalScript,
 } from "./cli-terminal-script-import";
 import {
@@ -94,7 +95,6 @@ import {
 	type PresetWithUnknownMode,
 	shouldPersistNormalizedTerminalPresets,
 } from "./preset-execution-mode";
-import { getPresetsForTriggerField } from "./preset-trigger-selection";
 
 function isValidRingtoneId(ringtoneId: string): boolean {
 	if (isBuiltInRingtoneId(ringtoneId)) {
@@ -304,7 +304,7 @@ export const createSettingsRouter = () => {
 				// land between this read and write or its row would be dropped.
 				localDb.transaction(
 					() => {
-						const result = clearImportedCliTerminalScripts({
+						const result = acknowledgeCliTerminalScripts({
 							scripts: getNormalizedTerminalPresets(),
 							organizationId: input.organizationId,
 							ids: input.ids,

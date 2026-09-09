@@ -6,7 +6,6 @@ import { createAutoUpdateRouter } from "./auto-update";
 import { createBrowserRouter } from "./browser/browser";
 import { createBrowserHistoryRouter } from "./browser-history";
 import { createChangesRouter } from "./changes";
-import { createChatServiceRouter } from "./chat-service";
 import { createConfigRouter } from "./config";
 import { createDeviceRouter } from "./device";
 import { createDownloadsRouter } from "./downloads";
@@ -35,7 +34,6 @@ import { createWorkspacesRouter } from "./workspaces";
 
 export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
-		chatService: createChatServiceRouter(),
 		analytics: createAnalyticsRouter(),
 		browser: createBrowserRouter(),
 		browserHistory: createBrowserHistoryRouter(),

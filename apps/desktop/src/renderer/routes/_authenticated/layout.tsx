@@ -6,6 +6,7 @@ import {
 	Outlet,
 	useLocation,
 	useNavigate,
+	useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { DndProvider } from "react-dnd";
@@ -26,7 +27,6 @@ import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
-import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThemeSync";
 import { LeaderboardAutoPublish } from "renderer/routes/_authenticated/components/LeaderboardAutoPublish";
 import { LeaderboardFirstRunDialog } from "renderer/routes/_authenticated/components/LeaderboardFirstRunDialog";
@@ -41,6 +41,8 @@ import {
 	V2FlipWelcome,
 } from "renderer/routes/_authenticated/components/V1FlipNotice";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
+import { useForwardedHotkeys } from "renderer/routes/_authenticated/hooks/useForwardedHotkeys";
+import { useZoomHotkeys } from "renderer/routes/_authenticated/hooks/useZoomHotkeys";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -85,6 +87,15 @@ function AuthenticatedLayout() {
 	const isOnline = useOnlineStatus();
 	const navigate = useNavigate();
 	const location = useLocation();
+	// The onboarding gate below must key off the route being RENDERED, not
+	// `useLocation()`. `location` is the pending navigation, so the instant the
+	// redirect to /onboarding starts, the gate re-opens while `matches` still
+	// holds the route we are leaving — remounting it, and re-firing its own
+	// mount-time redirect, which cancels ours. The two then bounce forever
+	// (DESKTOP-E3). `matches` only advances once the destination commits.
+	const renderedPathname = useRouterState({
+		select: (state) => state.matches[state.matches.length - 1]?.pathname ?? "",
+	});
 	const setOriginRoute = useSettingsStore((s) => s.setOriginRoute);
 	const utils = electronTrpc.useUtils();
 	const shownWorkspaceInitWarningsRef = useRef(new Set<string>());
@@ -172,9 +183,6 @@ function AuthenticatedLayout() {
 				shownWorkspaceInitWarningsRef.current.add(progress.workspaceId);
 				showWorkspaceAutoNameWarningToast({
 					description: progress.warning,
-					onOpenModelAuthSettings: () => {
-						void navigate({ to: "/settings/models" });
-					},
 				});
 			}
 			if (progress.step === "ready" || progress.step === "failed") {
@@ -187,6 +195,9 @@ function AuthenticatedLayout() {
 			console.error("[workspace-init-subscription] Subscription error:", error);
 		},
 	});
+
+	useZoomHotkeys();
+	useForwardedHotkeys();
 
 	// Menu navigation subscription
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
@@ -281,7 +292,7 @@ function AuthenticatedLayout() {
 	if (
 		session?.user &&
 		!session.user.onboardedAt &&
-		!location.pathname.startsWith("/onboarding")
+		!renderedPathname.startsWith("/onboarding")
 	) {
 		return onboardingRedirect;
 	}
@@ -321,11 +332,8 @@ function AuthenticatedLayout() {
 								)}
 								<V1AutoMigration />
 								<WorkspaceInitEffects />
-								{isV2CloudEnabled ? (
-									<DashboardNewWorkspaceModal />
-								) : (
-									<NewWorkspaceModal />
-								)}
+								{/* v2 creates from the /new-workspace route; only v1 has a modal. */}
+								{!isV2CloudEnabled && <NewWorkspaceModal />}
 								<InitGitDialog />
 								<GitInitConfirmDialog />
 								<TeardownLogsDialog />

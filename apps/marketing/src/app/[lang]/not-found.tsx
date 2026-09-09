@@ -27,10 +27,10 @@ export default async function NotFound() {
 
 				<div className="flex-1 max-w-md space-y-6">
 					<h1 className="text-3xl sm:text-4xl font-medium text-foreground">
-						<Trans id="marketing.notFound.title">Page not found</Trans>
+						<Trans>Page not found</Trans>
 					</h1>
 					<p className="text-sm sm:text-base font-light text-muted-foreground leading-relaxed">
-						<Trans id="marketing.notFound.body">
+						<Trans>
 							The page you&apos;re looking for doesn&apos;t exist or has been
 							moved.
 						</Trans>
@@ -39,49 +39,40 @@ export default async function NotFound() {
 						href="/"
 						className="inline-flex items-center gap-2 mt-2 px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-normal border border-border text-foreground hover:bg-muted transition-colors"
 					>
-						<Trans id="marketing.notFound.takeMeHome">Take me home</Trans>
+						<Trans>Take me home</Trans>
 					</Link>
 					<nav
 						aria-label={t({
-							id: "marketing.notFound.whereToLookNext",
 							message: "Where to look next",
 						})}
 					>
 						<p className="text-xs font-mono text-muted-foreground mb-2">
-							<Trans id="marketing.notFound.whereToLookNext">
-								Where to look next
-							</Trans>
+							<Trans>Where to look next</Trans>
 						</p>
 						<ul className="text-sm text-muted-foreground space-y-1">
 							<li>
 								<a href={COMPANY.DOCS_URL} className="hover:text-foreground">
-									<Trans id="marketing.notFound.links.docs">
-										Documentation
-									</Trans>
+									<Trans>Documentation</Trans>
 								</a>
 							</li>
 							<li>
 								<Link href="/blog" className="hover:text-foreground">
-									<Trans id="marketing.notFound.links.blog">Blog</Trans>
+									<Trans>Blog</Trans>
 								</Link>
 							</li>
 							<li>
 								<Link href="/changelog" className="hover:text-foreground">
-									<Trans id="marketing.notFound.links.changelog">
-										Changelog
-									</Trans>
+									<Trans>Changelog</Trans>
 								</Link>
 							</li>
 							<li>
 								<a href="/sitemap.xml" className="hover:text-foreground">
-									<Trans id="marketing.notFound.links.sitemap">Sitemap</Trans>
+									<Trans>Sitemap</Trans>
 								</a>
 							</li>
 							<li>
 								<a href="/llms.txt" className="hover:text-foreground">
-									<Trans id="marketing.notFound.links.llmsTxt">
-										llms.txt (index for AI agents)
-									</Trans>
+									<Trans>llms.txt (index for AI agents)</Trans>
 								</a>
 							</li>
 						</ul>

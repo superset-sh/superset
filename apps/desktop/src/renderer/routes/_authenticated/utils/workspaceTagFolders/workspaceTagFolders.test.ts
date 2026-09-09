@@ -1,8 +1,10 @@
 import { describe, expect, it } from "bun:test";
+import { SESSIONS_TAG_SCOPE } from "@superset/shared/workspace-tags";
 import {
 	applyFolderTagChange,
 	buildSidebarFolderKey,
 	DERIVED_TAG_FOLDER_TAB_ORDER_BASE,
+	deriveSessionTagFolders,
 	deriveTagFolders,
 	EMPTY_TAG_FOLDER_CONTEXT,
 	getProjectFolderTagIndex,
@@ -16,6 +18,49 @@ import {
 
 const PROJECT_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const PROJECT_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+describe("deriveSessionTagFolders", () => {
+	it("uses Sessions presentation while keeping the normalized tag stable", () => {
+		expect(
+			deriveSessionTagFolders(
+				[
+					{ id: "session", projectId: null, tags: [" Perf "] },
+					{ id: "project", projectId: PROJECT_A, tags: ["ignored"] },
+				],
+				[
+					{
+						projectId: SESSIONS_TAG_SCOPE,
+						tag: "perf",
+						displayName: "Performance",
+						color: "#3b82f6",
+					},
+				],
+			),
+		).toEqual([{ tag: "perf", name: "Performance", color: "#3b82f6" }]);
+	});
+
+	it("falls back to tag defaults and ignores settings from other scopes", () => {
+		expect(
+			deriveSessionTagFolders(
+				[
+					{ id: "b", projectId: null, tags: ["Zeta"] },
+					{ id: "a", projectId: null, tags: ["alpha"] },
+				],
+				[
+					{
+						projectId: PROJECT_A,
+						tag: "alpha",
+						displayName: "Wrong scope",
+						color: "#ff0000",
+					},
+				],
+			),
+		).toEqual([
+			{ tag: "alpha", name: "alpha", color: null },
+			{ tag: "zeta", name: "zeta", color: null },
+		]);
+	});
+});
 
 function makeSection(
 	overrides: Partial<TagFolderSectionInput> &
@@ -143,15 +188,19 @@ describe("deriveTagFolders", () => {
 		).toEqual(["alpha"]);
 	});
 
-	it("session workspaces (null projectId) never derive folders", () => {
-		expect(
-			deriveTagFolders(
-				[],
-				[makeWorkspace({ id: "w1", projectId: null, tags: ["perf"] })],
-
-				EMPTY_TAG_FOLDER_CONTEXT,
-			),
-		).toEqual([]);
+	it("session workspaces (null projectId) derive folders under the Sessions scope", () => {
+		const folders = deriveTagFolders(
+			[],
+			[makeWorkspace({ id: "w1", projectId: null, tags: ["perf"] })],
+			EMPTY_TAG_FOLDER_CONTEXT,
+		);
+		expect(folders).toHaveLength(1);
+		expect(folders[0]).toMatchObject({
+			sectionId: `${SESSIONS_TAG_SCOPE}:perf`,
+			projectId: SESSIONS_TAG_SCOPE,
+			tag: "perf",
+			isDerived: true,
+		});
 	});
 
 	it("a workspace row with the tags field ABSENT derives nothing and does not crash", () => {

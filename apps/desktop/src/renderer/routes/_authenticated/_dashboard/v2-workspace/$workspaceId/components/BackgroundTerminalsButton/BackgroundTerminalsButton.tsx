@@ -185,7 +185,6 @@ export const BackgroundTerminalsButton = memo(
 		if (!isOpen && backgroundCount === 0) return null;
 
 		const label = t({
-			id: "workspace.backgroundTerminals.countLabel",
 			message: plural(backgroundCount, {
 				one: "# background terminal session",
 				other: "# background terminal sessions",
@@ -211,7 +210,6 @@ export const BackgroundTerminalsButton = memo(
 				);
 				toast.error(
 					t({
-						id: "workspace.backgroundTerminals.closeFailed",
 						message: "Failed to close terminal session",
 					}),
 				);
@@ -236,24 +234,18 @@ export const BackgroundTerminalsButton = memo(
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="w-80">
 					<DropdownMenuLabel className="text-xs">
-						<Trans id="workspace.backgroundTerminals.menuTitle">
-							Background terminal sessions
-						</Trans>
+						<Trans>Background terminal sessions</Trans>
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 					<div className="max-h-80 overflow-y-auto">
 						{sessionsQuery.isLoading && (
 							<div className="px-2 py-3 text-xs text-muted-foreground">
-								<Trans id="workspace.backgroundTerminals.loading">
-									Loading sessions…
-								</Trans>
+								<Trans>Loading sessions…</Trans>
 							</div>
 						)}
 						{!sessionsQuery.isLoading && backgroundSessions.length === 0 && (
 							<div className="px-2 py-3 text-xs text-muted-foreground">
-								<Trans id="workspace.backgroundTerminals.empty">
-									No background terminal sessions
-								</Trans>
+								<Trans>No background terminal sessions</Trans>
 							</div>
 						)}
 						{backgroundSessions.map((session) => (
@@ -266,7 +258,6 @@ export const BackgroundTerminalsButton = memo(
 								<span className="min-w-0 flex-1 truncate text-xs">
 									{session.title ??
 										t({
-											id: "workspace.backgroundTerminals.untitledSession",
 											message: "Terminal",
 										})}
 								</span>
@@ -278,11 +269,9 @@ export const BackgroundTerminalsButton = memo(
 								<button
 									type="button"
 									aria-label={t({
-										id: "workspace.backgroundTerminals.closeSessionAria",
 										message: "Close terminal session",
 									})}
 									title={t({
-										id: "workspace.backgroundTerminals.closeSessionTitle",
 										message: "Close terminal session",
 									})}
 									disabled={

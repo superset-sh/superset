@@ -1,1 +1,1 @@
-export { CommentPopover, initialsOf } from "./CommentPopover";
+export { CommentPopover } from "./CommentPopover";

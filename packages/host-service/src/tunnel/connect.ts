@@ -1,12 +1,15 @@
+import os from "node:os";
+import { setTimeout as wait } from "node:timers/promises";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
+import { getHostInstallSource, HOST_SERVICE_VERSION } from "../install-source";
 import type { JwtApiAuthProvider } from "../providers/auth/JwtAuthProvider/JwtAuthProvider";
 import type { ApiClient } from "../types";
 import {
 	recordRegistrationFailure,
 	recordRegistrationSuccess,
 } from "./registration-state";
-import { TunnelClientV2 } from "./tunnel-client-v2";
+import { TunnelClient } from "./tunnel-client";
 
 export interface ConnectRelayOptions {
 	api: ApiClient;
@@ -16,6 +19,7 @@ export interface ConnectRelayOptions {
 	organizationId: string;
 	authProvider: JwtApiAuthProvider;
 	hostServiceSecret: string;
+	signal?: AbortSignal;
 }
 
 // The API decides which relay this host belongs on, and it is asked here —
@@ -45,23 +49,33 @@ const REGISTER_RETRY_MAX_MS = 5 * 60_000;
 
 export async function connectRelay(
 	options: ConnectRelayOptions,
-): Promise<TunnelClientV2 | null> {
+): Promise<TunnelClient | null> {
 	// Registration is what makes this host exist server-side (hosts list,
 	// automations, relay routing). A one-shot attempt left a transient API
 	// failure at boot permanently stranding the host as locally-healthy but
 	// cloud-invisible (issue #6415) — so retry with backoff until it lands,
 	// and record the outcome where health.check can report it.
-	for (let attempt = 0; ; attempt++) {
+	for (let attempt = 0; !options.signal?.aborted; attempt++) {
 		try {
-			const host = await options.api.host.ensure.mutate({
-				organizationId: options.organizationId,
-				machineId: getHostId(),
-				name: getHostName(),
-			});
+			const host = await options.api.host.ensure.mutate(
+				{
+					organizationId: options.organizationId,
+					machineId: getHostId(),
+					name: getHostName(),
+					// Registration runs once per process and a restart re-registers,
+					// so the cloud remembers the last build that reported its version.
+					version: HOST_SERVICE_VERSION,
+					platform: `${os.platform()}-${os.arch()}`,
+					installSource: getHostInstallSource(),
+				},
+				{ signal: options.signal },
+			);
+			if (options.signal?.aborted) return null;
 			recordRegistrationSuccess();
 			console.log(`[host-service] registered as host ${host.machineId}`);
 
 			const relayUrl = await resolveRelayUrl(options.api, options.relayUrl);
+			if (options.signal?.aborted) return null;
 			console.log(`[host-service] relay: ${relayUrl}`);
 
 			const clientOptions = {
@@ -73,10 +87,11 @@ export async function connectRelay(
 				resolveRelayUrl: () => resolveRelayUrl(options.api, options.relayUrl),
 			};
 
-			const tunnel = new TunnelClientV2(clientOptions);
+			const tunnel = new TunnelClient(clientOptions);
 			void tunnel.connect();
 			return tunnel;
 		} catch (error) {
+			if (options.signal?.aborted) return null;
 			recordRegistrationFailure(error);
 			const delay = Math.min(
 				REGISTER_RETRY_BASE_MS * 2 ** attempt,
@@ -88,7 +103,11 @@ export async function connectRelay(
 			);
 			// unref: the HTTP server keeps the process alive between retries;
 			// this timer must not stall shutdown once the server closes.
-			await new Promise((resolve) => setTimeout(resolve, delay).unref());
+			await wait(delay, undefined, {
+				signal: options.signal,
+				ref: false,
+			}).catch(() => {});
 		}
 	}
+	return null;
 }

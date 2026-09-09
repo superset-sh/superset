@@ -66,7 +66,6 @@ export function TabBar({ activeDemo }: TabBarProps) {
 				type="button"
 				className="ml-1 flex h-6 shrink-0 items-center rounded-sm px-1.5 text-muted-foreground/45 hover:bg-foreground/[0.04] hover:text-foreground/85"
 				aria-label={t({
-					id: "marketing.hero.mockup.newTab",
 					message: "New tab",
 				})}
 			>

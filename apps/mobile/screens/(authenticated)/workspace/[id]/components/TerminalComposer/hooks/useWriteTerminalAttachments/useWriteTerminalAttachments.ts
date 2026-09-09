@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import {
 	assignAttachmentFileName,
@@ -7,6 +8,7 @@ import { useMutation } from "@tanstack/react-query";
 import { File } from "expo-file-system";
 import { Alert } from "react-native";
 import type { PromptInputAttachmentItem } from "@/components/ai-elements/prompt-input";
+import { errorCopy } from "@/lib/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 
 export interface TerminalAttachmentTarget {
@@ -71,11 +73,12 @@ export function useWriteTerminalAttachments() {
 		},
 		onError: (error) => {
 			Alert.alert(
-				i18n._({
-					id: "mobile.terminal.attachFailed",
-					message: "Could not attach files",
-				}),
-				error instanceof Error ? error.message : String(error),
+				i18n._(
+					msg({
+						message: "Could not attach files",
+					}),
+				),
+				errorCopy(error),
 			);
 		},
 	});

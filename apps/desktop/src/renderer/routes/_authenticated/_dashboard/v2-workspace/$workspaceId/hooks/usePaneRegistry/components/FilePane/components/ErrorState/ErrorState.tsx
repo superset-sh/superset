@@ -20,23 +20,18 @@ interface ErrorStateProps {
 
 const MESSAGES: Record<ErrorReason, MessageDescriptor> = {
 	"not-found": msg({
-		id: "workspace.filePane.errorNotFound",
 		message: "File not found",
 	}),
 	"too-large": msg({
-		id: "workspace.filePane.errorTooLarge",
 		message: "File is too large to preview",
 	}),
 	"is-directory": msg({
-		id: "workspace.filePane.errorIsDirectory",
 		message: "This path is a directory",
 	}),
 	"binary-unsupported": msg({
-		id: "workspace.filePane.errorBinaryUnsupported",
 		message: "Binary file — cannot display",
 	}),
 	"load-failed": msg({
-		id: "workspace.filePane.errorLoadFailed",
 		message: "Failed to load file",
 	}),
 };
@@ -54,12 +49,12 @@ export function ErrorState({
 			</span>
 			{reason === "too-large" && onOpenAnyway && (
 				<Button variant="outline" size="sm" onClick={onOpenAnyway}>
-					<Trans id="workspace.filePane.openAnyway">Open anyway</Trans>
+					<Trans>Open anyway</Trans>
 				</Button>
 			)}
 			{reason === "load-failed" && onRetry && (
 				<Button variant="outline" size="sm" onClick={onRetry}>
-					<Trans id="workspace.filePane.retryLoad">Retry</Trans>
+					<Trans>Retry</Trans>
 				</Button>
 			)}
 		</div>

@@ -87,7 +87,7 @@ function HotkeyRow({
 				>
 					{isRecording ? (
 						<span>
-							<Trans id="settings.keyboard.pressKey">Press a key…</Trans>
+							<Trans>Press a key…</Trans>
 						</span>
 					) : (
 						<KbdGroup>
@@ -98,7 +98,7 @@ function HotkeyRow({
 					)}
 				</button>
 				<Button variant="ghost" size="sm" onClick={onReset}>
-					<Trans id="settings.keyboard.reset">Reset</Trans>
+					<Trans>Reset</Trans>
 				</Button>
 			</div>
 		</div>
@@ -218,20 +218,17 @@ function KeyboardShortcutsPage() {
 
 	const categoryLabels: Record<HotkeyCategory, string> = {
 		Navigation: t({
-			id: "settings.keyboard.category.navigation",
 			message: "Navigation",
 		}),
 		Workspace: t({
-			id: "settings.keyboard.category.workspace",
 			message: "Workspace",
 		}),
 		Terminal: t({
-			id: "settings.keyboard.category.terminal",
 			message: "Terminal",
 		}),
-		Layout: t({ id: "settings.keyboard.category.layout", message: "Layout" }),
-		Window: t({ id: "settings.keyboard.category.window", message: "Window" }),
-		Help: t({ id: "settings.keyboard.category.help", message: "Help" }),
+		Layout: t({ message: "Layout" }),
+		Window: t({ message: "Window" }),
+		Help: t({ message: "Help" }),
 	};
 
 	return (
@@ -242,14 +239,13 @@ function KeyboardShortcutsPage() {
 					<h2 className="text-xl font-semibold">
 						<HighlightText
 							text={t({
-								id: "settings.keyboard.title",
 								message: "Keyboard shortcuts",
 							})}
 							query={settingsSearchQuery}
 						/>
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						<Trans id="settings.keyboard.subtitle">
+						<Trans>
 							Customize keyboard shortcuts for your workflow. Press{" "}
 							<KbdGroup>
 								{showHotkeysKeys.map((key) => (
@@ -268,7 +264,7 @@ function KeyboardShortcutsPage() {
 						resetAll();
 					}}
 				>
-					<Trans id="settings.keyboard.resetAll">Reset all</Trans>
+					<Trans>Reset all</Trans>
 				</Button>
 			</div>
 
@@ -276,12 +272,10 @@ function KeyboardShortcutsPage() {
 			<div className="mb-8 flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="adaptive-layout" className="text-sm font-medium">
-						<Trans id="settings.keyboard.adaptiveLayout">
-							Adaptive layout mapping
-						</Trans>
+						<Trans>Adaptive layout mapping</Trans>
 					</Label>
 					<p className="text-xs text-muted-foreground">
-						<Trans id="settings.keyboard.adaptiveLayoutHint">
+						<Trans>
 							Match shortcuts to the labels on your keyboard (e.g. ⌘Z always
 							fires on the key labeled "Z" — physical KeyY on QWERTZ). When off,
 							shortcuts are anchored to physical key positions and ignore the
@@ -302,7 +296,6 @@ function KeyboardShortcutsPage() {
 				<Input
 					type="text"
 					placeholder={t({
-						id: "settings.keyboard.searchPlaceholder",
 						message: "Search",
 					})}
 					value={searchQuery}
@@ -348,9 +341,7 @@ function KeyboardShortcutsPage() {
 					(cat) => (filteredHotkeysByCategory[cat] ?? []).length === 0,
 				) && (
 					<div className="py-8 text-center text-sm text-muted-foreground">
-						<Trans id="settings.keyboard.noShortcutsFound">
-							No shortcuts found matching "{searchQuery}"
-						</Trans>
+						<Trans>No shortcuts found matching "{searchQuery}"</Trans>
 					</div>
 				)}
 			</div>
@@ -363,16 +354,13 @@ function KeyboardShortcutsPage() {
 				<AlertDialogContent className="max-w-[380px] gap-0 p-0">
 					<AlertDialogHeader className="px-4 pt-4 pb-2">
 						<AlertDialogTitle className="font-medium">
-							<Trans id="settings.keyboard.conflictTitle">
-								Shortcut already in use
-							</Trans>
+							<Trans>Shortcut already in use</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription asChild>
 							<div className="text-muted-foreground space-y-1.5">
 								<span className="block">
 									{pendingConflict
 										? t({
-												id: "settings.keyboard.conflictMessage",
 												message: `${conflictDisplay.text} is already assigned to "${i18n._(
 													HOTKEYS[pendingConflict.conflictId].label,
 												)}".`,
@@ -380,9 +368,7 @@ function KeyboardShortcutsPage() {
 										: ""}
 								</span>
 								<span className="block">
-									<Trans id="settings.keyboard.conflictQuestion">
-										Would you like to reassign it?
-									</Trans>
+									<Trans>Would you like to reassign it?</Trans>
 								</span>
 							</div>
 						</AlertDialogDescription>
@@ -393,14 +379,14 @@ function KeyboardShortcutsPage() {
 							size="sm"
 							onClick={() => setPendingConflict(null)}
 						>
-							<Trans id="settings.keyboard.conflictCancel">Cancel</Trans>
+							<Trans>Cancel</Trans>
 						</Button>
 						<Button
 							variant="secondary"
 							size="sm"
 							onClick={handleConflictReassign}
 						>
-							<Trans id="settings.keyboard.conflictReassign">Reassign</Trans>
+							<Trans>Reassign</Trans>
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>

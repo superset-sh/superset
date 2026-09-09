@@ -39,7 +39,6 @@ export function ClickableFilePath({
 			role="button"
 			tabIndex={0}
 			aria-label={t({
-				id: "ui.clickableFilePath.openLabel",
 				message: `Open ${path} in file pane`,
 			})}
 			className={`cursor-pointer underline-offset-2 transition-colors hover:text-foreground hover:underline ${className ?? ""}`}

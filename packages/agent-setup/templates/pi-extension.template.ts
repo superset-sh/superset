@@ -41,7 +41,7 @@ export default function (pi: ExtensionAPI) {
 			const child = spawn(notifyScript, [], {
 				stdio: ["pipe", "ignore", "ignore"],
 				detached: true,
-				env: { ...process.env, SUPERSET_AGENT_ID: "pi" },
+				env: { ...process.env, SUPERSET_HOOK_HARNESS: "pi" },
 			});
 			child.on("error", () => {
 				/* swallow — never let hook failures affect pi */

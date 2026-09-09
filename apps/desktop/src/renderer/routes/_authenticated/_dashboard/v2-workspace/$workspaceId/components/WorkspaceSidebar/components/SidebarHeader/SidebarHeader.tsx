@@ -40,7 +40,9 @@ export function SidebarHeader({
 									compact,
 									inverted: true,
 								}),
-								"relative min-w-0 flex-1 justify-center",
+								// Size by content: equal thirds truncate "Changes 99+" to
+								// "Ch…" at the default width while "Files" sits on slack.
+								"relative min-w-0 flex-auto justify-center",
 								// The resizable panel already draws the sidebar's left edge.
 								index === 0 && "border-l-transparent",
 							)}

@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import {
@@ -25,7 +26,6 @@ import {
 	TaskTrigger,
 } from "@superset/ui/ai-elements/task";
 import { FileSearchIcon, SearchIcon, WrenchIcon } from "lucide-react";
-
 import { ComponentCard } from "../../../components/ComponentCard";
 import { ShowcaseSection } from "../../../components/ShowcaseSection";
 
@@ -34,77 +34,76 @@ export function AiAgentSection() {
 		<ShowcaseSection
 			id="ai-agent"
 			index="04"
-			title={i18n._({
-				id: "web.design.aiAgentSection.aiAgentActivity",
-				message: "AI · Agent activity",
-			})}
-			description={i18n._({
-				id: "web.design.aiAgentSection.structuredProgressChainOfThought",
-				message: "Structured progress: chain of thought, tasks, plans",
-			})}
+			title={i18n._(
+				msg({
+					message: "AI · Agent activity",
+				}),
+			)}
+			description={i18n._(
+				msg({
+					message: "Structured progress: chain of thought, tasks, plans",
+				}),
+			)}
 		>
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiAgentSection.chainOfThought",
-					message: "Chain of Thought",
-				})}
+				title={i18n._(
+					msg({
+						message: "Chain of Thought",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/chain-of-thought"
 				span
 			>
 				<ChainOfThought className="w-full" defaultOpen>
 					<ChainOfThoughtHeader>
-						<Trans id="web.design.aiAgentSection.planningTheTooltipRefactor">
-							Planning the tooltip refactor
-						</Trans>
+						<Trans>Planning the tooltip refactor</Trans>
 					</ChainOfThoughtHeader>
 					<ChainOfThoughtContent>
 						<ChainOfThoughtStep
 							icon={SearchIcon}
-							label={i18n._({
-								id: "web.design.aiAgentSection.searchedForTooltipOverrides",
-								message: "Searched for tooltip overrides",
-							})}
+							label={i18n._(
+								msg({
+									message: "Searched for tooltip overrides",
+								}),
+							)}
 							description={i18n._({
-								id: "web.design.aiAgentSection.55CallSitesPassShowarrow",
-								// The code fragment is a value, not part of the message:
-								// ICU would read `{false}` as a placeholder and drop it.
-								message: "55 call sites pass {code}",
+								...msg({
+									// The code fragment is a value, not part of the message:
+									// ICU would read `{false}` as a placeholder and drop it.
+									message: "55 call sites pass {code}",
+								}),
 								values: { code: "showArrow={false}" },
 							})}
 							status="complete"
 						>
 							<ChainOfThoughtSearchResults>
 								<ChainOfThoughtSearchResult>
-									<Trans id="web.design.aiAgentSection.presetsbarTsx">
-										PresetsBar.tsx
-									</Trans>
+									<Trans>PresetsBar.tsx</Trans>
 								</ChainOfThoughtSearchResult>
 								<ChainOfThoughtSearchResult>
-									<Trans id="web.design.aiAgentSection.hotkeytooltipTsx">
-										HotkeyTooltip.tsx
-									</Trans>
+									<Trans>HotkeyTooltip.tsx</Trans>
 								</ChainOfThoughtSearchResult>
 								<ChainOfThoughtSearchResult>
-									<Trans id="web.design.aiAgentSection.paneheaderactionsTsx">
-										PaneHeaderActions.tsx
-									</Trans>
+									<Trans>PaneHeaderActions.tsx</Trans>
 								</ChainOfThoughtSearchResult>
 							</ChainOfThoughtSearchResults>
 						</ChainOfThoughtStep>
 						<ChainOfThoughtStep
 							icon={FileSearchIcon}
-							label={i18n._({
-								id: "web.design.aiAgentSection.comparedAgainstTheDefaultStyle",
-								message: "Compared against the default style",
-							})}
+							label={i18n._(
+								msg({
+									message: "Compared against the default style",
+								}),
+							)}
 							status="complete"
 						/>
 						<ChainOfThoughtStep
 							icon={WrenchIcon}
-							label={i18n._({
-								id: "web.design.aiAgentSection.bakingTheChipStyleInto",
-								message: "Baking the chip style into tooltip.tsx",
-							})}
+							label={i18n._(
+								msg({
+									message: "Baking the chip style into tooltip.tsx",
+								}),
+							)}
 							status="active"
 						/>
 					</ChainOfThoughtContent>
@@ -112,83 +111,76 @@ export function AiAgentSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiAgentSection.task",
-					message: "Task",
-				})}
+				title={i18n._(
+					msg({
+						message: "Task",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/task"
 			>
 				<Task className="w-full" defaultOpen>
 					<TaskTrigger
-						title={i18n._({
-							id: "web.design.aiAgentSection.searchingForKbdUsages",
-							message: "Searching for Kbd usages",
-						})}
+						title={i18n._(
+							msg({
+								message: "Searching for Kbd usages",
+							}),
+						)}
 					/>
 					<TaskContent>
 						<TaskItem>
-							<Trans id="web.design.aiAgentSection.read">Read</Trans>{" "}
+							<Trans>Read</Trans>{" "}
 							<TaskItemFile>
-								<Trans id="web.design.aiAgentSection.packagesUiSrcComponentsUi">
-									packages/ui/src/components/ui/kbd.tsx
-								</Trans>
+								<Trans>packages/ui/src/components/ui/kbd.tsx</Trans>
 							</TaskItemFile>
 						</TaskItem>
 						<TaskItem>
-							<Trans id="web.design.aiAgentSection.grepped">Grepped</Trans>{" "}
+							<Trans>Grepped</Trans>{" "}
 							<TaskItemFile>
-								<Trans id="web.design.aiAgentSection.appsDesktopSrcRenderer">
-									apps/desktop/src/renderer
-								</Trans>
+								<Trans>apps/desktop/src/renderer</Trans>
 							</TaskItemFile>
 						</TaskItem>
 						<TaskItem>
-							<Trans id="web.design.aiAgentSection.found12TooltipCallSites">
-								Found 12 tooltip call sites
-							</Trans>
+							<Trans>Found 12 tooltip call sites</Trans>
 						</TaskItem>
 					</TaskContent>
 				</Task>
 			</ComponentCard>
 
 			<ComponentCard
-				title={i18n._({
-					id: "web.design.aiAgentSection.plan",
-					message: "Plan",
-				})}
+				title={i18n._(
+					msg({
+						message: "Plan",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/plan"
 			>
 				<Plan className="w-full" defaultOpen>
 					<PlanHeader>
 						<PlanTitle>
-							{i18n._({
-								id: "web.design.aiAgentSection.standardizeTooltipStyling",
-								message: "Standardize tooltip styling",
-							})}
+							{i18n._(
+								msg({
+									message: "Standardize tooltip styling",
+								}),
+							)}
 						</PlanTitle>
 						<PlanDescription>
-							{i18n._({
-								id: "web.design.aiAgentSection.threeStepsTouchesPackagesUi",
-								message: "Three steps · touches packages/ui and apps/desktop",
-							})}
+							{i18n._(
+								msg({
+									message: "Three steps · touches packages/ui and apps/desktop",
+								}),
+							)}
 						</PlanDescription>
 					</PlanHeader>
 					<PlanContent>
 						<ol className="list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
 							<li>
-								<Trans id="web.design.aiAgentSection.makeTheChipStyleThe">
-									Make the chip style the TooltipContent default
-								</Trans>
+								<Trans>Make the chip style the TooltipContent default</Trans>
 							</li>
 							<li>
-								<Trans id="web.design.aiAgentSection.stripRedundantOverridesAtCall">
-									Strip redundant overrides at call sites
-								</Trans>
+								<Trans>Strip redundant overrides at call sites</Trans>
 							</li>
 							<li>
-								<Trans id="web.design.aiAgentSection.verifyKbdStaysVisibleInside">
-									Verify Kbd stays visible inside tooltips
-								</Trans>
+								<Trans>Verify Kbd stays visible inside tooltips</Trans>
 							</li>
 						</ol>
 					</PlanContent>

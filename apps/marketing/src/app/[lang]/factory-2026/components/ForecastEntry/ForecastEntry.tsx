@@ -53,9 +53,7 @@ export function ForecastEntry({ entry }: ForecastEntryProps) {
 
 			<div className="mt-6 border-l-2 border-brand/40 pl-4">
 				<span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-					<Trans id="marketing.factory.forecast.becomesTrueLabel">
-						What has to become true
-					</Trans>
+					<Trans>What has to become true</Trans>
 				</span>
 				<p className="text-sm text-foreground/80 mt-1.5 leading-relaxed">
 					{t(entry.becomesTrue)}

@@ -1,4 +1,4 @@
-import { dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { sql } from "drizzle-orm";
 
 import { verifyQstashRequest } from "@/lib/verifyQstash";
@@ -39,7 +39,7 @@ export async function POST(request: Request): Promise<Response> {
 	let defaultRows: number | null = null;
 	try {
 		const [row] = (
-			await dbWs.execute(sql`
+			await db.execute(sql`
 				SELECT count(*)::int AS n FROM ingest.webhook_payloads_default
 			`)
 		).rows as Array<{ n: number }>;
@@ -58,7 +58,7 @@ export async function POST(request: Request): Promise<Response> {
 
 	let changes: Array<{ action: string; partition_name: string }>;
 	try {
-		const result = await dbWs.execute(sql`
+		const result = await db.execute(sql`
 			SELECT action, partition_name
 			FROM ingest.maintain_webhook_payload_partitions(${DAYS_AHEAD}, ${RETAIN_DAYS})
 		`);

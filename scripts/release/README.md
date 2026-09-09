@@ -73,6 +73,22 @@ auto-updater reads. Publishing (either way) also triggers
 `release-cli-lockstep.yml`, which tags `cli-v<version>` and ships the matching
 standalone CLI — no manual CLI step.
 
+## After publishing: rebuild the App Store review host
+
+`superset-review-host` (GCP, `us-west1-b`) updates itself — an automation on
+`release.published`, with a 6h timer behind it — so this is normally nothing to
+do. To force it early, or if the automation is paused:
+
+```bash
+gcloud compute ssh superset-review-host --zone=us-west1-b --command \
+  'sudo SUPERSET_VERSION=<version> bash /opt/review-host/update.sh'
+```
+
+Nothing did this for three weeks, which is how the box sat on 1.22.0 from
+2026-08-14 to 2026-09-05 while the app shipped 1.26.0, 404ing on seven procedures
+the mobile app calls — with no upgrade prompt, because it still cleared
+`MIN_HOST_SERVICE_VERSION`. Background: `apps/review-host/README.md`.
+
 ## When the daemon guard blocks
 
 ```

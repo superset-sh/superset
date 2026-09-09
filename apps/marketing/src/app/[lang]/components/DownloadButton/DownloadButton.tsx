@@ -13,6 +13,7 @@ import { isMacPlatform, Platform, usePlatform } from "../../hooks/useOS";
 interface DownloadButtonProps {
 	size?: "sm" | "md";
 	className?: string;
+	source?: "header" | "hero" | "footer";
 	onJoinWaitlist?: () => void;
 }
 
@@ -21,6 +22,7 @@ const INTERSTITIAL_PATH = "/download";
 export function DownloadButton({
 	size = "md",
 	className = "",
+	source,
 	onJoinWaitlist,
 }: DownloadButtonProps) {
 	const router = useRouter();
@@ -42,7 +44,7 @@ export function DownloadButton({
 	);
 
 	const goToInterstitial = () => {
-		track("download_clicked");
+		track("download_clicked", { platform, source });
 		router.push(INTERSTITIAL_PATH);
 	};
 
@@ -53,7 +55,7 @@ export function DownloadButton({
 				className={buttonClasses}
 				onClick={goToInterstitial}
 			>
-				<Trans id="marketing.download.emailLink">Email me a link</Trans>
+				<Trans>Email me a link</Trans>
 				<HiMiniEnvelope className="size-4" />
 			</button>
 		);
@@ -67,10 +69,10 @@ export function DownloadButton({
 				onClick={goToInterstitial}
 			>
 				<span className="hidden sm:inline">
-					<Trans id="marketing.download.forMac">Download for macOS</Trans>
+					<Trans>Download for macOS</Trans>
 				</span>
 				<span className="sm:hidden">
-					<Trans id="marketing.download.short">Download</Trans>
+					<Trans>Download</Trans>
 				</span>
 				{downloadIcon}
 			</button>
@@ -86,7 +88,7 @@ export function DownloadButton({
 				onJoinWaitlist?.();
 			}}
 		>
-			<Trans id="marketing.download.joinWaitlist">Join Waitlist</Trans>
+			<Trans>Join Waitlist</Trans>
 			<HiMiniClock className="size-4" />
 		</button>
 	);

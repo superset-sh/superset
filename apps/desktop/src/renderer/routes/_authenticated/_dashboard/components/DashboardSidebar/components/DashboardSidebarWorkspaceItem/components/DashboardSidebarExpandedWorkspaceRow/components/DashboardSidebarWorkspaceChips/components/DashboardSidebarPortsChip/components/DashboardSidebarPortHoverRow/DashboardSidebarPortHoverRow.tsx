@@ -51,7 +51,6 @@ export function DashboardSidebarPortHoverRow({
 				}}
 				disabled={isPending}
 				aria-label={t({
-					id: "dashboard.sidebar.portHoverRow.closePortAriaLabel",
 					message: `Close port ${port.port}`,
 				})}
 				className="invisible flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring group-focus-within/row:visible group-hover/row:visible"

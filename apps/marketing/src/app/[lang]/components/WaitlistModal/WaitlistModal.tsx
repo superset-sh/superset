@@ -33,7 +33,6 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 				className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 cursor-default"
 				onClick={onClose}
 				aria-label={t({
-					id: "marketing.waitlist.closeBackdrop",
 					message: "Close modal backdrop",
 				})}
 			/>
@@ -45,7 +44,6 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 						onClick={onClose}
 						className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground transition-colors"
 						aria-label={t({
-							id: "marketing.waitlist.closeModal",
 							message: "Close modal",
 						})}
 					>
@@ -67,11 +65,9 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 
 					<WaitlistForm
 						heading={t({
-							id: "marketing.waitlist.modalHeading",
 							message: "Join the waitlist",
 						})}
 						description={t({
-							id: "marketing.waitlist.modalDescription",
 							message:
 								"Get notified when Superset is available on Windows & Linux.",
 						})}

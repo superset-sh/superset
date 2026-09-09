@@ -31,9 +31,8 @@ interface ThinkingLevelOption {
 
 const DEFAULT_OPTION: ThinkingLevelOption = {
 	value: "off",
-	label: msg({ id: "ui.thinkingToggle.off.label", message: "Off" }),
+	label: msg({ message: "Off" }),
 	description: msg({
-		id: "ui.thinkingToggle.off.description",
 		message: "No extended thinking",
 	}),
 };
@@ -42,33 +41,29 @@ const THINKING_LEVELS: ThinkingLevelOption[] = [
 	DEFAULT_OPTION,
 	{
 		value: "low",
-		label: msg({ id: "ui.thinkingToggle.low.label", message: "Low" }),
+		label: msg({ message: "Low" }),
 		description: msg({
-			id: "ui.thinkingToggle.low.description",
 			message: "Minimal reasoning effort",
 		}),
 	},
 	{
 		value: "medium",
-		label: msg({ id: "ui.thinkingToggle.medium.label", message: "Medium" }),
+		label: msg({ message: "Medium" }),
 		description: msg({
-			id: "ui.thinkingToggle.medium.description",
 			message: "Moderate reasoning effort",
 		}),
 	},
 	{
 		value: "high",
-		label: msg({ id: "ui.thinkingToggle.high.label", message: "High" }),
+		label: msg({ message: "High" }),
 		description: msg({
-			id: "ui.thinkingToggle.high.description",
 			message: "Thorough reasoning effort",
 		}),
 	},
 	{
 		value: "xhigh",
-		label: msg({ id: "ui.thinkingToggle.xhigh.label", message: "Max" }),
+		label: msg({ message: "Max" }),
 		description: msg({
-			id: "ui.thinkingToggle.xhigh.description",
 			message: "Maximum reasoning effort",
 		}),
 	},
@@ -113,18 +108,14 @@ export const ThinkingToggle = ({
 								<span>{activeLabel}</span>
 								<ChevronDownIcon className="size-2.5 opacity-50" />
 								<span className="sr-only">
-									<Trans id="ui.thinkingToggle.srLabel">
-										Extended thinking: {activeLabel}
-									</Trans>
+									<Trans>Extended thinking: {activeLabel}</Trans>
 								</span>
 							</Button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
 					<TooltipContent>
 						<p>
-							<Trans id="ui.thinkingToggle.srLabel">
-								Extended thinking: {activeLabel}
-							</Trans>
+							<Trans>Extended thinking: {activeLabel}</Trans>
 						</p>
 					</TooltipContent>
 				</Tooltip>

@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import type { LucideIcon } from "lucide-react-native";
@@ -84,7 +85,7 @@ export function ToolCallRow({
 			<View className="ml-2 flex-row items-center gap-1">
 				<Icon as={XCircleIcon} className="size-3 shrink-0 text-red-500" />
 				<Text className="font-medium font-mono text-red-500 text-xs uppercase tracking-wide">
-					<Trans id="mobile.tool.error">Error</Trans>
+					<Trans>Error</Trans>
 				</Text>
 			</View>
 		) : null);
@@ -137,10 +138,11 @@ export function ToolCallRow({
 								) : null}
 								{isNotConfigured ? (
 									<View
-										accessibilityLabel={i18n._({
-											id: "mobile.tool.notConfigured",
-											message: "Not configured",
-										})}
+										accessibilityLabel={i18n._(
+											msg({
+												message: "Not configured",
+											}),
+										)}
 										className="shrink-0"
 									>
 										<Icon

@@ -9,6 +9,7 @@
  * DO NOT mock internal code here - tests should use real implementations
  * or mock at the individual test level when necessary.
  */
+import "../../scripts/test-preload.ts";
 import { beforeEach, mock } from "bun:test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

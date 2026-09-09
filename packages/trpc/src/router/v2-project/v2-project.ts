@@ -1,4 +1,4 @@
-import { dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { organizations, v2Projects } from "@superset/db/schema";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import type { TRPCRouterRecord } from "@trpc/server";
@@ -28,7 +28,7 @@ export const v2ProjectRouter = {
 			// canonical https URL. Compare lower-cased on both sides.
 			const canonicalUrl = parsed.url.toLowerCase();
 
-			const rows = await dbWs
+			const rows = await db
 				.select({
 					id: v2Projects.id,
 					name: v2Projects.name,

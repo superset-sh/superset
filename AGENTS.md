@@ -90,6 +90,23 @@ Desktop, host-service, and cli share one version; cut releases on a dedicated br
 `scripts/release/README.md`. A *canary* is a separate thing: `bash scripts/release-canary.sh
 [commit]` builds the rolling internal `desktop-canary` prerelease, not a versioned release.
 
+## Plugins
+
+First-party plugins live in `plugins/<name>/`: a `plugin.json` manifest, `skills/`, and optionally
+an MCP server. A release is the git tag `<name>@<version>` on this repo — that tree is what a host
+downloads — and `packages/shared/src/plugins/manifests.generated.ts` is the bundle the API resolves
+against, which is generated and must never be hand-edited. Change the source, then
+`superset plugins publish <name> --bump patch`, which rewrites the marketplace entry in
+`.agent-marketplace.json` and the generated manifests; commit and tag to publish it. `bun run check:plugins` is what CI
+runs to catch a change that skipped that step; run it before pushing.
+
+Installed plugins are recorded once per machine in
+`$SUPERSET_HOME_DIR/plugins/installed_plugins.json` (`SUPERSET_HOME` is the CLI's install prefix and
+means nothing here). Every provisioner reads that one file — the desktop at boot, `plugins sync`,
+the host-service — because provisioning is declarative and reaps whatever is absent from the desired
+set. A caller that passes its own list instead makes the last writer delete the others' skills.
+Details: `docs/plugins.md`.
+
 ## Orchestrating agents and workspaces
 
 When work wants a fresh isolated environment, a parallel agent, or a long-running job, reach for the
@@ -120,13 +137,17 @@ parsable output; it's on by default under agent environments.
 
 ## Internationalization
 
-User-facing strings use Lingui with explicit IDs — `<Trans id="area.name">Text</Trans>`
-or `useLingui()`'s `t({ id, message })` in React, `i18n._({ id, message })` outside React
-(Electron main). Numbers, currencies, and dates go through `@superset/i18n/format`
-helpers, never `new Intl.*("en-US")` or `toLocale*` with a hardcoded locale. After adding
-or changing strings, run `bun run --cwd packages/i18n check` (CI enforces it). Conventions
-and ID scheme: `packages/i18n/README.md`; terms that never translate:
-`packages/i18n/glossary.md`; strategy and phasing: `plans/20260826-i18n-strategy.md`.
+User-facing strings use Lingui macros with the English text as the message id —
+`<Trans>Text</Trans>` or `useLingui()`'s `t({ message })` in React, `i18n._(msg({ message }))`
+outside React (Electron main). Identical English with different meanings gets a `context`
+so it translates separately. Numbers, currencies, and dates go through
+`@superset/i18n/format` helpers, never `new Intl.*("en-US")` or `toLocale*` with a hardcoded
+locale. After adding or changing strings, run `bun run check:i18n` (CI enforces it): it
+regenerates the catalogs and lists every untranslated message per locale. Write those
+translations yourself into each `locales/<locale>/messages.po` and commit the catalogs with
+the change — nothing on CI fills translations for you. Conventions: `packages/i18n/README.md`;
+terms that never translate: `packages/i18n/glossary.md`; strategy and phasing:
+`plans/20260826-i18n-strategy.md`.
 Directories listed in `packages/i18n/test/enforced-dirs.ts` must not contain hardcoded
 JSX text — add a directory there once it is fully converted. `errorMessage()` output is potentially
 translated and is display-only: logs, Sentry/PostHog, and error classification use
@@ -143,15 +164,13 @@ Relative times use `formatRelativeTime`/`formatCompactRelativeTime`, not hand-ro
 
 Three traps worth knowing before you touch catalogs:
 
-- **Editing English copy is not enough.** IDs are stable, so Lingui keeps the text loosely
-  coupled to them: `locales/en/messages.po` is what actually renders, and translations are
-  never invalidated when the English moves. `extract` runs `--overwrite` so the source locale
-  is always regenerated, and the `check` script fails on translations the edit stranded.
-  Details and the exemption file: `packages/i18n/README.md`.
-- **Regenerate from a clean tree.** `messages.po` is environment-sensitive. Entry order and
-  `#:` reference order both used to vary between macOS and Linux; `orderBy: "messageId"` and
-  `scripts/sort-po-references.ts` pin them, but a catalog regenerated on top of local
-  experiments will still commit noise.
+- **Editing English copy re-keys the message.** The text is the id, so an edit creates a
+  new entry that is empty in every locale and `check:i18n` lists it. If the edit was cosmetic,
+  the old translations are still in `git diff` on the catalogs to copy from.
+- **Regenerate from a clean tree.** `lingui.config.ts` keeps `messages.po` deterministic:
+  `orderBy: "message"` fixes entry order, and `origins: false` drops the `#:` file
+  references, whose order follows filesystem traversal and differs between macOS and
+  Linux. A catalog regenerated on top of local experiments will still commit noise.
 - **`bun test` runs uncompiled source.** The Lingui macro rewrites `` message: `${n} items` ``
   into a placeholder message plus values at build time, so the catalog stores `{n} items`.
   Tests see neither, which is why `apps/desktop/test-setup.ts` shims the macros and `i18n._`.
@@ -163,6 +182,10 @@ Three traps worth knowing before you touch catalogs:
 - `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching
   `SKILL.md` when a task fits its description.
 - `docs/agent-tooling.md`: where commands, skills, and per-agent-CLI config live.
+- `docs/plugins.md`: authoring, publishing, and installing marketplace plugins — the manifest
+  contract, the credential proxy, and which files are generated.
+- `docs/environment-variables.md`: read before adding an environment variable. Five places,
+  and missing one fails silently.
 - `apps/desktop/AGENTS.md`: desktop specifics (notices, persisted renderer state).
 - `apps/mobile/AGENTS.md`: mobile structure and iOS-only scope.
 - `docs/cloud-sandbox-mismatches.md`: where cloud workspace sandboxes don't fit assumptions the

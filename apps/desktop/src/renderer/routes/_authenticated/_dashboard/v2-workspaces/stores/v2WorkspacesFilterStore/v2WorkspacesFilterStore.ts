@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export const DEVICE_FILTER_THIS_DEVICE = "this-device";
 export const DEVICE_FILTER_ALL_DEVICES = "all-devices";
@@ -37,21 +38,17 @@ export const V2_WORKSPACES_AGENT_STATUS_LABELS: Record<
 	V2WorkspacesAgentStatusFilter,
 	MessageDescriptor
 > = {
-	idle: msg({ id: "dashboard.v2Workspaces.agentStatusIdle", message: "Idle" }),
+	idle: msg({ message: "Idle" }),
 	working: msg({
-		id: "dashboard.v2Workspaces.agentStatusWorking",
 		message: "Working",
 	}),
 	permission: msg({
-		id: "dashboard.v2Workspaces.agentStatusPermission",
 		message: "Needs permission",
 	}),
 	review: msg({
-		id: "dashboard.v2Workspaces.agentStatusReview",
 		message: "Ready for review",
 	}),
 	failed: msg({
-		id: "dashboard.v2Workspaces.agentStatusFailed",
 		message: "Failed",
 	}),
 };
@@ -64,15 +61,12 @@ export const V2_WORKSPACES_PIN_FILTER_LABELS: Record<
 	MessageDescriptor
 > = {
 	all: msg({
-		id: "dashboard.v2Workspaces.pinFilterAll",
 		message: "All workspaces",
 	}),
 	pinned: msg({
-		id: "dashboard.v2Workspaces.pinFilterPinned",
 		message: "Shown",
 	}),
 	unpinned: msg({
-		id: "dashboard.v2Workspaces.pinFilterUnpinned",
 		message: "Hidden",
 	}),
 };
@@ -92,18 +86,15 @@ export const V2_WORKSPACES_SORT_LABELS: Record<
 	MessageDescriptor
 > = {
 	activity: msg({
-		id: "dashboard.v2Workspaces.sortLastActivity",
 		message: "Last activity",
 	}),
 	created: msg({
-		id: "dashboard.v2Workspaces.sortCreated",
 		message: "Created",
 	}),
 	churn: msg({
-		id: "dashboard.v2Workspaces.sortDiffSize",
 		message: "Diff size",
 	}),
-	name: msg({ id: "dashboard.v2Workspaces.sortName", message: "Name" }),
+	name: msg({ message: "Name" }),
 };
 
 export const V2_WORKSPACES_ARCHIVED_WINDOWS = [
@@ -136,6 +127,8 @@ interface V2WorkspacesFilterState {
 	prStateFilters: V2WorkspacesPrStateFilter[];
 	/** Empty = any agent status. */
 	agentStatusFilters: V2WorkspacesAgentStatusFilter[];
+	/** Creator user ids; empty = any creator. */
+	creatorFilters: string[];
 	/** Sidebar visibility: shown, hidden, or both ("all"). */
 	pinFilter: V2WorkspacesPinFilter;
 	viewMode: V2WorkspacesViewMode;
@@ -152,6 +145,7 @@ interface V2WorkspacesFilterState {
 	setAgentStatusFilters: (
 		agentStatusFilters: V2WorkspacesAgentStatusFilter[],
 	) => void;
+	setCreatorFilters: (creatorFilters: string[]) => void;
 	setPinFilter: (pinFilter: V2WorkspacesPinFilter) => void;
 	setViewMode: (viewMode: V2WorkspacesViewMode) => void;
 	setSortMode: (sortMode: V2WorkspacesSortMode) => void;
@@ -162,42 +156,55 @@ interface V2WorkspacesFilterState {
 }
 
 export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
-	(set) => ({
-		searchQuery: "",
-		deviceFilter: DEVICE_FILTER_THIS_DEVICE,
-		projectFilters: [],
-		prStateFilters: [],
-		agentStatusFilters: [],
-		pinFilter: "all",
-		viewMode: "board",
-		sortMode: "activity",
-		archivedWindow: "none",
-		hiddenLanes: [],
-		setSearchQuery: (searchQuery) => set({ searchQuery }),
-		setDeviceFilter: (deviceFilter) => set({ deviceFilter }),
-		setProjectFilters: (projectFilters) => set({ projectFilters }),
-		setPrStateFilters: (prStateFilters) => set({ prStateFilters }),
-		setAgentStatusFilters: (agentStatusFilters) => set({ agentStatusFilters }),
-		setPinFilter: (pinFilter) => set({ pinFilter }),
-		setViewMode: (viewMode) => set({ viewMode }),
-		setSortMode: (sortMode) => set({ sortMode }),
-		setArchivedWindow: (archivedWindow) => set({ archivedWindow }),
-		toggleLane: (lane) =>
-			set((state) => ({
-				hiddenLanes: state.hiddenLanes.includes(lane)
-					? state.hiddenLanes.filter((hidden) => hidden !== lane)
-					: [...state.hiddenLanes, lane],
-			})),
-		reset: () =>
-			set({
-				searchQuery: "",
-				deviceFilter: DEVICE_FILTER_THIS_DEVICE,
-				projectFilters: [],
-				prStateFilters: [],
-				agentStatusFilters: [],
-				pinFilter: "all",
-				archivedWindow: "none",
-				hiddenLanes: [],
-			}),
-	}),
+	persist(
+		(set) => ({
+			searchQuery: "",
+			deviceFilter: DEVICE_FILTER_THIS_DEVICE,
+			projectFilters: [],
+			prStateFilters: [],
+			agentStatusFilters: [],
+			creatorFilters: [],
+			pinFilter: "all",
+			viewMode: "board",
+			sortMode: "activity",
+			archivedWindow: "none",
+			hiddenLanes: [],
+			setSearchQuery: (searchQuery) => set({ searchQuery }),
+			setDeviceFilter: (deviceFilter) => set({ deviceFilter }),
+			setProjectFilters: (projectFilters) => set({ projectFilters }),
+			setPrStateFilters: (prStateFilters) => set({ prStateFilters }),
+			setAgentStatusFilters: (agentStatusFilters) =>
+				set({ agentStatusFilters }),
+			setCreatorFilters: (creatorFilters) => set({ creatorFilters }),
+			setPinFilter: (pinFilter) => set({ pinFilter }),
+			setViewMode: (viewMode) => set({ viewMode }),
+			setSortMode: (sortMode) => set({ sortMode }),
+			setArchivedWindow: (archivedWindow) => set({ archivedWindow }),
+			toggleLane: (lane) =>
+				set((state) => ({
+					hiddenLanes: state.hiddenLanes.includes(lane)
+						? state.hiddenLanes.filter((hidden) => hidden !== lane)
+						: [...state.hiddenLanes, lane],
+				})),
+			reset: () =>
+				set({
+					searchQuery: "",
+					deviceFilter: DEVICE_FILTER_THIS_DEVICE,
+					projectFilters: [],
+					prStateFilters: [],
+					agentStatusFilters: [],
+					creatorFilters: [],
+					pinFilter: "all",
+					archivedWindow: "none",
+					hiddenLanes: [],
+				}),
+		}),
+		{
+			name: "v2-workspaces-view",
+			// Fixed-size singleton: only the list/board choice survives reloads.
+			// Filters and search stay per-visit (a `?view=` deep link still wins
+			// — the page hydrates URL params over the rehydrated value on mount).
+			partialize: (state) => ({ viewMode: state.viewMode }),
+		},
+	),
 );

@@ -62,7 +62,10 @@ describe("TerminalLinkManager", () => {
 		});
 
 		expect(onUrlClick).toHaveBeenCalledWith(event, "https://example.com");
-		expect(onLinkHover).toHaveBeenCalledWith(event, { kind: "url" });
+		expect(onLinkHover).toHaveBeenCalledWith(event, {
+			kind: "url",
+			url: "https://example.com",
+		});
 		expect(onLinkLeave).toHaveBeenCalled();
 	});
 

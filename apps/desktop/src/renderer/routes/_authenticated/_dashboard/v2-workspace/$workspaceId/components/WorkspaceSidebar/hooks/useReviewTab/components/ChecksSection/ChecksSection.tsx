@@ -56,11 +56,9 @@ export function ChecksSection({
 	const checksSummary =
 		relevantChecks.length > 0
 			? t({
-					id: "workspace.checksSection.checksPassingSummary",
 					message: `${passingChecks}/${relevantChecks.length} checks passing`,
 				})
 			: t({
-					id: "workspace.checksSection.noChecksReported",
 					message: "No checks reported",
 				});
 	const checksStatusConfig = checkSummaryIconConfig[checksStatus];
@@ -82,7 +80,7 @@ export function ChecksSection({
 						)}
 					/>
 					<span className="truncate text-xs font-medium">
-						<Trans id="workspace.checksSection.title">Checks</Trans>
+						<Trans>Checks</Trans>
 					</span>
 					<span className="shrink-0 text-[10px] text-muted-foreground">
 						{relevantChecks.length}
@@ -108,9 +106,7 @@ export function ChecksSection({
 			<CollapsibleContent className="min-w-0 overflow-hidden px-0.5 pb-1">
 				{relevantChecks.length === 0 ? (
 					<div className="px-1.5 py-1 text-xs text-muted-foreground">
-						<Trans id="workspace.checksSection.empty">
-							No checks reported.
-						</Trans>
+						<Trans>No checks reported.</Trans>
 					</div>
 				) : (
 					relevantChecks.map((check, index) => (
@@ -250,11 +246,9 @@ function CopyLogsButton({
 			type="button"
 			onClick={handleCopy}
 			title={t({
-				id: "workspace.checksSection.copyJobLogs",
 				message: "Copy job logs to clipboard",
 			})}
 			aria-label={t({
-				id: "workspace.checksSection.copyJobLogs",
 				message: "Copy job logs to clipboard",
 			})}
 			className={cn(

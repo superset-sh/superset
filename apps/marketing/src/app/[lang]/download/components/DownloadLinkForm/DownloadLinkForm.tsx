@@ -33,7 +33,6 @@ export function DownloadLinkForm() {
 		} catch {
 			setError(
 				t({
-					id: "marketing.download.genericError",
 					message: "Something went wrong. Please try again.",
 				}),
 			);
@@ -48,13 +47,11 @@ export function DownloadLinkForm() {
 				<div className="flex items-center gap-2 text-foreground">
 					<HiMiniCheck className="size-5 text-brand" />
 					<p className="font-medium">
-						<Trans id="marketing.download.checkInbox">Check your inbox</Trans>
+						<Trans>Check your inbox</Trans>
 					</p>
 				</div>
 				<p className="mt-1 text-sm text-muted-foreground">
-					<Trans id="marketing.download.linkSentTo">
-						We sent the download link to {submittedEmail}.
-					</Trans>
+					<Trans>We sent the download link to {submittedEmail}.</Trans>
 				</p>
 			</div>
 		);
@@ -66,7 +63,7 @@ export function DownloadLinkForm() {
 				htmlFor="download-email"
 				className="mb-2 block font-mono text-xs uppercase tracking-wider text-muted-foreground"
 			>
-				<Trans id="marketing.download.emailLabel">Email address</Trans>
+				<Trans>Email address</Trans>
 			</label>
 			<div className="flex flex-col gap-2 sm:flex-row sm:gap-0">
 				<input
@@ -87,11 +84,9 @@ export function DownloadLinkForm() {
 					className="group flex shrink-0 items-center justify-center gap-2 bg-foreground px-5 py-3 text-sm font-normal text-background transition-colors hover:bg-brand hover:text-white disabled:cursor-wait disabled:opacity-60"
 				>
 					{isSubmitting ? (
-						<Trans id="marketing.download.sending">Sending…</Trans>
+						<Trans>Sending…</Trans>
 					) : (
-						<Trans id="marketing.download.emailMeTheLink">
-							Email me the link
-						</Trans>
+						<Trans>Email me the link</Trans>
 					)}
 					<HiMiniArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
 				</button>
@@ -107,9 +102,7 @@ export function DownloadLinkForm() {
 			/>
 
 			<p className="mt-3 text-xs text-muted-foreground">
-				<Trans id="marketing.download.emailDisclaimer">
-					We&apos;ll only use this to send your download link.
-				</Trans>
+				<Trans>We&apos;ll only use this to send your download link.</Trans>
 			</p>
 			{error ? (
 				<p className="mt-2 text-sm text-red-500" role="alert">

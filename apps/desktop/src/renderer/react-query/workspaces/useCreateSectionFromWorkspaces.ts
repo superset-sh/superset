@@ -33,11 +33,9 @@ export function useCreateSectionFromWorkspaces() {
 		} catch (error) {
 			toast.error(
 				t({
-					id: "reactQuery.createSection.failed",
 					message: `Failed to create section: ${errorMessage(
 						error,
 						t({
-							id: "reactQuery.createSection.unknownError",
 							message: "Unknown error",
 						}),
 					)}`,

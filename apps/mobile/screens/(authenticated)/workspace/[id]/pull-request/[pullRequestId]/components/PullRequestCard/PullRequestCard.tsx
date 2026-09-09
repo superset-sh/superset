@@ -83,7 +83,6 @@ export function PullRequestCard({
 			<CardRow
 				key="merged-by"
 				label={t({
-					id: "mobile.pullRequest.mergedBy",
 					message: `Merged by ${mergedBy.login}`,
 				})}
 				leading={

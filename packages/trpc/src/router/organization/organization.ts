@@ -493,13 +493,11 @@ export const organizationRouter = {
 
 			const pathname = generateImagePathname({
 				prefix: `organization/${input.organizationId}/logo`,
-				mimeType: input.mimeType,
 			});
 
 			try {
 				const url = await uploadImage({
 					fileData: input.fileData,
-					mimeType: input.mimeType,
 					pathname,
 					existingUrl: organization.logo,
 				});

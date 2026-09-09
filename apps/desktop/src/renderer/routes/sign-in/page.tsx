@@ -149,7 +149,7 @@ function SignInPage() {
 
 	const lastUsedBadge = (
 		<Badge variant="secondary">
-			<Trans id="auth.signIn.lastUsed">Last used</Trans>
+			<Trans>Last used</Trans>
 		</Badge>
 	);
 
@@ -165,15 +165,13 @@ function SignInPage() {
 
 					<div className="text-center mb-8">
 						<h1 className="text-xl font-semibold text-foreground mb-2">
-							<Trans id="auth.signIn.welcomeTitle">Welcome to Superset</Trans>
+							<Trans>Welcome to Superset</Trans>
 						</h1>
 						<p className="text-sm text-muted-foreground">
 							{hasLocalToken ? (
-								<Trans id="auth.signIn.restoringSession">
-									Restoring your session
-								</Trans>
+								<Trans>Restoring your session</Trans>
 							) : (
-								<Trans id="auth.signIn.subtitle">Sign in to get started</Trans>
+								<Trans>Sign in to get started</Trans>
 							)}
 						</p>
 					</div>
@@ -206,9 +204,7 @@ function SignInPage() {
 							disabled={signInMutation.isPending}
 						>
 							<FaGithub className="size-5" />
-							<Trans id="auth.signIn.continueWithGitHub">
-								Continue with GitHub
-							</Trans>
+							<Trans>Continue with GitHub</Trans>
 							{lastUsedMethod === "github" && lastUsedBadge}
 						</Button>
 
@@ -220,15 +216,13 @@ function SignInPage() {
 							disabled={signInMutation.isPending}
 						>
 							<FcGoogle className="size-5" />
-							<Trans id="auth.signIn.continueWithGoogle">
-								Continue with Google
-							</Trans>
+							<Trans>Continue with Google</Trans>
 							{lastUsedMethod === "google" && lastUsedBadge}
 						</Button>
 					</div>
 
 					<p className="mt-8 text-xs text-muted-foreground/70 text-center max-w-xs">
-						<Trans id="auth.signIn.termsAgreement">
+						<Trans>
 							By signing in, you agree to our{" "}
 							<a
 								href={COMPANY.TERMS_URL}

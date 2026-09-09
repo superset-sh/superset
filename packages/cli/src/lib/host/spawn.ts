@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { closeSync, existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
+import { HOST_INSTALL_SOURCE_ENV } from "@superset/shared/host-version";
 import {
 	MAX_HOST_LOG_BYTES,
 	openRotatingLogFd,
@@ -14,6 +15,7 @@ import {
 	ensureManifestDir,
 	type HostServiceManifest,
 	hostDbPath,
+	hostServiceLogPath,
 	writeManifest,
 } from "./manifest";
 import { getRelayUrl } from "./relay-url";
@@ -118,9 +120,10 @@ export async function spawnHostService(
 	// Daemon output goes to the same per-org host-service.log the desktop
 	// writes — with stdio ignored, a failed cloud registration was logged
 	// nowhere on CLI-only installs (issue #6415).
+	if (options.daemon) ensureManifestDir(options.organizationId);
 	const logFd = options.daemon
 		? openRotatingLogFd(
-				join(ensureManifestDir(options.organizationId), "host-service.log"),
+				hostServiceLogPath(options.organizationId),
 				MAX_HOST_LOG_BYTES,
 			)
 		: -1;
@@ -145,6 +148,9 @@ export async function spawnHostService(
 			HOST_SERVICE_SECRET: secret,
 			HOST_DB_PATH: hostDbPath(options.organizationId),
 			HOST_MIGRATIONS_FOLDER: migrationsFolder,
+			// A standalone install can replace itself in place (system.update);
+			// the host-service reports this so clients offer the right action.
+			[HOST_INSTALL_SOURCE_ENV]: "cli",
 			// The desktop injects this into hosts it spawns
 			// (host-service-coordinator.ts); without it the host's PTYs get no
 			// SUPERSET_HOME_DIR and every managed agent hook self-disables on

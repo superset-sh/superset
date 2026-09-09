@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	CommandEmpty,
@@ -59,22 +60,26 @@ export function ThemeFrame() {
 		setOpen(false);
 	};
 
-	const systemLabel = i18n._({
-		id: "commandPalette.themes.system",
-		message: "System",
-	});
-	const lightHeading = i18n._({
-		id: "commandPalette.themes.light",
-		message: "Light",
-	});
-	const darkHeading = i18n._({
-		id: "commandPalette.themes.dark",
-		message: "Dark",
-	});
-	const customHeading = i18n._({
-		id: "commandPalette.themes.custom",
-		message: "Custom",
-	});
+	const systemLabel = i18n._(
+		msg({
+			message: "System",
+		}),
+	);
+	const lightHeading = i18n._(
+		msg({
+			message: "Light",
+		}),
+	);
+	const darkHeading = i18n._(
+		msg({
+			message: "Dark",
+		}),
+	);
+	const customHeading = i18n._(
+		msg({
+			message: "Custom",
+		}),
+	);
 
 	const showSystem = matchesQuery(`${systemLabel} ${SYSTEM_THEME_ID}`, query);
 
@@ -101,7 +106,7 @@ export function ThemeFrame() {
 	return (
 		<CommandList>
 			<CommandEmpty>
-				<Trans id="commandPalette.themes.empty">No themes found.</Trans>
+				<Trans>No themes found.</Trans>
 			</CommandEmpty>
 
 			{showSystem && (

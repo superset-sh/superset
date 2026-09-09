@@ -7,19 +7,16 @@ const BASE: SectionId[] = ["actions", "navigation", "add-project"];
 
 export const SECTION_LABELS: Record<SectionId, MessageDescriptor> = {
 	workspace: msg({
-		id: "commandPalette.section.workspace",
 		message: "Workspace actions",
 	}),
-	actions: msg({ id: "commandPalette.section.actions", message: "Actions" }),
+	actions: msg({ message: "Actions" }),
 	navigation: msg({
-		id: "commandPalette.section.navigation",
 		message: "Navigation",
 	}),
 	"add-project": msg({
-		id: "commandPalette.section.addProject",
 		message: "Add project",
 	}),
-	dev: msg({ id: "commandPalette.section.dev", message: "Dev" }),
+	dev: msg({ message: "Dev" }),
 };
 
 export function resolveSectionOrder(context: CommandContext): SectionId[] {

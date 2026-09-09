@@ -4,9 +4,10 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { CheckResourcesHotkeyMount } from "renderer/commandPalette";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type SettingsSection,
@@ -21,10 +22,7 @@ import {
 	SettingsSidebar,
 } from "./components/SettingsSidebar";
 import { useScrollReset } from "./hooks/useScrollReset";
-import {
-	getMatchCountBySection,
-	searchSettings,
-} from "./utils/settings-search";
+import { getVisibleMatchCountBySection } from "./utils/settings-search";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	component: SettingsLayout,
@@ -42,7 +40,6 @@ const SECTION_ORDER: SettingsSection[] = [
 	"terminal",
 	"links",
 	"browser",
-	"models",
 	"organization",
 	"teams",
 	"project",
@@ -74,7 +71,6 @@ const SECTION_PATHS: Partial<Record<SettingsSection, string>> = {
 	terminal: "/settings/terminal",
 	links: "/settings/links",
 	browser: "/settings/browser",
-	models: "/settings/models",
 	experimental: "/settings/experimental",
 	integrations: "/settings/integrations",
 	billing: "/settings/billing",
@@ -108,6 +104,7 @@ const NON_ROUTABLE_ESCAPE_PARENTS = new Set([
 
 function SettingsLayout() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isMac = platform === undefined || platform === "darwin";
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
@@ -118,9 +115,19 @@ function SettingsLayout() {
 	const contentRef = useScrollReset<HTMLDivElement>(location.pathname);
 	const normalizedSearchQuery = searchQuery.trim();
 	const isSearchActive = normalizedSearchQuery.length > 0;
-	const totalMatches = isSearchActive
-		? searchSettings(normalizedSearchQuery).length
-		: 0;
+	// Variant-filtered like the sidebar's per-section counts, so hidden
+	// v1-/v2-only items are never reported as matches.
+	const matchCounts = useMemo(
+		() =>
+			isSearchActive
+				? getVisibleMatchCountBySection(normalizedSearchQuery, isV2CloudEnabled)
+				: {},
+		[isSearchActive, normalizedSearchQuery, isV2CloudEnabled],
+	);
+	const totalMatches = Object.values(matchCounts).reduce(
+		(sum, count) => sum + count,
+		0,
+	);
 
 	useEffect(() => {
 		if (!isSearchActive) return;
@@ -132,7 +139,6 @@ function SettingsLayout() {
 		if (currentSection === "hosts") return;
 		if (currentSection === "usage") return;
 
-		const matchCounts = getMatchCountBySection(normalizedSearchQuery);
 		const currentHasMatches = (matchCounts[currentSection] ?? 0) > 0;
 
 		if (!currentHasMatches) {
@@ -143,7 +149,7 @@ function SettingsLayout() {
 				navigate({ to: getPathFromSection(firstMatch), replace: true });
 			}
 		}
-	}, [isSearchActive, location.pathname, navigate, normalizedSearchQuery]);
+	}, [isSearchActive, location.pathname, navigate, matchCounts]);
 
 	useHotkeys(
 		"escape",

@@ -75,7 +75,6 @@ export function TrendSeriesTile({
 				s.custom_name ??
 				s.label ??
 				t({
-					id: "admin.trendSeries.seriesFallback",
 					message: `series ${i + 1}`,
 				});
 			const color = SERIES_COLORS[i % SERIES_COLORS.length];
@@ -87,7 +86,6 @@ export function TrendSeriesTile({
 								`s${i}partial`,
 								{
 									label: t({
-										id: "admin.trendSeries.partialWeek",
 										message: `${label} (partial week)`,
 									}),
 									color,

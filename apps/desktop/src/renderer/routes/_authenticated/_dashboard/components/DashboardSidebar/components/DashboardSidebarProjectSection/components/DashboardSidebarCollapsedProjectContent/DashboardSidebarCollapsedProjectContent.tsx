@@ -85,7 +85,6 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 						<span className="font-medium">{projectName}</span>
 						<span className="text-xs text-muted-foreground">
 							<Plural
-								id="dashboard.sidebar.collapsedProject.workspaceCount"
 								value={totalWorkspaceCount}
 								one="# workspace"
 								other="# workspaces"

@@ -1,48 +1,10 @@
-"use client";
+import { DeepLinkRedirect } from "@/components/DeepLinkRedirect";
 
-import { Trans } from "@lingui/react/macro";
-import Image from "next/image";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect } from "react";
+interface PageProps {
+	params: Promise<{ slug: string }>;
+}
 
-/**
- * Deep link passthrough page for tasks.
- * Attempts to open the Superset desktop app, falls back to dashboard.
- */
-export default function TaskDeepLinkPage() {
-	const params = useParams<{ slug: string }>();
-	const slug = params.slug;
-	const deepLink = `superset://tasks/${slug}`;
-
-	useEffect(() => {
-		window.location.href = deepLink;
-	}, [deepLink]);
-
-	return (
-		<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-			<div className="flex flex-col items-center gap-6">
-				<Image
-					src="/title.svg"
-					alt="Superset"
-					width={280}
-					height={86}
-					priority
-				/>
-				<p className="text-xl text-muted-foreground">
-					<Trans id="web.taskDeepLink.redirecting">
-						Redirecting to desktop app...
-					</Trans>
-				</p>
-				<Link
-					href={deepLink}
-					className="text-sm text-muted-foreground/70 underline decoration-muted-foreground/40 underline-offset-4 transition-colors hover:text-muted-foreground"
-				>
-					<Trans id="web.taskDeepLink.manualLink">
-						Click here if not redirected
-					</Trans>
-				</Link>
-			</div>
-		</div>
-	);
+export default async function TaskDeepLinkPage({ params }: PageProps) {
+	const { slug } = await params;
+	return <DeepLinkRedirect path={`tasks/${encodeURIComponent(slug)}`} />;
 }

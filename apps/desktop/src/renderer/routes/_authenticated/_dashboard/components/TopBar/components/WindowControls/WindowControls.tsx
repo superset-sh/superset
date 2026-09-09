@@ -25,7 +25,6 @@ export function WindowControls() {
 			<button
 				type="button"
 				aria-label={t({
-					id: "dashboard.topBar.windowControls.minimize",
 					message: "Minimize window",
 				})}
 				className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -36,7 +35,6 @@ export function WindowControls() {
 			<button
 				type="button"
 				aria-label={t({
-					id: "dashboard.topBar.windowControls.maximize",
 					message: "Maximize window",
 				})}
 				className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -47,7 +45,6 @@ export function WindowControls() {
 			<button
 				type="button"
 				aria-label={t({
-					id: "dashboard.topBar.windowControls.close",
 					message: "Close window",
 				})}
 				className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive hover:text-destructive-foreground"

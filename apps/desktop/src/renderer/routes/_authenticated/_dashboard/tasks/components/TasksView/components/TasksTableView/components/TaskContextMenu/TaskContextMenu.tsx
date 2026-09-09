@@ -98,7 +98,7 @@ export function TaskContextMenu({
 					<ContextMenuSubTrigger>
 						<ActiveIcon className="mr-2" />
 						<span>
-							<Trans id="dashboard.tasks.taskContextMenu.status">Status</Trans>
+							<Trans>Status</Trans>
 						</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-48">
@@ -118,9 +118,7 @@ export function TaskContextMenu({
 					<ContextMenuSubTrigger>
 						<HiOutlineUserCircle className="mr-2 size-4" />
 						<span>
-							<Trans id="dashboard.tasks.taskContextMenu.assignee">
-								Assignee
-							</Trans>
+							<Trans>Assignee</Trans>
 						</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-56">
@@ -141,9 +139,7 @@ export function TaskContextMenu({
 					<ContextMenuSubTrigger>
 						<PriorityMenuIcon className="mr-1" />
 						<span>
-							<Trans id="dashboard.tasks.taskContextMenu.priority">
-								Priority
-							</Trans>
+							<Trans>Priority</Trans>
 						</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-52">
@@ -163,22 +159,18 @@ export function TaskContextMenu({
 					<ContextMenuSubTrigger>
 						<HiOutlineDocumentDuplicate className="mr-2 size-4" />
 						<span>
-							<Trans id="dashboard.tasks.taskContextMenu.copy">Copy</Trans>
+							<Trans>Copy</Trans>
 						</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-48">
 						<ContextMenuItem onClick={handleCopyId}>
 							<span>
-								<Trans id="dashboard.tasks.taskContextMenu.copyId">
-									Copy ID
-								</Trans>
+								<Trans>Copy ID</Trans>
 							</span>
 						</ContextMenuItem>
 						<ContextMenuItem onClick={handleCopyTitle}>
 							<span>
-								<Trans id="dashboard.tasks.taskContextMenu.copyTitle">
-									Copy Title
-								</Trans>
+								<Trans>Copy Title</Trans>
 							</span>
 						</ContextMenuItem>
 					</ContextMenuSubContent>
@@ -192,7 +184,7 @@ export function TaskContextMenu({
 				>
 					<HiOutlineTrash className="text-destructive size-4" />
 					<span>
-						<Trans id="dashboard.tasks.taskContextMenu.delete">Delete</Trans>
+						<Trans>Delete</Trans>
 					</span>
 				</ContextMenuItem>
 			</ContextMenuContent>

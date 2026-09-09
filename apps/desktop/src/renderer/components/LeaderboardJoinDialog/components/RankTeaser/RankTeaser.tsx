@@ -8,7 +8,7 @@ export function RankTeaser({ preview }: { preview: LeaderboardPreview }) {
 	if (preview.tokens === 0) {
 		return (
 			<p className="text-sm text-muted-foreground">
-				<Trans id="components.rankTeaser.noUsage">
+				<Trans>
 					No Claude or Codex usage found on this machine yet. Join now and
 					you'll appear once you've used an agent.
 				</Trans>
@@ -20,7 +20,7 @@ export function RankTeaser({ preview }: { preview: LeaderboardPreview }) {
 		<div className="space-y-1">
 			{preview.total >= MIN_PARTICIPANTS_FOR_RANK ? (
 				<p className="text-sm">
-					<Trans id="components.rankTeaser.projectedRank">
+					<Trans>
 						You'd be{" "}
 						<span className="font-medium text-foreground">#{preview.rank}</span>{" "}
 						of {preview.total}.
@@ -28,13 +28,11 @@ export function RankTeaser({ preview }: { preview: LeaderboardPreview }) {
 				</p>
 			) : (
 				<p className="text-sm">
-					<Trans id="components.rankTeaser.firstOnBoard">
-						You'd be one of the first on the board.
-					</Trans>
+					<Trans>You'd be one of the first on the board.</Trans>
 				</p>
 			)}
 			<p className="text-xs text-muted-foreground">
-				<Trans id="components.rankTeaser.basedOn">
+				<Trans>
 					Based on {formatTokens(preview.tokens)} tokens in the last 30 days,
 					counting {preview.providers.join(" and ")}.
 				</Trans>

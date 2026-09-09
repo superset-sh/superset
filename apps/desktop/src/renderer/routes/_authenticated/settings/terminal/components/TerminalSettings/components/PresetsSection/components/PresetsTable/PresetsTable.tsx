@@ -43,9 +43,7 @@ export function PresetsTable({
 		>
 			{isLoading ? (
 				<div className="py-8 text-center text-sm text-muted-foreground">
-					<Trans id="settings.terminal.presetsTable.loading">
-						Loading terminal scripts...
-					</Trans>
+					<Trans>Loading terminal scripts...</Trans>
 				</div>
 			) : presets.length > 0 ? (
 				presets.map((preset, index) => (
@@ -63,7 +61,7 @@ export function PresetsTable({
 				))
 			) : (
 				<div className="py-10 text-center text-sm text-muted-foreground">
-					<Trans id="settings.terminal.presetsTable.empty">
+					<Trans>
 						No terminal scripts yet. Click "Add script" to create your first
 						one.
 					</Trans>

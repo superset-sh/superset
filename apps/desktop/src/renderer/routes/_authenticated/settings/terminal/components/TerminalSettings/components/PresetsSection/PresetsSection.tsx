@@ -488,14 +488,13 @@ export function PresetsSection({
 					<Label className="text-sm font-medium">
 						<HighlightText
 							text={t({
-								id: "settings.terminal.presets.label",
 								message: "Terminal Scripts",
 							})}
 							query={searchQuery}
 						/>
 					</Label>
 					<p className="text-xs text-muted-foreground">
-						<Trans id="settings.terminal.presets.subtitle">
+						<Trans>
 							Reusable commands that launch in terminals. Project setup, run,
 							and teardown commands are configured as lifecycle scripts.
 						</Trans>
@@ -509,7 +508,7 @@ export function PresetsSection({
 						onClick={() => handleAddRow()}
 					>
 						<HiOutlinePlus className="h-4 w-4" />
-						<Trans id="settings.terminal.presets.addScript">Add Script</Trans>
+						<Trans>Add Script</Trans>
 					</Button>
 				)}
 			</div>
@@ -537,9 +536,7 @@ export function PresetsSection({
 						onToggleVisibility={handleToggleVisibility}
 					/>
 					<p className="text-xs text-muted-foreground">
-						<Trans id="settings.terminal.presets.editHint">
-							Click a terminal script to edit its details.
-						</Trans>
+						<Trans>Click a terminal script to edit its details.</Trans>
 					</p>
 				</>
 			)}

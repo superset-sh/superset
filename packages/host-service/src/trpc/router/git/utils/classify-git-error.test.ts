@@ -358,4 +358,93 @@ describe("rethrowEnvironmentalGitError", () => {
 			),
 		).toBeNull();
 	});
+
+	test("nested repository with a hollow .git → PRECONDITION_FAILED / GIT_REPO_DAMAGED", () => {
+		// Shape from the Sentry group, reproduced by replacing a gitlink's
+		// `.git` with an empty directory: git opens every gitlink before it
+		// reports status or a diff and dies at the first one it cannot read.
+		const message =
+			"fatal: 'packages/vendored-tool/.git' not recognized as a git repository\n";
+		const thrown = capture(new Error(message));
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_REPO_DAMAGED");
+		expect(thrown?.message).toBe(message);
+	});
+
+	test("keeps git's not-a-repository wording on the NOT_GIT_REPO branch", () => {
+		// A gitfile or GIT_DIR that points nowhere says "not a git repository:"
+		// with the path after the colon. Different condition, different fix;
+		// the nested-repository branch must not take it.
+		const thrown = capture(
+			new Error("fatal: not a git repository: 'packages/vendored-tool/.git'\n"),
+		);
+		expect(thrown?.code).toBe("BAD_REQUEST");
+		expect(causeKind(thrown)).toBe("NOT_GIT_REPO");
+	});
+
+	test("Xcode installed but its git shim cannot run → PRECONDITION_FAILED / GIT_ENVIRONMENT", () => {
+		// Verbatim from the Sentry group, library identifiers shortened. Xcode
+		// is present, but xcodebuild cannot load its own libraries, so the
+		// /usr/bin/git stub never reaches a git binary and ends every attempt
+		// with the same refusal sentence it prints when no tools exist.
+		const message =
+			"Error loading required libraries. If there is an ongoing installation please wait for it to complete. Otherwise reinstall. (dlopen(@rpath/libxcodebuildLoader.dylib, 0x0001): Symbol not found: _XPCTypeBool\n" +
+			"  Referenced from: <UUID> /Library/Developer/PrivateFrameworks/CoreDevice.framework/Versions/A/CoreDevice\n" +
+			"  Expected in:     <UUID> /Library/Apple/System/Library/PrivateFrameworks/Mercury.framework/Versions/A/Mercury)\n" +
+			"git: error: sh -c '/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -find git 2> /dev/null' failed with exit code 65280: (null) (errno=Invalid argument)\n" +
+			"xcode-select: Failed to locate 'git', requesting installation of command line developer tools.\n";
+		const thrown = capture(new Error(message));
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_ENVIRONMENT");
+		expect(thrown?.message).toBe(message);
+	});
+
+	test("does not claim the shim's refusal for a tool other than git", () => {
+		// A hook that runs some other tool through the same stub prints the
+		// same sentence naming that tool; git itself ran fine and the hook
+		// failure must keep reporting. The sentence without the stub's prefix
+		// at the start of a line is likewise the hook's, not git's.
+		expect(
+			capture(
+				new Error(
+					"xcode-select: Failed to locate 'swift', requesting installation of command line developer tools.\n" +
+						"fatal: cannot run .git/hooks/pre-commit: No such file or directory\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"pre-commit: Failed to locate 'git', requesting installation of command line developer tools.\n" +
+						"fatal: cannot run .git/hooks/pre-commit: No such file or directory\n",
+				),
+			),
+		).toBeNull();
+	});
+
+	test("genuine failures naming a .git path, a conflict or the network keep reporting", () => {
+		expect(capture(new Error("fatal: bad object HEAD\n"))).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"CONFLICT (content): Merge conflict in src/index.ts\n" +
+						"Automatic merge failed; fix conflicts and then commit the result.\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"fatal: unable to access 'https://example.invalid/repo.git/': Could not resolve host: example.invalid\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"fatal: pathspec 'packages/vendored-tool/.git' did not match any files known to git\n",
+				),
+			),
+		).toBeNull();
+	});
 });

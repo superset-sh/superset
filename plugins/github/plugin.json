@@ -1,0 +1,58 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "github",
+	"version": "1.0.0",
+	"description": "Work with issues, pull requests, and CI across your repositories.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["github", "issues", "pull-requests", "ci", "code-review"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "GitHub",
+				"category": "Developer tools",
+				"icon": "github"
+			},
+			"auth": [
+				{
+					"type": "oauth2",
+					"provider": "github",
+					"authorization_url": "https://github.com/login/oauth/authorize",
+					"token_url": "https://github.com/login/oauth/access_token",
+					"scopes": ["repo", "read:org", "workflow"],
+					"scope_separator": " ",
+					"token_request_auth_method": "client_secret_post",
+					"requires_env": [
+						"PLUGIN_GITHUB_CLIENT_ID",
+						"PLUGIN_GITHUB_CLIENT_SECRET"
+					],
+					"identity": {
+						"url": "https://api.github.com/user",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}",
+							"Accept": "application/vnd.github+json"
+						},
+						"id": "$.id",
+						"label": "$.login"
+					},
+					"label": "OAuth 2.0",
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			],
+			"mcp": {
+				"type": "streamable-http",
+				"url": "https://api.githubcopilot.com/mcp/"
+			}
+		}
+	}
+}

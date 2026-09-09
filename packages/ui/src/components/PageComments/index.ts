@@ -2,11 +2,12 @@ export type {
 	CommentAnchor,
 	FrameRect,
 } from "@superset/shared/page-comments-runtime";
+export { AllCommentsButton } from "./components/AllCommentsButton";
 export {
 	CommentModeButton,
 	CommentModeToggle,
 } from "./components/CommentModeToggle";
-export { CommentsSidebar } from "./components/CommentsSidebar";
+export { CommentsPanel } from "./components/CommentsPanel";
 export { PageCommentsView } from "./components/PageCommentsView";
 export {
 	DeletePageDialog,
@@ -34,3 +35,8 @@ export {
 	type CommentAuthor,
 	commentAuthor,
 } from "./utils/commentAuthor";
+export {
+	isOptimisticId,
+	OPTIMISTIC_ID_PREFIX,
+	optimisticId,
+} from "./utils/optimisticId";

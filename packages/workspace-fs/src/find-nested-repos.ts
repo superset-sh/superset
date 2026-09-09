@@ -6,14 +6,20 @@ import path from "node:path";
 // repo boundary and at every ignored directory, so a normal tree is scanned in
 // full and a pathological one (a project holding thousands of agent worktrees)
 // is bounded by the count of worktree roots, not their contents.
-const DEFAULT_MAX_DIRS = 50_000;
+const DEFAULT_MAX_QUEUED_DIRS = 50_000;
 const DEFAULT_MAX_ROOTS = 5_000;
 
 export interface FindNestedRepoRootsOptions {
 	/** Directory basenames to skip while traversing (node_modules, .git, …). */
 	pruneDirNames: ReadonlySet<string>;
-	/** Stop after scanning this many directories. */
-	maxDirs?: number;
+	/**
+	 * Most directory paths the traversal queue may hold. Bounds the work — a
+	 * directory is only ever visited after being queued — and, unlike a cap on
+	 * directories *visited*, it also bounds what the scan is holding while it
+	 * runs: the queue is the breadth-first frontier and is retained until the
+	 * scan returns.
+	 */
+	maxQueuedDirs?: number;
 	/** Stop after discovering this many nested roots. */
 	maxRoots?: number;
 	/**
@@ -42,7 +48,11 @@ export interface FindNestedRepoRootsResult {
  *
  * Traversal is breadth-first, so when a cap truncates the scan the shallow
  * nested repos (the piled-up worktree roots near the top) are found before a
- * deep non-repo subtree can exhaust the budget.
+ * deep non-repo subtree can exhaust the budget. Breadth-first also means the
+ * queue holds every directory discovered but not yet visited, which is why
+ * `maxQueuedDirs` caps the queue rather than the visit count: the frontier is
+ * what a scan is still holding when a deadline stops it, and every watcher
+ * attaching at the same time holds one of its own.
  *
  * Symlinked directories are skipped (`Dirent.isDirectory()` is false for them),
  * which also avoids cycles and escaping the tree.
@@ -51,7 +61,7 @@ export async function findNestedRepoRoots(
 	rootPath: string,
 	options: FindNestedRepoRootsOptions,
 ): Promise<FindNestedRepoRootsResult> {
-	const maxDirs = options.maxDirs ?? DEFAULT_MAX_DIRS;
+	const maxQueuedDirs = options.maxQueuedDirs ?? DEFAULT_MAX_QUEUED_DIRS;
 	const maxRoots = options.maxRoots ?? DEFAULT_MAX_ROOTS;
 	const now = options.now ?? Date.now;
 	const deadline =
@@ -60,18 +70,13 @@ export async function findNestedRepoRoots(
 	// FIFO queue with a head cursor — plain `shift()` would be O(n) per dequeue.
 	const queue: string[] = [rootPath];
 	let head = 0;
-	let scanned = 0;
+	let truncated = false;
 
 	while (head < queue.length) {
-		if (
-			roots.length >= maxRoots ||
-			scanned >= maxDirs ||
-			(deadline !== null && now() >= deadline)
-		) {
+		if (roots.length >= maxRoots || (deadline !== null && now() >= deadline)) {
 			return { roots, truncated: true };
 		}
 		const dir = queue[head++] as string;
-		scanned += 1;
 
 		// Vanished or unreadable mid-scan — nothing to prune here.
 		const entries = await readdir(dir, { withFileTypes: true }).catch(
@@ -93,9 +98,16 @@ export async function findNestedRepoRoots(
 			if (options.pruneDirNames.has(entry.name)) {
 				continue;
 			}
+			if (queue.length >= maxQueuedDirs) {
+				// Stop widening, but keep draining what is already queued: those
+				// directories are shallower than the ones being dropped, and
+				// shallow is where the piled-up worktree roots are.
+				truncated = true;
+				break;
+			}
 			queue.push(path.join(dir, entry.name));
 		}
 	}
 
-	return { roots, truncated: false };
+	return { roots, truncated };
 }

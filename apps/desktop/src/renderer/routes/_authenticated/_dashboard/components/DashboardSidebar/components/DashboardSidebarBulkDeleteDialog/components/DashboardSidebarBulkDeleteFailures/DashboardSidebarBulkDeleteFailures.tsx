@@ -17,14 +17,12 @@ import {
 
 interface DashboardSidebarBulkDeleteFailuresProps {
 	failures: BulkWorkspaceDeleteFailure[];
-	isDeleting: boolean;
 	onClose: () => void;
 	onForceTeardownFailures: () => void;
 }
 
 export function DashboardSidebarBulkDeleteFailures({
 	failures,
-	isDeleting,
 	onClose,
 	onForceTeardownFailures,
 }: DashboardSidebarBulkDeleteFailuresProps) {
@@ -36,21 +34,20 @@ export function DashboardSidebarBulkDeleteFailures({
 		<AlertDialog
 			open
 			onOpenChange={(open) => {
-				if (!open && !isDeleting) onClose();
+				if (!open) onClose();
 			}}
 		>
 			<AlertDialogContent className="max-w-[500px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
 						<Plural
-							id="dashboard.sidebar.bulkDeleteFailures.title"
 							value={failures.length}
 							one="Couldn’t delete # workspace"
 							other="Couldn’t delete # workspaces"
 						/>
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						<Trans id="dashboard.sidebar.bulkDeleteFailures.description">
+						<Trans>
 							Review each failure before deciding whether to continue.
 						</Trans>
 					</AlertDialogDescription>
@@ -92,7 +89,6 @@ export function DashboardSidebarBulkDeleteFailures({
 				{teardownFailureCount > 0 && (
 					<p className="px-4 pb-2 text-xs text-muted-foreground">
 						<Plural
-							id="dashboard.sidebar.bulkDeleteFailures.forceHint"
 							value={teardownFailureCount}
 							one="Delete anyway skips the teardown script for the affected workspace."
 							other="Delete anyway skips the teardown script for the affected workspaces."
@@ -105,31 +101,22 @@ export function DashboardSidebarBulkDeleteFailures({
 						variant="ghost"
 						size="sm"
 						className="h-7 px-3 text-xs"
-						disabled={isDeleting}
 						onClick={onClose}
 					>
-						<Trans id="dashboard.sidebar.bulkDeleteFailures.close">Close</Trans>
+						<Trans>Close</Trans>
 					</Button>
 					{teardownFailureCount > 0 && (
 						<Button
 							variant="destructive"
 							size="sm"
 							className="h-7 px-3 text-xs"
-							disabled={isDeleting}
 							onClick={onForceTeardownFailures}
 						>
-							{isDeleting ? (
-								<Trans id="dashboard.sidebar.bulkDeleteFailures.deleting">
-									Deleting…
-								</Trans>
-							) : (
-								<Plural
-									id="dashboard.sidebar.bulkDeleteFailures.deleteAnyway"
-									value={teardownFailureCount}
-									one="Delete anyway"
-									other="Delete # anyway"
-								/>
-							)}
+							<Plural
+								value={teardownFailureCount}
+								one="Delete anyway"
+								other="Delete # anyway"
+							/>
 						</Button>
 					)}
 				</AlertDialogFooter>

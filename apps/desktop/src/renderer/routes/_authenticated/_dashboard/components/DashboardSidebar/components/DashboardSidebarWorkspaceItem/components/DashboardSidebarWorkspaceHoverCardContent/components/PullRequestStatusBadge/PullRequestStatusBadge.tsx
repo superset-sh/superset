@@ -8,11 +8,11 @@ interface PullRequestStatusBadgeProps {
 
 const LABELS: Record<PullRequestStatusBadgeProps["state"], MessageDescriptor> =
 	{
-		open: msg({ id: "dashboard.sidebar.prStatus.open", message: "Open" }),
-		draft: msg({ id: "dashboard.sidebar.prStatus.draft", message: "Draft" }),
-		merged: msg({ id: "dashboard.sidebar.prStatus.merged", message: "Merged" }),
-		closed: msg({ id: "dashboard.sidebar.prStatus.closed", message: "Closed" }),
-		queued: msg({ id: "dashboard.sidebar.prStatus.queued", message: "Queued" }),
+		open: msg({ message: "Open", context: "status" }),
+		draft: msg({ message: "Draft" }),
+		merged: msg({ message: "Merged" }),
+		closed: msg({ message: "Closed" }),
+		queued: msg({ message: "Queued" }),
 	};
 
 export function PullRequestStatusBadge({ state }: PullRequestStatusBadgeProps) {
@@ -20,7 +20,7 @@ export function PullRequestStatusBadge({ state }: PullRequestStatusBadgeProps) {
 		open: "bg-emerald-500/15 text-emerald-500",
 		draft: "bg-muted text-muted-foreground",
 		merged: "bg-violet-500/15 text-violet-500",
-		closed: "bg-destructive/15 text-destructive-foreground",
+		closed: "bg-destructive/15 text-destructive",
 		queued: "bg-amber-500/15 text-amber-500",
 	};
 

@@ -49,7 +49,7 @@ export function RetentionGridTile() {
 	// week; a week whose contributors are all mid-flight is itself dashed.
 	const meanRow: CohortRow = {
 		key: "mean",
-		label: t({ id: "admin.retentionGrid.meanRow", message: "Mean" }),
+		label: t({ message: "Mean" }),
 		emphasis: true,
 		size: cohorts.length
 			? Math.round(
@@ -99,12 +99,10 @@ export function RetentionGridTile() {
 			title={
 				query.data?.name ??
 				t({
-					id: "admin.retentionGrid.title",
 					message: "Cohort retention",
 				})
 			}
 			description={t({
-				id: "admin.retentionGrid.description",
 				message:
 					"Weekly cohorts by first real workspace; % returning with another workspace each week",
 			})}
@@ -118,7 +116,7 @@ export function RetentionGridTile() {
 		>
 			<CohortGrid
 				columnLabels={Array.from({ length: intervalCount }, (_, week) =>
-					t({ id: "admin.retentionGrid.weekColumn", message: `Week ${week}` }),
+					t({ message: `Week ${week}` }),
 				)}
 				rows={rows}
 			/>

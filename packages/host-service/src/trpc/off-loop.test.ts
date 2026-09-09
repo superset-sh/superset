@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import { TRPCError } from "@trpc/server";
 import type { HostServiceContext } from "../types";
 import { defineWorkerTask } from "../workers/define-worker-task";
 import { HostWorkerPool } from "../workers/host-worker-pool";
+import {
+	WORKER_CRASH_ERROR_NAME,
+	WorkerTaskAbortedError,
+	WorkerTaskError,
+} from "../workers/WorkerTaskRunner";
 import { createOffLoop } from "./off-loop";
 
 const echoTask = defineWorkerTask<{ value: string }, string>({
@@ -92,5 +98,87 @@ describe("offLoop", () => {
 			"prepare failed",
 		);
 		expect(ran).toBe(false);
+	});
+
+	describe("pool rejections", () => {
+		function rejectingResolver(error: unknown) {
+			const offLoop = createOffLoop(() => ({
+				run: async () => {
+					throw error;
+				},
+			}));
+			const resolver = offLoop({
+				task: echoTask,
+				prepare: () => ({ value: "x" }),
+			});
+			return async () => {
+				try {
+					await resolver({ ctx: fakeCtx, input: undefined });
+				} catch (thrown) {
+					return thrown;
+				}
+				throw new Error("resolver must reject");
+			};
+		}
+
+		// Negatives first: every rejection that is a real failure has to keep
+		// its 500, which is the only thing the Sentry middleware looks at.
+		test("a task timeout still reports", async () => {
+			const timeout = new WorkerTaskError(
+				'[host-worker] Task "usage/leaderboardPayload" timed out after 110000ms',
+			);
+			expect(await rejectingResolver(timeout)()).toBe(timeout);
+		});
+
+		test("a worker crash still reports", async () => {
+			const crash = new WorkerTaskError("Worker exited with code 1", {
+				name: WORKER_CRASH_ERROR_NAME,
+				message: "Worker exited with code 1",
+			});
+			expect(await rejectingResolver(crash)()).toBe(crash);
+		});
+
+		test("a task-handler error that only borrows the abort name still reports", async () => {
+			const impostor = new WorkerTaskError("boom", {
+				name: "WorkerTaskAbortedError",
+				message: "boom",
+			});
+			expect(await rejectingResolver(impostor)()).toBe(impostor);
+		});
+
+		test("an ordinary failure still reports", async () => {
+			const plain = new Error("fatal: bad object");
+			expect(await rejectingResolver(plain)()).toBe(plain);
+		});
+
+		test("a client that hung up is not a server error", async () => {
+			const thrown = await rejectingResolver(
+				new WorkerTaskAbortedError("cancelled"),
+			)();
+			expect(thrown).toBeInstanceOf(TRPCError);
+			expect((thrown as TRPCError).code).toBe("CLIENT_CLOSED_REQUEST");
+			expect((thrown as TRPCError).message).toBe("Worker task aborted");
+		});
+
+		test("shutdown is retryable rather than a server error", async () => {
+			const thrown = await rejectingResolver(
+				new WorkerTaskAbortedError("disposed", "Worker runner disposed"),
+			)();
+			expect((thrown as TRPCError).code).toBe("SERVICE_UNAVAILABLE");
+			expect((thrown as TRPCError).message).toBe("Worker runner disposed");
+		});
+
+		test("a superseded task is not a server error", async () => {
+			const thrown = await rejectingResolver(
+				new WorkerTaskAbortedError(
+					"superseded",
+					"Task superseded by a newer request",
+				),
+			)();
+			expect((thrown as TRPCError).code).toBe("CLIENT_CLOSED_REQUEST");
+			expect((thrown as TRPCError).message).toBe(
+				"Task superseded by a newer request",
+			);
+		});
 	});
 });

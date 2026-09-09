@@ -36,7 +36,7 @@ export const WebSearchTool = ({
 		</div>
 	) : isError ? (
 		<span className="text-xs text-destructive">
-			<Trans id="ui.webSearchTool.failed">Failed</Trans>
+			<Trans>Failed</Trans>
 		</span>
 	) : null;
 

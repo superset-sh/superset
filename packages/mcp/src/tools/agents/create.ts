@@ -30,6 +30,20 @@ export function register(server: McpServer): void {
 				.describe(
 					"Prompt sent to the agent. Required unless resumeSessionId is provided.",
 				),
+			model: z
+				.string()
+				.min(1)
+				.optional()
+				.describe(
+					"Model for this launch. Supported values depend on the agent; omit to use its default.",
+				),
+			effort: z
+				.string()
+				.min(1)
+				.optional()
+				.describe(
+					"Reasoning effort for this launch. Supported values depend on the agent; omit to use its default.",
+				),
 			resumeSessionId: z
 				.string()
 				.min(1)
@@ -62,6 +76,8 @@ export function register(server: McpServer): void {
 					workspaceId: input.workspaceId,
 					agent: input.agent,
 					prompt: input.prompt,
+					model: input.model,
+					effort: input.effort,
 					resumeSessionId: input.resumeSessionId,
 					attachmentIds: input.attachmentIds,
 				},

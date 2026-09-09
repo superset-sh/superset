@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
-import { useNewWorkspaceModalStore } from "renderer/stores/new-workspace-modal";
 import { useQuickCreateWorkspaceIntent } from "renderer/stores/quick-create-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import type { Command, CommandProvider } from "../../core/types";
@@ -23,7 +22,6 @@ export const workspaceProvider: CommandProvider = {
 		const quickCreate: Command = {
 			id: "workspace.quickCreate",
 			title: msg({
-				id: "commandPalette.workspace.quickCreate",
 				message: "Quick create workspace",
 			}),
 			section: "workspace",
@@ -45,20 +43,17 @@ export const workspaceProvider: CommandProvider = {
 			{
 				id: "workspace.new",
 				title: msg({
-					id: "commandPalette.workspace.new",
 					message: "New workspace",
 				}),
 				section: "workspace",
 				icon: PlusIcon,
 				hotkeyId: "NEW_WORKSPACE",
-				run: () =>
-					useNewWorkspaceModalStore.getState().openModal(workspace.projectId),
+				run: (ctx) => ctx.openNewWorkspace(workspace.projectId),
 			},
 			quickCreate,
 			{
 				id: "files.quickOpen",
 				title: msg({
-					id: "commandPalette.workspace.searchFiles",
 					message: "Search files",
 				}),
 				section: "workspace",
@@ -73,7 +68,6 @@ export const workspaceProvider: CommandProvider = {
 			{
 				id: "workspace.linkTask",
 				title: msg({
-					id: "commandPalette.workspace.linkTask",
 					message: "Link task",
 				}),
 				section: "workspace",
@@ -87,7 +81,6 @@ export const workspaceProvider: CommandProvider = {
 			commands.push({
 				id: `workspace.removeFromSidebar:${workspace.id}`,
 				title: msg({
-					id: "commandPalette.workspace.removeFromSidebar",
 					message: "Remove from sidebar",
 				}),
 				section: "workspace",
@@ -107,7 +100,6 @@ export const workspaceProvider: CommandProvider = {
 			commands.push({
 				id: `workspace.delete:${workspace.id}`,
 				title: msg({
-					id: "commandPalette.workspace.delete",
 					message: "Delete workspace",
 				}),
 				section: "workspace",

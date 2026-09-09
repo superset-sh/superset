@@ -108,7 +108,6 @@ export function WorkspaceActionsSheet() {
 				<Stack.Toolbar.Button
 					icon="xmark"
 					accessibilityLabel={t({
-						id: "mobile.common.close",
 						message: "Close",
 					})}
 					onPress={() => router.back()}
@@ -129,18 +128,13 @@ export function WorkspaceActionsSheet() {
 				<View className="mt-5 flex-row justify-center gap-4">
 					<CircleAction
 						label={t({
-							id: "mobile.workspaceActions.editName",
 							message: "Edit name",
 						})}
 						icon={<PencilIcon size={19} color={theme.foreground} />}
 						onPress={() => void renameWorkspace()}
 					/>
 					<CircleAction
-						label={
-							pinned
-								? t({ id: "mobile.workspaceActions.unpin", message: "Unpin" })
-								: t({ id: "mobile.workspaceActions.pin", message: "Pin" })
-						}
+						label={pinned ? t({ message: "Unpin" }) : t({ message: "Pin" })}
 						active={pinned}
 						icon={
 							<PinIcon
@@ -151,14 +145,14 @@ export function WorkspaceActionsSheet() {
 						onPress={() => id && togglePin(id)}
 					/>
 					<CircleAction
-						label={t({ id: "mobile.common.share", message: "Share" })}
+						label={t({ message: "Share" })}
 						icon={<ShareIcon size={19} color={theme.foreground} />}
 						onPress={shareWorkspace}
 					/>
 				</View>
 
 				<Text className="text-muted-foreground mt-9 pb-1 text-[15px]">
-					<Trans id="mobile.workspaceActions.info">Info</Trans>
+					<Trans>Info</Trans>
 				</Text>
 				{workspace ? (
 					<View className="border-border/60 flex-row items-center gap-3 border-b py-3.5">
@@ -187,19 +181,14 @@ export function WorkspaceActionsSheet() {
 				{/* A sandbox isn't one of your machines; naming it as the host says
 			    nothing the Cloud section didn't. */}
 				{host && !isCloud ? (
-					<InfoRow
-						label={t({ id: "mobile.workspaceActions.host", message: "Host" })}
-						value={host.name}
-					/>
+					<InfoRow label={t({ message: "Host" })} value={host.name} />
 				) : null}
 				{changeset.files.length > 0 ? (
 					<InfoRow
 						label={t({
-							id: "mobile.workspaceActions.changes",
 							message: "Changes",
 						})}
 						value={t({
-							id: "mobile.workspaceActions.changesValue",
 							message: `+${changeset.additions} −${changeset.deletions} · ${plural(
 								changeset.files.length,
 								{ one: "# file", other: "# files" },
@@ -210,7 +199,6 @@ export function WorkspaceActionsSheet() {
 				{workspace ? (
 					<InfoRow
 						label={t({
-							id: "mobile.workspaceActions.created",
 							message: "Created",
 						})}
 						value={formatDistanceToNow(new Date(workspace.createdAt), {
@@ -230,7 +218,7 @@ export function WorkspaceActionsSheet() {
 					>
 						<Trash2Icon size={18} color={theme.destructive} />
 						<Text className="text-destructive text-[15px] font-medium">
-							<Trans id="mobile.deleteWorkspace.title">Delete workspace</Trans>
+							<Trans>Delete workspace</Trans>
 						</Text>
 					</Pressable>
 				) : null}

@@ -1,0 +1,80 @@
+---
+title: Commit, push, and open PRs from the Changes pane, image diffs, and a device-first Workspaces page
+date: 2026-09-06
+image: /changelog/2026-09-06-ship-hero.png
+---
+
+## Commit, Push, and Create a PR From the Changes Pane <PRBadge url="https://github.com/superset-sh/superset/pull/7102" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7139" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7166" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7196" />
+
+The Changes pane is now one surface for the whole branch: the diff, the changed-file list, and every step to a pull request. A pill in the top bar shows the diff stats, and the control next to it walks the branch from Commit to Push to Create PR, then becomes the PR badge once the pull request exists.
+
+- Commit opens a message popover with a generated fallback, and Create PR prefills the title from your latest commit and pushes an unpublished branch for you
+- Reply to PR review threads inline in the diff, without leaving for GitHub
+- Search the changed-file list by path, and renames match their old path too
+
+Open it with ⌘⇧L or the diff pill in the top bar.
+
+## Image, Video, and PDF Diffs <PRBadge url="https://github.com/superset-sh/superset/pull/7035" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7182" />
+
+Binary files in the Changes pane render with the same viewers the file pane uses. A modified image shows Before and After side by side, at the version the diff compares (staged, against base, or a commit), not only the working tree. Videos and PDFs wait behind a Preview button so a large changeset stays light. [@theblondealex](https://github.com/theblondealex) contributed the image previews.
+
+![A modified hero.png in the Changes pane with Before and After previews side by side](/changelog/2026-09-06-media-diff.png)
+
+## Workspaces Page Rebuilt Around Devices <PRBadge url="https://github.com/superset-sh/superset/pull/6901" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7150" />
+
+The page title is now the device you are looking at, with your other hosts a click away, and every row shows which machine it lives on, dimmed when that device is offline.
+
+- Filter by project and by who created the workspace, next to the search box
+- Board cards drop the repeated chrome: a muted project line, a state glyph beside the title, and a footer of PR, churn, and activity age
+- Search and filters respond instantly, even with hundreds of workspaces
+- Main checkouts with a finished agent show in Needs review, like every other surface <PRBadge url="https://github.com/superset-sh/superset/pull/7142" />
+
+![The Workspaces list with the device on every row and in the page title](/changelog/2026-09-06-workspaces-devices.png)
+
+## New Models and Reasoning Levels <PRBadge url="https://github.com/superset-sh/superset/pull/7099" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7137" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7045" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7178" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6805" />
+
+Claude Fable 5.1 and GPT-6 Astra are in the model pickers and the usage pricing table. Codex offers its max and ultra reasoning levels on the models that accept them, and Cursor Agent gets a reasoning effort picker of its own. You can also pick a model per launch from the CLI, the SDK, and MCP, contributed by [@Shravankb301](https://github.com/Shravankb301):
+
+```bash
+superset agents create --workspace W --agent claude --model claude-fable-5-1
+superset ws create --agent codex --model gpt-6-astra
+```
+
+## Improvements
+
+- **Session folders** - sessions in the sidebar group into tag folders like projects do, with rename, colour, and bulk move from the context menu <PRBadge url="https://github.com/superset-sh/superset/pull/7037" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7055" />
+- **Sort and filter projects** - order the sidebar's projects by last active or date created, and filter by name from the magnifier in the Projects header <PRBadge url="https://github.com/superset-sh/superset/pull/7140" />
+- **Hide projects** - Hide from Sidebar keeps a project's groups and pins for when you bring it back, and owners get Delete Project in the same menu <PRBadge url="https://github.com/superset-sh/superset/pull/7176" />
+- **Leaderboard rank card** - **Settings → Usage** shows your rank, tier, and the token gap to the row above you; opt in with Reveal my rank <PRBadge url="https://github.com/superset-sh/superset/pull/7118" />
+- **API-billed usage profiles** - Add account offers Subscription or API key, and API profiles show Billed per token with a link to the provider's usage page, based on [@iamgadmarconi](https://github.com/iamgadmarconi)'s original PR <PRBadge url="https://github.com/superset-sh/superset/pull/7175" />
+- **⌘= and ⌘- follow focus** - a terminal steps its font size, a browser pane steps its zoom, anything else zooms the app; ⌘0 resets <PRBadge url="https://github.com/superset-sh/superset/pull/7174" />
+- **Open in** - right-click a link, path, or folder in a terminal and pick where it opens, with the same destinations as **Settings → Links** <PRBadge url="https://github.com/superset-sh/superset/pull/7179" />
+- **Terminal scripts from the CLI** - `superset scripts list`, `edit`, and `delete`, plus `add --upsert` to replace a same-named script instead of adding a duplicate <PRBadge url="https://github.com/superset-sh/superset/pull/7215" />
+- **Automations** - new Review requested and Assigned pull request triggers, with a people chip for whoever landed on the PR <PRBadge url="https://github.com/superset-sh/superset/pull/7163" />
+- **Darker theme** - a near-black theme with Superset's ember accent in the marketplace, contributed by [@0x962](https://github.com/0x962) <PRBadge url="https://github.com/superset-sh/superset/pull/6772" />
+- **Remote worktrees follow you** - a worktree you created on another machine gets a sidebar row here as soon as its host is online <PRBadge url="https://github.com/superset-sh/superset/pull/7120" />
+- **Pages up to 16 MB** - page documents upload straight to storage, so a page with a dozen screenshots no longer hits the old 3 MB limit <PRBadge url="https://github.com/superset-sh/superset/pull/7159" />
+- **Downloads page** - [superset.sh/download](https://superset.sh/download) lists every release with per-OS assets, and Linux auto-downloads like macOS <PRBadge url="https://github.com/superset-sh/superset/pull/7047" />
+- **iOS** - session tabs sit at the bottom by your thumb, the PR link moves beside the quick keys, and Copy ID confirms with a notice <PRBadge url="https://github.com/superset-sh/superset/pull/7024" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7116" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7117" />
+- **Billing** - annual subscribers get an email a week before the renewal charge <PRBadge url="https://github.com/superset-sh/superset/pull/7218" />
+
+---
+
+**Bug fixes**
+
+- **Desktop** - the app no longer freezes after closing a dialog opened from a context menu <PRBadge url="https://github.com/superset-sh/superset/pull/7108" />
+- **Desktop** - pressing Enter on Delete in a workspace context menu shows the confirmation instead of deleting outright, and bulk delete runs behind a progress toast instead of a blocking dialog <PRBadge url="https://github.com/superset-sh/superset/pull/7193" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7119" />
+- **Sidebar** - dropped rows land where the drag preview showed them, and dragging costs about 3x less per move <PRBadge url="https://github.com/superset-sh/superset/pull/7184" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7203" />
+- **Sidebar** - the sidebar no longer holds a live git watch on every workspace row, which kept large repos busy <PRBadge url="https://github.com/superset-sh/superset/pull/7207" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6848" />
+- **Terminal** - a resize during an image decode can no longer kill the terminal, and "Auto-run on workspace creation" scripts run again <PRBadge url="https://github.com/superset-sh/superset/pull/7188" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7153" />
+- **Terminal** - Superset now reaps the wedged host-service children an auto-update leaves behind, so terminals stop freezing after a relaunch <PRBadge url="https://github.com/superset-sh/superset/pull/7145" />
+- **Browser** - Sign in with Google works from the in-app browser, and the overflow menu closes on a click into the page <PRBadge url="https://github.com/superset-sh/superset/pull/7183" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7049" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7187" />
+- **Usage** - a Claude login with a lapsed access token no longer reads as expired, and Keychain logins resolve by account <PRBadge url="https://github.com/superset-sh/superset/pull/7172" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7109" />
+- **Agents** - switching accounts restarts idle agents too, and a swept terminal's agent session stays resumable, contributed by [@owieschon](https://github.com/owieschon) <PRBadge url="https://github.com/superset-sh/superset/pull/7144" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7127" />
+- **Pull requests** - merges take GitHub's merge time instead of the time Superset first saw them, contributed by [@owieschon](https://github.com/owieschon) <PRBadge url="https://github.com/superset-sh/superset/pull/7110" />
+- **Workspaces** - delete re-checks the disk after git unregisters the worktree, contributed by [@sahiljagtap08](https://github.com/sahiljagtap08), and tags stay with the user who applied them on shared hosts <PRBadge url="https://github.com/superset-sh/superset/pull/6785" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7194" />
+- **Settings** - **Settings → Agents** loads against host services older than 1.24 <PRBadge url="https://github.com/superset-sh/superset/pull/7105" />
+- **Editor** - Dockerfiles and Makefiles get syntax highlighting, contributed by [@mjspeck](https://github.com/mjspeck), and Download as PNG works on mermaid diagrams <PRBadge url="https://github.com/superset-sh/superset/pull/7069" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7147" />
+- **Themes** - standalone red text uses each theme's own red instead of the default theme's pink <PRBadge url="https://github.com/superset-sh/superset/pull/7089" />
+- **Accounts** - the app no longer moves you into the organization you joined most recently <PRBadge url="https://github.com/superset-sh/superset/pull/7028" />
+- **iOS** - diffs no longer render black on black for unsupported languages <PRBadge url="https://github.com/superset-sh/superset/pull/7219" />

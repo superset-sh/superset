@@ -58,11 +58,7 @@ export function AgentCardHeader({
 					<div className="min-w-0">
 						<CardTitle className="truncate">{preset.label}</CardTitle>
 						<CardDescription className="mt-1">
-							{preset.description ?? (
-								<Trans id="settings.agents.card.defaultDescription">
-									Agent launch configuration
-								</Trans>
-							)}
+							{preset.description ?? <Trans>Agent launch configuration</Trans>}
 						</CardDescription>
 					</div>
 				</div>
@@ -72,7 +68,6 @@ export function AgentCardHeader({
 							<Switch
 								id={`${preset.id}-enabled`}
 								aria-label={t({
-									id: "settings.agents.card.enableAriaLabel",
 									message: `Enable ${preset.label}`,
 								})}
 								checked={enabled}

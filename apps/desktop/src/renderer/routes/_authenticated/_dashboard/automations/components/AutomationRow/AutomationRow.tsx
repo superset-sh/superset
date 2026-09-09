@@ -28,6 +28,7 @@ import { LuEllipsis, LuPlay, LuRotateCw } from "react-icons/lu";
 import type { AutomationLastRun } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import type { ProjectOption } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
+import { useCopyAutomationLink } from "../../hooks/useCopyAutomationLink";
 import { AutomationActionsMenuItems } from "./components/AutomationActionsMenuItems";
 
 type AutomationListItem = RouterOutputs["automation"]["list"][number];
@@ -59,21 +60,18 @@ const LAST_RUN_META: Record<
 	dispatched: {
 		dot: "bg-emerald-500",
 		label: msg({
-			id: "dashboard.automations.row.lastRunCreated",
 			message: "created",
 		}),
 	},
 	dispatching: {
 		dot: "bg-amber-500",
 		label: msg({
-			id: "dashboard.automations.row.lastRunCreating",
 			message: "creating",
 		}),
 	},
 	skipped_offline: {
 		dot: "bg-red-500",
 		label: msg({
-			id: "dashboard.automations.row.lastRunFailedOffline",
 			message: "failed",
 		}),
 		failed: true,
@@ -81,7 +79,6 @@ const LAST_RUN_META: Record<
 	dispatch_failed: {
 		dot: "bg-red-500",
 		label: msg({
-			id: "dashboard.automations.row.lastRunFailed",
 			message: "failed",
 		}),
 		failed: true,
@@ -91,14 +88,12 @@ const LAST_RUN_META: Record<
 	debounced: {
 		dot: "bg-slate-400",
 		label: msg({
-			id: "dashboard.automations.row.lastRunSuperseded",
 			message: "superseded",
 		}),
 	},
 	rejected: {
 		dot: "bg-amber-500",
 		label: msg({
-			id: "dashboard.automations.row.lastRunBlocked",
 			message: "blocked",
 		}),
 	},
@@ -109,18 +104,14 @@ const LAST_RUN_META: Record<
 // beyond the two "right now" cases where a bare unit would read oddly.
 function compactUntil(at: number, now: Date): string {
 	if (at - now.getTime() < 60_000) {
-		return i18n._(
-			msg({ id: "dashboard.automations.row.untilSoon", message: "soon" }),
-		);
+		return i18n._(msg({ message: "soon" }));
 	}
 	return formatCompactRelativeTime(at, now);
 }
 
 function compactAgo(at: number, now: Date): string {
 	if (now.getTime() - at < 60_000) {
-		return i18n._(
-			msg({ id: "dashboard.automations.row.agoJustNow", message: "just now" }),
-		);
+		return i18n._(msg({ message: "just now" }));
 	}
 	return formatCompactRelativeTime(at, now);
 }
@@ -141,17 +132,16 @@ export function AutomationRow({
 }: AutomationRowProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
+	const copyAutomationLink = useCopyAutomationLink();
 	// No rrule but some trigger means the automation is driven by events
 	// rather than a clock; no triggers at all means it never fires.
 	const scheduleLabel = automation.rrule
 		? describeSchedule(automation.rrule)
 		: automation.triggerCount > 0
 			? t({
-					id: "dashboard.automations.row.eventTriggered",
 					message: "Event triggered",
 				})
 			: t({
-					id: "dashboard.automations.row.noTriggers",
 					message: "No triggers",
 				});
 
@@ -184,6 +174,7 @@ export function AutomationRow({
 			isOwner={isOwner}
 			enabled={automation.enabled}
 			onEdit={openDetail}
+			onCopyLink={() => copyAutomationLink(automation.id)}
 			onRunNow={() => onRunNow(automation)}
 			onToggleEnabled={() => onToggleEnabled(automation)}
 			onHistory={openHistory}
@@ -231,7 +222,7 @@ export function AutomationRow({
 								</span>
 							) : isSession ? (
 								<span className="ml-1 shrink-0 text-xs text-muted-foreground">
-									<Trans id="dashboard.automations.row.session">Session</Trans>
+									<Trans>Session</Trans>
 								</span>
 							) : null}
 						</span>
@@ -258,7 +249,6 @@ export function AutomationRow({
 						title={
 							automation.enabled && automation.nextRunAt
 								? t({
-										id: "dashboard.automations.row.nextRunTitle",
 										message: `Next run ${formatDateTimeInTimezone(
 											new Date(automation.nextRunAt),
 											automation.timezone ?? "UTC",
@@ -269,9 +259,7 @@ export function AutomationRow({
 					>
 						{automation.enabled ? (
 							<span className="truncate">
-								<Trans id="dashboard.automations.row.statusActive">
-									Active
-								</Trans>
+								<Trans>Active</Trans>
 								{automation.nextRunAt && (
 									<span className="text-muted-foreground/60">
 										{" · "}
@@ -283,7 +271,7 @@ export function AutomationRow({
 								)}
 							</span>
 						) : (
-							<Trans id="dashboard.automations.row.statusPaused">Paused</Trans>
+							<Trans>Paused</Trans>
 						)}
 					</TableCell>
 
@@ -329,13 +317,11 @@ export function AutomationRow({
 											</TooltipTrigger>
 											<TooltipContent>
 												{lastRunMeta.failed ? (
-													<Trans id="dashboard.automations.row.openFailedRunTooltip">
+													<Trans>
 														The last run failed. Open its workspace to see why
 													</Trans>
 												) : (
-													<Trans id="dashboard.automations.row.openRunTooltip">
-														Open the run's workspace
-													</Trans>
+													<Trans>Open the run's workspace</Trans>
 												)}
 											</TooltipContent>
 										</Tooltip>
@@ -348,7 +334,7 @@ export function AutomationRow({
 												<span className="block">{cell}</span>
 											</TooltipTrigger>
 											<TooltipContent>
-												<Trans id="dashboard.automations.row.failedRunRowTooltip">
+												<Trans>
 													The last run failed. Click the row to see why.
 												</Trans>
 											</TooltipContent>
@@ -376,7 +362,6 @@ export function AutomationRow({
 												onRunNow(automation);
 											}}
 											aria-label={t({
-												id: "dashboard.automations.row.runNowAriaLabel",
 												message: `Run ${automation.name} now`,
 											})}
 											className={cn(
@@ -392,36 +377,31 @@ export function AutomationRow({
 										</Button>
 									</TooltipTrigger>
 									<TooltipContent>
-										<Trans id="dashboard.automations.row.runNowTooltip">
-											Run now
-										</Trans>
+										<Trans>Run now</Trans>
 									</TooltipContent>
 								</Tooltip>
 							)}
-							{isOwner && (
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button
-											variant="ghost"
-											size="icon-sm"
-											onClick={(e) => e.stopPropagation()}
-											aria-label={t({
-												id: "dashboard.automations.row.rowActionsAriaLabel",
-												message: "Row actions",
-											})}
-											className="opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100 focus-visible:opacity-100"
-										>
-											<LuEllipsis className="size-4" />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent
-										align="end"
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon-sm"
 										onClick={(e) => e.stopPropagation()}
+										aria-label={t({
+											message: "Row actions",
+										})}
+										className="opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100 focus-visible:opacity-100"
 									>
-										{actionsMenuItems("dropdown")}
-									</DropdownMenuContent>
-								</DropdownMenu>
-							)}
+										<LuEllipsis className="size-4" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align="end"
+									onClick={(e) => e.stopPropagation()}
+								>
+									{actionsMenuItems("dropdown")}
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</span>
 					</TableCell>
 				</TableRow>

@@ -19,8 +19,8 @@ export function CommentModeButton({
 }: CommentModeButtonProps) {
 	const { t } = useLingui();
 	const label = enabled
-		? t({ id: "ui.commentMode.leave", message: "Leave comment mode" })
-		: t({ id: "ui.commentMode.enter", message: "Comment on this page" });
+		? t({ message: "Leave comment mode" })
+		: t({ message: "Comment on this page" });
 
 	if (compact) {
 		return (

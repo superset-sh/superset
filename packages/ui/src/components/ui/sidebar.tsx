@@ -199,12 +199,10 @@ function Sidebar({
 				>
 					<SheetHeader className="sr-only">
 						<SheetTitle>
-							<Trans id="ui.sidebar.mobileTitle">Sidebar</Trans>
+							<Trans>Sidebar</Trans>
 						</SheetTitle>
 						<SheetDescription>
-							<Trans id="ui.sidebar.mobileDescription">
-								Displays the mobile sidebar.
-							</Trans>
+							<Trans>Displays the mobile sidebar.</Trans>
 						</SheetDescription>
 					</SheetHeader>
 					<div className="flex h-full w-full flex-col">{children}</div>
@@ -283,7 +281,7 @@ function SidebarTrigger({
 		>
 			<PanelLeftIcon />
 			<span className="sr-only">
-				<Trans id="ui.sidebar.toggle">Toggle Sidebar</Trans>
+				<Trans>Toggle Sidebar</Trans>
 			</span>
 		</Button>
 	);
@@ -292,7 +290,7 @@ function SidebarTrigger({
 function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
 	const { toggleSidebar } = useSidebar();
 	const { t } = useLingui();
-	const toggleLabel = t({ id: "ui.sidebar.toggle", message: "Toggle Sidebar" });
+	const toggleLabel = t({ message: "Toggle Sidebar" });
 
 	return (
 		<button

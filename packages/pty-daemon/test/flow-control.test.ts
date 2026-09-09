@@ -105,3 +105,71 @@ test("consumer disconnect while paused resumes the PTY for the next subscriber",
 	await c2.waitFor((m) => m.type === "closed" && m.id === "flow-1", 3000);
 	await c2.close();
 });
+
+test("a subscriber that never drains is dropped after pausedConnTimeoutMs; other subscribers keep receiving", async () => {
+	// A pause holds the PTY for every subscriber. Without a bound, a wedged
+	// host-service that keeps its socket open but never reads froze those
+	// terminals for the live host-service too.
+	const PAUSED_CONN_TIMEOUT_MS = 500;
+	const timeoutSock = path.join(
+		os.tmpdir(),
+		`pty-daemon-flow-timeout-${process.pid}.sock`,
+	);
+	const timeoutServer = new Server({
+		socketPath: timeoutSock,
+		daemonVersion: "0.0.0-test",
+		outboundPauseThreshold: PAUSE_THRESHOLD,
+		outboundBufferCap: DESTROY_CAP,
+		pausedConnTimeoutMs: PAUSED_CONN_TIMEOUT_MS,
+	});
+	await timeoutServer.listen();
+	try {
+		const stuck = await connectAndHello(timeoutSock);
+		stuck.send({ type: "open", id: "flow-2", meta: FLOOD_META });
+		await stuck.waitFor((m) => m.type === "open-ok" && m.id === "flow-2");
+		stuck.send({ type: "subscribe", id: "flow-2", replay: false });
+		await stuck.waitFor((m) => m.type === "output" && m.id === "flow-2", 3000);
+
+		const live = await connectAndHello(timeoutSock);
+		live.send({ type: "subscribe", id: "flow-2", replay: false });
+		await live.waitFor((m) => m.type === "output" && m.id === "flow-2", 3000);
+
+		// Congest `stuck` and never read again. The daemon must drop it once
+		// the timeout elapses, not wait for a drain that will never come.
+		stuck.socket.pause();
+		// Well past the timeout. Without the bound the PTY is still paused here
+		// and nothing is in flight for `live` any more, so the wait below times
+		// out; with it the drop resumed the PTY and output is flowing again.
+		await new Promise((r) => setTimeout(r, PAUSED_CONN_TIMEOUT_MS * 3));
+		await live.waitForNext(
+			(m) =>
+				m.type === "output" &&
+				m.id === "flow-2" &&
+				payloadAsString(m).includes("flood-line"),
+			3000,
+		);
+		assert.equal(live.closed(), false);
+
+		// A paused client socket never reads, so it cannot observe the daemon's
+		// destroy until it resumes. Resume now and confirm the FIN was there:
+		// an un-dropped connection would just drain and stay open.
+		const stuckClosed = new Promise<void>((resolve) => stuck.onClose(resolve));
+		stuck.socket.resume();
+		await Promise.race([
+			stuckClosed,
+			new Promise((_, reject) =>
+				setTimeout(
+					() => reject(new Error("stuck subscriber was not disconnected")),
+					3000,
+				),
+			),
+		]);
+		assert.equal(stuck.closed(), true);
+
+		live.send({ type: "close", id: "flow-2", signal: "SIGKILL" });
+		await live.waitFor((m) => m.type === "closed" && m.id === "flow-2", 3000);
+		await live.close();
+	} finally {
+		await timeoutServer.close();
+	}
+});

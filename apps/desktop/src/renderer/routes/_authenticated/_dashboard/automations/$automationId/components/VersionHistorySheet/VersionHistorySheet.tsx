@@ -84,7 +84,6 @@ export function VersionHistorySheet({
 			setSelectedVersionId(restored?.id ?? null);
 			toast.success(
 				t({
-					id: "dashboard.automations.versionHistory.restoredToast",
 					message: "Prompt restored",
 				}),
 			);
@@ -98,25 +97,21 @@ export function VersionHistorySheet({
 		const versionId = selectedVersionId;
 		alert({
 			title: t({
-				id: "dashboard.automations.versionHistory.restoreDialogTitle",
 				message: "Restore this version?",
 			}),
 			description: t({
-				id: "dashboard.automations.versionHistory.restoreDialogDescription",
 				message:
 					'The current prompt will be replaced with the selected version. A new "Restored" entry will be added to history so you can undo this.',
 			}),
 			actions: [
 				{
 					label: t({
-						id: "dashboard.automations.versionHistory.restoreDialogCancel",
 						message: "Cancel",
 					}),
 					variant: "outline",
 				},
 				{
 					label: t({
-						id: "dashboard.automations.versionHistory.restoreDialogConfirm",
 						message: "Restore",
 					}),
 					onClick: async () => {
@@ -127,7 +122,6 @@ export function VersionHistorySheet({
 								errorMessage(
 									error,
 									t({
-										id: "dashboard.automations.versionHistory.restoreFailedToast",
 										message: "Failed to restore",
 									}),
 								),
@@ -150,9 +144,7 @@ export function VersionHistorySheet({
 				onInteractOutside={(event) => event.preventDefault()}
 			>
 				<DialogTitle className="sr-only">
-					<Trans id="dashboard.automations.versionHistory.dialogTitle">
-						Prompt history for {automationName}
-					</Trans>
+					<Trans>Prompt history for {automationName}</Trans>
 				</DialogTitle>
 
 				<div className="flex flex-1 flex-col overflow-hidden">
@@ -167,16 +159,13 @@ export function VersionHistorySheet({
 				<aside className="flex w-60 shrink-0 flex-col border-l bg-background">
 					<div className="flex h-12 shrink-0 items-center justify-between border-b pr-2 pl-4">
 						<h2 className="text-base font-semibold">
-							<Trans id="dashboard.automations.versionHistory.title">
-								Prompt history
-							</Trans>
+							<Trans>Prompt history</Trans>
 						</h2>
 						<DialogClose asChild>
 							<Button
 								variant="ghost"
 								size="icon-xs"
 								aria-label={t({
-									id: "dashboard.automations.versionHistory.closeAriaLabel",
 									message: "Close",
 								})}
 							>
@@ -188,16 +177,12 @@ export function VersionHistorySheet({
 					<div className="flex-1 overflow-y-auto">
 						{isLoading && (
 							<div className="p-4 text-sm text-muted-foreground">
-								<Trans id="dashboard.automations.versionHistory.loading">
-									Loading...
-								</Trans>
+								<Trans>Loading...</Trans>
 							</div>
 						)}
 						{!isLoading && versions.length === 0 && (
 							<div className="p-4 text-sm text-muted-foreground">
-								<Trans id="dashboard.automations.versionHistory.noVersions">
-									No versions yet.
-								</Trans>
+								<Trans>No versions yet.</Trans>
 							</div>
 						)}
 						{versions.map((version) => (
@@ -217,9 +202,7 @@ export function VersionHistorySheet({
 							disabled={!selectedVersionId || restoreMutation.isPending}
 							onClick={handleRestoreClick}
 						>
-							<Trans id="dashboard.automations.versionHistory.restore">
-								Restore
-							</Trans>
+							<Trans>Restore</Trans>
 						</Button>
 					</div>
 				</aside>

@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
@@ -12,14 +13,16 @@ import { EnterpriseFAQ } from "./components/EnterpriseFAQ";
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
 	return {
-		title: i18n._({
-			id: "marketing.meta.enterprise.title",
-			message: "Enterprise",
-		}),
+		title: i18n._(
+			msg({
+				message: "Enterprise",
+			}),
+		),
 		description: i18n._({
-			id: "marketing.meta.enterprise.description",
-			message:
-				"Bring {companyName} to your team. Get in touch to learn more about enterprise plans and deployment options.",
+			...msg({
+				message:
+					"Bring {companyName} to your team. Get in touch to learn more about enterprise plans and deployment options.",
+			}),
 			values: { companyName: COMPANY.NAME },
 		}),
 		alternates: localizedAlternates(lang, "/enterprise"),
@@ -52,15 +55,13 @@ export default async function EnterprisePage() {
 					<div className="flex items-start justify-between gap-8">
 						<div>
 							<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-								<Trans id="marketing.enterprise.hero.eyebrow">Enterprise</Trans>
+								<Trans>Enterprise</Trans>
 							</span>
 							<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-								<Trans id="marketing.enterprise.hero.title">
-									Superset for your team
-								</Trans>
+								<Trans>Superset for your team</Trans>
 							</h1>
 							<p className="text-muted-foreground mt-3 max-w-lg">
-								<Trans id="marketing.enterprise.hero.subtitle">
+								<Trans>
 									Interested in bringing Superset to your organization? Reach
 									out and we&apos;ll work with you to find the right setup for
 									your team.
@@ -72,7 +73,6 @@ export default async function EnterprisePage() {
 							target="_blank"
 							rel="noopener noreferrer"
 							aria-label={t({
-								id: "marketing.enterprise.hero.soc2BadgeLabel",
 								message: "SOC 2 Type II compliant. Request our report.",
 							})}
 							className="hidden md:block shrink-0 text-muted-foreground transition-colors hover:text-foreground"
