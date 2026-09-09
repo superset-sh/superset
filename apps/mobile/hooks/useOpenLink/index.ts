@@ -1,0 +1,1 @@
+export { useOpenLink } from "./useOpenLink";

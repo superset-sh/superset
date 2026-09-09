@@ -9795,6 +9795,9 @@ msgstr "新しいタブでファイルを開く"
 msgid "Open from folder"
 msgstr "フォルダから開く"
 
+msgid "Open full screen"
+msgstr "全画面で開く"
+
 msgid "Open importer"
 msgstr "インポーターを開く"
 

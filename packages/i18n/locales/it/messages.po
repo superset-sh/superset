@@ -9795,6 +9795,9 @@ msgstr "Apri il file in una nuova scheda"
 msgid "Open from folder"
 msgstr "Apri da cartella"
 
+msgid "Open full screen"
+msgstr "Apri a schermo intero"
+
 msgid "Open importer"
 msgstr "Apri l'importatore"
 

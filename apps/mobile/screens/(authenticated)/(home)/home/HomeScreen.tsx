@@ -573,7 +573,7 @@ export function HomeScreen() {
 					})}
 					onPress={() => {
 						void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-						router.push("/(authenticated)/(home)/pages");
+						router.push("/(authenticated)/pages");
 					}}
 				/>
 				{!cloudScope && selectedHost && !selectedHost.isOnline ? null : (

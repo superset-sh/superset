@@ -6,7 +6,7 @@ import {
 } from "@superset/shared/page-comments-runtime";
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
-import { openUrl } from "@/lib/open-url";
+import { useOpenLink } from "@/hooks/useOpenLink";
 
 /**
  * The comment runtime inside the page posts with `parent.postMessage`. In a
@@ -46,6 +46,7 @@ function documentUrl(url: string): string {
 export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
 	function PageFrame({ src, onMessage, onLoadEnd, onError }, ref) {
 		const webViewRef = useRef<WebView>(null);
+		const openLink = useOpenLink();
 
 		useImperativeHandle(ref, () => ({
 			send: (message) => {
@@ -84,7 +85,7 @@ export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
 					// signed ticket travels with the document URL, so it must not.
 					if (!request.isTopFrame) return true;
 					if (documentUrl(request.url) === documentUrl(src)) return true;
-					if (request.navigationType === "click") openUrl(request.url);
+					if (request.navigationType === "click") openLink(request.url);
 					return false;
 				}}
 				allowsInlineMediaPlayback

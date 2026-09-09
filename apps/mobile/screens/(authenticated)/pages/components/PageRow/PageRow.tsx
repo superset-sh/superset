@@ -28,7 +28,7 @@ export function PageRow({ page }: { page: OrgPage }) {
 			accessibilityLabel={page.title ?? page.slug}
 			onPress={() =>
 				router.push({
-					pathname: "/(authenticated)/(home)/pages/[slug]",
+					pathname: "/(authenticated)/pages/[slug]/preview",
 					params: { slug: page.slug },
 				})
 			}

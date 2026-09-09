@@ -9795,6 +9795,9 @@ msgstr "Bestand openen in nieuw tabblad"
 msgid "Open from folder"
 msgstr "Openen vanuit map"
 
+msgid "Open full screen"
+msgstr "Openen op volledig scherm"
+
 msgid "Open importer"
 msgstr "Importer openen"
 

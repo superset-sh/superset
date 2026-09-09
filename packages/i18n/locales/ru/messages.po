@@ -9795,6 +9795,9 @@ msgstr "Открыть файл в новой вкладке"
 msgid "Open from folder"
 msgstr "Открыть из папки"
 
+msgid "Open full screen"
+msgstr "Открыть во весь экран"
+
 msgid "Open importer"
 msgstr "Открыть импортёр"
 

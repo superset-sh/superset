@@ -9795,6 +9795,9 @@ msgstr "Mở tệp ở tab mới"
 msgid "Open from folder"
 msgstr "Mở từ thư mục"
 
+msgid "Open full screen"
+msgstr "Mở toàn màn hình"
+
 msgid "Open importer"
 msgstr "Mở trình nhập"
 

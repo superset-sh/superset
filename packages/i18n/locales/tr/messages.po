@@ -9795,6 +9795,9 @@ msgstr "Dosyayı yeni sekmede aç"
 msgid "Open from folder"
 msgstr "Klasörden aç"
 
+msgid "Open full screen"
+msgstr "Tam ekranda aç"
+
 msgid "Open importer"
 msgstr "İçe aktarıcıyı aç"
 

@@ -9795,6 +9795,9 @@ msgstr "Otevřít soubor na nové kartě"
 msgid "Open from folder"
 msgstr "Otevřít ze složky"
 
+msgid "Open full screen"
+msgstr "Otevřít na celou obrazovku"
+
 msgid "Open importer"
 msgstr "Otevřít import"
 

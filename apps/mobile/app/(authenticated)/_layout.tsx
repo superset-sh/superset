@@ -4,10 +4,14 @@ import { Redirect, Stack, usePathname } from "expo-router";
 import { usePrimeRelayUrl } from "@/hooks/usePrimeRelayUrl";
 import { useSession } from "@/lib/auth/client";
 
-const settingsScreenOptions = (title: string) => ({
+const pageScreenOptions = {
 	headerShown: true,
 	headerBackButtonDisplayMode: "minimal" as const,
 	headerShadowVisible: false,
+};
+
+const settingsScreenOptions = (title: string) => ({
+	...pageScreenOptions,
 	title,
 });
 
@@ -51,6 +55,68 @@ export default function AuthenticatedLayout() {
 			    back-button long-press menus (otherwise raw route names leak,
 			    e.g. "(home)"). */}
 			<Stack.Screen name="(home)" options={{ title: t({ message: "Home" }) }} />
+			<Stack.Screen
+				name="pages/index"
+				options={{ ...pageScreenOptions, title: t({ message: "Pages" }) }}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/index"
+				options={{
+					...pageScreenOptions,
+					title: "",
+					headerBackTitle: t({ message: "Pages" }),
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/preview"
+				options={{
+					presentation: "formSheet",
+					title: "",
+					sheetAllowedDetents: [0.6, 1.0],
+					sheetGrabberVisible: true,
+					...pageScreenOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/compose"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Write a comment" }),
+					sheetAllowedDetents: [0.5],
+					sheetGrabberVisible: true,
+					...pageScreenOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/quick"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Quick feedback" }),
+					sheetAllowedDetents: [0.6],
+					sheetGrabberVisible: true,
+					...pageScreenOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/thread"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Comment" }),
+					sheetAllowedDetents: [0.7],
+					sheetGrabberVisible: true,
+					...pageScreenOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/comments"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "All comments" }),
+					sheetAllowedDetents: [1.0],
+					sheetGrabberVisible: true,
+					...pageScreenOptions,
+				}}
+			/>
 			<Stack.Screen
 				name="settings/index"
 				options={settingsScreenOptions(t({ message: "Settings" }))}

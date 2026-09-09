@@ -9795,6 +9795,9 @@ msgstr "在新分頁中開啟檔案"
 msgid "Open from folder"
 msgstr "從資料夾開啟"
 
+msgid "Open full screen"
+msgstr "全螢幕開啟"
+
 msgid "Open importer"
 msgstr "開啟匯入器"
 

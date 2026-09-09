@@ -9795,6 +9795,9 @@ msgstr "Buka File di Tab Baru"
 msgid "Open from folder"
 msgstr "Buka dari folder"
 
+msgid "Open full screen"
+msgstr "Buka layar penuh"
+
 msgid "Open importer"
 msgstr "Buka importer"
 

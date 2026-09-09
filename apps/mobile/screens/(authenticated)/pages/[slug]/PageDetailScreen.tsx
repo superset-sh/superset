@@ -61,11 +61,22 @@ function sameRects(
 	});
 }
 
-export function PageDetailScreen() {
+interface PageDetailScreenProps {
+	presentation?: "full" | "sheet";
+}
+
+export function PageDetailScreen({
+	presentation = "full",
+}: PageDetailScreenProps = {}) {
 	const { t } = useLingui();
 	const router = useRouter();
-	const { slug } = useLocalSearchParams<{ slug: string }>();
+	const { slug, scrollY } = useLocalSearchParams<{
+		slug: string;
+		scrollY?: string;
+	}>();
 	const frameRef = useRef<PageFrameHandle>(null);
+	const scrollYRef = useRef(0);
+	const restoredScroll = useRef(false);
 
 	// Tracked per URL, not as a flag: a ticket that rolls over swaps `viewUrl`
 	// for one that has not loaded yet, and a stale `true` would show the frame
@@ -131,8 +142,17 @@ export function PageDetailScreen() {
 		}, [comments.refetch]),
 	);
 
+	useEffect(() => {
+		if (restoredScroll.current || frameEpoch === 0) return;
+		const y = Number(scrollY);
+		if (!Number.isFinite(y) || y <= 0) return;
+		restoredScroll.current = true;
+		send({ type: "restore-scroll", y });
+	}, [frameEpoch, scrollY, send]);
+
 	const onFrameMessage = useCallback((message: FrameMessage) => {
 		if (message.type === "ready") setFrameEpoch((epoch) => epoch + 1);
+		if (message.type === "scroll") scrollYRef.current = message.y;
 		if (message.type === "rects") {
 			const next: Record<string, FrameRect> = {};
 			for (const entry of message.entries) {
@@ -189,8 +209,8 @@ export function PageDetailScreen() {
 			router.push({
 				pathname:
 					route === "compose"
-						? "/(authenticated)/(home)/pages/[slug]/compose"
-						: "/(authenticated)/(home)/pages/[slug]/quick",
+						? "/(authenticated)/pages/[slug]/compose"
+						: "/(authenticated)/pages/[slug]/quick",
 				params: { slug },
 			});
 		},
@@ -221,7 +241,30 @@ export function PageDetailScreen() {
 				options={{ title: page.data?.title ?? t({ message: "Page" }) }}
 			/>
 
+			{presentation === "sheet" ? (
+				<Stack.Toolbar placement="left">
+					<Stack.Toolbar.Button
+						icon="xmark"
+						accessibilityLabel={t({ message: "Close" })}
+						onPress={() => router.back()}
+					/>
+				</Stack.Toolbar>
+			) : null}
+
 			<Stack.Toolbar placement="right">
+				{presentation === "sheet" ? (
+					<Stack.Toolbar.Button
+						icon="arrow.up.left.and.arrow.down.right"
+						accessibilityLabel={t({ message: "Open full screen" })}
+						onPress={() => {
+							void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+							router.replace({
+								pathname: "/(authenticated)/pages/[slug]",
+								params: { slug, scrollY: String(scrollYRef.current) },
+							});
+						}}
+					/>
+				) : null}
 				<Stack.Toolbar.Button
 					icon={commentMode ? "viewfinder.circle.fill" : "viewfinder"}
 					accessibilityLabel={
@@ -241,7 +284,7 @@ export function PageDetailScreen() {
 					onPress={() => {
 						void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 						router.push({
-							pathname: "/(authenticated)/(home)/pages/[slug]/comments",
+							pathname: "/(authenticated)/pages/[slug]/comments",
 							params: { slug },
 						});
 					}}
@@ -298,7 +341,7 @@ export function PageDetailScreen() {
 									onPress={() => {
 										setThreadId(thread.id);
 										router.push({
-											pathname: "/(authenticated)/(home)/pages/[slug]/thread",
+											pathname: "/(authenticated)/pages/[slug]/thread",
 											params: { slug },
 										});
 									}}

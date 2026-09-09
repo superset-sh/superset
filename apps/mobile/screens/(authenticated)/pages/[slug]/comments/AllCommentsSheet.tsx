@@ -70,7 +70,7 @@ export function AllCommentsSheet() {
 							onPress={() => {
 								setThreadId(thread.id);
 								router.replace({
-									pathname: "/(authenticated)/(home)/pages/[slug]/thread",
+									pathname: "/(authenticated)/pages/[slug]/thread",
 									params: { slug },
 								});
 							}}

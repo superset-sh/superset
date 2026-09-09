@@ -9795,6 +9795,9 @@ msgstr "Datei in neuem Tab öffnen"
 msgid "Open from folder"
 msgstr "Aus Ordner öffnen"
 
+msgid "Open full screen"
+msgstr "Im Vollbild öffnen"
+
 msgid "Open importer"
 msgstr "Importer öffnen"
 

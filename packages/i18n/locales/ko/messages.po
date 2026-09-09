@@ -9795,6 +9795,9 @@ msgstr "새 탭에서 파일 열기"
 msgid "Open from folder"
 msgstr "폴더에서 열기"
 
+msgid "Open full screen"
+msgstr "전체 화면으로 열기"
+
 msgid "Open importer"
 msgstr "가져오기 도구 열기"
 

@@ -9795,6 +9795,9 @@ msgstr "在新标签页中打开文件"
 msgid "Open from folder"
 msgstr "从文件夹打开"
 
+msgid "Open full screen"
+msgstr "全屏打开"
+
 msgid "Open importer"
 msgstr "打开导入器"
 
