@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 let flagResult: boolean | undefined;
 let storedEmail: string | null;
+let lookups = 0;
 let calls: Array<{
 	key: string;
 	distinctId: string;
@@ -10,8 +11,19 @@ let calls: Array<{
 
 // Both stubbed so the real clients — and the validated env and database
 // connection they open at import — stay out of this test's module graph.
-mock.module("@superset/db/utils", () => ({
-	findUserEmail: () => Promise.resolve(storedEmail),
+mock.module("@superset/db/client", () => ({
+	db: {
+		query: {
+			users: {
+				findFirst: () => {
+					lookups += 1;
+					return Promise.resolve(
+						storedEmail === null ? undefined : { email: storedEmail },
+					);
+				},
+			},
+		},
+	},
 }));
 mock.module("../analytics", () => ({
 	posthog: {
@@ -28,20 +40,26 @@ mock.module("../analytics", () => ({
 
 const { assertCloudAccess } = await import("./cloud-guards");
 
+const signedIn = (email: string, id = "user-1") => ({
+	userId: "user-1",
+	session: { user: { id, email } },
+});
+
 describe("assertCloudAccess", () => {
 	beforeEach(() => {
 		calls = [];
-		storedEmail = "Someone@Superset.sh";
+		lookups = 0;
+		storedEmail = "stored@superset.sh";
 	});
 
 	test("allows an account the flag is enabled for", async () => {
 		flagResult = true;
-		await assertCloudAccess("user-1");
+		await assertCloudAccess(signedIn("Someone@Superset.sh"));
 	});
 
-	test("evaluates cloud-workspaces against the stored email, normalized", async () => {
+	test("evaluates cloud-workspaces for the user, by normalized email", async () => {
 		flagResult = true;
-		await assertCloudAccess("user-1");
+		await assertCloudAccess(signedIn("Someone@Superset.sh"));
 
 		expect(calls).toHaveLength(1);
 		expect(calls[0]?.key).toBe("cloud-workspaces");
@@ -51,11 +69,29 @@ describe("assertCloudAccess", () => {
 		});
 	});
 
+	test("spends no query when the loaded session is this user", async () => {
+		flagResult = true;
+		await assertCloudAccess(signedIn("someone@superset.sh"));
+		expect(lookups).toBe(0);
+	});
+
+	// A cookie session and a bearer can describe different people, so the
+	// loaded row is only usable when it is this user's.
+	test("looks the user up when the session is somebody else", async () => {
+		flagResult = true;
+		await assertCloudAccess(signedIn("other@superset.sh", "user-2"));
+
+		expect(lookups).toBe(1);
+		expect(calls[0]?.options?.personProperties).toEqual({
+			email: "stored@superset.sh",
+		});
+	});
+
 	test("refuses an account the flag is disabled for", async () => {
 		flagResult = false;
-		await expect(assertCloudAccess("user-1")).rejects.toThrow(
-			/not on the list/,
-		);
+		await expect(
+			assertCloudAccess(signedIn("someone@example.com")),
+		).rejects.toThrow(/not on the list/);
 	});
 
 	// The one that matters: posthog-node resolves undefined when it cannot
@@ -63,14 +99,16 @@ describe("assertCloudAccess", () => {
 	// during an outage.
 	test("refuses when the flag cannot be evaluated", async () => {
 		flagResult = undefined;
-		await expect(assertCloudAccess("user-1")).rejects.toThrow(
-			/not on the list/,
-		);
+		await expect(
+			assertCloudAccess(signedIn("someone@superset.sh")),
+		).rejects.toThrow(/not on the list/);
 	});
 
 	test("refuses a user with no email on record", async () => {
 		flagResult = false;
 		storedEmail = null;
-		await expect(assertCloudAccess("user-1")).rejects.toThrow(/this account/);
+		await expect(
+			assertCloudAccess({ userId: "user-1", session: null }),
+		).rejects.toThrow(/this account/);
 	});
 });

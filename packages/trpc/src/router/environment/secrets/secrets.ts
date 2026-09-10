@@ -17,7 +17,7 @@ export const secretsRouter = {
 	list: jwtProcedure
 		.input(z.object({ environmentId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			const environment = await loadEnvironment(
 				input.environmentId,
 				ctx.organizationIds,
@@ -47,7 +47,7 @@ export const secretsRouter = {
 	getDecrypted: jwtProcedure
 		.input(z.object({ environmentId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			const environment = await loadEnvironment(
 				input.environmentId,
 				ctx.organizationIds,
@@ -110,7 +110,7 @@ export const secretsRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			const environment = await loadEnvironment(
 				input.environmentId,
 				ctx.organizationIds,
@@ -196,7 +196,7 @@ export const secretsRouter = {
 			z.object({ environmentId: z.string().uuid(), key: z.string().min(1) }),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			const environment = await loadEnvironment(
 				input.environmentId,
 				ctx.organizationIds,

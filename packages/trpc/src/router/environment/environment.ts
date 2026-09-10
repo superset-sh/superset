@@ -64,7 +64,7 @@ export const environmentRouter = {
 	list: jwtProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
 			return db
 				.select()
@@ -84,7 +84,7 @@ export const environmentRouter = {
 	get: jwtProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			return loadEnvironment(input.id, ctx.organizationIds);
 		}),
 
@@ -96,7 +96,7 @@ export const environmentRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
 			const [row] = await db
 				.insert(environments)
@@ -119,7 +119,7 @@ export const environmentRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			const workspace = await db.query.cloudWorkspaces.findFirst({
 				where: eq(cloudWorkspaces.id, input.cloudWorkspaceId),
 			});
@@ -169,7 +169,7 @@ export const environmentRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			assertOwned(await loadEnvironment(input.id, ctx.organizationIds));
 			const [row] = await db
 				.update(environments)
@@ -185,7 +185,7 @@ export const environmentRouter = {
 	archive: jwtProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			assertOwned(await loadEnvironment(input.id, ctx.organizationIds));
 			await db
 				.update(environments)

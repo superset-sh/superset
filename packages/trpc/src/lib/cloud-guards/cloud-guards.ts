@@ -1,5 +1,7 @@
-import { findUserEmail } from "@superset/db/utils";
+import { db } from "@superset/db/client";
+import { users } from "@superset/db/schema";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { eq } from "drizzle-orm";
 import { userError } from "../../i18n-error";
 import { posthog } from "../analytics";
 
@@ -14,11 +16,14 @@ import { posthog } from "../analytics";
  * Fails closed — `isFeatureEnabled` resolves undefined when PostHog is
  * unreachable, so an outage suspends cloud access rather than opening it.
  */
-export async function assertCloudAccess(userId: string): Promise<void> {
-	const account = (await findUserEmail(userId))?.trim().toLowerCase() ?? "";
+export async function assertCloudAccess(ctx: {
+	userId: string;
+	session: { user: { id: string; email: string } } | null;
+}): Promise<void> {
+	const account = (await currentEmail(ctx))?.trim().toLowerCase() ?? "";
 	const enabled = await posthog.isFeatureEnabled(
 		FEATURE_FLAGS.CLOUD_WORKSPACES,
-		userId,
+		ctx.userId,
 		{
 			// Sent explicitly: the conditions are email-based, and a person
 			// PostHog has not seen yet would otherwise be refused for the wrong
@@ -35,6 +40,24 @@ export async function assertCloudAccess(userId: string): Promise<void> {
 		i18nKey: "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly",
 		params: { account: account || "this account" },
 	});
+}
+
+/**
+ * The context has already loaded this user's row — `getSession`, or
+ * `sessionFromOAuthBearer` for a bearer — so read it there rather than
+ * spending a second query on it. Only a session describing somebody else
+ * (a cookie and a bearer disagreeing) needs the lookup.
+ */
+async function currentEmail(ctx: {
+	userId: string;
+	session: { user: { id: string; email: string } } | null;
+}): Promise<string | null> {
+	if (ctx.session?.user.id === ctx.userId) return ctx.session.user.email;
+	const user = await db.query.users.findFirst({
+		where: eq(users.id, ctx.userId),
+		columns: { email: true },
+	});
+	return user?.email ?? null;
 }
 
 export function assertMember(

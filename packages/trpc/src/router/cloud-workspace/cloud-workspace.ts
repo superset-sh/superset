@@ -39,7 +39,7 @@ export const cloudWorkspaceRouter = {
 	list: jwtProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
 			return db
 				.select()
@@ -66,7 +66,7 @@ export const cloudWorkspaceRouter = {
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
 			const repo = await cloudRepo();
 			if (!repo) return { defaultBranch: null, items: [] };
@@ -77,7 +77,7 @@ export const cloudWorkspaceRouter = {
 	repo: jwtProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
 			return cloudRepo();
 		}),
@@ -116,7 +116,7 @@ export const cloudWorkspaceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
 			if (input.agent && !isCloudAgentId(input.agent)) {
 				// Only the built-in presets exist inside a sandbox; the clients offer
@@ -256,7 +256,7 @@ export const cloudWorkspaceRouter = {
 					i18nKey: "serverError.cloudWorkspace.notFound",
 				});
 			}
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, row.organizationId);
 			const [renamed] = await db
 				.update(cloudWorkspaces)
@@ -289,7 +289,7 @@ export const cloudWorkspaceRouter = {
 					i18nKey: "serverError.cloudWorkspace.notFound",
 				});
 			}
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, row.organizationId);
 			if (row.status !== "ready") {
 				throw new TRPCError({
@@ -313,7 +313,7 @@ export const cloudWorkspaceRouter = {
 				where: eq(cloudWorkspaces.id, input.id),
 			});
 			if (!row) return { deleted: false };
-			await assertCloudAccess(ctx.userId);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, row.organizationId);
 
 			if (row.providerSandboxId) {
