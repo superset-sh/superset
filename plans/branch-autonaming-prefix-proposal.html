@@ -393,8 +393,56 @@
   </section>
 
   <section>
+    <h2>Evidence — verified live in the running app</h2>
+    <p>Reproduced the exact reported scenario against a disposable scratch project in a real running dev build — not a unit-test mock — driven over CDP through the same host-service tRPC calls the desktop app itself makes, then confirmed on disk. Cleaned up afterward; nothing left behind.</p>
+
+    <div class="flow">
+      <div class="flow-row good">
+        <div class="flow-marker">1</div>
+        <div class="flow-body">
+          <div class="flow-title">Set a custom prefix on a scratch project</div>
+          <div class="flow-detail"><code>project.setBranchPrefix({ mode: "custom", customPrefix: "qatest" })</code> → success</div>
+        </div>
+      </div>
+      <div class="flow-row good">
+        <div class="flow-marker">2</div>
+        <div class="flow-body">
+          <div class="flow-title">Live-preview a branch name from a prompt (nothing typed yet)</div>
+          <div class="flow-detail"><code>generateBranchName({ prompt: "Fix the login timeout bug" })</code> →
+            <span class="branch-tag ok">qatest/fix-the-login-timeout-bug</span></div>
+        </div>
+      </div>
+      <div class="flow-row good">
+        <div class="flow-marker">3</div>
+        <div class="flow-body">
+          <div class="flow-title">Create the workspace from only that prompt — no typed name or branch</div>
+          <div class="flow-detail">the exact scenario that used to lose the prefix once autonaming landed. Final workspace: <span class="branch-tag ok">qatest/fix-the-login-timeout-bug</span></div>
+        </div>
+      </div>
+    </div>
+
+    <pre><span class="c"># confirmed on disk — the real git branch, not just the DB row</span>
+$ git -C .../cdp-prefix-test branch -a
+<span class="k">*</span> main
+<span class="k">+</span> qatest/fix-the-login-timeout-bug</pre>
+
+    <p style="font-size:13px; color:var(--ink-soft);">The scratch project's worktree and registration were removed via <code>project.remove</code> immediately after, and the scratch directory deleted.</p>
+  </section>
+
+  <section>
     <h2>Why it was easy to miss</h2>
-    <p>Correction from the original draft of this page: on inspection while implementing the fix, the current (V2) project settings page turned out to already group the branch-prefix override and "Naming instructions" under one "Branches &amp; naming" section, and the global Git settings page already shows a live prefix preview. So the settings-layout gap was smaller than first thought:</p>
+    <p>Correction from the original draft of this page: on inspection while implementing the fix, the current (V2) project settings page turned out to already group the branch-prefix override and "Naming instructions" under one "Branches &amp; naming" section, and the global Git settings page already shows a live prefix preview. So the settings-layout gap was smaller than first thought. Confirmed by reading the actual component tree:</p>
+
+    <pre><span class="c">// apps/desktop/.../v2-project/$projectId/components/V2ProjectSettings/V2ProjectSettings.tsx</span>
+<span class="k">&lt;SettingsSection</span>
+  title={t({ message: <span class="s">"Branches &amp; naming"</span> })}
+  description={t({ message: <span class="s">"How branches and workspace names are created for this project."</span> })}
+<span class="k">&gt;</span>
+  <span class="c">{/* same section — not a separate page or a distant block */}</span>
+  <span class="k">&lt;BranchPrefixSection</span> ... <span class="k">/&gt;</span>
+  <span class="k">&lt;NamingInstructionsSection</span> ... <span class="k">/&gt;</span>
+<span class="k">&lt;/SettingsSection&gt;</span></pre>
+
     <ul>
       <li><b>Branch prefix mode + custom string</b> — a global "Git &amp; worktrees" settings page (with its own live preview), with a per-project override on that project's settings page.</li>
       <li><b>Naming instructions</b> (what steers the AI's autoname style) — already adjacent to that per-project override, under the same "Branches &amp; naming" section heading — not a separate, disconnected block as originally described here.</li>
