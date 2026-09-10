@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { getStrictShellEnvironment } from "../../terminal/clean-shell-env";
+import { getToolEnvironment } from "../../terminal/clean-shell-env";
 
 const GH_STATUS_TIMEOUT_MS = 10_000;
 
@@ -7,13 +7,14 @@ export type GhCliStatus = "authenticated" | "unauthenticated" | "not_installed";
 
 /**
  * Whether this machine could authenticate a git operation against GitHub.
- * A property of the host, not of any one repository — the clone preflight
- * and the host's own settings page both read it.
+ * A property of the host, not of any one repository, so the host's settings
+ * page can answer it before a clone is in play.
  */
 export async function probeGhCli(): Promise<GhCliStatus> {
-	const env = await getStrictShellEnvironment().catch(
-		() => process.env as Record<string, string>,
-	);
+	// getToolEnvironment, not process.env: a GUI-launched host inherits
+	// launchd's PATH, which has no Homebrew, and `gh` would read as missing
+	// on a machine that has it installed.
+	const env = await getToolEnvironment();
 	return new Promise((resolve) => {
 		execFile(
 			"gh",
