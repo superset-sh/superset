@@ -1,5 +1,5 @@
 {
-  "id": "31f0cc44-96bc-493d-9367-64862528d392",
+  "id": "c13a24f1-4d14-4034-a0a5-91d35421c522",
   "prevId": "df6c76a9-0d7a-4fe3-8de4-c23f11074cb1",
   "version": "7",
   "dialect": "postgresql",
@@ -4712,6 +4712,12 @@
         },
         "base_url": {
           "name": "base_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider": {
+          "name": "provider",
           "type": "text",
           "primaryKey": false,
           "notNull": false

@@ -1197,6 +1197,9 @@ msgstr "Đợt tập trung xử lý crash, treo và lỗi kết nối lại trê
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Thiết kế lại toàn bộ: hàng dày hơn, chip cổng và agent dưới mỗi workspace, dừng mọi thứ chỉ với một cú nhấp."
 
+msgid "A gateway is signed in with an API key."
+msgstr "Gateway đăng nhập bằng khóa API."
+
 msgid "A host must have at least one owner."
 msgstr "Mỗi host phải có ít nhất một chủ sở hữu."
 
@@ -14368,6 +14371,9 @@ msgstr "Diff vẫn là mới nhất — chỉ có bình luận không tải đư
 
 msgid "The dispatcher appears"
 msgstr "Người điều phối xuất hiện"
+
+msgid "The endpoint must use https."
+msgstr "Endpoint phải dùng https."
 
 msgid "The factory"
 msgstr "Nhà máy"

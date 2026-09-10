@@ -26,6 +26,7 @@ import {
 import { useState } from "react";
 import { SiVercel } from "react-icons/si";
 
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import type {
 	CloudAuthMethod,
 	CloudAuthState,
@@ -59,6 +60,7 @@ export function CloudAuthDialog({
 	const { t } = useLingui();
 	const isClaude = presetId === "claude";
 	const [view, setView] = useState<"main" | "custom">("main");
+	const { copyToClipboard, copied: copiedCommand } = useCopyToClipboard();
 	const [baseUrlDraft, setBaseUrlDraft] = useState("");
 	const [expanded, setExpanded] = useState<CustomProvider | null>(null);
 	const [tokenDraft, setTokenDraft] = useState("");
@@ -277,9 +279,12 @@ export function CloudAuthDialog({
 															<button
 																aria-label={t({ message: "Copy command" })}
 																className="ml-1 inline-flex align-middle text-muted-foreground hover:text-foreground"
+																onClick={() =>
+																	void copyToClipboard("claude setup-token")
+																}
 																type="button"
 															>
-																<Copy className="size-3.5" />
+																<CopyStateIcon copied={copiedCommand} />
 															</button>{" "}
 															in a terminal and paste the token here.
 														</Trans>
@@ -476,6 +481,15 @@ export function CloudAuthDialog({
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+/** One element so the surrounding <Trans> keeps a stable message id. */
+function CopyStateIcon({ copied }: { copied: boolean }) {
+	return copied ? (
+		<Check className="size-3.5 text-emerald-500" />
+	) : (
+		<Copy className="size-3.5" />
 	);
 }
 

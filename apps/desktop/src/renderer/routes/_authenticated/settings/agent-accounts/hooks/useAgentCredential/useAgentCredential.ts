@@ -23,16 +23,16 @@ export interface SaveCredentialInput {
 }
 
 /**
- * A stored credential read back as the shape the dialog renders. A key with
- * its own endpoint reads as a custom provider; one without is the plain API
- * key option.
+ * A stored credential read back as the shape the dialog renders. Only the
+ * saved provider makes a credential custom — a plain key pointed at a
+ * compatible endpoint is still the API key option.
  */
 function methodOf(credential: {
 	kind: "subscription" | "api_key";
-	baseUrl: string | null;
+	provider: string | null;
 }): CloudAuthMethod {
 	if (credential.kind === "subscription") return "subscription";
-	return credential.baseUrl ? "custom" : "api_key";
+	return credential.provider ? "custom" : "api_key";
 }
 
 export function useAgentCredential(presetId: string) {
@@ -61,7 +61,7 @@ export function useAgentCredential(presetId: string) {
 		method,
 		subscriptionConnected: stored === "subscription",
 		apiKeySaved: stored === "api_key",
-		customProvider: stored === "custom" ? "gateway" : null,
+		customProvider: credential?.provider === "gateway" ? "gateway" : null,
 		customSaved: stored === "custom",
 	};
 

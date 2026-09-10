@@ -1197,6 +1197,9 @@ msgstr "集中清理全应用的崩溃、卡死和重连失败。"
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "整体重做样式：更紧凑的行、每个工作区下方的端口和智能体标签、一键全部停止。"
 
+msgid "A gateway is signed in with an API key."
+msgstr "网关使用 API 密钥登录。"
+
 msgid "A host must have at least one owner."
 msgstr "主机必须至少有一位所有者。"
 
@@ -14368,6 +14371,9 @@ msgstr "差异仍是最新的，只是评论没能加载。"
 
 msgid "The dispatcher appears"
 msgstr "调度员出现"
+
+msgid "The endpoint must use https."
+msgstr "端点必须使用 https。"
 
 msgid "The factory"
 msgstr "工厂"

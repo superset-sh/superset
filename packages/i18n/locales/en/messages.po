@@ -1197,6 +1197,9 @@ msgstr "A focused burn-down of crashes, hangs, and reconnect failures across the
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 
+msgid "A gateway is signed in with an API key."
+msgstr "A gateway is signed in with an API key."
+
 msgid "A host must have at least one owner."
 msgstr "A host must have at least one owner."
 
@@ -14368,6 +14371,9 @@ msgstr "The diff is still up to date — only comments failed to load."
 
 msgid "The dispatcher appears"
 msgstr "The dispatcher appears"
+
+msgid "The endpoint must use https."
+msgstr "The endpoint must use https."
 
 msgid "The factory"
 msgstr "The factory"

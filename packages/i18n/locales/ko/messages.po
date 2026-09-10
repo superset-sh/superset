@@ -1197,6 +1197,9 @@ msgstr "앱 전반의 크래시, 멈춤, 재연결 실패를 집중적으로 줄
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "전면 재단장입니다. 더 촘촘한 행, 워크스페이스마다 표시되는 포트와 에이전트 칩, 클릭 한 번으로 전부 중지."
 
+msgid "A gateway is signed in with an API key."
+msgstr "게이트웨이는 API 키로 로그인합니다."
+
 msgid "A host must have at least one owner."
 msgstr "호스트에는 소유자가 한 명 이상 있어야 합니다."
 
@@ -14368,6 +14371,9 @@ msgstr "차이는 최신 상태입니다 — 코멘트만 불러오지 못했습
 
 msgid "The dispatcher appears"
 msgstr "배차원의 등장"
+
+msgid "The endpoint must use https."
+msgstr "엔드포인트는 https를 사용해야 합니다."
 
 msgid "The factory"
 msgstr "공장"

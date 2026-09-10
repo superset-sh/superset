@@ -1197,6 +1197,9 @@ msgstr "Skupione zbijanie awarii, zawieszeń i nieudanych ponownych połączeń 
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Pełne odświeżenie stylu: gęstsze wiersze, chipy portów i agentów pod każdym obszarem roboczym, zatrzymanie wszystkiego jednym kliknięciem."
 
+msgid "A gateway is signed in with an API key."
+msgstr "Brama loguje się za pomocą klucza API."
+
 msgid "A host must have at least one owner."
 msgstr "Host musi mieć co najmniej jednego właściciela."
 
@@ -14368,6 +14371,9 @@ msgstr "Różnice są nadal aktualne — nie udało się wczytać tylko komentar
 
 msgid "The dispatcher appears"
 msgstr "Pojawia się dyspozytor"
+
+msgid "The endpoint must use https."
+msgstr "Punkt końcowy musi używać https."
 
 msgid "The factory"
 msgstr "Fabryka"

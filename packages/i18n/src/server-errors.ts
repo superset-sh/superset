@@ -37,6 +37,18 @@ export const serverErrorMessages: Record<
 				message: "Vercel AI Gateway rejected this key.",
 			}),
 		),
+	"serverError.agentCredential.gatewayNeedsApiKey": () =>
+		i18n._(
+			msg({
+				message: "A gateway is signed in with an API key.",
+			}),
+		),
+	"serverError.agentCredential.insecureEndpoint": () =>
+		i18n._(
+			msg({
+				message: "The endpoint must use https.",
+			}),
+		),
 	"serverError.agentCredential.openaiRejectedKey": () =>
 		i18n._(
 			msg({

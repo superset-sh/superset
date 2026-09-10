@@ -1197,6 +1197,9 @@ msgstr "アプリ全体のクラッシュ、ハング、再接続の失敗を集
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "全面的なデザイン刷新。行はより高密度に、各ワークスペースの下にポートとエージェントのチップを表示し、すべてをワンクリックで停止できます。"
 
+msgid "A gateway is signed in with an API key."
+msgstr "ゲートウェイは API キーでサインインします。"
+
 msgid "A host must have at least one owner."
 msgstr "ホストには少なくとも1人のオーナーが必要です。"
 
@@ -14368,6 +14371,9 @@ msgstr "差分は最新です — コメントの読み込みだけが失敗し�
 
 msgid "The dispatcher appears"
 msgstr "ディスパッチャーの登場"
+
+msgid "The endpoint must use https."
+msgstr "エンドポイントは https を使用する必要があります。"
 
 msgid "The factory"
 msgstr "工場"

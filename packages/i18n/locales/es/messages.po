@@ -1197,6 +1197,9 @@ msgstr "Una tanda centrada en eliminar cierres inesperados, bloqueos y fallos de
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Un rediseño completo: filas más densas, chips de puertos y agentes bajo cada espacio de trabajo y parada de todo con un clic."
 
+msgid "A gateway is signed in with an API key."
+msgstr "Una pasarela se conecta con una clave de API."
+
 msgid "A host must have at least one owner."
 msgstr "Un host debe tener al menos un propietario."
 
@@ -14368,6 +14371,9 @@ msgstr "El diff sigue actualizado: solo fallaron los comentarios."
 
 msgid "The dispatcher appears"
 msgstr "Aparece el despachador"
+
+msgid "The endpoint must use https."
+msgstr "El endpoint debe usar https."
 
 msgid "The factory"
 msgstr "La fábrica"

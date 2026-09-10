@@ -1197,6 +1197,9 @@ msgstr "Une réduction ciblée des plantages, des blocages et des échecs de rec
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Une refonte complète du style : des lignes plus denses, des pastilles de port et d'agent sous chaque espace de travail, un arrêt général en un clic."
 
+msgid "A gateway is signed in with an API key."
+msgstr "Une passerelle se connecte avec une clé API."
+
 msgid "A host must have at least one owner."
 msgstr "Un hôte doit avoir au moins un propriétaire."
 
@@ -14368,6 +14371,9 @@ msgstr "Le diff est toujours à jour — seuls les commentaires n'ont pas pu êt
 
 msgid "The dispatcher appears"
 msgstr "Le répartiteur apparaît"
+
+msgid "The endpoint must use https."
+msgstr "Le point de terminaison doit utiliser https."
 
 msgid "The factory"
 msgstr "L'usine"

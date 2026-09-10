@@ -3,7 +3,8 @@ import type { AgentCredentialKind } from "@superset/db/schema";
 const TIMEOUT_MS = 10_000;
 const ANTHROPIC_DEFAULT = "https://api.anthropic.com";
 const OPENAI_DEFAULT = "https://api.openai.com";
-const GATEWAY_DEFAULT = "https://ai-gateway.vercel.sh";
+export const GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
+const GATEWAY_DEFAULT = GATEWAY_BASE_URL;
 
 export interface ValidationResult {
 	ok: boolean;

@@ -6,6 +6,7 @@ CREATE TABLE "agent_credentials" (
 	"kind" "agent_credential_kind" NOT NULL,
 	"encrypted_value" text NOT NULL,
 	"base_url" text,
+	"provider" text,
 	"account_label" text,
 	"last_validated_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,

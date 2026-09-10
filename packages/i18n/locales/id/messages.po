@@ -1197,6 +1197,9 @@ msgstr "Pembersihan terfokus atas crash, hang, dan kegagalan sambung ulang di se
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Perombakan gaya menyeluruh: baris lebih padat, chip port dan agen di bawah tiap workspace, hentikan semuanya dengan satu klik."
 
+msgid "A gateway is signed in with an API key."
+msgstr "Gateway masuk menggunakan kunci API."
+
 msgid "A host must have at least one owner."
 msgstr "Sebuah host harus punya setidaknya satu pemilik."
 
@@ -14368,6 +14371,9 @@ msgstr "Diff-nya tetap terbaru — hanya komentarnya yang gagal dimuat."
 
 msgid "The dispatcher appears"
 msgstr "Munculnya sang pengatur"
+
+msgid "The endpoint must use https."
+msgstr "Endpoint harus menggunakan https."
 
 msgid "The factory"
 msgstr "Pabriknya"

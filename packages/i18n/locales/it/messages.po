@@ -1197,6 +1197,9 @@ msgstr "Un lavoro mirato per azzerare crash, blocchi e riconnessioni fallite in 
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Un restyling completo: righe più dense, chip di porte e agenti sotto ogni workspace, stop di tutto con un clic."
 
+msgid "A gateway is signed in with an API key."
+msgstr "Un gateway accede con una chiave API."
+
 msgid "A host must have at least one owner."
 msgstr "Un host deve avere almeno un proprietario."
 
@@ -14368,6 +14371,9 @@ msgstr "Il diff è comunque aggiornato — solo i commenti non sono stati carica
 
 msgid "The dispatcher appears"
 msgstr "Compare il dispatcher"
+
+msgid "The endpoint must use https."
+msgstr "L'endpoint deve usare https."
 
 msgid "The factory"
 msgstr "La fabbrica"

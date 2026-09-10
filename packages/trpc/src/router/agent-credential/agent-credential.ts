@@ -9,7 +9,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, userError } from "../../trpc";
 import { decryptAgentCredential, encryptAgentCredential } from "./utils/crypto";
-import { validateAgentCredential } from "./utils/validate";
+import { GATEWAY_BASE_URL, validateAgentCredential } from "./utils/validate";
 
 const agentId = z.string().min(1).max(64);
 
@@ -21,6 +21,7 @@ export const agentCredentialRouter = {
 				agent: agentCredentials.agent,
 				kind: agentCredentials.kind,
 				baseUrl: agentCredentials.baseUrl,
+				provider: agentCredentials.provider,
 				accountLabel: agentCredentials.accountLabel,
 				lastValidatedAt: agentCredentials.lastValidatedAt,
 				updatedAt: agentCredentials.updatedAt,
@@ -61,11 +62,29 @@ export const agentCredentialRouter = {
 				});
 			}
 
+			const baseUrl =
+				input.baseUrl ??
+				(input.provider === "gateway" ? GATEWAY_BASE_URL : undefined);
+			if (baseUrl && !baseUrl.toLowerCase().startsWith("https://")) {
+				throw userError({
+					code: "BAD_REQUEST",
+					message: "The endpoint must use https.",
+					i18nKey: "serverError.agentCredential.insecureEndpoint",
+				});
+			}
+			if (input.provider === "gateway" && input.kind !== "api_key") {
+				throw userError({
+					code: "BAD_REQUEST",
+					message: "A gateway is signed in with an API key.",
+					i18nKey: "serverError.agentCredential.gatewayNeedsApiKey",
+				});
+			}
+
 			const check = await validateAgentCredential({
 				agent: input.agent,
 				kind: input.kind,
 				value,
-				baseUrl: input.baseUrl,
+				baseUrl,
 				provider: input.provider,
 			});
 			if (!check.ok) {
@@ -87,7 +106,8 @@ export const agentCredentialRouter = {
 				agent: input.agent,
 				kind: input.kind,
 				encryptedValue,
-				baseUrl: input.baseUrl ?? null,
+				baseUrl: baseUrl ?? null,
+				provider: input.provider ?? null,
 				accountLabel: input.accountLabel ?? null,
 				lastValidatedAt: new Date(),
 			};
@@ -100,6 +120,7 @@ export const agentCredentialRouter = {
 						kind: row.kind,
 						encryptedValue: row.encryptedValue,
 						baseUrl: row.baseUrl,
+						provider: row.provider,
 						accountLabel: row.accountLabel,
 						lastValidatedAt: row.lastValidatedAt,
 					},

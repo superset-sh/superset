@@ -1565,6 +1565,12 @@ export const agentCredentials = pgTable(
 		encryptedValue: text("encrypted_value").notNull(),
 		/** Set when the key is for a gateway or a compatible endpoint. */
 		baseUrl: text("base_url"),
+		/**
+		 * Which custom provider the value came from, e.g. "gateway". Null for a
+		 * plain provider key, including one pointed at a compatible endpoint —
+		 * a base URL alone does not make a credential a custom provider.
+		 */
+		provider: text(),
 		/** What to show in settings, e.g. the account email. Never the credential. */
 		accountLabel: text("account_label"),
 		lastValidatedAt: timestamp("last_validated_at", { withTimezone: true }),
