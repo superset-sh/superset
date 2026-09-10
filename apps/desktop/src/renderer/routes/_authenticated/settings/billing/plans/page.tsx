@@ -2,6 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
+import { rawErrorMessage } from "@superset/i18n/errors";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -452,6 +453,19 @@ function PlansPage() {
 
 		if (memberCount === undefined) return;
 
+		// The actual intent-to-pay step — this is what mints the Stripe Checkout
+		// session. `paywall_upgrade_clicked` only navigates to this page.
+		// `previous_plan` separates a new conversion (`free`) from an existing
+		// subscriber changing billing interval (`pro`), which shares this action.
+		const checkoutProperties = {
+			plan: "pro",
+			annual: isYearly,
+			seats: memberCount,
+			previous_plan: currentPlan,
+			source: "billing_plans",
+		};
+		track("checkout_started", checkoutProperties);
+
 		setIsUpgrading(true);
 		try {
 			await authClient.subscription.upgrade(
@@ -468,8 +482,20 @@ function PlansPage() {
 				{
 					onSuccess: (ctx) => {
 						if (ctx.data?.url) {
+							// Last thing we can see client-side; everything after this
+							// happens on Stripe and comes back through the webhook.
+							track("checkout_redirected", checkoutProperties);
 							window.open(ctx.data.url, "_blank");
 						}
+					},
+					// Better Auth resolves rather than throws, so without this hook a
+					// failed checkout is invisible: the button just resets.
+					onError: (ctx) => {
+						track("checkout_failed", {
+							...checkoutProperties,
+							status: ctx.response?.status,
+							error: rawErrorMessage(ctx.error),
+						});
 					},
 				},
 			);

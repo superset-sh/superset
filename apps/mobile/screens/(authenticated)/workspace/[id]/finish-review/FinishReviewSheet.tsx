@@ -5,7 +5,9 @@ import { useMemo, useState } from "react";
 import { Alert, ScrollView, TextInput, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
+import { useTheme } from "@/hooks/useTheme";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -85,6 +87,7 @@ export function FinishReviewSheet() {
 		[terminalsByWorkspace, workspaceId],
 	);
 
+	const theme = useTheme();
 	const [message, setMessage] = useState("");
 	const [target, setTarget] = useState<"new" | string>("new");
 	const [sending, setSending] = useState(false);
@@ -139,7 +142,7 @@ export function FinishReviewSheet() {
 				t({
 					message: "Could not send review",
 				}),
-				cause instanceof Error ? cause.message : String(cause),
+				errorCopy(cause),
 			);
 		} finally {
 			setSending(false);
@@ -186,6 +189,7 @@ export function FinishReviewSheet() {
 						message: "Leave a summary…",
 					})}
 					placeholderTextColor="#6b7280"
+					selectionColor={theme.foreground}
 					value={message}
 				/>
 				<Text className="text-muted-foreground px-4 pb-2 pt-4 text-[12px]">

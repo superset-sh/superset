@@ -3,6 +3,7 @@ import path from "node:path";
 import { ImageResponse } from "next/og";
 import { getBlogPost } from "@/lib/blog";
 import { formatBlogDate } from "@/lib/blog-utils";
+import { getInterBold } from "../../utils/getInterBold";
 
 export const alt = "Superset Blog";
 export const size = { width: 1200, height: 630 };
@@ -33,29 +34,6 @@ function getAvatarDataUri(avatarPath: string): string | null {
 				? "image/webp"
 				: `image/${ext}`;
 	return readFileAsDataUri({ filePath: avatarPath, mime });
-}
-
-const INTER_BOLD_URL =
-	"https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZhrib2Bg-4.ttf";
-
-let interBoldPromise: Promise<ArrayBuffer> | null = null;
-
-// Lazy so a transient fetch failure surfaces as a handled route error for
-// that one OG-image request instead of a module-scope unhandled rejection,
-// and retries on the next request rather than poisoning the warm instance.
-function getInterBold(): Promise<ArrayBuffer> {
-	if (!interBoldPromise) {
-		interBoldPromise = fetch(INTER_BOLD_URL).then((res) => {
-			if (!res.ok) {
-				throw new Error(`Font fetch failed: ${res.status}`);
-			}
-			return res.arrayBuffer();
-		});
-		interBoldPromise.catch(() => {
-			interBoldPromise = null;
-		});
-	}
-	return interBoldPromise;
 }
 
 export default async function Image({

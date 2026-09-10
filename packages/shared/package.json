@@ -32,6 +32,10 @@
 			"types": "./src/cloud-environments.ts",
 			"default": "./src/cloud-environments.ts"
 		},
+		"./attachment-limits": {
+			"types": "./src/attachment-limits.ts",
+			"default": "./src/attachment-limits.ts"
+		},
 		"./constants": {
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
@@ -47,6 +51,10 @@
 		"./git-hook-tolerance": {
 			"types": "./src/git-hook-tolerance.ts",
 			"default": "./src/git-hook-tolerance.ts"
+		},
+		"./github-stars": {
+			"types": "./src/github-stars.ts",
+			"default": "./src/github-stars.ts"
 		},
 		"./integrations": {
 			"types": "./src/integrations.ts",

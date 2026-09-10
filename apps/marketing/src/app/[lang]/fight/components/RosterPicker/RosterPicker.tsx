@@ -1,4 +1,6 @@
 "use client";
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 
 import { useEffect, useRef, useState } from "react";
 import { fetchSearch } from "@/app/[lang]/utils/fetchLeaderboard";
@@ -16,6 +18,8 @@ interface RosterPickerProps {
 }
 
 export function RosterPicker({ seated, onPick }: RosterPickerProps) {
+	const { _: translate } = useTranslation();
+
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<Fighter[]>([]);
 	const [busy, setBusy] = useState(false);
@@ -69,8 +73,10 @@ export function RosterPicker({ seated, onPick }: RosterPickerProps) {
 						type="text"
 						value={query}
 						onChange={(event) => setQuery(event.target.value)}
-						placeholder="Search a developer"
-						aria-label="Search the leaderboard for a fighter"
+						placeholder={translate(msg({ message: "Search a developer" }))}
+						aria-label={translate(
+							msg({ message: "Search the leaderboard for a fighter" }),
+						)}
 						className="w-full border border-border bg-transparent pl-8 pr-8 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-foreground placeholder:text-muted-foreground/50 placeholder:normal-case focus:outline-none focus:border-brand/60 transition-colors"
 					/>
 					{busy && (

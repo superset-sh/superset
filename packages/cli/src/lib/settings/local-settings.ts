@@ -75,23 +75,7 @@ export function writeSetting(
  * need to update a value and its initialization marker together.
  */
 export function writeSettings(patch: Partial<InsertSettings>): void {
-	const { sqlite, db } = openLocalDb();
-	try {
-		db.insert(settings)
-			.values({ id: 1, ...patch })
-			.onConflictDoUpdate({ target: settings.id, set: patch })
-			.run();
-	} catch (error) {
-		if (isMissingTableError(error)) {
-			throw new CLIError(
-				"The Superset local database has no settings table",
-				"Launch the Superset desktop app once to run its migrations, then retry.",
-			);
-		}
-		throw error;
-	} finally {
-		sqlite.close();
-	}
+	updateSettingsAtomically(() => ({ patch, result: undefined }));
 }
 
 /**

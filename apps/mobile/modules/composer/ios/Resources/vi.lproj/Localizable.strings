@@ -1,0 +1,16 @@
+"Dismiss" = "Bỏ qua";
+"Add attachment" = "Thêm tệp đính kèm";
+"Transcribing" = "Đang phiên âm";
+"Dictate" = "Đọc chính tả";
+"Sending" = "Đang gửi";
+"Send" = "Gửi";
+"Stop dictation" = "Dừng đọc chính tả";
+"Remove attachment" = "Xóa tệp đính kèm";
+"Document" = "Tài liệu";
+"Close" = "Đóng";
+"Done" = "Xong";
+"Model: %@" = "Mô hình: %@";
+"Microphone access is not allowed" = "Không được phép truy cập micrô";
+"Could not start dictation" = "Không thể bắt đầu đọc chính tả";
+"Uploading" = "Đang tải lên";
+"Upload failed" = "Tải lên thất bại";

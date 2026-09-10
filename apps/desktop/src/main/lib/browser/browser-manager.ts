@@ -42,8 +42,10 @@ export interface BrowserPaneInfo {
 
 export interface BrowserOpenRequest {
 	workspaceId: string;
+	projectId: string | null;
 	url: string;
 	target: "current-tab" | "new-tab";
+	show: boolean;
 	requestId: string;
 }
 

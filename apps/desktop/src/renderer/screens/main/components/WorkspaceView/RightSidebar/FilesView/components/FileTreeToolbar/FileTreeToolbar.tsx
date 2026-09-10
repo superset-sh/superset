@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -30,6 +32,8 @@ export function FileTreeToolbar({
 	onRefresh,
 	isRefreshing = false,
 }: FileTreeToolbarProps) {
+	const { _: translate } = useTranslation();
+
 	const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
 	const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -80,7 +84,7 @@ export function FileTreeToolbar({
 			<div className="relative">
 				<Input
 					type="text"
-					placeholder="Search files..."
+					placeholder={translate(msg({ message: "Search files..." }))}
 					value={localSearchTerm}
 					onChange={handleSearchChange}
 					className="h-7 text-xs pr-7"

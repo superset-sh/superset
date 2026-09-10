@@ -1,0 +1,1 @@
+export { pageSlugFromUrl } from "./pageLinks";

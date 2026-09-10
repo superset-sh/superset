@@ -253,7 +253,7 @@ export class HostWorkerPool {
 		input: TInput,
 		options?: WorkerTaskOptions,
 	): Promise<TResult> {
-		if (options?.signal?.aborted) throw new WorkerTaskAbortedError();
+		if (options?.signal?.aborted) throw new WorkerTaskAbortedError("cancelled");
 
 		return new Promise<TResult>((resolve, reject) => {
 			let settled = false;
@@ -265,7 +265,8 @@ export class HostWorkerPool {
 				cleanup();
 				fn();
 			};
-			const onAbort = () => settle(() => reject(new WorkerTaskAbortedError()));
+			const onAbort = () =>
+				settle(() => reject(new WorkerTaskAbortedError("cancelled")));
 			// Same default and zero-means-instant semantics as the worker path.
 			const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 			const timeoutHandle = setTimeout(

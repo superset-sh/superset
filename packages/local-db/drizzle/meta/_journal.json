@@ -393,6 +393,13 @@
       "when": 1788309290755,
       "tag": "0055_drop_clerk_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "6",
+      "when": 1788567930469,
+      "tag": "0056_add_show_usage_in_sidebar_setting",
+      "breakpoints": true
     }
   ]
 }

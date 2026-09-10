@@ -1,0 +1,16 @@
+"Dismiss" = "Descartar";
+"Add attachment" = "Añadir adjunto";
+"Transcribing" = "Transcribiendo";
+"Dictate" = "Dictar";
+"Sending" = "Enviando";
+"Send" = "Enviar";
+"Stop dictation" = "Detener el dictado";
+"Remove attachment" = "Quitar adjunto";
+"Document" = "Documento";
+"Close" = "Cerrar";
+"Done" = "Listo";
+"Model: %@" = "Modelo: %@";
+"Microphone access is not allowed" = "No se permite el acceso al micrófono";
+"Could not start dictation" = "No se pudo iniciar el dictado";
+"Uploading" = "Subiendo";
+"Upload failed" = "Error al subir";

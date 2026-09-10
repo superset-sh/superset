@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert } from "react-native";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -78,7 +79,7 @@ export function useAskAgent({ workspaceId }: { workspaceId: string | null }) {
 						message: "Could not start agent",
 					}),
 				),
-				error.message,
+				errorCopy(error),
 			);
 		},
 	});

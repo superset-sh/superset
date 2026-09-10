@@ -494,6 +494,30 @@ class BrowserRuntimeRegistryImpl {
 		return entry;
 	}
 
+	/** Create an agent's guest without mounting or focusing its workspace route. */
+	openBackground(
+		paneId: string,
+		url: string,
+		workspaceId: string,
+		onPersist: (state: PersistableBrowserState) => void,
+	): RegistryEntry {
+		const existing = this.entries.get(paneId);
+		if (existing) return existing;
+		const root = this.ensureRootContainer();
+		const entry = this.createEntry(paneId, url, workspaceId);
+		entry.onPersist = onPersist;
+		entry.lastUsedAt = ++this.useSeq;
+		// Give automation a usable viewport before this pane has ever been shown.
+		entry.webview.style.width = "1280px";
+		entry.webview.style.height = "720px";
+		this.entries.set(paneId, entry);
+		this.applyParkedStyle(paneId, entry);
+		root.appendChild(entry.webview);
+		root.appendChild(entry.overlay);
+		this.scheduleHiddenEviction();
+		return entry;
+	}
+
 	attach(
 		paneId: string,
 		placeholder: HTMLElement,
@@ -502,36 +526,30 @@ class BrowserRuntimeRegistryImpl {
 		onPersist: (state: PersistableBrowserState) => void,
 		onClose: () => void,
 	): void {
-		const root = this.ensureRootContainer();
-		let entry = this.entries.get(paneId);
-		if (!entry) {
-			entry = this.createEntry(paneId, initialUrl, workspaceId);
-			this.entries.set(paneId, entry);
-			root.appendChild(entry.webview);
-			root.appendChild(entry.overlay);
-		} else {
-			// A reused pane can move between workspaces (the attach effect keys on
-			// workspaceId). Keep the registration's workspace current so main-side
-			// pane scoping addresses it under the new workspace, not the old one.
-			if (entry.workspaceId !== workspaceId) {
-				entry.workspaceId = workspaceId;
-				if (entry.webContentsId != null) {
-					electronTrpcClient.browser.register
-						.mutate({
-							paneId,
-							webContentsId: entry.webContentsId,
-							workspaceId,
-						})
-						.catch((err) => {
-							console.error(
-								"[browserRuntimeRegistry] re-register failed:",
-								err,
-							);
-						});
-				}
+		const entry = this.openBackground(
+			paneId,
+			initialUrl,
+			workspaceId,
+			onPersist,
+		);
+		// A reused pane can move between workspaces (the attach effect keys on
+		// workspaceId). Keep the registration's workspace current so main-side
+		// pane scoping addresses it under the new workspace, not the old one.
+		if (entry.workspaceId !== workspaceId) {
+			entry.workspaceId = workspaceId;
+			if (entry.webContentsId != null) {
+				electronTrpcClient.browser.register
+					.mutate({
+						paneId,
+						webContentsId: entry.webContentsId,
+						workspaceId,
+					})
+					.catch((err) => {
+						console.error("[browserRuntimeRegistry] re-register failed:", err);
+					});
 			}
-			this.refreshNavState(paneId);
 		}
+		this.refreshNavState(paneId);
 		entry.onPersist = onPersist;
 		entry.onClose = onClose;
 		entry.placeholder = placeholder;
@@ -540,7 +558,7 @@ class BrowserRuntimeRegistryImpl {
 
 		entry.resizeObserver?.disconnect();
 		const observer = new ResizeObserver(() => {
-			if (entry) this.updateLayout(entry);
+			this.updateLayout(entry);
 		});
 		observer.observe(placeholder);
 		entry.resizeObserver = observer;

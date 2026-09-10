@@ -17,6 +17,7 @@ public final class ComposerModule: Module {
         "onQuickKeyPress",
         "onSessionTabPress",
         "onSessionTabClose",
+        "onSessionTabRename",
         "onSessionTabCopyId",
         "onQuickKeysActionPress",
         "onNewSessionPress",
@@ -49,19 +50,19 @@ public final class ComposerModule: Module {
       /// the card jumps to its new height and the rows slide into place inside
       /// it. See `ComposerMetrics.growth`.
       Prop("attachments") { (view: ComposerAnchorView, attachments: [ComposerAttachment]) in
-        withAnimation(ComposerMetrics.growth) {
+        placing(view.overlay.model, ComposerMetrics.growth) {
           view.overlay.model.attachments = attachments
         }
       }
 
       Prop("selectedModel") { (view: ComposerAnchorView, model: ComposerMenuOption?) in
-        withAnimation(ComposerMetrics.controlSwap) {
+        placing(view.overlay.model, ComposerMetrics.controlSwap) {
           view.overlay.model.selectedModel = model
         }
       }
 
       Prop("launchOptions") { (view: ComposerAnchorView, options: [ComposerMenuOption]) in
-        withAnimation(ComposerMetrics.controlSwap) {
+        placing(view.overlay.model, ComposerMetrics.controlSwap) {
           view.overlay.model.launchOptions = options
         }
       }
@@ -69,7 +70,7 @@ public final class ComposerModule: Module {
       /// Send becomes a spinner and the mic steps aside, which relays out the
       /// control row — same transaction rule as everything else that moves it.
       Prop("isSending") { (view: ComposerAnchorView, isSending: Bool) in
-        withAnimation(ComposerMetrics.controlSwap) {
+        placing(view.overlay.model, ComposerMetrics.controlSwap) {
           view.overlay.model.isSending = isSending
         }
       }
@@ -77,7 +78,7 @@ public final class ComposerModule: Module {
       /// The terminal's keys above the card. Same transaction rule: the strip
       /// appearing or changing resizes the whole cluster.
       Prop("quickKeys") { (view: ComposerAnchorView, keys: [ComposerQuickKey]) in
-        withAnimation(ComposerMetrics.growth) {
+        placing(view.overlay.model, ComposerMetrics.growth) {
           view.overlay.model.quickKeys = keys
         }
       }
@@ -92,7 +93,7 @@ public final class ComposerModule: Module {
       /// on a strip that has not changed — every five seconds, forever.
       Prop("sessionTabs") { (view: ComposerAnchorView, tabs: [ComposerSessionTab]) in
         guard view.overlay.model.sessionTabs != tabs else { return }
-        withAnimation(ComposerMetrics.growth) {
+        placing(view.overlay.model, ComposerMetrics.growth) {
           view.overlay.model.sessionTabs = tabs
         }
       }
@@ -105,7 +106,7 @@ public final class ComposerModule: Module {
       /// a jump. See `ComposerQuickKeys`.
       Prop("quickKeysAction") { (view: ComposerAnchorView, action: ComposerQuickKeysAction?) in
         guard view.overlay.model.quickKeysAction != action else { return }
-        withAnimation(ComposerMetrics.growth) {
+        placing(view.overlay.model, ComposerMetrics.growth) {
           view.overlay.model.quickKeysAction = action
         }
       }
@@ -122,13 +123,13 @@ public final class ComposerModule: Module {
       /// open the panel mid-draft, which resizes the cluster — same
       /// transaction rule as the strip above.
       Prop("slashCommands") { (view: ComposerAnchorView, commands: [ComposerSlashCommand]) in
-        withAnimation(ComposerMetrics.growth) {
+        placing(view.overlay.model, ComposerMetrics.growth) {
           view.overlay.model.slashCommands = commands
         }
       }
 
       Prop("showAttachments") { (view: ComposerAnchorView, shows: Bool) in
-        withAnimation(ComposerMetrics.controlSwap) {
+        placing(view.overlay.model, ComposerMetrics.controlSwap) {
           view.overlay.model.showsAttachments = shows
         }
       }
@@ -141,7 +142,7 @@ public final class ComposerModule: Module {
       /// Same reasoning as `attachments`: the chip row is a whole row of card
       /// height appearing or leaving.
       Prop("headerChips") { (view: ComposerAnchorView, chips: [ComposerMenuOption]) in
-        withAnimation(ComposerMetrics.growth) {
+        placing(view.overlay.model, ComposerMetrics.growth) {
           view.overlay.model.headerChips = chips
         }
       }
@@ -177,6 +178,22 @@ public final class ComposerModule: Module {
 /// The composer deliberately occupies no layout space — it floats over a list
 /// that does not shift, so callers reserve room for it with a content inset
 /// instead.
+/// Runs a prop mutation on the composer's layout transaction — unless the
+/// composer is still being placed, in which case there is no previous frame to
+/// animate from and a transaction would travel the card in from the origin.
+/// See `ComposerModel.isAppearing`.
+private func placing(
+  _ model: ComposerModel,
+  _ animation: Animation,
+  _ mutate: () -> Void
+) {
+  if model.isAppearing {
+    mutate()
+  } else {
+    withAnimation(animation, mutate)
+  }
+}
+
 final class ComposerAnchorView: ExpoView {
   let overlay = ComposerOverlayController()
 
@@ -189,6 +206,7 @@ final class ComposerAnchorView: ExpoView {
   private let onQuickKeyPress = EventDispatcher()
   private let onSessionTabPress = EventDispatcher()
   private let onSessionTabClose = EventDispatcher()
+  private let onSessionTabRename = EventDispatcher()
   private let onSessionTabCopyId = EventDispatcher()
   private let onQuickKeysActionPress = EventDispatcher()
   private let onNewSessionPress = EventDispatcher()
@@ -220,6 +238,9 @@ final class ComposerAnchorView: ExpoView {
     }
     overlay.model.onSessionTabClose = { [weak self] id in
       self?.onSessionTabClose(["id": id])
+    }
+    overlay.model.onSessionTabRename = { [weak self] id in
+      self?.onSessionTabRename(["id": id])
     }
     overlay.model.onSessionTabCopyId = { [weak self] id in
       self?.onSessionTabCopyId(["id": id])

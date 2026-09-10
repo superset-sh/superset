@@ -1,6 +1,6 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -22,6 +22,7 @@ import { tokenizeCode } from "@/components/ai-elements/code-block";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import {
@@ -74,6 +75,8 @@ const FETCH_PIPELINE_LOOKAHEAD = 3;
 const ANIMATED_TOGGLE_MAX_PX = 1_400;
 
 export function FilesChangedScreen() {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
@@ -423,7 +426,7 @@ export function FilesChangedScreen() {
 									t({
 										message: "Could not delete file",
 									}),
-									cause instanceof Error ? cause.message : String(cause),
+									errorCopy(cause),
 								);
 							});
 					},

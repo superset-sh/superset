@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { ThemePreviewCard } from "@superset/ui/theme-preview-card";
@@ -57,7 +57,8 @@ export async function generateMetadata({
 }
 
 export default async function ThemeDetailPage({ params }: PageProps) {
-	await initServerI18n();
+	const locale = await initServerI18n();
+	const i18n = getI18nInstance(locale);
 
 	const { slug } = await params;
 	const theme = getThemeListing(slug);

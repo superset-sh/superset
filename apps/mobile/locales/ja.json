@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"NSSpeechRecognitionUsageDescription": "Supersetは音声認識を使用して音声をテキストに変換します。",
+		"NSPhotoLibraryUsageDescription": "Supersetはチャットメッセージに画像を添付するために写真ライブラリへのアクセスを必要とします。",
+		"NSCameraUsageDescription": "Supersetはチャットメッセージに写真を添付するためにカメラを使用します。",
+		"NSMicrophoneUsageDescription": "Supersetはチャットメッセージを音声入力するためにマイクを使用します。"
+	}
+}

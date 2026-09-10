@@ -36,7 +36,7 @@ export async function assertCloudAccess(ctx: {
 
 	throw userError({
 		code: "FORBIDDEN",
-		message: `Cloud sandboxes are limited to the Superset team while the feature is in internal testing, and ${account || "this account"} is not on the list.`,
+		message: `Cloud sandboxes are not enabled for ${account || "this account"}. Ask the Superset team for access.`,
 		i18nKey: "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly",
 		params: { account: account || "this account" },
 	});

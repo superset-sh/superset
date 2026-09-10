@@ -1,7 +1,7 @@
 "use client";
 
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
-import { formatDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { CATALOG_BY_SLUG } from "@superset/trpc/leaderboard-achievements";
 import {
 	HoverCard,
@@ -23,6 +23,8 @@ export function AchievementMedal({
 	tier,
 	awardedOn,
 }: AchievementMedalProps) {
+	const { formatDate } = useFormat();
+
 	const { t, i18n } = useLingui();
 	const def = CATALOG_BY_SLUG[slug];
 	const copy = ACHIEVEMENT_COPY[slug];

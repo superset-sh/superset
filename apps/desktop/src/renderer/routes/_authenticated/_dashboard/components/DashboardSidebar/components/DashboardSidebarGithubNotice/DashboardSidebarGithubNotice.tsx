@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
-import { formatDateTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuTriangleAlert } from "react-icons/lu";
 import type { DashboardSidebarGithubStatus } from "../../types";
@@ -17,6 +17,8 @@ interface DashboardSidebarGithubNoticeProps {
 export function DashboardSidebarGithubNotice({
 	status,
 }: DashboardSidebarGithubNoticeProps) {
+	const { formatDateTime } = useFormat();
+
 	const { t } = useLingui();
 	if (!status) return null;
 	const until = formatDateTime(status.until, { timeStyle: "short" });

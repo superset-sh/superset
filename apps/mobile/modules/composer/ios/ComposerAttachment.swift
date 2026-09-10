@@ -13,13 +13,21 @@ struct ComposerAttachment: Record, Identifiable, Equatable {
   /// Shown on the file card. A document is unidentifiable without it — every
   /// one of them draws the same glyph.
   @Field var name: String? = nil
+  /// 0–1 while the bytes are still going up; nil once settled.
+  @Field var progress: Double? = nil
+  /// The upload failed. Sending retries it, so this marks the attachment
+  /// rather than removing it.
+  @Field var failed: Bool = false
 
   var isImage: Bool { kind == "image" }
+
+  var isUploading: Bool { progress != nil && !failed }
 
   /// Written out rather than synthesised: `@Field` wrappers are not themselves
   /// `Equatable`, so the compiler cannot derive this.
   static func == (lhs: ComposerAttachment, rhs: ComposerAttachment) -> Bool {
     lhs.id == rhs.id && lhs.uri == rhs.uri && lhs.kind == rhs.kind
-      && lhs.name == rhs.name
+      && lhs.name == rhs.name && lhs.progress == rhs.progress
+      && lhs.failed == rhs.failed
   }
 }

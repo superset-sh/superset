@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"NSSpeechRecognitionUsageDescription": "Superset používá rozpoznávání řeči k převodu hlasu na text.",
+		"NSPhotoLibraryUsageDescription": "Superset potřebuje přístup k fotoknihovně pro přikládání obrázků ke zprávám.",
+		"NSCameraUsageDescription": "Superset používá fotoaparát pro přikládání fotografií ke zprávám.",
+		"NSMicrophoneUsageDescription": "Superset používá mikrofon, abyste mohli diktovat zprávy."
+	}
+}

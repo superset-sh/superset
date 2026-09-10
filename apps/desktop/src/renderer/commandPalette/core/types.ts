@@ -32,6 +32,8 @@ export interface CommandContext {
 	notificationSoundsMuted: boolean;
 	isV2CloudEnabled: boolean;
 	navigate: (path: string) => void;
+	/** Opens the new-workspace surface (v2 route, or the v1 modal). */
+	openNewWorkspace: (projectId?: string | null) => void;
 	focusedView?: "editor" | "terminal" | "git" | "issues" | "files" | "chat";
 }
 

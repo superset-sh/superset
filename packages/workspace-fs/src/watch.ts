@@ -1,6 +1,12 @@
 import { realpath, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
+	clearInterval,
+	clearTimeout,
+	setInterval,
+	setTimeout,
+} from "node:timers";
+import {
 	type AsyncSubscription,
 	type Event as ParcelWatcherEvent,
 	subscribe as subscribeToFilesystem,

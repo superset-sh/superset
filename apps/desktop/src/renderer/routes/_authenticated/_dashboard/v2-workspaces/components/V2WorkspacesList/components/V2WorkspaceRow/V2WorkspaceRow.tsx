@@ -1,5 +1,6 @@
 import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
@@ -36,6 +37,8 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 	workspace,
 	isCurrentRoute,
 }: V2WorkspaceRowProps) {
+	const { formatDateTime } = useFormat();
+
 	const { t } = useLingui();
 	const navigate = useNavigate();
 	const isMainWorkspace = workspace.type === "main";
@@ -62,7 +65,7 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 	const timeLabel = getRelativeTime(workspaceActivityAt(workspace), {
 		format: "compact",
 	});
-	const createdAtLabel = workspace.createdAt.toLocaleString();
+	const createdAtLabel = formatDateTime(workspace.createdAt, undefined);
 	const timeTitle = [
 		creatorLabel
 			? t({
@@ -73,7 +76,7 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 				}),
 		workspace.lastAgentEventAt
 			? t({
-					message: `Last agent activity ${new Date(workspace.lastAgentEventAt).toLocaleString()}`,
+					message: `Last agent activity ${formatDateTime(new Date(workspace.lastAgentEventAt), undefined)}`,
 				})
 			: null,
 	]

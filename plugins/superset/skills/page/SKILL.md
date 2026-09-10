@@ -100,8 +100,10 @@ they need is already in the file.
 3. **16 MB maximum for the HTML document itself**, and base64 `data:` URIs
    count toward it at ~1.37× their
    raw size. A few small SVGs or PNGs are fine; a photo gallery is not.
-4. **Full-bleed frame with a white default background.** Set your own `body`
-   background explicitly rather than inheriting.
+4. **Full-bleed frame.** There is no chrome around the document: what you
+   write is the whole surface, edge to edge. The injected theme paints the
+   background (see below), so inherit it or set your own, never leaving it to
+   the browser default.
 
 Check before publishing: no `<script src>` or `<link rel="stylesheet">` pointing
 at a remote host, no `fetch` of any kind including of a `data:` URI, no `eval`
@@ -110,6 +112,114 @@ or `new Function` anywhere in the file or in anything you inlined, page fits in
 are the one permitted exception: they go blank offline, which is the price of
 not inlining them.
 
+## Structure and theme
+
+Every page is served with a stylesheet of ours inlined at the top of `<head>`.
+You never write it. The origin injects it into the document on the way out, so
+it reaches pages published before it existed too. It gives bare HTML a readable
+default: type scale, links, lists, tables, code blocks, `box-sizing`,
+responsive images. **Don't inline a CSS reset, a normalize, or a webfont.**
+Write semantic HTML and most pages need no `<style>` block at all.
+
+What it deliberately does *not* set, because it reaches pages written before it
+existed and those pages never agreed to it: padding on `body`, a width cap on
+your text, or a height on your `<iframe>`s. The frame stays full-bleed and the
+measure is yours to choose (see `--sp-measure` below).
+
+Start from this skeleton:
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Q3 pipeline</title>
+  </head>
+  <body>
+    <main>
+      <h1>Q3 pipeline</h1>
+      <p>Where every open deal stands going into Q4.</p>
+      <section>…</section>
+    </main>
+  </body>
+</html>
+```
+
+Every rule in the theme is wrapped in `:where()`, which carries no
+specificity. Any selector you write beats it: `body { background: #0b0b0b }`
+in your own `<style>` wins outright, and a class of your own is never touched
+by it. So the theme is a floor, not a cage: lean on it for the ordinary parts
+and style the parts that make this page itself.
+
+### Light and dark
+
+The theme is light unless you ask for dark, with a class on `<body>` that flips
+background, text, borders, code blocks and native controls together:
+
+```html
+<body class="dark">
+  <!-- or class="light", which is the default -->
+</body>
+```
+
+It does **not** follow the reader's system setting on its own, and that is
+deliberate. A page that set a background but no text colour, or set one on
+`<html>` rather than `<body>`, would take the other half of the pair from a
+palette that inverted underneath it, and end up dark text on a dark ground.
+Opting in keeps that decision with the page that can actually see its own
+colours.
+
+So: add `class="dark"` when the page's visuals assume it: a chart with
+baked-in colours, a screenshot with a dark background, a diagram with hardcoded
+strokes. To follow the reader's system setting, ask for that too:
+
+```html
+<body class="auto">
+```
+
+`auto` is the right choice for text and tables, where nothing is pinned to one
+scheme. Use it whenever the page has no baked-in colours of its own, but reach
+for it deliberately, and if you hardcode any colour anywhere on the page, set
+its partner as well so the pair can never come from two different themes.
+
+### Tokens
+
+These are Superset's own palette, so a page read next to the app belongs to
+it. Build on them rather than hardcoding colours and both themes keep working:
+
+| Token | What it is |
+| --- | --- |
+| `--sp-bg` | Page background |
+| `--sp-surface` | Raised or inset panels |
+| `--sp-text` | Body text |
+| `--sp-muted` | Secondary text, captions, table headers |
+| `--sp-border` | Rules and hairlines |
+| `--sp-accent` / `--sp-accent-text` | Links and emphasis, and text on top of the accent |
+| `--sp-code-bg` | Code background |
+| `--sp-chart-1` … `--sp-chart-5` | Categorical series colours, distinct in both themes |
+| `--sp-radius` | Corner radius |
+| `--sp-measure` | Reading measure for prose blocks |
+| `--sp-font-sans` / `--sp-font-mono` | Font stacks |
+
+The accent is a near-neutral, the way the app's is. It carries emphasis
+through weight and underline rather than hue. Reach for `--sp-chart-*` when you
+need colours that separate from one another, and don't paint a chart in five
+shades of the accent.
+
+Redefine any of them on `:root` to re-skin the whole page in one place:
+
+```css
+:root {
+  --sp-accent: #b4531f;
+  --sp-measure: 62ch;
+}
+```
+
+Define overrides on `:root`, not on `body`. The theme's own values live on
+`:root`, and a value set closer to the content would win in only one of the two
+colour schemes.
+
 ## Design
 
 The page should look deliberate. Avoid the house style of generic AI output:
@@ -117,11 +227,11 @@ purple-to-blue gradients, everything centered, uniform pill-rounded corners on
 every element, Inter (or system-sans) for every line, and emoji as section
 icons. Those read as "generated" at a glance.
 
-Instead: pick a real palette and hold to it, set a typographic scale with actual
-contrast between heading and body, and let the layout follow the content: a
-data-dense table wants a wide flush-left page, a narrative report wants a
-measure of 65-75 characters. Use whitespace for grouping instead of borders on
-everything.
+Instead: hold to one palette (the tokens above, or a real one of your own)
+set a typographic scale with actual contrast between heading and body, and let
+the layout follow the content: a data-dense table wants a wide flush-left page,
+a narrative report wants the default measure. Use whitespace for grouping
+instead of borders on everything.
 
 Make it responsive with relative units and flex/grid, and give wide content
 (tables, code blocks, charts) its own `overflow-x: auto` container so the page
@@ -245,5 +355,7 @@ Reopen with `superset pages comments resolve --thread <id> --reopen`.
 | Reader gets a 404 | Page is `just_me`, either set that way or created before `org` became the default; widen it with `--visibility org` |
 | Page is blank once published, fine locally | A script threw, or the page loads a script or stylesheet from a remote host |
 | A chart or widget renders nothing and logs no error | The library compiles code with `new Function` or `eval`, which the policy refuses; pick one that does not |
-| Fonts missing when published | A Google Fonts `<link>`; inline the `@font-face` instead |
+| Fonts missing when published | A Google Fonts `<link>`; inline the `@font-face` instead, or use `--sp-font-sans` |
+| Page ignores `class="dark"` | The class belongs on `<body>`, not on `<html>` or a wrapper |
+| A theme token has no effect | It was redefined on `body`; move the override to `:root` |
 | Images missing when published | `http://` URLs, or the reader is offline; embed as `data:` URIs |

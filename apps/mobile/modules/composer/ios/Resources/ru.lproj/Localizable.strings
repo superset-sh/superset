@@ -1,0 +1,16 @@
+"Dismiss" = "Закрыть";
+"Add attachment" = "Добавить вложение";
+"Transcribing" = "Расшифровка";
+"Dictate" = "Диктовать";
+"Sending" = "Отправка";
+"Send" = "Отправить";
+"Stop dictation" = "Остановить диктовку";
+"Remove attachment" = "Удалить вложение";
+"Document" = "Документ";
+"Close" = "Закрыть";
+"Done" = "Готово";
+"Model: %@" = "Модель: %@";
+"Microphone access is not allowed" = "Доступ к микрофону запрещён";
+"Could not start dictation" = "Не удалось начать диктовку";
+"Uploading" = "Загрузка";
+"Upload failed" = "Не удалось загрузить";

@@ -19,6 +19,18 @@ export const serverErrorMessages: Record<
 				message: "Active organization required to create an API key",
 			}),
 		),
+	"serverError.attachment.notFound": () =>
+		i18n._(
+			msg({
+				message: "Attachment not found",
+			}),
+		),
+	"serverError.attachment.notUploaded": () =>
+		i18n._(
+			msg({
+				message: "Attachment was not uploaded — send the bytes first",
+			}),
+		),
 	"serverError.automation.aRunForThisAutomation": () =>
 		i18n._(
 			msg({
@@ -29,6 +41,12 @@ export const serverErrorMessages: Record<
 		i18n._(
 			msg({
 				message: "Automation has no instructions",
+			}),
+		),
+	"serverError.automation.automationInAnotherOrganization": (params) =>
+		i18n._(
+			msg({
+				message: `This automation belongs to ${params?.organizationName}. Switch to that organization to open it.`,
 			}),
 		),
 	"serverError.automation.automationNotFound": () =>
@@ -131,7 +149,7 @@ export const serverErrorMessages: Record<
 		i18n._({
 			id: "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly",
 			message:
-				"Cloud sandboxes are limited to the Superset team while the feature is in internal testing, and {account} is not on the list.",
+				"Cloud sandboxes are not enabled for {account}. Ask the Superset team for access.",
 			values: params,
 		}),
 	"serverError.cloudWorkspace.couldNotRecordCloudWorkspace": () =>

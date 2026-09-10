@@ -23,7 +23,7 @@ export function TokenSplitBar({
 		reasoningOutput: number;
 	};
 }) {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const segments: Segment[] = [
 		{
 			id: "input",
@@ -75,7 +75,8 @@ export function TokenSplitBar({
 								{t(segment.label)}
 							</span>
 							<span className="font-mono text-xs text-muted-foreground">
-								{formatTokens(segment.tokens)} · {percent.toFixed(0)}%
+								{formatTokens(segment.tokens, i18n.locale)} ·{" "}
+								{percent.toFixed(0)}%
 							</span>
 						</div>
 						<MeterBar value={percent / 100} color={segment.color} />

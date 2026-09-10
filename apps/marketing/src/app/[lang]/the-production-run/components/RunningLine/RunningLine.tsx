@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { TIER_RGB } from "@/app/[lang]/components/TierBadge";
 
 const TRACKS = 10;
@@ -10,6 +12,8 @@ const RAIL_END = W - 96;
 const DELAYS = [0, 2.3, 0.8, 3.1, 1.5, 4.2, 0.4, 2.9, 1.9, 3.6];
 
 export function RunningLine() {
+	const { _: translate } = useTranslation();
+
 	return (
 		<div className="border border-border bg-foreground/[0.015] overflow-hidden">
 			<style>{`
@@ -39,7 +43,12 @@ export function RunningLine() {
 				viewBox={`0 0 ${W} ${H}`}
 				className="w-full h-auto"
 				role="img"
-				aria-label="Ten parallel workstreams running, each landing merged work"
+				aria-label={translate(
+					msg({
+						message:
+							"Ten parallel workstreams running, each landing merged work",
+					}),
+				)}
 			>
 				<title>The line, running</title>
 

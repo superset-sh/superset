@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
@@ -18,6 +18,7 @@ import { FACTORY_LEVELS, FORECAST_PERIODS, GATE_SCORECARD } from "./constants";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	const title = i18n._(
 		msg({
 			message: "Factory 2026",

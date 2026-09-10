@@ -22,7 +22,7 @@ export default command({
 		}
 
 		if (options.cloud) {
-			if (options.host || options.local) {
+			if (options.host !== undefined || options.local) {
 				throw new CLIError(
 					"--cloud cannot be combined with --host or --local",
 					"Cloud sandboxes are not hosted on one of your machines",

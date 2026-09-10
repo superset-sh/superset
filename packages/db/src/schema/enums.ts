@@ -165,6 +165,10 @@ export const pageCommentAuthorKindValues = ["human", "agent"] as const;
 export const pageCommentAuthorKindEnum = z.enum(pageCommentAuthorKindValues);
 export type PageCommentAuthorKind = z.infer<typeof pageCommentAuthorKindEnum>;
 
+export const pageCommentIntentValues = ["delete", "approve"] as const;
+export const pageCommentIntentEnum = z.enum(pageCommentIntentValues);
+export type PageCommentIntent = z.infer<typeof pageCommentIntentEnum>;
+
 export const leaderboardVisibilityValues = ["public", "hidden"] as const;
 export const leaderboardVisibilityEnum = z.enum(leaderboardVisibilityValues);
 export type LeaderboardVisibility = z.infer<typeof leaderboardVisibilityEnum>;

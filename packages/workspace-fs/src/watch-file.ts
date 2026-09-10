@@ -1,5 +1,11 @@
 import { type FSWatcher, watch } from "node:fs";
 import { stat } from "node:fs/promises";
+import {
+	clearInterval,
+	clearTimeout,
+	setInterval,
+	setTimeout,
+} from "node:timers";
 import type { FsWatchEvent } from "./types";
 
 const DEBOUNCE_MS = 75;

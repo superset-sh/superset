@@ -1,6 +1,9 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { useLingui } from "@lingui/react/macro";
+import { formatCompactNumber } from "@superset/i18n/format";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MeterBar } from "@/app/[lang]/components/MeterBar";
 import { tierLabel, tierRgb } from "@/app/[lang]/components/TierBadge";
@@ -18,13 +21,17 @@ import { Readout } from "./components/Readout";
 
 const PLAY_MS = 11000;
 
-function formatTokens(value: number): string {
+function formatTokens(value: number, locale: string): string {
+	if (!locale.startsWith("en"))
+		return formatCompactNumber(value, { maximumFractionDigits: 2 }, locale);
 	if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
 	if (value >= 1_000) return `${Math.round(value / 1_000)}K`;
 	return String(Math.round(value));
 }
 
 export function RunSimulator() {
+	const { _: translate } = useTranslation();
+
 	const { t, i18n } = useLingui();
 	const [months, setMonths] = useState(0);
 	const [playing, setPlaying] = useState(false);
@@ -96,7 +103,7 @@ export function RunSimulator() {
 						max={SLIDER_MONTHS}
 						step={0.25}
 						value={months}
-						aria-label="Months from August 2026"
+						aria-label={translate(msg({ message: "Months from August 2026" }))}
 						onChange={(event) => {
 							stop();
 							setMonths(Number(event.target.value));
@@ -121,7 +128,7 @@ export function RunSimulator() {
 					<div className="mt-5">
 						<Readout
 							accent={rgb}
-							label="Width · parallel sessions"
+							label={translate(msg({ message: "Width · parallel sessions" }))}
 							value={state.width.toFixed(2)}
 							floor={
 								atTop
@@ -132,18 +139,20 @@ export function RunSimulator() {
 						/>
 						<Readout
 							accent={rgb}
-							label="Depth · tokens per session"
-							value={formatTokens(state.depth)}
+							label={translate(msg({ message: "Depth · tokens per session" }))}
+							value={formatTokens(state.depth, i18n.locale)}
 							floor={
 								atTop
 									? "top"
-									: `T${nextTier} ~ ${formatTokens(axisAtBand("depth", nextBand))}`
+									: `T${nextTier} ~ ${formatTokens(axisAtBand("depth", nextBand), i18n.locale)}`
 							}
 							held={state.limitedBy.includes("Depth")}
 						/>
 						<Readout
 							accent={rgb}
-							label="Output · merged PRs per week"
+							label={translate(
+								msg({ message: "Output · merged PRs per week" }),
+							)}
 							value={state.output.toFixed(2)}
 							floor={
 								atTop
@@ -154,7 +163,7 @@ export function RunSimulator() {
 						/>
 						<Readout
 							accent={rgb}
-							label="Sustain · active days in 30"
+							label={translate(msg({ message: "Sustain · active days in 30" }))}
 							value={state.sustain.toFixed(1)}
 							floor={
 								atTop
@@ -165,7 +174,7 @@ export function RunSimulator() {
 						/>
 						<Readout
 							accent={rgb}
-							label="Cost · $ per merged PR"
+							label={translate(msg({ message: "Cost · $ per merged PR" }))}
 							value={`$${state.costPerPr.toFixed(2)}`}
 							floor={
 								atTop

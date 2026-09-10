@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
@@ -11,6 +13,8 @@ interface SidebarDropZoneProps {
 }
 
 export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
+	const { _: translate } = useTranslation();
+
 	const navigate = useNavigate();
 	const [isDragOver, setIsDragOver] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -180,7 +184,7 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 							type="button"
 							onClick={() => setError(null)}
 							className="shrink-0 rounded p-0.5 hover:bg-destructive/20 transition-colors"
-							aria-label="Dismiss error"
+							aria-label={translate(msg({ message: "Dismiss error" }))}
 						>
 							<LuX className="h-3.5 w-3.5" />
 						</button>

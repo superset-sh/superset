@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import type { QueryClient } from "@tanstack/react-query";
@@ -50,6 +52,8 @@ export function ImportProjectsPage({
 	organizationId,
 	activeHostUrl,
 }: ImportProjectsPageProps) {
+	const { _: translate } = useTranslation();
+
 	const queryClient = useQueryClient();
 	const finalizeSetup = useFinalizeProjectSetup();
 	const projectsQuery = electronTrpc.migration.readV1Projects.useQuery();
@@ -237,11 +241,18 @@ export function ImportProjectsPage({
 
 	return (
 		<ImportPageShell
-			title="Bring over your projects"
-			description="Import each v1 project into v2. Already-imported projects show as Imported."
+			title={translate(msg({ message: "Bring over your projects" }))}
+			description={translate(
+				msg({
+					message:
+						"Import each v1 project into v2. Already-imported projects show as Imported.",
+				}),
+			)}
 			isLoading={isLoading}
 			itemCount={projects.length}
-			emptyMessage="No v1 projects found on this device."
+			emptyMessage={translate(
+				msg({ message: "No v1 projects found on this device." }),
+			)}
 			onRefresh={refresh}
 			isRefreshing={isRefreshing}
 			headerAction={headerAction}

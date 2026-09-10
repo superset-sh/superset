@@ -31,7 +31,18 @@ export default function HomeLayout() {
 				}}
 			/>
 			<Stack.Screen
-				name="organizations"
+				name="organizations/index"
+				options={{
+					presentation: "formSheet",
+					sheetAllowedDetents: [0.5],
+					sheetGrabberVisible: true,
+					title: t({
+						message: "Organization",
+					}),
+				}}
+			/>
+			<Stack.Screen
+				name="organizations/switch"
 				options={{
 					presentation: "formSheet",
 					sheetAllowedDetents: [0.5],

@@ -1,0 +1,16 @@
+"Dismiss" = "Sluiten";
+"Add attachment" = "Bijlage toevoegen";
+"Transcribing" = "Transcriberen";
+"Dictate" = "Dicteren";
+"Sending" = "Versturen";
+"Send" = "Versturen";
+"Stop dictation" = "Dicteren stoppen";
+"Remove attachment" = "Bijlage verwijderen";
+"Document" = "Document";
+"Close" = "Sluiten";
+"Done" = "Klaar";
+"Model: %@" = "Model: %@";
+"Microphone access is not allowed" = "Toegang tot de microfoon is niet toegestaan";
+"Could not start dictation" = "Dicteren kon niet worden gestart";
+"Uploading" = "Uploaden";
+"Upload failed" = "Uploaden mislukt";

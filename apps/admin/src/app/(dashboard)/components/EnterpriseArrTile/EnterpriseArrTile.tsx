@@ -1,6 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
@@ -19,6 +20,8 @@ function initials(name: string): string {
 // money from Stripe subscriptions. Unbilled deals stay visible so revenue
 // that exists only on paper can't hide.
 export function EnterpriseArrTile() {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const trpc = useTRPC();
 	const query = useQuery(trpc.business.getEnterpriseArr.queryOptions());
@@ -35,7 +38,7 @@ export function EnterpriseArrTile() {
 			description={
 				data?.available
 					? t({
-							message: `$${data.arrUsd.toLocaleString()}/yr across ${accounts.length} logos — already inside MRR, not additive`,
+							message: `$${formatNumber(data.arrUsd, undefined)}/yr across ${accounts.length} logos — already inside MRR, not additive`,
 						}) +
 						(data.unbilledLogos > 0
 							? t({
@@ -47,6 +50,7 @@ export function EnterpriseArrTile() {
 							message: "Annualized enterprise Stripe subscriptions",
 						}))
 			}
+			fill
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={accounts.length === 0}
@@ -76,7 +80,7 @@ export function EnterpriseArrTile() {
 								</span>
 								<span className="shrink-0 text-sm tabular-nums">
 									{account.billed
-										? `$${account.arrUsd.toLocaleString()}/yr`
+										? `$${formatNumber(account.arrUsd, undefined)}/yr`
 										: t({
 												message: "unbilled",
 											})}

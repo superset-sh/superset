@@ -44,6 +44,7 @@ import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferen
 import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference";
 import { useAgentModePreference } from "renderer/hooks/useAgentModePreference";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { CLOUD_AGENT_CHOICES } from "renderer/hooks/useV2AgentChoices/cloud-agent-choices";
 import { track } from "renderer/lib/analytics";
@@ -92,7 +93,6 @@ import {
 	PILL_BUTTON_CLASS,
 	type WorkspaceCreateAgent,
 } from "../DashboardNewWorkspaceForm/PromptGroup/types";
-import { useSelectedHostProjectIds } from "../DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { SymmetricResizeHandles } from "../SymmetricResizeHandles";
 import { AttachmentCard } from "./components/AttachmentCard";
 import { SamplePromptCards } from "./components/SamplePromptCards";
@@ -119,18 +119,19 @@ interface NewWorkspaceScreenProps {
 	preSelectedProjectId: string | null;
 	/** Open with "No project" (session) preselected. */
 	preSelectedSession?: boolean;
+	/** Open targeting this host instead of the remembered one. */
+	preSelectedHostId?: string | null;
 }
 
 /**
- * Experiment test arm (new-workspace-screen flag): a purpose-built full-screen
- * take on workspace creation for new users — heading, sample prompts, and a
- * minimal composer. Independent of the control modal's PromptGroup so the two
- * arms can evolve separately.
+ * The v2 workspace-creation surface: heading, sample prompts, and a minimal
+ * composer, filling the window rather than a dialog.
  */
 export function NewWorkspaceScreen({
 	isOpen,
 	preSelectedProjectId,
 	preSelectedSession = false,
+	preSelectedHostId = null,
 }: NewWorkspaceScreenProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
@@ -368,16 +369,30 @@ export function NewWorkspaceScreen({
 	} = useLinkedContext(draft.linkedIssues, updateDraft);
 
 	// Restore the last-used launch host once per mount, like the modal does.
+	// A host named in the URL (the sidebar's Cloud "+") wins, and applies when
+	// it arrives rather than only at mount — this screen stays mounted across
+	// navigations to it.
 	const appliedPersistedHostRef = useRef(false);
+	const appliedPreSelectedHostRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (!isOpen || appliedPersistedHostRef.current) return;
+		if (!isOpen) return;
+		if (
+			preSelectedHostId &&
+			preSelectedHostId !== appliedPreSelectedHostRef.current
+		) {
+			appliedPreSelectedHostRef.current = preSelectedHostId;
+			appliedPersistedHostRef.current = true;
+			updateDraft({ hostId: preSelectedHostId });
+			return;
+		}
+		if (appliedPersistedHostRef.current) return;
 		appliedPersistedHostRef.current = true;
 		const persistedHostId =
 			useV2WorkspaceCreateDefaultsStore.getState().lastHostId;
 		if (typeof persistedHostId === "string") {
 			updateDraft({ hostId: persistedHostId });
 		}
-	}, [isOpen, updateDraft]);
+	}, [isOpen, preSelectedHostId, updateDraft]);
 
 	// Reset baseBranch on project or host change, defaulting to the user's
 	// last selected branch for that project — the draft store is global, so a
@@ -466,25 +481,11 @@ export function NewWorkspaceScreen({
 	const { selectedAgent, setSelectedAgent } =
 		useAgentLaunchPreferences<WorkspaceCreateAgent>({
 			agentStorageKey: AGENT_STORAGE_KEY,
-			defaultAgent: "none",
-			fallbackAgent: "none",
+			defaultAgent: selectableAgentIds[0] ?? "none",
+			fallbackAgent: selectableAgentIds[0] ?? "none",
 			validAgents: ["none", ...selectableAgentIds],
 			agentsReady: v2AgentsFetched,
 		});
-
-	// Same "none" → first-agent promotion as the control modal: new users land
-	// here with no stored preference, and the screen must not default to no agent.
-	useEffect(() => {
-		if (!v2AgentsFetched) return;
-		if (selectedAgent !== "none") return;
-		const stored =
-			typeof window !== "undefined"
-				? window.localStorage.getItem(AGENT_STORAGE_KEY)
-				: null;
-		if (stored === "none") return;
-		const first = selectableAgentIds[0];
-		if (first) setSelectedAgent(first);
-	}, [v2AgentsFetched, selectableAgentIds, selectedAgent, setSelectedAgent]);
 
 	const selectedPresetId = useMemo(() => {
 		const agent = v2Agents.find((candidate) => candidate.id === selectedAgent);
@@ -576,14 +577,15 @@ export function NewWorkspaceScreen({
 
 	const { otherHosts } = useWorkspaceHostOptions();
 	const submitBlocker = useMemo<string | null>(() => {
+		const selectedHostId = draft.hostId ?? machineId;
+		// A cloud workspace is provisioned by the API from the one cloud repo:
+		// no host whose readiness could block it, and no project either — the
+		// picker is hidden for cloud, so requiring one is unanswerable.
+		if (selectedHostId === CLOUD_HOST_ID) return null;
 		if (!projectId && !draft.isSession)
 			return t({
 				message: "Select a project",
 			});
-		const selectedHostId = draft.hostId ?? machineId;
-		// A cloud workspace is provisioned on submit, so there is no host whose
-		// readiness could block it.
-		if (selectedHostId === CLOUD_HOST_ID) return null;
 		if (!selectedHostId)
 			return t({
 				message: "No active host",

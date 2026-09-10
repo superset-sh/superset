@@ -2,11 +2,8 @@
 
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import {
-	formatCompactNumber,
-	formatCurrency,
-	formatPercent,
-} from "@superset/i18n/format";
+import { formatCompactNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import type { LanguageModelUsage } from "ai";
 import { type ComponentProps, createContext, useContext } from "react";
 import { getUsage } from "tokenlens";
@@ -116,6 +113,8 @@ const ContextIcon = () => {
 export type ContextTriggerProps = ComponentProps<typeof Button>;
 
 export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
+	const { formatPercent } = useFormat();
+
 	const { usedTokens, maxTokens } = useContextValue();
 	const usedPercent = maxTokens > 0 ? usedTokens / maxTokens : 0;
 	const renderedPercent = formatPercent(usedPercent);
@@ -153,6 +152,8 @@ export const ContextContentHeader = ({
 	className,
 	...props
 }: ContextContentHeaderProps) => {
+	const { formatCompactNumber, formatPercent } = useFormat();
+
 	const { usedTokens, maxTokens } = useContextValue();
 	const usedPercent = maxTokens > 0 ? usedTokens / maxTokens : 0;
 	const displayPct = formatPercent(usedPercent);
@@ -197,6 +198,8 @@ export const ContextContentFooter = ({
 	className,
 	...props
 }: ContextContentFooterProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { modelId, usage } = useContextValue();
 	const costUSD = modelId
 		? getUsage({
@@ -236,6 +239,8 @@ export const ContextInputUsage = ({
 	children,
 	...props
 }: ContextInputUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const inputTokens = usage?.inputTokens ?? 0;
 
@@ -275,6 +280,8 @@ export const ContextOutputUsage = ({
 	children,
 	...props
 }: ContextOutputUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const outputTokens = usage?.outputTokens ?? 0;
 
@@ -314,6 +321,8 @@ export const ContextReasoningUsage = ({
 	children,
 	...props
 }: ContextReasoningUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const reasoningTokens = usage?.reasoningTokens ?? 0;
 
@@ -353,6 +362,8 @@ export const ContextCacheUsage = ({
 	children,
 	...props
 }: ContextCacheUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const cacheTokens = usage?.cachedInputTokens ?? 0;
 

@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import {
 	type DraftTrigger,
 	enabledTriggerKinds,
@@ -54,6 +56,8 @@ export function TriggersEditor({
 	readOnly,
 	children,
 }: TriggersEditorProps) {
+	const { _: translate } = useTranslation();
+
 	const add = (config: DraftTrigger["config"]) =>
 		onEdit([...drafts, { config }]);
 
@@ -145,7 +149,7 @@ export function TriggersEditor({
 							<Input
 								autoFocus
 								value={query}
-								placeholder="Search triggers..."
+								placeholder={translate(msg({ message: "Search triggers..." }))}
 								onChange={(event) => setQuery(event.target.value)}
 								onKeyDown={(event) => {
 									if (event.key.length === 1 || event.key === "Backspace") {

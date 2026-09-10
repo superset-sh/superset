@@ -1,7 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { formatDateTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -67,6 +67,8 @@ function bucketPoints(all: MrrDatum[], range: RangeKey): MrrDatum[] {
 }
 
 export function MrrTile() {
+	const { formatDateTime, formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const trpc = useTRPC();
 	const chartConfig = {
@@ -140,6 +142,7 @@ export function MrrTile() {
 					"Stripe's own Sigma MRR report, computed on demand via the Query Run API",
 			})}
 			lastRefresh={series?.dataLoadTime ?? null}
+			fill
 			isLoading={query.isLoading}
 			onRefresh={() => refresh.mutate()}
 			isRefreshing={refresh.isPending || isComputing}
@@ -171,12 +174,15 @@ export function MrrTile() {
 				</Select>
 			}
 		>
-			<div className="space-y-4">
+			{/* A column with a definite height: the chart's h-full has nothing to
+			    resolve against inside an auto-height wrapper, and recharts renders
+			    no svg at all when it measures zero. */}
+			<div className="flex h-full flex-col gap-4">
 				{latest ? (
-					<div>
+					<div className="shrink-0">
 						<div className="flex items-baseline gap-2">
 							<span className="text-3xl font-bold">
-								${latest.mrrUsd.toLocaleString()}
+								${formatNumber(latest.mrrUsd, undefined)}
 							</span>
 							{changePct !== null ? (
 								<span
@@ -193,7 +199,7 @@ export function MrrTile() {
 						{latest?.prevUsd !== null && latest?.prevUsd !== undefined ? (
 							<p className="text-muted-foreground text-sm">
 								{t({
-									message: `$${latest.prevUsd.toLocaleString()} previous period (${latest.prevDate})`,
+									message: `$${formatNumber(latest.prevUsd, undefined)} previous period (${latest.prevDate})`,
 								})}
 							</p>
 						) : null}
@@ -209,7 +215,10 @@ export function MrrTile() {
 						) : null}
 					</div>
 				) : null}
-				<ChartContainer config={chartConfig} className="h-[200px] w-full">
+				<ChartContainer
+					config={chartConfig}
+					className="aspect-auto w-full flex-1 min-h-[160px]"
+				>
 					<AreaChart data={points}>
 						<XAxis
 							dataKey="date"
@@ -224,7 +233,7 @@ export function MrrTile() {
 							axisLine={false}
 							width={56}
 							domain={["auto", "auto"]}
-							tickFormatter={(v: number) => `$${v.toLocaleString()}`}
+							tickFormatter={(v: number) => `$${formatNumber(v, undefined)}`}
 						/>
 						<ChartTooltip content={<MrrTooltip />} />
 						<Area

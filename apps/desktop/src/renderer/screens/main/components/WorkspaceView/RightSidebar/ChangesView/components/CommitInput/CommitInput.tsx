@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import type { GitHubStatus } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
@@ -51,6 +53,8 @@ export function CommitInput({
 	shouldAutoCreatePRAfterPublish,
 	onRefresh,
 }: CommitInputProps) {
+	const { _: translate } = useTranslation();
+
 	const [commitMessage, setCommitMessage] = useState("");
 	const [isOpen, setIsOpen] = useState(false);
 
@@ -218,7 +222,7 @@ export function CommitInput({
 	return (
 		<div className="flex flex-col gap-1.5 px-2 py-2">
 			<Textarea
-				placeholder="Commit message"
+				placeholder={translate(msg({ message: "Commit message" }))}
 				value={commitMessage}
 				onChange={(e) => setCommitMessage(e.target.value)}
 				className="min-h-[52px] resize-none text-[10px] bg-background"

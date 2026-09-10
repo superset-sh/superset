@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { COMPANY } from "@superset/shared/constants";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
@@ -6,6 +7,7 @@ import { useEffect, useMemo } from "react";
 import { LuSearch } from "react-icons/lu";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { FeatureHeader } from "renderer/routes/_authenticated/_dashboard/components/FeatureHeader";
 import {
 	isPaneModifier,
 	useOpenPage,
@@ -17,6 +19,7 @@ import {
 	sortPinnedFirst,
 } from "../../utils/filterPages";
 import { PagesGrid } from "../PagesGrid";
+import { useCreatePageWithAgent } from "./hooks/useCreatePageWithAgent";
 import { usePageFavorites } from "./hooks/usePageFavorites";
 
 const TABS: Array<{ value: PageScope }> = [
@@ -40,6 +43,7 @@ export function PagesView({
 	onScopeChange,
 }: PagesViewProps) {
 	const { t } = useLingui();
+	const { creatingWithAgent, handleCreateWithAgent } = useCreatePageWithAgent();
 	const { data: session } = authClient.useSession();
 	const utils = cloudTrpc.useUtils();
 	const pages = cloudTrpc.page.list.useQuery({});
@@ -108,59 +112,69 @@ export function PagesView({
 		[all, search, activeScope, favoritePageIdSet],
 	);
 
+	const orgEmpty = !pages.isPending && !pages.error && all.length === 0;
+
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
 			<div className="drag h-10 shrink-0" />
 
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
-					<div className="flex items-center justify-between">
-						<h1 className="font-semibold text-xl tracking-tight">
-							<Trans>Pages</Trans>
-						</h1>
-					</div>
+					<FeatureHeader
+						title={<Trans>Pages</Trans>}
+						docsUrl={`${COMPANY.DOCS_URL}/pages`}
+						onCreate={handleCreateWithAgent}
+						isCreating={creatingWithAgent}
+						showCreate={!orgEmpty}
+					/>
 
-					<div className="mt-6 flex items-center justify-between gap-2">
-						<Tabs
-							value={activeScope}
-							onValueChange={(value) => onScopeChange(value as PageScope)}
-						>
-							<TabsList className="h-8 gap-1 bg-transparent p-0">
-								{tabs.map((tab) => (
-									<TabsTrigger
-										key={tab.value}
-										value={tab.value}
-										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
-									>
-										<span className="text-sm">{tabLabels[tab.value]}</span>
-										<span className="ml-1 text-muted-foreground text-xs tabular-nums">
-											{counts[tab.value]}
-										</span>
-									</TabsTrigger>
-								))}
-							</TabsList>
-						</Tabs>
+					{!orgEmpty && (
+						<div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+							<Tabs
+								value={activeScope}
+								onValueChange={(value) => onScopeChange(value as PageScope)}
+							>
+								<TabsList className="h-8 gap-1 bg-transparent p-0">
+									{tabs.map((tab) => (
+										<TabsTrigger
+											key={tab.value}
+											value={tab.value}
+											className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+										>
+											<span className="text-sm">{tabLabels[tab.value]}</span>
+											<span className="ml-1 text-muted-foreground text-xs tabular-nums">
+												{counts[tab.value]}
+											</span>
+										</TabsTrigger>
+									))}
+								</TabsList>
+							</Tabs>
 
-						<div className="relative w-56">
-							<LuSearch className="-translate-y-1/2 absolute top-1/2 left-2 size-3.5 text-muted-foreground" />
-							<Input
-								value={search}
-								onChange={(event) => onSearchChange(event.target.value)}
-								placeholder={t({
-									message: "Search pages",
-								})}
-								className="h-8 pl-7 text-sm"
-							/>
+							<div className="relative w-56">
+								<LuSearch className="-translate-y-1/2 absolute top-1/2 left-2 size-3.5 text-muted-foreground" />
+								<Input
+									value={search}
+									onChange={(event) => onSearchChange(event.target.value)}
+									placeholder={t({
+										message: "Search pages",
+									})}
+									className="h-8 pl-7 text-sm"
+								/>
+							</div>
 						</div>
-					</div>
+					)}
 
 					<PagesGrid
 						pages={visible}
+						onCreate={handleCreateWithAgent}
+						isCreating={creatingWithAgent}
 						pinnedPageIds={favoritePageIdSet}
 						currentUserId={session?.user.id}
 						isPending={pages.isPending}
 						error={pages.error?.message}
-						hasFilters={Boolean(search.trim()) || activeScope !== "all"}
+						hasFilters={
+							!orgEmpty && (Boolean(search.trim()) || activeScope !== "all")
+						}
 						onOpen={(page, event) =>
 							openPage(page, { inPane: isPaneModifier(event) })
 						}

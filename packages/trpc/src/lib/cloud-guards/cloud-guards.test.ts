@@ -91,7 +91,7 @@ describe("assertCloudAccess", () => {
 		flagResult = false;
 		await expect(
 			assertCloudAccess(signedIn("someone@example.com")),
-		).rejects.toThrow(/not on the list/);
+		).rejects.toThrow(/not enabled for/);
 	});
 
 	// The one that matters: posthog-node resolves undefined when it cannot
@@ -101,7 +101,7 @@ describe("assertCloudAccess", () => {
 		flagResult = undefined;
 		await expect(
 			assertCloudAccess(signedIn("someone@superset.sh")),
-		).rejects.toThrow(/not on the list/);
+		).rejects.toThrow(/not enabled for/);
 	});
 
 	test("refuses a user with no email on record", async () => {

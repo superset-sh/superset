@@ -6,9 +6,13 @@ import { ChurnHeatmapTile } from "../components/ChurnHeatmapTile";
 import { HogQLLineTile } from "../components/HogQLLineTile";
 import { LogoRetentionTile } from "../components/LogoRetentionTile";
 import { MrrTile } from "../components/MrrTile";
+import { PaywallFunnelTile } from "../components/PaywallFunnelTile";
 import { PostHogFunnelTile } from "../components/PostHogFunnelTile";
+import { ResetLayoutButton } from "../components/ResetLayoutButton";
 import { SignupToPaidTile } from "../components/SignupToPaidTile";
+import { TileSection } from "../components/TileSection";
 import { TrendSeriesTile } from "../components/TrendSeriesTile";
+import { TileLayoutProvider } from "../providers/TileLayoutProvider";
 import { AiAgentsTile } from "./components/AiAgentsTile";
 import { AiReferralsTile } from "./components/AiReferralsTile";
 import { ChannelMixTile } from "./components/ChannelMixTile";
@@ -16,15 +20,12 @@ import { ContentInventoryTile } from "./components/ContentInventoryTile";
 import { ConversionsTile } from "./components/ConversionsTile";
 import { DiscordTile } from "./components/DiscordTile";
 import { GithubTile } from "./components/GithubTile";
-import { GrowthSection } from "./components/GrowthSection";
 import { LandingSectionsTile } from "./components/LandingSectionsTile";
 import { RangeSwitch } from "./components/RangeSwitch";
-import { ResetLayoutButton } from "./components/ResetLayoutButton";
 import { SearchConsoleTile } from "./components/SearchConsoleTile";
 import { SearchEnginesTile } from "./components/SearchEnginesTile";
 import { TopLandingPagesTile } from "./components/TopLandingPagesTile";
 import { TopReferrersTile } from "./components/TopReferrersTile";
-import { GrowthLayoutProvider } from "./providers/GrowthLayoutProvider";
 import { GrowthRangeProvider } from "./providers/GrowthRangeProvider";
 
 // Every growth signal in one place, ordered the way a visitor moves through
@@ -90,7 +91,7 @@ function GrowthPageContent() {
 				</div>
 			</div>
 
-			<GrowthSection
+			<TileSection
 				section="acquisition"
 				title={<Trans>Acquisition</Trans>}
 				description={
@@ -120,7 +121,7 @@ function GrowthPageContent() {
 				]}
 			/>
 
-			<GrowthSection
+			<TileSection
 				section="content"
 				title={<Trans>Content</Trans>}
 				description={
@@ -149,7 +150,7 @@ function GrowthPageContent() {
 				]}
 			/>
 
-			<GrowthSection
+			<TileSection
 				section="conversion"
 				title={<Trans>Conversion</Trans>}
 				description={
@@ -187,10 +188,16 @@ function GrowthPageContent() {
 					},
 					{ key: "activated-rate", node: activatedRate, h: CHART_H },
 					{ key: "signup-to-paid", node: <SignupToPaidTile />, h: CHART_H },
+					{
+						key: "paywall-funnel",
+						node: <PaywallFunnelTile />,
+						w: FULL_W,
+						h: FUNNEL_H,
+					},
 				]}
 			/>
 
-			<GrowthSection
+			<TileSection
 				section="retention"
 				title={<Trans>Retention and revenue</Trans>}
 				description={
@@ -212,7 +219,7 @@ function GrowthPageContent() {
 				]}
 			/>
 
-			<GrowthSection
+			<TileSection
 				section="distribution"
 				title={<Trans>Distribution and community</Trans>}
 				description={
@@ -227,7 +234,7 @@ function GrowthPageContent() {
 				]}
 			/>
 
-			<GrowthSection
+			<TileSection
 				section="search"
 				title={<Trans>Search</Trans>}
 				description={
@@ -251,9 +258,9 @@ function GrowthPageContent() {
 export default function GrowthPage() {
 	return (
 		<GrowthRangeProvider>
-			<GrowthLayoutProvider>
+			<TileLayoutProvider>
 				<GrowthPageContent />
-			</GrowthLayoutProvider>
+			</TileLayoutProvider>
 		</GrowthRangeProvider>
 	);
 }

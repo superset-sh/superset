@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { formatTokens } from "@superset/shared/format-tokens";
 import { cn } from "@superset/ui/utils";
 
@@ -54,6 +54,8 @@ function aliasFor(rank: number): string {
 // CDN-cached, so right after a publish the user's own row can lag; it is
 // synthesized from the membership so the strip never drops "you".
 export function RankNeighbors({ me, rows }: RankNeighborsProps) {
+	const { formatNumber } = useFormat();
+
 	const above = rows.find((row) => row.rank === me.rank - 1) ?? null;
 	const below = rows.find((row) => row.rank === me.rank + 1) ?? null;
 	if (!above && !below) return null;

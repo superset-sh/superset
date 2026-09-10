@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"NSSpeechRecognitionUsageDescription": "Superset dùng nhận dạng giọng nói để chuyển lời nói thành văn bản.",
+		"NSPhotoLibraryUsageDescription": "Superset cần truy cập thư viện ảnh để bạn đính kèm hình ảnh vào tin nhắn.",
+		"NSCameraUsageDescription": "Superset dùng máy ảnh để bạn đính kèm ảnh vào tin nhắn.",
+		"NSMicrophoneUsageDescription": "Superset dùng micrô để bạn đọc chính tả tin nhắn."
+	}
+}

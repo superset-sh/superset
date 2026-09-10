@@ -32,6 +32,7 @@ import {
 	integrationProviderValues,
 	pageCommentAnchorKindValues,
 	pageCommentAuthorKindValues,
+	pageCommentIntentValues,
 	pageVisibilityValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
@@ -81,6 +82,11 @@ export const pageCommentAnchorKind = pgEnum(
 export const pageCommentAuthorKind = pgEnum(
 	"page_comment_author_kind",
 	pageCommentAuthorKindValues,
+);
+
+export const pageCommentIntent = pgEnum(
+	"page_comment_intent",
+	pageCommentIntentValues,
 );
 
 export const taskStatuses = pgTable(
@@ -1467,6 +1473,7 @@ export const pageCommentThreads = pgTable(
 			.notNull()
 			.references(() => pageVersions.id, { onDelete: "cascade" }),
 		anchorKind: pageCommentAnchorKind("anchor_kind").notNull(),
+		intent: pageCommentIntent("intent"),
 		anchor: jsonb(),
 		anchorText: text("anchor_text"),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {

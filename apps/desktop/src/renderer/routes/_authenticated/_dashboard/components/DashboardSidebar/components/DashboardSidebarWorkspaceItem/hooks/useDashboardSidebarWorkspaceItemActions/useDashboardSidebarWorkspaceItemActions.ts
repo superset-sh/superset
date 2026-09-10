@@ -1,9 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
-import {
-	normalizeWorkspaceTags,
-	SESSIONS_TAG_SCOPE,
-} from "@superset/shared/workspace-tags";
+import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
 import { toast } from "@superset/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
@@ -24,11 +21,7 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import {
-	applyFolderTagChange,
-	buildSidebarFolderKey,
-	mintFolderTag,
-} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import { applyFolderTagChange } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
@@ -169,16 +162,8 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleCreateSection = () => {
-		if (projectId === null) {
-			if (!isSessionWorkspace) return;
-			const tag = mintFolderTag("New group", sessionGroupTags);
-			void workspaceActions.updateWorkspace(workspaceId, {
-				tags: applyFolderTagChange(currentWorkspaceTags, sessionGroupTags, tag),
-			});
-			requestSectionRename(buildSidebarFolderKey(SESSIONS_TAG_SCOPE, tag));
-			return;
-		}
-		const sectionId = createSection(projectId);
+		if (projectId === null && !isSessionWorkspace) return;
+		const sectionId = createSection(projectId, { workspaceIds: [workspaceId] });
 		moveWorkspaceToSection(workspaceId, projectId, sectionId);
 		requestSectionRename(sectionId);
 	};

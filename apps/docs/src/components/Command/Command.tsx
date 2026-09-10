@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
-import { i18n } from "@superset/i18n";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { initServerI18n } from "@/lib/i18n-server";
 
 export interface CommandOption {
 	flag: string;
@@ -36,7 +36,7 @@ function slugify(name: string): string {
 		.toLowerCase();
 }
 
-export function Command({
+export async function Command({
 	name,
 	alias,
 	args,
@@ -46,6 +46,8 @@ export function Command({
 	className,
 	children,
 }: CommandProps) {
+	const i18n = await initServerI18n();
+
 	const id = slugify(name);
 
 	return (
@@ -207,7 +209,9 @@ export interface CommandReturnsProps {
 	children: ReactNode;
 }
 
-export function CommandReturns({ children }: CommandReturnsProps) {
+export async function CommandReturns({ children }: CommandReturnsProps) {
+	const i18n = await initServerI18n();
+
 	return (
 		<div className="mt-6">
 			<h4 className="not-prose text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">

@@ -36,6 +36,7 @@ interface NativeComposerViewProps {
 	onQuickKeyPress?: (event: { nativeEvent: { id: string } }) => void;
 	onSessionTabPress?: (event: { nativeEvent: { id: string } }) => void;
 	onSessionTabClose?: (event: { nativeEvent: { id: string } }) => void;
+	onSessionTabRename?: (event: { nativeEvent: { id: string } }) => void;
 	onSessionTabCopyId?: (event: { nativeEvent: { id: string } }) => void;
 	onNewSessionPress?: () => void;
 	onAllSessionsPress?: () => void;
@@ -99,6 +100,17 @@ export interface ComposerAttachment {
 	 * draw the same glyph. Ignored for images, which show themselves.
 	 */
 	name?: string;
+	/**
+	 * 0–1 while the file is still on its way to cloud storage, drawn as a ring
+	 * over the thumbnail. Omitted once it has landed, or when nothing is
+	 * uploading — a tray of settled attachments draws no rings.
+	 */
+	progress?: number;
+	/**
+	 * The upload failed. Marks the thumbnail instead of the ring; the
+	 * attachment stays in the tray because sending the message retries it.
+	 */
+	failed?: boolean;
 }
 
 /**
@@ -181,6 +193,8 @@ export interface ComposerQuickKeysAction {
  * untranslated string on a translated screen.
  */
 export interface ComposerSessionTabLabels {
+	/** Context menu: opens the prompt for the session's name. */
+	rename: string;
 	/** Context menu: copies the session's id to the pasteboard. */
 	copyId: string;
 	/** Context menu, destructive, and the close disc's accessibility label. */
@@ -337,6 +351,12 @@ interface ComposerBaseProps {
 	 */
 	onSessionTabClose?: (id: string) => void;
 	/**
+	 * Rename was chosen from the press-and-hold menu. The composer neither
+	 * asks for the new name nor knows what a session's name is — a menu cannot
+	 * take text, and the name is the host's — so the caller prompts and saves.
+	 */
+	onSessionTabRename?: (id: string) => void;
+	/**
 	 * Copy id was chosen from the press-and-hold menu. The caller owns the
 	 * pasteboard write and whatever it shows afterwards, so the confirmation
 	 * matches every other copy on the screen.
@@ -426,6 +446,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			onQuickKeyPress,
 			onSessionTabPress,
 			onSessionTabClose,
+			onSessionTabRename,
 			onSessionTabCopyId,
 			onNewSessionPress,
 			onAllSessionsPress,
@@ -482,6 +503,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				onQuickKeyPress={(event) => onQuickKeyPress?.(event.nativeEvent.id)}
 				onSessionTabPress={(event) => onSessionTabPress?.(event.nativeEvent.id)}
 				onSessionTabClose={(event) => onSessionTabClose?.(event.nativeEvent.id)}
+				onSessionTabRename={(event) =>
+					onSessionTabRename?.(event.nativeEvent.id)
+				}
 				onSessionTabCopyId={(event) =>
 					onSessionTabCopyId?.(event.nativeEvent.id)
 				}

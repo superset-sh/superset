@@ -1,0 +1,1 @@
+export { FastMenu } from "./FastMenu";

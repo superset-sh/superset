@@ -24,6 +24,7 @@ import { requireActiveOrgMembership } from "../utils/active-org";
 import { dispatchAutomation } from "./dispatch";
 import {
 	automationBaseColumns,
+	automationNotFound,
 	getAutomationForUser,
 	NO_SCHEDULE,
 	promptSourceFromSession,
@@ -254,11 +255,7 @@ export const automationRouter = {
 			// Reads are org-scoped (Team tab links to any member's automation);
 			// mutations stay owner-scoped via getAutomationForUser.
 			if (!row) {
-				throw userError({
-					code: "NOT_FOUND",
-					message: "Automation not found",
-					i18nKey: "serverError.automation.automationNotFound",
-				});
+				throw await automationNotFound(input.id, ctx.session.user.id);
 			}
 
 			// The whole set, since the editor saves it as one and needs the ids to
@@ -634,11 +631,7 @@ export const automationRouter = {
 				)
 				.limit(1);
 			if (!existing) {
-				throw userError({
-					code: "NOT_FOUND",
-					message: "Automation not found",
-					i18nKey: "serverError.automation.automationNotFound",
-				});
+				throw await automationNotFound(input.id, ctx.session.user.id);
 			}
 			return existing;
 		}),

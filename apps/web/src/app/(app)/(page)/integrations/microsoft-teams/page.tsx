@@ -10,7 +10,7 @@ import {
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { BsMicrosoftTeams } from "react-icons/bs";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
 import {
 	type CallbackMessage,
@@ -25,74 +25,75 @@ function withDetail(text: string): CallbackMessage {
 	return { param: "detail", withParam: `${text} {detail}`, withoutParam: text };
 }
 
-const CALLBACK_MESSAGES = {
-	oauth_denied: i18n._(
-		msg({
-			message:
-				"Consent was not granted. A tenant administrator has to approve.",
-		}),
-	),
-	missing_params: i18n._(
-		msg({
-			message: "Invalid consent response. Please try again.",
-		}),
-	),
-	invalid_state: i18n._(
-		msg({
-			message: "Invalid state parameter. Please try again.",
-		}),
-	),
-	token_exchange_failed: withDetail(
-		i18n._(
-			msg({
-				message:
-					"Consent finished but Microsoft did not issue a token for the tenant.",
-			}),
-		),
-	),
-	subscription_failed: withDetail(
-		i18n._(
-			msg({
-				message:
-					"Connected, but Microsoft Graph refused the notification subscriptions.",
-			}),
-		),
-	),
-	tenant_already_linked: {
-		param: "detail",
-		withParam: i18n._(
-			msg({
-				message:
-					"This Microsoft tenant is already connected by {detail}. Ask them to disconnect first.",
-			}),
-		),
-		withoutParam: i18n._(
-			msg({
-				message:
-					"This Microsoft tenant is already connected by another Superset organization.",
-			}),
-		),
-	},
-	identity_denied: i18n._(
-		msg({
-			message:
-				'Connected. Sign-in was cancelled, so triggers by "Me" will not match your Teams account until you reconnect.',
-		}),
-	),
-	identity_failed: i18n._(
-		msg({
-			message:
-				'Connected, but your Microsoft account could not be linked. Triggers by "Me" will not match until you reconnect.',
-		}),
-	),
-	unauthorized: i18n._(
-		msg({
-			message: "You are not authorized to perform this action.",
-		}),
-	),
-};
-
 export default async function MicrosoftTeamsIntegrationPage() {
+	const i18n = await initServerI18n();
+	const CALLBACK_MESSAGES = {
+		oauth_denied: i18n._(
+			msg({
+				message:
+					"Consent was not granted. A tenant administrator has to approve.",
+			}),
+		),
+		missing_params: i18n._(
+			msg({
+				message: "Invalid consent response. Please try again.",
+			}),
+		),
+		invalid_state: i18n._(
+			msg({
+				message: "Invalid state parameter. Please try again.",
+			}),
+		),
+		token_exchange_failed: withDetail(
+			i18n._(
+				msg({
+					message:
+						"Consent finished but Microsoft did not issue a token for the tenant.",
+				}),
+			),
+		),
+		subscription_failed: withDetail(
+			i18n._(
+				msg({
+					message:
+						"Connected, but Microsoft Graph refused the notification subscriptions.",
+				}),
+			),
+		),
+		tenant_already_linked: {
+			param: "detail",
+			withParam: i18n._(
+				msg({
+					message:
+						"This Microsoft tenant is already connected by {detail}. Ask them to disconnect first.",
+				}),
+			),
+			withoutParam: i18n._(
+				msg({
+					message:
+						"This Microsoft tenant is already connected by another Superset organization.",
+				}),
+			),
+		},
+		identity_denied: i18n._(
+			msg({
+				message:
+					'Connected. Sign-in was cancelled, so triggers by "Me" will not match your Teams account until you reconnect.',
+			}),
+		),
+		identity_failed: i18n._(
+			msg({
+				message:
+					'Connected, but your Microsoft account could not be linked. Triggers by "Me" will not match until you reconnect.',
+			}),
+		),
+		unauthorized: i18n._(
+			msg({
+				message: "You are not authorized to perform this action.",
+			}),
+		),
+	};
+
 	await requireOfferedIntegration("microsoft_teams");
 	const trpc = await api();
 	const organization = await trpc.user.myOrganization.query();

@@ -1,7 +1,8 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { formatNumber, formatPercent } from "@superset/i18n/format";
+import { formatPercent } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
@@ -18,6 +19,8 @@ function rate(numerator: number, denominator: number): string {
 }
 
 export function ConversionsTile() {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const trpc = useTRPC();
 	const { weeks } = useGrowthRange();

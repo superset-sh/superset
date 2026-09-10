@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { formatDate } from "@superset/i18n/format";
 import { TIER_NAMES, TIER_RGB } from "@/app/[lang]/components/TierBadge";
 import { TierIcon } from "@/app/[lang]/components/TierIcon";
 
@@ -9,7 +10,11 @@ const railLeft = (position: number) =>
 
 const MONTHS_PER_TIER = 7;
 
-function forecastLabel(tier: number, position: number): string | null {
+function forecastLabel(
+	tier: number,
+	position: number,
+	locale: string,
+): string | null {
 	if (position <= 0) return null;
 	if (tier <= Math.floor(position)) return null;
 
@@ -17,11 +22,15 @@ function forecastLabel(tier: number, position: number): string | null {
 	const when = new Date();
 	when.setUTCDate(1);
 	when.setUTCMonth(when.getUTCMonth() + months);
-	return when.toLocaleDateString("en-US", {
-		month: "short",
-		year: "numeric",
-		timeZone: "UTC",
-	});
+	return formatDate(
+		when,
+		{
+			month: "short",
+			year: "numeric",
+			timeZone: "UTC",
+		},
+		locale,
+	);
 }
 
 function PaceTooltip({
@@ -69,7 +78,7 @@ export function TierTube({
 	pixelClassName = "",
 	footer,
 }: TierTubeProps) {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const activeTier = Math.min(4, Math.max(0, Math.floor(position)));
 	const active = ZONES.find((zone) => zone.tier === activeTier);
 	const travelled = railLeft(position);
@@ -110,7 +119,7 @@ export function TierTube({
 							{showPace && (
 								<PaceTooltip
 									reached={reached}
-									forecast={forecastLabel(tier, position)}
+									forecast={forecastLabel(tier, position, i18n.locale)}
 									rgb={rgb}
 									className="left-1/2 -translate-x-1/2 whitespace-nowrap"
 								/>
@@ -153,7 +162,7 @@ export function TierTube({
 							{showPace && (
 								<PaceTooltip
 									reached={reached}
-									forecast={forecastLabel(tier, position)}
+									forecast={forecastLabel(tier, position, i18n.locale)}
 									rgb={rgb}
 									className="inset-x-2"
 								/>

@@ -1,6 +1,6 @@
-import { i18n } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
+import { getI18nInstance } from "@superset/i18n/server";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { Silkscreen } from "next/font/google";
@@ -52,6 +52,7 @@ export async function generateMetadata({
 	searchParams,
 }: PageProps): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	const { a, b } = await searchParams;
 	const [left, right] = await resolveMatchup(a, b);
 

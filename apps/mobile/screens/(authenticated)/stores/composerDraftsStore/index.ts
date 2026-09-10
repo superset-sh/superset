@@ -1,3 +1,4 @@
+export type { AttachmentUpload } from "./composerDraftsStore";
 export {
 	type ComposerDraft,
 	EMPTY_DRAFT,

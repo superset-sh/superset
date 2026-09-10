@@ -1,11 +1,12 @@
 import { describe, expect, mock, spyOn, test } from "bun:test";
 
+const register = mock(async (_input: unknown) => ({ success: true }));
 const unregister = mock(async () => ({ success: true }));
 
 mock.module("renderer/lib/trpc-client", () => ({
 	electronTrpcClient: {
 		browser: {
-			register: { mutate: async () => ({ success: true }) },
+			register: { mutate: register },
 			unregister: { mutate: unregister },
 			onAgentActivePanes: { subscribe: () => ({ unsubscribe: () => {} }) },
 		},
@@ -345,6 +346,73 @@ describe("browserRuntimeRegistry guest lifecycle", () => {
 			browserRuntimeRegistry.reload(paneId);
 		} finally {
 			registryInternals.entries.delete(paneId);
+		}
+	});
+});
+
+describe("browserRuntimeRegistry background open", () => {
+	test("registers a hidden guest with a usable viewport and persists navigation without attaching", async () => {
+		const paneId = "background-open-pane";
+		const internals = browserRuntimeRegistry as unknown as {
+			ensureRootContainer: () => { appendChild: (element: unknown) => void };
+			entries: Map<
+				string,
+				{
+					webview: EventTarget & { style: Record<string, string> };
+					placeholder: unknown;
+					visible: boolean;
+				}
+			>;
+		};
+		const appended: unknown[] = [];
+		const rootSpy = spyOn(internals, "ensureRootContainer").mockReturnValue({
+			appendChild: (element) => {
+				appended.push(element);
+			},
+		});
+		const original = document.createElement;
+		document.createElement = (() =>
+			Object.assign(new EventTarget(), {
+				style: {},
+				setAttribute: () => {},
+				remove: () => {},
+				src: "",
+				getWebContentsId: () => 987,
+			})) as unknown as typeof original;
+		const persisted: string[] = [];
+		try {
+			browserRuntimeRegistry.openBackground(
+				paneId,
+				"https://example.com",
+				"agent-workspace",
+				(state) => persisted.push(state.url),
+			);
+			const entry = internals.entries.get(paneId);
+			if (!entry) throw new Error("Missing background runtime");
+			expect(appended).toHaveLength(2);
+			expect(entry.placeholder).toBeNull();
+			expect(entry.visible).toBe(false);
+			expect(entry.webview.style.visibility).toBe("hidden");
+			expect(entry.webview.style.width).toBe("1280px");
+			expect(entry.webview.style.height).toBe("720px");
+			entry.webview.dispatchEvent(new Event("dom-ready"));
+			expect(register).toHaveBeenCalledWith({
+				paneId,
+				webContentsId: 987,
+				workspaceId: "agent-workspace",
+			});
+			entry.webview.dispatchEvent(
+				Object.assign(new Event("did-navigate"), {
+					url: "https://example.com/next",
+				}),
+			);
+			entry.webview.dispatchEvent(new Event("did-stop-loading"));
+			expect(persisted).toEqual(["https://example.com/next"]);
+		} finally {
+			browserRuntimeRegistry.destroy(paneId);
+			document.createElement = original;
+			rootSpy.mockRestore();
+			await new Promise((resolve) => setTimeout(resolve, 0));
 		}
 	});
 });
