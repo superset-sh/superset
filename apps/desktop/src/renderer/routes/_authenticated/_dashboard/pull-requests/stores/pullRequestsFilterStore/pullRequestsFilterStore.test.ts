@@ -43,7 +43,7 @@ describe("pullRequestsSearchFromFilters", () => {
 			pullRequestsSearchFromFilters({
 				search: "remote host",
 				projectFilters: ["project-1", "project-2"],
-				authorFilter: "octocat",
+				authorFilter: "octocat,teammate",
 				reviewFilter: "changes-requested",
 				includeClosed: true,
 				mergedOnly: false,
@@ -51,7 +51,7 @@ describe("pullRequestsSearchFromFilters", () => {
 		).toEqual({
 			search: "remote host",
 			projects: "project-1,project-2",
-			author: "octocat",
+			author: "octocat,teammate",
 			review: "changes-requested",
 			state: "all",
 		});
@@ -110,4 +110,15 @@ describe("migratePullRequestsFilterState", () => {
 			mergedOnly: false,
 		});
 	});
+});
+
+test("restores saved multiple authors", () => {
+	expect(
+		migratePullRequestsFilterState({ authorFilter: "alice, @bob, ALICE" })
+			.authorFilter,
+	).toBe("alice,bob");
+	usePullRequestsFilterStore.getState().setAuthorFilter("alice, @bob, ALICE");
+	expect(usePullRequestsFilterStore.getState().authorFilter).toBe("alice,bob");
+	usePullRequestsFilterStore.getState().setAuthorFilter(null);
+	expect(usePullRequestsFilterStore.getState().authorFilter).toBeNull();
 });

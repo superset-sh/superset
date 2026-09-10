@@ -130,7 +130,11 @@ const VIEWER_RELATIONSHIP_QUALIFIERS: Record<ViewerRelationship, string> = {
 
 const searchPullRequestsInputSchema = githubSearchInputSchema
 	.extend({
-		author: githubAuthorSchema.optional(),
+		author: z
+			.string()
+			.transform((value) => value.split(","))
+			.pipe(z.array(githubAuthorSchema).min(1).max(20))
+			.optional(),
 		review: pullRequestReviewFilterSchema.optional(),
 		// mergedOnly always wins over includeClosed — see the qualifiers
 		// construction below — so only pass this when includeClosed is true
@@ -163,10 +167,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function matchesAuthor(
 	authorLogin: string | null,
-	authorFilter: string | undefined,
+	authorFilter: string[] | undefined,
 ): boolean {
 	return (
-		!authorFilter || authorLogin?.toLowerCase() === authorFilter.toLowerCase()
+		!authorFilter ||
+		authorFilter.some(
+			(author) => authorLogin?.toLowerCase() === author.toLowerCase(),
+		)
 	);
 }
 
@@ -380,7 +387,7 @@ async function ghDirectLookupRow(
 	execGh: ExecGh,
 	target: ProjectRepo,
 	prNumber: number,
-	author: string | undefined,
+	author: string[] | undefined,
 	reviewFilter: PullRequestReviewFilter | undefined,
 	mergedOnly: boolean | undefined,
 	viewerRelationship: ViewerRelationship | undefined,
@@ -538,7 +545,7 @@ async function octokitDirectLookupRow(
 	octokit: Octokit,
 	target: ProjectRepo,
 	prNumber: number,
-	author: string | undefined,
+	author: string[] | undefined,
 	reviewFilter: PullRequestReviewFilter | undefined,
 	mergedOnly: boolean | undefined,
 	viewerRelationship: ViewerRelationship | undefined,
@@ -1021,7 +1028,7 @@ export const searchPullRequests = protectedProcedure
 
 		const effectiveQuery = [
 			normalizedTargets[0]?.normalized.query ?? "",
-			input.author ? `author:${input.author}` : "",
+			input.author?.map((author) => `author:${author}`).join(" ") ?? "",
 			input.review ? REVIEW_QUERY_BY_FILTER[input.review] : "",
 			input.viewerRelationship
 				? VIEWER_RELATIONSHIP_QUALIFIERS[input.viewerRelationship]
