@@ -13,8 +13,20 @@ mock.module("../../../lib/host-workspaces", () => ({
 	}),
 }));
 
+// `lib/host/spawn.test.ts` replaces `node:child_process` with a spawn-only
+// stub, and bun leaks module mocks across files in the same process, so
+// importing the real host-info (which pulls `execFileSync`) fails at load
+// time. The host is resolved through the mocked host-target below anyway.
+mock.module("@superset/shared/host-info", () => ({
+	getHostId: () => "host-1",
+}));
+
+// Bun leaks module mocks across test files in the same process, so every mock
+// of this barrel must cover its whole surface — a partial one breaks any later
+// file whose command imports the missing export.
 mock.module("../../../lib/host-target", () => ({
 	requireHostTarget: () => "host-1",
+	resolveHostFilter: () => "host-1",
 	resolveHostTarget: () => ({
 		hostId: "host-1",
 		client: {

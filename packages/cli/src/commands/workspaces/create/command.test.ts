@@ -2,8 +2,11 @@ import { afterEach, describe, expect, mock, test } from "bun:test";
 
 let createInput: Record<string, unknown> | undefined;
 
+// See the note in agents/create/command.test.ts: leaked module mocks make a
+// partial barrel mock break unrelated files, so mirror the full surface.
 mock.module("../../../lib/host-target", () => ({
 	requireHostTarget: () => "host-1",
+	resolveHostFilter: () => "host-1",
 	resolveHostTarget: () => ({
 		hostId: "host-1",
 		client: {
