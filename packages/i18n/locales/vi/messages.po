@@ -1305,7 +1305,7 @@ msgid "activation rate"
 msgstr "tỷ lệ kích hoạt"
 
 msgid "Activation, how much people use it once they are in, and whether they come back."
-msgstr "Kích hoạt, mức độ sử dụng sau khi vào, và liệu họ có quay lại."
+msgstr "Kích hoạt, mức độ sử dụng sau khi bắt đầu dùng, và liệu họ có quay lại."
 
 msgid "Active"
 msgstr "Đang hoạt động"
@@ -14093,7 +14093,7 @@ msgid "teams per 1,000 organizations"
 msgstr "nhóm trên 1.000 tổ chức"
 
 msgid "Teams vs individual accounts (Neon)"
-msgstr "Nhóm và tài khoản cá nhân (Neon)"
+msgstr "Nhóm so với tài khoản cá nhân (Neon)"
 
 msgid "Teardown"
 msgstr "Dọn dẹp"

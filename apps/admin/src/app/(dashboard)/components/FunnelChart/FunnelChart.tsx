@@ -127,8 +127,13 @@ export function FunnelChart({
 			>
 				{steps.map((step, index) => {
 					const previous = index > 0 ? steps[index - 1] : null;
-					const pctOfFirst =
+					const rawPctOfFirst =
 						firstCount > 0 ? (step.count / firstCount) * 100 : 0;
+					// The same guard as below, against the first stage: a caller
+					// whose stage one is not the cohort could hand us a later stage
+					// that is larger, and neither a >100% share nor a bar taller
+					// than its track means anything.
+					const pctOfFirst = Math.min(100, rawPctOfFirst);
 					// A stage can exceed the one before it when a step's event is
 					// not emitted by every client yet. Both the rate and the
 					// drop-off are then meaningless — 5 subscriptions against a
@@ -223,12 +228,14 @@ export function FunnelChart({
 												value={`${pctOfPrevious.toFixed(2)}%`}
 											/>
 										) : null}
-										<TooltipRow
-											label={t({
-												message: "Conversion so far",
-											})}
-											value={`${pctOfFirst.toFixed(2)}%`}
-										/>
+										{rawPctOfFirst <= 100 ? (
+											<TooltipRow
+												label={t({
+													message: "Conversion so far",
+												})}
+												value={`${pctOfFirst.toFixed(2)}%`}
+											/>
+										) : null}
 										{step.medianSeconds !== null && index > 0 ? (
 											<TooltipRow
 												label={t({
