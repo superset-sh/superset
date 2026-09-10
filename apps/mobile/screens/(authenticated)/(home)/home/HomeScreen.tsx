@@ -136,7 +136,8 @@ export function HomeScreen() {
 	const requestComposerFocus = useComposerFocusStore(
 		(state) => state.requestFocus,
 	);
-	const { isLoadingOrganizations, activeOrganization } = useOrganizations();
+	const { isLoadingOrganizations, activeOrganization, activeOrganizationId } =
+		useOrganizations();
 
 	const selectedHost = useSelectedHost();
 	const pinnedAt = usePinnedWorkspacesStore((state) => state.pinnedAt);
@@ -166,11 +167,13 @@ export function HomeScreen() {
 	const hostsQuery = useOrgHostsQuery();
 
 	// An answer, not rows: an offline host and a host with no workspaces both
-	// settle. Decoration is not waited on.
+	// settle. Decoration is not waited on. With no active organization the
+	// hosts query is disabled and stays pending forever, which is an answer of
+	// its own — waiting on it there left the list spinning permanently.
 	const contentReady =
 		hasHydrated &&
 		!isLoadingOrganizations &&
-		!hostsQuery.isPending &&
+		(!activeOrganizationId || !hostsQuery.isPending) &&
 		(cloudScope ? cloudReady : workspacesReady && projectsReady);
 
 	const hasPainted = useFirstPaint(contentReady);
