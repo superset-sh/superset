@@ -26,7 +26,7 @@ import {
 	HiOutlineUser,
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
-import { LuGitBranch, LuKeyboard } from "react-icons/lu";
+import { LuGitBranch, LuKeyboard, LuKeyRound } from "react-icons/lu";
 import { useHostsNeedingUpdateCount } from "renderer/hooks/host-version/useHostsNeedingUpdate";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -52,6 +52,7 @@ type SettingsRoute =
 	| "/settings/agents"
 	| "/settings/terminal"
 	| "/settings/links"
+	| "/settings/agent-accounts"
 	| "/settings/experimental"
 	| "/settings/integrations"
 	| "/settings/billing"
@@ -151,7 +152,7 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/agents",
 				section: "agents",
 				label: msg({
-					message: "Agents",
+					message: "Agent commands",
 				}),
 				icon: <HiOutlineCpuChip className="h-4 w-4" />,
 				fullWidth: true,
@@ -179,6 +180,29 @@ const SECTION_GROUPS: SectionGroup[] = [
 					message: "Browser",
 				}),
 				icon: <HiOutlineGlobeAlt className="h-4 w-4" />,
+			},
+		],
+	},
+	{
+		label: msg({
+			message: "Cloud",
+		}),
+		items: [
+			{
+				id: "/settings/environments",
+				section: "environments",
+				label: msg({
+					message: "Environments",
+				}),
+				icon: <HiOutlineCube className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/agent-accounts",
+				section: "agentAccounts",
+				label: msg({
+					message: "Agents",
+				}),
+				icon: <LuKeyRound className="h-4 w-4" />,
 			},
 		],
 	},
@@ -220,14 +244,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				}),
 				icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
 				fullWidth: true,
-			},
-			{
-				id: "/settings/environments",
-				section: "environments",
-				label: msg({
-					message: "Environments",
-				}),
-				icon: <HiOutlineCube className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/integrations",

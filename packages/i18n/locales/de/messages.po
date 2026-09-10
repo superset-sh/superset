@@ -314,6 +314,10 @@ msgstr "{0} und {1} tragen es als Terminal-Dinosaurier aus. Die Statistiken ents
 msgid "{0} behind you"
 msgstr "{0} hinter dir"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0} kann so noch nicht angemeldet werden."
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} Entwickler sind nach Agent-Nutzung platziert. Deine letzten 30 Tage werden bereits gezählt, nur verborgen. Nur Token-Zahlen und Modellnamen, keine Repo-Namen, Dateipfade oder Prompts."
@@ -720,6 +724,9 @@ msgstr "{kindLabel}-Theme"
 
 msgid "{label} (partial week)"
 msgstr "{label} (unvollständige Woche)"
+
+msgid "{label} in cloud workspaces"
+msgstr "{label} in Cloud-Arbeitsbereichen"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1190,6 +1197,9 @@ msgstr "Ein gezieltes Abarbeiten von Abstürzen, Hängern und Reconnect-Fehlern 
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Ein kompletter Neuanstrich: dichtere Zeilen, Port- und Agenten-Chips unter jedem Arbeitsbereich, alles mit einem Klick stoppen."
 
+msgid "A gateway is signed in with an API key."
+msgstr "Ein Gateway wird mit einem API-Schlüssel angemeldet."
+
 msgid "A host must have at least one owner."
 msgstr "Ein Host muss mindestens einen Inhaber haben."
 
@@ -1508,6 +1518,9 @@ msgstr "Admins können Mitglieder nicht zu Inhabern befördern"
 msgid "Adopt v1 workspaces under their imported v2 project."
 msgstr "Ordnen Sie v1-Arbeitsbereiche ihrem importierten v2-Projekt zu."
 
+msgid "Advanced"
+msgstr "Erweitert"
+
 msgid "Advanced options"
 msgstr "Erweiterte Optionen"
 
@@ -1522,6 +1535,9 @@ msgstr "Gegen main"
 
 msgid "Agent"
 msgstr "Agent"
+
+msgid "Agent commands"
+msgstr "Agent-Befehle"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agent fertig — {workspaceName}"
@@ -1888,6 +1904,12 @@ msgstr "ein anderes Gerät"
 
 msgid "Answered"
 msgstr "Beantwortet"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic hat diesen API-Schlüssel abgelehnt."
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic hat diesen Token abgelehnt."
 
 msgid "Any calendar"
 msgstr "Beliebiger Kalender"
@@ -2397,6 +2419,9 @@ msgstr "Basisverzeichnis für neue Worktrees auf {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Basisverzeichnis für neue Worktrees auf {selectedHostName}."
+
+msgid "Base URL"
+msgstr "Basis-URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3698,6 +3723,12 @@ msgstr "Verbunden mit"
 msgid "Connected to {connectedOrgName}"
 msgstr "Verbunden mit {connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "Über Abo verbunden"
+
+msgid "Connected with API key"
+msgstr "Mit API-Schlüssel verbunden"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Verbunden, aber Microsoft Graph hat die Benachrichtigungs-Abos abgelehnt."
 
@@ -4116,6 +4147,9 @@ msgstr "Der Host war nicht erreichbar, um diesen Pull Request zu laden."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Der Host konnte nicht erreicht werden, um das Update zu starten. Prüfe, ob er online ist, und versuche es erneut."
+
+msgid "Could not reach the provider. Try again."
+msgstr "Der Anbieter war nicht erreichbar. Versuche es erneut."
 
 msgid "Could not reach the server."
 msgstr "Server nicht erreichbar."
@@ -4592,6 +4626,9 @@ msgstr "Eigenes Präfix"
 
 msgid "Custom pricing"
 msgstr "Individueller Preis"
+
+msgid "Custom provider"
+msgstr "Eigener Anbieter"
 
 msgid "Custom terminal agents"
 msgstr "Eigene Terminal-Agenten"
@@ -5554,6 +5591,9 @@ msgstr "Gib eine gültige E-Mail-Adresse ein."
 
 msgid "Enter a valid recurrence rule."
 msgstr "Gib eine gültige Wiederholungsregel ein."
+
+msgid "Enter a value."
+msgstr "Gib einen Wert ein."
 
 msgid "Enter URL or search..."
 msgstr "URL eingeben oder suchen..."
@@ -6713,11 +6753,17 @@ msgstr "Wird generiert"
 msgid "Generating..."
 msgstr "Wird erzeugt..."
 
+msgid "Get an API key"
+msgstr "API-Schlüssel holen"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "Eine Architektur-Tour: Einstiegspunkte, wie man es startet, was man zuerst liest."
 
 msgid "Get in touch with the {companyName} team."
 msgstr "Nimm Kontakt mit dem {companyName}-Team auf."
+
+msgid "Get key"
+msgstr "Schlüssel holen"
 
 msgid "Get more out of Superset"
 msgstr "Mehr aus Superset herausholen"
@@ -6945,6 +6991,9 @@ msgstr "Ausgeblendete Ordner"
 msgid "Hidden until you join"
 msgstr "Verborgen bis zur Teilnahme"
 
+msgid "Hide"
+msgstr "Ausblenden"
+
 msgid "Hide checks"
 msgstr "Prüfungen ausblenden"
 
@@ -7147,6 +7196,9 @@ msgstr "So funktionieren die Stufen →"
 
 msgid "How to install {name} in Superset"
 msgstr "So installierst du {name} in Superset"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "Wie sich deine Agenten in Cloud-Arbeitsbereichen anmelden. Andere verbinden ihre eigenen Abos oder API-Schlüssel; auf diesem Rechner nutzt jeder Agent weiter die Anmeldung, die schon darauf liegt."
 
 msgid "https://"
 msgstr "https://"
@@ -10240,6 +10292,9 @@ msgstr "Arbeitsbereich öffnen"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Arbeitsbereich in einer externen App öffnen (Cursor, VS Code usw.)"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI hat diesen API-Schlüssel abgelehnt."
+
 msgid "Opened"
 msgstr "Geöffnet"
 
@@ -10686,6 +10741,9 @@ msgstr "Arbeitsbereich auswählen"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Wähle ein Icon und eine Farbe oder lade ein eigenes Bild hoch. Standard ist der Avatar des verknüpften GitHub-Eigentümers."
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "Wähle, wie sich {label} in einer Sandbox anmeldet. Die Zugangsdaten werden dem Agent-Prozess beim Start übergeben und nicht in der Sandbox gespeichert."
 
 msgid "Pick the best agent."
 msgstr "Wähle den besten Agenten."
@@ -12160,6 +12218,9 @@ msgstr "Gerät drehen"
 msgid "Roundups"
 msgstr "Übersichten"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "Leite {label} über einen Anbieter, den du selbst betreibst, mit deinen eigenen Zugangsdaten. Gespeicherte Werte werden dem Agenten beim Start übergeben."
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "Routine-Tickets ohne Eingriff mitten in der Aufgabe"
 
@@ -12922,6 +12983,9 @@ msgstr "Passwort setzen"
 msgid "Set Run"
 msgstr "Run festlegen"
 
+msgid "Set up"
+msgstr "Einrichten"
+
 msgid "Set up project on {hostName}"
 msgstr "Projekt auf {hostName} einrichten"
 
@@ -13018,6 +13082,9 @@ msgstr "Ausgeliefert"
 
 msgid "Shortcut already in use"
 msgstr "Kürzel bereits belegt"
+
+msgid "Show"
+msgstr "Anzeigen"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Beim Beenden der App einen Bestätigungsdialog anzeigen"
@@ -13212,6 +13279,9 @@ msgstr "Mit GitHub anmelden"
 msgid "Sign in with Google"
 msgstr "Mit Google anmelden"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Melde dich mit deinem Claude-Konto an oder führe <0>claude setup-token</0><1><2/></1> in einem Terminal aus und füge den Token hier ein."
+
 msgid "Sign out"
 msgstr "Abmelden"
 
@@ -13247,8 +13317,14 @@ msgstr "Anmeldung abgelaufen — führe"
 msgid "Sign-in failed"
 msgstr "Anmeldung fehlgeschlagen"
 
+msgid "Signed in as {accountLabel}"
+msgstr "Angemeldet als {accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Angemeldet als <0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "Angemeldet. Der Token wird verschlüsselt gespeichert und nie wieder angezeigt."
 
 msgid "Signed out"
 msgstr "Abgemeldet"
@@ -13258,6 +13334,9 @@ msgstr "Angemeldete Websites"
 
 msgid "Signing in..."
 msgstr "Anmeldung läuft..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "Meldet sich wie die Codex CLI an. Oder führe <0>codex login</0> in einem Terminal aus und füge den Token hier ein."
 
 msgid "signup → paid ≤30d"
 msgstr "Registrierung → zahlend ≤30 T."
@@ -14340,6 +14419,12 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Danke für deine Nachricht"
 
+msgid "That endpoint could not be resolved."
+msgstr "Dieser Endpunkt konnte nicht aufgelöst werden."
+
+msgid "That endpoint is not allowed."
+msgstr "Dieser Endpunkt ist nicht zulässig."
+
 msgid "That handle is taken."
 msgstr "Dieses Handle ist bereits vergeben."
 
@@ -14405,6 +14490,9 @@ msgstr "Der Diff ist weiterhin aktuell — nur die Kommentare konnten nicht gela
 
 msgid "The dispatcher appears"
 msgstr "Der Disponent tritt auf"
+
+msgid "The endpoint must use https."
+msgstr "Der Endpunkt muss https verwenden."
 
 msgid "The factory"
 msgstr "Die Fabrik"
@@ -14547,6 +14635,13 @@ msgstr "Die gesuchte Seite gibt es nicht."
 
 msgid "The people behind Superset."
 msgstr "Die Menschen hinter Superset."
+
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "Der Anbieter hat mit {0} geantwortet."
+
+msgid "The provider refused it."
+msgstr "Der Anbieter hat sie abgelehnt."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Die Wiederherstellungsfrist ist abgelaufen. Wende dich an support@superset.sh."
@@ -15681,6 +15776,15 @@ msgstr "v2ProjectId passt nicht zum Projekt des Arbeitsbereichs"
 
 msgid "Variables"
 msgstr "Variablen"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway hat diesen Schlüssel abgelehnt."
+
+msgid "Verified and saved"
+msgstr "Geprüft und gespeichert"
 
 msgid "Verified through sign-in"
 msgstr "Über die Anmeldung verifiziert"

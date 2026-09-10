@@ -314,6 +314,10 @@ msgstr "{0} et {1} règlent ça en dinosaures de terminal. Les stats décident d
 msgid "{0} behind you"
 msgstr "{0} derrière vous"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0} ne peut pas encore se connecter de cette façon."
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} développeurs sont classés selon leur usage des agents. Vos 30 derniers jours sont déjà comptabilisés, simplement masqués. Uniquement le nombre de tokens et les noms de modèles, aucun nom de dépôt, chemin de fichier ni prompt."
@@ -720,6 +724,9 @@ msgstr "Thème {kindLabel}"
 
 msgid "{label} (partial week)"
 msgstr "{label} (semaine partielle)"
+
+msgid "{label} in cloud workspaces"
+msgstr "{label} dans les espaces de travail cloud"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1190,6 +1197,9 @@ msgstr "Une réduction ciblée des plantages, des blocages et des échecs de rec
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Une refonte complète du style : des lignes plus denses, des pastilles de port et d'agent sous chaque espace de travail, un arrêt général en un clic."
 
+msgid "A gateway is signed in with an API key."
+msgstr "Une passerelle se connecte avec une clé API."
+
 msgid "A host must have at least one owner."
 msgstr "Un hôte doit avoir au moins un propriétaire."
 
@@ -1508,6 +1518,9 @@ msgstr "Les administrateurs ne peuvent pas promouvoir des membres au rang de pro
 msgid "Adopt v1 workspaces under their imported v2 project."
 msgstr "Rattachez les espaces de travail v1 à leur projet v2 importé."
 
+msgid "Advanced"
+msgstr "Avancé"
+
 msgid "Advanced options"
 msgstr "Options avancées"
 
@@ -1522,6 +1535,9 @@ msgstr "Par rapport à main"
 
 msgid "Agent"
 msgstr "Agent"
+
+msgid "Agent commands"
+msgstr "Commandes des agents"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agent terminé — {workspaceName}"
@@ -1888,6 +1904,12 @@ msgstr "un autre appareil"
 
 msgid "Answered"
 msgstr "Répondu"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic a rejeté cette clé API."
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic a rejeté ce jeton."
 
 msgid "Any calendar"
 msgstr "Tout agenda"
@@ -2397,6 +2419,9 @@ msgstr "Répertoire de base des nouveaux worktrees sur {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Répertoire de base des nouveaux worktrees sur {selectedHostName}."
+
+msgid "Base URL"
+msgstr "URL de base"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3698,6 +3723,12 @@ msgstr "Connecté à"
 msgid "Connected to {connectedOrgName}"
 msgstr "Connecté à {connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "Connecté via un abonnement"
+
+msgid "Connected with API key"
+msgstr "Connecté avec une clé API"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Connecté, mais Microsoft Graph a refusé les abonnements aux notifications."
 
@@ -4116,6 +4147,9 @@ msgstr "Impossible de joindre l'hôte pour charger cette pull request."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Impossible de joindre l'hôte pour lancer la mise à jour. Vérifiez qu'il est en ligne et réessayez."
+
+msgid "Could not reach the provider. Try again."
+msgstr "Impossible de joindre le fournisseur. Réessayez."
 
 msgid "Could not reach the server."
 msgstr "Impossible de joindre le serveur."
@@ -4592,6 +4626,9 @@ msgstr "Préfixe personnalisé"
 
 msgid "Custom pricing"
 msgstr "Tarif sur mesure"
+
+msgid "Custom provider"
+msgstr "Fournisseur personnalisé"
 
 msgid "Custom terminal agents"
 msgstr "Agents de terminal personnalisés"
@@ -5554,6 +5591,9 @@ msgstr "Saisissez une adresse e-mail valide."
 
 msgid "Enter a valid recurrence rule."
 msgstr "Saisissez une règle de récurrence valide."
+
+msgid "Enter a value."
+msgstr "Saisissez une valeur."
 
 msgid "Enter URL or search..."
 msgstr "Saisir une URL ou rechercher..."
@@ -6713,11 +6753,17 @@ msgstr "Génération"
 msgid "Generating..."
 msgstr "Génération..."
 
+msgid "Get an API key"
+msgstr "Obtenir une clé API"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "Obtenir un tour d'horizon de l'architecture : points d'entrée, comment l'exécuter, quoi lire en premier."
 
 msgid "Get in touch with the {companyName} team."
 msgstr "Contactez l'équipe {companyName}."
+
+msgid "Get key"
+msgstr "Obtenir une clé"
 
 msgid "Get more out of Superset"
 msgstr "Tirer le meilleur de Superset"
@@ -6945,6 +6991,9 @@ msgstr "Dossiers masqués"
 msgid "Hidden until you join"
 msgstr "Masqué tant que vous n'avez pas rejoint"
 
+msgid "Hide"
+msgstr "Masquer"
+
 msgid "Hide checks"
 msgstr "Masquer les vérifications"
 
@@ -7147,6 +7196,9 @@ msgstr "Comment fonctionnent les paliers →"
 
 msgid "How to install {name} in Superset"
 msgstr "Comment installer {name} dans Superset"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "Comment vos agents se connectent dans les espaces de travail cloud. Les autres connectent leurs propres abonnements ou clés API ; sur cette machine, chaque agent continue d'utiliser la connexion déjà en place."
 
 msgid "https://"
 msgstr "https://"
@@ -10240,6 +10292,9 @@ msgstr "Ouvrir l'espace de travail"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Ouvrir l'espace de travail dans une app externe (Cursor, VS Code, etc.)"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI a rejeté cette clé API."
+
 msgid "Opened"
 msgstr "Ouverte"
 
@@ -10686,6 +10741,9 @@ msgstr "Choisissez un espace de travail"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Choisissez une icône et une couleur, ou envoyez une image personnalisée. Par défaut, l'avatar du propriétaire GitHub lié."
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "Choisissez comment {label} se connecte dans un bac à sable. L'identifiant est transmis au processus de l'agent à son lancement et n'est pas stocké dans le bac à sable."
 
 msgid "Pick the best agent."
 msgstr "Choisissez le meilleur agent."
@@ -12160,6 +12218,9 @@ msgstr "Pivoter l'appareil"
 msgid "Roundups"
 msgstr "Panoramas"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "Faites passer {label} par un fournisseur que vous exploitez, avec les identifiants que vous détenez. Les valeurs enregistrées sont transmises à l'agent au lancement."
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "Tickets courants sans intervention en cours de tâche"
 
@@ -12922,6 +12983,9 @@ msgstr "Définir le mot de passe"
 msgid "Set Run"
 msgstr "Définir l'exécution"
 
+msgid "Set up"
+msgstr "Configurer"
+
 msgid "Set up project on {hostName}"
 msgstr "Configurer le projet sur {hostName}"
 
@@ -13018,6 +13082,9 @@ msgstr "Livré"
 
 msgid "Shortcut already in use"
 msgstr "Raccourci déjà utilisé"
+
+msgid "Show"
+msgstr "Afficher"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Afficher une boîte de dialogue de confirmation à la fermeture de l'application"
@@ -13212,6 +13279,9 @@ msgstr "Se connecter avec GitHub"
 msgid "Sign in with Google"
 msgstr "Se connecter avec Google"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Connectez-vous avec votre compte Claude, ou exécutez <0>claude setup-token</0><1><2/></1> dans un terminal et collez le jeton ici."
+
 msgid "Sign out"
 msgstr "Se déconnecter"
 
@@ -13247,8 +13317,14 @@ msgstr "Connexion expirée — exécutez"
 msgid "Sign-in failed"
 msgstr "Échec de la connexion"
 
+msgid "Signed in as {accountLabel}"
+msgstr "Connecté en tant que {accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Connecté en tant que <0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "Connecté. Le jeton est stocké chiffré et n'est plus jamais affiché."
 
 msgid "Signed out"
 msgstr "Déconnecté"
@@ -13258,6 +13334,9 @@ msgstr "Sites connectés"
 
 msgid "Signing in..."
 msgstr "Connexion..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "Se connecte comme le fait la CLI Codex. Ou exécutez <0>codex login</0> dans un terminal et collez son jeton ici."
 
 msgid "signup → paid ≤30d"
 msgstr "inscription → payant ≤30 j"
@@ -14340,6 +14419,12 @@ msgstr "Zone de texte"
 msgid "Thanks for reaching out"
 msgstr "Merci de nous avoir écrit"
 
+msgid "That endpoint could not be resolved."
+msgstr "Ce point de terminaison n'a pas pu être résolu."
+
+msgid "That endpoint is not allowed."
+msgstr "Ce point de terminaison n'est pas autorisé."
+
 msgid "That handle is taken."
 msgstr "Ce pseudo est déjà pris."
 
@@ -14405,6 +14490,9 @@ msgstr "Le diff est toujours à jour — seuls les commentaires n'ont pas pu êt
 
 msgid "The dispatcher appears"
 msgstr "Le répartiteur apparaît"
+
+msgid "The endpoint must use https."
+msgstr "Le point de terminaison doit utiliser https."
 
 msgid "The factory"
 msgstr "L'usine"
@@ -14547,6 +14635,13 @@ msgstr "La page que vous recherchez n'existe pas."
 
 msgid "The people behind Superset."
 msgstr "Les personnes derrière Superset."
+
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "Le fournisseur a répondu {0}."
+
+msgid "The provider refused it."
+msgstr "Le fournisseur l'a refusé."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "La période de récupération est terminée. Contactez support@superset.sh."
@@ -15681,6 +15776,15 @@ msgstr "v2ProjectId ne correspond pas au projet de l'espace de travail"
 
 msgid "Variables"
 msgstr "Variables"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway a refusé cette clé."
+
+msgid "Verified and saved"
+msgstr "Vérifié et enregistré"
 
 msgid "Verified through sign-in"
 msgstr "Vérifié à la connexion"

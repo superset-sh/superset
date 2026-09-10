@@ -314,6 +314,10 @@ msgstr "{0} dan {1} menyelesaikannya sebagai dinosaurus terminal. Statistik yang
 msgid "{0} behind you"
 msgstr "{0} di belakang Anda"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0} belum bisa masuk dengan cara ini."
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "{0} developer diperingkat berdasarkan penggunaan agen. 30 hari terakhir Anda sudah dihitung, hanya disembunyikan. Hanya jumlah token dan nama model, tanpa nama repo, path file, atau prompt."
@@ -720,6 +724,9 @@ msgstr "Tema {kindLabel}"
 
 msgid "{label} (partial week)"
 msgstr "{label} (minggu sebagian)"
+
+msgid "{label} in cloud workspaces"
+msgstr "{label} di workspace cloud"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1190,6 +1197,9 @@ msgstr "Pembersihan terfokus atas crash, hang, dan kegagalan sambung ulang di se
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Perombakan gaya menyeluruh: baris lebih padat, chip port dan agen di bawah tiap workspace, hentikan semuanya dengan satu klik."
 
+msgid "A gateway is signed in with an API key."
+msgstr "Gateway masuk menggunakan kunci API."
+
 msgid "A host must have at least one owner."
 msgstr "Sebuah host harus punya setidaknya satu pemilik."
 
@@ -1508,6 +1518,9 @@ msgstr "Admin tidak bisa mempromosikan anggota menjadi pemilik"
 msgid "Adopt v1 workspaces under their imported v2 project."
 msgstr "Gabungkan ruang kerja v1 ke proyek v2 terkait yang telah diimpor."
 
+msgid "Advanced"
+msgstr "Lanjutan"
+
 msgid "Advanced options"
 msgstr "Opsi lanjutan"
 
@@ -1522,6 +1535,9 @@ msgstr "Terhadap Main"
 
 msgid "Agent"
 msgstr "Agen"
+
+msgid "Agent commands"
+msgstr "Perintah agen"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agen Selesai — {workspaceName}"
@@ -1888,6 +1904,12 @@ msgstr "perangkat lain"
 
 msgid "Answered"
 msgstr "Dijawab"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic menolak kunci API ini."
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic menolak token ini."
 
 msgid "Any calendar"
 msgstr "Kalender mana pun"
@@ -2397,6 +2419,9 @@ msgstr "Direktori dasar untuk worktree baru di {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Direktori dasar untuk worktree baru di {selectedHostName}."
+
+msgid "Base URL"
+msgstr "URL dasar"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3698,6 +3723,12 @@ msgstr "Terhubung ke"
 msgid "Connected to {connectedOrgName}"
 msgstr "Terhubung ke {connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "Terhubung lewat langganan"
+
+msgid "Connected with API key"
+msgstr "Terhubung dengan kunci API"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Terhubung, tapi Microsoft Graph menolak langganan notifikasinya."
 
@@ -4116,6 +4147,9 @@ msgstr "Tidak bisa menjangkau host untuk memuat pull request ini."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Tidak dapat menjangkau host untuk memulai pembaruan. Pastikan host online lalu coba lagi."
+
+msgid "Could not reach the provider. Try again."
+msgstr "Tidak bisa menghubungi penyedia. Coba lagi."
 
 msgid "Could not reach the server."
 msgstr "Tidak dapat menjangkau server."
@@ -4592,6 +4626,9 @@ msgstr "Prefix kustom"
 
 msgid "Custom pricing"
 msgstr "Harga khusus"
+
+msgid "Custom provider"
+msgstr "Penyedia kustom"
 
 msgid "Custom terminal agents"
 msgstr "Agen terminal kustom"
@@ -5554,6 +5591,9 @@ msgstr "Masukkan alamat email yang valid."
 
 msgid "Enter a valid recurrence rule."
 msgstr "Masukkan aturan pengulangan yang valid."
+
+msgid "Enter a value."
+msgstr "Masukkan sebuah nilai."
 
 msgid "Enter URL or search..."
 msgstr "Masukkan URL atau cari..."
@@ -6713,11 +6753,17 @@ msgstr "Membuat"
 msgid "Generating..."
 msgstr "Membuat..."
 
+msgid "Get an API key"
+msgstr "Dapatkan kunci API"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "Dapatkan tur arsitektur: titik masuk, cara menjalankannya, apa yang dibaca duluan."
 
 msgid "Get in touch with the {companyName} team."
 msgstr "Hubungi tim {companyName}."
+
+msgid "Get key"
+msgstr "Dapatkan kunci"
 
 msgid "Get more out of Superset"
 msgstr "Manfaatkan Superset lebih jauh"
@@ -6945,6 +6991,9 @@ msgstr "Folder tersembunyi"
 msgid "Hidden until you join"
 msgstr "Tersembunyi sampai Anda bergabung"
 
+msgid "Hide"
+msgstr "Sembunyikan"
+
 msgid "Hide checks"
 msgstr "Sembunyikan check"
 
@@ -7147,6 +7196,9 @@ msgstr "Cara kerja tingkat →"
 
 msgid "How to install {name} in Superset"
 msgstr "Cara memasang {name} di Superset"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "Cara agen Anda masuk di dalam workspace cloud. Orang lain menghubungkan langganan atau kunci API mereka sendiri; di mesin ini setiap agen tetap memakai login yang sudah ada."
 
 msgid "https://"
 msgstr "https://"
@@ -10240,6 +10292,9 @@ msgstr "Buka workspace"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Buka workspace di aplikasi luar (Cursor, VS Code, dll.)"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI menolak kunci API ini."
+
 msgid "Opened"
 msgstr "Dibuka"
 
@@ -10686,6 +10741,9 @@ msgstr "Pilih workspace"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Pilih ikon dan warna, atau unggah gambar kustom. Bawaannya memakai avatar pemilik GitHub yang ditautkan."
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "Pilih cara {label} masuk di dalam sandbox. Kredensial diserahkan ke proses agen saat diluncurkan dan tidak disimpan di sandbox."
 
 msgid "Pick the best agent."
 msgstr "Pilih agen terbaik."
@@ -12160,6 +12218,9 @@ msgstr "Putar perangkat"
 msgid "Roundups"
 msgstr "Rangkuman"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "Arahkan {label} lewat penyedia yang Anda jalankan sendiri, dengan kredensial yang Anda pegang. Nilai yang tersimpan diserahkan ke agen saat peluncuran."
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "Tiket rutin tanpa intervensi di tengah tugas"
 
@@ -12922,6 +12983,9 @@ msgstr "Setel Kata Sandi"
 msgid "Set Run"
 msgstr "Setel Run"
 
+msgid "Set up"
+msgstr "Siapkan"
+
 msgid "Set up project on {hostName}"
 msgstr "Siapkan proyek di {hostName}"
 
@@ -13018,6 +13082,9 @@ msgstr "Rilis"
 
 msgid "Shortcut already in use"
 msgstr "Pintasan sudah dipakai"
+
+msgid "Show"
+msgstr "Tampilkan"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Tampilkan dialog konfirmasi saat keluar dari aplikasi"
@@ -13212,6 +13279,9 @@ msgstr "Masuk dengan GitHub"
 msgid "Sign in with Google"
 msgstr "Masuk dengan Google"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Masuk dengan akun Claude Anda, atau jalankan <0>claude setup-token</0><1><2/></1> di terminal lalu tempel tokennya di sini."
+
 msgid "Sign out"
 msgstr "Keluar"
 
@@ -13247,8 +13317,14 @@ msgstr "Sesi masuk kedaluwarsa — jalankan"
 msgid "Sign-in failed"
 msgstr "Gagal masuk"
 
+msgid "Signed in as {accountLabel}"
+msgstr "Masuk sebagai {accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Masuk sebagai <0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "Sudah masuk. Token disimpan terenkripsi dan tidak pernah ditampilkan lagi."
 
 msgid "Signed out"
 msgstr "Sudah keluar"
@@ -13258,6 +13334,9 @@ msgstr "Situs yang sedang masuk"
 
 msgid "Signing in..."
 msgstr "Sedang masuk..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "Masuk dengan cara yang sama seperti Codex CLI. Atau jalankan <0>codex login</0> di terminal lalu tempel tokennya di sini."
 
 msgid "signup → paid ≤30d"
 msgstr "daftar → berbayar ≤30h"
@@ -14340,6 +14419,12 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Terima kasih sudah menghubungi"
 
+msgid "That endpoint could not be resolved."
+msgstr "Endpoint itu tidak dapat ditemukan."
+
+msgid "That endpoint is not allowed."
+msgstr "Endpoint itu tidak diizinkan."
+
 msgid "That handle is taken."
 msgstr "Handle itu sudah dipakai."
 
@@ -14405,6 +14490,9 @@ msgstr "Diff-nya tetap terbaru — hanya komentarnya yang gagal dimuat."
 
 msgid "The dispatcher appears"
 msgstr "Munculnya sang pengatur"
+
+msgid "The endpoint must use https."
+msgstr "Endpoint harus menggunakan https."
 
 msgid "The factory"
 msgstr "Pabriknya"
@@ -14547,6 +14635,13 @@ msgstr "Halaman yang Anda cari tidak ada."
 
 msgid "The people behind Superset."
 msgstr "Orang-orang di balik Superset."
+
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "Penyedia menjawab {0}."
+
+msgid "The provider refused it."
+msgstr "Penyedia menolaknya."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Masa pemulihan sudah berakhir. Hubungi support@superset.sh."
@@ -15681,6 +15776,15 @@ msgstr "v2ProjectId tidak cocok dengan proyek workspace"
 
 msgid "Variables"
 msgstr "Variabel"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway menolak kunci ini."
+
+msgid "Verified and saved"
+msgstr "Terverifikasi dan tersimpan"
 
 msgid "Verified through sign-in"
 msgstr "Terverifikasi lewat proses masuk"

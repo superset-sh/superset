@@ -32,6 +32,10 @@
 			"types": "./src/attachment-limits.ts",
 			"default": "./src/attachment-limits.ts"
 		},
+		"./agent-credentials": {
+			"types": "./src/agent-credentials.ts",
+			"default": "./src/agent-credentials.ts"
+		},
 		"./constants": {
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"

@@ -314,6 +314,10 @@ msgstr "{0} и {1} выясняют отношения в облике терм�
 msgid "{0} behind you"
 msgstr "{0} позади вас"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0} пока нельзя подключить таким способом."
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "Разработчиков в рейтинге по использованию агентов: {0}. Ваши последние 30 дней уже учтены — просто скрыты. Только количество токенов и названия моделей, без имён репозиториев, путей к файлам и промптов."
@@ -720,6 +724,9 @@ msgstr "{kindLabel} тема"
 
 msgid "{label} (partial week)"
 msgstr "{label} (неполная неделя)"
+
+msgid "{label} in cloud workspaces"
+msgstr "{label} в облачных рабочих областях"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1190,6 +1197,9 @@ msgstr "Прицельная зачистка падений, зависаний
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Полная перестилизация: плотнее строки, чипы портов и агентов под каждой рабочей областью, остановка всего одним кликом."
 
+msgid "A gateway is signed in with an API key."
+msgstr "Шлюз подключается по ключу API."
+
 msgid "A host must have at least one owner."
 msgstr "У хоста должен быть хотя бы один владелец."
 
@@ -1508,6 +1518,9 @@ msgstr "Администраторы не могут повышать участ
 msgid "Adopt v1 workspaces under their imported v2 project."
 msgstr "Перенесите рабочие пространства v1 в соответствующие импортированные проекты v2."
 
+msgid "Advanced"
+msgstr "Дополнительно"
+
 msgid "Advanced options"
 msgstr "Дополнительные параметры"
 
@@ -1522,6 +1535,9 @@ msgstr "Против main"
 
 msgid "Agent"
 msgstr "Агент"
+
+msgid "Agent commands"
+msgstr "Команды агентов"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "Агент завершил — {workspaceName}"
@@ -1888,6 +1904,12 @@ msgstr "другое устройство"
 
 msgid "Answered"
 msgstr "Отвечено"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic отклонил этот ключ API."
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic отклонил этот токен."
 
 msgid "Any calendar"
 msgstr "Любой календарь"
@@ -2397,6 +2419,9 @@ msgstr "Базовая папка для новых worktree на {selectedHostL
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Базовая папка для новых worktree на {selectedHostName}."
+
+msgid "Base URL"
+msgstr "Базовый URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3698,6 +3723,12 @@ msgstr "Подключено к"
 msgid "Connected to {connectedOrgName}"
 msgstr "Подключено к {connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "Подключено по подписке"
+
+msgid "Connected with API key"
+msgstr "Подключено по ключу API"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Подключено, но Microsoft Graph отклонил подписки на уведомления."
 
@@ -4116,6 +4147,9 @@ msgstr "Не удалось связаться с хостом, чтобы за�
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Не удалось связаться с хостом, чтобы начать обновление. Убедитесь, что он в сети, и попробуйте снова."
+
+msgid "Could not reach the provider. Try again."
+msgstr "Не удалось связаться с провайдером. Повторите попытку."
 
 msgid "Could not reach the server."
 msgstr "Не удалось подключиться к серверу."
@@ -4592,6 +4626,9 @@ msgstr "Свой префикс"
 
 msgid "Custom pricing"
 msgstr "Цена по договорённости"
+
+msgid "Custom provider"
+msgstr "Свой провайдер"
 
 msgid "Custom terminal agents"
 msgstr "Свои терминальные агенты"
@@ -5554,6 +5591,9 @@ msgstr "Введите корректный адрес email."
 
 msgid "Enter a valid recurrence rule."
 msgstr "Введите корректное правило повторения."
+
+msgid "Enter a value."
+msgstr "Введите значение."
 
 msgid "Enter URL or search..."
 msgstr "Введите URL или запрос..."
@@ -6713,11 +6753,17 @@ msgstr "Генерация"
 msgid "Generating..."
 msgstr "Генерация..."
 
+msgid "Get an API key"
+msgstr "Получить ключ API"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "Экскурсия по архитектуре: точки входа, как запустить, что читать первым."
 
 msgid "Get in touch with the {companyName} team."
 msgstr "Свяжитесь с командой {companyName}."
+
+msgid "Get key"
+msgstr "Получить ключ"
 
 msgid "Get more out of Superset"
 msgstr "Выжать больше из Superset"
@@ -6945,6 +6991,9 @@ msgstr "Скрытые папки"
 msgid "Hidden until you join"
 msgstr "Скрыто, пока вы не присоединитесь"
 
+msgid "Hide"
+msgstr "Скрыть"
+
 msgid "Hide checks"
 msgstr "Скрыть проверки"
 
@@ -7147,6 +7196,9 @@ msgstr "Как устроены уровни →"
 
 msgid "How to install {name} in Superset"
 msgstr "Как установить {name} в Superset"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "Как ваши агенты входят внутри облачных рабочих областей. Другие подключают свои подписки или ключи API; на этой машине каждый агент продолжает использовать вход, который уже на ней есть."
 
 msgid "https://"
 msgstr "https://"
@@ -10240,6 +10292,9 @@ msgstr "Открыть рабочую область"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Открыть рабочую область во внешнем приложении (Cursor, VS Code и др.)"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI отклонил этот ключ API."
+
 msgid "Opened"
 msgstr "Открыт"
 
@@ -10686,6 +10741,9 @@ msgstr "Выберите рабочую область"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Выберите иконку и цвет или загрузите своё изображение. По умолчанию используется аватар связанного владельца на GitHub."
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "Выберите, как {label} входит внутри песочницы. Учётные данные передаются процессу агента при запуске и в песочнице не хранятся."
 
 msgid "Pick the best agent."
 msgstr "Выберите лучшего агента."
@@ -12160,6 +12218,9 @@ msgstr "Повернуть устройство"
 msgid "Roundups"
 msgstr "Обзоры"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "Направьте {label} через провайдера, которого держите вы, с вашими учётными данными. Сохранённые значения передаются агенту при запуске."
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "Рутинные тикеты без вмешательства по ходу задачи"
 
@@ -12922,6 +12983,9 @@ msgstr "Установить пароль"
 msgid "Set Run"
 msgstr "Задать запуск"
 
+msgid "Set up"
+msgstr "Настроить"
+
 msgid "Set up project on {hostName}"
 msgstr "Настроить проект на {hostName}"
 
@@ -13018,6 +13082,9 @@ msgstr "Выпущено"
 
 msgid "Shortcut already in use"
 msgstr "Сочетание уже используется"
+
+msgid "Show"
+msgstr "Показать"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Показывать подтверждение при выходе из приложения"
@@ -13212,6 +13279,9 @@ msgstr "Войти через GitHub"
 msgid "Sign in with Google"
 msgstr "Войти через Google"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Войдите с аккаунтом Claude или выполните в терминале <0>claude setup-token</0><1><2/></1> и вставьте токен сюда."
+
 msgid "Sign out"
 msgstr "Выйти"
 
@@ -13247,8 +13317,14 @@ msgstr "Срок входа истёк — выполните"
 msgid "Sign-in failed"
 msgstr "Не удалось войти"
 
+msgid "Signed in as {accountLabel}"
+msgstr "Вы вошли как {accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Вы вошли как <0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "Вход выполнен. Токен хранится в зашифрованном виде и больше не показывается."
 
 msgid "Signed out"
 msgstr "Выход выполнен"
@@ -13258,6 +13334,9 @@ msgstr "Сайты с выполненным входом"
 
 msgid "Signing in..."
 msgstr "Вход..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "Входит так же, как Codex CLI. Либо выполните в терминале <0>codex login</0> и вставьте его токен сюда."
 
 msgid "signup → paid ≤30d"
 msgstr "регистрация → оплата ≤30 дн."
@@ -14340,6 +14419,12 @@ msgstr "Текстовое поле"
 msgid "Thanks for reaching out"
 msgstr "Спасибо, что написали"
 
+msgid "That endpoint could not be resolved."
+msgstr "Не удалось разрешить эту конечную точку."
+
+msgid "That endpoint is not allowed."
+msgstr "Эта конечная точка не разрешена."
+
 msgid "That handle is taken."
 msgstr "Этот ник занят."
 
@@ -14405,6 +14490,9 @@ msgstr "Diff актуален — не загрузились только ко�
 
 msgid "The dispatcher appears"
 msgstr "Появляется диспетчер"
+
+msgid "The endpoint must use https."
+msgstr "Конечная точка должна использовать https."
 
 msgid "The factory"
 msgstr "Фабрика"
@@ -14547,6 +14635,13 @@ msgstr "Такой страницы не существует."
 
 msgid "The people behind Superset."
 msgstr "Люди, которые делают Superset."
+
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "Провайдер ответил {0}."
+
+msgid "The provider refused it."
+msgstr "Провайдер отклонил их."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Период восстановления истёк. Напишите на support@superset.sh."
@@ -15681,6 +15776,15 @@ msgstr "v2ProjectId не совпадает с проектом рабочей �
 
 msgid "Variables"
 msgstr "Переменные"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway отклонил этот ключ."
+
+msgid "Verified and saved"
+msgstr "Проверено и сохранено"
 
 msgid "Verified through sign-in"
 msgstr "Подтверждено при входе"
