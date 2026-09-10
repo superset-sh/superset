@@ -28,13 +28,16 @@ import { TileLayoutProvider } from "./providers/TileLayoutProvider";
 // sizes below are the defaults, not a fixed arrangement — money first, then
 // usage, then the slower-moving vanity and vendor tiles.
 
-// Grid heights, in 20px rows. A chart tile is the baseline; the star chart
-// carries two stacked charts and its own controls.
+// Grid heights, in 20px rows, measured against what each tile actually draws:
+// a chart stretches to its cell, so it gets a height that reads well, while a
+// list or a table gets the height of its rows so the tile isn't half empty.
+// Tiles that share a row want the same height — a row is as tall as its
+// tallest tile, so a short tile beside a tall one leaves a hole under it.
 const CHART_H = 13;
-const WIDE_CHART_H = 15;
+const LIST_H = 8;
 const TABLE_H = 18;
 const FUNNEL_H = 16;
-const STAR_H = 18;
+const STAR_H = 19;
 const FULL_W = 12;
 const HALF_W = 6;
 
@@ -133,7 +136,7 @@ export default function DashboardPage() {
 								</Trans>
 							}
 							tiles={[
-								{ key: "mrr", node: <MrrTile />, w: FULL_W, h: WIDE_CHART_H },
+								{ key: "mrr", node: <MrrTile />, w: FULL_W, h: CHART_H },
 								{
 									key: "dau",
 									node: <TrendSeriesTile {...DAU_PROPS} />,
@@ -155,20 +158,20 @@ export default function DashboardPage() {
 								{
 									key: "net-burn",
 									node: <NetBurnTile />,
-									w: HALF_W,
-									h: TABLE_H,
+									w: FULL_W,
+									h: CHART_H,
 								},
 								{
 									key: "burn-by-vendor",
 									node: <BurnByVendorTile />,
 									w: HALF_W,
-									h: TABLE_H,
+									h: LIST_H,
 								},
 								{
 									key: "enterprise-arr",
 									node: <EnterpriseArrTile />,
 									w: HALF_W,
-									h: TABLE_H,
+									h: LIST_H,
 								},
 								{
 									key: "star-history",

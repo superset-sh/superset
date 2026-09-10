@@ -8918,9 +8918,6 @@ msgstr "Güzel, hazır olduğunda bir PR aç."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Bu host'ta {0} oturumu yok — oturum açın, kullanım burada görünsün."
 
-msgid "No {gaps} events in this window yet."
-msgstr "Bu aralıkta henüz {gaps} olayı yok."
-
 msgid "No access to this host"
 msgstr "Bu host'a erişim yok"
 
@@ -9489,6 +9486,9 @@ msgstr "Bağlı değil: {unavailableReason}. Search Console mülküne bir Google
 
 msgid "Not demoed here"
 msgstr "Burada gösterilmiyor"
+
+msgid "Not every client emits {gaps} yet, so that stage is under-counted."
+msgstr "Her istemci {gaps} göndermiyor, bu yüzden o aşama eksik sayılıyor."
 
 msgid "Not found"
 msgstr "Bulunamadı"
@@ -10260,8 +10260,8 @@ msgstr "Kuruluş: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Kuruluşlar"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "İkinci üyesini kazanan kuruluşlar ile herkesin başladığı tek üyeli hesapların karşılaştırması (Neon). Çubuklar ekip sayısını, çizgi ise 1.000 kuruluş başına ekip sayısını gösterir. Üye kaldırmak satırı sildiği için tekrar tek kişiye düşen bir ekip geçmiş haftalarda görünmez."
+msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
+msgstr "İkinci üyesi olan organizasyonlara karşı tek üyeli hesaplar; çizgi 1.000 başına ekip sayısıdır."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "İşinizi takımlar hâlinde düzenleyin. Görevler ve entegrasyonlar takım bazında eşitlenebilir."
@@ -14092,8 +14092,8 @@ msgstr "Takımlar"
 msgid "teams per 1,000 organizations"
 msgstr "1.000 kuruluş başına ekip"
 
-msgid "Teams vs individual accounts"
-msgstr "Ekipler ve bireysel hesaplar"
+msgid "Teams vs individual accounts (Neon)"
+msgstr "Ekipler ve bireysel hesaplar (Neon)"
 
 msgid "Teardown"
 msgstr "Kapatma"

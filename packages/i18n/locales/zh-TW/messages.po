@@ -8918,9 +8918,6 @@ msgstr "不錯，準備好就開個PR。"
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "此主機上沒有{0}登入——登入後用量會顯示在這裡。"
 
-msgid "No {gaps} events in this window yet."
-msgstr "此時間範圍內尚無 {gaps} 事件。"
-
 msgid "No access to this host"
 msgstr "沒有此主機的存取權限"
 
@@ -9489,6 +9486,9 @@ msgstr "未連線：{unavailableReason}。請將 Google 服務帳號加入 Searc
 
 msgid "Not demoed here"
 msgstr "此處未做演示"
+
+msgid "Not every client emits {gaps} yet, so that stage is under-counted."
+msgstr "並非所有用戶端都已傳送 {gaps}，因此該階段的計數偏低。"
 
 msgid "Not found"
 msgstr "未找到"
@@ -10260,8 +10260,8 @@ msgstr "組織：<0>{0}</0>"
 msgid "Organizations"
 msgstr "組織"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "已加入第二位成員的組織，與每個人最初擁有的單人帳戶的對比（Neon）。柱狀為團隊數量，折線為每 1,000 個組織中的團隊數。移除成員會直接刪除紀錄，因此縮回到一人的團隊不會出現在過去的週次中。"
+msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
+msgstr "擁有第二名成員的組織與單一成員帳戶的對比；折線為每 1,000 個組織的團隊數。"
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "把工作組織到團隊中。任務和整合可以按團隊同步。"
@@ -14092,8 +14092,8 @@ msgstr "團隊"
 msgid "teams per 1,000 organizations"
 msgstr "每 1,000 個組織中的團隊數"
 
-msgid "Teams vs individual accounts"
-msgstr "團隊與個人帳戶"
+msgid "Teams vs individual accounts (Neon)"
+msgstr "團隊與個人帳戶（Neon）"
 
 msgid "Teardown"
 msgstr "清理"

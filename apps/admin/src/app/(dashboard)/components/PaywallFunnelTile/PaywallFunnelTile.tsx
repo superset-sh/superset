@@ -44,14 +44,14 @@ export function PaywallFunnelTile() {
 		averageSeconds: stage.averageSeconds,
 	}));
 
-	// A stage with no events at all, while a later one has some, is an
-	// instrumentation gap rather than a conversion cliff — say so, instead of
-	// letting it read as "nobody got this far".
+	// Fewer people at a stage than at a later one is an instrumentation gap
+	// rather than a conversion cliff — nobody subscribes without checking out —
+	// so say so instead of letting it read as "nobody got this far". Testing
+	// for "no events at all" was too strict: one client on a new build is
+	// enough to silence the notice while the stage is still uncounted.
 	const gaps = stages
-		.filter(
-			(stage, index) =>
-				stage.people === 0 &&
-				stages.slice(index + 1).some((later) => later.people > 0),
+		.filter((stage, index) =>
+			stages.slice(index + 1).some((later) => later.people > stage.people),
 		)
 		.map((stage) => stage.event)
 		.join(", ");
@@ -70,7 +70,10 @@ export function PaywallFunnelTile() {
 					{gaps ? (
 						<>
 							{" "}
-							<Trans>No {gaps} events in this window yet.</Trans>
+							<Trans>
+								Not every client emits {gaps} yet, so that stage is
+								under-counted.
+							</Trans>
 						</>
 					) : null}
 				</>

@@ -174,9 +174,12 @@ export function MrrTile() {
 				</Select>
 			}
 		>
-			<div className="space-y-4">
+			{/* A column with a definite height: the chart's h-full has nothing to
+			    resolve against inside an auto-height wrapper, and recharts renders
+			    no svg at all when it measures zero. */}
+			<div className="flex h-full flex-col gap-4">
 				{latest ? (
-					<div>
+					<div className="shrink-0">
 						<div className="flex items-baseline gap-2">
 							<span className="text-3xl font-bold">
 								${formatNumber(latest.mrrUsd, undefined)}
@@ -214,7 +217,7 @@ export function MrrTile() {
 				) : null}
 				<ChartContainer
 					config={chartConfig}
-					className="aspect-auto h-full min-h-[160px] w-full"
+					className="aspect-auto w-full flex-1 min-h-[160px]"
 				>
 					<AreaChart data={points}>
 						<XAxis

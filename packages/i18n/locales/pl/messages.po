@@ -8918,9 +8918,6 @@ msgstr "Świetnie, otwórz PR, gdy będzie gotowy."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Brak logowań {0} na tym hoście — zaloguj się, a zużycie pojawi się tutaj."
 
-msgid "No {gaps} events in this window yet."
-msgstr "Brak zdarzeń {gaps} w tym okresie."
-
 msgid "No access to this host"
 msgstr "Brak dostępu do tego hosta"
 
@@ -9489,6 +9486,9 @@ msgstr "Nie połączono: {unavailableReason}. Dodaj konto usługi Google do usł
 
 msgid "Not demoed here"
 msgstr "Nie pokazano tutaj"
+
+msgid "Not every client emits {gaps} yet, so that stage is under-counted."
+msgstr "Nie każdy klient wysyła jeszcze {gaps}, więc ten etap jest zaniżony."
 
 msgid "Not found"
 msgstr "Nie znaleziono"
@@ -10260,8 +10260,8 @@ msgstr "Organizacja: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizacje"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Organizacje, które zyskały drugiego członka, w zestawieniu z jednoosobowymi kontami, od których wszyscy zaczynają (Neon). Słupki to liczba zespołów, linia to zespoły na 1000 organizacji. Usunięcie członka kasuje wiersz, więc zespół, który wrócił do jednej osoby, nie pojawia się w minionych tygodniach."
+msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
+msgstr "Organizacje z drugim członkiem wobec kont jednoosobowych; linia to zespoły na 1000."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organizuj pracę w zespoły. Zadania i integracje mogą synchronizować się per zespół."
@@ -14092,8 +14092,8 @@ msgstr "Zespoły"
 msgid "teams per 1,000 organizations"
 msgstr "zespoły na 1000 organizacji"
 
-msgid "Teams vs individual accounts"
-msgstr "Zespoły a konta indywidualne"
+msgid "Teams vs individual accounts (Neon)"
+msgstr "Zespoły a konta indywidualne (Neon)"
 
 msgid "Teardown"
 msgstr "Sprzątanie"

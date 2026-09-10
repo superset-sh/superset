@@ -8918,9 +8918,6 @@ msgstr "Super, až budeš mít hotovo, otevři PR."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Na tomto hostu nejsou žádná přihlášení {0} — přihlaste se a využití se objeví tady."
 
-msgid "No {gaps} events in this window yet."
-msgstr "V tomto období zatím nejsou žádné události {gaps}."
-
 msgid "No access to this host"
 msgstr "K tomuto hostu nemáte přístup"
 
@@ -9489,6 +9486,9 @@ msgstr "Nepřipojeno: {unavailableReason}. Přidejte účet služby Google k slu
 
 msgid "Not demoed here"
 msgstr "Tady se neukazuje"
+
+msgid "Not every client emits {gaps} yet, so that stage is under-counted."
+msgstr "Ne každý klient zatím odesílá {gaps}, takže je tato fáze podhodnocená."
 
 msgid "Not found"
 msgstr "Nenalezeno"
@@ -10260,8 +10260,8 @@ msgstr "Organizace: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizace"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Organizace, které získaly druhého člena, oproti jednočlenným účtům, s nimiž všichni začínají (Neon). Sloupce jsou počet týmů, křivka jsou týmy na 1 000 organizací. Odebrání člena smaže řádek, takže tým, který se vrátil k jedné osobě, v minulých týdnech chybí."
+msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
+msgstr "Organizace s druhým členem oproti účtům s jedním členem; čára ukazuje týmy na 1 000."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Rozdělte práci do týmů. Úkoly a integrace se mohou synchronizovat po týmech."
@@ -14092,8 +14092,8 @@ msgstr "Týmy"
 msgid "teams per 1,000 organizations"
 msgstr "týmy na 1 000 organizací"
 
-msgid "Teams vs individual accounts"
-msgstr "Týmy vs. individuální účty"
+msgid "Teams vs individual accounts (Neon)"
+msgstr "Týmy vs. individuální účty (Neon)"
 
 msgid "Teardown"
 msgstr "Teardown"

@@ -8918,9 +8918,6 @@ msgstr "Ottimo, apri una PR quando è pronta."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Nessun accesso {0} su questo host — accedi e l'utilizzo comparirà qui."
 
-msgid "No {gaps} events in this window yet."
-msgstr "Nessun evento {gaps} in questo periodo per ora."
-
 msgid "No access to this host"
 msgstr "Nessun accesso a questo host"
 
@@ -9489,6 +9486,9 @@ msgstr "Non connesso: {unavailableReason}. Aggiungi un account di servizio Googl
 
 msgid "Not demoed here"
 msgstr "Non mostrato qui"
+
+msgid "Not every client emits {gaps} yet, so that stage is under-counted."
+msgstr "Non tutti i client inviano ancora {gaps}, quindi quella fase è sottostimata."
 
 msgid "Not found"
 msgstr "Non trovato"
@@ -10260,8 +10260,8 @@ msgstr "Organizzazione: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizzazioni"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Organizzazioni che hanno acquisito un secondo membro, rispetto agli account con un solo membro da cui tutti partono (Neon). Le barre sono il numero di team; la linea indica i team ogni 1.000 organizzazioni. Rimuovere un membro elimina la riga, quindi un team tornato a una sola persona non compare nelle settimane passate."
+msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
+msgstr "Organizzazioni con un secondo membro rispetto agli account con un solo membro; la linea indica i team ogni 1.000."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organizza il lavoro in team. Task e integrazioni possono sincronizzarsi per team."
@@ -14092,8 +14092,8 @@ msgstr "Team"
 msgid "teams per 1,000 organizations"
 msgstr "team ogni 1.000 organizzazioni"
 
-msgid "Teams vs individual accounts"
-msgstr "Team e account individuali"
+msgid "Teams vs individual accounts (Neon)"
+msgstr "Team e account individuali (Neon)"
 
 msgid "Teardown"
 msgstr "Teardown"

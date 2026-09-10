@@ -124,13 +124,15 @@ export function FunnelChart({
 								const previous = index > 0 ? steps[index - 1] : null;
 								const pctOfFirst =
 									firstCount > 0 ? (step.count / firstCount) * 100 : 0;
+								// A stage can exceed the one before it when a step's event is
+								// not emitted by every client yet. Both the rate and the
+								// drop-off are then meaningless — 5 subscriptions against a
+								// single recorded checkout reads as 500% — so neither is
+								// shown, and the share of the first stage carries the story.
 								const pctOfPrevious =
-									previous && previous.count > 0
+									previous && previous.count > 0 && step.count <= previous.count
 										? (step.count / previous.count) * 100
 										: null;
-								// A stage can exceed the one before it when a step's
-								// event is not emitted by every client yet, so a
-								// "drop-off" is only real when it is positive.
 								const droppedRaw = previous
 									? previous.count - step.count
 									: null;

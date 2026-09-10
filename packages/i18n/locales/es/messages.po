@@ -8918,9 +8918,6 @@ msgstr "Genial, abre un PR cuando esté listo."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "No hay sesiones de {0} en este host: inicia sesión y el uso aparecerá aquí."
 
-msgid "No {gaps} events in this window yet."
-msgstr "Aún no hay eventos {gaps} en este período."
-
 msgid "No access to this host"
 msgstr "Sin acceso a este host"
 
@@ -9489,6 +9486,9 @@ msgstr "No conectado: {unavailableReason}. Añade una cuenta de servicio de Goog
 
 msgid "Not demoed here"
 msgstr "No se muestra aquí"
+
+msgid "Not every client emits {gaps} yet, so that stage is under-counted."
+msgstr "Todavía no todos los clientes envían {gaps}, por lo que esa etapa está subcontabilizada."
 
 msgid "Not found"
 msgstr "No encontrado"
@@ -10260,8 +10260,8 @@ msgstr "Organización: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizaciones"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Organizaciones que sumaron un segundo miembro, frente a las cuentas de un solo miembro con las que todos empiezan (Neon). Las barras son el número de equipos; la línea son los equipos por cada 1.000 organizaciones. Quitar a un miembro borra la fila, así que un equipo que volvió a ser de una persona no aparece en las semanas anteriores."
+msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
+msgstr "Organizaciones con un segundo miembro frente a cuentas de un solo miembro; la línea son equipos por cada 1000."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organiza tu trabajo en equipos. Las tareas y las integraciones se pueden sincronizar por equipo."
@@ -14092,8 +14092,8 @@ msgstr "Equipos"
 msgid "teams per 1,000 organizations"
 msgstr "equipos por cada 1.000 organizaciones"
 
-msgid "Teams vs individual accounts"
-msgstr "Equipos frente a cuentas individuales"
+msgid "Teams vs individual accounts (Neon)"
+msgstr "Equipos frente a cuentas individuales (Neon)"
 
 msgid "Teardown"
 msgstr "Teardown"

@@ -8918,9 +8918,6 @@ msgstr "いいですね。準備ができたらPRを作成してください。"
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "このホストに{0}のログインがありません — サインインすると使用量が表示されます。"
 
-msgid "No {gaps} events in this window yet."
-msgstr "この期間の{gaps}イベントはまだありません。"
-
 msgid "No access to this host"
 msgstr "このホストへのアクセス権がありません"
 
@@ -9489,6 +9486,9 @@ msgstr "未接続: {unavailableReason}。Search Console のプロパティに Go
 
 msgid "Not demoed here"
 msgstr "ここではデモしていません"
+
+msgid "Not every client emits {gaps} yet, so that stage is under-counted."
+msgstr "すべてのクライアントがまだ {gaps} を送信していないため、この段階は少なく計上されています。"
 
 msgid "Not found"
 msgstr "見つかりません"
@@ -10260,8 +10260,8 @@ msgstr "組織: <0>{0}</0>"
 msgid "Organizations"
 msgstr "組織"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "2人目のメンバーが加わった組織と、誰もが最初に持つ1人だけのアカウントの比較（Neon）。棒はチーム数、折れ線は1,000組織あたりのチーム数です。メンバーを削除すると行ごと消えるため、1人に戻ったチームは過去の週に含まれません。"
+msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
+msgstr "2人目のメンバーがいる組織と単独メンバーのアカウントの比較。線は1,000あたりのチーム数です。"
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "作業をチームに整理します。タスクと連携はチームごとに同期できます。"
@@ -14092,8 +14092,8 @@ msgstr "チーム"
 msgid "teams per 1,000 organizations"
 msgstr "1,000組織あたりのチーム数"
 
-msgid "Teams vs individual accounts"
-msgstr "チームと個人アカウント"
+msgid "Teams vs individual accounts (Neon)"
+msgstr "チームと個人アカウント（Neon）"
 
 msgid "Teardown"
 msgstr "ティアダウン"

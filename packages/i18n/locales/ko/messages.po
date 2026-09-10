@@ -8918,9 +8918,6 @@ msgstr "좋아요, 준비되면 PR을 올려 주세요."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "이 호스트에 {0} 로그인이 없습니다 — 로그인하면 사용량이 여기에 표시됩니다."
 
-msgid "No {gaps} events in this window yet."
-msgstr "이 기간에는 아직 {gaps} 이벤트가 없습니다."
-
 msgid "No access to this host"
 msgstr "이 호스트에 접근할 수 없습니다"
 
@@ -9489,6 +9486,9 @@ msgstr "연결되지 않음: {unavailableReason}. Search Console 속성에 Googl
 
 msgid "Not demoed here"
 msgstr "여기서는 시연하지 않음"
+
+msgid "Not every client emits {gaps} yet, so that stage is under-counted."
+msgstr "아직 모든 클라이언트가 {gaps}를 보내지 않아 해당 단계는 적게 집계됩니다."
 
 msgid "Not found"
 msgstr "찾을 수 없습니다"
@@ -10260,8 +10260,8 @@ msgstr "조직: <0>{0}</0>"
 msgid "Organizations"
 msgstr "조직"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "두 번째 멤버가 생긴 조직과 누구나 처음 갖게 되는 1인 계정의 비교(Neon). 막대는 팀 수, 선은 조직 1,000개당 팀 수입니다. 멤버를 제거하면 행이 삭제되므로 다시 1인으로 줄어든 팀은 과거 주차에 나타나지 않습니다."
+msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
+msgstr "두 번째 멤버가 있는 조직과 단일 멤버 계정 비교. 선은 1,000개당 팀 수입니다."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "작업을 팀 단위로 정리하세요. 작업과 연동은 팀별로 동기화할 수 있습니다."
@@ -14092,8 +14092,8 @@ msgstr "팀"
 msgid "teams per 1,000 organizations"
 msgstr "조직 1,000개당 팀 수"
 
-msgid "Teams vs individual accounts"
-msgstr "팀 vs 개인 계정"
+msgid "Teams vs individual accounts (Neon)"
+msgstr "팀 vs 개인 계정 (Neon)"
 
 msgid "Teardown"
 msgstr "정리"

@@ -8918,9 +8918,6 @@ msgstr "Bagus, buka PR kalau sudah siap."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Tidak ada login {0} di host ini — masuk dan penggunaannya akan muncul di sini."
 
-msgid "No {gaps} events in this window yet."
-msgstr "Belum ada event {gaps} dalam periode ini."
-
 msgid "No access to this host"
 msgstr "Tidak ada akses ke host ini"
 
@@ -9489,6 +9486,9 @@ msgstr "Tidak terhubung: {unavailableReason}. Tambahkan akun layanan Google ke p
 
 msgid "Not demoed here"
 msgstr "Tidak didemokan di sini"
+
+msgid "Not every client emits {gaps} yet, so that stage is under-counted."
+msgstr "Belum semua klien mengirim {gaps}, jadi tahap itu terhitung kurang."
 
 msgid "Not found"
 msgstr "Tidak ditemukan"
@@ -10260,8 +10260,8 @@ msgstr "Organisasi: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organisasi"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Organisasi yang mendapat anggota kedua, dibandingkan dengan akun satu anggota yang dimiliki semua orang di awal (Neon). Batang adalah jumlah tim; garis adalah tim per 1.000 organisasi. Menghapus anggota juga menghapus barisnya, jadi tim yang menyusut kembali menjadi satu orang tidak muncul di minggu-minggu sebelumnya."
+msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
+msgstr "Organisasi dengan anggota kedua dibandingkan akun beranggota tunggal; garisnya adalah tim per 1.000."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Atur pekerjaan Anda ke dalam tim. Tugas dan integrasi bisa disinkronkan per tim."
@@ -14092,8 +14092,8 @@ msgstr "Tim"
 msgid "teams per 1,000 organizations"
 msgstr "tim per 1.000 organisasi"
 
-msgid "Teams vs individual accounts"
-msgstr "Tim vs akun individu"
+msgid "Teams vs individual accounts (Neon)"
+msgstr "Tim vs akun individu (Neon)"
 
 msgid "Teardown"
 msgstr "Teardown"

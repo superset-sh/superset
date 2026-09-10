@@ -8918,9 +8918,6 @@ msgstr "Tốt, mở PR khi sẵn sàng nhé."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Chưa có lần đăng nhập {0} nào trên host này — hãy đăng nhập và mức sử dụng sẽ hiện ở đây."
 
-msgid "No {gaps} events in this window yet."
-msgstr "Chưa có sự kiện {gaps} trong khoảng thời gian này."
-
 msgid "No access to this host"
 msgstr "Không có quyền truy cập host này"
 
@@ -9489,6 +9486,9 @@ msgstr "Chưa kết nối: {unavailableReason}. Thêm tài khoản dịch vụ G
 
 msgid "Not demoed here"
 msgstr "Không demo ở đây"
+
+msgid "Not every client emits {gaps} yet, so that stage is under-counted."
+msgstr "Chưa phải mọi client đều gửi {gaps}, nên giai đoạn đó bị đếm thiếu."
 
 msgid "Not found"
 msgstr "Không tìm thấy"
@@ -10260,8 +10260,8 @@ msgstr "Tổ chức: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Tổ chức"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Các tổ chức đã có thành viên thứ hai, so với tài khoản một thành viên mà ai cũng bắt đầu (Neon). Cột là số nhóm; đường là số nhóm trên 1.000 tổ chức. Xóa một thành viên sẽ xóa luôn bản ghi, nên nhóm thu lại còn một người không xuất hiện ở các tuần trước."
+msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
+msgstr "Tổ chức có thành viên thứ hai so với tài khoản một thành viên; đường biểu thị số nhóm trên 1.000."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Sắp xếp công việc theo nhóm. Tác vụ và tích hợp có thể đồng bộ riêng cho từng nhóm."
@@ -14092,8 +14092,8 @@ msgstr "Nhóm"
 msgid "teams per 1,000 organizations"
 msgstr "nhóm trên 1.000 tổ chức"
 
-msgid "Teams vs individual accounts"
-msgstr "Nhóm và tài khoản cá nhân"
+msgid "Teams vs individual accounts (Neon)"
+msgstr "Nhóm và tài khoản cá nhân (Neon)"
 
 msgid "Teardown"
 msgstr "Dọn dẹp"

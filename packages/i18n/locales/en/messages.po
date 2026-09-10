@@ -8918,9 +8918,6 @@ msgstr "Nice, open a PR when ready."
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "No {0} logins on this host — sign in and usage appears here."
 
-msgid "No {gaps} events in this window yet."
-msgstr "No {gaps} events in this window yet."
-
 msgid "No access to this host"
 msgstr "No access to this host"
 
@@ -9489,6 +9486,9 @@ msgstr "Not connected: {unavailableReason}. Add a Google service account to the 
 
 msgid "Not demoed here"
 msgstr "Not demoed here"
+
+msgid "Not every client emits {gaps} yet, so that stage is under-counted."
+msgstr "Not every client emits {gaps} yet, so that stage is under-counted."
 
 msgid "Not found"
 msgstr "Not found"
@@ -10260,8 +10260,8 @@ msgstr "Organization: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizations"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
+msgstr "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organize your work into teams. Tasks and integrations can sync per-team."
@@ -14092,8 +14092,8 @@ msgstr "Teams"
 msgid "teams per 1,000 organizations"
 msgstr "teams per 1,000 organizations"
 
-msgid "Teams vs individual accounts"
-msgstr "Teams vs individual accounts"
+msgid "Teams vs individual accounts (Neon)"
+msgstr "Teams vs individual accounts (Neon)"
 
 msgid "Teardown"
 msgstr "Teardown"
