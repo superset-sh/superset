@@ -27,7 +27,7 @@ describe("decideProjectImport", () => {
 		expect(
 			decideProjectImport(
 				findByPath([
-					{ id: "cloud-1", source: "github-remote" },
+					{ id: "cloud-1", source: "remote" },
 					{ id: "v2-local", source: "local-path" },
 				]),
 			),
@@ -38,8 +38,8 @@ describe("decideProjectImport", () => {
 		expect(
 			decideProjectImport(
 				findByPath([
-					{ id: "a", source: "github-remote" },
-					{ id: "b", source: "github-remote" },
+					{ id: "a", source: "remote" },
+					{ id: "b", source: "remote" },
 				]),
 			),
 		).toEqual({ kind: "skip", reason: "multiple-candidates" });
@@ -53,7 +53,7 @@ describe("decideProjectImport", () => {
 
 	test("single candidate or none imports", () => {
 		expect(
-			decideProjectImport(findByPath([{ id: "a", source: "github-remote" }])),
+			decideProjectImport(findByPath([{ id: "a", source: "remote" }])),
 		).toEqual({ kind: "import" });
 		expect(decideProjectImport(findByPath([]))).toEqual({ kind: "import" });
 	});
@@ -80,7 +80,7 @@ describe("decideProjectImport", () => {
 		expect(
 			decideProjectImport(
 				findByPath(
-					[{ id: "my-repo", source: "github-remote", viaOrigin: true }],
+					[{ id: "my-repo", source: "remote", viaOrigin: true }],
 					[],
 					true,
 				),
@@ -96,7 +96,7 @@ describe("decideProjectImport", () => {
 		expect(
 			decideProjectImport(
 				findByPath(
-					[{ id: "upstream-a", source: "github-remote", viaOrigin: false }],
+					[{ id: "upstream-a", source: "remote", viaOrigin: false }],
 					[],
 					false,
 				),

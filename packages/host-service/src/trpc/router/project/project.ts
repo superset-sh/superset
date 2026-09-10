@@ -37,7 +37,7 @@ import {
 	createFromTemplate,
 } from "./handlers";
 import { ensureMainWorkspace } from "./utils/ensure-main-workspace";
-import { getGitHubRemotes } from "./utils/git-remote";
+import { getAllRemoteUrls, getGitHubRemotes } from "./utils/git-remote";
 import { persistLocalProject } from "./utils/persist-project";
 import {
 	cloneRepoInto,
@@ -529,7 +529,16 @@ export const projectRouter = router({
 
 			// walkAllRemotes branch — v1→v2 importer, no local row: discover
 			// linkable cloud candidates across every GitHub remote.
-			const allRemotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
+			const git = createUserSimpleGit(gitRoot);
+			const [allRemotes, rawRemotes] = await Promise.all([
+				getGitHubRemotes(git),
+				getAllRemoteUrls(git),
+			]);
+			// `origin` is the repo's canonical identity even when it points at
+			// a non-GitHub host (GitLab, a self-hosted forge, an SSH alias):
+			// `getGitHubRemotes` drops those, so consult the raw remote list
+			// for existence and keep the parsed map only for `viaOrigin`.
+			const hasOriginRemote = rawRemotes.has("origin");
 			const originUrl = allRemotes.get("origin")?.url.toLowerCase();
 
 			const urlsToQuery = new Map<string, ParsedGitHubRemote>();
@@ -606,10 +615,11 @@ export const projectRouter = router({
 			return {
 				candidates,
 				cloudErrors,
-				// Whether this repo has an `origin` remote — the renderer gate
-				// in decideProjectImport refuses a lone non-origin match when
-				// origin exists (multi-remote hijack guard).
-				hasOriginRemote: originUrl !== undefined,
+				// Whether this repo has an `origin` remote (any host, not just
+				// GitHub) — the renderer gate in decideProjectImport refuses a
+				// lone non-origin match when origin exists (multi-remote
+				// hijack guard).
+				hasOriginRemote,
 			};
 		}),
 

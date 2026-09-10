@@ -178,6 +178,47 @@ describe("findByPath walkAllRemotes (v1 importer)", () => {
 		);
 	});
 
+	it("still reports hasOriginRemote when origin is a non-GitHub remote", async () => {
+		const db = createTestDb();
+		const { api, byRemoteUrl } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const root = await createTempGitRepo();
+
+		// origin lives on another host (GitLab here), so getGitHubRemotes
+		// drops it. The lone GitHub candidate comes from the secondary
+		// remote only — it must not read as an origin match (same hijack as
+		// the GitHub-origin case, which the importer guard must still catch).
+		await (async () => {
+			const git = createUserSimpleGit(root);
+			const remoteUrls = new Map([
+				["origin", "https://gitlab.com/owner/kogan.git"],
+				["oms-service", "https://github.com/owner/oms-service.git"],
+			]);
+			for (const [name, url] of remoteUrls) {
+				await git.raw(["remote", "add", name, url]);
+			}
+		})();
+		byRemoteUrl.set("https://github.com/owner/oms-service", [
+			"7efcc5af-oms-service",
+		]);
+
+		const caller = createCallerFactory(projectRouter)(ctx);
+		const result = await caller.findByPath({
+			repoPath: root,
+			walkAllRemotes: true,
+		});
+
+		expect(result.hasOriginRemote).toBe(true);
+		expect(result.candidates).toHaveLength(1);
+		expect(result.candidates[0]).toEqual(
+			expect.objectContaining({
+				id: "7efcc5af-oms-service",
+				source: "remote",
+				viaOrigin: false,
+			}),
+		);
+	});
+
 	it("origin-derived candidate wins the sort over a secondary-remote one", async () => {
 		const db = createTestDb();
 		const { api, byRemoteUrl } = createRecordingApiStub();
