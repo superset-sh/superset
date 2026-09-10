@@ -3815,6 +3815,9 @@ msgstr "使用GitHub繼續"
 msgid "Continue with Google"
 msgstr "使用Google繼續"
 
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "繼續代理程式工作階段需要已釘選的工作區"
+
 msgid "Contributions"
 msgstr "貢獻"
 

@@ -3815,6 +3815,9 @@ msgstr "Continuar com o GitHub"
 msgid "Continue with Google"
 msgstr "Continuar com o Google"
 
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Continuar uma sessão de agente exige um workspace fixado"
+
 msgid "Contributions"
 msgstr "Contribuições"
 

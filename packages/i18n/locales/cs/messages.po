@@ -3815,6 +3815,9 @@ msgstr "Pokračovat přes GitHub"
 msgid "Continue with Google"
 msgstr "Pokračovat přes Google"
 
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Pokračování v relaci agenta vyžaduje připnutý pracovní prostor"
+
 msgid "Contributions"
 msgstr "Příspěvky"
 

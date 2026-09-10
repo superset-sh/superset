@@ -3815,6 +3815,9 @@ msgstr "Tiếp tục với GitHub"
 msgid "Continue with Google"
 msgstr "Tiếp tục với Google"
 
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Tiếp tục phiên tác nhân yêu cầu một không gian làm việc đã ghim"
+
 msgid "Contributions"
 msgstr "Đóng góp"
 

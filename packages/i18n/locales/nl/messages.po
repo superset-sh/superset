@@ -3815,6 +3815,9 @@ msgstr "Doorgaan met GitHub"
 msgid "Continue with Google"
 msgstr "Doorgaan met Google"
 
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Een agentsessie voortzetten vereist een vastgezette workspace"
+
 msgid "Contributions"
 msgstr "Bijdragen"
 

@@ -24,7 +24,11 @@ import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs, workspaces } from "../../../db/schema";
 import { hasHarnessSession } from "../../../terminal/harness-transcript";
-import { createTerminalSessionInternal } from "../../../terminal/terminal";
+import {
+	createTerminalSessionInternal,
+	writeFramedInputToSession,
+} from "../../../terminal/terminal";
+import type { TerminalAgentStore } from "../../../terminal-agents";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
@@ -217,6 +221,14 @@ export interface AgentRunInput {
 	resumeSessionId?: string;
 	/** Session id to clone into a new provider-owned session. */
 	forkSessionId?: string;
+	/**
+	 * A terminal an earlier call from this same caller left behind. When it is
+	 * still running this agent, the prompt is delivered into that session
+	 * instead of starting a second one beside it. Every other case — terminal
+	 * gone, agent exited, a different agent now bound to it — launches as
+	 * usual, so a caller may always name a terminal it is unsure about.
+	 */
+	continueTerminalId?: string;
 }
 
 export type AgentRunResult = {
@@ -588,6 +600,100 @@ async function runTerminalAgent(
 	};
 }
 
+/**
+ * Whether `continueTerminalId` names a session this call may be delivered
+ * into, and the label to report when it does.
+ *
+ * Split from the send so the policy is testable on its own: with no pty behind
+ * the terminal the send fails anyway, which would make every rejection look
+ * alike and prove nothing.
+ */
+export function continuationTarget(
+	db: HostDb,
+	store: Pick<TerminalAgentStore, "listByWorkspace">,
+	input: AgentRunInput,
+): { terminalId: string; label: string } | null {
+	const terminalId = input.continueTerminalId;
+	// An empty prompt means "just launch the agent", which a running session
+	// cannot honour.
+	if (!terminalId || sanitizePromptForPty(input.prompt).trim() === "") {
+		return null;
+	}
+	// These all pick something about how the process starts, and the process is
+	// already started. Launching is the only way to honour them.
+	if (
+		input.model ||
+		input.effort ||
+		input.mode ||
+		input.resumeSessionId ||
+		input.forkSessionId ||
+		(input.attachmentIds?.length ?? 0) > 0
+	) {
+		return null;
+	}
+
+	const config = resolveHostAgentConfig(db, input.agent);
+	if (!config) return null;
+
+	// Live bindings only, and scoped to this workspace: a binding whose
+	// terminal died or whose agent detached is not a continuation target.
+	const binding = store
+		.listByWorkspace(input.workspaceId)
+		.find((candidate) => candidate.terminalId === terminalId);
+	if (!binding) return null;
+
+	// Resolve both sides before comparing: the caller may name a preset while
+	// the binding carries the instance that preset resolved to, or the reverse.
+	// This is what stops a prompt landing in whatever agent holds the terminal
+	// nowrather than the one the caller means.
+	const bound = resolveHostAgentConfig(
+		db,
+		binding.definitionId ?? binding.agentId,
+	);
+	if (!bound || bound.id !== config.id) return null;
+
+	return { terminalId, label: config.label };
+}
+
+/**
+ * Deliver the prompt into the agent already running in `continueTerminalId`,
+ * or return null to let the caller launch as normal.
+ *
+ * A TUI agent never exits — it sits at its prompt after a turn — so a caller
+ * that runs the same agent in the same workspace on a schedule leaves a live
+ * agent behind on every tick. Naming the previous terminal turns that pile
+ * into one session that keeps receiving prompts.
+ *
+ * Every rejection falls through to a launch rather than failing: the caller's
+ * candidate is a hint, and a stale one must cost nothing.
+ */
+async function continueTerminalAgent(
+	ctx: Pick<HostServiceContext, "db" | "eventBus" | "terminalAgentStore">,
+	input: AgentRunInput,
+): Promise<AgentRunResult | null> {
+	const target = continuationTarget(ctx.db, ctx.terminalAgentStore, input);
+	if (!target) return null;
+
+	const sent = await writeFramedInputToSession({
+		terminalId: target.terminalId,
+		workspaceId: input.workspaceId,
+		text: input.prompt,
+		submit: true,
+		db: ctx.db,
+		eventBus: ctx.eventBus,
+	});
+	// The session died between the binding read and the write. The send adopts
+	// but never respawns, so this cannot have typed the prompt into a fresh
+	// shell — it simply did not land.
+	if ("error" in sent) return null;
+
+	return {
+		kind: "terminal",
+		sessionId: target.terminalId,
+		label: target.label,
+	};
+}
+
 export async function runAgentInWorkspace(
 	ctx: HostServiceContext,
 	input: AgentRunInput,
@@ -603,6 +709,10 @@ export async function runAgentInWorkspace(
 			message: `Workspace ${input.workspaceId} not found on this host — it may have been deleted.`,
 		});
 	}
+	// Ahead of the launch path: continuing costs no pty and no trust seeding.
+	const continued = await continueTerminalAgent(ctx, input);
+	if (continued) return continued;
+
 	// Session workspaces are standalone repos the host itself scaffolded, so
 	// agent CLIs can't inherit folder trust from anywhere — pre-trust the
 	// folder in the launching agent's own trust store so its first
@@ -632,6 +742,7 @@ export const agentsRouter = router({
 				mode: z.string().min(1).optional(),
 				resumeSessionId: z.string().min(1).optional(),
 				forkSessionId: z.string().min(1).optional(),
+				continueTerminalId: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => runAgentInWorkspace(ctx, input)),

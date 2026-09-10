@@ -3815,6 +3815,9 @@ msgstr "Lanjutkan dengan GitHub"
 msgid "Continue with Google"
 msgstr "Lanjutkan dengan Google"
 
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Melanjutkan sesi agen memerlukan ruang kerja yang disematkan"
+
 msgid "Contributions"
 msgstr "Kontribusi"
 

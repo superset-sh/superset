@@ -55,6 +55,12 @@ export const serverErrorMessages: Record<
 				message: "Automation not found",
 			}),
 		),
+	"serverError.automation.continueNeedsPinnedWorkspace": () =>
+		i18n._(
+			msg({
+				message: "Continuing an agent session requires a pinned workspace",
+			}),
+		),
 	"serverError.automation.failedToCreateAutomation": () =>
 		i18n._(
 			msg({

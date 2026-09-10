@@ -3815,6 +3815,9 @@ msgstr "GitHubで続行"
 msgid "Continue with Google"
 msgstr "Googleで続行"
 
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "エージェントセッションを継続するには、ワークスペースを固定する必要があります"
+
 msgid "Contributions"
 msgstr "コントリビューション"
 

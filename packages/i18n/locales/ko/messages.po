@@ -3815,6 +3815,9 @@ msgstr "GitHub로 계속하기"
 msgid "Continue with Google"
 msgstr "Google로 계속하기"
 
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "에이전트 세션을 계속하려면 고정된 워크스페이스가 필요합니다"
+
 msgid "Contributions"
 msgstr "기여"
 
