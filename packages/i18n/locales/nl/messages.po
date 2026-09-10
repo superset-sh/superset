@@ -14634,6 +14634,9 @@ msgstr "De werkruimte is nog niet klaar. Probeer het opnieuw."
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "De werkruimte is mogelijk toch aangemaakt. Dit scherm opent hem zodra hij verschijnt."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "De workspace waaraan deze automatisering is vastgezet, bestaat niet meer op de host. Zet een andere vast in de instellingen van de automatisering."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "De worktree en eventuele niet-gecommitte wijzigingen worden verwijderd. Dit kan niet ongedaan worden gemaakt."
 
@@ -14688,6 +14691,9 @@ msgstr "Deze applicatie krijgt toegang tot gegevens in de gekozen organisatie."
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Deze automatisering hoort bij {0}. Wissel naar die organisatie om hem te openen."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "Deze automatisering heeft nog geen instructies. Schrijf een prompt in de instellingen voordat je hem uitvoert."
 
 msgid "This automation is in another organization"
 msgstr "Deze automatisering staat in een andere organisatie"

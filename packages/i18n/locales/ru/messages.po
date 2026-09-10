@@ -14634,6 +14634,9 @@ msgstr "Рабочая область ещё не готова. Повторит
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "Рабочая область всё же могла быть создана. Этот экран откроет её, когда она появится."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "Рабочее пространство, к которому закреплена эта автоматизация, больше не существует на её хосте. Закрепите другое в настройках автоматизации."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree и все незакоммиченные изменения будут удалены. Отменить нельзя."
 
@@ -14688,6 +14691,9 @@ msgstr "Это приложение получит доступ к данным 
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Эта автоматизация принадлежит организации {0}. Смените организацию, чтобы открыть её."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "У этой автоматизации ещё нет инструкций. Напишите промпт в её настройках перед запуском."
 
 msgid "This automation is in another organization"
 msgstr "Эта автоматизация находится в другой организации"

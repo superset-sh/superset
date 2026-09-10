@@ -27,8 +27,18 @@ type AgentRunResult = { kind: "terminal"; sessionId: string; label: string };
 
 export type DispatchOutcome =
 	| { status: "dispatched"; runId: string }
-	| { status: "skipped_offline"; runId: string | null; error: string }
-	| { status: "dispatch_failed"; runId: string | null; error: string }
+	| {
+			status: "skipped_offline";
+			runId: string | null;
+			error: string;
+			errorCode: AutomationRunErrorCode | null;
+	  }
+	| {
+			status: "dispatch_failed";
+			runId: string | null;
+			error: string;
+			errorCode: AutomationRunErrorCode | null;
+	  }
 	| { status: "conflict" };
 
 /**
@@ -116,7 +126,12 @@ export async function dispatchAutomation(
 			error,
 			"no_instructions",
 		);
-		return { status: "dispatch_failed", runId: inserted?.id ?? null, error };
+		return {
+			status: "dispatch_failed",
+			runId: inserted?.id ?? null,
+			error,
+			errorCode: "no_instructions",
+		};
 	}
 
 	const candidates = await resolveCandidateHosts(automation);
@@ -130,7 +145,12 @@ export async function dispatchAutomation(
 			error,
 			"host_offline",
 		);
-		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
+		return {
+			status: "skipped_offline",
+			runId: inserted?.id ?? null,
+			error,
+			errorCode: "host_offline",
+		};
 	}
 
 	const host = await pickOnlineHost(automation, relayUrl, candidates);
@@ -144,7 +164,12 @@ export async function dispatchAutomation(
 			error,
 			"host_offline",
 		);
-		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
+		return {
+			status: "skipped_offline",
+			runId: inserted?.id ?? null,
+			error,
+			errorCode: "host_offline",
+		};
 	}
 
 	const [run] = await db
@@ -289,16 +314,17 @@ export async function dispatchAutomation(
 			.where(eq(automationRuns.id, run.id));
 	} catch (err) {
 		const error = describeError(err, "dispatch");
+		const errorCode = classifyDispatchError(err);
 		await db
 			.update(automationRuns)
 			.set({
 				status: "dispatch_failed",
 				v2WorkspaceId: workspaceId,
 				error,
-				errorCode: classifyDispatchError(err),
+				errorCode,
 			})
 			.where(eq(automationRuns.id, run.id));
-		return { status: "dispatch_failed", runId: run.id, error };
+		return { status: "dispatch_failed", runId: run.id, error, errorCode };
 	}
 
 	return { status: "dispatched", runId: run.id };

@@ -13,8 +13,7 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
 import { useCopyAutomationLink } from "../hooks/useCopyAutomationLink";
-import { isHostOfflineError } from "../utils/hostOfflineError";
-import { isStaleAgentError, STALE_AGENT_HELP } from "../utils/staleAgentError";
+import { dispatchErrorCode, runErrorHelp } from "../utils/runErrorHelp";
 import { AutomationBody } from "./components/AutomationBody";
 import { AutomationBreadcrumbBar } from "./components/AutomationBreadcrumbBar";
 import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
@@ -122,17 +121,18 @@ function AutomationDetailPage() {
 				}),
 			),
 		onError: (error) => {
-			const message = error instanceof Error ? error.message : null;
-			if (isHostOfflineError(message)) {
+			const code = dispatchErrorCode(error);
+			if (code === "host_offline") {
 				setHostOfflineOpen(true);
 				return;
 			}
-			if (isStaleAgentError(message)) {
-				toast.error(i18n._(STALE_AGENT_HELP));
+			const help = runErrorHelp(code);
+			if (help) {
+				toast.error(i18n._(help));
 				return;
 			}
 			toast.error(
-				message ??
+				(error instanceof Error ? error.message : null) ??
 					t({
 						message: "Failed to trigger run",
 					}),

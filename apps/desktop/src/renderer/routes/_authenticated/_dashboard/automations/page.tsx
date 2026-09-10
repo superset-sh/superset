@@ -70,8 +70,7 @@ import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
 import { HostOfflineRunDialog } from "./components/HostOfflineRunDialog";
 import type { AutomationTemplate } from "./templates";
 import { matchAgentChoice, portableAgentValue } from "./utils/agentIdentity";
-import { isHostOfflineError } from "./utils/hostOfflineError";
-import { isStaleAgentError, STALE_AGENT_HELP } from "./utils/staleAgentError";
+import { dispatchErrorCode, runErrorHelp } from "./utils/runErrorHelp";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 	{
@@ -98,6 +97,10 @@ function settledErrorMessage(result: PromiseSettledResult<unknown>) {
 	return result.status === "rejected" && result.reason instanceof Error
 		? result.reason.message
 		: null;
+}
+
+function settledErrorCode(result: PromiseSettledResult<unknown>) {
+	return result.status === "rejected" ? dispatchErrorCode(result.reason) : null;
 }
 
 function AutomationsPage() {
@@ -148,17 +151,18 @@ function AutomationsPage() {
 				}),
 			),
 		onError: (error, { targetHostId }) => {
-			const message = error instanceof Error ? error.message : null;
-			if (isHostOfflineError(message)) {
+			const code = dispatchErrorCode(error);
+			if (code === "host_offline") {
 				setHostOfflineRun({ hostId: targetHostId });
 				return;
 			}
-			if (isStaleAgentError(message)) {
-				toast.error(i18n._(STALE_AGENT_HELP));
+			const help = runErrorHelp(code);
+			if (help) {
+				toast.error(i18n._(help));
 				return;
 			}
 			toast.error(
-				message ??
+				(error instanceof Error ? error.message : null) ??
 					t({
 						message: "Failed to trigger run",
 					}),
@@ -195,28 +199,28 @@ function AutomationsPage() {
 				);
 			}
 			if (failed.length === 0) return;
-			const offline = failed.find((o) =>
-				isHostOfflineError(settledErrorMessage(o.result)),
+			const offline = failed.find(
+				(o) => settledErrorCode(o.result) === "host_offline",
 			);
 			if (offline) {
 				setHostOfflineRun({ hostId: offline.automation.targetHostId });
 			}
 			// The host-offline dialog explains those failures; only toast the rest.
 			const other = failed.filter(
-				(o) => !isHostOfflineError(settledErrorMessage(o.result)),
+				(o) => settledErrorCode(o.result) !== "host_offline",
 			);
 			if (other.length === 0) return;
-			const message = settledErrorMessage(other[0].result);
+			const help = runErrorHelp(settledErrorCode(other[0].result));
+			const single =
+				(help ? i18n._(help) : settledErrorMessage(other[0].result)) ??
+				t({
+					message: "Failed to retry automation",
+				});
 			const failedCount = other.length;
 			const totalCount = outcomes.length;
 			toast.error(
 				other.length === 1
-					? isStaleAgentError(message)
-						? i18n._(STALE_AGENT_HELP)
-						: (message ??
-							t({
-								message: "Failed to retry automation",
-							}))
+					? single
 					: t({
 							message: `Failed to retry ${failedCount} of ${totalCount} automations`,
 						}),

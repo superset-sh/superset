@@ -14634,6 +14634,9 @@ msgstr "ワークスペースの準備がまだできていません。もう一
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "ワークスペースは作成されている可能性があります。表示された場合、この画面で開きます。"
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "このオートメーションが固定されているワークスペースは、ホスト上に存在しなくなりました。オートメーションの設定で別のワークスペースを固定してください。"
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "ワークツリーと未コミットの変更が削除されます。この操作は元に戻せません。"
 
@@ -14688,6 +14691,9 @@ msgstr "このアプリケーションは選択した組織のデータにアク
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "このオートメーションは {0} に属しています。開くにはその組織に切り替えてください。"
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "このオートメーションにはまだ指示がありません。実行する前に設定でプロンプトを記述してください。"
 
 msgid "This automation is in another organization"
 msgstr "このオートメーションは別の組織にあります"

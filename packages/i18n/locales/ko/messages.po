@@ -14634,6 +14634,9 @@ msgstr "워크스페이스가 아직 준비되지 않았습니다. 다시 시도
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "워크스페이스가 생성되었을 수도 있습니다. 나타나면 이 화면에서 열립니다."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "이 자동화가 고정된 워크스페이스가 해당 호스트에 더 이상 존재하지 않습니다. 자동화 설정에서 다른 워크스페이스를 고정하세요."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "worktree와 커밋되지 않은 변경 사항이 모두 삭제됩니다. 되돌릴 수 없습니다."
 
@@ -14688,6 +14691,9 @@ msgstr "이 애플리케이션은 선택한 조직의 데이터에 접근할 수
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "이 자동화는 {0}에 속해 있습니다. 열려면 해당 조직으로 전환하세요."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "이 자동화에는 아직 지시문이 없습니다. 실행하기 전에 설정에서 프롬프트를 작성하세요."
 
 msgid "This automation is in another organization"
 msgstr "이 자동화는 다른 조직에 있습니다"

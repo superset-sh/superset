@@ -14634,6 +14634,9 @@ msgstr "Il workspace non è ancora pronto. Riprova."
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "Il workspace potrebbe essere stato creato comunque. Questa schermata lo apre se compare."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "Lo spazio di lavoro a cui è bloccata questa automazione non esiste più sul suo host. Bloccane un altro nelle impostazioni dell'automazione."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Il worktree e le eventuali modifiche non committate verranno rimossi. L'operazione non può essere annullata."
 
@@ -14688,6 +14691,9 @@ msgstr "Questa applicazione avrà accesso ai dati dell'organizzazione selezionat
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Questa automazione appartiene a {0}. Passa a quell'organizzazione per aprirla."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "Questa automazione non ha ancora istruzioni. Scrivi un prompt nelle sue impostazioni prima di eseguirla."
 
 msgid "This automation is in another organization"
 msgstr "Questa automazione si trova in un'altra organizzazione"

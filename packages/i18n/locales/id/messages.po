@@ -14634,6 +14634,9 @@ msgstr "Workspace belum siap. Coba lagi."
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "Workspace mungkin tetap dibuat. Layar ini akan membukanya jika muncul."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "Ruang kerja yang disematkan untuk otomatisasi ini sudah tidak ada di host-nya. Sematkan ruang kerja lain di pengaturan otomatisasi."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree beserta perubahan yang belum di-commit akan dihapus. Ini tidak bisa dibatalkan."
 
@@ -14688,6 +14691,9 @@ msgstr "Aplikasi ini akan punya akses ke data di organisasi yang dipilih."
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Otomatisasi ini milik {0}. Ganti ke organisasi tersebut untuk membukanya."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "Otomatisasi ini belum memiliki instruksi. Tulis prompt di pengaturannya sebelum menjalankannya."
 
 msgid "This automation is in another organization"
 msgstr "Otomatisasi ini berada di organisasi lain"

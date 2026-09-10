@@ -14634,6 +14634,9 @@ msgstr "Obszar roboczy nie jest jeszcze gotowy. Spróbuj ponownie."
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "Obszar roboczy mógł mimo to zostać utworzony. Ten ekran otworzy go, gdy się pojawi."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "Obszar roboczy, do którego przypięto tę automatyzację, już nie istnieje na jej hoście. Przypnij inny w ustawieniach automatyzacji."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree i wszystkie niezacommitowane zmiany zostaną usunięte. Tej operacji nie można cofnąć."
 
@@ -14688,6 +14691,9 @@ msgstr "Ta aplikacja uzyska dostęp do danych w wybranej organizacji."
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Ta automatyzacja należy do organizacji {0}. Przełącz się na tę organizację, aby ją otworzyć."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "Ta automatyzacja nie ma jeszcze instrukcji. Napisz prompt w jej ustawieniach przed uruchomieniem."
 
 msgid "This automation is in another organization"
 msgstr "Ta automatyzacja znajduje się w innej organizacji"

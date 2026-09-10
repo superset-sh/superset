@@ -14634,6 +14634,9 @@ msgstr "工作區尚未就緒。請重試。"
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "工作區可能仍已建立。如果出現，此畫面會開啟它。"
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "此自動化所釘選的工作區在其主機上已不存在。請在自動化設定中釘選另一個工作區。"
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "worktree及其中所有未提交的更改都會被移除。此操作無法復原。"
 
@@ -14688,6 +14691,9 @@ msgstr "該應用程式將可以存取所選組織中的資料。"
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "此自動化屬於 {0}。請切換到該組織後開啟。"
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "此自動化尚未有指示。請先在設定中撰寫提示，再執行。"
 
 msgid "This automation is in another organization"
 msgstr "此自動化位於其他組織"

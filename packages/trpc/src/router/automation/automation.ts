@@ -802,16 +802,21 @@ export const automationRouter = {
 					i18nKey: "serverError.automation.aRunForThisAutomation",
 				});
 			}
+			// The message is the host's own wording, so there is nothing to
+			// translate — but the code travels with it so the client picks its
+			// guidance without reading the prose.
 			if (outcome.status === "dispatch_failed") {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: outcome.error,
+					cause: { automationErrorCode: outcome.errorCode },
 				});
 			}
 			if (outcome.status === "skipped_offline") {
 				throw new TRPCError({
 					code: "PRECONDITION_FAILED",
 					message: outcome.error,
+					cause: { automationErrorCode: outcome.errorCode },
 				});
 			}
 			return { automationId: automation.id, runId: outcome.runId };

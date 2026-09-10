@@ -14634,6 +14634,9 @@ msgstr "Pracovní prostor ještě není připravený. Zkuste to znovu."
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "Pracovní prostor mohl přesto vzniknout. Tato obrazovka ho otevře, jakmile se objeví."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "Pracovní prostor, ke kterému je tato automatizace připnutá, na jejím hostiteli už neexistuje. Připněte v nastavení automatizace jiný."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree a všechny necommitnuté změny budou odstraněny. Tuto akci nelze vrátit zpět."
 
@@ -14688,6 +14691,9 @@ msgstr "Tato aplikace bude mít přístup k datům ve vybrané organizaci."
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Tato automatizace patří organizaci {0}. Přepněte na tuto organizaci, abyste ji otevřeli."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "Tato automatizace zatím nemá pokyny. Před spuštěním napište v jejím nastavení prompt."
 
 msgid "This automation is in another organization"
 msgstr "Tato automatizace je v jiné organizaci"
