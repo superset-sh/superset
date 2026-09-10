@@ -286,6 +286,7 @@
 		"@date-fns/tz": "1.4.1",
 		"@lingui/core": "6.6.0",
 		"@superset/i18n": "workspace:*",
+		"babel-plugin-macros": "3.1.0",
 		"culori": "4.0.2",
 		"drizzle-orm": "0.45.2",
 		"friendly-words": "1.3.1",
