@@ -82,6 +82,29 @@ export function Pane<TData>({
 	const tabs = store.getState().tabs;
 	const tabPosition = tabs.findIndex((t) => t.id === tab.id);
 
+	// Stable component identity for ctx.components.PaneHeaderActions: a fresh
+	// closure per context recompute changes the element type, and React then
+	// remounts the header buttons — a remount between mousedown and mouseup
+	// swallows the click (the close X misfiring). The slot reads the latest
+	// values from a ref instead.
+	const latestHeaderActions = useRef<{
+		actions: PaneActionConfig<TData>[];
+		context: RendererContext<TData>;
+	} | null>(null);
+	const [HeaderActionsSlot] = useState(
+		() =>
+			function HeaderActionsSlot() {
+				const latest = latestHeaderActions.current;
+				if (!latest) return null;
+				return (
+					<PaneHeaderActions
+						actions={latest.actions}
+						context={latest.context}
+					/>
+				);
+			},
+	);
+
 	const context: RendererContext<TData> = useMemo(() => {
 		const ctx: RendererContext<TData> = {
 			pane: { ...pane, parentDirection },
@@ -135,9 +158,8 @@ export function Pane<TData>({
 			workspaceResolved,
 		);
 
-		ctx.components.PaneHeaderActions = () => (
-			<PaneHeaderActions actions={finalActions} context={ctx} />
-		);
+		ctx.components.PaneHeaderActions = HeaderActionsSlot;
+		latestHeaderActions.current = { actions: finalActions, context: ctx };
 
 		return ctx;
 	}, [
@@ -149,6 +171,7 @@ export function Pane<TData>({
 		paneActions,
 		parentDirection,
 		tabPosition,
+		HeaderActionsSlot,
 	]);
 
 	const resolvedContextMenuActions = useMemo(() => {

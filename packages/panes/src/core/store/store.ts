@@ -250,6 +250,11 @@ export function createWorkspaceStore<TData>(
 				const tab = s.tabs.find((t) => t.id === args.tabId);
 				if (!tab || !tab.panes[args.paneId]) return s;
 
+				// Bail out when nothing changes — this fires on every mousedown in a
+				// pane, and new tab objects re-render every pane in the tab.
+				if (s.activeTabId === args.tabId && tab.activePaneId === args.paneId)
+					return s;
+
 				return {
 					activeTabId: args.tabId,
 					tabs: s.tabs.map((t) =>
