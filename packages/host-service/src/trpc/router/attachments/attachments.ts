@@ -50,7 +50,7 @@ function mediaTypeOf(declared: string): string {
  * second photo named IMG_0006.jpg is ordinary, so the batch-local name is
  * only a starting point and the real directory decides.
  */
-function claimFileName({
+export function claimFileName({
 	attachment,
 	index,
 	used,

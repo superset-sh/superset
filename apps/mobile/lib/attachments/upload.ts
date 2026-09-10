@@ -4,10 +4,8 @@ import { MAX_ATTACHMENT_BYTES } from "@superset/shared/attachment-limits";
 import { File } from "expo-file-system";
 import type { PromptInputAttachmentItem } from "@/components/ai-elements/prompt-input";
 import { apiClient } from "@/lib/trpc/client";
-import {
-	type AttachmentUpload,
-	useComposerDraftsStore,
-} from "@/screens/(authenticated)/stores/composerDraftsStore";
+import { useComposerDraftsStore } from "@/screens/(authenticated)/stores/composerDraftsStore";
+import { waitForSettledUploads } from "./settle";
 
 const FALLBACK_MEDIA_TYPE = "application/octet-stream";
 
@@ -176,27 +174,9 @@ export async function awaitAttachmentUploads(
 		attachments.filter((item) => stale[item.id]?.error !== undefined),
 	);
 
-	const settled = (uploads: Record<string, AttachmentUpload>) =>
-		attachments.every((item) => {
-			const entry = uploads[item.id];
-			// A vanished entry counts as settled — the attachment was removed
-			// mid-send, and waiting on it would hang the composer.
-			return !entry || entry.fileId !== undefined || entry.error !== undefined;
-		});
-
-	const uploads = await new Promise<Record<string, AttachmentUpload>>(
-		(resolve) => {
-			// Read back rather than reusing the snapshot above: anything just
-			// restarted has had its error cleared and is no longer settled.
-			const current = uploadsNow();
-			if (settled(current)) return resolve(current);
-			const unsubscribe = useComposerDraftsStore.subscribe((state) => {
-				const current = state.draftsByKey[draftKey]?.uploads ?? {};
-				if (!settled(current)) return;
-				unsubscribe();
-				resolve(current);
-			});
-		},
+	const uploads = await waitForSettledUploads(
+		draftKey,
+		attachments.map((item) => item.id),
 	);
 
 	return attachments.map((item) => {
