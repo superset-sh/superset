@@ -3266,11 +3266,12 @@ msgstr "클라우드"
 msgid "Cloud sandboxes"
 msgstr "클라우드 샌드박스"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "클라우드 샌드박스는 내부 테스트 중이라 Superset 팀으로 제한되어 있으며, {account}은(는) 목록에 없습니다."
+
 msgid "Cloud workspace"
 msgstr "클라우드 워크스페이스"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "클라우드 워크스페이스는 아직 사용할 수 없습니다"
 
 msgid "Code"
 msgstr "코드"

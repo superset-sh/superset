@@ -3266,11 +3266,12 @@ msgstr "Cloud"
 msgid "Cloud sandboxes"
 msgstr "Bacs à sable cloud"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Les bacs à sable cloud sont réservés à l'équipe Superset pendant la phase de test interne, et {account} ne figure pas sur la liste."
+
 msgid "Cloud workspace"
 msgstr "Espace de travail cloud"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Les espaces de travail cloud ne sont pas encore disponibles"
 
 msgid "Code"
 msgstr "Code"

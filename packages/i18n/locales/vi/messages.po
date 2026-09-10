@@ -3266,11 +3266,12 @@ msgstr "Cloud"
 msgid "Cloud sandboxes"
 msgstr "Sandbox trên cloud"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Sandbox trên cloud chỉ dành cho nhóm Superset trong thời gian tính năng đang thử nghiệm nội bộ, và {account} không có trong danh sách."
+
 msgid "Cloud workspace"
 msgstr "Workspace cloud"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Workspace trên cloud chưa khả dụng"
 
 msgid "Code"
 msgstr "Code"

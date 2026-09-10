@@ -8,7 +8,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { promoteSandboxToEnvironment } from "../../lib/blaxel";
-import { assertInternal, assertMember } from "../../lib/cloud-guards";
+import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import { jwtProcedure, userError } from "../../trpc";
 import { secretsRouter } from "./secrets";
 
@@ -64,7 +64,7 @@ export const environmentRouter = {
 	list: jwtProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess({ userId: ctx.userId, email: ctx.email });
 			assertMember(ctx.organizationIds, input.organizationId);
 			return db
 				.select()
@@ -84,7 +84,7 @@ export const environmentRouter = {
 	get: jwtProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess({ userId: ctx.userId, email: ctx.email });
 			return loadEnvironment(input.id, ctx.organizationIds);
 		}),
 
@@ -96,7 +96,7 @@ export const environmentRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess({ userId: ctx.userId, email: ctx.email });
 			assertMember(ctx.organizationIds, input.organizationId);
 			const [row] = await db
 				.insert(environments)
@@ -119,7 +119,7 @@ export const environmentRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess({ userId: ctx.userId, email: ctx.email });
 			const workspace = await db.query.cloudWorkspaces.findFirst({
 				where: eq(cloudWorkspaces.id, input.cloudWorkspaceId),
 			});
@@ -169,7 +169,7 @@ export const environmentRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess({ userId: ctx.userId, email: ctx.email });
 			assertOwned(await loadEnvironment(input.id, ctx.organizationIds));
 			const [row] = await db
 				.update(environments)
@@ -185,7 +185,7 @@ export const environmentRouter = {
 	archive: jwtProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess({ userId: ctx.userId, email: ctx.email });
 			assertOwned(await loadEnvironment(input.id, ctx.organizationIds));
 			await db
 				.update(environments)

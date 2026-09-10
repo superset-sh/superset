@@ -206,7 +206,14 @@ export const jwtProcedure = t.procedure
 					return next({
 						ctx: {
 							userId: payload.sub,
-							email: (payload.email as string) ?? "",
+							// OAuth access tokens carry no `email` claim —
+							// customAccessTokenClaims mirrors definePayload's memberships
+							// but not its email — so fall back to the session the same
+							// bearer built, which read the user row.
+							email:
+								(typeof payload.email === "string" ? payload.email : null) ??
+								ctx.session?.user.email ??
+								"",
 							organizationIds,
 							activeOrganizationId: resolveActiveOrganizationId(
 								organizationIds,

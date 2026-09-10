@@ -3266,11 +3266,12 @@ msgstr "Bulut"
 msgid "Cloud sandboxes"
 msgstr "Bulut sandbox'ları"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Bulut sandbox'ları, özellik dahili testteyken yalnızca Superset ekibiyle sınırlıdır ve {account} listede yok."
+
 msgid "Cloud workspace"
 msgstr "Bulut çalışma alanı"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Bulut çalışma alanları henüz kullanılamıyor"
 
 msgid "Code"
 msgstr "Kod"

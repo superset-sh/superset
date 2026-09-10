@@ -190,9 +190,9 @@ export const FEATURE_FLAGS = {
 	 */
 	CHAT_V3: "chat-v3",
 	/**
-	 * Shows the cloud-workspace option in the create picker. The API gates
-	 * these to @superset.sh accounts independently, so the flag controls
-	 * visibility rather than access.
+	 * Who may use cloud sandboxes: shows the option in the create picker, and
+	 * gates the cloud procedures server-side (`assertCloudAccess`). The release
+	 * conditions are the allowlist, so access changes without a deploy.
 	 */
 	CLOUD_WORKSPACES: "cloud-workspaces",
 	/**

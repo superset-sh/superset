@@ -3266,11 +3266,12 @@ msgstr "Облако"
 msgid "Cloud sandboxes"
 msgstr "Облачные песочницы"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Облачные песочницы доступны только команде Superset, пока функция проходит внутреннее тестирование, а {account} отсутствует в списке."
+
 msgid "Cloud workspace"
 msgstr "Облачная рабочая область"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Облачные рабочие области пока недоступны"
 
 msgid "Code"
 msgstr "Код"

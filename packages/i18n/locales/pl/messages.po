@@ -3266,11 +3266,12 @@ msgstr "Chmura"
 msgid "Cloud sandboxes"
 msgstr "Piaskownice w chmurze"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Piaskownice w chmurze są ograniczone do zespołu Superset na czas testów wewnętrznych, a {account} nie znajduje się na liście."
+
 msgid "Cloud workspace"
 msgstr "Obszar roboczy w chmurze"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Obszary robocze w chmurze nie są jeszcze dostępne"
 
 msgid "Code"
 msgstr "Kod"

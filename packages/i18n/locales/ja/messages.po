@@ -3266,11 +3266,12 @@ msgstr "クラウド"
 msgid "Cloud sandboxes"
 msgstr "クラウドサンドボックス"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "クラウドサンドボックスは内部テスト中のため Superset チームに限定されており、{account} はその対象に含まれていません。"
+
 msgid "Cloud workspace"
 msgstr "クラウドワークスペース"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "クラウドワークスペースはまだ利用できません"
 
 msgid "Code"
 msgstr "コード"
