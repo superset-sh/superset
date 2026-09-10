@@ -1,7 +1,10 @@
 import type { AppRouter } from "@superset/host-service";
 import { createHostServiceLinks } from "@superset/workspace-client";
-import { createTRPCClient, TRPCClientError } from "@trpc/client";
+import { createTRPCClient } from "@trpc/client";
 import { getHostServiceHeaders } from "./host-service-auth";
+import { isHostServiceConnectionError } from "./utils/isHostServiceConnectionError";
+
+export { isHostServiceConnectionError } from "./utils/isHostServiceConnectionError";
 
 const clientCache = new Map<
 	string,
@@ -31,17 +34,6 @@ export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {
 
 const HOST_SERVICE_MAX_RETRIES = 3;
 const HOST_SERVICE_RETRY_DELAY_MS = 700;
-
-/**
- * True for a failed host-service request that never got a real response —
- * connection-refused during a restart, a dropped stream, DNS failure. tRPC
- * only populates `data` from a parsed server error envelope, so its absence
- * means the failure was transport-level rather than the server rejecting the
- * request (404, validation, etc.), which should never be retried here.
- */
-export function isHostServiceConnectionError(error: unknown): boolean {
-	return error instanceof TRPCClientError && error.data == null;
-}
 
 /**
  * Query-level `retry` for host-service requests: bounded retries with

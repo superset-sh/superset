@@ -2,9 +2,9 @@ import { COMPANY } from "@superset/shared/constants";
 import { ImageResponse } from "next/og";
 import { fetchParticipant } from "@/app/[lang]/utils/fetchLeaderboard";
 import { formatTokens, formatUsd } from "@/app/[lang]/utils/formatUsage";
+import { getInterBold } from "../../utils/getInterBold";
 import { OgStat } from "./components/OgStat";
 import { OG_BG, OG_BRAND, OG_DIM } from "./constants";
-import { getInterBold } from "./utils/getInterBold";
 
 export const alt = "Superset leaderboard profile";
 export const size = { width: 1200, height: 630 };

@@ -15,6 +15,10 @@ import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { withUniwind } from "uniwind";
 import { getHostAuthToken, getRelayUrl } from "@/lib/host/client";
 import { ensureSandboxAccess, isSandboxHost } from "@/lib/sandbox-access";
+import {
+	readWarmTerminal,
+	rememberWarmTerminal,
+} from "@/lib/terminal/warmTerminalCache";
 
 const StyledWebView = withUniwind(WebView);
 
@@ -80,7 +84,14 @@ interface TerminalWebViewProps {
 
 type PageMessage =
 	| { type: "ready" }
-	| { type: "dial"; id: number; replay: "0" | "1" }
+	| { type: "dial"; id: number; seq: string }
+	| {
+			type: "snapshot";
+			terminalId: string;
+			data: string;
+			epoch: string | null;
+			seq: number;
+	  }
 	| { type: "state"; state: TerminalConnectionState }
 	| { type: "control"; message: TerminalControlMessage }
 	| { type: "openUrl"; url: string }
@@ -150,12 +161,15 @@ export const TerminalWebView = forwardRef<
 	// sandbox's edge token expires, so a redial after a long background must
 	// re-mint rather than reuse the URL that worked last time.
 	const buildDialUrl = useCallback(
-		async (replay: "0" | "1"): Promise<string> => {
+		async (seq: string): Promise<string> => {
 			const token = await getHostAuthToken();
 			const query = [
 				`workspaceId=${encodeURIComponent(workspaceId)}`,
 				"themeType=dark",
-				...(replay === "0" ? ["replay=0"] : []),
+				// The page's position in the PTY stream: an epoch:seq anchor
+				// asks for the bytes it missed, "new" for the ring tail,
+				// "none" to reanchor without overwriting restored content.
+				`seq=${encodeURIComponent(seq)}`,
 				`token=${encodeURIComponent(token)}`,
 			];
 			const path = `/terminal/${encodeURIComponent(terminalId)}`;
@@ -222,11 +236,27 @@ export const TerminalWebView = forwardRef<
 				// else. `ready` precedes the page's first connect, so re-asserting
 				// here lands before it attaches.
 				postToPage({ type: "visible", visible: visibleRef.current });
+				// The page waits for this before dialling, so whatever we hold
+				// for this session is painted first and the attach asks only for
+				// what came after it.
+				postToPage({
+					type: "attach",
+					terminalId,
+					restore: readWarmTerminal(terminalId),
+				});
+				return;
+			}
+			if (message.type === "snapshot") {
+				rememberWarmTerminal(message.terminalId, {
+					data: message.data,
+					epoch: message.epoch,
+					seq: message.seq,
+				});
 				return;
 			}
 			if (message.type === "dial") {
-				const { id, replay } = message;
-				buildDialUrl(replay)
+				const { id, seq } = message;
+				buildDialUrl(seq)
 					.then((url) => postToPage({ type: "dialUrl", id, url }))
 					.catch((error: unknown) =>
 						postToPage({
@@ -258,7 +288,7 @@ export const TerminalWebView = forwardRef<
 				onScrollChangeRef.current?.(message.atBottom);
 			}
 		},
-		[buildDialUrl, postToPage],
+		[buildDialUrl, postToPage, terminalId],
 	);
 
 	useEffect(() => {
@@ -276,7 +306,11 @@ export const TerminalWebView = forwardRef<
 	useEffect(() => {
 		if (mountedTerminalId.current === terminalId) return;
 		mountedTerminalId.current = terminalId;
-		postToPage({ type: "switch" });
+		postToPage({
+			type: "switch",
+			terminalId,
+			restore: readWarmTerminal(terminalId),
+		});
 	}, [terminalId, postToPage]);
 
 	useImperativeHandle(

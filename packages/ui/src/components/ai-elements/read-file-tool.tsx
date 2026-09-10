@@ -1,4 +1,6 @@
 "use client";
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 
 import { FileIcon } from "lucide-react";
 import type { BundledLanguage } from "shiki";
@@ -36,6 +38,8 @@ export function ReadFileTool({
 	onOpenInPane,
 	className,
 }: ReadFileToolProps) {
+	const { _: translate } = useTranslation();
+
 	return (
 		<ToolCallRow
 			className={className}
@@ -43,7 +47,7 @@ export function ReadFileTool({
 			icon={FileIcon}
 			isError={isError}
 			isPending={isPending}
-			title="Read"
+			title={translate(msg({ message: "Read" }))}
 		>
 			<div className="py-1.5 pl-2">
 				<ShowCode

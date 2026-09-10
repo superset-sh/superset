@@ -197,11 +197,11 @@ function KeyboardShortcutsPage() {
 			CATEGORY_ORDER.map((category) => [
 				category,
 				(hotkeysByCategory[category] ?? []).filter((hotkey) =>
-					i18n._(hotkey.label).toLowerCase().includes(lower),
+					t(hotkey.label).toLowerCase().includes(lower),
 				),
 			]),
 		) as typeof hotkeysByCategory;
-	}, [searchQuery, i18n]);
+	}, [searchQuery, t]);
 
 	const handleStartRecording = (id: HotkeyId) => {
 		setRecordingId((current) => (current === id ? null : id));

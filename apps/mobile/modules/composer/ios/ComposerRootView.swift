@@ -307,6 +307,7 @@ struct ComposerRootView: View {
                 labels: model.sessionTabLabels,
                 onSelect: { model.onSessionTabPress?($0) },
                 onClose: { model.onSessionTabClose?($0) },
+                onRename: { model.onSessionTabRename?($0) },
                 onCopyId: { model.onSessionTabCopyId?($0) },
                 onNewSession: { model.onNewSessionPress?() },
                 onAllSessions: { model.onAllSessionsPress?() }
@@ -475,7 +476,7 @@ struct ComposerRootView: View {
       // High priority so it beats the surface's tap gesture, which wraps this
       // view and would otherwise win arbitration and swallow the drag.
       .highPriorityGesture(dismissDrag)
-      .accessibilityLabel("Dismiss")
+      .accessibilityLabel(composerLocalized("Dismiss"))
   }
 
   /// Drag down to dismiss. The surface tracks the finger while the gesture is
@@ -523,7 +524,7 @@ struct ComposerRootView: View {
             .font(.system(size: 17, weight: .regular))
         }
         .buttonStyle(.composerControl)
-        .accessibilityLabel("Add attachment")
+        .accessibilityLabel(composerLocalized("Add attachment"))
       }
 
       if !isExpanded {
@@ -577,7 +578,7 @@ struct ComposerRootView: View {
       }
       .buttonStyle(.composerControl)
       .disabled(true)
-      .accessibilityLabel("Transcribing")
+      .accessibilityLabel(composerLocalized("Transcribing"))
       .transition(.opacity)
     case .idle:
       Button { model.dictation.start() } label: {
@@ -585,7 +586,7 @@ struct ComposerRootView: View {
           .font(.system(size: 17, weight: .regular))
       }
       .buttonStyle(.composerControl)
-      .accessibilityLabel("Dictate")
+      .accessibilityLabel(composerLocalized("Dictate"))
       .transition(.opacity)
     }
   }
@@ -604,7 +605,7 @@ struct ComposerRootView: View {
     // white fill would leave a bright disc that still reads as "ready".
     .buttonStyle(model.isSending ? .composerControl : .composerSend)
     .disabled(model.isSending)
-    .accessibilityLabel(model.isSending ? "Sending" : "Send")
+    .accessibilityLabel(model.isSending ? composerLocalized("Sending") : composerLocalized("Send"))
     .transition(.opacity)
   }
 

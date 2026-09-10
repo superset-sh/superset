@@ -94,11 +94,19 @@ const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
 
+	// getInterBold reads the font through process.cwd(), which the tracer
+	// cannot follow, so name it explicitly for the OG image routes.
+	outputFileTracingIncludes: {
+		"/[lang]/blog/[slug]/opengraph-image": ["./public/fonts/Inter-Bold.ttf"],
+		"/[lang]/changelog/[slug]/opengraph-image": [
+			"./public/fonts/Inter-Bold.ttf",
+		],
+		"/[lang]/user/[handle]/opengraph-image": ["./public/fonts/Inter-Bold.ttf"],
+	},
+
 	// Compiles @lingui/react/macro at build time. Version must stay in
 	// lockstep with Next's swc_core ABI — see plans/20260826-i18n-strategy.md.
 	experimental: {
-		// next/root-params powers the [lang] locale resolution in i18n-server.ts.
-		rootParams: true,
 		swcPlugins: [["@lingui/swc-plugin", {}]],
 	},
 

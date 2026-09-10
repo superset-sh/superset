@@ -1,0 +1,14 @@
+"Dismiss" = "閉じる";
+"Add attachment" = "添付ファイルを追加";
+"Transcribing" = "文字起こし中";
+"Dictate" = "音声入力";
+"Sending" = "送信中";
+"Send" = "送信";
+"Stop dictation" = "音声入力を停止";
+"Remove attachment" = "添付ファイルを削除";
+"Document" = "書類";
+"Close" = "閉じる";
+"Done" = "完了";
+"Model: %@" = "モデル: %@";
+"Microphone access is not allowed" = "マイクへのアクセスが許可されていません";
+"Could not start dictation" = "音声入力を開始できませんでした";

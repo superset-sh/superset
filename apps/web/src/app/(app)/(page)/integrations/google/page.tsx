@@ -10,58 +10,59 @@ import {
 import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { FaGoogle } from "react-icons/fa";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { requireOfferedIntegration } from "../utils/requireOfferedIntegration";
 import { ConnectionControls } from "./components/ConnectionControls";
 
-const CALLBACK_MESSAGES = {
-	oauth_denied: i18n._(
-		msg({
-			message: "Authorization was denied. Please try again.",
-		}),
-	),
-	missing_params: i18n._(
-		msg({
-			message: "Invalid OAuth response. Please try again.",
-		}),
-	),
-	invalid_state: i18n._(
-		msg({
-			message: "Invalid state parameter. Please try again.",
-		}),
-	),
-	token_exchange_failed: i18n._(
-		msg({
-			message: "Failed to connect to Google. Please try again.",
-		}),
-	),
-	missing_scopes: i18n._(
-		msg({
-			message:
-				"Both Calendar and Gmail access are required. Please allow both when asked.",
-		}),
-	),
-	no_refresh_token: i18n._(
-		msg({
-			message:
-				"Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again.",
-		}),
-	),
-	userinfo_failed: i18n._(
-		msg({
-			message: "Could not read the Google account. Please try again.",
-		}),
-	),
-	unauthorized: i18n._(
-		msg({
-			message: "You are not authorized to perform this action.",
-		}),
-	),
-};
-
 export default async function GoogleIntegrationPage() {
+	const i18n = await initServerI18n();
+	const CALLBACK_MESSAGES = {
+		oauth_denied: i18n._(
+			msg({
+				message: "Authorization was denied. Please try again.",
+			}),
+		),
+		missing_params: i18n._(
+			msg({
+				message: "Invalid OAuth response. Please try again.",
+			}),
+		),
+		invalid_state: i18n._(
+			msg({
+				message: "Invalid state parameter. Please try again.",
+			}),
+		),
+		token_exchange_failed: i18n._(
+			msg({
+				message: "Failed to connect to Google. Please try again.",
+			}),
+		),
+		missing_scopes: i18n._(
+			msg({
+				message:
+					"Both Calendar and Gmail access are required. Please allow both when asked.",
+			}),
+		),
+		no_refresh_token: i18n._(
+			msg({
+				message:
+					"Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again.",
+			}),
+		),
+		userinfo_failed: i18n._(
+			msg({
+				message: "Could not read the Google account. Please try again.",
+			}),
+		),
+		unauthorized: i18n._(
+			msg({
+				message: "You are not authorized to perform this action.",
+			}),
+		),
+	};
+
 	await requireOfferedIntegration("google");
 	const trpc = await api();
 	const organization = await trpc.user.myOrganization.query();

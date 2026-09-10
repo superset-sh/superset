@@ -10,74 +10,73 @@ import {
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { FaGithub } from "react-icons/fa";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
 import { RepositoryList } from "./components/RepositoryList";
 
-const CALLBACK_MESSAGES = {
-	installation_cancelled: i18n._(
-		msg({
-			message: "GitHub App installation was cancelled.",
-		}),
-	),
-	missing_params: i18n._(
-		msg({
-			message: "Invalid installation response. Please try again.",
-		}),
-	),
-	invalid_state: i18n._(
-		msg({
-			message: "Invalid state parameter. Please try again.",
-		}),
-	),
-	installation_fetch_failed: i18n._(
-		msg({
-			message: "Failed to fetch installation details. Please try again.",
-		}),
-	),
-	save_failed: i18n._(
-		msg({
-			message: "Failed to save installation. Please try again.",
-		}),
-	),
-	already_connected: i18n._(
-		msg({
-			message:
-				"This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again.",
-		}),
-	),
-	unauthorized: i18n._(
-		msg({
-			message: "You are not authorized to perform this action.",
-		}),
-	),
-	unexpected: i18n._(
-		msg({
-			message: "Something went wrong. Please try again.",
-		}),
-	),
-};
-
-const CALLBACK_WARNINGS = {
-	sync_queue_failed: i18n._(
-		msg({
-			message:
-				"GitHub connected, but initial sync failed to start. Please try reconnecting.",
-		}),
-	),
-};
-
-const CALLBACK_SUCCESSES = {
-	github_installed: i18n._(
-		msg({
-			message: "GitHub App installed successfully!",
-		}),
-	),
-};
-
 export default async function GitHubIntegrationPage() {
+	const i18n = await initServerI18n();
+	const CALLBACK_MESSAGES = {
+		installation_cancelled: i18n._(
+			msg({
+				message: "GitHub App installation was cancelled.",
+			}),
+		),
+		missing_params: i18n._(
+			msg({
+				message: "Invalid installation response. Please try again.",
+			}),
+		),
+		invalid_state: i18n._(
+			msg({
+				message: "Invalid state parameter. Please try again.",
+			}),
+		),
+		installation_fetch_failed: i18n._(
+			msg({
+				message: "Failed to fetch installation details. Please try again.",
+			}),
+		),
+		save_failed: i18n._(
+			msg({
+				message: "Failed to save installation. Please try again.",
+			}),
+		),
+		already_connected: i18n._(
+			msg({
+				message:
+					"This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again.",
+			}),
+		),
+		unauthorized: i18n._(
+			msg({
+				message: "You are not authorized to perform this action.",
+			}),
+		),
+		unexpected: i18n._(
+			msg({
+				message: "Something went wrong. Please try again.",
+			}),
+		),
+	};
+	const CALLBACK_WARNINGS = {
+		sync_queue_failed: i18n._(
+			msg({
+				message:
+					"GitHub connected, but initial sync failed to start. Please try reconnecting.",
+			}),
+		),
+	};
+	const CALLBACK_SUCCESSES = {
+		github_installed: i18n._(
+			msg({
+				message: "GitHub App installed successfully!",
+			}),
+		),
+	};
+
 	const trpc = await api();
 	const organization = await trpc.user.myOrganization.query();
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import {
 	Card,
 	CardContent,
@@ -22,7 +23,8 @@ export interface FunnelStep {
 
 interface FunnelChartProps {
 	title: string;
-	description?: string;
+	// See InsightTileFrame: interpolated copy has to arrive as <Trans> JSX.
+	description?: ReactNode;
 	steps: FunnelStep[] | null | undefined;
 	isLoading?: boolean;
 	error?: { message: string } | null;
@@ -76,6 +78,8 @@ export function FunnelChart({
 	error,
 	headerAction,
 }: FunnelChartProps) {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const firstCount = steps?.[0]?.count ?? 0;
 
@@ -124,7 +128,14 @@ export function FunnelChart({
 									previous && previous.count > 0
 										? (step.count / previous.count) * 100
 										: null;
-								const dropped = previous ? previous.count - step.count : null;
+								// A stage can exceed the one before it when a step's
+								// event is not emitted by every client yet, so a
+								// "drop-off" is only real when it is positive.
+								const droppedRaw = previous
+									? previous.count - step.count
+									: null;
+								const dropped =
+									droppedRaw !== null && droppedRaw > 0 ? droppedRaw : null;
 								const droppedPctOfStart =
 									dropped !== null && firstCount > 0
 										? (dropped / firstCount) * 100
@@ -156,10 +167,10 @@ export function FunnelChart({
 																label={t({
 																	message: "Dropped off",
 																})}
-																value={dropped.toLocaleString()}
+																value={formatNumber(dropped, undefined)}
 															/>
 														) : null}
-														{pctOfPrevious !== null ? (
+														{dropped !== null && pctOfPrevious !== null ? (
 															<TooltipRow
 																label={t({
 																	message: "Drop-off from previous",
@@ -197,7 +208,7 @@ export function FunnelChart({
 														label={t({
 															message: "Converted",
 														})}
-														value={step.count.toLocaleString()}
+														value={formatNumber(step.count, undefined)}
 													/>
 													{pctOfPrevious !== null ? (
 														<TooltipRow
@@ -245,7 +256,7 @@ export function FunnelChart({
 												<LuMoveRight className="size-3 shrink-0 text-green-500" />
 												<span>
 													{t({
-														message: `${step.count.toLocaleString()} persons`,
+														message: `${formatNumber(step.count, undefined)} persons`,
 													})}
 													{pctOfPrevious !== null
 														? ` (${pctOfPrevious.toFixed(1)}%)`
@@ -257,7 +268,7 @@ export function FunnelChart({
 													<LuMoveDownRight className="size-3 shrink-0 text-red-500" />
 													<span>
 														{t({
-															message: `${dropped.toLocaleString()} persons`,
+															message: `${formatNumber(dropped, undefined)} persons`,
 														})}{" "}
 														({(100 - pctOfPrevious).toFixed(1)}%)
 													</span>

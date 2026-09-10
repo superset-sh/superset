@@ -10,9 +10,13 @@ import { EnterpriseArrTile } from "./components/EnterpriseArrTile";
 import { HogQLLineTile } from "./components/HogQLLineTile";
 import { MrrTile } from "./components/MrrTile";
 import { NetBurnTile } from "./components/NetBurnTile";
+import { OrgAdoptionTile } from "./components/OrgAdoptionTile";
+import { PaywallFunnelTile } from "./components/PaywallFunnelTile";
+import { PaywallFunnelTrendTile } from "./components/PaywallFunnelTrendTile";
 import { PostHogFunnelTile } from "./components/PostHogFunnelTile";
 import { RetentionGridTile } from "./components/RetentionGridTile";
 import { RunwayTile } from "./components/RunwayTile";
+import { StarHistoryTile } from "./components/StarHistoryTile";
 import { TrendSeriesTile } from "./components/TrendSeriesTile";
 
 // Mirror of PostHog dashboard 1884562 (plan D-7), organized by audience:
@@ -68,32 +72,6 @@ export default function DashboardPage() {
 		],
 	} as const;
 
-	const ACTIVE_ORGS_PROPS = {
-		insight: "activeOrgs",
-		description: t({
-			message: "Weekly orgs with 2+/5+ members creating real workspaces",
-		}),
-		xColumn: 0,
-		series: [
-			{
-				column: 1,
-				key: "orgs_2plus",
-				label: t({
-					message: "orgs with 2+ active members",
-				}),
-				kind: "line",
-			},
-			{
-				column: 2,
-				key: "orgs_5plus",
-				label: t({
-					message: "orgs with 5+ active members",
-				}),
-				kind: "line",
-			},
-		],
-	} as const;
-
 	return (
 		<div className="space-y-6">
 			<div>
@@ -127,6 +105,11 @@ export default function DashboardPage() {
 				</TabsList>
 
 				<TabsContent value="company" className="mt-4 space-y-6">
+					{/* Star growth and the paywall funnel lead: the two company
+					    metrics we watch week to week that no other tile covers. */}
+					<StarHistoryTile />
+					<PaywallFunnelTile />
+					<PaywallFunnelTrendTile />
 					<CashBalanceTile />
 					<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
 						<NetBurnTile />
@@ -149,7 +132,7 @@ export default function DashboardPage() {
 						<TrendSeriesTile {...DAU_PROPS} />
 						<TrendSeriesTile {...WAU_PROPS} />
 						<HogQLLineTile {...ACTIVATED_RATE_PROPS} />
-						<HogQLLineTile {...ACTIVE_ORGS_PROPS} />
+						<OrgAdoptionTile />
 						<HogQLLineTile
 							insight="workspacePercentiles"
 							description={t({

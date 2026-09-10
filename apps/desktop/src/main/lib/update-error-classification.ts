@@ -37,20 +37,12 @@ const UPDATER_DEFECT_PATTERNS = [
 // other OSStatus keeps reporting: a signing failure wears the same sentence.
 const AUTHORIZATION_OSSTATUS = /OSStatus\D*-6000[56](?!\d)/;
 
-// launchd refusing to start the ShipIt job because the user or their MDM
-// disabled it. Nothing but this sentence reaches us for it.
-const LAUNCHD_JOB_DISABLED = "the command is disabled and cannot be executed";
-
 // A server error from the release-artifact download is the CDN, not the
 // artifact. A 4xx stays reported: an asset that is not there is ours to
 // publish. Only the packaged app counts; a 5xx while fetching the feed
 // (latest-mac.yml) is a different failure and keeps reporting.
 const DOWNLOAD_SERVER_ERROR =
 	/^Cannot download ".*\.(?:zip|dmg|exe|AppImage|deb|rpm)", status 5\d\d(?!\d)/;
-
-// Squirrel.Mac stages every update under this cache directory, one
-// `update.<id>` directory per attempt.
-const SHIPIT_STAGING_PATH = /\/com\.superset\.desktop\.shipit\/update\.[^/]+\//;
 
 // Update failures owned by the user's machine, not by us. A full volume is the
 // common one, and neither staging tool gives us a code to match: `ditto` prints
@@ -78,20 +70,8 @@ export function isEnvironmentUpdateError(
 	if (
 		lowerMessage.includes("read-only volume") ||
 		lowerMessage.includes("the request timed out") ||
-		lowerMessage.includes(LAUNCHD_JOB_DISABLED) ||
 		AUTHORIZATION_OSSTATUS.test(message) ||
 		DOWNLOAD_SERVER_ERROR.test(message)
-	) {
-		return true;
-	}
-	// ditto naming a file it could not find under ShipIt's staging directory is
-	// a staged copy that lost its parent mid-unpack. It prints no errno, and
-	// nothing reuses it: Squirrel stages every attempt into a fresh directory
-	// and the download it was unpacked from is cleared on error.
-	if (
-		lowerMessage.startsWith("ditto:") &&
-		SHIPIT_STAGING_PATH.test(lowerMessage) &&
-		lowerMessage.includes("no such file or directory")
 	) {
 		return true;
 	}

@@ -17,6 +17,7 @@ public final class ComposerModule: Module {
         "onQuickKeyPress",
         "onSessionTabPress",
         "onSessionTabClose",
+        "onSessionTabRename",
         "onSessionTabCopyId",
         "onQuickKeysActionPress",
         "onNewSessionPress",
@@ -189,6 +190,7 @@ final class ComposerAnchorView: ExpoView {
   private let onQuickKeyPress = EventDispatcher()
   private let onSessionTabPress = EventDispatcher()
   private let onSessionTabClose = EventDispatcher()
+  private let onSessionTabRename = EventDispatcher()
   private let onSessionTabCopyId = EventDispatcher()
   private let onQuickKeysActionPress = EventDispatcher()
   private let onNewSessionPress = EventDispatcher()
@@ -220,6 +222,9 @@ final class ComposerAnchorView: ExpoView {
     }
     overlay.model.onSessionTabClose = { [weak self] id in
       self?.onSessionTabClose(["id": id])
+    }
+    overlay.model.onSessionTabRename = { [weak self] id in
+      self?.onSessionTabRename(["id": id])
     }
     overlay.model.onSessionTabCopyId = { [weak self] id in
       self?.onSessionTabCopyId(["id": id])

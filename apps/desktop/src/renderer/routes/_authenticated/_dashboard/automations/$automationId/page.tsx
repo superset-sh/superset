@@ -10,12 +10,16 @@ import { useMemo, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
+import { useCopyAutomationLink } from "../hooks/useCopyAutomationLink";
 import { isHostOfflineError } from "../utils/hostOfflineError";
 import { isStaleAgentError, STALE_AGENT_HELP } from "../utils/staleAgentError";
 import { AutomationBody } from "./components/AutomationBody";
+import { AutomationBreadcrumbBar } from "./components/AutomationBreadcrumbBar";
 import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
 import { VersionHistorySheet } from "./components/VersionHistorySheet";
+import { WrongOrganizationNotice } from "./components/WrongOrganizationNotice";
 
 type AutomationDetailSearch = {
 	history?: boolean;
@@ -32,6 +36,19 @@ export const Route = createFileRoute(
 	}),
 });
 
+/** Reads the organization the server named on a wrong-active-org FORBIDDEN. */
+function organizationFromError(params: unknown): { id: string | null } | null {
+	if (typeof params !== "object" || params === null) return null;
+	const { organizationName, organizationId } = params as Record<
+		string,
+		unknown
+	>;
+	// organizationName is what identifies this particular FORBIDDEN; the id is
+	// only there to offer the switch.
+	if (typeof organizationName !== "string" || !organizationName) return null;
+	return { id: typeof organizationId === "string" ? organizationId : null };
+}
+
 const RECENT_RUNS_LIMIT = 10;
 
 function AutomationDetailPage() {
@@ -43,6 +60,8 @@ function AutomationDetailPage() {
 	const currentUserId = session?.user?.id;
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 	const [hostOfflineOpen, setHostOfflineOpen] = useState(false);
+	const copyAutomationLink = useCopyAutomationLink();
+	const { switchOrganization } = useCollections();
 
 	// The prompt body rides its own procedure — `get` omits it.
 	const automationQuery = cloudTrpc.automation.get.useQuery(
@@ -135,15 +154,37 @@ function AutomationDetailPage() {
 		// A deleted automation is a NOT_FOUND from the server; anything else is a
 		// failed read and must not be reported as a missing automation.
 		const loadError = automationQuery.error ?? promptQuery.error;
+		// A member looking at the wrong active organization, not a missing row —
+		// the server resolves that case to FORBIDDEN and names the organization.
+		const elsewhere =
+			loadError instanceof TRPCClientError &&
+			loadError.data?.code === "FORBIDDEN"
+				? organizationFromError(loadError.data?.i18nParams)
+				: null;
 		const isMissing =
 			loadError instanceof TRPCClientError &&
 			loadError.data?.code === "NOT_FOUND";
+		const switchTo = elsewhere?.id;
+		// Keep the breadcrumb: a deep link is how people land here, so without it
+		// there is no way back to the list.
 		return (
-			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground select-text cursor-text">
-				{loadError && !isMissing ? (
-					<Trans>Couldn't load automation: {loadError.message}</Trans>
+			<div className="flex h-full w-full flex-col overflow-hidden">
+				<AutomationBreadcrumbBar />
+				{elsewhere ? (
+					<WrongOrganizationNotice
+						description={errorMessage(loadError)}
+						onSwitch={
+							switchTo ? () => void switchOrganization(switchTo) : undefined
+						}
+					/>
 				) : (
-					<Trans>Automation not found.</Trans>
+					<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground select-text cursor-text">
+						{loadError && !isMissing ? (
+							<Trans>Couldn't load automation: {loadError.message}</Trans>
+						) : (
+							<Trans>Automation not found.</Trans>
+						)}
+					</div>
 				)}
 			</div>
 		);
@@ -160,6 +201,7 @@ function AutomationDetailPage() {
 			<div className="flex flex-1 flex-col overflow-hidden">
 				<AutomationDetailHeader
 					name={automation.name}
+					onCopyLink={() => copyAutomationLink(automation.id)}
 					onDelete={() => {
 						alert({
 							title: t({

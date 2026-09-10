@@ -47,6 +47,8 @@ import {
 	tombstoneSidebarWorkspaceRecord,
 } from "./sidebarMutations";
 
+import { getNewGroupTabOrder } from "./utils/getNewGroupTabOrder";
+
 type ProjectTopLevelItem = {
 	type: "workspace" | "section";
 	id: string;
@@ -575,40 +577,67 @@ export function useDashboardSidebarState() {
 	);
 
 	const createSection = useCallback(
-		(projectId: string, options: { name?: string } = {}) => {
-			const { name = "New group" } = options;
-			ensureSidebarProjectRecord(collections, projectId);
-
-			// A folder IS a tag: mint one from the name (collisions get -2)
-			// and key the presentation row by it.
-			const tag = mintFolderTag(
-				name,
-				getProjectFolderIndex(
-					collections,
-					hostWorkspaces,
-					tagFolderContext,
-					projectId,
-				).keys(),
+		(
+			projectId: string | null,
+			options: { name?: string; workspaceIds?: readonly string[] } = {},
+		) => {
+			const { name = "New group", workspaceIds = [] } = options;
+			if (projectId !== null)
+				ensureSidebarProjectRecord(collections, projectId);
+			const scope = tagFolderScope(projectId);
+			const folderIndex = getProjectFolderIndex(
+				collections,
+				hostWorkspaces,
+				tagFolderContext,
+				projectId,
 			);
-			const sectionId = buildSidebarFolderKey(projectId, tag);
+			const tag = mintFolderTag(name, folderIndex.keys());
+			const sectionId = buildSidebarFolderKey(scope, tag);
 			if (collections.v2SidebarSections.get(sectionId)) return sectionId;
 			const randomColor =
 				PROJECT_CUSTOM_COLORS[
 					Math.floor(Math.random() * PROJECT_CUSTOM_COLORS.length)
 				].value;
 
-			const tabOrder = getNextTabOrder(
-				getProjectTopLevelItems(
+			const topLevelItems = getProjectTopLevelItems(
+				collections,
+				hostWorkspaces,
+				tagFolderContext,
+				projectId,
+			);
+			const folders = [...folderIndex.values()];
+			const sources = workspaceIds.flatMap((workspaceId) => {
+				const workspace = collections.v2WorkspaceLocalState.get(workspaceId);
+				if (!workspace || workspace.sidebarState.projectId !== projectId)
+					return [];
+				const sourceSectionId = getEffectiveSectionId(
 					collections,
 					hostWorkspaces,
 					tagFolderContext,
-					projectId,
-				),
+					workspace,
+				);
+				if (sourceSectionId === null) {
+					return [
+						{ tabOrder: workspace.sidebarState.tabOrder, isGrouped: false },
+					];
+				}
+				const folder =
+					folders.find((item) => item.sectionId === sourceSectionId) ??
+					collections.v2SidebarSections.get(sourceSectionId);
+				return folder ? [{ tabOrder: folder.tabOrder, isGrouped: true }] : [];
+			});
+			const tabOrder = getNewGroupTabOrder(
+				sources,
+				[
+					...topLevelItems.map((item) => item.tabOrder),
+					...folders.map((item) => item.tabOrder),
+				],
+				getNextTabOrder(topLevelItems),
 			);
 
 			collections.v2SidebarSections.insert({
 				sectionId,
-				projectId,
+				projectId: scope,
 				name,
 				createdAt: new Date(),
 				tabOrder,
@@ -617,7 +646,7 @@ export function useDashboardSidebarState() {
 				tag,
 			});
 			// Seed presentation beside the host-owned membership tags.
-			writeTagSetting(projectId, tag, {
+			writeTagSetting(scope, tag, {
 				displayName: name,
 				color: randomColor,
 			});

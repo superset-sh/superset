@@ -5,8 +5,11 @@ import {
 	describe,
 	expect,
 	mock,
+	spyOn,
 	test,
 } from "bun:test";
+import * as childProcess from "node:child_process";
+import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
@@ -129,6 +132,45 @@ const baseManifest = (pid: number, endpoint = "http://127.0.0.1:55555") => ({
 });
 
 const spawnConfig = { authToken: "token", cloudApiUrl: "https://api.example" };
+
+test.each([
+	"ENOENT",
+	"EACCES",
+])("a failed launcher handles its asynchronous %s after startup rejects", async (code) => {
+	resetMocks();
+	testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-spawn-test-"));
+	const coordinator = new HostServiceCoordinator();
+	const internals = coordinator as unknown as {
+		buildEnv: () => Promise<Record<string, string>>;
+		spawn: (org: string, config: typeof spawnConfig) => Promise<unknown>;
+		instances: Map<string, unknown>;
+	};
+	internals.buildEnv = async () => ({});
+	const child = Object.assign(new EventEmitter(), {
+		pid: undefined,
+		stdout: null,
+		stderr: null,
+	}) as ReturnType<typeof childProcess.spawn>;
+	const spawn = spyOn(childProcess, "spawn").mockReturnValue(child);
+	try {
+		await expect(internals.spawn("org-1", spawnConfig)).rejects.toThrow(
+			"Failed to spawn host service process",
+		);
+		expect(internals.instances.has("org-1")).toBe(false);
+		expect(pollHealthCheckMock).not.toHaveBeenCalled();
+		// Node emits error/close on the next tick for a spawn with no PID.
+		// An unhandled error would escape even though startup already rejected.
+		expect(() =>
+			child.emit("error", Object.assign(new Error(`spawn ${code}`), { code })),
+		).not.toThrow();
+		child.emit("close", -1, null);
+	} finally {
+		spawn.mockRestore();
+		coordinator.stopAll();
+		fs.rmSync(testManifestRoot, { recursive: true, force: true });
+		testManifestRoot = "";
+	}
+});
 
 interface HostServiceCoordinatorInternals {
 	getPreferredPorts(organizationId: string): number[];
@@ -381,6 +423,72 @@ describe("HostServiceCoordinator.reconcile", () => {
 		await expect(pendingStart).rejects.toThrow("start cancelled");
 		expect(internals.instances.size).toBe(0);
 		expect(killedPids).toContainEqual({ pid: 4001, signal: "SIGTERM" });
+	});
+
+	test("restartAll retries and counts authenticated orgs after startup failure", async () => {
+		coordinator.start = mock(async () => {
+			throw new Error("start failed");
+		});
+		await coordinator.reconcile(["org-1", "org-2"], spawnConfig);
+		expect(coordinator.getActiveOrganizationIds()).toEqual([]);
+
+		const restartMock = mock(async () => ({
+			port: 60_000,
+			secret: "secret",
+			machineId: "host-1",
+		}));
+		coordinator.restart = restartMock;
+
+		expect(await coordinator.restartAll(spawnConfig)).toBe(2);
+		expect(restartMock).toHaveBeenCalledWith("org-1", spawnConfig);
+		expect(restartMock).toHaveBeenCalledWith("org-2", spawnConfig);
+
+		await coordinator.reconcile([], spawnConfig);
+		restartMock.mockClear();
+		expect(await coordinator.restartAll(spawnConfig)).toBe(0);
+		expect(restartMock).not.toHaveBeenCalled();
+	});
+
+	test("restartAll restarts an active authenticated org only once", async () => {
+		const connection = { port: 60_000, secret: "secret", machineId: "host-1" };
+		coordinator.start = mock(async () => connection);
+		await coordinator.reconcile(["org-1"], spawnConfig);
+		internals.instances.set("org-1", {
+			...connection,
+			pid: 1001,
+			status: "running",
+			owned: true,
+		});
+		const restartMock = mock(async () => connection);
+		coordinator.restart = restartMock;
+
+		expect(await coordinator.restartAll(spawnConfig)).toBe(1);
+		expect(restartMock).toHaveBeenCalledTimes(1);
+	});
+
+	test("restartAll waits for every org before reporting a startup failure", async () => {
+		const connection = { port: 60_000, secret: "secret", machineId: "host-1" };
+		coordinator.start = mock(async () => connection);
+		await coordinator.reconcile(["org-1", "org-2"], spawnConfig);
+		let releaseStart!: () => void;
+		const pending = new Promise<void>((resolve) => {
+			releaseStart = resolve;
+		});
+		const failure = new Error("Host service process exited during startup");
+		coordinator.restart = mock(async (organizationId: string) => {
+			if (organizationId === "org-1") throw failure;
+			await pending;
+			return connection;
+		});
+		let settled = false;
+		const result = coordinator.restartAll(spawnConfig).catch((error) => {
+			settled = true;
+			return error;
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(settled).toBe(false);
+		releaseStart();
+		expect(await result).toBe(failure);
 	});
 
 	test("cancels startup recovery when membership is removed", async () => {

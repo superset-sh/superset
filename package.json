@@ -66,16 +66,17 @@
 		"tooling/*"
 	],
 	"overrides": {
-		"@tiptap/extension-dropcursor": "3.30.4",
-		"@tiptap/extension-floating-menu": "3.30.4",
-		"@tiptap/extension-gapcursor": "3.30.4",
-		"@tiptap/extension-list": "3.30.4",
-		"@tiptap/extension-list-keymap": "3.30.4",
-		"@tiptap/extensions": "3.30.4",
+		"@tiptap/extension-dropcursor": "3.30.5",
+		"@tiptap/extension-floating-menu": "3.30.5",
+		"@tiptap/extension-gapcursor": "3.30.5",
+		"@tiptap/extension-list": "3.30.5",
+		"@tiptap/extension-list-keymap": "3.30.5",
+		"@tiptap/extensions": "3.30.5",
 		"@types/hast": "3.0.5",
 		"axios": "1.18.1",
-		"hono": "4.12.34",
+		"hono": "4.13.5",
 		"kysely": "0.28.17",
+		"next": "16.3.3",
 		"rollup": "4.62.3",
 		"shell-quote": "1.9.0"
 	},
@@ -94,6 +95,7 @@
 		"@xterm/addon-webgl@0.20.0-beta.297": "patches/@xterm%2Faddon-webgl@0.20.0-beta.297.patch",
 		"metro@0.84.4": "patches/metro@0.84.4.patch",
 		"node-pty@1.2.0-beta.14": "patches/node-pty@1.2.0-beta.14.patch",
-		"@xterm/xterm@6.1.0-beta.302": "patches/@xterm%2Fxterm@6.1.0-beta.302.patch"
+		"@xterm/xterm@6.1.0-beta.302": "patches/@xterm%2Fxterm@6.1.0-beta.302.patch",
+		"trpc-electron@0.1.2": "patches/trpc-electron@0.1.2.patch"
 	}
 }

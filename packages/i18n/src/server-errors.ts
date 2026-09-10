@@ -43,6 +43,12 @@ export const serverErrorMessages: Record<
 				message: "Automation has no instructions",
 			}),
 		),
+	"serverError.automation.automationInAnotherOrganization": (params) =>
+		i18n._(
+			msg({
+				message: `This automation belongs to ${params?.organizationName}. Switch to that organization to open it.`,
+			}),
+		),
 	"serverError.automation.automationNotFound": () =>
 		i18n._(
 			msg({

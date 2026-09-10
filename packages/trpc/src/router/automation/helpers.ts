@@ -5,6 +5,8 @@ import {
 	automationPromptVersions,
 	automations,
 	automationTriggers,
+	members,
+	organizations,
 	type ScheduleTriggerConfig,
 	type TriggerConfig,
 } from "@superset/db/schema";
@@ -311,6 +313,55 @@ export const automationBaseColumns = {
 	createdAt: automations.createdAt,
 	updatedAt: automations.updatedAt,
 };
+
+/**
+ * The miss for an org-scoped automation read. An automation the caller can
+ * reach from another organization is a wrong-active-org, not a missing row —
+ * deep links land people here — so name that organization instead of a dead
+ * end. The members join is what keeps it from leaking: it can only ever
+ * resolve an organization the caller already belongs to. Mirrors pageNotFound
+ * in ../page/page.ts.
+ */
+export async function automationNotFound(
+	id: string,
+	userId: string,
+): Promise<Error> {
+	const [elsewhere] = await db
+		.select({
+			organizationId: organizations.id,
+			organizationName: organizations.name,
+		})
+		.from(automations)
+		.innerJoin(
+			members,
+			and(
+				eq(members.organizationId, automations.organizationId),
+				eq(members.userId, userId),
+			),
+		)
+		.innerJoin(organizations, eq(organizations.id, automations.organizationId))
+		.where(eq(automations.id, id))
+		.limit(1);
+
+	if (!elsewhere) {
+		return userError({
+			code: "NOT_FOUND",
+			message: "Automation not found",
+			i18nKey: "serverError.automation.automationNotFound",
+		});
+	}
+	return userError({
+		code: "FORBIDDEN",
+		message: `This automation belongs to ${elsewhere.organizationName}. Switch to that organization to open it.`,
+		i18nKey: "serverError.automation.automationInAnotherOrganization",
+		// organizationId rides along unused by the message so the client can
+		// offer a one-click switch rather than only naming the organization.
+		params: {
+			organizationName: elsewhere.organizationName,
+			organizationId: elsewhere.organizationId,
+		},
+	});
+}
 
 export async function getAutomationForUser(
 	userId: string,

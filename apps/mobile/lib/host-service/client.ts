@@ -6,6 +6,7 @@ import { createTRPCClient, httpLink, type TRPCClient } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
 import { getJwt } from "../auth/client";
+import { transportRetryLink } from "../errors";
 import { getRelayUrl } from "../host/client";
 import { getSandboxAccess, sandboxPreviewToken } from "../sandbox-access";
 
@@ -48,6 +49,7 @@ export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {
 
 	const client = createTRPCClient<AppRouter>({
 		links: [
+			transportRetryLink(),
 			httpLink({
 				url: `${hostUrl}/trpc`,
 				transformer: superjson,

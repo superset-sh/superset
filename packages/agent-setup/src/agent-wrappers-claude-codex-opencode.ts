@@ -164,6 +164,10 @@ const CODEX_MANAGED_EVENTS: Record<string, { matcher?: string }> = {
 	SessionStart: {},
 	SessionEnd: {},
 	UserPromptSubmit: {},
+	// A planning question blocks on user input; resume working after its answer.
+	// Match only this tool so ordinary tool calls never signal a waiting state.
+	PreToolUse: { matcher: "^request_user_input$" },
+	PostToolUse: { matcher: "^request_user_input$" },
 	Stop: {},
 	Interrupt: {},
 	SubagentStart: {},

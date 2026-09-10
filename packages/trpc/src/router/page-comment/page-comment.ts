@@ -151,10 +151,12 @@ export const pageCommentRouter = {
 				resolved: thread.resolvedAt !== null,
 				createdAt: thread.createdAt,
 				version,
+				createdByUserId: thread.createdByUserId,
 				comments: (byThread.get(thread.id) ?? []).map((row) => ({
 					id: row.comment.id,
 					body: row.comment.body,
 					authorKind: row.comment.authorKind,
+					authorUserId: row.comment.authorUserId,
 					authorName: row.authorName ?? "Unknown",
 					authorImage: row.authorImage ?? null,
 					createdAt: row.comment.createdAt,

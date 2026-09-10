@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
+// Static import so the real module is captured before the mock below replaces it.
+import * as reactActual from "react";
 
 let rawQueryResult: {
 	data?: {
@@ -19,7 +21,12 @@ const readFileUseQuery = mock(
 );
 const emptyUseQuery = mock(() => ({ data: undefined, isLoading: false }));
 
+// Spread the real module: bun's mock.module is process-global and permanent,
+// so dropping an export here deletes it for every test file that runs after
+// this one. `useMemo` runs eagerly so the hook can be exercised outside a
+// render.
 mock.module("react", () => ({
+	...reactActual,
 	useMemo: <T>(factory: () => T) => factory(),
 }));
 

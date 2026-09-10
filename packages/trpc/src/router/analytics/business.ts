@@ -1,4 +1,5 @@
 import { db } from "@superset/db/client";
+import { members } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
@@ -663,6 +664,54 @@ export const businessRouter = {
 				WHERE created_at + make_interval(months => k.k) <= now()
 				GROUP BY cohort_month, k.k
 				ORDER BY cohort_month, k.k
+			`);
+			return result.rows;
+		}),
+
+	// Organization adoption: how much of the base is a team rather than one
+	// person. Every account gets a personal organization on signup, so an
+	// organization with a second member is the moment an account became a team
+	// — the same definition the growth page's `teams` series uses.
+	//
+	// The ratio is the point: team count alone rises with any growth, while
+	// teams per 1,000 organizations only rises when teams outpace signups.
+	//
+	// Membership is reconstructed from `created_at` because removing a member
+	// deletes the row, so a team that shrank back to one person is not counted
+	// in the weeks it was a team. That biases history down, never up.
+	getOrgAdoption: adminProcedure
+		.input(z.object({ weeks: z.number().min(4).max(26).default(12) }))
+		.query(async ({ input }) => {
+			const result = await db.execute<{
+				week: string;
+				teams: number;
+				individual_accounts: number;
+				teams_per_1000: number;
+			}>(sql`
+				WITH weeks AS (
+					SELECT generate_series(
+						date_trunc('week', now()) - make_interval(weeks => ${input.weeks - 1}),
+						date_trunc('week', now()),
+						interval '1 week'
+					) AS wk
+				),
+				sized AS (
+					SELECT w.wk, m.organization_id AS org, count(*) AS members
+					FROM weeks w
+					JOIN ${members} m ON m.created_at < w.wk + interval '1 week'
+					GROUP BY w.wk, m.organization_id
+				)
+				SELECT
+					to_char(wk, 'YYYY-MM-DD') AS week,
+					count(*) FILTER (WHERE members >= 2)::int AS teams,
+					count(*) FILTER (WHERE members = 1)::int AS individual_accounts,
+					round(
+						1000.0 * count(*) FILTER (WHERE members >= 2) / nullif(count(*), 0),
+						2
+					)::float AS teams_per_1000
+				FROM sized
+				GROUP BY wk
+				ORDER BY wk
 			`);
 			return result.rows;
 		}),

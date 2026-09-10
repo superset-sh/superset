@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { FileIcon } from "lucide-react-native";
 import { ClickableFilePath } from "./clickable-file-path";
 import { ShowCode } from "./show-code";
@@ -33,6 +35,8 @@ export function ReadFileTool({
 	onOpenInPane,
 	className,
 }: ReadFileToolProps) {
+	const { _: translate } = useTranslation();
+
 	return (
 		<ToolCallRow
 			className={className}
@@ -46,7 +50,7 @@ export function ReadFileTool({
 			icon={FileIcon}
 			isError={isError}
 			isPending={isPending}
-			title="Read"
+			title={translate(msg({ message: "Read" }))}
 		>
 			<ShowCode
 				className="my-1.5 ml-2"

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -125,7 +126,7 @@ export function NewSessionSheet() {
 				t({
 					message: "Could not start session",
 				}),
-				error instanceof Error ? error.message : String(error),
+				errorCopy(error),
 			);
 		}
 	};

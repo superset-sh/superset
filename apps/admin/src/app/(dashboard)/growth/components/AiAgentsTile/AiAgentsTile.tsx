@@ -1,7 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
@@ -14,6 +14,8 @@ import { RankedTable } from "../RankedTable";
 const STALE_TIME_MS = 10 * 60 * 1000;
 
 export function AiAgentsTile() {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const trpc = useTRPC();
 	const { days } = useGrowthRange();

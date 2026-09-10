@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from "bun:test";
-import { initI18n, initI18nAsync } from "@superset/i18n";
+import { i18n, initI18n, initI18nAsync } from "@superset/i18n";
 import { bandTier, factoryScore } from "@superset/trpc/leaderboard-tier";
 import {
 	axisAtBand,
@@ -237,9 +237,9 @@ describe("runStatus", () => {
 
 	test("an upcoming run names its start date", () => {
 		if (!run) throw new Error("expected at least one run");
-		expect(runStatusLabel("upcoming", run)).toBe("starts September 1");
-		expect(runStatusLabel("active", run)).toBe("happening now");
-		expect(runStatusLabel("complete", run)).toBe("complete");
+		expect(runStatusLabel("upcoming", run, i18n)).toBe("starts September 1");
+		expect(runStatusLabel("active", run, i18n)).toBe("happening now");
+		expect(runStatusLabel("complete", run, i18n)).toBe("complete");
 	});
 
 	test("the status text and its date follow the active locale", async () => {
@@ -247,8 +247,8 @@ describe("runStatus", () => {
 		try {
 			// Non-English catalogs load lazily; wait for Japanese before asserting.
 			await initI18nAsync("ja");
-			expect(runStatusLabel("active", run)).toBe("開催中");
-			expect(runStatusLabel("upcoming", run)).toBe("9月1日 開始");
+			expect(runStatusLabel("active", run, i18n)).toBe("開催中");
+			expect(runStatusLabel("upcoming", run, i18n)).toBe("9月1日 開始");
 		} finally {
 			initI18n("en");
 		}

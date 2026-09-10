@@ -8,3 +8,11 @@ import { env } from "@/lib/env";
 export function workspaceShareUrl(workspaceId: string): string {
 	return `${env.EXPO_PUBLIC_WEB_URL.replace(/\/$/, "")}/workspaces/${workspaceId}`;
 }
+
+/**
+ * Where a plan is actually changed. The mobile app never sells a plan — the
+ * organization's owner does it on the web — so the settings row links here.
+ */
+export function billingSettingsUrl(): string {
+	return `${env.EXPO_PUBLIC_WEB_URL.replace(/\/$/, "")}/settings/billing`;
+}

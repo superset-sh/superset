@@ -6,6 +6,7 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
@@ -13,7 +14,6 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useIsOrganizationOwner } from "renderer/routes/_authenticated/hooks/useIsOrganizationOwner";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { DashboardSidebarProject } from "../../../../types";
 import type { ImportableWorktree } from "../../components/ImportWorktreesDialog";
@@ -26,7 +26,7 @@ export function useDashboardSidebarProjectSectionActions({
 	project,
 }: UseDashboardSidebarProjectSectionActionsOptions) {
 	const { t } = useLingui();
-	const openModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 	const navigate = useNavigate();
 	// Renames commit on a host serving the project — host.db owns the name.
 	// Prefer the local host when it serves the project (always reachable);
@@ -176,7 +176,7 @@ export function useDashboardSidebarProjectSectionActions({
 	const openDeleteDialog = () => setIsDeleteDialogOpen(true);
 
 	const handleNewWorkspace = () => {
-		openModal(project.id);
+		openNewWorkspace(project.id);
 	};
 
 	// Menu action: list the worktrees git knows about that have no workspace

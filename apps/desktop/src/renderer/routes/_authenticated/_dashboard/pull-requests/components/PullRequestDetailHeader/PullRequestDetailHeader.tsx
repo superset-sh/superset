@@ -30,6 +30,7 @@ import { FaGithub } from "react-icons/fa";
 import { LuCheck, LuChevronRight, LuGitBranch } from "react-icons/lu";
 import { VscChevronDown, VscGitMerge } from "react-icons/vsc";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
@@ -41,7 +42,6 @@ import {
 	type LinkedPR,
 	useNewWorkspaceDraftStore,
 } from "renderer/stores/new-workspace-draft";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import {
 	type PullRequestDetail,
 	useInvalidatePullRequestDetail,
@@ -134,7 +134,7 @@ export function PullRequestDetailHeader({
 		(state) => state.selectProject,
 	);
 	const resetDraft = useNewWorkspaceDraftStore((state) => state.resetDraft);
-	const openModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 	const [pendingAction, setPendingAction] = useState<PendingAction | null>(
 		null,
 	);
@@ -232,7 +232,7 @@ export function PullRequestDetailHeader({
 		resetDraft();
 		selectProject(projectId);
 		updateDraft({ hostId, linkedPR });
-		openModal(projectId);
+		openNewWorkspace(projectId);
 	};
 
 	const defaultState = normalizePRState("open", false);

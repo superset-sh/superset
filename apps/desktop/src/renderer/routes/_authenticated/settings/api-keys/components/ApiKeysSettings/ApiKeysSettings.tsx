@@ -1,6 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
-import { formatDate as formatLocaleDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { COMPANY } from "@superset/shared/constants";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
@@ -40,6 +40,8 @@ interface ApiKeysSettingsProps {
 }
 
 export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
+	const { formatDate: formatLocaleDate } = useFormat();
+
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const utils = cloudTrpc.useUtils();

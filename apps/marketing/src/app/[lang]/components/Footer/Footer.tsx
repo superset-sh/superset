@@ -2,7 +2,6 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
-	i18n,
 	isSupportedLocale,
 	LOCALE_COOKIE,
 	LOCALE_LABELS,
@@ -249,7 +248,7 @@ function FooterLinkItem({ link }: { link: FooterLink }) {
 }
 
 function FooterLanguageSwitcher({ locale }: { locale?: SupportedLocale }) {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const pathname = usePathname() ?? "/";
 	// The server passes the URL's locale; every switch is a full navigation,
 	// so the value never changes within a page's lifetime and needs no

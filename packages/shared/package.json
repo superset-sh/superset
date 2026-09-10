@@ -48,6 +48,10 @@
 			"types": "./src/git-hook-tolerance.ts",
 			"default": "./src/git-hook-tolerance.ts"
 		},
+		"./github-stars": {
+			"types": "./src/github-stars.ts",
+			"default": "./src/github-stars.ts"
+		},
 		"./integrations": {
 			"types": "./src/integrations.ts",
 			"default": "./src/integrations.ts"
@@ -235,6 +239,10 @@
 		"./host-routing": {
 			"types": "./src/host-routing.ts",
 			"default": "./src/host-routing.ts"
+		},
+		"./install-update-lock": {
+			"types": "./src/install-update-lock.ts",
+			"default": "./src/install-update-lock.ts"
 		},
 		"./host-version": {
 			"types": "./src/host-version.ts",

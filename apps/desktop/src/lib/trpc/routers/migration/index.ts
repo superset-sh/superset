@@ -4,6 +4,7 @@ import {
 	projects,
 	settings,
 	v1MigrationState,
+	workspaceSections,
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
@@ -41,6 +42,10 @@ export const createMigrationRouter = () => {
 				.from(workspaces)
 				.where(isNull(workspaces.deletingAt))
 				.all();
+		}),
+
+		readV1Groups: publicProcedure.query(() => {
+			return localDb.select().from(workspaceSections).all();
 		}),
 
 		readV1Worktrees: publicProcedure.query(() => {

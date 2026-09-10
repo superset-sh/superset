@@ -4,6 +4,7 @@ const ROUTES = [
 	"agent-orchestration",
 	"blog",
 	"changelog",
+	"cloud",
 	"community",
 	"compare",
 	"contact",

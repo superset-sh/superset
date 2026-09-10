@@ -1,5 +1,5 @@
 import { PortalHost } from "@rn-primitives/portal";
-import { initI18n, resolveLocale } from "@superset/i18n";
+import { resolveLocale } from "@superset/i18n";
 import { I18nProvider } from "@superset/i18n/react";
 import {
 	focusManager,
@@ -13,6 +13,7 @@ import { AppState } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Uniwind } from "uniwind";
 import { useSession } from "@/lib/auth/client";
+import { watchNetworkState } from "@/lib/errors";
 import { NAV_THEME } from "@/lib/theme";
 
 Uniwind.setTheme("dark");
@@ -23,12 +24,15 @@ import { PostHogProvider } from "./providers/PostHogProvider";
 const queryClient = new QueryClient();
 
 // Device-language inference on first load; a persisted user setting takes
-// precedence once it exists (plans/20260826-i18n-strategy.md). Activated at
-// module scope so the first frame renders in the device language.
+// precedence once it exists (plans/20260826-i18n-strategy.md). The provider
+// waits for the catalog before mounting native navigation.
 const deviceLocale = resolveLocale(
 	getLocales().map((locale) => locale.languageTag),
 );
-initI18n(deviceLocale);
+
+// Lets a failed request say "no internet connection" rather than the vaguer
+// "could not reach the server" — see lib/errors.
+watchNetworkState();
 
 // React Query cannot see app focus on native, so without this no query ever
 // refetches on returning to the foreground — data went stale for the whole
@@ -48,7 +52,7 @@ export function RootLayout() {
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<QueryClientProvider client={queryClient}>
 				<PostHogProvider>
-					<I18nProvider locale={deviceLocale}>
+					<I18nProvider locale={deviceLocale} deferUntilReady>
 						<ThemeProvider value={NAV_THEME.dark}>
 							<Stack screenOptions={{ headerShown: false }}>
 								<Stack.Protected guard={!!session && !pendingDeletion}>

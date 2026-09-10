@@ -1,10 +1,13 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import {
+	chmodSync,
 	existsSync,
 	lstatSync,
 	mkdirSync,
 	mkdtempSync,
+	readdirSync,
 	rmSync,
+	statSync,
 	symlinkSync,
 	writeFileSync,
 } from "node:fs";
@@ -77,6 +80,16 @@ Object.assign(cleanupGitOps, {
 	deleteLocalBranch: async () =>
 		gitOpsSpec.deleteBranch ? gitOpsSpec.deleteBranch() : { deleted: true },
 } satisfies typeof realGitOps);
+
+/** Test teardown only: a directory whose write bit is cleared defeats
+ * `rmSync` exactly as it defeats the code under test, so the fixtures below
+ * hand their permissions back before deleting themselves. */
+function restoreOwnerAccess(root: string): void {
+	chmodSync(root, 0o700);
+	for (const entry of readdirSync(root, { withFileTypes: true })) {
+		if (entry.isDirectory()) restoreOwnerAccess(join(root, entry.name));
+	}
+}
 
 function makeCtx(spec: ContextSpec): HostServiceContext & {
 	__mocks: {
@@ -460,6 +473,100 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 			expect(result.worktreeRemoved).toBe(true);
 			expect(existsSync(worktree)).toBe(false);
 		} finally {
+			rmSync(base, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	test("git unregisters the worktree and a read-only directory blocks the delete: destroy restores write permission and removes it", async () => {
+		// Removing an entry is a write to the directory that holds it, so a
+		// single directory inside the worktree with its owner write bit
+		// cleared makes its whole subtree undeletable — by git's recursive
+		// delete and by the fallback rm alike, on every retry
+		// (HOST-SERVICE-5J). Both shapes below were seen in the wild: a
+		// tool's own output folder, and a Go module cache, which `go mod
+		// download` leaves read-only by design.
+		const base = mkdtempSync(join(tmpdir(), "worktrees-base-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		const worktree = join(base, "p-1", "wt-readonly");
+		const results = join(worktree, "evals", "results");
+		const goModule = join(worktree, "pkg", "mod", "gopkg.in", "yaml.v3");
+		mkdirSync(results, { recursive: true });
+		mkdirSync(goModule, { recursive: true });
+		writeFileSync(join(results, "run.json"), "{}");
+		writeFileSync(join(goModule, "README.md"), "read-only");
+		chmodSync(join(goModule, "README.md"), 0o444);
+		chmodSync(goModule, 0o555);
+		chmodSync(join(worktree, "evals"), 0o555);
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: worktree,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: repo, worktreeBaseDir: base },
+				removeWorktree: async () => ({
+					stillRegistered: false,
+					removeError:
+						"error: failed to delete 'wt-readonly': Permission denied",
+				}),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(true);
+			expect(existsSync(worktree)).toBe(false);
+		} finally {
+			restoreOwnerAccess(base);
+			rmSync(base, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	test("a permission denial above the worktree is not repaired: destroy reports it and leaves the folder", async () => {
+		// The recovery pass descends the worktree it was handed and stops
+		// there. A managed-root directory *containing* the worktree that
+		// denies writes is not ours to widen, so this stays exactly the
+		// failure it is today — reported, folder on disk, row retryable.
+		const base = mkdtempSync(join(tmpdir(), "worktrees-base-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		const projectRoot = join(base, "p-1");
+		const worktree = join(projectRoot, "wt-parent-readonly");
+		mkdirSync(worktree, { recursive: true });
+		writeFileSync(join(worktree, "tracked.txt"), "x");
+		chmodSync(projectRoot, 0o555);
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: worktree,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: repo, worktreeBaseDir: base },
+				removeWorktree: async () => ({ stillRegistered: false }),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			await expect(
+				caller.destroy({
+					workspaceId: "ws-1",
+					deleteBranch: false,
+					force: true,
+				}),
+			).rejects.toThrow(/could not be removed/i);
+			expect(existsSync(worktree)).toBe(true);
+			// The pass never climbed out of the worktree to get its way.
+			expect(statSync(projectRoot).mode & 0o777).toBe(0o555);
+		} finally {
+			restoreOwnerAccess(base);
 			rmSync(base, { recursive: true, force: true });
 			rmSync(repo, { recursive: true, force: true });
 		}

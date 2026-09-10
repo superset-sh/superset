@@ -1,3 +1,4 @@
+import { getI18nInstance } from "@superset/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
@@ -56,7 +57,8 @@ export default async function ProductionRunPage({
 }: {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-	await initServerI18n();
+	const locale = await initServerI18n();
+	const i18n = getI18nInstance(locale);
 
 	const requested = (await searchParams).run;
 	const wanted = Array.isArray(requested) ? requested[0] : requested;
@@ -68,7 +70,7 @@ export default async function ProductionRunPage({
 		RUNS.map((run) => [run.id, runStatus(run, now)]),
 	);
 	const statusLabels = Object.fromEntries(
-		RUNS.map((run) => [run.id, runStatusLabel(runStatus(run, now), run)]),
+		RUNS.map((run) => [run.id, runStatusLabel(runStatus(run, now), run, i18n)]),
 	);
 
 	return (

@@ -125,6 +125,7 @@ final class ComposerModel {
   /// there — where the "Copied" notice already lives.
   @ObservationIgnored var onSessionTabPress: ((String) -> Void)?
   @ObservationIgnored var onSessionTabClose: ((String) -> Void)?
+  @ObservationIgnored var onSessionTabRename: ((String) -> Void)?
   @ObservationIgnored var onSessionTabCopyId: ((String) -> Void)?
   @ObservationIgnored var onNewSessionPress: (() -> Void)?
   @ObservationIgnored var onAllSessionsPress: (() -> Void)?

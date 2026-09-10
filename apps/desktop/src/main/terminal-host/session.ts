@@ -892,6 +892,9 @@ export class Session {
 
 			await raceWithAbort(this.emulator.flush(), signal);
 			throwIfAborted(signal);
+			// The session can be reaped while the emulator catches up — the shell
+			// exits, or another attach to this session force-disposes it.
+			if (this.disposed) throw new Error("Session disposed");
 			return this.emulator.getSnapshot();
 		} catch (error) {
 			if (isTerminalAttachCanceledError(error)) {

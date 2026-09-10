@@ -33,6 +33,7 @@ import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { SidebarKbdHint } from "renderer/components/SidebarKbdHint";
 import { ZoomStable } from "renderer/components/ZoomStable";
 import { env } from "renderer/env.renderer";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -56,7 +57,6 @@ import {
 	useOpenNewProjectModal,
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
@@ -66,7 +66,7 @@ export function DashboardSidebarHeader({
 	isCollapsed = false,
 }: DashboardSidebarHeaderProps) {
 	const { t } = useLingui();
-	const openModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
@@ -250,7 +250,7 @@ export function DashboardSidebarHeader({
 						<TooltipTrigger asChild>
 							<button
 								type="button"
-								onClick={() => openModal(activeProjectId)}
+								onClick={() => openNewWorkspace(activeProjectId)}
 								className="flex size-7 items-center justify-center rounded-md bg-fill-hover/60 [.light_&]:bg-fill-hover text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected"
 							>
 								<div className="flex size-5 items-center justify-center rounded bg-fill-selected">
@@ -529,7 +529,7 @@ export function DashboardSidebarHeader({
 
 			<button
 				type="button"
-				onClick={() => openModal(activeProjectId)}
+				onClick={() => openNewWorkspace(activeProjectId)}
 				className="group flex h-7 w-full items-center gap-2 rounded-md bg-fill-hover/60 [.light_&]:bg-fill-hover px-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected hover:text-foreground"
 			>
 				<div className="flex size-5 shrink-0 items-center justify-center rounded bg-fill-selected">

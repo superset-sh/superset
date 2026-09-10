@@ -6,6 +6,7 @@ import { Alert, ScrollView, TextInput, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -139,7 +140,7 @@ export function FinishReviewSheet() {
 				t({
 					message: "Could not send review",
 				}),
-				cause instanceof Error ? cause.message : String(cause),
+				errorCopy(cause),
 			);
 		} finally {
 			setSending(false);

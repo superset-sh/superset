@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { buildTerminalSessionHandoffPrompt } from "@superset/shared/terminal-session-handoff";
 import { Button } from "@superset/ui/button";
 import {
@@ -55,6 +55,8 @@ export function TerminalSessionHandoffMenu({
 	terminalId,
 	onCreateNewAgentSession,
 }: TerminalSessionHandoffMenuProps) {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const binding = useTerminalAgentBinding(workspaceId, terminalId);
 	const hostUrl = useWorkspaceHostUrl(workspaceId);

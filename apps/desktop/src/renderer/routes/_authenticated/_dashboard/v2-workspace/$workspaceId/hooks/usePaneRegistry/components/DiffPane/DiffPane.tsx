@@ -2,6 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import type {
 	CodeViewItem,
 	DiffLineAnnotation,
+	FileDiffLoadedFiles,
 	FileDiffMetadata,
 	LineAnnotation,
 	FileContents as PierreFileContents,
@@ -57,7 +58,10 @@ import { useDiffCommentComposer } from "./hooks/useDiffCommentComposer";
 import { useDiffCommentNavigation } from "./hooks/useDiffCommentNavigation";
 import { useDiffPaneSearch } from "./hooks/useDiffPaneSearch";
 import { createGetDiffInput } from "./utils/createGetDiffInput";
-import { isDiffContentTooLarge } from "./utils/diffLoadingGuards";
+import {
+	isDiffContentStale,
+	isDiffContentTooLarge,
+} from "./utils/diffLoadingGuards";
 import { getCharacterOffsetAtClientX } from "./utils/getCharacterOffsetAtClientX";
 
 interface CreateNewAgentSessionInput {
@@ -466,9 +470,19 @@ export function DiffPane({
 				// hunks we already have.
 				throw new Error(`${file.path} is too large to expand`);
 			}
-			return fileDiff.type === "rename-pure"
-				? { oldFile: null, newFile }
-				: { oldFile, newFile };
+			const loaded: FileDiffLoadedFiles =
+				fileDiff.type === "rename-pure"
+					? { oldFile: null, newFile }
+					: { oldFile, newFile };
+			if (isDiffContentStale(fileDiff, loaded)) {
+				// The file moved on after its patch was cached, so these lines
+				// don't line up with the hunks they'd be hydrated into.
+				// Staying partial keeps the patch's hunks on screen instead of
+				// tearing the pane down; the `git:changed` that follows the
+				// write refetches the patch, and expanding works again.
+				throw new Error(`${file.path} changed since its diff was loaded`);
+			}
+			return loaded;
 		},
 		[files, trpcClient, workspaceId],
 	);
