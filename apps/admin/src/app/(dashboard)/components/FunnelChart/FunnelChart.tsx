@@ -2,6 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useFormat } from "@superset/i18n/react";
+import { Button } from "@superset/ui/button";
 import {
 	Card,
 	CardContent,
@@ -9,10 +10,23 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@superset/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@superset/ui/dialog";
 import { Skeleton } from "@superset/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ReactNode } from "react";
-import { LuClock, LuMoveDownRight, LuMoveRight } from "react-icons/lu";
+import { useState } from "react";
+import {
+	LuClock,
+	LuMaximize2,
+	LuMoveDownRight,
+	LuMoveRight,
+} from "react-icons/lu";
 
 export interface FunnelStep {
 	name: string;
@@ -81,215 +95,237 @@ export function FunnelChart({
 	const { formatNumber } = useFormat();
 
 	const { t } = useLingui();
+	const [expanded, setExpanded] = useState(false);
 	const firstCount = steps?.[0]?.count ?? 0;
 
-	return (
-		<Card className="flex h-full flex-col">
-			<CardHeader>
-				<div className="flex items-center justify-between gap-2">
-					<CardTitle>{title}</CardTitle>
-					{headerAction}
-				</div>
-				{description && <CardDescription>{description}</CardDescription>}
-			</CardHeader>
-			<CardContent className="min-h-0 flex-1">
-				{isLoading ? (
-					<div className="flex gap-3">
-						{Array.from({ length: 6 }, (_, i) => (
-							// biome-ignore lint/suspicious/noArrayIndexKey: static placeholder list
-							<Skeleton key={i} className="h-[220px] flex-1" />
-						))}
-					</div>
-				) : error ? (
-					<div className="flex h-[220px] items-center justify-center">
-						<p className="text-destructive select-text cursor-text text-sm">
-							<Trans>Failed to load funnel data</Trans>
-						</p>
-					</div>
-				) : !steps || steps.length === 0 ? (
-					<div className="flex h-[220px] items-center justify-center rounded-md border border-dashed">
-						<p className="text-muted-foreground text-sm">
-							<Trans>No funnel data available for this period</Trans>
-						</p>
-					</div>
-				) : (
-					<div className="h-full overflow-x-auto">
+	const body = isLoading ? (
+		<div className="flex gap-3">
+			{Array.from({ length: 6 }, (_, i) => (
+				// biome-ignore lint/suspicious/noArrayIndexKey: static placeholder list
+				<Skeleton key={i} className="h-[220px] flex-1" />
+			))}
+		</div>
+	) : error ? (
+		<div className="flex h-[220px] items-center justify-center">
+			<p className="text-destructive select-text cursor-text text-sm">
+				<Trans>Failed to load funnel data</Trans>
+			</p>
+		</div>
+	) : !steps || steps.length === 0 ? (
+		<div className="flex h-[220px] items-center justify-center rounded-md border border-dashed">
+			<p className="text-muted-foreground text-sm">
+				<Trans>No funnel data available for this period</Trans>
+			</p>
+		</div>
+	) : (
+		<div className="h-full overflow-x-auto">
+			<div
+				className="grid h-full min-w-[720px] gap-0"
+				style={{
+					gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))`,
+				}}
+			>
+				{steps.map((step, index) => {
+					const previous = index > 0 ? steps[index - 1] : null;
+					const pctOfFirst =
+						firstCount > 0 ? (step.count / firstCount) * 100 : 0;
+					// A stage can exceed the one before it when a step's event is
+					// not emitted by every client yet. Both the rate and the
+					// drop-off are then meaningless — 5 subscriptions against a
+					// single recorded checkout reads as 500% — so neither is
+					// shown, and the share of the first stage carries the story.
+					const pctOfPrevious =
+						previous && previous.count > 0 && step.count <= previous.count
+							? (step.count / previous.count) * 100
+							: null;
+					const droppedRaw = previous ? previous.count - step.count : null;
+					const dropped =
+						droppedRaw !== null && droppedRaw > 0 ? droppedRaw : null;
+					const droppedPctOfStart =
+						dropped !== null && firstCount > 0
+							? (dropped / firstCount) * 100
+							: null;
+					return (
 						<div
-							className="grid h-full min-w-[720px] gap-0"
-							style={{
-								gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))`,
-							}}
+							key={step.name + String(index)}
+							className="border-border/60 flex h-full flex-col gap-2 border-l px-2 first:border-l-0"
 						>
-							{steps.map((step, index) => {
-								const previous = index > 0 ? steps[index - 1] : null;
-								const pctOfFirst =
-									firstCount > 0 ? (step.count / firstCount) * 100 : 0;
-								// A stage can exceed the one before it when a step's event is
-								// not emitted by every client yet. Both the rate and the
-								// drop-off are then meaningless — 5 subscriptions against a
-								// single recorded checkout reads as 500% — so neither is
-								// shown, and the share of the first stage carries the story.
-								const pctOfPrevious =
-									previous && previous.count > 0 && step.count <= previous.count
-										? (step.count / previous.count) * 100
-										: null;
-								const droppedRaw = previous
-									? previous.count - step.count
-									: null;
-								const dropped =
-									droppedRaw !== null && droppedRaw > 0 ? droppedRaw : null;
-								const droppedPctOfStart =
-									dropped !== null && firstCount > 0
-										? (dropped / firstCount) * 100
-										: null;
-								return (
-									<div
-										key={step.name + String(index)}
-										className="border-border/60 flex h-full flex-col gap-2 border-l px-2 first:border-l-0"
-									>
-										<div className="relative min-h-[160px] flex-1 overflow-hidden rounded-sm">
-											{pctOfFirst < 100 ? (
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<div
-															className="absolute inset-x-0 top-0"
-															style={{
-																height: `${100 - pctOfFirst}%`,
-																background: HATCH_BACKGROUND,
-															}}
-														/>
-													</TooltipTrigger>
-													<TooltipContent
-														side="top"
-														className="border-border/50 bg-background text-foreground grid gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl"
-													>
-														<TooltipHeader step={index + 1} name={step.name} />
-														{dropped !== null ? (
-															<TooltipRow
-																label={t({
-																	message: "Dropped off",
-																})}
-																value={formatNumber(dropped, undefined)}
-															/>
-														) : null}
-														{dropped !== null && pctOfPrevious !== null ? (
-															<TooltipRow
-																label={t({
-																	message: "Drop-off from previous",
-																})}
-																value={`${(100 - pctOfPrevious).toFixed(2)}%`}
-															/>
-														) : null}
-														{droppedPctOfStart !== null ? (
-															<TooltipRow
-																label={t({
-																	message: "Drop-off from start",
-																})}
-																value={`${droppedPctOfStart.toFixed(2)}%`}
-															/>
-														) : null}
-													</TooltipContent>
-												</Tooltip>
-											) : null}
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<div
-														className="absolute inset-x-0 bottom-0 rounded-sm"
-														style={{
-															height: `${pctOfFirst}%`,
-															background: "var(--chart-1)",
-														}}
-													/>
-												</TooltipTrigger>
-												<TooltipContent
-													side="top"
-													className="border-border/50 bg-background text-foreground grid gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl"
-												>
-													<TooltipHeader step={index + 1} name={step.name} />
-													<TooltipRow
-														label={t({
-															message: "Converted",
-														})}
-														value={formatNumber(step.count, undefined)}
-													/>
-													{pctOfPrevious !== null ? (
-														<TooltipRow
-															label={t({
-																message: "Conversion from previous",
-															})}
-															value={`${pctOfPrevious.toFixed(2)}%`}
-														/>
-													) : null}
-													<TooltipRow
-														label={t({
-															message: "Conversion so far",
-														})}
-														value={`${pctOfFirst.toFixed(2)}%`}
-													/>
-													{step.medianSeconds !== null && index > 0 ? (
-														<TooltipRow
-															label={t({
-																message: "Median time from previous",
-															})}
-															value={formatDuration(step.medianSeconds)}
-														/>
-													) : null}
-													{step.averageSeconds !== null && index > 0 ? (
-														<TooltipRow
-															label={t({
-																message: "Average time from previous",
-															})}
-															value={formatDuration(step.averageSeconds)}
-														/>
-													) : null}
-												</TooltipContent>
-											</Tooltip>
-										</div>
-										<div className="space-y-1 pb-1 text-xs">
-											<div className="flex items-start gap-1.5">
-												<span className="bg-muted text-muted-foreground rounded px-1 font-medium">
-													{index + 1}
-												</span>
-												<span className="font-medium leading-tight">
-													{step.name}
-												</span>
-											</div>
-											<div className="flex items-center gap-1 tabular-nums">
-												<LuMoveRight className="size-3 shrink-0 text-green-500" />
-												<span>
-													{t({
-														message: `${formatNumber(step.count, undefined)} persons`,
+							<div className="relative min-h-[160px] flex-1 overflow-hidden rounded-sm">
+								{pctOfFirst < 100 ? (
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div
+												className="absolute inset-x-0 top-0"
+												style={{
+													height: `${100 - pctOfFirst}%`,
+													background: HATCH_BACKGROUND,
+												}}
+											/>
+										</TooltipTrigger>
+										<TooltipContent
+											side="top"
+											className="border-border/50 bg-background text-foreground grid gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl"
+										>
+											<TooltipHeader step={index + 1} name={step.name} />
+											{dropped !== null ? (
+												<TooltipRow
+													label={t({
+														message: "Dropped off",
 													})}
-													{pctOfPrevious !== null
-														? ` (${pctOfPrevious.toFixed(1)}%)`
-														: ""}
-												</span>
-											</div>
+													value={formatNumber(dropped, undefined)}
+												/>
+											) : null}
 											{dropped !== null && pctOfPrevious !== null ? (
-												<div className="text-muted-foreground flex items-center gap-1 tabular-nums">
-													<LuMoveDownRight className="size-3 shrink-0 text-red-500" />
-													<span>
-														{t({
-															message: `${formatNumber(dropped, undefined)} persons`,
-														})}{" "}
-														({(100 - pctOfPrevious).toFixed(1)}%)
-													</span>
-												</div>
+												<TooltipRow
+													label={t({
+														message: "Drop-off from previous",
+													})}
+													value={`${(100 - pctOfPrevious).toFixed(2)}%`}
+												/>
 											) : null}
-											{step.medianSeconds !== null && index > 0 ? (
-												<div className="text-muted-foreground flex items-center gap-1 tabular-nums">
-													<LuClock className="size-3 shrink-0" />
-													<span>{formatDuration(step.medianSeconds)}</span>
-												</div>
+											{droppedPctOfStart !== null ? (
+												<TooltipRow
+													label={t({
+														message: "Drop-off from start",
+													})}
+													value={`${droppedPctOfStart.toFixed(2)}%`}
+												/>
 											) : null}
-										</div>
+										</TooltipContent>
+									</Tooltip>
+								) : null}
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<div
+											className="absolute inset-x-0 bottom-0 rounded-sm"
+											style={{
+												height: `${pctOfFirst}%`,
+												background: "var(--chart-1)",
+											}}
+										/>
+									</TooltipTrigger>
+									<TooltipContent
+										side="top"
+										className="border-border/50 bg-background text-foreground grid gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl"
+									>
+										<TooltipHeader step={index + 1} name={step.name} />
+										<TooltipRow
+											label={t({
+												message: "Converted",
+											})}
+											value={formatNumber(step.count, undefined)}
+										/>
+										{pctOfPrevious !== null ? (
+											<TooltipRow
+												label={t({
+													message: "Conversion from previous",
+												})}
+												value={`${pctOfPrevious.toFixed(2)}%`}
+											/>
+										) : null}
+										<TooltipRow
+											label={t({
+												message: "Conversion so far",
+											})}
+											value={`${pctOfFirst.toFixed(2)}%`}
+										/>
+										{step.medianSeconds !== null && index > 0 ? (
+											<TooltipRow
+												label={t({
+													message: "Median time from previous",
+												})}
+												value={formatDuration(step.medianSeconds)}
+											/>
+										) : null}
+										{step.averageSeconds !== null && index > 0 ? (
+											<TooltipRow
+												label={t({
+													message: "Average time from previous",
+												})}
+												value={formatDuration(step.averageSeconds)}
+											/>
+										) : null}
+									</TooltipContent>
+								</Tooltip>
+							</div>
+							<div className="space-y-1 pb-1 text-xs">
+								<div className="flex items-start gap-1.5">
+									<span className="bg-muted text-muted-foreground rounded px-1 font-medium">
+										{index + 1}
+									</span>
+									<span className="font-medium leading-tight">{step.name}</span>
+								</div>
+								<div className="flex items-center gap-1 tabular-nums">
+									<LuMoveRight className="size-3 shrink-0 text-green-500" />
+									<span>
+										{t({
+											message: `${formatNumber(step.count, undefined)} persons`,
+										})}
+										{pctOfPrevious !== null
+											? ` (${pctOfPrevious.toFixed(1)}%)`
+											: ""}
+									</span>
+								</div>
+								{dropped !== null && pctOfPrevious !== null ? (
+									<div className="text-muted-foreground flex items-center gap-1 tabular-nums">
+										<LuMoveDownRight className="size-3 shrink-0 text-red-500" />
+										<span>
+											{t({
+												message: `${formatNumber(dropped, undefined)} persons`,
+											})}{" "}
+											({(100 - pctOfPrevious).toFixed(1)}%)
+										</span>
 									</div>
-								);
-							})}
+								) : null}
+								{step.medianSeconds !== null && index > 0 ? (
+									<div className="text-muted-foreground flex items-center gap-1 tabular-nums">
+										<LuClock className="size-3 shrink-0" />
+										<span>{formatDuration(step.medianSeconds)}</span>
+									</div>
+								) : null}
+							</div>
+						</div>
+					);
+				})}
+			</div>
+		</div>
+	);
+
+	return (
+		<>
+			<Card className="flex h-full flex-col">
+				<CardHeader>
+					<div className="flex items-center justify-between gap-2">
+						<CardTitle>{title}</CardTitle>
+						<div className="flex shrink-0 items-center gap-2">
+							{headerAction}
+							<Button
+								size="sm"
+								variant="ghost"
+								className="size-6 p-0"
+								onClick={() => setExpanded(true)}
+								aria-label={t({ message: "Expand" })}
+								title={t({ message: "Expand" })}
+							>
+								<LuMaximize2 className="size-3.5" />
+							</Button>
 						</div>
 					</div>
-				)}
-			</CardContent>
-		</Card>
+					{description && <CardDescription>{description}</CardDescription>}
+				</CardHeader>
+				<CardContent className="min-h-0 flex-1">{body}</CardContent>
+			</Card>
+			<Dialog open={expanded} onOpenChange={setExpanded}>
+				<DialogContent className="flex max-h-[90vh] flex-col sm:max-w-5xl">
+					<DialogHeader>
+						<DialogTitle>{title}</DialogTitle>
+						{description ? (
+							<DialogDescription>{description}</DialogDescription>
+						) : null}
+					</DialogHeader>
+					<div className="h-[70vh] min-h-0 overflow-auto">{body}</div>
+				</DialogContent>
+			</Dialog>
+		</>
 	);
 }

@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/react";
 
 import { FunnelChart } from "../FunnelChart";
+import { PostHogQueryLink } from "../PostHogQueryLink";
 
 type PaywallStageKey =
 	RouterOutputs["growth"]["paywallFunnel"]["stages"][number]["key"];
@@ -81,6 +82,7 @@ export function PaywallFunnelTile() {
 			steps={steps}
 			isLoading={query.isLoading}
 			error={query.error}
+			headerAction={<PostHogQueryLink query={query.data?.query} />}
 		/>
 	);
 }

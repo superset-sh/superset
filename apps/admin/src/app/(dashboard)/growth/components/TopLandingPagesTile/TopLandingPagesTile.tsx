@@ -16,8 +16,8 @@ import { useState } from "react";
 import { useTRPC } from "@/trpc/react";
 
 import { InsightTileFrame } from "../../../components/InsightTileFrame";
+import { PostHogQueryLink } from "../../../components/PostHogQueryLink";
 import { useGrowthRange } from "../../providers/GrowthRangeProvider";
-import { PostHogQueryLink } from "../PostHogQueryLink";
 import { RankedTable } from "../RankedTable";
 
 const STALE_TIME_MS = 10 * 60 * 1000;

@@ -22,7 +22,7 @@ import type { ReactNode } from "react";
 import { LuDatabase } from "react-icons/lu";
 
 import { formatDay } from "../../../utils/chartAxis";
-import { posthogQueryUrl } from "../../utils/posthogQueryUrl";
+import { posthogQueryUrl } from "../../../utils/posthogQueryUrl";
 import { type ChartSeries, WeeklySeriesChart } from "../WeeklySeriesChart";
 
 interface TileDetailDialogProps {

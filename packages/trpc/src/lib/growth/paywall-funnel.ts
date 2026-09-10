@@ -47,6 +47,8 @@ export interface PaywallStage {
 export interface PaywallFunnel {
 	stages: PaywallStage[];
 	since: string;
+	/** The HogQL behind the stages, for the tile's "open in PostHog" link. */
+	query: string;
 }
 
 // One row per person: when they first saw the paywall, and when they first
@@ -126,5 +128,5 @@ WHERE viewed_at IS NOT NULL`;
 		};
 	});
 
-	return { stages, since };
+	return { stages, since, query: stageQuery };
 }
