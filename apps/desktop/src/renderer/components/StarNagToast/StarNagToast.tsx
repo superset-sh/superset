@@ -49,7 +49,7 @@ function StarNagToastContent({ toastId }: { toastId: string | number }) {
 					aria-label={t({
 						message: "Dismiss",
 					})}
-					className="text-muted-foreground transition-[color,opacity] hover:text-foreground [@media(hover:hover)]:opacity-0 group-hover/star-toast:opacity-100 group-focus-within/star-toast:opacity-100"
+					className="text-muted-foreground transition-[color,opacity] hover:text-foreground [@media(hover:hover)]:opacity-0 group-hover/star-toast:opacity-100 group-focus-within/star-toast:opacity-100 group-focus-within/toast:opacity-100"
 				>
 					<X className="size-3.5" />
 				</button>
