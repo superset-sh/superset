@@ -29,6 +29,7 @@
 		"@react-email/components": "1.0.1",
 		"@react-email/tailwind": "2.0.3",
 		"@superset/db": "workspace:*",
+		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "0.13.11",
 		"date-fns": "4.1.0",
 		"drizzle-orm": "0.45.2",
