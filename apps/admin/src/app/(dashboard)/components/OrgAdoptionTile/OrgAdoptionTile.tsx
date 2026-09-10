@@ -43,7 +43,7 @@ export function OrgAdoptionTile() {
 			title={t({ message: "Teams vs individual accounts" })}
 			description={t({
 				message:
-					"Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks.",
+					"Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks.",
 			})}
 			isLoading={query.isLoading}
 			error={query.error}

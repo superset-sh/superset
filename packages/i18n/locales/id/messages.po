@@ -10159,8 +10159,8 @@ msgstr "Organisasi: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organisasi"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Organisasi yang mendapat anggota kedua, dibandingkan dengan akun satu anggota yang dimiliki semua orang di awal (Neon). Batang adalah tim; garis menunjukkan berapa dari setiap 1.000 organisasi yang merupakan tim. Menghapus anggota juga menghapus barisnya, jadi tim yang menyusut kembali menjadi satu orang tidak muncul di minggu-minggu sebelumnya."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Organisasi yang mendapat anggota kedua, dibandingkan dengan akun satu anggota yang dimiliki semua orang di awal (Neon). Batang adalah jumlah tim; garis adalah tim per 1.000 organisasi. Menghapus anggota juga menghapus barisnya, jadi tim yang menyusut kembali menjadi satu orang tidak muncul di minggu-minggu sebelumnya."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Atur pekerjaan Anda ke dalam tim. Tugas dan integrasi bisa disinkronkan per tim."
@@ -10284,7 +10284,7 @@ msgid "Pagination"
 msgstr "Paginasi"
 
 msgid "Paid"
-msgstr "Membayar"
+msgstr "Berbayar"
 
 msgid "Paid churn — cohort survival"
 msgstr "Churn berbayar — ketahanan kohor"
@@ -13369,7 +13369,7 @@ msgid "Started"
 msgstr "Dimulai"
 
 msgid "Started checkout"
-msgstr "Memulai pembayaran"
+msgstr "Memulai checkout"
 
 msgid "starting"
 msgstr "memulai"

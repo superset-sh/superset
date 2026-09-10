@@ -10159,8 +10159,8 @@ msgstr "组织：<0>{0}</0>"
 msgid "Organizations"
 msgstr "组织"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "已加入第二位成员的组织，与每个人最初拥有的单人账户的对比（Neon）。柱状为团队数，折线为每 1,000 个组织中的团队数。移除成员会直接删除记录，因此缩回到一人的团队不会出现在过去的周次中。"
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "已加入第二位成员的组织，与每个人最初拥有的单人账户的对比（Neon）。柱状为团队数量，折线为每 1,000 个组织中的团队数。移除成员会直接删除记录，因此缩回到一人的团队不会出现在过去的周次中。"
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "把工作组织到团队中。任务和集成可以按团队同步。"

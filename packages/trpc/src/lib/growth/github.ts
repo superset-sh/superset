@@ -14,6 +14,9 @@ const STAR_HISTORY_CACHE_KEY = "star-history";
 // Stargazer pages are ~140 requests for this repo, so this is the expensive
 // growth source; /starchart refreshes on the same cadence.
 const STAR_HISTORY_CACHE_TTL_SECONDS = 6 * 60 * 60;
+// Matches the shared growth fetch helper: one stalled page must not sit on the
+// admin procedure's 60-second budget.
+const GITHUB_REQUEST_TIMEOUT_MS = 15_000;
 const DESKTOP_TAG_PREFIX = "desktop-v";
 const MAX_RELEASES = 10;
 
@@ -137,7 +140,10 @@ async function fetchStarHistoryStats(): Promise<StarHistoryStats> {
 	if (!env.GITHUB_TOKEN) {
 		return { available: false, reason: "GITHUB_TOKEN is not set" };
 	}
-	const history = await fetchStarHistory({ token: env.GITHUB_TOKEN });
+	const history = await fetchStarHistory({
+		token: env.GITHUB_TOKEN,
+		timeoutMs: GITHUB_REQUEST_TIMEOUT_MS,
+	});
 	if (!history) {
 		return { available: false, reason: "GitHub API error" };
 	}

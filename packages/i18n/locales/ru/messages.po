@@ -3115,7 +3115,7 @@ msgid "Click-through rate"
 msgstr "Кликабельность"
 
 msgid "Clicked upgrade"
-msgstr "Нажал апгрейд"
+msgstr "Нажатие апгрейда"
 
 msgid "Clicks"
 msgstr "Клики"
@@ -10159,8 +10159,8 @@ msgstr "Организация: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Организации"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Организации, в которых появился второй участник, по сравнению с аккаунтами из одного человека, с которых все начинают (Neon). Столбцы — команды, линия — сколько из каждой 1000 организаций ими являются. Удаление участника стирает запись, поэтому команда, снова ставшая одиночной, отсутствует в прошлых неделях."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Организации, в которых появился второй участник, по сравнению с аккаунтами из одного человека, с которых все начинают (Neon). Столбцы — количество команд, линия — команд на 1000 организаций. Удаление участника стирает запись, поэтому команда, снова ставшая одиночной, отсутствует в прошлых неделях."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Организуйте работу по командам. Задачи и интеграции можно синхронизировать отдельно для каждой команды."
@@ -10284,7 +10284,7 @@ msgid "Pagination"
 msgstr "Постраничная навигация"
 
 msgid "Paid"
-msgstr "Оплатил"
+msgstr "Оплата"
 
 msgid "Paid churn — cohort survival"
 msgstr "Отток платных — выживаемость когорт"
@@ -12124,7 +12124,7 @@ msgid "Saving…"
 msgstr "Сохранение…"
 
 msgid "Saw the paywall"
-msgstr "Увидел пейволл"
+msgstr "Показ пейволла"
 
 msgid "Scale from two agents to 100+"
 msgstr "От двух агентов до 100+"
@@ -13369,7 +13369,7 @@ msgid "Started"
 msgstr "Начато"
 
 msgid "Started checkout"
-msgstr "Начал оформление оплаты"
+msgstr "Начало оформления оплаты"
 
 msgid "starting"
 msgstr "запускается"

@@ -10159,8 +10159,8 @@ msgstr "Tổ chức: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Tổ chức"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Các tổ chức đã có thành viên thứ hai, so với tài khoản một thành viên mà ai cũng bắt đầu (Neon). Cột là số nhóm; đường biểu thị trong mỗi 1.000 tổ chức có bao nhiêu là nhóm. Xóa một thành viên sẽ xóa luôn bản ghi, nên nhóm thu lại còn một người không xuất hiện ở các tuần trước."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Các tổ chức đã có thành viên thứ hai, so với tài khoản một thành viên mà ai cũng bắt đầu (Neon). Cột là số nhóm; đường là số nhóm trên 1.000 tổ chức. Xóa một thành viên sẽ xóa luôn bản ghi, nên nhóm thu lại còn một người không xuất hiện ở các tuần trước."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Sắp xếp công việc theo nhóm. Tác vụ và tích hợp có thể đồng bộ riêng cho từng nhóm."

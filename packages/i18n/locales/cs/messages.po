@@ -3115,7 +3115,7 @@ msgid "Click-through rate"
 msgstr "Míra prokliku"
 
 msgid "Clicked upgrade"
-msgstr "Klikl na přechod výš"
+msgstr "Kliknutí na přechod výš"
 
 msgid "Clicks"
 msgstr "Kliknutí"
@@ -10159,8 +10159,8 @@ msgstr "Organizace: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizace"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Organizace, které získaly druhého člena, oproti jednočlenným účtům, s nimiž všichni začínají (Neon). Sloupce jsou týmy, křivka ukazuje, kolik z každých 1 000 organizací jím je. Odebrání člena smaže řádek, takže tým, který se vrátil k jedné osobě, v minulých týdnech chybí."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Organizace, které získaly druhého člena, oproti jednočlenným účtům, s nimiž všichni začínají (Neon). Sloupce jsou počet týmů, křivka jsou týmy na 1 000 organizací. Odebrání člena smaže řádek, takže tým, který se vrátil k jedné osobě, v minulých týdnech chybí."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Rozdělte práci do týmů. Úkoly a integrace se mohou synchronizovat po týmech."
@@ -10284,7 +10284,7 @@ msgid "Pagination"
 msgstr "Stránkování"
 
 msgid "Paid"
-msgstr "Zaplatil"
+msgstr "Platba"
 
 msgid "Paid churn — cohort survival"
 msgstr "Churn plateb — přežití kohort"
@@ -12124,7 +12124,7 @@ msgid "Saving…"
 msgstr "Ukládám…"
 
 msgid "Saw the paywall"
-msgstr "Viděl paywall"
+msgstr "Zobrazení paywallu"
 
 msgid "Scale from two agents to 100+"
 msgstr "Od dvou agentů ke stovkám"
@@ -13369,7 +13369,7 @@ msgid "Started"
 msgstr "Zahájeno"
 
 msgid "Started checkout"
-msgstr "Začal platbu"
+msgstr "Zahájení checkoutu"
 
 msgid "starting"
 msgstr "spouští se"

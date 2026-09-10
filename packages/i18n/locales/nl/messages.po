@@ -10159,8 +10159,8 @@ msgstr "Organisatie: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organisaties"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Organisaties die een tweede lid kregen, tegenover de accounts met één lid waarmee iedereen begint (Neon). De balken zijn teams; de lijn laat zien hoeveel van elke 1.000 organisaties er een is. Een lid verwijderen wist de rij, dus een team dat weer uit één persoon bestaat ontbreekt in eerdere weken."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Organisaties die een tweede lid kregen, tegenover de accounts met één lid waarmee iedereen begint (Neon). De balken zijn het aantal teams; de lijn is teams per 1.000 organisaties. Een lid verwijderen wist de rij, dus een team dat weer uit één persoon bestaat ontbreekt in eerdere weken."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organiseer je werk in teams. Taken en integraties kunnen per team synchroniseren."

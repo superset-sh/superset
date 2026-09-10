@@ -3115,7 +3115,7 @@ msgid "Click-through rate"
 msgstr "Współczynnik klikalności"
 
 msgid "Clicked upgrade"
-msgstr "Kliknął podniesienie planu"
+msgstr "Kliknięcie podniesienia planu"
 
 msgid "Clicks"
 msgstr "Kliknięcia"
@@ -10159,8 +10159,8 @@ msgstr "Organizacja: <0>{0}</0>"
 msgid "Organizations"
 msgstr "Organizacje"
 
-msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are teams; the line is how many of every 1,000 organizations are one. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
-msgstr "Organizacje, które zyskały drugiego członka, w zestawieniu z jednoosobowymi kontami, od których wszyscy zaczynają (Neon). Słupki to zespoły, linia pokazuje, ile na każde 1000 organizacji nim jest. Usunięcie członka kasuje wiersz, więc zespół, który wrócił do jednej osoby, nie pojawia się w minionych tygodniach."
+msgid "Organizations that gained a second member, against the single-member accounts everyone starts with (Neon). Bars are the team count; the line is teams per 1,000 organizations. Removing a member deletes the row, so a team that shrank back to one person is missing from past weeks."
+msgstr "Organizacje, które zyskały drugiego członka, w zestawieniu z jednoosobowymi kontami, od których wszyscy zaczynają (Neon). Słupki to liczba zespołów, linia to zespoły na 1000 organizacji. Usunięcie członka kasuje wiersz, więc zespół, który wrócił do jednej osoby, nie pojawia się w minionych tygodniach."
 
 msgid "Organize your work into teams. Tasks and integrations can sync per-team."
 msgstr "Organizuj pracę w zespoły. Zadania i integracje mogą synchronizować się per zespół."
@@ -10284,7 +10284,7 @@ msgid "Pagination"
 msgstr "Paginacja"
 
 msgid "Paid"
-msgstr "Zapłacił"
+msgstr "Płatność"
 
 msgid "Paid churn — cohort survival"
 msgstr "Odpływ płatnych — przetrwanie kohort"
@@ -12124,7 +12124,7 @@ msgid "Saving…"
 msgstr "Zapisywanie…"
 
 msgid "Saw the paywall"
-msgstr "Zobaczył paywall"
+msgstr "Wyświetlenie paywalla"
 
 msgid "Scale from two agents to 100+"
 msgstr "Skaluj od dwóch agentów do 100+"
@@ -13369,7 +13369,7 @@ msgid "Started"
 msgstr "Rozpoczęto"
 
 msgid "Started checkout"
-msgstr "Rozpoczął płatność"
+msgstr "Rozpoczęcie płatności"
 
 msgid "starting"
 msgstr "uruchamia się"
