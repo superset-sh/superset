@@ -12254,6 +12254,9 @@ msgstr "为此智能体显示状态并发送通知。"
 msgid "Show translation"
 msgstr "显示译文"
 
+msgid "Show usage tab on sidebar"
+msgstr "在侧边栏显示用量选项卡"
+
 msgid "showArrow opt-in"
 msgstr "showArrow按需开启"
 
@@ -14504,9 +14507,6 @@ msgstr "URL友好的标识符，在你的组织内唯一。"
 
 msgid "Usage"
 msgstr "用量"
-
-msgid "Usage in sidebar"
-msgstr "在侧边栏显示用量"
 
 msgid "Usage sections"
 msgstr "用量分区"

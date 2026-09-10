@@ -12254,6 +12254,9 @@ msgstr "Показывать статус и отправлять уведомл
 msgid "Show translation"
 msgstr "Показать перевод"
 
+msgid "Show usage tab on sidebar"
+msgstr "Показывать вкладку использования на боковой панели"
+
 msgid "showArrow opt-in"
 msgstr "showArrow по желанию"
 
@@ -14504,9 +14507,6 @@ msgstr "Идентификатор для URL, уникальный внутри
 
 msgid "Usage"
 msgstr "Использование"
-
-msgid "Usage in sidebar"
-msgstr "Использование в боковой панели"
 
 msgid "Usage sections"
 msgstr "Разделы использования"

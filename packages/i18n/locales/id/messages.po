@@ -12254,6 +12254,9 @@ msgstr "Tampilkan status dan kirim notifikasi untuk agen ini."
 msgid "Show translation"
 msgstr "Tampilkan terjemahan"
 
+msgid "Show usage tab on sidebar"
+msgstr "Tampilkan tab penggunaan di bilah samping"
+
 msgid "showArrow opt-in"
 msgstr "showArrow opsional"
 
@@ -14504,9 +14507,6 @@ msgstr "Pengenal ramah URL, unik di dalam organisasi Anda."
 
 msgid "Usage"
 msgstr "Penggunaan"
-
-msgid "Usage in sidebar"
-msgstr "Penggunaan di sidebar"
 
 msgid "Usage sections"
 msgstr "Bagian penggunaan"

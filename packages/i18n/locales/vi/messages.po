@@ -12254,6 +12254,9 @@ msgstr "Hiển thị trạng thái và gửi thông báo cho agent này."
 msgid "Show translation"
 msgstr "Xem bản dịch"
 
+msgid "Show usage tab on sidebar"
+msgstr "Hiển thị thẻ mức sử dụng trên thanh bên"
+
 msgid "showArrow opt-in"
 msgstr "bật showArrow"
 
@@ -14504,9 +14507,6 @@ msgstr "Định danh thân thiện với URL, duy nhất trong tổ chức của
 
 msgid "Usage"
 msgstr "Mức sử dụng"
-
-msgid "Usage in sidebar"
-msgstr "Mức sử dụng trong thanh bên"
 
 msgid "Usage sections"
 msgstr "Các mục mức sử dụng"

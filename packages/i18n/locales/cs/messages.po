@@ -12254,6 +12254,9 @@ msgstr "Zobrazovat stav a posílat oznámení pro tohoto agenta."
 msgid "Show translation"
 msgstr "Zobrazit překlad"
 
+msgid "Show usage tab on sidebar"
+msgstr "Zobrazit kartu využití v postranním panelu"
+
 msgid "showArrow opt-in"
 msgstr "showArrow zapnuto"
 
@@ -14504,9 +14507,6 @@ msgstr "Identifikátor vhodný do URL, jedinečný v rámci vaší organizace."
 
 msgid "Usage"
 msgstr "Využití"
-
-msgid "Usage in sidebar"
-msgstr "Využití v postranním panelu"
 
 msgid "Usage sections"
 msgstr "Sekce využití"

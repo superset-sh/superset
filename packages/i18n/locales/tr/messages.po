@@ -12254,6 +12254,9 @@ msgstr "Bu ajan için durum göster ve bildirim gönder."
 msgid "Show translation"
 msgstr "Çeviriyi göster"
 
+msgid "Show usage tab on sidebar"
+msgstr "Kenar çubuğunda kullanım sekmesini göster"
+
 msgid "showArrow opt-in"
 msgstr "showArrow açık"
 
@@ -14504,9 +14507,6 @@ msgstr "Kuruluşunuz içinde benzersiz, URL dostu tanımlayıcı."
 
 msgid "Usage"
 msgstr "Kullanım"
-
-msgid "Usage in sidebar"
-msgstr "Kenar çubuğunda kullanım"
 
 msgid "Usage sections"
 msgstr "Kullanım bölümleri"

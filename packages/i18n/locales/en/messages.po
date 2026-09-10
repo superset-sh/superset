@@ -12254,6 +12254,9 @@ msgstr "Show status and send notifications for this agent."
 msgid "Show translation"
 msgstr "Show translation"
 
+msgid "Show usage tab on sidebar"
+msgstr "Show usage tab on sidebar"
+
 msgid "showArrow opt-in"
 msgstr "showArrow opt-in"
 
@@ -14504,9 +14507,6 @@ msgstr "URL-friendly identifier, unique within your organization."
 
 msgid "Usage"
 msgstr "Usage"
-
-msgid "Usage in sidebar"
-msgstr "Usage in sidebar"
 
 msgid "Usage sections"
 msgstr "Usage sections"

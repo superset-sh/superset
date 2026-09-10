@@ -90,7 +90,7 @@ export const SETTINGS: SettingDefinition[] = [
 	{
 		key: "showUsageInSidebar",
 		type: "boolean",
-		section: "behavior",
+		section: "usage",
 		description: "Show a Usage button in the home sidebar",
 		defaultValue: false,
 	},

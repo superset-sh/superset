@@ -12254,6 +12254,9 @@ msgstr "Mostra lo stato e invia notifiche per questo agente."
 msgid "Show translation"
 msgstr "Mostra la traduzione"
 
+msgid "Show usage tab on sidebar"
+msgstr "Mostra la scheda di utilizzo nella barra laterale"
+
 msgid "showArrow opt-in"
 msgstr "showArrow opzionale"
 
@@ -14504,9 +14507,6 @@ msgstr "Identificatore adatto agli URL, univoco all'interno della tua organizzaz
 
 msgid "Usage"
 msgstr "Utilizzo"
-
-msgid "Usage in sidebar"
-msgstr "Utilizzo nella barra laterale"
 
 msgid "Usage sections"
 msgstr "Sezioni di utilizzo"

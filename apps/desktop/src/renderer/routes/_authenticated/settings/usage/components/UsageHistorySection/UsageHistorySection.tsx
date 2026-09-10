@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
-import { LuX } from "react-icons/lu";
+import { LuRefreshCw, LuX } from "react-icons/lu";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
@@ -80,6 +80,12 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 				<h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 					<Trans>Token usage</Trans>
 				</h2>
+				{historyQuery.isFetching && history && (
+					<output className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+						<LuRefreshCw className="size-3 animate-spin" aria-hidden="true" />
+						<Trans>Scanning transcript logs…</Trans>
+					</output>
+				)}
 				{firstDay && lastDay && (
 					<span className="text-[10px] text-muted-foreground">
 						<Trans>

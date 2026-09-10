@@ -12254,6 +12254,9 @@ msgstr "이 에이전트의 상태를 표시하고 알림을 보냅니다."
 msgid "Show translation"
 msgstr "번역 보기"
 
+msgid "Show usage tab on sidebar"
+msgstr "사이드바에 사용량 탭 표시"
+
 msgid "showArrow opt-in"
 msgstr "showArrow 선택 사용"
 
@@ -14504,9 +14507,6 @@ msgstr "URL에 쓰기 좋은 식별자로, 조직 안에서 고유해야 합니�
 
 msgid "Usage"
 msgstr "사용량"
-
-msgid "Usage in sidebar"
-msgstr "사이드바에 사용량 표시"
 
 msgid "Usage sections"
 msgstr "사용량 섹션"
