@@ -24,6 +24,7 @@ import {
 	useHostWorkspaces,
 } from "@/hooks/useHostWorkspaces";
 import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { hideSplash } from "@/lib/splash";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
@@ -179,6 +180,9 @@ export function HomeScreen() {
 	// these same queries, and blanking a list someone is reading would be worse
 	// than a stale row.
 	const [hasPainted, setHasPainted] = useState(false);
+	useEffect(() => {
+		if (hasPainted) hideSplash();
+	}, [hasPainted]);
 	useEffect(() => {
 		if (contentReady) {
 			setHasPainted(true);

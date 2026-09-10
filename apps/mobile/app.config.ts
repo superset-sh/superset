@@ -23,11 +23,6 @@ export default ({ config }: ConfigContext) => ({
 	icon: "./assets/icon.png",
 	userInterfaceStyle: "dark",
 	scheme: "superset",
-	splash: {
-		image: "./assets/splash-icon.png",
-		resizeMode: "contain" as const,
-		backgroundColor: "#09090b",
-	},
 	ios: {
 		supportsTablet: false,
 		bundleIdentifier: "sh.superset.mobile",
@@ -57,6 +52,19 @@ export default ({ config }: ConfigContext) => ({
 	plugins: [
 		[withIosAccentColor, { color: "#FFFFFF" }],
 		"expo-router",
+		[
+			// The mark on the app background, held until Home has content — see
+			// screens/RootLayout. Deliberately the bare mark on transparency:
+			// `icon.png` bakes its own ground and square corners the native
+			// splash cannot round, which seams against the background.
+			"expo-splash-screen",
+			{
+				backgroundColor: "#0a0a0a",
+				image: "./assets/splash-mark.png",
+				imageWidth: 200,
+				resizeMode: "contain",
+			},
+		],
 		[
 			"@sentry/react-native/expo",
 			{

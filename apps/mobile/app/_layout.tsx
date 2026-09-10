@@ -5,8 +5,11 @@ import "../global.css";
 
 import * as Sentry from "@sentry/react-native";
 import { initSentry } from "@/lib/sentry";
+import { holdSplash } from "@/lib/splash";
 import { RootLayout } from "@/screens/RootLayout";
 
 initSentry();
+// Before the first render, or expo-router hides it on navigation-ready.
+holdSplash();
 
 export default Sentry.wrap(RootLayout);

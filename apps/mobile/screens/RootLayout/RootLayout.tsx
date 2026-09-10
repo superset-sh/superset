@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Uniwind } from "uniwind";
 import { useSession } from "@/lib/auth/client";
 import { watchNetworkState } from "@/lib/errors";
+import { hideSplash } from "@/lib/splash";
 import { NAV_THEME } from "@/lib/theme";
 
 Uniwind.setTheme("dark");
@@ -84,6 +85,8 @@ export function RootLayout() {
 	if (isPending) return null;
 
 	const pendingDeletion = !!session?.user.deletionRequestedAt;
+	// Only Home waits for data; every other landing renders at once.
+	if (!session || pendingDeletion) hideSplash();
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
