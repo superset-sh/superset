@@ -481,25 +481,11 @@ export function NewWorkspaceScreen({
 	const { selectedAgent, setSelectedAgent } =
 		useAgentLaunchPreferences<WorkspaceCreateAgent>({
 			agentStorageKey: AGENT_STORAGE_KEY,
-			defaultAgent: "none",
-			fallbackAgent: "none",
+			defaultAgent: selectableAgentIds[0] ?? "none",
+			fallbackAgent: selectableAgentIds[0] ?? "none",
 			validAgents: ["none", ...selectableAgentIds],
 			agentsReady: v2AgentsFetched,
 		});
-
-	// Same "none" → first-agent promotion as the control modal: new users land
-	// here with no stored preference, and the screen must not default to no agent.
-	useEffect(() => {
-		if (!v2AgentsFetched) return;
-		if (selectedAgent !== "none") return;
-		const stored =
-			typeof window !== "undefined"
-				? window.localStorage.getItem(AGENT_STORAGE_KEY)
-				: null;
-		if (stored === "none") return;
-		const first = selectableAgentIds[0];
-		if (first) setSelectedAgent(first);
-	}, [v2AgentsFetched, selectableAgentIds, selectedAgent, setSelectedAgent]);
 
 	const selectedPresetId = useMemo(() => {
 		const agent = v2Agents.find((candidate) => candidate.id === selectedAgent);
