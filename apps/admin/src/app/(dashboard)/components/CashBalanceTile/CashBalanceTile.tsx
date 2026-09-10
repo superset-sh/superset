@@ -45,6 +45,7 @@ export function CashBalanceTile() {
 					"Checking + savings + Treasury over time; fundraise tranches are the steps",
 			})}
 			lastRefresh={query.data?.available ? query.data.asOf : null}
+			fill
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={points.length === 0}
@@ -56,7 +57,10 @@ export function CashBalanceTile() {
 					: undefined
 			}
 		>
-			<ChartContainer config={chartConfig} className="h-[240px] w-full">
+			<ChartContainer
+				config={chartConfig}
+				className="aspect-auto h-full min-h-[220px] w-full"
+			>
 				<AreaChart data={points}>
 					<XAxis
 						dataKey="date"

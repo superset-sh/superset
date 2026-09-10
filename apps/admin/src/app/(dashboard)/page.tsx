@@ -11,18 +11,33 @@ import { HogQLLineTile } from "./components/HogQLLineTile";
 import { MrrTile } from "./components/MrrTile";
 import { NetBurnTile } from "./components/NetBurnTile";
 import { OrgAdoptionTile } from "./components/OrgAdoptionTile";
-import { PaywallFunnelTile } from "./components/PaywallFunnelTile";
-import { PaywallFunnelTrendTile } from "./components/PaywallFunnelTrendTile";
 import { PostHogFunnelTile } from "./components/PostHogFunnelTile";
+import { ResetLayoutButton } from "./components/ResetLayoutButton";
 import { RetentionGridTile } from "./components/RetentionGridTile";
 import { RunwayTile } from "./components/RunwayTile";
 import { StarHistoryTile } from "./components/StarHistoryTile";
+import { TileSection } from "./components/TileSection";
 import { TrendSeriesTile } from "./components/TrendSeriesTile";
+import { TileLayoutProvider } from "./providers/TileLayoutProvider";
 
 // Mirror of PostHog dashboard 1884562 (plan D-7), organized by audience:
 // tiles can appear on several tabs, and growth has its own page at /growth.
 // Product tiles reference saved insights by id; business tiles compute live
 // from Stripe/Neon. Each tile renders at its canonical saved range (D-14).
+//
+// Tiles sit in the same draggable grid the Growth page uses, so the order and
+// sizes below are the defaults, not a fixed arrangement — money first, then
+// usage, then the slower-moving vanity and vendor tiles.
+
+// Grid heights, in 20px rows. A chart tile is the baseline; the star chart
+// carries two stacked charts and its own controls.
+const CHART_H = 13;
+const WIDE_CHART_H = 15;
+const TABLE_H = 18;
+const FUNNEL_H = 16;
+const STAR_H = 18;
+const FULL_W = 12;
+const HALF_W = 6;
 
 export default function DashboardPage() {
 	const { t } = useLingui();
@@ -73,98 +88,192 @@ export default function DashboardPage() {
 	} as const;
 
 	return (
-		<div className="space-y-6">
-			<div>
-				<h1 className="text-2xl font-bold">
-					<Trans>Company Metrics</Trans>
-				</h1>
-				<p className="text-muted-foreground">
-					<Trans>
-						Mirror of the{" "}
-						<a
-							href={`${POSTHOG_PROJECT_URL}/dashboard/1884562`}
-							target="_blank"
-							rel="noreferrer"
-							className="underline underline-offset-2"
-						>
-							PostHog Success Metrics dashboard
-						</a>{" "}
-						— product via saved insights, business live from Stripe/Neon
-					</Trans>
-				</p>
-			</div>
+		<TileLayoutProvider>
+			<div className="space-y-6">
+				<div>
+					<h1 className="text-2xl font-bold">
+						<Trans>Company Metrics</Trans>
+					</h1>
+					<p className="text-muted-foreground">
+						<Trans>
+							Mirror of the{" "}
+							<a
+								href={`${POSTHOG_PROJECT_URL}/dashboard/1884562`}
+								target="_blank"
+								rel="noreferrer"
+								className="underline underline-offset-2"
+							>
+								PostHog Success Metrics dashboard
+							</a>{" "}
+							— product via saved insights, business live from Stripe/Neon
+						</Trans>
+					</p>
+				</div>
 
-			<Tabs defaultValue="company">
-				<TabsList>
-					<TabsTrigger value="company">
-						<Trans>Company</Trans>
-					</TabsTrigger>
-					<TabsTrigger value="product">
-						<Trans>Product</Trans>
-					</TabsTrigger>
-				</TabsList>
-
-				<TabsContent value="company" className="mt-4 space-y-6">
-					{/* Star growth and the paywall funnel lead: the two company
-					    metrics we watch week to week that no other tile covers. */}
-					<StarHistoryTile />
-					<PaywallFunnelTile />
-					<PaywallFunnelTrendTile />
-					<CashBalanceTile />
-					<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-						<NetBurnTile />
-						<RunwayTile />
-						<MrrTile />
-						<EnterpriseArrTile />
-						<TrendSeriesTile {...WAU_PROPS} />
-						<TrendSeriesTile {...DAU_PROPS} />
-						<div className="xl:col-span-2">
-							<BurnByVendorTile />
-						</div>
+				<Tabs defaultValue="company">
+					<div className="flex items-center justify-between gap-2">
+						<TabsList>
+							<TabsTrigger value="company">
+								<Trans>Company</Trans>
+							</TabsTrigger>
+							<TabsTrigger value="product">
+								<Trans>Product</Trans>
+							</TabsTrigger>
+						</TabsList>
+						<ResetLayoutButton />
 					</div>
-				</TabsContent>
 
-				<TabsContent value="product" className="mt-4">
-					<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-						<div className="col-span-full">
-							<PostHogFunnelTile />
-						</div>
-						<TrendSeriesTile {...DAU_PROPS} />
-						<TrendSeriesTile {...WAU_PROPS} />
-						<HogQLLineTile {...ACTIVATED_RATE_PROPS} />
-						<OrgAdoptionTile />
-						<HogQLLineTile
-							insight="workspacePercentiles"
-							description={t({
-								message:
-									"Workspaces created per user in the last 7 days, by percentile",
-							})}
-							xColumn={0}
-							series={[
+					<TabsContent value="company" className="mt-4">
+						<TileSection
+							section="company"
+							title={<Trans>Company</Trans>}
+							description={
+								<Trans>
+									Revenue first, then how many people are actually using it,
+									then what it costs to run.
+								</Trans>
+							}
+							tiles={[
+								{ key: "mrr", node: <MrrTile />, w: FULL_W, h: WIDE_CHART_H },
 								{
-									column: 1,
-									key: "workspaces",
-									label: t({
-										message: "workspaces",
-									}),
-									kind: "line",
+									key: "dau",
+									node: <TrendSeriesTile {...DAU_PROPS} />,
+									w: HALF_W,
+									h: CHART_H,
+								},
+								{
+									key: "wau",
+									node: <TrendSeriesTile {...WAU_PROPS} />,
+									w: HALF_W,
+									h: CHART_H,
+								},
+								{
+									key: "cash",
+									node: <CashBalanceTile />,
+									w: FULL_W,
+									h: CHART_H,
+								},
+								{
+									key: "net-burn",
+									node: <NetBurnTile />,
+									w: HALF_W,
+									h: CHART_H,
+								},
+								{ key: "runway", node: <RunwayTile />, w: HALF_W, h: CHART_H },
+								{
+									key: "burn-by-vendor",
+									node: <BurnByVendorTile />,
+									w: HALF_W,
+									h: TABLE_H,
+								},
+								{
+									key: "enterprise-arr",
+									node: <EnterpriseArrTile />,
+									w: HALF_W,
+									h: TABLE_H,
+								},
+								{
+									key: "star-history",
+									node: <StarHistoryTile />,
+									w: FULL_W,
+									h: STAR_H,
 								},
 							]}
 						/>
-						<TrendSeriesTile
-							insight="workspacesPerCreator"
-							description={t({
-								message:
-									"Weekly p50/p90 real workspaces per creator; current week dashed",
-							})}
-							dashIncompleteLast
+					</TabsContent>
+
+					<TabsContent value="product" className="mt-4">
+						<TileSection
+							section="product"
+							title={<Trans>Product</Trans>}
+							description={
+								<Trans>
+									Activation, how much people use it once they are in, and
+									whether they come back.
+								</Trans>
+							}
+							tiles={[
+								{
+									key: "activation-funnel",
+									node: <PostHogFunnelTile />,
+									w: FULL_W,
+									h: FUNNEL_H,
+								},
+								{
+									key: "dau",
+									node: <TrendSeriesTile {...DAU_PROPS} />,
+									w: HALF_W,
+									h: CHART_H,
+								},
+								{
+									key: "wau",
+									node: <TrendSeriesTile {...WAU_PROPS} />,
+									w: HALF_W,
+									h: CHART_H,
+								},
+								{
+									key: "activated-rate",
+									node: <HogQLLineTile {...ACTIVATED_RATE_PROPS} />,
+									w: HALF_W,
+									h: CHART_H,
+								},
+								{
+									key: "org-adoption",
+									node: <OrgAdoptionTile />,
+									w: HALF_W,
+									h: CHART_H,
+								},
+								{
+									key: "workspace-percentiles",
+									node: (
+										<HogQLLineTile
+											insight="workspacePercentiles"
+											description={t({
+												message:
+													"Workspaces created per user in the last 7 days, by percentile",
+											})}
+											xColumn={0}
+											series={[
+												{
+													column: 1,
+													key: "workspaces",
+													label: t({
+														message: "workspaces",
+													}),
+													kind: "line",
+												},
+											]}
+										/>
+									),
+									w: HALF_W,
+									h: CHART_H,
+								},
+								{
+									key: "workspaces-per-creator",
+									node: (
+										<TrendSeriesTile
+											insight="workspacesPerCreator"
+											description={t({
+												message:
+													"Weekly p50/p90 real workspaces per creator; current week dashed",
+											})}
+											dashIncompleteLast
+										/>
+									),
+									w: HALF_W,
+									h: CHART_H,
+								},
+								{
+									key: "retention",
+									node: <RetentionGridTile />,
+									w: FULL_W,
+									h: TABLE_H,
+								},
+							]}
 						/>
-						<div className="col-span-full">
-							<RetentionGridTile />
-						</div>
-					</div>
-				</TabsContent>
-			</Tabs>
-		</div>
+					</TabsContent>
+				</Tabs>
+			</div>
+		</TileLayoutProvider>
 	);
 }

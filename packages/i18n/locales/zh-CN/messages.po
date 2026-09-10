@@ -1313,6 +1313,9 @@ msgstr "{0}的操作"
 msgid "activation rate"
 msgstr "激活率"
 
+msgid "Activation, how much people use it once they are in, and whether they come back."
+msgstr "激活情况、进来之后的使用量，以及他们是否会回来。"
+
 msgid "Active"
 msgstr "启用中"
 
@@ -3360,9 +3363,6 @@ msgstr "同期群"
 
 msgid "Cohort retention"
 msgstr "同期群留存"
-
-msgid "cohort size"
-msgstr "同期群人数"
 
 msgid "Collapse"
 msgstr "折叠"
@@ -10513,9 +10513,6 @@ msgstr "支付成功"
 msgid "Paywall → paid"
 msgstr "付费墙 → 付费"
 
-msgid "Paywall conversion over time"
-msgstr "付费墙转化率趋势"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -11962,6 +11959,9 @@ msgstr "在侧边栏中显示"
 
 msgid "Reveal my rank"
 msgstr "显示我的排名"
+
+msgid "Revenue first, then how many people are actually using it, then what it costs to run."
+msgstr "先看收入，再看实际使用人数，最后看运营成本。"
 
 msgid "Review"
 msgstr "审查"
@@ -15622,12 +15622,6 @@ msgstr "查看{count}个拉取请求"
 msgid "View {name}"
 msgstr "查看{name}"
 
-msgid "view → paid"
-msgstr "浏览 → 付费"
-
-msgid "view → upgrade click"
-msgstr "浏览 → 点击升级"
-
 msgid "View all"
 msgstr "查看全部"
 
@@ -15841,9 +15835,6 @@ msgstr "每周"
 
 msgid "Weekly at {time}"
 msgstr "每周{time}"
-
-msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
-msgstr "按首次看到付费墙的周划分的同期群。柱状为同期群人数；本周仍在累积。"
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "按首个真实工作区划分的周同期群；每周再次创建工作区的回访比例"

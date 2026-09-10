@@ -1313,6 +1313,9 @@ msgstr "{0}的操作"
 msgid "activation rate"
 msgstr "啟用率"
 
+msgid "Activation, how much people use it once they are in, and whether they come back."
+msgstr "啟用情況、進來之後的使用量，以及他們是否會回來。"
+
 msgid "Active"
 msgstr "啟用中"
 
@@ -3360,9 +3363,6 @@ msgstr "同期群"
 
 msgid "Cohort retention"
 msgstr "同期群留存"
-
-msgid "cohort size"
-msgstr "同期群人數"
 
 msgid "Collapse"
 msgstr "摺疊"
@@ -10513,9 +10513,6 @@ msgstr "支付成功"
 msgid "Paywall → paid"
 msgstr "付費牆 → 付費"
 
-msgid "Paywall conversion over time"
-msgstr "付費牆轉化率趨勢"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -11962,6 +11959,9 @@ msgstr "在側邊欄中顯示"
 
 msgid "Reveal my rank"
 msgstr "顯示我的排名"
+
+msgid "Revenue first, then how many people are actually using it, then what it costs to run."
+msgstr "先看營收，再看實際使用人數，最後看營運成本。"
 
 msgid "Review"
 msgstr "審查"
@@ -15622,12 +15622,6 @@ msgstr "檢視{count}個拉取請求"
 msgid "View {name}"
 msgstr "檢視{name}"
 
-msgid "view → paid"
-msgstr "瀏覽 → 付費"
-
-msgid "view → upgrade click"
-msgstr "瀏覽 → 點擊升級"
-
 msgid "View all"
 msgstr "檢視全部"
 
@@ -15841,9 +15835,6 @@ msgstr "每週"
 
 msgid "Weekly at {time}"
 msgstr "每週{time}"
-
-msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
-msgstr "依首次看到付費牆的週劃分的同期群。柱狀為同期群人數；本週仍在累積。"
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "按首個真實工作區劃分的週同期群；每週再次建立工作區的回訪比例"

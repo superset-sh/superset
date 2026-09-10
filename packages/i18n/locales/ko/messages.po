@@ -1313,6 +1313,9 @@ msgstr "{0} 작업"
 msgid "activation rate"
 msgstr "활성화율"
 
+msgid "Activation, how much people use it once they are in, and whether they come back."
+msgstr "활성화, 들어온 뒤 얼마나 쓰는지, 그리고 다시 돌아오는지."
+
 msgid "Active"
 msgstr "활성"
 
@@ -3360,9 +3363,6 @@ msgstr "코호트"
 
 msgid "Cohort retention"
 msgstr "코호트 리텐션"
-
-msgid "cohort size"
-msgstr "코호트 규모"
 
 msgid "Collapse"
 msgstr "접기"
@@ -10513,9 +10513,6 @@ msgstr "결제 완료"
 msgid "Paywall → paid"
 msgstr "페이월 → 결제"
 
-msgid "Paywall conversion over time"
-msgstr "기간별 페이월 전환율"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -11962,6 +11959,9 @@ msgstr "사이드바에서 표시"
 
 msgid "Reveal my rank"
 msgstr "내 순위 공개"
+
+msgid "Revenue first, then how many people are actually using it, then what it costs to run."
+msgstr "매출을 먼저, 그다음 실제 사용자 수, 마지막으로 운영 비용."
 
 msgid "Review"
 msgstr "리뷰"
@@ -15622,12 +15622,6 @@ msgstr "풀 리퀘스트 {count}개 보기"
 msgid "View {name}"
 msgstr "{name} 보기"
 
-msgid "view → paid"
-msgstr "조회 → 결제"
-
-msgid "view → upgrade click"
-msgstr "조회 → 업그레이드 클릭"
-
 msgid "View all"
 msgstr "전체 보기"
 
@@ -15841,9 +15835,6 @@ msgstr "매주"
 
 msgid "Weekly at {time}"
 msgstr "매주 {time}"
-
-msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
-msgstr "페이월을 처음 본 주 기준 코호트. 막대는 코호트 규모이며 이번 주는 아직 채워지는 중입니다."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "첫 실제 워크스페이스 기준 주간 코호트. 매주 다른 워크스페이스로 돌아온 비율"

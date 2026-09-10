@@ -84,7 +84,7 @@ export function FunnelChart({
 	const firstCount = steps?.[0]?.count ?? 0;
 
 	return (
-		<Card>
+		<Card className="flex h-full flex-col">
 			<CardHeader>
 				<div className="flex items-center justify-between gap-2">
 					<CardTitle>{title}</CardTitle>
@@ -92,7 +92,7 @@ export function FunnelChart({
 				</div>
 				{description && <CardDescription>{description}</CardDescription>}
 			</CardHeader>
-			<CardContent>
+			<CardContent className="min-h-0 flex-1">
 				{isLoading ? (
 					<div className="flex gap-3">
 						{Array.from({ length: 6 }, (_, i) => (
@@ -113,9 +113,9 @@ export function FunnelChart({
 						</p>
 					</div>
 				) : (
-					<div className="overflow-x-auto">
+					<div className="h-full overflow-x-auto">
 						<div
-							className="grid min-w-[720px] gap-0"
+							className="grid h-full min-w-[720px] gap-0"
 							style={{
 								gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))`,
 							}}
@@ -143,9 +143,9 @@ export function FunnelChart({
 								return (
 									<div
 										key={step.name + String(index)}
-										className="border-border/60 flex flex-col gap-2 border-l px-2 first:border-l-0"
+										className="border-border/60 flex h-full flex-col gap-2 border-l px-2 first:border-l-0"
 									>
-										<div className="relative h-[160px] overflow-hidden rounded-sm">
+										<div className="relative min-h-[160px] flex-1 overflow-hidden rounded-sm">
 											{pctOfFirst < 100 ? (
 												<Tooltip>
 													<TooltipTrigger asChild>

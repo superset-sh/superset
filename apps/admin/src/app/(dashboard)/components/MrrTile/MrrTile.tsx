@@ -142,6 +142,7 @@ export function MrrTile() {
 					"Stripe's own Sigma MRR report, computed on demand via the Query Run API",
 			})}
 			lastRefresh={series?.dataLoadTime ?? null}
+			fill
 			isLoading={query.isLoading}
 			onRefresh={() => refresh.mutate()}
 			isRefreshing={refresh.isPending || isComputing}
@@ -211,7 +212,10 @@ export function MrrTile() {
 						) : null}
 					</div>
 				) : null}
-				<ChartContainer config={chartConfig} className="h-[200px] w-full">
+				<ChartContainer
+					config={chartConfig}
+					className="aspect-auto h-full min-h-[160px] w-full"
+				>
 					<AreaChart data={points}>
 						<XAxis
 							dataKey="date"

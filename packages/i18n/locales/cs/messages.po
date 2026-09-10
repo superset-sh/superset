@@ -1313,6 +1313,9 @@ msgstr "Akce pro {0}"
 msgid "activation rate"
 msgstr "míra aktivace"
 
+msgid "Activation, how much people use it once they are in, and whether they come back."
+msgstr "Aktivace, kolik toho lidé používají, když už jsou uvnitř, a jestli se vracejí."
+
 msgid "Active"
 msgstr "Aktivní"
 
@@ -3360,9 +3363,6 @@ msgstr "Kohorta"
 
 msgid "Cohort retention"
 msgstr "Retence kohort"
-
-msgid "cohort size"
-msgstr "velikost kohorty"
 
 msgid "Collapse"
 msgstr "Sbalit"
@@ -10513,9 +10513,6 @@ msgstr "Platba proběhla"
 msgid "Paywall → paid"
 msgstr "Paywall → platba"
 
-msgid "Paywall conversion over time"
-msgstr "Konverze paywallu v čase"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -11962,6 +11959,9 @@ msgstr "Zobrazit v postranním panelu"
 
 msgid "Reveal my rank"
 msgstr "Odhalit mou pozici"
+
+msgid "Revenue first, then how many people are actually using it, then what it costs to run."
+msgstr "Nejdřív tržby, pak kolik lidí to opravdu používá a nakonec kolik stojí provoz."
 
 msgid "Review"
 msgstr "Revize"
@@ -15622,12 +15622,6 @@ msgstr "Zobrazit {count} pull requestů"
 msgid "View {name}"
 msgstr "Zobrazit {name}"
 
-msgid "view → paid"
-msgstr "zobrazení → platba"
-
-msgid "view → upgrade click"
-msgstr "zobrazení → klik na přechod výš"
-
 msgid "View all"
 msgstr "Zobrazit vše"
 
@@ -15841,9 +15835,6 @@ msgstr "Týdně"
 
 msgid "Weekly at {time}"
 msgstr "Týdně v {time}"
-
-msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
-msgstr "Týdenní kohorty podle prvního zobrazení paywallu. Sloupce jsou velikost kohorty; aktuální týden se ještě plní."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Týdenní kohorty podle prvního skutečného pracovního prostoru; % těch, kdo se každý týden vrátí s dalším prostorem"

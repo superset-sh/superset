@@ -1313,6 +1313,9 @@ msgstr "Действия для {0}"
 msgid "activation rate"
 msgstr "доля активации"
 
+msgid "Activation, how much people use it once they are in, and whether they come back."
+msgstr "Активация, насколько активно им пользуются после входа и возвращаются ли."
+
 msgid "Active"
 msgstr "Активна"
 
@@ -3360,9 +3363,6 @@ msgstr "Когорта"
 
 msgid "Cohort retention"
 msgstr "Удержание по когортам"
-
-msgid "cohort size"
-msgstr "размер когорты"
 
 msgid "Collapse"
 msgstr "Свернуть"
@@ -10513,9 +10513,6 @@ msgstr "Платёж прошёл"
 msgid "Paywall → paid"
 msgstr "Пейволл → оплата"
 
-msgid "Paywall conversion over time"
-msgstr "Конверсия пейволла со временем"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -11962,6 +11959,9 @@ msgstr "Показать в боковой панели"
 
 msgid "Reveal my rank"
 msgstr "Показать моё место"
+
+msgid "Revenue first, then how many people are actually using it, then what it costs to run."
+msgstr "Сначала выручка, затем сколько людей действительно им пользуются, затем во что обходится работа."
 
 msgid "Review"
 msgstr "Ревью"
@@ -15622,12 +15622,6 @@ msgstr "Смотреть {count} пул-реквестов"
 msgid "View {name}"
 msgstr "Посмотреть {name}"
 
-msgid "view → paid"
-msgstr "показ → оплата"
-
-msgid "view → upgrade click"
-msgstr "показ → нажатие апгрейда"
-
 msgid "View all"
 msgstr "Смотреть все"
 
@@ -15841,9 +15835,6 @@ msgstr "Еженедельно"
 
 msgid "Weekly at {time}"
 msgstr "Еженедельно в {time}"
-
-msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
-msgstr "Недельные когорты по первому показу пейволла. Столбцы — размер когорты; текущая неделя ещё заполняется."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Недельные когорты по первой реальной рабочей области; % вернувшихся с ещё одной рабочей областью каждую неделю"

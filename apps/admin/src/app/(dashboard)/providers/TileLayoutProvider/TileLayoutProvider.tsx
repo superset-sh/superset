@@ -10,9 +10,12 @@ import {
 } from "react";
 import type { Layout } from "react-grid-layout";
 
+// The key still says "growth" because that is where these layouts started;
+// renaming it would silently reset every arrangement already saved in someone's
+// browser. Sections are namespaced within it.
 const STORAGE_PREFIX = "admin.growth.layout.";
 
-interface GrowthLayout {
+interface TileLayout {
 	// Bumped on reset so every grid re-reads its default layout.
 	version: number;
 	readLayout: (section: string) => Layout | null;
@@ -20,11 +23,11 @@ interface GrowthLayout {
 	resetLayouts: () => void;
 }
 
-const GrowthLayoutContext = createContext<GrowthLayout | null>(null);
+const TileLayoutContext = createContext<TileLayout | null>(null);
 
-// Tile positions and sizes live in this browser only. Growth is a page a
-// couple of people arrange for themselves, not a shared document.
-export function GrowthLayoutProvider({ children }: { children: ReactNode }) {
+// Tile positions and sizes live in this browser only. These are pages a couple
+// of people arrange for themselves, not a shared document.
+export function TileLayoutProvider({ children }: { children: ReactNode }) {
 	const [version, setVersion] = useState(0);
 
 	const readLayout = useCallback((section: string): Layout | null => {
@@ -65,16 +68,16 @@ export function GrowthLayoutProvider({ children }: { children: ReactNode }) {
 	);
 
 	return (
-		<GrowthLayoutContext.Provider value={value}>
+		<TileLayoutContext.Provider value={value}>
 			{children}
-		</GrowthLayoutContext.Provider>
+		</TileLayoutContext.Provider>
 	);
 }
 
-export function useGrowthLayout(): GrowthLayout {
-	const context = useContext(GrowthLayoutContext);
+export function useTileLayout(): TileLayout {
+	const context = useContext(TileLayoutContext);
 	if (!context) {
-		throw new Error("useGrowthLayout needs GrowthLayoutProvider");
+		throw new Error("useTileLayout needs TileLayoutProvider");
 	}
 	return context;
 }

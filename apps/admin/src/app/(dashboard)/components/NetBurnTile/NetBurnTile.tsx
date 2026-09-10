@@ -56,6 +56,7 @@ export function NetBurnTile() {
 					"Outflows less Stripe payouts per month (treasury sweeps excluded); current month partial",
 			})}
 			lastRefresh={query.data?.available ? query.data.asOf : null}
+			fill
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={months.length === 0}
@@ -67,7 +68,10 @@ export function NetBurnTile() {
 					: undefined
 			}
 		>
-			<ChartContainer config={chartConfig} className="h-[240px] w-full">
+			<ChartContainer
+				config={chartConfig}
+				className="aspect-auto h-full min-h-[220px] w-full"
+			>
 				<BarChart data={months}>
 					<XAxis
 						dataKey="month"

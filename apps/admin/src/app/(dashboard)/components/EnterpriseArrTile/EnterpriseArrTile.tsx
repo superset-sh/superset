@@ -50,6 +50,7 @@ export function EnterpriseArrTile() {
 							message: "Annualized enterprise Stripe subscriptions",
 						}))
 			}
+			fill
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={accounts.length === 0}

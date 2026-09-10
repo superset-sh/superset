@@ -1313,6 +1313,9 @@ msgstr "{0}の操作"
 msgid "activation rate"
 msgstr "アクティベーション率"
 
+msgid "Activation, how much people use it once they are in, and whether they come back."
+msgstr "アクティベーション、使い始めてからの利用量、そして再訪するかどうか。"
+
 msgid "Active"
 msgstr "有効"
 
@@ -3360,9 +3363,6 @@ msgstr "コホート"
 
 msgid "Cohort retention"
 msgstr "コホートリテンション"
-
-msgid "cohort size"
-msgstr "コホート人数"
 
 msgid "Collapse"
 msgstr "折りたたむ"
@@ -10513,9 +10513,6 @@ msgstr "支払いが完了しました"
 msgid "Paywall → paid"
 msgstr "ペイウォール → 支払い"
 
-msgid "Paywall conversion over time"
-msgstr "ペイウォールの転換率の推移"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -11962,6 +11959,9 @@ msgstr "サイドバーに表示"
 
 msgid "Reveal my rank"
 msgstr "自分のランクを表示"
+
+msgid "Revenue first, then how many people are actually using it, then what it costs to run."
+msgstr "まず売上、次に実際に使っている人数、そして運営にかかるコスト。"
 
 msgid "Review"
 msgstr "レビュー"
@@ -15622,12 +15622,6 @@ msgstr "{count}件のプルリクエストを表示"
 msgid "View {name}"
 msgstr "{name}を見る"
 
-msgid "view → paid"
-msgstr "表示 → 支払い"
-
-msgid "view → upgrade click"
-msgstr "表示 → アップグレードのクリック"
-
 msgid "View all"
 msgstr "すべて表示"
 
@@ -15841,9 +15835,6 @@ msgstr "毎週"
 
 msgid "Weekly at {time}"
 msgstr "毎週 {time}"
-
-msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
-msgstr "最初にペイウォールを見た週ごとのコホート。棒はコホートの人数で、今週はまだ増えています。"
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "初回の実ワークスペースによる週次コホート。各週に別のワークスペースを作成して戻った割合"

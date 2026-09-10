@@ -1313,6 +1313,9 @@ msgstr "Hành động cho {0}"
 msgid "activation rate"
 msgstr "tỷ lệ kích hoạt"
 
+msgid "Activation, how much people use it once they are in, and whether they come back."
+msgstr "Kích hoạt, mức độ sử dụng sau khi vào, và liệu họ có quay lại."
+
 msgid "Active"
 msgstr "Đang hoạt động"
 
@@ -3360,9 +3363,6 @@ msgstr "Nhóm"
 
 msgid "Cohort retention"
 msgstr "Giữ chân theo nhóm"
-
-msgid "cohort size"
-msgstr "quy mô nhóm"
 
 msgid "Collapse"
 msgstr "Thu gọn"
@@ -10513,9 +10513,6 @@ msgstr "Thanh toán thành công"
 msgid "Paywall → paid"
 msgstr "Paywall → trả tiền"
 
-msgid "Paywall conversion over time"
-msgstr "Chuyển đổi paywall theo thời gian"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -11962,6 +11959,9 @@ msgstr "Hiện trong thanh bên"
 
 msgid "Reveal my rank"
 msgstr "Hiện thứ hạng của tôi"
+
+msgid "Revenue first, then how many people are actually using it, then what it costs to run."
+msgstr "Doanh thu trước, rồi đến số người thực sự dùng, rồi chi phí vận hành."
 
 msgid "Review"
 msgstr "Review"
@@ -15622,12 +15622,6 @@ msgstr "Xem {count} pull request"
 msgid "View {name}"
 msgstr "Xem {name}"
 
-msgid "view → paid"
-msgstr "lượt xem → trả tiền"
-
-msgid "view → upgrade click"
-msgstr "lượt xem → bấm nâng cấp"
-
 msgid "View all"
 msgstr "Xem tất cả"
 
@@ -15841,9 +15835,6 @@ msgstr "Hằng tuần"
 
 msgid "Weekly at {time}"
 msgstr "Hằng tuần lúc {time}"
-
-msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
-msgstr "Nhóm theo tuần dựa trên lần đầu thấy paywall. Cột là quy mô nhóm; tuần hiện tại vẫn đang tăng."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Nhóm theo tuần dựa trên workspace thực đầu tiên; % quay lại tạo workspace khác mỗi tuần"

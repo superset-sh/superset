@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { type GridTile, TileGrid } from "../TileGrid";
 
-interface GrowthSectionProps {
+interface TileSectionProps {
 	title: ReactNode;
 	description: ReactNode;
 	// Storage key for this section's tile arrangement.
@@ -12,12 +12,12 @@ interface GrowthSectionProps {
 	tiles: GridTile[];
 }
 
-export function GrowthSection({
+export function TileSection({
 	title,
 	description,
 	section,
 	tiles,
-}: GrowthSectionProps) {
+}: TileSectionProps) {
 	return (
 		<section className="space-y-4">
 			<div>

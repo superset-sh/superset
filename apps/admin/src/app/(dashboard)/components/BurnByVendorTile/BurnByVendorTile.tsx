@@ -31,6 +31,7 @@ export function BurnByVendorTile() {
 				message: "Avg monthly outflow per counterparty, last 3 complete months",
 			})}
 			lastRefresh={query.data?.available ? query.data.asOf : null}
+			fill
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={vendors.length === 0}

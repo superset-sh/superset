@@ -14,9 +14,9 @@ import { weekStarts } from "./weeks";
 // a stage can exceed the one before it; the tile shows counts, not a
 // monotonic waterfall.
 //
-// Recent cohorts are still maturing — a person who saw the paywall yesterday
-// has had one day to convert, not twelve weeks — so read the trailing weeks of
-// the weekly series as incomplete.
+// Recent cohorts are still maturing — someone who saw the paywall yesterday has
+// had a day to convert, not twelve weeks — so the window's tail drags the rate
+// down by construction.
 
 // Stage key -> the event that marks it, in funnel order. The key is the tile's
 // label lookup; the event name travels with it so a tile can name the exact
@@ -44,18 +44,8 @@ export interface PaywallStage {
 	averageSeconds: number | null;
 }
 
-export interface PaywallFunnelWeek {
-	/** Monday of the cohort week (yyyy-mm-dd), by first paywall view. */
-	week: string;
-	paywallViewed: number;
-	upgradeClicked: number;
-	checkoutStarted: number;
-	paid: number;
-}
-
 export interface PaywallFunnel {
 	stages: PaywallStage[];
-	weekly: PaywallFunnelWeek[];
 	since: string;
 }
 
@@ -90,8 +80,6 @@ type StageRow = [
 	number | null,
 ];
 
-type WeekRow = [string, number, number, number, number];
-
 export async function fetchPaywallFunnel(
 	weekCount: number,
 ): Promise<PaywallFunnel> {
@@ -116,24 +104,7 @@ SELECT
 FROM cohort
 WHERE viewed_at IS NOT NULL`;
 
-	const weeklyQuery = `
-WITH cohort AS (${cohort}
-)
-SELECT
-	toString(toStartOfWeek(viewed_at, 1)) AS week,
-	count() AS paywall_viewed,
-	countIf(upgrade_at >= viewed_at) AS upgrade_clicked,
-	countIf(checkout_at >= viewed_at) AS checkout_started,
-	countIf(paid_at >= viewed_at) AS paid
-FROM cohort
-WHERE viewed_at IS NOT NULL
-GROUP BY week
-ORDER BY week`;
-
-	const [stageRows, weekRows] = await Promise.all([
-		runHogQL<StageRow>(stageQuery),
-		runHogQL<WeekRow>(weeklyQuery),
-	]);
+	const stageRows = await runHogQL<StageRow>(stageQuery);
 
 	const row = stageRows[0];
 	const counts = [row?.[0] ?? 0, row?.[1] ?? 0, row?.[2] ?? 0, row?.[3] ?? 0];
@@ -155,17 +126,5 @@ ORDER BY week`;
 		};
 	});
 
-	const byWeek = new Map(weekRows.map((r) => [r[0]?.slice(0, 10), r]));
-	const weekly = weeks.map((week): PaywallFunnelWeek => {
-		const r = byWeek.get(week);
-		return {
-			week,
-			paywallViewed: Number(r?.[1] ?? 0),
-			upgradeClicked: Number(r?.[2] ?? 0),
-			checkoutStarted: Number(r?.[3] ?? 0),
-			paid: Number(r?.[4] ?? 0),
-		};
-	});
-
-	return { stages, weekly, since };
+	return { stages, since };
 }

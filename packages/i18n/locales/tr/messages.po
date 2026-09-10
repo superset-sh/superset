@@ -1313,6 +1313,9 @@ msgstr "{0} için eylemler"
 msgid "activation rate"
 msgstr "aktivasyon oranı"
 
+msgid "Activation, how much people use it once they are in, and whether they come back."
+msgstr "Aktivasyon, içeri girdikten sonra ne kadar kullandıkları ve geri dönüp dönmedikleri."
+
 msgid "Active"
 msgstr "Etkin"
 
@@ -3360,9 +3363,6 @@ msgstr "Kohort"
 
 msgid "Cohort retention"
 msgstr "Kohort elde tutma"
-
-msgid "cohort size"
-msgstr "kohort büyüklüğü"
 
 msgid "Collapse"
 msgstr "Daralt"
@@ -10513,9 +10513,6 @@ msgstr "Ödeme başarılı"
 msgid "Paywall → paid"
 msgstr "Ödeme duvarı → ödeme"
 
-msgid "Paywall conversion over time"
-msgstr "Zamana göre ödeme duvarı dönüşümü"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -11962,6 +11959,9 @@ msgstr "Kenar çubuğunda göster"
 
 msgid "Reveal my rank"
 msgstr "Sıralamamı göster"
+
+msgid "Revenue first, then how many people are actually using it, then what it costs to run."
+msgstr "Önce gelir, sonra gerçekte kaç kişinin kullandığı, sonra da işletme maliyeti."
 
 msgid "Review"
 msgstr "İnceleme"
@@ -15622,12 +15622,6 @@ msgstr "{count} pull request görüntüle"
 msgid "View {name}"
 msgstr "{name} temasını görüntüle"
 
-msgid "view → paid"
-msgstr "görüntüleme → ödeme"
-
-msgid "view → upgrade click"
-msgstr "görüntüleme → yükseltme tıklaması"
-
 msgid "View all"
 msgstr "Tümünü görüntüle"
 
@@ -15841,9 +15835,6 @@ msgstr "Haftalık"
 
 msgid "Weekly at {time}"
 msgstr "Her hafta saat {time}"
-
-msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
-msgstr "İlk ödeme duvarı görüntülemesine göre haftalık kohortlar. Çubuklar kohort büyüklüğünü gösterir; bu hafta hâlâ dolmakta."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "İlk gerçek çalışma alanına göre haftalık kohortlar; her hafta başka bir çalışma alanıyla dönenlerin yüzdesi"

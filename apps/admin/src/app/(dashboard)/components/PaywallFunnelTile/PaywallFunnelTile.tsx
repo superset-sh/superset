@@ -4,12 +4,18 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 
-import {
-	PAYWALL_FUNNEL_WEEKS,
-	type PaywallStageKey,
-	usePaywallFunnel,
-} from "../../hooks/usePaywallFunnel";
+import type { RouterOutputs } from "@superset/trpc";
+import { useQuery } from "@tanstack/react-query";
+
+import { useTRPC } from "@/trpc/react";
+
 import { FunnelChart } from "../FunnelChart";
+
+type PaywallStageKey =
+	RouterOutputs["growth"]["paywallFunnel"]["stages"][number]["key"];
+
+const PAYWALL_FUNNEL_WEEKS = 12;
+const STALE_TIME_MS = 10 * 60 * 1000;
 
 // Descriptors, translated at render: a module-scope `t` would freeze the
 // English at import time and stay stale through a language change.
@@ -22,7 +28,13 @@ const STAGE_LABELS: Record<PaywallStageKey, MessageDescriptor> = {
 
 export function PaywallFunnelTile() {
 	const { t } = useLingui();
-	const query = usePaywallFunnel();
+	const trpc = useTRPC();
+	const query = useQuery(
+		trpc.growth.paywallFunnel.queryOptions(
+			{ weeks: PAYWALL_FUNNEL_WEEKS },
+			{ staleTime: STALE_TIME_MS },
+		),
+	);
 	const stages = query.data?.stages ?? [];
 
 	const steps = stages.map((stage) => ({

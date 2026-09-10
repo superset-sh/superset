@@ -1313,6 +1313,9 @@ msgstr "Acties voor {0}"
 msgid "activation rate"
 msgstr "activatiegraad"
 
+msgid "Activation, how much people use it once they are in, and whether they come back."
+msgstr "Activatie, hoeveel mensen het gebruiken zodra ze binnen zijn, en of ze terugkomen."
+
 msgid "Active"
 msgstr "Actief"
 
@@ -3360,9 +3363,6 @@ msgstr "Cohort"
 
 msgid "Cohort retention"
 msgstr "Cohortretentie"
-
-msgid "cohort size"
-msgstr "cohortgrootte"
 
 msgid "Collapse"
 msgstr "Inklappen"
@@ -10513,9 +10513,6 @@ msgstr "Betaling geslaagd"
 msgid "Paywall → paid"
 msgstr "Paywall → betaald"
 
-msgid "Paywall conversion over time"
-msgstr "Paywall-conversie in de tijd"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -11962,6 +11959,9 @@ msgstr "Tonen in zijbalk"
 
 msgid "Reveal my rank"
 msgstr "Mijn positie tonen"
+
+msgid "Revenue first, then how many people are actually using it, then what it costs to run."
+msgstr "Eerst de omzet, dan hoeveel mensen het echt gebruiken, dan wat het kost om te draaien."
 
 msgid "Review"
 msgstr "Review"
@@ -15622,12 +15622,6 @@ msgstr "{count} pull requests bekijken"
 msgid "View {name}"
 msgstr "{name} bekijken"
 
-msgid "view → paid"
-msgstr "weergave → betaald"
-
-msgid "view → upgrade click"
-msgstr "weergave → upgradeklik"
-
 msgid "View all"
 msgstr "Alles bekijken"
 
@@ -15841,9 +15835,6 @@ msgstr "Wekelijks"
 
 msgid "Weekly at {time}"
 msgstr "Wekelijks om {time}"
-
-msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
-msgstr "Wekelijkse cohorten op basis van de eerste paywall-weergave. Balken zijn de cohortgrootte; de huidige week vult zich nog."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Wekelijkse cohorten op basis van eerste echte werkruimte; % dat elke week terugkeert met nog een werkruimte"

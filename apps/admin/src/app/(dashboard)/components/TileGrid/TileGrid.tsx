@@ -13,7 +13,7 @@ import ReactGridLayout, {
 import { LuGripHorizontal } from "react-icons/lu";
 import { useElementWidth } from "../../hooks/useElementWidth";
 
-import { useGrowthLayout } from "../../providers/GrowthLayoutProvider";
+import { useTileLayout } from "../../providers/TileLayoutProvider";
 
 export interface GridTile {
 	key: string;
@@ -95,7 +95,7 @@ export function TileGrid({ section, tiles }: TileGridProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const width = useElementWidth(containerRef);
 	const mounted = width > 0;
-	const { version, readLayout, writeLayout } = useGrowthLayout();
+	const { version, readLayout, writeLayout } = useTileLayout();
 	const stacked = width < STACK_BELOW_PX;
 	const cols = stacked ? 1 : COLS;
 

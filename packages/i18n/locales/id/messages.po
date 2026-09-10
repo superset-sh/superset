@@ -1313,6 +1313,9 @@ msgstr "Aksi untuk {0}"
 msgid "activation rate"
 msgstr "tingkat aktivasi"
 
+msgid "Activation, how much people use it once they are in, and whether they come back."
+msgstr "Aktivasi, seberapa banyak dipakai setelah masuk, dan apakah mereka kembali."
+
 msgid "Active"
 msgstr "Aktif"
 
@@ -3360,9 +3363,6 @@ msgstr "Kohor"
 
 msgid "Cohort retention"
 msgstr "Retensi kohor"
-
-msgid "cohort size"
-msgstr "ukuran kohort"
 
 msgid "Collapse"
 msgstr "Ciutkan"
@@ -10513,9 +10513,6 @@ msgstr "Pembayaran Berhasil"
 msgid "Paywall → paid"
 msgstr "Paywall → berbayar"
 
-msgid "Paywall conversion over time"
-msgstr "Konversi paywall dari waktu ke waktu"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -11962,6 +11959,9 @@ msgstr "Tampilkan di sidebar"
 
 msgid "Reveal my rank"
 msgstr "Tampilkan peringkat saya"
+
+msgid "Revenue first, then how many people are actually using it, then what it costs to run."
+msgstr "Pendapatan dulu, lalu berapa banyak orang yang benar-benar memakainya, lalu berapa biayanya."
 
 msgid "Review"
 msgstr "Review"
@@ -15622,12 +15622,6 @@ msgstr "Lihat {count} pull request"
 msgid "View {name}"
 msgstr "Lihat {name}"
 
-msgid "view → paid"
-msgstr "tampilan → berbayar"
-
-msgid "view → upgrade click"
-msgstr "tampilan → klik upgrade"
-
 msgid "View all"
 msgstr "Lihat semua"
 
@@ -15841,9 +15835,6 @@ msgstr "Mingguan"
 
 msgid "Weekly at {time}"
 msgstr "Mingguan pukul {time}"
-
-msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
-msgstr "Kohort mingguan berdasarkan tampilan paywall pertama. Batang menunjukkan ukuran kohort; minggu ini masih bertambah."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Kohor mingguan berdasarkan workspace nyata pertama; % yang kembali dengan workspace lain tiap minggu"

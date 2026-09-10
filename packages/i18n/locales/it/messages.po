@@ -1313,6 +1313,9 @@ msgstr "Azioni per {0}"
 msgid "activation rate"
 msgstr "tasso di attivazione"
 
+msgid "Activation, how much people use it once they are in, and whether they come back."
+msgstr "L'attivazione, quanto lo usano una volta entrati e se tornano."
+
 msgid "Active"
 msgstr "Attiva"
 
@@ -3360,9 +3363,6 @@ msgstr "Coorte"
 
 msgid "Cohort retention"
 msgstr "Retention per coorte"
-
-msgid "cohort size"
-msgstr "dimensione della coorte"
 
 msgid "Collapse"
 msgstr "Comprimi"
@@ -10513,9 +10513,6 @@ msgstr "Pagamento riuscito"
 msgid "Paywall → paid"
 msgstr "Paywall → pagamento"
 
-msgid "Paywall conversion over time"
-msgstr "Conversione del paywall nel tempo"
-
 msgid "PDF"
 msgstr "PDF"
 
@@ -11962,6 +11959,9 @@ msgstr "Mostra nella barra laterale"
 
 msgid "Reveal my rank"
 msgstr "Mostra la mia posizione"
+
+msgid "Revenue first, then how many people are actually using it, then what it costs to run."
+msgstr "Prima i ricavi, poi quante persone lo usano davvero, poi quanto costa mandarlo avanti."
 
 msgid "Review"
 msgstr "Revisione"
@@ -15622,12 +15622,6 @@ msgstr "Vedi {count} pull request"
 msgid "View {name}"
 msgstr "Vedi {name}"
 
-msgid "view → paid"
-msgstr "visualizzazione → pagamento"
-
-msgid "view → upgrade click"
-msgstr "visualizzazione → clic su upgrade"
-
 msgid "View all"
 msgstr "Vedi tutti"
 
@@ -15841,9 +15835,6 @@ msgstr "Settimanale"
 
 msgid "Weekly at {time}"
 msgstr "Ogni settimana alle {time}"
-
-msgid "Weekly cohorts by first paywall view. Bars are cohort size; the current week is still filling."
-msgstr "Coorti settimanali in base alla prima visualizzazione del paywall. Le barre indicano la dimensione della coorte; la settimana in corso si sta ancora riempiendo."
 
 msgid "Weekly cohorts by first real workspace; % returning with another workspace each week"
 msgstr "Coorti settimanali per primo workspace reale; % che torna con un altro workspace ogni settimana"
