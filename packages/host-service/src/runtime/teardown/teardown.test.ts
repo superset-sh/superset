@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
+import { workspaceDevAppProfileDirName } from "@superset/shared/dev-app-profile";
 import { removeDevAppProfile } from "./dev-app-profile";
 import {
 	buildTeardownCommandFromShell,
@@ -256,6 +257,52 @@ describe("removeDevAppProfile", () => {
 		writeFileSync(join(dir, "Cache", "data_0"), "x");
 		return dir;
 	}
+
+	test("deleting an ID profile preserves same-named legacy data and other IDs", async () => {
+		const sb = makeAppDataDir();
+		try {
+			const profile = seedProfile(
+				sb.appDataDir,
+				workspaceDevAppProfileDirName({ workspaceId: "ws-1", appPath: "" }),
+			);
+			const other = seedProfile(
+				sb.appDataDir,
+				workspaceDevAppProfileDirName({ workspaceId: "ws-2", appPath: "" }),
+			);
+			const legacy = seedProfile(sb.appDataDir, "Superset (same-name)");
+			await removeDevAppProfile({
+				workspaceId: "ws-1",
+				workspaceName: "same-name",
+				appDataDir: sb.appDataDir,
+			});
+			expect(existsSync(profile)).toBe(false);
+			expect(existsSync(other)).toBe(true);
+			expect(existsSync(legacy)).toBe(true);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("preserves a live ID profile", async () => {
+		const sb = makeAppDataDir();
+		try {
+			const profile = seedProfile(
+				sb.appDataDir,
+				workspaceDevAppProfileDirName({ workspaceId: "ws-live", appPath: "" }),
+			);
+			symlinkSync(
+				`${hostname()}-${process.pid}`,
+				join(profile, "SingletonLock"),
+			);
+			await removeDevAppProfile({
+				workspaceId: "ws-live",
+				appDataDir: sb.appDataDir,
+			});
+			expect(existsSync(profile)).toBe(true);
+		} finally {
+			sb.cleanup();
+		}
+	});
 
 	test("removes the profile the dev app minted for this workspace", async () => {
 		const sb = makeAppDataDir();
