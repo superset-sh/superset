@@ -2026,8 +2026,8 @@ describe("vibe hooks.toml", () => {
 		const out = getVibeHooksTomlContent("");
 		expect(out).toContain(VIBE_HOOKS_MARKER_START);
 		expect(out).toContain(VIBE_HOOKS_MARKER_END);
-		expect(out).toContain('type = "before_tool"');
-		expect(out).toContain('type = "post_agent_turn"');
+		expect(out).toContain('type = "pre_tool"');
+		expect(out).toContain('type = "post_agent"');
 		expect(out).toContain("SUPERSET_HOOK_HARNESS=vibe");
 	});
 	it("preserves user hooks and is idempotent", () => {
@@ -2063,8 +2063,8 @@ describe("vibe hooks.toml", () => {
 		expect(out).toContain('name = "mine"');
 		expect(out.split(VIBE_HOOKS_MARKER_START).length - 1).toBe(1);
 		expect(out.split(VIBE_HOOKS_MARKER_END).length - 1).toBe(1);
-		expect(out.split('type = "before_tool"').length - 1).toBe(1);
-		expect(out.split('type = "post_agent_turn"').length - 1).toBe(1);
+		expect(out.split('type = "pre_tool"').length - 1).toBe(1);
+		expect(out.split('type = "post_agent"').length - 1).toBe(1);
 	});
 	it("preserves user hooks that follow an orphaned start marker", () => {
 		// End marker lost to a hand-edit/crash, with a user hook AFTER our block.
