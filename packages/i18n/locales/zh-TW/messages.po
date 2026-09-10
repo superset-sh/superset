@@ -382,10 +382,6 @@ msgstr "{0} 已在本機設定，但未在你的帳戶中設定"
 msgid "{0} last full week"
 msgstr "最近完整週 {0}"
 
-#. placeholder {0}: formatNumber(v, undefined)
-msgid "{0} mo"
-msgstr "{0}個月"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "還有{0}個——請細化搜尋"
@@ -1052,11 +1048,6 @@ msgstr "上一週期${0}（{1}）"
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "{1}家客戶合計${0}/年 — 已計入MRR，不額外累加"
-
-#. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
-msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
-msgstr "${0}M現金 ÷ 每月${1}淨支出，取最近3個完整月。現金包含已募集資金；未假設任何成長。"
 
 msgid "${balance} credits"
 msgstr "${balance}額度"
@@ -2796,9 +2787,6 @@ msgstr "輪播"
 
 msgid "Cash — total balance (Mercury)"
 msgstr "現金 — 總餘額（Mercury）"
-
-msgid "Cash ÷ net burn at the current run rate"
-msgstr "按目前速率計算的現金 ÷ 淨支出"
 
 msgid "Category"
 msgstr "分類"
@@ -5941,9 +5929,6 @@ msgstr "退出團隊失敗"
 #. placeholder {0}: errorMessage(error)
 msgid "Failed to list worktrees: {0}"
 msgstr "列出worktree失敗：{0}"
-
-msgid "Failed to load"
-msgstr "載入失敗"
 
 msgid "Failed to load branches"
 msgstr "載入分支失敗"
@@ -12197,9 +12182,6 @@ msgstr "建立新工作區時執行。"
 
 msgid "Runs when a workspace is deleted."
 msgstr "刪除工作區時執行。"
-
-msgid "Runway"
-msgstr "現金跑道"
 
 msgid "Same version as this app."
 msgstr "與此應用程式版本相同。"

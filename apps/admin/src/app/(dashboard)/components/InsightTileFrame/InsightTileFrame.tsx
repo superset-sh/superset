@@ -99,7 +99,10 @@ export function InsightTileFrame({
 						) : null}
 					</div>
 				</div>
-				{description ? <CardDescription>{description}</CardDescription> : null}
+				{/* Two lines are reserved whether or not the copy needs them: side
+				    by side, a one-line description would otherwise start its chart
+				    20px above its neighbour's. */}
+				<CardDescription className="min-h-10">{description}</CardDescription>
 			</CardHeader>
 			<CardContent className={cn(fill && "min-h-0 flex-1 overflow-auto")}>
 				{isLoading ? (

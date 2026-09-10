@@ -382,10 +382,6 @@ msgstr "{0} はこのマシンには設定されていますが、アカウン�
 msgid "{0} last full week"
 msgstr "直近の完全な週 {0}"
 
-#. placeholder {0}: formatNumber(v, undefined)
-msgid "{0} mo"
-msgstr "{0}か月"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "他{0}件 — 検索条件を絞ってください"
@@ -1052,11 +1048,6 @@ msgstr "前期間は${0}({1})"
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "{1}社で年間${0} — MRRに含まれており、加算されません"
-
-#. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
-msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
-msgstr "現金${0}M ÷ ネットバーン${1}/月(直近の完了3か月)。現金には調達資金を含み、成長は見込んでいません。"
 
 msgid "${balance} credits"
 msgstr "${balance}のクレジット"
@@ -2796,9 +2787,6 @@ msgstr "Carousel"
 
 msgid "Cash — total balance (Mercury)"
 msgstr "現金 — 総残高(Mercury)"
-
-msgid "Cash ÷ net burn at the current run rate"
-msgstr "現在のランレートでの現金 ÷ ネットバーン"
 
 msgid "Category"
 msgstr "カテゴリ"
@@ -5941,9 +5929,6 @@ msgstr "チームからの退出に失敗しました"
 #. placeholder {0}: errorMessage(error)
 msgid "Failed to list worktrees: {0}"
 msgstr "ワークツリーの一覧取得に失敗しました: {0}"
-
-msgid "Failed to load"
-msgstr "読み込めませんでした"
 
 msgid "Failed to load branches"
 msgstr "ブランチの読み込みに失敗しました"
@@ -12197,9 +12182,6 @@ msgstr "新しいワークスペースの作成時に実行します。"
 
 msgid "Runs when a workspace is deleted."
 msgstr "ワークスペースの削除時に実行します。"
-
-msgid "Runway"
-msgstr "ランウェイ"
 
 msgid "Same version as this app."
 msgstr "このアプリと同じバージョンです。"

@@ -382,10 +382,6 @@ msgstr "{0} đã được thiết lập trên máy này, nhưng chưa có trên 
 msgid "{0} last full week"
 msgstr "{0} tuần trọn vẹn gần nhất"
 
-#. placeholder {0}: formatNumber(v, undefined)
-msgid "{0} mo"
-msgstr "{0} tháng"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "còn {0} nữa — hãy thu hẹp tìm kiếm"
@@ -1052,11 +1048,6 @@ msgstr "${0} kỳ trước ({1})"
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "${0}/năm trên {1} khách hàng — đã nằm trong MRR, không cộng thêm"
-
-#. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
-msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
-msgstr "${0}M tiền mặt ÷ ${1}/tháng đốt tiền ròng, 3 tháng đầy đủ gần nhất. Tiền mặt bao gồm vốn đã gọi; không giả định tăng trưởng."
 
 msgid "${balance} credits"
 msgstr "${balance} credit"
@@ -2796,9 +2787,6 @@ msgstr "Carousel"
 
 msgid "Cash — total balance (Mercury)"
 msgstr "Tiền mặt — tổng số dư (Mercury)"
-
-msgid "Cash ÷ net burn at the current run rate"
-msgstr "Tiền mặt ÷ đốt tiền ròng theo tốc độ hiện tại"
 
 msgid "Category"
 msgstr "Danh mục"
@@ -5941,9 +5929,6 @@ msgstr "Không thể rời nhóm"
 #. placeholder {0}: errorMessage(error)
 msgid "Failed to list worktrees: {0}"
 msgstr "Không thể liệt kê worktree: {0}"
-
-msgid "Failed to load"
-msgstr "Không thể tải"
 
 msgid "Failed to load branches"
 msgstr "Không thể tải danh sách nhánh"
@@ -12197,9 +12182,6 @@ msgstr "Chạy khi tạo không gian làm việc mới."
 
 msgid "Runs when a workspace is deleted."
 msgstr "Chạy khi xóa không gian làm việc."
-
-msgid "Runway"
-msgstr "Runway"
 
 msgid "Same version as this app."
 msgstr "Cùng phiên bản với ứng dụng này."

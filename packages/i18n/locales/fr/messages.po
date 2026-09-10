@@ -382,10 +382,6 @@ msgstr "{0} est configuré sur cette machine, mais pas sur votre compte"
 msgid "{0} last full week"
 msgstr "{0} sur la dernière semaine complète"
 
-#. placeholder {0}: formatNumber(v, undefined)
-msgid "{0} mo"
-msgstr "{0} mois"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0} de plus — affinez votre recherche"
@@ -1052,11 +1048,6 @@ msgstr "{0} $ période précédente ({1})"
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "{0} $/an sur {1} logos — déjà compris dans le MRR, non additif"
-
-#. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
-msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
-msgstr "{0} M$ de trésorerie ÷ {1} $/mois de burn net, 3 derniers mois complets. La trésorerie inclut les fonds levés ; aucune croissance supposée."
 
 msgid "${balance} credits"
 msgstr "{balance} $ de crédits"
@@ -2796,9 +2787,6 @@ msgstr "Carrousel"
 
 msgid "Cash — total balance (Mercury)"
 msgstr "Trésorerie — solde total (Mercury)"
-
-msgid "Cash ÷ net burn at the current run rate"
-msgstr "Trésorerie ÷ burn net au rythme actuel"
 
 msgid "Category"
 msgstr "Catégorie"
@@ -5941,9 +5929,6 @@ msgstr "Échec de la sortie de l'équipe"
 #. placeholder {0}: errorMessage(error)
 msgid "Failed to list worktrees: {0}"
 msgstr "Échec du listage des worktrees : {0}"
-
-msgid "Failed to load"
-msgstr "Échec du chargement"
 
 msgid "Failed to load branches"
 msgstr "Échec du chargement des branches"
@@ -12197,9 +12182,6 @@ msgstr "S’exécute à la création d’un espace de travail."
 
 msgid "Runs when a workspace is deleted."
 msgstr "S’exécute à la suppression d’un espace de travail."
-
-msgid "Runway"
-msgstr "Runway"
 
 msgid "Same version as this app."
 msgstr "Même version que cette application."

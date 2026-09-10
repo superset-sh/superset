@@ -382,10 +382,6 @@ msgstr "{0} is set up on this machine, but not on your account"
 msgid "{0} last full week"
 msgstr "{0} last full week"
 
-#. placeholder {0}: formatNumber(v, undefined)
-msgid "{0} mo"
-msgstr "{0} mo"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0} more — refine your search"
@@ -1052,11 +1048,6 @@ msgstr "${0} previous period ({1})"
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "${0}/yr across {1} logos — already inside MRR, not additive"
-
-#. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
-msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
-msgstr "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
 
 msgid "${balance} credits"
 msgstr "${balance} credits"
@@ -2796,9 +2787,6 @@ msgstr "Carousel"
 
 msgid "Cash — total balance (Mercury)"
 msgstr "Cash — total balance (Mercury)"
-
-msgid "Cash ÷ net burn at the current run rate"
-msgstr "Cash ÷ net burn at the current run rate"
 
 msgid "Category"
 msgstr "Category"
@@ -5941,9 +5929,6 @@ msgstr "Failed to leave team"
 #. placeholder {0}: errorMessage(error)
 msgid "Failed to list worktrees: {0}"
 msgstr "Failed to list worktrees: {0}"
-
-msgid "Failed to load"
-msgstr "Failed to load"
 
 msgid "Failed to load branches"
 msgstr "Failed to load branches"
@@ -12197,9 +12182,6 @@ msgstr "Runs when a new workspace is created."
 
 msgid "Runs when a workspace is deleted."
 msgstr "Runs when a workspace is deleted."
-
-msgid "Runway"
-msgstr "Runway"
 
 msgid "Same version as this app."
 msgstr "Same version as this app."

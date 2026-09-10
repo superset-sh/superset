@@ -382,10 +382,6 @@ msgstr "{0} настроен на этом компьютере, но не в в
 msgid "{0} last full week"
 msgstr "{0} за последнюю полную неделю"
 
-#. placeholder {0}: formatNumber(v, undefined)
-msgid "{0} mo"
-msgstr "{0} мес."
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "ещё {0} — уточните запрос"
@@ -1052,11 +1048,6 @@ msgstr "${0} за предыдущий период ({1})"
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "${0}/год по {1} клиентам — уже входит в MRR, не добавляется сверху"
-
-#. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
-msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
-msgstr "${0} млн денег ÷ ${1}/мес чистого расхода, последние 3 полных месяца. Деньги включают привлечённый капитал; рост не заложен."
 
 msgid "${balance} credits"
 msgstr "${balance} кредитов"
@@ -2796,9 +2787,6 @@ msgstr "Карусель"
 
 msgid "Cash — total balance (Mercury)"
 msgstr "Деньги — общий остаток (Mercury)"
-
-msgid "Cash ÷ net burn at the current run rate"
-msgstr "Деньги ÷ чистый расход при текущем темпе"
 
 msgid "Category"
 msgstr "Категория"
@@ -5941,9 +5929,6 @@ msgstr "Не удалось покинуть команду"
 #. placeholder {0}: errorMessage(error)
 msgid "Failed to list worktrees: {0}"
 msgstr "Не удалось получить список worktree: {0}"
-
-msgid "Failed to load"
-msgstr "Не удалось загрузить"
 
 msgid "Failed to load branches"
 msgstr "Не удалось загрузить ветки"
@@ -12197,9 +12182,6 @@ msgstr "Выполняется при создании рабочего прос
 
 msgid "Runs when a workspace is deleted."
 msgstr "Выполняется при удалении рабочего пространства."
-
-msgid "Runway"
-msgstr "Запас хода"
 
 msgid "Same version as this app."
 msgstr "Та же версия, что и у этого приложения."

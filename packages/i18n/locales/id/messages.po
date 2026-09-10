@@ -382,10 +382,6 @@ msgstr "{0} sudah disiapkan di mesin ini, tetapi tidak di akun Anda"
 msgid "{0} last full week"
 msgstr "{0} minggu penuh terakhir"
 
-#. placeholder {0}: formatNumber(v, undefined)
-msgid "{0} mo"
-msgstr "{0} bln"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0} lagi — persempit pencarian Anda"
@@ -1052,11 +1048,6 @@ msgstr "${0} periode sebelumnya ({1})"
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "${0}/thn dari {1} logo — sudah termasuk dalam MRR, bukan tambahan"
-
-#. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
-msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
-msgstr "Kas ${0}J ÷ net burn ${1}/bln, 3 bulan penuh terakhir. Kas termasuk modal yang digalang; tanpa asumsi pertumbuhan."
 
 msgid "${balance} credits"
 msgstr "kredit ${balance}"
@@ -2796,9 +2787,6 @@ msgstr "Carousel"
 
 msgid "Cash — total balance (Mercury)"
 msgstr "Kas — saldo total (Mercury)"
-
-msgid "Cash ÷ net burn at the current run rate"
-msgstr "Kas ÷ net burn pada run rate saat ini"
 
 msgid "Category"
 msgstr "Kategori"
@@ -5941,9 +5929,6 @@ msgstr "Gagal keluar dari tim"
 #. placeholder {0}: errorMessage(error)
 msgid "Failed to list worktrees: {0}"
 msgstr "Gagal menampilkan daftar worktree: {0}"
-
-msgid "Failed to load"
-msgstr "Gagal memuat"
 
 msgid "Failed to load branches"
 msgstr "Gagal memuat branch"
@@ -12197,9 +12182,6 @@ msgstr "Dijalankan saat ruang kerja baru dibuat."
 
 msgid "Runs when a workspace is deleted."
 msgstr "Dijalankan saat ruang kerja dihapus."
-
-msgid "Runway"
-msgstr "Runway"
 
 msgid "Same version as this app."
 msgstr "Versi yang sama dengan aplikasi ini."

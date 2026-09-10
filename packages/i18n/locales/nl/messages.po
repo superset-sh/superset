@@ -382,10 +382,6 @@ msgstr "{0} is ingesteld op deze machine, maar niet op je account"
 msgid "{0} last full week"
 msgstr "{0} in de laatste volledige week"
 
-#. placeholder {0}: formatNumber(v, undefined)
-msgid "{0} mo"
-msgstr "{0} mnd"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "Nog {0} — verfijn je zoekopdracht"
@@ -1052,11 +1048,6 @@ msgstr "${0} vorige periode ({1})"
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "${0}/jr over {1} logo's — zit al in MRR, niet aanvullend"
-
-#. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
-msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
-msgstr "${0} mln cash ÷ ${1}/mnd netto burn, laatste 3 volledige maanden. Cash inclusief opgehaald kapitaal; geen groei aangenomen."
 
 msgid "${balance} credits"
 msgstr "${balance} tegoed"
@@ -2796,9 +2787,6 @@ msgstr "Carousel"
 
 msgid "Cash — total balance (Mercury)"
 msgstr "Cash — totaal saldo (Mercury)"
-
-msgid "Cash ÷ net burn at the current run rate"
-msgstr "Cash ÷ netto burn tegen het huidige tempo"
 
 msgid "Category"
 msgstr "Categorie"
@@ -5941,9 +5929,6 @@ msgstr "Verlaten van team mislukt"
 #. placeholder {0}: errorMessage(error)
 msgid "Failed to list worktrees: {0}"
 msgstr "Ophalen van worktrees mislukt: {0}"
-
-msgid "Failed to load"
-msgstr "Laden mislukt"
 
 msgid "Failed to load branches"
 msgstr "Laden van branches mislukt"
@@ -12197,9 +12182,6 @@ msgstr "Wordt uitgevoerd bij het aanmaken van een werkruimte."
 
 msgid "Runs when a workspace is deleted."
 msgstr "Wordt uitgevoerd bij het verwijderen van een werkruimte."
-
-msgid "Runway"
-msgstr "Runway"
 
 msgid "Same version as this app."
 msgstr "Dezelfde versie als deze app."

@@ -382,10 +382,6 @@ msgstr "{0}이(가) 이 컴퓨터에는 설정되어 있지만 계정에는 없�
 msgid "{0} last full week"
 msgstr "최근 완전한 주 {0}"
 
-#. placeholder {0}: formatNumber(v, undefined)
-msgid "{0} mo"
-msgstr "{0}개월"
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "{0}개 더 있습니다 — 검색어를 좁혀 보세요"
@@ -1052,11 +1048,6 @@ msgstr "이전 기간 ${0} ({1})"
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "{1}개 고객사에서 연 ${0} — 이미 MRR에 포함되며 별도 합산 대상이 아닙니다"
-
-#. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
-msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
-msgstr "현금 ${0}M ÷ 월 순 소진액 ${1}, 최근 완료된 3개월 기준. 현금에는 조달 자본이 포함되며 성장은 가정하지 않았습니다."
 
 msgid "${balance} credits"
 msgstr "크레딧 ${balance}"
@@ -2796,9 +2787,6 @@ msgstr "캐러셀"
 
 msgid "Cash — total balance (Mercury)"
 msgstr "현금 — 총 잔액 (Mercury)"
-
-msgid "Cash ÷ net burn at the current run rate"
-msgstr "현재 실행률 기준 현금 ÷ 순 소진액"
 
 msgid "Category"
 msgstr "카테고리"
@@ -5941,9 +5929,6 @@ msgstr "팀에서 나가지 못했습니다"
 #. placeholder {0}: errorMessage(error)
 msgid "Failed to list worktrees: {0}"
 msgstr "worktree 목록을 가져오지 못했습니다: {0}"
-
-msgid "Failed to load"
-msgstr "불러오지 못했습니다"
 
 msgid "Failed to load branches"
 msgstr "브랜치를 불러오지 못했습니다"
@@ -12197,9 +12182,6 @@ msgstr "새 작업 공간을 만들 때 실행됩니다."
 
 msgid "Runs when a workspace is deleted."
 msgstr "작업 공간을 삭제할 때 실행됩니다."
-
-msgid "Runway"
-msgstr "런웨이"
 
 msgid "Same version as this app."
 msgstr "이 앱과 같은 버전입니다."

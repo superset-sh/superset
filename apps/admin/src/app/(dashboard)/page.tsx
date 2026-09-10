@@ -14,7 +14,6 @@ import { OrgAdoptionTile } from "./components/OrgAdoptionTile";
 import { PostHogFunnelTile } from "./components/PostHogFunnelTile";
 import { ResetLayoutButton } from "./components/ResetLayoutButton";
 import { RetentionGridTile } from "./components/RetentionGridTile";
-import { RunwayTile } from "./components/RunwayTile";
 import { StarHistoryTile } from "./components/StarHistoryTile";
 import { TileSection } from "./components/TileSection";
 import { TrendSeriesTile } from "./components/TrendSeriesTile";
@@ -157,9 +156,8 @@ export default function DashboardPage() {
 									key: "net-burn",
 									node: <NetBurnTile />,
 									w: HALF_W,
-									h: CHART_H,
+									h: TABLE_H,
 								},
-								{ key: "runway", node: <RunwayTile />, w: HALF_W, h: CHART_H },
 								{
 									key: "burn-by-vendor",
 									node: <BurnByVendorTile />,

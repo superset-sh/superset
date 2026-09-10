@@ -382,10 +382,6 @@ msgstr "{0} je nastaven na tomto počítači, ale ne ve vašem účtu"
 msgid "{0} last full week"
 msgstr "{0} za poslední celý týden"
 
-#. placeholder {0}: formatNumber(v, undefined)
-msgid "{0} mo"
-msgstr "{0} měs."
-
 #. placeholder {0}: matches.length - VISIBLE_LIMIT
 msgid "{0} more — refine your search"
 msgstr "Ještě {0} — upřesněte hledání"
@@ -1052,11 +1048,6 @@ msgstr "${0} předchozí období ({1})"
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "${0}/rok, počet zákazníků: {1} — už je v MRR, nepřičítá se"
-
-#. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
-msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
-msgstr "${0} M hotovosti ÷ ${1}/měs. čistého burnu, poslední 3 celé měsíce. Hotovost zahrnuje získaný kapitál; bez předpokladu růstu."
 
 msgid "${balance} credits"
 msgstr "{balance} $ kreditů"
@@ -2796,9 +2787,6 @@ msgstr "Karusel"
 
 msgid "Cash — total balance (Mercury)"
 msgstr "Hotovost — celkový zůstatek (Mercury)"
-
-msgid "Cash ÷ net burn at the current run rate"
-msgstr "Hotovost ÷ čistý burn při aktuálním tempu"
 
 msgid "Category"
 msgstr "Kategorie"
@@ -5941,9 +5929,6 @@ msgstr "Nepodařilo se opustit tým"
 #. placeholder {0}: errorMessage(error)
 msgid "Failed to list worktrees: {0}"
 msgstr "Nepodařilo se vypsat worktree: {0}"
-
-msgid "Failed to load"
-msgstr "Načtení se nezdařilo"
 
 msgid "Failed to load branches"
 msgstr "Nepodařilo se načíst větve"
@@ -12197,9 +12182,6 @@ msgstr "Spouští se při vytvoření pracovního prostoru."
 
 msgid "Runs when a workspace is deleted."
 msgstr "Spouští se při smazání pracovního prostoru."
-
-msgid "Runway"
-msgstr "Runway"
 
 msgid "Same version as this app."
 msgstr "Stejná verze jako tato aplikace."
