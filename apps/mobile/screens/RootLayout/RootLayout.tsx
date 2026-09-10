@@ -1,11 +1,14 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PortalHost } from "@rn-primitives/portal";
 import { resolveLocale } from "@superset/i18n";
 import { I18nProvider } from "@superset/i18n/react";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import {
+	defaultShouldDehydrateQuery,
 	focusManager,
 	QueryClient,
-	QueryClientProvider,
 } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { getLocales } from "expo-localization";
 import { Stack } from "expo-router";
 import { ThemeProvider } from "expo-router/react-navigation";
@@ -21,7 +24,41 @@ Uniwind.setTheme("dark");
 import { PostHogUserIdentifier } from "./components/PostHogUserIdentifier";
 import { PostHogProvider } from "./providers/PostHogProvider";
 
+// What Home's first paint waits on, kept so a returning launch opens on rows.
+// Full prefixes, not just queryKey[0]: ["cloud", "sandbox-access"] is a
+// credential and must not reach disk. Decoration and terminal lists are live.
+const PERSISTED_QUERY_PREFIXES = [
+	["cloud", "user", "myOrganizations"],
+	["cloud", "v2Host", "list"],
+	["cloud", "cloudWorkspace", "list"],
+	["host-service", "workspaces", "list"],
+	["host-service", "projects", "list"],
+] as const;
+
+const PERSIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+/** Bump when a persisted query's response shape changes. */
+const PERSIST_BUSTER = "v1";
+
+function isPersistedQuery(queryKey: readonly unknown[]): boolean {
+	return PERSISTED_QUERY_PREFIXES.some((prefix) =>
+		prefix.every((segment, index) => queryKey[index] === segment),
+	);
+}
+
 const queryClient = new QueryClient();
+
+// Evicted from memory means absent from the next write, so these must outlive
+// the 5-minute default. Per prefix, not global — a day of per-row diff stats on
+// a phone is what that default protects against.
+for (const prefix of PERSISTED_QUERY_PREFIXES) {
+	queryClient.setQueryDefaults(prefix, { gcTime: PERSIST_MAX_AGE_MS });
+}
+
+const persister = createAsyncStoragePersister({
+	storage: AsyncStorage,
+	key: "superset-rq-cache",
+});
 
 // Device-language inference on first load; a persisted user setting takes
 // precedence once it exists (plans/20260826-i18n-strategy.md). The provider
@@ -50,7 +87,19 @@ export function RootLayout() {
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
-			<QueryClientProvider client={queryClient}>
+			<PersistQueryClientProvider
+				client={queryClient}
+				persistOptions={{
+					persister,
+					maxAge: PERSIST_MAX_AGE_MS,
+					buster: PERSIST_BUSTER,
+					dehydrateOptions: {
+						shouldDehydrateQuery: (query) =>
+							defaultShouldDehydrateQuery(query) &&
+							isPersistedQuery(query.queryKey),
+					},
+				}}
+			>
 				<PostHogProvider>
 					<I18nProvider locale={deviceLocale} deferUntilReady>
 						<ThemeProvider value={NAV_THEME.dark}>
@@ -70,7 +119,7 @@ export function RootLayout() {
 						</ThemeProvider>
 					</I18nProvider>
 				</PostHogProvider>
-			</QueryClientProvider>
+			</PersistQueryClientProvider>
 		</GestureHandlerRootView>
 	);
 }

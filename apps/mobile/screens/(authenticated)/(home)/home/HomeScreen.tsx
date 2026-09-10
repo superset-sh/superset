@@ -5,8 +5,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { isAfter } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
-import { RefreshControl, useWindowDimensions, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+	ActivityIndicator,
+	RefreshControl,
+	useWindowDimensions,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
 import {
@@ -18,6 +23,7 @@ import {
 	type HostWorkspaceItem,
 	useHostWorkspaces,
 } from "@/hooks/useHostWorkspaces";
+import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
@@ -28,6 +34,7 @@ import {
 } from "@/screens/(authenticated)/hooks/usePullRequests";
 import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinnedWorkspacesStore";
 import { pullRequestStatus } from "@/screens/(authenticated)/workspace/[id]/utils/pullRequest";
+import { HomeSplash } from "./components/HomeSplash";
 import { HostOfflineView } from "./components/HostOfflineView";
 import { NewChatWidget } from "./components/NewChatWidget";
 import { targetKeyFor } from "./components/NewChatWidget/hooks/useNewChatTargets";
@@ -99,6 +106,12 @@ function homeListItemKey(item: HomeListItem): string {
 
 const NOTICE_MS = 1500;
 
+// Sized to the wait it covers (hydration plus the API and relay round trips),
+// not to the unbounded worst case — a host the API still calls online answers
+// whenever it answers, and the tRPC client sets no timeout. Holding longer
+// would withhold the header and composer, which are live before the rows are.
+const FIRST_PAINT_TIMEOUT_MS = 1200;
+
 export function HomeScreen() {
 	const { t } = useLingui();
 	const router = useRouter();
@@ -150,8 +163,30 @@ export function HomeScreen() {
 		useHostsTerminals(terminalHosts);
 
 	// Projects are fully local — served by the selected host, not the cloud.
-	const { projects } = useHostProjects(selectedHost);
+	const { projects, isReady: projectsReady } = useHostProjects(selectedHost);
 	const pullRequests = usePullRequests();
+	const hostsQuery = useOrgHostsQuery();
+
+	// An answer, not rows: an offline host and a host with no workspaces both
+	// settle. Decoration is not waited on.
+	const contentReady =
+		hasHydrated &&
+		!isLoadingOrganizations &&
+		(hostsQuery.isSuccess || hostsQuery.isError) &&
+		(cloudScope ? cloudReady : isReady && projectsReady);
+
+	// Latched: this gates the first paint only. An organization switch re-pends
+	// these same queries, and blanking a list someone is reading would be worse
+	// than a stale row.
+	const [hasPainted, setHasPainted] = useState(false);
+	useEffect(() => {
+		if (contentReady) {
+			setHasPainted(true);
+			return;
+		}
+		const timer = setTimeout(() => setHasPainted(true), FIRST_PAINT_TIMEOUT_MS);
+		return () => clearTimeout(timer);
+	}, [contentReady]);
 
 	const collapsed = useCollapsedProjectsStore((state) => state.collapsed);
 	const collapseHydrated = useCollapsedProjectsStore(
@@ -502,6 +537,8 @@ export function HomeScreen() {
 		],
 	);
 
+	if (!hasPainted) return <HomeSplash />;
+
 	const sortOption = SORT_OPTIONS.find((option) => option.value === sort);
 	const sortLabel = sortOption ? i18n._(sortOption.label) : "";
 
@@ -600,7 +637,7 @@ export function HomeScreen() {
 						<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
 					}
 					ListEmptyComponent={
-						isReady && cloudReady && hasHydrated && !isLoadingOrganizations ? (
+						contentReady ? (
 							<View className="items-center justify-center py-20">
 								<Text className="text-center text-muted-foreground">
 									{cloudScope
@@ -612,7 +649,13 @@ export function HomeScreen() {
 											})}
 								</Text>
 							</View>
-						) : null
+						) : (
+							// Timed out with answers outstanding: the list is unknown,
+							// not empty, so neither nothing nor "No projects".
+							<View className="items-center justify-center py-20">
+								<ActivityIndicator />
+							</View>
+						)
 					}
 				/>
 			)}
