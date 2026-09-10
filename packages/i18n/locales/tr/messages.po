@@ -4296,6 +4296,9 @@ msgstr "Birleştirme commit'i oluştur"
 msgid "Create Merge Commit"
 msgstr "Birleştirme commit'i oluştur"
 
+msgid "Create new group"
+msgstr "Yeni grup oluştur"
+
 msgid "Create new project"
 msgstr "Yeni proje oluştur"
 

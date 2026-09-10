@@ -4296,6 +4296,9 @@ msgstr "Создать коммит слияния"
 msgid "Create Merge Commit"
 msgstr "Создать коммит слияния"
 
+msgid "Create new group"
+msgstr "Создать новую группу"
+
 msgid "Create new project"
 msgstr "Создать проект"
 

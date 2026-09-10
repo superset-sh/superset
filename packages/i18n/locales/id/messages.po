@@ -4296,6 +4296,9 @@ msgstr "Buat merge commit"
 msgid "Create Merge Commit"
 msgstr "Buat Merge Commit"
 
+msgid "Create new group"
+msgstr "Buat grup baru"
+
 msgid "Create new project"
 msgstr "Buat proyek baru"
 

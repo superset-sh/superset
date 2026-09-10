@@ -4296,6 +4296,9 @@ msgstr "建立合併提交"
 msgid "Create Merge Commit"
 msgstr "建立合併提交"
 
+msgid "Create new group"
+msgstr "建立新群組"
+
 msgid "Create new project"
 msgstr "新建專案"
 

@@ -4296,6 +4296,9 @@ msgstr "머지 커밋 만들기"
 msgid "Create Merge Commit"
 msgstr "머지 커밋 만들기"
 
+msgid "Create new group"
+msgstr "새 그룹 만들기"
+
 msgid "Create new project"
 msgstr "새 프로젝트 만들기"
 

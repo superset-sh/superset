@@ -4296,6 +4296,9 @@ msgstr "Créer un commit de fusion"
 msgid "Create Merge Commit"
 msgstr "Créer un commit de fusion"
 
+msgid "Create new group"
+msgstr "Créer un nouveau groupe"
+
 msgid "Create new project"
 msgstr "Créer un projet"
 

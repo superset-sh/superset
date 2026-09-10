@@ -4296,6 +4296,9 @@ msgstr "Utwórz commit scalający"
 msgid "Create Merge Commit"
 msgstr "Utwórz commit scalający"
 
+msgid "Create new group"
+msgstr "Utwórz nową grupę"
+
 msgid "Create new project"
 msgstr "Utwórz nowy projekt"
 

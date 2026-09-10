@@ -63,11 +63,6 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 						<Trans>Move {count} to Group</Trans>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent>
-						<ContextMenuItem onSelect={createGroupFromSelection}>
-							<LuFolderPlus className="size-4 mr-2" />
-							<Trans>New group</Trans>
-						</ContextMenuItem>
-						{sectionMenuState === "populated" && <ContextMenuSeparator />}
 						{sections?.map((section) => (
 							<ContextMenuItem
 								key={section.id}
@@ -91,6 +86,11 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 								)}
 							</ContextMenuItem>
 						)}
+						<ContextMenuSeparator />
+						<ContextMenuItem onSelect={createGroupFromSelection}>
+							<LuFolderPlus className="size-4 mr-2" />
+							<Trans>Create new group</Trans>
+						</ContextMenuItem>
 					</ContextMenuSubContent>
 				</ContextMenuSub>
 				{groupedWorkspaceIds.length > 0 && (
