@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fix branch autonaming to respect custom prefix</title>
+<style>
+  :root{
+    --bg: #faf8f4;
+    --paper: #ffffff;
+    --ink: #1c1a17;
+    --ink-soft: #55504a;
+    --line: #e4ddd2;
+    --accent: #1f5e4f;
+    --accent-soft: #e8f0ed;
+    --bad: #9a3b2a;
+    --bad-soft: #fbebe6;
+    --good: #1f5e4f;
+    --good-soft: #e8f0ed;
+    --code-bg: #23211d;
+    --code-ink: #f1ede4;
+    --code-accent: #9fd8c0;
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    --mono: "SF Mono", "Menlo", "Consolas", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.55;
+    padding-block:56px;
+  }
+  .page{
+    max-width:760px;
+    margin:0 auto;
+    padding-inline:24px;
+  }
+  .kicker{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 14px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .kicker::before{
+    content:"";
+    width:22px;
+    height:1px;
+    background:var(--accent);
+    display:inline-block;
+  }
+  h1{
+    font-family:var(--serif);
+    font-size:clamp(28px,5vw,40px);
+    line-height:1.15;
+    margin:0 0 14px;
+    letter-spacing:-0.01em;
+  }
+  .dek{
+    font-size:17px;
+    color:var(--ink-soft);
+    max-width:60ch;
+    margin:0 0 28px;
+  }
+  .meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 22px;
+    font-size:13px;
+    color:var(--ink-soft);
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    padding-block:14px;
+    margin-bottom:40px;
+  }
+  .meta span b{color:var(--ink); font-weight:600;}
+  .status-pill{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    background:#f2ead4;
+    color:#7a5c14;
+    border:1px solid #e3d19f;
+    padding:3px 9px;
+    border-radius:3px;
+  }
+
+  section{margin-bottom:44px;}
+  h2{
+    font-family:var(--serif);
+    font-size:23px;
+    margin:0 0 16px;
+    padding-bottom:10px;
+    border-bottom:2px solid var(--ink);
+  }
+  h3{
+    font-size:15px;
+    margin:26px 0 10px;
+    color:var(--accent);
+  }
+  p{margin:0 0 14px; max-width:68ch;}
+  ul,ol{margin:0 0 16px; padding-left:22px;}
+  li{margin-bottom:6px; max-width:64ch;}
+  code{
+    font-family:var(--mono);
+    font-size:0.86em;
+    background:var(--accent-soft);
+    color:#183f35;
+    padding:0.1em 0.4em;
+    border-radius:3px;
+  }
+
+  .callout{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-left:3px solid var(--accent);
+    padding:16px 20px;
+    border-radius:2px;
+    font-size:15px;
+  }
+  .callout p:last-child{margin-bottom:0;}
+
+  /* flow diagram */
+  .flow{
+    display:flex;
+    flex-direction:column;
+    gap:0;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+    margin:20px 0 8px;
+  }
+  .flow-row{
+    display:grid;
+    grid-template-columns:26px 1fr;
+    border-bottom:1px solid var(--line);
+  }
+  .flow-row:last-child{border-bottom:none;}
+  .flow-marker{
+    background:#f2efe8;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--ink-soft);
+    border-right:1px solid var(--line);
+  }
+  .flow-body{padding:14px 18px;}
+  .flow-title{font-weight:600; font-size:14px; margin-bottom:3px;}
+  .flow-detail{font-size:13.5px; color:var(--ink-soft);}
+  .flow-detail code{font-size:0.92em;}
+  .flow-row.bad .flow-marker{background:var(--bad-soft); color:var(--bad);}
+  .flow-row.bad .flow-title{color:var(--bad);}
+  .flow-row.good .flow-marker{background:var(--good-soft); color:var(--good);}
+  .flow-row.good .flow-title{color:var(--good);}
+
+  .branch-tag{
+    font-family:var(--mono);
+    font-size:12.5px;
+    padding:2px 8px;
+    border-radius:3px;
+    display:inline-block;
+  }
+  .branch-tag.ok{background:var(--good-soft); color:var(--good);}
+  .branch-tag.dropped{background:var(--bad-soft); color:var(--bad); text-decoration:line-through; text-decoration-color:var(--bad); text-decoration-thickness:1.5px;}
+
+  pre{
+    background:var(--code-bg);
+    color:var(--code-ink);
+    font-family:var(--mono);
+    font-size:12.5px;
+    line-height:1.6;
+    padding:16px 18px;
+    border-radius:6px;
+    overflow-x:auto;
+    margin:14px 0 20px;
+  }
+  pre .c{color:#8b8578;}
+  pre .k{color:var(--code-accent);}
+  pre .s{color:#e8c07d;}
+
+  /* two-column current vs proposed */
+  .compare{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin:18px 0 8px;
+  }
+  @media (max-width:620px){
+    .compare{grid-template-columns:1fr;}
+  }
+  .compare-col{
+    border:1px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+    background:var(--paper);
+  }
+  .compare-head{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:9px 14px;
+    border-bottom:1px solid var(--line);
+  }
+  .compare-col.current .compare-head{background:var(--bad-soft); color:var(--bad);}
+  .compare-col.proposed .compare-head{background:var(--good-soft); color:var(--good);}
+  .settings-mock{padding:14px;}
+  .field-group{
+    border:1px dashed var(--line);
+    border-radius:5px;
+    padding:10px 12px;
+    margin-bottom:10px;
+  }
+  .field-group:last-child{margin-bottom:0;}
+  .field-label{font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:4px;}
+  .field-fake{
+    background:#f5f2ec;
+    border-radius:3px;
+    height:16px;
+    width:70%;
+  }
+  .compare-col.current .field-group:nth-child(1){opacity:1;}
+  .page-sep{
+    text-align:center;
+    font-family:var(--mono);
+    font-size:10px;
+    color:var(--ink-soft);
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    margin:10px 0;
+  }
+
+  /* file table */
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  thead th{
+    text-align:left;
+    font-family:var(--mono);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--ink-soft);
+    background:#f2efe8;
+    padding:10px 14px;
+    border-bottom:1px solid var(--line);
+  }
+  tbody td{
+    padding:10px 14px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  td.path{font-family:var(--mono); font-size:12px; color:var(--accent); white-space:nowrap;}
+  td.note{color:var(--ink-soft);}
+  .table-wrap{overflow-x:auto; margin:16px 0 8px;}
+
+  .steps{list-style:none; padding:0; margin:0;}
+  .steps li{
+    display:grid;
+    grid-template-columns:28px 1fr;
+    gap:14px;
+    margin-bottom:18px;
+    max-width:none;
+  }
+  .step-num{
+    width:28px; height:28px;
+    border-radius:50%;
+    background:var(--ink);
+    color:var(--bg);
+    font-family:var(--mono);
+    font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .step-body b{display:block; font-size:15px; margin-bottom:3px;}
+  .step-body p{margin:0; font-size:14.5px;}
+
+  footer{
+    margin-top:56px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#17140f;
+      --paper:#211d17;
+      --ink:#f0ece3;
+      --ink-soft:#a89d8c;
+      --line:#3a342a;
+      --accent:#6fc9ab;
+      --accent-soft:#1c2e28;
+      --bad:#e8917d;
+      --bad-soft:#301e1a;
+      --good:#6fc9ab;
+      --good-soft:#1c2e28;
+      --code-bg:#0f0d0a;
+      --code-ink:#f1ede4;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#17140f;
+    --paper:#211d17;
+    --ink:#f0ece3;
+    --ink-soft:#a89d8c;
+    --line:#3a342a;
+    --accent:#6fc9ab;
+    --accent-soft:#1c2e28;
+    --bad:#e8917d;
+    --bad-soft:#301e1a;
+    --good:#6fc9ab;
+    --good-soft:#1c2e28;
+    --code-bg:#0f0d0a;
+    --code-ink:#f1ede4;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <p class="kicker">Proposal</p>
+  <h1>Branch autonaming drops the custom prefix. Let's fix the code path and merge the two settings that control it.</h1>
+  <p class="dek">Autonaming and branch prefix live in different settings screens and don't talk to each other. When an AI-generated name lands, it silently overwrites the prefix a user configured — moments after the workspace correctly had it.</p>
+
+  <div class="meta">
+    <span>Author <b>Kiet Ho</b></span>
+    <span>Area <b>Workspace creation · Desktop settings</b></span>
+    <span>Status <span class="status-pill">For discussion</span></span>
+  </div>
+
+  <section>
+    <h2>The bug</h2>
+    <p>A workspace's branch prefix (<code>none</code> / <code>github</code> / <code>author</code> / <code>custom</code>) is resolved correctly at the moment a workspace is created. But when AI autonaming finishes a few seconds later and renames the branch to something better than the placeholder, the prefix isn't reapplied — it's just gone.</p>
+
+    <div class="flow">
+      <div class="flow-row good">
+        <div class="flow-marker">1</div>
+        <div class="flow-body">
+          <div class="flow-title">Workspace created with placeholder branch</div>
+          <div class="flow-detail">
+            <code>resolveProjectBranchPrefix</code> runs, prefix applies correctly →
+            <span class="branch-tag ok">kiet/quick-brown-fox</span>
+          </div>
+        </div>
+      </div>
+      <div class="flow-row good">
+        <div class="flow-marker">2</div>
+        <div class="flow-body">
+          <div class="flow-title">AI naming call runs in the background</div>
+          <div class="flow-detail">The launch agent reads the prompt and proposes a better name: <code>fix-login-timeout</code></div>
+        </div>
+      </div>
+      <div class="flow-row bad">
+        <div class="flow-marker">3</div>
+        <div class="flow-body">
+          <div class="flow-title"><code>applyGeneratedWorkspaceNames</code> renames the branch — without the prefix</div>
+          <div class="flow-detail">
+            <code>git branch -m</code> uses the AI name raw →
+            <span class="branch-tag dropped">kiet/quick-brown-fox</span> becomes
+            <span class="branch-tag ok" style="background:var(--bad-soft); color:var(--bad);">fix-login-timeout</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p>The live branch-name preview shown while typing a prompt has the same gap: <code>workspaces.ts</code>'s <code>generateBranchName</code> procedure never calls <code>resolveProjectBranchPrefix</code> at all, unlike the <code>create</code> procedure right next to it. What the user sees while typing already doesn't match what they'll briefly get.</p>
+    </div>
+
+    <h3>Notably, this already works elsewhere in the codebase</h3>
+    <p>The legacy desktop-local naming path (<code>apps/desktop/.../generate-branch-name.ts</code>) threads <code>resolveBranchPrefix</code> into its dedupe step correctly. The regression is isolated to the newer host-service path — the one the app is actively migrating onto — which makes it worth fixing before that migration finishes and the correct behavior disappears entirely.</p>
+  </section>
+
+  <section>
+    <h2>Why it's easy to miss</h2>
+    <p>Because the two settings that govern this outcome sit in different places, with no visible link between them:</p>
+    <ul>
+      <li><b>Branch prefix mode + custom string</b> — a global "Git &amp; worktrees" settings page, with a per-project override buried in that project's own settings page.</li>
+      <li><b>Naming instructions</b> (what steers the AI's autoname style) — a separate section on the same per-project settings page, not adjacent to the prefix override.</li>
+    </ul>
+    <p>There's also no toggle anywhere to turn autonaming off. It's implicit: it fires whenever a user hasn't hand-edited the branch name field. A user configuring "how my branches get prefixed" has no reason to know a second, disconnected control shapes what autonaming will produce — or that the prefix won't survive it.</p>
+  </section>
+
+  <section>
+    <h2>Proposed fix</h2>
+    <ol class="steps">
+      <li>
+        <span class="step-num">1</span>
+        <div class="step-body">
+          <b>Apply the resolved prefix in both host-service code paths</b>
+          <p>Call <code>resolveProjectBranchPrefix</code> in the live-preview <code>generateBranchName</code> procedure, and — the important one — reapply it inside <code>applyGeneratedWorkspaceNames</code> after the AI/derived name comes back, instead of using that name raw in the <code>git branch -m</code>. This brings host-service to parity with what the legacy desktop path already does correctly.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <div class="step-body">
+          <b>Put both settings in one section</b>
+          <p>Merge the project settings page's branch-prefix override and "Naming instructions" into a single "Branch naming" section, so configuring one surfaces the other instead of splitting them across a global page and a distant per-project block.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <div class="step-body">
+          <b>Show a live example in that section</b>
+          <p>A one-line preview — "with your current settings, a workspace from this prompt would be named <code>kiet/fix-login-timeout</code>" — so the prefix-plus-autoname interaction is visible before creating a workspace, not discovered after the fact.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Settings layout: before / after</h2>
+    <div class="compare">
+      <div class="compare-col current">
+        <div class="compare-head">Today — split across two pages</div>
+        <div class="settings-mock">
+          <div class="field-group">
+            <div class="field-label">Git &amp; Worktrees (global)</div>
+            <div class="field-fake"></div>
+          </div>
+          <div class="page-sep">— separate project settings page —</div>
+          <div class="field-group">
+            <div class="field-label">Branch prefix override</div>
+            <div class="field-fake"></div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Naming instructions</div>
+            <div class="field-fake" style="width:85%;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="compare-col proposed">
+        <div class="compare-head">Proposed — one "Branch naming" section</div>
+        <div class="settings-mock">
+          <div class="field-group">
+            <div class="field-label">Prefix (mode + custom string)</div>
+            <div class="field-fake"></div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Naming instructions</div>
+            <div class="field-fake" style="width:85%;"></div>
+          </div>
+          <div class="field-group" style="border-style:solid; background:var(--accent-soft);">
+            <div class="field-label">Live preview</div>
+            <div class="flow-detail" style="font-size:12.5px;">→ <span class="branch-tag ok">kiet/fix-login-timeout</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:13px; color:var(--ink-soft); margin-top:8px;">Global default (prefix mode + string) is unchanged — this only consolidates where the per-project override and the naming behavior it interacts with are configured.</p>
+  </section>
+
+  <section>
+    <h2>Files involved</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>File</th><th>What's there</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="path">host-service/.../workspaces/workspaces.ts</td>
+            <td class="note">~882, 909: prefix correctly applied at creation. ~1095, 1333: AI rename triggers. ~1350–1367: live-preview <code>generateBranchName</code>, missing the prefix call.</td>
+          </tr>
+          <tr>
+            <td class="path">host-service/.../workspace-creation/utils/ai-workspace-names.ts</td>
+            <td class="note">~386: <code>applyGeneratedWorkspaceNames</code> — the <code>git branch -m</code> that drops the prefix.</td>
+          </tr>
+          <tr>
+            <td class="path">host-service/.../workspace-creation/utils/branch-prefix.ts</td>
+            <td class="note"><code>resolveProjectBranchPrefix</code> — the function that needs calling in both spots above.</td>
+          </tr>
+          <tr>
+            <td class="path">desktop/.../workspaces/procedures/generate-branch-name.ts</td>
+            <td class="note">Legacy path — reference implementation that already gets this right.</td>
+          </tr>
+          <tr>
+            <td class="path">desktop/.../v2-project/.../V2ProjectSettings.tsx</td>
+            <td class="note"><code>BranchPrefixSection</code> + <code>NamingInstructionsSection</code> — the two components to merge.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Open questions</h2>
+    <ul>
+      <li>Should the merged section also add an explicit on/off toggle for AI autonaming, or leave it implicit (fires only when the branch name field is untouched)?</li>
+      <li>Once V1 (legacy desktop) settings are retired, does the fix in host-service become the only implementation to maintain, or is a shared resolver worth extracting now?</li>
+    </ul>
+  </section>
+
+  <footer>
+    Proposal only — no autonaming or settings code has been changed. Comment on this page to weigh in, or pick it up as a ticket.
+  </footer>
+
+</div>
+</body>
+</html>

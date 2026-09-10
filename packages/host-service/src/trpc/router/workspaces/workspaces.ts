@@ -570,6 +570,10 @@ export const workspacesRouter = router({
 			// branch — the one case where the deferred AI rename may also
 			// rename the git branch.
 			let aiCanRenameBranch = false;
+			// The prefix applied to that auto-generated branch, so the
+			// deferred AI rename below can reapply the same prefix instead
+			// of re-resolving it (and instead of losing it).
+			let resolvedBranchPrefix: string | undefined;
 
 			await ensureMainWorkspace(ctx, input.projectId, repoPath);
 
@@ -912,6 +916,7 @@ export const workspacesRouter = router({
 						git,
 						existingBranches: existing,
 					});
+					resolvedBranchPrefix = prefix;
 					const typedNameSlug = input.name
 						? sanitizeBranchCandidate(input.name)
 						: "";
@@ -1102,6 +1107,7 @@ export const workspacesRouter = router({
 							names,
 							renameTitle: true,
 							renameBranch: aiCanRenameBranch,
+							branchPrefix: resolvedBranchPrefix,
 						});
 						if (applied) {
 							// Keep the original row object: it carries the create txid.
@@ -1330,10 +1336,25 @@ export const workspacesRouter = router({
 					message: "Local project not found for workspace",
 				});
 			}
+			const repoPath = project.repoPath ?? "";
+			const branchPrefix = repoPath
+				? await resolveProjectBranchPrefix({
+						ctx,
+						project,
+						git: await ctx.git(repoPath),
+						existingBranches: await listBranchNames(ctx, repoPath),
+					}).catch((err) => {
+						console.warn(
+							"[workspaces.aiRename] branch prefix resolution failed",
+							err,
+						);
+						return undefined;
+					})
+				: undefined;
 			void applyAiWorkspaceRename({
 				ctx,
 				workspaceId: input.workspaceId,
-				repoPath: project.repoPath ?? "",
+				repoPath,
 				worktreePath: local.worktreePath,
 				oldBranchName: local.branch,
 				oldWorkspaceName: local.name || local.branch,
@@ -1341,6 +1362,7 @@ export const workspacesRouter = router({
 				namingInstructions: project.namingInstructions,
 				renameTitle: true,
 				renameBranch: true,
+				branchPrefix,
 			}).catch((err) => {
 				console.warn("[workspaces.aiRename] failed", err);
 			});
@@ -1361,11 +1383,17 @@ export const workspacesRouter = router({
 				localProject.repoPath,
 			);
 			const derived = deriveWorkspaceBranchFromPrompt(input.prompt);
-			return {
-				branchName: derived
-					? deduplicateBranchName(derived, existingBranches)
-					: null,
-			};
+			if (!derived) return { branchName: null };
+			// Preview must match what create will actually produce, so it
+			// carries the same prefix resolution the real auto-gen path uses.
+			const prefix = await resolveProjectBranchPrefix({
+				ctx,
+				project: localProject,
+				git: await ctx.git(localProject.repoPath),
+				existingBranches,
+			});
+			const candidate = prefix ? `${prefix}/${derived}` : derived;
+			return { branchName: deduplicateBranchName(candidate, existingBranches) };
 		}),
 });
 
