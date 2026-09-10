@@ -323,6 +323,10 @@ msgstr "已有 {0} 位開發者依 agent 用量排名。你最近 30 天的資�
 msgid "{0} disabled"
 msgstr "{0}已停用"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "{0} Documentation"
+msgstr "{0} 文件"
+
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
 #. placeholder {0}: skill.name
@@ -378,7 +382,7 @@ msgstr "{0} 已在本機設定，但未在你的帳戶中設定"
 msgid "{0} last full week"
 msgstr "最近完整週 {0}"
 
-#. placeholder {0}: v.toLocaleString()
+#. placeholder {0}: formatNumber(v, undefined)
 msgid "{0} mo"
 msgstr "{0}個月"
 
@@ -414,8 +418,8 @@ msgstr "佔訪客的 {0}"
 msgid "{0} options"
 msgstr "{0}選項"
 
-#. placeholder {0}: dropped.toLocaleString()
-#. placeholder {0}: step.count.toLocaleString()
+#. placeholder {0}: formatNumber(dropped, undefined)
+#. placeholder {0}: formatNumber(step.count, undefined)
 msgid "{0} persons"
 msgstr "{0}人"
 
@@ -453,12 +457,12 @@ msgstr "再 {0} 即可超越 #{1}"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "最近30天 {0} 個 tokens。以 <0>{handle}</0> 身分發布。"
 
-#. placeholder {0}: formatTokens(cell.tokens)
+#. placeholder {0}: formatTokens(cell.tokens, i18n.locale)
 #. placeholder {1}: cell.day
 msgid "{0} tokens on {1}"
 msgstr "{1} 的 {0} 個 token"
 
-#. placeholder {0}: formatTokens(calendar.total)
+#. placeholder {0}: formatTokens(calendar.total, i18n.locale)
 #. placeholder {1}: String(calendar.activeDays)
 msgid "{0} tokens over {1} active days"
 msgstr "{1} 個活躍日內共 {0} 個 Token"
@@ -956,6 +960,10 @@ msgstr "月末訂閱組織中一個月後仍在訂閱的比例（按數量計；
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "每月新增訂閱在k個月後仍然有效的比例（Neon，不含企業版）"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "%s | {0} Docs"
+msgstr "%s | {0} 文件"
+
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1047,18 +1055,18 @@ msgstr "✓ 2小時前"
 msgid "✓ 3d ago"
 msgstr "✓ 3天前"
 
-#. placeholder {0}: latest.prevUsd.toLocaleString()
+#. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
 msgstr "上一週期${0}（{1}）"
 
-#. placeholder {0}: data.arrUsd.toLocaleString()
+#. placeholder {0}: formatNumber(data.arrUsd, undefined)
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "{1}家客戶合計${0}/年 — 已計入MRR，不額外累加"
 
 #. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd?.toLocaleString() ?? "—"
+#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
 msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
 msgstr "${0}M現金 ÷ 每月${1}淨支出，取最近3個完整月。現金包含已募集資金；未假設任何成長。"
 
@@ -1169,6 +1177,9 @@ msgstr "本次會話已使用87.4K/200K個token。"
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "更好用的應用程式內瀏覽器：預覽改動，點選任意元素即可作為上下文發給代理程式。"
+
+msgid "A better Superset is ready"
+msgstr "更好的 Superset 已準備就緒"
 
 msgid "A delete is already in progress for {workspaceName}."
 msgstr "{workspaceName}已經在刪除中。"
@@ -1502,6 +1513,9 @@ msgstr "管理員不能修改擁有者"
 
 msgid "Admins cannot promote members to owner"
 msgstr "管理員不能將成員提升為擁有者"
+
+msgid "Adopt v1 workspaces under their imported v2 project."
+msgstr "將 v1 工作區遷入已匯入的對應 v2 專案。"
 
 msgid "Advanced options"
 msgstr "進階選項"
@@ -1845,6 +1859,9 @@ msgstr "發生未知錯誤"
 msgid "An update is ready to install."
 msgstr "更新已準備好安裝。"
 
+msgid "Analytics, Ops, and more"
+msgstr "分析、營運及更多功能"
+
 msgid "Animate the active terminal cursor."
 msgstr "讓目前終端游標閃爍。"
 
@@ -1982,6 +1999,9 @@ msgstr "應用顯示語言。自動模式會跟隨你的系統語言。"
 
 msgid "Appearance"
 msgstr "外觀"
+
+msgid "Apple logo"
+msgstr "Apple 標誌"
 
 msgid "Applies to"
 msgstr "適用於"
@@ -2350,6 +2370,9 @@ msgstr "豎線"
 msgid "Base branch"
 msgstr "基礎分支"
 
+msgid "Base Branch"
+msgstr "基底分支"
+
 msgid "Base directory for new worktree workspaces on this host."
 msgstr "此主機上新建worktree工作區的基準目錄。"
 
@@ -2501,6 +2524,9 @@ msgstr "分支名不能以空格結尾。"
 msgid "Branch prefix"
 msgstr "分支字首"
 
+msgid "Branch Prefix"
+msgstr "分支前綴"
+
 msgid "Branch renamed to {newName}"
 msgstr "分支已重新命名為{newName}"
 
@@ -2531,6 +2557,15 @@ msgstr "將 {companyName} 引入您的團隊。與我們聯繫以進一步瞭解
 
 msgid "Bring Any Agent."
 msgstr "帶上任意代理程式。"
+
+msgid "Bring over your projects"
+msgstr "遷入專案"
+
+msgid "Bring over your terminal scripts"
+msgstr "遷入終端機指令碼"
+
+msgid "Bring over your workspaces"
+msgstr "遷入工作區"
 
 msgid "Bring v1 projects, workspaces, and terminal scripts over to v2. Each item is imported individually and can be retried."
 msgstr "將v1的專案、工作區和終端指令碼遷移到v2。每一項單獨匯入，可以重試。"
@@ -3072,6 +3107,9 @@ msgstr "在 Run 01 期間達到 Operator"
 msgid "Cleared terminal history"
 msgstr "已清除終端歷史"
 
+msgid "Clearing session name..."
+msgstr "正在清除會話名稱..."
+
 msgid "Clearing…"
 msgstr "正在清除…"
 
@@ -3098,6 +3136,9 @@ msgstr "點選終端指令碼以編輯其詳情。"
 
 msgid "Click here if not redirected"
 msgstr "如果沒有自動跳轉，請點選這裡"
+
+msgid "Click the “↑ update” pill to see the pre-update confirm"
+msgstr "點擊「↑ update」按鈕查看更新前的確認提示"
 
 msgid "Click to copy"
 msgstr "點選複製"
@@ -3138,6 +3179,9 @@ msgstr "克隆儲存庫"
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "克隆儲存庫，或匯入主機上已有的資料夾。"
 
+msgid "Clone, push, and create PRs."
+msgstr "複製、推送並建立 PR。"
+
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "已克隆到{0}"
@@ -3157,6 +3201,9 @@ msgid "Close #{0}?"
 msgstr "關閉#{0}？"
 
 msgid "Close all"
+msgstr "全部關閉"
+
+msgid "Close All"
 msgstr "全部關閉"
 
 msgid "Close all ports"
@@ -3208,8 +3255,14 @@ msgstr "關閉或刪除目前工作區"
 msgid "Close other apps using the microphone"
 msgstr "請關閉其他正在使用麥克風的應用"
 
+msgid "Close Others"
+msgstr "關閉其他"
+
 msgid "Close Page"
 msgstr "關閉頁面"
+
+msgid "Close pane"
+msgstr "關閉窗格"
 
 msgid "Close Pane"
 msgstr "關閉窗格"
@@ -3399,6 +3452,9 @@ msgstr "終端代理程式必須填寫命令。"
 msgid "Command Palette"
 msgstr "命令面板"
 
+msgid "Command to start your dev server, triggered via keyboard shortcut."
+msgstr "透過鍵盤快速鍵啟動開發伺服器的命令。"
+
 msgid "Command..."
 msgstr "命令..."
 
@@ -3438,6 +3494,9 @@ msgstr "提交"
 #. placeholder {0}: error.message
 msgid "Commit failed: {0}"
 msgstr "提交失敗：{0}"
+
+msgid "Commit message"
+msgstr "提交訊息"
 
 msgid "Commits"
 msgstr "提交"
@@ -3927,6 +3986,9 @@ msgstr "正在複製配置"
 msgid "Cost"
 msgstr "費用"
 
+msgid "Cost · $ per merged PR"
+msgstr "成本 · 每個已合併 PR 的美元費用"
+
 msgid "Cost per merged PR"
 msgstr "每個合併 PR 的費用"
 
@@ -4056,6 +4118,9 @@ msgstr "無法讀取該Google帳戶。請重試。"
 
 msgid "Could not record cloud workspace"
 msgstr "無法記錄雲端工作區"
+
+msgid "Could not rename the session"
+msgstr "無法重新命名會話"
 
 msgid "Could not reopen"
 msgstr "無法重新開啟"
@@ -4298,6 +4363,9 @@ msgstr "建立合併提交"
 
 msgid "Create Merge Commit"
 msgstr "建立合併提交"
+
+msgid "Create new group"
+msgstr "建立新群組"
 
 msgid "Create new project"
 msgstr "新建專案"
@@ -4607,6 +4675,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "預設（{defaultWorktreePath}）"
 
+msgid "Default base for new workspaces. Override per-workspace at creation."
+msgstr "新工作區的預設基底分支。可在建立時為各工作區個別覆寫。"
+
 msgid "Default effort"
 msgstr "預設推理強度"
 
@@ -4822,6 +4893,9 @@ msgstr "相依性"
 msgid "Depth"
 msgstr "深度"
 
+msgid "Depth · tokens per session"
+msgstr "深度 · 每次工作階段的權杖數"
+
 msgid "descending"
 msgstr "降序"
 
@@ -4917,6 +4991,9 @@ msgstr "差異"
 
 msgid "Diff"
 msgstr "差異"
+
+msgid "Diff change overview"
+msgstr "差異變更概覽"
 
 msgid "diff in new tab"
 msgstr "在新分頁看差異"
@@ -5039,6 +5116,9 @@ msgstr "發現並連線你網路中的開發伺服器。"
 
 msgid "Dismiss"
 msgstr "忽略"
+
+msgid "Dismiss error"
+msgstr "關閉錯誤提示"
 
 msgid "Dismiss resume prompt"
 msgstr "忽略恢復提示"
@@ -5248,6 +5328,9 @@ msgstr "耗時"
 msgid "e.g. Add dark mode, Fix checkout bug"
 msgstr "例如：新增深色模式、修復結帳bug"
 
+msgid "e.g. bun install && bun run dev"
+msgstr "例如 bun install && bun run dev"
+
 msgid "e.g. bun run dev"
 msgstr "例如：bun run dev"
 
@@ -5256,6 +5339,9 @@ msgstr "例如 Claude Desktop"
 
 msgid "e.g. Dev server"
 msgstr "例如：開發伺服器"
+
+msgid "e.g. docker compose down"
+msgstr "例如 docker compose down"
 
 msgid "e.g. engineering"
 msgstr "例如：engineering"
@@ -5972,6 +6058,9 @@ msgstr "重新命名失敗"
 msgid "Failed to rename branch"
 msgstr "重新命名分支失敗"
 
+msgid "Failed to rename session"
+msgstr "重新命名會話失敗"
+
 msgid "Failed to reorder"
 msgstr "重新排序失敗"
 
@@ -6212,6 +6301,12 @@ msgstr "檔案"
 msgid "Files changed"
 msgstr "更改的檔案"
 
+msgid "files to exclude (glob)"
+msgstr "排除的檔案（glob）"
+
+msgid "files to include (glob)"
+msgstr "包含的檔案（glob）"
+
 msgid "Fill out the contact form on this page and our team will reach out to learn about your needs and walk you through next steps."
 msgstr "填寫本頁的聯絡表單，我們的團隊會與你聯絡，瞭解需求並說明後續步驟。"
 
@@ -6265,6 +6360,9 @@ msgstr "篩選，{activeFilterCount}項生效"
 
 msgid "Finalizing setup"
 msgstr "正在完成設定"
+
+msgid "Find"
+msgstr "尋找"
 
 msgid "Find a small bug and fix it…"
 msgstr "找一個小bug並修好它…"
@@ -6467,6 +6565,9 @@ msgstr "預測"
 msgid "Forecast · Published August 2026"
 msgstr "預測 · 釋出於2026年8月"
 
+msgid "Forecast share of developers at each tier from August 2026 to August 2028"
+msgstr "2026 年 8 月至 2028 年 8 月各等級開發者占比預測"
+
 msgid "Foreground"
 msgstr "前景"
 
@@ -6664,6 +6765,9 @@ msgstr "無法連線至 GitHub"
 
 msgid "GitHub username"
 msgstr "GitHub使用者名稱"
+
+msgid "GitHub username..."
+msgstr "GitHub 使用者名稱..."
 
 msgid "GitHub username…"
 msgstr "GitHub使用者名稱…"
@@ -7107,6 +7211,12 @@ msgstr "匯入所有worktree"
 
 msgid "Import cookies and passwords…"
 msgstr "匯入cookie和密碼…"
+
+msgid "Import each v1 project into v2. Already-imported projects show as Imported."
+msgstr "將每個 v1 專案匯入 v2。已匯入的專案會顯示為已匯入。"
+
+msgid "Import each v1 terminal script into v2."
+msgstr "將每個 v1 終端機指令碼匯入 v2。"
 
 msgid "Import existing"
 msgstr "匯入已有"
@@ -7604,6 +7714,9 @@ msgstr "標籤變更"
 msgid "Label is required."
 msgstr "名稱為必填項。"
 
+msgid "Label name..."
+msgstr "標籤名稱..."
+
 msgid "Labels"
 msgstr "標籤"
 
@@ -7640,7 +7753,7 @@ msgstr "最近活躍"
 msgid "Last activity"
 msgstr "最近活動"
 
-#. placeholder {0}: new Date(workspace.lastAgentEventAt).toLocaleString()
+#. placeholder {0}: formatDateTime(new Date(workspace.lastAgentEventAt), undefined)
 msgid "Last agent activity {0}"
 msgstr "最近代理程式活動{0}"
 
@@ -7730,6 +7843,9 @@ msgstr "退出並刪除"
 
 msgid "Leave comment mode"
 msgstr "退出評論模式"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "留空即可恢復終端回報的名稱。"
 
 msgid "Leave Organization"
 msgstr "退出組織"
@@ -8139,8 +8255,15 @@ msgstr "管理用於MCP伺服器存取以及Claude Desktop、Claude Code等外�
 msgid "Manage members"
 msgstr "管理成員"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "在{0}管理"
+
 msgid "Manage Plan"
 msgstr "管理方案"
+
+msgid "Manage plan on the web"
+msgstr "在網頁端管理方案"
 
 msgid "Manage plugins"
 msgstr "管理外掛"
@@ -8495,6 +8618,9 @@ msgstr "每月 {day, selectordinal, one {#日} two {#日} few {#日} other {#日
 msgid "Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} at {time}"
 msgstr "每月 {day, selectordinal, one {#日} two {#日} few {#日} other {#日}} {time}"
 
+msgid "Months from August 2026"
+msgstr "自 2026 年 8 月起的月數"
+
 msgid "More"
 msgstr "更多"
 
@@ -8788,6 +8914,9 @@ msgstr "下一個分支"
 
 msgid "Next comment"
 msgstr "下一條評論"
+
+msgid "Next file"
+msgstr "下一個檔案"
 
 msgid "Next match"
 msgstr "下一個匹配"
@@ -9303,6 +9432,12 @@ msgstr "所選範圍內沒有此模型的用量記錄。"
 msgid "No usage recorded for this workspace in the selected range."
 msgstr "所選範圍內沒有此工作區的用量記錄。"
 
+msgid "No v1 projects found on this device."
+msgstr "此裝置上找不到 v1 專案。"
+
+msgid "No v1 terminal scripts found."
+msgstr "找不到 v1 終端機指令碼。"
+
 msgid "No versions yet"
 msgstr "還沒有版本"
 
@@ -9516,6 +9651,14 @@ msgstr "佔全部token"
 msgid "Off"
 msgstr "關閉"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
+msgstr "{0} 官方文件。這款應用程式可並行運行 100 多個編程代理。"
+
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}. Learn how to run 100+ coding agents in parallel on your machine."
+msgstr "{0} 官方文件。瞭解如何在您的設備上並行運行 100 多個編程代理。"
+
 msgid "Official quota · refreshes every 5 min"
 msgstr "官方配額 · 每5分鐘重新整理"
 
@@ -9527,9 +9670,6 @@ msgstr "離線"
 
 msgid "Offline / local-first mode"
 msgstr "離線/本地優先模式"
-
-msgid "OK"
-msgstr "確定"
 
 msgid "Older"
 msgstr "更早"
@@ -10204,6 +10344,9 @@ msgstr "描邊"
 msgid "Output"
 msgstr "輸出"
 
+msgid "Output · merged PRs per week"
+msgstr "產出 · 每週合併的 PR 數"
+
 msgid "Output Schema"
 msgstr "輸出結構"
 
@@ -10318,6 +10461,9 @@ msgstr "並行代理程式指南"
 
 msgid "Parallel Execution"
 msgstr "並行執行"
+
+msgid "Parallel sessions per developer doubling every seven months, crossing the Operator, Plant Manager and Henry Ford thresholds between August 2026 and August 2028"
+msgstr "每位開發者的並行工作階段數每七個月翻倍，在 2026 年 8 月至 2028 年 8 月期間跨越操作員、廠長和 Henry Ford 等級門檻"
 
 msgid "Parameters"
 msgstr "引數"
@@ -10524,9 +10670,6 @@ msgstr "計劃"
 msgctxt "billing"
 msgid "Plan"
 msgstr "方案"
-
-msgid "Plan is managed on the web"
-msgstr "方案在網頁端管理"
 
 msgid "Plan restored"
 msgstr "方案已恢復"
@@ -10737,6 +10880,9 @@ msgstr "上一個分支"
 msgid "Previous comment"
 msgstr "上一條評論"
 
+msgid "Previous file"
+msgstr "上一個檔案"
+
 msgid "Previous match"
 msgstr "上一個匹配"
 
@@ -10818,6 +10964,9 @@ msgstr "處理中..."
 msgid "Product"
 msgstr "產品"
 
+msgid "Production run"
+msgstr "生產運行"
+
 msgid "Production run status"
 msgstr "生產運行狀態"
 
@@ -10838,6 +10987,9 @@ msgstr "專案已建立。"
 
 msgid "Project folder is not on this machine"
 msgstr "專案資料夾不在此裝置上"
+
+msgid "Project icon"
+msgstr "專案圖示"
 
 msgid "Project imported and selected."
 msgstr "專案已匯入並選中。"
@@ -11414,6 +11566,9 @@ msgstr "移除代理程式"
 msgid "remove the PR link"
 msgstr "移除PR連結"
 
+msgid "Remove trigger"
+msgstr "移除觸發條件"
+
 msgid "Remove workspace"
 msgstr "移除工作區"
 
@@ -11438,6 +11593,9 @@ msgstr "正在移除…"
 msgid "Rename"
 msgstr "重新命名"
 
+msgid "Rename {title}"
+msgstr "重新命名 {title}"
+
 msgid "Rename branch"
 msgstr "重新命名分支"
 
@@ -11454,6 +11612,9 @@ msgstr "重新命名群組"
 msgid "Rename host"
 msgstr "重新命名主機"
 
+msgid "Rename session"
+msgstr "重新命名會話"
+
 msgid "rename the branch"
 msgstr "重新命名分支"
 
@@ -11465,6 +11626,9 @@ msgstr "重新命名..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "正在將分支重新命名為{newName}..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "正在將會話重新命名為 {trimmed}..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "渲染輸出：程式碼、來源、引用、上下文"
@@ -11951,6 +12115,9 @@ msgstr "第 {runNumber} 期"
 msgid "Run 01"
 msgstr "Run 01"
 
+msgid "Run 10+ parallel coding agents on your machine"
+msgstr "在您的設備上並行運行 10 多個編程代理"
+
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "在你的機器上並行執行10個以上的編碼代理程式。"
 
@@ -12052,6 +12219,12 @@ msgstr "在該裝置的 Superset 應用程式內執行，因此更新它就是�
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "執行結果會落在一個工作區裡。審查差異，把合適的合併進去。"
+
+msgid "Runs when a new workspace is created."
+msgstr "建立新工作區時執行。"
+
+msgid "Runs when a workspace is deleted."
+msgstr "刪除工作區時執行。"
 
 msgid "Runway"
 msgstr "現金跑道"
@@ -12200,6 +12373,9 @@ msgstr "搜尋（{searchShortcutText}）"
 msgid "Search {0} sites…"
 msgstr "搜尋{0}個站點…"
 
+msgid "Search a developer"
+msgstr "搜尋開發者"
+
 msgid "Search across file contents and across all your workspaces at once."
 msgstr "一次搜尋所有檔案內容和所有工作區。"
 
@@ -12214,6 +12390,9 @@ msgstr "搜尋自動化"
 
 msgid "Search branches..."
 msgstr "搜尋分支..."
+
+msgid "Search by key name..."
+msgstr "依鍵名搜尋..."
 
 msgid "Search changed files"
 msgstr "搜尋更改的檔案"
@@ -12316,6 +12495,12 @@ msgstr "在更改差異中搜尋文字"
 
 msgid "Search text in the rendered file viewer"
 msgstr "在渲染的檔案檢視器中搜尋文字"
+
+msgid "Search the leaderboard for a fighter"
+msgstr "在排行榜中搜尋對手"
+
+msgid "Search triggers..."
+msgstr "搜尋觸發條件..."
 
 msgid "Search workspaces"
 msgstr "搜尋工作區"
@@ -12625,8 +12810,17 @@ msgstr "網頁端建立會話即將推出"
 msgid "Session details"
 msgstr "會話詳情"
 
+msgid "Session name"
+msgstr "會話名稱"
+
+msgid "Session name cleared"
+msgstr "已清除會話名稱"
+
 msgid "Session notes and context."
 msgstr "會話筆記與上下文。"
+
+msgid "Session renamed to {trimmed}"
+msgstr "會話已重新命名為 {trimmed}"
 
 msgid "Session snapshots & revert"
 msgstr "會話快照與回退"
@@ -13296,6 +13490,9 @@ msgstr "星標歷史"
 msgid "Star history isn't available right now. Check back soon."
 msgstr "星標歷史暫時不可用。請稍後再來。"
 
+msgid "Star nag reset — eligible again on the empty state, sidebar card, and onboarding toast"
+msgstr "星號提醒已重設，可再次顯示於空白狀態、側邊欄卡片及入門通知中"
+
 msgid "Star on GitHub"
 msgstr "在GitHub上加星"
 
@@ -13559,6 +13756,9 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
+msgid "Superset | Company Dashboard"
+msgstr "Superset | 公司儀表板"
+
 msgid "Superset Agent"
 msgstr "Superset代理程式"
 
@@ -13700,6 +13900,9 @@ msgstr "已暫停"
 
 msgid "Sustain"
 msgstr "持續"
+
+msgid "Sustain · active days in 30"
+msgstr "持續性 · 30 天內的活躍天數"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "換代理程式，不換工作流"
@@ -13958,6 +14161,9 @@ msgstr "清理指令碼在{seconds}秒後逾時"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "讓任意代理程式用<0>superset</0> CLI來建立工作區、執行任務或管理自動化。"
+
+msgid "Ten parallel workstreams running, each landing merged work"
+msgstr "十條並行工作流程同時執行，各自交付已合併的成果"
 
 msgid "terminal"
 msgstr "終端"
@@ -14623,6 +14829,9 @@ msgstr "這會移除你的組織與Slack之間的連線。你可以隨時重新�
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "這將還原對此檔案的所有更改。此操作無法復原。"
 
+msgid "This will revert all unstaged modifications and delete untracked files. This action cannot be undone."
+msgstr "這將還原所有未暫存的修改並刪除未追蹤的檔案。此操作無法復原。"
+
 msgid "This will revert all unstaged modifications and delete untracked files. This cannot be undone."
 msgstr "這將還原所有未暫存的修改並刪除未追蹤的檔案。此操作無法復原。"
 
@@ -14631,6 +14840,9 @@ msgstr "這將終止所有持久化的終端處理程序（構建、測試、代
 
 msgid "This will terminate the session and its underlying process."
 msgstr "這將終止該會話及其底層處理程序。"
+
+msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This action cannot be undone."
+msgstr "這將取消暫存並還原所有已暫存的變更。已暫存的新檔案將被刪除。此操作無法復原。"
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "這將取消暫存並還原所有已暫存的更改。已暫存的新檔案將被刪除。此操作無法復原。"
@@ -15606,6 +15818,12 @@ msgstr "我們正在尋找共創夥伴，共同打造雲端產品。請告訴我
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "我們正在重做這個功能，敬請期待。"
 
+msgid "Web Fetch"
+msgstr "網頁擷取"
+
+msgid "Web Search"
+msgstr "網頁搜尋"
+
 msgid "Webhook trigger not found"
 msgstr "未找到Webhook觸發器"
 
@@ -15681,6 +15899,9 @@ msgstr "歡迎回來"
 
 msgid "Welcome to Superset"
 msgstr "歡迎使用Superset"
+
+msgid "Welcome to the new Superset"
+msgstr "歡迎使用全新的 Superset"
 
 msgid "What builders say about Superset"
 msgstr "開發者怎麼評價Superset"
@@ -15796,6 +16017,9 @@ msgstr "整任務"
 msgid "Width"
 msgstr "寬度"
 
+msgid "Width · parallel sessions"
+msgstr "寬度 · 並行工作階段數"
+
 msgid "Window"
 msgstr "視窗"
 
@@ -15886,6 +16110,9 @@ msgstr "工作區已開啟，但終端啟動失敗。"
 
 msgid "Workspace path is not available"
 msgstr "工作區路徑不可用"
+
+msgid "Workspace path is not available yet"
+msgstr "工作區路徑尚不可用"
 
 msgid "Workspace pinning & bulk actions"
 msgstr "工作區固定與批次操作"
@@ -16038,6 +16265,10 @@ msgstr "你是某個仍有其他成員的組織的唯一擁有者。請先轉移
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "在累計 {0} 天使用紀錄之前你不參與排名。等看板掌握完整情況後才會開始計分。"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "無法在應用程式內變更此訂閱。你所在組織的方案由擁有者在{0}管理。"
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "此操作無法復原。終端窗格會顯示「處理程序已退出」，之後可以重新啟動。"
 
@@ -16120,10 +16351,6 @@ msgstr "你的姓名"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "你的名字 <0>（若我們採用你的提示詞，會在更新日誌中署名致謝）</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "你所在組織的方案由擁有者在{0}管理。"
 
 msgid "Your rank"
 msgstr "你的排名"

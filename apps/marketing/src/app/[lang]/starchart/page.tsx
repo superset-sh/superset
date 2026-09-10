@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import { COMPANY } from "@superset/shared/constants";
 import { formatStarCount, githubRepoSlug } from "@superset/shared/github-stars";
 import { Button } from "@superset/ui/button";
@@ -19,6 +19,7 @@ import { getStarHistory } from "./utils/getStarHistory";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	const title = i18n._(
 		msg({
 			message: "Star History",
@@ -49,17 +50,21 @@ export async function generateMetadata(): Promise<Metadata> {
 	};
 }
 
-function formatWeekDate(date: string): string {
-	return formatUTCDate(new Date(date).getTime(), {
-		month: "short",
-		day: "numeric",
-	});
+function formatWeekDate(date: string, locale: string): string {
+	return formatUTCDate(
+		new Date(date).getTime(),
+		{
+			month: "short",
+			day: "numeric",
+		},
+		locale,
+	);
 }
 
 export default async function StarChartPage() {
 	await initServerI18n();
 
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const history = await getStarHistory();
 	const points = history?.points ?? [];
 	const totalStars = history?.totalStars ?? null;
@@ -71,7 +76,7 @@ export default async function StarChartPage() {
 	const starCount = totalStars !== null ? formatStarCount(totalStars) : "";
 
 	const weekOf = (date: string) => {
-		const week = formatWeekDate(date);
+		const week = formatWeekDate(date, i18n.locale);
 		return t({ message: `week of ${week}` });
 	};
 

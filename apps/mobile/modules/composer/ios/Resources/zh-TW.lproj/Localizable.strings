@@ -1,0 +1,14 @@
+"Dismiss" = "忽略";
+"Add attachment" = "新增附件";
+"Transcribing" = "正在轉錄";
+"Dictate" = "語音輸入";
+"Sending" = "正在傳送";
+"Send" = "傳送";
+"Stop dictation" = "停止語音輸入";
+"Remove attachment" = "移除附件";
+"Document" = "文件";
+"Close" = "關閉";
+"Done" = "完成";
+"Model: %@" = "模型：%@";
+"Microphone access is not allowed" = "未允許存取麥克風";
+"Could not start dictation" = "無法啟動聽寫";

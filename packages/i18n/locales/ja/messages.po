@@ -323,6 +323,10 @@ msgstr "{0}人の開発者がエージェント利用量でランク付けされ
 msgid "{0} disabled"
 msgstr "{0}を無効にしました"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "{0} Documentation"
+msgstr "{0}ドキュメント"
+
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
 #. placeholder {0}: skill.name
@@ -378,7 +382,7 @@ msgstr "{0} はこのマシンには設定されていますが、アカウン�
 msgid "{0} last full week"
 msgstr "直近の完全な週 {0}"
 
-#. placeholder {0}: v.toLocaleString()
+#. placeholder {0}: formatNumber(v, undefined)
 msgid "{0} mo"
 msgstr "{0}か月"
 
@@ -414,8 +418,8 @@ msgstr "訪問者の {0}"
 msgid "{0} options"
 msgstr "{0}のオプション"
 
-#. placeholder {0}: dropped.toLocaleString()
-#. placeholder {0}: step.count.toLocaleString()
+#. placeholder {0}: formatNumber(dropped, undefined)
+#. placeholder {0}: formatNumber(step.count, undefined)
 msgid "{0} persons"
 msgstr "{0}人"
 
@@ -453,12 +457,12 @@ msgstr "#{1}を抜くまで{0}"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "直近30日間で{0}トークン。<0>{handle}</0>として公開中。"
 
-#. placeholder {0}: formatTokens(cell.tokens)
+#. placeholder {0}: formatTokens(cell.tokens, i18n.locale)
 #. placeholder {1}: cell.day
 msgid "{0} tokens on {1}"
 msgstr "{1}に{0}トークン"
 
-#. placeholder {0}: formatTokens(calendar.total)
+#. placeholder {0}: formatTokens(calendar.total, i18n.locale)
 #. placeholder {1}: String(calendar.activeDays)
 msgid "{0} tokens over {1} active days"
 msgstr "アクティブ日数{1}日で{0}トークン"
@@ -956,6 +960,10 @@ msgstr "月末時点で契約中の組織が1か月後も契約している割�
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "各月に開始したサブスクリプションのうち、kか月後も有効な割合(Neon、エンタープライズ除く)"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "%s | {0} Docs"
+msgstr "%s | {0}ドキュメント"
+
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1047,18 +1055,18 @@ msgstr "✓ 2時間前"
 msgid "✓ 3d ago"
 msgstr "✓ 3日前"
 
-#. placeholder {0}: latest.prevUsd.toLocaleString()
+#. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
 msgstr "前期間は${0}({1})"
 
-#. placeholder {0}: data.arrUsd.toLocaleString()
+#. placeholder {0}: formatNumber(data.arrUsd, undefined)
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "{1}社で年間${0} — MRRに含まれており、加算されません"
 
 #. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd?.toLocaleString() ?? "—"
+#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
 msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
 msgstr "現金${0}M ÷ ネットバーン${1}/月(直近の完了3か月)。現金には調達資金を含み、成長は見込んでいません。"
 
@@ -1169,6 +1177,9 @@ msgstr "このセッションで200Kトークン中87.4Kを使用しました。
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "アプリ内ブラウザを改良します。変更をプレビューし、任意の要素をクリックしてコンテキストとしてエージェントに送れます。"
+
+msgid "A better Superset is ready"
+msgstr "新しいSupersetの準備ができました"
 
 msgid "A delete is already in progress for {workspaceName}."
 msgstr "{workspaceName}の削除はすでに進行中です。"
@@ -1502,6 +1513,9 @@ msgstr "管理者はオーナーを変更できません"
 
 msgid "Admins cannot promote members to owner"
 msgstr "管理者はメンバーをオーナーに昇格できません"
+
+msgid "Adopt v1 workspaces under their imported v2 project."
+msgstr "v1ワークスペースをインポート済みのv2プロジェクトに引き継ぎます。"
 
 msgid "Advanced options"
 msgstr "詳細オプション"
@@ -1845,6 +1859,9 @@ msgstr "不明なエラーが発生しました"
 msgid "An update is ready to install."
 msgstr "アップデートをインストールする準備ができました。"
 
+msgid "Analytics, Ops, and more"
+msgstr "分析、運用など"
+
 msgid "Animate the active terminal cursor."
 msgstr "アクティブなターミナルカーソルをアニメーションします。"
 
@@ -1982,6 +1999,9 @@ msgstr "アプリの表示言語。自動ではシステムの言語に従いま
 
 msgid "Appearance"
 msgstr "外観"
+
+msgid "Apple logo"
+msgstr "Appleのロゴ"
 
 msgid "Applies to"
 msgstr "適用範囲"
@@ -2350,6 +2370,9 @@ msgstr "バー"
 msgid "Base branch"
 msgstr "ベースブランチ"
 
+msgid "Base Branch"
+msgstr "ベースブランチ"
+
 msgid "Base directory for new worktree workspaces on this host."
 msgstr "このホストの新規ワークツリーワークスペースのベースディレクトリ。"
 
@@ -2501,6 +2524,9 @@ msgstr "ブランチ名の末尾にスペースは使えません。"
 msgid "Branch prefix"
 msgstr "ブランチプレフィックス"
 
+msgid "Branch Prefix"
+msgstr "ブランチの接頭辞"
+
 msgid "Branch renamed to {newName}"
 msgstr "ブランチ名を{newName}に変更しました"
 
@@ -2531,6 +2557,15 @@ msgstr "{companyName}をチームに導入しましょう。エンタープラ�
 
 msgid "Bring Any Agent."
 msgstr "どのエージェントでも。"
+
+msgid "Bring over your projects"
+msgstr "プロジェクトを引き継ぐ"
+
+msgid "Bring over your terminal scripts"
+msgstr "ターミナルスクリプトを引き継ぐ"
+
+msgid "Bring over your workspaces"
+msgstr "ワークスペースを引き継ぐ"
 
 msgid "Bring v1 projects, workspaces, and terminal scripts over to v2. Each item is imported individually and can be retried."
 msgstr "v1のプロジェクト、ワークスペース、ターミナルスクリプトをv2に取り込みます。項目ごとに個別にインポートされ、再試行できます。"
@@ -3072,6 +3107,9 @@ msgstr "Run 01 期間中に Operator を達成"
 msgid "Cleared terminal history"
 msgstr "ターミナル履歴をクリアしました"
 
+msgid "Clearing session name..."
+msgstr "セッション名をクリア中..."
+
 msgid "Clearing…"
 msgstr "消去中…"
 
@@ -3098,6 +3136,9 @@ msgstr "ターミナルスクリプトをクリックして詳細を編集しま
 
 msgid "Click here if not redirected"
 msgstr "リダイレクトされない場合はこちらをクリック"
+
+msgid "Click the “↑ update” pill to see the pre-update confirm"
+msgstr "「↑ update」ボタンをクリックすると更新前の確認が表示されます"
 
 msgid "Click to copy"
 msgstr "クリックでコピー"
@@ -3138,6 +3179,9 @@ msgstr "リポジトリをクローンする"
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "リポジトリをクローンするか、ホスト上の既存フォルダをインポートします。"
 
+msgid "Clone, push, and create PRs."
+msgstr "クローン、プッシュ、PRの作成。"
+
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "{0}にクローンしました"
@@ -3157,6 +3201,9 @@ msgid "Close #{0}?"
 msgstr "#{0}をクローズしますか?"
 
 msgid "Close all"
+msgstr "すべて閉じる"
+
+msgid "Close All"
 msgstr "すべて閉じる"
 
 msgid "Close all ports"
@@ -3208,8 +3255,14 @@ msgstr "現在のワークスペースを閉じるか削除する"
 msgid "Close other apps using the microphone"
 msgstr "マイクを使用中の他のアプリを閉じてください"
 
+msgid "Close Others"
+msgstr "他を閉じる"
+
 msgid "Close Page"
 msgstr "ページを閉じる"
+
+msgid "Close pane"
+msgstr "ペインを閉じる"
 
 msgid "Close Pane"
 msgstr "ペインを閉じる"
@@ -3399,6 +3452,9 @@ msgstr "ターミナルエージェントにはコマンドが必要です。"
 msgid "Command Palette"
 msgstr "コマンドパレット"
 
+msgid "Command to start your dev server, triggered via keyboard shortcut."
+msgstr "キーボードショートカットで開発サーバーを起動するコマンド。"
+
 msgid "Command..."
 msgstr "コマンド..."
 
@@ -3438,6 +3494,9 @@ msgstr "コミット"
 #. placeholder {0}: error.message
 msgid "Commit failed: {0}"
 msgstr "コミットに失敗しました: {0}"
+
+msgid "Commit message"
+msgstr "コミットメッセージ"
 
 msgid "Commits"
 msgstr "コミット"
@@ -3927,6 +3986,9 @@ msgstr "設定をコピー中"
 msgid "Cost"
 msgstr "コスト"
 
+msgid "Cost · $ per merged PR"
+msgstr "コスト · マージされたPRあたりのドル額"
+
 msgid "Cost per merged PR"
 msgstr "マージされたPRあたりのコスト"
 
@@ -4056,6 +4118,9 @@ msgstr "Googleアカウントを読み取れませんでした。もう一度お
 
 msgid "Could not record cloud workspace"
 msgstr "クラウドワークスペースを記録できませんでした"
+
+msgid "Could not rename the session"
+msgstr "セッションの名前を変更できませんでした"
 
 msgid "Could not reopen"
 msgstr "再オープンできませんでした"
@@ -4298,6 +4363,9 @@ msgstr "マージコミットを作成"
 
 msgid "Create Merge Commit"
 msgstr "マージコミットを作成"
+
+msgid "Create new group"
+msgstr "新しいグループを作成"
 
 msgid "Create new project"
 msgstr "新規プロジェクトを作成"
@@ -4607,6 +4675,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "デフォルト({defaultWorktreePath})"
 
+msgid "Default base for new workspaces. Override per-workspace at creation."
+msgstr "新しいワークスペースの既定のベース。作成時に個別に変更できます。"
+
 msgid "Default effort"
 msgstr "デフォルトのエフォート"
 
@@ -4822,6 +4893,9 @@ msgstr "依存関係"
 msgid "Depth"
 msgstr "深さ"
 
+msgid "Depth · tokens per session"
+msgstr "深さ · セッションあたりのトークン数"
+
 msgid "descending"
 msgstr "降順"
 
@@ -4917,6 +4991,9 @@ msgstr "差分"
 
 msgid "Diff"
 msgstr "差分"
+
+msgid "Diff change overview"
+msgstr "差分変更の概要"
 
 msgid "diff in new tab"
 msgstr "新しいタブで差分"
@@ -5039,6 +5116,9 @@ msgstr "ネットワーク上の開発サーバーを検出して接続します
 
 msgid "Dismiss"
 msgstr "閉じる"
+
+msgid "Dismiss error"
+msgstr "エラーを閉じる"
 
 msgid "Dismiss resume prompt"
 msgstr "再開プロンプトを閉じる"
@@ -5248,6 +5328,9 @@ msgstr "所要時間"
 msgid "e.g. Add dark mode, Fix checkout bug"
 msgstr "例: ダークモードを追加、チェックアウトのバグを修正"
 
+msgid "e.g. bun install && bun run dev"
+msgstr "例: bun install && bun run dev"
+
 msgid "e.g. bun run dev"
 msgstr "例: bun run dev"
 
@@ -5256,6 +5339,9 @@ msgstr "例: Claude Desktop"
 
 msgid "e.g. Dev server"
 msgstr "例: 開発サーバー"
+
+msgid "e.g. docker compose down"
+msgstr "例: docker compose down"
 
 msgid "e.g. engineering"
 msgstr "例: engineering"
@@ -5972,6 +6058,9 @@ msgstr "名前の変更に失敗しました"
 msgid "Failed to rename branch"
 msgstr "ブランチ名の変更に失敗しました"
 
+msgid "Failed to rename session"
+msgstr "セッションの名前の変更に失敗しました"
+
 msgid "Failed to reorder"
 msgstr "並べ替えに失敗しました"
 
@@ -6212,6 +6301,12 @@ msgstr "ファイル"
 msgid "Files changed"
 msgstr "変更されたファイル"
 
+msgid "files to exclude (glob)"
+msgstr "除外するファイル（glob）"
+
+msgid "files to include (glob)"
+msgstr "含めるファイル（glob）"
+
 msgid "Fill out the contact form on this page and our team will reach out to learn about your needs and walk you through next steps."
 msgstr "このページのお問い合わせフォームにご記入ください。担当チームからご連絡し、要件をうかがったうえで次のステップをご案内します。"
 
@@ -6265,6 +6360,9 @@ msgstr "フィルター、{activeFilterCount}件適用中"
 
 msgid "Finalizing setup"
 msgstr "セットアップを完了中"
+
+msgid "Find"
+msgstr "検索"
 
 msgid "Find a small bug and fix it…"
 msgstr "小さなバグを見つけて修正…"
@@ -6467,6 +6565,9 @@ msgstr "予測"
 msgid "Forecast · Published August 2026"
 msgstr "予測 · 2026年8月公開"
 
+msgid "Forecast share of developers at each tier from August 2026 to August 2028"
+msgstr "2026年8月から2028年8月までの各階層の開発者割合の予測"
+
 msgid "Foreground"
 msgstr "前景"
 
@@ -6664,6 +6765,9 @@ msgstr "GitHub に接続できません"
 
 msgid "GitHub username"
 msgstr "GitHubのユーザー名"
+
+msgid "GitHub username..."
+msgstr "GitHubユーザー名..."
 
 msgid "GitHub username…"
 msgstr "GitHubユーザー名…"
@@ -7107,6 +7211,12 @@ msgstr "すべてのワークツリーをインポート"
 
 msgid "Import cookies and passwords…"
 msgstr "Cookieとパスワードをインポート…"
+
+msgid "Import each v1 project into v2. Already-imported projects show as Imported."
+msgstr "各v1プロジェクトをv2にインポートします。インポート済みのプロジェクトにはインポート済みと表示されます。"
+
+msgid "Import each v1 terminal script into v2."
+msgstr "各v1ターミナルスクリプトをv2にインポートします。"
 
 msgid "Import existing"
 msgstr "既存をインポート"
@@ -7604,6 +7714,9 @@ msgstr "ラベル変更"
 msgid "Label is required."
 msgstr "ラベルは必須です。"
 
+msgid "Label name..."
+msgstr "ラベル名..."
+
 msgid "Labels"
 msgstr "ラベル"
 
@@ -7640,7 +7753,7 @@ msgstr "最終アクティブ"
 msgid "Last activity"
 msgstr "最終アクティビティ"
 
-#. placeholder {0}: new Date(workspace.lastAgentEventAt).toLocaleString()
+#. placeholder {0}: formatDateTime(new Date(workspace.lastAgentEventAt), undefined)
 msgid "Last agent activity {0}"
 msgstr "エージェントの最終アクティビティ {0}"
 
@@ -7730,6 +7843,9 @@ msgstr "退出して削除"
 
 msgid "Leave comment mode"
 msgstr "コメントモードを終了"
+
+msgid "Leave it empty to go back to the name the terminal reports."
+msgstr "空欄にすると、ターミナルが報告する名前に戻ります。"
 
 msgid "Leave Organization"
 msgstr "組織から退出"
@@ -8139,8 +8255,15 @@ msgstr "MCPサーバーアクセスやClaude Desktop・Claude Codeなどの外�
 msgid "Manage members"
 msgstr "メンバーを管理"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Manage on {0}"
+msgstr "{0}で管理"
+
 msgid "Manage Plan"
 msgstr "プランを管理"
+
+msgid "Manage plan on the web"
+msgstr "プランはWebで管理"
 
 msgid "Manage plugins"
 msgstr "プラグインを管理"
@@ -8495,6 +8618,9 @@ msgstr "毎月{day, selectordinal, one {#日} two {#日} few {#日} other {#日}
 msgid "Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} at {time}"
 msgstr "毎月{day, selectordinal, one {#日} two {#日} few {#日} other {#日}} {time}"
 
+msgid "Months from August 2026"
+msgstr "2026年8月からの月数"
+
 msgid "More"
 msgstr "その他"
 
@@ -8788,6 +8914,9 @@ msgstr "次のブランチ"
 
 msgid "Next comment"
 msgstr "次のコメント"
+
+msgid "Next file"
+msgstr "次のファイル"
 
 msgid "Next match"
 msgstr "次の一致"
@@ -9303,6 +9432,12 @@ msgstr "選択した期間にこのモデルの使用記録はありません。
 msgid "No usage recorded for this workspace in the selected range."
 msgstr "選択した期間にこのワークスペースの使用記録はありません。"
 
+msgid "No v1 projects found on this device."
+msgstr "このデバイスにv1プロジェクトが見つかりません。"
+
+msgid "No v1 terminal scripts found."
+msgstr "v1ターミナルスクリプトが見つかりません。"
+
 msgid "No versions yet"
 msgstr "バージョンはまだありません"
 
@@ -9516,6 +9651,14 @@ msgstr "全トークン中"
 msgid "Off"
 msgstr "オフ"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
+msgstr "100以上のコーディングエージェントを並列実行できるアプリ、{0}の公式ドキュメント。"
+
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}. Learn how to run 100+ coding agents in parallel on your machine."
+msgstr "{0}の公式ドキュメント。端末上で100以上のコーディングエージェントを並列実行する方法をご紹介します。"
+
 msgid "Official quota · refreshes every 5 min"
 msgstr "公式クォータ · 5分ごとに更新"
 
@@ -9527,9 +9670,6 @@ msgstr "オフライン"
 
 msgid "Offline / local-first mode"
 msgstr "オフライン/ローカルファーストモード"
-
-msgid "OK"
-msgstr "OK"
 
 msgid "Older"
 msgstr "それ以前"
@@ -10204,6 +10344,9 @@ msgstr "Outline"
 msgid "Output"
 msgstr "出力"
 
+msgid "Output · merged PRs per week"
+msgstr "成果 · 週あたりのマージ済みPR数"
+
 msgid "Output Schema"
 msgstr "出力スキーマ"
 
@@ -10318,6 +10461,9 @@ msgstr "並列エージェントガイド"
 
 msgid "Parallel Execution"
 msgstr "並列実行"
+
+msgid "Parallel sessions per developer doubling every seven months, crossing the Operator, Plant Manager and Henry Ford thresholds between August 2026 and August 2028"
+msgstr "開発者あたりの並列セッション数は7か月ごとに倍増し、2026年8月から2028年8月の間にオペレーター、工場長、Henry Fordの基準を超えます"
 
 msgid "Parameters"
 msgstr "パラメータ"
@@ -10524,9 +10670,6 @@ msgstr "計画"
 msgctxt "billing"
 msgid "Plan"
 msgstr "プラン"
-
-msgid "Plan is managed on the web"
-msgstr "プランはWebで管理されています"
 
 msgid "Plan restored"
 msgstr "プランを復元しました"
@@ -10737,6 +10880,9 @@ msgstr "前のブランチ"
 msgid "Previous comment"
 msgstr "前のコメント"
 
+msgid "Previous file"
+msgstr "前のファイル"
+
 msgid "Previous match"
 msgstr "前の一致"
 
@@ -10818,6 +10964,9 @@ msgstr "処理中..."
 msgid "Product"
 msgstr "プロダクト"
 
+msgid "Production run"
+msgstr "生産稼働"
+
 msgid "Production run status"
 msgstr "プロダクションランの状況"
 
@@ -10838,6 +10987,9 @@ msgstr "プロジェクトを作成しました。"
 
 msgid "Project folder is not on this machine"
 msgstr "プロジェクトフォルダはこのマシンにありません"
+
+msgid "Project icon"
+msgstr "プロジェクトアイコン"
 
 msgid "Project imported and selected."
 msgstr "プロジェクトをインポートして選択しました。"
@@ -11414,6 +11566,9 @@ msgstr "エージェントを削除する"
 msgid "remove the PR link"
 msgstr "PRリンクを削除する"
 
+msgid "Remove trigger"
+msgstr "トリガーを削除"
+
 msgid "Remove workspace"
 msgstr "ワークスペースを削除"
 
@@ -11438,6 +11593,9 @@ msgstr "削除中…"
 msgid "Rename"
 msgstr "名前を変更"
 
+msgid "Rename {title}"
+msgstr "{title} の名前を変更"
+
 msgid "Rename branch"
 msgstr "ブランチ名を変更"
 
@@ -11454,6 +11612,9 @@ msgstr "グループ名を変更"
 msgid "Rename host"
 msgstr "ホストの名前を変更"
 
+msgid "Rename session"
+msgstr "セッションの名前を変更"
+
 msgid "rename the branch"
 msgstr "ブランチ名を変更する"
 
@@ -11465,6 +11626,9 @@ msgstr "名前を変更..."
 
 msgid "Renaming branch to {newName}..."
 msgstr "ブランチ名を{newName}に変更中..."
+
+msgid "Renaming session to {trimmed}..."
+msgstr "セッション名を {trimmed} に変更中..."
 
 msgid "Rendered output: code, sources, citations, context"
 msgstr "描画される出力: コード、ソース、引用、コンテキスト"
@@ -11951,6 +12115,9 @@ msgstr "ラン {runNumber}"
 msgid "Run 01"
 msgstr "Run 01"
 
+msgid "Run 10+ parallel coding agents on your machine"
+msgstr "端末上で10以上のコーディングエージェントを並列実行"
+
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "手元のマシンで10以上のコーディングエージェントを並列実行できます。"
 
@@ -12052,6 +12219,12 @@ msgstr "そのデバイスのSupersetアプリ内で動作しているため、�
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "実行結果はワークスペースに入ります。差分を確認し、良いものをマージしてください。"
+
+msgid "Runs when a new workspace is created."
+msgstr "新しいワークスペースの作成時に実行します。"
+
+msgid "Runs when a workspace is deleted."
+msgstr "ワークスペースの削除時に実行します。"
 
 msgid "Runway"
 msgstr "ランウェイ"
@@ -12200,6 +12373,9 @@ msgstr "検索 ({searchShortcutText})"
 msgid "Search {0} sites…"
 msgstr "{0}件のサイトを検索…"
 
+msgid "Search a developer"
+msgstr "開発者を検索"
+
 msgid "Search across file contents and across all your workspaces at once."
 msgstr "ファイルの中身も、すべてのワークスペースも、まとめて横断検索できます。"
 
@@ -12214,6 +12390,9 @@ msgstr "オートメーションを検索"
 
 msgid "Search branches..."
 msgstr "ブランチを検索..."
+
+msgid "Search by key name..."
+msgstr "キー名で検索..."
 
 msgid "Search changed files"
 msgstr "変更されたファイルを検索"
@@ -12316,6 +12495,12 @@ msgstr "変更の差分内でテキストを検索する"
 
 msgid "Search text in the rendered file viewer"
 msgstr "レンダリングされたファイルビューア内でテキストを検索する"
+
+msgid "Search the leaderboard for a fighter"
+msgstr "ランキングで対戦相手を検索"
+
+msgid "Search triggers..."
+msgstr "トリガーを検索..."
 
 msgid "Search workspaces"
 msgstr "ワークスペースを検索"
@@ -12625,8 +12810,17 @@ msgstr "Web版でのセッション作成は近日公開"
 msgid "Session details"
 msgstr "セッションの詳細"
 
+msgid "Session name"
+msgstr "セッション名"
+
+msgid "Session name cleared"
+msgstr "セッション名をクリアしました"
+
 msgid "Session notes and context."
 msgstr "セッションのノートとコンテキスト。"
+
+msgid "Session renamed to {trimmed}"
+msgstr "セッション名を {trimmed} に変更しました"
 
 msgid "Session snapshots & revert"
 msgstr "セッションのスナップショットと巻き戻し"
@@ -13296,6 +13490,9 @@ msgstr "スター履歴"
 msgid "Star history isn't available right now. Check back soon."
 msgstr "スター履歴はいま利用できません。しばらくしてからご確認ください。"
 
+msgid "Star nag reset — eligible again on the empty state, sidebar card, and onboarding toast"
+msgstr "スターのリマインダーをリセットしました。空の状態、サイドバーのカード、初期設定の通知で再び表示できます"
+
 msgid "Star on GitHub"
 msgstr "GitHubでスターをつける"
 
@@ -13559,6 +13756,9 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
+msgid "Superset | Company Dashboard"
+msgstr "Superset | 企業ダッシュボード"
+
 msgid "Superset Agent"
 msgstr "Supersetエージェント"
 
@@ -13700,6 +13900,9 @@ msgstr "停止中"
 
 msgid "Sustain"
 msgstr "継続"
+
+msgid "Sustain · active days in 30"
+msgstr "継続 · 30日間のアクティブ日数"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "エージェントは替える。ワークフローはそのまま"
@@ -13958,6 +14161,9 @@ msgstr "ティアダウンが{seconds}秒でタイムアウトしました"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "任意のエージェントに<0>superset</0> CLIを使わせて、ワークスペースの作成、タスクの実行、オートメーションの管理ができます。"
+
+msgid "Ten parallel workstreams running, each landing merged work"
+msgstr "10本の並列作業がそれぞれ成果をマージします"
 
 msgid "terminal"
 msgstr "ターミナル"
@@ -14623,6 +14829,9 @@ msgstr "組織とSlackの接続を解除します。いつでも再接続でき�
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "このファイルへの変更をすべて元に戻します。この操作は元に戻せません。"
 
+msgid "This will revert all unstaged modifications and delete untracked files. This action cannot be undone."
+msgstr "ステージされていないすべての変更を元に戻し、未追跡ファイルを削除します。この操作は取り消せません。"
+
 msgid "This will revert all unstaged modifications and delete untracked files. This cannot be undone."
 msgstr "未ステージの変更をすべて元に戻し、追跡されていないファイルを削除します。元に戻せません。"
 
@@ -14631,6 +14840,9 @@ msgstr "すべての永続ターミナルプロセス(ビルド、テスト、�
 
 msgid "This will terminate the session and its underlying process."
 msgstr "セッションとその基盤プロセスを終了します。"
+
+msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This action cannot be undone."
+msgstr "ステージされたすべての変更をステージから外して元に戻します。ステージされた新しいファイルは削除されます。この操作は取り消せません。"
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "ステージ済みの変更をすべてステージ解除して元に戻します。ステージ済みの新規ファイルは削除されます。元に戻せません。"
@@ -15606,6 +15818,12 @@ msgstr "クラウド版を一緒に作り上げる共同開発パートナーを
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "この機能は作り直し中です。しばらくお待ちください。"
 
+msgid "Web Fetch"
+msgstr "ウェブ取得"
+
+msgid "Web Search"
+msgstr "ウェブ検索"
+
 msgid "Webhook trigger not found"
 msgstr "Webhookトリガーが見つかりません"
 
@@ -15681,6 +15899,9 @@ msgstr "おかえりなさい"
 
 msgid "Welcome to Superset"
 msgstr "Supersetへようこそ"
+
+msgid "Welcome to the new Superset"
+msgstr "新しいSupersetへようこそ"
 
 msgid "What builders say about Superset"
 msgstr "ビルダーが語るSuperset"
@@ -15796,6 +16017,9 @@ msgstr "タスク完遂"
 msgid "Width"
 msgstr "幅"
 
+msgid "Width · parallel sessions"
+msgstr "幅 · 並列セッション数"
+
 msgid "Window"
 msgstr "ウィンドウ"
 
@@ -15886,6 +16110,9 @@ msgstr "ワークスペースを開きましたが、ターミナルを起動で
 
 msgid "Workspace path is not available"
 msgstr "ワークスペースのパスを利用できません"
+
+msgid "Workspace path is not available yet"
+msgstr "ワークスペースのパスはまだ利用できません"
 
 msgid "Workspace pinning & bulk actions"
 msgstr "ワークスペースのピン留めと一括操作"
@@ -16038,6 +16265,10 @@ msgstr "他にメンバーがいる組織の唯一のオーナーです。先に
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "{0}日分の使用実績がそろうまではランク外です。全体像が見えるようになってからスコアリングが始まります。"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
+msgstr "このサブスクリプションはアプリでは変更できません。組織のプランは{0}でオーナーが管理しています。"
+
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "この操作は元に戻せません。ターミナルペインに「Process exited」と表示され、再起動できます。"
 
@@ -16120,10 +16351,6 @@ msgstr "あなたの名前"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "お名前 <0>(プロンプトを採用した場合、changelogでクレジットします)</0>"
-
-#. placeholder {0}: COMPANY.DOMAIN
-msgid "Your organization's plan is managed by its owner at {0}."
-msgstr "組織のプランは{0}でオーナーが管理しています。"
 
 msgid "Your rank"
 msgstr "あなたのランク"

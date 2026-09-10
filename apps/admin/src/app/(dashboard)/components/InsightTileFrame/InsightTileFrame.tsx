@@ -1,6 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { Button } from "@superset/ui/button";
 import {
 	Card,
@@ -49,6 +50,8 @@ export function InsightTileFrame({
 	fill,
 	children,
 }: InsightTileFrameProps) {
+	const { formatDateTime } = useFormat();
+
 	const { t } = useLingui();
 
 	return (
@@ -86,7 +89,7 @@ export function InsightTileFrame({
 						) : null}
 						{lastRefresh ? (
 							<span className="text-muted-foreground text-xs">
-								{new Date(lastRefresh).toLocaleString(undefined, {
+								{formatDateTime(new Date(lastRefresh), {
 									month: "short",
 									day: "numeric",
 									hour: "numeric",

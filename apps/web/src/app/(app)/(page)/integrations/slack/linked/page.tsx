@@ -1,9 +1,11 @@
 import { msg } from "@lingui/core/macro";
 import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 
-export default function SlackLinkedPage() {
+export default async function SlackLinkedPage() {
+	const i18n = await initServerI18n();
+
 	return (
 		<div className="flex min-h-[60vh] flex-col items-center justify-center p-4">
 			<div className="flex flex-col items-center gap-6">

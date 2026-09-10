@@ -22,6 +22,14 @@ export const terminalSessions = sqliteTable(
 			{ onDelete: "set null" },
 		),
 		status: text().notNull().default("active"),
+		/**
+		 * The name the user gave this session, or null for "no name" — which
+		 * is also what an empty or whitespace-only rename stores. Titles the
+		 * shell reports over OSC are not persisted at all; this column is the
+		 * only durable name a session has, and it outranks the OSC one
+		 * wherever a session is displayed.
+		 */
+		customTitle: text("custom_title"),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),

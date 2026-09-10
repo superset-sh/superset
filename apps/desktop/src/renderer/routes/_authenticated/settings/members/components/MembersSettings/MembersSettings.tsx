@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatDate as formatLocaleDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import {
 	canRemoveMember,
 	getRoleSortPriority,
@@ -36,6 +36,8 @@ interface MembersSettingsProps {
 }
 
 export function MembersSettings({ visibleItems }: MembersSettingsProps) {
+	const { formatDate: formatLocaleDate } = useFormat();
+
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const { data: session } = authClient.useSession();

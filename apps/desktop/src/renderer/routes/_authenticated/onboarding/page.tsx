@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { SUPPORTED_LOCALES } from "@superset/i18n";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -18,6 +20,8 @@ export const Route = createFileRoute("/_authenticated/onboarding/")({
 const PREREQ_POLL_MS = 4000;
 
 function OnboardingDashboardPage() {
+	const { _: translate } = useTranslation();
+
 	const [ghDialogMode, setGhDialogMode] = useState<GhAuthDialogMode | null>(
 		null,
 	);
@@ -70,7 +74,9 @@ function OnboardingDashboardPage() {
 						icon={<SiGithub className="size-4.5" />}
 						chipClassName="bg-foreground text-background"
 						name="GitHub CLI"
-						description="Clone, push, and create PRs."
+						description={translate(
+							msg({ message: "Clone, push, and create PRs." }),
+						)}
 						status={rowStatus(isPendingGh, ghReady)}
 						statusLabel={ghStatusLabel}
 						statusTone={ghInstalled ? "warning" : "neutral"}

@@ -64,10 +64,12 @@ export async function generateMetadata({
 	const { profile } = lookup;
 	const who = profile.name ?? `@${profile.handle}`;
 	const title = `${who} · #${profile.rank} on the ${COMPANY.NAME} leaderboard`;
-	const description = `${formatTokens(profile.allTime.tokens)} tokens and ${formatUsd(
+	const description = `${formatTokens(profile.allTime.tokens, lang)} tokens and ${formatUsd(
 		profile.allTime.usd,
+		lang,
 	)} of API-equivalent agent usage across ${formatCount(
 		profile.models.length,
+		lang,
 	)} models.`;
 	const url = localeUrl(lang, `/${profile.handle}`);
 
@@ -92,7 +94,7 @@ export async function generateMetadata({
 }
 
 export default async function UserProfilePage({ params }: PageProps) {
-	await initServerI18n();
+	const locale = await initServerI18n();
 
 	const { t } = useLingui();
 	const { handle } = await params;
@@ -108,7 +110,7 @@ export default async function UserProfilePage({ params }: PageProps) {
 	const profileHandle = profile.handle;
 	const rank = profile.rank;
 	const total = profile.total;
-	const tokens = formatTokens(profile.allTime.tokens);
+	const tokens = formatTokens(profile.allTime.tokens, locale);
 	const days = profile.dayRange ? dayCount(profile.dayRange) : 0;
 	const shareText = t({
 		message: `I'm #${rank} on the ${company} leaderboard with ${tokens} tokens of agent usage.`,
@@ -217,7 +219,7 @@ export default async function UserProfilePage({ params }: PageProps) {
 								label: t({
 									message: "Cost",
 								}),
-								value: formatUsd(profile.allTime.usd),
+								value: formatUsd(profile.allTime.usd, locale),
 								hint: t({
 									message: "API-equivalent",
 								}),
@@ -242,7 +244,7 @@ export default async function UserProfilePage({ params }: PageProps) {
 										})
 									: "—",
 								hint: profile.dayRange
-									? formatDayRange(profile.dayRange)
+									? formatDayRange(profile.dayRange, locale)
 									: undefined,
 							},
 						]}
@@ -266,6 +268,7 @@ export default async function UserProfilePage({ params }: PageProps) {
 						<ModelBars
 							rows={toTokenRows(
 								profile.models.map((model) => ({ ...model, usd: model.usd })),
+								locale,
 							)}
 							colors={colors}
 						/>

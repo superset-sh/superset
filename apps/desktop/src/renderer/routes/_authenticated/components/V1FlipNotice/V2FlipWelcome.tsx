@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { useEffect, useRef, useState } from "react";
 import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
@@ -14,6 +16,8 @@ import { FlipNoticeCard } from "./components/FlipNoticeCard";
  * users or forced-flip machines (no completion → no flag).
  */
 export function V2FlipWelcome() {
+	const { _: translate } = useTranslation();
+
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
 	const [visible, setVisible] = useState(false);
@@ -40,7 +44,7 @@ export function V2FlipWelcome() {
 
 	return (
 		<FlipNoticeCard
-			title="Welcome to the new Superset"
+			title={translate(msg({ message: "Welcome to the new Superset" }))}
 			body="Same Superset, upgraded. Everything came with you: projects and workspaces in the sidebar, and fresh terminals in each workspace's old folders."
 			ctaLabel="Got it"
 			onDismiss={dismiss}

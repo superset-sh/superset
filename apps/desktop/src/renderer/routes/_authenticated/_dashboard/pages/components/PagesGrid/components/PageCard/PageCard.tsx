@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatRelativeTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -54,6 +54,8 @@ export function PageCard({
 	onTogglePin,
 	onDelete,
 }: PageCardProps) {
+	const { formatRelativeTime } = useFormat();
+
 	const { t } = useLingui();
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const isShared = page.visibility === "org";

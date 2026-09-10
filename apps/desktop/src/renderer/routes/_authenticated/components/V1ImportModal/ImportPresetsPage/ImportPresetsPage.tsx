@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import type { TerminalPreset } from "@superset/local-db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useState } from "react";
@@ -20,6 +22,8 @@ interface ImportPresetsPageProps {
 }
 
 export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
+	const { _: translate } = useTranslation();
+
 	const collections = useCollections();
 	const presetsQuery = electronTrpc.settings.getTerminalPresets.useQuery();
 	const [isRefreshing, setIsRefreshing] = useState(false);
@@ -45,11 +49,15 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 
 	return (
 		<ImportPageShell
-			title="Bring over your terminal scripts"
-			description="Import each v1 terminal script into v2."
+			title={translate(msg({ message: "Bring over your terminal scripts" }))}
+			description={translate(
+				msg({ message: "Import each v1 terminal script into v2." }),
+			)}
 			isLoading={isLoading}
 			itemCount={presets.length}
-			emptyMessage="No v1 terminal scripts found."
+			emptyMessage={translate(
+				msg({ message: "No v1 terminal scripts found." }),
+			)}
 			onRefresh={refresh}
 			isRefreshing={isRefreshing}
 		>

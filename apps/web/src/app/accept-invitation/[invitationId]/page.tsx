@@ -4,7 +4,7 @@ import { TRPCClientError } from "@trpc/client";
 import { Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "../../../trpc/server";
 import { AcceptInvitationButton } from "./AcceptInvitationButton";
 
@@ -25,6 +25,8 @@ export default async function AcceptInvitationPage({
 	params,
 	searchParams,
 }: PageProps) {
+	const i18n = await initServerI18n();
+
 	const { invitationId } = await params;
 	const { token } = await searchParams;
 	const trpc = await api();

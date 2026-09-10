@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import type { Metadata } from "next";
 import { FaCloud } from "react-icons/fa";
 import { ContactForm } from "@/app/[lang]/components/ContactForm";
@@ -9,6 +9,7 @@ import { initServerI18n } from "@/app/i18n-server";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	return {
 		title: i18n._(
 			msg({ message: "Build the future of Superset in the cloud" }),

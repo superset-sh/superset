@@ -1,6 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { rawErrorMessage } from "@superset/i18n/errors";
-import { formatPrice } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { isPaymentFailingStatus } from "@superset/shared/billing";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -33,6 +33,8 @@ interface BillingOverviewProps {
 }
 
 export function BillingOverview({ visibleItems }: BillingOverviewProps) {
+	const { formatPrice } = useFormat();
+
 	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const utils = cloudTrpc.useUtils();

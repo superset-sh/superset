@@ -1,7 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { COMPANY } from "@superset/shared/constants";
 import {
 	Select,
@@ -25,6 +25,8 @@ const SCOPES = ["compare", "blog", "docs", "changelog", "all"] as const;
 type Scope = (typeof SCOPES)[number];
 
 export function TopLandingPagesTile() {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const trpc = useTRPC();
 	const [scope, setScope] = useState<Scope>("compare");

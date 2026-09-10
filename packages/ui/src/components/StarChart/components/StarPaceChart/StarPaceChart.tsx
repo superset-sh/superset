@@ -20,7 +20,7 @@ interface StarPaceChartProps {
 const GRADIENT_ID = "star-pace-partial-gradient";
 
 export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 
 	const chartConfig = {
 		displayValue: {
@@ -81,6 +81,7 @@ export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
 							granularity === "day"
 								? { month: "short", day: "numeric" }
 								: { month: "short", year: "numeric" },
+							i18n.locale,
 						)
 					}
 				/>
@@ -98,11 +99,15 @@ export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
 							labelFormatter={(_, payload) => {
 								const timestamp = payload?.[0]?.payload?.timestamp;
 								if (typeof timestamp !== "number") return "";
-								const formatted = formatUTCDate(timestamp, {
-									month: "long",
-									day: "numeric",
-									year: "numeric",
-								});
+								const formatted = formatUTCDate(
+									timestamp,
+									{
+										month: "long",
+										day: "numeric",
+										year: "numeric",
+									},
+									i18n.locale,
+								);
 								return granularity === "week"
 									? t({
 											message: `Week of ${formatted}`,

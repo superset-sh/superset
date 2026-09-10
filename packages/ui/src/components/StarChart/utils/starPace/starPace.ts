@@ -1,3 +1,4 @@
+import { formatDate } from "@superset/i18n/format";
 import type { StarHistoryPoint } from "@superset/shared/github-stars";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
@@ -128,20 +129,23 @@ export function toLocalDateString(date: Date): string {
 // (e.g. the Americas) sees every axis tick, tooltip, and "week of" caption
 // one calendar day earlier than the actual bucketed date.
 //
-// Deliberately pinned to en-US rather than going through
-// `@superset/i18n/format`: /starchart renders these dates from a server
-// component that awaits GitHub before formatting, and the shared i18n instance
-// is process-wide, so a locale-aware formatter there would read whatever locale
-// a concurrent request activated in the meantime. Revisit once server locale is
-// bound per request (see plans/20260826-i18n-strategy.md).
+// The locale is a parameter rather than read from the shared instance: a server
+// component that awaits GitHub before formatting would otherwise pick up
+// whatever locale a concurrent request activated in the meantime. Callers
+// inside the React tree can omit it and get the active one.
 export function formatUTCDate(
 	timestamp: number,
 	options: Intl.DateTimeFormatOptions,
+	locale?: string,
 ): string {
-	return new Date(timestamp).toLocaleDateString("en-US", {
-		...options,
-		timeZone: "UTC",
-	});
+	return formatDate(
+		timestamp,
+		{
+			...options,
+			timeZone: "UTC",
+		},
+		locale,
+	);
 }
 
 // Rolls daily points up to one-per-Monday. Each point's value is cumulative

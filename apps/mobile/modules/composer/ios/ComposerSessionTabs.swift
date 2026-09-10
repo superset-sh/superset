@@ -17,6 +17,7 @@ struct ComposerSessionTabs: View {
   let labels: ComposerSessionTabLabels
   let onSelect: (String) -> Void
   let onClose: (String) -> Void
+  let onRename: (String) -> Void
   let onCopyId: (String) -> Void
   let onNewSession: () -> Void
   let onAllSessions: () -> Void
@@ -42,6 +43,7 @@ struct ComposerSessionTabs: View {
                 labels: labels,
                 onSelect: { onSelect(tab.id) },
                 onClose: { onClose(tab.id) },
+                onRename: { onRename(tab.id) },
                 onCopyId: { onCopyId(tab.id) }
               )
               .id(tab.id)
@@ -133,6 +135,7 @@ private struct ComposerSessionTabPill: View {
   let labels: ComposerSessionTabLabels
   let onSelect: () -> Void
   let onClose: () -> Void
+  let onRename: () -> Void
   let onCopyId: () -> Void
 
   private var shape: RoundedRectangle {
@@ -209,6 +212,9 @@ private struct ComposerSessionTabPill: View {
     // selected tab, and closing one you are not looking at is the more common
     // want.
     .contextMenu {
+      Button(action: onRename) {
+        Label(labels.rename, systemImage: "pencil")
+      }
       Button(action: onCopyId) {
         Label(labels.copyId, systemImage: "doc.on.doc")
       }

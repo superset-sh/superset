@@ -23,7 +23,7 @@ export function StatsBody({
 	stats: LeaderboardStats;
 	pixelClassName: string;
 }) {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const { totals, tokenSplit, models } = stats;
 	const colors = buildModelColors([
 		models.byUsers,
@@ -44,20 +44,20 @@ export function StatsBody({
 						label: t({
 							message: "Total spend",
 						}),
-						value: formatUsd(totals.usd),
+						value: formatUsd(totals.usd, i18n.locale),
 						hint: t({
 							message: "API-equivalent",
 						}),
 					},
 					{
 						label: t({ message: "Tokens" }),
-						value: formatTokens(totals.tokens),
+						value: formatTokens(totals.tokens, i18n.locale),
 					},
 					{
 						label: t({
 							message: "Developers",
 						}),
-						value: formatCount(totals.participants),
+						value: formatCount(totals.participants, i18n.locale),
 						hint: t({
 							message: "on the board",
 						}),
@@ -91,13 +91,16 @@ export function StatsBody({
 						message: "by users",
 					})}
 				>
-					<ModelBars rows={toUserRows(models.byUsers)} colors={colors} />
+					<ModelBars rows={toUserRows(models.byUsers, i18n)} colors={colors} />
 				</Panel>
 				<Panel
 					title={t({ message: "Top models" })}
 					meta={t({ message: "by spend" })}
 				>
-					<ModelBars rows={toSpendRows(models.bySpend)} colors={colors} />
+					<ModelBars
+						rows={toSpendRows(models.bySpend, i18n.locale)}
+						colors={colors}
+					/>
 				</Panel>
 				<Panel
 					title={t({
@@ -108,7 +111,10 @@ export function StatsBody({
 					})}
 					className="md:col-span-2"
 				>
-					<ModelBars rows={toTokenRows(models.byTokens)} colors={colors} />
+					<ModelBars
+						rows={toTokenRows(models.byTokens, i18n.locale)}
+						colors={colors}
+					/>
 				</Panel>
 			</div>
 		</div>

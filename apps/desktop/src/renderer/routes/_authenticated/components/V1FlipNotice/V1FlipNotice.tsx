@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { useEffect, useRef, useState } from "react";
 import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
@@ -17,6 +19,8 @@ import { FlipNoticeCard } from "./components/FlipNoticeCard";
  * surface (and this component) no longer renders.
  */
 export function V1FlipNotice() {
+	const { _: translate } = useTranslation();
+
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
 	const [complete, setComplete] = useState(false);
@@ -51,7 +55,7 @@ export function V1FlipNotice() {
 
 	return (
 		<FlipNoticeCard
-			title="A better Superset is ready"
+			title={translate(msg({ message: "A better Superset is ready" }))}
 			body="Superset has been upgraded: faster, cleaner, and built around your projects. Everything comes along on your next launch."
 			warning="Running terminal sessions won't carry over."
 			ctaLabel="Got it"

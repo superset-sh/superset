@@ -139,7 +139,7 @@ function TerminalRichInputInner({
 			let attachmentPaths: string[] = [];
 			if (message.files.length > 0) {
 				if (!cwd) {
-					toast.error("Workspace path is not available yet");
+					toast.error(t({ message: "Workspace path is not available yet" }));
 					throw new Error("no worktree path");
 				}
 				try {
@@ -183,7 +183,7 @@ function TerminalRichInputInner({
 				attachment_count: attachmentPaths.length,
 			});
 		},
-		[terminalId, terminalInstanceId, controller, workspaceId, cwd],
+		[terminalId, terminalInstanceId, controller, workspaceId, cwd, t],
 	);
 
 	// Persist the draft as it changes. terminalId is stable for this provider

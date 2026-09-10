@@ -1,4 +1,4 @@
-import { formatDateTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import type {
 	DraftTrigger,
 	TriggerProblem,
@@ -56,6 +56,8 @@ export function TriggersCard({
 	options,
 	optionState,
 }: TriggersCardProps) {
+	const { formatDateTime } = useFormat();
+
 	const recentProjects = useRecentProjects();
 	const selectedProject = recentProjects.find(
 		(p) => p.id === scope.v2ProjectId,

@@ -574,12 +574,23 @@ export class HostServiceCoordinator extends EventEmitter {
 			.map(([id]) => id);
 	}
 
-	async restartAll(config: SpawnConfig): Promise<void> {
-		await Promise.all(
-			this.getActiveOrganizationIds().map((orgId) =>
-				this.restart(orgId, config),
-			),
+	async restartAll(config: SpawnConfig): Promise<number> {
+		// Failed starts and crashed children may have no active instance. Keep
+		// them in a manual retry using the authenticated membership set, never
+		// host directories left on disk by a previous session.
+		const organizationIds = new Set([
+			...this.desiredOrganizationIds,
+			...this.getActiveOrganizationIds(),
+		]);
+		const results = await Promise.allSettled(
+			[...organizationIds].map((orgId) => this.restart(orgId, config)),
 		);
+		// Don't release the settings mutation while another org is still
+		// restarting: a second toggle could otherwise race that pending start.
+		for (const result of results) {
+			if (result.status === "rejected") throw result.reason;
+		}
+		return organizationIds.size;
 	}
 
 	/**

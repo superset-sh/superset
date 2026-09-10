@@ -1,4 +1,10 @@
 import { EventEmitter } from "node:events";
+import {
+	clearInterval,
+	clearTimeout,
+	setInterval,
+	setTimeout,
+} from "node:timers";
 import { DetachedProcessResolver } from "./detached.ts";
 import {
 	buildProcessTrees,
