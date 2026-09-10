@@ -5,8 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { isAfter } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	RefreshControl,
@@ -44,6 +43,7 @@ import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
 import { useCloudRepoPrefix } from "./hooks/useCloudRepoPrefixes";
+import { useFirstPaint } from "./hooks/useFirstPaint";
 import {
 	type TerminalsHost,
 	useHostsTerminals,
@@ -106,12 +106,6 @@ function homeListItemKey(item: HomeListItem): string {
 
 const NOTICE_MS = 1500;
 
-// Sized to the wait it covers (hydration plus the API and relay round trips),
-// not to the unbounded worst case — a host the API still calls online answers
-// whenever it answers, and the tRPC client sets no timeout. Holding longer
-// would withhold the header and composer, which are live before the rows are.
-const FIRST_PAINT_TIMEOUT_MS = 1200;
-
 export function HomeScreen() {
 	const { t } = useLingui();
 	const router = useRouter();
@@ -146,7 +140,11 @@ export function HomeScreen() {
 
 	const selectedHost = useSelectedHost();
 	const pinnedAt = usePinnedWorkspacesStore((state) => state.pinnedAt);
-	const { workspaces, isReady, cache } = useHostWorkspaces(selectedHost);
+	const {
+		workspaces,
+		isReady: workspacesReady,
+		cache,
+	} = useHostWorkspaces(selectedHost);
 	const {
 		items: cloudItems,
 		cache: cloudCache,
@@ -172,24 +170,10 @@ export function HomeScreen() {
 	const contentReady =
 		hasHydrated &&
 		!isLoadingOrganizations &&
-		(hostsQuery.isSuccess || hostsQuery.isError) &&
-		(cloudScope ? cloudReady : isReady && projectsReady);
+		!hostsQuery.isPending &&
+		(cloudScope ? cloudReady : workspacesReady && projectsReady);
 
-	// Latched: this gates the first paint only. An organization switch re-pends
-	// these same queries, and blanking a list someone is reading would be worse
-	// than a stale row.
-	const [hasPainted, setHasPainted] = useState(false);
-	useEffect(() => {
-		if (hasPainted) void SplashScreen.hideAsync().catch(() => {});
-	}, [hasPainted]);
-	useEffect(() => {
-		if (contentReady) {
-			setHasPainted(true);
-			return;
-		}
-		const timer = setTimeout(() => setHasPainted(true), FIRST_PAINT_TIMEOUT_MS);
-		return () => clearTimeout(timer);
-	}, [contentReady]);
+	const hasPainted = useFirstPaint(contentReady);
 
 	const collapsed = useCollapsedProjectsStore((state) => state.collapsed);
 	const collapseHydrated = useCollapsedProjectsStore(
