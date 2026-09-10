@@ -3,59 +3,13 @@ import {
 	type HistoryLocation,
 	type RouterHistory,
 } from "@tanstack/react-router";
-
-const STORAGE_KEY = "router-history";
-const MAX_ENTRIES = 100;
+import { loadInitialHistory, persistHistory } from "./historyStore";
 
 type LocationState = HistoryLocation["state"];
-
-interface PersistedState {
-	entries: string[];
-	index: number;
-}
 
 export interface HistoryEntry {
 	path: string;
 	timestamp: number;
-}
-
-function loadPersistedState(): PersistedState {
-	try {
-		const raw = localStorage.getItem(STORAGE_KEY);
-		if (raw) {
-			const parsed = JSON.parse(raw) as PersistedState;
-			if (
-				Array.isArray(parsed.entries) &&
-				parsed.entries.length > 0 &&
-				parsed.entries.every((e) => typeof e === "string" && e.length > 0) &&
-				typeof parsed.index === "number"
-			) {
-				const index = Math.min(
-					Math.max(parsed.index, 0),
-					parsed.entries.length - 1,
-				);
-				return { entries: parsed.entries, index };
-			}
-		}
-	} catch {}
-	return { entries: ["/"], index: 0 };
-}
-
-function persistState(entries: string[], index: number) {
-	try {
-		const capped =
-			entries.length > MAX_ENTRIES
-				? entries.slice(entries.length - MAX_ENTRIES)
-				: entries;
-		const cappedIndex =
-			entries.length > MAX_ENTRIES
-				? Math.max(0, index - (entries.length - MAX_ENTRIES))
-				: index;
-		localStorage.setItem(
-			STORAGE_KEY,
-			JSON.stringify({ entries: capped, index: cappedIndex }),
-		);
-	} catch {}
 }
 
 function syncHash(path: string) {
@@ -108,7 +62,7 @@ export interface PersistentHashHistory extends RouterHistory {
 }
 
 export function createPersistentHashHistory(): PersistentHashHistory {
-	const persisted = loadPersistedState();
+	const persisted = loadInitialHistory();
 
 	const entries: string[] = [...persisted.entries];
 	const timestamps: number[] = entries.map(() => Date.now());
@@ -140,29 +94,29 @@ export function createPersistentHashHistory(): PersistentHashHistory {
 			states.push(state as LocationState);
 			index = entries.length - 1;
 			syncHash(path);
-			persistState(entries, index);
+			void persistHistory(entries, index);
 		},
 		replaceState: (path, state) => {
 			entries[index] = path;
 			timestamps[index] = Date.now();
 			states[index] = state as LocationState;
 			syncHash(path);
-			persistState(entries, index);
+			void persistHistory(entries, index);
 		},
 		back: () => {
 			index = Math.max(index - 1, 0);
 			syncHash(entries[index] ?? "/");
-			persistState(entries, index);
+			void persistHistory(entries, index);
 		},
 		forward: () => {
 			index = Math.min(index + 1, entries.length - 1);
 			syncHash(entries[index] ?? "/");
-			persistState(entries, index);
+			void persistHistory(entries, index);
 		},
 		go: (n) => {
 			index = Math.min(Math.max(index + n, 0), entries.length - 1);
 			syncHash(entries[index] ?? "/");
-			persistState(entries, index);
+			void persistHistory(entries, index);
 		},
 		createHref: (path) =>
 			`${window.location.pathname}${window.location.search}#${path}`,

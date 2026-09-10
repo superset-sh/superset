@@ -56,6 +56,24 @@ Object.defineProperty(globalThis, "window", {
 });
 
 // Now safe to import — the module-level singleton will find window/localStorage
+// Writes now go to the main process over tRPC, not localStorage. Mocked before
+// the dynamic import below so the module-level singleton picks up the stub.
+const persistCalls: { entries: string[]; index: number }[] = [];
+mock.module("renderer/lib/trpc-client", () => ({
+	electronTrpcClient: {
+		uiState: {
+			routerHistory: {
+				set: {
+					mutate: (input: { entries: string[]; index: number }) => {
+						persistCalls.push(input);
+						return Promise.resolve({ success: true });
+					},
+				},
+			},
+		},
+	},
+}));
+
 const { createPersistentHashHistory } = await import(
 	"./persistent-hash-history"
 );
@@ -63,6 +81,7 @@ const { createPersistentHashHistory } = await import(
 beforeEach(() => {
 	storage.clear();
 	mockReplaceState.mockClear();
+	persistCalls.length = 0;
 });
 
 afterEach(() => {
@@ -214,15 +233,15 @@ describe("createPersistentHashHistory", () => {
 		});
 	});
 
-	describe("localStorage persistence", () => {
+	describe("persistence", () => {
 		it("persists entries on push", () => {
 			const history = createPersistentHashHistory();
 			history.push("/tasks");
 			history.push("/workspace/abc");
 
-			const stored = JSON.parse(storage.get("router-history") ?? "{}");
-			expect(stored.entries).toEqual(["/", "/tasks", "/workspace/abc"]);
-			expect(stored.index).toBe(2);
+			const stored = persistCalls.at(-1);
+			expect(stored?.entries).toEqual(["/", "/tasks", "/workspace/abc"]);
+			expect(stored?.index).toBe(2);
 		});
 
 		it("restores from localStorage on new instance", () => {
@@ -261,16 +280,16 @@ describe("createPersistentHashHistory", () => {
 				history.push(`/page/${i}`);
 			}
 
-			const stored = JSON.parse(storage.get("router-history") ?? "{}");
-			expect(stored.entries.length).toBe(100);
-			expect(stored.entries[0]).toBe("/page/11");
-			expect(stored.entries[99]).toBe("/page/110");
+			const stored = persistCalls.at(-1);
+			expect(stored?.entries.length).toBe(100);
+			expect(stored?.entries[0]).toBe("/page/11");
+			expect(stored?.entries[99]).toBe("/page/110");
 		});
 
 		it("stores non-negative cappedIndex when current position is in the dropped portion", () => {
 			// Build 111 entries (index 0="/", 1-110="/page/N"), then navigate
 			// back to index 5. At this point entries.length=111 and index=5.
-			// persistState caps to 100 entries, computing:
+			// capEntries caps to 100 entries, computing:
 			//   cappedIndex = 5 - (111 - 100) = -6
 			// Without the Math.max(0, ...) fix this would store a negative index.
 			const history = createPersistentHashHistory();
@@ -280,10 +299,10 @@ describe("createPersistentHashHistory", () => {
 			// Navigate back to index 5 — go() calls persistState internally
 			history.go(-105);
 
-			// Check localStorage immediately after go(), before any push that
-			// would truncate entries and sidestep the overflow path.
-			const stored = JSON.parse(storage.get("router-history") ?? "{}");
-			expect(stored.index).toBeGreaterThanOrEqual(0);
+			// Check the write immediately after go(), before any push that would
+			// truncate entries and sidestep the overflow path.
+			const stored = persistCalls.at(-1);
+			expect(stored?.index).toBeGreaterThanOrEqual(0);
 		});
 	});
 

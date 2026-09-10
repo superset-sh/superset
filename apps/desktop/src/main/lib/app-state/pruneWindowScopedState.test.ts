@@ -1,18 +1,15 @@
 import { describe, expect, test } from "bun:test";
+import { pruneByWindow } from "./pruneByWindow";
 
 /**
- * The prune itself is a pure set intersection over the persisted map; the
- * module-level `appState` it mutates needs lowdb and a real file, so the rule
- * is asserted here against the same shape rather than through the singleton.
+ * `pruneWindowScopedState` itself mutates the module-level `appState`, which
+ * needs lowdb and a real file; the rule it applies is this pure function.
  */
 function prune(
 	byWindow: Record<string, { tabs: string[] }>,
 	liveKeys: string[],
 ): Record<string, { tabs: string[] }> {
-	const live = new Set(liveKeys);
-	return Object.fromEntries(
-		Object.entries(byWindow).filter(([key]) => live.has(key)),
-	);
+	return pruneByWindow(byWindow, new Set(liveKeys)) ?? {};
 }
 
 describe("per-window UI state pruning", () => {
@@ -32,5 +29,28 @@ describe("per-window UI state pruning", () => {
 
 	test("a key with no state yet is not invented", () => {
 		expect(prune({}, ["a", "b"])).toEqual({});
+	});
+});
+
+describe("pruneByWindow", () => {
+	test("returns the same object when nothing is dropped", () => {
+		// Identity matters: a fresh object every persist would mark app-state
+		// dirty on every window write, for no change.
+		const byWindow = { a: { tabs: ["1"] } };
+		expect(pruneByWindow(byWindow, new Set(["a"]))).toBe(byWindow);
+	});
+
+	test("passes undefined through", () => {
+		expect(pruneByWindow(undefined, new Set(["a"]))).toBeUndefined();
+	});
+
+	test("prunes router history by the same rule as tab layout", () => {
+		const byWindow = {
+			a: { entries: ["/"], index: 0 },
+			gone: { entries: ["/x"], index: 0 },
+		};
+		expect(pruneByWindow(byWindow, new Set(["a"]))).toEqual({
+			a: { entries: ["/"], index: 0 },
+		});
 	});
 });

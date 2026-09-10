@@ -4,7 +4,10 @@ import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { dialog } from "electron";
 import { menuEmitter } from "main/lib/menu-events";
-import { getOrg, setOrg } from "main/lib/window-registry/window-registry";
+import {
+	getOrg,
+	setOrg,
+} from "main/lib/window-registry/window-registry";
 import { getImageMimeType } from "shared/file-types";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
@@ -55,6 +58,13 @@ export const createWindowRouter = () => {
 			menuEmitter.emit("new-window", { orgId });
 			return { success: true };
 		}),
+
+		/**
+		 * Persisted keys of every open window. The renderer holds per-window
+		 * state in localStorage, which is shared across windows and has no owner
+		 * to clean it up — this is what lets a window sweep entries belonging to
+		 * windows that no longer exist.
+		 */
 
 		/** The organization this window currently shows (per-window). */
 		getActiveOrg: publicProcedure.query(({ ctx }) => {
