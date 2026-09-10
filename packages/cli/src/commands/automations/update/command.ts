@@ -16,6 +16,9 @@ export default command({
 		host: string().desc("New target host id"),
 		project: string().desc("New v2 project id"),
 		workspace: string().desc("New v2 workspace id"),
+		continueSession: boolean().desc(
+			"Continue the agent session the previous run left (--continue-session) or start a new one each run (--no-continue-session). Requires a pinned workspace",
+		),
 		session: boolean().desc(
 			"Switch to session mode: no project, each run creates a project-less session workspace",
 		),
@@ -90,6 +93,9 @@ export default command({
 				: {}),
 			// Session mode clears both the project and any workspace pin.
 			...(options.session ? { v2ProjectId: null, v2WorkspaceId: null } : {}),
+			...(options.continueSession === undefined
+				? {}
+				: { continueAgentSession: options.continueSession }),
 			// --tag replaces the whole set; --clear-tags empties it.
 			...(options.clearTags
 				? { tags: [] }
