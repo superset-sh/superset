@@ -93,13 +93,15 @@ async function upload(
 				// Held below 1 until the id is in hand: a full ring on an
 				// attachment a send would still have to wait for reads as done.
 				const fraction = Math.min(bytesSent / totalBytes, 0.99);
-				// iOS reports every 100ms per upload, and each report re-renders
-				// the composer and re-sends the whole tray across the bridge to
-				// SwiftUI. A ring 80pt wide cannot show more than whole percent
-				// anyway, so anything finer is traffic nobody can see.
-				const percent = Math.floor(fraction * 100);
-				if (percent === reported) return;
-				reported = percent;
+				// The upload task already throttles itself to one report per
+				// 100ms, so this only collapses what a long transfer repeats at
+				// the same visible position — the ring is 28pt across, and half
+				// a percent of it is under a point of arc. Dropping anything
+				// coarser than that reads as the ring pausing rather than
+				// creeping, which is the opposite of what it is for.
+				const step = Math.floor(fraction * 200);
+				if (step === reported) return;
+				reported = step;
 				store.setUploadProgress(draftKey, attachment.id, fraction);
 			},
 		});

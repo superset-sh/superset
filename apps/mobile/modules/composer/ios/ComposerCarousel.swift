@@ -157,7 +157,13 @@ struct ComposerCarousel: View {
           )
           // From twelve o'clock; `trim` starts at three.
           .rotationEffect(.degrees(-90))
-          .animation(.easeOut(duration: 0.2), value: progress)
+          // Linear, and slightly longer than the 100ms the upload task reports
+          // on: each animation is still running when the next value lands, so
+          // the arc holds a constant speed instead of easing to a stop ten
+          // times a second. SwiftUI interpolates between those samples at the
+          // display's own refresh rate — the reported values are keyframes,
+          // not frames.
+          .animation(.linear(duration: 0.15), value: progress)
       }
       .frame(
         width: ComposerMetrics.uploadRingSize,
