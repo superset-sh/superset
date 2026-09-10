@@ -12,4 +12,5 @@ export {
 	provisionSandbox,
 	resolveSandboxAddress,
 	type SandboxEnvironment,
+	SandboxUnavailableError,
 } from "./vercel";

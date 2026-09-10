@@ -132,7 +132,7 @@ try {
 	});
 	console.log(`${at()} provisioned ${sandbox.providerSandboxId}`);
 
-	const url = await resolveSandboxAddress({
+	const { url } = await resolveSandboxAddress({
 		providerSandboxId: name,
 		wake: false,
 	});

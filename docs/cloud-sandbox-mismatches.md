@@ -63,6 +63,19 @@ the filesystem snapshot with no processes, so host-service is started again)
 and extends a running one so it never hits the idle stop while someone is in
 it. `resolveSandboxAddress` is the one place that knows the difference.
 
+**A woken sandbox answers seconds after the wake, and every pane reconnects
+at once.** A resumed session has no processes; `wake` starts host-service
+and returns before it listens. The open workspace's hook therefore holds the
+address back until `health.check` answers (`waitForHost`), and the host
+fan-out skips a sandbox the last access reported as not running (`running`
+on the access response) until that hook re-addresses it. Without both, every
+hook fired into the boot window, the terminal-agent auto-resume burned its
+one attempt on a 502, and the agent pane sat on "Disconnected" until the
+next token refresh minutes later. What a person sees now: the pane
+reconnects, the lost session is reported gone, and the agent is resumed into
+a fresh terminal with its scrollback (the cold-restore path), about 15–20 s
+after opening.
+
 **Two gates sit between the renderer and a sandbox**, and both fail as a bare
 `TypeError: Failed to fetch`: the renderer's CSP `connect-src` allowlist
 (`https://*.vercel.run`), and the WebSocket, which can't carry a header from a
@@ -236,11 +249,22 @@ the plan; past that the extension is refused and the next open resumes.
 
 **A fork starts from the source's snapshot, not its live filesystem.** A
 golden is therefore a *stopped* sandbox: `promoteSandboxToEnvironment` takes
-a live snapshot of the promoting workspace, creates the golden from it with an
+a snapshot of the promoting workspace, creates the golden from it with an
 empty env, removes the identity files, and stops it — that stop is what forks
 start from. Identity, git token and agent credentials are configuration on
 Vercel, not files, so a golden created with `env: {}` simply doesn't have
 them; no blanking on the fork request as Blaxel needed.
+
+**`snapshot()` ends the session, and the snapshot is what the sandbox resumes
+from.** Measured while promoting: the source is `stopped` afterwards, and its
+`currentSnapshotId` is the snapshot just taken. Deleting that snapshot — the
+obvious tidy-up once the golden exists — leaves the workspace unable to ever
+resume (`410 Cannot resume sandbox: no snapshot available`), which is how one
+e2e workspace died. So the snapshot stays (`keepLastSnapshots` evicts it on
+the source's next stop), and a source that was running is started again
+before promote returns. A row whose sandbox is gone or unresumable is marked
+`failed` by the next `access`, so it gets the failed screen and a Remove
+button rather than a sidebar entry that never opens.
 
 **The firewall policy is live-updatable and forks carry it.** Credential
 brokering (`networkPolicy` with `transform` rules) can be set at create, on a

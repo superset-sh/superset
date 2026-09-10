@@ -338,7 +338,7 @@ await provisionSandbox({
 		SUPERSET_SANDBOX_PROVIDER: "vercel",
 	},
 });
-const probeUrl = await resolveSandboxAddress({
+const { url: probeUrl } = await resolveSandboxAddress({
 	providerSandboxId: probe,
 	wake: false,
 });
@@ -377,7 +377,8 @@ for (let i = 0; i < 40 && health !== 200; i++) {
 log(`${health === 200 ? "ok  " : "FAIL"} host-service: ${health}`);
 if (health !== 200) probeFailed++;
 {
-	const anonymous = await fetch(`${probeUrl}/trpc/health.check`)
+	// health.check is public on purpose; the gate is probed on a guarded route.
+	const anonymous = await fetch(`${probeUrl}/events`)
 		.then((r) => r.status)
 		.catch(() => 0);
 	log(`${anonymous === 401 ? "ok  " : "FAIL"} no token refused: ${anonymous}`);

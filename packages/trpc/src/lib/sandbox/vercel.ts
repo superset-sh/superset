@@ -45,6 +45,27 @@ function isNotFound(error: unknown): boolean {
 	return error instanceof APIError && error.response.status === 404;
 }
 
+/**
+ * The sandbox cannot serve this workspace again: deleted out from under the
+ * row, or its snapshots expired so a stopped session has nothing to resume
+ * from (the platform answers 410). The row is what the caller should fail.
+ */
+export class SandboxUnavailableError extends Error {
+	constructor(
+		readonly providerSandboxId: string,
+		cause: unknown,
+	) {
+		super(`Sandbox ${providerSandboxId} is unavailable`, { cause });
+	}
+}
+
+function isUnavailable(error: unknown): boolean {
+	return (
+		error instanceof APIError &&
+		(error.response.status === 404 || error.response.status === 410)
+	);
+}
+
 async function getSandbox(name: string): Promise<Sandbox | null> {
 	try {
 		return await Sandbox.get({ ...credentials(), name, resume: false });
@@ -197,28 +218,44 @@ export async function provisionSandbox(args: {
 export async function resolveSandboxAddress(args: {
 	providerSandboxId: string;
 	wake: boolean;
-}): Promise<string> {
-	const sandbox = await Sandbox.get({
-		...credentials(),
-		name: args.providerSandboxId,
-		resume: false,
-	});
-	const url = sandbox.domain(HOST_SERVICE_PORT);
-	if (!args.wake) return url;
+}): Promise<{
+	url: string;
+	/**
+	 * Whether a session was running before this call. A stopped sandbox's
+	 * URL answers nothing until it is woken, so a client that fans requests
+	 * out to every sandbox it lists must skip the ones that are not.
+	 */
+	running: boolean;
+}> {
+	try {
+		const sandbox = await Sandbox.get({
+			...credentials(),
+			name: args.providerSandboxId,
+			resume: false,
+		});
+		const url = sandbox.domain(HOST_SERVICE_PORT);
+		const running = sandbox.status === "running";
+		if (!args.wake) return { url, running };
 
-	if (sandbox.status === "running") {
-		const remaining = (sandbox.expiresAt?.getTime() ?? 0) - Date.now();
-		if (remaining < EXTEND_BELOW_MS) {
-			// Past the plan's per-session cap the extension is refused; the
-			// session then ends and the next open resumes it, which is the
-			// documented shape, not a failure worth surfacing here.
-			await sandbox.extendTimeout(SESSION_TIMEOUT_MS).catch(() => {});
+		if (running) {
+			const remaining = (sandbox.expiresAt?.getTime() ?? 0) - Date.now();
+			if (remaining < EXTEND_BELOW_MS) {
+				// Past the plan's per-session cap the extension is refused; the
+				// session then ends and the next open resumes it, which is the
+				// documented shape, not a failure worth surfacing here.
+				await sandbox.extendTimeout(SESSION_TIMEOUT_MS).catch(() => {});
+			}
+			return { url, running };
 		}
-		return url;
+		// runCommand resumes a stopped session before it runs.
+		await startHostService(sandbox);
+		return { url, running };
+	} catch (error) {
+		if (isUnavailable(error)) {
+			throw new SandboxUnavailableError(args.providerSandboxId, error);
+		}
+		throw error;
 	}
-	// runCommand resumes a stopped session before it runs.
-	await startHostService(sandbox);
-	return url;
 }
 
 /**
@@ -238,10 +275,16 @@ const INHERITED_IDENTITY = [
 
 /**
  * A golden is a stopped sandbox whose current snapshot is what forks start
- * from. It is built from a live snapshot of the source so the promoting
- * workspace keeps running, and created with an empty env: the source's
- * identity, git token and agent credentials are configuration, not files,
- * so leaving them out is all it takes to not inherit them.
+ * from. It is built from a snapshot of the source taken now — a fork alone
+ * would start from the source's last *stop*, not its live filesystem — and
+ * created with an empty env: the source's identity, git token and agent
+ * credentials are configuration, not files, so leaving them out is all it
+ * takes to not inherit them.
+ *
+ * Taking that snapshot ends the source's session (measured: the workspace is
+ * `stopped` afterwards), so a workspace that was running is started again
+ * before this returns; whoever has it open sees a reconnect, not a dead
+ * workspace.
  */
 export async function promoteSandboxToEnvironment(args: {
 	sourceSandbox: string;
@@ -252,6 +295,8 @@ export async function promoteSandboxToEnvironment(args: {
 		name: args.sourceSandbox,
 		resume: false,
 	});
+	const wasRunning = source.status === "running";
+	// Ends the source's session; see below for why it is kept.
 	const snapshot = await source.snapshot();
 	const golden = await Sandbox.create({
 		...credentials(),
@@ -271,7 +316,11 @@ export async function promoteSandboxToEnvironment(args: {
 	await golden.runCommand("rm", ["-rf", ...INHERITED_IDENTITY]);
 	// The stop is the snapshot forks will start from.
 	await golden.stop();
-	await snapshot.delete().catch(() => {});
+	// The live snapshot is now the source's own current snapshot — what its
+	// next resume boots from — so it stays; deleting it strands the workspace
+	// (measured: `410 no snapshot available`). Retention evicts it on the
+	// source's next stop.
+	if (wasRunning) await startHostService(source);
 	return args.goldenName;
 }
 

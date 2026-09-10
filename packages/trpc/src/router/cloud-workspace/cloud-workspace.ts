@@ -15,6 +15,7 @@ import {
 	listRemoteBranches,
 	mintSandboxAccessToken,
 	resolveSandboxAddress,
+	SandboxUnavailableError,
 } from "../../lib/sandbox";
 import { jwtProcedure, userError } from "../../trpc";
 import {
@@ -305,12 +306,30 @@ export const cloudWorkspaceRouter = {
 					cause: { kind: "CLOUD_WORKSPACE_NOT_READY", status: row.status },
 				});
 			}
-			const url = await resolveSandboxAddress({
-				providerSandboxId: row.providerSandboxId,
-				wake: input.wake,
-			});
+			let address: { url: string; running: boolean };
+			try {
+				address = await resolveSandboxAddress({
+					providerSandboxId: row.providerSandboxId,
+					wake: input.wake,
+				});
+			} catch (error) {
+				if (!(error instanceof SandboxUnavailableError)) throw error;
+				// The sandbox is gone or can never resume. A `ready` row nothing
+				// can open would sit in the sidebar forever; failed is the state
+				// the client already renders with a way out.
+				await db
+					.update(cloudWorkspaces)
+					.set({ status: "failed", sandboxUrl: null })
+					.where(eq(cloudWorkspaces.id, row.id));
+				console.error(`[cloud-workspace] ${row.id} sandbox unavailable`, error);
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "Cloud workspace is failed",
+					cause: { kind: "CLOUD_WORKSPACE_NOT_READY", status: "failed" },
+				});
+			}
 			const { token, expiresAt } = mintSandboxAccessToken(row.id);
-			return { url, token, expiresAt };
+			return { url: address.url, running: address.running, token, expiresAt };
 		}),
 
 	delete: jwtProcedure

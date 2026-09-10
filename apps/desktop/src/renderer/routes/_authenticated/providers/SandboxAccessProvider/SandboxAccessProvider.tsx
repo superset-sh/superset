@@ -13,6 +13,12 @@ export interface SandboxTarget {
 	workspaceId: string;
 	organizationId: string;
 	url: string;
+	/**
+	 * Whether the sandbox had a running session when it was last addressed.
+	 * A stopped one answers nothing until the open workspace wakes it, so
+	 * nothing should fan requests out to it — they would only fail.
+	 */
+	running: boolean;
 }
 
 export interface SandboxAccessValue {
@@ -58,6 +64,7 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 				setHostServiceSecret(granted.url, granted.token);
 				return {
 					url: granted.url,
+					running: granted.running,
 					expiresAt: new Date(granted.expiresAt).getTime(),
 				};
 			},
@@ -75,9 +82,14 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 	const value = useMemo<SandboxAccessValue>(() => {
 		const targets: SandboxTarget[] = [];
 		for (const [index, workspace] of workspaces.entries()) {
-			const url = results[index]?.data?.url;
-			if (!url || !organizationId) continue;
-			targets.push({ workspaceId: workspace.id, organizationId, url });
+			const data = results[index]?.data;
+			if (!data || !organizationId) continue;
+			targets.push({
+				workspaceId: workspace.id,
+				organizationId,
+				url: data.url,
+				running: data.running,
+			});
 		}
 		return {
 			targets,
