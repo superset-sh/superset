@@ -150,7 +150,7 @@ const config: Configuration = {
 		...(existsSync(linuxIconPath) ? { icon: linuxIconPath } : {}),
 		category: "Utility",
 		synopsis: pkg.description,
-		target: ["AppImage"],
+		target: ["AppImage", "Deb"],
 		artifactName: `superset-\${version}-\${arch}.\${ext}`,
 		// GNOME's app menus only show their heuristic "New Window" item
 		// intermittently for running apps; an explicit desktop action (the
@@ -173,6 +173,32 @@ const config: Configuration = {
 					// second-instance handler keys on to open a window instead
 					// of focusing the running app.
 					Exec: "AppRun --no-sandbox --new-window",
+				},
+			},
+		},
+	},
+
+	// The linux.desktop action above execs AppRun, which only exists inside
+	// the AppImage. FpmTarget merges this block over linux, replacing the
+	// action for debs: the deb postinst puts the executable on PATH
+	// (update-alternatives → /usr/bin), and no --no-sandbox — the deb's
+	// AppArmor userns profile keeps the Chromium sandbox on.
+	deb: {
+		desktop: {
+			entry: {
+				Actions: "new-window;",
+				// electron-builder writes StartupWMClass=<productName>, but
+				// Electron sets the window's WM_CLASS to the lowercased app
+				// name ("superset").
+				// Without the exact match GNOME can't tie the window to this
+				// entry, so the window loses its icon and the action above
+				// never shows.
+				StartupWMClass: "superset",
+			},
+			desktopActions: {
+				"new-window": {
+					Name: "New Window",
+					Exec: "@supersetdesktop --new-window",
 				},
 			},
 		},

@@ -323,6 +323,10 @@ jobs:
             echo "::error::No AppImage artifact generated in apps/desktop/release"
             exit 1
           }
+          test -n "$(ls -1 release/*.deb 2>/dev/null)" || {
+            echo "::error::No deb artifact generated in apps/desktop/release"
+            exit 1
+          }
           test -n "$(ls -1 release/*-linux.yml 2>/dev/null)" || {
             echo "::error::No Linux auto-update manifest generated in apps/desktop/release"
             exit 1
@@ -339,6 +343,14 @@ jobs:
         with:
           name: ${{ inputs.artifact_prefix }}-linux-appimage
           path: apps/desktop/release/*.AppImage
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: error
+
+      - name: Upload deb artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ inputs.artifact_prefix }}-linux-deb
+          path: apps/desktop/release/*.deb
           retention-days: ${{ inputs.artifact_retention_days }}
           if-no-files-found: error
 
