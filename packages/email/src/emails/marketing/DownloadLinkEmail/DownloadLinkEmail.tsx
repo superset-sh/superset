@@ -20,8 +20,8 @@ export function DownloadLinkEmail({
 				Get Superset on your Mac
 			</Heading>
 			<Text className="m-0 mb-6 text-[15px] leading-6 text-muted">
-				Open this email on your Mac, then use the button below to download
-				Superset. The right version will be selected automatically.
+				Open this email on your Mac, then use the button below to download the
+				Superset desktop app. The right version will be selected automatically.
 			</Text>
 
 			<Section className="mb-8">
@@ -29,8 +29,8 @@ export function DownloadLinkEmail({
 			</Section>
 
 			<Text className="m-0 text-[13px] leading-5 text-muted">
-				Superset is available for macOS today. Windows and Linux support is on
-				the way.
+				The desktop app runs on macOS and Linux today. Windows is not yet
+				available.
 			</Text>
 		</EmailLayout>
 	);
