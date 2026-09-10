@@ -4,6 +4,7 @@ import {
 	mkdirSync,
 	readFileSync,
 	rmSync,
+	statSync,
 	writeFileSync,
 } from "node:fs";
 import os from "node:os";
@@ -283,6 +284,57 @@ describe("createManagedSkills", () => {
 		expect(
 			existsSync(path.join(claudePlugin, "skills", "newskill", "SKILL.md")),
 		).toBe(true);
+	});
+
+	it("copies extras into ~/.agents/skills and reaps ones that left the source", async () => {
+		const auditSh = path.join(BUNDLED_PLUGIN, "skills", "10x", "scripts");
+		mkdirSync(auditSh, { recursive: true });
+		writeFileSync(path.join(auditSh, "audit.sh"), "#!/bin/bash\n", {
+			mode: 0o755,
+		});
+
+		await run();
+
+		const copied = path.join(
+			agentsSkills,
+			"superset-10x",
+			"scripts",
+			"audit.sh",
+		);
+		expect(existsSync(copied)).toBe(true);
+		expect(statSync(copied).mode & 0o111).not.toBe(0);
+
+		rmSync(
+			path.join(
+				BUNDLED_PLUGIN,
+				"skills",
+				"orchestrate",
+				"agents",
+				"openai.yaml",
+			),
+		);
+
+		await run();
+
+		expect(
+			existsSync(
+				path.join(
+					agentsSkills,
+					"superset-orchestrate",
+					"agents",
+					"openai.yaml",
+				),
+			),
+		).toBe(false);
+		expect(
+			existsSync(path.join(agentsSkills, "superset-orchestrate", "agents")),
+		).toBe(false);
+		const skillMd = readFileSync(
+			path.join(agentsSkills, "superset-orchestrate", "SKILL.md"),
+			"utf-8",
+		);
+		expect(skillMd).toContain(MANAGED_SKILL_MARKER);
+		expect(skillMd).toContain("name: superset-orchestrate");
 	});
 
 	it("removes files from the plugin dir that left the bundle", async () => {

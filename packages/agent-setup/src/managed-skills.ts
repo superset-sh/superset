@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { cp, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { writeFileIfChanged } from "./agent-wrappers-common";
@@ -321,21 +321,6 @@ function listSourceSkills(sourceDir: string): string[] | null {
 	}
 }
 
-/** Copies a bundled skill's extra files (anything besides SKILL.md) verbatim. */
-async function copyBundledExtras(
-	sourceDir: string,
-	targetDir: string,
-): Promise<void> {
-	for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
-		if (entry.name === "SKILL.md") continue;
-		await cp(
-			path.join(sourceDir, entry.name),
-			path.join(targetDir, entry.name),
-			{ recursive: true },
-		);
-	}
-}
-
 function provisionedDirsFor(root: string, sourceName: string): string[] {
 	if (!fs.existsSync(root)) return [];
 	try {
@@ -477,9 +462,13 @@ export async function createManagedSkills(
 					withManagedMarker(setFrontmatterName(raw, dirName)),
 					0o644,
 				);
-				await copyBundledExtras(
+				const isSkillMd = (relativePath: string) => relativePath === "SKILL.md";
+				await syncDir(
 					path.join(source.dir, "skills", pluginSkill),
 					targetDir,
+					isSkillMd,
+					[],
+					isSkillMd,
 				);
 			} catch (error) {
 				desiredAgentsDirs.add(dirName);
