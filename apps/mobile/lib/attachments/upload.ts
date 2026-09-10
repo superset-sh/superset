@@ -85,6 +85,7 @@ async function upload(
 				sizeBytes: file.size,
 			});
 
+		let reported = -1;
 		const result = await file.upload(target.url, {
 			httpMethod: "PUT",
 			headers: target.headers,
@@ -93,11 +94,15 @@ async function upload(
 				if (totalBytes <= 0) return;
 				// Held below 1 until the id is in hand: a full ring on an
 				// attachment a send would still have to wait for reads as done.
-				store.setUploadProgress(
-					draftKey,
-					attachment.id,
-					Math.min(bytesSent / totalBytes, 0.99),
-				);
+				const fraction = Math.min(bytesSent / totalBytes, 0.99);
+				// iOS reports every 100ms per upload, and each report re-renders
+				// the composer and re-sends the whole tray across the bridge to
+				// SwiftUI. A ring 80pt wide cannot show more than whole percent
+				// anyway, so anything finer is traffic nobody can see.
+				const percent = Math.floor(fraction * 100);
+				if (percent === reported) return;
+				reported = percent;
+				store.setUploadProgress(draftKey, attachment.id, fraction);
 			},
 		});
 		// The presigned PUT answers 200; anything else means the object is not
