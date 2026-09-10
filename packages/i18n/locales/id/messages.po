@@ -803,6 +803,12 @@ msgstr "{pending} dari {total} check berjalan"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Bergabung {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} belum memiliki klien OAuth yang dikonfigurasi di deployment ini."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} sudah tidak terpasang."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} direset ke setelan bawaan"
 
@@ -3608,6 +3614,9 @@ msgstr "Terhubung"
 msgid "connected {0}"
 msgstr "terhubung {0}"
 
+msgid "Connected {label}"
+msgstr "{label} terhubung"
+
 msgid "Connected as"
 msgstr "Terhubung sebagai"
 
@@ -3944,6 +3953,9 @@ msgstr "Tidak bisa menutup sesi"
 
 msgid "Could not close the session"
 msgstr "Tidak dapat menutup sesi"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Tidak dapat menghubungkan {plugin}. Coba lagi."
 
 msgid "Could not copy the link"
 msgstr "Tidak bisa menyalin tautan"
@@ -14041,6 +14053,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Terima kasih sudah menghubungi"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Tautan masuk {plugin} itu telah kedaluwarsa. Coba hubungkan lagi."
+
 msgid "That handle is taken."
 msgstr "Handle itu sudah dipakai."
 
@@ -16030,6 +16045,9 @@ msgstr "Anda tidak bisa mengubah langganan ini di aplikasi. Paket organisasi And
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Tindakan ini tidak bisa dibatalkan. Panel terminal akan menampilkan \"Process exited\" dan bisa dijalankan ulang."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Anda menolak permintaan otorisasi {plugin}."
 
 msgid "You don't have access to this host"
 msgstr "Anda tidak punya akses ke host ini"

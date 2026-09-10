@@ -803,6 +803,12 @@ msgstr "{pending} de {total} verificações em execução"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Entrou em {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "O {plugin} ainda não tem um cliente OAuth configurado nesta implantação."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} não está mais instalado."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} redefinido para os padrões"
 
@@ -3608,6 +3614,9 @@ msgstr "Conectado"
 msgid "connected {0}"
 msgstr "conectado {0}"
 
+msgid "Connected {label}"
+msgstr "{label} conectado"
+
 msgid "Connected as"
 msgstr "Conectado como"
 
@@ -3944,6 +3953,9 @@ msgstr "Não foi possível fechar a sessão"
 
 msgid "Could not close the session"
 msgstr "Não foi possível fechar a sessão"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Não foi possível conectar o {plugin}. Tente novamente."
 
 msgid "Could not copy the link"
 msgstr "Não foi possível copiar o link"
@@ -14041,6 +14053,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Obrigado pelo contato"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Esse link de login do {plugin} expirou. Tente conectar novamente."
+
 msgid "That handle is taken."
 msgstr "Esse apelido já está em uso."
 
@@ -16030,6 +16045,9 @@ msgstr "Você não pode alterar esta assinatura no app. O plano da sua organiza�
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Não dá para desfazer. Os painéis de terminal vão mostrar \"Processo encerrado\" e podem ser reiniciados."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Você recusou a solicitação de autorização do {plugin}."
 
 msgid "You don't have access to this host"
 msgstr "Você não tem acesso a este host"

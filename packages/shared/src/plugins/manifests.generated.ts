@@ -87,7 +87,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"linear": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "linear",
-		"version": "1.4.0",
+		"version": "1.5.1",
 		"description": "Plan and build products: create, search, and update Linear issues.",
 		"author": {
 			"name": "Superset",
@@ -114,19 +114,10 @@ export const FIRST_PARTY_MANIFESTS = {
 						"type": "oauth2",
 						"label": "OAuth 2.0",
 						"provider": "linear",
-						"authorization_url": "https://linear.app/oauth/authorize",
-						"token_url": "https://api.linear.app/oauth/token",
+						"client": "dynamic",
 						"scopes": [
 							"read",
-							"write",
-							"issues:create"
-						],
-						"scope_separator": ",",
-						"token_request_auth_method": "client_secret_post",
-						"token_expiration_buffer": 300,
-						"requires_env": [
-							"PLUGIN_LINEAR_CLIENT_ID",
-							"PLUGIN_LINEAR_CLIENT_SECRET"
+							"write"
 						],
 						"identity": {
 							"url": "https://api.linear.app/graphql",
@@ -201,6 +192,233 @@ export const FIRST_PARTY_MANIFESTS = {
 				"description": "Draft a Linear project status update from what actually moved — progress, risks, and the one decision that needs making. Use when someone asks for a project update, a status post, where a project stands, whether it will land on time, or what to tell stakeholders."
 			}
 		]
+	} as const,
+	"notion": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "notion",
+		"version": "1.0.1",
+		"description": "Search, read, and write your Notion workspace: pages, databases, and comments.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"notion",
+			"docs",
+			"notes",
+			"knowledge-base",
+			"wiki"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Notion",
+					"category": "Productivity",
+					"icon": "notion"
+				},
+				"auth": [
+					{
+						"type": "oauth2",
+						"label": "OAuth 2.0",
+						"provider": "notion",
+						"client": "dynamic",
+						"identity": {
+							"url": "https://api.notion.com/v1/users/me",
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}",
+								"Notion-Version": "2022-06-28"
+							},
+							"id": "$.id",
+							"label": "$.bot.workspace_name"
+						},
+						"bind": {
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}"
+							}
+						}
+					}
+				],
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.notion.com/mcp"
+				}
+			}
+		},
+		"skills": [
+			{
+				"name": "find-in-notion",
+				"description": "Find what the workspace already says before you answer or write — search Notion, tell the canonical page from the stale copy, and cite what you used. Use when the user asks what's in Notion, refers to a doc, spec, or meeting note, or asks a question the workspace probably already answers."
+			},
+			{
+				"name": "write-to-notion",
+				"description": "Write a page into Notion that someone else can find and trust — pick the right parent, check for the page that already exists, and structure it for a reader who was not in this conversation. Use when the user says to write up, document, save, or capture something in Notion, or to update an existing page."
+			}
+		]
+	} as const,
+	"slack": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "slack",
+		"version": "1.2.2",
+		"description": "Search, read, and post across your Slack workspace: channels, DMs, and threads.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"slack",
+			"chat",
+			"messages",
+			"communication",
+			"search"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Slack",
+					"category": "Communication",
+					"icon": "slack"
+				},
+				"auth": [
+					{
+						"type": "oauth2",
+						"label": "OAuth 2.0",
+						"provider": "slack",
+						"pkce": true,
+						"authorization_url": "https://slack.com/oauth/v2/authorize",
+						"token_url": "https://slack.com/api/oauth.v2.user.access",
+						"scopes": [
+							"channels:history",
+							"channels:read",
+							"channels:write",
+							"groups:history",
+							"groups:read",
+							"groups:write",
+							"im:history",
+							"im:read",
+							"im:write",
+							"mpim:history",
+							"mpim:read",
+							"mpim:write",
+							"chat:write",
+							"reactions:read",
+							"reactions:write",
+							"users:read",
+							"users:read.email",
+							"users:write",
+							"search:read",
+							"team:read"
+						],
+						"scope_separator": ",",
+						"token_request_auth_method": "client_secret_post",
+						"requires_env": [
+							"PLUGIN_SLACK_CLIENT_ID",
+							"PLUGIN_SLACK_CLIENT_SECRET"
+						],
+						"identity": {
+							"url": "https://slack.com/api/auth.test",
+							"method": "GET",
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}"
+							},
+							"id": "$.team_id",
+							"label": "$.team"
+						},
+						"bind": {
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}"
+							}
+						}
+					}
+				],
+				"server": {
+					"path": "plugins/slack/server/index.mjs",
+					"integrity": "sha256-v6jbpX7Wl57RBS2IU1mk2s4qrnnYIf68AUF3GtV3gxw=",
+					"ref": "slack@1.2.2"
+				}
+			}
+		},
+		"skills": []
+	} as const,
+	"gmail": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "gmail",
+		"version": "1.1.4",
+		"description": "Read, search, send, and organize mail in your Gmail account.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"gmail",
+			"email",
+			"mail",
+			"google",
+			"inbox"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Gmail",
+					"category": "Communication",
+					"icon": "gmail"
+				},
+				"auth": [
+					{
+						"type": "oauth2",
+						"label": "OAuth 2.0",
+						"provider": "google",
+						"pkce": true,
+						"authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
+						"token_url": "https://oauth2.googleapis.com/token",
+						"scopes": [
+							"openid",
+							"email",
+							"https://www.googleapis.com/auth/gmail.readonly",
+							"https://www.googleapis.com/auth/gmail.compose",
+							"https://www.googleapis.com/auth/gmail.modify",
+							"https://www.googleapis.com/auth/gmail.labels",
+							"https://www.googleapis.com/auth/gmail.settings.basic",
+							"https://mail.google.com/"
+						],
+						"scope_separator": " ",
+						"token_request_auth_method": "client_secret_post",
+						"token_expiration_buffer": 300,
+						"authorization_params": {
+							"access_type": "offline",
+							"prompt": "consent"
+						},
+						"requires_env": [
+							"PLUGIN_GOOGLE_CLIENT_ID",
+							"PLUGIN_GOOGLE_CLIENT_SECRET"
+						],
+						"identity": {
+							"url": "https://openidconnect.googleapis.com/v1/userinfo",
+							"method": "GET",
+							"headers": {
+								"Authorization": "Bearer ${config.access_token}"
+							},
+							"id": "$.sub",
+							"label": "$.email"
+						}
+					}
+				],
+				"server": {
+					"path": "plugins/gmail/server/index.mjs",
+					"integrity": "sha256-j3X7Hn0q6evz96JrEycg5e1BkbUVxZGJ2/IjwyDlkxc=",
+					"ref": "gmail@1.1.4"
+				}
+			}
+		},
+		"skills": []
 	} as const,
 } as const;
 

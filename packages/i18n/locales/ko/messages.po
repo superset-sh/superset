@@ -803,6 +803,12 @@ msgstr "검사 {total}개 중 {pending}개 실행 중"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · {joined} 가입"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "이 배포에는 {plugin}의 OAuth 클라이언트가 아직 구성되지 않았습니다."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin}이(가) 더 이상 설치되어 있지 않습니다."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel}이(가) 기본값으로 초기화되었습니다"
 
@@ -3608,6 +3614,9 @@ msgstr "연결됨"
 msgid "connected {0}"
 msgstr "{0}에 연결됨"
 
+msgid "Connected {label}"
+msgstr "{label} 연결됨"
+
 msgid "Connected as"
 msgstr "연결 계정"
 
@@ -3944,6 +3953,9 @@ msgstr "세션을 닫을 수 없습니다"
 
 msgid "Could not close the session"
 msgstr "세션을 닫지 못했습니다"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "{plugin}을(를) 연결하지 못했습니다. 다시 시도하세요."
 
 msgid "Could not copy the link"
 msgstr "링크를 복사할 수 없습니다"
@@ -14041,6 +14053,9 @@ msgstr "텍스트 영역"
 msgid "Thanks for reaching out"
 msgstr "연락해 주셔서 감사합니다"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "해당 {plugin} 로그인 링크가 만료되었습니다. 다시 연결해 보세요."
+
 msgid "That handle is taken."
 msgstr "이미 사용 중인 핸들입니다."
 
@@ -16030,6 +16045,9 @@ msgstr "이 구독은 앱에서 변경할 수 없습니다. 조직의 플랜은 
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "이 작업은 되돌릴 수 없습니다. 터미널 패널에 \"Process exited\"가 표시되며 다시 시작할 수 있습니다."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "{plugin} 인증 요청을 거부했습니다."
 
 msgid "You don't have access to this host"
 msgstr "이 호스트에 접근할 권한이 없습니다"

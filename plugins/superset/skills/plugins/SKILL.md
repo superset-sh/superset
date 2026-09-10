@@ -53,16 +53,17 @@ which they want rather than picking.
 
 ## 4. Call its tools
 
-Address a plugin by name. When one name has several connected accounts, pass the connection
-id from the `PLUGIN ID` column of `superset plugins list` instead; there is no default
-account, so pick one deliberately.
+Address a connection by id, from the `PLUGIN ID` column of `superset plugins list`. That is a
+*connection* id, so a plugin with two connected accounts has two, one per account. Pick the
+account deliberately; there is no default, and a plugin name is not accepted here.
+
+Arguments are the last positional, not an option, and `-` reads them from stdin.
 
 ```bash
-superset mcp tools linear
-superset mcp call-tool linear list_issues
-superset mcp call-tool linear create_issue '{"team":"ENG","title":"Export 500s"}'
-echo '{"team":"ENG","title":"..."}' | superset mcp call-tool linear create_issue -
-superset mcp call-tool linear create_issue --connection <id> '{"team":"ENG","title":"..."}'
+superset mcp tools --connection <id>
+superset mcp call-tool list_issues --connection <id>
+superset mcp call-tool create_issue --connection <id> '{"team":"ENG","title":"Export 500s"}'
+echo '{"team":"ENG","title":"..."}' | superset mcp call-tool create_issue --connection <id> -
 ```
 
 List the tools before calling one. Names and argument schemas come from the plugin's server,

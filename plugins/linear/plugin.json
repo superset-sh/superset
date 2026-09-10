@@ -1,7 +1,7 @@
 {
 	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 	"name": "linear",
-	"version": "1.4.0",
+	"version": "1.5.1",
 	"description": "Plan and build products: create, search, and update Linear issues.",
 	"author": {
 		"name": "Superset",
@@ -23,16 +23,8 @@
 					"type": "oauth2",
 					"label": "OAuth 2.0",
 					"provider": "linear",
-					"authorization_url": "https://linear.app/oauth/authorize",
-					"token_url": "https://api.linear.app/oauth/token",
-					"scopes": ["read", "write", "issues:create"],
-					"scope_separator": ",",
-					"token_request_auth_method": "client_secret_post",
-					"token_expiration_buffer": 300,
-					"requires_env": [
-						"PLUGIN_LINEAR_CLIENT_ID",
-						"PLUGIN_LINEAR_CLIENT_SECRET"
-					],
+					"client": "dynamic",
+					"scopes": ["read", "write"],
 					"identity": {
 						"url": "https://api.linear.app/graphql",
 						"method": "POST",

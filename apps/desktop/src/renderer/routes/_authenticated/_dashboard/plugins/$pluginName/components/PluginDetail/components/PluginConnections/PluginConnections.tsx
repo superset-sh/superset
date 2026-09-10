@@ -25,7 +25,6 @@ export function PluginConnections({
 	auth,
 	installed,
 	onAdd,
-	onRemove,
 	isBusy,
 }: {
 	pluginName: string;
@@ -33,7 +32,6 @@ export function PluginConnections({
 	auth?: readonly AuthMethod[];
 	installed: boolean;
 	onAdd: () => Promise<boolean>;
-	onRemove: () => void;
 	isBusy: boolean;
 }) {
 	const { t } = useLingui();
@@ -130,18 +128,7 @@ export function PluginConnections({
 								This plugin needs no account — its skills are ready to use.
 							</Trans>
 						</p>
-						{installed ? (
-							<Button
-								variant="outline"
-								size="sm"
-								className="shrink-0 text-destructive"
-								disabled={isBusy || isConnecting || isDisconnecting}
-								onClick={onRemove}
-							>
-								<LuTrash2 className="size-4" />
-								<Trans>Remove</Trans>
-							</Button>
-						) : (
+						{!installed && (
 							<Button
 								size="sm"
 								className="shrink-0"
@@ -153,21 +140,6 @@ export function PluginConnections({
 							</Button>
 						)}
 					</div>
-				</div>
-			)}
-
-			{methods.length > 0 && installed && (
-				<div className="mt-6 flex justify-end">
-					<Button
-						variant="outline"
-						size="sm"
-						className="shrink-0 text-destructive"
-						disabled={isBusy || isConnecting || isDisconnecting}
-						onClick={onRemove}
-					>
-						<LuTrash2 className="size-4" />
-						<Trans>Remove</Trans>
-					</Button>
 				</div>
 			)}
 

@@ -803,6 +803,12 @@ msgstr "{pending} von {total} Prüfungen laufen"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Beigetreten {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "Für {plugin} ist in dieser Bereitstellung noch kein OAuth-Client konfiguriert."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} ist nicht mehr installiert."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} auf Standardwerte zurückgesetzt"
 
@@ -3608,6 +3614,9 @@ msgstr "Verbunden"
 msgid "connected {0}"
 msgstr "verbunden {0}"
 
+msgid "Connected {label}"
+msgstr "{label} verbunden"
+
 msgid "Connected as"
 msgstr "Verbunden als"
 
@@ -3944,6 +3953,9 @@ msgstr "Sitzung konnte nicht geschlossen werden"
 
 msgid "Could not close the session"
 msgstr "Sitzung konnte nicht geschlossen werden"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "{plugin} konnte nicht verbunden werden. Versuchen Sie es erneut."
 
 msgid "Could not copy the link"
 msgstr "Link konnte nicht kopiert werden"
@@ -14041,6 +14053,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Danke für deine Nachricht"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Dieser Anmeldelink für {plugin} ist abgelaufen. Versuchen Sie es erneut."
+
 msgid "That handle is taken."
 msgstr "Dieses Handle ist bereits vergeben."
 
@@ -16030,6 +16045,9 @@ msgstr "Dieses Abo lässt sich nicht in der App ändern. Der Tarif deiner Organi
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Das lässt sich nicht rückgängig machen. Terminal-Bereiche zeigen dann \"Process exited\" und können neu gestartet werden."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Sie haben die Autorisierungsanfrage für {plugin} abgelehnt."
 
 msgid "You don't have access to this host"
 msgstr "Du hast keinen Zugriff auf diesen Host"

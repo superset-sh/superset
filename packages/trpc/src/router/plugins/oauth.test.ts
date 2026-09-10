@@ -122,9 +122,14 @@ describe("buildAuthorizationUrl", () => {
 		requires_env: ["PLUGIN_LINEAR_CLIENT_ID", "PLUGIN_LINEAR_CLIENT_SECRET"],
 	};
 
-	test("carries the client id, redirect, and state", () => {
+	test("carries the client id, redirect, and state", async () => {
 		const url = new URL(
-			buildAuthorizationUrl("linear", auth, { inputs: {} }, "state-token"),
+			await buildAuthorizationUrl(
+				"linear",
+				auth,
+				{ inputs: {} },
+				"state-token",
+			),
 		);
 
 		expect(url.searchParams.get("client_id")).toBe("id");
@@ -133,16 +138,16 @@ describe("buildAuthorizationUrl", () => {
 		expect(url.searchParams.get("redirect_uri")).toBe(redirectUri("linear"));
 	});
 
-	test("joins scopes with the manifest's separator", () => {
+	test("joins scopes with the manifest's separator", async () => {
 		const url = new URL(
-			buildAuthorizationUrl("linear", auth, { inputs: {} }, "s"),
+			await buildAuthorizationUrl("linear", auth, { inputs: {} }, "s"),
 		);
 		expect(url.searchParams.get("scope")).toBe("read,write");
 	});
 
-	test("defaults the separator to a space", () => {
+	test("defaults the separator to a space", async () => {
 		const url = new URL(
-			buildAuthorizationUrl(
+			await buildAuthorizationUrl(
 				"linear",
 				{ ...auth, scope_separator: undefined },
 				{ inputs: {} },
@@ -152,11 +157,11 @@ describe("buildAuthorizationUrl", () => {
 		expect(url.searchParams.get("scope")).toBe("read write");
 	});
 
-	test("refuses to build a URL for an unconfigured plugin", () => {
+	test("refuses to build a URL for an unconfigured plugin", async () => {
 		delete process.env.PLUGIN_LINEAR_CLIENT_SECRET;
-		expect(() =>
+		expect(
 			buildAuthorizationUrl("linear", auth, { inputs: {} }, "s"),
-		).toThrow(/No OAuth client configured/);
+		).rejects.toThrow(/No OAuth client configured/);
 	});
 
 	test("every plugin's callback sits under one registerable prefix", () => {

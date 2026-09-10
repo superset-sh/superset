@@ -87,6 +87,11 @@ export const env = createEnv({
 			.string()
 			.min(1)
 			.default("sc-domain:superset.sh"),
+		// Optional, falls back to NEXT_PUBLIC_API_URL: the origin an
+		// authorization server fetches a plugin's client id metadata document
+		// from. Only needs setting where NEXT_PUBLIC_API_URL is unreachable from
+		// the public internet, which in practice means local dev behind a tunnel.
+		PLUGIN_CLIENT_METADATA_BASE_URL: z.string().url().optional(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

@@ -803,6 +803,12 @@ msgstr "{pending}/{total} check đang chạy"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Tham gia {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} chưa được cấu hình ứng dụng khách OAuth trên bản triển khai này."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} không còn được cài đặt."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "Đã đặt lại {presetLabel} về mặc định"
 
@@ -3608,6 +3614,9 @@ msgstr "Đã kết nối"
 msgid "connected {0}"
 msgstr "đã kết nối {0}"
 
+msgid "Connected {label}"
+msgstr "Đã kết nối {label}"
+
 msgid "Connected as"
 msgstr "Đã kết nối với tư cách"
 
@@ -3944,6 +3953,9 @@ msgstr "Không thể đóng phiên"
 
 msgid "Could not close the session"
 msgstr "Không thể đóng phiên"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Không thể kết nối {plugin}. Vui lòng thử lại."
 
 msgid "Could not copy the link"
 msgstr "Không thể sao chép liên kết"
@@ -14041,6 +14053,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Cảm ơn bạn đã liên hệ"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Liên kết đăng nhập {plugin} đó đã hết hạn. Hãy thử kết nối lại."
+
 msgid "That handle is taken."
 msgstr "Tên định danh đó đã có người dùng."
 
@@ -16030,6 +16045,9 @@ msgstr "Bạn không thể thay đổi gói đăng ký này trong ứng dụng. 
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Không thể hoàn tác thao tác này. Các khung terminal sẽ hiện \"Process exited\" và có thể khởi động lại."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Bạn đã từ chối yêu cầu ủy quyền của {plugin}."
 
 msgid "You don't have access to this host"
 msgstr "Bạn không có quyền truy cập host này"

@@ -803,6 +803,12 @@ msgstr "Běží {pending} z {total} kontrol"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Připojeno {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} zatím nemá v tomto nasazení nakonfigurovaného klienta OAuth."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} už není nainstalován."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} obnoveno na výchozí"
 
@@ -3608,6 +3614,9 @@ msgstr "Připojeno"
 msgid "connected {0}"
 msgstr "připojeno {0}"
 
+msgid "Connected {label}"
+msgstr "Připojeno {label}"
+
 msgid "Connected as"
 msgstr "Připojeno jako"
 
@@ -3944,6 +3953,9 @@ msgstr "Relaci se nepodařilo zavřít"
 
 msgid "Could not close the session"
 msgstr "Relaci se nepodařilo zavřít"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Nepodařilo se připojit {plugin}. Zkuste to znovu."
 
 msgid "Could not copy the link"
 msgstr "Odkaz se nepodařilo zkopírovat"
@@ -14041,6 +14053,9 @@ msgstr "Textové pole"
 msgid "Thanks for reaching out"
 msgstr "Díky, že jste se ozvali"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Odkaz pro přihlášení k {plugin} vypršel. Zkuste se připojit znovu."
+
 msgid "That handle is taken."
 msgstr "Tato přezdívka je obsazená."
 
@@ -16030,6 +16045,9 @@ msgstr "Toto předplatné nelze změnit v aplikaci. Tarif vaší organizace spra
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Tuto akci nelze vrátit zpět. Panely terminálu zobrazí „Proces skončil“ a půjde je spustit znovu."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Žádost o autorizaci pro {plugin} jste odmítli."
 
 msgid "You don't have access to this host"
 msgstr "K tomuto hostu nemáte přístup"

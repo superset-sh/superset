@@ -803,6 +803,12 @@ msgstr "{pending} из {total} проверок выполняется"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · присоединился {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "Для {plugin} в этом развёртывании ещё не настроен клиент OAuth."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} больше не установлен."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} сброшен к значениям по умолчанию"
 
@@ -3608,6 +3614,9 @@ msgstr "Подключено"
 msgid "connected {0}"
 msgstr "подключено {0}"
 
+msgid "Connected {label}"
+msgstr "{label} подключено"
+
 msgid "Connected as"
 msgstr "Подключено как"
 
@@ -3944,6 +3953,9 @@ msgstr "Не удалось закрыть сессию"
 
 msgid "Could not close the session"
 msgstr "Не удалось закрыть сессию"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Не удалось подключить {plugin}. Попробуйте ещё раз."
 
 msgid "Could not copy the link"
 msgstr "Не удалось скопировать ссылку"
@@ -14041,6 +14053,9 @@ msgstr "Текстовое поле"
 msgid "Thanks for reaching out"
 msgstr "Спасибо, что написали"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Срок действия ссылки для входа в {plugin} истёк. Попробуйте подключиться снова."
+
 msgid "That handle is taken."
 msgstr "Этот ник занят."
 
@@ -16030,6 +16045,9 @@ msgstr "Изменить эту подписку в приложении нел�
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Это действие нельзя отменить. В панелях терминала появится «Process exited», их можно перезапустить."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Вы отклонили запрос на авторизацию {plugin}."
 
 msgid "You don't have access to this host"
 msgstr "У вас нет доступа к этому хосту"

@@ -14,6 +14,9 @@
 			"!**/*.template.ts",
 			"!**/plans",
 			"!**/*.generated.ts",
+			// Built plugin servers: `superset plugins build` output, committed as
+			// the bytes a release ships.
+			"!plugins/*/server",
 			// Lingui catalogs: .po plus compiled messages.ts (lingui compile output).
 			"!packages/i18n/locales",
 			"!apps/mobile/uniwind-types.d.ts",

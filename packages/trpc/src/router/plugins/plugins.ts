@@ -35,6 +35,7 @@ import {
 	trustedManifest,
 } from "./manifest";
 import { resolveIdentity } from "./oauth";
+import { ensureFreshConnection } from "./refresh";
 
 const FIRST_PARTY = "superset";
 
@@ -96,8 +97,26 @@ async function connectionContext(userId: string, connectionId: string) {
 	);
 	if (!install) throw notInstalled(connection.pluginName);
 
+	let fresh = connection;
+	try {
+		fresh = await ensureFreshConnection(
+			connection,
+			install.manifest,
+			install.marketplace,
+		);
+	} catch (error) {
+		throw userError({
+			code: "UNAUTHORIZED",
+			message: error instanceof Error ? error.message : String(error),
+			i18nKey: "serverError.plugins.dispatchFailed",
+			params: {
+				reason: error instanceof Error ? error.message : String(error),
+			},
+		});
+	}
+
 	return {
-		connection,
+		connection: fresh,
 		install,
 		source: await bundledSource(userId, install.marketplace),
 	};

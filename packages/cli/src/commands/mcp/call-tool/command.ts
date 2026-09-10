@@ -6,7 +6,6 @@ import { readStdin } from "../../../lib/plugins/inputs";
 export default command({
 	description: "Call a tool on a connected plugin",
 	args: [
-		positional("plugin").desc("Plugin name, when it has one connection"),
 		positional("tool").required().desc("Tool name"),
 		positional("arguments").desc(
 			'Tool arguments as JSON (default: {}; "-" reads them from stdin)',
@@ -18,11 +17,9 @@ export default command({
 	},
 	run: async ({ ctx, args, options }) => {
 		const tool = args.tool as string;
-		const connectionId = await resolveConnectionId(ctx.api, {
-			connection: (options.connection ?? options.pluginId) as
-				| string
-				| undefined,
-			plugin: args.plugin as string | undefined,
+		const connectionId = resolveConnectionId({
+			connection: options.connection as string | undefined,
+			pluginId: options.pluginId as string | undefined,
 		});
 
 		const raw = args.arguments as string | undefined;

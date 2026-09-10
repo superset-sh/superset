@@ -803,6 +803,12 @@ msgstr "{total} kontrolden {pending} tanesi çalışıyor"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Katılım {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} için bu dağıtımda henüz bir OAuth istemcisi yapılandırılmadı."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} artık yüklü değil."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} varsayılanlara sıfırlandı"
 
@@ -3608,6 +3614,9 @@ msgstr "Bağlı"
 msgid "connected {0}"
 msgstr "bağlandı {0}"
 
+msgid "Connected {label}"
+msgstr "{label} bağlandı"
+
 msgid "Connected as"
 msgstr "Şu hesapla bağlı"
 
@@ -3944,6 +3953,9 @@ msgstr "Oturum kapatılamadı"
 
 msgid "Could not close the session"
 msgstr "Oturum kapatılamadı"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "{plugin} bağlanamadı. Yeniden deneyin."
 
 msgid "Could not copy the link"
 msgstr "Bağlantı kopyalanamadı"
@@ -14041,6 +14053,9 @@ msgstr "Metin alanı"
 msgid "Thanks for reaching out"
 msgstr "Bize ulaştığınız için teşekkürler"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Bu {plugin} oturum açma bağlantısının süresi doldu. Yeniden bağlanmayı deneyin."
+
 msgid "That handle is taken."
 msgstr "Bu kullanıcı adı alınmış."
 
@@ -16030,6 +16045,9 @@ msgstr "Bu aboneliği uygulamada değiştiremezsiniz. Kuruluşunuzun planı, {0}
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Bu işlemi geri alamazsınız. Terminal bölmelerinde \"Process exited\" görünür ve yeniden başlatılabilirler."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "{plugin} yetkilendirme isteğini reddettiniz."
 
 msgid "You don't have access to this host"
 msgstr "Bu host'a erişiminiz yok"

@@ -36,6 +36,26 @@ export interface PluginAuthMethod {
 	requires_env?: string[];
 	identity?: AuthIdentity;
 	bind?: PluginBind;
+	client?: "static" | "dynamic";
+	pkce?: boolean;
+	authorization_params?: Record<string, string>;
+	token_params?: Record<string, string>;
+}
+
+export function usesDynamicClient(auth: PluginAuthMethod): boolean {
+	return auth.type === "oauth2" && auth.client === "dynamic";
+}
+
+export function usesPkce(auth: PluginAuthMethod): boolean {
+	return auth.pkce === true || usesDynamicClient(auth);
+}
+
+export function tokenAuthentication(
+	auth: PluginAuthMethod,
+): "basic" | "post" | undefined {
+	if (auth.token_request_auth_method === "client_secret_basic") return "basic";
+	if (auth.token_request_auth_method === "client_secret_post") return "post";
+	return undefined;
 }
 
 export type PluginAuth = PluginAuthMethod[];
@@ -190,10 +210,13 @@ export function readPath(source: unknown, path: string): unknown {
 	return current;
 }
 
+const CREDENTIAL_FETCH_TIMEOUT_MS = 10_000;
+
 export async function credentialFetch(
 	url: string,
 	init: RequestInit,
 	what: string,
+	timeoutMs: number = CREDENTIAL_FETCH_TIMEOUT_MS,
 ): Promise<Response> {
 	let parsed: URL;
 	try {
@@ -207,7 +230,11 @@ export async function credentialFetch(
 		);
 	}
 
-	const response = await fetch(url, { ...init, redirect: "manual" });
+	const response = await fetch(url, {
+		...init,
+		redirect: "manual",
+		signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+	});
 	if (response.status >= 300 && response.status < 400) {
 		throw new Error(
 			`${what} URL redirected to ${response.headers.get("location") ?? "an unnamed location"}; refusing to resend the credential.`,

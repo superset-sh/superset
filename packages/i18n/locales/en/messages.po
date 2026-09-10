@@ -803,6 +803,12 @@ msgstr "{pending} of {total} checks running"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Joined {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} has no OAuth client configured on this deployment yet."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} is no longer installed."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} reset to defaults"
 
@@ -3608,6 +3614,9 @@ msgstr "Connected"
 msgid "connected {0}"
 msgstr "connected {0}"
 
+msgid "Connected {label}"
+msgstr "Connected {label}"
+
 msgid "Connected as"
 msgstr "Connected as"
 
@@ -3944,6 +3953,9 @@ msgstr "Could not close session"
 
 msgid "Could not close the session"
 msgstr "Could not close the session"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Could not connect {plugin}. Try again."
 
 msgid "Could not copy the link"
 msgstr "Could not copy the link"
@@ -14041,6 +14053,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Thanks for reaching out"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "That {plugin} sign-in link expired. Try connecting again."
+
 msgid "That handle is taken."
 msgstr "That handle is taken."
 
@@ -16030,6 +16045,9 @@ msgstr "You can't change this subscription in the app. Your organization's plan 
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "You declined the {plugin} authorization request."
 
 msgid "You don't have access to this host"
 msgstr "You don't have access to this host"

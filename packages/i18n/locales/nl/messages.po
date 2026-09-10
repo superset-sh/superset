@@ -803,6 +803,12 @@ msgstr "{pending} van {total} checks bezig"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Lid sinds {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "Voor {plugin} is op deze deployment nog geen OAuth-client geconfigureerd."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} is niet meer geïnstalleerd."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} teruggezet naar standaardwaarden"
 
@@ -3608,6 +3614,9 @@ msgstr "Verbonden"
 msgid "connected {0}"
 msgstr "verbonden {0}"
 
+msgid "Connected {label}"
+msgstr "{label} verbonden"
+
 msgid "Connected as"
 msgstr "Verbonden als"
 
@@ -3944,6 +3953,9 @@ msgstr "Kan sessie niet sluiten"
 
 msgid "Could not close the session"
 msgstr "Kan de sessie niet sluiten"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Kan {plugin} niet verbinden. Probeer het opnieuw."
 
 msgid "Could not copy the link"
 msgstr "Kan de link niet kopiëren"
@@ -14041,6 +14053,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Bedankt voor je bericht"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Die aanmeldlink voor {plugin} is verlopen. Probeer opnieuw verbinding te maken."
+
 msgid "That handle is taken."
 msgstr "Die handle is al bezet."
 
@@ -16030,6 +16045,9 @@ msgstr "Je kunt dit abonnement niet in de app wijzigen. Het plan van je organisa
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Dit kun je niet ongedaan maken. Terminalpanelen tonen \"Process exited\" en zijn opnieuw te starten."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Je hebt het autorisatieverzoek van {plugin} geweigerd."
 
 msgid "You don't have access to this host"
 msgstr "Je hebt geen toegang tot deze host"

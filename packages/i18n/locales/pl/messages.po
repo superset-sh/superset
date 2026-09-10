@@ -803,6 +803,12 @@ msgstr "{pending} z {total} kontroli w toku"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · dołączono {joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} nie ma jeszcze skonfigurowanego klienta OAuth w tym wdrożeniu."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} nie jest już zainstalowany."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} przywrócono do ustawień domyślnych"
 
@@ -3608,6 +3614,9 @@ msgstr "Połączono"
 msgid "connected {0}"
 msgstr "połączono {0}"
 
+msgid "Connected {label}"
+msgstr "Połączono {label}"
+
 msgid "Connected as"
 msgstr "Połączono jako"
 
@@ -3944,6 +3953,9 @@ msgstr "Nie udało się zamknąć sesji"
 
 msgid "Could not close the session"
 msgstr "Nie udało się zamknąć sesji"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Nie udało się połączyć {plugin}. Spróbuj ponownie."
 
 msgid "Could not copy the link"
 msgstr "Nie udało się skopiować linku"
@@ -14041,6 +14053,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Dziękujemy za kontakt"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Ten link logowania do {plugin} wygasł. Spróbuj połączyć się ponownie."
+
 msgid "That handle is taken."
 msgstr "Ten pseudonim jest zajęty."
 
@@ -16030,6 +16045,9 @@ msgstr "Tej subskrypcji nie zmienisz w aplikacji. Planem Twojej organizacji zarz
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Tej operacji nie można cofnąć. Panele terminala pokażą „Proces zakończony” i będzie można je uruchomić ponownie."
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Odrzucono żądanie autoryzacji {plugin}."
 
 msgid "You don't have access to this host"
 msgstr "Nie masz dostępu do tego hosta"

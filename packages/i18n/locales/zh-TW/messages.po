@@ -803,6 +803,12 @@ msgstr "{total}項檢查中有{pending}項執行中"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · 加入於{joined}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "此部署尚未為 {plugin} 設定 OAuth 用戶端。"
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} 已不再安裝。"
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel}已重置為預設值"
 
@@ -3608,6 +3614,9 @@ msgstr "已連線"
 msgid "connected {0}"
 msgstr "連線於 {0}"
 
+msgid "Connected {label}"
+msgstr "已連線 {label}"
+
 msgid "Connected as"
 msgstr "已連線為"
 
@@ -3944,6 +3953,9 @@ msgstr "無法關閉會話"
 
 msgid "Could not close the session"
 msgstr "無法關閉會話"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "無法連線 {plugin}。請重試。"
 
 msgid "Could not copy the link"
 msgstr "無法複製連結"
@@ -14041,6 +14053,9 @@ msgstr "多行文字框"
 msgid "Thanks for reaching out"
 msgstr "感謝聯絡"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "該 {plugin} 登入連結已過期。請重新連線。"
+
 msgid "That handle is taken."
 msgstr "該使用者名稱已被佔用。"
 
@@ -16030,6 +16045,9 @@ msgstr "無法在應用程式內變更此訂閱。你所在組織的方案由擁
 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "此操作無法復原。終端窗格會顯示「處理程序已退出」，之後可以重新啟動。"
+
+msgid "You declined the {plugin} authorization request."
+msgstr "你拒絕了 {plugin} 的授權請求。"
 
 msgid "You don't have access to this host"
 msgstr "你沒有此主機的存取權限"
