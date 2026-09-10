@@ -1,9 +1,8 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
 	PROJECT_ICON_NONE,
 	resolveProjectIconUrl,
@@ -27,7 +26,6 @@ import { NameSection } from "./components/NameSection";
 import { NamingInstructionsSection } from "./components/NamingInstructionsSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
-import { SetupProjectModal } from "./components/SetupProjectModal";
 import { SparseCheckoutSection } from "./components/SparseCheckoutSection";
 import { V2ScriptsEditor } from "./components/V2ScriptsEditor";
 import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
@@ -127,23 +125,6 @@ export function V2ProjectSettings({
 		void refetchHostProject();
 	}, [mergedUpdatedAt, refetchHostProject]);
 
-	// `project.get` answers null (not undefined) once the host has settled on
-	// "this project is not set up here".
-	const needsSetupOnTarget = Boolean(targetHostUrl) && hostProject === null;
-	const [setupOpen, setSetupOpen] = useState(false);
-
-	// "Set up project…" CTAs elsewhere deep-link here with focus=setup: land
-	// the user inside the setup modal, not at the top of a settings page.
-	// One-shot per project+host so closing the modal doesn't reopen it.
-	const setupAutoOpenedRef = useRef<string | null>(null);
-	useEffect(() => {
-		if (focusField !== "setup" || !needsSetupOnTarget) return;
-		const key = `${projectId}:${targetHostId}`;
-		if (setupAutoOpenedRef.current === key) return;
-		setupAutoOpenedRef.current = key;
-		setSetupOpen(true);
-	}, [focusField, needsSetupOnTarget, projectId, targetHostId]);
-
 	// Deep-link focus (e.g. "Update naming instructions" from the create-
 	// workspace flow). Wait for the host row: the target fields only render
 	// once it has loaded. One-shot per project, not per mount — the route
@@ -208,30 +189,6 @@ export function V2ProjectSettings({
 					/>
 				) : null}
 			</header>
-
-			{needsSetupOnTarget && (
-				<div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
-					<div className="min-w-0 flex-1">
-						<p className="text-sm font-medium">
-							<Trans>Not set up on {targetHostName} yet</Trans>
-						</p>
-						<p className="mt-0.5 text-xs text-muted-foreground">
-							<Trans>
-								Clone the repository onto {targetHostName}, or point to an
-								existing folder, to create workspaces there.
-							</Trans>
-						</p>
-					</div>
-					<Button
-						type="button"
-						size="sm"
-						onClick={() => setSetupOpen(true)}
-						disabled={!targetHostUrl}
-					>
-						<Trans>Set up project…</Trans>
-					</Button>
-				</div>
-			)}
 
 			<div className="space-y-10">
 				<SettingsSection
@@ -339,11 +296,12 @@ export function V2ProjectSettings({
 					>
 						<ProjectLocationSection
 							projectId={projectId}
+							projectName={project.name}
 							currentPath={hostProject?.repoPath ?? null}
+							repoCloneUrl={project.repoUrl}
 							hostUrl={targetHostUrl}
 							hostName={targetHostName}
 							isRemoteTarget={isRemoteTarget}
-							onRequestSetup={() => setSetupOpen(true)}
 							onChanged={() => refetchHostProject()}
 						/>
 					</SettingsRow>
@@ -427,18 +385,6 @@ export function V2ProjectSettings({
 					/>
 				</SettingsSection>
 			</div>
-
-			<SetupProjectModal
-				open={setupOpen}
-				onOpenChange={setSetupOpen}
-				projectId={projectId}
-				projectName={project.name}
-				hostUrl={targetHostUrl}
-				hostName={targetHostName}
-				repoCloneUrl={project.repoUrl}
-				isRemoteTarget={isRemoteTarget}
-				onChanged={() => refetchHostProject()}
-			/>
 		</div>
 	);
 }

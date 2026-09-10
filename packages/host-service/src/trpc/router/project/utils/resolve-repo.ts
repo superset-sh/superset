@@ -3,12 +3,11 @@ import { existsSync, mkdirSync, statSync } from "node:fs";
 // entire repo directory, and rmSync would hold the event loop for the whole
 // walk.
 import { rm } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
 import type { GitCredentialProvider } from "../../../../runtime/git";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
-import { expandTildeAbsolute } from "../../../../runtime/paths";
 import {
 	findMatchingRemote,
 	getGitHubRemotes,
@@ -207,9 +206,8 @@ async function revParseGitRoot(path: string): Promise<string> {
  * valid v2 projects; they simply have no cloud clone URL or GitHub metadata.
  */
 export async function resolveLocalRepo(
-	rawRepoPath: string,
+	repoPath: string,
 ): Promise<ResolvedRepo> {
-	const repoPath = expandTildeAbsolute(rawRepoPath);
 	validateDirectoryPath(repoPath, "Path");
 	const gitRoot = await revParseGitRoot(repoPath);
 	const remotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
@@ -270,10 +268,9 @@ export async function initLocalRepoInPlace(
  * mode=import`, post-clone validation).
  */
 export async function resolveMatchingSlug(
-	rawRepoPath: string,
+	repoPath: string,
 	expectedSlug: string,
 ): Promise<ResolvedGitHubRepo> {
-	const repoPath = expandTildeAbsolute(rawRepoPath);
 	validateDirectoryPath(repoPath, "Path");
 	const gitRoot = await revParseGitRoot(repoPath);
 	const remotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
@@ -317,7 +314,7 @@ export async function initEmptyRepo(
 		});
 	}
 
-	const resolvedParentDir = expandTildeAbsolute(parentDir);
+	const resolvedParentDir = resolvePath(parentDir);
 	ensureParentDirectory(resolvedParentDir);
 	const targetPath = join(resolvedParentDir, dirName);
 	claimEmptyTargetDir(targetPath);
@@ -360,7 +357,7 @@ export async function cloneTemplateInto(
 		});
 	}
 
-	const resolvedParentDir = expandTildeAbsolute(parentDir);
+	const resolvedParentDir = resolvePath(parentDir);
 	ensureParentDirectory(resolvedParentDir);
 	const targetPath = join(resolvedParentDir, dirName);
 	claimEmptyTargetDir(targetPath);
@@ -423,7 +420,7 @@ export async function cloneRepoInto(
 		: null;
 	const repoName = parsedUrl?.name ?? deriveCloneDirectoryName(repoCloneUrl);
 
-	const resolvedParentDir = expandTildeAbsolute(parentDir);
+	const resolvedParentDir = resolvePath(parentDir);
 	ensureParentDirectory(resolvedParentDir);
 
 	const targetPath = join(resolvedParentDir, repoName);

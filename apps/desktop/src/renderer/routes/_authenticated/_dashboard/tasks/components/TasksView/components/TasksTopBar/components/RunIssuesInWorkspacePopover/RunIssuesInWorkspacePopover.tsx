@@ -21,7 +21,6 @@ import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
-import { ProjectSetupNotice } from "renderer/routes/_authenticated/_dashboard/tasks/components/ProjectSetupNotice";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
@@ -403,13 +402,6 @@ export function RunIssuesInWorkspacePopover({
 				</div>
 
 				<div className="border-t border-border p-2">
-					{selectedProject?.needsSetup === true && selectedProjectId && (
-						<ProjectSetupNotice
-							projectId={selectedProjectId}
-							hostId={hostId}
-							onBeforeNavigate={() => setOpen(false)}
-						/>
-					)}
 					{hasMixedRepos && (
 						<p className="mb-2 text-xs text-muted-foreground text-wrap-pretty">
 							{submitBlocker}

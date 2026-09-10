@@ -102,9 +102,6 @@ mock.module("./components/ProjectLocationSection", () => ({
 mock.module("./components/RepositorySection", () => ({
 	RepositorySection: () => null,
 }));
-mock.module("./components/SetupProjectModal", () => ({
-	SetupProjectModal: () => null,
-}));
 mock.module("./components/V2ScriptsEditor", () => ({
 	V2ScriptsEditor: () => null,
 }));

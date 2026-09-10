@@ -20,25 +20,27 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { ClickablePath } from "../../../../../../components/ClickablePath";
+import { SetupProjectModal } from "../SetupProjectModal";
 
 interface ProjectLocationSectionProps {
 	projectId: string;
+	projectName?: string;
 	currentPath: string | null;
+	repoCloneUrl: string | null;
 	hostUrl: string | null;
 	hostName: string;
 	isRemoteTarget: boolean;
-	/** Opens the parent-owned SetupProjectModal. */
-	onRequestSetup: () => void;
 	onChanged?: () => void;
 }
 
 export function ProjectLocationSection({
 	projectId,
+	projectName,
 	currentPath,
+	repoCloneUrl,
 	hostUrl,
 	hostName,
 	isRemoteTarget,
-	onRequestSetup,
 	onChanged,
 }: ProjectLocationSectionProps) {
 	const { t } = useLingui();
@@ -48,6 +50,7 @@ export function ProjectLocationSection({
 
 	const [pendingPath, setPendingPath] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [setupOpen, setSetupOpen] = useState(false);
 	const [changeBrowseOpen, setChangeBrowseOpen] = useState(false);
 
 	const pickPath = async (title: string) => {
@@ -179,13 +182,25 @@ export function ProjectLocationSection({
 						type="button"
 						variant="outline"
 						size="sm"
-						onClick={onRequestSetup}
+						onClick={() => setSetupOpen(true)}
 						disabled={!hostUrl}
 					>
 						<Trans>Set up project…</Trans>
 					</Button>
 				</div>
 			)}
+
+			<SetupProjectModal
+				open={setupOpen}
+				onOpenChange={setSetupOpen}
+				projectId={projectId}
+				projectName={projectName}
+				hostUrl={hostUrl}
+				hostName={hostName}
+				repoCloneUrl={repoCloneUrl}
+				isRemoteTarget={isRemoteTarget}
+				onChanged={onChanged}
+			/>
 
 			<RemotePathPicker
 				open={changeBrowseOpen}

@@ -37,10 +37,7 @@ import { IssueLinkCommand } from "renderer/components/IssueLinkCommand";
 import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
-import {
-	resolveHostUrl,
-	useHostUrl,
-} from "renderer/hooks/host-service/useHostTargetUrl";
+import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useAgentEffortPreference } from "renderer/hooks/useAgentEffortPreference";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
@@ -54,7 +51,6 @@ import { track } from "renderer/lib/analytics";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
-import { useCloneAccessPlan } from "renderer/routes/_authenticated/hooks/useCloneAccessPlan";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { newWorkspaceAttachmentPaths } from "renderer/stores/new-workspace-attachments";
@@ -71,7 +67,6 @@ import {
 	type PromptCardsVariant,
 	useNewWorkspacePromptCardsVariant,
 } from "../../hooks/useNewWorkspacePromptCardsVariant";
-import { ClonePlanPill } from "../ClonePlanPill";
 import { DevicePicker } from "../DashboardNewWorkspaceForm/components/DevicePicker";
 import { CLOUD_HOST_ID } from "../DashboardNewWorkspaceForm/components/DevicePicker/DevicePicker";
 import { useWorkspaceHostOptions } from "../DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
@@ -251,7 +246,6 @@ export function NewWorkspaceScreen({
 					name: project.name,
 					githubOwner: project.repoOwner,
 					githubRepoName: project.repoName,
-					repoUrl: project.repoUrl,
 					iconUrl: project.repoOwner
 						? `https://github.com/${project.repoOwner}.png?size=64`
 						: null,
@@ -356,30 +350,6 @@ export function NewWorkspaceScreen({
 	const projectId = draft.selectedProjectId;
 	const selectedProject = projects.find((project) => project.id === projectId);
 	const needsSetup = selectedProject?.needsSetup === true;
-	// Creation subsumes setup: with a linked repo we clone as the first step
-	// of the create instead of detouring through settings. Repo-less projects
-	// (import-only) and cloud targets keep the settings path.
-	const setupHostId = draft.isSession ? null : (draft.hostId ?? machineId);
-	const canInlineSetup =
-		needsSetup &&
-		!!selectedProject?.repoUrl &&
-		setupHostId !== null &&
-		setupHostId !== CLOUD_HOST_ID;
-	const setupHostUrl = useHostUrl(canInlineSetup ? setupHostId : null);
-	const setupPlan = useCloneAccessPlan({
-		hostUrl: canInlineSetup ? setupHostUrl : null,
-		repoCloneUrl: selectedProject?.repoUrl ?? null,
-		enabled: canInlineSetup,
-	});
-	// `~` expands host-side, so the tilde default holds even before the
-	// host's home directory has resolved.
-	const setupFirst = canInlineSetup
-		? {
-				repoCloneUrl: selectedProject.repoUrl as string,
-				projectName: selectedProject.name,
-				parentDir: setupPlan.parentDir.trim() || "~/.superset/projects",
-			}
-		: null;
 	const isPromptEmpty = !draft.prompt.trim();
 	// The markdown editor is uncontrolled after mount, so programmatic prompt
 	// insertion bumps promptSeed to remount it with the new content.
@@ -617,7 +587,6 @@ export function NewWorkspaceScreen({
 		modeSupport ? selectedMode : null,
 		uploadAttachments,
 		promptContext,
-		setupFirst,
 	);
 
 	const { otherHosts } = useWorkspaceHostOptions();
@@ -664,12 +633,7 @@ export function NewWorkspaceScreen({
 		void navigate({
 			to: "/settings/projects/$projectId",
 			params: { projectId: targetProjectId },
-			// focus=setup opens the setup modal directly instead of stranding
-			// the user at the top of the settings page.
-			search: {
-				hostId: draft.hostId ?? machineId ?? undefined,
-				focus: "setup",
-			},
+			search: { hostId: draft.hostId ?? machineId ?? undefined },
 		});
 	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
 
@@ -690,7 +654,7 @@ export function NewWorkspaceScreen({
 	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
 
 	const handleSubmit = useCallback(() => {
-		if (needsSetup && !canInlineSetup) {
+		if (needsSetup) {
 			handleGoToSetup();
 			return;
 		}
@@ -707,7 +671,6 @@ export function NewWorkspaceScreen({
 		void createWorkspace();
 	}, [
 		activeHostUrl,
-		canInlineSetup,
 		createWorkspace,
 		draft.hostId,
 		handleGoToSetup,
@@ -1056,7 +1019,7 @@ export function NewWorkspaceScreen({
 								</Tooltip>
 								<PromptInputSubmit
 									className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-									disabled={(needsSetup && !canInlineSetup) || isCreating}
+									disabled={needsSetup || isCreating}
 									onClick={(e) => {
 										e.preventDefault();
 										handleSubmit();
@@ -1109,23 +1072,11 @@ export function NewWorkspaceScreen({
 									<LuGitPullRequest className="size-3 shrink-0" />
 									<Trans>based off PR #{draft.linkedPR.prNumber}</Trans>
 								</span>
-							) : draft.isSession ? null : canInlineSetup ? (
-								<ClonePlanPill
-									hostName={
-										setupHostId === machineId
-											? "this device"
-											: (otherHosts.find((host) => host.id === setupHostId)
-													?.name ?? "this host")
-									}
-									isRemoteTarget={setupHostId !== machineId}
-									plan={setupPlan}
-									onOpenSettings={handleGoToSetup}
-								/>
-							) : (
+							) : draft.isSession ? null : (
 								<CompareBaseBranchPicker {...pickerProps} />
 							)}
 						</div>
-						{needsSetup && !canInlineSetup && (
+						{needsSetup && (
 							<Button
 								type="button"
 								variant="outline"

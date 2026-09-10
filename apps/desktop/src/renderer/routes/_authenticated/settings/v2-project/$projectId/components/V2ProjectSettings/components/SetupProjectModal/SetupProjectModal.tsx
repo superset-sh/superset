@@ -14,21 +14,11 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { useEffect, useState } from "react";
-import { LuFolderOpen, LuLoaderCircle, LuTriangleAlert } from "react-icons/lu";
+import { LuFolderOpen, LuLoaderCircle } from "react-icons/lu";
 import { RemotePathPicker } from "renderer/components/RemotePathPicker";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { CloneAccessStatus } from "renderer/routes/_authenticated/components/CloneAccessStatus";
-import {
-	GhAuthDialog,
-	type GhAuthDialogMode,
-} from "renderer/routes/_authenticated/components/GhAuthDialog";
-import { useCloneAccessPlan } from "renderer/routes/_authenticated/hooks/useCloneAccessPlan";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import {
-	type CloneError,
-	classifyCloneError,
-} from "renderer/utils/classifyCloneError";
 
 type SetupMode = "clone" | "import";
 
@@ -63,10 +53,9 @@ export function SetupProjectModal({
 	const [mode, setMode] = useState<SetupMode>(
 		repoCloneUrl ? "clone" : "import",
 	);
+	const [parentDir, setParentDir] = useState("");
 	const [importPath, setImportPath] = useState("");
 	const [working, setWorking] = useState(false);
-	const [setupError, setSetupError] = useState<CloneError | null>(null);
-	const [ghAuthMode, setGhAuthMode] = useState<GhAuthDialogMode | null>(null);
 	const [browseTarget, setBrowseTarget] = useState<
 		"parentDir" | "importPath" | null
 	>(null);
@@ -76,24 +65,10 @@ export function SetupProjectModal({
 		setMode(repoCloneUrl ? "clone" : "import");
 	}, [open, repoCloneUrl]);
 
-	const {
-		parentDir,
-		setParentDir,
-		resetParentDir,
-		access,
-		isCheckingAccess,
-		recheckAccess,
-	} = useCloneAccessPlan({
-		hostUrl,
-		repoCloneUrl,
-		enabled: open && mode === "clone",
-	});
-
 	const reset = () => {
-		resetParentDir();
+		setParentDir("");
 		setImportPath("");
 		setWorking(false);
-		setSetupError(null);
 	};
 
 	const handleOpenChange = (next: boolean) => {
@@ -139,7 +114,6 @@ export function SetupProjectModal({
 			return;
 		}
 		setWorking(true);
-		setSetupError(null);
 		try {
 			const client = getHostServiceClientByUrl(hostUrl);
 			const result = await client.project.setup.mutate({
@@ -163,10 +137,7 @@ export function SetupProjectModal({
 			reset();
 			onOpenChange(false);
 		} catch (err) {
-			setSetupError(classifyCloneError(err));
-			// The access panel carries the remediation; refresh it so its state
-			// (gh installed/signed in) matches what the clone just hit.
-			recheckAccess();
+			toast.error(errorMessage(err));
 		} finally {
 			setWorking(false);
 		}
@@ -195,7 +166,6 @@ export function SetupProjectModal({
 			return;
 		}
 		setWorking(true);
-		setSetupError(null);
 		try {
 			const client = getHostServiceClientByUrl(hostUrl);
 			const result = await client.project.setup.mutate({
@@ -217,7 +187,7 @@ export function SetupProjectModal({
 			reset();
 			onOpenChange(false);
 		} catch (err) {
-			setSetupError({ message: errorMessage(err), needsGhAuth: false });
+			toast.error(errorMessage(err));
 		} finally {
 			setWorking(false);
 		}
@@ -227,11 +197,6 @@ export function SetupProjectModal({
 	const submitLabel =
 		mode === "clone" ? <Trans>Clone</Trans> : <Trans>Import</Trans>;
 	const cloneDisabled = !repoCloneUrl;
-	// The access panel already explains gh-auth failures with remediation;
-	// only show the raw error when it adds information.
-	const showSetupError =
-		setupError !== null &&
-		!(mode === "clone" && setupError.needsGhAuth && access && !access.ok);
 
 	return (
 		<>
@@ -250,10 +215,7 @@ export function SetupProjectModal({
 
 					<Tabs
 						value={mode}
-						onValueChange={(value) => {
-							setMode(value as SetupMode);
-							setSetupError(null);
-						}}
+						onValueChange={(value) => setMode(value as SetupMode)}
 					>
 						<TabsList className="w-full">
 							<TabsTrigger
@@ -288,16 +250,6 @@ export function SetupProjectModal({
 											</p>
 										</div>
 									)}
-									<CloneAccessStatus
-										result={access}
-										isChecking={isCheckingAccess}
-										hostName={hostName}
-										isRemoteTarget={isRemoteTarget}
-										onRecheck={recheckAccess}
-										onSignIn={
-											isRemoteTarget ? undefined : (m) => setGhAuthMode(m)
-										}
-									/>
 									<div className="flex flex-col gap-1.5">
 										<Label htmlFor="setup-parent-dir" className="text-xs">
 											{isRemoteTarget ? (
@@ -350,12 +302,6 @@ export function SetupProjectModal({
 												<LuFolderOpen className="size-4" />
 											</Button>
 										</div>
-										<p className="text-xs text-muted-foreground">
-											<Trans>
-												The repository is cloned into a new folder inside this
-												directory.
-											</Trans>
-										</p>
 									</div>
 								</>
 							)}
@@ -417,15 +363,6 @@ export function SetupProjectModal({
 						</TabsContent>
 					</Tabs>
 
-					{showSetupError && setupError && (
-						<div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
-							<LuTriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
-							<p className="min-w-0 flex-1 select-text cursor-text break-words text-xs text-destructive">
-								{setupError.message}
-							</p>
-						</div>
-					)}
-
 					<DialogFooter>
 						<Button
 							type="button"
@@ -454,17 +391,6 @@ export function SetupProjectModal({
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-
-			{!isRemoteTarget && (
-				<GhAuthDialog
-					open={ghAuthMode !== null}
-					mode={ghAuthMode ?? "auth"}
-					onOpenChange={(next) => {
-						if (!next) setGhAuthMode(null);
-					}}
-					onExit={recheckAccess}
-				/>
-			)}
 
 			<RemotePathPicker
 				open={browseTarget !== null}

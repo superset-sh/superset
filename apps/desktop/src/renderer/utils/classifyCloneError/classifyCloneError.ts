@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 
 export interface CloneError {
@@ -30,26 +32,32 @@ export function classifyCloneError(err: unknown): CloneError {
 	const raw = rawErrorMessage(err);
 	if (raw.includes("Permission denied (publickey)")) {
 		return {
-			message:
-				"SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead.",
+			message: i18n._(
+				msg({
+					message:
+						"SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead.",
+				}),
+			),
 			needsGhAuth: true,
 		};
 	}
 	if (GH_AUTH_FAILURE_PATTERNS.some((pattern) => raw.includes(pattern))) {
 		return {
-			message:
-				"Couldn't access this repository. If it's private, sign in to GitHub CLI first.",
+			message: i18n._(
+				msg({
+					message:
+						"Couldn't access this repository. If it's private, sign in to GitHub CLI first.",
+				}),
+			),
 			needsGhAuth: true,
 		};
 	}
+	const fallback = i18n._(msg({ message: "Failed to clone repository" }));
 	// errorMessage() surfaces a bare thrown string as the message; a clone that
 	// rejected with something that isn't an Error has nothing worth showing, so
 	// keep the generic line the tests pin.
 	return {
-		message:
-			err instanceof Error
-				? errorMessage(err, "Failed to clone repository")
-				: "Failed to clone repository",
+		message: err instanceof Error ? errorMessage(err, fallback) : fallback,
 		needsGhAuth: false,
 	};
 }

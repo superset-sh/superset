@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, resolve as resolvePath } from "node:path";
 import {
 	type ParsedGitHubRemote,
 	parseGitHubRemote,
@@ -17,7 +17,6 @@ import {
 	updateLocalProject,
 } from "../../../projects/local-project-store";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
-import { expandTildeAbsolute } from "../../../runtime/paths";
 import {
 	deleteTagFolderSetting,
 	getAllTagFolderSettings,
@@ -37,7 +36,6 @@ import {
 	createFromImportLocal,
 	createFromTemplate,
 } from "./handlers";
-import { checkCloneAccess } from "./utils/check-clone-access";
 import { ensureMainWorkspace } from "./utils/ensure-main-workspace";
 import { getGitHubRemotes } from "./utils/git-remote";
 import { persistLocalProject } from "./utils/persist-project";
@@ -650,17 +648,6 @@ export const projectRouter = router({
 			}
 		}),
 
-	/**
-	 * Preflight for the setup-clone flow: can this host reach the repo with
-	 * the credentials a real clone would use? Read-only and repo-URL scoped
-	 * so clients can check before (and after a failed) `setup`.
-	 */
-	checkCloneAccess: protectedProcedure
-		.input(z.object({ repoCloneUrl: z.string().min(1) }))
-		.query(({ ctx, input }) =>
-			checkCloneAccess(input.repoCloneUrl, ctx.credentials),
-		),
-
 	setup: machineOnlyProcedure
 		.input(
 			z.object({
@@ -734,10 +721,7 @@ export const projectRouter = router({
 						// Already on this device — same folder name predicted from
 						// the local row; a different parentDir means a repoint.
 						rejectIfRepoint(
-							join(
-								expandTildeAbsolute(input.mode.parentDir),
-								basename(existing.repoPath),
-							),
+							resolvePath(input.mode.parentDir, basename(existing.repoPath)),
 						);
 						const mainWorkspace = await ensureMainWorkspace(
 							ctx,

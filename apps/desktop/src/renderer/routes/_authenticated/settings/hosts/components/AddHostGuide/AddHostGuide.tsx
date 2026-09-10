@@ -51,9 +51,7 @@ export function AddHostGuide() {
 	// Minted only when asked. Opening a settings page is not consent to create
 	// a credential, and a key the user pressed a button for needs none of the
 	// was-it-really-wanted cleanup that an automatic one does.
-	const [minted, setMinted] = useState<{ id: string; key: string } | null>(
-		null,
-	);
+	const [minted, setMinted] = useState<{ key: string } | null>(null);
 	const [minting, setMinting] = useState(false);
 	const [mintFailed, setMintFailed] = useState(false);
 

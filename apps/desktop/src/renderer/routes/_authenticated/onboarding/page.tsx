@@ -13,7 +13,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	GhAuthDialog,
 	type GhAuthDialogMode,
-} from "../components/GhAuthDialog";
+} from "renderer/routes/_authenticated/components/GhAuthDialog";
 import { OnboardingLanguageRow } from "./components/OnboardingLanguageRow";
 
 export const Route = createFileRoute("/_authenticated/onboarding/")({

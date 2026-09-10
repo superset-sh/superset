@@ -16,7 +16,6 @@ import { useState } from "react";
 import { HiCheck, HiChevronUpDown, HiMiniPlus } from "react-icons/hi2";
 import {
 	LuBox,
-	LuFolderDown,
 	LuFolderInput,
 	LuFolderPlus,
 	LuTriangleAlert,
@@ -176,32 +175,16 @@ export function ProjectPickerPill({
 										iconUrl={project.iconUrl}
 									/>
 									<span className="flex-1 truncate">{project.name}</span>
-									{project.needsSetup === true &&
-										(project.repoUrl ? (
-											// Creation subsumes setup: picking this clones it to the
-											// selected host as the first step of the create.
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<LuFolderDown className="size-3.5 shrink-0 text-muted-foreground" />
-												</TooltipTrigger>
-												<TooltipContent>
-													<Trans>Will be cloned to this host</Trans>
-												</TooltipContent>
-											</Tooltip>
-										) : (
-											// No remote to clone from: only reachable through the
-											// settings setup modal (import from a path).
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<LuTriangleAlert className="size-3.5 shrink-0 text-amber-500" />
-												</TooltipTrigger>
-												<TooltipContent>
-													<Trans>
-														Not on this host and has no remote to clone from
-													</Trans>
-												</TooltipContent>
-											</Tooltip>
-										))}
+									{project.needsSetup === true && (
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<LuTriangleAlert className="size-3.5 shrink-0 text-amber-500" />
+											</TooltipTrigger>
+											<TooltipContent>
+												<Trans>Not set up on this host</Trans>
+											</TooltipContent>
+										</Tooltip>
+									)}
 									{project.id === selectedProject?.id && (
 										<HiCheck className="size-4 shrink-0" />
 									)}
