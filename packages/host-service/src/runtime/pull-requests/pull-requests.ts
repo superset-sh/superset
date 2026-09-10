@@ -942,6 +942,15 @@ export class PullRequestRuntimeManager {
 	private workspaceStillMatches(
 		expected: typeof workspaces.$inferSelect,
 	): boolean {
+		// A Git event can queue behind the refresh currently awaiting GitHub.
+		// Its database refs are still old, so equality alone cannot authorize
+		// this result. Let the queued sync re-read refs and retry discovery even
+		// when the event turns out not to have changed the branch.
+		const sync = this.workspaceSyncState.get(expected.id);
+		if (sync?.rerunPending) {
+			sync.bypassCache = true;
+			return false;
+		}
 		const current = this.db
 			.select()
 			.from(workspaces)
