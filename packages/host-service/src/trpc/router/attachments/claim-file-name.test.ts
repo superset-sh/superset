@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { claimFileName } from "./attachments";
@@ -44,7 +50,7 @@ describe("claimFileName", () => {
 		writeFileSync(join(directory, "IMG_0006.jpg"), "earlier");
 
 		expect(claim(new Set(), "IMG_0006.jpg")).toEqual(["IMG_0006_1.jpg"]);
-		expect(Bun.file(join(directory, "IMG_0006.jpg")).text()).resolves.toBe(
+		expect(readFileSync(join(directory, "IMG_0006.jpg"), "utf8")).toBe(
 			"earlier",
 		);
 	});
