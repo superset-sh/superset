@@ -340,18 +340,18 @@
 <div class="page">
 
   <p class="kicker">Proposal</p>
-  <h1>Branch autonaming drops the custom prefix. Let's fix the code path and merge the two settings that control it.</h1>
-  <p class="dek">Autonaming and branch prefix live in different settings screens and don't talk to each other. When an AI-generated name lands, it silently overwrites the prefix a user configured — moments after the workspace correctly had it.</p>
+  <h1>Branch autonaming dropped the custom prefix. The code path is fixed; the settings layout is still worth merging.</h1>
+  <p class="dek">Autonaming and branch prefix lived in different settings screens and didn't talk to each other. When an AI-generated name landed, it silently overwrote the prefix a user configured — moments after the workspace correctly had it. The code-path fix has since shipped in <a href="https://github.com/superset-sh/superset/pull/7413" style="color:var(--accent);">PR #7413</a>; the settings-consolidation half below is future scope, since that PR doesn't touch the desktop UI.</p>
 
   <div class="meta">
     <span>Author <b>Kiet Ho</b></span>
     <span>Area <b>Workspace creation · Desktop settings</b></span>
-    <span>Status <span class="status-pill">For discussion</span></span>
+    <span>Status <span class="status-pill" style="background:var(--good-soft); color:var(--good); border-color:var(--good);">Code fix shipped</span></span>
   </div>
 
   <section>
-    <h2>The bug</h2>
-    <p>A workspace's branch prefix (<code>none</code> / <code>github</code> / <code>author</code> / <code>custom</code>) is resolved correctly at the moment a workspace is created. But when AI autonaming finishes a few seconds later and renames the branch to something better than the placeholder, the prefix isn't reapplied — it's just gone.</p>
+    <h2>The bug (fixed)</h2>
+    <p>A workspace's branch prefix (<code>none</code> / <code>github</code> / <code>author</code> / <code>custom</code>) was resolved correctly at the moment a workspace was created. But when AI autonaming finished a few seconds later and renamed the branch to something better than the placeholder, the prefix wasn't reapplied — it was just gone. <a href="https://github.com/superset-sh/superset/pull/7413" style="color:var(--accent);">PR #7413</a> reapplies the prefix deterministically in every path that can rename a branch after creation; see that PR for the shipped fix.</p>
 
     <div class="flow">
       <div class="flow-row good">
@@ -393,53 +393,53 @@
   </section>
 
   <section>
-    <h2>Why it's easy to miss</h2>
-    <p>Because the two settings that govern this outcome sit in different places, with no visible link between them:</p>
+    <h2>Why it was easy to miss</h2>
+    <p>Correction from the original draft of this page: on inspection while implementing the fix, the current (V2) project settings page turned out to already group the branch-prefix override and "Naming instructions" under one "Branches &amp; naming" section, and the global Git settings page already shows a live prefix preview. So the settings-layout gap was smaller than first thought:</p>
     <ul>
-      <li><b>Branch prefix mode + custom string</b> — a global "Git &amp; worktrees" settings page, with a per-project override buried in that project's own settings page.</li>
-      <li><b>Naming instructions</b> (what steers the AI's autoname style) — a separate section on the same per-project settings page, not adjacent to the prefix override.</li>
+      <li><b>Branch prefix mode + custom string</b> — a global "Git &amp; worktrees" settings page (with its own live preview), with a per-project override on that project's settings page.</li>
+      <li><b>Naming instructions</b> (what steers the AI's autoname style) — already adjacent to that per-project override, under the same "Branches &amp; naming" section heading — not a separate, disconnected block as originally described here.</li>
     </ul>
-    <p>There's also no toggle anywhere to turn autonaming off. It's implicit: it fires whenever a user hasn't hand-edited the branch name field. A user configuring "how my branches get prefixed" has no reason to know a second, disconnected control shapes what autonaming will produce — or that the prefix won't survive it.</p>
+    <p>What's still true: there's no toggle anywhere to turn autonaming off (it's implicit — fires whenever a user hasn't hand-edited the branch name field), and the per-project section has no live example showing the prefix and naming instructions combined the way the global page's prefix preview does.</p>
   </section>
 
   <section>
-    <h2>Proposed fix</h2>
+    <h2>What shipped, and what's still open</h2>
     <ol class="steps">
       <li>
-        <span class="step-num">1</span>
+        <span class="step-num">✓</span>
         <div class="step-body">
-          <b>Apply the resolved prefix in both host-service code paths</b>
-          <p>Call <code>resolveProjectBranchPrefix</code> in the live-preview <code>generateBranchName</code> procedure, and — the important one — reapply it inside <code>applyGeneratedWorkspaceNames</code> after the AI/derived name comes back, instead of using that name raw in the <code>git branch -m</code>. This brings host-service to parity with what the legacy desktop path already does correctly.</p>
+          <b>Shipped — apply the resolved prefix in every host-service rename path</b>
+          <p><a href="https://github.com/superset-sh/superset/pull/7413" style="color:var(--accent);">PR #7413</a> calls <code>resolveProjectBranchPrefix</code> in the live-preview <code>generateBranchName</code> procedure, and reapplies it inside <code>applyGeneratedWorkspaceNames</code> after the AI/derived name comes back, instead of using that name raw in the <code>git branch -m</code>. It also covers the manual "rename with AI" path. This brings host-service to parity with what the legacy desktop path already did correctly.</p>
         </div>
       </li>
       <li>
-        <span class="step-num">2</span>
+        <span class="step-num">—</span>
         <div class="step-body">
-          <b>Put both settings in one section</b>
-          <p>Merge the project settings page's branch-prefix override and "Naming instructions" into a single "Branch naming" section, so configuring one surfaces the other instead of splitting them across a global page and a distant per-project block.</p>
+          <b>No longer needed — settings are already grouped on the current (V2) project page</b>
+          <p>See the correction above: the per-project branch-prefix override and naming instructions already render under one section, so there's no desktop UI change to make here. PR #7413 doesn't touch the desktop app.</p>
         </div>
       </li>
       <li>
         <span class="step-num">3</span>
         <div class="step-body">
-          <b>Show a live example in that section</b>
-          <p>A one-line preview — "with your current settings, a workspace from this prompt would be named <code>kiet/fix-login-timeout</code>" — so the prefix-plus-autoname interaction is visible before creating a workspace, not discovered after the fact.</p>
+          <b>Future scope — a combined live example in that section</b>
+          <p>A one-line preview — "with your current settings, a workspace from this prompt would be named <code>kiet/fix-login-timeout</code>" — next to the per-project naming instructions, matching the pattern the global Git settings page already has for the prefix alone. Not part of PR #7413.</p>
         </div>
       </li>
     </ol>
   </section>
 
   <section>
-    <h2>Settings layout: before / after</h2>
+    <h2>Settings layout: current state / future scope</h2>
     <div class="compare">
       <div class="compare-col current">
-        <div class="compare-head">Today — split across two pages</div>
+        <div class="compare-head">Today (V2) — already one section, no combined preview</div>
         <div class="settings-mock">
           <div class="field-group">
-            <div class="field-label">Git &amp; Worktrees (global)</div>
+            <div class="field-label">Global: Git &amp; Worktrees (has its own prefix preview)</div>
             <div class="field-fake"></div>
           </div>
-          <div class="page-sep">— separate project settings page —</div>
+          <div class="page-sep">— per-project "Branches &amp; naming" section —</div>
           <div class="field-group">
             <div class="field-label">Branch prefix override</div>
             <div class="field-fake"></div>
@@ -451,7 +451,7 @@
         </div>
       </div>
       <div class="compare-col proposed">
-        <div class="compare-head">Proposed — one "Branch naming" section</div>
+        <div class="compare-head">Future scope — add a combined live preview</div>
         <div class="settings-mock">
           <div class="field-group">
             <div class="field-label">Prefix (mode + custom string)</div>
@@ -462,13 +462,13 @@
             <div class="field-fake" style="width:85%;"></div>
           </div>
           <div class="field-group" style="border-style:solid; background:var(--accent-soft);">
-            <div class="field-label">Live preview</div>
+            <div class="field-label">Live preview (not yet built)</div>
             <div class="flow-detail" style="font-size:12.5px;">→ <span class="branch-tag ok">kiet/fix-login-timeout</span></div>
           </div>
         </div>
       </div>
     </div>
-    <p style="font-size:13px; color:var(--ink-soft); margin-top:8px;">Global default (prefix mode + string) is unchanged — this only consolidates where the per-project override and the naming behavior it interacts with are configured.</p>
+    <p style="font-size:13px; color:var(--ink-soft); margin-top:8px;">The two fields are already grouped in one section on the current (V2) project page — no restructuring needed there. The only gap left is a preview showing what the two settings produce together; that's future scope, not part of PR #7413.</p>
   </section>
 
   <section>
@@ -481,23 +481,23 @@
         <tbody>
           <tr>
             <td class="path">host-service/.../workspaces/workspaces.ts</td>
-            <td class="note">~882, 909: prefix correctly applied at creation. ~1095, 1333: AI rename triggers. ~1350–1367: live-preview <code>generateBranchName</code>, missing the prefix call.</td>
+            <td class="note">Fixed in PR #7413: the auto-gen path's resolved prefix is now threaded into the deferred AI rename, and the live-preview <code>generateBranchName</code> procedure now resolves the prefix itself.</td>
           </tr>
           <tr>
             <td class="path">host-service/.../workspace-creation/utils/ai-workspace-names.ts</td>
-            <td class="note">~386: <code>applyGeneratedWorkspaceNames</code> — the <code>git branch -m</code> that drops the prefix.</td>
+            <td class="note">Fixed in PR #7413: <code>applyGeneratedWorkspaceNames</code> now takes a <code>branchPrefix</code> and reapplies it (via the new <code>resolveGeneratedBranchName</code> helper) before the <code>git branch -m</code>.</td>
           </tr>
           <tr>
             <td class="path">host-service/.../workspace-creation/utils/branch-prefix.ts</td>
-            <td class="note"><code>resolveProjectBranchPrefix</code> — the function that needs calling in both spots above.</td>
+            <td class="note"><code>resolveProjectBranchPrefix</code> — the function now called from all three fixed call sites above.</td>
           </tr>
           <tr>
             <td class="path">desktop/.../workspaces/procedures/generate-branch-name.ts</td>
-            <td class="note">Legacy path — reference implementation that already gets this right.</td>
+            <td class="note">Legacy path — reference implementation that already got this right; host-service now matches it.</td>
           </tr>
           <tr>
             <td class="path">desktop/.../v2-project/.../V2ProjectSettings.tsx</td>
-            <td class="note"><code>BranchPrefixSection</code> + <code>NamingInstructionsSection</code> — the two components to merge.</td>
+            <td class="note"><code>BranchPrefixSection</code> + <code>NamingInstructionsSection</code> — already grouped under one section; no change made here (future scope is a combined live preview, see above).</td>
           </tr>
         </tbody>
       </table>
@@ -507,13 +507,14 @@
   <section>
     <h2>Open questions</h2>
     <ul>
-      <li>Should the merged section also add an explicit on/off toggle for AI autonaming, or leave it implicit (fires only when the branch name field is untouched)?</li>
+      <li>Should the per-project section also add an explicit on/off toggle for AI autonaming, or leave it implicit (fires only when the branch name field is untouched)?</li>
       <li>Once V1 (legacy desktop) settings are retired, does the fix in host-service become the only implementation to maintain, or is a shared resolver worth extracting now?</li>
+      <li>Is the combined live-preview (prefix + naming instructions together) worth building, given the global page already previews the prefix alone?</li>
     </ul>
   </section>
 
   <footer>
-    Proposal only — no autonaming or settings code has been changed. Comment on this page to weigh in, or pick it up as a ticket.
+    The code-path fix shipped in <a href="https://github.com/superset-sh/superset/pull/7413" style="color:var(--accent);">PR #7413</a>. The settings-layout questions above are still open — comment on this page to weigh in, or pick one up as a ticket.
   </footer>
 
 </div>
