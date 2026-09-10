@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { TIER_RGB } from "@/app/[lang]/components/TierBadge";
 import {
 	axisAtBand,
@@ -65,6 +67,8 @@ const YEAR_TICKS = [
 ];
 
 export function ProductionLineMark() {
+	const { _: translate } = useTranslation();
+
 	const paths = segments();
 
 	return (
@@ -72,7 +76,12 @@ export function ProductionLineMark() {
 			viewBox={`0 0 ${W} ${H}`}
 			className="w-full h-auto"
 			role="img"
-			aria-label="Parallel sessions per developer doubling every seven months, crossing the Operator, Plant Manager and Henry Ford thresholds between August 2026 and August 2028"
+			aria-label={translate(
+				msg({
+					message:
+						"Parallel sessions per developer doubling every seven months, crossing the Operator, Plant Manager and Henry Ford thresholds between August 2026 and August 2028",
+				}),
+			)}
 		>
 			<title>One doubling every seven months</title>
 

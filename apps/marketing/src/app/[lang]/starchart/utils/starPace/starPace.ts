@@ -1,3 +1,4 @@
+import { formatDate } from "@superset/i18n/format";
 import type { StarHistoryPoint } from "../getStarHistory";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
@@ -130,11 +131,16 @@ export function toLocalDateString(date: Date): string {
 export function formatUTCDate(
 	timestamp: number,
 	options: Intl.DateTimeFormatOptions,
+	locale?: string,
 ): string {
-	return new Date(timestamp).toLocaleDateString("en-US", {
-		...options,
-		timeZone: "UTC",
-	});
+	return formatDate(
+		timestamp,
+		{
+			...options,
+			timeZone: "UTC",
+		},
+		locale,
+	);
 }
 
 // Rolls daily points up to one-per-Monday. Each point's value is cumulative

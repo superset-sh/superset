@@ -27,7 +27,7 @@ export function LeaderboardRow({
 	pinned = false,
 	pixelClassName = "",
 }: LeaderboardRowProps) {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 
 	return (
 		<tr
@@ -82,12 +82,14 @@ export function LeaderboardRow({
 				/>
 			</td>
 			<td className="px-4 py-3 text-right font-mono text-xs text-muted-foreground hidden sm:table-cell">
-				{formatCount(row.sessions)}
+				{formatCount(row.sessions, i18n.locale)}
 			</td>
 			<td
 				className={`px-4 py-3 text-right text-sm text-foreground ${pixelClassName}`}
 			>
-				{metric === "cost" ? formatUsd(row.usd) : formatTokens(row.tokens)}
+				{metric === "cost"
+					? formatUsd(row.usd, i18n.locale)
+					: formatTokens(row.tokens, i18n.locale)}
 				{row.approximate && (
 					<span
 						className="text-muted-foreground ml-1"

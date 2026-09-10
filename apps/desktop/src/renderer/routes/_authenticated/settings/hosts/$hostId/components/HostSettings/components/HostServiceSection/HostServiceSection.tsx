@@ -1,6 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
-import { formatRelativeTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import {
 	type HostInstallSource,
 	hostNeedsUpdate,
@@ -56,6 +56,8 @@ export function HostServiceSection({
 	registered,
 	lastSeenAt,
 }: HostServiceSectionProps) {
+	const { formatRelativeTime } = useFormat();
+
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const appVersion = useAppVersion();

@@ -3,7 +3,7 @@ import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { sessions } from "@superset/db/schema/auth";
 import { headers } from "next/headers";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { DesktopRedirect } from "./components/DesktopRedirect";
 
 export default async function DesktopSuccessPage({
@@ -15,6 +15,8 @@ export default async function DesktopSuccessPage({
 		desktop_local_callback?: string;
 	}>;
 }) {
+	const i18n = await initServerI18n();
+
 	const {
 		desktop_state: state,
 		desktop_protocol = "superset",

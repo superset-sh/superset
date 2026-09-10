@@ -8,7 +8,7 @@ import { TRPCClientError } from "@trpc/client";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "../../../trpc/server";
 import { PageCommentsShell } from "./components/PageCommentsShell";
 import { PageHeaderBar } from "./components/PageHeaderBar";
@@ -52,6 +52,8 @@ export async function generateMetadata({
 }
 
 export default async function PublishedPage({ params }: PageProps) {
+	const i18n = await initServerI18n();
+
 	const { slug } = await params;
 
 	const { hasPagesAccess, session } = await getPagesAccess();

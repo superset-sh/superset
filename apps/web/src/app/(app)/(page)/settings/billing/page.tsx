@@ -6,13 +6,15 @@ import {
 import { Button } from "@superset/ui/button";
 import { Download, ExternalLink } from "lucide-react";
 import { HiCheckCircle } from "react-icons/hi2";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 
 export default async function BillingPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ success?: string }>;
 }) {
+	const i18n = await initServerI18n();
+
 	const { success } = await searchParams;
 	const isSuccess = success === "true";
 

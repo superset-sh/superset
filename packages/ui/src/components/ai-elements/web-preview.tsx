@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { ChevronDownIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -210,6 +211,8 @@ export const WebPreviewConsole = ({
 	children,
 	...props
 }: WebPreviewConsoleProps) => {
+	const { formatDate } = useFormat();
+
 	const { consoleOpen, setConsoleOpen } = useWebPreview();
 
 	return (
@@ -256,7 +259,11 @@ export const WebPreviewConsole = ({
 								key={`${log.timestamp.getTime()}-${index}`}
 							>
 								<span className="text-muted-foreground">
-									{log.timestamp.toLocaleTimeString()}
+									{formatDate(log.timestamp, {
+										hour: "numeric",
+										minute: "2-digit",
+										second: "2-digit",
+									})}
 								</span>{" "}
 								{log.message}
 							</div>

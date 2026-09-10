@@ -1,4 +1,5 @@
 "use client";
+import { useFormat } from "@superset/i18n/react";
 
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
@@ -155,6 +156,8 @@ function ChartTooltipContent({
 		nameKey?: string;
 		labelKey?: string;
 	}) {
+	const { formatNumber } = useFormat();
+
 	const { config } = useChart();
 
 	const tooltipLabel = React.useMemo(() => {
@@ -265,7 +268,9 @@ function ChartTooltipContent({
 											</div>
 											{item.value && (
 												<span className="text-foreground font-mono font-medium tabular-nums">
-													{item.value.toLocaleString()}
+													{typeof item.value === "number"
+														? formatNumber(item.value)
+														: item.value}
 												</span>
 											)}
 										</div>

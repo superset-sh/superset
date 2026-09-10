@@ -1,7 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { DOWNLOAD_URL_MAC_X64 } from "@superset/shared/constants";
 import { useEffect, useRef } from "react";
 import { WaitlistForm } from "@/app/[lang]/components/WaitlistForm";
@@ -47,6 +47,8 @@ interface DownloadInterstitialProps {
 export function DownloadInterstitial({
 	latestRelease,
 }: DownloadInterstitialProps) {
+	const { formatNumber } = useFormat();
+
 	const { i18n } = useLingui();
 	const { platform, archSource } = usePlatform();
 	const firedRef = useRef(false);

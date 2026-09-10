@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
 import { formatNumber } from "@superset/i18n/format";
+import { getI18nInstance } from "@superset/i18n/server";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { Silkscreen } from "next/font/google";
@@ -29,6 +29,7 @@ const pixel = Silkscreen({
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	const title = i18n._(
 		msg({
 			message: "Leaderboard",
@@ -65,12 +66,18 @@ const DEFAULT_PERIOD = "30d" as const;
 
 export default async function LeaderboardPage() {
 	await initServerI18n();
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 
 	const run = RUNS[0];
-	const runLabel = run ? runStatusLabel(runStatus(run, new Date()), run) : "";
+	const runLabel = run
+		? runStatusLabel(runStatus(run, new Date()), run, i18n)
+		: "";
 	const runNumber = run
-		? formatNumber(run.number, { minimumIntegerDigits: 2, useGrouping: false })
+		? formatNumber(
+				run.number,
+				{ minimumIntegerDigits: 2, useGrouping: false },
+				i18n.locale,
+			)
 		: "";
 	const operatorTier = t(tierLabel(2));
 

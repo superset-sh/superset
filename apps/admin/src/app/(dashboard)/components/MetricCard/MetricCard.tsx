@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans } from "@lingui/react/macro";
+import { formatNumber } from "@superset/i18n/format";
 import {
 	Card,
 	CardContent,
@@ -29,7 +30,7 @@ export function MetricCard({
 	value,
 	isLoading,
 	error,
-	formatter = (v) => v.toLocaleString(),
+	formatter = (v) => formatNumber(v, undefined),
 	headerAction,
 	className,
 }: MetricCardProps) {

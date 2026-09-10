@@ -323,6 +323,10 @@ msgstr "已有{0}位开发者按agent用量排名。你最近30天的数据已�
 msgid "{0} disabled"
 msgstr "{0}已停用"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "{0} Documentation"
+msgstr "{0} 文档"
+
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
 #. placeholder {0}: skill.name
@@ -378,7 +382,7 @@ msgstr "{0} 已在本机设置，但未在你的账户中设置"
 msgid "{0} last full week"
 msgstr "最近完整周 {0}"
 
-#. placeholder {0}: v.toLocaleString()
+#. placeholder {0}: formatNumber(v, undefined)
 msgid "{0} mo"
 msgstr "{0}个月"
 
@@ -414,8 +418,8 @@ msgstr "占访客的 {0}"
 msgid "{0} options"
 msgstr "{0}选项"
 
-#. placeholder {0}: dropped.toLocaleString()
-#. placeholder {0}: step.count.toLocaleString()
+#. placeholder {0}: formatNumber(dropped, undefined)
+#. placeholder {0}: formatNumber(step.count, undefined)
 msgid "{0} persons"
 msgstr "{0}人"
 
@@ -453,12 +457,12 @@ msgstr "再需{0}即可超越 #{1}"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "最近30天 {0} 个 token。以 <0>{handle}</0> 身份发布。"
 
-#. placeholder {0}: formatTokens(cell.tokens)
+#. placeholder {0}: formatTokens(cell.tokens, i18n.locale)
 #. placeholder {1}: cell.day
 msgid "{0} tokens on {1}"
 msgstr "{1} 的 {0} 个 token"
 
-#. placeholder {0}: formatTokens(calendar.total)
+#. placeholder {0}: formatTokens(calendar.total, i18n.locale)
 #. placeholder {1}: String(calendar.activeDays)
 msgid "{0} tokens over {1} active days"
 msgstr "{1} 个活跃日内共 {0} 个 Token"
@@ -953,6 +957,10 @@ msgstr "月末订阅组织中一个月后仍在订阅的比例（按数量计；
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "每月新增订阅在k个月后仍然有效的比例（Neon，不含企业版）"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "%s | {0} Docs"
+msgstr "%s | {0} 文档"
+
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1044,18 +1052,18 @@ msgstr "✓ 2小时前"
 msgid "✓ 3d ago"
 msgstr "✓ 3天前"
 
-#. placeholder {0}: latest.prevUsd.toLocaleString()
+#. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
 msgstr "上一周期${0}（{1}）"
 
-#. placeholder {0}: data.arrUsd.toLocaleString()
+#. placeholder {0}: formatNumber(data.arrUsd, undefined)
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "{1}家客户合计${0}/年 — 已计入MRR，不额外累加"
 
 #. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd?.toLocaleString() ?? "—"
+#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
 msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
 msgstr "${0}M现金 ÷ 每月${1}净支出，取最近3个完整月。现金包含已募集资金；未假设任何增长。"
 
@@ -1166,6 +1174,9 @@ msgstr "本次会话已使用87.4K/200K个token。"
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "更好用的应用内浏览器：预览改动，点击任意元素即可作为上下文发给智能体。"
+
+msgid "A better Superset is ready"
+msgstr "更好的 Superset 已准备就绪"
 
 msgid "A delete is already in progress for {workspaceName}."
 msgstr "{workspaceName}已经在删除中。"
@@ -1499,6 +1510,9 @@ msgstr "管理员不能修改所有者"
 
 msgid "Admins cannot promote members to owner"
 msgstr "管理员不能将成员提升为所有者"
+
+msgid "Adopt v1 workspaces under their imported v2 project."
+msgstr "将 v1 工作区迁入已导入的对应 v2 项目。"
 
 msgid "Advanced options"
 msgstr "高级选项"
@@ -1842,6 +1856,9 @@ msgstr "发生未知错误"
 msgid "An update is ready to install."
 msgstr "更新已准备好安装。"
 
+msgid "Analytics, Ops, and more"
+msgstr "分析、运营及更多功能"
+
 msgid "Animate the active terminal cursor."
 msgstr "让当前终端光标闪烁。"
 
@@ -1979,6 +1996,9 @@ msgstr "应用显示语言。自动模式会跟随你的系统语言。"
 
 msgid "Appearance"
 msgstr "外观"
+
+msgid "Apple logo"
+msgstr "Apple 标志"
 
 msgid "Applies to"
 msgstr "适用于"
@@ -2347,6 +2367,9 @@ msgstr "竖线"
 msgid "Base branch"
 msgstr "基础分支"
 
+msgid "Base Branch"
+msgstr "基础分支"
+
 msgid "Base directory for new worktree workspaces on this host."
 msgstr "此主机上新建worktree工作区的基准目录。"
 
@@ -2498,6 +2521,9 @@ msgstr "分支名不能以空格结尾。"
 msgid "Branch prefix"
 msgstr "分支前缀"
 
+msgid "Branch Prefix"
+msgstr "分支前缀"
+
 msgid "Branch renamed to {newName}"
 msgstr "分支已重命名为{newName}"
 
@@ -2528,6 +2554,15 @@ msgstr "把 {companyName} 带给你的团队。联系我们，了解企业版方
 
 msgid "Bring Any Agent."
 msgstr "带上任意智能体。"
+
+msgid "Bring over your projects"
+msgstr "迁入项目"
+
+msgid "Bring over your terminal scripts"
+msgstr "迁入终端脚本"
+
+msgid "Bring over your workspaces"
+msgstr "迁入工作区"
 
 msgid "Bring v1 projects, workspaces, and terminal scripts over to v2. Each item is imported individually and can be retried."
 msgstr "将v1的项目、工作区和终端脚本迁移到v2。每一项单独导入，可以重试。"
@@ -3096,6 +3131,9 @@ msgstr "点击终端脚本以编辑其详情。"
 msgid "Click here if not redirected"
 msgstr "如果没有自动跳转，请点击这里"
 
+msgid "Click the “↑ update” pill to see the pre-update confirm"
+msgstr "点击“↑ update”按钮查看更新前的确认提示"
+
 msgid "Click to copy"
 msgstr "点击复制"
 
@@ -3132,6 +3170,9 @@ msgstr "克隆仓库"
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "克隆仓库，或导入主机上已有的文件夹。"
 
+msgid "Clone, push, and create PRs."
+msgstr "克隆、推送并创建 PR。"
+
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "已克隆到{0}"
@@ -3151,6 +3192,9 @@ msgid "Close #{0}?"
 msgstr "关闭#{0}？"
 
 msgid "Close all"
+msgstr "全部关闭"
+
+msgid "Close All"
 msgstr "全部关闭"
 
 msgid "Close all ports"
@@ -3202,8 +3246,14 @@ msgstr "关闭或删除当前工作区"
 msgid "Close other apps using the microphone"
 msgstr "请关闭其他正在使用麦克风的应用"
 
+msgid "Close Others"
+msgstr "关闭其他"
+
 msgid "Close Page"
 msgstr "关闭页面"
+
+msgid "Close pane"
+msgstr "关闭窗格"
 
 msgid "Close Pane"
 msgstr "关闭窗格"
@@ -3390,6 +3440,9 @@ msgstr "终端智能体必须填写命令。"
 msgid "Command Palette"
 msgstr "命令面板"
 
+msgid "Command to start your dev server, triggered via keyboard shortcut."
+msgstr "通过键盘快捷键启动开发服务器的命令。"
+
 msgid "Command..."
 msgstr "命令..."
 
@@ -3429,6 +3482,9 @@ msgstr "提交"
 #. placeholder {0}: error.message
 msgid "Commit failed: {0}"
 msgstr "提交失败：{0}"
+
+msgid "Commit message"
+msgstr "提交信息"
 
 msgid "Commits"
 msgstr "提交"
@@ -3917,6 +3973,9 @@ msgstr "正在复制配置"
 
 msgid "Cost"
 msgstr "费用"
+
+msgid "Cost · $ per merged PR"
+msgstr "成本 · 每个已合并 PR 的美元费用"
 
 msgid "Cost per merged PR"
 msgstr "每个合并 PR 的费用"
@@ -4598,6 +4657,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "默认（{defaultWorktreePath}）"
 
+msgid "Default base for new workspaces. Override per-workspace at creation."
+msgstr "新工作区的默认基础分支。可在创建时为各工作区单独覆盖。"
+
 msgid "Default effort"
 msgstr "默认推理强度"
 
@@ -4813,6 +4875,9 @@ msgstr "依赖"
 msgid "Depth"
 msgstr "深度"
 
+msgid "Depth · tokens per session"
+msgstr "深度 · 每次会话的令牌数"
+
 msgid "descending"
 msgstr "降序"
 
@@ -4908,6 +4973,9 @@ msgstr "差异"
 
 msgid "Diff"
 msgstr "差异"
+
+msgid "Diff change overview"
+msgstr "差异更改概览"
 
 msgid "diff in new tab"
 msgstr "在新标签页看差异"
@@ -5030,6 +5098,9 @@ msgstr "发现并连接你网络中的开发服务器。"
 
 msgid "Dismiss"
 msgstr "忽略"
+
+msgid "Dismiss error"
+msgstr "关闭错误提示"
 
 msgid "Dismiss resume prompt"
 msgstr "忽略恢复提示"
@@ -5239,6 +5310,9 @@ msgstr "耗时"
 msgid "e.g. Add dark mode, Fix checkout bug"
 msgstr "例如：添加深色模式、修复结账bug"
 
+msgid "e.g. bun install && bun run dev"
+msgstr "例如 bun install && bun run dev"
+
 msgid "e.g. bun run dev"
 msgstr "例如：bun run dev"
 
@@ -5247,6 +5321,9 @@ msgstr "例如 Claude Desktop"
 
 msgid "e.g. Dev server"
 msgstr "例如：开发服务器"
+
+msgid "e.g. docker compose down"
+msgstr "例如 docker compose down"
 
 msgid "e.g. engineering"
 msgstr "例如：engineering"
@@ -6203,6 +6280,12 @@ msgstr "文件"
 msgid "Files changed"
 msgstr "更改的文件"
 
+msgid "files to exclude (glob)"
+msgstr "排除的文件（glob）"
+
+msgid "files to include (glob)"
+msgstr "包含的文件（glob）"
+
 msgid "Fill out the contact form on this page and our team will reach out to learn about your needs and walk you through next steps."
 msgstr "填写本页的联系表单，我们的团队会与你联系，了解需求并说明后续步骤。"
 
@@ -6256,6 +6339,9 @@ msgstr "筛选，{activeFilterCount}项生效"
 
 msgid "Finalizing setup"
 msgstr "正在完成设置"
+
+msgid "Find"
+msgstr "查找"
 
 msgid "Find a small bug and fix it…"
 msgstr "找一个小bug并修好它…"
@@ -6458,6 +6544,9 @@ msgstr "预测"
 msgid "Forecast · Published August 2026"
 msgstr "预测 · 发布于2026年8月"
 
+msgid "Forecast share of developers at each tier from August 2026 to August 2028"
+msgstr "2026 年 8 月至 2028 年 8 月各等级开发者占比预测"
+
 msgid "Foreground"
 msgstr "前景"
 
@@ -6652,6 +6741,9 @@ msgstr "无法连接 GitHub"
 
 msgid "GitHub username"
 msgstr "GitHub用户名"
+
+msgid "GitHub username..."
+msgstr "GitHub 用户名..."
 
 msgid "GitHub username…"
 msgstr "GitHub用户名…"
@@ -7095,6 +7187,12 @@ msgstr "导入所有worktree"
 
 msgid "Import cookies and passwords…"
 msgstr "导入cookie和密码…"
+
+msgid "Import each v1 project into v2. Already-imported projects show as Imported."
+msgstr "将每个 v1 项目导入 v2。已导入的项目会显示为已导入。"
+
+msgid "Import each v1 terminal script into v2."
+msgstr "将每个 v1 终端脚本导入 v2。"
 
 msgid "Import existing"
 msgstr "导入已有"
@@ -7592,6 +7690,9 @@ msgstr "标签变更"
 msgid "Label is required."
 msgstr "名称为必填项。"
 
+msgid "Label name..."
+msgstr "标签名称..."
+
 msgid "Labels"
 msgstr "标签"
 
@@ -7628,7 +7729,7 @@ msgstr "最近活跃"
 msgid "Last activity"
 msgstr "最近活动"
 
-#. placeholder {0}: new Date(workspace.lastAgentEventAt).toLocaleString()
+#. placeholder {0}: formatDateTime(new Date(workspace.lastAgentEventAt), undefined)
 msgid "Last agent activity {0}"
 msgstr "最近智能体活动{0}"
 
@@ -8483,6 +8584,9 @@ msgstr "每月{day, selectordinal, one {#} two {#} few {#} other {#}}日"
 msgid "Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} at {time}"
 msgstr "每月{day, selectordinal, one {#} two {#} few {#} other {#}}日 {time}"
 
+msgid "Months from August 2026"
+msgstr "自 2026 年 8 月起的月数"
+
 msgid "More"
 msgstr "更多"
 
@@ -8776,6 +8880,9 @@ msgstr "下一个分支"
 
 msgid "Next comment"
 msgstr "下一条评论"
+
+msgid "Next file"
+msgstr "下一个文件"
 
 msgid "Next match"
 msgstr "下一个匹配"
@@ -9288,6 +9395,12 @@ msgstr "所选范围内没有此模型的用量记录。"
 msgid "No usage recorded for this workspace in the selected range."
 msgstr "所选范围内没有此工作区的用量记录。"
 
+msgid "No v1 projects found on this device."
+msgstr "此设备上未找到 v1 项目。"
+
+msgid "No v1 terminal scripts found."
+msgstr "未找到 v1 终端脚本。"
+
 msgid "No versions yet"
 msgstr "还没有版本"
 
@@ -9500,6 +9613,14 @@ msgstr "占全部token"
 
 msgid "Off"
 msgstr "关闭"
+
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
+msgstr "{0} 官方文档。这款应用可并行运行 100 多个编程代理。"
+
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}. Learn how to run 100+ coding agents in parallel on your machine."
+msgstr "{0} 官方文档。了解如何在您的设备上并行运行 100 多个编程代理。"
 
 msgid "Official quota · refreshes every 5 min"
 msgstr "官方配额 · 每5分钟刷新"
@@ -10192,6 +10313,9 @@ msgstr "描边"
 msgid "Output"
 msgstr "输出"
 
+msgid "Output · merged PRs per week"
+msgstr "产出 · 每周合并的 PR 数"
+
 msgid "Output Schema"
 msgstr "输出结构"
 
@@ -10303,6 +10427,9 @@ msgstr "并行智能体指南"
 
 msgid "Parallel Execution"
 msgstr "并行执行"
+
+msgid "Parallel sessions per developer doubling every seven months, crossing the Operator, Plant Manager and Henry Ford thresholds between August 2026 and August 2028"
+msgstr "每位开发者的并行会话数每七个月翻倍，在 2026 年 8 月至 2028 年 8 月期间跨越操作员、厂长和 Henry Ford 等级门槛"
 
 msgid "Parameters"
 msgstr "参数"
@@ -10713,6 +10840,9 @@ msgstr "上一个分支"
 msgid "Previous comment"
 msgstr "上一条评论"
 
+msgid "Previous file"
+msgstr "上一个文件"
+
 msgid "Previous match"
 msgstr "上一个匹配"
 
@@ -10794,6 +10924,9 @@ msgstr "处理中..."
 msgid "Product"
 msgstr "产品"
 
+msgid "Production run"
+msgstr "生产运行"
+
 msgid "Production run status"
 msgstr "生产运行状态"
 
@@ -10814,6 +10947,9 @@ msgstr "项目已创建。"
 
 msgid "Project folder is not on this machine"
 msgstr "项目文件夹不在此设备上"
+
+msgid "Project icon"
+msgstr "项目图标"
 
 msgid "Project imported and selected."
 msgstr "项目已导入并选中。"
@@ -11390,6 +11526,9 @@ msgstr "移除智能体"
 msgid "remove the PR link"
 msgstr "移除PR链接"
 
+msgid "Remove trigger"
+msgstr "移除触发器"
+
 msgid "Remove workspace"
 msgstr "移除工作区"
 
@@ -11927,6 +12066,9 @@ msgstr "第 {runNumber} 期"
 msgid "Run 01"
 msgstr "Run 01"
 
+msgid "Run 10+ parallel coding agents on your machine"
+msgstr "在您的设备上并行运行 10 多个编程代理"
+
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "在你的机器上并行运行10个以上的编码智能体。"
 
@@ -12028,6 +12170,12 @@ msgstr "运行在该设备的 Superset 应用内，因此更新它意味着更�
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "运行结果会落在一个工作区里。审查差异，把合适的合并进去。"
+
+msgid "Runs when a new workspace is created."
+msgstr "创建新工作区时运行。"
+
+msgid "Runs when a workspace is deleted."
+msgstr "删除工作区时运行。"
 
 msgid "Runway"
 msgstr "现金跑道"
@@ -12173,6 +12321,9 @@ msgstr "搜索（{searchShortcutText}）"
 msgid "Search {0} sites…"
 msgstr "搜索{0}个站点…"
 
+msgid "Search a developer"
+msgstr "搜索开发者"
+
 msgid "Search across file contents and across all your workspaces at once."
 msgstr "一次搜索所有文件内容和所有工作区。"
 
@@ -12187,6 +12338,9 @@ msgstr "搜索自动化"
 
 msgid "Search branches..."
 msgstr "搜索分支..."
+
+msgid "Search by key name..."
+msgstr "按键名搜索..."
 
 msgid "Search changed files"
 msgstr "搜索更改的文件"
@@ -12289,6 +12443,12 @@ msgstr "在更改差异中搜索文本"
 
 msgid "Search text in the rendered file viewer"
 msgstr "在渲染的文件查看器中搜索文本"
+
+msgid "Search the leaderboard for a fighter"
+msgstr "在排行榜中搜索对手"
+
+msgid "Search triggers..."
+msgstr "搜索触发器..."
 
 msgid "Search workspaces"
 msgstr "搜索工作区"
@@ -13269,6 +13429,9 @@ msgstr "星标历史"
 msgid "Star history isn't available right now. Check back soon."
 msgstr "星标历史暂时不可用。请稍后再来。"
 
+msgid "Star nag reset — eligible again on the empty state, sidebar card, and onboarding toast"
+msgstr "星标提醒已重置，可再次显示在空状态、侧边栏卡片和入门通知中"
+
 msgid "Star on GitHub"
 msgstr "在GitHub上加星"
 
@@ -13529,6 +13692,9 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
+msgid "Superset | Company Dashboard"
+msgstr "Superset | 公司仪表板"
+
 msgid "Superset Agent"
 msgstr "Superset智能体"
 
@@ -13670,6 +13836,9 @@ msgstr "已暂停"
 
 msgid "Sustain"
 msgstr "持续"
+
+msgid "Sustain · active days in 30"
+msgstr "持续性 · 30 天内的活跃天数"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "换智能体，不换工作流"
@@ -13919,6 +14088,9 @@ msgstr "清理脚本在{seconds}秒后超时"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "让任意智能体用<0>superset</0> CLI来创建工作区、运行任务或管理自动化。"
+
+msgid "Ten parallel workstreams running, each landing merged work"
+msgstr "十条并行工作流同时运行，各自交付已合并的成果"
 
 msgid "terminal"
 msgstr "终端"
@@ -14584,6 +14756,9 @@ msgstr "这会移除你的组织与Slack之间的连接。你可以随时重新�
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "这将还原对此文件的所有更改。此操作无法撤销。"
 
+msgid "This will revert all unstaged modifications and delete untracked files. This action cannot be undone."
+msgstr "这将还原所有未暂存的修改并删除未跟踪的文件。此操作无法撤销。"
+
 msgid "This will revert all unstaged modifications and delete untracked files. This cannot be undone."
 msgstr "这将还原所有未暂存的修改并删除未跟踪的文件。此操作无法撤销。"
 
@@ -14592,6 +14767,9 @@ msgstr "这将终止所有持久化的终端进程（构建、测试、智能体
 
 msgid "This will terminate the session and its underlying process."
 msgstr "这将终止该会话及其底层进程。"
+
+msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This action cannot be undone."
+msgstr "这将取消暂存并还原所有已暂存的更改。已暂存的新文件将被删除。此操作无法撤销。"
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "这将取消暂存并还原所有已暂存的更改。已暂存的新文件将被删除。此操作无法撤销。"
@@ -15561,6 +15739,12 @@ msgstr "我们正在寻找共创伙伴，共同打造云端产品。请告诉我
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "我们正在重做这个功能，敬请期待。"
 
+msgid "Web Fetch"
+msgstr "网页获取"
+
+msgid "Web Search"
+msgstr "网页搜索"
+
 msgid "Webhook trigger not found"
 msgstr "未找到Webhook触发器"
 
@@ -15636,6 +15820,9 @@ msgstr "欢迎回来"
 
 msgid "Welcome to Superset"
 msgstr "欢迎使用Superset"
+
+msgid "Welcome to the new Superset"
+msgstr "欢迎使用全新的 Superset"
 
 msgid "What builders say about Superset"
 msgstr "开发者怎么评价Superset"
@@ -15751,6 +15938,9 @@ msgstr "完整任务"
 msgid "Width"
 msgstr "宽度"
 
+msgid "Width · parallel sessions"
+msgstr "宽度 · 并行会话数"
+
 msgid "Window"
 msgstr "窗口"
 
@@ -15841,6 +16031,9 @@ msgstr "工作区已打开，但终端启动失败。"
 
 msgid "Workspace path is not available"
 msgstr "工作区路径不可用"
+
+msgid "Workspace path is not available yet"
+msgstr "工作区路径尚不可用"
 
 msgid "Workspace pinning & bulk actions"
 msgstr "工作区固定与批量操作"

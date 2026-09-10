@@ -1,7 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { formatDateTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -67,6 +67,8 @@ function bucketPoints(all: MrrDatum[], range: RangeKey): MrrDatum[] {
 }
 
 export function MrrTile() {
+	const { formatDateTime, formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const trpc = useTRPC();
 	const chartConfig = {
@@ -176,7 +178,7 @@ export function MrrTile() {
 					<div>
 						<div className="flex items-baseline gap-2">
 							<span className="text-3xl font-bold">
-								${latest.mrrUsd.toLocaleString()}
+								${formatNumber(latest.mrrUsd, undefined)}
 							</span>
 							{changePct !== null ? (
 								<span
@@ -193,7 +195,7 @@ export function MrrTile() {
 						{latest?.prevUsd !== null && latest?.prevUsd !== undefined ? (
 							<p className="text-muted-foreground text-sm">
 								{t({
-									message: `$${latest.prevUsd.toLocaleString()} previous period (${latest.prevDate})`,
+									message: `$${formatNumber(latest.prevUsd, undefined)} previous period (${latest.prevDate})`,
 								})}
 							</p>
 						) : null}
@@ -224,7 +226,7 @@ export function MrrTile() {
 							axisLine={false}
 							width={56}
 							domain={["auto", "auto"]}
-							tickFormatter={(v: number) => `$${v.toLocaleString()}`}
+							tickFormatter={(v: number) => `$${formatNumber(v, undefined)}`}
 						/>
 						<ChartTooltip content={<MrrTooltip />} />
 						<Area

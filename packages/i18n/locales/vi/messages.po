@@ -323,6 +323,10 @@ msgstr "{0} nhà phát triển được xếp hạng theo mức dùng agent. 30 
 msgid "{0} disabled"
 msgstr "Đã tắt {0}"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "{0} Documentation"
+msgstr "Tài liệu {0}"
+
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
 #. placeholder {0}: skill.name
@@ -378,7 +382,7 @@ msgstr "{0} đã được thiết lập trên máy này, nhưng chưa có trên 
 msgid "{0} last full week"
 msgstr "{0} tuần trọn vẹn gần nhất"
 
-#. placeholder {0}: v.toLocaleString()
+#. placeholder {0}: formatNumber(v, undefined)
 msgid "{0} mo"
 msgstr "{0} tháng"
 
@@ -414,8 +418,8 @@ msgstr "{0} số khách truy cập"
 msgid "{0} options"
 msgstr "Tùy chọn {0}"
 
-#. placeholder {0}: dropped.toLocaleString()
-#. placeholder {0}: step.count.toLocaleString()
+#. placeholder {0}: formatNumber(dropped, undefined)
+#. placeholder {0}: formatNumber(step.count, undefined)
 msgid "{0} persons"
 msgstr "{0} người"
 
@@ -453,12 +457,12 @@ msgstr "{0} để vượt #{1}"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "{0} token trong 30 ngày qua. Đang công khai dưới tên <0>{handle}</0>."
 
-#. placeholder {0}: formatTokens(cell.tokens)
+#. placeholder {0}: formatTokens(cell.tokens, i18n.locale)
 #. placeholder {1}: cell.day
 msgid "{0} tokens on {1}"
 msgstr "{0} token vào {1}"
 
-#. placeholder {0}: formatTokens(calendar.total)
+#. placeholder {0}: formatTokens(calendar.total, i18n.locale)
 #. placeholder {1}: String(calendar.activeDays)
 msgid "{0} tokens over {1} active days"
 msgstr "{0} token trong {1} ngày hoạt động"
@@ -953,6 +957,10 @@ msgstr "% tổ chức đang đăng ký vào cuối tháng vẫn còn đăng ký 
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "% gói đăng ký bắt đầu mỗi tháng còn hoạt động sau k tháng (Neon, không tính enterprise)"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "%s | {0} Docs"
+msgstr "%s | Tài liệu {0}"
+
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1044,18 +1052,18 @@ msgstr "✓ 2 giờ trước"
 msgid "✓ 3d ago"
 msgstr "✓ 3 ngày trước"
 
-#. placeholder {0}: latest.prevUsd.toLocaleString()
+#. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
 msgstr "${0} kỳ trước ({1})"
 
-#. placeholder {0}: data.arrUsd.toLocaleString()
+#. placeholder {0}: formatNumber(data.arrUsd, undefined)
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "${0}/năm trên {1} khách hàng — đã nằm trong MRR, không cộng thêm"
 
 #. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd?.toLocaleString() ?? "—"
+#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
 msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
 msgstr "${0}M tiền mặt ÷ ${1}/tháng đốt tiền ròng, 3 tháng đầy đủ gần nhất. Tiền mặt bao gồm vốn đã gọi; không giả định tăng trưởng."
 
@@ -1166,6 +1174,9 @@ msgstr "Đã dùng 87.4K trên 200K token trong phiên này."
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "Trình duyệt trong ứng dụng tốt hơn: xem trước thay đổi và nhấp vào bất kỳ phần tử nào để gửi cho agent làm ngữ cảnh."
+
+msgid "A better Superset is ready"
+msgstr "Phiên bản Superset tốt hơn đã sẵn sàng"
 
 msgid "A delete is already in progress for {workspaceName}."
 msgstr "Đang có một thao tác xóa cho {workspaceName}."
@@ -1499,6 +1510,9 @@ msgstr "Admin không thể thay đổi chủ sở hữu"
 
 msgid "Admins cannot promote members to owner"
 msgstr "Admin không thể nâng thành viên lên chủ sở hữu"
+
+msgid "Adopt v1 workspaces under their imported v2 project."
+msgstr "Chuyển không gian làm việc v1 vào dự án v2 tương ứng đã nhập."
 
 msgid "Advanced options"
 msgstr "Tùy chọn nâng cao"
@@ -1842,6 +1856,9 @@ msgstr "Đã xảy ra lỗi không xác định"
 msgid "An update is ready to install."
 msgstr "Đã có bản cập nhật sẵn sàng để cài đặt."
 
+msgid "Analytics, Ops, and more"
+msgstr "Phân tích, vận hành và hơn thế nữa"
+
 msgid "Animate the active terminal cursor."
 msgstr "Cho con trỏ terminal đang hoạt động nhấp nháy."
 
@@ -1979,6 +1996,9 @@ msgstr "Ngôn ngữ hiển thị của ứng dụng. Tự động sẽ theo ngô
 
 msgid "Appearance"
 msgstr "Giao diện"
+
+msgid "Apple logo"
+msgstr "Biểu trưng Apple"
 
 msgid "Applies to"
 msgstr "Áp dụng cho"
@@ -2347,6 +2367,9 @@ msgstr "Thanh"
 msgid "Base branch"
 msgstr "Nhánh gốc"
 
+msgid "Base Branch"
+msgstr "Nhánh cơ sở"
+
 msgid "Base directory for new worktree workspaces on this host."
 msgstr "Thư mục gốc cho workspace worktree mới trên host này."
 
@@ -2498,6 +2521,9 @@ msgstr "Tên nhánh không được kết thúc bằng dấu cách."
 msgid "Branch prefix"
 msgstr "Tiền tố nhánh"
 
+msgid "Branch Prefix"
+msgstr "Tiền tố nhánh"
+
 msgid "Branch renamed to {newName}"
 msgstr "Đã đổi tên nhánh thành {newName}"
 
@@ -2528,6 +2554,15 @@ msgstr "Đưa {companyName} đến với đội của bạn. Liên hệ với ch
 
 msgid "Bring Any Agent."
 msgstr "Mang mọi agent về đây."
+
+msgid "Bring over your projects"
+msgstr "Nhập các dự án của bạn"
+
+msgid "Bring over your terminal scripts"
+msgstr "Nhập các tập lệnh terminal của bạn"
+
+msgid "Bring over your workspaces"
+msgstr "Nhập các không gian làm việc của bạn"
 
 msgid "Bring v1 projects, workspaces, and terminal scripts over to v2. Each item is imported individually and can be retried."
 msgstr "Đưa dự án, workspace và script terminal từ v1 sang v2. Mỗi mục được nhập riêng và có thể thử lại."
@@ -3096,6 +3131,9 @@ msgstr "Nhấp vào một script terminal để sửa chi tiết."
 msgid "Click here if not redirected"
 msgstr "Nhấp vào đây nếu không được chuyển hướng"
 
+msgid "Click the “↑ update” pill to see the pre-update confirm"
+msgstr "Nhấp vào nút “↑ update” để xem xác nhận trước khi cập nhật"
+
 msgid "Click to copy"
 msgstr "Nhấp để sao chép"
 
@@ -3132,6 +3170,9 @@ msgstr "clone repository"
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "Clone repository, hoặc nhập một thư mục có sẵn trên host."
 
+msgid "Clone, push, and create PRs."
+msgstr "Sao chép, đẩy và tạo PR."
+
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "Đã clone vào {0}"
@@ -3151,6 +3192,9 @@ msgid "Close #{0}?"
 msgstr "Đóng #{0}?"
 
 msgid "Close all"
+msgstr "Đóng tất cả"
+
+msgid "Close All"
 msgstr "Đóng tất cả"
 
 msgid "Close all ports"
@@ -3202,8 +3246,14 @@ msgstr "Đóng hoặc xóa workspace hiện tại"
 msgid "Close other apps using the microphone"
 msgstr "Đóng các ứng dụng khác đang dùng micro"
 
+msgid "Close Others"
+msgstr "Đóng các mục khác"
+
 msgid "Close Page"
 msgstr "Đóng trang"
+
+msgid "Close pane"
+msgstr "Đóng ngăn"
 
 msgid "Close Pane"
 msgstr "Đóng khung"
@@ -3390,6 +3440,9 @@ msgstr "Agent terminal bắt buộc phải có lệnh."
 msgid "Command Palette"
 msgstr "Bảng lệnh"
 
+msgid "Command to start your dev server, triggered via keyboard shortcut."
+msgstr "Lệnh khởi động máy chủ phát triển bằng phím tắt."
+
 msgid "Command..."
 msgstr "Lệnh..."
 
@@ -3429,6 +3482,9 @@ msgstr "Commit"
 #. placeholder {0}: error.message
 msgid "Commit failed: {0}"
 msgstr "Commit thất bại: {0}"
+
+msgid "Commit message"
+msgstr "Thông điệp commit"
 
 msgid "Commits"
 msgstr "Commit"
@@ -3917,6 +3973,9 @@ msgstr "Đang sao chép cấu hình"
 
 msgid "Cost"
 msgstr "Chi phí"
+
+msgid "Cost · $ per merged PR"
+msgstr "Chi phí · $ trên mỗi PR đã hợp nhất"
 
 msgid "Cost per merged PR"
 msgstr "Chi phí mỗi PR được merge"
@@ -4598,6 +4657,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "Mặc định ({defaultWorktreePath})"
 
+msgid "Default base for new workspaces. Override per-workspace at creation."
+msgstr "Nhánh cơ sở mặc định cho không gian làm việc mới. Có thể ghi đè riêng khi tạo."
+
 msgid "Default effort"
 msgstr "Mức nỗ lực mặc định"
 
@@ -4813,6 +4875,9 @@ msgstr "Dependency"
 msgid "Depth"
 msgstr "Chiều sâu"
 
+msgid "Depth · tokens per session"
+msgstr "Chiều sâu · token mỗi phiên"
+
 msgid "descending"
 msgstr "giảm dần"
 
@@ -4908,6 +4973,9 @@ msgstr "diff"
 
 msgid "Diff"
 msgstr "Diff"
+
+msgid "Diff change overview"
+msgstr "Tổng quan thay đổi diff"
 
 msgid "diff in new tab"
 msgstr "diff ở tab mới"
@@ -5030,6 +5098,9 @@ msgstr "Phát hiện và kết nối tới các server phát triển trong mạn
 
 msgid "Dismiss"
 msgstr "Bỏ qua"
+
+msgid "Dismiss error"
+msgstr "Đóng lỗi"
 
 msgid "Dismiss resume prompt"
 msgstr "Bỏ qua lời nhắc resume"
@@ -5239,6 +5310,9 @@ msgstr "Thời lượng"
 msgid "e.g. Add dark mode, Fix checkout bug"
 msgstr "ví dụ: Thêm chế độ tối, Sửa lỗi thanh toán"
 
+msgid "e.g. bun install && bun run dev"
+msgstr "ví dụ: bun install && bun run dev"
+
 msgid "e.g. bun run dev"
 msgstr "ví dụ bun run dev"
 
@@ -5247,6 +5321,9 @@ msgstr "ví dụ Claude Desktop"
 
 msgid "e.g. Dev server"
 msgstr "ví dụ Dev server"
+
+msgid "e.g. docker compose down"
+msgstr "ví dụ: docker compose down"
 
 msgid "e.g. engineering"
 msgstr "ví dụ engineering"
@@ -6203,6 +6280,12 @@ msgstr "Tệp"
 msgid "Files changed"
 msgstr "Tệp đã thay đổi"
 
+msgid "files to exclude (glob)"
+msgstr "tệp cần loại trừ (glob)"
+
+msgid "files to include (glob)"
+msgstr "tệp cần bao gồm (glob)"
+
 msgid "Fill out the contact form on this page and our team will reach out to learn about your needs and walk you through next steps."
 msgstr "Điền vào biểu mẫu liên hệ trên trang này và đội ngũ của chúng tôi sẽ liên hệ để tìm hiểu nhu cầu và hướng dẫn bạn các bước tiếp theo."
 
@@ -6256,6 +6339,9 @@ msgstr "Bộ lọc, {activeFilterCount} đang bật"
 
 msgid "Finalizing setup"
 msgstr "Đang hoàn tất thiết lập"
+
+msgid "Find"
+msgstr "Tìm"
 
 msgid "Find a small bug and fix it…"
 msgstr "Tìm một lỗi nhỏ và sửa nó…"
@@ -6458,6 +6544,9 @@ msgstr "Dự báo"
 msgid "Forecast · Published August 2026"
 msgstr "Dự báo · Công bố tháng 8 năm 2026"
 
+msgid "Forecast share of developers at each tier from August 2026 to August 2028"
+msgstr "Dự báo tỷ lệ nhà phát triển ở mỗi bậc từ tháng 8 năm 2026 đến tháng 8 năm 2028"
+
 msgid "Foreground"
 msgstr "Chữ"
 
@@ -6652,6 +6741,9 @@ msgstr "Không thể kết nối GitHub"
 
 msgid "GitHub username"
 msgstr "Tên người dùng GitHub"
+
+msgid "GitHub username..."
+msgstr "Tên người dùng GitHub..."
 
 msgid "GitHub username…"
 msgstr "Tên người dùng GitHub…"
@@ -7095,6 +7187,12 @@ msgstr "Nhập tất cả worktree"
 
 msgid "Import cookies and passwords…"
 msgstr "Nhập cookie và mật khẩu…"
+
+msgid "Import each v1 project into v2. Already-imported projects show as Imported."
+msgstr "Nhập từng dự án v1 vào v2. Dự án đã nhập sẽ được đánh dấu là đã nhập."
+
+msgid "Import each v1 terminal script into v2."
+msgstr "Nhập từng tập lệnh terminal v1 vào v2."
 
 msgid "Import existing"
 msgstr "Nhập cái có sẵn"
@@ -7592,6 +7690,9 @@ msgstr "Thay đổi nhãn"
 msgid "Label is required."
 msgstr "Bắt buộc phải có nhãn."
 
+msgid "Label name..."
+msgstr "Tên nhãn..."
+
 msgid "Labels"
 msgstr "Nhãn"
 
@@ -7628,7 +7729,7 @@ msgstr "Hoạt động gần nhất"
 msgid "Last activity"
 msgstr "Hoạt động gần nhất"
 
-#. placeholder {0}: new Date(workspace.lastAgentEventAt).toLocaleString()
+#. placeholder {0}: formatDateTime(new Date(workspace.lastAgentEventAt), undefined)
 msgid "Last agent activity {0}"
 msgstr "Agent hoạt động gần nhất {0}"
 
@@ -8483,6 +8584,9 @@ msgstr "Hàng tháng vào ngày {day, selectordinal, one {#} two {#} few {#} oth
 msgid "Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} at {time}"
 msgstr "Hàng tháng vào ngày {day, selectordinal, one {#} two {#} few {#} other {#}} lúc {time}"
 
+msgid "Months from August 2026"
+msgstr "Số tháng kể từ tháng 8 năm 2026"
+
 msgid "More"
 msgstr "Thêm"
 
@@ -8776,6 +8880,9 @@ msgstr "Nhánh kế tiếp"
 
 msgid "Next comment"
 msgstr "Bình luận tiếp theo"
+
+msgid "Next file"
+msgstr "Tệp tiếp theo"
 
 msgid "Next match"
 msgstr "Kết quả kế tiếp"
@@ -9288,6 +9395,12 @@ msgstr "Không có dữ liệu sử dụng nào cho mô hình này trong khoản
 msgid "No usage recorded for this workspace in the selected range."
 msgstr "Không có dữ liệu sử dụng nào cho workspace này trong khoảng đã chọn."
 
+msgid "No v1 projects found on this device."
+msgstr "Không tìm thấy dự án v1 trên thiết bị này."
+
+msgid "No v1 terminal scripts found."
+msgstr "Không tìm thấy tập lệnh terminal v1."
+
 msgid "No versions yet"
 msgstr "Chưa có phiên bản nào"
 
@@ -9500,6 +9613,14 @@ msgstr "trên tổng số token"
 
 msgid "Off"
 msgstr "Tắt"
+
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
+msgstr "Tài liệu chính thức của {0}, ứng dụng chạy song song hơn 100 tác tử lập trình."
+
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}. Learn how to run 100+ coding agents in parallel on your machine."
+msgstr "Tài liệu chính thức của {0}. Tìm hiểu cách chạy song song hơn 100 tác tử lập trình trên máy của bạn."
 
 msgid "Official quota · refreshes every 5 min"
 msgstr "Hạn mức chính thức · làm mới mỗi 5 phút"
@@ -10192,6 +10313,9 @@ msgstr "Outline"
 msgid "Output"
 msgstr "Đầu ra"
 
+msgid "Output · merged PRs per week"
+msgstr "Đầu ra · PR hợp nhất mỗi tuần"
+
 msgid "Output Schema"
 msgstr "Schema đầu ra"
 
@@ -10303,6 +10427,9 @@ msgstr "Hướng dẫn agent song song"
 
 msgid "Parallel Execution"
 msgstr "Chạy song song"
+
+msgid "Parallel sessions per developer doubling every seven months, crossing the Operator, Plant Manager and Henry Ford thresholds between August 2026 and August 2028"
+msgstr "Số phiên song song trên mỗi nhà phát triển tăng gấp đôi sau mỗi bảy tháng, vượt các ngưỡng Người vận hành, Quản lý nhà máy và Henry Ford từ tháng 8 năm 2026 đến tháng 8 năm 2028"
 
 msgid "Parameters"
 msgstr "Tham số"
@@ -10713,6 +10840,9 @@ msgstr "Nhánh trước"
 msgid "Previous comment"
 msgstr "Bình luận trước"
 
+msgid "Previous file"
+msgstr "Tệp trước"
+
 msgid "Previous match"
 msgstr "Kết quả trước"
 
@@ -10794,6 +10924,9 @@ msgstr "Đang xử lý..."
 msgid "Product"
 msgstr "Sản phẩm"
 
+msgid "Production run"
+msgstr "Đợt sản xuất"
+
 msgid "Production run status"
 msgstr "Trạng thái Production Run"
 
@@ -10814,6 +10947,9 @@ msgstr "Đã tạo dự án."
 
 msgid "Project folder is not on this machine"
 msgstr "Thư mục dự án không có trên máy này"
+
+msgid "Project icon"
+msgstr "Biểu tượng dự án"
 
 msgid "Project imported and selected."
 msgstr "Đã nhập và chọn dự án."
@@ -11390,6 +11526,9 @@ msgstr "gỡ agent"
 msgid "remove the PR link"
 msgstr "gỡ liên kết PR"
 
+msgid "Remove trigger"
+msgstr "Xóa trình kích hoạt"
+
 msgid "Remove workspace"
 msgstr "Gỡ workspace"
 
@@ -11927,6 +12066,9 @@ msgstr "Run {runNumber}"
 msgid "Run 01"
 msgstr "Run 01"
 
+msgid "Run 10+ parallel coding agents on your machine"
+msgstr "Chạy song song hơn 10 tác tử lập trình trên máy của bạn"
+
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Chạy hơn 10 agent lập trình song song trên máy của bạn."
 
@@ -12028,6 +12170,12 @@ msgstr "Chạy bên trong ứng dụng Superset trên thiết bị đó, nên c�
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Kết quả chạy nằm trong một workspace. Xem diff, merge những gì tốt."
+
+msgid "Runs when a new workspace is created."
+msgstr "Chạy khi tạo không gian làm việc mới."
+
+msgid "Runs when a workspace is deleted."
+msgstr "Chạy khi xóa không gian làm việc."
 
 msgid "Runway"
 msgstr "Runway"
@@ -12173,6 +12321,9 @@ msgstr "Tìm kiếm ({searchShortcutText})"
 msgid "Search {0} sites…"
 msgstr "Tìm trong {0} trang…"
 
+msgid "Search a developer"
+msgstr "Tìm nhà phát triển"
+
 msgid "Search across file contents and across all your workspaces at once."
 msgstr "Tìm trong nội dung tệp và trên mọi workspace cùng lúc."
 
@@ -12187,6 +12338,9 @@ msgstr "Tìm tự động hóa"
 
 msgid "Search branches..."
 msgstr "Tìm nhánh..."
+
+msgid "Search by key name..."
+msgstr "Tìm theo tên khóa..."
 
 msgid "Search changed files"
 msgstr "Tìm tệp đã thay đổi"
@@ -12289,6 +12443,12 @@ msgstr "Tìm văn bản trong diff thay đổi"
 
 msgid "Search text in the rendered file viewer"
 msgstr "Tìm văn bản trong khung xem tệp"
+
+msgid "Search the leaderboard for a fighter"
+msgstr "Tìm đối thủ trên bảng xếp hạng"
+
+msgid "Search triggers..."
+msgstr "Tìm trình kích hoạt..."
 
 msgid "Search workspaces"
 msgstr "Tìm workspace"
@@ -13269,6 +13429,9 @@ msgstr "Lịch sử star"
 msgid "Star history isn't available right now. Check back soon."
 msgstr "Hiện chưa có lịch sử star. Hãy quay lại sau."
 
+msgid "Star nag reset — eligible again on the empty state, sidebar card, and onboarding toast"
+msgstr "Đã đặt lại lời nhắc gắn sao: có thể xuất hiện lại ở trạng thái trống, thẻ thanh bên và thông báo hướng dẫn ban đầu"
+
 msgid "Star on GitHub"
 msgstr "Star trên GitHub"
 
@@ -13529,6 +13692,9 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
+msgid "Superset | Company Dashboard"
+msgstr "Superset | Bảng điều khiển công ty"
+
 msgid "Superset Agent"
 msgstr "Superset Agent"
 
@@ -13670,6 +13836,9 @@ msgstr "Tạm ngưng"
 
 msgid "Sustain"
 msgstr "Bền bỉ"
+
+msgid "Sustain · active days in 30"
+msgstr "Duy trì · số ngày hoạt động trong 30 ngày"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Đổi agent. Giữ nguyên quy trình"
@@ -13919,6 +14088,9 @@ msgstr "Teardown quá thời gian sau {seconds}s"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Bảo bất kỳ agent nào dùng CLI <0>superset</0> để tạo workspace, chạy tác vụ hoặc quản lý tự động hóa."
+
+msgid "Ten parallel workstreams running, each landing merged work"
+msgstr "Mười luồng công việc song song, mỗi luồng đều tạo ra công việc được hợp nhất"
 
 msgid "terminal"
 msgstr "terminal"
@@ -14584,6 +14756,9 @@ msgstr "Thao tác này sẽ gỡ kết nối giữa tổ chức của bạn và 
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Thao tác này sẽ hoàn nguyên mọi thay đổi với tệp này. Không thể hoàn tác."
 
+msgid "This will revert all unstaged modifications and delete untracked files. This action cannot be undone."
+msgstr "Thao tác này sẽ hoàn tác mọi sửa đổi chưa đưa vào staging và xóa các tệp chưa được theo dõi. Không thể hoàn tác thao tác này."
+
 msgid "This will revert all unstaged modifications and delete untracked files. This cannot be undone."
 msgstr "Thao tác này sẽ hoàn nguyên mọi chỉnh sửa chưa stage và xóa các tệp chưa được theo dõi. Không thể hoàn tác."
 
@@ -14592,6 +14767,9 @@ msgstr "Thao tác này sẽ kết thúc mọi tiến trình terminal đang duy t
 
 msgid "This will terminate the session and its underlying process."
 msgstr "Thao tác này sẽ kết thúc phiên và tiến trình bên dưới nó."
+
+msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This action cannot be undone."
+msgstr "Thao tác này sẽ bỏ staging và hoàn tác mọi thay đổi đã đưa vào staging. Các tệp mới trong staging sẽ bị xóa. Không thể hoàn tác thao tác này."
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Thao tác này sẽ bỏ stage và hoàn nguyên toàn bộ thay đổi đã stage. Các tệp mới đã stage sẽ bị xóa. Không thể hoàn tác."
@@ -15561,6 +15739,12 @@ msgstr "Chúng tôi đang tìm kiếm đối tác đồng phát triển để c�
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "Chúng tôi đang xây dựng lại tính năng này. Hãy quay lại sau."
 
+msgid "Web Fetch"
+msgstr "Tải nội dung web"
+
+msgid "Web Search"
+msgstr "Tìm kiếm web"
+
 msgid "Webhook trigger not found"
 msgstr "Không tìm thấy webhook trigger"
 
@@ -15636,6 +15820,9 @@ msgstr "Chào mừng trở lại"
 
 msgid "Welcome to Superset"
 msgstr "Chào mừng đến với Superset"
+
+msgid "Welcome to the new Superset"
+msgstr "Chào mừng đến với Superset mới"
 
 msgid "What builders say about Superset"
 msgstr "Các nhà phát triển nói gì về Superset"
@@ -15751,6 +15938,9 @@ msgstr "Trọn tác vụ"
 msgid "Width"
 msgstr "Chiều rộng"
 
+msgid "Width · parallel sessions"
+msgstr "Chiều rộng · các phiên song song"
+
 msgid "Window"
 msgstr "Cửa sổ"
 
@@ -15841,6 +16031,9 @@ msgstr "Đã mở workspace, nhưng terminal không khởi động được."
 
 msgid "Workspace path is not available"
 msgstr "Không có đường dẫn workspace"
+
+msgid "Workspace path is not available yet"
+msgstr "Đường dẫn không gian làm việc chưa sẵn sàng"
 
 msgid "Workspace pinning & bulk actions"
 msgstr "Ghim workspace & hành động hàng loạt"

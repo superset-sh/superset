@@ -1,4 +1,5 @@
 import path from "node:path";
+import { SUPPORTED_LOCALES } from "@superset/i18n/locales";
 import { config } from "dotenv";
 import type { ConfigContext } from "expo/config";
 import { withIosAccentColor } from "./config-plugins/withIosAccentColor";
@@ -14,6 +15,9 @@ export default ({ config }: ConfigContext) => ({
 	...config,
 	name: "Superset",
 	slug: "superset",
+	locales: Object.fromEntries(
+		SUPPORTED_LOCALES.map((locale) => [locale, `./locales/${locale}.json`]),
+	),
 	version: "1.0.0",
 	orientation: "portrait",
 	icon: "./assets/icon.png",
@@ -69,7 +73,10 @@ export default ({ config }: ConfigContext) => ({
 				project: "mobile",
 			},
 		],
-		"expo-localization",
+		[
+			"expo-localization",
+			{ supportedLocales: { ios: [...SUPPORTED_LOCALES] } },
+		],
 		"expo-apple-authentication",
 		[
 			"expo-image-picker",

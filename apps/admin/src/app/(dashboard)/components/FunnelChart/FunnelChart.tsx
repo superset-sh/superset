@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import {
 	Card,
 	CardContent,
@@ -76,6 +77,8 @@ export function FunnelChart({
 	error,
 	headerAction,
 }: FunnelChartProps) {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const firstCount = steps?.[0]?.count ?? 0;
 
@@ -156,7 +159,7 @@ export function FunnelChart({
 																label={t({
 																	message: "Dropped off",
 																})}
-																value={dropped.toLocaleString()}
+																value={formatNumber(dropped, undefined)}
 															/>
 														) : null}
 														{pctOfPrevious !== null ? (
@@ -197,7 +200,7 @@ export function FunnelChart({
 														label={t({
 															message: "Converted",
 														})}
-														value={step.count.toLocaleString()}
+														value={formatNumber(step.count, undefined)}
 													/>
 													{pctOfPrevious !== null ? (
 														<TooltipRow
@@ -245,7 +248,7 @@ export function FunnelChart({
 												<LuMoveRight className="size-3 shrink-0 text-green-500" />
 												<span>
 													{t({
-														message: `${step.count.toLocaleString()} persons`,
+														message: `${formatNumber(step.count, undefined)} persons`,
 													})}
 													{pctOfPrevious !== null
 														? ` (${pctOfPrevious.toFixed(1)}%)`
@@ -257,7 +260,7 @@ export function FunnelChart({
 													<LuMoveDownRight className="size-3 shrink-0 text-red-500" />
 													<span>
 														{t({
-															message: `${dropped.toLocaleString()} persons`,
+															message: `${formatNumber(dropped, undefined)} persons`,
 														})}{" "}
 														({(100 - pctOfPrevious).toFixed(1)}%)
 													</span>

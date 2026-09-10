@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"NSSpeechRecognitionUsageDescription": "Superset gebruikt spraakherkenning om je stem in tekst om te zetten.",
+		"NSPhotoLibraryUsageDescription": "Superset heeft toegang tot je fotobibliotheek nodig om afbeeldingen aan berichten toe te voegen.",
+		"NSCameraUsageDescription": "Superset gebruikt de camera om foto’s aan berichten toe te voegen.",
+		"NSMicrophoneUsageDescription": "Superset gebruikt de microfoon zodat je berichten kunt dicteren."
+	}
+}

@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import { COMPANY } from "@superset/shared/constants";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
@@ -10,6 +10,7 @@ import { getGitHubRepoSlug } from "@/lib/github";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	return {
 		title: i18n._(
 			msg({
@@ -118,7 +119,8 @@ const COMMUNITY_LINKS = [
 ];
 
 export default async function CommunityPage() {
-	await initServerI18n();
+	const locale = await initServerI18n();
+	const i18n = getI18nInstance(locale);
 
 	const stars = await getGitHubStars();
 

@@ -10,46 +10,47 @@ import {
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { SiNotion } from "react-icons/si";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { requireOfferedIntegration } from "../utils/requireOfferedIntegration";
 import { ConnectionControls } from "./components/ConnectionControls";
 
-const CALLBACK_MESSAGES = {
-	oauth_denied: i18n._(
-		msg({
-			message: "Authorization was denied. Please try again.",
-		}),
-	),
-	missing_params: i18n._(
-		msg({
-			message: "Invalid OAuth response. Please try again.",
-		}),
-	),
-	invalid_state: i18n._(
-		msg({
-			message: "Invalid state parameter. Please try again.",
-		}),
-	),
-	token_exchange_failed: i18n._(
-		msg({
-			message: "Failed to connect to Notion. Please try again.",
-		}),
-	),
-	not_configured: i18n._(
-		msg({
-			message: "Notion is not configured for this environment.",
-		}),
-	),
-	unauthorized: i18n._(
-		msg({
-			message: "You are not authorized to perform this action.",
-		}),
-	),
-};
-
 export default async function NotionIntegrationPage() {
+	const i18n = await initServerI18n();
+	const CALLBACK_MESSAGES = {
+		oauth_denied: i18n._(
+			msg({
+				message: "Authorization was denied. Please try again.",
+			}),
+		),
+		missing_params: i18n._(
+			msg({
+				message: "Invalid OAuth response. Please try again.",
+			}),
+		),
+		invalid_state: i18n._(
+			msg({
+				message: "Invalid state parameter. Please try again.",
+			}),
+		),
+		token_exchange_failed: i18n._(
+			msg({
+				message: "Failed to connect to Notion. Please try again.",
+			}),
+		),
+		not_configured: i18n._(
+			msg({
+				message: "Notion is not configured for this environment.",
+			}),
+		),
+		unauthorized: i18n._(
+			msg({
+				message: "You are not authorized to perform this action.",
+			}),
+		),
+	};
+
 	await requireOfferedIntegration("notion");
 	const trpc = await api();
 	const organization = await trpc.user.myOrganization.query();

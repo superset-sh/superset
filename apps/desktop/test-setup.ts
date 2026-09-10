@@ -414,3 +414,13 @@ const testI18n = new Proxy(realI18nModule.i18n, {
 	},
 });
 mock.module("@superset/i18n", () => ({ ...realI18nModule, i18n: testI18n }));
+
+// Component unit tests render without the application providers. Match the
+// macro shim for runtime descriptors and context-bound formatters. Real
+// provider subscriptions/state preservation are covered in packages/i18n's
+// isolated renderer tests, which do not load this shim.
+const realLinguiReact = await import("@lingui/react");
+mock.module("@lingui/react", () => ({
+	...realLinguiReact,
+	useLingui: () => ({ i18n: testI18n, _: testI18n._ }),
+}));

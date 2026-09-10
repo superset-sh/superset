@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	TbArrowLeft,
@@ -38,6 +40,8 @@ export function BrowserToolbar({
 	onReload,
 	onNavigate,
 }: BrowserToolbarProps) {
+	const { _: translate } = useTranslation();
+
 	const [isEditing, setIsEditing] = useState(false);
 	const [urlInputValue, setUrlInputValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -156,7 +160,9 @@ export function BrowserToolbar({
 							onChange={handleInputChange}
 							onBlur={exitEditMode}
 							onKeyDown={handleKeyDown}
-							placeholder="Enter URL or search..."
+							placeholder={translate(
+								msg({ message: "Enter URL or search..." }),
+							)}
 							className="h-[22px] w-full rounded-sm border border-ring bg-transparent px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
 							spellCheck={false}
 							autoComplete="off"

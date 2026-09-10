@@ -1,7 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { differenceInCalendarDays } from "date-fns";
 import { X } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -22,6 +22,8 @@ export function CommentsPanel({
 	header,
 	className,
 }: CommentsPanelProps) {
+	const { formatDate } = useFormat();
+
 	const { t } = useLingui();
 	const {
 		threads,

@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import { Button } from "@superset/ui/button";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
@@ -10,6 +10,7 @@ import { marketplaceSubmissionLinks } from "@/lib/marketplace";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	return {
 		title: i18n._(
 			msg({

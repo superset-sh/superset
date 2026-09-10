@@ -147,7 +147,7 @@ private struct AttachmentsHomeView: View {
       if model.libraryUsable {
         RecentPhotosCarousel(model: model)
       } else {
-        PermissionCard(model: model, message: "Attach images from your photo library.")
+        PermissionCard(model: model, message: attachmentsLocalized("Attach images from your photo library."))
       }
       VStack(spacing: 0) {
         ActionRow(theme: model.theme, icon: "photo.on.rectangle", label: "Photos") {
@@ -219,7 +219,7 @@ private struct ScreenshotsGridView: View {
             .padding(.horizontal, horizontalPadding)
             .padding(.bottom, 12)
             if model.screenshots.isEmpty {
-              Text("No screenshots found")
+              Text(attachmentsLocalized("No screenshots found"))
                 .font(.system(size: 14))
                 .foregroundColor(Color(model.theme.mutedForeground))
                 .frame(maxWidth: .infinity)
@@ -229,7 +229,7 @@ private struct ScreenshotsGridView: View {
         }
       } else {
         VStack {
-          PermissionCard(model: model, message: "Allow photo access to attach screenshots.")
+          PermissionCard(model: model, message: attachmentsLocalized("Allow photo access to attach screenshots."))
           Spacer()
         }
         .padding(.top, 12)
@@ -258,7 +258,7 @@ private struct RecentPhotosCarousel: View {
           SelectableThumbnail(model: model, asset: asset, side: 96, badgeSize: 36)
         }
         if model.recents.isEmpty {
-          Text("No photos in your library")
+          Text(attachmentsLocalized("No photos in your library"))
             .font(.system(size: 14))
             .foregroundColor(Color(model.theme.mutedForeground))
             .frame(height: 96)

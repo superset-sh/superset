@@ -323,6 +323,10 @@ msgstr "Разработчиков в рейтинге по использова
 msgid "{0} disabled"
 msgstr "{0} отключён"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "{0} Documentation"
+msgstr "Документация {0}"
+
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
 #. placeholder {0}: skill.name
@@ -378,7 +382,7 @@ msgstr "{0} настроен на этом компьютере, но не в в
 msgid "{0} last full week"
 msgstr "{0} за последнюю полную неделю"
 
-#. placeholder {0}: v.toLocaleString()
+#. placeholder {0}: formatNumber(v, undefined)
 msgid "{0} mo"
 msgstr "{0} мес."
 
@@ -414,8 +418,8 @@ msgstr "{0} от посетителей"
 msgid "{0} options"
 msgstr "Параметры {0}"
 
-#. placeholder {0}: dropped.toLocaleString()
-#. placeholder {0}: step.count.toLocaleString()
+#. placeholder {0}: formatNumber(dropped, undefined)
+#. placeholder {0}: formatNumber(step.count, undefined)
 msgid "{0} persons"
 msgstr "{0} чел."
 
@@ -453,12 +457,12 @@ msgstr "{0} чтобы обогнать #{1}"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "{0} токенов за последние 30 дней. Публикация как <0>{handle}</0>."
 
-#. placeholder {0}: formatTokens(cell.tokens)
+#. placeholder {0}: formatTokens(cell.tokens, i18n.locale)
 #. placeholder {1}: cell.day
 msgid "{0} tokens on {1}"
 msgstr "{0} токенов за {1}"
 
-#. placeholder {0}: formatTokens(calendar.total)
+#. placeholder {0}: formatTokens(calendar.total, i18n.locale)
 #. placeholder {1}: String(calendar.activeDays)
 msgid "{0} tokens over {1} active days"
 msgstr "{0} токенов · {1} дн. активности"
@@ -953,6 +957,10 @@ msgstr "% организаций с подпиской на конец меся�
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "% подписок, начатых в каждом месяце и активных k месяцев спустя (Neon, без enterprise)"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "%s | {0} Docs"
+msgstr "%s | Документация {0}"
+
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1044,18 +1052,18 @@ msgstr "✓ 2 ч. назад"
 msgid "✓ 3d ago"
 msgstr "✓ 3 д. назад"
 
-#. placeholder {0}: latest.prevUsd.toLocaleString()
+#. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
 msgstr "${0} за предыдущий период ({1})"
 
-#. placeholder {0}: data.arrUsd.toLocaleString()
+#. placeholder {0}: formatNumber(data.arrUsd, undefined)
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "${0}/год по {1} клиентам — уже входит в MRR, не добавляется сверху"
 
 #. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd?.toLocaleString() ?? "—"
+#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
 msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
 msgstr "${0} млн денег ÷ ${1}/мес чистого расхода, последние 3 полных месяца. Деньги включают привлечённый капитал; рост не заложен."
 
@@ -1166,6 +1174,9 @@ msgstr "В этой сессии использовано 87.4K из 200K ток
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "Лучший встроенный браузер: смотрите свои изменения и кликайте по любому элементу, чтобы отправить его агенту как контекст."
+
+msgid "A better Superset is ready"
+msgstr "Улучшенная версия Superset готова"
 
 msgid "A delete is already in progress for {workspaceName}."
 msgstr "Удаление {workspaceName} уже выполняется."
@@ -1499,6 +1510,9 @@ msgstr "Администраторы не могут изменять владе
 
 msgid "Admins cannot promote members to owner"
 msgstr "Администраторы не могут повышать участников до владельца"
+
+msgid "Adopt v1 workspaces under their imported v2 project."
+msgstr "Перенесите рабочие пространства v1 в соответствующие импортированные проекты v2."
 
 msgid "Advanced options"
 msgstr "Дополнительные параметры"
@@ -1842,6 +1856,9 @@ msgstr "Произошла неизвестная ошибка"
 msgid "An update is ready to install."
 msgstr "Обновление готово к установке."
 
+msgid "Analytics, Ops, and more"
+msgstr "Аналитика, операции и другое"
+
 msgid "Animate the active terminal cursor."
 msgstr "Анимировать курсор активного терминала."
 
@@ -1979,6 +1996,9 @@ msgstr "Язык интерфейса приложения. Авто следу�
 
 msgid "Appearance"
 msgstr "Внешний вид"
+
+msgid "Apple logo"
+msgstr "Логотип Apple"
 
 msgid "Applies to"
 msgstr "Применяется к"
@@ -2347,6 +2367,9 @@ msgstr "Полоска"
 msgid "Base branch"
 msgstr "Базовая ветка"
 
+msgid "Base Branch"
+msgstr "Базовая ветка"
+
 msgid "Base directory for new worktree workspaces on this host."
 msgstr "Базовая папка для новых рабочих областей с worktree на этом хосте."
 
@@ -2498,6 +2521,9 @@ msgstr "Имена веток не могут заканчиваться про�
 msgid "Branch prefix"
 msgstr "Префикс ветки"
 
+msgid "Branch Prefix"
+msgstr "Префикс ветки"
+
 msgid "Branch renamed to {newName}"
 msgstr "Ветка переименована в {newName}"
 
@@ -2528,6 +2554,15 @@ msgstr "Подключите {companyName} для своей команды. С�
 
 msgid "Bring Any Agent."
 msgstr "Приводите любого агента."
+
+msgid "Bring over your projects"
+msgstr "Перенесите проекты"
+
+msgid "Bring over your terminal scripts"
+msgstr "Перенесите скрипты терминала"
+
+msgid "Bring over your workspaces"
+msgstr "Перенесите рабочие пространства"
 
 msgid "Bring v1 projects, workspaces, and terminal scripts over to v2. Each item is imported individually and can be retried."
 msgstr "Перенесите проекты, рабочие области и скрипты терминала из v1 в v2. Каждый элемент импортируется отдельно, попытку можно повторить."
@@ -3096,6 +3131,9 @@ msgstr "Нажмите на скрипт терминала, чтобы изме
 msgid "Click here if not redirected"
 msgstr "Нажмите здесь, если переход не произошёл"
 
+msgid "Click the “↑ update” pill to see the pre-update confirm"
+msgstr "Нажмите «↑ update», чтобы увидеть подтверждение перед обновлением"
+
 msgid "Click to copy"
 msgstr "Нажмите, чтобы скопировать"
 
@@ -3132,6 +3170,9 @@ msgstr "клонировать репозиторий"
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "Клонируйте репозиторий или импортируйте существующую папку на хосте."
 
+msgid "Clone, push, and create PRs."
+msgstr "Клонируйте, отправляйте изменения и создавайте PR."
+
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "Клонировано в {0}"
@@ -3152,6 +3193,9 @@ msgstr "Закрыть #{0}?"
 
 msgid "Close all"
 msgstr "Закрыть все"
+
+msgid "Close All"
+msgstr "Закрыть всё"
 
 msgid "Close all ports"
 msgstr "Закрыть все порты"
@@ -3202,8 +3246,14 @@ msgstr "Закрыть или удалить текущую рабочую об�
 msgid "Close other apps using the microphone"
 msgstr "Закройте другие приложения, использующие микрофон"
 
+msgid "Close Others"
+msgstr "Закрыть остальные"
+
 msgid "Close Page"
 msgstr "Закрыть страницу"
+
+msgid "Close pane"
+msgstr "Закрыть панель"
 
 msgid "Close Pane"
 msgstr "Закрыть панель"
@@ -3390,6 +3440,9 @@ msgstr "Для терминальных агентов команда обяза
 msgid "Command Palette"
 msgstr "Палитра команд"
 
+msgid "Command to start your dev server, triggered via keyboard shortcut."
+msgstr "Команда запуска сервера разработки с помощью сочетания клавиш."
+
 msgid "Command..."
 msgstr "Команда..."
 
@@ -3429,6 +3482,9 @@ msgstr "Закоммитить"
 #. placeholder {0}: error.message
 msgid "Commit failed: {0}"
 msgstr "Не удалось закоммитить: {0}"
+
+msgid "Commit message"
+msgstr "Сообщение коммита"
 
 msgid "Commits"
 msgstr "Коммиты"
@@ -3917,6 +3973,9 @@ msgstr "Копирование конфигурации"
 
 msgid "Cost"
 msgstr "Стоимость"
+
+msgid "Cost · $ per merged PR"
+msgstr "Стоимость · $ за объединённый PR"
 
 msgid "Cost per merged PR"
 msgstr "Стоимость за смерженный PR"
@@ -4598,6 +4657,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "По умолчанию ({defaultWorktreePath})"
 
+msgid "Default base for new workspaces. Override per-workspace at creation."
+msgstr "База по умолчанию для новых рабочих пространств. Можно изменить при создании каждого пространства."
+
 msgid "Default effort"
 msgstr "Уровень усилий по умолчанию"
 
@@ -4813,6 +4875,9 @@ msgstr "Зависимости"
 msgid "Depth"
 msgstr "Глубина"
 
+msgid "Depth · tokens per session"
+msgstr "Глубина · токенов за сессию"
+
 msgid "descending"
 msgstr "по убыванию"
 
@@ -4908,6 +4973,9 @@ msgstr "diff"
 
 msgid "Diff"
 msgstr "Diff"
+
+msgid "Diff change overview"
+msgstr "Обзор изменений diff"
 
 msgid "diff in new tab"
 msgstr "diff в новой вкладке"
@@ -5030,6 +5098,9 @@ msgstr "Находить серверы разработки в вашей се�
 
 msgid "Dismiss"
 msgstr "Закрыть"
+
+msgid "Dismiss error"
+msgstr "Закрыть ошибку"
 
 msgid "Dismiss resume prompt"
 msgstr "Закрыть предложение возобновить"
@@ -5239,6 +5310,9 @@ msgstr "Длительность"
 msgid "e.g. Add dark mode, Fix checkout bug"
 msgstr "например: Добавить тёмную тему, Починить баг в оформлении заказа"
 
+msgid "e.g. bun install && bun run dev"
+msgstr "например, bun install && bun run dev"
+
 msgid "e.g. bun run dev"
 msgstr "например: bun run dev"
 
@@ -5247,6 +5321,9 @@ msgstr "например: Claude Desktop"
 
 msgid "e.g. Dev server"
 msgstr "например: Dev-сервер"
+
+msgid "e.g. docker compose down"
+msgstr "например, docker compose down"
 
 msgid "e.g. engineering"
 msgstr "например: engineering"
@@ -6203,6 +6280,12 @@ msgstr "Файлы"
 msgid "Files changed"
 msgstr "Изменённые файлы"
 
+msgid "files to exclude (glob)"
+msgstr "исключаемые файлы (glob)"
+
+msgid "files to include (glob)"
+msgstr "включаемые файлы (glob)"
+
 msgid "Fill out the contact form on this page and our team will reach out to learn about your needs and walk you through next steps."
 msgstr "Заполните форму на этой странице, и наша команда свяжется с вами, чтобы узнать о ваших задачах и рассказать о следующих шагах."
 
@@ -6256,6 +6339,9 @@ msgstr "Фильтры, активных: {activeFilterCount}"
 
 msgid "Finalizing setup"
 msgstr "Завершение настройки"
+
+msgid "Find"
+msgstr "Найти"
 
 msgid "Find a small bug and fix it…"
 msgstr "Найди мелкий баг и исправь его…"
@@ -6458,6 +6544,9 @@ msgstr "Прогноз"
 msgid "Forecast · Published August 2026"
 msgstr "Прогноз · Опубликовано в августе 2026"
 
+msgid "Forecast share of developers at each tier from August 2026 to August 2028"
+msgstr "Прогноз доли разработчиков на каждом уровне с августа 2026 по август 2028 года"
+
 msgid "Foreground"
 msgstr "Передний план"
 
@@ -6652,6 +6741,9 @@ msgstr "GitHub недоступен"
 
 msgid "GitHub username"
 msgstr "Имя пользователя GitHub"
+
+msgid "GitHub username..."
+msgstr "Имя пользователя GitHub..."
 
 msgid "GitHub username…"
 msgstr "Имя пользователя GitHub…"
@@ -7095,6 +7187,12 @@ msgstr "Импортировать все worktree"
 
 msgid "Import cookies and passwords…"
 msgstr "Импортировать cookies и пароли…"
+
+msgid "Import each v1 project into v2. Already-imported projects show as Imported."
+msgstr "Импортируйте каждый проект v1 в v2. Уже импортированные проекты отмечены как импортированные."
+
+msgid "Import each v1 terminal script into v2."
+msgstr "Импортируйте каждый скрипт терминала v1 в v2."
 
 msgid "Import existing"
 msgstr "Импортировать существующий"
@@ -7592,6 +7690,9 @@ msgstr "Изменение метки"
 msgid "Label is required."
 msgstr "Название обязательно."
 
+msgid "Label name..."
+msgstr "Название метки..."
+
 msgid "Labels"
 msgstr "Метки"
 
@@ -7628,7 +7729,7 @@ msgstr "Последней активности"
 msgid "Last activity"
 msgstr "Последняя активность"
 
-#. placeholder {0}: new Date(workspace.lastAgentEventAt).toLocaleString()
+#. placeholder {0}: formatDateTime(new Date(workspace.lastAgentEventAt), undefined)
 msgid "Last agent activity {0}"
 msgstr "Последняя активность агента {0}"
 
@@ -8483,6 +8584,9 @@ msgstr "Ежемесячно {day, selectordinal, other {#-го}} числа"
 msgid "Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} at {time}"
 msgstr "Ежемесячно {day, selectordinal, other {#-го}} числа в {time}"
 
+msgid "Months from August 2026"
+msgstr "Месяцев с августа 2026 года"
+
 msgid "More"
 msgstr "Ещё"
 
@@ -8776,6 +8880,9 @@ msgstr "Следующая ветка"
 
 msgid "Next comment"
 msgstr "Следующий комментарий"
+
+msgid "Next file"
+msgstr "Следующий файл"
 
 msgid "Next match"
 msgstr "Следующее совпадение"
@@ -9288,6 +9395,12 @@ msgstr "За выбранный период по этой модели нет �
 msgid "No usage recorded for this workspace in the selected range."
 msgstr "За выбранный период по этой рабочей области нет данных."
 
+msgid "No v1 projects found on this device."
+msgstr "На этом устройстве не найдено проектов v1."
+
+msgid "No v1 terminal scripts found."
+msgstr "Скрипты терминала v1 не найдены."
+
 msgid "No versions yet"
 msgstr "Версий пока нет"
 
@@ -9500,6 +9613,14 @@ msgstr "от всех токенов"
 
 msgid "Off"
 msgstr "Выкл."
+
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
+msgstr "Официальная документация {0} — приложения для параллельного запуска более 100 агентов программирования."
+
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}. Learn how to run 100+ coding agents in parallel on your machine."
+msgstr "Официальная документация {0}. Узнайте, как параллельно запускать более 100 агентов программирования на своём компьютере."
 
 msgid "Official quota · refreshes every 5 min"
 msgstr "Официальная квота · обновляется каждые 5 мин"
@@ -10192,6 +10313,9 @@ msgstr "Outline"
 msgid "Output"
 msgstr "Вывод"
 
+msgid "Output · merged PRs per week"
+msgstr "Результат · объединённых PR в неделю"
+
 msgid "Output Schema"
 msgstr "Схема вывода"
 
@@ -10303,6 +10427,9 @@ msgstr "Руководство по параллельным агентам"
 
 msgid "Parallel Execution"
 msgstr "Параллельное выполнение"
+
+msgid "Parallel sessions per developer doubling every seven months, crossing the Operator, Plant Manager and Henry Ford thresholds between August 2026 and August 2028"
+msgstr "Число параллельных сессий на разработчика удваивается каждые семь месяцев, преодолевая пороги Оператора, Директора завода и Henry Ford с августа 2026 по август 2028 года"
 
 msgid "Parameters"
 msgstr "Параметры"
@@ -10713,6 +10840,9 @@ msgstr "Предыдущая ветка"
 msgid "Previous comment"
 msgstr "Предыдущий комментарий"
 
+msgid "Previous file"
+msgstr "Предыдущий файл"
+
 msgid "Previous match"
 msgstr "Предыдущее совпадение"
 
@@ -10794,6 +10924,9 @@ msgstr "Обработка..."
 msgid "Product"
 msgstr "Продукт"
 
+msgid "Production run"
+msgstr "Производственный цикл"
+
 msgid "Production run status"
 msgstr "Статус Production Run"
 
@@ -10814,6 +10947,9 @@ msgstr "Проект создан."
 
 msgid "Project folder is not on this machine"
 msgstr "Папки проекта нет на этой машине"
+
+msgid "Project icon"
+msgstr "Значок проекта"
 
 msgid "Project imported and selected."
 msgstr "Проект импортирован и выбран."
@@ -11390,6 +11526,9 @@ msgstr "удалить агента"
 msgid "remove the PR link"
 msgstr "отвязать PR"
 
+msgid "Remove trigger"
+msgstr "Удалить триггер"
+
 msgid "Remove workspace"
 msgstr "Удалить рабочую область"
 
@@ -11927,6 +12066,9 @@ msgstr "Run {runNumber}"
 msgid "Run 01"
 msgstr "Run 01"
 
+msgid "Run 10+ parallel coding agents on your machine"
+msgstr "Запускайте более 10 агентов программирования параллельно на своём компьютере"
+
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Запускайте 10+ параллельных кодовых агентов на своей машине."
 
@@ -12028,6 +12170,12 @@ msgstr "Работает внутри приложения Superset на том 
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Запуски приземляются в рабочую область. Посмотрите diff и объедините то, что подходит."
+
+msgid "Runs when a new workspace is created."
+msgstr "Выполняется при создании рабочего пространства."
+
+msgid "Runs when a workspace is deleted."
+msgstr "Выполняется при удалении рабочего пространства."
 
 msgid "Runway"
 msgstr "Запас хода"
@@ -12173,6 +12321,9 @@ msgstr "Поиск ({searchShortcutText})"
 msgid "Search {0} sites…"
 msgstr "Поиск среди {0} сайтов…"
 
+msgid "Search a developer"
+msgstr "Найти разработчика"
+
 msgid "Search across file contents and across all your workspaces at once."
 msgstr "Ищите по содержимому файлов и сразу по всем своим рабочим областям."
 
@@ -12187,6 +12338,9 @@ msgstr "Поиск автоматизаций"
 
 msgid "Search branches..."
 msgstr "Поиск веток..."
+
+msgid "Search by key name..."
+msgstr "Поиск по имени ключа..."
 
 msgid "Search changed files"
 msgstr "Поиск изменённых файлов"
@@ -12289,6 +12443,12 @@ msgstr "Искать текст в diff изменений"
 
 msgid "Search text in the rendered file viewer"
 msgstr "Искать текст в просмотрщике файлов"
+
+msgid "Search the leaderboard for a fighter"
+msgstr "Найти соперника в рейтинге"
+
+msgid "Search triggers..."
+msgstr "Поиск триггеров..."
 
 msgid "Search workspaces"
 msgstr "Поиск рабочих областей"
@@ -13269,6 +13429,9 @@ msgstr "История звёзд"
 msgid "Star history isn't available right now. Check back soon."
 msgstr "История звёзд сейчас недоступна. Загляните позже."
 
+msgid "Star nag reset — eligible again on the empty state, sidebar card, and onboarding toast"
+msgstr "Напоминание о звезде сброшено: снова доступно в пустом состоянии, карточке боковой панели и приветственном уведомлении"
+
 msgid "Star on GitHub"
 msgstr "Поставить звезду на GitHub"
 
@@ -13529,6 +13692,9 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
+msgid "Superset | Company Dashboard"
+msgstr "Superset | Панель компании"
+
 msgid "Superset Agent"
 msgstr "Superset Agent"
 
@@ -13670,6 +13836,9 @@ msgstr "Приостановлено"
 
 msgid "Sustain"
 msgstr "Регулярность"
+
+msgid "Sustain · active days in 30"
+msgstr "Регулярность · активных дней из 30"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "Меняйте агентов. Процесс остаётся"
@@ -13919,6 +14088,9 @@ msgstr "Очистка не уложилась в {seconds} с"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Попросите любого агента использовать CLI <0>superset</0>, чтобы поднимать рабочие области, запускать задачи или управлять автоматизациями."
+
+msgid "Ten parallel workstreams running, each landing merged work"
+msgstr "Десять параллельных рабочих потоков, каждый из которых доводит работу до объединения"
 
 msgid "terminal"
 msgstr "терминал"
@@ -14584,6 +14756,9 @@ msgstr "Это удалит связь между вашей организац�
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "Это откатит все изменения в этом файле. Действие нельзя отменить."
 
+msgid "This will revert all unstaged modifications and delete untracked files. This action cannot be undone."
+msgstr "Все неиндексированные изменения будут отменены, а неотслеживаемые файлы удалены. Это действие нельзя отменить."
+
 msgid "This will revert all unstaged modifications and delete untracked files. This cannot be undone."
 msgstr "Это откатит все непроиндексированные изменения и удалит неотслеживаемые файлы. Отменить нельзя."
 
@@ -14592,6 +14767,9 @@ msgstr "Это завершит все постоянные процессы т�
 
 msgid "This will terminate the session and its underlying process."
 msgstr "Это завершит сессию и связанный с ней процесс."
+
+msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This action cannot be undone."
+msgstr "Все индексированные изменения будут удалены из индекса и отменены. Новые файлы в индексе будут удалены. Это действие нельзя отменить."
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Это снимет индексацию и откатит все проиндексированные изменения. Проиндексированные новые файлы будут удалены. Отменить нельзя."
@@ -15561,6 +15739,12 @@ msgstr "Мы ищем партнёров по разработке, которы
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "Мы переделываем эту функцию. Загляните позже."
 
+msgid "Web Fetch"
+msgstr "Загрузка веб-страницы"
+
+msgid "Web Search"
+msgstr "Поиск в интернете"
+
 msgid "Webhook trigger not found"
 msgstr "Триггер webhook не найден"
 
@@ -15636,6 +15820,9 @@ msgstr "С возвращением"
 
 msgid "Welcome to Superset"
 msgstr "Добро пожаловать в Superset"
+
+msgid "Welcome to the new Superset"
+msgstr "Добро пожаловать в новый Superset"
 
 msgid "What builders say about Superset"
 msgstr "Что разработчики говорят о Superset"
@@ -15751,6 +15938,9 @@ msgstr "Задача целиком"
 msgid "Width"
 msgstr "Ширина"
 
+msgid "Width · parallel sessions"
+msgstr "Ширина · параллельных сессий"
+
 msgid "Window"
 msgstr "Окно"
 
@@ -15841,6 +16031,9 @@ msgstr "Рабочая область открыта, но терминал не
 
 msgid "Workspace path is not available"
 msgstr "Путь к рабочей области недоступен"
+
+msgid "Workspace path is not available yet"
+msgstr "Путь рабочего пространства пока недоступен"
 
 msgid "Workspace pinning & bulk actions"
 msgstr "Закрепление рабочих областей и массовые действия"

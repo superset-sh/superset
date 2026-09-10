@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
+import { useFormat } from "@superset/i18n/react";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { buildPromptAgentLaunchRequest } from "@superset/shared/agent-launch-request";
 import {
@@ -274,6 +275,8 @@ function PromptGroupInner({
 	onImportRepo,
 	onNewProject,
 }: PromptGroupProps) {
+	const { formatDateTime } = useFormat();
+
 	const { t } = useLingui();
 	const navigate = useNavigate();
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
@@ -654,8 +657,8 @@ function PromptGroupInner({
 **URL:** ${sanitizeUrl(content.url)}
 **State:** ${content.state}
 **Author:** ${sanitizeText(content.author || "Unknown")}
-**Created:** ${content.createdAt ? new Date(content.createdAt).toLocaleString() : "Unknown"}
-**Updated:** ${content.updatedAt ? new Date(content.updatedAt).toLocaleString() : "Unknown"}
+**Created:** ${content.createdAt ? formatDateTime(new Date(content.createdAt), undefined) : "Unknown"}
+**Updated:** ${content.updatedAt ? formatDateTime(new Date(content.updatedAt), undefined) : "Unknown"}
 
 ---
 
@@ -798,6 +801,7 @@ ${sanitizeText(truncatedBody)}`;
 			}
 		},
 		[
+			formatDateTime,
 			attachments,
 			compareBaseBranch,
 			branchName,

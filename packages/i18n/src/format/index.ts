@@ -4,8 +4,8 @@ import { DEFAULT_LOCALE } from "../locales";
 // Locale-aware wrappers around Intl.*. Every user-facing number, currency,
 // and date goes through these instead of hardcoding a locale — the active
 // locale defaults to the shared instance. SSR callers can pass their request's
-// locale explicitly. I18nProvider remounts its
-// subtree on locale change so formatted output re-renders everywhere.
+// locale explicitly. React consumers use useFormat from @superset/i18n/react
+// to subscribe to changes without remounting application state.
 //
 // Constructing an Intl formatter per call costs single-digit microseconds
 // (measured: ~5µs NumberFormat, ~19µs DateTimeFormat), which is negligible at
@@ -27,12 +27,17 @@ export function formatNumber(
 export function formatPercent(
 	value: number,
 	options?: Intl.NumberFormatOptions,
+	locale = getActiveLocale(),
 ): string {
-	return formatNumber(value, {
-		style: "percent",
-		maximumFractionDigits: 1,
-		...options,
-	});
+	return formatNumber(
+		value,
+		{
+			style: "percent",
+			maximumFractionDigits: 1,
+			...options,
+		},
+		locale,
+	);
 }
 
 export function formatList(
@@ -51,8 +56,9 @@ export function formatList(
 export function formatCompactNumber(
 	value: number,
 	options?: Intl.NumberFormatOptions,
+	locale = getActiveLocale(),
 ): string {
-	return formatNumber(value, { notation: "compact", ...options });
+	return formatNumber(value, { notation: "compact", ...options }, locale);
 }
 
 // Major units: formatCurrency(12.5, "USD") -> "$12.50"
@@ -60,17 +66,26 @@ export function formatCurrency(
 	value: number,
 	currency = "USD",
 	options?: Intl.NumberFormatOptions,
+	locale = getActiveLocale(),
 ): string {
-	return formatNumber(value, {
-		style: "currency",
-		currency: currency.toUpperCase(),
-		...options,
-	});
+	return formatNumber(
+		value,
+		{
+			style: "currency",
+			currency: currency.toUpperCase(),
+			...options,
+		},
+		locale,
+	);
 }
 
 // Stripe-style minor units: formatPrice(1250, "usd") -> "$12.50"
-export function formatPrice(amountInCents: number, currency: string): string {
-	return formatCurrency(amountInCents / 100, currency);
+export function formatPrice(
+	amountInCents: number,
+	currency: string,
+	locale = getActiveLocale(),
+): string {
+	return formatCurrency(amountInCents / 100, currency, undefined, locale);
 }
 
 export function formatDate(
@@ -91,8 +106,9 @@ export function formatDateTime(
 		dateStyle: "medium",
 		timeStyle: "short",
 	},
+	locale = getActiveLocale(),
 ): string {
-	return new Intl.DateTimeFormat(getActiveLocale(), options).format(date);
+	return new Intl.DateTimeFormat(locale, options).format(date);
 }
 
 // Relative time: -3600_000 -> "1 hour ago", 86_400_000 -> "tomorrow".
@@ -112,11 +128,12 @@ export function formatRelativeTime(
 	date: Date | number,
 	now: Date | number = Date.now(),
 	options: Intl.RelativeTimeFormatOptions = { numeric: "auto" },
+	locale = getActiveLocale(),
 ): string {
 	const diffMs =
 		(date instanceof Date ? date.getTime() : date) -
 		(now instanceof Date ? now.getTime() : now);
-	const formatter = new Intl.RelativeTimeFormat(getActiveLocale(), options);
+	const formatter = new Intl.RelativeTimeFormat(locale, options);
 	for (const [unit, ms] of RELATIVE_UNITS) {
 		if (Math.abs(diffMs) >= ms) {
 			return formatter.format(Math.round(diffMs / ms), unit);
@@ -130,6 +147,12 @@ export function formatRelativeTime(
 export function formatCompactRelativeTime(
 	date: Date | number,
 	now: Date | number = Date.now(),
+	locale = getActiveLocale(),
 ): string {
-	return formatRelativeTime(date, now, { numeric: "always", style: "narrow" });
+	return formatRelativeTime(
+		date,
+		now,
+		{ numeric: "always", style: "narrow" },
+		locale,
+	);
 }

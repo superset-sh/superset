@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { cn } from "@superset/ui/utils";
 import Link from "next/link";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 
 const PAGES = [
 	{
@@ -24,11 +24,13 @@ interface DesignPageHeaderProps {
 	description: React.ReactNode;
 }
 
-export function DesignPageHeader({
+export async function DesignPageHeader({
 	active,
 	title,
 	description,
 }: DesignPageHeaderProps) {
+	const i18n = await initServerI18n();
+
 	return (
 		<header className="border-b border-border">
 			<div className="mx-auto max-w-6xl px-6 pt-12">

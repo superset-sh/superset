@@ -48,7 +48,8 @@
 	},
 	"dependencies": {
 		"@lingui/core": "6.6.0",
-		"@lingui/react": "6.6.0"
+		"@lingui/react": "6.6.0",
+		"server-only": "0.0.1"
 	},
 	"devDependencies": {
 		"@ast-grep/napi": "0.41.1",
@@ -62,6 +63,10 @@
 		"@types/react": "19.2.14",
 		"bun-types": "1.3.14",
 		"react": "19.2.3",
-		"typescript": "6.0.3"
+		"typescript": "6.0.3",
+		"@happy-dom/global-registrator": "20.0.2",
+		"@testing-library/react": "16.3.0",
+		"react-dom": "19.2.3",
+		"@types/react-dom": "19.2.3"
 	}
 }

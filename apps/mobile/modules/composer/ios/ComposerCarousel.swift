@@ -99,7 +99,7 @@ struct ComposerCarousel: View {
       .padding(
         ComposerMetrics.removeBadgeInset - ComposerMetrics.removeBadgeTouchPadding
       )
-      .accessibilityLabel("Remove attachment")
+      .accessibilityLabel(composerLocalized("Remove attachment"))
     }
   }
 
@@ -133,7 +133,7 @@ struct ComposerCarousel: View {
 
       Spacer(minLength: 0)
 
-      Text(attachment.name ?? "Document")
+      Text(attachment.name ?? composerLocalized("Document"))
         .font(.system(size: ComposerMetrics.fileLabelSize))
         .foregroundStyle(.secondary)
         .lineLimit(1)
@@ -195,7 +195,7 @@ struct ComposerCollapsedAttachments: View {
             .shadow(radius: 2)
         }
       }
-      .accessibilityLabel("\(attachments.count) attachments")
+      .accessibilityLabel(String.localizedStringWithFormat(composerLocalized("attachment_count"), attachments.count))
     }
   }
 }

@@ -1,5 +1,5 @@
 import { msg } from "@lingui/core/macro";
-import { i18n } from "@superset/i18n";
+import { useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { formatStarCount, getGitHubRepoSlug } from "@/lib/github";
 
@@ -41,6 +41,7 @@ async function getGitHubStars(): Promise<number | null> {
 }
 
 export async function GitHubStarCounter() {
+	const { i18n } = useLingui();
 	const stars = await getGitHubStars();
 
 	if (stars === null) {

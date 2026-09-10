@@ -4,6 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectAutomationRun, SelectUser } from "@superset/db/schema";
 import { i18n } from "@superset/i18n";
 import { formatCompactRelativeTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import {
 	describeSchedule,
 	formatDateTimeInTimezone,
@@ -130,6 +131,8 @@ export function AutomationRow({
 	onToggleEnabled,
 	onDelete,
 }: AutomationRowProps) {
+	const { formatDateTime } = useFormat();
+
 	const { t } = useLingui();
 	const navigate = useNavigate();
 	const copyAutomationLink = useCopyAutomationLink();
@@ -294,7 +297,7 @@ export function AutomationRow({
 										{i18n._(lastRunMeta.label)}
 										<span
 											className="truncate text-muted-foreground/70"
-											title={new Date(lastRun.at).toLocaleString()}
+											title={formatDateTime(new Date(lastRun.at), undefined)}
 										>
 											{compactAgo(lastRun.at, now)}
 										</span>

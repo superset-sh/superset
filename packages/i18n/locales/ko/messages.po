@@ -323,6 +323,10 @@ msgstr "{0}명의 개발자가 에이전트 사용량으로 순위에 올라 있
 msgid "{0} disabled"
 msgstr "{0} 비활성화됨"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "{0} Documentation"
+msgstr "{0} 문서"
+
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
 #. placeholder {0}: skill.name
@@ -378,7 +382,7 @@ msgstr "{0}이(가) 이 컴퓨터에는 설정되어 있지만 계정에는 없�
 msgid "{0} last full week"
 msgstr "최근 완전한 주 {0}"
 
-#. placeholder {0}: v.toLocaleString()
+#. placeholder {0}: formatNumber(v, undefined)
 msgid "{0} mo"
 msgstr "{0}개월"
 
@@ -414,8 +418,8 @@ msgstr "방문자의 {0}"
 msgid "{0} options"
 msgstr "{0} 옵션"
 
-#. placeholder {0}: dropped.toLocaleString()
-#. placeholder {0}: step.count.toLocaleString()
+#. placeholder {0}: formatNumber(dropped, undefined)
+#. placeholder {0}: formatNumber(step.count, undefined)
 msgid "{0} persons"
 msgstr "{0}명"
 
@@ -453,12 +457,12 @@ msgstr "#{1}을 제치려면 {0}"
 msgid "{0} tokens in the last 30 days. Publishing as <0>{handle}</0>."
 msgstr "최근 30일간 토큰 {0}개. <0>{handle}</0>(으)로 게시 중."
 
-#. placeholder {0}: formatTokens(cell.tokens)
+#. placeholder {0}: formatTokens(cell.tokens, i18n.locale)
 #. placeholder {1}: cell.day
 msgid "{0} tokens on {1}"
 msgstr "{1}에 {0} 토큰"
 
-#. placeholder {0}: formatTokens(calendar.total)
+#. placeholder {0}: formatTokens(calendar.total, i18n.locale)
 #. placeholder {1}: String(calendar.activeDays)
 msgid "{0} tokens over {1} active days"
 msgstr "활동 {1}일 동안 토큰 {0}개"
@@ -953,6 +957,10 @@ msgstr "월말 기준 구독 조직 중 한 달 뒤에도 구독을 유지한 �
 msgid "% of subscriptions started each month still active k months later (Neon, enterprise excluded)"
 msgstr "월별로 시작된 구독 중 k개월 후에도 활성 상태인 비율 (Neon, 엔터프라이즈 제외)"
 
+#. placeholder {0}: COMPANY.NAME
+msgid "%s | {0} Docs"
+msgstr "%s | {0} 문서"
+
 msgid "© {year} Superset Inc."
 msgstr "© {year} Superset Inc."
 
@@ -1044,18 +1052,18 @@ msgstr "✓ 2시간 전"
 msgid "✓ 3d ago"
 msgstr "✓ 3일 전"
 
-#. placeholder {0}: latest.prevUsd.toLocaleString()
+#. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
 msgstr "이전 기간 ${0} ({1})"
 
-#. placeholder {0}: data.arrUsd.toLocaleString()
+#. placeholder {0}: formatNumber(data.arrUsd, undefined)
 #. placeholder {1}: accounts.length
 msgid "${0}/yr across {1} logos — already inside MRR, not additive"
 msgstr "{1}개 고객사에서 연 ${0} — 이미 MRR에 포함되며 별도 합산 대상이 아닙니다"
 
 #. placeholder {0}: (data.totalCashUsd / 1_000_000).toFixed(2)
-#. placeholder {1}: data.avgMonthlyNetBurnUsd?.toLocaleString() ?? "—"
+#. placeholder {1}: data.avgMonthlyNetBurnUsd == null ? "—" : formatNumber(data.avgMonthlyNetBurnUsd)
 msgid "${0}M cash ÷ ${1}/mo net burn, last 3 complete months. Cash includes raised capital; no growth assumed."
 msgstr "현금 ${0}M ÷ 월 순 소진액 ${1}, 최근 완료된 3개월 기준. 현금에는 조달 자본이 포함되며 성장은 가정하지 않았습니다."
 
@@ -1166,6 +1174,9 @@ msgstr "이 세션에서 200K 중 87.4K 토큰을 사용했습니다."
 
 msgid "A better in-app browser: preview your changes and click any element to send it to the agent as context."
 msgstr "더 나은 인앱 브라우저입니다. 변경 사항을 미리 보고, 아무 요소나 클릭해 에이전트에 컨텍스트로 보내세요."
+
+msgid "A better Superset is ready"
+msgstr "더 나은 Superset이 준비되었습니다"
 
 msgid "A delete is already in progress for {workspaceName}."
 msgstr "{workspaceName}에 대한 삭제가 이미 진행 중입니다."
@@ -1499,6 +1510,9 @@ msgstr "관리자는 소유자를 변경할 수 없습니다"
 
 msgid "Admins cannot promote members to owner"
 msgstr "관리자는 멤버를 소유자로 승격할 수 없습니다"
+
+msgid "Adopt v1 workspaces under their imported v2 project."
+msgstr "v1 작업 공간을 가져온 해당 v2 프로젝트에 연결합니다."
 
 msgid "Advanced options"
 msgstr "고급 옵션"
@@ -1842,6 +1856,9 @@ msgstr "알 수 없는 오류가 발생했습니다"
 msgid "An update is ready to install."
 msgstr "설치할 업데이트가 준비되었습니다."
 
+msgid "Analytics, Ops, and more"
+msgstr "분석, 운영 등"
+
 msgid "Animate the active terminal cursor."
 msgstr "활성 터미널 커서를 깜박이게 합니다."
 
@@ -1979,6 +1996,9 @@ msgstr "앱 표시 언어입니다. 자동은 시스템 언어를 따릅니다."
 
 msgid "Appearance"
 msgstr "모양"
+
+msgid "Apple logo"
+msgstr "Apple 로고"
 
 msgid "Applies to"
 msgstr "적용 범위"
@@ -2347,6 +2367,9 @@ msgstr "막대"
 msgid "Base branch"
 msgstr "기준 브랜치"
 
+msgid "Base Branch"
+msgstr "기준 브랜치"
+
 msgid "Base directory for new worktree workspaces on this host."
 msgstr "이 호스트에서 새 worktree 워크스페이스가 만들어질 기준 디렉터리입니다."
 
@@ -2498,6 +2521,9 @@ msgstr "브랜치 이름은 공백으로 끝날 수 없습니다."
 msgid "Branch prefix"
 msgstr "브랜치 접두사"
 
+msgid "Branch Prefix"
+msgstr "브랜치 접두사"
+
 msgid "Branch renamed to {newName}"
 msgstr "브랜치 이름을 {newName}(으)로 변경했습니다"
 
@@ -2528,6 +2554,15 @@ msgstr "{companyName}을 팀에 도입하세요. 엔터프라이즈 플랜과 �
 
 msgid "Bring Any Agent."
 msgstr "어떤 에이전트든 데려오세요."
+
+msgid "Bring over your projects"
+msgstr "프로젝트 가져오기"
+
+msgid "Bring over your terminal scripts"
+msgstr "터미널 스크립트 가져오기"
+
+msgid "Bring over your workspaces"
+msgstr "작업 공간 가져오기"
 
 msgid "Bring v1 projects, workspaces, and terminal scripts over to v2. Each item is imported individually and can be retried."
 msgstr "v1의 프로젝트, 워크스페이스, 터미널 스크립트를 v2로 가져옵니다. 항목별로 개별 가져오며 다시 시도할 수 있습니다."
@@ -3096,6 +3131,9 @@ msgstr "터미널 스크립트를 클릭하면 세부 정보를 편집합니다.
 msgid "Click here if not redirected"
 msgstr "이동하지 않으면 여기를 클릭하세요"
 
+msgid "Click the “↑ update” pill to see the pre-update confirm"
+msgstr "“↑ update” 버튼을 클릭하면 업데이트 전 확인 창이 표시됩니다"
+
 msgid "Click to copy"
 msgstr "클릭하여 복사"
 
@@ -3132,6 +3170,9 @@ msgstr "리포지토리를 클론할"
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "리포지토리를 클론하거나 호스트에 있는 기존 폴더를 가져옵니다."
 
+msgid "Clone, push, and create PRs."
+msgstr "복제, 푸시 및 PR 생성."
+
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
 msgstr "{0}(으)로 클론했습니다"
@@ -3151,6 +3192,9 @@ msgid "Close #{0}?"
 msgstr "#{0}을(를) 닫을까요?"
 
 msgid "Close all"
+msgstr "모두 닫기"
+
+msgid "Close All"
 msgstr "모두 닫기"
 
 msgid "Close all ports"
@@ -3202,8 +3246,14 @@ msgstr "현재 워크스페이스를 닫거나 삭제합니다"
 msgid "Close other apps using the microphone"
 msgstr "마이크를 사용 중인 다른 앱을 닫으세요"
 
+msgid "Close Others"
+msgstr "다른 탭 닫기"
+
 msgid "Close Page"
 msgstr "페이지 닫기"
+
+msgid "Close pane"
+msgstr "창 닫기"
 
 msgid "Close Pane"
 msgstr "패널 닫기"
@@ -3390,6 +3440,9 @@ msgstr "터미널 에이전트에는 명령이 필요합니다."
 msgid "Command Palette"
 msgstr "명령 팔레트"
 
+msgid "Command to start your dev server, triggered via keyboard shortcut."
+msgstr "키보드 단축키로 개발 서버를 시작하는 명령입니다."
+
 msgid "Command..."
 msgstr "명령..."
 
@@ -3429,6 +3482,9 @@ msgstr "커밋"
 #. placeholder {0}: error.message
 msgid "Commit failed: {0}"
 msgstr "커밋 실패: {0}"
+
+msgid "Commit message"
+msgstr "커밋 메시지"
 
 msgid "Commits"
 msgstr "커밋"
@@ -3917,6 +3973,9 @@ msgstr "설정 복사 중"
 
 msgid "Cost"
 msgstr "비용"
+
+msgid "Cost · $ per merged PR"
+msgstr "비용 · 병합된 PR당 달러"
 
 msgid "Cost per merged PR"
 msgstr "머지된 PR당 비용"
@@ -4598,6 +4657,9 @@ msgstr "default · secondary · outline · ghost · link · destructive"
 msgid "Default ({defaultWorktreePath})"
 msgstr "기본값({defaultWorktreePath})"
 
+msgid "Default base for new workspaces. Override per-workspace at creation."
+msgstr "새 작업 공간의 기본 기준 브랜치입니다. 생성 시 작업 공간별로 변경할 수 있습니다."
+
 msgid "Default effort"
 msgstr "기본 강도"
 
@@ -4813,6 +4875,9 @@ msgstr "의존성"
 msgid "Depth"
 msgstr "깊이"
 
+msgid "Depth · tokens per session"
+msgstr "깊이 · 세션당 토큰"
+
 msgid "descending"
 msgstr "내림차순"
 
@@ -4908,6 +4973,9 @@ msgstr "차이"
 
 msgid "Diff"
 msgstr "차이"
+
+msgid "Diff change overview"
+msgstr "차이 변경 개요"
 
 msgid "diff in new tab"
 msgstr "새 탭에서 차이"
@@ -5030,6 +5098,9 @@ msgstr "네트워크에 있는 개발 서버를 찾아 연결합니다."
 
 msgid "Dismiss"
 msgstr "닫기"
+
+msgid "Dismiss error"
+msgstr "오류 닫기"
 
 msgid "Dismiss resume prompt"
 msgstr "재개 안내 닫기"
@@ -5239,6 +5310,9 @@ msgstr "소요 시간"
 msgid "e.g. Add dark mode, Fix checkout bug"
 msgstr "예: 다크 모드 추가, 결제 버그 수정"
 
+msgid "e.g. bun install && bun run dev"
+msgstr "예: bun install && bun run dev"
+
 msgid "e.g. bun run dev"
 msgstr "예: bun run dev"
 
@@ -5247,6 +5321,9 @@ msgstr "예: Claude Desktop"
 
 msgid "e.g. Dev server"
 msgstr "예: Dev server"
+
+msgid "e.g. docker compose down"
+msgstr "예: docker compose down"
 
 msgid "e.g. engineering"
 msgstr "예: engineering"
@@ -6203,6 +6280,12 @@ msgstr "파일"
 msgid "Files changed"
 msgstr "변경된 파일"
 
+msgid "files to exclude (glob)"
+msgstr "제외할 파일(glob)"
+
+msgid "files to include (glob)"
+msgstr "포함할 파일(glob)"
+
 msgid "Fill out the contact form on this page and our team will reach out to learn about your needs and walk you through next steps."
 msgstr "이 페이지의 문의 양식을 작성해 주시면 담당 팀이 연락드려 필요한 사항을 파악하고 다음 단계를 안내해 드립니다."
 
@@ -6256,6 +6339,9 @@ msgstr "필터, {activeFilterCount}개 적용됨"
 
 msgid "Finalizing setup"
 msgstr "설정 마무리 중"
+
+msgid "Find"
+msgstr "찾기"
 
 msgid "Find a small bug and fix it…"
 msgstr "작은 버그를 찾아서 고치기…"
@@ -6458,6 +6544,9 @@ msgstr "전망"
 msgid "Forecast · Published August 2026"
 msgstr "전망 · 2026년 8월 게시"
 
+msgid "Forecast share of developers at each tier from August 2026 to August 2028"
+msgstr "2026년 8월부터 2028년 8월까지 등급별 개발자 비율 예측"
+
 msgid "Foreground"
 msgstr "전경"
 
@@ -6652,6 +6741,9 @@ msgstr "GitHub에 연결할 수 없습니다"
 
 msgid "GitHub username"
 msgstr "GitHub 사용자 이름"
+
+msgid "GitHub username..."
+msgstr "GitHub 사용자 이름..."
 
 msgid "GitHub username…"
 msgstr "GitHub 사용자 이름…"
@@ -7095,6 +7187,12 @@ msgstr "worktree 모두 가져오기"
 
 msgid "Import cookies and passwords…"
 msgstr "쿠키와 비밀번호 가져오기…"
+
+msgid "Import each v1 project into v2. Already-imported projects show as Imported."
+msgstr "각 v1 프로젝트를 v2로 가져옵니다. 이미 가져온 프로젝트는 가져옴으로 표시됩니다."
+
+msgid "Import each v1 terminal script into v2."
+msgstr "각 v1 터미널 스크립트를 v2로 가져옵니다."
 
 msgid "Import existing"
 msgstr "기존 항목 가져오기"
@@ -7592,6 +7690,9 @@ msgstr "라벨 변경"
 msgid "Label is required."
 msgstr "레이블은 필수입니다."
 
+msgid "Label name..."
+msgstr "라벨 이름..."
+
 msgid "Labels"
 msgstr "레이블"
 
@@ -7628,7 +7729,7 @@ msgstr "최근 활동"
 msgid "Last activity"
 msgstr "마지막 활동"
 
-#. placeholder {0}: new Date(workspace.lastAgentEventAt).toLocaleString()
+#. placeholder {0}: formatDateTime(new Date(workspace.lastAgentEventAt), undefined)
 msgid "Last agent activity {0}"
 msgstr "마지막 에이전트 활동 {0}"
 
@@ -8483,6 +8584,9 @@ msgstr "매월 {day, selectordinal, one {#일} two {#일} few {#일} other {#일
 msgid "Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} at {time}"
 msgstr "매월 {day, selectordinal, one {#일} two {#일} few {#일} other {#일}} {time}"
 
+msgid "Months from August 2026"
+msgstr "2026년 8월 이후 개월 수"
+
 msgid "More"
 msgstr "더 보기"
 
@@ -8776,6 +8880,9 @@ msgstr "다음 브랜치"
 
 msgid "Next comment"
 msgstr "다음 코멘트"
+
+msgid "Next file"
+msgstr "다음 파일"
 
 msgid "Next match"
 msgstr "다음 일치 항목"
@@ -9288,6 +9395,12 @@ msgstr "선택한 기간에 이 모델의 사용량 기록이 없습니다."
 msgid "No usage recorded for this workspace in the selected range."
 msgstr "선택한 기간에 이 워크스페이스의 사용량 기록이 없습니다."
 
+msgid "No v1 projects found on this device."
+msgstr "이 기기에서 v1 프로젝트를 찾을 수 없습니다."
+
+msgid "No v1 terminal scripts found."
+msgstr "v1 터미널 스크립트를 찾을 수 없습니다."
+
 msgid "No versions yet"
 msgstr "아직 버전이 없습니다"
 
@@ -9500,6 +9613,14 @@ msgstr "전체 토큰 대비"
 
 msgid "Off"
 msgstr "끔"
+
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}, the app for running 100+ coding agents in parallel."
+msgstr "100개 이상의 코딩 에이전트를 병렬로 실행하는 앱, {0}의 공식 문서입니다."
+
+#. placeholder {0}: COMPANY.NAME
+msgid "Official documentation for {0}. Learn how to run 100+ coding agents in parallel on your machine."
+msgstr "{0} 공식 문서입니다. 기기에서 100개 이상의 코딩 에이전트를 병렬로 실행하는 방법을 알아보세요."
 
 msgid "Official quota · refreshes every 5 min"
 msgstr "공식 할당량 · 5분마다 갱신"
@@ -10192,6 +10313,9 @@ msgstr "아웃라인"
 msgid "Output"
 msgstr "출력"
 
+msgid "Output · merged PRs per week"
+msgstr "산출 · 주당 병합된 PR"
+
 msgid "Output Schema"
 msgstr "출력 스키마"
 
@@ -10303,6 +10427,9 @@ msgstr "병렬 에이전트 가이드"
 
 msgid "Parallel Execution"
 msgstr "병렬 실행"
+
+msgid "Parallel sessions per developer doubling every seven months, crossing the Operator, Plant Manager and Henry Ford thresholds between August 2026 and August 2028"
+msgstr "개발자당 병렬 세션 수가 7개월마다 두 배로 늘어나며 2026년 8월부터 2028년 8월 사이에 운영자, 공장장, Henry Ford 등급 기준을 넘어섭니다"
 
 msgid "Parameters"
 msgstr "매개변수"
@@ -10713,6 +10840,9 @@ msgstr "이전 브랜치"
 msgid "Previous comment"
 msgstr "이전 코멘트"
 
+msgid "Previous file"
+msgstr "이전 파일"
+
 msgid "Previous match"
 msgstr "이전 일치 항목"
 
@@ -10794,6 +10924,9 @@ msgstr "처리하는 중..."
 msgid "Product"
 msgstr "제품"
 
+msgid "Production run"
+msgstr "생산 실행"
+
 msgid "Production run status"
 msgstr "프로덕션 런 상태"
 
@@ -10814,6 +10947,9 @@ msgstr "프로젝트를 만들었습니다."
 
 msgid "Project folder is not on this machine"
 msgstr "프로젝트 폴더가 이 컴퓨터에 없습니다"
+
+msgid "Project icon"
+msgstr "프로젝트 아이콘"
 
 msgid "Project imported and selected."
 msgstr "프로젝트를 가져와 선택했습니다."
@@ -11390,6 +11526,9 @@ msgstr "에이전트를 제거할"
 msgid "remove the PR link"
 msgstr "PR 링크를 제거할"
 
+msgid "Remove trigger"
+msgstr "트리거 제거"
+
 msgid "Remove workspace"
 msgstr "워크스페이스 제거"
 
@@ -11927,6 +12066,9 @@ msgstr "런 {runNumber}"
 msgid "Run 01"
 msgstr "Run 01"
 
+msgid "Run 10+ parallel coding agents on your machine"
+msgstr "기기에서 10개 이상의 코딩 에이전트를 병렬로 실행"
+
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "내 머신에서 10개 이상의 코딩 에이전트를 병렬로 실행합니다."
 
@@ -12028,6 +12170,12 @@ msgstr "해당 기기의 Superset 앱 안에서 실행되므로, 업데이트하
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "실행 결과는 워크스페이스에 도착합니다. 차이를 검토하고 괜찮은 것만 머지하세요."
+
+msgid "Runs when a new workspace is created."
+msgstr "새 작업 공간을 만들 때 실행됩니다."
+
+msgid "Runs when a workspace is deleted."
+msgstr "작업 공간을 삭제할 때 실행됩니다."
 
 msgid "Runway"
 msgstr "런웨이"
@@ -12173,6 +12321,9 @@ msgstr "검색 ({searchShortcutText})"
 msgid "Search {0} sites…"
 msgstr "사이트 {0}개 검색…"
 
+msgid "Search a developer"
+msgstr "개발자 검색"
+
 msgid "Search across file contents and across all your workspaces at once."
 msgstr "파일 내용과 모든 워크스페이스를 한 번에 검색하세요."
 
@@ -12187,6 +12338,9 @@ msgstr "자동화 검색"
 
 msgid "Search branches..."
 msgstr "브랜치 검색..."
+
+msgid "Search by key name..."
+msgstr "키 이름으로 검색..."
 
 msgid "Search changed files"
 msgstr "변경된 파일 검색"
@@ -12289,6 +12443,12 @@ msgstr "변경 사항 차이에서 텍스트를 검색합니다"
 
 msgid "Search text in the rendered file viewer"
 msgstr "렌더링된 파일 뷰어에서 텍스트를 검색합니다"
+
+msgid "Search the leaderboard for a fighter"
+msgstr "순위표에서 대결 상대 검색"
+
+msgid "Search triggers..."
+msgstr "트리거 검색..."
 
 msgid "Search workspaces"
 msgstr "워크스페이스 검색"
@@ -13269,6 +13429,9 @@ msgstr "스타 히스토리"
 msgid "Star history isn't available right now. Check back soon."
 msgstr "지금은 스타 히스토리를 볼 수 없습니다. 잠시 후 다시 확인해 주세요."
 
+msgid "Star nag reset — eligible again on the empty state, sidebar card, and onboarding toast"
+msgstr "스타 알림이 초기화되었습니다. 빈 상태, 사이드바 카드 및 온보딩 알림에서 다시 표시할 수 있습니다"
+
 msgid "Star on GitHub"
 msgstr "GitHub에서 스타"
 
@@ -13529,6 +13692,9 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
+msgid "Superset | Company Dashboard"
+msgstr "Superset | 회사 대시보드"
+
 msgid "Superset Agent"
 msgstr "Superset 에이전트"
 
@@ -13670,6 +13836,9 @@ msgstr "일시 중지됨"
 
 msgid "Sustain"
 msgstr "지속"
+
+msgid "Sustain · active days in 30"
+msgstr "지속성 · 30일 중 활동 일수"
 
 msgid "Switch agents. Keep your workflow"
 msgstr "에이전트는 바꾸고, 워크플로는 그대로"
@@ -13919,6 +14088,9 @@ msgstr "정리 스크립트가 {seconds}초 후 시간 초과되었습니다"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "어떤 에이전트에게든 <0>superset</0> CLI로 워크스페이스를 띄우거나 작업을 실행하거나 자동화를 관리하라고 지시하세요."
+
+msgid "Ten parallel workstreams running, each landing merged work"
+msgstr "10개의 병렬 작업 흐름이 각각 병합된 결과를 만듭니다"
 
 msgid "terminal"
 msgstr "터미널"
@@ -14584,6 +14756,9 @@ msgstr "조직과 Slack 사이의 연결이 제거됩니다. 언제든지 다시
 msgid "This will revert all changes to this file. This action cannot be undone."
 msgstr "이 파일의 모든 변경 사항을 되돌립니다. 되돌릴 수 없습니다."
 
+msgid "This will revert all unstaged modifications and delete untracked files. This action cannot be undone."
+msgstr "스테이징되지 않은 모든 수정을 되돌리고 추적되지 않는 파일을 삭제합니다. 이 작업은 취소할 수 없습니다."
+
 msgid "This will revert all unstaged modifications and delete untracked files. This cannot be undone."
 msgstr "스테이징되지 않은 수정 사항을 모두 되돌리고 추적되지 않는 파일을 삭제합니다. 되돌릴 수 없습니다."
 
@@ -14592,6 +14767,9 @@ msgstr "지속 실행 중인 모든 터미널 프로세스(빌드, 테스트, �
 
 msgid "This will terminate the session and its underlying process."
 msgstr "이 세션과 그 하위 프로세스를 종료합니다."
+
+msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This action cannot be undone."
+msgstr "스테이징된 모든 변경을 스테이징 해제하고 되돌립니다. 스테이징된 새 파일은 삭제됩니다. 이 작업은 취소할 수 없습니다."
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "스테이징된 변경 사항을 모두 스테이징 해제하고 되돌립니다. 스테이징된 새 파일은 삭제됩니다. 되돌릴 수 없습니다."
@@ -15561,6 +15739,12 @@ msgstr "클라우드 서비스를 함께 만들어 갈 공동 개발 파트너�
 msgid "We're rebuilding this feature. Check back soon."
 msgstr "이 기능을 다시 만들고 있습니다. 곧 다시 확인해 주세요."
 
+msgid "Web Fetch"
+msgstr "웹 가져오기"
+
+msgid "Web Search"
+msgstr "웹 검색"
+
 msgid "Webhook trigger not found"
 msgstr "웹훅 트리거를 찾을 수 없습니다"
 
@@ -15636,6 +15820,9 @@ msgstr "다시 오신 것을 환영합니다"
 
 msgid "Welcome to Superset"
 msgstr "Superset에 오신 것을 환영합니다"
+
+msgid "Welcome to the new Superset"
+msgstr "새로운 Superset에 오신 것을 환영합니다"
 
 msgid "What builders say about Superset"
 msgstr "빌더들이 말하는 Superset"
@@ -15751,6 +15938,9 @@ msgstr "작업 완수"
 msgid "Width"
 msgstr "너비"
 
+msgid "Width · parallel sessions"
+msgstr "너비 · 병렬 세션"
+
 msgid "Window"
 msgstr "창"
 
@@ -15841,6 +16031,9 @@ msgstr "워크스페이스를 열었지만 터미널을 시작하지 못했습�
 
 msgid "Workspace path is not available"
 msgstr "워크스페이스 경로를 사용할 수 없습니다"
+
+msgid "Workspace path is not available yet"
+msgstr "작업 공간 경로를 아직 사용할 수 없습니다"
 
 msgid "Workspace pinning & bulk actions"
 msgstr "워크스페이스 고정 및 일괄 작업"

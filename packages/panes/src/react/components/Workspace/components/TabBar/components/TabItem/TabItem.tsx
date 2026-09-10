@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	ContextMenu,
@@ -49,6 +50,7 @@ export function TabItem<TData>({
 	icon,
 	accessory,
 }: TabItemProps<TData>) {
+	const { t } = useLingui();
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
 	const title = useTabTitle(tab, tabs, registry);
@@ -178,7 +180,7 @@ export function TabItem<TData>({
 									</span>
 								)}
 								<Button
-									aria-label="Close tab"
+									aria-label={t({ message: "Close tab" })}
 									className={cn(
 										"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
 										isActive ? "hover:bg-muted" : "hover:bg-foreground/10",
@@ -204,15 +206,19 @@ export function TabItem<TData>({
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={startEditing}>
 					<PencilIcon className="mr-2 size-4" />
-					Rename
+					<Trans>Rename</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onClose}>
 					<XIcon className="mr-2 size-4" />
-					Close
+					<Trans>Close</Trans>
 				</ContextMenuItem>
-				<ContextMenuItem onSelect={onCloseOthers}>Close Others</ContextMenuItem>
-				<ContextMenuItem onSelect={onCloseAll}>Close All</ContextMenuItem>
+				<ContextMenuItem onSelect={onCloseOthers}>
+					<Trans>Close Others</Trans>
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={onCloseAll}>
+					<Trans>Close All</Trans>
+				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>
 	);
