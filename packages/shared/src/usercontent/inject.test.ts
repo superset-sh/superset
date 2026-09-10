@@ -1,84 +1,82 @@
 import { describe, expect, test } from "bun:test";
-import {
-	injectScriptTag,
-	injectStylesheetLink,
-	injectStyleTag,
-} from "./inject";
+import { injectScriptTag, injectStyleTag } from "./inject";
 
-const HREF = "/_superset/theme.css";
-const LINK = `<link rel="stylesheet" href="${HREF}">`;
+const CSS = "body{color:red}";
+const LINK = `<style>${CSS}</style>`;
 
-describe("injectStylesheetLink", () => {
+describe("injectStyleTag", () => {
 	test("opens the head with the link", () => {
 		expect(
-			injectStylesheetLink("<html><head><title>x</title></head></html>", HREF),
+			injectStyleTag("<html><head><title>x</title></head></html>", CSS),
 		).toBe(`<html><head>${LINK}<title>x</title></head></html>`);
 	});
 
 	test("stays ahead of the page's own styles", () => {
 		const html = "<head><style>body{background:#fff}</style></head>";
-		const out = injectStylesheetLink(html, HREF);
-		expect(out.indexOf(LINK)).toBeLessThan(out.indexOf("<style>"));
+		const out = injectStyleTag(html, CSS);
+		expect(out.indexOf(LINK)).toBeLessThan(
+			out.indexOf("body{background:#fff}"),
+		);
 	});
 
 	test("keeps attributes on the head tag", () => {
-		expect(injectStylesheetLink('<head lang="en">x</head>', HREF)).toBe(
+		expect(injectStyleTag('<head lang="en">x</head>', CSS)).toBe(
 			`<head lang="en">${LINK}x</head>`,
 		);
 	});
 
 	test("follows the doctype when there is no head", () => {
-		expect(injectStylesheetLink("<!DOCTYPE html><p>hi</p>", HREF)).toBe(
+		expect(injectStyleTag("<!DOCTYPE html><p>hi</p>", CSS)).toBe(
 			`<!DOCTYPE html>${LINK}<p>hi</p>`,
 		);
 	});
 
 	test("is not fooled by a <header> element", () => {
 		const html = "<header><style>p{color:red}</style></header>";
-		expect(injectStylesheetLink(html, HREF)).toBe(`${LINK}${html}`);
+		expect(injectStyleTag(html, CSS)).toBe(`${LINK}${html}`);
 	});
 
 	test("follows a doctype that trails a newline", () => {
-		expect(injectStylesheetLink("\n<!doctype html><p>hi</p>", HREF)).toBe(
+		expect(injectStyleTag("\n<!doctype html><p>hi</p>", CSS)).toBe(
 			`\n<!doctype html>${LINK}<p>hi</p>`,
 		);
 	});
 
 	test("goes first in a fragment", () => {
-		expect(injectStylesheetLink("<p>hi</p>", HREF)).toBe(`${LINK}<p>hi</p>`);
+		expect(injectStyleTag("<p>hi</p>", CSS)).toBe(`${LINK}<p>hi</p>`);
 	});
 
 	test("skips a head written inside a comment", () => {
 		const html = "<!-- <head> is where styles go --><head><p>hi</p></head>";
-		expect(injectStylesheetLink(html, HREF)).toBe(
+		expect(injectStyleTag(html, CSS)).toBe(
 			`<!-- <head> is where styles go --><head>${LINK}<p>hi</p></head>`,
 		);
 	});
 
 	test("skips a head written inside a script", () => {
 		const html = '<script>d.write("<head>")</script><head lang="en">x</head>';
-		expect(injectStylesheetLink(html, HREF)).toBe(
+		expect(injectStyleTag(html, CSS)).toBe(
 			`<script>d.write("<head>")</script><head lang="en">${LINK}x</head>`,
 		);
 	});
 
 	test("skips a head written inside a style", () => {
 		const html = "<style>/* <head> */</style><head>x</head>";
-		expect(injectStylesheetLink(html, HREF)).toBe(
+		expect(injectStyleTag(html, CSS)).toBe(
 			`<style>/* <head> */</style><head>${LINK}x</head>`,
 		);
 	});
 
 	test("reads past a > inside a quoted head attribute", () => {
 		const html = '<head data-value=">"><p>hi</p></head>';
-		expect(injectStylesheetLink(html, HREF)).toBe(
+		expect(injectStyleTag(html, CSS)).toBe(
 			`<head data-value=">">${LINK}<p>hi</p></head>`,
 		);
 	});
 
 	test("falls back when the only head is inside a comment", () => {
 		const html = "<!DOCTYPE html><!-- <head> --><p>hi</p>";
-		expect(injectStylesheetLink(html, HREF)).toBe(
+		expect(injectStyleTag(html, CSS)).toBe(
 			`<!DOCTYPE html>${LINK}<!-- <head> --><p>hi</p>`,
 		);
 	});
@@ -86,45 +84,29 @@ describe("injectStylesheetLink", () => {
 	test("skips a head written inside another element's attribute", () => {
 		const html =
 			'<div data-hint="write your styles in <head>"></div><head>x</head>';
-		expect(injectStylesheetLink(html, HREF)).toBe(
+		expect(injectStyleTag(html, CSS)).toBe(
 			`<div data-hint="write your styles in <head>"></div><head>${LINK}x</head>`,
 		);
 	});
 
 	test("falls back when the only head is inside an attribute", () => {
 		const html = '<!DOCTYPE html><div title="a <head> tag">hi</div>';
-		expect(injectStylesheetLink(html, HREF)).toBe(
+		expect(injectStyleTag(html, CSS)).toBe(
 			`<!DOCTYPE html>${LINK}<div title="a <head> tag">hi</div>`,
 		);
 	});
 
 	test("does not mistake header for head", () => {
 		const html = "<header>top</header><head>x</head>";
-		expect(injectStylesheetLink(html, HREF)).toBe(
+		expect(injectStyleTag(html, CSS)).toBe(
 			`<header>top</header><head>${LINK}x</head>`,
 		);
 	});
 
 	test("scans a document with many script blocks and no head", () => {
 		const html = `<!DOCTYPE html>${"<script>var a = 1;</script>".repeat(2000)}<p>hi</p>`;
-		expect(injectStylesheetLink(html, HREF)).toBe(
+		expect(injectStyleTag(html, CSS)).toBe(
 			`<!DOCTYPE html>${LINK}${"<script>var a = 1;</script>".repeat(2000)}<p>hi</p>`,
-		);
-	});
-});
-
-describe("injectStyleTag", () => {
-	test("inlines the css at the top of the head", () => {
-		const html = "<!DOCTYPE html><head><title>hi</title></head>";
-		expect(injectStyleTag(html, "body{color:red}")).toBe(
-			"<!DOCTYPE html><head><style>body{color:red}</style><title>hi</title></head>",
-		);
-	});
-
-	test("skips a head that is only text", () => {
-		const html = '<!DOCTYPE html><div title="<head>">hi</div>';
-		expect(injectStyleTag(html, "a{}")).toBe(
-			'<!DOCTYPE html><style>a{}</style><div title="<head>">hi</div>',
 		);
 	});
 });

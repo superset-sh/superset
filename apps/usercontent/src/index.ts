@@ -17,7 +17,6 @@ import {
 	parsePageManifest,
 	RUNTIME_SCRIPT_PATH,
 	servedVersionOf,
-	THEME_STYLESHEET_PATH,
 	THUMBNAIL_FILENAME,
 	TICKET_QUERY_PARAM,
 	verifyFileTicket,
@@ -531,13 +530,6 @@ app.use("*", async (c, next) => {
 app.get(RUNTIME_SCRIPT_PATH, (c) =>
 	c.body(PAGE_COMMENTS_RUNTIME_SOURCE, 200, {
 		"Content-Type": "text/javascript; charset=utf-8",
-		"Cache-Control": "public, max-age=300",
-	}),
-);
-
-app.get(THEME_STYLESHEET_PATH, (c) =>
-	c.body(PAGE_THEME_CSS, 200, {
-		"Content-Type": "text/css; charset=utf-8",
 		"Cache-Control": "public, max-age=300",
 	}),
 );

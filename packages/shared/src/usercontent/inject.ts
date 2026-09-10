@@ -62,10 +62,6 @@ export function injectStyleTag(html: string, css: string): string {
 	return injectIntoHead(html, `<style>${css}</style>`);
 }
 
-export function injectStylesheetLink(html: string, href: string): string {
-	return injectIntoHead(html, `<link rel="stylesheet" href="${href}">`);
-}
-
 function injectIntoHead(html: string, tag: string): string {
 	const head = findHeadTag(html);
 	if (head) {
