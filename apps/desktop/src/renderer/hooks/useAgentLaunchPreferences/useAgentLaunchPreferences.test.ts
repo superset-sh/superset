@@ -81,3 +81,15 @@ test("model and reasoning effort survive agent switches and remounts", () => {
 	expect(next.result.current.selectedModel).toBe(model);
 	expect(next.result.current.selectedEffort).toBe(effort);
 });
+
+test("ignores empty native-select events during host option changes", () => {
+	window.localStorage.setItem(options.agentStorageKey, "cursor");
+	const { result, rerender } = renderHook(useAgentLaunchPreferences, {
+		initialProps: options,
+	});
+	rerender({ ...options, validAgents: ["claude", "none"] });
+	act(() => result.current.setSelectedAgent(""));
+	expect(window.localStorage.getItem(options.agentStorageKey)).toBe("cursor");
+	rerender(options);
+	expect(result.current.selectedAgent).toBe("cursor");
+});

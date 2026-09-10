@@ -81,6 +81,9 @@ export function useAgentLaunchPreferences<TAgent extends string>({
 	};
 
 	const setSelectedAgent = (agent: TAgent) => {
+		// Radix's native select can emit an empty value as host options change.
+		// It is not a user choice (the explicit opt-out is "none").
+		if (!agent) return;
 		setSelectedAgentState(agent);
 		if (typeof window !== "undefined") {
 			window.localStorage.setItem(agentStorageKey, agent);
