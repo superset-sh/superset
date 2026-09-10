@@ -77,7 +77,12 @@ test("marketing does not import the global translation instance", async () => {
 	for await (const file of new Bun.Glob("**/*.{ts,tsx}").scan({
 		cwd: srcDir,
 	})) {
-		if (file.includes(".test.") || file.includes("/test-utils/")) continue;
+		if (
+			file.includes(".test.") ||
+			file.includes("/test-utils/") ||
+			file.includes("/_test-utils/")
+		)
+			continue;
 		const source = await Bun.file(join(srcDir, file)).text();
 		if (
 			/import\s*\{[^}]*\bi18n\b[^}]*\}\s*from\s*["'](?:@superset\/i18n|@lingui\/core)["']/.test(
