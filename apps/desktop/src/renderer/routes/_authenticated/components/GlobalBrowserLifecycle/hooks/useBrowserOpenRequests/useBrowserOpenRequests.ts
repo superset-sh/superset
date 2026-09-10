@@ -2,28 +2,75 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
+import type { BrowserPaneData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { writeWorkspacePaneLayout } from "renderer/stores/workspace-creates/writeWorkspacePaneLayout";
+import { openBackgroundBrowser } from "./utils/openBackgroundBrowser";
 
 interface BrowserOpenRequest {
 	workspaceId: string;
 	url: string;
 	target: "current-tab" | "new-tab";
 	requestId: string;
+	show: boolean;
 }
 
-/**
- * Consumes external browser-open requests (CLI/agents via the browser
- * bridge). Navigating with the openUrl search params reuses the exact flow
- * the ports sidebar uses — the workspace route's useConsumeOpenUrlRequest
- * creates the pane, and its webview registration answers the bridge.
- */
+/** Opens agent browsers without navigation unless the caller explicitly asks to show them. */
 export function useBrowserOpenRequests() {
 	const navigate = useNavigate();
+	const collections = useCollections();
+	const { workspaces } = useHostWorkspaces();
 
 	useEffect(() => {
 		const subscription = electronTrpcClient.browser.onOpenRequest.subscribe(
 			undefined,
 			{
 				onData: (request: BrowserOpenRequest) => {
+					if (!request.show) {
+						try {
+							if (!collections.v2WorkspaceLocalState.get(request.workspaceId)) {
+								const workspace = workspaces.find(
+									(workspace) => workspace.id === request.workspaceId,
+								);
+								if (!workspace)
+									throw new Error(`Unknown workspace ${request.workspaceId}`);
+								writeWorkspacePaneLayout(collections, workspace, [], []);
+							}
+							const paneId = openBackgroundBrowser({ collections, ...request });
+							browserRuntimeRegistry.openBackground(
+								paneId,
+								request.url,
+								request.workspaceId,
+								(state) => {
+									if (
+										!collections.v2WorkspaceLocalState.get(request.workspaceId)
+									)
+										return;
+									collections.v2WorkspaceLocalState.update(
+										request.workspaceId,
+										(draft) => {
+											for (const tab of draft.paneLayout.tabs) {
+												const pane = tab.panes[paneId];
+												if (pane?.kind === "browser")
+													pane.data = {
+														...(pane.data as BrowserPaneData),
+														...state,
+													};
+											}
+										},
+									);
+								},
+							);
+						} catch (err) {
+							console.error(
+								"[useBrowserOpenRequests] background open failed:",
+								err,
+							);
+						}
+						return;
+					}
 					navigateToV2Workspace(request.workspaceId, navigate, {
 						search: {
 							openUrl: request.url,
@@ -39,5 +86,5 @@ export function useBrowserOpenRequests() {
 		return () => {
 			subscription.unsubscribe();
 		};
-	}, [navigate]);
+	}, [navigate, collections, workspaces]);
 }

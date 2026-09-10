@@ -1,10 +1,13 @@
-import { CLIError, string } from "@superset/cli-framework";
+import { boolean, CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { resolveBrowserTarget } from "../shared";
 
 export default command({
 	description: "Open a URL in a workspace browser pane and return its pane id",
 	options: {
+		show: boolean().desc(
+			"Show the browser to the user by switching to its workspace",
+		),
 		workspace: string().required().desc("Workspace ID"),
 		host: string().desc("Host the workspace lives on (default: this machine)"),
 		url: string().required().desc("URL to open"),
@@ -27,6 +30,7 @@ export default command({
 			workspaceId: options.workspace,
 			url: options.url,
 			target,
+			show: options.show ?? false,
 		});
 		return {
 			data: result,

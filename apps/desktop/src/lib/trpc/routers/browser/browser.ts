@@ -267,8 +267,8 @@ export const createBrowserRouter = () => {
 		}),
 
 		// External open requests (CLI/agents via the browser bridge). A global
-		// renderer hook consumes these and routes them through the same
-		// openUrl search-param flow the ports sidebar uses.
+		// renderer hook opens them in the background, navigating only when
+		// the caller explicitly requests that the browser be shown.
 		onOpenRequest: publicProcedure.subscription(() => {
 			return observable<BrowserOpenRequest>((emit) => {
 				const handler = (request: BrowserOpenRequest) => {

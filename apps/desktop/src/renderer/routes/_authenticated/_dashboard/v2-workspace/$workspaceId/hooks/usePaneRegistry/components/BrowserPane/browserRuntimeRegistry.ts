@@ -494,6 +494,28 @@ class BrowserRuntimeRegistryImpl {
 		return entry;
 	}
 
+	/** Create an agent's guest without mounting or focusing its workspace route. */
+	openBackground(
+		paneId: string,
+		url: string,
+		workspaceId: string,
+		onPersist: (state: PersistableBrowserState) => void,
+	): void {
+		if (this.entries.has(paneId)) return;
+		const root = this.ensureRootContainer();
+		const entry = this.createEntry(paneId, url, workspaceId);
+		entry.onPersist = onPersist;
+		entry.lastUsedAt = ++this.useSeq;
+		// Give automation a usable viewport before this pane has ever been shown.
+		entry.webview.style.width = "1280px";
+		entry.webview.style.height = "720px";
+		this.entries.set(paneId, entry);
+		this.applyParkedStyle(paneId, entry);
+		root.appendChild(entry.webview);
+		root.appendChild(entry.overlay);
+		this.scheduleHiddenEviction();
+	}
+
 	attach(
 		paneId: string,
 		placeholder: HTMLElement,

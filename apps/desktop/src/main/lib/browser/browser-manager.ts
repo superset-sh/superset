@@ -44,6 +44,7 @@ export interface BrowserOpenRequest {
 	workspaceId: string;
 	url: string;
 	target: "current-tab" | "new-tab";
+	show: boolean;
 	requestId: string;
 }
 

@@ -26,6 +26,7 @@ export const browserRouter = router({
 				workspaceId: z.string(),
 				url: z.string(),
 				target: z.enum(["current-tab", "new-tab"]).default("current-tab"),
+				show: z.boolean().default(false),
 			}),
 		)
 		.mutation(({ ctx, input }) =>
@@ -33,6 +34,7 @@ export const browserRouter = router({
 				workspaceId: input.workspaceId,
 				url: input.url,
 				target: input.target,
+				show: input.show,
 			}),
 		),
 

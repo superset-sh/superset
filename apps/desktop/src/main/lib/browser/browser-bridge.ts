@@ -109,7 +109,7 @@ export async function startBrowserBridge(): Promise<void> {
 	});
 
 	app.post("/open", (req, res) => {
-		const { workspaceId, url, target } = req.body ?? {};
+		const { workspaceId, url, target, show } = req.body ?? {};
 		if (typeof workspaceId !== "string" || typeof url !== "string") {
 			res.status(400).json({ error: "workspaceId and url are required" });
 			return;
@@ -190,6 +190,7 @@ export async function startBrowserBridge(): Promise<void> {
 					workspaceId,
 					url: resolvedUrl,
 					target: resolvedTarget,
+					show: show === true,
 					requestId,
 				} satisfies BrowserOpenRequest);
 			});
