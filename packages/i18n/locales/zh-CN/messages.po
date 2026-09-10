@@ -2012,6 +2012,10 @@ msgstr "适用于终端、聊天消息和任务浏览器中的URL。"
 msgid "Apply"
 msgstr "应用"
 
+msgctxt "job application"
+msgid "Apply"
+msgstr "申请"
+
 msgid "Approve"
 msgstr "批准"
 

@@ -668,7 +668,7 @@ msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted} {count, plural, one {desarrollador} other {desarrolladores}}"
 
 msgid "{founderCount} ex-YC founders"
-msgstr "{founderCount} fundadores de la comunidad YC"
+msgstr "{founderCount} fundadores que pasaron por YC"
 
 msgid "{gate} · {statusLabel}"
 msgstr "{gate} · {statusLabel}"
@@ -2011,6 +2011,10 @@ msgstr "Se aplica a las URL en terminales, mensajes de chat y navegadores de tar
 
 msgid "Apply"
 msgstr "Aplicar"
+
+msgctxt "job application"
+msgid "Apply"
+msgstr "Postular"
 
 msgid "Approve"
 msgstr "Aprobar"

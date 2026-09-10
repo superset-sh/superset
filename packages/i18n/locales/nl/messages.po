@@ -2012,6 +2012,10 @@ msgstr "Geldt voor URL's in terminals, chatberichten en taakbrowsers."
 msgid "Apply"
 msgstr "Toepassen"
 
+msgctxt "job application"
+msgid "Apply"
+msgstr "Solliciteer"
+
 msgid "Approve"
 msgstr "Goedkeuren"
 

@@ -2012,6 +2012,10 @@ msgstr "Terminallerdeki, sohbet mesajlarındaki ve görev tarayıcılarındaki U
 msgid "Apply"
 msgstr "Uygula"
 
+msgctxt "job application"
+msgid "Apply"
+msgstr "Başvur"
+
 msgid "Approve"
 msgstr "Onayla"
 

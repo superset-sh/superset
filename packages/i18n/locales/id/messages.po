@@ -2012,6 +2012,10 @@ msgstr "Berlaku untuk URL di terminal, pesan chat, dan browser tugas."
 msgid "Apply"
 msgstr "Terapkan"
 
+msgctxt "job application"
+msgid "Apply"
+msgstr "Lamar"
+
 msgid "Approve"
 msgstr "Setujui"
 
@@ -13898,7 +13902,7 @@ msgid "Superset is built by a team based in San Francisco, California. For produ
 msgstr "Superset dibangun oleh tim yang berbasis di San Francisco, California. Untuk dukungan produk atau pertanyaan akun, kirim email ke <0>{supportEmail}</0> dan kami akan membalas dalam satu hari kerja. Untuk kemitraan, media, enterprise, atau apa pun untuk tim pendiri, tulis ke <1>{foundersEmail}</1>."
 
 msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset dibangun di dalam Superset, jadi kami sendiri adalah pengguna utamanya—Anda dibayar untuk mempermudah pekerjaan Anda sendiri. Jika Anda ingin membangun produk yang senang Anda gunakan, mari bangun bersama kami."
+msgstr "Superset dibangun di dalam Superset, jadi kami sendiri adalah pengguna utamanya—Anda dibayar untuk mempermudah pekerjaan Anda sendiri. Jika Anda ingin membangun produk yang Anda sukai dan senang gunakan, mari bangun bersama kami."
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset dirancang untuk bekerja dengan alat yang sudah Anda pakai; kami mendukung deep-link ke IDE seperti Cursor secara native sehingga Anda bisa membuka workspace dan file di IDE Anda."

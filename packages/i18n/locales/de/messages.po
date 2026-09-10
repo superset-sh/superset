@@ -2012,6 +2012,10 @@ msgstr "Gilt für URLs in Terminals, Chat-Nachrichten und Aufgaben-Browsern."
 msgid "Apply"
 msgstr "Anwenden"
 
+msgctxt "job application"
+msgid "Apply"
+msgstr "Bewerben"
+
 msgid "Approve"
 msgstr "Genehmigen"
 

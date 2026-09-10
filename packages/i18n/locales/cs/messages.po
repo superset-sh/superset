@@ -668,7 +668,7 @@ msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted} {count, plural, one {vývojář} few {vývojáři} many {vývojáře} other {vývojářů}}"
 
 msgid "{founderCount} ex-YC founders"
-msgstr "{founderCount} zakladatelé z YC"
+msgstr "{founderCount} zakladatelé, kteří prošli YC"
 
 msgid "{gate} · {statusLabel}"
 msgstr "{gate} · {statusLabel}"
@@ -2011,6 +2011,10 @@ msgstr "Platí pro URL v terminálech, zprávách chatu a prohlížečích úkol
 
 msgid "Apply"
 msgstr "Použít"
+
+msgctxt "job application"
+msgid "Apply"
+msgstr "Přihlásit se"
 
 msgid "Approve"
 msgstr "Schválit"

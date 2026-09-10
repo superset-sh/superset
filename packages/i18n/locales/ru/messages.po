@@ -2012,6 +2012,10 @@ msgstr "Применяется к URL в терминалах, сообщени�
 msgid "Apply"
 msgstr "Применить"
 
+msgctxt "job application"
+msgid "Apply"
+msgstr "Откликнуться"
+
 msgid "Approve"
 msgstr "Одобрить"
 

@@ -66,7 +66,9 @@ export default async function JoinUsPage() {
 	// Verified in PostHog on 2026-09-10: 54,570 identified desktop users,
 	// excluding test accounts. Cumulative adoption, rounded down.
 	const developerCount = formatNumber(50_000, {}, lang);
-	const applyLabel = i18n._(msg({ message: "Apply" }));
+	const applyLabel = i18n._(
+		msg({ message: "Apply", context: "job application" }),
+	);
 
 	return (
 		<main className="relative bg-background">
@@ -204,13 +206,14 @@ export default async function JoinUsPage() {
 							].join("");
 							const applyLabel = ${JSON.stringify(applyLabel)};
 							const cardCss = [
-								".job-card{position:relative;border:0 !important;padding:0 80px 24px 0 !important}",
+								".job-card{display:grid !important;grid-template-columns:minmax(0,1fr) auto;column-gap:24px;border:0 !important;padding:0 0 24px !important}",
 								".job-card:hover{background:rgba(255,255,255,0.04) !important}", // default rgba(0,0,0,.03) vanishes on dark bg
+								".job-title,.job-meta,.job-salary{grid-column:1}",
 								".job-title{font-size:17px !important;line-height:24px !important;font-weight:450 !important;letter-spacing:-0.015em !important;margin-bottom:8px !important}",
 								".job-meta,.job-salary{font-size:13px !important;line-height:20px !important}",
-								".superset-apply{position:absolute;right:0;top:0;" + mono + ";font-size:11px !important;line-height:24px !important}",
+								".superset-apply{grid-column:2;grid-row:1 / span 3;align-self:start;white-space:nowrap;" + mono + ";font-size:11px !important;line-height:24px !important}",
 								".job-card:hover .superset-apply{color:var(--brand)}",
-								"@container (max-width:400px){.job-card{padding-right:64px !important}}",
+								"@container (max-width:400px){.job-card{column-gap:16px}}",
 							].join("");
 							for (const board of document.querySelectorAll("waas-job-board")) {
 								board.showFilters = false;

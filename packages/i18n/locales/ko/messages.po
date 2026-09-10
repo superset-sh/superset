@@ -2012,6 +2012,10 @@ msgstr "터미널, 채팅 메시지, 작업 브라우저의 URL에 적용됩니�
 msgid "Apply"
 msgstr "적용"
 
+msgctxt "job application"
+msgid "Apply"
+msgstr "지원"
+
 msgid "Approve"
 msgstr "승인"
 
@@ -13898,7 +13902,7 @@ msgid "Superset is built by a team based in San Francisco, California. For produ
 msgstr "Superset은 캘리포니아 샌프란시스코에 있는 팀이 만듭니다. 제품 지원이나 계정 문의는 <0>{supportEmail}</0>으로 메일을 보내 주시면 영업일 기준 하루 안에 회신드립니다. 파트너십, 언론, 엔터프라이즈 문의나 창업팀에 전할 내용은 <1>{foundersEmail}</1>으로 보내 주세요."
 
 msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset은 Superset으로 개발됩니다. 우리가 가장 열심히 쓰는 사용자이므로, 자신의 일을 더 편하게 만드는 것이 곧 일이 됩니다. 직접 즐겨 쓰는 제품을 만들고 싶었다면 우리와 함께하세요."
+msgstr "Superset은 Superset으로 개발됩니다. 우리가 가장 열심히 쓰는 사용자이므로, 자신의 삶을 더 편하게 만드는 대가로 보수를 받게 됩니다. 직접 즐겨 쓰는 제품을 만들고 싶었다면 우리와 함께하세요."
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset은 기존 도구와 함께 쓰도록 만들었습니다. Cursor 같은 IDE로의 딥링크를 기본 지원하므로 워크스페이스와 파일을 쓰던 IDE에서 열 수 있습니다."

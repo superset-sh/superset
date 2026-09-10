@@ -2012,6 +2012,10 @@ msgstr "Si applica agli URL nei terminali, nei messaggi di chat e nei browser de
 msgid "Apply"
 msgstr "Applica"
 
+msgctxt "job application"
+msgid "Apply"
+msgstr "Candidati"
+
 msgid "Approve"
 msgstr "Approva"
 

@@ -2012,6 +2012,10 @@ msgstr "適用於終端、聊天訊息和任務瀏覽器中的URL。"
 msgid "Apply"
 msgstr "應用"
 
+msgctxt "job application"
+msgid "Apply"
+msgstr "應徵"
+
 msgid "Approve"
 msgstr "批准"
 
@@ -13425,7 +13429,7 @@ msgid "soon"
 msgstr "即將"
 
 msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "很快，團隊就會並行執行數百個代理，組成自主生產並交付程式碼的軟體工廠。我們正在將 Superset 打造成團隊執行和管理這些工廠的平台，先從我們自己的工廠開始。"
+msgstr "很快，團隊就會並行執行數百個代理程式，組成自主生產並交付程式碼的軟體工廠。我們正在將 Superset 打造成團隊執行和管理這些工廠的平台，先從我們自己的工廠開始。"
 
 msgid "Sort"
 msgstr "排序"

@@ -2012,6 +2012,10 @@ msgstr "Áp dụng cho URL trong terminal, tin nhắn chat và trình duyệt c�
 msgid "Apply"
 msgstr "Áp dụng"
 
+msgctxt "job application"
+msgid "Apply"
+msgstr "Ứng tuyển"
+
 msgid "Approve"
 msgstr "Duyệt"
 
