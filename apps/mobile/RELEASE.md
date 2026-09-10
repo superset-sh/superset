@@ -71,6 +71,9 @@ rejections in this category are one of these.
       session; keep it that way in both behavior and wording.
 - [ ] Screenshots and description match the build (no features that are behind
       a flag or not in this build).
+- [ ] The app launches and signs in on an iPad simulator in compatibility mode
+      (2.4.1). We are iPhone-only (`supportsTablet: false`), but reviewers
+      test on iPads anyway and a crash there is still a rejection.
 
 ## When the build is rejected
 
@@ -80,22 +83,34 @@ Work the list top to bottom; each step costs minutes and they compound.
    the rejection *and* upload a new build under the same version. Put a screen
    recording in the reply that walks the reviewer to the exact screen and shows
    the change. A reply without a recording is routinely ignored; a fresh build
-   gets a fresh reviewer.
-2. **If the rejection is wrong** (the reviewer could not find a permission that
+   gets a fresh reviewer, and a pending submission forces an answer where a
+   bare reply can sit for days.
+2. **Enumerate the changes and end with a question.** The reply's shape is:
+   here is what changed since the rejection (a short list), and "what else
+   should we change to get this approved?". The list shows collaboration
+   rather than defense, and a concrete answer to the question is a commitment
+   you can quote back on the next round when you've done exactly what they
+   asked. Never argue tone-for-tone; reviewers can stall a release for months
+   and approving you costs them nothing.
+3. **If the rejection is wrong** (the reviewer could not find a permission that
    is plainly there, asked for Sign in with Apple that already exists, etc.)
    do the same thing: reply with a recording of the feature working, cite the
    guideline section, and resubmit. For a metadata-only rejection, fix the
    metadata and resubmit the same build; upload a new build only when the
    binary changes. Do not remove working features to satisfy a misread.
-3. **Ask for a call.** In the rejection thread (Resolution Center) request a
+   The same applies when the reviewer reports a bug on an iPad: the app is
+   iPhone-only (`supportsTablet: false` in `app.config.ts`), so reply that
+   iPad is not a supported device and ask them to verify on an iPhone;
+   that exchange alone has gotten apps in our category approved.
+4. **Ask for a call.** In the rejection thread (Resolution Center) request a
    phone call with App Review. They prefer approving the build over scheduling
    the call, and you end up with a named contact either way.
-4. **Call Apple Developer Support** and ask for App Review escalation. Say the
+5. **Call Apple Developer Support** and ask for App Review escalation. Say the
    release is blocked and the fix is business-critical. Escalate until someone
    says they will contact the review team, then call again if nothing has
    moved in a few hours. There is no limit on calls per day.
-5. **Appeal to the App Review Board** if the rejection stands on a guideline
-   you are confident does not apply. Appeals take days; keep steps 1 to 4 going
+6. **Appeal to the App Review Board** if the rejection stands on a guideline
+   you are confident does not apply. Appeals take days; keep steps 1 to 5 going
    in parallel.
 
 ### Guideline 4.3(a), "Spam" (similar binary, metadata, or concept)
@@ -116,10 +131,16 @@ build's quality and it is not resolved by resubmitting the same metadata.
    subtitle and the first sentence of the description should name Superset as
    the product the app pairs with, not a generic "run AI agents from
    anywhere". Generic metadata is what the reviewer matched on.
-3. Ask for a call in the same thread. 4.3(a) is a judgment call, and the
+3. Ship a visible difference, not just words. A day spent making screens
+   look and flow distinctly ours, enumerated in the reply as "changes in
+   this submission", gives the next reviewer something concrete to
+   approve; founders in the same 4.3(a) loop have been cleared by exactly
+   that, where a well-argued reply on an identical binary was not. Close the
+   reply by asking what else they would change (see step 2 above).
+4. Ask for a call in the same thread. 4.3(a) is a judgment call, and the
    person who calls can clear it on the spot once they see the desktop app.
-4. Resubmit only after 1 and 2 are done, so the next reviewer reads the
-   explanation alongside the new metadata.
+5. Resubmit only after 1 through 3 are done, so the next reviewer reads the
+   explanation alongside the new metadata and a changed build.
 
 ## When the build is stuck in review
 
@@ -127,7 +148,7 @@ build's quality and it is not resolved by resubmitting the same metadata.
 
 1. File an [expedited review request](https://developer.apple.com/contact/app-store/?topic=expedite).
    Low odds on its own, but support will ask whether you did.
-2. Call Developer Support (step 4 above) and ask them to check on the
+2. Call Developer Support (step 5 above) and ask them to check on the
    submission. Repeat daily.
 3. Do **not** cancel and resubmit a build that is merely slow; that puts it at
    the back of the queue. Cancel and resubmit only when you have an actual
