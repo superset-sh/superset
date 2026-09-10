@@ -14306,6 +14306,12 @@ msgstr "Metin alanı"
 msgid "Thanks for reaching out"
 msgstr "Bize ulaştığınız için teşekkürler"
 
+msgid "That endpoint could not be resolved."
+msgstr "Bu uç nokta çözümlenemedi."
+
+msgid "That endpoint is not allowed."
+msgstr "Bu uç noktaya izin verilmiyor."
+
 msgid "That handle is taken."
 msgstr "Bu kullanıcı adı alınmış."
 

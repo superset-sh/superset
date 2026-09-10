@@ -14306,6 +14306,12 @@ msgstr "Zone de texte"
 msgid "Thanks for reaching out"
 msgstr "Merci de nous avoir écrit"
 
+msgid "That endpoint could not be resolved."
+msgstr "Ce point de terminaison n'a pas pu être résolu."
+
+msgid "That endpoint is not allowed."
+msgstr "Ce point de terminaison n'est pas autorisé."
+
 msgid "That handle is taken."
 msgstr "Ce pseudo est déjà pris."
 

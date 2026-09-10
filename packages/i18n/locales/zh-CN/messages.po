@@ -14306,6 +14306,12 @@ msgstr "多行文本框"
 msgid "Thanks for reaching out"
 msgstr "感谢联系"
 
+msgid "That endpoint could not be resolved."
+msgstr "无法解析该端点。"
+
+msgid "That endpoint is not allowed."
+msgstr "该端点不被允许。"
+
 msgid "That handle is taken."
 msgstr "该用户名已被占用。"
 

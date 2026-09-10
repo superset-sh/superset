@@ -9,6 +9,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, userError } from "../../trpc";
 import { decryptAgentCredential, encryptAgentCredential } from "./utils/crypto";
+import { checkPublicEndpoint } from "./utils/public-endpoint";
 import { GATEWAY_BASE_URL, validateAgentCredential } from "./utils/validate";
 
 const agentId = z.string().min(1).max(64);
@@ -65,12 +66,25 @@ export const agentCredentialRouter = {
 			const baseUrl =
 				input.baseUrl ??
 				(input.provider === "gateway" ? GATEWAY_BASE_URL : undefined);
-			if (baseUrl && !baseUrl.toLowerCase().startsWith("https://")) {
-				throw userError({
-					code: "BAD_REQUEST",
-					message: "The endpoint must use https.",
-					i18nKey: "serverError.agentCredential.insecureEndpoint",
-				});
+			if (baseUrl) {
+				const endpoint = await checkPublicEndpoint(baseUrl);
+				if (!endpoint.ok) {
+					const refusal = {
+						"not-https": {
+							message: "The endpoint must use https.",
+							i18nKey: "serverError.agentCredential.insecureEndpoint",
+						},
+						unresolvable: {
+							message: "That endpoint could not be resolved.",
+							i18nKey: "serverError.agentCredential.unresolvableEndpoint",
+						},
+						restricted: {
+							message: "That endpoint is not allowed.",
+							i18nKey: "serverError.agentCredential.restrictedEndpoint",
+						},
+					}[endpoint.reason];
+					throw userError({ code: "BAD_REQUEST", ...refusal });
+				}
 			}
 			if (input.provider === "gateway" && input.kind !== "api_key") {
 				throw userError({

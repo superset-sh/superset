@@ -14306,6 +14306,12 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Cảm ơn bạn đã liên hệ"
 
+msgid "That endpoint could not be resolved."
+msgstr "Không thể phân giải endpoint đó."
+
+msgid "That endpoint is not allowed."
+msgstr "Endpoint đó không được phép."
+
 msgid "That handle is taken."
 msgstr "Tên định danh đó đã có người dùng."
 

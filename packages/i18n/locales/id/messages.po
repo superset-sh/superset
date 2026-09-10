@@ -14306,6 +14306,12 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Terima kasih sudah menghubungi"
 
+msgid "That endpoint could not be resolved."
+msgstr "Endpoint itu tidak dapat ditemukan."
+
+msgid "That endpoint is not allowed."
+msgstr "Endpoint itu tidak diizinkan."
+
 msgid "That handle is taken."
 msgstr "Handle itu sudah dipakai."
 

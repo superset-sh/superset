@@ -14306,6 +14306,12 @@ msgstr "텍스트 영역"
 msgid "Thanks for reaching out"
 msgstr "연락해 주셔서 감사합니다"
 
+msgid "That endpoint could not be resolved."
+msgstr "해당 엔드포인트를 확인할 수 없습니다."
+
+msgid "That endpoint is not allowed."
+msgstr "해당 엔드포인트는 허용되지 않습니다."
+
 msgid "That handle is taken."
 msgstr "이미 사용 중인 핸들입니다."
 

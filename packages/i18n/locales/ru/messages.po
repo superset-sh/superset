@@ -14306,6 +14306,12 @@ msgstr "Текстовое поле"
 msgid "Thanks for reaching out"
 msgstr "Спасибо, что написали"
 
+msgid "That endpoint could not be resolved."
+msgstr "Не удалось разрешить эту конечную точку."
+
+msgid "That endpoint is not allowed."
+msgstr "Эта конечная точка не разрешена."
+
 msgid "That handle is taken."
 msgstr "Этот ник занят."
 

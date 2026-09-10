@@ -14306,6 +14306,12 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Grazie per averci scritto"
 
+msgid "That endpoint could not be resolved."
+msgstr "Impossibile risolvere questo endpoint."
+
+msgid "That endpoint is not allowed."
+msgstr "Questo endpoint non è consentito."
+
 msgid "That handle is taken."
 msgstr "Questo handle è già in uso."
 

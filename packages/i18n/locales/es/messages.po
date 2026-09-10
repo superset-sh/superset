@@ -14306,6 +14306,12 @@ msgstr "Área de texto"
 msgid "Thanks for reaching out"
 msgstr "Gracias por escribirnos"
 
+msgid "That endpoint could not be resolved."
+msgstr "No se pudo resolver ese endpoint."
+
+msgid "That endpoint is not allowed."
+msgstr "Ese endpoint no está permitido."
+
 msgid "That handle is taken."
 msgstr "Ese nombre de usuario ya está en uso."
 

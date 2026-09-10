@@ -14306,6 +14306,12 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "お問い合わせありがとうございます"
 
+msgid "That endpoint could not be resolved."
+msgstr "そのエンドポイントを解決できませんでした。"
+
+msgid "That endpoint is not allowed."
+msgstr "そのエンドポイントは許可されていません。"
+
 msgid "That handle is taken."
 msgstr "そのハンドルは使用済みです。"
 

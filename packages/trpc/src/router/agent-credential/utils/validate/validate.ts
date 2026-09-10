@@ -39,6 +39,9 @@ async function probe(
 	try {
 		response = await fetch(url, {
 			headers,
+			// The destination was authorized before this call; following a
+			// redirect would send the credential somewhere that was not.
+			redirect: "error",
 			signal: AbortSignal.timeout(TIMEOUT_MS),
 		});
 	} catch {

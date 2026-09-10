@@ -67,6 +67,18 @@ export const serverErrorMessages: Record<
 				message: "Could not reach the provider. Try again.",
 			}),
 		),
+	"serverError.agentCredential.restrictedEndpoint": () =>
+		i18n._(
+			msg({
+				message: "That endpoint is not allowed.",
+			}),
+		),
+	"serverError.agentCredential.unresolvableEndpoint": () =>
+		i18n._(
+			msg({
+				message: "That endpoint could not be resolved.",
+			}),
+		),
 	"serverError.agentCredential.unsupported": (params) =>
 		i18n._(
 			msg({
