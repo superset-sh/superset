@@ -12,3 +12,5 @@
 "Model: %@" = "モデル: %@";
 "Microphone access is not allowed" = "マイクへのアクセスが許可されていません";
 "Could not start dictation" = "音声入力を開始できませんでした";
+"Uploading" = "アップロード中";
+"Upload failed" = "アップロードに失敗しました";

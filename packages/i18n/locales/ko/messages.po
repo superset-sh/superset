@@ -2135,10 +2135,6 @@ msgstr "첨부 파일 업로드 실패: {0}"
 msgid "Attachment was not uploaded — send the bytes first"
 msgstr "첨부 파일이 업로드되지 않았습니다 — 먼저 데이터를 전송하세요"
 
-#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
-msgid "Attachments are at most {0} MB."
-msgstr "첨부 파일은 최대 {0} MB입니다."
-
 msgid "Attachments are not wired yet"
 msgstr "첨부 파일은 아직 연결되지 않았습니다"
 
@@ -5355,6 +5351,10 @@ msgstr "예: Engineering"
 
 msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
 msgstr "각 에이전트가 격리된 자체 Git worktree에서 실행됩니다. 머지 충돌도, 서로의 변경을 건드리는 일도 없습니다. 준비되면 리뷰하고 머지하세요."
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Each attachment is at most {0} MB."
+msgstr "첨부 파일은 각각 최대 {0} MB입니다."
 
 msgid "Each in its own new tab"
 msgstr "각각 새 탭에서"

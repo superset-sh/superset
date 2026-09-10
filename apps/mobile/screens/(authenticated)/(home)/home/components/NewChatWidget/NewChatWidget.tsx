@@ -176,8 +176,16 @@ export function NewChatWidget({
 		composerRef.current?.focus();
 	}, [focusNonce]);
 
+	// A send now begins with an await — the attachment uploads — so the
+	// mutation's own `isPending` no longer covers the whole of it. Without a
+	// lock taken before that await, a second tap slips through the gap and
+	// creates a second workspace with its own id.
+	const sending = useRef(false);
+	const [isHoldingSend, setIsHoldingSend] = useState(false);
 	const isSending =
-		createTerminalWorkspace.isPending || createCloudWorkspace.isPending;
+		isHoldingSend ||
+		createTerminalWorkspace.isPending ||
+		createCloudWorkspace.isPending;
 
 	// The draft and the tray are cleared together, on success only. The native
 	// composer's `clear()` reaches its own text and nothing else — the tray is
@@ -189,6 +197,18 @@ export function NewChatWidget({
 	};
 
 	const submit = async (message: PromptInputMessage) => {
+		if (sending.current) return;
+		sending.current = true;
+		setIsHoldingSend(true);
+		try {
+			await send(message);
+		} finally {
+			sending.current = false;
+			setIsHoldingSend(false);
+		}
+	};
+
+	const send = async (message: PromptInputMessage) => {
 		posthog.capture("chat_message_sent", {
 			has_attachments: message.attachments.length > 0,
 			attachment_count: message.attachments.length,
@@ -208,7 +228,7 @@ export function NewChatWidget({
 			return;
 		}
 		if (selectedTarget.kind === "cloud") {
-			createCloudWorkspace
+			await createCloudWorkspace
 				.mutateAsync({
 					branch: baseBranch ?? branchData?.defaultBranch ?? null,
 					environmentId: selectedEnvironment?.id ?? null,
@@ -242,7 +262,7 @@ export function NewChatWidget({
 			);
 			return;
 		}
-		createTerminalWorkspace
+		await createTerminalWorkspace
 			.mutateAsync({
 				target: selectedTarget,
 				baseBranch,

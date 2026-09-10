@@ -12,3 +12,5 @@
 "Model: %@" = "Model: %@";
 "Microphone access is not allowed" = "Toegang tot de microfoon is niet toegestaan";
 "Could not start dictation" = "Dicteren kon niet worden gestart";
+"Uploading" = "Uploaden";
+"Upload failed" = "Uploaden mislukt";

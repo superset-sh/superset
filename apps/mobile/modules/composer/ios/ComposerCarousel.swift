@@ -126,7 +126,7 @@ struct ComposerCarousel: View {
         .thumbnailShadow()
     }
     .allowsHitTesting(false)
-    .accessibilityLabel("Upload failed")
+    .accessibilityLabel(composerLocalized("Upload failed"))
   }
 
   /// How far along an attachment's upload is, over a scrim so the ring stays
@@ -171,7 +171,7 @@ struct ComposerCarousel: View {
       )
     }
     .allowsHitTesting(false)
-    .accessibilityLabel("Uploading")
+    .accessibilityLabel(composerLocalized("Uploading"))
     .accessibilityValue(
       Text(progress.formatted(.percent.precision(.fractionLength(0))))
     )

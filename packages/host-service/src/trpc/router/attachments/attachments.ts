@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync } from "node:fs";
+import { closeSync, mkdirSync, openSync } from "node:fs";
 import { join } from "node:path";
 import {
 	assignAttachmentFileName,
@@ -43,12 +43,18 @@ function mediaTypeOf(declared: string): string {
 }
 
 /**
- * A free filename in the worktree's attachment directory.
+ * Takes a free filename in the worktree's attachment directory, creating it
+ * so nobody else can take the same one.
  *
  * `assignAttachmentFileName` only deduplicates within one batch — it cannot
  * see what earlier sends already wrote. The directory is long-lived and a
  * second photo named IMG_0006.jpg is ordinary, so the batch-local name is
  * only a starting point and the real directory decides.
+ *
+ * The claim is the exclusive create rather than a existence check: two sends
+ * materializing at once would both find the same name free and the second
+ * download would truncate the first's file. `wx` makes the loser see EEXIST
+ * and move to the next suffix.
  */
 export function claimFileName({
 	attachment,
@@ -68,10 +74,14 @@ export function claimFileName({
 	});
 	for (let attempt = 0; ; attempt++) {
 		const candidate = attachmentNameWithSuffix(base, attempt);
-		if (!existsSync(join(directory, candidate))) {
-			used.add(candidate.toLowerCase());
-			return candidate;
+		try {
+			closeSync(openSync(join(directory, candidate), "wx", 0o600));
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === "EEXIST") continue;
+			throw error;
 		}
+		used.add(candidate.toLowerCase());
+		return candidate;
 	}
 }
 

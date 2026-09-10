@@ -12,3 +12,5 @@
 "Model: %@" = "模型：%@";
 "Microphone access is not allowed" = "未允許存取麥克風";
 "Could not start dictation" = "無法啟動聽寫";
+"Uploading" = "正在上傳";
+"Upload failed" = "上傳失敗";

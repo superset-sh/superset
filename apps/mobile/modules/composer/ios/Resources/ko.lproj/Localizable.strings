@@ -12,3 +12,5 @@
 "Model: %@" = "모델: %@";
 "Microphone access is not allowed" = "마이크 접근이 허용되지 않았습니다";
 "Could not start dictation" = "받아쓰기를 시작할 수 없습니다";
+"Uploading" = "업로드 중";
+"Upload failed" = "업로드 실패";

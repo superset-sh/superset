@@ -2135,10 +2135,6 @@ msgstr "附件上传失败：{0}"
 msgid "Attachment was not uploaded — send the bytes first"
 msgstr "附件尚未上传 — 请先发送数据"
 
-#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
-msgid "Attachments are at most {0} MB."
-msgstr "附件最大为{0} MB。"
-
 msgid "Attachments are not wired yet"
 msgstr "附件功能尚未接入"
 
@@ -5355,6 +5351,10 @@ msgstr "例如：工程"
 
 msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
 msgstr "每个智能体都跑在自己隔离的Git worktree里。没有合并冲突，也不会互相覆盖改动。等你准备好了再审查和合并。"
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Each attachment is at most {0} MB."
+msgstr "每个附件最大为{0} MB。"
 
 msgid "Each in its own new tab"
 msgstr "每条各占一个新标签页"

@@ -2135,10 +2135,6 @@ msgstr "Attachment upload failed: {0}"
 msgid "Attachment was not uploaded — send the bytes first"
 msgstr "Attachment was not uploaded — send the bytes first"
 
-#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
-msgid "Attachments are at most {0} MB."
-msgstr "Attachments are at most {0} MB."
-
 msgid "Attachments are not wired yet"
 msgstr "Attachments are not wired yet"
 
@@ -5355,6 +5351,10 @@ msgstr "e.g. Engineering"
 
 msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
 msgstr "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Each attachment is at most {0} MB."
+msgstr "Each attachment is at most {0} MB."
 
 msgid "Each in its own new tab"
 msgstr "Each in its own new tab"

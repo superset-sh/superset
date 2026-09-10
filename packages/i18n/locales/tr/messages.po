@@ -2135,10 +2135,6 @@ msgstr "Ek yüklenemedi: {0}"
 msgid "Attachment was not uploaded — send the bytes first"
 msgstr "Ek yüklenmedi — önce verileri gönderin"
 
-#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
-msgid "Attachments are at most {0} MB."
-msgstr "Ekler en fazla {0} MB olabilir."
-
 msgid "Attachments are not wired yet"
 msgstr "Ekler henüz bağlanmadı"
 
@@ -5355,6 +5351,10 @@ msgstr "örn. Mühendislik"
 
 msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
 msgstr "Her ajan kendi yalıtılmış Git worktree'sinde çalışır. Birleştirme çakışması yok, birbirinin değişikliklerine dokunma yok. Hazır olduğunuzda inceleyip birleştirin."
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Each attachment is at most {0} MB."
+msgstr "Her ek en fazla {0} MB olabilir."
 
 msgid "Each in its own new tab"
 msgstr "Her biri kendi yeni sekmesinde"

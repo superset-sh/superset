@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { claimFileName } from "./attachments";
@@ -65,6 +65,22 @@ describe("claimFileName", () => {
 		expect(join(directory, claimed as string)).toBe(
 			join(directory, ".._.._etc_passwd"),
 		);
+	});
+
+	// Two sends materializing at once each carry their own batch set, so the
+	// only thing standing between them is the directory itself.
+	it("two callers that share nothing still get different names", () => {
+		const first = claim(new Set(), "shot.png");
+		const second = claim(new Set(), "shot.png");
+
+		expect(first).toEqual(["shot.png"]);
+		expect(second).toEqual(["shot_1.png"]);
+	});
+
+	it("reserves the name on disk, so the claim is the create", () => {
+		claim(new Set(), "held.bin");
+
+		expect(existsSync(join(directory, "held.bin"))).toBe(true);
 	});
 
 	it("falls back to a generated name when nothing usable survives", () => {

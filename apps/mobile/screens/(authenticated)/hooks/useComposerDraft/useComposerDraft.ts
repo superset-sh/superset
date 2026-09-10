@@ -94,7 +94,14 @@ export function useComposerDraft(key: string) {
 			const sized = items.filter(
 				(item) => sizeOf(item) <= MAX_ATTACHMENT_BYTES,
 			);
-			const capacity = Math.max(0, MAX_ATTACHMENTS - attachments.length);
+			// From the store, not the rendered list: two adds in one tick — a
+			// paste landing while a picker returns — would both measure the
+			// same stale count and together overshoot the cap, which the
+			// host then refuses once the uploads have already run.
+			const held =
+				useComposerDraftsStore.getState().draftsByKey[key]?.attachments
+					.length ?? 0;
+			const capacity = Math.max(0, MAX_ATTACHMENTS - held);
 			const accepted = sized.slice(0, capacity);
 
 			// One reason, size first: it names a specific file the user chose,
@@ -106,7 +113,7 @@ export function useComposerDraft(key: string) {
 						message: "Attachment is too large",
 					}),
 					t({
-						message: `Attachments are at most ${formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)} MB.`,
+						message: `Each attachment is at most ${formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)} MB.`,
 					}),
 				);
 			} else if (accepted.length < sized.length) {
@@ -133,7 +140,7 @@ export function useComposerDraft(key: string) {
 				composer: composerName(key),
 			});
 		},
-		[key, addForKey, attachments.length, t],
+		[key, addForKey, t],
 	);
 
 	const remove = useCallback(

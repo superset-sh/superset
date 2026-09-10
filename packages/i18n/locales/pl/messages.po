@@ -2135,10 +2135,6 @@ msgstr "Przesyłanie załącznika nie powiodło się: {0}"
 msgid "Attachment was not uploaded — send the bytes first"
 msgstr "Załącznik nie został przesłany — najpierw wyślij dane"
 
-#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
-msgid "Attachments are at most {0} MB."
-msgstr "Załączniki mogą mieć maksymalnie {0} MB."
-
 msgid "Attachments are not wired yet"
 msgstr "Załączniki nie są jeszcze podłączone"
 
@@ -5355,6 +5351,10 @@ msgstr "np. Engineering"
 
 msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
 msgstr "Każdy agent działa we własnym izolowanym worktree gita. Żadnych konfliktów scalania, żadnego deptania sobie po zmianach. Przejrzyj i scal pracę, gdy będziesz gotowy."
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Each attachment is at most {0} MB."
+msgstr "Każdy załącznik może mieć maksymalnie {0} MB."
 
 msgid "Each in its own new tab"
 msgstr "Każde we własnej nowej karcie"

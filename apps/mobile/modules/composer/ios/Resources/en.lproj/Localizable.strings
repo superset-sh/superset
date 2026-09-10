@@ -12,3 +12,5 @@
 "Model: %@" = "Model: %@";
 "Microphone access is not allowed" = "Microphone access is not allowed";
 "Could not start dictation" = "Could not start dictation";
+"Uploading" = "Uploading";
+"Upload failed" = "Upload failed";

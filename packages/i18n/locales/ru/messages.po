@@ -2135,10 +2135,6 @@ msgstr "Не удалось загрузить вложение: {0}"
 msgid "Attachment was not uploaded — send the bytes first"
 msgstr "Вложение не было загружено — сначала отправьте данные"
 
-#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
-msgid "Attachments are at most {0} MB."
-msgstr "Размер вложения — не более {0} МБ."
-
 msgid "Attachments are not wired yet"
 msgstr "Вложения ещё не подключены"
 
@@ -5355,6 +5351,10 @@ msgstr "например: Разработка"
 
 msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
 msgstr "Каждый агент работает в собственном изолированном Git worktree. Никаких конфликтов слияния и наступаний на чужие изменения. Проверяйте и объединяйте работу, когда будете готовы."
+
+#. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
+msgid "Each attachment is at most {0} MB."
+msgstr "Каждое вложение — не более {0} МБ."
 
 msgid "Each in its own new tab"
 msgstr "Каждая в своей новой вкладке"
