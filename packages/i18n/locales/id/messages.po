@@ -689,6 +689,9 @@ msgstr "{hiddenCount, plural, one {Tampilkan # frame lagi} other {Tampilkan # fr
 msgid "{hostName} is offline"
 msgstr "{hostName} sedang offline"
 
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} belum masuk ke GitHub"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} untuk menyembunyikan"
 
@@ -1088,6 +1091,9 @@ msgstr "1 jam"
 msgid "1 user"
 msgstr "1 pengguna"
 
+msgid "1. Install the Superset CLI on the other machine"
+msgstr "1. Instal Superset CLI di mesin lain"
+
 msgid "10 minutes"
 msgstr "10 menit"
 
@@ -1105,6 +1111,9 @@ msgstr "2 agen · 14 file berubah"
 
 msgid "2 hours"
 msgstr "2 jam"
+
+msgid "2. Generate a key for it"
+msgstr "2. Buat kunci untuknya"
 
 msgid "2021 to 2023"
 msgstr "2021 sampai 2023"
@@ -1127,6 +1136,9 @@ msgstr "3 workspace diarsipkan"
 msgid "3 files changed, 2 tests passing"
 msgstr "3 file berubah, 2 tes lulus"
 
+msgid "3. Start the host there"
+msgstr "3. Jalankan host di mesin itu"
+
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ alur kerja bersamaan per engineer"
 
@@ -1138,6 +1150,9 @@ msgstr "30H"
 
 msgid "3d ago"
 msgstr "3h lalu"
+
+msgid "4. Come back here"
+msgstr "4. Kembali ke sini"
 
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
@@ -1232,6 +1247,9 @@ msgstr "rekan tim"
 
 msgid "A unique identifier for your organization (auto-generated from name)"
 msgstr "Pengenal unik untuk organisasi Anda (dibuat otomatis dari nama)"
+
+msgid "A workspace lives on the machine that hosts its files, terminals, and ports. Add a Mac mini, a spare laptop, or a server, and run workspaces on it from here."
+msgstr "Workspace berada di mesin yang meng-host file, terminal, dan port-nya. Tambahkan Mac mini, laptop cadangan, atau server, lalu jalankan workspace di sana dari sini."
 
 msgid "Aa"
 msgstr "Aa"
@@ -1348,6 +1366,9 @@ msgstr "Tambah"
 msgid "Add {0} account"
 msgstr "Tambah akun {0}"
 
+msgid "Add a host"
+msgstr "Tambah host"
+
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Tambahkan skrip run lifecycle di Pengaturan Proyek atau tandai sebuah skrip terminal sebagai run workspace."
 
@@ -1377,6 +1398,9 @@ msgstr "menambah agen"
 
 msgid "Add an environment in Settings before creating a cloud workspace"
 msgstr "Tambahkan environment di Pengaturan sebelum membuat workspace cloud"
+
+msgid "Add another device…"
+msgstr "Tambah perangkat lain…"
 
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Tambahkan mesin apa pun sebagai host. Workspace tetap berjalan saat laptop Anda tidur, dan Anda bisa memeriksanya dari mana pun."
@@ -1410,6 +1434,9 @@ msgstr "Tambah file, aplikasi, dan lainnya"
 
 msgid "Add files, apps, and more (@)"
 msgstr "Tambah file, aplikasi, dan lainnya (@)"
+
+msgid "Add host…"
+msgstr "Tambah host…"
 
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
@@ -3174,6 +3201,12 @@ msgstr "Klon, push, dan buat PR."
 msgid "Cloned to {0}"
 msgstr "Di-clone ke {0}"
 
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "Diperlukan untuk mengklon repositori privat ke mesin ini."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "Mengklon repositori privat ke mesin ini akan gagal sampai hal itu dilakukan."
+
 msgid "Cloning…"
 msgstr "Meng-clone…"
 
@@ -4162,6 +4195,9 @@ msgstr "Tidak dapat memverifikasi kredensial: {reason}"
 msgid "Could not watch this page"
 msgstr "Tidak bisa memantau halaman ini"
 
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "Tidak bisa mengakses repositori ini. Jika bersifat privat, masuk dulu ke GitHub CLI."
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Tidak bisa memastikan status star — pastikan GitHub CLI (`gh`) terpasang, sudah masuk, dan Anda punya koneksi jaringan"
 
@@ -4176,6 +4212,9 @@ msgstr "Tidak bisa menyalin komentar"
 
 msgid "Couldn't copy path"
 msgstr "Tidak bisa menyalin path"
+
+msgid "Couldn't create a key for this host, so this signs in through the browser on that machine."
+msgstr "Tidak dapat membuat kunci untuk host ini, jadi masuk akan dilakukan lewat browser di mesin tersebut."
 
 msgid "Couldn't create workspace"
 msgstr "Tidak bisa membuat workspace"
@@ -5794,6 +5833,9 @@ msgstr "Gagal membersihkan status agen: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Gagal membersihkan riwayat terminal"
 
+msgid "Failed to clone repository"
+msgstr "Gagal meng-clone repositori"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Gagal menutup port {0}"
@@ -6645,6 +6687,9 @@ msgstr "Umum"
 msgid "General access"
 msgstr "Akses umum"
 
+msgid "Generate a key first"
+msgstr "Buat kunci terlebih dahulu"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "Buat kunci untuk dipakai dengan server MCP."
 
@@ -6653,6 +6698,9 @@ msgstr "Buat kunci API"
 
 msgid "Generate key"
 msgstr "Buat kunci"
+
+msgid "Generated"
+msgstr "Dibuat"
 
 msgid "Generated file hidden"
 msgstr "File hasil generate disembunyikan"
@@ -6713,6 +6761,9 @@ msgstr "Pemasangan GitHub App dibatalkan."
 
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App berhasil dipasang!"
+
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "GitHub CLI belum terpasang di {hostName}"
 
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub terhubung, tapi sinkronisasi awal gagal dimulai. Silakan coba hubungkan ulang."
@@ -7367,6 +7418,9 @@ msgstr "Pemasangan gagal"
 msgid "Install GitHub App"
 msgstr "Pasang GitHub App"
 
+msgid "Install GitHub CLI…"
+msgstr "Instal GitHub CLI…"
+
 msgid "Install Superset MCP in your client"
 msgstr "Pasang Superset MCP di klien Anda"
 
@@ -7866,6 +7920,9 @@ msgstr "Lebih sedikit"
 
 msgid "less than a minute ago"
 msgstr "kurang dari semenit lalu"
+
+msgid "Lets the other machine sign in without a browser. Revoke it anytime under <0>API keys</0>."
+msgstr "Memungkinkan mesin lain masuk tanpa browser. Cabut kapan saja di <0>Kunci API</0>."
 
 msgid "Letter spacing (px)"
 msgstr "Jarak huruf (px)"
@@ -13096,6 +13153,9 @@ msgstr "Masuk untuk melanjutkan ke Superset"
 msgid "Sign in to get started"
 msgstr "Masuk untuk memulai"
 
+msgid "Sign in to GitHub…"
+msgstr "Masuk ke GitHub…"
+
 msgid "Sign in with email"
 msgstr "Masuk dengan email"
 
@@ -13428,6 +13488,9 @@ msgstr "Squash dan merge"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "Autentikasi SSH gagal. Masuk ke GitHub CLI dan gunakan URL HTTPS sebagai gantinya."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14407,6 +14470,9 @@ msgstr "Nama organisasi atau tim Anda"
 
 msgid "The network connection changed"
 msgstr "Koneksi jaringan berubah"
+
+msgid "The new host appears under Hosts on the left. This page opens it as soon as it connects."
+msgstr "Host baru muncul di bagian Host di sebelah kiri. Halaman ini membukanya begitu terhubung."
 
 msgid "The overnight shift"
 msgstr "Shift malam"

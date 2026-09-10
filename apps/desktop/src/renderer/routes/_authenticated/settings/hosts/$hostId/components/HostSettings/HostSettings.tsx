@@ -17,6 +17,7 @@ import type { CandidateRow } from "./components/AddMemberDropdown";
 import { AddMemberDropdown } from "./components/AddMemberDropdown";
 import { DeleteHostSection } from "./components/DeleteHostSection";
 import { HostHeader } from "./components/HostHeader";
+import { HostReadinessBanner } from "./components/HostReadinessBanner";
 import { HostServiceSection } from "./components/HostServiceSection";
 import type { MemberRowData } from "./components/MembersTable";
 import { MembersTable } from "./components/MembersTable";
@@ -166,6 +167,13 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				isOnline={hostIsOnline}
 				machineId={host.machineId}
 				canRename={isOwner}
+			/>
+
+			<HostReadinessBanner
+				hostUrl={hostUrl}
+				hostName={host.name}
+				isOnline={hostIsOnline}
+				isRemoteTarget={isRemoteTarget}
 			/>
 
 			<div className="space-y-10">

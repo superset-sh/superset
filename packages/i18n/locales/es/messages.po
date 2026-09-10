@@ -689,6 +689,9 @@ msgstr "{hiddenCount, plural, one {Mostrar # marco más} other {Mostrar # marcos
 msgid "{hostName} is offline"
 msgstr "{hostName} está sin conexión"
 
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} no ha iniciado sesión en GitHub"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} para ocultar"
 
@@ -1088,6 +1091,9 @@ msgstr "1 hora"
 msgid "1 user"
 msgstr "1 usuario"
 
+msgid "1. Install the Superset CLI on the other machine"
+msgstr "1. Instala el CLI de Superset en la otra máquina"
+
 msgid "10 minutes"
 msgstr "10 minutos"
 
@@ -1105,6 +1111,9 @@ msgstr "2 agentes · 14 archivos modificados"
 
 msgid "2 hours"
 msgstr "2 horas"
+
+msgid "2. Generate a key for it"
+msgstr "2. Genera una clave para ella"
 
 msgid "2021 to 2023"
 msgstr "De 2021 a 2023"
@@ -1127,6 +1136,9 @@ msgstr "3 espacios de trabajo archivados"
 msgid "3 files changed, 2 tests passing"
 msgstr "3 archivos modificados, 2 tests correctos"
 
+msgid "3. Start the host there"
+msgstr "3. Inicia el host en esa máquina"
+
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3 o más líneas de trabajo simultáneas por ingeniero"
 
@@ -1138,6 +1150,9 @@ msgstr "30 D"
 
 msgid "3d ago"
 msgstr "hace 3 d"
+
+msgid "4. Come back here"
+msgstr "4. Vuelve aquí"
 
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
@@ -1232,6 +1247,9 @@ msgstr "un compañero de equipo"
 
 msgid "A unique identifier for your organization (auto-generated from name)"
 msgstr "Un identificador único para la organización (generado a partir del nombre)"
+
+msgid "A workspace lives on the machine that hosts its files, terminals, and ports. Add a Mac mini, a spare laptop, or a server, and run workspaces on it from here."
+msgstr "Un espacio de trabajo vive en la máquina que aloja sus archivos, terminales y puertos. Añade un Mac mini, un portátil de repuesto o un servidor, y ejecuta espacios de trabajo en él desde aquí."
 
 msgid "Aa"
 msgstr "Aa"
@@ -1348,6 +1366,9 @@ msgstr "Añadir"
 msgid "Add {0} account"
 msgstr "Añadir una cuenta de {0}"
 
+msgid "Add a host"
+msgstr "Añadir un host"
+
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Añade un script de ejecución del ciclo de vida en la configuración del proyecto o marca un script de terminal como la ejecución del espacio de trabajo."
 
@@ -1377,6 +1398,9 @@ msgstr "añadir un agente"
 
 msgid "Add an environment in Settings before creating a cloud workspace"
 msgstr "Añade un entorno en Ajustes antes de crear un espacio de trabajo en la nube"
+
+msgid "Add another device…"
+msgstr "Añadir otro dispositivo…"
 
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Añade cualquier máquina como host. Los espacios de trabajo siguen ejecutándose cuando tu portátil se suspende, y puedes consultarlos desde donde estés."
@@ -1410,6 +1434,9 @@ msgstr "Añadir archivos, apps y más"
 
 msgid "Add files, apps, and more (@)"
 msgstr "Añadir archivos, apps y más (@)"
+
+msgid "Add host…"
+msgstr "Añadir host…"
 
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
@@ -3174,6 +3201,12 @@ msgstr "Clona, envía cambios y crea PR."
 msgid "Cloned to {0}"
 msgstr "Clonado en {0}"
 
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "Es necesario para clonar repositorios privados en esta máquina."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "La clonación de repositorios privados en esta máquina fallará hasta que lo haga."
+
 msgid "Cloning…"
 msgstr "Clonando…"
 
@@ -4162,6 +4195,9 @@ msgstr "No se pudo verificar la credencial: {reason}"
 msgid "Could not watch this page"
 msgstr "No se pudo observar esta página"
 
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "No se pudo acceder a este repositorio. Si es privado, inicia sesión primero en el CLI de GitHub."
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "No se pudo confirmar el estado de la estrella — comprueba que el CLI de GitHub (`gh`) esté instalado, con la sesión iniciada, y que tengas conexión de red"
 
@@ -4176,6 +4212,9 @@ msgstr "No se pudo copiar el comentario"
 
 msgid "Couldn't copy path"
 msgstr "No se pudo copiar la ruta"
+
+msgid "Couldn't create a key for this host, so this signs in through the browser on that machine."
+msgstr "No se pudo crear una clave para este host, así que el inicio de sesión se hará por el navegador en esa máquina."
 
 msgid "Couldn't create workspace"
 msgstr "No se pudo crear el espacio de trabajo"
@@ -5794,6 +5833,9 @@ msgstr "No se pudo borrar el estado del agente: {0}"
 msgid "Failed to clear terminal history"
 msgstr "No se pudo borrar el historial de la terminal"
 
+msgid "Failed to clone repository"
+msgstr "No se pudo clonar el repositorio"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "No se pudo cerrar el puerto {0}"
@@ -6645,6 +6687,9 @@ msgstr "General"
 msgid "General access"
 msgstr "Acceso general"
 
+msgid "Generate a key first"
+msgstr "Genera primero una clave"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "Genera una clave para usarla con servidores MCP."
 
@@ -6653,6 +6698,9 @@ msgstr "Generar clave de API"
 
 msgid "Generate key"
 msgstr "Generar clave"
+
+msgid "Generated"
+msgstr "Generada"
 
 msgid "Generated file hidden"
 msgstr "Archivo generado oculto"
@@ -6713,6 +6761,9 @@ msgstr "Se canceló la instalación de la GitHub App."
 
 msgid "GitHub App installed successfully!"
 msgstr "¡GitHub App instalada correctamente!"
+
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "GitHub CLI no está instalado en {hostName}"
 
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub está conectado, pero la sincronización inicial no pudo empezar. Prueba a volver a conectarlo."
@@ -7367,6 +7418,9 @@ msgstr "Error al instalar"
 msgid "Install GitHub App"
 msgstr "Instalar la GitHub App"
 
+msgid "Install GitHub CLI…"
+msgstr "Instalar GitHub CLI…"
+
 msgid "Install Superset MCP in your client"
 msgstr "Instala Superset MCP en tu cliente"
 
@@ -7866,6 +7920,9 @@ msgstr "Menos"
 
 msgid "less than a minute ago"
 msgstr "hace menos de un minuto"
+
+msgid "Lets the other machine sign in without a browser. Revoke it anytime under <0>API keys</0>."
+msgstr "Permite que la otra máquina inicie sesión sin navegador. Revócala cuando quieras en <0>Claves de API</0>."
 
 msgid "Letter spacing (px)"
 msgstr "Espaciado entre letras (px)"
@@ -13096,6 +13153,9 @@ msgstr "Inicia sesión para continuar en Superset"
 msgid "Sign in to get started"
 msgstr "Iniciar sesión para empezar"
 
+msgid "Sign in to GitHub…"
+msgstr "Iniciar sesión en GitHub…"
+
 msgid "Sign in with email"
 msgstr "Iniciar sesión con correo electrónico"
 
@@ -13428,6 +13488,9 @@ msgstr "Squash y fusión"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "Falló la autenticación SSH. Inicia sesión en el CLI de GitHub y usa la URL HTTPS en su lugar."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14407,6 +14470,9 @@ msgstr "El nombre de la organización o equipo"
 
 msgid "The network connection changed"
 msgstr "Cambió la conexión de red"
+
+msgid "The new host appears under Hosts on the left. This page opens it as soon as it connects."
+msgstr "El nuevo host aparece en Hosts, a la izquierda. Esta página lo abre en cuanto se conecta."
 
 msgid "The overnight shift"
 msgstr "El turno de noche"

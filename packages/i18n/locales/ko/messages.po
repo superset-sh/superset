@@ -689,6 +689,9 @@ msgstr "{hiddenCount, plural, one {프레임 #개 더 보기} other {프레임 #
 msgid "{hostName} is offline"
 msgstr "{hostName}이(가) 오프라인입니다"
 
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName}이(가) GitHub에 로그인되어 있지 않습니다"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText}로 숨기기"
 
@@ -1088,6 +1091,9 @@ msgstr "1시간"
 msgid "1 user"
 msgstr "사용자 1명"
 
+msgid "1. Install the Superset CLI on the other machine"
+msgstr "1. 다른 머신에 Superset CLI 설치"
+
 msgid "10 minutes"
 msgstr "10분"
 
@@ -1105,6 +1111,9 @@ msgstr "에이전트 2개 · 파일 14개 변경"
 
 msgid "2 hours"
 msgstr "2시간"
+
+msgid "2. Generate a key for it"
+msgstr "2. 해당 머신용 키 생성"
 
 msgid "2021 to 2023"
 msgstr "2021년~2023년"
@@ -1127,6 +1136,9 @@ msgstr "보관된 워크스페이스 3개"
 msgid "3 files changed, 2 tests passing"
 msgstr "파일 3개 변경, 테스트 2개 통과"
 
+msgid "3. Start the host there"
+msgstr "3. 해당 머신에서 호스트 시작"
+
 msgid "3+ concurrent workstreams per engineer"
 msgstr "엔지니어당 동시 작업 흐름 3개 이상"
 
@@ -1138,6 +1150,9 @@ msgstr "30일"
 
 msgid "3d ago"
 msgstr "3일 전"
+
+msgid "4. Come back here"
+msgstr "4. 여기로 돌아오기"
 
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
@@ -1232,6 +1247,9 @@ msgstr "팀원"
 
 msgid "A unique identifier for your organization (auto-generated from name)"
 msgstr "조직의 고유 식별자 (이름에서 자동 생성)"
+
+msgid "A workspace lives on the machine that hosts its files, terminals, and ports. Add a Mac mini, a spare laptop, or a server, and run workspaces on it from here."
+msgstr "워크스페이스는 파일, 터미널, 포트를 호스팅하는 머신에 존재합니다. Mac mini, 여분의 노트북 또는 서버를 추가하고 여기에서 그 위에 워크스페이스를 실행하세요."
 
 msgid "Aa"
 msgstr "Aa"
@@ -1348,6 +1366,9 @@ msgstr "추가"
 msgid "Add {0} account"
 msgstr "{0} 계정 추가"
 
+msgid "Add a host"
+msgstr "호스트 추가"
+
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "프로젝트 설정에서 라이프사이클 실행 스크립트를 추가하거나, 터미널 스크립트를 워크스페이스 실행으로 지정하세요."
 
@@ -1377,6 +1398,9 @@ msgstr "에이전트를 추가할"
 
 msgid "Add an environment in Settings before creating a cloud workspace"
 msgstr "클라우드 워크스페이스를 만들기 전에 설정에서 환경을 추가하세요"
+
+msgid "Add another device…"
+msgstr "다른 기기 추가…"
 
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "어떤 머신이든 호스트로 추가하세요. 노트북이 잠자기에 들어가도 워크스페이스는 계속 돌고, 어디서든 확인할 수 있습니다."
@@ -1410,6 +1434,9 @@ msgstr "파일, 앱 등 추가"
 
 msgid "Add files, apps, and more (@)"
 msgstr "파일, 앱 등 추가 (@)"
+
+msgid "Add host…"
+msgstr "호스트 추가…"
 
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
@@ -3174,6 +3201,12 @@ msgstr "복제, 푸시 및 PR 생성."
 msgid "Cloned to {0}"
 msgstr "{0}(으)로 클론했습니다"
 
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "이 머신에 비공개 저장소를 클론하려면 필요합니다."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "로그인하기 전까지 이 머신으로의 비공개 저장소 클론은 실패합니다."
+
 msgid "Cloning…"
 msgstr "클론하는 중…"
 
@@ -4162,6 +4195,9 @@ msgstr "자격 증명을 확인하지 못했습니다: {reason}"
 msgid "Could not watch this page"
 msgstr "이 페이지를 감시할 수 없습니다"
 
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "이 리포지토리에 접근하지 못했습니다. 비공개라면 먼저 GitHub CLI에 로그인하세요."
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "스타 상태를 확인하지 못했습니다 — GitHub CLI(`gh`)가 설치되어 로그인되어 있는지, 네트워크에 연결되어 있는지 확인하세요"
 
@@ -4176,6 +4212,9 @@ msgstr "코멘트를 복사하지 못했습니다"
 
 msgid "Couldn't copy path"
 msgstr "경로를 복사할 수 없습니다"
+
+msgid "Couldn't create a key for this host, so this signs in through the browser on that machine."
+msgstr "이 호스트용 키를 만들지 못했습니다. 그래서 해당 머신의 브라우저로 로그인합니다."
 
 msgid "Couldn't create workspace"
 msgstr "워크스페이스를 만들지 못했습니다"
@@ -5794,6 +5833,9 @@ msgstr "에이전트 상태를 지우지 못했습니다: {0}"
 msgid "Failed to clear terminal history"
 msgstr "터미널 기록을 지우지 못했습니다"
 
+msgid "Failed to clone repository"
+msgstr "리포지토리를 클론하지 못했습니다"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "포트 {0}을(를) 닫지 못했습니다"
@@ -6645,6 +6687,9 @@ msgstr "일반"
 msgid "General access"
 msgstr "일반 접근 권한"
 
+msgid "Generate a key first"
+msgstr "먼저 키를 생성하세요"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "MCP 서버에서 사용할 키를 생성하세요."
 
@@ -6653,6 +6698,9 @@ msgstr "API 키 생성"
 
 msgid "Generate key"
 msgstr "키 생성"
+
+msgid "Generated"
+msgstr "생성됨"
 
 msgid "Generated file hidden"
 msgstr "생성된 파일 숨김"
@@ -6713,6 +6761,9 @@ msgstr "GitHub App 설치가 취소되었습니다."
 
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App을 설치했습니다!"
+
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "{hostName}에 GitHub CLI가 설치되어 있지 않습니다"
 
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub는 연결되었지만 초기 동기화를 시작하지 못했습니다. 다시 연결해 보세요."
@@ -7367,6 +7418,9 @@ msgstr "설치 실패"
 msgid "Install GitHub App"
 msgstr "GitHub App 설치"
 
+msgid "Install GitHub CLI…"
+msgstr "GitHub CLI 설치…"
+
 msgid "Install Superset MCP in your client"
 msgstr "클라이언트에 Superset MCP 설치하기"
 
@@ -7866,6 +7920,9 @@ msgstr "적음"
 
 msgid "less than a minute ago"
 msgstr "1분 이내"
+
+msgid "Lets the other machine sign in without a browser. Revoke it anytime under <0>API keys</0>."
+msgstr "다른 머신이 브라우저 없이 로그인할 수 있습니다. <0>API 키</0>에서 언제든지 취소할 수 있습니다."
 
 msgid "Letter spacing (px)"
 msgstr "자간(px)"
@@ -13096,6 +13153,9 @@ msgstr "Superset을 계속 사용하려면 로그인하세요"
 msgid "Sign in to get started"
 msgstr "로그인하고 시작하세요"
 
+msgid "Sign in to GitHub…"
+msgstr "GitHub에 로그인…"
+
 msgid "Sign in with email"
 msgstr "이메일로 로그인"
 
@@ -13428,6 +13488,9 @@ msgstr "스쿼시 후 머지"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "SSH 인증에 실패했습니다. GitHub CLI에 로그인한 뒤 HTTPS URL을 사용하세요."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14407,6 +14470,9 @@ msgstr "조직 또는 팀의 이름"
 
 msgid "The network connection changed"
 msgstr "네트워크 연결이 바뀌었습니다"
+
+msgid "The new host appears under Hosts on the left. This page opens it as soon as it connects."
+msgstr "새 호스트는 왼쪽 호스트 목록에 표시됩니다. 연결되는 즉시 이 페이지가 엽니다."
 
 msgid "The overnight shift"
 msgstr "야간 근무"

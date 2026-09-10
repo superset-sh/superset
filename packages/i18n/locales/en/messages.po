@@ -689,6 +689,9 @@ msgstr "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}
 msgid "{hostName} is offline"
 msgstr "{hostName} is offline"
 
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} isn't signed in to GitHub"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} to hide"
 
@@ -1088,6 +1091,9 @@ msgstr "1 hour"
 msgid "1 user"
 msgstr "1 user"
 
+msgid "1. Install the Superset CLI on the other machine"
+msgstr "1. Install the Superset CLI on the other machine"
+
 msgid "10 minutes"
 msgstr "10 minutes"
 
@@ -1105,6 +1111,9 @@ msgstr "2 agents · 14 files changed"
 
 msgid "2 hours"
 msgstr "2 hours"
+
+msgid "2. Generate a key for it"
+msgstr "2. Generate a key for it"
 
 msgid "2021 to 2023"
 msgstr "2021 to 2023"
@@ -1127,6 +1136,9 @@ msgstr "3 archived workspaces"
 msgid "3 files changed, 2 tests passing"
 msgstr "3 files changed, 2 tests passing"
 
+msgid "3. Start the host there"
+msgstr "3. Start the host there"
+
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ concurrent workstreams per engineer"
 
@@ -1138,6 +1150,9 @@ msgstr "30D"
 
 msgid "3d ago"
 msgstr "3d ago"
+
+msgid "4. Come back here"
+msgstr "4. Come back here"
 
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
@@ -1232,6 +1247,9 @@ msgstr "a teammate"
 
 msgid "A unique identifier for your organization (auto-generated from name)"
 msgstr "A unique identifier for your organization (auto-generated from name)"
+
+msgid "A workspace lives on the machine that hosts its files, terminals, and ports. Add a Mac mini, a spare laptop, or a server, and run workspaces on it from here."
+msgstr "A workspace lives on the machine that hosts its files, terminals, and ports. Add a Mac mini, a spare laptop, or a server, and run workspaces on it from here."
 
 msgid "Aa"
 msgstr "Aa"
@@ -1348,6 +1366,9 @@ msgstr "Add"
 msgid "Add {0} account"
 msgstr "Add {0} account"
 
+msgid "Add a host"
+msgstr "Add a host"
+
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 
@@ -1377,6 +1398,9 @@ msgstr "add an agent"
 
 msgid "Add an environment in Settings before creating a cloud workspace"
 msgstr "Add an environment in Settings before creating a cloud workspace"
+
+msgid "Add another device…"
+msgstr "Add another device…"
 
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
@@ -1410,6 +1434,9 @@ msgstr "Add files, apps, and more"
 
 msgid "Add files, apps, and more (@)"
 msgstr "Add files, apps, and more (@)"
+
+msgid "Add host…"
+msgstr "Add host…"
 
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
@@ -3174,6 +3201,12 @@ msgstr "Clone, push, and create PRs."
 msgid "Cloned to {0}"
 msgstr "Cloned to {0}"
 
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "Cloning private repositories onto this machine needs it."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "Cloning private repositories onto this machine will fail until it is."
+
 msgid "Cloning…"
 msgstr "Cloning…"
 
@@ -4162,6 +4195,9 @@ msgstr "Could not verify the credential: {reason}"
 msgid "Could not watch this page"
 msgstr "Could not watch this page"
 
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 
@@ -4176,6 +4212,9 @@ msgstr "Couldn't copy comment"
 
 msgid "Couldn't copy path"
 msgstr "Couldn't copy path"
+
+msgid "Couldn't create a key for this host, so this signs in through the browser on that machine."
+msgstr "Couldn't create a key for this host, so this signs in through the browser on that machine."
 
 msgid "Couldn't create workspace"
 msgstr "Couldn't create workspace"
@@ -5794,6 +5833,9 @@ msgstr "Failed to clear agent status: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Failed to clear terminal history"
 
+msgid "Failed to clone repository"
+msgstr "Failed to clone repository"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Failed to close port {0}"
@@ -6645,6 +6687,9 @@ msgstr "General"
 msgid "General access"
 msgstr "General access"
 
+msgid "Generate a key first"
+msgstr "Generate a key first"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "Generate a key to use with MCP servers."
 
@@ -6653,6 +6698,9 @@ msgstr "Generate API key"
 
 msgid "Generate key"
 msgstr "Generate key"
+
+msgid "Generated"
+msgstr "Generated"
 
 msgid "Generated file hidden"
 msgstr "Generated file hidden"
@@ -6713,6 +6761,9 @@ msgstr "GitHub App installation was cancelled."
 
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App installed successfully!"
+
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "GitHub CLI isn't installed on {hostName}"
 
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub connected, but initial sync failed to start. Please try reconnecting."
@@ -7367,6 +7418,9 @@ msgstr "Install failed"
 msgid "Install GitHub App"
 msgstr "Install GitHub App"
 
+msgid "Install GitHub CLI…"
+msgstr "Install GitHub CLI…"
+
 msgid "Install Superset MCP in your client"
 msgstr "Install Superset MCP in your client"
 
@@ -7866,6 +7920,9 @@ msgstr "Less"
 
 msgid "less than a minute ago"
 msgstr "less than a minute ago"
+
+msgid "Lets the other machine sign in without a browser. Revoke it anytime under <0>API keys</0>."
+msgstr "Lets the other machine sign in without a browser. Revoke it anytime under <0>API keys</0>."
 
 msgid "Letter spacing (px)"
 msgstr "Letter spacing (px)"
@@ -13096,6 +13153,9 @@ msgstr "Sign in to continue to Superset"
 msgid "Sign in to get started"
 msgstr "Sign in to get started"
 
+msgid "Sign in to GitHub…"
+msgstr "Sign in to GitHub…"
+
 msgid "Sign in with email"
 msgstr "Sign in with email"
 
@@ -13428,6 +13488,9 @@ msgstr "Squash and merge"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14407,6 +14470,9 @@ msgstr "The name of your organization or team"
 
 msgid "The network connection changed"
 msgstr "The network connection changed"
+
+msgid "The new host appears under Hosts on the left. This page opens it as soon as it connects."
+msgstr "The new host appears under Hosts on the left. This page opens it as soon as it connects."
 
 msgid "The overnight shift"
 msgstr "The overnight shift"

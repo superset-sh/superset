@@ -689,6 +689,9 @@ msgstr "{hiddenCount, plural, one {# çerçeve daha göster} other {# çerçeve 
 msgid "{hostName} is offline"
 msgstr "{hostName} çevrimdışı"
 
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} GitHub'a giriş yapmamış"
+
 msgid "{hotkeyText} to hide"
 msgstr "gizlemek için {hotkeyText}"
 
@@ -1088,6 +1091,9 @@ msgstr "1 saat"
 msgid "1 user"
 msgstr "1 kullanıcı"
 
+msgid "1. Install the Superset CLI on the other machine"
+msgstr "1. Superset CLI'ı diğer makineye kurun"
+
 msgid "10 minutes"
 msgstr "10 dakika"
 
@@ -1105,6 +1111,9 @@ msgstr "2 ajan · 14 dosya değişti"
 
 msgid "2 hours"
 msgstr "2 saat"
+
+msgid "2. Generate a key for it"
+msgstr "2. Bunun için bir anahtar oluşturun"
 
 msgid "2021 to 2023"
 msgstr "2021 - 2023"
@@ -1127,6 +1136,9 @@ msgstr "3 arşivlenmiş çalışma alanı"
 msgid "3 files changed, 2 tests passing"
 msgstr "3 dosya değişti, 2 test geçiyor"
 
+msgid "3. Start the host there"
+msgstr "3. Host'u o makinede başlatın"
+
 msgid "3+ concurrent workstreams per engineer"
 msgstr "Mühendis başına 3+ eşzamanlı iş akışı"
 
@@ -1138,6 +1150,9 @@ msgstr "30G"
 
 msgid "3d ago"
 msgstr "3g önce"
+
+msgid "4. Come back here"
+msgstr "4. Buraya geri dönün"
 
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
@@ -1232,6 +1247,9 @@ msgstr "bir takım arkadaşı"
 
 msgid "A unique identifier for your organization (auto-generated from name)"
 msgstr "Kuruluşunuz için benzersiz bir tanımlayıcı (addan otomatik oluşturulur)"
+
+msgid "A workspace lives on the machine that hosts its files, terminals, and ports. Add a Mac mini, a spare laptop, or a server, and run workspaces on it from here."
+msgstr "Bir çalışma alanı, dosyalarını, terminallerini ve portlarını barındıran makinede yaşar. Bir Mac mini, yedek bir dizüstü bilgisayar veya bir sunucu ekleyin ve çalışma alanlarını buradan onun üzerinde çalıştırın."
 
 msgid "Aa"
 msgstr "Aa"
@@ -1348,6 +1366,9 @@ msgstr "Ekle"
 msgid "Add {0} account"
 msgstr "{0} hesabı ekle"
 
+msgid "Add a host"
+msgstr "Host ekle"
+
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Proje Ayarları'nda bir yaşam döngüsü çalıştırma betiği ekleyin veya bir terminal betiğini çalışma alanı çalıştırması olarak işaretleyin."
 
@@ -1377,6 +1398,9 @@ msgstr "ajan ekleme"
 
 msgid "Add an environment in Settings before creating a cloud workspace"
 msgstr "Bulut çalışma alanı oluşturmadan önce Ayarlar'da bir ortam ekleyin"
+
+msgid "Add another device…"
+msgstr "Başka bir cihaz ekle…"
 
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Herhangi bir makineyi host olarak ekleyin. Dizüstünüz uykuya geçtiğinde çalışma alanları çalışmaya devam eder ve nerede olursanız olun durumu kontrol edebilirsiniz."
@@ -1410,6 +1434,9 @@ msgstr "Dosya, uygulama ve daha fazlasını ekleyin"
 
 msgid "Add files, apps, and more (@)"
 msgstr "Dosya, uygulama ve daha fazlasını ekleyin (@)"
+
+msgid "Add host…"
+msgstr "Host ekle…"
 
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
@@ -3174,6 +3201,12 @@ msgstr "Klonlayın, gönderin ve PR oluşturun."
 msgid "Cloned to {0}"
 msgstr "{0} konumuna klonlandı"
 
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "Bu makineye özel depoları klonlamak için gerekli."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "Giriş yapılana kadar bu makineye özel depoları klonlamak başarısız olacak."
+
 msgid "Cloning…"
 msgstr "Klonlanıyor…"
 
@@ -4162,6 +4195,9 @@ msgstr "Kimlik bilgisi doğrulanamadı: {reason}"
 msgid "Could not watch this page"
 msgstr "Bu sayfa izlenemedi"
 
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "Bu depoya erişilemedi. Depo özelse önce GitHub CLI'ye giriş yapın."
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Yıldız durumu doğrulanamadı — GitHub CLI'nin (`gh`) kurulu ve oturum açmış olduğunu ve ağ bağlantınızın bulunduğunu kontrol edin"
 
@@ -4176,6 +4212,9 @@ msgstr "Yorum kopyalanamadı"
 
 msgid "Couldn't copy path"
 msgstr "Yol kopyalanamadı"
+
+msgid "Couldn't create a key for this host, so this signs in through the browser on that machine."
+msgstr "Bu host için anahtar oluşturulamadı, bu yüzden giriş o makinedeki tarayıcı üzerinden yapılacak."
 
 msgid "Couldn't create workspace"
 msgstr "Çalışma alanı oluşturulamadı"
@@ -5794,6 +5833,9 @@ msgstr "Ajan durumu temizlenemedi: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Terminal geçmişi temizlenemedi"
 
+msgid "Failed to clone repository"
+msgstr "Depo klonlanamadı"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "{0} portu kapatılamadı"
@@ -6645,6 +6687,9 @@ msgstr "Genel"
 msgid "General access"
 msgstr "Genel erişim"
 
+msgid "Generate a key first"
+msgstr "Önce bir anahtar oluşturun"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "MCP sunucularıyla kullanmak için bir anahtar oluşturun."
 
@@ -6653,6 +6698,9 @@ msgstr "API anahtarı oluştur"
 
 msgid "Generate key"
 msgstr "Anahtar oluştur"
+
+msgid "Generated"
+msgstr "Oluşturuldu"
 
 msgid "Generated file hidden"
 msgstr "Oluşturulan dosya gizlendi"
@@ -6713,6 +6761,9 @@ msgstr "GitHub App kurulumu iptal edildi."
 
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App başarıyla kuruldu!"
+
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "{hostName} üzerinde GitHub CLI kurulu değil"
 
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub bağlandı, ancak ilk eşitleme başlatılamadı. Lütfen yeniden bağlanmayı deneyin."
@@ -7367,6 +7418,9 @@ msgstr "Kurulum başarısız"
 msgid "Install GitHub App"
 msgstr "GitHub App'i kur"
 
+msgid "Install GitHub CLI…"
+msgstr "GitHub CLI'ı kur…"
+
 msgid "Install Superset MCP in your client"
 msgstr "Superset MCP'yi istemcinize kurun"
 
@@ -7866,6 +7920,9 @@ msgstr "Az"
 
 msgid "less than a minute ago"
 msgstr "bir dakikadan az önce"
+
+msgid "Lets the other machine sign in without a browser. Revoke it anytime under <0>API keys</0>."
+msgstr "Diğer makinenin tarayıcı olmadan oturum açmasını sağlar. <0>API anahtarları</0> bölümünden istediğiniz zaman iptal edebilirsiniz."
 
 msgid "Letter spacing (px)"
 msgstr "Harf aralığı (px)"
@@ -13096,6 +13153,9 @@ msgstr "Superset'e devam etmek için oturum açın"
 msgid "Sign in to get started"
 msgstr "Başlamak için oturum açın"
 
+msgid "Sign in to GitHub…"
+msgstr "GitHub'a giriş yap…"
+
 msgid "Sign in with email"
 msgstr "E-posta ile oturum aç"
 
@@ -13428,6 +13488,9 @@ msgstr "Squash ve birleştir"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "SSH kimlik doğrulaması başarısız oldu. GitHub CLI'ye giriş yapın ve bunun yerine HTTPS URL'sini kullanın."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14407,6 +14470,9 @@ msgstr "Kuruluşunuzun veya takımınızın adı"
 
 msgid "The network connection changed"
 msgstr "Ağ bağlantısı değişti"
+
+msgid "The new host appears under Hosts on the left. This page opens it as soon as it connects."
+msgstr "Yeni host soldaki Host'lar altında görünür. Bağlandığı anda bu sayfa onu açar."
 
 msgid "The overnight shift"
 msgstr "Gece vardiyası"

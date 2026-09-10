@@ -1,4 +1,4 @@
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	deriveHostVersionState,
 	type HostVersionState,
@@ -6,6 +6,7 @@ import {
 import { cn } from "@superset/ui/utils";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { LuPlus } from "react-icons/lu";
 import { useAppVersion } from "renderer/hooks/host-version/useHostVersionState";
 import { useHostsPresence } from "renderer/hooks/useHostsPresence";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
@@ -85,6 +86,20 @@ export function HostsSettingsSidebar({
 			searchAriaLabel={t({
 				message: "Filter hosts",
 			})}
+			listHeader={
+				<Link
+					to="/settings/hosts/new"
+					className={settingsListItemClass(
+						false,
+						"gap-2 text-muted-foreground",
+					)}
+				>
+					<LuPlus className="size-3.5 shrink-0" />
+					<span className="truncate flex-1">
+						<Trans>Add host…</Trans>
+					</span>
+				</Link>
+			}
 			groups={listGroups}
 			filterRow={(row, q) =>
 				`${row.name} ${row.version ?? ""}`

@@ -689,6 +689,9 @@ msgstr "{hiddenCount, plural, one {Zobrazit ještě # rámec} few {Zobrazit ješ
 msgid "{hostName} is offline"
 msgstr "{hostName} je offline"
 
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} není přihlášen ke GitHubu"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} skryje"
 
@@ -1088,6 +1091,9 @@ msgstr "1 hodina"
 msgid "1 user"
 msgstr "1 uživatel"
 
+msgid "1. Install the Superset CLI on the other machine"
+msgstr "1. Nainstalujte Superset CLI na druhém stroji"
+
 msgid "10 minutes"
 msgstr "10 minut"
 
@@ -1105,6 +1111,9 @@ msgstr "2 agenti · 14 změněných souborů"
 
 msgid "2 hours"
 msgstr "2 hodiny"
+
+msgid "2. Generate a key for it"
+msgstr "2. Vygenerujte pro něj klíč"
 
 msgid "2021 to 2023"
 msgstr "2021 až 2023"
@@ -1127,6 +1136,9 @@ msgstr "3 archivované pracovní prostory"
 msgid "3 files changed, 2 tests passing"
 msgstr "3 změněné soubory, 2 testy prošly"
 
+msgid "3. Start the host there"
+msgstr "3. Spusťte na něm hosta"
+
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ souběžné proudy práce na inženýra"
 
@@ -1138,6 +1150,9 @@ msgstr "30 d"
 
 msgid "3d ago"
 msgstr "před 3 d"
+
+msgid "4. Come back here"
+msgstr "4. Vraťte se sem"
 
 msgid "4.5:1 (AA)"
 msgstr "4,5:1 (AA)"
@@ -1232,6 +1247,9 @@ msgstr "kolega"
 
 msgid "A unique identifier for your organization (auto-generated from name)"
 msgstr "Jedinečný identifikátor vaší organizace (vygenerovaný z názvu)"
+
+msgid "A workspace lives on the machine that hosts its files, terminals, and ports. Add a Mac mini, a spare laptop, or a server, and run workspaces on it from here."
+msgstr "Pracovní prostor žije na stroji, který hostuje jeho soubory, terminály a porty. Přidejte Mac mini, náhradní notebook nebo server a spouštějte na něm pracovní prostory odsud."
 
 msgid "Aa"
 msgstr "Aa"
@@ -1348,6 +1366,9 @@ msgstr "Přidat"
 msgid "Add {0} account"
 msgstr "Přidat účet {0}"
 
+msgid "Add a host"
+msgstr "Přidat hosta"
+
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Přidejte lifecycle run skript v nastavení projektu, nebo označte terminálový skript jako spuštění pracovního prostoru."
 
@@ -1377,6 +1398,9 @@ msgstr "přidat agenta"
 
 msgid "Add an environment in Settings before creating a cloud workspace"
 msgstr "Před vytvořením cloudového pracovního prostoru přidejte prostředí v Nastavení"
+
+msgid "Add another device…"
+msgstr "Přidat další zařízení…"
 
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Přidejte jako hosta libovolný počítač. Pracovní prostory běží dál, i když váš laptop usne, a vy se můžete kdykoli podívat, jak si vedou."
@@ -1410,6 +1434,9 @@ msgstr "Přidat soubory, aplikace a další"
 
 msgid "Add files, apps, and more (@)"
 msgstr "Přidat soubory, aplikace a další (@)"
+
+msgid "Add host…"
+msgstr "Přidat hosta…"
 
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
@@ -3174,6 +3201,12 @@ msgstr "Klonujte, odesílejte změny a vytvářejte PR."
 msgid "Cloned to {0}"
 msgstr "Naklonováno do {0}"
 
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "Je potřeba pro klonování soukromých repozitářů na tento stroj."
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "Klonování soukromých repozitářů na tento stroj bude selhávat, dokud se tak nestane."
+
 msgid "Cloning…"
 msgstr "Klonuji…"
 
@@ -4162,6 +4195,9 @@ msgstr "Přihlašovací údaje se nepodařilo ověřit: {reason}"
 msgid "Could not watch this page"
 msgstr "Tuto stránku se nepodařilo sledovat"
 
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "K tomuto repozitáři se nepodařilo získat přístup. Pokud je soukromý, přihlaste se nejdřív do GitHub CLI."
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Nepodařilo se ověřit stav hvězdy — zkontrolujte, že je nainstalované GitHub CLI (`gh`), že jste přihlášeni a že máte připojení k síti"
 
@@ -4176,6 +4212,9 @@ msgstr "Komentář se nepodařilo zkopírovat"
 
 msgid "Couldn't copy path"
 msgstr "Nepodařilo se zkopírovat cestu"
+
+msgid "Couldn't create a key for this host, so this signs in through the browser on that machine."
+msgstr "Pro tohoto hosta se nepodařilo vytvořit klíč, přihlášení proto proběhne přes prohlížeč na tom stroji."
 
 msgid "Couldn't create workspace"
 msgstr "Pracovní prostor se nepodařilo vytvořit"
@@ -5794,6 +5833,9 @@ msgstr "Nepodařilo se vymazat stav agenta: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Nepodařilo se vymazat historii terminálu"
 
+msgid "Failed to clone repository"
+msgstr "Nepodařilo se naklonovat repozitář"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Nepodařilo se zavřít port {0}"
@@ -6645,6 +6687,9 @@ msgstr "Obecné"
 msgid "General access"
 msgstr "Obecný přístup"
 
+msgid "Generate a key first"
+msgstr "Nejdřív vygenerujte klíč"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "Vygenerujte klíč pro použití s MCP servery."
 
@@ -6653,6 +6698,9 @@ msgstr "Vygenerovat API klíč"
 
 msgid "Generate key"
 msgstr "Vygenerovat klíč"
+
+msgid "Generated"
+msgstr "Vygenerováno"
 
 msgid "Generated file hidden"
 msgstr "Vygenerovaný soubor je skrytý"
@@ -6713,6 +6761,9 @@ msgstr "Instalace GitHub App byla zrušena."
 
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App byla úspěšně nainstalována!"
+
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "Na {hostName} není nainstalováno GitHub CLI"
 
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub je připojený, ale úvodní synchronizace se nespustila. Zkuste se prosím připojit znovu."
@@ -7367,6 +7418,9 @@ msgstr "Instalace selhala"
 msgid "Install GitHub App"
 msgstr "Nainstalovat GitHub App"
 
+msgid "Install GitHub CLI…"
+msgstr "Nainstalovat GitHub CLI…"
+
 msgid "Install Superset MCP in your client"
 msgstr "Nainstalujte Superset MCP do svého klienta"
 
@@ -7866,6 +7920,9 @@ msgstr "Méně"
 
 msgid "less than a minute ago"
 msgstr "před méně než minutou"
+
+msgid "Lets the other machine sign in without a browser. Revoke it anytime under <0>API keys</0>."
+msgstr "Umožní druhému stroji přihlásit se bez prohlížeče. Kdykoli jej odvoláte v <0>API klíče</0>."
 
 msgid "Letter spacing (px)"
 msgstr "Rozestup písmen (px)"
@@ -13096,6 +13153,9 @@ msgstr "Přihlaste se a pokračujte do Superset"
 msgid "Sign in to get started"
 msgstr "Přihlaste se a můžete začít"
 
+msgid "Sign in to GitHub…"
+msgstr "Přihlásit se ke GitHubu…"
+
 msgid "Sign in with email"
 msgstr "Přihlásit se e-mailem"
 
@@ -13428,6 +13488,9 @@ msgstr "Squash a sloučit"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "Ověření přes SSH selhalo. Přihlaste se do GitHub CLI a použijte místo toho HTTPS URL."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14407,6 +14470,9 @@ msgstr "Název vaší organizace nebo týmu"
 
 msgid "The network connection changed"
 msgstr "Síťové připojení se změnilo"
+
+msgid "The new host appears under Hosts on the left. This page opens it as soon as it connects."
+msgstr "Nový host se objeví vlevo v sekci Hosty. Tato stránka jej otevře, jakmile se připojí."
 
 msgid "The overnight shift"
 msgstr "Noční směna"

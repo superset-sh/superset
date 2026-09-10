@@ -10,7 +10,10 @@ import { type ReactNode, useState } from "react";
 import { HiArrowUpRight } from "react-icons/hi2";
 import { SiGithub } from "react-icons/si";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { GhAuthDialog, type GhAuthDialogMode } from "./components/GhAuthDialog";
+import {
+	GhAuthDialog,
+	type GhAuthDialogMode,
+} from "renderer/routes/_authenticated/components/GhAuthDialog";
 import { OnboardingLanguageRow } from "./components/OnboardingLanguageRow";
 
 export const Route = createFileRoute("/_authenticated/onboarding/")({

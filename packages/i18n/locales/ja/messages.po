@@ -689,6 +689,9 @@ msgstr "{hiddenCount, plural, one {さらに#件のフレームを表示} other 
 msgid "{hostName} is offline"
 msgstr "{hostName}はオフラインです"
 
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} は GitHub にサインインしていません"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText}で隠す"
 
@@ -1088,6 +1091,9 @@ msgstr "1時間"
 msgid "1 user"
 msgstr "1ユーザー"
 
+msgid "1. Install the Superset CLI on the other machine"
+msgstr "1. もう一方のマシンに Superset CLI をインストールする"
+
 msgid "10 minutes"
 msgstr "10分"
 
@@ -1105,6 +1111,9 @@ msgstr "2エージェント · 14ファイル変更"
 
 msgid "2 hours"
 msgstr "2時間"
+
+msgid "2. Generate a key for it"
+msgstr "2. そのマシン用のキーを生成する"
 
 msgid "2021 to 2023"
 msgstr "2021年〜2023年"
@@ -1127,6 +1136,9 @@ msgstr "アーカイブ済みワークスペース3件"
 msgid "3 files changed, 2 tests passing"
 msgstr "3ファイル変更、2件のテストが成功"
 
+msgid "3. Start the host there"
+msgstr "3. そのマシンでホストを起動する"
+
 msgid "3+ concurrent workstreams per engineer"
 msgstr "エンジニア1人あたり3つ以上の並行ワークストリーム"
 
@@ -1138,6 +1150,9 @@ msgstr "30日"
 
 msgid "3d ago"
 msgstr "3日前"
+
+msgid "4. Come back here"
+msgstr "4. ここに戻る"
 
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
@@ -1232,6 +1247,9 @@ msgstr "チームメンバー"
 
 msgid "A unique identifier for your organization (auto-generated from name)"
 msgstr "組織の一意の識別子(名前から自動生成)"
+
+msgid "A workspace lives on the machine that hosts its files, terminals, and ports. Add a Mac mini, a spare laptop, or a server, and run workspaces on it from here."
+msgstr "ワークスペースは、そのファイル、ターミナル、ポートをホストするマシン上に存在します。Mac mini、予備のノートパソコン、サーバーなどを追加すると、ここからその上でワークスペースを実行できます。"
 
 msgid "Aa"
 msgstr "Aa"
@@ -1348,6 +1366,9 @@ msgstr "追加"
 msgid "Add {0} account"
 msgstr "{0}アカウントを追加"
 
+msgid "Add a host"
+msgstr "ホストを追加"
+
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "プロジェクト設定でライフサイクルの実行スクリプトを追加するか、ターミナルスクリプトをワークスペース実行に指定してください。"
 
@@ -1377,6 +1398,9 @@ msgstr "エージェントを追加する"
 
 msgid "Add an environment in Settings before creating a cloud workspace"
 msgstr "クラウドワークスペースを作成する前に、設定で環境を追加してください"
+
+msgid "Add another device…"
+msgstr "別のデバイスを追加…"
 
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "どんなマシンでもホストとして追加できます。ノートPCがスリープしてもワークスペースは動き続け、どこからでも様子を確認できます。"
@@ -1410,6 +1434,9 @@ msgstr "ファイルやアプリなどを追加"
 
 msgid "Add files, apps, and more (@)"
 msgstr "ファイルやアプリなどを追加(@)"
+
+msgid "Add host…"
+msgstr "ホストを追加…"
 
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
@@ -3174,6 +3201,12 @@ msgstr "クローン、プッシュ、PRの作成。"
 msgid "Cloned to {0}"
 msgstr "{0}にクローンしました"
 
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "このマシンにプライベートリポジトリをクローンするには必要です。"
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "サインインするまで、このマシンへのプライベートリポジトリのクローンは失敗します。"
+
 msgid "Cloning…"
 msgstr "クローン中…"
 
@@ -4162,6 +4195,9 @@ msgstr "認証情報を確認できませんでした: {reason}"
 msgid "Could not watch this page"
 msgstr "このページを監視できませんでした"
 
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "このリポジトリにアクセスできませんでした。プライベートの場合は、先にGitHub CLIにサインインしてください。"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "スター状態を確認できませんでした — GitHub CLI (`gh`) がインストール・サインイン済みで、ネットワーク接続があることを確認してください"
 
@@ -4176,6 +4212,9 @@ msgstr "コメントをコピーできませんでした"
 
 msgid "Couldn't copy path"
 msgstr "パスをコピーできませんでした"
+
+msgid "Couldn't create a key for this host, so this signs in through the browser on that machine."
+msgstr "このホスト用のキーを作成できませんでした。そのため、そのマシンのブラウザでサインインします。"
 
 msgid "Couldn't create workspace"
 msgstr "ワークスペースを作成できませんでした"
@@ -5794,6 +5833,9 @@ msgstr "エージェントのステータスをクリアできませんでした
 msgid "Failed to clear terminal history"
 msgstr "ターミナル履歴のクリアに失敗しました"
 
+msgid "Failed to clone repository"
+msgstr "リポジトリをクローンできませんでした"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "ポート{0}を閉じられませんでした"
@@ -6645,6 +6687,9 @@ msgstr "全般"
 msgid "General access"
 msgstr "一般的なアクセス"
 
+msgid "Generate a key first"
+msgstr "先にキーを生成してください"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "MCPサーバーで使用するキーを生成します。"
 
@@ -6653,6 +6698,9 @@ msgstr "APIキーを生成"
 
 msgid "Generate key"
 msgstr "キーを生成"
+
+msgid "Generated"
+msgstr "生成済み"
 
 msgid "Generated file hidden"
 msgstr "生成されたファイルは非表示です"
@@ -6713,6 +6761,9 @@ msgstr "GitHub Appのインストールがキャンセルされました。"
 
 msgid "GitHub App installed successfully!"
 msgstr "GitHub Appをインストールしました!"
+
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "{hostName} に GitHub CLI がインストールされていません"
 
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHubは接続しましたが、初回同期を開始できませんでした。再接続をお試しください。"
@@ -7367,6 +7418,9 @@ msgstr "インストールに失敗しました"
 msgid "Install GitHub App"
 msgstr "GitHub Appをインストール"
 
+msgid "Install GitHub CLI…"
+msgstr "GitHub CLI をインストール…"
+
 msgid "Install Superset MCP in your client"
 msgstr "クライアントにSuperset MCPをインストール"
 
@@ -7866,6 +7920,9 @@ msgstr "少ない"
 
 msgid "less than a minute ago"
 msgstr "1分未満前"
+
+msgid "Lets the other machine sign in without a browser. Revoke it anytime under <0>API keys</0>."
+msgstr "もう一方のマシンがブラウザなしでサインインできるようになります。<0>APIキー</0> からいつでも取り消せます。"
 
 msgid "Letter spacing (px)"
 msgstr "字間 (px)"
@@ -13096,6 +13153,9 @@ msgstr "サインインしてSupersetに進む"
 msgid "Sign in to get started"
 msgstr "サインインして始めましょう"
 
+msgid "Sign in to GitHub…"
+msgstr "GitHub にサインイン…"
+
 msgid "Sign in with email"
 msgstr "メールでサインイン"
 
@@ -13428,6 +13488,9 @@ msgstr "スカッシュしてマージ"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "SSH認証に失敗しました。GitHub CLIにサインインし、代わりにHTTPSのURLを使用してください。"
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14407,6 +14470,9 @@ msgstr "組織またはチームの名前"
 
 msgid "The network connection changed"
 msgstr "ネットワーク接続が変更されました"
+
+msgid "The new host appears under Hosts on the left. This page opens it as soon as it connects."
+msgstr "新しいホストは左の「ホスト」に表示されます。接続されるとこのページが自動的に開きます。"
 
 msgid "The overnight shift"
 msgstr "夜間シフト"

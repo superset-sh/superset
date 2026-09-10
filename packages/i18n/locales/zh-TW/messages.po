@@ -689,6 +689,9 @@ msgstr "{hiddenCount, plural, one {再顯示#個堆疊框架} other {再顯示#�
 msgid "{hostName} is offline"
 msgstr "{hostName}已離線"
 
+msgid "{hostName} isn't signed in to GitHub"
+msgstr "{hostName} 未登入 GitHub"
+
 msgid "{hotkeyText} to hide"
 msgstr "按{hotkeyText}隱藏"
 
@@ -1088,6 +1091,9 @@ msgstr "1小時"
 msgid "1 user"
 msgstr "1個使用者"
 
+msgid "1. Install the Superset CLI on the other machine"
+msgstr "1. 在另一台機器上安裝 Superset CLI"
+
 msgid "10 minutes"
 msgstr "10分鐘"
 
@@ -1105,6 +1111,9 @@ msgstr "2個代理程式 · 14個檔案已更改"
 
 msgid "2 hours"
 msgstr "2小時"
+
+msgid "2. Generate a key for it"
+msgstr "2. 為它產生金鑰"
 
 msgid "2021 to 2023"
 msgstr "2021至2023"
@@ -1127,6 +1136,9 @@ msgstr "3個已歸檔的工作區"
 msgid "3 files changed, 2 tests passing"
 msgstr "3個檔案已更改，2個測試通過"
 
+msgid "3. Start the host there"
+msgstr "3. 在那台機器上啟動主機"
+
 msgid "3+ concurrent workstreams per engineer"
 msgstr "每位工程師3條以上並行工作流"
 
@@ -1138,6 +1150,9 @@ msgstr "30天"
 
 msgid "3d ago"
 msgstr "3天前"
+
+msgid "4. Come back here"
+msgstr "4. 回到這裡"
 
 msgid "4.5:1 (AA)"
 msgstr "4.5:1 (AA)"
@@ -1232,6 +1247,9 @@ msgstr "某位隊友"
 
 msgid "A unique identifier for your organization (auto-generated from name)"
 msgstr "組織的唯一識別符號（根據名稱自動生成）"
+
+msgid "A workspace lives on the machine that hosts its files, terminals, and ports. Add a Mac mini, a spare laptop, or a server, and run workspaces on it from here."
+msgstr "工作區位於託管其檔案、終端機和連接埠的機器上。新增 Mac mini、備用筆記型電腦或伺服器，即可從這裡在其上執行工作區。"
 
 msgid "Aa"
 msgstr "Aa"
@@ -1348,6 +1366,9 @@ msgstr "新增"
 msgid "Add {0} account"
 msgstr "新增{0}帳戶"
 
+msgid "Add a host"
+msgstr "新增主機"
+
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "在專案設定中新增生命週期執行指令碼，或將某個終端指令碼標記為工作區執行命令。"
 
@@ -1377,6 +1398,9 @@ msgstr "新增代理程式"
 
 msgid "Add an environment in Settings before creating a cloud workspace"
 msgstr "建立雲端工作區前，請先在設定中新增環境"
+
+msgid "Add another device…"
+msgstr "新增其他裝置…"
 
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "把任意機器新增為主機。筆記本休眠時工作區照常執行，你在哪兒都能檢視進展。"
@@ -1410,6 +1434,9 @@ msgstr "新增檔案、應用等"
 
 msgid "Add files, apps, and more (@)"
 msgstr "新增檔案、應用等（@）"
+
+msgid "Add host…"
+msgstr "新增主機…"
 
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
@@ -3174,6 +3201,12 @@ msgstr "複製、推送並建立 PR。"
 msgid "Cloned to {0}"
 msgstr "已克隆到{0}"
 
+msgid "Cloning private repositories onto this machine needs it."
+msgstr "將私有儲存庫複製到此機器需要它。"
+
+msgid "Cloning private repositories onto this machine will fail until it is."
+msgstr "在登入之前，將私有儲存庫複製到此機器會失敗。"
+
 msgid "Cloning…"
 msgstr "正在克隆…"
 
@@ -4162,6 +4195,9 @@ msgstr "無法驗證憑證：{reason}"
 msgid "Could not watch this page"
 msgstr "無法關注此頁面"
 
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "無法存取此儲存庫。如果它是私有儲存庫，請先登入GitHub CLI。"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "無法確認加星狀態，請檢查是否已安裝並登入GitHub CLI（`gh`），以及網路是否連通"
 
@@ -4176,6 +4212,9 @@ msgstr "無法複製評論"
 
 msgid "Couldn't copy path"
 msgstr "無法複製路徑"
+
+msgid "Couldn't create a key for this host, so this signs in through the browser on that machine."
+msgstr "無法為此主機建立金鑰，因此將在那台機器上透過瀏覽器登入。"
 
 msgid "Couldn't create workspace"
 msgstr "無法建立工作區"
@@ -5794,6 +5833,9 @@ msgstr "清除代理程式狀態失敗：{0}"
 msgid "Failed to clear terminal history"
 msgstr "清除終端歷史失敗"
 
+msgid "Failed to clone repository"
+msgstr "克隆儲存庫失敗"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "關閉埠{0}失敗"
@@ -6645,6 +6687,9 @@ msgstr "通用"
 msgid "General access"
 msgstr "通用存取權限"
 
+msgid "Generate a key first"
+msgstr "請先產生金鑰"
+
 msgid "Generate a key to use with MCP servers."
 msgstr "生成一個金鑰，用於MCP伺服器。"
 
@@ -6653,6 +6698,9 @@ msgstr "生成API金鑰"
 
 msgid "Generate key"
 msgstr "生成金鑰"
+
+msgid "Generated"
+msgstr "已產生"
 
 msgid "Generated file hidden"
 msgstr "已隱藏產生的檔案"
@@ -6713,6 +6761,9 @@ msgstr "GitHub App安裝已取消。"
 
 msgid "GitHub App installed successfully!"
 msgstr "GitHub App安裝成功！"
+
+msgid "GitHub CLI isn't installed on {hostName}"
+msgstr "{hostName} 上未安裝 GitHub CLI"
 
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub已連線，但初始同步未能啟動。請嘗試重新連線。"
@@ -7367,6 +7418,9 @@ msgstr "安裝失敗"
 msgid "Install GitHub App"
 msgstr "安裝GitHub App"
 
+msgid "Install GitHub CLI…"
+msgstr "安裝 GitHub CLI…"
+
 msgid "Install Superset MCP in your client"
 msgstr "在你的客戶端裡安裝Superset MCP"
 
@@ -7866,6 +7920,9 @@ msgstr "少"
 
 msgid "less than a minute ago"
 msgstr "不到一分鐘前"
+
+msgid "Lets the other machine sign in without a browser. Revoke it anytime under <0>API keys</0>."
+msgstr "讓另一台機器無需瀏覽器即可登入。可隨時在 <0>API金鑰</0> 中撤銷。"
 
 msgid "Letter spacing (px)"
 msgstr "字間距（px）"
@@ -13096,6 +13153,9 @@ msgstr "登入以繼續使用Superset"
 msgid "Sign in to get started"
 msgstr "登入即可開始"
 
+msgid "Sign in to GitHub…"
+msgstr "登入 GitHub…"
+
 msgid "Sign in with email"
 msgstr "使用電子郵件登入"
 
@@ -13428,6 +13488,9 @@ msgstr "壓縮併合併"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "SSH驗證失敗。請登入GitHub CLI並改用HTTPS網址。"
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14407,6 +14470,9 @@ msgstr "你的組織或團隊的名稱"
 
 msgid "The network connection changed"
 msgstr "網路連線已變更"
+
+msgid "The new host appears under Hosts on the left. This page opens it as soon as it connects."
+msgstr "新主機會顯示在左側的主機清單中。連線後本頁會立即開啟它。"
 
 msgid "The overnight shift"
 msgstr "夜班"
