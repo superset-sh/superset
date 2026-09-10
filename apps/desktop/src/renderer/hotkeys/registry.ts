@@ -556,7 +556,10 @@ export const HOTKEYS_REGISTRY = {
 	},
 	CLEAR_TERMINAL: {
 		key: {
-			mac: L("meta+k"),
+			// meta+k belongs to OPEN_COMMAND_PALETTE; a shared chord would fire
+			// both handlers when a terminal is focused (react-hotkeys-hook has no
+			// precedence between scoped and global registrations).
+			mac: L("meta+shift+k"),
 			windows: L("ctrl+shift+k"),
 			linux: L("ctrl+shift+k"),
 		},
@@ -914,7 +917,7 @@ export const HOTKEYS_REGISTRY = {
 	},
 	OPEN_COMMAND_PALETTE: {
 		key: {
-			mac: L("meta+shift+k"),
+			mac: L("meta+k"),
 			windows: L("ctrl+shift+k"),
 			linux: L("ctrl+shift+k"),
 		},
