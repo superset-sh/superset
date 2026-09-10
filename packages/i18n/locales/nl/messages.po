@@ -1278,9 +1278,6 @@ msgstr "Voorwaarden accepteren"
 msgid "Access denied"
 msgstr "Toegang geweigerd"
 
-msgid "Access verified"
-msgstr "Toegang geverifieerd"
-
 msgid "Access your email address"
 msgstr "Je e-mailadres inzien"
 
@@ -3191,20 +3188,11 @@ msgstr "Een repository klonen"
 msgid "Clone from URL"
 msgstr "Klonen vanaf URL"
 
-msgid "Clone location"
-msgstr "Kloonlocatie"
-
 msgid "clone the repository"
 msgstr "de repository klonen"
 
-msgid "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-msgstr "Kloon de repository naar {targetHostName}, of wijs een bestaande map aan, om daar werkruimtes te maken."
-
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "Kloon de repository of importeer een bestaande map op de host."
-
-msgid "Clone to <0>{parentDir}</0>"
-msgstr "Klonen naar <0>{parentDir}</0>"
 
 msgid "Clone, push, and create PRs."
 msgstr "Kloon, push en maak PR’s."
@@ -4206,6 +4194,9 @@ msgstr "Kon de inloggegevens niet verifiëren: {reason}"
 
 msgid "Could not watch this page"
 msgstr "Kon deze pagina niet volgen"
+
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "Kan deze repository niet openen. Als die privé is, log dan eerst in bij de GitHub-CLI."
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Kan de sterstatus niet bevestigen — controleer of de GitHub-CLI (`gh`) is geïnstalleerd, of je bent ingelogd en of je een netwerkverbinding hebt"
@@ -5842,6 +5833,9 @@ msgstr "Wissen van agentstatus mislukt: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Wissen van terminalgeschiedenis mislukt"
 
+msgid "Failed to clone repository"
+msgstr "Klonen van repository mislukt"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Sluiten van poort {0} mislukt"
@@ -7085,9 +7079,6 @@ msgstr "Host niet beschikbaar"
 
 msgid "Host unavailable: {hostName}"
 msgstr "Host niet beschikbaar: {hostName}"
-
-msgid "Host unreachable"
-msgstr "Host onbereikbaar"
 
 msgid "Hosted in the cloud"
 msgstr "Gehost in de cloud"
@@ -9005,9 +8996,6 @@ msgstr "Nog geen {gaps}-events in deze periode."
 msgid "No access to this host"
 msgstr "Geen toegang tot deze host"
 
-msgid "No access to this repo"
-msgstr "Geen toegang tot deze repository"
-
 msgid "No active enterprise accounts"
 msgstr "Geen actieve enterprise-accounts"
 
@@ -9592,9 +9580,6 @@ msgstr "Niet nu"
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Niet op de ranglijst. Doe eerst mee."
 
-msgid "Not on this host and has no remote to clone from"
-msgstr "Staat niet op deze host en heeft geen remote om van te klonen"
-
 msgid "Not on this version"
 msgstr "Niet in deze versie"
 
@@ -9610,11 +9595,8 @@ msgstr "niet ingesteld"
 msgid "Not set up on {hostName}"
 msgstr "Niet ingesteld op {hostName}"
 
-msgid "Not set up on {targetHostName} yet"
-msgstr "Nog niet ingesteld op {targetHostName}"
-
-msgid "Not set up on this host."
-msgstr "Niet ingesteld op deze host."
+msgid "Not set up on this host"
+msgstr "Niet ingesteld op deze host"
 
 msgid "not sorted"
 msgstr "niet gesorteerd"
@@ -12902,9 +12884,6 @@ msgstr "Wachtwoord instellen"
 msgid "Set Run"
 msgstr "Run instellen"
 
-msgid "Set up manually"
-msgstr "Handmatig instellen"
-
 msgid "Set up project on {hostName}"
 msgstr "Project instellen op {hostName}"
 
@@ -13509,6 +13488,9 @@ msgstr "Squashen en mergen"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "SSH-authenticatie mislukt. Log in bij de GitHub-CLI en gebruik in plaats daarvan de HTTPS-URL."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14530,9 +14512,6 @@ msgstr "De renderer is tijdens het opstarten gecrasht. Bekijk de logs voor detai
 
 msgid "The repository folder itself is kept."
 msgstr "De repositorymap zelf blijft behouden."
-
-msgid "The repository is cloned into a new folder inside this directory."
-msgstr "De repository wordt gekloond naar een nieuwe map in deze directory."
 
 msgid "The request failed."
 msgstr "Het verzoek is mislukt."
@@ -16078,9 +16057,6 @@ msgstr "Breedte"
 
 msgid "Width · parallel sessions"
 msgstr "Breedte · parallelle sessies"
-
-msgid "Will be cloned to this host"
-msgstr "Wordt naar deze host gekloond"
 
 msgid "Window"
 msgstr "Venster"

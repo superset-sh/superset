@@ -1278,9 +1278,6 @@ msgstr "Terima ketentuan"
 msgid "Access denied"
 msgstr "Akses ditolak"
 
-msgid "Access verified"
-msgstr "Akses terverifikasi"
-
 msgid "Access your email address"
 msgstr "Mengakses alamat email Anda"
 
@@ -3191,20 +3188,11 @@ msgstr "Clone sebuah repositori"
 msgid "Clone from URL"
 msgstr "Clone dari URL"
 
-msgid "Clone location"
-msgstr "Lokasi klon"
-
 msgid "clone the repository"
 msgstr "meng-clone repositori"
 
-msgid "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-msgstr "Klon repositori ke {targetHostName}, atau tunjuk ke folder yang sudah ada, untuk membuat workspace di sana."
-
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "Clone repositorinya, atau impor folder yang sudah ada di host."
-
-msgid "Clone to <0>{parentDir}</0>"
-msgstr "Klon ke <0>{parentDir}</0>"
 
 msgid "Clone, push, and create PRs."
 msgstr "Klon, push, dan buat PR."
@@ -4206,6 +4194,9 @@ msgstr "Tidak dapat memverifikasi kredensial: {reason}"
 
 msgid "Could not watch this page"
 msgstr "Tidak bisa memantau halaman ini"
+
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "Tidak bisa mengakses repositori ini. Jika bersifat privat, masuk dulu ke GitHub CLI."
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Tidak bisa memastikan status star — pastikan GitHub CLI (`gh`) terpasang, sudah masuk, dan Anda punya koneksi jaringan"
@@ -5842,6 +5833,9 @@ msgstr "Gagal membersihkan status agen: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Gagal membersihkan riwayat terminal"
 
+msgid "Failed to clone repository"
+msgstr "Gagal meng-clone repositori"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Gagal menutup port {0}"
@@ -7085,9 +7079,6 @@ msgstr "Host tidak tersedia"
 
 msgid "Host unavailable: {hostName}"
 msgstr "Host tidak tersedia: {hostName}"
-
-msgid "Host unreachable"
-msgstr "Host tidak dapat dijangkau"
 
 msgid "Hosted in the cloud"
 msgstr "Dihosting di cloud"
@@ -9005,9 +8996,6 @@ msgstr "Belum ada event {gaps} dalam periode ini."
 msgid "No access to this host"
 msgstr "Tidak ada akses ke host ini"
 
-msgid "No access to this repo"
-msgstr "Tidak ada akses ke repositori ini"
-
 msgid "No active enterprise accounts"
 msgstr "Tidak ada akun enterprise yang aktif"
 
@@ -9592,9 +9580,6 @@ msgstr "Nanti saja"
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Tidak ada di papan peringkat. Ikut serta dulu."
 
-msgid "Not on this host and has no remote to clone from"
-msgstr "Tidak ada di host ini dan tidak punya remote untuk diklon"
-
 msgid "Not on this version"
 msgstr "Tidak ada di versi ini"
 
@@ -9610,11 +9595,8 @@ msgstr "belum disiapkan"
 msgid "Not set up on {hostName}"
 msgstr "Belum disiapkan di {hostName}"
 
-msgid "Not set up on {targetHostName} yet"
-msgstr "Belum disiapkan di {targetHostName}"
-
-msgid "Not set up on this host."
-msgstr "Belum disiapkan di host ini."
+msgid "Not set up on this host"
+msgstr "Belum disiapkan di host ini"
 
 msgid "not sorted"
 msgstr "tidak diurutkan"
@@ -12902,9 +12884,6 @@ msgstr "Setel Kata Sandi"
 msgid "Set Run"
 msgstr "Setel Run"
 
-msgid "Set up manually"
-msgstr "Siapkan manual"
-
 msgid "Set up project on {hostName}"
 msgstr "Siapkan proyek di {hostName}"
 
@@ -13509,6 +13488,9 @@ msgstr "Squash dan merge"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "Autentikasi SSH gagal. Masuk ke GitHub CLI dan gunakan URL HTTPS sebagai gantinya."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14530,9 +14512,6 @@ msgstr "Renderer crash saat startup. Silakan periksa log untuk detailnya."
 
 msgid "The repository folder itself is kept."
 msgstr "Folder repositori itu sendiri tetap dipertahankan."
-
-msgid "The repository is cloned into a new folder inside this directory."
-msgstr "Repositori diklon ke folder baru di dalam direktori ini."
 
 msgid "The request failed."
 msgstr "Permintaan gagal."
@@ -16078,9 +16057,6 @@ msgstr "Lebar"
 
 msgid "Width · parallel sessions"
 msgstr "Lebar · sesi paralel"
-
-msgid "Will be cloned to this host"
-msgstr "Akan diklon ke host ini"
 
 msgid "Window"
 msgstr "Jendela"

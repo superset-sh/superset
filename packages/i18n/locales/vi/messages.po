@@ -1278,9 +1278,6 @@ msgstr "Chấp nhận điều khoản"
 msgid "Access denied"
 msgstr "Truy cập bị từ chối"
 
-msgid "Access verified"
-msgstr "Đã xác minh quyền truy cập"
-
 msgid "Access your email address"
 msgstr "Truy cập địa chỉ email của bạn"
 
@@ -3191,20 +3188,11 @@ msgstr "Clone một repository"
 msgid "Clone from URL"
 msgstr "Clone từ URL"
 
-msgid "Clone location"
-msgstr "Vị trí sao chép"
-
 msgid "clone the repository"
 msgstr "clone repository"
 
-msgid "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-msgstr "Sao chép kho lưu trữ sang {targetHostName}, hoặc trỏ tới một thư mục có sẵn, để tạo workspace ở đó."
-
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "Clone repository, hoặc nhập một thư mục có sẵn trên host."
-
-msgid "Clone to <0>{parentDir}</0>"
-msgstr "Sao chép vào <0>{parentDir}</0>"
 
 msgid "Clone, push, and create PRs."
 msgstr "Sao chép, đẩy và tạo PR."
@@ -4206,6 +4194,9 @@ msgstr "Không xác minh được thông tin đăng nhập: {reason}"
 
 msgid "Could not watch this page"
 msgstr "Không thể theo dõi trang này"
+
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "Không truy cập được repository này. Nếu nó ở chế độ riêng tư, hãy đăng nhập GitHub CLI trước."
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Không xác nhận được trạng thái sao — hãy kiểm tra GitHub CLI (`gh`) đã cài, đã đăng nhập và bạn có kết nối mạng"
@@ -5842,6 +5833,9 @@ msgstr "Không thể xóa trạng thái agent: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Không thể xóa lịch sử terminal"
 
+msgid "Failed to clone repository"
+msgstr "Không thể clone repository"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Không thể đóng cổng {0}"
@@ -7085,9 +7079,6 @@ msgstr "Host không khả dụng"
 
 msgid "Host unavailable: {hostName}"
 msgstr "Host không khả dụng: {hostName}"
-
-msgid "Host unreachable"
-msgstr "Không kết nối được host"
 
 msgid "Hosted in the cloud"
 msgstr "Chạy trên cloud"
@@ -9005,9 +8996,6 @@ msgstr "Chưa có sự kiện {gaps} trong khoảng thời gian này."
 msgid "No access to this host"
 msgstr "Không có quyền truy cập host này"
 
-msgid "No access to this repo"
-msgstr "Không có quyền truy cập kho này"
-
 msgid "No active enterprise accounts"
 msgstr "Không có tài khoản enterprise nào đang hoạt động"
 
@@ -9592,9 +9580,6 @@ msgstr "Để sau"
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Chưa có trên bảng xếp hạng. Hãy tham gia trước."
 
-msgid "Not on this host and has no remote to clone from"
-msgstr "Không có trên host này và không có remote để sao chép"
-
 msgid "Not on this version"
 msgstr "Không có trong phiên bản này"
 
@@ -9610,11 +9595,8 @@ msgstr "chưa thiết lập"
 msgid "Not set up on {hostName}"
 msgstr "Chưa thiết lập trên {hostName}"
 
-msgid "Not set up on {targetHostName} yet"
-msgstr "Chưa thiết lập trên {targetHostName}"
-
-msgid "Not set up on this host."
-msgstr "Chưa thiết lập trên host này."
+msgid "Not set up on this host"
+msgstr "Chưa thiết lập trên host này"
 
 msgid "not sorted"
 msgstr "chưa sắp xếp"
@@ -12902,9 +12884,6 @@ msgstr "Đặt mật khẩu"
 msgid "Set Run"
 msgstr "Đặt lệnh chạy"
 
-msgid "Set up manually"
-msgstr "Thiết lập thủ công"
-
 msgid "Set up project on {hostName}"
 msgstr "Thiết lập dự án trên {hostName}"
 
@@ -13509,6 +13488,9 @@ msgstr "Squash và merge"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "Xác thực SSH thất bại. Hãy đăng nhập GitHub CLI và dùng URL HTTPS thay thế."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14530,9 +14512,6 @@ msgstr "Renderer đã crash khi khởi động. Vui lòng xem log để biết c
 
 msgid "The repository folder itself is kept."
 msgstr "Thư mục kho lưu trữ vẫn được giữ nguyên."
-
-msgid "The repository is cloned into a new folder inside this directory."
-msgstr "Kho lưu trữ sẽ được sao chép vào một thư mục mới bên trong thư mục này."
 
 msgid "The request failed."
 msgstr "Yêu cầu thất bại."
@@ -16078,9 +16057,6 @@ msgstr "Chiều rộng"
 
 msgid "Width · parallel sessions"
 msgstr "Chiều rộng · các phiên song song"
-
-msgid "Will be cloned to this host"
-msgstr "Sẽ được sao chép sang host này"
 
 msgid "Window"
 msgstr "Cửa sổ"

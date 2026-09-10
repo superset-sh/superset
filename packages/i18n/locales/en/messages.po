@@ -1278,9 +1278,6 @@ msgstr "Accept terms"
 msgid "Access denied"
 msgstr "Access denied"
 
-msgid "Access verified"
-msgstr "Access verified"
-
 msgid "Access your email address"
 msgstr "Access your email address"
 
@@ -3191,20 +3188,11 @@ msgstr "Clone a repository"
 msgid "Clone from URL"
 msgstr "Clone from URL"
 
-msgid "Clone location"
-msgstr "Clone location"
-
 msgid "clone the repository"
 msgstr "clone the repository"
 
-msgid "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-msgstr "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "Clone the repository, or import an existing folder on the host."
-
-msgid "Clone to <0>{parentDir}</0>"
-msgstr "Clone to <0>{parentDir}</0>"
 
 msgid "Clone, push, and create PRs."
 msgstr "Clone, push, and create PRs."
@@ -4206,6 +4194,9 @@ msgstr "Could not verify the credential: {reason}"
 
 msgid "Could not watch this page"
 msgstr "Could not watch this page"
+
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
@@ -5842,6 +5833,9 @@ msgstr "Failed to clear agent status: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Failed to clear terminal history"
 
+msgid "Failed to clone repository"
+msgstr "Failed to clone repository"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Failed to close port {0}"
@@ -7085,9 +7079,6 @@ msgstr "Host unavailable"
 
 msgid "Host unavailable: {hostName}"
 msgstr "Host unavailable: {hostName}"
-
-msgid "Host unreachable"
-msgstr "Host unreachable"
 
 msgid "Hosted in the cloud"
 msgstr "Hosted in the cloud"
@@ -9005,9 +8996,6 @@ msgstr "No {gaps} events in this window yet."
 msgid "No access to this host"
 msgstr "No access to this host"
 
-msgid "No access to this repo"
-msgstr "No access to this repo"
-
 msgid "No active enterprise accounts"
 msgstr "No active enterprise accounts"
 
@@ -9592,9 +9580,6 @@ msgstr "Not now"
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Not on the leaderboard. Opt in first."
 
-msgid "Not on this host and has no remote to clone from"
-msgstr "Not on this host and has no remote to clone from"
-
 msgid "Not on this version"
 msgstr "Not on this version"
 
@@ -9610,11 +9595,8 @@ msgstr "not set up"
 msgid "Not set up on {hostName}"
 msgstr "Not set up on {hostName}"
 
-msgid "Not set up on {targetHostName} yet"
-msgstr "Not set up on {targetHostName} yet"
-
-msgid "Not set up on this host."
-msgstr "Not set up on this host."
+msgid "Not set up on this host"
+msgstr "Not set up on this host"
 
 msgid "not sorted"
 msgstr "not sorted"
@@ -12902,9 +12884,6 @@ msgstr "Set Password"
 msgid "Set Run"
 msgstr "Set Run"
 
-msgid "Set up manually"
-msgstr "Set up manually"
-
 msgid "Set up project on {hostName}"
 msgstr "Set up project on {hostName}"
 
@@ -13509,6 +13488,9 @@ msgstr "Squash and merge"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14530,9 +14512,6 @@ msgstr "The renderer crashed during startup. Please check logs for details."
 
 msgid "The repository folder itself is kept."
 msgstr "The repository folder itself is kept."
-
-msgid "The repository is cloned into a new folder inside this directory."
-msgstr "The repository is cloned into a new folder inside this directory."
 
 msgid "The request failed."
 msgstr "The request failed."
@@ -16078,9 +16057,6 @@ msgstr "Width"
 
 msgid "Width · parallel sessions"
 msgstr "Width · parallel sessions"
-
-msgid "Will be cloned to this host"
-msgstr "Will be cloned to this host"
 
 msgid "Window"
 msgstr "Window"

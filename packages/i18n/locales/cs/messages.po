@@ -1278,9 +1278,6 @@ msgstr "Přijmout podmínky"
 msgid "Access denied"
 msgstr "Přístup odepřen"
 
-msgid "Access verified"
-msgstr "Přístup ověřen"
-
 msgid "Access your email address"
 msgstr "číst vaši e-mailovou adresu"
 
@@ -3191,20 +3188,11 @@ msgstr "Naklonovat repozitář"
 msgid "Clone from URL"
 msgstr "Naklonovat z URL"
 
-msgid "Clone location"
-msgstr "Umístění klonu"
-
 msgid "clone the repository"
 msgstr "naklonovat repozitář"
 
-msgid "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-msgstr "Naklonujte repozitář na {targetHostName} nebo ukažte na existující složku, abyste tam mohli vytvářet pracovní prostory."
-
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "Naklonujte repozitář nebo naimportujte existující složku na hostu."
-
-msgid "Clone to <0>{parentDir}</0>"
-msgstr "Klonovat do <0>{parentDir}</0>"
 
 msgid "Clone, push, and create PRs."
 msgstr "Klonujte, odesílejte změny a vytvářejte PR."
@@ -4206,6 +4194,9 @@ msgstr "Přihlašovací údaje se nepodařilo ověřit: {reason}"
 
 msgid "Could not watch this page"
 msgstr "Tuto stránku se nepodařilo sledovat"
+
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "K tomuto repozitáři se nepodařilo získat přístup. Pokud je soukromý, přihlaste se nejdřív do GitHub CLI."
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Nepodařilo se ověřit stav hvězdy — zkontrolujte, že je nainstalované GitHub CLI (`gh`), že jste přihlášeni a že máte připojení k síti"
@@ -5842,6 +5833,9 @@ msgstr "Nepodařilo se vymazat stav agenta: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Nepodařilo se vymazat historii terminálu"
 
+msgid "Failed to clone repository"
+msgstr "Nepodařilo se naklonovat repozitář"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Nepodařilo se zavřít port {0}"
@@ -7085,9 +7079,6 @@ msgstr "Host není dostupný"
 
 msgid "Host unavailable: {hostName}"
 msgstr "Host není dostupný: {hostName}"
-
-msgid "Host unreachable"
-msgstr "Host nedostupný"
 
 msgid "Hosted in the cloud"
 msgstr "Hostováno v cloudu"
@@ -9005,9 +8996,6 @@ msgstr "V tomto období zatím nejsou žádné události {gaps}."
 msgid "No access to this host"
 msgstr "K tomuto hostu nemáte přístup"
 
-msgid "No access to this repo"
-msgstr "Žádný přístup k tomuto repozitáři"
-
 msgid "No active enterprise accounts"
 msgstr "Žádné aktivní enterprise účty"
 
@@ -9592,9 +9580,6 @@ msgstr "Teď ne"
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Nejste v žebříčku. Nejprve se zapojte."
 
-msgid "Not on this host and has no remote to clone from"
-msgstr "Není na tomto hostu a nemá vzdálený repozitář ke klonování"
-
 msgid "Not on this version"
 msgstr "Není v této verzi"
 
@@ -9610,11 +9595,8 @@ msgstr "není nastaveno"
 msgid "Not set up on {hostName}"
 msgstr "Na {hostName} není nastaveno"
 
-msgid "Not set up on {targetHostName} yet"
-msgstr "Na {targetHostName} zatím nenastaveno"
-
-msgid "Not set up on this host."
-msgstr "Na tomto hostu nenastaveno."
+msgid "Not set up on this host"
+msgstr "Na tomto hostu není nastaveno"
 
 msgid "not sorted"
 msgstr "neseřazeno"
@@ -12902,9 +12884,6 @@ msgstr "Nastavit heslo"
 msgid "Set Run"
 msgstr "Nastavit spuštění"
 
-msgid "Set up manually"
-msgstr "Nastavit ručně"
-
 msgid "Set up project on {hostName}"
 msgstr "Nastavit projekt na {hostName}"
 
@@ -13509,6 +13488,9 @@ msgstr "Squash a sloučit"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "Ověření přes SSH selhalo. Přihlaste se do GitHub CLI a použijte místo toho HTTPS URL."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14530,9 +14512,6 @@ msgstr "Renderer spadl při startu. Podrobnosti najdete v logu."
 
 msgid "The repository folder itself is kept."
 msgstr "Samotná složka repozitáře zůstane zachována."
-
-msgid "The repository is cloned into a new folder inside this directory."
-msgstr "Repozitář se naklonuje do nové složky uvnitř tohoto adresáře."
 
 msgid "The request failed."
 msgstr "Požadavek selhal."
@@ -16078,9 +16057,6 @@ msgstr "Šířka"
 
 msgid "Width · parallel sessions"
 msgstr "Šířka · souběžné relace"
-
-msgid "Will be cloned to this host"
-msgstr "Bude naklonováno na tohoto hosta"
 
 msgid "Window"
 msgstr "Okno"

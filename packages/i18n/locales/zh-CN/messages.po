@@ -1278,9 +1278,6 @@ msgstr "接受条款"
 msgid "Access denied"
 msgstr "访问被拒绝"
 
-msgid "Access verified"
-msgstr "已验证访问权限"
-
 msgid "Access your email address"
 msgstr "访问你的邮箱地址"
 
@@ -3191,20 +3188,11 @@ msgstr "克隆仓库"
 msgid "Clone from URL"
 msgstr "从URL克隆"
 
-msgid "Clone location"
-msgstr "克隆位置"
-
 msgid "clone the repository"
 msgstr "克隆仓库"
 
-msgid "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-msgstr "将仓库克隆到 {targetHostName}，或指向一个现有文件夹，即可在那里创建工作区。"
-
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "克隆仓库，或导入主机上已有的文件夹。"
-
-msgid "Clone to <0>{parentDir}</0>"
-msgstr "克隆到 <0>{parentDir}</0>"
 
 msgid "Clone, push, and create PRs."
 msgstr "克隆、推送并创建 PR。"
@@ -4206,6 +4194,9 @@ msgstr "无法验证凭据：{reason}"
 
 msgid "Could not watch this page"
 msgstr "无法关注此页面"
+
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "无法访问此仓库。如果它是私有仓库，请先登录GitHub CLI。"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "无法确认加星状态，请检查是否已安装并登录GitHub CLI（`gh`），以及网络是否连通"
@@ -5842,6 +5833,9 @@ msgstr "清除智能体状态失败：{0}"
 msgid "Failed to clear terminal history"
 msgstr "清除终端历史失败"
 
+msgid "Failed to clone repository"
+msgstr "克隆仓库失败"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "关闭端口{0}失败"
@@ -7085,9 +7079,6 @@ msgstr "主机不可用"
 
 msgid "Host unavailable: {hostName}"
 msgstr "主机不可用：{hostName}"
-
-msgid "Host unreachable"
-msgstr "无法连接主机"
 
 msgid "Hosted in the cloud"
 msgstr "托管在云端"
@@ -9005,9 +8996,6 @@ msgstr "此时间范围内暂无 {gaps} 事件。"
 msgid "No access to this host"
 msgstr "没有此主机的访问权限"
 
-msgid "No access to this repo"
-msgstr "无权访问此仓库"
-
 msgid "No active enterprise accounts"
 msgstr "没有活跃的企业客户"
 
@@ -9592,9 +9580,6 @@ msgstr "暂不"
 msgid "Not on the leaderboard. Opt in first."
 msgstr "不在排行榜中。请先加入。"
 
-msgid "Not on this host and has no remote to clone from"
-msgstr "不在此主机上，且没有可克隆的远程仓库"
-
 msgid "Not on this version"
 msgstr "不在此版本中"
 
@@ -9610,11 +9595,8 @@ msgstr "未设置"
 msgid "Not set up on {hostName}"
 msgstr "尚未在{hostName}上设置"
 
-msgid "Not set up on {targetHostName} yet"
-msgstr "尚未在 {targetHostName} 上设置"
-
-msgid "Not set up on this host."
-msgstr "尚未在此主机上设置。"
+msgid "Not set up on this host"
+msgstr "尚未在此主机上配置"
 
 msgid "not sorted"
 msgstr "未排序"
@@ -12902,9 +12884,6 @@ msgstr "设置密码"
 msgid "Set Run"
 msgstr "设置运行命令"
 
-msgid "Set up manually"
-msgstr "手动设置"
-
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上设置项目"
 
@@ -13509,6 +13488,9 @@ msgstr "压缩并合并"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "SSH认证失败。请登录GitHub CLI并改用HTTPS地址。"
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14530,9 +14512,6 @@ msgstr "渲染进程在启动时崩溃。请查看日志了解详情。"
 
 msgid "The repository folder itself is kept."
 msgstr "仓库文件夹本身会保留。"
-
-msgid "The repository is cloned into a new folder inside this directory."
-msgstr "仓库将被克隆到此目录下的新文件夹中。"
 
 msgid "The request failed."
 msgstr "请求失败。"
@@ -16078,9 +16057,6 @@ msgstr "宽度"
 
 msgid "Width · parallel sessions"
 msgstr "宽度 · 并行会话数"
-
-msgid "Will be cloned to this host"
-msgstr "将克隆到此主机"
 
 msgid "Window"
 msgstr "窗口"

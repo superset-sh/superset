@@ -1278,9 +1278,6 @@ msgstr "Принять условия"
 msgid "Access denied"
 msgstr "Доступ запрещён"
 
-msgid "Access verified"
-msgstr "Доступ подтверждён"
-
 msgid "Access your email address"
 msgstr "получить доступ к вашему адресу email"
 
@@ -3191,20 +3188,11 @@ msgstr "Клонировать репозиторий"
 msgid "Clone from URL"
 msgstr "Клонировать по URL"
 
-msgid "Clone location"
-msgstr "Расположение клона"
-
 msgid "clone the repository"
 msgstr "клонировать репозиторий"
 
-msgid "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-msgstr "Клонируйте репозиторий на {targetHostName} или укажите существующую папку, чтобы создавать там рабочие области."
-
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "Клонируйте репозиторий или импортируйте существующую папку на хосте."
-
-msgid "Clone to <0>{parentDir}</0>"
-msgstr "Клонировать в <0>{parentDir}</0>"
 
 msgid "Clone, push, and create PRs."
 msgstr "Клонируйте, отправляйте изменения и создавайте PR."
@@ -4206,6 +4194,9 @@ msgstr "Не удалось проверить учётные данные: {rea
 
 msgid "Could not watch this page"
 msgstr "Не удалось начать отслеживание этой страницы"
+
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "Не удалось получить доступ к этому репозиторию. Если он приватный, сначала войдите в GitHub CLI."
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Не удалось проверить статус звезды — убедитесь, что GitHub CLI (`gh`) установлен, выполнен вход и есть подключение к сети"
@@ -5842,6 +5833,9 @@ msgstr "Не удалось сбросить статус агента: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Не удалось очистить историю терминала"
 
+msgid "Failed to clone repository"
+msgstr "Не удалось клонировать репозиторий"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Не удалось закрыть порт {0}"
@@ -7085,9 +7079,6 @@ msgstr "Хост недоступен"
 
 msgid "Host unavailable: {hostName}"
 msgstr "Хост недоступен: {hostName}"
-
-msgid "Host unreachable"
-msgstr "Хост недоступен"
 
 msgid "Hosted in the cloud"
 msgstr "Размещена в облаке"
@@ -9005,9 +8996,6 @@ msgstr "В этом периоде пока нет событий {gaps}."
 msgid "No access to this host"
 msgstr "Нет доступа к этому хосту"
 
-msgid "No access to this repo"
-msgstr "Нет доступа к этому репозиторию"
-
 msgid "No active enterprise accounts"
 msgstr "Нет активных enterprise-аккаунтов"
 
@@ -9592,9 +9580,6 @@ msgstr "Не сейчас"
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Вас нет в рейтинге. Сначала присоединитесь."
 
-msgid "Not on this host and has no remote to clone from"
-msgstr "Нет на этом хосте и нет удалённого репозитория для клонирования"
-
 msgid "Not on this version"
 msgstr "Нет в этой версии"
 
@@ -9610,11 +9595,8 @@ msgstr "не настроен"
 msgid "Not set up on {hostName}"
 msgstr "Не настроен на {hostName}"
 
-msgid "Not set up on {targetHostName} yet"
-msgstr "Ещё не настроено на {targetHostName}"
-
-msgid "Not set up on this host."
-msgstr "Не настроено на этом хосте."
+msgid "Not set up on this host"
+msgstr "Не настроен на этом хосте"
 
 msgid "not sorted"
 msgstr "без сортировки"
@@ -12902,9 +12884,6 @@ msgstr "Установить пароль"
 msgid "Set Run"
 msgstr "Задать запуск"
 
-msgid "Set up manually"
-msgstr "Настроить вручную"
-
 msgid "Set up project on {hostName}"
 msgstr "Настроить проект на {hostName}"
 
@@ -13509,6 +13488,9 @@ msgstr "Сжать и объединить"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "Не удалось пройти аутентификацию по SSH. Войдите в GitHub CLI и используйте HTTPS-URL."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14530,9 +14512,6 @@ msgstr "Рендерер аварийно завершился при запус
 
 msgid "The repository folder itself is kept."
 msgstr "Сама папка репозитория сохраняется."
-
-msgid "The repository is cloned into a new folder inside this directory."
-msgstr "Репозиторий клонируется в новую папку внутри этого каталога."
 
 msgid "The request failed."
 msgstr "Запрос завершился ошибкой."
@@ -16078,9 +16057,6 @@ msgstr "Ширина"
 
 msgid "Width · parallel sessions"
 msgstr "Ширина · параллельных сессий"
-
-msgid "Will be cloned to this host"
-msgstr "Будет клонирован на этот хост"
 
 msgid "Window"
 msgstr "Окно"

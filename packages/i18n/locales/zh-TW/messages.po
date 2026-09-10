@@ -1278,9 +1278,6 @@ msgstr "接受條款"
 msgid "Access denied"
 msgstr "存取遭拒"
 
-msgid "Access verified"
-msgstr "已驗證存取權限"
-
 msgid "Access your email address"
 msgstr "存取你的電子郵件地址"
 
@@ -3191,20 +3188,11 @@ msgstr "克隆儲存庫"
 msgid "Clone from URL"
 msgstr "從URL克隆"
 
-msgid "Clone location"
-msgstr "複製位置"
-
 msgid "clone the repository"
 msgstr "克隆儲存庫"
 
-msgid "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-msgstr "將儲存庫複製到 {targetHostName}，或指向現有資料夾，即可在該處建立工作區。"
-
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "克隆儲存庫，或匯入主機上已有的資料夾。"
-
-msgid "Clone to <0>{parentDir}</0>"
-msgstr "複製到 <0>{parentDir}</0>"
 
 msgid "Clone, push, and create PRs."
 msgstr "複製、推送並建立 PR。"
@@ -4206,6 +4194,9 @@ msgstr "無法驗證憑證：{reason}"
 
 msgid "Could not watch this page"
 msgstr "無法關注此頁面"
+
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "無法存取此儲存庫。如果它是私有儲存庫，請先登入GitHub CLI。"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "無法確認加星狀態，請檢查是否已安裝並登入GitHub CLI（`gh`），以及網路是否連通"
@@ -5842,6 +5833,9 @@ msgstr "清除代理程式狀態失敗：{0}"
 msgid "Failed to clear terminal history"
 msgstr "清除終端歷史失敗"
 
+msgid "Failed to clone repository"
+msgstr "克隆儲存庫失敗"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "關閉埠{0}失敗"
@@ -7085,9 +7079,6 @@ msgstr "主機不可用"
 
 msgid "Host unavailable: {hostName}"
 msgstr "主機不可用：{hostName}"
-
-msgid "Host unreachable"
-msgstr "無法連線主機"
 
 msgid "Hosted in the cloud"
 msgstr "託管在雲端"
@@ -9005,9 +8996,6 @@ msgstr "此時間範圍內尚無 {gaps} 事件。"
 msgid "No access to this host"
 msgstr "沒有此主機的存取權限"
 
-msgid "No access to this repo"
-msgstr "無權存取此儲存庫"
-
 msgid "No active enterprise accounts"
 msgstr "沒有活躍的企業客戶"
 
@@ -9592,9 +9580,6 @@ msgstr "暫不"
 msgid "Not on the leaderboard. Opt in first."
 msgstr "不在排行榜中。請先加入。"
 
-msgid "Not on this host and has no remote to clone from"
-msgstr "不在此主機上，且沒有可複製的遠端儲存庫"
-
 msgid "Not on this version"
 msgstr "不在此版本中"
 
@@ -9610,11 +9595,8 @@ msgstr "未設定"
 msgid "Not set up on {hostName}"
 msgstr "尚未在{hostName}上設定"
 
-msgid "Not set up on {targetHostName} yet"
-msgstr "尚未在 {targetHostName} 上設定"
-
-msgid "Not set up on this host."
-msgstr "尚未在此主機上設定。"
+msgid "Not set up on this host"
+msgstr "尚未在此主機上配置"
 
 msgid "not sorted"
 msgstr "未排序"
@@ -12902,9 +12884,6 @@ msgstr "設定密碼"
 msgid "Set Run"
 msgstr "設定執行命令"
 
-msgid "Set up manually"
-msgstr "手動設定"
-
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上設定專案"
 
@@ -13509,6 +13488,9 @@ msgstr "壓縮併合併"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "SSH驗證失敗。請登入GitHub CLI並改用HTTPS網址。"
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14530,9 +14512,6 @@ msgstr "渲染處理程序在啟動時崩潰。請檢視日誌瞭解詳情。"
 
 msgid "The repository folder itself is kept."
 msgstr "儲存庫資料夾本身會保留。"
-
-msgid "The repository is cloned into a new folder inside this directory."
-msgstr "儲存庫將複製到此目錄下的新資料夾中。"
 
 msgid "The request failed."
 msgstr "請求失敗。"
@@ -16078,9 +16057,6 @@ msgstr "寬度"
 
 msgid "Width · parallel sessions"
 msgstr "寬度 · 並行工作階段數"
-
-msgid "Will be cloned to this host"
-msgstr "將複製到此主機"
 
 msgid "Window"
 msgstr "視窗"

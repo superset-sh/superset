@@ -1278,9 +1278,6 @@ msgstr "Accetta i termini"
 msgid "Access denied"
 msgstr "Accesso negato"
 
-msgid "Access verified"
-msgstr "Accesso verificato"
-
 msgid "Access your email address"
 msgstr "Accedere al tuo indirizzo email"
 
@@ -3191,20 +3188,11 @@ msgstr "Clona un repository"
 msgid "Clone from URL"
 msgstr "Clona da URL"
 
-msgid "Clone location"
-msgstr "Percorso del clone"
-
 msgid "clone the repository"
 msgstr "clonare il repository"
 
-msgid "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-msgstr "Clona il repository su {targetHostName}, oppure indica una cartella esistente, per creare workspace lì."
-
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "Clona il repository oppure importa una cartella esistente sull'host."
-
-msgid "Clone to <0>{parentDir}</0>"
-msgstr "Clona in <0>{parentDir}</0>"
 
 msgid "Clone, push, and create PRs."
 msgstr "Clona, esegui il push e crea PR."
@@ -4206,6 +4194,9 @@ msgstr "Impossibile verificare la credenziale: {reason}"
 
 msgid "Could not watch this page"
 msgstr "Impossibile osservare questa pagina"
+
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "Impossibile accedere a questo repository. Se è privato, accedi prima alla CLI di GitHub."
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Impossibile confermare lo stato della star — controlla che la CLI di GitHub (`gh`) sia installata, che tu abbia effettuato l'accesso e che ci sia connessione di rete"
@@ -5842,6 +5833,9 @@ msgstr "Azzeramento dello stato dell'agente non riuscito: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Cancellazione della cronologia del terminale non riuscita"
 
+msgid "Failed to clone repository"
+msgstr "Clonazione del repository non riuscita"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Chiusura della porta {0} non riuscita"
@@ -7085,9 +7079,6 @@ msgstr "Host non disponibile"
 
 msgid "Host unavailable: {hostName}"
 msgstr "Host non disponibile: {hostName}"
-
-msgid "Host unreachable"
-msgstr "Host irraggiungibile"
 
 msgid "Hosted in the cloud"
 msgstr "Ospitato nel cloud"
@@ -9005,9 +8996,6 @@ msgstr "Nessun evento {gaps} in questo periodo per ora."
 msgid "No access to this host"
 msgstr "Nessun accesso a questo host"
 
-msgid "No access to this repo"
-msgstr "Nessun accesso a questo repository"
-
 msgid "No active enterprise accounts"
 msgstr "Nessun account enterprise attivo"
 
@@ -9592,9 +9580,6 @@ msgstr "Non ora"
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Non sei in classifica. Attiva prima l'adesione."
 
-msgid "Not on this host and has no remote to clone from"
-msgstr "Non è su questo host e non ha un remoto da cui clonare"
-
 msgid "Not on this version"
 msgstr "Non presente in questa versione"
 
@@ -9610,11 +9595,8 @@ msgstr "non configurato"
 msgid "Not set up on {hostName}"
 msgstr "Non configurato su {hostName}"
 
-msgid "Not set up on {targetHostName} yet"
-msgstr "Non ancora configurato su {targetHostName}"
-
-msgid "Not set up on this host."
-msgstr "Non configurato su questo host."
+msgid "Not set up on this host"
+msgstr "Non configurato su questo host"
 
 msgid "not sorted"
 msgstr "non ordinato"
@@ -12902,9 +12884,6 @@ msgstr "Imposta password"
 msgid "Set Run"
 msgstr "Imposta l'esecuzione"
 
-msgid "Set up manually"
-msgstr "Configura manualmente"
-
 msgid "Set up project on {hostName}"
 msgstr "Configura il progetto su {hostName}"
 
@@ -13509,6 +13488,9 @@ msgstr "Squash e merge"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "Autenticazione SSH non riuscita. Accedi alla CLI di GitHub e usa invece l'URL HTTPS."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14530,9 +14512,6 @@ msgstr "Il renderer è andato in crash durante l'avvio. Controlla i log per i de
 
 msgid "The repository folder itself is kept."
 msgstr "La cartella del repository viene mantenuta."
-
-msgid "The repository is cloned into a new folder inside this directory."
-msgstr "Il repository viene clonato in una nuova cartella dentro questa directory."
 
 msgid "The request failed."
 msgstr "La richiesta non è riuscita."
@@ -16078,9 +16057,6 @@ msgstr "Ampiezza"
 
 msgid "Width · parallel sessions"
 msgstr "Ampiezza · sessioni parallele"
-
-msgid "Will be cloned to this host"
-msgstr "Verrà clonato su questo host"
 
 msgid "Window"
 msgstr "Finestra"

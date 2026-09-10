@@ -1278,9 +1278,6 @@ msgstr "Koşulları kabul et"
 msgid "Access denied"
 msgstr "Erişim reddedildi"
 
-msgid "Access verified"
-msgstr "Erişim doğrulandı"
-
 msgid "Access your email address"
 msgstr "E-posta adresinize erişme"
 
@@ -3191,20 +3188,11 @@ msgstr "Bir depoyu klonla"
 msgid "Clone from URL"
 msgstr "URL'den klonla"
 
-msgid "Clone location"
-msgstr "Klon konumu"
-
 msgid "clone the repository"
 msgstr "depoyu klonlama"
 
-msgid "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-msgstr "Depoyu {targetHostName} üzerine klonlayın veya mevcut bir klasörü gösterin; böylece orada çalışma alanları oluşturabilirsiniz."
-
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "Depoyu klonlayın veya host'taki mevcut bir klasörü içe aktarın."
-
-msgid "Clone to <0>{parentDir}</0>"
-msgstr "Şuraya klonla: <0>{parentDir}</0>"
 
 msgid "Clone, push, and create PRs."
 msgstr "Klonlayın, gönderin ve PR oluşturun."
@@ -4206,6 +4194,9 @@ msgstr "Kimlik bilgisi doğrulanamadı: {reason}"
 
 msgid "Could not watch this page"
 msgstr "Bu sayfa izlenemedi"
+
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "Bu depoya erişilemedi. Depo özelse önce GitHub CLI'ye giriş yapın."
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Yıldız durumu doğrulanamadı — GitHub CLI'nin (`gh`) kurulu ve oturum açmış olduğunu ve ağ bağlantınızın bulunduğunu kontrol edin"
@@ -5842,6 +5833,9 @@ msgstr "Ajan durumu temizlenemedi: {0}"
 msgid "Failed to clear terminal history"
 msgstr "Terminal geçmişi temizlenemedi"
 
+msgid "Failed to clone repository"
+msgstr "Depo klonlanamadı"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "{0} portu kapatılamadı"
@@ -7085,9 +7079,6 @@ msgstr "Host kullanılamıyor"
 
 msgid "Host unavailable: {hostName}"
 msgstr "Host kullanılamıyor: {hostName}"
-
-msgid "Host unreachable"
-msgstr "Host erişilemiyor"
 
 msgid "Hosted in the cloud"
 msgstr "Bulutta barındırılıyor"
@@ -9005,9 +8996,6 @@ msgstr "Bu aralıkta henüz {gaps} olayı yok."
 msgid "No access to this host"
 msgstr "Bu host'a erişim yok"
 
-msgid "No access to this repo"
-msgstr "Bu depoya erişim yok"
-
 msgid "No active enterprise accounts"
 msgstr "Etkin kurumsal hesap yok"
 
@@ -9592,9 +9580,6 @@ msgstr "Şimdi değil"
 msgid "Not on the leaderboard. Opt in first."
 msgstr "Lider tablosunda değilsiniz. Önce katılın."
 
-msgid "Not on this host and has no remote to clone from"
-msgstr "Bu host'ta yok ve klonlanacak bir uzak deposu yok"
-
 msgid "Not on this version"
 msgstr "Bu sürümde yok"
 
@@ -9610,11 +9595,8 @@ msgstr "kurulu değil"
 msgid "Not set up on {hostName}"
 msgstr "{hostName} üzerinde kurulu değil"
 
-msgid "Not set up on {targetHostName} yet"
-msgstr "{targetHostName} üzerinde henüz kurulmadı"
-
-msgid "Not set up on this host."
-msgstr "Bu host'ta kurulmadı."
+msgid "Not set up on this host"
+msgstr "Bu host'ta kurulu değil"
 
 msgid "not sorted"
 msgstr "sıralanmamış"
@@ -12902,9 +12884,6 @@ msgstr "Parolayı belirle"
 msgid "Set Run"
 msgstr "Çalıştırmayı ayarla"
 
-msgid "Set up manually"
-msgstr "Elle kur"
-
 msgid "Set up project on {hostName}"
 msgstr "{hostName} üzerinde projeyi kur"
 
@@ -13509,6 +13488,9 @@ msgstr "Squash ve birleştir"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "SSH kimlik doğrulaması başarısız oldu. GitHub CLI'ye giriş yapın ve bunun yerine HTTPS URL'sini kullanın."
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14530,9 +14512,6 @@ msgstr "Başlangıç sırasında renderer çöktü. Ayrıntılar için günlükl
 
 msgid "The repository folder itself is kept."
 msgstr "Depo klasörünün kendisi korunur."
-
-msgid "The repository is cloned into a new folder inside this directory."
-msgstr "Depo, bu dizinin içinde yeni bir klasöre klonlanır."
 
 msgid "The request failed."
 msgstr "İstek başarısız oldu."
@@ -16078,9 +16057,6 @@ msgstr "Genişlik"
 
 msgid "Width · parallel sessions"
 msgstr "Genişlik · paralel oturumlar"
-
-msgid "Will be cloned to this host"
-msgstr "Bu host'a klonlanacak"
 
 msgid "Window"
 msgstr "Pencere"

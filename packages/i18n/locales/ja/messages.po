@@ -1278,9 +1278,6 @@ msgstr "利用規約に同意する"
 msgid "Access denied"
 msgstr "アクセスが拒否されました"
 
-msgid "Access verified"
-msgstr "アクセスを確認済み"
-
 msgid "Access your email address"
 msgstr "メールアドレスへのアクセス"
 
@@ -3191,20 +3188,11 @@ msgstr "リポジトリをクローン"
 msgid "Clone from URL"
 msgstr "URLからクローン"
 
-msgid "Clone location"
-msgstr "クローン先"
-
 msgid "clone the repository"
 msgstr "リポジトリをクローンする"
 
-msgid "Clone the repository onto {targetHostName}, or point to an existing folder, to create workspaces there."
-msgstr "{targetHostName} にリポジトリをクローンするか、既存のフォルダを指定すると、そこでワークスペースを作成できます。"
-
 msgid "Clone the repository, or import an existing folder on the host."
 msgstr "リポジトリをクローンするか、ホスト上の既存フォルダをインポートします。"
-
-msgid "Clone to <0>{parentDir}</0>"
-msgstr "<0>{parentDir}</0> にクローン"
 
 msgid "Clone, push, and create PRs."
 msgstr "クローン、プッシュ、PRの作成。"
@@ -4206,6 +4194,9 @@ msgstr "認証情報を確認できませんでした: {reason}"
 
 msgid "Could not watch this page"
 msgstr "このページを監視できませんでした"
+
+msgid "Couldn't access this repository. If it's private, sign in to GitHub CLI first."
+msgstr "このリポジトリにアクセスできませんでした。プライベートの場合は、先にGitHub CLIにサインインしてください。"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "スター状態を確認できませんでした — GitHub CLI (`gh`) がインストール・サインイン済みで、ネットワーク接続があることを確認してください"
@@ -5842,6 +5833,9 @@ msgstr "エージェントのステータスをクリアできませんでした
 msgid "Failed to clear terminal history"
 msgstr "ターミナル履歴のクリアに失敗しました"
 
+msgid "Failed to clone repository"
+msgstr "リポジトリをクローンできませんでした"
+
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "ポート{0}を閉じられませんでした"
@@ -7085,9 +7079,6 @@ msgstr "ホストが利用できません"
 
 msgid "Host unavailable: {hostName}"
 msgstr "ホストが利用できません: {hostName}"
-
-msgid "Host unreachable"
-msgstr "ホストに到達できません"
 
 msgid "Hosted in the cloud"
 msgstr "クラウドでホスト"
@@ -9005,9 +8996,6 @@ msgstr "この期間の{gaps}イベントはまだありません。"
 msgid "No access to this host"
 msgstr "このホストへのアクセス権がありません"
 
-msgid "No access to this repo"
-msgstr "このリポジトリにアクセスできません"
-
 msgid "No active enterprise accounts"
 msgstr "有効なエンタープライズアカウントはありません"
 
@@ -9592,9 +9580,6 @@ msgstr "あとで"
 msgid "Not on the leaderboard. Opt in first."
 msgstr "リーダーボードに参加していません。先に参加してください。"
 
-msgid "Not on this host and has no remote to clone from"
-msgstr "このホストになく、クローン元のリモートもありません"
-
 msgid "Not on this version"
 msgstr "このバージョンにはありません"
 
@@ -9610,11 +9595,8 @@ msgstr "未セットアップ"
 msgid "Not set up on {hostName}"
 msgstr "{hostName}ではセットアップされていません"
 
-msgid "Not set up on {targetHostName} yet"
-msgstr "{targetHostName} ではまだセットアップされていません"
-
-msgid "Not set up on this host."
-msgstr "このホストではセットアップされていません。"
+msgid "Not set up on this host"
+msgstr "このホストではセットアップされていません"
 
 msgid "not sorted"
 msgstr "並べ替えなし"
@@ -12902,9 +12884,6 @@ msgstr "パスワードを設定"
 msgid "Set Run"
 msgstr "実行を設定"
 
-msgid "Set up manually"
-msgstr "手動でセットアップ"
-
 msgid "Set up project on {hostName}"
 msgstr "{hostName}でプロジェクトをセットアップ"
 
@@ -13509,6 +13488,9 @@ msgstr "スカッシュしてマージ"
 
 msgid "SS"
 msgstr "SS"
+
+msgid "SSH authentication failed. Sign in to GitHub CLI and use the HTTPS URL instead."
+msgstr "SSH認証に失敗しました。GitHub CLIにサインインし、代わりにHTTPSのURLを使用してください。"
 
 msgid "SSO/SAML"
 msgstr "SSO/SAML"
@@ -14530,9 +14512,6 @@ msgstr "起動中にレンダラーがクラッシュしました。詳細はロ
 
 msgid "The repository folder itself is kept."
 msgstr "リポジトリのフォルダ自体は残ります。"
-
-msgid "The repository is cloned into a new folder inside this directory."
-msgstr "リポジトリはこのディレクトリ内の新しいフォルダにクローンされます。"
 
 msgid "The request failed."
 msgstr "リクエストに失敗しました。"
@@ -16078,9 +16057,6 @@ msgstr "幅"
 
 msgid "Width · parallel sessions"
 msgstr "幅 · 並列セッション数"
-
-msgid "Will be cloned to this host"
-msgstr "このホストにクローンされます"
 
 msgid "Window"
 msgstr "ウィンドウ"
