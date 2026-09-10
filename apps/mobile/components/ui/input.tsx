@@ -1,10 +1,14 @@
 import { Platform, TextInput } from "react-native";
+import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
 function Input({
 	className,
 	...props
 }: React.ComponentProps<typeof TextInput> & React.RefAttributes<TextInput>) {
+	// The caret and selection would otherwise take the app's accent, which is
+	// dark for the system surfaces we present and would vanish in here.
+	const theme = useTheme();
 	return (
 		<TextInput
 			className={cn(
@@ -26,6 +30,7 @@ function Input({
 				}),
 				className,
 			)}
+			selectionColor={theme.foreground}
 			{...props}
 		/>
 	);

@@ -342,6 +342,12 @@ struct ComposerRootView: View {
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+    // The caret and every glyph drawn without a colour of its own take the
+    // app's accent, which exists for the system surfaces we present (the photo
+    // picker's controls) and is dark so those read as controls rather than as
+    // a lit disc. The composer sits on near-black and wants the opposite, so
+    // it states its own tint instead of inheriting that one.
+    .tint(.white)
     .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) }
       action: { rootFrame = $0 }
     // Catches the keyboard leaving by a route we did not initiate — the
@@ -534,8 +540,8 @@ struct ComposerRootView: View {
       middleBand
 
       // The trigger slot: mic, or whatever dictation has turned it into.
-      // Hidden while sending — the spinner should be the only thing moving.
-      if !model.isSending {
+      // Hidden while busy — the spinner should be the only thing moving.
+      if !isBusy {
         voiceControl
       }
 
@@ -591,21 +597,32 @@ struct ComposerRootView: View {
     }
   }
 
+  /// Nothing can be sent yet: the last send is still going, or an attachment
+  /// is. Both read the same way in the row — spinner, no mic — because both
+  /// are the composer waiting on something it started.
+  private var isBusy: Bool { model.isSending || model.isUploading }
+
+  private var sendLabel: String {
+    if model.isSending { return composerLocalized("Sending") }
+    if model.isUploading { return composerLocalized("Uploading") }
+    return composerLocalized("Send")
+  }
+
   private var sendButton: some View {
     Button { model.submit() } label: {
-      if model.isSending {
+      if isBusy {
         ComposerSpinner()
       } else {
         Image(systemName: "arrow.up")
           .font(.system(size: 16, weight: .semibold))
       }
     }
-    // In flight the button drops back to the ordinary control fill, so the
-    // spinner sits on the same grey as the mic and `+` beside it. Keeping the
-    // white fill would leave a bright disc that still reads as "ready".
-    .buttonStyle(model.isSending ? .composerControl : .composerSend)
-    .disabled(model.isSending)
-    .accessibilityLabel(model.isSending ? composerLocalized("Sending") : composerLocalized("Send"))
+    // While busy the button drops back to the ordinary control fill, so the
+    // spinner sits on the same grey as the `+` beside it. Keeping the white
+    // fill would leave a bright disc that still reads as "ready".
+    .buttonStyle(isBusy ? .composerControl : .composerSend)
+    .disabled(isBusy)
+    .accessibilityLabel(sendLabel)
     .transition(.opacity)
   }
 

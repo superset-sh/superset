@@ -168,6 +168,13 @@ final class ComposerModel {
 
   var hasContent: Bool { hasDraft || !attachments.isEmpty }
 
+  /// An attachment is still on its way to storage. A send would survive it —
+  /// it waits for the bytes before it launches anything — but a send button
+  /// that looks ready while a ring is still filling invites the tap that
+  /// appears to do nothing. A failed upload does not count: sending is how it
+  /// is retried.
+  var isUploading: Bool { attachments.contains(where: \.isUploading) }
+
   var hasDraft: Bool {
     !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
   }
@@ -224,7 +231,7 @@ final class ComposerModel {
   }
 
   func submit() {
-    guard hasContent, !isSending else { return }
+    guard hasContent, !isSending, !isUploading else { return }
     onSubmit?(draft)
   }
 }

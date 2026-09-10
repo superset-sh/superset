@@ -55,7 +55,11 @@ export default ({ config }: ConfigContext) => ({
 		bundler: "metro",
 	},
 	plugins: [
-		[withIosAccentColor, { color: "#FFFFFF" }],
+		// Dark, not white: iOS 26 fills a prominent system control with the
+		// accent, so the photo picker's confirm button became a lit white disc
+		// where the rest of that chrome is dark. The composer states its own
+		// tint (`ComposerRootView`) rather than inheriting this.
+		[withIosAccentColor, { color: "#262626" }],
 		"expo-router",
 		[
 			"@sentry/react-native/expo",
