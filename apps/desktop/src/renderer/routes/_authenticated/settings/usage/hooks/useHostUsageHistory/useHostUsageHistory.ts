@@ -1,5 +1,5 @@
 import type { AppRouter } from "@superset/host-service";
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 
@@ -15,8 +15,8 @@ const HISTORY_CACHE_MS = 24 * 60 * 60 * 1000;
  * range change and after staleness. Retain results across a day of navigation
  * so returning to Usage refreshes in the background instead of blanking it.
  */
-export function useHostUsageHistory(hostUrl: string | null, days: number) {
-	return useQuery({
+export function hostUsageHistoryOptions(hostUrl: string | null, days: number) {
+	return queryOptions({
 		queryKey: ["host-usage-history", hostUrl, days] as const,
 		enabled: !!hostUrl,
 		queryFn: () => {
@@ -29,4 +29,8 @@ export function useHostUsageHistory(hostUrl: string | null, days: number) {
 		placeholderData: (previousData, previousQuery) =>
 			previousQuery?.queryKey[1] === hostUrl ? previousData : undefined,
 	});
+}
+
+export function useHostUsageHistory(hostUrl: string | null, days: number) {
+	return useQuery(hostUsageHistoryOptions(hostUrl, days));
 }
