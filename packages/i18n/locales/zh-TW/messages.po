@@ -767,9 +767,6 @@ msgstr "{name} 是內建的，無法取代"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} 尚未新增"
 
-msgid "{needing, plural, one {# needs you} other {# need you}}"
-msgstr "{needing, plural, other {# 個需要你}}"
-
 msgid "{nonBrandPct} of clicks"
 msgstr "佔點擊的 {nonBrandPct}"
 
@@ -887,12 +884,6 @@ msgstr "{threshold, plural, other {已合併 # 個智慧代理 PR}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName}已中斷"
 
-msgid "{total, plural, one {# agent working} other {# agents working}}"
-msgstr "{total, plural, other {# 個代理程式執行中}}"
-
-msgid "{total, plural, one {# agent} other {# agents}}"
-msgstr "{total, plural, other {# 個代理程式}}"
-
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {#項檢查全部通過} other {#項檢查全部通過}}"
 
@@ -984,9 +975,6 @@ msgstr "⇧點選"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {#個檔案} other {#個檔案}}"
-
-msgid "+{hidden} more"
-msgstr "還有 {hidden} 個"
 
 msgid "+{hiddenCount} earlier"
 msgstr "更早的+{hiddenCount}條"
@@ -5766,10 +5754,6 @@ msgstr "失敗"
 msgid "Failed"
 msgstr "失敗"
 
-msgctxt "agent status"
-msgid "Failed"
-msgstr "失敗"
-
 msgid "Failed <0>· 7d</0>"
 msgstr "失敗 <0>· 7天</0>"
 
@@ -8755,10 +8739,6 @@ msgstr "需要更新"
 msgid "Needs update"
 msgstr "需要更新"
 
-msgctxt "agent status"
-msgid "Needs you"
-msgstr "需要你"
-
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9563,10 +9543,6 @@ msgstr "尚未在此主機上配置"
 
 msgid "not sorted"
 msgstr "未排序"
-
-msgctxt "agent status"
-msgid "Not updating"
-msgstr "未更新"
 
 msgid "Notes"
 msgstr "筆記"
@@ -11989,10 +11965,6 @@ msgstr "顯示我的排名"
 
 msgid "Review"
 msgstr "審查"
-
-msgctxt "agent status"
-msgid "Review"
-msgstr "待檢視"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "審查和CI排隊把代理程式帶來的收益吃掉了。"
@@ -16061,10 +16033,6 @@ msgstr "工作流教程"
 
 msgid "Working"
 msgstr "工作中"
-
-msgctxt "agent status"
-msgid "Working"
-msgstr "執行中"
 
 msgid "Works when environments are clean. Environments are rarely clean."
 msgstr "環境乾淨時可行。而環境很少乾淨。"

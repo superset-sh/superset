@@ -9,8 +9,7 @@
 			"@superset/attachments-sheet": [
 				"./modules/attachments-sheet/src/index.ts"
 			],
-			"@superset/composer": ["./modules/composer/src/index.tsx"],
-			"@superset/live-activity": ["./modules/live-activity/src/index.ts"]
+			"@superset/composer": ["./modules/composer/src/index.tsx"]
 		},
 		"allowImportingTsExtensions": true
 	},

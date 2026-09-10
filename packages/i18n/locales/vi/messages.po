@@ -767,9 +767,6 @@ msgstr "{name} là tích hợp sẵn nên không thể thay thế"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} chưa được thêm"
 
-msgid "{needing, plural, one {# needs you} other {# need you}}"
-msgstr "{needing, plural, other {# cần bạn}}"
-
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} số lượt nhấp"
 
@@ -887,12 +884,6 @@ msgstr "{threshold, plural, other {đã hợp nhất # PR của tác nhân}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName} bị gián đoạn"
 
-msgid "{total, plural, one {# agent working} other {# agents working}}"
-msgstr "{total, plural, other {# agent đang chạy}}"
-
-msgid "{total, plural, one {# agent} other {# agents}}"
-msgstr "{total, plural, other {# agent}}"
-
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Cả # check đều đạt} other {Cả # check đều đạt}}"
 
@@ -984,9 +975,6 @@ msgstr "⇧ nhấp"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# tệp} other {# tệp}}"
-
-msgid "+{hidden} more"
-msgstr "+{hidden} nữa"
 
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} trước đó"
@@ -5766,10 +5754,6 @@ msgstr "thất bại"
 msgid "Failed"
 msgstr "Thất bại"
 
-msgctxt "agent status"
-msgid "Failed"
-msgstr "Thất bại"
-
 msgid "Failed <0>· 7d</0>"
 msgstr "Thất bại <0>· 7 ngày</0>"
 
@@ -8755,10 +8739,6 @@ msgstr "cần cập nhật"
 msgid "Needs update"
 msgstr "Cần cập nhật"
 
-msgctxt "agent status"
-msgid "Needs you"
-msgstr "Cần bạn"
-
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9563,10 +9543,6 @@ msgstr "Chưa thiết lập trên host này"
 
 msgid "not sorted"
 msgstr "chưa sắp xếp"
-
-msgctxt "agent status"
-msgid "Not updating"
-msgstr "Không cập nhật"
 
 msgid "Notes"
 msgstr "Ghi chú"
@@ -11989,10 +11965,6 @@ msgstr "Hiện thứ hạng của tôi"
 
 msgid "Review"
 msgstr "Review"
-
-msgctxt "agent status"
-msgid "Review"
-msgstr "Xem lại"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Hàng đợi review và CI ăn mất phần lợi mà agent tạo ra."
@@ -16061,10 +16033,6 @@ msgstr "Hướng dẫn quy trình"
 
 msgid "Working"
 msgstr "Đang làm"
-
-msgctxt "agent status"
-msgid "Working"
-msgstr "Đang chạy"
 
 msgid "Works when environments are clean. Environments are rarely clean."
 msgstr "Chạy được khi môi trường sạch. Môi trường hiếm khi sạch."

@@ -767,9 +767,6 @@ msgstr "{name} is ingebouwd en kan niet worden vervangen"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} is niet toegevoegd"
 
-msgid "{needing, plural, one {# needs you} other {# need you}}"
-msgstr "{needing, plural, one {# wacht op jou} other {# wachten op jou}}"
-
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} van de klikken"
 
@@ -887,12 +884,6 @@ msgstr "{threshold, plural, one {# agent-PR gemerged} other {# agent-PR's gemerg
 msgid "{toolName} interrupted"
 msgstr "{toolName} onderbroken"
 
-msgid "{total, plural, one {# agent working} other {# agents working}}"
-msgstr "{total, plural, one {# agent bezig} other {# agents bezig}}"
-
-msgid "{total, plural, one {# agent} other {# agents}}"
-msgstr "{total, plural, one {# agent} other {# agents}}"
-
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {De check is geslaagd} other {Alle # checks geslaagd}}"
 
@@ -984,9 +975,6 @@ msgstr "⇧-klik"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# bestand} other {# bestanden}}"
-
-msgid "+{hidden} more"
-msgstr "+{hidden} meer"
 
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} eerder"
@@ -5766,10 +5754,6 @@ msgstr "mislukt"
 msgid "Failed"
 msgstr "Mislukt"
 
-msgctxt "agent status"
-msgid "Failed"
-msgstr "Mislukt"
-
 msgid "Failed <0>· 7d</0>"
 msgstr "Mislukt <0>· 7d</0>"
 
@@ -8755,10 +8739,6 @@ msgstr "update nodig"
 msgid "Needs update"
 msgstr "Update nodig"
 
-msgctxt "agent status"
-msgid "Needs you"
-msgstr "Wacht op jou"
-
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9563,10 +9543,6 @@ msgstr "Niet ingesteld op deze host"
 
 msgid "not sorted"
 msgstr "niet gesorteerd"
-
-msgctxt "agent status"
-msgid "Not updating"
-msgstr "Geen updates"
 
 msgid "Notes"
 msgstr "Notities"
@@ -11989,10 +11965,6 @@ msgstr "Mijn positie tonen"
 
 msgid "Review"
 msgstr "Review"
-
-msgctxt "agent status"
-msgid "Review"
-msgstr "Beoordelen"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Review- en CI-wachtrijen eten de winst op die agents opleveren."
@@ -16059,10 +16031,6 @@ msgstr "Workflow-run afgerond…"
 msgid "Workflow Tutorials"
 msgstr "Workflow-tutorials"
 
-msgid "Working"
-msgstr "Bezig"
-
-msgctxt "agent status"
 msgid "Working"
 msgstr "Bezig"
 

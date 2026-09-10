@@ -767,9 +767,6 @@ msgstr "{name} bawaan dan tidak dapat diganti"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} belum ditambahkan"
 
-msgid "{needing, plural, one {# needs you} other {# need you}}"
-msgstr "{needing, plural, other {# butuh Anda}}"
-
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} dari klik"
 
@@ -887,12 +884,6 @@ msgstr "{threshold, plural, other {# PR agen digabungkan}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName} dihentikan"
 
-msgid "{total, plural, one {# agent working} other {# agents working}}"
-msgstr "{total, plural, other {# agen bekerja}}"
-
-msgid "{total, plural, one {# agent} other {# agents}}"
-msgstr "{total, plural, other {# agen}}"
-
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Semua # check lulus} other {Semua # check lulus}}"
 
@@ -984,9 +975,6 @@ msgstr "⇧ klik"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# file} other {# file}}"
-
-msgid "+{hidden} more"
-msgstr "+{hidden} lagi"
 
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} sebelumnya"
@@ -5766,10 +5754,6 @@ msgstr "gagal"
 msgid "Failed"
 msgstr "Gagal"
 
-msgctxt "agent status"
-msgid "Failed"
-msgstr "Gagal"
-
 msgid "Failed <0>· 7d</0>"
 msgstr "Gagal <0>· 7h</0>"
 
@@ -8755,10 +8739,6 @@ msgstr "perlu diperbarui"
 msgid "Needs update"
 msgstr "Perlu diperbarui"
 
-msgctxt "agent status"
-msgid "Needs you"
-msgstr "Butuh Anda"
-
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9563,10 +9543,6 @@ msgstr "Belum disiapkan di host ini"
 
 msgid "not sorted"
 msgstr "tidak diurutkan"
-
-msgctxt "agent status"
-msgid "Not updating"
-msgstr "Tidak diperbarui"
 
 msgid "Notes"
 msgstr "Catatan"
@@ -11989,10 +11965,6 @@ msgstr "Tampilkan peringkat saya"
 
 msgid "Review"
 msgstr "Review"
-
-msgctxt "agent status"
-msgid "Review"
-msgstr "Tinjau"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Antrean review dan CI memakan keuntungan yang dihasilkan agen."
@@ -16059,10 +16031,6 @@ msgstr "Run workflow selesai…"
 msgid "Workflow Tutorials"
 msgstr "Tutorial Alur Kerja"
 
-msgid "Working"
-msgstr "Bekerja"
-
-msgctxt "agent status"
 msgid "Working"
 msgstr "Bekerja"
 

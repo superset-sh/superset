@@ -767,9 +767,6 @@ msgstr "{name} jest wbudowany i nie można go zastąpić"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} nie został dodany"
 
-msgid "{needing, plural, one {# needs you} other {# need you}}"
-msgstr "{needing, plural, one {# czeka na Ciebie} few {# czekają na Ciebie} many {# czeka na Ciebie} other {# czeka na Ciebie}}"
-
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} kliknięć"
 
@@ -887,12 +884,6 @@ msgstr "{threshold, plural, one {scalono # PR agenta} few {scalono # PR agenta} 
 msgid "{toolName} interrupted"
 msgstr "{toolName} przerwane"
 
-msgid "{total, plural, one {# agent working} other {# agents working}}"
-msgstr "{total, plural, one {# agent pracuje} few {# agenci pracują} many {# agentów pracuje} other {# agentów pracuje}}"
-
-msgid "{total, plural, one {# agent} other {# agents}}"
-msgstr "{total, plural, one {# agent} few {# agenci} many {# agentów} other {# agentów}}"
-
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Kontrola przeszła} few {Wszystkie # kontrole przeszły} many {Wszystkie # kontroli przeszło} other {Wszystkie # kontroli przeszło}}"
 
@@ -984,9 +975,6 @@ msgstr "⇧ klik"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}}"
-
-msgid "+{hidden} more"
-msgstr "+{hidden} więcej"
 
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} wcześniej"
@@ -5766,10 +5754,6 @@ msgstr "niepowodzenie"
 msgid "Failed"
 msgstr "Nieudane"
 
-msgctxt "agent status"
-msgid "Failed"
-msgstr "Niepowodzenie"
-
 msgid "Failed <0>· 7d</0>"
 msgstr "Nieudane <0>· 7 dni</0>"
 
@@ -8755,10 +8739,6 @@ msgstr "wymaga aktualizacji"
 msgid "Needs update"
 msgstr "Wymaga aktualizacji"
 
-msgctxt "agent status"
-msgid "Needs you"
-msgstr "Czeka na Ciebie"
-
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9563,10 +9543,6 @@ msgstr "Nieskonfigurowany na tym hoście"
 
 msgid "not sorted"
 msgstr "bez sortowania"
-
-msgctxt "agent status"
-msgid "Not updating"
-msgstr "Brak aktualizacji"
 
 msgid "Notes"
 msgstr "Notatki"
@@ -11989,10 +11965,6 @@ msgstr "Pokaż moją pozycję"
 
 msgid "Review"
 msgstr "Przegląd"
-
-msgctxt "agent status"
-msgid "Review"
-msgstr "Do przeglądu"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Kolejki przeglądów i CI zjadają zyski, które dają agenci."
@@ -16059,10 +16031,6 @@ msgstr "Przebieg workflow zakończony…"
 msgid "Workflow Tutorials"
 msgstr "Poradniki workflow"
 
-msgid "Working"
-msgstr "Pracuje"
-
-msgctxt "agent status"
 msgid "Working"
 msgstr "Pracuje"
 
