@@ -3796,6 +3796,9 @@ msgstr "继续"
 msgid "Continue or fork session"
 msgstr "继续或分叉会话"
 
+msgid "Continue the session the last run left"
+msgstr "继续上次运行留下的会话"
+
 msgid "Continue update"
 msgstr "继续更新"
 
@@ -3817,6 +3820,9 @@ msgstr "使用Google继续"
 
 msgid "Continuing an agent session requires a pinned workspace"
 msgstr "继续代理会话需要固定的工作区"
+
+msgid "continuing the last session"
+msgstr "继续上一个会话"
 
 msgid "Contributions"
 msgstr "贡献"
@@ -7312,6 +7318,9 @@ msgstr "改进智能体说明"
 msgid "Improved diff viewer"
 msgstr "更好的差异查看器"
 
+msgid "in a new session"
+msgstr "在新会话中"
+
 msgid "in a terminal on this host."
 msgstr "（在此主机的终端中）。"
 
@@ -10715,6 +10724,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "置顶"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "固定一个工作区，以便在多次运行之间继续其智能体会话"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "把工作区固定在项目上方，再⌘点击批量选中，一次性移动、分组或删除。"
 
@@ -13611,6 +13623,9 @@ msgstr "开始一段对话，消息会显示在这里"
 
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "以该终端最近的上下文启动一个新的智能体会话。工作区中的文件仍是准确来源。"
+
+msgid "Start a new agent session each run"
+msgstr "每次运行都启动新的智能体会话"
 
 msgid "Start a session"
 msgstr "开始一个会话"

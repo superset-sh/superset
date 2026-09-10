@@ -3796,6 +3796,9 @@ msgstr "계속"
 msgid "Continue or fork session"
 msgstr "세션 계속하기 또는 포크"
 
+msgid "Continue the session the last run left"
+msgstr "마지막 실행이 남긴 세션을 계속"
+
 msgid "Continue update"
 msgstr "업데이트 계속"
 
@@ -3817,6 +3820,9 @@ msgstr "Google로 계속하기"
 
 msgid "Continuing an agent session requires a pinned workspace"
 msgstr "에이전트 세션을 계속하려면 고정된 워크스페이스가 필요합니다"
+
+msgid "continuing the last session"
+msgstr "마지막 세션을 계속"
 
 msgid "Contributions"
 msgstr "기여"
@@ -7312,6 +7318,9 @@ msgstr "에이전트 지침 개선하기"
 msgid "Improved diff viewer"
 msgstr "차이 뷰어 개선"
 
+msgid "in a new session"
+msgstr "새 세션에서"
+
 msgid "in a terminal on this host."
 msgstr "(이 호스트의 터미널에서)"
 
@@ -10715,6 +10724,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "고정"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "실행 간에 에이전트 세션을 계속하려면 워크스페이스를 고정하세요"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "워크스페이스를 프로젝트 위에 고정하고, ⌘ 클릭으로 여러 개를 골라 한 번에 옮기거나, 묶거나, 삭제하세요."
 
@@ -13611,6 +13623,9 @@ msgstr "대화를 시작하면 메시지가 여기에 표시됩니다"
 
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "이 터미널의 최근 컨텍스트를 넘겨받아 새 에이전트 세션을 시작합니다. 워크스페이스의 파일이 여전히 기준입니다."
+
+msgid "Start a new agent session each run"
+msgstr "실행할 때마다 새 에이전트 세션 시작"
 
 msgid "Start a session"
 msgstr "세션 시작"

@@ -3796,6 +3796,9 @@ msgstr "Продолжить"
 msgid "Continue or fork session"
 msgstr "Продолжить или форкнуть сессию"
 
+msgid "Continue the session the last run left"
+msgstr "Продолжить сессию, оставшуюся от прошлого запуска"
+
 msgid "Continue update"
 msgstr "Продолжить обновление"
 
@@ -3817,6 +3820,9 @@ msgstr "Продолжить с Google"
 
 msgid "Continuing an agent session requires a pinned workspace"
 msgstr "Для продолжения сессии агента нужно закреплённое рабочее пространство"
+
+msgid "continuing the last session"
+msgstr "продолжая последнюю сессию"
 
 msgid "Contributions"
 msgstr "Вклад"
@@ -7312,6 +7318,9 @@ msgstr "Улучшить инструкции для агентов"
 msgid "Improved diff viewer"
 msgstr "Улучшенный просмотр diff"
 
+msgid "in a new session"
+msgstr "в новой сессии"
+
 msgid "in a terminal on this host."
 msgstr "в терминале на этом хосте."
 
@@ -10715,6 +10724,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Закрепить"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Закрепите рабочее пространство, чтобы продолжать его сессию агента между запусками"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Закрепляйте рабочие области над проектами, затем выделяйте пачку через ⌘-клик, чтобы переместить, сгруппировать или удалить всё сразу."
 
@@ -13611,6 +13623,9 @@ msgstr "Начните диалог, чтобы сообщения появил�
 
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Запускает новую сессию агента с недавним контекстом этого терминала. Источником истины остаются файлы рабочего пространства."
+
+msgid "Start a new agent session each run"
+msgstr "Запускать новую сессию агента при каждом запуске"
 
 msgid "Start a session"
 msgstr "Запустить сессию"

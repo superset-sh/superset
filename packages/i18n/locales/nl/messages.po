@@ -3796,6 +3796,9 @@ msgstr "Doorgaan"
 msgid "Continue or fork session"
 msgstr "Sessie voortzetten of forken"
 
+msgid "Continue the session the last run left"
+msgstr "Ga verder met de sessie van de vorige run"
+
 msgid "Continue update"
 msgstr "Doorgaan met update"
 
@@ -3817,6 +3820,9 @@ msgstr "Doorgaan met Google"
 
 msgid "Continuing an agent session requires a pinned workspace"
 msgstr "Een agentsessie voortzetten vereist een vastgezette workspace"
+
+msgid "continuing the last session"
+msgstr "de laatste sessie voortzettend"
 
 msgid "Contributions"
 msgstr "Bijdragen"
@@ -7312,6 +7318,9 @@ msgstr "De agentinstructies verbeteren"
 msgid "Improved diff viewer"
 msgstr "Verbeterde diff-viewer"
 
+msgid "in a new session"
+msgstr "in een nieuwe sessie"
+
 msgid "in a terminal on this host."
 msgstr "uit in een terminal op deze host."
 
@@ -10715,6 +10724,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Vastzetten"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Zet een workspace vast om de agentsessie tussen runs voort te zetten"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Zet werkruimtes vast boven je projecten en ⌘-klik daarna een reeks om ze in één keer te verplaatsen, groeperen of verwijderen."
 
@@ -13611,6 +13623,9 @@ msgstr "Begin een gesprek om hier berichten te zien"
 
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Start een nieuwe agentsessie met de recente context van deze terminal. De bestanden in de workspace blijven de bron van waarheid."
+
+msgid "Start a new agent session each run"
+msgstr "Start bij elke run een nieuwe agentsessie"
 
 msgid "Start a session"
 msgstr "Sessie starten"

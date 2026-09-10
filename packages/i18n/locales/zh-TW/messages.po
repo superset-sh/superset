@@ -3796,6 +3796,9 @@ msgstr "繼續"
 msgid "Continue or fork session"
 msgstr "繼續或分支會話"
 
+msgid "Continue the session the last run left"
+msgstr "繼續上次執行留下的工作階段"
+
 msgid "Continue update"
 msgstr "繼續更新"
 
@@ -3817,6 +3820,9 @@ msgstr "使用Google繼續"
 
 msgid "Continuing an agent session requires a pinned workspace"
 msgstr "繼續代理程式工作階段需要已釘選的工作區"
+
+msgid "continuing the last session"
+msgstr "繼續上一個工作階段"
 
 msgid "Contributions"
 msgstr "貢獻"
@@ -7312,6 +7318,9 @@ msgstr "改進代理程式說明"
 msgid "Improved diff viewer"
 msgstr "更好的差異檢視器"
 
+msgid "in a new session"
+msgstr "在新的工作階段中"
+
 msgid "in a terminal on this host."
 msgstr "（在此主機的終端中）。"
 
@@ -10715,6 +10724,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "固定"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "釘選一個工作區，以便在多次執行之間繼續其代理程式工作階段"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "把工作區固定在專案上方，再⌘點選批次選中，一次性移動、分組或刪除。"
 
@@ -13611,6 +13623,9 @@ msgstr "開始一段對話，訊息會顯示在這裡"
 
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "以這個終端最近的上下文啟動新的代理程式會話。工作區中的檔案仍是準確來源。"
+
+msgid "Start a new agent session each run"
+msgstr "每次執行都啟動新的代理程式工作階段"
 
 msgid "Start a session"
 msgstr "開始一個會話"

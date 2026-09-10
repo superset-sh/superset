@@ -3796,6 +3796,9 @@ msgstr "Pokračovat"
 msgid "Continue or fork session"
 msgstr "Pokračovat nebo forkovat relaci"
 
+msgid "Continue the session the last run left"
+msgstr "Pokračovat v relaci, kterou zanechalo poslední spuštění"
+
 msgid "Continue update"
 msgstr "Pokračovat v aktualizaci"
 
@@ -3817,6 +3820,9 @@ msgstr "Pokračovat přes Google"
 
 msgid "Continuing an agent session requires a pinned workspace"
 msgstr "Pokračování v relaci agenta vyžaduje připnutý pracovní prostor"
+
+msgid "continuing the last session"
+msgstr "pokračováním v poslední relaci"
 
 msgid "Contributions"
 msgstr "Příspěvky"
@@ -7312,6 +7318,9 @@ msgstr "Vylepšit instrukce pro agenty"
 msgid "Improved diff viewer"
 msgstr "Vylepšený prohlížeč rozdílů"
 
+msgid "in a new session"
+msgstr "v nové relaci"
+
 msgid "in a terminal on this host."
 msgstr "v terminálu na tomto hostu."
 
@@ -10715,6 +10724,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Připnout"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Připněte pracovní prostor, aby jeho relace agenta pokračovala mezi spuštěními"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Připněte si pracovní prostory nad projekty a pak ⌘-kliknutím vyberte skupinu, kterou přesunete, seskupíte nebo smažete naráz."
 
@@ -13611,6 +13623,9 @@ msgstr "Začněte konverzaci a zprávy se objeví tady"
 
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Spustí novou relaci agenta s nedávným kontextem tohoto terminálu. Zdrojem pravdy zůstávají soubory v pracovním prostoru."
+
+msgid "Start a new agent session each run"
+msgstr "Při každém spuštění začít novou relaci agenta"
 
 msgid "Start a session"
 msgstr "Spustit relaci"

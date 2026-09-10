@@ -3796,6 +3796,9 @@ msgstr "続行"
 msgid "Continue or fork session"
 msgstr "セッションを続行またはフォーク"
 
+msgid "Continue the session the last run left"
+msgstr "前回の実行が残したセッションを継続"
+
 msgid "Continue update"
 msgstr "更新を続行"
 
@@ -3817,6 +3820,9 @@ msgstr "Googleで続行"
 
 msgid "Continuing an agent session requires a pinned workspace"
 msgstr "エージェントセッションを継続するには、ワークスペースを固定する必要があります"
+
+msgid "continuing the last session"
+msgstr "前回のセッションを継続"
 
 msgid "Contributions"
 msgstr "コントリビューション"
@@ -7312,6 +7318,9 @@ msgstr "エージェント向け指示を改善"
 msgid "Improved diff viewer"
 msgstr "差分ビューアの改善"
 
+msgid "in a new session"
+msgstr "新しいセッションで"
+
 msgid "in a terminal on this host."
 msgstr "このホストのターミナルで実行してください。"
 
@@ -10715,6 +10724,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "ピン留め"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "実行間でエージェントセッションを継続するには、ワークスペースを固定してください"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "ワークスペースをプロジェクトの上にピン留めし、⌘クリックでまとめて選んで移動、グループ化、削除ができます。"
 
@@ -13611,6 +13623,9 @@ msgstr "会話を始めるとここにメッセージが表示されます"
 
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "このターミナルの直近のコンテキストを引き継いで、新しいエージェントセッションを開始します。ワークスペースのファイルが引き続き信頼できる情報源です。"
+
+msgid "Start a new agent session each run"
+msgstr "実行ごとに新しいエージェントセッションを開始"
 
 msgid "Start a session"
 msgstr "セッションを開始"

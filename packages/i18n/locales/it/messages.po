@@ -3796,6 +3796,9 @@ msgstr "Continua"
 msgid "Continue or fork session"
 msgstr "Continua o biforca la sessione"
 
+msgid "Continue the session the last run left"
+msgstr "Continua la sessione lasciata dall'ultima esecuzione"
+
 msgid "Continue update"
 msgstr "Continua l'aggiornamento"
 
@@ -3817,6 +3820,9 @@ msgstr "Continua con Google"
 
 msgid "Continuing an agent session requires a pinned workspace"
 msgstr "Continuare una sessione di agente richiede uno spazio di lavoro bloccato"
+
+msgid "continuing the last session"
+msgstr "continuando l'ultima sessione"
 
 msgid "Contributions"
 msgstr "Contributi"
@@ -7312,6 +7318,9 @@ msgstr "Migliora le istruzioni per gli agenti"
 msgid "Improved diff viewer"
 msgstr "Visualizzatore diff migliorato"
 
+msgid "in a new session"
+msgstr "in una nuova sessione"
+
 msgid "in a terminal on this host."
 msgstr "in un terminale su questo host."
 
@@ -10715,6 +10724,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Fissa"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Blocca uno spazio di lavoro per continuarne la sessione di agente tra le esecuzioni"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Fissa i workspace sopra i tuoi progetti, poi seleziona un gruppo con ⌘-clic per spostarli, raggrupparli o eliminarli tutti insieme."
 
@@ -13611,6 +13623,9 @@ msgstr "Avvia una conversazione per vedere i messaggi qui"
 
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Avvia una nuova sessione dell'agente con il contesto recente di questo terminale. I file dello spazio di lavoro restano la fonte di verità."
+
+msgid "Start a new agent session each run"
+msgstr "Avvia una nuova sessione di agente a ogni esecuzione"
 
 msgid "Start a session"
 msgstr "Avvia una sessione"

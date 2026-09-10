@@ -3796,6 +3796,9 @@ msgstr "Lanjutkan"
 msgid "Continue or fork session"
 msgstr "Lanjutkan atau fork sesi"
 
+msgid "Continue the session the last run left"
+msgstr "Lanjutkan sesi yang ditinggalkan proses terakhir"
+
 msgid "Continue update"
 msgstr "Lanjutkan pembaruan"
 
@@ -3817,6 +3820,9 @@ msgstr "Lanjutkan dengan Google"
 
 msgid "Continuing an agent session requires a pinned workspace"
 msgstr "Melanjutkan sesi agen memerlukan ruang kerja yang disematkan"
+
+msgid "continuing the last session"
+msgstr "melanjutkan sesi terakhir"
 
 msgid "Contributions"
 msgstr "Kontribusi"
@@ -7312,6 +7318,9 @@ msgstr "Perbaiki instruksi agen"
 msgid "Improved diff viewer"
 msgstr "Penampil diff yang lebih baik"
 
+msgid "in a new session"
+msgstr "dalam sesi baru"
+
 msgid "in a terminal on this host."
 msgstr "di terminal pada host ini."
 
@@ -10715,6 +10724,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Sematkan"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Sematkan ruang kerja untuk melanjutkan sesi agennya antar proses"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Sematkan workspace di atas proyek Anda, lalu ⌘-klik sekumpulan untuk memindahkan, mengelompokkan, atau menghapus semuanya sekaligus."
 
@@ -13611,6 +13623,9 @@ msgstr "Mulai percakapan untuk melihat pesan di sini"
 
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Memulai sesi agen baru dengan konteks terbaru dari terminal ini. Berkas di ruang kerja tetap menjadi sumber kebenaran."
+
+msgid "Start a new agent session each run"
+msgstr "Mulai sesi agen baru setiap kali dijalankan"
 
 msgid "Start a session"
 msgstr "Mulai sesi"

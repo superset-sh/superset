@@ -3796,6 +3796,9 @@ msgstr "Devam et"
 msgid "Continue or fork session"
 msgstr "Oturumu sürdür veya forkla"
 
+msgid "Continue the session the last run left"
+msgstr "Son çalıştırmanın bıraktığı oturumu sürdür"
+
 msgid "Continue update"
 msgstr "Güncellemeye devam et"
 
@@ -3817,6 +3820,9 @@ msgstr "Google ile devam et"
 
 msgid "Continuing an agent session requires a pinned workspace"
 msgstr "Bir aracı oturumunu sürdürmek için sabitlenmiş bir çalışma alanı gerekir"
+
+msgid "continuing the last session"
+msgstr "son oturumu sürdürerek"
 
 msgid "Contributions"
 msgstr "Katkılar"
@@ -7312,6 +7318,9 @@ msgstr "Ajan yönergelerini iyileştir"
 msgid "Improved diff viewer"
 msgstr "Geliştirilmiş fark görüntüleyici"
 
+msgid "in a new session"
+msgstr "yeni bir oturumda"
+
 msgid "in a terminal on this host."
 msgstr "komutunu çalıştırın."
 
@@ -10715,6 +10724,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Sabitle"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Çalıştırmalar arasında aracı oturumunu sürdürmek için bir çalışma alanı sabitleyin"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Çalışma alanlarını projelerinizin üstüne sabitleyin, sonra ⌘ ile bir grup seçip hepsini birden taşıyın, gruplayın veya silin."
 
@@ -13611,6 +13623,9 @@ msgstr "Mesajları burada görmek için bir konuşma başlatın"
 
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Bu terminalin son bağlamıyla yeni bir ajan oturumu başlatır. Çalışma alanındaki dosyalar doğruluğun kaynağı olmayı sürdürür."
+
+msgid "Start a new agent session each run"
+msgstr "Her çalıştırmada yeni bir aracı oturumu başlat"
 
 msgid "Start a session"
 msgstr "Bir oturum başlat"

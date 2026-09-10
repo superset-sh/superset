@@ -3796,6 +3796,9 @@ msgstr "Tiếp tục"
 msgid "Continue or fork session"
 msgstr "Tiếp tục hoặc fork phiên"
 
+msgid "Continue the session the last run left"
+msgstr "Tiếp tục phiên mà lần chạy trước để lại"
+
 msgid "Continue update"
 msgstr "Tiếp tục cập nhật"
 
@@ -3817,6 +3820,9 @@ msgstr "Tiếp tục với Google"
 
 msgid "Continuing an agent session requires a pinned workspace"
 msgstr "Tiếp tục phiên tác nhân yêu cầu một không gian làm việc đã ghim"
+
+msgid "continuing the last session"
+msgstr "tiếp tục phiên gần nhất"
 
 msgid "Contributions"
 msgstr "Đóng góp"
@@ -7312,6 +7318,9 @@ msgstr "Cải thiện hướng dẫn cho agent"
 msgid "Improved diff viewer"
 msgstr "Khung xem diff cải tiến"
 
+msgid "in a new session"
+msgstr "trong phiên mới"
+
 msgid "in a terminal on this host."
 msgstr "trong một terminal trên host này."
 
@@ -10715,6 +10724,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Ghim"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Ghim một không gian làm việc để tiếp tục phiên tác nhân giữa các lần chạy"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Ghim workspace lên trên các dự án, rồi ⌘-nhấp một loạt để chuyển, gom nhóm hoặc xóa tất cả cùng lúc."
 
@@ -13611,6 +13623,9 @@ msgstr "Bắt đầu một cuộc trò chuyện để thấy tin nhắn ở đâ
 
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Bắt đầu một phiên agent mới với ngữ cảnh gần đây của terminal này. Tệp trong workspace vẫn là nguồn đáng tin cậy."
+
+msgid "Start a new agent session each run"
+msgstr "Bắt đầu phiên tác nhân mới mỗi lần chạy"
 
 msgid "Start a session"
 msgstr "Bắt đầu một phiên"
