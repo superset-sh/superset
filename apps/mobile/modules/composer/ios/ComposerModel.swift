@@ -159,6 +159,18 @@ final class ComposerModel {
   /// transaction that revealed send.
   @ObservationIgnored var onDraftChange: ((String) -> Void)?
 
+  /// True while the composer is being placed, false once it has been.
+  ///
+  /// Props delivered during setup are the composer appearing, not changing:
+  /// animating them opens a layout transaction before the card has a frame,
+  /// so it travels in from the origin instead of being drawn where it belongs.
+  /// Same reasoning as `applyInitialDraft`, applied to every prop.
+  @ObservationIgnored private(set) var isAppearing = true
+
+  func beginAppearing() { isAppearing = true }
+
+  func settle() { isAppearing = false }
+
   /// First delivery of `initialDraft` wins; React Native pins the value at
   /// mount, so later deliveries are the same text and must not clobber typing.
   @ObservationIgnored private var hasAppliedInitialDraft = false
