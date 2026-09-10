@@ -35,7 +35,6 @@ import {
 } from "@/screens/(authenticated)/hooks/usePullRequests";
 import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinnedWorkspacesStore";
 import { pullRequestStatus } from "@/screens/(authenticated)/workspace/[id]/utils/pullRequest";
-import { HomeSplash } from "./components/HomeSplash";
 import { HostOfflineView } from "./components/HostOfflineView";
 import { NewChatWidget } from "./components/NewChatWidget";
 import { targetKeyFor } from "./components/NewChatWidget/hooks/useNewChatTargets";
@@ -541,7 +540,8 @@ export function HomeScreen() {
 		],
 	);
 
-	if (!hasPainted) return <HomeSplash />;
+	// The native splash is still up until hideSplash() below; nothing to draw.
+	if (!hasPainted) return null;
 
 	const sortOption = SORT_OPTIONS.find((option) => option.value === sort);
 	const sortLabel = sortOption ? i18n._(sortOption.label) : "";

@@ -4,9 +4,9 @@ import * as SplashScreen from "expo-splash-screen";
  * The native splash is held from launch until the first screen has something
  * to show, so boot and load are one image rather than two.
  *
- * Hiding is safe from anywhere: on Home the identical `HomeSplash` sits
- * underneath, and every other route renders its own content. The backstop is
- * the guarantee that no missed path can leave someone on a splash forever.
+ * The backstop is why nothing can strand someone on it: the public
+ * preventAutoHideAsync, unlike expo-router's internal one, installs no error
+ * handler to hide the splash on an uncaught exception.
  */
 const BACKSTOP_MS = 5000;
 
