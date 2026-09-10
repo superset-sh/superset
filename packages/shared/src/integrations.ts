@@ -169,15 +169,17 @@ export const INTEGRATIONS = [
 		provider: "plain",
 		label: "Plain",
 		description: () =>
-			i18n._({
-				id: "shared.integrations.plain.description",
-				message: "Sync Plain support threads as tasks.",
-			}),
+			i18n._(
+				msg({
+					message: "Sync Plain support threads as tasks.",
+				}),
+			),
 		category: () =>
-			i18n._({
-				id: "shared.integrations.category.customerSupport",
-				message: "Customer Support",
-			}),
+			i18n._(
+				msg({
+					message: "Customer Support",
+				}),
+			),
 		webPath: "/integrations/plain",
 		// No automation trigger kinds yet; offered anyway because the connection
 		// syncs support threads into tasks, the way Linear's does with issues.

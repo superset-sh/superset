@@ -1221,6 +1221,9 @@ msgstr "トークン単位で課金される別プロファイルです。キー
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "スキル、プラグイン、MCPサーバー、設定を共有する別プロファイルです。"
 
+msgid "A signing secret is configured."
+msgstr "署名シークレットが設定されています。"
+
 msgid "a teammate"
 msgstr "チームメンバー"
 
@@ -3642,6 +3645,9 @@ msgstr "Notionを接続"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Notionを接続して、データソースの行が変わったときやページにコメントが付いたときにオートメーションを実行します。"
 
+msgid "Connect Plain"
+msgstr "Plainを接続"
+
 msgid "Connect repos and sync pull requests."
 msgstr "リポジトリを接続し、プルリクエストを同期します。"
 
@@ -3669,6 +3675,12 @@ msgstr "Microsoft Teamsのテナントを接続します。テナント管理者
 msgid "Connect your Notion workspace and share the pages and data sources automations should watch."
 msgstr "Notionのワークスペースを接続し、オートメーションに監視させるページとデータソースを共有します。"
 
+msgid "Connect your Plain workspace to sync support threads and turn customer-reported work into tasks in Superset."
+msgstr "PlainワークスペースをつなぐとサポートスレッドをSupersetに同期し、顧客から報告された作業をタスクにできます。"
+
+msgid "Connect your Plain workspace with a machine user API key. Create one in Plain under Settings → Machine users, with the thread:read, customer:read, and labelType:read permissions."
+msgstr "マシンユーザーのAPIキーでPlainワークスペースを接続します。PlainのSettings → Machine usersで、thread:read、customer:read、labelType:readの権限を付けて作成してください。"
+
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Slackのワークスペースを接続して、会話からタスクを管理します。"
 
@@ -3688,8 +3700,17 @@ msgstr "接続先"
 msgid "Connected to {connectedOrgName}"
 msgstr "{connectedOrgName}に接続済み"
 
+msgid "Connected to {workspaceName}"
+msgstr "{workspaceName}に接続しました"
+
+msgid "Connected to <0>{workspaceName}</0>."
+msgstr "<0>{workspaceName}</0>に接続しています。"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "接続しましたが、Microsoft Graphが通知サブスクリプションを拒否しました。"
+
+msgid "Connected, but the initial sync could not be queued. Reconnect to retry."
+msgstr "接続しましたが、初回同期をキューに追加できませんでした。再接続してやり直してください。"
 
 msgid "Connected, but your Microsoft account could not be linked. Triggers by \"Me\" will not match until you reconnect."
 msgstr "接続しましたが、Microsoftアカウントを紐付けられませんでした。再接続するまで「自分」によるトリガーは一致しません。"
@@ -3705,6 +3726,9 @@ msgstr "デスクトップに接続しています…"
 
 msgid "Connecting to the workspace"
 msgstr "ワークスペースに接続中"
+
+msgid "Connecting..."
+msgstr "接続中..."
 
 msgid "Connecting…"
 msgstr "接続中…"
@@ -4589,6 +4613,9 @@ msgstr "カスタムターミナルエージェント"
 msgid "Custom themes"
 msgstr "カスタムテーマ"
 
+msgid "Customer Support"
+msgstr "カスタマーサポート"
+
 msgid "Customize commands"
 msgstr "コマンドをカスタマイズ"
 
@@ -5111,6 +5138,9 @@ msgstr "Microsoft Teamsの接続を解除しますか?"
 msgid "Disconnect Notion?"
 msgstr "Notionの接続を解除しますか?"
 
+msgid "Disconnect Plain?"
+msgstr "Plainの接続を解除しますか?"
+
 msgid "Disconnect Sentry?"
 msgstr "Sentryの接続を解除しますか?"
 
@@ -5119,6 +5149,9 @@ msgstr "Slackの接続を解除しますか?"
 
 msgid "Disconnected"
 msgstr "切断されました"
+
+msgid "Disconnected Plain"
+msgstr "Plainの接続を解除しました"
 
 msgid "Disconnecting..."
 msgstr "接続を解除中..."
@@ -6643,6 +6676,9 @@ msgstr "{price}/ユーザー/月〜"
 msgid "From a visit to a download to an account to a paying organization."
 msgstr "訪問からダウンロード、アカウント、有料組織へ。"
 
+msgid "From Plain's Settings → Request signing"
+msgstr "PlainのSettings → Request signingから"
+
 msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
 msgstr "公開サイトマップより: 比較ページ、記事、変更履歴を公開または最終更新の週ごとに集計。"
 
@@ -7307,6 +7343,9 @@ msgstr "すべてのプロジェクト"
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "わずか数か月で、Wix、DoorDash、Netflixといった企業を含め<0>数万人のエンジニア</0>がSupersetを主要なIDEとして使っています。"
 
+msgid "In Plain, add a webhook target (Settings → Webhooks) pointing at:"
+msgstr "Plainで、次のURLを指すWebhookターゲットを追加してください(Settings → Webhooks):"
+
 msgid "In progress"
 msgstr "作業中"
 
@@ -7678,6 +7717,9 @@ msgstr "Kbd"
 msgid "Keep docs fresh"
 msgstr "ドキュメントを最新に保つ"
 
+msgid "Keep threads in sync as they change in Plain."
+msgstr "Plainでの変更に合わせてスレッドを同期します。"
+
 msgid "Keep waiting"
 msgstr "待ち続ける"
 
@@ -7870,6 +7912,9 @@ msgstr "退出して削除"
 
 msgid "Leave comment mode"
 msgstr "コメントモードを終了"
+
+msgid "Leave empty to keep the stored secret."
+msgstr "保存済みのシークレットを使い続けるには空欄のままにしてください。"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "空欄にすると、ターミナルが報告する名前に戻ります。"
@@ -8770,6 +8815,9 @@ msgstr "アプリ側の配線が必要です(フォームの状態、チャー�
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "ライブのチャット/ツール呼び出し状態(ToolUIPart、ストリーム)またはアプリシェルが必要です"
 
+msgid "Needed to receive webhooks, so thread changes sync without a manual refresh."
+msgstr "Webhookを受信するために必要です。これにより、スレッドの変更が手動で更新しなくても同期されます。"
+
 msgid "Needs Action"
 msgstr "対応が必要"
 
@@ -9403,6 +9451,9 @@ msgstr "セッションはまだありません"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "「{searchQuery}」に一致するショートカットがありません"
+
+msgid "No signing secret is configured yet, so webhook deliveries are rejected."
+msgstr "署名シークレットがまだ設定されていないため、Webhookの配信は拒否されます。"
 
 msgid "No sites are signed in"
 msgstr "サインイン中のサイトはありません"
@@ -10713,6 +10764,12 @@ msgstr "ピン留め済み"
 msgid "PK"
 msgstr "PK"
 
+msgid "Plain"
+msgstr "Plain"
+
+msgid "Plain rejected the stored API key. Enter a new key to resume syncing."
+msgstr "Plainが保存済みのAPIキーを拒否しました。同期を再開するには新しいキーを入力してください。"
+
 msgid "Plan"
 msgstr "計画"
 
@@ -11437,6 +11494,9 @@ msgstr "Googleを再接続"
 msgid "Reconnect Linear"
 msgstr "Linearを再接続"
 
+msgid "Reconnect Plain"
+msgstr "Plainを再接続"
+
 msgid "Reconnect required"
 msgstr "再接続が必要です"
 
@@ -11778,6 +11838,9 @@ msgstr "トライアルを申し込む"
 
 msgid "Request Body"
 msgstr "リクエストボディ"
+
+msgid "Request-signing secret (optional)"
+msgstr "リクエスト署名シークレット(任意)"
 
 msgid "Requested Changes"
 msgstr "変更をリクエスト"
@@ -13771,6 +13834,9 @@ msgstr "サブスク"
 msgid "SUBSCRIBE"
 msgstr "登録する"
 
+msgid "Subscribe it to the thread events, and paste your workspace's request-signing secret (Settings → Request signing) into the connection form above."
+msgstr "スレッドのイベントを購読し、ワークスペースのリクエスト署名シークレット(Settings → Request signing)を上の接続フォームに貼り付けてください。"
+
 msgid "Subscribe on YouTube"
 msgstr "YouTubeで登録"
 
@@ -14045,11 +14111,17 @@ msgstr "Linearとissueを双方向に同期します。"
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Linearと双方向にIssueを同期します。SupersetでタスクをつくるとLinearに反映され、既存のLinear Issueを取り込むこともできます。"
 
+msgid "Sync Plain support threads as tasks."
+msgstr "Plainのサポートスレッドをタスクとして同期します。"
+
 msgid "Sync Repositories"
 msgstr "リポジトリを同期"
 
 msgid "Sync started"
 msgstr "同期を開始しました"
+
+msgid "Sync support threads from Plain into Superset as tasks, so customer-reported work can flow straight into agent workspaces."
+msgstr "PlainのサポートスレッドをタスクとしてSupersetに同期し、顧客から報告された作業をそのままエージェントのワークスペースに届けます。"
 
 msgid "Syncing with remote"
 msgstr "リモートと同期中"
@@ -14809,6 +14881,9 @@ msgstr "このプルリクエストのリンクは無効です。"
 
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "選択したすべてのワークツリーをディスクから削除し、ワークスペースの記録も削除します。"
+
+msgid "This removes the connection and deletes the synced Plain tasks from Superset. Threads in Plain are not touched. You can reconnect at any time."
+msgstr "接続を解除し、同期されたPlainのタスクをSupersetから削除します。Plainのスレッドには影響しません。いつでも再接続できます。"
 
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "ホストとそのアクセス権、ワークスペースを削除します。マシン上のファイルは残ります。稼働中のホストは再表示されることがあります。この操作は元に戻せません。"
@@ -15889,6 +15964,9 @@ msgstr "ウェブ取得"
 
 msgid "Web Search"
 msgstr "ウェブ検索"
+
+msgid "Webhook"
+msgstr "Webhook"
 
 msgid "Webhook trigger not found"
 msgstr "Webhookトリガーが見つかりません"

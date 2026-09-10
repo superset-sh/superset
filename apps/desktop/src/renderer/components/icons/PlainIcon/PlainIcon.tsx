@@ -2,15 +2,18 @@ interface PlainIconProps {
 	className?: string;
 }
 
-/** Plain (plain.com) logo mark; follows currentColor like the react-icons set. */
+/**
+ * Plain (plain.com) logo mark; follows currentColor like the react-icons set.
+ * Decorative: every caller renders the name beside it, so a label would only
+ * make screen readers announce "Plain" twice.
+ */
 export function PlainIcon({ className }: PlainIconProps) {
 	return (
 		<svg
 			viewBox="0 0 989 1000"
 			xmlns="http://www.w3.org/2000/svg"
 			className={className}
-			role="img"
-			aria-label="Plain"
+			aria-hidden="true"
 		>
 			<path
 				fill="currentColor"

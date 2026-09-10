@@ -1221,6 +1221,9 @@ msgstr "Một hồ sơ riêng tính phí theo token. Khóa nằm trong CLI {0}."
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "Một hồ sơ riêng dùng chung skill, plugin, server MCP và cài đặt của bạn."
 
+msgid "A signing secret is configured."
+msgstr "Đã cấu hình khóa bí mật ký."
+
 msgid "a teammate"
 msgstr "một đồng đội"
 
@@ -3642,6 +3645,9 @@ msgstr "Kết nối Notion"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Kết nối Notion để chạy tự động hóa khi các dòng trong một nguồn dữ liệu thay đổi hoặc khi ai đó bình luận trên một trang."
 
+msgid "Connect Plain"
+msgstr "Kết nối Plain"
+
 msgid "Connect repos and sync pull requests."
 msgstr "Kết nối repo và đồng bộ pull request."
 
@@ -3669,6 +3675,12 @@ msgstr "Kết nối tenant Microsoft Teams của bạn. Quản trị viên tenan
 msgid "Connect your Notion workspace and share the pages and data sources automations should watch."
 msgstr "Kết nối workspace Notion của bạn và chia sẻ các trang cùng nguồn dữ liệu mà tự động hóa cần theo dõi."
 
+msgid "Connect your Plain workspace to sync support threads and turn customer-reported work into tasks in Superset."
+msgstr "Kết nối workspace Plain của bạn để đồng bộ các luồng hỗ trợ và biến công việc do khách hàng báo cáo thành tác vụ trong Superset."
+
+msgid "Connect your Plain workspace with a machine user API key. Create one in Plain under Settings → Machine users, with the thread:read, customer:read, and labelType:read permissions."
+msgstr "Kết nối workspace Plain của bạn bằng khóa API của một machine user. Tạo khóa trong Plain tại Settings → Machine users, với các quyền thread:read, customer:read và labelType:read."
+
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Kết nối workspace Slack của bạn để quản lý tác vụ ngay trong hội thoại."
 
@@ -3688,8 +3700,17 @@ msgstr "Đã kết nối tới"
 msgid "Connected to {connectedOrgName}"
 msgstr "Đã kết nối với {connectedOrgName}"
 
+msgid "Connected to {workspaceName}"
+msgstr "Đã kết nối tới {workspaceName}"
+
+msgid "Connected to <0>{workspaceName}</0>."
+msgstr "Đã kết nối tới <0>{workspaceName}</0>."
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Đã kết nối, nhưng Microsoft Graph từ chối các đăng ký thông báo."
+
+msgid "Connected, but the initial sync could not be queued. Reconnect to retry."
+msgstr "Đã kết nối, nhưng không thể đưa lần đồng bộ đầu tiên vào hàng đợi. Hãy kết nối lại để thử lại."
 
 msgid "Connected, but your Microsoft account could not be linked. Triggers by \"Me\" will not match until you reconnect."
 msgstr "Đã kết nối, nhưng không liên kết được tài khoản Microsoft của bạn. Các trigger theo \"Tôi\" sẽ không khớp cho đến khi bạn kết nối lại."
@@ -3705,6 +3726,9 @@ msgstr "Đang kết nối tới màn hình nền…"
 
 msgid "Connecting to the workspace"
 msgstr "Đang kết nối tới workspace"
+
+msgid "Connecting..."
+msgstr "Đang kết nối..."
 
 msgid "Connecting…"
 msgstr "Đang kết nối…"
@@ -4589,6 +4613,9 @@ msgstr "Agent terminal tùy chỉnh"
 msgid "Custom themes"
 msgstr "Theme tùy chỉnh"
 
+msgid "Customer Support"
+msgstr "Hỗ trợ khách hàng"
+
 msgid "Customize commands"
 msgstr "Tùy chỉnh lệnh"
 
@@ -5111,6 +5138,9 @@ msgstr "Ngắt kết nối Microsoft Teams?"
 msgid "Disconnect Notion?"
 msgstr "Ngắt kết nối Notion?"
 
+msgid "Disconnect Plain?"
+msgstr "Ngắt kết nối Plain?"
+
 msgid "Disconnect Sentry?"
 msgstr "Ngắt kết nối Sentry?"
 
@@ -5119,6 +5149,9 @@ msgstr "Ngắt kết nối Slack?"
 
 msgid "Disconnected"
 msgstr "Đã ngắt kết nối"
+
+msgid "Disconnected Plain"
+msgstr "Đã ngắt kết nối Plain"
 
 msgid "Disconnecting..."
 msgstr "Đang ngắt kết nối..."
@@ -6643,6 +6676,9 @@ msgstr "từ {price}/người/tháng"
 msgid "From a visit to a download to an account to a paying organization."
 msgstr "Từ lượt truy cập đến tải xuống, đến tài khoản, đến tổ chức trả phí."
 
+msgid "From Plain's Settings → Request signing"
+msgstr "Từ Settings → Request signing trong Plain"
+
 msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
 msgstr "Từ sitemap công khai: trang so sánh, bài viết và mục changelog theo tuần xuất bản hoặc sửa đổi gần nhất."
 
@@ -7307,6 +7343,9 @@ msgstr "Trong tất cả dự án"
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "Chỉ trong vài tháng, <0>hàng chục nghìn kỹ sư</0> dùng Superset làm IDE chính, tại các công ty như Wix, DoorDash và Netflix."
 
+msgid "In Plain, add a webhook target (Settings → Webhooks) pointing at:"
+msgstr "Trong Plain, thêm một đích webhook (Settings → Webhooks) trỏ tới:"
+
 msgid "In progress"
 msgstr "Đang làm"
 
@@ -7678,6 +7717,9 @@ msgstr "Kbd"
 msgid "Keep docs fresh"
 msgstr "Giữ tài liệu luôn mới"
 
+msgid "Keep threads in sync as they change in Plain."
+msgstr "Giữ các luồng luôn đồng bộ khi chúng thay đổi trong Plain."
+
 msgid "Keep waiting"
 msgstr "Tiếp tục chờ"
 
@@ -7870,6 +7912,9 @@ msgstr "Rời và xóa"
 
 msgid "Leave comment mode"
 msgstr "Thoát chế độ bình luận"
+
+msgid "Leave empty to keep the stored secret."
+msgstr "Để trống để giữ khóa bí mật đã lưu."
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Để trống để quay lại tên do terminal báo cáo."
@@ -8770,6 +8815,9 @@ msgstr "Cần đấu nối ở tầng ứng dụng (trạng thái form, dữ li�
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Cần trạng thái chat/tool-call trực tiếp (ToolUIPart, stream) hoặc một app shell"
 
+msgid "Needed to receive webhooks, so thread changes sync without a manual refresh."
+msgstr "Cần để nhận webhook, nhờ đó thay đổi của luồng được đồng bộ mà không phải làm mới thủ công."
+
 msgid "Needs Action"
 msgstr "Cần xử lý"
 
@@ -9403,6 +9451,9 @@ msgstr "Chưa có phiên nào"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Không có phím tắt nào khớp \"{searchQuery}\""
+
+msgid "No signing secret is configured yet, so webhook deliveries are rejected."
+msgstr "Chưa cấu hình khóa bí mật ký, nên các lần gửi webhook bị từ chối."
 
 msgid "No sites are signed in"
 msgstr "Không có trang nào đang đăng nhập"
@@ -10713,6 +10764,12 @@ msgstr "Đã ghim"
 msgid "PK"
 msgstr "PK"
 
+msgid "Plain"
+msgstr "Plain"
+
+msgid "Plain rejected the stored API key. Enter a new key to resume syncing."
+msgstr "Plain đã từ chối khóa API đã lưu. Nhập khóa mới để tiếp tục đồng bộ."
+
 msgid "Plan"
 msgstr "Kế hoạch"
 
@@ -11437,6 +11494,9 @@ msgstr "Kết nối lại Google"
 msgid "Reconnect Linear"
 msgstr "Kết nối lại Linear"
 
+msgid "Reconnect Plain"
+msgstr "Kết nối lại Plain"
+
 msgid "Reconnect required"
 msgstr "Cần kết nối lại"
 
@@ -11778,6 +11838,9 @@ msgstr "Yêu cầu dùng thử"
 
 msgid "Request Body"
 msgstr "Thân yêu cầu"
+
+msgid "Request-signing secret (optional)"
+msgstr "Khóa bí mật ký yêu cầu (không bắt buộc)"
 
 msgid "Requested Changes"
 msgstr "Đã yêu cầu thay đổi"
@@ -13771,6 +13834,9 @@ msgstr "Gói"
 msgid "SUBSCRIBE"
 msgstr "ĐĂNG KÝ"
 
+msgid "Subscribe it to the thread events, and paste your workspace's request-signing secret (Settings → Request signing) into the connection form above."
+msgstr "Đăng ký đích đó với các sự kiện của luồng, rồi dán khóa bí mật ký yêu cầu của workspace (Settings → Request signing) vào biểu mẫu kết nối ở trên."
+
 msgid "Subscribe on YouTube"
 msgstr "Đăng ký trên YouTube"
 
@@ -14045,11 +14111,17 @@ msgstr "Đồng bộ issue hai chiều với Linear."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Đồng bộ issue hai chiều với Linear. Tạo tác vụ trong Superset để chúng xuất hiện trong Linear, hoặc nhập issue Linear có sẵn."
 
+msgid "Sync Plain support threads as tasks."
+msgstr "Đồng bộ các luồng hỗ trợ Plain thành tác vụ."
+
 msgid "Sync Repositories"
 msgstr "Đồng bộ repository"
 
 msgid "Sync started"
 msgstr "Đã bắt đầu đồng bộ"
+
+msgid "Sync support threads from Plain into Superset as tasks, so customer-reported work can flow straight into agent workspaces."
+msgstr "Đồng bộ các luồng hỗ trợ từ Plain vào Superset thành tác vụ, để công việc do khách hàng báo cáo đi thẳng vào workspace của agent."
 
 msgid "Syncing with remote"
 msgstr "Đang đồng bộ với remote"
@@ -14809,6 +14881,9 @@ msgstr "Liên kết pull request này không hợp lệ."
 
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Thao tác này xóa mọi worktree đã chọn khỏi đĩa và xóa bản ghi workspace của chúng."
+
+msgid "This removes the connection and deletes the synced Plain tasks from Superset. Threads in Plain are not touched. You can reconnect at any time."
+msgstr "Thao tác này gỡ kết nối và xóa các tác vụ Plain đã đồng bộ khỏi Superset. Các luồng trong Plain không bị ảnh hưởng. Bạn có thể kết nối lại bất cứ lúc nào."
 
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Thao tác này gỡ host, quyền truy cập và các workspace của nó. Tệp trên máy vẫn giữ nguyên. Host đang chạy có thể xuất hiện lại. Không thể hoàn tác."
@@ -15889,6 +15964,9 @@ msgstr "Tải nội dung web"
 
 msgid "Web Search"
 msgstr "Tìm kiếm web"
+
+msgid "Webhook"
+msgstr "Webhook"
 
 msgid "Webhook trigger not found"
 msgstr "Không tìm thấy webhook trigger"

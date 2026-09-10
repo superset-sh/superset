@@ -1221,6 +1221,9 @@ msgstr "Отдельный профиль с оплатой за токены. �
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "Отдельный профиль, использующий ваши навыки, плагины, серверы MCP и настройки."
 
+msgid "A signing secret is configured."
+msgstr "Секрет подписи настроен."
+
 msgid "a teammate"
 msgstr "участник команды"
 
@@ -3642,6 +3645,9 @@ msgstr "Подключить Notion"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Подключите Notion, чтобы запускать автоматизации при изменении строк в источнике данных или комментариях к странице."
 
+msgid "Connect Plain"
+msgstr "Подключить Plain"
+
 msgid "Connect repos and sync pull requests."
 msgstr "Подключайте репозитории и синхронизируйте пул-реквесты."
 
@@ -3669,6 +3675,12 @@ msgstr "Подключите свой тенант Microsoft Teams. Админи
 msgid "Connect your Notion workspace and share the pages and data sources automations should watch."
 msgstr "Подключите рабочее пространство Notion и откройте доступ к страницам и источникам данных, за которыми должны следить автоматизации."
 
+msgid "Connect your Plain workspace to sync support threads and turn customer-reported work into tasks in Superset."
+msgstr "Подключите рабочее пространство Plain, чтобы синхронизировать обращения в поддержку и превращать запросы клиентов в задачи в Superset."
+
+msgid "Connect your Plain workspace with a machine user API key. Create one in Plain under Settings → Machine users, with the thread:read, customer:read, and labelType:read permissions."
+msgstr "Подключите рабочее пространство Plain с помощью ключа API машинного пользователя. Создайте его в Plain в разделе Settings → Machine users с правами thread:read, customer:read и labelType:read."
+
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Подключите рабочее пространство Slack, чтобы управлять задачами из обсуждений."
 
@@ -3688,8 +3700,17 @@ msgstr "Подключено к"
 msgid "Connected to {connectedOrgName}"
 msgstr "Подключено к {connectedOrgName}"
 
+msgid "Connected to {workspaceName}"
+msgstr "Подключено к {workspaceName}"
+
+msgid "Connected to <0>{workspaceName}</0>."
+msgstr "Подключено к <0>{workspaceName}</0>."
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Подключено, но Microsoft Graph отклонил подписки на уведомления."
+
+msgid "Connected, but the initial sync could not be queued. Reconnect to retry."
+msgstr "Подключено, но начальную синхронизацию не удалось поставить в очередь. Переподключитесь, чтобы повторить."
 
 msgid "Connected, but your Microsoft account could not be linked. Triggers by \"Me\" will not match until you reconnect."
 msgstr "Подключено, но связать ваш аккаунт Microsoft не удалось. Триггеры по «Я» не будут совпадать, пока вы не переподключитесь."
@@ -3705,6 +3726,9 @@ msgstr "Подключение к рабочему столу…"
 
 msgid "Connecting to the workspace"
 msgstr "Подключение к рабочей области"
+
+msgid "Connecting..."
+msgstr "Подключение..."
 
 msgid "Connecting…"
 msgstr "Подключение…"
@@ -4589,6 +4613,9 @@ msgstr "Свои терминальные агенты"
 msgid "Custom themes"
 msgstr "Свои темы"
 
+msgid "Customer Support"
+msgstr "Поддержка клиентов"
+
 msgid "Customize commands"
 msgstr "Настроить команды"
 
@@ -5111,6 +5138,9 @@ msgstr "Отключить Microsoft Teams?"
 msgid "Disconnect Notion?"
 msgstr "Отключить Notion?"
 
+msgid "Disconnect Plain?"
+msgstr "Отключить Plain?"
+
 msgid "Disconnect Sentry?"
 msgstr "Отключить Sentry?"
 
@@ -5119,6 +5149,9 @@ msgstr "Отключить Slack?"
 
 msgid "Disconnected"
 msgstr "Отключено"
+
+msgid "Disconnected Plain"
+msgstr "Plain отключён"
 
 msgid "Disconnecting..."
 msgstr "Отключение..."
@@ -6643,6 +6676,9 @@ msgstr "от {price}/польз./мес"
 msgid "From a visit to a download to an account to a paying organization."
 msgstr "От визита к загрузке, аккаунту и платящей организации."
 
+msgid "From Plain's Settings → Request signing"
+msgstr "Из Settings → Request signing в Plain"
+
 msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
 msgstr "Из публичной карты сайта: страницы сравнения, записи и пункты changelog по неделе публикации или последней правки."
 
@@ -7307,6 +7343,9 @@ msgstr "Во всех проектах"
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "Всего за несколько месяцев <0>десятки тысяч инженеров</0> используют Superset как основную IDE — в таких компаниях, как Wix, DoorDash и Netflix."
 
+msgid "In Plain, add a webhook target (Settings → Webhooks) pointing at:"
+msgstr "В Plain добавьте цель вебхука (Settings → Webhooks), указывающую на:"
+
 msgid "In progress"
 msgstr "В работе"
 
@@ -7678,6 +7717,9 @@ msgstr "Kbd"
 msgid "Keep docs fresh"
 msgstr "Держать документацию актуальной"
 
+msgid "Keep threads in sync as they change in Plain."
+msgstr "Синхронизация обращений при их изменении в Plain."
+
 msgid "Keep waiting"
 msgstr "Продолжить ждать"
 
@@ -7870,6 +7912,9 @@ msgstr "Выйти и удалить"
 
 msgid "Leave comment mode"
 msgstr "Выйти из режима комментариев"
+
+msgid "Leave empty to keep the stored secret."
+msgstr "Оставьте пустым, чтобы сохранить текущий секрет."
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Оставьте поле пустым, чтобы вернуть имя, которое сообщает терминал."
@@ -8770,6 +8815,9 @@ msgstr "Нужна обвязка на уровне приложения (сос
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Нужно живое состояние чата или вызова инструмента (ToolUIPart, стримы) либо оболочка приложения"
 
+msgid "Needed to receive webhooks, so thread changes sync without a manual refresh."
+msgstr "Нужен для получения вебхуков, чтобы изменения обращений синхронизировались без ручного обновления."
+
 msgid "Needs Action"
 msgstr "Требует действия"
 
@@ -9403,6 +9451,9 @@ msgstr "Сессий пока нет"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Не найдено сочетаний по запросу «{searchQuery}»"
+
+msgid "No signing secret is configured yet, so webhook deliveries are rejected."
+msgstr "Секрет подписи ещё не настроен, поэтому доставки вебхуков отклоняются."
 
 msgid "No sites are signed in"
 msgstr "Нет сайтов, где выполнен вход"
@@ -10713,6 +10764,12 @@ msgstr "Закреплённые"
 msgid "PK"
 msgstr "PK"
 
+msgid "Plain"
+msgstr "Plain"
+
+msgid "Plain rejected the stored API key. Enter a new key to resume syncing."
+msgstr "Plain отклонил сохранённый ключ API. Введите новый ключ, чтобы возобновить синхронизацию."
+
 msgid "Plan"
 msgstr "План"
 
@@ -11437,6 +11494,9 @@ msgstr "Переподключить Google"
 msgid "Reconnect Linear"
 msgstr "Переподключить Linear"
 
+msgid "Reconnect Plain"
+msgstr "Переподключить Plain"
+
 msgid "Reconnect required"
 msgstr "Требуется переподключение"
 
@@ -11778,6 +11838,9 @@ msgstr "Запросить пробный период"
 
 msgid "Request Body"
 msgstr "Тело запроса"
+
+msgid "Request-signing secret (optional)"
+msgstr "Секрет подписи запросов (необязательно)"
 
 msgid "Requested Changes"
 msgstr "Запросил изменения"
@@ -13771,6 +13834,9 @@ msgstr "Подписки"
 msgid "SUBSCRIBE"
 msgstr "ПОДПИСАТЬСЯ"
 
+msgid "Subscribe it to the thread events, and paste your workspace's request-signing secret (Settings → Request signing) into the connection form above."
+msgstr "Подпишите её на события обращений и вставьте секрет подписи запросов вашего рабочего пространства (Settings → Request signing) в форму подключения выше."
+
 msgid "Subscribe on YouTube"
 msgstr "Подписывайтесь на YouTube"
 
@@ -14045,11 +14111,17 @@ msgstr "Двусторонняя синхронизация задач с Linear
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Двусторонняя синхронизация задач с Linear. Создавайте задачи в Superset — они появятся в Linear, или импортируйте существующие задачи Linear."
 
+msgid "Sync Plain support threads as tasks."
+msgstr "Синхронизация обращений в поддержку из Plain в виде задач."
+
 msgid "Sync Repositories"
 msgstr "Синхронизировать репозитории"
 
 msgid "Sync started"
 msgstr "Синхронизация запущена"
+
+msgid "Sync support threads from Plain into Superset as tasks, so customer-reported work can flow straight into agent workspaces."
+msgstr "Синхронизируйте обращения в поддержку из Plain в Superset как задачи, чтобы запросы клиентов сразу попадали в рабочие области агентов."
 
 msgid "Syncing with remote"
 msgstr "Синхронизация с удалённым репозиторием"
@@ -14809,6 +14881,9 @@ msgstr "Эта ссылка на пул-реквест недействител�
 
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Это удалит каждый выбранный worktree с диска и сотрёт запись о его рабочей области."
+
+msgid "This removes the connection and deletes the synced Plain tasks from Superset. Threads in Plain are not touched. You can reconnect at any time."
+msgstr "Это удалит подключение и синхронизированные задачи Plain из Superset. Обращения в Plain не затрагиваются. Переподключиться можно в любой момент."
 
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Это удалит хост, доступ к нему и его рабочие области. Файлы на машине останутся. Работающий хост может появиться снова. Отменить нельзя."
@@ -15889,6 +15964,9 @@ msgstr "Загрузка веб-страницы"
 
 msgid "Web Search"
 msgstr "Поиск в интернете"
+
+msgid "Webhook"
+msgstr "Вебхук"
 
 msgid "Webhook trigger not found"
 msgstr "Триггер webhook не найден"

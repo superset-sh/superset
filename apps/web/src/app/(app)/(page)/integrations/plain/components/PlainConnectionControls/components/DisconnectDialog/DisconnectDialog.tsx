@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -28,22 +29,32 @@ export function DisconnectDialog({
 			<AlertDialogTrigger asChild>
 				<Button variant="outline" disabled={isPending}>
 					<Unplug className="mr-2 size-4" />
-					{isPending ? "Disconnecting..." : "Disconnect"}
+					{isPending ? (
+						<Trans>Disconnecting...</Trans>
+					) : (
+						<Trans>Disconnect</Trans>
+					)}
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Disconnect Plain?</AlertDialogTitle>
+					<AlertDialogTitle>
+						<Trans>Disconnect Plain?</Trans>
+					</AlertDialogTitle>
 					<AlertDialogDescription>
-						This removes the connection and deletes the synced Plain tasks from
-						Superset. Threads in Plain are not touched. You can reconnect at any
-						time.
+						<Trans>
+							This removes the connection and deletes the synced Plain tasks
+							from Superset. Threads in Plain are not touched. You can reconnect
+							at any time.
+						</Trans>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>
+						<Trans>Cancel</Trans>
+					</AlertDialogCancel>
 					<AlertDialogAction onClick={onDisconnect}>
-						Disconnect
+						<Trans>Disconnect</Trans>
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

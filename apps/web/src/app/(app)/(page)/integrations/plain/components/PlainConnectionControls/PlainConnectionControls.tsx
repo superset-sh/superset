@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -24,6 +25,7 @@ export function PlainConnectionControls({
 	needsReconnect = false,
 	workspaceName,
 }: PlainConnectionControlsProps) {
+	const { t } = useLingui();
 	const trpc = useTRPC();
 	const router = useRouter();
 	const queryClient = useQueryClient();
@@ -42,10 +44,14 @@ export function PlainConnectionControls({
 	const connectMutation = useMutation(
 		trpc.integration.plain.connect.mutationOptions({
 			onSuccess: (result) => {
-				toast.success(`Connected to ${result.workspaceName}`);
+				const workspaceName = result.workspaceName;
+				toast.success(t({ message: `Connected to ${workspaceName}` }));
 				if (!result.syncQueued) {
 					toast.warning(
-						"Connected, but the initial sync could not be queued. Reconnect to retry.",
+						t({
+							message:
+								"Connected, but the initial sync could not be queued. Reconnect to retry.",
+						}),
 					);
 				}
 				setApiKey("");
@@ -61,7 +67,7 @@ export function PlainConnectionControls({
 	const disconnectMutation = useMutation(
 		trpc.integration.plain.disconnect.mutationOptions({
 			onSuccess: () => {
-				toast.success("Disconnected Plain");
+				toast.success(t({ message: "Disconnected Plain" }));
 				setApiKey("");
 				setWebhookSecret("");
 				invalidateConnection();
@@ -88,7 +94,9 @@ export function PlainConnectionControls({
 	const connectForm = (
 		<div className="max-w-lg space-y-4">
 			<div className="space-y-2">
-				<Label htmlFor="plain-api-key">API key</Label>
+				<Label htmlFor="plain-api-key">
+					<Trans>API key</Trans>
+				</Label>
 				<Input
 					id="plain-api-key"
 					type="password"
@@ -99,30 +107,41 @@ export function PlainConnectionControls({
 			</div>
 			<div className="space-y-2">
 				<Label htmlFor="plain-webhook-secret">
-					Request-signing secret (optional)
+					<Trans>Request-signing secret (optional)</Trans>
 				</Label>
 				<Input
 					id="plain-webhook-secret"
 					type="password"
-					placeholder="From Plain's Settings → Request signing"
+					placeholder={t({
+						message: "From Plain's Settings → Request signing",
+					})}
 					value={webhookSecret}
 					onChange={(event) => setWebhookSecret(event.target.value)}
 				/>
 				<p className="text-sm text-muted-foreground">
-					Needed to receive webhooks, so thread changes sync without a manual
-					refresh.
-					{needsReconnect && " Leave empty to keep the stored secret."}
+					<Trans>
+						Needed to receive webhooks, so thread changes sync without a manual
+						refresh.
+					</Trans>
+					{needsReconnect && (
+						<>
+							{" "}
+							<Trans>Leave empty to keep the stored secret.</Trans>
+						</>
+					)}
 				</p>
 			</div>
 			<Button
 				onClick={handleConnect}
 				disabled={!apiKey.trim() || connectMutation.isPending}
 			>
-				{connectMutation.isPending
-					? "Connecting..."
-					: needsReconnect
-						? "Reconnect Plain"
-						: "Connect Plain"}
+				{connectMutation.isPending ? (
+					<Trans>Connecting...</Trans>
+				) : needsReconnect ? (
+					<Trans>Reconnect Plain</Trans>
+				) : (
+					<Trans>Connect Plain</Trans>
+				)}
 			</Button>
 		</div>
 	);
@@ -133,8 +152,10 @@ export function PlainConnectionControls({
 				<div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
 					<AlertTriangle className="mt-0.5 size-4 shrink-0" />
 					<div>
-						Plain rejected the stored API key. Enter a new key to resume
-						syncing.
+						<Trans>
+							Plain rejected the stored API key. Enter a new key to resume
+							syncing.
+						</Trans>
 					</div>
 				</div>
 				{connectForm}
@@ -151,7 +172,9 @@ export function PlainConnectionControls({
 			<div className="space-y-3">
 				{workspaceName && (
 					<p className="text-sm text-muted-foreground">
-						Connected to <span className="font-medium">{workspaceName}</span>.
+						<Trans>
+							Connected to <span className="font-medium">{workspaceName}</span>.
+						</Trans>
 					</p>
 				)}
 				<DisconnectDialog
