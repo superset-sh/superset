@@ -2,6 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { formatDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { useEffect, useRef, useState } from "react";
 import { formatTokens } from "@/app/[lang]/utils/formatUsage";
 import {
@@ -63,6 +64,8 @@ export function ContributionGraph({
 	endDay,
 	rgb,
 }: ContributionGraphProps) {
+	const { formatDate } = useFormat();
+
 	const { t, i18n } = useLingui();
 	const [active, setActive] = useState<CalendarCell | null>(null);
 	const scroller = useRef<HTMLDivElement>(null);
@@ -93,7 +96,7 @@ export function ContributionGraph({
 			<div className="flex items-baseline justify-between gap-4 mb-4">
 				<span className="font-mono text-[0.68rem] uppercase tracking-[0.11em] text-muted-foreground">
 					<Trans>
-						{formatTokens(calendar.total)} tokens over{" "}
+						{formatTokens(calendar.total, i18n.locale)} tokens over{" "}
 						{String(calendar.activeDays)} active days
 					</Trans>
 				</span>
@@ -135,7 +138,7 @@ export function ContributionGraph({
 											type="button"
 											key={cell.day}
 											aria-label={t({
-												message: `${formatTokens(cell.tokens)} tokens on ${cell.day}`,
+												message: `${formatTokens(cell.tokens, i18n.locale)} tokens on ${cell.day}`,
 											})}
 											onMouseEnter={() => setActive(cell)}
 											onFocus={() => setActive(cell)}
@@ -163,7 +166,7 @@ export function ContributionGraph({
 			<div className="flex items-center justify-between gap-4 mt-4 min-h-[1.5rem]">
 				<span className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-muted-foreground">
 					{active ? (
-						`${formatTokens(active.tokens)} · ${formatDate(
+						`${formatTokens(active.tokens, i18n.locale)} · ${formatDate(
 							new Date(`${active.day}T00:00:00Z`),
 							{
 								day: "numeric",

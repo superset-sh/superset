@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ISearchOptions, SearchAddon } from "@xterm/addon-search";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -24,6 +26,8 @@ export function TerminalSearch({
 	isOpen,
 	onClose,
 }: TerminalSearchProps) {
+	const { _: translate } = useTranslation();
+
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [query, setQuery] = useState("");
 	const [matchCount, setMatchCount] = useState<number | null>(null);
@@ -124,7 +128,7 @@ export function TerminalSearch({
 				value={query}
 				onChange={handleInputChange}
 				onKeyDown={handleKeyDown}
-				placeholder="Find"
+				placeholder={translate(msg({ message: "Find" }))}
 				className="h-6 min-w-0 w-28 flex-shrink bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
 			/>
 			{matchCount === 0 && query && (

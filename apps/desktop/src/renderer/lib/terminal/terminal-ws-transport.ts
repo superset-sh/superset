@@ -56,7 +56,11 @@ type TerminalServerMessage =
 			epoch: string;
 			seq: number;
 			mode: "exact" | "tail" | "reanchor";
-	  };
+	  }
+	// Liveness probe. The host drops a client that answered before and then
+	// went silent, so a half-open socket can't keep its dims in the PTY size
+	// minimum for everyone else.
+	| { type: "ping" };
 
 export interface TerminalTransport {
 	connectionState: ConnectionState;
@@ -703,6 +707,11 @@ function attachSocketListeners(
 		} catch {
 			transport._writeCoalescer?.flushSync();
 			terminal.writeln("\r\n[terminal] invalid server payload");
+			return;
+		}
+
+		if (message.type === "ping") {
+			socket.send(JSON.stringify({ type: "pong" }));
 			return;
 		}
 

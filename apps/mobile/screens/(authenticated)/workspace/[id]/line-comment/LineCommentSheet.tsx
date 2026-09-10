@@ -4,6 +4,7 @@ import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, TextInput, View } from "react-native";
 import { Text } from "@/components/ui/text";
+import { useTheme } from "@/hooks/useTheme";
 import { posthog } from "@/lib/posthog";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { useCommentComposerStore } from "../stores/commentComposerStore";
@@ -18,6 +19,7 @@ export function LineCommentSheet() {
 	const addComment = useDraftCommentsStore((state) => state.addComment);
 	const updateComment = useDraftCommentsStore((state) => state.updateComment);
 
+	const theme = useTheme();
 	const [body, setBody] = useState(anchor?.initialBody ?? "");
 	const trimmed = body.trim();
 
@@ -101,6 +103,7 @@ export function LineCommentSheet() {
 						message: "Leave a comment…",
 					})}
 					placeholderTextColor="#6b7280"
+					selectionColor={theme.foreground}
 					value={body}
 				/>
 				<PressableScale

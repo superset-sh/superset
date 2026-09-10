@@ -1,6 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
-import { formatDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
@@ -36,6 +36,8 @@ export function PluginConnections({
 	onRemove: () => void;
 	isBusy: boolean;
 }) {
+	const { formatDate } = useFormat();
+
 	const { t } = useLingui();
 	const methodLabel = useAuthMethodLabel();
 	const {

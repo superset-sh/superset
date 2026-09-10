@@ -303,6 +303,15 @@ const runtimeJs = /* js */ `
 			} catch (error) {
 				return;
 			}
+			if (message.type === "ping") {
+				// Liveness: the host drops a client that answered before and then
+				// went silent, so a phone that vanished mid-session stops holding
+				// the PTY at phone width. Not RN's business.
+				if (socket.readyState === 1) {
+					socket.send(JSON.stringify({ type: "pong" }));
+				}
+				return;
+			}
 			if (message.type === "synced") {
 				epoch = message.epoch;
 				seq = message.seq;

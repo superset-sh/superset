@@ -1,5 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
+import { formatDate } from "@superset/i18n/format";
 
 /** Formats the time until a quota window resets, e.g. "2d 4h", "3h 12m", "14m". */
 export function formatResetIn(resetsAt: Date, now: Date = new Date()): string {
@@ -50,11 +51,11 @@ export function formatResetLabel(
 
 	const within24h = diffMs < 24 * 60 * 60 * 1000;
 	const absolute = within24h
-		? resetsAt.toLocaleTimeString(undefined, {
+		? formatDate(resetsAt, {
 				hour: "numeric",
 				minute: "2-digit",
 			})
-		: resetsAt.toLocaleDateString(undefined, {
+		: formatDate(resetsAt, {
 				month: "short",
 				day: "numeric",
 			});

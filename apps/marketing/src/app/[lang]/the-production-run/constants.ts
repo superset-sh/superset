@@ -1,5 +1,5 @@
+import type { I18n } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import { i18n } from "@superset/i18n";
 import { formatDate } from "@superset/i18n/format";
 import {
 	ANCHORS,
@@ -408,7 +408,11 @@ export function runStatus(run: ProductionRun, now: Date): RunStatus {
 	return today > run.endsOn ? "complete" : "active";
 }
 
-export function runStatusLabel(status: RunStatus, run: ProductionRun): string {
+export function runStatusLabel(
+	status: RunStatus,
+	run: ProductionRun,
+	i18n: I18n,
+): string {
 	if (status === "active") {
 		return i18n._(
 			msg({
@@ -428,11 +432,15 @@ export function runStatusLabel(status: RunStatus, run: ProductionRun): string {
 			message: "starts {date}",
 		}),
 		values: {
-			date: formatDate(new Date(`${run.startsOn}T00:00:00Z`), {
-				month: "long",
-				day: "numeric",
-				timeZone: "UTC",
-			}),
+			date: formatDate(
+				new Date(`${run.startsOn}T00:00:00Z`),
+				{
+					month: "long",
+					day: "numeric",
+					timeZone: "UTC",
+				},
+				i18n.locale,
+			),
 		},
 	});
 }

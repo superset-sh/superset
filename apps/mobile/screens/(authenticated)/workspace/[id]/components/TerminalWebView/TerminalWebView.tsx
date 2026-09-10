@@ -10,9 +10,10 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { AppState, Linking } from "react-native";
+import { AppState } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { withUniwind } from "uniwind";
+import { useOpenLink } from "@/hooks/useOpenLink";
 import { getHostAuthToken, getRelayUrl } from "@/lib/host/client";
 import { ensureSandboxAccess, isSandboxHost } from "@/lib/sandbox-access";
 import {
@@ -140,6 +141,9 @@ export const TerminalWebView = forwardRef<
 	onTapRef.current = onTap;
 	const onScrollChangeRef = useRef(onScrollChange);
 	onScrollChangeRef.current = onScrollChange;
+	const openLink = useOpenLink();
+	const openLinkRef = useRef(openLink);
+	openLinkRef.current = openLink;
 
 	// Parsing the ~400KB generated module is deferred to first mount instead of
 	// app startup (expo-router requires route modules eagerly).
@@ -270,7 +274,7 @@ export const TerminalWebView = forwardRef<
 			} else if (message.type === "control") {
 				onControlRef.current(message.message);
 			} else if (message.type === "openUrl") {
-				void Linking.openURL(message.url).catch(() => {});
+				openLinkRef.current(message.url);
 			} else if (message.type === "copy") {
 				void Clipboard.setStringAsync(message.text).then(
 					() => onCopiedRef.current?.(),

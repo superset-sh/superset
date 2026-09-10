@@ -1,5 +1,3 @@
-export const THEME_STYLESHEET_PATH = "/_superset/theme.css";
-
 const LIGHT_TOKENS = `color-scheme: light;
 	--sp-bg: oklch(1 0 0);
 	--sp-surface: oklch(0.97 0 0);

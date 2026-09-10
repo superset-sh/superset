@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { formatDate } from "@superset/i18n/format";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
@@ -11,16 +12,8 @@ interface PageProps {
 	params: Promise<{ slug: string }>;
 }
 
-function formatDate(date: string | Date): string {
-	return new Date(date).toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
-}
-
 export default async function LegalPage({ params }: PageProps) {
-	await initServerI18n();
+	const locale = await initServerI18n();
 
 	const { slug } = await params;
 	const page = getLegalPage(slug);
@@ -29,7 +22,11 @@ export default async function LegalPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const lastUpdated = formatDate(page.lastUpdated);
+	const lastUpdated = formatDate(
+		new Date(page.lastUpdated),
+		{ year: "numeric", month: "long", day: "numeric", timeZone: "UTC" },
+		locale,
+	);
 
 	return (
 		<main className="bg-background pt-24 pb-16 min-h-screen">

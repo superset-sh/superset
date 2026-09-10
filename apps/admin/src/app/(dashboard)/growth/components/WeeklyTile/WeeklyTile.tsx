@@ -7,7 +7,7 @@ import { useState } from "react";
 import { LuMaximize2 } from "react-icons/lu";
 
 import { InsightTileFrame } from "../../../components/InsightTileFrame";
-import { PostHogQueryLink } from "../PostHogQueryLink";
+import { PostHogQueryLink } from "../../../components/PostHogQueryLink";
 import { TileDetailDialog } from "../TileDetailDialog";
 import { type ChartSeries, WeeklySeriesChart } from "../WeeklySeriesChart";
 
@@ -60,6 +60,7 @@ export function WeeklyTile({
 				isRefreshing={isRefreshing}
 				empty={series.length === 0}
 				fill
+				expandable={false}
 				headerAction={
 					<>
 						{headerAction}

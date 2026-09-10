@@ -133,7 +133,6 @@ export function DashboardSidebarWorkspaceContextMenu({
 						</>
 					)}
 				</ContextMenuItem>
-				<ContextMenuSeparator />
 				{onRename && (
 					<ContextMenuItem onSelect={onRename}>
 						<LuPencil className="size-4 mr-2" />
@@ -208,31 +207,33 @@ export function DashboardSidebarWorkspaceContextMenu({
 							<LuFolderPlus className="size-4 mr-2" />
 							<Trans>New group from workspace</Trans>
 						</ContextMenuItem>
-						{(sections.length > 0 || isInSection) && <ContextMenuSeparator />}
-						{sections.length > 0 && (
-							<ContextMenuSub>
-								<ContextMenuSubTrigger>
-									<LuArrowRightLeft className="size-4 mr-2" />
-									<Trans>Move to group</Trans>
-								</ContextMenuSubTrigger>
-								<ContextMenuSubContent>
-									{sections.map((section) => (
-										<ContextMenuItem
-											key={section.id}
-											onSelect={() => onMoveToSection(section.id)}
-										>
-											{section.color && (
-												<span
-													className="size-2 shrink-0 rounded-full mr-2"
-													style={{ backgroundColor: section.color }}
-												/>
-											)}
-											{section.name}
-										</ContextMenuItem>
-									))}
-								</ContextMenuSubContent>
-							</ContextMenuSub>
-						)}
+						<ContextMenuSub>
+							<ContextMenuSubTrigger>
+								<LuArrowRightLeft className="size-4 mr-2" />
+								<Trans>Move to group</Trans>
+							</ContextMenuSubTrigger>
+							<ContextMenuSubContent>
+								{sections.map((section) => (
+									<ContextMenuItem
+										key={section.id}
+										onSelect={() => onMoveToSection(section.id)}
+									>
+										{section.color && (
+											<span
+												className="size-2 shrink-0 rounded-full mr-2"
+												style={{ backgroundColor: section.color }}
+											/>
+										)}
+										{section.name}
+									</ContextMenuItem>
+								))}
+								{sections.length > 0 && <ContextMenuSeparator />}
+								<ContextMenuItem onSelect={onCreateSection}>
+									<LuFolderPlus className="size-4 mr-2" />
+									<Trans>Create new group</Trans>
+								</ContextMenuItem>
+							</ContextMenuSubContent>
+						</ContextMenuSub>
 						{isInSection && (
 							<ContextMenuItem onSelect={() => onMoveToSection(null)}>
 								<LuArrowUp className="size-4 mr-2" />

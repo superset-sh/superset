@@ -11,7 +11,7 @@ interface ContactFormProps {
 
 export function ContactForm({ intent = "contact" }: ContactFormProps) {
 	const isCloudSignup = intent === "cloud-design-partner";
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const [formState, setFormState] = useState({
 		name: "",
 		email: "",
@@ -30,7 +30,7 @@ export function ContactForm({ intent = "contact" }: ContactFormProps) {
 		setErrorMessage("");
 
 		try {
-			const result = await submitContactInquiry(formState);
+			const result = await submitContactInquiry(formState, i18n.locale);
 
 			if (result.success) {
 				setStatus("success");

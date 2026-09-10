@@ -73,6 +73,7 @@ export function HogQLLineTile({
 			title={query.data?.name ?? insight}
 			description={description}
 			lastRefresh={query.data?.lastRefresh}
+			fill
 			isLoading={query.isLoading || query.data?.result == null}
 			error={query.error}
 			href={`${POSTHOG_PROJECT_URL}/insights/${ADMIN_INSIGHTS[insight]}`}
@@ -80,7 +81,10 @@ export function HogQLLineTile({
 			isRefreshing={query.isFetching}
 			empty={data.length === 0}
 		>
-			<ChartContainer config={chartConfig} className="h-[240px] w-full">
+			<ChartContainer
+				config={chartConfig}
+				className="aspect-auto h-full min-h-[220px] w-full"
+			>
 				<ComposedChart data={data}>
 					<XAxis
 						dataKey="x"

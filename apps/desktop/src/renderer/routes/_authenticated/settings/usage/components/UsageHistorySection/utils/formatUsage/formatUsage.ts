@@ -1,4 +1,4 @@
-import { formatCurrency } from "@superset/i18n/format";
+import { formatCurrency, formatDate } from "@superset/i18n/format";
 
 export { formatTokens } from "@superset/shared/format-tokens";
 
@@ -14,7 +14,7 @@ export function formatUsd(usd: number): string {
 export function formatDayLabel(day: string): string {
 	const [year, month, date] = day.split("-").map(Number);
 	if (!year || !month || !date) return day;
-	return new Date(year, month - 1, date).toLocaleDateString(undefined, {
+	return formatDate(new Date(year, month - 1, date), {
 		month: "short",
 		day: "numeric",
 	});

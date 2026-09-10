@@ -1,8 +1,6 @@
 import { Trans } from "@lingui/react/macro";
-import {
-	formatDate as formatLocaleDate,
-	formatPrice,
-} from "@superset/i18n/format";
+import { formatDate as formatLocaleDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
@@ -14,6 +12,8 @@ function formatDate(timestamp: number) {
 }
 
 export function RecentInvoices() {
+	const { formatPrice } = useFormat();
+
 	// cloudTrpc, not the imperative client: it sends this window's organization
 	// header, so the list belongs to the organization on screen.
 	const { data: invoices } = cloudTrpc.billing.invoices.useQuery(undefined);

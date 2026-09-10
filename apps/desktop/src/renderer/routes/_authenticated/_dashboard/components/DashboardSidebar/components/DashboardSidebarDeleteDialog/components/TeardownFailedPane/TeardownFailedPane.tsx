@@ -2,14 +2,14 @@ import { Trans } from "@lingui/react/macro";
 import type { TeardownFailureCause } from "@superset/host-service";
 import {
 	AlertDialog,
-	AlertDialogContent,
+	AlertDialogAction,
+	AlertDialogCancel,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
+	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
-import { Button } from "@superset/ui/button";
-import { useEffect } from "react";
 import stripAnsi from "strip-ansi";
 import { shouldConfirmDeleteDialogKey } from "../../utils/shouldConfirmDeleteDialogKey";
 import { formatTeardownReason } from "./formatTeardownReason";
@@ -33,22 +33,9 @@ export function TeardownFailedPane({
 	// Strip ANSI so raw PTY bytes render readably in the <pre>.
 	const cleanTail = stripAnsi(cause.outputTail ?? "");
 
-	useEffect(() => {
-		if (!open) return;
-
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (!shouldConfirmDeleteDialogKey(event)) return;
-			event.preventDefault();
-			onForceDelete();
-		};
-
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [onForceDelete, open]);
-
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent className="max-w-[500px] gap-0 p-0">
+			<EnterEnabledAlertDialogContent className="max-w-[500px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">{reason}</AlertDialogTitle>
 					<AlertDialogDescription>
@@ -61,24 +48,28 @@ export function TeardownFailedPane({
 					</pre>
 				)}
 				<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-7 px-3 text-xs"
-						onClick={() => onOpenChange(false)}
-					>
+					<AlertDialogCancel className="h-7 border-0 bg-transparent px-3 text-xs shadow-none">
 						<Trans>Cancel</Trans>
-					</Button>
-					<Button
+					</AlertDialogCancel>
+					<AlertDialogAction
+						onKeyDown={(event) => {
+							// Let the button handle Enter natively, except held keys and IME.
+							if (
+								event.key === "Enter" &&
+								!shouldConfirmDeleteDialogKey(event.nativeEvent)
+							) {
+								event.preventDefault();
+							}
+						}}
 						variant="destructive"
 						size="sm"
 						className="h-7 px-3 text-xs"
 						onClick={onForceDelete}
 					>
 						<Trans>Delete anyway</Trans>
-					</Button>
+					</AlertDialogAction>
 				</AlertDialogFooter>
-			</AlertDialogContent>
+			</EnterEnabledAlertDialogContent>
 		</AlertDialog>
 	);
 }

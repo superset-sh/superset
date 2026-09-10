@@ -1,7 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { formatNumber, formatPercent } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { Badge } from "@superset/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 
@@ -17,6 +17,8 @@ const STALE_TIME_MS = 60 * 60 * 1000;
 const SEARCH_CONSOLE_URL = "https://search.google.com/search-console";
 
 export function SearchConsoleTile() {
+	const { formatNumber, formatPercent } = useFormat();
+
 	const { t } = useLingui();
 	const trpc = useTRPC();
 	const { weeks } = useGrowthRange();

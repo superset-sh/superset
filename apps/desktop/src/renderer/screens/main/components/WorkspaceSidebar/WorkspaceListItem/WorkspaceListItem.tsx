@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -66,6 +68,8 @@ export function WorkspaceListItem({
 	sections = [],
 	orderedWorkspaceIds = [],
 }: WorkspaceListItemProps) {
+	const { _: translate } = useTranslation();
+
 	const isBranchWorkspace = type === "branch";
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -427,14 +431,16 @@ export function WorkspaceListItem({
 														handleDeleteClick();
 													}}
 													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-													aria-label="Close workspace"
+													aria-label={translate(
+														msg({ message: "Close workspace" }),
+													)}
 												>
 													<HiMiniXMark className="size-3.5" />
 												</button>
 											</TooltipTrigger>
 											<TooltipContent side="top">
 												<HotkeyLabel
-													label="Close workspace"
+													label={translate(msg({ message: "Close workspace" }))}
 													id={isActive ? "CLOSE_WORKSPACE" : undefined}
 												/>
 											</TooltipContent>

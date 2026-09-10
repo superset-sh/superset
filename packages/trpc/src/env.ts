@@ -79,6 +79,11 @@ export const env = createEnv({
 		MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
 		STRIPE_SECRET_KEY: z.string().optional(),
 		MERCURY_API_TOKEN: z.string().optional(),
+		// Optional read-only PAT (no scopes needed), shared with apps/marketing.
+		// GitHub's stargazers endpoint requires authentication even for public
+		// repos; without it the star history tiles report "not available" and
+		// every other growth tile keeps working.
+		GITHUB_TOKEN: z.string().min(1).optional(),
 		// Optional: the admin Growth page's Search Console tiles report "not
 		// connected" wherever the service account is unset. The account must be
 		// added as a user of the property in Search Console.

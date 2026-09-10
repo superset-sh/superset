@@ -1,13 +1,24 @@
 import { randomUUID } from "node:crypto";
+import { closeSync, mkdirSync, openSync } from "node:fs";
+import { join } from "node:path";
+import {
+	assignAttachmentFileName,
+	attachmentNameWithSuffix,
+	WORKSPACE_ATTACHMENTS_DIR,
+} from "@superset/shared/workspace-attachments";
 import { TRPCError } from "@trpc/server";
 import mimeTypes from "mime-types";
 import { z } from "zod";
 import { protectedProcedure, router } from "../../index";
-import { MAX_ATTACHMENT_BYTES } from "./constants";
+import { resolveWorktreePath } from "../git/utils/resolve-worktree";
+import { MAX_INLINE_ATTACHMENT_BYTES } from "./constants";
+import { type CloudAttachment, downloadAttachment } from "./download";
 import {
 	type AttachmentMetadata,
 	deleteAttachment,
+	prepareAttachmentTarget,
 	writeAttachment,
+	writeAttachmentMetadata,
 } from "./storage";
 
 const uploadInputSchema = z.object({
@@ -20,6 +31,59 @@ const uploadInputSchema = z.object({
 });
 
 const FALLBACK_MEDIA_TYPE = "application/octet-stream";
+
+/**
+ * A media type the store can name a file with. `getAttachmentFilePath`
+ * derives the extension from it and throws on one it doesn't know, so a
+ * client's unrecognized type becomes the generic binary rather than a
+ * failed write.
+ */
+function mediaTypeOf(declared: string): string {
+	return mimeTypes.extension(declared) ? declared : FALLBACK_MEDIA_TYPE;
+}
+
+/**
+ * Takes a free filename in the worktree's attachment directory, creating it
+ * so nobody else can take the same one.
+ *
+ * `assignAttachmentFileName` only deduplicates within one batch — it cannot
+ * see what earlier sends already wrote. The directory is long-lived and a
+ * second photo named IMG_0006.jpg is ordinary, so the batch-local name is
+ * only a starting point and the real directory decides.
+ *
+ * The claim is the exclusive create rather than a existence check: two sends
+ * materializing at once would both find the same name free and the second
+ * download would truncate the first's file. `wx` makes the loser see EEXIST
+ * and move to the next suffix.
+ */
+export function claimFileName({
+	attachment,
+	index,
+	used,
+	directory,
+}: {
+	attachment: CloudAttachment;
+	index: number;
+	used: Set<string>;
+	directory: string;
+}): string {
+	const base = assignAttachmentFileName({
+		rawName: attachment.name,
+		index,
+		used,
+	});
+	for (let attempt = 0; ; attempt++) {
+		const candidate = attachmentNameWithSuffix(base, attempt);
+		try {
+			closeSync(openSync(join(directory, candidate), "wx", 0o600));
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === "EEXIST") continue;
+			throw error;
+		}
+		used.add(candidate.toLowerCase());
+		return candidate;
+	}
+}
 
 /**
  * Cheap size estimate from a base64 string without allocating the
@@ -38,16 +102,16 @@ export const attachmentsRouter = router({
 	 * renderer never sees the on-disk path.
 	 */
 	upload: protectedProcedure.input(uploadInputSchema).mutation(({ input }) => {
-		const mediaType = mimeTypes.extension(input.mediaType)
-			? input.mediaType
-			: FALLBACK_MEDIA_TYPE;
+		const mediaType = mediaTypeOf(input.mediaType);
 
 		// Reject before allocating the decoded buffer so a 1GB base64
 		// payload doesn't spike host memory only to be rejected at the end.
-		if (estimateDecodedBase64Bytes(input.data.data) > MAX_ATTACHMENT_BYTES) {
+		if (
+			estimateDecodedBase64Bytes(input.data.data) > MAX_INLINE_ATTACHMENT_BYTES
+		) {
 			throw new TRPCError({
 				code: "PAYLOAD_TOO_LARGE",
-				message: `Attachment exceeds ${MAX_ATTACHMENT_BYTES} bytes`,
+				message: `Attachment exceeds ${MAX_INLINE_ATTACHMENT_BYTES} bytes`,
 			});
 		}
 
@@ -80,6 +144,77 @@ export const attachmentsRouter = router({
 			sizeBytes: metadata.sizeBytes,
 		};
 	}),
+
+	/**
+	 * Pulls uploads the client sent to cloud storage into this host's
+	 * attachment store, returning the ids the agent launch flow already
+	 * speaks. The client PUT them straight to R2, so bytes reach the host
+	 * without crossing the relay — which caps a request body far below what
+	 * an attachment can legitimately be.
+	 */
+	importFromCloud: protectedProcedure
+		.input(z.object({ fileIds: z.array(z.string().uuid()).min(1).max(10) }))
+		.mutation(async ({ ctx, input }) => {
+			const resolved = await ctx.api.attachment.resolve.mutate({
+				fileIds: input.fileIds,
+			});
+
+			const results: AttachmentUploadResult[] = [];
+			for (const attachment of resolved) {
+				const metadata: AttachmentMetadata = {
+					attachmentId: randomUUID(),
+					mediaType: mediaTypeOf(attachment.contentType),
+					originalFilename: attachment.name,
+					sizeBytes: attachment.sizeBytes,
+					createdAt: Date.now(),
+				};
+				await downloadAttachment(attachment, prepareAttachmentTarget(metadata));
+				writeAttachmentMetadata(metadata);
+				results.push({
+					attachmentId: metadata.attachmentId,
+					originalFilename: metadata.originalFilename,
+					mediaType: metadata.mediaType,
+					sizeBytes: metadata.sizeBytes,
+				});
+			}
+			return results;
+		}),
+
+	/**
+	 * Writes cloud uploads into a workspace's worktree and returns the
+	 * worktree-relative paths an agent is handed. A live PTY only takes
+	 * bytes, so paths are how an attachment reaches the agent there.
+	 */
+	materializeIntoWorkspace: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				fileIds: z.array(z.string().uuid()).min(1).max(10),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const directory = join(worktreePath, WORKSPACE_ATTACHMENTS_DIR);
+			mkdirSync(directory, { recursive: true });
+
+			const resolved = await ctx.api.attachment.resolve.mutate({
+				fileIds: input.fileIds,
+			});
+
+			const used = new Set<string>();
+			const paths: string[] = [];
+			for (const [index, attachment] of resolved.entries()) {
+				const fileName = claimFileName({
+					attachment,
+					index,
+					used,
+					directory,
+				});
+				await downloadAttachment(attachment, join(directory, fileName));
+				paths.push(`${WORKSPACE_ATTACHMENTS_DIR}/${fileName}`);
+			}
+			return { paths };
+		}),
 
 	/**
 	 * Delete an attachment by id. Idempotent — succeeds whether or not

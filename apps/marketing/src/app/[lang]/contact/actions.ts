@@ -2,7 +2,8 @@
 
 import { msg } from "@lingui/core/macro";
 import { ContactInquiryEmail } from "@superset/email/emails/internal/contact-inquiry";
-import { i18n } from "@superset/i18n";
+import { isSupportedLocale } from "@superset/i18n/locales";
+import { getI18nInstance, preloadServerLocale } from "@superset/i18n/server";
 import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "@/env";
@@ -23,7 +24,13 @@ const contactFormDataSchema = z.object({
 	honeypot: z.string().optional(),
 });
 
-export async function submitContactInquiry(data: unknown) {
+export async function submitContactInquiry(
+	data: unknown,
+	requestedLocale = "en",
+) {
+	const locale = isSupportedLocale(requestedLocale) ? requestedLocale : "en";
+	await preloadServerLocale(locale);
+	const i18n = getI18nInstance(locale);
 	const parsedData = contactFormDataSchema.safeParse(data);
 	if (!parsedData.success) {
 		return {

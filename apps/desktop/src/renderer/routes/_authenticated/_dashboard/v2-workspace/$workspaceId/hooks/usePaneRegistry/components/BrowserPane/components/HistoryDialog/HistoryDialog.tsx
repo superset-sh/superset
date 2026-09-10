@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -30,6 +31,8 @@ export function HistoryDialog({
 	onOpenChange,
 	onSelect,
 }: HistoryDialogProps) {
+	const { formatDate } = useFormat();
+
 	const { t } = useLingui();
 	const [entries, setEntries] = useState<HistoryEntry[]>([]);
 	const [query, setQuery] = useState("");
@@ -149,7 +152,7 @@ export function HistoryDialog({
 										</div>
 									</div>
 									<div className="shrink-0 text-xs text-muted-foreground/70">
-										{new Date(entry.lastVisitedAt).toLocaleDateString()}
+										{formatDate(new Date(entry.lastVisitedAt), undefined)}
 									</div>
 								</button>
 							))}

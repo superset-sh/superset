@@ -46,6 +46,8 @@ import { useAgentIconUris } from "@/screens/(authenticated)/hooks/useAgentIconUr
 import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { useSlashCommands } from "@/screens/(authenticated)/hooks/useSlashCommands";
+import { workspaceDraftKey } from "@/screens/(authenticated)/stores/composerDraftsStore";
+import { useLastSessionTabStore } from "@/screens/(authenticated)/stores/lastSessionTabStore";
 import { usePendingWorkspaceCreatesStore } from "@/screens/(authenticated)/stores/pendingWorkspaceCreatesStore";
 import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalSeenStore";
 import { useTerminalTabOrderStore } from "@/screens/(authenticated)/stores/terminalTabOrderStore";
@@ -144,17 +146,42 @@ export function WorkspaceScreen() {
 		[terminalsByWorkspace, id, savedOrder],
 	);
 
-	// Active tab: the deep-linked ?tab= until the user switches, else the
-	// first session. Falls back gracefully when the active terminal dies.
+	// Active tab: the deep-linked ?tab= until the user switches, then the tab
+	// this workspace was left on, else the first session. A deep link names a
+	// session on purpose — a notification has to win over what the device
+	// remembers. Falls back gracefully when a candidate's terminal has died.
 	const [pickedTerminalId, setPickedTerminalId] = useState<string | null>(null);
+	const rememberedTerminalId = useLastSessionTabStore((state) =>
+		id ? state.tabByWorkspace[id] : undefined,
+	);
+	const tabsHydrated = useLastSessionTabStore((state) => state.hasHydrated);
 	const activeTerminalId = useMemo(() => {
-		for (const candidate of [pickedTerminalId, params.tab]) {
+		// Nothing to resolve against until AsyncStorage answers (~165ms cold):
+		// picking the first row now attaches a stream to the wrong session and
+		// swaps it out from under the user when the remembered tab lands.
+		if (!tabsHydrated) return null;
+		for (const candidate of [
+			pickedTerminalId,
+			params.tab,
+			rememberedTerminalId,
+		]) {
 			if (candidate && rows.some((row) => row.terminalId === candidate)) {
 				return candidate;
 			}
 		}
 		return rows[0]?.terminalId ?? null;
-	}, [pickedTerminalId, params.tab, rows]);
+	}, [tabsHydrated, pickedTerminalId, params.tab, rememberedTerminalId, rows]);
+
+	// Remembered here rather than in the tab-strip handler: every route into a
+	// session ends at this value — the strip, the sessions sheet, a new
+	// session's ?tab=, the fallback when the one you were on exits — and the
+	// effect writes once per change instead of once per render.
+	const setLastSessionTab = useLastSessionTabStore(
+		(state) => state.setLastSessionTab,
+	);
+	useEffect(() => {
+		if (id && activeTerminalId) setLastSessionTab(id, activeTerminalId);
+	}, [id, activeTerminalId, setLastSessionTab]);
 
 	// --- pending create (enqueued via `workspaces.createEnqueued`) ---
 	// The settled event only exists on the desktop's event bus, so poll the
@@ -525,6 +552,60 @@ export function WorkspaceScreen() {
 		[t],
 	);
 
+	// Press and hold a tab → Rename. The prompt lives here rather than in the
+	// composer for the same reason the close confirm does: a context menu
+	// cannot take text, and the name belongs to the host, not to the strip.
+	const renameTerminal = useCallback(
+		(terminalId: string, title: string) => {
+			if (!workspace || !hostUrl) return;
+			void getHostServiceClientByUrl(hostUrl)
+				.terminal.rename.mutate({
+					terminalId,
+					workspaceId: workspace.id,
+					title,
+				})
+				.catch((cause: unknown) =>
+					Alert.alert(
+						t({
+							message: "Could not rename the session",
+						}),
+						errorCopy(cause),
+					),
+				)
+				.finally(invalidateTerminals);
+		},
+		[workspace, hostUrl, invalidateTerminals, t],
+	);
+
+	const promptRenameTerminal = useCallback(
+		(terminalId: string) => {
+			const row = rows.find((candidate) => candidate.terminalId === terminalId);
+			Alert.prompt(
+				t({
+					message: "Rename session",
+				}),
+				t({
+					message:
+						"Leave it empty to go back to the name the terminal reports.",
+				}),
+				[
+					{
+						text: t({ message: "Cancel" }),
+						style: "cancel",
+					},
+					{
+						text: t({ message: "Save" }),
+						onPress: (value?: string) =>
+							renameTerminal(terminalId, value ?? ""),
+					},
+				],
+				"plain-text",
+				row?.customTitle ?? "",
+			);
+		},
+		[rows, renameTerminal, t],
+	);
+
 	// Press and hold a tab → Copy session ID. The pasteboard write lands here
 	// rather than natively so it shares the header notice every other copy on
 	// this screen already uses.
@@ -615,10 +696,12 @@ export function WorkspaceScreen() {
 		host !== null &&
 		!hostCompatibility.incompatible;
 
+	// The host resolves its own worktree; a path here is only the signal that
+	// there is one to write into yet.
 	const attachmentTarget = useMemo(
 		() =>
 			id && hostUrl && workspace?.worktreePath
-				? { workspaceId: id, hostUrl, worktreePath: workspace.worktreePath }
+				? { workspaceId: id, hostUrl, draftKey: workspaceDraftKey(id) }
 				: null,
 		[id, hostUrl, workspace],
 	);
@@ -846,7 +929,7 @@ export function WorkspaceScreen() {
 					</>
 				) : cloud && !workspace ? (
 					<CloudWorkspaceProvisioningState cloud={cloud} />
-				) : isResolving || (!isReady && host) ? (
+				) : isResolving || ((!isReady || !tabsHydrated) && host) ? (
 					<Centered>
 						<ActivityIndicator />
 					</Centered>
@@ -902,6 +985,7 @@ export function WorkspaceScreen() {
 					sessionTabs={cloud && !workspace ? [] : sessionTabs}
 					onSessionTabPress={pickTerminal}
 					onSessionTabClose={confirmCloseTerminal}
+					onSessionTabRename={promptRenameTerminal}
 					onSessionTabCopyId={copyTerminalId}
 					onNewSessionPress={openAddMenu}
 					onAllSessionsPress={openSessions}

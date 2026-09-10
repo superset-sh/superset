@@ -6,7 +6,7 @@ import { useState } from "react";
 import { submitEnterpriseInquiry } from "../../actions";
 
 export function EnterpriseContactForm() {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const [formState, setFormState] = useState({
 		name: "",
 		role: "",
@@ -27,7 +27,7 @@ export function EnterpriseContactForm() {
 		setErrorMessage("");
 
 		try {
-			const result = await submitEnterpriseInquiry(formState);
+			const result = await submitEnterpriseInquiry(formState, i18n.locale);
 
 			if (result.success) {
 				setStatus("success");

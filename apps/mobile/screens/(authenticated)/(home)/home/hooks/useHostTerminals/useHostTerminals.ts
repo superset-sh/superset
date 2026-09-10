@@ -33,7 +33,10 @@ const ATTENTION_PRIORITY: Record<TerminalAttention, number> = {
 export interface TerminalRowData {
 	terminalId: string;
 	workspaceId: string;
+	/** What to show: the name the user gave the session, else the shell's. */
 	title: string;
+	/** The user's name on its own, for prefilling a rename. */
+	customTitle: string | null;
 	ts: number;
 	/** Session creation time — the stable ordering key for tab strips. */
 	createdAt: number;
@@ -157,6 +160,7 @@ export function useHostsTerminals(
 					terminalId: session.terminalId,
 					workspaceId: session.workspaceId,
 					title: session.title ?? (binding ? binding.agentId : "Terminal"),
+					customTitle: session.customTitle,
 					ts: binding?.lastEventAt ?? session.createdAt,
 					createdAt: session.createdAt,
 					lastEventAt: binding?.lastEventAt ?? null,

@@ -1,0 +1,1 @@
+export { PaywallFunnelTile } from "./PaywallFunnelTile";

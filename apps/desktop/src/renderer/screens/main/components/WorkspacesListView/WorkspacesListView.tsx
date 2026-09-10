@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
@@ -17,6 +19,8 @@ const FILTER_OPTIONS: { value: FilterMode; label: string }[] = [
 ];
 
 export function WorkspacesListView() {
+	const { _: translate } = useTranslation();
+
 	const [searchQuery, setSearchQuery] = useState("");
 	const [filterMode, setFilterMode] = useState<FilterMode>("all");
 	const navigate = useNavigate();
@@ -216,7 +220,7 @@ export function WorkspacesListView() {
 					<LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50" />
 					<Input
 						type="text"
-						placeholder="Search..."
+						placeholder={translate(msg({ message: "Search..." }))}
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						className="pl-9 h-8 bg-background/50"

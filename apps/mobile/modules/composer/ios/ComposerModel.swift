@@ -125,6 +125,7 @@ final class ComposerModel {
   /// there — where the "Copied" notice already lives.
   @ObservationIgnored var onSessionTabPress: ((String) -> Void)?
   @ObservationIgnored var onSessionTabClose: ((String) -> Void)?
+  @ObservationIgnored var onSessionTabRename: ((String) -> Void)?
   @ObservationIgnored var onSessionTabCopyId: ((String) -> Void)?
   @ObservationIgnored var onNewSessionPress: (() -> Void)?
   @ObservationIgnored var onAllSessionsPress: (() -> Void)?
@@ -158,6 +159,18 @@ final class ComposerModel {
   /// transaction that revealed send.
   @ObservationIgnored var onDraftChange: ((String) -> Void)?
 
+  /// True while the composer is being placed, false once it has been.
+  ///
+  /// Props delivered during setup are the composer appearing, not changing:
+  /// animating them opens a layout transaction before the card has a frame,
+  /// so it travels in from the origin instead of being drawn where it belongs.
+  /// Same reasoning as `applyInitialDraft`, applied to every prop.
+  @ObservationIgnored private(set) var isAppearing = true
+
+  func beginAppearing() { isAppearing = true }
+
+  func settle() { isAppearing = false }
+
   /// First delivery of `initialDraft` wins; React Native pins the value at
   /// mount, so later deliveries are the same text and must not clobber typing.
   @ObservationIgnored private var hasAppliedInitialDraft = false
@@ -166,6 +179,13 @@ final class ComposerModel {
   @ObservationIgnored var onInteractiveFrameChange: ((CGRect) -> Void)?
 
   var hasContent: Bool { hasDraft || !attachments.isEmpty }
+
+  /// An attachment is still on its way to storage. A send would survive it —
+  /// it waits for the bytes before it launches anything — but a send button
+  /// that looks ready while a ring is still filling invites the tap that
+  /// appears to do nothing. A failed upload does not count: sending is how it
+  /// is retried.
+  var isUploading: Bool { attachments.contains(where: \.isUploading) }
 
   var hasDraft: Bool {
     !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -223,7 +243,7 @@ final class ComposerModel {
   }
 
   func submit() {
-    guard hasContent, !isSending else { return }
+    guard hasContent, !isSending, !isUploading else { return }
     onSubmit?(draft)
   }
 }

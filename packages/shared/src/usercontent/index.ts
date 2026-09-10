@@ -7,7 +7,6 @@ export {
 } from "./file-policy";
 export {
 	injectScriptTag,
-	injectStylesheetLink,
 	injectStyleTag,
 	RUNTIME_SCRIPT_PATH,
 } from "./inject";
@@ -25,7 +24,7 @@ export {
 	parsePageManifest,
 	servedVersionOf,
 } from "./manifest";
-export { PAGE_THEME_CSS, THEME_STYLESHEET_PATH } from "./theme";
+export { PAGE_THEME_CSS } from "./theme";
 export {
 	type FileTicketClaims,
 	type PageTicketClaims,

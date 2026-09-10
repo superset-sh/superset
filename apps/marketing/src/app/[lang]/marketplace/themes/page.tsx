@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import { Button } from "@superset/ui/button";
 import { ThemePreviewCard } from "@superset/ui/theme-preview-card";
 import { ArrowUpRight, Download } from "lucide-react";
@@ -12,6 +12,7 @@ import { themeListings } from "@/lib/marketplace";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	return {
 		title: i18n._(
 			msg({

@@ -32,7 +32,7 @@ struct ComposerModelPicker: View {
         .lineLimit(1)
       }
       .buttonStyle(.plain)
-      .accessibilityLabel("Model: \(selected.label)")
+      .accessibilityLabel(String(format: composerLocalized("Model: %@"), selected.label))
     }
   }
 }

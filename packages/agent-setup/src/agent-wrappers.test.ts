@@ -1628,8 +1628,14 @@ describe("agent-wrappers codex hooks.json", () => {
 			).toBe(true);
 		}
 
-		expect(parsed.hooks.PreToolUse).toBeUndefined();
-		expect(parsed.hooks.PostToolUse).toBeUndefined();
+		for (const eventName of ["PreToolUse", "PostToolUse"]) {
+			expect(parsed.hooks[eventName]).toEqual([
+				{
+					matcher: "^request_user_input$",
+					hooks: [{ type: "command", command: expectedCommand }],
+				},
+			]);
+		}
 	});
 
 	it("preserves user hooks when merging", () => {
@@ -1691,7 +1697,7 @@ describe("agent-wrappers codex hooks.json", () => {
 
 		const parsed = JSON.parse(content);
 
-		// Preserves user hooks (including PreToolUse/PostToolUse which we don't manage)
+		// Preserves user hooks, including tool hooks alongside our scoped entries.
 		expect(
 			parsed.hooks.Stop.some((def: { hooks: Array<{ command: string }> }) =>
 				def.hooks.some(
@@ -1748,25 +1754,13 @@ describe("agent-wrappers codex hooks.json", () => {
 			).toBe(true);
 		}
 
-		// Does NOT inject managed hooks for PreToolUse/PostToolUse
-		expect(
-			parsed.hooks.PreToolUse.some(
-				(def: { hooks: Array<{ command: string }> }) =>
-					def.hooks.some(
-						(hook: { command: string }) =>
-							hook.command === expectedManagedCommand,
-					),
-			),
-		).toBe(false);
-		expect(
-			parsed.hooks.PostToolUse.some(
-				(def: { hooks: Array<{ command: string }> }) =>
-					def.hooks.some(
-						(hook: { command: string }) =>
-							hook.command === expectedManagedCommand,
-					),
-			),
-		).toBe(false);
+		for (const eventName of ["PreToolUse", "PostToolUse"]) {
+			expect(parsed.hooks[eventName]).toHaveLength(2);
+			expect(parsed.hooks[eventName]).toContainEqual({
+				matcher: "^request_user_input$",
+				hooks: [{ type: "command", command: expectedManagedCommand }],
+			});
+		}
 	});
 
 	it("replaces stale Codex hook commands from old superset paths", () => {
