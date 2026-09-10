@@ -1,3 +1,4 @@
+import { findUserEmail } from "@superset/db/utils";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { userError } from "../../i18n-error";
 import { posthog } from "../analytics";
@@ -13,14 +14,11 @@ import { posthog } from "../analytics";
  * Fails closed — `isFeatureEnabled` resolves undefined when PostHog is
  * unreachable, so an outage suspends cloud access rather than opening it.
  */
-export async function assertCloudAccess(user: {
-	userId: string;
-	email: string;
-}): Promise<void> {
-	const account = user.email.trim().toLowerCase();
+export async function assertCloudAccess(userId: string): Promise<void> {
+	const account = (await findUserEmail(userId))?.trim().toLowerCase() ?? "";
 	const enabled = await posthog.isFeatureEnabled(
 		FEATURE_FLAGS.CLOUD_WORKSPACES,
-		user.userId,
+		userId,
 		{
 			// Sent explicitly: the conditions are email-based, and a person
 			// PostHog has not seen yet would otherwise be refused for the wrong
