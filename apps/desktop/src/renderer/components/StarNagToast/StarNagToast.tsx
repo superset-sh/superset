@@ -38,7 +38,7 @@ function StarNagToastContent({ toastId }: { toastId: string | number }) {
 	}
 
 	return (
-		<div className="w-[356px] rounded-lg border border-border bg-popover p-4 shadow-lg select-text">
+		<div className="group/star-toast w-[356px] rounded-lg border border-border bg-popover p-4 shadow-lg select-text">
 			<div className="flex items-start justify-between gap-2">
 				<p className="text-sm font-semibold text-popover-foreground">
 					<Trans>You're all set!</Trans>
@@ -49,7 +49,7 @@ function StarNagToastContent({ toastId }: { toastId: string | number }) {
 					aria-label={t({
 						message: "Dismiss",
 					})}
-					className="text-muted-foreground transition-colors hover:text-foreground"
+					className="text-muted-foreground transition-[color,opacity] hover:text-foreground [@media(hover:hover)]:opacity-0 group-hover/star-toast:opacity-100 group-focus-within/star-toast:opacity-100"
 				>
 					<X className="size-3.5" />
 				</button>
