@@ -643,6 +643,9 @@ msgstr "{days}h lalu"
 msgid "{daysRemaining, plural, one {Your account is deactivated and will be permanently deleted in # day. Reactivate to restore it exactly as you left it.} other {Your account is deactivated and will be permanently deleted in # days. Reactivate to restore it exactly as you left it.}}"
 msgstr "{daysRemaining, plural, one {Akun Anda dinonaktifkan dan akan dihapus permanen dalam # hari. Aktifkan kembali untuk memulihkannya persis seperti yang Anda tinggalkan.} other {Akun Anda dinonaktifkan dan akan dihapus permanen dalam # hari. Aktifkan kembali untuk memulihkannya persis seperti yang Anda tinggalkan.}}"
 
+msgid "{developerCount}+"
+msgstr "{developerCount}+"
+
 msgid "{distance} ago"
 msgstr "{distance} lalu"
 
@@ -663,6 +666,9 @@ msgstr "{focusShortcutText} untuk fokus"
 
 msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted} {count, plural, one {dev} other {dev}}"
+
+msgid "{founderCount} ex-YC founders"
+msgstr "{founderCount} pendiri alumni YC"
 
 msgid "{gate} · {statusLabel}"
 msgstr "{gate} · {statusLabel}"
@@ -12289,6 +12295,9 @@ msgstr "Versi yang sama dengan aplikasi ini."
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SAML SSO & provisioning SCIM"
 
+msgid "San Francisco"
+msgstr "San Francisco"
+
 msgid "Sandbox preview has no URL"
 msgstr "Pratinjau sandbox tidak punya URL"
 
@@ -13415,6 +13424,9 @@ msgstr "Terjadi kesalahan. Coba lagi, atau hubungi support@superset.sh."
 msgid "soon"
 msgstr "sebentar lagi"
 
+msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
+msgstr "Tak lama lagi, tim akan menjalankan ratusan agen secara paralel—pabrik perangkat lunak yang secara mandiri menghasilkan dan merilis kode. Kami menjadikan Superset tempat tim menjalankan dan mengelola pabrik tersebut, dimulai dari pabrik kami sendiri."
+
 msgid "Sort"
 msgstr "Urutkan"
 
@@ -13885,8 +13897,8 @@ msgstr "Superset sedang membangun perangkat lunak yang memperbaiki dirinya sendi
 msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything for the founding team, write to <1>{foundersEmail}</1>."
 msgstr "Superset dibangun oleh tim yang berbasis di San Francisco, California. Untuk dukungan produk atau pertanyaan akun, kirim email ke <0>{supportEmail}</0> dan kami akan membalas dalam satu hari kerja. Untuk kemitraan, media, enterprise, atau apa pun untuk tim pendiri, tulis ke <1>{foundersEmail}</1>."
 
-msgid "Superset is built in Superset, so we're our own #1 users - you get paid to make your own life easier. We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset dibangun di dalam Superset, jadi kami pengguna nomor satu produk kami sendiri - Anda dibayar untuk membuat hidup Anda sendiri lebih mudah. Kami membangun tim yang datar dan padat talenta, dan kami mencari orang yang punya ide gila dan cukup gila untuk merilisnya. Kalau Anda pernah ingin membangun produk yang Anda sendiri senang memakainya, bangun bersama kami."
+msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
+msgstr "Superset dibangun di dalam Superset, jadi kami sendiri adalah pengguna utamanya—Anda dibayar untuk mempermudah pekerjaan Anda sendiri. Jika Anda ingin membangun produk yang senang Anda gunakan, mari bangun bersama kami."
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset dirancang untuk bekerja dengan alat yang sudah Anda pakai; kami mendukung deep-link ke IDE seperti Cursor secara native sehingga Anda bisa membuka workspace dan file di IDE Anda."
@@ -14972,9 +14984,6 @@ msgstr "Hari ini"
 
 msgid "TODAY"
 msgstr "HARI INI"
-
-msgid "Today, tens of thousands of engineers run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix. Soon, teams will run 100s of agents in parallel - software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "Hari ini, puluhan ribu engineer memakai Superset sebagai IDE utama mereka, di perusahaan seperti Wix, DoorDash, dan Netflix. Tak lama lagi, tim akan menjalankan ratusan agen secara paralel - pabrik perangkat lunak yang secara otonom memproduksi dan merilis kode. Kami menjadikan Superset tempat tim menjalankan dan mengelola pabrik-pabrik itu, dimulai dari pabrik kami sendiri."
 
 msgid "Todo"
 msgstr "Todo"

@@ -643,6 +643,9 @@ msgstr "{days} dni temu"
 msgid "{daysRemaining, plural, one {Your account is deactivated and will be permanently deleted in # day. Reactivate to restore it exactly as you left it.} other {Your account is deactivated and will be permanently deleted in # days. Reactivate to restore it exactly as you left it.}}"
 msgstr "{daysRemaining, plural, one {Konto jest dezaktywowane i zostanie trwale usunięte za # dzień. Reaktywuj je, aby przywrócić dokładnie taki stan jak przedtem.} few {Konto jest dezaktywowane i zostanie trwale usunięte za # dni. Reaktywuj je, aby przywrócić dokładnie taki stan jak przedtem.} many {Konto jest dezaktywowane i zostanie trwale usunięte za # dni. Reaktywuj je, aby przywrócić dokładnie taki stan jak przedtem.} other {Konto jest dezaktywowane i zostanie trwale usunięte za # dnia. Reaktywuj je, aby przywrócić dokładnie taki stan jak przedtem.}}"
 
+msgid "{developerCount}+"
+msgstr "{developerCount}+"
+
 msgid "{distance} ago"
 msgstr "{distance} temu"
 
@@ -663,6 +666,9 @@ msgstr "{focusShortcutText} aby aktywować"
 
 msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted} {count, plural, one {programista} few {programiści} many {programistów} other {programisty}}"
+
+msgid "{founderCount} ex-YC founders"
+msgstr "{founderCount} założycieli z doświadczeniem w YC"
 
 msgid "{gate} · {statusLabel}"
 msgstr "{gate} · {statusLabel}"
@@ -12289,6 +12295,9 @@ msgstr "Ta sama wersja co ta aplikacja."
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SAML SSO i provisioning SCIM"
 
+msgid "San Francisco"
+msgstr "San Francisco"
+
 msgid "Sandbox preview has no URL"
 msgstr "Podgląd piaskownicy nie ma adresu URL"
 
@@ -13415,6 +13424,9 @@ msgstr "Coś poszło nie tak. Spróbuj ponownie lub napisz na support@superset.s
 msgid "soon"
 msgstr "wkrótce"
 
+msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
+msgstr "Wkrótce zespoły będą uruchamiać setki agentów równolegle — fabryki oprogramowania, które samodzielnie tworzą i dostarczają kod. Budujemy Superset jako miejsce, w którym zespoły uruchamiają takie fabryki i nimi zarządzają, zaczynając od naszej własnej."
+
 msgid "Sort"
 msgstr "Sortowanie"
 
@@ -13885,8 +13897,8 @@ msgstr "Superset buduje samodoskonalące się oprogramowanie. Zaczyna się od da
 msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything for the founding team, write to <1>{foundersEmail}</1>."
 msgstr "Superset tworzy zespół z San Francisco w Kalifornii. W sprawach wsparcia produktu lub konta napisz na <0>{supportEmail}</0> — odpowiemy w ciągu jednego dnia roboczego. W sprawach partnerstw, prasy, enterprise lub do zespołu założycielskiego pisz na <1>{foundersEmail}</1>."
 
-msgid "Superset is built in Superset, so we're our own #1 users - you get paid to make your own life easier. We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset powstaje w Superset, więc jesteśmy własnym użytkownikiem numer 1 — dostajesz pieniądze za ułatwianie sobie życia. Budujemy płaski zespół o dużym zagęszczeniu talentu i szukamy ludzi, którzy mają szalone pomysły i są na tyle szaleni, żeby je wydać. Jeśli kiedykolwiek chciałeś zbudować produkt, którego sam uwielbiasz używać, zbuduj go z nami."
+msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
+msgstr "Superset powstaje w Superset, więc sami jesteśmy jego najważniejszymi użytkownikami — dostajesz wynagrodzenie za ułatwianie sobie życia. Jeśli chcesz tworzyć produkt, z którego samodzielnie korzystasz z przyjemnością, dołącz do nas."
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset jest zaprojektowany tak, aby działać z narzędziem, którego już używasz — natywnie obsługujemy głębokie linki do IDE takich jak Cursor, więc otworzysz swoje obszary robocze i pliki we własnym IDE."
@@ -14972,9 +14984,6 @@ msgstr "Dziś"
 
 msgid "TODAY"
 msgstr "DZIŚ"
-
-msgid "Today, tens of thousands of engineers run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix. Soon, teams will run 100s of agents in parallel - software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "Dziś dziesiątki tysięcy inżynierów używa Superset jako swojego głównego IDE, w firmach takich jak Wix, DoorDash czy Netflix. Wkrótce zespoły będą uruchamiać setki agentów równolegle — fabryki oprogramowania, które autonomicznie wytwarzają i wydają kod. Robimy z Superset miejsce, w którym zespoły prowadzą i nadzorują te fabryki, zaczynając od naszej własnej."
 
 msgid "Todo"
 msgstr "Do zrobienia"

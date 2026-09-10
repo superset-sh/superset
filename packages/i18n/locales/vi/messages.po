@@ -643,6 +643,9 @@ msgstr "{days} ngày trước"
 msgid "{daysRemaining, plural, one {Your account is deactivated and will be permanently deleted in # day. Reactivate to restore it exactly as you left it.} other {Your account is deactivated and will be permanently deleted in # days. Reactivate to restore it exactly as you left it.}}"
 msgstr "{daysRemaining, plural, one {Tài khoản của bạn đã bị vô hiệu hóa và sẽ bị xóa vĩnh viễn sau # ngày. Kích hoạt lại để khôi phục đúng như lúc bạn rời đi.} other {Tài khoản của bạn đã bị vô hiệu hóa và sẽ bị xóa vĩnh viễn sau # ngày. Kích hoạt lại để khôi phục đúng như lúc bạn rời đi.}}"
 
+msgid "{developerCount}+"
+msgstr "{developerCount}+"
+
 msgid "{distance} ago"
 msgstr "{distance} trước"
 
@@ -663,6 +666,9 @@ msgstr "{focusShortcutText} để focus"
 
 msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted} {count, plural, one {dev} other {dev}}"
+
+msgid "{founderCount} ex-YC founders"
+msgstr "{founderCount} nhà sáng lập từng tham gia YC"
 
 msgid "{gate} · {statusLabel}"
 msgstr "{gate} · {statusLabel}"
@@ -12289,6 +12295,9 @@ msgstr "Cùng phiên bản với ứng dụng này."
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SAML SSO & cấp phát SCIM"
 
+msgid "San Francisco"
+msgstr "San Francisco"
+
 msgid "Sandbox preview has no URL"
 msgstr "Bản xem trước sandbox không có URL"
 
@@ -13415,6 +13424,9 @@ msgstr "Đã xảy ra lỗi. Hãy thử lại hoặc liên hệ support@superset
 msgid "soon"
 msgstr "sắp tới"
 
+msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
+msgstr "Sắp tới, các nhóm sẽ chạy hàng trăm tác tử song song—những nhà máy phần mềm tự động tạo và phát hành mã. Chúng tôi đang biến Superset thành nơi các nhóm vận hành và quản lý những nhà máy đó, bắt đầu từ chính nhà máy của mình."
+
 msgid "Sort"
 msgstr "Sắp xếp"
 
@@ -13885,8 +13897,8 @@ msgstr "Superset đang xây dựng phần mềm tự cải thiện. Nó bắt đ
 msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything for the founding team, write to <1>{foundersEmail}</1>."
 msgstr "Superset được xây dựng bởi một đội ngũ tại San Francisco, California. Với hỗ trợ sản phẩm hoặc câu hỏi về tài khoản, hãy gửi email tới <0>{supportEmail}</0> và chúng tôi sẽ phản hồi trong vòng một ngày làm việc. Với hợp tác, báo chí, doanh nghiệp hoặc bất cứ điều gì dành cho đội ngũ sáng lập, hãy viết tới <1>{foundersEmail}</1>."
 
-msgid "Superset is built in Superset, so we're our own #1 users - you get paid to make your own life easier. We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset được xây dựng trong Superset, nên chúng tôi là người dùng số 1 của chính mình - bạn được trả tiền để làm cuộc sống của chính bạn dễ hơn. Chúng tôi đang xây một đội phẳng và đậm đặc nhân tài, và tìm những người có ý tưởng điên rồ và đủ điên để ship chúng. Nếu bạn từng muốn xây một sản phẩm mà chính mình thích dùng, hãy đến xây cùng chúng tôi."
+msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
+msgstr "Superset được xây dựng ngay trong Superset, nên chúng tôi chính là những người dùng hàng đầu—bạn được trả lương để giúp công việc của mình dễ dàng hơn. Nếu bạn từng muốn xây dựng một sản phẩm mà mình yêu thích sử dụng, hãy cùng chúng tôi tạo ra nó."
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset được thiết kế để làm việc cùng công cụ sẵn có của bạn, chúng tôi hỗ trợ sẵn deep-link tới các IDE như Cursor để bạn mở workspace và tệp ngay trong IDE của mình."
@@ -14972,9 +14984,6 @@ msgstr "Hôm nay"
 
 msgid "TODAY"
 msgstr "HÔM NAY"
-
-msgid "Today, tens of thousands of engineers run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix. Soon, teams will run 100s of agents in parallel - software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "Hôm nay, hàng chục nghìn kỹ sư dùng Superset làm IDE chính, tại các công ty như Wix, DoorDash và Netflix. Sắp tới, các đội sẽ chạy hàng trăm agent song song - những nhà máy phần mềm tự động sản xuất và ship code. Chúng tôi đang biến Superset thành nơi các đội vận hành và quản lý những nhà máy đó, bắt đầu từ chính chúng tôi."
 
 msgid "Todo"
 msgstr "Cần làm"

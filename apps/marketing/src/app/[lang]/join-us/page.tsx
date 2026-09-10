@@ -1,5 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
+import { formatNumber } from "@superset/i18n/format";
 import { getI18nInstance } from "@superset/i18n/server";
 import type { Metadata } from "next";
 import Script from "next/script";
@@ -59,61 +60,78 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function JoinUsPage() {
-	await initServerI18n();
+	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
+	const founderCount = formatNumber(4, {}, lang);
+	// Verified in PostHog on 2026-09-10: 54,570 identified desktop users,
+	// excluding test accounts. Cumulative adoption, rounded down.
+	const developerCount = formatNumber(50_000, {}, lang);
+	const applyLabel = i18n._(msg({ message: "Apply" }));
 
 	return (
-		<main className="relative min-h-screen bg-background">
-			<div className="max-w-[90rem] mx-auto px-6 pt-24 md:pt-32">
-				<section className="grid gap-10 md:grid-cols-[2fr_3fr] md:gap-24 lg:gap-32">
-					<h1 className="text-4xl md:text-6xl font-normal leading-tight tracking-[-0.02em] text-foreground m-0">
+		<main className="relative bg-background">
+			<div className="mx-auto max-w-[80rem] px-6 pt-12 pb-20 sm:px-8 sm:pt-24">
+				<section className="grid gap-8 lg:grid-cols-[2fr_3fr] lg:gap-24 xl:gap-32">
+					<h1 className="m-0 max-w-[41.25rem] text-balance text-[2.375rem] leading-[1.1] font-[450] tracking-[-0.035em] text-foreground sm:text-[3.5rem] sm:leading-[1.06]">
 						<Trans>Building the last piece of software</Trans>
 					</h1>
-
 					<div>
-						<p className="text-xl md:text-2xl text-foreground leading-snug m-0">
+						<p className="m-0 mb-5 max-w-[43.75rem] text-[19px] leading-normal tracking-[-0.015em] text-foreground/90 sm:text-xl">
 							<Trans>
 								Superset is building self-improving software. It starts with
 								giving engineers the best tools that adapt to their needs over
 								time.
 							</Trans>
 						</p>
-
-						<div
-							className="mt-8 space-y-5 text-base text-muted-foreground leading-relaxed"
-							style={{ fontFamily: "var(--font-inter), sans-serif" }}
-						>
+						<div className="max-w-[46.25rem] space-y-4 text-base leading-[1.65] tracking-[-0.01em] text-muted-foreground">
 							<p>
 								<Trans>
-									Today, tens of thousands of engineers run Superset as their
-									primary IDE, at companies like Wix, DoorDash, and Netflix.
-									Soon, teams will run 100s of agents in parallel - software
+									Soon, teams will run hundreds of agents in parallel—software
 									factories that autonomously manufacture and ship code. We're
 									making Superset the place where teams run and manage those
 									factories, starting with our own.
 								</Trans>
 							</p>
-
 							<p>
 								<Trans>
-									Superset is built in Superset, so we're our own #1 users - you
-									get paid to make your own life easier. We're building a flat
-									and talent-dense team, and we're looking for people who have
-									crazy ideas and are crazy enough to ship them. If you've ever
-									wanted to build a product you love to use, come build it with
-									us.
+									Superset is built in Superset, so we're our own #1 users—you
+									get paid to make your own life easier. If you've ever wanted
+									to build a product you love to use, come build it with us.
 								</Trans>
 							</p>
 						</div>
 					</div>
 				</section>
-			</div>
-
-			<div className="max-w-[90rem] mx-auto px-6 pb-24 md:pb-32">
-				<section id="open-roles" className="mt-24 md:mt-32 scroll-mt-24">
-					<h2 className="text-2xl md:text-3xl font-normal tracking-[-0.02em] text-foreground mb-6">
+				<dl className="my-8 grid grid-cols-1 gap-5 border-y border-border py-6 sm:mt-16 sm:mb-12 lg:mt-20 lg:mb-16 sm:grid-cols-3 sm:gap-x-8 sm:gap-y-2">
+					<div className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-x-4 sm:row-span-2 sm:min-w-0 sm:grid-cols-1 sm:grid-rows-subgrid">
+						<dt className="font-mono text-[11px] leading-4 tracking-[0.07em] text-muted-foreground uppercase sm:order-2">
+							<Trans>Location</Trans>
+						</dt>
+						<dd className="m-0 text-xl leading-7 tracking-[-0.025em] sm:text-[26px] sm:leading-[34px]">
+							<Trans>San Francisco</Trans>
+						</dd>
+					</div>
+					<div className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-x-4 sm:row-span-2 sm:min-w-0 sm:grid-cols-1 sm:grid-rows-subgrid">
+						<dt className="font-mono text-[11px] leading-4 tracking-[0.07em] text-muted-foreground uppercase sm:order-2">
+							<Trans>Team</Trans>
+						</dt>
+						<dd className="m-0 text-xl leading-7 tracking-[-0.025em] sm:text-[26px] sm:leading-[34px]">
+							<Trans>{founderCount} ex-YC founders</Trans>
+						</dd>
+					</div>
+					<div className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-x-4 sm:row-span-2 sm:min-w-0 sm:grid-cols-1 sm:grid-rows-subgrid">
+						<dt className="font-mono text-[11px] leading-4 tracking-[0.07em] text-muted-foreground uppercase sm:order-2">
+							<Trans>Developers</Trans>
+						</dt>
+						<dd className="m-0 text-xl leading-7 tracking-[-0.025em] tabular-nums sm:text-[26px] sm:leading-[34px]">
+							<Trans>{developerCount}+</Trans>
+						</dd>
+					</div>
+				</dl>
+				<section id="open-roles" className="scroll-mt-24">
+					<h2 className="mb-6 text-[22px] leading-7 font-[450] tracking-[-0.025em] text-foreground sm:text-2xl sm:leading-8">
 						<Trans>Open roles</Trans>
 					</h2>
-
 					{/* Managed via YC Work at a Startup; layout/colors configured at bookface.ycombinator.com/workatastartup/job_board_settings */}
 					<style>{`
 						waas-job-board {
@@ -165,7 +183,7 @@ export default async function JoinUsPage() {
 							// site CTA recipe (see DownloadButton): mono uppercase, foreground/background flip, brand on hover
 							const mono = "font-family:var(--font-ibm-plex-mono),ui-monospace,monospace !important;text-transform:uppercase !important;letter-spacing:0.05em !important";
 							const detailCss = [
-								".two-col{gap:192px !important}",
+								".two-col{gap:40px !important}",
 								".tabs{margin-bottom:48px !important;gap:40px !important}",
 								".main-content{max-width:760px !important}",
 								".tab{" + mono + ";font-size:13px !important}",
@@ -184,10 +202,15 @@ export default async function JoinUsPage() {
 								".primary-button{" + mono + ";font-size:13px !important;font-weight:400 !important;background:var(--foreground) !important;color:var(--background) !important;transition:background-color .15s ease,color .15s ease !important}",
 								".primary-button:hover:not(:disabled){background:var(--brand) !important;color:#fff !important;filter:none !important}",
 							].join("");
+							const applyLabel = ${JSON.stringify(applyLabel)};
 							const cardCss = [
-								".job-card{border-bottom:none !important}",
+								".job-card{position:relative;border:0 !important;padding:0 80px 24px 0 !important}",
 								".job-card:hover{background:rgba(255,255,255,0.04) !important}", // default rgba(0,0,0,.03) vanishes on dark bg
-								".job-salary{font-family:var(--font-ibm-plex-mono),ui-monospace,monospace !important;letter-spacing:0.02em !important}",
+								".job-title{font-size:17px !important;line-height:24px !important;font-weight:450 !important;letter-spacing:-0.015em !important;margin-bottom:8px !important}",
+								".job-meta,.job-salary{font-size:13px !important;line-height:20px !important}",
+								".superset-apply{position:absolute;right:0;top:0;" + mono + ";font-size:11px !important;line-height:24px !important}",
+								".job-card:hover .superset-apply{color:var(--brand)}",
+								"@container (max-width:400px){.job-card{padding-right:64px !important}}",
 							].join("");
 							for (const board of document.querySelectorAll("waas-job-board")) {
 								board.showFilters = false;
@@ -198,6 +221,14 @@ export default async function JoinUsPage() {
 									const list = board.shadowRoot?.querySelector("waas-job-list");
 									for (const card of list?.shadowRoot?.querySelectorAll("waas-job-card") ?? []) {
 										inject(card.shadowRoot, cardCss);
+										const row = card.shadowRoot?.querySelector(".job-card");
+										if (row && !row.querySelector(".superset-apply")) {
+											const apply = document.createElement("span");
+											apply.className = "superset-apply";
+											apply.textContent = applyLabel + " ↗";
+											apply.setAttribute("aria-hidden", "true");
+											row.append(apply);
+										}
 									}
 								};
 								patch();

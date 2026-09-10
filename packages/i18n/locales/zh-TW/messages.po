@@ -643,6 +643,9 @@ msgstr "{days}天前"
 msgid "{daysRemaining, plural, one {Your account is deactivated and will be permanently deleted in # day. Reactivate to restore it exactly as you left it.} other {Your account is deactivated and will be permanently deleted in # days. Reactivate to restore it exactly as you left it.}}"
 msgstr "{daysRemaining, plural, one {你的帳戶已停用，將在#天後被永久刪除。重新啟用即可恢復到你離開時的狀態。} other {你的帳戶已停用，將在#天後被永久刪除。重新啟用即可恢復到你離開時的狀態。}}"
 
+msgid "{developerCount}+"
+msgstr "{developerCount}+"
+
 msgid "{distance} ago"
 msgstr "{distance}前"
 
@@ -663,6 +666,9 @@ msgstr "{focusShortcutText}聚焦"
 
 msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted}{count, plural, one {位開發者} other {位開發者}}"
+
+msgid "{founderCount} ex-YC founders"
+msgstr "{founderCount} 位 YC 校友創辦人"
 
 msgid "{gate} · {statusLabel}"
 msgstr "{gate} · {statusLabel}"
@@ -12289,6 +12295,9 @@ msgstr "與此應用程式版本相同。"
 msgid "SAML SSO & SCIM provisioning"
 msgstr "SAML SSO與SCIM帳號開通"
 
+msgid "San Francisco"
+msgstr "舊金山"
+
 msgid "Sandbox preview has no URL"
 msgstr "沙箱預覽沒有URL"
 
@@ -13415,6 +13424,9 @@ msgstr "出了點問題。請重試，或聯絡support@superset.sh。"
 msgid "soon"
 msgstr "即將"
 
+msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
+msgstr "很快，團隊就會並行執行數百個代理，組成自主生產並交付程式碼的軟體工廠。我們正在將 Superset 打造成團隊執行和管理這些工廠的平台，先從我們自己的工廠開始。"
+
 msgid "Sort"
 msgstr "排序"
 
@@ -13885,8 +13897,8 @@ msgstr "Superset正在構建能自我改進的軟體。第一步，是給工程�
 msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything for the founding team, write to <1>{foundersEmail}</1>."
 msgstr "Superset由一支位於加州舊金山的團隊打造。產品支援或帳戶問題，請發郵件至<0>{supportEmail}</0>，我們會在一個工作日內回覆。合作、媒體、企業版，或任何想直接找創始團隊的事，請寫信至<1>{foundersEmail}</1>。"
 
-msgid "Superset is built in Superset, so we're our own #1 users - you get paid to make your own life easier. We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset是用Superset自己造出來的，所以我們是自己的頭號使用者——你拿著工資讓自己的日子更好過。我們在打造一支扁平、人才密度高的團隊，想找那些有瘋狂想法、也瘋狂到真能把它做出來的人。如果你一直想做一個自己愛用的產品，來和我們一起做。"
+msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
+msgstr "Superset 就是在 Superset 中建構的，因此我們自己就是它的頭號使用者——你可以透過讓自己的工作更輕鬆來獲得報酬。如果你一直想打造一款自己愛用的產品，就來和我們一起建構吧。"
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset的設計就是配合你現有的工具。我們原生支援深度連結到Cursor這類IDE，你可以直接在自己的IDE裡開啟工作區和檔案。"
@@ -14972,9 +14984,6 @@ msgstr "今天"
 
 msgid "TODAY"
 msgstr "今天"
-
-msgid "Today, tens of thousands of engineers run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix. Soon, teams will run 100s of agents in parallel - software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "如今，數萬名工程師把Superset當作主力IDE，他們來自Wix、DoorDash、Netflix這樣的公司。很快，團隊會並行執行成百上千個代理程式——自主製造並交付程式碼的軟體工廠。我們要讓Superset成為團隊執行和管理這些工廠的地方，從我們自己開始。"
 
 msgid "Todo"
 msgstr "待辦"
