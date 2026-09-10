@@ -158,7 +158,7 @@ UNIT
 
 cat > /etc/systemd/system/superset-review-update.service <<UNIT
 [Unit]
-Description=Bring the review host up to the latest release (backstop; the release trigger is primary)
+Description=Bring the review host up to the latest release
 After=network-online.target
 Wants=network-online.target
 
@@ -169,14 +169,17 @@ UNIT
 
 cat > /etc/systemd/system/superset-review-update.timer <<UNIT
 [Unit]
-Description=Backstop check that the review host is on the current release
+Description=Keep the review host on the current release
 
 [Timer]
-# Every 6h. The primary path is the release trigger, which fires the moment a
-# release is published; this is what catches a missed or failed webhook, and a
-# box that came back from a reboot behind.
-OnCalendar=*-*-* 00/6:00:00
-RandomizedDelaySec=15m
+# Every 30m. This is the only thing that updates the box: a release-published
+# automation cannot reach it (see README, "Staying current"). At 6h the window
+# where the box ran a release behind was wide enough to hit by accident — it did
+# on 2026-09-09, when the timer ran 40 minutes before 1.28.0 was published.
+# update.sh only acts on a version change, so the extra runs cost one GitHub API
+# call each.
+OnCalendar=*:0/30
+RandomizedDelaySec=5m
 Persistent=true
 
 [Install]

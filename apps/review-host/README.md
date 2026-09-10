@@ -68,20 +68,30 @@ hostId would evict each other's relay tunnel in a loop.
 
 ## Staying current
 
-`SUPERSET_VERSION` in `setup.sh` is only the floor a fresh VM starts from. Two
-things keep the box current after that:
+`SUPERSET_VERSION` in `setup.sh` is only the floor a fresh VM starts from. One
+thing keeps the box current after that: **`self-update.sh`**, on a 30-minute
+systemd timer (`superset-review-update.timer`). It reads the latest `desktop-v*`
+release — the `cli-v*` tags are prereleases that `/releases/latest` never returns
+— and hands to `update.sh`.
 
-- **The release trigger** — an automation fires on `release.published` and
-  updates the box. This is the primary path.
-- **`self-update.sh`** — the backstop, on a 6h systemd timer
-  (`superset-review-update.timer`). It reads the latest `desktop-v*` release, the
-  `cli-v*` tags being prereleases that `/releases/latest` never returns, and hands
-  to `update.sh`.
-
-Both only ever move forward, `update.sh` rolls back unless the new build answers
-*and* the relay can see it, and `setup.sh` refuses to reinstall an older pin over
-a newer installed build. The reason for all of that is that this box went 21 days
+It only moves forward, `update.sh` rolls back unless the new build answers *and*
+the relay can see it, and `setup.sh` refuses to reinstall an older pin over a
+newer installed build. The reason for all of that is that this box went 21 days
 stale unnoticed, which is what the outside-in `check.sh` now also watches for.
+
+**An earlier version of this file said a `release.published` automation was the
+primary path and the timer only a backstop. No such automation exists, and one
+cannot be built the obvious way.** A GitHub App installation maps to exactly one
+organization (`apps/api/src/app/api/github/webhook/route.ts`), and
+`superset-sh/superset` is installed under Superset, so the release event only ever
+lands there — while an automation can only target a host registered in *its own*
+organization (`packages/trpc/src/router/automation/automation.ts`), and this box
+lives in App Review. So an automation in App Review can never fire, and one in
+Superset can never reach this box; it would have to run on someone's laptop and
+`gcloud ssh` in, which is the dependency that already failed on 2026-09-06 when
+that laptop's gcloud refresh token expired. Hence 30 minutes: at 6h the window
+where the box ran a release behind was wide enough to hit by accident, and did on
+2026-09-09.
 
 ## The GitHub token expires 2026-10-05
 
@@ -110,6 +120,31 @@ shell history locally and in `ps` output and the auth logs on the box.
 
 `check.sh` calls the API with it every run, so expiry surfaces as a FAIL rather
 than as a chip that quietly stops appearing.
+
+## The watchdog also owns the resident session
+
+Any restart takes the resident Claude session with it — an `update.sh` bump, the
+watchdog's own restart, a reboot — and until 2026-09-09 nothing put it back. That
+is worse than it sounds: the pull-request chip renders only while a terminal is
+open, so a box with no session shows the reviewer no pull request anywhere, and
+`check.sh` runs too rarely to catch the gap. `watchdog.sh` now asserts the session
+every pass and calls `agents.run` when it is genuinely absent; a probe that cannot
+answer does nothing, because reading it as "absent" would spawn the duplicate
+sessions `check.sh` fails on.
+
+It also pre-answers Claude Code's custom-API-key prompt. The key reaches the agent
+from `host_agent_configs.env_json`, and Claude Code asks once per key and
+remembers the answer as the key's last 20 characters in `customApiKeyResponses`
+in `/root/.claude.json` — so rotating the key left every new session parked on
+`Do you want to use this API key?` with `check.sh` green throughout, since it
+counts sessions rather than reading the screen. The watchdog seeds that approval
+from the key already in the host database, records only a hash of the suffix in
+`/opt/review-host/.approved-key`, and relaunches the session once per key so it
+is never left sitting on the prompt. Nothing about the key is written to this
+repo. Worth knowing: while a session sits on that prompt the agent's launch line
+is still on screen, and it carries the key in plain text — `envOverlayPrefix`
+prepends the agent's env to the command string, so the reviewer's first tap used
+to show it.
 
 ## Why there is no health check on the port
 
