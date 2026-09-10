@@ -310,7 +310,7 @@ msgstr "Aktionen für {0}"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} und {1} tragen es als Terminal-Dinosaurier aus. Die Statistiken entscheiden."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} hinter dir"
 
@@ -444,7 +444,7 @@ msgstr "{0} Sitzungen beendet"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0} beendet, {1} verbleibend"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "{0} bis zum Überholen von #{1}"

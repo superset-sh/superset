@@ -310,7 +310,7 @@ msgstr "{0}の操作"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0}と{1}がターミナル恐竜となって決着をつけます。勝敗を決めるのは統計です。"
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0}差で後続"
 
@@ -444,7 +444,7 @@ msgstr "{0}件のセッションを終了しました"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0}件を終了、残り{1}件"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "#{1}を抜くまで{0}"
