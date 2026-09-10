@@ -21,11 +21,13 @@ already running. Create now tears the sandbox down on failure and keeps the
 provisions running indefinitely, and nothing in the product would ever have
 shown them.
 
-**Nothing stops an idle sandbox.** No TTL, no idle-stop, no per-org quota, no
-cost visibility in the product. A workspace someone opened once keeps costing
-money until a human notices in the provider console. Decide the policy (sleep
-after N hours idle? hard TTL? quota per org?) before there are enough of them to
-matter.
+**An idle sandbox stops after its session timeout. Done, with a caveat.** A
+session ends four hours after its last extension; only the workspace someone
+has open extends it (every token refresh with `wake`), so a closed workspace
+stops within four hours and costs snapshot storage only. Still owed: a per-org
+quota and cost visibility in the product — and a decision on unattended agent
+runs, which die with the session (Blaxel froze processes; Vercel snapshots the
+filesystem and boots fresh).
 
 **Delete doesn't delete.** The generic delete routes to the owning host, so it
 removes the row *inside* the sandbox and leaves the sandbox and the
@@ -35,12 +37,13 @@ this points at `cloudWorkspace.delete`, the only real teardown is manual.
 
 ## Credentials and blast radius
 
-**Model credentials are ours. gated** Every sandbox runs on the org's Anthropic
-and OpenAI keys, so agent usage lands on our bill with no per-org attribution or
-cap. Fine while only we can create sandboxes; unshippable after. Note the
-routing secrets are fixed when a sandbox is created, so rotating a key does not
-reach sandboxes that already exist — plan rotation as "re-create", or move to
-per-org credentials first.
+**Model credentials are ours by default. gated** A sandbox without a personal
+sign-in (Settings › Cloud › Agents, per user, `agent_credentials`) runs on the
+org's Anthropic and OpenAI keys, brokered at the firewall, so agent usage lands
+on our bill with no per-org attribution or cap. Fine while only we can create
+sandboxes; unshippable after. Rotation no longer needs a recreate: the
+firewall policy is live-updatable, though nothing sweeps existing sandboxes to
+re-apply it yet.
 
 **The GitHub token outlives the clone.** `git clone` with the token in the URL
 writes it into `.git/config`, so a repo-scoped installation token sits in the
@@ -50,49 +53,50 @@ keys by using the egress proxy, left open for a credential that can write to the
 repo. Either strip the remote after cloning and supply credentials per
 operation, or route git through the proxy the same way.
 
-**A sandbox has exactly one gate. gated** The shared host-service secret this
-entry used to describe is gone: host-service in a sandbox trusts the provider's
-edge and checks nothing itself (`EdgeGuardedHostAuthProvider`). That removed a
-cross-tenant credential every tenant could read, and it left the preview token
-as the whole of a sandbox's access control. Anything that defeats the edge —
-a preview drifted to `public: true`, a provider bug, a leaked token — yields
-terminals, git and the filesystem, with nothing second to get past.
+**A sandbox has exactly one gate, and it is ours. gated** A sandbox's port is
+a public URL; host-service checks a token the API signs for that one
+workspace (`SandboxAccessHostAuthProvider`) and nothing else stands in front.
+Nothing in the box can mint (it holds the public key only), a token for one
+workspace fails every other, and a booted sandbox without the key refuses to
+serve. What remains is a leaked unexpired token — ten minutes of terminals,
+git and the filesystem for one workspace.
 
 What makes that worth more than the sandbox itself: code execution inside gets
 the customer's repo, the write-scoped GitHub token in `.git/config` above, and
 the ability to *spend* our model keys through the egress proxy. The proxy stops
 an attacker reading those keys; it does not stop them using them.
 
-Four things to settle before the gate comes off, none of them needed while it
+Three things to settle before the gate comes off, none of them needed while it
 is only us:
 
-- **Watch for `public: true`.** Preview configuration is now security-critical
-  and nothing alerts on drift. An automated check over live previews is cheap.
 - **Get the token out of the query string.** A browser can't set headers on a
-  WebSocket upgrade, so the preview token rides as `bl_preview_token` in the
-  URL, where it reaches logs and proxies far more readily than a header would.
-  Single-use or shorter-lived tokens for the socket path bound it.
-- **Narrow CORS.** `Access-Control-Allow-Origin: *` grants no ambient authority
-  (the token is not a cookie), but it does make a leaked token usable from any
-  origin. Pin it to the app's origins.
-- **Reconsider a second layer.** Per-sandbox secrets were rejected deliberately
-  — see the mismatches doc — on the grounds that a shared one obfuscated the
-  posture. A *per-sandbox* one would not have. Worth revisiting when the
-  population stops being us.
+  WebSocket upgrade, so the token rides as `token` in the socket URL, where it
+  reaches logs and proxies far more readily than a header would. host-service
+  owns the protocol now, so `Sec-WebSocket-Protocol` (a header a browser can
+  set) or single-use socket tokens are both available.
+- **Narrow CORS.** host-service answers `Access-Control-Allow-Origin: *` in
+  sandbox mode. It grants no ambient authority (the token is not a cookie),
+  but it does make a leaked token usable from any origin. Pin it to the app's
+  origins once they are enumerable.
+- **Key rotation.** `SANDBOX_ACCESS_SIGNING_KEY` is one key for every sandbox;
+  rotating it invalidates every running sandbox's verifier at once. A key id in
+  the token and two accepted keys during a rotation window is the usual shape.
 
 ## Untested behaviour
 
 These are unknowns, not known failures — but each could change the design, and
 none is expensive to answer.
 
-**Sleep and wake.** Providers stop idle sandboxes. Does host-service come back
-when one wakes? It is started with `nohup`, not a supervisor, so nothing
-restarts it if it dies. Token minting talks to the control plane and keeps
-working either way, which means the app may believe a dead sandbox is reachable.
+**Sleep and wake. Answered.** A stopped session resumes on the open
+workspace's next token mint (`wake`), and host-service is started again as
+part of it — a resumed session has no processes. Nothing restarts host-service
+if it dies mid-session; the token keeps minting either way, so the app can
+still believe a dead sandbox is reachable until the health poll says otherwise.
 
-**Disk durability.** Whether uncommitted work survives a stop/restart or a
-recycle is unverified. "Your work vanished" is the failure that ends the
-feature, so verify it before inviting anyone in.
+**Disk durability. Answered.** The filesystem is snapshotted on every stop and
+restored on resume (measured: a file written before `stop()` is there after,
+resume plus first command in about two seconds). Snapshots expire 30 days
+after last use; a workspace untouched for longer than that is gone.
 
 **Token refresh across a backgrounded app.** Access is re-minted at 80% of a
 10-minute life. An app asleep past expiry should recover on the next tick;
@@ -174,13 +178,14 @@ call `agents.run`.
 
 ## Provider
 
-**Proxy secret injection depends on a workspace entitlement.** Routing rules send
-egress through the workspace's egress gateway; without it every outbound request
-fails its upstream CONNECT with a 407. Enabled for `superset` on 2026-08-16 —
-a second provider workspace (staging, another region) needs it enabled too or
-sandboxes there lose all model access.
+**Everything is scoped to one Vercel project.** Sandboxes, their snapshots and
+the image repository live in the team's `sandboxes` project, reached with a
+token that is not the deploy token. A second region is a per-sandbox
+`region` choice, not a second project.
 
-**Preview URLs are the only ingress.** No relay hop, which is why WebSockets
-work and a sandbox can sleep — but it also means the desktop talks straight to
-the provider's domain, and that domain is in the renderer's CSP. Moving this
-behind the relay later removes that CSP entry and the CORS dependency.
+**The sandbox domain is the only ingress.** No relay hop, which is why
+WebSockets work and there is no relay on the critical path — but it also means
+the desktop talks straight to `*.vercel.run`, and that domain is in the
+renderer's CSP. Moving this behind the relay later removes that CSP entry, the
+CORS wildcard, and the public URL altogether; it is the stronger posture, at
+the cost of a hop on every keystroke.

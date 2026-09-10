@@ -193,18 +193,6 @@ export const serverErrorMessages: Record<
 				message: "Only owners can manage billing",
 			}),
 		),
-	"serverError.blaxel.couldNotMintSandboxAccessToken": () =>
-		i18n._(
-			msg({
-				message: "Could not mint sandbox access token",
-			}),
-		),
-	"serverError.blaxel.sandboxPreviewHasNoUrl": () =>
-		i18n._(
-			msg({
-				message: "Sandbox preview has no URL",
-			}),
-		),
 	"serverError.chat.chatSessionNotFound": () =>
 		i18n._(
 			msg({

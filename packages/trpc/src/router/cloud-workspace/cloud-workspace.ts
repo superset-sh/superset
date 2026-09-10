@@ -8,13 +8,14 @@ import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
+import { assertInternal, assertMember } from "../../lib/cloud-guards";
 import {
 	cloudRepo,
 	deleteSandbox,
 	listRemoteBranches,
-	mintPreviewAccess,
-} from "../../lib/blaxel";
-import { assertInternal, assertMember } from "../../lib/cloud-guards";
+	mintSandboxAccessToken,
+	resolveSandboxAddress,
+} from "../../lib/sandbox";
 import { jwtProcedure, userError } from "../../trpc";
 import {
 	FALLBACK_NAME,
@@ -150,7 +151,7 @@ export const cloudWorkspaceRouter = {
 
 			// The id is generated here rather than by the database so the sandbox
 			// name can be derived before the insert. A placeholder would briefly
-			// leave two rows sharing ("blaxel", ""), which the unique constraint
+			// leave two rows sharing ("vercel", ""), which the unique constraint
 			// rejects whenever two creates overlap.
 			const id = crypto.randomUUID();
 			const providerSandboxId = sandboxNameFor(id);
@@ -161,7 +162,7 @@ export const cloudWorkspaceRouter = {
 					organizationId: input.organizationId,
 					name: input.name ?? FALLBACK_NAME,
 					branch,
-					provider: "blaxel",
+					provider: "vercel",
 					providerSandboxId,
 					status: "provisioning",
 					environmentId: environment.id,
@@ -267,17 +268,23 @@ export const cloudWorkspaceRouter = {
 		}),
 
 	/**
-	 * Checks org membership, then mints a short-lived provider token.
+	 * Checks org membership, then signs a short-lived token for this workspace.
 	 *
-	 * This is the *only* gate. host-service inside a sandbox trusts the
-	 * provider's edge and checks nothing itself (`EdgeGuardedHostAuthProvider`),
-	 * so this token is the whole of the sandbox's access control: whoever holds
-	 * an unexpired one has terminals, git and the filesystem. Hence the short
-	 * TTL, and hence the checks above running before it is minted rather than
-	 * anywhere later.
+	 * This is the *only* gate. A sandbox's URL is public and host-service
+	 * inside it checks exactly this token (`SandboxAccessHostAuthProvider`),
+	 * so whoever holds an unexpired one has terminals, git and the filesystem.
+	 * Hence the short TTL, and hence the checks running before it is minted
+	 * rather than anywhere later.
+	 *
+	 * `wake` is the difference between addressing a workspace and using it: a
+	 * client keeps a live address for everything it lists, and that must not
+	 * keep every sandbox running. Only the workspace someone has open asks to
+	 * be woken, which resumes a stopped session and keeps a running one alive.
 	 */
 	access: jwtProcedure
-		.input(z.object({ id: z.string().uuid() }))
+		.input(
+			z.object({ id: z.string().uuid(), wake: z.boolean().default(false) }),
+		)
 		.mutation(async ({ ctx, input }) => {
 			const row = await db.query.cloudWorkspaces.findFirst({
 				where: eq(cloudWorkspaces.id, input.id),
@@ -298,12 +305,12 @@ export const cloudWorkspaceRouter = {
 					cause: { kind: "CLOUD_WORKSPACE_NOT_READY", status: row.status },
 				});
 			}
-			const access = await mintPreviewAccess(row.providerSandboxId);
-			return {
-				url: access.url,
-				token: access.token,
-				expiresAt: access.expiresAt,
-			};
+			const url = await resolveSandboxAddress({
+				providerSandboxId: row.providerSandboxId,
+				wake: input.wake,
+			});
+			const { token, expiresAt } = mintSandboxAccessToken(row.id);
+			return { url, token, expiresAt };
 		}),
 
 	delete: jwtProcedure
@@ -316,7 +323,8 @@ export const cloudWorkspaceRouter = {
 			assertInternal(ctx.email);
 			assertMember(ctx.organizationIds, row.organizationId);
 
-			if (row.providerSandboxId) {
+			// A row from a retired provider has no sandbox left to delete.
+			if (row.providerSandboxId && row.provider === "vercel") {
 				await deleteSandbox(row.providerSandboxId);
 			}
 			await db

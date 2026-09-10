@@ -47,66 +47,68 @@ overlay renders "Unknown host".
 
 ## Addressing and auth
 
-**The address is brokered and expires.** A sandbox has no stable URL — a
-preview token is minted per workspace and re-minted before expiry
-(`SandboxAccessProvider`). Code that caches a sandbox URL for longer than the
-token's life will start 401ing. `mintPreviewAccess` talks to the provider's
-control plane, not the sandbox, so it works even when the sandbox itself is
-asleep or wedged.
+**The address is brokered and expires.** A sandbox has no stable URL the
+client can keep — the API resolves the sandbox's domain and signs a
+short-lived token per access, re-minted before expiry
+(`SandboxAccessProvider`, `useWorkspaceHostUrl`). Code that caches a token
+for longer than its life will start 401ing. Resolving talks to the provider's
+control plane, not the sandbox, so it works when the sandbox is stopped.
 
-**Three separate gates sit between the renderer and a sandbox**, and all three
-fail as a bare `TypeError: Failed to fetch`: the renderer's CSP `connect-src`
-allowlist, CORS on the provider's edge (set via the preview's
-`responseHeaders`), and the WebSocket, which can't carry a header from a
-browser and so takes the preview token as a `bl_preview_token` query param.
-Testing from Node proves nothing about the renderer here.
+**Addressing and waking are different requests.** The sidebar keeps a live
+address for every ready cloud workspace, and none of those mints may resume a
+sandbox — that is how every desktop in the organization kept every Blaxel
+sandbox awake for the whole of its life. Only the open workspace's own mint
+passes `wake`, which resumes a stopped session (a resumed session boots from
+the filesystem snapshot with no processes, so host-service is started again)
+and extends a running one so it never hits the idle stop while someone is in
+it. `resolveSandboxAddress` is the one place that knows the difference.
 
-**The edge sets a cookie, and the desktop's terminal socket depends on it
-without saying so.** Any request that presents the preview token — header or
-query param — comes back with `Set-Cookie: bl_preview_token=…; HttpOnly;
-SameSite=None; Secure; Max-Age=86400`. Only the `/events` dial puts the token
-on its URL; the `/terminal/<id>` dial (`useWorkspaceWsUrl`) sends `token=<jwt>`
-and nothing for the edge, and works because Electron replays that cookie on
-the upgrade. So terminals on desktop authenticate through a cookie the event
-bus happened to earn first. Mobile can't inherit that — its terminal socket
-lives in a WKWebView with its own cookie store — so it signs every terminal
-dial with `bl_preview_token` explicitly. The desktop should too rather than
-rely on ordering.
+**Two gates sit between the renderer and a sandbox**, and both fail as a bare
+`TypeError: Failed to fetch`: the renderer's CSP `connect-src` allowlist
+(`https://*.vercel.run`), and the WebSocket, which can't carry a header from a
+browser and so takes the token as the `token` query param — the same param a
+local host reads its secret from. CORS is answered by host-service itself in
+sandbox mode (`*`; the bearer, never a cookie, is what gates it). Testing from
+Node proves nothing about the renderer here.
 
-**The host-service secret does not apply, and a sandbox says so instead of
-pretending otherwise.** Locally the secret stops anything else on the machine
-from talking to a host-service bound to loopback; desktop and service share
-one trusted device. A sandbox is reached across the internet, where the gate
-that actually holds is the provider's private preview: the edge turns away
-anything without a preview token, and only our API can mint one.
+**The sandbox's URL is public, so host-service is the gate.** Locally the
+pre-shared secret stops anything else on the machine from talking to a
+host-service bound to loopback. A Vercel sandbox's exposed port is a public
+`vercel.run` domain with nothing in front of it, so in sandbox mode
+host-service checks a token the API signed for exactly this workspace
+(`SandboxAccessHostAuthProvider`): Ed25519, ten-minute expiry, audience = the
+cloud workspace id. The sandbox holds only the public key
+(`SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY`), so nothing inside it — an agent that
+can read its own environment included — can mint access to itself or to any
+other sandbox, and a token for one workspace is refused by every other. A
+sandbox booted without the key refuses to serve rather than serving everyone.
 
-Keeping the PSK as a second layer was tried and rejected. One secret baked
-into every sandbox is a cross-tenant credential, and every sandbox hands an
-agent a shell that can read its own env — a second factor each tenant can read
-is not a second factor, it just makes the posture look deeper than it is.
-Generating one per sandbox would have worked, but it buys a layer whose only
-job is to survive a misconfigured preview, at the cost of a stored secret per
-workspace.
+That replaces the Blaxel-era posture, where a private provider preview did
+the gating and host-service accepted everything (`EdgeGuardedHostAuthProvider`,
+gone). The old reasoning against a host-side secret was that a *shared* one
+is a cross-tenant credential every tenant can read; a signed token has no
+secret in the box to read. `health.check` stays public on purpose — it is
+how a client tells a booting sandbox from a dead one — so probe the gate on a
+guarded route (`/events`), not on health.
 
-So in sandbox mode host-service uses `EdgeGuardedHostAuthProvider`, which
-accepts everything, and the honest statement of the posture is: **one gate, at
-the edge.** A sandbox whose preview is ever made public is open to anyone with
-the URL. Treat preview configuration (`public: false`) as the security-
-critical setting it now is.
-
-**Model credentials never enter an image sandbox.** (A fork is the exception;
-see "A fork can never have the egress proxy" below.) The provider's egress proxy
-substitutes them at the edge from a `{{SECRET:...}}` routing rule; the sandbox
+**Model credentials never enter a sandbox.** The organization's keys are
+injected into egress by the sandbox firewall: a `transform` rule on
+`api.anthropic.com` / `api.openai.com` sets the auth header, and the sandbox
 env holds only `SANDBOX_CREDENTIAL_PLACEHOLDER`. The placeholder must still be
-*set* — an unset key reads as "not logged in" and produces no request for the
-proxy to rewrite.
+*set* — an unset key reads as "not logged in" and produces no request to
+rewrite. A workspace that brings its own credential for a provider — an
+environment variable, or the person's own sign-in (`agent_credentials`) —
+gets no rule for that provider, so its credential reaches the API untouched;
+a Claude subscription token counts as Anthropic being provided, since a rule
+would otherwise add a second, conflicting auth header to its requests.
 
-**Proxy credentials are fixed at creation, so a sandbox can't gain one later.** The
-routing rules that carry them are part of the create call, which is the
-property that stops a sandbox being re-pointed at a different secret mid-life.
-The cost is that adding a provider, or rotating a key, reaches only sandboxes
-created afterwards — existing ones keep the credential set they were born
-with, and have to be recreated to change it.
+**The firewall terminates TLS for the domains it rewrites, and the terminal
+must trust its CA.** The platform mounts a per-sandbox CA and points
+`NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE` and friends at the system bundle.
+host-service builds PTY env from a login-shell snapshot, never from its own
+process env, so those variables would be lost and every model call from a
+terminal would fail with a certificate error; the sandbox-mode passthrough
+forwards them (`SANDBOX_FIREWALL_CA_KEYS`).
 
 ## Runtime environment
 
@@ -205,87 +207,65 @@ long-lived workspace.
 
 ## Provider constraints
 
-**The image's ENTRYPOINT belongs to the provider.** The SDK appends
-`ENTRYPOINT ["/usr/local/bin/sandbox-api"]` only when the image declares none,
-and that binary is what serves `/process`, `/fs` and the preview routes.
-Declaring our own to auto-start host-service produced a sandbox the platform
-could not talk to at all — every exec came back 502, and there is no way to
-debug from inside a sandbox whose exec is the broken thing. Long-running
-processes are registered *through* the API instead (`process.exec` with
-`waitForCompletion: false`).
+**The platform runs no ENTRYPOINT or CMD for a custom image.** `/app/start.sh`
+is launched through `runCommand` (detached) after create, and again on every
+wake, guarded by a port check so two wakes can't stack two servers.
+(Blaxel was the opposite: its own `sandbox-api` owned the entrypoint slot.)
 
-**The platform injects `PORT`, and it beats the image's `ENV`.** host-service
-reads `PORT`, so a sandbox that doesn't override it tries to bind 80 — reserved,
-along with 443 and 8080 — and exits with `EADDRINUSE` before serving anything.
-`start.sh` exports the port it means to use.
+**A freshly pushed image is not usable for a few minutes.** VCR reports the
+tag `Preparing` while it optimises a `linux/amd64` build (a gigabyte takes
+about four minutes), and `Sandbox.create` answers 409 `image_not_ready` until
+it reads `Ready`. `sandbox:release` waits; anything else pointing an
+environment at a tag it just pushed has to as well.
 
-**The first two sandboxes after an image build take ~35s; the rest take ~0.3s.**
-Measured on a freshly built image: 37.3s, 35.2s, then 0.3s, 0.2s, 0.3s. It is an
-image pull, and the image is around a gigabyte — 766 MB of that `node_modules`,
-230 MB the baked repo, 18 MB host-service itself. Two consequences worth knowing
-rather than fixing: a stopwatch started right after a rebuild measures the pull,
-not the product (which is how a 5s path got reported here as 40s), and most of
-the weight is packages host-service imports at module load and never calls, so
-the lever is that import graph rather than anything about sandboxes.
+**Disk is 64 GB regardless of memory.** Memory is 2 GB per vCPU and the plan
+caps it (Pro: 8 vCPU, 16 GB); disk is separate NVMe. This retires the Blaxel
+rule that the writable root was tmpfs at half of memory and that a full disk
+wedged every exec — the reason goldens ran at 32 GB. The internal golden runs
+8 vCPU for the dev stack's RAM, and forks inherit it; image workspaces get 4.
 
-**The writable disk is half of memory, and there is no disk-size parameter.**
-Documented, not a quirk: "Blaxel sandboxes reserve, when possible, approximately
-50% of the available memory for the tmpfs filesystem" (Sandboxes → Overview,
-"Memory and filesystem"). The root is an overlay over a read-only EROFS image
-with a tmpfs upper layer, so 8 GB of memory gives 3.9 GB of disk, 16 GB gives
-7.9 GB, 32 GB gives 16 GB (and 8 CPUs), and every file written also occupies
-RAM. The `storageMb` our code used to pass was never a Blaxel field — the SDK
-has `memory`, `region`, `ttl`, `expires` and `volumes`, nothing for disk — and
-the `as never` cast let it through unnoticed (measured: 40960 still gave
-3.9 GB). `/bl` is the provider's control mount, not storage. A checkout plus
-`bun install` of this monorepo is ~6 GB, so a golden that carries
-`node_modules` and expects to run the dev stack needs 32 GB of memory, and
-every fork inherits that size along with the files. Filling the disk is what a
-"wedged" sandbox looks like: every `process.exec`, even `echo`, returns
-`status: failed` with empty logs from then on. The documented ways to get more
-space are volumes (one per sandbox, attached at creation, not forkable) and
-Agent Drive; neither fits the golden-and-fork model, which is why memory is the
-lever.
+**A session ends; the sandbox does not.** A session stops at its timeout
+(`SESSION_TIMEOUT_MS`, four hours, extended while a workspace is open) or on
+`stop()`, and the platform snapshots the filesystem. The next wake boots a
+new session from that snapshot with *no processes*: uncommitted files survive,
+a running agent does not. Blaxel froze the VM instead, processes intact. So
+an unattended agent run has to finish within a session, and the idle stop
+must not fire on a workspace someone is using — which is what the open
+workspace's `wake` on every token refresh is for. Sessions cap at 24 hours on
+the plan; past that the extension is refused and the next open resumes.
 
-**A fork takes its env on the fork request, and again on the boot script.**
-`@blaxel/core` 0.3.19 accepts `envs` on `fork()`, which replaced the spec
-update (and the restart it caused) that used to hand a fork its identity. The
-values reach processes only when the sandbox runtime baked into the image is
-current: on a golden built 2026-09-02 they landed in the spec and no process
-saw them, PID 1 included; on one rebuilt 2026-09-03 every process did, and
-fork plus get took under half a second. The `/app/start.sh` exec carries the
-same env for goldens from before that rebuild, since everything the workspace
-runs descends from it. A fork can only set or add variables, never drop one,
-so promoting a workspace blanks its identity with empty values instead; an
-empty value does override an inherited one (verified 2026-09-03: a golden's
-`NODE_ENV=production` came back empty on a fork that set it to `""`).
+**A fork starts from the source's snapshot, not its live filesystem.** A
+golden is therefore a *stopped* sandbox: `promoteSandboxToEnvironment` takes
+a live snapshot of the promoting workspace, creates the golden from it with an
+empty env, removes the identity files, and stops it — that stop is what forks
+start from. Identity, git token and agent credentials are configuration on
+Vercel, not files, so a golden created with `env: {}` simply doesn't have
+them; no blanking on the fork request as Blaxel needed.
 
-**A fork can never have the egress proxy.** The proxy routing that injects
-the org's model keys (`network.proxy.routing`) exists only on sandboxes created
-with it: Blaxel's docs say enabling the proxy on a sandbox created without it
-requires a new sandbox, and a fork is created without it (its `spec.network`
-is null, and a source that carries routing hands its forks unresolved
-`{{file(/var/run/secrets/…)}}` proxy templates, so every outbound request
-fails with "Unsupported proxy syntax"). Applying routing to a fork afterwards with a
-spec update (the SDK's `updateSandbox`, which nothing in this codebase calls
-any more) is worse than useless: the platform builds a new instance from the
-image, and the fork comes back without `node_modules`, the tools, or anything
-else the environment carried (verified 2026-09-02 on a release probe). So a workspace forked from an environment gets its model keys the
-plain way, as `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` in the environment's
-variables, and host-service approves that key for Claude Code before an
-unattended launch so it does not stop on the "use this custom API key?"
-prompt. Image sandboxes keep the proxy and the placeholder keys.
+**The firewall policy is live-updatable and forks carry it.** Credential
+brokering (`networkPolicy` with `transform` rules) can be set at create, on a
+fork, or changed on a running sandbox, and a fork copies the source's policy
+unless overridden. Both Blaxel limitations — routing fixed at creation, forks
+unable to have the proxy at all — are gone, which is why every sandbox now
+brokers the organization's keys. A custom policy denies everything it doesn't
+list: the `"*": []` catch-all is what keeps npm, git and the rest reachable.
 
-**host-service has no HTTP health route.** Readiness is the `health.check` tRPC
-procedure; `GET /health` 404s. A probe on the wrong path looks exactly like a
-sandbox that never came up, which cost an afternoon here.
+**A fork copies the source's config; every field we pass is an override.**
+Resources, timeout, ports, tags, network policy, persistence and env are all
+inherited unless set on the fork request. Provisioning passes the workspace's
+full env and policy explicitly so nothing rides in from the golden by
+accident.
 
+**Sandboxes and images are scoped to one Vercel project.** Everything lives in
+the team's `sandboxes` project (`VERCEL_SANDBOX_PROJECT_ID`); the deploy
+token for the API project cannot see it, hence the separate
+`VERCEL_SANDBOX_TOKEN`. Deleting a sandbox keeps its snapshots (and their
+storage bill) unless `deleteOrphanSnapshots` is passed; `deleteSandbox` does.
 
-**Proxy secret injection needs the workspace entitlement.** Routing rules send
-egress through the workspace's egress gateway; without it every request fails
-its upstream CONNECT with a 407. Enabled for `superset` on 2026-08-16. Note
-`/egressgateways` and `/vpcs` still 403 with "Dedicated IPs feature is not
-enabled" even though routing works, so don't use those as a health check.
+**Ports answer at a random per-sandbox domain.** `sandbox.domain(4879)` is
+`https://sb-<random>.vercel.run`, unrelated to the sandbox's name and stable
+for the sandbox's life. There is no per-port authentication — see the auth
+section — and up to 15 ports may be exposed; exactly one is.
 
 **Native modules pin the image.** node-pty's prebuild links glibc (so no
 Alpine) and only the pinned version ships prebuilds at all; better-sqlite3 must
@@ -294,11 +274,11 @@ asserts the prebuild exists rather than letting something compile silently.
 
 **Local dev cannot exercise a sandbox, and the failure mode if you force it is
 silent.** `setup.local.sh` copies `.env.local.example` to `.env`, which sets
-`BLAXEL_API_KEY=fake-blaxel-api-key` — so provisioning fails at the provider and
-no sandbox is ever created. That part is loud and fine. The trap is what happens
-when someone supplies real Blaxel credentials to a local API to try a sandbox
-end-to-end: provisioning passes `SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL`
-into the sandbox, and in local dev that value is `http://localhost:3001`. Inside
+`VERCEL_SANDBOX_TOKEN=fake-vercel-sandbox-token` — so provisioning fails at the
+provider and no sandbox is ever created. That part is loud and fine. The trap is
+what happens when someone supplies real Vercel credentials to a local API to try
+a sandbox end-to-end: provisioning passes `SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL`
+into the sandbox, and in local dev that value is `http://localhost:<port>`. Inside
 the container `localhost` is the container, so the sandbox boots, serves, and
 looks healthy while every call it makes back to the API dials itself. Nothing
 reports an error at provision time. Treat sandboxes as a deployed-API-only

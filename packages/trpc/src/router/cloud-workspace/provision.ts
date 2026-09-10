@@ -10,9 +10,13 @@ import {
 } from "@superset/shared/constants";
 import { eq } from "drizzle-orm";
 import { env } from "../../env";
-import { deleteSandbox, provisionSandbox } from "../../lib/blaxel";
-import { resolveCloneTarget } from "../../lib/blaxel/clone-token";
-import { cloudRepo } from "../../lib/blaxel/cloud-repo";
+import {
+	deleteSandbox,
+	provisionSandbox,
+	sandboxAccessVerifier,
+} from "../../lib/sandbox";
+import { resolveCloneTarget } from "../../lib/sandbox/clone-token";
+import { cloudRepo } from "../../lib/sandbox/cloud-repo";
 import { resolveAgentCredentialEnv } from "../agent-credential";
 import { resolveEnvironment } from "../environment/resolve-environment";
 import { generateCloudWorkspaceName } from "./generate-name";
@@ -123,6 +127,9 @@ export async function provisionCloudWorkspace(
 					SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL,
 					SUPERSET_HOST_RUN_MODE: "sandbox",
 					SUPERSET_SANDBOX_WORKSPACE_ID: row.id,
+					// Verifies the access tokens this API signs for the row's id;
+					// the sandbox can check them and nothing else.
+					SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY: sandboxAccessVerifier(),
 					SUPERSET_SANDBOX_WORKSPACE_NAME: resolvedName,
 					SUPERSET_SANDBOX_BRANCH: row.branch,
 					SUPERSET_SANDBOX_WORKSPACE_PATH: SANDBOX_WORKSPACE_PATH,

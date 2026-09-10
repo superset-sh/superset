@@ -4127,9 +4127,6 @@ msgstr "Makineleriniz yüklenemedi"
 msgid "Could not mark ready"
 msgstr "Hazır olarak işaretlenemedi"
 
-msgid "Could not mint sandbox access token"
-msgstr "Sandbox erişim token'ı oluşturulamadı"
-
 msgid "Could not open Files"
 msgstr "Dosyalar açılamadı"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSO ve SCIM sağlama"
 
 msgid "San Francisco"
 msgstr "San Francisco"
-
-msgid "Sandbox preview has no URL"
-msgstr "Sandbox önizlemesinin URL'si yok"
 
 msgid "Save"
 msgstr "Kaydet"

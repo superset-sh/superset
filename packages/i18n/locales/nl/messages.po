@@ -4127,9 +4127,6 @@ msgstr "Kan je machines niet laden"
 msgid "Could not mark ready"
 msgstr "Kan niet als klaar markeren"
 
-msgid "Could not mint sandbox access token"
-msgstr "Kan geen toegangstoken voor de sandbox aanmaken"
-
 msgid "Could not open Files"
 msgstr "Kan Bestanden niet openen"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSO en SCIM-provisioning"
 
 msgid "San Francisco"
 msgstr "San Francisco"
-
-msgid "Sandbox preview has no URL"
-msgstr "Sandboxpreview heeft geen URL"
 
 msgid "Save"
 msgstr "Opslaan"

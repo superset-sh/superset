@@ -43,7 +43,7 @@ tmp="$(mktemp)"
 while IFS= read -r -d '' entry; do
   key="${entry%%=*}"; value="${entry#*=}"
   case "$key" in
-    SUPERSET_*|HOST_SERVICE_*|BLAXEL_*|PATH|HOME|PWD|OLDPWD|SHLVL|_|DISPLAY|TERM|SHELL|HOSTNAME|LANG|LC_*|NODE_ENV|PORT|TMUX*|USER|LOGNAME|MAIL|DEBIAN_FRONTEND) continue ;;
+    SUPERSET_*|HOST_SERVICE_*|VERCEL_*|PATH|HOME|PWD|OLDPWD|SHLVL|_|DISPLAY|TERM|SHELL|HOSTNAME|LANG|LC_*|NODE_ENV|PORT|TMUX*|USER|LOGNAME|MAIL|DEBIAN_FRONTEND) continue ;;
   esac
   [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
   case "$value" in *$'\n'*) continue ;; esac

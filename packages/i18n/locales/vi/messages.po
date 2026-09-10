@@ -4127,9 +4127,6 @@ msgstr "Không thể tải danh sách máy của bạn"
 msgid "Could not mark ready"
 msgstr "Không thể đánh dấu sẵn sàng"
 
-msgid "Could not mint sandbox access token"
-msgstr "Không thể tạo token truy cập sandbox"
-
 msgid "Could not open Files"
 msgstr "Không thể mở Files"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSO & cấp phát SCIM"
 
 msgid "San Francisco"
 msgstr "San Francisco"
-
-msgid "Sandbox preview has no URL"
-msgstr "Bản xem trước sandbox không có URL"
 
 msgid "Save"
 msgstr "Lưu"

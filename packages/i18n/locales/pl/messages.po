@@ -4127,9 +4127,6 @@ msgstr "Nie udało się wczytać Twoich maszyn"
 msgid "Could not mark ready"
 msgstr "Nie udało się oznaczyć jako gotowy"
 
-msgid "Could not mint sandbox access token"
-msgstr "Nie udało się wygenerować tokenu dostępu do piaskownicy"
-
 msgid "Could not open Files"
 msgstr "Nie udało się otworzyć Plików"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSO i provisioning SCIM"
 
 msgid "San Francisco"
 msgstr "San Francisco"
-
-msgid "Sandbox preview has no URL"
-msgstr "Podgląd piaskownicy nie ma adresu URL"
 
 msgid "Save"
 msgstr "Zapisz"

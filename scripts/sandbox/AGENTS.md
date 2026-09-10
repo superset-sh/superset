@@ -7,9 +7,15 @@ work" in a cloud workspace while working locally.
 
 ```
 bun run --cwd packages/host-service build:host      # the bundle the image ships
-BL_API_KEY=… BL_WORKSPACE=… bun run scripts/sandbox/image.ts
+bun run --cwd packages/pty-daemon build:daemon
+vercel vcr login docker --project <VERCEL_SANDBOX_PROJECT_ID> --scope <team>
+bun run scripts/sandbox/image.ts                    # build linux/amd64, push to VCR
 bun run scripts/sandbox/image.ts --dry              # print the Dockerfile only
 ```
+
+The image lands in Vercel Container Registry under the `sandboxes` project;
+`Sandbox.create({ image: "superset-hostsvc" })` resolves it by name. Docker
+must be running; the registry login lasts 12 hours.
 
 **Read `docs/cloud-sandbox-mismatches.md` before changing this image, and add to
 it when you find a new mismatch.** Several entries are about this file: the

@@ -28,7 +28,7 @@ export async function seedSharedEnvironments(
 		.values({
 			organizationId: SHARED_ENVIRONMENT_ORGANIZATION_ID,
 			name: SHARED_ENVIRONMENT_NAME,
-			provider: "blaxel",
+			provider: "vercel",
 			sourceKind: "image",
 			sourceRef: imageRef,
 		})

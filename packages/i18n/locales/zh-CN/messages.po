@@ -4127,9 +4127,6 @@ msgstr "无法加载你的机器"
 msgid "Could not mark ready"
 msgstr "无法标记为待审查"
 
-msgid "Could not mint sandbox access token"
-msgstr "无法签发沙箱访问令牌"
-
 msgid "Could not open Files"
 msgstr "无法打开“文件”"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSO与SCIM账号开通"
 
 msgid "San Francisco"
 msgstr "旧金山"
-
-msgid "Sandbox preview has no URL"
-msgstr "沙箱预览没有URL"
 
 msgid "Save"
 msgstr "保存"

@@ -1,10 +1,7 @@
 import { Trans } from "@lingui/react/macro";
 import RFB from "@novnc/novnc";
 import { useEffect, useRef, useState } from "react";
-import {
-	getHostServiceWsToken,
-	getHostServiceWsUrlParams,
-} from "renderer/lib/host-service-auth";
+import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 
 type Status = "connecting" | "connected" | "unavailable" | "error";
 
@@ -17,11 +14,6 @@ function buildSocketUrl(hostUrl: string): string {
 	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
 	const token = getHostServiceWsToken(hostUrl);
 	if (token) url.searchParams.set("token", token);
-	for (const [k, v] of Object.entries(
-		getHostServiceWsUrlParams(hostUrl) ?? {},
-	)) {
-		url.searchParams.set(k, v);
-	}
 	return url.toString();
 }
 

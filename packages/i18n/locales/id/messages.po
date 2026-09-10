@@ -4127,9 +4127,6 @@ msgstr "Tidak bisa memuat mesin Anda"
 msgid "Could not mark ready"
 msgstr "Tidak bisa menandai siap"
 
-msgid "Could not mint sandbox access token"
-msgstr "Tidak bisa menerbitkan token akses sandbox"
-
 msgid "Could not open Files"
 msgstr "Tidak bisa membuka Files"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSO & provisioning SCIM"
 
 msgid "San Francisco"
 msgstr "San Francisco"
-
-msgid "Sandbox preview has no URL"
-msgstr "Pratinjau sandbox tidak punya URL"
 
 msgid "Save"
 msgstr "Simpan"

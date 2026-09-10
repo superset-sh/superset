@@ -4127,9 +4127,6 @@ msgstr "머신을 불러오지 못했습니다"
 msgid "Could not mark ready"
 msgstr "준비됨으로 표시할 수 없습니다"
 
-msgid "Could not mint sandbox access token"
-msgstr "샌드박스 액세스 토큰을 발급할 수 없습니다"
-
 msgid "Could not open Files"
 msgstr "파일 앱을 열지 못했습니다"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSO 및 SCIM 프로비저닝"
 
 msgid "San Francisco"
 msgstr "샌프란시스코"
-
-msgid "Sandbox preview has no URL"
-msgstr "샌드박스 미리보기에 URL이 없습니다"
 
 msgid "Save"
 msgstr "저장"

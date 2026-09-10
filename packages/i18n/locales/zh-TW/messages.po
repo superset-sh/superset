@@ -4127,9 +4127,6 @@ msgstr "無法載入你的機器"
 msgid "Could not mark ready"
 msgstr "無法標記為待審查"
 
-msgid "Could not mint sandbox access token"
-msgstr "無法簽發沙箱存取權杖"
-
 msgid "Could not open Files"
 msgstr "無法開啟「檔案」"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSO與SCIM帳號開通"
 
 msgid "San Francisco"
 msgstr "舊金山"
-
-msgid "Sandbox preview has no URL"
-msgstr "沙箱預覽沒有URL"
 
 msgid "Save"
 msgstr "儲存"

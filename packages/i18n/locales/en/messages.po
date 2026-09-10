@@ -4127,9 +4127,6 @@ msgstr "Could not load your machines"
 msgid "Could not mark ready"
 msgstr "Could not mark ready"
 
-msgid "Could not mint sandbox access token"
-msgstr "Could not mint sandbox access token"
-
 msgid "Could not open Files"
 msgstr "Could not open Files"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSO & SCIM provisioning"
 
 msgid "San Francisco"
 msgstr "San Francisco"
-
-msgid "Sandbox preview has no URL"
-msgstr "Sandbox preview has no URL"
 
 msgid "Save"
 msgstr "Save"

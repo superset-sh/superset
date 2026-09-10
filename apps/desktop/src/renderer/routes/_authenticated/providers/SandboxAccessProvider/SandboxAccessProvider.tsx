@@ -2,7 +2,7 @@ import { useQueries } from "@tanstack/react-query";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { setSandboxCredentials } from "renderer/lib/host-service-auth";
+import { setHostServiceSecret } from "renderer/lib/host-service-auth";
 
 /** Re-mint with time to spare; the provider's token is short-lived. */
 const REFRESH_AT = 0.8;
@@ -29,7 +29,10 @@ const SandboxAccessContext = createContext<SandboxAccessValue | null>(null);
  * A sandbox has no `v2_hosts` row and no stable URL — it is reachable only
  * through a token this brokers, and that token expires. Minting talks to the
  * Superset API, not the sandbox, so addressing every ready workspace wakes
- * nothing; the fan-out only uses the open one's address.
+ * nothing; the fan-out only uses the open one's address. None of these mints
+ * wakes a sandbox — a sidebar full of sleeping sandboxes must stay asleep —
+ * which is why the open workspace mints for itself with `wake`
+ * (`useWorkspaceHostUrl`).
  */
 export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 	const { workspaces: cloudWorkspaces, organizationId } = useCloudWorkspaces();
@@ -52,9 +55,7 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 				const granted = await apiTrpcClient.cloudWorkspace.access.mutate({
 					id: workspace.id,
 				});
-				setSandboxCredentials(granted.url, {
-					previewToken: granted.token,
-				});
+				setHostServiceSecret(granted.url, granted.token);
 				return {
 					url: granted.url,
 					expiresAt: new Date(granted.expiresAt).getTime(),

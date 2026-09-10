@@ -4127,9 +4127,6 @@ msgstr "マシンを読み込めませんでした"
 msgid "Could not mark ready"
 msgstr "レビュー可能にできませんでした"
 
-msgid "Could not mint sandbox access token"
-msgstr "サンドボックスのアクセストークンを発行できませんでした"
-
 msgid "Could not open Files"
 msgstr "「ファイル」を開けませんでした"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSOとSCIMプロビジョニング"
 
 msgid "San Francisco"
 msgstr "サンフランシスコ"
-
-msgid "Sandbox preview has no URL"
-msgstr "サンドボックスのプレビューにURLがありません"
 
 msgid "Save"
 msgstr "保存"

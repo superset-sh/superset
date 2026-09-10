@@ -4127,9 +4127,6 @@ msgstr "No se pudieron cargar tus máquinas"
 msgid "Could not mark ready"
 msgstr "No se pudo marcar como lista"
 
-msgid "Could not mint sandbox access token"
-msgstr "No se pudo emitir el token de acceso al sandbox"
-
 msgid "Could not open Files"
 msgstr "No se pudo abrir Archivos"
 
@@ -12362,9 +12359,6 @@ msgstr "SSO por SAML y aprovisionamiento SCIM"
 
 msgid "San Francisco"
 msgstr "San Francisco"
-
-msgid "Sandbox preview has no URL"
-msgstr "La vista previa del sandbox no tiene URL"
 
 msgid "Save"
 msgstr "Guardar"

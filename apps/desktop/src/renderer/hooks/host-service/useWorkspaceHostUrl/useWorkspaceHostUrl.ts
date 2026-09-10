@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { setSandboxCredentials } from "renderer/lib/host-service-auth";
+import { setHostServiceSecret } from "renderer/lib/host-service-auth";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
@@ -77,14 +77,18 @@ export function useWorkspaceHostTarget(
 
 		const requestGrant = async () => {
 			try {
-				const granted = await requestAccess.current({ id: cloudWorkspaceId });
-				if (cancelled) return;
-				setSandboxCredentials(granted.url, {
-					previewToken: granted.token,
+				// This is the open workspace, so the mint wakes the sandbox: a
+				// stopped session resumes, a running one is kept from its idle
+				// stop. The sidebar's mints for every other workspace never wake.
+				const granted = await requestAccess.current({
+					id: cloudWorkspaceId,
+					wake: true,
 				});
+				if (cancelled) return;
+				setHostServiceSecret(granted.url, granted.token);
 				setGrant({ workspaceId: cloudWorkspaceId, url: granted.url });
-				// The provider's token outlives neither an open workspace nor its
-				// socket, so re-mint ahead of expiry rather than on failure.
+				// The token outlives neither an open workspace nor its socket, so
+				// re-mint ahead of expiry rather than on failure.
 				const remaining = new Date(granted.expiresAt).getTime() - Date.now();
 				timer = setTimeout(requestGrant, Math.max(30_000, remaining * 0.8));
 			} catch {

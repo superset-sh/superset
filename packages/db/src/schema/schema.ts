@@ -562,7 +562,7 @@ export const environments = pgTable(
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		name: text().notNull(),
-		provider: text().notNull().default("blaxel"),
+		provider: text().notNull().default("vercel"),
 		sourceKind: environmentSourceKind("source_kind").notNull(),
 		sourceRef: text("source_ref").notNull(),
 		archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -632,7 +632,7 @@ export const cloudWorkspaces = pgTable(
 		// behind.
 		name: text().notNull(),
 		branch: text().notNull(),
-		provider: text().notNull().default("blaxel"),
+		provider: text().notNull().default("vercel"),
 		providerSandboxId: text("provider_sandbox_id").notNull(),
 		sandboxUrl: text("sandbox_url"),
 		status: cloudWorkspaceStatus().notNull().default("provisioning"),

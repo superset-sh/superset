@@ -31,6 +31,13 @@ export const env = createEnv({
 		 * and keep it awake against the provider's wake-on-inbound sleep.
 		 */
 		SUPERSET_HOST_RUN_MODE: z.enum(["local", "sandbox"]).default("local"),
+		/**
+		 * Sandbox mode only: the workspace this sandbox serves, and the public
+		 * key that verifies the access tokens the API signs for it. There is
+		 * no edge in front of a sandbox, so these are its whole access control.
+		 */
+		SUPERSET_SANDBOX_WORKSPACE_ID: z.string().min(1).optional(),
+		SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY: z.string().min(1).optional(),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,

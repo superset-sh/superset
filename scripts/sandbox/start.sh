@@ -4,19 +4,17 @@
 # host.db carries the schema — so this is per-workspace work only and takes a
 # second or two.
 #
-# Started once, fire-and-forget, right after the sandbox is created. It is not
-# the image's ENTRYPOINT on purpose: that slot belongs to Blaxel's sandbox-api,
-# which serves /process, /fs and the preview routes, and overriding it leaves a
-# sandbox nothing can talk to.
+# Started once, fire-and-forget, right after the sandbox is created (and again
+# on every resume: a session boots from the filesystem snapshot with no
+# processes). Not the image's ENTRYPOINT: the platform runs none.
 set -uo pipefail
 
 WORKSPACE="${SUPERSET_SANDBOX_WORKSPACE_PATH:-/workspace}"
 BRANCH="${SUPERSET_SANDBOX_BRANCH:-}"
 REPO_URL="${SUPERSET_SANDBOX_REPO_URL:-}"
 
-# The platform injects its own PORT into the sandbox environment, which beats
-# the image's ENV. host-service reads PORT, so without this it tries to bind 80
-# — reserved here, along with 443 and 8080 — and exits with EADDRINUSE.
+# host-service reads PORT; pinned here so nothing the platform or the image
+# sets can move it off the port the sandbox exposes.
 export PORT="${SUPERSET_SANDBOX_HOST_PORT:-4879}"
 
 # The schema is baked, so first boot has nothing to migrate. Copied rather than

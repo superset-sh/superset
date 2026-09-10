@@ -4127,9 +4127,6 @@ msgstr "Не удалось загрузить ваши машины"
 msgid "Could not mark ready"
 msgstr "Не удалось отметить готовым"
 
-msgid "Could not mint sandbox access token"
-msgstr "Не удалось выпустить токен доступа к песочнице"
-
 msgid "Could not open Files"
 msgstr "Не удалось открыть «Файлы»"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSO и провижининг SCIM"
 
 msgid "San Francisco"
 msgstr "Сан-Франциско"
-
-msgid "Sandbox preview has no URL"
-msgstr "У предпросмотра песочницы нет URL"
 
 msgid "Save"
 msgstr "Сохранить"

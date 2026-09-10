@@ -4127,9 +4127,6 @@ msgstr "Nepodařilo se načíst vaše počítače"
 msgid "Could not mark ready"
 msgstr "Nepodařilo se označit jako připravené"
 
-msgid "Could not mint sandbox access token"
-msgstr "Nepodařilo se vydat přístupový token k sandboxu"
-
 msgid "Could not open Files"
 msgstr "Nepodařilo se otevřít Soubory"
 
@@ -12362,9 +12359,6 @@ msgstr "SAML SSO a provisioning přes SCIM"
 
 msgid "San Francisco"
 msgstr "San Francisco"
-
-msgid "Sandbox preview has no URL"
-msgstr "Náhled sandboxu nemá URL"
 
 msgid "Save"
 msgstr "Uložit"
