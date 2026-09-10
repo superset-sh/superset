@@ -10,14 +10,15 @@ import {
 } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { getLocales } from "expo-localization";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import { ThemeProvider } from "expo-router/react-navigation";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
 import { AppState } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Uniwind } from "uniwind";
 import { useSession } from "@/lib/auth/client";
 import { watchNetworkState } from "@/lib/errors";
-import { hideSplash } from "@/lib/splash";
 import { NAV_THEME } from "@/lib/theme";
 
 Uniwind.setTheme("dark");
@@ -81,12 +82,19 @@ AppState.addEventListener("change", (status) => {
 
 export function RootLayout() {
 	const { data: session, isPending } = useSession();
+	const pathname = usePathname();
+	const pendingDeletion = !!session?.user.deletionRequestedAt;
+
+	// The one rule for the native splash: it is held only while Home is still
+	// waiting for content. Every other landing renders at once, so it goes as
+	// soon as we know that is where we are. Home releases it itself.
+	const holdingForHome = !!session && !pendingDeletion && pathname === "/";
+	useEffect(() => {
+		if (isPending || holdingForHome) return;
+		void SplashScreen.hideAsync().catch(() => {});
+	}, [isPending, holdingForHome]);
 
 	if (isPending) return null;
-
-	const pendingDeletion = !!session?.user.deletionRequestedAt;
-	// Only Home waits for data; every other landing renders at once.
-	if (!session || pendingDeletion) hideSplash();
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>

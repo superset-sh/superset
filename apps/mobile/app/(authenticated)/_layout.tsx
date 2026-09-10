@@ -3,7 +3,6 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Redirect, Stack, usePathname } from "expo-router";
 import { usePrimeRelayUrl } from "@/hooks/usePrimeRelayUrl";
 import { useSession } from "@/lib/auth/client";
-import { hideSplash } from "@/lib/splash";
 
 const settingsScreenOptions = (title: string) => ({
 	headerShown: true,
@@ -30,9 +29,6 @@ export default function AuthenticatedLayout() {
 	const { t } = useLingui();
 	const { data: session } = useSession();
 	const pathname = usePathname();
-
-	// A cold start deep-linked past Home has no gate to wait on.
-	if (pathname !== "/") hideSplash();
 
 	// Unpaid sessions may only see home (which renders the paywall), the
 	// organizations sheet, and settings — App Review requires sign-out, org

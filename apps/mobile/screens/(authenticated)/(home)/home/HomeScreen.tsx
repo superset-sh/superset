@@ -5,7 +5,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { isAfter } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import * as SplashScreen from "expo-splash-screen";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	RefreshControl,
@@ -24,7 +25,6 @@ import {
 	useHostWorkspaces,
 } from "@/hooks/useHostWorkspaces";
 import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
-import { hideSplash } from "@/lib/splash";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
@@ -180,7 +180,7 @@ export function HomeScreen() {
 	// than a stale row.
 	const [hasPainted, setHasPainted] = useState(false);
 	useEffect(() => {
-		if (hasPainted) hideSplash();
+		if (hasPainted) void SplashScreen.hideAsync().catch(() => {});
 	}, [hasPainted]);
 	useEffect(() => {
 		if (contentReady) {
@@ -433,7 +433,19 @@ export function HomeScreen() {
 		void queryClient.invalidateQueries({ queryKey: ["diff-stats"] });
 	}, [queryClient]);
 
-	useFocusEffect(refreshHostData);
+	// Only on RE-focus: the first is the mount, where these queries already
+	// fetch themselves, and invalidating there fetched every one of them twice
+	// on a cold start.
+	const hasFocused = useRef(false);
+	useFocusEffect(
+		useCallback(() => {
+			if (!hasFocused.current) {
+				hasFocused.current = true;
+				return;
+			}
+			refreshHostData();
+		}, [refreshHostData]),
+	);
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
