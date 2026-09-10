@@ -314,6 +314,10 @@ msgstr "{0} a {1} si to vyříkají jako termináloví dinosauři. O vítězi ro
 msgid "{0} behind you"
 msgstr "{0} za vámi"
 
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0} se zatím nedá přihlásit tímto způsobem."
+
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
 msgstr "Počet vývojářů v žebříčku podle využití agentů: {0}. Vašich posledních 30 dní se už počítá, jen je skryto. Pouze počty tokenů a názvy modelů, žádné názvy repozitářů, cesty k souborům ani prompty."
@@ -715,6 +719,9 @@ msgstr "{kindLabel} motiv"
 
 msgid "{label} (partial week)"
 msgstr "{label} (neúplný týden)"
+
+msgid "{label} in cloud workspaces"
+msgstr "{label} v cloudových pracovních prostorech"
 
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
@@ -1505,6 +1512,9 @@ msgstr "Správci nemohou povýšit členy na vlastníky"
 msgid "Adopt v1 workspaces under their imported v2 project."
 msgstr "Přiřaďte pracovní prostory v1 k odpovídajícím importovaným projektům v2."
 
+msgid "Advanced"
+msgstr "Pokročilé"
+
 msgid "Advanced options"
 msgstr "Pokročilé možnosti"
 
@@ -1519,6 +1529,9 @@ msgstr "Proti main"
 
 msgid "Agent"
 msgstr "Agent"
+
+msgid "Agent commands"
+msgstr "Příkazy agentů"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "Agent dokončil — {workspaceName}"
@@ -1885,6 +1898,12 @@ msgstr "jiné zařízení"
 
 msgid "Answered"
 msgstr "Zodpovězeno"
+
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic tento API klíč odmítl."
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic tento token odmítl."
 
 msgid "Any calendar"
 msgstr "Jakýkoli kalendář"
@@ -2372,6 +2391,9 @@ msgstr "Základní adresář pro nové worktree na {selectedHostLabel}"
 
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "Základní adresář pro nové worktree na {selectedHostName}."
+
+msgid "Base URL"
+msgstr "Základní URL"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3670,6 +3692,12 @@ msgstr "Připojeno k"
 msgid "Connected to {connectedOrgName}"
 msgstr "Připojeno k {connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "Připojeno přes předplatné"
+
+msgid "Connected with API key"
+msgstr "Připojeno pomocí API klíče"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Připojeno, ale Microsoft Graph odmítl odběry oznámení."
 
@@ -4085,6 +4113,9 @@ msgstr "Nepodařilo se spojit s hostem a načíst tento pull request."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Nepodařilo se spojit s hostitelem a zahájit aktualizaci. Zkontrolujte, že je online, a zkuste to znovu."
+
+msgid "Could not reach the provider. Try again."
+msgstr "Poskytovatele se nepodařilo kontaktovat. Zkuste to znovu."
 
 msgid "Could not reach the server."
 msgstr "Nepodařilo se spojit se serverem."
@@ -4555,6 +4586,9 @@ msgstr "Vlastní prefix"
 
 msgid "Custom pricing"
 msgstr "Cena na míru"
+
+msgid "Custom provider"
+msgstr "Vlastní poskytovatel"
 
 msgid "Custom terminal agents"
 msgstr "Vlastní termináloví agenti"
@@ -5507,6 +5541,9 @@ msgstr "Zadejte platnou e-mailovou adresu."
 
 msgid "Enter a valid recurrence rule."
 msgstr "Zadejte platné pravidlo opakování."
+
+msgid "Enter a value."
+msgstr "Zadejte hodnotu."
 
 msgid "Enter URL or search..."
 msgstr "Zadejte URL nebo hledejte..."
@@ -6666,11 +6703,17 @@ msgstr "Generuje"
 msgid "Generating..."
 msgstr "Generuji..."
 
+msgid "Get an API key"
+msgstr "Získat API klíč"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "Získejte prohlídku architektury: vstupní body, jak to spustit, co si přečíst první."
 
 msgid "Get in touch with the {companyName} team."
 msgstr "Spojte se s týmem {companyName}."
+
+msgid "Get key"
+msgstr "Získat klíč"
 
 msgid "Get more out of Superset"
 msgstr "Využít Superset naplno"
@@ -6895,6 +6938,9 @@ msgstr "Skryté složky"
 msgid "Hidden until you join"
 msgstr "Skryto, dokud se nepřidáte"
 
+msgid "Hide"
+msgstr "Skrýt"
+
 msgid "Hide checks"
 msgstr "Skrýt kontroly"
 
@@ -7097,6 +7143,9 @@ msgstr "Jak fungují úrovně →"
 
 msgid "How to install {name} in Superset"
 msgstr "Jak nainstalovat {name} do Superset"
+
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "Jak se vaši agenti přihlašují v cloudových pracovních prostorech. Ostatní připojují vlastní předplatné nebo API klíče; na tomto počítači každý agent dál používá přihlášení, které už na něm je."
 
 msgid "https://"
 msgstr "https://"
@@ -10160,6 +10209,9 @@ msgstr "Otevřít pracovní prostor"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "Otevřít pracovní prostor v externí aplikaci (Cursor, VS Code atd.)"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI tento API klíč odmítl."
+
 msgid "Opened"
 msgstr "Otevřen"
 
@@ -10603,6 +10655,9 @@ msgstr "Vyberte pracovní prostor"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Vyberte ikonu a barvu nebo nahrajte vlastní obrázek. Ve výchozím stavu se použije avatar propojeného vlastníka na GitHubu."
+
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "Vyberte, jak se {label} přihlašuje uvnitř sandboxu. Přihlašovací údaj se předá procesu agenta při spuštění a v sandboxu se neukládá."
 
 msgid "Pick the best agent."
 msgstr "Vyberte nejlepšího agenta."
@@ -12065,6 +12120,9 @@ msgstr "Otočit zařízení"
 msgid "Roundups"
 msgstr "Přehledy"
 
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "Veďte {label} přes poskytovatele, kterého provozujete, s přihlašovacími údaji, které máte. Uložené hodnoty se agentovi předají při spuštění."
+
 msgid "Routine tickets with no mid-task intervention"
 msgstr "Rutinní tickety bez zásahu uprostřed úkolu"
 
@@ -12827,6 +12885,9 @@ msgstr "Nastavit heslo"
 msgid "Set Run"
 msgstr "Nastavit spuštění"
 
+msgid "Set up"
+msgstr "Nastavit"
+
 msgid "Set up project on {hostName}"
 msgstr "Nastavit projekt na {hostName}"
 
@@ -12920,6 +12981,9 @@ msgstr "Dodáno"
 
 msgid "Shortcut already in use"
 msgstr "Zkratka se už používá"
+
+msgid "Show"
+msgstr "Zobrazit"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Zobrazit před ukončením aplikace potvrzovací dialog"
@@ -13108,6 +13172,9 @@ msgstr "Přihlásit se přes GitHub"
 msgid "Sign in with Google"
 msgstr "Přihlásit se přes Google"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Přihlaste se účtem Claude, nebo v terminálu spusťte <0>claude setup-token</0><1><2/></1> a vložte sem token."
+
 msgid "Sign out"
 msgstr "Odhlásit se"
 
@@ -13143,8 +13210,14 @@ msgstr "Přihlášení vypršelo — spusťte"
 msgid "Sign-in failed"
 msgstr "Přihlášení selhalo"
 
+msgid "Signed in as {accountLabel}"
+msgstr "Přihlášeni jako {accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Přihlášeni jako <0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "Přihlášeno. Token je uložen šifrovaně a už se znovu nezobrazí."
 
 msgid "Signed out"
 msgstr "Odhlášeno"
@@ -13154,6 +13227,9 @@ msgstr "Weby, kde jste přihlášeni"
 
 msgid "Signing in..."
 msgstr "Přihlašuji..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "Přihlašuje se stejně jako Codex CLI. Nebo v terminálu spusťte <0>codex login</0> a vložte sem jeho token."
 
 msgid "signup → paid ≤30d"
 msgstr "registrace → platba ≤30 d"
@@ -14435,6 +14511,13 @@ msgstr "Stránka, kterou hledáte, neexistuje."
 msgid "The people behind Superset."
 msgstr "Lidé za Supersetem."
 
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "Poskytovatel odpověděl {0}."
+
+msgid "The provider refused it."
+msgstr "Poskytovatel jej odmítl."
+
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Lhůta pro obnovení skončila. Napište na support@superset.sh."
 
@@ -15565,6 +15648,15 @@ msgstr "v2ProjectId neodpovídá projektu pracovního prostoru"
 
 msgid "Variables"
 msgstr "Proměnné"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway tento klíč odmítl."
+
+msgid "Verified and saved"
+msgstr "Ověřeno a uloženo"
 
 msgid "Verified through sign-in"
 msgstr "Ověřeno přihlášením"

@@ -778,6 +778,13 @@
       "when": 1788808109667,
       "tag": "0110_add_v2_hosts_version_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1789010387654,
+      "tag": "0111_agent_credentials",
+      "breakpoints": true
     }
   ]
 }
