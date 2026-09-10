@@ -46,8 +46,14 @@ const hostProject = {
 
 // External data/host dependencies — stubbed so the component renders in a
 // plain SSR pass without providers.
+// Bun module mocks persist across test files. Only replace this settings
+// query so unrelated components still receive their real query results.
+const { useQuery: realUseQuery } = await import("@tanstack/react-query");
 mock.module("@tanstack/react-query", () => ({
-	useQuery: () => ({ data: hostProject, refetch: () => {} }),
+	useQuery: (...args: Parameters<typeof realUseQuery>) =>
+		args[0].queryKey[0] === "host-project" && args[0].queryKey[1] === "get"
+			? { data: hostProject, refetch: () => {} }
+			: realUseQuery(...args),
 }));
 mock.module("@tanstack/react-router", () => ({
 	useNavigate: () => () => {},
