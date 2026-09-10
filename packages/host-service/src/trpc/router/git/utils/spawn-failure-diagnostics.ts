@@ -1,3 +1,4 @@
+import { execFile } from "node:child_process";
 import { readdirSync } from "node:fs";
 import { attachErrorDiagnostics } from "../../../error-diagnostics";
 
@@ -69,17 +70,47 @@ function fileDescriptorSoftLimit(): number | string | undefined {
 	return softLimit;
 }
 
+// On macOS RLIMIT_NOFILE is not the ceiling: the kernel also caps a process at
+// kern.maxfilesperproc, and opening stops there. Measured on 26.6, a process
+// reporting a 1,048,576 soft limit took EMFILE after 245,748 descriptors,
+// against a kern.maxfilesperproc of 245,760 — so the number above overstates
+// the real ceiling more than fourfold, and every one of these failures so far
+// has come from macOS. The daemon supervisor raises the soft limit to
+// 1,048,576 before exec, which widens the gap further.
+//
+// Read once in the background at import rather than on the failure path: this
+// costs a spawn, and the thing being diagnosed is a spawn that would not
+// start.
+let enforcedLimit: number | undefined;
+
+if (process.platform === "darwin") {
+	try {
+		execFile("/usr/sbin/sysctl", ["-n", "kern.maxfilesperproc"], (err, out) => {
+			if (err) return;
+			const parsed = Number.parseInt(out.trim(), 10);
+			if (Number.isFinite(parsed)) enforcedLimit = parsed;
+		});
+	} catch {
+		// Diagnostics must never replace the failure they describe.
+	}
+}
+
 /**
  * Record the descriptor table on a git failure that never got as far as
  * running git.
  *
  * These failures report with no first-party frame — the captured stack is
  * entirely simple-git's executor — and nothing in the event says why the
- * spawn was refused. The count against the soft limit separates the two
- * candidates: at the limit is exhaustion, and the leak is ours to find;
- * nowhere near it is a descriptor that went bad while we still held it. See
- * HOST-SERVICE-4E and HOST-SERVICE-1R, where a machine enters this state and
- * every subsequent poll fails the same way for hours.
+ * spawn was refused. The count is what says it: on macOS a table that has
+ * grown past 10,240 entries cannot spawn anything, whatever the rlimit
+ * reads. libuv spawns through posix_spawn and hands the child's pipe ends
+ * to posix_spawn_file_actions_adddup2/addclose, and Apple's libsyscall
+ * rejects any descriptor number at or above OPEN_MAX (10,240) with EBADF
+ * before the kernel is involved. Once the low numbers are all taken, every
+ * fresh pipe lands above that line, so exhaustion surfaces as `spawn
+ * EBADF`, not EMFILE, and every event of HOST-SERVICE-4E / HOST-SERVICE-1R
+ * carried a count just above 10,240. A count nowhere near it would be the
+ * other case: a descriptor that went bad while we still held it.
  *
  * No-op for anything else, and no-op on the error itself: the message,
  * classification and 500 are exactly what they were.
@@ -90,5 +121,6 @@ export function attachSpawnFailureDiagnostics(error: unknown): void {
 	attachErrorDiagnostics(error, {
 		open_file_descriptors: countOpenFileDescriptors(),
 		file_descriptor_soft_limit: fileDescriptorSoftLimit(),
+		file_descriptor_enforced_limit: enforcedLimit,
 	});
 }

@@ -16,6 +16,7 @@ interface NativeComposerViewProps {
 	backdrop?: ComposerBackdrop;
 	attachments?: ComposerAttachment[];
 	selectedModel?: ComposerMenuOption;
+	launchOptions?: ComposerMenuOption[];
 	headerChips?: ComposerMenuOption[];
 	quickKeys?: ComposerQuickKey[];
 	sessionTabs?: ComposerSessionTab[];
@@ -30,10 +31,12 @@ interface NativeComposerViewProps {
 	onAttachmentsPress?: () => void;
 	onDictationError?: (event: { nativeEvent: { message: string } }) => void;
 	onModelPress?: () => void;
+	onLaunchOptionPress?: (event: { nativeEvent: { id: string } }) => void;
 	onChipPress?: (event: { nativeEvent: { id: string } }) => void;
 	onQuickKeyPress?: (event: { nativeEvent: { id: string } }) => void;
 	onSessionTabPress?: (event: { nativeEvent: { id: string } }) => void;
 	onSessionTabClose?: (event: { nativeEvent: { id: string } }) => void;
+	onSessionTabRename?: (event: { nativeEvent: { id: string } }) => void;
 	onSessionTabCopyId?: (event: { nativeEvent: { id: string } }) => void;
 	onNewSessionPress?: () => void;
 	onAllSessionsPress?: () => void;
@@ -179,6 +182,8 @@ export interface ComposerQuickKeysAction {
  * untranslated string on a translated screen.
  */
 export interface ComposerSessionTabLabels {
+	/** Context menu: opens the prompt for the session's name. */
+	rename: string;
 	/** Context menu: copies the session's id to the pasteboard. */
 	copyId: string;
 	/** Context menu, destructive, and the close disc's accessibility label. */
@@ -270,6 +275,12 @@ interface ComposerBaseProps {
 	 * the real pickers are `formSheet` routes with searchable lists.
 	 */
 	selectedModel?: ComposerMenuOption;
+	/**
+	 * The selected agent's launch settings, drawn after it as their own
+	 * chevron buttons — model, effort. Each reports its id on press; the
+	 * lists stay in React Native like the agent's. Omit for agents with none.
+	 */
+	launchOptions?: ComposerMenuOption[];
 	/** Frame 4's header row. Empty on the session surface (frame 13). */
 	headerChips?: ComposerMenuOption[];
 	/**
@@ -317,6 +328,7 @@ interface ComposerBaseProps {
 	 */
 	onDictationError?: (message: string) => void;
 	onModelPress?: () => void;
+	onLaunchOptionPress?: (id: string) => void;
 	onChipPress?: (id: string) => void;
 	onQuickKeyPress?: (id: string) => void;
 	/** A tab was tapped — attach that session. */
@@ -327,6 +339,12 @@ interface ComposerBaseProps {
 	 * costs, so the caller confirms.
 	 */
 	onSessionTabClose?: (id: string) => void;
+	/**
+	 * Rename was chosen from the press-and-hold menu. The composer neither
+	 * asks for the new name nor knows what a session's name is — a menu cannot
+	 * take text, and the name is the host's — so the caller prompts and saves.
+	 */
+	onSessionTabRename?: (id: string) => void;
 	/**
 	 * Copy id was chosen from the press-and-hold menu. The caller owns the
 	 * pasteboard write and whatever it shows afterwards, so the confirmation
@@ -398,6 +416,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			backdrop = "dim",
 			attachments,
 			selectedModel,
+			launchOptions,
 			headerChips,
 			quickKeys,
 			sessionTabs,
@@ -411,10 +430,12 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			onAttachmentsPress,
 			onDictationError,
 			onModelPress,
+			onLaunchOptionPress,
 			onChipPress,
 			onQuickKeyPress,
 			onSessionTabPress,
 			onSessionTabClose,
+			onSessionTabRename,
 			onSessionTabCopyId,
 			onNewSessionPress,
 			onAllSessionsPress,
@@ -445,6 +466,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				backdrop={backdrop}
 				attachments={attachments}
 				selectedModel={selectedModel}
+				launchOptions={launchOptions}
 				headerChips={headerChips}
 				quickKeys={quickKeys}
 				sessionTabs={sessionTabs}
@@ -463,10 +485,16 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 					onDictationError?.(event.nativeEvent.message)
 				}
 				onModelPress={onModelPress}
+				onLaunchOptionPress={(event) =>
+					onLaunchOptionPress?.(event.nativeEvent.id)
+				}
 				onChipPress={(event) => onChipPress?.(event.nativeEvent.id)}
 				onQuickKeyPress={(event) => onQuickKeyPress?.(event.nativeEvent.id)}
 				onSessionTabPress={(event) => onSessionTabPress?.(event.nativeEvent.id)}
 				onSessionTabClose={(event) => onSessionTabClose?.(event.nativeEvent.id)}
+				onSessionTabRename={(event) =>
+					onSessionTabRename?.(event.nativeEvent.id)
+				}
 				onSessionTabCopyId={(event) =>
 					onSessionTabCopyId?.(event.nativeEvent.id)
 				}

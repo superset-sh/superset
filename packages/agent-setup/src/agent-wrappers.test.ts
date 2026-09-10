@@ -26,7 +26,7 @@ let mockedHomeDir = path.join(TEST_ROOT, "home");
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v9",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v15",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},
@@ -130,9 +130,9 @@ describe("agent-wrappers opencode", () => {
 	beforeEach(() => {
 		delete (
 			globalThis as typeof globalThis & {
-				__supersetOpencodeNotifyPluginV9?: boolean;
+				__supersetOpencodeNotifyPluginV10?: boolean;
 			}
-		).__supersetOpencodeNotifyPluginV9;
+		).__supersetOpencodeNotifyPluginV10;
 	});
 
 	afterEach(() => {
@@ -177,23 +177,193 @@ describe("agent-wrappers opencode", () => {
 		expect(notifications).toEqual(["PermissionRequest"]);
 	});
 
-	it("retains the legacy permission.ask notification hook", async () => {
+	it("retains legacy permission.ask using the tracked root when the input omits its ID", async () => {
 		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
 		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
-		const notifications: string[] = [];
+		const notifications: unknown[] = [];
 		const hooks = await SupersetNotifyPlugin({
 			$: (
 				_parts: TemplateStringsArray,
 				_notifyPath: string,
 				payload: string,
 			) => {
-				notifications.push(JSON.parse(payload).hook_event_name);
+				notifications.push(JSON.parse(payload));
 			},
 		});
 
+		await hooks.event({
+			event: { type: "session.created", properties: { info: { id: "root" } } },
+		});
+		notifications.length = 0;
 		await hooks["permission.ask"]({}, { status: "ask" });
 
-		expect(notifications).toEqual(["PermissionRequest"]);
+		expect(notifications).toEqual([
+			{ hook_event_name: "PermissionRequest", session_id: "root" },
+		]);
+	});
+
+	it("carries the root session through lifecycle events without accepting child or competing sessions", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notifications: unknown[] = [];
+		const commands: string[] = [];
+		const hooks = await SupersetNotifyPlugin({
+			$: (
+				parts: TemplateStringsArray,
+				_notifyPath: string,
+				payload: string,
+			) => {
+				commands.push(parts.join(""));
+				notifications.push(JSON.parse(payload));
+			},
+			client: {
+				session: {
+					list: async () => ({ data: [{ id: "root" }, { id: "other" }] }),
+				},
+			},
+		});
+		const event = (type: string, properties: Record<string, unknown>) =>
+			hooks.event({ event: { type, properties } });
+
+		await event("session.created", { info: { id: "root" } });
+		await event("session.created", { info: { id: "other-before-busy" } });
+		await event("session.status", {
+			sessionID: "root",
+			status: { type: "busy" },
+		});
+		await event("session.created", { info: { id: "child", parentID: "root" } });
+		await event("session.status", {
+			sessionID: "child",
+			status: { type: "busy" },
+		});
+		await event("permission.asked", { sessionID: "child" });
+		await event("session.created", { info: { id: "other" } });
+		await event("permission.asked", { sessionID: "other" });
+		await event("session.deleted", { info: { id: "other" } });
+		await event("permission.asked", { sessionID: "root" });
+		await event("session.idle", { sessionID: "root" });
+		await event("session.idle", { sessionID: "root" });
+		// Idle is still the same resumable conversation. Unrelated session
+		// creation/deletion must not replace or end its host binding.
+		await event("session.created", { info: { id: "other-after-stop" } });
+		await event("permission.asked", { sessionID: "other-after-stop" });
+		await event("session.deleted", { info: { id: "other-after-stop" } });
+		await event("session.deleted", { info: { id: "child", parentID: "root" } });
+		await event("session.deleted", { info: { id: "root" } });
+
+		expect(notifications).toEqual(
+			["SessionStart", "Start", "PermissionRequest", "Stop", "SessionEnd"].map(
+				(hook_event_name) => ({ hook_event_name, session_id: "root" }),
+			),
+		);
+		expect(
+			commands.every((command) =>
+				command.includes("SUPERSET_HOOK_HARNESS=opencode"),
+			),
+		).toBe(true);
+	});
+
+	it("orders root replacement and legacy permissions behind an in-flight deletion", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notifications: unknown[] = [];
+		const deleting = Promise.withResolvers<void>();
+		const release = Promise.withResolvers<void>();
+		const hooks = await SupersetNotifyPlugin({
+			$: async (
+				_parts: TemplateStringsArray,
+				_notifyPath: string,
+				payload: string,
+			) => {
+				const notification = JSON.parse(payload);
+				if (notification.hook_event_name === "SessionEnd") {
+					deleting.resolve();
+					await release.promise;
+				}
+				notifications.push(notification);
+			},
+		});
+		const event = (type: string, id: string) =>
+			hooks.event({ event: { type, properties: { info: { id } } } });
+		await event("session.created", "old");
+		notifications.length = 0;
+		const deletion = event("session.deleted", "old");
+		await deleting.promise;
+		const creation = event("session.created", "new");
+		const permission = hooks["permission.ask"]({}, { status: "ask" });
+		release.resolve();
+		await Promise.all([deletion, creation, permission]);
+
+		expect(notifications).toEqual([
+			{ hook_event_name: "SessionEnd", session_id: "old" },
+			{ hook_event_name: "SessionStart", session_id: "new" },
+			{ hook_event_name: "PermissionRequest", session_id: "new" },
+		]);
+	});
+
+	it("captures resumed and subsequent root sessions without a session.created event", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notifications: unknown[] = [];
+		const hooks = await SupersetNotifyPlugin({
+			$: (
+				_parts: TemplateStringsArray,
+				_notifyPath: string,
+				payload: string,
+			) => {
+				notifications.push(JSON.parse(payload));
+			},
+			client: {
+				session: {
+					list: async () => ({ data: [{ id: "resumed" }, { id: "next" }] }),
+				},
+			},
+		});
+		for (const sessionID of ["resumed", "next"]) {
+			await hooks.event({
+				event: {
+					type: "session.status",
+					properties: { sessionID, status: { type: "busy" } },
+				},
+			});
+			await hooks["permission.ask"]({ sessionID }, { status: "ask" });
+			await hooks.event({
+				event: { type: "session.idle", properties: { sessionID } },
+			});
+		}
+		expect(notifications).toEqual(
+			["resumed", "next"].flatMap((session_id) =>
+				["Start", "PermissionRequest", "Stop"].map((hook_event_name) => ({
+					hook_event_name,
+					session_id,
+				})),
+			),
+		);
+	});
+
+	it("does not bind missing or unverified sessions", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notify = mock(() => {});
+		const hooks = await SupersetNotifyPlugin({
+			$: notify,
+			client: { session: { list: async () => ({ data: [] }) } },
+		});
+		await hooks.event({ event: { type: "session.created", properties: {} } });
+		await hooks["permission.ask"]({}, { status: "ask" });
+		await hooks.event({
+			event: {
+				type: "session.status",
+				properties: { sessionID: "unknown", status: { type: "busy" } },
+			},
+		});
+		await hooks.event({
+			event: {
+				type: "session.deleted",
+				properties: { info: { id: "unknown" } },
+			},
+		});
+		expect(notify).not.toHaveBeenCalled();
 	});
 });
 
@@ -264,7 +434,7 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).not.toContain("-c 'notify=");
 		expect(wrapper).toContain('export SUPERSET_AGENT_ID="codex"');
 
-		expect(wrapper).toContain("# Superset agent-wrapper v4");
+		expect(wrapper).toContain("# Superset agent-wrapper v5");
 
 		// Native hooks remain enabled, but the process-scoped TUI session log is
 		// the reliable Start signal for installed Codex TUI builds.
@@ -746,7 +916,7 @@ exit 0
 		expect(plugin).toContain('amp.on("agent.end"');
 		expect(plugin).toContain('notify("Stop", event)');
 		expect(plugin).toContain('import { spawn } from "node:child_process"');
-		expect(plugin).toContain('SUPERSET_AGENT_ID: "amp"');
+		expect(plugin).toContain('SUPERSET_HOOK_HARNESS: "amp"');
 		expect(plugin).toContain("[superset-amp-plugin]");
 		expect(plugin).toContain("SUPERSET_HOME_DIR");
 	});
@@ -792,7 +962,7 @@ exit 0
 		const content2 = requireContent(getCursorHooksJsonContent(currentHookPath));
 
 		const parsed = JSON.parse(content) as {
-			hooks: Record<string, Array<{ command: string }>>;
+			hooks: Record<string, Array<{ command: string; matcher?: string }>>;
 		};
 		const beforeSubmitPrompt = parsed.hooks.beforeSubmitPrompt;
 
@@ -822,6 +992,20 @@ exit 0
 		).toBe(true);
 		expect(Array.isArray(parsed.hooks.beforeShellExecution)).toBe(true);
 		expect(Array.isArray(parsed.hooks.beforeMCPExecution)).toBe(true);
+		for (const event of ["postToolUse", "postToolUseFailure"]) {
+			expect(parsed.hooks[event]).toEqual([
+				{ command: `${currentHookPath} Start`, matcher: "^(Shell|MCP:.+)$" },
+			]);
+			const matcher = new RegExp(
+				requireContent(parsed.hooks[event][0]?.matcher ?? null),
+			);
+			for (const tool of ["Shell", "MCP:audit_echo"]) {
+				expect(matcher.test(tool)).toBe(true);
+			}
+			for (const tool of ["Read", "Edit", "Task", "ShellOther", "OtherMCP:x"]) {
+				expect(matcher.test(tool)).toBe(false);
+			}
+		}
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
 	});
 
@@ -951,9 +1135,9 @@ exit 0
 	});
 
 	it("bumps hook script markers when hook semantics change", () => {
-		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v5");
-		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v7");
-		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v6");
+		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v6");
+		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v8");
+		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v7");
 	});
 
 	it("replaces stale Mastra hook commands from old superset paths", () => {
@@ -1432,6 +1616,8 @@ describe("agent-wrappers codex hooks.json", () => {
 			"UserPromptSubmit",
 			"Stop",
 			"Interrupt",
+			"SubagentStart",
+			"SubagentStop",
 		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
@@ -1442,8 +1628,14 @@ describe("agent-wrappers codex hooks.json", () => {
 			).toBe(true);
 		}
 
-		expect(parsed.hooks.PreToolUse).toBeUndefined();
-		expect(parsed.hooks.PostToolUse).toBeUndefined();
+		for (const eventName of ["PreToolUse", "PostToolUse"]) {
+			expect(parsed.hooks[eventName]).toEqual([
+				{
+					matcher: "^request_user_input$",
+					hooks: [{ type: "command", command: expectedCommand }],
+				},
+			]);
+		}
 	});
 
 	it("preserves user hooks when merging", () => {
@@ -1505,7 +1697,7 @@ describe("agent-wrappers codex hooks.json", () => {
 
 		const parsed = JSON.parse(content);
 
-		// Preserves user hooks (including PreToolUse/PostToolUse which we don't manage)
+		// Preserves user hooks, including tool hooks alongside our scoped entries.
 		expect(
 			parsed.hooks.Stop.some((def: { hooks: Array<{ command: string }> }) =>
 				def.hooks.some(
@@ -1562,25 +1754,13 @@ describe("agent-wrappers codex hooks.json", () => {
 			).toBe(true);
 		}
 
-		// Does NOT inject managed hooks for PreToolUse/PostToolUse
-		expect(
-			parsed.hooks.PreToolUse.some(
-				(def: { hooks: Array<{ command: string }> }) =>
-					def.hooks.some(
-						(hook: { command: string }) =>
-							hook.command === expectedManagedCommand,
-					),
-			),
-		).toBe(false);
-		expect(
-			parsed.hooks.PostToolUse.some(
-				(def: { hooks: Array<{ command: string }> }) =>
-					def.hooks.some(
-						(hook: { command: string }) =>
-							hook.command === expectedManagedCommand,
-					),
-			),
-		).toBe(false);
+		for (const eventName of ["PreToolUse", "PostToolUse"]) {
+			expect(parsed.hooks[eventName]).toHaveLength(2);
+			expect(parsed.hooks[eventName]).toContainEqual({
+				matcher: "^request_user_input$",
+				hooks: [{ type: "command", command: expectedManagedCommand }],
+			});
+		}
 	});
 
 	it("replaces stale Codex hook commands from old superset paths", () => {
@@ -1639,6 +1819,8 @@ describe("agent-wrappers codex hooks.json", () => {
 			"UserPromptSubmit",
 			"Stop",
 			"Interrupt",
+			"SubagentStart",
+			"SubagentStop",
 		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
@@ -1846,7 +2028,7 @@ describe("vibe hooks.toml", () => {
 		expect(out).toContain(VIBE_HOOKS_MARKER_END);
 		expect(out).toContain('type = "before_tool"');
 		expect(out).toContain('type = "post_agent_turn"');
-		expect(out).toContain("SUPERSET_AGENT_ID=vibe");
+		expect(out).toContain("SUPERSET_HOOK_HARNESS=vibe");
 	});
 	it("preserves user hooks and is idempotent", () => {
 		const user =
@@ -1946,7 +2128,7 @@ describe("kimi config.toml", () => {
 		]) {
 			expect(out).toContain(`event = "${event}"`);
 		}
-		expect(out).toContain("SUPERSET_AGENT_ID=kimi");
+		expect(out).toContain("SUPERSET_HOOK_HARNESS=kimi");
 	});
 
 	it("preserves user config and replaces the managed block idempotently", () => {
@@ -2026,7 +2208,9 @@ describe("grok hooks json", () => {
 				hooks: Array<{ type: string; command: string }>;
 			}>;
 			expect(definition.hooks[0].type).toBe("command");
-			expect(definition.hooks[0].command).toContain("SUPERSET_AGENT_ID=grok");
+			expect(definition.hooks[0].command).toContain(
+				"SUPERSET_HOOK_HARNESS=grok",
+			);
 		}
 		expect(parsed.hooks.Notification[0].matcher).toBe(
 			`^(${GROK_BLOCKING_NOTIFICATION_TYPES.join("|")})$`,
@@ -2421,7 +2605,7 @@ describe("agent-wrappers omp", () => {
 		);
 		expect(content).toContain("pi.on(eventName");
 		expect(content).toContain("fire(hookEventName)");
-		expect(content).toContain('SUPERSET_AGENT_ID: "omp"');
+		expect(content).toContain('SUPERSET_HOOK_HARNESS: "omp"');
 	});
 
 	it("installs the Oh My Pi extension into the global ~/.omp/agent/extensions directory", () => {

@@ -14,9 +14,9 @@ import { join } from "node:path";
 // popover, wheel scrolling inside the project list reaches that scrollable
 // wrapper and the dropdown can't scroll past the first ~8 items.
 //
-// Every other picker in this file and in the dashboard variant uses the same
+// The sibling branch picker and the dashboard variant uses the same
 // `onWheel={(event) => event.stopPropagation()}` mitigation — see
-// CompareBaseBranchPickerInline below in the same file, and
+// components/CompareBaseBranchPickerInline, and
 // routes/_authenticated/components/DashboardNewWorkspaceModal/.../ProjectPickerPill.tsx.
 describe("ProjectPickerPill (PromptGroup)", () => {
 	const source = readFileSync(join(import.meta.dir, "PromptGroup.tsx"), "utf8");
@@ -86,10 +86,16 @@ describe("ProjectPickerPill (PromptGroup)", () => {
 		);
 	});
 
-	test("matches the pattern used by every other picker in this file", () => {
-		// Sanity-check: the sibling picker in the same file already has the fix.
+	test("matches the wheel handling of the sibling branch picker", () => {
+		// Sanity-check: the sibling picker already has the fix.
 		// If it ever loses it, this regression class will resurface.
-		const sibling = extractFunctionSource("CompareBaseBranchPickerInline");
+		const sibling = readFileSync(
+			join(
+				import.meta.dir,
+				"components/CompareBaseBranchPickerInline/CompareBaseBranchPickerInline.tsx",
+			),
+			"utf8",
+		);
 		const siblingPopover = extractPopoverContentProps(sibling);
 		expect(siblingPopover).toMatch(
 			/onWheel=\{[\s\S]*?\.stopPropagation\(\)[\s\S]*?\}/,

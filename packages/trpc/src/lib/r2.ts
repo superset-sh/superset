@@ -1,4 +1,5 @@
 import {
+	CopyObjectCommand,
 	DeleteObjectsCommand,
 	GetObjectCommand,
 	HeadObjectCommand,
@@ -73,6 +74,32 @@ export async function putObject({
 			Key: key,
 			Body: body,
 			ContentType: contentType,
+		}),
+	);
+}
+
+/**
+ * A server-side copy within the private bucket: the bytes never leave
+ * storage. The stored type is replaced, not carried over, so what the copy
+ * serves as is decided here rather than by whoever uploaded the source.
+ */
+export async function copyObject({
+	sourceKey,
+	key,
+	contentType,
+}: {
+	sourceKey: string;
+	key: string;
+	contentType: string;
+}): Promise<void> {
+	const bucket = bucketName("private");
+	await s3().send(
+		new CopyObjectCommand({
+			Bucket: bucket,
+			CopySource: `${bucket}/${sourceKey}`,
+			Key: key,
+			ContentType: contentType,
+			MetadataDirective: "REPLACE",
 		}),
 	);
 }

@@ -1,20 +1,19 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import {
-	isPluginExternallyConfigured,
-	PLUGIN_CATALOG,
-	PLUGIN_CATEGORIES,
-	type PluginCatalogEntry,
-} from "@superset/shared/plugins";
+import { PLUGIN_CATEGORIES } from "@superset/shared/plugins";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
+import { Skeleton } from "@superset/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { LuSearch, LuSettings2 } from "react-icons/lu";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PluginIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginIcon";
+import {
+	type CatalogPlugin,
+	usePluginCatalog,
+} from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginCatalog";
 import { usePluginMutations } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginMutations";
 import { ManageInstalledDialog } from "./components/ManageInstalledDialog";
 import { PluginCard } from "./components/PluginCard";
@@ -26,31 +25,18 @@ export function PluginsView() {
 	const [isManageOpen, setIsManageOpen] = useState(false);
 	const navigate = useNavigate();
 
-	const { data: installed } = electronTrpc.plugins.listInstalled.useQuery();
-	const installedNames = useMemo(
-		() => new Set((installed ?? []).map((entry) => entry.name)),
-		[installed],
-	);
-	const disabledNames = useMemo(
-		() =>
-			new Set(
-				(installed ?? [])
-					.filter((entry) => entry.enabled === false)
-					.map((entry) => entry.name),
-			),
-		[installed],
-	);
-	const { data: externalServers } =
-		electronTrpc.plugins.listExternalServers.useQuery();
-	// One state: an install record OR the user's own config both count as
-	// installed (having it = installed).
-	const isInstalled = (plugin: PluginCatalogEntry) =>
-		installedNames.has(plugin.name) ||
-		isPluginExternallyConfigured(plugin, externalServers ?? []);
+	const {
+		plugins: catalog,
+		isLoading: isCatalogLoading,
+		error: catalogError,
+	} = usePluginCatalog();
 
-	const { install, uninstall, setEnabled, isBusy } = usePluginMutations();
+	const isConnected = (plugin: CatalogPlugin) =>
+		plugin.installed && (!plugin.auth || plugin.connections.length > 0);
 
-	const handleOpen = (plugin: PluginCatalogEntry) => {
+	const { uninstall, setEnabled, update, isBusy } = usePluginMutations();
+
+	const handleOpen = (plugin: CatalogPlugin) => {
 		navigate({
 			to: "/plugins/$pluginName",
 			params: { pluginName: plugin.name },
@@ -59,8 +45,9 @@ export function PluginsView() {
 
 	const query = search.trim().toLowerCase();
 	const visiblePlugins = useMemo(() => {
-		if (query === "") return [...PLUGIN_CATALOG];
-		return PLUGIN_CATALOG.filter((plugin) =>
+		const all: CatalogPlugin[] = catalog;
+		if (query === "") return all;
+		return all.filter((plugin) =>
 			[
 				plugin.name,
 				plugin.interface.displayName,
@@ -71,9 +58,10 @@ export function PluginsView() {
 				.toLowerCase()
 				.includes(query),
 		);
-	}, [query]);
+	}, [query, catalog]);
 
-	const installedPlugins = visiblePlugins.filter(isInstalled);
+	const installedPlugins = visiblePlugins.filter((plugin) => plugin.installed);
+	const allInstalled = catalog.filter((plugin) => plugin.installed);
 	const featured = visiblePlugins.filter((plugin) => plugin.featured);
 	// Featured plugins appear in their category section too — Featured is a
 	// spotlight, not a home.
@@ -84,17 +72,39 @@ export function PluginsView() {
 		),
 	})).filter(({ plugins }) => plugins.length > 0);
 
-	const renderCard = (plugin: PluginCatalogEntry) => (
+	const skeletonCards = (
+		<section className="flex flex-col gap-3">
+			<Skeleton className="h-5 w-24" />
+			<div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+				{Array.from({ length: 6 }, (_, index) => (
+					<div
+						// biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
+						key={index}
+						className="flex items-center gap-3 rounded-lg p-3"
+					>
+						<Skeleton className="size-9 shrink-0 rounded-lg" />
+						<div className="flex min-w-0 flex-1 flex-col gap-1.5">
+							<Skeleton className="h-4 w-28" />
+							<Skeleton className="h-3 w-full max-w-56" />
+						</div>
+					</div>
+				))}
+			</div>
+		</section>
+	);
+
+	const renderCard = (plugin: CatalogPlugin) => (
 		<PluginCard
 			key={plugin.name}
 			plugin={plugin}
-			isInstalled={isInstalled(plugin)}
-			isDisabled={disabledNames.has(plugin.name)}
+			isInstalled={plugin.installed}
+			isConnected={isConnected(plugin)}
+			isDisabled={plugin.installed && !plugin.enabled}
 			isBusy={isBusy}
 			onOpen={handleOpen}
-			onInstall={(target) => install(target.name)}
 			onUninstall={(target) => uninstall(target.name)}
 			onSetEnabled={setEnabled}
+			onUpdate={(name) => void update(name)}
 		/>
 	);
 
@@ -132,7 +142,9 @@ export function PluginsView() {
 						/>
 					</div>
 
-					{installedPlugins.length > 0 && (
+					{isCatalogLoading && skeletonCards}
+
+					{!isCatalogLoading && installedPlugins.length > 0 && (
 						<section className="flex flex-col gap-3">
 							<div className="flex items-center justify-between">
 								<h2 className="text-sm font-semibold text-foreground">
@@ -165,9 +177,7 @@ export function PluginsView() {
 												type="button"
 												aria-label={plugin.interface.displayName}
 												onClick={() => handleOpen(plugin)}
-												className={cn(
-													disabledNames.has(plugin.name) && "opacity-40",
-												)}
+												className={cn(!plugin.enabled && "opacity-40")}
 											>
 												<PluginIcon
 													pluginName={plugin.name}
@@ -177,7 +187,7 @@ export function PluginsView() {
 										</TooltipTrigger>
 										<TooltipContent>
 											{plugin.interface.displayName}
-											{disabledNames.has(plugin.name) ? (
+											{!plugin.enabled ? (
 												<>
 													{" "}
 													<Trans>(disabled)</Trans>
@@ -214,16 +224,33 @@ export function PluginsView() {
 						</section>
 					))}
 
-					{visiblePlugins.length === 0 && (
+					{visiblePlugins.length === 0 && query !== "" && (
 						<p className="py-8 text-center text-sm text-muted-foreground">
 							<Trans>No plugins match "{search.trim()}"</Trans>
 						</p>
 					)}
 
+					{catalogError && (
+						<p className="py-8 text-center text-sm text-muted-foreground">
+							<Trans>
+								Could not load plugins. Check your connection and try again.
+							</Trans>
+						</p>
+					)}
+
+					{!catalogError &&
+						!isCatalogLoading &&
+						catalog.length === 0 &&
+						query === "" && (
+							<p className="py-8 text-center text-sm text-muted-foreground">
+								<Trans>No plugins available yet.</Trans>
+							</p>
+						)}
+
 					<ManageInstalledDialog
 						open={isManageOpen}
 						onOpenChange={setIsManageOpen}
-						installed={installed ?? []}
+						installed={allInstalled}
 						isBusy={isBusy}
 						onSetEnabled={setEnabled}
 						onUninstall={uninstall}

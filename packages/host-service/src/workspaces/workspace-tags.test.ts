@@ -9,6 +9,7 @@ import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceChangedMessage } from "../events/types";
 import {
+	getWorkspaceTagAssignments,
 	getWorkspaceTags,
 	getWorkspaceTagsByWorkspaceId,
 	insertLocalWorkspace,
@@ -45,7 +46,11 @@ function createTestEventBus(): {
 function seedWorkspace(
 	db: HostDb,
 	eventBus: EventBus,
-	{ id, tags }: { id: string; tags?: string[] },
+	{
+		id,
+		tags,
+		createdByUserId,
+	}: { id: string; tags?: string[]; createdByUserId?: string },
 ) {
 	return insertLocalWorkspace(
 		{ db, eventBus },
@@ -55,6 +60,7 @@ function seedWorkspace(
 			worktreePath: `/tmp/${id}`,
 			branch: id,
 			name: id,
+			createdByUserId,
 			tags,
 		},
 	);
@@ -69,7 +75,7 @@ describe("workspace tags store", () => {
 			tags: ["Perf", " perf ", "Alpha"],
 		});
 		expect(
-			getWorkspaceTags(db, "11111111-1111-4111-8111-111111111111"),
+			getWorkspaceTags(db, "11111111-1111-4111-8111-111111111111", null),
 		).toEqual(["alpha", "perf"]);
 		expect(messages[0]?.workspace?.tags).toEqual(["alpha", "perf"]);
 	});
@@ -79,7 +85,7 @@ describe("workspace tags store", () => {
 		const { eventBus, messages } = createTestEventBus();
 		seedWorkspace(db, eventBus, { id: "22222222-2222-4222-8222-222222222222" });
 		expect(
-			getWorkspaceTags(db, "22222222-2222-4222-8222-222222222222"),
+			getWorkspaceTags(db, "22222222-2222-4222-8222-222222222222", null),
 		).toEqual([]);
 		expect(messages[0]?.workspace?.tags).toEqual([]);
 	});
@@ -91,11 +97,11 @@ describe("workspace tags store", () => {
 		seedWorkspace(db, eventBus, { id, tags: ["old-a", "old-b"] });
 
 		updateLocalWorkspace({ db, eventBus }, id, { tags: ["New", "zeta"] });
-		expect(getWorkspaceTags(db, id)).toEqual(["new", "zeta"]);
+		expect(getWorkspaceTags(db, id, null)).toEqual(["new", "zeta"]);
 		expect(messages.at(-1)?.workspace?.tags).toEqual(["new", "zeta"]);
 
 		updateLocalWorkspace({ db, eventBus }, id, { tags: [] });
-		expect(getWorkspaceTags(db, id)).toEqual([]);
+		expect(getWorkspaceTags(db, id, null)).toEqual([]);
 	});
 
 	it("update without a tags field leaves tags untouched", () => {
@@ -105,7 +111,7 @@ describe("workspace tags store", () => {
 		seedWorkspace(db, eventBus, { id, tags: ["keep"] });
 
 		updateLocalWorkspace({ db, eventBus }, id, { name: "renamed" });
-		expect(getWorkspaceTags(db, id)).toEqual(["keep"]);
+		expect(getWorkspaceTags(db, id, null)).toEqual(["keep"]);
 		expect(messages.at(-1)?.workspace?.tags).toEqual(["keep"]);
 	});
 
@@ -117,11 +123,11 @@ describe("workspace tags store", () => {
 		seedWorkspace(db, eventBus, { id: a, tags: ["zeta", "alpha"] });
 		seedWorkspace(db, eventBus, { id: b, tags: ["solo"] });
 
-		const map = getWorkspaceTagsByWorkspaceId(db, [a, b, "missing"]);
+		const map = getWorkspaceTagsByWorkspaceId(db, [a, b, "missing"], null);
 		expect(map.get(a)).toEqual(["alpha", "zeta"]);
 		expect(map.get(b)).toEqual(["solo"]);
 		expect(map.has("missing")).toBe(false);
-		expect(getWorkspaceTagsByWorkspaceId(db, [])).toEqual(new Map());
+		expect(getWorkspaceTagsByWorkspaceId(db, [], null)).toEqual(new Map());
 	});
 
 	it("deleting a workspace cascades its tag rows", () => {
@@ -139,6 +145,131 @@ describe("workspace tags store", () => {
 		const { eventBus } = createTestEventBus();
 		const id = "88888888-8888-4888-8888-888888888888";
 		seedWorkspace(db, eventBus, { id, tags: ["Dup", "dup", " DUP "] });
-		expect(getWorkspaceTags(db, id)).toEqual(["dup"]);
+		expect(getWorkspaceTags(db, id, null)).toEqual(["dup"]);
+	});
+
+	describe("per-user visibility", () => {
+		const id = "99999999-9999-4999-8999-999999999999";
+
+		it("stamps the workspace creator on tags written at create", () => {
+			const db = createTestDb();
+			const { eventBus, messages } = createTestEventBus();
+			seedWorkspace(db, eventBus, {
+				id,
+				tags: ["perf"],
+				createdByUserId: "user-a",
+			});
+			expect(getWorkspaceTagAssignments(db, id)).toEqual([
+				{ tag: "perf", createdByUserId: "user-a" },
+			]);
+			expect(messages[0]?.workspace?.tagAssignments).toEqual([
+				{ tag: "perf", createdByUserId: "user-a" },
+			]);
+			expect(getWorkspaceTags(db, id, "user-a")).toEqual(["perf"]);
+			expect(getWorkspaceTags(db, id, "user-b")).toEqual([]);
+			expect(getWorkspaceTagsByWorkspaceId(db, [id], "user-b").has(id)).toBe(
+				false,
+			);
+		});
+
+		it("stamps the acting user when the row itself has no creator", () => {
+			const db = createTestDb();
+			const { eventBus } = createTestEventBus();
+			insertLocalWorkspace(
+				{ db, eventBus, userId: "user-a" },
+				{
+					id,
+					projectId: null,
+					worktreePath: `/tmp/${id}`,
+					branch: id,
+					name: id,
+					tags: ["adopted"],
+				},
+			);
+			expect(getWorkspaceTagAssignments(db, id)).toEqual([
+				{ tag: "adopted", createdByUserId: "user-a" },
+			]);
+		});
+
+		it("a creator-less tag is visible to everyone", () => {
+			const db = createTestDb();
+			const { eventBus } = createTestEventBus();
+			seedWorkspace(db, eventBus, { id, tags: ["legacy"] });
+			expect(getWorkspaceTagAssignments(db, id)).toEqual([
+				{ tag: "legacy", createdByUserId: null },
+			]);
+			expect(getWorkspaceTags(db, id, "user-b")).toEqual(["legacy"]);
+		});
+
+		it("a user's update replaces only their own set", () => {
+			const db = createTestDb();
+			const { eventBus, messages } = createTestEventBus();
+			seedWorkspace(db, eventBus, {
+				id,
+				tags: ["perf"],
+				createdByUserId: "user-a",
+			});
+
+			updateLocalWorkspace({ db, eventBus, userId: "user-b" }, id, {
+				tags: ["mine"],
+			});
+			expect(getWorkspaceTags(db, id, "user-a")).toEqual(["perf"]);
+			expect(getWorkspaceTags(db, id, "user-b")).toEqual(["mine"]);
+			// The broadcast carries the union with owners, so every client can
+			// keep its own.
+			expect(messages.at(-1)?.workspace?.tags).toEqual(["mine", "perf"]);
+
+			updateLocalWorkspace({ db, eventBus, userId: "user-b" }, id, {
+				tags: [],
+			});
+			expect(getWorkspaceTags(db, id, "user-a")).toEqual(["perf"]);
+			expect(getWorkspaceTags(db, id, "user-b")).toEqual([]);
+		});
+
+		it("two users can carry the same tag on one workspace", () => {
+			const db = createTestDb();
+			const { eventBus } = createTestEventBus();
+			seedWorkspace(db, eventBus, {
+				id,
+				tags: ["perf"],
+				createdByUserId: "user-a",
+			});
+			updateLocalWorkspace({ db, eventBus, userId: "user-b" }, id, {
+				tags: ["perf"],
+			});
+			expect(getWorkspaceTags(db, id, "user-a")).toEqual(["perf"]);
+			expect(getWorkspaceTags(db, id, "user-b")).toEqual(["perf"]);
+			updateLocalWorkspace({ db, eventBus, userId: "user-a" }, id, {
+				tags: [],
+			});
+			expect(getWorkspaceTags(db, id, "user-b")).toEqual(["perf"]);
+		});
+
+		it("a user's update claims creator-less tags they read back", () => {
+			const db = createTestDb();
+			const { eventBus } = createTestEventBus();
+			seedWorkspace(db, eventBus, { id, tags: ["legacy"] });
+			updateLocalWorkspace({ db, eventBus, userId: "user-b" }, id, {
+				tags: ["legacy", "mine"],
+			});
+			expect(getWorkspaceTagAssignments(db, id)).toEqual([
+				{ tag: "legacy", createdByUserId: "user-b" },
+				{ tag: "mine", createdByUserId: "user-b" },
+			]);
+		});
+
+		it("an update with no user replaces everything, as before", () => {
+			const db = createTestDb();
+			const { eventBus } = createTestEventBus();
+			seedWorkspace(db, eventBus, {
+				id,
+				tags: ["perf"],
+				createdByUserId: "user-a",
+			});
+			updateLocalWorkspace({ db, eventBus }, id, { tags: ["all"] });
+			expect(getWorkspaceTagAssignments(db, id)).toEqual([
+				{ tag: "all", createdByUserId: null },
+			]);
+		});
 	});
 });

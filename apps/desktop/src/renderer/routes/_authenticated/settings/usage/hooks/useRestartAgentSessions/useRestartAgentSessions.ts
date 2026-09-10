@@ -7,9 +7,9 @@ export type RestartableUsageAgent = "claude" | "codex";
 /**
  * The account-switch restart flow. `countRestartCandidates` sizes the ask
  * (running agents keep the previous account because their PTY env froze at
- * spawn); the mutation kills each one crash-style so the standard
- * auto-resume relaunches it with its own session id — same conversation,
- * new default account.
+ * spawn); the mutation has the host kill and relaunch each one with its own
+ * session id — same conversation, new default account — and open panes
+ * follow the session to its new terminal.
  */
 export function useRestartAgentSessions(hostUrl: string | null) {
 	const countRestartCandidates = useCallback(

@@ -1,7 +1,8 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { FoldVertical, UnfoldVertical } from "lucide-react";
+import { cn } from "@superset/ui/utils";
+import { FoldVertical, Search, UnfoldVertical } from "lucide-react";
 import type {
 	ChangesFilter,
 	ChangesViewMode,
@@ -22,6 +23,10 @@ interface ChangesToolbarProps {
 	collapsed: boolean;
 	/** Toggle between collapse-all and expand-all across every section. */
 	onToggleFold: () => void;
+	/** Whether the file search row below the toolbar is showing. */
+	searchOpen: boolean;
+	/** Show/hide the file search row (hiding clears the query). */
+	onToggleSearch: () => void;
 	baseBranch: string;
 	branches: Branch[];
 	onBaseBranchChange: (branchName: string) => void;
@@ -33,7 +38,7 @@ interface ChangesToolbarProps {
 /**
  * The panel's one control row: a scope sentence on the left — the diff
  * filter, then "vs <base>" while the scope is actually measured against the
- * base — and the view-mode / fold utilities right-aligned. Branch identity
+ * base — and the search / view-mode / fold utilities right-aligned. Branch identity
  * and rename live inside the scope dropdown; counts and diffstats live on
  * the section headers. The fold action applies to every section's folder
  * groups (folders mode) or tree directories (tree mode).
@@ -47,6 +52,8 @@ export function ChangesToolbar({
 	onViewModeChange,
 	collapsed,
 	onToggleFold,
+	searchOpen,
+	onToggleSearch,
 	baseBranch,
 	branches,
 	onBaseBranchChange,
@@ -61,6 +68,9 @@ export function ChangesToolbar({
 				message: "Collapse all",
 			});
 	const Icon = collapsed ? UnfoldVertical : FoldVertical;
+	const searchLabel = t({
+		message: "Search changed files",
+	});
 	return (
 		<div className="flex min-w-0 items-center gap-1 overflow-hidden py-1 pr-1 pl-1.5 text-xs">
 			<CommitFilterDropdown
@@ -87,6 +97,24 @@ export function ChangesToolbar({
 				</span>
 			)}
 			<div className="ml-auto flex shrink-0 items-center gap-0.5">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className={cn(
+								"size-7 text-muted-foreground hover:text-foreground",
+								searchOpen && "bg-accent text-foreground",
+							)}
+							onClick={onToggleSearch}
+							aria-label={searchLabel}
+							aria-pressed={searchOpen}
+						>
+							<Search className="size-3.5" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom">{searchLabel}</TooltipContent>
+				</Tooltip>
 				<ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
 				<Tooltip>
 					<TooltipTrigger asChild>

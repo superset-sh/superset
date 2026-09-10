@@ -250,7 +250,9 @@ export function createMarkdownExtensions({
 				rel: "noopener noreferrer",
 			},
 		}),
-		SafeImage,
+		// markdown-it already restricts data: sources to data:image/*; without
+		// this the image extension drops them and the paragraph renders empty.
+		SafeImage.configure({ allowBase64: true }),
 		// Individual table nodes (not TableKit) so a GFM markdown serializer can be
 		// attached to the `table` node's `storage.markdown`, replacing
 		// tiptap-markdown's built-in serializer that emits `[table]`. The

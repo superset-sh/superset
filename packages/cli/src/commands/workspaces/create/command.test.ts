@@ -36,6 +36,7 @@ function invoke(
 		tag?: string[];
 		project?: string | undefined;
 		branch?: string | undefined;
+		model?: string;
 	} = {},
 ) {
 	return createWorkspaceCommand.run({
@@ -60,6 +61,24 @@ afterEach(() => {
 });
 
 describe("workspaces create", () => {
+	test("forwards model to the agent launched with the workspace", async () => {
+		await invoke({
+			agent: "claude",
+			prompt: "Implement the feature",
+			model: "sonnet",
+		});
+
+		expect(createInput).toMatchObject({
+			agents: [
+				{
+					agent: "claude",
+					prompt: "Implement the feature",
+					model: "sonnet",
+				},
+			],
+		});
+	});
+
 	test("forwards effort to the agent launched with the workspace", async () => {
 		await invoke({
 			agent: "claude",
@@ -99,6 +118,13 @@ describe("workspaces create", () => {
 		await expect(
 			invoke({ project: undefined, branch: undefined, tag: ["perf"] }),
 		).rejects.toThrow(/--tag requires --project/);
+		expect(createInput).toBeUndefined();
+	});
+
+	test("rejects model when no agent is selected", async () => {
+		await expect(invoke({ model: "sonnet" })).rejects.toThrow(
+			/--model requires --agent/,
+		);
 		expect(createInput).toBeUndefined();
 	});
 });

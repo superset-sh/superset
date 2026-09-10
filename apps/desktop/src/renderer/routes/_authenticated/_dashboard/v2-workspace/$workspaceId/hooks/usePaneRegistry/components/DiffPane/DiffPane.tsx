@@ -1,7 +1,8 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 import type {
 	CodeViewItem,
 	DiffLineAnnotation,
+	FileDiffLoadedFiles,
 	FileDiffMetadata,
 	LineAnnotation,
 	FileContents as PierreFileContents,
@@ -16,11 +17,10 @@ import { errorMessage } from "@superset/i18n/errors";
 
 import type { RendererContext } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
-import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LuFileCode } from "react-icons/lu";
+import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import {
 	createPaneScrollStateKey,
 	getPaneScrollState,
@@ -41,6 +41,7 @@ import { useOpenInExternalEditor } from "../../../useOpenInExternalEditor";
 import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
 import { AgentCommentComposer } from "../AgentCommentComposer";
+import { BinaryDiffPreview } from "./components/BinaryDiffPreview";
 import { CommentThread } from "./components/CommentThread";
 import { DeferredDiffPlaceholder } from "./components/DeferredDiffPlaceholder";
 import { DiffHeaderMetadata } from "./components/DiffHeaderMetadata";
@@ -57,7 +58,10 @@ import { useDiffCommentComposer } from "./hooks/useDiffCommentComposer";
 import { useDiffCommentNavigation } from "./hooks/useDiffCommentNavigation";
 import { useDiffPaneSearch } from "./hooks/useDiffPaneSearch";
 import { createGetDiffInput } from "./utils/createGetDiffInput";
-import { isDiffContentTooLarge } from "./utils/diffLoadingGuards";
+import {
+	isDiffContentStale,
+	isDiffContentTooLarge,
+} from "./utils/diffLoadingGuards";
 import { getCharacterOffsetAtClientX } from "./utils/getCharacterOffsetAtClientX";
 
 interface CreateNewAgentSessionInput {
@@ -119,9 +123,29 @@ export function DiffPane({
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
 	});
+	const worktreePath = workspaceQuery.data?.worktreePath;
 	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
 	const utils = workspaceTrpc.useUtils();
 	const { trpcClient } = useWorkspaceClient();
+	// Binary previews of the index or HEAD side don't change their query key
+	// when git state moves, so refetch them on git events. Scope to the
+	// reported paths when we have them so an unrelated edit doesn't refetch
+	// every preview on screen. The working-tree side follows the shared
+	// document store's fs watch and needs nothing here.
+	useWorkspaceEvent(
+		"git:changed",
+		workspaceId,
+		({ paths }) => {
+			if (!paths) {
+				void utils.git.readDiffSideFile.invalidate({ workspaceId });
+				return;
+			}
+			for (const path of paths) {
+				void utils.git.readDiffSideFile.invalidate({ workspaceId, path });
+			}
+		},
+		!!worktreePath,
+	);
 	const [editingSet, setEditingSet] = useState<ReadonlySet<string>>(new Set());
 	const [dirtyItemIds, setDirtyItemIds] = useState<ReadonlySet<string>>(
 		new Set(),
@@ -446,9 +470,19 @@ export function DiffPane({
 				// hunks we already have.
 				throw new Error(`${file.path} is too large to expand`);
 			}
-			return fileDiff.type === "rename-pure"
-				? { oldFile: null, newFile }
-				: { oldFile, newFile };
+			const loaded: FileDiffLoadedFiles =
+				fileDiff.type === "rename-pure"
+					? { oldFile: null, newFile }
+					: { oldFile, newFile };
+			if (isDiffContentStale(fileDiff, loaded)) {
+				// The file moved on after its patch was cached, so these lines
+				// don't line up with the hunks they'd be hydrated into.
+				// Staying partial keeps the patch's hunks on screen instead of
+				// tearing the pane down; the `git:changed` that follows the
+				// write refetches the patch, and expanding works again.
+				throw new Error(`${file.path} changed since its diff was loaded`);
+			}
+			return loaded;
 		},
 		[files, trpcClient, workspaceId],
 	);
@@ -672,7 +706,14 @@ export function DiffPane({
 				if (item.type !== "file") return null;
 				const file = fileByItemId.get(item.id);
 				if (!file) return null;
-				return <BinaryDiffPlaceholder file={file} onOpenFile={onOpenFile} />;
+				return (
+					<BinaryDiffPreview
+						file={file}
+						workspaceId={workspaceId}
+						worktreePath={worktreePath}
+						onOpenFile={onOpenFile}
+					/>
+				);
 			}
 			if (m.kind === "deferred-placeholder") {
 				if (item.type !== "file") return null;
@@ -722,6 +763,7 @@ export function DiffPane({
 					isOutdated={m.isOutdated}
 					url={m.url}
 					comments={m.comments}
+					replyToCommentId={m.replyToCommentId}
 					focusTick={
 						focused
 							? data.focusTick
@@ -746,6 +788,7 @@ export function DiffPane({
 			commentNav.isNavFocused,
 			commentNav.navFocusTick,
 			t,
+			worktreePath,
 		],
 	);
 
@@ -813,34 +856,6 @@ export function DiffPane({
 					</EditProvider>
 				</div>
 			)}
-		</div>
-	);
-}
-
-function BinaryDiffPlaceholder({
-	file,
-	onOpenFile,
-}: {
-	file: ChangesetFile;
-	onOpenFile: (path: string, openInNewTab?: boolean) => void;
-}) {
-	const canOpen = file.status !== "deleted";
-
-	return (
-		<div className="flex flex-col items-center justify-center gap-3 bg-muted/30 py-8 text-muted-foreground">
-			<LuFileCode className="size-8" />
-			<p className="cursor-text select-text text-sm">
-				<Trans>Binary file hidden</Trans>
-			</p>
-			{canOpen ? (
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => onOpenFile(file.path)}
-				>
-					<Trans>Open file</Trans>
-				</Button>
-			) : null}
 		</div>
 	);
 }

@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import {
 	type RefObject,
 	useCallback,
@@ -150,6 +152,8 @@ function measureDiffRegions(
 export function DiffScrollbarDecorations({
 	scrollContainerRef,
 }: DiffScrollbarDecorationsProps) {
+	const { _: translate } = useTranslation();
+
 	const activeTheme = useResolvedTheme();
 	const structureSignatureRef = useRef<string | null>(null);
 	const [viewportRatio, setViewportRatio] = useState<{
@@ -333,7 +337,7 @@ export function DiffScrollbarDecorations({
 	return (
 		<button
 			type="button"
-			aria-label="Diff change overview"
+			aria-label={translate(msg({ message: "Diff change overview" }))}
 			className="absolute top-0 right-0 bottom-0 w-2 cursor-pointer border-0 bg-transparent p-0"
 			onClick={handleClick}
 			onKeyDown={handleKeyDown}

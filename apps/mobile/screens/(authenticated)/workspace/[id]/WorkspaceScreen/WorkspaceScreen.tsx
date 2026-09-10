@@ -7,7 +7,6 @@ import type {
 	ComposerSessionTab,
 } from "@superset/composer";
 import { i18n } from "@superset/i18n";
-import { errorMessage } from "@superset/i18n/errors";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -31,6 +30,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { getHostWorkspacesQueryKey } from "@/hooks/useHostWorkspaces";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -46,6 +46,7 @@ import { useAgentIconUris } from "@/screens/(authenticated)/hooks/useAgentIconUr
 import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { useSlashCommands } from "@/screens/(authenticated)/hooks/useSlashCommands";
+import { useLastSessionTabStore } from "@/screens/(authenticated)/stores/lastSessionTabStore";
 import { usePendingWorkspaceCreatesStore } from "@/screens/(authenticated)/stores/pendingWorkspaceCreatesStore";
 import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalSeenStore";
 import { useTerminalTabOrderStore } from "@/screens/(authenticated)/stores/terminalTabOrderStore";
@@ -144,17 +145,42 @@ export function WorkspaceScreen() {
 		[terminalsByWorkspace, id, savedOrder],
 	);
 
-	// Active tab: the deep-linked ?tab= until the user switches, else the
-	// first session. Falls back gracefully when the active terminal dies.
+	// Active tab: the deep-linked ?tab= until the user switches, then the tab
+	// this workspace was left on, else the first session. A deep link names a
+	// session on purpose — a notification has to win over what the device
+	// remembers. Falls back gracefully when a candidate's terminal has died.
 	const [pickedTerminalId, setPickedTerminalId] = useState<string | null>(null);
+	const rememberedTerminalId = useLastSessionTabStore((state) =>
+		id ? state.tabByWorkspace[id] : undefined,
+	);
+	const tabsHydrated = useLastSessionTabStore((state) => state.hasHydrated);
 	const activeTerminalId = useMemo(() => {
-		for (const candidate of [pickedTerminalId, params.tab]) {
+		// Nothing to resolve against until AsyncStorage answers (~165ms cold):
+		// picking the first row now attaches a stream to the wrong session and
+		// swaps it out from under the user when the remembered tab lands.
+		if (!tabsHydrated) return null;
+		for (const candidate of [
+			pickedTerminalId,
+			params.tab,
+			rememberedTerminalId,
+		]) {
 			if (candidate && rows.some((row) => row.terminalId === candidate)) {
 				return candidate;
 			}
 		}
 		return rows[0]?.terminalId ?? null;
-	}, [pickedTerminalId, params.tab, rows]);
+	}, [tabsHydrated, pickedTerminalId, params.tab, rememberedTerminalId, rows]);
+
+	// Remembered here rather than in the tab-strip handler: every route into a
+	// session ends at this value — the strip, the sessions sheet, a new
+	// session's ?tab=, the fallback when the one you were on exits — and the
+	// effect writes once per change instead of once per render.
+	const setLastSessionTab = useLastSessionTabStore(
+		(state) => state.setLastSessionTab,
+	);
+	useEffect(() => {
+		if (id && activeTerminalId) setLastSessionTab(id, activeTerminalId);
+	}, [id, activeTerminalId, setLastSessionTab]);
 
 	// --- pending create (enqueued via `workspaces.createEnqueued`) ---
 	// The settled event only exists on the desktop's event bus, so poll the
@@ -169,11 +195,23 @@ export function WorkspaceScreen() {
 		(state) => state.fail,
 	);
 	const createWorkspace = useCreateTerminalWorkspace();
+	// Latches while an unproven failure is being checked against the host, so
+	// a second tap cannot start the duplicate the check exists to prevent.
+	const [retryingCreate, setRetryingCreate] = useState(false);
+	// A back-swipe unmounts this screen without clearing the pending entry, so
+	// the check needs its own liveness signal before it acts on the answer.
+	const screenLive = useRef(true);
+	useEffect(() => {
+		screenLive.current = true;
+		return () => {
+			screenLive.current = false;
+		};
+	}, []);
 	const isCreating =
-		!!pendingCreate && !pendingCreate.error && rows.length === 0;
+		!!pendingCreate && !pendingCreate.failure && rows.length === 0;
 	const workspaceResolved = workspace !== null;
 	const createFailed =
-		!!pendingCreate?.error && !workspaceResolved && rows.length === 0;
+		!!pendingCreate?.failure && !workspaceResolved && rows.length === 0;
 
 	// Poll through the failed state too: a relay timeout can reject a create
 	// the host actually finished, and the row arriving is what heals it.
@@ -196,7 +234,7 @@ export function WorkspaceScreen() {
 
 	// The launched session arrived — the create is done for this screen.
 	useEffect(() => {
-		if (pendingCreate && !pendingCreate.error && rows.length > 0) {
+		if (pendingCreate && !pendingCreate.failure && rows.length > 0) {
 			clearPendingCreate(pendingCreate.workspaceId);
 		}
 	}, [pendingCreate, rows.length, clearPendingCreate]);
@@ -205,7 +243,7 @@ export function WorkspaceScreen() {
 	// synchronous create that timed out at the relay while the host finished
 	// anyway) — the real workspace wins over the failed state.
 	useEffect(() => {
-		if (pendingCreate?.error && workspaceResolved) {
+		if (pendingCreate?.failure && workspaceResolved) {
 			clearPendingCreate(pendingCreate.workspaceId);
 		}
 	}, [pendingCreate, workspaceResolved, clearPendingCreate]);
@@ -213,19 +251,19 @@ export function WorkspaceScreen() {
 	// No row within the backstop: the create died host-side and there is no
 	// event channel to say so. Resolve to the failed state rather than spin.
 	useEffect(() => {
-		if (!pendingCreate || pendingCreate.error || workspaceResolved) return;
+		if (!pendingCreate || pendingCreate.failure || workspaceResolved) return;
 		const workspaceId = pendingCreate.workspaceId;
 		const remaining = Math.max(
 			0,
 			pendingCreate.startedAt + PENDING_CREATE_ROW_TIMEOUT_MS - Date.now(),
 		);
 		const timer = setTimeout(() => {
-			failPendingCreate(
-				workspaceId,
-				t({
-					message: "Timed out waiting for the host to create the workspace.",
-				}),
-			);
+			// The backstop only means the host has not answered inside the
+			// window — it may still be working, so the outcome is unknown.
+			failPendingCreate(workspaceId, {
+				outcome: "unknown",
+				message: t({ message: "The host hasn't answered." }),
+			});
 		}, remaining);
 		return () => clearTimeout(timer);
 	}, [pendingCreate, workspaceResolved, failPendingCreate, t]);
@@ -233,7 +271,7 @@ export function WorkspaceScreen() {
 	// Row landed but no session followed (agent failed to launch): fall
 	// through to the regular empty state instead of spinning.
 	useEffect(() => {
-		if (!pendingCreate || pendingCreate.error || !workspaceResolved) return;
+		if (!pendingCreate || pendingCreate.failure || !workspaceResolved) return;
 		const workspaceId = pendingCreate.workspaceId;
 		const timer = setTimeout(
 			() => clearPendingCreate(workspaceId),
@@ -244,11 +282,60 @@ export function WorkspaceScreen() {
 
 	// Retry mints a fresh id and re-enters Creating via replace, so back
 	// never returns to the dead failed state (desktop's `replace: true`).
-	const retryCreate = useCallback(() => {
-		if (!pendingCreate) return;
-		clearPendingCreate(pendingCreate.workspaceId);
-		createWorkspace.mutate({ ...pendingCreate.input, replace: true });
-	}, [pendingCreate, clearPendingCreate, createWorkspace]);
+	//
+	// A fresh id is also why an unproven failure has to be checked first: if
+	// the host finished the create the relay gave up on, retrying would leave
+	// the user with two worktrees and no way to tell which is which. Ask the
+	// host directly rather than trusting the poll to have landed yet.
+	const retryCreate = useCallback(async () => {
+		if (!pendingCreate || retryingCreate) return;
+		const { workspaceId, hostId, hostUrl, input, failure } = pendingCreate;
+		if (failure?.outcome === "unknown") {
+			setRetryingCreate(true);
+			const rows = await getHostServiceClientByUrl(hostUrl)
+				.workspace.list.query()
+				.catch(() => null);
+			setRetryingCreate(false);
+			// The screen moved on while we were asking — the user left, or the
+			// poll resolved it. Creating now would land a workspace nobody is
+			// waiting on.
+			if (
+				!screenLive.current ||
+				!usePendingWorkspaceCreatesStore.getState().pendingById[workspaceId]
+			) {
+				return;
+			}
+			if (rows === null) {
+				// The host did not answer either, so the first create is still
+				// unproven. Creating on a guess is the one thing this check
+				// exists to prevent.
+				failPendingCreate(workspaceId, {
+					outcome: "unknown",
+					message: t({ message: "Still can't reach the host." }),
+				});
+				return;
+			}
+			if (rows.some((row) => row.id === workspaceId)) {
+				// It landed after all — the poll's invalidation resolves the
+				// screen onto the real workspace.
+				clearPendingCreate(workspaceId);
+				void queryClient.invalidateQueries({
+					queryKey: getHostWorkspacesQueryKey(hostId, hostUrl),
+				});
+				return;
+			}
+		}
+		clearPendingCreate(workspaceId);
+		createWorkspace.mutate({ ...input, replace: true });
+	}, [
+		pendingCreate,
+		retryingCreate,
+		clearPendingCreate,
+		failPendingCreate,
+		createWorkspace,
+		queryClient,
+		t,
+	]);
 
 	const dismissFailedCreate = useCallback(() => {
 		if (pendingCreate) clearPendingCreate(pendingCreate.workspaceId);
@@ -394,7 +481,7 @@ export function WorkspaceScreen() {
 						t({
 							message: "Could not close the session",
 						}),
-						errorMessage(cause),
+						errorCopy(cause),
 					),
 				)
 				.finally(invalidateTerminals);
@@ -462,6 +549,60 @@ export function WorkspaceScreen() {
 				seq: (prev?.seq ?? 0) + 1,
 			})),
 		[t],
+	);
+
+	// Press and hold a tab → Rename. The prompt lives here rather than in the
+	// composer for the same reason the close confirm does: a context menu
+	// cannot take text, and the name belongs to the host, not to the strip.
+	const renameTerminal = useCallback(
+		(terminalId: string, title: string) => {
+			if (!workspace || !hostUrl) return;
+			void getHostServiceClientByUrl(hostUrl)
+				.terminal.rename.mutate({
+					terminalId,
+					workspaceId: workspace.id,
+					title,
+				})
+				.catch((cause: unknown) =>
+					Alert.alert(
+						t({
+							message: "Could not rename the session",
+						}),
+						errorCopy(cause),
+					),
+				)
+				.finally(invalidateTerminals);
+		},
+		[workspace, hostUrl, invalidateTerminals, t],
+	);
+
+	const promptRenameTerminal = useCallback(
+		(terminalId: string) => {
+			const row = rows.find((candidate) => candidate.terminalId === terminalId);
+			Alert.prompt(
+				t({
+					message: "Rename session",
+				}),
+				t({
+					message:
+						"Leave it empty to go back to the name the terminal reports.",
+				}),
+				[
+					{
+						text: t({ message: "Cancel" }),
+						style: "cancel",
+					},
+					{
+						text: t({ message: "Save" }),
+						onPress: (value?: string) =>
+							renameTerminal(terminalId, value ?? ""),
+					},
+				],
+				"plain-text",
+				row?.customTitle ?? "",
+			);
+		},
+		[rows, renameTerminal, t],
 	);
 
 	// Press and hold a tab → Copy session ID. The pasteboard write lands here
@@ -630,12 +771,13 @@ export function WorkspaceScreen() {
 						}),
 					}}
 				/>
-				{createFailed ? (
+				{createFailed && pendingCreate.failure ? (
 					<WorkspaceCreateFailedState
 						subtitle={subtitle}
-						errorMessage={pendingCreate.error ?? ""}
+						failure={pendingCreate.failure}
+						checking={retryingCreate}
 						prompt={pendingCreate.input.message.text.trim()}
-						onRetry={retryCreate}
+						onRetry={() => void retryCreate()}
 						onDismiss={dismissFailedCreate}
 					/>
 				) : (
@@ -784,7 +926,7 @@ export function WorkspaceScreen() {
 					</>
 				) : cloud && !workspace ? (
 					<CloudWorkspaceProvisioningState cloud={cloud} />
-				) : isResolving || (!isReady && host) ? (
+				) : isResolving || ((!isReady || !tabsHydrated) && host) ? (
 					<Centered>
 						<ActivityIndicator />
 					</Centered>
@@ -840,6 +982,7 @@ export function WorkspaceScreen() {
 					sessionTabs={cloud && !workspace ? [] : sessionTabs}
 					onSessionTabPress={pickTerminal}
 					onSessionTabClose={confirmCloseTerminal}
+					onSessionTabRename={promptRenameTerminal}
 					onSessionTabCopyId={copyTerminalId}
 					onNewSessionPress={openAddMenu}
 					onAllSessionsPress={openSessions}

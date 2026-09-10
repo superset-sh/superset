@@ -43,6 +43,8 @@ struct ComposerSessionTab: Record, Identifiable, Equatable {
 /// Same reasoning as `ComposerQuickKey.label`, which is also handed over rather
 /// than derived.
 struct ComposerSessionTabLabels: Record, Equatable {
+  /// Menu item: opens React Native's prompt for the session's name.
+  @Field var rename: String = ""
   /// Menu item: puts the session's terminal id on the pasteboard.
   @Field var copyId: String = ""
   /// Menu item, destructive. React Native still confirms before killing.
@@ -56,7 +58,7 @@ struct ComposerSessionTabLabels: Record, Equatable {
   @Field var scrollToStart: String = ""
 
   static func == (lhs: ComposerSessionTabLabels, rhs: ComposerSessionTabLabels) -> Bool {
-    lhs.copyId == rhs.copyId && lhs.close == rhs.close
+    lhs.rename == rhs.rename && lhs.copyId == rhs.copyId && lhs.close == rhs.close
       && lhs.newSession == rhs.newSession && lhs.allSessions == rhs.allSessions
       && lhs.scrollToStart == rhs.scrollToStart
   }

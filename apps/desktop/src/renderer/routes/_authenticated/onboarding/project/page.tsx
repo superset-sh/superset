@@ -13,6 +13,7 @@ import {
 } from "react-icons/lu";
 import { showStarNagOnboardingToast } from "renderer/components/StarNagToast";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { track } from "renderer/lib/analytics";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -29,7 +30,6 @@ import { EmptyProjectModal } from "renderer/routes/_authenticated/components/Emp
 import { GhAuthDialog } from "renderer/routes/_authenticated/components/GhAuthDialog";
 import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import {
 	type CloneError,
 	classifyCloneError,
@@ -44,7 +44,7 @@ function OnboardingProjectPage() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { refetch: refetchSession } = authClient.useSession();
 	const { waitForHostReady } = useLocalHostService();
-	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 	const cloneTargetDir = homeDir ? `${homeDir}/.superset/projects` : null;
 	const [url, setUrl] = useState("");
@@ -86,7 +86,7 @@ function OnboardingProjectPage() {
 			// same tick as navigate mounts the Dialog mid-route-transition, which
 			// thrashes Radix's ref composition into a "Maximum update depth" loop.
 			await navigate({ to: "/v2-workspaces", replace: true });
-			openNewWorkspaceModal(projectId);
+			openNewWorkspace(projectId);
 			return;
 		}
 		try {

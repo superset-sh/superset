@@ -15,7 +15,7 @@ import {
 	resolveEntryPath,
 } from "./utils/resolveEntryPath";
 import { resolvePageId } from "./utils/resolvePageId";
-import { uploadAssets } from "./utils/uploadAssets";
+import { uploadAssets, uploadDocument } from "./utils/upload";
 
 const VISIBILITIES = ["just_me", "org"] as const;
 
@@ -87,7 +87,8 @@ export default command({
 			);
 		}
 
-		const html = readFileSync(entryFilePath, "utf8");
+		const document = readFileSync(entryFilePath);
+		const filename = basename(entryFilePath);
 
 		const entryPath =
 			resolveEntryPath({
@@ -121,6 +122,14 @@ export default command({
 				? basename(inputPath).replace(/[-_]+/g, " ").trim()
 				: undefined);
 
+		// First, so an oversized document is refused before anything is created
+		// for it. The upload is not tied to a page; publish is what binds them.
+		const { fileId } = await uploadDocument({
+			api: ctx.api,
+			bytes: document,
+			filename,
+		});
+
 		// Assets stage against a page, so a directory publish resolves or creates
 		// one before uploading. A single-file publish still lets `publish` mint it.
 		const pageId =
@@ -139,9 +148,8 @@ export default command({
 				: { uploaded: 0, reused: 0, warnings: [] };
 
 		const page = await ctx.api.page.publish.mutate({
-			content: Buffer.from(html, "utf8").toString("base64"),
-			contentType: "text/html",
-			filename: basename(entryFilePath),
+			fileId,
+			filename,
 			...(pageId ? { pageId } : (link ?? {})),
 			...(title ? { title } : {}),
 			...(options.description ? { description: options.description } : {}),

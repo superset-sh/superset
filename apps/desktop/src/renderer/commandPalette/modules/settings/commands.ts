@@ -6,7 +6,6 @@ import {
 	BookmarkIcon,
 	BuildingIcon,
 	ChartBarIcon,
-	CpuIcon,
 	CreditCardIcon,
 	FolderIcon,
 	GitBranchIcon,
@@ -58,13 +57,6 @@ const TABS: SettingsTab[] = [
 		}),
 		path: "/settings/behavior",
 		icon: SlidersIcon,
-	},
-	{
-		id: "models",
-		title: msg({ message: "Models" }),
-		path: "/settings/models",
-		icon: CpuIcon,
-		keywords: ["ai", "llm"],
 	},
 	{
 		id: "terminal",

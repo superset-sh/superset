@@ -29,7 +29,10 @@ function assertScopeExists(
  * because the Sessions lane has no project to scope them to.
  */
 export const tagFoldersRouter = router({
-	list: protectedProcedure.query(({ ctx }) => getAllTagFolderSettings(ctx.db)),
+	/** The caller's own folders, plus any customised before folders had owners. */
+	list: protectedProcedure.query(({ ctx }) =>
+		getAllTagFolderSettings(ctx.db, ctx.userId),
+	),
 
 	/** Merge-upsert one folder's presentation. Creates the row on first use. */
 	upsert: protectedProcedure
@@ -45,7 +48,7 @@ export const tagFoldersRouter = router({
 		.mutation(({ ctx, input }) => {
 			assertScopeExists(ctx.db, input.scope);
 			const settings = upsertTagFolderSetting(
-				{ db: ctx.db, eventBus: ctx.eventBus },
+				{ db: ctx.db, eventBus: ctx.eventBus, userId: ctx.userId },
 				input.scope,
 				input.tag,
 				{
@@ -76,7 +79,7 @@ export const tagFoldersRouter = router({
 		.mutation(({ ctx, input }) => {
 			assertScopeExists(ctx.db, input.scope);
 			const settings = deleteTagFolderSetting(
-				{ db: ctx.db, eventBus: ctx.eventBus },
+				{ db: ctx.db, eventBus: ctx.eventBus, userId: ctx.userId },
 				input.scope,
 				input.tag,
 			);

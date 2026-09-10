@@ -23,9 +23,11 @@ export function getFlattenedV2WorkspaceIds(
 	hostWorkspaces: readonly TagFolderWorkspaceInput[],
 	tagFolderContext: TagFolderContext,
 ): string[] {
-	const projects = Array.from(
-		collections.v2SidebarProjects.state.values(),
-	).sort((left, right) => left.tabOrder - right.tabOrder);
+	// A hidden project keeps its rows but renders nowhere, so its workspaces
+	// must not become navigation targets either.
+	const projects = Array.from(collections.v2SidebarProjects.state.values())
+		.filter((project) => !project.isHidden)
+		.sort((left, right) => left.tabOrder - right.tabOrder);
 	const allSections = deriveTagFolders(
 		Array.from(collections.v2SidebarSections.state.values()),
 		hostWorkspaces,

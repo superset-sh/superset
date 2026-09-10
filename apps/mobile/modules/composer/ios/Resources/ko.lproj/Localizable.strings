@@ -1,0 +1,14 @@
+"Dismiss" = "닫기";
+"Add attachment" = "첨부 추가";
+"Transcribing" = "받아쓰는 중";
+"Dictate" = "받아쓰기";
+"Sending" = "보내는 중";
+"Send" = "보내기";
+"Stop dictation" = "받아쓰기 중지";
+"Remove attachment" = "첨부 파일 제거";
+"Document" = "문서";
+"Close" = "닫기";
+"Done" = "완료";
+"Model: %@" = "모델: %@";
+"Microphone access is not allowed" = "마이크 접근이 허용되지 않았습니다";
+"Could not start dictation" = "받아쓰기를 시작할 수 없습니다";

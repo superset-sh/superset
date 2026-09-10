@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import { COMPANY } from "@superset/shared/constants";
 import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
@@ -13,6 +13,7 @@ import { ChangelogEntry } from "./components/ChangelogEntry";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	const title = i18n._(
 		msg({
 			message: "Changelog",
@@ -38,13 +39,13 @@ export async function generateMetadata(): Promise<Metadata> {
 			title: `${title} | Superset`,
 			description: description,
 			url: localeUrl(lang, "/changelog"),
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 		twitter: {
 			card: "summary_large_image",
 			title: `${title} | Superset`,
 			description: description,
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 	};
 }

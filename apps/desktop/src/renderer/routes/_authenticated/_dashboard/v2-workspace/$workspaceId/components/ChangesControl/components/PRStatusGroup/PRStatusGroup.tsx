@@ -15,7 +15,6 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { LuArrowUpRight } from "react-icons/lu";
 import {
@@ -24,7 +23,6 @@ import {
 	VscGitPullRequest,
 	VscLoading,
 } from "react-icons/vsc";
-import { usePullRequestsSplitViewStore } from "renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsSplitViewStore";
 import { computeChecksRollup } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/computeChecksStatus";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { PRIcon, type PRState } from "renderer/screens/main/components/PRIcon";
@@ -45,15 +43,17 @@ interface PRStatusGroupProps {
 	 * the diff-stat pill as the control's face once a PR exists.
 	 */
 	onToggleChanges?: () => void;
+	/** Opens the PR's summary pane in the workspace (the menu's "Open pull request"). */
+	onOpenPullRequest: (prNumber: number) => void;
 }
 
 /**
  * Top-bar PR badge — status icon + number + compact CI/review indicators,
  * with a dropdown for merge actions (open, non-draft PRs), marking a draft
- * ready for review, the in-app PR view, and a GitHub link.
- * Clicking the badge toggles the Changes pane; the in-app PR view lives in
- * the menu (hidden for session workspaces — null projectId — since the PR route
- * is project-scoped). Hovering surfaces a rich detail popover (title,
+ * ready for review, the PR summary pane, and a GitHub link.
+ * Clicking the badge toggles the Changes pane; the PR pane lives in the
+ * menu (hidden for session workspaces — null projectId — since the PR
+ * content query is project-scoped). Hovering surfaces a rich detail popover (title,
  * branch, CI summary, last activity).
  *
  * Indicators are suppressed past `open`/`queued` since post-merge CI/review
@@ -66,9 +66,9 @@ export function PRStatusGroup({
 	isChangesOpen = false,
 	toggleLabel,
 	onToggleChanges,
+	onOpenPullRequest,
 }: PRStatusGroupProps) {
 	const { t } = useLingui();
-	const navigate = useNavigate();
 	const { workspace } = useWorkspace();
 	const projectId = workspace.projectId;
 	const pr =
@@ -224,7 +224,7 @@ export function PRStatusGroup({
 				<HoverCardTrigger asChild>
 					{/* The face toggles the Changes pane — the badge replaced the
 					    diff-stat pill, so its click keeps that pill's job; the PR
-					    view is one menu entry (or the hover card) away. */}
+					    pane is one menu entry (or the hover card) away. */}
 					{onToggleChanges != null ? (
 						<button
 							type="button"
@@ -341,16 +341,7 @@ export function PRStatusGroup({
 					{projectId != null && (
 						<DropdownMenuItem
 							className="text-xs"
-							onClick={() => {
-								// Same pair the PR list's own row click performs — the detail
-								// pane may have been collapsed the last time the view was open.
-								usePullRequestsSplitViewStore.getState().expandDetail();
-								void navigate({
-									to: "/pull-requests/$prNumber",
-									params: { prNumber: String(pr.number) },
-									search: { project: projectId },
-								});
-							}}
+							onClick={() => onOpenPullRequest(pr.number)}
 						>
 							<VscGitPullRequest className="size-3.5" />
 							<Trans>Open pull request</Trans>

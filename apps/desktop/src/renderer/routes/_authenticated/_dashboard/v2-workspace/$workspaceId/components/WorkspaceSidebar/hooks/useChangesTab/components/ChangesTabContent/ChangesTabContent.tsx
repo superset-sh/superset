@@ -2,7 +2,7 @@ import { Trans } from "@lingui/react/macro";
 import type { AppRouter } from "@superset/host-service";
 import { Spinner } from "@superset/ui/spinner";
 import type { inferRouterOutputs } from "@trpc/server";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import type {
 	ChangesFilter,
@@ -11,6 +11,8 @@ import type {
 import type { FoldSignal } from "../ChangesFileList";
 import { ChangesFileList } from "../ChangesFileList";
 import { ChangesToolbar } from "../ChangesToolbar";
+import { ChangesSearchInput } from "./components/ChangesSearchInput";
+import { filterChangesetFiles } from "./filterChangesetFiles";
 import { shouldShowChangesLoading } from "./shouldShowChangesLoading";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
@@ -86,6 +88,29 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 		[],
 	);
 
+	// Search is view-local and deliberately not persisted: reopening the tab
+	// starts from the full list. Filtering runs on the deferred query so the
+	// tree view's path resets don't run on every keystroke.
+	const [searchOpen, setSearchOpen] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
+	const deferredQuery = useDeferredValue(searchQuery);
+	const toggleSearch = useCallback(() => {
+		setSearchOpen((open) => !open);
+		setSearchQuery("");
+	}, []);
+	const closeSearch = useCallback(() => {
+		setSearchOpen(false);
+		setSearchQuery("");
+	}, []);
+
+	const visibleFiles = useMemo(
+		() => filterChangesetFiles(files, deferredQuery),
+		[files, deferredQuery],
+	);
+	// From the query, not a length comparison: with zero changed files both
+	// lists are empty, and an active search must still read as a search miss.
+	const isFiltered = deferredQuery.trim().length > 0;
+
 	if (shouldShowChangesLoading(status)) {
 		return (
 			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -119,6 +144,8 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 					onViewModeChange={onViewModeChange}
 					collapsed={foldCollapsed}
 					onToggleFold={toggleFold}
+					searchOpen={searchOpen}
+					onToggleSearch={toggleSearch}
 					baseBranch={baseBranch ?? status.data.defaultBranch.name}
 					branches={branches.data?.branches ?? []}
 					// Picking the repo default clears the override (null) instead of
@@ -135,8 +162,16 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 					onRenameBranch={onRenameBranch}
 				/>
 			</div>
+			{searchOpen && (
+				<ChangesSearchInput
+					query={searchQuery}
+					onQueryChange={setSearchQuery}
+					onClose={closeSearch}
+				/>
+			)}
 			<ChangesFileList
-				files={files}
+				files={visibleFiles}
+				isFiltered={isFiltered}
 				workspaceId={workspaceId}
 				isLoading={isLoading}
 				viewMode={viewMode}

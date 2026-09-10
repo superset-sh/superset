@@ -1,8 +1,4 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import {
-	getPluginByName,
-	type InstalledPlugin,
-} from "@superset/shared/plugins";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -14,11 +10,12 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { LuTrash2 } from "react-icons/lu";
 import { PluginIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginIcon";
+import type { CatalogPlugin } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginCatalog";
 
 interface ManageInstalledDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	installed: InstalledPlugin[];
+	installed: CatalogPlugin[];
 	isBusy: boolean;
 	onSetEnabled: (name: string, enabled: boolean) => void;
 	onUninstall: (name: string) => void;
@@ -53,36 +50,28 @@ export function ManageInstalledDialog({
 					</p>
 				) : (
 					<div className="flex flex-col divide-y divide-border/60">
-						{installed.map((entry) => {
-							const plugin = getPluginByName(entry.name);
-							const isEnabled = entry.enabled !== false;
+						{installed.map((plugin) => {
+							const servers = Object.keys(plugin.mcpServers).join(", ");
 							return (
-								<div key={entry.name} className="flex items-center gap-3 py-3">
-									<PluginIcon pluginName={entry.name} className="size-8" />
+								<div key={plugin.name} className="flex items-center gap-3 py-3">
+									<PluginIcon pluginName={plugin.name} className="size-8" />
 									<div className="min-w-0 flex-1">
 										<div className="text-sm font-medium text-foreground">
-											{plugin?.interface.displayName ?? entry.name}
+											{plugin.interface.displayName}
 										</div>
 										<p className="truncate text-xs text-muted-foreground">
-											v{entry.version}
-											{plugin ? (
-												` · ${Object.keys(plugin.mcpServers).join(", ")}`
-											) : (
-												<>
-													{" · "}
-													<Trans>no longer in the catalog</Trans>
-												</>
-											)}
+											v{plugin.version}
+											{servers ? ` · ${servers}` : ""}
 										</p>
 									</div>
 									<Switch
-										checked={isEnabled}
+										checked={plugin.enabled}
 										disabled={isBusy}
 										aria-label={t({
-											message: `${plugin?.interface.displayName ?? entry.name} enabled`,
+											message: `${plugin.interface.displayName} enabled`,
 										})}
 										onCheckedChange={(checked) =>
-											onSetEnabled(entry.name, checked)
+											onSetEnabled(plugin.name, checked)
 										}
 									/>
 									<Button
@@ -91,9 +80,9 @@ export function ManageInstalledDialog({
 										className="shrink-0 text-muted-foreground hover:text-destructive"
 										disabled={isBusy}
 										aria-label={t({
-											message: `Uninstall ${plugin?.interface.displayName ?? entry.name}`,
+											message: `Uninstall ${plugin.interface.displayName}`,
 										})}
-										onClick={() => onUninstall(entry.name)}
+										onClick={() => onUninstall(plugin.name)}
 									>
 										<LuTrash2 className="size-4" />
 									</Button>

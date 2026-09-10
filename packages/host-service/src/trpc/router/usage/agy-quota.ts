@@ -103,6 +103,7 @@ export async function fetchAgyAccounts(): Promise<UsageAccount[]> {
 	if (!accessToken) return [];
 	const base = {
 		agent: "agy" as const,
+		credentialKind: "subscription" as const,
 		accountKey: "keychain:gemini:antigravity",
 		sourceLabel: "Keychain",
 		email: auth?.email ?? null,

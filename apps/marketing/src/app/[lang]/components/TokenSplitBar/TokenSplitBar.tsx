@@ -2,6 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { formatTokens } from "../../utils/formatUsage";
+import { MeterBar } from "../MeterBar";
 
 interface Segment {
 	id: string;
@@ -22,7 +23,7 @@ export function TokenSplitBar({
 		reasoningOutput: number;
 	};
 }) {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const segments: Segment[] = [
 		{
 			id: "input",
@@ -74,18 +75,11 @@ export function TokenSplitBar({
 								{t(segment.label)}
 							</span>
 							<span className="font-mono text-xs text-muted-foreground">
-								{formatTokens(segment.tokens)} · {percent.toFixed(0)}%
+								{formatTokens(segment.tokens, i18n.locale)} ·{" "}
+								{percent.toFixed(0)}%
 							</span>
 						</div>
-						<div className="h-1.5 bg-foreground/[0.06] rounded-full overflow-hidden">
-							<div
-								className="h-full"
-								style={{
-									width: `${Math.max(percent, percent > 0 ? 0.5 : 0)}%`,
-									backgroundColor: segment.color,
-								}}
-							/>
-						</div>
+						<MeterBar value={percent / 100} color={segment.color} />
 					</div>
 				);
 			})}

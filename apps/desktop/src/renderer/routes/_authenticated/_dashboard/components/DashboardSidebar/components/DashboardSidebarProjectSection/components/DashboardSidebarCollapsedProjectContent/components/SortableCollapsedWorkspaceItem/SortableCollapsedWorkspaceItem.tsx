@@ -1,6 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMemo } from "react";
+import { useDashboardSidebarDnd } from "../../../../../../hooks/useSidebarDnd";
 import type { DashboardSidebarWorkspace } from "../../../../../../types";
 import { DashboardSidebarWorkspaceItem } from "../../../../../DashboardSidebarWorkspaceItem";
 
@@ -19,6 +20,7 @@ export function SortableCollapsedWorkspaceItem({
 	shortcutLabel,
 	disabled,
 }: SortableCollapsedWorkspaceItemProps) {
+	const { isChildDragDisabled } = useDashboardSidebarDnd();
 	const {
 		setNodeRef,
 		attributes,
@@ -26,7 +28,10 @@ export function SortableCollapsedWorkspaceItem({
 		isDragging,
 		transform,
 		transition,
-	} = useSortable({ id: sortableId, disabled });
+	} = useSortable({
+		id: sortableId,
+		disabled: disabled || isChildDragDisabled,
+	});
 
 	// useSortable re-renders this wrapper on every pointer move of any drag in
 	// the sidebar's DndContext; keep the row body referentially stable so only

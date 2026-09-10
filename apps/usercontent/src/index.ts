@@ -5,6 +5,8 @@ import {
 	fileOriginalKey,
 	fileResponsePolicy,
 	injectScriptTag,
+	injectStyleTag,
+	PAGE_THEME_CSS,
 	type PageManifest,
 	type PageTicketClaims,
 	pageAssetResponsePolicy,
@@ -28,6 +30,65 @@ type AppContext = { Bindings: UsercontentEnv };
 const app = new Hono<AppContext>();
 
 const IMMUTABLE = "public, max-age=31536000, immutable";
+
+/**
+ * How long a reader may keep what a ticket fetched: never past the ticket
+ * itself, and never more than a day. The document, its thumbnail and its
+ * assets all answer this the same way, so revoking access is bounded by
+ * ticket life rather than by which of the three was asked for.
+ */
+function ticketSeconds(claims: PageTicketClaims): number {
+	return Math.max(
+		0,
+		Math.min(claims.exp - Math.floor(Date.now() / 1000), 86400),
+	);
+}
+
+/**
+ * The colo cache holding a version's rendered document. Keyed by storage key
+ * and render revision: the stored bytes never change, but what gets injected
+ * into them does. Internal: nothing routes to this host.
+ */
+function documentCacheKey(storageKey: string): Request {
+	return new Request(
+		`https://document.usercontent.internal/${RENDER_REVISION}/${storageKey}`,
+	);
+}
+
+const CACHED_DOCUMENT_TTL_SECONDS = 24 * 60 * 60;
+
+/** Expires anything built from `input` when `input` changes. */
+function revisionOf(input: string): string {
+	let hash = 0x811c9dc5;
+	for (let index = 0; index < input.length; index++) {
+		hash ^= input.charCodeAt(index);
+		hash = Math.imul(hash, 0x01000193);
+	}
+	return (hash >>> 0).toString(36);
+}
+
+function weakTag(value: string): string {
+	return value.startsWith("W/") ? value.slice(2) : value;
+}
+
+/** RFC 9110: `*`, comma-separated lists, weak comparison. */
+function ifNoneMatchSatisfied(
+	header: string | undefined,
+	etag: string,
+): boolean {
+	if (!header) return false;
+	const value = header.trim();
+	if (value === "*") return true;
+	const target = weakTag(etag);
+	return value
+		.split(",")
+		.some((candidate) => weakTag(candidate.trim()) === target);
+}
+
+/** A deploy that moves either has to miss the cache, not serve stale styling. */
+const RENDER_REVISION = revisionOf(
+	`${RUNTIME_SCRIPT_PATH}\u0000${PAGE_THEME_CSS}`,
+);
 
 function baseHost(c: Context<AppContext>): string {
 	return new URL(c.env.USERCONTENT_URL).host;
@@ -114,41 +175,94 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 	const entry = manifest.versions[String(version)];
 	if (!entry) return notFound();
 
-	if (!(await authorized(c, manifest, version))) {
-		return signInRedirect(c, manifest.slug);
+	const auth = await authorized(c, manifest, version);
+	if (!auth) return signInRedirect(c, manifest.slug);
+
+	// A pinned version is an immutable snapshot, so it caches like the assets
+	// beside it. The served alias moves when a new version is published, so it
+	// has to revalidate — the ETag is what makes that cost a set of headers
+	// rather than the whole document again.
+	const pinned = requested !== null;
+	const cacheControl =
+		auth === "public"
+			? pinned
+				? IMMUTABLE
+				: "no-cache"
+			: pinned
+				? `private, max-age=${ticketSeconds(auth)}, immutable`
+				: "private, no-cache";
+	const policy = pageContentSecurityPolicy(
+		c.env.FRAME_ANCESTORS.split(/\s+/).filter(Boolean),
+	);
+	// The policy is in the tag because a 304 has no other way to refresh it.
+	const etag = `W/"${version}.${revisionOf(policy)}"`;
+	if (ifNoneMatchSatisfied(c.req.header("if-none-match"), etag)) {
+		return new Response(null, {
+			status: 304,
+			headers: { ETag: etag, "Cache-Control": cacheControl },
+		});
+	}
+
+	const headersFor = (contentType: string): Headers =>
+		new Headers({
+			"Content-Type": contentType.startsWith("text/html")
+				? "text/html; charset=utf-8"
+				: contentType,
+			// Each page is its own origin; ask for an origin-keyed agent cluster
+			// so sibling pages never share a renderer process while the PSL entry
+			// propagates.
+			"Origin-Agent-Cluster": "?1",
+			"Superset-Storage-Key": entry.key,
+			"Content-Security-Policy": policy,
+			"X-Content-Type-Options": "nosniff",
+			"Referrer-Policy": "no-referrer",
+			"X-Robots-Tag": "noindex, nofollow",
+			ETag: etag,
+			"Cache-Control": cacheControl,
+		});
+
+	// Read after authorization against a manifest loaded this request, so it
+	// widens nothing: a page that lost its manifest 404s before reaching here.
+	const cacheKey = documentCacheKey(entry.key);
+	const cached = entry.contentType.startsWith("text/html")
+		? // An optimization, never a dependency: fall through to R2 on failure.
+			await caches.default.match(cacheKey).catch((error: unknown) => {
+				Sentry.captureException(error);
+				return undefined;
+			})
+		: undefined;
+	if (cached) {
+		return new Response(cached.body, { headers: headersFor("text/html") });
 	}
 
 	const object = await c.env.PRIVATE.get(entry.key);
 	if (!object) return notFound();
 
 	const contentType = object.httpMetadata?.contentType ?? entry.contentType;
-	const isHtml = contentType.startsWith("text/html");
-	const ticketed = manifest.visibility !== "everyone";
-	const headers = new Headers({
-		"Content-Type": isHtml ? "text/html; charset=utf-8" : contentType,
-		// Each page is its own origin; ask for an origin-keyed agent cluster
-		// so sibling pages never share a renderer process while the PSL entry
-		// propagates.
-		"Origin-Agent-Cluster": "?1",
-		"Superset-Storage-Key": entry.key,
-		"Content-Security-Policy": pageContentSecurityPolicy(
-			c.env.FRAME_ANCESTORS.split(/\s+/).filter(Boolean),
-		),
-		"X-Content-Type-Options": "nosniff",
-		"Referrer-Policy": "no-referrer",
-		"X-Robots-Tag": "noindex, nofollow",
-		"Cache-Control": ticketed
-			? "private, no-store"
-			: requested === null
-				? "no-cache"
-				: IMMUTABLE,
-	});
+	if (!contentType.startsWith("text/html")) {
+		return new Response(object.body, { headers: headersFor(contentType) });
+	}
 
-	if (!isHtml) return new Response(object.body, { headers });
-	return new Response(
+	const html = injectStyleTag(
 		injectScriptTag(await object.text(), RUNTIME_SCRIPT_PATH),
-		{ headers },
+		PAGE_THEME_CSS,
 	);
+	c.executionCtx.waitUntil(
+		caches.default
+			.put(
+				cacheKey,
+				new Response(html, {
+					headers: {
+						"Content-Type": "text/html; charset=utf-8",
+						"Cache-Control": `public, max-age=${CACHED_DOCUMENT_TTL_SECONDS}`,
+					},
+				}),
+			)
+			.catch((error: unknown) => {
+				Sentry.captureException(error);
+			}),
+	);
+	return new Response(html, { headers: headersFor(contentType) });
 }
 
 async function serveThumbnail(c: Context<AppContext>): Promise<Response> {
@@ -165,10 +279,7 @@ async function serveThumbnail(c: Context<AppContext>): Promise<Response> {
 	// A restricted thumbnail may live in the browser cache only as long as
 	// the ticket that fetched it: after a visibility flip, stale copies age
 	// out with the ticket instead of surviving another day.
-	const remaining =
-		auth === "public"
-			? null
-			: Math.max(0, Math.min(auth.exp - Math.floor(Date.now() / 1000), 86400));
+	const remaining = auth === "public" ? null : ticketSeconds(auth);
 	return new Response(object.body, {
 		headers: {
 			"Content-Type": "image/jpeg",
@@ -325,10 +436,7 @@ async function serveAsset(c: Context<AppContext>): Promise<Response> {
 	const cacheControl =
 		auth === "public"
 			? IMMUTABLE
-			: `private, max-age=${Math.max(
-					0,
-					Math.min(auth.exp - Math.floor(Date.now() / 1000), 86400),
-				)}, immutable`;
+			: `private, max-age=${ticketSeconds(auth)}, immutable`;
 	const isHtml = asset.contentType.startsWith("text/html");
 	// Everything that is not the page's own document gets a policy of its own:
 	// without one an SVG navigated to directly ran as a top-level document with
@@ -457,7 +565,6 @@ app.notFound(() => notFound());
 // Exceptions only; no-op until SENTRY_DSN is set.
 const sentryOptions = (env: UsercontentEnv): Sentry.CloudflareOptions => ({
 	dsn: env.SENTRY_DSN,
-	tracesSampleRate: 0,
 	sendDefaultPii: false,
 	integrations: (defaults) =>
 		defaults.filter((integration) => integration.name !== "Console"),

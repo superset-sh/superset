@@ -1,0 +1,1 @@
+export { SearchConsoleTile } from "./SearchConsoleTile";

@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import type { ChartConfig } from "@superset/ui/chart";
 import {
 	ChartContainer,
@@ -38,6 +39,8 @@ export function UsageDrilldownPage({
 	kind: DrilldownKind;
 	entityKey: string;
 }) {
+	const { formatDate } = useFormat();
+
 	const { t } = useLingui();
 	const [days, setDays] = useState<number>(30);
 	const [metric, setMetric] = useState<HistoryMetric>("usd");
@@ -380,10 +383,10 @@ export function UsageDrilldownPage({
 															})}
 													</span>
 													<span className="shrink-0 text-muted-foreground">
-														{new Date(session.lastMs).toLocaleDateString(
-															undefined,
-															{ month: "short", day: "numeric" },
-														)}
+														{formatDate(new Date(session.lastMs), {
+															month: "short",
+															day: "numeric",
+														})}
 													</span>
 													{copied ? (
 														<span className="flex shrink-0 items-center gap-1 text-[10px] text-emerald-500">

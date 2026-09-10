@@ -3,6 +3,7 @@ import {
 	teardownSingleAgent,
 	writeSharedDisabledAgentIds,
 } from "@superset/agent-setup";
+import type { SupportedLocale } from "@superset/i18n/locales";
 import { isSupportedLocale } from "@superset/i18n/locales";
 import {
 	type AgentCustomDefinition,
@@ -40,12 +41,13 @@ import {
 } from "@superset/shared/agent-settings";
 import { NOTIFICATION_VOLUME_LIMITS } from "@superset/shared/settings-constraints";
 import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
 import { app } from "electron";
 import { env } from "main/env.main";
 import { exitImmediately } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
-import { applyAppLanguage } from "main/lib/language";
+import { applyAppLanguage, languageEvents } from "main/lib/language";
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
@@ -83,7 +85,7 @@ import {
 	updateCustomAgentInputSchema,
 } from "./agent-preset-router.utils";
 import {
-	clearImportedCliTerminalScripts,
+	acknowledgeCliTerminalScripts,
 	isPendingCliTerminalScript,
 } from "./cli-terminal-script-import";
 import {
@@ -304,7 +306,7 @@ export const createSettingsRouter = () => {
 				// land between this read and write or its row would be dropped.
 				localDb.transaction(
 					() => {
-						const result = clearImportedCliTerminalScripts({
+						const result = acknowledgeCliTerminalScripts({
 							scripts: getNormalizedTerminalPresets(),
 							organizationId: input.organizationId,
 							ids: input.ids,
@@ -623,6 +625,18 @@ export const createSettingsRouter = () => {
 			return stored && isSupportedLocale(stored) ? stored : null;
 		}),
 
+		onLanguageChange: publicProcedure.subscription(() =>
+			observable<SupportedLocale | null>((emit) => {
+				const notify = (stored: string | null) =>
+					emit.next(stored && isSupportedLocale(stored) ? stored : null);
+				languageEvents.on("change", notify);
+				notify(getSettings().language);
+				return () => {
+					languageEvents.off("change", notify);
+				};
+			}),
+		),
+
 		setLanguage: publicProcedure
 			.input(z.object({ language: z.string().nullable() }))
 			.mutation(async ({ input }) => {
@@ -737,16 +751,15 @@ export const createSettingsRouter = () => {
 					})
 					.run();
 
-				// Restart active host-service children so they pick up the new
-				// RELAY_URL from buildEnv(). No-op if the user isn't signed in.
+				// Restart host services, including missing authenticated orgs, so
+				// they pick up the new RELAY_URL. No-op when not signed in.
 				const { token } = await loadToken();
 				if (!token) {
 					return { restartedOrgCount: 0 };
 				}
 
 				const coordinator = getHostServiceCoordinator();
-				const restartedOrgCount = coordinator.getActiveOrganizationIds().length;
-				await coordinator.restartAll({
+				const restartedOrgCount = await coordinator.restartAll({
 					authToken: token,
 					cloudApiUrl: env.NEXT_PUBLIC_API_URL,
 				});

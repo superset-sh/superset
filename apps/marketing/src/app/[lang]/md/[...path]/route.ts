@@ -1,9 +1,6 @@
-import type { MessageDescriptor } from "@lingui/core";
-import { i18n, isSupportedLocale } from "@superset/i18n";
-import {
-	initServerI18n as activateServerI18n,
-	preloadServerLocale,
-} from "@superset/i18n/server";
+import type { I18n, MessageDescriptor } from "@lingui/core";
+import { isSupportedLocale } from "@superset/i18n";
+import { getI18nInstance, preloadServerLocale } from "@superset/i18n/server";
 import { COMPANY } from "@superset/shared/constants";
 import { MCP_CAPABILITIES } from "@/app/[lang]/mcp-install/components/McpCapabilities/constants";
 import {
@@ -12,6 +9,7 @@ import {
 	PRICING_FAQ_ITEMS,
 	PRICING_TIERS,
 } from "@/app/[lang]/pricing/constants";
+import { fetchParticipant } from "@/app/[lang]/utils/fetchLeaderboard";
 import { getBlogPost } from "@/lib/blog";
 import { getCategoryPage } from "@/lib/category";
 import { getChangelogEntry } from "@/lib/changelog";
@@ -24,6 +22,7 @@ import {
 } from "@/lib/llms";
 import { markdownNotFound } from "@/lib/markdown-not-found";
 import { getAllPeople } from "@/lib/people";
+import { renderProfileMarkdown } from "@/lib/profile-markdown";
 
 interface MarkdownPage {
 	title: string;
@@ -36,50 +35,50 @@ interface MarkdownPage {
 
 // Pricing copy lives as Lingui message descriptors; this feed is plain text
 // for LLM clients, so every descriptor is rendered before it is joined.
-function text(value: string | MessageDescriptor): string {
+function text(i18n: I18n, value: string | MessageDescriptor): string {
 	return typeof value === "string" ? value : i18n._(value);
 }
 
-function cell(value: ComparisonValue | null): string {
+function cell(i18n: I18n, value: ComparisonValue | null): string {
 	if (value === true) return "Yes";
 	if (value === false || value === null) return "No";
-	return text(value);
+	return text(i18n, value);
 }
 
-function pricingPage(): MarkdownPage {
+function pricingPage(i18n: I18n): MarkdownPage {
 	const baseUrl = COMPANY.MARKETING_URL;
 	const tiers = PRICING_TIERS.map((tier) => {
 		const price =
 			tier.price.kind === "variable"
-				? `${tier.price.monthly.display} ${text(tier.price.monthly.note)} (${text(tier.price.monthly.cadence)}) or ${tier.price.yearly.display} ${text(tier.price.yearly.note)} (${text(tier.price.yearly.cadence)})`
-				: `${text(tier.price.display)} (${text(tier.price.note)})`;
+				? `${tier.price.monthly.display} ${text(i18n, tier.price.monthly.note)} (${text(i18n, tier.price.monthly.cadence)}) or ${tier.price.yearly.display} ${text(i18n, tier.price.yearly.note)} (${text(i18n, tier.price.yearly.cadence)})`
+				: `${text(i18n, tier.price.display)} (${text(i18n, tier.price.note)})`;
 		return [
-			`### ${text(tier.name)}`,
+			`### ${text(i18n, tier.name)}`,
 			"",
-			text(tier.description),
+			text(i18n, tier.description),
 			"",
 			`- **Price**: ${price}`,
-			...tier.features.map((feature) => `- ${text(feature.label)}`),
-			`- [${text(tier.cta.label)}](${tier.cta.href.startsWith("/") ? baseUrl + tier.cta.href : tier.cta.href})`,
+			...tier.features.map((feature) => `- ${text(i18n, feature.label)}`),
+			`- [${text(i18n, tier.cta.label)}](${tier.cta.href.startsWith("/") ? baseUrl + tier.cta.href : tier.cta.href})`,
 			"",
 		];
 	});
-	const tierNames = PRICING_TIERS.map((tier) => text(tier.name));
+	const tierNames = PRICING_TIERS.map((tier) => text(i18n, tier.name));
 	const comparison = COMPARISON_SECTIONS.flatMap((section) => [
-		`### ${text(section.title)}`,
+		`### ${text(i18n, section.title)}`,
 		"",
 		`| | ${tierNames.join(" | ")} |`,
 		`|---|${tierNames.map(() => "---").join("|")}|`,
 		...section.rows.map(
 			(row) =>
-				`| ${text(row.label)}${row.badge ? ` (${text(row.badge.label)})` : ""} | ${row.values.map(cell).join(" | ")} |`,
+				`| ${text(i18n, row.label)}${row.badge ? ` (${text(i18n, row.badge.label)})` : ""} | ${row.values.map((value) => cell(i18n, value)).join(" | ")} |`,
 		),
 		"",
 	]);
 	const faq = PRICING_FAQ_ITEMS.flatMap((item) => [
-		`### ${text(item.question)}`,
+		`### ${text(i18n, item.question)}`,
 		"",
-		text(item.answer),
+		text(i18n, item.answer),
 		"",
 	]);
 	return {
@@ -101,7 +100,7 @@ function pricingPage(): MarkdownPage {
 	};
 }
 
-function mcpInstallPage(): MarkdownPage {
+function mcpInstallPage(i18n: I18n): MarkdownPage {
 	const baseUrl = COMPANY.MARKETING_URL;
 	const docsUrl = COMPANY.DOCS_URL;
 	return {
@@ -131,7 +130,7 @@ function mcpInstallPage(): MarkdownPage {
 			"",
 			...MCP_CAPABILITIES.map(
 				(capability) =>
-					`- **${text(capability.category)}**: ${text(capability.description)}`,
+					`- **${text(i18n, capability.category)}**: ${text(i18n, capability.description)}`,
 			),
 			"",
 			"## Resources",
@@ -172,7 +171,7 @@ function teamPage(): MarkdownPage {
 	};
 }
 
-function enterprisePage(): MarkdownPage {
+function enterprisePage(i18n: I18n): MarkdownPage {
 	const baseUrl = COMPANY.MARKETING_URL;
 	const enterprise = PRICING_TIERS.find((tier) => tier.id === "enterprise");
 	return {
@@ -183,7 +182,7 @@ function enterprisePage(): MarkdownPage {
 			"## What Enterprise includes",
 			"",
 			...(enterprise?.features ?? []).map(
-				(feature) => `- ${text(feature.label)}`,
+				(feature) => `- ${text(i18n, feature.label)}`,
 			),
 			"",
 			"## Where your code runs",
@@ -199,17 +198,21 @@ function enterprisePage(): MarkdownPage {
 	};
 }
 
-const STATIC_PAGES: Record<string, () => MarkdownPage> = {
+const STATIC_PAGES: Record<string, (i18n: I18n) => MarkdownPage> = {
 	pricing: pricingPage,
 	"mcp-install": mcpInstallPage,
 	team: teamPage,
 	enterprise: enterprisePage,
 };
 
-function loadPage(section: string, slug: string): MarkdownPage | undefined {
+async function loadPage(
+	i18n: I18n,
+	section: string,
+	slug: string,
+): Promise<MarkdownPage | undefined> {
 	const baseUrl = COMPANY.MARKETING_URL;
 	if (section === "page") {
-		return STATIC_PAGES[slug]?.();
+		return STATIC_PAGES[slug]?.(i18n);
 	}
 	if (section === "blog") {
 		const post = getBlogPost(slug);
@@ -245,6 +248,19 @@ function loadPage(section: string, slug: string): MarkdownPage | undefined {
 			content: stripMdxSyntax(page.content),
 		};
 	}
+	if (section === "user") {
+		const profile = await fetchParticipant(slug.toLowerCase(), {
+			period: "all",
+		});
+		if (!profile) return undefined;
+		const tier = profile.factory?.tier ?? 0;
+		return {
+			title: `${profile.name ?? profile.handle} (@${profile.handle})`,
+			url: `${baseUrl}/${profile.handle}`,
+			description: `Rank #${profile.rank} of ${profile.total} on the ${COMPANY.NAME} leaderboard, tier ${tier}.`,
+			content: renderProfileMarkdown(profile),
+		};
+	}
 	if (section === "changelog") {
 		const entry = getChangelogEntry(slug);
 		if (!entry || entry.draft) return undefined;
@@ -263,23 +279,31 @@ export async function GET(
 	_request: Request,
 	{ params }: { params: Promise<{ lang: string; path: string[] }> },
 ) {
-	// Route handlers render outside the root layout, so the shared i18n
-	// instance is not seeded for them. Activate the language the URL names —
-	// /md/... is English, /ja/md/... is Japanese.
-	//
-	// The locale comes from the route's own params rather than
-	// next/root-params: [lang] is a parent segment, so it is already in
-	// params here, and that works the same in a route handler as in a server
-	// component. app/i18n-server.ts reads root-params instead, which is a
-	// server-component API — using it here would risk 404ing every twin.
+	// Route handlers run outside RSC. Resolve their explicit URL params and
+	// pass the locale instance to utilities instead of using React's cache.
 	const { lang, path } = await params;
 	if (!isSupportedLocale(lang)) return markdownNotFound();
 	await preloadServerLocale(lang);
-	activateServerI18n(lang);
+	const i18n = getI18nInstance(lang);
 	const locale = lang;
 	const [section, slug] = path;
-	const page =
-		path.length === 2 && section && slug ? loadPage(section, slug) : undefined;
+	let page: MarkdownPage | undefined;
+	try {
+		page =
+			path.length === 2 && section && slug
+				? await loadPage(i18n, section, slug)
+				: undefined;
+	} catch (error) {
+		console.error("[marketing/md] page load failed:", error);
+		return new Response("Temporarily unavailable\n", {
+			status: 503,
+			headers: {
+				"content-type": "text/markdown; charset=utf-8",
+				"cache-control": "no-store",
+				"retry-after": "30",
+			},
+		});
+	}
 	if (!page) {
 		return markdownNotFound();
 	}

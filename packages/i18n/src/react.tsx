@@ -1,8 +1,9 @@
 "use client";
 
-import { I18nProvider as LinguiI18nProvider } from "@lingui/react";
-import { type ReactNode, useEffect, useState } from "react";
-import { i18n, inferLocale, initI18n } from "./index";
+import { type Messages, setupI18n } from "@lingui/core";
+import { I18nProvider as LinguiI18nProvider, useLingui } from "@lingui/react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { i18n, inferLocale, initI18n, initI18nAsync } from "./index";
 import {
 	LOCALE_COOKIE,
 	LOCALE_LABELS,
@@ -16,48 +17,60 @@ import {
 // English, which threw a hydration mismatch on every translated client
 // string for every non-English user ("Search docs..." vs "Tìm trong tài
 // liệu..."). The provider switches to the inferred or chosen locale after
-// mount instead; the brief default-language flash on client chrome is the
-// price of hydration correctness, and server-component content (marketing
-// pages) is localized in the HTML itself and never hydrates.
+// mount instead unless the server supplies a locale and its catalog. That
+// snapshot translates the initial HTML and hydration with a request-local
+// instance, without activating a shared singleton during concurrent SSR.
 initI18n();
 
 export function I18nProvider({
 	children,
 	locale,
+	initialMessages,
+	deferUntilReady = false,
 }: {
 	children: ReactNode;
 	// Explicit locale (persisted setting, device locale). Omitted: the
-	// module-scope inference above stands.
+	// browser preference is resolved after mount.
 	locale?: SupportedLocale;
+	/** Server-resolved catalog for translated SSR and matching hydration. */
+	initialMessages?: Messages;
+	/** Native startup only: keep children unmounted until the initial catalog is ready. */
+	deferUntilReady?: boolean;
 }) {
-	// Remount the subtree when the locale changes: Trans/useLingui consumers
-	// re-render via Lingui's own subscription, but plain formatter calls
-	// (@superset/i18n/format) read the locale imperatively and only refresh on
-	// a re-render. Language switches are rare; a remount keeps every call site
-	// a plain function call instead of a hook.
-	const [activeLocale, setActiveLocale] = useState(() => i18n.locale);
-	useEffect(() => i18n.on("change", () => setActiveLocale(i18n.locale)), []);
-	useEffect(() => {
-		// No explicit locale means "Auto", which is a real choice and not an
-		// absence of one: fall back to inference so switching from a pinned
-		// language back to Auto re-activates instead of leaving the old locale
-		// active until the next restart.
-		const next = locale ?? inferLocale();
-		if (i18n.locale !== next) {
-			initI18n(next);
-		}
-		// Keep the document's language attribute truthful: CSS text-transform
-		// and screen readers key off it, and a stale "en" breaks locale-aware
-		// casing — Turkish uppercases i to İ, not I.
-		if (typeof document !== "undefined") {
-			document.documentElement.lang = next;
-		}
-	}, [locale]);
-	return (
-		<LinguiI18nProvider key={activeLocale} i18n={i18n}>
-			{children}
-		</LinguiI18nProvider>
+	const [ready, setReady] = useState(!deferUntilReady || !!initialMessages);
+	const renderI18n = useMemo(
+		() =>
+			locale && initialMessages
+				? setupI18n({ locale, messages: { [locale]: initialMessages } })
+				: i18n,
+		[locale, initialMessages],
 	);
+	useEffect(() => {
+		const updateDocumentLanguage = () => {
+			if (typeof document !== "undefined") {
+				document.documentElement.lang = renderI18n.locale;
+			}
+		};
+		updateDocumentLanguage();
+		return renderI18n.on("change", updateDocumentLanguage);
+	}, [renderI18n]);
+	useEffect(() => {
+		// Server snapshots are already loaded and isolated from the client singleton.
+		if (initialMessages) return;
+		let disposed = false;
+		void initI18nAsync(locale ?? inferLocale())
+			.catch((error: unknown) =>
+				console.error("Failed to activate locale", error),
+			)
+			.finally(() => {
+				if (!disposed) setReady(true);
+			});
+		return () => {
+			disposed = true;
+		};
+	}, [locale, initialMessages]);
+	if (!ready) return null;
+	return <LinguiI18nProvider i18n={renderI18n}>{children}</LinguiI18nProvider>;
 }
 
 interface LanguageSwitcherProps {
@@ -107,16 +120,8 @@ export function LanguageSwitcher({
 	onChange,
 	className,
 }: LanguageSwitcherProps) {
-	// The effective locale: starts at the module's current value (the server
-	// pass rendered with the request's locale on server-resolved apps) and
-	// follows activation, so the trigger always names the language on screen.
-	const [value, setValue] = useState<SupportedLocale>(
-		() => locale ?? (i18n.locale as SupportedLocale),
-	);
-	useEffect(() => {
-		setValue(i18n.locale as SupportedLocale);
-		return i18n.on("change", () => setValue(i18n.locale as SupportedLocale));
-	}, []);
+	const { i18n: contextI18n } = useLingui();
+	const value = locale ?? (contextI18n.locale as SupportedLocale);
 
 	return (
 		<select
@@ -145,3 +150,5 @@ export function LanguageSwitcher({
 		</select>
 	);
 }
+
+export { useFormat } from "./hooks/useFormat";

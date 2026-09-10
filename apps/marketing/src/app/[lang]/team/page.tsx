@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -18,6 +18,7 @@ import { TeamBio } from "./components/TeamBio";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	const title = i18n._(
 		msg({
 			message: "About",
@@ -46,13 +47,13 @@ export async function generateMetadata(): Promise<Metadata> {
 			title: `${title} | Superset`,
 			description: ogDescription,
 			url: localeUrl(lang, "/team"),
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 		twitter: {
 			card: "summary_large_image",
 			title: `${title} | Superset`,
 			description: ogDescription,
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 	};
 }

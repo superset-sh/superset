@@ -1,5 +1,5 @@
 import type { AppRouter } from "@superset/host-service";
-import { formatCompactRelativeTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import type { inferRouterOutputs } from "@trpc/server";
 import { Check } from "lucide-react";
 
@@ -17,6 +17,8 @@ export function CommitRow({
 	isSelected,
 	wrap = false,
 }: CommitRowProps) {
+	const { formatCompactRelativeTime } = useFormat();
+
 	return (
 		<div className="flex min-w-0 flex-1 items-start justify-between gap-2">
 			<div className="min-w-0 flex-1 overflow-hidden">

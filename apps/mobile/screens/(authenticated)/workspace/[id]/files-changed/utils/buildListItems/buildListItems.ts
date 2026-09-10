@@ -26,7 +26,6 @@ export type ListItem =
 			expanded: boolean;
 			viewed: boolean;
 	  }
-	| { kind: "hunk"; key: string; path: string; header: string }
 	| { kind: "segment"; key: string; path: string; segment: HunkSegment }
 	| { kind: "expander"; key: string; path: string; row: ExpanderDiffRow }
 	| { kind: "truncated"; key: string; hiddenCount: number }
@@ -109,9 +108,12 @@ export function buildFileBodyItems(args: {
 	};
 
 	for (const row of rows) {
+		// The `@@ -a,b +c,d @@` header is not drawn: every skipped region already
+		// carries an expander that names and opens it, and every line carries its
+		// number in the gutter, so the range arithmetic told the reader nothing.
+		// Still a segment boundary though — rows either side are not contiguous.
 		if (row.kind === "hunk") {
 			flush();
-			items.push({ kind: "hunk", key: row.key, path, header: row.header });
 			continue;
 		}
 		if (row.kind === "expander") {

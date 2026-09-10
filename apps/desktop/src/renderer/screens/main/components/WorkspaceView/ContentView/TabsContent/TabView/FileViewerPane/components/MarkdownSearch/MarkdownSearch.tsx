@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef } from "react";
 import { HiChevronDown, HiChevronUp, HiMiniXMark } from "react-icons/hi2";
@@ -28,6 +30,8 @@ export function MarkdownSearch({
 	onFindPrevious,
 	onClose,
 }: MarkdownSearchProps) {
+	const { _: translate } = useTranslation();
+
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -61,7 +65,7 @@ export function MarkdownSearch({
 				value={query}
 				onChange={(e) => onQueryChange(e.target.value)}
 				onKeyDown={handleKeyDown}
-				placeholder="Find"
+				placeholder={translate(msg({ message: "Find" }))}
 				className="h-6 min-w-0 w-28 flex-shrink bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
 			/>
 			{query && (

@@ -7,7 +7,9 @@ export default function robots(): MetadataRoute.Robots {
 			{
 				userAgent: "*",
 				allow: "/",
-				disallow: ["/api/", "/_next/", "/llms.mdx/", "/llms-full.txt"],
+				// Rendering assets must be crawlable. Raw markdown routes carry
+				// noindex headers, which crawlers need to fetch to observe.
+				disallow: ["/api/"],
 			},
 		],
 		sitemap: `${COMPANY.DOCS_URL}/sitemap.xml`,

@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
@@ -23,6 +25,8 @@ interface WorkspaceSidebarHeaderProps {
 export function WorkspaceSidebarHeader({
 	isCollapsed = false,
 }: WorkspaceSidebarHeaderProps) {
+	const { _: translate } = useTranslation();
+
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const { gateFeature } = usePaywall();
@@ -118,7 +122,7 @@ export function WorkspaceSidebarHeader({
 						<button
 							type="button"
 							onClick={handleTasksClick}
-							aria-label="Tasks"
+							aria-label={translate(msg({ message: "Tasks" }))}
 							aria-current={isTasksOpen ? "page" : undefined}
 							className={cn(
 								"flex items-center justify-center size-8 rounded-md transition-colors",
@@ -141,7 +145,7 @@ export function WorkspaceSidebarHeader({
 						<button
 							type="button"
 							onClick={handlePullRequestsClick}
-							aria-label="Pull requests"
+							aria-label={translate(msg({ message: "Pull requests" }))}
 							aria-current={isPullRequestsOpen ? "page" : undefined}
 							className={cn(
 								"flex items-center justify-center size-8 rounded-md transition-colors",
@@ -182,7 +186,7 @@ export function WorkspaceSidebarHeader({
 			<button
 				type="button"
 				onClick={handleTasksClick}
-				aria-label="Tasks"
+				aria-label={translate(msg({ message: "Tasks" }))}
 				aria-current={isTasksOpen ? "page" : undefined}
 				className={cn(
 					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
@@ -203,7 +207,7 @@ export function WorkspaceSidebarHeader({
 			<button
 				type="button"
 				onClick={handlePullRequestsClick}
-				aria-label="Pull requests"
+				aria-label={translate(msg({ message: "Pull requests" }))}
 				aria-current={isPullRequestsOpen ? "page" : undefined}
 				className={cn(
 					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",

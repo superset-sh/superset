@@ -18,6 +18,7 @@ import { AddMemberDropdown } from "./components/AddMemberDropdown";
 import { DeleteHostSection } from "./components/DeleteHostSection";
 import { HostHeader } from "./components/HostHeader";
 import { HostReadinessBanner } from "./components/HostReadinessBanner";
+import { HostServiceSection } from "./components/HostServiceSection";
 import type { MemberRowData } from "./components/MembersTable";
 import { MembersTable } from "./components/MembersTable";
 import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
@@ -52,13 +53,8 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 		[hosts, hostId],
 	);
 	const presence = useHostsPresence(hosts);
-	// Null presence means the relay couldn't answer (v1 tail, probe failed), so
-	// the fallback is a database column nothing sweeps — "online" there is a
-	// last-written value, not an observation.
-	const presenceKnown = presence !== null && host !== undefined;
-	const hostIsOnline = host
-		? (presence?.get(host.machineId) ?? host.isOnline)
-		: false;
+	const hostPresence = host ? presence?.get(host.machineId) : undefined;
+	const hostIsOnline = host ? (hostPresence?.online ?? host.isOnline) : false;
 
 	const { data: allHostMembers = [] } =
 		cloudTrpc.v2Host.listMembers.useQuery(undefined);
@@ -177,11 +173,24 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				hostUrl={hostUrl}
 				hostName={host.name}
 				isOnline={hostIsOnline}
-				presenceKnown={presenceKnown}
 				isRemoteTarget={isRemoteTarget}
 			/>
 
 			<div className="space-y-10">
+				<HostServiceSection
+					key={hostId}
+					hostUrl={hostUrl}
+					isLocalHost={hostId === machineId}
+					isOnline={hostIsOnline}
+					canUpdate={isOwner}
+					registered={{
+						version: host.version,
+						platform: host.platform,
+						installSource: host.installSource,
+					}}
+					lastSeenAt={hostPresence?.lastSeenAt ?? null}
+				/>
+
 				<WorktreeLocationSection
 					hostUrl={hostUrl}
 					hostName={host.name}

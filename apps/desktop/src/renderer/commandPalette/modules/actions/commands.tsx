@@ -322,7 +322,12 @@ export const actionsProvider: CommandProvider = {
 						// when an update is ready — simulate that, then prompt the click.
 						await electronTrpcClient.autoUpdate.simulateReady.mutate();
 						toast.info(
-							"Click the “↑ update” pill to see the pre-update confirm",
+							i18n._(
+								msg({
+									message:
+										"Click the “↑ update” pill to see the pre-update confirm",
+								}),
+							),
 						);
 					},
 				},
@@ -368,7 +373,12 @@ export const actionsProvider: CommandProvider = {
 							deferredUntil: null,
 						});
 						toast.info(
-							"Star nag reset — eligible again on the empty state, sidebar card, and onboarding toast",
+							i18n._(
+								msg({
+									message:
+										"Star nag reset — eligible again on the empty state, sidebar card, and onboarding toast",
+								}),
+							),
 						);
 					},
 				},

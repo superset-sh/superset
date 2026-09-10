@@ -27,7 +27,9 @@ import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-section
 import { DashboardSidebarBulkActions } from "./components/DashboardSidebarBulkActions";
 import { DashboardSidebarBulkDeleteMount } from "./components/DashboardSidebarBulkDeleteMount";
 import { DashboardSidebarCloudSection } from "./components/DashboardSidebarCloudSection";
+import { DashboardSidebarGithubNotice } from "./components/DashboardSidebarGithubNotice";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
+import { DashboardSidebarHiddenProjects } from "./components/DashboardSidebarHiddenProjects";
 import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarHoverCardOverlay";
 import { DashboardSidebarPinnedSection } from "./components/DashboardSidebarPinnedSection";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
@@ -61,6 +63,7 @@ interface DashboardSidebarProps {
 interface SortableProjectWrapperProps {
 	project: DashboardSidebarProject;
 	isCollapsed: boolean;
+	isDragDisabled: boolean;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onToggleCollapse: (projectId: string) => void;
@@ -69,10 +72,12 @@ interface SortableProjectWrapperProps {
 const SortableProjectWrapper = memo(function SortableProjectWrapper({
 	project,
 	isCollapsed,
+	isDragDisabled,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 	onToggleCollapse,
 }: SortableProjectWrapperProps) {
+	const { activeType } = useDashboardSidebarDnd();
 	const {
 		attributes,
 		listeners,
@@ -80,8 +85,7 @@ const SortableProjectWrapper = memo(function SortableProjectWrapper({
 		transform,
 		transition,
 		isDragging,
-	} = useSortable({ id: project.id });
-	const { activeType } = useDashboardSidebarDnd();
+	} = useSortable({ id: project.id, disabled: isDragDisabled });
 	const isDraggingProject = activeType === "project";
 
 	// useSortable re-renders this wrapper on every pointer move of any drag in
@@ -132,9 +136,11 @@ export function DashboardSidebar({
 	const { t } = useLingui();
 	const {
 		groups,
+		hiddenProjects,
 		pinnedWorkspaces,
 		sessionWorkspaces,
 		sessionChildren,
+		githubStatus,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	} = useDashboardSidebarData();
@@ -142,8 +148,13 @@ export function DashboardSidebar({
 		deleteSection,
 		reorderProjects,
 		renameSection,
+		setProjectHidden,
 		toggleSectionCollapsed,
 	} = useDashboardSidebarState();
+	const showHiddenProject = useCallback(
+		(projectId: string) => setProjectHidden(projectId, false),
+		[setProjectHidden],
+	);
 	// Converts legacy uuid-keyed folders to tag-backed folders in the
 	// background; retries whenever the workspace cache changes.
 	useMigrateLegacySidebarFolders();
@@ -200,7 +211,11 @@ export function DashboardSidebar({
 	);
 	const trimmedFilterQuery = projectFilterQuery.trim();
 	const isFilterActive = trimmedFilterQuery !== "";
-	const isDragDisabled = sortMode !== "manual" || isFilterActive;
+	// The sort modes only reorder rows inside a project, so the project list
+	// is still the manual order and stays draggable; only a filter, which
+	// hides projects outright, makes a project drop unsafe to commit.
+	const isProjectDragDisabled = isFilterActive;
+	const isChildDragDisabled = sortMode !== "manual" || isFilterActive;
 
 	// Sorted but unfiltered, so ⌘1–⌘9 targets stay put while typing a query.
 	// The filtered view expands matches through derived objects, so a jump
@@ -330,7 +345,8 @@ export function DashboardSidebar({
 								isSidebarCollapsed={isCollapsed}
 								workspaceShortcutLabels={workspaceShortcutLabels}
 								onReorderProjects={handleReorderProjects}
-								isDragDisabled={isDragDisabled}
+								isProjectDragDisabled={isProjectDragDisabled}
+								isChildDragDisabled={isChildDragDisabled}
 							>
 								<div className="flex h-full flex-col border-r border-border bg-sidebar dark:bg-muted/35">
 									<DashboardSidebarHeader isCollapsed={isCollapsed} />
@@ -371,6 +387,9 @@ export function DashboardSidebar({
 												</DashboardSidebarBulkActions>
 											</div>
 										)}
+										{!isCollapsed && !workspacesListCollapsed && (
+											<DashboardSidebarGithubNotice status={githubStatus} />
+										)}
 										{(isCollapsed || !workspacesListCollapsed) && (
 											<SortableContext
 												items={displayedProjectIds}
@@ -381,12 +400,19 @@ export function DashboardSidebar({
 														key={project.id}
 														project={project}
 														isCollapsed={isCollapsed}
+														isDragDisabled={isProjectDragDisabled}
 														workspaceShortcutLabels={workspaceShortcutLabels}
 														onWorkspaceHover={refreshWorkspacePullRequest}
 														onToggleCollapse={toggleProjectCollapsed}
 													/>
 												))}
 											</SortableContext>
+										)}
+										{!isCollapsed && !workspacesListCollapsed && (
+											<DashboardSidebarHiddenProjects
+												projects={hiddenProjects}
+												onShow={showHiddenProject}
+											/>
 										)}
 										{!isCollapsed &&
 											isFilterActive &&

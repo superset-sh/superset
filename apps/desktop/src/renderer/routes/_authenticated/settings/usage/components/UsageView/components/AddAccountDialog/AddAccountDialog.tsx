@@ -11,16 +11,20 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { Input } from "@superset/ui/input";
+import { RadioGroup, RadioGroupItem } from "@superset/ui/radio-group";
 import { toast } from "@superset/ui/sonner";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { LuCheck, LuCopy, LuLoaderCircle } from "react-icons/lu";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import type { UsageLogins } from "../../../../hooks/useHostUsageLogins";
 import { useHostUsageLogins } from "../../../../hooks/useHostUsageLogins";
 import { useSetDefaultUsageAccount } from "../../../../hooks/useSetDefaultUsageAccount";
+import { addAccountCommand } from "../../utils/addAccountCommand";
+import type { AccountCredentialKind } from "../../utils/apiBilling";
 import { switchSignInCommand } from "../../utils/switchSignInCommand";
+import type { ManagedAgent } from "../../utils/visibleQuotaAgents";
 
-type Agent = "claude" | "codex";
+type Agent = ManagedAgent;
 
 const AGENT_LABELS: Record<Agent, string> = {
 	claude: "Claude Code",
@@ -31,6 +35,7 @@ const AGENT_LABELS: Record<Agent, string> = {
  * system default when selection is null. */
 export interface SwitchSignInTarget {
 	agent: Agent;
+	credentialKind: AccountCredentialKind;
 	selection: string | null;
 	/** Display name for the dialog copy ("~/.claude-2", an email, …). */
 	label: string;
@@ -45,31 +50,46 @@ function slugify(name: string): string {
 	);
 }
 
-// $HOME stays unexpanded on purpose — the user's shell resolves it, so the
-// same command works over SSH to a remote host.
-function addAccountCommand(agent: Agent, slug: string): string {
-	if (agent === "claude") {
-		return `CLAUDE_CONFIG_DIR="$HOME/.claude-${slug}" claude auth login`;
-	}
-	return `mkdir -p "$HOME/.codex-${slug}" && CODEX_HOME="$HOME/.codex-${slug}" codex login`;
+interface FoundLogin {
+	selection: string | null;
+	label: string;
+	credentialKind: AccountCredentialKind;
 }
 
-/** The sign-in that landed after the dialog opened, if any. */
+/**
+ * The sign-in that landed after the dialog opened, if any. Only a login of
+ * the chosen billing kind counts: an API-billing login writes the identity
+ * first and the marker a moment later, and the profile must not be claimed
+ * as a subscription in between.
+ */
 function findNewLogin(
 	agent: Agent,
+	credentialKind: AccountCredentialKind,
 	baseline: UsageLogins,
 	current: UsageLogins,
-): { selection: string; label: string } | null {
+): (FoundLogin & { selection: string }) | null {
 	if (agent === "claude") {
 		const known = new Set(baseline.claude.map((entry) => entry.configDir));
-		const fresh = current.claude.find((entry) => !known.has(entry.configDir));
+		const fresh = current.claude.find(
+			(entry) =>
+				entry.credentialKind === credentialKind && !known.has(entry.configDir),
+		);
 		return fresh
-			? { selection: fresh.configDir, label: fresh.email ?? fresh.configDir }
+			? {
+					selection: fresh.configDir,
+					label: fresh.email ?? fresh.configDir,
+					credentialKind,
+				}
 			: null;
 	}
 	const known = new Set(baseline.codex.map((entry) => entry.home));
-	const fresh = current.codex.find((entry) => !known.has(entry.home));
-	return fresh ? { selection: fresh.home, label: fresh.home } : null;
+	const fresh = current.codex.find(
+		(entry) =>
+			entry.credentialKind === credentialKind && !known.has(entry.home),
+	);
+	return fresh
+		? { selection: fresh.home, label: fresh.home, credentialKind }
+		: null;
 }
 
 /** A change of identity in the target login, if any. */
@@ -79,6 +99,17 @@ function findSignInChange(
 	current: UsageLogins,
 ): { label: string } | null {
 	if (target.agent === "claude") {
+		if (target.credentialKind === "api_key" && target.selection !== null) {
+			// API profiles carry no readable identity change; the login command
+			// rewrites the marker, whose mtime is the fingerprint.
+			const before =
+				baseline.claude.find((entry) => entry.configDir === target.selection)
+					?.fingerprint ?? null;
+			const after =
+				current.claude.find((entry) => entry.configDir === target.selection)
+					?.fingerprint ?? null;
+			return after && after !== before ? { label: target.label } : null;
+		}
 		if (target.selection === null) {
 			return current.claudeDefaultEmail &&
 				current.claudeDefaultEmail !== baseline.claudeDefaultEmail
@@ -93,7 +124,8 @@ function findSignInChange(
 				?.email ?? null;
 		return after && after !== before ? { label: after } : null;
 	}
-	// Codex: identity isn't knowable locally, so compare auth.json content.
+	// Codex: identity isn't knowable locally, so compare auth.json content
+	// (or the marker mtime for an API-billed home).
 	const home = target.selection ?? current.codex[0]?.home;
 	const before =
 		baseline.codex.find((entry) => entry.home === home)?.fingerprint ?? null;
@@ -131,7 +163,9 @@ interface AddAccountDialogProps {
  * separate profile dir, or re-signing an existing login (a profile, or the
  * system default). Either way the user runs the agent's own login in a
  * terminal and we only watch local state for the result — Superset never
- * handles the credentials (see usage/default-account.ts).
+ * handles the credentials (see usage/default-account.ts). A new profile can
+ * be a subscription (quota shows here) or API-billed (pay per token through
+ * the provider's console; the key stays inside the CLI).
  */
 export function AddAccountDialog({
 	open,
@@ -144,12 +178,12 @@ export function AddAccountDialog({
 }: AddAccountDialogProps) {
 	const { t } = useLingui();
 	const agent = switchTarget?.agent ?? addAgent;
+	const billingId = useId();
 	const [name, setName] = useState("work");
+	const [credentialKind, setCredentialKind] =
+		useState<AccountCredentialKind>("subscription");
 	const [copied, setCopied] = useState(false);
-	const [found, setFound] = useState<{
-		selection: string | null;
-		label: string;
-	} | null>(null);
+	const [found, setFound] = useState<FoundLogin | null>(null);
 	const baselineRef = useRef<UsageLogins | null>(null);
 
 	const loginsQuery = useHostUsageLogins(hostUrl, open && !found);
@@ -162,6 +196,7 @@ export function AddAccountDialog({
 			baselineRef.current = null;
 			setFound(null);
 			setCopied(false);
+			setCredentialKind("subscription");
 			return;
 		}
 		const logins = loginsQuery.data;
@@ -190,14 +225,23 @@ export function AddAccountDialog({
 				logins,
 			);
 			if (change) {
-				setFound({ selection: null, label: change.label });
+				setFound({
+					selection: null,
+					label: change.label,
+					credentialKind: switchTarget.credentialKind,
+				});
 				onAccountAdded();
 				// The system default (null) is the share's source, not a target.
 				if (switchTarget.selection) provisionProfile(switchTarget.selection);
 			}
 			return;
 		}
-		const fresh = findNewLogin(agent, baselineRef.current, logins);
+		const fresh = findNewLogin(
+			agent,
+			credentialKind,
+			baselineRef.current,
+			logins,
+		);
 		if (fresh) {
 			setFound(fresh);
 			onAccountAdded();
@@ -207,6 +251,7 @@ export function AddAccountDialog({
 		open,
 		loginsQuery.data,
 		agent,
+		credentialKind,
 		switchTarget,
 		found,
 		onAccountAdded,
@@ -216,7 +261,12 @@ export function AddAccountDialog({
 	const slug = slugify(name);
 	const command = switchTarget
 		? switchSignInCommand(switchTarget)
-		: addAccountCommand(agent, slug);
+		: addAccountCommand(agent, slug, credentialKind);
+	// Codex's API login takes the key at a terminal prompt; every other flow
+	// finishes in the browser.
+	const promptsForKey =
+		(switchTarget?.credentialKind ?? credentialKind) === "api_key" &&
+		agent === "codex";
 
 	const copyCommand = () => {
 		void navigator.clipboard.writeText(command).then(() => {
@@ -237,7 +287,7 @@ export function AddAccountDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-md">
+			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
 					<DialogTitle>
 						{switchTarget ? (
@@ -247,13 +297,18 @@ export function AddAccountDialog({
 						)}
 					</DialogTitle>
 					<DialogDescription>
-						{switchDescription ?? (
-							<Trans>
-								Sign in to a second subscription as a separate profile. Your
-								current login is untouched, and the new profile shares your
-								skills, plugins, MCP servers, and settings.
-							</Trans>
-						)}
+						{switchDescription ??
+							(credentialKind === "api_key" ? (
+								<Trans>
+									A separate pay-per-token profile. The key stays in the{" "}
+									{AGENT_LABELS[agent]} CLI.
+								</Trans>
+							) : (
+								<Trans>
+									A separate profile that shares your skills, plugins, MCP
+									servers, and settings.
+								</Trans>
+							))}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -264,7 +319,7 @@ export function AddAccountDialog({
 							{switchTarget ? (
 								<Trans>is now signed in here.</Trans>
 							) : (
-								<Trans>is signed in and will show its quota here.</Trans>
+								<Trans>is signed in.</Trans>
 							)}
 						</div>
 						<div className="flex justify-end gap-2">
@@ -295,28 +350,74 @@ export function AddAccountDialog({
 				) : (
 					<div className="flex flex-col gap-3">
 						{!switchTarget && (
-							<div className="flex items-center gap-2">
-								<span className="text-xs text-muted-foreground">
-									<Trans>Profile name</Trans>
-								</span>
-								<Input
-									value={name}
-									onChange={(event) => setName(event.target.value)}
-									className="h-7 flex-1 text-xs"
-									placeholder="work"
-								/>
-							</div>
+							<>
+								<div className="flex items-center gap-2">
+									<span className="w-20 shrink-0 text-xs text-muted-foreground">
+										<Trans>Profile name</Trans>
+									</span>
+									<Input
+										value={name}
+										onChange={(event) => setName(event.target.value)}
+										className="h-7 flex-1 text-xs"
+										placeholder="work"
+									/>
+								</div>
+								<div className="flex items-center gap-2">
+									<span className="w-20 shrink-0 text-xs text-muted-foreground">
+										<Trans>Billing</Trans>
+									</span>
+									<RadioGroup
+										value={credentialKind}
+										onValueChange={(value) =>
+											setCredentialKind(value as AccountCredentialKind)
+										}
+										className="flex items-center gap-4"
+									>
+										<label
+											htmlFor={`${billingId}-subscription`}
+											className="flex cursor-pointer items-center gap-1.5 text-xs"
+										>
+											<RadioGroupItem
+												id={`${billingId}-subscription`}
+												value="subscription"
+												className="size-3.5"
+											/>
+											<Trans>Subscription</Trans>
+										</label>
+										<label
+											htmlFor={`${billingId}-api_key`}
+											className="flex cursor-pointer items-center gap-1.5 text-xs"
+										>
+											<RadioGroupItem
+												id={`${billingId}-api_key`}
+												value="api_key"
+												className="size-3.5"
+											/>
+											<Trans>API key</Trans>
+										</label>
+									</RadioGroup>
+								</div>
+							</>
 						)}
 
 						<div className="flex flex-col gap-1">
 							<span className="text-xs text-muted-foreground">
-								<Trans>
-									Run this in any terminal on this host, then finish the sign-in
-									in your browser:
-								</Trans>
+								{promptsForKey ? (
+									<Trans>
+										Run in a terminal on this host; paste your key when asked:
+									</Trans>
+								) : (
+									<Trans>Run in a terminal on this host:</Trans>
+								)}
 							</span>
-							<div className="flex items-start gap-1.5 rounded-md border bg-muted/40 p-2">
-								<code className="flex-1 whitespace-pre-wrap break-all font-mono text-[11px]">
+							<div className="flex items-start gap-1.5 rounded-md border bg-muted/40 py-2 pr-1.5 pl-2.5">
+								<span
+									aria-hidden
+									className="select-none font-mono text-xs leading-5 text-muted-foreground"
+								>
+									$
+								</span>
+								<code className="flex-1 whitespace-pre-wrap break-all font-mono text-xs leading-5">
 									{command}
 								</code>
 								<Button
@@ -336,10 +437,7 @@ export function AddAccountDialog({
 
 						<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
 							<LuLoaderCircle className="size-3 animate-spin" />
-							<Trans>
-								Waiting for the sign-in to complete — this updates
-								automatically.
-							</Trans>
+							<Trans>Waiting for sign-in…</Trans>
 						</div>
 					</div>
 				)}

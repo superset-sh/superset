@@ -1,5 +1,12 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { TIER_RGB } from "@/app/[lang]/components/TierBadge";
-import { DOUBLING_MONTHS, FLOORS, RUN_MONTHS } from "../../constants";
+import {
+	axisAtBand,
+	DOUBLING_MONTHS,
+	RUN_MONTHS,
+	TIER_BANDS,
+} from "../../constants";
 
 const W = 720;
 const H = 232;
@@ -17,10 +24,12 @@ const width = (months: number) => 2 ** (months / DOUBLING_MONTHS);
 
 const crossing = (value: number) => DOUBLING_MONTHS * Math.log2(value);
 
+const WIDTH_AT_BAND = TIER_BANDS.map((band) => axisAtBand("width", band));
+
 const tierAt = (value: number) => {
 	let tier = 0;
-	for (let i = 0; i < FLOORS.width.length; i++) {
-		if (value >= (FLOORS.width[i] ?? Number.POSITIVE_INFINITY)) tier = i + 1;
+	for (let i = 0; i < WIDTH_AT_BAND.length; i++) {
+		if (value >= (WIDTH_AT_BAND[i] ?? Number.POSITIVE_INFINITY)) tier = i + 1;
 	}
 	return tier;
 };
@@ -58,6 +67,8 @@ const YEAR_TICKS = [
 ];
 
 export function ProductionLineMark() {
+	const { _: translate } = useTranslation();
+
 	const paths = segments();
 
 	return (
@@ -65,11 +76,16 @@ export function ProductionLineMark() {
 			viewBox={`0 0 ${W} ${H}`}
 			className="w-full h-auto"
 			role="img"
-			aria-label="Parallel sessions per developer doubling every seven months, crossing the Operator, Plant Manager and Henry Ford thresholds between August 2026 and August 2028"
+			aria-label={translate(
+				msg({
+					message:
+						"Parallel sessions per developer doubling every seven months, crossing the Operator, Plant Manager and Henry Ford thresholds between August 2026 and August 2028",
+				}),
+			)}
 		>
 			<title>One doubling every seven months</title>
 
-			{FLOORS.width.map((floor, index) => (
+			{WIDTH_AT_BAND.map((floor, index) => (
 				<g key={floor}>
 					<line
 						x1={PAD.left}
@@ -89,7 +105,7 @@ export function ProductionLineMark() {
 						fillOpacity="0.8"
 						style={{ fontSize: 10.5, fontFamily: "ui-monospace, monospace" }}
 					>
-						{floor}
+						{floor.toFixed(1)}
 					</text>
 				</g>
 			))}
@@ -105,7 +121,7 @@ export function ProductionLineMark() {
 				/>
 			))}
 
-			{FLOORS.width.slice(1).map((floor, index) => {
+			{WIDTH_AT_BAND.slice(1).map((floor, index) => {
 				const months = crossing(floor);
 				if (months > RUN_MONTHS) return null;
 				return (

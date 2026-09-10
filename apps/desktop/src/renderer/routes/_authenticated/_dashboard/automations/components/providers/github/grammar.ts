@@ -23,6 +23,7 @@ export type Slot =
 	| "labels"
 	| "actor"
 	| "subjectAuthor"
+	| "assignee"
 	| "commentFilter";
 
 export type SentencePart = { text: string } | { slot: Slot };
@@ -48,6 +49,22 @@ export const GITHUB_SENTENCES: Record<GithubTriggerEvent, SentencePart[]> = {
 	],
 	"pull_request.merged": [
 		{ text: "PR merged in" },
+		{ slot: "repositories" },
+		{ text: "by" },
+		{ slot: "actor" },
+	],
+	"pull_request.assigned": [
+		{ text: "PR assigned to" },
+		{ slot: "assignee" },
+		{ text: "in" },
+		{ slot: "repositories" },
+		{ text: "by" },
+		{ slot: "actor" },
+	],
+	"pull_request.review_requested": [
+		{ text: "Review requested from" },
+		{ slot: "assignee" },
+		{ text: "in" },
 		{ slot: "repositories" },
 		{ text: "by" },
 		{ slot: "actor" },
@@ -146,6 +163,17 @@ export const GITHUB_SENTENCES: Record<GithubTriggerEvent, SentencePart[]> = {
 		{ text: "Any workflow conclusion in" },
 		{ slot: "repositories" },
 	],
+	"release.published": [
+		{ text: "Release published in" },
+		{ slot: "repositories" },
+	],
+	"release.created": [{ text: "Release created in" }, { slot: "repositories" }],
+	"release.edited": [{ text: "Release edited in" }, { slot: "repositories" }],
+	"release.unpublished": [
+		{ text: "Release unpublished in" },
+		{ slot: "repositories" },
+	],
+	"release.deleted": [{ text: "Release deleted in" }, { slot: "repositories" }],
 };
 
 /**
@@ -182,6 +210,18 @@ export const GITHUB_MENU: TriggerMenuEntry<GithubConfig>[] = [
 					message: "Merged",
 				}),
 				"pull_request.merged",
+			),
+			leaf(
+				msg({
+					message: "Review requested",
+				}),
+				"pull_request.review_requested",
+			),
+			leaf(
+				msg({
+					message: "Assigned",
+				}),
+				"pull_request.assigned",
 			),
 		],
 	},
@@ -308,6 +348,48 @@ export const GITHUB_MENU: TriggerMenuEntry<GithubConfig>[] = [
 			),
 		],
 	},
+	{
+		label: msg({
+			message: "Release…",
+		}),
+		children: [
+			leaf(
+				msg({
+					context: "github release action",
+					message: "Published",
+				}),
+				"release.published",
+			),
+			leaf(
+				msg({
+					context: "github release action",
+					message: "Created",
+				}),
+				"release.created",
+			),
+			leaf(
+				msg({
+					context: "github release action",
+					message: "Edited",
+				}),
+				"release.edited",
+			),
+			leaf(
+				msg({
+					context: "github release action",
+					message: "Unpublished",
+				}),
+				"release.unpublished",
+			),
+			leaf(
+				msg({
+					context: "github release action",
+					message: "Deleted",
+				}),
+				"release.deleted",
+			),
+		],
+	},
 ];
 
 function leaf(label: MessageDescriptor, event: GithubTriggerEvent) {
@@ -318,6 +400,12 @@ function leaf(label: MessageDescriptor, event: GithubTriggerEvent) {
 const COMMENT_EVENTS = new Set<GithubTriggerEvent>([
 	"comment_added",
 	"issue_comment",
+]);
+
+/** Events whose sentence names who ended up on the pull request. */
+const ASSIGNMENT_EVENTS = new Set<GithubTriggerEvent>([
+	"pull_request.assigned",
+	"pull_request.review_requested",
 ]);
 
 /**
@@ -351,11 +439,21 @@ export function createGithubConfig(event: GithubTriggerEvent) {
 			commentFilter: null,
 		};
 	}
+	if (ASSIGNMENT_EVENTS.has(event)) {
+		return {
+			...base,
+			event: event as "pull_request.assigned" | "pull_request.review_requested",
+			assignee: { mode: "any" as const },
+		};
+	}
 	return {
 		...base,
 		event: event as Exclude<
 			GithubTriggerEvent,
-			"comment_added" | "issue_comment"
+			| "comment_added"
+			| "issue_comment"
+			| "pull_request.assigned"
+			| "pull_request.review_requested"
 		>,
 	};
 }

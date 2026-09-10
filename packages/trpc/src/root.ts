@@ -3,6 +3,7 @@ import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { adminRouter } from "./router/admin";
 import { analyticsRouter } from "./router/analytics";
 import { businessRouter } from "./router/analytics/business";
+import { growthRouter } from "./router/analytics/growth";
 import { apiKeyRouter } from "./router/api-key";
 import { automationRouter } from "./router/automation";
 import { billingRouter } from "./router/billing";
@@ -15,6 +16,7 @@ import { leaderboardRouter } from "./router/leaderboard";
 import { organizationRouter } from "./router/organization";
 import { pageRouter } from "./router/page";
 import { pageCommentRouter } from "./router/page-comment";
+import { pluginsRouter } from "./router/plugins";
 import { supportRouter } from "./router/support/support";
 import { taskRouter } from "./router/task";
 import { teamRouter } from "./router/team";
@@ -34,12 +36,14 @@ export const appRouter = createTRPCRouter({
 	chat: chatRouter,
 	cloudWorkspace: cloudWorkspaceRouter,
 	environment: environmentRouter,
+	growth: growthRouter,
 	host: hostRouter,
 	integration: integrationRouter,
 	leaderboard: leaderboardRouter,
 	organization: organizationRouter,
 	page: pageRouter,
 	pageComment: pageCommentRouter,
+	plugins: pluginsRouter,
 	support: supportRouter,
 	task: taskRouter,
 	team: teamRouter,

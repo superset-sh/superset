@@ -3,8 +3,13 @@ import hostServicePackageJson from "@superset/host-service/package.json" with {
 	type: "json",
 };
 import { getHostId } from "@superset/shared/host-info";
-import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
-import { eq, inArray } from "drizzle-orm";
+import {
+	isWorkspaceTagVisibleTo,
+	normalizeWorkspaceTags,
+	visibleWorkspaceTags,
+	type WorkspaceTagAssignment,
+} from "@superset/shared/workspace-tags";
+import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
@@ -24,6 +29,23 @@ export interface WorkspaceStoreContext {
 	api?: ApiClient;
 	organizationId?: string;
 	clientMachineId?: string;
+	/** The acting user; tags they write are theirs (see `workspaceTags`). */
+	userId?: string;
+}
+
+/**
+ * Stored value for a tag whose creator is unknown (`workspaceTags` keeps the
+ * column NOT NULL so it can sit in the primary key). Never leaves the store:
+ * assignments surface it as null.
+ */
+const UNKNOWN_TAG_CREATOR = "";
+
+function toStoredTagCreator(userId: string | null | undefined): string {
+	return userId ?? UNKNOWN_TAG_CREATOR;
+}
+
+function fromStoredTagCreator(stored: string): string | null {
+	return stored === UNKNOWN_TAG_CREATOR ? null : stored;
 }
 
 /**
@@ -82,7 +104,7 @@ export interface CloudShapedWorkspace {
 
 export function toWorkspaceSnapshot(
 	row: HostWorkspaceRow,
-	tags: string[],
+	tagAssignments: WorkspaceTagAssignment[],
 ): WorkspaceSnapshot {
 	return {
 		id: row.id,
@@ -96,34 +118,77 @@ export function toWorkspaceSnapshot(
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
 		lastActivityAt: row.lastActivityAt,
-		tags,
+		// A broadcast reaches every connected client, whoever they are, so
+		// the snapshot carries who applied each tag and each client keeps its
+		// own. `tags` stays the full union for consumers that predate that.
+		tags: visibleWorkspaceTags(tagAssignments, null),
+		tagAssignments,
 	};
 }
 
-/** A workspace's tags, already-normalized in storage, read back sorted. */
-export function getWorkspaceTags(db: HostDb, workspaceId: string): string[] {
+/** Every tag on a workspace with its creator, whoever is asking. */
+export function getWorkspaceTagAssignments(
+	db: HostDb,
+	workspaceId: string,
+): WorkspaceTagAssignment[] {
 	return db
-		.select({ tag: workspaceTags.tag })
+		.select({
+			tag: workspaceTags.tag,
+			createdByUserId: workspaceTags.createdByUserId,
+		})
 		.from(workspaceTags)
 		.where(eq(workspaceTags.workspaceId, workspaceId))
 		.all()
-		.map((row) => row.tag)
-		.sort();
+		.map((row) => ({
+			tag: row.tag,
+			createdByUserId: fromStoredTagCreator(row.createdByUserId),
+		}));
 }
 
-/** Batch tag lookup for list responses; ids absent from the map have none. */
+/**
+ * A workspace's tags as `viewerUserId` sees them (their own plus any with
+ * no known creator), already-normalized in storage, read back sorted.
+ */
+export function getWorkspaceTags(
+	db: HostDb,
+	workspaceId: string,
+	viewerUserId: string | null | undefined,
+): string[] {
+	return visibleWorkspaceTags(
+		getWorkspaceTagAssignments(db, workspaceId),
+		viewerUserId,
+	);
+}
+
+/**
+ * Batch tag lookup for list responses, scoped to the viewer like
+ * {@link getWorkspaceTags}; ids absent from the map have none they can see.
+ */
 export function getWorkspaceTagsByWorkspaceId(
 	db: HostDb,
 	workspaceIds: string[],
+	viewerUserId: string | null | undefined,
 ): Map<string, string[]> {
 	const byWorkspace = new Map<string, string[]>();
 	if (workspaceIds.length === 0) return byWorkspace;
 	const rows = db
-		.select({ workspaceId: workspaceTags.workspaceId, tag: workspaceTags.tag })
+		.select({
+			workspaceId: workspaceTags.workspaceId,
+			tag: workspaceTags.tag,
+			createdByUserId: workspaceTags.createdByUserId,
+		})
 		.from(workspaceTags)
 		.where(inArray(workspaceTags.workspaceId, workspaceIds))
 		.all();
 	for (const row of rows) {
+		if (
+			!isWorkspaceTagVisibleTo(
+				fromStoredTagCreator(row.createdByUserId),
+				viewerUserId,
+			)
+		) {
+			continue;
+		}
 		const tags = byWorkspace.get(row.workspaceId);
 		if (tags) {
 			tags.push(row.tag);
@@ -203,8 +268,20 @@ export function insertLocalWorkspace(
 			})
 			.run();
 		if (tags.length > 0) {
+			// Adoption paths don't stamp the row's creator, but the tags are
+			// still the acting user's — never let them fall through as public.
+			const createdByUserId = toStoredTagCreator(
+				values.createdByUserId ?? ctx.userId,
+			);
 			tx.insert(workspaceTags)
-				.values(tags.map((tag) => ({ workspaceId: id, tag, createdAt: now })))
+				.values(
+					tags.map((tag) => ({
+						workspaceId: id,
+						tag,
+						createdByUserId,
+						createdAt: now,
+					})),
+				)
 				.run();
 		}
 	});
@@ -221,7 +298,11 @@ export interface UpdateLocalWorkspacePatch {
 	worktreePath?: string;
 	taskId?: string | null;
 	projectId?: string;
-	/** Full replacement of the tag set; already-normalized by the caller. */
+	/**
+	 * Full replacement of the acting user's tag set (`ctx.userId`); already-
+	 * normalized by the caller. Other users' tags on the workspace are
+	 * untouched — they were never in the set the caller read back.
+	 */
 	tags?: string[];
 }
 
@@ -247,7 +328,23 @@ export function updateLocalWorkspace(
 			.where(eq(workspaces.id, id))
 			.run();
 		if (normalizedTags !== undefined) {
-			tx.delete(workspaceTags).where(eq(workspaceTags.workspaceId, id)).run();
+			const createdByUserId = toStoredTagCreator(ctx.userId);
+			// The caller read back its own tags plus the creator-less ones and
+			// sends the whole set back, so both are what gets replaced; a
+			// caller with no identity read everything and replaces everything.
+			tx.delete(workspaceTags)
+				.where(
+					ctx.userId == null
+						? eq(workspaceTags.workspaceId, id)
+						: and(
+								eq(workspaceTags.workspaceId, id),
+								inArray(workspaceTags.createdByUserId, [
+									createdByUserId,
+									UNKNOWN_TAG_CREATOR,
+								]),
+							),
+				)
+				.run();
 			if (normalizedTags.length > 0) {
 				const now = Date.now();
 				tx.insert(workspaceTags)
@@ -255,6 +352,7 @@ export function updateLocalWorkspace(
 						normalizedTags.map((tag) => ({
 							workspaceId: id,
 							tag,
+							createdByUserId,
 							createdAt: now,
 						})),
 					)
@@ -411,7 +509,10 @@ function emitWorkspaceChanged(
 	ctx.eventBus.broadcastWorkspaceChanged({
 		workspaceId: row.id,
 		eventType,
-		workspace: toWorkspaceSnapshot(row, getWorkspaceTags(ctx.db, row.id)),
+		workspace: toWorkspaceSnapshot(
+			row,
+			getWorkspaceTagAssignments(ctx.db, row.id),
+		),
 		occurredAt: Date.now(),
 	});
 }

@@ -2,7 +2,7 @@
 name: computer
 description: Operate the user's real desktop apps and windows on macOS, Windows, or Linux. Use when the user asks to open or drive a native app, click or type in a desktop UI, inspect or arrange a window, use their signed-in system browser, or verify an end-to-end GUI flow, including "open Settings and turn on dark mode", "click Save in that window", "what's on screen". Uses an accessibility-first driver (Cua Driver by default, Peekaboo on macOS). Not for Superset's in-app browser pane, headless scraping, or anything an API or CLI can do directly.
 argument-hint: the app and what to do in it
-allowed-tools: Bash(cua-driver:*) Bash(peekaboo:*)
+allowed-tools: Bash(cua-driver:*) Bash(peekaboo:*) Bash(superset pages publish:*)
 ---
 
 # Superset Computer Control
@@ -160,6 +160,21 @@ cua-driver call end_session '{"session":"superset-computer-<unique>"}'
 
 Do not stop a shared driver daemon or close unrelated windows when the task
 ends.
+
+When the screenshots are the point, a verification run someone else has to
+read, publish them instead of leaving a list of paths on their disk. Collect
+them in a directory beside an `index.html` that lays them out, and publish the
+directory so the images ride along at their relative paths:
+
+```bash
+superset pages publish ./evidence/ --workspace <id> --title "Export dialog: verified"
+```
+
+A desktop screenshot catches whatever else was on screen: mail, messages, a
+password manager, another customer's data. Look at each one, drop or crop what
+the report does not need, and pass `--visibility just_me` unless the org needs
+it. Publishing is one of the actions the Safety rules below require you to
+confirm first.
 
 ## Safety
 

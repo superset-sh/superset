@@ -1,16 +1,17 @@
 import { Trans } from "@lingui/react/macro";
 import {
 	AlertDialog,
-	AlertDialogContent,
+	AlertDialogAction,
+	AlertDialogCancel,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
+	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
-import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Label } from "@superset/ui/label";
-import { useEffect, useId } from "react";
+import { useId } from "react";
 import { shouldConfirmDeleteDialogKey } from "../../utils/shouldConfirmDeleteDialogKey";
 
 interface DestroyConfirmPaneProps {
@@ -46,22 +47,9 @@ export function DestroyConfirmPane({
 	const checkboxId = useId();
 	const hasWarnings = hasChanges || hasUnpushedCommits;
 
-	useEffect(() => {
-		if (!open || !canConfirm) return;
-
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (!shouldConfirmDeleteDialogKey(event)) return;
-			event.preventDefault();
-			onConfirm();
-		};
-
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [canConfirm, onConfirm, open]);
-
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+			<EnterEnabledAlertDialogContent className="max-w-[340px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
 						{isSession ? (
@@ -133,15 +121,19 @@ export function DestroyConfirmPane({
 					</div>
 				)}
 				<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-7 px-3 text-xs"
-						onClick={() => onOpenChange(false)}
-					>
+					<AlertDialogCancel className="h-7 border-0 bg-transparent px-3 text-xs shadow-none">
 						<Trans>Cancel</Trans>
-					</Button>
-					<Button
+					</AlertDialogCancel>
+					<AlertDialogAction
+						onKeyDown={(event) => {
+							// Let the button handle Enter natively, except held keys and IME.
+							if (
+								event.key === "Enter" &&
+								!shouldConfirmDeleteDialogKey(event.nativeEvent)
+							) {
+								event.preventDefault();
+							}
+						}}
 						variant="destructive"
 						size="sm"
 						className="h-7 px-3 text-xs"
@@ -149,9 +141,9 @@ export function DestroyConfirmPane({
 						disabled={!canConfirm}
 					>
 						{confirmLabel}
-					</Button>
+					</AlertDialogAction>
 				</AlertDialogFooter>
-			</AlertDialogContent>
+			</EnterEnabledAlertDialogContent>
 		</AlertDialog>
 	);
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
-	removeProjectFromSidebarState,
-	type SidebarWorkspaceRow,
+	ensureSidebarProjectRecord,
+	setSidebarProjectHidden,
 	tombstoneSidebarWorkspaceRecord,
 } from "./sidebarMutations";
 
@@ -66,6 +66,30 @@ function localStateRow(
 	};
 }
 
+type ProjectRow = {
+	projectId: string;
+	createdAt: Date;
+	isCollapsed: boolean;
+	isHidden: boolean;
+	tabOrder: number;
+	defaultOpenInApp: string | null;
+};
+
+function projectRow(
+	projectId: string,
+	overrides: Partial<ProjectRow> = {},
+): ProjectRow {
+	return {
+		projectId,
+		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+		isCollapsed: false,
+		isHidden: false,
+		tabOrder: 1,
+		defaultOpenInApp: null,
+		...overrides,
+	};
+}
+
 function makeCollections() {
 	return {
 		v2WorkspaceLocalState: makeCollection<LocalStateRow>(
@@ -75,9 +99,7 @@ function makeCollections() {
 			sectionId: string;
 			projectId: string;
 		}>((row) => row.sectionId),
-		v2SidebarProjects: makeCollection<{ projectId: string }>(
-			(row) => row.projectId,
-		),
+		v2SidebarProjects: makeCollection<ProjectRow>((row) => row.projectId),
 	};
 }
 
@@ -85,9 +107,9 @@ type Collections = ReturnType<typeof makeCollections>;
 
 // The functions accept the real `AppCollections` Pick; our fakes implement the
 // touched subset, so cast through the parameter type.
-function asRemoveArg(collections: Collections) {
+function asProjectArg(collections: Collections) {
 	return collections as unknown as Parameters<
-		typeof removeProjectFromSidebarState
+		typeof setSidebarProjectHidden
 	>[0];
 }
 function asTombstoneArg(collections: Collections) {
@@ -96,251 +118,83 @@ function asTombstoneArg(collections: Collections) {
 	>[0];
 }
 
-const noopCleanup = () => {};
-
-const LOCAL_HOST = "host-local";
-const ME = "user-me";
-const PLACEMENT = { machineId: LOCAL_HOST, currentUserId: ME };
-
-describe("removeProjectFromSidebarState", () => {
-	it("tombstones the project's worktrees — existing rows and row-less ones — and deletes sections and the project record", () => {
+describe("setSidebarProjectHidden", () => {
+	it("flips only the hidden flag, leaving placement, sections and workspace rows intact", () => {
 		const collections = makeCollections();
-		// Explicitly-placed worktree (has a visible local-state row).
-		collections.v2WorkspaceLocalState.insert(
-			localStateRow("ws-placed", "proj-1", { sectionId: "sec-1" }),
+		collections.v2SidebarProjects.insert(
+			projectRow("proj-1", { tabOrder: 3, isCollapsed: true }),
 		);
-		const workspaces: SidebarWorkspaceRow[] = [
-			{
-				id: "ws-placed",
-				projectId: "proj-1",
-				type: "worktree",
-				hostId: LOCAL_HOST,
-				createdByUserId: null,
-			},
-			// Worktree with no row yet — the reconciler would re-pin it.
-			{
-				id: "ws-rowless",
-				projectId: "proj-1",
-				type: "worktree",
-				hostId: LOCAL_HOST,
-				createdByUserId: null,
-			},
-		];
 		collections.v2SidebarSections.insert({
 			sectionId: "sec-1",
 			projectId: "proj-1",
 		});
-		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
-
-		const cleaned: string[] = [];
-		removeProjectFromSidebarState(
-			asRemoveArg(collections),
-			workspaces,
-			"proj-1",
-			PLACEMENT,
-			(rows) => {
-				for (const row of rows) cleaned.push(String(row.workspaceId));
-			},
-		);
-
-		// Existing row hidden (kept); row-less worktree gets an inserted tombstone.
-		expect(
-			collections.v2WorkspaceLocalState.get("ws-placed")?.sidebarState.isHidden,
-		).toBe(true);
-		expect(
-			collections.v2WorkspaceLocalState.get("ws-rowless")?.sidebarState
-				.isHidden,
-		).toBe(true);
-		expect(collections.v2SidebarSections.get("sec-1")).toBeUndefined();
-		expect(collections.v2SidebarProjects.get("proj-1")).toBeUndefined();
-		// Only the pre-existing row had live runtimes to tear down.
-		expect(cleaned).toEqual(["ws-placed"]);
-	});
-
-	it("leaves the project's main workspace alone so re-adding the project restores it", () => {
-		const collections = makeCollections();
 		collections.v2WorkspaceLocalState.insert(
-			localStateRow("ws-main", "proj-1"),
-		);
-		const workspaces: SidebarWorkspaceRow[] = [
-			{
-				id: "ws-main",
-				projectId: "proj-1",
-				type: "main",
-				hostId: LOCAL_HOST,
-				createdByUserId: null,
-			},
-			{
-				id: "ws-main-rowless",
-				projectId: "proj-1",
-				type: "main",
-				hostId: LOCAL_HOST,
-				createdByUserId: null,
-			},
-		];
-		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
-
-		removeProjectFromSidebarState(
-			asRemoveArg(collections),
-			workspaces,
-			"proj-1",
-			PLACEMENT,
-			noopCleanup,
+			localStateRow("ws-1", "proj-1", { sectionId: "sec-1", pinnedAt: 5 }),
 		);
 
-		// Main row untouched (not hidden); no tombstone created for a row-less main.
+		setSidebarProjectHidden(asProjectArg(collections), "proj-1", true);
+
+		expect(collections.v2SidebarProjects.get("proj-1")).toMatchObject({
+			isHidden: true,
+			tabOrder: 3,
+			isCollapsed: true,
+		});
+		expect(collections.v2SidebarSections.get("sec-1")).toBeDefined();
 		expect(
-			collections.v2WorkspaceLocalState.get("ws-main")?.sidebarState.isHidden,
-		).toBe(false);
-		expect(
-			collections.v2WorkspaceLocalState.get("ws-main-rowless"),
-		).toBeUndefined();
-		expect(collections.v2SidebarProjects.get("proj-1")).toBeUndefined();
+			collections.v2WorkspaceLocalState.get("ws-1")?.sidebarState,
+		).toMatchObject({ sectionId: "sec-1", pinnedAt: 5, isHidden: false });
+
+		setSidebarProjectHidden(asProjectArg(collections), "proj-1", false);
+		expect(collections.v2SidebarProjects.get("proj-1")?.isHidden).toBe(false);
 	});
 
-	it("clears the pin on a kept main-workspace row so it can't become an invisible orphan", () => {
-		// A pinned row is excluded from the project tree, and once the project
-		// record is deleted the pinned section drops it too — with the pin left
-		// set, the workspace would vanish with no context menu to unpin it.
+	it("is a no-op for a project with no placement row", () => {
 		const collections = makeCollections();
-		collections.v2WorkspaceLocalState.insert(
-			localStateRow("ws-main", "proj-1", { pinnedAt: 1753000000000 }),
-		);
-		const workspaces: SidebarWorkspaceRow[] = [
-			{
-				id: "ws-main",
-				projectId: "proj-1",
-				type: "main",
-				hostId: LOCAL_HOST,
-				createdByUserId: null,
-			},
-		];
-		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
+		setSidebarProjectHidden(asProjectArg(collections), "proj-missing", true);
+		expect(collections.v2SidebarProjects.state.size).toBe(0);
+	});
+});
 
-		removeProjectFromSidebarState(
-			asRemoveArg(collections),
-			workspaces,
-			"proj-1",
-			PLACEMENT,
-			noopCleanup,
+describe("ensureSidebarProjectRecord", () => {
+	it("reveals a hidden project instead of inserting a second row", () => {
+		const collections = makeCollections();
+		collections.v2SidebarProjects.insert(
+			projectRow("proj-1", { isHidden: true, tabOrder: 7 }),
 		);
 
-		const row = collections.v2WorkspaceLocalState.get("ws-main");
-		expect(row?.sidebarState.pinnedAt).toBeNull();
-		// Still not hidden — re-adding the project restores the main workspace.
-		expect(row?.sidebarState.isHidden).toBe(false);
+		ensureSidebarProjectRecord(asProjectArg(collections), "proj-1");
+
+		expect(collections.v2SidebarProjects.state.size).toBe(1);
+		expect(collections.v2SidebarProjects.get("proj-1")).toMatchObject({
+			isHidden: false,
+			tabOrder: 7,
+		});
 	});
 
-	it("leaves workspaces from other projects untouched", () => {
+	it("inserts a visible row ahead of existing projects when none exists", () => {
 		const collections = makeCollections();
-		collections.v2WorkspaceLocalState.insert(
-			localStateRow("ws-other", "proj-2"),
-		);
-		const workspaces: SidebarWorkspaceRow[] = [
-			{
-				id: "ws-other",
-				projectId: "proj-2",
-				type: "worktree",
-				hostId: LOCAL_HOST,
-				createdByUserId: null,
-			},
-		];
-		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
+		collections.v2SidebarProjects.insert(projectRow("proj-1", { tabOrder: 1 }));
 
-		removeProjectFromSidebarState(
-			asRemoveArg(collections),
-			workspaces,
-			"proj-1",
-			PLACEMENT,
-			noopCleanup,
-		);
+		ensureSidebarProjectRecord(asProjectArg(collections), "proj-2");
 
-		expect(
-			collections.v2WorkspaceLocalState.get("ws-other")?.sidebarState.isHidden,
-		).toBe(false);
+		const inserted = collections.v2SidebarProjects.get("proj-2");
+		expect(inserted?.isHidden).toBe(false);
+		expect(inserted?.tabOrder).toBeLessThan(1);
 	});
 
-	it("tombstones a row-less remote worktree this user created, even if its host is offline (#7100)", () => {
+	it("leaves a visible row untouched", () => {
 		const collections = makeCollections();
-		// No local-state row: the reconciler would re-place it (recreating the
-		// project row) the moment its host answers — even a host that is offline
-		// at removal time — so the tombstone must be written regardless of host.
-		const workspaces: SidebarWorkspaceRow[] = [
-			{
-				id: "ws-remote-mine",
-				projectId: "proj-1",
-				type: "worktree",
-				hostId: "host-remote",
-				createdByUserId: ME,
-			},
-		];
-		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
-
-		const cleaned: string[] = [];
-		removeProjectFromSidebarState(
-			asRemoveArg(collections),
-			workspaces,
-			"proj-1",
-			PLACEMENT,
-			(rows) => {
-				for (const row of rows) cleaned.push(String(row.workspaceId));
-			},
+		collections.v2SidebarProjects.insert(
+			projectRow("proj-1", { tabOrder: 4, isCollapsed: true }),
 		);
 
-		expect(
-			collections.v2WorkspaceLocalState.get("ws-remote-mine")?.sidebarState
-				.isHidden,
-		).toBe(true);
-		// A row-less remote worktree had no pane runtimes on this device.
-		expect(cleaned).toEqual([]);
-	});
+		ensureSidebarProjectRecord(asProjectArg(collections), "proj-1");
 
-	it("writes no tombstone for a teammate's or creator-less remote worktree — placement never brings those back", () => {
-		const collections = makeCollections();
-		const workspaces: SidebarWorkspaceRow[] = [
-			{
-				id: "ws-remote-theirs",
-				projectId: "proj-1",
-				type: "worktree",
-				hostId: "host-remote",
-				createdByUserId: "user-teammate",
-			},
-			{
-				id: "ws-remote-unknown",
-				projectId: "proj-1",
-				type: "worktree",
-				hostId: "host-remote",
-				createdByUserId: null,
-			},
-			// Local host: placed whoever created it, so still tombstoned.
-			{
-				id: "ws-local-theirs",
-				projectId: "proj-1",
-				type: "worktree",
-				hostId: LOCAL_HOST,
-				createdByUserId: "user-teammate",
-			},
-		];
-		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
-
-		removeProjectFromSidebarState(
-			asRemoveArg(collections),
-			workspaces,
-			"proj-1",
-			PLACEMENT,
-			noopCleanup,
-		);
-
-		expect(collections.v2WorkspaceLocalState.get("ws-remote-theirs")).toBe(
-			undefined,
-		);
-		expect(collections.v2WorkspaceLocalState.get("ws-remote-unknown")).toBe(
-			undefined,
-		);
-		expect(
-			collections.v2WorkspaceLocalState.get("ws-local-theirs")?.sidebarState
-				.isHidden,
-		).toBe(true);
+		expect(collections.v2SidebarProjects.get("proj-1")).toMatchObject({
+			tabOrder: 4,
+			isCollapsed: true,
+			isHidden: false,
+		});
 	});
 });
 

@@ -1,7 +1,8 @@
+import type { I18n } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
 import { formatCount, formatTokens, formatUsd } from "../../utils/formatUsage";
+import { MeterBar } from "../MeterBar";
 
 const PALETTE = [
 	"#d25611",
@@ -83,15 +84,7 @@ export function ModelBars({
 								{row.display}
 							</span>
 						</div>
-						<div className="h-1 bg-foreground/[0.06] rounded-full overflow-hidden">
-							<div
-								className="h-full"
-								style={{
-									width: `${max > 0 ? (row.value / max) * 100 : 0}%`,
-									backgroundColor: color,
-								}}
-							/>
-						</div>
+						<MeterBar value={max > 0 ? row.value / max : 0} color={color} />
 					</div>
 				);
 			})}
@@ -101,6 +94,7 @@ export function ModelBars({
 
 export function toUserRows(
 	models: Array<{ provider: string; model: string; users: number }>,
+	i18n: I18n,
 ): ModelBarRow[] {
 	return models.map((model) => ({
 		provider: model.provider,
@@ -110,7 +104,10 @@ export function toUserRows(
 			...msg({
 				message: "{formatted} {count, plural, one {dev} other {devs}}",
 			}),
-			values: { formatted: formatCount(model.users), count: model.users },
+			values: {
+				formatted: formatCount(model.users, i18n.locale),
+				count: model.users,
+			},
 		}),
 	}));
 }
@@ -122,12 +119,13 @@ export function toSpendRows(
 		usd: string;
 		tokens: number;
 	}>,
+	locale: string,
 ): ModelBarRow[] {
 	return models.map((model) => ({
 		provider: model.provider,
 		model: model.model,
 		value: Number.parseFloat(model.usd) || 0,
-		display: formatUsd(model.usd),
+		display: formatUsd(model.usd, locale),
 	}));
 }
 
@@ -138,11 +136,12 @@ export function toTokenRows(
 		usd: string;
 		tokens: number;
 	}>,
+	locale: string,
 ): ModelBarRow[] {
 	return models.map((model) => ({
 		provider: model.provider,
 		model: model.model,
 		value: model.tokens,
-		display: formatTokens(model.tokens),
+		display: formatTokens(model.tokens, locale),
 	}));
 }

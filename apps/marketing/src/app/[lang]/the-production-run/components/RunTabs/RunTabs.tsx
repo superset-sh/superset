@@ -1,4 +1,6 @@
 "use client";
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 
 import { type ReactNode, useState } from "react";
 import { PillTabs } from "@/app/[lang]/components/PillTabs";
@@ -23,6 +25,8 @@ export function RunTabs({
 	statusLabels,
 	overview,
 }: RunTabsProps) {
+	const { _: translate } = useTranslation();
+
 	const [active, setActive] = useState(initialTab);
 
 	const select = (id: string) => {
@@ -50,7 +54,7 @@ export function RunTabs({
 				<div className="max-w-3xl mx-auto px-6 py-4">
 					<PillTabs
 						accent={tierRgb(2)}
-						label="Production run"
+						label={translate(msg({ message: "Production run" }))}
 						value={active}
 						options={options}
 						onChange={select}

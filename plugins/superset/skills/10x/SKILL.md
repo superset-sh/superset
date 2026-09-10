@@ -35,6 +35,7 @@ For each recommendation in order: a two-sentence pitch, then ask (use the ask_us
 | Terminal remote-control | Read and drive any agent's terminal from anywhere | `superset terminals list / read / send` |
 | Custom slash commands | Your repo's own workflows as commands every agent can run | create `.agents/commands/<name>.md` in their repo |
 | MCP servers | Give every workspace agent the same extra tools | add servers to `.mcp.json` at their repo root |
+| Pages | Turn a report, dashboard, or digest into a link the org can read and pin comments to, versioned on every republish | `superset pages publish report.html --workspace <id> --title "..."`, then `superset pages comments list` |
 | Feedback loop | Report bugs or ideas without leaving the agent | the feedback skill |
 
 ## Rules

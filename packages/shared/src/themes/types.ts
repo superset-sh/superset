@@ -133,6 +133,11 @@ export interface UIColors {
 	warning?: string;
 	warningForeground?: string;
 
+	// Connected / healthy states (a live plugin connection, a passing check).
+	// Optional for the same reason as warning: themes authored before it keep
+	// loading and inherit the default from globals.css.
+	success?: string;
+
 	// Borders and inputs
 	border: string;
 	input: string;

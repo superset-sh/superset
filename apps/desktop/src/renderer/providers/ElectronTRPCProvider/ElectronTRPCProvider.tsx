@@ -22,7 +22,7 @@ import { electronReactClient } from "../../lib/trpc-client";
 // "visible", so React Query's default visibilitychange listener never fires.
 // Wire window focus/blur instead so refetchOnWindowFocus actually works.
 // focusManager is a module-global singleton — this covers every query client
-// in the renderer, including chat-service's.
+// in the renderer.
 focusManager.setEventListener((handleFocus) => {
 	const onFocus = () => handleFocus(true);
 	const onBlur = () => handleFocus(false);

@@ -38,6 +38,7 @@
 		}
 	},
 	"scripts": {
+		"build": "bun run compile",
 		"extract": "bunx --bun lingui extract --clean --overwrite --workers 1",
 		"compile": "bunx --bun lingui compile --strict --verbose --workers 1",
 		"check": "bun run extract && bun run compile",
@@ -47,20 +48,25 @@
 	},
 	"dependencies": {
 		"@lingui/core": "6.6.0",
-		"@lingui/react": "6.6.0"
+		"@lingui/react": "6.6.0",
+		"server-only": "0.0.1"
 	},
 	"devDependencies": {
 		"@ast-grep/napi": "0.41.1",
 		"@babel/core": "7.29.7",
+		"@happy-dom/global-registrator": "20.0.2",
 		"@lingui/babel-plugin-lingui-macro": "6.6.0",
 		"@lingui/cli": "6.6.0",
 		"@lingui/format-po": "6.6.0",
 		"@lingui/message-utils": "6.6.0",
 		"@superset/typescript": "workspace:*",
+		"@testing-library/react": "16.3.0",
 		"@types/babel__core": "7.20.5",
 		"@types/react": "19.2.14",
+		"@types/react-dom": "19.2.3",
 		"bun-types": "1.3.14",
 		"react": "19.2.3",
+		"react-dom": "19.2.3",
 		"typescript": "6.0.3"
 	}
 }

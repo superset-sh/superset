@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
 import { formatNumber } from "@superset/i18n/format";
+import { getI18nInstance } from "@superset/i18n/server";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { Silkscreen } from "next/font/google";
@@ -29,6 +29,7 @@ const pixel = Silkscreen({
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	const title = i18n._(
 		msg({
 			message: "Leaderboard",
@@ -48,13 +49,13 @@ export async function generateMetadata(): Promise<Metadata> {
 			title: `${title} | ${COMPANY.NAME}`,
 			description,
 			url: localeUrl(lang, "/leaderboard"),
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 		twitter: {
 			card: "summary_large_image",
 			title: `${title} | ${COMPANY.NAME}`,
 			description,
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 	};
 }
@@ -65,12 +66,18 @@ const DEFAULT_PERIOD = "30d" as const;
 
 export default async function LeaderboardPage() {
 	await initServerI18n();
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 
 	const run = RUNS[0];
-	const runLabel = run ? runStatusLabel(runStatus(run, new Date()), run) : "";
+	const runLabel = run
+		? runStatusLabel(runStatus(run, new Date()), run, i18n)
+		: "";
 	const runNumber = run
-		? formatNumber(run.number, { minimumIntegerDigits: 2, useGrouping: false })
+		? formatNumber(
+				run.number,
+				{ minimumIntegerDigits: 2, useGrouping: false },
+				i18n.locale,
+			)
 		: "";
 	const operatorTier = t(tierLabel(2));
 
@@ -84,25 +91,41 @@ export default async function LeaderboardPage() {
 			<FactoryBackdrop />
 
 			<div className="relative max-w-4xl mx-auto px-6 py-10 md:py-14">
-				<header className="text-center pt-6 md:pt-10">
-					<h1
-						className={`${pixel.className} text-3xl md:text-4xl text-foreground`}
-					>
-						<Trans>Leaderboard</Trans>
-					</h1>
-					<p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground mt-5">
-						<Trans>Agent usage, ranked</Trans>
-					</p>
-					<Link
-						href="/stats"
-						className="inline-block font-mono text-[0.68rem] uppercase tracking-[0.14em] text-brand hover:text-brand-light transition-colors mt-4"
-					>
-						<Trans>See all stats →</Trans>
-					</Link>
+				<div>
+					<LeaderboardBoard
+						initialStandings={standings}
+						initialStats={stats}
+						earliest="2025-01-01"
+						pixelClassName={pixel.className}
+						headerLink={
+							<Link
+								href="/the-production-run"
+								className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground hover:text-brand transition-colors shrink-0"
+							>
+								<Trans>How tiers work →</Trans>
+							</Link>
+						}
+						header={
+							<header className="text-center pt-6 md:pt-10">
+								<h1
+									className={`${pixel.className} text-3xl md:text-4xl text-foreground`}
+								>
+									<Trans>Leaderboard</Trans>
+								</h1>
+								<p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground mt-5">
+									<Trans>Where you actually are</Trans>
+								</p>
 
-					{run && (
-						<div className="mt-6">
-							<style>{`
+								<Link
+									href="/stats"
+									className="inline-block font-mono text-[0.68rem] uppercase tracking-[0.14em] text-brand hover:text-brand-light transition-colors mt-6"
+								>
+									<Trans>See all stats →</Trans>
+								</Link>
+
+								{run && (
+									<div className="mt-6">
+										<style>{`
 							.run-callout {
 								position: relative;
 								border: 1px solid rgba(var(--run-glow), 0.22);
@@ -133,46 +156,45 @@ export default async function LeaderboardPage() {
 								.run-trail rect { animation: none; stroke-dasharray: none; stroke-opacity: 0.5; }
 							}
 							`}</style>
-							<Link
-								href={`/the-production-run?run=${run.number}`}
-								style={{ "--run-glow": tierRgb(2) } as React.CSSProperties}
-								className="run-callout group inline-flex items-center gap-2 px-3 py-1.5 font-mono text-[0.6rem] uppercase tracking-[0.14em]"
-							>
-								<svg className="run-trail" aria-hidden="true">
-									<title>
-										{t({
-											message: "Production run status",
-										})}
-									</title>
-									<rect
-										x="0"
-										y="0"
-										width="100%"
-										height="100%"
-										pathLength={100}
-									/>
-								</svg>
-								<span style={{ color: `rgb(${tierRgb(2)})` }}>
-									{t({
-										message: `Run ${runNumber}`,
-									})}
-								</span>
-								<span className="text-muted-foreground">
-									{t({
-										message: `${runLabel} · everybody to ${operatorTier}`,
-									})}
-								</span>
-								<span style={{ color: `rgba(${tierRgb(2)},0.8)` }}>→</span>
-							</Link>
-						</div>
-					)}
-				</header>
-				<div className="mt-10 md:mt-12">
-					<LeaderboardBoard
-						initialStandings={standings}
-						initialStats={stats}
-						earliest="2025-01-01"
-						pixelClassName={pixel.className}
+										<Link
+											href={`/the-production-run?run=${run.number}`}
+											style={
+												{ "--run-glow": tierRgb(2) } as React.CSSProperties
+											}
+											className="run-callout group inline-flex items-center gap-2 px-3 py-1.5 font-mono text-[0.6rem] uppercase tracking-[0.14em]"
+										>
+											<svg className="run-trail" aria-hidden="true">
+												<title>
+													{t({
+														message: "Production run status",
+													})}
+												</title>
+												<rect
+													x="0"
+													y="0"
+													width="100%"
+													height="100%"
+													pathLength={100}
+												/>
+											</svg>
+											<span style={{ color: `rgb(${tierRgb(2)})` }}>
+												{t({
+													message: `Run ${runNumber}`,
+												})}
+											</span>
+											<span className="text-muted-foreground">
+												{t({
+													message: `${runLabel} · everybody to ${operatorTier}`,
+												})}
+											</span>
+											<span style={{ color: `rgba(${tierRgb(2)},0.8)` }}>
+												→
+											</span>
+										</Link>
+									</div>
+								)}
+							</header>
+						}
 					/>
 				</div>
 			</div>

@@ -2,13 +2,15 @@ import { msg } from "@lingui/core/macro";
 import { Button } from "@superset/ui/button";
 import Link from "next/link";
 import { MessageScreen } from "@/components/MessageScreen";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 
 interface WrongOrganizationProps {
 	message: string;
 }
 
-export function WrongOrganization({ message }: WrongOrganizationProps) {
+export async function WrongOrganization({ message }: WrongOrganizationProps) {
+	const i18n = await initServerI18n();
+
 	return (
 		<MessageScreen
 			title={i18n._(

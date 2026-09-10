@@ -73,6 +73,9 @@ export class HeadlessEmulator {
 	// Buffer for partial escape sequences that span chunk boundaries
 	private escapeSequenceBuffer = "";
 
+	// Callers waiting on flush(), so dispose() can release them
+	private pendingFlushes = new Set<() => void>();
+
 	// Maximum buffer size to prevent unbounded growth (safety cap)
 	private static readonly MAX_ESCAPE_BUFFER_SIZE = 1024;
 
@@ -220,7 +223,11 @@ export class HeadlessEmulator {
 		if (this.disposed) return;
 		// Write an empty string with callback to ensure all pending writes are processed
 		return new Promise<void>((resolve) => {
-			this.terminal.write("", () => resolve());
+			this.pendingFlushes.add(resolve);
+			this.terminal.write("", () => {
+				this.pendingFlushes.delete(resolve);
+				resolve();
+			});
 		});
 	}
 
@@ -299,15 +306,6 @@ export class HeadlessEmulator {
 	}
 
 	/**
-	 * Generate a complete snapshot after flushing pending writes.
-	 * This is the preferred method for getting consistent snapshots.
-	 */
-	async getSnapshotAsync(): Promise<TerminalSnapshot> {
-		await this.flush();
-		return this.getSnapshot();
-	}
-
-	/**
 	 * Clear terminal buffer
 	 */
 	clear(): void {
@@ -331,6 +329,12 @@ export class HeadlessEmulator {
 		if (this.disposed) return;
 		this.disposed = true;
 		this.terminal.dispose();
+
+		// Disposing the terminal drops the write callbacks xterm still had
+		// queued, so a flush() already in flight would never be answered.
+		const waiting = this.pendingFlushes;
+		this.pendingFlushes = new Set();
+		for (const resolve of waiting) resolve();
 	}
 
 	// ===========================================================================

@@ -9,6 +9,10 @@ import {
 } from "@superset/agent-setup";
 import { i18n, initI18nAsync } from "@superset/i18n";
 import { settings } from "@superset/local-db";
+import {
+	devAppProfileDirName,
+	isDevAppProfileDirName,
+} from "@superset/shared/dev-app-profile";
 import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
@@ -24,12 +28,14 @@ import {
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
+import { sweepDevAppProfiles } from "./dev-app-profile-sweep";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { startBrowserBridge } from "./lib/browser/browser-bridge";
 import { downloadManager } from "./lib/browser/download-manager";
 import { installBundledCliShim } from "./lib/bundled-cli";
+import { installDevRunnerExit } from "./lib/dev-runner-exit";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
@@ -73,11 +79,24 @@ void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
 });
 
-// Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
+// Dev mode: label the app with the workspace name so multiple worktrees are
+// distinguishable. This also moves `app.getPath("userData")`, so the workspace
+// gets its own Chromium profile — see sweepDevAppProfiles for the reaping.
 if (IS_DEV) {
 	const workspaceName = resolveDevWorkspaceName();
-	if (workspaceName) {
-		app.setName(`Superset (${workspaceName})`);
+	const profileName = workspaceName
+		? devAppProfileDirName(workspaceName)
+		: undefined;
+	// A name carrying a path separator would make Electron nest userData inside
+	// a directory neither the sweep nor teardown can ever reap. Keep the
+	// default profile instead — a shared dock label beats an unreclaimable one.
+	if (profileName && isDevAppProfileDirName(profileName)) {
+		app.setName(profileName);
+	} else if (profileName) {
+		console.warn(
+			"[main] Not renaming the app: unusable profile name",
+			profileName,
+		);
 	}
 }
 
@@ -322,41 +341,20 @@ process.on("unhandledRejection", (reason) => {
 	console.error("[main] Unhandled rejection:", reason);
 });
 
-// Without these handlers, Electron may not quit when electron-vite sends SIGTERM
 if (process.env.NODE_ENV === "development") {
-	let signalHandled = false;
-	const handleTerminationSignal = (signal: string) => {
-		if (signalHandled) return;
-		signalHandled = true;
-		console.log(`[main] Received ${signal}, quitting...`);
-		getHostServiceCoordinator().stopAll();
-		void Promise.allSettled([teardownTerminalHost()]).finally(() =>
-			app.exit(0),
-		);
-	};
-
-	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
-	process.on("SIGINT", () => handleTerminationSignal("SIGINT"));
-
-	// Fallback: electron-vite may exit without signaling the child Electron process
-	const parentPid = process.ppid;
-	const isParentAlive = (): boolean => {
-		try {
-			process.kill(parentPid, 0);
-			return true;
-		} catch {
-			return false;
-		}
-	};
-
-	const parentCheckInterval = setInterval(() => {
-		if (!isParentAlive()) {
-			console.log("[main] Parent process exited, quitting...");
-			clearInterval(parentCheckInterval);
-			handleTerminationSignal("parent-exit");
-		}
-	}, 1000);
-	parentCheckInterval.unref();
+	installDevRunnerExit({
+		parentPid: process.ppid,
+		stdio: [process.stdout, process.stderr],
+		subscribeSignal: (signal, handler) => {
+			process.on(signal, handler);
+		},
+		markQuitting: () => {
+			isQuitting = true;
+		},
+		stopHostServices: () => getHostServiceCoordinator().stopAll(),
+		teardownTerminalHost,
+		exit: (code) => app.exit(code),
+	});
 }
 
 // Chromium refuses to cache any single entry larger than about an eighth
@@ -483,6 +481,7 @@ if (!gotTheLock) {
 		initTanstackDbPersistence();
 
 		sweepNetworkLogs();
+		sweepDevAppProfiles();
 
 		await loadWebviewBrowserExtension();
 

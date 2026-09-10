@@ -7,6 +7,7 @@
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
 		"@types/tailwindcss": "3.1.0",
+		"bun-types": "1.3.14",
 		"react-email": "5.0.7",
 		"typescript": "6.0.3"
 	},
@@ -20,6 +21,7 @@
 		"dev": "NEXT_PUBLIC_MARKETING_URL=$(grep NEXT_PUBLIC_MARKETING_URL ../../.env | cut -d '=' -f2) email dev --dir src/emails",
 		"export": "email export --dir src/emails",
 		"sync:automations": "bun scripts/sync-automations.ts",
+		"test": "bun test",
 		"typecheck": "tsc --noEmit"
 	},
 	"type": "module",
@@ -27,6 +29,7 @@
 		"@react-email/components": "1.0.1",
 		"@react-email/tailwind": "2.0.3",
 		"@superset/db": "workspace:*",
+		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "0.13.11",
 		"date-fns": "4.1.0",
 		"drizzle-orm": "0.45.2",

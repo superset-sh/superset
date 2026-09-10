@@ -13,6 +13,12 @@ const MODIFIER_KEYS = new Set(["Meta", "Control", "Shift", "Alt"]);
 
 export function useLinkHoverState() {
 	const [hoveredLink, setHoveredLink] = useState<HoveredLink | null>(null);
+	// Written synchronously by the hover/leave callbacks, so a consumer that
+	// runs from a DOM event (the terminal's contextmenu handler) sees the link
+	// under the pointer right now rather than whatever the last React render
+	// committed. Reading state through a render-assigned ref would lag by a
+	// render whenever xterm fires hover and the click lands before React flushes.
+	const liveHoveredLinkRef = useRef<HoveredLink | null>(null);
 	const hovering = hoveredLink !== null;
 
 	// xterm's Linkifier caches the last real MouseEvent and re-fires
@@ -62,18 +68,21 @@ export function useLinkHoverState() {
 				shift: event.shiftKey,
 			};
 		}
-		setHoveredLink({
+		const next: HoveredLink = {
 			clientX: event.clientX,
 			clientY: event.clientY,
 			info,
 			modifier: flagsRef.current.modifier,
 			shift: flagsRef.current.shift,
-		});
+		};
+		liveHoveredLinkRef.current = next;
+		setHoveredLink(next);
 	}, []);
 
 	const onLeave = useCallback(() => {
+		liveHoveredLinkRef.current = null;
 		setHoveredLink(null);
 	}, []);
 
-	return { hoveredLink, onHover, onLeave };
+	return { hoveredLink, liveHoveredLinkRef, onHover, onLeave };
 }

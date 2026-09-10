@@ -168,3 +168,11 @@ export type PageCommentAuthorKind = z.infer<typeof pageCommentAuthorKindEnum>;
 export const leaderboardVisibilityValues = ["public", "hidden"] as const;
 export const leaderboardVisibilityEnum = z.enum(leaderboardVisibilityValues);
 export type LeaderboardVisibility = z.infer<typeof leaderboardVisibilityEnum>;
+
+export const handleOwnerTypeValues = [
+	"user",
+	"organization",
+	"reserved",
+] as const;
+export const handleOwnerTypeEnum = z.enum(handleOwnerTypeValues);
+export type HandleOwnerType = z.infer<typeof handleOwnerTypeEnum>;

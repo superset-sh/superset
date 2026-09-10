@@ -19,6 +19,11 @@
 	--brand-dark: #9e400a;
 }
 
+/* The site is always dark; the shared muted grey reads too dim for body copy here */
+.dark {
+	--muted-foreground: oklch(0.8 0 0);
+}
+
 @layer base {
 	/* Linear-style Inter: optical sizing (Display cut at large sizes) +
 	   alternate glyphs. Feature settings are ignored by the mono/pixel fonts. */

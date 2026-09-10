@@ -1,0 +1,1 @@
+export { usePullRequestPaneIntentOpener } from "./usePullRequestPaneIntentOpener";

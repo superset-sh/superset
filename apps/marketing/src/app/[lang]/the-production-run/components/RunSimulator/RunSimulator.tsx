@@ -1,29 +1,38 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { useLingui } from "@lingui/react/macro";
+import { formatCompactNumber } from "@superset/i18n/format";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MeterBar } from "@/app/[lang]/components/MeterBar";
 import { tierLabel, tierRgb } from "@/app/[lang]/components/TierBadge";
 import { TierIcon } from "@/app/[lang]/components/TierIcon";
 import {
+	axisAtBand,
 	COST_CEILINGS,
-	FLOORS,
 	monthLabel,
 	RUN_MONTHS,
 	runStateAt,
 	SLIDER_MONTHS,
+	TIER_BANDS,
 } from "../../constants";
 import { Readout } from "./components/Readout";
 
 const PLAY_MS = 11000;
 
-function formatTokens(value: number): string {
+function formatTokens(value: number, locale: string): string {
+	if (!locale.startsWith("en"))
+		return formatCompactNumber(value, { maximumFractionDigits: 2 }, locale);
 	if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
 	if (value >= 1_000) return `${Math.round(value / 1_000)}K`;
 	return String(Math.round(value));
 }
 
 export function RunSimulator() {
-	const { t } = useLingui();
+	const { _: translate } = useTranslation();
+
+	const { t, i18n } = useLingui();
 	const [months, setMonths] = useState(0);
 	const [playing, setPlaying] = useState(false);
 	const frame = useRef<number | null>(null);
@@ -70,6 +79,7 @@ export function RunSimulator() {
 	const costRatio = start.costPerPr / state.costPerPr;
 	const rgb = tierRgb(state.tier);
 	const nextTier = Math.min(4, state.tier + 1);
+	const nextBand = TIER_BANDS[nextTier - 1] ?? 0;
 	const atTop = state.tier >= 4;
 
 	return (
@@ -78,7 +88,7 @@ export function RunSimulator() {
 				<div className="p-5 md:p-6 border-b md:border-b-0 md:border-r border-border">
 					<div className="flex items-baseline justify-between gap-3">
 						<span className="text-sm font-mono text-foreground">
-							{monthLabel(state.months)}
+							{monthLabel(state.months, i18n.locale)}
 						</span>
 						<span className="text-[11px] font-mono text-muted-foreground">
 							{state.months <= RUN_MONTHS
@@ -93,7 +103,7 @@ export function RunSimulator() {
 						max={SLIDER_MONTHS}
 						step={0.25}
 						value={months}
-						aria-label="Months from August 2026"
+						aria-label={translate(msg({ message: "Months from August 2026" }))}
 						onChange={(event) => {
 							stop();
 							setMonths(Number(event.target.value));
@@ -118,53 +128,53 @@ export function RunSimulator() {
 					<div className="mt-5">
 						<Readout
 							accent={rgb}
-							label="Width · parallel sessions"
+							label={translate(msg({ message: "Width · parallel sessions" }))}
 							value={state.width.toFixed(2)}
 							floor={
 								atTop
 									? "top"
-									: `T${nextTier} \u2265 ${FLOORS.width[nextTier - 1]}`
+									: `T${nextTier} ~ ${axisAtBand("width", nextBand).toFixed(1)}`
 							}
 							held={state.limitedBy.includes("Width")}
 						/>
 						<Readout
 							accent={rgb}
-							label="Depth · tokens per session"
-							value={formatTokens(state.depth)}
+							label={translate(msg({ message: "Depth · tokens per session" }))}
+							value={formatTokens(state.depth, i18n.locale)}
 							floor={
 								atTop
 									? "top"
-									: `T${nextTier} \u2265 ${formatTokens(
-											FLOORS.depth[nextTier - 1] ?? 0,
-										)}`
+									: `T${nextTier} ~ ${formatTokens(axisAtBand("depth", nextBand), i18n.locale)}`
 							}
 							held={state.limitedBy.includes("Depth")}
 						/>
 						<Readout
 							accent={rgb}
-							label="Output · merged PRs per week"
+							label={translate(
+								msg({ message: "Output · merged PRs per week" }),
+							)}
 							value={state.output.toFixed(2)}
 							floor={
 								atTop
 									? "top"
-									: `T${nextTier} \u2265 ${FLOORS.output[nextTier - 1]}`
+									: `T${nextTier} ~ ${axisAtBand("output", nextBand).toFixed(1)}`
 							}
 							held={state.limitedBy.includes("Output")}
 						/>
 						<Readout
 							accent={rgb}
-							label="Sustain · active days in 30"
+							label={translate(msg({ message: "Sustain · active days in 30" }))}
 							value={state.sustain.toFixed(1)}
 							floor={
 								atTop
 									? "top"
-									: `T${nextTier} \u2265 ${FLOORS.sustain[nextTier - 1]}`
+									: `T${nextTier} ~ ${Math.round(axisAtBand("sustain", nextBand))}`
 							}
 							held={state.limitedBy.includes("Sustain")}
 						/>
 						<Readout
 							accent={rgb}
-							label="Cost · $ per merged PR"
+							label={translate(msg({ message: "Cost · $ per merged PR" }))}
 							value={`$${state.costPerPr.toFixed(2)}`}
 							floor={
 								atTop
@@ -191,7 +201,7 @@ export function RunSimulator() {
 							<TierIcon tier={state.tier} size={30} />
 						</span>
 						<p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground mt-3">
-							Tier {state.tier}
+							Tier {state.tier} · score {Math.round(state.score)}
 						</p>
 						<p
 							className="text-xl md:text-2xl font-medium tracking-tight mt-1"
@@ -212,15 +222,11 @@ export function RunSimulator() {
 								{Math.round(state.progress * 100)}%
 							</span>
 						</div>
-						<div className="mt-2 h-1.5 w-full bg-border overflow-hidden">
-							<div
-								className="h-full transition-[width] duration-100"
-								style={{
-									width: `${state.progress * 100}%`,
-									background: `rgb(${rgb})`,
-								}}
-							/>
-						</div>
+						<MeterBar
+							className="mt-2"
+							value={state.progress}
+							color={`rgb(${rgb})`}
+						/>
 					</div>
 
 					<dl className="mt-5 text-xs">

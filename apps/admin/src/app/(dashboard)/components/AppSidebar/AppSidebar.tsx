@@ -2,7 +2,7 @@
 
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import { i18n } from "@superset/i18n";
+import { useLingui } from "@lingui/react";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -22,7 +22,7 @@ import {
 	SidebarRail,
 } from "@superset/ui/sidebar";
 import { usePathname } from "next/navigation";
-import { LuChevronRight, LuHouse } from "react-icons/lu";
+import { LuChevronRight, LuHouse, LuTrendingUp } from "react-icons/lu";
 
 import { AppSidebarHeader } from "./components/AppSidebarHeader";
 import { NavUser, type SidebarUser } from "./components/NavUser";
@@ -33,6 +33,11 @@ const topLevelNav = [
 		title: msg({ message: "Home" }),
 		url: "/",
 		icon: LuHouse,
+	},
+	{
+		title: msg({ message: "Growth" }),
+		url: "/growth",
+		icon: LuTrendingUp,
 	},
 ];
 
@@ -46,6 +51,7 @@ export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
+	const { i18n } = useLingui();
 	const pathname = usePathname();
 
 	const isActive = (url: string) => {

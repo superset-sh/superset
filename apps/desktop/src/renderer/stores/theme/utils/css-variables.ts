@@ -24,6 +24,7 @@ const UI_COLOR_TO_CSS_VAR: Record<keyof UIColors, string> = {
 	destructiveForeground: "--destructive-foreground",
 	warning: "--warning",
 	warningForeground: "--warning-foreground",
+	success: "--success",
 	border: "--border",
 	input: "--input",
 	ring: "--ring",

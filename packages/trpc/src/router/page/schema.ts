@@ -22,14 +22,11 @@ export const pageFields = {
 	agentId: z.string().min(1).max(200),
 } as const;
 
-export const publishAssetSchema = z.object({
-	path: z.string().min(1).max(512),
-	fileId: pageFields.id,
-});
-
 const publishPageFieldsSchema = z.object({
-	content: z.string().min(1),
-	contentType: z.string().min(1),
+	// The document goes to storage first, on the URL `page.assets.upload`
+	// presigns; publish is handed the id that returned. A request body never
+	// carries the bytes: the API's body limit is a fraction of the ceiling.
+	fileId: pageFields.id,
 	filename: pageFields.filename,
 	entryPath: pageFields.entryPath.optional(),
 	workspaceId: pageFields.workspaceId.optional(),
@@ -38,7 +35,6 @@ const publishPageFieldsSchema = z.object({
 	description: pageFields.description.optional(),
 	label: pageFields.label.optional(),
 	visibility: pageFields.visibility.optional(),
-	assets: z.array(publishAssetSchema).max(200).optional(),
 });
 
 /**

@@ -1,0 +1,64 @@
+import type { FrameRect } from "@superset/shared/page-comments-runtime";
+import { startOfDay } from "date-fns";
+import type { CommentThread } from "../../../../providers/CommentProvider";
+
+export interface GroupedThreads {
+	anchored: CommentThread[];
+	unanchored: CommentThread[];
+	openCount: number;
+}
+
+export function groupThreads({
+	threads,
+	rects,
+	rectsReady,
+	showResolved,
+}: {
+	threads: CommentThread[];
+	rects: Record<string, FrameRect | null>;
+	rectsReady: boolean;
+	showResolved: boolean;
+}): GroupedThreads {
+	const anchored: CommentThread[] = [];
+	const unanchored: CommentThread[] = [];
+	let openCount = 0;
+
+	for (const thread of threads) {
+		if (!thread.resolved) openCount += 1;
+		if (thread.resolved && !showResolved) continue;
+		if (!rectsReady || rects[thread.id]) anchored.push(thread);
+		else unanchored.push(thread);
+	}
+
+	return { anchored, unanchored, openCount };
+}
+
+export function newestActivity(thread: CommentThread): number {
+	let newest = 0;
+	for (const comment of thread.comments) {
+		if (comment.createdAt > newest) newest = comment.createdAt;
+	}
+	return newest;
+}
+
+export interface DayGroup {
+	day: number;
+	threads: CommentThread[];
+}
+
+export function groupByDay(threads: CommentThread[]): DayGroup[] {
+	const byDay = new Map<number, CommentThread[]>();
+	for (const thread of threads) {
+		if (thread.comments.length === 0) continue;
+		const day = startOfDay(newestActivity(thread)).getTime();
+		const group = byDay.get(day);
+		if (group) group.push(thread);
+		else byDay.set(day, [thread]);
+	}
+	return [...byDay.entries()]
+		.sort(([a], [b]) => b - a)
+		.map(([day, group]) => ({
+			day,
+			threads: group.sort((a, b) => newestActivity(b) - newestActivity(a)),
+		}));
+}

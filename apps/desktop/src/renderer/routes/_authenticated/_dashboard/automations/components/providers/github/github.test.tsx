@@ -303,6 +303,29 @@ describe("the wording of a GitHub row", () => {
 		);
 		expect(sentence).toBe("Push to Any branch in superset by Anyone");
 	});
+
+	// Being put on a PR names two people: whoever was asked, then whoever
+	// asked. The first is the one "Me" is for.
+	test("a review request names who was asked before where", async () => {
+		const { sentence } = await row(
+			config("pull_request.review_requested", {
+				repositories: { mode: "list", ids: ["10"] },
+			}),
+		);
+		expect(sentence).toBe("Review requested from Anyone in superset by Anyone");
+	});
+
+	// A release has no branch and no labels, so its sentence is only the event
+	// and where — the scopes githubCommon carries go unrendered rather than
+	// offering the reviewer filters that can never match.
+	test("a release names only the repository", async () => {
+		const { sentence } = await row(
+			config("release.published", {
+				repositories: { mode: "list", ids: ["10"] },
+			}),
+		);
+		expect(sentence).toBe("Release published in superset");
+	});
 });
 
 describe('a GitHub row that filters by "Me" with no account connected', () => {

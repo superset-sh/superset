@@ -90,6 +90,23 @@ Desktop, host-service, and cli share one version; cut releases on a dedicated br
 `scripts/release/README.md`. A *canary* is a separate thing: `bash scripts/release-canary.sh
 [commit]` builds the rolling internal `desktop-canary` prerelease, not a versioned release.
 
+## Plugins
+
+First-party plugins live in `plugins/<name>/`: a `plugin.json` manifest, `skills/`, and optionally
+an MCP server. A release is the git tag `<name>@<version>` on this repo — that tree is what a host
+downloads — and `packages/shared/src/plugins/manifests.generated.ts` is the bundle the API resolves
+against, which is generated and must never be hand-edited. Change the source, then
+`superset plugins publish <name> --bump patch`, which rewrites the marketplace entry in
+`.agent-marketplace.json` and the generated manifests; commit and tag to publish it. `bun run check:plugins` is what CI
+runs to catch a change that skipped that step; run it before pushing.
+
+Installed plugins are recorded once per machine in
+`$SUPERSET_HOME_DIR/plugins/installed_plugins.json` (`SUPERSET_HOME` is the CLI's install prefix and
+means nothing here). Every provisioner reads that one file — the desktop at boot, `plugins sync`,
+the host-service — because provisioning is declarative and reaps whatever is absent from the desired
+set. A caller that passes its own list instead makes the last writer delete the others' skills.
+Details: `docs/plugins.md`.
+
 ## Orchestrating agents and workspaces
 
 When work wants a fresh isolated environment, a parallel agent, or a long-running job, reach for the
@@ -165,6 +182,8 @@ Three traps worth knowing before you touch catalogs:
 - `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching
   `SKILL.md` when a task fits its description.
 - `docs/agent-tooling.md`: where commands, skills, and per-agent-CLI config live.
+- `docs/plugins.md`: authoring, publishing, and installing marketplace plugins — the manifest
+  contract, the credential proxy, and which files are generated.
 - `docs/environment-variables.md`: read before adding an environment variable. Five places,
   and missing one fails silently.
 - `apps/desktop/AGENTS.md`: desktop specifics (notices, persisted renderer state).

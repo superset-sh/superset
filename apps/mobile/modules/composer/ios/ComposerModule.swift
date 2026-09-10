@@ -12,10 +12,12 @@ public final class ComposerModule: Module {
         "onAttachmentsPress",
         "onDictationError",
         "onModelPress",
+        "onLaunchOptionPress",
         "onChipPress",
         "onQuickKeyPress",
         "onSessionTabPress",
         "onSessionTabClose",
+        "onSessionTabRename",
         "onSessionTabCopyId",
         "onQuickKeysActionPress",
         "onNewSessionPress",
@@ -56,6 +58,12 @@ public final class ComposerModule: Module {
       Prop("selectedModel") { (view: ComposerAnchorView, model: ComposerMenuOption?) in
         withAnimation(ComposerMetrics.controlSwap) {
           view.overlay.model.selectedModel = model
+        }
+      }
+
+      Prop("launchOptions") { (view: ComposerAnchorView, options: [ComposerMenuOption]) in
+        withAnimation(ComposerMetrics.controlSwap) {
+          view.overlay.model.launchOptions = options
         }
       }
 
@@ -177,10 +185,12 @@ final class ComposerAnchorView: ExpoView {
   private let onAttachmentsPress = EventDispatcher()
   private let onDictationError = EventDispatcher()
   private let onModelPress = EventDispatcher()
+  private let onLaunchOptionPress = EventDispatcher()
   private let onChipPress = EventDispatcher()
   private let onQuickKeyPress = EventDispatcher()
   private let onSessionTabPress = EventDispatcher()
   private let onSessionTabClose = EventDispatcher()
+  private let onSessionTabRename = EventDispatcher()
   private let onSessionTabCopyId = EventDispatcher()
   private let onQuickKeysActionPress = EventDispatcher()
   private let onNewSessionPress = EventDispatcher()
@@ -201,6 +211,9 @@ final class ComposerAnchorView: ExpoView {
       self?.onDictationError(["message": message])
     }
     overlay.model.onModelPress = { [weak self] in self?.onModelPress([:]) }
+    overlay.model.onLaunchOptionPress = { [weak self] id in
+      self?.onLaunchOptionPress(["id": id])
+    }
     overlay.model.onQuickKeyPress = { [weak self] id in
       self?.onQuickKeyPress(["id": id])
     }
@@ -209,6 +222,9 @@ final class ComposerAnchorView: ExpoView {
     }
     overlay.model.onSessionTabClose = { [weak self] id in
       self?.onSessionTabClose(["id": id])
+    }
+    overlay.model.onSessionTabRename = { [weak self] id in
+      self?.onSessionTabRename(["id": id])
     }
     overlay.model.onSessionTabCopyId = { [weak self] id in
       self?.onSessionTabCopyId(["id": id])

@@ -29,6 +29,9 @@ export default command({
 		prompt: string().desc(
 			"Initial prompt the agent starts with. Required when --agent is set",
 		),
+		model: string().desc(
+			"Model for the spawned agent (agent-specific; omit to use the agent default)",
+		),
 		effort: string().desc(
 			"Reasoning effort for the spawned agent (agent-specific; omit to use the agent default)",
 		),
@@ -103,6 +106,12 @@ export default command({
 				"Pass --agent <id> alongside --effort",
 			);
 		}
+		if (options.model && !options.agent) {
+			throw new CLIError(
+				"--model requires --agent",
+				"Pass --agent <id> alongside --model",
+			);
+		}
 		if (options.attachment && options.attachment.length > 0 && !options.agent) {
 			throw new CLIError(
 				"--attachment requires --agent",
@@ -136,6 +145,7 @@ export default command({
 						{
 							agent: options.agent,
 							prompt: options.prompt,
+							model: options.model,
 							effort: options.effort,
 							...(attachmentIds.length > 0 ? { attachmentIds } : {}),
 						},

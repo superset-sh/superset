@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import type { ReactNode } from "react";
@@ -26,6 +28,8 @@ export function ImportPageShell({
 	headerAction,
 	children,
 }: ImportPageShellProps) {
+	const { _: translate } = useTranslation();
+
 	return (
 		<div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
 			<div className="flex items-center gap-3 border-b border-border/60 px-6 py-3.5">
@@ -48,7 +52,7 @@ export function ImportPageShell({
 							size="icon"
 							onClick={onRefresh}
 							disabled={isRefreshing}
-							aria-label="Refresh"
+							aria-label={translate(msg({ message: "Refresh" }))}
 							className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
 						>
 							<LuRefreshCw

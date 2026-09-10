@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
+import { createHash } from "node:crypto";
 
 const objectStore = new Map<string, Uint8Array | string>();
 mock.module("../../lib/r2", () => ({
@@ -14,6 +15,26 @@ mock.module("../../lib/r2", () => ({
 	objectExists: async (key: string) => objectStore.has(key),
 	getObject: async (key: string) =>
 		objectStore.has(key) ? new Response(objectStore.get(key)) : null,
+	headObject: async (key: string) => {
+		const body = objectStore.get(key);
+		if (body === undefined) return null;
+		return {
+			sizeBytes:
+				typeof body === "string" ? Buffer.byteLength(body) : body.length,
+			contentType: null,
+		};
+	},
+	copyObject: async ({
+		sourceKey,
+		key,
+	}: {
+		sourceKey: string;
+		key: string;
+	}) => {
+		const body = objectStore.get(sourceKey);
+		if (body === undefined) throw new Error(`NoSuchKey: ${sourceKey}`);
+		objectStore.set(key, body);
+	},
 	deleteObjects: async (keys: string[]) => {
 		for (const key of keys) objectStore.delete(key);
 	},
@@ -25,6 +46,8 @@ mock.module("../../lib/r2", () => ({
 
 const { db, dbWs } = await import("@superset/db/client");
 const {
+	attachments,
+	files,
 	members,
 	organizations,
 	cloudWorkspaces,
@@ -34,6 +57,8 @@ const {
 	v2Projects,
 	workspacePages,
 } = await import("@superset/db/schema");
+const { fileOriginalKey } = await import("@superset/shared/usercontent");
+const { MAX_PAGE_BYTES } = await import("@superset/shared/page-content-types");
 const { eq } = await import("drizzle-orm");
 const { publishPage } = await import("./publish");
 
@@ -44,19 +69,60 @@ const OTHER_USER = crypto.randomUUID();
 const WORKSPACE = crypto.randomUUID();
 const suffix = Date.now();
 
-const html = (body: string) => Buffer.from(body).toString("base64");
+/**
+ * What an upload of `kind: "document"` plus the client's PUT leave behind: a
+ * pending file row for this caller and, unless told otherwise, the bytes
+ * under its key.
+ */
+const upload = async (
+	body: string,
+	{
+		landed = body,
+		userId = USER,
+		contentType = "text/html",
+		sizeBytes,
+	}: {
+		landed?: string | null;
+		userId?: string;
+		contentType?: string;
+		sizeBytes?: number;
+	} = {},
+) => {
+	const bytes = Buffer.from(body);
+	const [row] = await db
+		.insert(files)
+		.values({
+			organizationId: ORG,
+			name: "index.html",
+			contentType,
+			sizeBytes: sizeBytes ?? bytes.length,
+			sha256: createHash("sha256").update(bytes).digest("hex"),
+			createdByUserId: userId,
+		})
+		.returning({ id: files.id, sha256: files.sha256 });
+	if (!row) throw new Error("failed to insert file");
+	if (landed !== null) objectStore.set(fileOriginalKey(row.id), landed);
+	return row;
+};
 
-const publish = (input: Record<string, unknown>) =>
-	publishPage({
-		input: {
-			content: html("<h1>hello</h1>"),
-			contentType: "text/html",
-			filename: "index.html",
-			...input,
-		} as never,
+/** Uploads a document and publishes it, the way every client does. */
+const publish = async ({
+	body = "<h1>hello</h1>",
+	userId = USER,
+	fileId,
+	...input
+}: Record<string, unknown> & {
+	body?: string;
+	userId?: string;
+	fileId?: string;
+} = {}) => {
+	const staged = fileId ?? (await upload(body, { userId })).id;
+	return await publishPage({
+		input: { fileId: staged, filename: "index.html", ...input } as never,
 		organizationId: ORG,
-		userId: USER,
+		userId,
 	});
+};
 
 beforeAll(async () => {
 	await db.insert(organizations).values([
@@ -254,16 +320,11 @@ describe("publish", () => {
 		// The republish lookup only matches the caller's own pages, so theirs is
 		// invisible here and a new page is minted before the link is attempted.
 		await expect(
-			publishPage({
-				input: {
-					content: html("<h1>mine</h1>"),
-					contentType: "text/html",
-					filename: "index.html",
-					entryPath: "shared/index.html",
-					workspaceId: WORKSPACE,
-				} as never,
-				organizationId: ORG,
+			publish({
+				body: "<h1>mine</h1>",
 				userId: OTHER_USER,
+				entryPath: "shared/index.html",
+				workspaceId: WORKSPACE,
 			}),
 		).rejects.toThrow(/already published/i);
 
@@ -291,27 +352,6 @@ describe("publish", () => {
 		expect(result.title).toBe("quarterly report");
 		expect(result.slug).toMatch(/^quarterly-report-[a-z0-9]{6}$/);
 	});
-
-	test("rejects a non-html content type", async () => {
-		await expect(publish({ contentType: "image/png" })).rejects.toThrow(
-			/Unsupported content type/,
-		);
-	});
-
-	test("records size and sha256 on the version row", async () => {
-		const body = "<h1>digest me</h1>";
-		const result = await publish({ content: html(body), title: "Digest" });
-		const [row] = await db
-			.select()
-			.from(pageVersions)
-			.where(eq(pageVersions.pageId, result.id));
-
-		expect(row?.sizeBytes).toBe(Buffer.byteLength(body));
-		expect(row?.sha256).toHaveLength(64);
-		expect(row?.storageKey).toBe(
-			`pages/${result.id}/versions/${result.version}/index.html`,
-		);
-	});
 });
 
 describe("visibility", () => {
@@ -322,15 +362,10 @@ describe("visibility", () => {
 		});
 
 		await expect(
-			publishPage({
-				input: {
-					content: html("<h1>overwritten</h1>"),
-					contentType: "text/html",
-					filename: "index.html",
-					pageId: mine.id,
-				} as never,
-				organizationId: ORG,
+			publish({
+				body: "<h1>overwritten</h1>",
 				userId: OTHER_USER,
+				pageId: mine.id,
 			}),
 		).rejects.toThrow(/not found/i);
 	});
@@ -342,10 +377,7 @@ describe("visibility", () => {
 			entryPath: "private/index.html",
 			workspaceId: WORKSPACE,
 		});
-		const again = await publish({
-			pageId: mine.id,
-			content: html("<h1>v2</h1>"),
-		});
+		const again = await publish({ pageId: mine.id, body: "<h1>v2</h1>" });
 		expect(again.version).toBe(2);
 		expect(again.id).toBe(mine.id);
 	});
@@ -358,15 +390,10 @@ describe("visibility", () => {
 			visibility: "org",
 		});
 		expect(
-			publishPage({
-				input: {
-					content: html("<h1>from a colleague</h1>"),
-					contentType: "text/html",
-					filename: "index.html",
-					pageId: shared.id,
-				} as never,
-				organizationId: ORG,
+			publish({
+				body: "<h1>from a colleague</h1>",
 				userId: OTHER_USER,
+				pageId: shared.id,
 			}),
 		).rejects.toThrow(/only the person who created/i);
 	});
@@ -423,16 +450,94 @@ describe("workspace access", () => {
 	});
 });
 
+describe("uploaded document", () => {
+	test("publishes from the upload: the version carries its declared digest, the bytes are copied under the version key, and the upload is consumed", async () => {
+		const body = "<h1>uploaded</h1>";
+		const staged = await upload(body);
+		const result = await publish({ fileId: staged.id, title: "From Upload" });
+
+		expect(result.version).toBe(1);
+		expect(result.sizeBytes).toBe(Buffer.byteLength(body));
+		expect(result.contentType).toBe("text/html");
+		const [row] = await db
+			.select()
+			.from(pageVersions)
+			.where(eq(pageVersions.pageId, result.id));
+		expect(row?.sha256).toBe(staged.sha256);
+		expect(row?.storageKey).toBe(`pages/${result.id}/versions/1/index.html`);
+		expect(objectStore.get(row?.storageKey ?? "")).toBe(body);
+
+		// Consumed: the staged object and its row are both gone, so the same
+		// upload cannot become a second version.
+		expect(objectStore.has(fileOriginalKey(staged.id))).toBe(false);
+		const rows = await db.select().from(files).where(eq(files.id, staged.id));
+		expect(rows).toHaveLength(0);
+	});
+
+	test("refuses an upload whose bytes never landed", async () => {
+		const staged = await upload("<h1>ghost</h1>", { landed: null });
+		await expect(publish({ fileId: staged.id })).rejects.toThrow(
+			/never uploaded/i,
+		);
+	});
+
+	test("refuses an upload whose object differs in size from what it declared", async () => {
+		const staged = await upload("<h1>declared</h1>", {
+			landed: "<h1>something longer than declared</h1>",
+		});
+		await expect(publish({ fileId: staged.id })).rejects.toThrow(
+			/does not match the size/i,
+		);
+	});
+
+	test("a colleague's upload is not mine to publish", async () => {
+		const theirs = await upload("<h1>theirs</h1>", { userId: OTHER_USER });
+		await expect(publish({ fileId: theirs.id })).rejects.toThrow(
+			/upload not found/i,
+		);
+	});
+
+	test("a staged asset is not a document, even when it is html", async () => {
+		const page = await publish({ title: "Has Assets" });
+		const asset = await upload("<p>about</p>");
+		await db.insert(attachments).values({
+			fileId: asset.id,
+			parentKind: "page",
+			parentId: page.id,
+			path: "about.html",
+		});
+		await expect(
+			publish({ fileId: asset.id, pageId: page.id }),
+		).rejects.toThrow(/upload not found/i);
+	});
+
+	test("an asset that lost its staging cannot smuggle in a page over the cap", async () => {
+		const detached = await upload("<h1>huge</h1>", {
+			sizeBytes: MAX_PAGE_BYTES + 1,
+		});
+		await expect(publish({ fileId: detached.id })).rejects.toThrow(
+			/upload not found/i,
+		);
+	});
+
+	test("a file uploaded as something other than html is refused", async () => {
+		const staged = await upload("\x89PNG", { contentType: "image/png" });
+		await expect(publish({ fileId: staged.id })).rejects.toThrow(
+			/upload not found/i,
+		);
+	});
+});
+
 describe("page rows", () => {
 	test("every publish is a new version even for identical bytes", async () => {
-		const same = html("<h1>identical</h1>");
+		const same = "<h1>identical</h1>";
 		const first = await publish({
-			content: same,
+			body: same,
 			entryPath: "same/index.html",
 			workspaceId: WORKSPACE,
 		});
 		const second = await publish({
-			content: same,
+			body: same,
 			entryPath: "same/index.html",
 			workspaceId: WORKSPACE,
 		});

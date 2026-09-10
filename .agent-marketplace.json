@@ -1,0 +1,33 @@
+{
+	"$schema": "https://superset.sh/schemas/marketplace/1.0.0.json",
+	"name": "superset",
+	"description": "First-party Superset plugins: skills and MCP tools for the agents you run.",
+	"owner": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"plugins": [
+		{
+			"name": "github",
+			"description": "Work with issues, pull requests, and CI across your repositories.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "development",
+			"source": "./plugins/github",
+			"version": "1.0.0"
+		},
+		{
+			"name": "linear",
+			"description": "Plan and build products: create, search, and update Linear issues.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "productivity",
+			"source": "./plugins/linear",
+			"version": "1.4.0"
+		}
+	],
+	"featured": ["github", "linear"],
+	"renames": {}
+}

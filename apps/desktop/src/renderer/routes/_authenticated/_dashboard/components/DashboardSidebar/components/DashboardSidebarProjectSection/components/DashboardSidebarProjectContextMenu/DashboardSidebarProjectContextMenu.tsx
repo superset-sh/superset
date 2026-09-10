@@ -11,12 +11,13 @@ import {
 } from "@superset/ui/context-menu";
 import {
 	LuEye,
+	LuEyeOff,
 	LuFolderInput,
 	LuFolderOpen,
 	LuFolderPlus,
 	LuPencil,
 	LuSettings,
-	LuX,
+	LuTrash2,
 } from "react-icons/lu";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 
@@ -26,7 +27,9 @@ interface DashboardSidebarProjectContextMenuProps {
 	onImportWorktrees: () => void;
 	onOpenInFinder: () => void;
 	onOpenSettings: () => void;
-	onRemoveFromSidebar: () => void;
+	onHide: () => void;
+	/** Null when the user cannot delete (not an organization owner). */
+	onDelete: (() => void) | null;
 	onRename: () => void;
 	children: React.ReactNode;
 }
@@ -37,7 +40,8 @@ export function DashboardSidebarProjectContextMenu({
 	onImportWorktrees,
 	onOpenInFinder,
 	onOpenSettings,
-	onRemoveFromSidebar,
+	onHide,
+	onDelete,
 	onRename,
 	children,
 }: DashboardSidebarProjectContextMenuProps) {
@@ -87,10 +91,16 @@ export function DashboardSidebarProjectContextMenu({
 					<Trans>Import untracked worktrees</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
-				<ContextMenuItem onSelect={onRemoveFromSidebar}>
-					<LuX className="size-4 mr-2" />
-					<Trans>Remove from Sidebar</Trans>
+				<ContextMenuItem onSelect={onHide}>
+					<LuEyeOff className="size-4 mr-2" />
+					<Trans>Hide from Sidebar</Trans>
 				</ContextMenuItem>
+				{onDelete ? (
+					<ContextMenuItem variant="destructive" onSelect={onDelete}>
+						<LuTrash2 className="size-4 mr-2" />
+						<Trans>Delete Project…</Trans>
+					</ContextMenuItem>
+				) : null}
 			</ContextMenuContent>
 		</ContextMenu>
 	);

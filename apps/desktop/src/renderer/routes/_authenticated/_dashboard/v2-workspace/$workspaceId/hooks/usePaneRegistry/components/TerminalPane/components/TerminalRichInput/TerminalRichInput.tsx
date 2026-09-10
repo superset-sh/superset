@@ -139,7 +139,7 @@ function TerminalRichInputInner({
 			let attachmentPaths: string[] = [];
 			if (message.files.length > 0) {
 				if (!cwd) {
-					toast.error("Workspace path is not available yet");
+					toast.error(t({ message: "Workspace path is not available yet" }));
 					throw new Error("no worktree path");
 				}
 				try {
@@ -183,7 +183,7 @@ function TerminalRichInputInner({
 				attachment_count: attachmentPaths.length,
 			});
 		},
-		[terminalId, terminalInstanceId, controller, workspaceId, cwd],
+		[terminalId, terminalInstanceId, controller, workspaceId, cwd, t],
 	);
 
 	// Persist the draft as it changes. terminalId is stable for this provider
@@ -198,12 +198,13 @@ function TerminalRichInputInner({
 	// editor exists (it is created asynchronously — immediatelyRender: false),
 	// so retry across frames until focus is actually inside the overlay.
 	const rootRef = useRef<HTMLDivElement | null>(null);
+	const focusInput = controller.textInput.focus;
 	useEffect(() => {
 		if (!isOpen) return;
 		let cancelled = false;
 		const attempt = (triesLeft: number) => {
 			if (cancelled || triesLeft <= 0) return;
-			controller.textInput.focus();
+			focusInput();
 			requestAnimationFrame(() => {
 				if (cancelled) return;
 				const root = rootRef.current;
@@ -215,7 +216,7 @@ function TerminalRichInputInner({
 		return () => {
 			cancelled = true;
 		};
-	}, [isOpen, controller]);
+	}, [isOpen, focusInput]);
 
 	return (
 		// Docked below the terminal rather than floating over it: opening adds

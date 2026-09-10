@@ -61,7 +61,10 @@ export async function initializeWorkspaceWorktree({
 				workspaceId,
 				prompt: namingPrompt,
 			});
-			warning = autoRenameResult.warning;
+			warning =
+				autoRenameResult.status === "skipped"
+					? autoRenameResult.warning
+					: undefined;
 		} catch (error) {
 			console.warn("[workspace-init] Auto naming failed", {
 				workspaceId,

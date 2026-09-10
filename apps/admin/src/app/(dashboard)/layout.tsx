@@ -1,15 +1,5 @@
-import { msg } from "@lingui/core/macro";
 import { auth } from "@superset/auth/server";
-import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@superset/ui/breadcrumb";
 import { Separator } from "@superset/ui/separator";
 import {
 	SidebarInset,
@@ -20,6 +10,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { env } from "@/env";
 import { AppSidebar } from "./components/AppSidebar";
+import { PageBreadcrumb } from "./components/PageBreadcrumb";
 
 export default async function DashboardLayout({
 	children,
@@ -51,19 +42,7 @@ export default async function DashboardLayout({
 				<header className="bg-background sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b px-4">
 					<SidebarTrigger className="-ml-1" />
 					<Separator orientation="vertical" className="mr-2 h-4" />
-					<Breadcrumb>
-						<BreadcrumbList>
-							<BreadcrumbItem className="hidden md:block">
-								<BreadcrumbLink href="/">Superset</BreadcrumbLink>
-							</BreadcrumbItem>
-							<BreadcrumbSeparator className="hidden md:block" />
-							<BreadcrumbItem>
-								<BreadcrumbPage>
-									{i18n._(msg({ message: "Home" }))}
-								</BreadcrumbPage>
-							</BreadcrumbItem>
-						</BreadcrumbList>
-					</Breadcrumb>
+					<PageBreadcrumb />
 				</header>
 				<div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
 			</SidebarInset>

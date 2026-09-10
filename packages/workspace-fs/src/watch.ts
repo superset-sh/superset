@@ -1,6 +1,12 @@
 import { realpath, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
+	clearInterval,
+	clearTimeout,
+	setInterval,
+	setTimeout,
+} from "node:timers";
+import {
 	type AsyncSubscription,
 	type Event as ParcelWatcherEvent,
 	subscribe as subscribeToFilesystem,
@@ -70,6 +76,17 @@ function escapeGlobMagic(input: string): string {
 // limiter). The static ignore globs still cover the known worktree conventions
 // if the scan truncates here.
 const NESTED_REPO_SCAN_DEADLINE_MS = 3_000;
+
+/**
+ * Nested-repo scans allowed to run at once. Watcher attaches arrive in bursts —
+ * every non-archived workspace registers git interest at the same time — and a
+ * scan holds its whole breadth-first frontier until it returns. Running them
+ * all together stacks those frontiers without finishing any of them sooner:
+ * `readdir` is served by libuv's threadpool and a scan awaits one at a time, so
+ * one scan can only ever keep one thread busy. Unbounded, that is how
+ * host-service reached V8's heap limit and aborted (DESKTOP-H1).
+ */
+const NESTED_REPO_SCAN_CONCURRENCY = 4;
 
 /**
  * Whether a root-relative path falls under any pruned directory: a static
@@ -256,6 +273,12 @@ export class FsWatcherManager {
 	 * needs to bump `fs.inotify.max_user_watches` and restart.
 	 */
 	private enospcErrorLogged = false;
+
+	/** Slots held/queued for `computeNestedRepoRelDirs`. A finishing scan hands
+	 * its slot straight to the next waiter, so the count only moves when a slot
+	 * is created or released. */
+	private runningNestedRepoScans = 0;
+	private readonly waitingNestedRepoScans: (() => void)[] = [];
 
 	constructor(options: FsWatcherManagerOptions = {}) {
 		this.debounceMs = options.debounceMs ?? 75;
@@ -627,6 +650,13 @@ export class FsWatcherManager {
 	 * pre-existing behavior, not a crash).
 	 */
 	private async computeNestedRepoRelDirs(realPath: string): Promise<string[]> {
+		if (this.runningNestedRepoScans >= NESTED_REPO_SCAN_CONCURRENCY) {
+			await new Promise<void>((resolve) =>
+				this.waitingNestedRepoScans.push(resolve),
+			);
+		} else {
+			this.runningNestedRepoScans += 1;
+		}
 		try {
 			const { roots, truncated } = await findNestedRepoRoots(realPath, {
 				pruneDirNames: DEFAULT_IGNORE_DIR_NAMES,
@@ -645,6 +675,10 @@ export class FsWatcherManager {
 				error: toErrorMessage(error),
 			});
 			return [];
+		} finally {
+			const next = this.waitingNestedRepoScans.shift();
+			if (next) next();
+			else this.runningNestedRepoScans -= 1;
 		}
 	}
 

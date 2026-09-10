@@ -65,6 +65,10 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 	const invalidate = useCallback(
 		(payload?: GitChangedPayload) => {
 			void refreshScheduler.request();
+			// Patch query keys carry the changed-file list, not the working
+			// tree, so an edit to an already-changed file leaves the cached
+			// hunks stale while `loadDiffFiles` reads the file as it is now.
+			void utils.git.getDiffPatch.invalidate({ workspaceId });
 			if (payload?.paths && payload.paths.length > 0) {
 				for (const path of payload.paths) {
 					void utils.git.getDiff.invalidate({ workspaceId, path });

@@ -2,6 +2,7 @@ import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { memo } from "react";
 import { CgLaptop } from "react-icons/cg";
 import { LuGitBranch, LuMonitor } from "react-icons/lu";
 import { V2WorkspaceContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu";
@@ -17,7 +18,9 @@ interface V2WorkspacesBoardCardProps {
 	workspace: AccessibleV2Workspace;
 }
 
-export function V2WorkspacesBoardCard({
+// Memoized for the same reason as V2WorkspaceRow: board-wide filter changes
+// must not re-render every card.
+export const V2WorkspacesBoardCard = memo(function V2WorkspacesBoardCard({
 	workspace,
 }: V2WorkspacesBoardCardProps) {
 	// Archived tombstones have no worktree or terminals left — no navigation
@@ -32,7 +35,7 @@ export function V2WorkspacesBoardCard({
 			)}
 		</V2WorkspaceContextMenu>
 	);
-}
+});
 
 /** 181909 → "181.9k" — keeps outlier churn from blowing out the pill. */
 function formatCount(count: number): string {

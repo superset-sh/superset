@@ -3,14 +3,23 @@ import { publishPageSchema } from "./schema";
 
 const WORKSPACE = "00000000-0000-4000-8000-000000000001";
 const PAGE = "00000000-0000-4000-8000-000000000002";
+const FILE = "00000000-0000-4000-8000-000000000003";
 
-const base = {
-	content: Buffer.from("<!doctype html>").toString("base64"),
-	contentType: "text/html",
-	filename: "index.html",
-};
+const base = { fileId: FILE, filename: "index.html" };
 
 describe("publishPageSchema", () => {
+	// Carries a valid upload as well, so the body is what it is refused for.
+	test("refuses the document in the body, as clients before the upload sent it", () => {
+		expect(
+			publishPageSchema.safeParse({
+				...base,
+				pageId: PAGE,
+				content: Buffer.from("<!doctype html>").toString("base64"),
+				contentType: "text/html",
+			}).success,
+		).toBe(false);
+	});
+
 	test("rejects a publish anchored to nothing", () => {
 		const result = publishPageSchema.safeParse(base);
 		if (result.success) throw new Error("expected a validation failure");

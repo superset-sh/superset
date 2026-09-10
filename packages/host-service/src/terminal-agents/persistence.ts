@@ -64,6 +64,10 @@ function rowToBinding(row: BindingRow): TerminalAgentBinding {
  */
 const DEATH_GASP_DETACH_WINDOW_MS = 30_000;
 
+/** The root db handle or an open transaction, so a caller that also writes
+ * the terminal row can stamp the binding inside that same transaction. */
+export type BindingDb = Pick<HostDb, "select" | "update">;
+
 /**
  * Mark a binding's agent session as ended without deleting the row, so its
  * `agentSessionId` survives for resume. "terminal-exited" is sticky: a
@@ -73,7 +77,7 @@ const DEATH_GASP_DETACH_WINDOW_MS = 30_000;
  * the workspaceId when a row was updated.
  */
 export function markTerminalAgentBindingEnded(
-	db: HostDb,
+	db: BindingDb,
 	terminalId: string,
 	reason: TerminalAgentEndReason,
 	endedAt: number = Date.now(),
@@ -90,13 +94,20 @@ export function markTerminalAgentBindingEnded(
 	if (!row) return undefined;
 
 	if (row.endedAt !== null) {
+		// Two upgrades may rewrite an ended row's reason (never its `endedAt`):
+		// a detach inside the death-gasp window was the agent's goodbye as its
+		// pty died, and a dispose after "terminal-exited" is the user killing a
+		// session auto-resume would otherwise bring back. "resumed" and an
+		// older "detached" are final.
 		const isDeathGaspDetach =
 			reason === "terminal-exited" &&
 			row.endReason === "detached" &&
 			endedAt - row.endedAt <= DEATH_GASP_DETACH_WINDOW_MS;
-		if (!isDeathGaspDetach) return undefined;
+		const isDisposeOfResumable =
+			reason === "disposed" && row.endReason === "terminal-exited";
+		if (!isDeathGaspDetach && !isDisposeOfResumable) return undefined;
 		db.update(terminalAgentBindings)
-			.set({ endReason: "terminal-exited" })
+			.set({ endReason: reason })
 			.where(eq(terminalAgentBindings.terminalId, terminalId))
 			.run();
 		return { workspaceId: row.workspaceId };
@@ -150,6 +161,65 @@ export function findResumeCandidateBinding(
 		.select(bindingColumns)
 		.from(terminalAgentBindings)
 		.where(resumeCandidatePredicate(workspaceId, terminalId))
+		.get();
+	return row ? rowToBinding(row) : undefined;
+}
+
+/**
+ * Record where a consumed candidate's session was relaunched, so a pane
+ * that was not mounted for the "resumed" lifecycle event can still find
+ * it. Written by the resume path once the launch has a terminal id.
+ */
+export function markResumeCandidateResumedInto(
+	db: HostDb,
+	terminalId: string,
+	resumedIntoTerminalId: string,
+): void {
+	db.update(terminalAgentBindings)
+		.set({ resumedIntoTerminalId })
+		.where(eq(terminalAgentBindings.terminalId, terminalId))
+		.run();
+}
+
+const MAX_RESUME_HOPS = 16;
+
+/**
+ * The terminal now hosting the session that was resumed out of
+ * `terminalId`, following a chain of resumes to its end. Undefined when the
+ * binding was never consumed by a resume.
+ */
+export function findResumedSuccessorTerminalId(
+	db: HostDb,
+	workspaceId: string,
+	terminalId: string,
+): string | undefined {
+	let current = terminalId;
+	for (let hop = 0; hop < MAX_RESUME_HOPS; hop++) {
+		const next = db
+			.select({ next: terminalAgentBindings.resumedIntoTerminalId })
+			.from(terminalAgentBindings)
+			.where(
+				and(
+					eq(terminalAgentBindings.terminalId, current),
+					eq(terminalAgentBindings.workspaceId, workspaceId),
+					eq(terminalAgentBindings.endReason, "resumed"),
+				),
+			)
+			.get()?.next;
+		if (!next) break;
+		current = next;
+	}
+	return current === terminalId ? undefined : current;
+}
+
+export function getTerminalAgentBinding(
+	db: HostDb,
+	terminalId: string,
+): TerminalAgentBinding | undefined {
+	const row = db
+		.select(bindingColumns)
+		.from(terminalAgentBindings)
+		.where(eq(terminalAgentBindings.terminalId, terminalId))
 		.get();
 	return row ? rowToBinding(row) : undefined;
 }

@@ -1,5 +1,5 @@
 import { msg } from "@lingui/core/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import type { Metadata } from "next";
 import { initServerI18n } from "@/app/i18n-server";
 import { DownloadInterstitial } from "./components/DownloadInterstitial";
@@ -9,6 +9,7 @@ import { getDesktopReleases } from "./utils/getDesktopReleases";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const _lang = await initServerI18n();
+	const i18n = getI18nInstance(_lang);
 	return {
 		title: i18n._(
 			msg({

@@ -47,6 +47,7 @@ import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferen
 import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference";
 import { useAgentModePreference } from "renderer/hooks/useAgentModePreference";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { CLOUD_AGENT_CHOICES } from "renderer/hooks/useV2AgentChoices/cloud-agent-choices";
 import { track } from "renderer/lib/analytics";
@@ -54,7 +55,6 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { useCloneAccessPlan } from "renderer/routes/_authenticated/hooks/useCloneAccessPlan";
-import { SupersetIcon } from "renderer/routes/_authenticated/onboarding/providers/components/SupersetIcon";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { newWorkspaceAttachmentPaths } from "renderer/stores/new-workspace-attachments";
@@ -98,12 +98,12 @@ import {
 	PILL_BUTTON_CLASS,
 	type WorkspaceCreateAgent,
 } from "../DashboardNewWorkspaceForm/PromptGroup/types";
-import { useSelectedHostProjectIds } from "../DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { SymmetricResizeHandles } from "../SymmetricResizeHandles";
 import { AttachmentCard } from "./components/AttachmentCard";
 import { SamplePromptCards } from "./components/SamplePromptCards";
 import { SamplePrompts } from "./components/SamplePrompts";
 import { PROMPT_PLACEHOLDERS } from "./components/SamplePrompts/constants";
+import { SupersetIcon } from "./components/SupersetIcon";
 import { useSamplePromptSelection } from "./hooks/useSamplePromptSelection";
 
 /** Nested prefixes of one fixed pool — only the form factor varies by arm. */
@@ -124,18 +124,19 @@ interface NewWorkspaceScreenProps {
 	preSelectedProjectId: string | null;
 	/** Open with "No project" (session) preselected. */
 	preSelectedSession?: boolean;
+	/** Open targeting this host instead of the remembered one. */
+	preSelectedHostId?: string | null;
 }
 
 /**
- * Experiment test arm (new-workspace-screen flag): a purpose-built full-screen
- * take on workspace creation for new users — heading, sample prompts, and a
- * minimal composer. Independent of the control modal's PromptGroup so the two
- * arms can evolve separately.
+ * The v2 workspace-creation surface: heading, sample prompts, and a minimal
+ * composer, filling the window rather than a dialog.
  */
 export function NewWorkspaceScreen({
 	isOpen,
 	preSelectedProjectId,
 	preSelectedSession = false,
+	preSelectedHostId = null,
 }: NewWorkspaceScreenProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
@@ -398,16 +399,30 @@ export function NewWorkspaceScreen({
 	} = useLinkedContext(draft.linkedIssues, updateDraft);
 
 	// Restore the last-used launch host once per mount, like the modal does.
+	// A host named in the URL (the sidebar's Cloud "+") wins, and applies when
+	// it arrives rather than only at mount — this screen stays mounted across
+	// navigations to it.
 	const appliedPersistedHostRef = useRef(false);
+	const appliedPreSelectedHostRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (!isOpen || appliedPersistedHostRef.current) return;
+		if (!isOpen) return;
+		if (
+			preSelectedHostId &&
+			preSelectedHostId !== appliedPreSelectedHostRef.current
+		) {
+			appliedPreSelectedHostRef.current = preSelectedHostId;
+			appliedPersistedHostRef.current = true;
+			updateDraft({ hostId: preSelectedHostId });
+			return;
+		}
+		if (appliedPersistedHostRef.current) return;
 		appliedPersistedHostRef.current = true;
 		const persistedHostId =
 			useV2WorkspaceCreateDefaultsStore.getState().lastHostId;
 		if (typeof persistedHostId === "string") {
 			updateDraft({ hostId: persistedHostId });
 		}
-	}, [isOpen, updateDraft]);
+	}, [isOpen, preSelectedHostId, updateDraft]);
 
 	// Reset baseBranch on project or host change, defaulting to the user's
 	// last selected branch for that project — the draft store is global, so a
@@ -534,9 +549,11 @@ export function NewWorkspaceScreen({
 		EFFORT_STORAGE_KEY,
 		effortSupport ? selectedPresetId : null,
 	);
-	// Codex's top two efforts only exist on its GPT-5.6 models, so the offered
-	// list follows the model picker. A remembered effort the current model
-	// rejects stays stored but shows (and launches) as the agent default.
+	// Codex's top two efforts only exist on its GPT-5.6 models and cursor-agent
+	// has a ladder for only some models, so the offered list follows the model
+	// picker and the control disappears when there is nothing to offer. A
+	// remembered effort the current model rejects stays stored but shows (and
+	// launches) as the agent default.
 	const effortOptions = useMemo(
 		() =>
 			selectedPresetId
@@ -605,14 +622,15 @@ export function NewWorkspaceScreen({
 
 	const { otherHosts } = useWorkspaceHostOptions();
 	const submitBlocker = useMemo<string | null>(() => {
+		const selectedHostId = draft.hostId ?? machineId;
+		// A cloud workspace is provisioned by the API from the one cloud repo:
+		// no host whose readiness could block it, and no project either — the
+		// picker is hidden for cloud, so requiring one is unanswerable.
+		if (selectedHostId === CLOUD_HOST_ID) return null;
 		if (!projectId && !draft.isSession)
 			return t({
 				message: "Select a project",
 			});
-		const selectedHostId = draft.hostId ?? machineId;
-		// A cloud workspace is provisioned on submit, so there is no host whose
-		// readiness could block it.
-		if (selectedHostId === CLOUD_HOST_ID) return null;
 		if (!selectedHostId)
 			return t({
 				message: "No active host",
@@ -940,7 +958,7 @@ export function NewWorkspaceScreen({
 										triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 									/>
 								)}
-								{effortSupport && (
+								{effortSupport && effortOptions.length > 0 && (
 									<AgentModelSelect
 										models={effortOptions}
 										value={selectedEffort}

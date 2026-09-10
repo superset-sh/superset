@@ -4,6 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import {
 	type ComponentPropsWithoutRef,
 	forwardRef,
@@ -17,9 +18,10 @@ import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useFocusVisible } from "renderer/hooks/useFocusVisible";
 import { HotkeyLabel } from "renderer/hotkeys";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
 	DashboardSidebarWorkspace,
@@ -124,7 +126,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		} = workspace;
 		const isPending = pendingTransaction?.type === "insert";
 		const localRef = useRef<HTMLDivElement>(null);
-		const openUrl = electronTrpc.external.openUrl.useMutation();
+		const navigate = useNavigate();
 		// Drives the name's hover-reveal for keyboard users: the row, not the
 		// name span, is what's actually tabbable.
 		const {
@@ -216,7 +218,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 										type="button"
 										onClick={(event) => {
 											event.stopPropagation();
-											openUrl.mutate(pullRequest.url);
+											// Lands in the workspace with its PR pane open, rather
+											// than on GitHub; the pane keeps the GitHub link.
+											usePullRequestPaneIntent.getState().request({
+												workspaceId: workspace.id,
+												prNumber: pullRequest.number,
+											});
+											void navigateToV2Workspace(workspace.id, navigate);
 										}}
 										onKeyDown={(event) => {
 											if (event.key === "Enter" || event.key === " ") {

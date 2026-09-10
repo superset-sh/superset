@@ -4,7 +4,7 @@ import { SUPERSET_MANAGED_BINARIES } from "./agent-setup-targets";
 import { NOTIFY_SCRIPT_NAME } from "./notify-hook";
 import { getBinDir } from "./paths";
 
-export const WRAPPER_MARKER = "# Superset agent-wrapper v4";
+export const WRAPPER_MARKER = "# Superset agent-wrapper v5";
 export { SUPERSET_MANAGED_BINARIES };
 
 /** Path (under SUPERSET_HOME_DIR) of the runtime notify hook script. */
@@ -21,12 +21,17 @@ export const DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_R
 /**
  * Shell command written into an agent's global hook config. The notify path is
  * resolved at runtime from SUPERSET_HOME_DIR so one shared config works for both
- * dev and prod installs, and `SUPERSET_AGENT_ID` is inlined so the v2 hook
- * payload carries wrapper-level identity even when the agent is launched outside
- * the Superset wrapper (system PATH resolves the real binary directly).
+ * dev and prod installs. `SUPERSET_HOOK_HARNESS` names the harness whose config
+ * this command lives in; it is the identity fallback when the agent was
+ * launched outside the Superset wrapper (system PATH resolved the real binary,
+ * so no `SUPERSET_AGENT_ID` was exported). It must never override the wrapper's
+ * export: one harness can run another's hook config — cursor-agent replays
+ * `~/.claude/settings.json`, and an agent's tool call can launch a second CLI
+ * whose config fires under the terminal's agent — and the notify script uses
+ * the disagreement to drop those events instead of relabeling the terminal.
  */
 export function getManagedNotifyHookCommand(agentId: string): string {
-	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" ] && SUPERSET_AGENT_ID=${agentId} "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" || true`;
+	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" ] && SUPERSET_HOOK_HARNESS=${agentId} "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" || true`;
 }
 
 // Dev setup (.superset/lib/setup/steps.sh) points SUPERSET_HOME_DIR at
@@ -159,6 +164,13 @@ export interface BuildWrapperScriptOptions {
 	 * set, the wrapper exports `SUPERSET_AGENT_ID` so the agent process and
 	 * any hook subprocess it spawns inherit the wrapper-level identity. The
 	 * notify-hook script forwards this into the v2 hook payload.
+	 *
+	 * The export is first-wins: `SUPERSET_AGENT_ID` already being set means a
+	 * wrapper ran earlier in this terminal and this launch is nested under
+	 * its agent (a tool call running another CLI). The terminal's agent is
+	 * the outer one, so the wrapper keeps that identity and skips the launch
+	 * report. The host strips `SUPERSET_*` from every PTY env, so the
+	 * variable can only arrive from a wrapper in the same terminal.
 	 */
 	agentId?: string;
 }
@@ -205,10 +217,15 @@ export function buildWrapperScript(
 	execLine: string,
 	options: BuildWrapperScriptOptions = {},
 ): string {
-	const exportAgentId = options.agentId
-		? `export SUPERSET_AGENT_ID="${options.agentId}"\n\n`
+	// See BuildWrapperScriptOptions.agentId for why the export is first-wins.
+	const identity = options.agentId
+		? `if [ -z "$SUPERSET_AGENT_ID" ]; then
+export SUPERSET_AGENT_ID="${options.agentId}"
+
+${buildLaunchReportBlock()}fi
+
+`
 		: "";
-	const launchReport = options.agentId ? buildLaunchReportBlock() : "";
 	return `#!/bin/bash
 ${WRAPPER_MARKER}
 # Superset wrapper for ${binaryName}
@@ -220,7 +237,7 @@ if [ -z "$REAL_BIN" ]; then
   exit 127
 fi
 
-${exportAgentId}${launchReport}${execLine}
+${identity}${execLine}
 `;
 }
 

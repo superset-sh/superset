@@ -1,6 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
@@ -10,6 +11,8 @@ import { InsightTileFrame } from "../InsightTileFrame";
 // Where the money goes: average monthly outflow per counterparty over the
 // last 3 complete months — the actionable half of a burn chart.
 export function BurnByVendorTile() {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const trpc = useTRPC();
 	const query = useQuery(trpc.business.getCashFlow.queryOptions());
@@ -55,7 +58,7 @@ export function BurnByVendorTile() {
 							/>
 						</div>
 						<span className="w-20 shrink-0 text-right tabular-nums">
-							${vendor.avgMonthlyUsd.toLocaleString()}/mo
+							${formatNumber(vendor.avgMonthlyUsd, undefined)}/mo
 						</span>
 					</div>
 				))}

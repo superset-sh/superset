@@ -44,6 +44,10 @@ export default defineConfig({
 			{ title: "Tasks & automations", commands: ["tasks", "automations"] },
 			{ title: "Pages", commands: ["pages"] },
 			{
+				title: "Plugins",
+				commands: ["plugins", "mcp", "skills"],
+			},
+			{
 				title: "Hosts & projects",
 				commands: ["hosts", "projects", "start", "status", "stop"],
 			},

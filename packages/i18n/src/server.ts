@@ -1,47 +1,59 @@
+import "server-only";
+
+import { type I18n, setupI18n } from "@lingui/core";
 import { setI18n } from "@lingui/react/server";
-import { i18n, initI18n, loadLocale } from "./index";
-import type { SupportedLocale } from "./locales";
+import { messages as enMessages } from "../locales/en/messages";
+import { getLocaleMessages } from "./index";
+import { DEFAULT_LOCALE, type SupportedLocale } from "./locales";
 
-export { i18n };
+// One instance per locale, as in Lingui's Next.js App Router example:
+// https://lingui.dev/tutorials/react-rsc
+// Never activate a different locale on these shared instances. setI18n binds
+// the selected instance to React's request-local cache, not a global locale.
+const instances = new Map<SupportedLocale, I18n>([
+	[
+		DEFAULT_LOCALE,
+		setupI18n({
+			locale: DEFAULT_LOCALE,
+			messages: { [DEFAULT_LOCALE]: enMessages },
+		}),
+	],
+]);
 
-/**
- * Activates i18n for a React Server Components render.
- *
- * Server components resolve `@lingui/react` through the `react-server` export
- * condition, where `<Trans>` and `useLingui()` read the active instance from a
- * React.cache slot rather than React context — there is no context in RSC, and
- * the lookup throws if the slot was never seeded. Next also gives the RSC
- * module layer its own copy of the shared singleton, so the client-side
- * `I18nProvider` never activates it.
- *
- * Call this from every route entry that renders server components — each
- * `page.tsx`, plus `not-found.tsx` and any other entry (opengraph-image
- * routes, global-error). A root layout is NOT enough: a client-side navigation
- * re-renders only the segments below the shared layout, so the layout body
- * never runs and the slot stays empty for the whole page. `template.tsx` is
- * pruned the same way. Lingui's own error says it exactly: "call `setI18n` in
- * the root of your page".
- *
- * This is deliberately synchronous. Seeding the slot has to happen during the
- * render pass that reads it, so an async version silently renders before
- * `setI18n` lands and every server `<Trans>` throws. English is bundled and
- * activates synchronously, which is what makes that possible; a non-default
- * locale still needs `preloadServerLocale` first.
- *
- * `packages/i18n/test/rsc-seeding.test.ts` enforces this for the marketing app.
- */
-export function initServerI18n(locale?: SupportedLocale): void {
-	initI18n(locale);
-	setI18n(i18n);
+export function getI18nInstance(
+	locale: SupportedLocale = DEFAULT_LOCALE,
+): I18n {
+	const instance = instances.get(locale);
+	if (!instance) {
+		throw new Error(
+			`Preload the server catalog for "${locale}" before rendering.`,
+		);
+	}
+	return instance;
 }
 
 /**
- * Loads a non-default catalog so a following `initServerI18n(locale)` activates
- * it synchronously. Await this in a layout or route before rendering when the
- * request resolves to a locale other than English.
+ * Bind a preloaded locale to this RSC render. Call in every page and layout:
+ * layouts do not run again on client navigation. Keep the returned instance
+ * for imperative translations (metadata, utilities) across await boundaries.
  */
+export function initServerI18n(locale: SupportedLocale = DEFAULT_LOCALE): I18n {
+	const instance = getI18nInstance(locale);
+	setI18n(instance);
+	return instance;
+}
+
+/** Load catalogs on demand without changing any existing instance's locale. */
 export async function preloadServerLocale(
 	locale: SupportedLocale,
 ): Promise<void> {
-	await loadLocale(locale);
+	if (instances.has(locale)) return;
+	const messages = await getLocaleMessages(locale);
+	// Another request may have finished loading this locale while we awaited.
+	if (!instances.has(locale)) {
+		instances.set(
+			locale,
+			setupI18n({ locale, messages: { [locale]: messages } }),
+		);
+	}
 }

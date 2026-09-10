@@ -71,9 +71,6 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 			if (!data.isInitializing && data.autoRenameWarning) {
 				showWorkspaceAutoNameWarningToast({
 					description: data.autoRenameWarning,
-					onOpenModelAuthSettings: () => {
-						void navigate({ to: "/settings/models" });
-					},
 				});
 			}
 

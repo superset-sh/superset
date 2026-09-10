@@ -2,7 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { LuFile } from "react-icons/lu";
 import { getChangesetFileKey } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
@@ -49,23 +49,29 @@ interface WorkspaceSidebarProps {
 		changeKey?: string,
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	/** Opens the linked PR's summary pane; the Review tab's title falls back to GitHub without it. */
+	onOpenPullRequest?: (prNumber: number) => void;
 	onSearch?: () => void;
 	selectedFilePath?: string;
 	/** The diff pane's current file, highlighted in the Changes tab. */
 	selectedDiffTarget?: SelectedDiffTarget;
 	pendingReveal?: PendingReveal | null;
 	workspaceId: string;
+	/** Run button rendered by the page, hosted in the sidebar's top strip. */
+	runButton: ReactNode;
 }
 
 export function WorkspaceSidebar({
 	onSelectFile,
 	onSelectDiffFile,
 	onOpenComment,
+	onOpenPullRequest,
 	onSearch,
 	selectedFilePath,
 	selectedDiffTarget,
 	pendingReveal,
 	workspaceId,
+	runButton,
 }: WorkspaceSidebarProps) {
 	const { t } = useLingui();
 	const gitStatus = useWorkspaceGitStatus();
@@ -130,6 +136,7 @@ export function WorkspaceSidebar({
 	const reviewTab = useReviewTab({
 		workspaceId,
 		onOpenComment,
+		onOpenPullRequest,
 		onOpenInDiff: onSelectDiffFile
 			? (path, line, openInNewTab, side) => {
 					// Force annotations on so the user lands on the comment, not an empty line.
@@ -196,7 +203,7 @@ export function WorkspaceSidebar({
 			ref={containerRef}
 			className="isolate flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
 		>
-			<PRActionHeader workspaceId={workspaceId} />
+			<PRActionHeader runButton={runButton} />
 			<SidebarHeader
 				tabs={tabs}
 				activeTab={activeTabDef?.id ?? activeTab}

@@ -1,6 +1,10 @@
 import type { Octokit, RestEndpointMethodTypes } from "@octokit/rest";
 import { z } from "zod";
 import {
+	isGithubNotFoundError,
+	isGithubRateLimitError,
+} from "../../../../runtime/pull-requests/utils/github-errors";
+import {
 	fetchPullRequestChecks,
 	fetchPullRequestReviewDecision,
 	type GitHubPullRequestReviewDecision,
@@ -23,8 +27,6 @@ import {
 	formatRepoList,
 	githubRateLimitError,
 	githubRequestError,
-	isGithubNotFoundError,
-	isGithubRateLimitError,
 	mergeByUpdatedAtDesc,
 	type ProjectRepo,
 	projectIdForSearchItem,

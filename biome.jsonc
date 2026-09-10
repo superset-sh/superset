@@ -95,8 +95,6 @@
 			// no-*-blocking ratchet tests — delete entries here as they're fixed.
 			"includes": [
 				"apps/desktop/src/main/lib/terminal-host/client.ts",
-				"packages/provider-auth/src/server/auth/anthropic/anthropic.ts",
-				"packages/host-service/src/providers/model-providers/LocalModelProvider/utils/resolveAnthropicCredential.ts",
 				"packages/pty-daemon/src/process-tree.ts",
 				"packages/shared/src/host-info.ts"
 			],

@@ -71,6 +71,14 @@ const EMPTY_ACTIVE_PLAN = {
 	periodStart: null,
 	periodEnd: null,
 	billingInterval: null,
+	/**
+	 * Free because a subscription ended, not because there never was one. The
+	 * distinction has to be made here, from rows we already read: the caller
+	 * uses it to decide whether to ask Stripe about an unpaid invoice, and
+	 * doing that for every free organization would put a Stripe round-trip on
+	 * every app load for everyone who ever paid us.
+	 */
+	lapsed: false,
 };
 
 function isUnpaid(invoice: Stripe.Invoice): boolean {
@@ -129,7 +137,21 @@ export const billingRouter = {
 		});
 
 		if (!subscription) {
-			return EMPTY_ACTIVE_PLAN;
+			const previous = await db.query.subscriptions.findFirst({
+				where: eq(subscriptions.referenceId, activeOrgId),
+				orderBy: desc(subscriptions.createdAt),
+				columns: { status: true },
+			});
+
+			// `unpaid` as well as `canceled`: which one Stripe lands on after it
+			// stops retrying is a dashboard setting, and checking only for
+			// `canceled` would make this silently stop working if that changed.
+			// `incomplete` is excluded on purpose — that subscription never began.
+			return {
+				...EMPTY_ACTIVE_PLAN,
+				lapsed:
+					previous?.status === "canceled" || previous?.status === "unpaid",
+			};
 		}
 
 		return {
@@ -139,6 +161,7 @@ export const billingRouter = {
 			periodStart: subscription.periodStart,
 			periodEnd: subscription.periodEnd,
 			billingInterval: subscription.billingInterval,
+			lapsed: false,
 		};
 	}),
 

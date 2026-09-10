@@ -7,7 +7,7 @@ import { track } from "@/lib/analytics";
 import { sendDownloadLink } from "./actions";
 
 export function DownloadLinkForm() {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const [email, setEmail] = useState("");
 	const [submittedEmail, setSubmittedEmail] = useState("");
 	const [error, setError] = useState("");
@@ -22,7 +22,7 @@ export function DownloadLinkForm() {
 		setError("");
 		setIsSubmitting(true);
 		try {
-			const result = await sendDownloadLink({ email, honeypot });
+			const result = await sendDownloadLink({ email, honeypot }, i18n.locale);
 			if (!result.success) {
 				setError(result.error);
 				return;

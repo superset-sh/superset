@@ -5,7 +5,7 @@ import type {
 } from "../useDashboardSidebarPortsData";
 import { deriveForwardSyncInput } from "./deriveForwardSyncInput";
 
-const REMOTE_HOST = "https://relay2.superset.sh/hosts/org:machine";
+const REMOTE_HOST = "https://relay.superset.sh/hosts/org:machine";
 
 function port(
 	overrides: Partial<DashboardSidebarPort> & { port: number },

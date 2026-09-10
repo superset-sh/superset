@@ -109,7 +109,7 @@ export function useKnownHosts(): {
 		if (!presence) return hosts;
 		return hosts.map((host) => ({
 			...host,
-			isOnline: presence.get(host.machineId) ?? host.isOnline,
+			isOnline: presence.get(host.machineId)?.online ?? host.isOnline,
 		}));
 	}, [hosts, presence]);
 

@@ -9,12 +9,16 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { CheckIcon, MinusIcon, PlusIcon, RotateCcwIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TbDots } from "react-icons/tb";
 import { ImportHistoryDialog } from "renderer/components/ImportHistoryDialog";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { pointerPassthrough } from "renderer/lib/pointer-passthrough";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
+import {
+	BROWSER_ZOOM,
+	browserRuntimeRegistry,
+} from "../../browserRuntimeRegistry";
 import { ClearBrowsingDataDialog } from "../ClearBrowsingDataDialog";
 import { DownloadsDialog } from "../DownloadsDialog";
 import { HistoryDialog } from "../HistoryDialog";
@@ -31,10 +35,6 @@ interface BrowserOverflowMenuProps {
 	onOpenFindBar: () => void;
 	onNavigateToUrl: (url: string) => void;
 }
-
-const MIN_ZOOM = 0.25;
-const MAX_ZOOM = 5;
-const ZOOM_STEP = 0.1;
 
 /**
  * A Dialog opened synchronously from the same click that's dismissing
@@ -71,22 +71,26 @@ export function BrowserOverflowMenu({
 	const [isDownloadsOpen, setIsDownloadsOpen] = useState(false);
 	const [isScreenshotsOpen, setIsScreenshotsOpen] = useState(false);
 	const [isClearDataOpen, setIsClearDataOpen] = useState(false);
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+	// The webview swallows pointer events, so a click on the page would never
+	// reach the document listener Radix dismisses on; passing the click
+	// through to the host lets it dismiss the menu instead, as in a real
+	// browser. Keyed by pane so one pane closing can't drop another's.
+	useEffect(() => {
+		const source = `host-popover:${paneId}`;
+		pointerPassthrough.set(source, isMenuOpen);
+		return () => pointerPassthrough.set(source, false);
+	}, [paneId, isMenuOpen]);
 
 	const handlePrint = () => browserRuntimeRegistry.print(paneId);
 
-	const handleZoomOut = () =>
-		browserRuntimeRegistry.setZoomFactor(
-			paneId,
-			Math.max(MIN_ZOOM, zoomFactor - ZOOM_STEP),
-		);
+	const handleZoomOut = () => browserRuntimeRegistry.stepZoom(paneId, "out");
 
-	const handleZoomIn = () =>
-		browserRuntimeRegistry.setZoomFactor(
-			paneId,
-			Math.min(MAX_ZOOM, zoomFactor + ZOOM_STEP),
-		);
+	const handleZoomIn = () => browserRuntimeRegistry.stepZoom(paneId, "in");
 
-	const handleZoomReset = () => browserRuntimeRegistry.setZoomFactor(paneId, 1);
+	const handleZoomReset = () =>
+		browserRuntimeRegistry.stepZoom(paneId, "reset");
 
 	const handleScreenshot = () => {
 		electronTrpcClient.browser.screenshot
@@ -150,7 +154,7 @@ export function BrowserOverflowMenu({
 
 	return (
 		<>
-			<DropdownMenu>
+			<DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
 				<DropdownMenuTrigger asChild>
 					<button
 						type="button"
@@ -196,7 +200,7 @@ export function BrowserOverflowMenu({
 								type="button"
 								tabIndex={-1}
 								onClick={handleZoomOut}
-								disabled={!hasPage || zoomFactor <= MIN_ZOOM}
+								disabled={!hasPage || zoomFactor <= BROWSER_ZOOM.min}
 								aria-label={t({
 									message: "Zoom out",
 								})}
@@ -211,7 +215,7 @@ export function BrowserOverflowMenu({
 								type="button"
 								tabIndex={-1}
 								onClick={handleZoomIn}
-								disabled={!hasPage || zoomFactor >= MAX_ZOOM}
+								disabled={!hasPage || zoomFactor >= BROWSER_ZOOM.max}
 								aria-label={t({
 									message: "Zoom in",
 								})}

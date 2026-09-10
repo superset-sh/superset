@@ -3,6 +3,8 @@ export * from "./enums";
 export * from "./github";
 export * from "./ingest";
 export * from "./leaderboard";
+export * from "./plugins";
+export * from "./profiles";
 export * from "./relations";
 export * from "./schema";
 export * from "./types";

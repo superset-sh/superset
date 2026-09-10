@@ -12,10 +12,12 @@ import { seedProject, seedWorkspace } from "../helpers/seed";
  * INTEGRATION coverage for the event-driven path of finding #1 in
  * `plans/v2-paths-worktree-perf-findings.md`.
  *
- * Wires a real `GitWatcher` into the runtime, lets the initial sweep settle,
- * then fires a single real `git commit` in one workspace. Asserts that ONLY
- * that workspace's sync runs — the other N-1 stay quiet. This is the
- * post-fix steady state: idle workspaces do zero git work.
+ * Wires a real `GitWatcher` into the runtime, explicitly registers interest
+ * in all 3 workspaces (simulating a renderer with all 3 open — GitWatcher no
+ * longer watches anything by default, see #6729), lets the initial sweep
+ * settle, then fires a single real `git commit` in one workspace. Asserts
+ * that ONLY that workspace's sync runs — the other N-1 stay quiet. This is
+ * the post-fix steady state: idle workspaces do zero git work.
  *
  * The safety-net sweep's per-workspace cost (linearity + always-walks-N) is
  * covered by the mock-based unit test in
@@ -177,6 +179,11 @@ describe("PullRequestRuntimeManager event-driven steady state", () => {
 
 		scenario.gitWatcher.start();
 		scenario.manager.start();
+		// GitWatcher only watches a workspace while someone holds interest
+		// (#6729) — simulate all 3 being open in a renderer so this test can
+		// still exercise the event-driven single-workspace-sync path.
+		for (const id of scenario.workspaceIds)
+			scenario.gitWatcher.watchWorkspace(id);
 
 		// Wait until the initial sweep AND any startup-related GitWatcher
 		// events have fully drained — otherwise we'd snapshot mid-flush and

@@ -46,6 +46,11 @@ export const env = createEnv({
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		KV_REST_API_URL: z.string().url().optional(),
 		KV_REST_API_TOKEN: z.string().optional(),
+		// Shared with apps/marketing. Its server-side leaderboard reads present
+		// it to skip the per-IP anonymous limiter, which would otherwise count
+		// every marketing render as one visitor (Vercel shares egress IPs).
+		// Absent means every read is anonymous and rate-limited.
+		LEADERBOARD_INTERNAL_TOKEN: z.string().min(1).optional(),
 		// Blaxel (cloud workspace sandboxes).
 		BLAXEL_API_KEY: z.string().min(1),
 		BLAXEL_WORKSPACE: z.string().min(1),
@@ -61,7 +66,7 @@ export const env = createEnv({
 		GH_WEBHOOK_SECRET: z.string().min(1),
 		ANTHROPIC_API_KEY: z.string(),
 		OPENAI_API_KEY: z.string().min(1),
-		RELAY_URL: z.string().url(),
+		RELAY_URL: z.string().url().default("https://relay.superset.sh"),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
 		GOOGLE_CLIENT_ID: z.string().min(1),
@@ -74,6 +79,19 @@ export const env = createEnv({
 		MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
 		STRIPE_SECRET_KEY: z.string().optional(),
 		MERCURY_API_TOKEN: z.string().optional(),
+		// Optional read-only PAT (no scopes needed), shared with apps/marketing.
+		// GitHub's stargazers endpoint requires authentication even for public
+		// repos; without it the star history tiles report "not available" and
+		// every other growth tile keeps working.
+		GITHUB_TOKEN: z.string().min(1).optional(),
+		// Optional: the admin Growth page's Search Console tiles report "not
+		// connected" wherever the service account is unset. The account must be
+		// added as a user of the property in Search Console.
+		GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT: z.string().min(1).optional(),
+		GOOGLE_SEARCH_CONSOLE_SITE_URL: z
+			.string()
+			.min(1)
+			.default("sc-domain:superset.sh"),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

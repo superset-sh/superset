@@ -11,6 +11,20 @@ const agentLaunchSchema = z.object({
 			"Agent preset id (e.g. `claude`, `codex`, `superset`) or HostAgentConfig instance UUID.",
 		),
 	prompt: z.string().min(1).describe("Initial prompt the agent starts with."),
+	model: z
+		.string()
+		.min(1)
+		.optional()
+		.describe(
+			"Model for this launch. Supported values depend on the agent; omit to use its default.",
+		),
+	effort: z
+		.string()
+		.min(1)
+		.optional()
+		.describe(
+			"Reasoning effort for this launch. Supported values depend on the agent; omit to use its default.",
+		),
 	attachmentIds: z
 		.array(z.string().uuid())
 		.optional()

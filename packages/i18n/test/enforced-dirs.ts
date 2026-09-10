@@ -3,6 +3,7 @@
 // it is fully converted. This list only grows; removing an entry is a
 // regression, the same ratchet contract as the no-*-blocking tests.
 export const ENFORCED_DIRS: readonly string[] = [
+	"packages/panes/src/react/components/Workspace/components/TabBar/components/TabItem",
 	"packages/i18n/src",
 	"apps/web/src/app/account-pending-deletion",
 	// automations is temporarily un-enforced: the trigger-fidelity work
@@ -34,8 +35,9 @@ export const ENFORCED_DIRS: readonly string[] = [
 	"apps/desktop/src/renderer/routes/_authenticated/settings/integrations",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/keyboard",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/links",
+	// settings/models is absent, not un-enforced: the Models page and the
+	// provider chain behind it were deleted, so the directory no longer exists.
 	"apps/desktop/src/renderer/routes/_authenticated/settings/members",
-	"apps/desktop/src/renderer/routes/_authenticated/settings/models",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/organization",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/permissions",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/presets",

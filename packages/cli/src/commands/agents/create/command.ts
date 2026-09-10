@@ -36,6 +36,9 @@ export default command({
 			.desc(
 				`Cap the handed-over context, 1-${TERMINAL_HANDOFF_MAX_CHARS} characters (default ${TERMINAL_HANDOFF_MAX_CHARS}, roughly 9-12k tokens)`,
 			),
+		model: string().desc(
+			"Model for this launch (agent-specific; omit to use the agent default)",
+		),
 		effort: string().desc(
 			"Reasoning effort for this launch (agent-specific; omit to use the agent default)",
 		),
@@ -123,6 +126,7 @@ export default command({
 			prompt,
 			resumeSessionId: options.resumeSession,
 			forkSessionId: options.forkSession,
+			model: options.model,
 			effort: options.effort,
 			attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 		});

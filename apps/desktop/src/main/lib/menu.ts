@@ -104,9 +104,13 @@ export function createApplicationMenu() {
 				},
 				{ role: "toggleDevTools" },
 				{ type: "separator" },
-				{ role: "resetZoom" },
-				{ role: "zoomIn" },
-				{ role: "zoomOut" },
+				// Display-only accelerators: the renderer owns ZOOM_IN/ZOOM_OUT/
+				// ZOOM_RESET so a focused terminal zooms its font and a focused
+				// browser pane zooms its page. Registering them here would fire
+				// the role (page zoom) before the renderer ever sees the key.
+				{ role: "resetZoom", registerAccelerator: false },
+				{ role: "zoomIn", registerAccelerator: false },
+				{ role: "zoomOut", registerAccelerator: false },
 				{ type: "separator" },
 				{
 					label: i18n._(

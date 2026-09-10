@@ -1,6 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { Button } from "@superset/ui/button";
 import {
 	Card,
@@ -16,7 +17,10 @@ import { LuExternalLink, LuRefreshCw } from "react-icons/lu";
 
 interface InsightTileFrameProps {
 	title: string;
-	description?: string;
+	// A node, not a string: an interpolated description has to be <Trans> JSX —
+	// the macro cannot read a template literal the React Compiler has hoisted
+	// into a variable, and silently emits an empty message when it tries.
+	description?: ReactNode;
 	lastRefresh?: string | null;
 	isLoading?: boolean;
 	error?: { message: string } | null;
@@ -26,6 +30,8 @@ interface InsightTileFrameProps {
 	onRefresh?: () => void;
 	isRefreshing?: boolean;
 	href?: string;
+	// Stretch to the parent's height (a grid cell) and let the body scroll.
+	fill?: boolean;
 	children: ReactNode;
 }
 
@@ -41,14 +47,17 @@ export function InsightTileFrame({
 	onRefresh,
 	isRefreshing,
 	href,
+	fill,
 	children,
 }: InsightTileFrameProps) {
+	const { formatDateTime } = useFormat();
+
 	const { t } = useLingui();
 
 	return (
-		<Card>
+		<Card className={cn(fill && "flex h-full flex-col")}>
 			<CardHeader>
-				<div className="flex items-center justify-between gap-2">
+				<div className="flex min-w-0 items-center justify-between gap-2">
 					{href ? (
 						<a
 							href={href}
@@ -80,7 +89,7 @@ export function InsightTileFrame({
 						) : null}
 						{lastRefresh ? (
 							<span className="text-muted-foreground text-xs">
-								{new Date(lastRefresh).toLocaleString(undefined, {
+								{formatDateTime(new Date(lastRefresh), {
 									month: "short",
 									day: "numeric",
 									hour: "numeric",
@@ -92,7 +101,7 @@ export function InsightTileFrame({
 				</div>
 				{description ? <CardDescription>{description}</CardDescription> : null}
 			</CardHeader>
-			<CardContent>
+			<CardContent className={cn(fill && "min-h-0 flex-1 overflow-auto")}>
 				{isLoading ? (
 					<div className="space-y-3">
 						<Skeleton className="h-6 w-full" />

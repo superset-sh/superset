@@ -61,6 +61,7 @@ export function ClonePlanPill({
 	onOpenSettings,
 }: ClonePlanPillProps) {
 	const pathInputId = useId();
+	const { t } = useLingui();
 	const failureLabel = useFailureLabel();
 	const access = plan.access;
 	const failed = !plan.isCheckingAccess && access !== null && !access.ok;
@@ -94,7 +95,7 @@ export function ClonePlanPill({
 					) : verified ? (
 						<span
 							role="img"
-							aria-label="access verified"
+							aria-label={t({ message: "Access verified" })}
 							className="inline-block size-1.5 shrink-0 rounded-full bg-emerald-500"
 						/>
 					) : null}

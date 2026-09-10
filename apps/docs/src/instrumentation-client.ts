@@ -37,7 +37,6 @@ Sentry.init({
 	dsn: env.NEXT_PUBLIC_SENTRY_DSN_DOCS,
 	environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	enabled: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production",
-	tracesSampleRate: 0.01,
 	replaysSessionSampleRate: 0,
 	replaysOnErrorSampleRate: 0,
 	sendDefaultPii: true,

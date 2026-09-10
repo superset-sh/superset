@@ -11,6 +11,7 @@ import type { SlashCommand } from "@superset/shared/slash-commands";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { errorCopy } from "@/lib/errors";
 import { posthog } from "@/lib/posthog";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
@@ -60,6 +61,8 @@ interface TerminalComposerProps {
 	onSessionTabPress: (terminalId: string) => void;
 	/** Close was chosen. Nothing is dead yet — this is where the confirm goes. */
 	onSessionTabClose: (terminalId: string) => void;
+	/** Rename was chosen from the press-and-hold menu. */
+	onSessionTabRename: (terminalId: string) => void;
 	/** Copy id was chosen from the press-and-hold menu. */
 	onSessionTabCopyId: (terminalId: string) => void;
 	onNewSessionPress: () => void;
@@ -107,6 +110,7 @@ export const TerminalComposer = forwardRef<
 		sessionTabs,
 		onSessionTabPress,
 		onSessionTabClose,
+		onSessionTabRename,
 		onSessionTabCopyId,
 		onNewSessionPress,
 		onAllSessionsPress,
@@ -205,10 +209,7 @@ export const TerminalComposer = forwardRef<
 			if (allowAttachments) draft.clear();
 			else draft.setText("");
 		} catch (cause) {
-			Alert.alert(
-				t({ message: "Could not send" }),
-				cause instanceof Error ? cause.message : String(cause),
-			);
+			Alert.alert(t({ message: "Could not send" }), errorCopy(cause));
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -234,6 +235,9 @@ export const TerminalComposer = forwardRef<
 				sessionTabs={sessionTabs}
 				// Translated here because the composer has no catalog of its own.
 				sessionTabLabels={{
+					rename: t({
+						message: "Rename session",
+					}),
 					copyId: t({
 						message: "Copy session ID",
 					}),
@@ -252,6 +256,7 @@ export const TerminalComposer = forwardRef<
 				}}
 				onSessionTabPress={onSessionTabPress}
 				onSessionTabClose={onSessionTabClose}
+				onSessionTabRename={onSessionTabRename}
 				onSessionTabCopyId={onSessionTabCopyId}
 				onNewSessionPress={onNewSessionPress}
 				onAllSessionsPress={onAllSessionsPress}

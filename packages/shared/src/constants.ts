@@ -103,23 +103,12 @@ export const V2_NEW_USER_V1_EXPERIMENT_START = "2026-06-08T06:59:00.000Z";
 export const V2_NEW_USER_V2_DEFAULT_START = "2026-07-09T17:00:00.000Z";
 
 export const FEATURE_FLAGS = {
-	/** Gates access to experimental Electric SQL tasks feature. */
-	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
 	/** Gates access to the experimental mobile-first agents UI on web. */
 	WEB_AGENTS_UI_ACCESS: "web-agents-ui-access",
 	/** Gates access to Cloud features (environment variables, sandboxes). */
 	CLOUD_ACCESS: "cloud-access",
 	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */
 	DISABLE_REMOTE_AGENT: "disable-remote-agent",
-	/**
-	 * Per-user override for the relay base URL. Payload shape:
-	 * `{ "url": "https://..." }`. When set, both the host-service tunnel and
-	 * the desktop renderer's client-side WS opens route through this URL
-	 * instead of `env.RELAY_URL`. Lets us A/B-test alternative relay
-	 * implementations (e.g. Cloudflare Durable Objects) without changing
-	 * defaults for other users.
-	 */
-	RELAY_URL_OVERRIDE: "relay-url-override",
 	/**
 	 * Paces the v1→v2 auto-migration rollout (percentage ramp + high-profile
 	 * org exclusions). Gates only NEW migrations on the v1 surface — post-flip
@@ -153,29 +142,13 @@ export const FEATURE_FLAGS = {
 	 */
 	AUTOMATION_EVENT_TRIGGERS: "automation-event-triggers",
 	/**
-	 * Experiment flag (control/test): renders the new-workspace surface as a
-	 * full-screen view with sample prompts instead of the dense modal.
-	 * Eligibility (new accounts only) is a release condition on the flag —
-	 * `created_at` person property, sent with flag requests at identify time —
-	 * and the flag is only evaluated when the surface opens, so
-	 * `$feature_flag_called` exposure matches the experiment population.
-	 */
-	NEW_WORKSPACE_SCREEN: "new-workspace-screen",
-	/**
-	 * Boolean override that forces the new-workspace screen (test-arm UI)
-	 * without evaluating the experiment flag — no exposure event, so team
-	 * members and dev accounts can use the screen without contaminating the
-	 * experiment. Checked before eligibility and before the experiment flag.
-	 */
-	NEW_WORKSPACE_SCREEN_OVERRIDE: "new-workspace-screen-override",
-	/**
 	 * Three-arm experiment flag nested inside the shipped new-workspace screen,
 	 * testing form factor only: `control` keeps the inline sample-prompt rows,
 	 * `cards2` shows two cards above the composer, `cards4` shows four in a 2x2
 	 * grid. Every arm slices a nested prefix of one fixed prompt pool and shares
 	 * the same selection rule, so content is identical and only layout and count
-	 * vary. Evaluated when the screen opens, like NEW_WORKSPACE_SCREEN, so
-	 * exposure matches the population that sees it.
+	 * vary. Evaluated when the screen opens, so exposure matches the population
+	 * that sees it.
 	 *
 	 * Anything other than `cards2`/`cards4` renders control — which is why the
 	 * flag must not go live before a build carrying those arms ships, or older
@@ -191,7 +164,7 @@ export const FEATURE_FLAGS = {
 	 * Boolean override that forces the `cards2` arm without evaluating the
 	 * experiment flag — no exposure event, so team and dev accounts can look at
 	 * the cards without entering the analysis. Checked before the experiment
-	 * flag, same as NEW_WORKSPACE_SCREEN_OVERRIDE.
+	 * flag.
 	 */
 	NEW_WORKSPACE_PROMPT_CARDS_OVERRIDE: "new-workspace-prompt-cards-override",
 	/**

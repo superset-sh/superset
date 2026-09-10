@@ -62,12 +62,6 @@ const contentSecurityPolicy = [
 		relayHttpOrigin,
 		relayBackupWsOrigin,
 		relayBackupHttpOrigin,
-		// The Durable Objects relay a user can be routed to via
-		// relay-url-override; the runtime relay comes from that flag while
-		// this header is built at compile time, so it must be listed
-		// explicitly. Removable once relay2 answers on relay.superset.sh.
-		"https://superset-relay2.avi-6ac.workers.dev",
-		"wss://superset-relay2.avi-6ac.workers.dev",
 		"https://*.ingest.sentry.io",
 		"https://*.sentry.io",
 		"https://us.i.posthog.com",

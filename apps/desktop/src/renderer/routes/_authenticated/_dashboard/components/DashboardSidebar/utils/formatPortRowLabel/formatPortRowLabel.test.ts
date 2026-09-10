@@ -14,7 +14,7 @@ const remote: DashboardSidebarPort = {
 	label: null,
 	hostId: "h",
 	hostType: "remote-device",
-	hostUrl: "https://relay2.superset.sh/hosts/org:m",
+	hostUrl: "https://relay.superset.sh/hosts/org:m",
 };
 
 function forward(status: PortForward["status"]): PortForward {

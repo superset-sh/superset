@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
-import { useNewWorkspaceModalStore } from "renderer/stores/new-workspace-modal";
 import { useQuickCreateWorkspaceIntent } from "renderer/stores/quick-create-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import type { Command, CommandProvider } from "../../core/types";
@@ -49,8 +48,7 @@ export const workspaceProvider: CommandProvider = {
 				section: "workspace",
 				icon: PlusIcon,
 				hotkeyId: "NEW_WORKSPACE",
-				run: () =>
-					useNewWorkspaceModalStore.getState().openModal(workspace.projectId),
+				run: (ctx) => ctx.openNewWorkspace(workspace.projectId),
 			},
 			quickCreate,
 			{

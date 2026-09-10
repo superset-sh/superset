@@ -48,7 +48,12 @@ export function useSubmitWorkspace(
 	const isSession = draft.isSession;
 
 	const submitWorkspace = useCallback(async () => {
-		if (!projectId && !isSession) {
+		const hostId = draft.hostId ?? machineId;
+		const isCloud = hostId === CLOUD_HOST_ID;
+		// A cloud workspace clones the one cloud repo, so it has no use for a
+		// project — and the create surface hides the project picker when cloud
+		// is the target, which would make this an unanswerable error.
+		if (!projectId && !isSession && !isCloud) {
 			toast.error(
 				t({
 					message: "Select a project first",
@@ -73,7 +78,6 @@ export function useSubmitWorkspace(
 			return;
 		}
 
-		const hostId = draft.hostId ?? machineId;
 		if (!hostId) {
 			toast.error(
 				t({
@@ -103,7 +107,7 @@ export function useSubmitWorkspace(
 
 		// Cloud workspaces are provisioned by the API, not the local host, so
 		// they bypass the host `workspaces.create` path entirely.
-		if (hostId === CLOUD_HOST_ID) {
+		if (isCloud) {
 			const environments = await cloudTrpcClient.environment.list.query({
 				organizationId: activeOrganizationId,
 			});

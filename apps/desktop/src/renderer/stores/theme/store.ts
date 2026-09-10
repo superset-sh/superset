@@ -121,6 +121,14 @@ function findTheme(themeId: string, customThemes: Theme[]): Theme | undefined {
 const builtInThemeIds = new Set(builtInThemes.map((theme) => theme.id));
 
 /**
+ * Drop custom themes whose id a built-in now owns. A theme imported from the
+ * marketplace before it shipped in the app would otherwise show twice.
+ */
+function withoutBuiltInIds(customThemes: Theme[]): Theme[] {
+	return customThemes.filter((theme) => !builtInThemeIds.has(theme.id));
+}
+
+/**
  * Sync theme data to localStorage for instant access before hydration.
  * This enables flash-free terminal rendering on app start.
  * Caches terminal colors directly to support custom themes without lookup.
@@ -201,14 +209,16 @@ export const useThemeStore = create<ThemeState>()(
 				}) => {
 					// Canonical themeState changed outside the renderer (CLI write +
 					// /settings-changed nudge). Replace state wholesale and re-apply.
-					const customThemes = Array.isArray(external.customThemes)
-						? external.customThemes.filter(
-								(theme) =>
-									typeof theme === "object" &&
-									theme !== null &&
-									typeof theme.id === "string",
-							)
-						: [];
+					const customThemes = withoutBuiltInIds(
+						Array.isArray(external.customThemes)
+							? external.customThemes.filter(
+									(theme) =>
+										typeof theme === "object" &&
+										theme !== null &&
+										typeof theme.id === "string",
+								)
+							: [],
+					);
 					const systemLightThemeId =
 						external.systemLightThemeId ?? DEFAULT_LIGHT_THEME_ID;
 					const systemDarkThemeId =
@@ -390,15 +400,14 @@ export const useThemeStore = create<ThemeState>()(
 				initializeTheme: () => {
 					const state = get();
 
+					const customThemes = withoutBuiltInIds(state.customThemes);
+					if (customThemes.length !== state.customThemes.length) {
+						set({ customThemes });
+					}
+
 					// Normalize stale system theme IDs before resolving
-					const lightExists = findTheme(
-						state.systemLightThemeId,
-						state.customThemes,
-					);
-					const darkExists = findTheme(
-						state.systemDarkThemeId,
-						state.customThemes,
-					);
+					const lightExists = findTheme(state.systemLightThemeId, customThemes);
+					const darkExists = findTheme(state.systemDarkThemeId, customThemes);
 					const normalizedLightId = lightExists
 						? state.systemLightThemeId
 						: DEFAULT_LIGHT_THEME_ID;
@@ -417,9 +426,9 @@ export const useThemeStore = create<ThemeState>()(
 						state.activeThemeId,
 						normalizedLightId,
 						normalizedDarkId,
-						state.customThemes,
+						customThemes,
 					);
-					const theme = findTheme(resolvedId, state.customThemes);
+					const theme = findTheme(resolvedId, customThemes);
 
 					if (theme) {
 						const { terminalTheme } = applyTheme(theme);

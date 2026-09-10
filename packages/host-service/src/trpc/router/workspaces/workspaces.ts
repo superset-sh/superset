@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import {
+	deriveWorkspaceBranchFromPrompt,
 	generateFriendlyBranchName,
 	sanitizeUserBranchName,
 } from "@superset/shared/workspace-launch";
@@ -57,7 +58,6 @@ import {
 } from "../workspace-creation/shared/sparse-checkout";
 import type { GitClient } from "../workspace-creation/shared/types";
 import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-paths";
-import { generateBranchNameFromPrompt } from "../workspace-creation/utils/ai-branch-name";
 import {
 	applyAiWorkspaceRename,
 	applyGeneratedWorkspaceNames,
@@ -1360,11 +1360,12 @@ export const workspacesRouter = router({
 				ctx,
 				localProject.repoPath,
 			);
-			const branchName = await generateBranchNameFromPrompt(
-				input.prompt,
-				existingBranches,
-			);
-			return { branchName };
+			const derived = deriveWorkspaceBranchFromPrompt(input.prompt);
+			return {
+				branchName: derived
+					? deduplicateBranchName(derived, existingBranches)
+					: null,
+			};
 		}),
 });
 
