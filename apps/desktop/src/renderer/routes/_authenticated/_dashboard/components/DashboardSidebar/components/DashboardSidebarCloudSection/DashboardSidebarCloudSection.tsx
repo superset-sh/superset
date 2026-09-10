@@ -202,6 +202,9 @@ export function DashboardSidebarCloudSection({
 	// collapsed rail has no headers, so there it is still rows or nothing.
 	if (rows.length === 0 && (isCollapsed || !isCloudEnabled)) return null;
 
+	// Only the sidebar rail collapsing forces cloud workspaces into the
+	// compact icon form; the section's own chevron hides them entirely, same
+	// as every other collapsible section (Pinned, Sessions).
 	if (isCollapsed) {
 		return (
 			<div className="flex flex-col gap-0.5 py-1">
