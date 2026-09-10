@@ -59,6 +59,7 @@ export class BrowserBridgeClient {
 
 	open(input: {
 		workspaceId: string;
+		projectId: string | null;
 		url: string;
 		target: "current-tab" | "new-tab";
 		show?: boolean;

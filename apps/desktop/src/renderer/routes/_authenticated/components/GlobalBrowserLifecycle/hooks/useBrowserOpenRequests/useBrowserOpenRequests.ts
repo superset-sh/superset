@@ -5,12 +5,12 @@ import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard
 import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
 import type { BrowserPaneData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { writeWorkspacePaneLayout } from "renderer/stores/workspace-creates/writeWorkspacePaneLayout";
 import { openBackgroundBrowser } from "./utils/openBackgroundBrowser";
 
 interface BrowserOpenRequest {
 	workspaceId: string;
+	projectId: string | null;
 	url: string;
 	target: "current-tab" | "new-tab";
 	requestId: string;
@@ -21,7 +21,6 @@ interface BrowserOpenRequest {
 export function useBrowserOpenRequests() {
 	const navigate = useNavigate();
 	const collections = useCollections();
-	const { workspaces } = useHostWorkspaces();
 
 	useEffect(() => {
 		const subscription = electronTrpcClient.browser.onOpenRequest.subscribe(
@@ -31,12 +30,15 @@ export function useBrowserOpenRequests() {
 					if (!request.show) {
 						try {
 							if (!collections.v2WorkspaceLocalState.get(request.workspaceId)) {
-								const workspace = workspaces.find(
-									(workspace) => workspace.id === request.workspaceId,
+								writeWorkspacePaneLayout(
+									collections,
+									{
+										id: request.workspaceId,
+										projectId: request.projectId,
+									},
+									[],
+									[],
 								);
-								if (!workspace)
-									throw new Error(`Unknown workspace ${request.workspaceId}`);
-								writeWorkspacePaneLayout(collections, workspace, [], []);
 							}
 							const paneId = openBackgroundBrowser({ collections, ...request });
 							browserRuntimeRegistry.openBackground(
@@ -86,5 +88,5 @@ export function useBrowserOpenRequests() {
 		return () => {
 			subscription.unsubscribe();
 		};
-	}, [navigate, collections, workspaces]);
+	}, [navigate, collections]);
 }

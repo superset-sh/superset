@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { BrowserBridgeClient } from "../../../runtime/browser-bridge/browser-bridge-client";
 import type { HostServiceContext } from "../../../types";
+import { getLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import { protectedProcedure, router } from "../../index";
 
 function requireBridge(ctx: HostServiceContext): BrowserBridgeClient {
@@ -29,14 +30,17 @@ export const browserRouter = router({
 				show: z.boolean().default(false),
 			}),
 		)
-		.mutation(({ ctx, input }) =>
-			requireBridge(ctx).open({
-				workspaceId: input.workspaceId,
-				url: input.url,
-				target: input.target,
-				show: input.show,
-			}),
-		),
+		.mutation(({ ctx, input }) => {
+			const bridge = requireBridge(ctx);
+			const workspace = getLocalWorkspace(ctx.db, input.workspaceId);
+			if (!workspace) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+			return bridge.open({ ...input, projectId: workspace.projectId });
+		}),
 
 	navigate: protectedProcedure
 		.input(

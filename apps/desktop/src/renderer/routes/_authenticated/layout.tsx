@@ -301,12 +301,12 @@ function AuthenticatedLayout() {
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
 				<WindowTitle />
+				<GlobalBrowserLifecycle />
 				<LocalHostServiceProvider>
 					{/* Above the workspace fan-out: it needs sandbox addresses to
 					    include them as hosts. */}
 					<SandboxAccessProvider>
 						<HostWorkspacesProvider>
-							<GlobalBrowserLifecycle />
 							<WorkerPoolContextProvider
 								poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
 								highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
