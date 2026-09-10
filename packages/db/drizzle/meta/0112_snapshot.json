@@ -1,6 +1,6 @@
 {
-  "id": "31f0cc44-96bc-493d-9367-64862528d392",
-  "prevId": "df6c76a9-0d7a-4fe3-8de4-c23f11074cb1",
+  "id": "1302e6cd-58d5-4923-96d2-9fae2d837755",
+  "prevId": "31f0cc44-96bc-493d-9367-64862528d392",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -4712,6 +4712,12 @@
         },
         "base_url": {
           "name": "base_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider": {
+          "name": "provider",
           "type": "text",
           "primaryKey": false,
           "notNull": false
