@@ -396,7 +396,7 @@ export const auth = betterAuth({
 				definePayload: async ({
 					user,
 				}: {
-					user: { id: string; email: string };
+					user: { id: string };
 					session: Record<string, unknown>;
 				}) => {
 					const userMemberships = await db.query.members.findMany({
@@ -406,7 +406,7 @@ export const auth = betterAuth({
 					const organizationIds = [
 						...new Set(userMemberships.map((m) => m.organizationId)),
 					];
-					return { sub: user.id, email: user.email, organizationIds };
+					return { sub: user.id, organizationIds };
 				},
 			},
 		}),
@@ -1523,7 +1523,6 @@ export type User = typeof auth.$Infer.Session.user;
  */
 export async function mintUserJwt(args: {
 	userId: string;
-	email?: string;
 	organizationIds: string[];
 	scope?: string;
 	runId?: string;
@@ -1536,7 +1535,6 @@ export async function mintUserJwt(args: {
 		body: {
 			payload: {
 				sub: args.userId,
-				email: args.email,
 				organizationIds: args.organizationIds,
 				scope: args.scope,
 				runId: args.runId,

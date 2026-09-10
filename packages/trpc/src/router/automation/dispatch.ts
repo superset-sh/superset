@@ -6,7 +6,6 @@ import {
 	automations,
 	githubRepositories,
 	type SelectAutomation,
-	users,
 	v2Hosts,
 	v2Projects,
 	v2UsersHosts,
@@ -160,15 +159,8 @@ export async function dispatchAutomation(
 
 	let workspaceId: string | null = null;
 	try {
-		const [owner] = await db
-			.select({ email: users.email })
-			.from(users)
-			.where(eq(users.id, automation.ownerUserId))
-			.limit(1);
-
 		const jwt = await mintUserJwt({
 			userId: automation.ownerUserId,
-			email: owner?.email,
 			organizationIds: [automation.organizationId],
 			scope: "automation-run",
 			runId: run.id,

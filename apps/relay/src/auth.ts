@@ -2,7 +2,6 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 
 export interface AuthContext {
 	sub: string;
-	email: string;
 	organizationIds: string[];
 }
 
@@ -26,14 +25,13 @@ export async function verifyJWT(
 		});
 
 		const sub = payload.sub;
-		const email = payload.email as string | undefined;
 		const organizationIds = payload.organizationIds as string[] | undefined;
 
 		if (!sub || !organizationIds) {
 			return null;
 		}
 
-		return { sub, email: email ?? "", organizationIds };
+		return { sub, organizationIds };
 	} catch (error) {
 		// Don't log expected hourly-rotation expiries, and log only the terse
 		// message otherwise: the full error dumped a stack trace + decoded
