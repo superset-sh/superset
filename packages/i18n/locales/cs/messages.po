@@ -310,7 +310,7 @@ msgstr "Akce {0}"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} a {1} si to vyříkají jako termináloví dinosauři. O vítězi rozhodnou statistiky."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} za vámi"
 
@@ -448,7 +448,7 @@ msgstr "Ukončeno relací: {0}"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0} ukončeno, {1} zbývá"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "{0} k předstižení #{1}"
@@ -2296,6 +2296,9 @@ msgstr "Automatizace (selhává: {myFailedCount})"
 msgid "Automations & event triggers"
 msgstr "Automatizace a spouštěče událostí"
 
+msgid "Automations require the Pro plan."
+msgstr "Automatizace vyžadují tarif Pro."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automatizace, selhává: {myFailedCount}"
 
@@ -2447,9 +2450,6 @@ msgstr "Zaostává za main o ? commitů, je potřeba rebase"
 
 msgid "Being built right now."
 msgstr "Právě se staví."
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Za obzorem: F5 není tvrzení o blízké budoucnosti"
@@ -3393,11 +3393,12 @@ msgstr "Cloud přichází. Staňte se partnerem pro vývoj"
 msgid "Cloud sandboxes"
 msgstr "Cloudové sandboxy"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Cloudové sandboxy nejsou pro {account} povoleny. Požádejte tým Superset o přístup."
+
 msgid "Cloud workspace"
 msgstr "Cloudový pracovní prostor"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Cloudové pracovní prostory zatím nejsou dostupné"
 
 msgid "Code"
 msgstr "Kód"
@@ -3826,6 +3827,9 @@ msgstr "Pokračovat"
 msgid "Continue or fork session"
 msgstr "Pokračovat nebo forkovat relaci"
 
+msgid "Continue the session the last run left"
+msgstr "Pokračovat v relaci, kterou zanechalo poslední spuštění"
+
 msgid "Continue update"
 msgstr "Pokračovat v aktualizaci"
 
@@ -3844,6 +3848,12 @@ msgstr "Pokračovat přes GitHub"
 
 msgid "Continue with Google"
 msgstr "Pokračovat přes Google"
+
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Pokračování v relaci agenta vyžaduje připnutý pracovní prostor"
+
+msgid "continuing the last session"
+msgstr "pokračováním v poslední relaci"
 
 msgid "Contributions"
 msgstr "Příspěvky"
@@ -7357,6 +7367,9 @@ msgstr "Vylepšit instrukce pro agenty"
 msgid "Improved diff viewer"
 msgstr "Vylepšený prohlížeč rozdílů"
 
+msgid "in a new session"
+msgstr "v nové relaci"
+
 msgid "in a terminal on this host."
 msgstr "v terminálu na tomto hostu."
 
@@ -10766,6 +10779,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Připnout"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Připněte pracovní prostor, aby jeho relace agenta pokračovala mezi spuštěními"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Připněte si pracovní prostory nad projekty a pak ⌘-kliknutím vyberte skupinu, kterou přesunete, seskupíte nebo smažete naráz."
 
@@ -11296,6 +11312,9 @@ msgstr "Pushování…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Naplánujte opakovanou práci"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Naplánujte opakující se práci podle rozvrhu nebo události. Agenti běží sami a výsledek skončí v pracovním prostoru, kde ho zkontrolujete."
 
 msgid "px"
 msgstr "px"
@@ -13684,6 +13703,9 @@ msgstr "Začněte konverzaci a zprávy se objeví tady"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Spustí novou relaci agenta s nedávným kontextem tohoto terminálu. Zdrojem pravdy zůstávají soubory v pracovním prostoru."
 
+msgid "Start a new agent session each run"
+msgstr "Při každém spuštění začít novou relaci agenta"
+
 msgid "Start a session"
 msgstr "Spustit relaci"
 
@@ -14725,6 +14747,9 @@ msgstr "Pracovní prostor ještě není připravený. Zkuste to znovu."
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "Pracovní prostor mohl přesto vzniknout. Tato obrazovka ho otevře, jakmile se objeví."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "Pracovní prostor, ke kterému je tato automatizace připnutá, na jeho hostiteli už neexistuje. Připněte v nastavení automatizace jiný."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree a všechny necommitnuté změny budou odstraněny. Tuto akci nelze vrátit zpět."
 
@@ -14779,6 +14804,9 @@ msgstr "Tato aplikace bude mít přístup k datům ve vybrané organizaci."
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Tato automatizace patří organizaci {0}. Přepněte na tuto organizaci, abyste ji otevřeli."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "Tato automatizace zatím nemá pokyny. Před spuštěním napište v jejím nastavení prompt."
 
 msgid "This automation is in another organization"
 msgstr "Tato automatizace je v jiné organizaci"

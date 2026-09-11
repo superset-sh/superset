@@ -310,7 +310,7 @@ msgstr "{0} eylemleri"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} ve {1} bu işi terminal dinozorları olarak çözüyor. Kazananı istatistikler belirliyor."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} arkanızda"
 
@@ -448,7 +448,7 @@ msgstr "{0} oturum sonlandırıldı"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0} sonlandırıldı, {1} kaldı"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "#{1} sırasını geçmek için {0}"
@@ -2296,6 +2296,9 @@ msgstr "Otomasyonlar ({myFailedCount} başarısız)"
 msgid "Automations & event triggers"
 msgstr "Otomasyonlar ve olay tetikleyicileri"
 
+msgid "Automations require the Pro plan."
+msgstr "Otomasyonlar Pro planı gerektirir."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Otomasyonlar, {myFailedCount} başarısız"
 
@@ -2447,9 +2450,6 @@ msgstr "main dalının ? commit gerisinde, rebase gerekiyor"
 
 msgid "Being built right now."
 msgstr "Şu anda geliştiriliyor."
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Ötesi: F5 yakın vadeli bir iddia değil"
@@ -3393,11 +3393,12 @@ msgstr "Bulut sürümü yakında. Geliştirme ortağı olun"
 msgid "Cloud sandboxes"
 msgstr "Bulut sandbox'ları"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Bulut sandbox'ları {account} için etkin değil. Erişim için Superset ekibine başvurun."
+
 msgid "Cloud workspace"
 msgstr "Bulut çalışma alanı"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Bulut çalışma alanları henüz kullanılamıyor"
 
 msgid "Code"
 msgstr "Kod"
@@ -3826,6 +3827,9 @@ msgstr "Devam et"
 msgid "Continue or fork session"
 msgstr "Oturumu sürdür veya forkla"
 
+msgid "Continue the session the last run left"
+msgstr "Son çalıştırmanın bıraktığı oturumu sürdür"
+
 msgid "Continue update"
 msgstr "Güncellemeye devam et"
 
@@ -3844,6 +3848,12 @@ msgstr "GitHub ile devam et"
 
 msgid "Continue with Google"
 msgstr "Google ile devam et"
+
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Bir aracı oturumunu sürdürmek için sabitlenmiş bir çalışma alanı gerekir"
+
+msgid "continuing the last session"
+msgstr "son oturumu sürdürerek"
 
 msgid "Contributions"
 msgstr "Katkılar"
@@ -7357,6 +7367,9 @@ msgstr "Ajan yönergelerini iyileştir"
 msgid "Improved diff viewer"
 msgstr "Geliştirilmiş fark görüntüleyici"
 
+msgid "in a new session"
+msgstr "yeni bir oturumda"
+
 msgid "in a terminal on this host."
 msgstr "komutunu çalıştırın."
 
@@ -10766,6 +10779,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Sabitle"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Çalıştırmalar arasında aracı oturumunu sürdürmek için bir çalışma alanı sabitleyin"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Çalışma alanlarını projelerinizin üstüne sabitleyin, sonra ⌘ ile bir grup seçip hepsini birden taşıyın, gruplayın veya silin."
 
@@ -11296,6 +11312,9 @@ msgstr "Push ediliyor…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Tekrarlayan işleri zamanlamaya alın"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Tekrarlayan işleri bir zamanlamaya veya olaya bağlayın. Ajanlar kendi başına çalışır ve sonuç, incelemeniz için bir çalışma alanına düşer."
 
 msgid "px"
 msgstr "px"
@@ -13684,6 +13703,9 @@ msgstr "Mesajları burada görmek için bir konuşma başlatın"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Bu terminalin son bağlamıyla yeni bir ajan oturumu başlatır. Çalışma alanındaki dosyalar doğruluğun kaynağı olmayı sürdürür."
 
+msgid "Start a new agent session each run"
+msgstr "Her çalıştırmada yeni bir aracı oturumu başlat"
+
 msgid "Start a session"
 msgstr "Bir oturum başlat"
 
@@ -14725,6 +14747,9 @@ msgstr "Çalışma alanı henüz hazır değil. Yeniden deneyin."
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "Çalışma alanı yine de oluşturulmuş olabilir. Göründüğünde bu ekran onu açar."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "Bu otomasyonun sabitlendiği çalışma alanı artık ana makinesinde yok. Otomasyonun ayarlarından başka bir tanesini sabitleyin."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree ve commit'lenmemiş tüm değişiklikler kaldırılacak. Bu geri alınamaz."
 
@@ -14779,6 +14804,9 @@ msgstr "Bu uygulama, seçili kuruluştaki verilere erişebilecek."
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Bu otomasyon {0} kuruluşuna ait. Açmak için o kuruluşa geçin."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "Bu otomasyonun henüz talimatı yok. Çalıştırmadan önce ayarlarında bir istem yazın."
 
 msgid "This automation is in another organization"
 msgstr "Bu otomasyon başka bir kuruluşta"

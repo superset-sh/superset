@@ -74,7 +74,7 @@ export function RankNeighbors({ me, rows }: RankNeighborsProps) {
 			label: <Trans>You</Trans>,
 			detail: above ? (
 				<Trans>
-					{formatTokens(above.tokens - me.tokens)} to pass #
+					{formatTokens(Math.max(0, above.tokens - me.tokens))} to pass #
 					{formatNumber(above.rank)}
 				</Trans>
 			) : null,
@@ -85,7 +85,11 @@ export function RankNeighbors({ me, rows }: RankNeighborsProps) {
 			tokens: below.tokens,
 			label: aliasFor(below.rank),
 			detail: (
-				<Trans>{formatTokens(me.tokens - below.tokens)} behind you</Trans>
+				// Clamped: standings are CDN-cached, so right after a publish
+				// the live "me" total can already have overtaken a stale neighbor.
+				<Trans>
+					{formatTokens(Math.max(0, me.tokens - below.tokens))} behind you
+				</Trans>
 			),
 			isMe: false,
 		},

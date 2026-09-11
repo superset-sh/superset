@@ -275,7 +275,7 @@ const { terminalId } = await client.terminals.create({
 
 ## automations
 
-Recurring agent runs scheduled by RRULE. Requires a Pro subscription on the org for `create` / `update` / `delete`.
+Recurring agent runs scheduled by RRULE. Automations are a Pro feature: `create`, `run`, and `resume` are refused with `FORBIDDEN` unless the org has a Pro or Enterprise subscription. Reading, `update`, `pause`, and `delete` stay available so a downgraded org keeps control of what it has.
 
 ### `automations.list(params?)`
 

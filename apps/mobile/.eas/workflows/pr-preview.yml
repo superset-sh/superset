@@ -1,0 +1,55 @@
+name: Preview update for pull request
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - apps/mobile/**
+      - packages/shared/**
+      - packages/trpc/**
+      - packages/i18n/**
+      - packages/db/**
+      - packages/auth/**
+      - "!**/*.md"
+
+jobs:
+  fingerprint:
+    name: Fingerprint
+    type: fingerprint
+    environment: preview
+
+  get_development_build:
+    name: Find development build for this fingerprint
+    needs: [fingerprint]
+    type: get-build
+    params:
+      platform: ios
+      profile: development
+      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+      wait_for_in_progress: true
+
+  publish:
+    name: Publish preview update
+    needs: [get_development_build]
+    if: ${{ needs.get_development_build.outputs.build_id }}
+    type: update
+    environment: preview
+    params:
+      platform: ios
+      branch: ${{ github.event.pull_request.head.ref }}
+      private_key_path: $UPDATES_SIGNING_KEY
+      upload_sentry_sourcemaps: true
+
+  comment_with_qr:
+    name: Comment with QR code
+    needs: [publish]
+    type: github-comment
+
+  comment_needs_build:
+    name: Comment that a build is needed
+    needs: [get_development_build]
+    if: ${{ !needs.get_development_build.outputs.build_id }}
+    type: github-comment
+    params:
+      payload: |
+        This pull request changes the native layer, so no installed development build can load it as an update. Add the `mobile-build` label to build one.

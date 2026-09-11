@@ -8,7 +8,6 @@ import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
-import { assertInternal, assertMember } from "../../lib/cloud-guards";
 import {
 	cloudRepo,
 	deleteSandbox,
@@ -17,6 +16,7 @@ import {
 	resolveSandboxAddress,
 	SandboxUnavailableError,
 } from "../../lib/sandbox";
+import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import { jwtProcedure, userError } from "../../trpc";
 import {
 	FALLBACK_NAME,
@@ -41,7 +41,7 @@ export const cloudWorkspaceRouter = {
 	list: jwtProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
 			return db
 				.select()
@@ -68,7 +68,7 @@ export const cloudWorkspaceRouter = {
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
 			const repo = await cloudRepo();
 			if (!repo) return { defaultBranch: null, items: [] };
@@ -79,7 +79,7 @@ export const cloudWorkspaceRouter = {
 	repo: jwtProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
 			return cloudRepo();
 		}),
@@ -118,7 +118,7 @@ export const cloudWorkspaceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
 			if (input.agent && !isCloudAgentId(input.agent)) {
 				// Only the built-in presets exist inside a sandbox; the clients offer
@@ -258,7 +258,7 @@ export const cloudWorkspaceRouter = {
 					i18nKey: "serverError.cloudWorkspace.notFound",
 				});
 			}
-			assertInternal(ctx.email);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, row.organizationId);
 			const [renamed] = await db
 				.update(cloudWorkspaces)
@@ -297,7 +297,7 @@ export const cloudWorkspaceRouter = {
 					i18nKey: "serverError.cloudWorkspace.notFound",
 				});
 			}
-			assertInternal(ctx.email);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, row.organizationId);
 			if (row.status !== "ready") {
 				throw new TRPCError({
@@ -339,7 +339,7 @@ export const cloudWorkspaceRouter = {
 				where: eq(cloudWorkspaces.id, input.id),
 			});
 			if (!row) return { deleted: false };
-			assertInternal(ctx.email);
+			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, row.organizationId);
 
 			// A row from a retired provider has no sandbox left to delete.

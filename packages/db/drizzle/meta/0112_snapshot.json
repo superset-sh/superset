@@ -1,5 +1,5 @@
 {
-  "id": "25f10ccc-2f6a-4ca7-9c32-b5233a0a9f71",
+  "id": "69899fbc-4e14-47f1-9483-47c465a79f9a",
   "prevId": "daef7ae2-0416-4ead-8e07-616a382a6299",
   "version": "7",
   "dialect": "postgresql",
@@ -4674,129 +4674,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.agent_credentials": {
-      "name": "agent_credentials",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "agent": {
-          "name": "agent",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "agent_credential_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "encrypted_value": {
-          "name": "encrypted_value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "base_url": {
-          "name": "base_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "provider": {
-          "name": "provider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "account_label": {
-          "name": "account_label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_validated_at": {
-          "name": "last_validated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "agent_credentials_user_id_idx": {
-          "name": "agent_credentials_user_id_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "agent_credentials_user_id_users_id_fk": {
-          "name": "agent_credentials_user_id_users_id_fk",
-          "tableFrom": "agent_credentials",
-          "tableTo": "users",
-          "schemaTo": "auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "agent_credentials_user_id_agent_unique": {
-          "name": "agent_credentials_user_id_agent_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "agent"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.attachments": {
       "name": "attachments",
       "schema": "",
@@ -5423,6 +5300,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "error_code": {
+          "name": "error_code",
+          "type": "automation_run_error_code",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
         "dispatched_at": {
           "name": "dispatched_at",
           "type": "timestamp with time zone",
@@ -5885,6 +5769,13 @@
           "notNull": true,
           "default": "'[\"automation\"]'::jsonb"
         },
+        "continue_agent_session": {
+          "name": "continue_agent_session",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "enabled": {
           "name": "enabled",
           "type": "boolean",
@@ -6177,7 +6068,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'vercel'"
+          "default": "'blaxel'"
         },
         "provider_sandbox_id": {
           "name": "provider_sandbox_id",
@@ -6792,7 +6683,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'vercel'"
+          "default": "'blaxel'"
         },
         "source_kind": {
           "name": "source_kind",
@@ -10121,14 +10012,6 @@
         "hidden"
       ]
     },
-    "public.agent_credential_kind": {
-      "name": "agent_credential_kind",
-      "schema": "public",
-      "values": [
-        "subscription",
-        "api_key"
-      ]
-    },
     "public.attachment_parent_kind": {
       "name": "attachment_parent_kind",
       "schema": "public",
@@ -10148,6 +10031,16 @@
         "human",
         "agent",
         "restore"
+      ]
+    },
+    "public.automation_run_error_code": {
+      "name": "automation_run_error_code",
+      "schema": "public",
+      "values": [
+        "no_instructions",
+        "host_offline",
+        "agent_not_found",
+        "workspace_not_found"
       ]
     },
     "public.automation_run_status": {

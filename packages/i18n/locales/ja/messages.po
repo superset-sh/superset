@@ -310,7 +310,7 @@ msgstr "{0}の操作"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0}と{1}がターミナル恐竜となって決着をつけます。勝敗を決めるのは統計です。"
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0}差で後続"
 
@@ -448,7 +448,7 @@ msgstr "{0}件のセッションを終了しました"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0}件を終了、残り{1}件"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "#{1}を抜くまで{0}"
@@ -2296,6 +2296,9 @@ msgstr "オートメーション({myFailedCount}件失敗中)"
 msgid "Automations & event triggers"
 msgstr "オートメーションとイベントトリガー"
 
+msgid "Automations require the Pro plan."
+msgstr "オートメーションにはProプランが必要です。"
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "オートメーション、{myFailedCount}件が失敗中"
 
@@ -2447,9 +2450,6 @@ msgstr "mainより?コミット遅れています。リベースが必要です"
 
 msgid "Being built right now."
 msgstr "いま作っています。"
-
-msgid "Beta"
-msgstr "ベータ"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "その先:F5は近い将来の主張ではない"
@@ -3393,11 +3393,12 @@ msgstr "クラウド版が近日登場。共同開発パートナーを募集中
 msgid "Cloud sandboxes"
 msgstr "クラウドサンドボックス"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "クラウドサンドボックスは {account} では有効になっていません。Superset チームにアクセス権をリクエストしてください。"
+
 msgid "Cloud workspace"
 msgstr "クラウドワークスペース"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "クラウドワークスペースはまだ利用できません"
 
 msgid "Code"
 msgstr "コード"
@@ -3826,6 +3827,9 @@ msgstr "続行"
 msgid "Continue or fork session"
 msgstr "セッションを続行またはフォーク"
 
+msgid "Continue the session the last run left"
+msgstr "前回の実行が残したセッションを継続"
+
 msgid "Continue update"
 msgstr "更新を続行"
 
@@ -3844,6 +3848,12 @@ msgstr "GitHubで続行"
 
 msgid "Continue with Google"
 msgstr "Googleで続行"
+
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "エージェントセッションを継続するには、ワークスペースをピン留めする必要があります"
+
+msgid "continuing the last session"
+msgstr "前回のセッションを継続"
 
 msgid "Contributions"
 msgstr "コントリビューション"
@@ -7357,6 +7367,9 @@ msgstr "エージェント向け指示を改善"
 msgid "Improved diff viewer"
 msgstr "差分ビューアの改善"
 
+msgid "in a new session"
+msgstr "新しいセッションで"
+
 msgid "in a terminal on this host."
 msgstr "このホストのターミナルで実行してください。"
 
@@ -10766,6 +10779,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "ピン留め"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "実行間でエージェントセッションを継続するには、ワークスペースをピン留めしてください"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "ワークスペースをプロジェクトの上にピン留めし、⌘クリックでまとめて選んで移動、グループ化、削除ができます。"
 
@@ -11296,6 +11312,9 @@ msgstr "プッシュ中…"
 
 msgid "Put recurring work on a schedule"
 msgstr "繰り返しの作業をスケジュールに載せる"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "繰り返しの作業をスケジュールやイベントで実行しましょう。エージェントは自動で動き、結果はレビュー用のワークスペースに入ります。"
 
 msgid "px"
 msgstr "px"
@@ -13684,6 +13703,9 @@ msgstr "会話を始めるとここにメッセージが表示されます"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "このターミナルの直近のコンテキストを引き継いで、新しいエージェントセッションを開始します。ワークスペースのファイルが引き続き信頼できる情報源です。"
 
+msgid "Start a new agent session each run"
+msgstr "実行ごとに新しいエージェントセッションを開始"
+
 msgid "Start a session"
 msgstr "セッションを開始"
 
@@ -14725,6 +14747,9 @@ msgstr "ワークスペースの準備がまだできていません。もう一
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "ワークスペースは作成されている可能性があります。表示された場合、この画面で開きます。"
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "このオートメーションがピン留めされているワークスペースは、ホスト上に存在しなくなりました。オートメーションの設定で別のワークスペースをピン留めしてください。"
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "ワークツリーと未コミットの変更が削除されます。この操作は元に戻せません。"
 
@@ -14779,6 +14804,9 @@ msgstr "このアプリケーションは選択した組織のデータにアク
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "このオートメーションは {0} に属しています。開くにはその組織に切り替えてください。"
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "このオートメーションにはまだ指示がありません。実行する前に設定でプロンプトを記述してください。"
 
 msgid "This automation is in another organization"
 msgstr "このオートメーションは別の組織にあります"

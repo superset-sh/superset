@@ -8,8 +8,8 @@ import superjson from "superjson";
 import { formatError, userError } from "./i18n-error";
 import { posthog } from "./lib/analytics";
 
-export type { I18nErrorCause } from "./i18n-error";
-export { isI18nErrorCause, userError } from "./i18n-error";
+export type { I18nErrorCause, RequiredPlan } from "./i18n-error";
+export { isI18nErrorCause, planRequiredError, userError } from "./i18n-error";
 
 export interface ApiClientInfo {
 	product: "desktop" | "mobile" | "cli" | "sdk";
@@ -206,7 +206,6 @@ export const jwtProcedure = t.procedure
 					return next({
 						ctx: {
 							userId: payload.sub,
-							email: (payload.email as string) ?? "",
 							organizationIds,
 							activeOrganizationId: resolveActiveOrganizationId(
 								organizationIds,
@@ -234,7 +233,6 @@ export const jwtProcedure = t.procedure
 			return next({
 				ctx: {
 					userId,
-					email: ctx.session.user.email ?? "",
 					organizationIds,
 					activeOrganizationId: headerOrgId
 						? resolveActiveOrganizationId(organizationIds, headerOrgId)

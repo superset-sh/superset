@@ -310,7 +310,7 @@ msgstr "Acciones de {0}"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} y {1} lo resuelven como dinosaurios de terminal. Las estadísticas deciden al ganador."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} por detrás de ti"
 
@@ -448,7 +448,7 @@ msgstr "{0} sesiones terminadas"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0} terminadas, {1} restantes"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "{0} para superar al #{1}"
@@ -2296,6 +2296,9 @@ msgstr "Automatizaciones ({myFailedCount} con errores)"
 msgid "Automations & event triggers"
 msgstr "Automatizaciones y disparadores por eventos"
 
+msgid "Automations require the Pro plan."
+msgstr "Las automatizaciones requieren el plan Pro."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automatizaciones, {myFailedCount} con errores"
 
@@ -2447,9 +2450,6 @@ msgstr "? commits por detrás de main, necesita rebase"
 
 msgid "Being built right now."
 msgstr "Se está construyendo ahora mismo."
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Más allá: F5 no es una afirmación a corto plazo"
@@ -3393,11 +3393,12 @@ msgstr "La nube está por llegar. Conviértete en socio de diseño"
 msgid "Cloud sandboxes"
 msgstr "Sandboxes en la nube"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Los sandboxes en la nube no están habilitados para {account}. Solicita acceso al equipo de Superset."
+
 msgid "Cloud workspace"
 msgstr "Espacio de trabajo en la nube"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Los espacios de trabajo en la nube aún no están disponibles"
 
 msgid "Code"
 msgstr "Código"
@@ -3826,6 +3827,9 @@ msgstr "Continuar"
 msgid "Continue or fork session"
 msgstr "Continuar o bifurcar la sesión"
 
+msgid "Continue the session the last run left"
+msgstr "Continuar la sesión que dejó la última ejecución"
+
 msgid "Continue update"
 msgstr "Continuar con la actualización"
 
@@ -3844,6 +3848,12 @@ msgstr "Continuar con GitHub"
 
 msgid "Continue with Google"
 msgstr "Continuar con Google"
+
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Continuar una sesión de agente requiere un espacio de trabajo fijado"
+
+msgid "continuing the last session"
+msgstr "continuando la última sesión"
 
 msgid "Contributions"
 msgstr "Contribuciones"
@@ -7357,6 +7367,9 @@ msgstr "Mejorar las instrucciones del agente"
 msgid "Improved diff viewer"
 msgstr "Visor de diff mejorado"
 
+msgid "in a new session"
+msgstr "en una sesión nueva"
+
 msgid "in a terminal on this host."
 msgstr "en una terminal de este host."
 
@@ -10766,6 +10779,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Fijar"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Fija un espacio de trabajo para continuar su sesión de agente entre ejecuciones"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Fija espacios de trabajo por encima de tus proyectos y luego haz ⌘-clic en varios para moverlos, agruparlos o eliminarlos de una vez."
 
@@ -11296,6 +11312,9 @@ msgstr "Haciendo push…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Pon el trabajo recurrente en un horario"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Programa el trabajo recurrente según un horario o un evento. Los agentes se ejecutan solos y el resultado llega a un espacio de trabajo para que lo revises."
 
 msgid "px"
 msgstr "px"
@@ -13684,6 +13703,9 @@ msgstr "Inicia una conversación para ver los mensajes aquí"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Inicia una nueva sesión de agente con el contexto reciente de este terminal. Los archivos del espacio de trabajo siguen siendo la fuente de verdad."
 
+msgid "Start a new agent session each run"
+msgstr "Iniciar una nueva sesión de agente en cada ejecución"
+
 msgid "Start a session"
 msgstr "Iniciar una sesión"
 
@@ -14725,6 +14747,9 @@ msgstr "El espacio de trabajo aún no está listo. Inténtalo de nuevo."
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "Puede que el espacio de trabajo se haya creado igualmente. Esta pantalla lo abre si aparece."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "El espacio de trabajo al que está fijada esta automatización ya no existe en su host. Fija otro en los ajustes de la automatización."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Se eliminarán el worktree y los cambios sin commit. Esto no se puede deshacer."
 
@@ -14779,6 +14804,9 @@ msgstr "Esta aplicación tendrá acceso a los datos de la organización seleccio
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Esta automatización pertenece a {0}. Cambia a esa organización para abrirla."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "Esta automatización todavía no tiene instrucciones. Escribe un prompt en sus ajustes antes de ejecutarla."
 
 msgid "This automation is in another organization"
 msgstr "Esta automatización está en otra organización"

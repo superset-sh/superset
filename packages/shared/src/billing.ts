@@ -44,16 +44,44 @@ export const PLAN_RANK: Record<PlanTier, number> = {
 	enterprise: 2,
 };
 
+/** The tier an org needs to create, run, or resume an automation. */
+export const AUTOMATIONS_REQUIRED_PLAN: Exclude<PlanTier, "free"> = "pro";
+
 /**
- * The billing tier each trigger kind needs; kinds absent here are free
- * (schedule). One map for both sides of the product: the desktop Add Trigger
- * menu locks and badges off it, and the event dispatcher skips triggers above
- * the org's plan. Editing a saved above-tier trigger is deliberately still
- * allowed — a downgraded org maintains its automations, they just don't fire.
+ * The plan tier a subscription row resolves to: its plan while the
+ * subscription is still paying, `free` otherwise (or when there is no row).
+ */
+export function planTierFromSubscription(
+	subscription:
+		| { plan: string | null | undefined; status: string | null | undefined }
+		| null
+		| undefined,
+): PlanTier {
+	if (!subscription || !isActiveSubscriptionStatus(subscription.status)) {
+		return "free";
+	}
+	const plan = subscription.plan;
+	return plan === "pro" || plan === "enterprise" ? plan : "free";
+}
+
+/** Whether an org on this plan may create, run, or resume automations. */
+export function planAllowsAutomations(plan: PlanTier): boolean {
+	return PLAN_RANK[plan] >= PLAN_RANK[AUTOMATIONS_REQUIRED_PLAN];
+}
+
+/**
+ * The billing tier each trigger kind needs. Automations are a Pro feature,
+ * so every kind is at least Pro; a kind absent here would be free, which is
+ * what the billing test guards against. One map for both sides of the
+ * product: the desktop Add Trigger menu locks and badges off it, and the
+ * dispatchers skip triggers above the org's plan. Editing a saved above-tier
+ * trigger is deliberately still allowed — a downgraded org maintains its
+ * automations, they just don't fire.
  */
 const TRIGGER_KIND_REQUIRED_PLAN: Partial<
 	Record<string, Exclude<PlanTier, "free">>
 > = {
+	schedule: AUTOMATIONS_REQUIRED_PLAN,
 	github: "pro",
 	slack: "pro",
 	linear: "pro",

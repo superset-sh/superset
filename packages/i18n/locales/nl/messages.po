@@ -310,7 +310,7 @@ msgstr "Acties voor {0}"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} en {1} beslechten het als terminaldinosaurussen. De statistieken bepalen de winnaar."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} achter je"
 
@@ -448,7 +448,7 @@ msgstr "{0} sessies beëindigd"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0} beëindigd, {1} over"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "{0} om #{1} voorbij te gaan"
@@ -2296,6 +2296,9 @@ msgstr "Automatiseringen ({myFailedCount} mislukt)"
 msgid "Automations & event triggers"
 msgstr "Automatiseringen en event-triggers"
 
+msgid "Automations require the Pro plan."
+msgstr "Automatiseringen vereisen het Pro-abonnement."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automatiseringen, {myFailedCount} mislukt"
 
@@ -2447,9 +2450,6 @@ msgstr "? commits achter op main, rebase nodig"
 
 msgid "Being built right now."
 msgstr "Wordt nu gebouwd."
-
-msgid "Beta"
-msgstr "Bèta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Verder: F5 is geen claim voor de korte termijn"
@@ -3393,11 +3393,12 @@ msgstr "De cloud komt eraan. Word ontwerppartner"
 msgid "Cloud sandboxes"
 msgstr "Cloudsandboxen"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Cloudsandboxen zijn niet ingeschakeld voor {account}. Vraag het Superset-team om toegang."
+
 msgid "Cloud workspace"
 msgstr "Cloudwerkruimte"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Cloudwerkruimtes zijn nog niet beschikbaar"
 
 msgid "Code"
 msgstr "Code"
@@ -3826,6 +3827,9 @@ msgstr "Doorgaan"
 msgid "Continue or fork session"
 msgstr "Sessie voortzetten of forken"
 
+msgid "Continue the session the last run left"
+msgstr "Ga verder met de sessie van de vorige run"
+
 msgid "Continue update"
 msgstr "Doorgaan met update"
 
@@ -3844,6 +3848,12 @@ msgstr "Doorgaan met GitHub"
 
 msgid "Continue with Google"
 msgstr "Doorgaan met Google"
+
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Een agentsessie voortzetten vereist een vastgezette workspace"
+
+msgid "continuing the last session"
+msgstr "de laatste sessie voortzetten"
 
 msgid "Contributions"
 msgstr "Bijdragen"
@@ -7357,6 +7367,9 @@ msgstr "De agentinstructies verbeteren"
 msgid "Improved diff viewer"
 msgstr "Verbeterde diff-viewer"
 
+msgid "in a new session"
+msgstr "in een nieuwe sessie"
+
 msgid "in a terminal on this host."
 msgstr "uit in een terminal op deze host."
 
@@ -10766,6 +10779,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Vastzetten"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Zet een workspace vast om de agentsessie tussen runs voort te zetten"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Zet werkruimtes vast boven je projecten en ⌘-klik daarna een reeks om ze in één keer te verplaatsen, groeperen of verwijderen."
 
@@ -11296,6 +11312,9 @@ msgstr "Bezig met pushen…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Zet terugkerend werk op een schema"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Zet terugkerend werk op een schema of laat het starten door een gebeurtenis. Agents draaien vanzelf en zetten het resultaat klaar in een werkruimte om te beoordelen."
 
 msgid "px"
 msgstr "px"
@@ -13684,6 +13703,9 @@ msgstr "Begin een gesprek om hier berichten te zien"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Start een nieuwe agentsessie met de recente context van deze terminal. De bestanden in de workspace blijven de bron van waarheid."
 
+msgid "Start a new agent session each run"
+msgstr "Start bij elke run een nieuwe agentsessie"
+
 msgid "Start a session"
 msgstr "Sessie starten"
 
@@ -14725,6 +14747,9 @@ msgstr "De werkruimte is nog niet klaar. Probeer het opnieuw."
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "De werkruimte is mogelijk toch aangemaakt. Dit scherm opent hem zodra hij verschijnt."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "De workspace waaraan deze automatisering is vastgezet, bestaat niet meer op de host. Zet een andere vast in de instellingen van de automatisering."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "De worktree en eventuele niet-gecommitte wijzigingen worden verwijderd. Dit kan niet ongedaan worden gemaakt."
 
@@ -14779,6 +14804,9 @@ msgstr "Deze applicatie krijgt toegang tot gegevens in de gekozen organisatie."
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Deze automatisering hoort bij {0}. Wissel naar die organisatie om hem te openen."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "Deze automatisering heeft nog geen instructies. Schrijf een prompt in de instellingen voordat je hem uitvoert."
 
 msgid "This automation is in another organization"
 msgstr "Deze automatisering staat in een andere organisatie"

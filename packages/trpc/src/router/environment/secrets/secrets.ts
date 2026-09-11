@@ -8,7 +8,7 @@ import {
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, asc, eq, ne, sql, sum } from "drizzle-orm";
 import { z } from "zod";
-import { assertInternal } from "../../../lib/cloud-guards";
+import { assertCloudAccess } from "../../../lib/cloud-guards";
 import { jwtProcedure, userError } from "../../../trpc";
 import { loadEnvironment, secretOwnerOrganizationId } from "../environment";
 import { decryptSecret, encryptSecret } from "./utils/crypto";
@@ -17,7 +17,7 @@ export const secretsRouter = {
 	list: jwtProcedure
 		.input(z.object({ environmentId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess(ctx);
 			const environment = await loadEnvironment(
 				input.environmentId,
 				ctx.organizationIds,
@@ -47,7 +47,7 @@ export const secretsRouter = {
 	getDecrypted: jwtProcedure
 		.input(z.object({ environmentId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess(ctx);
 			const environment = await loadEnvironment(
 				input.environmentId,
 				ctx.organizationIds,
@@ -110,7 +110,7 @@ export const secretsRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess(ctx);
 			const environment = await loadEnvironment(
 				input.environmentId,
 				ctx.organizationIds,
@@ -196,7 +196,7 @@ export const secretsRouter = {
 			z.object({ environmentId: z.string().uuid(), key: z.string().min(1) }),
 		)
 		.mutation(async ({ ctx, input }) => {
-			assertInternal(ctx.email);
+			await assertCloudAccess(ctx);
 			const environment = await loadEnvironment(
 				input.environmentId,
 				ctx.organizationIds,

@@ -310,7 +310,7 @@ msgstr "{0} 작업"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0}와 {1}이(가) 터미널 공룡이 되어 결판을 냅니다. 승부는 기록이 결정합니다."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} 차이로 뒤"
 
@@ -448,7 +448,7 @@ msgstr "세션 {0}개를 종료했습니다"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0}개 종료, {1}개 남음"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "#{1}을 제치려면 {0}"
@@ -2296,6 +2296,9 @@ msgstr "자동화 ({myFailedCount}개 실패)"
 msgid "Automations & event triggers"
 msgstr "자동화 및 이벤트 트리거"
 
+msgid "Automations require the Pro plan."
+msgstr "자동화에는 Pro 플랜이 필요합니다."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "자동화, {myFailedCount}개 실패"
 
@@ -2447,9 +2450,6 @@ msgstr "main보다 커밋 ?개 뒤처짐, 리베이스 필요"
 
 msgid "Being built right now."
 msgstr "지금 만들고 있습니다."
-
-msgid "Beta"
-msgstr "베타"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "그 너머: F5는 단기 전망이 아닙니다"
@@ -3393,11 +3393,12 @@ msgstr "클라우드 버전이 곧 출시됩니다. 공동 개발 파트너가 �
 msgid "Cloud sandboxes"
 msgstr "클라우드 샌드박스"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "{account}에는 클라우드 샌드박스가 활성화되어 있지 않습니다. Superset 팀에 액세스를 요청하세요."
+
 msgid "Cloud workspace"
 msgstr "클라우드 워크스페이스"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "클라우드 워크스페이스는 아직 사용할 수 없습니다"
 
 msgid "Code"
 msgstr "코드"
@@ -3826,6 +3827,9 @@ msgstr "계속"
 msgid "Continue or fork session"
 msgstr "세션 계속하기 또는 포크"
 
+msgid "Continue the session the last run left"
+msgstr "마지막 실행이 남긴 세션을 계속"
+
 msgid "Continue update"
 msgstr "업데이트 계속"
 
@@ -3844,6 +3848,12 @@ msgstr "GitHub로 계속하기"
 
 msgid "Continue with Google"
 msgstr "Google로 계속하기"
+
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "에이전트 세션을 계속하려면 고정된 워크스페이스가 필요합니다"
+
+msgid "continuing the last session"
+msgstr "마지막 세션을 계속"
 
 msgid "Contributions"
 msgstr "기여"
@@ -7357,6 +7367,9 @@ msgstr "에이전트 지침 개선하기"
 msgid "Improved diff viewer"
 msgstr "차이 뷰어 개선"
 
+msgid "in a new session"
+msgstr "새 세션에서"
+
 msgid "in a terminal on this host."
 msgstr "(이 호스트의 터미널에서)"
 
@@ -10766,6 +10779,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "고정"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "실행 간에 에이전트 세션을 계속하려면 워크스페이스를 고정하세요"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "워크스페이스를 프로젝트 위에 고정하고, ⌘ 클릭으로 여러 개를 골라 한 번에 옮기거나, 묶거나, 삭제하세요."
 
@@ -11296,6 +11312,9 @@ msgstr "푸시 중…"
 
 msgid "Put recurring work on a schedule"
 msgstr "반복 업무를 일정에 올리세요"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "반복되는 작업을 일정이나 이벤트에 맡기세요. 에이전트가 알아서 실행되고 결과는 검토할 수 있도록 워크스페이스에 도착합니다."
 
 msgid "px"
 msgstr "px"
@@ -13684,6 +13703,9 @@ msgstr "대화를 시작하면 메시지가 여기에 표시됩니다"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "이 터미널의 최근 컨텍스트를 넘겨받아 새 에이전트 세션을 시작합니다. 워크스페이스의 파일이 여전히 기준입니다."
 
+msgid "Start a new agent session each run"
+msgstr "실행할 때마다 새 에이전트 세션 시작"
+
 msgid "Start a session"
 msgstr "세션 시작"
 
@@ -14725,6 +14747,9 @@ msgstr "워크스페이스가 아직 준비되지 않았습니다. 다시 시도
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "워크스페이스가 생성되었을 수도 있습니다. 나타나면 이 화면에서 열립니다."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "이 자동화가 고정된 워크스페이스가 해당 호스트에 더 이상 존재하지 않습니다. 자동화 설정에서 다른 워크스페이스를 고정하세요."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "worktree와 커밋되지 않은 변경 사항이 모두 삭제됩니다. 되돌릴 수 없습니다."
 
@@ -14779,6 +14804,9 @@ msgstr "이 애플리케이션은 선택한 조직의 데이터에 접근할 수
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "이 자동화는 {0}에 속해 있습니다. 열려면 해당 조직으로 전환하세요."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "이 자동화에는 아직 지시문이 없습니다. 실행하기 전에 설정에서 프롬프트를 작성하세요."
 
 msgid "This automation is in another organization"
 msgstr "이 자동화는 다른 조직에 있습니다"

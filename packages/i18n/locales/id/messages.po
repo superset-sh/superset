@@ -310,7 +310,7 @@ msgstr "Aksi {0}"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} dan {1} menyelesaikannya sebagai dinosaurus terminal. Statistik yang menentukan pemenangnya."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} di belakang Anda"
 
@@ -448,7 +448,7 @@ msgstr "{0} sesi dihentikan"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0} dihentikan, {1} tersisa"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "{0} lagi untuk melewati #{1}"
@@ -2296,6 +2296,9 @@ msgstr "Otomatisasi ({myFailedCount} gagal)"
 msgid "Automations & event triggers"
 msgstr "Otomatisasi & pemicu event"
 
+msgid "Automations require the Pro plan."
+msgstr "Otomatisasi memerlukan paket Pro."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Otomatisasi, {myFailedCount} gagal"
 
@@ -2447,9 +2450,6 @@ msgstr "Tertinggal ? commit dari main, perlu rebase"
 
 msgid "Being built right now."
 msgstr "Sedang dibangun sekarang."
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Di luar itu: F5 bukan klaim jangka dekat"
@@ -3393,11 +3393,12 @@ msgstr "Versi awan segera hadir. Jadi mitra pengembangan"
 msgid "Cloud sandboxes"
 msgstr "Sandbox cloud"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Sandbox cloud belum diaktifkan untuk {account}. Minta akses kepada tim Superset."
+
 msgid "Cloud workspace"
 msgstr "Workspace cloud"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Workspace cloud belum tersedia"
 
 msgid "Code"
 msgstr "Kode"
@@ -3826,6 +3827,9 @@ msgstr "Lanjutkan"
 msgid "Continue or fork session"
 msgstr "Lanjutkan atau fork sesi"
 
+msgid "Continue the session the last run left"
+msgstr "Lanjutkan sesi yang ditinggalkan proses terakhir"
+
 msgid "Continue update"
 msgstr "Lanjutkan pembaruan"
 
@@ -3844,6 +3848,12 @@ msgstr "Lanjutkan dengan GitHub"
 
 msgid "Continue with Google"
 msgstr "Lanjutkan dengan Google"
+
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Melanjutkan sesi agen memerlukan ruang kerja yang disematkan"
+
+msgid "continuing the last session"
+msgstr "melanjutkan sesi terakhir"
 
 msgid "Contributions"
 msgstr "Kontribusi"
@@ -7357,6 +7367,9 @@ msgstr "Perbaiki instruksi agen"
 msgid "Improved diff viewer"
 msgstr "Penampil diff yang lebih baik"
 
+msgid "in a new session"
+msgstr "dalam sesi baru"
+
 msgid "in a terminal on this host."
 msgstr "di terminal pada host ini."
 
@@ -10766,6 +10779,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Sematkan"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Sematkan ruang kerja untuk melanjutkan sesi agennya antar proses"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Sematkan workspace di atas proyek Anda, lalu ⌘-klik sekumpulan untuk memindahkan, mengelompokkan, atau menghapus semuanya sekaligus."
 
@@ -11296,6 +11312,9 @@ msgstr "Melakukan push…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Jadwalkan pekerjaan yang berulang"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Jadwalkan pekerjaan berulang berdasarkan waktu atau picu lewat event. Agen berjalan sendiri dan hasilnya mendarat di sebuah workspace untuk Anda tinjau."
 
 msgid "px"
 msgstr "px"
@@ -13684,6 +13703,9 @@ msgstr "Mulai percakapan untuk melihat pesan di sini"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Memulai sesi agen baru dengan konteks terbaru dari terminal ini. Berkas di ruang kerja tetap menjadi sumber kebenaran."
 
+msgid "Start a new agent session each run"
+msgstr "Mulai sesi agen baru setiap kali dijalankan"
+
 msgid "Start a session"
 msgstr "Mulai sesi"
 
@@ -14725,6 +14747,9 @@ msgstr "Workspace belum siap. Coba lagi."
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "Workspace mungkin tetap dibuat. Layar ini akan membukanya jika muncul."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "Ruang kerja yang disematkan untuk otomatisasi ini sudah tidak ada di host-nya. Sematkan ruang kerja lain di pengaturan otomatisasi."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree beserta perubahan yang belum di-commit akan dihapus. Ini tidak bisa dibatalkan."
 
@@ -14779,6 +14804,9 @@ msgstr "Aplikasi ini akan punya akses ke data di organisasi yang dipilih."
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Otomatisasi ini milik {0}. Ganti ke organisasi tersebut untuk membukanya."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "Otomatisasi ini belum memiliki instruksi. Tulis prompt di pengaturannya sebelum menjalankannya."
 
 msgid "This automation is in another organization"
 msgstr "Otomatisasi ini berada di organisasi lain"

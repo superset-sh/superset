@@ -310,7 +310,7 @@ msgstr "{0}的操作"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0}與{1}化身終端恐龍一決勝負。數據決定輸贏。"
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "落後你 {0}"
 
@@ -448,7 +448,7 @@ msgstr "已終止{0}個會話"
 msgid "{0} terminated, {1} remaining"
 msgstr "已終止{0}個，剩餘{1}個"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "再 {0} 即可超越 #{1}"
@@ -2296,6 +2296,9 @@ msgstr "自動化（{myFailedCount}個失敗）"
 msgid "Automations & event triggers"
 msgstr "自動化與事件觸發"
 
+msgid "Automations require the Pro plan."
+msgstr "自動化需要Pro方案。"
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "自動化，{myFailedCount}個失敗"
 
@@ -2447,9 +2450,6 @@ msgstr "落後main ?個提交，需要變基"
 
 msgid "Being built right now."
 msgstr "正在構建中。"
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "再往後：F5不是近期的主張"
@@ -3393,11 +3393,12 @@ msgstr "雲端版本即將推出。成為共創夥伴"
 msgid "Cloud sandboxes"
 msgstr "雲端沙箱"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "{account} 尚未啟用雲端沙箱。請向 Superset 團隊申請存取權限。"
+
 msgid "Cloud workspace"
 msgstr "雲端工作區"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "雲端工作區尚不可用"
 
 msgid "Code"
 msgstr "程式碼"
@@ -3826,6 +3827,9 @@ msgstr "繼續"
 msgid "Continue or fork session"
 msgstr "繼續或分支會話"
 
+msgid "Continue the session the last run left"
+msgstr "繼續上次執行留下的工作階段"
+
 msgid "Continue update"
 msgstr "繼續更新"
 
@@ -3844,6 +3848,12 @@ msgstr "使用GitHub繼續"
 
 msgid "Continue with Google"
 msgstr "使用Google繼續"
+
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "繼續代理程式工作階段需要已釘選的工作區"
+
+msgid "continuing the last session"
+msgstr "繼續上一個工作階段"
 
 msgid "Contributions"
 msgstr "貢獻"
@@ -7357,6 +7367,9 @@ msgstr "改進代理程式說明"
 msgid "Improved diff viewer"
 msgstr "更好的差異檢視器"
 
+msgid "in a new session"
+msgstr "在新的工作階段中"
+
 msgid "in a terminal on this host."
 msgstr "（在此主機的終端中）。"
 
@@ -10766,6 +10779,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "固定"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "釘選一個工作區，以便在多次執行之間繼續其代理程式工作階段"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "把工作區固定在專案上方，再⌘點選批次選中，一次性移動、分組或刪除。"
 
@@ -11296,6 +11312,9 @@ msgstr "正在推送…"
 
 msgid "Put recurring work on a schedule"
 msgstr "把重複的活兒排進日程"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "將重複性工作排入排程，或設定為由事件觸發。代理程式會自行執行，並將結果放入工作區供你審查。"
 
 msgid "px"
 msgstr "px"
@@ -13684,6 +13703,9 @@ msgstr "開始一段對話，訊息會顯示在這裡"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "以這個終端最近的上下文啟動新的代理程式會話。工作區中的檔案仍是準確來源。"
 
+msgid "Start a new agent session each run"
+msgstr "每次執行都啟動新的代理程式工作階段"
+
 msgid "Start a session"
 msgstr "開始一個會話"
 
@@ -14725,6 +14747,9 @@ msgstr "工作區尚未就緒。請重試。"
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "工作區可能仍已建立。如果出現，此畫面會開啟它。"
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "此自動化所釘選的工作區在其主機上已不存在。請在自動化設定中釘選另一個工作區。"
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "worktree及其中所有未提交的更改都會被移除。此操作無法復原。"
 
@@ -14779,6 +14804,9 @@ msgstr "該應用程式將可以存取所選組織中的資料。"
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "此自動化屬於 {0}。請切換到該組織後開啟。"
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "此自動化尚未有指示。請先在設定中撰寫提示，再執行。"
 
 msgid "This automation is in another organization"
 msgstr "此自動化位於其他組織"

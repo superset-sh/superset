@@ -310,7 +310,7 @@ msgstr "{0} actions"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} behind you"
 
@@ -448,7 +448,7 @@ msgstr "{0} sessions terminated"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0} terminated, {1} remaining"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "{0} to pass #{1}"
@@ -2296,6 +2296,9 @@ msgstr "Automations ({myFailedCount} failing)"
 msgid "Automations & event triggers"
 msgstr "Automations & event triggers"
 
+msgid "Automations require the Pro plan."
+msgstr "Automations require the Pro plan."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automations, {myFailedCount} failing"
 
@@ -2447,9 +2450,6 @@ msgstr "Behind main by ? commits, needs rebase"
 
 msgid "Being built right now."
 msgstr "Being built right now."
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Beyond: F5 is not a near-term claim"
@@ -3393,11 +3393,12 @@ msgstr "Cloud is coming. Become a design partner"
 msgid "Cloud sandboxes"
 msgstr "Cloud sandboxes"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Cloud sandboxes are not enabled for {account}. Ask the Superset team for access."
+
 msgid "Cloud workspace"
 msgstr "Cloud workspace"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Cloud workspaces are not available yet"
 
 msgid "Code"
 msgstr "Code"
@@ -3826,6 +3827,9 @@ msgstr "Continue"
 msgid "Continue or fork session"
 msgstr "Continue or fork session"
 
+msgid "Continue the session the last run left"
+msgstr "Continue the session the last run left"
+
 msgid "Continue update"
 msgstr "Continue update"
 
@@ -3844,6 +3848,12 @@ msgstr "Continue with GitHub"
 
 msgid "Continue with Google"
 msgstr "Continue with Google"
+
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Continuing an agent session requires a pinned workspace"
+
+msgid "continuing the last session"
+msgstr "continuing the last session"
 
 msgid "Contributions"
 msgstr "Contributions"
@@ -7357,6 +7367,9 @@ msgstr "Improve the agent instructions"
 msgid "Improved diff viewer"
 msgstr "Improved diff viewer"
 
+msgid "in a new session"
+msgstr "in a new session"
+
 msgid "in a terminal on this host."
 msgstr "in a terminal on this host."
 
@@ -10766,6 +10779,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Pin"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Pin a workspace to continue its agent session between runs"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 
@@ -11296,6 +11312,9 @@ msgstr "Pushing..."
 
 msgid "Put recurring work on a schedule"
 msgstr "Put recurring work on a schedule"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
 
 msgid "px"
 msgstr "px"
@@ -13684,6 +13703,9 @@ msgstr "Start a conversation to see messages here"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 
+msgid "Start a new agent session each run"
+msgstr "Start a new agent session each run"
+
 msgid "Start a session"
 msgstr "Start a session"
 
@@ -14725,6 +14747,9 @@ msgstr "The workspace is not ready yet. Try again."
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "The workspace may still have been created. This screen opens it if it appears."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "The worktree and any uncommitted changes will be removed. This cannot be undone."
 
@@ -14779,6 +14804,9 @@ msgstr "This application will have access to data in the selected organization."
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "This automation belongs to {0}. Switch to that organization to open it."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "This automation has no instructions yet. Write a prompt in its settings before running it."
 
 msgid "This automation is in another organization"
 msgstr "This automation is in another organization"

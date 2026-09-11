@@ -1,0 +1,78 @@
+name: Deploy mobile from main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/mobile/**
+      - packages/shared/**
+      - packages/trpc/**
+      - packages/i18n/**
+      - packages/db/**
+      - packages/auth/**
+      - "!**/*.md"
+
+jobs:
+  fingerprint:
+    name: Fingerprint
+    type: fingerprint
+    environment: production
+
+  fingerprint_preview:
+    name: Fingerprint (preview)
+    type: fingerprint
+    environment: preview
+
+  get_internal_build:
+    name: Find internal build for this fingerprint
+    needs: [fingerprint_preview]
+    type: get-build
+    params:
+      platform: ios
+      profile: preview
+      fingerprint_hash: ${{ needs.fingerprint_preview.outputs.ios_fingerprint_hash }}
+
+  build_internal:
+    name: Build internal
+    needs: [get_internal_build]
+    if: ${{ !needs.get_internal_build.outputs.build_id }}
+    type: build
+    params:
+      platform: ios
+      profile: preview
+
+  get_production_build:
+    name: Find production build for this fingerprint
+    needs: [fingerprint]
+    type: get-build
+    params:
+      platform: ios
+      profile: production
+      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+
+  build_production:
+    name: Build production
+    needs: [get_production_build]
+    if: ${{ !needs.get_production_build.outputs.build_id }}
+    type: build
+    params:
+      platform: ios
+      profile: production
+
+  upload_to_app_store_connect:
+    name: Upload to App Store Connect
+    needs: [build_production]
+    type: submit
+    params:
+      build_id: ${{ needs.build_production.outputs.build_id }}
+
+  publish_preview:
+    name: Publish update to preview
+    needs: [fingerprint_preview]
+    type: update
+    environment: preview
+    params:
+      platform: ios
+      channel: preview
+      private_key_path: $UPDATES_SIGNING_KEY
+      upload_sentry_sourcemaps: true

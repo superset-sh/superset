@@ -5,6 +5,7 @@ import { FaSlack } from "react-icons/fa";
 import {
 	HiDevicePhoneMobile,
 	HiOutlineClipboardDocumentList,
+	HiOutlineClock,
 	HiOutlineSignal,
 	HiUsers,
 } from "react-icons/hi2";
@@ -14,6 +15,7 @@ export const GATED_FEATURES = {
 	TASKS: "tasks",
 	REMOTE_ACCESS: "remote-access",
 	MOBILE_APP: "mobile-app",
+	AUTOMATIONS: "automations",
 } as const;
 
 export type GatedFeature = (typeof GATED_FEATURES)[keyof typeof GATED_FEATURES];
@@ -41,6 +43,19 @@ export const PRO_FEATURES: ProFeature[] = [
 		icon: HiOutlineSignal,
 		iconColor: "text-pink-500",
 		gradientColors: ["#be185d", "#9d174d", "#831843", "#1a1a2e"],
+	},
+	{
+		id: "automations",
+		title: msg({
+			message: "Automations",
+		}),
+		description: msg({
+			message:
+				"Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review.",
+		}),
+		icon: HiOutlineClock,
+		iconColor: "text-amber-500",
+		gradientColors: ["#b45309", "#92400e", "#78350f", "#1a1a2e"],
 	},
 	{
 		id: "team-collaboration",
@@ -103,4 +118,5 @@ export const FEATURE_ID_MAP: Record<GatedFeature, string> = {
 	[GATED_FEATURES.TASKS]: "tasks",
 	[GATED_FEATURES.REMOTE_ACCESS]: "remote-access",
 	[GATED_FEATURES.MOBILE_APP]: "mobile-app",
+	[GATED_FEATURES.AUTOMATIONS]: "automations",
 };

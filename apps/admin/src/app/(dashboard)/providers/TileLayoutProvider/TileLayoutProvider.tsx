@@ -10,10 +10,10 @@ import {
 } from "react";
 import type { Layout } from "react-grid-layout";
 
-// The key still says "growth" because that is where these layouts started;
-// renaming it would silently reset every arrangement already saved in someone's
-// browser. Sections are namespaced within it.
-const STORAGE_PREFIX = "admin.growth.layout.";
+// Bump the version when the grid's units change: heights saved in the old
+// unit would draw at the wrong size, so a reset is the right outcome then.
+// Sections are namespaced within it.
+const STORAGE_PREFIX = "admin.tile-layout.v2.";
 
 interface TileLayout {
 	// Bumped on reset so every grid re-reads its default layout.

@@ -121,10 +121,22 @@ export const serverErrorMessages: Record<
 				message: `This automation belongs to ${params?.organizationName}. Switch to that organization to open it.`,
 			}),
 		),
+	"serverError.automation.automationsRequireThePro": () =>
+		i18n._(
+			msg({
+				message: "Automations require the Pro plan.",
+			}),
+		),
 	"serverError.automation.automationNotFound": () =>
 		i18n._(
 			msg({
 				message: "Automation not found",
+			}),
+		),
+	"serverError.automation.continueNeedsPinnedWorkspace": () =>
+		i18n._(
+			msg({
+				message: "Continuing an agent session requires a pinned workspace",
 			}),
 		),
 	"serverError.automation.failedToCreateAutomation": () =>
@@ -205,12 +217,13 @@ export const serverErrorMessages: Record<
 				message: "No active organization selected",
 			}),
 		),
-	"serverError.cloudWorkspace.cloudWorkspacesAreNotAvailableYet": () =>
-		i18n._(
-			msg({
-				message: "Cloud workspaces are not available yet",
-			}),
-		),
+	"serverError.cloudWorkspace.cloudSandboxesAreInternalOnly": (params) =>
+		i18n._({
+			id: "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly",
+			message:
+				"Cloud sandboxes are not enabled for {account}. Ask the Superset team for access.",
+			values: params,
+		}),
 	"serverError.cloudWorkspace.couldNotRecordCloudWorkspace": () =>
 		i18n._(
 			msg({

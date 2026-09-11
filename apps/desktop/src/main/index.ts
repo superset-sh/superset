@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { msg } from "@lingui/core/macro";
@@ -12,6 +13,7 @@ import { settings } from "@superset/local-db";
 import {
 	devAppProfileDirName,
 	isDevAppProfileDirName,
+	workspaceDevAppProfileDirName,
 } from "@superset/shared/dev-app-profile";
 import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
@@ -79,17 +81,23 @@ void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
 });
 
-// Dev mode: label the app with the workspace name so multiple worktrees are
-// distinguishable. This also moves `app.getPath("userData")`, so the workspace
-// gets its own Chromium profile — see sweepDevAppProfiles for the reaping.
+// Keep the readable dock label separate from the stable storage identity.
 if (IS_DEV) {
+	const profilePath = path.join(
+		app.getPath("appData"),
+		workspaceDevAppProfileDirName({
+			workspaceId: process.env.SUPERSET_WORKSPACE_ID,
+			appPath: app.getAppPath(),
+		}),
+	);
+	mkdirSync(profilePath, { recursive: true });
+	app.setPath("userData", profilePath);
+	app.setPath("sessionData", profilePath);
 	const workspaceName = resolveDevWorkspaceName();
 	const profileName = workspaceName
 		? devAppProfileDirName(workspaceName)
 		: undefined;
-	// A name carrying a path separator would make Electron nest userData inside
-	// a directory neither the sweep nor teardown can ever reap. Keep the
-	// default profile instead — a shared dock label beats an unreclaimable one.
+	// Retain the existing validation for the display label.
 	if (profileName && isDevAppProfileDirName(profileName)) {
 		app.setName(profileName);
 	} else if (profileName) {

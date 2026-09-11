@@ -310,7 +310,7 @@ msgstr "Действия {0}"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} и {1} выясняют отношения в облике терминальных динозавров. Победителя решает статистика."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} позади вас"
 
@@ -448,7 +448,7 @@ msgstr "Завершено сессий: {0}"
 msgid "{0} terminated, {1} remaining"
 msgstr "Завершено: {0}, осталось: {1}"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "{0} чтобы обогнать #{1}"
@@ -2296,6 +2296,9 @@ msgstr "Автоматизации (с ошибкой: {myFailedCount})"
 msgid "Automations & event triggers"
 msgstr "Автоматизации и триггеры по событиям"
 
+msgid "Automations require the Pro plan."
+msgstr "Для автоматизаций нужен план Pro."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Автоматизации, с ошибкой: {myFailedCount}"
 
@@ -2447,9 +2450,6 @@ msgstr "Отстаёт от main на ? коммитов, нужен rebase"
 
 msgid "Being built right now."
 msgstr "Делается прямо сейчас."
-
-msgid "Beta"
-msgstr "Бета"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Дальше: F5 — не заявка на ближайшее будущее"
@@ -3393,11 +3393,12 @@ msgstr "Облачная версия скоро появится. Станьт�
 msgid "Cloud sandboxes"
 msgstr "Облачные песочницы"
 
+#. js-lingui-explicit-id
+msgid "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly"
+msgstr "Облачные песочницы не включены для {account}. Запросите доступ у команды Superset."
+
 msgid "Cloud workspace"
 msgstr "Облачная рабочая область"
-
-msgid "Cloud workspaces are not available yet"
-msgstr "Облачные рабочие области пока недоступны"
 
 msgid "Code"
 msgstr "Код"
@@ -3826,6 +3827,9 @@ msgstr "Продолжить"
 msgid "Continue or fork session"
 msgstr "Продолжить или форкнуть сессию"
 
+msgid "Continue the session the last run left"
+msgstr "Продолжить сессию, оставшуюся от прошлого запуска"
+
 msgid "Continue update"
 msgstr "Продолжить обновление"
 
@@ -3844,6 +3848,12 @@ msgstr "Продолжить с GitHub"
 
 msgid "Continue with Google"
 msgstr "Продолжить с Google"
+
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "Для продолжения сессии агента нужно закреплённое рабочее пространство"
+
+msgid "continuing the last session"
+msgstr "продолжая последнюю сессию"
 
 msgid "Contributions"
 msgstr "Вклад"
@@ -7357,6 +7367,9 @@ msgstr "Улучшить инструкции для агентов"
 msgid "Improved diff viewer"
 msgstr "Улучшенный просмотр diff"
 
+msgid "in a new session"
+msgstr "в новой сессии"
+
 msgid "in a terminal on this host."
 msgstr "в терминале на этом хосте."
 
@@ -10766,6 +10779,9 @@ msgstr "PID"
 msgid "Pin"
 msgstr "Закрепить"
 
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "Закрепите рабочее пространство, чтобы продолжать его сессию агента между запусками"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Закрепляйте рабочие области над проектами, затем выделяйте пачку через ⌘-клик, чтобы переместить, сгруппировать или удалить всё сразу."
 
@@ -11296,6 +11312,9 @@ msgstr "Отправка…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Поставьте повторяющуюся работу на расписание"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Поставьте повторяющуюся работу на расписание или событие. Агенты работают сами, а результат приземляется в рабочую область для проверки."
 
 msgid "px"
 msgstr "px"
@@ -13684,6 +13703,9 @@ msgstr "Начните диалог, чтобы сообщения появил�
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "Запускает новую сессию агента с недавним контекстом этого терминала. Источником истины остаются файлы рабочего пространства."
 
+msgid "Start a new agent session each run"
+msgstr "Запускать новую сессию агента при каждом запуске"
+
 msgid "Start a session"
 msgstr "Запустить сессию"
 
@@ -14725,6 +14747,9 @@ msgstr "Рабочая область ещё не готова. Повторит
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "Рабочая область всё же могла быть создана. Этот экран откроет её, когда она появится."
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "Рабочее пространство, к которому закреплена эта автоматизация, больше не существует на её хосте. Закрепите другое в настройках автоматизации."
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree и все незакоммиченные изменения будут удалены. Отменить нельзя."
 
@@ -14779,6 +14804,9 @@ msgstr "Это приложение получит доступ к данным 
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Эта автоматизация принадлежит организации {0}. Смените организацию, чтобы открыть её."
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "У этой автоматизации ещё нет инструкций. Напишите промпт в её настройках перед запуском."
 
 msgid "This automation is in another organization"
 msgstr "Эта автоматизация находится в другой организации"

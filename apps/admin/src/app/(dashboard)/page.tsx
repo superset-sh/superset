@@ -28,16 +28,17 @@ import { TileLayoutProvider } from "./providers/TileLayoutProvider";
 // sizes below are the defaults, not a fixed arrangement — money first, then
 // usage, then the slower-moving vanity and vendor tiles.
 
-// Grid heights, in 20px rows, measured against what each tile actually draws:
-// a chart stretches to its cell, so it gets a height that reads well, while a
-// list or a table gets the height of its rows so the tile isn't half empty.
-// Tiles that share a row want the same height — a row is as tall as its
-// tallest tile, so a short tile beside a tall one leaves a hole under it.
-const CHART_H = 13;
-const LIST_H = 8;
-const TABLE_H = 18;
-const FUNNEL_H = 16;
-const STAR_H = 19;
+// Sizes are in twelfths of the row width, height included, so a half-width
+// chart at 6 × 4 is 3:2 on any screen. A chart stretches to its cell, so it
+// gets a height that reads well; a list or a table gets the height of its
+// rows so the tile isn't half empty. Tiles that share a row want the same
+// height — a row is as tall as its tallest tile, so a short tile beside a
+// tall one leaves a hole under it.
+const CHART_H = 4;
+const LIST_H = 3;
+const TABLE_H = 6;
+const FUNNEL_H = 4;
+const STAR_H = 6;
 const FULL_W = 12;
 const HALF_W = 6;
 

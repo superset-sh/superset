@@ -633,14 +633,10 @@ async function runDestroyPhases(
 		// back must still have its logins and browser storage. By here nothing
 		// can roll the delete back. Swallows its own failures — reclaiming
 		// disk must never fail a delete.
-		if (sharesProfileWithLiveWorkspace(ctx, local)) {
-			// The profile directory is keyed by name alone, so same-named
-			// workspaces share one. Reaping it here would wipe the survivor's
-			// browser storage on a delete it had nothing to do with.
-			warnings.push(
-				`Left the dev app profile for "${local.name}" on disk: another workspace shares that name`,
-			);
-		} else {
+		await removeDevAppProfile({ workspaceId: local.id });
+		// Legacy profiles may be shared. Preserve them silently when another
+		// workspace still uses the name (or the ownership lookup fails).
+		if (!sharesProfileWithLiveWorkspace(ctx, local)) {
 			await removeDevAppProfile({ workspaceName: local.name });
 		}
 	}
@@ -657,9 +653,8 @@ async function runDestroyPhases(
 }
 
 /**
- * True when a live workspace still answers to this name. The dev app derives
- * its profile directory from the workspace name alone, so same-named
- * workspaces share one — and the survivor must keep it.
+ * True when a live workspace still answers to this name. Legacy dev apps
+ * derived profiles from names, so the survivor must keep that shared data.
  *
  * Reads fail closed (assume shared): leaving a directory on disk is the
  * recoverable mistake, and the startup sweep collects it once it goes stale.

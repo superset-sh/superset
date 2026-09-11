@@ -21,6 +21,7 @@ import { organizations, users } from "./auth";
 import {
 	agentCredentialKindValues,
 	automationPromptSourceValues,
+	automationRunErrorCodeValues,
 	automationRunStatusValues,
 	automationSessionKindValues,
 	automationTriggerKindValues,
@@ -885,6 +886,11 @@ export const automationRunStatus = pgEnum(
 	automationRunStatusValues,
 );
 
+export const automationRunErrorCode = pgEnum(
+	"automation_run_error_code",
+	automationRunErrorCodeValues,
+);
+
 export const automationSessionKind = pgEnum(
 	"automation_session_kind",
 	automationSessionKindValues,
@@ -928,6 +934,16 @@ export const automations = pgTable(
 		// ["automation"] so every automation groups its runs out of the box;
 		// clearing the set in the editor is the opt-out.
 		tags: jsonb().$type<string[]>().notNull().default(["automation"]),
+
+		// Deliver each run's prompt into the agent session the previous run
+		// left behind, rather than starting another beside it. Needs a pinned
+		// v2WorkspaceId — that is where the session lives. Off by default: a
+		// run that lands in a conversation already holding context behaves
+		// differently from one starting clean, and that is a choice to make
+		// per automation rather than a default to inherit.
+		continueAgentSession: boolean("continue_agent_session")
+			.notNull()
+			.default(false),
 
 		// The schedule lives in the automation's `schedule` trigger.
 		enabled: boolean().notNull().default(true),
@@ -1130,6 +1146,7 @@ export const automationRuns = pgTable(
 
 		status: automationRunStatus().notNull(),
 		error: text(),
+		errorCode: automationRunErrorCode("error_code"),
 		dispatchedAt: timestamp("dispatched_at", { withTimezone: true }),
 
 		createdAt: timestamp("created_at", { withTimezone: true })

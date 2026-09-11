@@ -2,12 +2,19 @@ import { boolean, CLIError, number, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 import { uploadAttachments } from "../../../lib/upload-attachments";
+import { createCloudWorkspace } from "./createCloudWorkspace";
 
 export default command({
-	description: "Create a workspace on a host",
+	description: "Create a workspace on a host, or a cloud sandbox with --cloud",
 	options: {
 		host: string().desc("Target host machineId"),
 		local: boolean().desc("Target this machine"),
+		cloud: boolean().desc(
+			"Provision a cloud sandbox instead of using one of your machines",
+		),
+		environment: string().desc(
+			"Environment the cloud sandbox boots from (id or name; defaults to the first). Requires --cloud",
+		),
 		project: string().desc(
 			"Project ID. Omit to create a project-less session (a managed scratch folder)",
 		),
@@ -53,6 +60,20 @@ export default command({
 		const organizationId = ctx.config.organizationId;
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
+		}
+
+		if (options.cloud) {
+			return await createCloudWorkspace({
+				api: ctx.api,
+				organizationId,
+				options,
+			});
+		}
+		if (options.environment) {
+			throw new CLIError(
+				"--environment requires --cloud",
+				"Environments belong to cloud sandboxes; a workspace on your own machine has none",
+			);
 		}
 
 		const projectId = options.project;
