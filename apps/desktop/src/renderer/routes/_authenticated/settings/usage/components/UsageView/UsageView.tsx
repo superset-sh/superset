@@ -55,6 +55,17 @@ const AGENT_LABELS: Record<QuotaAgent, string> = {
 	codex: "Codex",
 	grok: "Grok",
 	agy: "Antigravity",
+	opencode: "OpenCode",
+};
+
+/** Re-auth command for agents whose logins Superset only reads. */
+const READ_ONLY_LOGIN_COMMANDS: Record<
+	Exclude<QuotaAgent, ManagedAgent>,
+	string
+> = {
+	grok: "grok login",
+	agy: "agy",
+	opencode: "opencode auth login",
 };
 
 function meterColor(usedPercent: number): string {
@@ -143,13 +154,9 @@ function AccountCard({
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const expiredCommand =
 		account.status === "token_expired"
-			? account.agent === "grok"
-				? "grok login"
-				: account.agent === "agy"
-					? "agy"
-					: switchSignInCommand(
-							account as UsageAccount & { agent: ManagedAgent },
-						)
+			? isManagedAgent(account.agent)
+				? switchSignInCommand(account as UsageAccount & { agent: ManagedAgent })
+				: READ_ONLY_LOGIN_COMMANDS[account.agent]
 			: null;
 	return (
 		<div

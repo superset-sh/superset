@@ -5,7 +5,13 @@ export type QuotaAgent = UsageAccount["agent"];
 /** Agents whose logins Superset can add, switch, and remove. */
 export type ManagedAgent = "claude" | "codex";
 
-const AGENT_ORDER: QuotaAgent[] = ["claude", "codex", "grok", "agy"];
+const AGENT_ORDER: QuotaAgent[] = [
+	"claude",
+	"codex",
+	"grok",
+	"agy",
+	"opencode",
+];
 
 export function isManagedAgent(agent: QuotaAgent): agent is ManagedAgent {
 	return agent === "claude" || agent === "codex";
@@ -14,9 +20,9 @@ export function isManagedAgent(agent: QuotaAgent): agent is ManagedAgent {
 /**
  * The quota panel's agent sections, in display order. Managed agents keep
  * their section with no login on the host — that is where Add account
- * lives, so hiding it would leave no way to sign in. Grok and Antigravity
- * have no add flow, so an empty section would be a dead end; they appear
- * once a login exists.
+ * lives, so hiding it would leave no way to sign in. Grok, Antigravity, and
+ * OpenCode have no add flow, so an empty section would be a dead end; they
+ * appear once a login exists.
  */
 export function visibleQuotaAgents(
 	accounts: ReadonlyArray<Pick<UsageAccount, "agent">>,
