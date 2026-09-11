@@ -93,6 +93,9 @@ msgstr "(harici)"
 msgid "(no output)"
 msgstr "(çıktı yok)"
 
+msgid "(so far)"
+msgstr "(şimdiye kadar)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# etkin port — ayrıntıları gizle} other {# etkin port — ayrıntıları gizle}}"
@@ -1047,6 +1050,12 @@ msgstr "✓ 2sa önce"
 
 msgid "✓ 3d ago"
 msgstr "✓ 3g önce"
+
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "{1} müşterinin MRR'si ${0} iken ${2} oldu"
 
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
@@ -3042,6 +3051,9 @@ msgstr "Superset'in sizi ne zaman uyaracağını seçin."
 msgid "Choose which agent watches this page for comments"
 msgstr "Bu sayfanın yorumlarını hangi ajanın izleyeceğini seç"
 
+msgid "Churn"
+msgstr "Kayıp"
+
 msgid "CI failed"
 msgstr "CI başarısız"
 
@@ -3823,6 +3835,9 @@ msgstr "Bir aracı oturumunu sürdürmek için sabitlenmiş bir çalışma alan�
 
 msgid "continuing the last session"
 msgstr "son oturumu sürdürerek"
+
+msgid "Contraction"
+msgstr "Daralma"
 
 msgid "Contributions"
 msgstr "Katkılar"
@@ -5740,6 +5755,9 @@ msgstr "Konuyu genişlet"
 
 msgid "Expand workspace"
 msgstr "Çalışma alanını genişlet"
+
+msgid "Expansion"
+msgstr "Genişleme"
 
 msgid "Experimental"
 msgstr "Deneysel"
@@ -8719,6 +8737,9 @@ msgstr "MRR"
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — günlük (Stripe)"
 
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "Önceki ay sonunda ödeme yapan müşterilerin MRR'si, o zaman ödediklerine oranla: kayıp düşüldükten sonra genişleme ve daralma, yeni müşteriler hariç"
+
 msgid "Multi-select"
 msgstr "Çoklu seçim"
 
@@ -8825,6 +8846,9 @@ msgstr "net harcama"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "Net harcama — aylık (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "Net gelir elde tutma — aylık (Stripe)"
 
 msgid "Network Changed"
 msgstr "Ağ değişti"
@@ -9688,6 +9712,12 @@ msgstr "Şimdi {0} çalışıyor (önceki: {1}). Tüm oturumlar kapatıldı."
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "Şimdi, yazılım fabrikaları için platformu kurmak üzere Silikon Vadisi'nin en iyi yatırımcılarından <0>11 milyon dolar</0> topladık."
+
+msgid "NRR"
+msgstr "NRR"
+
+msgid "NRR (month so far)"
+msgstr "NRR (bu ay şimdiye kadar)"
 
 msgid "Numbered list"
 msgstr "Numaralı liste"
@@ -12023,6 +12053,9 @@ msgstr "Otomasyonu sürdür"
 msgid "Resuming {0}…"
 msgstr "{0} sürdürülüyor…"
 
+msgid "Retained MRR"
+msgstr "Elde tutulan MRR"
+
 msgid "Retention and revenue"
 msgstr "Elde tutma ve gelir"
 
@@ -13647,6 +13680,10 @@ msgstr "Ücretsiz başlayın. Takımınız büyüdüğünde yükseltin. Gelişmi
 
 msgid "Start from a template"
 msgstr "Şablondan başla"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "Başlangıç MRR'si ({0} müşteri)"
 
 msgid "Start new session"
 msgstr "Yeni oturum başlat"

@@ -297,26 +297,23 @@ const NRR_QUERY: SigmaQuery<{ months: NrrMonth[] }> = {
 	sql: NRR_SQL,
 	parse: (rows) => {
 		const months = rows
-			.map((row) => {
-				const startMrrUsd = Number(row.start_mrr_usd ?? Number.NaN);
-				const retainedMrrUsd = Number(row.retained_mrr_usd ?? Number.NaN);
-				return {
-					month: (row.month ?? "").slice(0, 10),
+			.flatMap((row) => {
+				const numbers = {
 					customers: Number(row.customers ?? Number.NaN),
-					startMrrUsd,
-					retainedMrrUsd,
+					startMrrUsd: Number(row.start_mrr_usd ?? Number.NaN),
+					retainedMrrUsd: Number(row.retained_mrr_usd ?? Number.NaN),
 					expansionUsd: Number(row.expansion_usd ?? Number.NaN),
 					contractionUsd: Number(row.contraction_usd ?? Number.NaN),
 					churnUsd: Number(row.churn_usd ?? Number.NaN),
-					nrrPct: (retainedMrrUsd / startMrrUsd) * 100,
 				};
+				const month = (row.month ?? "").slice(0, 10);
+				const nrrPct = (numbers.retainedMrrUsd / numbers.startMrrUsd) * 100;
+				const valid =
+					month &&
+					Number.isFinite(nrrPct) &&
+					Object.values(numbers).every(Number.isFinite);
+				return valid ? [{ month, ...numbers, nrrPct }] : [];
 			})
-			.filter(
-				(m) =>
-					m.month &&
-					Number.isFinite(m.startMrrUsd) &&
-					Number.isFinite(m.nrrPct),
-			)
 			.sort((a, b) => a.month.localeCompare(b.month));
 		return months.length ? { months } : null;
 	},

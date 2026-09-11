@@ -93,6 +93,9 @@ msgstr "（外部）"
 msgid "(no output)"
 msgstr "（無輸出）"
 
+msgid "(so far)"
+msgstr "（截至目前）"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {#個活動埠 — 隱藏詳情} other {#個活動埠 — 隱藏詳情}}"
@@ -1047,6 +1050,12 @@ msgstr "✓ 2小時前"
 
 msgid "✓ 3d ago"
 msgstr "✓ 3天前"
+
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "{1} 位客戶的 MRR 從 ${0} 變為 ${2}"
 
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
@@ -3042,6 +3051,9 @@ msgstr "選擇Superset在什麼時候通知你。"
 msgid "Choose which agent watches this page for comments"
 msgstr "選擇由哪個代理程式關注此頁面的評論"
 
+msgid "Churn"
+msgstr "流失"
+
 msgid "CI failed"
 msgstr "CI失敗"
 
@@ -3823,6 +3835,9 @@ msgstr "繼續代理程式工作階段需要已釘選的工作區"
 
 msgid "continuing the last session"
 msgstr "繼續上一個工作階段"
+
+msgid "Contraction"
+msgstr "縮減"
 
 msgid "Contributions"
 msgstr "貢獻"
@@ -5740,6 +5755,9 @@ msgstr "展開討論"
 
 msgid "Expand workspace"
 msgstr "展開工作區"
+
+msgid "Expansion"
+msgstr "擴張"
 
 msgid "Experimental"
 msgstr "實驗功能"
@@ -8719,6 +8737,9 @@ msgstr "MRR"
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — 按日（Stripe）"
 
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "上月底付費客戶的 MRR 佔其當時付費額的比例：擴張與縮減扣除流失後的淨值，不含新客戶"
+
 msgid "Multi-select"
 msgstr "多選"
 
@@ -8825,6 +8846,9 @@ msgstr "淨支出"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "淨支出 — 按月（Mercury）"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "淨收入留存率 — 每月（Stripe）"
 
 msgid "Network Changed"
 msgstr "網路已變更"
@@ -9688,6 +9712,12 @@ msgstr "目前執行{0}（之前是{1}）。所有會話已關閉。"
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "如今，我們已從矽谷最好的投資人那裡融資<0>1100萬美元</0>，用來打造軟體工廠的平臺。"
+
+msgid "NRR"
+msgstr "NRR"
+
+msgid "NRR (month so far)"
+msgstr "NRR（本月至今）"
 
 msgid "Numbered list"
 msgstr "編號列表"
@@ -12023,6 +12053,9 @@ msgstr "恢復自動化"
 msgid "Resuming {0}…"
 msgstr "正在恢復{0}…"
 
+msgid "Retained MRR"
+msgstr "留存 MRR"
+
 msgid "Retention and revenue"
 msgstr "留存與營收"
 
@@ -13647,6 +13680,10 @@ msgstr "免費開始。團隊用不夠時再升級。企業方案面向有進階
 
 msgid "Start from a template"
 msgstr "從模板開始"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "起始 MRR（{0} 位客戶）"
 
 msgid "Start new session"
 msgstr "開始新會話"

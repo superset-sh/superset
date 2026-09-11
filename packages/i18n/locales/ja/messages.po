@@ -93,6 +93,9 @@ msgstr "(外部)"
 msgid "(no output)"
 msgstr "（出力なし）"
 
+msgid "(so far)"
+msgstr "（現時点）"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {#個のアクティブなポート — 詳細を隠す} other {#個のアクティブなポート — 詳細を隠す}}"
@@ -1047,6 +1050,12 @@ msgstr "✓ 2時間前"
 
 msgid "✓ 3d ago"
 msgstr "✓ 3日前"
+
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "顧客{1}社の${0}が${2}になりました"
 
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
@@ -3042,6 +3051,9 @@ msgstr "Supersetから通知するタイミングを選びます。"
 msgid "Choose which agent watches this page for comments"
 msgstr "このページのコメントを監視するエージェントを選択"
 
+msgid "Churn"
+msgstr "解約"
+
 msgid "CI failed"
 msgstr "CIが失敗しました"
 
@@ -3823,6 +3835,9 @@ msgstr "エージェントセッションを継続するには、ワークスペ
 
 msgid "continuing the last session"
 msgstr "前回のセッションを継続"
+
+msgid "Contraction"
+msgstr "縮小"
 
 msgid "Contributions"
 msgstr "コントリビューション"
@@ -5740,6 +5755,9 @@ msgstr "スレッドを展開"
 
 msgid "Expand workspace"
 msgstr "ワークスペースを展開"
+
+msgid "Expansion"
+msgstr "拡大"
 
 msgid "Experimental"
 msgstr "実験的機能"
@@ -8719,6 +8737,9 @@ msgstr "MRR"
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — 日次(Stripe)"
 
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "前月末時点で支払っていた顧客のMRRを、当時の支払額に対する割合で示したもの。拡大と縮小から解約を差し引き、新規顧客は除外"
+
 msgid "Multi-select"
 msgstr "複数選択"
 
@@ -8825,6 +8846,9 @@ msgstr "ネットバーン"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "ネットバーン — 月次(Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "純収益維持率 — 月次（Stripe）"
 
 msgid "Network Changed"
 msgstr "ネットワークが変更されました"
@@ -9688,6 +9712,12 @@ msgstr "現在{0}が動作しています(以前は{1})。すべてのセッシ�
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "そしていま、ソフトウェア工場のためのプラットフォームを作るべく、シリコンバレーの一流投資家から<0>1,100万ドル</0>を調達しました。"
+
+msgid "NRR"
+msgstr "NRR"
+
+msgid "NRR (month so far)"
+msgstr "NRR（今月の途中経過）"
 
 msgid "Numbered list"
 msgstr "番号付きリスト"
@@ -12023,6 +12053,9 @@ msgstr "オートメーションを再開"
 msgid "Resuming {0}…"
 msgstr "{0}を再開中…"
 
+msgid "Retained MRR"
+msgstr "維持されたMRR"
+
 msgid "Retention and revenue"
 msgstr "定着と収益"
 
@@ -13647,6 +13680,10 @@ msgstr "無料で始められます。チームの規模に合わなくなった
 
 msgid "Start from a template"
 msgstr "テンプレートから開始"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "開始時MRR（顧客{0}社）"
 
 msgid "Start new session"
 msgstr "新しいセッションを開始"

@@ -26,7 +26,12 @@ export async function POST(request: Request): Promise<Response> {
 	);
 	if (rejected) return rejected;
 
-	const [mrr, nrr] = await Promise.all([refreshSigmaMrr(), refreshSigmaNrr()]);
+	const [mrrRun, nrrRun] = await Promise.allSettled([
+		refreshSigmaMrr(),
+		refreshSigmaNrr(),
+	]);
+	const mrr = settled(mrrRun);
+	const nrr = settled(nrrRun);
 	if (!mrr.available) {
 		console.error("[refresh-mrr] MRR refresh did not land:", mrr.reason);
 	}
@@ -42,4 +47,17 @@ export async function POST(request: Request): Promise<Response> {
 			? { refreshed: true, months: nrr.months.length }
 			: { refreshed: false, reason: nrr.reason },
 	});
+}
+
+function settled<T>(
+	result: PromiseSettledResult<T>,
+): T | { available: false; reason: string } {
+	if (result.status === "fulfilled") return result.value;
+	return {
+		available: false,
+		reason:
+			result.reason instanceof Error
+				? result.reason.message
+				: String(result.reason),
+	};
 }

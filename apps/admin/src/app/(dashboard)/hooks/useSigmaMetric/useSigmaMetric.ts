@@ -18,10 +18,8 @@ type SigmaResult =
 	| { available: true; dataLoadTime: string | null; dataThrough: string | null }
 	| { available: false; reason: string };
 
-// A Stripe Sigma metric: the server answers "computing" for the ~minute a run
-// takes, so poll it down, and hold the figure already on screen through a
-// refresh rather than blanking the tile the moment someone asks for a newer
-// one. Only across "computing" — a real failure should still surface.
+// Holds the last landed result only across "computing": a refresh should not
+// blank the tile, but a real failure should still surface.
 export function useSigmaMetric<
 	R extends SigmaResult,
 	E extends { message: string },
@@ -45,8 +43,6 @@ export function useSigmaMetric<
 	});
 	const mutation = useMutation({
 		...refresh,
-		// Settled rather than success: the mutation reports the run it kicked,
-		// and the poll above is what lands it either way.
 		onSettled: () =>
 			queryClient.invalidateQueries({ queryKey: query.queryKey }),
 	});

@@ -93,6 +93,9 @@ msgstr "(внешний)"
 msgid "(no output)"
 msgstr "(нет вывода)"
 
+msgid "(so far)"
+msgstr "(пока)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# активный порт — скрыть детали} few {# активных порта — скрыть детали} many {# активных портов — скрыть детали} other {# активных портов — скрыть детали}}"
@@ -1047,6 +1050,12 @@ msgstr "✓ 2 ч. назад"
 
 msgid "✓ 3d ago"
 msgstr "✓ 3 д. назад"
+
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "MRR клиентов ({1}): с ${0} до ${2}"
 
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
@@ -3042,6 +3051,9 @@ msgstr "Выберите, когда Superset вас уведомляет."
 msgid "Choose which agent watches this page for comments"
 msgstr "Выберите, какой агент отслеживает комментарии на этой странице"
 
+msgid "Churn"
+msgstr "Отток"
+
 msgid "CI failed"
 msgstr "CI упал"
 
@@ -3823,6 +3835,9 @@ msgstr "Для продолжения сессии агента нужно за�
 
 msgid "continuing the last session"
 msgstr "продолжая последнюю сессию"
+
+msgid "Contraction"
+msgstr "Сокращение"
 
 msgid "Contributions"
 msgstr "Вклад"
@@ -5740,6 +5755,9 @@ msgstr "Развернуть ветку"
 
 msgid "Expand workspace"
 msgstr "Развернуть рабочую область"
+
+msgid "Expansion"
+msgstr "Расширение"
 
 msgid "Experimental"
 msgstr "Экспериментальные"
@@ -8719,6 +8737,9 @@ msgstr "MRR"
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — по дням (Stripe)"
 
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "MRR клиентов, плативших на конец прошлого месяца, как доля того, что они платили тогда: расширение и сокращение за вычетом оттока, без новых клиентов"
+
 msgid "Multi-select"
 msgstr "Множественный выбор"
 
@@ -8825,6 +8846,9 @@ msgstr "чистый расход"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "Чистый расход — по месяцам (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "Чистое удержание выручки — помесячно (Stripe)"
 
 msgid "Network Changed"
 msgstr "Сеть изменилась"
@@ -9688,6 +9712,12 @@ msgstr "Сейчас работает {0} (было {1}). Все сессии з
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "Сейчас мы привлекли <0>$11 млн</0> от лучших инвесторов Кремниевой долины, чтобы построить платформу для софтверных фабрик."
+
+msgid "NRR"
+msgstr "NRR"
+
+msgid "NRR (month so far)"
+msgstr "NRR (с начала текущего месяца)"
 
 msgid "Numbered list"
 msgstr "Нумерованный список"
@@ -12023,6 +12053,9 @@ msgstr "Возобновить автоматизацию"
 msgid "Resuming {0}…"
 msgstr "Возобновление {0}…"
 
+msgid "Retained MRR"
+msgstr "Удержанный MRR"
+
 msgid "Retention and revenue"
 msgstr "Удержание и выручка"
 
@@ -13647,6 +13680,10 @@ msgstr "Начните бесплатно. Переходите на платн�
 
 msgid "Start from a template"
 msgstr "Начать с шаблона"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "Начальный MRR (клиентов: {0})"
 
 msgid "Start new session"
 msgstr "Начать новую сессию"

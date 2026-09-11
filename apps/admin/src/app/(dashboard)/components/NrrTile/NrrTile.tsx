@@ -17,8 +17,6 @@ import { formatMonth, makeDateAxis } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 import { NrrTooltip } from "./NrrTooltip";
 
-// Matches the timestamp InsightTileFrame renders in the header, so the two
-// read as the same kind of fact.
 const TIMESTAMP_FORMAT: Intl.DateTimeFormatOptions = {
 	month: "short",
 	day: "numeric",
@@ -53,9 +51,6 @@ export function NrrTile() {
 		refresh: trpc.business.refreshNrr.mutationOptions(),
 	});
 
-	// The last row is the current month: the cohort's MRR today against what
-	// it paid at the end of last month. Drawn dashed, like the partial week on
-	// the trend tiles, and kept out of the headline.
 	const currentMonth = new Date().toISOString().slice(0, 7);
 	const months = series?.months ?? [];
 	const lastIndex = months.length - 1;

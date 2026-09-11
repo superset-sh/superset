@@ -93,6 +93,9 @@ msgstr "(eksternal)"
 msgid "(no output)"
 msgstr "(tidak ada keluaran)"
 
+msgid "(so far)"
+msgstr "(sejauh ini)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# port aktif — sembunyikan detail} other {# port aktif — sembunyikan detail}}"
@@ -1047,6 +1050,12 @@ msgstr "✓ 2j lalu"
 
 msgid "✓ 3d ago"
 msgstr "✓ 3h lalu"
+
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "MRR dari {1} pelanggan berubah dari ${0} menjadi ${2}"
 
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
@@ -3042,6 +3051,9 @@ msgstr "Pilih kapan Superset memberi tahu Anda."
 msgid "Choose which agent watches this page for comments"
 msgstr "Pilih agen yang memantau komentar di halaman ini"
 
+msgid "Churn"
+msgstr "Churn"
+
 msgid "CI failed"
 msgstr "CI gagal"
 
@@ -3823,6 +3835,9 @@ msgstr "Melanjutkan sesi agen memerlukan ruang kerja yang disematkan"
 
 msgid "continuing the last session"
 msgstr "melanjutkan sesi terakhir"
+
+msgid "Contraction"
+msgstr "Kontraksi"
 
 msgid "Contributions"
 msgstr "Kontribusi"
@@ -5740,6 +5755,9 @@ msgstr "Bentangkan thread"
 
 msgid "Expand workspace"
 msgstr "Bentangkan workspace"
+
+msgid "Expansion"
+msgstr "Ekspansi"
 
 msgid "Experimental"
 msgstr "Eksperimental"
@@ -8719,6 +8737,9 @@ msgstr "MRR"
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — harian (Stripe)"
 
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "MRR dari pelanggan yang membayar pada akhir bulan sebelumnya, sebagai proporsi dari yang mereka bayar saat itu: ekspansi dan kontraksi setelah dikurangi churn, tanpa pelanggan baru"
+
 msgid "Multi-select"
 msgstr "Pilih banyak"
 
@@ -8825,6 +8846,9 @@ msgstr "net burn"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "Net burn — bulanan (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "Retensi pendapatan bersih — bulanan (Stripe)"
 
 msgid "Network Changed"
 msgstr "Jaringan Berubah"
@@ -9688,6 +9712,12 @@ msgstr "Kini menjalankan {0} (sebelumnya {1}). Semua sesi ditutup."
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "Kini, kami telah menggalang <0>$11 juta</0> dari investor terbaik di Silicon Valley untuk membangun platform bagi pabrik perangkat lunak."
+
+msgid "NRR"
+msgstr "NRR"
+
+msgid "NRR (month so far)"
+msgstr "NRR (bulan ini sejauh ini)"
 
 msgid "Numbered list"
 msgstr "Daftar bernomor"
@@ -12023,6 +12053,9 @@ msgstr "Lanjutkan otomatisasi"
 msgid "Resuming {0}…"
 msgstr "Melanjutkan {0}…"
 
+msgid "Retained MRR"
+msgstr "MRR yang dipertahankan"
+
 msgid "Retention and revenue"
 msgstr "Retensi dan pendapatan"
 
@@ -13647,6 +13680,10 @@ msgstr "Mulai gratis. Upgrade saat tim Anda membutuhkan lebih. Paket enterprise 
 
 msgid "Start from a template"
 msgstr "Mulai dari templat"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "MRR awal ({0} pelanggan)"
 
 msgid "Start new session"
 msgstr "Mulai sesi baru"

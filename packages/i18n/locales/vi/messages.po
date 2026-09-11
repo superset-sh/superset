@@ -93,6 +93,9 @@ msgstr "(bên ngoài)"
 msgid "(no output)"
 msgstr "(không có đầu ra)"
 
+msgid "(so far)"
+msgstr "(đến nay)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# cổng đang hoạt động — ẩn chi tiết} other {# cổng đang hoạt động — ẩn chi tiết}}"
@@ -1047,6 +1050,12 @@ msgstr "✓ 2 giờ trước"
 
 msgid "✓ 3d ago"
 msgstr "✓ 3 ngày trước"
+
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "MRR của {1} khách hàng từ ${0} thành ${2}"
 
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
@@ -3042,6 +3051,9 @@ msgstr "Chọn khi nào Superset báo cho bạn."
 msgid "Choose which agent watches this page for comments"
 msgstr "Chọn agent theo dõi bình luận của trang này"
 
+msgid "Churn"
+msgstr "Rời bỏ"
+
 msgid "CI failed"
 msgstr "CI thất bại"
 
@@ -3823,6 +3835,9 @@ msgstr "Để tiếp tục phiên agent, cần ghim một workspace"
 
 msgid "continuing the last session"
 msgstr "tiếp tục phiên gần nhất"
+
+msgid "Contraction"
+msgstr "Thu hẹp"
 
 msgid "Contributions"
 msgstr "Đóng góp"
@@ -5740,6 +5755,9 @@ msgstr "Mở rộng luồng"
 
 msgid "Expand workspace"
 msgstr "Mở rộng workspace"
+
+msgid "Expansion"
+msgstr "Mở rộng"
 
 msgid "Experimental"
 msgstr "Thử nghiệm"
@@ -8719,6 +8737,9 @@ msgstr "MRR"
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — theo ngày (Stripe)"
 
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "MRR từ các khách hàng đang trả phí vào cuối tháng trước, tính theo tỷ lệ so với số họ trả khi đó: mở rộng và thu hẹp trừ đi rời bỏ, không tính khách hàng mới"
+
 msgid "Multi-select"
 msgstr "Chọn nhiều"
 
@@ -8825,6 +8846,9 @@ msgstr "đốt tiền ròng"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "Đốt tiền ròng — theo tháng (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "Tỷ lệ giữ chân doanh thu ròng — hàng tháng (Stripe)"
 
 msgid "Network Changed"
 msgstr "Mạng đã thay đổi"
@@ -9688,6 +9712,12 @@ msgstr "Hiện đang chạy {0} (trước là {1}). Mọi phiên đã bị đón
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "Giờ đây, chúng tôi đã gọi được <0>11 triệu USD</0> từ những nhà đầu tư tốt nhất Thung lũng Silicon để xây nền tảng cho các nhà máy phần mềm."
+
+msgid "NRR"
+msgstr "NRR"
+
+msgid "NRR (month so far)"
+msgstr "NRR (tháng này đến nay)"
 
 msgid "Numbered list"
 msgstr "Danh sách đánh số"
@@ -12023,6 +12053,9 @@ msgstr "Tiếp tục tự động hóa"
 msgid "Resuming {0}…"
 msgstr "Đang resume {0}…"
 
+msgid "Retained MRR"
+msgstr "MRR giữ lại"
+
 msgid "Retention and revenue"
 msgstr "Giữ chân và doanh thu"
 
@@ -13647,6 +13680,10 @@ msgstr "Bắt đầu miễn phí. Nâng cấp khi đội của bạn lớn hơn.
 
 msgid "Start from a template"
 msgstr "Bắt đầu từ mẫu"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "MRR ban đầu ({0} khách hàng)"
 
 msgid "Start new session"
 msgstr "Bắt đầu phiên mới"

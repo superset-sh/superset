@@ -93,6 +93,9 @@ msgstr "(externo)"
 msgid "(no output)"
 msgstr "(sem saída)"
 
+msgid "(so far)"
+msgstr "(até agora)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# porta ativa — ocultar detalhes} other {# portas ativas — ocultar detalhes}}"
@@ -1047,6 +1050,12 @@ msgstr "✓ há 2h"
 
 msgid "✓ 3d ago"
 msgstr "✓ há 3d"
+
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "O MRR de {1} clientes passou de ${0} para ${2}"
 
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
@@ -3042,6 +3051,9 @@ msgstr "Escolha quando o Superset te avisa."
 msgid "Choose which agent watches this page for comments"
 msgstr "Escolha qual agente observa os comentários desta página"
 
+msgid "Churn"
+msgstr "Cancelamentos"
+
 msgid "CI failed"
 msgstr "CI falhou"
 
@@ -3823,6 +3835,9 @@ msgstr "Continuar uma sessão de agente exige uma área de trabalho fixada"
 
 msgid "continuing the last session"
 msgstr "continuando a última sessão"
+
+msgid "Contraction"
+msgstr "Contração"
 
 msgid "Contributions"
 msgstr "Contribuições"
@@ -5740,6 +5755,9 @@ msgstr "Expandir a thread"
 
 msgid "Expand workspace"
 msgstr "Expandir área de trabalho"
+
+msgid "Expansion"
+msgstr "Expansão"
 
 msgid "Experimental"
 msgstr "Experimental"
@@ -8719,6 +8737,9 @@ msgstr "MRR"
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — diário (Stripe)"
 
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "MRR dos clientes que pagavam no fim do mês anterior, como proporção do que pagavam então: expansão e contração líquidas de cancelamentos, sem clientes novos"
+
 msgid "Multi-select"
 msgstr "Múltipla escolha"
 
@@ -8825,6 +8846,9 @@ msgstr "queima líquida"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "Queima líquida — mensal (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "Retenção líquida de receita — mensal (Stripe)"
 
 msgid "Network Changed"
 msgstr "A rede mudou"
@@ -9688,6 +9712,12 @@ msgstr "Rodando {0} agora (era {1}). Todas as sessões foram fechadas."
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "Agora, captamos <0>US$ 11 milhões</0> com os melhores investidores do Vale do Silício para construir a plataforma das fábricas de software."
+
+msgid "NRR"
+msgstr "NRR"
+
+msgid "NRR (month so far)"
+msgstr "NRR (mês em andamento até agora)"
 
 msgid "Numbered list"
 msgstr "Lista numerada"
@@ -12023,6 +12053,9 @@ msgstr "Retomar automação"
 msgid "Resuming {0}…"
 msgstr "Retomando {0}…"
 
+msgid "Retained MRR"
+msgstr "MRR retido"
+
 msgid "Retention and revenue"
 msgstr "Retenção e receita"
 
@@ -13647,6 +13680,10 @@ msgstr "Comece de graça. Faça upgrade quando o time crescer. Planos Enterprise
 
 msgid "Start from a template"
 msgstr "Começar por um modelo"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "MRR inicial ({0} clientes)"
 
 msgid "Start new session"
 msgstr "Iniciar nova sessão"

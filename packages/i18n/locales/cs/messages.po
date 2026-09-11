@@ -93,6 +93,9 @@ msgstr "(externí)"
 msgid "(no output)"
 msgstr "(žádný výstup)"
 
+msgid "(so far)"
+msgstr "(zatím)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# aktivní port — skrýt podrobnosti} few {# aktivní porty — skrýt podrobnosti} many {# aktivního portu — skrýt podrobnosti} other {# aktivních portů — skrýt podrobnosti}}"
@@ -1047,6 +1050,12 @@ msgstr "✓ před 2 h"
 
 msgid "✓ 3d ago"
 msgstr "✓ před 3 d"
+
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "MRR {1} zákazníků se změnilo z ${0} na ${2}"
 
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
@@ -3042,6 +3051,9 @@ msgstr "Zvolte, kdy vás Superset upozorní."
 msgid "Choose which agent watches this page for comments"
 msgstr "Vyberte, který agent sleduje komentáře na této stránce"
 
+msgid "Churn"
+msgstr "Odchody"
+
 msgid "CI failed"
 msgstr "CI selhalo"
 
@@ -3823,6 +3835,9 @@ msgstr "Pokračování v relaci agenta vyžaduje připnutý pracovní prostor"
 
 msgid "continuing the last session"
 msgstr "pokračováním v poslední relaci"
+
+msgid "Contraction"
+msgstr "Pokles"
 
 msgid "Contributions"
 msgstr "Příspěvky"
@@ -5740,6 +5755,9 @@ msgstr "Rozbalit vlákno"
 
 msgid "Expand workspace"
 msgstr "Rozbalit pracovní prostor"
+
+msgid "Expansion"
+msgstr "Růst"
 
 msgid "Experimental"
 msgstr "Experimentální"
@@ -8719,6 +8737,9 @@ msgstr "MRR"
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — denně (Stripe)"
 
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "MRR zákazníků platících na konci předchozího měsíce jako podíl toho, co tehdy platili: růst a pokles po odečtení odchodů, bez nových zákazníků"
+
 msgid "Multi-select"
 msgstr "Výběr více možností"
 
@@ -8825,6 +8846,9 @@ msgstr "čistý burn"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "Čistý burn — měsíčně (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "Čisté udržení tržeb — měsíčně (Stripe)"
 
 msgid "Network Changed"
 msgstr "Síť se změnila"
@@ -9688,6 +9712,12 @@ msgstr "Teď běží {0} (dříve {1}). Všechny relace byly zavřeny."
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "Teď jsme získali <0>11 milionů dolarů</0> od nejlepších investorů v Silicon Valley, abychom postavili platformu pro softwarové továrny."
+
+msgid "NRR"
+msgstr "NRR"
+
+msgid "NRR (month so far)"
+msgstr "NRR (zatím tento měsíc)"
 
 msgid "Numbered list"
 msgstr "Číslovaný seznam"
@@ -12023,6 +12053,9 @@ msgstr "Pokračovat v automatizaci"
 msgid "Resuming {0}…"
 msgstr "Obnovuji {0}…"
 
+msgid "Retained MRR"
+msgstr "Udržené MRR"
+
 msgid "Retention and revenue"
 msgstr "Udržení a tržby"
 
@@ -13647,6 +13680,10 @@ msgstr "Začněte zdarma. Až vám to jako týmu přestane stačit, přejděte v
 
 msgid "Start from a template"
 msgstr "Začít ze šablony"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "Počáteční MRR ({0} zákazníků)"
 
 msgid "Start new session"
 msgstr "Spustit novou relaci"
