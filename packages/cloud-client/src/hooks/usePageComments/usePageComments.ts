@@ -149,13 +149,19 @@ export function usePageComments({
 		resolve.isPending ||
 		remove.isPending;
 
+	const { mutateAsync: createThread } = create;
+	const { mutateAsync: addReply } = reply;
+	const { mutateAsync: editComment } = edit;
+	const { mutateAsync: setResolved } = resolve;
+	const { mutateAsync: deleteThread } = remove;
+
 	return useMemo<PageCommentStore>(
 		() => ({
 			threads,
 			isLoading,
 			submitting,
 			createThread: async ({ anchor, anchorText, body, intent }) => {
-				await create.mutateAsync({
+				await createThread({
 					pageId,
 					version,
 					anchorKind: "element",
@@ -171,27 +177,27 @@ export function usePageComments({
 				});
 			},
 			addReply: async (threadId, body) => {
-				await reply.mutateAsync({ threadId, body });
+				await addReply({ threadId, body });
 			},
 			editComment: async (_threadId, commentId, body) => {
-				await edit.mutateAsync({ commentId, body });
+				await editComment({ commentId, body });
 			},
 			setResolved: async (threadId, resolved) => {
-				await resolve.mutateAsync({ threadId, resolved });
+				await setResolved({ threadId, resolved });
 			},
 			deleteThread: async (threadId) => {
-				await remove.mutateAsync({ threadId });
+				await deleteThread({ threadId });
 			},
 		}),
 		[
 			threads,
 			isLoading,
 			submitting,
-			create,
-			reply,
-			edit,
-			resolve,
-			remove,
+			createThread,
+			addReply,
+			editComment,
+			setResolved,
+			deleteThread,
 			pageId,
 			version,
 		],
