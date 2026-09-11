@@ -215,7 +215,17 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		true,
 	);
 
-	addEventListener("scroll", schedule, true);
+	addEventListener(
+		"scroll",
+		() => {
+			if (enabled && lastHoverPath !== null) {
+				lastHoverPath = null;
+				post({ type: "hover", rect: null });
+			}
+			schedule();
+		},
+		true,
+	);
 	addEventListener("resize", schedule);
 	for (const type of ["wheel", "touchstart", "keydown"]) {
 		addEventListener(type, () => {

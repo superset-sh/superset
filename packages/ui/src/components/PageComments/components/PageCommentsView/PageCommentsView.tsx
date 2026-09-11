@@ -5,6 +5,7 @@ import { getInitials } from "@superset/shared/names";
 import {
 	FRAME_CHANNEL,
 	type FrameMessage,
+	type FrameRect,
 	HOST_CHANNEL,
 	type HostMessageBody,
 	PENDING_ANCHOR_ID,
@@ -78,6 +79,11 @@ export function PageCommentsView({
 	} = useComments();
 
 	const frameOrigin = useMemo(() => new URL(src).origin, [src]);
+
+	const [lastHoverRect, setLastHoverRect] = useState<FrameRect | null>(null);
+	useEffect(() => {
+		if (hoverRect) setLastHoverRect(hoverRect);
+	}, [hoverRect]);
 
 	/**
 	 * Escape peels one layer at a time: the draft you are composing, then an
@@ -249,16 +255,17 @@ export function PageCommentsView({
 			/>
 
 			<div className="pointer-events-none absolute inset-0 overflow-hidden">
-				{enabled && hoverRect ? (
+				{enabled && lastHoverRect ? (
 					<div
 						style={{
-							transform: `translate(${hoverRect.left}px, ${hoverRect.top}px)`,
-							width: hoverRect.width,
-							height: hoverRect.height,
+							transform: `translate(${lastHoverRect.left}px, ${lastHoverRect.top}px)`,
+							width: lastHoverRect.width,
+							height: lastHoverRect.height,
+							opacity: hoverRect ? 1 : 0,
 						}}
 						// Same reasoning as the pin: this outline sits on the reader's
 						// page, so it cannot borrow the app theme's colours.
-						className="absolute top-0 left-0 rounded-sm bg-blue-500/5 ring-1 ring-blue-500/70"
+						className="absolute top-0 left-0 rounded-sm bg-blue-500/5 ring-1 ring-blue-500/70 transition-opacity duration-150"
 					/>
 				) : null}
 
