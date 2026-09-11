@@ -55,6 +55,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 	return (
 		<div className="flex h-full w-full min-w-0 items-center justify-between">
 			<BrowserToolbar
+				paneId={paneId}
 				currentUrl={state.currentUrl}
 				faviconUrl={state.faviconUrl}
 				isLoading={state.isLoading}
