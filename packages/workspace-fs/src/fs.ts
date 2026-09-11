@@ -999,7 +999,12 @@ export async function copyPath({
 	});
 	await assertEntryWithinRoot(rootPath, sourcePath);
 	await assertRealpathWithinRoot(rootPath, destinationPath);
+	await assertDestinationAbsent(destinationPath);
 
-	await fs.cp(sourcePath, destinationPath, { recursive: true });
+	await fs.cp(sourcePath, destinationPath, {
+		recursive: true,
+		force: false,
+		errorOnExist: true,
+	});
 	return { fromAbsolutePath: sourcePath, toAbsolutePath: destinationPath };
 }

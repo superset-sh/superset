@@ -805,3 +805,40 @@ describe("symlink containment for move, copy and delete", () => {
 		expect(await fs.readdir(outsidePath)).toEqual(["secret.txt"]);
 	});
 });
+
+describe("copyPath", () => {
+	it("copies a directory onto a free name", async () => {
+		const rootPath = await createTempRoot();
+		const sourceAbsolutePath = path.join(rootPath, "src");
+		await fs.mkdir(sourceAbsolutePath);
+		await fs.writeFile(path.join(sourceAbsolutePath, "a.txt"), "a");
+
+		await copyPath({
+			rootPath,
+			sourceAbsolutePath,
+			destinationAbsolutePath: path.join(rootPath, "copy"),
+		});
+
+		expect(
+			await fs.readFile(path.join(rootPath, "copy", "a.txt"), "utf8"),
+		).toEqual("a");
+	});
+
+	it("rejects a destination that already exists instead of overwriting it", async () => {
+		const rootPath = await createTempRoot();
+		const sourceAbsolutePath = path.join(rootPath, "a.txt");
+		const destinationAbsolutePath = path.join(rootPath, "b.txt");
+		await fs.writeFile(sourceAbsolutePath, "new");
+		await fs.writeFile(destinationAbsolutePath, "old");
+		let didThrow = false;
+
+		try {
+			await copyPath({ rootPath, sourceAbsolutePath, destinationAbsolutePath });
+		} catch {
+			didThrow = true;
+		}
+
+		expect(didThrow).toEqual(true);
+		expect(await fs.readFile(destinationAbsolutePath, "utf8")).toEqual("old");
+	});
+});
