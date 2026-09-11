@@ -1,6 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn } from "@superset/ui/utils";
+import { cn, HIT_SLOP } from "@superset/ui/utils";
 import { SquarePen } from "lucide-react";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import type { SubagentPaneData } from "../../../../../../types";
@@ -54,7 +54,7 @@ export function TerminalPaneHeaderExtras({
 				});
 
 	return (
-		<div className="flex items-center gap-1">
+		<div className="flex items-center">
 			<TerminalSubagentsMenu
 				workspaceId={workspaceId}
 				terminalId={terminalId}
@@ -82,7 +82,8 @@ export function TerminalPaneHeaderExtras({
 						aria-label={label}
 						aria-pressed={isOpen}
 						className={cn(
-							"rounded p-1 transition-colors",
+							HIT_SLOP,
+							"rounded p-0.5 transition-colors",
 							isOpen
 								? "bg-secondary text-foreground"
 								: "text-muted-foreground/60 hover:text-muted-foreground",

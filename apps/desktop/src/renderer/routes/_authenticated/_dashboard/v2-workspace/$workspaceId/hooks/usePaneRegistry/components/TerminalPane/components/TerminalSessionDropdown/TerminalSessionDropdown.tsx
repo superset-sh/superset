@@ -11,6 +11,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
+import { cn, HIT_SLOP } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
@@ -479,7 +480,10 @@ export function TerminalSessionDropdown({
 											aria-label={t({
 												message: `Rename ${title}`,
 											})}
-											className="shrink-0 rounded p-1 opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100"
+											className={cn(
+												HIT_SLOP,
+												"shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100",
+											)}
 											onClick={(event) => {
 												event.preventDefault();
 												event.stopPropagation();
@@ -504,7 +508,10 @@ export function TerminalSessionDropdown({
 														})
 											}
 											disabled={killTerminalSession.isPending}
-											className="shrink-0 rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100"
+											className={cn(
+												HIT_SLOP,
+												"shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100",
+											)}
 											onClick={(event) => {
 												event.preventDefault();
 												event.stopPropagation();
