@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { CreatePaneInput, WorkspaceStore } from "../core/store";
 import type { Pane, Tab } from "../types";
@@ -57,9 +57,7 @@ export interface RendererContext<TData> {
 		) => void;
 	};
 
-	components: {
-		PaneHeaderActions: ComponentType;
-	};
+	headerActions: ReactNode;
 }
 
 export interface PaneTitleSource {

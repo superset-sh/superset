@@ -54,11 +54,7 @@ export function DefaultHeaderContent({
 			    the split/close actions on the right are the last thing to go.
 			    Holds for any icon size; components lower their own priority via
 			    the @container/pane-header queries. */}
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: stop drag from starting on action buttons */}
-			<div
-				className="flex min-w-0 items-center justify-end gap-0.5 overflow-hidden"
-				onMouseDown={(e) => e.stopPropagation()}
-			>
+			<div className="flex min-w-0 items-center justify-end gap-0.5 overflow-hidden">
 				{headerExtras}
 				{actionsContent}
 			</div>

@@ -119,7 +119,7 @@ export function Pane<TData>({
 						newPane,
 					}),
 			},
-			components: { PaneHeaderActions: () => null },
+			headerActions: null,
 		};
 
 		// Resolve workspace-level actions (or empty if not provided)
@@ -135,7 +135,7 @@ export function Pane<TData>({
 			workspaceResolved,
 		);
 
-		ctx.components.PaneHeaderActions = () => (
+		ctx.headerActions = (
 			<PaneHeaderActions actions={finalActions} context={ctx} />
 		);
 
@@ -243,7 +243,6 @@ export function Pane<TData>({
 
 	return (
 		<PaneContextMenu actions={resolvedContextMenuActions} context={context}>
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: clicking anywhere in a pane focuses it (standard IDE behavior) */}
 			<div
 				ref={setRefs}
 				// @container/pane-header: header pieces collapse by the pane's own
@@ -255,7 +254,7 @@ export function Pane<TData>({
 						? "border-primary/15"
 						: "border-transparent"
 				}`}
-				onMouseDown={context.actions.focus}
+				onPointerDownCapture={context.actions.focus}
 			>
 				<PaneHeader
 					title={title}
@@ -264,7 +263,7 @@ export function Pane<TData>({
 					titleContent={titleContent}
 					headerExtras={headerExtras}
 					toolbar={toolbar}
-					actionsContent={<context.components.PaneHeaderActions />}
+					actionsContent={context.headerActions}
 					paneId={pane.id}
 					onClick={
 						definition?.onHeaderClick

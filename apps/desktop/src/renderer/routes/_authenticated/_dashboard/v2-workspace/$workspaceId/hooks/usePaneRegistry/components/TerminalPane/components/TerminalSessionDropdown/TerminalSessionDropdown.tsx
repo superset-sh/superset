@@ -363,7 +363,6 @@ export function TerminalSessionDropdown({
 						})}
 						title={triggerTitle}
 						className="flex min-w-0 max-w-96 items-center gap-1.5 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-						onMouseDown={(event) => event.stopPropagation()}
 						onClick={(event) => event.stopPropagation()}
 					>
 						<TerminalPaneIcon

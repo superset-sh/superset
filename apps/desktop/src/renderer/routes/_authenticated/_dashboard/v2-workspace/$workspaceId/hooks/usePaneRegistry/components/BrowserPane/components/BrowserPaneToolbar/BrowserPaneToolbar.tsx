@@ -50,7 +50,6 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 	);
 
 	const isBlankPage = !state.currentUrl || state.currentUrl === "about:blank";
-	const PaneHeaderActions = ctx.components.PaneHeaderActions;
 
 	return (
 		<div className="flex h-full w-full min-w-0 items-center justify-between">
@@ -111,7 +110,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 					onOpenFindBar={() => findBarStore.open(paneId)}
 					onNavigateToUrl={handleNavigate}
 				/>
-				<PaneHeaderActions />
+				{ctx.headerActions}
 			</div>
 		</div>
 	);
