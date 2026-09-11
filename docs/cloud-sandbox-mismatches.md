@@ -366,3 +366,18 @@ under-reported. Sandboxes now report to their own project via
 and provider. Keep the workspace id on both sides: a provisioning failure is
 recorded against the API and a runtime failure against the sandbox, and that id
 is the only thing that joins the two halves of one broken workspace.
+
+## Shared memory is 64 MB
+
+**The app assumes:** `/dev/shm` is sized like a desktop (half of RAM). Chromium
+without a GPU composites in software and backs every window's tiles with
+shared memory there.
+
+**A sandbox is:** a VM with the container default, a 64 MB tmpfs. The third
+1920×1200 Electron window on the sandbox display aborted its renderer with
+`partition_alloc::TerminateBecauseOutOfMemory` from
+`CreateSharedImageForSoftwareCompositor` every time (minidump on the bench,
+2026-09-11); a few heavy Chrome tabs get there too.
+
+**What we did:** `start.sh` remounts `/dev/shm` at 50% of RAM at boot, after
+which four windows open without a crash.

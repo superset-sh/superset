@@ -98,6 +98,11 @@ if command -v Xvnc >/dev/null 2>&1; then
   # woken sandbox it reads as "in use on another computer" and Chrome refuses
   # to start until the user unlocks it. Nothing runs yet, so drop the lock.
   rm -f /root/.config/google-chrome/SingletonLock /root/.config/google-chrome/SingletonSocket /root/.config/google-chrome/SingletonCookie
+  # The VM mounts a 64 MB /dev/shm. Without a GPU, Chromium composites in
+  # software and backs every window's tiles with shared memory there; a third
+  # 1920x1200 Electron window (or a few Chrome tabs) runs it dry and the
+  # renderer aborts with an out-of-memory SIGTRAP. Size it like a desktop.
+  mount -o remount,size=50% /dev/shm 2>/dev/null || true
   # xfce4-session, xfconf, Chrome and Electron all look for the system bus;
   # the session buses dbus-launch leaves behind are a different thing.
   if [ ! -S /run/dbus/system_bus_socket ]; then
