@@ -310,7 +310,7 @@ msgstr "{0} 작업"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0}와 {1}이(가) 터미널 공룡이 되어 결판을 냅니다. 승부는 기록이 결정합니다."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} 차이로 뒤"
 
@@ -444,7 +444,7 @@ msgstr "세션 {0}개를 종료했습니다"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0}개 종료, {1}개 남음"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "#{1}을 제치려면 {0}"
@@ -2274,6 +2274,9 @@ msgstr "자동화 ({myFailedCount}개 실패)"
 msgid "Automations & event triggers"
 msgstr "자동화 및 이벤트 트리거"
 
+msgid "Automations require the Pro plan."
+msgstr "자동화에는 Pro 플랜이 필요합니다."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "자동화, {myFailedCount}개 실패"
 
@@ -2422,9 +2425,6 @@ msgstr "main보다 커밋 ?개 뒤처짐, 리베이스 필요"
 
 msgid "Being built right now."
 msgstr "지금 만들고 있습니다."
-
-msgid "Beta"
-msgstr "베타"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "그 너머: F5는 단기 전망이 아닙니다"
@@ -11242,6 +11242,9 @@ msgstr "푸시 중…"
 
 msgid "Put recurring work on a schedule"
 msgstr "반복 업무를 일정에 올리세요"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "반복되는 작업을 일정이나 이벤트에 맡기세요. 에이전트가 알아서 실행되고 결과는 검토할 수 있도록 워크스페이스에 도착합니다."
 
 msgid "px"
 msgstr "px"

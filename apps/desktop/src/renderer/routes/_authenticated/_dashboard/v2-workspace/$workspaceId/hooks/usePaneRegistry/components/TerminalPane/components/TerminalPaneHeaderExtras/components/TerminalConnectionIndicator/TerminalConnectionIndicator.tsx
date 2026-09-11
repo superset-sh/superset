@@ -219,7 +219,10 @@ export function TerminalConnectionIndicator({
 					className="flex h-5 items-center gap-1.5 rounded px-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
 				>
 					<span className={cn("size-1.5 rounded-full", dotClass)} />
-					<span>{label}</span>
+					{/* The dot always fits; the word only when the header has room. */}
+					<span className="hidden @min-[360px]/pane-header:inline">
+						{label}
+					</span>
 				</button>
 			</PopoverTrigger>
 			<PopoverContent

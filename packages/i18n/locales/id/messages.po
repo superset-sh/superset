@@ -310,7 +310,7 @@ msgstr "Aksi {0}"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} dan {1} menyelesaikannya sebagai dinosaurus terminal. Statistik yang menentukan pemenangnya."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} di belakang Anda"
 
@@ -444,7 +444,7 @@ msgstr "{0} sesi dihentikan"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0} dihentikan, {1} tersisa"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "{0} lagi untuk melewati #{1}"
@@ -2274,6 +2274,9 @@ msgstr "Otomatisasi ({myFailedCount} gagal)"
 msgid "Automations & event triggers"
 msgstr "Otomatisasi & pemicu event"
 
+msgid "Automations require the Pro plan."
+msgstr "Otomatisasi memerlukan paket Pro."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Otomatisasi, {myFailedCount} gagal"
 
@@ -2422,9 +2425,6 @@ msgstr "Tertinggal ? commit dari main, perlu rebase"
 
 msgid "Being built right now."
 msgstr "Sedang dibangun sekarang."
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Di luar itu: F5 bukan klaim jangka dekat"
@@ -11242,6 +11242,9 @@ msgstr "Melakukan push…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Jadwalkan pekerjaan yang berulang"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Jadwalkan pekerjaan berulang berdasarkan waktu atau picu lewat event. Agen berjalan sendiri dan hasilnya mendarat di sebuah workspace untuk Anda tinjau."
 
 msgid "px"
 msgstr "px"

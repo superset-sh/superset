@@ -47,7 +47,9 @@ export function TerminalSubagentsMenu({
 					type="button"
 					aria-label={label}
 					className={cn(
-						"mr-1 flex h-5 items-center gap-0.5 rounded px-1.5 text-[10px] font-medium tabular-nums",
+						// Lowest-priority header chip: first to go in a narrow pane so
+						// the action icons keep their room.
+						"mr-1 hidden h-5 items-center gap-0.5 rounded px-1.5 text-[10px] font-medium tabular-nums @min-[360px]/pane-header:flex",
 						"text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
 						"data-[state=open]:bg-secondary data-[state=open]:text-foreground",
 					)}

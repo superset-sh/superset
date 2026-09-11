@@ -310,7 +310,7 @@ msgstr "Hành động {0}"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} và {1} phân định thắng thua trong hình hài khủng long terminal. Thống kê quyết định người thắng."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} phía sau bạn"
 
@@ -444,7 +444,7 @@ msgstr "Đã kết thúc {0} phiên"
 msgid "{0} terminated, {1} remaining"
 msgstr "Đã kết thúc {0}, còn lại {1}"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "{0} để vượt #{1}"
@@ -2274,6 +2274,9 @@ msgstr "Tự động hóa ({myFailedCount} đang lỗi)"
 msgid "Automations & event triggers"
 msgstr "Tự động hóa & trigger sự kiện"
 
+msgid "Automations require the Pro plan."
+msgstr "Tự động hóa yêu cầu gói Pro."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Tự động hóa, {myFailedCount} đang lỗi"
 
@@ -2422,9 +2425,6 @@ msgstr "Chậm hơn main ? commit, cần rebase"
 
 msgid "Being built right now."
 msgstr "Đang được xây ngay lúc này."
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Xa hơn: F5 không phải tuyên bố cho tương lai gần"
@@ -11242,6 +11242,9 @@ msgstr "Đang push…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Đưa việc lặp lại vào lịch"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Đặt công việc lặp lại theo lịch hoặc sự kiện. Agent tự chạy và kết quả nằm trong một workspace để bạn xem lại."
 
 msgid "px"
 msgstr "px"

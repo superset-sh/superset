@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { LuPlus, LuTimer } from "react-icons/lu";
 import {
@@ -13,6 +14,8 @@ interface AutomationsEmptyStateProps {
 	isCreating: boolean;
 	onCreateManually: () => void;
 	isCreatingManually: boolean;
+	/** The viewer's plan can't create one; the buttons open the paywall. */
+	showProBadge?: boolean;
 }
 export function AutomationsEmptyState({
 	onSelectTemplate,
@@ -20,6 +23,7 @@ export function AutomationsEmptyState({
 	isCreating,
 	onCreateManually,
 	isCreatingManually,
+	showProBadge = false,
 }: AutomationsEmptyStateProps) {
 	return (
 		<div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-10 py-12">
@@ -28,8 +32,13 @@ export function AutomationsEmptyState({
 					<LuTimer className="size-5" />
 				</div>
 				<div className="space-y-2">
-					<h2 className="font-semibold text-lg tracking-tight">
+					<h2 className="flex items-center gap-2 font-semibold text-lg tracking-tight">
 						<Trans>What should run on a schedule?</Trans>
+						{showProBadge && (
+							<Badge variant="default">
+								<Trans>PRO</Trans>
+							</Badge>
+						)}
 					</h2>
 					<p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
 						<Trans>

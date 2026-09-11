@@ -4,8 +4,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { SquareDashedMousePointer } from "lucide-react";
 import { useCallback } from "react";
-import { TbDeviceDesktop } from "react-icons/tb";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { PaneViewerData } from "../../../../../../types";
 import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { designModeStore, useDesignModeState } from "../../designModeStore";
@@ -30,10 +28,6 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 
 	const handleToggleDesignMode = useCallback(() => {
 		designModeStore.toggle(paneId);
-	}, [paneId]);
-
-	const handleOpenDevTools = useCallback(() => {
-		electronTrpcClient.browser.openDevTools.mutate({ paneId }).catch(() => {});
 	}, [paneId]);
 
 	const handleGoBack = useCallback(() => {
@@ -61,6 +55,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 	return (
 		<div className="flex h-full w-full min-w-0 items-center justify-between">
 			<BrowserToolbar
+				paneId={paneId}
 				currentUrl={state.currentUrl}
 				faviconUrl={state.faviconUrl}
 				isLoading={state.isLoading}
@@ -71,7 +66,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 				onReload={handleReload}
 				onNavigate={handleNavigate}
 			/>
-			<div className="flex shrink-0 items-center gap-0.5 pr-1.5">
+			<div className="flex shrink-0 items-center gap-1 pr-1.5">
 				<Tooltip disableHoverableContent>
 					<TooltipTrigger asChild>
 						<button
@@ -89,7 +84,10 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 							)}
 						>
 							<SquareDashedMousePointer className="size-3" />
-							<Trans>Design</Trans>
+							{/* Icon-only in a narrow pane; the label comes back with room. */}
+							<span className="hidden @min-[360px]/pane-header:inline">
+								<Trans>Design</Trans>
+							</span>
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
@@ -101,20 +99,6 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 								agent
 							</Trans>
 						)}
-					</TooltipContent>
-				</Tooltip>
-				<Tooltip disableHoverableContent>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleOpenDevTools}
-							className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground"
-						>
-							<TbDeviceDesktop className="size-3.5" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom">
-						<Trans>Open DevTools</Trans>
 					</TooltipContent>
 				</Tooltip>
 				<BrowserOverflowMenu
