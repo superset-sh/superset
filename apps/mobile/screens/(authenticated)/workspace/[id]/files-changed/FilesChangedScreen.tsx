@@ -161,7 +161,8 @@ export function FilesChangedScreen() {
 		(path: string) => {
 			const file = changeset.files.find((entry) => entry.path === path);
 			if (!file) return;
-			const estimate = (file.additions + file.deletions + 8) * DIFF_LINE_HEIGHT;
+			const estimate =
+				((file.additions ?? 0) + (file.deletions ?? 0) + 8) * DIFF_LINE_HEIGHT;
 			if (estimate <= ANIMATED_TOGGLE_MAX_PX) animateNextListUpdate();
 		},
 		[changeset.files, animateNextListUpdate],

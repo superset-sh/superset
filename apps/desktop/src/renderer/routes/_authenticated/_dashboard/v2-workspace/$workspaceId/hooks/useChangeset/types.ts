@@ -15,8 +15,8 @@ export interface ChangesetFile {
 	path: string;
 	oldPath?: string;
 	status: FileStatus;
-	additions: number;
-	deletions: number;
+	additions: number | null;
+	deletions: number | null;
 	isBinary?: boolean;
 	source: DiffFileSource;
 }

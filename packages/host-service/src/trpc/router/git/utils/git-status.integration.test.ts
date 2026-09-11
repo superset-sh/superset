@@ -171,7 +171,7 @@ describe("getGitStatusSnapshot (integration)", () => {
 		expect(actual).toEqual(expected);
 	});
 
-	test("counts untracked lines and flags nothing below the stat limit", async () => {
+	test("counts untracked lines below the stat limit", async () => {
 		await mkdir(join(repo, "newdir"), { recursive: true });
 		await writeFile(join(repo, "newdir", "a.txt"), "one\ntwo\n");
 
@@ -180,13 +180,12 @@ describe("getGitStatusSnapshot (integration)", () => {
 			worktreePath: repo,
 		});
 
-		expect(snapshot.untrackedStatsOmitted).toBe(false);
 		expect(
 			snapshot.unstaged.find((file) => file.path === "newdir/a.txt")?.additions,
 		).toBe(2);
 	});
 
-	test("skips per-file line counts above the stat limit but keeps every path", async () => {
+	test("reports null counts above the stat limit but keeps every path", async () => {
 		const count = 5_001;
 		await mkdir(join(repo, "bulk"), { recursive: true });
 		await Promise.all(
@@ -204,9 +203,9 @@ describe("getGitStatusSnapshot (integration)", () => {
 			(file) => file.status === "untracked",
 		);
 
-		expect(snapshot.untrackedStatsOmitted).toBe(true);
 		expect(untracked).toHaveLength(count);
-		expect(untracked.every((file) => file.additions === 0)).toBe(true);
+		expect(untracked.every((file) => file.additions === null)).toBe(true);
+		expect(untracked.every((file) => file.deletions === null)).toBe(true);
 	});
 
 	test("keeps tracked-file statuses alongside untracked expansion", async () => {

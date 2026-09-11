@@ -5,6 +5,7 @@ import {
 	buildBranch,
 	countUntrackedFileLines,
 	detectUnstagedRenames,
+	expandUntrackedDirectories,
 	getChangedFilesForDiff,
 	mapGitStatus,
 	parseNumstat,
@@ -20,44 +21,12 @@ export interface GitStatusSnapshot {
 	staged: ChangedFile[];
 	unstaged: ChangedFile[];
 	ignoredPaths: string[];
-	untrackedStatsOmitted: boolean;
 }
 
 export interface GitStatusSnapshotComputation {
 	snapshot: GitStatusSnapshot;
 	/** Resolved in the worker, scheduled by the process-wide coordinator. */
 	baseRefFetchTarget: BaseRefFetchTarget | null;
-}
-
-/**
- * Expand the `dir/` entries `--untracked-files=normal` collapses back into the
- * individual files `-uall` would have listed, keyed by the collapsed entry.
- * The walk is scoped to the untracked directories themselves rather than the
- * whole worktree, so it costs a fraction of what `-uall` does — and nothing at
- * all in the common case where there are no untracked directories.
- */
-async function expandUntrackedDirectories(
-	git: SimpleGit,
-	untrackedPaths: string[],
-): Promise<Map<string, string[]>> {
-	const dirs = untrackedPaths.filter((path) => path.endsWith("/"));
-	const expanded = new Map<string, string[]>();
-	if (dirs.length === 0) return expanded;
-
-	// `--exclude-standard` matches what status itself honours, including
-	// .gitignore files nested inside the untracked directory.
-	const raw = await git
-		.raw(["ls-files", "--others", "--exclude-standard", "-z", "--", ...dirs])
-		.catch(() => "");
-
-	for (const path of raw.split("\0").filter(Boolean)) {
-		const dir = dirs.find((candidate) => path.startsWith(candidate));
-		if (!dir) continue;
-		const files = expanded.get(dir);
-		if (files) files.push(path);
-		else expanded.set(dir, [path]);
-	}
-	return expanded;
 }
 
 export async function getGitStatusSnapshot({
@@ -159,8 +128,8 @@ export async function getGitStatusSnapshot({
 				const entry: ChangedFile = {
 					path,
 					status: "untracked",
-					additions: 0,
-					deletions: 0,
+					additions: null,
+					deletions: null,
 				};
 				untrackedFiles.push(entry);
 				unstaged.push(entry);
@@ -180,13 +149,13 @@ export async function getGitStatusSnapshot({
 			});
 		}
 	}
-	const untrackedStatsOmitted = untrackedFiles.length > MAX_UNTRACKED_STAT_FILES;
-	if (!untrackedStatsOmitted) {
+	const statsOmitted = untrackedFiles.length > MAX_UNTRACKED_STAT_FILES;
+	if (!statsOmitted) {
 		await countUntrackedFileLines(worktreePath, untrackedFiles);
 	}
 
 	const hasDeletions = unstaged.some((file) => file.status === "deleted");
-	const renames = untrackedStatsOmitted
+	const renames = statsOmitted
 		? []
 		: await detectUnstagedRenames(
 				git,
@@ -230,7 +199,6 @@ export async function getGitStatusSnapshot({
 			staged,
 			unstaged: mergedUnstaged,
 			ignoredPaths,
-			untrackedStatsOmitted,
 		},
 		baseRefFetchTarget: base?.fetchTarget ?? null,
 	};

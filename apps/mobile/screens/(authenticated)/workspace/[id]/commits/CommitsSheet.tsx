@@ -49,8 +49,8 @@ export function CommitsSheet() {
 				let additions = 0;
 				let deletions = 0;
 				for (const file of files) {
-					additions += file.additions;
-					deletions += file.deletions;
+					additions += file.additions ?? 0;
+					deletions += file.deletions ?? 0;
 				}
 				return { additions, deletions };
 			},

@@ -179,6 +179,11 @@ export interface GitChangedEvent {
 
 export type GitChangedListener = (event: GitChangedEvent) => void;
 
+export type GitWatchStateListener = (
+	workspaceId: string,
+	watched: boolean,
+) => void;
+
 interface PendingBatch {
 	/** Any `.git/*` event seen during this debounce window. */
 	hasGitDir: boolean;
@@ -258,10 +263,16 @@ export class GitWatcher {
 	private readonly ignoredDirs = new Map<string, IgnoredDirsState>();
 	private rescanTimer: ReturnType<typeof setInterval> | null = null;
 	private closed = false;
+	private readonly onWatchStateChange: GitWatchStateListener;
 
-	constructor(db: HostDb, filesystem: WorkspaceFilesystemManager) {
+	constructor(
+		db: HostDb,
+		filesystem: WorkspaceFilesystemManager,
+		onWatchStateChange: GitWatchStateListener = () => {},
+	) {
 		this.db = db;
 		this.filesystem = filesystem;
+		this.onWatchStateChange = onWatchStateChange;
 	}
 
 	start(): void {
@@ -307,6 +318,18 @@ export class GitWatcher {
 		}
 	}
 
+	private notifyWatchState(workspaceId: string, watched: boolean): void {
+		try {
+			this.onWatchStateChange(workspaceId, watched);
+		} catch (error) {
+			console.error("[git-watcher] watch-state listener threw — contained", {
+				workspaceId,
+				watched,
+				error,
+			});
+		}
+	}
+
 	private async attachFromDb(workspaceId: string): Promise<void> {
 		if (this.closed) return;
 		let row: { worktreePath: string } | undefined;
@@ -338,6 +361,7 @@ export class GitWatcher {
 			entry.watcher.close();
 			entry.disposeWorktreeWatch();
 			this.watched.delete(workspaceId);
+			this.notifyWatchState(workspaceId, false);
 		}
 		this.ignoredDirs.delete(workspaceId);
 		const timer = this.debounceTimers.get(workspaceId);
@@ -362,6 +386,7 @@ export class GitWatcher {
 		for (const entry of this.watched.values()) {
 			entry.watcher.close();
 			entry.disposeWorktreeWatch();
+			this.notifyWatchState(entry.workspaceId, false);
 		}
 		this.watched.clear();
 		this.ignoredDirs.clear();
@@ -692,6 +717,7 @@ export class GitWatcher {
 			watcher,
 			disposeWorktreeWatch,
 		});
+		this.notifyWatchState(workspaceId, true);
 		this.refreshIgnoredDirs(workspaceId, worktreePath, true);
 
 		// A change can land in the gap between watchWorkspace() and this line

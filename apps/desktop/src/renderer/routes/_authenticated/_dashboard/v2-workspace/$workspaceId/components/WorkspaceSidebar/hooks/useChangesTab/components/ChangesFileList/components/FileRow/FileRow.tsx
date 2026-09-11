@@ -152,7 +152,7 @@ export const FileRow = memo(function FileRow({
 					</span>
 				</span>
 				<span className="ml-auto flex shrink-0 items-center gap-1.5 group-hover:invisible">
-					{(file.additions > 0 || file.deletions > 0) && (
+					{((file.additions ?? 0) > 0 || (file.deletions ?? 0) > 0) && (
 						<span className="text-[10px] text-muted-foreground">
 							<DiffStatText
 								additions={file.additions}

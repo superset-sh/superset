@@ -16,6 +16,7 @@ import {
 	gitDiffSideBlobTask,
 	gitFetchBaseRefTask,
 	gitPushTask,
+	gitStatusPartialTask,
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
 import { protectedProcedure, queryProcedure, router } from "../../index";
@@ -44,6 +45,7 @@ import {
 	resolveDiffCategoryRefs,
 } from "./utils/git-helpers";
 import { gitStatusRefreshLimiter } from "./utils/git-status-refresh-limiter";
+import { gitStatusStore } from "./utils/git-status-store";
 import {
 	type GraphQLThreadsResult,
 	parseGraphQLThreads,
@@ -134,30 +136,45 @@ function runStatusSnapshot(
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
 			const workerPool = getHostWorkerPool();
-			const result = await workerPool.run(
-				gitStatusSnapshotTask,
-				{ worktreePath, baseBranch: input.baseBranch, gitEnv },
-				{ timeoutMs: 15_000 },
-			);
-			if (result.baseRefFetchTarget) {
-				const target = result.baseRefFetchTarget;
-				const coordinatorGit = createUserSimpleGit(worktreePath).env(gitEnv);
-				// The coordinator maps live in this process, not in individual
-				// workers, so worktrees sharing one common Git dir share one TTL
-				// and in-flight fetch. The network fetch itself remains off-loop.
-				scheduleBaseRefFetch(coordinatorGit, worktreePath, target, () =>
-					workerPool.run(
-						gitFetchBaseRefTask,
-						{ worktreePath, target, gitEnv },
-						{
-							timeoutMs: 30_000,
-							strategy: "coalesce",
-							dedupeKey: `${worktreePath}:base-ref:${target.remote}/${target.branch}`,
-						},
-					),
+
+			const computeFull = async () => {
+				const result = await workerPool.run(
+					gitStatusSnapshotTask,
+					{ worktreePath, baseBranch: input.baseBranch, gitEnv },
+					{ timeoutMs: 15_000 },
 				);
-			}
-			return result.snapshot;
+				if (result.baseRefFetchTarget) {
+					const target = result.baseRefFetchTarget;
+					const coordinatorGit = createUserSimpleGit(worktreePath).env(gitEnv);
+					// The coordinator maps live in this process, not in individual
+					// workers, so worktrees sharing one common Git dir share one TTL
+					// and in-flight fetch. The network fetch itself remains off-loop.
+					scheduleBaseRefFetch(coordinatorGit, worktreePath, target, () =>
+						workerPool.run(
+							gitFetchBaseRefTask,
+							{ worktreePath, target, gitEnv },
+							{
+								timeoutMs: 30_000,
+								strategy: "coalesce",
+								dedupeKey: `${worktreePath}:base-ref:${target.remote}/${target.branch}`,
+							},
+						),
+					);
+				}
+				return result.snapshot;
+			};
+
+			return gitStatusStore.read({
+				workspaceId: input.workspaceId,
+				baseBranch: input.baseBranch ?? null,
+				computeFull,
+				computePartial: (paths) =>
+					workerPool.run(
+						gitStatusPartialTask,
+						{ worktreePath, paths, gitEnv },
+						{ timeoutMs: 15_000 },
+					),
+			});
 		},
 	});
 }
@@ -176,8 +193,8 @@ function sumSnapshotDiffStats(snapshot: {
 	let additions = 0;
 	let deletions = 0;
 	for (const file of byPath.values()) {
-		additions += file.additions;
-		deletions += file.deletions;
+		additions += file.additions ?? 0;
+		deletions += file.deletions ?? 0;
 	}
 	return { additions, deletions, fileCount: byPath.size };
 }

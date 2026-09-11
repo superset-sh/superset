@@ -15,7 +15,10 @@ const DIFF_STATS_STALE_MS = 60_000;
 const DIFF_STATS_GC_MS = 30 * 60_000;
 
 function aggregateDiffStats(status: GitStatusSnapshot): DiffStats {
-	const byPath = new Map<string, { additions: number; deletions: number }>();
+	const byPath = new Map<
+		string,
+		{ additions: number | null; deletions: number | null }
+	>();
 	for (const file of [
 		...status.againstBase,
 		...status.staged,
@@ -26,8 +29,8 @@ function aggregateDiffStats(status: GitStatusSnapshot): DiffStats {
 	let additions = 0;
 	let deletions = 0;
 	for (const file of byPath.values()) {
-		additions += file.additions;
-		deletions += file.deletions;
+		additions += file.additions ?? 0;
+		deletions += file.deletions ?? 0;
 	}
 	return { additions, deletions };
 }

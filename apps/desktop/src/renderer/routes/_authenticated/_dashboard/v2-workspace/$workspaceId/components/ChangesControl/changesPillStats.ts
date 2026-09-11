@@ -1,7 +1,7 @@
 interface ChangedFileStats {
 	path: string;
-	additions: number;
-	deletions: number;
+	additions: number | null;
+	deletions: number | null;
 }
 
 interface ChangesPillInput {
@@ -33,8 +33,8 @@ export function changesPillStats(status: ChangesPillInput): ChangesPillStats {
 	let additions = 0;
 	let deletions = 0;
 	for (const file of byPath.values()) {
-		additions += file.additions;
-		deletions += file.deletions;
+		additions += file.additions ?? 0;
+		deletions += file.deletions ?? 0;
 	}
 	return { fileCount: byPath.size, additions, deletions };
 }

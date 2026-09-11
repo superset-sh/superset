@@ -59,7 +59,10 @@ export function useDiffStats(
 	return useMemo<DiffStats | null>(() => {
 		if (!status) return null;
 
-		const byPath = new Map<string, { additions: number; deletions: number }>();
+		const byPath = new Map<
+			string,
+			{ additions: number | null; deletions: number | null }
+		>();
 		for (const file of status.againstBase) byPath.set(file.path, file);
 		for (const file of status.staged) byPath.set(file.path, file);
 		for (const file of status.unstaged) byPath.set(file.path, file);
@@ -67,8 +70,8 @@ export function useDiffStats(
 		let additions = 0;
 		let deletions = 0;
 		for (const file of byPath.values()) {
-			additions += file.additions;
-			deletions += file.deletions;
+			additions += file.additions ?? 0;
+			deletions += file.deletions ?? 0;
 		}
 		return { additions, deletions };
 	}, [status]);
