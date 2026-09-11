@@ -6056,6 +6056,9 @@ msgstr "No se pudo abrir el worktree"
 msgid "Failed to open: {0}"
 msgstr "No se pudo abrir: {0}"
 
+msgid "Failed to post reply"
+msgstr "No se pudo publicar la respuesta"
+
 msgid "Failed to prepare agent launch"
 msgstr "No se pudo preparar el arranque del agente"
 

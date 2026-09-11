@@ -267,8 +267,8 @@ export const pageCommentRouter = {
 			if (!comment) {
 				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to create thread",
-					i18nKey: "serverError.pageComment.failedToCreateThread",
+					message: "Failed to post reply",
+					i18nKey: "serverError.pageComment.failedToPostReply",
 				});
 			}
 
