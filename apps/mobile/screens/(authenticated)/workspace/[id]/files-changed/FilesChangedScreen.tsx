@@ -635,12 +635,16 @@ export function FilesChangedScreen() {
 						</Text>
 						{(changeset.additions > 0 || changeset.deletions > 0) && (
 							<View className="flex-row gap-1.5">
-								<Text className="text-green-500 font-semibold text-[11.5px]">
-									+{formatNumber(changeset.additions)}
-								</Text>
-								<Text className="text-red-500 font-semibold text-[11.5px]">
-									−{formatNumber(changeset.deletions)}
-								</Text>
+								{changeset.additions > 0 && (
+									<Text className="text-green-500 font-semibold text-[11.5px]">
+										+{formatNumber(changeset.additions)}
+									</Text>
+								)}
+								{changeset.deletions > 0 && (
+									<Text className="text-red-500 font-semibold text-[11.5px]">
+										−{formatNumber(changeset.deletions)}
+									</Text>
+								)}
 							</View>
 						)}
 					</View>

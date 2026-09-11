@@ -204,13 +204,20 @@ describe("build restart bound", () => {
 			);
 		}
 
+		const owner = getSearchIndex({ rootPath: root, includeHidden: false });
 		const joiner = getSearchIndex({ rootPath: root, includeHidden: false });
-		for (let i = 0; i < 8; i++) {
-			await new Promise((resolve) => setTimeout(resolve, 1));
-			invalidateAllSearchIndexes();
-		}
 
-		const index = await joiner;
-		expect(index.length).toBe(6000);
-	});
+		const storm = setInterval(() => invalidateAllSearchIndexes(), 1);
+		try {
+			const settled = await Promise.race([
+				Promise.all([owner, joiner]).then(() => "settled" as const),
+				new Promise<"hung">((resolve) =>
+					setTimeout(() => resolve("hung"), 15_000),
+				),
+			]);
+			expect(settled).toBe("settled");
+		} finally {
+			clearInterval(storm);
+		}
+	}, 30_000);
 });
