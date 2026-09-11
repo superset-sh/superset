@@ -1,7 +1,5 @@
-import type { RouterOutputs } from "@superset/trpc";
-import type { CommentThread } from "@superset/ui/page-comments";
-
-type ServerThread = RouterOutputs["pageComment"]["list"][number];
+import type { CommentThread } from "@superset/shared/page-comments";
+import type { ServerThread } from "../../types";
 
 export function toThreads(rows: ServerThread[]): CommentThread[] {
 	return rows.flatMap((row) =>

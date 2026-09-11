@@ -1,0 +1,199 @@
+import type {
+	CommentStore,
+	PageCommentUser,
+} from "@superset/shared/page-comments";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
+import { optimisticComment, optimisticThread } from "../../lib/optimisticRows";
+import { pageCommentKeys } from "../../lib/pageCommentKeys";
+import {
+	appendComment,
+	editCommentBody,
+	insertThread,
+	removeThread,
+	replaceComment,
+	replaceThread,
+	setThreadResolved,
+} from "../../lib/threadRows";
+import { useCloudClient } from "../../providers/CloudClientProvider";
+import type {
+	CreateThreadArgs,
+	DeleteArgs,
+	EditArgs,
+	ReplyArgs,
+	ResolveArgs,
+	ServerComment,
+	ServerThread,
+} from "../../types";
+import { usePageCommentThreads } from "../usePageCommentThreads";
+
+interface UsePageCommentsOptions {
+	pageId: string;
+	version: number;
+	user: PageCommentUser;
+	onError?: (error: unknown) => void;
+}
+
+export interface PageCommentStore extends CommentStore {
+	submitting: boolean;
+}
+
+interface Rollback {
+	previous: ServerThread[] | undefined;
+	placeholderId: string;
+}
+
+export function usePageComments({
+	pageId,
+	version,
+	user,
+	onError,
+}: UsePageCommentsOptions): PageCommentStore {
+	const { pageComment } = useCloudClient();
+	const queryClient = useQueryClient();
+
+	const queryKey = useMemo(() => pageCommentKeys.list(pageId), [pageId]);
+	const { threads, isLoading } = usePageCommentThreads({ pageId, version });
+
+	const patch = useCallback(
+		(write: (rows: ServerThread[]) => ServerThread[]) => {
+			queryClient.setQueryData<ServerThread[]>(queryKey, (rows) =>
+				write(rows ?? []),
+			);
+		},
+		[queryClient, queryKey],
+	);
+
+	const begin = useCallback(
+		async (
+			placeholderId: string,
+			write: (rows: ServerThread[]) => ServerThread[],
+		): Promise<Rollback> => {
+			await queryClient.cancelQueries({ queryKey });
+			const previous = queryClient.getQueryData<ServerThread[]>(queryKey);
+			patch(write);
+			return { previous, placeholderId };
+		},
+		[patch, queryClient, queryKey],
+	);
+
+	const rollback = useCallback(
+		(error: unknown, _variables: unknown, context: Rollback | undefined) => {
+			if (context?.previous) {
+				queryClient.setQueryData(queryKey, context.previous);
+			}
+			onError?.(error);
+		},
+		[onError, queryClient, queryKey],
+	);
+
+	const create = useMutation<ServerThread, unknown, CreateThreadArgs, Rollback>(
+		{
+			mutationFn: (input) => pageComment.create(input),
+			onMutate: (input) => {
+				const row = optimisticThread({ input, user, version });
+				return begin(row.id, (rows) => insertThread(rows, row));
+			},
+			onSuccess: (row, _input, context) => {
+				patch((rows) => replaceThread(rows, context.placeholderId, row));
+			},
+			onError: rollback,
+		},
+	);
+
+	const reply = useMutation<ServerComment, unknown, ReplyArgs, Rollback>({
+		mutationFn: (input) => pageComment.reply(input),
+		onMutate: (input) => {
+			const comment = optimisticComment({ body: input.body, user });
+			return begin(comment.id, (rows) =>
+				appendComment(rows, input.threadId, comment),
+			);
+		},
+		onSuccess: (comment: ServerComment, input, context) => {
+			patch((rows) =>
+				replaceComment(rows, input.threadId, context.placeholderId, comment),
+			);
+		},
+		onError: rollback,
+	});
+
+	const edit = useMutation<unknown, unknown, EditArgs, Rollback>({
+		mutationFn: (input) => pageComment.edit(input),
+		onMutate: (input) =>
+			begin(input.commentId, (rows) =>
+				editCommentBody(rows, input.commentId, input.body),
+			),
+		onError: rollback,
+	});
+
+	const resolve = useMutation<unknown, unknown, ResolveArgs, Rollback>({
+		mutationFn: (input) => pageComment.resolve(input),
+		onMutate: (input) =>
+			begin(input.threadId, (rows) =>
+				setThreadResolved(rows, input.threadId, input.resolved),
+			),
+		onError: rollback,
+	});
+
+	const remove = useMutation<unknown, unknown, DeleteArgs, Rollback>({
+		mutationFn: (input) => pageComment.delete(input),
+		onMutate: (input) =>
+			begin(input.threadId, (rows) => removeThread(rows, input.threadId)),
+		onError: rollback,
+	});
+
+	const submitting =
+		create.isPending ||
+		reply.isPending ||
+		edit.isPending ||
+		resolve.isPending ||
+		remove.isPending;
+
+	return useMemo<PageCommentStore>(
+		() => ({
+			threads,
+			isLoading,
+			submitting,
+			createThread: async ({ anchor, anchorText, body, intent }) => {
+				await create.mutateAsync({
+					pageId,
+					version,
+					anchorKind: "element",
+					anchor: {
+						path: anchor.path,
+						tag: anchor.tag,
+						offsetX: anchor.offsetX,
+						offsetY: anchor.offsetY,
+					},
+					anchorText: anchorText.slice(0, 500) || null,
+					body,
+					intent,
+				});
+			},
+			addReply: async (threadId, body) => {
+				await reply.mutateAsync({ threadId, body });
+			},
+			editComment: async (_threadId, commentId, body) => {
+				await edit.mutateAsync({ commentId, body });
+			},
+			setResolved: async (threadId, resolved) => {
+				await resolve.mutateAsync({ threadId, resolved });
+			},
+			deleteThread: async (threadId) => {
+				await remove.mutateAsync({ threadId });
+			},
+		}),
+		[
+			threads,
+			isLoading,
+			submitting,
+			create,
+			reply,
+			edit,
+			resolve,
+			remove,
+			pageId,
+			version,
+		],
+	);
+}

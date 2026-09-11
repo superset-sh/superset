@@ -12,6 +12,10 @@
 			"types": "./src/page-comments-runtime.ts",
 			"default": "./src/page-comments-runtime.ts"
 		},
+		"./page-comments": {
+			"types": "./src/page-comments/index.ts",
+			"default": "./src/page-comments/index.ts"
+		},
 		"./automation-matching": {
 			"types": "./src/automation-matching/index.ts",
 			"default": "./src/automation-matching/index.ts"

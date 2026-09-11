@@ -20,12 +20,12 @@ import {
 import {
 	createPageCommentThreadSchema,
 	deletePageCommentThreadSchema,
-	type ElementAnchor,
 	editPageCommentSchema,
 	listPageCommentsSchema,
 	replyPageCommentSchema,
 	resolvePageCommentThreadSchema,
 } from "./schema";
+import { shapeComment, shapeThread } from "./shape";
 
 async function loadReadablePage({
 	pageId,
@@ -143,26 +143,18 @@ export const pageCommentRouter = {
 				else byThread.set(row.comment.threadId, [row]);
 			}
 
-			return threadRows.map(({ thread, version }) => ({
-				id: thread.id,
-				anchorKind: thread.anchorKind,
-				intent: thread.intent,
-				anchor: thread.anchor as ElementAnchor | null,
-				anchorText: thread.anchorText,
-				resolved: thread.resolvedAt !== null,
-				createdAt: thread.createdAt,
-				version,
-				createdByUserId: thread.createdByUserId,
-				comments: (byThread.get(thread.id) ?? []).map((row) => ({
-					id: row.comment.id,
-					body: row.comment.body,
-					authorKind: row.comment.authorKind,
-					authorUserId: row.comment.authorUserId,
-					authorName: row.authorName ?? "Unknown",
-					authorImage: row.authorImage ?? null,
-					createdAt: row.comment.createdAt,
-				})),
-			}));
+			return threadRows.map(({ thread, version }) =>
+				shapeThread(
+					thread,
+					version,
+					(byThread.get(thread.id) ?? []).map((row) =>
+						shapeComment(row.comment, {
+							name: row.authorName,
+							image: row.authorImage,
+						}),
+					),
+				),
+			);
 		}),
 
 	create: protectedProcedure
@@ -224,7 +216,26 @@ export const pageCommentRouter = {
 					})
 					.returning();
 
-				return { threadId: thread.id, commentId: comment?.id };
+				if (!comment) {
+					throw userError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create thread",
+						i18nKey: "serverError.pageComment.failedToCreateThread",
+					});
+				}
+
+				const [author] = await tx
+					.select({ name: users.name, image: users.image })
+					.from(users)
+					.where(eq(users.id, userId))
+					.limit(1);
+
+				return shapeThread(thread, input.version, [
+					shapeComment(comment, {
+						name: author?.name ?? null,
+						image: author?.image ?? null,
+					}),
+				]);
 			});
 		}),
 
@@ -253,6 +264,14 @@ export const pageCommentRouter = {
 				})
 				.returning();
 
+			if (!comment) {
+				throw userError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create thread",
+					i18nKey: "serverError.pageComment.failedToCreateThread",
+				});
+			}
+
 			if (shouldActivateOnWrite(thread, agentSession)) {
 				await db
 					.update(pageCommentThreads)
@@ -260,7 +279,16 @@ export const pageCommentRouter = {
 					.where(eq(pageCommentThreads.id, input.threadId));
 			}
 
-			return { id: comment?.id };
+			const [author] = await db
+				.select({ name: users.name, image: users.image })
+				.from(users)
+				.where(eq(users.id, userId))
+				.limit(1);
+
+			return shapeComment(comment, {
+				name: author?.name ?? null,
+				image: author?.image ?? null,
+			});
 		}),
 
 	edit: protectedProcedure

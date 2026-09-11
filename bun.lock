@@ -171,6 +171,7 @@
         "@superset/agent-setup": "workspace:*",
         "@superset/auth": "workspace:*",
         "@superset/chat": "workspace:*",
+        "@superset/cloud-client": "workspace:*",
         "@superset/db": "workspace:*",
         "@superset/host-service": "workspace:*",
         "@superset/i18n": "workspace:*",
@@ -538,6 +539,7 @@
         "@shikijs/themes": "4.2.0",
         "@shopify/flash-list": "2.3.2",
         "@superset/auth": "workspace:*",
+        "@superset/cloud-client": "workspace:*",
         "@superset/db": "workspace:*",
         "@superset/i18n": "workspace:*",
         "@superset/shared": "workspace:*",
@@ -679,6 +681,7 @@
         "@lingui/react": "6.6.0",
         "@sentry/nextjs": "10.68.0",
         "@superset/auth": "workspace:*",
+        "@superset/cloud-client": "workspace:*",
         "@superset/db": "workspace:*",
         "@superset/i18n": "workspace:*",
         "@superset/shared": "workspace:*",
@@ -879,6 +882,25 @@
         "@superset/typescript": "workspace:*",
         "bun-types": "1.3.14",
         "typescript": "6.0.3",
+      },
+    },
+    "packages/cloud-client": {
+      "name": "@superset/cloud-client",
+      "version": "0.1.0",
+      "dependencies": {
+        "@superset/shared": "workspace:*",
+        "@tanstack/react-query": "5.101.4",
+      },
+      "devDependencies": {
+        "@superset/trpc": "workspace:*",
+        "@superset/typescript": "workspace:*",
+        "@types/react": "19.2.14",
+        "bun-types": "1.3.14",
+        "react": "19.2.3",
+        "typescript": "6.0.3",
+      },
+      "peerDependencies": {
+        "react": "19.2.3",
       },
     },
     "packages/db": {
@@ -3094,6 +3116,8 @@
     "@superset/cli": ["@superset/cli@workspace:packages/cli"],
 
     "@superset/cli-framework": ["@superset/cli-framework@workspace:packages/cli-framework"],
+
+    "@superset/cloud-client": ["@superset/cloud-client@workspace:packages/cloud-client"],
 
     "@superset/db": ["@superset/db@workspace:packages/db"],
 

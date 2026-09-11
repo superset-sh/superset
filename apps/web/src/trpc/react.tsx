@@ -1,5 +1,6 @@
 "use client";
 
+import { CloudClientProvider, createCloudCaller } from "@superset/cloud-client";
 import type { AppRouter } from "@superset/trpc";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -55,10 +56,14 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 		}),
 	);
 
+	const [caller] = useState(() => createCloudCaller(trpcClient));
+
 	return (
 		<QueryClientProvider client={queryClient}>
 			<TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-				{props.children}
+				<CloudClientProvider caller={caller}>
+					{props.children}
+				</CloudClientProvider>
 			</TRPCProvider>
 		</QueryClientProvider>
 	);

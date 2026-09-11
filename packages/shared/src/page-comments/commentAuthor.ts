@@ -1,4 +1,4 @@
-import type { PageComment } from "../../providers/CommentProvider";
+import type { PageComment } from "./types";
 
 export const AGENT_DISPLAY_NAME = "Agent";
 

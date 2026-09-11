@@ -1,4 +1,5 @@
 import { Plural, useLingui } from "@lingui/react/macro";
+import { usePageCommentThreads } from "@superset/cloud-client";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
@@ -6,7 +7,6 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { usePageQuery } from "../../hooks/usePages";
 import { CommentRow } from "../components/CommentRow";
-import { usePageCommentsQuery } from "../hooks/usePageComments";
 import { usePageCommentStore } from "../stores/pageCommentStore";
 
 const VISIBLE_REPLIES = 2;
@@ -19,8 +19,10 @@ export function AllCommentsSheet() {
 	const setThreadId = usePageCommentStore((state) => state.setThreadId);
 
 	const page = usePageQuery(slug);
-	const comments = usePageCommentsQuery(page.data?.id);
-	const threads = comments.data ?? [];
+	const { rows: threads } = usePageCommentThreads({
+		pageId: page.data?.id ?? "",
+		version: page.data?.version ?? 0,
+	});
 
 	const openThread = (threadId: string) => {
 		setThreadId(threadId);

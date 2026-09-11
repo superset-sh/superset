@@ -1,3 +1,4 @@
+import { CloudClientProvider } from "@superset/cloud-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import {
 	defaultShouldDehydrateQuery,
@@ -8,6 +9,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { del, get, set } from "idb-keyval";
 import {
 	CLOUD_TRPC_ROUTER_ROOTS,
+	cloudCaller,
 	cloudTrpc,
 	cloudTrpcClient,
 } from "renderer/lib/cloud-trpc";
@@ -114,7 +116,9 @@ export function ElectronTRPCProvider({
 						},
 					}}
 				>
-					{children}
+					<CloudClientProvider caller={cloudCaller}>
+						{children}
+					</CloudClientProvider>
 				</PersistQueryClientProvider>
 			</cloudTrpc.Provider>
 		</electronTrpc.Provider>

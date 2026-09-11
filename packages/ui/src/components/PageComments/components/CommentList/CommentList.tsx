@@ -2,6 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { getInitials } from "@superset/shared/names";
+import { commentAuthor, isOptimisticId } from "@superset/shared/page-comments";
 import { Bot, Check, Loader2, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { cn } from "../../../../lib/utils";
@@ -13,8 +14,6 @@ import {
 	type PageComment,
 	useComments,
 } from "../../providers/CommentProvider";
-import { commentAuthor } from "../../utils/commentAuthor";
-import { isOptimisticId } from "../../utils/optimisticId";
 import { relativeTime } from "../../utils/relativeTime";
 import { Quote } from "./components/Quote";
 

@@ -1,4 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
+import { usePageComments, usePageCommentThreads } from "@superset/cloud-client";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import { Alert, ScrollView, View } from "react-native";
@@ -7,10 +8,7 @@ import { errorCopy } from "@/lib/errors";
 import { usePageQuery } from "../../hooks/usePages";
 import { CommentComposer } from "../components/CommentComposer";
 import { CommentRow } from "../components/CommentRow";
-import {
-	usePageCommentActions,
-	usePageCommentsQuery,
-} from "../hooks/usePageComments";
+import { usePageCommentUser } from "../hooks/usePageCommentUser";
 import { usePageCommentStore } from "../stores/pageCommentStore";
 
 export function CommentThreadSheet() {
@@ -23,12 +21,20 @@ export function CommentThreadSheet() {
 	const threadId = usePageCommentStore((state) => state.threadId);
 
 	const page = usePageQuery(slug);
-	const comments = usePageCommentsQuery(page.data?.id);
-	const { reply, setResolved } = usePageCommentActions(page.data?.id);
+	const user = usePageCommentUser();
+	const store = usePageComments({
+		pageId: page.data?.id ?? "",
+		version: page.data?.version ?? 0,
+		user,
+	});
+	const { rows } = usePageCommentThreads({
+		pageId: page.data?.id ?? "",
+		version: page.data?.version ?? 0,
+	});
 
 	const thread = useMemo(
-		() => (comments.data ?? []).find((row) => row.id === threadId),
-		[comments.data, threadId],
+		() => rows.find((row) => row.id === threadId),
+		[rows, threadId],
 	);
 
 	return (
@@ -53,10 +59,7 @@ export function CommentThreadSheet() {
 							if (resolving) return;
 							setResolving(true);
 							try {
-								await setResolved.mutateAsync({
-									threadId: thread.id,
-									resolved: !thread.resolved,
-								});
+								await store.setResolved(thread.id, !thread.resolved);
 							} catch (error) {
 								Alert.alert(
 									thread.resolved
@@ -96,9 +99,9 @@ export function CommentThreadSheet() {
 						<View className="pt-3">
 							<CommentComposer
 								placeholder={t({ message: "Reply" })}
-								pending={reply.isPending}
+								pending={store.submitting}
 								onSubmit={async (body) => {
-									await reply.mutateAsync({ threadId: thread.id, body });
+									await store.addReply(thread.id, body);
 								}}
 							/>
 						</View>

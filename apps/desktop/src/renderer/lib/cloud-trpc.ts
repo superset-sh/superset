@@ -1,3 +1,4 @@
+import { createCloudCaller } from "@superset/cloud-client";
 import { ORGANIZATION_HEADER } from "@superset/shared/constants";
 import type { AppRouter } from "@superset/trpc";
 import { httpBatchStreamLink } from "@trpc/client";
@@ -88,3 +89,5 @@ export const cloudTrpcClient = cloudTrpc.createClient({
 		}),
 	],
 });
+
+export const cloudCaller = createCloudCaller(cloudTrpcClient);
