@@ -83,6 +83,10 @@ export function BrowserOverflowMenu({
 		return () => pointerPassthrough.set(source, false);
 	}, [paneId, isMenuOpen]);
 
+	const handleOpenDevTools = () => {
+		electronTrpcClient.browser.openDevTools.mutate({ paneId }).catch(() => {});
+	};
+
 	const handlePrint = () => browserRuntimeRegistry.print(paneId);
 
 	const handleZoomOut = () => browserRuntimeRegistry.stepZoom(paneId, "out");
@@ -169,6 +173,9 @@ export function BrowserOverflowMenu({
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={handlePrint} disabled={!hasPage}>
 						<Trans>Print</Trans>
+					</DropdownMenuItem>
+					<DropdownMenuItem onClick={handleOpenDevTools} disabled={!hasPage}>
+						<Trans>Open DevTools</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					{/* A plain row of buttons here would be unreachable by arrow-key menu

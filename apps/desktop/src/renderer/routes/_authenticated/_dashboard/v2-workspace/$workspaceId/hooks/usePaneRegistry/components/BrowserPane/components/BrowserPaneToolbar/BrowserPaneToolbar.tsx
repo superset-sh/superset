@@ -4,8 +4,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { SquareDashedMousePointer } from "lucide-react";
 import { useCallback } from "react";
-import { TbDeviceDesktop } from "react-icons/tb";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { PaneViewerData } from "../../../../../../types";
 import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { designModeStore, useDesignModeState } from "../../designModeStore";
@@ -30,10 +28,6 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 
 	const handleToggleDesignMode = useCallback(() => {
 		designModeStore.toggle(paneId);
-	}, [paneId]);
-
-	const handleOpenDevTools = useCallback(() => {
-		electronTrpcClient.browser.openDevTools.mutate({ paneId }).catch(() => {});
 	}, [paneId]);
 
 	const handleGoBack = useCallback(() => {
@@ -101,20 +95,6 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 								agent
 							</Trans>
 						)}
-					</TooltipContent>
-				</Tooltip>
-				<Tooltip disableHoverableContent>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleOpenDevTools}
-							className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground"
-						>
-							<TbDeviceDesktop className="size-3.5" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom">
-						<Trans>Open DevTools</Trans>
 					</TooltipContent>
 				</Tooltip>
 				<BrowserOverflowMenu
