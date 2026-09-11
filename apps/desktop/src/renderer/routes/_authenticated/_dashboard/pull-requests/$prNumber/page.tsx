@@ -3,6 +3,7 @@ import { cn } from "@superset/ui/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
 import { useProjectHost } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectHost";
 import { PullRequestDetailHeader } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailHeader";
@@ -86,6 +87,7 @@ function PullRequestDetailPage() {
 				<div className="drag h-full min-w-0 flex-1" />
 				{/* Share and the "..." overflow (close/reopen) are coming soon —
 				    both hidden until they have real functionality wired up. */}
+				<WindowControlsInset />
 			</div>
 			<PullRequestDetailHeader
 				projectId={projectId}

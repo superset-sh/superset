@@ -19,12 +19,19 @@ Rows are checked only with evidence in the app, never from a code read.
   bar, so the sign-in screen (first thing a new install shows) has no way to
   close the window.
 - [ ] **1.2 Drag regions** — the window moves by its top strip on every route
-  without swallowing clicks on controls.
+  without swallowing clicks on controls. Found on the packaged build: views
+  that hide the TopBar (workspaces board, tasks, pull requests, task detail,
+  new workspace) put their own right-hand controls under the overlay — the
+  workspaces board's "Create workspace" button was half covered. Each now
+  ends its header row with the overlay inset; needs a rebuild to verify.
 - [ ] **1.3 Maximize/restore and double-click** — the overlay's maximize
   toggles restore; the window remembers bounds across restarts.
-- [ ] **1.4 App menu** — File/Edit/View/Window/Resources/Help render with
+- [x] **1.4 App menu** — File/Edit/View/Window/Resources/Help render with
   Ctrl-based accelerators; Settings and Check for Updates are reachable (on
-  macOS they live in the app menu, which Linux has no equivalent of).
+  macOS they live in the app menu, which Linux has no equivalent of). (After,
+  on the rebuilt AppImage: the ≡ button at the start of the top strip pops
+  File / Edit / View / Window / Resources / Help — screenshot; File carries
+  Settings…, Check for Updates…, Quit and Quit Superset Completely.)
   Before: with `titleBarStyle: "hidden"` the menu bar is gone entirely — Alt
   reveals nothing (screenshot), so the menu is keyboard-only. Fix on this
   branch: an application-menu button in the top strip on Windows/Linux that
@@ -79,7 +86,9 @@ Rows are checked only with evidence in the app, never from a code read.
   quirk fixed on the sandbox PR, not an app issue; the app's
   `shell.openExternal` path is still to be exercised on the packaged build.)
 - [ ] **3.2 Downloads** land in the user's downloads directory.
-- [ ] **3.3 Clipboard** copy/paste works in terminals and editors.
+- [x] **3.3 Clipboard** copy/paste works in terminals and editors.
+  (`navigator.clipboard.writeText` in the packaged renderer → `xclip -o`
+  reads it back on the X server.)
 - [ ] **3.4 Deep links** — `superset://` registers via the desktop entry.
 - [ ] **3.5 Diff worker pool** — `@pierre/diffs` logs `Worker error` seven
   times right after sign-in on the sandbox desktop (dev server, root,
@@ -102,13 +111,24 @@ Rows are checked only with evidence in the app, never from a code read.
   `dist/` without packaging is not a valid bench: its chunks fail to load over
   `file://`. `bun run build`'s `prebuild` step is what overlays the plugin
   templates; skipping it logs a `superset-standup` ENOENT at boot.)
-- [ ] **4.2 Desktop entry and icon** — the running app shows the Superset icon
+- [x] **4.2 Desktop entry and icon** — the running app shows the Superset icon
   and name in the dock / task switcher (`WM_CLASS` matches the desktop entry).
+  (After: the AppImage ships `superset.desktop` with `Icon=superset` and
+  `StartupWMClass=superset`, the binary is `superset`, the window reports
+  `WM_CLASS superset`, and the Plank dock shows the Superset mark for the
+  running app — screenshot.)
   Before: the binary is `@supersetdesktop` (package name mangled), the
   desktop entry says `StartupWMClass=Superset` while the window reports
   `superset`, and the window carries no icon, so the dock shows a generic
   entry. Fix on this branch: `executableName: "superset"`,
   `StartupWMClass=superset`, `icon` on the window — needs a rebuild to verify.
+
+- [ ] **4.3 Bundled plugin skills in the asar** — the packaged app logs
+  `ENOENT … templates/plugin/skills/<skill>/agents not found in app.asar` for
+  every skill at boot, even after the full `prebuild`; the folders exist in
+  the repo (`plugins/superset/skills/*/agents/openai.yaml`) and the copy step
+  is recursive. Establish whether this is Linux/asar-specific or also true of
+  macOS builds.
 
 ## 5. Platform audit
 
