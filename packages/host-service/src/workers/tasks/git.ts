@@ -4,6 +4,7 @@
 // the credential provider) and crosses as plain data.
 
 import {
+	getGitAuthorName,
 	type ResolvedGitInfo,
 	readGitIdentity,
 } from "../../runtime/git/identity.ts";
@@ -266,6 +267,23 @@ export const gitIdentityTask = defineWorkerTask<
 	handler: ({ shellEnv }) => readGitIdentity(shellEnv),
 });
 
+/**
+ * Repository-scoped `user.name`, unlike `gitIdentityTask` (which reads the
+ * home-directory/global identity). A repo can locally override `user.name`,
+ * so branch-prefix resolution must read the same repo `create` binds its
+ * on-loop client to — reading the global identity instead would let the
+ * "author" prefix disagree between the branch `create` makes and the one an
+ * AI/derived rename or live preview later proposes for it.
+ */
+export const gitAuthorNameTask = defineWorkerTask<
+	{ worktreePath: string },
+	string | null
+>({
+	type: "git/readAuthorName",
+	handler: ({ worktreePath }) =>
+		getGitAuthorName(createUserSimpleGit(worktreePath)),
+});
+
 // Delete-preview + destroy-preflight state for workspace cleanup.
 // Unpushed-commit detection uses `rev-list --not --remotes` so brand-new
 // branches with no upstream still report unpushed commits correctly.
@@ -513,6 +531,7 @@ export const gitTasks = [
 	gitDiffSideBlobTask,
 	gitWorkspaceRefsTask,
 	gitIdentityTask,
+	gitAuthorNameTask,
 	gitWorktreeStateTask,
 	gitWorktreeRemoveTask,
 	gitDeleteBranchTask,
