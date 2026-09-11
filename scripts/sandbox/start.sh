@@ -91,8 +91,9 @@ if command -v Xvnc >/dev/null 2>&1; then
   # A resumed session restores the previous session's lock and socket files
   # but none of its processes; the stale ones would keep Xvnc from starting.
   rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
-  # xfce4-session and xfconf need the system bus as well as the session bus.
-  if ! pgrep -x dbus-daemon >/dev/null; then
+  # xfce4-session, xfconf, Chrome and Electron all look for the system bus;
+  # the session buses dbus-launch leaves behind are a different thing.
+  if [ ! -S /run/dbus/system_bus_socket ]; then
     mkdir -p /run/dbus && dbus-daemon --system --fork >/dev/null 2>&1
   fi
   # 1920x1200 at 96 DPI, scaled to fit the pane. Every client arrives from
