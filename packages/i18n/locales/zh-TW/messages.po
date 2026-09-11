@@ -7889,6 +7889,9 @@ msgstr "2026年末"
 msgid "Latency"
 msgstr "延遲"
 
+msgid "Later"
+msgstr "稍後"
+
 msgid "Latest"
 msgstr "最新"
 
@@ -12013,6 +12016,9 @@ msgstr "重啟終端守護程式？"
 msgid "Restart terminals"
 msgstr "重啟終端"
 
+msgid "Restart to use the latest version of Superset."
+msgstr "重新啟動以使用最新版本的 Superset。"
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "已重啟{restartedOrgCount}個主機服務"
 
@@ -15617,12 +15623,18 @@ msgstr "更新出錯"
 msgid "Update host service"
 msgstr "更新主機服務"
 
+msgid "Update in the App Store"
+msgstr "在 App Store 中更新"
+
 msgid "Update naming instructions"
 msgstr "更新命名規則"
 
 #. placeholder {0}: selectedProject.name
 msgid "Update naming instructions for {0}"
 msgstr "更新{0}的命名規則"
+
+msgid "Update ready"
+msgstr "更新已就緒"
 
 msgid "Update Required"
 msgstr "需要更新"

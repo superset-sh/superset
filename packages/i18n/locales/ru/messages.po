@@ -7889,6 +7889,9 @@ msgstr "Конец 2026"
 msgid "Latency"
 msgstr "Задержка"
 
+msgid "Later"
+msgstr "Позже"
+
 msgid "Latest"
 msgstr "Последняя"
 
@@ -12013,6 +12016,9 @@ msgstr "Перезапустить демон терминала?"
 msgid "Restart terminals"
 msgstr "Перезапустить терминалы"
 
+msgid "Restart to use the latest version of Superset."
+msgstr "Перезапустите приложение, чтобы использовать последнюю версию Superset."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Перезапущено служб хоста: {restartedOrgCount}"
 
@@ -15617,12 +15623,18 @@ msgstr "Ошибка обновления"
 msgid "Update host service"
 msgstr "Обновить службу хоста"
 
+msgid "Update in the App Store"
+msgstr "Обновить в App Store"
+
 msgid "Update naming instructions"
 msgstr "Обновить правила именования"
 
 #. placeholder {0}: selectedProject.name
 msgid "Update naming instructions for {0}"
 msgstr "Обновить правила именования для {0}"
+
+msgid "Update ready"
+msgstr "Обновление готово"
 
 msgid "Update Required"
 msgstr "Требуется обновление"

@@ -7889,6 +7889,9 @@ msgstr "Fine 2026"
 msgid "Latency"
 msgstr "Latenza"
 
+msgid "Later"
+msgstr "Più tardi"
+
 msgid "Latest"
 msgstr "Ultima"
 
@@ -12013,6 +12016,9 @@ msgstr "Riavviare il daemon del terminale?"
 msgid "Restart terminals"
 msgstr "Riavvia i terminali"
 
+msgid "Restart to use the latest version of Superset."
+msgstr "Riavvia per usare l'ultima versione di Superset."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Riavviati {restartedOrgCount} servizi host"
 
@@ -15617,12 +15623,18 @@ msgstr "Errore di aggiornamento"
 msgid "Update host service"
 msgstr "Aggiorna servizio host"
 
+msgid "Update in the App Store"
+msgstr "Aggiorna nell'App Store"
+
 msgid "Update naming instructions"
 msgstr "Aggiorna le istruzioni di denominazione"
 
 #. placeholder {0}: selectedProject.name
 msgid "Update naming instructions for {0}"
 msgstr "Aggiorna le istruzioni di denominazione per {0}"
+
+msgid "Update ready"
+msgstr "Aggiornamento pronto"
 
 msgid "Update Required"
 msgstr "Aggiornamento richiesto"

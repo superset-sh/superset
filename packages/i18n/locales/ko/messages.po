@@ -7889,6 +7889,9 @@ msgstr "2026년 말"
 msgid "Latency"
 msgstr "지연 시간"
 
+msgid "Later"
+msgstr "나중에"
+
 msgid "Latest"
 msgstr "최신"
 
@@ -12013,6 +12016,9 @@ msgstr "터미널 데몬을 다시 시작할까요?"
 msgid "Restart terminals"
 msgstr "터미널 다시 시작"
 
+msgid "Restart to use the latest version of Superset."
+msgstr "다시 시작하면 최신 버전의 Superset을 사용할 수 있습니다."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "호스트 서비스 {restartedOrgCount}개를 재시작했습니다"
 
@@ -15617,12 +15623,18 @@ msgstr "업데이트 오류"
 msgid "Update host service"
 msgstr "호스트 서비스 업데이트"
 
+msgid "Update in the App Store"
+msgstr "App Store에서 업데이트"
+
 msgid "Update naming instructions"
 msgstr "이름 지정 지침 업데이트"
 
 #. placeholder {0}: selectedProject.name
 msgid "Update naming instructions for {0}"
 msgstr "{0}의 이름 지정 지침 업데이트"
+
+msgid "Update ready"
+msgstr "업데이트 준비 완료"
 
 msgid "Update Required"
 msgstr "업데이트 필요"

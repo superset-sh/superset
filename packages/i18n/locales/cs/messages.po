@@ -7889,6 +7889,9 @@ msgstr "Konec 2026"
 msgid "Latency"
 msgstr "Latence"
 
+msgid "Later"
+msgstr "Později"
+
 msgid "Latest"
 msgstr "Nejnovější"
 
@@ -12013,6 +12016,9 @@ msgstr "Restartovat terminálového démona?"
 msgid "Restart terminals"
 msgstr "Restartovat terminály"
 
+msgid "Restart to use the latest version of Superset."
+msgstr "Restartujte aplikaci, abyste používali nejnovější verzi Supersetu."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Restartováno {restartedOrgCount} host services"
 
@@ -15617,12 +15623,18 @@ msgstr "Chyba aktualizace"
 msgid "Update host service"
 msgstr "Aktualizovat službu hostitele"
 
+msgid "Update in the App Store"
+msgstr "Aktualizovat v App Storu"
+
 msgid "Update naming instructions"
 msgstr "Upravit pravidla pojmenování"
 
 #. placeholder {0}: selectedProject.name
 msgid "Update naming instructions for {0}"
 msgstr "Upravit pravidla pojmenování pro {0}"
+
+msgid "Update ready"
+msgstr "Aktualizace je připravena"
 
 msgid "Update Required"
 msgstr "Vyžadována aktualizace"

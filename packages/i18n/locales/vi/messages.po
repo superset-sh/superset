@@ -7889,6 +7889,9 @@ msgstr "Cuối 2026"
 msgid "Latency"
 msgstr "Độ trễ"
 
+msgid "Later"
+msgstr "Để sau"
+
 msgid "Latest"
 msgstr "Mới nhất"
 
@@ -12013,6 +12016,9 @@ msgstr "Khởi động lại daemon terminal?"
 msgid "Restart terminals"
 msgstr "Khởi động lại terminal"
 
+msgid "Restart to use the latest version of Superset."
+msgstr "Khởi động lại để dùng phiên bản Superset mới nhất."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Đã khởi động lại {restartedOrgCount} dịch vụ host"
 
@@ -15617,12 +15623,18 @@ msgstr "Lỗi cập nhật"
 msgid "Update host service"
 msgstr "Cập nhật dịch vụ máy chủ"
 
+msgid "Update in the App Store"
+msgstr "Cập nhật trên App Store"
+
 msgid "Update naming instructions"
 msgstr "Cập nhật quy tắc đặt tên"
 
 #. placeholder {0}: selectedProject.name
 msgid "Update naming instructions for {0}"
 msgstr "Cập nhật quy tắc đặt tên cho {0}"
+
+msgid "Update ready"
+msgstr "Bản cập nhật đã sẵn sàng"
 
 msgid "Update Required"
 msgstr "Cần cập nhật"

@@ -7889,6 +7889,9 @@ msgstr "2026年後半"
 msgid "Latency"
 msgstr "レイテンシ"
 
+msgid "Later"
+msgstr "後で"
+
 msgid "Latest"
 msgstr "最新"
 
@@ -12013,6 +12016,9 @@ msgstr "ターミナルデーモンを再起動しますか?"
 msgid "Restart terminals"
 msgstr "ターミナルを再起動"
 
+msgid "Restart to use the latest version of Superset."
+msgstr "再起動すると最新バージョンの Superset を使用できます。"
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "{restartedOrgCount}件のホストサービスを再起動しました"
 
@@ -15617,12 +15623,18 @@ msgstr "アップデートエラー"
 msgid "Update host service"
 msgstr "ホストサービスを更新"
 
+msgid "Update in the App Store"
+msgstr "App Store でアップデート"
+
 msgid "Update naming instructions"
 msgstr "命名指示を更新"
 
 #. placeholder {0}: selectedProject.name
 msgid "Update naming instructions for {0}"
 msgstr "{0}の命名指示を更新"
+
+msgid "Update ready"
+msgstr "アップデートの準備ができました"
 
 msgid "Update Required"
 msgstr "アップデートが必要です"
