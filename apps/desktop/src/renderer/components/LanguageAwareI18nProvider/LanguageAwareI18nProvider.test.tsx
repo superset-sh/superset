@@ -93,10 +93,53 @@ afterAll(async () => {
 });
 
 describe("LanguageAwareI18nProvider", () => {
-	test("does not revert to the OS locale when the persisted-language query errors (#7415)", async () => {
-		// Simulate a CMD+R reload: the OS is Japanese, but the getLanguage IPC
-		// query has settled into an error (e.g. a transport race right after
-		// the preload script re-establishes the electron-trpc channel).
+	test("configures getLanguage to retry instead of failing on the first attempt (#7415)", async () => {
+		// A CMD+R reload re-establishes the electron-trpc IPC channel in a
+		// fresh JS realm, making the very first getLanguage fetch after a
+		// reload the one most likely to race it transiently. Retrying keeps
+		// React Query's `isPending` true across that race so it self-heals
+		// before ever reaching the isPending:false branches below, instead of
+		// settling into "no preference" on a single flaky attempt.
+		await act(async () => {
+			render(
+				<LanguageAwareI18nProvider>
+					<div data-testid="marker" />
+				</LanguageAwareI18nProvider>,
+			);
+		});
+
+		const options = getLanguageUseQuery.mock.calls.at(-1)?.[1] as {
+			retry: number;
+			retryDelay: (attempt: number) => number;
+		};
+		expect(options.retry).toBeGreaterThan(0);
+		expect(options.retryDelay(0)).toBeGreaterThan(0);
+	});
+
+	test("stays deferred while the query is pending, even after a prior failed attempt", async () => {
+		// Mid-retry: React Query reports isPending: true throughout, no
+		// matter how many attempts have already failed.
+		setNavigatorLanguages(["ja-JP"]);
+		languageQueryResult = { data: undefined, isPending: true, isError: true };
+
+		await act(async () => {
+			render(
+				<LanguageAwareI18nProvider>
+					<div data-testid="marker" />
+				</LanguageAwareI18nProvider>,
+			);
+		});
+		await flush();
+
+		expect(document.documentElement.lang).not.toBe("ja");
+	});
+
+	test("falls back to the inferred locale once retries are exhausted, instead of staying blank forever", async () => {
+		// The retry budget configured above is what makes this branch rare in
+		// practice — a transient reload-time race self-heals before ever
+		// reaching it. Only a genuinely stuck IPC channel settles here, and a
+		// stuck channel would break the rest of the app too, so falling back
+		// to the inferred locale beats leaving the window blank forever.
 		setNavigatorLanguages(["ja-JP"]);
 		languageQueryResult = { data: undefined, isPending: false, isError: true };
 
@@ -109,7 +152,7 @@ describe("LanguageAwareI18nProvider", () => {
 		});
 		await flush();
 
-		expect(document.documentElement.lang).not.toBe("ja");
+		expect(document.documentElement.lang).toBe("ja");
 	});
 
 	test("activates the persisted locale once the query succeeds", async () => {

@@ -17,23 +17,25 @@ export function LanguageAwareI18nProvider({
 	children: ReactNode;
 }) {
 	// Persisted setting wins; undefined falls back to first-load inference.
-	const {
-		data: language,
-		isPending,
-		isError,
-	} = electronTrpc.settings.getLanguage.useQuery(undefined, {
-		retry: GET_LANGUAGE_MAX_RETRIES,
-		retryDelay: (attempt) => GET_LANGUAGE_RETRY_DELAY_MS * (attempt + 1),
-	});
+	// React Query keeps `isPending` true across every configured retry, so a
+	// transient reload-time race (#7415) self-heals here without ever
+	// reaching the fallback below. Only a genuinely exhausted retry budget
+	// settles into isPending: false with no data.
+	const { data: language, isPending } =
+		electronTrpc.settings.getLanguage.useQuery(undefined, {
+			retry: GET_LANGUAGE_MAX_RETRIES,
+			retryDelay: (attempt) => GET_LANGUAGE_RETRY_DELAY_MS * (attempt + 1),
+		});
 	const utils = electronTrpc.useUtils();
 	electronTrpc.settings.onLanguageChange.useSubscription(undefined, {
 		onData: (value) => utils.settings.getLanguage.setData(undefined, value),
 	});
-	// Keep deferring while the fetch is pending OR has failed. Treating a
-	// failed fetch the same as "no preference" (data === null) fell through
-	// to inferLocale() — the OS language — silently reverting an explicit
-	// choice whenever the query errored right after a reload (#7415).
-	if (isPending || isError) return null;
+	if (isPending) return null;
+	// A persisted preference that's still unreadable after every retry falls
+	// back to the inferred locale (via `language ?? undefined` below) rather
+	// than leaving the window blank forever — a stuck IPC channel is rare
+	// and would break the rest of the app too, so showing something in the
+	// wrong language beats showing nothing.
 	return (
 		<I18nProvider locale={language ?? undefined} deferUntilReady>
 			<PostHogLocaleTagger />
