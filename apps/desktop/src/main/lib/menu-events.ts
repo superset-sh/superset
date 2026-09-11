@@ -17,7 +17,8 @@ export interface OpenWorkspaceEvent {
 	workspaceId: string;
 }
 
+const SUBSCRIBERS_PER_WINDOW = 5;
+const WINDOW_CEILING = 20;
+
 export const menuEmitter = new EventEmitter();
-// Five renderer subscriptions per window (layouts, file menu, command palette,
-// content view) — three windows already pass Node's default warning threshold.
-menuEmitter.setMaxListeners(100);
+menuEmitter.setMaxListeners(SUBSCRIBERS_PER_WINDOW * WINDOW_CEILING);
