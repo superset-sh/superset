@@ -294,7 +294,7 @@ function AutomationsPage() {
 		error: automationsError,
 		refetch: refetchAutomations,
 	} = cloudTrpc.automation.list.useQuery(undefined, {
-		refetchInterval: 15_000,
+		refetchInterval: 60_000,
 	});
 
 	const { data: memberRows = [] } = cloudTrpc.organization.listMembers.useQuery(

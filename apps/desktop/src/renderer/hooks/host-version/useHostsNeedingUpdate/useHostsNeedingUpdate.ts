@@ -3,7 +3,7 @@ import {
 	hostNeedsUpdate,
 } from "@superset/shared/host-version";
 import { useMemo } from "react";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useAppVersion } from "../useHostVersionState";
 
 /**
@@ -13,9 +13,7 @@ import { useAppVersion } from "../useHostVersionState";
  */
 export function useHostsNeedingUpdateCount(): number {
 	const appVersion = useAppVersion();
-	const { data: hosts = [] } = cloudTrpc.v2Host.list.useQuery(undefined, {
-		staleTime: 30_000,
-	});
+	const { hosts } = useKnownHosts();
 	return useMemo(
 		() =>
 			hosts.filter((host) =>

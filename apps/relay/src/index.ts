@@ -1,11 +1,19 @@
 import * as Sentry from "@sentry/cloudflare";
-import { buildUpstreamHeaders } from "@superset/shared/host-routing";
+import {
+	buildUpstreamHeaders,
+	parseHostRoutingKey,
+} from "@superset/shared/host-routing";
 import { RELAY_CLOSE } from "@superset/shared/tunnel-protocol";
 import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { getServerByName } from "partyserver";
-import { accessDenialMessage, checkHostAccess } from "./access";
+import {
+	accessDenialMessage,
+	checkHostAccess,
+	checkHostAccessForRegister,
+	isServerPresenceScope,
+} from "./access";
 import { type AuthContext, verifyJWT } from "./auth";
 import { HostTunnel } from "./host-tunnel";
 import { placeHost, readPlacement } from "./placement";
@@ -58,23 +66,32 @@ function acceptAndClose(code: number, reason: string): Response {
 	return new Response(null, { status: 101, webSocket: pair[0] });
 }
 
-type Denial = { status: 401 | 403 | 500; message: string };
+type Denial = { status: 401 | 403 | 500 | 503; message: string };
 
 async function authenticate(
 	c: Context<AppContext>,
 	hostId: string,
+	purpose: "register" | "reach",
 ): Promise<{ auth: AuthContext; token: string } | Denial> {
 	const token = extractToken(c);
 	if (!token) return { status: 401, message: "Unauthorized" };
 	const auth = await verifyJWT(token, c.env.NEXT_PUBLIC_API_URL);
 	if (!auth) return { status: 401, message: "Unauthorized" };
-	const access = await checkHostAccess(
-		auth,
-		token,
-		hostId,
-		c.env.NEXT_PUBLIC_API_URL,
-	);
+	const access =
+		purpose === "register"
+			? await checkHostAccessForRegister(
+					auth,
+					token,
+					hostId,
+					c.env.NEXT_PUBLIC_API_URL,
+				)
+			: await checkHostAccess(c.env, auth, token, hostId);
 	if (!access.ok) {
+		// A host that has never connected is unreachable, not forbidden: 503 so
+		// clients keep the slow redial they use for offline hosts.
+		if (access.reason === "not_connected") {
+			return { status: 503, message: "Host not connected" };
+		}
 		const message = `Forbidden: ${accessDenialMessage(access.reason)}`;
 		// "error" means the access check itself failed (API unreachable), not
 		// a denial — 500 so clients keep retrying instead of giving up.
@@ -97,7 +114,7 @@ app.get("/v2/control", async (c) => {
 	}
 	const hostId = c.req.query("hostId");
 	if (!hostId) return acceptAndClose(RELAY_CLOSE.badRequest, "Missing hostId");
-	const result = await authenticate(c, hostId);
+	const result = await authenticate(c, hostId, "register");
 	if (isDenial(result)) {
 		return acceptAndClose(
 			result.status === 401 ? RELAY_CLOSE.authExpired : RELAY_CLOSE.forbidden,
@@ -155,19 +172,22 @@ app.get("/presence", async (c) => {
 	const auth = await verifyJWT(token, c.env.NEXT_PUBLIC_API_URL);
 	if (!auth) return c.json({ error: "Unauthorized" }, 401);
 
-	// Denied and unknown hosts are omitted rather than erroring the batch: a
-	// partial answer still renders every dot the caller may see.
+	// Denied hosts are omitted rather than erroring the batch: a partial answer
+	// still renders every dot the caller may see. A host that has never
+	// connected has no object and is offline without any access check.
+	const serverRead = isServerPresenceScope(auth.scope);
 	const entries = await Promise.all(
 		hostIds.map(async (hostId) => {
-			const access = await checkHostAccess(
-				auth,
-				token,
-				hostId,
-				c.env.NEXT_PUBLIC_API_URL,
-			);
-			if (!access.ok) return null;
+			const parsed = parseHostRoutingKey(hostId);
+			if (!parsed || !auth.organizationIds.includes(parsed.organizationId)) {
+				return null;
+			}
 			const stub = await tunnelStub(c, hostId);
 			if (!stub) return [hostId, { online: false, lastSeenAt: null }] as const;
+			if (!serverRead) {
+				const access = await checkHostAccess(c.env, auth, token, hostId);
+				if (!access.ok) return null;
+			}
 			return [hostId, await stub.presenceInfo()] as const;
 		}),
 	);
@@ -188,7 +208,7 @@ function pathAfterHost(c: Context<AppContext>): string {
 
 app.get("/hosts/:hostId/_whoowns", async (c) => {
 	const hostId = c.req.param("hostId");
-	const result = await authenticate(c, hostId);
+	const result = await authenticate(c, hostId, "reach");
 	if (isDenial(result)) {
 		return c.json({ error: result.message }, result.status);
 	}
@@ -202,13 +222,17 @@ app.get("/hosts/:hostId/_whoowns", async (c) => {
 const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 	const hostId = c.req.param("hostId");
 	if (!hostId) return c.json({ error: "Missing hostId" }, 400);
-	const result = await authenticate(c, hostId);
+	const result = await authenticate(c, hostId, "reach");
 	if (isDenial(result)) {
 		if (isTrpcPath(pathAfterHost(c))) {
 			return trpcErrorResponse(
 				c,
-				result.status === 403 ? "FORBIDDEN" : "UNAUTHORIZED",
-				result.message,
+				result.status === 403
+					? "FORBIDDEN"
+					: result.status === 503
+						? "SERVICE_UNAVAILABLE"
+						: "UNAUTHORIZED",
+				result.status === 503 ? "Host is not online" : result.message,
 			);
 		}
 		return c.json({ error: result.message }, result.status);

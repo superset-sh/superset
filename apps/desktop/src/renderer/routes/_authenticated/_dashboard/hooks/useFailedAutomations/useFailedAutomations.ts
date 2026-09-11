@@ -4,6 +4,8 @@ import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useAutomationFailuresStore } from "renderer/stores/automation-failures";
 
+const FAILURE_BADGE_POLL_MS = 120_000;
+
 const FAILED_STATUSES: SelectAutomationRun["status"][] = [
 	"skipped_offline",
 	"dispatch_failed",
@@ -47,11 +49,11 @@ export function useFailedAutomations(): FailedAutomations {
 
 	const { data: runRows = [] } = cloudTrpc.automation.latestRuns.useQuery(
 		undefined,
-		{ refetchInterval: 30_000, staleTime: 30_000 },
+		{ refetchInterval: FAILURE_BADGE_POLL_MS, staleTime: 30_000 },
 	);
 	const { data: automationRows = [], isPending: automationsPending } =
 		cloudTrpc.automation.list.useQuery(undefined, {
-			refetchInterval: 30_000,
+			refetchInterval: FAILURE_BADGE_POLL_MS,
 			staleTime: 30_000,
 		});
 

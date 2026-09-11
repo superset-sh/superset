@@ -57,9 +57,10 @@ export interface TunnelClientOptions {
 	getAuthToken: () => Promise<string | null>;
 	localPort: number;
 	hostServiceSecret: string;
-	/** Re-asked on every reconnect attempt so a server-side relay move is
-	 * picked up without a process restart. On failure the last known URL is
-	 * reused. */
+	/** Re-asked only after a connect attempt with the current URL fails, so a
+	 * server-side relay move is still picked up without a process restart
+	 * while an ordinary reconnect costs no API call. On failure the last known
+	 * URL is reused. */
 	resolveRelayUrl?: () => Promise<string>;
 }
 
@@ -78,6 +79,7 @@ export class TunnelClient {
 	private lastInboundAt = 0;
 	private notOpenSince: number | null = null;
 	private relayUrl: string;
+	private lastAttemptOpened = true;
 	private closed = false;
 
 	constructor(options: TunnelClientOptions) {
@@ -92,7 +94,7 @@ export class TunnelClient {
 		// moves. It must never reject: a rejection kills partysocket's retry
 		// cycle permanently, wedging the host until a process restart.
 		const urlProvider = async (): Promise<string> => {
-			if (this.options.resolveRelayUrl) {
+			if (this.options.resolveRelayUrl && !this.lastAttemptOpened) {
 				try {
 					this.relayUrl = await withTimeout(
 						this.options.resolveRelayUrl(),
@@ -114,6 +116,7 @@ export class TunnelClient {
 					message: error instanceof Error ? error.message.slice(0, 200) : "",
 				});
 			}
+			this.lastAttemptOpened = false;
 			const url = new URL("/v2/control", toWs(this.relayUrl));
 			url.searchParams.set("hostId", this.options.hostId);
 			url.searchParams.set("token", token ?? "");
@@ -130,6 +133,7 @@ export class TunnelClient {
 
 		control.addEventListener("open", () => {
 			this.lastInboundAt = Date.now();
+			this.lastAttemptOpened = true;
 			console.log(
 				`[host-service:tunnel] control connected for ${this.options.hostId}`,
 			);

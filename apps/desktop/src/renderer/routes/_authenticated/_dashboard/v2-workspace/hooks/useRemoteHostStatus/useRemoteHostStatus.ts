@@ -9,8 +9,8 @@ import {
 import { useMemo } from "react";
 import { useHostServiceInfo } from "renderer/hooks/host-service/useHostServiceInfo";
 import type { HostShapedWorkspace } from "renderer/hooks/host-workspaces/useHostWorkspaces";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 export type RemoteHostStatus =
@@ -38,9 +38,7 @@ export function useRemoteHostStatus(
 		workspace != null && machineId != null && workspace.hostId === machineId;
 	const filterMachineId = !workspace || isLocal ? "" : hostId;
 
-	const { data: hostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined, {
-		staleTime: 30_000,
-	});
+	const { hosts: hostRows } = useKnownHosts();
 	const hostRow = useMemo(
 		() =>
 			hostRows.find(

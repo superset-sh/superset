@@ -5,6 +5,7 @@ import {
 	type StreamDial,
 } from "@superset/shared/tunnel-protocol";
 import { type Connection, type ConnectionContext, Server } from "partyserver";
+import { ALLOWED_TTL_MS, DENIED_TTL_MS, fetchHostAccess } from "./access";
 import {
 	type HttpExchangeRequest,
 	type HttpExchangeResult,
@@ -13,6 +14,11 @@ import {
 import type { RelayEnv } from "./types";
 
 const HOST_TAG = "host";
+
+interface AccessEntry {
+	allowed: boolean;
+	expiresAt: number;
+}
 // Frames a dial may deliver before the client's deferred upgrade completes.
 const MAX_EARLY_FRAMES = 256;
 // A dial that never pairs with a client (aborted upgrade, late arrival) is
@@ -79,6 +85,31 @@ export class HostTunnel extends Server<RelayEnv> {
 			lastSeenAt:
 				(await this.ctx.storage.get<number>("lastHostSeenAt")) ?? null,
 		};
+	}
+
+	/**
+	 * Durable copy of the Worker's per-isolate access cache: every isolate and
+	 * colo resolves to this object, so the API is asked once per (user, host)
+	 * per TTL instead of once per isolate.
+	 */
+	async checkAccess(args: {
+		hostId: string;
+		userId: string;
+		token: string;
+		apiUrl: string;
+	}): Promise<boolean> {
+		const key = `access:${args.userId}`;
+		const cached = await this.ctx.storage.get<AccessEntry>(key);
+		if (cached && cached.expiresAt > Date.now()) return cached.allowed;
+		const allowed = await fetchHostAccess(args.token, args.hostId, args.apiUrl);
+		console.log(
+			`[relay] access check via api for ${args.hostId}: ${allowed ? "allowed" : "denied"}`,
+		);
+		await this.ctx.storage.put(key, {
+			allowed,
+			expiresAt: Date.now() + (allowed ? ALLOWED_TTL_MS : DENIED_TTL_MS),
+		} satisfies AccessEntry);
+		return allowed;
 	}
 
 	async prepareStream(

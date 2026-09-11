@@ -66,11 +66,11 @@ function AutomationDetailPage() {
 	// The prompt body rides its own procedure — `get` omits it.
 	const automationQuery = cloudTrpc.automation.get.useQuery(
 		{ id: automationId },
-		{ refetchInterval: 15_000, staleTime: 30_000 },
+		{ refetchInterval: 60_000, staleTime: 30_000 },
 	);
 	const promptQuery = cloudTrpc.automation.getPrompt.useQuery(
 		{ id: automationId },
-		{ refetchInterval: 15_000, staleTime: 30_000 },
+		{ refetchInterval: 60_000, staleTime: 30_000 },
 	);
 	const automation = useMemo(() => {
 		if (!automationQuery.data || !promptQuery.data) return undefined;
@@ -79,7 +79,7 @@ function AutomationDetailPage() {
 
 	const { data: recentRuns = [] } = cloudTrpc.automation.listRuns.useQuery(
 		{ automationId, limit: RECENT_RUNS_LIMIT },
-		{ refetchInterval: 5_000, staleTime: 30_000 },
+		{ refetchInterval: 15_000, staleTime: 30_000 },
 	);
 
 	const ownerUserId = automationQuery.data?.ownerUserId;

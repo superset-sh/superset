@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useMemo } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
-import { useHostsPresence } from "renderer/hooks/useHostsPresence";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
@@ -21,6 +21,7 @@ import { HostServiceSection } from "./components/HostServiceSection";
 import type { MemberRowData } from "./components/MembersTable";
 import { MembersTable } from "./components/MembersTable";
 import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
+import { useHostLastSeenAt } from "./hooks/useHostLastSeenAt";
 
 function notifyOnPersist(
 	tx: PersistableTransaction | null,
@@ -45,15 +46,17 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 	const { machineId } = useLocalHostService();
 	const hostUrl = useHostUrl(hostId);
 
-	const { data: hosts = [], isPending: hostsPending } =
-		cloudTrpc.v2Host.list.useQuery(undefined);
+	const { hosts, settled: hostsSettled } = useKnownHosts();
+	const hostsPending = !hostsSettled;
 	const host = useMemo(
 		() => hosts.find((row) => row.machineId === hostId),
 		[hosts, hostId],
 	);
-	const presence = useHostsPresence(hosts);
-	const hostPresence = host ? presence?.get(host.machineId) : undefined;
-	const hostIsOnline = host ? (hostPresence?.online ?? host.isOnline) : false;
+	const hostIsOnline = host?.isOnline ?? false;
+	const lastSeenAt = useHostLastSeenAt(
+		host,
+		host !== undefined && !hostIsOnline,
+	);
 
 	const { data: allHostMembers = [] } =
 		cloudTrpc.v2Host.listMembers.useQuery(undefined);
@@ -180,7 +183,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 						platform: host.platform,
 						installSource: host.installSource,
 					}}
-					lastSeenAt={hostPresence?.lastSeenAt ?? null}
+					lastSeenAt={lastSeenAt}
 				/>
 
 				<WorktreeLocationSection

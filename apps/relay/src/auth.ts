@@ -3,6 +3,8 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 export interface AuthContext {
 	sub: string;
 	organizationIds: string[];
+	/** Set only on tokens the API mints for itself; see access.ts. */
+	scope?: string;
 }
 
 let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
@@ -31,7 +33,8 @@ export async function verifyJWT(
 			return null;
 		}
 
-		return { sub, organizationIds };
+		const scope = typeof payload.scope === "string" ? payload.scope : undefined;
+		return { sub, organizationIds, scope };
 	} catch (error) {
 		// Don't log expected hourly-rotation expiries, and log only the terse
 		// message otherwise: the full error dumped a stack trace + decoded

@@ -42,6 +42,13 @@ queries.
 
 ### 2. Electric `v2Hosts` empty → target loss — FIXED (this branch)
 
+Update (2026-09): the host list is now a plain `v2Host.list` query with no
+interval, persisted through the query client's IndexedDB persister
+(`PERSIST_TRPC_PATHS`), and presence comes from each host's relay-routed event
+socket. The separate `useKnownHosts` snapshot described below is gone; the
+"ready + empty is authoritative" property holds because React Query keeps the
+last data through a failed fetch and replaces it on a successful empty one.
+
 `v2Hosts` served straight from Electric. Cold start before hydration or a
 resync window returning `[]` drops every remote host's target (rows and
 chips vanish); if `activeHostUrl` is also null, the synthesized local target
