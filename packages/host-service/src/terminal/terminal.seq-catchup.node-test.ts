@@ -458,6 +458,23 @@ async function quiesce(renderer: SeqRenderer): Promise<void> {
 	await renderer.drain();
 }
 
+/** Asks size.sh for the PTY's size as the kernel holds it, via `renderer`. */
+function makeSizeProbe(renderer: SeqRenderer): () => Promise<string> {
+	let probes = 0;
+	return async () => {
+		probes += 1;
+		const marker = `SIZE ${String(probes).padStart(3, "0")} `;
+		renderer.sendInput("size\n");
+		await renderer.waitVisible(marker);
+		await renderer.drain();
+		const line = visibleText(renderer.term)
+			.split("\n")
+			.find((text) => text.includes(marker));
+		assert.ok(line, `no size report for probe ${probes}`);
+		return line.slice(line.indexOf(marker) + marker.length).trim();
+	};
+}
+
 async function waitForTrackerText(
 	terminalId: string,
 	marker: string,
@@ -1075,19 +1092,7 @@ test(
 		// that never speaks the message has to keep constraining the size.
 		const desktop = new SeqRenderer({ cols: 120, rows: 30 });
 		const phone = new SeqRenderer({ cols: 45, rows: 20 });
-		let probes = 0;
-		const probeSize = async (): Promise<string> => {
-			probes += 1;
-			const marker = `SIZE ${String(probes).padStart(3, "0")} `;
-			desktop.sendInput("size\n");
-			await desktop.waitVisible(marker);
-			await desktop.drain();
-			const line = visibleText(desktop.term)
-				.split("\n")
-				.find((text) => text.includes(marker));
-			assert.ok(line, `no size report for probe ${probes}`);
-			return line.slice(line.indexOf(marker) + marker.length).trim();
-		};
+		const probeSize = makeSizeProbe(desktop);
 
 		try {
 			await desktop.connect(terminalId);
@@ -1180,19 +1185,7 @@ test(
 		// A current build that goes half-open mid-session: the socket stays up
 		// from the host's point of view, but nothing ever comes back on it.
 		const phone = new SeqRenderer({ cols: 45, rows: 20 });
-		let probes = 0;
-		const probeSize = async (): Promise<string> => {
-			probes += 1;
-			const marker = `SIZE ${String(probes).padStart(3, "0")} `;
-			desktop.sendInput("size\n");
-			await desktop.waitVisible(marker);
-			await desktop.drain();
-			const line = visibleText(desktop.term)
-				.split("\n")
-				.find((text) => text.includes(marker));
-			assert.ok(line, `no size report for probe ${probes}`);
-			return line.slice(line.indexOf(marker) + marker.length).trim();
-		};
+		const probeSize = makeSizeProbe(desktop);
 
 		try {
 			await desktop.connect(terminalId);
@@ -1365,6 +1358,33 @@ test(
 				"a resize the client watched live is not a boundary for it",
 			);
 			await desktop.waitVisible("INPUT 000015");
+
+			// ── D: hidden without a resize is not withheld. Parking the wide
+			// desktop while the phone still sets the size changes nothing about
+			// the PTY, so the desktop keeps streaming — its scrollback must be
+			// whole when it comes back, however long it was away.
+			await phone.connect(terminalId);
+			await phone.waitSynced();
+			await sleep(400);
+			await quiesce(desktop);
+			const countedBeforePark = desktop.countedThisAttach;
+			desktop.sendVisible(false);
+			await sleep(400);
+			sendCommand(terminalId, "ticks 5");
+			await waitForTrackerText(terminalId, "INPUT 000020");
+			await desktop.waitVisible("INPUT 000020");
+			assert.ok(
+				desktop.countedThisAttach > countedBeforePark,
+				"a hidden client keeps receiving output while the PTY size holds",
+			);
+			desktop.sendVisible(true);
+			await sleep(400);
+			await desktop.drain();
+			assert.equal(
+				desktop.lastSynced?.mode,
+				"exact",
+				"a hidden client that stayed in step needs no resync on return",
+			);
 			desktop.assertNoReset("whole run");
 			phone.assertNoReset("whole run");
 		} finally {
@@ -1396,19 +1416,7 @@ test(
 
 		const desktop = new SeqRenderer({ cols: 120, rows: 30 });
 		const phone = new SeqRenderer({ cols: 45, rows: 20 });
-		let probes = 0;
-		const probeSize = async (): Promise<string> => {
-			probes += 1;
-			const marker = `SIZE ${String(probes).padStart(3, "0")} `;
-			desktop.sendInput("size\n");
-			await desktop.waitVisible(marker);
-			await desktop.drain();
-			const line = visibleText(desktop.term)
-				.split("\n")
-				.find((text) => text.includes(marker));
-			assert.ok(line, `no size report for probe ${probes}`);
-			return line.slice(line.indexOf(marker) + marker.length).trim();
-		};
+		const probeSize = makeSizeProbe(desktop);
 		const wasDropped = () =>
 			Promise.race([
 				phone.droppedByHost.then(() => true),

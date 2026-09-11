@@ -199,11 +199,11 @@ type TerminalClientMessage =
 	// Whether this client is actually showing the terminal right now — its pane
 	// is on screen and its app is foregrounded. Distinct from keyboard focus: a
 	// visible unfocused pane still has to render at the right size. Only visible
-	// clients constrain the PTY size or receive output: a hidden client is
-	// suspended or not drawn, so its bytes wait in the ring and it is resynced
-	// when it comes back (exactly, or by repaint if the PTY resized meanwhile).
-	// A client that never sends this counts as visible, so builds predating
-	// the message keep their existing behaviour.
+	// clients constrain the PTY size. A hidden client keeps receiving output
+	// until the PTY changes size; from then on the bytes are laid out for a
+	// width it does not have, so they are withheld and it is repainted when it
+	// comes back. A client that never sends this counts as visible, so builds
+	// predating the message keep their existing behaviour.
 	| { type: "visible"; visible: boolean }
 	// Answer to the host's `ping`. A client that has answered once and then
 	// goes silent is dropped, which is the only way a half-open socket (a phone
@@ -668,14 +668,15 @@ interface TerminalSession {
 	 */
 	clientDims: Map<TerminalSocket, { cols: number; rows: number }>;
 	/**
-	 * Sockets whose client said it is off screen, keyed to the stream position
-	 * when it left. Absence means visible, so a client that never sends the
-	 * message keeps constraining the size and receiving output as it always
-	 * has. Hidden clients are excluded from the minimum — a backgrounded phone
-	 * must not hold the PTY narrow for whoever is actually looking — and get
-	 * no output until they return, when they are resynced from that position.
+	 * Sockets whose client said it is off screen. Absence means visible, so a
+	 * client that never sends the message keeps constraining the size as it
+	 * always has. Hidden clients are excluded from the minimum — a backgrounded
+	 * phone must not hold the PTY narrow for whoever is actually looking. They
+	 * keep receiving output (null) until the PTY changes size, which records
+	 * the stream position where their copy diverged; from there they are
+	 * withheld and get a reanchor on return.
 	 */
-	hiddenSockets: Map<TerminalSocket, number>;
+	hiddenSockets: Map<TerminalSocket, number | null>;
 
 	/**
 	 * Tail of the in-flight follow-up send (writeFramedInputToSession).
@@ -1635,7 +1636,16 @@ function applyEffectiveDims(
 	if (!next) return;
 	const changed = next.cols !== session.cols || next.rows !== session.rows;
 	if (!changed && !options.force) return;
-	if (changed) session.lastResizeSeq = session.outputSeq;
+	if (changed) {
+		session.lastResizeSeq = session.outputSeq;
+		// Whatever follows is laid out for the new size; hidden clients still
+		// in step stop being so here.
+		for (const [socket, divergedAt] of session.hiddenSockets) {
+			if (divergedAt === null) {
+				session.hiddenSockets.set(socket, session.outputSeq);
+			}
+		}
+	}
 	session.resizeGeneration += 1;
 	session.pty.resize(next.cols, next.rows);
 	session.modeTracker.resize(next.cols, next.rows);
@@ -1656,39 +1666,15 @@ function releaseSocketDims(session: TerminalSession, ws: TerminalSocket) {
 }
 
 /**
- * A client back on screen after its output was withheld. If the PTY kept its
- * size and the gap is still in the ring, it gets exactly the bytes it missed.
- * Otherwise those bytes were laid out for another width (or are gone): it is
- * told its new position and nothing else, and the program repaints — the
- * resize its return causes delivers the SIGWINCH, or a nudge does when the
- * size does not move. A legacy client cannot be told where it is; it gets
- * the bytes or the repaint, which is all it can use anyway.
+ * A client back on screen after its output was withheld: the PTY changed
+ * size while it was away, so what it missed was laid out for a width it does
+ * not have. It is told its new position and nothing else, and the program
+ * repaints — the resize its return causes delivers the SIGWINCH, or a nudge
+ * does when the size does not move. A legacy client cannot be told where it
+ * is; the repaint is all it can use anyway.
  */
-function resumeHiddenSocket(
-	session: TerminalSession,
-	ws: TerminalSocket,
-	hiddenSince: number,
-) {
-	const seqAware = seqSockets.has(ws);
-	const exact =
-		hiddenSince > session.lastResizeSeq &&
-		hiddenSince >= session.retainedStartSeq;
-	if (exact) {
-		if (seqAware) {
-			sendMessage(ws, {
-				type: "synced",
-				epoch: session.epoch,
-				seq: hiddenSince,
-				mode: "exact",
-			});
-		}
-		if (hiddenSince < session.outputSeq) {
-			sendBytes(ws, readRetainedFrom(session, hiddenSince));
-		}
-		applyEffectiveDims(session);
-		return;
-	}
-	if (seqAware) {
+function resumeHiddenSocket(session: TerminalSession, ws: TerminalSocket) {
+	if (seqSockets.has(ws)) {
 		sendMessage(ws, {
 			type: "synced",
 			epoch: session.epoch,
@@ -1840,11 +1826,9 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 			}
 			continue;
 		}
-		// Off screen means suspended or not drawn: bytes sent now land in a
-		// buffer nobody is looking at, laid out for whatever width the PTY
-		// moved to once this client stopped constraining it. They wait in the
-		// ring; `visible` resyncs the client.
-		if (session.hiddenSockets.has(socket)) continue;
+		// A hidden client whose copy diverged at a resize: these bytes are laid
+		// out for a width it does not have. `visible` reanchors it.
+		if (typeof session.hiddenSockets.get(socket) === "number") continue;
 		// A renderer that can't keep up lets its send buffer grow without bound.
 		// Drop it past the cap rather than buffer forever; it reconnects and
 		// replays the tail. Returning this chunk as "not sent" routes it to the
@@ -3692,14 +3676,14 @@ export function registerWorkspaceTerminalRoute({
 
 					if (message.type === "visible") {
 						if (message.visible) {
-							const hiddenSince = session.hiddenSockets.get(ws);
+							const divergedAt = session.hiddenSockets.get(ws);
 							session.hiddenSockets.delete(ws);
-							if (hiddenSince !== undefined) {
-								resumeHiddenSocket(session, ws, hiddenSince);
+							if (typeof divergedAt === "number") {
+								resumeHiddenSocket(session, ws);
 								return;
 							}
 						} else if (!session.hiddenSockets.has(ws)) {
-							session.hiddenSockets.set(ws, session.outputSeq);
+							session.hiddenSockets.set(ws, null);
 						}
 						// Going hidden releases this client's size constraint;
 						// coming back re-imposes it.
