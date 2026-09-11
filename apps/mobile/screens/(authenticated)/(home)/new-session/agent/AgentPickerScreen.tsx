@@ -4,7 +4,6 @@ import { isCloudAgentId } from "@superset/shared/cloud-agent-launch";
 import { HOST_AGENT_PRESETS } from "@superset/shared/host-agent-presets";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
-import { useMemo } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
