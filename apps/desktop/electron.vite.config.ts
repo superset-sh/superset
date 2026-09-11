@@ -3,7 +3,6 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import reactPlugin from "@vitejs/plugin-react";
-import { codeInspectorPlugin } from "code-inspector-plugin";
 import { config } from "dotenv";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
@@ -258,12 +257,6 @@ export default defineConfig({
 			}),
 			tsconfigPaths,
 			tailwindcss(),
-			codeInspectorPlugin({
-				bundler: "vite",
-				hotKeys: ["altKey"],
-				hideConsole: true,
-				port: Number(process.env.CODE_INSPECTOR_PORT) || undefined,
-			}),
 			reactPlugin({
 				// Compiles @lingui/react/macro (Trans, useLingui) at build time.
 				babel: { plugins: ["@lingui/babel-plugin-lingui-macro"] },
