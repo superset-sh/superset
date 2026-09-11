@@ -3797,7 +3797,7 @@ msgid "Continue or fork session"
 msgstr "Continuar ou bifurcar a sessão"
 
 msgid "Continue the session the last run left"
-msgstr "Continuar a sessão deixada pela última execução"
+msgstr "Retomar a sessão da última execução"
 
 msgid "Continue update"
 msgstr "Continuar a atualização"
@@ -3819,7 +3819,7 @@ msgid "Continue with Google"
 msgstr "Continuar com o Google"
 
 msgid "Continuing an agent session requires a pinned workspace"
-msgstr "Continuar uma sessão de agente exige um workspace fixado"
+msgstr "Continuar uma sessão de agente exige uma área de trabalho fixada"
 
 msgid "continuing the last session"
 msgstr "continuando a última sessão"
@@ -10725,7 +10725,7 @@ msgid "Pin"
 msgstr "Fixar"
 
 msgid "Pin a workspace to continue its agent session between runs"
-msgstr "Fixe um workspace para continuar sua sessão de agente entre execuções"
+msgstr "Fixe uma área de trabalho para continuar sua sessão de agente entre execuções"
 
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Fixe áreas de trabalho acima dos seus projetos e depois ⌘-clique em um lote para mover, agrupar ou excluir tudo de uma vez."
@@ -14650,7 +14650,7 @@ msgid "The workspace may still have been created. This screen opens it if it app
 msgstr "A área de trabalho pode ter sido criada mesmo assim. Esta tela a abre se ela aparecer."
 
 msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
-msgstr "O workspace ao qual esta automação está fixada não existe mais no host dela. Fixe outro nas configurações da automação."
+msgstr "A área de trabalho fixada para esta automação não existe mais no host correspondente. Fixe outra nas configurações da automação."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "A worktree e as alterações sem commit serão removidas. Não dá para desfazer."

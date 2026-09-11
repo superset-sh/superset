@@ -3819,7 +3819,7 @@ msgid "Continue with Google"
 msgstr "Googleで続行"
 
 msgid "Continuing an agent session requires a pinned workspace"
-msgstr "エージェントセッションを継続するには、ワークスペースを固定する必要があります"
+msgstr "エージェントセッションを継続するには、ワークスペースをピン留めする必要があります"
 
 msgid "continuing the last session"
 msgstr "前回のセッションを継続"
@@ -10725,7 +10725,7 @@ msgid "Pin"
 msgstr "ピン留め"
 
 msgid "Pin a workspace to continue its agent session between runs"
-msgstr "実行間でエージェントセッションを継続するには、ワークスペースを固定してください"
+msgstr "実行間でエージェントセッションを継続するには、ワークスペースをピン留めしてください"
 
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "ワークスペースをプロジェクトの上にピン留めし、⌘クリックでまとめて選んで移動、グループ化、削除ができます。"
@@ -14650,7 +14650,7 @@ msgid "The workspace may still have been created. This screen opens it if it app
 msgstr "ワークスペースは作成されている可能性があります。表示された場合、この画面で開きます。"
 
 msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
-msgstr "このオートメーションが固定されているワークスペースは、ホスト上に存在しなくなりました。オートメーションの設定で別のワークスペースを固定してください。"
+msgstr "このオートメーションがピン留めされているワークスペースは、ホスト上に存在しなくなりました。オートメーションの設定で別のワークスペースをピン留めしてください。"
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "ワークツリーと未コミットの変更が削除されます。この操作は元に戻せません。"

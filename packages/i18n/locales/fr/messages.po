@@ -14708,7 +14708,7 @@ msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "Cette automatisation appartient à {0}. Basculez vers cette organisation pour l'ouvrir."
 
 msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
-msgstr "Cette automatisation n'a pas encore d'instructions. Rédigez une invite dans ses paramètres avant de l'exécuter."
+msgstr "Cette automatisation n'a pas encore d'instructions. Rédigez un prompt dans ses paramètres avant de l'exécuter."
 
 msgid "This automation is in another organization"
 msgstr "Cette automatisation se trouve dans une autre organisation"

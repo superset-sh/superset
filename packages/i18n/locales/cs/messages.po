@@ -14650,7 +14650,7 @@ msgid "The workspace may still have been created. This screen opens it if it app
 msgstr "Pracovní prostor mohl přesto vzniknout. Tato obrazovka ho otevře, jakmile se objeví."
 
 msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
-msgstr "Pracovní prostor, ke kterému je tato automatizace připnutá, na jejím hostiteli už neexistuje. Připněte v nastavení automatizace jiný."
+msgstr "Pracovní prostor, ke kterému je tato automatizace připnutá, na jeho hostiteli už neexistuje. Připněte v nastavení automatizace jiný."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree a všechny necommitnuté změny budou odstraněny. Tuto akci nelze vrátit zpět."

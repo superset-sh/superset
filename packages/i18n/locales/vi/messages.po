@@ -3819,7 +3819,7 @@ msgid "Continue with Google"
 msgstr "Tiếp tục với Google"
 
 msgid "Continuing an agent session requires a pinned workspace"
-msgstr "Tiếp tục phiên tác nhân yêu cầu một không gian làm việc đã ghim"
+msgstr "Để tiếp tục phiên agent, cần ghim một workspace"
 
 msgid "continuing the last session"
 msgstr "tiếp tục phiên gần nhất"
@@ -10725,7 +10725,7 @@ msgid "Pin"
 msgstr "Ghim"
 
 msgid "Pin a workspace to continue its agent session between runs"
-msgstr "Ghim một không gian làm việc để tiếp tục phiên tác nhân giữa các lần chạy"
+msgstr "Ghim một workspace để tiếp tục phiên agent giữa các lần chạy"
 
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Ghim workspace lên trên các dự án, rồi ⌘-nhấp một loạt để chuyển, gom nhóm hoặc xóa tất cả cùng lúc."
@@ -13625,7 +13625,7 @@ msgid "Start a fresh agent session seeded with this terminal's recent context. W
 msgstr "Bắt đầu một phiên agent mới với ngữ cảnh gần đây của terminal này. Tệp trong workspace vẫn là nguồn đáng tin cậy."
 
 msgid "Start a new agent session each run"
-msgstr "Bắt đầu phiên tác nhân mới mỗi lần chạy"
+msgstr "Bắt đầu một phiên agent mới mỗi lần chạy"
 
 msgid "Start a session"
 msgstr "Bắt đầu một phiên"
@@ -14650,7 +14650,7 @@ msgid "The workspace may still have been created. This screen opens it if it app
 msgstr "Workspace vẫn có thể đã được tạo. Màn hình này sẽ mở nó nếu xuất hiện."
 
 msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
-msgstr "Không gian làm việc mà tự động hóa này ghim vào không còn tồn tại trên máy chủ của nó. Hãy ghim một không gian khác trong cài đặt của tự động hóa."
+msgstr "Workspace mà tự động hóa này ghim vào không còn tồn tại trên host của nó. Hãy ghim workspace khác trong cài đặt của tự động hóa."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Worktree và mọi thay đổi chưa commit sẽ bị gỡ. Không thể hoàn tác."

@@ -3819,7 +3819,7 @@ msgid "Continue with Google"
 msgstr "Continua con Google"
 
 msgid "Continuing an agent session requires a pinned workspace"
-msgstr "Continuare una sessione di agente richiede uno spazio di lavoro bloccato"
+msgstr "Continuare una sessione dell'agente richiede un workspace fissato"
 
 msgid "continuing the last session"
 msgstr "continuando l'ultima sessione"
@@ -10725,7 +10725,7 @@ msgid "Pin"
 msgstr "Fissa"
 
 msgid "Pin a workspace to continue its agent session between runs"
-msgstr "Blocca uno spazio di lavoro per continuarne la sessione di agente tra le esecuzioni"
+msgstr "Fissa un workspace per continuare la sessione dell'agente tra le esecuzioni"
 
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Fissa i workspace sopra i tuoi progetti, poi seleziona un gruppo con ⌘-clic per spostarli, raggrupparli o eliminarli tutti insieme."
@@ -14650,7 +14650,7 @@ msgid "The workspace may still have been created. This screen opens it if it app
 msgstr "Il workspace potrebbe essere stato creato comunque. Questa schermata lo apre se compare."
 
 msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
-msgstr "Lo spazio di lavoro a cui è bloccata questa automazione non esiste più sul suo host. Bloccane un altro nelle impostazioni dell'automazione."
+msgstr "Il workspace a cui è fissata questa automazione non esiste più sul suo host. Fissa un altro workspace nelle impostazioni dell'automazione."
 
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "Il worktree e le eventuali modifiche non committate verranno rimossi. L'operazione non può essere annullata."

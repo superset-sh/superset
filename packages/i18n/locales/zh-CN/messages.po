@@ -3819,7 +3819,7 @@ msgid "Continue with Google"
 msgstr "使用Google继续"
 
 msgid "Continuing an agent session requires a pinned workspace"
-msgstr "继续代理会话需要固定的工作区"
+msgstr "继续智能体会话需要固定的工作区"
 
 msgid "continuing the last session"
 msgstr "继续上一个会话"

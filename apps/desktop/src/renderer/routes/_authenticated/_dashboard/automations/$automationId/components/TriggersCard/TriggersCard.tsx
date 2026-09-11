@@ -123,7 +123,11 @@ export function TriggersCard({
 							onScopeChange(
 								v2ProjectId === scope.v2ProjectId
 									? { v2ProjectId }
-									: { v2ProjectId, v2WorkspaceId: null },
+									: {
+											v2ProjectId,
+											v2WorkspaceId: null,
+											continueAgentSession: false,
+										},
 							)
 						}
 					/>
@@ -137,7 +141,11 @@ export function TriggersCard({
 							onScopeChange(
 								nextHostId === scope.targetHostId
 									? { targetHostId: nextHostId }
-									: { targetHostId: nextHostId, v2WorkspaceId: null },
+									: {
+											targetHostId: nextHostId,
+											v2WorkspaceId: null,
+											continueAgentSession: false,
+										},
 							)
 						}
 					/>
@@ -151,6 +159,7 @@ export function TriggersCard({
 						onChange={(v2WorkspaceId) =>
 							onScopeChange({
 								v2WorkspaceId,
+								...(v2WorkspaceId ? {} : { continueAgentSession: false }),
 								// Denormalized pin: the cloud stores both without a registry lookup.
 								...(v2WorkspaceId && hostId
 									? {

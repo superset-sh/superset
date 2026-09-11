@@ -677,7 +677,9 @@ async function continueTerminalAgent(
 	const sent = await writeFramedInputToSession({
 		terminalId: target.terminalId,
 		workspaceId: input.workspaceId,
-		text: input.prompt,
+		// The prompt embeds third-party content (an email body, a PR title); a
+		// paste-end sequence inside it would close the frame and inject keys.
+		text: sanitizePromptForPty(input.prompt),
 		submit: true,
 		db: ctx.db,
 		eventBus: ctx.eventBus,

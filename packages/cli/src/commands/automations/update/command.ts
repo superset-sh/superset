@@ -47,6 +47,15 @@ export default command({
 			);
 		}
 
+		// Ahead of every mutation: `setEnabled` runs before the update, and a
+		// combination the server will refuse must not flip `enabled` first.
+		if (options.session && options.continueSession) {
+			throw new CLIError(
+				"--continue-session requires a pinned workspace",
+				"Session mode has none; drop --session or pass --no-continue-session",
+			);
+		}
+
 		if (options.enabled !== undefined) {
 			await ctx.api.automation.setEnabled.mutate({
 				id,

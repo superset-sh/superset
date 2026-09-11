@@ -3822,7 +3822,7 @@ msgid "Continuing an agent session requires a pinned workspace"
 msgstr "Das Fortsetzen einer Agent-Sitzung erfordert einen angehefteten Workspace"
 
 msgid "continuing the last session"
-msgstr "die letzte Sitzung fortsetzend"
+msgstr "Fortsetzung der letzten Sitzung"
 
 msgid "Contributions"
 msgstr "Beiträge"
