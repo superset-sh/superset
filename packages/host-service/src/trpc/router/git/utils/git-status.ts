@@ -11,6 +11,8 @@ import {
 	resolveBaseComparison,
 } from "./git-helpers";
 
+const MAX_UNTRACKED_STAT_FILES = 5_000;
+
 export interface GitStatusSnapshot {
 	currentBranch: Branch;
 	defaultBranch: Branch;
@@ -18,6 +20,7 @@ export interface GitStatusSnapshot {
 	staged: ChangedFile[];
 	unstaged: ChangedFile[];
 	ignoredPaths: string[];
+	untrackedStatsOmitted: boolean;
 }
 
 export interface GitStatusSnapshotComputation {
@@ -177,15 +180,20 @@ export async function getGitStatusSnapshot({
 			});
 		}
 	}
-	await countUntrackedFileLines(worktreePath, untrackedFiles);
+	const untrackedStatsOmitted = untrackedFiles.length > MAX_UNTRACKED_STAT_FILES;
+	if (!untrackedStatsOmitted) {
+		await countUntrackedFileLines(worktreePath, untrackedFiles);
+	}
 
 	const hasDeletions = unstaged.some((file) => file.status === "deleted");
-	const renames = await detectUnstagedRenames(
-		git,
-		worktreePath,
-		untrackedFiles.map((file) => file.path),
-		hasDeletions,
-	);
+	const renames = untrackedStatsOmitted
+		? []
+		: await detectUnstagedRenames(
+				git,
+				worktreePath,
+				untrackedFiles.map((file) => file.path),
+				hasDeletions,
+			);
 
 	let mergedUnstaged = unstaged;
 	if (renames.length > 0) {
@@ -222,6 +230,7 @@ export async function getGitStatusSnapshot({
 			staged,
 			unstaged: mergedUnstaged,
 			ignoredPaths,
+			untrackedStatsOmitted,
 		},
 		baseRefFetchTarget: base?.fetchTarget ?? null,
 	};
