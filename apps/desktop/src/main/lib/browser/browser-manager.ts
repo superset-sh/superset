@@ -1195,27 +1195,43 @@ class BrowserManager extends EventEmitter {
 	 */
 	private setupFocusForward(paneId: string, wc: Electron.WebContents): void {
 		let cancelled = false;
-		this.focusListeners.set(paneId, () => {
-			cancelled = true;
-		});
-
-		const loop = async (): Promise<void> => {
-			while (!cancelled) {
+		// Bumped on every main-frame document. A navigation does not reject
+		// the executeJavaScript that was awaiting a mousedown in the old
+		// document — that promise simply never settles — so a loop tied to the
+		// old generation can never notice on its own. dom-ready starts a fresh
+		// loop for the new document; the stale one exits at its next check and
+		// a late resolution from it is dropped rather than emitted.
+		let generation = 0;
+		const loop = async (gen: number): Promise<void> => {
+			while (!cancelled && gen === generation) {
 				if (wc.isDestroyed()) return;
 				try {
 					await wc.executeJavaScript(NEXT_MOUSEDOWN_SCRIPT);
 				} catch {
-					// A navigation/reload tore down the document the script was
-					// waiting in — the guest itself is still alive, so re-arm into
-					// whatever document is there now instead of giving up for the
-					// rest of the pane's life.
+					// Script failed to run (mid-navigation, crashed renderer):
+					// retry, but not in a hot spin.
+					await new Promise((resolve) => setTimeout(resolve, 100));
 					continue;
 				}
-				if (cancelled) return;
+				if (cancelled || gen !== generation) return;
 				this.emit(`pane-focus:${paneId}`);
 			}
 		};
-		void loop();
+		const rearm = (): void => {
+			generation += 1;
+			void loop(generation);
+		};
+
+		wc.on("dom-ready", rearm);
+		this.focusListeners.set(paneId, () => {
+			cancelled = true;
+			try {
+				wc.off("dom-ready", rearm);
+			} catch {
+				// webContents may be destroyed
+			}
+		});
+		void loop(generation);
 	}
 
 	private setupConsoleCapture(paneId: string, wc: Electron.WebContents): void {
