@@ -1103,6 +1103,9 @@ msgstr "10 minuti"
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ flussi di lavoro simultanei senza perdere il filo"
 
+msgid "100% (retain everything)"
+msgstr "100% (trattenere tutto)"
+
 msgid "15 minutes"
 msgstr "15 minuti"
 
@@ -8683,6 +8686,12 @@ msgstr "Mensile"
 msgid "Monthly at {time}"
 msgstr "Ogni mese alle {time}"
 
+msgid "monthly NRR"
+msgstr "NRR mensile"
+
+msgid "monthly NRR (month so far)"
+msgstr "NRR mensile (mese in corso finora)"
+
 msgid "Monthly on {day}"
 msgstr "Ogni mese il {day}"
 
@@ -9712,12 +9721,6 @@ msgstr "Ora è in esecuzione {0} (prima {1}). Tutte le sessioni sono state chius
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "Ora abbiamo raccolto <0>11 milioni di dollari</0> dai migliori investitori della Silicon Valley per costruire la piattaforma per le fabbriche di software."
-
-msgid "NRR"
-msgstr "NRR"
-
-msgid "NRR (month so far)"
-msgstr "NRR (mese in corso finora)"
 
 msgid "Numbered list"
 msgstr "Elenco numerato"

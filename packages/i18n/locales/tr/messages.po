@@ -1103,6 +1103,9 @@ msgstr "10 dakika"
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "Durum kaybı olmadan 10+ eşzamanlı iş akışı"
 
+msgid "100% (retain everything)"
+msgstr "%100 (her şeyi elde tutma)"
+
 msgid "15 minutes"
 msgstr "15 dakika"
 
@@ -8683,6 +8686,12 @@ msgstr "Aylık"
 msgid "Monthly at {time}"
 msgstr "Her ay saat {time}"
 
+msgid "monthly NRR"
+msgstr "aylık NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "aylık NRR (bu ay şimdiye kadar)"
+
 msgid "Monthly on {day}"
 msgstr "Her ay {day}"
 
@@ -9712,12 +9721,6 @@ msgstr "Şimdi {0} çalışıyor (önceki: {1}). Tüm oturumlar kapatıldı."
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "Şimdi, yazılım fabrikaları için platformu kurmak üzere Silikon Vadisi'nin en iyi yatırımcılarından <0>11 milyon dolar</0> topladık."
-
-msgid "NRR"
-msgstr "NRR"
-
-msgid "NRR (month so far)"
-msgstr "NRR (bu ay şimdiye kadar)"
 
 msgid "Numbered list"
 msgstr "Numaralı liste"

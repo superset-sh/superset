@@ -1103,6 +1103,9 @@ msgstr "10分"
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "状態を取りこぼさない10以上の並行ワークストリーム"
 
+msgid "100% (retain everything)"
+msgstr "100%（全て維持）"
+
 msgid "15 minutes"
 msgstr "15分"
 
@@ -8683,6 +8686,12 @@ msgstr "月払い"
 msgid "Monthly at {time}"
 msgstr "毎月 {time}"
 
+msgid "monthly NRR"
+msgstr "月次NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "月次NRR（今月の途中経過）"
+
 msgid "Monthly on {day}"
 msgstr "毎月{day}"
 
@@ -9712,12 +9721,6 @@ msgstr "現在{0}が動作しています(以前は{1})。すべてのセッシ�
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "そしていま、ソフトウェア工場のためのプラットフォームを作るべく、シリコンバレーの一流投資家から<0>1,100万ドル</0>を調達しました。"
-
-msgid "NRR"
-msgstr "NRR"
-
-msgid "NRR (month so far)"
-msgstr "NRR（今月の途中経過）"
 
 msgid "Numbered list"
 msgstr "番号付きリスト"

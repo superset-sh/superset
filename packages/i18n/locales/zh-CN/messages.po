@@ -1103,6 +1103,9 @@ msgstr "10分钟"
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10条以上并行工作流且不丢状态"
 
+msgid "100% (retain everything)"
+msgstr "100%（全部留存）"
+
 msgid "15 minutes"
 msgstr "15分钟"
 
@@ -8683,6 +8686,12 @@ msgstr "按月"
 msgid "Monthly at {time}"
 msgstr "每月{time}"
 
+msgid "monthly NRR"
+msgstr "月度 NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "月度 NRR（本月至今）"
+
 msgid "Monthly on {day}"
 msgstr "每月{day}"
 
@@ -9712,12 +9721,6 @@ msgstr "当前运行{0}（之前是{1}）。所有会话已关闭。"
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "如今，我们已从硅谷最好的投资人那里融资<0>1100万美元</0>，用来打造软件工厂的平台。"
-
-msgid "NRR"
-msgstr "NRR"
-
-msgid "NRR (month so far)"
-msgstr "NRR（本月至今）"
 
 msgid "Numbered list"
 msgstr "编号列表"

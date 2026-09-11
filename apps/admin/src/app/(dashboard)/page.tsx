@@ -36,6 +36,7 @@ import { TileLayoutProvider } from "./providers/TileLayoutProvider";
 // height — a row is as tall as its tallest tile, so a short tile beside a
 // tall one leaves a hole under it.
 const CHART_H = 4;
+const TALL_CHART_H = 6;
 const LIST_H = 3;
 const TABLE_H = 6;
 const FUNNEL_H = 4;
@@ -139,7 +140,7 @@ export default function DashboardPage() {
 							}
 							tiles={[
 								{ key: "mrr", node: <MrrTile />, w: FULL_W, h: CHART_H },
-								{ key: "nrr", node: <NrrTile />, w: FULL_W, h: CHART_H },
+								{ key: "nrr", node: <NrrTile />, w: FULL_W, h: TALL_CHART_H },
 								{
 									key: "dau",
 									node: <TrendSeriesTile {...DAU_PROPS} />,

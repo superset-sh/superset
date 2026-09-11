@@ -30,11 +30,11 @@ export function NrrTile() {
 	const trpc = useTRPC();
 	const chartConfig = {
 		nrrPct: {
-			label: t({ message: "NRR" }),
+			label: t({ message: "monthly NRR" }),
 			color: "var(--chart-1)",
 		},
 		nrrPctPartial: {
-			label: t({ message: "NRR (month so far)" }),
+			label: t({ message: "monthly NRR (month so far)" }),
 			color: "var(--chart-1)",
 		},
 	} satisfies ChartConfig;
@@ -137,13 +137,20 @@ export function NrrTile() {
 							tickLine={false}
 							axisLine={false}
 							width={44}
-							domain={["auto", "auto"]}
+							domain={[0, "auto"]}
 							tickFormatter={(v: number) => `${v}%`}
 						/>
 						<ReferenceLine
 							y={100}
 							stroke="var(--muted-foreground)"
 							strokeDasharray="3 3"
+							label={{
+								value: t({ message: "100% (retain everything)" }),
+								position: "insideBottomRight",
+								offset: 8,
+								fill: "var(--muted-foreground)",
+								fontSize: 11,
+							}}
 						/>
 						<ChartTooltip content={<NrrTooltip />} />
 						<Line

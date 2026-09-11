@@ -1103,6 +1103,9 @@ msgstr "10분"
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "상태 유실 없이 동시 작업 흐름 10개 이상"
 
+msgid "100% (retain everything)"
+msgstr "100% (전부 유지)"
+
 msgid "15 minutes"
 msgstr "15분"
 
@@ -8683,6 +8686,12 @@ msgstr "월간"
 msgid "Monthly at {time}"
 msgstr "매월 {time}"
 
+msgid "monthly NRR"
+msgstr "월간 NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "월간 NRR (이번 달 현재까지)"
+
 msgid "Monthly on {day}"
 msgstr "매월 {day}"
 
@@ -9712,12 +9721,6 @@ msgstr "이제 {0}을(를) 실행합니다(이전 {1}). 모든 세션이 닫혔�
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "이제 소프트웨어 공장을 위한 플랫폼을 만들기 위해 실리콘밸리 최고의 투자자들로부터 <0>1,100만 달러</0>를 투자받았습니다."
-
-msgid "NRR"
-msgstr "NRR"
-
-msgid "NRR (month so far)"
-msgstr "NRR (이번 달 현재까지)"
 
 msgid "Numbered list"
 msgstr "번호 매기기 목록"

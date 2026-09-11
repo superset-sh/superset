@@ -1103,6 +1103,9 @@ msgstr "10 menit"
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ alur kerja bersamaan tanpa kehilangan konteks"
 
+msgid "100% (retain everything)"
+msgstr "100% (mempertahankan semua)"
+
 msgid "15 minutes"
 msgstr "15 menit"
 
@@ -8683,6 +8686,12 @@ msgstr "Bulanan"
 msgid "Monthly at {time}"
 msgstr "Bulanan pukul {time}"
 
+msgid "monthly NRR"
+msgstr "NRR bulanan"
+
+msgid "monthly NRR (month so far)"
+msgstr "NRR bulanan (bulan ini sejauh ini)"
+
 msgid "Monthly on {day}"
 msgstr "Bulanan pada tanggal {day}"
 
@@ -9712,12 +9721,6 @@ msgstr "Kini menjalankan {0} (sebelumnya {1}). Semua sesi ditutup."
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "Kini, kami telah menggalang <0>$11 juta</0> dari investor terbaik di Silicon Valley untuk membangun platform bagi pabrik perangkat lunak."
-
-msgid "NRR"
-msgstr "NRR"
-
-msgid "NRR (month so far)"
-msgstr "NRR (bulan ini sejauh ini)"
 
 msgid "Numbered list"
 msgstr "Daftar bernomor"

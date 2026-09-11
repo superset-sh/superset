@@ -1103,6 +1103,9 @@ msgstr "10 phút"
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ luồng công việc đồng thời mà không rớt trạng thái"
 
+msgid "100% (retain everything)"
+msgstr "100% (giữ toàn bộ)"
+
 msgid "15 minutes"
 msgstr "15 phút"
 
@@ -8683,6 +8686,12 @@ msgstr "Hằng tháng"
 msgid "Monthly at {time}"
 msgstr "Hằng tháng lúc {time}"
 
+msgid "monthly NRR"
+msgstr "NRR hàng tháng"
+
+msgid "monthly NRR (month so far)"
+msgstr "NRR hàng tháng (tháng này đến nay)"
+
 msgid "Monthly on {day}"
 msgstr "Hằng tháng vào {day}"
 
@@ -9712,12 +9721,6 @@ msgstr "Hiện đang chạy {0} (trước là {1}). Mọi phiên đã bị đón
 
 msgid "Now, we've raised <0>$11M</0> from the best investors in Silicon Valley to build the platform for software factories."
 msgstr "Giờ đây, chúng tôi đã gọi được <0>11 triệu USD</0> từ những nhà đầu tư tốt nhất Thung lũng Silicon để xây nền tảng cho các nhà máy phần mềm."
-
-msgid "NRR"
-msgstr "NRR"
-
-msgid "NRR (month so far)"
-msgstr "NRR (tháng này đến nay)"
 
 msgid "Numbered list"
 msgstr "Danh sách đánh số"
