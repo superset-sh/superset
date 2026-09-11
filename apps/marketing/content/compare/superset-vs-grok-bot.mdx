@@ -1,0 +1,111 @@
+---
+title: "Superset vs Grok Bot (2026): Agent Workspace vs Always-On Cloud Teammates"
+description: "Compare Superset and xAI's Grok Bot. A local-first workspace for running any coding agent in parallel Git worktrees vs always-on computer-use teammates on Cursor-hosted cloud computers."
+date: 2026-09-11
+lastUpdated: 2026-09-11
+type: "1v1"
+competitors:
+  - grok-bot
+keywords:
+  - superset vs grok bot
+  - grok bot alternative
+  - grok bot vs superset
+  - xai grok bot
+  - grok build alternative
+  - always-on ai agents
+  - parallel coding agents
+---
+
+Superset and Grok Bot both promise agents that keep working after you walk away, but they are different kinds of product. Superset is a local-first workspace for software engineering: it runs Claude Code, Codex, Grok Build, and any other CLI agent in parallel Git worktrees on machines you own, with diff review, pull requests, a browser, automations, and Remote Access so workspaces keep running when your laptop sleeps. Grok Bot, launched in beta by xAI in August 2026, is a team of general-purpose "always-on" AI teammates that each get their own persistent cloud computer, work inside apps the way a person would, and run on Cursor-hosted infrastructure with Cursor choosing the model.
+
+If you were looking for xAI's coding agent, that is Grok Build, a separate open-source CLI, and Superset runs it as one of its built-in agents. The [FAQ](#is-grok-bot-the-same-as-grok-build) covers the difference.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Grok Bot** |
+|---|---|---|
+| **What it does** | Runs 100+ AI coding agents in parallel with Git worktree isolation, chat, review, and browser | Always-on AI teammates with their own cloud computer that work inside tools and apps 24/7 |
+| **Category** | Local-first agent workspace with remote hosts | Cloud computer-use agents (beta) |
+| **Where agents run** | Your machine, or any machine you add as a host | Cursor-hosted cloud computers only, one Firecracker microVM per user, US-only |
+| **Agent and model choice** | Any CLI agent on your own subscription or keys (Claude Code, Codex, Cursor Agent, OpenCode, Gemini CLI, Copilot, Grok Build, Kimi Code, Mistral Vibe, Amp, and more) | Cursor manages model selection; no customer-facing model picker |
+| **Focus** | Software engineering: worktrees, diffs, PRs, CI, dev servers | General work: sales, recruiting, ops, and some engineering triage |
+| **Isolation** | Git worktree per workspace on your own repos | Persistent cloud VM per user |
+| **Clients** | macOS desktop (experimental Linux; Windows planned), CLI, MCP server | macOS, Windows, and Linux desktop app; iOS and Android apps |
+| **Automation** | Scheduled automations, CLI, TypeScript SDK, MCP server, Slack bot | Agents run continuously on their own computer |
+| **Pricing** | Free tier; Pro $20 per user per month; Enterprise custom | Bundled with eligible SuperGrok and Cursor plans with weekly usage included; on-demand usage add-on; no standalone price published |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, Cursor Agent, OpenCode, Gemini CLI, GitHub Copilot, Grok Build, Kimi Code, Mistral Vibe, Amp, and any other CLI agent inside isolated Git worktrees with persistent terminal sessions, on your own subscriptions and keys, and never proxies model calls. Around that core it adds a Changes pane that commits, pushes, and opens PRs, a Pull Requests view with CI checks and line comments you can send to agents, a chat panel, an in-app browser with port detection and Design Mode, and an MCP server so agents and tools can create workspaces and launch agents. Remote Access adds any machine as a host so workspaces keep running when your laptop sleeps, and scheduled automations, a CLI, a TypeScript SDK, and a Slack bot cover unattended work. Source-available under Elastic License 2.0 (ELv2), with a free tier, Pro, and an enterprise tier with SAML SSO, SCIM, audit logs, and a SOC 2 Type II report.
+
+## What Is Grok Bot?
+
+Grok Bot is xAI's product for "durable AI teammates on a persistent cloud computer." Announced August 11, 2026 and in beta, each bot gets its own always-on computer, works inside tools and apps like a person would, and keeps going around the clock; xAI's pitch contrasts assistants that get work "90% done" with teammates that finish it. The bots run only on Cursor-hosted cloud computers, in a Firecracker microVM per user, with Cursor managing model selection, and the service is US-only during the beta. It ships as a desktop app for macOS, Windows, and Linux plus iOS and Android apps. Access is bundled with eligible SuperGrok and Cursor plans, with weekly usage included and on-demand usage billed from model and token cost; as of late August Grok Bot usage is metered separately from your Grok and Cursor plans, and in early September xAI extended it to Grok and Cursor Enterprise customers. xAI's own FAQ notes it is not the same as Grok on grok.com or the Grok mobile apps.
+
+## Key Differences
+
+### Your Machines vs Their Cloud
+
+Superset's agents run on your laptop, your desktop, or any machine you add as a host, against your real repositories, services, and dependencies, with your existing agent subscriptions. Grok Bot's agents run exclusively on Cursor-hosted cloud computers you do not control, with no model picker and, during the beta, US-only availability. That is the deepest split: Superset is infrastructure you own, Grok Bot is a managed service.
+
+### Engineering Loop vs General Work
+
+Superset is built around the software loop: a worktree per task, diffs, commit, push, and PR from the Changes pane, CI checks, line comments back to the agent, dev servers in an in-app browser. Grok Bot is a general-purpose computer-use teammate whose documented use cases lean toward sales, recruiting, and operations, with engineering triage as one case among many. If the work is code, Superset gives the agent the surface it needs; if the work is a browser and a dozen SaaS tabs, Grok Bot is aimed at it.
+
+### Any Agent vs One Vendor's Stack
+
+Superset is agent-agnostic. Claude Code, Codex, Grok Build, and any other CLI agent run side by side, and you can continue a session with a different agent. Grok Bot is a single product on Cursor's infrastructure with Cursor's model choice. Notably, xAI's own coding agent, Grok Build, is one of Superset's built-in agents, so you can run Grok for code inside Superset without committing to Grok Bot.
+
+### Always-On, Two Ways
+
+Grok Bot's answer to "keep working while I'm away" is a persistent cloud VM per user. Superset's answer is Remote Access: add a machine as a host and workspaces keep running when your laptop sleeps, plus scheduled automations that run agent sessions on a device you choose and a Slack bot that dispatches work from a mention. Both deliver unattended work; Superset does it on hardware you pick.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20 per user per month, or $15 per user per month billed yearly, with an enterprise tier on custom billing. Grok Bot has no standalone price as of September 2026: xAI's docs say availability and billing depend on the account and plan, eligible plans include SuperGrok Plus, SuperGrok Heavy, Cursor Pro+, Cursor Ultra, and Cursor Teams, subscriptions include weekly usage, and eligible accounts can add on-demand usage billed from model and token cost. Superset is bring-your-own-agent for model costs.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want agents working on your code, on machines you control, with your own subscriptions
+- Run several different agents in parallel and switch between them
+- Need diff review, pull requests, CI checks, and a browser in the loop
+- Want scheduled automations, an MCP server, and a Slack bot backed by a team and enterprise plan
+
+**Choose Grok Bot if you:**
+
+- Want always-on teammates for non-engineering work like sales, recruiting, and ops
+- Are already on an eligible SuperGrok or Cursor plan
+- Are fine with agents running only on Cursor-hosted cloud computers with no model choice
+- Are in the US and comfortable with a beta
+
+**Verdict:** These products mostly do not compete. Grok Bot is an always-on, general-purpose computer-use teammate on a managed cloud; Superset is an engineering workspace that runs any coding agent, Grok Build included, in parallel worktrees on your own hardware. Developers who searched for a Grok Bot alternative because they want Grok on their code should look at Grok Build inside Superset. Teams that want unattended agent work on infrastructure they control should look at Superset's Remote Access and automations.
+
+---
+
+## Frequently Asked Questions
+
+### Is Grok Bot the same as Grok Build?
+
+No. Grok Bot is xAI's always-on computer-use teammate product on Cursor-hosted cloud computers, launched in beta in August 2026. Grok Build is xAI's open-source, Apache-2.0 coding agent CLI for macOS, Linux, and Windows, with Git worktree isolation, an agent dashboard, subagents, and MCP support. Superset runs Grok Build as a built-in agent.
+
+### Can I run Grok in Superset?
+
+Yes. Grok Build is one of Superset's built-in agent presets, running on your SuperGrok or X Premium+ subscription or an xAI API key, in an isolated worktree alongside Claude Code, Codex, and any other CLI agent.
+
+### Does Grok Bot run on my computer?
+
+No. Grok Bot runs only on Cursor-hosted cloud computers, in a Firecracker microVM per user, and Cursor manages model selection. Superset runs agents on your own machine or on any machine you add as a host through Remote Access.
+
+### Is Grok Bot free?
+
+Grok Bot has no standalone price. It is bundled with eligible SuperGrok and Cursor plans with weekly usage included, and eligible accounts can add on-demand usage billed from model and token cost. Superset has a free tier and Pro at $20 per user per month.

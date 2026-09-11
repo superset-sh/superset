@@ -1,0 +1,101 @@
+---
+title: "Best Grok Bot Alternatives in 2026"
+description: "The best alternatives to xAI's Grok Bot for always-on AI agents, including Superset, Grok Build, Paseo, Herdr, and Conductor, from local-first workspaces to cloud sandboxes."
+date: 2026-09-11
+lastUpdated: 2026-09-11
+type: "roundup"
+competitors:
+  - grok-bot
+  - grok-build
+  - paseo
+  - herdr
+  - conductor
+keywords:
+  - grok bot alternative
+  - grok bot alternatives
+  - grok bot competitors
+  - xai grok bot
+  - grok build alternative
+  - always-on coding agents
+  - run coding agents on your own machine
+---
+
+Grok Bot is xAI's beta of "always-on" AI teammates: each bot gets a persistent cloud computer, works inside tools and apps like a person, and keeps going around the clock. It runs only on Cursor-hosted cloud computers, Cursor picks the model, it is US-only during the beta, and access is bundled with eligible SuperGrok and Cursor plans rather than sold on its own. If you want agents that keep working when you close the laptop but on your own hardware, with your own choice of agent and model, or aimed squarely at code, here are the best Grok Bot alternatives in 2026.
+
+One note before the list: Grok Bot is not xAI's coding agent. That is Grok Build, a separate open-source CLI, and it appears below because many people searching for a Grok Bot alternative actually want Grok on their code.
+
+---
+
+## The Short Version
+
+| Alternative | Best for | Where agents run | License |
+|---|---|---|---|
+| **Superset** | Any coding agent in parallel worktrees, with automations and Remote Access | Your machine or any host you add | Source-available (ELv2) |
+| **Grok Build** | xAI's own coding agent, in your terminal | Your machine | Open source (Apache-2.0) |
+| **Paseo** | Self-hosted daemon you drive from a native mobile app | Your machine or server | Open source (Apache-2.0) |
+| **Herdr** | Terminal runtime that keeps agents alive through disconnects | Your machine, a rented box, or Vercel Sandbox | Open source (Apache-2.0) |
+| **Conductor** | Polished Mac app with managed cloud workspaces | Your Mac, or Conductor Cloud on Pro | Proprietary |
+
+## Why Look for a Grok Bot Alternative?
+
+Grok Bot's design decisions are the reasons to look elsewhere. Agents run exclusively on Cursor-hosted cloud VMs, so they cannot touch your local services, dependencies, or private network. There is no model picker: Cursor chooses. The beta is US-only. It has no standalone price, so you need an eligible SuperGrok or Cursor plan. And it is a general-purpose computer-use teammate, with sales, recruiting, and operations as headline use cases, rather than a tool built around Git worktrees, diffs, and pull requests.
+
+## The Best Alternatives
+
+### Superset
+
+Superset is a local-first workspace that runs Claude Code, Codex, Grok Build, Cursor Agent, OpenCode, Gemini CLI, and any other CLI agent in parallel Git worktrees on machines you own, using your own subscriptions. The always-on part comes from Remote Access, which adds any machine as a host so workspaces keep running when your laptop sleeps, and from scheduled automations that run agent sessions on a device you choose, with a CLI, a TypeScript SDK, an MCP server, and a Slack bot for dispatch. The engineering loop is built in: a Changes pane that commits, pushes, and opens PRs, a Pull Requests view with CI checks, and an in-app browser with Design Mode. Free tier, Pro at $20 per user per month, and an enterprise tier with SAML SSO, SCIM, audit logs, and a SOC 2 Type II report.
+
+For the direct comparison, see [Superset vs Grok Bot](/compare/superset-vs-grok-bot).
+
+### Grok Build
+
+Grok Build is xAI's coding agent: an Apache-2.0 Rust CLI for macOS, Linux, and Windows that runs as an interactive TUI, headlessly in scripts, or as an Agent Client Protocol server. It has first-class Git worktree sessions so parallel agents cannot overwrite each other, an agent dashboard showing which sessions need input, subagents, a `/loop` for recurring prompts, and MCP servers, hooks, skills, and AGENTS.md support. It is bundled with SuperGrok and X Premium+ subscriptions or runs on an xAI API key, and it also points at your own local inference. It is an agent, not a workspace, and Superset runs it as a built-in preset.
+
+### Paseo
+
+Paseo is an Apache-2.0 self-hosted daemon for coding agents with native macOS, Windows, Linux, iOS, and Android clients and a web app. It runs Claude Code, Codex, OpenCode, and Pi through native harnesses and 30 or more agents via the Agent Client Protocol, in worktrees, with cron schedules, an MCP server, local-first voice, and an end-to-end encrypted relay for reaching your daemon from anywhere. If what you liked about Grok Bot was steering agents from your phone, Paseo does that on your own hardware.
+
+See [Superset vs Paseo](/compare/superset-vs-paseo).
+
+### Herdr
+
+Herdr is a Rust, Apache-2.0 runtime whose server owns real terminals, so agents survive lid-closes, dropped SSH sessions, and every client quitting. It auto-detects 19 agent CLIs, has a tmux-style TUI, a JSON socket API, and a plugin marketplace, including a Vercel Sandbox plugin that runs each agent in an isolated cloud microVM and returns changes as Git patches. It is the closest thing to Grok Bot's "always-on" promise for terminal-native developers, on a box you choose.
+
+See [Superset vs Herdr](/compare/superset-vs-herdr).
+
+### Conductor
+
+Conductor is a proprietary macOS app for Claude Code, Codex, Cursor, and OpenCode with named agent teams and four coordination patterns. Its Pro plan at $50 per month adds Conductor Cloud, managed Linux sandboxes where sessions run off your machine, which is the nearest managed-cloud analogue to Grok Bot among engineering tools, while keeping local workspaces free.
+
+See [Superset vs Conductor](/compare/superset-vs-conductor).
+
+## How To Choose
+
+- For any coding agent in parallel worktrees on your own machines, with automations and Remote Access, choose **Superset**.
+- For Grok itself on your code, open source and in your terminal, choose **Grok Build**, on its own or inside Superset.
+- For a self-hosted daemon with native mobile apps, choose **Paseo**.
+- For a terminal runtime that keeps agents alive anywhere you can SSH, choose **Herdr**.
+- For a polished Mac app with optional managed cloud sandboxes, choose **Conductor**.
+
+## Verdict
+
+Grok Bot is a managed, general-purpose teammate on someone else's cloud. If you want the always-on part with your own agents, models, and machines, Superset is the strongest alternative for engineering work, with Grok Build as the way to keep using Grok for code, and Paseo and Herdr as the open-source picks for phone-first and terminal-first developers. For the full landscape, see [Best Agentic IDE in 2026](/compare/best-agentic-ide).
+
+## Frequently Asked Questions
+
+### What is the best Grok Bot alternative for coding?
+
+For most developers, Superset: it runs any coding agent, including xAI's Grok Build, in parallel Git worktrees on your own hardware, and covers always-on work through Remote Access, scheduled automations, and a Slack bot. Grok Build alone is the pick if you only want Grok in your terminal.
+
+### Is Grok Bot the same as Grok Build?
+
+No. Grok Bot is a beta of always-on computer-use teammates on Cursor-hosted cloud computers. Grok Build is xAI's open-source coding agent CLI with worktree isolation, an agent dashboard, and MCP support. Superset runs Grok Build as a built-in agent.
+
+### Are there open-source Grok Bot alternatives?
+
+Grok Build, Paseo, and Herdr are Apache-2.0. Superset is source-available under ELv2 with a free tier. Conductor is proprietary.
+
+### Which alternatives keep agents running when my laptop is closed?
+
+Superset through Remote Access hosts and scheduled automations, Paseo through its self-hosted daemon, Herdr through its server-owned terminals, and Conductor through Conductor Cloud on its Pro plan. Grok Bot does it through a persistent cloud VM per user that you do not control.
