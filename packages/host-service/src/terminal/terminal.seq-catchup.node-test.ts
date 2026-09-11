@@ -991,6 +991,32 @@ test(
 				false,
 				"legacy clients must never receive seq-protocol messages",
 			);
+
+			// Output withheld from a hidden, resize-diverged client is not
+			// zero-socket output: it must not land in the FIFO and be replayed
+			// to the next legacy attach, whose screen it was not laid out for.
+			const phone = new SeqRenderer({ cols: 45, rows: 20 });
+			try {
+				await phone.connect(terminalId);
+				await phone.waitSynced();
+				await sleep(400);
+				phone.sendVisible(false);
+				await sleep(400);
+				await disconnectLegacy();
+				await sleep(300);
+				sendCommand(terminalId, "ticks 10");
+				await waitForTrackerText(terminalId, "INPUT 000020");
+				await connectLegacy();
+				await sleep(600);
+				await writeChain;
+				assert.ok(
+					!visibleText(term).includes("INPUT 000020"),
+					"bytes withheld from a hidden client must not be replayed as legacy FIFO",
+				);
+			} finally {
+				await phone.disconnect().catch(() => {});
+				phone.dispose();
+			}
 		} finally {
 			await disconnectLegacy().catch(() => {});
 			term.dispose();

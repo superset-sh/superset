@@ -1554,7 +1554,10 @@ function answerDsrCursorQueries(session: TerminalSession, count: number) {
 function deliverOutput(session: TerminalSession, bytes: Uint8Array) {
 	session.modeTracker.feed(bytes);
 	retainOutput(session, bytes);
-	if (broadcastBytes(session, bytes) === 0) {
+	// The legacy FIFO stands in for a client that has nobody attached, not
+	// for one withheld from hidden clients: the sweep may also have detached
+	// closed sockets, so check what remains rather than what was sent.
+	if (broadcastBytes(session, bytes) === 0 && session.sockets.size === 0) {
 		bufferOutput(session, bytes);
 	}
 }
