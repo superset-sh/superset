@@ -651,9 +651,13 @@ export const createSettingsRouter = () => {
 						message: `Unsupported language: ${value}`,
 					});
 				}
+				// Target the row getSettings() reads: legacy DBs can hold a non-1
+				// row id, and upserting id 1 there would split settings across
+				// two rows, so getLanguage would keep reading the old row's null.
+				const { id } = getSettings();
 				localDb
 					.insert(settings)
-					.values({ id: 1, language: value })
+					.values({ id, language: value })
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { language: value },
