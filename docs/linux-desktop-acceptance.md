@@ -67,8 +67,12 @@ Rows are checked only with evidence in the app, never from a code read.
   workspace view with terminal, files, chat and browser panes. The only hit:
   with the workspace side panel open its header owns the corner and the Set
   Run cluster sat under the minimize button. Fix on this branch (the inset
-  moves to whichever strip is rightmost); the packaged rebuild with it has
-  not been run, so unverified.
+  moves to whichever strip is rightmost). Satya then hit a second one on the
+  woken sandbox's dev app: the create-organization screen's only exit, its
+  Sign Out / Cancel button, sits at top-right under the controls, so the
+  screen has no way out on Linux (on macOS the traffic lights are on the
+  left and it is fine). Same fix, same branch. The packaged rebuild with
+  either has not been run, so both are unverified.
 - [ ] **1.7 Multiple windows** — New Window opens through the menu item, the
   `Ctrl+Alt+N` accelerator and the desktop entry's `--new-window` action.
   Two windows work. **A third window crashes one renderer every time** (3 of
