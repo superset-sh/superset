@@ -842,3 +842,55 @@ describe("copyPath", () => {
 		expect(await fs.readFile(destinationAbsolutePath, "utf8")).toEqual("old");
 	});
 });
+
+describe("workspace root reached through a symlink", () => {
+	async function createLinkedRoot(): Promise<{
+		rootPath: string;
+		realRootPath: string;
+	}> {
+		const realRootPath = await createTempRoot();
+		const holder = await createTempRoot();
+		const rootPath = path.join(holder, "linked-root");
+		await fs.symlink(realRootPath, rootPath);
+		return { rootPath, realRootPath };
+	}
+
+	it("writes, reads, creates and deletes inside the root", async () => {
+		const { rootPath, realRootPath } = await createLinkedRoot();
+		const absolutePath = path.join(rootPath, "a.txt");
+
+		const written = await writeFile({ rootPath, absolutePath, content: "a" });
+		expect(written.ok).toEqual(true);
+		expect(await fs.readFile(path.join(realRootPath, "a.txt"), "utf8")).toEqual(
+			"a",
+		);
+
+		const read = await readFile({ rootPath, absolutePath, encoding: "utf-8" });
+		expect(read.kind === "text" && read.content).toEqual("a");
+
+		await createDirectory({
+			rootPath,
+			absolutePath: path.join(rootPath, "nested", "dir"),
+			recursive: true,
+		});
+		expect(
+			(await fs.stat(path.join(realRootPath, "nested", "dir"))).isDirectory(),
+		).toEqual(true);
+
+		await deletePath({ rootPath, absolutePath, permanent: true });
+		expect(await fs.readdir(realRootPath)).toEqual(["nested"]);
+	});
+
+	it("still rejects a symlink inside it that leaves the root", async () => {
+		const { rootPath } = await createLinkedRoot();
+		const { linkPath } = await createOutsideLink(rootPath);
+
+		await expectSymlinkEscape(
+			writeFile({
+				rootPath,
+				absolutePath: path.join(linkPath, "x.txt"),
+				content: "x",
+			}),
+		);
+	});
+});
