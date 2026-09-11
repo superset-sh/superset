@@ -281,7 +281,11 @@ function AccountCard({
 				</div>
 			) : account.status === "token_stale" ? (
 				<div className="mt-1.5 text-[11px] text-muted-foreground">
-					<Trans>Refreshes when Claude Code next runs.</Trans>
+					{account.agent === "opencode" ? (
+						<Trans>Refreshes when OpenCode next runs.</Trans>
+					) : (
+						<Trans>Refreshes when Claude Code next runs.</Trans>
+					)}
 				</div>
 			) : expiredCommand !== null ? (
 				<div className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px] text-muted-foreground">
