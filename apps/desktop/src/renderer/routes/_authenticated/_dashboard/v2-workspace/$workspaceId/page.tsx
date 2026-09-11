@@ -461,7 +461,7 @@ function V2WorkspaceContent() {
 									    stays hidden, which keeps it compact for the tab bar. */}
 									<V2WorkspaceOpenInButton workspaceId={workspaceId} />
 									<RightSidebarToggle />
-									{!isMac && <WindowControlsInset />}
+									{!isMac && !sidebarOpen && <WindowControlsInset />}
 								</div>
 							)}
 							renderEmptyState={() => (
