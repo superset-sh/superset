@@ -24,6 +24,10 @@
 			"types": "./src/lib/r2.ts",
 			"default": "./src/lib/r2.ts"
 		},
+		"./realtime": {
+			"types": "./src/lib/realtime.ts",
+			"default": "./src/lib/realtime.ts"
+		},
 		"./leaderboard-reserved-handles": {
 			"types": "./src/router/leaderboard/reserved-handles.ts",
 			"default": "./src/router/leaderboard/reserved-handles.ts"

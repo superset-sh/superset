@@ -9,6 +9,7 @@ import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
+import { nudge } from "../../lib/realtime";
 import {
 	cloudRepo,
 	deleteSandbox,
@@ -195,6 +196,7 @@ export const cloudWorkspaceRouter = {
 					: {}),
 			};
 
+			await nudge(row.organizationId, "cloud_workspaces");
 			if (isLocalApi) {
 				void provisionCloudWorkspace(job).catch((error) => {
 					console.error(
@@ -265,6 +267,7 @@ export const cloudWorkspaceRouter = {
 				.set({ name: input.name })
 				.where(eq(cloudWorkspaces.id, input.id))
 				.returning();
+			await nudge(row.organizationId, "cloud_workspaces");
 			return renamed ?? row;
 		}),
 
@@ -350,6 +353,7 @@ export const cloudWorkspaceRouter = {
 				.update(cloudWorkspaces)
 				.set({ status: "deleted", sandboxUrl: null })
 				.where(eq(cloudWorkspaces.id, row.id));
+			await nudge(row.organizationId, "cloud_workspaces");
 			return { deleted: true };
 		}),
 } satisfies TRPCRouterRecord;

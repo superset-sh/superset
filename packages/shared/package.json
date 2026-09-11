@@ -255,6 +255,9 @@
 		"./verify-jwt": {
 			"types": "./src/verify-jwt.ts",
 			"default": "./src/verify-jwt.ts"
+		"./realtime": {
+			"types": "./src/realtime.ts",
+			"default": "./src/realtime.ts"
 		},
 		"./install-update-lock": {
 			"types": "./src/install-update-lock.ts",

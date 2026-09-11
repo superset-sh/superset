@@ -4,7 +4,6 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import type { DashboardSidebarWorkspacePullRequest } from "../../types";
 import { toSidebarPullRequest } from "./toSidebarPullRequest";
 
-const CLOUD_PULL_REQUESTS_REFETCH_INTERVAL_MS = 30_000;
 /** Matches the procedure's input bound. */
 const MAX_REFS_PER_QUERY = 500;
 
@@ -54,7 +53,7 @@ export function useSidebarCloudPullRequests(
 		{ organizationId: organizationId ?? "", refs: stableRefs },
 		{
 			enabled: organizationId !== null,
-			refetchInterval: CLOUD_PULL_REQUESTS_REFETCH_INTERVAL_MS,
+			// Refetched on the realtime channel's pull_requests nudge; no interval.
 			staleTime: 10_000,
 			// Keep chips up while the row set changes, but never carry another
 			// organization's answer across a switch.

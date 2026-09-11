@@ -10,6 +10,7 @@ import {
 } from "@superset/shared/constants";
 import { eq } from "drizzle-orm";
 import { env } from "../../env";
+import { nudge } from "../../lib/realtime";
 import {
 	deleteSandbox,
 	provisionSandbox,
@@ -160,6 +161,7 @@ export async function provisionCloudWorkspace(
 				status: "ready",
 			})
 			.where(eq(cloudWorkspaces.id, row.id));
+		await nudge(row.organizationId, "cloud_workspaces");
 		return "provisioned";
 	} catch (error) {
 		// Billing starts at provision, not at ready: everything after that call
@@ -178,6 +180,7 @@ export async function provisionCloudWorkspace(
 			.update(cloudWorkspaces)
 			.set({ status: "failed" })
 			.where(eq(cloudWorkspaces.id, row.id));
+		await nudge(row.organizationId, "cloud_workspaces");
 		console.error(`[cloud-workspace] provisioning failed for ${row.id}`, error);
 		return "failed";
 	}

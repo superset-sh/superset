@@ -635,6 +635,23 @@
         "typescript": "6.0.3",
       },
     },
+    "apps/realtime": {
+      "name": "@superset/realtime",
+      "version": "0.1.0",
+      "dependencies": {
+        "@sentry/cloudflare": "10.68.0",
+        "@superset/shared": "workspace:*",
+        "hono": "4.13.5",
+        "jose": "6.2.2",
+        "partyserver": "0.5.9",
+      },
+      "devDependencies": {
+        "@cloudflare/workers-types": "5.20260801.1",
+        "@superset/typescript": "workspace:*",
+        "typescript": "6.0.3",
+        "wrangler": "4.118.0",
+      },
+    },
     "apps/relay": {
       "name": "@superset/relay",
       "version": "0.1.0",
@@ -3105,6 +3122,8 @@
     "@superset/port-scanner": ["@superset/port-scanner@workspace:packages/port-scanner"],
 
     "@superset/pty-daemon": ["@superset/pty-daemon@workspace:packages/pty-daemon"],
+
+    "@superset/realtime": ["@superset/realtime@workspace:apps/realtime"],
 
     "@superset/relay": ["@superset/relay@workspace:apps/relay"],
 
