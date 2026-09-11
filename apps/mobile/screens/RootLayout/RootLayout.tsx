@@ -23,6 +23,7 @@ import { NAV_THEME } from "@/lib/theme";
 
 Uniwind.setTheme("dark");
 
+import { ClientNoticesGate } from "./components/ClientNoticesGate";
 import { PostHogUserIdentifier } from "./components/PostHogUserIdentifier";
 import { PostHogProvider } from "./providers/PostHogProvider";
 
@@ -114,17 +115,19 @@ export function RootLayout() {
 				<PostHogProvider>
 					<I18nProvider locale={deviceLocale} deferUntilReady>
 						<ThemeProvider value={NAV_THEME.dark}>
-							<Stack screenOptions={{ headerShown: false }}>
-								<Stack.Protected guard={!!session && !pendingDeletion}>
-									<Stack.Screen name="(authenticated)" />
-								</Stack.Protected>
-								<Stack.Protected guard={pendingDeletion}>
-									<Stack.Screen name="account-pending-deletion" />
-								</Stack.Protected>
-								<Stack.Protected guard={!session}>
-									<Stack.Screen name="(auth)" />
-								</Stack.Protected>
-							</Stack>
+							<ClientNoticesGate>
+								<Stack screenOptions={{ headerShown: false }}>
+									<Stack.Protected guard={!!session && !pendingDeletion}>
+										<Stack.Screen name="(authenticated)" />
+									</Stack.Protected>
+									<Stack.Protected guard={pendingDeletion}>
+										<Stack.Screen name="account-pending-deletion" />
+									</Stack.Protected>
+									<Stack.Protected guard={!session}>
+										<Stack.Screen name="(auth)" />
+									</Stack.Protected>
+								</Stack>
+							</ClientNoticesGate>
 							<PostHogUserIdentifier />
 							<PortalHost />
 						</ThemeProvider>

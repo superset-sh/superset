@@ -127,6 +127,16 @@ server and compute nothing.
 Signed publishing needs the EAS Production plan or above; on a lower plan the
 publish is rejected at its final step, after the bundle has already uploaded.
 
+### Retiring old builds
+
+`GET /api/mobile/version` (`apps/api/src/app/api/mobile/version/route.ts`)
+carries `MINIMUM_MOBILE_VERSION`; a build below it shows a full-screen
+"Update Required" with an App Store button and nothing else. Raise it only
+once the replacement build is live in the store, or that build is bricked.
+Softer notices come from the `desktop_notices` table and reach phones only
+when `platforms` names `ios`; a `warning` is a dialog, `install-update` applies
+a downloaded over-the-air update or falls back to the App Store.
+
 ## When the build is rejected
 
 Work the list top to bottom; each step costs minutes and they compound.

@@ -7840,6 +7840,9 @@ msgstr "Fin 2026"
 msgid "Latency"
 msgstr "Latence"
 
+msgid "Later"
+msgstr "Plus tard"
+
 msgid "Latest"
 msgstr "Dernière"
 
@@ -11955,6 +11958,9 @@ msgstr "Redémarrer le démon de terminal ?"
 msgid "Restart terminals"
 msgstr "Redémarrer les terminaux"
 
+msgid "Restart to use the latest version of Superset."
+msgstr "Redémarrez pour utiliser la dernière version de Superset."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "{restartedOrgCount} services d'hôte redémarrés"
 
@@ -15522,12 +15528,18 @@ msgstr "Erreur de mise à jour"
 msgid "Update host service"
 msgstr "Mettre à jour le service d'hôte"
 
+msgid "Update in the App Store"
+msgstr "Mettre à jour dans l'App Store"
+
 msgid "Update naming instructions"
 msgstr "Mettre à jour les instructions de nommage"
 
 #. placeholder {0}: selectedProject.name
 msgid "Update naming instructions for {0}"
 msgstr "Mettre à jour les instructions de nommage pour {0}"
+
+msgid "Update ready"
+msgstr "Mise à jour prête"
 
 msgid "Update Required"
 msgstr "Mise à jour requise"

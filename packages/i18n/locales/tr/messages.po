@@ -7840,6 +7840,9 @@ msgstr "2026 sonu"
 msgid "Latency"
 msgstr "Gecikme"
 
+msgid "Later"
+msgstr "Daha sonra"
+
 msgid "Latest"
 msgstr "En son"
 
@@ -11955,6 +11958,9 @@ msgstr "Terminal daemon'u yeniden başlatılsın mı?"
 msgid "Restart terminals"
 msgstr "Terminalleri yeniden başlat"
 
+msgid "Restart to use the latest version of Superset."
+msgstr "Superset'in en son sürümünü kullanmak için yeniden başlatın."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "{restartedOrgCount} host hizmeti yeniden başlatıldı"
 
@@ -15522,12 +15528,18 @@ msgstr "Güncelleme hatası"
 msgid "Update host service"
 msgstr "Ana makine hizmetini güncelle"
 
+msgid "Update in the App Store"
+msgstr "App Store'dan güncelle"
+
 msgid "Update naming instructions"
 msgstr "Adlandırma yönergelerini güncelle"
 
 #. placeholder {0}: selectedProject.name
 msgid "Update naming instructions for {0}"
 msgstr "{0} için adlandırma yönergelerini güncelle"
+
+msgid "Update ready"
+msgstr "Güncelleme hazır"
 
 msgid "Update Required"
 msgstr "Güncelleme gerekli"

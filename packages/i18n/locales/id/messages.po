@@ -7840,6 +7840,9 @@ msgstr "Akhir 2026"
 msgid "Latency"
 msgstr "Latensi"
 
+msgid "Later"
+msgstr "Nanti"
+
 msgid "Latest"
 msgstr "Terbaru"
 
@@ -11955,6 +11958,9 @@ msgstr "Mulai ulang daemon terminal?"
 msgid "Restart terminals"
 msgstr "Mulai ulang terminal"
 
+msgid "Restart to use the latest version of Superset."
+msgstr "Mulai ulang untuk menggunakan versi terbaru Superset."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Memulai ulang {restartedOrgCount} layanan host"
 
@@ -15522,12 +15528,18 @@ msgstr "Kesalahan Pembaruan"
 msgid "Update host service"
 msgstr "Perbarui layanan host"
 
+msgid "Update in the App Store"
+msgstr "Perbarui di App Store"
+
 msgid "Update naming instructions"
 msgstr "Perbarui instruksi penamaan"
 
 #. placeholder {0}: selectedProject.name
 msgid "Update naming instructions for {0}"
 msgstr "Perbarui instruksi penamaan untuk {0}"
+
+msgid "Update ready"
+msgstr "Pembaruan siap"
 
 msgid "Update Required"
 msgstr "Pembaruan Diperlukan"
