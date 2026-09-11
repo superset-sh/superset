@@ -378,7 +378,7 @@ infobar label, infobar button, infobar image {
 
 /** The terminal: the app's monospace face on a dark palette. */
 const TERMINAL_RC = `[Configuration]
-FontName=JetBrains Mono 11
+FontName=JetBrainsMono Nerd Font 11
 MiscAlwaysShowTabs=FALSE
 MiscBell=FALSE
 MiscCursorBlinks=FALSE
@@ -464,7 +464,7 @@ const XSETTINGS_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </property>
   <property name="Gtk" type="empty">
     <property name="FontName" type="string" value="Inter 10"/>
-    <property name="MonospaceFontName" type="string" value="JetBrains Mono 10"/>
+    <property name="MonospaceFontName" type="string" value="JetBrainsMono Nerd Font 10"/>
     <property name="CursorThemeName" type="string" value="WhiteSur-cursors"/>
     <property name="CursorThemeSize" type="int" value="24"/>
   </property>
@@ -590,6 +590,13 @@ COPY chrome-policy.json /etc/opt/chrome/policies/managed/superset.json
 COPY chrome-preferences.json /root/.config/google-chrome/Default/Preferences
 RUN touch "/root/.config/google-chrome/First Run"
 RUN ${THEME_COMMANDS} && fc-cache -f >/dev/null
+# Nerd Font for the desktop terminal: shell prompts from dotfiles use its
+# private-use glyphs (git status, powerline), which plain JetBrains Mono
+# renders as diamonds.
+RUN mkdir -p /usr/share/fonts/truetype/jetbrains-mono-nerd \\
+ && curl -fsSL -o /tmp/jbm.tar.xz https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz \\
+ && tar xJf /tmp/jbm.tar.xz -C /usr/share/fonts/truetype/jetbrains-mono-nerd --wildcards "JetBrainsMonoNerdFont-*.ttf" \\
+ && rm /tmp/jbm.tar.xz && fc-cache -f >/dev/null
 RUN mkdir -p /usr/share/backgrounds/superset && ${WALLPAPER_COMMANDS}
 COPY superset.png /usr/share/icons/hicolor/512x512/apps/superset.png
 RUN gtk-update-icon-cache -f -q /usr/share/icons/hicolor

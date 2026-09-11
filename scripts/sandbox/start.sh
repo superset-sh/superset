@@ -91,6 +91,9 @@ if command -v Xvnc >/dev/null 2>&1; then
   # Links opened by apps and agents (xdg-open) land in Chrome with the flags
   # root needs.
   export BROWSER=/usr/local/bin/google-chrome
+  # Terminals opened on the desktop get what host-service gives the app's
+  # terminals: dotfiles key their repo navigation off this.
+  export SUPERSET_WORKSPACE_PATH="${SUPERSET_SANDBOX_WORKSPACE_PATH:-/workspace}"
   # A resumed session restores the previous session's lock and socket files
   # but none of its processes; the stale ones would keep Xvnc from starting.
   rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
