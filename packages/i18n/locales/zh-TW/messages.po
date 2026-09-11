@@ -4339,6 +4339,9 @@ msgstr "無法暫存更改"
 msgid "Couldn't stage design feedback"
 msgstr "無法暫存設計回饋"
 
+msgid "Couldn't stage file"
+msgstr "無法暫存檔案"
+
 msgid "Couldn't start a new agent session"
 msgstr "無法啟動新的代理程式會話"
 
@@ -4356,6 +4359,9 @@ msgstr "無法啟動工作區"
 
 msgid "Couldn't unstage changes"
 msgstr "無法取消暫存更改"
+
+msgid "Couldn't unstage file"
+msgstr "無法取消暫存檔案"
 
 msgid "Couldn't update pull request"
 msgstr "無法更新拉取請求"
@@ -13609,6 +13615,9 @@ msgstr "堆疊"
 msgid "Stage all"
 msgstr "全部暫存"
 
+msgid "Stage file"
+msgstr "暫存檔案"
+
 msgid "Staged"
 msgstr "已暫存"
 
@@ -15515,6 +15524,9 @@ msgstr "未儲存的更改"
 
 msgid "Unstage all"
 msgstr "全部取消暫存"
+
+msgid "Unstage file"
+msgstr "取消暫存檔案"
 
 msgid "Unstaged"
 msgstr "未暫存"

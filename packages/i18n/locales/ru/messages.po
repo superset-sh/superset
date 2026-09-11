@@ -4339,6 +4339,9 @@ msgstr "Не удалось проиндексировать изменения"
 msgid "Couldn't stage design feedback"
 msgstr "Не удалось подготовить отзыв по дизайну"
 
+msgid "Couldn't stage file"
+msgstr "Не удалось проиндексировать файл"
+
 msgid "Couldn't start a new agent session"
 msgstr "Не удалось запустить новую сессию агента"
 
@@ -4356,6 +4359,9 @@ msgstr "Не удалось запустить рабочую область"
 
 msgid "Couldn't unstage changes"
 msgstr "Не удалось снять индексацию"
+
+msgid "Couldn't unstage file"
+msgstr "Не удалось снять индексацию с файла"
 
 msgid "Couldn't update pull request"
 msgstr "Не удалось обновить пул-реквест"
@@ -13609,6 +13615,9 @@ msgstr "Стопкой"
 msgid "Stage all"
 msgstr "Проиндексировать всё"
 
+msgid "Stage file"
+msgstr "Проиндексировать файл"
+
 msgid "Staged"
 msgstr "Проиндексировано"
 
@@ -15515,6 +15524,9 @@ msgstr "Несохранённые изменения"
 
 msgid "Unstage all"
 msgstr "Снять индексацию со всего"
+
+msgid "Unstage file"
+msgstr "Снять индексацию с файла"
 
 msgid "Unstaged"
 msgstr "Не проиндексировано"

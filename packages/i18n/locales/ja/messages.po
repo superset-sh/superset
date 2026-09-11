@@ -4339,6 +4339,9 @@ msgstr "変更をステージできませんでした"
 msgid "Couldn't stage design feedback"
 msgstr "デザインフィードバックを準備できませんでした"
 
+msgid "Couldn't stage file"
+msgstr "ファイルをステージできませんでした"
+
 msgid "Couldn't start a new agent session"
 msgstr "新しいエージェントセッションを開始できませんでした"
 
@@ -4356,6 +4359,9 @@ msgstr "ワークスペースを開始できませんでした"
 
 msgid "Couldn't unstage changes"
 msgstr "変更をステージ解除できませんでした"
+
+msgid "Couldn't unstage file"
+msgstr "ファイルをステージ解除できませんでした"
 
 msgid "Couldn't update pull request"
 msgstr "プルリクエストを更新できませんでした"
@@ -13609,6 +13615,9 @@ msgstr "積み重ね"
 msgid "Stage all"
 msgstr "すべてステージ"
 
+msgid "Stage file"
+msgstr "ファイルをステージ"
+
 msgid "Staged"
 msgstr "ステージ済み"
 
@@ -15515,6 +15524,9 @@ msgstr "未保存の変更"
 
 msgid "Unstage all"
 msgstr "すべてステージ解除"
+
+msgid "Unstage file"
+msgstr "ファイルをステージ解除"
 
 msgid "Unstaged"
 msgstr "未ステージ"

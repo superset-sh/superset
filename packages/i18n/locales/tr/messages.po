@@ -4339,6 +4339,9 @@ msgstr "Değişiklikler hazırlanamadı"
 msgid "Couldn't stage design feedback"
 msgstr "Tasarım geri bildirimi hazırlanamadı"
 
+msgid "Couldn't stage file"
+msgstr "Dosya hazırlanamadı"
+
 msgid "Couldn't start a new agent session"
 msgstr "Yeni bir ajan oturumu başlatılamadı"
 
@@ -4356,6 +4359,9 @@ msgstr "Çalışma alanı başlatılamadı"
 
 msgid "Couldn't unstage changes"
 msgstr "Değişiklikler hazırlıktan çıkarılamadı"
+
+msgid "Couldn't unstage file"
+msgstr "Dosya hazırlıktan çıkarılamadı"
 
 msgid "Couldn't update pull request"
 msgstr "Pull request güncellenemedi"
@@ -13609,6 +13615,9 @@ msgstr "Üst üste"
 msgid "Stage all"
 msgstr "Tümünü hazırla"
 
+msgid "Stage file"
+msgstr "Dosyayı hazırla"
+
 msgid "Staged"
 msgstr "Hazırlanmış"
 
@@ -15515,6 +15524,9 @@ msgstr "Kaydedilmemiş değişiklikler"
 
 msgid "Unstage all"
 msgstr "Tümünü hazırlıktan çıkar"
+
+msgid "Unstage file"
+msgstr "Dosyayı hazırlıktan çıkar"
 
 msgid "Unstaged"
 msgstr "Hazırlanmamış"

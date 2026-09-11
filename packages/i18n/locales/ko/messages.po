@@ -4339,6 +4339,9 @@ msgstr "변경 사항을 스테이징하지 못했습니다"
 msgid "Couldn't stage design feedback"
 msgstr "디자인 피드백을 준비하지 못했습니다"
 
+msgid "Couldn't stage file"
+msgstr "파일을 스테이징하지 못했습니다"
+
 msgid "Couldn't start a new agent session"
 msgstr "새 에이전트 세션을 시작할 수 없습니다"
 
@@ -4356,6 +4359,9 @@ msgstr "워크스페이스를 시작하지 못했습니다"
 
 msgid "Couldn't unstage changes"
 msgstr "스테이징을 해제하지 못했습니다"
+
+msgid "Couldn't unstage file"
+msgstr "파일 스테이징을 해제하지 못했습니다"
 
 msgid "Couldn't update pull request"
 msgstr "풀 리퀘스트를 업데이트하지 못했습니다"
@@ -13609,6 +13615,9 @@ msgstr "스택"
 msgid "Stage all"
 msgstr "모두 스테이징"
 
+msgid "Stage file"
+msgstr "파일 스테이징"
+
 msgid "Staged"
 msgstr "스테이징됨"
 
@@ -15515,6 +15524,9 @@ msgstr "저장하지 않은 변경 사항"
 
 msgid "Unstage all"
 msgstr "스테이징 모두 해제"
+
+msgid "Unstage file"
+msgstr "파일 스테이징 해제"
 
 msgid "Unstaged"
 msgstr "스테이징 안 됨"

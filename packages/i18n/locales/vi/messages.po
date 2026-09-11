@@ -4339,6 +4339,9 @@ msgstr "Không thể stage các thay đổi"
 msgid "Couldn't stage design feedback"
 msgstr "Không thể chuẩn bị góp ý thiết kế"
 
+msgid "Couldn't stage file"
+msgstr "Không thể stage tệp"
+
 msgid "Couldn't start a new agent session"
 msgstr "Không thể bắt đầu phiên agent mới"
 
@@ -4356,6 +4359,9 @@ msgstr "Không khởi động được workspace"
 
 msgid "Couldn't unstage changes"
 msgstr "Không thể bỏ stage các thay đổi"
+
+msgid "Couldn't unstage file"
+msgstr "Không thể bỏ stage tệp"
 
 msgid "Couldn't update pull request"
 msgstr "Không thể cập nhật pull request"
@@ -13609,6 +13615,9 @@ msgstr "Xếp chồng"
 msgid "Stage all"
 msgstr "Stage tất cả"
 
+msgid "Stage file"
+msgstr "Stage tệp"
+
 msgid "Staged"
 msgstr "Đã stage"
 
@@ -15515,6 +15524,9 @@ msgstr "Thay đổi chưa lưu"
 
 msgid "Unstage all"
 msgstr "Bỏ stage tất cả"
+
+msgid "Unstage file"
+msgstr "Bỏ stage tệp"
 
 msgid "Unstaged"
 msgstr "Chưa stage"

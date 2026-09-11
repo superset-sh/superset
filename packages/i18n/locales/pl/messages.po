@@ -4339,6 +4339,9 @@ msgstr "Nie udało się dodać zmian do indeksu"
 msgid "Couldn't stage design feedback"
 msgstr "Nie udało się przygotować uwag projektowych"
 
+msgid "Couldn't stage file"
+msgstr "Nie udało się dodać pliku do indeksu"
+
 msgid "Couldn't start a new agent session"
 msgstr "Nie udało się uruchomić nowej sesji agenta"
 
@@ -4356,6 +4359,9 @@ msgstr "Nie udało się uruchomić obszaru roboczego"
 
 msgid "Couldn't unstage changes"
 msgstr "Nie udało się usunąć zmian z indeksu"
+
+msgid "Couldn't unstage file"
+msgstr "Nie udało się usunąć pliku z indeksu"
 
 msgid "Couldn't update pull request"
 msgstr "Nie udało się zaktualizować pull requesta"
@@ -13609,6 +13615,9 @@ msgstr "Ułożone w stos"
 msgid "Stage all"
 msgstr "Dodaj wszystko do indeksu"
 
+msgid "Stage file"
+msgstr "Dodaj plik do indeksu"
+
 msgid "Staged"
 msgstr "Zaindeksowane"
 
@@ -15515,6 +15524,9 @@ msgstr "Niezapisane zmiany"
 
 msgid "Unstage all"
 msgstr "Usuń wszystko z indeksu"
+
+msgid "Unstage file"
+msgstr "Usuń plik z indeksu"
 
 msgid "Unstaged"
 msgstr "Niezaindeksowane"

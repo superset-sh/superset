@@ -4339,6 +4339,9 @@ msgstr "Impossible d'indexer les modifications"
 msgid "Couldn't stage design feedback"
 msgstr "Impossible de préparer le retour de design"
 
+msgid "Couldn't stage file"
+msgstr "Impossible d'indexer le fichier"
+
 msgid "Couldn't start a new agent session"
 msgstr "Impossible de démarrer une nouvelle session d'agent"
 
@@ -4356,6 +4359,9 @@ msgstr "Impossible de démarrer l'espace de travail"
 
 msgid "Couldn't unstage changes"
 msgstr "Impossible de désindexer les modifications"
+
+msgid "Couldn't unstage file"
+msgstr "Impossible de désindexer le fichier"
 
 msgid "Couldn't update pull request"
 msgstr "Impossible de mettre à jour la pull request"
@@ -13609,6 +13615,9 @@ msgstr "Empilé"
 msgid "Stage all"
 msgstr "Tout indexer"
 
+msgid "Stage file"
+msgstr "Indexer le fichier"
+
 msgid "Staged"
 msgstr "Indexés"
 
@@ -15515,6 +15524,9 @@ msgstr "Modifications non enregistrées"
 
 msgid "Unstage all"
 msgstr "Tout désindexer"
+
+msgid "Unstage file"
+msgstr "Désindexer le fichier"
 
 msgid "Unstaged"
 msgstr "Non indexés"

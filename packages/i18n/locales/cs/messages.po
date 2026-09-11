@@ -4339,6 +4339,9 @@ msgstr "Nepodařilo se připravit změny"
 msgid "Couldn't stage design feedback"
 msgstr "Nepodařilo se připravit designovou zpětnou vazbu"
 
+msgid "Couldn't stage file"
+msgstr "Nepodařilo se připravit soubor"
+
 msgid "Couldn't start a new agent session"
 msgstr "Nepodařilo se spustit novou relaci agenta"
 
@@ -4356,6 +4359,9 @@ msgstr "Pracovní prostor se nepodařilo spustit"
 
 msgid "Couldn't unstage changes"
 msgstr "Nepodařilo se zrušit přípravu změn"
+
+msgid "Couldn't unstage file"
+msgstr "Nepodařilo se zrušit přípravu souboru"
 
 msgid "Couldn't update pull request"
 msgstr "Pull request se nepodařilo aktualizovat"
@@ -13609,6 +13615,9 @@ msgstr "Nad sebou"
 msgid "Stage all"
 msgstr "Připravit vše"
 
+msgid "Stage file"
+msgstr "Připravit soubor"
+
 msgid "Staged"
 msgstr "Připravené"
 
@@ -15515,6 +15524,9 @@ msgstr "Neuložené změny"
 
 msgid "Unstage all"
 msgstr "Zrušit přípravu u všech"
+
+msgid "Unstage file"
+msgstr "Zrušit přípravu souboru"
 
 msgid "Unstaged"
 msgstr "Nepřipravené"

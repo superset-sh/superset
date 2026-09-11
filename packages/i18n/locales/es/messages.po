@@ -4339,6 +4339,9 @@ msgstr "No se pudieron preparar los cambios"
 msgid "Couldn't stage design feedback"
 msgstr "No se pudo preparar el feedback de diseño"
 
+msgid "Couldn't stage file"
+msgstr "No se pudo preparar el archivo"
+
 msgid "Couldn't start a new agent session"
 msgstr "No se pudo iniciar una sesión de agente nueva"
 
@@ -4356,6 +4359,9 @@ msgstr "No se pudo iniciar el espacio de trabajo"
 
 msgid "Couldn't unstage changes"
 msgstr "No se pudieron quitar los cambios de preparados"
+
+msgid "Couldn't unstage file"
+msgstr "No se pudo quitar el archivo de preparados"
 
 msgid "Couldn't update pull request"
 msgstr "No se pudo actualizar la pull request"
@@ -13609,6 +13615,9 @@ msgstr "Apilado"
 msgid "Stage all"
 msgstr "Preparar todo"
 
+msgid "Stage file"
+msgstr "Preparar archivo"
+
 msgid "Staged"
 msgstr "Preparados"
 
@@ -15515,6 +15524,9 @@ msgstr "Cambios sin guardar"
 
 msgid "Unstage all"
 msgstr "Quitar todo de preparados"
+
+msgid "Unstage file"
+msgstr "Quitar archivo de preparados"
 
 msgid "Unstaged"
 msgstr "Sin preparar"

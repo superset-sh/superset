@@ -4339,6 +4339,9 @@ msgstr "Couldn't stage changes"
 msgid "Couldn't stage design feedback"
 msgstr "Couldn't stage design feedback"
 
+msgid "Couldn't stage file"
+msgstr "Couldn't stage file"
+
 msgid "Couldn't start a new agent session"
 msgstr "Couldn't start a new agent session"
 
@@ -4356,6 +4359,9 @@ msgstr "Couldn't start workspace"
 
 msgid "Couldn't unstage changes"
 msgstr "Couldn't unstage changes"
+
+msgid "Couldn't unstage file"
+msgstr "Couldn't unstage file"
 
 msgid "Couldn't update pull request"
 msgstr "Couldn't update pull request"
@@ -13609,6 +13615,9 @@ msgstr "Stacked"
 msgid "Stage all"
 msgstr "Stage all"
 
+msgid "Stage file"
+msgstr "Stage file"
+
 msgid "Staged"
 msgstr "Staged"
 
@@ -15515,6 +15524,9 @@ msgstr "Unsaved changes"
 
 msgid "Unstage all"
 msgstr "Unstage all"
+
+msgid "Unstage file"
+msgstr "Unstage file"
 
 msgid "Unstaged"
 msgstr "Unstaged"

@@ -4339,6 +4339,9 @@ msgstr "Tidak bisa men-stage perubahan"
 msgid "Couldn't stage design feedback"
 msgstr "Tidak bisa menyiapkan masukan desain"
 
+msgid "Couldn't stage file"
+msgstr "Tidak bisa men-stage file"
+
 msgid "Couldn't start a new agent session"
 msgstr "Tidak bisa memulai sesi agen baru"
 
@@ -4356,6 +4359,9 @@ msgstr "Tidak bisa memulai workspace"
 
 msgid "Couldn't unstage changes"
 msgstr "Tidak bisa meng-unstage perubahan"
+
+msgid "Couldn't unstage file"
+msgstr "Tidak bisa meng-unstage file"
 
 msgid "Couldn't update pull request"
 msgstr "Tidak bisa memperbarui pull request"
@@ -13609,6 +13615,9 @@ msgstr "Bertumpuk"
 msgid "Stage all"
 msgstr "Stage semua"
 
+msgid "Stage file"
+msgstr "Stage file"
+
 msgid "Staged"
 msgstr "Sudah di-stage"
 
@@ -15515,6 +15524,9 @@ msgstr "Perubahan belum disimpan"
 
 msgid "Unstage all"
 msgstr "Unstage semua"
+
+msgid "Unstage file"
+msgstr "Unstage file"
 
 msgid "Unstaged"
 msgstr "Belum di-stage"

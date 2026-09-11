@@ -4339,6 +4339,9 @@ msgstr "Impossibile aggiungere le modifiche allo stage"
 msgid "Couldn't stage design feedback"
 msgstr "Impossibile preparare il feedback di design"
 
+msgid "Couldn't stage file"
+msgstr "Impossibile aggiungere il file allo stage"
+
 msgid "Couldn't start a new agent session"
 msgstr "Impossibile avviare una nuova sessione dell'agente"
 
@@ -4356,6 +4359,9 @@ msgstr "Impossibile avviare il workspace"
 
 msgid "Couldn't unstage changes"
 msgstr "Impossibile togliere le modifiche dallo stage"
+
+msgid "Couldn't unstage file"
+msgstr "Impossibile togliere il file dallo stage"
 
 msgid "Couldn't update pull request"
 msgstr "Impossibile aggiornare la pull request"
@@ -13609,6 +13615,9 @@ msgstr "Impilato"
 msgid "Stage all"
 msgstr "Aggiungi tutto allo stage"
 
+msgid "Stage file"
+msgstr "Aggiungi il file allo stage"
+
 msgid "Staged"
 msgstr "In stage"
 
@@ -15515,6 +15524,9 @@ msgstr "Modifiche non salvate"
 
 msgid "Unstage all"
 msgstr "Togli tutto dallo stage"
+
+msgid "Unstage file"
+msgstr "Togli il file dallo stage"
 
 msgid "Unstaged"
 msgstr "Non in stage"

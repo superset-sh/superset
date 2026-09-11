@@ -4339,6 +4339,9 @@ msgstr "Änderungen konnten nicht gestaged werden"
 msgid "Couldn't stage design feedback"
 msgstr "Design-Feedback konnte nicht vorbereitet werden"
 
+msgid "Couldn't stage file"
+msgstr "Datei konnte nicht gestaged werden"
+
 msgid "Couldn't start a new agent session"
 msgstr "Es konnte keine neue Agenten-Sitzung gestartet werden"
 
@@ -4356,6 +4359,9 @@ msgstr "Arbeitsbereich konnte nicht gestartet werden"
 
 msgid "Couldn't unstage changes"
 msgstr "Stagen konnte nicht aufgehoben werden"
+
+msgid "Couldn't unstage file"
+msgstr "Stagen der Datei konnte nicht aufgehoben werden"
 
 msgid "Couldn't update pull request"
 msgstr "Pull Request konnte nicht aktualisiert werden"
@@ -13609,6 +13615,9 @@ msgstr "Gestapelt"
 msgid "Stage all"
 msgstr "Alles stagen"
 
+msgid "Stage file"
+msgstr "Datei stagen"
+
 msgid "Staged"
 msgstr "Gestaged"
 
@@ -15515,6 +15524,9 @@ msgstr "Nicht gespeicherte Änderungen"
 
 msgid "Unstage all"
 msgstr "Alles unstagen"
+
+msgid "Unstage file"
+msgstr "Datei unstagen"
 
 msgid "Unstaged"
 msgstr "Nicht gestaged"

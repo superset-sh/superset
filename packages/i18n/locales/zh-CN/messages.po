@@ -4339,6 +4339,9 @@ msgstr "无法暂存更改"
 msgid "Couldn't stage design feedback"
 msgstr "无法暂存设计反馈"
 
+msgid "Couldn't stage file"
+msgstr "无法暂存文件"
+
 msgid "Couldn't start a new agent session"
 msgstr "无法启动新的智能体会话"
 
@@ -4356,6 +4359,9 @@ msgstr "无法启动工作区"
 
 msgid "Couldn't unstage changes"
 msgstr "无法取消暂存更改"
+
+msgid "Couldn't unstage file"
+msgstr "无法取消暂存文件"
 
 msgid "Couldn't update pull request"
 msgstr "无法更新拉取请求"
@@ -13609,6 +13615,9 @@ msgstr "堆叠"
 msgid "Stage all"
 msgstr "全部暂存"
 
+msgid "Stage file"
+msgstr "暂存文件"
+
 msgid "Staged"
 msgstr "已暂存"
 
@@ -15515,6 +15524,9 @@ msgstr "未保存的更改"
 
 msgid "Unstage all"
 msgstr "全部取消暂存"
+
+msgid "Unstage file"
+msgstr "取消暂存文件"
 
 msgid "Unstaged"
 msgstr "未暂存"
