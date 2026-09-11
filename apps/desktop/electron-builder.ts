@@ -148,6 +148,9 @@ const config: Configuration = {
 	// Linux
 	linux: {
 		...(existsSync(linuxIconPath) ? { icon: linuxIconPath } : {}),
+		// Otherwise the binary, and with it the window class the desktop entry
+		// must match, is the package name mangled to "@supersetdesktop".
+		executableName: "superset",
 		category: "Utility",
 		synopsis: pkg.description,
 		target: ["AppImage"],
@@ -163,6 +166,10 @@ const config: Configuration = {
 			// launchers ignore action groups not listed under Actions.
 			entry: {
 				Actions: "new-window;",
+				// Electron sets the window class from the executable name, so the
+				// default (the product name) never matches and the dock shows a
+				// second, iconless entry for the running app.
+				StartupWMClass: "superset",
 			},
 			desktopActions: {
 				"new-window": {

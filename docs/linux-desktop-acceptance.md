@@ -9,9 +9,12 @@ Rows are checked only with evidence in the app, never from a code read.
 
 ## 1. Window chrome
 
-- [ ] **1.1 Window controls on every screen** — minimize, maximize/restore and
+- [x] **1.1 Window controls on every screen** — minimize, maximize/restore and
   close are reachable on the sign-in, onboarding, new-workspace, dashboard and
-  workspace routes. Before: `frame: false` + `titleBarStyle: "hidden"` on all
+  workspace routes. (After: Electron's window-controls overlay, coloured from
+  the theme store; screenshots of sign-in, onboarding and the packaged build
+  on the sandbox show the three buttons top-right where before there were
+  none.) Before: `frame: false` + `titleBarStyle: "hidden"` on all
   platforms; the React `WindowControls` render only in the TopBar / v2 tab
   bar, so the sign-in screen (first thing a new install shows) has no way to
   close the window.
@@ -21,25 +24,41 @@ Rows are checked only with evidence in the app, never from a code read.
   toggles restore; the window remembers bounds across restarts.
 - [ ] **1.4 App menu** — File/Edit/View/Window/Resources/Help render with
   Ctrl-based accelerators; Settings and Check for Updates are reachable (on
-  macOS they live in the app menu, which Linux has no equivalent of); the
-  menu bar is reachable with Alt when auto-hidden.
+  macOS they live in the app menu, which Linux has no equivalent of).
+  Before: with `titleBarStyle: "hidden"` the menu bar is gone entirely — Alt
+  reveals nothing (screenshot), so the menu is keyboard-only. Fix on this
+  branch: an application-menu button in the top strip on Windows/Linux that
+  pops the app menu, plus Settings / Check for Updates / Quit in File — needs
+  a rebuild to verify.
 - [ ] **1.5 Close and quit semantics** — closing the last window quits the app
   (no invisible process left behind); `Ctrl+Q` quits; the tray is either
   present with a sensible menu or absent, never half-initialised.
+  Before: closing the last window left the process running with no window
+  (no `window-all-closed` handler). Found on the packaged build: the close
+  button destroys the window first and the quit confirmation then opens with
+  no window behind it — two clicks stacked two dialogs, and a Cancel leaves an
+  invisible process. Fix on this branch: confirm on the last window's close
+  (Cancel keeps the window), quit without a second prompt once it is gone,
+  and one dialog at a time.
 
 ## 2. host-service on Linux
 
 - [ ] **2.1 Start/stop** — host-service starts with the app, survives window
   close while the app runs, and stops on quit.
-- [ ] **2.2 Terminals** — a PTY opens with the user's shell (`$SHELL`, falling
-  back to `/bin/bash`), resize works, scrollback restores.
-- [ ] **2.3 Git and files** — status, diff, branch switch, file tree and file
-  watching (inotify) work in a workspace.
+- [x] **2.2 Terminals** — a PTY opens with the user's shell (`$SHELL`, falling
+  back to `/bin/bash`), resize works, scrollback restores. (Every cloud
+  workspace is host-service on Linux: `docs/cloud-sandbox-acceptance.md` 5.2
+  — `echo hi`, resize, follow-up prompt — and the resume path in 5.5/6.x.)
+- [x] **2.3 Git and files** — status, diff, branch switch, file tree and file
+  watching (inotify) work in a workspace. (cloud acceptance 5.3: tree and
+  Changes tab on a Linux host-service; branch switch via the fork bootstrap.)
 - [ ] **2.4 Notifications and sounds** — desktop notifications show through
   the freedesktop notification daemon; sounds play through `paplay` or are
   silently skipped when there is no audio server.
-- [ ] **2.5 Port forwarding and background processes** — a dev server started
-  in a terminal is detected as a port and survives closing the pane.
+- [x] **2.5 Port forwarding and background processes** — a dev server started
+  in a terminal is detected as a port and survives closing the pane. (cloud
+  acceptance: the dev stack's api/web/Electron run detached under tmux on the
+  sandbox and show in the ports pill; verified on ws-4427… and ws-1e35….)
 
 ## 3. Browser and system integration
 
@@ -47,15 +66,52 @@ Rows are checked only with evidence in the app, never from a code read.
 - [ ] **3.2 Downloads** land in the user's downloads directory.
 - [ ] **3.3 Clipboard** copy/paste works in terminals and editors.
 - [ ] **3.4 Deep links** — `superset://` registers via the desktop entry.
+- [ ] **3.5 Diff worker pool** — `@pierre/diffs` logs `Worker error` seven
+  times right after sign-in on the sandbox desktop (dev server, root,
+  `--no-sandbox`); establish whether Linux-specific or dev-only and whether
+  diffs still render.
+- [ ] **3.6 Dev renderer under Chromium's request budget** — on the sandbox
+  the unbundled dev renderer loses a few random modules per load to
+  `net::ERR_INSUFFICIENT_RESOURCES` (Chromium's per-renderer cap on
+  outstanding request cost, hit by the large source-mapped modules the dev
+  server serves), after which nothing mounts. The bench therefore runs the
+  `electron-vite build` output; confirm the packaged app never sees it.
 
 ## 4. Packaging
 
-- [ ] **4.1 AppImage builds** from `electron-builder.ts` on a Linux runner.
+- [x] **4.1 AppImage builds** from `electron-builder.ts` on a Linux runner.
+  (`electron-vite build` needs a 12 GB Node heap on the sandbox — the default
+  4 GB dies on "Ineffective mark-compacts" — then `electron-builder --linux
+  AppImage` produced `superset-1.28.0-x86_64.AppImage` (560 MB) and
+  `linux-unpacked/`, which runs to the onboarding screen. Running the bare
+  `dist/` without packaging is not a valid bench: its chunks fail to load over
+  `file://`. `bun run build`'s `prebuild` step is what overlays the plugin
+  templates; skipping it logs a `superset-standup` ENOENT at boot.)
 - [ ] **4.2 Desktop entry and icon** — the running app shows the Superset icon
   and name in the dock / task switcher (`WM_CLASS` matches the desktop entry).
+  Before: the binary is `@supersetdesktop` (package name mangled), the
+  desktop entry says `StartupWMClass=Superset` while the window reports
+  `superset`, and the window carries no icon, so the dock shows a generic
+  entry. Fix on this branch: `executableName: "superset"`,
+  `StartupWMClass=superset`, `icon` on the window — needs a rebuild to verify.
 
 ## 5. Platform audit
 
 - [ ] **5.1 Every `process.platform === "darwin"` branch** in
   `apps/desktop/src/main` and `packages/host-service` has a Linux counterpart
-  or a deliberate no-op noted here.
+  or a deliberate no-op noted here:
+
+  | Branch | Linux |
+  | --- | --- |
+  | `windows/main.ts` frameless + traffic lights | window-controls overlay (this branch) |
+  | `lib/menu.ts` application menu (Settings, Updates, Quit) | added to File (this branch); `windowMenu` role is macOS-only, Window keeps minimize/zoom/close |
+  | `lib/tray` | macOS-only by design; Linux quits on last window instead (this branch) |
+  | `lib/dock-icon.ts` | macOS dock badge; Linux uses the desktop entry icon (4.2) |
+  | `lib/play-sound.ts` | `paplay` branch exists; needs an audio server (2.4) |
+  | `lib/host-service-coordinator.ts` spawn-helper launcher | macOS crash-port workaround; plain spawn elsewhere, by design |
+  | `lib/local-network-permission.ts`, `lib/apple-events-permission.ts` | macOS permissions; no-ops elsewhere |
+  | `lib/browser/chrome-cookie-import.ts` | macOS keychain; Linux cookie import unsupported (noted, not in scope) |
+  | `index.ts` system font protocol | macOS font dirs only; Linux relies on fontconfig (2.x) |
+  | host-service `usage/history/cursor.ts` | macOS path only; Linux path owed |
+  | host-service `ai-workspace-names.ts` shell | `/bin/bash` fallback exists |
+  | host-service `spawn-failure-diagnostics.ts` | `/proc/self/fd` branch exists |

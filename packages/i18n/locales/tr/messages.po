@@ -1994,6 +1994,9 @@ msgstr "Görünüm"
 msgid "Apple logo"
 msgstr "Apple logosu"
 
+msgid "Application menu"
+msgstr "Uygulama menüsü"
+
 msgid "Applies to"
 msgstr "Uygulanacak yer"
 

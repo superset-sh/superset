@@ -230,6 +230,10 @@ app.on("open-url", async (event, url) => {
 
 let isQuitting = false;
 let skipQuitConfirmation = false;
+// A second quit request while the confirmation is open would open a second
+// dialog on top of the first — the overlay close button on Linux makes that
+// easy to trigger.
+let quitConfirmationOpen = false;
 let forceFullCleanup = false;
 
 export function setSkipQuitConfirmation(): void {
@@ -274,7 +278,11 @@ function getConfirmOnQuitSetting(): boolean {
 // macOS keeps running without windows (dock and tray reopen it); elsewhere a
 // windowless app is an invisible process nothing brings back.
 app.on("window-all-closed", () => {
-	if (process.platform !== "darwin") app.quit();
+	if (process.platform === "darwin") return;
+	// The last window's close already asked; with no window left there is
+	// nothing a cancelled confirmation could keep.
+	skipQuitConfirmation = true;
+	app.quit();
 });
 
 app.on("before-quit", async (event) => {
@@ -283,6 +291,8 @@ app.on("before-quit", async (event) => {
 	const isDev = process.env.NODE_ENV === "development";
 	if (!skipQuitConfirmation && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
+		if (quitConfirmationOpen) return;
+		quitConfirmationOpen = true;
 
 		try {
 			const { response } = await dialog.showMessageBox({
@@ -301,12 +311,14 @@ app.on("before-quit", async (event) => {
 				),
 			});
 
+			quitConfirmationOpen = false;
 			if (response === 1) {
 				return;
 			}
 		} catch (error) {
 			console.error("[main] Quit confirmation dialog failed:", error);
 		}
+		quitConfirmationOpen = false;
 	}
 
 	isQuitting = true;

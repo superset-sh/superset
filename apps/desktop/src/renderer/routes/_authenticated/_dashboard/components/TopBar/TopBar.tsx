@@ -8,6 +8,7 @@ import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
+import { AppMenuButton } from "../AppMenuButton";
 import { NavigationControls } from "../NavigationControls";
 import { SidebarToggle } from "../SidebarToggle";
 import { WindowControlsInset } from "../WindowControlsInset";
@@ -75,6 +76,7 @@ export function TopBar() {
 				/>
 				{!sidebarHostsChrome && (
 					<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
+						{!isMac && <AppMenuButton />}
 						<SidebarToggle />
 						<NavigationControls />
 						{!isV2CloudEnabled && <ResourceConsumption surface="v1" />}

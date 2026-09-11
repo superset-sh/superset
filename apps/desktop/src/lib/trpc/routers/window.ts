@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
-import { dialog } from "electron";
+import { dialog, Menu } from "electron";
 import { menuEmitter } from "main/lib/menu-events";
 import { getOrg, setOrg } from "main/lib/window-registry/window-registry";
 import { getImageMimeType } from "shared/file-types";
@@ -16,6 +16,16 @@ const MAX_ZOOM_LEVEL = Math.log(5) / Math.log(1.2);
 
 export const createWindowRouter = () => {
 	return router({
+		// Windows and Linux hide the menu bar with the title bar, so the app
+		// menu opens from a button in the top strip instead.
+		popupApplicationMenu: publicProcedure.mutation(({ ctx }) => {
+			const window = ctx.senderWindow;
+			const menu = Menu.getApplicationMenu();
+			if (!window || !menu) return { success: false };
+			menu.popup({ window });
+			return { success: true };
+		}),
+
 		// Windows and Linux draw the window-controls overlay; its colours follow
 		// the app theme rather than the OS.
 		setTitleBarOverlay: publicProcedure

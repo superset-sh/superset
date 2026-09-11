@@ -12,6 +12,7 @@ import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { AppMenuButton } from "renderer/routes/_authenticated/_dashboard/components/AppMenuButton";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { RightSidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/RightSidebarToggle";
@@ -423,6 +424,7 @@ function V2WorkspaceContent() {
 													enabled={isMac}
 													className="flex items-center gap-1.5 px-1"
 												>
+													{!isMac && <AppMenuButton />}
 													<SidebarToggle />
 													<NavigationControls />
 												</ZoomStable>

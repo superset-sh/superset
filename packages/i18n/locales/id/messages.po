@@ -1994,6 +1994,9 @@ msgstr "Tampilan"
 msgid "Apple logo"
 msgstr "Logo Apple"
 
+msgid "Application menu"
+msgstr "Menu aplikasi"
+
 msgid "Applies to"
 msgstr "Berlaku untuk"
 

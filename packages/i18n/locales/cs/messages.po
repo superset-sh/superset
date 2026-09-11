@@ -1994,6 +1994,9 @@ msgstr "Vzhled"
 msgid "Apple logo"
 msgstr "Logo Apple"
 
+msgid "Application menu"
+msgstr "Nabídka aplikace"
+
 msgid "Applies to"
 msgstr "Platí pro"
 

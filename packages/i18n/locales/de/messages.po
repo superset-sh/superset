@@ -1994,6 +1994,9 @@ msgstr "Darstellung"
 msgid "Apple logo"
 msgstr "Apple-Logo"
 
+msgid "Application menu"
+msgstr "Anwendungsmenü"
+
 msgid "Applies to"
 msgstr "Gilt für"
 

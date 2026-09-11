@@ -1994,6 +1994,9 @@ msgstr "Giao diện"
 msgid "Apple logo"
 msgstr "Biểu trưng Apple"
 
+msgid "Application menu"
+msgstr "Menu ứng dụng"
+
 msgid "Applies to"
 msgstr "Áp dụng cho"
 

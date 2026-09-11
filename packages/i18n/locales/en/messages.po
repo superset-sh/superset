@@ -1994,6 +1994,9 @@ msgstr "Appearance"
 msgid "Apple logo"
 msgstr "Apple logo"
 
+msgid "Application menu"
+msgstr "Application menu"
+
 msgid "Applies to"
 msgstr "Applies to"
 

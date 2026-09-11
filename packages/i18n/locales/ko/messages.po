@@ -1994,6 +1994,9 @@ msgstr "모양"
 msgid "Apple logo"
 msgstr "Apple 로고"
 
+msgid "Application menu"
+msgstr "애플리케이션 메뉴"
+
 msgid "Applies to"
 msgstr "적용 범위"
 
