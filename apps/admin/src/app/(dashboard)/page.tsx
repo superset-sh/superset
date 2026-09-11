@@ -10,6 +10,7 @@ import { EnterpriseArrTile } from "./components/EnterpriseArrTile";
 import { HogQLLineTile } from "./components/HogQLLineTile";
 import { MrrTile } from "./components/MrrTile";
 import { NetBurnTile } from "./components/NetBurnTile";
+import { NrrTile } from "./components/NrrTile";
 import { OrgAdoptionTile } from "./components/OrgAdoptionTile";
 import { PostHogFunnelTile } from "./components/PostHogFunnelTile";
 import { ResetLayoutButton } from "./components/ResetLayoutButton";
@@ -138,6 +139,7 @@ export default function DashboardPage() {
 							}
 							tiles={[
 								{ key: "mrr", node: <MrrTile />, w: FULL_W, h: CHART_H },
+								{ key: "nrr", node: <NrrTile />, w: FULL_W, h: CHART_H },
 								{
 									key: "dau",
 									node: <TrendSeriesTile {...DAU_PROPS} />,
