@@ -1,4 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
+import { usePageComments } from "@superset/cloud-client";
 import { i18n } from "@superset/i18n";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
@@ -7,8 +8,8 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { errorCopy } from "@/lib/errors";
 import { cn } from "@/lib/utils";
-import { QUICK_PRESETS } from "../components/SelectionToolbar";
-import { usePageCommentActions } from "../hooks/usePageComments";
+import { QUICK_PRESETS } from "../components/CommentComposer/constants";
+import { usePageCommentUser } from "../hooks/usePageCommentUser";
 import { usePageCommentStore } from "../stores/pageCommentStore";
 
 export function QuickFeedbackSheet() {
@@ -16,13 +17,18 @@ export function QuickFeedbackSheet() {
 	const router = useRouter();
 	const { pageId, version, anchor } = usePageCommentStore();
 	const clear = usePageCommentStore((state) => state.clear);
-	const { createThread } = usePageCommentActions(pageId ?? undefined);
+	const user = usePageCommentUser();
+	const store = usePageComments({
+		pageId: pageId ?? "",
+		version: version ?? 0,
+		user,
+	});
 
 	const pick = async (body: string) => {
-		if (!version || !anchor || createThread.isPending) return;
+		if (!version || !anchor || store.submitting) return;
 		void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 		try {
-			await createThread.mutateAsync({ version, anchor, body });
+			await store.createThread({ anchor, anchorText: anchor.text, body });
 		} catch (error) {
 			Alert.alert(t({ message: "Comment not posted" }), errorCopy(error));
 			return;
@@ -51,11 +57,11 @@ export function QuickFeedbackSheet() {
 							<Pressable
 								key={preset.id}
 								accessibilityRole="button"
-								disabled={createThread.isPending}
+								disabled={store.submitting}
 								onPress={() => void pick(label)}
 								className={cn(
 									"min-h-11 flex-row items-center gap-3 rounded-xl px-2 py-3 active:opacity-60",
-									createThread.isPending && "opacity-50",
+									store.submitting && "opacity-50",
 								)}
 							>
 								<Icon

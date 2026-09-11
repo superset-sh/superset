@@ -38,7 +38,7 @@ export function FastMenu({ onPick, onClose }: FastMenuProps) {
 	return (
 		<div
 			data-comment-ui=""
-			className="absolute top-full left-0 mt-1.5 w-64 overflow-hidden rounded-lg border bg-popover py-1 text-popover-foreground shadow-lg"
+			className="absolute top-full left-0 z-10 mt-1.5 w-64 overflow-hidden rounded-lg border bg-popover py-1 text-popover-foreground shadow-lg"
 		>
 			{QUICK_PRESETS.map((preset, index) => (
 				<button

@@ -7,13 +7,13 @@ import {
 	type FrameMessage,
 	HOST_CHANNEL,
 	type HostMessageBody,
+	PENDING_ANCHOR_ID,
 } from "@superset/shared/page-comments-runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useComments } from "../../providers/CommentProvider";
 import { CommentBubble, pinClassName } from "./components/CommentBubble";
 import { CommentPopover } from "./components/CommentPopover";
 import { PageFrame } from "./components/PageFrame";
-import { SelectionToolbar } from "./components/SelectionToolbar";
 import {
 	type PinPoint,
 	pinPointOf,
@@ -61,9 +61,6 @@ export function PageCommentsView({
 		draft,
 		openDraft,
 		discardDraft,
-		selection,
-		openSelection,
-		clearSelection,
 		activeThreadId,
 		setActiveThreadId,
 		panelOpen,
@@ -92,10 +89,6 @@ export function PageCommentsView({
 			discardDraft();
 			return;
 		}
-		if (selection) {
-			clearSelection();
-			return;
-		}
 		if (activeThreadId) {
 			setActiveThreadId(null);
 			return;
@@ -107,12 +100,10 @@ export function PageCommentsView({
 		if (enabled) toggleEnabled();
 	}, [
 		activeThreadId,
-		clearSelection,
 		discardDraft,
 		draft,
 		enabled,
 		panelOpen,
-		selection,
 		setActiveThreadId,
 		setPanelOpen,
 		submitting,
@@ -140,7 +131,7 @@ export function PageCommentsView({
 	const popoverThread = panelOpen
 		? null
 		: threads.find((thread) => thread.id === activeThreadId);
-	const popoverOpen = Boolean(draft || popoverThread || selection);
+	const popoverOpen = Boolean(draft || popoverThread);
 	useEffect(() => {
 		const element = containerRef.current;
 		if (!element) return;
@@ -183,26 +174,24 @@ export function PageCommentsView({
 				notifyFramePointerDown();
 				if (!submitting) {
 					discardDraft();
-					clearSelection();
 					setActiveThreadId(null);
 				}
 			}
 			if (data.type === "escape") dismiss();
 			if (data.type === "rects") setRects(data.entries);
 			if (data.type === "pick") {
-				openSelection({ anchor: data.anchor, rect: data.rect });
+				openDraft({ anchor: data.anchor, rect: data.rect });
 				setHoverRect(null);
 			}
 		};
 		window.addEventListener("message", onMessage);
 		return () => window.removeEventListener("message", onMessage);
 	}, [
-		clearSelection,
 		discardDraft,
 		dismiss,
 		frameOrigin,
 		notifyFramePointerDown,
-		openSelection,
+		openDraft,
 		send,
 		setActiveThreadId,
 		setHoverRect,
@@ -219,12 +208,15 @@ export function PageCommentsView({
 	useEffect(() => {
 		send({
 			type: "track",
-			anchors: threads.map((thread) => ({
-				id: thread.id,
-				anchor: thread.anchor,
-			})),
+			anchors: [
+				...threads.map((thread) => ({
+					id: thread.id,
+					anchor: thread.anchor,
+				})),
+				...(draft ? [{ id: PENDING_ANCHOR_ID, anchor: draft.anchor }] : []),
+			],
 		});
-	}, [frameEpoch, send, threads]);
+	}, [frameEpoch, send, threads, draft]);
 
 	const pins = useMemo(() => {
 		const out: { id: string; point: PinPoint }[] = [];
@@ -243,7 +235,9 @@ export function PageCommentsView({
 	const stackIndex = useMemo(() => stackPins(pins), [pins]);
 
 	const activePoint = popoverThread ? pinPoints.get(popoverThread.id) : null;
-	const draftPoint = draft ? pinPointOf(draft.rect, draft.anchor) : null;
+	const draftRect = draft ? (rects[PENDING_ANCHOR_ID] ?? draft.rect) : null;
+	const draftPoint =
+		draft && draftRect ? pinPointOf(draftRect, draft.anchor) : null;
 
 	return (
 		<div ref={containerRef} className="relative h-full w-full">
@@ -268,12 +262,12 @@ export function PageCommentsView({
 					/>
 				) : null}
 
-				{selection ? (
+				{draftRect ? (
 					<div
 						style={{
-							transform: `translate(${selection.rect.left}px, ${selection.rect.top}px)`,
-							width: selection.rect.width,
-							height: selection.rect.height,
+							transform: `translate(${draftRect.left}px, ${draftRect.top}px)`,
+							width: draftRect.width,
+							height: draftRect.height,
 						}}
 						className="absolute top-0 left-0 rounded-sm bg-blue-500/10 ring-1 ring-blue-500/70"
 					/>
@@ -305,7 +299,6 @@ export function PageCommentsView({
 							active={thread.id === activeThreadId}
 							onClick={() => {
 								discardDraft();
-								clearSelection();
 								setActiveThreadId(
 									thread.id === activeThreadId ? null : thread.id,
 								);
@@ -316,25 +309,6 @@ export function PageCommentsView({
 			</div>
 
 			<div className="pointer-events-none absolute inset-0">
-				{selection ? (
-					<SelectionToolbar
-						rect={selection.rect}
-						container={container}
-						onComment={() => openDraft(selection)}
-						onQuick={(body, intent) => {
-							createThread({
-								anchor: selection.anchor,
-								anchorText: selection.anchor.text,
-								body: i18n._(body),
-								intent,
-							}).catch((error) => {
-								console.error("Quick feedback failed to post", error);
-							});
-						}}
-						onDismiss={clearSelection}
-					/>
-				) : null}
-
 				{draft && draftPoint ? (
 					<CommentPopover
 						point={draftPoint}
@@ -349,6 +323,16 @@ export function PageCommentsView({
 								body,
 							})
 						}
+						onQuick={(body, intent) => {
+							createThread({
+								anchor: draft.anchor,
+								anchorText: draft.anchor.text,
+								body: i18n._(body),
+								intent,
+							}).catch((error) => {
+								console.error("Quick feedback failed to post", error);
+							});
+						}}
 					/>
 				) : null}
 
