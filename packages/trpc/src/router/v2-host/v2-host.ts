@@ -74,12 +74,15 @@ export const v2HostRouter = {
 	/**
 	 * The roster: which hosts this user may reach in the organization, and
 	 * what they are called. Membership only; liveness is the relay's and
-	 * clients read it from there.
+	 * clients read it from there. The input is optional so desktops and
+	 * phones from before it existed, which scope by the active-org header,
+	 * keep their host list until they update.
 	 */
 	list: protectedProcedure
-		.input(z.object({ organizationId: z.string().uuid() }))
+		.input(z.object({ organizationId: z.string().uuid() }).optional())
 		.query(async ({ ctx, input }) => {
-			await requireOrgMember(ctx.session.user.id, input.organizationId);
+			const organizationId = input?.organizationId ?? requireActiveOrgId(ctx);
+			await requireOrgMember(ctx.session.user.id, organizationId);
 			return db
 				.select({
 					machineId: v2Hosts.machineId,
@@ -99,7 +102,7 @@ export const v2HostRouter = {
 				)
 				.where(
 					and(
-						eq(v2Hosts.organizationId, input.organizationId),
+						eq(v2Hosts.organizationId, organizationId),
 						eq(v2UsersHosts.userId, ctx.session.user.id),
 					),
 				);
