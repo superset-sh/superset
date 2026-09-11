@@ -266,30 +266,6 @@ const WALLPAPER_COMMANDS = WALLPAPERS.map(
  * entry for the same binary puts a second Chrome in the dock the moment one
  * opens.
  */
-/**
- * What an agent needs to know about this machine before it decides it is a
- * headless container: read by Claude Code (~/.claude/CLAUDE.md) and Codex
- * (~/.codex/AGENTS.md) on every run. One workspace's agent, told only that
- * Linux was "untested", started its own Xvfb and reported the desktop app
- * could not be shown while the user was looking at the real desktop.
- */
-const SANDBOX_AGENT_NOTES = `# Superset cloud sandbox
-
-This machine is a Superset cloud workspace, not a headless container.
-
-- A desktop session is running on DISPLAY=:1 (Xfce, 1920x1200). The user sees
-  it live in the Superset app's Desktop pane and can click in it. Launch GUI
-  programs (Chrome, Electron, the desktop dev app) on DISPLAY=:1, which every
-  shell here already has set. Never start Xvfb or another X server.
-- Google Chrome is installed as \`google-chrome\` and is the default browser
-  for \`xdg-open\`; it exposes DevTools on port 9222.
-- The repository is at /workspace. Ports you open are listed for the user in
-  the Superset app.
-- Nothing that is running survives the sandbox stopping; files under
-  /workspace and /root do. Leave long-lived servers under the workspace run
-  command rather than a shell.
-`;
-
 const PLANK_LAUNCHERS = {
 	"01-chrome.dockitem": "google-chrome.desktop",
 	"02-files.dockitem": "thunar.desktop",
@@ -622,8 +598,6 @@ RUN mkdir -p /usr/share/fonts/truetype/jetbrains-mono-nerd \\
  && rm /tmp/jbm.tar.xz && fc-cache -f >/dev/null
 RUN mkdir -p /usr/share/backgrounds/superset && ${WALLPAPER_COMMANDS}
 COPY superset.png /usr/share/icons/hicolor/512x512/apps/superset.png
-COPY sandbox-agent-notes.md /root/.claude/CLAUDE.md
-COPY sandbox-agent-notes.md /root/.codex/AGENTS.md
 RUN gtk-update-icon-cache -f -q /usr/share/icons/hicolor
 COPY plank-dock.theme /usr/share/plank/themes/Superset/dock.theme
 COPY plank.gschema.override /usr/share/glib-2.0/schemas/90_superset-plank.gschema.override
@@ -668,7 +642,6 @@ function assembleContext(): string {
 	// The app icon under the window class name: the panel button, the dock and
 	// the window switcher all resolve "superset" from the icon theme.
 	copy("apps/desktop/src/resources/build/icons/icon.png", "superset.png");
-	writeFileSync(join(context, "sandbox-agent-notes.md"), SANDBOX_AGENT_NOTES);
 	writeFileSync(join(context, "plank.gschema.override"), PLANK_GSETTINGS);
 	writeFileSync(
 		join(context, "chrome-policy.json"),
