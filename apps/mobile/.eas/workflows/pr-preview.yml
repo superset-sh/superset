@@ -16,7 +16,7 @@ jobs:
   fingerprint:
     name: Fingerprint
     type: fingerprint
-    environment: preview
+    environment: development
 
   get_development_build:
     name: Find development build for this fingerprint
