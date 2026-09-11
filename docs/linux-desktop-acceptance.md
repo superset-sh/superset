@@ -60,6 +60,26 @@ Rows are checked only with evidence in the app, never from a code read.
   (Cancel keeps the window), quit without a second prompt once it is gone,
   and one dialog at a time.
 
+- [ ] **1.6 Every screen clear of the overlay** — sampled the overlay area
+  (`titlebar-area-*`, 96×40 here) for interactive elements on every screen
+  of the packaged build: workspaces board, tasks, pull requests, pages,
+  automations, search, settings, command palette, new workspace, and the
+  workspace view with terminal, files, chat and browser panes. The only hit:
+  with the workspace side panel open its header owns the corner and the Set
+  Run cluster sat under the minimize button. Fix on this branch (the inset
+  moves to whichever strip is rightmost); the packaged rebuild with it has
+  not been run, so unverified.
+- [ ] **1.7 Multiple windows** — New Window opens through the menu item, the
+  `Ctrl+Alt+N` accelerator and the desktop entry's `--new-window` action.
+  Two windows work. **A third window crashes one renderer every time** (3 of
+  3 runs: `Renderer process gone { reason: 'crashed', exitCode: 5 }` the
+  moment the third window loads, one window left blank, no Chromium FATAL
+  line even with `--enable-logging=stderr`; `MaxListenersExceededWarning: 11
+  … listeners` on the menu emitter lands at the same moment). A fourth window
+  took the whole app down (every window gone, main process exited). Not yet
+  established whether this is Linux-specific or the bench's software GL
+  (`--disable-gpu` does not start at all here); macOS unverified. Open.
+
 ## 2. host-service on Linux
 
 - [x] **2.1 Start/stop** — host-service starts with the app, survives window
@@ -136,6 +156,15 @@ Rows are checked only with evidence in the app, never from a code read.
   every one of seven launches; no `ERR_INSUFFICIENT_RESOURCES` in the main
   log or the captured renderer console.)
 
+- [x] **3.7 Browser pane under load** — five heavy sites typed into the
+  address bar with real keyboard input (Wikipedia, GitHub, YouTube, Hacker
+  News, MDN) all rendered; `window.open` from a page opened as a second
+  browser pane beside it rather than a popup window; a 59 MB download started
+  from the page landed in `~/Downloads`; ten rapid navigations followed by a
+  heavy page: no renderer crash, largest process steady around 560 MB RSS.
+  The terminal falls back to its DOM renderer (no WebGL2 on the bench).
+  Screenshots.
+
 ## 4. Packaging
 
 - [x] **4.1 AppImage builds** from `electron-builder.ts` on a Linux runner.
@@ -187,7 +216,7 @@ Rows are checked only with evidence in the app, never from a code read.
   | `lib/host-service-coordinator.ts` spawn-helper launcher | macOS crash-port workaround; plain spawn elsewhere, by design |
   | `lib/local-network-permission.ts`, `lib/apple-events-permission.ts` | macOS permissions; no-ops elsewhere |
   | `lib/browser/chrome-cookie-import.ts` | macOS keychain; Linux cookie import unsupported (noted, not in scope) |
-  | `index.ts` system font protocol | macOS font dirs only; Linux relies on fontconfig (2.x) |
+  | `index.ts` system font protocol | macOS font dirs only; Linux relies on fontconfig (2.x). The renderer still requests `superset-font://fonts/SF-Mono-Regular.otf` on Linux and logs `ERR_UNKNOWN_URL_SCHEME`; harmless, the `@font-face` should be macOS-only |
   | `index.ts` `window-all-closed` | macOS keeps running; Linux quits (1.5, this branch) |
   | `lib/terminal/env.ts`, host-service `terminal/env.ts` `SSL_CERT_FILE` | macOS keychain workaround for Go TLS; Linux uses the system CA bundle, nothing to add |
   | `lib/browser/chromium-profiles.ts` | per-platform profile dirs; Linux branch exists (`~/.config/google-chrome` …) |
