@@ -1,21 +1,28 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
+/** The claims the Workers act on. `scope` is set only on tokens the API mints for itself. */
 export interface AuthContext {
 	sub: string;
 	organizationIds: string[];
-	/** Set only on tokens the API mints for itself; see access.ts. */
 	scope?: string;
 }
 
-let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+const jwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 
 function getJWKS(authUrl: string): ReturnType<typeof createRemoteJWKSet> {
+	let jwks = jwksByUrl.get(authUrl);
 	if (!jwks) {
 		jwks = createRemoteJWKSet(new URL("/api/auth/jwks", authUrl));
+		jwksByUrl.set(authUrl, jwks);
 	}
 	return jwks;
 }
 
+/**
+ * Verify a user JWT the API issued, for a Worker fronting it. Hourly
+ * rotation expiries are expected and silent; anything else is logged tersely,
+ * never with the decoded payload (it carries plaintext emails).
+ */
 export async function verifyJWT(
 	token: string,
 	authUrl: string,
@@ -25,27 +32,19 @@ export async function verifyJWT(
 			issuer: authUrl,
 			audience: authUrl,
 		});
-
 		const sub = payload.sub;
 		const organizationIds = payload.organizationIds as string[] | undefined;
-
-		if (!sub || !organizationIds) {
-			return null;
-		}
-
+		if (!sub || !organizationIds) return null;
 		const scope = typeof payload.scope === "string" ? payload.scope : undefined;
 		return { sub, organizationIds, scope };
 	} catch (error) {
-		// Don't log expected hourly-rotation expiries, and log only the terse
-		// message otherwise: the full error dumped a stack trace + decoded
-		// payload (plaintext emails) on every request at relay volume.
 		const code =
 			error instanceof Error && "code" in error
 				? (error as { code?: string }).code
 				: undefined;
 		if (code !== "ERR_JWT_EXPIRED") {
 			const message = error instanceof Error ? error.message : String(error);
-			console.warn(`[relay] JWT verification failed: ${message}`);
+			console.warn(`[jwt] verification failed: ${message}`);
 		}
 		return null;
 	}

@@ -1,44 +1,31 @@
 import { parseHostRoutingKey } from "@superset/shared/host-routing";
-import { LRUCache } from "lru-cache";
-import { getServerByName } from "partyserver";
+import type { AuthContext } from "@superset/shared/verify-jwt";
 import { createApiClient } from "./api-client";
-import type { AuthContext } from "./auth";
-import { readPlacement } from "./placement";
-import type { RelayEnv } from "./types";
 
 export const ALLOWED_TTL_MS = 15 * 60 * 1000;
 export const DENIED_TTL_MS = 30 * 1000;
 
-// Front cache by (userId, hostId), not (token, hostId): tokens rotate on every
-// JWT refresh while the underlying user→host authorization is stable. This is
-// per isolate; the durable copy lives in the host's tunnel object, so a miss
-// here costs one object call, not one API call.
-const allowedCache = new LRUCache<string, true>({
-	max: 50_000,
-	ttl: ALLOWED_TTL_MS,
-});
-const deniedCache = new LRUCache<string, true>({
-	max: 10_000,
-	ttl: DENIED_TTL_MS,
-});
-
-// Tokens the API mints for its own presence reads. The API already authorized
-// the caller against the host membership table before minting, so re-asking
-// it per host would be the API checking itself.
-const SERVER_PRESENCE_SCOPES = new Set([
-	"automation-presence",
-	"host-presence",
-]);
-
+// The API mints this for its own presence reads and has already authorized
+// the caller against the host membership table, so re-asking it per host
+// would be the API checking itself.
 export function isServerPresenceScope(scope: string | undefined): boolean {
-	return scope !== undefined && SERVER_PRESENCE_SCOPES.has(scope);
+	return scope === "automation-presence";
+}
+
+/** Who is asking, as the host's object needs it to authorize a call. */
+export interface Caller {
+	userId: string;
+	token: string;
+}
+
+export function callerOf(auth: AuthContext, token: string): Caller {
+	return { userId: auth.sub, token };
 }
 
 export type AccessDenial =
 	| "invalid_host"
 	| "not_in_org"
 	| "not_registered"
-	| "not_connected"
 	| "error";
 
 export type AccessResult = { ok: true } | { ok: false; reason: AccessDenial };
@@ -50,8 +37,6 @@ export function accessDenialMessage(reason: AccessDenial): string {
 			return "not a member of this org";
 		case "not_registered":
 			return "host not registered to this account - run `superset start` on it with this org";
-		case "not_connected":
-			return "host not connected";
 		case "invalid_host":
 			return "invalid host id";
 		default:
@@ -59,22 +44,17 @@ export function accessDenialMessage(reason: AccessDenial): string {
 	}
 }
 
-function localChecks(auth: AuthContext, hostId: string): AccessResult | null {
+/** What the Worker can decide from the token alone: a well-formed host id in one of the caller's organizations. */
+export function checkOrgAccess(
+	auth: AuthContext,
+	hostId: string,
+): AccessResult {
 	const parsed = parseHostRoutingKey(hostId);
 	if (!parsed) return { ok: false, reason: "invalid_host" };
 	if (!auth.organizationIds.includes(parsed.organizationId)) {
 		return { ok: false, reason: "not_in_org" };
 	}
-	const key = `${auth.sub}:${hostId}`;
-	if (allowedCache.has(key)) return { ok: true };
-	if (deniedCache.has(key)) return { ok: false, reason: "not_registered" };
-	return null;
-}
-
-function remember(auth: AuthContext, hostId: string, allowed: boolean): void {
-	const key = `${auth.sub}:${hostId}`;
-	if (allowed) allowedCache.set(key, true);
-	else deniedCache.set(key, true);
+	return { ok: true };
 }
 
 export async function fetchHostAccess(
@@ -88,9 +68,9 @@ export async function fetchHostAccess(
 }
 
 /**
- * The host's own connect. There may be no placement yet, and a host must not
- * be able to create one on the strength of a stale cache, so this asks the
- * API directly on a front-cache miss.
+ * The host's own connect. Its object may not exist yet, and a host must not
+ * be able to create its placement on the strength of a cache, so this asks
+ * the API every time; a control connect is rare next to client traffic.
  */
 export async function checkHostAccessForRegister(
 	auth: AuthContext,
@@ -98,43 +78,10 @@ export async function checkHostAccessForRegister(
 	hostId: string,
 	apiUrl: string,
 ): Promise<AccessResult> {
-	const local = localChecks(auth, hostId);
-	if (local) return local;
+	const org = checkOrgAccess(auth, hostId);
+	if (!org.ok) return org;
 	try {
 		const allowed = await fetchHostAccess(token, hostId, apiUrl);
-		remember(auth, hostId, allowed);
-		return allowed ? { ok: true } : { ok: false, reason: "not_registered" };
-	} catch {
-		return { ok: false, reason: "error" };
-	}
-}
-
-/**
- * A client reaching a host. The decision is cached in the host's tunnel
- * object, which every isolate and colo resolves to, so the API is asked once
- * per (user, host) per TTL rather than once per isolate. A host that has never
- * connected has no object and nothing to reach: it is "not connected" with no
- * access check at all.
- */
-export async function checkHostAccess(
-	env: RelayEnv,
-	auth: AuthContext,
-	token: string,
-	hostId: string,
-): Promise<AccessResult> {
-	const local = localChecks(auth, hostId);
-	if (local) return local;
-	const placement = await readPlacement(env, hostId);
-	if (!placement) return { ok: false, reason: "not_connected" };
-	try {
-		const stub = await getServerByName(env.HostTunnel, placement.name);
-		const allowed = await stub.checkAccess({
-			hostId,
-			userId: auth.sub,
-			token,
-			apiUrl: env.NEXT_PUBLIC_API_URL,
-		});
-		remember(auth, hostId, allowed);
 		return allowed ? { ok: true } : { ok: false, reason: "not_registered" };
 	} catch {
 		return { ok: false, reason: "error" };
