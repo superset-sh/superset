@@ -147,13 +147,28 @@ export interface SearchContentOptions {
 const SEARCH_INDEX_CACHE_MAX = 12;
 const SEARCH_INDEX_CACHE_TTL_MS = 30 * 60_000;
 
+const UNTRACKED_ROOT_SCAN_DEPTH = 8;
+const MAX_SEARCH_INDEX_BUILD_RESTARTS = 3;
+
+export class SearchIndexBuildAborted extends Error {
+	constructor() {
+		super("Search index build was superseded");
+		this.name = "SearchIndexBuildAborted";
+	}
+}
+
 interface CachedIndex {
 	items: SearchIndexEntry[];
 	lastAccessedAt: number;
 }
 
+interface PendingBuild {
+	items: Promise<SearchIndexEntry[]>;
+	abort: AbortController;
+}
+
 const searchIndexCache = new Map<string, CachedIndex>();
-const searchIndexBuilds = new Map<string, Promise<SearchIndexEntry[]>>();
+const searchIndexBuilds = new Map<string, PendingBuild>();
 
 function evictLruSearchIndexEntries(): void {
 	// Map iteration is insertion-order; re-inserting on hit moves an entry to
@@ -314,12 +329,25 @@ function matchesPathFilters(
 	return true;
 }
 
-async function buildSearchIndex({
-	rootPath,
-	includeHidden,
-}: SearchIndexKeyOptions): Promise<SearchIndexEntry[]> {
+export async function isGitRepositoryRoot(rootPath: string): Promise<boolean> {
+	try {
+		await fs.stat(path.join(rootPath, ".git"));
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+async function buildSearchIndex(
+	{ rootPath, includeHidden }: SearchIndexKeyOptions,
+	signal?: AbortSignal,
+): Promise<SearchIndexEntry[]> {
 	const normalizedRootPath = normalizeAbsolutePath(rootPath);
-	const entries = await fg("**/*", {
+	const deep = (await isGitRepositoryRoot(normalizedRootPath))
+		? Number.POSITIVE_INFINITY
+		: UNTRACKED_ROOT_SCAN_DEPTH;
+
+	const stream = fg.stream("**/*", {
 		cwd: normalizedRootPath,
 		onlyFiles: true,
 		dot: includeHidden,
@@ -327,11 +355,26 @@ async function buildSearchIndex({
 		unique: true,
 		suppressErrors: true,
 		ignore: DEFAULT_IGNORE_PATTERNS,
+		deep,
 	});
 
-	return entries.map((relativePath) =>
-		createSearchIndexEntry(normalizedRootPath, relativePath),
-	);
+	const onAbort = () => {
+		(stream as unknown as { destroy: () => void }).destroy();
+	};
+	signal?.addEventListener("abort", onAbort, { once: true });
+
+	const items: SearchIndexEntry[] = [];
+	try {
+		for await (const entry of stream) {
+			if (signal?.aborted) throw new SearchIndexBuildAborted();
+			items.push(createSearchIndexEntry(normalizedRootPath, String(entry)));
+		}
+	} finally {
+		signal?.removeEventListener("abort", onAbort);
+	}
+
+	if (signal?.aborted) throw new SearchIndexBuildAborted();
+	return items;
 }
 
 export async function getSearchIndex(
@@ -339,30 +382,51 @@ export async function getSearchIndex(
 ): Promise<SearchIndexEntry[]> {
 	const cacheKey = getSearchCacheKey(options);
 
-	const cached = searchIndexCache.get(cacheKey);
-	if (cached) {
-		// TTL is the freshness contract — bypassing it on hits would let a hot
-		// key serve indefinitely-stale data. Memory is already bounded by LRU.
-		searchIndexCache.delete(cacheKey);
-		if (Date.now() - cached.lastAccessedAt <= SEARCH_INDEX_CACHE_TTL_MS) {
-			cached.lastAccessedAt = Date.now();
-			searchIndexCache.set(cacheKey, cached); // re-insert at MRU position
-			return cached.items;
+	for (let attempt = 0; ; attempt++) {
+		const cached = searchIndexCache.get(cacheKey);
+		if (cached) {
+			// TTL is the freshness contract — bypassing it on hits would let a hot
+			// key serve indefinitely-stale data. Memory is already bounded by LRU.
+			searchIndexCache.delete(cacheKey);
+			if (Date.now() - cached.lastAccessedAt <= SEARCH_INDEX_CACHE_TTL_MS) {
+				cached.lastAccessedAt = Date.now();
+				searchIndexCache.set(cacheKey, cached); // re-insert at MRU position
+				return cached.items;
+			}
+		}
+
+		try {
+			const inFlight = searchIndexBuilds.get(cacheKey);
+			if (inFlight) return await inFlight.items;
+			return await startSearchIndexBuild(options, cacheKey, attempt);
+		} catch (error) {
+			if (error instanceof SearchIndexBuildAborted) continue;
+			throw error;
 		}
 	}
+}
 
-	const inFlight = searchIndexBuilds.get(cacheKey);
-	if (inFlight) {
-		return await inFlight;
-	}
-
-	const buildPromise = buildSearchIndex(options)
+function startSearchIndexBuild(
+	options: SearchIndexKeyOptions,
+	cacheKey: string,
+	attempt: number,
+): Promise<SearchIndexEntry[]> {
+	const abort = new AbortController();
+	const signal =
+		attempt >= MAX_SEARCH_INDEX_BUILD_RESTARTS ? undefined : abort.signal;
+	const buildPromise = buildSearchIndex(options, signal)
 		.then((items) => {
 			// Cache only if this build is still current. Invalidation (FSEvents
 			// overflow, root recovery, watcher patches with no cached index)
-			// deletes the builds entry to cancel us — caching anyway would
+			// aborts and drops the builds entry — caching anyway would
 			// resurrect an index that predates the events that invalidated it.
-			if (searchIndexBuilds.get(cacheKey) === buildPromise) {
+			if (attempt > 0) {
+				if (searchIndexBuilds.get(cacheKey)?.items === buildPromise) {
+					searchIndexBuilds.delete(cacheKey);
+				}
+				return items;
+			}
+			if (searchIndexBuilds.get(cacheKey)?.items === buildPromise) {
 				evictLruSearchIndexEntries();
 				searchIndexCache.set(cacheKey, {
 					items,
@@ -373,14 +437,14 @@ export async function getSearchIndex(
 			return items;
 		})
 		.catch((error) => {
-			if (searchIndexBuilds.get(cacheKey) === buildPromise) {
+			if (searchIndexBuilds.get(cacheKey)?.items === buildPromise) {
 				searchIndexBuilds.delete(cacheKey);
 			}
 			throw error;
 		});
-	searchIndexBuilds.set(cacheKey, buildPromise);
+	searchIndexBuilds.set(cacheKey, { items: buildPromise, abort });
 
-	return await buildPromise;
+	return buildPromise;
 }
 
 function safeSearchLimit(limit: number | undefined): number {
@@ -707,6 +771,16 @@ function applySearchPatchEvent({
 	includeHidden: boolean;
 	event: SearchPatchEvent;
 }): void {
+	if (event.isDirectory) {
+		applyDirectoryPatchEvent({
+			itemsByPath,
+			rootPath,
+			includeHidden,
+			event,
+		});
+		return;
+	}
+
 	if (event.kind === "rename" && event.oldAbsolutePath) {
 		itemsByPath.delete(normalizeAbsolutePath(event.oldAbsolutePath));
 		const nextRelativePath = toRelativePath(rootPath, event.absolutePath);
@@ -743,7 +817,15 @@ function applySearchPatchEvent({
 export function invalidateSearchIndex(options: SearchIndexKeyOptions): void {
 	const cacheKey = getSearchCacheKey(options);
 	searchIndexCache.delete(cacheKey);
+	abortSearchIndexBuild(cacheKey);
+}
+
+function abortSearchIndexBuild(cacheKey: string): void {
+	const pending = searchIndexBuilds.get(cacheKey);
+	if (!pending) return;
 	searchIndexBuilds.delete(cacheKey);
+	pending.abort.abort();
+	pending.items.catch(() => {});
 }
 
 export function invalidateSearchIndexesForRoot(rootPath: string): void {
@@ -754,7 +836,67 @@ export function invalidateSearchIndexesForRoot(rootPath: string): void {
 
 export function invalidateAllSearchIndexes(): void {
 	searchIndexCache.clear();
-	searchIndexBuilds.clear();
+	for (const cacheKey of [...searchIndexBuilds.keys()]) {
+		abortSearchIndexBuild(cacheKey);
+	}
+}
+
+function forcesFullRebuild(event: SearchPatchEvent): boolean {
+	if (!event.isDirectory) return false;
+	if (event.kind === "delete") return false;
+	if (event.kind === "rename" && event.oldAbsolutePath !== undefined) {
+		return false;
+	}
+	return true;
+}
+
+function applyDirectoryPatchEvent({
+	itemsByPath,
+	rootPath,
+	includeHidden,
+	event,
+}: {
+	itemsByPath: Map<string, SearchIndexEntry>;
+	rootPath: string;
+	includeHidden: boolean;
+	event: SearchPatchEvent;
+}): void {
+	if (event.kind === "delete") {
+		removeIndexedSubtree(
+			itemsByPath,
+			normalizeAbsolutePath(event.absolutePath),
+		);
+		return;
+	}
+
+	if (event.kind !== "rename" || event.oldAbsolutePath === undefined) return;
+
+	const from = normalizeAbsolutePath(event.oldAbsolutePath);
+	const to = normalizeAbsolutePath(event.absolutePath);
+	const moved = removeIndexedSubtree(itemsByPath, from);
+
+	for (const absolutePath of moved) {
+		const nextAbsolutePath = `${to}${absolutePath.slice(from.length)}`;
+		const nextRelativePath = toRelativePath(rootPath, nextAbsolutePath);
+		if (!shouldIndexRelativePath(nextRelativePath, includeHidden)) continue;
+		itemsByPath.set(
+			nextAbsolutePath,
+			createSearchIndexEntry(rootPath, nextRelativePath),
+		);
+	}
+}
+
+function removeIndexedSubtree(
+	itemsByPath: Map<string, SearchIndexEntry>,
+	directoryPath: string,
+): string[] {
+	const prefix = `${directoryPath}${path.sep}`;
+	const removed: string[] = [];
+	for (const absolutePath of itemsByPath.keys()) {
+		if (absolutePath.startsWith(prefix)) removed.push(absolutePath);
+	}
+	for (const absolutePath of removed) itemsByPath.delete(absolutePath);
+	return removed;
 }
 
 export function patchSearchIndexesForRoot(
@@ -765,7 +907,7 @@ export function patchSearchIndexesForRoot(
 		return;
 	}
 
-	if (events.some((event) => event.isDirectory)) {
+	if (events.some(forcesFullRebuild)) {
 		invalidateSearchIndexesForRoot(rootPath);
 		return;
 	}
@@ -780,7 +922,7 @@ export function patchSearchIndexesForRoot(
 		const cached = searchIndexCache.get(cacheKey);
 		if (!cached) {
 			// No cached index — also cancel any in-flight build since it'll be stale
-			searchIndexBuilds.delete(cacheKey);
+			abortSearchIndexBuild(cacheKey);
 			continue;
 		}
 
