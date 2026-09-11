@@ -260,6 +260,48 @@ async function assertRealpathWithinRoot(
 	}
 }
 
+/**
+ * Containment check for an existing entry that is moved, copied or removed as
+ * a whole. A symlink entry is operated on as a link and never followed, so
+ * only its ancestry has to resolve inside the root; anything else must
+ * resolve there itself.
+ */
+async function assertEntryWithinRoot(
+	rootPath: string,
+	absolutePath: string,
+): Promise<void> {
+	let stats: Stats;
+	try {
+		stats = await fs.lstat(absolutePath);
+	} catch (error) {
+		if (isEnoent(error)) {
+			await assertRealpathWithinRoot(rootPath, absolutePath);
+			return;
+		}
+		throw error;
+	}
+
+	if (stats.isSymbolicLink()) {
+		await assertParentWithinRoot(rootPath, absolutePath);
+		return;
+	}
+
+	await assertRealpathWithinRoot(rootPath, absolutePath);
+}
+
+async function assertDestinationAbsent(destinationPath: string): Promise<void> {
+	await fs.access(destinationPath).then(
+		() => {
+			throw new Error(`Destination already exists: ${destinationPath}`);
+		},
+		(error: NodeJS.ErrnoException) => {
+			if (error.code !== "ENOENT") {
+				throw error;
+			}
+		},
+	);
+}
+
 function getPathLockDirectory(absolutePath: string): string {
 	return path.join(
 		os.tmpdir(),
@@ -887,6 +929,7 @@ export async function deletePath({
 	}
 
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	await assertEntryWithinRoot(rootPath, targetPath);
 
 	if (!permanent && trashItem) {
 		await trashItem(targetPath);
@@ -908,7 +951,6 @@ export async function deletePath({
 		return { absolutePath: targetPath };
 	}
 
-	await assertRealpathWithinRoot(rootPath, targetPath);
 	await fs.rm(targetPath, { recursive: true, force: true });
 	return { absolutePath: targetPath };
 }
@@ -930,17 +972,9 @@ export async function movePath({
 		rootPath,
 		absolutePath: destinationAbsolutePath,
 	});
-
-	await fs.access(destinationPath).then(
-		() => {
-			throw new Error(`Destination already exists: ${destinationPath}`);
-		},
-		(error: NodeJS.ErrnoException) => {
-			if (error.code !== "ENOENT") {
-				throw error;
-			}
-		},
-	);
+	await assertEntryWithinRoot(rootPath, sourcePath);
+	await assertRealpathWithinRoot(rootPath, destinationPath);
+	await assertDestinationAbsent(destinationPath);
 
 	await fs.rename(sourcePath, destinationPath);
 	return { fromAbsolutePath: sourcePath, toAbsolutePath: destinationPath };
@@ -963,6 +997,8 @@ export async function copyPath({
 		rootPath,
 		absolutePath: destinationAbsolutePath,
 	});
+	await assertEntryWithinRoot(rootPath, sourcePath);
+	await assertRealpathWithinRoot(rootPath, destinationPath);
 
 	await fs.cp(sourcePath, destinationPath, { recursive: true });
 	return { fromAbsolutePath: sourcePath, toAbsolutePath: destinationPath };
