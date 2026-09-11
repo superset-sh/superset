@@ -18,6 +18,7 @@ import {
 import { DesignModeController } from "./design-mode-controller";
 import { captureDesignModeScreenshot } from "./design-mode-screenshot";
 import { buildDesignModeScript } from "./design-mode-script";
+import { installGuestPermissionPolicy } from "./guest-permissions";
 import { markBrowserPanePopup, shouldOpenAsPopup } from "./popup-window";
 
 interface ConsoleEntry {
@@ -257,6 +258,10 @@ class BrowserManager extends EventEmitter {
 		});
 		const wc = webContents.fromId(webContentsId);
 		if (wc) {
+			// Electron grants every permission (camera, mic, geolocation, screen
+			// capture, openExternal, …) to a page unless the session has a
+			// handler; the guest is hostile content, so it gets an allowlist.
+			installGuestPermissionPolicy(wc.session);
 			// Throttling stays enabled by default so parked/offscreen persistent
 			// webviews don't run at full speed in the background — except while
 			// agent work is in flight on the pane (see acquireAgentWake), where a
@@ -359,6 +364,9 @@ class BrowserManager extends EventEmitter {
 	 * top frame is left alone so the renderer handles the real event.
 	 */
 	registerHostWindow(wc: Electron.WebContents): void {
+		// The host window's subframes load web content too; the policy is
+		// per-session, so this also covers a pane that registers later.
+		installGuestPermissionPolicy(wc.session);
 		wc.on("before-input-event", (event, input) => {
 			if (input.type !== "keyDown") return;
 			if (!wc.focusedFrame?.parent) return;
