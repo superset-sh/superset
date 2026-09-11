@@ -390,6 +390,24 @@ export const gitDeleteBranchTask = defineWorkerTask<
 	},
 });
 
+export const gitStagePathsTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		paths: string[];
+		action: "stage" | "unstage";
+		gitEnv: GitTaskEnv;
+	},
+	{ success: true }
+>({
+	type: "git/stagePaths",
+	handler: async ({ worktreePath, paths, action, gitEnv }) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		if (action === "stage") await git.raw(["add", "-A", "--", ...paths]);
+		else await git.raw(["reset", "HEAD", "--", ...paths]);
+		return { success: true };
+	},
+});
+
 export const gitCommitTask = defineWorkerTask<
 	{
 		worktreePath: string;

@@ -16,6 +16,7 @@ import {
 	gitDiffSideBlobTask,
 	gitFetchBaseRefTask,
 	gitPushTask,
+	gitStagePathsTask,
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
 import { protectedProcedure, queryProcedure, router } from "../../index";
@@ -579,9 +580,13 @@ export const gitRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const paths = resolveStagingTargetPaths(input);
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
-			const git = await ctx.git(worktreePath);
-			await git.raw(["add", "-A", "--", ...paths]);
-			return { success: true };
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			return getHostWorkerPool().run(gitStagePathsTask, {
+				worktreePath,
+				paths,
+				action: "stage",
+				gitEnv,
+			});
 		}),
 
 	unstageFile: protectedProcedure
@@ -589,9 +594,13 @@ export const gitRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const paths = resolveStagingTargetPaths(input);
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
-			const git = await ctx.git(worktreePath);
-			await git.raw(["reset", "HEAD", "--", ...paths]);
-			return { success: true };
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			return getHostWorkerPool().run(gitStagePathsTask, {
+				worktreePath,
+				paths,
+				action: "unstage",
+				gitEnv,
+			});
 		}),
 
 	stageAll: protectedProcedure
