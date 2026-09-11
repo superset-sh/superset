@@ -8,6 +8,7 @@ import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 import { mapEventType } from "./map-event-type";
+import { queryString } from "./query-string";
 import { resolvePaneId } from "./resolve-pane-id";
 import { recordV1AgentHookEvent } from "./v1-agent-sessions";
 
@@ -49,14 +50,6 @@ app.use((req, res, next) => {
 	}
 	next();
 });
-
-/**
- * Query values arrive as string | string[] | object (express parses
- * `?a[b]=1` and repeated keys); the hook protocol only ever sends strings.
- */
-function queryString(value: unknown): string | undefined {
-	return typeof value === "string" ? value : undefined;
-}
 
 // Agent lifecycle hook
 app.get("/hook/complete", (req, res) => {
