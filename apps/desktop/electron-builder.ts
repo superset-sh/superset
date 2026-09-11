@@ -157,12 +157,17 @@ const config: Configuration = {
 		// no longer install by default; the deb needs nothing extra and installs
 		// the desktop entry and icon that the dock and deep links resolve.
 		target: ["AppImage", "deb"],
+		// fpm's default xz takes ~15 minutes on the 2 GB tree; gzip takes about
+		// one and costs roughly a tenth in download size.
+		deb: { compression: "gzip" },
 		artifactName: `superset-\${version}-\${arch}.\${ext}`,
 		// GNOME's app menus only show their heuristic "New Window" item
 		// intermittently for running apps; an explicit desktop action (the
 		// Chrome/VS Code approach) is always shown. The action relaunches with
 		// --new-window, which the second-instance handler answers by opening a
-		// window; a plain relaunch focuses the running app.
+		// window; a plain relaunch focuses the running app. `superset` is the
+		// deb's /usr/bin link; AppImage integration rewrites Exec lines to the
+		// image path, and the un-integrated AppImage never shows actions.
 		desktop: {
 			// electron-builder appends [Desktop Action] groups but never writes
 			// the Actions= key that exposes them, so declare it explicitly —
@@ -182,7 +187,7 @@ const config: Configuration = {
 					// intentionally omitted. --new-window is what the
 					// second-instance handler keys on to open a window instead
 					// of focusing the running app.
-					Exec: "AppRun --no-sandbox --new-window",
+					Exec: "superset --new-window",
 				},
 			},
 		},

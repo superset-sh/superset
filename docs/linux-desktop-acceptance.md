@@ -60,29 +60,40 @@ Rows are checked only with evidence in the app, never from a code read.
   (Cancel keeps the window), quit without a second prompt once it is gone,
   and one dialog at a time.
 
-- [ ] **1.6 Every screen clear of the overlay** — sampled the overlay area
+- [x] **1.6 Every screen clear of the overlay** — sampled the overlay area
   (`titlebar-area-*`, 96×40 here) for interactive elements on every screen
   of the packaged build: workspaces board, tasks, pull requests, pages,
   automations, search, settings, command palette, new workspace, and the
   workspace view with terminal, files, chat and browser panes. The only hit:
   with the workspace side panel open its header owns the corner and the Set
   Run cluster sat under the minimize button. Fix on this branch (the inset
-  moves to whichever strip is rightmost). Satya then hit a second one on the
+  moves to whichever strip is rightmost; after, on the rebuilt package with
+  the side panel open, the sample finds nothing under the controls and Set
+  Run sits left of them — screenshot). Satya then hit a second one on the
   woken sandbox's dev app: the create-organization screen's only exit, its
   Sign Out / Cancel button, sits at top-right under the controls, so the
   screen has no way out on Linux (on macOS the traffic lights are on the
-  left and it is fine). Same fix, same branch. The packaged rebuild with
-  either has not been run, so both are unverified.
-- [ ] **1.7 Multiple windows** — New Window opens through the menu item, the
+  left and it is fine). Same fix, same branch. (After, on the rebuilt package,
+  reached through the organization menu → Switch organization → Create
+  organization: the heading renders and the Cancel button's right edge sits
+  112 px from the window edge, past the 96 px overlay — screenshot.)
+- [x] **1.7 Multiple windows** — New Window opens through the menu item, the
   `Ctrl+Alt+N` accelerator and the desktop entry's `--new-window` action.
   Two windows work. **A third window crashes one renderer every time** (3 of
   3 runs: `Renderer process gone { reason: 'crashed', exitCode: 5 }` the
   moment the third window loads, one window left blank, no Chromium FATAL
   line even with `--enable-logging=stderr`; `MaxListenersExceededWarning: 11
   … listeners` on the menu emitter lands at the same moment). A fourth window
-  took the whole app down (every window gone, main process exited). Not yet
-  established whether this is Linux-specific or the bench's software GL
-  (`--disable-gpu` does not start at all here); macOS unverified. Open.
+  took the whole app down (every window gone, main process exited). Root
+  cause from the minidump (Electron symbols, re-filed under the renamed
+  binary): `partition_alloc::TerminateBecauseOutOfMemory` in
+  `CreateSharedImageForSoftwareCompositor` on the Compositor thread — with no
+  GPU, Chromium backs every window's tiles with shared memory, and the
+  sandbox VM mounts a 64 MB `/dev/shm` (each window takes ~17 MB). Not a
+  Linux app bug: a desktop mounts half of RAM there. The sandbox boot script
+  now remounts it at 50% of RAM (sandbox PR); after that four windows open
+  with every renderer alive and `Ctrl+Shift+Q` closes them one by one —
+  screenshot.
 
 ## 2. host-service on Linux
 
@@ -202,6 +213,23 @@ Rows are checked only with evidence in the app, never from a code read.
   packaged build rebuilt with #7429 applied: zero `Failed to provision skill`
   lines at boot; `~/.claude/skills/superset/skills/<skill>/agents/openai.yaml`
   and `10x/scripts/audit.sh` present.)
+
+- [x] **4.4 Runs for a normal user on a current distro** — the AppImage
+  needs libfuse2, which Debian 12 and Ubuntu 22.04+ no longer install: as a
+  non-root user on the bench it stops at "AppImages require FUSE to run"
+  before anything else. With `APPIMAGE_EXTRACT_AND_RUN=1` it starts, with the
+  real Chromium sandbox (user namespaces allowed here, no `--no-sandbox`) and
+  reaches sign-in; the only noise is "Failed to adjust OOM score" from the
+  non-setuid helper. This branch adds a `deb` target beside the AppImage
+  (gzip: fpm's xz took 16 minutes on the bench) and uploads it from the
+  workflow. (After: `dpkg -i` of the 405 MB deb installs
+  `/usr/share/applications/superset.desktop`, hicolor icons and
+  `/usr/bin/superset`; launched by the bench user exactly as the entry's
+  `Exec=/opt/Superset/superset %U`, no flags, the app starts with the real
+  Chromium sandbox, provisions `~/.superset`, reaches sign-in and checks the
+  GitHub release feed for updates — log. The entry's "New Window" action
+  said `AppRun`, which only exists inside an AppImage; it now calls
+  `superset --new-window`.)
 
 ## 5. Platform audit
 
