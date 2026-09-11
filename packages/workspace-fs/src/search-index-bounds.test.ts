@@ -189,3 +189,28 @@ describe("build cancellation", () => {
 		expect(index.length).toBe(6000);
 	});
 });
+
+describe("build restart bound", () => {
+	it("terminates when a joined build is repeatedly superseded", async () => {
+		const root = await makeRoot();
+		await fs.mkdir(path.join(root, ".git"), { recursive: true });
+		for (let d = 0; d < 30; d++) {
+			const dir = path.join(root, `d${d}`);
+			await fs.mkdir(dir, { recursive: true });
+			await Promise.all(
+				Array.from({ length: 200 }, (_, i) =>
+					fs.writeFile(path.join(dir, `f${i}.ts`), "x"),
+				),
+			);
+		}
+
+		const joiner = getSearchIndex({ rootPath: root, includeHidden: false });
+		for (let i = 0; i < 8; i++) {
+			await new Promise((resolve) => setTimeout(resolve, 1));
+			invalidateAllSearchIndexes();
+		}
+
+		const index = await joiner;
+		expect(index.length).toBe(6000);
+	});
+});

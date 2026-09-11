@@ -399,7 +399,10 @@ export async function getSearchIndex(
 		}
 
 		try {
-			const inFlight = searchIndexBuilds.get(cacheKey);
+			const inFlight =
+				attempt < MAX_SEARCH_INDEX_BUILD_RESTARTS
+					? searchIndexBuilds.get(cacheKey)
+					: undefined;
 			if (inFlight) return await inFlight.items;
 			return await startSearchIndexBuild(options, cacheKey, attempt);
 		} catch (error) {
