@@ -85,6 +85,12 @@ export function createApplicationMenu() {
 							},
 							{ type: "separator" },
 							{ role: "quit" },
+							{
+								label: i18n._(msg({ message: "Quit Superset Completely" })),
+								click: () => {
+									void confirmAndQuitCompletely();
+								},
+							},
 						] satisfies Electron.MenuItemConstructorOptions[])),
 			],
 		},

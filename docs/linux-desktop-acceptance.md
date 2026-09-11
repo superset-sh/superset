@@ -30,9 +30,14 @@ Rows are checked only with evidence in the app, never from a code read.
   branch: an application-menu button in the top strip on Windows/Linux that
   pops the app menu, plus Settings / Check for Updates / Quit in File — needs
   a rebuild to verify.
-- [ ] **1.5 Close and quit semantics** — closing the last window quits the app
+- [x] **1.5 Close and quit semantics** — closing the last window quits the app
   (no invisible process left behind); `Ctrl+Q` quits; the tray is either
-  present with a sensible menu or absent, never half-initialised.
+  present with a sensible menu or absent, never half-initialised. (After, on
+  the rebuilt AppImage: close → "Quit Superset?" over the window → Cancel
+  keeps it (1 window, app alive) → close → Quit → main process gone. The
+  terminal host and pty-daemon deliberately outlive a plain quit, as on
+  macOS, so terminals survive a relaunch; "Quit Superset Completely" in File
+  tears them down. No tray on Linux.)
   Before: closing the last window left the process running with no window
   (no `window-all-closed` handler). Found on the packaged build: the close
   button destroys the window first and the quit confirmation then opens with
@@ -43,8 +48,10 @@ Rows are checked only with evidence in the app, never from a code read.
 
 ## 2. host-service on Linux
 
-- [ ] **2.1 Start/stop** — host-service starts with the app, survives window
-  close while the app runs, and stops on quit.
+- [x] **2.1 Start/stop** — host-service starts with the app, survives window
+  close while the app runs, and stops on quit. (Packaged build log:
+  `[host-service:…] listening on port 48503` at launch; after the confirmed
+  quit only the sandbox's own host-service remains.)
 - [x] **2.2 Terminals** — a PTY opens with the user's shell (`$SHELL`, falling
   back to `/bin/bash`), resize works, scrollback restores. (Every cloud
   workspace is host-service on Linux: `docs/cloud-sandbox-acceptance.md` 5.2
@@ -54,7 +61,11 @@ Rows are checked only with evidence in the app, never from a code read.
   Changes tab on a Linux host-service; branch switch via the fork bootstrap.)
 - [ ] **2.4 Notifications and sounds** — desktop notifications show through
   the freedesktop notification daemon; sounds play through `paplay` or are
-  silently skipped when there is no audio server.
+  silently skipped when there is no audio server. (Sandbox: `xfce4-notifyd`
+  runs and `notify-send` draws a bubble — screenshot; `paplay` is present,
+  no PulseAudio, and `play-sound.ts` already falls back to `aplay` and
+  completes on failure. The app's own `Notification` path is still to be
+  exercised on the packaged build.)
 - [x] **2.5 Port forwarding and background processes** — a dev server started
   in a terminal is detected as a port and survives closing the pane. (cloud
   acceptance: the dev stack's api/web/Electron run detached under tmux on the
@@ -62,7 +73,11 @@ Rows are checked only with evidence in the app, never from a code read.
 
 ## 3. Browser and system integration
 
-- [ ] **3.1 External links** open the system browser (`xdg-open`).
+- [ ] **3.1 External links** open the system browser (`xdg-open`). (Sandbox:
+  `xdg-open https://…` reaches Chrome once the sandbox image's browser
+  wrapper is in place — the bare binary refuses to run as root, a sandbox
+  quirk fixed on the sandbox PR, not an app issue; the app's
+  `shell.openExternal` path is still to be exercised on the packaged build.)
 - [ ] **3.2 Downloads** land in the user's downloads directory.
 - [ ] **3.3 Clipboard** copy/paste works in terminals and editors.
 - [ ] **3.4 Deep links** — `superset://` registers via the desktop entry.
