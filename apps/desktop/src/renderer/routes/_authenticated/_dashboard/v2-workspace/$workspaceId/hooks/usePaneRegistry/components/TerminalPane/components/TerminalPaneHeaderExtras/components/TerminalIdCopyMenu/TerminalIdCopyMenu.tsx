@@ -40,7 +40,7 @@ export function TerminalIdCopyMenu({
 					message: "Copy IDs",
 				});
 	const buttonClassName =
-		"rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground";
+		"rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground";
 
 	if (!agentSessionId) {
 		const terminalTooltipLabel = copied

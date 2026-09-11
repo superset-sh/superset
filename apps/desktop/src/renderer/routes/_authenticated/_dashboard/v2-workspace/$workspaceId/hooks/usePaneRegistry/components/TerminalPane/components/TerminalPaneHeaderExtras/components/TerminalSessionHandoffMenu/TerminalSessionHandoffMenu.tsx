@@ -185,7 +185,7 @@ export function TerminalSessionHandoffMenu({
 								aria-label={t({
 									message: "Continue or fork session",
 								})}
-								className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+								className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 							>
 								<GitFork className="size-3.5" />
 							</button>
