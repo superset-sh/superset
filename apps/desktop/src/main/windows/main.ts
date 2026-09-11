@@ -361,6 +361,14 @@ export async function restoreWindows(): Promise<void> {
  * @param key    The window's persisted identity. Supplied when restoring so the
  *               window finds its own tab layout again; minted for a new window.
  */
+
+/** The overlay's colours follow the OS theme until the renderer's theme store sets its own. */
+export function titleBarOverlayColors(): Electron.TitleBarOverlay {
+	return nativeTheme.shouldUseDarkColors
+		? { color: "#252525", symbolColor: "#e5e5e5", height: 40 }
+		: { color: "#ffffff", symbolColor: "#1f1f1f", height: 40 };
+}
+
 export async function createPlatformWindow({
 	orgId,
 	bounds,
@@ -407,9 +415,14 @@ export async function createPlatformWindow({
 		acceptFirstMouse: true,
 		alwaysOnTop: false,
 		autoHideMenuBar: true,
-		frame: false,
 		titleBarStyle: "hidden",
-		trafficLightPosition: { x: 16, y: 16 },
+		// macOS keeps its traffic lights, positioned for the sidebar header.
+		// Elsewhere the window-controls overlay draws minimize/maximize/close
+		// on every screen, sign-in included, and the renderer keeps its top
+		// strip clear of them through the titlebar-area CSS variables.
+		...(PLATFORM.IS_MAC
+			? { frame: false, trafficLightPosition: { x: 16, y: 16 } }
+			: { titleBarOverlay: titleBarOverlayColors() }),
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			webviewTag: true,

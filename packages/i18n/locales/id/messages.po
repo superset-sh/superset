@@ -3332,9 +3332,6 @@ msgstr "Tutup panel saat ini"
 msgid "Close the current tab"
 msgstr "Tutup tab saat ini"
 
-msgid "Close window"
-msgstr "Tutup jendela"
-
 msgid "Close Window"
 msgstr "Tutup Jendela"
 
@@ -8387,9 +8384,6 @@ msgstr "Cocokkan pintasan dengan label pada keyboard Anda (mis. ⌘Z selalu akti
 msgid "Max"
 msgstr "Maks"
 
-msgid "Maximize window"
-msgstr "Maksimalkan jendela"
-
 msgid "Maximum"
 msgstr "Maksimum"
 
@@ -8549,9 +8543,6 @@ msgstr "Perkecil"
 
 msgid "Minimize GitHub issues"
 msgstr "Perkecil issue GitHub"
-
-msgid "Minimize window"
-msgstr "Perkecil jendela"
 
 msgid "Minimum contrast"
 msgstr "Kontras minimum"

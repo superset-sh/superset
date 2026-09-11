@@ -16,7 +16,7 @@ import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/co
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { RightSidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/RightSidebarToggle";
 import { TopBarPortsDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/TopBarPortsDropdown";
-import { WindowControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/WindowControls";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import {
 	parseSubagentSearch,
 	readSubagentSearch,
@@ -459,7 +459,7 @@ function V2WorkspaceContent() {
 									    stays hidden, which keeps it compact for the tab bar. */}
 									<V2WorkspaceOpenInButton workspaceId={workspaceId} />
 									<RightSidebarToggle />
-									{!isMac && <WindowControls />}
+									{!isMac && <WindowControlsInset />}
 								</div>
 							)}
 							renderEmptyState={() => (

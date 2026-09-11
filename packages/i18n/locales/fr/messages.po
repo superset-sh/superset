@@ -3332,9 +3332,6 @@ msgstr "Fermer le volet actuel"
 msgid "Close the current tab"
 msgstr "Fermer l'onglet actuel"
 
-msgid "Close window"
-msgstr "Fermer la fenêtre"
-
 msgid "Close Window"
 msgstr "Fermer la fenêtre"
 
@@ -8387,9 +8384,6 @@ msgstr "Faire correspondre les raccourcis aux libellés de votre clavier (par ex
 msgid "Max"
 msgstr "Max"
 
-msgid "Maximize window"
-msgstr "Agrandir la fenêtre"
-
 msgid "Maximum"
 msgstr "Maximum"
 
@@ -8549,9 +8543,6 @@ msgstr "Réduire"
 
 msgid "Minimize GitHub issues"
 msgstr "Réduire les issues GitHub"
-
-msgid "Minimize window"
-msgstr "Réduire la fenêtre"
 
 msgid "Minimum contrast"
 msgstr "Contraste minimal"

@@ -3332,9 +3332,6 @@ msgstr "Cerrar el panel actual"
 msgid "Close the current tab"
 msgstr "Cerrar la pestaña actual"
 
-msgid "Close window"
-msgstr "Cerrar la ventana"
-
 msgid "Close Window"
 msgstr "Cerrar ventana"
 
@@ -8387,9 +8384,6 @@ msgstr "Ajusta los atajos a las etiquetas de tu teclado (p. ej. ⌘Z siempre se 
 msgid "Max"
 msgstr "Máx."
 
-msgid "Maximize window"
-msgstr "Maximizar la ventana"
-
 msgid "Maximum"
 msgstr "Máxima"
 
@@ -8549,9 +8543,6 @@ msgstr "Minimizar"
 
 msgid "Minimize GitHub issues"
 msgstr "Minimizar los issues de GitHub"
-
-msgid "Minimize window"
-msgstr "Minimizar la ventana"
 
 msgid "Minimum contrast"
 msgstr "Contraste mínimo"

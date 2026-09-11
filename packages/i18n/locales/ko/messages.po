@@ -3332,9 +3332,6 @@ msgstr "현재 패널을 닫습니다"
 msgid "Close the current tab"
 msgstr "현재 탭을 닫습니다"
 
-msgid "Close window"
-msgstr "창 닫기"
-
 msgid "Close Window"
 msgstr "창 닫기"
 
@@ -8387,9 +8384,6 @@ msgstr "키보드에 인쇄된 문자에 맞춰 단축키를 매핑합니다(예
 msgid "Max"
 msgstr "최대"
 
-msgid "Maximize window"
-msgstr "창 최대화"
-
 msgid "Maximum"
 msgstr "최대"
 
@@ -8549,9 +8543,6 @@ msgstr "최소화"
 
 msgid "Minimize GitHub issues"
 msgstr "GitHub 이슈 최소화"
-
-msgid "Minimize window"
-msgstr "창 최소화"
 
 msgid "Minimum contrast"
 msgstr "최소 대비"

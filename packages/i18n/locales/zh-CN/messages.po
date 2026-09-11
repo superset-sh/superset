@@ -3332,9 +3332,6 @@ msgstr "关闭当前窗格"
 msgid "Close the current tab"
 msgstr "关闭当前标签页"
 
-msgid "Close window"
-msgstr "关闭窗口"
-
 msgid "Close Window"
 msgstr "关闭窗口"
 
@@ -8387,9 +8384,6 @@ msgstr "让快捷键匹配键盘上的标签（例如⌘Z始终触发标有“Z�
 msgid "Max"
 msgstr "最大"
 
-msgid "Maximize window"
-msgstr "最大化窗口"
-
 msgid "Maximum"
 msgstr "最大"
 
@@ -8549,9 +8543,6 @@ msgstr "最小化"
 
 msgid "Minimize GitHub issues"
 msgstr "最小化GitHub议题"
-
-msgid "Minimize window"
-msgstr "最小化窗口"
 
 msgid "Minimum contrast"
 msgstr "最小对比度"

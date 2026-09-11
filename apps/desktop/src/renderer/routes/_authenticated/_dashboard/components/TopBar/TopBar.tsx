@@ -10,13 +10,13 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import { NavigationControls } from "../NavigationControls";
 import { SidebarToggle } from "../SidebarToggle";
+import { WindowControlsInset } from "../WindowControlsInset";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
 import { TopBarPortsDropdown } from "./components/TopBarPortsDropdown";
 import { V2WorkspaceTitle } from "./components/V2WorkspaceTitle";
-import { WindowControls } from "./components/WindowControls";
 
 export function TopBar() {
 	const matchRoute = useMatchRoute();
@@ -109,7 +109,7 @@ export function TopBar() {
 				) : null}
 				{!isV2CloudEnabled && <OrganizationDropdown />}
 				{isV2WorkspaceRoute && <RightSidebarToggle />}
-				{!isMac && <WindowControls />}
+				{!isMac && <WindowControlsInset />}
 			</div>
 		</div>
 	);

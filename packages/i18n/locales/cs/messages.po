@@ -3332,9 +3332,6 @@ msgstr "Zavřít aktuální panel"
 msgid "Close the current tab"
 msgstr "Zavřít aktuální kartu"
 
-msgid "Close window"
-msgstr "Zavřít okno"
-
 msgid "Close Window"
 msgstr "Zavřít okno"
 
@@ -8387,9 +8384,6 @@ msgstr "Přiřadit zkratky k popiskům na vaší klávesnici (např. ⌘Z se vž
 msgid "Max"
 msgstr "Max"
 
-msgid "Maximize window"
-msgstr "Maximalizovat okno"
-
 msgid "Maximum"
 msgstr "Maximum"
 
@@ -8549,9 +8543,6 @@ msgstr "Minimalizovat"
 
 msgid "Minimize GitHub issues"
 msgstr "Minimalizovat GitHub issues"
-
-msgid "Minimize window"
-msgstr "Minimalizovat okno"
 
 msgid "Minimum contrast"
 msgstr "Minimální kontrast"

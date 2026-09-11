@@ -3332,9 +3332,6 @@ msgstr "Het huidige paneel sluiten"
 msgid "Close the current tab"
 msgstr "Het huidige tabblad sluiten"
 
-msgid "Close window"
-msgstr "Venster sluiten"
-
 msgid "Close Window"
 msgstr "Venster sluiten"
 
@@ -8387,9 +8384,6 @@ msgstr "Koppel sneltoetsen aan de opschriften op je toetsenbord (bijv. ⌘Z werk
 msgid "Max"
 msgstr "Max"
 
-msgid "Maximize window"
-msgstr "Venster maximaliseren"
-
 msgid "Maximum"
 msgstr "Maximaal"
 
@@ -8549,9 +8543,6 @@ msgstr "Minimaliseren"
 
 msgid "Minimize GitHub issues"
 msgstr "GitHub-issues minimaliseren"
-
-msgid "Minimize window"
-msgstr "Venster minimaliseren"
 
 msgid "Minimum contrast"
 msgstr "Minimumcontrast"

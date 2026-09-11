@@ -3332,9 +3332,6 @@ msgstr "關閉目前窗格"
 msgid "Close the current tab"
 msgstr "關閉目前分頁"
 
-msgid "Close window"
-msgstr "關閉視窗"
-
 msgid "Close Window"
 msgstr "關閉視窗"
 
@@ -8387,9 +8384,6 @@ msgstr "讓快速鍵匹配鍵盤上的標籤（例如⌘Z始終觸發標有「Z�
 msgid "Max"
 msgstr "最大"
 
-msgid "Maximize window"
-msgstr "最大化視窗"
-
 msgid "Maximum"
 msgstr "最大"
 
@@ -8549,9 +8543,6 @@ msgstr "最小化"
 
 msgid "Minimize GitHub issues"
 msgstr "最小化GitHub議題"
-
-msgid "Minimize window"
-msgstr "最小化視窗"
 
 msgid "Minimum contrast"
 msgstr "最小對比度"

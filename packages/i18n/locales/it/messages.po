@@ -3332,9 +3332,6 @@ msgstr "Chiudi il pannello corrente"
 msgid "Close the current tab"
 msgstr "Chiudi la scheda corrente"
 
-msgid "Close window"
-msgstr "Chiudi la finestra"
-
 msgid "Close Window"
 msgstr "Chiudi finestra"
 
@@ -8387,9 +8384,6 @@ msgstr "Adatta le scorciatoie alle etichette della tua tastiera (es. ⌘Z si att
 msgid "Max"
 msgstr "Max"
 
-msgid "Maximize window"
-msgstr "Ingrandisci la finestra"
-
 msgid "Maximum"
 msgstr "Massimo"
 
@@ -8549,9 +8543,6 @@ msgstr "Riduci"
 
 msgid "Minimize GitHub issues"
 msgstr "Riduci le issue GitHub"
-
-msgid "Minimize window"
-msgstr "Riduci a icona la finestra"
 
 msgid "Minimum contrast"
 msgstr "Contrasto minimo"

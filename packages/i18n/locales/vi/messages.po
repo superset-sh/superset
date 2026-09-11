@@ -3332,9 +3332,6 @@ msgstr "Đóng khung hiện tại"
 msgid "Close the current tab"
 msgstr "Đóng tab hiện tại"
 
-msgid "Close window"
-msgstr "Đóng cửa sổ"
-
 msgid "Close Window"
 msgstr "Đóng cửa sổ"
 
@@ -8387,9 +8384,6 @@ msgstr "Khớp phím tắt với ký tự in trên bàn phím của bạn (ví d
 msgid "Max"
 msgstr "Tối đa"
 
-msgid "Maximize window"
-msgstr "Phóng to cửa sổ"
-
 msgid "Maximum"
 msgstr "Tối đa"
 
@@ -8549,9 +8543,6 @@ msgstr "Thu nhỏ"
 
 msgid "Minimize GitHub issues"
 msgstr "Thu nhỏ issue GitHub"
-
-msgid "Minimize window"
-msgstr "Thu nhỏ cửa sổ"
 
 msgid "Minimum contrast"
 msgstr "Độ tương phản tối thiểu"

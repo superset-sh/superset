@@ -271,6 +271,12 @@ function getConfirmOnQuitSetting(): boolean {
 	}
 }
 
+// macOS keeps running without windows (dock and tray reopen it); elsewhere a
+// windowless app is an invisible process nothing brings back.
+app.on("window-all-closed", () => {
+	if (process.platform !== "darwin") app.quit();
+});
+
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 

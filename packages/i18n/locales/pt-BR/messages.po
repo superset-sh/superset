@@ -3332,9 +3332,6 @@ msgstr "Fechar o painel atual"
 msgid "Close the current tab"
 msgstr "Fechar a aba atual"
 
-msgid "Close window"
-msgstr "Fechar janela"
-
 msgid "Close Window"
 msgstr "Fechar janela"
 
@@ -8387,9 +8384,6 @@ msgstr "Faz os atalhos seguirem os rótulos do seu teclado (ex.: ⌘Z sempre dis
 msgid "Max"
 msgstr "Máx."
 
-msgid "Maximize window"
-msgstr "Maximizar janela"
-
 msgid "Maximum"
 msgstr "Máximo"
 
@@ -8549,9 +8543,6 @@ msgstr "Minimizar"
 
 msgid "Minimize GitHub issues"
 msgstr "Minimizar as issues do GitHub"
-
-msgid "Minimize window"
-msgstr "Minimizar janela"
 
 msgid "Minimum contrast"
 msgstr "Contraste mínimo"

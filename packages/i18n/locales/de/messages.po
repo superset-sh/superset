@@ -3332,9 +3332,6 @@ msgstr "Den aktuellen Bereich schließen"
 msgid "Close the current tab"
 msgstr "Den aktuellen Tab schließen"
 
-msgid "Close window"
-msgstr "Fenster schließen"
-
 msgid "Close Window"
 msgstr "Fenster schließen"
 
@@ -8387,9 +8384,6 @@ msgstr "Kürzel an die Beschriftung deiner Tastatur binden (z. B. löst ⌘Z imm
 msgid "Max"
 msgstr "Max"
 
-msgid "Maximize window"
-msgstr "Fenster maximieren"
-
 msgid "Maximum"
 msgstr "Maximal"
 
@@ -8549,9 +8543,6 @@ msgstr "Minimieren"
 
 msgid "Minimize GitHub issues"
 msgstr "GitHub-Issues minimieren"
-
-msgid "Minimize window"
-msgstr "Fenster minimieren"
 
 msgid "Minimum contrast"
 msgstr "Mindestkontrast"

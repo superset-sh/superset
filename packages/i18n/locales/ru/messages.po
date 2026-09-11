@@ -3332,9 +3332,6 @@ msgstr "Закрыть текущую панель"
 msgid "Close the current tab"
 msgstr "Закрыть текущую вкладку"
 
-msgid "Close window"
-msgstr "Закрыть окно"
-
 msgid "Close Window"
 msgstr "Закрыть окно"
 
@@ -8387,9 +8384,6 @@ msgstr "Привязывать сочетания к обозначениям н
 msgid "Max"
 msgstr "Макс."
 
-msgid "Maximize window"
-msgstr "Развернуть окно"
-
 msgid "Maximum"
 msgstr "Максимум"
 
@@ -8549,9 +8543,6 @@ msgstr "Свернуть"
 
 msgid "Minimize GitHub issues"
 msgstr "Свернуть задачи GitHub"
-
-msgid "Minimize window"
-msgstr "Свернуть окно"
 
 msgid "Minimum contrast"
 msgstr "Минимальный контраст"

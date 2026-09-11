@@ -9,6 +9,7 @@ import {
 } from "shared/themes";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
+import { electronTrpcClient } from "../../lib/trpc-client";
 import { trpcThemeStorage } from "../../lib/trpc-storage";
 import { applyUIColors, toXtermTheme, updateThemeClass } from "./utils";
 
@@ -154,6 +155,12 @@ function applyTheme(theme: Theme): {
 } {
 	// Apply UI colors to CSS variables
 	applyUIColors(theme.ui);
+
+	// The window-controls overlay (Windows, Linux) is painted by the window,
+	// not the page, so it follows the theme from here.
+	electronTrpcClient.window.setTitleBarOverlay
+		.mutate({ color: theme.ui.background, symbolColor: theme.ui.foreground })
+		.catch(() => {});
 
 	// Update dark/light class
 	updateThemeClass(theme.type);

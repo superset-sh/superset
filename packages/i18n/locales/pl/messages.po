@@ -3332,9 +3332,6 @@ msgstr "Zamknij bieżący panel"
 msgid "Close the current tab"
 msgstr "Zamknij bieżącą kartę"
 
-msgid "Close window"
-msgstr "Zamknij okno"
-
 msgid "Close Window"
 msgstr "Zamknij okno"
 
@@ -8387,9 +8384,6 @@ msgstr "Dopasuj skróty do oznaczeń na klawiaturze (np. ⌘Z zawsze zadziała n
 msgid "Max"
 msgstr "Maks."
 
-msgid "Maximize window"
-msgstr "Maksymalizuj okno"
-
 msgid "Maximum"
 msgstr "Maksymalna"
 
@@ -8549,9 +8543,6 @@ msgstr "Minimalizuj"
 
 msgid "Minimize GitHub issues"
 msgstr "Minimalizuj zgłoszenia GitHub"
-
-msgid "Minimize window"
-msgstr "Minimalizuj okno"
 
 msgid "Minimum contrast"
 msgstr "Minimalny kontrast"
