@@ -94,6 +94,10 @@ if command -v Xvnc >/dev/null 2>&1; then
   # A resumed session restores the previous session's lock and socket files
   # but none of its processes; the stale ones would keep Xvnc from starting.
   rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
+  # Chrome's profile lock names the previous session's hostname and pid; on a
+  # woken sandbox it reads as "in use on another computer" and Chrome refuses
+  # to start until the user unlocks it. Nothing runs yet, so drop the lock.
+  rm -f /root/.config/google-chrome/SingletonLock /root/.config/google-chrome/SingletonSocket /root/.config/google-chrome/SingletonCookie
   # xfce4-session, xfconf, Chrome and Electron all look for the system bus;
   # the session buses dbus-launch leaves behind are a different thing.
   if [ ! -S /run/dbus/system_bus_socket ]; then
