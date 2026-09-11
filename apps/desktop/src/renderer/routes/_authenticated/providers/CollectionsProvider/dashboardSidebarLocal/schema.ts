@@ -434,8 +434,6 @@ export const v2UserPreferencesSchema = z.object({
 	rightSidebarWidth: z.number().default(340),
 	deleteLocalBranch: z.boolean().default(false),
 	showPresetsBar: z.boolean().default(true),
-	// Sidebar Changes tab layout. User-scoped so a choice made in one
-	// workspace carries into every workspace opened afterwards.
 	changesViewMode: changesViewModeSchema.default("folders"),
 	// Ordering of the dashboard sidebar's Projects list; manual = drag order.
 	sidebarProjectSortMode: persistedSidebarProjectSortModeSchema,
