@@ -28,7 +28,7 @@ export function TerminalPageWatchChip({
 					aria-label={t({
 						message: "Pages this agent is watching for comments",
 					})}
-					className="flex h-5 items-center gap-1 rounded px-1 text-muted-foreground/70 text-xs"
+					className="hidden h-5 items-center gap-1 rounded px-1 text-muted-foreground/70 text-xs @min-[360px]/pane-header:flex"
 				>
 					<Eye className="size-3" />
 					{mine.length > 1 ? <span>{mine.length}</span> : null}

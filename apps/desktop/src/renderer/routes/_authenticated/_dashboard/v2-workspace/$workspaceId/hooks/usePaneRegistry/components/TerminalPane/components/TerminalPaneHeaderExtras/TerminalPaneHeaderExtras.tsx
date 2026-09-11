@@ -82,7 +82,8 @@ export function TerminalPaneHeaderExtras({
 						aria-label={label}
 						aria-pressed={isOpen}
 						className={cn(
-							"rounded p-1 transition-colors",
+							// ⌘I still opens it; the button yields to split/close first.
+							"hidden rounded p-1 transition-colors @min-[200px]/pane-header:block",
 							isOpen
 								? "bg-secondary text-foreground"
 								: "text-muted-foreground/60 hover:text-muted-foreground",

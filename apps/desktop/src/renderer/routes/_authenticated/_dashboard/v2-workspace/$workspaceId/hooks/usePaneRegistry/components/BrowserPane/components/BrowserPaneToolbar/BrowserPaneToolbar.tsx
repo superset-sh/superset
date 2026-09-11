@@ -83,7 +83,10 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 							)}
 						>
 							<SquareDashedMousePointer className="size-3" />
-							<Trans>Design</Trans>
+							{/* Icon-only in a narrow pane; the label comes back with room. */}
+							<span className="hidden @min-[360px]/pane-header:inline">
+								<Trans>Design</Trans>
+							</span>
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
