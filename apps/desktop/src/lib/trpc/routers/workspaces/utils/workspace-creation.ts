@@ -15,6 +15,7 @@ import {
 } from "./db-helpers";
 import { getWorktreeCreatedAt, listExternalWorktrees } from "./git";
 import { resolveWorktreePath } from "./resolve-worktree-path";
+import { selectExternalWorktreesForImport } from "./select-external-worktrees-for-import";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "./setup";
 
 interface CreateWorkspaceFromWorktreeParams {
@@ -347,10 +348,13 @@ export async function openExternalWorktree({
 			cause: { kind: "WORKTREE_MISSING", worktreePath },
 		});
 	}
-	if (liveWorktree.isBare || liveWorktree.isDetached || !liveWorktree.branch) {
+	const [importable] = selectExternalWorktreesForImport([liveWorktree], {
+		mainRepoPath: project.mainRepoPath,
+	});
+	if (!importable?.branch) {
 		throw new Error("Worktree is not importable");
 	}
-	const branch = liveWorktree.branch;
+	const branch = importable.branch;
 	const worktreeCreatedAt = getWorktreeCreatedAt(worktreePath);
 
 	let existingWorktree = localDb
