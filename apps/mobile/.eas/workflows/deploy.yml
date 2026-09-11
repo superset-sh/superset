@@ -18,14 +18,19 @@ jobs:
     type: fingerprint
     environment: production
 
+  fingerprint_preview:
+    name: Fingerprint (preview)
+    type: fingerprint
+    environment: preview
+
   get_internal_build:
     name: Find internal build for this fingerprint
-    needs: [fingerprint]
+    needs: [fingerprint_preview]
     type: get-build
     params:
       platform: ios
       profile: preview
-      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+      fingerprint_hash: ${{ needs.fingerprint_preview.outputs.ios_fingerprint_hash }}
 
   build_internal:
     name: Build internal
@@ -63,7 +68,7 @@ jobs:
 
   publish_preview:
     name: Publish update to preview
-    needs: [fingerprint]
+    needs: [fingerprint_preview]
     type: update
     environment: preview
     params:
