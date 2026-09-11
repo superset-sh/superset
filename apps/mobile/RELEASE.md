@@ -127,6 +127,12 @@ server and compute nothing.
 Signed publishing needs the EAS Production plan or above; on a lower plan the
 publish is rejected at its final step, after the bundle has already uploaded.
 
+Code signing reaches local development too: a development build embeds the
+certificate and asks Metro for a signed manifest, so `expo start` refuses to
+serve it without the key. Run it as
+`expo start --dev-client --private-key-path ~/.superset/keys/mobile-updates/private-key.pem`
+(the key is in 1Password) or the app sits on the dev launcher forever.
+
 ### Retiring old builds
 
 `GET /api/mobile/version` (`apps/api/src/app/api/mobile/version/route.ts`)
