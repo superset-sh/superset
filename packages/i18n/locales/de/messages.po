@@ -1198,7 +1198,7 @@ msgid "A full restyle: denser rows, port and agent chips under each workspace, o
 msgstr "Ein kompletter Neuanstrich: dichtere Zeilen, Port- und Agenten-Chips unter jedem Arbeitsbereich, alles mit einem Klick stoppen."
 
 msgid "A gateway is signed in with an API key."
-msgstr "Ein Gateway wird mit einem API-Schlüssel angemeldet."
+msgstr "Ein Gateway ist mit einem API-Schlüssel angemeldet."
 
 msgid "A host must have at least one owner."
 msgstr "Ein Host muss mindestens einen Inhaber haben."

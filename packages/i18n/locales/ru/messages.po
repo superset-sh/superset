@@ -1198,7 +1198,7 @@ msgid "A full restyle: denser rows, port and agent chips under each workspace, o
 msgstr "Полная перестилизация: плотнее строки, чипы портов и агентов под каждой рабочей областью, остановка всего одним кликом."
 
 msgid "A gateway is signed in with an API key."
-msgstr "Шлюз подключается по ключу API."
+msgstr "Шлюз авторизован с помощью ключа API."
 
 msgid "A host must have at least one owner."
 msgstr "У хоста должен быть хотя бы один владелец."
@@ -14669,7 +14669,7 @@ msgid "The provider answered {0}."
 msgstr "Провайдер ответил {0}."
 
 msgid "The provider refused it."
-msgstr "Провайдер отклонил их."
+msgstr "Провайдер отклонил запрос."
 
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "Период восстановления истёк. Напишите на support@superset.sh."

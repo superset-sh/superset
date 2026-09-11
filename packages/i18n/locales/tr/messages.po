@@ -1198,7 +1198,7 @@ msgid "A full restyle: denser rows, port and agent chips under each workspace, o
 msgstr "Baştan sona yeni bir stil: daha yoğun satırlar, her çalışma alanının altında port ve ajan çipleri, her şey için tek tıkla durdurma."
 
 msgid "A gateway is signed in with an API key."
-msgstr "Ağ geçidi bir API anahtarıyla oturum açar."
+msgstr "Ağ geçidi API anahtarıyla oturum açmış durumda."
 
 msgid "A host must have at least one owner."
 msgstr "Bir host'un en az bir sahibi olmalıdır."

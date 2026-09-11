@@ -316,7 +316,7 @@ msgstr "{0} por detrás de ti"
 
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
-msgstr "{0} todavía no se puede conectar de esta forma."
+msgstr "Todavía no se puede iniciar sesión con {0} de esta forma."
 
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
@@ -1198,7 +1198,7 @@ msgid "A full restyle: denser rows, port and agent chips under each workspace, o
 msgstr "Un rediseño completo: filas más densas, chips de puertos y agentes bajo cada espacio de trabajo y parada de todo con un clic."
 
 msgid "A gateway is signed in with an API key."
-msgstr "Una pasarela se conecta con una clave de API."
+msgstr "Una pasarela está autenticada con una clave de API."
 
 msgid "A host must have at least one owner."
 msgstr "Un host debe tener al menos un propietario."

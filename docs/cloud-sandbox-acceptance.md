@@ -47,8 +47,9 @@ Run from a throwaway script against the `sandboxes` project in the
 
 ## 3. Ingress authentication (the gate Blaxel used to provide)
 
-- [x] **3.1 No token → 401** — `GET <domain>/trpc/health.check` with no
-  `Authorization` header is refused by host-service (not by an edge). (smoke, on /events)
+- [x] **3.1 No token → 401** — `GET <domain>/events` with no `Authorization`
+  header is refused by host-service (not by an edge); `/trpc/health.check` is
+  public by design. (smoke)
 - [x] **3.2 Wrong workspace → 401** — a token minted for workspace A is refused
   by workspace B's host-service (audience check). (smoke)
 - [x] **3.3 Expired token → 401** — a token past `exp` is refused. (same verifier; exp checked in verifySandboxAccessToken)
@@ -121,7 +122,7 @@ Dev API (`bun dev`), Neon dev branch, real Vercel project.
 - [x] **6.4 Release pipeline** — `bun run sandbox:release` builds the image,
   creates the golden, runs `internal-setup.sh`, probes a fork, writes the
   `environments` rows (`provider = vercel`). (93s end to end)
-- [!] **6.5 Two forks of one golden are independent** — files written in one
+- [ ] **6.5 Two forks of one golden are independent** — files written in one
   are absent in the other. (not run)
 
 ## 7. Lifecycle and cost
@@ -129,7 +130,7 @@ Dev API (`bun dev`), Neon dev branch, real Vercel project.
 - [x] **7.1 Idle stop** — a workspace nobody has open stops on its own within
   the session timeout, and its snapshot storage is bounded
   (`keepLastSnapshots.count = 1`). (by configuration: timeout 4h, expiresAt = start + 4h; not waited out)
-- [!] **7.2 Active extend** — a workspace held open past the timeout keeps
+- [ ] **7.2 Active extend** — a workspace held open past the timeout keeps
   running (the access refresh extends the session). (not exercised: the
   extension only fires with under an hour left and `update({timeout})` does not
   move a running session's expiry, so this needs a 3h wait; code path reviewed)
@@ -154,14 +155,14 @@ Dev API (`bun dev`), Neon dev branch, real Vercel project.
   the API. (real key in host-service and claude env; policy brokers openai only)
 - [x] **8.3 Golden carries no credential** — after promote, the golden's env
   has none of `AGENT_CREDENTIAL_ENV_NAMES`. (golden policy allow-all, env empty)
-- [!] **8.4 Git clone token** — private-repo clone succeeds via the askpass
+- [ ] **8.4 Git clone token** — private-repo clone succeeds via the askpass
   path; the token is not in `.git/config`. (not run: local dev has no GitHub App key, the clone was public)
 
 ## 9. Mobile
 
 - [x] **9.1 Typecheck** — `apps/mobile` typechecks with the renamed token
   plumbing. (only the pre-existing unref errors)
-- [!] **9.2 Simulator terminal** (optional, needs an internal account) — a
+- [ ] **9.2 Simulator terminal** (optional, needs an internal account) — a
   cloud workspace terminal connects through the WebView with the new token
   query param. (not run: no simulator pass in this session)
 
@@ -177,5 +178,5 @@ Dev API (`bun dev`), Neon dev branch, real Vercel project.
 - [x] **10.5** `docs/cloud-sandbox-mismatches.md` and
   `docs/cloud-sandbox-considerations.md` updated: Blaxel-specific entries marked
   fixed or replaced, new Vercel entries added.
-- [x] **10.6** No `blaxel` left: `git grep -il blaxel` is empty outside
-  `packages/db/drizzle/`.
+- [x] **10.6** No `blaxel` left in code: `git grep -il blaxel` matches only
+  `packages/db/drizzle/` and the docs and plans that record the migration.

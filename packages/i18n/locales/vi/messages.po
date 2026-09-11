@@ -13340,7 +13340,7 @@ msgid "Sign-in failed"
 msgstr "Đăng nhập thất bại"
 
 msgid "Signed in as {accountLabel}"
-msgstr "Đang đăng nhập với {accountLabel}"
+msgstr "Đã đăng nhập với {accountLabel}"
 
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Đang đăng nhập với <0>{userName}</0>"

@@ -164,7 +164,11 @@ try {
 	const forged = await status(url, GUARDED, `${token.slice(0, -4)}AAAA`);
 	check("forged token refused", forged === 401, `${forged} (expect 401)`);
 	const valid = await status(url, GUARDED, token);
-	check("valid token admitted", valid !== 401, `${valid} (expect not 401)`);
+	check(
+		"valid token admitted",
+		valid !== 0 && valid !== 401,
+		`${valid} (expect a response other than 401)`,
+	);
 	// The desktop renderer is a browser; without this every call fails preflight.
 	const preflight = await fetch(`${url}/trpc/health.check`, {
 		method: "OPTIONS",
@@ -235,10 +239,16 @@ try {
 	if (KEEP) {
 		console.log(`${at()} kept ${name}`);
 	} else {
-		await deleteSandbox(name).catch((error) =>
-			console.error(`${at()} teardown failed for ${name}`, error),
-		);
-		console.log(`${at()} deleted ${name}`);
+		try {
+			await deleteSandbox(name);
+			console.log(`${at()} deleted ${name}`);
+		} catch (error) {
+			check(
+				"teardown",
+				false,
+				error instanceof Error ? error.message : String(error),
+			);
+		}
 	}
 }
 

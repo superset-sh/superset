@@ -34,7 +34,7 @@ export async function seedSharedEnvironments(
 		})
 		.onConflictDoUpdate({
 			target: [environments.organizationId, environments.name],
-			set: { sourceRef: imageRef, archivedAt: null },
+			set: { provider: "vercel", sourceRef: imageRef, archivedAt: null },
 		});
 
 	return { imageRef };

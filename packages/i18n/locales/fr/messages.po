@@ -1198,7 +1198,7 @@ msgid "A full restyle: denser rows, port and agent chips under each workspace, o
 msgstr "Une refonte complète du style : des lignes plus denses, des pastilles de port et d'agent sous chaque espace de travail, un arrêt général en un clic."
 
 msgid "A gateway is signed in with an API key."
-msgstr "Une passerelle se connecte avec une clé API."
+msgstr "Une passerelle est connectée avec une clé API."
 
 msgid "A host must have at least one owner."
 msgstr "Un hôte doit avoir au moins un propriétaire."
@@ -10756,7 +10756,7 @@ msgid "Pick an icon and a color, or upload a custom image. Defaults to the linke
 msgstr "Choisissez une icône et une couleur, ou envoyez une image personnalisée. Par défaut, l'avatar du propriétaire GitHub lié."
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
-msgstr "Choisissez comment {label} se connecte dans un bac à sable. L'identifiant est transmis au processus de l'agent à son lancement et n'est pas stocké dans le bac à sable."
+msgstr "Choisissez comment {label} se connecte dans un bac à sable. Les informations d'authentification sont transmises au processus de l'agent à son lancement et ne sont pas stockées dans le bac à sable."
 
 msgid "Pick the best agent."
 msgstr "Choisissez le meilleur agent."

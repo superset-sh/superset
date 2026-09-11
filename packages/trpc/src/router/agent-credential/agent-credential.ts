@@ -158,34 +158,30 @@ export const agentCredentialRouter = {
 } satisfies TRPCRouterRecord;
 
 /**
- * The env a person's signed-in agent contributes to a cloud workspace they
- * start. Server-side only: the plaintext never leaves this process except on
- * the sandbox it was fetched for.
+ * The env every agent a person has signed in contributes to a cloud workspace
+ * they start — not only the one launched with it, since any of them can be
+ * started from a terminal later. Server-side only: the plaintext never leaves
+ * this process except on the sandbox it was fetched for.
  */
 export async function resolveAgentCredentialEnv(args: {
 	userId: string;
-	agent: string | null | undefined;
 }): Promise<Record<string, string>> {
-	if (!args.agent) return {};
-	const [row] = await db
+	const rows = await db
 		.select()
 		.from(agentCredentials)
-		.where(
-			and(
-				eq(agentCredentials.userId, args.userId),
-				eq(agentCredentials.agent, args.agent),
-			),
-		)
-		.limit(1);
-	if (!row) return {};
-	const value = decryptAgentCredential(row.encryptedValue, {
-		userId: row.userId,
-		agent: row.agent,
-	});
-	return agentCredentialToEnv({
-		agent: row.agent,
-		kind: row.kind,
-		value,
-		baseUrl: row.baseUrl,
-	});
+		.where(eq(agentCredentials.userId, args.userId));
+	return Object.assign(
+		{},
+		...rows.map((row) =>
+			agentCredentialToEnv({
+				agent: row.agent,
+				kind: row.kind,
+				value: decryptAgentCredential(row.encryptedValue, {
+					userId: row.userId,
+					agent: row.agent,
+				}),
+				baseUrl: row.baseUrl,
+			}),
+		),
+	);
 }

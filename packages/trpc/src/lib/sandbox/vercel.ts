@@ -241,7 +241,14 @@ export async function provisionSandbox(args: {
 	const sandboxUrl = sandbox.domain(HOST_SERVICE_PORT);
 	// Before the boot script, which sources it; a re-delivered provision
 	// rewrites the same content.
-	await writeEnvironmentFile(sandbox, args.environmentEnv);
+	// The boot script sources the file on top of the config env, so a key in
+	// both would let the shared environment override the workspace's own.
+	const environmentEnvBehindWorkspace = Object.fromEntries(
+		Object.entries(args.environmentEnv).filter(
+			([key]) => !(key in args.workspaceEnv),
+		),
+	);
+	await writeEnvironmentFile(sandbox, environmentEnvBehindWorkspace);
 	await startHostService(sandbox);
 	return { providerSandboxId: args.name, sandboxUrl };
 }

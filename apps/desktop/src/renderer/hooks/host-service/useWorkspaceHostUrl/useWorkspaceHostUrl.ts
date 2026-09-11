@@ -18,6 +18,7 @@ const ACCESS_RETRY_MS = 15_000;
  */
 const HOST_READY_TIMEOUT_MS = 45_000;
 const HOST_READY_POLL_MS = 1_000;
+const HOST_READY_REQUEST_TIMEOUT_MS = 5_000;
 
 /**
  * One poll per host, however many callers are waiting: this hook has a
@@ -34,6 +35,7 @@ function waitForHost(url: string, token: string): Promise<void> {
 		while (Date.now() < deadline) {
 			const ok = await fetch(`${url}/trpc/health.check`, {
 				headers: { Authorization: `Bearer ${token}` },
+				signal: AbortSignal.timeout(HOST_READY_REQUEST_TIMEOUT_MS),
 			})
 				.then((response) => response.ok)
 				.catch(() => false);

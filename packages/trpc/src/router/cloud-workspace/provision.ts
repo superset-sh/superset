@@ -85,14 +85,11 @@ export async function provisionCloudWorkspace(
 			cloudRepo().then((repo) => (repo ? resolveCloneTarget(repo) : null)),
 			resolveEnvironment(row.environmentId, row.organizationId),
 		]);
-		// The person who started the workspace signs the agent in, so their own
+		// The person who started the workspace signs the agents in, so their own
 		// subscription or key is what runs inside it. Absent when they have not
-		// connected that agent; the environment's own keys then apply.
+		// connected an agent; the environment's own keys then apply.
 		const agentCredentialEnv = row.createdByUserId
-			? await resolveAgentCredentialEnv({
-					userId: row.createdByUserId,
-					agent: input.launch?.agent,
-				})
+			? await resolveAgentCredentialEnv({ userId: row.createdByUserId })
 			: {};
 		if (!environment) {
 			throw new Error("Environment not found");

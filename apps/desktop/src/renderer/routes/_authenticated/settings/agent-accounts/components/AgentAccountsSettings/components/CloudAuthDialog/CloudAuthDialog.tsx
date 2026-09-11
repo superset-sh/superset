@@ -41,7 +41,7 @@ interface CloudAuthDialogProps {
 	label: string;
 	state: CloudAuthState;
 	accountLabel: string | null;
-	chooseMethod: (method: CloudAuthMethod) => void;
+	chooseMethod: (method: CloudAuthMethod | null) => void;
 	save: (input: SaveCredentialInput) => Promise<unknown>;
 	disconnect: () => Promise<unknown>;
 }
@@ -95,7 +95,10 @@ export function CloudAuthDialog({
 	};
 
 	const handleOpenChange = (next: boolean) => {
-		if (!next) setView("main");
+		if (!next) {
+			setView("main");
+			chooseMethod(null);
+		}
 		onOpenChange(next);
 	};
 
