@@ -127,11 +127,13 @@ server and compute nothing.
 Signed publishing needs the EAS Production plan or above; on a lower plan the
 publish is rejected at its final step, after the bundle has already uploaded.
 
-Code signing reaches local development too: a development build embeds the
-certificate and asks Metro for a signed manifest, so `expo start` refuses to
-serve it without the key. Run it as
-`expo start --dev-client --private-key-path ~/.superset/keys/mobile-updates/private-key.pem`
-(the key is in 1Password) or the app sits on the dev launcher forever.
+A build carries the certificate only when `MOBILE_SIGNED_UPDATES=1` is in its
+EAS environment, which is `preview` and `production`. Development builds and
+anything built on a laptop have no certificate, so `expo start` serves them
+without the key; a build that embeds the certificate would refuse Metro until
+`--private-key-path` is passed. `app.config.ts` refuses to build a preview or
+production binary without the variable, so deleting it breaks the build
+instead of shipping an unsigned store app.
 
 ### Retiring old builds
 

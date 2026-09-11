@@ -11,6 +11,17 @@ config({
 	quiet: true,
 });
 
+const SIGNED_BUILD_PROFILES = ["preview", "production"];
+const signedUpdates = process.env.MOBILE_SIGNED_UPDATES === "1";
+if (
+	!signedUpdates &&
+	SIGNED_BUILD_PROFILES.includes(process.env.EAS_BUILD_PROFILE ?? "")
+) {
+	throw new Error(
+		`MOBILE_SIGNED_UPDATES=1 is missing from the ${process.env.EAS_BUILD_PROFILE} EAS environment; refusing to build an unsigned ${process.env.EAS_BUILD_PROFILE} binary`,
+	);
+}
+
 export default ({ config }: ConfigContext) => ({
 	...config,
 	name: "Superset",
@@ -26,15 +37,25 @@ export default ({ config }: ConfigContext) => ({
 	runtimeVersion: { policy: "fingerprint" as const },
 	updates: {
 		url: "https://u.expo.dev/fa9332a8-896a-4d2a-be5b-d82469b46e5d",
-		codeSigningCertificate: "./certs/certificate.pem",
-		codeSigningMetadata: { keyid: "main", alg: "rsa-v1_5-sha256" as const },
+		...(signedUpdates && {
+			codeSigningCertificate: "./certs/certificate.pem",
+			codeSigningMetadata: { keyid: "main", alg: "rsa-v1_5-sha256" as const },
+		}),
 	},
 	ios: {
 		supportsTablet: false,
+		appleTeamId: "NV9657CS5A",
+		// Shared with the AgentActivity widget extension: the Live Activity
+		// sandbox has no network, so project icons are cached here by the app
+		// and read back by the extension from disk.
+		entitlements: {
+			"com.apple.security.application-groups": ["group.sh.superset.mobile"],
+		},
 		bundleIdentifier: "sh.superset.mobile",
 		usesAppleSignIn: true,
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
+			NSSupportsLiveActivities: true,
 			// Dictation is native now (`modules/composer`), so no config plugin
 			// contributes this any more — `expo-speech-recognition` used to, and
 			// went with `GlassComposer`. Without it `SFSpeechRecognizer`'s
@@ -61,6 +82,7 @@ export default ({ config }: ConfigContext) => ({
 		// where the rest of that chrome is dark. The composer states its own
 		// tint (`ComposerRootView`) rather than inheriting this.
 		[withIosAccentColor, { color: "#262626" }],
+		"@bacons/apple-targets",
 		"expo-router",
 		[
 			// The mark on the app background, held until Home has content — see

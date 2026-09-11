@@ -93,6 +93,9 @@ msgstr "(harici)"
 msgid "(no output)"
 msgstr "(çıktı yok)"
 
+msgid "(so far)"
+msgstr "(şimdiye kadar)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# etkin port — ayrıntıları gizle} other {# etkin port — ayrıntıları gizle}}"
@@ -779,6 +782,9 @@ msgstr "{name} yerleşiktir ve değiştirilemez"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} eklenmedi"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, one {# seni bekliyor} other {# seni bekliyor}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "tıklamaların {nonBrandPct}"
 
@@ -896,6 +902,12 @@ msgstr "{threshold, plural, one {# ajan PR'ı birleştirildi} other {# ajan PR'�
 msgid "{toolName} interrupted"
 msgstr "{toolName} kesildi"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, one {# ajan çalışıyor} other {# ajan çalışıyor}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, one {# ajan} other {# ajan}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {# kontrolün tümü geçti} other {# kontrolün tümü geçti}}"
 
@@ -988,6 +1000,9 @@ msgstr "⇧ tık"
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# dosya} other {# dosya}}"
 
+msgid "+{hidden} more"
+msgstr "+{hidden} daha"
+
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} daha önce"
 
@@ -1055,6 +1070,12 @@ msgstr "✓ 2sa önce"
 msgid "✓ 3d ago"
 msgstr "✓ 3g önce"
 
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "{1} müşterinin MRR'si ${0} iken ${2} oldu"
+
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
@@ -1100,6 +1121,9 @@ msgstr "10 dakika"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "Durum kaybı olmadan 10+ eşzamanlı iş akışı"
+
+msgid "100% (retain everything)"
+msgstr "%100 (her şeyi elde tutma)"
 
 msgid "15 minutes"
 msgstr "15 dakika"
@@ -3067,6 +3091,9 @@ msgstr "Superset'in sizi ne zaman uyaracağını seçin."
 msgid "Choose which agent watches this page for comments"
 msgstr "Bu sayfanın yorumlarını hangi ajanın izleyeceğini seç"
 
+msgid "Churn"
+msgstr "Kayıp"
+
 msgid "CI failed"
 msgstr "CI başarısız"
 
@@ -3854,6 +3881,9 @@ msgstr "Bir aracı oturumunu sürdürmek için sabitlenmiş bir çalışma alan�
 
 msgid "continuing the last session"
 msgstr "son oturumu sürdürerek"
+
+msgid "Contraction"
+msgstr "Daralma"
 
 msgid "Contributions"
 msgstr "Katkılar"
@@ -5778,6 +5808,9 @@ msgstr "Konuyu genişlet"
 msgid "Expand workspace"
 msgstr "Çalışma alanını genişlet"
 
+msgid "Expansion"
+msgstr "Genişleme"
+
 msgid "Experimental"
 msgstr "Deneysel"
 
@@ -5845,6 +5878,10 @@ msgstr "Fabrika katmanı {tier}"
 msgid "failed"
 msgstr "başarısız"
 
+msgid "Failed"
+msgstr "Başarısız"
+
+msgctxt "agent status"
 msgid "Failed"
 msgstr "Başarısız"
 
@@ -8717,6 +8754,12 @@ msgstr "Aylık"
 msgid "Monthly at {time}"
 msgstr "Her ay saat {time}"
 
+msgid "monthly NRR"
+msgstr "aylık NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "aylık NRR (bu ay şimdiye kadar)"
+
 msgid "Monthly on {day}"
 msgstr "Her ay {day}"
 
@@ -8770,6 +8813,9 @@ msgstr "MRR"
 
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — günlük (Stripe)"
+
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "Önceki ay sonunda ödeme yapan müşterilerin MRR'si, o zaman ödediklerine oranla: kayıp düşüldükten sonra genişleme ve daralma, yeni müşteriler hariç"
 
 msgid "Multi-select"
 msgstr "Çoklu seçim"
@@ -8869,6 +8915,10 @@ msgstr "güncelleme gerekli"
 msgid "Needs update"
 msgstr "Güncelleme gerekli"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Seni bekliyor"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8877,6 +8927,9 @@ msgstr "net harcama"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "Net harcama — aylık (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "Net gelir elde tutma — aylık (Stripe)"
 
 msgid "Network Changed"
 msgstr "Ağ değişti"
@@ -9682,6 +9735,10 @@ msgstr "Bu host'ta kurulu değil"
 
 msgid "not sorted"
 msgstr "sıralanmamış"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Güncellenmiyor"
 
 msgid "Notes"
 msgstr "Notlar"
@@ -12087,6 +12144,9 @@ msgstr "Otomasyonu sürdür"
 msgid "Resuming {0}…"
 msgstr "{0} sürdürülüyor…"
 
+msgid "Retained MRR"
+msgstr "Elde tutulan MRR"
+
 msgid "Retention and revenue"
 msgstr "Elde tutma ve gelir"
 
@@ -12141,6 +12201,10 @@ msgstr "Sıralamamı göster"
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "Önce gelir, sonra gerçekte kaç kişinin kullandığı, sonra da işletme maliyeti."
 
+msgid "Review"
+msgstr "İnceleme"
+
+msgctxt "agent status"
 msgid "Review"
 msgstr "İnceleme"
 
@@ -13729,6 +13793,10 @@ msgstr "Ücretsiz başlayın. Takımınız büyüdüğünde yükseltin. Gelişmi
 
 msgid "Start from a template"
 msgstr "Şablondan başla"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "Başlangıç MRR'si ({0} müşteri)"
 
 msgid "Start new session"
 msgstr "Yeni oturum başlat"
@@ -16285,6 +16353,10 @@ msgstr "Workflow çalıştırması tamamlandı…"
 msgid "Workflow Tutorials"
 msgstr "İş akışı eğitimleri"
 
+msgid "Working"
+msgstr "Çalışıyor"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "Çalışıyor"
 

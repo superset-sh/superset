@@ -93,6 +93,9 @@ msgstr "(external)"
 msgid "(no output)"
 msgstr "(no output)"
 
+msgid "(so far)"
+msgstr "(so far)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
@@ -779,6 +782,9 @@ msgstr "{name} is built in and cannot be replaced"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} is not added"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, one {# needs you} other {# need you}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} of clicks"
 
@@ -896,6 +902,12 @@ msgstr "{threshold, plural, one {# agent PR merged} other {# agent PRs merged}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName} interrupted"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, one {# agent working} other {# agents working}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, one {# agent} other {# agents}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {The check passed} other {All # checks passed}}"
 
@@ -988,6 +1000,9 @@ msgstr "⇧ click"
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 
+msgid "+{hidden} more"
+msgstr "+{hidden} more"
+
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} earlier"
 
@@ -1055,6 +1070,12 @@ msgstr "✓ 2h ago"
 msgid "✓ 3d ago"
 msgstr "✓ 3d ago"
 
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "${0} from {1} customers became ${2}"
+
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
@@ -1100,6 +1121,9 @@ msgstr "10 minutes"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ concurrent workstreams without dropped state"
+
+msgid "100% (retain everything)"
+msgstr "100% (retain everything)"
 
 msgid "15 minutes"
 msgstr "15 minutes"
@@ -3067,6 +3091,9 @@ msgstr "Choose when Superset pings you."
 msgid "Choose which agent watches this page for comments"
 msgstr "Choose which agent watches this page for comments"
 
+msgid "Churn"
+msgstr "Churn"
+
 msgid "CI failed"
 msgstr "CI failed"
 
@@ -3854,6 +3881,9 @@ msgstr "Continuing an agent session requires a pinned workspace"
 
 msgid "continuing the last session"
 msgstr "continuing the last session"
+
+msgid "Contraction"
+msgstr "Contraction"
 
 msgid "Contributions"
 msgstr "Contributions"
@@ -5778,6 +5808,9 @@ msgstr "Expand thread"
 msgid "Expand workspace"
 msgstr "Expand workspace"
 
+msgid "Expansion"
+msgstr "Expansion"
+
 msgid "Experimental"
 msgstr "Experimental"
 
@@ -5845,6 +5878,10 @@ msgstr "Factory tier {tier}"
 msgid "failed"
 msgstr "failed"
 
+msgid "Failed"
+msgstr "Failed"
+
+msgctxt "agent status"
 msgid "Failed"
 msgstr "Failed"
 
@@ -8717,6 +8754,12 @@ msgstr "Monthly"
 msgid "Monthly at {time}"
 msgstr "Monthly at {time}"
 
+msgid "monthly NRR"
+msgstr "monthly NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "monthly NRR (month so far)"
+
 msgid "Monthly on {day}"
 msgstr "Monthly on {day}"
 
@@ -8770,6 +8813,9 @@ msgstr "MRR"
 
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — daily (Stripe)"
+
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
 
 msgid "Multi-select"
 msgstr "Multi-select"
@@ -8869,6 +8915,10 @@ msgstr "needs update"
 msgid "Needs update"
 msgstr "Needs update"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Needs you"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8877,6 +8927,9 @@ msgstr "net burn"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "Net burn — monthly (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "Net revenue retention — monthly (Stripe)"
 
 msgid "Network Changed"
 msgstr "Network Changed"
@@ -9682,6 +9735,10 @@ msgstr "Not set up on this host"
 
 msgid "not sorted"
 msgstr "not sorted"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Not updating"
 
 msgid "Notes"
 msgstr "Notes"
@@ -12087,6 +12144,9 @@ msgstr "Resume automation"
 msgid "Resuming {0}…"
 msgstr "Resuming {0}…"
 
+msgid "Retained MRR"
+msgstr "Retained MRR"
+
 msgid "Retention and revenue"
 msgstr "Retention and revenue"
 
@@ -12141,6 +12201,10 @@ msgstr "Reveal my rank"
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "Revenue first, then how many people are actually using it, then what it costs to run."
 
+msgid "Review"
+msgstr "Review"
+
+msgctxt "agent status"
 msgid "Review"
 msgstr "Review"
 
@@ -13729,6 +13793,10 @@ msgstr "Start free. Upgrade when your team outgrows it. Enterprise plans for org
 
 msgid "Start from a template"
 msgstr "Start from a template"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "Start MRR ({0} customers)"
 
 msgid "Start new session"
 msgstr "Start new session"
@@ -16285,6 +16353,10 @@ msgstr "Workflow run completed…"
 msgid "Workflow Tutorials"
 msgstr "Workflow Tutorials"
 
+msgid "Working"
+msgstr "Working"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "Working"
 

@@ -58,7 +58,7 @@ export function EnterpriseArrTile() {
 				message: "No active enterprise accounts",
 			})}
 		>
-			<div className="space-y-3">
+			<div className="flex h-full flex-col justify-center gap-3">
 				{accounts.map((account) => (
 					<div key={account.name} className="flex items-center gap-3">
 						{account.logo ? (

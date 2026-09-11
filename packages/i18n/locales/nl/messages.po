@@ -93,6 +93,9 @@ msgstr "(extern)"
 msgid "(no output)"
 msgstr "(geen uitvoer)"
 
+msgid "(so far)"
+msgstr "(tot nu toe)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# actieve poort — details verbergen} other {# actieve poorten — details verbergen}}"
@@ -779,6 +782,9 @@ msgstr "{name} is ingebouwd en kan niet worden vervangen"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} is niet toegevoegd"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, one {# wacht op jou} other {# wachten op jou}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} van de klikken"
 
@@ -896,6 +902,12 @@ msgstr "{threshold, plural, one {# agent-PR gemerged} other {# agent-PR's gemerg
 msgid "{toolName} interrupted"
 msgstr "{toolName} onderbroken"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, one {# agent bezig} other {# agents bezig}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, one {# agent} other {# agents}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {De check is geslaagd} other {Alle # checks geslaagd}}"
 
@@ -988,6 +1000,9 @@ msgstr "⇧-klik"
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# bestand} other {# bestanden}}"
 
+msgid "+{hidden} more"
+msgstr "+{hidden} meer"
+
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} eerder"
 
@@ -1055,6 +1070,12 @@ msgstr "✓ 2u geleden"
 msgid "✓ 3d ago"
 msgstr "✓ 3d geleden"
 
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "MRR van {1} klanten ging van ${0} naar ${2}"
+
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
@@ -1100,6 +1121,9 @@ msgstr "10 minuten"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ gelijktijdige werkstromen zonder verlies van context"
+
+msgid "100% (retain everything)"
+msgstr "100% (alles behouden)"
 
 msgid "15 minutes"
 msgstr "15 minuten"
@@ -3067,6 +3091,9 @@ msgstr "Kies wanneer Superset je een seintje geeft."
 msgid "Choose which agent watches this page for comments"
 msgstr "Kies welke agent deze pagina volgt voor reacties"
 
+msgid "Churn"
+msgstr "Opzeggingen"
+
 msgid "CI failed"
 msgstr "CI mislukt"
 
@@ -3854,6 +3881,9 @@ msgstr "Een agentsessie voortzetten vereist een vastgezette workspace"
 
 msgid "continuing the last session"
 msgstr "de laatste sessie voortzetten"
+
+msgid "Contraction"
+msgstr "Krimp"
 
 msgid "Contributions"
 msgstr "Bijdragen"
@@ -5778,6 +5808,9 @@ msgstr "Thread uitklappen"
 msgid "Expand workspace"
 msgstr "Werkruimte uitklappen"
 
+msgid "Expansion"
+msgstr "Uitbreiding"
+
 msgid "Experimental"
 msgstr "Experimenteel"
 
@@ -5845,6 +5878,10 @@ msgstr "Fabrieksniveau {tier}"
 msgid "failed"
 msgstr "mislukt"
 
+msgid "Failed"
+msgstr "Mislukt"
+
+msgctxt "agent status"
 msgid "Failed"
 msgstr "Mislukt"
 
@@ -8717,6 +8754,12 @@ msgstr "Maandelijks"
 msgid "Monthly at {time}"
 msgstr "Maandelijks om {time}"
 
+msgid "monthly NRR"
+msgstr "maandelijkse NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "maandelijkse NRR (deze maand tot nu toe)"
+
 msgid "Monthly on {day}"
 msgstr "Maandelijks op {day}"
 
@@ -8770,6 +8813,9 @@ msgstr "MRR"
 
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — dagelijks (Stripe)"
+
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "MRR van klanten die eind vorige maand betaalden, als aandeel van wat ze toen betaalden: uitbreiding en krimp na aftrek van opzeggingen, zonder nieuwe klanten"
 
 msgid "Multi-select"
 msgstr "Meerdere keuzes"
@@ -8869,6 +8915,10 @@ msgstr "update nodig"
 msgid "Needs update"
 msgstr "Update nodig"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Wacht op jou"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8877,6 +8927,9 @@ msgstr "netto burn"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "Netto burn — maandelijks (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "Netto-omzetbehoud — maandelijks (Stripe)"
 
 msgid "Network Changed"
 msgstr "Netwerk gewijzigd"
@@ -9682,6 +9735,10 @@ msgstr "Niet ingesteld op deze host"
 
 msgid "not sorted"
 msgstr "niet gesorteerd"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Geen updates"
 
 msgid "Notes"
 msgstr "Notities"
@@ -12087,6 +12144,9 @@ msgstr "Automatisering hervatten"
 msgid "Resuming {0}…"
 msgstr "{0} hervatten…"
 
+msgid "Retained MRR"
+msgstr "Behouden MRR"
+
 msgid "Retention and revenue"
 msgstr "Retentie en omzet"
 
@@ -12143,6 +12203,10 @@ msgstr "Eerst de omzet, dan hoeveel mensen het echt gebruiken, dan wat het kost 
 
 msgid "Review"
 msgstr "Review"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "Beoordelen"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Review- en CI-wachtrijen eten de winst op die agents opleveren."
@@ -13729,6 +13793,10 @@ msgstr "Begin gratis. Upgrade wanneer je team eruit groeit. Enterprise-plannen v
 
 msgid "Start from a template"
 msgstr "Beginnen met een sjabloon"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "Start-MRR ({0} klanten)"
 
 msgid "Start new session"
 msgstr "Nieuwe sessie starten"
@@ -16285,6 +16353,10 @@ msgstr "Workflow-run afgerond…"
 msgid "Workflow Tutorials"
 msgstr "Workflow-tutorials"
 
+msgid "Working"
+msgstr "Bezig"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "Bezig"
 

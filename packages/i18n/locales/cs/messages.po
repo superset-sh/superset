@@ -93,6 +93,9 @@ msgstr "(externí)"
 msgid "(no output)"
 msgstr "(žádný výstup)"
 
+msgid "(so far)"
+msgstr "(zatím)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# aktivní port — skrýt podrobnosti} few {# aktivní porty — skrýt podrobnosti} many {# aktivního portu — skrýt podrobnosti} other {# aktivních portů — skrýt podrobnosti}}"
@@ -779,6 +782,9 @@ msgstr "{name} je vestavěný a nelze jej nahradit"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} není přidán"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, one {# čeká na tebe} few {# čekají na tebe} many {# čeká na tebe} other {# čeká na tebe}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} kliknutí"
 
@@ -896,6 +902,12 @@ msgstr "{threshold, plural, one {sloučen # PR agenta} few {sloučeny # PR agent
 msgid "{toolName} interrupted"
 msgstr "{toolName} přerušeno"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, one {# agent pracuje} few {# agenti pracují} many {# agenta pracuje} other {# agentů pracuje}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, one {# agent} few {# agenti} many {# agenta} other {# agentů}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Kontrola prošla} few {Všechny # kontroly prošly} many {Všech # kontroly prošlo} other {Všech # kontrol prošlo}}"
 
@@ -988,6 +1000,9 @@ msgstr "⇧ kliknutí"
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# soubor} few {# soubory} many {# souboru} other {# souborů}}"
 
+msgid "+{hidden} more"
+msgstr "+{hidden} dalších"
+
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} dřívějších"
 
@@ -1055,6 +1070,12 @@ msgstr "✓ před 2 h"
 msgid "✓ 3d ago"
 msgstr "✓ před 3 d"
 
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "MRR {1} zákazníků se změnilo z ${0} na ${2}"
+
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
@@ -1100,6 +1121,9 @@ msgstr "10 minut"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ souběžných proudů práce bez ztráty přehledu"
+
+msgid "100% (retain everything)"
+msgstr "100 % (udržet vše)"
 
 msgid "15 minutes"
 msgstr "15 minut"
@@ -3067,6 +3091,9 @@ msgstr "Zvolte, kdy vás Superset upozorní."
 msgid "Choose which agent watches this page for comments"
 msgstr "Vyberte, který agent sleduje komentáře na této stránce"
 
+msgid "Churn"
+msgstr "Odchody"
+
 msgid "CI failed"
 msgstr "CI selhalo"
 
@@ -3854,6 +3881,9 @@ msgstr "Pokračování v relaci agenta vyžaduje připnutý pracovní prostor"
 
 msgid "continuing the last session"
 msgstr "pokračováním v poslední relaci"
+
+msgid "Contraction"
+msgstr "Pokles"
 
 msgid "Contributions"
 msgstr "Příspěvky"
@@ -5778,6 +5808,9 @@ msgstr "Rozbalit vlákno"
 msgid "Expand workspace"
 msgstr "Rozbalit pracovní prostor"
 
+msgid "Expansion"
+msgstr "Růst"
+
 msgid "Experimental"
 msgstr "Experimentální"
 
@@ -5845,6 +5878,10 @@ msgstr "Tovární úroveň {tier}"
 msgid "failed"
 msgstr "selhalo"
 
+msgid "Failed"
+msgstr "Selhalo"
+
+msgctxt "agent status"
 msgid "Failed"
 msgstr "Selhalo"
 
@@ -8717,6 +8754,12 @@ msgstr "Měsíčně"
 msgid "Monthly at {time}"
 msgstr "Měsíčně v {time}"
 
+msgid "monthly NRR"
+msgstr "měsíční NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "měsíční NRR (zatím tento měsíc)"
+
 msgid "Monthly on {day}"
 msgstr "Měsíčně {day}"
 
@@ -8770,6 +8813,9 @@ msgstr "MRR"
 
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — denně (Stripe)"
+
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "MRR zákazníků platících na konci předchozího měsíce jako podíl toho, co tehdy platili: růst a pokles po odečtení odchodů, bez nových zákazníků"
 
 msgid "Multi-select"
 msgstr "Výběr více možností"
@@ -8869,6 +8915,10 @@ msgstr "vyžaduje aktualizaci"
 msgid "Needs update"
 msgstr "Vyžaduje aktualizaci"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Čeká na tebe"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8877,6 +8927,9 @@ msgstr "čistý burn"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "Čistý burn — měsíčně (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "Čisté udržení tržeb — měsíčně (Stripe)"
 
 msgid "Network Changed"
 msgstr "Síť se změnila"
@@ -9682,6 +9735,10 @@ msgstr "Na tomto hostu není nastaveno"
 
 msgid "not sorted"
 msgstr "neseřazeno"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Bez aktualizací"
 
 msgid "Notes"
 msgstr "Poznámky"
@@ -12087,6 +12144,9 @@ msgstr "Pokračovat v automatizaci"
 msgid "Resuming {0}…"
 msgstr "Obnovuji {0}…"
 
+msgid "Retained MRR"
+msgstr "Udržené MRR"
+
 msgid "Retention and revenue"
 msgstr "Udržení a tržby"
 
@@ -12143,6 +12203,10 @@ msgstr "Nejdřív tržby, pak kolik lidí to opravdu používá a nakonec kolik 
 
 msgid "Review"
 msgstr "Revize"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "Ke kontrole"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Fronty revizí a CI spolykají zisky, které agenti vytvoří."
@@ -13729,6 +13793,10 @@ msgstr "Začněte zdarma. Až vám to jako týmu přestane stačit, přejděte v
 
 msgid "Start from a template"
 msgstr "Začít ze šablony"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "Počáteční MRR ({0} zákazníků)"
 
 msgid "Start new session"
 msgstr "Spustit novou relaci"
@@ -16285,6 +16353,10 @@ msgstr "Dokončen běh workflow…"
 msgid "Workflow Tutorials"
 msgstr "Návody k workflow"
 
+msgid "Working"
+msgstr "Pracuje"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "Pracuje"
 

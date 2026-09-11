@@ -93,6 +93,9 @@ msgstr "(외부)"
 msgid "(no output)"
 msgstr "(출력 없음)"
 
+msgid "(so far)"
+msgstr "(현재까지)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {활성 포트 #개 — 세부 정보 숨기기} other {활성 포트 #개 — 세부 정보 숨기기}}"
@@ -779,6 +782,9 @@ msgstr "{name}은(는) 기본 제공이라 교체할 수 없습니다"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name}이(가) 추가되지 않았습니다"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, other {#개 확인 필요}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "클릭의 {nonBrandPct}"
 
@@ -896,6 +902,12 @@ msgstr "{threshold, plural, other {에이전트 PR # 건 머지}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName} 중단됨"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, other {에이전트 #개 작업 중}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, other {에이전트 #개}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {#개 검사를 모두 통과했습니다} other {#개 검사를 모두 통과했습니다}}"
 
@@ -988,6 +1000,9 @@ msgstr "⇧ 클릭"
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {파일 #개} other {파일 #개}}"
 
+msgid "+{hidden} more"
+msgstr "+{hidden}개 더"
+
 msgid "+{hiddenCount} earlier"
 msgstr "이전 +{hiddenCount}개"
 
@@ -1055,6 +1070,12 @@ msgstr "✓ 2시간 전"
 msgid "✓ 3d ago"
 msgstr "✓ 3일 전"
 
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "고객 {1}명의 MRR이 ${0}에서 ${2}(으)로 변경됨"
+
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
@@ -1100,6 +1121,9 @@ msgstr "10분"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "상태 유실 없이 동시 작업 흐름 10개 이상"
+
+msgid "100% (retain everything)"
+msgstr "100% (전부 유지)"
 
 msgid "15 minutes"
 msgstr "15분"
@@ -3067,6 +3091,9 @@ msgstr "Superset이 언제 알릴지 선택하세요."
 msgid "Choose which agent watches this page for comments"
 msgstr "이 페이지의 댓글을 감시할 에이전트 선택"
 
+msgid "Churn"
+msgstr "이탈"
+
 msgid "CI failed"
 msgstr "CI 실패"
 
@@ -3854,6 +3881,9 @@ msgstr "에이전트 세션을 계속하려면 고정된 워크스페이스가 �
 
 msgid "continuing the last session"
 msgstr "마지막 세션을 계속"
+
+msgid "Contraction"
+msgstr "축소"
 
 msgid "Contributions"
 msgstr "기여"
@@ -5778,6 +5808,9 @@ msgstr "스레드 펼치기"
 msgid "Expand workspace"
 msgstr "워크스페이스 펼치기"
 
+msgid "Expansion"
+msgstr "확장"
+
 msgid "Experimental"
 msgstr "실험실"
 
@@ -5845,6 +5878,10 @@ msgstr "공장 등급 {tier}"
 msgid "failed"
 msgstr "실패"
 
+msgid "Failed"
+msgstr "실패"
+
+msgctxt "agent status"
 msgid "Failed"
 msgstr "실패"
 
@@ -8717,6 +8754,12 @@ msgstr "월간"
 msgid "Monthly at {time}"
 msgstr "매월 {time}"
 
+msgid "monthly NRR"
+msgstr "월간 NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "월간 NRR (이번 달 현재까지)"
+
 msgid "Monthly on {day}"
 msgstr "매월 {day}"
 
@@ -8770,6 +8813,9 @@ msgstr "MRR"
 
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — 일별 (Stripe)"
+
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "전월 말에 결제 중이던 고객의 MRR을 당시 결제액 대비 비율로 표시: 확장과 축소에서 이탈을 뺀 값, 신규 고객 제외"
 
 msgid "Multi-select"
 msgstr "다중 선택"
@@ -8869,6 +8915,10 @@ msgstr "업데이트 필요"
 msgid "Needs update"
 msgstr "업데이트 필요"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "확인 필요"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8877,6 +8927,9 @@ msgstr "순 소진액"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "순 소진액 — 월별 (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "순매출 유지율 — 월별 (Stripe)"
 
 msgid "Network Changed"
 msgstr "네트워크 변경됨"
@@ -9682,6 +9735,10 @@ msgstr "이 호스트에 설정되지 않음"
 
 msgid "not sorted"
 msgstr "정렬 안 됨"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "업데이트 없음"
 
 msgid "Notes"
 msgstr "노트"
@@ -12087,6 +12144,9 @@ msgstr "자동화 재개"
 msgid "Resuming {0}…"
 msgstr "{0}을(를) 재개하는 중…"
 
+msgid "Retained MRR"
+msgstr "유지된 MRR"
+
 msgid "Retention and revenue"
 msgstr "유지와 수익"
 
@@ -12143,6 +12203,10 @@ msgstr "매출을 먼저, 그다음 실제 사용자 수, 마지막으로 운영
 
 msgid "Review"
 msgstr "리뷰"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "검토"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "리뷰와 CI 대기열이 에이전트가 만든 이득을 깎아먹습니다."
@@ -13729,6 +13793,10 @@ msgstr "무료로 시작하세요. 팀이 커지면 업그레이드하세요. �
 
 msgid "Start from a template"
 msgstr "템플릿으로 시작"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "시작 MRR (고객 {0}명)"
 
 msgid "Start new session"
 msgstr "새 세션 시작"
@@ -16285,6 +16353,10 @@ msgstr "워크플로 실행 완료…"
 msgid "Workflow Tutorials"
 msgstr "워크플로 튜토리얼"
 
+msgid "Working"
+msgstr "작업 중"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "작업 중"
 

@@ -93,6 +93,9 @@ msgstr "(外部)"
 msgid "(no output)"
 msgstr "（出力なし）"
 
+msgid "(so far)"
+msgstr "（現時点）"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {#個のアクティブなポート — 詳細を隠す} other {#個のアクティブなポート — 詳細を隠す}}"
@@ -779,6 +782,9 @@ msgstr "{name} は組み込みのため置き換えられません"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} は追加されていません"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, other {# 件が要対応}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "クリックの {nonBrandPct}"
 
@@ -896,6 +902,12 @@ msgstr "{threshold, plural, other {#件のエージェントPRをマージ}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName}が中断されました"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, other {エージェント # 件が実行中}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, other {エージェント # 件}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {#件のチェックにすべて成功しました} other {#件のチェックにすべて成功しました}}"
 
@@ -988,6 +1000,9 @@ msgstr "⇧クリック"
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {#ファイル} other {#ファイル}}"
 
+msgid "+{hidden} more"
+msgstr "他 {hidden} 件"
+
 msgid "+{hiddenCount} earlier"
 msgstr "以前の{hiddenCount}件"
 
@@ -1055,6 +1070,12 @@ msgstr "✓ 2時間前"
 msgid "✓ 3d ago"
 msgstr "✓ 3日前"
 
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "顧客{1}社の${0}が${2}になりました"
+
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
@@ -1100,6 +1121,9 @@ msgstr "10分"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "状態を取りこぼさない10以上の並行ワークストリーム"
+
+msgid "100% (retain everything)"
+msgstr "100%（全て維持）"
 
 msgid "15 minutes"
 msgstr "15分"
@@ -3067,6 +3091,9 @@ msgstr "Supersetから通知するタイミングを選びます。"
 msgid "Choose which agent watches this page for comments"
 msgstr "このページのコメントを監視するエージェントを選択"
 
+msgid "Churn"
+msgstr "解約"
+
 msgid "CI failed"
 msgstr "CIが失敗しました"
 
@@ -3854,6 +3881,9 @@ msgstr "エージェントセッションを継続するには、ワークスペ
 
 msgid "continuing the last session"
 msgstr "前回のセッションを継続"
+
+msgid "Contraction"
+msgstr "縮小"
 
 msgid "Contributions"
 msgstr "コントリビューション"
@@ -5778,6 +5808,9 @@ msgstr "スレッドを展開"
 msgid "Expand workspace"
 msgstr "ワークスペースを展開"
 
+msgid "Expansion"
+msgstr "拡大"
+
 msgid "Experimental"
 msgstr "実験的機能"
 
@@ -5845,6 +5878,10 @@ msgstr "ファクトリーティア{tier}"
 msgid "failed"
 msgstr "失敗"
 
+msgid "Failed"
+msgstr "失敗"
+
+msgctxt "agent status"
 msgid "Failed"
 msgstr "失敗"
 
@@ -8717,6 +8754,12 @@ msgstr "月払い"
 msgid "Monthly at {time}"
 msgstr "毎月 {time}"
 
+msgid "monthly NRR"
+msgstr "月次NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "月次NRR（今月の途中経過）"
+
 msgid "Monthly on {day}"
 msgstr "毎月{day}"
 
@@ -8770,6 +8813,9 @@ msgstr "MRR"
 
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — 日次(Stripe)"
+
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "前月末時点で支払っていた顧客のMRRを、当時の支払額に対する割合で示したもの。拡大と縮小から解約を差し引き、新規顧客は除外"
 
 msgid "Multi-select"
 msgstr "複数選択"
@@ -8869,6 +8915,10 @@ msgstr "要更新"
 msgid "Needs update"
 msgstr "要更新"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "要対応"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8877,6 +8927,9 @@ msgstr "ネットバーン"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "ネットバーン — 月次(Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "純収益維持率 — 月次（Stripe）"
 
 msgid "Network Changed"
 msgstr "ネットワークが変更されました"
@@ -9682,6 +9735,10 @@ msgstr "このホストではセットアップされていません"
 
 msgid "not sorted"
 msgstr "並べ替えなし"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "更新なし"
 
 msgid "Notes"
 msgstr "ノート"
@@ -12087,6 +12144,9 @@ msgstr "オートメーションを再開"
 msgid "Resuming {0}…"
 msgstr "{0}を再開中…"
 
+msgid "Retained MRR"
+msgstr "維持されたMRR"
+
 msgid "Retention and revenue"
 msgstr "定着と収益"
 
@@ -12143,6 +12203,10 @@ msgstr "まず売上、次に実際に使っている人数、そして運営に
 
 msgid "Review"
 msgstr "レビュー"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "要確認"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "レビューとCIの待ち行列が、エージェントの生んだ余力を食い潰しています。"
@@ -13729,6 +13793,10 @@ msgstr "無料で始められます。チームの規模に合わなくなった
 
 msgid "Start from a template"
 msgstr "テンプレートから開始"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "開始時MRR（顧客{0}社）"
 
 msgid "Start new session"
 msgstr "新しいセッションを開始"
@@ -16287,6 +16355,10 @@ msgstr "ワークフローのチュートリアル"
 
 msgid "Working"
 msgstr "作業中"
+
+msgctxt "agent status"
+msgid "Working"
+msgstr "実行中"
 
 msgid "Works when environments are clean. Environments are rarely clean."
 msgstr "環境がきれいなら動きます。環境がきれいなことは滅多にありません。"

@@ -93,6 +93,9 @@ msgstr "(eksternal)"
 msgid "(no output)"
 msgstr "(tidak ada keluaran)"
 
+msgid "(so far)"
+msgstr "(sejauh ini)"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# port aktif — sembunyikan detail} other {# port aktif — sembunyikan detail}}"
@@ -779,6 +782,9 @@ msgstr "{name} bawaan dan tidak dapat diganti"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} belum ditambahkan"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, other {# butuh Anda}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} dari klik"
 
@@ -896,6 +902,12 @@ msgstr "{threshold, plural, other {# PR agen digabungkan}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName} dihentikan"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, other {# agen bekerja}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, other {# agen}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Semua # check lulus} other {Semua # check lulus}}"
 
@@ -988,6 +1000,9 @@ msgstr "⇧ klik"
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# file} other {# file}}"
 
+msgid "+{hidden} more"
+msgstr "+{hidden} lagi"
+
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} sebelumnya"
 
@@ -1055,6 +1070,12 @@ msgstr "✓ 2j lalu"
 msgid "✓ 3d ago"
 msgstr "✓ 3h lalu"
 
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "MRR dari {1} pelanggan berubah dari ${0} menjadi ${2}"
+
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
@@ -1100,6 +1121,9 @@ msgstr "10 menit"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ alur kerja bersamaan tanpa kehilangan konteks"
+
+msgid "100% (retain everything)"
+msgstr "100% (mempertahankan semua)"
 
 msgid "15 minutes"
 msgstr "15 menit"
@@ -3067,6 +3091,9 @@ msgstr "Pilih kapan Superset memberi tahu Anda."
 msgid "Choose which agent watches this page for comments"
 msgstr "Pilih agen yang memantau komentar di halaman ini"
 
+msgid "Churn"
+msgstr "Churn"
+
 msgid "CI failed"
 msgstr "CI gagal"
 
@@ -3854,6 +3881,9 @@ msgstr "Melanjutkan sesi agen memerlukan ruang kerja yang disematkan"
 
 msgid "continuing the last session"
 msgstr "melanjutkan sesi terakhir"
+
+msgid "Contraction"
+msgstr "Kontraksi"
 
 msgid "Contributions"
 msgstr "Kontribusi"
@@ -5778,6 +5808,9 @@ msgstr "Bentangkan thread"
 msgid "Expand workspace"
 msgstr "Bentangkan workspace"
 
+msgid "Expansion"
+msgstr "Ekspansi"
+
 msgid "Experimental"
 msgstr "Eksperimental"
 
@@ -5845,6 +5878,10 @@ msgstr "Tingkat pabrik {tier}"
 msgid "failed"
 msgstr "gagal"
 
+msgid "Failed"
+msgstr "Gagal"
+
+msgctxt "agent status"
 msgid "Failed"
 msgstr "Gagal"
 
@@ -8717,6 +8754,12 @@ msgstr "Bulanan"
 msgid "Monthly at {time}"
 msgstr "Bulanan pukul {time}"
 
+msgid "monthly NRR"
+msgstr "NRR bulanan"
+
+msgid "monthly NRR (month so far)"
+msgstr "NRR bulanan (bulan ini sejauh ini)"
+
 msgid "Monthly on {day}"
 msgstr "Bulanan pada tanggal {day}"
 
@@ -8770,6 +8813,9 @@ msgstr "MRR"
 
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — harian (Stripe)"
+
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "MRR dari pelanggan yang membayar pada akhir bulan sebelumnya, sebagai proporsi dari yang mereka bayar saat itu: ekspansi dan kontraksi setelah dikurangi churn, tanpa pelanggan baru"
 
 msgid "Multi-select"
 msgstr "Pilih banyak"
@@ -8869,6 +8915,10 @@ msgstr "perlu diperbarui"
 msgid "Needs update"
 msgstr "Perlu diperbarui"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Butuh Anda"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8877,6 +8927,9 @@ msgstr "net burn"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "Net burn — bulanan (Mercury)"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "Retensi pendapatan bersih — bulanan (Stripe)"
 
 msgid "Network Changed"
 msgstr "Jaringan Berubah"
@@ -9682,6 +9735,10 @@ msgstr "Belum disiapkan di host ini"
 
 msgid "not sorted"
 msgstr "tidak diurutkan"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Tidak diperbarui"
 
 msgid "Notes"
 msgstr "Catatan"
@@ -12087,6 +12144,9 @@ msgstr "Lanjutkan otomatisasi"
 msgid "Resuming {0}…"
 msgstr "Melanjutkan {0}…"
 
+msgid "Retained MRR"
+msgstr "MRR yang dipertahankan"
+
 msgid "Retention and revenue"
 msgstr "Retensi dan pendapatan"
 
@@ -12143,6 +12203,10 @@ msgstr "Pendapatan dulu, lalu berapa banyak orang yang benar-benar memakainya, l
 
 msgid "Review"
 msgstr "Review"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "Tinjau"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Antrean review dan CI memakan keuntungan yang dihasilkan agen."
@@ -13729,6 +13793,10 @@ msgstr "Mulai gratis. Upgrade saat tim Anda membutuhkan lebih. Paket enterprise 
 
 msgid "Start from a template"
 msgstr "Mulai dari templat"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "MRR awal ({0} pelanggan)"
 
 msgid "Start new session"
 msgstr "Mulai sesi baru"
@@ -16285,6 +16353,10 @@ msgstr "Run workflow selesai…"
 msgid "Workflow Tutorials"
 msgstr "Tutorial Alur Kerja"
 
+msgid "Working"
+msgstr "Bekerja"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "Bekerja"
 

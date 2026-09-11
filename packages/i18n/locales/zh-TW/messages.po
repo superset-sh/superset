@@ -93,6 +93,9 @@ msgstr "（外部）"
 msgid "(no output)"
 msgstr "（無輸出）"
 
+msgid "(so far)"
+msgstr "（截至目前）"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {#個活動埠 — 隱藏詳情} other {#個活動埠 — 隱藏詳情}}"
@@ -779,6 +782,9 @@ msgstr "{name} 是內建的，無法取代"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} 尚未新增"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, other {# 個需要你}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "佔點擊的 {nonBrandPct}"
 
@@ -896,6 +902,12 @@ msgstr "{threshold, plural, other {已合併 # 個智慧代理 PR}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName}已中斷"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, other {# 個代理程式執行中}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, other {# 個代理程式}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {#項檢查全部通過} other {#項檢查全部通過}}"
 
@@ -988,6 +1000,9 @@ msgstr "⇧點選"
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {#個檔案} other {#個檔案}}"
 
+msgid "+{hidden} more"
+msgstr "還有 {hidden} 個"
+
 msgid "+{hiddenCount} earlier"
 msgstr "更早的+{hiddenCount}條"
 
@@ -1055,6 +1070,12 @@ msgstr "✓ 2小時前"
 msgid "✓ 3d ago"
 msgstr "✓ 3天前"
 
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "{1} 位客戶的 MRR 從 ${0} 變為 ${2}"
+
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
@@ -1100,6 +1121,9 @@ msgstr "10分鐘"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10條以上並行工作流且不丟狀態"
+
+msgid "100% (retain everything)"
+msgstr "100%（全部留存）"
 
 msgid "15 minutes"
 msgstr "15分鐘"
@@ -3067,6 +3091,9 @@ msgstr "選擇Superset在什麼時候通知你。"
 msgid "Choose which agent watches this page for comments"
 msgstr "選擇由哪個代理程式關注此頁面的評論"
 
+msgid "Churn"
+msgstr "流失"
+
 msgid "CI failed"
 msgstr "CI失敗"
 
@@ -3854,6 +3881,9 @@ msgstr "繼續代理程式工作階段需要已釘選的工作區"
 
 msgid "continuing the last session"
 msgstr "繼續上一個工作階段"
+
+msgid "Contraction"
+msgstr "縮減"
 
 msgid "Contributions"
 msgstr "貢獻"
@@ -5778,6 +5808,9 @@ msgstr "展開討論"
 msgid "Expand workspace"
 msgstr "展開工作區"
 
+msgid "Expansion"
+msgstr "擴張"
+
 msgid "Experimental"
 msgstr "實驗功能"
 
@@ -5845,6 +5878,10 @@ msgstr "工廠等級{tier}"
 msgid "failed"
 msgstr "失敗"
 
+msgid "Failed"
+msgstr "失敗"
+
+msgctxt "agent status"
 msgid "Failed"
 msgstr "失敗"
 
@@ -8717,6 +8754,12 @@ msgstr "按月"
 msgid "Monthly at {time}"
 msgstr "每月{time}"
 
+msgid "monthly NRR"
+msgstr "月度 NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "月度 NRR（本月至今）"
+
 msgid "Monthly on {day}"
 msgstr "每月{day}"
 
@@ -8770,6 +8813,9 @@ msgstr "MRR"
 
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — 按日（Stripe）"
+
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "上月底付費客戶的 MRR 佔其當時付費額的比例：擴張與縮減扣除流失後的淨值，不含新客戶"
 
 msgid "Multi-select"
 msgstr "多選"
@@ -8869,6 +8915,10 @@ msgstr "需要更新"
 msgid "Needs update"
 msgstr "需要更新"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "需要你"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8877,6 +8927,9 @@ msgstr "淨支出"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "淨支出 — 按月（Mercury）"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "淨收入留存率 — 每月（Stripe）"
 
 msgid "Network Changed"
 msgstr "網路已變更"
@@ -9682,6 +9735,10 @@ msgstr "尚未在此主機上配置"
 
 msgid "not sorted"
 msgstr "未排序"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "未更新"
 
 msgid "Notes"
 msgstr "筆記"
@@ -12087,6 +12144,9 @@ msgstr "恢復自動化"
 msgid "Resuming {0}…"
 msgstr "正在恢復{0}…"
 
+msgid "Retained MRR"
+msgstr "留存 MRR"
+
 msgid "Retention and revenue"
 msgstr "留存與營收"
 
@@ -12143,6 +12203,10 @@ msgstr "先看營收，再看實際使用人數，最後看營運成本。"
 
 msgid "Review"
 msgstr "審查"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "待檢視"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "審查和CI排隊把代理程式帶來的收益吃掉了。"
@@ -13729,6 +13793,10 @@ msgstr "免費開始。團隊用不夠時再升級。企業方案面向有進階
 
 msgid "Start from a template"
 msgstr "從模板開始"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "起始 MRR（{0} 位客戶）"
 
 msgid "Start new session"
 msgstr "開始新會話"
@@ -16287,6 +16355,10 @@ msgstr "工作流教程"
 
 msgid "Working"
 msgstr "工作中"
+
+msgctxt "agent status"
+msgid "Working"
+msgstr "執行中"
 
 msgid "Works when environments are clean. Environments are rarely clean."
 msgstr "環境乾淨時可行。而環境很少乾淨。"
