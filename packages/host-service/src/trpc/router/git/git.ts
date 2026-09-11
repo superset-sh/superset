@@ -197,6 +197,25 @@ const getDiffInputShape = z.object({
 const MAX_DIFF_BULK_PATHS = 2000;
 const DIFF_SIDE_FILE_MAX_BYTES = 10 * 1024 * 1024;
 
+// A rename is two index entries (delete of `oldPath`, add of `filePath`);
+// staging or unstaging only one end would split it into a delete plus an add.
+const stagingTargetInput = z.object({
+	workspaceId: z.string(),
+	filePath: z.string(),
+	oldPath: z.string().optional(),
+});
+
+function resolveStagingTargetPaths(
+	input: z.infer<typeof stagingTargetInput>,
+): string[] {
+	assertSafeRelativePath(input.filePath);
+	if (input.oldPath == null || input.oldPath === input.filePath) {
+		return [input.filePath];
+	}
+	assertSafeRelativePath(input.oldPath);
+	return [input.filePath, input.oldPath];
+}
+
 export const gitRouter = router({
 	listBranches: queryProcedure
 		.input(z.object({ workspaceId: z.string() }))
@@ -552,6 +571,26 @@ export const gitRouter = router({
 			for (const filePath of deletePaths) {
 				await removeFromWorktree(worktreePath, filePath);
 			}
+			return { success: true };
+		}),
+
+	stageFile: protectedProcedure
+		.input(stagingTargetInput)
+		.mutation(async ({ ctx, input }) => {
+			const paths = resolveStagingTargetPaths(input);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+			await git.raw(["add", "-A", "--", ...paths]);
+			return { success: true };
+		}),
+
+	unstageFile: protectedProcedure
+		.input(stagingTargetInput)
+		.mutation(async ({ ctx, input }) => {
+			const paths = resolveStagingTargetPaths(input);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+			await git.raw(["reset", "HEAD", "--", ...paths]);
 			return { success: true };
 		}),
 
