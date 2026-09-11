@@ -88,6 +88,9 @@ if command -v Xvnc >/dev/null 2>&1; then
   export DISPLAY=:1
   # No GPU: GTK and Chrome render through llvmpipe instead of probing for one.
   export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
+  # Links opened by apps and agents (xdg-open) land in Chrome with the flags
+  # root needs.
+  export BROWSER=/usr/local/bin/google-chrome
   # A resumed session restores the previous session's lock and socket files
   # but none of its processes; the stale ones would keep Xvnc from starting.
   rm -f /tmp/.X1-lock /tmp/.X11-unix/X1

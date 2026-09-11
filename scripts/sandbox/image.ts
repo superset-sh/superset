@@ -301,6 +301,15 @@ const CHROME_FLAGS =
 	"--no-sandbox --test-type --no-first-run --no-default-browser-check --disable-dev-shm-usage --password-store=basic --start-maximized --disable-session-crashed-bubble --hide-crash-restore-bubble --remote-debugging-port=9222 --use-angle=swiftshader-webgl --enable-unsafe-swiftshader";
 
 /**
+ * What `xdg-open`, `x-www-browser` and `$BROWSER` run: the bare binary
+ * refuses to start as root, so every path that is not the desktop entry
+ * goes through this.
+ */
+const CHROME_WRAPPER = `#!/bin/sh
+exec /usr/bin/google-chrome-stable ${CHROME_FLAGS} "$@"
+`;
+
+/**
  * Plank keeps its preferences in GSettings, not a file, so the dock is
  * configured through a schema override compiled into the image.
  */
@@ -576,6 +585,9 @@ RUN ORGANIZATION_ID=00000000-0000-0000-0000-000000000000 HOST_DB_PATH=/app/host.
 RUN curl -fsSL -o /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \\
  && apt-get update && apt-get install -y --no-install-recommends /tmp/chrome.deb && rm -rf /tmp/chrome.deb /var/lib/apt/lists/*
 RUN sed -i -E 's|^Exec=/usr/bin/google-chrome-stable|Exec=/usr/bin/google-chrome-stable ${CHROME_FLAGS}|' /usr/share/applications/google-chrome.desktop
+COPY --chmod=755 google-chrome-wrapper /usr/local/bin/google-chrome
+RUN update-alternatives --install /usr/bin/x-www-browser x-www-browser /usr/local/bin/google-chrome 300 \\
+ && update-alternatives --install /usr/bin/gnome-www-browser gnome-www-browser /usr/local/bin/google-chrome 300
 RUN sed -i -E 's|^Name=Thunar File Manager|Name=Files|; s|^Icon=org.xfce.thunar|Icon=folder|; s|^Exec=thunar %U|Exec=thunar /workspace|' /usr/share/applications/thunar.desktop
 COPY chrome-policy.json /etc/opt/chrome/policies/managed/superset.json
 COPY chrome-preferences.json /root/.config/google-chrome/Default/Preferences
@@ -630,6 +642,7 @@ function assembleContext(): string {
 		join(context, "chrome-policy.json"),
 		JSON.stringify(CHROME_POLICY),
 	);
+	writeFileSync(join(context, "google-chrome-wrapper"), CHROME_WRAPPER);
 	writeFileSync(
 		join(context, "chrome-preferences.json"),
 		JSON.stringify(CHROME_PREFERENCES),
