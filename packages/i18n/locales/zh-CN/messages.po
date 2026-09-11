@@ -310,7 +310,7 @@ msgstr "{0}的操作"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0}与{1}化身终端恐龙一决高下。数据决定胜负。"
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "落后你{0}"
 
@@ -444,7 +444,7 @@ msgstr "已终止{0}个会话"
 msgid "{0} terminated, {1} remaining"
 msgstr "已终止{0}个，剩余{1}个"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "再需{0}即可超越 #{1}"

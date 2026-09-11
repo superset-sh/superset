@@ -310,7 +310,7 @@ msgstr "{0} 작업"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0}와 {1}이(가) 터미널 공룡이 되어 결판을 냅니다. 승부는 기록이 결정합니다."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} 차이로 뒤"
 
@@ -444,7 +444,7 @@ msgstr "세션 {0}개를 종료했습니다"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0}개 종료, {1}개 남음"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "#{1}을 제치려면 {0}"
