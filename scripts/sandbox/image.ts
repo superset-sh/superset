@@ -375,9 +375,6 @@ infobar label, infobar button, infobar image {
 }
 `;
 
-/** The app's mark (apps/desktop … SupersetIcon), black on the light panel. */
-const SUPERSET_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="19.84 65.5 144.26 58.6"><path fill="#000000" d="M42.0256 67.5455H51.1165V76.6364H42.0256V67.5455ZM32.9347 67.5455H42.0256V76.6364H32.9347V67.5455ZM32.9347 76.6364H42.0256V85.7273H32.9347V76.6364ZM23.8438 85.7273H32.9347V94.8182H23.8438V85.7273ZM23.8438 94.8182H32.9347V103.909H23.8438V94.8182ZM32.9347 103.909H42.0256V113H32.9347V103.909ZM32.9347 113H42.0256V122.091H32.9347V113ZM42.0256 113H51.1165V122.091H42.0256V113ZM78.3537 67.5455H87.4446V76.6364H78.3537V67.5455ZM69.2628 67.5455H78.3537V76.6364H69.2628V67.5455ZM69.2628 76.6364H78.3537V85.7273H69.2628V76.6364ZM60.1719 85.7273H69.2628V94.8182H60.1719V85.7273ZM60.1719 94.8182H69.2628V103.909H60.1719V94.8182ZM69.2628 103.909H78.3537V113H69.2628V103.909ZM69.2628 113H78.3537V122.091H69.2628V113ZM78.3537 113H87.4446V122.091H78.3537V113ZM96.5 67.5455H105.591V76.6364H96.5V67.5455ZM105.591 76.6364H114.682V85.7273H105.591V76.6364ZM114.682 85.7273H123.773V94.8182H114.682V85.7273ZM105.591 103.909H114.682V113H105.591V103.909ZM96.5 113H105.591V122.091H96.5V113ZM114.682 94.8182H123.773V103.909H114.682V94.8182ZM105.591 113H114.682V122.091H105.591V113ZM105.591 67.5455H114.682V76.6364H105.591V67.5455ZM132.828 67.5455H141.919V76.6364H132.828V67.5455ZM141.919 76.6364H151.01V85.7273H141.919V76.6364ZM151.01 85.7273H160.101V94.8182H151.01V85.7273ZM141.919 103.909H151.01V113H141.919V103.909ZM132.828 113H141.919V122.091H132.828V113ZM151.01 94.8182H160.101V103.909H151.01V94.8182ZM141.919 113H151.01V122.091H141.919V113ZM141.919 67.5455H151.01V76.6364H141.919V67.5455Z"/></svg>
-`;
 
 /** The terminal: the app's monospace face on a dark palette. */
 const TERMINAL_RC = `[Configuration]
@@ -594,7 +591,7 @@ COPY chrome-preferences.json /root/.config/google-chrome/Default/Preferences
 RUN touch "/root/.config/google-chrome/First Run"
 RUN ${THEME_COMMANDS} && fc-cache -f >/dev/null
 RUN mkdir -p /usr/share/backgrounds/superset && ${WALLPAPER_COMMANDS}
-COPY superset.svg /usr/share/icons/hicolor/scalable/apps/superset.svg
+COPY superset.png /usr/share/icons/hicolor/512x512/apps/superset.png
 RUN gtk-update-icon-cache -f -q /usr/share/icons/hicolor
 COPY plank-dock.theme /usr/share/plank/themes/Superset/dock.theme
 COPY plank.gschema.override /usr/share/glib-2.0/schemas/90_superset-plank.gschema.override
@@ -636,7 +633,9 @@ function assembleContext(): string {
 	copy("scripts/sandbox/start.sh", "start.sh");
 	copy("scripts/sandbox/git-askpass.sh", "git-askpass.sh");
 	writeFileSync(join(context, "plank-dock.theme"), PLANK_THEME);
-	writeFileSync(join(context, "superset.svg"), SUPERSET_ICON_SVG);
+	// The app icon under the window class name: the panel button, the dock and
+	// the window switcher all resolve "superset" from the icon theme.
+	copy("apps/desktop/src/resources/build/icons/icon.png", "superset.png");
 	writeFileSync(join(context, "plank.gschema.override"), PLANK_GSETTINGS);
 	writeFileSync(
 		join(context, "chrome-policy.json"),
