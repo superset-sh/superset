@@ -390,6 +390,89 @@ export async function pathIsMissing(filePath: string): Promise<boolean> {
 }
 
 /**
+ * Directory extensions macOS Launch Services treats as a package to *run or
+ * install* rather than a folder to browse. `shell.openPath("/x/Evil.app")`
+ * launches Evil, and a `.app` stats as a plain directory, so "is a directory"
+ * alone does not make a path safe to hand to `open`. Matched
+ * case-insensitively, the way the filesystem and Launch Services do.
+ */
+const MACOS_BUNDLE_EXTENSIONS = new Set([
+	".app",
+	".appex",
+	".bundle",
+	".framework",
+	".plugin",
+	".kext",
+	".prefpane",
+	".qlgenerator",
+	".xpc",
+	".osax",
+	".mdimporter",
+	".component",
+	".wdgt",
+	".saver",
+	".action",
+	".workflow",
+	".mpkg",
+	".pkg",
+	".scptd",
+]);
+
+export function isMacOsBundlePath(filePath: string): boolean {
+	return MACOS_BUNDLE_EXTENSIONS.has(nodePath.extname(filePath).toLowerCase());
+}
+
+/**
+ * Opens a folder in the OS file browser (Finder), refusing anything that would
+ * launch instead. The path may come from untrusted text (a terminal link, a
+ * repo path), so a `.app` bundle — or a symlink to one, hence `realpath` —
+ * must not reach `shell.openPath`, and neither may a file, which would open
+ * in its default handler (Terminal for `.command`/`.sh`).
+ */
+export async function openFolderInFileBrowser(
+	filePath: string,
+	openPath: (path: string) => Promise<string>,
+): Promise<void> {
+	let realPath: string;
+	let isDirectory: boolean;
+	try {
+		realPath = await fs.realpath(filePath);
+		isDirectory = (await fs.stat(realPath)).isDirectory();
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		if (code === "ENOENT" || code === "ENOTDIR") {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "This folder no longer exists.",
+			});
+		}
+		throw error;
+	}
+	if (!isDirectory) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Not a folder.",
+		});
+	}
+	if (
+		process.platform === "darwin" &&
+		(isMacOsBundlePath(realPath) || isMacOsBundlePath(filePath))
+	) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Refusing to open an application bundle.",
+		});
+	}
+	const errorMessage = await openPath(filePath);
+	if (errorMessage) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: errorMessage,
+		});
+	}
+}
+
+/**
  * Spawns a process and waits for it to complete.
  * @throws Error if the process exits with non-zero code or fails to spawn
  */

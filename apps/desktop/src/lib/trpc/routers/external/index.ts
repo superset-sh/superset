@@ -18,6 +18,7 @@ import { getWorkspacePath } from "../workspaces/utils/worktree";
 import {
 	type ExternalApp,
 	getAppCommand,
+	openFolderInFileBrowser,
 	pathIsMissing,
 	RelativePathWithoutCwdError,
 	resolvePath,
@@ -121,6 +122,38 @@ async function openPathInApp(
 }
 
 /**
+ * Fallback for openFileInEditor when no editor is configured. The path may be
+ * untrusted (a Cmd+clicked terminal link), so it must open as a *document*:
+ * `shell.openPath` hands it to the OS default handler, which for `.command`,
+ * `.sh`, an executable, or an app bundle means running it. macOS `open -t`
+ * asks the default text editor instead; folders go through the bundle guard.
+ */
+async function openInDefaultEditor(filePath: string): Promise<void> {
+	let isDirectory: boolean;
+	try {
+		isDirectory = (await fs.promises.stat(filePath)).isDirectory();
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		if (code === "ENOENT" || code === "ENOTDIR") {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "This file no longer exists.",
+			});
+		}
+		throw error;
+	}
+	if (isDirectory) {
+		await openFolderInFileBrowser(filePath, (path) => shell.openPath(path));
+		return;
+	}
+	if (process.platform === "darwin") {
+		await spawnAsync("open", ["-t", filePath]);
+		return;
+	}
+	await shell.openPath(filePath);
+}
+
+/**
  * External operations router.
  * Handles opening URLs and files in external applications.
  */
@@ -171,13 +204,7 @@ export const createExternalRouter = () => {
 						message: `openFolderInFinder requires an absolute path (got ${JSON.stringify(input)}).`,
 					});
 				}
-				const errorMessage = await shell.openPath(input);
-				if (errorMessage) {
-					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
-						message: errorMessage,
-					});
-				}
+				await openFolderInFileBrowser(input, (path) => shell.openPath(path));
 			}),
 
 		saveToDownloads: publicProcedure
@@ -323,10 +350,10 @@ export const createExternalRouter = () => {
 					const app = input.app ?? resolveDefaultEditor(input.projectId);
 
 					if (!app) {
-						// No preferred editor configured yet.
-						// Fall back to OS default file handler so Cmd/Ctrl+click still works
-						// even when Cursor (or any specific editor) isn't installed.
-						await shell.openPath(filePath);
+						// No preferred editor configured yet: fall back to the OS
+						// default text editor so Cmd/Ctrl+click still works even when
+						// Cursor (or any specific editor) isn't installed.
+						await openInDefaultEditor(filePath);
 						return;
 					}
 
