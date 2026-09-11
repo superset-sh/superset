@@ -48,6 +48,7 @@ import {
 	LuTriangleAlert,
 	LuX,
 } from "react-icons/lu";
+import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { useNow } from "renderer/hooks/useNow";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
@@ -461,6 +462,12 @@ function AutomationsPage() {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const { agents: agentChoices } = useV2AgentChoices(activeHostUrl);
 	const { submit: submitWorkspaceCreate } = useWorkspaceCreates();
+	// Automations are Pro. Creating, running, and resuming go through the
+	// paywall; the server refuses the same three, so this is the friendly
+	// front of one gate. Pausing, editing, and deleting stay open so a
+	// downgraded org keeps control of what it has.
+	const { gateFeature, hasAccess, isReady: planReady } = usePaywall();
+	const showProBadge = planReady && !hasAccess(GATED_FEATURES.AUTOMATIONS);
 
 	// Cursor-style creation: no dialog. "New automation" writes an untitled
 	// automation with no triggers and opens its detail page, which is the
@@ -517,7 +524,14 @@ function AutomationsPage() {
 
 	const handleSelectTemplate = (template: AutomationTemplate) => {
 		if (createMutation.isPending) return;
-		createMutation.mutate(template);
+		gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+			createMutation.mutate(template),
+		);
+	};
+
+	const handleCreateManually = () => {
+		if (createMutation.isPending) return;
+		gateFeature(GATED_FEATURES.AUTOMATIONS, () => createMutation.mutate(null));
 	};
 
 	// Opens a project-less agent session seeded with automation-creation
@@ -526,6 +540,9 @@ function AutomationsPage() {
 	const [creatingWithAgent, setCreatingWithAgent] = useState(false);
 	const handleCreateWithAgent = () => {
 		if (creatingWithAgent) return;
+		gateFeature(GATED_FEATURES.AUTOMATIONS, startCreateWithAgent);
+	};
+	const startCreateWithAgent = () => {
 		if (!machineId) {
 			toast.error(
 				t({
@@ -597,19 +614,24 @@ function AutomationsPage() {
 			isOwner={automation.ownerUserId === currentUserId}
 			isRetrying={retryingIds.has(automation.id)}
 			onRunNow={(a) =>
-				runNowMutation.mutate({
-					id: a.id,
-					name: a.name,
-					targetHostId: a.targetHostId,
-				})
+				gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+					runNowMutation.mutate({
+						id: a.id,
+						name: a.name,
+						targetHostId: a.targetHostId,
+					}),
+				)
 			}
-			onToggleEnabled={(a) =>
-				setEnabledMutation.mutate({
-					id: a.id,
-					enabled: !a.enabled,
-					name: a.name,
-				})
-			}
+			onToggleEnabled={(a) => {
+				const toggle = () =>
+					setEnabledMutation.mutate({
+						id: a.id,
+						enabled: !a.enabled,
+						name: a.name,
+					});
+				if (a.enabled) toggle();
+				else gateFeature(GATED_FEATURES.AUTOMATIONS, toggle);
+			}}
 			onDelete={setPendingDelete}
 		/>
 	);
@@ -643,7 +665,7 @@ function AutomationsPage() {
 						showCreate={!orgEmpty}
 						secondaryAction={{
 							label: <Trans>New automation</Trans>,
-							onSelect: () => createMutation.mutate(null),
+							onSelect: handleCreateManually,
 							disabled: createMutation.isPending,
 						}}
 					/>
@@ -710,7 +732,11 @@ function AutomationsPage() {
 													size="sm"
 													className="h-8 gap-1.5 px-3"
 													disabled={retryAllMutation.isPending}
-													onClick={() => retryAllMutation.mutate(failedMine)}
+													onClick={() =>
+														gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+															retryAllMutation.mutate(failedMine),
+														)
+													}
 												>
 													<LuRotateCw
 														className={cn(
@@ -798,8 +824,9 @@ function AutomationsPage() {
 									onSelectTemplate={handleSelectTemplate}
 									onCreateWithAgent={handleCreateWithAgent}
 									isCreating={creatingWithAgent}
-									onCreateManually={() => createMutation.mutate(null)}
+									onCreateManually={handleCreateManually}
 									isCreatingManually={createMutation.isPending}
+									showProBadge={showProBadge}
 								/>
 							</div>
 						) : showTeamEmptyState ? (

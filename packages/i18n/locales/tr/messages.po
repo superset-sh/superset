@@ -310,7 +310,7 @@ msgstr "{0} eylemleri"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} ve {1} bu işi terminal dinozorları olarak çözüyor. Kazananı istatistikler belirliyor."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} arkanızda"
 
@@ -444,7 +444,7 @@ msgstr "{0} oturum sonlandırıldı"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0} sonlandırıldı, {1} kaldı"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "#{1} sırasını geçmek için {0}"
@@ -2274,6 +2274,9 @@ msgstr "Otomasyonlar ({myFailedCount} başarısız)"
 msgid "Automations & event triggers"
 msgstr "Otomasyonlar ve olay tetikleyicileri"
 
+msgid "Automations require the Pro plan."
+msgstr "Otomasyonlar Pro planı gerektirir."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Otomasyonlar, {myFailedCount} başarısız"
 
@@ -2422,9 +2425,6 @@ msgstr "main dalının ? commit gerisinde, rebase gerekiyor"
 
 msgid "Being built right now."
 msgstr "Şu anda geliştiriliyor."
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Ötesi: F5 yakın vadeli bir iddia değil"
@@ -11257,6 +11257,9 @@ msgstr "Push ediliyor…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Tekrarlayan işleri zamanlamaya alın"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Tekrarlayan işleri bir zamanlamaya veya olaya bağlayın. Ajanlar kendi başına çalışır ve sonuç, incelemeniz için bir çalışma alanına düşer."
 
 msgid "px"
 msgstr "px"

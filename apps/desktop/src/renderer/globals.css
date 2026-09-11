@@ -4,6 +4,11 @@
 
 @source "./**/*.{ts,tsx}";
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
+/* @superset/panes renders inside this app with its own class names. Without
+   this scan any utility used only there (PANE_MIN_SIZE_CLASS_NAME's
+   min-w-[260px], the pane header's @container) never gets generated and
+   silently does nothing — panes could squeeze far below their minimum. */
+@source "../../../../packages/panes/src/**/*.{ts,tsx}";
 @source "../../../../packages/ui/node_modules/streamdown/dist/*.js";
 
 /**

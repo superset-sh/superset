@@ -288,7 +288,9 @@ export async function dispatchAutomation(
 			// a fresh workspace from here on.
 			await db
 				.update(automations)
-				.set({ v2WorkspaceId: null })
+				// The session to continue lived in that workspace, so the flag
+				// goes with the pin — the same rule the API applies on update.
+				.set({ v2WorkspaceId: null, continueAgentSession: false })
 				.where(
 					and(
 						eq(automations.id, automation.id),

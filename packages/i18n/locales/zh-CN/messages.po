@@ -310,7 +310,7 @@ msgstr "{0}的操作"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0}与{1}化身终端恐龙一决高下。数据决定胜负。"
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "落后你{0}"
 
@@ -444,7 +444,7 @@ msgstr "已终止{0}个会话"
 msgid "{0} terminated, {1} remaining"
 msgstr "已终止{0}个，剩余{1}个"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "再需{0}即可超越 #{1}"
@@ -2274,6 +2274,9 @@ msgstr "自动化（{myFailedCount}个失败）"
 msgid "Automations & event triggers"
 msgstr "自动化与事件触发"
 
+msgid "Automations require the Pro plan."
+msgstr "自动化需要Pro套餐。"
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "自动化，{myFailedCount}个失败"
 
@@ -2422,9 +2425,6 @@ msgstr "落后main ?个提交，需要变基"
 
 msgid "Being built right now."
 msgstr "正在构建中。"
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "再往后：F5不是近期的主张"
@@ -11257,6 +11257,9 @@ msgstr "正在推送…"
 
 msgid "Put recurring work on a schedule"
 msgstr "把重复的活儿排进日程"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "按计划或事件触发重复性工作。智能体会自行运行，结果会落在一个工作区里供你审查。"
 
 msgid "px"
 msgstr "px"

@@ -7,6 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { TRPCClientError } from "@trpc/client";
 import { useMemo, useState } from "react";
+import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
@@ -92,6 +93,9 @@ function AutomationDetailPage() {
 	const ownerName = owner?.name ?? owner?.email ?? null;
 
 	const utils = cloudTrpc.useUtils();
+	// Running and resuming are Pro (the server refuses them too); pausing,
+	// editing, and deleting stay open to a downgraded org.
+	const { gateFeature } = usePaywall();
 
 	const setEnabledMutation = useMutation({
 		mutationFn: (enabled: boolean) =>
@@ -243,7 +247,11 @@ function AutomationDetailPage() {
 							],
 						});
 					}}
-					onRunNow={() => runNowMutation.mutate()}
+					onRunNow={() =>
+						gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+							runNowMutation.mutate(),
+						)
+					}
 					onOpenHistory={() => setHistoryOpen(true)}
 					deleteDisabled={deleteMutation.isPending}
 					runNowDisabled={runNowMutation.isPending}
@@ -255,7 +263,15 @@ function AutomationDetailPage() {
 					automation={automation}
 					recentRuns={recentRuns}
 					ownerName={ownerName}
-					onToggleEnabled={(enabled) => setEnabledMutation.mutate(enabled)}
+					onToggleEnabled={(enabled) => {
+						if (!enabled) {
+							setEnabledMutation.mutate(false);
+							return;
+						}
+						gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+							setEnabledMutation.mutate(true),
+						);
+					}}
 					toggleDisabled={setEnabledMutation.isPending}
 					readOnly={readOnly}
 				/>

@@ -1,0 +1,100 @@
+---
+title: "Best Paseo Alternatives in 2026"
+description: "The best alternatives to Paseo for running coding agents in parallel, including Superset, Orca, Conductor, Herdr, and Emdash, from desktop workspaces to terminal runtimes."
+date: 2026-09-11
+lastUpdated: 2026-09-11
+type: "roundup"
+competitors:
+  - paseo
+  - orca
+  - conductor
+  - herdr
+  - emdash
+keywords:
+  - paseo alternative
+  - paseo alternatives
+  - paseo competitors
+  - paseo vs superset
+  - control plane for coding agents
+  - self-hosted coding agent orchestrator
+---
+
+Paseo is an Apache-2.0 "control plane for coding agents": a self-hosted daemon that runs Claude Code, Codex, OpenCode, Pi, and 30 or more ACP agents in worktrees, with native macOS, Windows, Linux, iOS, Android, and web clients, local-first voice, schedules, an MCP server, and plugins. It is free, needs no account, and is built by a solo developer. You might want an alternative if you want a deeper desktop review surface, any CLI agent without an adapter, a team and enterprise track, or a product with a company behind it. Here are the best Paseo alternatives in 2026.
+
+---
+
+## The Short Version
+
+| Alternative | Best for | Platform | License |
+|---|---|---|---|
+| **Superset** | The full desktop loop plus automations, MCP, and teams | macOS; experimental Linux; Windows planned | Source-available (ELv2) |
+| **Orca** | Free cross-platform ADE with the widest prebuilt agent list | macOS, Windows, Linux + iOS/Android | Open source (MIT) |
+| **Conductor** | Polished Mac app with agent teams and cloud workspaces | macOS | Proprietary |
+| **Herdr** | Terminal-native runtime that keeps agents alive anywhere | macOS, Linux, Windows (beta) | Open source (Apache-2.0) |
+| **Emdash** | Open-source ADE with issue-tracker intake | macOS, Windows, Linux | Open source (Apache-2.0) |
+
+## Why Look for a Paseo Alternative?
+
+Paseo's daemon-plus-clients design is its strength and its constraint. You run and maintain the daemon, relay, and optional Hub yourself, and team features are early: Hub is in beta, with hosted seats at €15 per month, and by Paseo's own docs team provisioning and shared settings are not built yet. Agents outside its four native harnesses go through the Agent Client Protocol or a config-level custom provider rather than a plain terminal. There is no SSO, SCIM, audit log, or compliance report, and the project is maintained by one person. None of that matters for a solo developer who wants a phone-first control plane; all of it matters for a team.
+
+## The Best Alternatives
+
+### Superset
+
+Superset keeps what makes Paseo good, parallel agents in isolated worktrees, schedules, an MCP server, and remote hosts, and adds a deeper desktop surface: any CLI agent in a persistent terminal with mid-session agent switching, a Changes pane that commits, pushes, and opens PRs, a Pull Requests view with CI checks and line comments sent to agents, an in-app browser with Design Mode, tasks synced with Linear and GitHub Issues, and a Slack bot. Remote Access adds any machine as a host so workspaces keep running when your laptop sleeps. It has published pricing, a Pro team plan, and an enterprise tier with SAML SSO, SCIM, audit logs, and a SOC 2 Type II report. Mobile is coming soon rather than shipped, which is the honest trade against Paseo.
+
+For the direct comparison, see [Superset vs Paseo](/compare/superset-vs-paseo).
+
+### Orca
+
+Orca is the free, MIT-licensed desktop agent development environment: parallel agents in worktrees on macOS, Windows, and Linux, prebuilt configurations for 25+ agents plus custom CLI agents, split terminals, a Design Mode, SSH remote worktrees, GitHub and Linear intake, and iOS and Android companion apps. It is the closest open-source match for Paseo's cross-platform and mobile reach, in a desktop-first shape.
+
+See [Superset vs Orca](/compare/superset-vs-orca).
+
+### Conductor
+
+Conductor is a proprietary macOS app for Claude Code, Codex, Cursor, and OpenCode with named agent teams, four coordination patterns, and managed context. Pro at $50 per month adds cloud workspaces and multiplayer. It is the pick if you want polish and coordination over openness, and are fine with Mac only.
+
+See [Superset vs Conductor](/compare/superset-vs-conductor).
+
+### Herdr
+
+Herdr is a Rust, Apache-2.0 runtime that owns real terminals so agents survive disconnects, with a tmux-style TUI, a JSON socket API, 500+ plugins, and a Vercel Sandbox plugin for microVM isolation. It shares Paseo's server-first philosophy without a GUI or mobile app: if you live in the terminal and want persistence above all, Herdr is leaner.
+
+See [Superset vs Herdr](/compare/superset-vs-herdr).
+
+### Emdash
+
+Emdash (YC W26, Apache-2.0) is an open-source ADE that gives each task a worktree, auto-detects 30+ agent CLIs, pulls work from a dozen issue trackers, and adds diff review, CI monitoring, a browser, and cron automations. It is the open-source option if tickets, not a phone, are how work reaches your agents.
+
+See [Superset vs Emdash](/compare/superset-vs-emdash).
+
+## How To Choose
+
+- For the full desktop loop with automations, MCP, Slack, and a team and enterprise track, choose **Superset**.
+- For free, cross-platform, and mobile companions in an open-source desktop app, choose **Orca**.
+- For a polished Mac app with agent teams and cloud workspaces, choose **Conductor**.
+- To stay server-first and terminal-native, choose **Herdr**.
+- For open source with issue-tracker intake, choose **Emdash**.
+
+## Verdict
+
+Paseo is the best self-hosted, mobile-first control plane in this category, and for a solo developer it may be all you need. When you want the deeper desktop review surface, any-agent flexibility, and a team behind the product, Superset is the strongest alternative, with Orca as the open-source cross-platform pick and Herdr for the terminal purist. For the full landscape, see [Best Agentic IDE in 2026](/compare/best-agentic-ide).
+
+## Frequently Asked Questions
+
+### What is the best Paseo alternative?
+
+For most developers, Superset: the same worktree orchestration, schedules, MCP server, and remote hosts, plus a deeper desktop review surface, any CLI agent in a terminal, a Slack bot, and team and enterprise plans. Orca is the leading open-source alternative with mobile apps.
+
+### Is there an open-source Paseo alternative?
+
+Yes. Orca (MIT), Herdr (Apache-2.0), and Emdash (Apache-2.0) are open source. Paseo itself is Apache-2.0; Superset is source-available under ELv2 with a free tier.
+
+### Which alternatives have mobile apps like Paseo?
+
+Orca ships iOS and Android companion apps. Conductor has announced a mobile app but not shipped it. Superset lists mobile as coming soon. Herdr's mobile story is an SSH client to its TUI.
+
+### Does Paseo support any coding agent?
+
+Paseo has native harnesses for Claude Code, Codex, OpenCode, and Pi and runs 30 or more other agents through the Agent Client Protocol, with custom providers by config. Superset and Orca run any CLI agent directly in a terminal.

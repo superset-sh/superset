@@ -27,6 +27,10 @@ interface FailedAutomations {
 	failedIds: Set<string>;
 	/** How many of the current user's failures the user hasn't seen yet. */
 	myFailedCount: number;
+	/** The org has at least one automation, so the list is worth reaching. */
+	hasAutomations: boolean;
+	/** The list has not loaded yet, so `hasAutomations` is not yet known. */
+	automationsPending: boolean;
 	/** Clear the failure badge by acknowledging the user's current failures. */
 	markMyFailuresSeen: () => void;
 }
@@ -45,10 +49,11 @@ export function useFailedAutomations(): FailedAutomations {
 		undefined,
 		{ refetchInterval: 30_000, staleTime: 30_000 },
 	);
-	const { data: automationRows = [] } = cloudTrpc.automation.list.useQuery(
-		undefined,
-		{ refetchInterval: 30_000, staleTime: 30_000 },
-	);
+	const { data: automationRows = [], isPending: automationsPending } =
+		cloudTrpc.automation.list.useQuery(undefined, {
+			refetchInterval: 30_000,
+			staleTime: 30_000,
+		});
 
 	const { lastRunStatusById, lastRunById, failedIds, myFailureTimes } =
 		useMemo(() => {
@@ -105,6 +110,8 @@ export function useFailedAutomations(): FailedAutomations {
 		lastRunById,
 		failedIds,
 		myFailedCount,
+		hasAutomations: automationRows.length > 0,
+		automationsPending,
 		markMyFailuresSeen,
 	};
 }

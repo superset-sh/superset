@@ -8,6 +8,9 @@ import { ZodError } from "zod";
 // entries for every key live in packages/i18n/src/server-errors.ts.
 // Strategy: plans/20260826-i18n-strategy.md.
 
+/** The paid tiers a gate can name. Mirrors PlanTier minus "free". */
+export type RequiredPlan = "pro" | "enterprise";
+
 export interface I18nErrorCause {
 	i18nKey: string;
 	i18nParams?: Record<string, string | number>;
@@ -17,6 +20,17 @@ export interface I18nErrorCause {
 	 * matching the English — which is what it used to do.
 	 */
 	automationErrorCode?: string;
+	/**
+	 * Set when the error is a plan gate: the tier the caller's org needs.
+	 * Travels to clients as `data.requiredPlan`, so the CLI can print an
+	 * upgrade hint and the desktop can open the paywall without matching on
+	 * message text.
+	 */
+	requiredPlan?: RequiredPlan;
+}
+
+function isRequiredPlan(value: unknown): value is RequiredPlan | undefined {
+	return value === undefined || value === "pro" || value === "enterprise";
 }
 
 function isValidParams(
@@ -47,7 +61,8 @@ export function isI18nErrorCause(cause: unknown): cause is I18nErrorCause {
 		typeof cause === "object" &&
 		cause !== null &&
 		typeof (cause as { i18nKey?: unknown }).i18nKey === "string" &&
-		isValidParams((cause as { i18nParams?: unknown }).i18nParams)
+		isValidParams((cause as { i18nParams?: unknown }).i18nParams) &&
+		isRequiredPlan((cause as { requiredPlan?: unknown }).requiredPlan)
 	);
 }
 
@@ -72,6 +87,7 @@ export function formatError<TShape extends { data: object }>({
 			i18nKey: i18nCause?.i18nKey ?? null,
 			i18nParams: i18nCause?.i18nParams ?? null,
 			automationErrorCode: readAutomationErrorCode(error.cause),
+			requiredPlan: i18nCause?.requiredPlan ?? null,
 		},
 	};
 }
@@ -82,6 +98,7 @@ export function userError(opts: {
 	i18nKey: string;
 	params?: Record<string, string | number>;
 	automationErrorCode?: string;
+	requiredPlan?: RequiredPlan;
 }): TRPCError {
 	return new TRPCError({
 		code: opts.code,
@@ -92,6 +109,20 @@ export function userError(opts: {
 			...(opts.automationErrorCode
 				? { automationErrorCode: opts.automationErrorCode }
 				: {}),
+			requiredPlan: opts.requiredPlan,
 		} satisfies I18nErrorCause,
 	});
+}
+
+/**
+ * The one way to refuse a request on plan. Every gate throws through here so
+ * the refusal is FORBIDDEN, names the tier in the message, and carries
+ * `requiredPlan` for clients to act on.
+ */
+export function planRequiredError(opts: {
+	message: string;
+	i18nKey: string;
+	requiredPlan: RequiredPlan;
+}): TRPCError {
+	return userError({ code: "FORBIDDEN", ...opts });
 }

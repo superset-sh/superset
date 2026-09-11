@@ -196,21 +196,21 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			},
 			{
 				label: msg({
+					message: "GitHub integration",
+				}),
+				values: [true, true, true],
+			},
+			{
+				label: msg({
 					message: "Remote access",
 				}),
 				values: [null, true, true],
-				badge: {
-					label: msg({
-						message: "Beta",
-					}),
-					variant: "default",
-				},
 			},
 			{
 				label: msg({
 					message: "Automations",
 				}),
-				values: [true, true, true],
+				values: [null, true, true],
 			},
 			{
 				label: msg({
@@ -223,12 +223,6 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 					}),
 					variant: "secondary",
 				},
-			},
-			{
-				label: msg({
-					message: "GitHub integration",
-				}),
-				values: [true, true, true],
 			},
 			{
 				label: msg({

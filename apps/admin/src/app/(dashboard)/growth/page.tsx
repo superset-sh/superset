@@ -34,9 +34,12 @@ import { GrowthRangeProvider } from "./providers/GrowthRangeProvider";
 // Discord, Google) that feed the top of that path. Tiles can be dragged and
 // resized within their section; the arrangement is remembered per browser.
 
-const CHART_H = 13;
-const TABLE_H = 18;
-const FUNNEL_H = 16;
+// Sizes are in twelfths of the row width, height included; see the
+// dashboard page for how the heights were chosen.
+const CHART_H = 4;
+const TALL_CHART_H = 5;
+const TABLE_H = 6;
+const FUNNEL_H = 4;
 const FULL_W = 12;
 
 function GrowthPageContent() {
@@ -145,7 +148,7 @@ function GrowthPageContent() {
 						key: "content-inventory",
 						node: <ContentInventoryTile />,
 						w: FULL_W,
-						h: CHART_H + 3,
+						h: TALL_CHART_H,
 					},
 				]}
 			/>
@@ -163,7 +166,7 @@ function GrowthPageContent() {
 						key: "conversions",
 						node: <ConversionsTile />,
 						w: FULL_W,
-						h: CHART_H + 3,
+						h: TALL_CHART_H,
 					},
 					{
 						key: "activation-funnel",
@@ -204,11 +207,11 @@ function GrowthPageContent() {
 					<Trans>Whether the people acquired stay and what they pay.</Trans>
 				}
 				tiles={[
-					{ key: "mrr", node: <MrrTile />, h: CHART_H + 2 },
+					{ key: "mrr", node: <MrrTile />, h: TALL_CHART_H },
 					{
 						key: "logo-retention",
 						node: <LogoRetentionTile />,
-						h: CHART_H + 2,
+						h: TALL_CHART_H,
 					},
 					{
 						key: "churn-heatmap",
@@ -229,8 +232,8 @@ function GrowthPageContent() {
 					</Trans>
 				}
 				tiles={[
-					{ key: "github", node: <GithubTile />, w: 8, h: TABLE_H + 2 },
-					{ key: "discord", node: <DiscordTile />, w: 4, h: 8 },
+					{ key: "github", node: <GithubTile />, w: 8, h: TABLE_H },
+					{ key: "discord", node: <DiscordTile />, w: 4, h: 3 },
 				]}
 			/>
 
@@ -247,7 +250,7 @@ function GrowthPageContent() {
 						key: "search-console",
 						node: <SearchConsoleTile />,
 						w: FULL_W,
-						h: TABLE_H + 8,
+						h: TABLE_H + 2,
 					},
 				]}
 			/>

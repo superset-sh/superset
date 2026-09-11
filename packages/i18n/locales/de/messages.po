@@ -310,7 +310,7 @@ msgstr "Aktionen für {0}"
 msgid "{0} and {1} settle it as terminal dinosaurs. Stats decide the winner."
 msgstr "{0} und {1} tragen es als Terminal-Dinosaurier aus. Die Statistiken entscheiden."
 
-#. placeholder {0}: formatTokens(me.tokens - below.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "{0} hinter dir"
 
@@ -444,7 +444,7 @@ msgstr "{0} Sitzungen beendet"
 msgid "{0} terminated, {1} remaining"
 msgstr "{0} beendet, {1} verbleibend"
 
-#. placeholder {0}: formatTokens(above.tokens - me.tokens)
+#. placeholder {0}: formatTokens(Math.max(0, above.tokens - me.tokens))
 #. placeholder {1}: formatNumber(above.rank)
 msgid "{0} to pass #{1}"
 msgstr "{0} bis zum Überholen von #{1}"
@@ -2274,6 +2274,9 @@ msgstr "Automatisierungen ({myFailedCount} fehlgeschlagen)"
 msgid "Automations & event triggers"
 msgstr "Automatisierungen & Ereignis-Trigger"
 
+msgid "Automations require the Pro plan."
+msgstr "Automatisierungen erfordern den Pro-Plan."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automatisierungen, {myFailedCount} fehlgeschlagen"
 
@@ -2422,9 +2425,6 @@ msgstr "? Commits hinter main, Rebase nötig"
 
 msgid "Being built right now."
 msgstr "Wird gerade gebaut."
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Ausblick: F5 ist keine kurzfristige Behauptung"
@@ -11257,6 +11257,9 @@ msgstr "Wird gepusht…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Wiederkehrende Arbeit auf einen Zeitplan setzen"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Plane wiederkehrende Arbeit nach einem Zeitplan oder löse sie durch ein Ereignis aus. Agenten laufen von selbst und landen in einem Arbeitsbereich, den du prüfst."
 
 msgid "px"
 msgstr "px"
