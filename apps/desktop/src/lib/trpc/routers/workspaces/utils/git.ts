@@ -1,6 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { statSync } from "node:fs";
+import { existsSync, realpathSync, statSync } from "node:fs";
 import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -107,6 +107,27 @@ export function isUnbornHeadError(error: unknown): boolean {
 	);
 }
 
+/**
+ * Paths from `git worktree list --porcelain`, main worktree first, then the
+ * linked worktrees (including prunable ones whose directory is gone).
+ */
+async function listRegisteredWorktreePaths(
+	mainRepoPath: string,
+): Promise<string[]> {
+	const { stdout } = await execGitWithShellPath(
+		["-C", mainRepoPath, "worktree", "list", "--porcelain"],
+		{ timeout: 10_000 },
+	);
+
+	const paths: string[] = [];
+	for (const line of stdout.split("\n")) {
+		if (line.startsWith("worktree ")) {
+			paths.push(line.slice("worktree ".length).trim());
+		}
+	}
+	return paths;
+}
+
 async function isWorktreeRegistered({
 	mainRepoPath,
 	worktreePath,
@@ -115,26 +136,26 @@ async function isWorktreeRegistered({
 	worktreePath: string;
 }): Promise<boolean> {
 	try {
-		const { stdout } = await execGitWithShellPath(
-			["-C", mainRepoPath, "worktree", "list", "--porcelain"],
-			{ timeout: 10_000 },
-		);
-
 		const expectedPath = resolve(worktreePath);
-		for (const line of stdout.split("\n")) {
-			if (!line.startsWith("worktree ")) {
-				continue;
-			}
-
-			const listedPath = line.slice("worktree ".length).trim();
-			if (resolve(listedPath) === expectedPath) {
-				return true;
-			}
-		}
-
-		return false;
+		const registered = await listRegisteredWorktreePaths(mainRepoPath);
+		return registered.some(
+			(listedPath) => resolve(listedPath) === expectedPath,
+		);
 	} catch {
 		return false;
+	}
+}
+
+/**
+ * Resolves symlinks (e.g. /tmp -> /private/tmp) without folding case, so two
+ * spellings that only differ in case stay distinct on a case-insensitive
+ * filesystem: git registers exactly one of them and only that one is ours.
+ */
+function resolveWorktreeIdentity(path: string): string {
+	try {
+		return realpathSync(path);
+	} catch {
+		return resolve(path);
 	}
 }
 
@@ -814,10 +835,58 @@ export async function deleteLocalBranch({
 	}
 }
 
+/**
+ * Removes a linked worktree from disk and from git's metadata.
+ *
+ * Only a path git itself lists as a linked worktree of `mainRepoPath` is
+ * deleted. A DB row can point elsewhere — at the main checkout, at the
+ * parent directory shared by every worktree of the project, or at a
+ * sibling whose name differs only in case — and none of those are ours to
+ * delete, so they are left on disk and only the metadata is pruned.
+ */
 export async function removeWorktree(
 	mainRepoPath: string,
 	worktreePath: string,
 ): Promise<void> {
+	const prune = () =>
+		execGitWithShellPath(["-C", mainRepoPath, "worktree", "prune"], {
+			timeout: 10_000,
+		});
+
+	let registered: string[];
+	try {
+		registered = await listRegisteredWorktreePaths(mainRepoPath);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		console.error(`Failed to remove worktree: ${errorMessage}`);
+		throw new Error(`Failed to remove worktree: ${errorMessage}`);
+	}
+
+	const target = resolveWorktreeIdentity(worktreePath);
+	const [mainWorktreePath, ...linkedWorktreePaths] = registered.map(
+		resolveWorktreeIdentity,
+	);
+	if (
+		target === mainWorktreePath ||
+		target === resolveWorktreeIdentity(mainRepoPath)
+	) {
+		console.error(
+			`[removeWorktree] Refusing to delete ${worktreePath}: it is the main repository`,
+		);
+		return;
+	}
+	if (!linkedWorktreePaths.includes(target)) {
+		if (existsSync(worktreePath)) {
+			console.warn(
+				`[removeWorktree] ${worktreePath} is not a linked worktree of ${mainRepoPath}; leaving it on disk`,
+			);
+		}
+		try {
+			await prune();
+		} catch {}
+		return;
+	}
+
 	try {
 		// Rename the worktree to a sibling temp dir (same filesystem to avoid EXDEV),
 		// then `git worktree prune` to clean metadata, then delete in background.
@@ -827,9 +896,7 @@ export async function removeWorktree(
 		);
 		await rename(worktreePath, tempPath);
 
-		await execGitWithShellPath(["-C", mainRepoPath, "worktree", "prune"], {
-			timeout: 10_000,
-		});
+		await prune();
 
 		// Delete the moved directory in the background — don't block the caller.
 		// Use spawned `rm -rf` instead of Node's fs.rm which can hang on macOS
@@ -857,9 +924,7 @@ export async function removeWorktree(
 		// If the worktree directory is already gone, just prune metadata
 		if (code === "ENOENT") {
 			try {
-				await execGitWithShellPath(["-C", mainRepoPath, "worktree", "prune"], {
-					timeout: 10_000,
-				});
+				await prune();
 			} catch {}
 			return;
 		}
