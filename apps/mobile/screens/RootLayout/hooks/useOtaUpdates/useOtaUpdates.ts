@@ -1,11 +1,9 @@
 import { useLingui } from "@lingui/react/macro";
 import * as Updates from "expo-updates";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Alert, AppState } from "react-native";
 
 const FOREGROUND_CHECK_MIN_INTERVAL_MS = 15 * 60 * 1000;
-
-const canCheck = Updates.isEnabled && !__DEV__;
 
 async function downloadIfAvailable() {
 	const check = await Updates.checkForUpdateAsync();
@@ -24,7 +22,7 @@ export function useOtaUpdates() {
 	const promptedFor = useRef<string | null>(null);
 
 	useEffect(() => {
-		if (!canCheck) return;
+		if (!Updates.isEnabled || __DEV__) return;
 		const subscription = AppState.addEventListener("change", (status) => {
 			if (status !== "active") return;
 			if (
@@ -37,10 +35,6 @@ export function useOtaUpdates() {
 			void downloadIfAvailable().catch(() => {});
 		});
 		return () => subscription.remove();
-	}, []);
-
-	const restart = useCallback(() => {
-		void Updates.reloadAsync().catch(() => {});
 	}, []);
 
 	useEffect(() => {
@@ -56,24 +50,11 @@ export function useOtaUpdates() {
 			t({ message: "Restart to use the latest version of Superset." }),
 			[
 				{ text: t({ message: "Later" }), style: "cancel" },
-				{ text: t({ message: "Restart" }), onPress: restart },
+				{
+					text: t({ message: "Restart" }),
+					onPress: () => void Updates.reloadAsync().catch(() => {}),
+				},
 			],
 		);
-	}, [isUpdatePending, downloadedUpdate, restart, t]);
-
-	/** Applies a downloaded update, or fetches one first; false when there is nothing to apply. */
-	const installUpdate = useCallback(async (): Promise<boolean> => {
-		if (isUpdatePending) {
-			restart();
-			return true;
-		}
-		if (!canCheck) return false;
-		const check = await Updates.checkForUpdateAsync();
-		if (!check.isAvailable) return false;
-		await Updates.fetchUpdateAsync();
-		restart();
-		return true;
-	}, [isUpdatePending, restart]);
-
-	return { isUpdatePending, installUpdate };
+	}, [isUpdatePending, downloadedUpdate, t]);
 }

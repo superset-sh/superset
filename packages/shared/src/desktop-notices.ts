@@ -44,8 +44,7 @@ const SEVERITY_RANK: Record<DesktopNotice["severity"], number> = {
 export interface NoticeClientContext {
 	appVersion: string;
 	platform: string;
-	/** Desktop: "stable" | "canary". Mobile: the EAS Update channel. */
-	channel: string;
+	channel: "stable" | "canary";
 	/** Version this install ran before its most recent update; null on fresh installs. */
 	previousVersion: string | null;
 	isDismissed: (id: string) => boolean;

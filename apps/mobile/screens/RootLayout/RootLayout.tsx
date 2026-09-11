@@ -23,8 +23,8 @@ import { NAV_THEME } from "@/lib/theme";
 
 Uniwind.setTheme("dark");
 
-import { ClientNoticesGate } from "./components/ClientNoticesGate";
 import { PostHogUserIdentifier } from "./components/PostHogUserIdentifier";
+import { VersionGate } from "./components/VersionGate";
 import { PostHogProvider } from "./providers/PostHogProvider";
 
 // What Home's first paint waits on, kept so a returning launch opens on rows.
@@ -115,7 +115,7 @@ export function RootLayout() {
 				<PostHogProvider>
 					<I18nProvider locale={deviceLocale} deferUntilReady>
 						<ThemeProvider value={NAV_THEME.dark}>
-							<ClientNoticesGate>
+							<VersionGate>
 								<Stack screenOptions={{ headerShown: false }}>
 									<Stack.Protected guard={!!session && !pendingDeletion}>
 										<Stack.Screen name="(authenticated)" />
@@ -127,7 +127,7 @@ export function RootLayout() {
 										<Stack.Screen name="(auth)" />
 									</Stack.Protected>
 								</Stack>
-							</ClientNoticesGate>
+							</VersionGate>
 							<PostHogUserIdentifier />
 							<PortalHost />
 						</ThemeProvider>

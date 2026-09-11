@@ -133,9 +133,7 @@ publish is rejected at its final step, after the bundle has already uploaded.
 carries `MINIMUM_MOBILE_VERSION`; a build below it shows a full-screen
 "Update Required" with an App Store button and nothing else. Raise it only
 once the replacement build is live in the store, or that build is bricked.
-Softer notices come from the `desktop_notices` table and reach phones only
-when `platforms` names `ios`; a `warning` is a dialog, `install-update` applies
-a downloaded over-the-air update or falls back to the App Store.
+The check fails open: no answer from the server, no gate.
 
 ## When the build is rejected
 
