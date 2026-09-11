@@ -6057,7 +6057,7 @@ msgid "Failed to open: {0}"
 msgstr "Openen mislukt: {0}"
 
 msgid "Failed to post reply"
-msgstr "Reactie plaatsen mislukt"
+msgstr "Antwoord plaatsen mislukt"
 
 msgid "Failed to prepare agent launch"
 msgstr "Voorbereiden van agentstart mislukt"

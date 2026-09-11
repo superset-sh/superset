@@ -224,16 +224,10 @@ export const pageCommentRouter = {
 					});
 				}
 
-				const [author] = await tx
-					.select({ name: users.name, image: users.image })
-					.from(users)
-					.where(eq(users.id, userId))
-					.limit(1);
-
 				return shapeThread(thread, input.version, [
 					shapeComment(comment, {
-						name: author?.name ?? null,
-						image: author?.image ?? null,
+						name: ctx.session.user.name,
+						image: ctx.session.user.image ?? null,
 					}),
 				]);
 			});
@@ -279,15 +273,9 @@ export const pageCommentRouter = {
 					.where(eq(pageCommentThreads.id, input.threadId));
 			}
 
-			const [author] = await db
-				.select({ name: users.name, image: users.image })
-				.from(users)
-				.where(eq(users.id, userId))
-				.limit(1);
-
 			return shapeComment(comment, {
-				name: author?.name ?? null,
-				image: author?.image ?? null,
+				name: ctx.session.user.name,
+				image: ctx.session.user.image ?? null,
 			});
 		}),
 

@@ -84,6 +84,7 @@ export function PageCommentsView({
 	useEffect(() => {
 		if (hoverRect) setLastHoverRect(hoverRect);
 	}, [hoverRect]);
+	const outlineRect = hoverRect ?? lastHoverRect;
 
 	/**
 	 * Escape peels one layer at a time: the draft you are composing, then an
@@ -255,12 +256,12 @@ export function PageCommentsView({
 			/>
 
 			<div className="pointer-events-none absolute inset-0 overflow-hidden">
-				{enabled && lastHoverRect ? (
+				{enabled && outlineRect ? (
 					<div
 						style={{
-							transform: `translate(${lastHoverRect.left}px, ${lastHoverRect.top}px)`,
-							width: lastHoverRect.width,
-							height: lastHoverRect.height,
+							transform: `translate(${outlineRect.left}px, ${outlineRect.top}px)`,
+							width: outlineRect.width,
+							height: outlineRect.height,
 							opacity: hoverRect ? 1 : 0,
 						}}
 						// Same reasoning as the pin: this outline sits on the reader's

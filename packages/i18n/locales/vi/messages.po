@@ -6057,7 +6057,7 @@ msgid "Failed to open: {0}"
 msgstr "Không thể mở: {0}"
 
 msgid "Failed to post reply"
-msgstr "Không thể đăng phản hồi"
+msgstr "Đăng trả lời thất bại"
 
 msgid "Failed to prepare agent launch"
 msgstr "Không thể chuẩn bị khởi chạy agent"

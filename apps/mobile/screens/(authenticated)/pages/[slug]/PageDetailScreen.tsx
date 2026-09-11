@@ -125,6 +125,7 @@ export function PageDetailScreen({
 	useFocusEffect(
 		useCallback(() => {
 			setFrameEpoch((epoch) => epoch + 1);
+			if (!usePageCommentStore.getState().anchor) setSelection(null);
 			refetchComments();
 		}, [refetchComments]),
 	);
