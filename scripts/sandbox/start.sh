@@ -94,6 +94,10 @@ if command -v Xvnc >/dev/null 2>&1; then
   # Terminals opened on the desktop get what host-service gives the app's
   # terminals: dotfiles key their repo navigation off this.
   export SUPERSET_WORKSPACE_PATH="${SUPERSET_SANDBOX_WORKSPACE_PATH:-/workspace}"
+  # What a logged-in desktop session advertises. Tools and agents read these
+  # before deciding whether a display exists; without them one agent started
+  # its own Xvfb next to the real desktop.
+  export XDG_SESSION_TYPE=x11 XDG_CURRENT_DESKTOP=XFCE DESKTOP_SESSION=xfce
   # A resumed session restores the previous session's lock and socket files
   # but none of its processes; the stale ones would keep Xvnc from starting.
   rm -f /tmp/.X1-lock /tmp/.X11-unix/X1

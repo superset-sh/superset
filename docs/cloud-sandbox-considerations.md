@@ -29,11 +29,14 @@ quota and cost visibility in the product — and a decision on unattended agent
 runs, which die with the session (Blaxel froze processes; Vercel snapshots the
 filesystem and boots fresh).
 
-**Delete doesn't delete.** The generic delete routes to the owning host, so it
-removes the row *inside* the sandbox and leaves the sandbox and the
-`cloud_workspaces` row alive; the workspace reappears on the next refetch. Until
-this points at `cloudWorkspace.delete`, the only real teardown is manual.
-**Open.**
+**Delete deletes.** `useDestroyWorkspace` decides by the cloud row, not by the
+host it happens to reach: a cloud workspace goes to `cloudWorkspace.delete`,
+which removes the sandbox (and its snapshots) at the provider and marks the row
+deleted; only a machine someone owns gets the host-side destroy. Verified
+2026-09-11: four deletes from the sidebar, four sandboxes gone at Vercel. Left
+over: a pane still open on the deleted workspace keeps asking
+`cloudWorkspace.access` and logs "Cloud workspace is deleted" until it is
+closed.
 
 ## Credentials and blast radius
 
