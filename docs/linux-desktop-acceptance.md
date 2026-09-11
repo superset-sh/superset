@@ -73,6 +73,17 @@ Rows are checked only with evidence in the app, never from a code read.
 - [x] **2.3 Git and files** — status, diff, branch switch, file tree and file
   watching (inotify) work in a workspace. (cloud acceptance 5.3: tree and
   Changes tab on a Linux host-service; branch switch via the fork bootstrap.)
+  Found on the packaged build: with the user's inotify instance limit reached
+  (`fs.inotify.max_user_instances`, 128 by default, shared by every process
+  of the user — the bench sat at 131), `@parcel/watcher`'s backend thread
+  throws before signalling it started and the caller waits forever: a native
+  stack put host-service's event loop in `Backend::run`, its health endpoint
+  stopped answering, and every workspace showed "Connecting… restart the host
+  service from the tray menu" (a menu Linux has no tray for). Fix on this
+  branch: a throwaway `fs.watch` probe before the native subscribe fails
+  cleanly with EMFILE. (After: same exhausted box, host-service answers, the
+  log carries `Cannot watch path: inotify unavailable (EMFILE)`, and git
+  views work without live updates — screenshot.)
 - [x] **2.4 Notifications and sounds** — desktop notifications show through
   the freedesktop notification daemon; sounds play through `paplay` or are
   silently skipped when there is no audio server. (Packaged build: a
@@ -109,12 +120,13 @@ Rows are checked only with evidence in the app, never from a code read.
   `setAsDefaultProtocolClient` logs `xdg-settings: default-url-scheme-handler
   not implemented for xfce` on this desktop; registration comes from the
   desktop entry, which is what AppImage integration installs.)
-- [ ] **3.5 Diff worker pool** — `@pierre/diffs` logs `Worker error` seven
+- [x] **3.5 Diff worker pool** — `@pierre/diffs` logs `Worker error` seven
   times right after sign-in on the sandbox desktop (dev server, root,
   `--no-sandbox`). Dev-only: the packaged build's renderer console, captured
-  over CDP across three loads, has no worker error (only the dev relay's
-  refused health checks). Diff rendering itself was not re-exercised on the
-  packaged bench; left open for that half.
+  over CDP across five loads, has no worker error (only the dev relay's
+  refused health checks), and diffs render: an untracked `README.md` (+2) and
+  `ld-new.txt` (+1) in the workspace's Changes pane with their lines
+  highlighted — screenshot.
 - [x] **3.6 Dev renderer under Chromium's request budget** — on the sandbox
   the unbundled dev renderer loses a few random modules per load to
   `net::ERR_INSUFFICIENT_RESOURCES` (Chromium's per-renderer cap on
