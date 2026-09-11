@@ -775,6 +775,9 @@ msgstr "{name} is built in and cannot be replaced"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} is not added"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, one {# needs you} other {# need you}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} of clicks"
 
@@ -892,6 +895,12 @@ msgstr "{threshold, plural, one {# agent PR merged} other {# agent PRs merged}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName} interrupted"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, one {# agent working} other {# agents working}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, one {# agent} other {# agents}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {The check passed} other {All # checks passed}}"
 
@@ -983,6 +992,9 @@ msgstr "⇧ click"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# file} other {# files}}"
+
+msgid "+{hidden} more"
+msgstr "+{hidden} more"
 
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} earlier"
@@ -5832,6 +5844,10 @@ msgstr "failed"
 msgid "Failed"
 msgstr "Failed"
 
+msgctxt "agent status"
+msgid "Failed"
+msgstr "Failed"
+
 msgid "Failed <0>· 7d</0>"
 msgstr "Failed <0>· 7d</0>"
 
@@ -8850,6 +8866,10 @@ msgstr "needs update"
 msgid "Needs update"
 msgstr "Needs update"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Needs you"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9666,6 +9686,10 @@ msgstr "Not set up on this host"
 
 msgid "not sorted"
 msgstr "not sorted"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Not updating"
 
 msgid "Notes"
 msgstr "Notes"
@@ -12119,6 +12143,10 @@ msgstr "Reveal my rank"
 msgid "Revenue first, then how many people are actually using it, then what it costs to run."
 msgstr "Revenue first, then how many people are actually using it, then what it costs to run."
 
+msgid "Review"
+msgstr "Review"
+
+msgctxt "agent status"
 msgid "Review"
 msgstr "Review"
 
@@ -16221,6 +16249,10 @@ msgstr "Workflow run completed…"
 msgid "Workflow Tutorials"
 msgstr "Workflow Tutorials"
 
+msgid "Working"
+msgstr "Working"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "Working"
 

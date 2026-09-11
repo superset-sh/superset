@@ -775,6 +775,9 @@ msgstr "{name} je vestavěný a nelze jej nahradit"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} není přidán"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, one {# čeká na tebe} few {# čekají na tebe} many {# čeká na tebe} other {# čeká na tebe}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} kliknutí"
 
@@ -892,6 +895,12 @@ msgstr "{threshold, plural, one {sloučen # PR agenta} few {sloučeny # PR agent
 msgid "{toolName} interrupted"
 msgstr "{toolName} přerušeno"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, one {# agent pracuje} few {# agenti pracují} many {# agenta pracuje} other {# agentů pracuje}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, one {# agent} few {# agenti} many {# agenta} other {# agentů}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Kontrola prošla} few {Všechny # kontroly prošly} many {Všech # kontroly prošlo} other {Všech # kontrol prošlo}}"
 
@@ -983,6 +992,9 @@ msgstr "⇧ kliknutí"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# soubor} few {# soubory} many {# souboru} other {# souborů}}"
+
+msgid "+{hidden} more"
+msgstr "+{hidden} dalších"
 
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} dřívějších"
@@ -5832,6 +5844,10 @@ msgstr "selhalo"
 msgid "Failed"
 msgstr "Selhalo"
 
+msgctxt "agent status"
+msgid "Failed"
+msgstr "Selhalo"
+
 msgid "Failed <0>· 7d</0>"
 msgstr "Selhalo <0>· 7 d</0>"
 
@@ -8850,6 +8866,10 @@ msgstr "vyžaduje aktualizaci"
 msgid "Needs update"
 msgstr "Vyžaduje aktualizaci"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Čeká na tebe"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9666,6 +9686,10 @@ msgstr "Na tomto hostu není nastaveno"
 
 msgid "not sorted"
 msgstr "neseřazeno"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Bez aktualizací"
 
 msgid "Notes"
 msgstr "Poznámky"
@@ -12121,6 +12145,10 @@ msgstr "Nejdřív tržby, pak kolik lidí to opravdu používá a nakonec kolik 
 
 msgid "Review"
 msgstr "Revize"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "Ke kontrole"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Fronty revizí a CI spolykají zisky, které agenti vytvoří."
@@ -16221,6 +16249,10 @@ msgstr "Dokončen běh workflow…"
 msgid "Workflow Tutorials"
 msgstr "Návody k workflow"
 
+msgid "Working"
+msgstr "Pracuje"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "Pracuje"
 

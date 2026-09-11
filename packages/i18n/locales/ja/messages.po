@@ -775,6 +775,9 @@ msgstr "{name} は組み込みのため置き換えられません"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} は追加されていません"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, other {# 件が要対応}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "クリックの {nonBrandPct}"
 
@@ -892,6 +895,12 @@ msgstr "{threshold, plural, other {#件のエージェントPRをマージ}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName}が中断されました"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, other {エージェント # 件が実行中}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, other {エージェント # 件}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {#件のチェックにすべて成功しました} other {#件のチェックにすべて成功しました}}"
 
@@ -983,6 +992,9 @@ msgstr "⇧クリック"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {#ファイル} other {#ファイル}}"
+
+msgid "+{hidden} more"
+msgstr "他 {hidden} 件"
 
 msgid "+{hiddenCount} earlier"
 msgstr "以前の{hiddenCount}件"
@@ -5832,6 +5844,10 @@ msgstr "失敗"
 msgid "Failed"
 msgstr "失敗"
 
+msgctxt "agent status"
+msgid "Failed"
+msgstr "失敗"
+
 msgid "Failed <0>· 7d</0>"
 msgstr "失敗 <0>· 7日</0>"
 
@@ -8850,6 +8866,10 @@ msgstr "要更新"
 msgid "Needs update"
 msgstr "要更新"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "要対応"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9666,6 +9686,10 @@ msgstr "このホストではセットアップされていません"
 
 msgid "not sorted"
 msgstr "並べ替えなし"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "更新なし"
 
 msgid "Notes"
 msgstr "ノート"
@@ -12121,6 +12145,10 @@ msgstr "まず売上、次に実際に使っている人数、そして運営に
 
 msgid "Review"
 msgstr "レビュー"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "要確認"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "レビューとCIの待ち行列が、エージェントの生んだ余力を食い潰しています。"
@@ -16223,6 +16251,10 @@ msgstr "ワークフローのチュートリアル"
 
 msgid "Working"
 msgstr "作業中"
+
+msgctxt "agent status"
+msgid "Working"
+msgstr "実行中"
 
 msgid "Works when environments are clean. Environments are rarely clean."
 msgstr "環境がきれいなら動きます。環境がきれいなことは滅多にありません。"

@@ -775,6 +775,9 @@ msgstr "{name} est intégré et ne peut pas être remplacé"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} n'est pas ajouté"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, one {# vous attend} other {# vous attendent}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} des clics"
 
@@ -892,6 +895,12 @@ msgstr "{threshold, plural, one {# PR d'agent fusionnée} other {# PR d'agent fu
 msgid "{toolName} interrupted"
 msgstr "{toolName} interrompu"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, one {# agent en cours} other {# agents en cours}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, one {# agent} other {# agents}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {La vérification a réussi} other {Les # vérifications ont toutes réussi}}"
 
@@ -983,6 +992,9 @@ msgstr "⇧ clic"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# fichier} other {# fichiers}}"
+
+msgid "+{hidden} more"
+msgstr "+{hidden} de plus"
 
 msgid "+{hiddenCount} earlier"
 msgstr "+{hiddenCount} précédents"
@@ -5832,6 +5844,10 @@ msgstr "échouée"
 msgid "Failed"
 msgstr "Échouée"
 
+msgctxt "agent status"
+msgid "Failed"
+msgstr "Échec"
+
 msgid "Failed <0>· 7d</0>"
 msgstr "Échecs <0>· 7 j</0>"
 
@@ -8850,6 +8866,10 @@ msgstr "mise à jour requise"
 msgid "Needs update"
 msgstr "Mise à jour requise"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Vous attend"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9666,6 +9686,10 @@ msgstr "Non configuré sur cet hôte"
 
 msgid "not sorted"
 msgstr "non trié"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Pas de mise à jour"
 
 msgid "Notes"
 msgstr "Notes"
@@ -12121,6 +12145,10 @@ msgstr "Le chiffre d'affaires d'abord, puis le nombre de personnes qui l'utilise
 
 msgid "Review"
 msgstr "Revue"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "À relire"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Les files d'attente de revue et de CI absorbent les gains créés par les agents."
@@ -16221,6 +16249,10 @@ msgstr "Exécution de workflow terminée…"
 msgid "Workflow Tutorials"
 msgstr "Tutoriels de workflow"
 
+msgid "Working"
+msgstr "En cours"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "En cours"
 

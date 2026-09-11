@@ -775,6 +775,9 @@ msgstr "{name}은(는) 기본 제공이라 교체할 수 없습니다"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name}이(가) 추가되지 않았습니다"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, other {#개 확인 필요}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "클릭의 {nonBrandPct}"
 
@@ -892,6 +895,12 @@ msgstr "{threshold, plural, other {에이전트 PR # 건 머지}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName} 중단됨"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, other {에이전트 #개 작업 중}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, other {에이전트 #개}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {#개 검사를 모두 통과했습니다} other {#개 검사를 모두 통과했습니다}}"
 
@@ -983,6 +992,9 @@ msgstr "⇧ 클릭"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {파일 #개} other {파일 #개}}"
+
+msgid "+{hidden} more"
+msgstr "+{hidden}개 더"
 
 msgid "+{hiddenCount} earlier"
 msgstr "이전 +{hiddenCount}개"
@@ -5832,6 +5844,10 @@ msgstr "실패"
 msgid "Failed"
 msgstr "실패"
 
+msgctxt "agent status"
+msgid "Failed"
+msgstr "실패"
+
 msgid "Failed <0>· 7d</0>"
 msgstr "실패 <0>· 7일</0>"
 
@@ -8850,6 +8866,10 @@ msgstr "업데이트 필요"
 msgid "Needs update"
 msgstr "업데이트 필요"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "확인 필요"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9666,6 +9686,10 @@ msgstr "이 호스트에 설정되지 않음"
 
 msgid "not sorted"
 msgstr "정렬 안 됨"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "업데이트 없음"
 
 msgid "Notes"
 msgstr "노트"
@@ -12121,6 +12145,10 @@ msgstr "매출을 먼저, 그다음 실제 사용자 수, 마지막으로 운영
 
 msgid "Review"
 msgstr "리뷰"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "검토"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "리뷰와 CI 대기열이 에이전트가 만든 이득을 깎아먹습니다."
@@ -16221,6 +16249,10 @@ msgstr "워크플로 실행 완료…"
 msgid "Workflow Tutorials"
 msgstr "워크플로 튜토리얼"
 
+msgid "Working"
+msgstr "작업 중"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "작업 중"
 

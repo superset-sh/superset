@@ -775,6 +775,9 @@ msgstr "{name} встроен и не может быть заменён"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} не добавлен"
 
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, one {# ждёт вас} few {# ждут вас} many {# ждут вас} other {# ждут вас}}"
+
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} от кликов"
 
@@ -892,6 +895,12 @@ msgstr "{threshold, plural, one {влит # PR агента} few {влито # P
 msgid "{toolName} interrupted"
 msgstr "{toolName} прерван"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, one {# агент работает} few {# агента работают} many {# агентов работают} other {# агентов работают}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, one {# агент} few {# агента} many {# агентов} other {# агентов}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Проверка пройдена} few {Все # проверки пройдены} many {Все # проверок пройдены} other {Все # проверки пройдены}}"
 
@@ -983,6 +992,9 @@ msgstr "⇧ клик"
 #. placeholder {2}: changeset.files.length
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {# файл} few {# файла} many {# файлов} other {# файла}}"
+
+msgid "+{hidden} more"
+msgstr "+{hidden} ещё"
 
 msgid "+{hiddenCount} earlier"
 msgstr "ещё +{hiddenCount} ранее"
@@ -5832,6 +5844,10 @@ msgstr "ошибка"
 msgid "Failed"
 msgstr "Ошибка"
 
+msgctxt "agent status"
+msgid "Failed"
+msgstr "Ошибка"
+
 msgid "Failed <0>· 7d</0>"
 msgstr "С ошибкой <0>· 7 дн.</0>"
 
@@ -8850,6 +8866,10 @@ msgstr "нужно обновить"
 msgid "Needs update"
 msgstr "Нужно обновить"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "Ждёт вас"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -9666,6 +9686,10 @@ msgstr "Не настроен на этом хосте"
 
 msgid "not sorted"
 msgstr "без сортировки"
+
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "Нет обновлений"
 
 msgid "Notes"
 msgstr "Заметки"
@@ -12121,6 +12145,10 @@ msgstr "Сначала выручка, затем сколько людей де
 
 msgid "Review"
 msgstr "Ревью"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "На проверку"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "Очереди ревью и CI съедают выигрыш, который дают агенты."
@@ -16221,6 +16249,10 @@ msgstr "Запуск workflow завершён…"
 msgid "Workflow Tutorials"
 msgstr "Руководства по рабочим процессам"
 
+msgid "Working"
+msgstr "Работает"
+
+msgctxt "agent status"
 msgid "Working"
 msgstr "Работает"
 
