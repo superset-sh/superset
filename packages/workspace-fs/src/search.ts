@@ -692,7 +692,9 @@ async function searchContentWithScan({
 		}
 
 		try {
-			const stats = await fs.stat(item.absolutePath);
+			// lstat: like ripgrep, never follow a symlink — a repo can point one at
+			// a file outside the workspace and the preview would leak its lines.
+			const stats = await fs.lstat(item.absolutePath);
 			if (
 				!stats.isFile() ||
 				stats.size === 0 ||

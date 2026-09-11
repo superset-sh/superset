@@ -6,6 +6,7 @@ import type { SearchPatchEvent } from "./search";
 import {
 	invalidateAllSearchIndexes,
 	patchSearchIndexesForRoot,
+	searchContent,
 	searchFiles,
 } from "./search";
 
@@ -305,5 +306,39 @@ describe("search path filters", () => {
 		).toEqual([]);
 
 		expect(Date.now() - startedAt).toBeLessThan(2_000);
+	});
+});
+
+describe("searchContent scan fallback", () => {
+	it("does not follow a symlink that leaves the workspace", async () => {
+		const rootPath = await createTempRoot();
+		const outsidePath = await createTempRoot();
+		await fs.writeFile(
+			path.join(outsidePath, "secret"),
+			"hunter2 lives here\n",
+		);
+		await fs.writeFile(path.join(rootPath, "notes.txt"), "hunter2 in repo\n");
+		const linkPath = path.join(rootPath, "leak.txt");
+		await fs.symlink(path.join(outsidePath, "secret"), linkPath);
+		// Build the index, then let a watcher-style patch add the symlink to it.
+		await searchFiles({ rootPath, query: "notes", limit: 5 });
+		patchSearchIndexesForRoot(rootPath, [
+			createPatchEvent({
+				kind: "create",
+				absolutePath: linkPath,
+				isDirectory: false,
+			}),
+		]);
+
+		const results = await searchContent({
+			rootPath,
+			query: "hunter2",
+			includeHidden: false,
+			runRipgrep: async () => {
+				throw new Error("rg unavailable");
+			},
+		});
+
+		expect(results.map((match) => match.relativePath)).toEqual(["notes.txt"]);
 	});
 });
