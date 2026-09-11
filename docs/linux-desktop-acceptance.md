@@ -18,14 +18,21 @@ Rows are checked only with evidence in the app, never from a code read.
   platforms; the React `WindowControls` render only in the TopBar / v2 tab
   bar, so the sign-in screen (first thing a new install shows) has no way to
   close the window.
-- [ ] **1.2 Drag regions** — the window moves by its top strip on every route
-  without swallowing clicks on controls. Found on the packaged build: views
-  that hide the TopBar (workspaces board, tasks, pull requests, task detail,
-  new workspace) put their own right-hand controls under the overlay — the
-  workspaces board's "Create workspace" button was half covered. Each now
-  ends its header row with the overlay inset; needs a rebuild to verify.
-- [ ] **1.3 Maximize/restore and double-click** — the overlay's maximize
-  toggles restore; the window remembers bounds across restarts.
+- [x] **1.2 Drag regions** — the window moves by its top strip on every route
+  without swallowing clicks on controls. (After, on the rebuilt AppImage: a
+  press-drag on the strip moves the window 100,80 → 200,137; the board's
+  Display / List / Board controls sit clear of the three overlay buttons —
+  screenshot.) Found on the packaged build: views that hide the TopBar
+  (workspaces board, tasks, pull requests, task detail, new workspace) put
+  their own right-hand controls under the overlay — the workspaces board's
+  "Create workspace" button was half covered. Each now ends its header row
+  with the overlay inset.
+- [x] **1.3 Maximize/restore and double-click** — the overlay's maximize
+  toggles restore; the window remembers bounds across restarts. (Packaged
+  build, xdotool + `_NET_WM_STATE`: overlay maximize → 1920×1108 at 0,29
+  maximized; again → 1600×1000 at 100,80; double-click on the strip toggles
+  the same; after a move + resize to 1400×900 at 200,137, quit → relaunch
+  restores 1400×900 at 200,137 from `window-state.json`.)
 - [x] **1.4 App menu** — File/Edit/View/Window/Resources/Help render with
   Ctrl-based accelerators; Settings and Check for Updates are reachable (on
   macOS they live in the app menu, which Linux has no equivalent of). (After,
@@ -66,13 +73,13 @@ Rows are checked only with evidence in the app, never from a code read.
 - [x] **2.3 Git and files** — status, diff, branch switch, file tree and file
   watching (inotify) work in a workspace. (cloud acceptance 5.3: tree and
   Changes tab on a Linux host-service; branch switch via the fork bootstrap.)
-- [ ] **2.4 Notifications and sounds** — desktop notifications show through
+- [x] **2.4 Notifications and sounds** — desktop notifications show through
   the freedesktop notification daemon; sounds play through `paplay` or are
-  silently skipped when there is no audio server. (Sandbox: `xfce4-notifyd`
-  runs and `notify-send` draws a bubble — screenshot; `paplay` is present,
-  no PulseAudio, and `play-sound.ts` already falls back to `aplay` and
-  completes on failure. The app's own `Notification` path is still to be
-  exercised on the packaged build.)
+  silently skipped when there is no audio server. (Packaged build: a
+  renderer `new Notification(…)` draws the xfce4-notifyd bubble with the
+  app's name, body and a View action — screenshot; `paplay` is present, no
+  PulseAudio, and `play-sound.ts` already falls back to `aplay` and completes
+  on failure.)
 - [x] **2.5 Port forwarding and background processes** — a dev server started
   in a terminal is detected as a port and survives closing the pane. (cloud
   acceptance: the dev stack's api/web/Electron run detached under tmux on the
@@ -80,26 +87,42 @@ Rows are checked only with evidence in the app, never from a code read.
 
 ## 3. Browser and system integration
 
-- [ ] **3.1 External links** open the system browser (`xdg-open`). (Sandbox:
-  `xdg-open https://…` reaches Chrome once the sandbox image's browser
-  wrapper is in place — the bare binary refuses to run as root, a sandbox
-  quirk fixed on the sandbox PR, not an app issue; the app's
-  `shell.openExternal` path is still to be exercised on the packaged build.)
-- [ ] **3.2 Downloads** land in the user's downloads directory.
+- [x] **3.1 External links** open the system browser (`xdg-open`). (Packaged
+  build: Help → Documentation opens a Chrome tab at the build's
+  `NEXT_PUBLIC_DOCS_URL`; the app's stdout carries Chrome's "Opening in
+  existing browser session." Sandbox quirk, not an app issue: the bare
+  Chrome binary refuses to run as root, so the sandbox image ships a wrapper
+  that `xdg-open` resolves to.)
+- [x] **3.2 Downloads** land in the user's downloads directory. (Packaged
+  build: an anchor with `download` clicked in the renderer writes
+  `~/Downloads/ld-test.txt` with the expected body, no dialog.)
 - [x] **3.3 Clipboard** copy/paste works in terminals and editors.
   (`navigator.clipboard.writeText` in the packaged renderer → `xclip -o`
   reads it back on the X server.)
-- [ ] **3.4 Deep links** — `superset://` registers via the desktop entry.
+- [x] **3.4 Deep links** — `superset://` registers via the desktop entry.
+  (The AppImage's `superset.desktop` carries
+  `MimeType=x-scheme-handler/superset;`; with it installed under
+  `~/.local/share/applications` and the app running, `xdg-open
+  superset://tasks` starts a second instance that hands the URL to the first
+  — log `[main] Processing deep link: superset://tasks` — and the window
+  comes to the front on the Tasks route — screenshot. Electron's own
+  `setAsDefaultProtocolClient` logs `xdg-settings: default-url-scheme-handler
+  not implemented for xfce` on this desktop; registration comes from the
+  desktop entry, which is what AppImage integration installs.)
 - [ ] **3.5 Diff worker pool** — `@pierre/diffs` logs `Worker error` seven
   times right after sign-in on the sandbox desktop (dev server, root,
-  `--no-sandbox`); establish whether Linux-specific or dev-only and whether
-  diffs still render.
-- [ ] **3.6 Dev renderer under Chromium's request budget** — on the sandbox
+  `--no-sandbox`). Dev-only: the packaged build's renderer console, captured
+  over CDP across three loads, has no worker error (only the dev relay's
+  refused health checks). Diff rendering itself was not re-exercised on the
+  packaged bench; left open for that half.
+- [x] **3.6 Dev renderer under Chromium's request budget** — on the sandbox
   the unbundled dev renderer loses a few random modules per load to
   `net::ERR_INSUFFICIENT_RESOURCES` (Chromium's per-renderer cap on
   outstanding request cost, hit by the large source-mapped modules the dev
   server serves), after which nothing mounts. The bench therefore runs the
-  `electron-vite build` output; confirm the packaged app never sees it.
+  `electron-vite build` output. (Packaged build: the renderer mounted on
+  every one of seven launches; no `ERR_INSUFFICIENT_RESOURCES` in the main
+  log or the captured renderer console.)
 
 ## 4. Packaging
 
@@ -123,18 +146,24 @@ Rows are checked only with evidence in the app, never from a code read.
   entry. Fix on this branch: `executableName: "superset"`,
   `StartupWMClass=superset`, `icon` on the window — needs a rebuild to verify.
 
-- [ ] **4.3 Bundled plugin skills in the asar** — the packaged app logs
+- [x] **4.3 Bundled plugin skills in the asar** — the packaged app logs
   `ENOENT … templates/plugin/skills/<skill>/agents not found in app.asar` for
-  every skill at boot, even after the full `prebuild`; the folders exist in
-  the repo (`plugins/superset/skills/*/agents/openai.yaml`) and the copy step
-  is recursive. Establish whether this is Linux/asar-specific or also true of
-  macOS builds.
+  every skill at boot, even after the full `prebuild`, and the skills' extra
+  files never reach the agent directories. Not Linux-specific: the copy uses
+  `fs.cp`, which walks directories with `opendir`, and Electron's asar shim
+  has no `opendir` (probed inside the packaged Electron: `readdir`, `stat`,
+  `copyFile` fine; `opendir` ENOTDIR; `cp`/`cpSync` the ENOENT above).
+  macOS builds run the same path. Fix in #7429 (file-by-file copy). (After,
+  packaged build rebuilt with #7429 applied: zero `Failed to provision skill`
+  lines at boot; `~/.claude/skills/superset/skills/<skill>/agents/openai.yaml`
+  and `10x/scripts/audit.sh` present.)
 
 ## 5. Platform audit
 
-- [ ] **5.1 Every `process.platform === "darwin"` branch** in
+- [x] **5.1 Every `process.platform === "darwin"` branch** in
   `apps/desktop/src/main` and `packages/host-service` has a Linux counterpart
-  or a deliberate no-op noted here:
+  or a deliberate no-op noted here (every non-test `darwin` match in both
+  trees is a row below):
 
   | Branch | Linux |
   | --- | --- |
@@ -147,6 +176,11 @@ Rows are checked only with evidence in the app, never from a code read.
   | `lib/local-network-permission.ts`, `lib/apple-events-permission.ts` | macOS permissions; no-ops elsewhere |
   | `lib/browser/chrome-cookie-import.ts` | macOS keychain; Linux cookie import unsupported (noted, not in scope) |
   | `index.ts` system font protocol | macOS font dirs only; Linux relies on fontconfig (2.x) |
-  | host-service `usage/history/cursor.ts` | macOS path only; Linux path owed |
+  | `index.ts` `window-all-closed` | macOS keeps running; Linux quits (1.5, this branch) |
+  | `lib/terminal/env.ts`, host-service `terminal/env.ts` `SSL_CERT_FILE` | macOS keychain workaround for Go TLS; Linux uses the system CA bundle, nothing to add |
+  | `lib/browser/chromium-profiles.ts` | per-platform profile dirs; Linux branch exists (`~/.config/google-chrome` …) |
+  | host-service `terminal/clean-shell-env.ts` `augmentPathForMacOS` | Homebrew paths; no-op elsewhere by design |
+  | host-service `usage/profiles.ts`, `agy-quota.ts`, `profile-remove.ts` | macOS keychain reads/deletes; Linux returns empty/no-op — quota panels for keychain-backed accounts stay empty on Linux (noted, not in scope) |
+  | host-service `usage/history/cursor.ts` | keychain is the macOS branch; the `~/.cursor/auth.json` and `$XDG_CONFIG_HOME/cursor/auth.json` fallbacks are the Linux path |
   | host-service `ai-workspace-names.ts` shell | `/bin/bash` fallback exists |
   | host-service `spawn-failure-diagnostics.ts` | `/proc/self/fd` branch exists |
