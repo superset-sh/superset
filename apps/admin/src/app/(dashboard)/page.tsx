@@ -37,7 +37,6 @@ import { TileLayoutProvider } from "./providers/TileLayoutProvider";
 // tall one leaves a hole under it.
 const CHART_H = 4;
 const TALL_CHART_H = 6;
-const LIST_H = 3;
 const TABLE_H = 6;
 const FUNNEL_H = 4;
 const STAR_H = 6;
@@ -140,7 +139,6 @@ export default function DashboardPage() {
 							}
 							tiles={[
 								{ key: "mrr", node: <MrrTile />, w: FULL_W, h: CHART_H },
-								{ key: "nrr", node: <NrrTile />, w: FULL_W, h: TALL_CHART_H },
 								{
 									key: "dau",
 									node: <TrendSeriesTile {...DAU_PROPS} />,
@@ -162,20 +160,26 @@ export default function DashboardPage() {
 								{
 									key: "net-burn",
 									node: <NetBurnTile />,
-									w: FULL_W,
+									w: HALF_W,
 									h: CHART_H,
 								},
 								{
 									key: "burn-by-vendor",
 									node: <BurnByVendorTile />,
 									w: HALF_W,
-									h: LIST_H,
+									h: CHART_H,
 								},
 								{
 									key: "enterprise-arr",
 									node: <EnterpriseArrTile />,
 									w: HALF_W,
-									h: LIST_H,
+									h: TALL_CHART_H,
+								},
+								{
+									key: "nrr",
+									node: <NrrTile />,
+									w: HALF_W,
+									h: TALL_CHART_H,
 								},
 								{
 									key: "star-history",
