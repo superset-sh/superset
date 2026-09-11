@@ -153,7 +153,10 @@ const config: Configuration = {
 		executableName: "superset",
 		category: "Utility",
 		synopsis: pkg.description,
-		target: ["AppImage"],
+		// The AppImage runtime needs libfuse2, which Debian 12 / Ubuntu 22.04+
+		// no longer install by default; the deb needs nothing extra and installs
+		// the desktop entry and icon that the dock and deep links resolve.
+		target: ["AppImage", "deb"],
 		artifactName: `superset-\${version}-\${arch}.\${ext}`,
 		// GNOME's app menus only show their heuristic "New Window" item
 		// intermittently for running apps; an explicit desktop action (the
