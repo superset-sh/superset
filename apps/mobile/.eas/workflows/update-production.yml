@@ -1,0 +1,26 @@
+name: Publish update to production
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        type: string
+        required: true
+
+jobs:
+  approve:
+    name: Approve production update
+    type: require-approval
+
+  publish:
+    name: Publish to production at 10%
+    needs: [approve]
+    type: update
+    environment: production
+    params:
+      platform: ios
+      channel: production
+      message: ${{ inputs.message }}
+      rollout_percentage: 10
+      private_key_path: $UPDATES_SIGNING_KEY
+      upload_sentry_sourcemaps: true

@@ -23,6 +23,12 @@ export default ({ config }: ConfigContext) => ({
 	icon: "./assets/icon.png",
 	userInterfaceStyle: "dark",
 	scheme: "superset",
+	runtimeVersion: { policy: "fingerprint" as const },
+	updates: {
+		url: "https://u.expo.dev/fa9332a8-896a-4d2a-be5b-d82469b46e5d",
+		codeSigningCertificate: "./certs/certificate.pem",
+		codeSigningMetadata: { keyid: "main", alg: "rsa-v1_5-sha256" as const },
+	},
 	ios: {
 		supportsTablet: false,
 		bundleIdentifier: "sh.superset.mobile",
@@ -93,6 +99,7 @@ export default ({ config }: ConfigContext) => ({
 			},
 		],
 		"expo-document-picker",
+		["expo-notifications", { enableBackgroundRemoteNotifications: false }],
 		// The composer is built on Liquid Glass, which silently no-ops before
 		// iOS 26 — an iOS 26 floor means one visual language instead of a glass
 		// path plus a solid fallback. See plans/20260821-native-composer.md.
@@ -109,6 +116,7 @@ export default ({ config }: ConfigContext) => ({
 		"expo-image",
 		"expo-secure-store",
 		"expo-status-bar",
+		"expo-updates",
 		"expo-web-browser",
 	],
 	extra: {
