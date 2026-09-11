@@ -8,7 +8,7 @@ import { ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { openUrl } from "@/lib/open-url";
 import { posthog } from "@/lib/posthog";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
@@ -35,7 +35,7 @@ export function HomeConnectHostScreen() {
 	const { t } = useLingui();
 	const router = useRouter();
 	const { isLoadingOrganizations, activeOrganization } = useOrganizations();
-	const hosts = useOrgHostsQuery();
+	const { query: hosts } = useOrgHosts();
 
 	// Only a tap of Check again shows as checking: the hosts query polls on its
 	// own, and borrowing its isFetching would blink the button every 30s.

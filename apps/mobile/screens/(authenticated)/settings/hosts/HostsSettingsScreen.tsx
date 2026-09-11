@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { useOrgHosts, useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { openUrl } from "@/lib/open-url";
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
@@ -13,8 +13,7 @@ import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 export function HostsSettingsScreen() {
 	const { t } = useLingui();
 	const theme = useTheme();
-	const hostsQuery = useOrgHostsQuery();
-	const hosts = useOrgHosts();
+	const { hosts, query: hostsQuery } = useOrgHosts();
 
 	const hostRows = useMemo(
 		() => [...hosts].sort((a, b) => a.name.localeCompare(b.name)),

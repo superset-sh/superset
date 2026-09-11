@@ -8,11 +8,7 @@ import {
 	getHostWorkspacesQueryKey,
 	type HostWorkspaceRow,
 } from "@/hooks/useHostWorkspaces";
-import {
-	type OrgHost,
-	useOrgHosts,
-	useOrgHostsQuery,
-} from "@/hooks/useOrgHosts";
+import { type OrgHost, useOrgHosts } from "@/hooks/useOrgHosts";
 import { type SandboxTarget, useSandboxAccess } from "@/hooks/useSandboxAccess";
 import {
 	getHostServiceClientByUrl,
@@ -65,8 +61,7 @@ export interface WorkspaceHostResult {
 export function useWorkspaceHost(
 	workspaceId: string | null,
 ): WorkspaceHostResult {
-	const hostsQuery = useOrgHostsQuery();
-	const hosts = useOrgHosts();
+	const { hosts, query: hostsQuery } = useOrgHosts();
 
 	const { workspaces: cloudRows, isReady: cloudReady } = useCloudWorkspaces();
 	const cloud = useMemo(

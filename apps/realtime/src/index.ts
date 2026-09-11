@@ -1,10 +1,10 @@
 import * as Sentry from "@sentry/cloudflare";
 import { isRealtimeNudgeKind } from "@superset/shared/realtime";
+import { verifyJWT } from "@superset/shared/verify-jwt";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { getServerByName } from "partyserver";
-import { verifyJWT } from "./auth";
 import { OrgHub } from "./org-hub";
 import type { RealtimeEnv } from "./types";
 

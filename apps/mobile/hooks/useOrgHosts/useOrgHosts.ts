@@ -11,12 +11,7 @@ export type OrgHost = OrgHostRow & { isOnline: boolean };
 export const NO_HOSTS: OrgHost[] = [];
 const NO_ROWS: OrgHostRow[] = [];
 
-/**
- * The roster of hosts in the active organization: membership only, so it is
- * fetched on mount and focus, never polled. Presence comes from the relay via
- * useOrgHosts.
- */
-export function useOrgHostsQuery(): UseQueryResult<OrgHostRow[]> {
+function useOrgHostsQuery(): UseQueryResult<OrgHostRow[]> {
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
 
@@ -29,12 +24,19 @@ export function useOrgHostsQuery(): UseQueryResult<OrgHostRow[]> {
 	});
 }
 
-/** Hosts in the active organization with relay presence merged in. */
-export function useOrgHosts(): OrgHost[] {
+/**
+ * Hosts in the active organization with relay presence merged in. The roster
+ * is membership only, fetched on mount and focus and never polled; `query` is
+ * the raw roster query for pending, error and refetch.
+ */
+export function useOrgHosts(): {
+	hosts: OrgHost[];
+	query: UseQueryResult<OrgHostRow[]>;
+} {
 	const query = useOrgHostsQuery();
 	const rows = query.data ?? NO_ROWS;
 	const presence = useHostsPresence(rows);
-	return useMemo(
+	const hosts = useMemo(
 		() =>
 			rows.length === 0
 				? NO_HOSTS
@@ -44,4 +46,5 @@ export function useOrgHosts(): OrgHost[] {
 					})),
 		[rows, presence],
 	);
+	return { hosts, query };
 }
