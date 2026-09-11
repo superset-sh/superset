@@ -235,7 +235,9 @@ environment at a tag it just pushed has to as well.
 caps it (Pro: 8 vCPU, 16 GB); disk is separate NVMe. This retires the Blaxel
 rule that the writable root was tmpfs at half of memory and that a full disk
 wedged every exec — the reason goldens ran at 32 GB. The internal golden runs
-8 vCPU for the dev stack's RAM, and forks inherit it; image workspaces get 4.
+8 vCPU for the dev stack's RAM, forks inherit it, and image workspaces get
+the same: at 4 vCPU / 8 GB an agent that brought up the dev stack and an
+Electron instance took the VM down (2026-09-11).
 
 **A session ends; the sandbox does not.** A session stops at its timeout
 (`SESSION_TIMEOUT_MS`, four hours, extended while a workspace is open) or on

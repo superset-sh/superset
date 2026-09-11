@@ -84,7 +84,7 @@ is only us:
 
 ## A saturated sandbox looks like a dead one
 
-An image workspace runs 4 vCPU / 8 GB. An agent that brings up the dev stack
+An image workspace ran 4 vCPU / 8 GB (now 8 / 16 GB, the plan's cap). An agent that brings up the dev stack
 (Postgres, the API, Vite, an Electron instance) exhausts that, and the VM stops
 answering anything: `vercel sandbox exec` hangs, the public URL answers without
 CORS headers, and the app shows "Connecting… / Unknown host" with a hint about a

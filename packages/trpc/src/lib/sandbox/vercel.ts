@@ -30,7 +30,7 @@ const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000;
 const EXTEND_BELOW_MS = 60 * 60 * 1000;
 const WORKSPACE_SNAPSHOT_EXPIRATION_MS = 30 * 24 * 60 * 60 * 1000;
 /** 2 GB of memory per vCPU; disk is 64 GB regardless. */
-const IMAGE_SANDBOX_VCPUS = 4;
+const IMAGE_SANDBOX_VCPUS = 8;
 const GOLDEN_SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 /**
  * The platform caps a sandbox's config env at 4 KB, which the identity and
