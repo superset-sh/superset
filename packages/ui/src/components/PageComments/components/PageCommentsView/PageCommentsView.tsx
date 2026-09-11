@@ -51,6 +51,7 @@ export function PageCommentsView({
 	const [container, setContainer] = useState({ width: 0, height: 0 });
 	const [frameEpoch, setFrameEpoch] = useState(0);
 	const [readySrc, setReadySrc] = useState<string | null>(null);
+	const initialSrc = useRef(src).current;
 
 	const { i18n } = useLingui();
 	const {
@@ -169,7 +170,7 @@ export function PageCommentsView({
 			if (!data || data.channel !== FRAME_CHANNEL) return;
 
 			if (data.type === "ready") {
-				setReadySrc(src);
+				if (src === initialSrc) setReadySrc(src);
 				setFrameEpoch((epoch) => epoch + 1);
 				if (scrollYRef.current > 0) {
 					send({ type: "restore-scroll", y: scrollYRef.current });
@@ -203,6 +204,7 @@ export function PageCommentsView({
 		discardDraft,
 		dismiss,
 		frameOrigin,
+		initialSrc,
 		notifyFramePointerDown,
 		openSelection,
 		send,
