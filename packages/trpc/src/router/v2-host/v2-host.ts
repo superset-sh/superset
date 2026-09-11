@@ -77,6 +77,9 @@ export const v2HostRouter = {
 	 * clients read it from there. The input is optional so desktops and
 	 * phones from before it existed, which scope by the active-org header,
 	 * keep their host list until they update.
+	 *
+	 * TODO(2026-10-11): make the input required and drop the header fallback;
+	 * by then auto-update has moved the fleet past 1.28.
 	 */
 	list: protectedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }).optional())
