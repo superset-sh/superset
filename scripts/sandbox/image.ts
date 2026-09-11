@@ -375,7 +375,6 @@ infobar label, infobar button, infobar image {
 }
 `;
 
-
 /** The terminal: the app's monospace face on a dark palette. */
 const TERMINAL_RC = `[Configuration]
 FontName=JetBrainsMono Nerd Font 11
