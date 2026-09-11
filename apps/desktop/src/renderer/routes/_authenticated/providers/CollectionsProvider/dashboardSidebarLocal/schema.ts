@@ -101,8 +101,6 @@ const changesFilterSchema = z.discriminatedUnion("kind", [
 
 export type ChangesFilter = z.infer<typeof changesFilterSchema>;
 
-export type ChangesViewMode = "folders" | "tree";
-
 const workspaceRunStateSchema = z.enum([
 	"running",
 	"stopped-by-user",
@@ -145,7 +143,6 @@ export const workspaceLocalStateSchema = z.object({
 		// `${projectId}:${tag}` key (written by move-into-derived-folder).
 		sectionId: z.string().min(1).nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
-		changesViewMode: z.enum(["folders", "tree"]).default("folders"),
 		activeTab: WORKSPACE_SIDEBAR_TAB_SCHEMA.default("changes"),
 		isHidden: z.boolean().default(false),
 		// Epoch ms when the user pinned this workspace to the sidebar's Pinned
@@ -198,7 +195,6 @@ const SIDEBAR_STATE_DEFAULTS = {
 	tabOrder: 0,
 	sectionId: null,
 	changesFilter: { kind: "all" },
-	changesViewMode: "folders",
 	activeTab: "changes",
 	isHidden: false,
 	pinnedAt: null,
@@ -408,6 +404,10 @@ function isCompleteLinkTierMap(
 	);
 }
 
+const changesViewModeSchema = z.enum(["folders", "tree"]);
+
+export type ChangesViewMode = z.infer<typeof changesViewModeSchema>;
+
 const sidebarProjectSortModeSchema = z.enum(["manual", "active", "created"]);
 
 export type SidebarProjectSortMode = z.infer<
@@ -434,6 +434,9 @@ export const v2UserPreferencesSchema = z.object({
 	rightSidebarWidth: z.number().default(340),
 	deleteLocalBranch: z.boolean().default(false),
 	showPresetsBar: z.boolean().default(true),
+	// Sidebar Changes tab layout. User-scoped so a choice made in one
+	// workspace carries into every workspace opened afterwards.
+	changesViewMode: changesViewModeSchema.default("folders"),
 	// Ordering of the dashboard sidebar's Projects list; manual = drag order.
 	sidebarProjectSortMode: persistedSidebarProjectSortModeSchema,
 	// Built-in (synthetic, app-shipped) presets the user hid from the preset
@@ -472,6 +475,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	rightSidebarWidth: 340,
 	deleteLocalBranch: false,
 	showPresetsBar: true,
+	changesViewMode: "folders",
 	sidebarProjectSortMode: "manual",
 	hiddenBuiltinPresetIds: [],
 	favoritePageIds: [],
