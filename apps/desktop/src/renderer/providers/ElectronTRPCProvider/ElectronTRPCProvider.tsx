@@ -1,4 +1,7 @@
-import { CloudClientProvider } from "@superset/cloud-client";
+import {
+	CLOUD_QUERY_KEY_ROOT,
+	CloudClientProvider,
+} from "@superset/cloud-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import {
 	defaultShouldDehydrateQuery,
@@ -61,6 +64,9 @@ const queryClient = new QueryClient({
 // Scoped per router root so electron IPC queries keep staleTime 0.
 for (const root of CLOUD_TRPC_ROUTER_ROOTS) {
 	queryClient.setQueryDefaults([[root]], { staleTime: 30_000 });
+	queryClient.setQueryDefaults([CLOUD_QUERY_KEY_ROOT, root], {
+		staleTime: 30_000,
+	});
 }
 
 // IndexedDB-backed persister. localStorage is too small (~5MB) for the

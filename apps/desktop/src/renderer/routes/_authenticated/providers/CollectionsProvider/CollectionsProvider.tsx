@@ -1,3 +1,4 @@
+import { CLOUD_QUERY_KEY_ROOT } from "@superset/cloud-client";
 import {
 	createContext,
 	type ReactNode,
@@ -33,11 +34,16 @@ const ORG_SCOPED_CLOUD_ROUTERS = new Set<string>(CLOUD_TRPC_ROUTER_ROOTS);
 function dropCloudQueriesForOrgSwitch(): void {
 	electronQueryClient.removeQueries({
 		predicate: (query) => {
-			const head = query.queryKey[0];
+			const [head, second] = query.queryKey;
+			if (Array.isArray(head)) {
+				return (
+					typeof head[0] === "string" && ORG_SCOPED_CLOUD_ROUTERS.has(head[0])
+				);
+			}
 			return (
-				Array.isArray(head) &&
-				typeof head[0] === "string" &&
-				ORG_SCOPED_CLOUD_ROUTERS.has(head[0])
+				head === CLOUD_QUERY_KEY_ROOT &&
+				typeof second === "string" &&
+				ORG_SCOPED_CLOUD_ROUTERS.has(second)
 			);
 		},
 	});

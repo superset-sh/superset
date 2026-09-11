@@ -77,10 +77,22 @@ export function usePageComments({
 		[patch, queryClient, queryKey],
 	);
 
+	const meta = useMemo(() => ({ pageCommentsFor: pageId }), [pageId]);
+
+	const settle = useCallback(() => {
+		const inFlight = queryClient.isMutating({
+			predicate: (mutation) =>
+				mutation.options.meta?.pageCommentsFor === pageId,
+		});
+		if (inFlight === 1) void queryClient.invalidateQueries({ queryKey });
+	}, [pageId, queryClient, queryKey]);
+
 	const rollback = useCallback(
 		(error: unknown, _variables: unknown, context: Rollback | undefined) => {
 			if (context?.previous) {
 				queryClient.setQueryData(queryKey, context.previous);
+			} else if (context) {
+				queryClient.removeQueries({ queryKey });
 			}
 			onError?.(error);
 		},
@@ -98,6 +110,8 @@ export function usePageComments({
 				patch((rows) => replaceThread(rows, context.placeholderId, row));
 			},
 			onError: rollback,
+			onSettled: settle,
+			meta,
 		},
 	);
 
@@ -115,6 +129,8 @@ export function usePageComments({
 			);
 		},
 		onError: rollback,
+		onSettled: settle,
+		meta,
 	});
 
 	const edit = useMutation<unknown, unknown, EditArgs, Rollback>({
@@ -124,6 +140,8 @@ export function usePageComments({
 				editCommentBody(rows, input.commentId, input.body),
 			),
 		onError: rollback,
+		onSettled: settle,
+		meta,
 	});
 
 	const resolve = useMutation<unknown, unknown, ResolveArgs, Rollback>({
@@ -133,6 +151,8 @@ export function usePageComments({
 				setThreadResolved(rows, input.threadId, input.resolved),
 			),
 		onError: rollback,
+		onSettled: settle,
+		meta,
 	});
 
 	const remove = useMutation<unknown, unknown, DeleteArgs, Rollback>({
@@ -140,6 +160,8 @@ export function usePageComments({
 		onMutate: (input) =>
 			begin(input.threadId, (rows) => removeThread(rows, input.threadId)),
 		onError: rollback,
+		onSettled: settle,
+		meta,
 	});
 
 	const submitting =

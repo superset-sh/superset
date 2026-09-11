@@ -67,10 +67,14 @@ export function editCommentBody(
 	commentId: string,
 	body: string,
 ): ServerThread[] {
-	return rows.map((row) => ({
-		...row,
-		comments: row.comments.map((comment) =>
-			comment.id === commentId ? { ...comment, body } : comment,
-		),
-	}));
+	return rows.map((row) =>
+		row.comments.some((comment) => comment.id === commentId)
+			? {
+					...row,
+					comments: row.comments.map((comment) =>
+						comment.id === commentId ? { ...comment, body } : comment,
+					),
+				}
+			: row,
+	);
 }
