@@ -11,7 +11,7 @@ case "$1" in
   *) echo "${token}" ;;
 esac
 `;
-	await writeFile(filePath, script);
+	await writeFile(filePath, script, { mode: 0o700 });
 	await chmod(filePath, 0o700);
 	return filePath;
 }
