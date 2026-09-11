@@ -11,10 +11,15 @@ import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
+import { getGitAuthorName } from "../../../runtime/git/identity";
 import { type ResolvedRef, resolveRef } from "../../../runtime/git/refs";
+import { getStrictShellEnvironment } from "../../../terminal/clean-shell-env";
 import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
-import { gitFetchBaseRefTask } from "../../../workers/tasks/git";
+import {
+	gitFetchBaseRefTask,
+	gitIdentityTask,
+} from "../../../workers/tasks/git";
 import {
 	type CloudShapedWorkspace,
 	getLocalWorkspace,
@@ -288,6 +293,25 @@ function createWorkerBaseRefFetcher(
 				dedupeKey: `${repoPath}:base-ref:${target.remote}/${target.branch}`,
 			},
 		);
+	};
+}
+
+/**
+ * `resolveProjectBranchPrefix`'s `getAuthorName` for callers with no other
+ * git need (unlike `create`, which already holds an on-loop client from
+ * building the worktree). Resolves the global git identity in the worker
+ * pool instead of constructing a new `ctx.git()` client on this loop — see
+ * the no-main-loop-blocking ratchet.
+ */
+function createOffLoopAuthorNameGetter(): () => Promise<string | null> {
+	return async () => {
+		const shellEnv = await getStrictShellEnvironment().catch(
+			() => process.env as Record<string, string>,
+		);
+		const identity = await getHostWorkerPool().run(gitIdentityTask, {
+			shellEnv,
+		});
+		return identity.authorName;
 	};
 }
 
@@ -886,7 +910,7 @@ export const workspacesRouter = router({
 						const prefix = await resolveProjectBranchPrefix({
 							ctx,
 							project: localProject,
-							git,
+							getAuthorName: () => getGitAuthorName(git),
 							existingBranches: existing,
 						});
 						if (prefix) {
@@ -913,7 +937,7 @@ export const workspacesRouter = router({
 					const prefix = await resolveProjectBranchPrefix({
 						ctx,
 						project: localProject,
-						git,
+						getAuthorName: () => getGitAuthorName(git),
 						existingBranches: existing,
 					});
 					resolvedBranchPrefix = prefix;
@@ -1341,7 +1365,7 @@ export const workspacesRouter = router({
 				? await resolveProjectBranchPrefix({
 						ctx,
 						project,
-						git: await ctx.git(repoPath),
+						getAuthorName: createOffLoopAuthorNameGetter(),
 						existingBranches: await listBranchNames(ctx, repoPath),
 					}).catch((err) => {
 						console.warn(
@@ -1389,7 +1413,7 @@ export const workspacesRouter = router({
 			const prefix = await resolveProjectBranchPrefix({
 				ctx,
 				project: localProject,
-				git: await ctx.git(localProject.repoPath),
+				getAuthorName: createOffLoopAuthorNameGetter(),
 				existingBranches,
 			});
 			const candidate = prefix ? `${prefix}/${derived}` : derived;
