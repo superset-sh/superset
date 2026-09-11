@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceStore } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn, HIT_SLOP } from "@superset/ui/utils";
+import { cn } from "@superset/ui/utils";
 import { Eye, EyeOff, MessageSquare, MessageSquareOff } from "lucide-react";
 import { useSettings } from "renderer/stores/settings";
 import type { StoreApi } from "zustand/vanilla";
@@ -27,7 +27,6 @@ export function DiffPaneHeaderExtras({
 
 	const buttonClass = (active: boolean) =>
 		cn(
-			HIT_SLOP,
 			"flex size-5 items-center justify-center transition-colors",
 			active
 				? "bg-secondary text-foreground"
@@ -35,7 +34,7 @@ export function DiffPaneHeaderExtras({
 		);
 
 	return (
-		<div className="flex items-center">
+		<div className="flex items-center gap-1">
 			<DiffPanePRLink workspaceId={workspaceId} store={store} />
 			<Tooltip>
 				<TooltipTrigger asChild>

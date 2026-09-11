@@ -7,7 +7,6 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
-import { cn, HIT_SLOP } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { CheckIcon, MinusIcon, PlusIcon, RotateCcwIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -163,10 +162,7 @@ export function BrowserOverflowMenu({
 				<DropdownMenuTrigger asChild>
 					<button
 						type="button"
-						className={cn(
-							HIT_SLOP,
-							"rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground",
-						)}
+						className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground"
 					>
 						<TbDots className="size-3.5" />
 					</button>
@@ -206,7 +202,7 @@ export function BrowserOverflowMenu({
 						<span>
 							<Trans>Zoom</Trans>
 						</span>
-						<div className="flex items-center gap-0.5">
+						<div className="flex items-center gap-1">
 							<button
 								type="button"
 								tabIndex={-1}
@@ -215,10 +211,7 @@ export function BrowserOverflowMenu({
 								aria-label={t({
 									message: "Zoom out",
 								})}
-								className={cn(
-									HIT_SLOP,
-									"rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
-								)}
+								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 							>
 								<MinusIcon className="size-3.5" />
 							</button>
@@ -233,10 +226,7 @@ export function BrowserOverflowMenu({
 								aria-label={t({
 									message: "Zoom in",
 								})}
-								className={cn(
-									HIT_SLOP,
-									"rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
-								)}
+								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 							>
 								<PlusIcon className="size-3.5" />
 							</button>
@@ -248,10 +238,7 @@ export function BrowserOverflowMenu({
 								aria-label={t({
 									message: "Reset zoom",
 								})}
-								className={cn(
-									HIT_SLOP,
-									"rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
-								)}
+								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 							>
 								<RotateCcwIcon className="size-3.5" />
 							</button>

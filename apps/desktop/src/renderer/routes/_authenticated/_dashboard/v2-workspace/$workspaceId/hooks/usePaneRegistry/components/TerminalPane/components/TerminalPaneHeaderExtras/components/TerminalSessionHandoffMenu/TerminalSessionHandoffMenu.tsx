@@ -18,7 +18,6 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Label } from "@superset/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn, HIT_SLOP } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { Bot, GitFork, PanelRight, SquareStack } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -186,10 +185,7 @@ export function TerminalSessionHandoffMenu({
 								aria-label={t({
 									message: "Continue or fork session",
 								})}
-								className={cn(
-									HIT_SLOP,
-									"rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground",
-								)}
+								className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 							>
 								<GitFork className="size-3.5" />
 							</button>

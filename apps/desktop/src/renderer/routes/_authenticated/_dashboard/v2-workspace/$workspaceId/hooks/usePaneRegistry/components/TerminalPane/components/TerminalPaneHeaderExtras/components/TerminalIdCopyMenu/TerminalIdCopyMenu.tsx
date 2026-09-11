@@ -6,7 +6,6 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn, HIT_SLOP } from "@superset/ui/utils";
 import { Bot, Check, Copy, TerminalSquare } from "lucide-react";
 import { useState } from "react";
 import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
@@ -40,10 +39,8 @@ export function TerminalIdCopyMenu({
 			: t({
 					message: "Copy IDs",
 				});
-	const buttonClassName = cn(
-		HIT_SLOP,
-		"rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground",
-	);
+	const buttonClassName =
+		"rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground";
 
 	if (!agentSessionId) {
 		const terminalTooltipLabel = copied

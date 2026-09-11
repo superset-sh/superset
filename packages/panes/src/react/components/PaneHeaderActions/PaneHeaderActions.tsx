@@ -1,5 +1,4 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn, HIT_SLOP } from "@superset/ui/utils";
 import { Fragment } from "react";
 import type { PaneActionConfig, RendererContext } from "../../types";
 
@@ -13,7 +12,7 @@ export function PaneHeaderActions<TData>({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: stop mousedown from triggering pane focus re-render before click fires
 		<div
-			className="flex shrink-0 items-center gap-0.5"
+			className="flex shrink-0 items-center gap-1"
 			onMouseDown={(e) => e.stopPropagation()}
 		>
 			{actions.map((action, _index) => {
@@ -30,10 +29,7 @@ export function PaneHeaderActions<TData>({
 					<button
 						type="button"
 						onClick={() => action.onClick(context)}
-						className={cn(
-							HIT_SLOP,
-							"rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground",
-						)}
+						className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 					>
 						{icon}
 					</button>
