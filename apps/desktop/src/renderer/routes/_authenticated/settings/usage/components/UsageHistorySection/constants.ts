@@ -2,9 +2,10 @@ import type { ChartConfig } from "@superset/ui/chart";
 
 /**
  * Fixed categorical hue order — color follows the agent, never its rank.
- * All nine hexes validated (light + dark surfaces) with the dataviz palette
+ * Every hex validated (light + dark surfaces) with the dataviz palette
  * checker in this order: lightness band, chroma, adjacent-pair CVD ΔE,
- * normal-vision floor, contrast ≥ 3:1 all pass.
+ * normal-vision floor, contrast ≥ 3:1. Muse's rose is the best 11th slot
+ * left: ≥ 9 ΔE from every other hue for normal vision, in both bands.
  */
 export const AGENT_CHART_CONFIG = {
 	claude: { label: "Claude Code", color: "#d06a48" },
@@ -17,10 +18,12 @@ export const AGENT_CHART_CONFIG = {
 	pi: { label: "Pi", color: "#b04a82" },
 	omp: { label: "Oh My Pi", color: "#829c2e" },
 	fx: { label: "fx", color: "#5b6bd6" },
+	muse: { label: "Muse Code", color: "#cc6b8e" },
 } satisfies ChartConfig;
 
 /** Preset-icon registry keys per agent (cursor's icon is keyed by its
- * agent id `cursor-agent`; omp shares pi's mark). */
+ * agent id `cursor-agent`; omp shares pi's mark; muse has no preset icon
+ * yet, so its legend rows show only the color swatch). */
 export const AGENT_ICON_KEY: Record<keyof typeof AGENT_CHART_CONFIG, string> = {
 	claude: "claude",
 	codex: "codex",
@@ -32,6 +35,7 @@ export const AGENT_ICON_KEY: Record<keyof typeof AGENT_CHART_CONFIG, string> = {
 	pi: "pi",
 	omp: "omp",
 	fx: "fx",
+	muse: "muse",
 };
 
 export const AGENT_ORDER = [
@@ -45,6 +49,7 @@ export const AGENT_ORDER = [
 	"pi",
 	"omp",
 	"fx",
+	"muse",
 ] as const;
 
 export type HistoryMetric = "usd" | "tokens";

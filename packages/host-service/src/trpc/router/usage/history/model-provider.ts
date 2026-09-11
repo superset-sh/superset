@@ -6,6 +6,7 @@ const DIRECT_PROVIDERS: Partial<Record<UsageAgent, ModelProvider>> = {
 	grok: "xai",
 	cursor: "cursor",
 	copilot: "github",
+	muse: "meta",
 };
 
 /** Best-effort model-backend attribution. Agent identity remains authoritative;
