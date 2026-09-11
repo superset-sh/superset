@@ -88,7 +88,15 @@ export class GitStatusStore {
 			this.pending.set(workspaceId, new Set());
 		}
 
-		const snapshot = await computeFull();
+		let snapshot: GitStatusSnapshot;
+		try {
+			snapshot = await computeFull();
+		} catch (error) {
+			if (this.pending.has(workspaceId)) {
+				this.pending.set(workspaceId, null);
+			}
+			throw error;
+		}
 
 		if (!this.pending.has(workspaceId)) return snapshot;
 		if (this.pending.get(workspaceId) === null) return snapshot;

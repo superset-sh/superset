@@ -519,6 +519,7 @@ export const gitPrHeadBaseTask = defineWorkerTask<
 
 export const gitTasks = [
 	gitStatusSnapshotTask,
+	gitStatusPartialTask,
 	gitFetchBaseRefTask,
 	gitCommitFilesTask,
 	gitDiffBulkTask,

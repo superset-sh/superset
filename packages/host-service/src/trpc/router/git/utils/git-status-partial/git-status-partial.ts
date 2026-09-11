@@ -6,7 +6,10 @@ import {
 	mapGitStatus,
 	parseNumstat,
 } from "../git-helpers";
-import type { GitStatusSnapshot } from "../git-status";
+import {
+	type GitStatusSnapshot,
+	MAX_UNTRACKED_STAT_FILES,
+} from "../git-status";
 
 export interface GitStatusPartial {
 	paths: string[];
@@ -70,7 +73,9 @@ export async function getGitStatusPartial({
 		}
 	}
 
-	await countUntrackedFileLines(worktreePath, untrackedFiles);
+	if (untrackedFiles.length <= MAX_UNTRACKED_STAT_FILES) {
+		await countUntrackedFileLines(worktreePath, untrackedFiles);
+	}
 
 	return { paths: scope, unstaged };
 }
@@ -116,8 +121,9 @@ export function shouldRecomputeInFull(
 	snapshot: GitStatusSnapshot,
 	partial: GitStatusPartial,
 ): boolean {
-	return (
-		partial.unstaged.some((file) => file.status === "deleted") ||
-		snapshot.unstaged.some((file) => file.status === "deleted")
-	);
+	if (partial.unstaged.some((file) => file.status === "deleted")) return true;
+	if (!partial.unstaged.some((file) => file.status === "untracked")) {
+		return false;
+	}
+	return snapshot.unstaged.some((file) => file.status === "deleted");
 }

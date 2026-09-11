@@ -147,3 +147,45 @@ describe("directory patch events", () => {
 		expect(index.map((entry) => entry.name).sort()).toEqual(["a.ts", "b.ts"]);
 	});
 });
+
+describe("build cancellation", () => {
+	async function makeBigRepo(count: number): Promise<string> {
+		const root = await makeRoot();
+		await fs.mkdir(path.join(root, ".git"), { recursive: true });
+		const perDir = 200;
+		for (let d = 0; d * perDir < count; d++) {
+			const dir = path.join(root, `d${d}`);
+			await fs.mkdir(dir, { recursive: true });
+			await Promise.all(
+				Array.from({ length: perDir }, (_, i) =>
+					fs.writeFile(path.join(dir, `f${i}.ts`), "x"),
+				),
+			);
+		}
+		return root;
+	}
+
+	it("returns an index to the caller when its build is aborted mid-walk", async () => {
+		const root = await makeBigRepo(6000);
+
+		const inFlight = getSearchIndex({ rootPath: root, includeHidden: false });
+		await new Promise((resolve) => setTimeout(resolve, 1));
+		invalidateAllSearchIndexes();
+
+		const index = await inFlight;
+		expect(index.length).toBe(6000);
+	});
+
+	it("survives repeated invalidation during a build", async () => {
+		const root = await makeBigRepo(6000);
+
+		const inFlight = getSearchIndex({ rootPath: root, includeHidden: false });
+		await new Promise((resolve) => setTimeout(resolve, 1));
+		invalidateAllSearchIndexes();
+		await new Promise((resolve) => setTimeout(resolve, 1));
+		invalidateAllSearchIndexes();
+
+		const index = await inFlight;
+		expect(index.length).toBe(6000);
+	});
+});

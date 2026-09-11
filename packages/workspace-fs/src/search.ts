@@ -369,6 +369,9 @@ async function buildSearchIndex(
 			if (signal?.aborted) throw new SearchIndexBuildAborted();
 			items.push(createSearchIndexEntry(normalizedRootPath, String(entry)));
 		}
+	} catch (error) {
+		if (signal?.aborted) throw new SearchIndexBuildAborted();
+		throw error;
 	} finally {
 		signal?.removeEventListener("abort", onAbort);
 	}

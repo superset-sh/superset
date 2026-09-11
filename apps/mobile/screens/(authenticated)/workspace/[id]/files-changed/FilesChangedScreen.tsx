@@ -161,8 +161,8 @@ export function FilesChangedScreen() {
 		(path: string) => {
 			const file = changeset.files.find((entry) => entry.path === path);
 			if (!file) return;
-			const estimate =
-				((file.additions ?? 0) + (file.deletions ?? 0) + 8) * DIFF_LINE_HEIGHT;
+			if (file.additions === null || file.deletions === null) return;
+			const estimate = (file.additions + file.deletions + 8) * DIFF_LINE_HEIGHT;
 			if (estimate <= ANIMATED_TOGGLE_MAX_PX) animateNextListUpdate();
 		},
 		[changeset.files, animateNextListUpdate],
@@ -633,14 +633,16 @@ export function FilesChangedScreen() {
 						<Text className="font-semibold text-[16px]">
 							<Trans>Files changed</Trans>
 						</Text>
-						<View className="flex-row gap-1.5">
-							<Text className="text-green-500 font-semibold text-[11.5px]">
-								+{formatNumber(changeset.additions)}
-							</Text>
-							<Text className="text-red-500 font-semibold text-[11.5px]">
-								−{formatNumber(changeset.deletions)}
-							</Text>
-						</View>
+						{(changeset.additions > 0 || changeset.deletions > 0) && (
+							<View className="flex-row gap-1.5">
+								<Text className="text-green-500 font-semibold text-[11.5px]">
+									+{formatNumber(changeset.additions)}
+								</Text>
+								<Text className="text-red-500 font-semibold text-[11.5px]">
+									−{formatNumber(changeset.deletions)}
+								</Text>
+							</View>
+						)}
 					</View>
 				</Stack.Title>
 				<Stack.Toolbar placement="right">

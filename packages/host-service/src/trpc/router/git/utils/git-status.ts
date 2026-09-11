@@ -12,7 +12,7 @@ import {
 	resolveBaseComparison,
 } from "./git-helpers";
 
-const MAX_UNTRACKED_STAT_FILES = 5_000;
+export const MAX_UNTRACKED_STAT_FILES = 5_000;
 
 export interface GitStatusSnapshot {
 	currentBranch: Branch;
