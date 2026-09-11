@@ -11571,6 +11571,9 @@ msgstr "Akses relay aktif, menghubungkan ke relay…"
 msgid "Release"
 msgstr "Rilis"
 
+msgid "Release control"
+msgstr "Lepaskan kendali"
+
 msgid "Release…"
 msgstr "Rilis…"
 
@@ -14190,6 +14193,9 @@ msgstr "Referensi tema Tailwind v4"
 
 msgid "Take a screenshot"
 msgstr "Ambil tangkapan layar"
+
+msgid "Take control"
+msgstr "Ambil kendali"
 
 msgid "Take me home"
 msgstr "Bawa saya ke beranda"

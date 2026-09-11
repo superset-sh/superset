@@ -275,8 +275,11 @@ const checks: Array<[label: string, command: string, expect: RegExp]> = [
 		`ldconfig -p | grep -cE 'libgtk-3.so.0|libnss3.so|libgbm.so.1'`,
 		/^[3-9]/m,
 	],
-	["xterm", "command -v xterm", /xterm/],
-	["autostart", "test -f ~/.config/openbox/autostart && echo ok", /ok/],
+	[
+		"dev stack autostart",
+		"test -f ~/.config/autostart/superset-dev-stack.desktop && test -x /usr/local/bin/superset-dev-stack && echo ok",
+		/ok/,
+	],
 ];
 let failed = 0;
 for (const [label, command, expect] of checks) {
@@ -289,20 +292,25 @@ for (const [label, command, expect] of checks) {
 }
 if (failed) fail(`${failed} check(s) failed; ${golden} left for inspection`);
 
-// The stop is the snapshot forks start from; a running golden has none.
-await sandbox.stop();
-log(`golden: ${golden} stopped and snapshotted`);
-
-// verification, as a workspace: fork the golden exactly the way provisioning
-// does, then check what a person gets — host-service, the display with its
-// terminal, VNC, and (with a .env) the dev stack and the Electron desktop.
 const {
 	provisionSandbox,
 	resolveSandboxAddress,
 	mintSandboxAccessToken,
 	sandboxAccessVerifier,
 	deleteSandbox,
+	waitForStopSnapshot,
 } = await import("../../packages/trpc/src/lib/sandbox/index.ts");
+
+// The stop is the snapshot forks start from; a running golden has none, and
+// a fork taken before that snapshot is current boots from the bare image.
+const beforeStop = sandbox.currentSnapshotId;
+await sandbox.stop();
+await waitForStopSnapshot(golden, beforeStop);
+log(`golden: ${golden} stopped and snapshotted`);
+
+// verification, as a workspace: fork the golden exactly the way provisioning
+// does, then check what a person gets — host-service, the display with its
+// terminal, VNC, and (with a .env) the dev stack and the Electron desktop.
 const { SANDBOX_HOST_DB_PATH } = await import(
 	"../../packages/shared/src/constants.ts"
 );
@@ -316,8 +324,8 @@ await provisionSandbox({
 		sourceKind: "fork",
 		sourceRef: golden,
 	},
+	environmentEnv: probeEnv,
 	workspaceEnv: {
-		...probeEnv,
 		ORGANIZATION_ID: ORGANIZATION_ID,
 		HOST_DB_PATH: SANDBOX_HOST_DB_PATH,
 		HOST_MIGRATIONS_FOLDER: "/app/drizzle",
@@ -395,8 +403,8 @@ if (
 	probeFailed++;
 if (
 	!(await until(
-		"display + xterm",
-		"pgrep -x Xvfb >/dev/null && pgrep -x x11vnc >/dev/null && pgrep -x xterm >/dev/null && echo up",
+		"display + xfce + plank",
+		"pgrep -x Xvnc >/dev/null && pgrep -x xfce4-session >/dev/null && pgrep -x plank >/dev/null && echo up",
 		/up/,
 		60,
 	))

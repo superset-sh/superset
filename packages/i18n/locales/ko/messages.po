@@ -11571,6 +11571,9 @@ msgstr "릴레이 접근이 활성화되었습니다. 릴레이에 연결하는 
 msgid "Release"
 msgstr "릴리스"
 
+msgid "Release control"
+msgstr "제어 해제"
+
 msgid "Release…"
 msgstr "릴리스…"
 
@@ -14190,6 +14193,9 @@ msgstr "Tailwind v4 테마 참고 문서"
 
 msgid "Take a screenshot"
 msgstr "스크린샷 찍기"
+
+msgid "Take control"
+msgstr "제어 시작"
 
 msgid "Take me home"
 msgstr "홈으로 가기"

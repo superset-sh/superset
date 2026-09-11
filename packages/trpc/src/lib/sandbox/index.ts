@@ -13,4 +13,5 @@ export {
 	resolveSandboxAddress,
 	type SandboxEnvironment,
 	SandboxUnavailableError,
+	waitForStopSnapshot,
 } from "./vercel";

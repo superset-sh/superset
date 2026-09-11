@@ -11571,6 +11571,9 @@ msgstr "Relay-Zugriff aktiviert, Verbindung zum Relay wird hergestellt…"
 msgid "Release"
 msgstr "Release"
 
+msgid "Release control"
+msgstr "Steuerung freigeben"
+
 msgid "Release…"
 msgstr "Release…"
 
@@ -14190,6 +14193,9 @@ msgstr "Tailwind-v4-Theme-Referenz"
 
 msgid "Take a screenshot"
 msgstr "Screenshot aufnehmen"
+
+msgid "Take control"
+msgstr "Steuerung übernehmen"
 
 msgid "Take me home"
 msgstr "Zur Startseite"

@@ -11571,6 +11571,9 @@ msgstr "Röle erişimi etkinleştirildi, röleye bağlanılıyor…"
 msgid "Release"
 msgstr "Sürüm"
 
+msgid "Release control"
+msgstr "Kontrolü bırak"
+
 msgid "Release…"
 msgstr "Sürüm…"
 
@@ -14190,6 +14193,9 @@ msgstr "Tailwind v4 tema referansı"
 
 msgid "Take a screenshot"
 msgstr "Ekran görüntüsü al"
+
+msgid "Take control"
+msgstr "Kontrolü al"
 
 msgid "Take me home"
 msgstr "Beni ana sayfaya götür"

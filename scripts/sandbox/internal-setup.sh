@@ -8,12 +8,9 @@ CONFIG_DIR="$HOME/code/config"
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-# build-essential, python3 and the X11 headers: `bun install` runs the
-# desktop's `electron-builder install-app-deps`, which compiles native-keymap
-# and friends against Electron. xdotool lets an agent drive the display.
+# The image carries the toolchain; these are the internal team's shell tools.
 apt-get install -y -qq --no-install-recommends \
-  zsh tmux fzf silversearcher-ag neovim xterm xdotool jq \
-  build-essential python3 pkg-config libx11-dev libxkbfile-dev >/dev/null
+  zsh fzf silversearcher-ag neovim >/dev/null
 log "shell tooling installed"
 # neonctl: a workspace branches the database for itself at first boot (below),
 # the same way .superset/setup.sh does on a laptop.
@@ -25,9 +22,6 @@ export LANG=C.UTF-8 LC_ALL=C.UTF-8
 LOCALE
 printf 'export LANG=C.UTF-8 LC_ALL=C.UTF-8\n' >> "$HOME/.zshenv"
 log "locale set to C.UTF-8"
-# The desktop pane shows :1. An empty openbox root is a black rectangle that
-# reads as broken, so give the display a terminal from the first frame.
-mkdir -p "$HOME/.config/openbox"
 # Environment secrets arrive as process env. The repo's dev scripts read
 # ../../.env (dotenv), and tmux does not pass the server's environment through
 # reliably, so a workspace writes what it was provisioned with to
@@ -46,8 +40,16 @@ while IFS= read -r -d '' entry; do
     SUPERSET_*|HOST_SERVICE_*|VERCEL_*|PATH|HOME|PWD|OLDPWD|SHLVL|_|DISPLAY|TERM|SHELL|HOSTNAME|LANG|LC_*|NODE_ENV|PORT|TMUX*|USER|LOGNAME|MAIL|DEBIAN_FRONTEND) continue ;;
   esac
   [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
-  case "$value" in *$'\n'*) continue ;; esac
-  if [[ "$value" != *"'"* ]]; then
+  if [[ "$value" == *$'\n'* ]]; then
+    # A multi-line value (a PEM key) goes double-quoted with its newlines as
+    # the two characters backslash-n, which dotenv turns back into newlines;
+    # the shell that sources this file for the autostart reads it the same
+    # way `printf %b` would, and the API is what needs it intact.
+    escaped="${value//\\/\\\\}"; escaped="${escaped//\"/\\\"}"
+    escaped="${escaped//\$/\\\$}"; escaped="${escaped//\`/\\\`}"
+    escaped="${escaped//$'\n'/\\n}"
+    printf '%s="%s"\n' "$key" "$escaped" >> "$tmp"
+  elif [[ "$value" != *"'"* ]]; then
     printf "%s='%s'\n" "$key" "$value" >> "$tmp"
   else
     # Double quotes are the fallback for values with a single quote in them.
@@ -105,26 +107,36 @@ echo "workspace-db: branch $name ($branch)"
 printf '%s %s\n' "$name" "$branch" > "$STAMP"
 WORKSPACEDB
 chmod 755 /usr/local/bin/superset-workspace-db
-cat > "$HOME/.config/openbox/autostart" <<'AUTOSTART'
-xterm -geometry 140x40+40+40 -fa Monospace -fs 11 -bg black -fg white &
-superset-materialize-env /workspace/.env
-superset-workspace-db /workspace/.env > /tmp/superset-workspace-db.log 2>&1
-# With a .env in place bring the whole dev stack up on this display: api, web
+# Runs once per session start from the Xfce autostart entry below. With a
+# .env in place it brings the whole dev stack up on this display: api, web
 # and the Electron desktop, the same tasks `bun dev` runs. The desktop runs in
 # its own window with `--noSandbox`: Electron refuses to start as root
 # without it, and the sandbox runs everything as root. The image's
 # NODE_ENV=production must not leak into dev, and tmux keeps the logs
 # reachable from any terminal (`tmux attach -t superset`).
+cat > /usr/local/bin/superset-dev-stack <<'DEVSTACK'
+#!/usr/bin/env bash
+superset-materialize-env /workspace/.env
+superset-workspace-db /workspace/.env > /tmp/superset-workspace-db.log 2>&1
 if [ -f /workspace/.env ] && command -v tmux >/dev/null; then
   tmux has-session -t superset 2>/dev/null || {
     tmux new-session -d -s superset -n stack -c /workspace \
       'export NODE_ENV=development; set -a; . /workspace/.env; set +a; bunx turbo run dev --filter=@superset/api --filter=@superset/web --filter=// 2>&1 | tee /tmp/superset-dev.log'
     tmux new-window -t superset -n desktop -c /workspace/apps/desktop \
-      'export DISPLAY=:1 NODE_ENV=development; set -a; . /workspace/.env; set +a; bun run dev -- --noSandbox 2>&1 | tee /tmp/superset-desktop.log'
+      "export DISPLAY=${DISPLAY:-:1} NODE_ENV=development; set -a; . /workspace/.env; set +a; bun run dev -- --noSandbox 2>&1 | tee /tmp/superset-desktop.log"
   }
 fi
+DEVSTACK
+chmod 755 /usr/local/bin/superset-dev-stack
+mkdir -p "$HOME/.config/autostart"
+cat > "$HOME/.config/autostart/superset-dev-stack.desktop" <<'AUTOSTART'
+[Desktop Entry]
+Type=Application
+Name=Superset dev stack
+Exec=/usr/local/bin/superset-dev-stack
+OnlyShowIn=XFCE;
 AUTOSTART
-log "openbox autostart set (xterm)"
+log "dev stack autostart set"
 
 apt-get install -y -qq --no-install-recommends \
   libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils \

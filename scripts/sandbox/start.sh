@@ -17,6 +17,17 @@ REPO_URL="${SUPERSET_SANDBOX_REPO_URL:-}"
 # sets can move it off the port the sandbox exposes.
 export PORT="${SUPERSET_SANDBOX_HOST_PORT:-4879}"
 
+# The environment's variables. The sandbox's own env holds only the workspace
+# identity — the platform caps it at 4 KB — so provisioning writes the rest
+# here (root-only) and everything below, host-service and the display's
+# autostart included, descends from this shell.
+if [ -f /data/environment.env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . /data/environment.env
+  set +a
+fi
+
 # The schema is baked, so first boot has nothing to migrate. Copied rather than
 # used in place because /data is where a persistent volume would mount.
 mkdir -p /data
@@ -35,9 +46,14 @@ fi
 # from the wrong origin leaves a sandbox serving somebody else's code, so the
 # URLs are compared rather than assumed to match.
 BOOTSTRAP_MARKER=/data/.workspace-bootstrapped
+BOOT_LOG=/data/boot.log
 
 if [ -n "$REPO_URL" ] && [ ! -f "$BOOTSTRAP_MARKER" ]; then
+  # A fork's filesystem comes from a snapshot; give a checkout that should be
+  # there a moment to appear before concluding it is not.
+  for _ in $(seq 1 60); do [ -e "$WORKSPACE/.git/config" ] && break; sleep 0.5; done
   BAKED_URL=$(git -C "$WORKSPACE" remote get-url origin 2>/dev/null || echo "")
+  echo "$(date -u +%FT%TZ) bootstrap baked='$BAKED_URL' requested='$REPO_URL' git=$([ -d "$WORKSPACE/.git" ] && echo yes || echo no) modules=$([ -d "$WORKSPACE/node_modules" ] && echo yes || echo no)" >> "$BOOT_LOG"
   if [ -n "${SUPERSET_SANDBOX_GIT_TOKEN:-}" ]; then
     export GIT_ASKPASS=/app/git-askpass.sh
   fi
@@ -58,19 +74,79 @@ if [ -n "$REPO_URL" ] && [ ! -f "$BOOTSTRAP_MARKER" ]; then
   unset GIT_ASKPASS
 fi
 
-# A headless X display for the desktop pane. x11vnc listens on loopback only;
-# host-service proxies /desktop/vnc onto it, so nothing here is reachable from
-# outside the sandbox. All fire-and-forget: a missing display costs the pane,
-# not the workspace.
-if command -v Xvfb >/dev/null 2>&1; then
+# Docker for the projects that need it; the VM has no init to start it. A
+# daemon that fails to come up costs `docker`, not the workspace.
+if command -v dockerd >/dev/null 2>&1 && ! pgrep -x dockerd >/dev/null; then
+  dockerd >/var/log/dockerd.log 2>&1 &
+fi
+
+# The display for the desktop pane. Xvnc listens on loopback only; host-service
+# proxies /desktop/vnc onto it, so nothing here is reachable from outside the
+# sandbox. All fire-and-forget: a missing display costs the pane, not the
+# workspace.
+if command -v Xvnc >/dev/null 2>&1; then
   export DISPLAY=:1
-  Xvfb :1 -screen 0 1440x900x24 -nolisten tcp >/dev/null 2>&1 &
+  # No GPU: GTK and Chrome render through llvmpipe instead of probing for one.
+  export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
+  # A resumed session restores the previous session's lock and socket files
+  # but none of its processes; the stale ones would keep Xvnc from starting.
+  rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
+  # xfce4-session and xfconf need the system bus as well as the session bus.
+  if ! pgrep -x dbus-daemon >/dev/null; then
+    mkdir -p /run/dbus && dbus-daemon --system --fork >/dev/null 2>&1
+  fi
+  # 1920x1200 at 96 DPI, scaled to fit the pane. Every client arrives from
+  # loopback, so one misbehaving client must not blacklist the rest.
+  Xvnc :1 -geometry 1920x1200 -depth 24 -dpi 96 -rfbport 5900 -localhost \
+    -SecurityTypes None -AlwaysShared -BlacklistThreshold 1000000 \
+    -desktop superset >/dev/null 2>&1 &
   (
-    for _ in $(seq 1 40); do [ -S /tmp/.X11-unix/X1 ] && break; sleep 0.25; done
-    # openbox-session, not openbox: only the session wrapper runs
-    # ~/.config/openbox/autostart, where the golden puts its terminal and dev stack.
-    openbox-session >/dev/null 2>&1 &
-    x11vnc -display :1 -localhost -rfbport 5900 -forever -shared -nopw -quiet >/dev/null 2>&1 &
+    # The socket appears before the server accepts connections.
+    for _ in $(seq 1 80); do xdpyinfo -display :1 >/dev/null 2>&1 && break; sleep 0.25; done
+    # The wallpaper is chosen once per workspace from the set the image ships,
+    # by the workspace id, so it is the same on every wake and differs between
+    # boxes. Written before the session starts: xfdesktop reads it on launch.
+    if [ -d /usr/share/backgrounds/superset ]; then
+      COUNT=$(find /usr/share/backgrounds/superset -name '*.jpg' | wc -l)
+      SEED=$(printf '%s' "${SUPERSET_SANDBOX_WORKSPACE_ID:-$(hostname)}" | cksum | cut -d' ' -f1)
+      WALLPAPER="/usr/share/backgrounds/superset/$((SEED % COUNT)).jpg"
+      mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml
+      cat > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml <<DESKTOP
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-desktop" version="1.0">
+  <property name="backdrop" type="empty">
+    <property name="screen0" type="empty">
+      <property name="monitorVNC-0" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="image-style" type="int" value="5"/>
+          <property name="last-image" type="string" value="$WALLPAPER"/>
+        </property>
+      </property>
+      <property name="monitor0" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="image-style" type="int" value="5"/>
+          <property name="last-image" type="string" value="$WALLPAPER"/>
+        </property>
+      </property>
+      <property name="monitorscreen" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="image-style" type="int" value="5"/>
+          <property name="last-image" type="string" value="$WALLPAPER"/>
+        </property>
+      </property>
+    </property>
+  </property>
+  <property name="desktop-icons" type="empty">
+    <property name="style" type="int" value="0"/>
+  </property>
+</channel>
+DESKTOP
+    fi
+    # The Xfce session brings up the panel, window manager, desktop and the
+    # ~/.config/autostart entries (Plank; the golden adds the dev stack).
+    if command -v xfce4-session >/dev/null 2>&1; then
+      dbus-launch --exit-with-session xfce4-session >/dev/null 2>&1 &
+    fi
   ) &
 fi
 

@@ -11571,6 +11571,9 @@ msgstr "Dostęp przez przekaźnik włączony, łączenie z przekaźnikiem…"
 msgid "Release"
 msgstr "Wydanie"
 
+msgid "Release control"
+msgstr "Zwolnij kontrolę"
+
 msgid "Release…"
 msgstr "Wydanie…"
 
@@ -14190,6 +14193,9 @@ msgstr "dokumentacja motywu Tailwind v4"
 
 msgid "Take a screenshot"
 msgstr "Zrób zrzut ekranu"
+
+msgid "Take control"
+msgstr "Przejmij kontrolę"
 
 msgid "Take me home"
 msgstr "Zabierz mnie na stronę główną"

@@ -11571,6 +11571,9 @@ msgstr "已啟用中繼存取，正在連線中繼…"
 msgid "Release"
 msgstr "版本"
 
+msgid "Release control"
+msgstr "釋放控制"
+
 msgid "Release…"
 msgstr "版本…"
 
@@ -14190,6 +14193,9 @@ msgstr "Tailwind v4主題參考"
 
 msgid "Take a screenshot"
 msgstr "截圖"
+
+msgid "Take control"
+msgstr "接管控制"
 
 msgid "Take me home"
 msgstr "回到首頁"

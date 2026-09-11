@@ -11571,6 +11571,9 @@ msgstr "Relay access enabled, connecting to the relay…"
 msgid "Release"
 msgstr "Release"
 
+msgid "Release control"
+msgstr "Release control"
+
 msgid "Release…"
 msgstr "Release…"
 
@@ -14190,6 +14193,9 @@ msgstr "Tailwind v4 theme reference"
 
 msgid "Take a screenshot"
 msgstr "Take a screenshot"
+
+msgid "Take control"
+msgstr "Take control"
 
 msgid "Take me home"
 msgstr "Take me home"

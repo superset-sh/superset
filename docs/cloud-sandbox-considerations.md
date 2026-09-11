@@ -183,6 +183,15 @@ the image repository live in the team's `sandboxes` project, reached with a
 token that is not the deploy token. A second region is a per-sandbox
 `region` choice, not a second project.
 
+**Region is one setting for everyone.** `VERCEL_SANDBOX_REGION` (sfo1) is
+where image-created sandboxes and released goldens live, and forks inherit the
+golden's region. Snapshots are region-bound — a golden in iad1 cannot be
+forked into sfo1, and failover regions do not replicate it — so routing each
+user to the nearest region means a golden per region and a region column on
+the environment. Worth it: a request to a sandbox in sfo1 answers in ~23 ms
+from San Francisco against ~190 ms to iad1, and the desktop pane pays that on
+every frame.
+
 **The sandbox domain is the only ingress.** No relay hop, which is why
 WebSockets work and there is no relay on the critical path — but it also means
 the desktop talks straight to `*.vercel.run`, and that domain is in the

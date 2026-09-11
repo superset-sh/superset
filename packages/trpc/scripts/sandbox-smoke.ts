@@ -113,6 +113,7 @@ try {
 	const sandbox = await provisionSandbox({
 		name,
 		environment: { sourceKind: SOURCE_KIND, sourceRef: SOURCE_REF },
+		environmentEnv: { SMOKE_ENVIRONMENT_VARIABLE: "reached-the-sandbox" },
 		workspaceEnv: {
 			ORGANIZATION_ID: "00000000-0000-0000-0000-000000000000",
 			HOST_DB_PATH: SANDBOX_HOST_DB_PATH,
@@ -196,6 +197,14 @@ try {
 		"runs as root with the natives loading",
 		/^0\nnatives ok/m.test(identity),
 		identity.trim().replace(/\n/g, " / "),
+	);
+	const fromFile = await inside(
+		"cat /proc/$(pgrep -f 'node host-service.js' | head -1)/environ | tr '\\0' '\\n' | grep -c '^SMOKE_ENVIRONMENT_VARIABLE=reached-the-sandbox'; stat -c %a /data/environment.env",
+	);
+	check(
+		"environment variables reach host-service from the file",
+		/^1\n600/m.test(fromFile),
+		fromFile.trim().replace(/\n/g, " / "),
 	);
 	const placeholder = await inside(
 		"cat /proc/$(pgrep -f 'node host-service.js' | head -1)/environ | tr '\\0' '\\n' | grep -c '^ANTHROPIC_API_KEY=proxy-injected'",

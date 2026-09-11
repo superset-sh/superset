@@ -118,8 +118,8 @@ export async function provisionCloudWorkspace(
 			provisionSandbox({
 				name: providerSandboxId,
 				environment,
+				environmentEnv: environment.envs,
 				workspaceEnv: {
-					...environment.envs,
 					ORGANIZATION_ID: row.organizationId,
 					HOST_DB_PATH: SANDBOX_HOST_DB_PATH,
 					HOST_MIGRATIONS_FOLDER: "/app/drizzle",

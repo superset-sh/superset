@@ -11571,6 +11571,9 @@ msgstr "Relaytoegang ingeschakeld, verbinden met de relay…"
 msgid "Release"
 msgstr "Release"
 
+msgid "Release control"
+msgstr "Besturing loslaten"
+
 msgid "Release…"
 msgstr "Release…"
 
@@ -14190,6 +14193,9 @@ msgstr "Tailwind v4-themareferentie"
 
 msgid "Take a screenshot"
 msgstr "Screenshot maken"
+
+msgid "Take control"
+msgstr "Besturing overnemen"
 
 msgid "Take me home"
 msgstr "Naar de homepage"

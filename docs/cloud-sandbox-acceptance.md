@@ -86,8 +86,11 @@ Dev API (`bun dev`), Neon dev branch, real Vercel project.
 - [x] **5.2 Terminal** — a terminal pane opens, `echo hi` echoes, resize works. (follow-up prompt answered with df output)
 - [x] **5.3 Files and git** — the file tree lists `/workspace`, the Changes tab
   shows a status (not "No changes" on error). (tree + Changes)
-- [x] **5.4 Desktop pane** — the VNC pane connects (`RFB` handshake) on a fork
-  workspace with the display. (connects; black display on an image workspace, xterm on a fork)
+- [x] **5.4 Desktop pane** — the VNC pane connects (`RFB` handshake), shows the
+  Xfce session with the Plank dock and a wallpaper, is view-only until "Take
+  control", and on a fork with variables the dev stack and Electron desktop
+  come up on it. (Skin check / ws-9cdd…: Xvnc, Arc-Dark, dock with one Chrome
+  icon, hover label, 9 Electron processes, wallpaper per box)
 - [x] **5.5 Sidebar polling does not wake sandboxes** — with a cloud workspace
   closed for >2 min, `Sandbox.list` shows it `stopped`/not resumed while the
   sidebar stays open. (`access` without `wake` must not resume.) (2 min stopped with the sidebar open)
@@ -110,8 +113,11 @@ Dev API (`bun dev`), Neon dev branch, real Vercel project.
   has the promoter's installed files and its own identity. (claude 2.1.267 —
   the promoter's auto-update, image ships 2.1.257 — own workspace id, no
   promoter env)
-- [x] **6.3 Environment variables reach a fork** — a secret set on the
-  environment appears in the fork's PTY env. (in host-service env; PTY env allowlist is unchanged)
+- [x] **6.3 Environment variables reach a fork** — the environment's variables
+  (delivered as `/data/environment.env`, since the sandbox env is capped at
+  4 KB) are in host-service's process env and materialize `/workspace/.env`
+  for the dev stack; the PTY allowlist is unchanged. (117-line `.env` with the
+  multi-line PEM intact; in-sandbox API `get-session` → 200)
 - [x] **6.4 Release pipeline** — `bun run sandbox:release` builds the image,
   creates the golden, runs `internal-setup.sh`, probes a fork, writes the
   `environments` rows (`provider = vercel`). (93s end to end)

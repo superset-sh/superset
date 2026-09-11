@@ -11571,6 +11571,9 @@ msgstr "Accès au relais activé, connexion au relais…"
 msgid "Release"
 msgstr "Version"
 
+msgid "Release control"
+msgstr "Rendre le contrôle"
+
 msgid "Release…"
 msgstr "Version…"
 
@@ -14190,6 +14193,9 @@ msgstr "Référence du thème Tailwind v4"
 
 msgid "Take a screenshot"
 msgstr "Prendre une capture d'écran"
+
+msgid "Take control"
+msgstr "Prendre le contrôle"
 
 msgid "Take me home"
 msgstr "Retour à l'accueil"

@@ -266,6 +266,22 @@ before promote returns. A row whose sandbox is gone or unresumable is marked
 `failed` by the next `access`, so it gets the failed screen and a Remove
 button rather than a sidebar entry that never opens.
 
+**`stop()` returns before the stop's snapshot is current.** The sandbox is
+still `stopping` when the call resolves, and a fork taken then boots from
+whatever snapshot was current before — for a sandbox that has never stopped
+(a golden fresh from the image), nothing but the image. Measured: a file
+written just before the stop was absent from an immediate fork, and release
+probes forked that early found an empty `/workspace`, cloned into it and lost
+every baked dependency, with the golden itself intact minutes later. Promote
+and the release poll until `currentSnapshotId` has changed and the status is
+`stopped` (`waitForStopSnapshot`) before anything forks.
+
+**Snapshots exist only in the region they were taken.** Forking a golden into
+another region is refused (`snapshot_region_mismatch`), and failover regions
+don't replicate it. Forks therefore inherit the golden's region and only
+image-created sandboxes get `VERCEL_SANDBOX_REGION` — passing the setting on
+a fork was what failed every workspace once the goldens moved to sfo1.
+
 **The firewall policy is live-updatable and forks carry it.** Credential
 brokering (`networkPolicy` with `transform` rules) can be set at create, on a
 fork, or changed on a running sandbox, and a fork copies the source's policy
@@ -285,6 +301,36 @@ the team's `sandboxes` project (`VERCEL_SANDBOX_PROJECT_ID`); the deploy
 token for the API project cannot see it, hence the separate
 `VERCEL_SANDBOX_TOKEN`. Deleting a sandbox keeps its snapshots (and their
 storage bill) unless `deleteOrphanSnapshots` is passed; `deleteSandbox` does.
+
+**The sandbox's config env is capped at 4 KB.** `Sandbox.create`/`fork`
+answer `400 env payload too large` past that, and the internal environment's
+variables alone are ~9 KB (Blaxel took 98 keys without comment). So the
+sandbox env carries only the workspace's identity and credentials (checked
+against the cap at provision), and the environment's variables are written
+to `/data/environment.env` (root-only) right after create, which
+`/app/start.sh` sources on every boot before host-service and the desktop
+session start. A golden has that file removed at promote; a fork gets its
+own. Same delivery as before from the sandbox's point of view: everything
+below the boot script sees them as process env.
+
+**The desktop is an Xfce session, view-only until taken.** The display is
+1920×1200 at 96 DPI and runs `xfce4-session` (panel, xfwm4, xfdesktop,
+Thunar, xfce4-terminal) with Plank for the dock (Chrome, Files, Terminal) and
+one of eight generated wallpapers chosen by the workspace id, so it is stable
+across wakes and differs between boxes. Chrome runs as root and so launches
+with `--no-sandbox` (plus `--test-type`, which hides the bar that flag
+otherwise adds to every window); its first run is pre-answered — the `First
+Run` sentinel and `--no-first-run` skip the terms dialog, and a managed
+policy turns off sign-in, sync and the default-browser prompt. The golden's
+dev stack is an Xfce autostart entry (`superset-dev-stack`) rather than an
+openbox autostart. In the app, the Desktop pane connects view-only and only
+forwards input after "Take control" — an agent may be driving that desktop,
+and a pane that merely has focus must not type into its browser.
+
+**A multi-line variable (a PEM key) did not survive into `/workspace/.env`.**
+The in-sandbox materializer skipped values containing newlines, so the dev
+stack's API failed env validation on `GH_APP_PRIVATE_KEY`. It now writes them
+double-quoted with `\n`, which dotenv reads back as newlines.
 
 **Ports answer at a random per-sandbox domain.** `sandbox.domain(4879)` is
 `https://sb-<random>.vercel.run`, unrelated to the sandbox's name and stable

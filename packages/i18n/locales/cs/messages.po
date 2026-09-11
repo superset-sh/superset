@@ -11571,6 +11571,9 @@ msgstr "Přístup přes relay povolen, připojuji se k relay…"
 msgid "Release"
 msgstr "Vydání"
 
+msgid "Release control"
+msgstr "Uvolnit ovládání"
+
 msgid "Release…"
 msgstr "Vydání…"
 
@@ -14190,6 +14193,9 @@ msgstr "Reference motivu Tailwind v4"
 
 msgid "Take a screenshot"
 msgstr "Pořídit snímek obrazovky"
+
+msgid "Take control"
+msgstr "Převzít ovládání"
 
 msgid "Take me home"
 msgstr "Zpět na úvod"

@@ -11571,6 +11571,9 @@ msgstr "リレーアクセスを有効にしました。リレーに接続中…
 msgid "Release"
 msgstr "リリース"
 
+msgid "Release control"
+msgstr "操作を終了"
+
 msgid "Release…"
 msgstr "リリース…"
 
@@ -14190,6 +14193,9 @@ msgstr "Tailwind v4のテーマリファレンス"
 
 msgid "Take a screenshot"
 msgstr "スクリーンショットを撮る"
+
+msgid "Take control"
+msgstr "操作を開始"
 
 msgid "Take me home"
 msgstr "ホームに戻る"

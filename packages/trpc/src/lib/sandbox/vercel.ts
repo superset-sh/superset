@@ -32,6 +32,31 @@ const WORKSPACE_SNAPSHOT_EXPIRATION_MS = 30 * 24 * 60 * 60 * 1000;
 /** 2 GB of memory per vCPU; disk is 64 GB regardless. */
 const IMAGE_SANDBOX_VCPUS = 4;
 const GOLDEN_SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+/**
+ * The platform caps a sandbox's config env at 4 KB, which the identity and
+ * credentials fit in and an environment's variables do not. Those travel as
+ * this file instead: written root-only right after create, sourced by
+ * /app/start.sh on every boot, and removed from a golden at promote.
+ */
+const ENVIRONMENT_FILE = "/data/environment.env";
+const CONFIG_ENV_LIMIT_BYTES = 4096;
+
+/** `KEY='value'` lines a POSIX shell sources; a quote inside becomes `'\''`. */
+function shellEnvFile(envs: Record<string, string>): string {
+	return Object.entries(envs)
+		.map(([key, value]) => `${key}='${value.replaceAll("'", "'\\''")}'`)
+		.join("\n")
+		.concat("\n");
+}
+
+async function writeEnvironmentFile(
+	sandbox: Sandbox,
+	envs: Record<string, string>,
+): Promise<void> {
+	await sandbox.writeFiles([
+		{ path: ENVIRONMENT_FILE, content: shellEnvFile(envs), mode: 0o600 },
+	]);
+}
 
 function credentials() {
 	return {
@@ -164,22 +189,32 @@ export async function provisionSandbox(args: {
 	name: string;
 	environment: SandboxEnvironment;
 	/**
-	 * Everything the sandbox needs to configure itself. It reads these on boot
-	 * and seeds its own project and workspace rows, which is why provisioning
-	 * has nothing to run inside it afterwards.
+	 * The workspace's identity and credentials — what the sandbox reads on
+	 * boot to seed its own project and workspace rows, which is why
+	 * provisioning has nothing to run inside it afterwards. Small by
+	 * construction; it rides in the sandbox's config env.
 	 */
 	workspaceEnv: Record<string, string>;
+	/** The environment's variables, delivered as a file (see ENVIRONMENT_FILE). */
+	environmentEnv: Record<string, string>;
 }): Promise<ProvisionedSandbox> {
-	const { envs: credentialEnvs, networkPolicy } = agentCredentialPolicy(
-		args.workspaceEnv,
-	);
+	const { envs: credentialEnvs, networkPolicy } = agentCredentialPolicy({
+		...args.environmentEnv,
+		...args.workspaceEnv,
+	});
+	const configEnv = { ...credentialEnvs, ...args.workspaceEnv };
+	const configEnvBytes = Buffer.byteLength(JSON.stringify(configEnv));
+	if (configEnvBytes > CONFIG_ENV_LIMIT_BYTES) {
+		throw new Error(
+			`Sandbox identity env is ${configEnvBytes} bytes; the platform allows ${CONFIG_ENV_LIMIT_BYTES}`,
+		);
+	}
 	const config = {
 		...credentials(),
 		name: args.name,
 		ports: [HOST_SERVICE_PORT],
 		timeout: SESSION_TIMEOUT_MS,
-		region: env.VERCEL_SANDBOX_REGION as SandboxRegion,
-		env: { ...credentialEnvs, ...args.workspaceEnv },
+		env: configEnv,
 		networkPolicy,
 		persistent: true,
 		snapshotExpiration: WORKSPACE_SNAPSHOT_EXPIRATION_MS,
@@ -190,7 +225,8 @@ export async function provisionSandbox(args: {
 	const sandbox =
 		(await getSandbox(args.name)) ??
 		(args.environment.sourceKind === "fork"
-			? // A fork copies the golden's resources; only its env is ours.
+			? // A fork copies the golden's resources and its region — a snapshot
+				// only exists where it was taken; only its env is ours.
 				await Sandbox.fork({
 					...config,
 					sourceSandbox: args.environment.sourceRef,
@@ -198,10 +234,14 @@ export async function provisionSandbox(args: {
 			: await Sandbox.create({
 					...config,
 					image: args.environment.sourceRef,
+					region: env.VERCEL_SANDBOX_REGION as SandboxRegion,
 					resources: { vcpus: IMAGE_SANDBOX_VCPUS },
 				}));
 
 	const sandboxUrl = sandbox.domain(HOST_SERVICE_PORT);
+	// Before the boot script, which sources it; a re-delivered provision
+	// rewrites the same content.
+	await writeEnvironmentFile(sandbox, args.environmentEnv);
 	await startHostService(sandbox);
 	return { providerSandboxId: args.name, sandboxUrl };
 }
@@ -263,6 +303,7 @@ export async function resolveSandboxAddress(args: {
  * it, or every fork would come up as the promoted workspace.
  */
 const INHERITED_IDENTITY = [
+	ENVIRONMENT_FILE,
 	"/data/host.db",
 	"/data/host.db-wal",
 	"/data/host.db-shm",
@@ -315,13 +356,40 @@ export async function promoteSandboxToEnvironment(args: {
 	});
 	await golden.runCommand("rm", ["-rf", ...INHERITED_IDENTITY]);
 	// The stop is the snapshot forks will start from.
+	const created = golden.currentSnapshotId;
 	await golden.stop();
+	await waitForStopSnapshot(args.goldenName, created);
 	// The live snapshot is now the source's own current snapshot — what its
 	// next resume boots from — so it stays; deleting it strands the workspace
 	// (measured: `410 no snapshot available`). Retention evicts it on the
 	// source's next stop.
 	if (wasRunning) await startHostService(source);
 	return args.goldenName;
+}
+
+/**
+ * stop() returns while the sandbox is still `stopping`; a fork taken before
+ * the stop's snapshot is current boots from whatever was current before —
+ * for a sandbox that has never stopped, nothing but the image.
+ */
+export async function waitForStopSnapshot(
+	name: string,
+	previous: string | undefined,
+): Promise<void> {
+	const deadline = Date.now() + 3 * 60 * 1000;
+	while (Date.now() < deadline) {
+		const sandbox = await Sandbox.get({
+			...credentials(),
+			name,
+			resume: false,
+		});
+		const current = sandbox.currentSnapshotId;
+		if (sandbox.status === "stopped" && current && current !== previous) {
+			return;
+		}
+		await new Promise((resolve) => setTimeout(resolve, 2000));
+	}
+	throw new Error(`${name} did not snapshot in time`);
 }
 
 /** Best-effort: a sandbox already gone is the state we wanted. */
