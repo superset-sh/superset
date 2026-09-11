@@ -82,6 +82,19 @@ is only us:
   rotating it invalidates every running sandbox's verifier at once. A key id in
   the token and two accepted keys during a rotation window is the usual shape.
 
+## A saturated sandbox looks like a dead one
+
+An image workspace runs 4 vCPU / 8 GB. An agent that brings up the dev stack
+(Postgres, the API, Vite, an Electron instance) exhausts that, and the VM stops
+answering anything: `vercel sandbox exec` hangs, the public URL answers without
+CORS headers, and the app shows "Connecting… / Unknown host" with a hint about a
+tray menu Linux does not have. Seen 2026-09-11 from a throwaway prompt that
+invited the agent to "try the new image". Recovery is a platform-side
+`vercel sandbox stop` (snapshots the disk, kills everything) followed by the
+app's Retry, which wakes a clean session. Still owed: memory pressure shown in
+the product, and a kill switch for the runaway process short of stopping the
+box. **Open.**
+
 ## Untested behaviour
 
 These are unknowns, not known failures — but each could change the design, and
