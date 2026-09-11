@@ -199,8 +199,11 @@ type TerminalClientMessage =
 	// Whether this client is actually showing the terminal right now — its pane
 	// is on screen and its app is foregrounded. Distinct from keyboard focus: a
 	// visible unfocused pane still has to render at the right size. Only visible
-	// clients constrain the PTY size. A client that never sends this counts as
-	// visible, so builds predating the message keep their existing sizing.
+	// clients constrain the PTY size or receive output: a hidden client is
+	// suspended or not drawn, so its bytes wait in the ring and it is resynced
+	// when it comes back (exactly, or by repaint if the PTY resized meanwhile).
+	// A client that never sends this counts as visible, so builds predating
+	// the message keep their existing behaviour.
 	| { type: "visible"; visible: boolean }
 	// Answer to the host's `ping`. A client that has answered once and then
 	// goes silent is dropped, which is the only way a half-open socket (a phone
@@ -326,7 +329,10 @@ const WS_SEND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 // the size minimum, which pins every other client at phone width. TCP
 // keepalive would take hours. So the host pings each client at the
 // application level and drops one that answered before but has now missed
-// CLIENT_PONG_MISS_LIMIT pings in a row (30–45s of silence).
+// CLIENT_PONG_MISS_LIMIT pings in a row (30–45s of silence). A client that
+// said it is off screen is exempt: a backgrounded phone's page is suspended,
+// so its silence is expected, and it already sits outside the size minimum,
+// so dropping it would only force a redial when it comes back.
 const CLIENT_PING_INTERVAL_MS = 15_000;
 const CLIENT_PONG_MISS_LIMIT = 2;
 const SOCKET_OPEN = 1;
@@ -359,6 +365,8 @@ const socketLiveness = new WeakMap<
 	TerminalSocket,
 	{ answered: boolean; unansweredPings: number }
 >();
+/** Sockets that dialed with `?seq=`; only these can be told their position. */
+const seqSockets = new WeakSet<TerminalSocket>();
 let clientPingIntervalMs = CLIENT_PING_INTERVAL_MS;
 let clientLivenessSweep: ReturnType<typeof setInterval> | null = null;
 
@@ -636,6 +644,15 @@ interface TerminalSession {
 	/** Bumped on every client resize; guards the nudge's delayed restore. */
 	resizeGeneration: number;
 	/**
+	 * Stream position of the last PTY resize. A resize is a sync boundary:
+	 * bytes before and after it were laid out for different widths, so a
+	 * client anchored at or before it cannot be caught up exactly — it
+	 * reanchors and the program repaints. Clients attached and on screen at
+	 * the time saw the resize in-band and are unaffected. -1 until the first
+	 * resize.
+	 */
+	lastResizeSeq: number;
+	/**
 	 * Sockets whose client currently holds keyboard focus. The PTY receives
 	 * the AGGREGATE (any focused socket) — so an unfocused duplicate pane
 	 * attaching can't tell the program the focused pane lost focus (tmux's
@@ -651,12 +668,14 @@ interface TerminalSession {
 	 */
 	clientDims: Map<TerminalSocket, { cols: number; rows: number }>;
 	/**
-	 * Sockets whose client said it is off screen. Absence means visible, so a
-	 * client that never sends the message keeps constraining the size as it
-	 * always has. Hidden clients are excluded from the minimum: a backgrounded
-	 * phone must not hold the PTY narrow for whoever is actually looking.
+	 * Sockets whose client said it is off screen, keyed to the stream position
+	 * when it left. Absence means visible, so a client that never sends the
+	 * message keeps constraining the size and receiving output as it always
+	 * has. Hidden clients are excluded from the minimum — a backgrounded phone
+	 * must not hold the PTY narrow for whoever is actually looking — and get
+	 * no output until they return, when they are resynced from that position.
 	 */
-	hiddenSockets: Set<TerminalSocket>;
+	hiddenSockets: Map<TerminalSocket, number>;
 
 	/**
 	 * Tail of the in-flight follow-up send (writeFramedInputToSession).
@@ -1616,6 +1635,7 @@ function applyEffectiveDims(
 	if (!next) return;
 	const changed = next.cols !== session.cols || next.rows !== session.rows;
 	if (!changed && !options.force) return;
+	if (changed) session.lastResizeSeq = session.outputSeq;
 	session.resizeGeneration += 1;
 	session.pty.resize(next.cols, next.rows);
 	session.modeTracker.resize(next.cols, next.rows);
@@ -1633,6 +1653,54 @@ function releaseSocketDims(session: TerminalSession, ws: TerminalSocket) {
 	const wasHidden = session.hiddenSockets.delete(ws);
 	// A hidden client was already outside the minimum, so nothing moved.
 	if (hadDims && !wasHidden) applyEffectiveDims(session);
+}
+
+/**
+ * A client back on screen after its output was withheld. If the PTY kept its
+ * size and the gap is still in the ring, it gets exactly the bytes it missed.
+ * Otherwise those bytes were laid out for another width (or are gone): it is
+ * told its new position and nothing else, and the program repaints — the
+ * resize its return causes delivers the SIGWINCH, or a nudge does when the
+ * size does not move. A legacy client cannot be told where it is; it gets
+ * the bytes or the repaint, which is all it can use anyway.
+ */
+function resumeHiddenSocket(
+	session: TerminalSession,
+	ws: TerminalSocket,
+	hiddenSince: number,
+) {
+	const seqAware = seqSockets.has(ws);
+	const exact =
+		hiddenSince > session.lastResizeSeq &&
+		hiddenSince >= session.retainedStartSeq;
+	if (exact) {
+		if (seqAware) {
+			sendMessage(ws, {
+				type: "synced",
+				epoch: session.epoch,
+				seq: hiddenSince,
+				mode: "exact",
+			});
+		}
+		if (hiddenSince < session.outputSeq) {
+			sendBytes(ws, readRetainedFrom(session, hiddenSince));
+		}
+		applyEffectiveDims(session);
+		return;
+	}
+	if (seqAware) {
+		sendMessage(ws, {
+			type: "synced",
+			epoch: session.epoch,
+			seq: session.outputSeq,
+			mode: "reanchor",
+		});
+	}
+	const next = effectiveDims(session);
+	const dimsUnchanged =
+		next === null || (next.cols === session.cols && next.rows === session.rows);
+	applyEffectiveDims(session);
+	if (dimsUnchanged) nudgeRepaint(session);
 }
 
 /**
@@ -1658,10 +1726,10 @@ function pingSocket(ws: TerminalSocket) {
 }
 
 /**
- * Drop every attached client that answered a ping before and has now missed
- * CLIENT_PONG_MISS_LIMIT in a row, then ping the rest. Detaching first means
- * the PTY grows back immediately; the socket is destroyed rather than closed
- * because a half-open peer never completes the close handshake.
+ * Drop every attached on-screen client that answered a ping before and has
+ * now missed CLIENT_PONG_MISS_LIMIT in a row, then ping the rest. Detaching
+ * first means the PTY grows back immediately; the socket is destroyed rather
+ * than closed because a half-open peer never completes the close handshake.
  */
 function sweepClientLiveness() {
 	for (const session of sessions.values()) {
@@ -1669,6 +1737,11 @@ function sweepClientLiveness() {
 			if (ws.readyState !== SOCKET_OPEN) continue;
 			const liveness = socketLiveness.get(ws);
 			if (!liveness) continue;
+			if (session.hiddenSockets.has(ws)) {
+				// Expected silence; count from zero when it is back on screen.
+				liveness.unansweredPings = 0;
+				continue;
+			}
 			if (
 				liveness.answered &&
 				liveness.unansweredPings >= CLIENT_PONG_MISS_LIMIT
@@ -1767,6 +1840,11 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 			}
 			continue;
 		}
+		// Off screen means suspended or not drawn: bytes sent now land in a
+		// buffer nobody is looking at, laid out for whatever width the PTY
+		// moved to once this client stopped constraining it. They wait in the
+		// ring; `visible` resyncs the client.
+		if (session.hiddenSockets.has(socket)) continue;
 		// A renderer that can't keep up lets its send buffer grow without bound.
 		// Drop it past the cap rather than buffer forever; it reconnects and
 		// replays the tail. Returning this chunk as "not sent" routes it to the
@@ -1854,6 +1932,7 @@ function sendSeqAttach(
 		request.kind === "anchor" &&
 		request.epoch === session.epoch &&
 		request.seq >= session.retainedStartSeq &&
+		request.seq > session.lastResizeSeq &&
 		request.seq <= session.outputSeq;
 
 	if (exact) {
@@ -1884,9 +1963,10 @@ function sendSeqAttach(
 	}
 
 	// Unknown/unrecoverable position ("none", epoch mismatch, gap beyond the
-	// ring). The client's existing screen beats anything we could synthesize —
-	// never overwrite it (#6290). Re-anchor at the live head and ask the
-	// program to repaint itself.
+	// ring, or an anchor from before the PTY last resized — those bytes were
+	// laid out for another width). The client's existing screen beats
+	// anything we could synthesize — never overwrite it (#6290). Re-anchor at
+	// the live head and ask the program to repaint itself.
 	sendMessage(socket, {
 		type: "synced",
 		epoch: session.epoch,
@@ -3095,9 +3175,10 @@ export async function createTerminalSessionInternal({
 		retainedStartSeq: 0,
 		pendingRepaintNudge: null,
 		resizeGeneration: 0,
+		lastResizeSeq: -1,
 		focusedSockets: new Set(),
 		clientDims: new Map(),
-		hiddenSockets: new Set(),
+		hiddenSockets: new Map(),
 	};
 	reclaimSession = session;
 	sessions.set(terminalId, session);
@@ -3387,6 +3468,7 @@ export function registerWorkspaceTerminalRoute({
 					}
 					replayBuffer(session, ws);
 				} else {
+					seqSockets.add(ws);
 					sendSeqAttach(session, ws, seqRequest);
 				}
 				if (session.exited) {
@@ -3610,9 +3692,14 @@ export function registerWorkspaceTerminalRoute({
 
 					if (message.type === "visible") {
 						if (message.visible) {
+							const hiddenSince = session.hiddenSockets.get(ws);
 							session.hiddenSockets.delete(ws);
-						} else {
-							session.hiddenSockets.add(ws);
+							if (hiddenSince !== undefined) {
+								resumeHiddenSocket(session, ws, hiddenSince);
+								return;
+							}
+						} else if (!session.hiddenSockets.has(ws)) {
+							session.hiddenSockets.set(ws, session.outputSeq);
 						}
 						// Going hidden releases this client's size constraint;
 						// coming back re-imposes it.
