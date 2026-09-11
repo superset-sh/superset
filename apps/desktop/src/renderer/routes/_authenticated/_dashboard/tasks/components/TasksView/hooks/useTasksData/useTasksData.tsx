@@ -37,6 +37,12 @@ interface UseTasksDataParams {
 	searchQuery: string;
 	assigneeFilter: string | null;
 	linearProjectFilter: string | null;
+	/**
+	 * Which synced-task source the view shows. Plain threads live in the same
+	 * tasks table but get their own tab, so each source hides the other's
+	 * tasks and statuses.
+	 */
+	taskSource?: "tasks" | "plain";
 }
 
 export function useTasksJoinedWithStatuses(): TasksPagination & {
@@ -94,28 +100,49 @@ export function useTasksData({
 	searchQuery,
 	assigneeFilter,
 	linearProjectFilter,
+	taskSource = "tasks",
 }: UseTasksDataParams): TasksPagination & {
 	data: TaskWithStatus[];
 	allStatuses: SelectTaskStatus[];
 } {
 	const {
 		tasks: sortedData,
-		statuses: allStatuses,
+		statuses,
 		fetchNextTasksPage,
 		hasNextTasksPage,
 		isFetchingNextTasksPage,
 		isLoadingTasks,
 	} = useTasksJoinedWithStatuses();
 
-	const { search } = useHybridSearch(sortedData);
+	const sourceData = useMemo(
+		() =>
+			sortedData.filter((task) =>
+				taskSource === "plain"
+					? task.externalProvider === "plain"
+					: task.externalProvider !== "plain",
+			),
+		[sortedData, taskSource],
+	);
+
+	const allStatuses = useMemo(
+		() =>
+			statuses.filter((status) =>
+				taskSource === "plain"
+					? status.externalProvider === "plain"
+					: status.externalProvider !== "plain",
+			),
+		[statuses, taskSource],
+	);
+
+	const { search } = useHybridSearch(sourceData);
 
 	const searchedData = useMemo(() => {
 		if (!searchQuery.trim()) {
-			return sortedData;
+			return sourceData;
 		}
 		const results = search(searchQuery);
 		return results.map((r) => r.item);
-	}, [sortedData, searchQuery, search]);
+	}, [sourceData, searchQuery, search]);
 
 	const filteredData = useMemo(() => {
 		let result = searchedData;

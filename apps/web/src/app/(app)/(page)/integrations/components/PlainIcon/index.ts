@@ -1,0 +1,1 @@
+export { PlainIcon } from "./PlainIcon";

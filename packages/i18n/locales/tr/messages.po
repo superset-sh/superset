@@ -1227,6 +1227,9 @@ msgstr "Token başına faturalandırılan ayrı bir profil. Anahtar {0} CLI içi
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "Becerilerinizi, eklentilerinizi, MCP sunucularınızı ve ayarlarınızı paylaşan ayrı bir profil."
 
+msgid "A signing secret is configured."
+msgstr "Bir imzalama sırrı yapılandırıldı."
+
 msgid "a teammate"
 msgstr "bir takım arkadaşı"
 
@@ -3653,6 +3656,9 @@ msgstr "Notion'ı bağla"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Bir veri kaynağında satırlar değiştiğinde veya biri bir sayfaya yorum yaptığında otomasyon çalıştırmak için Notion'ı bağlayın."
 
+msgid "Connect Plain"
+msgstr "Plain'i bağla"
+
 msgid "Connect repos and sync pull requests."
 msgstr "Depoları bağlayın ve pull request'leri eşitleyin."
 
@@ -3680,6 +3686,12 @@ msgstr "Microsoft Teams kiracınızı bağlayın. Bir kiracı yöneticisi oturum
 msgid "Connect your Notion workspace and share the pages and data sources automations should watch."
 msgstr "Notion çalışma alanınızı bağlayın ve otomasyonların izlemesi gereken sayfaları ve veri kaynaklarını paylaşın."
 
+msgid "Connect your Plain workspace to sync support threads and turn customer-reported work into tasks in Superset."
+msgstr "Destek konuşmalarını eşitlemek ve müşterilerin bildirdiği işleri Superset'te görevlere dönüştürmek için Plain çalışma alanınızı bağlayın."
+
+msgid "Connect your Plain workspace with a machine user API key. Create one in Plain under Settings → Machine users, with the thread:read, customer:read, and labelType:read permissions."
+msgstr "Plain çalışma alanınızı bir makine kullanıcısının API anahtarıyla bağlayın. Anahtarı Plain'de Settings → Machine users altında thread:read, customer:read ve labelType:read izinleriyle oluşturun."
+
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Görevleri konuşmalardan yönetmek için Slack çalışma alanınızı bağlayın."
 
@@ -3699,8 +3711,17 @@ msgstr "Şuna bağlı"
 msgid "Connected to {connectedOrgName}"
 msgstr "{connectedOrgName} kuruluşuna bağlı"
 
+msgid "Connected to {workspaceName}"
+msgstr "{workspaceName} ile bağlantı kuruldu"
+
+msgid "Connected to <0>{workspaceName}</0>."
+msgstr "<0>{workspaceName}</0> ile bağlı."
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Bağlandı, ancak Microsoft Graph bildirim aboneliklerini reddetti."
+
+msgid "Connected, but the initial sync could not be queued. Reconnect to retry."
+msgstr "Bağlandı, ancak ilk eşitleme kuyruğa alınamadı. Yeniden denemek için tekrar bağlanın."
 
 msgid "Connected, but your Microsoft account could not be linked. Triggers by \"Me\" will not match until you reconnect."
 msgstr "Bağlandı, ancak Microsoft hesabınız ilişkilendirilemedi. \"Ben\" tetikleyicileri siz yeniden bağlanana kadar eşleşmeyecek."
@@ -3716,6 +3737,9 @@ msgstr "Masaüstüne bağlanılıyor…"
 
 msgid "Connecting to the workspace"
 msgstr "Çalışma alanına bağlanılıyor"
+
+msgid "Connecting..."
+msgstr "Bağlanıyor..."
 
 msgid "Connecting…"
 msgstr "Bağlanılıyor…"
@@ -4600,6 +4624,9 @@ msgstr "Özel terminal ajanları"
 msgid "Custom themes"
 msgstr "Özel temalar"
 
+msgid "Customer Support"
+msgstr "Müşteri desteği"
+
 msgid "Customize commands"
 msgstr "Komutları özelleştir"
 
@@ -5122,6 +5149,9 @@ msgstr "Microsoft Teams bağlantısı kesilsin mi?"
 msgid "Disconnect Notion?"
 msgstr "Notion bağlantısı kesilsin mi?"
 
+msgid "Disconnect Plain?"
+msgstr "Plain bağlantısı kesilsin mi?"
+
 msgid "Disconnect Sentry?"
 msgstr "Sentry bağlantısı kesilsin mi?"
 
@@ -5130,6 +5160,9 @@ msgstr "Slack bağlantısı kesilsin mi?"
 
 msgid "Disconnected"
 msgstr "Bağlantı kesildi"
+
+msgid "Disconnected Plain"
+msgstr "Plain bağlantısı kesildi"
 
 msgid "Disconnecting..."
 msgstr "Bağlantı kesiliyor..."
@@ -6654,6 +6687,9 @@ msgstr "başlangıç: {price}/kullanıcı/ay"
 msgid "From a visit to a download to an account to a paying organization."
 msgstr "Ziyaretten indirmeye, hesaba, ödeme yapan organizasyona."
 
+msgid "From Plain's Settings → Request signing"
+msgstr "Plain'de Settings → Request signing bölümünden"
+
 msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
 msgstr "Herkese açık site haritasından: karşılaştırma sayfaları, yazılar ve değişiklik günlüğü kayıtları, yayınlandıkları veya son düzenlendikleri haftaya göre."
 
@@ -7318,6 +7354,9 @@ msgstr "Tüm projelerde"
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "Yalnızca birkaç ayda <0>on binlerce mühendis</0> Superset'i birincil IDE'si olarak kullanmaya başladı; Wix, DoorDash ve Netflix gibi şirketlerde."
 
+msgid "In Plain, add a webhook target (Settings → Webhooks) pointing at:"
+msgstr "Plain'de şu adrese yönlenen bir webhook hedefi ekleyin (Settings → Webhooks):"
+
 msgid "In progress"
 msgstr "Devam ediyor"
 
@@ -7689,6 +7728,9 @@ msgstr "Kbd"
 msgid "Keep docs fresh"
 msgstr "Belgeleri güncel tut"
 
+msgid "Keep threads in sync as they change in Plain."
+msgstr "Konuşmaları Plain'de değiştikçe eşitli tutun."
+
 msgid "Keep waiting"
 msgstr "Beklemeye devam et"
 
@@ -7881,6 +7923,9 @@ msgstr "Ayrıl ve sil"
 
 msgid "Leave comment mode"
 msgstr "Yorum modundan çık"
+
+msgid "Leave empty to keep the stored secret."
+msgstr "Kayıtlı sırrı korumak için boş bırakın."
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Terminalin bildirdiği ada dönmek için boş bırakın."
@@ -8781,6 +8826,9 @@ msgstr "Uygulama düzeyinde bağlantı gerekir (form durumu, grafik verisi, uygu
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Canlı sohbet/araç çağrısı durumu (ToolUIPart, akışlar) veya bir uygulama kabuğu gerekir"
 
+msgid "Needed to receive webhooks, so thread changes sync without a manual refresh."
+msgstr "Webhook almak için gerekir; böylece konuşma değişiklikleri elle yenilemeden eşitlenir."
+
 msgid "Needs Action"
 msgstr "İşlem gerekiyor"
 
@@ -9414,6 +9462,9 @@ msgstr "Henüz oturum yok"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "\"{searchQuery}\" ile eşleşen kısayol bulunamadı"
+
+msgid "No signing secret is configured yet, so webhook deliveries are rejected."
+msgstr "Henüz bir imzalama sırrı yapılandırılmadı, bu yüzden webhook teslimatları reddediliyor."
 
 msgid "No sites are signed in"
 msgstr "Oturum açılmış site yok"
@@ -10724,6 +10775,12 @@ msgstr "Sabitlenmiş"
 msgid "PK"
 msgstr "PK"
 
+msgid "Plain"
+msgstr "Plain"
+
+msgid "Plain rejected the stored API key. Enter a new key to resume syncing."
+msgstr "Plain kayıtlı API anahtarını reddetti. Eşitlemeye devam etmek için yeni bir anahtar girin."
+
 msgid "Plan"
 msgstr "Plan"
 
@@ -11448,6 +11505,9 @@ msgstr "Google'a yeniden bağlan"
 msgid "Reconnect Linear"
 msgstr "Linear'a yeniden bağlan"
 
+msgid "Reconnect Plain"
+msgstr "Plain'e yeniden bağlan"
+
 msgid "Reconnect required"
 msgstr "Yeniden bağlanmak gerekiyor"
 
@@ -11789,6 +11849,9 @@ msgstr "Deneme talep et"
 
 msgid "Request Body"
 msgstr "İstek gövdesi"
+
+msgid "Request-signing secret (optional)"
+msgstr "İstek imzalama sırrı (isteğe bağlı)"
 
 msgid "Requested Changes"
 msgstr "Değişiklik istedi"
@@ -13794,6 +13857,9 @@ msgstr "Abonelik"
 msgid "SUBSCRIBE"
 msgstr "ABONE OL"
 
+msgid "Subscribe it to the thread events, and paste your workspace's request-signing secret (Settings → Request signing) into the connection form above."
+msgstr "Hedefi konuşma olaylarına abone edin ve çalışma alanınızın istek imzalama sırrını (Settings → Request signing) yukarıdaki bağlantı formuna yapıştırın."
+
 msgid "Subscribe on YouTube"
 msgstr "YouTube'da abone olun"
 
@@ -14068,11 +14134,17 @@ msgstr "Issue'ları Linear ile çift yönlü eşitleyin."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Issue'ları Linear ile çift yönlü eşitleyin. Superset'te görev oluşturup Linear'da görünmesini sağlayın veya mevcut Linear issue'larını içe aktarın."
 
+msgid "Sync Plain support threads as tasks."
+msgstr "Plain destek konuşmalarını görev olarak eşitleyin."
+
 msgid "Sync Repositories"
 msgstr "Depoları eşitle"
 
 msgid "Sync started"
 msgstr "Eşitleme başladı"
+
+msgid "Sync support threads from Plain into Superset as tasks, so customer-reported work can flow straight into agent workspaces."
+msgstr "Plain'deki destek konuşmalarını Superset'e görev olarak eşitleyin; böylece müşterilerin bildirdiği işler doğrudan ajan çalışma alanlarına gider."
 
 msgid "Syncing with remote"
 msgstr "Uzak depo ile eşitleniyor"
@@ -14832,6 +14904,9 @@ msgstr "Bu pull request bağlantısı geçersiz."
 
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Bu işlem, seçili her worktree'yi diskten kaldırır ve çalışma alanı kaydını siler."
+
+msgid "This removes the connection and deletes the synced Plain tasks from Superset. Threads in Plain are not touched. You can reconnect at any time."
+msgstr "Bu işlem bağlantıyı kaldırır ve eşitlenen Plain görevlerini Superset'ten siler. Plain'deki konuşmalara dokunulmaz. İstediğiniz zaman yeniden bağlanabilirsiniz."
 
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Bu işlem host'u, erişimini ve çalışma alanlarını kaldırır. Makinedeki dosyalar kalır. Çalışan bir host yeniden görünebilir. Bu geri alınamaz."
@@ -15909,6 +15984,9 @@ msgstr "Web getirme"
 
 msgid "Web Search"
 msgstr "Web araması"
+
+msgid "Webhook"
+msgstr "Webhook"
 
 msgid "Webhook trigger not found"
 msgstr "Webhook tetikleyicisi bulunamadı"

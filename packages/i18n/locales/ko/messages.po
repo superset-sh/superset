@@ -1227,6 +1227,9 @@ msgstr "토큰 단위로 과금되는 별도 프로필입니다. 키는 {0} CLI 
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "스킬, 플러그인, MCP 서버, 설정을 공유하는 별도 프로필입니다."
 
+msgid "A signing secret is configured."
+msgstr "서명 시크릿이 설정되어 있습니다."
+
 msgid "a teammate"
 msgstr "팀원"
 
@@ -3653,6 +3656,9 @@ msgstr "Notion 연결"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Notion을 연결하면 데이터 소스의 행이 바뀌거나 누군가 페이지에 댓글을 달 때 자동화를 실행할 수 있습니다."
 
+msgid "Connect Plain"
+msgstr "Plain 연결"
+
 msgid "Connect repos and sync pull requests."
 msgstr "리포지토리를 연결하고 풀 리퀘스트를 동기화합니다."
 
@@ -3680,6 +3686,12 @@ msgstr "Microsoft Teams 테넌트를 연결하세요. 테넌트 관리자가 로
 msgid "Connect your Notion workspace and share the pages and data sources automations should watch."
 msgstr "Notion 워크스페이스를 연결하고 자동화가 지켜볼 페이지와 데이터 소스를 공유하세요."
 
+msgid "Connect your Plain workspace to sync support threads and turn customer-reported work into tasks in Superset."
+msgstr "Plain 워크스페이스를 연결하면 지원 스레드를 동기화하고 고객이 보고한 문제를 Superset 작업으로 바꿀 수 있습니다."
+
+msgid "Connect your Plain workspace with a machine user API key. Create one in Plain under Settings → Machine users, with the thread:read, customer:read, and labelType:read permissions."
+msgstr "머신 사용자 API 키로 Plain 워크스페이스를 연결하세요. Plain의 Settings → Machine users에서 thread:read, customer:read, labelType:read 권한으로 만들 수 있습니다."
+
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Slack 워크스페이스를 연결해 대화에서 바로 작업을 관리하세요."
 
@@ -3699,8 +3711,17 @@ msgstr "연결 대상"
 msgid "Connected to {connectedOrgName}"
 msgstr "{connectedOrgName}에 연결됨"
 
+msgid "Connected to {workspaceName}"
+msgstr "{workspaceName}에 연결됨"
+
+msgid "Connected to <0>{workspaceName}</0>."
+msgstr "<0>{workspaceName}</0>에 연결되어 있습니다."
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "연결되었지만 Microsoft Graph가 알림 구독을 거부했습니다."
+
+msgid "Connected, but the initial sync could not be queued. Reconnect to retry."
+msgstr "연결되었지만 초기 동기화를 대기열에 넣지 못했습니다. 다시 연결해서 재시도하세요."
 
 msgid "Connected, but your Microsoft account could not be linked. Triggers by \"Me\" will not match until you reconnect."
 msgstr "연결되었지만 Microsoft 계정을 연동하지 못했습니다. 다시 연결하기 전까지 \"나\" 기준 트리거가 일치하지 않습니다."
@@ -3716,6 +3737,9 @@ msgstr "데스크톱에 연결하는 중…"
 
 msgid "Connecting to the workspace"
 msgstr "워크스페이스에 연결하는 중"
+
+msgid "Connecting..."
+msgstr "연결 중..."
 
 msgid "Connecting…"
 msgstr "연결 중…"
@@ -4600,6 +4624,9 @@ msgstr "커스텀 터미널 에이전트"
 msgid "Custom themes"
 msgstr "사용자 지정 테마"
 
+msgid "Customer Support"
+msgstr "고객 지원"
+
 msgid "Customize commands"
 msgstr "명령 사용자 지정"
 
@@ -5122,6 +5149,9 @@ msgstr "Microsoft Teams 연결을 해제할까요?"
 msgid "Disconnect Notion?"
 msgstr "Notion 연결을 해제할까요?"
 
+msgid "Disconnect Plain?"
+msgstr "Plain 연결을 해제할까요?"
+
 msgid "Disconnect Sentry?"
 msgstr "Sentry 연결을 해제할까요?"
 
@@ -5130,6 +5160,9 @@ msgstr "Slack 연결을 해제할까요?"
 
 msgid "Disconnected"
 msgstr "연결 끊김"
+
+msgid "Disconnected Plain"
+msgstr "Plain 연결을 해제했습니다"
 
 msgid "Disconnecting..."
 msgstr "연결 해제 중..."
@@ -6654,6 +6687,9 @@ msgstr "사용자당 월 {price}부터"
 msgid "From a visit to a download to an account to a paying organization."
 msgstr "방문에서 다운로드, 계정, 유료 조직까지."
 
+msgid "From Plain's Settings → Request signing"
+msgstr "Plain의 Settings → Request signing에서 확인"
+
 msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
 msgstr "공개 sitemap 기준: 비교 페이지, 글, 변경 로그를 발행 또는 최종 수정 주별로 집계."
 
@@ -7318,6 +7354,9 @@ msgstr "모든 프로젝트"
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "몇 달 만에 <0>수만 명의 엔지니어</0>가 Wix, DoorDash, Netflix 같은 회사에서 Superset을 주력 IDE로 사용하고 있습니다."
 
+msgid "In Plain, add a webhook target (Settings → Webhooks) pointing at:"
+msgstr "Plain에서 다음 주소를 가리키는 웹훅 대상을 추가하세요(Settings → Webhooks):"
+
 msgid "In progress"
 msgstr "진행 중"
 
@@ -7689,6 +7728,9 @@ msgstr "Kbd"
 msgid "Keep docs fresh"
 msgstr "문서 최신 상태 유지"
 
+msgid "Keep threads in sync as they change in Plain."
+msgstr "Plain에서 스레드가 바뀌면 동기화 상태를 유지합니다."
+
 msgid "Keep waiting"
 msgstr "계속 기다리기"
 
@@ -7881,6 +7923,9 @@ msgstr "나가고 삭제"
 
 msgid "Leave comment mode"
 msgstr "댓글 모드 나가기"
+
+msgid "Leave empty to keep the stored secret."
+msgstr "저장된 시크릿을 유지하려면 비워 두세요."
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "비워 두면 터미널이 보고하는 이름으로 돌아갑니다."
@@ -8781,6 +8826,9 @@ msgstr "앱 수준 연결이 필요합니다(폼 상태, 차트 데이터, 앱 �
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "실시간 채팅/툴 호출 상태(ToolUIPart, 스트림)나 앱 셸이 필요합니다"
 
+msgid "Needed to receive webhooks, so thread changes sync without a manual refresh."
+msgstr "웹훅을 받으려면 필요합니다. 그러면 스레드 변경 사항이 수동 새로고침 없이 동기화됩니다."
+
 msgid "Needs Action"
 msgstr "조치 필요"
 
@@ -9414,6 +9462,9 @@ msgstr "아직 세션이 없습니다"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "\"{searchQuery}\"과(와) 일치하는 단축키가 없습니다"
+
+msgid "No signing secret is configured yet, so webhook deliveries are rejected."
+msgstr "아직 서명 시크릿이 설정되지 않아 웹훅 전달이 거부됩니다."
 
 msgid "No sites are signed in"
 msgstr "로그인한 사이트가 없습니다"
@@ -10724,6 +10775,12 @@ msgstr "고정됨"
 msgid "PK"
 msgstr "PK"
 
+msgid "Plain"
+msgstr "Plain"
+
+msgid "Plain rejected the stored API key. Enter a new key to resume syncing."
+msgstr "Plain이 저장된 API 키를 거부했습니다. 동기화를 다시 시작하려면 새 키를 입력하세요."
+
 msgid "Plan"
 msgstr "계획"
 
@@ -11448,6 +11505,9 @@ msgstr "Google 다시 연결"
 msgid "Reconnect Linear"
 msgstr "Linear 다시 연결"
 
+msgid "Reconnect Plain"
+msgstr "Plain 다시 연결"
+
 msgid "Reconnect required"
 msgstr "다시 연결 필요"
 
@@ -11789,6 +11849,9 @@ msgstr "체험판 요청"
 
 msgid "Request Body"
 msgstr "요청 본문"
+
+msgid "Request-signing secret (optional)"
+msgstr "요청 서명 시크릿(선택 사항)"
 
 msgid "Requested Changes"
 msgstr "변경 요청함"
@@ -13794,6 +13857,9 @@ msgstr "구독"
 msgid "SUBSCRIBE"
 msgstr "구독하기"
 
+msgid "Subscribe it to the thread events, and paste your workspace's request-signing secret (Settings → Request signing) into the connection form above."
+msgstr "스레드 이벤트를 구독하고, 워크스페이스의 요청 서명 시크릿(Settings → Request signing)을 위 연결 양식에 붙여 넣으세요."
+
 msgid "Subscribe on YouTube"
 msgstr "YouTube에서 구독하기"
 
@@ -14068,11 +14134,17 @@ msgstr "Linear와 이슈를 양방향으로 동기화합니다."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Linear와 이슈를 양방향으로 동기화하세요. Superset에서 만든 작업을 Linear에 나타나게 하거나 기존 Linear 이슈를 가져올 수 있습니다."
 
+msgid "Sync Plain support threads as tasks."
+msgstr "Plain 지원 스레드를 작업으로 동기화합니다."
+
 msgid "Sync Repositories"
 msgstr "리포지토리 동기화"
 
 msgid "Sync started"
 msgstr "동기화를 시작했습니다"
+
+msgid "Sync support threads from Plain into Superset as tasks, so customer-reported work can flow straight into agent workspaces."
+msgstr "Plain의 지원 스레드를 Superset 작업으로 동기화해, 고객이 보고한 문제가 곧바로 에이전트 워크스페이스로 이어지게 합니다."
 
 msgid "Syncing with remote"
 msgstr "원격과 동기화하는 중"
@@ -14832,6 +14904,9 @@ msgstr "이 풀 리퀘스트 링크가 올바르지 않습니다."
 
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "선택한 worktree를 디스크에서 모두 제거하고 해당 워크스페이스 기록도 삭제합니다."
+
+msgid "This removes the connection and deletes the synced Plain tasks from Superset. Threads in Plain are not touched. You can reconnect at any time."
+msgstr "연결을 제거하고 동기화된 Plain 작업을 Superset에서 삭제합니다. Plain의 스레드는 변경되지 않습니다. 언제든지 다시 연결할 수 있습니다."
 
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "호스트와 그 접근 권한, 워크스페이스가 제거됩니다. 컴퓨터의 파일은 그대로 남습니다. 호스트가 실행 중이면 다시 나타날 수 있습니다. 이 작업은 되돌릴 수 없습니다."
@@ -15909,6 +15984,9 @@ msgstr "웹 가져오기"
 
 msgid "Web Search"
 msgstr "웹 검색"
+
+msgid "Webhook"
+msgstr "웹훅"
 
 msgid "Webhook trigger not found"
 msgstr "웹훅 트리거를 찾을 수 없습니다"

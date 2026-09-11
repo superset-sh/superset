@@ -1227,6 +1227,9 @@ msgstr "按 token 計費的獨立配置檔案。金鑰保存在 {0} CLI 中。"
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "共享你的技能、外掛、MCP伺服器和設定的獨立配置檔案。"
 
+msgid "A signing secret is configured."
+msgstr "已設定簽章密鑰。"
+
 msgid "a teammate"
 msgstr "某位隊友"
 
@@ -3653,6 +3656,9 @@ msgstr "連線Notion"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "連線Notion，在資料來源中的行發生變化或有人評論頁面時執行自動化。"
 
+msgid "Connect Plain"
+msgstr "連線Plain"
+
 msgid "Connect repos and sync pull requests."
 msgstr "連線儲存庫並同步拉取請求。"
 
@@ -3680,6 +3686,12 @@ msgstr "連線你的Microsoft Teams租戶。由租戶管理員登入，一次性
 msgid "Connect your Notion workspace and share the pages and data sources automations should watch."
 msgstr "連線你的Notion工作區，並共享需要自動化監聽的頁面和資料來源。"
 
+msgid "Connect your Plain workspace to sync support threads and turn customer-reported work into tasks in Superset."
+msgstr "連線你的Plain工作區，同步支援對話，並把客戶回報的工作轉為Superset中的任務。"
+
+msgid "Connect your Plain workspace with a machine user API key. Create one in Plain under Settings → Machine users, with the thread:read, customer:read, and labelType:read permissions."
+msgstr "使用機器使用者的API金鑰連線你的Plain工作區。請在Plain的Settings → Machine users中建立，並授予thread:read、customer:read和labelType:read權限。"
+
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "連線你的Slack工作區，直接在對話中管理任務。"
 
@@ -3699,8 +3711,17 @@ msgstr "已連線到"
 msgid "Connected to {connectedOrgName}"
 msgstr "已連線到{connectedOrgName}"
 
+msgid "Connected to {workspaceName}"
+msgstr "已連線到{workspaceName}"
+
+msgid "Connected to <0>{workspaceName}</0>."
+msgstr "已連線到<0>{workspaceName}</0>。"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "已連線，但Microsoft Graph拒絕了通知訂閱。"
+
+msgid "Connected, but the initial sync could not be queued. Reconnect to retry."
+msgstr "已連線，但初始同步未能加入佇列。請重新連線以重試。"
 
 msgid "Connected, but your Microsoft account could not be linked. Triggers by \"Me\" will not match until you reconnect."
 msgstr "已連線，但無法關聯你的Microsoft帳戶。在你重新連線之前，按「我」設定的觸發器不會匹配。"
@@ -3716,6 +3737,9 @@ msgstr "正在連線至桌面…"
 
 msgid "Connecting to the workspace"
 msgstr "正在連線工作區"
+
+msgid "Connecting..."
+msgstr "正在連線..."
 
 msgid "Connecting…"
 msgstr "正在連線…"
@@ -4600,6 +4624,9 @@ msgstr "自訂終端代理程式"
 msgid "Custom themes"
 msgstr "自訂主題"
 
+msgid "Customer Support"
+msgstr "客戶支援"
+
 msgid "Customize commands"
 msgstr "自訂命令"
 
@@ -5122,6 +5149,9 @@ msgstr "斷開Microsoft Teams連線？"
 msgid "Disconnect Notion?"
 msgstr "斷開Notion連線？"
 
+msgid "Disconnect Plain?"
+msgstr "斷開Plain連線？"
+
 msgid "Disconnect Sentry?"
 msgstr "斷開Sentry連線？"
 
@@ -5130,6 +5160,9 @@ msgstr "斷開Slack連線？"
 
 msgid "Disconnected"
 msgstr "已斷開"
+
+msgid "Disconnected Plain"
+msgstr "已斷開Plain"
 
 msgid "Disconnecting..."
 msgstr "正在斷開連線..."
@@ -6654,6 +6687,9 @@ msgstr "{price}/使用者/月起"
 msgid "From a visit to a download to an account to a paying organization."
 msgstr "從造訪到下載、到帳號、到付費組織。"
 
+msgid "From Plain's Settings → Request signing"
+msgstr "來自Plain的Settings → Request signing"
+
 msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
 msgstr "來自公開 sitemap：比較頁、文章與更新日誌依發佈或最後修訂的週統計。"
 
@@ -7318,6 +7354,9 @@ msgstr "全部專案"
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "短短幾個月，<0>數萬名工程師</0>把Superset當作主力IDE，他們來自Wix、DoorDash、Netflix這樣的公司。"
 
+msgid "In Plain, add a webhook target (Settings → Webhooks) pointing at:"
+msgstr "在Plain中新增一個webhook目標（Settings → Webhooks），指向："
+
 msgid "In progress"
 msgstr "進行中"
 
@@ -7689,6 +7728,9 @@ msgstr "Kbd"
 msgid "Keep docs fresh"
 msgstr "讓文件保持最新"
 
+msgid "Keep threads in sync as they change in Plain."
+msgstr "在Plain中有變更時保持對話同步。"
+
 msgid "Keep waiting"
 msgstr "繼續等待"
 
@@ -7881,6 +7923,9 @@ msgstr "退出並刪除"
 
 msgid "Leave comment mode"
 msgstr "退出評論模式"
+
+msgid "Leave empty to keep the stored secret."
+msgstr "留空即可保留已儲存的密鑰。"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "留空即可恢復終端回報的名稱。"
@@ -8781,6 +8826,9 @@ msgstr "需要應用層的接線（表單狀態、圖表資料、應用程式外
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "需要即時的聊天或工具呼叫狀態（ToolUIPart、流），或者應用程式外殼"
 
+msgid "Needed to receive webhooks, so thread changes sync without a manual refresh."
+msgstr "接收webhook時需要，這樣對話變更無需手動重新整理即可同步。"
+
 msgid "Needs Action"
 msgstr "需要處理"
 
@@ -9414,6 +9462,9 @@ msgstr "還沒有會話"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "沒有找到與「{searchQuery}」匹配的快速鍵"
+
+msgid "No signing secret is configured yet, so webhook deliveries are rejected."
+msgstr "尚未設定簽章密鑰，因此webhook傳送會被拒絕。"
 
 msgid "No sites are signed in"
 msgstr "沒有已登入的站點"
@@ -10724,6 +10775,12 @@ msgstr "已置頂"
 msgid "PK"
 msgstr "PK"
 
+msgid "Plain"
+msgstr "Plain"
+
+msgid "Plain rejected the stored API key. Enter a new key to resume syncing."
+msgstr "Plain拒絕了已儲存的API金鑰。請輸入新金鑰以恢復同步。"
+
 msgid "Plan"
 msgstr "計劃"
 
@@ -11448,6 +11505,9 @@ msgstr "重新連線Google"
 msgid "Reconnect Linear"
 msgstr "重新連線Linear"
 
+msgid "Reconnect Plain"
+msgstr "重新連線Plain"
+
 msgid "Reconnect required"
 msgstr "需要重新連線"
 
@@ -11789,6 +11849,9 @@ msgstr "申請試用"
 
 msgid "Request Body"
 msgstr "請求體"
+
+msgid "Request-signing secret (optional)"
+msgstr "請求簽章密鑰（選填）"
 
 msgid "Requested Changes"
 msgstr "已要求修改"
@@ -13794,6 +13857,9 @@ msgstr "訂閱數"
 msgid "SUBSCRIBE"
 msgstr "訂閱"
 
+msgid "Subscribe it to the thread events, and paste your workspace's request-signing secret (Settings → Request signing) into the connection form above."
+msgstr "為它訂閱對話事件，並將你工作區的請求簽章密鑰（Settings → Request signing）貼到上方的連線表單中。"
+
 msgid "Subscribe on YouTube"
 msgstr "在YouTube上訂閱"
 
@@ -14068,11 +14134,17 @@ msgstr "與Linear雙向同步議題。"
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "與Linear雙向同步議題。在Superset中建立任務並讓它們出現在Linear裡，也可以匯入已有的Linear議題。"
 
+msgid "Sync Plain support threads as tasks."
+msgstr "將Plain支援對話同步為任務。"
+
 msgid "Sync Repositories"
 msgstr "同步儲存庫"
 
 msgid "Sync started"
 msgstr "同步已開始"
+
+msgid "Sync support threads from Plain into Superset as tasks, so customer-reported work can flow straight into agent workspaces."
+msgstr "將Plain的支援對話作為任務同步到Superset，讓客戶回報的工作直接進入代理程式工作區。"
 
 msgid "Syncing with remote"
 msgstr "正在與遠端同步"
@@ -14832,6 +14904,9 @@ msgstr "這個拉取請求連結無效。"
 
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "這會把每個選中的worktree從磁碟上移除，並刪除它的工作區記錄。"
+
+msgid "This removes the connection and deletes the synced Plain tasks from Superset. Threads in Plain are not touched. You can reconnect at any time."
+msgstr "這會移除連線，並從Superset中刪除已同步的Plain任務。Plain中的對話不受影響。你可以隨時重新連線。"
 
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "這將移除該主機、其存取權限及其工作區。機器上的檔案會保留。執行中的主機可能會重新出現。此操作無法復原。"
@@ -15909,6 +15984,9 @@ msgstr "網頁擷取"
 
 msgid "Web Search"
 msgstr "網頁搜尋"
+
+msgid "Webhook"
+msgstr "Webhook"
 
 msgid "Webhook trigger not found"
 msgstr "未找到Webhook觸發器"

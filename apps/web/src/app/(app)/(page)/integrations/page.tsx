@@ -12,6 +12,7 @@ import { BsMicrosoftTeams } from "react-icons/bs";
 import { FaGithub, FaGoogle, FaSlack } from "react-icons/fa";
 import { SiLinear, SiNotion, SiSentry } from "react-icons/si";
 import { IntegrationCard } from "./components/IntegrationCard";
+import { PlainIcon } from "./components/PlainIcon";
 
 const CARD_STYLES: Record<
 	IntegrationProvider,
@@ -27,6 +28,7 @@ const CARD_STYLES: Record<
 	},
 	sentry: { accentColor: "#362D59", icon: <SiSentry className="size-8" /> },
 	google: { accentColor: "#4285F4", icon: <FaGoogle className="size-8" /> },
+	plain: { accentColor: "#18181B", icon: <PlainIcon className="size-8" /> },
 };
 
 export default function IntegrationsPage() {

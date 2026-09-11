@@ -165,6 +165,27 @@ export const INTEGRATIONS = [
 		webPath: "/integrations/google",
 		triggerKinds: ["google_calendar", "gmail"],
 	},
+	{
+		provider: "plain",
+		label: "Plain",
+		description: () =>
+			i18n._(
+				msg({
+					message: "Sync Plain support threads as tasks.",
+				}),
+			),
+		category: () =>
+			i18n._(
+				msg({
+					message: "Customer Support",
+				}),
+			),
+		webPath: "/integrations/plain",
+		// No automation trigger kinds yet; offered anyway because the connection
+		// syncs support threads into tasks, the way Linear's does with issues.
+		triggerKinds: [],
+		standalone: true,
+	},
 ] as const satisfies readonly Integration[];
 
 export type IntegrationProvider = (typeof INTEGRATIONS)[number]["provider"];

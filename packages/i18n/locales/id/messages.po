@@ -1227,6 +1227,9 @@ msgstr "Profil terpisah yang ditagih per token. Kunci tetap berada di CLI {0}."
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "Profil terpisah yang berbagi skill, plugin, server MCP, dan pengaturan Anda."
 
+msgid "A signing secret is configured."
+msgstr "Rahasia penandatanganan sudah dikonfigurasi."
+
 msgid "a teammate"
 msgstr "rekan tim"
 
@@ -3653,6 +3656,9 @@ msgstr "Hubungkan Notion"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Hubungkan Notion untuk menjalankan otomatisasi saat baris di sumber data berubah atau seseorang berkomentar di sebuah halaman."
 
+msgid "Connect Plain"
+msgstr "Hubungkan Plain"
+
 msgid "Connect repos and sync pull requests."
 msgstr "Hubungkan repo dan sinkronkan pull request."
 
@@ -3680,6 +3686,12 @@ msgstr "Hubungkan tenant Microsoft Teams Anda. Admin tenant masuk dan memberi pe
 msgid "Connect your Notion workspace and share the pages and data sources automations should watch."
 msgstr "Hubungkan workspace Notion Anda dan bagikan halaman serta sumber data yang harus dipantau otomatisasi."
 
+msgid "Connect your Plain workspace to sync support threads and turn customer-reported work into tasks in Superset."
+msgstr "Hubungkan workspace Plain Anda untuk menyinkronkan thread dukungan dan mengubah pekerjaan yang dilaporkan pelanggan menjadi tugas di Superset."
+
+msgid "Connect your Plain workspace with a machine user API key. Create one in Plain under Settings → Machine users, with the thread:read, customer:read, and labelType:read permissions."
+msgstr "Hubungkan workspace Plain Anda dengan kunci API machine user. Buat di Plain melalui Settings → Machine users, dengan izin thread:read, customer:read, dan labelType:read."
+
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Hubungkan workspace Slack Anda untuk mengelola tugas dari percakapan."
 
@@ -3699,8 +3711,17 @@ msgstr "Terhubung ke"
 msgid "Connected to {connectedOrgName}"
 msgstr "Terhubung ke {connectedOrgName}"
 
+msgid "Connected to {workspaceName}"
+msgstr "Terhubung ke {workspaceName}"
+
+msgid "Connected to <0>{workspaceName}</0>."
+msgstr "Terhubung ke <0>{workspaceName}</0>."
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Terhubung, tapi Microsoft Graph menolak langganan notifikasinya."
+
+msgid "Connected, but the initial sync could not be queued. Reconnect to retry."
+msgstr "Terhubung, tapi sinkronisasi awal tidak bisa dimasukkan ke antrean. Hubungkan ulang untuk mencoba lagi."
 
 msgid "Connected, but your Microsoft account could not be linked. Triggers by \"Me\" will not match until you reconnect."
 msgstr "Terhubung, tapi akun Microsoft Anda tidak bisa ditautkan. Pemicu oleh \"Saya\" tidak akan cocok sampai Anda menghubungkan ulang."
@@ -3716,6 +3737,9 @@ msgstr "Menghubungkan ke desktop…"
 
 msgid "Connecting to the workspace"
 msgstr "Menghubungkan ke workspace"
+
+msgid "Connecting..."
+msgstr "Menghubungkan..."
 
 msgid "Connecting…"
 msgstr "Menghubungkan…"
@@ -4600,6 +4624,9 @@ msgstr "Agen terminal kustom"
 msgid "Custom themes"
 msgstr "Tema kustom"
 
+msgid "Customer Support"
+msgstr "Dukungan Pelanggan"
+
 msgid "Customize commands"
 msgstr "Sesuaikan perintah"
 
@@ -5122,6 +5149,9 @@ msgstr "Putuskan Microsoft Teams?"
 msgid "Disconnect Notion?"
 msgstr "Putuskan Notion?"
 
+msgid "Disconnect Plain?"
+msgstr "Putuskan Plain?"
+
 msgid "Disconnect Sentry?"
 msgstr "Putuskan Sentry?"
 
@@ -5130,6 +5160,9 @@ msgstr "Putuskan Slack?"
 
 msgid "Disconnected"
 msgstr "Terputus"
+
+msgid "Disconnected Plain"
+msgstr "Plain diputuskan"
 
 msgid "Disconnecting..."
 msgstr "Memutuskan..."
@@ -6654,6 +6687,9 @@ msgstr "mulai {price}/pengguna/bln"
 msgid "From a visit to a download to an account to a paying organization."
 msgstr "Dari kunjungan ke unduhan, ke akun, ke organisasi berbayar."
 
+msgid "From Plain's Settings → Request signing"
+msgstr "Dari Settings → Request signing di Plain"
+
 msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
 msgstr "Dari sitemap publik: halaman perbandingan, artikel, dan entri changelog menurut minggu dipublikasikan atau terakhir direvisi."
 
@@ -7318,6 +7354,9 @@ msgstr "Di semua proyek"
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "Hanya dalam beberapa bulan, <0>puluhan ribu engineer</0> memakai Superset sebagai IDE utama mereka, di perusahaan seperti Wix, DoorDash, dan Netflix."
 
+msgid "In Plain, add a webhook target (Settings → Webhooks) pointing at:"
+msgstr "Di Plain, tambahkan target webhook (Settings → Webhooks) yang mengarah ke:"
+
 msgid "In progress"
 msgstr "Sedang dikerjakan"
 
@@ -7689,6 +7728,9 @@ msgstr "Kbd"
 msgid "Keep docs fresh"
 msgstr "Jaga dokumentasi tetap segar"
 
+msgid "Keep threads in sync as they change in Plain."
+msgstr "Jaga thread tetap sinkron saat berubah di Plain."
+
 msgid "Keep waiting"
 msgstr "Tunggu saja"
 
@@ -7881,6 +7923,9 @@ msgstr "Keluar dan hapus"
 
 msgid "Leave comment mode"
 msgstr "Keluar dari mode komentar"
+
+msgid "Leave empty to keep the stored secret."
+msgstr "Biarkan kosong untuk mempertahankan rahasia yang tersimpan."
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Kosongkan untuk kembali ke nama yang dilaporkan terminal."
@@ -8781,6 +8826,9 @@ msgstr "Butuh perangkaian di level aplikasi (state form, data grafik, app shell)
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Butuh status chat/tool-call langsung (ToolUIPart, stream) atau app shell"
 
+msgid "Needed to receive webhooks, so thread changes sync without a manual refresh."
+msgstr "Diperlukan untuk menerima webhook, agar perubahan thread tersinkron tanpa refresh manual."
+
 msgid "Needs Action"
 msgstr "Perlu Tindakan"
 
@@ -9414,6 +9462,9 @@ msgstr "Belum ada sesi"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "Tidak ada pintasan yang cocok dengan \"{searchQuery}\""
+
+msgid "No signing secret is configured yet, so webhook deliveries are rejected."
+msgstr "Belum ada rahasia penandatanganan yang dikonfigurasi, jadi kiriman webhook ditolak."
 
 msgid "No sites are signed in"
 msgstr "Tidak ada situs yang sedang masuk"
@@ -10724,6 +10775,12 @@ msgstr "Tersemat"
 msgid "PK"
 msgstr "PK"
 
+msgid "Plain"
+msgstr "Plain"
+
+msgid "Plain rejected the stored API key. Enter a new key to resume syncing."
+msgstr "Plain menolak kunci API yang tersimpan. Masukkan kunci baru untuk melanjutkan sinkronisasi."
+
 msgid "Plan"
 msgstr "Paket"
 
@@ -11448,6 +11505,9 @@ msgstr "Hubungkan ulang Google"
 msgid "Reconnect Linear"
 msgstr "Hubungkan ulang Linear"
 
+msgid "Reconnect Plain"
+msgstr "Hubungkan ulang Plain"
+
 msgid "Reconnect required"
 msgstr "Perlu dihubungkan ulang"
 
@@ -11789,6 +11849,9 @@ msgstr "Minta uji coba"
 
 msgid "Request Body"
 msgstr "Body Permintaan"
+
+msgid "Request-signing secret (optional)"
+msgstr "Rahasia penandatanganan permintaan (opsional)"
 
 msgid "Requested Changes"
 msgstr "Meminta Perubahan"
@@ -13794,6 +13857,9 @@ msgstr "Langganan"
 msgid "SUBSCRIBE"
 msgstr "BERLANGGANAN"
 
+msgid "Subscribe it to the thread events, and paste your workspace's request-signing secret (Settings → Request signing) into the connection form above."
+msgstr "Langgankan target itu ke event thread, lalu tempel rahasia penandatanganan permintaan workspace Anda (Settings → Request signing) ke formulir koneksi di atas."
+
 msgid "Subscribe on YouTube"
 msgstr "Berlangganan di YouTube"
 
@@ -14068,11 +14134,17 @@ msgstr "Sinkronkan issue dua arah dengan Linear."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Sinkronkan issue dua arah dengan Linear. Buat tugas di Superset dan tugas itu muncul di Linear, atau impor issue Linear yang sudah ada."
 
+msgid "Sync Plain support threads as tasks."
+msgstr "Sinkronkan thread dukungan Plain sebagai tugas."
+
 msgid "Sync Repositories"
 msgstr "Sinkronkan Repositori"
 
 msgid "Sync started"
 msgstr "Sinkronisasi dimulai"
+
+msgid "Sync support threads from Plain into Superset as tasks, so customer-reported work can flow straight into agent workspaces."
+msgstr "Sinkronkan thread dukungan dari Plain ke Superset sebagai tugas, agar pekerjaan yang dilaporkan pelanggan langsung masuk ke workspace agen."
 
 msgid "Syncing with remote"
 msgstr "Menyinkronkan dengan remote"
@@ -14832,6 +14904,9 @@ msgstr "Tautan pull request ini tidak valid."
 
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Ini menghapus setiap worktree terpilih dari disk dan menghapus catatan workspace-nya."
+
+msgid "This removes the connection and deletes the synced Plain tasks from Superset. Threads in Plain are not touched. You can reconnect at any time."
+msgstr "Ini menghapus koneksi dan menghapus tugas Plain yang tersinkron dari Superset. Thread di Plain tidak diubah. Anda bisa menghubungkan ulang kapan saja."
 
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Ini menghapus host, aksesnya, dan workspace-nya. File di mesin itu tetap ada. Host yang berjalan bisa muncul lagi. Ini tidak bisa dibatalkan."
@@ -15909,6 +15984,9 @@ msgstr "Pengambilan web"
 
 msgid "Web Search"
 msgstr "Pencarian web"
+
+msgid "Webhook"
+msgstr "Webhook"
 
 msgid "Webhook trigger not found"
 msgstr "Pemicu webhook tidak ditemukan"

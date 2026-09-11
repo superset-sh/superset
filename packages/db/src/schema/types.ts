@@ -30,6 +30,10 @@ export type SlackConfig = {
 	provider: "slack";
 };
 
+export type PlainConfig = {
+	provider: "plain";
+};
+
 /**
  * One Graph change-notification subscription this connection holds. Kept on
  * the connection because it is the connection's: renewed by the cron, replaced
@@ -103,6 +107,7 @@ export type GoogleConfig = {
 export type IntegrationConfig =
 	| LinearConfig
 	| SlackConfig
+	| PlainConfig
 	| MicrosoftTeamsConfig
 	| SentryConfig
 	| GoogleConfig;

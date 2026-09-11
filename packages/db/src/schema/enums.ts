@@ -34,6 +34,7 @@ export const integrationProviderValues = [
 	"microsoft_teams",
 	"google",
 	"notion",
+	"plain",
 ] as const;
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;

@@ -1227,6 +1227,9 @@ msgstr "A separate pay-per-token profile. The key stays in the {0} CLI."
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "A separate profile that shares your skills, plugins, MCP servers, and settings."
 
+msgid "A signing secret is configured."
+msgstr "A signing secret is configured."
+
 msgid "a teammate"
 msgstr "a teammate"
 
@@ -3653,6 +3656,9 @@ msgstr "Connect Notion"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 
+msgid "Connect Plain"
+msgstr "Connect Plain"
+
 msgid "Connect repos and sync pull requests."
 msgstr "Connect repos and sync pull requests."
 
@@ -3680,6 +3686,12 @@ msgstr "Connect your Microsoft Teams tenant. A tenant admin signs in and grants 
 msgid "Connect your Notion workspace and share the pages and data sources automations should watch."
 msgstr "Connect your Notion workspace and share the pages and data sources automations should watch."
 
+msgid "Connect your Plain workspace to sync support threads and turn customer-reported work into tasks in Superset."
+msgstr "Connect your Plain workspace to sync support threads and turn customer-reported work into tasks in Superset."
+
+msgid "Connect your Plain workspace with a machine user API key. Create one in Plain under Settings → Machine users, with the thread:read, customer:read, and labelType:read permissions."
+msgstr "Connect your Plain workspace with a machine user API key. Create one in Plain under Settings → Machine users, with the thread:read, customer:read, and labelType:read permissions."
+
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Connect your Slack workspace to manage tasks from conversations."
 
@@ -3699,8 +3711,17 @@ msgstr "Connected to"
 msgid "Connected to {connectedOrgName}"
 msgstr "Connected to {connectedOrgName}"
 
+msgid "Connected to {workspaceName}"
+msgstr "Connected to {workspaceName}"
+
+msgid "Connected to <0>{workspaceName}</0>."
+msgstr "Connected to <0>{workspaceName}</0>."
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "Connected, but Microsoft Graph refused the notification subscriptions."
+
+msgid "Connected, but the initial sync could not be queued. Reconnect to retry."
+msgstr "Connected, but the initial sync could not be queued. Reconnect to retry."
 
 msgid "Connected, but your Microsoft account could not be linked. Triggers by \"Me\" will not match until you reconnect."
 msgstr "Connected, but your Microsoft account could not be linked. Triggers by \"Me\" will not match until you reconnect."
@@ -3716,6 +3737,9 @@ msgstr "Connecting to the desktop…"
 
 msgid "Connecting to the workspace"
 msgstr "Connecting to the workspace"
+
+msgid "Connecting..."
+msgstr "Connecting..."
 
 msgid "Connecting…"
 msgstr "Connecting…"
@@ -4600,6 +4624,9 @@ msgstr "Custom terminal agents"
 msgid "Custom themes"
 msgstr "Custom themes"
 
+msgid "Customer Support"
+msgstr "Customer Support"
+
 msgid "Customize commands"
 msgstr "Customize commands"
 
@@ -5122,6 +5149,9 @@ msgstr "Disconnect Microsoft Teams?"
 msgid "Disconnect Notion?"
 msgstr "Disconnect Notion?"
 
+msgid "Disconnect Plain?"
+msgstr "Disconnect Plain?"
+
 msgid "Disconnect Sentry?"
 msgstr "Disconnect Sentry?"
 
@@ -5130,6 +5160,9 @@ msgstr "Disconnect Slack?"
 
 msgid "Disconnected"
 msgstr "Disconnected"
+
+msgid "Disconnected Plain"
+msgstr "Disconnected Plain"
 
 msgid "Disconnecting..."
 msgstr "Disconnecting..."
@@ -6654,6 +6687,9 @@ msgstr "from {price}/user/mo"
 msgid "From a visit to a download to an account to a paying organization."
 msgstr "From a visit to a download to an account to a paying organization."
 
+msgid "From Plain's Settings → Request signing"
+msgstr "From Plain's Settings → Request signing"
+
 msgid "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
 msgstr "From the public sitemap: compare pages, posts, and changelog entries by the week they were published or last revised."
 
@@ -7318,6 +7354,9 @@ msgstr "In all projects"
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 
+msgid "In Plain, add a webhook target (Settings → Webhooks) pointing at:"
+msgstr "In Plain, add a webhook target (Settings → Webhooks) pointing at:"
+
 msgid "In progress"
 msgstr "In progress"
 
@@ -7689,6 +7728,9 @@ msgstr "Kbd"
 msgid "Keep docs fresh"
 msgstr "Keep docs fresh"
 
+msgid "Keep threads in sync as they change in Plain."
+msgstr "Keep threads in sync as they change in Plain."
+
 msgid "Keep waiting"
 msgstr "Keep waiting"
 
@@ -7881,6 +7923,9 @@ msgstr "Leave and delete"
 
 msgid "Leave comment mode"
 msgstr "Leave comment mode"
+
+msgid "Leave empty to keep the stored secret."
+msgstr "Leave empty to keep the stored secret."
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Leave it empty to go back to the name the terminal reports."
@@ -8781,6 +8826,9 @@ msgstr "Need app-level wiring (form state, chart data, app shell)"
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 
+msgid "Needed to receive webhooks, so thread changes sync without a manual refresh."
+msgstr "Needed to receive webhooks, so thread changes sync without a manual refresh."
+
 msgid "Needs Action"
 msgstr "Needs Action"
 
@@ -9414,6 +9462,9 @@ msgstr "No sessions yet"
 
 msgid "No shortcuts found matching \"{searchQuery}\""
 msgstr "No shortcuts found matching \"{searchQuery}\""
+
+msgid "No signing secret is configured yet, so webhook deliveries are rejected."
+msgstr "No signing secret is configured yet, so webhook deliveries are rejected."
 
 msgid "No sites are signed in"
 msgstr "No sites are signed in"
@@ -10724,6 +10775,12 @@ msgstr "Pinned"
 msgid "PK"
 msgstr "PK"
 
+msgid "Plain"
+msgstr "Plain"
+
+msgid "Plain rejected the stored API key. Enter a new key to resume syncing."
+msgstr "Plain rejected the stored API key. Enter a new key to resume syncing."
+
 msgid "Plan"
 msgstr "Plan"
 
@@ -11448,6 +11505,9 @@ msgstr "Reconnect Google"
 msgid "Reconnect Linear"
 msgstr "Reconnect Linear"
 
+msgid "Reconnect Plain"
+msgstr "Reconnect Plain"
+
 msgid "Reconnect required"
 msgstr "Reconnect required"
 
@@ -11789,6 +11849,9 @@ msgstr "Request a trial"
 
 msgid "Request Body"
 msgstr "Request Body"
+
+msgid "Request-signing secret (optional)"
+msgstr "Request-signing secret (optional)"
 
 msgid "Requested Changes"
 msgstr "Requested Changes"
@@ -13794,6 +13857,9 @@ msgstr "Subs"
 msgid "SUBSCRIBE"
 msgstr "SUBSCRIBE"
 
+msgid "Subscribe it to the thread events, and paste your workspace's request-signing secret (Settings → Request signing) into the connection form above."
+msgstr "Subscribe it to the thread events, and paste your workspace's request-signing secret (Settings → Request signing) into the connection form above."
+
 msgid "Subscribe on YouTube"
 msgstr "Subscribe on YouTube"
 
@@ -14068,11 +14134,17 @@ msgstr "Sync issues bidirectionally with Linear."
 msgid "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 msgstr "Sync issues bidirectionally with Linear. Create tasks in Superset and have them appear in Linear, or import existing Linear issues."
 
+msgid "Sync Plain support threads as tasks."
+msgstr "Sync Plain support threads as tasks."
+
 msgid "Sync Repositories"
 msgstr "Sync Repositories"
 
 msgid "Sync started"
 msgstr "Sync started"
+
+msgid "Sync support threads from Plain into Superset as tasks, so customer-reported work can flow straight into agent workspaces."
+msgstr "Sync support threads from Plain into Superset as tasks, so customer-reported work can flow straight into agent workspaces."
 
 msgid "Syncing with remote"
 msgstr "Syncing with remote"
@@ -14832,6 +14904,9 @@ msgstr "This pull request link is invalid."
 
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "This removes every selected worktree from disk and deletes its workspace record."
+
+msgid "This removes the connection and deletes the synced Plain tasks from Superset. Threads in Plain are not touched. You can reconnect at any time."
+msgstr "This removes the connection and deletes the synced Plain tasks from Superset. Threads in Plain are not touched. You can reconnect at any time."
 
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
@@ -15909,6 +15984,9 @@ msgstr "Web Fetch"
 
 msgid "Web Search"
 msgstr "Web Search"
+
+msgid "Webhook"
+msgstr "Webhook"
 
 msgid "Webhook trigger not found"
 msgstr "Webhook trigger not found"
