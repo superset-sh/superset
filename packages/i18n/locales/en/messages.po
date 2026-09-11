@@ -9839,23 +9839,23 @@ msgstr "Online Now"
 msgid "Only available on macOS."
 msgstr "Only available on macOS."
 
-msgid "Only host owners can change membership"
-msgstr "Only host owners can change membership"
-
 msgid "Only host owners can change this location."
 msgstr "Only host owners can change this location."
 
-msgid "Only host owners can delete this host"
-msgstr "Only host owners can delete this host"
+msgid "Only host owners or organization admins can change membership"
+msgstr "Only host owners or organization admins can change membership"
+
+msgid "Only host owners or organization admins can change membership."
+msgstr "Only host owners or organization admins can change membership."
+
+msgid "Only host owners or organization admins can delete this host"
+msgstr "Only host owners or organization admins can delete this host"
 
 msgid "Only organization owners can delete this project."
 msgstr "Only organization owners can delete this project."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Only organization owners can modify these settings."
-
-msgid "Only owners can change membership."
-msgstr "Only owners can change membership."
 
 msgid "Only owners can delete projects"
 msgstr "Only owners can delete projects"
@@ -9875,11 +9875,14 @@ msgstr "Only the author can edit a comment"
 msgid "Only the host owner can set its wake command"
 msgstr "Only the host owner can set its wake command"
 
-msgid "Only the owner can run this automation"
-msgstr "Only the owner can run this automation"
+msgid "Only the owner or an admin can run this automation"
+msgstr "Only the owner or an admin can run this automation"
 
-msgid "Only the owner can view prompt history"
-msgstr "Only the owner can view prompt history"
+msgid "Only the owner or an admin can view prompt history"
+msgstr "Only the owner or an admin can view prompt history"
+
+msgid "Only the owner or an organization admin can change this automation"
+msgstr "Only the owner or an organization admin can change this automation"
 
 msgid "Only the person who created this page can change it"
 msgstr "Only the person who created this page can change it"
@@ -10474,8 +10477,8 @@ msgid "Overview"
 msgstr "Overview"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
-msgid "Owned by {0} — only they can edit this automation."
-msgstr "Owned by {0} — only they can edit this automation."
+msgid "Owned by {0} — only they or an organization admin can edit this automation."
+msgstr "Owned by {0} — only they or an organization admin can edit this automation."
 
 msgid "Owner"
 msgstr "Owner"

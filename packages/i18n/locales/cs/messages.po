@@ -9839,23 +9839,23 @@ msgstr "Právě online"
 msgid "Only available on macOS."
 msgstr "Dostupné jen na macOS."
 
-msgid "Only host owners can change membership"
-msgstr "Členství mohou měnit jen vlastníci hosta"
-
 msgid "Only host owners can change this location."
 msgstr "Toto umístění mohou měnit jen vlastníci hosta."
 
-msgid "Only host owners can delete this host"
-msgstr "Tohoto hosta mohou smazat jen jeho vlastníci"
+msgid "Only host owners or organization admins can change membership"
+msgstr "Členství mohou měnit jen vlastníci hosta nebo administrátoři organizace"
+
+msgid "Only host owners or organization admins can change membership."
+msgstr "Členství mohou měnit jen vlastníci hosta nebo administrátoři organizace."
+
+msgid "Only host owners or organization admins can delete this host"
+msgstr "Tohoto hosta mohou smazat jen jeho vlastníci nebo administrátoři organizace"
 
 msgid "Only organization owners can delete this project."
 msgstr "Tento projekt mohou smazat jen vlastníci organizace."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Toto nastavení mohou měnit jen vlastníci organizace."
-
-msgid "Only owners can change membership."
-msgstr "Členství mohou měnit jen vlastníci."
 
 msgid "Only owners can delete projects"
 msgstr "Projekty mohou mazat jen vlastníci"
@@ -9875,11 +9875,14 @@ msgstr "Komentář může upravit jen jeho autor"
 msgid "Only the host owner can set its wake command"
 msgstr "Příkaz k probuzení může nastavit jen vlastník hosta"
 
-msgid "Only the owner can run this automation"
-msgstr "Tuto automatizaci může spustit jen vlastník"
+msgid "Only the owner or an admin can run this automation"
+msgstr "Tuto automatizaci může spustit jen vlastník nebo administrátor"
 
-msgid "Only the owner can view prompt history"
-msgstr "Historii promptů může zobrazit jen vlastník"
+msgid "Only the owner or an admin can view prompt history"
+msgstr "Historii promptů může zobrazit jen vlastník nebo administrátor"
+
+msgid "Only the owner or an organization admin can change this automation"
+msgstr "Tuto automatizaci může měnit jen vlastník nebo administrátor organizace"
 
 msgid "Only the person who created this page can change it"
 msgstr "Tuto stránku může měnit jen ten, kdo ji vytvořil"
@@ -10474,8 +10477,8 @@ msgid "Overview"
 msgstr "Přehled"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
-msgid "Owned by {0} — only they can edit this automation."
-msgstr "Vlastník: {0} — upravovat tuto automatizaci může jen vlastník."
+msgid "Owned by {0} — only they or an organization admin can edit this automation."
+msgstr "Vlastník: {0} — upravovat tuto automatizaci může jen vlastník nebo administrátor organizace."
 
 msgid "Owner"
 msgstr "Vlastník"

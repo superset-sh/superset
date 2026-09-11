@@ -7,7 +7,7 @@ const input = {
 	name: "original",
 	version: "1.28.0",
 };
-function fixture(owner: boolean) {
+function fixture(owner: boolean, orgAdmin = false) {
 	let row = {
 		name: "Renamed by owner",
 		version: "1.27.0",
@@ -32,6 +32,7 @@ function fixture(owner: boolean) {
 				grants++;
 			},
 			isOwner: async () => owner,
+			isOrgAdmin: async () => orgAdmin,
 			update: async (metadata: object) => {
 				writes++;
 				row = { ...row, ...metadata };
@@ -75,6 +76,20 @@ test("a newly inserted host grants ownership to its registering caller", async (
 	});
 	expect(result.inserted).toBe(true);
 	expect(f.grants).toBe(1);
+});
+test("an organization admin re-registering a host it does not own takes ownership and reports its build", async () => {
+	const f = fixture(false, true);
+	const result = await registerHost(input, f.store);
+	expect(result.inserted).toBe(false);
+	expect(f.grants).toBe(1);
+	expect(f.row.version).toBe("1.28.0");
+	expect(f.row.name).toBe("Renamed by owner");
+});
+test("an organization admin without metadata to report is not granted ownership", async () => {
+	const f = fixture(false, true);
+	await registerHost({ ...input, version: undefined }, f.store);
+	expect(f.writes).toBe(0);
+	expect(f.grants).toBe(0);
 });
 test("platform-only metadata writes also require ownership", async () => {
 	const f = fixture(false);

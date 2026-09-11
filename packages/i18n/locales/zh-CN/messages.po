@@ -9839,23 +9839,23 @@ msgstr "当前在线"
 msgid "Only available on macOS."
 msgstr "仅在macOS上可用。"
 
-msgid "Only host owners can change membership"
-msgstr "只有主机所有者才能更改成员关系"
-
 msgid "Only host owners can change this location."
 msgstr "只有主机所有者可以更改此位置。"
 
-msgid "Only host owners can delete this host"
-msgstr "只有主机所有者才能删除此主机"
+msgid "Only host owners or organization admins can change membership"
+msgstr "只有主机所有者或组织管理员才能更改成员关系"
+
+msgid "Only host owners or organization admins can change membership."
+msgstr "只有主机所有者或组织管理员才能更改成员关系。"
+
+msgid "Only host owners or organization admins can delete this host"
+msgstr "只有主机所有者或组织管理员才能删除此主机"
 
 msgid "Only organization owners can delete this project."
 msgstr "只有组织所有者可以删除此项目。"
 
 msgid "Only organization owners can modify these settings."
 msgstr "只有组织所有者可以修改这些设置。"
-
-msgid "Only owners can change membership."
-msgstr "只有所有者可以更改成员。"
 
 msgid "Only owners can delete projects"
 msgstr "只有所有者才能删除项目"
@@ -9875,11 +9875,14 @@ msgstr "只有作者才能编辑评论"
 msgid "Only the host owner can set its wake command"
 msgstr "只有主机所有者才能设置其唤醒命令"
 
-msgid "Only the owner can run this automation"
-msgstr "只有所有者能运行这个自动化"
+msgid "Only the owner or an admin can run this automation"
+msgstr "只有所有者或管理员能运行这个自动化"
 
-msgid "Only the owner can view prompt history"
-msgstr "只有所有者能查看提示词历史"
+msgid "Only the owner or an admin can view prompt history"
+msgstr "只有所有者或管理员能查看提示词历史"
+
+msgid "Only the owner or an organization admin can change this automation"
+msgstr "只有所有者或组织管理员能更改这个自动化"
 
 msgid "Only the person who created this page can change it"
 msgstr "只有创建此页面的人才能修改它"
@@ -10474,8 +10477,8 @@ msgid "Overview"
 msgstr "概览"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
-msgid "Owned by {0} — only they can edit this automation."
-msgstr "归{0}所有，只有本人能编辑这个自动化。"
+msgid "Owned by {0} — only they or an organization admin can edit this automation."
+msgstr "归{0}所有，只有本人或组织管理员能编辑这个自动化。"
 
 msgid "Owner"
 msgstr "所有者"

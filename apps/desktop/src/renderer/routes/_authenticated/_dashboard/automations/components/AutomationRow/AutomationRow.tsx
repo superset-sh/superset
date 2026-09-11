@@ -45,7 +45,8 @@ interface AutomationRowProps {
 	lastRun: AutomationLastRun | null;
 	/** Shared ticking clock so relative times stay fresh without per-row timers. */
 	now: Date;
-	isOwner: boolean;
+	/** Owner or org admin: the server allows the row's mutations only to them. */
+	canEdit: boolean;
 	/** True while a run/retry dispatch for this automation is in flight. */
 	isRetrying: boolean;
 	onRunNow: (automation: AutomationListItem) => void;
@@ -125,7 +126,7 @@ export function AutomationRow({
 	isSession = false,
 	lastRun,
 	now,
-	isOwner,
+	canEdit,
 	isRetrying,
 	onRunNow,
 	onToggleEnabled,
@@ -174,7 +175,7 @@ export function AutomationRow({
 	const actionsMenuItems = (kind: "context" | "dropdown") => (
 		<AutomationActionsMenuItems
 			kind={kind}
-			isOwner={isOwner}
+			canEdit={canEdit}
 			enabled={automation.enabled}
 			onEdit={openDetail}
 			onCopyLink={() => copyAutomationLink(automation.id)}
@@ -353,7 +354,7 @@ export function AutomationRow({
 
 					<TableCell className="pr-4">
 						<span className="flex items-center justify-end gap-0.5">
-							{isOwner && (
+							{canEdit && (
 								<Tooltip>
 									<TooltipTrigger asChild>
 										<Button

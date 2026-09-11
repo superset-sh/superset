@@ -9,7 +9,11 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, userError } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
-import { getAutomationForUser, recordPromptVersion } from "./helpers";
+import {
+	getAutomationForUser,
+	recordPromptVersion,
+	requireAutomationEditAccess,
+} from "./helpers";
 
 const DEFAULT_VERSION_LIMIT = 100;
 const MAX_VERSION_LIMIT = 200;
@@ -67,6 +71,7 @@ export const automationVersionsRouter = {
 					id: automationPromptVersions.id,
 					automationId: automationPromptVersions.automationId,
 					content: automationPromptVersions.content,
+					ownerUserId: automations.ownerUserId,
 				})
 				.from(automationPromptVersions)
 				.innerJoin(
@@ -77,7 +82,6 @@ export const automationVersionsRouter = {
 					and(
 						eq(automationPromptVersions.id, input.versionId),
 						eq(automations.organizationId, organizationId),
-						eq(automations.ownerUserId, ctx.session.user.id),
 					),
 				)
 				.limit(1);
@@ -89,8 +93,17 @@ export const automationVersionsRouter = {
 					i18nKey: "serverError.automation.versionNotFound",
 				});
 			}
+			await requireAutomationEditAccess(
+				ctx.session.user.id,
+				organizationId,
+				row.ownerUserId,
+			);
 
-			return row;
+			return {
+				id: row.id,
+				automationId: row.automationId,
+				content: row.content,
+			};
 		}),
 
 	restore: protectedProcedure
@@ -103,6 +116,7 @@ export const automationVersionsRouter = {
 					id: automationPromptVersions.id,
 					automationId: automationPromptVersions.automationId,
 					content: automationPromptVersions.content,
+					ownerUserId: automations.ownerUserId,
 				})
 				.from(automationPromptVersions)
 				.innerJoin(
@@ -113,7 +127,6 @@ export const automationVersionsRouter = {
 					and(
 						eq(automationPromptVersions.id, input.versionId),
 						eq(automations.organizationId, organizationId),
-						eq(automations.ownerUserId, ctx.session.user.id),
 					),
 				)
 				.limit(1);
@@ -125,6 +138,11 @@ export const automationVersionsRouter = {
 					i18nKey: "serverError.automation.versionNotFound",
 				});
 			}
+			await requireAutomationEditAccess(
+				ctx.session.user.id,
+				organizationId,
+				version.ownerUserId,
+			);
 
 			const restored = await dbWs.transaction(async (tx) => {
 				await tx

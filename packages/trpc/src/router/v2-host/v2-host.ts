@@ -15,7 +15,12 @@ import {
 	requireActiveOrgMembership,
 } from "../utils/active-org";
 
-async function requireHostOwner(
+function isOrgAdminRole(role: string | null | undefined) {
+	return role === "admin" || role === "owner";
+}
+
+/** Host owners and organization admins may manage a host's cloud record. */
+async function requireHostManager(
 	userId: string,
 	machineId: string,
 	organizationId: string,
@@ -36,20 +41,30 @@ async function requireHostOwner(
 		});
 	}
 
-	const access = await db.query.v2UsersHosts.findFirst({
-		where: and(
-			eq(v2UsersHosts.organizationId, organizationId),
-			eq(v2UsersHosts.userId, userId),
-			eq(v2UsersHosts.hostId, machineId),
-		),
-		columns: { role: true },
-	});
+	const [access, membership] = await Promise.all([
+		db.query.v2UsersHosts.findFirst({
+			where: and(
+				eq(v2UsersHosts.organizationId, organizationId),
+				eq(v2UsersHosts.userId, userId),
+				eq(v2UsersHosts.hostId, machineId),
+			),
+			columns: { role: true },
+		}),
+		db.query.members.findFirst({
+			where: and(
+				eq(members.organizationId, organizationId),
+				eq(members.userId, userId),
+			),
+			columns: { role: true },
+		}),
+	]);
 
-	if (!access || access.role !== "owner") {
+	if (access?.role !== "owner" && !isOrgAdminRole(membership?.role)) {
 		throw userError({
 			code: "FORBIDDEN",
-			message: "Only host owners can change membership",
-			i18nKey: "serverError.v2Host.onlyHostOwnersCanChangeMembership",
+			message: "Only host owners or organization admins can change membership",
+			i18nKey:
+				"serverError.v2Host.onlyHostOwnersOrOrganizationAdminsCanChangeMembership",
 		});
 	}
 
@@ -148,7 +163,11 @@ export const v2HostRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx);
-			await requireHostOwner(ctx.session.user.id, input.hostId, organizationId);
+			await requireHostManager(
+				ctx.session.user.id,
+				input.hostId,
+				organizationId,
+			);
 
 			const txid = await dbWs.transaction(async (tx) => {
 				const [updated] = await tx
@@ -181,7 +200,7 @@ export const v2HostRouter = {
 
 			const txid = await dbWs.transaction(async (tx) => {
 				const [membership] = await tx
-					.select({ id: members.id })
+					.select({ role: members.role })
 					.from(members)
 					.where(
 						and(
@@ -233,11 +252,13 @@ export const v2HostRouter = {
 					.limit(1)
 					.for("update");
 
-				if (!access || access.role !== "owner") {
+				if (access?.role !== "owner" && !isOrgAdminRole(membership.role)) {
 					throw userError({
 						code: "FORBIDDEN",
-						message: "Only host owners can delete this host",
-						i18nKey: "serverError.v2Host.onlyHostOwnersCanDelete",
+						message:
+							"Only host owners or organization admins can delete this host",
+						i18nKey:
+							"serverError.v2Host.onlyHostOwnersOrOrganizationAdminsCanDelete",
 					});
 				}
 
@@ -275,7 +296,11 @@ export const v2HostRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx);
-			await requireHostOwner(ctx.session.user.id, input.hostId, organizationId);
+			await requireHostManager(
+				ctx.session.user.id,
+				input.hostId,
+				organizationId,
+			);
 			await requireOrgMember(input.userId, organizationId);
 
 			const result = await dbWs.transaction(async (tx) => {
@@ -319,7 +344,7 @@ export const v2HostRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx);
-			const host = await requireHostOwner(
+			const host = await requireHostManager(
 				ctx.session.user.id,
 				input.hostId,
 				organizationId,
@@ -399,7 +424,7 @@ export const v2HostRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = requireActiveOrgId(ctx);
-			const host = await requireHostOwner(
+			const host = await requireHostManager(
 				ctx.session.user.id,
 				input.hostId,
 				organizationId,

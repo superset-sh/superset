@@ -9839,23 +9839,23 @@ msgstr "Đang trực tuyến"
 msgid "Only available on macOS."
 msgstr "Chỉ có trên macOS."
 
-msgid "Only host owners can change membership"
-msgstr "Chỉ chủ sở hữu host mới thay đổi được thành viên"
-
 msgid "Only host owners can change this location."
 msgstr "Chỉ chủ sở hữu host mới đổi được vị trí này."
 
-msgid "Only host owners can delete this host"
-msgstr "Chỉ chủ sở hữu host mới xóa được host này"
+msgid "Only host owners or organization admins can change membership"
+msgstr "Chỉ chủ sở hữu host hoặc quản trị viên tổ chức mới thay đổi được thành viên"
+
+msgid "Only host owners or organization admins can change membership."
+msgstr "Chỉ chủ sở hữu host hoặc quản trị viên tổ chức mới thay đổi được thành viên."
+
+msgid "Only host owners or organization admins can delete this host"
+msgstr "Chỉ chủ sở hữu host hoặc quản trị viên tổ chức mới xóa được host này"
 
 msgid "Only organization owners can delete this project."
 msgstr "Chỉ chủ sở hữu tổ chức mới xóa được dự án này."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Chỉ chủ sở hữu tổ chức mới sửa được các cài đặt này."
-
-msgid "Only owners can change membership."
-msgstr "Chỉ chủ sở hữu mới thay đổi được thành viên."
 
 msgid "Only owners can delete projects"
 msgstr "Chỉ chủ sở hữu mới xóa được dự án"
@@ -9875,11 +9875,14 @@ msgstr "Chỉ tác giả mới sửa được bình luận"
 msgid "Only the host owner can set its wake command"
 msgstr "Chỉ chủ sở hữu host mới đặt được lệnh đánh thức"
 
-msgid "Only the owner can run this automation"
-msgstr "Chỉ chủ sở hữu mới chạy được tự động hóa này"
+msgid "Only the owner or an admin can run this automation"
+msgstr "Chỉ chủ sở hữu hoặc quản trị viên mới chạy được tự động hóa này"
 
-msgid "Only the owner can view prompt history"
-msgstr "Chỉ chủ sở hữu mới xem được lịch sử prompt"
+msgid "Only the owner or an admin can view prompt history"
+msgstr "Chỉ chủ sở hữu hoặc quản trị viên mới xem được lịch sử prompt"
+
+msgid "Only the owner or an organization admin can change this automation"
+msgstr "Chỉ chủ sở hữu hoặc quản trị viên tổ chức mới thay đổi được tự động hóa này"
 
 msgid "Only the person who created this page can change it"
 msgstr "Chỉ người tạo trang này mới thay đổi được"
@@ -10474,8 +10477,8 @@ msgid "Overview"
 msgstr "Tổng quan"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
-msgid "Owned by {0} — only they can edit this automation."
-msgstr "Thuộc sở hữu của {0} — chỉ họ mới sửa được tự động hóa này."
+msgid "Owned by {0} — only they or an organization admin can edit this automation."
+msgstr "Thuộc sở hữu của {0} — chỉ họ hoặc quản trị viên tổ chức mới sửa được tự động hóa này."
 
 msgid "Owner"
 msgstr "Chủ sở hữu"

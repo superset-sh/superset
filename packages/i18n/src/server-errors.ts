@@ -73,6 +73,13 @@ export const serverErrorMessages: Record<
 				message: "Failed to create automation",
 			}),
 		),
+	"serverError.automation.onlyTheOwnerOrAnOrganizationAdmin": () =>
+		i18n._(
+			msg({
+				message:
+					"Only the owner or an organization admin can change this automation",
+			}),
+		),
 	"serverError.automation.targethostidDoesNotMatchTheWorkspace": () =>
 		i18n._(
 			msg({
@@ -697,16 +704,18 @@ export const serverErrorMessages: Record<
 				message: "Not a member of this organization",
 			}),
 		),
-	"serverError.v2Host.onlyHostOwnersCanChangeMembership": () =>
+	"serverError.v2Host.onlyHostOwnersOrOrganizationAdminsCanChangeMembership":
+		() =>
+			i18n._(
+				msg({
+					message:
+						"Only host owners or organization admins can change membership",
+				}),
+			),
+	"serverError.v2Host.onlyHostOwnersOrOrganizationAdminsCanDelete": () =>
 		i18n._(
 			msg({
-				message: "Only host owners can change membership",
-			}),
-		),
-	"serverError.v2Host.onlyHostOwnersCanDelete": () =>
-		i18n._(
-			msg({
-				message: "Only host owners can delete this host",
+				message: "Only host owners or organization admins can delete this host",
 			}),
 		),
 	"serverError.v2Host.thisUserRunsTheHostService": () =>

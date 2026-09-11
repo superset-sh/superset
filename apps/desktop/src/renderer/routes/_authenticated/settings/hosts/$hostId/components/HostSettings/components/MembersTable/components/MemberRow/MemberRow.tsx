@@ -20,14 +20,14 @@ export interface MemberRowData {
 
 interface MemberRowProps {
 	member: MemberRowData;
-	isOwner: boolean;
+	canManage: boolean;
 	onSetRole: (member: MemberRowData, role: "owner" | "member") => void;
 	onRemove: (member: MemberRowData) => void;
 }
 
 export function MemberRow({
 	member,
-	isOwner,
+	canManage,
 	onSetRole,
 	onRemove,
 }: MemberRowProps) {
@@ -37,7 +37,7 @@ export function MemberRow({
 			<TableCell className="font-medium">{member.name}</TableCell>
 			<TableCell className="text-muted-foreground">{member.email}</TableCell>
 			<TableCell>
-				{isOwner ? (
+				{canManage ? (
 					<Select
 						value={member.role}
 						onValueChange={(value) =>
@@ -66,7 +66,7 @@ export function MemberRow({
 					</span>
 				)}
 			</TableCell>
-			{isOwner && (
+			{canManage && (
 				<TableCell>
 					<Button
 						variant="ghost"

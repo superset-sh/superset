@@ -9839,23 +9839,23 @@ msgstr "Online ora"
 msgid "Only available on macOS."
 msgstr "Disponibile solo su macOS."
 
-msgid "Only host owners can change membership"
-msgstr "Solo i proprietari dell'host possono modificare gli accessi"
-
 msgid "Only host owners can change this location."
 msgstr "Solo i proprietari dell'host possono cambiare questa posizione."
 
-msgid "Only host owners can delete this host"
-msgstr "Solo i proprietari dell'host possono eliminarlo"
+msgid "Only host owners or organization admins can change membership"
+msgstr "Solo i proprietari dell'host o gli amministratori dell'organizzazione possono modificare gli accessi"
+
+msgid "Only host owners or organization admins can change membership."
+msgstr "Solo i proprietari dell'host o gli amministratori dell'organizzazione possono modificare gli accessi."
+
+msgid "Only host owners or organization admins can delete this host"
+msgstr "Solo i proprietari dell'host o gli amministratori dell'organizzazione possono eliminarlo"
 
 msgid "Only organization owners can delete this project."
 msgstr "Solo i proprietari dell'organizzazione possono eliminare questo progetto."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Solo i proprietari dell'organizzazione possono modificare queste impostazioni."
-
-msgid "Only owners can change membership."
-msgstr "Solo i proprietari possono modificare gli accessi."
 
 msgid "Only owners can delete projects"
 msgstr "Solo i proprietari possono eliminare i progetti"
@@ -9875,11 +9875,14 @@ msgstr "Solo l'autore può modificare un commento"
 msgid "Only the host owner can set its wake command"
 msgstr "Solo il proprietario dell'host può impostarne il comando di risveglio"
 
-msgid "Only the owner can run this automation"
-msgstr "Solo il proprietario può eseguire questa automazione"
+msgid "Only the owner or an admin can run this automation"
+msgstr "Solo il proprietario o un amministratore può eseguire questa automazione"
 
-msgid "Only the owner can view prompt history"
-msgstr "Solo il proprietario può vedere la cronologia dei prompt"
+msgid "Only the owner or an admin can view prompt history"
+msgstr "Solo il proprietario o un amministratore può vedere la cronologia dei prompt"
+
+msgid "Only the owner or an organization admin can change this automation"
+msgstr "Solo il proprietario o un amministratore dell'organizzazione può modificare questa automazione"
 
 msgid "Only the person who created this page can change it"
 msgstr "Solo chi ha creato questa pagina può modificarla"
@@ -10474,8 +10477,8 @@ msgid "Overview"
 msgstr "Panoramica"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
-msgid "Owned by {0} — only they can edit this automation."
-msgstr "Di {0} — solo il proprietario può modificare questa automazione."
+msgid "Owned by {0} — only they or an organization admin can edit this automation."
+msgstr "Di {0} — solo il proprietario o un amministratore dell'organizzazione può modificare questa automazione."
 
 msgid "Owner"
 msgstr "Proprietario"

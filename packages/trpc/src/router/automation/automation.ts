@@ -281,8 +281,6 @@ export const automationRouter = {
 				)
 				.limit(1);
 
-			// Reads are org-scoped (Team tab links to any member's automation);
-			// mutations stay owner-scoped via getAutomationForUser.
 			if (!row) {
 				throw await automationNotFound(input.id, ctx.session.user.id);
 			}
