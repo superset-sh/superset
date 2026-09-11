@@ -2274,6 +2274,9 @@ msgstr "Автоматизации (с ошибкой: {myFailedCount})"
 msgid "Automations & event triggers"
 msgstr "Автоматизации и триггеры по событиям"
 
+msgid "Automations require the Pro plan."
+msgstr "Для автоматизаций нужен план Pro."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Автоматизации, с ошибкой: {myFailedCount}"
 
@@ -2422,9 +2425,6 @@ msgstr "Отстаёт от main на ? коммитов, нужен rebase"
 
 msgid "Being built right now."
 msgstr "Делается прямо сейчас."
-
-msgid "Beta"
-msgstr "Бета"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Дальше: F5 — не заявка на ближайшее будущее"
@@ -11242,6 +11242,9 @@ msgstr "Отправка…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Поставьте повторяющуюся работу на расписание"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Поставьте повторяющуюся работу на расписание или событие. Агенты работают сами, а результат приземляется в рабочую область для проверки."
 
 msgid "px"
 msgstr "px"

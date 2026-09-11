@@ -2274,6 +2274,9 @@ msgstr "Otomatisasi ({myFailedCount} gagal)"
 msgid "Automations & event triggers"
 msgstr "Otomatisasi & pemicu event"
 
+msgid "Automations require the Pro plan."
+msgstr "Otomatisasi memerlukan paket Pro."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Otomatisasi, {myFailedCount} gagal"
 
@@ -2422,9 +2425,6 @@ msgstr "Tertinggal ? commit dari main, perlu rebase"
 
 msgid "Being built right now."
 msgstr "Sedang dibangun sekarang."
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Di luar itu: F5 bukan klaim jangka dekat"
@@ -11242,6 +11242,9 @@ msgstr "Melakukan push…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Jadwalkan pekerjaan yang berulang"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Jadwalkan pekerjaan berulang berdasarkan waktu atau event. Agent berjalan sendiri dan hasilnya mendarat di sebuah workspace untuk kamu review."
 
 msgid "px"
 msgstr "px"

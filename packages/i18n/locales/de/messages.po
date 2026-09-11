@@ -2274,6 +2274,9 @@ msgstr "Automatisierungen ({myFailedCount} fehlgeschlagen)"
 msgid "Automations & event triggers"
 msgstr "Automatisierungen & Ereignis-Trigger"
 
+msgid "Automations require the Pro plan."
+msgstr "Automatisierungen erfordern den Pro-Plan."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automatisierungen, {myFailedCount} fehlgeschlagen"
 
@@ -2422,9 +2425,6 @@ msgstr "? Commits hinter main, Rebase nötig"
 
 msgid "Being built right now."
 msgstr "Wird gerade gebaut."
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "Ausblick: F5 ist keine kurzfristige Behauptung"
@@ -11242,6 +11242,9 @@ msgstr "Wird gepusht…"
 
 msgid "Put recurring work on a schedule"
 msgstr "Wiederkehrende Arbeit auf einen Zeitplan setzen"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "Lege wiederkehrende Arbeit auf einen Zeitplan oder ein Ereignis. Agenten laufen von selbst und landen in einem Arbeitsbereich, den du prüfst."
 
 msgid "px"
 msgstr "px"

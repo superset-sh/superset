@@ -1392,8 +1392,10 @@ Use [`automations logs`](#superset-automations-logs-id) for run history.
 	]}
 	output="Automation"
 >
-Create an automation. Provide `--prompt` or `--prompt-file`; if both are
-present, the inline `--prompt` value is used. A `--project` or `--workspace`
+Create an automation. Automations are a Pro feature: `create`, `run`, and
+`resume` need a Pro or Enterprise subscription on the active organization and
+fail with `Automations require the Pro plan.` otherwise. Provide `--prompt` or
+`--prompt-file`; if both are present, the inline `--prompt` value is used. A `--project` or `--workspace`
 must exist on the target host; the CLI verifies this before creating the
 automation. Omit both for **session mode**: each run creates a project-less
 session workspace on the target host.

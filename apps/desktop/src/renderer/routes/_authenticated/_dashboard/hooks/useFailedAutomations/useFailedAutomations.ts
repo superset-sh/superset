@@ -27,6 +27,8 @@ interface FailedAutomations {
 	failedIds: Set<string>;
 	/** How many of the current user's failures the user hasn't seen yet. */
 	myFailedCount: number;
+	/** The org has at least one automation, so the list is worth reaching. */
+	hasAutomations: boolean;
 	/** Clear the failure badge by acknowledging the user's current failures. */
 	markMyFailuresSeen: () => void;
 }
@@ -105,6 +107,7 @@ export function useFailedAutomations(): FailedAutomations {
 		lastRunById,
 		failedIds,
 		myFailedCount,
+		hasAutomations: automationRows.length > 0,
 		markMyFailuresSeen,
 	};
 }

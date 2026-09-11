@@ -16,6 +16,7 @@ import {
 	ACTIVE_SUBSCRIPTION_STATUSES,
 	type PlanTier,
 	planAllowsTriggerKind,
+	planTierFromSubscription,
 	requiredPlanForTriggerKind,
 } from "@superset/shared/billing";
 import { Client } from "@upstash/qstash";
@@ -174,7 +175,7 @@ export async function dispatchMatchingTriggers(params: {
  */
 async function organizationPlan(organizationId: string): Promise<PlanTier> {
 	const [subscription] = await db
-		.select({ plan: subscriptions.plan })
+		.select({ plan: subscriptions.plan, status: subscriptions.status })
 		.from(subscriptions)
 		.where(
 			and(
@@ -184,8 +185,7 @@ async function organizationPlan(organizationId: string): Promise<PlanTier> {
 		)
 		.orderBy(desc(subscriptions.createdAt))
 		.limit(1);
-	const plan = subscription?.plan;
-	return plan === "pro" || plan === "enterprise" ? plan : "free";
+	return planTierFromSubscription(subscription);
 }
 
 /**

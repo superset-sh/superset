@@ -49,6 +49,12 @@ export const serverErrorMessages: Record<
 				message: `This automation belongs to ${params?.organizationName}. Switch to that organization to open it.`,
 			}),
 		),
+	"serverError.automation.automationsRequireThePro": () =>
+		i18n._(
+			msg({
+				message: "Automations require the Pro plan.",
+			}),
+		),
 	"serverError.automation.automationNotFound": () =>
 		i18n._(
 			msg({

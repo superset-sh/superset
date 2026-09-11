@@ -2274,6 +2274,9 @@ msgstr "自动化（{myFailedCount}个失败）"
 msgid "Automations & event triggers"
 msgstr "自动化与事件触发"
 
+msgid "Automations require the Pro plan."
+msgstr "自动化需要Pro套餐。"
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "自动化，{myFailedCount}个失败"
 
@@ -2422,9 +2425,6 @@ msgstr "落后main ?个提交，需要变基"
 
 msgid "Being built right now."
 msgstr "正在构建中。"
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "再往后：F5不是近期的主张"
@@ -11242,6 +11242,9 @@ msgstr "正在推送…"
 
 msgid "Put recurring work on a schedule"
 msgstr "把重复的活儿排进日程"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "把重复性工作放到计划或事件上。代理会自行运行，结果会落在一个工作区里供你审查。"
 
 msgid "px"
 msgstr "px"

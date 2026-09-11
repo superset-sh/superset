@@ -163,7 +163,7 @@ export function DashboardSidebarHeader({
 	const isPluginsEnabled =
 		(useFeatureFlagEnabled(FEATURE_FLAGS.PLUGINS) ?? false) ||
 		env.NODE_ENV === "development";
-	const { myFailedCount } = useFailedAutomations();
+	const { myFailedCount, hasAutomations } = useFailedAutomations();
 
 	const {
 		tab: lastTab,
@@ -187,8 +187,17 @@ export function DashboardSidebarHeader({
 		navigate({ to: "/v2-workspaces" });
 	};
 
+	// Automations are Pro, but an org that already has some (a downgrade) can
+	// still reach the list to pause, edit, or delete them; the page gates the
+	// actions that need the plan. A Free org with none meets the paywall here.
 	const handleAutomationsClick = () => {
-		navigate({ to: "/automations" });
+		if (hasAutomations) {
+			navigate({ to: "/automations" });
+			return;
+		}
+		gateFeature(GATED_FEATURES.AUTOMATIONS, () => {
+			navigate({ to: "/automations" });
+		});
 	};
 
 	const handleTasksClick = () => {

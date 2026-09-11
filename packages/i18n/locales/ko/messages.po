@@ -2274,6 +2274,9 @@ msgstr "자동화 ({myFailedCount}개 실패)"
 msgid "Automations & event triggers"
 msgstr "자동화 및 이벤트 트리거"
 
+msgid "Automations require the Pro plan."
+msgstr "자동화에는 Pro 플랜이 필요합니다."
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "자동화, {myFailedCount}개 실패"
 
@@ -2422,9 +2425,6 @@ msgstr "main보다 커밋 ?개 뒤처짐, 리베이스 필요"
 
 msgid "Being built right now."
 msgstr "지금 만들고 있습니다."
-
-msgid "Beta"
-msgstr "베타"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "그 너머: F5는 단기 전망이 아닙니다"
@@ -11242,6 +11242,9 @@ msgstr "푸시 중…"
 
 msgid "Put recurring work on a schedule"
 msgstr "반복 업무를 일정에 올리세요"
+
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "반복되는 작업을 일정이나 이벤트에 맡기세요. 에이전트가 알아서 실행되고 결과는 검토할 수 있도록 워크스페이스에 도착합니다."
 
 msgid "px"
 msgstr "px"
