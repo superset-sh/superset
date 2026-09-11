@@ -7,6 +7,7 @@ interface PageFrameProps {
 	title: string;
 	ref?: Ref<HTMLIFrameElement>;
 	onLoad?: () => void;
+	ready?: boolean;
 }
 
 /**
@@ -15,9 +16,9 @@ interface PageFrameProps {
  * ever being ours. The omissions are the policy: no top navigation, no
  * downloads, and popups stay sandboxed.
  */
-export function PageFrame({ src, title, ref, onLoad }: PageFrameProps) {
+export function PageFrame({ src, title, ref, onLoad, ready }: PageFrameProps) {
 	const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
-	const loaded = loadedSrc === src;
+	const loaded = loadedSrc === src || ready === true;
 
 	return (
 		<div className="relative h-full w-full bg-background">

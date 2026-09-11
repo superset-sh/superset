@@ -23,6 +23,7 @@ export const HOST_CHANNEL = "superset-comments/host";
 export const FRAME_CHANNEL = "superset-comments/frame";
 
 export type HostMessageBody =
+	| { type: "ready" }
 	| { type: "set-mode"; enabled: boolean }
 	| { type: "track"; anchors: { id: string; anchor: CommentAnchor }[] }
 	| { type: "restore-scroll"; y: number };
@@ -242,6 +243,7 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	addEventListener("message", (event) => {
 		const data = event.data;
 		if (!data || data.channel !== HOST) return;
+		if (data.type === "ready") post({ type: "ready" });
 		if (data.type === "set-mode") {
 			enabled = Boolean(data.enabled);
 			document.documentElement.style.cursor = enabled ? "crosshair" : "";
