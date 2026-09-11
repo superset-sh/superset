@@ -11244,7 +11244,7 @@ msgid "Put recurring work on a schedule"
 msgstr "Ustaw powtarzalną pracę na harmonogram"
 
 msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
-msgstr "Ustaw powtarzalną pracę według harmonogramu lub zdarzenia. Agenci działają sami, a wynik ląduje w obszarze roboczym do Twojego przeglądu."
+msgstr "Ustaw powtarzalną pracę według harmonogramu lub po wystąpieniu zdarzenia. Agenci działają sami, a wynik ląduje w obszarze roboczym do Twojego przeglądu."
 
 msgid "px"
 msgstr "px"

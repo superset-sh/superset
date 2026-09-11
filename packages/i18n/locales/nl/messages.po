@@ -11244,7 +11244,7 @@ msgid "Put recurring work on a schedule"
 msgstr "Zet terugkerend werk op een schema"
 
 msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
-msgstr "Zet terugkerend werk op een schema of een gebeurtenis. Agents draaien vanzelf en komen in een werkruimte terecht die jij beoordeelt."
+msgstr "Zet terugkerend werk op een schema of laat het starten door een gebeurtenis. Agents draaien vanzelf en zetten het resultaat klaar in een werkruimte om te beoordelen."
 
 msgid "px"
 msgstr "px"

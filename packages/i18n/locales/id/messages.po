@@ -11244,7 +11244,7 @@ msgid "Put recurring work on a schedule"
 msgstr "Jadwalkan pekerjaan yang berulang"
 
 msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
-msgstr "Jadwalkan pekerjaan berulang berdasarkan waktu atau event. Agent berjalan sendiri dan hasilnya mendarat di sebuah workspace untuk kamu review."
+msgstr "Jadwalkan pekerjaan berulang berdasarkan waktu atau picu lewat event. Agen berjalan sendiri dan hasilnya mendarat di sebuah workspace untuk Anda tinjau."
 
 msgid "px"
 msgstr "px"

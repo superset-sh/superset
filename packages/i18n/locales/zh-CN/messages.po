@@ -11244,7 +11244,7 @@ msgid "Put recurring work on a schedule"
 msgstr "把重复的活儿排进日程"
 
 msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
-msgstr "把重复性工作放到计划或事件上。代理会自行运行，结果会落在一个工作区里供你审查。"
+msgstr "按计划或事件触发重复性工作。智能体会自行运行，结果会落在一个工作区里供你审查。"
 
 msgid "px"
 msgstr "px"

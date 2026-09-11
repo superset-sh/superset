@@ -2275,7 +2275,7 @@ msgid "Automations & event triggers"
 msgstr "Automatizace a spouštěče událostí"
 
 msgid "Automations require the Pro plan."
-msgstr "Automatizace vyžadují plán Pro."
+msgstr "Automatizace vyžadují tarif Pro."
 
 msgid "Automations, {myFailedCount} failing"
 msgstr "Automatizace, selhává: {myFailedCount}"

@@ -163,7 +163,8 @@ export function DashboardSidebarHeader({
 	const isPluginsEnabled =
 		(useFeatureFlagEnabled(FEATURE_FLAGS.PLUGINS) ?? false) ||
 		env.NODE_ENV === "development";
-	const { myFailedCount, hasAutomations } = useFailedAutomations();
+	const { myFailedCount, hasAutomations, automationsPending } =
+		useFailedAutomations();
 
 	const {
 		tab: lastTab,
@@ -190,8 +191,11 @@ export function DashboardSidebarHeader({
 	// Automations are Pro, but an org that already has some (a downgrade) can
 	// still reach the list to pause, edit, or delete them; the page gates the
 	// actions that need the plan. A Free org with none meets the paywall here.
+	// While the list is still loading the answer is unknown, so let the click
+	// through: an empty list page gates every action itself, and a wrong
+	// paywall on a downgraded org would be the worse mistake.
 	const handleAutomationsClick = () => {
-		if (hasAutomations) {
+		if (hasAutomations || automationsPending) {
 			navigate({ to: "/automations" });
 			return;
 		}
