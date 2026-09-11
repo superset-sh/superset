@@ -87,9 +87,11 @@ interface SearchIndexEntry {
 	description: string | undefined;
 }
 
+type GlobMatcher = (relativePath: string) => boolean;
+
 interface PathFilterMatcher {
-	includeMatchers: RegExp[];
-	excludeMatchers: RegExp[];
+	includeMatchers: GlobMatcher[];
+	excludeMatchers: GlobMatcher[];
 	hasFilters: boolean;
 }
 
@@ -221,13 +223,13 @@ function normalizeGlobPattern(pattern: string): string {
 	return normalized;
 }
 
-function escapeRegexCharacter(character: string): string {
-	return character.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
-}
+type GlobToken =
+	| { kind: "globstar-dir" | "any" | "star" | "one" }
+	| { kind: "char"; char: string };
 
-function globToRegExp(pattern: string): RegExp {
+function tokenizeGlob(pattern: string): GlobToken[] {
 	const normalizedPattern = normalizeGlobPattern(pattern);
-	let regex = "^";
+	const tokens: GlobToken[] = [];
 
 	for (let index = 0; index < normalizedPattern.length; ) {
 		const char = normalizedPattern[index];
@@ -236,43 +238,103 @@ function globToRegExp(pattern: string): RegExp {
 		}
 
 		if (char === "*") {
-			const isDoubleStar = normalizedPattern[index + 1] === "*";
-			if (isDoubleStar) {
+			if (normalizedPattern[index + 1] === "*") {
 				if (normalizedPattern[index + 2] === "/") {
-					regex += "(?:.*/)?";
+					tokens.push({ kind: "globstar-dir" });
 					index += 3;
 				} else {
-					regex += ".*";
+					tokens.push({ kind: "any" });
 					index += 2;
 				}
 				continue;
 			}
-			regex += "[^/]*";
+			tokens.push({ kind: "star" });
 			index += 1;
 			continue;
 		}
 
 		if (char === "?") {
-			regex += "[^/]";
+			tokens.push({ kind: "one" });
 			index += 1;
 			continue;
 		}
 
-		if (char === "/") {
-			regex += "\\/";
-			index += 1;
-			continue;
-		}
-
-		regex += escapeRegexCharacter(char);
+		tokens.push({ kind: "char", char });
 		index += 1;
 	}
 
-	regex += "$";
-	return new RegExp(regex);
+	return tokens;
 }
 
-const defaultIgnoreMatchers = DEFAULT_IGNORE_PATTERNS.map(globToRegExp);
+/**
+ * Glob matching as a linear pass per token (O(tokens × path length)) rather
+ * than a backtracking RegExp. User-supplied filters like `**\/**\/**\/…x` or
+ * `*a*a*a*a…` compile to nested unbounded quantifiers that make V8's engine
+ * backtrack exponentially on a non-matching path — a search filter could
+ * pin the host-service for minutes.
+ *
+ * `matched[j]` is "the tokens consumed so far match the first `j` chars".
+ */
+function compileGlob(pattern: string): GlobMatcher {
+	const tokens = tokenizeGlob(pattern);
+
+	return (relativePath) => {
+		const length = relativePath.length;
+		let matched = new Uint8Array(length + 1);
+		matched[0] = 1;
+
+		for (const token of tokens) {
+			const next = new Uint8Array(length + 1);
+			switch (token.kind) {
+				case "char":
+					for (let j = 0; j < length; j++) {
+						if (matched[j] && relativePath[j] === token.char) next[j + 1] = 1;
+					}
+					break;
+				case "one":
+					for (let j = 0; j < length; j++) {
+						if (matched[j] && relativePath[j] !== "/") next[j + 1] = 1;
+					}
+					break;
+				case "star": {
+					// A run of non-slash chars, possibly empty.
+					let carry = false;
+					for (let j = 0; j <= length; j++) {
+						if (j > 0 && relativePath[j - 1] === "/") carry = false;
+						if (matched[j]) carry = true;
+						if (carry) next[j] = 1;
+					}
+					break;
+				}
+				case "any": {
+					let carry = false;
+					for (let j = 0; j <= length; j++) {
+						if (matched[j]) carry = true;
+						if (carry) next[j] = 1;
+					}
+					break;
+				}
+				case "globstar-dir": {
+					// Empty, or any run of chars that ends with a slash.
+					let carry = false;
+					for (let j = 0; j <= length; j++) {
+						if (j > 0 && relativePath[j - 1] === "/" && carry) next[j] = 1;
+						if (matched[j]) {
+							carry = true;
+							next[j] = 1;
+						}
+					}
+					break;
+				}
+			}
+			matched = next;
+		}
+
+		return matched[length] === 1;
+	};
+}
+
+const defaultIgnoreMatchers = DEFAULT_IGNORE_PATTERNS.map(compileGlob);
 
 function createPathFilterMatcher({
 	includePattern,
@@ -281,8 +343,8 @@ function createPathFilterMatcher({
 	includePattern: string;
 	excludePattern: string;
 }): PathFilterMatcher {
-	const includeMatchers = parseGlobPatterns(includePattern).map(globToRegExp);
-	const excludeMatchers = parseGlobPatterns(excludePattern).map(globToRegExp);
+	const includeMatchers = parseGlobPatterns(includePattern).map(compileGlob);
+	const excludeMatchers = parseGlobPatterns(excludePattern).map(compileGlob);
 
 	return {
 		includeMatchers,
@@ -302,12 +364,12 @@ function matchesPathFilters(
 	const normalizedPath = normalizePathForGlob(relativePath);
 	if (
 		matcher.includeMatchers.length > 0 &&
-		!matcher.includeMatchers.some((regex) => regex.test(normalizedPath))
+		!matcher.includeMatchers.some((matches) => matches(normalizedPath))
 	) {
 		return false;
 	}
 
-	if (matcher.excludeMatchers.some((regex) => regex.test(normalizedPath))) {
+	if (matcher.excludeMatchers.some((matches) => matches(normalizedPath))) {
 		return false;
 	}
 
@@ -693,7 +755,7 @@ function shouldIndexRelativePath(
 		return false;
 	}
 
-	return !defaultIgnoreMatchers.some((matcher) => matcher.test(normalizedPath));
+	return !defaultIgnoreMatchers.some((matches) => matches(normalizedPath));
 }
 
 function applySearchPatchEvent({

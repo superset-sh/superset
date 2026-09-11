@@ -242,3 +242,68 @@ describe("searchFiles", () => {
 		expect(paths).toHaveLength(2);
 	});
 });
+
+describe("search path filters", () => {
+	async function createFilterFixture(): Promise<string> {
+		const rootPath = await createTempRoot();
+		await fs.mkdir(path.join(rootPath, "src", "deep"), { recursive: true });
+		await fs.writeFile(path.join(rootPath, "a.ts"), "");
+		await fs.writeFile(path.join(rootPath, "src", "b.ts"), "");
+		await fs.writeFile(path.join(rootPath, "src", "deep", "c.ts"), "");
+		await fs.writeFile(path.join(rootPath, "src", "deep", "d.js"), "");
+		return rootPath;
+	}
+
+	async function relativeMatches(
+		rootPath: string,
+		filters: { includePattern?: string; excludePattern?: string },
+	): Promise<string[]> {
+		const results = await searchFiles({
+			rootPath,
+			query: "ts",
+			limit: 20,
+			...filters,
+		});
+		return results.map((match) => match.relativePath).sort();
+	}
+
+	it("applies include and exclude globs", async () => {
+		const rootPath = await createFilterFixture();
+
+		expect(
+			await relativeMatches(rootPath, { includePattern: "src/**" }),
+		).toEqual(["src/b.ts", "src/deep/c.ts"]);
+		expect(await relativeMatches(rootPath, { includePattern: "*.ts" })).toEqual(
+			["a.ts", "src/b.ts", "src/deep/c.ts"],
+		);
+		expect(await relativeMatches(rootPath, { includePattern: "?.ts" })).toEqual(
+			["a.ts", "src/b.ts", "src/deep/c.ts"],
+		);
+		expect(
+			await relativeMatches(rootPath, { includePattern: "src/?.ts" }),
+		).toEqual(["src/b.ts"]);
+		expect(
+			await relativeMatches(rootPath, {
+				includePattern: "src/**/*.ts",
+				excludePattern: "**/deep/**",
+			}),
+		).toEqual(["src/b.ts"]);
+		expect(await relativeMatches(rootPath, { includePattern: "src/" })).toEqual(
+			["src/b.ts", "src/deep/c.ts"],
+		);
+	});
+
+	it("evaluates a pathological glob in linear time", async () => {
+		const rootPath = await createFilterFixture();
+		const startedAt = Date.now();
+
+		expect(
+			await relativeMatches(rootPath, {
+				includePattern: `${"**/".repeat(40)}x,${"*a".repeat(40)}x`,
+				excludePattern: `${"a*".repeat(40)}/b`,
+			}),
+		).toEqual([]);
+
+		expect(Date.now() - startedAt).toBeLessThan(2_000);
+	});
+});
