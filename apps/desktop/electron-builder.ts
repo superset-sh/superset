@@ -139,6 +139,10 @@ const config: Configuration = {
 		},
 	},
 
+	// fpm's default xz takes ~15 minutes on the 2 GB tree; gzip takes about
+	// one and costs roughly a tenth in download size.
+	deb: { compression: "gz" },
+
 	// Deep linking protocol
 	protocols: {
 		name: productName,
@@ -157,9 +161,6 @@ const config: Configuration = {
 		// no longer install by default; the deb needs nothing extra and installs
 		// the desktop entry and icon that the dock and deep links resolve.
 		target: ["AppImage", "deb"],
-		// fpm's default xz takes ~15 minutes on the 2 GB tree; gzip takes about
-		// one and costs roughly a tenth in download size.
-		deb: { compression: "gzip" },
 		artifactName: `superset-\${version}-\${arch}.\${ext}`,
 		// GNOME's app menus only show their heuristic "New Window" item
 		// intermittently for running apps; an explicit desktop action (the
