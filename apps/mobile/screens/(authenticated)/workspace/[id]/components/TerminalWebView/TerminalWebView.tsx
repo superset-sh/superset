@@ -141,7 +141,7 @@ export const TerminalWebView = forwardRef<
 	onTapRef.current = onTap;
 	const onScrollChangeRef = useRef(onScrollChange);
 	onScrollChangeRef.current = onScrollChange;
-	const openLink = useOpenLink();
+	const openLink = useOpenLink({ workspaceId });
 	const openLinkRef = useRef(openLink);
 	openLinkRef.current = openLink;
 
