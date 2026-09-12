@@ -1,6 +1,6 @@
 "use client";
 
-import { Trans, useLingui } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 import { SendHorizontal } from "lucide-react";
 import { type Ref, useState } from "react";
 import { cn } from "../../../../lib/utils";
@@ -54,7 +54,7 @@ export function CommentComposer({
 				}}
 				onBlur={() => setFocused(false)}
 				onKeyDown={(event) => {
-					if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+					if (event.key === "Enter" && !event.shiftKey) {
 						event.preventDefault();
 						submit();
 					}
@@ -71,9 +71,6 @@ export function CommentComposer({
 			/>
 			{open ? (
 				<div className="flex items-center gap-2 px-3 pb-2.5">
-					<span className="text-muted-foreground text-xs">
-						<Trans>⌘↵ to send</Trans>
-					</span>
 					<Button
 						size="icon"
 						className="ml-auto size-7 rounded-md"

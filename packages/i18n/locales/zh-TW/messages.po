@@ -1043,9 +1043,6 @@ msgstr "~/agent $"
 msgid "⌘ click"
 msgstr "⌘點選"
 
-msgid "⌘↵ to send"
-msgstr "⌘↵傳送"
-
 msgid "⌘⇧ click"
 msgstr "⌘⇧點選"
 
