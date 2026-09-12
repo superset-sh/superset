@@ -162,9 +162,31 @@ describe("DashboardSidebarExpandedWorkspaceRow archive action", () => {
 		const button = page.getByLabelText(
 			"Archive workspace",
 		) as HTMLButtonElement;
-		expect(button.disabled).toBe(true);
+		// aria-disabled, not disabled: the button stays focusable so the offline
+		// tooltip reaches keyboard users.
+		expect(button.getAttribute("aria-disabled")).toBe("true");
+		expect(button.disabled).toBe(false);
 		fireEvent.click(button);
 		expect(onArchiveWorkspaceClick).not.toHaveBeenCalled();
+	});
+
+	test("restore is unavailable while the archived workspace's host is offline", () => {
+		const onRestore = mock(() => {});
+		const { page } = renderRow({
+			workspace: buildWorkspace({
+				hostType: "remote-device",
+				hostIsOnline: false,
+				shelvedAt: Date.now(),
+			}),
+			onRestoreWorkspaceClick: onRestore,
+		});
+
+		const button = page.getByLabelText(
+			"Restore workspace",
+		) as HTMLButtonElement;
+		expect(button.getAttribute("aria-disabled")).toBe("true");
+		fireEvent.click(button);
+		expect(onRestore).not.toHaveBeenCalled();
 	});
 
 	test("clicking archive archives once without opening the workspace", () => {

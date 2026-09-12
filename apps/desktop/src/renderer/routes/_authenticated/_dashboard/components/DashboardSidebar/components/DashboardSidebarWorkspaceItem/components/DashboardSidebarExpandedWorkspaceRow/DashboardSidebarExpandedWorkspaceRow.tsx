@@ -171,12 +171,16 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		// the context menu.
 		const isLocalMainWorkspace = isMainWorkspace && hostType === "local-device";
 		const isShelved = workspace.shelvedAt != null;
+		const isHostOffline = hostIsOnline === false;
 		const restoreTooltip = isShelved
 			? workspace.purgeBlockedReason != null
 				? t({ message: "Restore · deletion paused" })
 				: t({
 						message: `Restore · deletes ${formatRelativeTime(
-							(workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS,
+							Math.max(
+								(workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS,
+								Date.now(),
+							),
 						)}`,
 					})
 			: null;
@@ -430,8 +434,10 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 												<TooltipTrigger asChild>
 													<button
 														type="button"
+														aria-disabled={isHostOffline}
 														onClick={(event) => {
 															event.stopPropagation();
+															if (isHostOffline) return;
 															onRestoreWorkspaceClick?.();
 														}}
 														onKeyDown={(event) => {
@@ -443,7 +449,12 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 																event.stopPropagation();
 															}
 														}}
-														className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+														className={cn(
+															"flex items-center justify-center text-muted-foreground",
+															isHostOffline
+																? "cursor-not-allowed text-muted-foreground/50"
+																: "hover:text-foreground",
+														)}
 														aria-label={t({
 															message: "Restore workspace",
 														})}
@@ -452,7 +463,11 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													</button>
 												</TooltipTrigger>
 												<TooltipContent side="top">
-													{restoreTooltip}
+													{isHostOffline ? (
+														<Trans>This workspace's host is offline</Trans>
+													) : (
+														restoreTooltip
+													)}
 												</TooltipContent>
 											</Tooltip>
 											<Tooltip delayDuration={300}>
@@ -489,38 +504,43 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 										<>
 											{canArchive && onArchiveWorkspaceClick && (
 												<Tooltip delayDuration={300}>
-													{/* The trigger is the span, not the button: a
-											disabled button fires no pointer events, so the
-											offline explanation would never appear. */}
+													{/* aria-disabled, not disabled: a disabled button
+											leaves the tab order and fires no pointer events,
+											so the offline explanation would reach neither
+											keyboard nor pointer users. */}
 													<TooltipTrigger asChild>
-														<span className="flex items-center justify-center">
-															<button
-																type="button"
-																disabled={hostIsOnline === false}
-																onClick={(event) => {
+														<button
+															type="button"
+															aria-disabled={isHostOffline}
+															onClick={(event) => {
+																event.stopPropagation();
+																if (isHostOffline) return;
+																onArchiveWorkspaceClick();
+															}}
+															onKeyDown={(event) => {
+																if (
+																	event.key === "Enter" ||
+																	event.key === " " ||
+																	event.key === "Spacebar"
+																) {
 																	event.stopPropagation();
-																	onArchiveWorkspaceClick();
-																}}
-																onKeyDown={(event) => {
-																	if (
-																		event.key === "Enter" ||
-																		event.key === " " ||
-																		event.key === "Spacebar"
-																	) {
-																		event.stopPropagation();
-																	}
-																}}
-																className="flex items-center justify-center text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/50"
-																aria-label={t({
-																	message: "Archive workspace",
-																})}
-															>
-																<HiMiniArchiveBox className="size-3.5" />
-															</button>
-														</span>
+																}
+															}}
+															className={cn(
+																"flex items-center justify-center text-muted-foreground",
+																isHostOffline
+																	? "cursor-not-allowed text-muted-foreground/50"
+																	: "hover:text-foreground",
+															)}
+															aria-label={t({
+																message: "Archive workspace",
+															})}
+														>
+															<HiMiniArchiveBox className="size-3.5" />
+														</button>
 													</TooltipTrigger>
 													<TooltipContent side="top">
-														{hostIsOnline === false ? (
+														{isHostOffline ? (
 															<Trans>
 																Archive · unavailable while this workspace's
 																host is offline
