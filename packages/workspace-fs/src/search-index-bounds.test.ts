@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
+	collectSearchIndexPaths,
 	getSearchIndex,
 	invalidateAllSearchIndexes,
 	patchSearchIndexesForRoot,
@@ -66,6 +67,38 @@ describe("index walk depth", () => {
 
 		expect(names).toContain("shallow.ts");
 		expect(names).not.toContain("deep.ts");
+	});
+});
+
+describe("index entry cap", () => {
+	it("stops the walk at the cap and reports truncation", async () => {
+		const root = await makeRepoRoot();
+		for (let i = 0; i < 12; i++) {
+			await fs.writeFile(path.join(root, `file-${i}.txt`), "x");
+		}
+
+		const capped = await collectSearchIndexPaths(root, {
+			includeHidden: false,
+			maxEntries: 5,
+		});
+
+		expect(capped.paths).toHaveLength(5);
+		expect(capped.truncated).toBe(true);
+	});
+
+	it("keeps the whole tree when it fits under the cap", async () => {
+		const root = await makeRepoRoot();
+		for (let i = 0; i < 12; i++) {
+			await fs.writeFile(path.join(root, `file-${i}.txt`), "x");
+		}
+
+		const full = await collectSearchIndexPaths(root, {
+			includeHidden: false,
+			maxEntries: 12,
+		});
+
+		expect(full.paths).toHaveLength(12);
+		expect(full.truncated).toBe(false);
 	});
 });
 
