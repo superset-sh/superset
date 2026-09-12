@@ -566,6 +566,33 @@ export class PullRequestRuntimeManager {
 		projectId: string;
 		pullRequest: CheckoutPullRequestMetadata;
 	}): Promise<string | null> {
+		return this.linkWorkspaceToKnownPullRequest({
+			workspaceId,
+			projectId,
+			pullRequest,
+		});
+	}
+
+	async linkWorkspaceToCreatedPullRequest(input: {
+		workspaceId: string;
+		projectId: string;
+		pullRequest: CheckoutPullRequestMetadata;
+		expectedWorkspace: typeof workspaces.$inferSelect;
+	}): Promise<string | null> {
+		return this.linkWorkspaceToKnownPullRequest(input);
+	}
+
+	private async linkWorkspaceToKnownPullRequest({
+		workspaceId,
+		projectId,
+		pullRequest,
+		expectedWorkspace,
+	}: {
+		workspaceId: string;
+		projectId: string;
+		pullRequest: CheckoutPullRequestMetadata;
+		expectedWorkspace?: typeof workspaces.$inferSelect;
+	}): Promise<string | null> {
 		const repo = await this.getProjectRepository(projectId);
 		if (!repo) {
 			console.warn(
@@ -599,17 +626,22 @@ export class PullRequestRuntimeManager {
 			now,
 		});
 
+		if (expectedWorkspace && !this.workspaceStillMatches(expectedWorkspace))
+			return null;
 		const upstream = deriveCheckoutPullRequestUpstream(repo, pullRequest);
 		this.db
 			.update(workspaces)
 			.set({
 				pullRequestId: rowId,
-				// An explicit checkout link overrides an earlier "Remove PR Link".
 				suppressedPullRequestId: null,
-				headSha: pullRequest.headRefOid,
-				upstreamOwner: upstream?.owner ?? null,
-				upstreamRepo: upstream?.name ?? null,
-				upstreamBranch: upstream?.branch ?? null,
+				...(expectedWorkspace
+					? {}
+					: {
+							headSha: pullRequest.headRefOid,
+							upstreamOwner: upstream?.owner ?? null,
+							upstreamRepo: upstream?.name ?? null,
+							upstreamBranch: upstream?.branch ?? null,
+						}),
 			})
 			.where(eq(workspaces.id, workspaceId))
 			.run();
@@ -907,6 +939,37 @@ export class PullRequestRuntimeManager {
 		await refreshPromise;
 	}
 
+	private workspaceStillMatches(
+		expected: typeof workspaces.$inferSelect,
+	): boolean {
+		// A Git event can queue behind the refresh currently awaiting GitHub.
+		// Its database refs are still old, so equality alone cannot authorize
+		// this result. Let the queued sync re-read refs and retry discovery even
+		// when the event turns out not to have changed the branch.
+		const sync = this.workspaceSyncState.get(expected.id);
+		if (sync?.rerunPending) {
+			sync.bypassCache = true;
+			return false;
+		}
+		const current = this.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, expected.id))
+			.get();
+		return (
+			!!current &&
+			current.archivedAt == null &&
+			current.projectId === expected.projectId &&
+			current.pullRequestId === expected.pullRequestId &&
+			current.branch === expected.branch &&
+			current.headSha === expected.headSha &&
+			current.upstreamOwner === expected.upstreamOwner &&
+			current.upstreamRepo === expected.upstreamRepo &&
+			current.upstreamBranch === expected.upstreamBranch &&
+			current.suppressedPullRequestId === expected.suppressedPullRequestId
+		);
+	}
+
 	private async performProjectRefresh(
 		projectId: string,
 		options: ProjectRefreshOptions = {},
@@ -930,12 +993,16 @@ export class PullRequestRuntimeManager {
 		if (projectWorkspaces.length === 0) return;
 
 		const wantedRefs = new Map<string, GitHubPullRequestHeadRef>();
+		const workspacesByKey = new Map<string, typeof projectWorkspaces>();
 		for (const workspace of projectWorkspaces) {
 			const upstreamOwner = workspace.upstreamOwner;
 			const upstreamRepo = workspace.upstreamRepo;
 			const upstreamBranch = workspace.upstreamBranch ?? workspace.branch;
 			const key = this.effectiveUpstreamKey(workspace, repo);
 			if (key && upstreamOwner && upstreamRepo) {
+				const interested = workspacesByKey.get(key) ?? [];
+				interested.push(workspace);
+				workspacesByKey.set(key, interested);
 				wantedRefs.set(key, {
 					owner: upstreamOwner,
 					repo: upstreamRepo,
@@ -945,9 +1012,31 @@ export class PullRequestRuntimeManager {
 		}
 
 		const { failedKeys, matched: keyToPullRequest } =
-			await this.fetchRepoPullRequests(projectId, repo, wantedRefs, options);
+			await this.fetchRepoPullRequests(
+				projectId,
+				repo,
+				wantedRefs,
+				options,
+				(key, id) => {
+					for (const workspace of workspacesByKey.get(key) ?? []) {
+						if (
+							workspace.suppressedPullRequestId === id ||
+							!this.workspaceStillMatches(workspace)
+						)
+							continue;
+						this.db
+							.update(workspaces)
+							.set({ pullRequestId: id })
+							.where(eq(workspaces.id, workspace.id))
+							.run();
+						this.recordWorkspacePullRequestLink(workspace.id, id, Date.now());
+						workspace.pullRequestId = id;
+					}
+				},
+			);
 
 		for (const workspace of projectWorkspaces) {
+			if (!this.workspaceStillMatches(workspace)) continue;
 			const key = this.effectiveUpstreamKey(workspace, repo);
 			if (!key) {
 				// PR checkouts recovered from GitHub's archived refs intentionally
@@ -1513,6 +1602,7 @@ export class PullRequestRuntimeManager {
 		repo: NormalizedRepoIdentity,
 		wantedRefs: Map<string, GitHubPullRequestHeadRef>,
 		options: { bypassCache?: boolean } = {},
+		onDiscovered?: (key: string, id: string) => void,
 	): Promise<{
 		matched: Map<string, { id: string }>;
 		failedKeys: Set<string>;
@@ -1520,6 +1610,47 @@ export class PullRequestRuntimeManager {
 		const matched = new Map<string, { id: string }>();
 		const failedKeys = new Set<string>();
 		if (wantedRefs.size === 0) return { matched, failedKeys };
+
+		const persist = (
+			key: string,
+			node: GitHubPullRequestNode,
+			details?: PullRequestDetails,
+		) => {
+			const now = Date.now();
+			const existing = this.findPullRequestRow(repo, node.number);
+			// Identity can be saved before details; keep their last-known state.
+			const checks = details
+				? parseCheckContexts(details.checks)
+				: parseChecksJson(existing?.checksJson ?? null);
+			const reviewDecision = details
+				? mapReviewDecision(details.reviewDecision)
+				: coerceReviewDecision(existing?.reviewDecision ?? null);
+			const isInMergeQueue =
+				details?.isInMergeQueue ??
+				coercePullRequestState(existing?.state ?? null) === "queued";
+			const rowId = this.upsertPullRequestRow({
+				existing,
+				projectId,
+				prNumber: node.number,
+				repo,
+				url: node.url,
+				title: node.title,
+				state: mapPullRequestState(node.state, node.isDraft, isInMergeQueue),
+				isDraft: node.isDraft,
+				headBranch: node.headRefName,
+				headSha: node.headRefOid,
+				mergedAt: node.mergedAt,
+				reviewDecision,
+				checksStatus: computeChecksStatus(checks),
+				checksJson: JSON.stringify(checks),
+				lastFetchedAt: now,
+				error: null,
+				now,
+			});
+
+			matched.set(key, { id: rowId });
+			if (!details) onDiscovered?.(key, rowId);
+		};
 
 		const latestByKey = new Map<string, GitHubPullRequestNode>();
 		await Promise.all(
@@ -1537,7 +1668,10 @@ export class PullRequestRuntimeManager {
 						node.headRepository?.name ?? null,
 						node.headRefName,
 					);
-					if (nodeKey === key) latestByKey.set(key, node);
+					if (nodeKey === key) {
+						latestByKey.set(key, node);
+						persist(key, node);
+					}
 				} catch (error) {
 					failedKeys.add(key);
 					console.warn(
@@ -1581,7 +1715,10 @@ export class PullRequestRuntimeManager {
 				}
 				for (const key of unmatchedKeys) {
 					const node = openByLowerKey.get(key.toLowerCase());
-					if (node) latestByKey.set(key, node);
+					if (node) {
+						latestByKey.set(key, node);
+						persist(key, node);
+					}
 				}
 			} catch (error) {
 				// Treat the whole sweep as failed lookups so existing links are
@@ -1594,16 +1731,20 @@ export class PullRequestRuntimeManager {
 			}
 		}
 
-		const now = Date.now();
-
-		const detailsByNumber = new Map<number, PullRequestDetails>();
 		await Promise.all(
-			Array.from(latestByKey.values()).map(async (node) => {
+			Array.from(latestByKey.entries()).map(async ([key, node]) => {
 				try {
-					detailsByNumber.set(
-						node.number,
-						await this.getCachedPullRequestDetails(repo, node, options),
+					const details = await this.getCachedPullRequestDetails(
+						repo,
+						node,
+						options,
 					);
+					// A newer discovery may have advanced this PR while details were in flight.
+					if (
+						this.findPullRequestRow(repo, node.number)?.headSha ===
+						node.headRefOid
+					)
+						persist(key, node, details);
 				} catch (error) {
 					console.warn(
 						"[host-service:pull-request-runtime] Failed to fetch PR review/check state",
@@ -1618,42 +1759,6 @@ export class PullRequestRuntimeManager {
 				}
 			}),
 		);
-
-		for (const [key, node] of latestByKey) {
-			const existing = this.findPullRequestRow(repo, node.number);
-			// A failed fetch keeps the last-known state rather than blanking it.
-			const details = detailsByNumber.get(node.number);
-			const checks = details
-				? parseCheckContexts(details.checks)
-				: parseChecksJson(existing?.checksJson ?? null);
-			const reviewDecision = details
-				? mapReviewDecision(details.reviewDecision)
-				: coerceReviewDecision(existing?.reviewDecision ?? null);
-			const isInMergeQueue =
-				details?.isInMergeQueue ??
-				coercePullRequestState(existing?.state ?? null) === "queued";
-			const rowId = this.upsertPullRequestRow({
-				existing,
-				projectId,
-				prNumber: node.number,
-				repo,
-				url: node.url,
-				title: node.title,
-				state: mapPullRequestState(node.state, node.isDraft, isInMergeQueue),
-				isDraft: node.isDraft,
-				headBranch: node.headRefName,
-				headSha: node.headRefOid,
-				mergedAt: node.mergedAt,
-				reviewDecision,
-				checksStatus: computeChecksStatus(checks),
-				checksJson: JSON.stringify(checks),
-				lastFetchedAt: now,
-				error: null,
-				now,
-			});
-
-			matched.set(key, { id: rowId });
-		}
 
 		return { matched, failedKeys };
 	}

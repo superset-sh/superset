@@ -2426,3 +2426,228 @@ describe("PullRequestRuntimeManager GitHub traffic", () => {
 		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
 	});
 });
+
+describe("PR identity is published before enrichment", () => {
+	function fixture(execGh?: (args: string[]) => Promise<unknown>) {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "feature",
+			headSha: "abc123",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feature",
+		});
+		return { db, manager: createManager(db, { execGh }) };
+	}
+
+	test("publishes a link while reviews are pending and does not restore it after unlink", async () => {
+		let release!: () => void;
+		let entered!: () => void;
+		const pending = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const started = new Promise<void>((resolve) => {
+			entered = resolve;
+		});
+		const answer = ghAnsweringPr(
+			makePrNode({ number: 7, headRef: "feature", headSha: "abc123" }),
+			{},
+		);
+		const { db, manager } = fixture(async (args) => {
+			if (args.some((arg) => arg.endsWith("/reviews"))) {
+				entered();
+				await pending;
+			}
+			return answer(args);
+		});
+		const refresh = projectRefresher(manager)(PROJECT_ID);
+		try {
+			await started;
+			expect(getWorkspace(db, "ws")?.pullRequestId).toBeTruthy();
+			await manager.unlinkWorkspacePullRequest("ws");
+			release();
+			await refresh;
+			expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+		} finally {
+			release();
+			await refresh;
+			manager.stop();
+		}
+	});
+
+	test("publishes a discovered link before another branch lookup finishes", async () => {
+		let release!: () => void;
+		const pending = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const answer = ghAnsweringPr(
+			makePrNode({ number: 7, headRef: "feature", headSha: "abc123" }),
+			{},
+		);
+		const { db, manager } = fixture(async (args) => {
+			if (args.some((arg) => arg.includes(":slow"))) await pending;
+			return answer(args);
+		});
+		seedWorkspace(db, {
+			id: "slow",
+			branch: "slow",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "slow",
+		});
+		const refresh = projectRefresher(manager)(PROJECT_ID);
+		try {
+			await new Promise<void>((resolve) => setImmediate(resolve));
+			expect(getWorkspace(db, "ws")?.pullRequestId).toBeTruthy();
+		} finally {
+			release();
+			await refresh;
+			manager.stop();
+		}
+	});
+
+	test("does not link an old branch when its lookup completes after a branch change", async () => {
+		let release!: () => void;
+		let entered!: () => void;
+		const pending = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const started = new Promise<void>((resolve) => {
+			entered = resolve;
+		});
+		const answer = ghAnsweringPr(
+			makePrNode({ number: 7, headRef: "feature", headSha: "abc123" }),
+			{},
+		);
+		const { db, manager } = fixture(async (args) => {
+			entered();
+			await pending;
+			return answer(args);
+		});
+		const refresh = projectRefresher(manager)(PROJECT_ID);
+		try {
+			await started;
+			db.update(workspaces)
+				.set({ branch: "other", upstreamBranch: "other" })
+				.where(eq(workspaces.id, "ws"))
+				.run();
+			release();
+			await refresh;
+			expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+		} finally {
+			release();
+			await refresh;
+			manager.stop();
+		}
+	});
+
+	for (const moved of [false, true]) {
+		test(`created PR persists without GitHub requests or ref changes (workspace moved: ${moved})`, async () => {
+			const { db, manager } = fixture();
+			const expectedWorkspace = getWorkspace(db, "ws");
+			if (!expectedWorkspace) throw new Error("Missing fixture workspace");
+			if (moved)
+				db.update(workspaces)
+					.set({ headSha: "new-head" })
+					.where(eq(workspaces.id, "ws"))
+					.run();
+			const before = getWorkspace(db, "ws");
+			if (!before) throw new Error("Missing fixture workspace");
+			try {
+				const id = await manager.linkWorkspaceToCreatedPullRequest({
+					workspaceId: "ws",
+					projectId: PROJECT_ID,
+					expectedWorkspace,
+					pullRequest: {
+						number: 7,
+						url: "https://github.com/base-owner/base-repo/pull/7",
+						title: "Known PR",
+						state: "open",
+						headRefName: "feature",
+						headRefOid: "remote-head",
+						isCrossRepository: false,
+					},
+				});
+				expect(id === null).toBe(moved);
+				expect(getPrByNumber(db, 7)?.title).toBe("Known PR");
+				expect(getWorkspace(db, "ws")).toEqual({
+					...before,
+					pullRequestId: id,
+				});
+			} finally {
+				manager.stop();
+			}
+		});
+	}
+});
+
+for (const nextBranch of ["new-branch", "feature"]) {
+	test(`a queued ref sync revalidates discovery before database refs catch up: ${nextBranch}`, async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "feature",
+			headSha: "abc123",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feature",
+		});
+		let branch = "feature";
+		let release!: () => void;
+		let entered!: () => void;
+		const pending = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const started = new Promise<void>((resolve) => {
+			entered = resolve;
+		});
+		const answer = ghAnsweringPr(
+			makePrNode({ number: 7, headRef: "feature", headSha: "abc123" }),
+			{},
+		);
+		const manager = createManager(db, {
+			readWorkspaceRefs: async () => ({
+				branch,
+				headSha: "abc123",
+				upstream:
+					branch === "feature"
+						? { owner: REPO.owner, name: REPO.name, branch }
+						: null,
+			}),
+			execGh: async (args) => {
+				entered();
+				await pending;
+				return answer(args);
+			},
+		});
+		const refresh = manager.refreshPullRequestsByWorkspaces(["ws"]);
+		try {
+			await started;
+			branch = nextBranch;
+			const queued = (
+				manager as unknown as {
+					enqueueWorkspaceSync(id: string): Promise<void>;
+				}
+			).enqueueWorkspaceSync("ws");
+			expect(getWorkspace(db, "ws")?.branch).toBe("feature");
+			release();
+			await Promise.all([refresh, queued]);
+			expect(getWorkspace(db, "ws")?.branch).toBe(nextBranch);
+			if (nextBranch === "new-branch") {
+				expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+				expect(
+					db.select().from(schema.workspacePullRequests).all(),
+				).toHaveLength(0);
+			} else {
+				expect(getWorkspace(db, "ws")?.pullRequestId).toBeTruthy();
+			}
+		} finally {
+			release();
+			await refresh;
+			manager.stop();
+		}
+	});
+}
