@@ -59,6 +59,8 @@ export function RankNeighbors({ me, rows }: RankNeighborsProps) {
 	const above = rows.find((row) => row.rank === me.rank - 1) ?? null;
 	const below = rows.find((row) => row.rank === me.rank + 1) ?? null;
 	if (!above && !below) return null;
+	const aboveGap = above ? BigInt(above.tokens) - BigInt(me.tokens) : 0n;
+	const belowGap = below ? BigInt(me.tokens) - BigInt(below.tokens) : 0n;
 
 	const strip = [
 		above && {
@@ -74,10 +76,8 @@ export function RankNeighbors({ me, rows }: RankNeighborsProps) {
 			label: <Trans>You</Trans>,
 			detail: above ? (
 				<Trans>
-					{formatTokens(
-						Math.max(0, Number(BigInt(above.tokens) - BigInt(me.tokens))),
-					)}{" "}
-					to pass #{formatNumber(above.rank)}
+					{formatTokens(aboveGap > 0n ? aboveGap : 0n)} to pass #
+					{formatNumber(above.rank)}
 				</Trans>
 			) : null,
 			isMe: true,
@@ -89,12 +89,7 @@ export function RankNeighbors({ me, rows }: RankNeighborsProps) {
 			detail: (
 				// Clamped: standings are CDN-cached, so right after a publish
 				// the live "me" total can already have overtaken a stale neighbor.
-				<Trans>
-					{formatTokens(
-						Math.max(0, Number(BigInt(me.tokens) - BigInt(below.tokens))),
-					)}{" "}
-					behind you
-				</Trans>
+				<Trans>{formatTokens(belowGap > 0n ? belowGap : 0n)} behind you</Trans>
 			),
 			isMe: false,
 		},
