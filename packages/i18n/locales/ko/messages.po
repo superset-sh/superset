@@ -10168,9 +10168,6 @@ msgstr "Scira AI에서 열기"
 msgid "Open in split pane"
 msgstr "분할 패널에서 열기"
 
-msgid "Open in Superset"
-msgstr "Superset에서 열기"
-
 msgid "Open in T3 Chat"
 msgstr "T3 Chat에서 열기"
 

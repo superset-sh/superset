@@ -35,6 +35,7 @@ export function useWorkspacePaneOpeners({
 	newTabPresets,
 	executePreset,
 	setRightSidebarOpen,
+	pageOpenAction,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	launcher: TerminalLauncher;
@@ -44,6 +45,7 @@ export function useWorkspacePaneOpeners({
 		options?: { target?: "new-tab" | "active-tab" },
 	) => void | Promise<void>;
 	setRightSidebarOpen: V2UserPreferencesApi["setRightSidebarOpen"];
+	pageOpenAction: V2UserPreferencesApi["preferences"]["pageOpenAction"];
 }): {
 	openDiffPane: (
 		filePath: string,
@@ -238,9 +240,13 @@ export function useWorkspacePaneOpeners({
 
 	const openPagePane = useCallback(
 		(page: PagePaneData) => {
-			openPagePaneInStore(store, page);
+			openPagePaneInStore(
+				store,
+				page,
+				pageOpenAction === "newTab" ? "tab" : "split",
+			);
 		},
-		[store],
+		[store, pageOpenAction],
 	);
 
 	const openPullRequestPane = useCallback(

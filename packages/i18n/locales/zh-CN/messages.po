@@ -10168,9 +10168,6 @@ msgstr "在Scira AI中打开"
 msgid "Open in split pane"
 msgstr "在分屏窗格中打开"
 
-msgid "Open in Superset"
-msgstr "在 Superset 中打开"
-
 msgid "Open in T3 Chat"
 msgstr "在T3 Chat中打开"
 

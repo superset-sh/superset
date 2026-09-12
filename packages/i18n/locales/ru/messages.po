@@ -10168,9 +10168,6 @@ msgstr "Открыть в Scira AI"
 msgid "Open in split pane"
 msgstr "Открыть в разделённой панели"
 
-msgid "Open in Superset"
-msgstr "Открыть в Superset"
-
 msgid "Open in T3 Chat"
 msgstr "Открыть в T3 Chat"
 

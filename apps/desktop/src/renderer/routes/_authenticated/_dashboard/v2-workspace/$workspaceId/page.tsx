@@ -245,6 +245,7 @@ function V2WorkspaceContent() {
 		newTabPresets,
 		executePreset,
 		setRightSidebarOpen,
+		pageOpenAction: v2UserPreferences.pageOpenAction,
 	});
 	const paneRegistry = usePaneRegistry({
 		onOpenFile: openFilePaneFromTreeClick,

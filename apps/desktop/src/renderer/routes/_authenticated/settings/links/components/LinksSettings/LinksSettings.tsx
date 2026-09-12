@@ -27,7 +27,7 @@ import { FolderLinkTierMapper } from "../FolderLinkTierMapper";
 import { LinkTierMapper } from "../LinkTierMapper";
 
 const PORT_ACTIONS: LinkAction[] = ["pane", "newTab", "external"];
-const PAGE_ACTIONS: LinkAction[] = ["pane", "external"];
+const PAGE_ACTIONS: LinkAction[] = ["pane", "newTab", "external"];
 
 interface LinksSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -213,9 +213,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 								<SelectContent>
 									{PAGE_ACTIONS.map((action) => (
 										<SelectItem key={action} value={action}>
-											{action === "pane"
-												? t({ message: "Open in Superset" })
-												: actionLabel(action, "url")}
+											{actionLabel(action, "url")}
 										</SelectItem>
 									))}
 								</SelectContent>
