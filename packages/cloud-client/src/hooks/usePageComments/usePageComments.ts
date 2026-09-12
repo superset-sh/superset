@@ -49,7 +49,7 @@ export function usePageComments({
 	user,
 	onError,
 }: UsePageCommentsOptions): PageCommentStore {
-	const { pageComment } = useCloudClient();
+	const client = useCloudClient();
 	const queryClient = useQueryClient();
 
 	const queryKey = useMemo(() => pageCommentKeys.list(pageId), [pageId]);
@@ -101,7 +101,7 @@ export function usePageComments({
 
 	const create = useMutation<ServerThread, unknown, CreateThreadArgs, Rollback>(
 		{
-			mutationFn: (input) => pageComment.create(input),
+			mutationFn: (input) => client.pageComment.create.mutate(input),
 			onMutate: (input) => {
 				const row = optimisticThread({ input, user, version });
 				return begin(row.id, (rows) => insertThread(rows, row));
@@ -116,7 +116,7 @@ export function usePageComments({
 	);
 
 	const reply = useMutation<ServerComment, unknown, ReplyArgs, Rollback>({
-		mutationFn: (input) => pageComment.reply(input),
+		mutationFn: (input) => client.pageComment.reply.mutate(input),
 		onMutate: (input) => {
 			const comment = optimisticComment({ body: input.body, user });
 			return begin(comment.id, (rows) =>
@@ -134,7 +134,7 @@ export function usePageComments({
 	});
 
 	const edit = useMutation<unknown, unknown, EditArgs, Rollback>({
-		mutationFn: (input) => pageComment.edit(input),
+		mutationFn: (input) => client.pageComment.edit.mutate(input),
 		onMutate: (input) =>
 			begin(input.commentId, (rows) =>
 				editCommentBody(rows, input.commentId, input.body),
@@ -145,7 +145,7 @@ export function usePageComments({
 	});
 
 	const resolve = useMutation<unknown, unknown, ResolveArgs, Rollback>({
-		mutationFn: (input) => pageComment.resolve(input),
+		mutationFn: (input) => client.pageComment.resolve.mutate(input),
 		onMutate: (input) =>
 			begin(input.threadId, (rows) =>
 				setThreadResolved(rows, input.threadId, input.resolved),
@@ -156,7 +156,7 @@ export function usePageComments({
 	});
 
 	const remove = useMutation<unknown, unknown, DeleteArgs, Rollback>({
-		mutationFn: (input) => pageComment.delete(input),
+		mutationFn: (input) => client.pageComment.delete.mutate(input),
 		onMutate: (input) =>
 			begin(input.threadId, (rows) => removeThread(rows, input.threadId)),
 		onError: rollback,

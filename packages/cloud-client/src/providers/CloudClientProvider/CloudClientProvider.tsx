@@ -1,28 +1,29 @@
+import type { AppRouter } from "@superset/trpc";
+import type { TRPCClient } from "@trpc/client";
 import { createContext, type ReactNode, useContext } from "react";
-import type { CloudCaller } from "../../types";
 
-const CloudClientContext = createContext<CloudCaller | null>(null);
+const CloudClientContext = createContext<TRPCClient<AppRouter> | null>(null);
 
 interface CloudClientProviderProps {
-	caller: CloudCaller;
+	client: TRPCClient<AppRouter>;
 	children: ReactNode;
 }
 
 export function CloudClientProvider({
-	caller,
+	client,
 	children,
 }: CloudClientProviderProps) {
 	return (
-		<CloudClientContext.Provider value={caller}>
+		<CloudClientContext.Provider value={client}>
 			{children}
 		</CloudClientContext.Provider>
 	);
 }
 
-export function useCloudClient(): CloudCaller {
-	const caller = useContext(CloudClientContext);
-	if (!caller) {
+export function useCloudClient(): TRPCClient<AppRouter> {
+	const client = useContext(CloudClientContext);
+	if (!client) {
 		throw new Error("useCloudClient must be used within CloudClientProvider");
 	}
-	return caller;
+	return client;
 }

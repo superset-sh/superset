@@ -12,7 +12,6 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { del, get, set } from "idb-keyval";
 import {
 	CLOUD_TRPC_ROUTER_ROOTS,
-	cloudCaller,
 	cloudTrpc,
 	cloudTrpcClient,
 } from "renderer/lib/cloud-trpc";
@@ -122,7 +121,7 @@ export function ElectronTRPCProvider({
 						},
 					}}
 				>
-					<CloudClientProvider caller={cloudCaller}>
+					<CloudClientProvider client={cloudTrpcClient}>
 						{children}
 					</CloudClientProvider>
 				</PersistQueryClientProvider>

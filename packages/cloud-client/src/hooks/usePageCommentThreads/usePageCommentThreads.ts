@@ -22,11 +22,11 @@ export function usePageCommentThreads({
 	pageId,
 	version,
 }: UsePageCommentThreadsOptions): PageCommentThreads {
-	const { pageComment } = useCloudClient();
+	const client = useCloudClient();
 
 	const list = useQuery({
 		queryKey: pageCommentKeys.list(pageId),
-		queryFn: () => pageComment.list({ pageId }),
+		queryFn: () => client.pageComment.list.query({ pageId }),
 		enabled: Boolean(pageId) && version > 0,
 	});
 

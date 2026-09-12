@@ -8,6 +8,7 @@ export {
 	OPTIMISTIC_ID_PREFIX,
 	optimisticId,
 } from "./optimisticId";
+export { pageCommentUser } from "./pageCommentUser";
 export type {
 	CommentDraft,
 	CommentIntent,

@@ -1,6 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import { usePageComments } from "@superset/cloud-client";
 import { errorMessage } from "@superset/i18n/errors";
+import { pageCommentUser } from "@superset/shared/page-comments";
 import {
 	AllCommentsButton,
 	CommentProvider,
@@ -48,12 +49,8 @@ export function PageViewer({
 	const resolvedPageId = pageId ?? pull.data?.id;
 	const resolvedTitle = title ?? pull.data?.title ?? slug;
 	const user = useMemo(
-		() => ({
-			id: session?.user.id ?? "",
-			name: session?.user.name ?? t({ message: "You" }),
-			image: session?.user.image ?? null,
-		}),
-		[session?.user.id, session?.user.name, session?.user.image, t],
+		() => pageCommentUser(session, t({ message: "You" })),
+		[session, t],
 	);
 	const store = usePageComments({
 		pageId: resolvedPageId ?? "",

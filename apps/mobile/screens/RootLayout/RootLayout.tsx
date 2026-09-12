@@ -21,7 +21,7 @@ import { Uniwind } from "uniwind";
 import { useSession } from "@/lib/auth/client";
 import { watchNetworkState } from "@/lib/errors";
 import { NAV_THEME } from "@/lib/theme";
-import { cloudCaller } from "@/lib/trpc/client";
+import { apiClient } from "@/lib/trpc/client";
 
 Uniwind.setTheme("dark");
 
@@ -113,7 +113,7 @@ export function RootLayout() {
 					},
 				}}
 			>
-				<CloudClientProvider caller={cloudCaller}>
+				<CloudClientProvider client={apiClient}>
 					<PostHogProvider>
 						<I18nProvider locale={deviceLocale} deferUntilReady>
 							<ThemeProvider value={NAV_THEME.dark}>

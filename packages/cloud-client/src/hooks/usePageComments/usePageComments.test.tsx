@@ -1,15 +1,34 @@
 import { beforeEach, describe, expect, test } from "bun:test";
+import type { AppRouter } from "@superset/trpc";
 import {
 	QueryClient,
 	QueryClientProvider,
 	useQueryClient,
 } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import type { TRPCClient } from "@trpc/client";
 import type { ReactNode } from "react";
 import { pageCommentKeys } from "../../lib/pageCommentKeys";
 import { CloudClientProvider } from "../../providers/CloudClientProvider";
-import type { CloudCaller, ServerThread } from "../../types";
+import type { ServerThread } from "../../types";
 import { usePageComments } from "./usePageComments";
+
+interface PageCommentFns {
+	list: () => Promise<ServerThread[]>;
+	create: () => Promise<ServerThread>;
+	reply: () => Promise<{
+		id: string;
+		body: string;
+		authorKind: "human" | "agent";
+		authorUserId: string | null;
+		authorName: string;
+		authorImage: string | null;
+		createdAt: Date;
+	}>;
+	edit: () => Promise<unknown>;
+	resolve: () => Promise<unknown>;
+	delete: () => Promise<unknown>;
+}
 
 const PAGE_ID = "page-1";
 const user = { id: "u1", name: "Ada", image: null };
@@ -40,32 +59,40 @@ function serverThread(id: string, commentId: string): ServerThread {
 	} as ServerThread;
 }
 
-function makeCaller(
-	overrides: Partial<CloudCaller["pageComment"]> = {},
+function makeClient(
+	overrides: Partial<PageCommentFns> = {},
 	serverRows: ServerThread[] = [],
-) {
+): TRPCClient<AppRouter> {
+	const fns: PageCommentFns = {
+		list: async () => serverRows,
+		create: async () => serverThread("server-1", "server-c1"),
+		reply: async () => ({
+			id: "server-c2",
+			body: "reply",
+			authorKind: "human",
+			authorUserId: "u1",
+			authorName: "Ada",
+			authorImage: null,
+			createdAt: new Date(),
+		}),
+		edit: async () => undefined,
+		resolve: async () => undefined,
+		delete: async () => undefined,
+		...overrides,
+	};
 	return {
 		pageComment: {
-			list: async () => serverRows,
-			create: async () => serverThread("server-1", "server-c1"),
-			reply: async () => ({
-				id: "server-c2",
-				body: "reply",
-				authorKind: "human",
-				authorUserId: "u1",
-				authorName: "Ada",
-				authorImage: null,
-				createdAt: new Date(),
-			}),
-			edit: async () => undefined,
-			resolve: async () => undefined,
-			delete: async () => undefined,
-			...overrides,
+			list: { query: fns.list },
+			create: { mutate: fns.create },
+			reply: { mutate: fns.reply },
+			edit: { mutate: fns.edit },
+			resolve: { mutate: fns.resolve },
+			delete: { mutate: fns.delete },
 		},
-	} as unknown as CloudCaller;
+	} as unknown as TRPCClient<AppRouter>;
 }
 
-function setup(caller: CloudCaller, seed?: ServerThread[]) {
+function setup(client: TRPCClient<AppRouter>, seed?: ServerThread[]) {
 	const queryClient = new QueryClient({
 		defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
 	});
@@ -73,7 +100,7 @@ function setup(caller: CloudCaller, seed?: ServerThread[]) {
 
 	const wrapper = ({ children }: { children: ReactNode }) => (
 		<QueryClientProvider client={queryClient}>
-			<CloudClientProvider caller={caller}>{children}</CloudClientProvider>
+			<CloudClientProvider client={client}>{children}</CloudClientProvider>
 		</QueryClientProvider>
 	);
 
@@ -99,7 +126,7 @@ describe("usePageComments", () => {
 
 	test("swaps the optimistic thread for the server row on success", async () => {
 		const created = serverThread("server-1", "server-c1");
-		const { result, queryClient } = setup(makeCaller({}, [created]), []);
+		const { result, queryClient } = setup(makeClient({}, [created]), []);
 
 		await act(async () => {
 			await result.current.store.createThread({
@@ -116,7 +143,7 @@ describe("usePageComments", () => {
 
 	test("restores the previous rows when a mutation fails", async () => {
 		const existing = serverThread("t1", "c1");
-		const caller = makeCaller(
+		const client = makeClient(
 			{
 				create: async () => {
 					throw new Error("nope");
@@ -124,7 +151,7 @@ describe("usePageComments", () => {
 			},
 			[existing],
 		);
-		const { result, queryClient } = setup(caller, [existing]);
+		const { result, queryClient } = setup(client, [existing]);
 
 		await act(async () => {
 			await result.current.store
@@ -143,12 +170,12 @@ describe("usePageComments", () => {
 	});
 
 	test("does not strand the optimistic row when the cache was never populated", async () => {
-		const caller = makeCaller({
+		const client = makeClient({
 			create: async () => {
 				throw new Error("nope");
 			},
 		});
-		const { result, queryClient } = setup(caller);
+		const { result, queryClient } = setup(client);
 		expect(rows(queryClient)).toBeUndefined();
 
 		await act(async () => {
@@ -169,7 +196,7 @@ describe("usePageComments", () => {
 	test("reports submitting while a mutation is in flight", async () => {
 		let release: (() => void) | undefined;
 		const seeded = serverThread("t1", "c1");
-		const caller = makeCaller(
+		const client = makeClient(
 			{
 				resolve: async () => {
 					await new Promise<void>((resolve) => {
@@ -179,7 +206,7 @@ describe("usePageComments", () => {
 			},
 			[seeded],
 		);
-		const { result } = setup(caller, [seeded]);
+		const { result } = setup(client, [seeded]);
 
 		expect(result.current.store.submitting).toBe(false);
 		act(() => {

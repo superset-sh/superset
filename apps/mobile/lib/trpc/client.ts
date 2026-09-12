@@ -1,4 +1,3 @@
-import { createCloudCaller } from "@superset/cloud-client";
 import type { AppRouter } from "@superset/trpc";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import * as Application from "expo-application";
@@ -27,5 +26,3 @@ export const apiClient = createTRPCProxyClient<AppRouter>({
 		}),
 	],
 });
-
-export const cloudCaller = createCloudCaller(apiClient);
