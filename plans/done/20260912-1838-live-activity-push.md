@@ -37,12 +37,13 @@ None block implementation. Two items are deferred and recorded in the Decision L
 
 
 - [x] (2026-09-12 18:38Z) Discovery complete; plan drafted.
-- [ ] Milestone 1: host-side transition reporter with tests.
-- [ ] Milestone 2: API table, migration on a Neon branch, and the `host.reportAgentStatus` mutation.
-- [ ] Milestone 3: APNs sender and fleet-to-card assembly, with tests for the payload builder.
-- [ ] Milestone 4: mobile token registration, push-enabled activities, widget ticks its own elapsed time.
-- [ ] Milestone 5: secrets, env plumbing, entitlement check.
-- [ ] Milestone 6: end-to-end verification on a real device.
+- [x] (2026-09-12 19:05Z) Milestone 1: `TerminalAgentStatusReporter` with seven tests, wired in `app.ts`, reports all gone on dispose. Commit 645125f3c.
+- [x] (2026-09-12 19:30Z) Milestone 2: `v2_agent_status` and `v2_live_activity_tokens`, migration 0115 generated and applied on the workspace Neon branch, `host.reportAgentStatus`, `mobile.liveActivity.registerToken` and `releaseToken`. Commit 3fb617dc5, transaction fix 42d1ed652.
+- [x] (2026-09-12 19:30Z) Milestone 3: APNs sender over Node http2 with a node:crypto ES256 JWT, card builder with tests, per-user fan-out with push-to-start, update, end and dead-token handling.
+- [x] (2026-09-12 19:50Z) Milestone 4: module emits tokens and remembers them, activities start with `pushType: .token`, rows carry `since`, widget ticks relative time, `useLiveActivityPushTokens` registers with labels. Commit 877fbd14a. Simulator build of the app and widget succeeded.
+- [x] (2026-09-12 20:05Z) Milestone 5: env schema, both templates, both local `.env` files, both deploy workflows. `aps-environment` confirmed present in the prebuilt entitlements. EAS already holds an APNs key (portal id BW3334AKHK, team NV9657CS5A). Commit 64023fa2a.
+- [x] (2026-09-12 20:30Z) Milestone 6, API half: local API on the Neon branch driven as a fresh user against a fake APNs HTTP/2 server: start push at priority 10 with rows ordered permission, failed, review, working and "+2 more"; update at priority 5 on token registration; end with a dismissal date and token deletion; push-to-start again after an empty fleet; 410 deletes the token; provider JWT verified ES256 against the key.
+- [ ] Milestone 6, device half: real iPhone with a build carrying the entitlement, API configured with the real key. Needs the `.p8` for key BW3334AKHK as `APNS_PRIVATE_KEY` plus `APNS_KEY_ID` and `APNS_TEAM_ID` in the production secrets, and a development or TestFlight build.
 
 
 ## Surprises & Discoveries
@@ -53,6 +54,15 @@ None block implementation. Two items are deferred and recorded in the Decision L
 
 - Observation: the API cannot translate strings. `packages/trpc/src/i18n-error.ts` only ships an error cause that the clients translate. The pushed card needs the status words in the user's language.
   Evidence: no Lingui import anywhere under `packages/trpc/src`.
+
+- Observation: the shared `db` client is neon-http and refuses transactions; the repo keeps `dbWs` for those.
+  Evidence: the first end-to-end run failed `host.reportAgentStatus` with "No transactions support in neon-http driver". Fixed in 42d1ed652.
+
+- Observation: `expo-notifications` in the plugin list already adds `aps-environment` to the app entitlements, so no `app.config.ts` change was needed.
+  Evidence: `bunx expo prebuild --platform ios --no-install` produced `aps-environment: development` in `ios/Superset/Superset.entitlements`.
+
+- Observation: EAS already holds an APNs push key for the app.
+  Evidence: `eas credentials -p ios` lists Push Key, Developer Portal ID BW3334AKHK, team NV9657CS5A. Its private half is not in the repo and must be provided as a secret.
 
 
 ## Decision Log
@@ -70,8 +80,8 @@ None block implementation. Two items are deferred and recorded in the Decision L
   Rationale: a push must rewrite the whole card, which spans every machine the user can see, so the API needs the fleet, not just the transition. This is the one architectural cost: the cloud now holds agent status, which was host-only. Rows are tiny and deleted on `gone`.
   Date/Author: 2026-09-12, Claude, accepted by Satya.
 
-- Decision: the server is the single writer of card content once a push token exists. The phone starts and ends activities and reports tokens; it no longer updates content itself.
-  Rationale: two writers with different views (the phone has local "seen" marks, the server does not) would make the card flicker between orders.
+- Decision: the phone keeps updating the card while the app is in the foreground; the API pushes on every transition regardless. Superseded an earlier draft that made the server the only writer.
+  Rationale: a dev API without an APNs key would leave the card frozen on its first snapshot, and the foreground path is already verified. The two views only differ on rows the phone has marked seen, which the next transition reconciles.
   Date/Author: 2026-09-12, Claude.
 
 - Decision: the phone sends its translated status words with the token registration. The token row stores `labels` as JSON: `working`, `review`, `permission`, `failed`, and a `more` template containing `{n}`.
@@ -102,7 +112,7 @@ None block implementation. Two items are deferred and recorded in the Decision L
 ## Outcomes & Retrospective
 
 
-To be written at closeout.
+Everything up to the phone is built and proven without Apple: a host reports only state transitions, the API stores the fleet and produces exactly the pushes the widget expects, and the app hands tokens over with its own translated labels. The Swift side compiles in a simulator build. What is not proven is the last hop, Apple delivering to a real phone, which needs the production key and a native build; both are Satya's to provide. The one design change made during implementation was keeping the foreground JS updater alive alongside the pushes rather than making the server the only writer, because a dev API without an APNs key would otherwise leave the card frozen on its first snapshot; the plan's Decision Log entry about a single writer is superseded by that.
 
 
 ## Context and Orientation
