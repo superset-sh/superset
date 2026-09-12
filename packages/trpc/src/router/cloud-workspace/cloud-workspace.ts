@@ -196,7 +196,7 @@ export const cloudWorkspaceRouter = {
 					: {}),
 			};
 
-			await nudge(row.organizationId, "cloud_workspaces");
+			nudge(row.organizationId, "cloud_workspaces");
 			if (isLocalApi) {
 				void provisionCloudWorkspace(job).catch((error) => {
 					console.error(
@@ -267,7 +267,7 @@ export const cloudWorkspaceRouter = {
 				.set({ name: input.name })
 				.where(eq(cloudWorkspaces.id, input.id))
 				.returning();
-			await nudge(row.organizationId, "cloud_workspaces");
+			nudge(row.organizationId, "cloud_workspaces");
 			return renamed ?? row;
 		}),
 
@@ -324,6 +324,7 @@ export const cloudWorkspaceRouter = {
 					.update(cloudWorkspaces)
 					.set({ status: "failed", sandboxUrl: null })
 					.where(eq(cloudWorkspaces.id, row.id));
+				nudge(row.organizationId, "cloud_workspaces");
 				console.error(`[cloud-workspace] ${row.id} sandbox unavailable`, error);
 				throw new TRPCError({
 					code: "PRECONDITION_FAILED",
@@ -353,7 +354,7 @@ export const cloudWorkspaceRouter = {
 				.update(cloudWorkspaces)
 				.set({ status: "deleted", sandboxUrl: null })
 				.where(eq(cloudWorkspaces.id, row.id));
-			await nudge(row.organizationId, "cloud_workspaces");
+			nudge(row.organizationId, "cloud_workspaces");
 			return { deleted: true };
 		}),
 } satisfies TRPCRouterRecord;

@@ -161,7 +161,7 @@ export const v2HostRouter = {
 				return await getCurrentTxid(tx);
 			});
 
-			await nudge(organizationId, "hosts");
+			nudge(organizationId, "hosts");
 			return { success: true, txid };
 		}),
 
@@ -253,7 +253,7 @@ export const v2HostRouter = {
 				return await getCurrentTxid(tx);
 			});
 
-			await nudge(organizationId, "hosts");
+			nudge(organizationId, "hosts");
 			return { success: true, txid };
 		}),
 
@@ -299,7 +299,7 @@ export const v2HostRouter = {
 				});
 			}
 
-			await nudge(organizationId, "hosts");
+			nudge(organizationId, "hosts");
 			return { ...result.inserted, txid: result.txid };
 		}),
 
@@ -379,7 +379,7 @@ export const v2HostRouter = {
 				return await getCurrentTxid(tx);
 			});
 
-			await nudge(organizationId, "hosts");
+			nudge(organizationId, "hosts");
 			return { success: true, txid };
 		}),
 
@@ -469,7 +469,7 @@ export const v2HostRouter = {
 				return await getCurrentTxid(tx);
 			});
 
-			await nudge(organizationId, "hosts");
+			nudge(organizationId, "hosts");
 			return { success: true, txid };
 		}),
 } satisfies TRPCRouterRecord;

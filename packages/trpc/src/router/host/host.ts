@@ -227,7 +227,7 @@ export const hostRouter = {
 			if (inserted) {
 				await emitFirstHostEvent(ctx.userId);
 			}
-			await nudge(input.organizationId, "hosts");
+			nudge(input.organizationId, "hosts");
 			return host;
 		}),
 

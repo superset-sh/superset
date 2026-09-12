@@ -307,7 +307,7 @@ step_write_env() {
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
     #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal,
     #          +11 code inspector, +13 relay, +14 usercontent worker,
-    #          +15 realtime worker
+    #          +18 realtime worker
     # (+9, +10, +12 were Electric/Caddy/wrangler; retired, kept unassigned so
     # the surviving offsets stay stable across existing allocations)
     local BASE=$SUPERSET_PORT_BASE
@@ -325,7 +325,7 @@ step_write_env() {
     local CODE_INSPECTOR_PORT=$((BASE + 11))
     local RELAY_PORT=$((BASE + 13))
     local USERCONTENT_DEV_PORT=$((BASE + 14))
-    local REALTIME_PORT=$((BASE + 15))
+    local REALTIME_PORT=$((BASE + 18))
 
     echo ""
     echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"

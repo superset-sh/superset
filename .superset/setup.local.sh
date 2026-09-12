@@ -194,7 +194,7 @@ local_write_env() {
   local CODE_INSPECTOR_PORT=$((BASE + 11))
   local RELAY_PORT=$((BASE + 13))
   local USERCONTENT_DEV_PORT=$((BASE + 14))
-  local REALTIME_PORT=$((BASE + 15))
+  local REALTIME_PORT=$((BASE + 18))
 
   {
     echo ""
