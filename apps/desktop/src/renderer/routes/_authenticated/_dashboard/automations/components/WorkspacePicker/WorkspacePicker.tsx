@@ -45,12 +45,10 @@ export function WorkspacePicker({
 	const { workspaces: hostWorkspaces, isReady } = useHostWorkspaces();
 	const workspaceRows = useMemo(
 		() =>
-			hostWorkspaces
-				.filter((workspace) => !isShelvedWorkspace(workspace))
-				.sort(
-					(a, b) =>
-						new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-				),
+			[...hostWorkspaces].sort(
+				(a, b) =>
+					new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+			),
 		[hostWorkspaces],
 	);
 
@@ -62,7 +60,10 @@ export function WorkspacePicker({
 		() =>
 			hostId && projectId !== undefined
 				? workspaceRows.filter(
-						(w) => w.hostId === hostId && w.projectId === projectId,
+						(w) =>
+							w.hostId === hostId &&
+							w.projectId === projectId &&
+							!isShelvedWorkspace(w),
 					)
 				: [],
 		[workspaceRows, hostId, projectId],
