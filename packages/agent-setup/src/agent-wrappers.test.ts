@@ -74,6 +74,7 @@ const {
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
 	getDevinConfigJsonContent,
+	getMuseSettingsJsonContent,
 	getDroidSettingsJsonContent,
 	GEMINI_HOOK_MARKER,
 	getAmpGlobalPluginPath,
@@ -1355,6 +1356,32 @@ describe("agent-wrappers claude settings.json", () => {
 
 	afterEach(() => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("creates Muse settings.json with its schema version and Claude-shaped hooks", () => {
+		const notifyPath = "/tmp/.superset/hooks/notify.sh";
+		const content = requireContent(getMuseSettingsJsonContent(notifyPath));
+		const parsed = JSON.parse(content) as {
+			schema_version?: number;
+			hooks: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+		};
+		expect(parsed.schema_version).toBe(1);
+		expect(Object.keys(parsed.hooks).sort()).toEqual(
+			[
+				"PermissionRequest",
+				"PostToolUse",
+				"SessionEnd",
+				"SessionStart",
+				"Stop",
+				"UserPromptSubmit",
+			].sort(),
+		);
+		for (const entries of Object.values(parsed.hooks)) {
+			expect(entries).toHaveLength(1);
+			expect(entries[0]?.hooks[0]?.command).toBe(
+				getManagedNotifyHookCommand("muse"),
+			);
+		}
 	});
 
 	it("creates Devin config.json with its schema version and Claude-shaped hooks", () => {

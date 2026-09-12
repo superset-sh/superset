@@ -29,6 +29,8 @@ import {
 	createKimiWrapper,
 	createMastraHooksJson,
 	createMastraWrapper,
+	createMuseSettingsJson,
+	createMuseWrapper,
 	createOmpExtension,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
@@ -45,6 +47,7 @@ import {
 	removeGrokManagedHooks,
 	removeKimiManagedHooks,
 	removeMastraManagedHooks,
+	removeMuseManagedHooks,
 	removeOmpExtension,
 	removePiExtension,
 	removeVibeManagedHooks,
@@ -143,6 +146,10 @@ const AGENT_SETUP_DEFINITIONS: Record<
 	devin: {
 		setup: [createDevinConfigJson, createDevinWrapper],
 		teardown: [removeDevinManagedHooks],
+	},
+	muse: {
+		setup: [createMuseSettingsJson, createMuseWrapper],
+		teardown: [removeMuseManagedHooks],
 	},
 };
 

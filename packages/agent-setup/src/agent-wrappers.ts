@@ -114,6 +114,13 @@ export {
 	removeMastraManagedHooks,
 } from "./agent-wrappers-mastra";
 export {
+	createMuseSettingsJson,
+	createMuseWrapper,
+	getMuseSettingsJsonContent,
+	getMuseSettingsJsonPath,
+	removeMuseManagedHooks,
+} from "./agent-wrappers-muse";
+export {
 	createOmpExtension,
 	getOmpExtensionContent,
 	getOmpExtensionPath,
