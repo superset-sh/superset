@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
+import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
 import { clipboard, Menu, webContents } from "electron";
 import { safeOpenExternal } from "main/lib/safe-url";
 import type {
@@ -8,6 +9,7 @@ import type {
 	DesignModeScreenshot,
 	DesignModeSelectionResult,
 } from "shared/browser-design-mode";
+import { PROTOCOL_SCHEME } from "shared/constants";
 import { chordFromInput, type ForwardedKey } from "shared/hotkey-chord";
 import {
 	forwardSessionFor,
@@ -86,6 +88,13 @@ function sanitizeUrl(url: string): string {
 // the pane.
 const ALLOWED_GUEST_SCHEMES = new Set(["http:", "https:", "about:"]);
 
+// A published page links back with the shipped `superset://` scheme; a dev
+// instance registers `superset-<workspace>` and must honour both.
+const DEEP_LINK_SCHEMES = new Set([
+	`${PROTOCOL_SCHEMES.PROD}:`,
+	`${PROTOCOL_SCHEME}:`,
+]);
+
 /**
  * Resolves the next `mousedown` in the guest's current document. Installs a
  * single capture-phase listener the first time (idempotent across repeated
@@ -108,17 +117,39 @@ const NEXT_MOUSEDOWN_SCRIPT = `(() => {
 	});
 })()`;
 
-function isAllowedGuestUrl(url: string): boolean {
+function protocolOf(url: string): string | null {
 	try {
-		return ALLOWED_GUEST_SCHEMES.has(new URL(url).protocol);
+		return new URL(url).protocol;
 	} catch {
-		return false;
+		return null;
 	}
 }
 
-/** Shared by panes and by the popups they open. Returns a detach function. */
-function attachNavigationGuard(wc: Electron.WebContents): () => void {
+function isAllowedGuestUrl(url: string): boolean {
+	const protocol = protocolOf(url);
+	return protocol !== null && ALLOWED_GUEST_SCHEMES.has(protocol);
+}
+
+export function isDeepLinkUrl(url: string): boolean {
+	const protocol = protocolOf(url);
+	return protocol !== null && DEEP_LINK_SCHEMES.has(protocol);
+}
+
+/**
+ * Shared by panes and by the popups they open. Returns a detach function. A
+ * guest has no protocol handler of its own, so an app deep link is cancelled
+ * in the guest and handed to `onDeepLink` instead of being dropped.
+ */
+function attachNavigationGuard(
+	wc: Electron.WebContents,
+	onDeepLink: (url: string) => void,
+): () => void {
 	const handler = (event: Electron.Event, url: string) => {
+		if (isDeepLinkUrl(url)) {
+			event.preventDefault();
+			onDeepLink(url);
+			return;
+		}
 		if (!isAllowedGuestUrl(url)) event.preventDefault();
 	};
 	wc.on("will-navigate", handler);
@@ -889,7 +920,10 @@ class BrowserManager extends EventEmitter {
 	// the guest itself, so the policy holds whether the load came from the
 	// toolbar, a link, or a raw CDP `Page.navigate` (which skips sanitizeUrl).
 	private setupNavigationGuard(paneId: string, wc: Electron.WebContents): void {
-		this.navigationListeners.set(paneId, attachNavigationGuard(wc));
+		this.navigationListeners.set(
+			paneId,
+			attachNavigationGuard(wc, (url) => this.emit("deep-link", url)),
+		);
 	}
 
 	private setupWindowOpen(paneId: string, wc: Electron.WebContents): void {
@@ -931,6 +965,10 @@ class BrowserManager extends EventEmitter {
 		paneId: string,
 		details: Electron.HandlerDetails,
 	): Electron.WindowOpenHandlerResponse {
+		if (isDeepLinkUrl(details.url)) {
+			this.emit("deep-link", details.url);
+			return { action: "deny" };
+		}
 		if (!isAllowedGuestUrl(details.url)) return { action: "deny" };
 		if (shouldOpenAsPopup(details)) {
 			return {
@@ -956,7 +994,9 @@ class BrowserManager extends EventEmitter {
 	): void {
 		const wc = window.webContents;
 		markBrowserPanePopup(wc);
-		const detachGuard = attachNavigationGuard(wc);
+		const detachGuard = attachNavigationGuard(wc, (url) =>
+			this.emit("deep-link", url),
+		);
 		wc.setWindowOpenHandler((details) =>
 			this.resolveWindowOpen(paneId, details),
 		);

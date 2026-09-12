@@ -35,6 +35,7 @@ import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { startBrowserBridge } from "./lib/browser/browser-bridge";
+import { browserManager } from "./lib/browser/browser-manager";
 import { downloadManager } from "./lib/browser/download-manager";
 import { installBundledCliShim } from "./lib/bundled-cli";
 import { installDevRunnerExit } from "./lib/dev-runner-exit";
@@ -168,6 +169,10 @@ async function processDeepLink(url: string): Promise<void> {
 	const target = getFocusedOrLastWindow();
 	target?.webContents.send("deep-link-navigate", path);
 }
+
+browserManager.on("deep-link", (url: string) => {
+	void processDeepLink(url);
+});
 
 function findDeepLinkInArgv(argv: string[]): string | undefined {
 	return argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
