@@ -132,6 +132,24 @@ applied — duplicated output on a resize during heavy output.
    running callbacks once one of them disposes the terminal. Still present on
    upstream master.
 
+4. `CompositionHelper` (also `src/browser/input/CompositionHelper.ts`): IME
+   preedit text uses the terminal renderer's cell width and Unicode service,
+   instead of the browser's font advance. Some Nerd Font Mono CJK glyphs have
+   a one-cell advance but draw across two cells, so the old clipped overlay
+   showed only half a syllable. Each Unicode cell now gets an explicit width;
+   combining characters stay together and an isolated left-to-right run keeps
+   the existing right-edge scrolling behavior. Backported from
+   [xterm.js #6162](https://github.com/xtermjs/xterm.js/pull/6162), production
+   commit `86fe1ee9f94a6d92a35538191d38d39c7b0c5395` (not yet released).
+   The readable source matches upstream; both shipped bundles carry the same
+   helper and Unicode-service injection. Existing buffer/disposal bundle code
+   is preserved. No font substitution or dependency upgrade is involved.
+
+**IME evidence:** [D2Coding before/after verification](https://app.superset.sh/page/pr-7357-verified-cjk-ime-gaps-remain-vcywaa).
+The controlled xterm experiment on that page compares stock 6.1.0-beta.302
+with this upstream helper in the real desktop renderer. It uses CDP IME events,
+not a physical keyboard/input-method session.
+
 **Guard tests:** `apps/desktop/src/xterm-flushsync-patch.test.ts` asserts the
 hunk 1–2 markers in both bundles and reproduces the failure against the real
 build: an image chunk plus a text chunk, then `resize()`, must not throw and
@@ -141,20 +159,29 @@ hunk 3: markers, then a real terminal opened under happy-dom with a
 joiner-holding addon, disposed with a viewport sync queued — no frame may be
 scheduled and nothing may throw.
 
+`apps/desktop/src/xterm-ime-patch.test.ts` exercises composition events against
+both installed bundles: CJK cell widths, combining and supplementary characters,
+right-edge constraints, font resizing, clearing preedit, and committing once.
+
 **Regenerating after a version bump** (~10 min), unless upstream has absorbed
 it (check `WriteBuffer.flushSync` for `_asyncPending` or an equivalent guard,
-and `RenderDebouncer.dispose` for a disposed flag or callback clearing; drop
+`RenderDebouncer.dispose` for a disposed flag or callback clearing, and
+`CompositionHelper` for Unicode-aware cell layout; drop
 whichever hunks upstream carries, and delete the patch, the
-`patchedDependencies` entry, and the tests only once both are gone):
+`patchedDependencies` entry, and the tests only once all are gone):
 
 ```bash
 bun patch @xterm/xterm@<new-version>
-# edit node_modules/@xterm/xterm per the three changes above — in both lib
+# edit node_modules/@xterm/xterm per the four changes above — in both lib
 # bundles find `flushSync(){` and the `if(<promise>){...}` branch inside
 # `_innerWrite`, and the class holding `_runRefreshCallbacks(){`; mirror the
 # edits in src/common/input/WriteBuffer.ts and src/browser/RenderDebouncer.ts
+# For composition, port the upstream CompositionHelper source and transpile
+# that helper into both bundles, retaining their surrounding code. Add the
+# IUnicodeService constructor injection (index 6) and UnicodeService import;
+# bundled module identifiers vary between versions. Check both bundle tests.
 bun patch --commit 'node_modules/@xterm/xterm'
-bun test apps/desktop/src/xterm-flushsync-patch.test.ts apps/desktop/src/xterm-render-debouncer-patch.test.ts
+bun test apps/desktop/src/xterm-flushsync-patch.test.ts apps/desktop/src/xterm-render-debouncer-patch.test.ts apps/desktop/src/xterm-ime-patch.test.ts
 ```
 
 ## trpc-electron (`trpc-electron@<version>.patch`)
