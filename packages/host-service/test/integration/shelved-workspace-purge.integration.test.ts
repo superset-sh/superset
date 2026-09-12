@@ -7,7 +7,9 @@ import {
 	runShelvedWorkspacePurge,
 	SHELF_RETENTION_MS,
 } from "../../src/runtime/shelved-workspace-purge";
+import { destroyWorkspace } from "../../src/trpc/router/workspace-cleanup";
 import type { HostServiceContext } from "../../src/types";
+import { unshelveLocalWorkspace } from "../../src/workspaces/local-workspace-store";
 import { MemoryGitCredentialProvider } from "../helpers/fakes";
 import {
 	createFeatureWorktreeScenario,
@@ -68,11 +70,41 @@ describe("shelved-workspace purge integration", () => {
 	test("an expired clean worktree is destroyed along with its branch", async () => {
 		expire(scenario.featureWorkspaceId);
 
-		await runShelvedWorkspacePurge(makeCtx());
+		const expectedShelvedAt = readRow(scenario.featureWorkspaceId)?.shelvedAt;
+		await runShelvedWorkspacePurge(makeCtx(), async (ctx, input) => {
+			expect(input.expectedShelvedAt).toBe(expectedShelvedAt);
+			return destroyWorkspace(ctx, input);
+		});
 
 		expect(existsSync(scenario.worktreePath)).toBe(false);
 		expect(readRow(scenario.featureWorkspaceId)?.archivedAt).not.toBeNull();
 		expect(await branchExists()).toBe(false);
+	});
+
+	test("a restore during destroy's async gap leaves the row and worktree intact", async () => {
+		expire(scenario.featureWorkspaceId);
+		let rejection: unknown;
+
+		await runShelvedWorkspacePurge(makeCtx(), async (ctx, input) => {
+			const destroying = destroyWorkspace(ctx, input);
+			const restored = unshelveLocalWorkspace(ctx, input.workspaceId);
+			expect(restored?.shelvedAt).toBeNull();
+			expect(restored?.archivedAt).toBeNull();
+			try {
+				return await destroying;
+			} catch (err) {
+				rejection = err;
+				throw err;
+			}
+		});
+
+		expect(rejection).toMatchObject({ code: "PRECONDITION_FAILED" });
+		const row = readRow(scenario.featureWorkspaceId);
+		expect(row?.shelvedAt).toBeNull();
+		expect(row?.archivedAt).toBeNull();
+		expect(row?.purgeBlockedReason).toBeNull();
+		expect(existsSync(scenario.worktreePath)).toBe(true);
+		expect(await branchExists()).toBe(true);
 	});
 
 	test("an expired dirty worktree stays, marked so the user can be told why", async () => {

@@ -48,6 +48,7 @@ const destroysInFlight = new Set<string>();
 export const __testDestroysInFlight = destroysInFlight;
 
 export interface DestroyWorkspaceInput {
+	expectedShelvedAt?: number;
 	workspaceId: string;
 	deleteBranch: boolean;
 	force: boolean;
@@ -263,8 +264,19 @@ async function runDestroy(
 	// "deleted"), and session folder names are claimed against ALL rows
 	// including tombstones, so a tombstone's path can't be reused.
 	const marked = local != null;
-	if (marked) {
-		archiveLocalWorkspace(ctx, input.workspaceId, archiveReasonFor(ctx, local));
+	if (marked || input.expectedShelvedAt !== undefined) {
+		const archived = archiveLocalWorkspace(
+			ctx,
+			input.workspaceId,
+			local ? archiveReasonFor(ctx, local) : "deleted",
+			input.expectedShelvedAt,
+		);
+		if (input.expectedShelvedAt !== undefined && !archived) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message: "Workspace shelf changed before deletion",
+			});
+		}
 	}
 
 	try {

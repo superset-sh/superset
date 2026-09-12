@@ -140,10 +140,11 @@ export async function runShelvedWorkspacePurge(
 					continue;
 				}
 			}
-			if (!stillShelved(ctx, row)) continue;
+			if (row.shelvedAt == null || !stillShelved(ctx, row)) continue;
 			try {
 				await destroy(ctx, {
 					workspaceId: row.id,
+					expectedShelvedAt: row.shelvedAt,
 					deleteBranch: true,
 					force: false,
 					teardownMode: "best-effort",

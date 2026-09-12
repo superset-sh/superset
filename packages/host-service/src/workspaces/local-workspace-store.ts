@@ -9,7 +9,7 @@ import {
 	visibleWorkspaceTags,
 	type WorkspaceTagAssignment,
 } from "@superset/shared/workspace-tags";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
@@ -404,19 +404,31 @@ export function archiveLocalWorkspace(
 	ctx: WorkspaceStoreContext,
 	id: string,
 	reason: "merged" | "deleted",
-): void {
+	expectedShelvedAt?: number,
+): boolean {
 	const existing = getLocalWorkspace(ctx.db, id);
-	if (!existing) return;
-	if (existing.archivedAt == null) {
-		ctx.db
+	if (!existing) return false;
+	if (expectedShelvedAt !== undefined || existing.archivedAt == null) {
+		const result = ctx.db
 			.update(workspaces)
 			.set({
 				archivedAt: Date.now(),
 				archiveReason: reason,
 				updatedAt: Date.now(),
 			})
-			.where(eq(workspaces.id, id))
+			.where(
+				and(
+					eq(workspaces.id, id),
+					expectedShelvedAt === undefined
+						? undefined
+						: and(
+								eq(workspaces.shelvedAt, expectedShelvedAt),
+								isNull(workspaces.archivedAt),
+							),
+				),
+			)
 			.run();
+		if (result.changes === 0) return false;
 	}
 	ctx.eventBus.broadcastWorkspaceChanged({
 		workspaceId: id,
@@ -427,6 +439,7 @@ export function archiveLocalWorkspace(
 	// Telemetry deliberately NOT emitted here: the destroy can still fail
 	// and un-archive. The pipeline calls trackWorkspaceDeleted once the
 	// physical cleanup actually commits.
+	return true;
 }
 
 /** Emit the deletion telemetry event — called by the destroy pipeline
