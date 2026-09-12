@@ -170,6 +170,13 @@ describe("FsWatcherManager gitignored-dir pruning", () => {
 });
 
 describe("isRelPathUnderPrunedDirs", () => {
+	it("git status policy keeps build files watched while retaining git and dynamic prunes", () => {
+		expect(isRelPathUnderPrunedDirs("build/tracked.js", [], false)).toBe(false);
+		expect(isRelPathUnderPrunedDirs(".git/index", [], false)).toBe(true);
+		expect(isRelPathUnderPrunedDirs("build/output.js", ["build"], false)).toBe(
+			true,
+		);
+	});
 	it("matches static default dirs at any depth, dynamic prefixes only at root", () => {
 		expect(isRelPathUnderPrunedDirs("node_modules/pkg/index.js", [])).toBe(
 			true,

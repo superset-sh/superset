@@ -3,6 +3,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
+	applySearchPatchEvents,
+	collectSearchIndexEntries,
 	getSearchIndex,
 	invalidateAllSearchIndexes,
 	patchSearchIndexesForRoot,
@@ -187,6 +189,85 @@ describe("build cancellation", () => {
 
 		const index = await inFlight;
 		expect(index.length).toBe(6000);
+	});
+});
+
+describe("index entry cap", () => {
+	async function* walk(paths: string[]) {
+		for (const p of paths) yield p;
+	}
+
+	it("stops collecting at the cap and tears the walk down", async () => {
+		let stopped = 0;
+		const result = await collectSearchIndexEntries(
+			walk(["a.ts", "b.ts", "c.ts", "d.ts", "e.ts"]),
+			"/root",
+			{ maxEntries: 3, stop: () => stopped++ },
+		);
+
+		expect(result.truncated).toBe(true);
+		expect(stopped).toBe(1);
+		expect(result.items.map((entry) => entry.name)).toEqual([
+			"a.ts",
+			"b.ts",
+			"c.ts",
+		]);
+	});
+
+	it("a walk that fits under the cap is not truncated", async () => {
+		let stopped = 0;
+		const result = await collectSearchIndexEntries(
+			walk(["a.ts", "b.ts", "c.ts"]),
+			"/root",
+			{ maxEntries: 3, stop: () => stopped++ },
+		);
+
+		expect(result.truncated).toBe(false);
+		expect(stopped).toBe(0);
+		expect(result.items).toHaveLength(3);
+	});
+
+	it("patch events cannot grow a capped index past the limit", async () => {
+		const root = await makeRepoRoot();
+		for (const name of ["a.ts", "b.ts", "c.ts"]) {
+			await fs.writeFile(path.join(root, name), "x");
+		}
+		const index = await getSearchIndex({
+			rootPath: root,
+			includeHidden: false,
+		});
+		const itemsByPath = new Map(index.map((e) => [e.absolutePath, e]));
+		const context = {
+			itemsByPath,
+			rootPath: root,
+			includeHidden: false,
+			maxEntries: 3,
+		};
+		const at = (name: string) => path.join(root, name);
+		const names = () =>
+			[...itemsByPath.values()].map((e) => e.relativePath).sort();
+
+		applySearchPatchEvents(context, [
+			{ kind: "create", absolutePath: at("new.ts"), isDirectory: false },
+		]);
+		expect(names()).toEqual(["a.ts", "b.ts", "c.ts"]);
+
+		applySearchPatchEvents(context, [
+			{ kind: "update", absolutePath: at("a.ts"), isDirectory: false },
+			{
+				kind: "rename",
+				absolutePath: at("renamed.ts"),
+				oldAbsolutePath: at("b.ts"),
+				isDirectory: false,
+			},
+		]);
+		expect(names()).toEqual(["a.ts", "c.ts", "renamed.ts"]);
+
+		applySearchPatchEvents(context, [
+			{ kind: "delete", absolutePath: at("c.ts"), isDirectory: false },
+			{ kind: "create", absolutePath: at("new.ts"), isDirectory: false },
+		]);
+		expect(names()).toEqual(["a.ts", "new.ts", "renamed.ts"]);
 	});
 });
 

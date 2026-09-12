@@ -30,6 +30,7 @@ export class WorkspaceFilesystemManager {
 	private readonly db: HostDb;
 	private readonly watcherManager = new FsWatcherManager({
 		listGitIgnoredDirs,
+		useDefaultIgnores: false,
 	});
 	private readonly serviceCache = new Map<string, FsHostService>();
 

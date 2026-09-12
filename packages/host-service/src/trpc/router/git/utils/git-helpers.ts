@@ -355,6 +355,7 @@ export async function countUntrackedFileLines(
 				// the \n, so counting \n bytes is equivalent.)
 				file.additions =
 					lastByte === -1 ? 0 : lastByte === 0x0a ? newlines : newlines + 1;
+				file.deletions = 0;
 			} finally {
 				await handle.close();
 			}
@@ -412,7 +413,12 @@ export async function detectUnstagedRenames(
 			GIT_INDEX_FILE: tempIndex,
 		});
 
-		await tempGit.raw(["add", "--intent-to-add", "--", ...untrackedPaths]);
+		await tempGit.raw([
+			"add",
+			"--intent-to-add",
+			"--",
+			...untrackedPaths.map((path) => `:(literal)${path}`),
+		]);
 
 		const [nameStatusRaw, numstatRaw] = await Promise.all([
 			tempGit.raw(["diff", "--name-status", "-z", "-M"]),
@@ -621,7 +627,14 @@ export async function expandUntrackedDirectories(
 	// `--exclude-standard` matches what status itself honours, including
 	// .gitignore files nested inside the untracked directory.
 	const raw = await git
-		.raw(["ls-files", "--others", "--exclude-standard", "-z", "--", ...dirs])
+		.raw([
+			"ls-files",
+			"--others",
+			"--exclude-standard",
+			"-z",
+			"--",
+			...dirs.map((dir) => `:(literal)${dir}`),
+		])
 		.catch(() => "");
 
 	for (const path of raw.split("\0").filter(Boolean)) {

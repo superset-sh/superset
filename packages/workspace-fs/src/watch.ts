@@ -100,15 +100,23 @@ const NESTED_REPO_SCAN_CONCURRENCY = 4;
 export function isRelPathUnderPrunedDirs(
 	relative: string,
 	prunedRelPrefixes: readonly string[],
+	useDefaultIgnores = true,
 ): boolean {
 	const segments = relative.split("/");
 	for (let i = 0; i < segments.length - 1; i += 1) {
 		const segment = segments[i] as string;
-		if (DEFAULT_IGNORE_DIR_NAMES.has(segment)) {
+		if (
+			segment === ".git" ||
+			(useDefaultIgnores && DEFAULT_IGNORE_DIR_NAMES.has(segment))
+		) {
 			return true;
 		}
 		// `**/.claude/worktrees/**` is the one multi-segment static glob.
-		if (segment === ".claude" && segments[i + 1] === "worktrees") {
+		if (
+			useDefaultIgnores &&
+			segment === ".claude" &&
+			segments[i + 1] === "worktrees"
+		) {
 			return true;
 		}
 	}
@@ -237,6 +245,8 @@ function internalToSearchPatchEvent(
 export interface FsWatcherManagerOptions {
 	debounceMs?: number;
 	ignore?: string[];
+	/** Disable search-oriented exclusions for git status consumers; .git stays pruned. */
+	useDefaultIgnores?: boolean;
 	/**
 	 * Returns watch-root-relative directories that git ignores entirely
 	 * (fully-untracked subtrees like `.next` or `__pycache__`), so they can be
@@ -258,6 +268,7 @@ export interface FsWatcherManagerOptions {
 export class FsWatcherManager {
 	private readonly debounceMs: number;
 	private readonly ignore: string[];
+	private readonly useDefaultIgnores: boolean;
 	private readonly listGitIgnoredDirs?: (rootPath: string) => Promise<string[]>;
 	private readonly filePathsMax: number;
 	private readonly recoveryPollMs: number;
@@ -282,10 +293,14 @@ export class FsWatcherManager {
 
 	constructor(options: FsWatcherManagerOptions = {}) {
 		this.debounceMs = options.debounceMs ?? 75;
-		// Merged so a custom pattern can't silently drop node_modules/.git.
-		this.ignore = options.ignore
-			? [...new Set([...DEFAULT_IGNORE_PATTERNS, ...options.ignore])]
-			: DEFAULT_IGNORE_PATTERNS;
+		this.useDefaultIgnores = options.useDefaultIgnores !== false;
+		// Git status must observe tracked build/vendor files too. Gitignored
+		// directories are still pruned by the dynamic listing below.
+		const defaults =
+			options.useDefaultIgnores === false
+				? ["**/.git/**"]
+				: DEFAULT_IGNORE_PATTERNS;
+		this.ignore = [...new Set([...defaults, ...(options.ignore ?? [])])];
 		this.listGitIgnoredDirs = options.listGitIgnoredDirs;
 		this.filePathsMax = options.filePathsMax ?? FILE_PATHS_MAX;
 		this.recoveryPollMs = options.recoveryPollMs ?? 2_000;
@@ -809,7 +824,11 @@ export class FsWatcherManager {
 		if (relative === "" || relative.startsWith("..")) {
 			return true;
 		}
-		return isRelPathUnderPrunedDirs(relative, state.prunedRelPrefixes);
+		return isRelPathUnderPrunedDirs(
+			relative,
+			state.prunedRelPrefixes,
+			this.useDefaultIgnores,
+		);
 	}
 
 	/**

@@ -5,110 +5,126 @@ import {
 	shouldRecomputeInFull,
 } from "../git-status-partial";
 
-interface Cached {
-	baseBranch: string | null;
-	snapshot: GitStatusSnapshot;
+/**
+ * One cached snapshot per (workspace, baseBranch). Readers on the same
+ * workspace routinely differ in base branch — the sidebar stats read with
+ * none, the Changes tab with the configured one — and only the against-base
+ * fields depend on it, so every variant is patched from the same change
+ * stream instead of the variants evicting each other.
+ */
+interface Variant {
+	cached: GitStatusSnapshot | null;
+	/** Paths changed since `cached`, or null when a full walk is required. */
+	pending: Set<string> | null;
+	/** Reads on one variant run one at a time so a later read sees the earlier patch. */
+	queue: Promise<unknown>;
 }
 
-type Pending = Set<string> | null;
+interface ReadInput {
+	workspaceId: string;
+	baseBranch: string | null;
+	computeFull: () => Promise<GitStatusSnapshot>;
+	computePartial: (paths: string[]) => Promise<GitStatusPartial>;
+}
 
 export class GitStatusStore {
-	private readonly cached = new Map<string, Cached>();
-	private readonly pending = new Map<string, Pending>();
+	private readonly workspaces = new Map<string, Map<string, Variant>>();
 
 	attach(workspaceId: string): void {
-		if (!this.pending.has(workspaceId)) this.pending.set(workspaceId, null);
+		if (!this.workspaces.has(workspaceId)) {
+			this.workspaces.set(workspaceId, new Map());
+		}
 	}
 
 	drop(workspaceId: string): void {
-		this.pending.delete(workspaceId);
-		this.cached.delete(workspaceId);
+		this.workspaces.delete(workspaceId);
 	}
 
 	recordChange(workspaceId: string, paths: string[] | undefined): void {
-		if (!this.pending.has(workspaceId)) return;
-		const current = this.pending.get(workspaceId);
-		if (paths === undefined || current == null) {
-			this.pending.set(workspaceId, null);
-			return;
+		const variants = this.workspaces.get(workspaceId);
+		if (!variants) return;
+		for (const variant of variants.values()) {
+			if (paths === undefined || variant.pending === null) {
+				variant.pending = null;
+				continue;
+			}
+			for (const path of paths) variant.pending.add(path);
 		}
-		for (const path of paths) current.add(path);
 	}
 
-	async read({
-		workspaceId,
-		baseBranch,
-		computeFull,
-		computePartial,
-	}: {
-		workspaceId: string;
-		baseBranch: string | null;
-		computeFull: () => Promise<GitStatusSnapshot>;
-		computePartial: (paths: string[]) => Promise<GitStatusPartial>;
-	}): Promise<GitStatusSnapshot> {
-		if (!this.pending.has(workspaceId)) return computeFull();
+	async read(input: ReadInput): Promise<GitStatusSnapshot> {
+		const variants = this.workspaces.get(input.workspaceId);
+		if (!variants) return input.computeFull();
 
-		const cached = this.cached.get(workspaceId);
-		const pending = this.pending.get(workspaceId);
-
-		if (!cached || cached.baseBranch !== baseBranch || pending == null) {
-			return this.readFull(workspaceId, baseBranch, computeFull);
+		const key = input.baseBranch ?? "";
+		let variant = variants.get(key);
+		if (!variant) {
+			variant = { cached: null, pending: null, queue: Promise.resolve() };
+			variants.set(key, variant);
 		}
 
-		if (pending.size === 0) return cached.snapshot;
+		const run = variant.queue.then(() => this.readVariant(input, variant));
+		variant.queue = run.catch(() => {});
+		return run;
+	}
 
-		const paths = [...pending];
-		this.pending.set(workspaceId, new Set());
+	private async readVariant(
+		input: ReadInput,
+		variant: Variant,
+	): Promise<GitStatusSnapshot> {
+		if (!variant.cached || variant.pending === null) {
+			return this.readFull(input, variant);
+		}
+		if (variant.pending.size === 0) return variant.cached;
+
+		const paths = [...variant.pending];
+		variant.pending = new Set();
 
 		let partial: GitStatusPartial;
 		try {
-			partial = await computePartial(paths);
+			partial = await input.computePartial(paths);
 		} catch (error) {
-			this.restore(workspaceId, paths);
+			if (variant.pending) for (const path of paths) variant.pending.add(path);
 			throw error;
 		}
 
-		if (shouldRecomputeInFull(cached.snapshot, partial)) {
-			return this.readFull(workspaceId, baseBranch, computeFull);
+		if (shouldRecomputeInFull(variant.cached, partial)) {
+			return this.readFull(input, variant);
 		}
 
-		const patched = applyStatusPartial(cached.snapshot, partial);
-		if (this.cached.get(workspaceId) === cached) {
-			this.cached.set(workspaceId, { baseBranch, snapshot: patched });
-		}
+		const patched = applyStatusPartial(variant.cached, partial);
+		if (this.isLive(input.workspaceId, variant)) variant.cached = patched;
 		return patched;
 	}
 
 	private async readFull(
-		workspaceId: string,
-		baseBranch: string | null,
-		computeFull: () => Promise<GitStatusSnapshot>,
+		input: ReadInput,
+		variant: Variant,
 	): Promise<GitStatusSnapshot> {
-		if (this.pending.get(workspaceId) !== undefined) {
-			this.pending.set(workspaceId, new Set());
-		}
+		variant.pending = new Set();
 
 		let snapshot: GitStatusSnapshot;
 		try {
-			snapshot = await computeFull();
+			snapshot = await input.computeFull();
 		} catch (error) {
-			if (this.pending.has(workspaceId)) {
-				this.pending.set(workspaceId, null);
-			}
+			variant.pending = null;
 			throw error;
 		}
 
-		if (!this.pending.has(workspaceId)) return snapshot;
-		if (this.pending.get(workspaceId) === null) return snapshot;
-
-		this.cached.set(workspaceId, { baseBranch, snapshot });
+		// A broad change landed during the walk: the result may predate it.
+		if (variant.pending === null) return snapshot;
+		if (this.isLive(input.workspaceId, variant)) variant.cached = snapshot;
 		return snapshot;
 	}
 
-	private restore(workspaceId: string, paths: string[]): void {
-		const current = this.pending.get(workspaceId);
-		if (current === undefined || current === null) return;
-		for (const path of paths) current.add(path);
+	/** False once the workspace was dropped mid-read; caching would resurrect it. */
+	private isLive(workspaceId: string, variant: Variant): boolean {
+		const variants = this.workspaces.get(workspaceId);
+		if (!variants) return false;
+		for (const candidate of variants.values()) {
+			if (candidate === variant) return true;
+		}
+		return false;
 	}
 }
 

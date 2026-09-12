@@ -166,6 +166,42 @@ describe("getGitStatusPartial", () => {
 		);
 	});
 
+	test("editing a renamed file keeps the rename and its deletion", async () => {
+		await rename(join(repo, "src", "a.ts"), join(repo, "src", "renamed.ts"));
+		const before = await full(git, repo);
+		expect(before.unstaged.map((file) => file.status)).toEqual(["renamed"]);
+
+		await writeFile(join(repo, "src", "renamed.ts"), "const a = 1;\n// edit\n");
+		const { snapshot, escalated } = await patch(git, repo, before, [
+			"src/renamed.ts",
+		]);
+
+		expect(escalated).toBe(true);
+		expect(normalize(snapshot.unstaged)).toEqual(
+			normalize((await full(git, repo)).unstaged),
+		);
+		expect(snapshot.unstaged.map((file) => file.status)).toEqual(["renamed"]);
+	});
+
+	test("a decomposed (NFD) watcher path patches the composed entry git reports", async () => {
+		const composed = "caf\u00e9.txt".normalize("NFC");
+		const decomposed = composed.normalize("NFD");
+		expect(decomposed).not.toBe(composed);
+		await writeFile(join(repo, composed), "a\n");
+		await git.add(".");
+		await git.commit("unicode");
+		await writeFile(join(repo, composed), "a\nb\n");
+		const before = await full(git, repo);
+		expect(before.unstaged.map((file) => file.path)).toEqual([composed]);
+
+		await writeFile(join(repo, composed), "a\nb\nc\n");
+		const { snapshot } = await patch(git, repo, before, [decomposed]);
+
+		expect(
+			snapshot.unstaged.map((file) => [file.path, file.additions]),
+		).toEqual([[composed, 2]]);
+	});
+
 	test("a sequence of batches converges on the full-walk result", async () => {
 		let snapshot = await full(git, repo);
 

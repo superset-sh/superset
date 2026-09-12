@@ -180,9 +180,11 @@ describe("getGitStatusSnapshot (integration)", () => {
 			worktreePath: repo,
 		});
 
-		expect(
-			snapshot.unstaged.find((file) => file.path === "newdir/a.txt")?.additions,
-		).toBe(2);
+		const counted = snapshot.unstaged.find(
+			(file) => file.path === "newdir/a.txt",
+		);
+		expect(counted?.additions).toBe(2);
+		expect(counted?.deletions).toBe(0);
 	});
 
 	test("reports null counts above the stat limit but keeps every path", async () => {

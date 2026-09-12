@@ -118,6 +118,15 @@ export const MAX_DIFF_STATS_BATCH = 500;
 
 /** Limiter-admitted status snapshot; shared by getStatus and the batched
  * diff-stats query so both see identical numbers for a workspace. */
+/**
+ * A mutation that rewrites the index or refs returns before the `.git/`
+ * watcher event flushes, and the client refetches status immediately. Mark
+ * the workspace for a full walk so that refetch cannot be served from cache.
+ */
+function invalidateStatus(workspaceId: string): void {
+	gitStatusStore.recordChange(workspaceId, undefined);
+}
+
 function runStatusSnapshot(
 	ctx: Parameters<typeof resolveWorktreePath>[0] &
 		Pick<HostServiceContext, "credentials">,
@@ -486,6 +495,7 @@ export const gitRouter = router({
 			}
 
 			await git.raw(["branch", "-m", input.oldName, input.newName]);
+			invalidateStatus(input.workspaceId);
 			return { name: input.newName };
 		}),
 
@@ -507,6 +517,7 @@ export const gitRouter = router({
 			} else {
 				await git.raw(["checkout", "HEAD", "--", input.filePath]);
 			}
+			invalidateStatus(input.workspaceId);
 			return { success: true };
 		}),
 
@@ -517,6 +528,7 @@ export const gitRouter = router({
 			const git = await ctx.git(worktreePath);
 			await git.raw(["checkout", "--", "."]);
 			await git.raw(["clean", "-fd"]);
+			invalidateStatus(input.workspaceId);
 			return { success: true };
 		}),
 
@@ -569,6 +581,7 @@ export const gitRouter = router({
 			for (const filePath of deletePaths) {
 				await removeFromWorktree(worktreePath, filePath);
 			}
+			invalidateStatus(input.workspaceId);
 			return { success: true };
 		}),
 
@@ -578,6 +591,7 @@ export const gitRouter = router({
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const git = await ctx.git(worktreePath);
 			await git.raw(["add", "-A"]);
+			invalidateStatus(input.workspaceId);
 			return { success: true };
 		}),
 
@@ -587,6 +601,7 @@ export const gitRouter = router({
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const git = await ctx.git(worktreePath);
 			await git.raw(["reset", "HEAD"]);
+			invalidateStatus(input.workspaceId);
 			return { success: true };
 		}),
 
@@ -619,6 +634,7 @@ export const gitRouter = router({
 					message: "Nothing to commit",
 				});
 			}
+			invalidateStatus(input.workspaceId);
 			return { success: true, hash: result.hash };
 		}),
 
@@ -656,6 +672,7 @@ export const gitRouter = router({
 							: "No git remote to push to",
 				});
 			}
+			invalidateStatus(input.workspaceId);
 			return { success: true };
 		}),
 
