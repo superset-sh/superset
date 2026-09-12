@@ -3,6 +3,7 @@
 import { useLingui } from "@lingui/react/macro";
 import { SendHorizontal } from "lucide-react";
 import { type Ref, useState } from "react";
+import { isEnterSubmit } from "../../../../lib/keyboard";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../ui/button";
 import { Textarea } from "../../../ui/textarea";
@@ -54,7 +55,7 @@ export function CommentComposer({
 				}}
 				onBlur={() => setFocused(false)}
 				onKeyDown={(event) => {
-					if (event.key === "Enter" && !event.shiftKey) {
+					if (isEnterSubmit(event)) {
 						event.preventDefault();
 						submit();
 					}

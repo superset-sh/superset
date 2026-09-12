@@ -79,6 +79,8 @@ export function PageDetailScreen({
 	const [commentMode, setCommentMode] = useState(false);
 	const [focused, setFocused] = useState(true);
 	const [selection, setSelection] = useState<Selection | null>(null);
+	const selectionRef = useRef(selection);
+	selectionRef.current = selection;
 	const [rects, setRects] = useState<Record<string, FrameRect>>({});
 	const [container, setContainer] = useState({ width: 0, height: 0 });
 
@@ -159,11 +161,13 @@ export function PageDetailScreen({
 		}
 		if (message.type === "pointer-down") setSelection(null);
 		if (message.type === "pick") {
-			setSelection((previous) => {
-				if (previous) return previous;
+			if (!selectionRef.current) {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-				return { anchor: message.anchor, rect: message.rect };
-			});
+			}
+			setSelection(
+				(previous) =>
+					previous ?? { anchor: message.anchor, rect: message.rect },
+			);
 		}
 	}, []);
 
