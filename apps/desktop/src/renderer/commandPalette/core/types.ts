@@ -22,6 +22,11 @@ export interface CommandContext {
 		projectId?: string;
 		workspaceType?: "main" | "worktree" | "session";
 		hostId?: string;
+		isArchived: boolean;
+		/** null = local device, where reachability is not a question. */
+		hostIsOnline: boolean | null;
+		/** A sidebar placement row exists, so the Archived list can show it. */
+		hasSidebarPlacement: boolean;
 		preferredOpenInApp?: ExternalApp;
 	} | null;
 	activeHostUrl: string | null;
