@@ -3,6 +3,33 @@ import { z } from "zod";
 import { defineTool } from "../../define-tool";
 import { hostServiceCall } from "../../host-service-client";
 
+type AgentLaunchResult =
+	| { ok: true; kind: "terminal"; sessionId: string; label: string }
+	| { ok: false; error: string };
+
+/**
+ * The host keeps the workspace when a requested agent fails to spawn: the
+ * launch outcome comes back per entry in `agents[]` instead of throwing. A
+ * caller that passed `agents` asked for work to start, so a spawn failure is
+ * a failed create — return an MCP error envelope instead of a success body
+ * over an empty worktree (sibling of CLI #7275 / #5767).
+ */
+function requireAgentsLaunched(
+	requested: readonly unknown[] | undefined,
+	agents: readonly AgentLaunchResult[] | undefined,
+	workspaceId: string,
+): void {
+	if (requested === undefined || requested.length === 0) return;
+	const errors = (agents ?? [])
+		.filter((agent): agent is { ok: false; error: string } => !agent.ok)
+		.map((agent) => agent.error ?? "unknown error");
+	if (errors.length === 0) return;
+
+	throw new Error(
+		`Agent launch failed: ${errors.join("; ")}. Workspace ${workspaceId} exists without the agent — retry with agents_create.`,
+	);
+}
+
 const agentLaunchSchema = z.object({
 	agent: z
 		.string()
@@ -38,7 +65,7 @@ export function register(server: McpServer): void {
 		name: "workspaces_create",
 		annotations: { destructiveHint: false },
 		description:
-			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. When `projectId` is set, provide exactly one of `branch` or `pr`. Omit `projectId` (and `branch`/`pr`/`baseBranch`/`taskId`) to create a project-less session instead — a managed scratch folder (its own git repo, no branch/PR semantics). Optionally pass `agents` to spawn one or more agents in the workspace as soon as it is ready (each entry runs the equivalent of `agents_create` against the new workspace), and/or pass `command` to run a one-off shell command in the worktree. Use projects_list and hosts_list first to get the projectId and hostId.",
+			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. When `projectId` is set, provide exactly one of `branch` or `pr`. Omit `projectId` (and `branch`/`pr`/`baseBranch`/`taskId`) to create a project-less session instead — a managed scratch folder (its own git repo, no branch/PR semantics). Optionally pass `agents` to spawn one or more agents in the workspace as soon as it is ready (each entry runs the equivalent of `agents_create` against the new workspace); if any requested launch returns `ok: false`, this tool errors (the workspace may still exist). And/or pass `command` to run a one-off shell command in the worktree. Use projects_list and hosts_list first to get the projectId and hostId.",
 		inputSchema: {
 			projectId: z
 				.string()
@@ -104,7 +131,7 @@ export function register(server: McpServer): void {
 						);
 					}
 				}
-				return hostServiceCall<{
+				const result = await hostServiceCall<{
 					workspace: {
 						id: string;
 						projectId: string | null;
@@ -112,10 +139,7 @@ export function register(server: McpServer): void {
 						branch: string;
 					};
 					terminals: Array<{ terminalId: string; label?: string }>;
-					agents: Array<
-						| { ok: true; kind: "terminal"; sessionId: string; label: string }
-						| { ok: false; error: string }
-					>;
+					agents: Array<AgentLaunchResult>;
 				}>(
 					{
 						relayUrl: ctx.relayUrl,
@@ -131,8 +155,10 @@ export function register(server: McpServer): void {
 						command: input.command,
 					},
 				);
+				requireAgentsLaunched(input.agents, result.agents, result.workspace.id);
+				return result;
 			}
-			return hostServiceCall<{
+			const result = await hostServiceCall<{
 				workspace: {
 					id: string;
 					projectId: string;
@@ -140,10 +166,7 @@ export function register(server: McpServer): void {
 					branch: string;
 				};
 				terminals: Array<{ terminalId: string; label?: string }>;
-				agents: Array<
-					| { ok: true; kind: "terminal"; sessionId: string; label: string }
-					| { ok: false; error: string }
-				>;
+				agents: Array<AgentLaunchResult>;
 				alreadyExists: boolean;
 			}>(
 				{
@@ -165,6 +188,8 @@ export function register(server: McpServer): void {
 					command: input.command,
 				},
 			);
+			requireAgentsLaunched(input.agents, result.agents, result.workspace.id);
+			return result;
 		},
 	});
 }
