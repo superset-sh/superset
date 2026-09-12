@@ -1,4 +1,4 @@
-name: Delete update branch for deleted git branch
+name: Mobile cleanup
 
 on:
   ref_delete: {}

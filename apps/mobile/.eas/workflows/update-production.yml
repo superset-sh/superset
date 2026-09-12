@@ -1,4 +1,4 @@
-name: Publish update to production
+name: Mobile production update
 
 on:
   workflow_dispatch:
