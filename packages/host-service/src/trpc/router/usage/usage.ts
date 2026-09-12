@@ -23,6 +23,7 @@ import {
 } from "./default-account";
 import { fetchGrokAccounts } from "./grok-quota";
 import { countAgentPrsByDay } from "./history/agent-prs";
+import { fetchOpencodeAccounts } from "./opencode-quota";
 import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
 import { discoverClaudeProfiles, discoverCodexHomes } from "./profiles";
 import type { UsageAccount } from "./types";
@@ -46,6 +47,7 @@ function loadAccounts(): Promise<UsageAccount[]> {
 		fetchCodexAccounts(),
 		fetchGrokAccounts(),
 		fetchAgyAccounts(),
+		fetchOpencodeAccounts(),
 	]).then((groups) => groups.flat());
 }
 

@@ -42,7 +42,7 @@ export async function GET() {
 		"- **Any CLI agent**: Claude Code, OpenAI Codex, OpenCode, and anything else that runs in a terminal.",
 		"- **Diff review**: review every change from one dashboard before merging.",
 		"- **Persistent terminals**: sessions survive app restarts.",
-		"- **Automations**: schedule recurring agent runs with a prompt.",
+		"- **Automations** (Pro): schedule recurring agent runs with a prompt.",
 		"- **MCP server**: drive Superset from other AI agents over the Model Context Protocol.",
 		"",
 		"## Get started",

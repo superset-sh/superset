@@ -24,7 +24,7 @@ export const FRAME_CHANNEL = "superset-comments/frame";
 
 export type HostMessageBody =
 	| { type: "ready" }
-	| { type: "set-mode"; enabled: boolean }
+	| { type: "set-mode"; enabled: boolean; locked: boolean }
 	| { type: "track"; anchors: { id: string; anchor: CommentAnchor }[] }
 	| { type: "restore-scroll"; y: number };
 
@@ -59,6 +59,8 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	const FRAME = ${JSON.stringify(FRAME_CHANNEL)};
 
 	let enabled = false;
+	let locked = false;
+	let lockedAtPointerDown = false;
 	let tracked = [];
 	let lastHoverPath = null;
 	let frame = 0;
@@ -154,7 +156,7 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	document.addEventListener(
 		"mousemove",
 		(event) => {
-			if (!enabled) return;
+			if (!enabled || locked) return;
 			const el = targetAt(event.clientX, event.clientY);
 			const path = el ? pathOf(el) : null;
 			if (path === lastHoverPath) return;
@@ -181,9 +183,13 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		true,
 	);
 
+	// The host dismisses whatever is open on pointer-down and unlocks the frame
+	// before this same gesture's click arrives, so the click has to remember
+	// that it began as a dismiss or it starts a new pick.
 	document.addEventListener(
 		"mousedown",
 		() => {
+			lockedAtPointerDown = locked;
 			post({ type: "pointer-down" });
 		},
 		true,
@@ -192,9 +198,12 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	document.addEventListener(
 		"click",
 		(event) => {
+			const dismissing = lockedAtPointerDown;
+			lockedAtPointerDown = false;
 			if (!enabled) return;
 			event.preventDefault();
 			event.stopPropagation();
+			if (locked || dismissing) return;
 			const el = targetAt(event.clientX, event.clientY);
 			if (!el) return;
 			const rect = rectOf(el);
@@ -246,8 +255,10 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		if (data.type === "ready") post({ type: "ready" });
 		if (data.type === "set-mode") {
 			enabled = Boolean(data.enabled);
-			document.documentElement.style.cursor = enabled ? "crosshair" : "";
-			if (!enabled) {
+			locked = Boolean(data.locked);
+			document.documentElement.style.cursor =
+				enabled && !locked ? "crosshair" : "";
+			if (!enabled || locked) {
 				lastHoverPath = null;
 				post({ type: "hover", rect: null });
 			}

@@ -2,23 +2,27 @@
  * Regenerates everything a cloud workspace starts from, deterministically and
  * from outside any sandbox:
  *
- *   1. the base image (`superset-hostsvc`), unless --skip-base
+ *   1. the base image (`superset-hostsvc`) in Vercel Container Registry,
+ *      unless --skip-base
  *   2. the internal golden sandbox: base image + internal-setup.sh, verified
- *      inside (dependencies, turbo, zsh config, gt, Electron libs, display)
+ *      inside (dependencies, turbo, zsh config, gt, Electron libs, display),
+ *      then stopped so its snapshot is what forks start from
  *   3. the environments rows: shared `Default` -> base image, and the internal
  *      organization's environment -> fork of the new golden; the previous
  *      golden is deleted once the row points at the new one
  *
  *   SUPERSET_INTERNAL_ORGANIZATION_ID=… bun run sandbox:release [--production] [--skip-base] [--keep-old]
  *
- * Needs BLAXEL_API_KEY / BLAXEL_WORKSPACE and NEON_API_KEY / NEON_PROJECT_ID
- * (all in the root .env). The rows go to DATABASE_URL, or with --production to
- * the Neon project's default branch, resolved through the Neon API. Fails
- * loudly and leaves the new golden up for inspection if any check fails.
+ * Needs the VERCEL_SANDBOX_* variables and SANDBOX_ACCESS_SIGNING_KEY, plus
+ * NEON_API_KEY / NEON_PROJECT_ID (all in the root .env) and, for the image, a
+ * Docker daemon and `vercel vcr login docker`. The rows go to DATABASE_URL, or
+ * with --production to the Neon project's default branch, resolved through the
+ * Neon API. Fails loudly and leaves the new golden up for inspection if any
+ * check fails.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { SandboxInstance, settings } from "@blaxel/core";
+import { APIError, Sandbox } from "@vercel/sandbox";
 
 // The provisioning code imports the API env schema; an operator running this
 // should not need every API secret to exist locally.
@@ -32,12 +36,19 @@ const KEEP_OLD = process.argv.includes("--keep-old");
 const PROBE_NEON = process.argv.includes("--probe-neon");
 const PRODUCTION = process.argv.includes("--production");
 const IMAGE = "superset-hostsvc";
-const REGION = process.env.BLAXEL_REGION ?? "us-pdx-1";
+const HOST_SERVICE_PORT = 4879;
 const WORKSPACE = "/workspace";
 const INTERNAL_NAME =
 	process.env.SUPERSET_INTERNAL_ENVIRONMENT_NAME ?? "Superset";
 const ORGANIZATION_ID = process.env.SUPERSET_INTERNAL_ORGANIZATION_ID;
 const ENV_FILE = process.env.SUPERSET_INTERNAL_ENV_FILE;
+/**
+ * Disk is 64 GB regardless; this is memory (2 GB per vCPU) for the dev stack —
+ * api, web, electron-vite, Electron — which needs around 8 GB on top of the
+ * checkout's tooling. Forks inherit it.
+ */
+const GOLDEN_VCPUS = 8;
+const GOLDEN_SESSION_TIMEOUT_MS = 60 * 60 * 1000;
 
 const started = Date.now();
 const at = () => `${((Date.now() - started) / 1000).toFixed(0).padStart(4)}s`;
@@ -48,6 +59,16 @@ function fail(reason: string): never {
 }
 
 if (!ORGANIZATION_ID) fail("SUPERSET_INTERNAL_ORGANIZATION_ID is required");
+const credentials = {
+	token: process.env.VERCEL_SANDBOX_TOKEN ?? "",
+	teamId: process.env.VERCEL_SANDBOX_TEAM_ID ?? "",
+	projectId: process.env.VERCEL_SANDBOX_PROJECT_ID ?? "",
+};
+if (!credentials.token || !credentials.teamId || !credentials.projectId) {
+	fail(
+		"VERCEL_SANDBOX_TOKEN, VERCEL_SANDBOX_TEAM_ID and VERCEL_SANDBOX_PROJECT_ID are required",
+	);
+}
 if (PRODUCTION) {
 	const key = process.env.NEON_API_KEY;
 	const project = process.env.NEON_PROJECT_ID;
@@ -76,29 +97,27 @@ if (PRODUCTION) {
 } else if (!process.env.DATABASE_URL) {
 	fail("DATABASE_URL is required (or pass --production)");
 }
-settings.setConfig({
-	apiKey: process.env.BLAXEL_API_KEY ?? "",
-	workspace: process.env.BLAXEL_WORKSPACE ?? "",
-});
 
 // 1. base image
 if (SKIP_BASE) {
 	log("base image: skipped (--skip-base)");
 } else {
-	log("base image: building host-service bundle");
-	const build = Bun.spawnSync(
-		["bun", "run", "--cwd", "packages/host-service", "build:host"],
-		{ cwd: ROOT, stdout: "ignore", stderr: "inherit" },
-	);
-	if (build.exitCode !== 0) fail("host-service build failed");
+	log("base image: building host-service and pty-daemon bundles");
+	for (const [pkg, script] of [
+		["packages/host-service", "build:host"],
+		["packages/pty-daemon", "build:daemon"],
+	]) {
+		const build = Bun.spawnSync(["bun", "run", "--cwd", pkg, script], {
+			cwd: ROOT,
+			stdout: "ignore",
+			stderr: "inherit",
+		});
+		if (build.exitCode !== 0) fail(`${pkg} build failed`);
+	}
 	log(`base image: building and pushing ${IMAGE}`);
 	const image = Bun.spawnSync(["bun", "scripts/sandbox/image.ts"], {
 		cwd: ROOT,
-		env: {
-			...process.env,
-			BL_API_KEY: process.env.BLAXEL_API_KEY,
-			BL_WORKSPACE: process.env.BLAXEL_WORKSPACE,
-		},
+		env: process.env,
 		stdout: "pipe",
 		stderr: "inherit",
 	});
@@ -111,31 +130,47 @@ if (SKIP_BASE) {
 // 2. internal golden
 const golden = `env-internal-${Date.now().toString(36)}`;
 log(`golden: creating ${golden} from ${IMAGE}`);
-// No credential routing here on purpose: a fork inherits a source's proxy
-// variables as unresolved templates and loses egress entirely. provisioning
-// applies the routing to each fork instead, and the probe below checks it.
-const sandbox = await SandboxInstance.createIfNotExists({
-	name: golden,
-	image: IMAGE,
-	// The writable root is tmpfs sized at half of memory, and those pages count
-	// against the same memory (docs/cloud-sandbox-mismatches.md). A checkout
-	// plus node_modules is ~6 GB, and the dev stack (api, web, electron-vite,
-	// Electron) needs another ~8 GB, so 16 GB ran out at 15.0/16.0 before
-	// Electron was up. Forks inherit this, so every workspace from this golden
-	// pays for 32 GB.
-	memory: 32768,
-	region: REGION,
-} as never);
-await sandbox
-	.wait?.({ maxWait: 300_000, interval: 2000 })
-	.catch((error: unknown) =>
-		fail(`golden ${golden} never became ready: ${String(error).slice(0, 120)}`),
-	);
+// A freshly pushed image sits in `Preparing` while the registry optimises it
+// for sandboxes (a few minutes for a gigabyte), and create answers 409
+// `image_not_ready` until then. Waiting here is what makes a release one
+// command rather than two runs.
+async function createGolden(): Promise<Sandbox> {
+	const deadline = Date.now() + 20 * 60_000;
+	for (;;) {
+		try {
+			return await Sandbox.create({
+				...credentials,
+				name: golden,
+				image: IMAGE,
+				resources: { vcpus: GOLDEN_VCPUS },
+				timeout: GOLDEN_SESSION_TIMEOUT_MS,
+				ports: [HOST_SERVICE_PORT],
+				region: (process.env.VERCEL_SANDBOX_REGION ?? "iad1") as never,
+				persistent: true,
+				// Goldens are kept until the environment that points at them goes.
+				snapshotExpiration: 0,
+				keepLastSnapshots: { count: 1 },
+				tags: { kind: "environment" },
+			});
+		} catch (error) {
+			const notReady =
+				error instanceof APIError && error.response.status === 409;
+			if (!notReady || Date.now() > deadline) {
+				fail(
+					`golden ${golden} could not be created: ${String(error).slice(0, 200)}`,
+				);
+			}
+			log("golden: image still preparing in the registry, waiting");
+			await new Promise((resolve) => setTimeout(resolve, 15_000));
+		}
+	}
+}
+const sandbox = await createGolden();
 
 // The golden never carries variables: in production they arrive as environment
 // secrets, injected into each workspace's env. SUPERSET_INTERNAL_ENV_FILE feeds
 // only the throwaway probe below, the same way, so the dev-stack checks can run.
-const RESERVED_PREFIXES = ["SUPERSET_", "HOST_SERVICE_", "BLAXEL_"];
+const RESERVED_PREFIXES = ["SUPERSET_", "HOST_SERVICE_", "VERCEL_"];
 const RESERVED_KEYS = new Set([
 	"ORGANIZATION_ID",
 	"AUTH_TOKEN",
@@ -167,67 +202,47 @@ if (ENV_FILE) {
 }
 
 async function run(
-	name: string,
+	target: Sandbox,
 	command: string,
 ): Promise<{ code: number; logs: string }> {
-	const result = (await sandbox.process.exec({
-		name,
-		command: `bash -lc ${JSON.stringify(command)}`,
-		waitForCompletion: true,
-	} as never)) as { exitCode?: number };
-	const logs = String(await sandbox.process.logs(name).catch(() => ""));
-	return { code: result.exitCode ?? 0, logs };
+	const result = await target.runCommand("bash", ["-lc", command]);
+	return {
+		code: result.exitCode,
+		logs: `${await result.stdout()}${await result.stderr()}`,
+	};
 }
 
-// A synchronous exec dies at the edge gateway after roughly two minutes
-// (504), and the setup takes longer than that once dependencies install. So
-// it runs detached and the script polls the process until it finishes.
+// Detached with a wait rather than one long request: the setup takes longer
+// than any single HTTP call should be held open for.
 async function runLong(
-	name: string,
+	target: Sandbox,
 	command: string,
 	maxMs = 20 * 60_000,
 ): Promise<{ code: number; logs: string }> {
-	await sandbox.process.exec({
-		name,
-		command: `bash -lc ${JSON.stringify(command)}`,
-		waitForCompletion: false,
-	} as never);
-	const started = Date.now();
-	for (;;) {
-		await new Promise((resolve) => setTimeout(resolve, 5000));
-		const info = (await sandbox.process.get(name).catch(() => null)) as {
-			status?: string;
-			exitCode?: number;
-		} | null;
-		if (
-			info &&
-			["completed", "failed", "stopped", "killed"].includes(info.status ?? "")
-		) {
-			const logs = String(await sandbox.process.logs(name).catch(() => ""));
-			return {
-				code: info.exitCode ?? (info.status === "completed" ? 0 : 1),
-				logs,
-			};
-		}
-		if (Date.now() - started > maxMs) {
-			const logs = String(await sandbox.process.logs(name).catch(() => ""));
-			return {
-				code: 124,
-				logs: `${logs}\n[release] ${name} still running after ${maxMs / 60000} min`,
-			};
-		}
-	}
+	const detached = await target.runCommand({
+		cmd: "bash",
+		args: ["-lc", command],
+		detached: true,
+		timeoutMs: maxMs,
+	});
+	const result = await detached.wait();
+	return {
+		code: result.exitCode,
+		logs: `${await result.stdout()}${await result.stderr()}`,
+	};
 }
 
-await sandbox.fs.write(
-	"/tmp/internal-setup.sh",
-	readFileSync(join(import.meta.dir, "internal-setup.sh"), "utf8"),
-);
+await sandbox.writeFiles([
+	{
+		path: "/tmp/internal-setup.sh",
+		content: readFileSync(join(import.meta.dir, "internal-setup.sh")),
+	},
+]);
 log(
 	"golden: running internal-setup.sh (dependency install takes several minutes)",
 );
 const setup = await runLong(
-	"internal-setup",
+	sandbox,
 	`SUPERSET_SANDBOX_WORKSPACE_PATH=${WORKSPACE} bash /tmp/internal-setup.sh`,
 );
 for (const line of setup.logs
@@ -260,12 +275,15 @@ const checks: Array<[label: string, command: string, expect: RegExp]> = [
 		`ldconfig -p | grep -cE 'libgtk-3.so.0|libnss3.so|libgbm.so.1'`,
 		/^[3-9]/m,
 	],
-	["xterm", "command -v xterm", /xterm/],
-	["autostart", "test -f ~/.config/openbox/autostart && echo ok", /ok/],
+	[
+		"dev stack autostart",
+		"test -f ~/.config/autostart/superset-dev-stack.desktop && test -x /usr/local/bin/superset-dev-stack && echo ok",
+		/ok/,
+	],
 ];
 let failed = 0;
 for (const [label, command, expect] of checks) {
-	const { logs } = await run(`check-${label.replace(/\W+/g, "-")}`, command);
+	const { logs } = await run(sandbox, command);
 	const ok = expect.test(logs);
 	log(
 		`${ok ? "ok  " : "FAIL"} ${label}: ${logs.trim().split("\n").pop() ?? "(no output)"}`,
@@ -274,12 +292,25 @@ for (const [label, command, expect] of checks) {
 }
 if (failed) fail(`${failed} check(s) failed; ${golden} left for inspection`);
 
+const {
+	provisionSandbox,
+	resolveSandboxAddress,
+	mintSandboxAccessToken,
+	sandboxAccessVerifier,
+	deleteSandbox,
+	waitForStopSnapshot,
+} = await import("../../packages/trpc/src/lib/sandbox/index.ts");
+
+// The stop is the snapshot forks start from; a running golden has none, and
+// a fork taken before that snapshot is current boots from the bare image.
+const beforeStop = sandbox.currentSnapshotId;
+await sandbox.stop();
+await waitForStopSnapshot(golden, beforeStop);
+log(`golden: ${golden} stopped and snapshotted`);
+
 // verification, as a workspace: fork the golden exactly the way provisioning
 // does, then check what a person gets — host-service, the display with its
 // terminal, VNC, and (with a .env) the dev stack and the Electron desktop.
-const { provisionSandbox, mintPreviewAccess, deleteSandbox } = await import(
-	"../../packages/trpc/src/lib/blaxel/index.ts"
-);
 const { SANDBOX_HOST_DB_PATH } = await import(
 	"../../packages/shared/src/constants.ts"
 );
@@ -293,8 +324,8 @@ await provisionSandbox({
 		sourceKind: "fork",
 		sourceRef: golden,
 	},
+	environmentEnv: probeEnv,
 	workspaceEnv: {
-		...probeEnv,
 		ORGANIZATION_ID: ORGANIZATION_ID,
 		HOST_DB_PATH: SANDBOX_HOST_DB_PATH,
 		HOST_MIGRATIONS_FOLDER: "/app/drizzle",
@@ -303,6 +334,7 @@ await provisionSandbox({
 			process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001",
 		SUPERSET_HOST_RUN_MODE: "sandbox",
 		SUPERSET_SANDBOX_WORKSPACE_ID: probeWorkspaceId,
+		SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY: sandboxAccessVerifier(),
 		SUPERSET_SANDBOX_WORKSPACE_NAME: "release-probe",
 		// A real workspace branches the database for itself at first boot; a
 		// probe must not leave a Neon branch behind unless asked to prove it.
@@ -311,31 +343,17 @@ await provisionSandbox({
 		SUPERSET_SANDBOX_WORKSPACE_PATH: WORKSPACE,
 		SUPERSET_SANDBOX_REPO_URL: "https://github.com/superset-sh/superset.git",
 		SUPERSET_SANDBOX_IMAGE_TAG: golden,
+		SUPERSET_SANDBOX_PROVIDER: "vercel",
 	},
 });
-const access = await mintPreviewAccess(probe);
-const forked = await SandboxInstance.get(probe);
-// The edge drops the odd HTTP/2 session (GOAWAY, 502/504) under a long
-// poll; a check is idempotent, so retry it rather than fail the release.
-async function probeRun(name: string, command: string): Promise<string> {
-	for (let attempt = 1; ; attempt++) {
-		try {
-			await forked.process.exec({
-				name: `${name}-${attempt}`,
-				command: `bash -lc ${JSON.stringify(command)}`,
-				waitForCompletion: true,
-			} as never);
-			return String(
-				await forked.process.logs(`${name}-${attempt}`).catch(() => ""),
-			);
-		} catch (error) {
-			if (attempt >= 4) throw error;
-			log(
-				`  probe exec ${name} retry ${attempt}: ${String((error as Error).message ?? error).slice(0, 80)}`,
-			);
-			await new Promise((resolve) => setTimeout(resolve, 5000));
-		}
-	}
+const { url: probeUrl } = await resolveSandboxAddress({
+	providerSandboxId: probe,
+	wake: false,
+});
+const { token: probeToken } = mintSandboxAccessToken(probeWorkspaceId);
+const forked = await Sandbox.get({ ...credentials, name: probe });
+async function probeRun(command: string): Promise<string> {
+	return (await run(forked, command)).logs;
 }
 async function until(
 	label: string,
@@ -344,7 +362,7 @@ async function until(
 	seconds: number,
 ): Promise<boolean> {
 	for (let i = 0; i < seconds / 5; i++) {
-		const out = await probeRun(`${label}-${i}`, command);
+		const out = await probeRun(command);
 		if (expect.test(out)) {
 			log(`ok   ${label}: ${out.trim().split("\n").pop()}`);
 			return true;
@@ -357,11 +375,8 @@ async function until(
 let probeFailed = 0;
 let health = 0;
 for (let i = 0; i < 40 && health !== 200; i++) {
-	health = await fetch(`${access.url}/trpc/health.check`, {
-		headers: {
-			"X-Blaxel-Preview-Token": access.token,
-			authorization: "Bearer sandbox",
-		},
+	health = await fetch(`${probeUrl}/trpc/health.check`, {
+		headers: { authorization: `Bearer ${probeToken}` },
 	})
 		.then((r) => r.status)
 		.catch(() => 0);
@@ -369,6 +384,14 @@ for (let i = 0; i < 40 && health !== 200; i++) {
 }
 log(`${health === 200 ? "ok  " : "FAIL"} host-service: ${health}`);
 if (health !== 200) probeFailed++;
+{
+	// health.check is public on purpose; the gate is probed on a guarded route.
+	const anonymous = await fetch(`${probeUrl}/events`)
+		.then((r) => r.status)
+		.catch(() => 0);
+	log(`${anonymous === 401 ? "ok  " : "FAIL"} no token refused: ${anonymous}`);
+	if (anonymous !== 401) probeFailed++;
+}
 if (
 	!(await until(
 		"dependencies survive the fork",
@@ -380,17 +403,16 @@ if (
 	probeFailed++;
 if (
 	!(await until(
-		"display + xterm",
-		"pgrep -x Xvfb >/dev/null && pgrep -x x11vnc >/dev/null && pgrep -x xterm >/dev/null && echo up",
+		"display + xfce + plank",
+		"pgrep -x Xvnc >/dev/null && pgrep -x xfce4-session >/dev/null && pgrep -x plank >/dev/null && echo up",
 		/up/,
 		60,
 	))
 )
 	probeFailed++;
-const vnc = new URL("/desktop/vnc", access.url);
+const vnc = new URL("/desktop/vnc", probeUrl);
 vnc.protocol = "wss:";
-vnc.searchParams.set("bl_preview_token", access.token);
-vnc.searchParams.set("token", "sandbox");
+vnc.searchParams.set("token", probeToken);
 const frame = await new Promise<string>((resolve) => {
 	const ws = new WebSocket(vnc.toString());
 	ws.binaryType = "arraybuffer";
@@ -428,7 +450,6 @@ if (ENV_FILE) {
 		probeFailed++;
 	if (PROBE_NEON) {
 		const stamp = await probeRun(
-			"db-branch",
 			"cat /data/.superset-db-branch 2>/dev/null; tail -n 3 /tmp/superset-workspace-db.log 2>/dev/null",
 		);
 		const ok = stamp.includes(probeBranch);
@@ -439,14 +460,13 @@ if (ENV_FILE) {
 	}
 	{
 		const status = await probeRun(
-			"agent-credentials",
 			"curl -s -o /dev/null -w '%{http_code}' --max-time 15 -H \"x-api-key: $ANTHROPIC_API_KEY\" -H 'anthropic-version: 2023-06-01' https://api.anthropic.com/v1/models" +
 				"; echo; curl -s -o /dev/null -w '%{http_code}' --max-time 15 -H \"Authorization: Bearer $OPENAI_API_KEY\" https://api.openai.com/v1/models",
 		);
 		const codes = status.trim().split(/\s+/);
 		const ok = codes.length === 2 && codes.every((code) => code === "200");
 		log(
-			`${ok ? "ok  " : "FAIL"} agent credentials (Anthropic, OpenAI; keys from the env file): ${codes.join(" ") || "(no output)"}`,
+			`${ok ? "ok  " : "FAIL"} agent credentials (Anthropic, OpenAI; keys from the env file or brokered): ${codes.join(" ") || "(no output)"}`,
 		);
 		if (!ok) probeFailed++;
 	}
@@ -460,7 +480,6 @@ if (ENV_FILE) {
 	) {
 		probeFailed++;
 		const logs = await probeRun(
-			"desktop-log",
 			"tail -n 15 /tmp/superset-desktop.log 2>/dev/null | sed 's/\\x1b\\[[0-9;?]*[A-Za-z]//g' | cut -c1-200",
 		);
 		for (const line of logs.trim().split("\n")) log(`  [desktop] ${line}`);
@@ -519,13 +538,17 @@ await db
 	.values({
 		organizationId: SHARED_ENVIRONMENT_ORGANIZATION_ID,
 		name: SHARED_ENVIRONMENT_NAME,
-		provider: "blaxel",
+		provider: "vercel",
 		sourceKind: "image",
 		sourceRef: SANDBOX_IMAGE_NAME,
 	})
 	.onConflictDoUpdate({
 		target: [environments.organizationId, environments.name],
-		set: { sourceRef: SANDBOX_IMAGE_NAME, archivedAt: null },
+		set: {
+			provider: "vercel",
+			sourceRef: SANDBOX_IMAGE_NAME,
+			archivedAt: null,
+		},
 	});
 log(`rows: ${SHARED_ENVIRONMENT_NAME} -> image ${SANDBOX_IMAGE_NAME}`);
 
@@ -538,23 +561,32 @@ await db
 	.values({
 		organizationId: ORGANIZATION_ID,
 		name: INTERNAL_NAME,
-		provider: "blaxel",
+		provider: "vercel",
 		sourceKind: "fork",
 		sourceRef: golden,
 	})
 	.onConflictDoUpdate({
 		target: [environments.organizationId, environments.name],
-		set: { sourceKind: "fork", sourceRef: golden, archivedAt: null },
+		set: {
+			provider: "vercel",
+			sourceKind: "fork",
+			sourceRef: golden,
+			archivedAt: null,
+		},
 	});
 log(
 	`rows: ${INTERNAL_NAME} (organization ${ORGANIZATION_ID}) -> fork ${golden}`,
 );
 
-if (previous?.sourceKind === "fork" && previous.sourceRef !== golden) {
+if (
+	previous?.sourceKind === "fork" &&
+	previous.sourceRef !== golden &&
+	previous.provider === "vercel"
+) {
 	if (KEEP_OLD) log(`previous golden ${previous.sourceRef} kept (--keep-old)`);
 	else {
 		try {
-			await SandboxInstance.delete(previous.sourceRef);
+			await deleteSandbox(previous.sourceRef);
 			log(`previous golden ${previous.sourceRef} deleted`);
 		} catch (error) {
 			log(

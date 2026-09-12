@@ -42,7 +42,11 @@ export function runUrlLinkAction(
 		? parseSupersetPageUrl(url, env.NEXT_PUBLIC_WEB_URL)
 		: null;
 	if (pageSlug) {
-		openPagePaneInStore(deps.store, { slug: pageSlug });
+		openPagePaneInStore(
+			deps.store,
+			{ slug: pageSlug },
+			action === "newTab" ? "tab" : "split",
+		);
 		return;
 	}
 	openUrlInV2Workspace({

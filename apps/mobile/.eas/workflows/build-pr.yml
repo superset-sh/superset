@@ -1,0 +1,19 @@
+name: Mobile build
+
+on:
+  pull_request:
+    types: [labeled]
+    if: ${{ github.event.label.name == 'mobile-build' }}
+
+jobs:
+  build:
+    name: Build development client
+    type: build
+    params:
+      platform: ios
+      profile: development
+
+  comment:
+    name: Comment with install link
+    needs: [build]
+    type: github-comment

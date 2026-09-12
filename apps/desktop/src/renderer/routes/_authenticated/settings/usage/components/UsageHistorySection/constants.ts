@@ -2,9 +2,11 @@ import type { ChartConfig } from "@superset/ui/chart";
 
 /**
  * Fixed categorical hue order — color follows the agent, never its rank.
- * All nine hexes validated (light + dark surfaces) with the dataviz palette
+ * Every hex validated (light + dark surfaces) with the dataviz palette
  * checker in this order: lightness band, chroma, adjacent-pair CVD ΔE,
- * normal-vision floor, contrast ≥ 3:1 all pass.
+ * normal-vision floor, contrast ≥ 3:1. Muse's rose and Devin's violet are
+ * the best 11th and 12th slots left (≥ 9 and ≥ 6.7 ΔE from every other hue
+ * for normal vision, bands and contrast passing in both modes).
  */
 export const AGENT_CHART_CONFIG = {
 	claude: { label: "Claude Code", color: "#d06a48" },
@@ -17,6 +19,8 @@ export const AGENT_CHART_CONFIG = {
 	pi: { label: "Pi", color: "#b04a82" },
 	omp: { label: "Oh My Pi", color: "#829c2e" },
 	fx: { label: "fx", color: "#5b6bd6" },
+	muse: { label: "Muse Code", color: "#cc6b8e" },
+	devin: { label: "Devin", color: "#7f5fa8" },
 } satisfies ChartConfig;
 
 /** Preset-icon registry keys per agent (cursor's icon is keyed by its
@@ -32,6 +36,8 @@ export const AGENT_ICON_KEY: Record<keyof typeof AGENT_CHART_CONFIG, string> = {
 	pi: "pi",
 	omp: "omp",
 	fx: "fx",
+	muse: "muse",
+	devin: "devin",
 };
 
 export const AGENT_ORDER = [
@@ -45,6 +51,8 @@ export const AGENT_ORDER = [
 	"pi",
 	"omp",
 	"fx",
+	"muse",
+	"devin",
 ] as const;
 
 export type HistoryMetric = "usd" | "tokens";

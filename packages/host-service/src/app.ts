@@ -58,7 +58,13 @@ export interface CreateAppOptions {
 		dbPath: string;
 		cloudApiUrl: string;
 		migrationsFolder: string;
-		allowedOrigins: string[];
+		/**
+		 * Origins the renderer may call from. A sandbox answers `*`: its URL
+		 * is reached directly from the desktop, whose origin differs per
+		 * install, and the bearer token — never a cookie — is what gates it,
+		 * so a wildcard grants no ambient authority.
+		 */
+		allowedOrigins: string | string[];
 		/** Loopback surface for driving desktop browser panes; desktop-only. */
 		browserBridge?: BrowserBridgeConfig;
 	};

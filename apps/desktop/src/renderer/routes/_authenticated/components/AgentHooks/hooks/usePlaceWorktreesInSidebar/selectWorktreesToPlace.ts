@@ -48,7 +48,7 @@ export type PlacementContext = {
  * purpose: a row nobody can open is sidebar noise (#7100).
  *
  * Creator gate: a remote workspace is placed only when the signed-in user
- * created it. Hosts are shared (`v2Host.list` is "hosts you can access", not
+ * created it. Hosts are shared (`host.roster` is "hosts you can access", not
  * "hosts you own"), so anything wider pins teammates' work — and a placed row
  * is sticky, so interim clutter would outlive a later fix. A null creator
  * (host predating the `x-superset-user-id` stamp) is not placed; those rows

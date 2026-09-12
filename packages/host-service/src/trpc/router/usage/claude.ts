@@ -14,7 +14,11 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { discoverClaudeProfiles, readKeychainSecrets } from "./profiles";
-import type { UsageAccount, UsageQuotaWindow } from "./types";
+import type {
+	UsageAccount,
+	UsageAccountStatus,
+	UsageQuotaWindow,
+} from "./types";
 
 const CLAUDE_KEYCHAIN_SERVICE = "Claude Code-credentials";
 const CLAUDE_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
@@ -382,6 +386,95 @@ async function fetchClaudeProfileEmail(
 	}
 }
 
+/** What the usage endpoint says about one live access token. */
+export interface ClaudeSubscriptionQuota {
+	email: string | null;
+	status: UsageAccountStatus;
+	statusDetail: string | null;
+	windows: UsageQuotaWindow[];
+	extraUsage: UsageAccount["extraUsage"];
+}
+
+/**
+ * Reads the subscription quota behind a live Claude OAuth access token. The
+ * OpenCode reader shares this: its Anthropic login is the same OAuth client,
+ * so the same endpoint answers.
+ */
+export async function fetchClaudeSubscriptionQuota(
+	accessToken: string,
+): Promise<ClaudeSubscriptionQuota> {
+	try {
+		const [usageResponse, apiEmail] = await Promise.all([
+			fetch(CLAUDE_USAGE_URL, {
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					"anthropic-beta": CLAUDE_OAUTH_BETA_HEADER,
+				},
+				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+			}),
+			fetchClaudeProfileEmail(accessToken),
+		]);
+
+		if (usageResponse.status === 401 || usageResponse.status === 403) {
+			return {
+				email: apiEmail,
+				status: "token_expired",
+				statusDetail: EXPIRED_TOKEN_DETAIL,
+				windows: [],
+				extraUsage: null,
+			};
+		}
+		if (!usageResponse.ok) {
+			return {
+				email: apiEmail,
+				status: "unavailable",
+				statusDetail: `Usage endpoint returned ${usageResponse.status}.`,
+				windows: [],
+				extraUsage: null,
+			};
+		}
+
+		const usage = (await usageResponse.json()) as ClaudeUsageResponse;
+		const windows = mapWindows(usage);
+		const extraUsage =
+			typeof usage.extra_usage?.used_credits === "number" &&
+			typeof usage.extra_usage?.monthly_limit === "number"
+				? {
+						usedCents: usage.extra_usage.used_credits,
+						limitCents: usage.extra_usage.monthly_limit,
+					}
+				: null;
+
+		if (windows.length === 0) {
+			return {
+				email: apiEmail,
+				status: "unavailable",
+				statusDetail:
+					"No quota data returned (org-managed and education plans do not expose limits).",
+				windows: [],
+				extraUsage,
+			};
+		}
+
+		return {
+			email: apiEmail,
+			status: "ok",
+			statusDetail: null,
+			windows,
+			extraUsage,
+		};
+	} catch (error) {
+		return {
+			email: null,
+			status: "unavailable",
+			statusDetail:
+				error instanceof Error ? error.message : "Failed to fetch usage.",
+			windows: [],
+			extraUsage: null,
+		};
+	}
+}
+
 async function fetchClaudeAccount(
 	credential: ClaudeOauthCredential,
 ): Promise<UsageAccount> {
@@ -411,81 +504,8 @@ async function fetchClaudeAccount(
 		};
 	}
 
-	try {
-		const [usageResponse, apiEmail] = await Promise.all([
-			fetch(CLAUDE_USAGE_URL, {
-				headers: {
-					Authorization: `Bearer ${credential.accessToken}`,
-					"anthropic-beta": CLAUDE_OAUTH_BETA_HEADER,
-				},
-				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-			}),
-			fetchClaudeProfileEmail(credential.accessToken),
-		]);
-
-		if (usageResponse.status === 401 || usageResponse.status === 403) {
-			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "token_expired",
-				statusDetail: EXPIRED_TOKEN_DETAIL,
-				windows: [],
-				extraUsage: null,
-			};
-		}
-		if (!usageResponse.ok) {
-			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "unavailable",
-				statusDetail: `Usage endpoint returned ${usageResponse.status}.`,
-				windows: [],
-				extraUsage: null,
-			};
-		}
-
-		const usage = (await usageResponse.json()) as ClaudeUsageResponse;
-		const windows = mapWindows(usage);
-		const extraUsage =
-			typeof usage.extra_usage?.used_credits === "number" &&
-			typeof usage.extra_usage?.monthly_limit === "number"
-				? {
-						usedCents: usage.extra_usage.used_credits,
-						limitCents: usage.extra_usage.monthly_limit,
-					}
-				: null;
-
-		if (windows.length === 0) {
-			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "unavailable",
-				statusDetail:
-					"No quota data returned (org-managed and education plans do not expose limits).",
-				windows: [],
-				extraUsage,
-			};
-		}
-
-		return {
-			...base,
-			email: apiEmail ?? credential.email ?? null,
-			status: "ok",
-			statusDetail: null,
-			windows,
-			extraUsage,
-		};
-	} catch (error) {
-		return {
-			...base,
-			email: credential.email ?? null,
-			status: "unavailable",
-			statusDetail:
-				error instanceof Error ? error.message : "Failed to fetch usage.",
-			windows: [],
-			extraUsage: null,
-		};
-	}
+	const quota = await fetchClaudeSubscriptionQuota(credential.accessToken);
+	return { ...base, ...quota, email: quota.email ?? credential.email ?? null };
 }
 
 export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {

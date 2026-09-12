@@ -8,7 +8,7 @@ import type { UsageAgent } from "../types";
  * Longest-prefix match on the lowercased model id; unknown models fall back
  * to the agent's cheapest rate and mark the result approximate.
  */
-export const PRICING_TABLE_UPDATED = "2026-09-03";
+export const PRICING_TABLE_UPDATED = "2026-09-11";
 
 export interface ModelRate {
 	inputPerM: number;
@@ -98,7 +98,24 @@ const CURSOR_RATES: Record<string, ModelRate> = {
 	composer: { inputPerM: 1.25, outputPerM: 10 },
 };
 
-/** Multi-model harnesses (opencode, pi, omp, copilot, fx) route to many
+// Meta Model API list prices. The contributor tier is the same model sold
+// cheaper for training-permitted traffic; the bare `muse-spark` prefix covers
+// every standard-tier version.
+const MUSE_RATES: Record<string, ModelRate> = {
+	"muse-spark-1.3-contributor": {
+		inputPerM: 0.1,
+		outputPerM: 0.2,
+		cacheReadPerM: 0.002,
+	},
+	"muse-spark-1.2-contributor": {
+		inputPerM: 0.1,
+		outputPerM: 0.2,
+		cacheReadPerM: 0.002,
+	},
+	"muse-spark": { inputPerM: 1.25, outputPerM: 4.25, cacheReadPerM: 0.15 },
+};
+
+/** Multi-model harnesses (opencode, pi, omp, copilot, fx, devin) route to many
  * upstream providers — match against every table we know. Harness-reported
  * costs, when present, take precedence over these rates anyway. */
 const MULTI_AGENT_RATES: Record<string, ModelRate> = {
@@ -118,6 +135,10 @@ const RATES_BY_AGENT: Record<UsageAgent, Record<string, ModelRate>> = {
 	pi: MULTI_AGENT_RATES,
 	omp: MULTI_AGENT_RATES,
 	fx: MULTI_AGENT_RATES,
+	muse: MUSE_RATES,
+	// Devin's own SWE models are billed in ACUs with no published token
+	// price; they take the cheapest fallback, marked approximate.
+	devin: MULTI_AGENT_RATES,
 };
 
 const cheapestByAgent = new Map<UsageAgent, ModelRate>();

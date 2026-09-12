@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
 import {
@@ -66,7 +66,7 @@ export function BranchPickerScreen() {
 	);
 
 	const isCloud = params.machineId === CLOUD_TARGET_ID;
-	const hostsQuery = useOrgHostsQuery();
+	const { query: hostsQuery } = useOrgHosts();
 	const host =
 		!isCloud && params.machineId
 			? (hostsQuery.data?.find(

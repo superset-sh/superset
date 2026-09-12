@@ -126,11 +126,24 @@ export function usePersistentWebview({
 			{ paneId },
 			{ onData: replayForwardedKey },
 		);
+		// Clicking anywhere in a pane activates it, but a click inside the
+		// webview never reaches the pane's own mousedown handler — the guest is
+		// a separate WebContents hoisted out of the pane tree. The main process
+		// reports the guest gaining focus instead, so the pane activates itself.
+		const paneFocusSub = electronTrpcClient.browser.onPaneFocus.subscribe(
+			{ paneId },
+			{
+				onData: () => {
+					ctxRef.current.actions.focus();
+				},
+			},
+		);
 		return () => {
 			newWindowSub.unsubscribe();
 			contextMenuSub.unsubscribe();
 			closePaneSub.unsubscribe();
 			reloadPaneSub.unsubscribe();
+			paneFocusSub.unsubscribe();
 			keyForwardSub.unsubscribe();
 		};
 	}, [paneId]);

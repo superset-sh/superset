@@ -73,6 +73,11 @@ const {
 	getCodexGlobalHooksJsonContent,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
+	getDevinConfigJsonContent,
+	getMuseManagedHooksContent,
+	getMuseSettingsJsonContent,
+	getMuseSettingsJsonWithoutManagedHooks,
+	MUSE_HOOK_ENV_VARS,
 	getDroidSettingsJsonContent,
 	GEMINI_HOOK_MARKER,
 	getAmpGlobalPluginPath,
@@ -1354,6 +1359,137 @@ describe("agent-wrappers claude settings.json", () => {
 
 	afterEach(() => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("writes Muse hooks as a managed file with Claude-shaped events", () => {
+		const parsed = JSON.parse(getMuseManagedHooksContent()) as {
+			hooks: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+		};
+		expect(Object.keys(parsed.hooks).sort()).toEqual(
+			[
+				"PermissionRequest",
+				"PostToolUse",
+				"SessionEnd",
+				"SessionStart",
+				"Stop",
+				"StopFailure",
+				"UserPromptSubmit",
+			].sort(),
+		);
+		for (const entries of Object.values(parsed.hooks)) {
+			expect(entries).toHaveLength(1);
+			expect(entries[0]?.hooks[0]?.command).toBe(
+				getManagedNotifyHookCommand("muse"),
+			);
+		}
+	});
+
+	it("points Muse settings.json at the managed hooks file and allowlists Superset's env", () => {
+		const managed = "/Users/me/.superset/hooks/muse/hooks.json";
+		const content = getMuseSettingsJsonContent(
+			JSON.stringify({
+				schema_version: 1,
+				tui: { theme: "dark" },
+				managed_hooks_env_vars: ["MY_VAR"],
+			}),
+			managed,
+		);
+		const parsed = JSON.parse(requireContent(content)) as Record<
+			string,
+			unknown
+		>;
+		expect(parsed.tui).toEqual({ theme: "dark" });
+		expect(parsed.managed_hooks_path).toBe(managed);
+		expect(parsed.managed_hooks_env_vars).toEqual([
+			"MY_VAR",
+			...MUSE_HOOK_ENV_VARS,
+		]);
+		// A missing file becomes a fresh document Muse will accept.
+		const fresh = JSON.parse(
+			requireContent(getMuseSettingsJsonContent(null, managed)),
+		) as Record<string, unknown>;
+		expect(fresh.schema_version).toBe(1);
+	});
+
+	it("never replaces a managed_hooks_path Superset does not own", () => {
+		expect(
+			getMuseSettingsJsonContent(
+				JSON.stringify({
+					schema_version: 1,
+					managed_hooks_path: "/etc/muse/hooks.json",
+				}),
+				"/Users/me/.superset/hooks/muse/hooks.json",
+			),
+		).toBeNull();
+		// A previous Superset home (dev data, another install) is ours to replace.
+		expect(
+			getMuseSettingsJsonContent(
+				JSON.stringify({
+					managed_hooks_path: "/tmp/w/superset-dev-data/hooks/muse/hooks.json",
+				}),
+				"/Users/me/.superset/hooks/muse/hooks.json",
+			),
+		).not.toBeNull();
+	});
+
+	it("removes only Superset's pointer and env names from Muse settings.json", () => {
+		const after = getMuseSettingsJsonWithoutManagedHooks(
+			JSON.stringify({
+				schema_version: 1,
+				tui: { theme: "dark" },
+				managed_hooks_path: "/Users/me/.superset/hooks/muse/hooks.json",
+				managed_hooks_env_vars: ["MY_VAR", ...MUSE_HOOK_ENV_VARS],
+			}),
+		);
+		expect(JSON.parse(requireContent(after))).toEqual({
+			schema_version: 1,
+			tui: { theme: "dark" },
+			managed_hooks_env_vars: ["MY_VAR"],
+		});
+		expect(
+			getMuseSettingsJsonWithoutManagedHooks(
+				JSON.stringify({
+					schema_version: 1,
+					managed_hooks_path: "/etc/muse/hooks.json",
+				}),
+			),
+		).toBeNull();
+	});
+
+	it("creates Devin config.json with its schema version and Claude-shaped hooks", () => {
+		const notifyPath = "/tmp/.superset/hooks/notify.sh";
+		const content = requireContent(getDevinConfigJsonContent(notifyPath));
+		const parsed = JSON.parse(content) as {
+			version?: number;
+			hooks: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+		};
+		expect(parsed.version).toBe(1);
+		for (const eventName of [
+			"SessionStart",
+			"SessionEnd",
+			"UserPromptSubmit",
+			"Stop",
+			"PostToolUse",
+			"PermissionRequest",
+		]) {
+			const entries = parsed.hooks[eventName];
+			expect(entries).toHaveLength(1);
+			expect(entries?.[0]?.hooks[0]?.command).toBe(
+				getManagedNotifyHookCommand("devin"),
+			);
+		}
+		// Devin drops the whole hooks block on an unknown event name, so only
+		// names it accepts may appear.
+		expect(Object.keys(parsed.hooks).sort()).toEqual(
+			[
+				"PermissionRequest",
+				"PostToolUse",
+				"SessionEnd",
+				"SessionStart",
+				"Stop",
+				"UserPromptSubmit",
+			].sort(),
+		);
 	});
 
 	it("creates Claude settings.json with hooks when no file exists", () => {

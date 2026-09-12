@@ -119,7 +119,9 @@ export class LocalGitCredentialProvider implements GitCredentialProvider {
 	private async fetchTokenViaGitCredential(
 		host: string,
 	): Promise<string | null> {
-		const env = await this.envResolver();
+		// Launched from a terminal with no credential helper, git would prompt
+		// on the tty and sit there until the timeout.
+		const env = { ...(await this.envResolver()), GIT_TERMINAL_PROMPT: "0" };
 		return new Promise((resolve) => {
 			const child = execFile(
 				"git",

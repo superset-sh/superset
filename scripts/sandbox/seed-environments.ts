@@ -28,13 +28,13 @@ export async function seedSharedEnvironments(
 		.values({
 			organizationId: SHARED_ENVIRONMENT_ORGANIZATION_ID,
 			name: SHARED_ENVIRONMENT_NAME,
-			provider: "blaxel",
+			provider: "vercel",
 			sourceKind: "image",
 			sourceRef: imageRef,
 		})
 		.onConflictDoUpdate({
 			target: [environments.organizationId, environments.name],
-			set: { sourceRef: imageRef, archivedAt: null },
+			set: { provider: "vercel", sourceRef: imageRef, archivedAt: null },
 		});
 
 	return { imageRef };

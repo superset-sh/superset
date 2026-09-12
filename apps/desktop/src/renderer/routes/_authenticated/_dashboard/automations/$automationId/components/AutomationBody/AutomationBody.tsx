@@ -77,6 +77,7 @@ export function AutomationBody({
 			v2ProjectId: automation.v2ProjectId,
 			v2WorkspaceId: automation.v2WorkspaceId,
 			tags: automation.tags,
+			continueAgentSession: automation.continueAgentSession,
 			triggers: automation.triggers.map((trigger) => ({
 				id: trigger.id,
 				config: trigger.config as DraftTrigger["config"],
@@ -262,6 +263,7 @@ export function AutomationBody({
 								targetHostId: draft.targetHostId,
 								v2WorkspaceId: draft.v2WorkspaceId,
 								tags: draft.tags,
+								continueAgentSession: draft.continueAgentSession,
 							}}
 							onScopeChange={(patch: Partial<ScopeDraft>) => edit(patch)}
 							drafts={draft.triggers}

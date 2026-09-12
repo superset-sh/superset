@@ -187,6 +187,11 @@ export interface AutomationSummary {
 	/** Null = session automation: runs use project-less session workspaces. */
 	v2ProjectId: string | null;
 	v2WorkspaceId: string | null;
+	/**
+	 * Whether each run continues the agent session the previous run left,
+	 * rather than starting another beside it. Only meaningful with a pin.
+	 */
+	continueAgentSession: boolean;
 	/** Workspace tags applied to each run's created workspace. */
 	tags: string[];
 	rrule: string;
@@ -237,6 +242,12 @@ export interface AutomationCreateParams {
 	 */
 	v2WorkspaceId?: string | null;
 	/**
+	 * Deliver each run's prompt into the agent session the previous run left
+	 * behind instead of starting another. Requires `v2WorkspaceId` — that
+	 * workspace is where the session lives.
+	 */
+	continueAgentSession?: boolean;
+	/**
 	 * Pin the automation to a specific host. When passing `v2WorkspaceId`, set
 	 * this to the workspace's `hostId`.
 	 */
@@ -275,6 +286,12 @@ export interface AutomationUpdateParams {
 	 * `v2ProjectId` from the same workspace row.
 	 */
 	v2WorkspaceId?: string | null;
+	/**
+	 * Deliver each run's prompt into the agent session the previous run left
+	 * behind instead of starting another. Requires `v2WorkspaceId` — that
+	 * workspace is where the session lives.
+	 */
+	continueAgentSession?: boolean;
 	rrule?: string;
 	dtstart?: string;
 	timezone?: string;

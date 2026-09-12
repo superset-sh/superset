@@ -12,7 +12,7 @@ function quote(text: string): string {
 
 function describeAnchor(thread: WatchedThread): string {
 	if (thread.anchor) {
-		return `${thread.anchor.tag} at: ${thread.anchor.path}`;
+		return `${quote(thread.anchor.tag)} at: ${quote(thread.anchor.path)}`;
 	}
 	return "the page as a whole";
 }
@@ -30,7 +30,7 @@ export function buildWatchPrompt({
 	const plural = threads.length === 1 ? "comment" : "comments";
 
 	lines.push(
-		`New ${plural} on your page "${title}" (${slug}). Read each one and decide whether it needs a change, a reply, or neither.`,
+		`New ${plural} on your page "${quote(title)}" (${slug}). Read each one and decide whether it needs a change, a reply, or neither.`,
 		"",
 	);
 
@@ -43,8 +43,8 @@ export function buildWatchPrompt({
 		for (const comment of thread.comments) {
 			const who =
 				comment.authorKind === "agent"
-					? `${comment.authorName} (agent)`
-					: comment.authorName;
+					? `${quote(comment.authorName)} (agent)`
+					: quote(comment.authorName);
 			lines.push(`   "${who}": "${quote(comment.body)}"`);
 		}
 		lines.push("");

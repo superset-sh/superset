@@ -9,6 +9,20 @@ describe("matchModelRate", () => {
 		expect(rate.outputPerM).toBe(10);
 	});
 
+	test("prices Muse Spark at the standard tier unless the id is a contributor variant", () => {
+		expect(matchModelRate("muse", "muse-spark-1.2")).toMatchObject({
+			inputPerM: 1.25,
+			outputPerM: 4.25,
+			cacheReadPerM: 0.15,
+			approximate: false,
+		});
+		expect(matchModelRate("muse", "muse-spark-1.2-contributor")).toMatchObject({
+			inputPerM: 0.1,
+			outputPerM: 0.2,
+			approximate: false,
+		});
+	});
+
 	test("unknown models fall back to the cheapest rate, marked approximate", () => {
 		const rate = matchModelRate("fx", "zai/glm-5.2");
 		expect(rate.approximate).toBe(true);

@@ -475,12 +475,13 @@ export function DiffPane({
 					? { oldFile: null, newFile }
 					: { oldFile, newFile };
 			if (isDiffContentStale(fileDiff, loaded)) {
-				// The file moved on after its patch was cached, so these lines
-				// don't line up with the hunks they'd be hydrated into.
-				// Staying partial keeps the patch's hunks on screen instead of
-				// tearing the pane down; the `git:changed` that follows the
-				// write refetches the patch, and expanding works again.
-				throw new Error(`${file.path} changed since its diff was loaded`);
+				// The file moved on after its patch was cached, or a side
+				// couldn't be read at the patch's ref, so these lines don't
+				// line up with the hunks they'd be hydrated into. Staying
+				// partial keeps the patch's hunks on screen instead of tearing
+				// the pane down; the `git:changed` that follows the write
+				// refetches the patch, and expanding works again.
+				throw new Error(`${file.path} no longer matches its diff`);
 			}
 			return loaded;
 		},

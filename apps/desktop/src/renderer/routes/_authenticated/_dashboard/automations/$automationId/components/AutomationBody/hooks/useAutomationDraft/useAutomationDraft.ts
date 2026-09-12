@@ -13,6 +13,7 @@ export interface AutomationDraft {
 	v2ProjectId: string | null;
 	v2WorkspaceId: string | null;
 	tags: string[];
+	continueAgentSession: boolean;
 	triggers: DraftTrigger[];
 }
 

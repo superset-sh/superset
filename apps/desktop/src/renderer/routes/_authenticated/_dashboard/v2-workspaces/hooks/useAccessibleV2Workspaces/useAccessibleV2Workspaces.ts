@@ -7,8 +7,8 @@ import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProje
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { deriveTerminalAgentStatus } from "renderer/hooks/host-service/useTerminalAgentStatuses";
 import { useHostWorkspacesSource } from "renderer/hooks/host-workspaces/useHostWorkspaces";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
-import { useHostsPresence } from "renderer/hooks/useHostsPresence";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
@@ -288,22 +288,9 @@ export function useAccessibleV2Workspaces(
 	const { workspaces: hostWorkspaces, isReady } =
 		deviceFilter === undefined ? fanoutSource : scopedSource;
 
-	const { data: rawHostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined, {
-		refetchInterval: 30_000,
-	});
-	const presence = useHostsPresence(rawHostRows);
-	const hostRows = useMemo(
-		() =>
-			presence
-				? rawHostRows.map((host) => ({
-						...host,
-						isOnline: presence.get(host.machineId)?.online ?? host.isOnline,
-					}))
-				: rawHostRows,
-		[rawHostRows, presence],
-	);
+	const { hosts: hostRows } = useKnownHosts();
 
-	const { data: hostMemberRows = [] } = cloudTrpc.v2Host.listMembers.useQuery(
+	const { data: hostMemberRows = [] } = cloudTrpc.host.listMembers.useQuery(
 		undefined,
 		{},
 	);

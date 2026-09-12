@@ -51,12 +51,13 @@ export function isDiffContentTooLarge(
 
 /** Whether `files` was read at a different revision than the patch `fileDiff`
  * was parsed from. Hydration keeps the patch's hunks and swaps in whole-file
- * line arrays, so contents fetched after the file moved on leave the lines past
- * the last hunk uneven between the two sides. @pierre/diffs asserts they match
- * while it measures layout, and throws from a layout effect — which no boundary
- * inside the pane can catch, so the whole view goes down. Measured on a
- * throwaway clone: rejecting the load leaves the real metadata partial, still
- * rendering the hunks the patch already gave us. */
+ * line arrays, so the hunks must find their own lines at their own positions
+ * in those contents, and contents fetched after the file moved on leave the
+ * lines past the last hunk uneven between the two sides. @pierre/diffs walks
+ * lines that exist on neither side while it measures layout, and throws from a
+ * layout effect — which no boundary inside the pane can catch, so the whole
+ * view goes down. Measured on a throwaway clone: rejecting the load leaves the
+ * real metadata partial, still rendering the hunks the patch already gave us. */
 export function isDiffContentStale(
 	fileDiff: FileDiffMetadata,
 	files: FileDiffLoadedFiles,
@@ -70,6 +71,7 @@ export function isDiffContentStale(
 		// its change type — are just as unusable as mismatched ones.
 		return true;
 	}
+	if (!hunkLinesMatchContents(fileDiff, hydrated)) return true;
 	const lastHunk = hydrated.hunks.at(-1);
 	// Mirrors the cases @pierre/diffs itself skips before comparing.
 	if (
@@ -87,6 +89,62 @@ export function isDiffContentStale(
 		getHunkSideEndBoundary(lastHunk.deletionStart, lastHunk.deletionCount);
 	if (additionRemaining <= 0 && deletionRemaining <= 0) return false;
 	return additionRemaining !== deletionRemaining;
+}
+
+/** Every line the patch carries, read back from the loaded contents at the
+ * position its hunk header claims. The host answers a `git show` it can't
+ * satisfy with empty contents rather than an error, and a file edited in place
+ * keeps its length while its lines move — neither changes the trailing-context
+ * count, and both leave hunks pointing at lines that aren't there. */
+function hunkLinesMatchContents(
+	fileDiff: FileDiffMetadata,
+	hydrated: FileDiffMetadata,
+): boolean {
+	return fileDiff.hunks.every(
+		(hunk) =>
+			sideLinesMatch(
+				fileDiff.deletionLines,
+				hunk.deletionLineIndex,
+				hydrated.deletionLines,
+				hunk.deletionStart,
+				hunk.deletionCount,
+			) &&
+			sideLinesMatch(
+				fileDiff.additionLines,
+				hunk.additionLineIndex,
+				hydrated.additionLines,
+				hunk.additionStart,
+				hunk.additionCount,
+			),
+	);
+}
+
+function sideLinesMatch(
+	patchLines: string[],
+	patchOffset: number,
+	fileLines: string[],
+	fileStart: number,
+	count: number,
+): boolean {
+	for (let index = 0; index < count; index++) {
+		const patchLine = patchLines[patchOffset + index];
+		// A patch whose trailing blank context was trimmed away carries fewer
+		// lines than its header counts; the lines it does carry still decide.
+		if (patchLine == null) return true;
+		const fileLine = fileLines[fileStart - 1 + index];
+		if (
+			fileLine == null ||
+			withoutNewline(patchLine) !== withoutNewline(fileLine)
+		) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/** The patch's final line is the only one parsed without its newline. */
+function withoutNewline(line: string): string {
+	return line.endsWith("\n") ? line.slice(0, -1) : line;
 }
 
 /** @pierre/diffs' own unified-hunk boundary math, which it doesn't export: a

@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  EAS_CLI_VERSION: 20.5.1
+  EAS_CLI_VERSION: 24.3.0
   API_ALIAS: api-pr-${{ github.event.pull_request.number }}-superset.vercel.app
 
 jobs:

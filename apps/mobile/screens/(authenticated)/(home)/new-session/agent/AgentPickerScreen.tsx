@@ -4,14 +4,12 @@ import { isCloudAgentId } from "@superset/shared/cloud-agent-launch";
 import { HOST_AGENT_PRESETS } from "@superset/shared/host-agent-presets";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
-import { useMemo } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { useHostsPresence } from "@/hooks/useHostsPresence";
-import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { agentIconSource } from "@/lib/agent-icons";
 import { hostServiceUrl } from "@/lib/host-service/client";
@@ -67,17 +65,12 @@ export function AgentPickerScreen() {
 			? "claude"
 			: agentId;
 
-	const hostsQuery = useOrgHostsQuery();
+	const { hosts, query: hostsQuery } = useOrgHosts();
 	const host =
 		machineId && machineId !== CLOUD_TARGET_ID
-			? (hostsQuery.data?.find((entry) => entry.machineId === machineId) ??
-				null)
+			? (hosts.find((entry) => entry.machineId === machineId) ?? null)
 			: null;
-	const presenceTargets = useMemo(() => (host ? [host] : []), [host]);
-	const presence = useHostsPresence(presenceTargets);
-	const isOnline = host
-		? (presence?.get(host.machineId) ?? host.isOnline)
-		: false;
+	const isOnline = host?.isOnline ?? false;
 
 	const configsQuery = useHostAgentConfigs({
 		machineId: host?.machineId ?? null,

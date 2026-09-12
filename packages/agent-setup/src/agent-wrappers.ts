@@ -57,6 +57,13 @@ export {
 	removeCursorManagedHooks,
 } from "./agent-wrappers-cursor";
 export {
+	createDevinConfigJson,
+	createDevinWrapper,
+	getDevinConfigJsonContent,
+	getDevinConfigJsonPath,
+	removeDevinManagedHooks,
+} from "./agent-wrappers-devin";
+export {
 	createDroidSettingsJson,
 	createDroidWrapper,
 	getDroidSettingsJsonContent,
@@ -106,6 +113,18 @@ export {
 	getMastraHooksJsonContent,
 	removeMastraManagedHooks,
 } from "./agent-wrappers-mastra";
+export {
+	createMuseManagedHooksFile,
+	createMuseSettingsJson,
+	createMuseWrapper,
+	getMuseManagedHooksContent,
+	getMuseManagedHooksPath,
+	getMuseSettingsJsonContent,
+	getMuseSettingsJsonPath,
+	getMuseSettingsJsonWithoutManagedHooks,
+	MUSE_HOOK_ENV_VARS,
+	removeMuseManagedHooks,
+} from "./agent-wrappers-muse";
 export {
 	createOmpExtension,
 	getOmpExtensionContent,

@@ -18,7 +18,8 @@ import { useTileLayout } from "../../providers/TileLayoutProvider";
 export interface GridTile {
 	key: string;
 	node: ReactNode;
-	// Width in twelfths of the row; height in grid rows (ROW_HEIGHT px each).
+	// Both in twelfths of the row width: a row unit is as tall as a column is
+	// wide, so w === h is a square and a tile keeps its shape at any width.
 	w?: number;
 	h?: number;
 }
@@ -29,14 +30,20 @@ interface TileGridProps {
 }
 
 const COLS = 12;
-const ROW_HEIGHT = 20;
 const MARGIN: [number, number] = [24, 24];
 const DEFAULT_W = 6;
-const DEFAULT_H = 13;
+const DEFAULT_H = 4;
 const MIN_W = 3;
-const MIN_H = 8;
+const MIN_H = 2;
 // Below this width the grid is one column and tiles stack in order.
 const STACK_BELOW_PX = 900;
+
+// The library's column width for a grid of `cols` across `width`, which is
+// also the row height. Stacked tiles take the shape a half-width tile has on
+// the wide grid rather than a twelfth of a narrow one.
+function unitPx(width: number, cols: number): number {
+	return (width - MARGIN[0] * (cols - 1)) / cols;
+}
 
 function defaultLayout(tiles: GridTile[], cols: number): Layout {
 	let x = 0;
@@ -98,6 +105,7 @@ export function TileGrid({ section, tiles }: TileGridProps) {
 	const { version, readLayout, writeLayout } = useTileLayout();
 	const stacked = width < STACK_BELOW_PX;
 	const cols = stacked ? 1 : COLS;
+	const rowHeight = unitPx(width, stacked ? COLS / 2 : COLS);
 
 	const [layout, setLayout] = useState<Layout>(() =>
 		defaultLayout(tiles, COLS),
@@ -135,7 +143,7 @@ export function TileGrid({ section, tiles }: TileGridProps) {
 					width={width}
 					gridConfig={{
 						cols,
-						rowHeight: ROW_HEIGHT,
+						rowHeight,
 						margin: MARGIN,
 						containerPadding: [0, 0],
 					}}

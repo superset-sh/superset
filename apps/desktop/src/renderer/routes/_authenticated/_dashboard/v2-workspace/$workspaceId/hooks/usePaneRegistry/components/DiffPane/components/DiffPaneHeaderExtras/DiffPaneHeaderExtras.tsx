@@ -34,7 +34,7 @@ export function DiffPaneHeaderExtras({
 		);
 
 	return (
-		<div className="flex items-center">
+		<div className="flex items-center gap-1">
 			<DiffPanePRLink workspaceId={workspaceId} store={store} />
 			<Tooltip>
 				<TooltipTrigger asChild>
