@@ -49,6 +49,7 @@ import {
 	type TerminalsHost,
 	useHostsTerminals,
 } from "./hooks/useHostTerminals";
+import { useLiveActivityPushTokens } from "./hooks/useLiveActivityPushTokens";
 import { useVisibleDiffStats } from "./hooks/useVisibleDiffStats";
 import {
 	collapsedProjectKey,
@@ -166,14 +167,14 @@ export function HomeScreen() {
 	const { projects, isReady: projectsReady } = useHostProjects(selectedHost);
 
 	// Mirrors the rows above onto the Lock Screen and Dynamic Island while the
-	// app is open. Foreground-only for now: nothing server-side knows an agent
-	// needs attention yet, so the card goes stale (and says so) once the app
-	// closes. ActivityKit push updates are the follow-up that fixes that.
+	// app is open; once it closes, the API rewrites the card over APNs from
+	// the transitions hosts report, using the tokens registered here.
 	useAgentLiveActivity({
 		terminalsByWorkspace,
 		workspaces,
 		projects,
 	});
+	useLiveActivityPushTokens();
 	const pullRequests = usePullRequests();
 	const { query: hostsQuery } = useOrgHosts();
 
