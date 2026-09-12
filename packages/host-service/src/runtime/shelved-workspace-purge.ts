@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { lstatSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import { and, isNotNull, isNull } from "drizzle-orm";
 import { workspaces } from "../db/schema";
@@ -123,7 +123,17 @@ export async function runShelvedWorkspacePurge(
 			// status (a user can force past it), but nobody is here to force,
 			// so an unknown state keeps the worktree. A missing directory has
 			// nothing left to lose and goes straight to the tombstone.
-			if (existsSync(row.worktreePath)) {
+			let missing: boolean;
+			try {
+				missing =
+					lstatSync(row.worktreePath, { throwIfNoEntry: false }) === undefined;
+			} catch {
+				if (stillShelved(ctx, row)) {
+					markShelvedPurgeBlocked(ctx, row.id, "unverifiable");
+				}
+				continue;
+			}
+			if (!missing) {
 				let state: WorktreeState;
 				try {
 					state = await readWorktreeState(ctx, row.worktreePath);

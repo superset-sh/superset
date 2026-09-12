@@ -265,6 +265,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// the main-workspace sweep already added a phantom second workspace here
 	// before bootstrap started seeding `type='main'`.
 	let stopShelvedWorkspacePurge: (() => void) | undefined;
+	let shelvedWorkspacePurgeStopped = false;
 	void (async () => {
 		if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") return;
 		await runProjectBackfill({
@@ -304,9 +305,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// Destroy workspaces that have sat on the shelf past the retention
 		// window. After the reconcile so a crash-interrupted delete is
 		// finished before this sweep reads the shelf.
+		if (shelvedWorkspacePurgeStopped) return;
 		await runShelvedWorkspacePurge(sweepCtx).catch((err) => {
 			console.warn("[host-service] shelved-workspace purge failed:", err);
 		});
+		if (shelvedWorkspacePurgeStopped) return;
 		stopShelvedWorkspacePurge = startShelvedWorkspacePurge(sweepCtx);
 		// Re-share the default account's Claude/Codex config into the selected
 		// provider profiles. Last: it touches no host state the sweeps above
@@ -393,6 +396,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
 		try {
+			shelvedWorkspacePurgeStopped = true;
 			stopShelvedWorkspacePurge?.();
 		} catch (err) {
 			console.warn("[host-service] shelved-workspace purge stop failed:", err);

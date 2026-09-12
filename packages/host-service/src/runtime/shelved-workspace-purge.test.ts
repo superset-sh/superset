@@ -1,6 +1,6 @@
 import { Database as BunDatabase } from "bun:sqlite";
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
@@ -127,6 +127,32 @@ describe("runShelvedWorkspacePurge", () => {
 		expect(readRow("ws-odd")?.purgeBlockedReason).toBe("unverifiable");
 		expect(readRow("ws-odd")?.shelvedAt).not.toBeNull();
 	});
+
+	for (const kind of ["dangling", "loop"] as const) {
+		test(`a ${kind} symlink keeps the workspace marked unverifiable`, async () => {
+			const dir = mkdtempSync(join(tmpdir(), "shelved-purge-wt-"));
+			const link = join(dir, "link");
+			symlinkSync(kind === "loop" ? link : join(dir, "missing"), link);
+			seedShelved("ws-link", expired);
+			db.update(workspaces)
+				.set({ worktreePath: kind === "loop" ? join(link, "worktree") : link })
+				.where(eq(workspaces.id, "ws-link"))
+				.run();
+			const destroy = mock(async () => ({ success: true }));
+
+			await runShelvedWorkspacePurge(
+				makeCtx(),
+				destroy as unknown as Parameters<typeof runShelvedWorkspacePurge>[1],
+				async () => {
+					throw new Error("unreadable worktree");
+				},
+			);
+
+			expect(destroy).not.toHaveBeenCalled();
+			expect(readRow("ws-link")?.purgeBlockedReason).toBe("unverifiable");
+			expect(readRow("ws-link")?.archivedAt).toBeNull();
+		});
+	}
 
 	test("a restore during the worktree check wins over the purge", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "shelved-purge-wt-"));
