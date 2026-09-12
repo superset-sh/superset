@@ -123,6 +123,7 @@ export function V1AutoMigration() {
 					organizationId,
 					hostClient: getHostServiceClientByUrl(hostUrl),
 					ipc: electronV1MigrationIpc,
+					reconcileWithHost: !isV2CloudEnabled,
 					presetTarget: {
 						agents,
 						existing: Array.from(
@@ -169,25 +170,33 @@ export function V1AutoMigration() {
 					);
 				}
 
-				// Failure reasons come from the ledger (the summary only counts)
-				// so the stuck cohort is identifiable, not just sized.
+				// Failure and skip reasons come from the ledger (the summary only
+				// counts) so the stuck cohort is identifiable, not just sized.
 				let failureReasons: string[] = [];
-				if (summary.projects.failed + summary.workspaces.failed > 0) {
+				let skipReasons: string[] = [];
+				const gating = (r: { kind: string }) =>
+					r.kind === "project" || r.kind === "workspace";
+				if (
+					summary.projects.failed +
+						summary.workspaces.failed +
+						summary.projects.skipped +
+						summary.workspaces.skipped >
+					0
+				) {
 					try {
 						const rows =
 							await electronV1MigrationIpc.ledgerList(organizationId);
-						failureReasons = [
-							...new Set(
-								rows
-									.filter(
-										(r) =>
-											r.status === "error" &&
-											(r.kind === "project" || r.kind === "workspace"),
-									)
-									.map((r) => r.reason)
-									.filter((r): r is string => !!r),
-							),
-						].slice(0, 5);
+						const reasons = (status: "error" | "skipped") =>
+							[
+								...new Set(
+									rows
+										.filter((r) => r.status === status && gating(r))
+										.map((r) => r.reason)
+										.filter((r): r is string => !!r),
+								),
+							].slice(0, 5);
+						failureReasons = reasons("error");
+						skipReasons = reasons("skipped");
 					} catch {}
 				}
 				posthog.capture("v1_auto_migration_completed", {
@@ -196,6 +205,7 @@ export function V1AutoMigration() {
 					first_completion: firstCompletion,
 					duration_ms: Date.now() - startedAt,
 					failure_reasons: failureReasons,
+					skip_reasons: skipReasons,
 				});
 			} catch (err) {
 				// Retries next boot; the ledger holds whatever progress landed.

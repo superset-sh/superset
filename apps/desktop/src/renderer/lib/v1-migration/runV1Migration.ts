@@ -17,6 +17,7 @@ import {
 	type V2PresetLike,
 } from "./presets";
 import {
+	classifyUnmigratableRepoError,
 	decideProjectImport,
 	findProjectByPath,
 	importV1Project,
@@ -49,6 +50,12 @@ export interface RunV1MigrationDeps {
 	groupTarget?: V1GroupTarget;
 	organizationId: string;
 	hostClient: HostServiceClient;
+	/**
+	 * Redo done ledger rows whose v2 project/workspace no longer exists on
+	 * this host (host.db wiped or rebuilt). Only safe before the flip: on v2
+	 * a missing row is the user's own deletion and must stay deleted.
+	 */
+	reconcileWithHost?: boolean;
 	/** Electron-main reads/writes; inject fakes in tests. */
 	ipc: V1MigrationIpc;
 	/**
@@ -150,11 +157,20 @@ async function migrateProjects(
 	outcomes: V1LedgerOutcome[],
 ): Promise<KindSummary> {
 	const summary = emptySummary();
-	const v1Projects = await deps.ipc.readV1Projects();
+	const [v1Projects, hostProjects] = await Promise.all([
+		deps.ipc.readV1Projects(),
+		deps.reconcileWithHost ? deps.hostClient.project.list.query() : [],
+	]);
+	const hostProjectIds = new Set(hostProjects.map((p) => p.id));
 
 	for (const project of v1Projects) {
 		const existing = ledger.get(ledgerKey("project", project.id));
-		if (existing && isTerminalStatus(existing.status)) continue;
+		const done = !!existing && isTerminalStatus(existing.status);
+		const goneFromHost =
+			deps.reconcileWithHost &&
+			existing?.v2Id != null &&
+			!hostProjectIds.has(existing.v2Id);
+		if (done && !goneFromHost) continue;
 
 		try {
 			const findByPathResult = await findProjectByPath(deps.hostClient, {
@@ -223,6 +239,17 @@ async function migrateProjects(
 				});
 			}
 		} catch (err) {
+			const unmigratable = classifyUnmigratableRepoError(err);
+			if (unmigratable) {
+				summary.skipped++;
+				pushOutcome(ledger, outcomes, {
+					v1Id: project.id,
+					kind: "project",
+					status: "skipped",
+					reason: unmigratable,
+				});
+				continue;
+			}
 			summary.failed++;
 			pushOutcome(ledger, outcomes, {
 				v1Id: project.id,
@@ -267,9 +294,15 @@ async function migrateWorkspaces(
 		if (v2Id) v2ProjectIdByV1ProjectId.set(v1.id, v2Id);
 	}
 
+	const hostWorkspaceIds = new Set(hostWorkspaces.map((w) => w.id));
 	const pendingWorkspaces = v1Workspaces.filter((w) => {
 		const existing = ledger.get(ledgerKey("workspace", w.id));
-		return !existing || !isTerminalStatus(existing.status);
+		if (!existing || !isTerminalStatus(existing.status)) return true;
+		return (
+			!!deps.reconcileWithHost &&
+			existing.v2Id !== null &&
+			!hostWorkspaceIds.has(existing.v2Id)
+		);
 	});
 
 	const mappedV2ProjectIds = new Set(
@@ -352,6 +385,17 @@ async function migrateWorkspaces(
 				});
 			}
 		} catch (err) {
+			const unmigratable = classifyUnmigratableRepoError(err);
+			if (unmigratable) {
+				summary.skipped++;
+				pushOutcome(ledger, outcomes, {
+					v1Id: entry.v1WorkspaceId,
+					kind: "workspace",
+					status: "skipped",
+					reason: unmigratable,
+				});
+				continue;
+			}
 			summary.failed++;
 			pushOutcome(ledger, outcomes, {
 				v1Id: entry.v1WorkspaceId,

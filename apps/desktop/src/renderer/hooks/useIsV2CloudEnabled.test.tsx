@@ -17,11 +17,14 @@ globalThis.localStorage = {
 
 // Pre-cutoff account: defaults to v1 (not in any v2-only signup cohort).
 const V1_ERA_CREATED_AT = new Date("2026-01-01T00:00:00Z");
+// Signed up after new users defaulted to v2; only an explicit opt-out
+// puts this account on v1.
+const V2_ERA_CREATED_AT = new Date("2026-08-01T00:00:00Z");
 
 // Mutable session the auth-client mock serves; tests swap the org per case
 // because isV1MigrationCompleteAtBoot caches the first read per org.
 let activeOrganizationId = "org-none";
-const createdAt: Date = V1_ERA_CREATED_AT;
+let createdAt: Date = V1_ERA_CREATED_AT;
 // renderToStaticMarkup reads zustand's initial state, not live setState, so
 // the override store is mocked with a mutable value instead.
 let optInV2: boolean | null = null;
@@ -118,6 +121,29 @@ describe("useIsV1FlipLocked", () => {
 			});
 		} finally {
 			forcedFlipActive = false;
+		}
+	});
+
+	test("completion mid-session locks the flip at once; the surface waits for the next launch", () => {
+		expect(readProbe("org-mid", null)).toEqual({ locked: false, v2: false });
+		markV1MigrationComplete("org-mid");
+		expect(readProbe("org-mid", null)).toEqual({ locked: true, v2: false });
+	});
+
+	test("completion mid-session makes an opt-out inert", () => {
+		createdAt = V2_ERA_CREATED_AT;
+		try {
+			expect(readProbe("org-mid-optout", false)).toEqual({
+				locked: false,
+				v2: false,
+			});
+			markV1MigrationComplete("org-mid-optout");
+			expect(readProbe("org-mid-optout", false)).toEqual({
+				locked: true,
+				v2: true,
+			});
+		} finally {
+			createdAt = V1_ERA_CREATED_AT;
 		}
 	});
 

@@ -25,23 +25,32 @@ export type ProjectImportOutcome =
 	  }
 	| { kind: "needs-relocate"; v2ProjectId: string; message: string };
 
+export type UnmigratableRepoReason = "repo-path-missing" | "not-a-git-repo";
+
 export type ProjectImportDecision =
 	| { kind: "already-imported"; v2ProjectId: string }
 	| { kind: "import" }
-	| { kind: "skip"; reason: "multiple-candidates" | "cloud-unreachable" };
+	| {
+			kind: "skip";
+			reason: "multiple-candidates" | "cloud-unreachable" | "not-a-git-repo";
+	  };
 
 /**
  * Decide what to do with a v1 project from its findByPath result. Mirrors
  * the wizard's "Import all" rules: a `local-path` candidate means the repo
  * is already a v2 project on this host; multiple cloud candidates need a
  * human to pick; cloud errors with no candidate mean we can't tell whether
- * a legacy cloud project exists, so don't risk creating a duplicate.
+ * a legacy cloud project exists, so don't risk creating a duplicate. A
+ * folder that is no longer a git repo has nothing to import headlessly.
  */
 export function decideProjectImport(
-	result: Pick<ProjectFindByPathResult, "candidates" | "cloudErrors">,
+	result: Pick<ProjectFindByPathResult, "candidates" | "cloudErrors"> & {
+		needsGitInit?: boolean;
+	},
 ): ProjectImportDecision {
 	const local = result.candidates.find((c) => c.source === "local-path");
 	if (local) return { kind: "already-imported", v2ProjectId: local.id };
+	if (result.needsGitInit) return { kind: "skip", reason: "not-a-git-repo" };
 	if (result.candidates.length > 1) {
 		return { kind: "skip", reason: "multiple-candidates" };
 	}
@@ -75,6 +84,27 @@ export function findProjectByPath(
 		walkAllRemotes: true,
 		expectedRemoteUrl: expectedRemoteUrlFor(project),
 	});
+}
+
+/**
+ * Host errors that mean the v1 project has nothing left to migrate on this
+ * machine: its repo moved, was deleted, or stopped being a git checkout.
+ * Message shapes are the host-service's (resolve-repo.ts, local-project.ts).
+ */
+export function classifyUnmigratableRepoError(
+	err: unknown,
+): UnmigratableRepoReason | null {
+	const message =
+		err instanceof Error ? err.message : typeof err === "string" ? err : "";
+	if (
+		message.startsWith("Path does not exist: ") ||
+		message.startsWith("Path is not a directory: ") ||
+		message === "Project directory is no longer a directory on disk"
+	) {
+		return "repo-path-missing";
+	}
+	if (message.startsWith("Not a git repository: ")) return "not-a-git-repo";
+	return null;
 }
 
 export function isAlreadySetUpElsewhereError(err: unknown): boolean {
