@@ -271,10 +271,20 @@ export const workspaces = sqliteTable(
 		archivedAt: integer("archived_at"),
 		// "merged" when the linked PR was merged at destroy time.
 		archiveReason: text("archive_reason").$type<"merged" | "deleted">(),
+		// "Shelved" is what the UI calls "Archive": the workspace is still live
+		// and fully restorable, just hidden from the lists until a host sweep
+		// purges it. Do NOT confuse it with `archivedAt` above, which is a
+		// tombstone — that delete already committed and the worktree is gone.
+		// Null = not shelved.
+		shelvedAt: integer("shelved_at"),
+		// Why the purge sweep refused to destroy this shelved workspace (e.g.
+		// uncommitted or unpushed work). Cleared on unshelve.
+		purgeBlockedReason: text("purge_blocked_reason"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
 		index("workspaces_archived_at_idx").on(table.archivedAt),
+		index("workspaces_shelved_at_idx").on(table.shelvedAt),
 		index("workspaces_upstream_ref_idx").on(
 			table.upstreamOwner,
 			table.upstreamRepo,

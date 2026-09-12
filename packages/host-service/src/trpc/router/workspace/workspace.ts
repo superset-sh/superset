@@ -2,13 +2,18 @@ import { existsSync } from "node:fs";
 import { basename } from "node:path";
 import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { TRPCError } from "@trpc/server";
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, or } from "drizzle-orm";
 import { z } from "zod";
+import type { HostDb } from "../../../db";
 import { projects, workspaces } from "../../../db/schema";
 import {
+	getLocalWorkspace,
 	getWorkspaceTags,
 	getWorkspaceTagsByWorkspaceId,
+	type HostWorkspaceRow,
+	shelveLocalWorkspace,
 	toCloudShape,
+	unshelveLocalWorkspace,
 	updateLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
 import { protectedProcedure, router } from "../../index";
@@ -42,17 +47,41 @@ export const workspaceRouter = router({
 	 * cloud rows (plus local extras) so consumers of either read path agree.
 	 * Archived (tombstoned) rows are excluded unless the caller opts in —
 	 * only the workspaces board does, for its Merged/Deleted columns.
+	 * Shelved rows (the UI's "Archive" — live, restorable, hidden) are
+	 * likewise excluded unless `includeShelved` asks for them.
 	 */
 	list: protectedProcedure
-		.input(z.object({ includeArchived: z.boolean().default(false) }).optional())
+		.input(
+			z
+				.object({
+					includeArchived: z.boolean().default(false),
+					includeShelved: z.boolean().default(false),
+				})
+				.optional(),
+		)
 		.query(({ ctx, input }) => {
-			const rows = input?.includeArchived
-				? ctx.db.select().from(workspaces).all()
-				: ctx.db
-						.select()
-						.from(workspaces)
-						.where(isNull(workspaces.archivedAt))
-						.all();
+			const includeArchived = input?.includeArchived ?? false;
+			const includeShelved = input?.includeShelved ?? false;
+			// A purged row keeps its shelf stamps under the tombstone, so a
+			// tombstone is always "archived" to a caller that asked for them —
+			// the shelf filter only ever hides live rows.
+			const shelfFilter = includeShelved
+				? undefined
+				: includeArchived
+					? or(isNotNull(workspaces.archivedAt), isNull(workspaces.shelvedAt))
+					: isNull(workspaces.shelvedAt);
+			const filters = [
+				includeArchived ? undefined : isNull(workspaces.archivedAt),
+				shelfFilter,
+			].filter((filter) => filter !== undefined);
+			const rows =
+				filters.length === 0
+					? ctx.db.select().from(workspaces).all()
+					: ctx.db
+							.select()
+							.from(workspaces)
+							.where(and(...filters))
+							.all();
 			const projectNameById = new Map(
 				ctx.db
 					.select({
@@ -89,6 +118,8 @@ export const workspaceRouter = router({
 				lastActivityAt: row.lastActivityAt,
 				archivedAt: row.archivedAt,
 				archiveReason: row.archiveReason,
+				shelvedAt: row.shelvedAt,
+				purgeBlockedReason: row.purgeBlockedReason,
 			}));
 		}),
 
@@ -190,6 +221,48 @@ export const workspaceRouter = router({
 			};
 		}),
 
+	/**
+	 * Shelve a workspace — "Archive" in the UI. The row stays live and
+	 * restorable, just hidden from `list` until a host sweep purges it.
+	 * Deliberately separate from `update`: the validation rules (worktrees
+	 * only, not already tombstoned) are its own.
+	 */
+	shelve: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(({ ctx, input }) => {
+			const current = requireShelvableWorkspace(ctx, input.workspaceId);
+			const row = shelveLocalWorkspace(
+				{ db: ctx.db, eventBus: ctx.eventBus },
+				current.id,
+			);
+			if (!row) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+			return { shelvedAt: row.shelvedAt };
+		}),
+
+	/** Restore a shelved workspace: clears the scheduled deletion and any
+	 * purge-blocked marker a sweep left behind. */
+	unshelve: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(({ ctx, input }) => {
+			const current = requireShelvableWorkspace(ctx, input.workspaceId);
+			const row = unshelveLocalWorkspace(
+				{ db: ctx.db, eventBus: ctx.eventBus },
+				current.id,
+			);
+			if (!row) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+			return { shelvedAt: row.shelvedAt };
+		}),
+
 	delete: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
@@ -206,3 +279,25 @@ export const workspaceRouter = router({
 			});
 		}),
 });
+
+/**
+ * A workspace can only be shelved/unshelved if it is a live worktree: main
+ * and session workspaces are not user-archivable (mirroring the destroy
+ * saga's refusal), and a tombstoned row is gone as far as callers go.
+ */
+function requireShelvableWorkspace(
+	ctx: { db: HostDb },
+	workspaceId: string,
+): HostWorkspaceRow {
+	const current = getLocalWorkspace(ctx.db, workspaceId);
+	if (!current || current.archivedAt != null) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Workspace not found" });
+	}
+	if (current.type !== "worktree") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Only worktree workspaces can be archived.",
+		});
+	}
+	return current;
+}

@@ -52,6 +52,9 @@ function itemFromCloudRow(cloud: CloudWorkspaceRow): CloudWorkspaceItem {
 		projectName: null,
 		archivedAt: null,
 		archiveReason: null,
+		// The shelf is a local-worktree concept; a cloud workspace is never shelved.
+		shelvedAt: null,
+		purgeBlockedReason: null,
 		hostReachable: false,
 		cloud: { status: cloud.status },
 	};

@@ -118,6 +118,8 @@ export function toWorkspaceSnapshot(
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
 		lastActivityAt: row.lastActivityAt,
+		shelvedAt: row.shelvedAt,
+		purgeBlockedReason: row.purgeBlockedReason,
 		// A broadcast reaches every connected client, whoever they are, so
 		// the snapshot carries who applied each tag and each client keeps its
 		// own. `tags` stays the full union for consumers that predate that.
@@ -457,6 +459,78 @@ export function unarchiveLocalWorkspace(
 	}
 	const row = getLocalWorkspace(ctx.db, id);
 	if (row) emitWorkspaceChanged(ctx, "created", row);
+}
+
+/**
+ * Shelve a live workspace — the UI's "Archive". Unlike `archiveLocalWorkspace`
+ * (a tombstone for a committed delete) the row stays live and restorable; it
+ * is only hidden from `workspace.list` until a purge sweep destroys it.
+ * Idempotent — re-shelving keeps the original timestamp. Broadcasts `updated`
+ * so lists refresh with the new state rather than dropping the row.
+ */
+export function shelveLocalWorkspace(
+	ctx: WorkspaceStoreContext,
+	id: string,
+): HostWorkspaceRow | undefined {
+	const existing = getLocalWorkspace(ctx.db, id);
+	if (!existing) return undefined;
+	if (existing.shelvedAt == null) {
+		ctx.db
+			.update(workspaces)
+			.set({ shelvedAt: Date.now(), updatedAt: Date.now() })
+			.where(eq(workspaces.id, id))
+			.run();
+	}
+	const row = getLocalWorkspace(ctx.db, id);
+	if (row) emitWorkspaceChanged(ctx, "updated", row);
+	return row;
+}
+
+/**
+ * Restore a shelved workspace: clears the scheduled deletion and any
+ * purge-blocked marker left by a sweep that refused it. Idempotent.
+ */
+export function unshelveLocalWorkspace(
+	ctx: WorkspaceStoreContext,
+	id: string,
+): HostWorkspaceRow | undefined {
+	const existing = getLocalWorkspace(ctx.db, id);
+	if (!existing) return undefined;
+	if (existing.shelvedAt != null || existing.purgeBlockedReason != null) {
+		ctx.db
+			.update(workspaces)
+			.set({
+				shelvedAt: null,
+				purgeBlockedReason: null,
+				updatedAt: Date.now(),
+			})
+			.where(eq(workspaces.id, id))
+			.run();
+	}
+	const row = getLocalWorkspace(ctx.db, id);
+	if (row) emitWorkspaceChanged(ctx, "updated", row);
+	return row;
+}
+
+/**
+ * Record why the purge sweep left a shelved workspace alone, so the UI can
+ * explain the reprieve instead of silently keeping the row around.
+ */
+export function markShelvedPurgeBlocked(
+	ctx: WorkspaceStoreContext,
+	id: string,
+	reason: string,
+): HostWorkspaceRow | undefined {
+	const existing = getLocalWorkspace(ctx.db, id);
+	if (!existing) return undefined;
+	ctx.db
+		.update(workspaces)
+		.set({ purgeBlockedReason: reason, updatedAt: Date.now() })
+		.where(eq(workspaces.id, id))
+		.run();
+	const row = getLocalWorkspace(ctx.db, id);
+	if (row) emitWorkspaceChanged(ctx, "updated", row);
+	return row;
 }
 
 /**

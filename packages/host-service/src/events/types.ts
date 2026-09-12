@@ -108,6 +108,10 @@ export interface WorkspaceSnapshot {
 	 * writes (rename, tags, PR link).
 	 */
 	lastActivityAt: number | null;
+	/** Epoch ms the user archived ("shelved") it; null when live. Absent on older hosts. */
+	shelvedAt?: number | null;
+	/** Why the purge sweep left a shelved row alone; null when not paused. Absent on older hosts. */
+	purgeBlockedReason?: string | null;
 	/**
 	 * Every tag on the workspace, normalized and sorted, whoever applied it.
 	 * Consumers that know who they are read `tagAssignments` instead.
