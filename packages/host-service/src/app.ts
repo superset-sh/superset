@@ -30,6 +30,10 @@ import {
 	runSandboxSelfSeed,
 } from "./runtime/sandbox-self-seed";
 import {
+	runShelvedWorkspacePurge,
+	startShelvedWorkspacePurge,
+} from "./runtime/shelved-workspace-purge";
+import {
 	isLiveTerminalSession,
 	registerWorkspaceTerminalRoute,
 	writeFramedInputToSession,
@@ -260,6 +264,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// touched. There is nothing to recover, so the sweeps can only invent:
 	// the main-workspace sweep already added a phantom second workspace here
 	// before bootstrap started seeding `type='main'`.
+	let stopShelvedWorkspacePurge: (() => void) | undefined;
 	void (async () => {
 		if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") return;
 		await runProjectBackfill({
@@ -278,9 +283,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}).catch((err) => {
 			console.warn("[host-service] main-workspace sweep failed:", err);
 		});
-		// Finish any delete the previous process crashed out of (archived row
-		// whose worktree still exists).
-		await runArchivedWorkspaceReconcile({
+		const sweepCtx = {
 			git,
 			credentials: providers.credentials,
 			github,
@@ -292,9 +295,19 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			terminalAgentStore,
 			organizationId: config.organizationId,
 			isAuthenticated: true,
-		}).catch((err) => {
+		};
+		// Finish any delete the previous process crashed out of (archived row
+		// whose worktree still exists).
+		await runArchivedWorkspaceReconcile(sweepCtx).catch((err) => {
 			console.warn("[host-service] archived-workspace reconcile failed:", err);
 		});
+		// Destroy workspaces that have sat on the shelf past the retention
+		// window. After the reconcile so a crash-interrupted delete is
+		// finished before this sweep reads the shelf.
+		await runShelvedWorkspacePurge(sweepCtx).catch((err) => {
+			console.warn("[host-service] shelved-workspace purge failed:", err);
+		});
+		stopShelvedWorkspacePurge = startShelvedWorkspacePurge(sweepCtx);
 		// Re-share the default account's Claude/Codex config into the selected
 		// provider profiles. Last: it touches no host state the sweeps above
 		// repair, and a slow filesystem must not delay them.
@@ -379,6 +392,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// Each step is best-effort and isolated: a throw in one cleanup must
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
+		try {
+			stopShelvedWorkspacePurge?.();
+		} catch (err) {
+			console.warn("[host-service] shelved-workspace purge stop failed:", err);
+		}
 		try {
 			pullRequestRuntime.stop();
 		} catch (err) {
