@@ -12,7 +12,7 @@ export function pageContentSecurityPolicy(
 	return [
 		"default-src 'none'",
 		"script-src 'self' 'unsafe-inline'",
-		"style-src 'self' 'unsafe-inline'",
+		"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 		// `'self'` is what lets a directory publish's own assets load. The
 		// scheme sources cover remote media; without `'self'` a page's own
 		// image only loads because production happens to be https, and the
