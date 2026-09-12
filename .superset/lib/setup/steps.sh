@@ -607,3 +607,33 @@ step_seed_local_db() {
   success "Local DB seeded from $source_db"
   return 0
 }
+
+step_seed_env_placeholders() {
+  echo "🧩 Seeding placeholders for keys missing from .env..."
+  seed_missing_env_placeholders ".env.local.example" ".env"
+}
+
+# The API validates its env with zod at module load; a missing key turns every
+# /api/trpc response into Next's HTML 500 and the desktop renders blank. Catch
+# that here, where the zod issues name the keys, instead of at first boot.
+step_validate_env() {
+  echo "🔎 Validating .env against the API env schemas..."
+
+  if ! command -v bun &> /dev/null; then
+    error "bun not available"
+    return 1
+  fi
+  if [ ! -f .env ]; then
+    error ".env not found"
+    return 1
+  fi
+
+  if ! env -u SKIP_ENV_VALIDATION bun --env-file=.env -e \
+      'await import("./packages/trpc/src/env.ts"); await import("./apps/api/src/env.ts");'; then
+    error ".env is missing a key the API requires (issues above). Give it a fake value in .env.local.example and re-run setup, which seeds it."
+    return 1
+  fi
+
+  success ".env satisfies packages/trpc/src/env.ts and apps/api/src/env.ts"
+  return 0
+}

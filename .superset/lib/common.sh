@@ -142,3 +142,72 @@ print_summary() {
   # Return non-zero if any steps failed
   [ ${#FAILED_STEPS[@]} -eq 0 ]
 }
+
+# Returns 0 when env_file has a line `key=<non-empty value>`; `key=`, `key=""`
+# and `key=''` count as unset because the schemas read an empty string as
+# undefined (emptyStringAsUndefined).
+env_file_has_value() {
+  local env_file="$1"
+  local key="$2"
+  awk -v key="$key" -v dq='""' -v sq="''" '
+    index($0, key "=") == 1 {
+      value = substr($0, length(key) + 2)
+      sub(/[[:space:]]+$/, "", value)
+      if (value != "" && value != dq && value != sq) { found = 1; exit }
+    }
+    END { exit found ? 0 : 1 }
+  ' "$env_file"
+}
+
+# Appends to env_file every key that has a value in template but none in
+# env_file. .env.local.example is the template: a fake value for every key
+# packages/trpc/src/env.ts and apps/api/src/env.ts require, an empty value for
+# every key that must stay unset, so it is the one list of required keys and
+# their placeholder shapes.
+seed_missing_env_placeholders() {
+  local template="$1"
+  local env_file="$2"
+
+  if [ ! -f "$template" ]; then
+    error "Template not found: $template"
+    return 1
+  fi
+  if [ ! -f "$env_file" ]; then
+    error "Env file not found: $env_file"
+    return 1
+  fi
+
+  local key_line='^([A-Za-z_][A-Za-z0-9_]*)=(.*)$'
+  local line key value
+  local missing_lines=()
+  local missing_keys=""
+  while IFS= read -r line || [ -n "$line" ]; do
+    [[ "$line" =~ $key_line ]] || continue
+    key="${BASH_REMATCH[1]}"
+    value="${BASH_REMATCH[2]}"
+    case "$value" in
+      ""|'""'|"''") continue ;;
+    esac
+    if env_file_has_value "$env_file" "$key"; then
+      continue
+    fi
+    missing_lines+=("$line")
+    missing_keys="${missing_keys:+$missing_keys }$key"
+  done < "$template"
+
+  if [ ${#missing_lines[@]} -eq 0 ]; then
+    success "Every key with a value in $template already has one in $env_file"
+    return 0
+  fi
+
+  {
+    echo ""
+    echo "# ===== Placeholders seeded by setup from $template ====="
+    echo "# Each key below was missing or empty. The values are fakes that satisfy"
+    echo "# the API env schemas; replace one with a real value when a feature needs it."
+    printf '%s\n' "${missing_lines[@]}"
+  } >> "$env_file"
+
+  success "Seeded ${#missing_lines[@]} placeholder(s) into $env_file: $missing_keys"
+  return 0
+}

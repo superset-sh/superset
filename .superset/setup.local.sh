@@ -40,7 +40,7 @@ local_ensure_env() {
     cp .env.local.example .env
     success "Created .env from .env.local.example"
   else
-    success ".env already exists — leaving as-is"
+    success ".env already exists — keeping its values; keys it lacks are seeded below"
   fi
   return 0
 }
@@ -304,6 +304,8 @@ local_setup_main() {
   step_install_dependencies || step_failed "Install dependencies"
   local_allocate_ports || step_failed "Allocate ports"
   local_write_env || step_failed "Write workspace .env"
+  step_seed_env_placeholders || step_failed "Seed .env placeholders"
+  step_validate_env || step_failed "Validate .env"
   local_db_up || step_failed "Start local DB stack"
   local_migrate || step_failed "Apply migrations"
   local_seed_dev_account || step_failed "Seed dev account"
