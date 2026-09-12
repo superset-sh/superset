@@ -1,5 +1,5 @@
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useShelveWorkspace } from "renderer/hooks/host-service/useShelveWorkspace";
 import { archiveWorkspaceWithUndo } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspaceItem/hooks/useDashboardSidebarWorkspaceItemActions/useDashboardSidebarWorkspaceItemActions";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
@@ -19,6 +19,10 @@ export function ArchiveWorkspaceMount() {
 	// its callbacks are never invoked before `target` exists.
 	const { shelve, unshelve } = useShelveWorkspace(target?.workspaceId ?? "");
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
+	// One archive in flight: the palette still offers the command until the
+	// shelve settles, and a repeat run would fire a duplicate toast and
+	// navigation.
+	const archiveInFlight = useRef(false);
 
 	useEffect(() => {
 		if (!target) return;
@@ -26,25 +30,33 @@ export function ArchiveWorkspaceMount() {
 		// One-shot consumer: clear up front so a repeat request re-fires, and
 		// let the archive flow run on the callbacks captured here.
 		clear();
-		void archiveWorkspaceWithUndo({
-			workspaceName,
-			isActive: !!matchRoute({
-				to: "/v2-workspace/$workspaceId",
-				params: { workspaceId },
-				fuzzy: true,
-			}),
-			shelve,
-			unshelve,
-			navigateAway: () => navigateAwayFromWorkspace(workspaceId),
-			navigateBack: () =>
-				navigate({
-					to: "/v2-workspace/$workspaceId",
-					params: { workspaceId },
-				}),
-			// The palette owns focus restoration when it closes, so there is no
-			// sidebar row to hand focus back to here.
-			focusSidebarList: () => {},
-		});
+		if (archiveInFlight.current) return;
+		archiveInFlight.current = true;
+		void (async () => {
+			try {
+				await archiveWorkspaceWithUndo({
+					workspaceName,
+					isActive: !!matchRoute({
+						to: "/v2-workspace/$workspaceId",
+						params: { workspaceId },
+						fuzzy: true,
+					}),
+					shelve,
+					unshelve,
+					navigateAway: () => navigateAwayFromWorkspace(workspaceId),
+					navigateBack: () =>
+						navigate({
+							to: "/v2-workspace/$workspaceId",
+							params: { workspaceId },
+						}),
+					// The palette owns focus restoration when it closes, so there is no
+					// sidebar row to hand focus back to here.
+					focusSidebarList: () => {},
+				});
+			} finally {
+				archiveInFlight.current = false;
+			}
+		})();
 	}, [
 		target,
 		clear,
