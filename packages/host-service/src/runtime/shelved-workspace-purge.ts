@@ -1,9 +1,8 @@
 import { lstatSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
-import { and, isNotNull, isNull } from "drizzle-orm";
-import { workspaces } from "../db/schema";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { projects, workspaces } from "../db/schema";
 import { destroyWorkspace } from "../trpc/router/workspace-cleanup";
-import { cleanupGitOps } from "../trpc/router/workspace-cleanup/git-ops";
 import type { HostServiceContext } from "../types";
 import {
 	getLocalWorkspace,
@@ -56,8 +55,43 @@ async function readWorktreeStateForPurge(
 	ctx: HostServiceContext,
 	worktreePath: string,
 ): Promise<WorktreeState> {
-	const gitEnv = await cleanupGitOps.resolveGitEnv(ctx, worktreePath);
-	return cleanupGitOps.readWorktreeState({ worktreePath, gitEnv });
+	const missing =
+		lstatSync(worktreePath, { throwIfNoEntry: false }) === undefined;
+	const local = ctx.db.query.workspaces
+		.findFirst({ where: eq(workspaces.worktreePath, worktreePath) })
+		.sync();
+	const project = local?.projectId
+		? ctx.db.query.projects
+				.findFirst({ where: eq(projects.id, local.projectId) })
+				.sync()
+		: undefined;
+	if (!local || !project) throw new Error("Missing purge repository metadata");
+
+	const targets = [
+		{ path: project.repoPath, ref: `refs/heads/${local.branch}` },
+	];
+	if (!missing) targets.push({ path: worktreePath, ref: "HEAD" });
+	let hasChanges = false;
+	let hasUnpushedCommits = false;
+	for (const target of targets) {
+		const git = await ctx.git(target.path, {
+			timeout: { block: 15_000, stdOut: false, stdErr: false },
+		});
+		if (target.ref === "HEAD") hasChanges = !(await git.status()).isClean();
+		const result = (
+			await git.raw([
+				"rev-list",
+				"--count",
+				target.ref,
+				"--not",
+				"--remotes",
+				"--",
+			])
+		).trim();
+		if (!/^\d+$/.test(result)) throw new Error("Invalid purge commit count");
+		hasUnpushedCommits ||= Number(result) > 0;
+	}
+	return { hasChanges, hasUnpushedCommits };
 }
 
 /**
@@ -119,36 +153,20 @@ export async function runShelvedWorkspacePurge(
 
 		let purged = 0;
 		for (const row of expired) {
-			// Fail closed: destroy's own preflight tolerates an unreadable git
-			// status (a user can force past it), but nobody is here to force,
-			// so an unknown state keeps the worktree. A missing directory has
-			// nothing left to lose and goes straight to the tombstone.
-			let missing: boolean;
+			let state: WorktreeState;
 			try {
-				missing =
-					lstatSync(row.worktreePath, { throwIfNoEntry: false }) === undefined;
+				state = await readWorktreeState(ctx, row.worktreePath);
 			} catch {
 				if (stillShelved(ctx, row)) {
 					markShelvedPurgeBlocked(ctx, row.id, "unverifiable");
 				}
 				continue;
 			}
-			if (!missing) {
-				let state: WorktreeState;
-				try {
-					state = await readWorktreeState(ctx, row.worktreePath);
-				} catch {
-					if (stillShelved(ctx, row)) {
-						markShelvedPurgeBlocked(ctx, row.id, "unverifiable");
-					}
-					continue;
+			if (state.hasChanges || state.hasUnpushedCommits) {
+				if (stillShelved(ctx, row)) {
+					markShelvedPurgeBlocked(ctx, row.id, "dirty");
 				}
-				if (state.hasChanges || state.hasUnpushedCommits) {
-					if (stillShelved(ctx, row)) {
-						markShelvedPurgeBlocked(ctx, row.id, "dirty");
-					}
-					continue;
-				}
+				continue;
 			}
 			if (row.shelvedAt == null || !stillShelved(ctx, row)) continue;
 			try {

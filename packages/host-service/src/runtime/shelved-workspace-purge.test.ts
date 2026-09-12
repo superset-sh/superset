@@ -70,6 +70,10 @@ describe("runShelvedWorkspacePurge", () => {
 			isAuthenticated: true,
 			organizationId: "00000000-0000-0000-0000-000000000001",
 			db,
+			git: mock(async () => ({
+				status: async () => ({ isClean: () => true }),
+				raw: async () => "0\n",
+			})),
 			eventBus: {
 				broadcastWorkspaceChanged: mock(() => {}),
 			} as unknown as EventBus,
@@ -153,6 +157,85 @@ describe("runShelvedWorkspacePurge", () => {
 			expect(readRow("ws-link")?.archivedAt).toBeNull();
 		});
 	}
+
+	for (const missing of [true, false]) {
+		for (const result of ["1\n", "invalid", "failure"]) {
+			test(`a ${missing ? "missing" : "present"} checkout is kept when branch inspection returns ${result.trim()}`, async () => {
+				seedShelved("ws-branch", expired);
+				if (!missing) {
+					const dir = mkdtempSync(join(tmpdir(), "shelved-purge-wt-"));
+					db.update(workspaces)
+						.set({ worktreePath: dir })
+						.where(eq(workspaces.id, "ws-branch"))
+						.run();
+				}
+				const ctx = makeCtx();
+				const raw = mock(async (args: string[]) => {
+					if (args.includes("HEAD")) return "0\n";
+					if (result === "failure") throw new Error("unreadable Git object");
+					return result;
+				});
+				ctx.git = mock(async () => ({
+					status: async () => ({ isClean: () => true }),
+					raw,
+				})) as unknown as HostServiceContext["git"];
+				const destroy = mock(async () => ({ success: true }));
+
+				await runShelvedWorkspacePurge(
+					ctx,
+					destroy as unknown as Parameters<typeof runShelvedWorkspacePurge>[1],
+				);
+
+				expect(ctx.git).toHaveBeenCalledWith("/repo", {
+					timeout: { block: 15_000, stdOut: false, stdErr: false },
+				});
+				expect(raw).toHaveBeenCalledWith([
+					"rev-list",
+					"--count",
+					"refs/heads/feat/ws-branch",
+					"--not",
+					"--remotes",
+					"--",
+				]);
+				expect(destroy).not.toHaveBeenCalled();
+				expect(readRow("ws-branch")?.purgeBlockedReason).toBe(
+					result === "1\n" ? "dirty" : "unverifiable",
+				);
+				expect(readRow("ws-branch")?.archivedAt).toBeNull();
+			});
+		}
+	}
+
+	test("a clean checkout with an unreadable HEAD is kept", async () => {
+		seedShelved("ws-head", expired);
+		const dir = mkdtempSync(join(tmpdir(), "shelved-purge-wt-"));
+		db.update(workspaces)
+			.set({ worktreePath: dir })
+			.where(eq(workspaces.id, "ws-head"))
+			.run();
+		const ctx = makeCtx();
+		const status = mock(async () => ({ isClean: () => true }));
+		ctx.git = mock(async () => ({
+			status,
+			raw: async (args: string[]) => {
+				if (args.includes("HEAD")) throw new Error("unreadable Git object");
+				return "0\n";
+			},
+		})) as unknown as HostServiceContext["git"];
+		const destroy = mock(async () => ({ success: true }));
+
+		await runShelvedWorkspacePurge(
+			ctx,
+			destroy as unknown as Parameters<typeof runShelvedWorkspacePurge>[1],
+		);
+
+		expect(status).toHaveBeenCalledTimes(1);
+		expect(ctx.git).toHaveBeenCalledWith(dir, {
+			timeout: { block: 15_000, stdOut: false, stdErr: false },
+		});
+		expect(destroy).not.toHaveBeenCalled();
+		expect(readRow("ws-head")?.purgeBlockedReason).toBe("unverifiable");
+	});
 
 	test("a restore during the worktree check wins over the purge", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "shelved-purge-wt-"));
@@ -388,7 +471,12 @@ describe("runShelvedWorkspacePurge", () => {
 		const gate = new Promise<void>((resolve) => {
 			release = resolve;
 		});
+		let entered: (() => void) | undefined;
+		const destroying = new Promise<void>((resolve) => {
+			entered = resolve;
+		});
 		const destroy = mock(async () => {
+			entered?.();
 			await gate;
 			return { success: true };
 		});
@@ -398,6 +486,7 @@ describe("runShelvedWorkspacePurge", () => {
 		>[1];
 
 		const first = runShelvedWorkspacePurge(ctx, cast);
+		await destroying;
 		await runShelvedWorkspacePurge(ctx, cast);
 		expect(destroy).toHaveBeenCalledTimes(1);
 

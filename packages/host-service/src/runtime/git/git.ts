@@ -75,6 +75,6 @@ export function createGitEnvResolver(provider: GitCredentialProvider) {
 
 export function createGitFactory(provider: GitCredentialProvider): GitFactory {
 	const resolveEnv = createGitEnvResolver(provider);
-	return async (repoPath: string) =>
-		createUserSimpleGit(repoPath).env(await resolveEnv(repoPath));
+	return async (repoPath, options) =>
+		createUserSimpleGit(repoPath, options).env(await resolveEnv(repoPath));
 }
