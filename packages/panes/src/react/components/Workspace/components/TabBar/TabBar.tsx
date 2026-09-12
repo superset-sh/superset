@@ -193,7 +193,7 @@ export function TabBar<TData>({
 				>
 					{tabs.map((tab, i) => (
 						<div
-							className="h-full shrink-0 px-0.5 pt-1"
+							className="h-full shrink-0 pt-1"
 							key={tab.id}
 							style={{ width: TAB_WIDTH }}
 						>
