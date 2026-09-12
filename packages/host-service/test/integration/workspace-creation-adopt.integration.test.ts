@@ -8,6 +8,7 @@ import {
 	createBasicScenario,
 	createProjectScenario,
 } from "../helpers/scenarios";
+import { seedWorkspace } from "../helpers/seed";
 
 describe("workspaceCreation.adopt integration", () => {
 	let dispose: (() => Promise<void>) | undefined;
@@ -107,6 +108,52 @@ describe("workspaceCreation.adopt integration", () => {
 			.get();
 		expect(persisted?.worktreePath).toBe(worktreePath);
 		expect(persisted?.branch).toBe("feature/adopt");
+	});
+
+	test("relinking a known workspace id restores it if it was shelved", async () => {
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
+
+		const worktreePath = join(
+			scenario.repo.repoPath,
+			".worktrees",
+			"feature-relink",
+		);
+		await scenario.repo.git.raw([
+			"worktree",
+			"add",
+			"-b",
+			"feature/relink",
+			worktreePath,
+		]);
+		const { id: workspaceId } = seedWorkspace(scenario.host, {
+			projectId: scenario.projectId,
+			worktreePath,
+			branch: "feature/relink",
+		});
+		scenario.host.db
+			.update(workspaces)
+			.set({ shelvedAt: Date.now() })
+			.where(eq(workspaces.id, workspaceId))
+			.run();
+
+		const result = await scenario.host.trpc.workspaceCreation.adopt.mutate({
+			projectId: scenario.projectId,
+			workspaceName: "relinked",
+			branch: "feature/relink",
+			worktreePath,
+			existingWorkspaceId: workspaceId,
+		});
+
+		expect(result.workspace.id).toBe(workspaceId);
+		const persisted = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, workspaceId))
+			.get();
+		expect(persisted?.shelvedAt).toBeNull();
 	});
 
 	test("recordBaseBranch persists `branch.<name>.base` in git config", async () => {

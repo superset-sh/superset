@@ -24,6 +24,7 @@ import {
 	getLocalWorkspace,
 	insertLocalWorkspace,
 	toCloudShape,
+	unshelveLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
 import {
 	createCallerFactory,
@@ -187,7 +188,19 @@ function findExistingWorkspaceByBranch(
 			),
 		})
 		.sync();
-	return local ? toCloudShape(local, ctx.organizationId) : null;
+	if (!local) return null;
+	// A shelved row is live and restorable, so it does satisfy idempotency —
+	// but reusing it has to undo the archive first, or the create hands back a
+	// workspace `list` hides and the purge sweep still destroys on its
+	// original clock.
+	const row =
+		local.shelvedAt != null
+			? (unshelveLocalWorkspace(
+					{ db: ctx.db, eventBus: ctx.eventBus },
+					local.id,
+				) ?? local)
+			: local;
+	return toCloudShape(row, ctx.organizationId);
 }
 
 interface PrMetadata {

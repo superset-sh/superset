@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
+import { workspaces } from "../../src/db/schema";
 import { type BasicScenario, createBasicScenario } from "../helpers/scenarios";
 import { seedPullRequest, seedWorkspace } from "../helpers/seed";
 
@@ -57,6 +59,69 @@ describe("pullRequests router integration", () => {
 			title: "do the thing",
 			url: "https://github.com/octocat/hello/pull/42",
 		});
+	});
+
+	test("getLinkedWorkspace prefers a live workspace over a more recent shelved one", async () => {
+		const { id: pullRequestId } = seedPullRequest(scenario.host, {
+			projectId: scenario.projectId,
+			prNumber: 7,
+			headBranch: "feature/x",
+		});
+		const { id: liveId } = seedWorkspace(scenario.host, {
+			projectId: scenario.projectId,
+			worktreePath: `${scenario.repo.repoPath}-live`,
+			branch: "feature/x",
+			pullRequestId,
+		});
+		const { id: shelvedId } = seedWorkspace(scenario.host, {
+			projectId: scenario.projectId,
+			worktreePath: `${scenario.repo.repoPath}-shelved`,
+			branch: "feature/x",
+			pullRequestId,
+		});
+		scenario.host.db
+			.update(workspaces)
+			.set({ shelvedAt: Date.now(), updatedAt: Date.now() + 60_000 })
+			.where(eq(workspaces.id, shelvedId))
+			.run();
+
+		const result =
+			await scenario.host.trpc.pullRequests.getLinkedWorkspace.query({
+				projectId: scenario.projectId,
+				prNumber: 7,
+			});
+		expect(result).toEqual({ workspaceId: liveId, isShelved: false });
+	});
+
+	test("getLinkedWorkspace reports a shelved workspace without restoring it", async () => {
+		const { id: pullRequestId } = seedPullRequest(scenario.host, {
+			projectId: scenario.projectId,
+			prNumber: 8,
+			headBranch: "feature/y",
+		});
+		const { id: shelvedId } = seedWorkspace(scenario.host, {
+			projectId: scenario.projectId,
+			worktreePath: scenario.repo.repoPath,
+			branch: "feature/y",
+			pullRequestId,
+		});
+		scenario.host.db
+			.update(workspaces)
+			.set({ shelvedAt: Date.now() })
+			.where(eq(workspaces.id, shelvedId))
+			.run();
+
+		const result =
+			await scenario.host.trpc.pullRequests.getLinkedWorkspace.query({
+				projectId: scenario.projectId,
+				prNumber: 8,
+			});
+		expect(result).toEqual({ workspaceId: shelvedId, isShelved: true });
+		expect(
+			scenario.host.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, shelvedId) })
+				.sync()?.shelvedAt,
+		).not.toBeNull();
 	});
 
 	test("refreshByWorkspaces is a no-op for empty input", async () => {

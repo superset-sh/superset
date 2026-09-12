@@ -105,6 +105,7 @@ export function useBranchContext(
 				recency: null,
 				worktreePath: null,
 				hasWorkspace: false,
+				hasShelvedWorkspace: false,
 				isCheckedOut: false,
 			})),
 		[cloudBranches.data],
