@@ -5,6 +5,7 @@ import { getCurrentTxid } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
+import { nudge } from "../../lib/realtime";
 import { protectedProcedure, userError } from "../../trpc";
 import {
 	requireActiveOrgId,
@@ -160,6 +161,7 @@ export const v2HostRouter = {
 				return await getCurrentTxid(tx);
 			});
 
+			nudge(organizationId, "hosts");
 			return { success: true, txid };
 		}),
 
@@ -251,6 +253,7 @@ export const v2HostRouter = {
 				return await getCurrentTxid(tx);
 			});
 
+			nudge(organizationId, "hosts");
 			return { success: true, txid };
 		}),
 
@@ -296,6 +299,7 @@ export const v2HostRouter = {
 				});
 			}
 
+			nudge(organizationId, "hosts");
 			return { ...result.inserted, txid: result.txid };
 		}),
 
@@ -375,6 +379,7 @@ export const v2HostRouter = {
 				return await getCurrentTxid(tx);
 			});
 
+			nudge(organizationId, "hosts");
 			return { success: true, txid };
 		}),
 
@@ -464,6 +469,7 @@ export const v2HostRouter = {
 				return await getCurrentTxid(tx);
 			});
 
+			nudge(organizationId, "hosts");
 			return { success: true, txid };
 		}),
 } satisfies TRPCRouterRecord;

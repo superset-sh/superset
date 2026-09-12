@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { useOrgHosts, useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { agentIconSource } from "@/lib/agent-icons";
 import { hostServiceUrl } from "@/lib/host-service/client";
@@ -65,8 +65,7 @@ export function AgentPickerScreen() {
 			? "claude"
 			: agentId;
 
-	const hostsQuery = useOrgHostsQuery();
-	const hosts = useOrgHosts();
+	const { hosts, query: hostsQuery } = useOrgHosts();
 	const host =
 		machineId && machineId !== CLOUD_TARGET_ID
 			? (hosts.find((entry) => entry.machineId === machineId) ?? null)

@@ -1,6 +1,6 @@
 export {
 	NO_HOSTS,
 	type OrgHost,
+	type OrgHostRow,
 	useOrgHosts,
-	useOrgHostsQuery,
 } from "./useOrgHosts";

@@ -25,7 +25,7 @@ import { ListRowCheck } from "@/screens/(authenticated)/components/ListRowCheck"
 export function ScopeFilterScreen() {
 	const { t } = useLingui();
 	const router = useRouter();
-	const hosts = useOrgHosts();
+	const { hosts } = useOrgHosts();
 	const selectedHost = useSelectedHost();
 	const scope = useWorkspaceScope();
 	const cloudEnabled = useCloudScopeEnabled();

@@ -9,7 +9,7 @@ import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/home/
  * before then scopes the whole screen to the wrong host for a few frames.
  */
 export function useSelectedHost(): OrgHost | null {
-	const hosts = useOrgHosts();
+	const { hosts } = useOrgHosts();
 	const hostFilter = useWorkspacesFilterStore((store) => store.hostFilter);
 	const hasHydrated = useWorkspacesFilterStore((store) => store.hasHydrated);
 

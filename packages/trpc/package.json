@@ -24,6 +24,10 @@
 			"types": "./src/lib/r2.ts",
 			"default": "./src/lib/r2.ts"
 		},
+		"./realtime": {
+			"types": "./src/lib/realtime.ts",
+			"default": "./src/lib/realtime.ts"
+		},
 		"./leaderboard-reserved-handles": {
 			"types": "./src/router/leaderboard/reserved-handles.ts",
 			"default": "./src/router/leaderboard/reserved-handles.ts"
@@ -108,6 +112,7 @@
 		"@upstash/qstash": "2.10.1",
 		"@upstash/ratelimit": "2.0.8",
 		"@upstash/redis": "1.37.0",
+		"@vercel/functions": "3.9.6",
 		"@vercel/kv": "3.0.0",
 		"@vercel/sandbox": "3.2.2",
 		"aws4fetch": "1.0.20",

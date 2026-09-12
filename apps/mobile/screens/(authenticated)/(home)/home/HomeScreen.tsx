@@ -23,7 +23,7 @@ import {
 	type HostWorkspaceItem,
 	useHostWorkspaces,
 } from "@/hooks/useHostWorkspaces";
-import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
@@ -175,7 +175,7 @@ export function HomeScreen() {
 		projects,
 	});
 	const pullRequests = usePullRequests();
-	const hostsQuery = useOrgHostsQuery();
+	const { query: hostsQuery } = useOrgHosts();
 
 	// An answer, not rows: an offline host and a host with no workspaces both
 	// settle. Decoration is not waited on. With no active organization the

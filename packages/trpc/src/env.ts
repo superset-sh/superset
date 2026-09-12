@@ -78,6 +78,8 @@ export const env = createEnv({
 		ANTHROPIC_API_KEY: z.string(),
 		OPENAI_API_KEY: z.string().min(1),
 		RELAY_URL: z.string().url().default("https://relay.superset.sh"),
+		REALTIME_URL: z.string().url().default("https://realtime.superset.sh"),
+		REALTIME_NUDGE_SECRET: z.string().min(1),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
 		GOOGLE_CLIENT_ID: z.string().min(1),

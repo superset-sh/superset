@@ -306,7 +306,8 @@ step_write_env() {
     # Each workspace gets a range of 20 ports from its base.
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
     #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal,
-    #          +11 code inspector, +13 relay, +14 usercontent worker
+    #          +11 code inspector, +13 relay, +14 usercontent worker,
+    #          +18 realtime worker
     # (+9, +10, +12 were Electric/Caddy/wrangler; retired, kept unassigned so
     # the surviving offsets stay stable across existing allocations)
     local BASE=$SUPERSET_PORT_BASE
@@ -325,6 +326,7 @@ step_write_env() {
     local RELAY_PORT=$((BASE + 13))
     local USERCONTENT_DEV_PORT=$((BASE + 14))
     local SANDBOX_EDGE_DEV_PORT=$((BASE + 15))
+    local REALTIME_PORT=$((BASE + 18))
 
     echo ""
     echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -342,6 +344,7 @@ step_write_env() {
     write_env_var "RELAY_PORT" "$RELAY_PORT"
     write_env_var "USERCONTENT_DEV_PORT" "$USERCONTENT_DEV_PORT"
     write_env_var "SANDBOX_EDGE_DEV_PORT" "$SANDBOX_EDGE_DEV_PORT"
+    write_env_var "REALTIME_PORT" "$REALTIME_PORT"
     echo ""
     echo "# Cross-app URLs (overrides from root .env)"
     write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
@@ -355,6 +358,8 @@ step_write_env() {
     write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
     write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "NEXT_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
+    write_env_var "REALTIME_URL" "http://localhost:$REALTIME_PORT"
+    write_env_var "REALTIME_NUDGE_SECRET" "fake-realtime-nudge-secret"
     write_env_var "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "USERCONTENT_URL" "http://frame.usercontent.localhost:$USERCONTENT_DEV_PORT"
     write_env_var "SANDBOX_EDGE_ORIGIN" "http://127.0.0.1:$SANDBOX_EDGE_DEV_PORT"

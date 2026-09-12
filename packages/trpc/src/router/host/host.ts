@@ -21,6 +21,7 @@ import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { emitAppFirstOpened } from "../../lib/activation-events";
+import { nudge } from "../../lib/realtime";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { jwtProcedure, userError } from "../../trpc";
 import { registerHost } from "./registration";
@@ -226,7 +227,7 @@ export const hostRouter = {
 			if (inserted) {
 				await emitFirstHostEvent(ctx.userId);
 			}
-
+			nudge(input.organizationId, "hosts");
 			return host;
 		}),
 

@@ -143,6 +143,8 @@ jobs:
           SLACK_BILLING_WEBHOOK_URL: ${{ secrets.SLACK_BILLING_WEBHOOK_URL }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
           RELAY_URL: ${{ secrets.RELAY_URL }}
+          REALTIME_URL: ${{ secrets.REALTIME_URL }}
+          REALTIME_NUDGE_SECRET: ${{ secrets.REALTIME_NUDGE_SECRET }}
           VERCEL_SANDBOX_TOKEN: ${{ secrets.VERCEL_SANDBOX_TOKEN }}
           VERCEL_SANDBOX_TEAM_ID: ${{ secrets.VERCEL_SANDBOX_TEAM_ID }}
           VERCEL_SANDBOX_PROJECT_ID: ${{ secrets.VERCEL_SANDBOX_PROJECT_ID }}
@@ -225,6 +227,8 @@ jobs:
             --env SLACK_BILLING_WEBHOOK_URL=$SLACK_BILLING_WEBHOOK_URL \
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
             --env RELAY_URL=$RELAY_URL \
+            --env REALTIME_URL=$REALTIME_URL \
+            --env REALTIME_NUDGE_SECRET=$REALTIME_NUDGE_SECRET \
             --env VERCEL_SANDBOX_TOKEN=$VERCEL_SANDBOX_TOKEN \
             --env VERCEL_SANDBOX_TEAM_ID=$VERCEL_SANDBOX_TEAM_ID \
             --env VERCEL_SANDBOX_PROJECT_ID=$VERCEL_SANDBOX_PROJECT_ID \
@@ -575,6 +579,66 @@ jobs:
 
       - name: Deploy Worker
         working-directory: apps/relay
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler deploy
+
+  realtime-changes:
+    name: Detect Realtime Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      realtime: ${{ steps.filter.outputs.realtime }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            realtime:
+              - 'apps/realtime/**'
+              - 'packages/shared/src/realtime.ts'
+              - 'patches/**'
+              - '.github/workflows/deploy-production.yml'
+
+  deploy-realtime:
+    name: Deploy Realtime Worker to Cloudflare
+    runs-on: ubuntu-latest
+    environment: production
+    needs: realtime-changes
+    if: >-
+      !cancelled() && (
+        github.event_name == 'workflow_dispatch'
+        || needs.realtime-changes.result != 'success'
+        || needs.realtime-changes.outputs.realtime == 'true'
+      )
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Deploy Worker
+        working-directory: apps/realtime
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -9,6 +9,7 @@ import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
+import { nudge } from "../../lib/realtime";
 import {
 	cloudRepo,
 	deleteSandbox,
@@ -198,6 +199,7 @@ export const cloudWorkspaceRouter = {
 					: {}),
 			};
 
+			nudge(row.organizationId, "cloud_workspaces");
 			if (isLocalApi) {
 				void provisionCloudWorkspace(job).catch((error) => {
 					console.error(
@@ -268,6 +270,7 @@ export const cloudWorkspaceRouter = {
 				.set({ name: input.name })
 				.where(eq(cloudWorkspaces.id, input.id))
 				.returning();
+			nudge(row.organizationId, "cloud_workspaces");
 			return renamed ?? row;
 		}),
 
@@ -333,6 +336,7 @@ export const cloudWorkspaceRouter = {
 					.update(cloudWorkspaces)
 					.set({ status: "failed", sandboxUrl: null })
 					.where(eq(cloudWorkspaces.id, row.id));
+				nudge(row.organizationId, "cloud_workspaces");
 				console.error(`[cloud-workspace] ${row.id} sandbox unavailable`, error);
 				throw new TRPCError({
 					code: "PRECONDITION_FAILED",
@@ -367,6 +371,7 @@ export const cloudWorkspaceRouter = {
 				.update(cloudWorkspaces)
 				.set({ status: "deleted", sandboxUrl: null })
 				.where(eq(cloudWorkspaces.id, row.id));
+			nudge(row.organizationId, "cloud_workspaces");
 			return { deleted: true };
 		}),
 } satisfies TRPCRouterRecord;

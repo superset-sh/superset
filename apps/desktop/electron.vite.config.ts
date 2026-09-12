@@ -100,6 +100,7 @@ export default defineConfig({
 				process.env.SENTRY_DSN_HOST_SERVICE,
 			),
 			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
+			"process.env.REALTIME_URL": defineEnv(process.env.REALTIME_URL),
 			// Must match renderer for analytics in main process
 			"process.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_KEY,
@@ -226,6 +227,7 @@ export default defineConfig({
 				process.env.SENTRY_DSN_DESKTOP,
 			),
 			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
+			"process.env.REALTIME_URL": defineEnv(process.env.REALTIME_URL),
 			"process.env.STREAMS_URL": defineEnv(
 				process.env.STREAMS_URL,
 				"https://superset-stream.fly.dev",

@@ -252,6 +252,10 @@
 			"types": "./src/host-routing.ts",
 			"default": "./src/host-routing.ts"
 		},
+		"./realtime": {
+			"types": "./src/realtime.ts",
+			"default": "./src/realtime.ts"
+		},
 		"./verify-jwt": {
 			"types": "./src/verify-jwt.ts",
 			"default": "./src/verify-jwt.ts"
