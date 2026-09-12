@@ -10168,6 +10168,9 @@ msgstr "Mở trong Scira AI"
 msgid "Open in split pane"
 msgstr "Mở ở khung chia đôi"
 
+msgid "Open in Superset"
+msgstr "Mở trong Superset"
+
 msgid "Open in T3 Chat"
 msgstr "Mở trong T3 Chat"
 
@@ -16265,6 +16268,9 @@ msgstr "Bạn xếp hạng bao nhiêu?"
 
 msgid "Where does my code run?"
 msgstr "Code của tôi chạy ở đâu?"
+
+msgid "Where Page links in terminals, chat messages, and task markdown open when clicked."
+msgstr "Nơi các liên kết Trang trong terminal, tin nhắn trò chuyện và markdown tác vụ mở ra khi được nhấp."
 
 msgid "Where serious teams are"
 msgstr "Nơi các đội nghiêm túc đang đứng"

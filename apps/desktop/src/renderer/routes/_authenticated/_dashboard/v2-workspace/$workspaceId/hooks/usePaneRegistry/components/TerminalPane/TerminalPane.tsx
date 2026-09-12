@@ -14,6 +14,8 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
+import { env } from "renderer/env.renderer";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
 import {
 	actionLabel,
@@ -57,6 +59,7 @@ import {
 } from "./richInputOpenStore";
 import { PasteUploadLimitError, uploadPastedFiles } from "./uploadPastedFiles";
 import { shellEscapePaths } from "./utils";
+import { parseSupersetPageUrl } from "./utils/parseSupersetPageUrl";
 import {
 	runFileLinkAction,
 	runFolderLinkAction,
@@ -82,6 +85,7 @@ export function TerminalPane({
 	const urlPolicy = useTerminalUrlPolicy();
 	const folderPolicy = useTerminalFolderPolicy();
 	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
+	const { preferences } = useV2UserPreferences();
 	const {
 		hoveredLink,
 		liveHoveredLinkRef,
@@ -339,6 +343,18 @@ export function TerminalPane({
 					);
 				},
 				onUrlClick: (event, url) => {
+					const pageSlug = isPagesEnabled
+						? parseSupersetPageUrl(url, env.NEXT_PUBLIC_WEB_URL)
+						: null;
+					if (pageSlug) {
+						event.preventDefault();
+						runUrlLinkAction(
+							linkActionDepsRef.current,
+							url,
+							preferences.pageOpenAction,
+						);
+						return;
+					}
 					const action = urlPolicy.getAction(event);
 					if (action === null) {
 						showHint(event.clientX, event.clientY);
@@ -362,6 +378,8 @@ export function TerminalPane({
 		filePolicy,
 		urlPolicy,
 		folderPolicy,
+		isPagesEnabled,
+		preferences.pageOpenAction,
 	]);
 
 	// Publish what a right-click landed on so the pane context menu (built in

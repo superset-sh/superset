@@ -10168,6 +10168,9 @@ msgstr "Scira AIで開く"
 msgid "Open in split pane"
 msgstr "分割ペインで開く"
 
+msgid "Open in Superset"
+msgstr "Supersetで開く"
+
 msgid "Open in T3 Chat"
 msgstr "T3 Chatで開く"
 
@@ -16265,6 +16268,9 @@ msgstr "あなたの順位は?"
 
 msgid "Where does my code run?"
 msgstr "コードはどこで実行されますか?"
+
+msgid "Where Page links in terminals, chat messages, and task markdown open when clicked."
+msgstr "ターミナル、チャットメッセージ、タスクの Markdown 内のページリンクをクリックしたときの開き先。"
 
 msgid "Where serious teams are"
 msgstr "本気のチームの現在地"

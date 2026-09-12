@@ -66,6 +66,7 @@ export const SETTING_ITEM_ID = {
 	LINKS_URL: "links-url",
 	LINKS_SIDEBAR_FILE: "links-sidebar-file",
 	LINKS_PORT: "links-port",
+	LINKS_PAGE: "links-page",
 
 	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
@@ -216,6 +217,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.LINKS_URL]: "v2",
 	[SETTING_ITEM_ID.LINKS_SIDEBAR_FILE]: "v2",
 	[SETTING_ITEM_ID.LINKS_PORT]: "v2",
+	[SETTING_ITEM_ID.LINKS_PAGE]: "v2",
 
 	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
@@ -1272,6 +1274,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"ctrl",
 			"shift",
 			"meta",
+			"browser",
+			"in-app",
+			"system",
+			"external",
+			"open",
+			"behavior",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.LINKS_PAGE,
+		section: "links",
+		title: "Pages",
+		description:
+			"Whether Page links (in terminals, chat, and task markdown) open inside Superset or the system browser",
+		keywords: [
+			"links",
+			"page",
+			"pages",
+			"click",
 			"browser",
 			"in-app",
 			"system",

@@ -10168,6 +10168,9 @@ msgstr "Buka di Scira AI"
 msgid "Open in split pane"
 msgstr "Buka di panel terbagi"
 
+msgid "Open in Superset"
+msgstr "Buka di Superset"
+
 msgid "Open in T3 Chat"
 msgstr "Buka di T3 Chat"
 
@@ -16265,6 +16268,9 @@ msgstr "Di peringkat berapa Anda?"
 
 msgid "Where does my code run?"
 msgstr "Di mana kode saya berjalan?"
+
+msgid "Where Page links in terminals, chat messages, and task markdown open when clicked."
+msgstr "Ke mana tautan Halaman di terminal, pesan chat, dan markdown tugas terbuka saat diklik."
 
 msgid "Where serious teams are"
 msgstr "Tempat tim serius berada"

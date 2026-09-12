@@ -10168,6 +10168,9 @@ msgstr "Otwórz w Scira AI"
 msgid "Open in split pane"
 msgstr "Otwórz w podzielonym panelu"
 
+msgid "Open in Superset"
+msgstr "Otwórz w Superset"
+
 msgid "Open in T3 Chat"
 msgstr "Otwórz w T3 Chat"
 
@@ -16265,6 +16268,9 @@ msgstr "Jaka jest twoja pozycja?"
 
 msgid "Where does my code run?"
 msgstr "Gdzie działa mój kod?"
+
+msgid "Where Page links in terminals, chat messages, and task markdown open when clicked."
+msgstr "Gdzie po kliknięciu otwierają się linki do stron w terminalach, wiadomościach czatu i markdownie zadań."
 
 msgid "Where serious teams are"
 msgstr "Tu są poważne zespoły"

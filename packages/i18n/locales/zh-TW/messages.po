@@ -10168,6 +10168,9 @@ msgstr "在Scira AI中開啟"
 msgid "Open in split pane"
 msgstr "在分屏窗格中開啟"
 
+msgid "Open in Superset"
+msgstr "在 Superset 中開啟"
+
 msgid "Open in T3 Chat"
 msgstr "在T3 Chat中開啟"
 
@@ -16265,6 +16268,9 @@ msgstr "你排第幾？"
 
 msgid "Where does my code run?"
 msgstr "我的程式碼在哪裡執行？"
+
+msgid "Where Page links in terminals, chat messages, and task markdown open when clicked."
+msgstr "終端機、聊天訊息和任務 Markdown 中的頁面連結點擊後在何處開啟。"
 
 msgid "Where serious teams are"
 msgstr "認真的團隊都在這裡"

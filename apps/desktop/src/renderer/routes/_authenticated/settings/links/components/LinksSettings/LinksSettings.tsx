@@ -27,6 +27,7 @@ import { FolderLinkTierMapper } from "../FolderLinkTierMapper";
 import { LinkTierMapper } from "../LinkTierMapper";
 
 const PORT_ACTIONS: LinkAction[] = ["pane", "newTab", "external"];
+const PAGE_ACTIONS: LinkAction[] = ["pane", "external"];
 
 interface LinksSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -42,6 +43,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 		setSidebarFileLinks,
 		setFolderLinks,
 		setPortOpenAction,
+		setPageOpenAction,
 	} = useV2UserPreferences();
 
 	const showFile = isItemVisible(SETTING_ITEM_ID.LINKS_FILE, visibleItems);
@@ -52,6 +54,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 		visibleItems,
 	);
 	const showPort = isItemVisible(SETTING_ITEM_ID.LINKS_PORT, visibleItems);
+	const showPage = isItemVisible(SETTING_ITEM_ID.LINKS_PAGE, visibleItems);
 
 	const handleFileChange = useCallback(
 		(next: LinkTierMap) => {
@@ -91,6 +94,14 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 			toast.success(t({ message: "Changes saved" }));
 		},
 		[setPortOpenAction, t],
+	);
+
+	const handlePageChange = useCallback(
+		(next: LinkAction) => {
+			setPageOpenAction(next);
+			toast.success(t({ message: "Changes saved" }));
+		},
+		[setPageOpenAction, t],
 	);
 
 	return (
@@ -159,6 +170,52 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 									{PORT_ACTIONS.map((action) => (
 										<SelectItem key={action} value={action}>
 											{actionLabel(action, "url")}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					</div>
+				)}
+
+				{showPage && (
+					<div>
+						<h3 className="text-sm font-medium mb-1">
+							<HighlightText
+								text={t({ message: "Pages" })}
+								query={searchQuery}
+							/>
+						</h3>
+						<p className="text-xs text-muted-foreground mb-3">
+							<Trans>
+								Where Page links in terminals, chat messages, and task markdown
+								open when clicked.
+							</Trans>
+						</p>
+						<div className="flex items-center justify-between gap-4">
+							<Label
+								htmlFor="links-page-action"
+								className="text-sm font-medium"
+							>
+								<Trans>On click</Trans>
+							</Label>
+							<Select
+								value={preferences.pageOpenAction}
+								onValueChange={(v) => handlePageChange(v as LinkAction)}
+							>
+								<SelectTrigger
+									id="links-page-action"
+									size="sm"
+									className="w-44"
+								>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{PAGE_ACTIONS.map((action) => (
+										<SelectItem key={action} value={action}>
+											{action === "pane"
+												? t({ message: "Open in Superset" })
+												: actionLabel(action, "url")}
 										</SelectItem>
 									))}
 								</SelectContent>
