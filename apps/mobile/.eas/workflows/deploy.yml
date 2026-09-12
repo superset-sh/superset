@@ -31,6 +31,7 @@ jobs:
       platform: ios
       profile: preview
       fingerprint_hash: ${{ needs.fingerprint_preview.outputs.ios_fingerprint_hash }}
+      wait_for_in_progress: true
 
   build_internal:
     name: Build internal
@@ -49,6 +50,7 @@ jobs:
       platform: ios
       profile: production
       fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+      wait_for_in_progress: true
 
   build_production:
     name: Build production
