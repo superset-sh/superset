@@ -306,6 +306,7 @@ describe("runShelvedWorkspacePurge", () => {
 		expect(destroy).toHaveBeenCalledTimes(1);
 		expect(destroy.mock.calls[0]?.[1]).toEqual({
 			workspaceId: "ws-old",
+			expectedShelvedAt: readRow("ws-old")?.shelvedAt,
 			deleteBranch: true,
 			force: false,
 			teardownMode: "best-effort",

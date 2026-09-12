@@ -26,6 +26,11 @@ describe("shelved-workspace purge integration", () => {
 
 	beforeEach(async () => {
 		scenario = await createFeatureWorktreeScenario();
+		await scenario.repo.git.raw([
+			"update-ref",
+			"refs/remotes/origin/main",
+			"HEAD",
+		]);
 	});
 
 	afterEach(async () => {

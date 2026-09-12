@@ -428,7 +428,7 @@ export function archiveLocalWorkspace(
 				),
 			)
 			.run();
-		if (result.changes === 0) return false;
+		if (expectedShelvedAt !== undefined && result.changes === 0) return false;
 	}
 	ctx.eventBus.broadcastWorkspaceChanged({
 		workspaceId: id,
