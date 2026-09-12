@@ -60,20 +60,17 @@ private func cachedIcon(_ file: String?) -> UIImage? {
 	return UIImage(contentsOfFile: dir.appendingPathComponent("icons/\(file)").path)
 }
 
-/// The app icon's bracket mark, from the target's asset catalog. A template
-/// image so it tints with the fleet's state the way the SF Symbol it
-/// replaces did; the asset itself is white.
+/// The app icon's bracket mark, from the target's asset catalog. Always
+/// white: the logo is identity, not status, so it never takes the state
+/// tint that the SF Symbol it replaced carried.
 private struct SupersetMark: View {
 	let height: CGFloat
-	let tint: Color
 
 	var body: some View {
 		Image("superset-mark")
-			.renderingMode(.template)
 			.resizable()
 			.aspectRatio(contentMode: .fit)
 			.frame(height: height)
-			.foregroundStyle(tint)
 	}
 }
 
@@ -189,7 +186,7 @@ struct AgentActivityWidget: Widget {
 					.padding(.horizontal, 4)
 				}
 			} compactLeading: {
-				SupersetMark(height: 12, tint: stateColor(context.state.topState))
+				SupersetMark(height: 12)
 			} compactTrailing: {
 				// The island is a single tap target by design, so it shows the
 				// count rather than pretending to be a list.
@@ -197,7 +194,7 @@ struct AgentActivityWidget: Widget {
 					.font(.system(size: 14, weight: .medium))
 					.monospacedDigit()
 			} minimal: {
-				SupersetMark(height: 10, tint: stateColor(context.state.topState))
+				SupersetMark(height: 10)
 			}
 		}
 	}
