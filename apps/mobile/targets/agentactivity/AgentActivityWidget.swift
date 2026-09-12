@@ -130,10 +130,11 @@ private struct Row: View {
 private struct CardBody: View {
 	let context: ActivityViewContext<AgentActivityAttributes>
 
-	/// The footer is the one line where the card can admit it has stopped
-	/// hearing anything.
+	/// A hidden agent outranks the stale notice: the dimmed card already says
+	/// it stopped hearing anything, so "Not updating" only takes the footer
+	/// when there is nothing dropped to count.
 	private var footer: String? {
-		context.isStale ? context.state.staleDetail : context.state.more
+		context.state.more ?? (context.isStale ? context.state.staleDetail : nil)
 	}
 
 	var body: some View {
