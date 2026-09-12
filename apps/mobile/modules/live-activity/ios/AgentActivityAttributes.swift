@@ -28,12 +28,11 @@ struct AgentActivityAttributes: ActivityAttributes {
 		var status: String
 		/// permission | working | failed | review — tint only.
 		var state: String
-		/// Time in the current state, already formatted — "12m", "1h", "3d".
-		/// Not a Date: SwiftUI's free-ticking `Text(style: .timer)` can only
-		/// render mm:ss, and the app's own compact format is what people read
-		/// everywhere else. Formatting in JS also keeps it inside Lingui's
-		/// catalogs rather than hardcoding units in Swift.
-		var elapsed: String
+		/// When the row entered its state, epoch milliseconds. A number, not a
+		/// Date: the same JSON arrives from the app and from an APNs push, and
+		/// a number decodes the same way on both paths. The widget ticks the
+		/// elapsed time itself, so a pushed card stays right for hours.
+		var since: Double
 		/// This row's host has stopped reporting. Per row, not per card —
 		/// one Mac sleeping says nothing about the cloud agents.
 		var isQuiet: Bool
