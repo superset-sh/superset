@@ -861,6 +861,9 @@ msgstr "vybráno: {selectedCount}"
 msgid "{share}% human"
 msgstr "{share} % člověk"
 
+msgid "{SHELF_RETENTION_DAYS, plural, one {# day} other {# days}}"
+msgstr "{SHELF_RETENTION_DAYS, plural, one {# den} few {# dny} many {# dne} other {# dní}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown} z {total}"
 
@@ -2083,8 +2086,23 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Archivovat"
 
+msgid "Archive · deletes the workspace and its branch in {SHELF_RETENTION_DAYS, plural, one {# day} other {# days}} unless restored"
+msgstr "Archivovat · smaže pracovní prostor i jeho větev za {SHELF_RETENTION_DAYS, plural, one {# den} few {# dny} many {# dne} other {# dní}}, pokud jej neobnovíte"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "Archivovat · nedostupné, dokud je hostitel tohoto pracovního prostoru offline"
+
+msgid "Archive workspace"
+msgstr "Archivovat pracovní prostor"
+
+msgid "archived"
+msgstr "archivováno"
+
 msgid "Archived"
 msgstr "Archivované"
+
+msgid "Archived \"{workspaceName}\" · deletes in {retention}"
+msgstr "Pracovní prostor „{workspaceName}“ archivován · smaže se za {retention}"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Opravdu chcete tento soubor smazat? Tuto akci nelze vrátit zpět."
@@ -9168,6 +9186,9 @@ msgstr "Zatím žádní agenti."
 msgid "No API keys yet."
 msgstr "Zatím žádné API klíče."
 
+msgid "No archived workspaces"
+msgstr "Žádné archivované pracovní prostory"
+
 msgid "No assignee"
 msgstr "Bez řešitele"
 
@@ -12097,6 +12118,13 @@ msgstr "Restartuje se…"
 msgid "Restore"
 msgstr "Obnovit"
 
+#. placeholder {0}: formatRelativeTime( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, )
+msgid "Restore · deletes {0}"
+msgstr "Obnovit · smaže se {0}"
+
+msgid "Restore · deletion paused"
+msgstr "Obnovit · mazání pozastaveno"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "Obnovit u {0} výchozí nastavení?"
@@ -12116,8 +12144,18 @@ msgstr "obnovit výchozí nastavení agenta"
 msgid "Restore this version?"
 msgstr "Obnovit tuto verzi?"
 
+msgid "Restore workspace"
+msgstr "Obnovit pracovní prostor"
+
 msgid "Restored"
 msgstr "Obnoveno"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "„{0}“ obnoven z archivu"
+
+msgid "Restored \"{workspaceName}\" from archive"
+msgstr "Pracovní prostor „{workspaceName}“ obnoven z archivu"
 
 msgid "Restoring your session"
 msgstr "Obnovuji vaši relaci"
@@ -13178,6 +13216,9 @@ msgstr "Zobrazit před ukončením aplikace potvrzovací dialog"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Zobrazovat tlačítko Využití v postranním panelu domovské obrazovky pod pull requesty"
 
+msgid "Show active workspaces"
+msgstr "Zobrazit aktivní pracovní prostory"
+
 msgid "Show all {count}"
 msgstr "Zobrazit všech {count}"
 
@@ -13189,6 +13230,9 @@ msgstr "Zobrazit všechny komentáře"
 
 msgid "Show all lines"
 msgstr "Zobrazit všechny řádky"
+
+msgid "Show archived workspaces"
+msgstr "Zobrazit archivované pracovní prostory"
 
 msgid "Show checks"
 msgstr "Zobrazit kontroly"
@@ -15029,6 +15073,9 @@ msgstr "Tento pull request už není dostupný."
 msgid "This pull request link is invalid."
 msgstr "Tento odkaz na pull request je neplatný."
 
+msgid "This pull request's workspace is archived — sending restores it."
+msgstr "Pracovní prostor tohoto pull requestu je archivovaný — odesláním se obnoví."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Tímto se z disku odstraní každý vybraný worktree a smaže se záznam jeho pracovního prostoru."
 
@@ -15134,6 +15181,19 @@ msgstr "Tím se všechny připravené změny odeberou z indexu a vrátí zpět. 
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Tímto zrušíte přípravu a vrátíte všechny připravené změny. Připravené nové soubory budou smazány. Tuto akci nelze vrátit zpět."
+
+#. placeholder {0}: formatRelativeTime(deleteAt)
+msgid "This workspace is archived · deletes {0}"
+msgstr "Tento pracovní prostor je archivován · smaže se {0}"
+
+msgid "This workspace is archived · deletes soon"
+msgstr "Tento pracovní prostor je archivován · brzy se smaže"
+
+msgid "This workspace is archived · deletion paused: couldn't verify the worktree"
+msgstr "Tento pracovní prostor je archivován · mazání pozastaveno: worktree se nepodařilo ověřit"
+
+msgid "This workspace is archived · deletion paused: uncommitted changes"
+msgstr "Tento pracovní prostor je archivován · mazání pozastaveno: necommitnuté změny"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Tento pracovní prostor mohl být odstraněn, nebo k němu už nemáte přístup."

@@ -861,6 +861,9 @@ msgstr "{selectedCount} seçildi"
 msgid "{share}% human"
 msgstr "%{share} insan"
 
+msgid "{SHELF_RETENTION_DAYS, plural, one {# day} other {# days}}"
+msgstr "{SHELF_RETENTION_DAYS, plural, one {# gün} other {# gün}}"
+
 msgid "{shown} of {total}"
 msgstr "{total} içinden {shown}"
 
@@ -2083,8 +2086,23 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Arşivle"
 
+msgid "Archive · deletes the workspace and its branch in {SHELF_RETENTION_DAYS, plural, one {# day} other {# days}} unless restored"
+msgstr "Arşivle · geri yüklenmezse {SHELF_RETENTION_DAYS, plural, one {# gün} other {# gün}} içinde çalışma alanını ve dalını siler"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "Arşivle · bu çalışma alanının host'u çevrimdışıyken kullanılamaz"
+
+msgid "Archive workspace"
+msgstr "Çalışma alanını arşivle"
+
+msgid "archived"
+msgstr "arşivlendi"
+
 msgid "Archived"
 msgstr "Arşivlenmiş"
+
+msgid "Archived \"{workspaceName}\" · deletes in {retention}"
+msgstr "“{workspaceName}” arşivlendi · {retention} içinde silinecek"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Bu dosyayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
@@ -9168,6 +9186,9 @@ msgstr "Henüz ajan yok."
 msgid "No API keys yet."
 msgstr "Henüz API anahtarı yok."
 
+msgid "No archived workspaces"
+msgstr "Arşivlenmiş çalışma alanı yok"
+
 msgid "No assignee"
 msgstr "Atanan yok"
 
@@ -12097,6 +12118,13 @@ msgstr "Yeniden başlatılıyor…"
 msgid "Restore"
 msgstr "Geri yükle"
 
+#. placeholder {0}: formatRelativeTime( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, )
+msgid "Restore · deletes {0}"
+msgstr "Geri yükle · {0} silinir"
+
+msgid "Restore · deletion paused"
+msgstr "Geri yükle · silme duraklatıldı"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "{0} varsayılanlara geri yüklensin mi?"
@@ -12116,8 +12144,18 @@ msgstr "ajan varsayılanlarını geri yükleme"
 msgid "Restore this version?"
 msgstr "Bu sürüm geri yüklensin mi?"
 
+msgid "Restore workspace"
+msgstr "Çalışma alanını geri yükle"
+
 msgid "Restored"
 msgstr "Geri yüklendi"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "\"{0}\" arşivden geri yüklendi"
+
+msgid "Restored \"{workspaceName}\" from archive"
+msgstr "“{workspaceName}” arşivden geri yüklendi"
 
 msgid "Restoring your session"
 msgstr "Oturumunuz geri yükleniyor"
@@ -13178,6 +13216,9 @@ msgstr "Uygulamadan çıkarken onay penceresi göster"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Ana sayfa kenar çubuğunda, pull request'lerin altında bir Kullanım düğmesi göster"
 
+msgid "Show active workspaces"
+msgstr "Etkin çalışma alanlarını göster"
+
 msgid "Show all {count}"
 msgstr "Tümünü göster ({count})"
 
@@ -13189,6 +13230,9 @@ msgstr "Tüm yorumları göster"
 
 msgid "Show all lines"
 msgstr "Tüm satırları göster"
+
+msgid "Show archived workspaces"
+msgstr "Arşivlenmiş çalışma alanlarını göster"
 
 msgid "Show checks"
 msgstr "Kontrolleri göster"
@@ -15029,6 +15073,9 @@ msgstr "Bu pull request artık kullanılamıyor."
 msgid "This pull request link is invalid."
 msgstr "Bu pull request bağlantısı geçersiz."
 
+msgid "This pull request's workspace is archived — sending restores it."
+msgstr "Bu pull request'in çalışma alanı arşivlendi — göndermek onu geri yükler."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Bu işlem, seçili her worktree'yi diskten kaldırır ve çalışma alanı kaydını siler."
 
@@ -15134,6 +15181,19 @@ msgstr "Bu işlem, hazırlanmış tüm değişiklikleri hazırlıktan çıkarır
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Bu işlem, hazırlanmış tüm değişiklikleri hazırlıktan çıkarır ve geri alır. Hazırlanmış yeni dosyalar silinir. Bu geri alınamaz."
+
+#. placeholder {0}: formatRelativeTime(deleteAt)
+msgid "This workspace is archived · deletes {0}"
+msgstr "Bu çalışma alanı arşivlendi · {0} silinecek"
+
+msgid "This workspace is archived · deletes soon"
+msgstr "Bu çalışma alanı arşivlendi · yakında silinecek"
+
+msgid "This workspace is archived · deletion paused: couldn't verify the worktree"
+msgstr "Bu çalışma alanı arşivlendi · silme duraklatıldı: worktree doğrulanamadı"
+
+msgid "This workspace is archived · deletion paused: uncommitted changes"
+msgstr "Bu çalışma alanı arşivlendi · silme duraklatıldı: commit'lenmemiş değişiklikler"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Bu çalışma alanı kaldırılmış olabilir ya da artık erişiminiz olmayabilir."

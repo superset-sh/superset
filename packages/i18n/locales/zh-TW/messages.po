@@ -861,6 +861,9 @@ msgstr "已選擇{selectedCount}項"
 msgid "{share}% human"
 msgstr "人類{share}%"
 
+msgid "{SHELF_RETENTION_DAYS, plural, one {# day} other {# days}}"
+msgstr "{SHELF_RETENTION_DAYS, plural, one {#天} other {#天}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown}/{total}"
 
@@ -2083,8 +2086,23 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "歸檔"
 
+msgid "Archive · deletes the workspace and its branch in {SHELF_RETENTION_DAYS, plural, one {# day} other {# days}} unless restored"
+msgstr "歸檔 · 除非還原，否則將在{SHELF_RETENTION_DAYS, plural, one {#天} other {#天}}後刪除工作區及其分支"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "歸檔 · 此工作區的主機離線時無法使用"
+
+msgid "Archive workspace"
+msgstr "歸檔工作區"
+
+msgid "archived"
+msgstr "已封存"
+
 msgid "Archived"
 msgstr "已歸檔"
+
+msgid "Archived \"{workspaceName}\" · deletes in {retention}"
+msgstr "已歸檔「{workspaceName}」 · 將在{retention}後刪除"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "確定要刪除此檔案嗎？此操作無法復原。"
@@ -9168,6 +9186,9 @@ msgstr "暫無代理程式。"
 msgid "No API keys yet."
 msgstr "暫無API金鑰。"
 
+msgid "No archived workspaces"
+msgstr "沒有已封存的工作區"
+
 msgid "No assignee"
 msgstr "無負責人"
 
@@ -12097,6 +12118,13 @@ msgstr "正在重新啟動…"
 msgid "Restore"
 msgstr "恢復"
 
+#. placeholder {0}: formatRelativeTime( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, )
+msgid "Restore · deletes {0}"
+msgstr "還原 · {0}刪除"
+
+msgid "Restore · deletion paused"
+msgstr "還原 · 刪除已暫停"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "將{0}恢復為預設值？"
@@ -12116,8 +12144,18 @@ msgstr "恢復代理程式預設設定"
 msgid "Restore this version?"
 msgstr "恢復這個版本？"
 
+msgid "Restore workspace"
+msgstr "還原工作區"
+
 msgid "Restored"
 msgstr "已恢復"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "已從封存還原「{0}」"
+
+msgid "Restored \"{workspaceName}\" from archive"
+msgstr "已從歸檔還原「{workspaceName}」"
 
 msgid "Restoring your session"
 msgstr "正在恢復你的會話"
@@ -13178,6 +13216,9 @@ msgstr "退出應用時顯示確認對話方塊"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "在首頁側邊欄的「拉取請求」下方顯示「用量」按鈕"
 
+msgid "Show active workspaces"
+msgstr "顯示使用中的工作區"
+
 msgid "Show all {count}"
 msgstr "顯示全部{count}條"
 
@@ -13189,6 +13230,9 @@ msgstr "顯示所有評論"
 
 msgid "Show all lines"
 msgstr "顯示所有行"
+
+msgid "Show archived workspaces"
+msgstr "顯示已封存的工作區"
 
 msgid "Show checks"
 msgstr "顯示檢查"
@@ -15029,6 +15073,9 @@ msgstr "此拉取請求已不可用。"
 msgid "This pull request link is invalid."
 msgstr "這個拉取請求連結無效。"
 
+msgid "This pull request's workspace is archived — sending restores it."
+msgstr "此拉取請求的工作區已封存，傳送將會還原它。"
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "這會把每個選中的worktree從磁碟上移除，並刪除它的工作區記錄。"
 
@@ -15134,6 +15181,19 @@ msgstr "這將取消暫存並還原所有已暫存的變更。已暫存的新檔
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "這將取消暫存並還原所有已暫存的更改。已暫存的新檔案將被刪除。此操作無法復原。"
+
+#. placeholder {0}: formatRelativeTime(deleteAt)
+msgid "This workspace is archived · deletes {0}"
+msgstr "此工作區已歸檔 · {0}刪除"
+
+msgid "This workspace is archived · deletes soon"
+msgstr "此工作區已歸檔 · 即將刪除"
+
+msgid "This workspace is archived · deletion paused: couldn't verify the worktree"
+msgstr "此工作區已封存 · 刪除已暫停：無法驗證 worktree"
+
+msgid "This workspace is archived · deletion paused: uncommitted changes"
+msgstr "此工作區已歸檔 · 刪除已暫停：有未提交的更改"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "此工作區可能已被移除，或者你不再擁有它的存取權限。"

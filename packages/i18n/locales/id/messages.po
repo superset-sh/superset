@@ -861,6 +861,9 @@ msgstr "{selectedCount} dipilih"
 msgid "{share}% human"
 msgstr "{share}% manusia"
 
+msgid "{SHELF_RETENTION_DAYS, plural, one {# day} other {# days}}"
+msgstr "{SHELF_RETENTION_DAYS, plural, one {# hari} other {# hari}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown} dari {total}"
 
@@ -2083,8 +2086,23 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Arsipkan"
 
+msgid "Archive · deletes the workspace and its branch in {SHELF_RETENTION_DAYS, plural, one {# day} other {# days}} unless restored"
+msgstr "Arsipkan · menghapus workspace dan branch-nya dalam {SHELF_RETENTION_DAYS, plural, one {# hari} other {# hari}} kecuali dipulihkan"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "Arsipkan · tidak tersedia saat host workspace ini offline"
+
+msgid "Archive workspace"
+msgstr "Arsipkan workspace"
+
+msgid "archived"
+msgstr "diarsipkan"
+
 msgid "Archived"
 msgstr "Diarsipkan"
+
+msgid "Archived \"{workspaceName}\" · deletes in {retention}"
+msgstr "“{workspaceName}” diarsipkan · dihapus dalam {retention}"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Yakin ingin menghapus file ini? Tindakan ini tidak bisa dibatalkan."
@@ -9168,6 +9186,9 @@ msgstr "Belum ada agen."
 msgid "No API keys yet."
 msgstr "Belum ada kunci API."
 
+msgid "No archived workspaces"
+msgstr "Tidak ada workspace yang diarsipkan"
+
 msgid "No assignee"
 msgstr "Tanpa penerima tugas"
 
@@ -12097,6 +12118,13 @@ msgstr "Memulai ulang…"
 msgid "Restore"
 msgstr "Pulihkan"
 
+#. placeholder {0}: formatRelativeTime( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, )
+msgid "Restore · deletes {0}"
+msgstr "Pulihkan · dihapus {0}"
+
+msgid "Restore · deletion paused"
+msgstr "Pulihkan · penghapusan dijeda"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "Pulihkan {0} ke setelan bawaan?"
@@ -12116,8 +12144,18 @@ msgstr "memulihkan setelan bawaan agen"
 msgid "Restore this version?"
 msgstr "Pulihkan versi ini?"
 
+msgid "Restore workspace"
+msgstr "Pulihkan ruang kerja"
+
 msgid "Restored"
 msgstr "Dipulihkan"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "\"{0}\" dipulihkan dari arsip"
+
+msgid "Restored \"{workspaceName}\" from archive"
+msgstr "“{workspaceName}” dipulihkan dari arsip"
 
 msgid "Restoring your session"
 msgstr "Memulihkan sesi Anda"
@@ -13178,6 +13216,9 @@ msgstr "Tampilkan dialog konfirmasi saat keluar dari aplikasi"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Tampilkan tombol Penggunaan di sidebar beranda, di bawah Pull request"
 
+msgid "Show active workspaces"
+msgstr "Tampilkan workspace aktif"
+
 msgid "Show all {count}"
 msgstr "Tampilkan semua {count}"
 
@@ -13189,6 +13230,9 @@ msgstr "Tampilkan semua komentar"
 
 msgid "Show all lines"
 msgstr "Tampilkan semua baris"
+
+msgid "Show archived workspaces"
+msgstr "Tampilkan workspace yang diarsipkan"
 
 msgid "Show checks"
 msgstr "Tampilkan check"
@@ -15029,6 +15073,9 @@ msgstr "Pull request ini sudah tidak tersedia."
 msgid "This pull request link is invalid."
 msgstr "Tautan pull request ini tidak valid."
 
+msgid "This pull request's workspace is archived — sending restores it."
+msgstr "Ruang kerja pull request ini diarsipkan — mengirim akan memulihkannya."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Ini menghapus setiap worktree terpilih dari disk dan menghapus catatan workspace-nya."
 
@@ -15134,6 +15181,19 @@ msgstr "Ini akan mengeluarkan semua perubahan dari staging dan membatalkannya. F
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Ini akan meng-unstage dan mengembalikan semua perubahan yang di-stage. File baru yang di-stage akan dihapus. Ini tidak bisa dibatalkan."
+
+#. placeholder {0}: formatRelativeTime(deleteAt)
+msgid "This workspace is archived · deletes {0}"
+msgstr "Workspace ini diarsipkan · dihapus {0}"
+
+msgid "This workspace is archived · deletes soon"
+msgstr "Workspace ini diarsipkan · segera dihapus"
+
+msgid "This workspace is archived · deletion paused: couldn't verify the worktree"
+msgstr "Workspace ini diarsipkan · penghapusan dijeda: worktree tidak dapat diverifikasi"
+
+msgid "This workspace is archived · deletion paused: uncommitted changes"
+msgstr "Workspace ini diarsipkan · penghapusan dijeda: perubahan yang belum di-commit"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Workspace ini mungkin sudah dihapus, atau Anda sudah tidak punya akses ke sana."
