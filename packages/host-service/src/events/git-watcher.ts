@@ -707,6 +707,14 @@ export class GitWatcher {
 		const disposeWorktreeWatch = this.startWorktreeWatch(
 			workspaceId,
 			worktreePath,
+			() => {
+				if (
+					this.watched.get(workspaceId)?.disposeWorktreeWatch !==
+					disposeWorktreeWatch
+				)
+					return;
+				this.stopWatching(workspaceId);
+			},
 		);
 
 		let watcher: FSWatcher;
@@ -727,9 +735,7 @@ export class GitWatcher {
 			// stopWatching; closing again is harmless).
 			watcher.close();
 			if (this.watched.get(workspaceId)?.watcher !== watcher) return;
-			disposeWorktreeWatch();
-			this.watched.delete(workspaceId);
-			this.notifyWatchState(workspaceId, false);
+			this.stopWatching(workspaceId);
 		});
 
 		// Recheck interest: watchWorkspace()/unwatchWorkspace() can flip the
@@ -777,6 +783,7 @@ export class GitWatcher {
 	private startWorktreeWatch(
 		workspaceId: string,
 		worktreePath: string,
+		onFailure: () => void = () => {},
 	): () => void {
 		let disposed = false;
 		let iterator: AsyncIterator<{ events: FsWatchEvent[] }> | null = null;
@@ -792,14 +799,25 @@ export class GitWatcher {
 				workspaceId,
 				error,
 			});
-			return () => {};
+			// Attach publishes its entry synchronously after this returns. Defer
+			// teardown so even a synchronous subscription failure drops it.
+			queueMicrotask(() => {
+				if (!disposed) onFailure();
+			});
+			return () => {
+				disposed = true;
+			};
 		}
 
 		void (async () => {
 			try {
 				while (!disposed && iterator) {
 					const next = await iterator.next();
-					if (disposed || next.done) return;
+					if (disposed) return;
+					if (next.done) {
+						onFailure();
+						return;
+					}
 
 					// The kernel dropped events (overflow) or the root was
 					// recreated: per-path events are incomplete, refresh in full.
@@ -859,6 +877,7 @@ export class GitWatcher {
 						workspaceId,
 						error,
 					});
+					onFailure();
 				}
 			}
 		})();
