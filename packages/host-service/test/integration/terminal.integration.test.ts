@@ -92,7 +92,7 @@ describe("terminal router integration", () => {
 		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 
-	test("createSession sends the configured shell to the daemon instead of inherited bash", async () => {
+	test("createSession uses the configured shell and list includes live agent status", async () => {
 		const tmp = mkdtempSync(join(tmpdir(), "host-service-terminal-shell-"));
 		const socketPath = join(tmp, "pty-daemon.sock");
 		const fakeFishPath = join(tmp, "fish");
@@ -145,6 +145,25 @@ describe("terminal router integration", () => {
 			expect(meta.argv[1]).toBe("--init-command");
 			expect(meta.env?.SHELL).toBe(fakeFishPath);
 			expect(meta.env?.SUPERSET_TERMINAL_ID).toBe(terminalId);
+
+			await scenario.host.unauthenticatedTrpc.notifications.hook.mutate({
+				terminalId,
+				eventType: "request_user_input",
+				agent: { agentId: "codex", sessionId: "thread-123" },
+			});
+			const listedWithAgent = await scenario.host.trpc.terminal.list.query({
+				workspaceId: scenario.workspaceId,
+			});
+			const terminal = listedWithAgent.sessions.find(
+				(session) => session.terminalId === terminalId,
+			);
+			expect(terminal?.agentStatus).toMatchObject({
+				agentId: "codex",
+				sessionId: "thread-123",
+				lastEventType: "PermissionRequest",
+			});
+			expect(terminal?.agentStatus?.startedAt).toBeNumber();
+			expect(terminal?.agentStatus?.lastEventAt).toBeNumber();
 		} finally {
 			await scenario.host.trpc.terminal.killSession
 				.mutate({

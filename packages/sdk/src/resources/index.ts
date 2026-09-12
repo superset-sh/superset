@@ -30,6 +30,8 @@ export {
 } from "./organization";
 export { type Project, type ProjectListResponse, Projects } from "./projects";
 export {
+	type TerminalAgentLifecycleEventType,
+	type TerminalAgentStatus,
 	type TerminalCloseParams,
 	type TerminalCloseResult,
 	type TerminalCreateParams,
