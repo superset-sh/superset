@@ -10,6 +10,7 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { HiMiniArchiveBox, HiMiniArrowUturnLeft } from "react-icons/hi2";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
@@ -61,6 +62,9 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onCopyBranchName: () => void;
 	onCopyWorkspaceId: () => void;
 	onRemoveFromSidebar: () => void;
+	/** Only archivable rows (worktree workspaces) get an Archive entry. */
+	onArchive?: () => void;
+	onRestore?: () => void;
 	onRename?: () => void;
 	/** Cloud workspaces only: turn this sandbox into a reusable environment. */
 	onPromoteToEnvironment?: () => void;
@@ -91,6 +95,8 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onCopyBranchName,
 	onCopyWorkspaceId,
 	onRemoveFromSidebar,
+	onArchive,
+	onRestore,
 	onRename,
 	onPromoteToEnvironment,
 	onDelete,
@@ -251,6 +257,18 @@ export function DashboardSidebarWorkspaceContextMenu({
 					>
 						<LuRadioTower className="size-4 mr-2" />
 						<Trans>Close all ports</Trans>
+					</ContextMenuItem>
+				)}
+				{onArchive && (
+					<ContextMenuItem onSelect={onArchive}>
+						<HiMiniArchiveBox className="size-4 mr-2" />
+						<Trans>Archive</Trans>
+					</ContextMenuItem>
+				)}
+				{onRestore && (
+					<ContextMenuItem onSelect={onRestore}>
+						<HiMiniArrowUturnLeft className="size-4 mr-2" />
+						<Trans>Restore</Trans>
 					</ContextMenuItem>
 				)}
 				<ContextMenuItem onSelect={onRemoveFromSidebar}>

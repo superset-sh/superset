@@ -97,8 +97,13 @@ export function DashboardSidebarWorkspaceItem({
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
 	const isSessionWorkspace = workspace.type === "session";
+	// Cloud rows have no host row to shelve; the host would refuse anyway.
+	const canArchive = workspace.type === "worktree" && hostType !== "cloud";
 	const { status: workspaceStatus, diffStats } = useSidebarWorkspaceStatus(id);
+	const rowRef = useRef<HTMLDivElement>(null);
 	const {
+		archiveWorkspace,
+		restoreWorkspace,
 		cancelRename,
 		pendingName,
 		handleClearStatus,
@@ -131,7 +136,19 @@ export function DashboardSidebarWorkspaceItem({
 		isCloudWorkspace: hostType === "cloud",
 		isMainWorkspace,
 		isPinned: workspace.isPinned,
+		// Focus lands on the sidebar's scroller once the archived row unmounts.
+		getSidebarListElement: () =>
+			rowRef.current?.closest<HTMLElement>("[data-dashboard-sidebar-list]") ??
+			null,
 	});
+
+	const handleArchiveClick = () => {
+		void archiveWorkspace();
+	};
+	const isShelved = workspace.shelvedAt != null;
+	const handleRestoreClick = () => {
+		void restoreWorkspace();
+	};
 
 	// Renders the submitted name until the store reports it, so the row never
 	// falls back to the pre-rename value for a frame.
@@ -155,7 +172,6 @@ export function DashboardSidebarWorkspaceItem({
 		requestClose: hoverRequestClose,
 		syncIfHovered: hoverSyncIfHovered,
 	} = useDashboardSidebarHoverActions();
-	const rowRef = useRef<HTMLDivElement>(null);
 	const hoverEligible = !isPending;
 	const hoverPayload = useMemo(
 		() => ({ workspace, onEditBranchClick: setRenameBranchTarget }),
@@ -308,6 +324,12 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyBranchName={handleCopyBranchName}
 							onCopyWorkspaceId={handleCopyWorkspaceId}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
+							onArchive={
+								canArchive && !isShelved && hostIsOnline !== false
+									? handleArchiveClick
+									: undefined
+							}
+							onRestore={isShelved ? handleRestoreClick : undefined}
 							onRemovePullRequest={handleRemovePullRequest}
 							onRename={isMainWorkspace ? undefined : startRename}
 							onDelete={isMainWorkspace ? undefined : requestDelete}
@@ -362,6 +384,9 @@ export function DashboardSidebarWorkspaceItem({
 				onDoubleClick={isPending || isMainWorkspace ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
 				onCloseWorkspaceClick={requestDelete}
+				canArchive={canArchive}
+				onArchiveWorkspaceClick={handleArchiveClick}
+				onRestoreWorkspaceClick={handleRestoreClick}
 				onRenameValueChange={setRenameValue}
 				onSubmitRename={submitRename}
 				onCancelRename={cancelRename}
@@ -401,6 +426,12 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyBranchName={handleCopyBranchName}
 						onCopyWorkspaceId={handleCopyWorkspaceId}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
+						onArchive={
+							canArchive && !isShelved && hostIsOnline !== false
+								? handleArchiveClick
+								: undefined
+						}
+						onRestore={isShelved ? handleRestoreClick : undefined}
 						onRemovePullRequest={handleRemovePullRequest}
 						onRename={isMainWorkspace ? undefined : startRename}
 						onDelete={isMainWorkspace ? undefined : requestDelete}
