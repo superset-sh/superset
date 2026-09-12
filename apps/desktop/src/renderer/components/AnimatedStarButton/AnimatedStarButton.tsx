@@ -4,7 +4,10 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { GithubStarActionState } from "renderer/hooks/useGithubStarAction";
-import { STAR_SUCCESS_ANIMATION_MS } from "renderer/hooks/useGithubStarAction";
+import {
+	isCelebratableStarTransition,
+	STAR_SUCCESS_ANIMATION_MS,
+} from "renderer/hooks/useGithubStarAction";
 import "./AnimatedStarButton.css";
 import { PlusMark } from "./components/PlusMark";
 
@@ -78,14 +81,14 @@ export function AnimatedStarButton({
 	useEffect(() => {
 		const prevState = prevStateRef.current;
 		prevStateRef.current = state;
-		// Matches useJustStarredWindow's transition condition (not just "wasn't
-		// starred before") — a cold mount that resolves straight from "loading"
-		// to "starred" (the repo was already starred before this session) isn't
-		// a fresh star and shouldn't burst confetti for it.
-		if (
-			(prevState === "not_starred" || prevState === "unknown") &&
-			state === "starred"
-		) {
+		// Same gate as useJustStarredWindow: only a star confirmed by this
+		// session's own mutation celebrates. Neither a cold mount that resolves
+		// straight from "loading" to "starred" (already starred before this
+		// session) nor a background refetch recovering to "starred" after a
+		// flaky "unknown"/"not_starred" read is a fresh star, and bursting
+		// confetti for the latter is exactly the phantom star-button flash on
+		// freshly-opened workspaces.
+		if (isCelebratableStarTransition(prevState, state)) {
 			setJustStarred(true);
 			if (!prefersReducedMotion) setParticles(createBurst());
 			const clearTimer = setTimeout(() => {
