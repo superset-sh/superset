@@ -16270,7 +16270,7 @@ msgid "Where does my code run?"
 msgstr "Dove gira il mio codice?"
 
 msgid "Where Page links in terminals, chat messages, and task markdown open when clicked."
-msgstr "Dove si aprono i link alle Pagine nei terminali, nei messaggi di chat e nel markdown delle attività quando vengono cliccati."
+msgstr "Dove si aprono i link alle Pagine nei terminali, nei messaggi di chat e nel markdown dei task quando vengono cliccati."
 
 msgid "Where serious teams are"
 msgstr "Dove sono i team seri"

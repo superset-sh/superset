@@ -21,6 +21,7 @@ import {
 	actionLabel,
 	type FolderClickPolicy,
 	folderIntentLabel,
+	type LinkAction,
 	LinkHoverHint,
 	useTerminalFilePolicy,
 	useTerminalFolderPolicy,
@@ -671,6 +672,8 @@ export function TerminalPane({
 					urlPolicy,
 					folderPolicy,
 					worktreePath,
+					isPagesEnabled,
+					preferences.pageOpenAction,
 				)}
 				hoverPosition={hoveredLink}
 				clickHint={hint}
@@ -690,6 +693,8 @@ function resolveHoverLabel(
 	urlPolicy: ReturnType<typeof useTerminalUrlPolicy>,
 	folderPolicy: FolderClickPolicy,
 	worktreePath: string | undefined,
+	isPagesEnabled: boolean,
+	pageOpenAction: LinkAction,
 ): string | null {
 	if (!hovered) return null;
 	const event = {
@@ -698,7 +703,10 @@ function resolveHoverLabel(
 		shiftKey: hovered.shift,
 	};
 	if (hovered.info.kind === "url") {
-		const action = urlPolicy.getAction(event);
+		const pageSlug = isPagesEnabled
+			? parseSupersetPageUrl(hovered.info.url, env.NEXT_PUBLIC_WEB_URL)
+			: null;
+		const action = pageSlug ? pageOpenAction : urlPolicy.getAction(event);
 		return action ? actionLabel(action, "url") : null;
 	}
 	if (hovered.info.isDirectory) {
