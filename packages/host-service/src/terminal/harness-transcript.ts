@@ -97,6 +97,11 @@ export function readFileTail(path: string, maxBytes: number): string | null {
 
 interface ClaudeEvent {
 	type?: string;
+	attachment?: {
+		type?: string;
+		commandMode?: string;
+		prompt?: unknown;
+	};
 	message?: {
 		role?: string;
 		content?: string | Array<{ type?: string; text?: string }>;
@@ -132,6 +137,20 @@ function readClaudeTranscript(
 			event = JSON.parse(line) as ClaudeEvent;
 		} catch {
 			continue; // a partially written final line while the session runs
+		}
+		// Claude records consumed busy-session prompts as attachments. Queue
+		// operations alone can describe input the user later removes.
+		if (event.type === "attachment") {
+			const attachment = event.attachment;
+			if (
+				attachment?.type === "queued_command" &&
+				attachment.commandMode === "prompt" &&
+				typeof attachment.prompt === "string" &&
+				attachment.prompt.trim()
+			) {
+				turns.push(`User: ${attachment.prompt.trim()}`);
+			}
+			continue;
 		}
 		if (event.type !== "user" && event.type !== "assistant") continue;
 		const text = textOf(event);
