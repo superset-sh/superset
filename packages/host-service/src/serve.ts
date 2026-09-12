@@ -8,11 +8,7 @@ import {
 	JwtApiAuthProvider,
 } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
-import {
-	type HostAuthProvider,
-	PskHostAuthProvider,
-	SandboxAccessHostAuthProvider,
-} from "./providers/host-auth";
+import { PskHostAuthProvider } from "./providers/host-auth";
 import { provisionAgentIntegrations } from "./runtime/agent-provisioning";
 import { resolveBrowserBridgeFromEnv } from "./runtime/browser-bridge/env";
 import { applyLoginShellEnvToProcess } from "./runtime/login-shell-env";
@@ -23,27 +19,6 @@ import { captureFatalStartupError, initSentry } from "./sentry";
 import { startTerminalBaseEnvResolution } from "./terminal/env";
 import { startTerminalReaper } from "./terminal/reaper";
 import { connectRelay, type TunnelClient } from "./tunnel";
-
-/**
- * A sandbox is reached at a public URL, so it checks a signed token itself.
- * Booting without the means to do that would serve everything to everyone;
- * refusing to boot is the only safe answer.
- */
-function sandboxHostAuth(): HostAuthProvider | null {
-	if (env.SUPERSET_HOST_RUN_MODE !== "sandbox") return null;
-	if (
-		!env.SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY ||
-		!env.SUPERSET_SANDBOX_WORKSPACE_ID
-	) {
-		throw new Error(
-			"sandbox mode needs SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY and SUPERSET_SANDBOX_WORKSPACE_ID",
-		);
-	}
-	return new SandboxAccessHostAuthProvider(
-		env.SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY,
-		env.SUPERSET_SANDBOX_WORKSPACE_ID,
-	);
-}
 
 async function main(): Promise<void> {
 	installConsoleTimestamps();
@@ -112,8 +87,7 @@ async function main(): Promise<void> {
 		},
 		providers: {
 			auth: authProvider,
-			hostAuth:
-				sandboxHostAuth() ?? new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
+			hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
 			credentials: new LocalGitCredentialProvider(),
 		},
 	});

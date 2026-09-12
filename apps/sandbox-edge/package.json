@@ -1,0 +1,21 @@
+{
+	"name": "@superset/sandbox-edge",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun scripts/dev.ts",
+		"deploy": "wrangler deploy",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@superset/shared": "workspace:*",
+		"zod": "4.4.3"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "5.20260801.1",
+		"@superset/typescript": "workspace:*",
+		"typescript": "6.0.3",
+		"wrangler": "4.118.0"
+	}
+}

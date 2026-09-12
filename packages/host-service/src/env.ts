@@ -37,7 +37,6 @@ export const env = createEnv({
 		 * no edge in front of a sandbox, so these are its whole access control.
 		 */
 		SUPERSET_SANDBOX_WORKSPACE_ID: z.string().min(1).optional(),
-		SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY: z.string().min(1).optional(),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,

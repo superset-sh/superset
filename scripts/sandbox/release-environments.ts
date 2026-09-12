@@ -13,7 +13,7 @@
  *
  *   SUPERSET_INTERNAL_ORGANIZATION_ID=… bun run sandbox:release [--production] [--skip-base] [--keep-old]
  *
- * Needs the VERCEL_SANDBOX_* variables and SANDBOX_ACCESS_SIGNING_KEY, plus
+ * Needs the VERCEL_SANDBOX_* variables and SANDBOX_EDGE_SECRET, plus
  * NEON_API_KEY / NEON_PROJECT_ID (all in the root .env) and, for the image, a
  * Docker daemon and `vercel vcr login docker`. The rows go to DATABASE_URL, or
  * with --production to the Neon project's default branch, resolved through the
@@ -295,8 +295,7 @@ if (failed) fail(`${failed} check(s) failed; ${golden} left for inspection`);
 const {
 	provisionSandbox,
 	resolveSandboxAddress,
-	mintSandboxAccessToken,
-	sandboxAccessVerifier,
+	sandboxHostSecretFor,
 	deleteSandbox,
 	waitForStopSnapshot,
 } = await import("../../packages/trpc/src/lib/sandbox/index.ts");
@@ -334,7 +333,7 @@ await provisionSandbox({
 			process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001",
 		SUPERSET_HOST_RUN_MODE: "sandbox",
 		SUPERSET_SANDBOX_WORKSPACE_ID: probeWorkspaceId,
-		SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY: sandboxAccessVerifier(),
+		HOST_SERVICE_SECRET: await sandboxHostSecretFor(probeWorkspaceId),
 		SUPERSET_SANDBOX_WORKSPACE_NAME: "release-probe",
 		// A real workspace branches the database for itself at first boot; a
 		// probe must not leave a Neon branch behind unless asked to prove it.
@@ -346,11 +345,11 @@ await provisionSandbox({
 		SUPERSET_SANDBOX_PROVIDER: "vercel",
 	},
 });
-const { url: probeUrl } = await resolveSandboxAddress({
+const { target: probeUrl } = await resolveSandboxAddress({
 	providerSandboxId: probe,
 	wake: false,
 });
-const { token: probeToken } = mintSandboxAccessToken(probeWorkspaceId);
+const probeToken = await sandboxHostSecretFor(probeWorkspaceId);
 const forked = await Sandbox.get({ ...credentials, name: probe });
 async function probeRun(command: string): Promise<string> {
 	return (await run(forked, command)).logs;

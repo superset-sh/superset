@@ -84,25 +84,27 @@ local host reads its secret from. CORS is answered by host-service itself in
 sandbox mode (`*`; the bearer, never a cookie, is what gates it). Testing from
 Node proves nothing about the renderer here.
 
-**The sandbox's URL is public, so host-service is the gate.** Locally the
+**The sandbox's own address is public, so the edge is the gate.** Locally the
 pre-shared secret stops anything else on the machine from talking to a
 host-service bound to loopback. A Vercel sandbox's exposed port is a public
-`vercel.run` domain with nothing in front of it, so in sandbox mode
-host-service checks a token the API signed for exactly this workspace
-(`SandboxAccessHostAuthProvider`): Ed25519, ten-minute expiry, audience = the
-cloud workspace id. The sandbox holds only the public key
-(`SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY`), so nothing inside it — an agent that
-can read its own environment included — can mint access to itself or to any
-other sandbox, and a token for one workspace is refused by every other. A
-sandbox booted without the key refuses to serve rather than serving everyone.
+`vercel.run` domain with nothing in front of it, so clients never see it: they
+reach a workspace at `<id>-<port>.sandbox.supersetusercontent.com`, a Worker
+(`apps/sandbox-edge`) that verifies a ticket the API minted for that person's
+session — workspace, port, target, hours-long expiry — and forwards to the
+sandbox with a bearer only it and the API can derive
+(`sandboxHostSecret(SANDBOX_EDGE_SECRET, workspaceId)`). host-service in the
+sandbox runs the same `PskHostAuthProvider` as a local host, booted with that
+secret as `HOST_SERVICE_SECRET`; nothing a client holds opens the box
+directly, and nothing inside the box — an agent that can read its own
+environment included — learns the shared secret or any other workspace's.
+A separate registrable domain keeps product cookies away from user code and
+makes every workspace its own site.
 
 That replaces the Blaxel-era posture, where a private provider preview did
-the gating and host-service accepted everything (`EdgeGuardedHostAuthProvider`,
-gone). The old reasoning against a host-side secret was that a *shared* one
-is a cross-tenant credential every tenant can read; a signed token has no
-secret in the box to read. `health.check` stays public on purpose — it is
-how a client tells a booting sandbox from a dead one — so probe the gate on a
-guarded route (`/events`), not on health.
+the gating and host-service accepted everything, and the interim one where
+host-service verified Ed25519 tokens itself. `health.check` stays public on
+purpose — it is how the API tells a booting sandbox from a dead one — so
+probe the gate on a guarded route (`/events`), not on health.
 
 **Model credentials never enter a sandbox.** The organization's keys are
 injected into egress by the sandbox firewall: a `transform` rule on

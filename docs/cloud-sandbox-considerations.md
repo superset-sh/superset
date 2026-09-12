@@ -56,13 +56,15 @@ keys by using the egress proxy, left open for a credential that can write to the
 repo. Either strip the remote after cloning and supply credentials per
 operation, or route git through the proxy the same way.
 
-**A sandbox has exactly one gate, and it is ours. gated** A sandbox's port is
-a public URL; host-service checks a token the API signs for that one
-workspace (`SandboxAccessHostAuthProvider`) and nothing else stands in front.
-Nothing in the box can mint (it holds the public key only), a token for one
-workspace fails every other, and a booted sandbox without the key refuses to
-serve. What remains is a leaked unexpired token — ten minutes of terminals,
-git and the filesystem for one workspace.
+**A sandbox has exactly one gate, and it is ours.** A sandbox's own port is
+a public URL that clients never see; they reach a workspace through the
+sandbox edge (`apps/sandbox-edge`), which verifies a ticket the API signed
+for that person's session and forwards with a bearer only it and the API can
+derive. host-service behind it accepts that bearer and nothing else. Nothing
+in the box holds the shared secret, a ticket for one workspace fails every
+other, and a sandbox booted without its secret answers nobody. What remains
+is a leaked unexpired ticket — hours of terminals, git and the filesystem for
+one workspace, through the edge only.
 
 What makes that worth more than the sandbox itself: code execution inside gets
 the customer's repo, the write-scoped GitHub token in `.git/config` above, and
@@ -72,18 +74,19 @@ an attacker reading those keys; it does not stop them using them.
 Three things to settle before the gate comes off, none of them needed while it
 is only us:
 
-- **Get the token out of the query string.** A browser can't set headers on a
-  WebSocket upgrade, so the token rides as `token` in the socket URL, where it
-  reaches logs and proxies far more readily than a header would. host-service
-  owns the protocol now, so `Sec-WebSocket-Protocol` (a header a browser can
-  set) or single-use socket tokens are both available.
-- **Narrow CORS.** host-service answers `Access-Control-Allow-Origin: *` in
-  sandbox mode. It grants no ambient authority (the token is not a cookie),
-  but it does make a leaked token usable from any origin. Pin it to the app's
-  origins once they are enumerable.
-- **Key rotation.** `SANDBOX_ACCESS_SIGNING_KEY` is one key for every sandbox;
-  rotating it invalidates every running sandbox's verifier at once. A key id in
-  the token and two accepted keys during a rotation window is the usual shape.
+- **Get the ticket out of the query string.** A browser can't set headers on a
+  WebSocket upgrade, so the ticket rides as `token` in the socket URL, where it
+  reaches logs and proxies far more readily than a header would. The edge owns
+  the upgrade now, so `Sec-WebSocket-Protocol` (a header a browser can set) or
+  single-use socket tickets are both available.
+- **Narrow CORS.** The edge answers `Access-Control-Allow-Origin: *`. It grants
+  no ambient authority (the ticket is not a cookie), but it does make a leaked
+  ticket usable from any origin. Pin it to the app's origins once they are
+  enumerable.
+- **Secret rotation.** `SANDBOX_EDGE_SECRET` signs every ticket and derives
+  every sandbox's host secret; rotating it invalidates every running sandbox's
+  bearer at once, so a rotation is a re-provision. Accepting two secrets at
+  the edge during a window is the usual shape.
 
 ## A saturated sandbox looks like a dead one
 

@@ -119,6 +119,11 @@ export function htmlEnvTransformPlugin(): Plugin {
 				.replace(
 					/%RELAY_URL%/g,
 					process.env.RELAY_URL || "https://relay.superset.sh",
+				)
+				.replace(
+					/%SANDBOX_EDGE_ORIGIN%/g,
+					process.env.SANDBOX_EDGE_ORIGIN ||
+						"https://*.sandbox.supersetusercontent.com",
 				);
 		},
 	};

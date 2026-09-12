@@ -17,6 +17,8 @@ const IDLE_POLL_MS = 30_000;
 export interface CloudWorkspacesValue {
 	workspaces: CloudWorkspaceRow[];
 	organizationId: string | null;
+	/** False until the list has been fetched once. */
+	isFetched: boolean;
 }
 
 /**
@@ -45,5 +47,9 @@ export function useCloudWorkspaces(): CloudWorkspacesValue {
 		},
 	);
 
-	return { workspaces: query.data ?? [], organizationId };
+	return {
+		workspaces: query.data ?? [],
+		organizationId,
+		isFetched: query.isFetched,
+	};
 }

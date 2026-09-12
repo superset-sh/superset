@@ -57,9 +57,15 @@ export const env = createEnv({
 		VERCEL_SANDBOX_TEAM_ID: z.string().min(1),
 		VERCEL_SANDBOX_PROJECT_ID: z.string().min(1),
 		VERCEL_SANDBOX_REGION: z.string().min(1).default("iad1"),
-		// Ed25519 private key (base64url PKCS#8) that signs the tokens
-		// host-service in a sandbox checks; each sandbox gets the public half.
-		SANDBOX_ACCESS_SIGNING_KEY: z.string().min(1),
+		// Shared with the sandbox edge Worker: signs the tickets clients present
+		// there and derives the secret each sandbox's host-service is booted with.
+		SANDBOX_EDGE_SECRET: z.string().min(32),
+		// The edge with `*` where a workspace's `<id>-<port>` label goes, e.g.
+		// https://*.sandbox.supersetusercontent.com; a local wrangler dev has no `*`.
+		SANDBOX_EDGE_ORIGIN: z
+			.string()
+			.url()
+			.or(z.string().regex(/^https?:\/\/\*\./)),
 		SENTRY_DSN_SANDBOX: z.string().optional(),
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
 			.enum(["development", "preview", "production"])

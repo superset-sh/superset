@@ -655,6 +655,20 @@
         "wrangler": "4.118.0",
       },
     },
+    "apps/sandbox-edge": {
+      "name": "@superset/sandbox-edge",
+      "version": "0.1.0",
+      "dependencies": {
+        "@superset/shared": "workspace:*",
+        "zod": "4.4.3",
+      },
+      "devDependencies": {
+        "@cloudflare/workers-types": "5.20260801.1",
+        "@superset/typescript": "workspace:*",
+        "typescript": "6.0.3",
+        "wrangler": "4.118.0",
+      },
+    },
     "apps/streams": {
       "name": "streams",
       "version": "0.0.0",
@@ -3107,6 +3121,8 @@
     "@superset/pty-daemon": ["@superset/pty-daemon@workspace:packages/pty-daemon"],
 
     "@superset/relay": ["@superset/relay@workspace:apps/relay"],
+
+    "@superset/sandbox-edge": ["@superset/sandbox-edge@workspace:apps/sandbox-edge"],
 
     "@superset/sdk": ["@superset/sdk@workspace:packages/sdk"],
 

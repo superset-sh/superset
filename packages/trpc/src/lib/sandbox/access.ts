@@ -1,29 +1,44 @@
 import {
-	sandboxAccessPublicKey,
-	signSandboxAccessToken,
-} from "@superset/shared/sandbox-access-token";
+	sandboxEdgeUrl,
+	sandboxHostSecret,
+	signSandboxEdgeTicket,
+} from "@superset/shared/sandbox-edge";
 import { env } from "../../env";
 
-/** Short enough that a leaked token is bounded; minted per access. */
-const ACCESS_TOKEN_TTL_MS = 10 * 60 * 1000;
+/**
+ * A ticket outlives a sandbox session (four hours, extended while open):
+ * the box is guarded by its own secret, so the ticket bounds how long a
+ * person's open workspace stays addressable without asking again.
+ */
+const TICKET_TTL_MS = 12 * 60 * 60 * 1000;
 
 /**
- * A token host-service inside exactly this workspace's sandbox accepts. The
- * authorization decision — is this person allowed in — happens before this is
- * called; this only turns a yes into something the client can present.
+ * Where a client reaches this workspace and what it presents there. The
+ * authorization decision — is this person allowed in — happens before this
+ * is called; this only turns a yes into an address and a ticket.
  */
-export function mintSandboxAccessToken(cloudWorkspaceId: string): {
-	token: string;
-	expiresAt: Date;
-} {
-	return signSandboxAccessToken({
-		privateKey: env.SANDBOX_ACCESS_SIGNING_KEY,
-		audience: cloudWorkspaceId,
-		ttlMs: ACCESS_TOKEN_TTL_MS,
+export async function mintSandboxEdgeAccess(args: {
+	workspaceId: string;
+	userId: string;
+	port: number;
+	target: string;
+}): Promise<{ url: string; token: string; expiresAt: Date }> {
+	const expiresAt = new Date(Date.now() + TICKET_TTL_MS);
+	const token = await signSandboxEdgeTicket(env.SANDBOX_EDGE_SECRET, {
+		workspaceId: args.workspaceId,
+		userId: args.userId,
+		port: args.port,
+		target: args.target,
+		exp: Math.floor(expiresAt.getTime() / 1000),
 	});
+	return {
+		url: sandboxEdgeUrl(env.SANDBOX_EDGE_ORIGIN, args.workspaceId, args.port),
+		token,
+		expiresAt,
+	};
 }
 
-/** What a sandbox is given so it can check tokens without being able to mint them. */
-export function sandboxAccessVerifier(): string {
-	return sandboxAccessPublicKey(env.SANDBOX_ACCESS_SIGNING_KEY);
+/** The bearer host-service in this workspace's sandbox is booted with and the edge presents. */
+export function sandboxHostSecretFor(workspaceId: string): Promise<string> {
+	return sandboxHostSecret(env.SANDBOX_EDGE_SECRET, workspaceId);
 }

@@ -25,10 +25,9 @@ import { Sandbox } from "@vercel/sandbox";
 import { env } from "../src/env";
 import {
 	deleteSandbox,
-	mintSandboxAccessToken,
 	provisionSandbox,
 	resolveSandboxAddress,
-	sandboxAccessVerifier,
+	sandboxHostSecretFor,
 } from "../src/lib/sandbox";
 
 const REPO_URL = "https://github.com/superset-sh/superset.git";
@@ -122,7 +121,7 @@ try {
 			SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL,
 			SUPERSET_HOST_RUN_MODE: "sandbox",
 			SUPERSET_SANDBOX_WORKSPACE_ID: workspaceId,
-			SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY: sandboxAccessVerifier(),
+			HOST_SERVICE_SECRET: await sandboxHostSecretFor(workspaceId),
 			SUPERSET_SANDBOX_WORKSPACE_NAME: "smoke",
 			SUPERSET_SANDBOX_BRANCH: BRANCH,
 			SUPERSET_SANDBOX_WORKSPACE_PATH: SANDBOX_WORKSPACE_PATH,
@@ -133,11 +132,11 @@ try {
 	});
 	console.log(`${at()} provisioned ${sandbox.providerSandboxId}`);
 
-	const { url } = await resolveSandboxAddress({
+	const { target: url } = await resolveSandboxAddress({
 		providerSandboxId: name,
 		wake: false,
 	});
-	const { token } = mintSandboxAccessToken(workspaceId);
+	const token = await sandboxHostSecretFor(workspaceId);
 	if (KEEP) console.log(`${at()} url ${url}`);
 
 	let health = 0;
@@ -148,16 +147,16 @@ try {
 	}
 	check("host-service", health === 200, `health.check ${health}`);
 
-	// The sandbox's URL is public; host-service is the only gate.
+	// The sandbox's own address is public; only the edge holds its secret.
 	const noToken = await status(url, GUARDED);
 	check("no token refused", noToken === 401, `${noToken} (expect 401)`);
 	const otherWorkspace = await status(
 		url,
 		GUARDED,
-		mintSandboxAccessToken(crypto.randomUUID()).token,
+		await sandboxHostSecretFor(crypto.randomUUID()),
 	);
 	check(
-		"other workspace's token refused",
+		"other workspace's secret refused",
 		otherWorkspace === 401,
 		`${otherWorkspace} (expect 401)`,
 	);

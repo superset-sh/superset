@@ -68,9 +68,9 @@
 			"types": "./src/plugins/index.ts",
 			"default": "./src/plugins/index.ts"
 		},
-		"./sandbox-access-token": {
-			"types": "./src/sandbox-access-token.ts",
-			"default": "./src/sandbox-access-token.ts"
+		"./sandbox-edge": {
+			"types": "./src/sandbox-edge.ts",
+			"default": "./src/sandbox-edge.ts"
 		},
 		"./sentry": {
 			"types": "./src/sentry.ts",

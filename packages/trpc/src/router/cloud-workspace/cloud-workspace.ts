@@ -12,10 +12,13 @@ import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import {
 	cloudRepo,
 	deleteSandbox,
+	HOST_SERVICE_PORT,
 	listRemoteBranches,
-	mintSandboxAccessToken,
+	mintSandboxEdgeAccess,
 	resolveSandboxAddress,
+	SandboxNotReadyError,
 	SandboxUnavailableError,
+	sandboxHostSecretFor,
 } from "../../lib/sandbox";
 import { jwtProcedure, userError } from "../../trpc";
 import {
@@ -306,13 +309,22 @@ export const cloudWorkspaceRouter = {
 					cause: { kind: "CLOUD_WORKSPACE_NOT_READY", status: row.status },
 				});
 			}
-			let address: { url: string; running: boolean };
+			let address: { target: string; running: boolean };
 			try {
 				address = await resolveSandboxAddress({
 					providerSandboxId: row.providerSandboxId,
-					wake: input.wake,
+					wake: input.wake
+						? { hostSecret: await sandboxHostSecretFor(row.id) }
+						: false,
 				});
 			} catch (error) {
+				if (error instanceof SandboxNotReadyError) {
+					throw new TRPCError({
+						code: "TIMEOUT",
+						message: "Cloud workspace is still starting",
+						cause: error,
+					});
+				}
 				if (!(error instanceof SandboxUnavailableError)) throw error;
 				// The sandbox is gone or can never resume. A `ready` row nothing
 				// can open would sit in the sidebar forever; failed is the state
@@ -328,8 +340,13 @@ export const cloudWorkspaceRouter = {
 					cause: { kind: "CLOUD_WORKSPACE_NOT_READY", status: "failed" },
 				});
 			}
-			const { token, expiresAt } = mintSandboxAccessToken(row.id);
-			return { url: address.url, running: address.running, token, expiresAt };
+			const { url, token, expiresAt } = await mintSandboxEdgeAccess({
+				workspaceId: row.id,
+				userId: ctx.userId,
+				port: HOST_SERVICE_PORT,
+				target: address.target,
+			});
+			return { url, running: address.running, token, expiresAt };
 		}),
 
 	delete: jwtProcedure

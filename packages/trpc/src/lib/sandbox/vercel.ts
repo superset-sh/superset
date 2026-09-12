@@ -18,7 +18,7 @@ import {
 } from "@vercel/sandbox";
 import { env } from "../../env";
 
-const HOST_SERVICE_PORT = 4879;
+export const HOST_SERVICE_PORT = 4879;
 /**
  * A session ends after this long; the workspace's files survive and the next
  * open resumes it. A workspace someone has open is extended before it gets
@@ -166,8 +166,8 @@ export interface SandboxEnvironment {
 /**
  * Starts host-service unless something already answers on its port — a wake
  * that races another wake, or a re-delivered provision, must not stack a
- * second server that dies on bind. Not awaited: the client discovers the
- * result through the health endpoint it already polls.
+ * second server that dies on bind. Not awaited: `waitForHostService` is how
+ * a caller learns it is up.
  */
 async function startHostService(sandbox: Sandbox): Promise<void> {
 	await sandbox.runCommand({
@@ -253,6 +253,40 @@ export async function provisionSandbox(args: {
 	return { providerSandboxId: args.name, sandboxUrl };
 }
 
+const HOST_READY_TIMEOUT_MS = 60_000;
+const HOST_READY_POLL_MS = 1_000;
+
+export class SandboxNotReadyError extends Error {
+	constructor(providerSandboxId: string) {
+		super(`host-service in ${providerSandboxId} did not answer in time`);
+		this.name = "SandboxNotReadyError";
+	}
+}
+
+/**
+ * A woken session boots from the filesystem snapshot and starts host-service
+ * fresh, which takes a few seconds; an address handed out before it listens
+ * would send every pane into a failed connect.
+ */
+async function waitForHostService(
+	target: string,
+	hostSecret: string,
+	providerSandboxId: string,
+): Promise<void> {
+	const deadline = Date.now() + HOST_READY_TIMEOUT_MS;
+	while (Date.now() < deadline) {
+		const ok = await fetch(`${target}/trpc/health.check`, {
+			headers: { Authorization: `Bearer ${hostSecret}` },
+			signal: AbortSignal.timeout(HOST_READY_POLL_MS * 5),
+		})
+			.then((response) => response.ok)
+			.catch(() => false);
+		if (ok) return;
+		await new Promise((resolve) => setTimeout(resolve, HOST_READY_POLL_MS));
+	}
+	throw new SandboxNotReadyError(providerSandboxId);
+}
+
 /**
  * The sandbox's address, and — when asked — a running host-service behind it.
  *
@@ -260,17 +294,19 @@ export async function provisionSandbox(args: {
  * a live address for every workspace it lists. Waking is deliberate: a
  * stopped session is resumed and host-service started again (a new session
  * boots from the filesystem snapshot with no processes), and a running one is
- * extended so an open workspace never hits the idle stop.
+ * extended so an open workspace never hits the idle stop. A wake returns
+ * once host-service answers, so the address it returns can be used at once.
  */
 export async function resolveSandboxAddress(args: {
 	providerSandboxId: string;
-	wake: boolean;
+	wake: { hostSecret: string } | false;
 }): Promise<{
-	url: string;
+	/** The sandbox's own origin for host-service's port; the edge forwards here. */
+	target: string;
 	/**
 	 * Whether a session was running before this call. A stopped sandbox's
-	 * URL answers nothing until it is woken, so a client that fans requests
-	 * out to every sandbox it lists must skip the ones that are not.
+	 * address answers nothing until it is woken, so a client that fans
+	 * requests out to every sandbox it lists must skip the ones that are not.
 	 */
 	running: boolean;
 }> {
@@ -280,9 +316,9 @@ export async function resolveSandboxAddress(args: {
 			name: args.providerSandboxId,
 			resume: false,
 		});
-		const url = sandbox.domain(HOST_SERVICE_PORT);
+		const target = sandbox.domain(HOST_SERVICE_PORT);
 		const running = sandbox.status === "running";
-		if (!args.wake) return { url, running };
+		if (!args.wake) return { target, running };
 
 		if (running) {
 			const remaining = (sandbox.expiresAt?.getTime() ?? 0) - Date.now();
@@ -292,11 +328,16 @@ export async function resolveSandboxAddress(args: {
 				// documented shape, not a failure worth surfacing here.
 				await sandbox.extendTimeout(SESSION_TIMEOUT_MS).catch(() => {});
 			}
-			return { url, running };
+		} else {
+			// runCommand resumes a stopped session before it runs.
+			await startHostService(sandbox);
 		}
-		// runCommand resumes a stopped session before it runs.
-		await startHostService(sandbox);
-		return { url, running };
+		await waitForHostService(
+			target,
+			args.wake.hostSecret,
+			args.providerSandboxId,
+		);
+		return { target, running };
 	} catch (error) {
 		if (isUnavailable(error)) {
 			throw new SandboxUnavailableError(args.providerSandboxId, error);
