@@ -92,11 +92,16 @@ function makeClient(
 	} as unknown as TRPCClient<AppRouter>;
 }
 
-function setup(client: TRPCClient<AppRouter>, seed?: ServerThread[]) {
+function setup(
+	client: TRPCClient<AppRouter>,
+	seed?: ServerThread[],
+	configureClient?: (queryClient: QueryClient) => void,
+) {
 	const queryClient = new QueryClient({
 		defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
 	});
 	if (seed) queryClient.setQueryData(queryKey, seed);
+	configureClient?.(queryClient);
 
 	const wrapper = ({ children }: { children: ReactNode }) => (
 		<QueryClientProvider client={queryClient}>
@@ -218,5 +223,55 @@ describe("usePageComments", () => {
 			release?.();
 		});
 		await waitFor(() => expect(result.current.store.submitting).toBe(false));
+	});
+
+	test("invalidates once, only after the last concurrent mutation settles", async () => {
+		const resolvers: Array<(row: ServerThread) => void> = [];
+		const client = makeClient({
+			create: () =>
+				new Promise<ServerThread>((resolve) => {
+					resolvers.push(resolve);
+				}),
+		});
+
+		let invalidateCalls = 0;
+		const { result } = setup(client, [], (queryClient) => {
+			const invalidateQueries = queryClient.invalidateQueries.bind(queryClient);
+			queryClient.invalidateQueries = (
+				...args: Parameters<typeof invalidateQueries>
+			) => {
+				invalidateCalls++;
+				return invalidateQueries(...args);
+			};
+		});
+
+		const draft = {
+			anchor: { path: "p", tag: "p", text: "p", offsetX: 0, offsetY: 0 },
+			anchorText: "x",
+			body: "hello",
+		};
+		let firstSettled = false;
+		let secondSettled = false;
+		act(() => {
+			void result.current.store.createThread(draft).then(() => {
+				firstSettled = true;
+			});
+			void result.current.store.createThread(draft).then(() => {
+				secondSettled = true;
+			});
+		});
+		await waitFor(() => expect(resolvers).toHaveLength(2));
+
+		await act(async () => {
+			resolvers[0]?.(serverThread("server-1", "server-c1"));
+		});
+		await waitFor(() => expect(firstSettled).toBe(true));
+		expect(invalidateCalls).toBe(0);
+
+		await act(async () => {
+			resolvers[1]?.(serverThread("server-2", "server-c2"));
+		});
+		await waitFor(() => expect(secondSettled).toBe(true));
+		await waitFor(() => expect(invalidateCalls).toBe(1));
 	});
 });
