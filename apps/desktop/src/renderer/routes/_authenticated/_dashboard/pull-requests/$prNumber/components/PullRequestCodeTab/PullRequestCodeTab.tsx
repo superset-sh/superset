@@ -471,8 +471,14 @@ export function PullRequestCodeTab({
 
 			// Sending into an archived workspace is what takes it back off the
 			// shelf — otherwise the prompt lands somewhere the user can't open.
-			if (linkedWorkspaceId && isLinkedWorkspaceShelved) {
-				await unshelve();
+			if (linkedWorkspaceId) {
+				const client = getHostServiceClientByUrl(hostUrl);
+				const workspace = await client.workspace.get.query({
+					id: linkedWorkspaceId,
+				});
+				if (workspace.type === "worktree") {
+					await unshelve();
+				}
 			}
 
 			if (input.target.kind === "existing") {
