@@ -73,6 +73,7 @@ const {
 	getCodexGlobalHooksJsonContent,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
+	getDevinConfigJsonContent,
 	getDroidSettingsJsonContent,
 	GEMINI_HOOK_MARKER,
 	getAmpGlobalPluginPath,
@@ -1354,6 +1355,42 @@ describe("agent-wrappers claude settings.json", () => {
 
 	afterEach(() => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("creates Devin config.json with its schema version and Claude-shaped hooks", () => {
+		const notifyPath = "/tmp/.superset/hooks/notify.sh";
+		const content = requireContent(getDevinConfigJsonContent(notifyPath));
+		const parsed = JSON.parse(content) as {
+			version?: number;
+			hooks: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+		};
+		expect(parsed.version).toBe(1);
+		for (const eventName of [
+			"SessionStart",
+			"SessionEnd",
+			"UserPromptSubmit",
+			"Stop",
+			"PostToolUse",
+			"PermissionRequest",
+		]) {
+			const entries = parsed.hooks[eventName];
+			expect(entries).toHaveLength(1);
+			expect(entries?.[0]?.hooks[0]?.command).toBe(
+				getManagedNotifyHookCommand("devin"),
+			);
+		}
+		// Devin drops the whole hooks block on an unknown event name, so only
+		// names it accepts may appear.
+		expect(Object.keys(parsed.hooks).sort()).toEqual(
+			[
+				"PermissionRequest",
+				"PostToolUse",
+				"SessionEnd",
+				"SessionStart",
+				"Stop",
+				"UserPromptSubmit",
+			].sort(),
+		);
 	});
 
 	it("creates Claude settings.json with hooks when no file exists", () => {

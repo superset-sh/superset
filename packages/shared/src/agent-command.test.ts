@@ -244,6 +244,34 @@ describe("muse agent registration", () => {
 	});
 });
 
+describe("devin agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("devin");
+		expect(AGENT_LABELS.devin).toBe("Devin");
+	});
+
+	it("passes prompt launches after the -- separator of an interactive session", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "devin-1234",
+			agent: "devin",
+		});
+
+		expect(command).toStartWith(
+			"devin --permission-mode dangerous -- \"$(cat <<'SUPERSET_PROMPT_devin1234'",
+		);
+		expect(command).toEndWith('\n)"');
+	});
+
+	it("derives host preset prompt and resume args from the base command", () => {
+		const preset = getPresetById("devin");
+		expect(preset?.command).toBe("devin");
+		expect(preset?.args).toEqual(["--permission-mode", "dangerous"]);
+		expect(preset?.promptArgs).toEqual(["--"]);
+		expect(preset?.resumeArgs).toEqual(["--resume"]);
+	});
+});
+
 describe("grok agent registration", () => {
 	it("is a registered terminal agent with the right label", () => {
 		expect(AGENT_TYPES).toContain("grok");

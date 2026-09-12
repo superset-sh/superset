@@ -15,6 +15,8 @@ import {
 	createCursorAgentWrapper,
 	createCursorHookScript,
 	createCursorHooksJson,
+	createDevinConfigJson,
+	createDevinWrapper,
 	createDroidSettingsJson,
 	createDroidWrapper,
 	createGeminiHookScript,
@@ -37,6 +39,7 @@ import {
 	removeClaudeManagedHooks,
 	removeCodexManagedHooks,
 	removeCursorManagedHooks,
+	removeDevinManagedHooks,
 	removeDroidManagedHooks,
 	removeGeminiManagedHooks,
 	removeGrokManagedHooks,
@@ -136,6 +139,10 @@ const AGENT_SETUP_DEFINITIONS: Record<
 	vibe: {
 		setup: [createVibeHooksToml, createVibeWrapper],
 		teardown: [removeVibeManagedHooks],
+	},
+	devin: {
+		setup: [createDevinConfigJson, createDevinWrapper],
+		teardown: [removeDevinManagedHooks],
 	},
 };
 

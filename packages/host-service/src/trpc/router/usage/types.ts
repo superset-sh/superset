@@ -15,7 +15,8 @@ export type UsageAgent =
 	| "pi"
 	| "omp"
 	| "fx"
-	| "muse";
+	| "muse"
+	| "devin";
 
 /** The subset of agents with quota accounts. Claude and Codex logins are
  * also switchable; OpenCode's are the Anthropic/OpenAI subscriptions it is
@@ -40,6 +41,7 @@ export type ModelProvider =
 	| "google"
 	| "xai"
 	| "meta"
+	| "cognition"
 	| "cursor"
 	| "github"
 	| "other";

@@ -57,6 +57,13 @@ export {
 	removeCursorManagedHooks,
 } from "./agent-wrappers-cursor";
 export {
+	createDevinConfigJson,
+	createDevinWrapper,
+	getDevinConfigJsonContent,
+	getDevinConfigJsonPath,
+	removeDevinManagedHooks,
+} from "./agent-wrappers-devin";
+export {
 	createDroidSettingsJson,
 	createDroidWrapper,
 	getDroidSettingsJsonContent,

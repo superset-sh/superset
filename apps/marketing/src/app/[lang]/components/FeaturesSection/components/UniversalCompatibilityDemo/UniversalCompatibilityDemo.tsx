@@ -18,6 +18,7 @@ const AGENTS = [
 	{ name: "Grok CLI", icon: "/app-icons/grok.svg", size: 18 },
 	{ name: "Hermes", icon: "/app-icons/hermes.svg", size: 18 },
 	{ name: "Muse Code", icon: "/app-icons/muse.svg", size: 18 },
+	{ name: "Devin", icon: "/app-icons/devin.svg", size: 18 },
 	{ name: "fx", icon: "/app-icons/fx.svg", size: 18 },
 	{ name: "Antigravity", icon: "/app-icons/agy.svg", size: 18 },
 	{ name: "Kiro", icon: "/app-icons/kiro.svg", size: 18 },

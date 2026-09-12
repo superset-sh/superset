@@ -5,6 +5,7 @@ import { discoverClaudeProfiles, discoverCodexHomes } from "../profiles";
 import { collectAgyEntries } from "./agy";
 import { collectCopilotEntries } from "./copilot";
 import { collectCursorEntries } from "./cursor";
+import { collectDevinEntries } from "./devin";
 import { collectFxEntries } from "./fx";
 import { collectGrokEntries, grokHomes } from "./grok";
 import { collectLogFiles, dedupeLogFiles } from "./logs";
@@ -140,6 +141,10 @@ export async function collectUsageEntries(
 		{
 			run: (out: UsageLogEntry[]) =>
 				Promise.resolve(collectCopilotEntries(cutoffMs, out, sessionLabels)),
+		},
+		{
+			run: (out: UsageLogEntry[]) =>
+				Promise.resolve(collectDevinEntries(cutoffMs, out, sessionLabels)),
 		},
 		{
 			// Cursor is the one networked collector (no local token counts
