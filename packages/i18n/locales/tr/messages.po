@@ -9839,23 +9839,23 @@ msgstr "Şu an çevrimiçi"
 msgid "Only available on macOS."
 msgstr "Yalnızca macOS'ta kullanılabilir."
 
+msgid "Only host owners can change membership"
+msgstr "Üyeliği yalnızca host sahipleri değiştirebilir"
+
 msgid "Only host owners can change this location."
 msgstr "Bu konumu yalnızca host sahipleri değiştirebilir."
 
-msgid "Only host owners or organization admins can change membership"
-msgstr "Üyeliği yalnızca host sahipleri veya kuruluş yöneticileri değiştirebilir"
-
-msgid "Only host owners or organization admins can change membership."
-msgstr "Üyeliği yalnızca host sahipleri veya kuruluş yöneticileri değiştirebilir."
-
-msgid "Only host owners or organization admins can delete this host"
-msgstr "Bu host'u yalnızca host sahipleri veya kuruluş yöneticileri silebilir"
+msgid "Only host owners can delete this host"
+msgstr "Bu host'u yalnızca host sahipleri silebilir"
 
 msgid "Only organization owners can delete this project."
 msgstr "Bu projeyi yalnızca kuruluş sahipleri silebilir."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Bu ayarları yalnızca kuruluş sahipleri değiştirebilir."
+
+msgid "Only owners can change membership."
+msgstr "Üyeliği yalnızca sahipler değiştirebilir."
 
 msgid "Only owners can delete projects"
 msgstr "Projeleri yalnızca sahipler silebilir"
@@ -9875,14 +9875,11 @@ msgstr "Bir yorumu yalnızca yazarı düzenleyebilir"
 msgid "Only the host owner can set its wake command"
 msgstr "Uyandırma komutunu yalnızca host sahibi ayarlayabilir"
 
-msgid "Only the owner or an admin can run this automation"
-msgstr "Bu otomasyonu yalnızca sahibi veya bir yönetici çalıştırabilir"
+msgid "Only the owner can run this automation"
+msgstr "Bu otomasyonu yalnızca sahibi çalıştırabilir"
 
-msgid "Only the owner or an admin can view prompt history"
-msgstr "İstem geçmişini yalnızca sahibi veya bir yönetici görebilir"
-
-msgid "Only the owner or an organization admin can change this automation"
-msgstr "Bu otomasyonu yalnızca sahibi veya bir kuruluş yöneticisi değiştirebilir"
+msgid "Only the owner can view prompt history"
+msgstr "İstem geçmişini yalnızca sahibi görebilir"
 
 msgid "Only the person who created this page can change it"
 msgstr "Bu sayfayı yalnızca oluşturan kişi değiştirebilir"
@@ -10477,8 +10474,8 @@ msgid "Overview"
 msgstr "Genel bakış"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
-msgid "Owned by {0} — only they or an organization admin can edit this automation."
-msgstr "Sahibi: {0} — bu otomasyonu yalnızca o veya bir kuruluş yöneticisi düzenleyebilir."
+msgid "Owned by {0} — only they can edit this automation."
+msgstr "Sahibi: {0} — bu otomasyonu yalnızca o düzenleyebilir."
 
 msgid "Owner"
 msgstr "Sahip"

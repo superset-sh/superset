@@ -81,24 +81,6 @@ async function isHostOwner(
 	return !!owner;
 }
 
-async function isOrgAdmin(
-	organizationId: string,
-	userId: string,
-	database: Pick<typeof db, "select"> = db,
-): Promise<boolean> {
-	const [member] = await database
-		.select({ role: members.role })
-		.from(members)
-		.where(
-			and(
-				eq(members.organizationId, organizationId),
-				eq(members.userId, userId),
-			),
-		)
-		.limit(1);
-	return member?.role === "admin" || member?.role === "owner";
-}
-
 export const hostRouter = {
 	/**
 	 * The relay every client and host of this user must use. Answered here so
@@ -225,7 +207,6 @@ export const hostRouter = {
 					},
 					isOwner: () =>
 						isHostOwner(input.organizationId, input.machineId, ctx.userId, tx),
-					isOrgAdmin: () => isOrgAdmin(input.organizationId, ctx.userId, tx),
 					update: async (metadata) =>
 						(
 							await tx.update(v2Hosts).set(metadata).where(scope).returning()

@@ -9839,23 +9839,23 @@ msgstr "現在オンライン"
 msgid "Only available on macOS."
 msgstr "macOSでのみ利用できます。"
 
+msgid "Only host owners can change membership"
+msgstr "メンバーシップを変更できるのはホストのオーナーのみです"
+
 msgid "Only host owners can change this location."
 msgstr "この場所を変更できるのはホストのオーナーのみです。"
 
-msgid "Only host owners or organization admins can change membership"
-msgstr "メンバーシップを変更できるのはホストのオーナーまたは組織の管理者のみです"
-
-msgid "Only host owners or organization admins can change membership."
-msgstr "メンバーシップを変更できるのはホストのオーナーまたは組織の管理者のみです。"
-
-msgid "Only host owners or organization admins can delete this host"
-msgstr "このホストを削除できるのはホストのオーナーまたは組織の管理者のみです"
+msgid "Only host owners can delete this host"
+msgstr "このホストを削除できるのはホストのオーナーのみです"
 
 msgid "Only organization owners can delete this project."
 msgstr "このプロジェクトを削除できるのは組織のオーナーのみです。"
 
 msgid "Only organization owners can modify these settings."
 msgstr "これらの設定を変更できるのは組織のオーナーのみです。"
+
+msgid "Only owners can change membership."
+msgstr "メンバーシップを変更できるのはオーナーのみです。"
 
 msgid "Only owners can delete projects"
 msgstr "プロジェクトを削除できるのはオーナーのみです"
@@ -9875,14 +9875,11 @@ msgstr "コメントを編集できるのは投稿者のみです"
 msgid "Only the host owner can set its wake command"
 msgstr "ウェイクコマンドを設定できるのはホストのオーナーのみです"
 
-msgid "Only the owner or an admin can run this automation"
-msgstr "このオートメーションを実行できるのは所有者または管理者のみです"
+msgid "Only the owner can run this automation"
+msgstr "このオートメーションを実行できるのは所有者のみです"
 
-msgid "Only the owner or an admin can view prompt history"
-msgstr "プロンプト履歴を表示できるのは所有者または管理者のみです"
-
-msgid "Only the owner or an organization admin can change this automation"
-msgstr "このオートメーションを変更できるのは所有者または組織の管理者のみです"
+msgid "Only the owner can view prompt history"
+msgstr "プロンプト履歴を表示できるのは所有者のみです"
 
 msgid "Only the person who created this page can change it"
 msgstr "このページを変更できるのは作成者のみです"
@@ -10477,8 +10474,8 @@ msgid "Overview"
 msgstr "概要"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
-msgid "Owned by {0} — only they or an organization admin can edit this automation."
-msgstr "{0} が所有 — このオートメーションを編集できるのは所有者または組織の管理者のみです。"
+msgid "Owned by {0} — only they can edit this automation."
+msgstr "{0} が所有 — このオートメーションを編集できるのは所有者のみです。"
 
 msgid "Owner"
 msgstr "オーナー"

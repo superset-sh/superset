@@ -19,7 +19,7 @@ import {
 
 interface AutomationActionsMenuItemsProps {
 	kind: "context" | "dropdown";
-	canEdit: boolean;
+	isOwner: boolean;
 	enabled: boolean;
 	onEdit: () => void;
 	onCopyLink: () => void;
@@ -31,7 +31,7 @@ interface AutomationActionsMenuItemsProps {
 
 export function AutomationActionsMenuItems({
 	kind,
-	canEdit,
+	isOwner,
 	enabled,
 	onEdit,
 	onCopyLink,
@@ -67,7 +67,7 @@ export function AutomationActionsMenuItems({
 				children: (
 					<>
 						<LuPencil className="size-4" />
-						{canEdit ? <Trans>Edit</Trans> : <Trans>View</Trans>}
+						{isOwner ? <Trans>Edit</Trans> : <Trans>View</Trans>}
 					</>
 				),
 			})}
@@ -80,7 +80,7 @@ export function AutomationActionsMenuItems({
 					</>
 				),
 			})}
-			{canEdit && (
+			{isOwner && (
 				<>
 					{renderItem({
 						onSelect: onRunNow,

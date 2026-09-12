@@ -5,7 +5,6 @@ import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useHostsPresence } from "renderer/hooks/useHostsPresence";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { useIsOrganizationAdmin } from "renderer/routes/_authenticated/hooks/useIsOrganizationAdmin";
 import {
 	type PersistableTransaction,
 	useOptimisticActions,
@@ -124,10 +123,6 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 			hostUserRows.find((r) => r.userId === currentUserId)?.role === "owner"
 		);
 	}, [hostUserRows, currentUserId]);
-	// The cloud record (name, members, deletion) is managed by host owners or
-	// org admins; actions that run on the machine itself stay owner-only.
-	const isOrgAdmin = useIsOrganizationAdmin();
-	const canManage = isOwner || isOrgAdmin === true;
 	const isRemoteTarget = Boolean(machineId && hostId !== machineId);
 
 	if (!host) {
@@ -170,7 +165,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				name={host.name}
 				isOnline={hostIsOnline}
 				machineId={host.machineId}
-				canRename={canManage}
+				canRename={isOwner}
 			/>
 
 			<div className="space-y-10">
@@ -221,29 +216,26 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 									query={searchQuery}
 								/>
 							</h3>
-							{!canManage && (
+							{!isOwner && (
 								<p className="text-sm text-muted-foreground mt-0.5">
-									<Trans>
-										Only host owners or organization admins can change
-										membership.
-									</Trans>
+									<Trans>Only owners can change membership.</Trans>
 								</p>
 							)}
 						</div>
-						{canManage && (
+						{isOwner && (
 							<AddMemberDropdown candidates={candidates} onPick={handleAdd} />
 						)}
 					</div>
 
 					<MembersTable
 						members={members}
-						canManage={canManage}
+						isOwner={isOwner}
 						onSetRole={handleSetRole}
 						onRemove={handleRemove}
 					/>
 				</section>
 
-				{canManage ? (
+				{isOwner ? (
 					<DeleteHostSection
 						hostId={hostId}
 						hostName={host.name}

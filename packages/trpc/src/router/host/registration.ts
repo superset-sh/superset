@@ -17,7 +17,6 @@ export async function registerHost<Row>(
 		insert(): Promise<Row | undefined>;
 		grantOwner(): Promise<void>;
 		isOwner(): Promise<boolean>;
-		isOrgAdmin(): Promise<boolean>;
 		update(
 			metadata: Pick<
 				HostRegistration,
@@ -43,16 +42,10 @@ export async function registerHost<Row>(
 		return { host: await store.read(), inserted: false };
 	}
 	if (!(await store.isOwner())) {
-		// An org admin re-registering a machine whose owner has left takes it
-		// over; anyone else could be spoofing a known machine id.
-		if (!(await store.isOrgAdmin())) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message:
-					"Only a host owner or an organization admin can report its build",
-			});
-		}
-		await store.grantOwner();
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only a host owner can report its build",
+		});
 	}
 	return { host: await store.update(metadata), inserted: false };
 }

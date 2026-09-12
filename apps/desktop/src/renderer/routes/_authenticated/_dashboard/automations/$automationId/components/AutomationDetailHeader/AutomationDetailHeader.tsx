@@ -18,7 +18,7 @@ interface AutomationDetailHeaderProps {
 	onOpenHistory: () => void;
 	deleteDisabled?: boolean;
 	runNowDisabled?: boolean;
-	/** Disables the actions — the server allows them only to the owner or an org admin. */
+	/** Disables the actions — they're all owner-gated server-side. */
 	readOnly?: boolean;
 }
 
@@ -55,7 +55,7 @@ export function AutomationDetailHeader({
 				</TooltipTrigger>
 				<TooltipContent>
 					{readOnly ? (
-						<Trans>Only the owner or an admin can view prompt history</Trans>
+						<Trans>Only the owner can view prompt history</Trans>
 					) : (
 						<Trans>Prompt history</Trans>
 					)}
@@ -108,7 +108,7 @@ export function AutomationDetailHeader({
 				</TooltipTrigger>
 				{readOnly && (
 					<TooltipContent>
-						<Trans>Only the owner or an admin can run this automation</Trans>
+						<Trans>Only the owner can run this automation</Trans>
 					</TooltipContent>
 				)}
 			</Tooltip>

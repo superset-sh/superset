@@ -9839,23 +9839,23 @@ msgstr "Nu online"
 msgid "Only available on macOS."
 msgstr "Alleen beschikbaar op macOS."
 
+msgid "Only host owners can change membership"
+msgstr "Alleen eigenaren van de host kunnen het lidmaatschap wijzigen"
+
 msgid "Only host owners can change this location."
 msgstr "Alleen eigenaren van de host kunnen deze locatie wijzigen."
 
-msgid "Only host owners or organization admins can change membership"
-msgstr "Alleen eigenaren van de host of organisatiebeheerders kunnen het lidmaatschap wijzigen"
-
-msgid "Only host owners or organization admins can change membership."
-msgstr "Alleen eigenaren van de host of organisatiebeheerders kunnen het lidmaatschap wijzigen."
-
-msgid "Only host owners or organization admins can delete this host"
-msgstr "Alleen eigenaren van de host of organisatiebeheerders kunnen deze host verwijderen"
+msgid "Only host owners can delete this host"
+msgstr "Alleen eigenaren van de host kunnen deze host verwijderen"
 
 msgid "Only organization owners can delete this project."
 msgstr "Alleen eigenaren van de organisatie kunnen dit project verwijderen."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Alleen eigenaren van de organisatie kunnen deze instellingen wijzigen."
+
+msgid "Only owners can change membership."
+msgstr "Alleen eigenaren kunnen het lidmaatschap wijzigen."
 
 msgid "Only owners can delete projects"
 msgstr "Alleen eigenaren kunnen projecten verwijderen"
@@ -9875,14 +9875,11 @@ msgstr "Alleen de auteur kan een opmerking bewerken"
 msgid "Only the host owner can set its wake command"
 msgstr "Alleen de eigenaar van de host kan het wake-commando instellen"
 
-msgid "Only the owner or an admin can run this automation"
-msgstr "Alleen de eigenaar of een beheerder kan deze automatisering uitvoeren"
+msgid "Only the owner can run this automation"
+msgstr "Alleen de eigenaar kan deze automatisering uitvoeren"
 
-msgid "Only the owner or an admin can view prompt history"
-msgstr "Alleen de eigenaar of een beheerder kan de promptgeschiedenis bekijken"
-
-msgid "Only the owner or an organization admin can change this automation"
-msgstr "Alleen de eigenaar of een organisatiebeheerder kan deze automatisering wijzigen"
+msgid "Only the owner can view prompt history"
+msgstr "Alleen de eigenaar kan de promptgeschiedenis bekijken"
 
 msgid "Only the person who created this page can change it"
 msgstr "Alleen degene die deze pagina heeft gemaakt kan hem wijzigen"
@@ -10477,8 +10474,8 @@ msgid "Overview"
 msgstr "Overzicht"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
-msgid "Owned by {0} — only they or an organization admin can edit this automation."
-msgstr "Eigendom van {0} — alleen die persoon of een organisatiebeheerder kan deze automatisering bewerken."
+msgid "Owned by {0} — only they can edit this automation."
+msgstr "Eigendom van {0} — alleen die persoon kan deze automatisering bewerken."
 
 msgid "Owner"
 msgstr "Eigenaar"

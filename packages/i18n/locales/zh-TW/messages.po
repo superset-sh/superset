@@ -9839,23 +9839,23 @@ msgstr "目前線上"
 msgid "Only available on macOS."
 msgstr "僅在macOS上可用。"
 
+msgid "Only host owners can change membership"
+msgstr "只有主機擁有者才能更改成員關係"
+
 msgid "Only host owners can change this location."
 msgstr "只有主機擁有者可以更改此位置。"
 
-msgid "Only host owners or organization admins can change membership"
-msgstr "只有主機擁有者或組織管理員才能更改成員關係"
-
-msgid "Only host owners or organization admins can change membership."
-msgstr "只有主機擁有者或組織管理員才能更改成員關係。"
-
-msgid "Only host owners or organization admins can delete this host"
-msgstr "只有主機擁有者或組織管理員才能刪除此主機"
+msgid "Only host owners can delete this host"
+msgstr "只有主機擁有者才能刪除此主機"
 
 msgid "Only organization owners can delete this project."
 msgstr "只有組織擁有者可以刪除此專案。"
 
 msgid "Only organization owners can modify these settings."
 msgstr "只有組織擁有者可以修改這些設定。"
+
+msgid "Only owners can change membership."
+msgstr "只有擁有者可以更改成員。"
 
 msgid "Only owners can delete projects"
 msgstr "只有擁有者才能刪除專案"
@@ -9875,14 +9875,11 @@ msgstr "只有作者才能編輯評論"
 msgid "Only the host owner can set its wake command"
 msgstr "只有主機擁有者才能設定其喚醒命令"
 
-msgid "Only the owner or an admin can run this automation"
-msgstr "只有擁有者或管理員能執行這個自動化"
+msgid "Only the owner can run this automation"
+msgstr "只有擁有者能執行這個自動化"
 
-msgid "Only the owner or an admin can view prompt history"
-msgstr "只有擁有者或管理員能檢視提示詞歷史"
-
-msgid "Only the owner or an organization admin can change this automation"
-msgstr "只有擁有者或組織管理員能變更這個自動化"
+msgid "Only the owner can view prompt history"
+msgstr "只有擁有者能檢視提示詞歷史"
 
 msgid "Only the person who created this page can change it"
 msgstr "只有建立此頁面的人才能修改它"
@@ -10477,8 +10474,8 @@ msgid "Overview"
 msgstr "概覽"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
-msgid "Owned by {0} — only they or an organization admin can edit this automation."
-msgstr "歸{0}所有，只有本人或組織管理員能編輯這個自動化。"
+msgid "Owned by {0} — only they can edit this automation."
+msgstr "歸{0}所有，只有本人能編輯這個自動化。"
 
 msgid "Owner"
 msgstr "擁有者"

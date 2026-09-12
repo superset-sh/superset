@@ -13,7 +13,6 @@ import {
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { userError } from "../../i18n-error";
-import { verifyOrgMembership } from "../integration/utils";
 
 const PROMPT_VERSION_BUCKET_SECONDS = 600;
 
@@ -365,26 +364,6 @@ export async function automationNotFound(
 	});
 }
 
-/**
- * Org admins and owners can act on any automation, not only their own, so an
- * automation outlives its owner's membership instead of becoming undeletable.
- */
-export async function requireAutomationEditAccess(
-	userId: string,
-	organizationId: string,
-	ownerUserId: string,
-) {
-	if (ownerUserId === userId) return;
-	const { membership } = await verifyOrgMembership(userId, organizationId);
-	if (membership.role === "admin" || membership.role === "owner") return;
-	throw userError({
-		code: "FORBIDDEN",
-		message:
-			"Only the owner or an organization admin can change this automation",
-		i18nKey: "serverError.automation.onlyTheOwnerOrAnOrganizationAdmin",
-	});
-}
-
 export async function getAutomationForUser(
 	userId: string,
 	organizationId: string,
@@ -401,14 +380,13 @@ export async function getAutomationForUser(
 		)
 		.limit(1);
 
-	if (!automation) {
-		throw await automationNotFound(id, userId);
+	if (!automation || automation.ownerUserId !== userId) {
+		throw userError({
+			code: "NOT_FOUND",
+			message: "Automation not found",
+			i18nKey: "serverError.automation.automationNotFound",
+		});
 	}
-	await requireAutomationEditAccess(
-		userId,
-		organizationId,
-		automation.ownerUserId,
-	);
 
 	const summaries = await scheduleSummariesFor([automation.id]);
 	return {

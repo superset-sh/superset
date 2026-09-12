@@ -9839,23 +9839,23 @@ msgstr "Online Sekarang"
 msgid "Only available on macOS."
 msgstr "Hanya tersedia di macOS."
 
+msgid "Only host owners can change membership"
+msgstr "Hanya pemilik host yang bisa mengubah keanggotaan"
+
 msgid "Only host owners can change this location."
 msgstr "Hanya pemilik host yang bisa mengubah lokasi ini."
 
-msgid "Only host owners or organization admins can change membership"
-msgstr "Hanya pemilik host atau admin organisasi yang bisa mengubah keanggotaan"
-
-msgid "Only host owners or organization admins can change membership."
-msgstr "Hanya pemilik host atau admin organisasi yang bisa mengubah keanggotaan."
-
-msgid "Only host owners or organization admins can delete this host"
-msgstr "Hanya pemilik host atau admin organisasi yang bisa menghapus host ini"
+msgid "Only host owners can delete this host"
+msgstr "Hanya pemilik host yang bisa menghapus host ini"
 
 msgid "Only organization owners can delete this project."
 msgstr "Hanya pemilik organisasi yang bisa menghapus proyek ini."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Hanya pemilik organisasi yang bisa mengubah pengaturan ini."
+
+msgid "Only owners can change membership."
+msgstr "Hanya pemilik yang bisa mengubah keanggotaan."
 
 msgid "Only owners can delete projects"
 msgstr "Hanya pemilik yang bisa menghapus proyek"
@@ -9875,14 +9875,11 @@ msgstr "Hanya penulis yang bisa mengedit komentar"
 msgid "Only the host owner can set its wake command"
 msgstr "Hanya pemilik host yang bisa menyetel perintah wake-nya"
 
-msgid "Only the owner or an admin can run this automation"
-msgstr "Hanya pemilik atau admin yang bisa menjalankan otomatisasi ini"
+msgid "Only the owner can run this automation"
+msgstr "Hanya pemilik yang bisa menjalankan otomatisasi ini"
 
-msgid "Only the owner or an admin can view prompt history"
-msgstr "Hanya pemilik atau admin yang bisa melihat riwayat prompt"
-
-msgid "Only the owner or an organization admin can change this automation"
-msgstr "Hanya pemilik atau admin organisasi yang bisa mengubah otomatisasi ini"
+msgid "Only the owner can view prompt history"
+msgstr "Hanya pemilik yang bisa melihat riwayat prompt"
 
 msgid "Only the person who created this page can change it"
 msgstr "Hanya orang yang membuat halaman ini yang bisa mengubahnya"
@@ -10477,8 +10474,8 @@ msgid "Overview"
 msgstr "Ikhtisar"
 
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
-msgid "Owned by {0} — only they or an organization admin can edit this automation."
-msgstr "Dimiliki oleh {0} — hanya dia atau admin organisasi yang bisa mengedit otomatisasi ini."
+msgid "Owned by {0} — only they can edit this automation."
+msgstr "Dimiliki oleh {0} — hanya dia yang bisa mengedit otomatisasi ini."
 
 msgid "Owner"
 msgstr "Pemilik"

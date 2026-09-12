@@ -11,14 +11,14 @@ import { MemberRow, type MemberRowData } from "./components/MemberRow";
 
 interface MembersTableProps {
 	members: MemberRowData[];
-	canManage: boolean;
+	isOwner: boolean;
 	onSetRole: (member: MemberRowData, role: "owner" | "member") => void;
 	onRemove: (member: MemberRowData) => void;
 }
 
 export function MembersTable({
 	members,
-	canManage,
+	isOwner,
 	onSetRole,
 	onRemove,
 }: MembersTableProps) {
@@ -36,7 +36,7 @@ export function MembersTable({
 						<TableHead className="w-32">
 							<Trans>Role</Trans>
 						</TableHead>
-						{canManage && <TableHead className="w-12" />}
+						{isOwner && <TableHead className="w-12" />}
 					</TableRow>
 				</TableHeader>
 				<TableBody>
@@ -44,7 +44,7 @@ export function MembersTable({
 						<MemberRow
 							key={member.usersHostsId}
 							member={member}
-							canManage={canManage}
+							isOwner={isOwner}
 							onSetRole={onSetRole}
 							onRemove={onRemove}
 						/>
@@ -52,7 +52,7 @@ export function MembersTable({
 					{members.length === 0 && (
 						<TableRow>
 							<TableCell
-								colSpan={canManage ? 4 : 3}
+								colSpan={isOwner ? 4 : 3}
 								className="text-center text-sm text-muted-foreground py-6"
 							>
 								<Trans>No members yet.</Trans>

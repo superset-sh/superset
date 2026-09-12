@@ -11,7 +11,6 @@ import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { useIsOrganizationAdmin } from "renderer/routes/_authenticated/hooks/useIsOrganizationAdmin";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
 import { useCopyAutomationLink } from "../hooks/useCopyAutomationLink";
@@ -59,7 +58,6 @@ function AutomationDetailPage() {
 	const navigate = useNavigate();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id;
-	const isOrgAdmin = useIsOrganizationAdmin();
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 	const [hostOfflineOpen, setHostOfflineOpen] = useState(false);
 	const copyAutomationLink = useCopyAutomationLink();
@@ -196,13 +194,11 @@ function AutomationDetailPage() {
 		);
 	}
 
-	// Mutations are gated to the owner or an org admin server-side; render the
-	// rest read-only instead of letting edits silently bounce. Unknown session
-	// or membership (still loading) stays editable — the server enforces.
+	// Every automation mutation is owner-gated server-side; render teammates'
+	// automations read-only instead of letting edits silently bounce. Unknown
+	// session (still loading) stays editable — the server is the enforcement.
 	const readOnly =
-		currentUserId !== undefined &&
-		isOrgAdmin === false &&
-		automation.ownerUserId !== currentUserId;
+		currentUserId !== undefined && automation.ownerUserId !== currentUserId;
 
 	return (
 		<div className="flex h-full w-full flex-1 overflow-hidden">
@@ -292,7 +288,7 @@ function AutomationDetailPage() {
 				automationId={automation.id}
 				automationName={automation.name}
 				currentPrompt={automation.prompt}
-				// Versions are gated the same way server-side; the header action is
+				// Versions are owner-gated server-side too; the header action is
 				// hidden, but the ?history=true search param could still open it.
 				open={!readOnly && historyOpen}
 				onOpenChange={setHistoryOpen}

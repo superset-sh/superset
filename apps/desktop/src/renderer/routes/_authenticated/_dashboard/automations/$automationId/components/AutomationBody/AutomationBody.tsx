@@ -214,7 +214,7 @@ export function AutomationBody({
 								t({
 									message: "a teammate",
 								})}{" "}
-							— only they or an organization admin can edit this automation.
+							— only they can edit this automation.
 						</Trans>
 					</p>
 				)}

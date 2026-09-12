@@ -63,7 +63,6 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/components/SortableHeader";
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
-import { useIsOrganizationAdmin } from "renderer/routes/_authenticated/hooks/useIsOrganizationAdmin";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { AutomationRow } from "./components/AutomationRow";
@@ -332,10 +331,16 @@ function AutomationsPage() {
 	);
 	const teamCount = automations.length - mineCount;
 
-	const isOrgAdmin = useIsOrganizationAdmin();
-	// Only the owner or an org admin can retry; runNow is gated server-side.
-	const canEdit = (automation: AutomationListItem) =>
-		isOrgAdmin !== false || automation.ownerUserId === currentUserId;
+	// Only owned automations can be retried; runNow is owner-gated server-side.
+	const failedMine = useMemo(
+		() =>
+			currentUserId
+				? automations.filter(
+						(a) => a.ownerUserId === currentUserId && failedIds.has(a.id),
+					)
+				: [],
+		[automations, currentUserId, failedIds],
+	);
 
 	const tabVisible = useMemo(() => {
 		if (!currentUserId) return automations;
@@ -349,13 +354,6 @@ function AutomationsPage() {
 	const failedInTab = useMemo(
 		() => tabVisible.filter((a) => failedIds.has(a.id)),
 		[tabVisible, failedIds],
-	);
-	const retryable = useMemo(
-		() =>
-			failedInTab.filter(
-				(a) => isOrgAdmin !== false || a.ownerUserId === currentUserId,
-			),
-		[failedInTab, isOrgAdmin, currentUserId],
 	);
 	// The filter clears itself once nothing is failing anymore.
 	useEffect(() => {
@@ -613,7 +611,7 @@ function AutomationsPage() {
 			isSession={automation.v2ProjectId === null}
 			lastRun={lastRunById.get(automation.id) ?? null}
 			now={now}
-			canEdit={canEdit(automation)}
+			isOwner={automation.ownerUserId === currentUserId}
 			isRetrying={retryingIds.has(automation.id)}
 			onRunNow={(a) =>
 				gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
@@ -725,7 +723,7 @@ function AutomationsPage() {
 							</Tabs>
 							{!tabEmpty && (
 								<div className="flex items-center gap-2">
-									{retryable.length > 0 && (
+									{scope === "mine" && failedMine.length > 0 && (
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<Button
@@ -736,7 +734,7 @@ function AutomationsPage() {
 													disabled={retryAllMutation.isPending}
 													onClick={() =>
 														gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
-															retryAllMutation.mutate(retryable),
+															retryAllMutation.mutate(failedMine),
 														)
 													}
 												>
@@ -750,7 +748,7 @@ function AutomationsPage() {
 														<Trans>Retry all</Trans>
 													</span>
 													<span className="tabular-nums text-xs text-muted-foreground">
-														{retryable.length}
+														{failedMine.length}
 													</span>
 												</Button>
 											</TooltipTrigger>
