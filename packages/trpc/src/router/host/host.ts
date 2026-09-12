@@ -396,7 +396,7 @@ export const hostRouter = {
 							},
 						],
 			);
-			await db.transaction(async (tx) => {
+			await dbWs.transaction(async (tx) => {
 				if (gone.length > 0) {
 					await tx.delete(v2AgentStatus).where(
 						and(
