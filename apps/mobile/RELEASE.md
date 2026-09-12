@@ -93,25 +93,16 @@ Channels: `preview` for internal builds, `production` for the store build.
 ### Production
 
 Never automatic. Dispatch `update-production.yml`, approve it in the run, and it
-publishes at 10%. Adoption ramps on cold start, so judge it over days.
+publishes to everyone on the production channel. No staged rollout: a small
+team with few users learns more from a fast rollback than a slow ramp.
 
 ```bash
-# Expand.
-eas update:edit --branch production --rollout-percentage 50 --non-interactive
-eas update:edit --branch production --rollout-percentage 100 --non-interactive
-
-# Back out during a rollout. Republishes the previous update to everyone,
-# including users who already took the bad one.
-eas update:revert-update-rollout --branch production --non-interactive \
-  --private-key-path ~/.superset/keys/mobile-updates/private-key.pem
-
-# Back out after a rollout completed.
+# Back out. Republishes the previous update to everyone, including users who
+# already took the bad one.
 eas update:rollback --private-key-path ~/.superset/keys/mobile-updates/private-key.pem
 ```
 
-One rollout per branch at a time, and it must reach 100 or be reverted before
-the next production update can publish. An update that migrates persisted state
-is not rollback-safe; fix forward.
+An update that migrates persisted state is not rollback-safe; fix forward.
 
 The private key lives in 1Password and nowhere in this repository. EAS holds a
 copy it will never show you, so 1Password is the only backup.

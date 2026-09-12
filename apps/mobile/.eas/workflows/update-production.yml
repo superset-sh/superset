@@ -13,7 +13,7 @@ jobs:
     type: require-approval
 
   publish:
-    name: Publish to production at 10%
+    name: Publish to production
     needs: [approve]
     type: update
     environment: production
@@ -21,6 +21,5 @@ jobs:
       platform: ios
       channel: production
       message: ${{ inputs.message }}
-      rollout_percentage: 10
       private_key_path: $UPDATES_SIGNING_KEY
       upload_sentry_sourcemaps: true
