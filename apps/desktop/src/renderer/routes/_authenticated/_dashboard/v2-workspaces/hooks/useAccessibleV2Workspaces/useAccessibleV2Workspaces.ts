@@ -101,6 +101,8 @@ export interface AccessibleV2Workspace {
 	/** Non-null = archived tombstone (soft-deleted workspace). */
 	archivedAt: number | null;
 	archiveReason: "merged" | "deleted" | null;
+	/** Non-null = user-archived (shelved): live, hidden, awaiting purge or restore. */
+	shelvedAt: number | null;
 }
 
 export interface V2WorkspaceHostOption {
@@ -386,6 +388,7 @@ export function useAccessibleV2Workspaces(
 			sidebarIsHidden: boolean;
 			archivedAt: number | null;
 			archiveReason: "merged" | "deleted" | null;
+			shelvedAt: number | null;
 		};
 		return hostWorkspaces.flatMap((workspace): AccessibleRowDraft[] => {
 			if (workspace.organizationId !== activeOrganizationId) return [];
@@ -429,6 +432,7 @@ export function useAccessibleV2Workspaces(
 						sidebarIsHidden: sessionSidebarState?.isHidden ?? false,
 						archivedAt: workspace.archivedAt ?? null,
 						archiveReason: workspace.archiveReason ?? null,
+						shelvedAt: workspace.shelvedAt ?? null,
 					},
 				];
 			}
@@ -479,6 +483,7 @@ export function useAccessibleV2Workspaces(
 					sidebarIsHidden: sidebarState?.isHidden ?? false,
 					archivedAt: workspace.archivedAt ?? null,
 					archiveReason: workspace.archiveReason ?? null,
+					shelvedAt: workspace.shelvedAt ?? null,
 				},
 			];
 		});
@@ -722,6 +727,7 @@ export function useAccessibleV2Workspaces(
 				diffStats: diffStatsByWorkspaceId.get(row.id) ?? null,
 				archivedAt: row.archivedAt,
 				archiveReason: row.archiveReason,
+				shelvedAt: row.shelvedAt,
 			});
 		}
 		return Array.from(deduped.values()).sort(

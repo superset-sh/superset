@@ -4,7 +4,11 @@ import {
 	type BoardColumnKey,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
 
-const ARCHIVED_COLUMNS = new Set<BoardColumnKey>(["merged", "deleted"]);
+const ARCHIVED_COLUMNS = new Set<BoardColumnKey>([
+	"archived",
+	"merged",
+	"deleted",
+]);
 
 export function getVisibleBoardColumns(
 	archivedWindow: V2WorkspacesArchivedWindow,
