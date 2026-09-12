@@ -1,11 +1,11 @@
 import { useLingui } from "@lingui/react/macro";
+import type { ServerThread } from "@superset/cloud-client";
 import { formatDate } from "@superset/i18n/format";
 import { getInitials } from "@superset/shared/names";
 import { Bot } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import type { ServerThread } from "../../hooks/usePageComments";
 
 type Comment = ServerThread["comments"][number];
 

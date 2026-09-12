@@ -6136,6 +6136,9 @@ msgstr "worktree를 열지 못했습니다"
 msgid "Failed to open: {0}"
 msgstr "열지 못했습니다: {0}"
 
+msgid "Failed to post reply"
+msgstr "답글을 게시하지 못했습니다"
+
 msgid "Failed to prepare agent launch"
 msgstr "에이전트 실행 준비에 실패했습니다"
 

@@ -60,6 +60,7 @@
 		"@shikijs/themes": "4.2.0",
 		"@shopify/flash-list": "2.3.2",
 		"@superset/auth": "workspace:*",
+		"@superset/cloud-client": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/i18n": "workspace:*",
 		"@superset/shared": "workspace:*",

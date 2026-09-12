@@ -1,3 +1,4 @@
+import { usePageCommentThreads } from "@superset/cloud-client";
 import type {
 	CommentThread,
 	PageHeaderPage,
@@ -6,7 +7,6 @@ import type {
 import { useCallback } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { toThreads } from "renderer/routes/_authenticated/_dashboard/utils/toThreads";
 
 export interface PageHeaderTarget {
 	slug: string;
@@ -36,17 +36,15 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 	const access = cloudTrpc.page.access.useQuery(ref, { enabled });
 
 	const version = pull.data?.version ?? 0;
-	const comments = cloudTrpc.pageComment.list.useQuery(
-		{ pageId: pageId ?? "" },
-		{ enabled: Boolean(pageId) && version > 0 },
-	);
+	const { threads } = usePageCommentThreads({
+		pageId: pageId ?? "",
+		version,
+	});
 
 	const utils = cloudTrpc.useUtils();
 	const setVisibility = cloudTrpc.page.setVisibility.useMutation();
 	const setSharedVersion = cloudTrpc.page.setSharedVersion.useMutation();
 	const deletePage = cloudTrpc.page.delete.useMutation();
-
-	const threads = toThreads(comments.data ?? []);
 
 	const refresh = useCallback(async () => {
 		await Promise.all([pull.refetch(), versions.refetch()]);

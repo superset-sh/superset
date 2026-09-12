@@ -1,4 +1,5 @@
 import { msg } from "@lingui/core/macro";
+import { pageCommentUser } from "@superset/shared/page-comments";
 import {
 	AllCommentsButton,
 	CommentsPanel,
@@ -80,11 +81,7 @@ export default async function PublishedPage({ params }: PageProps) {
 			pageId={page.id}
 			version={page.version}
 			pageOwnerId={page.createdByUserId}
-			user={{
-				id: session?.user.id ?? "",
-				name: session?.user.name ?? i18n._(msg({ message: "You" })),
-				image: session?.user.image ?? null,
-			}}
+			user={pageCommentUser(session, i18n._(msg({ message: "You" })))}
 		>
 			<div className="flex h-dvh flex-col bg-background">
 				<PageHeaderBar

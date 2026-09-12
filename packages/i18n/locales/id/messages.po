@@ -6136,6 +6136,9 @@ msgstr "Gagal membuka worktree"
 msgid "Failed to open: {0}"
 msgstr "Gagal membuka: {0}"
 
+msgid "Failed to post reply"
+msgstr "Gagal mengirim balasan"
+
 msgid "Failed to prepare agent launch"
 msgstr "Gagal menyiapkan peluncuran agen"
 

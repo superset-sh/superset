@@ -6136,6 +6136,9 @@ msgstr "開啟worktree失敗"
 msgid "Failed to open: {0}"
 msgstr "開啟失敗：{0}"
 
+msgid "Failed to post reply"
+msgstr "回覆張貼失敗"
+
 msgid "Failed to prepare agent launch"
 msgstr "準備啟動代理程式失敗"
 

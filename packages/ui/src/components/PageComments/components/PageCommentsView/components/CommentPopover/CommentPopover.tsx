@@ -1,15 +1,18 @@
 "use client";
 
+import type { MessageDescriptor } from "@lingui/core";
+import { isOptimisticId } from "@superset/shared/page-comments";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../../../../../lib/utils";
 import {
+	type CommentIntent,
 	type CommentThread,
 	useComments,
 } from "../../../../providers/CommentProvider";
-import { isOptimisticId } from "../../../../utils/optimisticId";
 import { CommentComposer } from "../../../CommentComposer";
 import { CommentList } from "../../../CommentList";
 import type { PinPoint } from "../../utils/pinLayout";
+import { ComposerActions } from "./components/ComposerActions";
 import { popoverPlacement } from "./utils/popoverLayout";
 
 /** Stand-in until the card has rendered and can be measured. */
@@ -26,6 +29,7 @@ interface CommentPopoverProps {
 	thread: CommentThread | null;
 	initialValue?: string;
 	onSubmit: (body: string) => void | Promise<void>;
+	onQuick?: (body: MessageDescriptor, intent?: CommentIntent | null) => void;
 	onEdit?: (commentId: string, body: string) => void | Promise<void>;
 	onToggleResolved?: () => void;
 	onDelete?: () => void;
@@ -38,6 +42,7 @@ export function CommentPopover({
 	thread,
 	initialValue,
 	onSubmit,
+	onQuick,
 	onEdit,
 	onToggleResolved,
 	onDelete,
@@ -79,8 +84,15 @@ export function CommentPopover({
 			ref={cardRef}
 			data-comment-ui=""
 			style={{ transform: `translate(${left}px, ${top}px)`, width }}
-			className="pointer-events-auto absolute top-0 left-0 overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg"
+			className={cn(
+				"pointer-events-auto absolute top-0 left-0 rounded-lg border bg-popover text-popover-foreground shadow-lg",
+				thread && "overflow-hidden",
+			)}
 		>
+			{thread === null && onQuick ? (
+				<ComposerActions onQuick={onQuick} onDismiss={onDismiss} />
+			) : null}
+
 			{thread ? (
 				<CommentList
 					thread={thread}

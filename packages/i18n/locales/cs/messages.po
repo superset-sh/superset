@@ -6136,6 +6136,9 @@ msgstr "Nepodařilo se otevřít worktree"
 msgid "Failed to open: {0}"
 msgstr "Nepodařilo se otevřít: {0}"
 
+msgid "Failed to post reply"
+msgstr "Nepodařilo se odeslat odpověď"
+
 msgid "Failed to prepare agent launch"
 msgstr "Nepodařilo se připravit spuštění agenta"
 

@@ -22,6 +22,8 @@ export interface FrameRect {
 export const HOST_CHANNEL = "superset-comments/host";
 export const FRAME_CHANNEL = "superset-comments/frame";
 
+export const PENDING_ANCHOR_ID = "superset-pending-anchor";
+
 export type HostMessageBody =
 	| { type: "set-mode"; enabled: boolean }
 	| { type: "track"; anchors: { id: string; anchor: CommentAnchor }[] }
@@ -213,7 +215,17 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		true,
 	);
 
-	addEventListener("scroll", schedule, true);
+	addEventListener(
+		"scroll",
+		() => {
+			if (enabled && lastHoverPath !== null) {
+				lastHoverPath = null;
+				post({ type: "hover", rect: null });
+			}
+			schedule();
+		},
+		true,
+	);
 	addEventListener("resize", schedule);
 	for (const type of ["wheel", "touchstart", "keydown"]) {
 		addEventListener(type, () => {

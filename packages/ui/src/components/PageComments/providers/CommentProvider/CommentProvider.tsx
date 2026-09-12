@@ -1,9 +1,15 @@
 "use client";
 
-import type {
-	CommentAnchor,
-	FrameRect,
-} from "@superset/shared/page-comments-runtime";
+import {
+	type CommentDraft,
+	type CommentIntent,
+	type CommentStore,
+	type CommentThread,
+	isOptimisticId,
+	type PageComment,
+	type PageCommentUser,
+} from "@superset/shared/page-comments";
+import type { FrameRect } from "@superset/shared/page-comments-runtime";
 import {
 	createContext,
 	type ReactNode,
@@ -13,60 +19,15 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { isOptimisticId } from "../../utils/optimisticId";
 
-export interface PageCommentUser {
-	id: string;
-	name: string;
-	image: string | null;
-}
-
-export interface PageComment {
-	id: string;
-	authorName: string;
-	authorImage: string | null;
-	authorKind: "human" | "agent";
-	authorUserId: string | null;
-	body: string;
-	createdAt: number;
-}
-
-export type CommentIntent = "delete" | "approve";
-
-export interface CommentThread {
-	id: string;
-	anchor: CommentAnchor;
-	intent?: CommentIntent | null;
-	comments: PageComment[];
-	resolved: boolean;
-	version: number;
-	createdByUserId: string | null;
-}
-
-export interface CommentDraft {
-	anchor: CommentAnchor;
-	rect: FrameRect;
-	body?: string;
-}
-
-export interface CommentStore {
-	threads: CommentThread[];
-	isLoading: boolean;
-	createThread: (input: {
-		anchor: CommentAnchor;
-		anchorText: string;
-		body: string;
-		intent?: CommentIntent | null;
-	}) => Promise<void>;
-	addReply: (threadId: string, body: string) => Promise<void>;
-	editComment: (
-		threadId: string,
-		commentId: string,
-		body: string,
-	) => Promise<void>;
-	setResolved: (threadId: string, resolved: boolean) => Promise<void>;
-	deleteThread: (threadId: string) => Promise<void>;
-}
+export type {
+	CommentDraft,
+	CommentIntent,
+	CommentStore,
+	CommentThread,
+	PageComment,
+	PageCommentUser,
+};
 
 interface CommentContextValue extends CommentStore {
 	user: PageCommentUser;
@@ -88,14 +49,6 @@ interface CommentContextValue extends CommentStore {
 	draft: CommentDraft | null;
 	openDraft: (draft: CommentDraft) => void;
 	discardDraft: () => void;
-	/**
-	 * The element the reader just picked, before they have said what they want
-	 * to do with it. The toolbar hangs off this; choosing "comment" promotes it
-	 * to a draft, and every other action posts a thread without one.
-	 */
-	selection: CommentDraft | null;
-	openSelection: (selection: CommentDraft) => void;
-	clearSelection: () => void;
 	activeThreadId: string | null;
 	setActiveThreadId: (id: string | null) => void;
 	hoverRect: FrameRect | null;
@@ -157,7 +110,6 @@ export function CommentProvider({
 		[controlledEnabled, onEnabledChange],
 	);
 	const [draft, setDraft] = useState<CommentDraft | null>(null);
-	const [selection, setSelection] = useState<CommentDraft | null>(null);
 	const [panelOpen, setPanelOpenState] = useState(false);
 	const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
 	const [hoverRect, setHoverRect] = useState<FrameRect | null>(null);
@@ -172,7 +124,6 @@ export function CommentProvider({
 		setEnabled((previous) => {
 			if (previous) {
 				setDraft(null);
-				setSelection(null);
 				setActiveThreadId(null);
 				setHoverRect(null);
 			}
@@ -187,17 +138,8 @@ export function CommentProvider({
 
 	const openDraft = useCallback((next: CommentDraft) => {
 		setActiveThreadId(null);
-		setSelection(null);
 		setDraft(next);
 	}, []);
-
-	const openSelection = useCallback((next: CommentDraft) => {
-		setActiveThreadId(null);
-		setDraft(null);
-		setSelection(next);
-	}, []);
-
-	const clearSelection = useCallback(() => setSelection(null), []);
 
 	const notifyFramePointerDown = useCallback(
 		() => setFramePointerDownAt((count) => count + 1),
@@ -241,20 +183,15 @@ export function CommentProvider({
 	const createThread = useCallback<CommentStore["createThread"]>(
 		async (input) => {
 			const composing = draft;
-			const picked = selection;
 			setDraft(null);
-			setSelection(null);
 			try {
 				await store.createThread(input);
 			} catch (error) {
-				// A quick action posts straight from a pick, with no draft to fall
-				// back to, so the target has to come back or it is unrecoverable.
 				if (composing) setDraft({ ...composing, body: input.body });
-				else if (picked) setSelection(picked);
 				throw error;
 			}
 		},
-		[draft, selection, store],
+		[draft, store],
 	);
 
 	const addReply = useCallback<CommentStore["addReply"]>(
@@ -348,9 +285,6 @@ export function CommentProvider({
 			draft,
 			openDraft,
 			discardDraft,
-			selection,
-			openSelection,
-			clearSelection,
 			activeThreadId,
 			setActiveThreadId,
 			hoverRect,
@@ -381,9 +315,6 @@ export function CommentProvider({
 			draft,
 			openDraft,
 			discardDraft,
-			selection,
-			openSelection,
-			clearSelection,
 			activeThreadId,
 			hoverRect,
 			rects,

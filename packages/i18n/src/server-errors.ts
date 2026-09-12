@@ -532,6 +532,12 @@ export const serverErrorMessages: Record<
 				message: "Failed to create thread",
 			}),
 		),
+	"serverError.pageComment.failedToPostReply": () =>
+		i18n._(
+			msg({
+				message: "Failed to post reply",
+			}),
+		),
 	"serverError.pageComment.onlyTheAuthorCanEdit": () =>
 		i18n._(
 			msg({

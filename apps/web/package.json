@@ -17,6 +17,7 @@
 		"@lingui/react": "6.6.0",
 		"@sentry/nextjs": "10.68.0",
 		"@superset/auth": "workspace:*",
+		"@superset/cloud-client": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/i18n": "workspace:*",
 		"@superset/shared": "workspace:*",
