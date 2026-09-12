@@ -104,7 +104,7 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v15");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v16");
 	});
 
 	it("forwards hooks fired inside a subagent (agent_id present) to the host roster only", async () => {
@@ -259,7 +259,7 @@ describe("getNotifyScriptContent", () => {
 			"HOOK_SESSION_ID=$(json_field session_id sessionId)",
 		);
 		expect(script).toContain(
-			'dispatch_to_host "{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
+			'dispatch_to_host "{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}$PREVIEW_FIELD}}"',
 		);
 		// One dispatcher serves both the agent and subagent payloads.
 		expect(script.split('dispatch_to_host "').length - 1).toBe(2);
@@ -714,4 +714,56 @@ describe("cursor-hook.template.sh identity", () => {
 		expect(nested.stdout).toBe('{"continue":true}\n');
 		expect(nested.requests).toEqual([]);
 	});
+});
+
+describe("notification content previews", () => {
+	for (const key of [
+		"last_assistant_message",
+		"last-assistant-message",
+		"message",
+	]) {
+		it(`forwards ${key} with JSON escaping intact`, async () => {
+			const host = fakeHostService(false);
+			try {
+				const preview = 'Finished "B".\nPath: C:\\repo\nUnicode: 日本語';
+				const result = await runNotifyHookAsync(
+					{ hook_event_name: "Stop", [key]: preview },
+					{ SUPERSET_HOST_AGENT_HOOK_URL: host.url },
+				);
+				expect(result.exitCode).toBe(0);
+				expect(host.requests[0]?.json.preview).toBe(preview);
+			} finally {
+				host.stop();
+			}
+		});
+	}
+	it("does not forward prompt text on Start", async () => {
+		const host = fakeHostService(false);
+		try {
+			await runNotifyHookAsync(
+				{ hook_event_name: "Start", message: "user prompt" },
+				{ SUPERSET_HOST_AGENT_HOOK_URL: host.url },
+			);
+			expect(host.requests[0]?.json.preview).toBeUndefined();
+		} finally {
+			host.stop();
+		}
+	});
+});
+
+it("prefers the current permission message over assistant output", async () => {
+	const host = fakeHostService(false);
+	try {
+		await runNotifyHookAsync(
+			{
+				hook_event_name: "PermissionRequest",
+				message: "Allow this command?",
+				last_assistant_message: "Earlier summary",
+			},
+			{ SUPERSET_HOST_AGENT_HOOK_URL: host.url },
+		);
+		expect(host.requests[0]?.json.preview).toBe("Allow this command?");
+	} finally {
+		host.stop();
+	}
 });

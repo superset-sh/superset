@@ -24,6 +24,7 @@ interface BroadcastedAgentLifecycleEvent {
 	eventType: AgentLifecycleEventType;
 	terminalId: string;
 	agent?: AgentIdentity;
+	preview?: string;
 	occurredAt: number;
 }
 
@@ -540,4 +541,16 @@ describe("notificationsRouter.hook", () => {
 			console.warn = warn;
 		}
 	});
+});
+
+it("broadcasts a bounded preview with the lifecycle event", async () => {
+	const { ctx, broadcastAgentLifecycle } = createContext("workspace-1");
+	await notificationsRouter.createCaller(ctx).hook({
+		terminalId: "terminal-1",
+		eventType: "Stop",
+		preview: "x".repeat(5000),
+	});
+	expect(broadcastAgentLifecycle.mock.calls[0]?.[0].preview).toBe(
+		"x".repeat(4000),
+	);
 });

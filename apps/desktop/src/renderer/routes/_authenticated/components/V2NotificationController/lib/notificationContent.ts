@@ -9,33 +9,48 @@ import type {
 	AgentLifecyclePayload,
 } from "@superset/workspace-client";
 
+import stripAnsi from "strip-ansi";
+
 interface V2NativeNotificationContentOptions {
 	workspaceName: string;
+	projectName?: string;
 	payload: AgentLifecyclePayload;
 }
 
 export function getV2NativeNotificationContent({
 	workspaceName,
+	projectName,
 	payload,
-}: V2NativeNotificationContentOptions): { title: string; body: string } {
+}: V2NativeNotificationContentOptions): {
+	title: string;
+	subtitle: string;
+	body: string;
+} {
 	const agentLabel = getAgentLabel(payload.agent);
 	const action =
 		payload.eventType === "PermissionRequest"
-			? "Needs Attention"
+			? i18n._(msg({ message: "Needs attention" }))
 			: payload.eventType === "Failed"
 				? i18n._(msg({ message: "Failed" }))
-				: "Complete";
-	const workspaceLabel = cleanLabel(workspaceName) ?? "Workspace";
+				: i18n._(msg({ message: "Finished" }));
+	const workspaceLabel =
+		cleanLabel(workspaceName) ?? i18n._(msg({ message: "Workspace" }));
 
+	const projectLabel = cleanLabel(projectName);
 	return {
-		title: `${agentLabel} - ${action}`,
-		body: workspaceLabel,
+		title: projectLabel
+			? `${projectLabel} › ${workspaceLabel}`
+			: workspaceLabel,
+		subtitle: `${agentLabel} · ${action}`,
+		body:
+			cleanPreview(payload.preview) ??
+			i18n._(msg({ message: "Open workspace" })),
 	};
 }
 
 function getAgentLabel(agent: AgentIdentity | undefined): string {
 	const agentId = cleanLabel(agent?.agentId);
-	if (!agentId) return "Agent";
+	if (!agentId) return i18n._(msg({ message: "Agent" }));
 	if (agentId in AGENT_IDENTITY_LABELS) {
 		return AGENT_IDENTITY_LABELS[agentId as AgentIdentityId];
 	}
@@ -52,8 +67,24 @@ function humanizeIdentifier(value: string): string {
 		.replace(/^custom:/, "")
 		.split(/[-_:\s]+/)
 		.filter(Boolean);
-	if (words.length === 0) return "Agent";
+	if (words.length === 0) return i18n._(msg({ message: "Agent" }));
 	return words
 		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
 		.join(" ");
+}
+
+function cleanPreview(value: string | undefined): string | null {
+	if (!value) return null;
+	const text = stripAnsi(value)
+		.replace(/```[^\n]*\n?/g, "")
+		.replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+		.replace(/^[ \t]*(?:#{1,6} |>[ \t]?|[-*+] |\d+\. )/gm, "")
+		.replace(/[*`~]/g, "")
+		.replace(/\s+/g, " ")
+		.trim();
+	return text
+		? text.length > 180
+			? `${text.slice(0, 179).trimEnd()}…`
+			: text
+		: null;
 }

@@ -32,6 +32,7 @@ export interface AgentLifecycleMessage {
 	// Absent when the hook ran without `SUPERSET_AGENT_ID` set (legacy shells
 	// or third-party hook configs that bypass our wrappers).
 	agent?: AgentIdentity;
+	preview?: string;
 	occurredAt: number;
 }
 

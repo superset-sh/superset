@@ -210,8 +210,25 @@ case "$V1_EVENT_TYPE" in
     ;;
 esac
 
+PREVIEW_FIELD=""
+PREVIEW_KEYS="last_assistant_message last-assistant-message message"
+case "$EVENT_TYPE" in
+  PermissionRequest|Notification|notification) PREVIEW_KEYS="message last_assistant_message last-assistant-message" ;;
+esac
+case "$EVENT_TYPE" in
+  Stop|stop|PermissionRequest|Notification|notification)
+    for PREVIEW_KEY in $PREVIEW_KEYS; do
+      PREVIEW_VALUE=$(printf '%s' "$INPUT" | grep -oE "\"$PREVIEW_KEY\"[[:space:]]*:[[:space:]]*\"(\\\\.|[^\"\\\\])*\"" | head -n 1 | sed -E 's/^[^:]*:[[:space:]]*//')
+      if [ -n "$PREVIEW_VALUE" ] && [ "$PREVIEW_VALUE" != '""' ]; then
+        PREVIEW_FIELD=",\"preview\":$PREVIEW_VALUE"
+        break
+      fi
+    done
+    ;;
+esac
+
 if [ -n "$SUPERSET_TERMINAL_ID" ]; then
-  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
+  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}$PREVIEW_FIELD}}"
   [ "$HOOK_ACCEPTED" = "1" ] && exit 0
   # Delivered somewhere (2xx) but no host owned the terminal: keep the
   # pre-existing "any 2xx wins" behavior and skip the v1 fallback.

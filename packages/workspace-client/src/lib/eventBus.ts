@@ -43,6 +43,7 @@ export interface AgentLifecyclePayload {
 	terminalId: string;
 	// Absent when the hook ran without `SUPERSET_AGENT_ID` set.
 	agent?: AgentIdentity;
+	preview?: string;
 	occurredAt: number;
 }
 
@@ -319,6 +320,7 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 					eventType: message.eventType,
 					terminalId: message.terminalId,
 					...(message.agent ? { agent: message.agent } : {}),
+					...(message.preview ? { preview: message.preview } : {}),
 					occurredAt: message.occurredAt,
 				},
 			);
