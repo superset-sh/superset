@@ -1,0 +1,48 @@
+name: Mobile production rollout
+
+on:
+  schedule:
+    - cron: "0 */4 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  expand:
+    name: Expand
+    environment: production
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - run: |
+          set -euo pipefail
+          cd "$(git rev-parse --show-toplevel)/apps/mobile"
+          eas() { npx -y eas-cli@24.3.0 "$@"; }
+          json() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s.slice(s.search(/[\[{]/)));console.log(eval(process.argv[1])??"")})' "$1"; }
+          LATEST=$(eas update:list --branch production --limit 1 --json --non-interactive)
+          GROUP=$(echo "$LATEST" | json '(j.currentPage??j)[0]?.group')
+          PERCENT=$(echo "$LATEST" | json '(j.currentPage??j)[0]?.rolloutPercentage')
+          if [ -z "$GROUP" ] || [ -z "$PERCENT" ] || [ "$PERCENT" = "100" ]; then
+            echo "No production rollout in progress."
+            exit 0
+          fi
+          VIEW=$(eas update:view "$GROUP" --json --insights --days 7)
+          AGE_HOURS=$(echo "$VIEW" | json 'Math.floor((Date.now()-Date.parse(j.updates[0].createdAt))/36e5)')
+          INSTALLS=$(echo "$VIEW" | json 'j.insights.platforms[0].totals.installs')
+          FAILED_INSTALLS=$(echo "$VIEW" | json 'j.insights.platforms[0].totals.failedInstalls')
+          CRASH_RATE=$(echo "$VIEW" | json 'j.insights.platforms[0].totals.crashRatePercent')
+          echo "Rollout ${GROUP:0:8} at ${PERCENT}% for ${AGE_HOURS}h: ${INSTALLS} installs, ${FAILED_INSTALLS} failed, crash rate ${CRASH_RATE}%."
+          NEXT=""
+          if [ "$AGE_HOURS" -ge 48 ]; then NEXT=100; elif [ "$AGE_HOURS" -ge 24 ]; then NEXT=50; fi
+          if [ -z "$NEXT" ] || [ "$NEXT" -le "$PERCENT" ]; then
+            echo "Holding at ${PERCENT}%: not old enough for the next step."
+            exit 0
+          fi
+          if [ "$INSTALLS" -lt 20 ]; then
+            echo "Only ${INSTALLS} installs after ${AGE_HOURS}h: too little data to expand. Expand by hand with eas update:edit if the telemetry is known to be missing."
+            exit 1
+          fi
+          if node -e "process.exit(($CRASH_RATE) > 1 || ($FAILED_INSTALLS) / ($INSTALLS) > 0.05 ? 0 : 1)"; then
+            echo "Unhealthy rollout: holding at ${PERCENT}%. Revert with eas update:revert-update-rollout, or expand by hand once understood."
+            exit 1
+          fi
+          eas update:edit --branch production --rollout-percentage "$NEXT" --non-interactive
+          echo "Expanded to ${NEXT}%."

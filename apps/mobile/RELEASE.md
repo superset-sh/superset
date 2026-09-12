@@ -92,11 +92,16 @@ Channels: `preview` for internal builds, `production` for the store build.
 
 ### Production
 
-Never automatic. Dispatch `update-production.yml`, approve it in the run, and it
-publishes at 10%. Adoption ramps on cold start, so judge it over days.
+Publishing is never automatic. Dispatch `update-production.yml`, approve it in
+the run, and it publishes at 10%. Expansion is: every four hours
+`expand-production-rollout.yml` looks at the rollout and moves it to 50% after
+24 hours and to 100% after 48, as long as EAS insights show at least 20
+installs, a crash rate at or under 1%, and failed installs at or under 5%.
+Below those it holds and the run fails, so a stuck rollout is visible. Nothing
+ever lowers a percentage automatically.
 
 ```bash
-# Expand.
+# Expand by hand, ahead of the schedule or when insights are known to be missing.
 eas update:edit --branch production --rollout-percentage 50 --non-interactive
 eas update:edit --branch production --rollout-percentage 100 --non-interactive
 
