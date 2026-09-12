@@ -16,10 +16,13 @@ describe("publishResult", () => {
 			externalPath: null,
 			watching: false,
 			watchNote: null,
+			opened: false,
+			openNote: null,
 		});
 		expect(message).toBe(`Published "Q3 Report" v3\n${PAGE.url}`);
 		expect(data.assets).toEqual({ uploaded: 0, reused: 0 });
 		expect(data.watching).toBe(false);
+		expect(data.opened).toBe(false);
 		expect(data.id).toBe("p1");
 	});
 
@@ -34,6 +37,8 @@ describe("publishResult", () => {
 			externalPath: "~external/report/index.html",
 			watching: true,
 			watchNote: "Watching for comments — they will be sent to this session",
+			opened: false,
+			openNote: "Could not open the browser: no display",
 		});
 		expect(message.split("\n")).toEqual([
 			'Published "Q3 Report" v3',
@@ -42,6 +47,7 @@ describe("publishResult", () => {
 			"demo.mov may not play in every browser",
 			'Outside the workspace, so this page is keyed as "~external/report/index.html"',
 			"Watching for comments — they will be sent to this session",
+			"Could not open the browser: no display",
 		]);
 		expect(data.watching).toBe(true);
 		expect(data.assets).toEqual({ uploaded: 1, reused: 1 });
@@ -54,6 +60,8 @@ describe("publishResult", () => {
 			externalPath: null,
 			watching: false,
 			watchNote: null,
+			opened: false,
+			openNote: null,
 		});
 		expect(message).toContain("1 asset");
 		expect(message).not.toContain("unchanged");
