@@ -72,8 +72,11 @@ function verificationMatchesInvitation({
 	);
 }
 
-function countEffects(effects: { automations: unknown[]; hosts: unknown[] }) {
+function countEffects<T extends { automations: unknown[]; hosts: unknown[] }>(
+	effects: T,
+) {
 	return {
+		...effects,
 		automations: effects.automations.length,
 		hosts: effects.hosts.length,
 	};
@@ -556,6 +559,9 @@ export const organizationRouter = {
 			z.object({
 				organizationId: z.uuid(),
 				userId: z.uuid(),
+				// Transfer the member's automations to the caller (paused) instead
+				// of deleting them.
+				keepAutomations: z.boolean().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -624,10 +630,10 @@ export const organizationRouter = {
 				headers: ctx.headers,
 			});
 
-			const cleanup = await cleanupRemovedMember({
-				userId: input.userId,
-				organizationId: input.organizationId,
-			});
+			const cleanup = await cleanupRemovedMember(
+				{ userId: input.userId, organizationId: input.organizationId },
+				input.keepAutomations ? { transferTo: ctx.session.user.id } : "delete",
+			);
 
 			return { success: true, cleanup: countEffects(cleanup) };
 		}),

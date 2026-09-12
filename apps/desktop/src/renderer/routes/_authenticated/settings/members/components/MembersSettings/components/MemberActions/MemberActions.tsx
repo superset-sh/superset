@@ -55,7 +55,11 @@ export function MemberActions({
 		ownerCount,
 	);
 
-	type Cleanup = { automations: number; hosts: number };
+	type Cleanup = {
+		automations: number;
+		hosts: number;
+		automationsAction?: "deleted" | "transferred";
+	};
 
 	// What removal takes along: the member's automations and any host with no
 	// other owner. Empty when nothing is affected.
@@ -88,12 +92,19 @@ export function MemberActions({
 		const parts: string[] = [];
 		if (cleanup.automations > 0) {
 			parts.push(
-				t({
-					message: plural(cleanup.automations, {
-						one: "Deleted # automation.",
-						other: "Deleted # automations.",
-					}),
-				}),
+				cleanup.automationsAction === "transferred"
+					? t({
+							message: plural(cleanup.automations, {
+								one: "Transferred # automation to you, paused.",
+								other: "Transferred # automations to you, paused.",
+							}),
+						})
+					: t({
+							message: plural(cleanup.automations, {
+								one: "Deleted # automation.",
+								other: "Deleted # automations.",
+							}),
+						}),
 			);
 		}
 		if (cleanup.hosts > 0) {
@@ -133,10 +144,11 @@ export function MemberActions({
 		return result.cleanup;
 	}
 
-	async function removeMember(): Promise<Cleanup> {
+	async function removeMember(keepAutomations: boolean): Promise<Cleanup> {
 		const result = await apiTrpcClient.organization.removeMember.mutate({
 			organizationId: member.organizationId,
 			userId: member.userId,
+			keepAutomations,
 		});
 		await utils.organization.listMembers.invalidate();
 		await utils.automation.invalidate();
@@ -144,7 +156,7 @@ export function MemberActions({
 		return result.cleanup;
 	}
 
-	function handleRemove(): void {
+	function handleRemove(keepAutomations: boolean): void {
 		if (isCurrentUser) {
 			toast.promise(leaveOrganization(), {
 				loading: t({
@@ -165,7 +177,7 @@ export function MemberActions({
 					),
 			});
 		} else {
-			toast.promise(removeMember(), {
+			toast.promise(removeMember(keepAutomations), {
 				loading: t({
 					message: "Removing member...",
 				}),
@@ -189,13 +201,13 @@ export function MemberActions({
 	const handleRemoveClick = async () => {
 		// Best effort: the confirmation still opens if the preview fails, the
 		// server reports what it actually cleaned up either way.
-		const items = await apiTrpcClient.organization.memberRemovalEffects
+		const effects = await apiTrpcClient.organization.memberRemovalEffects
 			.query({
 				organizationId: member.organizationId,
 				userId: member.userId,
 			})
-			.then(cleanupItems)
-			.catch(() => []);
+			.catch(() => ({ automations: 0, hosts: 0 }));
+		const items = cleanupItems(effects);
 		const billingNote =
 			plan === "pro" || plan === "enterprise"
 				? ` ${t({
@@ -233,6 +245,17 @@ export function MemberActions({
 						</ul>
 					</div>
 				) : undefined,
+			// Only someone else's automations can be handed over; a leaver has
+			// nobody to hand them to.
+			checkbox:
+				!isCurrentUser && effects.automations > 0
+					? {
+							label: t({
+								message:
+									"Transfer their automations to me (paused) instead of deleting them",
+							}),
+						}
+					: undefined,
 			actions: [
 				{
 					label: t({
@@ -250,7 +273,7 @@ export function MemberActions({
 								message: "Remove Member",
 							}),
 					variant: "destructive",
-					onClick: () => handleRemove(),
+					onClick: ({ checkboxChecked }) => handleRemove(checkboxChecked),
 				},
 			],
 		});

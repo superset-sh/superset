@@ -290,6 +290,10 @@ msgstr "{0, plural, one {# satır daha göster} other {# satır daha göster}}"
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Bu işlem, mevcut # worktree'yi Superset'e çalışma alanı olarak aktarır. Diskteki her worktree izlenir ve kenar çubuğunuzda görünür. Hiçbir dosya değiştirilmez.} other {Bu işlem, mevcut # worktree'yi Superset'e çalışma alanı olarak aktarır. Diskteki her worktree izlenir ve kenar çubuğunuzda görünür. Hiçbir dosya değiştirilmez.}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
+msgstr "{0, plural, one {# otomasyon size aktarıldı, duraklatıldı.} other {# otomasyon size aktarıldı, duraklatıldı.}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {Yorumlar için # sayfa izleniyor} other {Yorumlar için # sayfa izleniyor}}"
@@ -15237,6 +15241,9 @@ msgstr "Şu kararsız testin izini sür…"
 
 msgid "Tracking"
 msgstr "İzleme"
+
+msgid "Transfer their automations to me (paused) instead of deleting them"
+msgstr "Otomasyonlarını silmek yerine bana aktar (duraklatılmış)"
 
 msgid "Translated"
 msgstr "Çevrildi"

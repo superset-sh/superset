@@ -290,6 +290,10 @@ msgstr "{0, plural, one {再顯示#行} other {再顯示#行}}"
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {這會把#個已有worktree作為工作區匯入Superset。磁碟上的每個worktree都會被追蹤並出現在側邊欄裡。不會修改任何檔案。} other {這會把#個已有worktree作為工作區匯入Superset。磁碟上的每個worktree都會被追蹤並出現在側邊欄裡。不會修改任何檔案。}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
+msgstr "{0, plural, other {已將 # 個自動化轉移給你（已暫停）。}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {正在關注#個頁面的評論} other {正在關注#個頁面的評論}}"
@@ -15237,6 +15241,9 @@ msgstr "揪出那個不穩定的測試…"
 
 msgid "Tracking"
 msgstr "已追蹤"
+
+msgid "Transfer their automations to me (paused) instead of deleting them"
+msgstr "將其自動化轉移給我（暫停），而不是刪除"
 
 msgid "Translated"
 msgstr "已翻譯"

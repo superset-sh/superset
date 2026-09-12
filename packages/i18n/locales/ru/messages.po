@@ -290,6 +290,10 @@ msgstr "{0, plural, one {Показать ещё # строку} few {Показ
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {# существующий worktree будет импортирован в Superset как рабочая область. Каждый worktree на диске будет отслеживаться и появится в боковой панели. Файлы не изменяются.} few {# существующих worktree будут импортированы в Superset как рабочие области. Каждый worktree на диске будет отслеживаться и появится в боковой панели. Файлы не изменяются.} many {# существующих worktree будут импортированы в Superset как рабочие области. Каждый worktree на диске будет отслеживаться и появится в боковой панели. Файлы не изменяются.} other {# существующих worktree будут импортированы в Superset как рабочие области. Каждый worktree на диске будет отслеживаться и появится в боковой панели. Файлы не изменяются.}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
+msgstr "{0, plural, one {Вам передана # автоматизация (приостановлена).} few {Вам переданы # автоматизации (приостановлены).} many {Вам передано # автоматизаций (приостановлены).} other {Вам передано # автоматизации (приостановлены).}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {Следит за комментариями на # странице} few {Следит за комментариями на # страницах} many {Следит за комментариями на # страницах} other {Следит за комментариями на # страницах}}"
@@ -15237,6 +15241,9 @@ msgstr "Найди причину нестабильного теста…"
 
 msgid "Tracking"
 msgstr "Отслеживание"
+
+msgid "Transfer their automations to me (paused) instead of deleting them"
+msgstr "Передать их автоматизации мне (приостановленными) вместо удаления"
 
 msgid "Translated"
 msgstr "Переведено"

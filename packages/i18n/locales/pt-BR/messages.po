@@ -290,6 +290,10 @@ msgstr "{0, plural, one {Mostrar mais # linha} other {Mostrar mais # linhas}}"
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Isso vai importar # worktree existente para o Superset como área de trabalho. Cada worktree em disco passa a ser monitorada e aparece na sua barra lateral. Nenhum arquivo será alterado.} other {Isso vai importar # worktrees existentes para o Superset como áreas de trabalho. Cada worktree em disco passa a ser monitorada e aparece na sua barra lateral. Nenhum arquivo será alterado.}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
+msgstr "{0, plural, one {# automação transferida para você, pausada.} other {# automações transferidas para você, pausadas.}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {Observando # página para comentários} other {Observando # páginas para comentários}}"
@@ -15237,6 +15241,9 @@ msgstr "Investigue aquele teste instável…"
 
 msgid "Tracking"
 msgstr "Acompanhando"
+
+msgid "Transfer their automations to me (paused) instead of deleting them"
+msgstr "Transferir as automações dessa pessoa para mim (pausadas) em vez de excluí-las"
 
 msgid "Translated"
 msgstr "Traduzido"

@@ -290,6 +290,10 @@ msgstr "{0, plural, one {Zobrazit ještě # řádek} few {Zobrazit ještě # ř�
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Tímto se do Superset naimportuje # existující worktree jako pracovní prostor. Každý worktree na disku bude sledován a objeví se v postranním panelu. Žádné soubory se nezmění.} few {Tímto se do Superset naimportují # existující worktree jako pracovní prostory. Každý worktree na disku bude sledován a objeví se v postranním panelu. Žádné soubory se nezmění.} many {Tímto se do Superset naimportuje # existujícího worktree jako pracovní prostory. Každý worktree na disku bude sledován a objeví se v postranním panelu. Žádné soubory se nezmění.} other {Tímto se do Superset naimportuje # existujících worktree jako pracovní prostory. Každý worktree na disku bude sledován a objeví se v postranním panelu. Žádné soubory se nezmění.}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
+msgstr "{0, plural, one {# automatizace byla převedena na vás (pozastavená).} few {# automatizace byly převedeny na vás (pozastavené).} many {# automatizace bylo převedeno na vás (pozastavené).} other {# automatizací bylo převedeno na vás (pozastavené).}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {Sleduje # stránku kvůli komentářům} few {Sleduje # stránky kvůli komentářům} many {Sleduje # stránky kvůli komentářům} other {Sleduje # stránek kvůli komentářům}}"
@@ -15237,6 +15241,9 @@ msgstr "Vypátrej ten nestabilní test…"
 
 msgid "Tracking"
 msgstr "Sleduji"
+
+msgid "Transfer their automations to me (paused) instead of deleting them"
+msgstr "Převést jejich automatizace na mě (pozastavené) místo smazání"
 
 msgid "Translated"
 msgstr "Přeloženo"

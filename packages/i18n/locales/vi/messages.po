@@ -290,6 +290,10 @@ msgstr "{0, plural, one {Hiện thêm # dòng} other {Hiện thêm # dòng}}"
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Thao tác này sẽ nhập # worktree có sẵn vào Superset thành workspace. Mỗi worktree trên đĩa sẽ được theo dõi và xuất hiện trong thanh bên. Không tệp nào bị thay đổi.} other {Thao tác này sẽ nhập # worktree có sẵn vào Superset thành workspace. Mỗi worktree trên đĩa sẽ được theo dõi và xuất hiện trong thanh bên. Không tệp nào bị thay đổi.}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
+msgstr "{0, plural, other {Đã chuyển # tự động hóa cho bạn, đang tạm dừng.}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {Đang theo dõi # trang để nhận bình luận} other {Đang theo dõi # trang để nhận bình luận}}"
@@ -15237,6 +15241,9 @@ msgstr "Truy ra bài test chập chờn đó…"
 
 msgid "Tracking"
 msgstr "Theo dõi"
+
+msgid "Transfer their automations to me (paused) instead of deleting them"
+msgstr "Chuyển các tự động hóa của họ cho tôi (tạm dừng) thay vì xóa"
 
 msgid "Translated"
 msgstr "Đã dịch"

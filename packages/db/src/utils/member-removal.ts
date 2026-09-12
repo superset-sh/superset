@@ -9,7 +9,18 @@ export type MemberRemovalEffects = {
 	hosts: { machineId: string; name: string }[];
 };
 
+export type MemberRemovalCleanup = MemberRemovalEffects & {
+	automationsAction: "deleted" | "transferred";
+};
+
 type MemberRef = { userId: string; organizationId: string };
+
+/**
+ * Transferred automations land paused: runs dispatch as the owner, on hosts
+ * the owner can reach, so the new owner should look before anything runs as
+ * them.
+ */
+export type AutomationDisposal = { transferTo: string } | "delete";
 
 type Reader = Pick<typeof db, "select">;
 
@@ -78,16 +89,23 @@ export function findMemberRemovalEffects(
 /** Runs after the membership row is gone; deleting hosts cascades their workspaces and access rows. */
 export function cleanupRemovedMember(
 	member: MemberRef,
-): Promise<MemberRemovalEffects> {
+	disposal: AutomationDisposal = "delete",
+): Promise<MemberRemovalCleanup> {
 	return dbWs.transaction(async (tx) => {
 		const effects = await loadEffects(tx, member);
 		if (effects.automations.length > 0) {
-			await tx.delete(automations).where(
-				inArray(
-					automations.id,
-					effects.automations.map((row) => row.id),
-				),
+			const owned = inArray(
+				automations.id,
+				effects.automations.map((row) => row.id),
 			);
+			if (disposal === "delete") {
+				await tx.delete(automations).where(owned);
+			} else {
+				await tx
+					.update(automations)
+					.set({ ownerUserId: disposal.transferTo, enabled: false })
+					.where(owned);
+			}
 		}
 		if (effects.hosts.length > 0) {
 			await tx.delete(v2Hosts).where(
@@ -108,6 +126,9 @@ export function cleanupRemovedMember(
 					eq(v2UsersHosts.userId, member.userId),
 				),
 			);
-		return effects;
+		return {
+			...effects,
+			automationsAction: disposal === "delete" ? "deleted" : "transferred",
+		};
 	});
 }
