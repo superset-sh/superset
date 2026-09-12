@@ -23,13 +23,12 @@ export interface LiveActivityProject {
 }
 
 /**
- * Structural, not `HostWorkspaceItem`: the hook needs four fields and binding
+ * Structural, not `HostWorkspaceItem`: the hook needs three fields and binding
  * it to the host row would couple this surface to the whole schema for no gain.
  */
 export interface LiveActivityWorkspace {
 	id: string;
 	name: string;
-	branch?: string | null;
 	projectId?: string | null;
 }
 
@@ -96,7 +95,7 @@ export function useAgentLiveActivity({
 				all.push({
 					id: terminal.terminalId,
 					workspaceId,
-					branch: workspace.branch ?? workspace.name,
+					name: workspace.name,
 					project: project?.name ?? "",
 					status: statusWord[terminal.attention],
 					state: terminal.attention,
@@ -122,8 +121,9 @@ export function useAgentLiveActivity({
 		const needing = all.filter((row) => row.state === "permission").length;
 
 		const snapshot: AgentSnapshot = {
-			// The card renders these verbatim — no pluralisation layer sits below
-			// a pre-formatted string, so "1 agents working" would ship as-is.
+			// Dynamic Island only; the Lock Screen card shows the rows alone.
+			// Rendered verbatim — no pluralisation layer sits below a
+			// pre-formatted string, so "1 agents working" would ship as-is.
 			headline: needing
 				? `${plural(needing, { one: "# needs you", other: "# need you" })} · ${plural(
 						total,

@@ -15,7 +15,7 @@ struct AgentActivityAttributes: ActivityAttributes {
 		/// The workspace the terminal belongs to. The app has no /terminal
 		/// route — a session is reached as /workspace/<id>?tab=<terminalId>.
 		var workspaceId: String
-		var branch: String
+		var name: String
 		/// Only used to draw the initial when there is no cached icon.
 		var project: String
 		/// Filename inside the App Group container, or nil to draw the initial.
@@ -40,7 +40,8 @@ struct AgentActivityAttributes: ActivityAttributes {
 	}
 
 	struct ContentState: Codable, Hashable {
-		/// "1 needs you · 4 agents". Pre-translated.
+		/// "1 needs you · 4 agents". Pre-translated. Dynamic Island only;
+		/// the Lock Screen card shows the rows alone.
 		var headline: String
 		/// Ranked by the shared STATUS_PRIORITY, then recency. Attention
 		/// states are never truncated; only `working` rows are.

@@ -5,7 +5,7 @@ import UIKit
 struct AgentRowRecord: Record {
   @Field var id: String = ""
   @Field var workspaceId: String = ""
-  @Field var branch: String = ""
+  @Field var name: String = ""
   @Field var project: String = ""
   @Field var iconFile: String? = nil
   @Field var status: String = ""
@@ -34,7 +34,7 @@ private func contentState(
     headline: snapshot.headline,
     rows: snapshot.rows.map {
       AgentActivityAttributes.AgentRow(
-        id: $0.id, workspaceId: $0.workspaceId, branch: $0.branch, project: $0.project, iconFile: $0.iconFile,
+        id: $0.id, workspaceId: $0.workspaceId, name: $0.name, project: $0.project, iconFile: $0.iconFile,
         status: $0.status, state: $0.state, elapsed: $0.elapsed, isQuiet: $0.isQuiet)
     },
     more: snapshot.more,

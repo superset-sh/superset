@@ -5,7 +5,7 @@ export interface AgentRow {
 	id: string;
 	/** Workspace the terminal belongs to; the deep link's real target. */
 	workspaceId: string;
-	branch: string;
+	name: string;
 	project: string;
 	/** Filename returned by `cacheIcon`, or omitted to draw the initial. */
 	iconFile?: string;
@@ -22,6 +22,7 @@ export interface AgentRow {
 }
 
 export interface AgentSnapshot {
+	/** Dynamic Island only; the Lock Screen card shows the rows alone. */
 	headline: string;
 	rows: AgentRow[];
 	more?: string;

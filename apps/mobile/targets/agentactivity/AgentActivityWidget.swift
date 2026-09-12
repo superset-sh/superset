@@ -6,15 +6,14 @@ import WidgetKit
 /// fit under the 160pt truncation limit. Values in points.
 private enum Metrics {
 	static let hPadding: CGFloat = 16
-	static let topPadding: CGFloat = 19
-	static let bottomPadding: CGFloat = 13
-	static let headToRows: CGFloat = 13
+	/// Equal on both edges so the rows sit centred in the card.
+	static let vPadding: CGFloat = 16
 	static let rowGap: CGFloat = 5
+	static let rowsToFooter: CGFloat = 8
 	/// 16, not 18: an 18pt icon grows the row past the 19.2pt text line and
 	/// four rows then overrun the card by 5pt.
 	static let icon: CGFloat = 16
-	static let headSize: CGFloat = 14
-	static let branchSize: CGFloat = 16
+	static let nameSize: CGFloat = 16
 	static let metaSize: CGFloat = 13
 	static let timeWidth: CGFloat = 36
 }
@@ -28,9 +27,10 @@ private func rowURL(_ row: AgentActivityAttributes.AgentRow) -> URL {
 		?? URL(string: "superset:///")!
 }
 
-/// The card inherits the Lock Screen's appearance, which can be light. The
-/// 500-weight tokens are tuned for our dark UI and wash out on white, so each
-/// state carries a darker light-mode partner.
+/// The card inherits the Lock Screen's appearance, which can be light, so each
+/// state carries a darker light-mode partner. Both sit over a photo, where the
+/// app's full-chroma tokens shout: these keep the app's hues at roughly half
+/// the chroma. Coordinates are OKLCH (lightness, chroma, hue) for regenerating.
 private func adaptive(dark: (Double, Double, Double), light: (Double, Double, Double)) -> Color {
 	Color(UIColor { traits in
 		let c = traits.userInterfaceStyle == .light ? light : dark
@@ -40,12 +40,12 @@ private func adaptive(dark: (Double, Double, Double), light: (Double, Double, Do
 
 private func stateColor(_ state: String) -> Color {
 	switch state {
-	// yellow-500 / yellow-700
-	case "permission": return adaptive(dark: (0.918, 0.702, 0.031), light: (0.631, 0.443, 0.012))
-	// red-500 / red-700
-	case "failed": return adaptive(dark: (0.937, 0.267, 0.267), light: (0.729, 0.11, 0.11))
-	// green-500 / green-700
-	case "review": return adaptive(dark: (0.133, 0.773, 0.369), light: (0.082, 0.502, 0.239))
+	// oklch(0.80 0.12 82) / oklch(0.55 0.12 82)
+	case "permission": return adaptive(dark: (0.895, 0.713, 0.363), light: (0.581, 0.411, 0.0))
+	// oklch(0.70 0.13 25) / oklch(0.50 0.13 25)
+	case "failed": return adaptive(dark: (0.894, 0.486, 0.458), light: (0.628, 0.248, 0.234))
+	// oklch(0.74 0.11 152) / oklch(0.50 0.11 152)
+	case "review": return adaptive(dark: (0.450, 0.749, 0.534), light: (0.149, 0.457, 0.261))
 	default: return .secondary
 	}
 }
@@ -91,8 +91,8 @@ private struct Row: View {
 	var body: some View {
 		HStack(spacing: 9) {
 			ProjectIcon(row: row)
-			Text(row.branch)
-				.font(.system(size: Metrics.branchSize))
+			Text(row.name)
+				.font(.system(size: Metrics.nameSize))
 				.foregroundStyle(.primary)
 				.lineLimit(1)
 				.truncationMode(.tail)
@@ -116,16 +116,14 @@ private struct Row: View {
 private struct CardBody: View {
 	let context: ActivityViewContext<AgentActivityAttributes>
 
+	/// With no headline, the footer is the one line where the card can admit
+	/// it has stopped hearing anything.
+	private var footer: String? {
+		context.isStale ? context.state.staleDetail : context.state.more
+	}
+
 	var body: some View {
 		VStack(alignment: .leading, spacing: 0) {
-			Text(context.isStale ? context.state.staleDetail : context.state.headline)
-				.font(.system(size: Metrics.headSize))
-				.foregroundStyle(
-					context.isStale
-						? AnyShapeStyle(.secondary) : AnyShapeStyle(stateColor(context.state.topState))
-				)
-				.lineLimit(1)
-			Spacer().frame(height: Metrics.headToRows)
 			VStack(alignment: .leading, spacing: Metrics.rowGap) {
 				ForEach(context.state.rows) { row in
 					// Each row is its own tap target: one Link per agent, with
@@ -135,11 +133,12 @@ private struct CardBody: View {
 					}
 				}
 			}
-			if let more = context.state.more, !more.isEmpty {
-				Spacer().frame(height: 8)
-				Text(more)
+			if let footer, !footer.isEmpty {
+				Spacer().frame(height: Metrics.rowsToFooter)
+				Text(footer)
 					.font(.system(size: Metrics.metaSize))
 					.foregroundStyle(.tertiary)
+					.lineLimit(1)
 			}
 		}
 		.opacity(context.isStale ? 0.55 : 1)
@@ -151,8 +150,7 @@ struct AgentActivityWidget: Widget {
 		ActivityConfiguration(for: AgentActivityAttributes.self) { context in
 			CardBody(context: context)
 				.padding(.horizontal, Metrics.hPadding)
-				.padding(.top, Metrics.topPadding)
-				.padding(.bottom, Metrics.bottomPadding)
+				.padding(.vertical, Metrics.vPadding)
 				.widgetURL(URL(string: "superset:///"))
 		} dynamicIsland: { context in
 			DynamicIsland {
