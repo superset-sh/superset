@@ -14738,8 +14738,8 @@ msgstr "Trang bạn tìm không tồn tại."
 msgid "The people behind Superset."
 msgstr "Những người đứng sau Superset."
 
-msgid "The project's checkout as it is — files and branch are shared"
-msgstr "Checkout của dự án như hiện có — tệp và nhánh được dùng chung"
+msgid "The project's checkout as it is: files and branch are shared"
+msgstr "Checkout của dự án như hiện có: tệp và nhánh được dùng chung"
 
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."

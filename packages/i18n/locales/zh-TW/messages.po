@@ -14738,8 +14738,8 @@ msgstr "你要找的頁面不存在。"
 msgid "The people behind Superset."
 msgstr "Superset背後的團隊。"
 
-msgid "The project's checkout as it is — files and branch are shared"
-msgstr "按原樣使用專案的簽出 — 檔案和分支是共用的"
+msgid "The project's checkout as it is: files and branch are shared"
+msgstr "按原樣使用專案的簽出: 檔案和分支是共用的"
 
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."

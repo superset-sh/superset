@@ -14738,8 +14738,8 @@ msgstr "Halaman yang Anda cari tidak ada."
 msgid "The people behind Superset."
 msgstr "Orang-orang di balik Superset."
 
-msgid "The project's checkout as it is — files and branch are shared"
-msgstr "Checkout proyek apa adanya — file dan branch dibagikan"
+msgid "The project's checkout as it is: files and branch are shared"
+msgstr "Checkout proyek apa adanya: file dan branch dibagikan"
 
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."

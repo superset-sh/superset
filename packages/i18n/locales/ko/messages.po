@@ -14738,8 +14738,8 @@ msgstr "찾으시는 페이지가 존재하지 않습니다."
 msgid "The people behind Superset."
 msgstr "Superset을 만드는 사람들."
 
-msgid "The project's checkout as it is — files and branch are shared"
-msgstr "프로젝트의 체크아웃을 그대로 사용 — 파일과 브랜치가 공유됩니다"
+msgid "The project's checkout as it is: files and branch are shared"
+msgstr "프로젝트의 체크아웃을 그대로 사용: 파일과 브랜치가 공유됩니다"
 
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."

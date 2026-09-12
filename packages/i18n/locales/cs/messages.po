@@ -14738,8 +14738,8 @@ msgstr "Stránka, kterou hledáte, neexistuje."
 msgid "The people behind Superset."
 msgstr "Lidé za Supersetem."
 
-msgid "The project's checkout as it is — files and branch are shared"
-msgstr "Checkout projektu tak, jak je — soubory a větev jsou sdílené"
+msgid "The project's checkout as it is: files and branch are shared"
+msgstr "Checkout projektu tak, jak je: soubory a větev jsou sdílené"
 
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."

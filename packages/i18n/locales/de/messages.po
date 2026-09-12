@@ -14738,8 +14738,8 @@ msgstr "Die gesuchte Seite gibt es nicht."
 msgid "The people behind Superset."
 msgstr "Die Menschen hinter Superset."
 
-msgid "The project's checkout as it is — files and branch are shared"
-msgstr "Der Checkout des Projekts, wie er ist – Dateien und Branch werden geteilt"
+msgid "The project's checkout as it is: files and branch are shared"
+msgstr "Der Checkout des Projekts, wie er ist: Dateien und Branch werden geteilt"
 
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."

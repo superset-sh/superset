@@ -79,7 +79,7 @@ export function CheckoutPickerPill({
 						</span>
 						<span className="text-xs text-muted-foreground">
 							<Trans>
-								The project's checkout as it is — files and branch are shared
+								The project's checkout as it is: files and branch are shared
 							</Trans>
 						</span>
 					</span>
