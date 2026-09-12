@@ -3,14 +3,17 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { SHELF_RETENTION_MS } from "renderer/lib/workspaces/isShelvedWorkspace";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
+import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
 import { StateScreenShell } from "../components/StateScreenShell";
 import { WorkspaceCreateErrorState } from "../components/WorkspaceCreateErrorState";
@@ -43,6 +46,17 @@ function V2WorkspaceLayout() {
 	// settles — not when the host-served row first arrives, which happens
 	// mid-create before agent/terminal panes are seeded.
 	const isCreatePending = pendingTransaction?.type === "insert";
+
+	// _dashboard/layout.tsx drops the TopBar (and its inset) once the v2
+	// sidebar is open, which makes the banner the window's top-right content.
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const isSidebarOpen = useWorkspaceSidebarStore((state) => state.isOpen);
+	const bannerNeedsWindowControlsInset =
+		platform !== undefined &&
+		platform !== "darwin" &&
+		isV2CloudEnabled &&
+		isSidebarOpen;
 
 	const { toggleShowPresetsBar } = useV2UserPreferences();
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
@@ -192,13 +206,22 @@ function V2WorkspaceLayout() {
 		<WorkspaceProvider workspace={workspace}>
 			<div className="flex min-h-0 min-w-0 flex-1 flex-col">
 				{workspace.shelvedAt != null && (
-					<ArchivedWorkspaceBanner
-						workspaceId={workspace.id}
-						workspaceName={workspace.name}
-						deleteAt={workspace.shelvedAt + SHELF_RETENTION_MS}
-						isPaused={workspace.purgeBlockedReason != null}
-						pauseReason={workspace.purgeBlockedReason ?? null}
-					/>
+					<div className="flex items-stretch">
+						<div className="min-w-0 flex-1">
+							<ArchivedWorkspaceBanner
+								workspaceId={workspace.id}
+								workspaceName={workspace.name}
+								deleteAt={workspace.shelvedAt + SHELF_RETENTION_MS}
+								isPaused={workspace.purgeBlockedReason != null}
+								pauseReason={workspace.purgeBlockedReason ?? null}
+							/>
+						</div>
+						{bannerNeedsWindowControlsInset && (
+							<div className="border-b border-border bg-muted/50">
+								<WindowControlsInset />
+							</div>
+						)}
+					</div>
 				)}
 				<div className="relative flex min-h-0 min-w-0 flex-1">
 					<Outlet />
