@@ -46,7 +46,7 @@ export const V2_WORKSPACES_AGENT_STATUS_LABELS: Record<
 		message: "Needs permission",
 	}),
 	review: msg({
-		message: "Ready for review",
+		message: "Needs review",
 	}),
 	failed: msg({
 		message: "Failed",
