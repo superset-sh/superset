@@ -1,5 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import LiveActivity from "@superset/live-activity";
+import * as Application from "expo-application";
 import { useEffect } from "react";
 import { apiClient } from "@/lib/trpc/client";
 
@@ -30,14 +31,19 @@ export function useLiveActivityPushTokens({
 			more: t`+${hidden} more`,
 		};
 
+		let deviceId: string | null = null;
+		let cancelled = false;
+
 		const register = (
 			kind: "update" | "push_to_start",
 			token: string,
 			activityId?: string,
 		) => {
+			if (!deviceId) return;
 			apiClient.mobile.liveActivity.registerToken
 				.mutate({
 					kind,
+					deviceId,
 					token,
 					...(activityId ? { activityId } : {}),
 					labels,
@@ -66,17 +72,24 @@ export function useLiveActivityPushTokens({
 			),
 		];
 
-		// Tokens issued before this effect ran (a relaunch, a locale change
-		// remounting it) never fire the events again.
-		const pushToStart = LiveActivity.pushToStartToken();
-		if (pushToStart) register("push_to_start", pushToStart);
-		for (const [activityId, token] of Object.entries(
-			LiveActivity.activityTokens(),
-		)) {
-			register("update", token, activityId);
-		}
+		// The device id tells the API which phone a token belongs to, so two
+		// phones on one account each get the push that fits their state.
+		void Application.getIosIdForVendorAsync().then((id) => {
+			if (cancelled || !id) return;
+			deviceId = id;
+			// Tokens issued before this effect ran (a relaunch, a locale change
+			// remounting it) never fire the events again.
+			const pushToStart = LiveActivity.pushToStartToken();
+			if (pushToStart) register("push_to_start", pushToStart);
+			for (const [activityId, token] of Object.entries(
+				LiveActivity.activityTokens(),
+			)) {
+				register("update", token, activityId);
+			}
+		});
 
 		return () => {
+			cancelled = true;
 			for (const subscription of subscriptions) subscription.remove();
 		};
 	}, [enabled, t]);

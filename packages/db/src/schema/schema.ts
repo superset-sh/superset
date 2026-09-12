@@ -844,6 +844,12 @@ export const v2LiveActivityTokens = pgTable(
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		kind: v2LiveActivityTokenKind().notNull(),
+		/**
+		 * The phone, so one user's two phones each get the right push: an
+		 * `update` for a phone with a running card, `push_to_start` for one
+		 * without. iOS's identifierForVendor, stable per install.
+		 */
+		deviceId: text("device_id").notNull(),
 		token: text().notNull(),
 		activityId: text("activity_id"),
 		labels: jsonb().$type<LiveActivityLabels>().notNull(),

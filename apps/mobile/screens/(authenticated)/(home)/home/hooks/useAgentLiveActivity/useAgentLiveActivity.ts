@@ -114,9 +114,11 @@ export function useAgentLiveActivity({
 			totalCount: total,
 			topState: shown[0]?.state ?? "working",
 			machineName: "",
-			// Once the app leaves the foreground the API keeps the card current
-			// over APNs, so nothing here declares the card stale on a timer.
 			staleDetail: t({ message: "Not updating", context: "agent status" }),
+			// Once the app leaves the foreground the API keeps the card current
+			// over APNs, and every push clears this deadline. It only fires
+			// against an API with no APNs key, where nothing else ever would.
+			staleAfterSeconds: 30 * 60,
 			...(hidden > 0 ? { more: t`+${hidden} more` } : {}),
 		};
 

@@ -55,6 +55,49 @@ async function fleetForUser(organizationId: string, userId: string) {
 		);
 }
 
+type Token = typeof v2LiveActivityTokens.$inferSelect;
+
+interface Target {
+	token: Token;
+	event: "start" | "update" | "end";
+}
+
+/**
+ * Per phone: a running card gets an update, a phone without one gets a
+ * push-to-start, and with nothing to show every running card ends. Grouping
+ * by device is what keeps a second phone from being skipped just because
+ * the first already has a card.
+ */
+function chooseTargets(tokens: Token[], fleetIsEmpty: boolean): Target[] {
+	const byDevice = new Map<string, Token[]>();
+	for (const token of tokens) {
+		byDevice.set(token.deviceId, [
+			...(byDevice.get(token.deviceId) ?? []),
+			token,
+		]);
+	}
+	const targets: Target[] = [];
+	for (const deviceTokens of byDevice.values()) {
+		const updates = deviceTokens.filter((token) => token.kind === "update");
+		if (fleetIsEmpty) {
+			targets.push(
+				...updates.map((token) => ({ token, event: "end" as const })),
+			);
+		} else if (updates.length > 0) {
+			targets.push(
+				...updates.map((token) => ({ token, event: "update" as const })),
+			);
+		} else {
+			targets.push(
+				...deviceTokens
+					.filter((token) => token.kind === "push_to_start")
+					.map((token) => ({ token, event: "start" as const })),
+			);
+		}
+	}
+	return targets;
+}
+
 /**
  * Rewrite one user's card on every phone that registered for it. With a
  * fleet, running activities get an update and a phone with none gets a
@@ -83,14 +126,7 @@ export async function pushCardForUser({
 	]);
 	if (tokens.length === 0) return;
 
-	const updates = tokens.filter((token) => token.kind === "update");
-	const starters = tokens.filter((token) => token.kind === "push_to_start");
-	const targets =
-		fleet.length === 0
-			? updates.map((token) => ({ token, event: "end" as const }))
-			: updates.length > 0
-				? updates.map((token) => ({ token, event: "update" as const }))
-				: starters.map((token) => ({ token, event: "start" as const }));
+	const targets = chooseTargets(tokens, fleet.length === 0);
 
 	const results = await Promise.allSettled(
 		targets.map(async ({ token, event }) => {
@@ -105,7 +141,12 @@ export async function pushCardForUser({
 						}
 					: {}),
 			});
-			if (result.outcome === "dead-token" || event === "end") {
+			// An ended activity's token is useless, but only once the end
+			// actually reached the phone; a failed end must stay retryable.
+			if (
+				result.outcome === "dead-token" ||
+				(event === "end" && result.outcome === "sent")
+			) {
 				await db
 					.delete(v2LiveActivityTokens)
 					.where(eq(v2LiveActivityTokens.id, token.id));

@@ -31,6 +31,7 @@ export const mobileRouter = {
 			.input(
 				z.object({
 					kind: v2LiveActivityTokenKindEnum,
+					deviceId: z.string().min(1).max(200),
 					token: APNS_TOKEN,
 					activityId: z.string().min(1).optional(),
 					labels: labelsSchema,
@@ -51,6 +52,7 @@ export const mobileRouter = {
 						userId: ctx.userId,
 						organizationId,
 						kind: input.kind,
+						deviceId: input.deviceId,
 						token: input.token.toLowerCase(),
 						activityId: input.activityId ?? null,
 						labels: input.labels,
@@ -61,6 +63,7 @@ export const mobileRouter = {
 							userId: ctx.userId,
 							organizationId,
 							kind: input.kind,
+							deviceId: input.deviceId,
 							activityId: input.activityId ?? null,
 							labels: input.labels,
 						},

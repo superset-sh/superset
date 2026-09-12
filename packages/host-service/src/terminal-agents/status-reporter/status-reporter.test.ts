@@ -55,7 +55,8 @@ function setup(options: { fail?: () => boolean } = {}) {
 	return { store, reports, reporter };
 }
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
+// Ten times the reporter's debounce, so scheduler jitter cannot reorder them.
+const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
 
 describe("TerminalAgentStatusReporter", () => {
 	it("collapses a burst of tool calls into one working transition", async () => {

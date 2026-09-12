@@ -53,6 +53,7 @@ export class TerminalAgentStatusReporter {
 	private timer: ReturnType<typeof setTimeout> | null = null;
 	private inFlight: Promise<void> | null = null;
 	private dirty = false;
+	private stopped = false;
 	private readonly onChange = () => this.schedule();
 
 	constructor(options: TerminalAgentStatusReporterOptions) {
@@ -65,6 +66,7 @@ export class TerminalAgentStatusReporter {
 	}
 
 	private schedule(): void {
+		if (this.stopped) return;
 		if (this.timer) clearTimeout(this.timer);
 		this.timer = setTimeout(() => {
 			this.timer = null;
@@ -160,6 +162,7 @@ export class TerminalAgentStatusReporter {
 	}
 
 	stop(): void {
+		this.stopped = true;
 		this.store.off("change", this.onChange);
 		if (this.timer) {
 			clearTimeout(this.timer);
