@@ -104,6 +104,10 @@ msgstr "{0, plural, one {# etkin port — ayrıntıları gizle} other {# etkin p
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# etkin port — ayrıntıları göster} other {# etkin port — ayrıntıları göster}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {# automation} other {# automations}}"
+msgstr "{0, plural, one {# otomasyon} other {# otomasyon}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# değişen dosya} other {# değişen dosya}}"
@@ -153,6 +157,10 @@ msgstr "{0, plural, one {# gizli proje} other {# gizli proje}}"
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# geçmiş öğesi} other {# geçmiş öğesi}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, one {Başka sahibi olmayan # host, çalışma alanlarıyla birlikte} other {Başka sahibi olmayan # host, çalışma alanlarıyla birlikte}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# login} other {# logins}}"
@@ -239,6 +247,14 @@ msgstr "{0, plural, one {# çalışma alanı oluşturuluyor...} other {# çalı�
 #. placeholder {0}: workspaces.length
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {# çalışma alanı silinsin mi?} other {# çalışma alanı silinsin mi?}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
+msgstr "{0, plural, one {# otomasyon silindi.} other {# otomasyon silindi.}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
+msgstr "{0, plural, one {Başka sahibi olmayan # host, çalışma alanlarıyla birlikte silindi.} other {Başka sahibi olmayan # host, çalışma alanlarıyla birlikte silindi.}}"
 
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
@@ -14745,6 +14761,9 @@ msgstr "Bu işlem geri alınamaz."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Bu ajan seçili cihazda artık yok (ajanları sıfırlanmış olabilir). Yeni bir tane seçene kadar çalıştırmalar başarısız olacak."
+
+msgid "This also deletes:"
+msgstr "Bununla birlikte şunlar da silinir:"
 
 msgid "This application will be able to:"
 msgstr "Bu uygulama şunları yapabilecek:"

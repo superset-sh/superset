@@ -104,6 +104,10 @@ msgstr "{0, plural, one {# porta ativa — ocultar detalhes} other {# portas ati
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# porta ativa — mostrar detalhes} other {# portas ativas — mostrar detalhes}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {# automation} other {# automations}}"
+msgstr "{0, plural, one {# automação} other {# automações}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# arquivo alterado} other {# arquivos alterados}}"
@@ -153,6 +157,10 @@ msgstr "{0, plural, one {# projeto oculto} other {# projetos ocultos}}"
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# item de histórico} other {# itens de histórico}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, one {# host sem outro proprietário, junto com seus workspaces} other {# hosts sem outro proprietário, junto com seus workspaces}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# login} other {# logins}}"
@@ -239,6 +247,14 @@ msgstr "{0, plural, one {Criando # área de trabalho...} other {Criando # áreas
 #. placeholder {0}: workspaces.length
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {Excluir # área de trabalho?} other {Excluir # áreas de trabalho?}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
+msgstr "{0, plural, one {# automação excluída.} other {# automações excluídas.}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
+msgstr "{0, plural, one {# host sem outro proprietário excluído, junto com seus workspaces.} other {# hosts sem outro proprietário excluídos, junto com seus workspaces.}}"
 
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
@@ -14745,6 +14761,9 @@ msgstr "Não dá para desfazer."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Este agente não existe mais no dispositivo selecionado (os agentes podem ter sido redefinidos). As execuções vão falhar até você escolher outro."
+
+msgid "This also deletes:"
+msgstr "Isso também exclui:"
 
 msgid "This application will be able to:"
 msgstr "Este aplicativo vai poder:"

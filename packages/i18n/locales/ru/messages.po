@@ -104,6 +104,10 @@ msgstr "{0, plural, one {# активный порт — скрыть детал
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# активный порт — показать детали} few {# активных порта — показать детали} many {# активных портов — показать детали} other {# активных портов — показать детали}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {# automation} other {# automations}}"
+msgstr "{0, plural, one {# автоматизация} few {# автоматизации} many {# автоматизаций} other {# автоматизации}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# изменённый файл} few {# изменённых файла} many {# изменённых файлов} other {# изменённых файла}}"
@@ -153,6 +157,10 @@ msgstr "{0, plural, one {# скрытый проект} few {# скрытых п
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# запись истории} few {# записи истории} many {# записей истории} other {# записи истории}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, one {# хост без другого владельца вместе с его рабочими пространствами} few {# хоста без другого владельца вместе с их рабочими пространствами} many {# хостов без другого владельца вместе с их рабочими пространствами} other {# хоста без другого владельца вместе с их рабочими пространствами}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# login} other {# logins}}"
@@ -239,6 +247,14 @@ msgstr "{0, plural, one {Создание # рабочей области...} fe
 #. placeholder {0}: workspaces.length
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {Удалить # рабочую область?} few {Удалить # рабочие области?} many {Удалить # рабочих областей?} other {Удалить # рабочих областей?}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
+msgstr "{0, plural, one {Удалена # автоматизация.} few {Удалены # автоматизации.} many {Удалено # автоматизаций.} other {Удалено # автоматизации.}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
+msgstr "{0, plural, one {Удалён # хост без другого владельца вместе с его рабочими пространствами.} few {Удалены # хоста без другого владельца вместе с их рабочими пространствами.} many {Удалено # хостов без другого владельца вместе с их рабочими пространствами.} other {Удалено # хоста без другого владельца вместе с их рабочими пространствами.}}"
 
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
@@ -14745,6 +14761,9 @@ msgstr "Это действие необратимо."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Этого агента больше нет на выбранном устройстве (возможно, его агенты были сброшены). Запуски будут падать, пока не выберете нового."
+
+msgid "This also deletes:"
+msgstr "Вместе с этим будут удалены:"
 
 msgid "This application will be able to:"
 msgstr "Это приложение сможет:"

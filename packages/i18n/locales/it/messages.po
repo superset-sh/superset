@@ -104,6 +104,10 @@ msgstr "{0, plural, one {# porta attiva — nascondi i dettagli} other {# porte 
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# porta attiva — mostra i dettagli} other {# porte attive — mostra i dettagli}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {# automation} other {# automations}}"
+msgstr "{0, plural, one {# automazione} other {# automazioni}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# file modificato} other {# file modificati}}"
@@ -153,6 +157,10 @@ msgstr "{0, plural, one {# progetto nascosto} other {# progetti nascosti}}"
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# elemento della cronologia} other {# elementi della cronologia}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, one {# host senza altri proprietari, insieme ai suoi workspace} other {# host senza altri proprietari, insieme ai loro workspace}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# login} other {# logins}}"
@@ -239,6 +247,14 @@ msgstr "{0, plural, one {Creazione di # workspace...} other {Creazione di # work
 #. placeholder {0}: workspaces.length
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {Eliminare # workspace?} other {Eliminare # workspace?}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
+msgstr "{0, plural, one {# automazione eliminata.} other {# automazioni eliminate.}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
+msgstr "{0, plural, one {# host senza altri proprietari eliminato insieme ai suoi workspace.} other {# host senza altri proprietari eliminati insieme ai loro workspace.}}"
 
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
@@ -14745,6 +14761,9 @@ msgstr "L'operazione è irreversibile."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Questo agente non esiste più sul dispositivo selezionato (i suoi agenti potrebbero essere stati reimpostati). Le esecuzioni falliranno finché non ne scegli uno nuovo."
+
+msgid "This also deletes:"
+msgstr "Verranno eliminati anche:"
 
 msgid "This application will be able to:"
 msgstr "Questa applicazione potrà:"

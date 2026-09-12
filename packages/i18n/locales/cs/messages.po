@@ -104,6 +104,10 @@ msgstr "{0, plural, one {# aktivní port — skrýt podrobnosti} few {# aktivní
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# aktivní port — zobrazit podrobnosti} few {# aktivní porty — zobrazit podrobnosti} many {# aktivního portu — zobrazit podrobnosti} other {# aktivních portů — zobrazit podrobnosti}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {# automation} other {# automations}}"
+msgstr "{0, plural, one {# automatizace} few {# automatizace} many {# automatizace} other {# automatizací}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# změněný soubor} few {# změněné soubory} many {# změněného souboru} other {# změněných souborů}}"
@@ -153,6 +157,10 @@ msgstr "{0, plural, one {# skrytý projekt} few {# skryté projekty} many {# skr
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# položka historie} few {# položky historie} many {# položky historie} other {# položek historie}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, one {# host bez dalšího vlastníka, včetně jeho pracovních prostorů} few {# hosty bez dalšího vlastníka, včetně jejich pracovních prostorů} many {# hosta bez dalšího vlastníka, včetně jejich pracovních prostorů} other {# hostů bez dalšího vlastníka, včetně jejich pracovních prostorů}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# login} other {# logins}}"
@@ -239,6 +247,14 @@ msgstr "{0, plural, one {Vytvářím # pracovní prostor...} few {Vytvářím # 
 #. placeholder {0}: workspaces.length
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {Smazat # pracovní prostor?} few {Smazat # pracovní prostory?} many {Smazat # pracovního prostoru?} other {Smazat # pracovních prostorů?}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
+msgstr "{0, plural, one {Smazána # automatizace.} few {Smazány # automatizace.} many {Smazáno # automatizace.} other {Smazáno # automatizací.}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
+msgstr "{0, plural, one {Smazán # host bez dalšího vlastníka i s jeho pracovními prostory.} few {Smazány # hosty bez dalšího vlastníka i s jejich pracovními prostory.} many {Smazáno # hosta bez dalšího vlastníka i s jejich pracovními prostory.} other {Smazáno # hostů bez dalšího vlastníka i s jejich pracovními prostory.}}"
 
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
@@ -14745,6 +14761,9 @@ msgstr "Tuto akci nelze vrátit zpět."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Tento agent už na vybraném zařízení neexistuje (jeho agenti mohli být resetováni). Běhy budou selhávat, dokud nevyberete jiného."
+
+msgid "This also deletes:"
+msgstr "Tím se také smaže:"
 
 msgid "This application will be able to:"
 msgstr "Tato aplikace bude moci:"

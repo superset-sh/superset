@@ -104,6 +104,10 @@ msgstr "{0, plural, one {# cổng đang hoạt động — ẩn chi tiết} othe
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# cổng đang hoạt động — hiện chi tiết} other {# cổng đang hoạt động — hiện chi tiết}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {# automation} other {# automations}}"
+msgstr "{0, plural, other {# tự động hóa}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# tệp thay đổi} other {# tệp thay đổi}}"
@@ -153,6 +157,10 @@ msgstr "{0, plural, one {# dự án đã ẩn} other {# dự án đã ẩn}}"
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# mục lịch sử} other {# mục lịch sử}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, other {# host không còn chủ sở hữu nào khác, cùng với các workspace của nó}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# login} other {# logins}}"
@@ -239,6 +247,14 @@ msgstr "{0, plural, one {Đang tạo # workspace...} other {Đang tạo # worksp
 #. placeholder {0}: workspaces.length
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {Xóa # workspace?} other {Xóa # workspace?}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
+msgstr "{0, plural, other {Đã xóa # tự động hóa.}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
+msgstr "{0, plural, other {Đã xóa # host không còn chủ sở hữu nào khác cùng với các workspace của nó.}}"
 
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
@@ -14745,6 +14761,9 @@ msgstr "Không thể hoàn tác thao tác này."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Agent này không còn tồn tại trên thiết bị đã chọn (agent trên đó có thể đã bị đặt lại). Các lần chạy sẽ thất bại cho đến khi bạn chọn agent khác."
+
+msgid "This also deletes:"
+msgstr "Thao tác này cũng sẽ xóa:"
 
 msgid "This application will be able to:"
 msgstr "Ứng dụng này sẽ có thể:"
