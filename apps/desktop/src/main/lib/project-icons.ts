@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
-import { copyFile, writeFile } from "node:fs/promises";
+import { copyFile, realpath, stat, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import {
 	getImageExtensionFromMimeType,
@@ -13,6 +13,19 @@ export const PROJECT_ICONS_DIR = join(SUPERSET_HOME_DIR, "project-icons");
 /** Max icon file size: 512KB */
 const MAX_ICON_SIZE = 512 * 1024;
 const PROJECT_ICON_EXTENSIONS = new Set(["png", "jpg", "svg", "ico"]);
+
+/** The icon store is flat; an id with a separator would write outside it. */
+function iconDestination(projectId: string, ext: string): string {
+	if (
+		!projectId ||
+		projectId === "." ||
+		projectId === ".." ||
+		/[\\/]/.test(projectId)
+	) {
+		throw new Error("Invalid project id");
+	}
+	return join(PROJECT_ICONS_DIR, `${projectId}.${ext}`);
+}
 
 /**
  * Ensures the project icons directory exists.
@@ -88,12 +101,29 @@ export async function saveProjectIconFromFile({
 	projectId: string;
 	sourcePath: string;
 }): Promise<string> {
+	const ext = extname(sourcePath).slice(1).toLowerCase() || "png";
+	if (!PROJECT_ICON_EXTENSIONS.has(ext)) {
+		throw new Error(
+			"Unsupported icon format. Supported formats are PNG, JPEG, SVG, and ICO.",
+		);
+	}
+	const destPath = iconDestination(projectId, ext);
+
+	// Resolve symlinks before checking, so what is copied is what was checked.
+	const sourceReal = await realpath(sourcePath);
+	const sourceStat = await stat(sourceReal);
+	if (!sourceStat.isFile()) {
+		throw new Error("Icon source is not a file");
+	}
+	if (sourceStat.size > MAX_ICON_SIZE) {
+		throw new Error(
+			`Icon file too large (${Math.round(sourceStat.size / 1024)}KB). Maximum is ${MAX_ICON_SIZE / 1024}KB.`,
+		);
+	}
+
 	ensureProjectIconsDir();
 	removeExistingIcon(projectId);
-
-	const ext = extname(sourcePath) || ".png";
-	const destPath = join(PROJECT_ICONS_DIR, `${projectId}${ext}`);
-	await copyFile(sourcePath, destPath);
+	await copyFile(sourceReal, destPath);
 
 	return getProjectIconProtocolUrl(projectId);
 }
@@ -110,10 +140,8 @@ export async function saveProjectIconFromDataUrl({
 	projectId: string;
 	dataUrl: string;
 }): Promise<string> {
-	ensureProjectIconsDir();
-	removeExistingIcon(projectId);
-
 	const { buffer, ext } = parseProjectIconDataUrl(dataUrl);
+	const destPath = iconDestination(projectId, ext);
 
 	if (buffer.length > MAX_ICON_SIZE) {
 		throw new Error(
@@ -121,7 +149,8 @@ export async function saveProjectIconFromDataUrl({
 		);
 	}
 
-	const destPath = join(PROJECT_ICONS_DIR, `${projectId}.${ext}`);
+	ensureProjectIconsDir();
+	removeExistingIcon(projectId);
 	await writeFile(destPath, buffer);
 
 	return getProjectIconProtocolUrl(projectId);
@@ -140,8 +169,7 @@ export async function saveProjectIconFromBuffer({
 	buffer: Buffer;
 	ext: string;
 }): Promise<string> {
-	ensureProjectIconsDir();
-	removeExistingIcon(projectId);
+	const destPath = iconDestination(projectId, ext);
 
 	if (buffer.length > MAX_ICON_SIZE) {
 		throw new Error(
@@ -149,7 +177,8 @@ export async function saveProjectIconFromBuffer({
 		);
 	}
 
-	const destPath = join(PROJECT_ICONS_DIR, `${projectId}.${ext}`);
+	ensureProjectIconsDir();
+	removeExistingIcon(projectId);
 	await writeFile(destPath, buffer);
 
 	return getProjectIconProtocolUrl(projectId);

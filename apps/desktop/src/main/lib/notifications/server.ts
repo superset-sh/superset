@@ -8,6 +8,7 @@ import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 import { mapEventType } from "./map-event-type";
+import { queryString } from "./query-string";
 import { resolvePaneId } from "./resolve-pane-id";
 import { recordV1AgentHookEvent } from "./v1-agent-sessions";
 
@@ -52,20 +53,18 @@ app.use((req, res, next) => {
 
 // Agent lifecycle hook
 app.get("/hook/complete", (req, res) => {
-	const {
-		paneId,
-		tabId,
-		workspaceId,
-		sessionId,
-		terminalId,
-		hookSessionId,
-		resourceId,
-		eventType,
-		rawEventType,
-		agentId,
-		env: clientEnv,
-		version,
-	} = req.query;
+	const paneId = queryString(req.query.paneId);
+	const tabId = queryString(req.query.tabId);
+	const workspaceId = queryString(req.query.workspaceId);
+	const sessionId = queryString(req.query.sessionId);
+	const terminalId = queryString(req.query.terminalId);
+	const hookSessionId = queryString(req.query.hookSessionId);
+	const resourceId = queryString(req.query.resourceId);
+	const eventType = queryString(req.query.eventType);
+	const rawEventType = queryString(req.query.rawEventType);
+	const agentId = queryString(req.query.agentId);
+	const clientEnv = queryString(req.query.env);
+	const version = queryString(req.query.version);
 
 	// Environment validation: detect dev/prod cross-talk
 	// We still return success to not block the agent, but log a warning
@@ -84,7 +83,7 @@ app.get("/hook/complete", (req, res) => {
 		);
 	}
 
-	const mappedEventType = mapEventType(eventType as string | undefined);
+	const mappedEventType = mapEventType(eventType);
 
 	// Unknown or missing eventType: return success but don't process
 	// This ensures forward compatibility and doesn't block the agent
@@ -95,37 +94,25 @@ app.get("/hook/complete", (req, res) => {
 		return res.json({ success: true, ignored: true });
 	}
 
-	const resolvedPaneId = resolvePaneId(
-		paneId as string | undefined,
-		tabId as string | undefined,
-		workspaceId as string | undefined,
-	);
+	const resolvedPaneId = resolvePaneId(paneId, tabId, workspaceId);
 
 	// v1 pane agent-session capture for the v1→v2 migration's resume seeding.
 	// Needs the un-collapsed event (SessionEnd vs Stop) — only v7+ hook
 	// scripts send it, so absence just means no capture.
-	if (
-		resolvedPaneId &&
-		typeof rawEventType === "string" &&
-		rawEventType.length > 0 &&
-		typeof agentId === "string" &&
-		agentId.length > 0
-	) {
+	if (resolvedPaneId && rawEventType && agentId) {
 		recordV1AgentHookEvent(resolvedPaneId, {
 			rawEventType,
 			agentId,
-			...(typeof sessionId === "string" && sessionId.length > 0
-				? { agentSessionId: sessionId }
-				: {}),
+			...(sessionId ? { agentSessionId: sessionId } : {}),
 			at: Date.now(),
 		});
 	}
 
 	const event: AgentLifecycleEvent = {
 		paneId: resolvedPaneId,
-		tabId: tabId as string | undefined,
-		workspaceId: workspaceId as string | undefined,
-		terminalId: terminalId as string | undefined,
+		tabId,
+		workspaceId,
+		terminalId,
 		eventType: mappedEventType,
 	};
 
@@ -133,13 +120,13 @@ app.get("/hook/complete", (req, res) => {
 		console.log("[notifications] hook event received", {
 			eventType,
 			mappedEventType,
-			paneId: paneId as string | undefined,
-			tabId: tabId as string | undefined,
-			workspaceId: workspaceId as string | undefined,
-			sessionId: sessionId as string | undefined,
-			terminalId: terminalId as string | undefined,
-			hookSessionId: hookSessionId as string | undefined,
-			resourceId: resourceId as string | undefined,
+			paneId,
+			tabId,
+			workspaceId,
+			sessionId,
+			terminalId,
+			hookSessionId,
+			resourceId,
 			resolvedPaneId,
 		});
 	}
