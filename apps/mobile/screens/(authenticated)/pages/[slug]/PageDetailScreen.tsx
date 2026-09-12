@@ -108,8 +108,12 @@ export function PageDetailScreen({
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: frameEpoch is a resend trigger, not a value read here
 	useEffect(() => {
-		send({ type: "set-mode", enabled: commentMode });
-	}, [commentMode, frameEpoch, send]);
+		send({
+			type: "set-mode",
+			enabled: commentMode,
+			locked: selection !== null,
+		});
+	}, [commentMode, selection, frameEpoch, send]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: frameEpoch resends the anchor set to a runtime that just restarted
 	useEffect(() => {
@@ -151,8 +155,11 @@ export function PageDetailScreen({
 		}
 		if (message.type === "pointer-down") setSelection(null);
 		if (message.type === "pick") {
-			void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-			setSelection({ anchor: message.anchor, rect: message.rect });
+			setSelection((previous) => {
+				if (previous) return previous;
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+				return { anchor: message.anchor, rect: message.rect };
+			});
 		}
 	}, []);
 

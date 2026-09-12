@@ -23,7 +23,7 @@ export const HOST_CHANNEL = "superset-comments/host";
 export const FRAME_CHANNEL = "superset-comments/frame";
 
 export type HostMessageBody =
-	| { type: "set-mode"; enabled: boolean }
+	| { type: "set-mode"; enabled: boolean; locked: boolean }
 	| { type: "track"; anchors: { id: string; anchor: CommentAnchor }[] }
 	| { type: "restore-scroll"; y: number };
 
@@ -58,6 +58,7 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	const FRAME = ${JSON.stringify(FRAME_CHANNEL)};
 
 	let enabled = false;
+	let locked = false;
 	let tracked = [];
 	let lastHoverPath = null;
 	let frame = 0;
@@ -153,7 +154,7 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	document.addEventListener(
 		"mousemove",
 		(event) => {
-			if (!enabled) return;
+			if (!enabled || locked) return;
 			const el = targetAt(event.clientX, event.clientY);
 			const path = el ? pathOf(el) : null;
 			if (path === lastHoverPath) return;
@@ -194,6 +195,7 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 			if (!enabled) return;
 			event.preventDefault();
 			event.stopPropagation();
+			if (locked) return;
 			const el = targetAt(event.clientX, event.clientY);
 			if (!el) return;
 			const rect = rectOf(el);
@@ -244,8 +246,10 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		if (!data || data.channel !== HOST) return;
 		if (data.type === "set-mode") {
 			enabled = Boolean(data.enabled);
-			document.documentElement.style.cursor = enabled ? "crosshair" : "";
-			if (!enabled) {
+			locked = Boolean(data.locked);
+			document.documentElement.style.cursor =
+				enabled && !locked ? "crosshair" : "";
+			if (!enabled || locked) {
 				lastHoverPath = null;
 				post({ type: "hover", rect: null });
 			}

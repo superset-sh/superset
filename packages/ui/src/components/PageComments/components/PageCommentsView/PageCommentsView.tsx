@@ -141,6 +141,7 @@ export function PageCommentsView({
 		? null
 		: threads.find((thread) => thread.id === activeThreadId);
 	const popoverOpen = Boolean(draft || popoverThread || selection);
+	const locked = popoverOpen;
 	useEffect(() => {
 		const element = containerRef.current;
 		if (!element) return;
@@ -189,7 +190,7 @@ export function PageCommentsView({
 			}
 			if (data.type === "escape") dismiss();
 			if (data.type === "rects") setRects(data.entries);
-			if (data.type === "pick") {
+			if (data.type === "pick" && !popoverOpen) {
 				openSelection({ anchor: data.anchor, rect: data.rect });
 				setHoverRect(null);
 			}
@@ -203,6 +204,7 @@ export function PageCommentsView({
 		frameOrigin,
 		notifyFramePointerDown,
 		openSelection,
+		popoverOpen,
 		send,
 		setActiveThreadId,
 		setHoverRect,
@@ -212,8 +214,8 @@ export function PageCommentsView({
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: frameEpoch is a resend trigger, not a value read here
 	useEffect(() => {
-		send({ type: "set-mode", enabled });
-	}, [enabled, frameEpoch, send]);
+		send({ type: "set-mode", enabled, locked });
+	}, [enabled, locked, frameEpoch, send]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: frameEpoch resends the anchor set to a runtime that just restarted
 	useEffect(() => {
@@ -255,7 +257,7 @@ export function PageCommentsView({
 			/>
 
 			<div className="pointer-events-none absolute inset-0 overflow-hidden">
-				{enabled && hoverRect ? (
+				{enabled && !locked && hoverRect ? (
 					<div
 						style={{
 							transform: `translate(${hoverRect.left}px, ${hoverRect.top}px)`,
