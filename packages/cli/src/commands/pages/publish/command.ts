@@ -2,6 +2,7 @@ import { readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { openUrl } from "../../../lib/open-url";
 import { resolveWorkspaceId } from "../workspaceRef";
 import {
 	collectDirectoryPublish,
@@ -45,6 +46,9 @@ export default command({
 		),
 		noWatch: boolean().desc(
 			"Do not watch this page for new comments from this session",
+		),
+		noOpen: boolean().desc(
+			"Do not open the page in the default browser after creating it",
 		),
 	},
 	run: async ({ ctx, args, options }) => {
@@ -195,12 +199,27 @@ export default command({
 			}
 		}
 
+		let opened = false;
+		let openNote: string | null = null;
+		if (!options.noOpen && page.version === 1) {
+			try {
+				await openUrl(page.url);
+				opened = true;
+			} catch (error) {
+				openNote = `Could not open the browser: ${
+					error instanceof Error ? error.message : String(error)
+				}`;
+			}
+		}
+
 		return publishResult({
 			page,
 			assets: uploaded,
 			externalPath,
 			watching,
 			watchNote,
+			opened,
+			openNote,
 		});
 	},
 });

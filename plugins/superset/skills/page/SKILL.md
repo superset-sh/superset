@@ -273,6 +273,12 @@ list. Pass `--page <id>` to add a version to a page you already have.
 Keep the source file. It is the only copy you can edit; the published version is
 derived from it.
 
+Creating a page (its first version) opens it in the system's default browser
+automatically — not inside Superset, so a tab shows up wherever the user
+actually is, as a free "it's ready" signal. Republishing a later version does
+not reopen it. Pass `--no-open` to suppress this, for example when the user
+asked you to work silently.
+
 ## Update an existing page
 
 Two routes, and the difference matters:
