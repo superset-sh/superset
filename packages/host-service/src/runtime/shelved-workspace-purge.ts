@@ -36,22 +36,26 @@ export function selectExpiredShelved<
 type DestroyWorkspace = typeof destroyWorkspace;
 
 /**
- * Why the sweep left a shelved row alone. `dirty` is git's own answer;
+ * Why the sweep left a shelved row alone. `dirty` is git's own answer — it
+ * also covers commits no remote has, because the purge deletes the branch
+ * with `-D` and that work exists nowhere else;
  * `unverifiable` means git could not answer at all, which on an unattended
  * destructive path must read as "keep it" — the interactive delete's
  * preflight swallows that case because a user is there to force it.
  */
 export type PurgeBlockedReason = "dirty" | "unverifiable";
 
+type WorktreeState = { hasChanges: boolean; hasUnpushedCommits: boolean };
+
 type ReadWorktreeState = (
 	ctx: HostServiceContext,
 	worktreePath: string,
-) => Promise<{ hasChanges: boolean }>;
+) => Promise<WorktreeState>;
 
 async function readWorktreeStateForPurge(
 	ctx: HostServiceContext,
 	worktreePath: string,
-): Promise<{ hasChanges: boolean }> {
+): Promise<WorktreeState> {
 	const gitEnv = await cleanupGitOps.resolveGitEnv(ctx, worktreePath);
 	return cleanupGitOps.readWorktreeState({ worktreePath, gitEnv });
 }
@@ -120,7 +124,7 @@ export async function runShelvedWorkspacePurge(
 			// so an unknown state keeps the worktree. A missing directory has
 			// nothing left to lose and goes straight to the tombstone.
 			if (existsSync(row.worktreePath)) {
-				let state: { hasChanges: boolean };
+				let state: WorktreeState;
 				try {
 					state = await readWorktreeState(ctx, row.worktreePath);
 				} catch {
@@ -129,7 +133,7 @@ export async function runShelvedWorkspacePurge(
 					}
 					continue;
 				}
-				if (state.hasChanges) {
+				if (state.hasChanges || state.hasUnpushedCommits) {
 					if (stillShelved(ctx, row)) {
 						markShelvedPurgeBlocked(ctx, row.id, "dirty");
 					}

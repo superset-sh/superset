@@ -145,7 +145,7 @@ describe("runShelvedWorkspacePurge", () => {
 					.set({ shelvedAt: null })
 					.where(eq(workspaces.id, "ws-back"))
 					.run();
-				return { hasChanges: false };
+				return { hasChanges: false, hasUnpushedCommits: false };
 			},
 		);
 
@@ -165,11 +165,31 @@ describe("runShelvedWorkspacePurge", () => {
 		await runShelvedWorkspacePurge(
 			makeCtx(),
 			destroy as unknown as Parameters<typeof runShelvedWorkspacePurge>[1],
-			async () => ({ hasChanges: true }),
+			async () => ({ hasChanges: true, hasUnpushedCommits: false }),
 		);
 
 		expect(destroy).not.toHaveBeenCalled();
 		expect(readRow("ws-wip")?.purgeBlockedReason).toBe("dirty");
+	});
+
+	test("a clean worktree with unpushed commits is kept without calling destroy", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "shelved-purge-wt-"));
+		seedShelved("ws-unpushed", expired);
+		db.update(workspaces)
+			.set({ worktreePath: dir })
+			.where(eq(workspaces.id, "ws-unpushed"))
+			.run();
+		const destroy = mock(async () => ({ success: true }));
+
+		await runShelvedWorkspacePurge(
+			makeCtx(),
+			destroy as unknown as Parameters<typeof runShelvedWorkspacePurge>[1],
+			async () => ({ hasChanges: false, hasUnpushedCommits: true }),
+		);
+
+		expect(destroy).not.toHaveBeenCalled();
+		expect(readRow("ws-unpushed")?.purgeBlockedReason).toBe("dirty");
+		expect(readRow("ws-unpushed")?.shelvedAt).not.toBeNull();
 	});
 
 	test("a restore during the worktree check leaves no purge-blocked marker", async () => {
@@ -189,7 +209,7 @@ describe("runShelvedWorkspacePurge", () => {
 					.set({ shelvedAt: null })
 					.where(eq(workspaces.id, "ws-race"))
 					.run();
-				return { hasChanges: true };
+				return { hasChanges: true, hasUnpushedCommits: false };
 			},
 		);
 
