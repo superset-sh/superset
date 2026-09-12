@@ -395,7 +395,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		try {
 			await agentStatusReporter.reportAllGone();
 		} catch (err) {
-			console.warn("[host-service] agentStatusReporter.reportAllGone failed:", err);
+			console.warn(
+				"[host-service] agentStatusReporter.reportAllGone failed:",
+				err,
+			);
 		}
 		try {
 			pullRequestRuntime.stop();

@@ -1,5 +1,5 @@
-import { EventEmitter } from "node:events";
 import { describe, expect, it } from "bun:test";
+import { EventEmitter } from "node:events";
 import type { AgentStatusReport } from "@superset/shared/agent-status";
 import type { TerminalAgentBinding } from "../types";
 import { TerminalAgentStatusReporter } from "./status-reporter";

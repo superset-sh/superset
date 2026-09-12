@@ -144,7 +144,8 @@ export class TerminalAgentStatusReporter {
 			return;
 		}
 		for (const transition of transitions) {
-			if (transition.state === "gone") this.reported.delete(transition.terminalId);
+			if (transition.state === "gone")
+				this.reported.delete(transition.terminalId);
 			else this.reported.set(transition.terminalId, transition.state);
 		}
 	}
