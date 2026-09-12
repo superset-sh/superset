@@ -149,6 +149,12 @@ const SEARCH_INDEX_CACHE_TTL_MS = 30 * 60_000;
 
 const UNTRACKED_ROOT_SCAN_DEPTH = 8;
 const MAX_SEARCH_INDEX_BUILD_RESTARTS = 3;
+/**
+ * Entries kept per index. One uncapped walk of a home-sized tree is enough to
+ * push host-service into V8's heap limit; past this the walk is destroyed and
+ * search answers for the files it saw.
+ */
+export const MAX_SEARCH_INDEX_ENTRIES = 200_000;
 
 export class SearchIndexBuildAborted extends Error {
 	constructor() {
@@ -338,24 +344,26 @@ export async function isGitRepositoryRoot(rootPath: string): Promise<boolean> {
 	}
 }
 
-async function buildSearchIndex(
-	{ rootPath, includeHidden }: SearchIndexKeyOptions,
-	signal?: AbortSignal,
-): Promise<SearchIndexEntry[]> {
-	const normalizedRootPath = normalizeAbsolutePath(rootPath);
-	const deep = (await isGitRepositoryRoot(normalizedRootPath))
-		? Number.POSITIVE_INFINITY
-		: UNTRACKED_ROOT_SCAN_DEPTH;
-
+export async function collectSearchIndexPaths(
+	rootPath: string,
+	options: {
+		includeHidden: boolean;
+		deep?: number;
+		signal?: AbortSignal;
+		maxEntries?: number;
+	},
+): Promise<{ paths: string[]; truncated: boolean }> {
+	const { includeHidden, signal } = options;
+	const maxEntries = options.maxEntries ?? MAX_SEARCH_INDEX_ENTRIES;
 	const stream = fg.stream("**/*", {
-		cwd: normalizedRootPath,
+		cwd: rootPath,
 		onlyFiles: true,
 		dot: includeHidden,
 		followSymbolicLinks: false,
 		unique: true,
 		suppressErrors: true,
 		ignore: DEFAULT_IGNORE_PATTERNS,
-		deep,
+		deep: options.deep ?? Number.POSITIVE_INFINITY,
 	});
 
 	const onAbort = () => {
@@ -363,11 +371,18 @@ async function buildSearchIndex(
 	};
 	signal?.addEventListener("abort", onAbort, { once: true });
 
-	const items: SearchIndexEntry[] = [];
+	const paths: string[] = [];
+	let truncated = false;
 	try {
+		// Breaking out of for-await returns the stream, which destroys the
+		// underlying directory walk instead of letting it run to completion.
 		for await (const entry of stream) {
 			if (signal?.aborted) throw new SearchIndexBuildAborted();
-			items.push(createSearchIndexEntry(normalizedRootPath, String(entry)));
+			if (paths.length >= maxEntries) {
+				truncated = true;
+				break;
+			}
+			paths.push(String(entry));
 		}
 	} catch (error) {
 		if (signal?.aborted) throw new SearchIndexBuildAborted();
@@ -377,7 +392,32 @@ async function buildSearchIndex(
 	}
 
 	if (signal?.aborted) throw new SearchIndexBuildAborted();
-	return items;
+	return { paths, truncated };
+}
+
+async function buildSearchIndex(
+	{ rootPath, includeHidden }: SearchIndexKeyOptions,
+	signal?: AbortSignal,
+): Promise<SearchIndexEntry[]> {
+	const normalizedRootPath = normalizeAbsolutePath(rootPath);
+	const deep = (await isGitRepositoryRoot(normalizedRootPath))
+		? Number.POSITIVE_INFINITY
+		: UNTRACKED_ROOT_SCAN_DEPTH;
+
+	const { paths, truncated } = await collectSearchIndexPaths(
+		normalizedRootPath,
+		{ includeHidden, deep, signal },
+	);
+	if (truncated) {
+		console.warn("[workspace-fs/search] index truncated at the entry cap", {
+			rootPath: normalizedRootPath,
+			maxEntries: MAX_SEARCH_INDEX_ENTRIES,
+		});
+	}
+
+	return paths.map((relativePath) =>
+		createSearchIndexEntry(normalizedRootPath, relativePath),
+	);
 }
 
 export async function getSearchIndex(
@@ -797,9 +837,9 @@ function applySearchPatchEvent({
 			return;
 		}
 
-		const nextAbsolutePath = normalizeAbsolutePath(event.absolutePath);
-		itemsByPath.set(
-			nextAbsolutePath,
+		setIndexedEntry(
+			itemsByPath,
+			normalizeAbsolutePath(event.absolutePath),
 			createSearchIndexEntry(rootPath, nextRelativePath),
 		);
 		return;
@@ -817,7 +857,25 @@ function applySearchPatchEvent({
 		return;
 	}
 
-	itemsByPath.set(absolutePath, createSearchIndexEntry(rootPath, relativePath));
+	setIndexedEntry(
+		itemsByPath,
+		absolutePath,
+		createSearchIndexEntry(rootPath, relativePath),
+	);
+}
+
+function setIndexedEntry(
+	itemsByPath: Map<string, SearchIndexEntry>,
+	absolutePath: string,
+	entry: SearchIndexEntry,
+): void {
+	if (
+		!itemsByPath.has(absolutePath) &&
+		itemsByPath.size >= MAX_SEARCH_INDEX_ENTRIES
+	) {
+		return;
+	}
+	itemsByPath.set(absolutePath, entry);
 }
 
 export function invalidateSearchIndex(options: SearchIndexKeyOptions): void {
@@ -885,7 +943,8 @@ function applyDirectoryPatchEvent({
 		const nextAbsolutePath = `${to}${absolutePath.slice(from.length)}`;
 		const nextRelativePath = toRelativePath(rootPath, nextAbsolutePath);
 		if (!shouldIndexRelativePath(nextRelativePath, includeHidden)) continue;
-		itemsByPath.set(
+		setIndexedEntry(
+			itemsByPath,
 			nextAbsolutePath,
 			createSearchIndexEntry(rootPath, nextRelativePath),
 		);
