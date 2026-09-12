@@ -1,18 +1,23 @@
+import { msg, plural } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
 import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
 import { toast } from "@superset/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useShelveWorkspaceWithTarget } from "renderer/hooks/host-service/useShelveWorkspace";
 import { getTerminalAgentBindingsQueryKey } from "renderer/hooks/host-service/useTerminalAgentBindings";
-import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
+import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { SHELF_RETENTION_DAYS } from "renderer/lib/workspaces/isShelvedWorkspace";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
+import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import {
 	useMarkSidebarWorkspaceTerminalsSeen,
 	useSidebarWorkspaceStatus,
@@ -43,6 +48,11 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	isCloudWorkspace?: boolean;
 	isMainWorkspace?: boolean;
 	isPinned?: boolean;
+	/**
+	 * The sidebar's scrolling list, so archiving can hand keyboard focus to a
+	 * surviving element instead of dropping it on `body` when the row goes.
+	 */
+	getSidebarListElement?: () => HTMLElement | null;
 }
 
 export function useDashboardSidebarWorkspaceItemActions({
@@ -55,6 +65,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	isCloudWorkspace = false,
 	isMainWorkspace = false,
 	isPinned = false,
+	getSidebarListElement,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
@@ -69,7 +80,16 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const markWorkspaceTerminalsSeen =
 		useMarkSidebarWorkspaceTerminalsSeen(workspaceId);
 	const { isUnread } = useSidebarWorkspaceStatus(workspaceId);
-	const workspaceHostUrl = useWorkspaceHostUrl(workspaceId);
+	// Resolved once per row: the shelve hook reuses it rather than resolving
+	// the host a second time.
+	const hostTarget = useWorkspaceHostTarget(workspaceId);
+	const workspaceHostUrl =
+		hostTarget.status === "ready" ? hostTarget.url : null;
+	const { shelve, unshelve } = useShelveWorkspaceWithTarget(
+		workspaceId,
+		hostTarget,
+	);
+	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 	const queryClient = useQueryClient();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const sessionGroupTags = new Set(
@@ -150,6 +170,68 @@ export function useDashboardSidebarWorkspaceItemActions({
 			workspaceId,
 			workspaceName: workspaceName || branch,
 		});
+	};
+
+	const focusSidebarList = (list: HTMLElement | null) => {
+		if (!list) return;
+		// The container is a plain scroller, so it needs a programmatic tab
+		// stop before it can hold focus.
+		if (!list.hasAttribute("tabindex")) list.setAttribute("tabindex", "-1");
+		list.focus({ preventScroll: true });
+	};
+
+	// One archive in flight per row: a second click before shelve settles
+	// would fire a duplicate toast and navigation.
+	const archiveInFlight = useRef(false);
+	const archiveWorkspace = async () => {
+		if (archiveInFlight.current) return;
+		if (!workspaceHostUrl) {
+			showHostServiceUnavailableToast(hostService);
+			return;
+		}
+		archiveInFlight.current = true;
+		// Resolved while the row is still mounted: by the time focus moves the
+		// row is gone and its ref is null, so the scroller cannot be looked up
+		// through it any more.
+		const sidebarList = getSidebarListElement?.() ?? null;
+		try {
+			await archiveWorkspaceWithUndo({
+				workspaceName: workspaceName || branch,
+				isActive,
+				shelve,
+				unshelve,
+				navigateAway: () => navigateAwayFromWorkspace(workspaceId),
+				navigateBack: () =>
+					navigate({
+						to: "/v2-workspace/$workspaceId",
+						params: { workspaceId },
+					}),
+				focusSidebarList: () => focusSidebarList(sidebarList),
+			});
+		} finally {
+			archiveInFlight.current = false;
+		}
+	};
+
+	// Restore in place: the row stays where it is and turns live again.
+	const restoreWorkspace = async () => {
+		if (archiveInFlight.current) return;
+		archiveInFlight.current = true;
+		try {
+			await unshelve();
+			toast.success(
+				i18n._(
+					msg({
+						message: `Restored "${workspaceName || branch}" from archive`,
+					}),
+				),
+			);
+			focusSidebarList(getSidebarListElement?.() ?? null);
+		} catch (error) {
+			toast.error(errorMessage(error));
+		} finally {
+			archiveInFlight.current = false;
+		}
 	};
 
 	const handleRemoveFromSidebar = () => {
@@ -339,6 +421,8 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	return {
+		archiveWorkspace,
+		restoreWorkspace,
 		cancelRename,
 		handleClearStatus,
 		handleClick,
@@ -362,4 +446,80 @@ export function useDashboardSidebarWorkspaceItemActions({
 		startRename,
 		submitRename,
 	};
+}
+
+interface ArchiveWorkspaceWithUndoOptions {
+	workspaceName: string;
+	/** Whether the row being archived is the workspace currently open. */
+	isActive: boolean;
+	shelve: () => Promise<unknown>;
+	unshelve: () => Promise<unknown>;
+	navigateAway: () => void;
+	navigateBack: () => void | Promise<void>;
+	focusSidebarList: () => void;
+}
+
+/**
+ * Archive with a single click: shelve first, and only once the host has
+ * accepted it leave the workspace and announce the deletion deadline with an
+ * Undo that puts the user back exactly where they were.
+ *
+ * Kept outside the hook so the whole sequence — including the Undo path — is
+ * exercised without standing up the sidebar's provider tree.
+ */
+export async function archiveWorkspaceWithUndo({
+	workspaceName,
+	isActive,
+	shelve,
+	unshelve,
+	navigateAway,
+	navigateBack,
+	focusSidebarList,
+}: ArchiveWorkspaceWithUndoOptions): Promise<void> {
+	try {
+		await shelve();
+	} catch (error) {
+		toast.error(errorMessage(error));
+		return;
+	}
+	if (isActive) navigateAway();
+	focusSidebarList();
+
+	const retention = plural(SHELF_RETENTION_DAYS, {
+		one: "# day",
+		other: "# days",
+	});
+	let undoing = false;
+	toast(
+		i18n._(
+			msg({
+				message: `Archived "${workspaceName}" · deletes in ${retention}`,
+			}),
+		),
+		{
+			action: {
+				label: i18n._(
+					msg({
+						message: "Undo",
+					}),
+				),
+				onClick: () => {
+					// The toast can be clicked again before the first unshelve
+					// settles; only the first click acts.
+					if (undoing) return;
+					undoing = true;
+					void (async () => {
+						try {
+							await unshelve();
+						} catch (error) {
+							toast.error(errorMessage(error));
+							return;
+						}
+						if (isActive) await navigateBack();
+						focusSidebarList();
+					})();
+				},
+			},
+		},
+	);
 }
