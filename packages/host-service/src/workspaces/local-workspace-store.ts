@@ -95,7 +95,7 @@ export interface CloudShapedWorkspace {
 	hostId: string;
 	name: string;
 	branch: string;
-	type: "main" | "worktree" | "session";
+	type: "local" | "worktree" | "session";
 	createdByUserId: string | null;
 	taskId: string | null;
 	createdAt: Date;
@@ -235,7 +235,7 @@ export interface InsertLocalWorkspaceValues {
 	worktreePath: string;
 	branch: string;
 	name: string;
-	type?: "main" | "worktree" | "session";
+	type?: "local" | "worktree" | "session";
 	taskId?: string | null;
 	createdByUserId?: string | null;
 	tags?: string[];

@@ -41,7 +41,7 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const isMainWorkspace = workspace.type === "main";
+	const isLocalWorkspace = workspace.type === "local";
 	const DeviceIcon =
 		workspace.hostType === "local-device" ? LuLaptop : LuMonitor;
 	// The local device is the one running this app — it can't be offline from
@@ -142,7 +142,7 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 				>
 					<WorkspaceStateGlyph workspace={workspace} />
 
-					{isMainWorkspace ? (
+					{isLocalWorkspace ? (
 						<Tooltip delayDuration={300}>
 							<TooltipTrigger asChild>
 								{/* The wrapping span (not the icon itself — react-icons
@@ -156,13 +156,13 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 									<CgLaptop
 										className="size-3.5 shrink-0 text-muted-foreground"
 										aria-label={t({
-											message: "Main workspace",
+											message: "Local workspace",
 										})}
 									/>
 								</span>
 							</TooltipTrigger>
 							<TooltipContent side="top">
-								<Trans>Main workspace</Trans>
+								<Trans>Local workspace</Trans>
 							</TooltipContent>
 						</Tooltip>
 					) : null}

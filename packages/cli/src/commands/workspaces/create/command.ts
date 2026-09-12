@@ -19,7 +19,12 @@ export default command({
 			"Project ID. Omit to create a project-less session (a managed scratch folder)",
 		),
 		name: string().desc("Workspace name"),
-		branch: string().desc("Git branch (required unless --pr or --task is set)"),
+		checkout: string().desc(
+			"Where the files live: `worktree` (default) checks out --branch in its own worktree; `local` uses the project's checkout as it is — no branch switch, files shared with the project's other local workspaces",
+		),
+		branch: string().desc(
+			"Git branch (required unless --pr, --task, or --checkout local is set)",
+		),
 		pr: number().desc("PR number — checks out the verified PR head"),
 		task: string().desc(
 			"Task ID to link. When --branch is omitted, the task's provider branch name (e.g. Linear's) is used verbatim",
@@ -78,6 +83,19 @@ export default command({
 
 		const projectId = options.project;
 		const isSession = projectId === undefined;
+		const checkout = options.checkout ?? "worktree";
+		if (checkout !== "worktree" && checkout !== "local") {
+			throw new CLIError(
+				`Unknown checkout "${checkout}"`,
+				"Use --checkout worktree or --checkout local",
+			);
+		}
+		if (isSession && options.checkout !== undefined) {
+			throw new CLIError(
+				"--checkout requires --project",
+				"Sessions are project-less scratch folders with no checkout to share",
+			);
+		}
 		if (isSession) {
 			for (const [flag, value] of [
 				["--branch", options.branch],
@@ -94,6 +112,20 @@ export default command({
 					);
 				}
 			}
+		} else if (checkout === "local") {
+			for (const [flag, value] of [
+				["--branch", options.branch],
+				["--pr", options.pr],
+				["--base-branch", options.baseBranch],
+				["--skip-branch-prefix", options.skipBranchPrefix || undefined],
+			] as const) {
+				if (value !== undefined) {
+					throw new CLIError(
+						`${flag} cannot be combined with --checkout local`,
+						"A local workspace uses the project's checkout as it is; pick --checkout worktree to check out a branch",
+					);
+				}
+			}
 		} else {
 			if (options.branch && options.pr) {
 				throw new CLIError(
@@ -103,8 +135,8 @@ export default command({
 			}
 			if (!options.branch && !options.pr && !options.task) {
 				throw new CLIError(
-					"Specify --branch, --pr, or --task",
-					"Use --branch <name>, --pr <number>, or --task <id>",
+					"Specify --branch, --pr, --task, or --checkout local",
+					"Use --branch <name>, --pr <number>, --task <id>, or --checkout local",
 				);
 			}
 		}
@@ -191,6 +223,7 @@ export default command({
 		const result = await target.client.workspaces.create.mutate({
 			projectId,
 			name: options.name,
+			...(checkout === "local" ? { checkout } : {}),
 			branch: options.branch,
 			pr: options.pr,
 			taskId: options.task,

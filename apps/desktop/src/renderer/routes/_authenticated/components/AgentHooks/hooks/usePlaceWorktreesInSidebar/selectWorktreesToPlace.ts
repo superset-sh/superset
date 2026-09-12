@@ -2,7 +2,7 @@ export type WorkspaceForPlacement = {
 	id: string;
 	/** Null for project-less "session" workspaces. */
 	projectId: string | null;
-	type: "main" | "worktree" | "session";
+	type: "local" | "worktree" | "session";
 	hostId: string;
 	/**
 	 * True when the owning host answered `workspace.list` this session. False
@@ -30,14 +30,11 @@ export type PlacementContext = {
  * Chooses which host-served workspaces the sidebar reconciler should place.
  * Kept free of React so it can be unit-tested directly.
  *
- * `worktree` and `session` workspaces are eligible: both are always explicit
- * creations (renderer, CLI, or automation), so they surface even when created
- * outside the renderer. `main` workspaces are not — the host creates one for
- * every project on the device, so placing those would drag locally-known
- * projects the user never added into the sidebar; they surface instead via the
- * gated `isAutoIncludedLocalMainWorkspace` path. A workspace that already has a
- * local-state row is "already placed" and skipped, so nothing the user has
- * moved, hidden, or removed is re-added.
+ * Every workspace type is eligible: local, worktree and session rows are all
+ * explicit creations (renderer, CLI, automation, or project setup), so they
+ * surface even when created outside the renderer. A workspace that already
+ * has a local-state row is "already placed" and skipped, so nothing the user
+ * has moved, hidden, or removed is re-added.
  *
  * Host gate: this device's workspaces always qualify (the local host serves
  * from its snapshot at boot, was never gated on reachability, and a machine
@@ -70,7 +67,7 @@ export function selectWorktreesToPlace(
 					currentUserId !== null && workspace.createdByUserId === currentUserId;
 				if (!hostAnswering || !mine) return [];
 			}
-			if (workspace.type === "worktree" && workspace.projectId !== null) {
+			if (workspace.type !== "session" && workspace.projectId !== null) {
 				return [{ id: workspace.id, projectId: workspace.projectId }];
 			}
 			// Sessions are project-less; they land in the top-level Sessions

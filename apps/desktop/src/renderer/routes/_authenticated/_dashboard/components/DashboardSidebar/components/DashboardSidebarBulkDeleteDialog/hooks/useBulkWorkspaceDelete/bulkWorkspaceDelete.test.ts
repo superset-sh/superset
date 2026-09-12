@@ -12,6 +12,34 @@ const workspaces = [
 ];
 
 describe("buildBulkWorkspaceInspectionSummary", () => {
+	it.each([
+		[true, true, 0],
+		[true, false, 1],
+		[false, false, 2],
+	] as const)("counts shared checkout selections %s / %s as %s worktrees", (first, second, expected) => {
+		const targets = workspaces.slice(0, 2);
+		const summary = buildBulkWorkspaceInspectionSummary(
+			targets,
+			new Map(
+				targets.map((workspace, index) => [
+					workspace.id,
+					{
+						status: "ready" as const,
+						preview: {
+							canDelete: true as const,
+							reason: null,
+							hasChanges: false,
+							hasUnpushedCommits: false,
+							sharesProjectCheckout: index === 0 ? first : second,
+						},
+					},
+				]),
+			),
+		);
+		expect(summary.worktreeCount).toBe(expected);
+		expect(summary.canConfirm).toBeTrue();
+	});
+
 	it("annotates risk and blocks confirmation only on hard blockers", () => {
 		const summary = buildBulkWorkspaceInspectionSummary(
 			workspaces,
@@ -92,6 +120,7 @@ describe("buildBulkWorkspaceInspectionSummary", () => {
 		expect(summary.loadingCount).toBe(2);
 		expect(summary.errorCount).toBe(1);
 		expect(summary.uncheckedCount).toBe(3);
+		expect(summary.worktreeCount).toBe(3);
 	});
 
 	it("enables confirmation when every target has a ready deletable preview", () => {

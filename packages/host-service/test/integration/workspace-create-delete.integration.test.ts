@@ -438,13 +438,24 @@ describe("workspace.create + workspace.delete integration", () => {
 		}
 	});
 
-	test("delete() rejects deleting a main workspace by path equality", async () => {
+	test("delete() of a workspace on the project checkout retires the record and keeps the repo", async () => {
 		const scenario = await createBasicScenario();
 		dispose = scenario.dispose;
 
-		await expect(
-			scenario.host.trpc.workspace.delete.mutate({ id: scenario.workspaceId }),
-		).rejects.toThrow(/Main workspaces cannot be deleted/i);
+		const result = await scenario.host.trpc.workspace.delete.mutate({
+			id: scenario.workspaceId,
+		});
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(false);
+		expect(result.branchDeleted).toBe(false);
+		expect(existsSync(join(scenario.repo.repoPath, ".git"))).toBe(true);
+
+		const rows = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.workspaceId))
+			.all();
+		expect(rows[0]?.archivedAt).not.toBeNull();
 	});
 
 	test("delete() removes the worktree and archives the local row on success", async () => {

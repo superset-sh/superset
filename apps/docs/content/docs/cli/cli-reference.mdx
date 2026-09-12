@@ -545,7 +545,7 @@ another host.
 	output={`{
   projectId: string;
   repoPath: string;
-  mainWorkspaceId: string;
+  created: boolean;
 }`}
 >
 Create a fresh project on a host. Two modes:
@@ -555,8 +555,9 @@ Create a fresh project on a host. Two modes:
 - **Import**: pass `--import <path>` to register a repo that already exists
   on disk.
 
-Either way, a new cloud project record is created and the host's main
-workspace is ensured.
+Either way, the project is registered on the host with no workspaces yet;
+create one with `superset ws create --project <id> --checkout local` (the
+repo's checkout as it is) or `--branch <name>` (its own worktree).
 
 `create` always creates a new cloud project, even if your org already has
 one for the same Git URL. Use [`projects setup`](#superset-projects-setup-id)
@@ -584,7 +585,6 @@ superset projects create --name "my-app" --local --import ~/code/my-app
 	]}
 	output={`{
   repoPath: string;
-  mainWorkspaceId: string | null;
 }`}
 >
 Adopt an existing project onto a host without creating a duplicate cloud
@@ -594,7 +594,7 @@ record. Counterpart to [`create`](#superset-projects-create) for the
 Find the project ID via [`projects list`](#superset-projects-list).
 
 Idempotent: re-running against a project that's already set up at the same
-path is a no-op that returns the existing `mainWorkspaceId`.
+path is a no-op.
 
 ```bash
 # Pick an ID from `superset projects list`, then clone it onto this machine

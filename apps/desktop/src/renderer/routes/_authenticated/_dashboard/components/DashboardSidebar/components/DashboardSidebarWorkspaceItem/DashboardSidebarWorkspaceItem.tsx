@@ -95,7 +95,6 @@ export function DashboardSidebarWorkspaceItem({
 		pendingTransaction,
 		pullRequest,
 	} = workspace;
-	const isMainWorkspace = workspace.type === "main";
 	const isSessionWorkspace = workspace.type === "session";
 	const { status: workspaceStatus, diffStats } = useSidebarWorkspaceStatus(id);
 	const {
@@ -129,7 +128,6 @@ export function DashboardSidebarWorkspaceItem({
 		branch,
 		pullRequestUrl: pullRequest?.url ?? null,
 		isCloudWorkspace: hostType === "cloud",
-		isMainWorkspace,
 		isPinned: workspace.isPinned,
 	});
 
@@ -292,9 +290,6 @@ export function DashboardSidebarWorkspaceItem({
 							hasStatus={!!workspaceStatus}
 							hasPullRequest={!!pullRequest}
 							isLocalWorkspace={hostType === "local-device"}
-							isLocalMainWorkspace={
-								isMainWorkspace && hostType === "local-device"
-							}
 							onPromoteToEnvironment={
 								hostType === "cloud" ? handlePromoteToEnvironment : undefined
 							}
@@ -309,8 +304,8 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyWorkspaceId={handleCopyWorkspaceId}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
 							onRemovePullRequest={handleRemovePullRequest}
-							onRename={isMainWorkspace ? undefined : startRename}
-							onDelete={isMainWorkspace ? undefined : requestDelete}
+							onRename={startRename}
+							onDelete={requestDelete}
 							onToggleUnread={handleToggleUnread}
 							onClearStatus={handleClearStatus}
 						>
@@ -359,7 +354,7 @@ export function DashboardSidebarWorkspaceItem({
 				onContextMenu={handleExpandedContextMenu}
 				onKeyboardActivate={handleExpandedKeyboardActivate}
 				onWorkspaceChipsClick={handleWorkspaceChipsClick}
-				onDoubleClick={isPending || isMainWorkspace ? undefined : startRename}
+				onDoubleClick={isPending ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
 				onCloseWorkspaceClick={requestDelete}
 				onRenameValueChange={setRenameValue}
@@ -390,9 +385,6 @@ export function DashboardSidebarWorkspaceItem({
 						onCreateSection={handleCreateSection}
 						onMoveToSection={handleMoveToSection}
 						isLocalWorkspace={hostType === "local-device"}
-						isLocalMainWorkspace={
-							isMainWorkspace && hostType === "local-device"
-						}
 						isPinned={workspace.isPinned}
 						onTogglePin={handleTogglePin}
 						onOpenInFinder={handleOpenInFinder}
@@ -402,8 +394,8 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyWorkspaceId={handleCopyWorkspaceId}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
 						onRemovePullRequest={handleRemovePullRequest}
-						onRename={isMainWorkspace ? undefined : startRename}
-						onDelete={isMainWorkspace ? undefined : requestDelete}
+						onRename={startRename}
+						onDelete={requestDelete}
 						onToggleUnread={handleToggleUnread}
 						onClearStatus={handleClearStatus}
 					>

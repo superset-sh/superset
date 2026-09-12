@@ -1236,6 +1236,9 @@ msgstr "このタブではプロセスがまだ実行中です"
 msgid "A process is still running in this terminal"
 msgstr "このターミナルではプロセスがまだ実行中です"
 
+msgid "A pull request always gets its own worktree"
+msgstr "プルリクエストには常に専用のワークツリーが作られます"
+
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "エージェントを操作するためのチャット画面を作り直します。ツール出力はより豊かに、誘導はよりスムーズに、すべてが速くなります。"
 
@@ -3021,6 +3024,9 @@ msgstr "確認中…"
 
 msgid "Checklist"
 msgstr "チェックリスト"
+
+msgid "Checkout: {label}"
+msgstr "チェックアウト: {label}"
 
 msgid "Checkpoint"
 msgstr "Checkpoint"
@@ -7706,6 +7712,9 @@ msgstr "斜体"
 msgid "Item"
 msgstr "Item"
 
+msgid "Its own branch and copy of the files"
+msgstr "独自のブランチとファイルのコピー"
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "再起動するまで、そのワークスペースとターミナルは利用できません — Supersetのトレイメニューから「ホストサービス」>「再起動」を実行してください。"
 
@@ -8286,6 +8295,9 @@ msgstr "読み込み中..."
 msgid "Loading…"
 msgstr "読み込み中…"
 
+msgid "Local"
+msgstr "ローカル"
+
 msgid "Local Device"
 msgstr "ローカルデバイス"
 
@@ -8360,9 +8372,6 @@ msgstr "マゼンタ"
 
 msgid "Main"
 msgstr "メイン"
-
-msgid "Main workspace"
-msgstr "メインワークスペース"
 
 msgid "Make all panes equal size"
 msgstr "すべてのペインを同じサイズにする"
@@ -13139,6 +13148,9 @@ msgstr "Supersetにインポートできる、共有されたテーマJSONファ
 msgid "Shared version"
 msgstr "共有バージョン"
 
+msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
+msgstr "プロジェクトのチェックアウト（ファイル、git インデックス、ブランチ）を他のローカルワークスペースと共有します"
+
 msgid "Sheet"
 msgstr "Sheet"
 
@@ -14726,6 +14738,9 @@ msgstr "お探しのページは存在しません。"
 msgid "The people behind Superset."
 msgstr "Supersetを作っている人たち。"
 
+msgid "The project's checkout as it is — files and branch are shared"
+msgstr "プロジェクトのチェックアウトをそのまま使用 — ファイルとブランチは共有されます"
+
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."
 msgstr "プロバイダーが{0}を返しました。"
@@ -14888,6 +14903,12 @@ msgstr "このワークスペースと他のワークスペースのすべての
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "組織のすべてのターミナルセッション{runningCountSuffix}を閉じ、新しいデーモンを起動します。"
 
+msgid "This closes the selected workspaces and their terminals. The project's files and branches stay as they are."
+msgstr "選択したワークスペースとそのターミナルを閉じます。プロジェクトのファイルとブランチはそのまま残ります。"
+
+msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
+msgstr "ワークスペースとそのターミナルを閉じます。プロジェクトのファイル、ブランチ、他のワークスペースはそのまま残ります。"
+
 msgid "This comment is no longer here"
 msgstr "このコメントはもうありません"
 
@@ -15029,8 +15050,8 @@ msgstr "ホストとそのアクセス権、ワークスペースを削除しま
 msgid "This removes the project from every reachable device."
 msgstr "到達可能なすべてのデバイスからプロジェクトを削除します。"
 
-msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
-msgstr "ワークツリーをディスクから削除します。クラウドワークスペースの記録も削除されます。"
+msgid "This removes the worktree from disk and closes the workspace."
+msgstr "ワークツリーをディスクから削除し、ワークスペースを閉じます。"
 
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "ラベル、コマンド、引数、プロンプトと再開設定、環境変数、アイコンが現在のバンドル構成に置き換えられます。"
@@ -16462,6 +16483,9 @@ msgstr "ワークツリーの場所を更新しました"
 msgid "Worktree missing"
 msgstr "ワークツリーが見つかりません"
 
+msgid "Worktree on this device"
+msgstr "このデバイス上のワークツリー"
+
 msgid "Worktree opened"
 msgstr "ワークツリーを開きました"
 
@@ -16470,6 +16494,9 @@ msgstr "ワークツリーが同期していません"
 
 msgid "Worktrees"
 msgstr "ワークツリー"
+
+msgid "Worktrees are removed from disk; workspaces on the project's checkout only close. Files in the checkout stay as they are."
+msgstr "ワークツリーはディスクから削除され、プロジェクトのチェックアウト上のワークスペースは閉じるだけです。チェックアウト内のファイルはそのまま残ります。"
 
 msgid "Worktrees with uncommitted changes are left on disk."
 msgstr "未コミットの変更があるワークツリーはディスクに残ります。"

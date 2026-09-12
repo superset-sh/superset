@@ -142,7 +142,6 @@ describe("createFromImportLocal idempotency", () => {
 			repoPath: root,
 		});
 		expect(first.created).toBe(true);
-		expect(first.mainWorkspaceId).toBeTruthy();
 
 		// User customizes the project in v2 — a re-import must not undo this.
 		db.update(projects)
@@ -157,7 +156,6 @@ describe("createFromImportLocal idempotency", () => {
 
 		expect(second.projectId).toBe(first.projectId);
 		expect(second.created).toBe(false);
-		expect(second.mainWorkspaceId).toBe(first.mainWorkspaceId);
 
 		const rows = db.select().from(projects).all();
 		expect(rows).toHaveLength(1);

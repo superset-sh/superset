@@ -96,7 +96,7 @@ export interface WorkspaceSnapshot {
 	projectId: string | null;
 	name: string;
 	branch: string;
-	type: "main" | "worktree" | "session";
+	type: "local" | "worktree" | "session";
 	worktreePath: string;
 	taskId: string | null;
 	createdByUserId: string | null;

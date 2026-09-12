@@ -20,7 +20,7 @@ export interface CommandContext {
 		id: string;
 		name: string;
 		projectId?: string;
-		workspaceType?: "main" | "worktree" | "session";
+		workspaceType?: "local" | "worktree" | "session";
 		hostId?: string;
 		preferredOpenInApp?: ExternalApp;
 	} | null;

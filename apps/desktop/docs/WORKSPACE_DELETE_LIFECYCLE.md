@@ -49,7 +49,7 @@ to warnings (#6174).
 | **Worktree removal fails** (still registered after `git worktree remove`) | Throw → un-archive; workspace stays visible and retryable rather than orphaning disk state. |
 | **Host crash mid-delete** | The tombstone is the durable delete-intent record. On startup `runArchivedWorkspaceReconcile` finishes interrupted deletes with best-effort teardown. Path-reuse guard: a tombstone whose `worktreePath` is owned by a live row is left alone (`selectStranded`), so re-created branches never get a healthy worktree rm'd. |
 | **Concurrent destroy** | Process-local `destroysInFlight` guard → CONFLICT with `deleteInProgress` cause → renderer shows a toast and does NOT force-retry. Because the row is already gone (archive-first), UI-initiated double-deletes are mostly impossible anyway. |
-| **Main workspace** | BAD_REQUEST, never archived. |
+| **Local workspace** (`type = "local"`, or any row whose path is the project repo) | Record-only: archive → dispose PTYs → caches. No preflight, teardown, worktree removal or branch delete — the files are the repository, shared with the project's other local workspaces. `worktreeRemoved`/`branchDeleted` are always false. |
 | **Deleting the viewed workspace** | Renderer navigates away up-front (before the RPC), so the route never 404s; teardown failure still re-opens the global dialog on whatever route the user landed on. |
 | **Repo with no remote** | `rev-list HEAD --not --remotes` counts *every* commit as unpushed → the dialog always warns → confirm becomes `force`. Since the flag split, teardown still runs; the only cost is a skipped preflight. |
 
@@ -83,5 +83,5 @@ to warnings (#6174).
   ~1.1 s later, failure pane opened with output tail; force-retry deleted with
   teardown skipped; tombstone row (`archiveReason: "deleted"`) written before
   the removal broadcast.
-- Dirty race, concurrent-destroy CONFLICT, main-workspace guard, cancel-path
+- Dirty race, concurrent-destroy CONFLICT, local-workspace record-only path, cancel-path
   restore, and delete-while-viewing navigation all verified as tabled above.

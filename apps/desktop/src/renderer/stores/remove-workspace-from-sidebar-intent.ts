@@ -5,7 +5,6 @@ export interface RemoveFromSidebarTarget {
 	workspaceName: string;
 	/** Null for project-less "session" workspaces. */
 	projectId: string | null;
-	isMain: boolean;
 	tick: number;
 }
 

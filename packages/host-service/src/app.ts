@@ -21,7 +21,6 @@ import { registerDesktopRoute } from "./runtime/desktop";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitEnvResolver, createGitFactory } from "./runtime/git";
-import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { runProjectBackfill } from "./runtime/project-backfill";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
 import {
@@ -250,16 +249,13 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 
 	// Startup sweeps run in the background so they don't block server
-	// startup. Ordering matters: the project backfill fills identity fields
-	// on pre-existing rows before the main-workspace sweep touches them.
+	// startup.
 	//
 	// None of them run in a sandbox. Every one repairs state a long-lived
 	// machine accumulates — rows that predate a column, a delete a previous
 	// process crashed out of — and a sandbox is provisioned fresh with exactly
 	// one project and one workspace, seeded by us, that no earlier build ever
-	// touched. There is nothing to recover, so the sweeps can only invent:
-	// the main-workspace sweep already added a phantom second workspace here
-	// before bootstrap started seeding `type='main'`.
+	// touched. There is nothing to recover, so the sweeps can only invent.
 	void (async () => {
 		if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") return;
 		await runProjectBackfill({
@@ -267,16 +263,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			eventBus,
 		}).catch((err) => {
 			console.warn("[host-service] project backfill failed:", err);
-		});
-		// Backfill `kind='main'` workspaces for projects already set up before
-		// this column shipped. Idempotent — only does real work the first
-		// time after upgrade.
-		await runMainWorkspaceSweep({
-			db,
-			git,
-			eventBus,
-		}).catch((err) => {
-			console.warn("[host-service] main-workspace sweep failed:", err);
 		});
 		// Finish any delete the previous process crashed out of (archived row
 		// whose worktree still exists).

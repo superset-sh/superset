@@ -83,14 +83,6 @@ function getChildTimestamp(
 	return Number.isNaN(activity) ? toTime(section.createdAt) : activity;
 }
 
-function isLocalMainChild(child: DashboardSidebarProjectChild): boolean {
-	return (
-		child.type === "workspace" &&
-		child.workspace.type === "main" &&
-		child.workspace.hostType === "local-device"
-	);
-}
-
 function haveSameItems<Item>(left: Item[], right: Item[]): boolean {
 	return (
 		left.length === right.length &&
@@ -101,8 +93,7 @@ function haveSameItems<Item>(left: Item[], right: Item[]): boolean {
 /**
  * Orders a project's children for a non-manual sort mode: workspaces inside
  * each section sort by the mode, sections reorder among the loose workspaces
- * by their own timestamp, and the local main workspace stays pinned first.
- * Returns the input array (and the input section objects) when nothing
+ * by their own timestamp. Returns the input array (and the input section objects) when nothing
  * moves, so memoized rows keep their identity.
  */
 export function sortDashboardSidebarProjectChildren(
@@ -132,11 +123,7 @@ export function sortDashboardSidebarProjectChildren(
 			: { ...child, section: { ...child.section, workspaces } };
 	});
 
-	const mains = sortedInside.filter(isLocalMainChild).sort(compareChildren);
-	const rest = sortedInside
-		.filter((child) => !isLocalMainChild(child))
-		.sort(compareChildren);
-	const sorted = [...mains, ...rest];
+	const sorted = [...sortedInside].sort(compareChildren);
 	return haveSameItems(sorted, children) ? children : sorted;
 }
 

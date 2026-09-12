@@ -1236,6 +1236,9 @@ msgstr "이 탭에서 프로세스가 아직 실행 중입니다"
 msgid "A process is still running in this terminal"
 msgstr "이 터미널에서 프로세스가 아직 실행 중입니다"
 
+msgid "A pull request always gets its own worktree"
+msgstr "풀 리퀘스트는 항상 자체 worktree를 갖습니다"
+
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "에이전트를 다루기 위해 새로 만든 채팅 화면입니다. 더 풍부한 도구 출력, 더 매끄러운 조종, 전반적으로 더 빠른 속도."
 
@@ -3021,6 +3024,9 @@ msgstr "확인하는 중…"
 
 msgid "Checklist"
 msgstr "체크리스트"
+
+msgid "Checkout: {label}"
+msgstr "체크아웃: {label}"
 
 msgid "Checkpoint"
 msgstr "체크포인트"
@@ -7706,6 +7712,9 @@ msgstr "기울임꼴"
 msgid "Item"
 msgstr "항목"
 
+msgid "Its own branch and copy of the files"
+msgstr "독립된 브랜치와 파일 사본"
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "다시 시작할 때까지 해당 워크스페이스와 터미널을 사용할 수 없습니다. Superset 트레이 메뉴 > 호스트 서비스 > 다시 시작을 사용하세요."
 
@@ -8286,6 +8295,9 @@ msgstr "불러오는 중..."
 msgid "Loading…"
 msgstr "불러오는 중…"
 
+msgid "Local"
+msgstr "로컬"
+
 msgid "Local Device"
 msgstr "로컬 기기"
 
@@ -8360,9 +8372,6 @@ msgstr "자홍"
 
 msgid "Main"
 msgstr "메인"
-
-msgid "Main workspace"
-msgstr "메인 워크스페이스"
 
 msgid "Make all panes equal size"
 msgstr "모든 패널을 같은 크기로 맞춥니다"
@@ -13139,6 +13148,9 @@ msgstr "Superset으로 가져올 수 있는 공유 테마 JSON 파일입니다."
 msgid "Shared version"
 msgstr "공유 버전"
 
+msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
+msgstr "프로젝트의 체크아웃(파일, git 인덱스, 브랜치)을 다른 로컬 워크스페이스와 공유합니다"
+
 msgid "Sheet"
 msgstr "시트"
 
@@ -14726,6 +14738,9 @@ msgstr "찾으시는 페이지가 존재하지 않습니다."
 msgid "The people behind Superset."
 msgstr "Superset을 만드는 사람들."
 
+msgid "The project's checkout as it is — files and branch are shared"
+msgstr "프로젝트의 체크아웃을 그대로 사용 — 파일과 브랜치가 공유됩니다"
+
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."
 msgstr "제공사가 {0}을(를) 반환했습니다."
@@ -14888,6 +14903,12 @@ msgstr "이 워크스페이스를 포함한 모든 워크스페이스의 터미�
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "조직의 모든 터미널 세션{runningCountSuffix}이 닫히고 새 데몬이 시작됩니다."
 
+msgid "This closes the selected workspaces and their terminals. The project's files and branches stay as they are."
+msgstr "선택한 워크스페이스와 해당 터미널을 닫습니다. 프로젝트의 파일과 브랜치는 그대로 유지됩니다."
+
+msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
+msgstr "워크스페이스와 해당 터미널을 닫습니다. 프로젝트의 파일, 브랜치, 다른 워크스페이스는 그대로 유지됩니다."
+
 msgid "This comment is no longer here"
 msgstr "이 댓글은 더 이상 없습니다"
 
@@ -15029,8 +15050,8 @@ msgstr "호스트와 그 접근 권한, 워크스페이스가 제거됩니다. �
 msgid "This removes the project from every reachable device."
 msgstr "연결 가능한 모든 기기에서 프로젝트를 제거합니다."
 
-msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
-msgstr "worktree를 디스크에서 제거합니다. 클라우드 워크스페이스 기록도 함께 제거됩니다."
+msgid "This removes the worktree from disk and closes the workspace."
+msgstr "worktree를 디스크에서 제거하고 워크스페이스를 닫습니다."
 
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "레이블, 명령, 인수, 프롬프트 및 재개 설정, 환경 변수, 아이콘이 현재 번들된 구성으로 바뀝니다."
@@ -16462,6 +16483,9 @@ msgstr "worktree 위치를 업데이트했습니다"
 msgid "Worktree missing"
 msgstr "worktree 없음"
 
+msgid "Worktree on this device"
+msgstr "이 기기의 worktree"
+
 msgid "Worktree opened"
 msgstr "worktree를 열었습니다"
 
@@ -16470,6 +16494,9 @@ msgstr "worktree가 동기화되지 않음"
 
 msgid "Worktrees"
 msgstr "worktree"
+
+msgid "Worktrees are removed from disk; workspaces on the project's checkout only close. Files in the checkout stay as they are."
+msgstr "worktree는 디스크에서 제거되며, 프로젝트 체크아웃에 있는 워크스페이스는 닫히기만 합니다. 체크아웃의 파일은 그대로 유지됩니다."
 
 msgid "Worktrees with uncommitted changes are left on disk."
 msgstr "커밋되지 않은 변경 사항이 있는 worktree는 디스크에 남습니다."

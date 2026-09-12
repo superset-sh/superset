@@ -177,11 +177,7 @@ function DashboardLayout() {
 				return;
 			}
 
-			if (
-				currentV2WorkspaceId &&
-				currentV2Workspace &&
-				currentV2Workspace.type !== "main"
-			) {
+			if (currentV2WorkspaceId && currentV2Workspace) {
 				useDeleteWorkspaceIntent.getState().request({
 					workspaceId: currentV2WorkspaceId,
 					workspaceName: currentV2Workspace.name || currentV2Workspace.branch,
@@ -191,9 +187,7 @@ function DashboardLayout() {
 		{
 			enabled:
 				(!!currentWorkspaceId && !!currentWorkspace) ||
-				(!!currentV2WorkspaceId &&
-					!!currentV2Workspace &&
-					currentV2Workspace.type !== "main"),
+				(!!currentV2WorkspaceId && !!currentV2Workspace),
 		},
 	);
 

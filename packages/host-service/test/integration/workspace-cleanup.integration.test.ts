@@ -12,7 +12,6 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Server, type ServerOptions } from "@superset/pty-daemon";
-import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../src/db/schema";
 import { disposeDaemonClient } from "../../src/terminal/daemon-client-singleton";
@@ -65,19 +64,33 @@ describe("workspaceCleanup.destroy integration", () => {
 		await scenario.dispose();
 	});
 
-	test("rejects deleting a main workspace (worktreePath === repoPath)", async () => {
-		// Use the main workspace (id), not the feature one — that's the row
-		// whose worktreePath equals the project's repoPath.
-		await expect(
-			scenario.host.trpc.workspaceCleanup.destroy.mutate({
-				workspaceId: scenario.workspaceId,
-			}),
-		).rejects.toBeInstanceOf(TRPCClientError);
+	test("deleting a local workspace (worktreePath === repoPath) keeps the repo and the other workspace", async () => {
+		// `workspaceId` is the row whose worktreePath equals the project's
+		// repoPath: destroying it must only retire the record.
+		writeFileSync(join(scenario.repo.repoPath, "keep-me.txt"), "uncommitted");
+
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.workspaceId,
+		});
+
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(false);
+		expect(result.branchDeleted).toBe(false);
+		expect(existsSync(join(scenario.repo.repoPath, ".git"))).toBe(true);
+		expect(existsSync(join(scenario.repo.repoPath, "keep-me.txt"))).toBe(true);
+		expect(existsSync(scenario.worktreePath)).toBe(true);
+		const rows = scenario.host.db.select().from(workspaces).all();
+		expect(
+			rows.find((row) => row.id === scenario.workspaceId)?.archivedAt,
+		).toBeTruthy();
+		expect(
+			rows.find((row) => row.id === scenario.featureWorkspaceId)?.archivedAt,
+		).toBeNull();
 	});
 
-	test("rejects deleting a workspace flagged as main by local type", async () => {
-		// Different scenario: the local row says type=main even though the
-		// path doesn't match repoPath. Build a fresh host for it.
+	test("a workspace flagged local by type never removes the folder it points at", async () => {
+		// The local row says type=local even though the path is a worktree.
+		// Build a fresh host for it.
 		await scenario.dispose();
 		const host = await createTestHost();
 		const repo = await createGitFixture();
@@ -94,13 +107,16 @@ describe("workspaceCleanup.destroy integration", () => {
 			projectId,
 			worktreePath,
 			branch: "feature/cleanup",
-			type: "main",
+			type: "local",
 		});
 
 		try {
-			await expect(
-				host.trpc.workspaceCleanup.destroy.mutate({ workspaceId }),
-			).rejects.toBeInstanceOf(TRPCClientError);
+			const result = await host.trpc.workspaceCleanup.destroy.mutate({
+				workspaceId,
+			});
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(false);
+			expect(existsSync(worktreePath)).toBe(true);
 		} finally {
 			await host.dispose();
 			repo.dispose();

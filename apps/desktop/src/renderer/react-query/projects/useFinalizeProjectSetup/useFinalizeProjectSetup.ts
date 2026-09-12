@@ -6,30 +6,25 @@ import { hostProjectListQueryKey } from "../useHostProjectIds";
 export interface ProjectSetupResult {
 	projectId: string;
 	repoPath: string;
-	mainWorkspaceId: string | null;
 }
 
 /**
  * Side effects to apply after a project is created or set up on a host:
  * make sure it shows up in the sidebar, and invalidate the cached host
- * project list so callers re-evaluate `needsSetup`.
+ * project list so callers re-evaluate `needsSetup`. A new project has no
+ * workspaces yet; the user creates one from the composer.
  */
 export function useFinalizeProjectSetup() {
-	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
-		useDashboardSidebarState();
+	const { ensureProjectInSidebar } = useDashboardSidebarState();
 	const queryClient = useQueryClient();
 
 	return useCallback(
 		(hostUrl: string, result: ProjectSetupResult) => {
-			if (result.mainWorkspaceId) {
-				ensureWorkspaceInSidebar(result.mainWorkspaceId, result.projectId);
-			} else {
-				ensureProjectInSidebar(result.projectId);
-			}
+			ensureProjectInSidebar(result.projectId);
 			void queryClient.invalidateQueries({
 				queryKey: hostProjectListQueryKey(hostUrl),
 			});
 		},
-		[ensureProjectInSidebar, ensureWorkspaceInSidebar, queryClient],
+		[ensureProjectInSidebar, queryClient],
 	);
 }

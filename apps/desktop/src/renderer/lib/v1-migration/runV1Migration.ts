@@ -63,7 +63,6 @@ export interface RunV1MigrationDeps {
 	};
 	onProjectImported?: (result: {
 		v2ProjectId: string;
-		mainWorkspaceId: string | null;
 		repoPath: string;
 	}) => void;
 	onWorkspaceAdopted?: (v2WorkspaceId: string, v2ProjectId: string) => void;
@@ -278,6 +277,7 @@ async function migrateWorkspaces(
 			.filter((id): id is string => !!id),
 	);
 	const onDiskBranchesByV2ProjectId = new Map<string, Set<string>>();
+	const mainBranchByV2ProjectId = new Map<string, string>();
 	await Promise.all(
 		Array.from(mappedV2ProjectIds, async (v2ProjectId) => {
 			try {
@@ -289,6 +289,8 @@ async function migrateWorkspaces(
 					v2ProjectId,
 					new Set(result.worktrees.map((w) => w.branch)),
 				);
+				const main = result.worktrees.find((w) => w.isMainWorktree);
+				if (main) mainBranchByV2ProjectId.set(v2ProjectId, main.branch);
 			} catch {
 				// Leave unset: planWorkspaceAdoptions treats unknown as adoptable
 				// and lets adopt() decide.
@@ -305,6 +307,7 @@ async function migrateWorkspaces(
 		v2ProjectIdByV1ProjectId,
 		hostWorkspaces,
 		onDiskBranchesByV2ProjectId,
+		mainBranchByV2ProjectId,
 	});
 
 	// A workspace is unmapped exactly when its project's import failed or was
@@ -331,6 +334,39 @@ async function migrateWorkspaces(
 			status: "skipped",
 			reason: "no-worktree-on-disk",
 		});
+	}
+
+	for (const entry of plan.toCreateLocal) {
+		try {
+			const result = await deps.hostClient.workspaces.create.mutate({
+				projectId: entry.v2ProjectId,
+				checkout: "local",
+				name: entry.name,
+			});
+			summary.migrated++;
+			pushOutcome(ledger, outcomes, {
+				v1Id: entry.v1WorkspaceId,
+				kind: "workspace",
+				status: "success",
+				v2Id: result.workspace.id,
+			});
+			try {
+				deps.onWorkspaceAdopted?.(result.workspace.id, entry.v2ProjectId);
+			} catch (err) {
+				console.error("[v1-migration] onWorkspaceAdopted callback failed", {
+					v1WorkspaceId: entry.v1WorkspaceId,
+					err,
+				});
+			}
+		} catch (err) {
+			summary.failed++;
+			pushOutcome(ledger, outcomes, {
+				v1Id: entry.v1WorkspaceId,
+				kind: "workspace",
+				status: "error",
+				reason: errorMessage(err),
+			});
+		}
 	}
 
 	for (const entry of plan.toAdopt) {

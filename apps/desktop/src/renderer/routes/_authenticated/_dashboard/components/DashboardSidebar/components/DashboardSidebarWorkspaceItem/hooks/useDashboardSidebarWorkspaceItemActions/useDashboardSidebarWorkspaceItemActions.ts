@@ -41,7 +41,6 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	pullRequestUrl?: string | null;
 	/** Cloud rows source their chip from the cloud table, not their host. */
 	isCloudWorkspace?: boolean;
-	isMainWorkspace?: boolean;
 	isPinned?: boolean;
 }
 
@@ -53,7 +52,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 	branch,
 	pullRequestUrl = null,
 	isCloudWorkspace = false,
-	isMainWorkspace = false,
 	isPinned = false,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const { t } = useLingui();
@@ -157,7 +155,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 			workspaceId,
 			workspaceName,
 			projectId,
-			isMain: isMainWorkspace,
 		});
 	};
 

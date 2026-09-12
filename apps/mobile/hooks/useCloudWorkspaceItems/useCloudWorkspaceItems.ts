@@ -27,7 +27,7 @@ export interface CloudWorkspaceItem extends HostWorkspaceItem {
  * Two fields are invented: `worktreeExists: true` keeps the list from
  * filtering the row as a stale shell, and `worktreePath: ""` satisfies the
  * shape — nothing reads a path off a list row. `type` is not invented: the
- * sandbox self-seeds its workspace as `main`. `hostReachable` is false so
+ * sandbox self-seeds its workspace as `local`. `hostReachable` is false so
  * decoration that needs the host (diff stats) waits for the workspace to open.
  */
 function itemFromCloudRow(cloud: CloudWorkspaceRow): CloudWorkspaceItem {
@@ -39,7 +39,7 @@ function itemFromCloudRow(cloud: CloudWorkspaceRow): CloudWorkspaceItem {
 		hostId: cloud.id,
 		name: cloud.name,
 		branch: cloud.branch,
-		type: "main",
+		type: "local",
 		createdByUserId: cloud.createdByUserId ?? null,
 		taskId: null,
 		tags: [],

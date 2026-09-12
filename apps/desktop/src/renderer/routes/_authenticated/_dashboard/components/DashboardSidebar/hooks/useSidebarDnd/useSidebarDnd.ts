@@ -713,31 +713,6 @@ export function useSidebarDnd({
 		[items, activeType, activeContainer],
 	);
 
-	// The sidebar data builder always sorts local main workspaces first,
-	// so any drop that lands an item above one would silently revert on
-	// the next rebuild (e.g. when the sidebar collapses and remounts).
-	// Normalize drop results to match what actually persists.
-	const normalizeMainFirst = useCallback(
-		(list: UniqueIdentifier[]) => {
-			const mains: UniqueIdentifier[] = [];
-			const rest: UniqueIdentifier[] = [];
-			for (const id of list) {
-				const parsed = parseId(id);
-				const ws =
-					parsed?.type === "workspace"
-						? workspacesById.get(parsed.realId)
-						: null;
-				if (ws?.type === "main" && ws.hostType === "local-device") {
-					mains.push(id);
-				} else {
-					rest.push(id);
-				}
-			}
-			return mains.length > 0 ? [...mains, ...rest] : list;
-		},
-		[workspacesById],
-	);
-
 	// ── Collision detection ──────────────────────────────────────────
 	//
 	// One DndContext holds project headers, section headers, and every
@@ -1034,10 +1009,7 @@ export function useSidebarDnd({
 					(unit) => unit.ids,
 				);
 
-				const newList =
-					container === SESSIONS_CONTAINER
-						? rebuilt
-						: normalizeMainFirst(rebuilt);
+				const newList = rebuilt;
 				commitDragItems(withContainerList(current, container, newList));
 				dropWriteIdsRef.current = workspaceIdsOf(newList);
 				commitContainerToDb(container, newList, current.membership);
@@ -1079,13 +1051,6 @@ export function useSidebarDnd({
 					if (oldIndex !== -1 && overIndex !== -1 && oldIndex !== overIndex) {
 						targetList = arrayMove(targetList, oldIndex, overIndex);
 					}
-				}
-
-				if (
-					targetContainer !== PINNED_CONTAINER &&
-					targetContainer !== SESSIONS_CONTAINER
-				) {
-					targetList = normalizeMainFirst(targetList);
 				}
 
 				// Skip the writes when the drop lands exactly where the drag
@@ -1146,7 +1111,6 @@ export function useSidebarDnd({
 			projects,
 			projectIds,
 			onReorderProjects,
-			normalizeMainFirst,
 			commitContainerToDb,
 			persistWorkspaceDrop,
 			commitDragItems,

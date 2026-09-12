@@ -19,6 +19,7 @@ export interface HostWorkspaceLike {
 	/** Null for project-less "session" workspaces (never adoption targets). */
 	projectId: string | null;
 	branch: string;
+	type?: "local" | "worktree" | "session";
 }
 
 export interface AdoptPlanEntry {
@@ -40,6 +41,18 @@ export interface WorkspacePlan {
 		v2WorkspaceId: string;
 		name: string;
 		branch: string;
+	}>;
+	/**
+	 * A v1 workspace on the branch the project's own checkout has out is
+	 * v1's main-repo workspace. It becomes a v2 local workspace on that
+	 * checkout — created, not adopted, because there is no worktree to
+	 * adopt.
+	 */
+	toCreateLocal: Array<{
+		v1WorkspaceId: string;
+		v1ProjectId: string;
+		v2ProjectId: string;
+		name: string;
 	}>;
 	/** Branch has no on-disk worktree under the v2 project — nothing to adopt. */
 	missingWorktree: Array<{
@@ -67,23 +80,31 @@ export function planWorkspaceAdoptions({
 	v2ProjectIdByV1ProjectId,
 	hostWorkspaces,
 	onDiskBranchesByV2ProjectId,
+	mainBranchByV2ProjectId = new Map(),
 }: {
 	v1Workspaces: V1WorkspaceLike[];
 	v1WorktreesById: Map<string, V1WorktreeLike>;
 	v2ProjectIdByV1ProjectId: Map<string, string>;
 	hostWorkspaces: HostWorkspaceLike[];
 	onDiskBranchesByV2ProjectId: Map<string, Set<string>>;
+	/** The branch checked out at each v2 project's repo root. */
+	mainBranchByV2ProjectId?: Map<string, string>;
 }): WorkspacePlan {
 	const hostByKey = new Map<string, string>();
+	const localByProject = new Map<string, string>();
 	for (const w of hostWorkspaces) {
 		// Session workspaces have no project and are never adoption targets.
 		if (w.projectId === null) continue;
 		hostByKey.set(hostWorkspaceKey(w.projectId, w.branch), w.id);
+		if (w.type === "local" && !localByProject.has(w.projectId)) {
+			localByProject.set(w.projectId, w.id);
+		}
 	}
 
 	const plan: WorkspacePlan = {
 		toAdopt: [],
 		alreadyAdopted: [],
+		toCreateLocal: [],
 		missingWorktree: [],
 		unmappedProject: [],
 	};
@@ -107,6 +128,28 @@ export function planWorkspaceAdoptions({
 				name: workspace.name,
 				branch: workspace.branch,
 			});
+			continue;
+		}
+
+		if (mainBranchByV2ProjectId.get(v2ProjectId) === workspace.branch) {
+			const localId = localByProject.get(v2ProjectId);
+			if (localId) {
+				plan.alreadyAdopted.push({
+					v1WorkspaceId: workspace.id,
+					v1ProjectId: workspace.projectId,
+					v2ProjectId,
+					v2WorkspaceId: localId,
+					name: workspace.name,
+					branch: workspace.branch,
+				});
+			} else {
+				plan.toCreateLocal.push({
+					v1WorkspaceId: workspace.id,
+					v1ProjectId: workspace.projectId,
+					v2ProjectId,
+					name: workspace.name,
+				});
+			}
 			continue;
 		}
 

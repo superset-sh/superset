@@ -37,6 +37,8 @@ function invoke(
 		project?: string | undefined;
 		branch?: string | undefined;
 		model?: string;
+		checkout?: string;
+		pr?: number;
 	} = {},
 ) {
 	return createWorkspaceCommand.run({
@@ -126,5 +128,40 @@ describe("workspaces create", () => {
 			/--model requires --agent/,
 		);
 		expect(createInput).toBeUndefined();
+	});
+
+	test("--checkout local sends the local checkout and no branch", async () => {
+		await invoke({ checkout: "local", branch: undefined });
+		expect(createInput?.checkout).toBe("local");
+		expect(createInput?.branch).toBeUndefined();
+	});
+
+	test("omits checkout entirely for the default worktree create", async () => {
+		await invoke();
+		expect(createInput).not.toHaveProperty("checkout");
+	});
+
+	test("rejects --branch alongside --checkout local", async () => {
+		await expect(invoke({ checkout: "local" })).rejects.toThrow(
+			/cannot be combined with --checkout local/,
+		);
+	});
+
+	test("rejects --pr alongside --checkout local", async () => {
+		await expect(
+			invoke({ checkout: "local", branch: undefined, pr: 12 }),
+		).rejects.toThrow(/cannot be combined with --checkout local/);
+	});
+
+	test("rejects an unknown --checkout value", async () => {
+		await expect(invoke({ checkout: "clone" })).rejects.toThrow(
+			/Unknown checkout/,
+		);
+	});
+
+	test("rejects --checkout on a project-less session", async () => {
+		await expect(
+			invoke({ checkout: "local", project: undefined, branch: undefined }),
+		).rejects.toThrow(/--checkout requires --project/);
 	});
 });

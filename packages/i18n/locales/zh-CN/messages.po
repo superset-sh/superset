@@ -1236,6 +1236,9 @@ msgstr "此标签页中仍有进程在运行"
 msgid "A process is still running in this terminal"
 msgstr "此终端中仍有进程在运行"
 
+msgid "A pull request always gets its own worktree"
+msgstr "拉取请求总是使用自己的 worktree"
+
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "重建的智能体驱动聊天界面：更丰富的工具输出、更顺手的引导，一切都更快。"
 
@@ -3021,6 +3024,9 @@ msgstr "正在检查…"
 
 msgid "Checklist"
 msgstr "清单"
+
+msgid "Checkout: {label}"
+msgstr "检出：{label}"
 
 msgid "Checkpoint"
 msgstr "检查点"
@@ -7706,6 +7712,9 @@ msgstr "斜体"
 msgid "Item"
 msgstr "条目"
 
+msgid "Its own branch and copy of the files"
+msgstr "独立的分支和文件副本"
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "在它重启之前，其工作区和终端都不可用，请使用Superset托盘菜单 > 主机服务 > 重启。"
 
@@ -8286,6 +8295,9 @@ msgstr "加载中..."
 msgid "Loading…"
 msgstr "正在加载…"
 
+msgid "Local"
+msgstr "本地"
+
 msgid "Local Device"
 msgstr "本地设备"
 
@@ -8360,9 +8372,6 @@ msgstr "品红"
 
 msgid "Main"
 msgstr "主进程"
-
-msgid "Main workspace"
-msgstr "主工作区"
 
 msgid "Make all panes equal size"
 msgstr "使所有窗格大小相同"
@@ -13139,6 +13148,9 @@ msgstr "可导入Superset的共享主题JSON文件。"
 msgid "Shared version"
 msgstr "分享的版本"
 
+msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
+msgstr "与该项目的其他本地工作区共享项目的检出（文件、git 索引和分支）"
+
 msgid "Sheet"
 msgstr "侧边面板"
 
@@ -14726,6 +14738,9 @@ msgstr "你要找的页面不存在。"
 msgid "The people behind Superset."
 msgstr "Superset背后的团队。"
 
+msgid "The project's checkout as it is — files and branch are shared"
+msgstr "按原样使用项目的检出 — 文件和分支是共享的"
+
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."
 msgstr "提供商返回了{0}。"
@@ -14888,6 +14903,12 @@ msgstr "这会关闭所有终端会话 — 包括此工作区和其他工作区�
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "这会关闭你组织的所有终端会话{runningCountSuffix}并启动全新的守护进程。"
 
+msgid "This closes the selected workspaces and their terminals. The project's files and branches stay as they are."
+msgstr "这将关闭所选工作区及其终端。项目的文件和分支保持不变。"
+
+msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
+msgstr "这将关闭该工作区及其终端。项目的文件、分支和其他工作区保持不变。"
+
 msgid "This comment is no longer here"
 msgstr "此评论已不存在"
 
@@ -15029,8 +15050,8 @@ msgstr "这将移除该主机、其访问权限及其工作区。机器上的文
 msgid "This removes the project from every reachable device."
 msgstr "这会从所有可访问的设备中移除该项目。"
 
-msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
-msgstr "这会把worktree从磁盘上移除。云端的工作区记录也会一并移除。"
+msgid "This removes the worktree from disk and closes the workspace."
+msgstr "这将从磁盘中删除该 worktree 并关闭工作区。"
 
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "这会用当前内置配置替换它的名称、命令、参数、提示词与恢复设置、环境变量和图标。"
@@ -16462,6 +16483,9 @@ msgstr "已更新worktree位置"
 msgid "Worktree missing"
 msgstr "worktree缺失"
 
+msgid "Worktree on this device"
+msgstr "此设备上的 worktree"
+
 msgid "Worktree opened"
 msgstr "worktree已打开"
 
@@ -16470,6 +16494,9 @@ msgstr "worktree不同步"
 
 msgid "Worktrees"
 msgstr "Worktree"
+
+msgid "Worktrees are removed from disk; workspaces on the project's checkout only close. Files in the checkout stay as they are."
+msgstr "worktree 会从磁盘中删除；位于项目检出上的工作区仅会关闭。检出中的文件保持不变。"
 
 msgid "Worktrees with uncommitted changes are left on disk."
 msgstr "有未提交更改的worktree会保留在磁盘上。"

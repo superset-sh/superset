@@ -2,39 +2,26 @@ import { describe, expect, it } from "bun:test";
 import { getNotificationWorkspaceName } from "./getNotificationWorkspaceName";
 
 describe("getNotificationWorkspaceName", () => {
-	it("names main workspaces 'local' even when the stored name is stale", () => {
+	it("uses the workspace name, trimmed", () => {
 		expect(
 			getNotificationWorkspaceName({
-				type: "main",
-				name: "feat/error-capture-audit",
-				branch: "mvp",
+				type: "local",
+				name: "  refactor auth ",
+				branch: "main",
 			}),
-		).toBe("local");
+		).toBe("refactor auth");
 	});
 
-	it("uses the worktree workspace name when set", () => {
-		expect(
-			getNotificationWorkspaceName({
-				type: "worktree",
-				name: "Fix login bug",
-				branch: "fix-login-bug",
-			}),
-		).toBe("Fix login bug");
-	});
-
-	it("falls back to the branch for unnamed worktree workspaces", () => {
+	it("falls back to the branch, then to a generic label", () => {
 		expect(
 			getNotificationWorkspaceName({
 				type: "worktree",
-				name: "  ",
-				branch: "fix-login-bug",
+				name: " ",
+				branch: "feat/x",
 			}),
-		).toBe("fix-login-bug");
-	});
-
-	it("falls back to 'Workspace' when name and branch are empty", () => {
+		).toBe("feat/x");
 		expect(
-			getNotificationWorkspaceName({ type: "worktree", name: "", branch: "" }),
+			getNotificationWorkspaceName({ type: "session", name: "", branch: "" }),
 		).toBe("Workspace");
 	});
 });

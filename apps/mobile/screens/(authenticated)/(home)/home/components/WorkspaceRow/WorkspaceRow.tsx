@@ -79,15 +79,11 @@ export function WorkspaceRow({
 	return (
 		<WorkspaceRowMenu
 			// A sandbox that doesn't exist yet has nothing to rename or delete; a
-			// failed one only needs disposing of. Cloud rows are served as `main`
-			// because the checkout is the repo, but deleting one kills the
-			// sandbox, not a base checkout.
+			// failed one only needs disposing of. Deleting a local workspace
+			// retires the record and leaves the checkout alone, so every row on
+			// a host is deletable.
 			canRename={cloudStatus === undefined || cloudStatus === "ready"}
-			canDelete={
-				cloudStatus === undefined
-					? workspace.type !== "main"
-					: cloudStatus !== "provisioning"
-			}
+			canDelete={cloudStatus === undefined || cloudStatus !== "provisioning"}
 			isUnread={isUnread}
 			onToggleUnread={toggleUnread}
 			pinned={pinned}

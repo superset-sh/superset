@@ -73,7 +73,7 @@ export interface AccessibleV2Workspace {
 	id: string;
 	name: string;
 	branch: string;
-	type: "main" | "worktree" | "session";
+	type: "local" | "worktree" | "session";
 	createdAt: Date;
 	createdByUserId: string | null;
 	createdByName: string | null;
@@ -369,7 +369,7 @@ export function useAccessibleV2Workspaces(
 			id: string;
 			name: string;
 			branch: string;
-			type: "main" | "worktree" | "session";
+			type: "local" | "worktree" | "session";
 			createdAt: Date;
 			createdByUserId: string | null;
 			createdByName: string | null;
@@ -686,13 +686,9 @@ export function useAccessibleV2Workspaces(
 			if (deduped.has(row.id)) continue;
 			const hostType: V2WorkspaceHostType =
 				row.hostId === machineId ? "local-device" : "remote-device";
-			const isAutoVisibleMain =
-				row.type === "main" &&
-				row.hostId === machineId &&
-				row.sidebarProjectId != null;
 			const isInSidebar =
 				isSidebarWorkspaceVisible({ isHidden: row.sidebarIsHidden }) &&
-				(row.sidebarWorkspaceId != null || isAutoVisibleMain);
+				row.sidebarWorkspaceId != null;
 			const pr = prByWorkspaceId.get(row.id) ?? null;
 
 			deduped.set(row.id, {
