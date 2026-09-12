@@ -29,6 +29,7 @@ import {
 	createKimiWrapper,
 	createMastraHooksJson,
 	createMastraWrapper,
+	createMuseManagedHooksFile,
 	createMuseSettingsJson,
 	createMuseWrapper,
 	createOmpExtension,
@@ -148,7 +149,11 @@ const AGENT_SETUP_DEFINITIONS: Record<
 		teardown: [removeDevinManagedHooks],
 	},
 	muse: {
-		setup: [createMuseSettingsJson, createMuseWrapper],
+		setup: [
+			createMuseManagedHooksFile,
+			createMuseSettingsJson,
+			createMuseWrapper,
+		],
 		teardown: [removeMuseManagedHooks],
 	},
 };
