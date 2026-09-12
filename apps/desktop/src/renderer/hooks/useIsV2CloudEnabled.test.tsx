@@ -130,15 +130,37 @@ describe("useIsV1FlipLocked", () => {
 		expect(readProbe("org-mid", null)).toEqual({ locked: true, v2: false });
 	});
 
-	test("completion mid-session makes an opt-out inert", () => {
+	test("completion mid-session freezes the surface: a later opt-in does not flip forward", () => {
+		expect(readProbe("org-freeze-in", null)).toEqual({
+			locked: false,
+			v2: false,
+		});
+		markV1MigrationComplete("org-freeze-in");
+		// The completion event re-renders before anyone can toggle; that render
+		// pins the surface.
+		expect(readProbe("org-freeze-in", null)).toEqual({
+			locked: true,
+			v2: false,
+		});
+		expect(readProbe("org-freeze-in", true)).toEqual({
+			locked: true,
+			v2: false,
+		});
+	});
+
+	test("completion mid-session freezes the surface: a later opt-out does not snap back", () => {
 		createdAt = V2_ERA_CREATED_AT;
 		try {
-			expect(readProbe("org-mid-optout", false)).toEqual({
+			expect(readProbe("org-freeze-out", null)).toEqual({
 				locked: false,
-				v2: false,
+				v2: true,
 			});
-			markV1MigrationComplete("org-mid-optout");
-			expect(readProbe("org-mid-optout", false)).toEqual({
+			markV1MigrationComplete("org-freeze-out");
+			expect(readProbe("org-freeze-out", null)).toEqual({
+				locked: true,
+				v2: true,
+			});
+			expect(readProbe("org-freeze-out", false)).toEqual({
 				locked: true,
 				v2: true,
 			});

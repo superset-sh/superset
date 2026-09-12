@@ -16,6 +16,11 @@ function subscribeToMigrationCompletion(onChange: () => void): () => void {
 		window.removeEventListener(V1_MIGRATION_COMPLETED_EVENT, onChange);
 }
 
+// optInV2 as it stood when completion was first observed this session, per
+// org. The surface holds there until relaunch: no mid-session flip forward,
+// and no snap back to v1 through a late opt-out.
+const optInV2AtCompletion = new Map<string, boolean | null>();
+
 /** Live marker read: re-renders the moment a pass completes this session. */
 function useIsV1MigrationCompleteNow(
 	organizationId: string | null | undefined,
@@ -69,10 +74,13 @@ export function useIsV2CloudEnabled(): boolean {
 	if (isV1ForcedFlipActive()) {
 		return true;
 	}
-	// Completed mid-session: the surface still flips on the next launch, but
-	// an opt-out written after completion must not drag this machine back.
-	const effectiveOptIn =
-		completedThisSession && optInV2 === false ? null : optInV2;
+	let effectiveOptIn = optInV2;
+	if (completedThisSession && organizationId) {
+		if (!optInV2AtCompletion.has(organizationId)) {
+			optInV2AtCompletion.set(organizationId, optInV2);
+		}
+		effectiveOptIn = optInV2AtCompletion.get(organizationId) ?? null;
+	}
 	// Dev builds default to v2; an explicit opt-out (optInV2 === false) still wins.
 	return effectiveOptIn ?? (v2Only || env.NODE_ENV === "development");
 }
