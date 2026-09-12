@@ -27,7 +27,8 @@ const AXIS_MEANING: Record<AxisName, string> = {
 const tierName = (tier: number) =>
 	tier >= 1 && tier <= 4 ? (TIER_NAMES[tier - 1] ?? "Unranked") : "Unranked";
 
-function compact(value: number): string {
+function compact(tokens: number | string): string {
+	const value = Number(tokens);
 	if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
 	if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
 	if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
@@ -68,11 +69,11 @@ export function renderProfileMarkdown(profile: ParticipantProfile): string {
 		.toISOString()
 		.slice(0, 10);
 	const activeDays = profile.daily.filter(
-		(day) => day.tokens > 0 && day.day >= yearAgo,
+		(day) => BigInt(day.tokens) > 0n && day.day >= yearAgo,
 	).length;
 	const busiest = profile.daily.reduce(
-		(best, day) => (day.tokens > best.tokens ? day : best),
-		{ day: "—", tokens: 0, usd: "0" },
+		(best, day) => (BigInt(day.tokens) > BigInt(best.tokens) ? day : best),
+		{ day: "—", tokens: "0", usd: "0" },
 	);
 
 	const held = highestPerSlug(profile.awards);

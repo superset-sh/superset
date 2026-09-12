@@ -39,6 +39,19 @@ describe("quartileLevel", () => {
 });
 
 describe("buildCalendar", () => {
+	test("adds decimal string totals numerically", () => {
+		const calendar = buildCalendar(
+			[
+				{ day: "2026-09-01", tokens: "9" },
+				{ day: "2026-09-01", tokens: "10" },
+				{ day: "2026-09-02", tokens: "0" },
+			],
+			"2026-09-03",
+		);
+		expect(calendar.total).toBe(19);
+		expect(calendar.max).toBe(19);
+		expect(calendar.activeDays).toBe(1);
+	});
 	test("always returns a full grid", () => {
 		const calendar = buildCalendar([], "2026-09-03");
 		expect(calendar.weeks).toHaveLength(CALENDAR_WEEKS);
