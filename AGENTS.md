@@ -200,3 +200,54 @@ in the commit message and the PR.
   you find a new one.
 - `docs/cloud-sandbox-considerations.md`: what cloud sandboxes still owe before they leave the
   team — billing, credential blast radius, untested behaviour.
+
+## Cursor Cloud specific instructions
+
+### Environment overview
+
+The VM snapshot has **Bun 1.3.6** and **Caddy** pre-installed. The update script runs `bun install` on startup.
+
+### Running dev servers
+
+Start individual Next.js apps from their directory using the `dev` script in each app's `package.json` (they use `dotenv-cli` to load the root `.env`). Examples:
+
+```bash
+cd apps/api && bun run dev      # API on port 3001
+cd apps/web && bun run dev      # Web on port 3000
+cd apps/docs && bun run dev     # Docs on port 3004
+cd apps/marketing && bun run dev # Marketing on port 3002
+```
+
+The root `bun dev` starts web, api, desktop, electric-proxy, and Caddy via Turborepo TUI. In headless environments, prefer starting apps individually.
+
+### External service dependencies
+
+Most apps (web, api, marketing, admin) require Neon PostgreSQL `DATABASE_URL` and `DATABASE_URL_UNPOOLED` in the root `.env` to render pages. Without them, pages return 500 because `@neondatabase/serverless` throws when called with an empty connection string. `SKIP_ENV_VALIDATION=1` only skips env schema validation at import time — it does **not** mock database calls or supply either value.
+
+The **docs site** (`apps/docs`) works fully without any external credentials.
+
+The **API** has some endpoints that work without DB (e.g., `GET /api/desktop/version`), but most routes require auth/DB.
+
+### Desktop app (Electron)
+
+The desktop app (`apps/desktop`) cannot run in headless cloud environments. It builds and typechecks fine, and its `bun test` suite runs without a display. Native deps (`better-sqlite3`, `node-pty`) are compiled during `bun install` via the postinstall script.
+
+### Lint / Test / Typecheck
+
+All three work without external services:
+- `bun run lint` — Biome check
+- `bun test` — Bun test runner
+- `bun run typecheck` — TypeScript across all packages
+
+### Env file setup
+
+If `.env` does not exist, create it from `.env.example` and append `SKIP_ENV_VALIDATION=1`:
+```bash
+cp .env.example .env
+echo 'SKIP_ENV_VALIDATION=1' >> .env
+```
+
+Also copy `Caddyfile.example` to `Caddyfile` (required by root `bun dev`):
+```bash
+cp Caddyfile.example Caddyfile
+```
