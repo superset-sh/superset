@@ -129,6 +129,45 @@ describe("ArchivedWorkspaceBanner", () => {
 		expect(toastError).not.toHaveBeenCalled();
 	});
 
+	test.each([
+		"removed button",
+		"another target",
+		"blurred target",
+	])("pending restore preserves focus ownership: %s", async (scenario) => {
+		let resolveRestore!: (value: { shelvedAt: null }) => void;
+		unshelveResult = () =>
+			new Promise((resolve) => {
+				resolveRestore = resolve;
+			});
+		const onRestored = mock(() => {});
+		const banner = render(
+			<ArchivedWorkspaceBanner
+				workspaceId="ws-1"
+				workspaceName="fix login"
+				deleteAt={Date.now() + DAY_MS}
+				isPaused={false}
+				pauseReason={null}
+				onRestored={onRestored}
+			/>,
+		);
+		render(<button type="button">Terminal</button>);
+		const button = page().getByRole("button", { name: "Restore" });
+		button.focus();
+		fireEvent.click(button);
+		if (scenario !== "removed button") {
+			const terminal = page().getByRole("button", { name: "Terminal" });
+			terminal.focus();
+			if (scenario === "blurred target") terminal.blur();
+		}
+		banner.unmount();
+		await act(async () => {
+			resolveRestore({ shelvedAt: null });
+		});
+		expect(onRestored).toHaveBeenCalledTimes(
+			scenario === "removed button" ? 1 : 0,
+		);
+	});
+
 	test("a failed restore is reported, not swallowed", async () => {
 		unshelveResult = async () => {
 			throw new Error("workspace host unavailable: offline");

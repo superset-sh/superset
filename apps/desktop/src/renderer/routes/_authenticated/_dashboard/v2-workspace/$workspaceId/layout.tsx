@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { SHELF_RETENTION_MS } from "renderer/lib/workspaces/isShelvedWorkspace";
 import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
@@ -13,7 +14,10 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
-import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
+import {
+	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
+	useWorkspaceSidebarStore,
+} from "renderer/stores/workspace-sidebar-state";
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
 import { StateScreenShell } from "../components/StateScreenShell";
 import { WorkspaceCreateErrorState } from "../components/WorkspaceCreateErrorState";
@@ -52,6 +56,11 @@ function V2WorkspaceLayout() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isSidebarOpen = useWorkspaceSidebarStore((state) => state.isOpen);
+	const isSidebarCollapsed = useWorkspaceSidebarStore((state) =>
+		state.isCollapsed(),
+	);
+	const zoomFactor = useZoomFactor();
+	const workspaceContentRef = useRef<HTMLDivElement>(null);
 	const bannerNeedsWindowControlsInset =
 		platform !== undefined &&
 		platform !== "darwin" &&
@@ -203,30 +212,56 @@ function V2WorkspaceLayout() {
 	// Opening an archived workspace never restores it, so say so at the top of
 	// the route and put the one control that does right next to the message.
 	return (
-		<WorkspaceProvider workspace={workspace}>
-			<div className="flex min-h-0 min-w-0 flex-1 flex-col">
-				{workspace.shelvedAt != null && (
-					<div className="flex items-stretch">
-						<div className="min-w-0 flex-1">
-							<ArchivedWorkspaceBanner
-								workspaceId={workspace.id}
-								workspaceName={workspace.name}
-								deleteAt={workspace.shelvedAt + SHELF_RETENTION_MS}
-								isPaused={workspace.purgeBlockedReason != null}
-								pauseReason={workspace.purgeBlockedReason ?? null}
+		<div className="flex min-h-0 min-w-0 flex-1 flex-col">
+			{workspace.shelvedAt != null && (
+				<div className="drag flex shrink-0 items-stretch">
+					{(platform === undefined || platform === "darwin") &&
+						isV2CloudEnabled &&
+						isSidebarOpen &&
+						isSidebarCollapsed && (
+							<div
+								className="shrink-0 border-b border-border bg-muted/50"
+								style={{
+									width: Math.max(
+										80 / zoomFactor - COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
+										0,
+									),
+								}}
 							/>
-						</div>
-						{bannerNeedsWindowControlsInset && (
-							<div className="border-b border-border bg-muted/50">
-								<WindowControlsInset />
-							</div>
 						)}
+					<div className="min-w-0 flex-1">
+						<ArchivedWorkspaceBanner
+							key={workspace.id}
+							workspaceId={workspace.id}
+							workspaceName={workspace.name}
+							deleteAt={workspace.shelvedAt + SHELF_RETENTION_MS}
+							isPaused={workspace.purgeBlockedReason != null}
+							pauseReason={workspace.purgeBlockedReason ?? null}
+							onRestored={() => {
+								const content = workspaceContentRef.current;
+								if (content?.dataset.workspaceId === workspace.id) {
+									content.focus();
+								}
+							}}
+						/>
 					</div>
-				)}
-				<div className="relative flex min-h-0 min-w-0 flex-1">
-					<Outlet />
+					{bannerNeedsWindowControlsInset && (
+						<div className="border-b border-border bg-muted/50">
+							<WindowControlsInset />
+						</div>
+					)}
 				</div>
+			)}
+			<div
+				ref={workspaceContentRef}
+				data-workspace-id={workspace.id}
+				tabIndex={-1}
+				className="relative flex min-h-0 min-w-0 flex-1 outline-none"
+			>
+				<WorkspaceProvider workspace={workspace}>
+					<Outlet />
+				</WorkspaceProvider>
 			</div>
-		</WorkspaceProvider>
+		</div>
 	);
 }

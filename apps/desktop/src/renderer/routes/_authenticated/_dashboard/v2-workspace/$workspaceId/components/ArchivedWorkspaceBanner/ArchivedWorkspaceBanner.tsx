@@ -16,6 +16,7 @@ interface ArchivedWorkspaceBannerProps {
 	isPaused: boolean;
 	/** Why the host paused the purge: "dirty" (uncommitted changes) or "unverifiable". */
 	pauseReason: string | null;
+	onRestored?: () => void;
 }
 
 /**
@@ -29,6 +30,7 @@ export function ArchivedWorkspaceBanner({
 	deleteAt,
 	isPaused,
 	pauseReason,
+	onRestored,
 }: ArchivedWorkspaceBannerProps) {
 	const { t } = useLingui();
 	const { unshelve } = useShelveWorkspace(workspaceId);
@@ -50,14 +52,29 @@ export function ArchivedWorkspaceBanner({
 					message: `This workspace is archived · deletes ${formatRelativeTime(deleteAt)}`,
 				});
 
-	const restore = async () => {
+	const restore = async (button: HTMLButtonElement) => {
+		let ownsFocus = document.activeElement === button;
+		const onFocusIn = (event: FocusEvent) => {
+			if (event.target !== button && event.target !== document.body) {
+				ownsFocus = false;
+			}
+		};
+		document.addEventListener("focusin", onFocusIn);
 		setIsRestoring(true);
 		try {
 			await unshelve();
+			if (
+				ownsFocus &&
+				(document.activeElement === button ||
+					document.activeElement === document.body)
+			) {
+				onRestored?.();
+			}
 			toast.success(t({ message: `Restored "${workspaceName}" from archive` }));
 		} catch (error) {
 			toast.error(errorMessage(error));
 		} finally {
+			document.removeEventListener("focusin", onFocusIn);
 			setIsRestoring(false);
 		}
 	};
@@ -67,10 +84,11 @@ export function ArchivedWorkspaceBanner({
 			<HiMiniArchiveBox className="size-4 shrink-0" />
 			<span className="min-w-0 flex-1 truncate">{message}</span>
 			<Button
+				className="no-drag"
 				size="sm"
 				variant="outline"
 				disabled={isRestoring}
-				onClick={() => void restore()}
+				onClick={(event) => void restore(event.currentTarget)}
 			>
 				{t({ message: "Restore" })}
 			</Button>
