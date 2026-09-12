@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agent Hooks — Settings mockup</title>
+<style>
+  /* ── design tokens, lifted verbatim from apps/desktop/src/renderer/globals.css ── */
+  :root{
+    --background:#151110; --foreground:#eae8e6;
+    --card:#201e1c; --card-foreground:#eae8e6;
+    --popover:#201e1c; --popover-foreground:#eae8e6;
+    --primary:#eae8e6; --primary-foreground:#151110;
+    --secondary:#2a2827; --secondary-foreground:#eae8e6;
+    --muted:#2a2827; --muted-foreground:#a8a5a3;
+    --accent:#2a2827; --accent-foreground:#eae8e6;
+    --tertiary:#1a1716; --tertiary-active:#252220;
+    --destructive:#cc4444; --destructive-foreground:#ffcccc;
+    --warning:#e5c07b; --warning-foreground:#000000;
+    --success:#5fb37f;
+    --info:#6aa9e0;
+    --border:#2a2827; --input:#2a2827; --ring:#3a3837;
+    --sidebar:#1a1716; --sidebar-foreground:#eae8e6; --sidebar-border:#2a2827;
+    --radius:0.625rem;
+    --fill-hover: color-mix(in oklab, var(--foreground) 7%, transparent);
+    --fill-selected: color-mix(in oklab, var(--foreground) 10%, transparent);
+  }
+  [data-theme="light"]{
+    --background:#f9f9fa; --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0); --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0); --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0); --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0); --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0); --muted-foreground:#68655f;
+    --accent: oklch(0.97 0 0); --accent-foreground: oklch(0.205 0 0);
+    --tertiary: oklch(0.97 0.003 40); --tertiary-active: oklch(0.93 0.003 40);
+    --destructive: oklch(0.577 0.245 27.325); --destructive-foreground: oklch(0.985 0 0);
+    --warning: oklch(0.554 0.113 86.265); --warning-foreground: oklch(0.985 0 0);
+    --success: oklch(0.596 0.145 163.225);
+    --info:#3a7fc4;
+    --border: oklch(0.922 0 0); --input: oklch(0.922 0 0); --ring: oklch(0.708 0 0);
+    --sidebar:#ececec; --sidebar-foreground: oklch(0.145 0 0); --sidebar-border: oklch(0.922 0 0);
+    --fill-hover: color-mix(in oklab, var(--foreground) 4%, transparent);
+    --fill-selected: color-mix(in oklab, var(--foreground) 6%, transparent);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--background); color:var(--foreground);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  code, .mono{ font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  button{ font-family:inherit; cursor:pointer; }
+  input, select, textarea{ font-family:inherit; font-size:inherit; color:inherit; }
+  a{ color:inherit; }
+  svg{ display:block; flex:none; }
+
+  /* ── preview chrome (mockup-only, not part of the app) ── */
+  .preview-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:10px 18px; background:var(--tertiary); border-bottom:1px solid var(--border);
+    font-size:12.5px; color:var(--muted-foreground); flex-wrap:wrap;
+  }
+  .preview-bar strong{ color:var(--foreground); font-weight:600; }
+  .preview-bar .path{ padding:2px 6px; border-radius:4px; background:var(--muted); color:var(--foreground); }
+  .preview-controls{ display:flex; align-items:center; gap:8px; }
+
+  /* ── app window shell, mirrors settings/layout.tsx + SettingsSidebar ── */
+  .app-window{ display:flex; flex-direction:column; height:calc(100vh - 41px); width:100%; background:var(--background); }
+  .titlebar{ display:flex; align-items:center; height:40px; background:var(--sidebar); border-bottom:1px solid var(--sidebar-border); padding:0 14px; gap:8px; flex:none; }
+  .traffic{ display:flex; gap:8px; }
+  .traffic span{ width:11px; height:11px; border-radius:50%; display:block; }
+  .titlebar-label{ margin-left:8px; font-size:12.5px; color:var(--muted-foreground); }
+  .window-body{ display:flex; flex:1; min-height:0; }
+
+  .sidebar{
+    width:216px; flex:none; display:flex; flex-direction:column;
+    padding:10px 0 12px; overflow:hidden; border-right:1px solid var(--sidebar-border);
+    background:var(--sidebar); color:var(--sidebar-foreground);
+  }
+  .sidebar-back{ display:flex; align-items:center; gap:8px; padding:8px 12px; font-size:13px; color:var(--muted-foreground); margin-bottom:2px; }
+  .sidebar-title{ font-size:17px; font-weight:600; padding:0 12px; margin:2px 0 14px; }
+  .sidebar-search{ padding:0 12px; margin-bottom:14px; }
+  .sidebar-search input{
+    width:100%; height:30px; border:0; border-radius:6px; background:color-mix(in oklab, var(--accent) 50%, transparent);
+    padding:0 10px 0 28px; font-size:13px; color:var(--foreground); outline:none;
+  }
+  .sidebar-search-wrap{ position:relative; }
+  .sidebar-search-wrap svg{ position:absolute; left:9px; top:50%; transform:translateY(-50%); opacity:.55; }
+  .sidebar-nav{ flex:1; overflow-y:auto; min-height:0; border-top:1px solid var(--sidebar-border); padding:14px 12px 12px; }
+  .sidebar-group + .sidebar-group{ margin-top:16px; }
+  .sidebar-group-label{ font-size:10px; font-weight:600; color:var(--muted-foreground); text-transform:uppercase; letter-spacing:.075em; padding:0 8px; margin:0 0 4px; }
+  .sidebar-item{
+    display:flex; align-items:center; gap:8px; height:28px; padding:0 8px; border-radius:6px;
+    font-size:13px; color:var(--muted-foreground); text-decoration:none;
+  }
+  .sidebar-item svg{ opacity:.85; }
+  .sidebar-item:hover{ background:var(--fill-hover); color:var(--foreground); }
+  .sidebar-item.active{ background:var(--fill-selected); color:var(--foreground); font-weight:500; }
+  .sidebar-footer{ padding-top:12px; border-top:1px solid var(--sidebar-border); margin-top:auto; padding-left:12px; padding-right:12px; }
+  .sidebar-footer a{ display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted-foreground); text-decoration:none; }
+
+  .content{ flex:1; overflow-y:auto; }
+  .content-inner{ max-width:760px; margin:0 auto; padding:28px 24px 60px; width:100%; }
+  .page-head{ margin-bottom:22px; }
+  .page-head h2{ font-size:19px; font-weight:600; margin:0; letter-spacing:-.01em; }
+  .page-head p{ font-size:13px; color:var(--muted-foreground); margin:5px 0 0; }
+
+  /* ── the ONE section container the whole app uses (divide-y rows) ── */
+  .section{ border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .section + .section{ margin-top:24px; }
+  .row{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px; }
+  .row + .row{ border-top:1px solid var(--border); }
+  .row-head{ align-items:flex-start; }
+  .row-label{ font-size:13px; font-weight:500; }
+  .row-desc{ font-size:12px; color:var(--muted-foreground); margin-top:2px; }
+  .shrink0{ flex:none; }
+  .minw0{ min-width:0; flex:1 1 auto; }
+
+  /* ── hook list rows: one line of plain text, no badge stack ── */
+  .hook-row{ padding:12px 14px; gap:14px; }
+  .hook-row.disabled .hook-name{ color:var(--muted-foreground); }
+  .hook-row.disabled .hook-meta{ opacity:.6; }
+  .hook-left{ display:flex; align-items:center; gap:12px; min-width:0; flex:1; }
+  .hook-name{ font-size:13px; font-weight:500; }
+  .hook-meta{ margin-top:2px; font-size:12px; color:var(--muted-foreground); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hook-meta .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px; position:relative; top:-1px; }
+  .hook-meta code{ color:var(--foreground); font-size:11.5px; }
+  .hook-actions{ display:flex; align-items:center; gap:2px; flex:none; opacity:0; transition:opacity .1s; }
+  .hook-row:hover .hook-actions, .hook-row:focus-within .hook-actions, .hook-actions.force-open{ opacity:1; }
+
+  /* buttons */
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:6px; border-radius:6px; font-size:13px; font-weight:500; border:1px solid transparent; height:32px; padding:0 14px; white-space:nowrap; transition:background-color .12s,border-color .12s,opacity .12s; }
+  .btn:disabled{ opacity:.5; cursor:default; }
+  .btn-default{ background:var(--primary); color:var(--primary-foreground); }
+  .btn-default:hover{ opacity:.9; }
+  .btn-outline{ background:transparent; border-color:var(--border); color:var(--foreground); }
+  .btn-outline:hover{ background:var(--fill-hover); }
+  .btn-ghost{ background:transparent; color:var(--foreground); }
+  .btn-ghost:hover{ background:var(--fill-hover); }
+  .btn-text{ background:transparent; color:var(--muted-foreground); height:auto; padding:0; border:0; font-weight:500; font-size:12.5px; }
+  .btn-text:hover{ color:var(--foreground); }
+  .btn-sm{ height:28px; padding:0 11px; font-size:12.5px; }
+  .btn-icon{ height:26px; width:26px; padding:0; border-radius:6px; }
+  .btn-icon svg{ opacity:.8; }
+
+  /* switch */
+  .switch{ position:relative; display:inline-flex; align-items:center; width:30px; height:17px; border-radius:999px; border:1px solid transparent; background:var(--input); flex:none; padding:0; }
+  .switch[data-on="true"]{ background:var(--primary); }
+  .switch .thumb{ position:absolute; top:1px; left:1px; width:14px; height:14px; border-radius:50%; background:var(--background); transition:transform .14s ease; }
+  [data-theme="light"] .switch .thumb{ background:#fff; }
+  .switch[data-on="true"] .thumb{ transform:translateX(13px); background:var(--primary-foreground); }
+
+  /* dropdown menu (kebab) */
+  .menu-wrap{ position:relative; }
+  .menu{ position:absolute; top:calc(100% + 4px); right:0; min-width:148px; background:var(--popover); border:1px solid var(--border); border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,.3); padding:4px; z-index:30; }
+  .menu button{ display:flex; width:100%; align-items:center; gap:8px; border:0; background:transparent; color:var(--foreground); font-size:12.5px; padding:7px 8px; border-radius:5px; text-align:left; }
+  .menu button:hover{ background:var(--fill-hover); }
+  .menu button.danger{ color:var(--destructive); }
+  .menu-sep{ height:1px; background:var(--border); margin:4px 2px; }
+
+  /* empty state */
+  .empty-state{ padding:52px 24px; text-align:center; }
+  .empty-icon{ width:40px; height:40px; margin:0 auto 14px; border-radius:10px; background:var(--muted); display:flex; align-items:center; justify-content:center; }
+  .empty-state h3{ font-size:14px; font-weight:600; margin:0 0 6px; }
+  .empty-state p{ font-size:12.5px; color:var(--muted-foreground); max-width:340px; margin:0 auto 16px; }
+
+  .footnote{ font-size:12px; color:var(--muted-foreground); margin-top:14px; line-height:1.6; }
+  .footnote code{ color:var(--foreground); }
+
+  /* dialog */
+  .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:24px; z-index:50; opacity:0; pointer-events:none; transition:opacity .12s; }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .dialog{ width:100%; max-width:520px; max-height:min(88vh,720px); display:flex; flex-direction:column; background:var(--popover); color:var(--popover-foreground); border:1px solid var(--border); border-radius:12px; box-shadow:0 24px 60px rgba(0,0,0,.4); transform:scale(.98); transition:transform .12s; }
+  .overlay.open .dialog{ transform:scale(1); }
+  .dialog-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:18px 20px 16px; flex:none; }
+  .dialog-title{ font-size:15px; font-weight:600; margin:0; }
+  .dialog-close{ flex:none; width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center; background:transparent; border:0; color:var(--muted-foreground); }
+  .dialog-close:hover{ background:var(--fill-hover); color:var(--foreground); }
+  .dialog-body{ padding:2px 20px 4px; overflow-y:auto; }
+  .dialog-foot{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 20px 18px; border-top:1px solid var(--border); margin-top:14px; flex:none; }
+
+  /* sentence-style fields: a small muted connective label, then a plain control — spacing does the separating, not borders */
+  .field{ padding:9px 0; }
+  .field-divided{ border-top:1px solid var(--border); margin-top:6px; padding-top:16px; }
+  .field-label{ display:block; font-size:11.5px; font-weight:500; color:var(--muted-foreground); text-transform:uppercase; letter-spacing:.06em; margin-bottom:7px; }
+  .field-hint{ font-size:11px; color:var(--muted-foreground); margin-top:6px; line-height:1.5; }
+  .input, .select{
+    width:100%; height:32px; border-radius:6px; border:1px solid var(--input); background:transparent; color:var(--foreground);
+    padding:0 10px; font-size:13px; outline:none;
+  }
+  .input:focus, .select:focus{ border-color:var(--ring); box-shadow:0 0 0 3px color-mix(in oklab, var(--ring) 30%, transparent); }
+  .select-wrap{ position:relative; }
+  .select-wrap svg{ position:absolute; right:9px; top:50%; transform:translateY(-50%); opacity:.5; pointer-events:none; }
+  .select{ appearance:none; -webkit-appearance:none; padding-right:28px; }
+  .row-inline{ display:flex; gap:10px; }
+  .row-inline > *{ flex:1; min-width:0; }
+
+  /* event combobox */
+  .combo{ position:relative; }
+  .combo-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .combo-chips:empty{ display:none; }
+  .event-chip{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); border-radius:999px; padding:4px 6px 4px 10px; font-size:12px; }
+  .event-chip .dot{ width:6px; height:6px; border-radius:50%; }
+  .event-chip button{ display:flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; border:0; background:transparent; color:var(--muted-foreground); }
+  .event-chip button:hover{ background:var(--fill-hover); color:var(--foreground); }
+  .event-chip.add-chip{ border-style:dashed; color:var(--muted-foreground); background:transparent; padding:4px 12px; border:1px dashed var(--border); }
+  .event-chip.add-chip:hover{ color:var(--foreground); border-color:var(--ring); }
+  .event-chip.add-chip svg{ opacity:.8; }
+  .combo-panel{ position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--popover); border:1px solid var(--border); border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,.3); padding:4px; z-index:30; display:none; }
+  .combo-panel.open{ display:block; }
+  .combo-option{ display:flex; align-items:center; gap:8px; width:100%; border:0; background:transparent; color:var(--foreground); font-size:12.5px; padding:7px 8px; border-radius:5px; text-align:left; }
+  .combo-option:hover{ background:var(--fill-hover); }
+  .combo-option .dot{ width:6px; height:6px; border-radius:50%; }
+  .combo-empty{ padding:8px; font-size:12px; color:var(--muted-foreground); text-align:center; }
+
+  /* lightweight underline tabs for action type — no boxed pill container */
+  .tabs{ display:flex; gap:18px; border-bottom:1px solid var(--border); margin-bottom:14px; }
+  .tabs button{ border:0; background:transparent; color:var(--muted-foreground); font-size:12.5px; font-weight:500; padding:0 0 9px; display:inline-flex; align-items:center; gap:6px; border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .tabs button.active{ color:var(--foreground); border-bottom-color:var(--foreground); }
+  .tabs button:hover:not(.active){ color:var(--foreground); }
+
+  /* params disclosure: plain, no dark box — same divided-row idiom as the rest of the page */
+  .disclosure-trigger{ display:flex; align-items:center; gap:6px; }
+  .disclosure-trigger svg{ transition:transform .12s; }
+  .disclosure-trigger[data-open="true"] svg{ transform:rotate(90deg); }
+  .disclosure-panel{ display:none; margin-top:10px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .disclosure-panel.open{ display:block; }
+  .param-row{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:7px 10px; }
+  .param-row + .param-row{ border-top:1px solid var(--border); }
+  .param-name{ font-size:11.5px; color:var(--foreground); }
+  .param-desc{ font-size:11px; color:var(--muted-foreground); text-align:right; }
+  .param-copy{ background:transparent; border:0; color:var(--muted-foreground); flex:none; padding:2px; border-radius:4px; margin-left:6px; }
+  .param-copy:hover{ background:var(--fill-hover); color:var(--foreground); }
+  .param-name-wrap{ display:flex; align-items:center; }
+
+  /* CLI-equivalent command, inside the same disclosure panel as the params (Stripe/Neon-style copyable command row) */
+  .cli-block{ border-top:1px solid var(--border); padding:9px 10px 10px; background:var(--tertiary); }
+  .cli-block-label{ font-size:10.5px; font-weight:600; color:var(--muted-foreground); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+  .cli-cmd-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .cli-cmd{ margin:0; font-size:11.5px; line-height:1.6; color:var(--foreground); white-space:pre-wrap; word-break:break-all; }
+
+  .switch-row{ display:flex; align-items:center; justify-content:space-between; }
+
+  /* toast */
+  .toast{ position:fixed; left:50%; bottom:28px; transform:translate(-50%,12px); background:var(--foreground); color:var(--background); font-size:12.5px; font-weight:500; padding:9px 16px; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .15s, transform .15s; z-index:80; display:flex; align-items:center; gap:8px; }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
+
+  @media (max-width:760px){
+    .sidebar{ display:none; }
+    .content-inner{ padding:16px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="preview-bar">
+    <div><strong>Design mockup</strong> — Agent Lifecycle Hooks, desktop Settings · see <span class="path">plans/20260909-agent-lifecycle-hooks.md</span></div>
+    <div class="preview-controls">
+      <button class="btn btn-outline btn-sm" id="theme-toggle" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <span id="theme-toggle-label">Light preview</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="app-window">
+    <div class="titlebar">
+      <div class="traffic"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+      <span class="titlebar-label">Superset — Settings</span>
+    </div>
+    <div class="window-body">
+
+      <!-- ── sidebar ── -->
+      <div class="sidebar">
+        <div class="sidebar-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          Back to workspace
+        </div>
+        <div class="sidebar-title">Settings</div>
+        <div class="sidebar-search">
+          <div class="sidebar-search-wrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input placeholder="Search settings" />
+          </div>
+        </div>
+        <div class="sidebar-nav">
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">General</div>
+            <a class="sidebar-item">${ICON_ACCOUNT}</a>
+          </div>
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">Appearance</div>
+            <a class="sidebar-item">${ICON_APPEARANCE} Appearance</a>
+            <a class="sidebar-item">${ICON_TERMINAL} Terminal</a>
+          </div>
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">Agents</div>
+            <a class="sidebar-item">${ICON_AGENTS} Agent presets</a>
+            <a class="sidebar-item">${ICON_BELL} Notifications</a>
+            <a class="sidebar-item active">${ICON_HOOK} Agent hooks</a>
+          </div>
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">Advanced</div>
+            <a class="sidebar-item">${ICON_GIT} Git</a>
+            <a class="sidebar-item">${ICON_ADV} Advanced</a>
+          </div>
+        </div>
+        <div class="sidebar-footer">
+          <a><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg> Documentation</a>
+        </div>
+      </div>
+
+      <!-- ── content ── -->
+      <div class="content">
+        <div class="content-inner">
+          <div class="page-head">
+            <h2>Agent hooks</h2>
+            <p>Run a command, webhook, or automation when an agent starts, finishes, needs input, or fails.</p>
+          </div>
+
+          <div class="section">
+            <div class="row row-head">
+              <div class="minw0">
+                <div class="row-label">Configured hooks</div>
+                <div class="row-desc">Never block or delay the agent that triggered them.</div>
+              </div>
+              <div class="shrink0">
+                <button class="btn btn-default btn-sm" id="add-hook-btn" type="button">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  Add hook
+                </button>
+              </div>
+            </div>
+            <div id="hook-list"><!-- rendered by JS --></div>
+          </div>
+
+          <p class="footnote">
+            Also scriptable — <code>superset hooks add|list|edit|test|remove</code> — for hosts with no desktop attached.
+            Use <strong>Test</strong> before you rely on a hook.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── add / edit dialog ── -->
+  <div class="overlay" id="overlay">
+    <div class="dialog" role="dialog" aria-modal="true">
+      <div class="dialog-head">
+        <h3 class="dialog-title" id="dialog-title">Add hook</h3>
+        <button class="dialog-close" id="dialog-close" type="button" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="dialog-body" id="dialog-body">
+        <div class="field" style="padding-top:2px;">
+          <input class="input" id="f-name" placeholder="Name this hook, e.g. Completion chime" style="font-size:13.5px;" />
+        </div>
+
+        <div class="field">
+          <label class="field-label">When</label>
+          <div class="combo" id="event-combo">
+            <div class="combo-chips" id="event-chips"></div>
+            <div class="combo-panel" id="event-panel"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Where</label>
+          <div class="select-wrap">
+            <select class="select" id="f-scope">
+              <option value="any">Any project or workspace</option>
+              <optgroup label="Project">
+                <option value="project:superset">superset</option>
+                <option value="project:marketing-site">marketing-site</option>
+                <option value="project:mobile-app">mobile-app</option>
+              </optgroup>
+              <optgroup label="Workspace — superset">
+                <option value="workspace:agent-lifecycle-hooks">agent-lifecycle-hooks</option>
+                <option value="workspace:sidebar-redesign">sidebar-redesign</option>
+                <option value="workspace:main">main</option>
+              </optgroup>
+            </select>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Then</label>
+          <div class="tabs" id="action-tabs">
+            <button data-action="command" class="active" type="button">Run a command</button>
+            <button data-action="webhook" type="button">Call a webhook</button>
+            <button data-action="automation" type="button">Trigger an automation</button>
+          </div>
+
+          <div id="action-command">
+            <input class="input mono" id="f-command" placeholder="afplay ~/Sounds/done.aiff" />
+            <p class="field-hint">Arguments only — never shell-interpolated.</p>
+          </div>
+
+          <div id="action-webhook" style="display:none;">
+            <input class="input" id="f-webhook-url" placeholder="https://hooks.slack.com/services/…" />
+            <p class="field-hint">Signed, so your endpoint can verify it came from this host.</p>
+          </div>
+
+          <div id="action-automation" style="display:none;">
+            <div class="select-wrap">
+              <select class="select" id="f-automation">
+                <option>Escalate to on-call</option>
+                <option>Nightly changelog draft</option>
+                <option>PR review bot</option>
+                <option>Post to #eng-agents</option>
+              </select>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <button class="disclosure-trigger btn-text" id="params-toggle" type="button" data-open="false">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            Params &amp; CLI command
+          </button>
+          <div class="disclosure-panel" id="params-panel"></div>
+        </div>
+
+        <div class="field field-divided">
+          <div class="switch-row">
+            <div class="row-label">Enabled</div>
+            <button class="switch" id="f-enabled" data-on="true" type="button"><span class="thumb"></span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-foot">
+        <button class="btn-text" id="dialog-test" type="button">Send test event</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost btn-sm" id="dialog-cancel" type="button">Cancel</button>
+          <button class="btn btn-default btn-sm" id="dialog-save" type="button">Save hook</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- icons ----------
+  var ICONS = {
+    account: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg>',
+    appearance: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 000 18c1.5 0 2-1 2-2s-.5-1.5-.5-2.5S14 15 15 15h2a4 4 0 004-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/></svg>',
+    terminal: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>',
+    agents: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="10" rx="2"/><path d="M9 8V6a3 3 0 016 0v2M9 13h.01M15 13h.01"/></svg>',
+    bell: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg>',
+    hook: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v6a4 4 0 008 0V3M12 13v8M8 21h8"/></svg>',
+    git: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="12" r="2.2"/><path d="M6 8.2V15.8M8.2 12H15.8M8.2 12a6 6 0 003.8 5.6"/></svg>',
+    adv: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h16"/><circle cx="17" cy="12" r="2"/></svg>',
+    bolt: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>',
+    dots: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
+    copy: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
+    check: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+    x: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+    inbox: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h4l2 3h4l2-3h4"/><path d="M5.5 5h13L21 12v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6L5.5 5z"/></svg>'
+  };
+  document.querySelectorAll(".sidebar-item").forEach(function(el){
+    el.innerHTML = el.innerHTML
+      .replace("${ICON_ACCOUNT}", ICONS.account + "<span>Account</span>")
+      .replace("${ICON_APPEARANCE}", ICONS.appearance)
+      .replace("${ICON_TERMINAL}", ICONS.terminal)
+      .replace("${ICON_AGENTS}", ICONS.agents)
+      .replace("${ICON_BELL}", ICONS.bell)
+      .replace("${ICON_HOOK}", ICONS.hook)
+      .replace("${ICON_GIT}", ICONS.git)
+      .replace("${ICON_ADV}", ICONS.adv);
+  });
+
+  // ---------- data ----------
+  var EVENTS = [
+    { id:"started", label:"Started", color:"var(--info)" },
+    { id:"done", label:"Done", color:"var(--success)" },
+    { id:"needs-input", label:"Needs input", color:"var(--warning)" },
+    { id:"failed", label:"Failed", color:"var(--destructive)" },
+    { id:"session-attached", label:"Session attached", color:"var(--muted-foreground)" },
+    { id:"session-detached", label:"Session detached", color:"var(--muted-foreground)" }
+  ];
+  function eventById(id){ return EVENTS.find(function(e){ return e.id === id; }); }
+
+  var ACTION_LABEL = { command:"command", webhook:"webhook", automation:"automation" };
+
+  var PARAMS = [
+    ["SUPERSET_HOOK_EVENT", "started · done · needs-input · failed · …"],
+    ["SUPERSET_WORKSPACE_ID", "workspace the agent is running in"],
+    ["SUPERSET_WORKSPACE_NAME", "human-readable workspace name"],
+    ["SUPERSET_PROJECT_ID", "parent project, empty for project-less sessions"],
+    ["SUPERSET_PROJECT_NAME", "parent project name"],
+    ["SUPERSET_BRANCH", "the workspace's git branch"],
+    ["SUPERSET_AGENT_ID", "claude · codex · cursor-agent · …"],
+    ["SUPERSET_AGENT_SESSION_ID", "agent-native session id, when known"],
+    ["SUPERSET_OCCURRED_AT", "ISO 8601 timestamp"],
+    ["SUPERSET_HOOK_ID", "this hook's own stable id"],
+    ["SUPERSET_HOOK_EVENT_JSON", "all of the above, as one JSON object"]
+  ];
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"]/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; });
+  }
+
+  // Mirrors plans/20260909-agent-lifecycle-hooks.md's `superset hooks` flag shape 1:1,
+  // so the dialog can always show the CLI equivalent of what's on screen.
+  function buildCliCommand(){
+    var name = (document.getElementById("f-name").value || "").trim() || "Untitled hook";
+    var scopeVal = document.getElementById("f-scope") ? document.getElementById("f-scope").value : "any";
+    var lines = ["superset hooks " + (editingId ? "edit " + editingId : 'add "' + name + '"')];
+    (selectedEvents.length ? selectedEvents : ["done"]).forEach(function(id){ lines.push("--event " + id); });
+    lines.push("--scope " + scopeVal);
+    if (selectedAction === "command") lines.push('--run "' + (document.getElementById("f-command").value || "afplay ~/Sounds/done.aiff") + '"');
+    else if (selectedAction === "webhook") lines.push('--webhook "' + (document.getElementById("f-webhook-url").value || "https://…") + '"');
+    else lines.push('--automation "' + (document.getElementById("f-automation").value || "") + '"');
+    return lines[0] + " \\\n  " + lines.slice(1).join(" \\\n  ");
+  }
+
+  function renderParamsPanel(){
+    var rows = PARAMS.map(function(v){
+      return '<div class="param-row">'
+        + '<div class="param-name-wrap"><span class="mono param-name">' + v[0] + '</span>'
+        + '<button class="param-copy" type="button" data-copy="' + v[0] + '" title="Copy">' + ICONS.copy + '</button></div>'
+        + '<span class="param-desc">' + v[1] + '</span>'
+        + '</div>';
+    }).join("");
+    var cli = buildCliCommand();
+    var cliBlock = '<div class="cli-block">'
+      + '<div class="cli-block-label">Equivalent CLI command</div>'
+      + '<div class="cli-cmd-row"><pre class="mono cli-cmd">' + escapeHtml(cli) + '</pre>'
+      + '<button class="param-copy" type="button" id="cli-copy-btn" title="Copy">' + ICONS.copy + '</button></div>'
+      + '</div>';
+    var panel = document.getElementById("params-panel");
+    panel.innerHTML = rows + cliBlock;
+    panel.querySelectorAll(".param-copy").forEach(function(btn){
+      btn.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        var text = btn.id === "cli-copy-btn" ? buildCliCommand() : btn.getAttribute("data-copy");
+        try { navigator.clipboard.writeText(text).then(function(){ showToast(ICONS.check + " Copied"); }).catch(function(){}); } catch(e) {}
+      });
+    });
+  }
+
+  var paramsToggle = document.getElementById("params-toggle");
+  var paramsPanel = document.getElementById("params-panel");
+  paramsToggle.addEventListener("click", function(){
+    var open = paramsToggle.getAttribute("data-open") !== "true";
+    paramsToggle.setAttribute("data-open", String(open));
+    paramsPanel.classList.toggle("open", open);
+    if (open) renderParamsPanel();
+  });
+  // Keep the CLI line honest as the form changes, whenever the panel is open.
+  document.getElementById("dialog-body").addEventListener("input", function(){ if (paramsPanel.classList.contains("open")) renderParamsPanel(); });
+  document.getElementById("dialog-body").addEventListener("change", function(){ if (paramsPanel.classList.contains("open")) renderParamsPanel(); });
+
+  var hooks = [
+    { id:"h1", name:"Completion chime", events:["done"], scope:{mode:"any"}, enabled:true,
+      action:{ type:"command", command:"afplay ~/Sounds/done.aiff" } },
+    { id:"h2", name:"Ping #eng-agents on Slack", events:["needs-input"], scope:{mode:"any"}, enabled:true,
+      action:{ type:"webhook", url:"https://hooks.slack.com/services/T000/B000/xxxxxxxx" } },
+    { id:"h3", name:"Escalate failures", events:["failed"], scope:{mode:"project", name:"superset"}, enabled:true,
+      action:{ type:"automation", name:"Escalate to on-call" } },
+    { id:"h4", name:"Debug: log every turn", events:["started","failed"], scope:{mode:"workspace", name:"agent-lifecycle-hooks"}, enabled:false,
+      action:{ type:"command", command:"~/bin/log-agent-turn.sh" } }
+  ];
+  var editingId = null;
+  var openMenuId = null;
+
+  function scopeLabel(scope){ return scope.mode === "any" ? "Any project" : scope.name; }
+  function eventLabels(ids){ return ids.map(function(id){ return eventById(id).label; }).join(", "); }
+  function actionText(action){
+    if (action.type === "command") return '<code>' + action.command + '</code>';
+    if (action.type === "webhook") return '<code>' + action.url.replace(/^https?:\/\//,"") + '</code>';
+    return 'automation "' + action.name + '"';
+  }
+
+  function renderList(){
+    var list = document.getElementById("hook-list");
+    if (hooks.length === 0){
+      list.innerHTML =
+        '<div class="empty-state">' +
+          '<div class="empty-icon">' + ICONS.inbox + '</div>' +
+          '<h3>No hooks yet</h3>' +
+          '<p>Configure one to react when an agent starts, finishes, needs input, or fails — a sound, a Slack ping, a webhook, or another automation.</p>' +
+          '<button class="btn btn-default btn-sm" onclick="document.getElementById(\'add-hook-btn\').click()" type="button">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Add hook' +
+          '</button>' +
+        '</div>';
+      return;
+    }
+    list.innerHTML = hooks.map(function(h){
+      var primaryEvent = eventById(h.events[0]);
+      var menuOpen = openMenuId === h.id;
+      return '<div class="row hook-row' + (h.enabled ? "" : " disabled") + '" data-id="' + h.id + '">' +
+        '<div class="hook-left">' +
+          '<button class="switch" data-toggle="' + h.id + '" data-on="' + h.enabled + '"><span class="thumb"></span></button>' +
+          '<div class="minw0">' +
+            '<div class="hook-name">' + h.name + '</div>' +
+            '<div class="hook-meta"><span class="dot" style="background:' + primaryEvent.color + '"></span>' +
+              eventLabels(h.events) + ' &middot; ' + scopeLabel(h.scope) + ' &middot; ' + actionText(h.action) +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="hook-actions' + (menuOpen ? " force-open" : "") + '">' +
+          '<button class="btn btn-ghost btn-icon" data-test="' + h.id + '" title="Send test event">' + ICONS.bolt + '</button>' +
+          '<div class="menu-wrap">' +
+            '<button class="btn btn-ghost btn-icon" data-menu="' + h.id + '" title="More">' + ICONS.dots + '</button>' +
+            (menuOpen ? (
+              '<div class="menu">' +
+                '<button data-edit="' + h.id + '">Edit</button>' +
+                '<button data-duplicate="' + h.id + '">Duplicate</button>' +
+                '<div class="menu-sep"></div>' +
+                '<button class="danger" data-delete="' + h.id + '">Delete</button>' +
+              '</div>'
+            ) : "") +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+
+    list.querySelectorAll("[data-toggle]").forEach(function(el){
+      el.addEventListener("click", function(){
+        var h = hooks.find(function(x){ return x.id === el.getAttribute("data-toggle"); });
+        h.enabled = !h.enabled;
+        renderList();
+      });
+    });
+    list.querySelectorAll("[data-test]").forEach(function(el){
+      el.addEventListener("click", function(){
+        var h = hooks.find(function(x){ return x.id === el.getAttribute("data-test"); });
+        showToast(ICONS.bolt + ' Test event sent to "' + h.name + '"');
+      });
+    });
+    list.querySelectorAll("[data-menu]").forEach(function(el){
+      el.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        openMenuId = openMenuId === el.getAttribute("data-menu") ? null : el.getAttribute("data-menu");
+        renderList();
+      });
+    });
+    list.querySelectorAll("[data-edit]").forEach(function(el){
+      el.addEventListener("click", function(){ openMenuId = null; openDialog(el.getAttribute("data-edit")); });
+    });
+    list.querySelectorAll("[data-duplicate]").forEach(function(el){
+      el.addEventListener("click", function(){
+        var h = hooks.find(function(x){ return x.id === el.getAttribute("data-duplicate"); });
+        var copy = JSON.parse(JSON.stringify(h));
+        copy.id = "h" + Math.random().toString(36).slice(2,8);
+        copy.name = h.name + " copy";
+        hooks.push(copy);
+        openMenuId = null;
+        renderList();
+        showToast('Duplicated "' + h.name + '"');
+      });
+    });
+    list.querySelectorAll("[data-delete]").forEach(function(el){
+      el.addEventListener("click", function(){
+        var id = el.getAttribute("data-delete");
+        var h = hooks.find(function(x){ return x.id === id; });
+        hooks = hooks.filter(function(x){ return x.id !== id; });
+        openMenuId = null;
+        renderList();
+        showToast('Deleted "' + h.name + '"');
+      });
+    });
+  }
+  document.addEventListener("click", function(){ if (openMenuId){ openMenuId = null; renderList(); } });
+  renderList();
+
+  // ---------- dialog ----------
+  var overlay = document.getElementById("overlay");
+  var selectedEvents = [];
+  var selectedAction = "command";
+
+  function refreshCliIfOpen(){ if (paramsPanel.classList.contains("open")) renderParamsPanel(); }
+
+  function renderEventChips(){
+    var chips = document.getElementById("event-chips");
+    var chipsHtml = selectedEvents.map(function(id){
+      var ev = eventById(id);
+      return '<span class="event-chip"><span class="dot" style="background:' + ev.color + '"></span>' + ev.label +
+        '<button type="button" data-remove-event="' + id + '">' + ICONS.x + '</button></span>';
+    }).join("");
+    var addHtml = '<button type="button" class="event-chip add-chip" id="event-add-btn">' +
+      '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>' +
+      (selectedEvents.length ? "Add" : "Add an event") + '</button>';
+    chips.innerHTML = chipsHtml + addHtml;
+    chips.querySelectorAll("[data-remove-event]").forEach(function(el){
+      el.addEventListener("click", function(){
+        selectedEvents = selectedEvents.filter(function(id){ return id !== el.getAttribute("data-remove-event"); });
+        renderEventChips();
+        refreshCliIfOpen();
+      });
+    });
+    document.getElementById("event-add-btn").addEventListener("click", function(ev){
+      ev.stopPropagation();
+      document.getElementById("event-panel").classList.toggle("open");
+    });
+    renderEventPanel();
+  }
+  function renderEventPanel(){
+    var panel = document.getElementById("event-panel");
+    var remaining = EVENTS.filter(function(e){ return selectedEvents.indexOf(e.id) === -1; });
+    panel.innerHTML = remaining.length ? remaining.map(function(e){
+      return '<button type="button" class="combo-option" data-add-event="' + e.id + '"><span class="dot" style="background:' + e.color + '"></span>' + e.label + '</button>';
+    }).join("") : '<div class="combo-empty">All events added</div>';
+    panel.querySelectorAll("[data-add-event]").forEach(function(el){
+      el.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        selectedEvents.push(el.getAttribute("data-add-event"));
+        renderEventChips();
+        refreshCliIfOpen();
+        panel.classList.remove("open");
+      });
+    });
+  }
+  document.addEventListener("click", function(){ document.getElementById("event-panel").classList.remove("open"); });
+
+  function setAction(a){
+    selectedAction = a;
+    document.querySelectorAll("#action-tabs button").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-action") === a);
+    });
+    ["command","webhook","automation"].forEach(function(a2){
+      document.getElementById("action-" + a2).style.display = (a2 === a) ? "" : "none";
+    });
+    refreshCliIfOpen();
+  }
+  document.querySelectorAll("#action-tabs button").forEach(function(b){
+    b.addEventListener("click", function(){ setAction(b.getAttribute("data-action")); });
+  });
+
+  var enabledToggle = document.getElementById("f-enabled");
+  enabledToggle.addEventListener("click", function(){
+    enabledToggle.setAttribute("data-on", enabledToggle.getAttribute("data-on") === "true" ? "false" : "true");
+  });
+
+  function scopeToValue(scope){
+    if (scope.mode === "any") return "any";
+    return scope.mode + ":" + scope.name;
+  }
+  function valueToScope(v){
+    if (v === "any") return { mode:"any" };
+    var parts = v.split(":");
+    return { mode:parts[0], name:parts[1] };
+  }
+
+  function openDialog(id){
+    editingId = id || null;
+    var h = id ? hooks.find(function(x){ return x.id === id; }) : null;
+    document.getElementById("dialog-title").textContent = h ? "Edit hook" : "Add hook";
+    document.getElementById("f-name").value = h ? h.name : "";
+    selectedEvents = h ? h.events.slice() : ["done"];
+    renderEventChips();
+    setAction(h ? h.action.type : "command");
+    document.getElementById("f-command").value = (h && h.action.type === "command") ? h.action.command : "";
+    document.getElementById("f-webhook-url").value = (h && h.action.type === "webhook") ? h.action.url : "";
+    if (h && h.action.type === "automation") document.getElementById("f-automation").value = h.action.name;
+    enabledToggle.setAttribute("data-on", h ? String(h.enabled) : "true");
+    document.getElementById("f-scope").value = h ? scopeToValue(h.scope) : "any";
+    paramsToggle.setAttribute("data-open", "false");
+    paramsPanel.classList.remove("open");
+
+    overlay.classList.add("open");
+  }
+  function closeDialog(){ overlay.classList.remove("open"); editingId = null; }
+
+  document.getElementById("add-hook-btn").addEventListener("click", function(){ openDialog(null); });
+  document.getElementById("dialog-close").addEventListener("click", closeDialog);
+  document.getElementById("dialog-cancel").addEventListener("click", closeDialog);
+  overlay.addEventListener("click", function(e){ if (e.target === overlay) closeDialog(); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && overlay.classList.contains("open")) closeDialog(); });
+
+  document.getElementById("dialog-test").addEventListener("click", function(){
+    var name = document.getElementById("f-name").value || "this hook";
+    showToast(ICONS.bolt + ' Test event sent to "' + name + '"');
+  });
+
+  document.getElementById("dialog-save").addEventListener("click", function(){
+    var name = document.getElementById("f-name").value.trim() || "Untitled hook";
+    var scope = valueToScope(document.getElementById("f-scope").value);
+    var events = selectedEvents.length ? selectedEvents.slice() : ["done"];
+    var action = selectedAction === "command" ? { type:"command", command: document.getElementById("f-command").value || "echo done" } :
+      selectedAction === "webhook" ? { type:"webhook", url: document.getElementById("f-webhook-url").value || "https://" } :
+      { type:"automation", name: document.getElementById("f-automation").value };
+    var enabled = enabledToggle.getAttribute("data-on") === "true";
+
+    if (editingId){
+      var h = hooks.find(function(x){ return x.id === editingId; });
+      h.name = name; h.events = events; h.scope = scope; h.action = action; h.enabled = enabled;
+    } else {
+      hooks.push({ id:"h" + Math.random().toString(36).slice(2,8), name:name, events:events, scope:scope, action:action, enabled:enabled });
+    }
+    renderList();
+    closeDialog();
+    showToast(ICONS.check + ' Saved "' + name + '"');
+  });
+
+  // ---------- toast ----------
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+  function showToast(html){
+    toastEl.innerHTML = html;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 2200);
+  }
+
+  // ---------- theme toggle ----------
+  var themeBtn = document.getElementById("theme-toggle");
+  var themeLabel = document.getElementById("theme-toggle-label");
+  themeBtn.addEventListener("click", function(){
+    var isLight = document.documentElement.getAttribute("data-theme") === "light";
+    if (isLight){ document.documentElement.removeAttribute("data-theme"); themeLabel.textContent = "Light preview"; }
+    else { document.documentElement.setAttribute("data-theme", "light"); themeLabel.textContent = "Dark preview"; }
+  });
+})();
+</script>
+</body>
+</html>
