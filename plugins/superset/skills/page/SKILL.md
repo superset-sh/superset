@@ -61,11 +61,11 @@ enforced identically in the desktop pane and the web viewer:
   nothing and gives no visible reason why.
 - **No scripts or stylesheets from a remote host, with one exception.**
   `<script src="https://…">` is always blocked. `<link rel="stylesheet"
-  href="https://…">` is blocked too, except from `fonts.googleapis.com` — a
-  Google Fonts `<link>` tag works as-is. A directory publish's own files load
-  fine (relative `src`/`href`), and any remote font *file* is allowed, so an
-  inline `@font-face { src: url(https://…) }` also works for fonts from
-  elsewhere.
+  href="https://…">` is blocked too, except from `fonts.googleapis.com`, so
+  a Google Fonts `<link>` tag works as-is. A directory publish's own files
+  load fine (relative `src`/`href`), and any remote font *file* is allowed,
+  so an inline `@font-face { src: url(https://…) }` also works for fonts
+  from elsewhere.
 - **Images, video and audio may be remote** (`https:`, `data:` or `blob:`),
   but prefer `data:` URIs for anything the page cannot do without: a reader
   with the network off sees nothing, and a remote image makes every reader's
