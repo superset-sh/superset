@@ -166,13 +166,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 				}}
 				className={cn(
 					"relative mx-2 rounded-md text-left text-sm transition-colors",
-					isActive && "bg-background/70 ring-1 ring-inset ring-border/60",
+					isActive && "bg-fill-selected",
 					isSelected && "bg-fill-selected",
 					onClick &&
 						(isSelected
 							? "hover:bg-fill-selected"
 							: isActive
-								? "hover:bg-background/90"
+								? "hover:bg-fill-selected"
 								: "hover:bg-fill-hover"),
 					className,
 				)}

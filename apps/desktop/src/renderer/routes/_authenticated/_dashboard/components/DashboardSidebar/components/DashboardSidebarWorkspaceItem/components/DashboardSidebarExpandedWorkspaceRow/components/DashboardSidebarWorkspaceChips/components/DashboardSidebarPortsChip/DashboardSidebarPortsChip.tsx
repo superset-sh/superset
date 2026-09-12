@@ -93,7 +93,7 @@ export function DashboardSidebarPortsChip({
 									})
 						}
 						className={cn(
-							"group/chip h-[18px] bg-muted/40 px-1.5 py-0 text-[9px] font-medium tabular-nums text-muted-foreground",
+							"group/chip h-[18px] bg-muted/60 px-1.5 py-0 text-[9px] font-medium tabular-nums text-muted-foreground",
 							"[&>svg]:size-2.5 hover:bg-muted hover:text-foreground disabled:opacity-70",
 						)}
 					>
