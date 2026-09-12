@@ -35,6 +35,7 @@ export function ArchiveWorkspaceMount() {
 		void (async () => {
 			try {
 				await archiveWorkspaceWithUndo({
+					workspaceId,
 					workspaceName,
 					isActive: !!matchRoute({
 						to: "/v2-workspace/$workspaceId",
