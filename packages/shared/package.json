@@ -240,6 +240,10 @@
 			"types": "./src/port-forward-mux.ts",
 			"default": "./src/port-forward-mux.ts"
 		},
+		"./agent-status": {
+			"types": "./src/agent-status.ts",
+			"default": "./src/agent-status.ts"
+		},
 		"./host-info": {
 			"types": "./src/host-info.ts",
 			"default": "./src/host-info.ts"

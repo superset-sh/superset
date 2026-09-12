@@ -1,6 +1,7 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
+import { getHostId } from "@superset/shared/host-info";
 import { SUPERSET_USER_ID_HEADER } from "@superset/shared/host-routing";
 import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
@@ -38,6 +39,10 @@ import {
 	SqliteTerminalAgentBindingPersistence,
 	TerminalAgentStore,
 } from "./terminal-agents";
+import {
+	describeWorkspace,
+	TerminalAgentStatusReporter,
+} from "./terminal-agents/status-reporter";
 import { appRouter } from "./trpc/router";
 import { provisionSelectedAccounts } from "./trpc/router/usage/account-provisioning";
 import {
@@ -211,6 +216,14 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		);
 	}
 	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
+	const agentStatusReporter = new TerminalAgentStatusReporter({
+		store: terminalAgentStore,
+		machineId: getHostId(),
+		send: async (report) => {
+			await api.host.reportAgentStatus.mutate(report);
+		},
+		describeWorkspace: (workspaceId) => describeWorkspace(db, workspaceId),
+	});
 
 	const pageWatch = new PageWatchManager({
 		api: {
@@ -379,6 +392,14 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// Each step is best-effort and isolated: a throw in one cleanup must
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
+		try {
+			await agentStatusReporter.reportAllGone();
+		} catch (err) {
+			console.warn(
+				"[host-service] agentStatusReporter.reportAllGone failed:",
+				err,
+			);
+		}
 		try {
 			pullRequestRuntime.stop();
 		} catch (err) {
