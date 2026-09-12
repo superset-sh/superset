@@ -1,11 +1,13 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../src/db/schema";
+import * as configWrite from "../../src/trpc/router/git/utils/config-write";
 import { cloudFlows } from "../helpers/cloud-fakes";
 import {
 	createBasicScenario,
+	createFeatureWorktreeScenario,
 	createProjectScenario,
 } from "../helpers/scenarios";
 import { seedWorkspace } from "../helpers/seed";
@@ -154,6 +156,56 @@ describe("workspaceCreation.adopt integration", () => {
 			.where(eq(workspaces.id, workspaceId))
 			.get();
 		expect(persisted?.shelvedAt).toBeNull();
+	});
+
+	test.each([
+		"branch",
+		"path",
+	])("rejects %s reuse when deletion claims the workspace during base-branch recording", async (matchBy) => {
+		const scenario = await createFeatureWorktreeScenario();
+		dispose = scenario.dispose;
+		const shelvedAt = Date.now();
+		scenario.host.db
+			.update(workspaces)
+			.set({
+				shelvedAt,
+				branch: matchBy === "path" ? "feature/old-name" : scenario.branch,
+			})
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.run();
+
+		const write = configWrite.gitConfigWrite;
+		const recording = spyOn(configWrite, "gitConfigWrite").mockImplementation(
+			async (...args) => {
+				const result = await write(...args);
+				scenario.host.db
+					.update(workspaces)
+					.set({ archivedAt: Date.now() })
+					.where(eq(workspaces.id, scenario.featureWorkspaceId))
+					.run();
+				return result;
+			},
+		);
+		try {
+			await expect(
+				scenario.host.trpc.workspaceCreation.adopt.mutate({
+					projectId: scenario.projectId,
+					workspaceName: "adopted",
+					branch: scenario.branch,
+					worktreePath: scenario.worktreePath,
+					baseBranch: "main",
+				}),
+			).rejects.toMatchObject({ data: { code: "CONFLICT" } });
+			const persisted = scenario.host.db
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.id, scenario.featureWorkspaceId))
+				.get();
+			expect(persisted?.archivedAt).toEqual(expect.any(Number));
+			expect(persisted?.shelvedAt).toBe(shelvedAt);
+		} finally {
+			recording.mockRestore();
+		}
 	});
 
 	test("recordBaseBranch persists `branch.<name>.base` in git config", async () => {

@@ -135,6 +135,13 @@ export async function adoptExistingWorktree(
 		.sync();
 	if (existingByBranch && existingByBranch.worktreePath === worktreePath) {
 		await recordBaseBranch(git, branch, baseBranch);
+		const current = getLocalWorkspace(ctx.db, existingByBranch.id);
+		if (!current || current.archivedAt != null) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Workspace was deleted during adoption",
+			});
+		}
 		// Adopting is a statement that the worktree is in use, so it clears a
 		// shelf stamp along with the rest of the reconciliation — otherwise the
 		// adopt reports success while the row stays hidden and scheduled for
@@ -164,12 +171,19 @@ export async function adoptExistingWorktree(
 			branch,
 			keepWorkspaceId: existingByPath.id,
 		});
-		unshelveLocalWorkspace(store, existingByPath.id);
 		const updated = updateLocalWorkspace(store, existingByPath.id, { branch });
 		await recordBaseBranch(git, branch, baseBranch);
+		const current = getLocalWorkspace(ctx.db, existingByPath.id);
+		if (!current || current.archivedAt != null) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Workspace was deleted during adoption",
+			});
+		}
+		const reused = unshelveLocalWorkspace(store, existingByPath.id);
 		if (updated) {
 			return {
-				workspace: toCloudShape(updated, ctx.organizationId),
+				workspace: toCloudShape(reused ?? updated, ctx.organizationId),
 				alreadyExists: true,
 			};
 		}
