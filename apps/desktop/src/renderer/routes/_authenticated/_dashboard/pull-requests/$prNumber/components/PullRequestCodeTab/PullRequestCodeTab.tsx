@@ -476,7 +476,10 @@ export function PullRequestCodeTab({
 				const workspace = await client.workspace.get.query({
 					id: linkedWorkspaceId,
 				});
-				if (workspace.type === "worktree") {
+				if (
+					workspace.type === "worktree" &&
+					workspace.shelvedAt !== undefined
+				) {
 					await unshelve();
 				}
 			}
