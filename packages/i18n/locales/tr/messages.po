@@ -11632,6 +11632,9 @@ msgstr "İlgili yazılar"
 msgid "Relative path copied"
 msgstr "Göreli yol kopyalandı"
 
+msgid "Relaunch now"
+msgstr "Şimdi yeniden başlat"
+
 msgid "Relaunch running agents to switch them."
 msgstr "Değiştirmek için çalışan ajanları yeniden başlatın."
 

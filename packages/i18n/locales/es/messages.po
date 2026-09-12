@@ -11632,6 +11632,9 @@ msgstr "Publicaciones relacionadas"
 msgid "Relative path copied"
 msgstr "Ruta relativa copiada"
 
+msgid "Relaunch now"
+msgstr "Reiniciar ahora"
+
 msgid "Relaunch running agents to switch them."
 msgstr "Vuelve a lanzar los agentes en marcha para cambiarlos."
 

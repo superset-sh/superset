@@ -3,6 +3,7 @@ import { useLingui as useTranslation } from "@lingui/react";
 import { useEffect, useRef, useState } from "react";
 import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	isV1MigrationComplete,
 	V1_MIGRATION_COMPLETED_EVENT,
@@ -53,12 +54,23 @@ export function V1FlipNotice() {
 		setDismissed(true);
 	};
 
+	const relaunch = () => {
+		track("v1_flip_notice_relaunch");
+		electronTrpcClient.settings.relaunchApp.mutate().catch((err) => {
+			console.error("[v1-migration] relaunch failed", err);
+		});
+	};
+
 	return (
 		<FlipNoticeCard
 			title={translate(msg({ message: "A better Superset is ready" }))}
 			body="Superset has been upgraded: faster, cleaner, and built around your projects. Everything comes along on your next launch."
 			warning="Running terminal sessions won't carry over."
-			ctaLabel="Got it"
+			action={{
+				label: translate(msg({ message: "Relaunch now" })),
+				onClick: relaunch,
+			}}
+			ctaLabel={translate(msg({ message: "Later" }))}
 			onDismiss={dismiss}
 		/>
 	);

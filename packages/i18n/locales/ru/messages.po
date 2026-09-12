@@ -11632,6 +11632,9 @@ msgstr "Похожие посты"
 msgid "Relative path copied"
 msgstr "Относительный путь скопирован"
 
+msgid "Relaunch now"
+msgstr "Перезапустить сейчас"
+
 msgid "Relaunch running agents to switch them."
 msgstr "Перезапустите работающих агентов, чтобы переключить их."
 

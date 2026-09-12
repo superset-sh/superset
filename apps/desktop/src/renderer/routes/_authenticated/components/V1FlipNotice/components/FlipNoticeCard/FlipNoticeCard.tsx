@@ -18,6 +18,8 @@ interface FlipNoticeCardProps {
 	body: string;
 	/** Rendered as an amber callout row (WorkspaceHoverCard idiom). */
 	warning?: string;
+	/** Primary button; when present the dismiss cta renders as secondary. */
+	action?: { label: string; onClick: () => void };
 	ctaLabel: string;
 	onDismiss: () => void;
 }
@@ -32,6 +34,7 @@ export function FlipNoticeCard({
 	title,
 	body,
 	warning,
+	action,
 	ctaLabel,
 	onDismiss,
 }: FlipNoticeCardProps) {
@@ -74,9 +77,20 @@ export function FlipNoticeCard({
 						<p className="text-sm">{warning}</p>
 					</div>
 				) : null}
-				<Button size="sm" onClick={onDismiss}>
-					{ctaLabel}
-				</Button>
+				<div className="flex gap-2">
+					{action ? (
+						<Button size="sm" onClick={action.onClick}>
+							{action.label}
+						</Button>
+					) : null}
+					<Button
+						size="sm"
+						variant={action ? "outline" : "default"}
+						onClick={onDismiss}
+					>
+						{ctaLabel}
+					</Button>
+				</div>
 			</div>
 		</div>
 	);

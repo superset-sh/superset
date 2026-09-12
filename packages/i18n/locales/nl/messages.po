@@ -11632,6 +11632,9 @@ msgstr "Gerelateerde berichten"
 msgid "Relative path copied"
 msgstr "Relatief pad gekopieerd"
 
+msgid "Relaunch now"
+msgstr "Nu opnieuw starten"
+
 msgid "Relaunch running agents to switch them."
 msgstr "Herstart draaiende agents om ze te wisselen."
 

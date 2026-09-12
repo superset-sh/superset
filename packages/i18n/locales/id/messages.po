@@ -11632,6 +11632,9 @@ msgstr "Tulisan Terkait"
 msgid "Relative path copied"
 msgstr "Path relatif disalin"
 
+msgid "Relaunch now"
+msgstr "Mulai ulang sekarang"
+
 msgid "Relaunch running agents to switch them."
 msgstr "Jalankan ulang agen yang sedang berjalan untuk menggantinya."
 

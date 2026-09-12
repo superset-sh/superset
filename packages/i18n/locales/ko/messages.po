@@ -11632,6 +11632,9 @@ msgstr "관련 게시물"
 msgid "Relative path copied"
 msgstr "상대 경로 복사됨"
 
+msgid "Relaunch now"
+msgstr "지금 다시 시작"
+
 msgid "Relaunch running agents to switch them."
 msgstr "실행 중인 에이전트는 다시 실행해야 바뀝니다."
 

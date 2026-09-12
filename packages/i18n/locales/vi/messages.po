@@ -11632,6 +11632,9 @@ msgstr "Bài viết liên quan"
 msgid "Relative path copied"
 msgstr "Đã sao chép đường dẫn tương đối"
 
+msgid "Relaunch now"
+msgstr "Khởi động lại ngay"
+
 msgid "Relaunch running agents to switch them."
 msgstr "Hãy khởi chạy lại các agent đang chạy để đổi sang tài khoản này."
 

@@ -11632,6 +11632,9 @@ msgstr "相关文章"
 msgid "Relative path copied"
 msgstr "已复制相对路径"
 
+msgid "Relaunch now"
+msgstr "立即重启"
+
 msgid "Relaunch running agents to switch them."
 msgstr "重新启动运行中的智能体才能切换。"
 
