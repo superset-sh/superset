@@ -11632,6 +11632,9 @@ msgstr "Powiązane wpisy"
 msgid "Relative path copied"
 msgstr "Skopiowano ścieżkę względną"
 
+msgid "Relaunch now"
+msgstr "Uruchom ponownie teraz"
+
 msgid "Relaunch running agents to switch them."
 msgstr "Uruchom ponownie działających agentów, aby ich przełączyć."
 

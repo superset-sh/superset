@@ -11632,6 +11632,9 @@ msgstr "関連記事"
 msgid "Relative path copied"
 msgstr "相対パスをコピーしました"
 
+msgid "Relaunch now"
+msgstr "今すぐ再起動"
+
 msgid "Relaunch running agents to switch them."
 msgstr "実行中のエージェントを切り替えるには再起動してください。"
 

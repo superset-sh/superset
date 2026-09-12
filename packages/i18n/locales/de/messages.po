@@ -11632,6 +11632,9 @@ msgstr "Verwandte Beiträge"
 msgid "Relative path copied"
 msgstr "Relativer Pfad kopiert"
 
+msgid "Relaunch now"
+msgstr "Jetzt neu starten"
+
 msgid "Relaunch running agents to switch them."
 msgstr "Starte laufende Agenten neu, um sie umzustellen."
 

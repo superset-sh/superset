@@ -11632,6 +11632,9 @@ msgstr "Související články"
 msgid "Relative path copied"
 msgstr "Relativní cesta zkopírována"
 
+msgid "Relaunch now"
+msgstr "Restartovat nyní"
+
 msgid "Relaunch running agents to switch them."
 msgstr "Běžící agenty přepnete jejich novým spuštěním."
 

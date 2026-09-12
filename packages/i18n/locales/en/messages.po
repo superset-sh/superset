@@ -11632,6 +11632,9 @@ msgstr "Related Posts"
 msgid "Relative path copied"
 msgstr "Relative path copied"
 
+msgid "Relaunch now"
+msgstr "Relaunch now"
+
 msgid "Relaunch running agents to switch them."
 msgstr "Relaunch running agents to switch them."
 

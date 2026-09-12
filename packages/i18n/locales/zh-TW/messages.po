@@ -11632,6 +11632,9 @@ msgstr "相關文章"
 msgid "Relative path copied"
 msgstr "已複製相對路徑"
 
+msgid "Relaunch now"
+msgstr "立即重啟"
+
 msgid "Relaunch running agents to switch them."
 msgstr "重新啟動執行中的代理程式才能切換。"
 
