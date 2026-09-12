@@ -84,6 +84,34 @@ describe("parsePsEnvOutput", () => {
 	});
 });
 
+/**
+ * A child that is provably past exec before the test inspects it. On Linux,
+ * vfork hands control back once the new image is installed but before the
+ * kernel has recorded its environment range, so /proc/<pid>/environ reads
+ * empty for a moment after Bun.spawn returns.
+ */
+async function spawnIdle({
+	env,
+	argument,
+}: {
+	env: Record<string, string | undefined>;
+	argument?: string;
+}): Promise<Bun.Subprocess<"ignore", "pipe", "ignore">> {
+	const child = Bun.spawn(
+		[
+			process.execPath,
+			"-e",
+			"process.stdout.write('running\\n'); setTimeout(() => {}, 10000)",
+			...(argument === undefined ? [] : [argument]),
+		],
+		{ env, stdout: "pipe", stderr: "ignore" },
+	);
+	const reader = child.stdout.getReader();
+	await reader.read();
+	reader.releaseLock();
+	return child;
+}
+
 describe("readTerminalIdsFromEnv (real processes)", () => {
 	const supported = os.platform() === "darwin" || os.platform() === "linux";
 
@@ -104,32 +132,14 @@ describe("readTerminalIdsFromEnv (real processes)", () => {
 	it.skipIf(!supported)(
 		"ignores an argument-only ID in both targeted and whole-table reads",
 		async () => {
-			const fake = Bun.spawn(
-				[
-					process.execPath,
-					"-e",
-					"setTimeout(() => {}, 10000)",
-					`SUPERSET_TERMINAL_ID=${TERMINAL}`,
-				],
-				{
-					env: { SUPERSET_TERMINAL_ID: "", SUPERSET_PANE_ID: "" },
-					stdout: "ignore",
-					stderr: "ignore",
-				},
-			);
-			const real = Bun.spawn(
-				[
-					process.execPath,
-					"-e",
-					"setTimeout(() => {}, 10000)",
-					"SUPERSET_TERMINAL_ID=argument-only",
-				],
-				{
-					env: { SUPERSET_TERMINAL_ID: TERMINAL, SUPERSET_PANE_ID: "" },
-					stdout: "ignore",
-					stderr: "ignore",
-				},
-			);
+			const fake = await spawnIdle({
+				env: { SUPERSET_TERMINAL_ID: "", SUPERSET_PANE_ID: "" },
+				argument: `SUPERSET_TERMINAL_ID=${TERMINAL}`,
+			});
+			const real = await spawnIdle({
+				env: { SUPERSET_TERMINAL_ID: TERMINAL, SUPERSET_PANE_ID: "" },
+				argument: "SUPERSET_TERMINAL_ID=argument-only",
+			});
 			try {
 				for (const pids of [
 					[fake.pid, real.pid],
@@ -151,20 +161,21 @@ describe("readTerminalIdsFromEnv (real processes)", () => {
 		"reads the id from a child spawned with it and null from one without",
 		async () => {
 			const spawn = (env: Record<string, string>) =>
-				Bun.spawn([process.execPath, "-e", "setTimeout(() => {}, 5000)"], {
-					env: { ...process.env, ...env },
-				});
+				spawnIdle({ env: { ...process.env, ...env } });
 			// The test runner may itself be inside a Superset terminal, so clear
 			// the inherited ids explicitly rather than relying on their absence.
-			const withId = spawn({
+			const withId = await spawn({
 				SUPERSET_TERMINAL_ID: TERMINAL,
 				SUPERSET_PANE_ID: "",
 			});
-			const withPane = spawn({
+			const withPane = await spawn({
 				SUPERSET_TERMINAL_ID: "",
 				SUPERSET_PANE_ID: "pane-1",
 			});
-			const without = spawn({ SUPERSET_TERMINAL_ID: "", SUPERSET_PANE_ID: "" });
+			const without = await spawn({
+				SUPERSET_TERMINAL_ID: "",
+				SUPERSET_PANE_ID: "",
+			});
 			// A pid that existed and has exited: the realistic race between the
 			// table read and the environment read. (An out-of-range pid is not
 			// realistic — macOS `ps` rejects the whole batch for one.)
