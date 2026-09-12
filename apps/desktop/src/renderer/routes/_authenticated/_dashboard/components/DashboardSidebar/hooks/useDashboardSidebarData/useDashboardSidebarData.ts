@@ -685,7 +685,20 @@ export function useDashboardSidebarData() {
 		() =>
 			buildDashboardSidebarProjects({
 				sidebarProjects,
-				sidebarSections,
+				sidebarSections: deriveTagFolders(
+					storedSidebarSections,
+					archivedRows,
+					tagFolderContext,
+				).map((section) => ({
+					id: section.sectionId,
+					projectId: section.projectId,
+					name: section.name,
+					createdAt: section.createdAt,
+					isCollapsed: section.isCollapsed,
+					tabOrder: section.tabOrder,
+					color: section.color,
+					tag: section.tag,
+				})),
 				visibleSidebarWorkspaces: archivedRows,
 				machineId,
 				pullRequestsByWorkspaceId,
@@ -703,7 +716,8 @@ export function useDashboardSidebarData() {
 			machineId,
 			pullRequestsByWorkspaceId,
 			sidebarProjects,
-			sidebarSections,
+			storedSidebarSections,
+			tagFolderContext,
 		],
 	);
 	const archivedGroups = useStableDashboardSidebarProjects(
