@@ -20,6 +20,7 @@ import kimiWhiteIcon from "./kimi-white.svg";
 import kiroIcon from "./kiro.svg";
 import mastracodeIcon from "./mastracode.svg";
 import mastracodeWhiteIcon from "./mastracode-white.svg";
+import museIcon from "./muse.svg";
 import opencodeIcon from "./opencode.svg";
 import opencodeWhiteIcon from "./opencode-white.svg";
 import piIcon from "./pi.svg";
@@ -55,6 +56,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	"cursor-composer": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	droid: { light: droidIcon, dark: droidWhiteIcon },
 	mastracode: { light: mastracodeIcon, dark: mastracodeWhiteIcon },
+	muse: { light: museIcon, dark: museIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
 	vibe: { light: vibeIcon, dark: vibeIcon },
 };
@@ -101,6 +103,7 @@ export {
 	kiroIcon,
 	mastracodeIcon,
 	mastracodeWhiteIcon,
+	museIcon,
 	opencodeIcon,
 	opencodeWhiteIcon,
 	piIcon,

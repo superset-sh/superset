@@ -258,6 +258,15 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		resumeCommand: "hermes chat --yolo -r",
 		nonInteractiveCommand: "hermes chat -q",
 	}),
+	createBuiltinTerminalAgent({
+		id: "muse",
+		label: "Muse Code",
+		description:
+			"Meta's terminal coding agent with persistent subagents and worktree fan-out.",
+		command: "muse",
+		resumeCommand: "muse resume",
+		nonInteractiveCommand: "muse exec",
+	}),
 ] as const;
 
 export type BuiltinTerminalAgentType =

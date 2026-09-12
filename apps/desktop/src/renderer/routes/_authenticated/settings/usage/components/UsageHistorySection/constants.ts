@@ -22,8 +22,7 @@ export const AGENT_CHART_CONFIG = {
 } satisfies ChartConfig;
 
 /** Preset-icon registry keys per agent (cursor's icon is keyed by its
- * agent id `cursor-agent`; omp shares pi's mark; muse has no preset icon
- * yet, so its legend rows show only the color swatch). */
+ * agent id `cursor-agent`; omp shares pi's mark). */
 export const AGENT_ICON_KEY: Record<keyof typeof AGENT_CHART_CONFIG, string> = {
 	claude: "claude",
 	codex: "codex",

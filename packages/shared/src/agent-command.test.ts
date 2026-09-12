@@ -219,6 +219,31 @@ describe("hermes agent registration", () => {
 	});
 });
 
+describe("muse agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("muse");
+		expect(AGENT_LABELS.muse).toBe("Muse Code");
+	});
+
+	it("seeds prompt launches as the positional prompt of an interactive session", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "muse-1234",
+			agent: "muse",
+		});
+
+		expect(command).toStartWith("muse \"$(cat <<'SUPERSET_PROMPT_muse1234'");
+		expect(command).toEndWith('\n)"');
+	});
+
+	it("derives host preset resume args from the base command", () => {
+		const preset = getPresetById("muse");
+		expect(preset?.command).toBe("muse");
+		expect(preset?.args).toEqual([]);
+		expect(preset?.resumeArgs).toEqual(["resume"]);
+	});
+});
+
 describe("grok agent registration", () => {
 	it("is a registered terminal agent with the right label", () => {
 		expect(AGENT_TYPES).toContain("grok");
