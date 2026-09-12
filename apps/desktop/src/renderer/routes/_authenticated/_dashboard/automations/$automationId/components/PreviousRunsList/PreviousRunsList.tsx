@@ -6,22 +6,13 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { formatDistanceStrict } from "date-fns";
 import { useNow } from "renderer/hooks/useNow";
-import {
-	HOST_OFFLINE_HELP,
-	isHostOfflineError,
-} from "../../../utils/hostOfflineError";
-import {
-	isStaleAgentError,
-	STALE_AGENT_HELP,
-} from "../../../utils/staleAgentError";
+import { runErrorHelp } from "../../../utils/runErrorHelp";
 
-function describeRunError(error: string): string {
-	if (isHostOfflineError(error))
-		return `${error}. ${i18n._(HOST_OFFLINE_HELP)}`;
+function describeRunError(run: SelectAutomationRun): string {
+	const error = run.error ?? "";
+	const help = runErrorHelp(run.errorCode);
 	// Lead with the plain-language fix; keep the raw host error for reports.
-	if (isStaleAgentError(error))
-		return `${i18n._(STALE_AGENT_HELP)}\n\n(${error})`;
-	return error;
+	return help ? `${i18n._(help)}\n\n(${error})` : error;
 }
 
 const STATUS_DOT: Record<SelectAutomationRun["status"], string> = {
@@ -42,14 +33,12 @@ function formatAgo(date: Date, now: Date): string {
 	if (seconds < 60)
 		return i18n._(
 			msg({
-				id: "dashboard.automations.previousRuns.lessThanMinuteAgo",
 				message: "less than a minute ago",
 			}),
 		);
 	const distance = formatDistanceStrict(date, now);
 	return i18n._(
 		msg({
-			id: "dashboard.automations.previousRuns.distanceAgo",
 			message: `${distance} ago`,
 		}),
 	);
@@ -62,9 +51,7 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 	if (runs.length === 0) {
 		return (
 			<p className="text-sm italic text-muted-foreground">
-				<Trans id="dashboard.automations.previousRuns.noRunsYet">
-					No runs yet
-				</Trans>
+				<Trans>No runs yet</Trans>
 			</p>
 		);
 	}
@@ -106,11 +93,7 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 							)}
 						/>
 						<span className="truncate">
-							{run.title || (
-								<Trans id="dashboard.automations.previousRuns.untitledRun">
-									Automation
-								</Trans>
-							)}
+							{run.title || <Trans>Automation</Trans>}
 						</span>
 						<span className="ml-auto shrink-0 truncate text-muted-foreground">
 							{run.scheduledFor
@@ -124,7 +107,7 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 						{row}
 						{run.error && (
 							<p className="select-text cursor-text mx-2 mb-1 whitespace-pre-wrap rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
-								{describeRunError(run.error)}
+								{describeRunError(run)}
 							</p>
 						)}
 					</li>

@@ -33,14 +33,16 @@ export function BaseBranchSelector({
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
+				{/* Same chip as the commit-filter trigger beside it, so "vs" sits
+				    between two equal paddings instead of hugging the branch. */}
 				<button
 					type="button"
-					className="inline-flex min-w-0 items-center gap-0.5 font-medium text-foreground hover:underline"
+					className="flex min-w-0 items-center gap-1 rounded px-1.5 py-0.5 font-medium text-foreground text-xs hover:bg-accent"
 				>
 					<span className="min-w-0 truncate" title={currentValue}>
 						{currentValue}
 					</span>
-					<ChevronDown className="size-3 shrink-0" />
+					<ChevronDown className="size-3 shrink-0 text-muted-foreground" />
 				</button>
 			</PopoverTrigger>
 			<PopoverContent
@@ -50,7 +52,6 @@ export function BaseBranchSelector({
 				<div className="border-b px-3 py-2">
 					<input
 						placeholder={t({
-							id: "workspace.baseBranchSelector.searchPlaceholder",
 							message: "Search branches...",
 						})}
 						value={search}
@@ -79,9 +80,7 @@ export function BaseBranchSelector({
 						))}
 						{filtered.length === 0 && (
 							<div className="px-2 py-3 text-center text-sm text-muted-foreground">
-								<Trans id="workspace.baseBranchSelector.empty">
-									No branches found
-								</Trans>
+								<Trans>No branches found</Trans>
 							</div>
 						)}
 					</div>

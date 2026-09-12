@@ -193,6 +193,8 @@ local_write_env() {
   local STREAMS_INTERNAL_PORT=$((BASE + 8))
   local CODE_INSPECTOR_PORT=$((BASE + 11))
   local RELAY_PORT=$((BASE + 13))
+  local USERCONTENT_DEV_PORT=$((BASE + 14))
+  local REALTIME_PORT=$((BASE + 18))
 
   {
     echo ""
@@ -226,6 +228,8 @@ local_write_env() {
     write_env_var "STREAMS_INTERNAL_PORT" "$STREAMS_INTERNAL_PORT"
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
     write_env_var "RELAY_PORT" "$RELAY_PORT"
+    write_env_var "USERCONTENT_DEV_PORT" "$USERCONTENT_DEV_PORT"
+    write_env_var "REALTIME_PORT" "$REALTIME_PORT"
     echo ""
     echo "# Cross-app URLs (allocated ports)"
     write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
@@ -236,7 +240,10 @@ local_write_env() {
     write_env_var "NEXT_PUBLIC_DESKTOP_URL" "http://localhost:$DESKTOP_VITE_PORT"
     write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "NEXT_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
+    write_env_var "REALTIME_URL" "http://localhost:$REALTIME_PORT"
+    write_env_var "REALTIME_NUDGE_SECRET" "fake-realtime-nudge-secret"
     write_env_var "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
+    write_env_var "USERCONTENT_URL" "http://frame.usercontent.localhost:$USERCONTENT_DEV_PORT"
     echo ""
     echo "# Streams URLs"
     write_env_var "PORT" "$STREAMS_PORT"
@@ -260,6 +267,7 @@ local_write_env() {
     { "port": $DESKTOP_VITE_PORT, "label": "Desktop Vite" },
     { "port": $DESKTOP_NOTIFICATIONS_PORT, "label": "Notifications" },
     { "port": $STREAMS_PORT, "label": "Streams" },
+    { "port": $USERCONTENT_DEV_PORT, "label": "Usercontent Worker" },
     { "port": $LOCAL_PG_PORT, "label": "Postgres" },
     { "port": $LOCAL_NEON_PROXY_PORT, "label": "Neon Proxy" },
     { "port": $LOCAL_REDIS_PORT, "label": "Redis" },

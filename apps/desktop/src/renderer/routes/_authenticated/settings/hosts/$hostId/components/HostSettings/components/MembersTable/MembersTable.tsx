@@ -28,13 +28,13 @@ export function MembersTable({
 				<TableHeader>
 					<TableRow>
 						<TableHead>
-							<Trans id="settings.hosts.membersTable.name">Name</Trans>
+							<Trans>Name</Trans>
 						</TableHead>
 						<TableHead>
-							<Trans id="settings.hosts.membersTable.email">Email</Trans>
+							<Trans>Email</Trans>
 						</TableHead>
 						<TableHead className="w-32">
-							<Trans id="settings.hosts.membersTable.role">Role</Trans>
+							<Trans>Role</Trans>
 						</TableHead>
 						{isOwner && <TableHead className="w-12" />}
 					</TableRow>
@@ -55,9 +55,7 @@ export function MembersTable({
 								colSpan={isOwner ? 4 : 3}
 								className="text-center text-sm text-muted-foreground py-6"
 							>
-								<Trans id="settings.hosts.membersTable.empty">
-									No members yet.
-								</Trans>
+								<Trans>No members yet.</Trans>
 							</TableCell>
 						</TableRow>
 					)}

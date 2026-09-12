@@ -1,10 +1,17 @@
 import { LegendList } from "@legendapp/list/react-native";
+import { useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { useQueryClient } from "@tanstack/react-query";
 import { isAfter } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
-import { RefreshControl, useWindowDimensions, View } from "react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+	ActivityIndicator,
+	RefreshControl,
+	useWindowDimensions,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
 import {
@@ -16,8 +23,10 @@ import {
 	type HostWorkspaceItem,
 	useHostWorkspaces,
 } from "@/hooks/useHostWorkspaces";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
+import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 import {
 	type OrgPullRequest,
@@ -27,20 +36,26 @@ import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinne
 import { pullRequestStatus } from "@/screens/(authenticated)/workspace/[id]/utils/pullRequest";
 import { HostOfflineView } from "./components/HostOfflineView";
 import { NewChatWidget } from "./components/NewChatWidget";
+import { targetKeyFor } from "./components/NewChatWidget/hooks/useNewChatTargets";
+import { useNewSessionPreferencesStore } from "./components/NewChatWidget/stores/newSessionPreferencesStore";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
 import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
-import { useCloudRepoPrefixes } from "./hooks/useCloudRepoPrefixes";
+import { useAgentLiveActivity } from "./hooks/useAgentLiveActivity";
+import { useCloudRepoPrefix } from "./hooks/useCloudRepoPrefixes";
+import { useFirstPaint } from "./hooks/useFirstPaint";
 import {
 	type TerminalsHost,
 	useHostsTerminals,
 } from "./hooks/useHostTerminals";
+import { useLiveActivityPushTokens } from "./hooks/useLiveActivityPushTokens";
 import { useVisibleDiffStats } from "./hooks/useVisibleDiffStats";
 import {
 	collapsedProjectKey,
 	useCollapsedProjectsStore,
 } from "./stores/collapsedProjectsStore";
+import { useComposerFocusStore } from "./stores/composerFocusStore";
 import {
 	SORT_OPTIONS,
 	useWorkspacesFilterStore,
@@ -91,56 +106,89 @@ function homeListItemKey(item: HomeListItem): string {
 	}
 }
 
+const NOTICE_MS = 1500;
+
 export function HomeScreen() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 	const hasHydrated = useWorkspacesFilterStore((store) => store.hasHydrated);
 	const [visibleIds, setVisibleIds] = useState<string[]>([]);
 	const [refreshing, setRefreshing] = useState(false);
+	// seq gives each notice its own identity: a repeat copy while "Copied" is
+	// still up remounts HeaderNotice, restarting its timer.
+	const [notice, setNotice] = useState<{ text: string; seq: number } | null>(
+		null,
+	);
+	const hideNotice = useCallback(() => setNotice(null), []);
+	const handleCopied = useCallback(
+		() =>
+			setNotice((prev) => ({
+				text: t({ message: "Copied" }),
+				seq: (prev?.seq ?? 0) + 1,
+			})),
+		[t],
+	);
 	const { height: windowHeight } = useWindowDimensions();
 	const insets = useSafeAreaInsets();
 	const queryClient = useQueryClient();
-	const { isLoadingOrganizations, activeOrganization } = useOrganizations();
+	const setTargetKey = useNewSessionPreferencesStore(
+		(state) => state.setTargetKey,
+	);
+	const requestComposerFocus = useComposerFocusStore(
+		(state) => state.requestFocus,
+	);
+	const { isLoadingOrganizations, activeOrganization, activeOrganizationId } =
+		useOrganizations();
 
 	const selectedHost = useSelectedHost();
 	const pinnedAt = usePinnedWorkspacesStore((state) => state.pinnedAt);
-	const { workspaces, isReady, cache } = useHostWorkspaces(selectedHost);
+	const {
+		workspaces,
+		isReady: workspacesReady,
+		cache,
+	} = useHostWorkspaces(selectedHost);
 	const {
 		items: cloudItems,
-		targets: sandboxes,
 		cache: cloudCache,
 		isReady: cloudReady,
 	} = useCloudWorkspaceItems();
 	const cloudScope = useWorkspaceScope() === "cloud";
-	// Every addressed sandbox is a host of its own for the terminal fan-out,
-	// so cloud rows get session marks and attention like any other row. Lazier
-	// than the machine host on purpose: each sandbox is its own request, and a
-	// phone paying N requests every 5s for list decoration is the mistake
-	// desktop just walked back (#6570). Opening a workspace speeds up its own
-	// host via the shared query key.
-	// Only the scope on screen is polled: a sandbox costs its own request, and
-	// paying for every one of them to decorate rows the list isn't showing is
-	// the mistake desktop just walked back (#6570).
+	// No session marks for cloud rows: a request per sandbox keeps each one
+	// awake for as long as Home is on screen.
 	const terminalHosts = useMemo<TerminalsHost[]>(
-		() =>
-			cloudScope
-				? sandboxes.map((sandbox) => ({
-						organizationId: sandbox.organizationId,
-						machineId: sandbox.workspaceId,
-						isOnline: true,
-						refetchIntervalMs: 30_000,
-					}))
-				: selectedHost
-					? [selectedHost]
-					: [],
-		[selectedHost, sandboxes, cloudScope],
+		() => (cloudScope || !selectedHost ? [] : [selectedHost]),
+		[selectedHost, cloudScope],
 	);
 	const { terminalsByWorkspace, attentionByWorkspace } =
 		useHostsTerminals(terminalHosts);
 
 	// Projects are fully local — served by the selected host, not the cloud.
-	const { projects } = useHostProjects(selectedHost);
+	const { projects, isReady: projectsReady } = useHostProjects(selectedHost);
+
+	// Mirrors the rows above onto the Lock Screen and Dynamic Island while the
+	// app is open; once it closes, the API rewrites the card over APNs from
+	// the transitions hosts report, using the tokens registered here.
+	useAgentLiveActivity({
+		terminalsByWorkspace,
+		workspaces,
+		projects,
+	});
+	useLiveActivityPushTokens();
 	const pullRequests = usePullRequests();
+	const { query: hostsQuery } = useOrgHosts();
+
+	// An answer, not rows: an offline host and a host with no workspaces both
+	// settle. Decoration is not waited on. With no active organization the
+	// hosts query is disabled and stays pending forever, which is an answer of
+	// its own — waiting on it there left the list spinning permanently.
+	const contentReady =
+		hasHydrated &&
+		!isLoadingOrganizations &&
+		(!activeOrganizationId || !hostsQuery.isPending) &&
+		(cloudScope ? cloudReady : workspacesReady && projectsReady);
+
+	const hasPainted = useFirstPaint(contentReady);
 
 	const collapsed = useCollapsedProjectsStore((state) => state.collapsed);
 	const collapseHydrated = useCollapsedProjectsStore(
@@ -278,7 +326,7 @@ export function HomeScreen() {
 			items.push({
 				kind: "projectHeader",
 				projectId: "__none",
-				name: "No project",
+				name: t({ message: "No project" }),
 				count: orphans.length,
 				collapsed: false,
 			});
@@ -298,6 +346,7 @@ export function HomeScreen() {
 		activityTs,
 		collapsed,
 		collapseHydrated,
+		t,
 	]);
 
 	const composerWorkspaces = useMemo(
@@ -383,7 +432,19 @@ export function HomeScreen() {
 		void queryClient.invalidateQueries({ queryKey: ["diff-stats"] });
 	}, [queryClient]);
 
-	useFocusEffect(refreshHostData);
+	// Only on RE-focus: the first is the mount, where these queries already
+	// fetch themselves, and invalidating there fetched every one of them twice
+	// on a cold start.
+	const hasFocused = useRef(false);
+	useFocusEffect(
+		useCallback(() => {
+			if (!hasFocused.current) {
+				hasFocused.current = true;
+				return;
+			}
+			refreshHostData();
+		}, [refreshHostData]),
+	);
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
@@ -398,11 +459,10 @@ export function HomeScreen() {
 	// Projects are fully local: PR rows are matched by repo coordinates
 	// parsed from the PR URL (cloud repo UUIDs aren't known host-side).
 	// Cloud rows' projects come from the API instead.
-	const cloudRepoPrefixes = useCloudRepoPrefixes(cloudItems);
+	const cloudRepoPrefix = useCloudRepoPrefix();
 	const repoPrefixesByProject = useMemo(
 		() =>
 			new Map<string, string | null>([
-				...cloudRepoPrefixes,
 				...projects.map((project): [string, string | null] => [
 					project.id,
 					project.repoOwner && project.repoName
@@ -410,7 +470,7 @@ export function HomeScreen() {
 						: null,
 				]),
 			]),
-		[projects, cloudRepoPrefixes],
+		[projects],
 	);
 
 	const renderItem = useCallback(
@@ -424,6 +484,7 @@ export function HomeScreen() {
 			}
 			if (item.kind === "projectHeader") {
 				// Only a machine's projects get headers — Cloud is a flat scope.
+				const machineId = selectedHost?.machineId;
 				return (
 					<ProjectSectionHeader
 						name={item.name}
@@ -432,15 +493,28 @@ export function HomeScreen() {
 						collapsed={item.collapsed}
 						onToggle={() => {
 							void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-							toggleProject(selectedHost?.machineId ?? "", item.projectId);
+							toggleProject(machineId ?? "", item.projectId);
 						}}
+						onNewWorkspace={
+							// "__none" collects orphans of projects the host no longer
+							// reports — there is nothing to create into.
+							machineId && item.projectId !== "__none"
+								? () => {
+										void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+										setTargetKey(targetKeyFor(item.projectId, machineId));
+										requestComposerFocus();
+									}
+								: undefined
+						}
 					/>
 				);
 			}
 			const { workspace, cloudStatus } = item;
-			const repoPrefix = workspace.projectId
-				? repoPrefixesByProject.get(workspace.projectId)
-				: undefined;
+			const repoPrefix = cloudStatus
+				? cloudRepoPrefix
+				: workspace.projectId
+					? repoPrefixesByProject.get(workspace.projectId)
+					: undefined;
 			return (
 				<WorkspaceRow
 					workspace={workspace}
@@ -456,11 +530,13 @@ export function HomeScreen() {
 					attention={attentionByWorkspace.get(workspace.id) ?? null}
 					sessions={terminalsByWorkspace.get(workspace.id) ?? []}
 					cloudStatus={cloudStatus}
+					onCopied={handleCopied}
 				/>
 			);
 		},
 		[
 			pullRequestsByRepoBranch,
+			cloudRepoPrefix,
 			repoPrefixesByProject,
 			diffStats,
 			cache,
@@ -469,17 +545,24 @@ export function HomeScreen() {
 			terminalsByWorkspace,
 			toggleProject,
 			selectedHost,
+			setTargetKey,
+			requestComposerFocus,
+			handleCopied,
 		],
 	);
+
+	// The native splash is still up until hideSplash() below; nothing to draw.
+	if (!hasPainted) return null;
+
+	const sortOption = SORT_OPTIONS.find((option) => option.value === sort);
+	const sortLabel = sortOption ? i18n._(sortOption.label) : "";
 
 	const scopeBar = (
 		<ScopeBar
 			scope={cloudScope ? "cloud" : "host"}
 			hostName={selectedHost?.name ?? null}
 			hostOnline={selectedHost?.isOnline ?? false}
-			sortLabel={
-				SORT_OPTIONS.find((option) => option.value === sort)?.label ?? ""
-			}
+			sortLabel={sortLabel}
 			onPressScope={() => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 				router.push("/(authenticated)/(home)/filter/scope");
@@ -507,11 +590,27 @@ export function HomeScreen() {
 			    over the content that swallows every touch (#6659); on the sheet's
 			    own header the same bar works. Hidden while the host is
 			    offline — its list isn't shown, so there is nothing to search. */}
+			<Stack.Screen
+				options={{
+					headerTitle: notice
+						? () => (
+								<HeaderNotice
+									key={notice.seq}
+									onHidden={hideNotice}
+									text={notice.text}
+									visibleFor={NOTICE_MS}
+								/>
+							)
+						: undefined,
+				}}
+			/>
 			{!cloudScope && selectedHost && !selectedHost.isOnline ? null : (
 				<Stack.Toolbar placement="right">
 					<Stack.Toolbar.Button
 						icon="magnifyingglass"
-						accessibilityLabel="Search workspaces"
+						accessibilityLabel={t({
+							message: "Search workspaces",
+						})}
 						onPress={() => {
 							void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 							router.push("/(authenticated)/(home)/search");
@@ -553,15 +652,25 @@ export function HomeScreen() {
 						<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
 					}
 					ListEmptyComponent={
-						isReady && cloudReady && hasHydrated && !isLoadingOrganizations ? (
+						contentReady ? (
 							<View className="items-center justify-center py-20">
 								<Text className="text-center text-muted-foreground">
 									{cloudScope
-										? "No cloud workspaces yet"
-										: "No projects on this host yet"}
+										? t({
+												message: "No cloud workspaces yet",
+											})
+										: t({
+												message: "No projects on this host yet",
+											})}
 								</Text>
 							</View>
-						) : null
+						) : (
+							// Timed out with answers outstanding: the list is unknown,
+							// not empty, so neither nothing nor "No projects".
+							<View className="items-center justify-center py-20">
+								<ActivityIndicator />
+							</View>
+						)
 					}
 				/>
 			)}

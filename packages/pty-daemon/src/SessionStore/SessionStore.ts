@@ -32,6 +32,11 @@ export class SessionStore {
 	private readonly sessions = new Map<string, Session>();
 	private readonly bufferCap: number;
 
+	/** Retention this store was configured with, for handoff to a successor. */
+	get bufferCapBytes(): number {
+		return this.bufferCap;
+	}
+
 	constructor(opts: SessionStoreOptions = {}) {
 		this.bufferCap = opts.bufferCap ?? DEFAULT_BUFFER_BYTES;
 	}

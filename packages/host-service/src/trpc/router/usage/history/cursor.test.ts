@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { cursorEventsToEntries } from "./cursor";
+import { cursorEventsToEntries } from "./cursor-events";
 
 describe("cursorEventsToEntries", () => {
 	test("maps events with token usage into priced entries", () => {
@@ -23,7 +23,7 @@ describe("cursorEventsToEntries", () => {
 		);
 		expect(entries).toHaveLength(1);
 		expect(entries[0]).toMatchObject({
-			provider: "cursor",
+			agent: "cursor",
 			model: "composer-2.5",
 			sessionId: "conv-1",
 			timestampMs: 1_787_004_840_166,

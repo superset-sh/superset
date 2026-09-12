@@ -4,6 +4,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
+import { connectionStatusProcedure } from "./connection-status";
 import { githubRouter } from "./github";
 import { googleRouter } from "./google";
 import { linearRouter } from "./linear";
@@ -23,6 +24,9 @@ export const integrationRouter = {
 	sentry: sentryRouter,
 	slack: slackRouter,
 	...triggerOptionsRouter,
+
+	/** Which providers are connected, for the trigger editor. */
+	connectionStatus: connectionStatusProcedure,
 
 	list: protectedProcedure
 		.input(z.object({ organizationId: z.uuid() }))

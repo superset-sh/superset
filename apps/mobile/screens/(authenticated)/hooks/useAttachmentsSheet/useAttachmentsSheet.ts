@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	type AttachmentsSheetAction,
 	presentAttachmentsSheet,
@@ -21,6 +22,7 @@ import { HOME_DRAFT_KEY } from "@/screens/(authenticated)/stores/composerDraftsS
  * composer that opened it.
  */
 export function useAttachmentsSheet(draftKey: string) {
+	const { t } = useLingui();
 	const attachments = useComposerDraft(draftKey);
 	const { theme } = useUniwind();
 
@@ -32,7 +34,11 @@ export function useAttachmentsSheet(draftKey: string) {
 			const openCamera = async () => {
 				const permission = await ImagePicker.requestCameraPermissionsAsync();
 				if (!permission.granted) {
-					Alert.alert("Camera access is not allowed");
+					Alert.alert(
+						t({
+							message: "Camera access is not allowed",
+						}),
+					);
 					return;
 				}
 				let result: ImagePicker.ImagePickerResult;
@@ -40,7 +46,11 @@ export function useAttachmentsSheet(draftKey: string) {
 					result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
 				} catch {
 					// Rejects where there is no camera (simulator).
-					Alert.alert("Camera is not available");
+					Alert.alert(
+						t({
+							message: "Camera is not available",
+						}),
+					);
 					return;
 				}
 				if (result.canceled) return;
@@ -87,6 +97,6 @@ export function useAttachmentsSheet(draftKey: string) {
 				},
 			);
 		},
-		[attachments, draftKey, theme],
+		[attachments, draftKey, theme, t],
 	);
 }

@@ -14,7 +14,7 @@ import {
 	DropdownMenuSubTrigger,
 } from "@superset/ui/dropdown-menu";
 import { HiCheck } from "react-icons/hi2";
-import { LuPalette, LuPencil, LuTrash2 } from "react-icons/lu";
+import { LuEyeOff, LuPalette, LuPencil, LuTrash2 } from "react-icons/lu";
 import {
 	PROJECT_COLOR_DEFAULT,
 	PROJECT_COLORS,
@@ -35,18 +35,21 @@ export function SectionActionsMenuItems({
 	onRename,
 	onSetColor,
 	onDelete,
+	onHide,
 }: SectionActionsMenuItemsProps) {
 	const { t } = useLingui();
 	const selectedValue = color ?? PROJECT_COLOR_DEFAULT;
-	const colorOptions = [
+	const colorOptions: { name: string; value: string }[] = [
 		{
 			name: t({
-				id: "dashboard.sidebar.sectionMenu.defaultColor",
 				message: "Default",
 			}),
 			value: PROJECT_COLOR_DEFAULT,
 		},
-		...PROJECT_COLORS,
+		...PROJECT_COLORS.map((projectColor) => ({
+			name: projectColor.name(),
+			value: projectColor.value,
+		})),
 	];
 	const iconClassName = kind === "context" ? "size-4 mr-2" : "size-4";
 
@@ -98,7 +101,7 @@ export function SectionActionsMenuItems({
 
 		return renderItem({
 			key: projectColor.value,
-			onSelect: () => onSetColor(isDefault ? null : projectColor.value),
+			onSelect: () => onSetColor?.(isDefault ? null : projectColor.value),
 			children: (
 				<>
 					<span
@@ -122,9 +125,7 @@ export function SectionActionsMenuItems({
 	const colorTrigger = (
 		<>
 			<LuPalette className={iconClassName} />
-			<Trans id="dashboard.sidebar.sectionMenu.setGroupColor">
-				Set group color
-			</Trans>
+			<Trans>Set group color</Trans>
 		</>
 	);
 
@@ -135,27 +136,36 @@ export function SectionActionsMenuItems({
 				children: (
 					<>
 						<LuPencil className={iconClassName} />
-						<Trans id="dashboard.sidebar.sectionMenu.renameGroup">
-							Rename group
-						</Trans>
+						<Trans>Rename group</Trans>
 					</>
 				),
 			})}
-			{kind === "context" ? (
+			{onSetColor && kind === "context" ? (
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>{colorTrigger}</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-40 max-h-80 overflow-y-auto">
 						{colorItems}
 					</ContextMenuSubContent>
 				</ContextMenuSub>
-			) : (
+			) : onSetColor ? (
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>{colorTrigger}</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent className="w-40 max-h-80 overflow-y-auto">
 						{colorItems}
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
-			)}
+			) : null}
+			{onHide
+				? renderItem({
+						onSelect: onHide,
+						children: (
+							<>
+								<LuEyeOff className={iconClassName} />
+								<Trans>Hide folder</Trans>
+							</>
+						),
+					})
+				: null}
 			{kind === "context" ? (
 				<ContextMenuSeparator />
 			) : (
@@ -173,9 +183,7 @@ export function SectionActionsMenuItems({
 									: "size-4 text-destructive"
 							}
 						/>
-						<Trans id="dashboard.sidebar.sectionMenu.deleteGroup">
-							Delete group
-						</Trans>
+						<Trans>Delete group</Trans>
 					</>
 				),
 			})}

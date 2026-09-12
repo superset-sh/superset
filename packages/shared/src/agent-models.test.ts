@@ -8,8 +8,10 @@ import {
 	buildAgentModelArgs,
 	buildAgentModelEnv,
 	getAgentEffortSupport,
+	getAgentEfforts,
 	getAgentModelSupport,
 	getAgentModeSupport,
+	isCuratedAgentModel,
 	resolveAgentLaunchPresetId,
 	SUPERSET_CHAT_MODELS,
 } from "./agent-models";
@@ -51,9 +53,11 @@ describe("AGENT_MODEL_SUPPORT", () => {
 });
 
 describe("SUPERSET_CHAT_MODELS", () => {
-	it("includes opus 5 and the GPT-5.6 Codex models", () => {
+	it("includes opus 5, fable 5.1, GPT-6 Astra and the GPT-5.6 Codex models", () => {
 		const ids = SUPERSET_CHAT_MODELS.map((model) => model.id);
 		expect(ids).toContain("anthropic/claude-opus-5");
+		expect(ids).toContain("anthropic/claude-fable-5-1");
+		expect(ids).toContain("openai/gpt-6-astra");
 		expect(ids).toContain("openai/gpt-5.6-sol");
 		expect(ids).toContain("openai/gpt-5.6-terra");
 		expect(ids).toContain("openai/gpt-5.6-luna");
@@ -111,6 +115,7 @@ describe("buildAgentModelArgs", () => {
 		// Aliases follow the CLI's newest model; teams standardising on one
 		// release need an id that stays put.
 		expect(ids).toContain("opus");
+		expect(ids).toContain("claude-fable-5-1");
 		expect(ids).toContain("claude-opus-4-8");
 		expect(ids).toContain("claude-opus-4-7");
 		expect(ids).toContain("claude-sonnet-4-6");
@@ -123,6 +128,7 @@ describe("buildAgentModelArgs", () => {
 			models.find((model) => model.id === id)?.group;
 		expect(groupOf("opus")).toBe("Latest");
 		expect(groupOf("claude-opus-4-8")).toBe("Pinned releases");
+		expect(groupOf("claude-fable-5-1")).toBe("Pinned releases");
 		// The header carries the distinction, so labels stay bare.
 		expect(models.find((model) => model.id === "opus")?.label).toBe("Opus");
 	});
@@ -159,17 +165,47 @@ describe("buildAgentModelArgs", () => {
 			buildAgentModelArgs("cursor-agent", "claude-fable-5-thinking-high"),
 		).toEqual(["--model", "claude-fable-5-thinking-high"]);
 		expect(
-			buildAgentModelArgs("cursor-agent", "claude-fable-5-thinking-xhigh"),
+			buildAgentModelArgs(
+				"cursor-agent",
+				"claude-fable-5-thinking-high",
+				"xhigh",
+			),
 		).toEqual(["--model", "claude-fable-5-thinking-xhigh"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-fable-5-1-thinking-high"),
+		).toEqual(["--model", "claude-fable-5-1-thinking-high"]);
 		expect(buildAgentModelArgs("opencode", "anthropic/claude-fable-5")).toEqual(
 			["--model", "anthropic/claude-fable-5"],
 		);
+	});
+
+	it("includes fable 5.1 as a pinned claude release and for the models.dev harnesses", () => {
+		expect(buildAgentModelArgs("claude", "claude-fable-5-1")).toEqual([
+			"--model",
+			"claude-fable-5-1",
+		]);
+		for (const preset of ["opencode", "omp"]) {
+			expect(buildAgentModelArgs(preset, "anthropic/claude-fable-5-1")).toEqual(
+				["--model", "anthropic/claude-fable-5-1"],
+			);
+		}
 	});
 
 	it("includes every GPT-5.6 Codex model", () => {
 		for (const model of ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]) {
 			expect(buildAgentModelArgs("codex", model)).toEqual(["--model", model]);
 		}
+	});
+
+	it("offers GPT-6 Astra in codex's current section", () => {
+		expect(buildAgentModelArgs("codex", "gpt-6-astra")).toEqual([
+			"--model",
+			"gpt-6-astra",
+		]);
+		const models = getAgentModelSupport("codex")?.models ?? [];
+		expect(models.find((model) => model.id === "gpt-6-astra")?.group).toBe(
+			"Current",
+		);
 	});
 
 	it("includes opus 5 and the GPT-5.6 models for the other CLIs", () => {
@@ -231,6 +267,22 @@ describe("AGENT_EFFORT_SUPPORT", () => {
 	it("lists at least one effort per entry", () => {
 		for (const entry of AGENT_EFFORT_SUPPORT) {
 			expect(entry.efforts.length).toBeGreaterThan(0);
+		}
+	});
+
+	it("keys model variants by curated models and efforts", () => {
+		for (const entry of AGENT_EFFORT_SUPPORT) {
+			if (!entry.modelVariants) continue;
+			const modelIds = new Set(
+				getAgentModelSupport(entry.presetId)?.models.map((m) => m.id),
+			);
+			const effortIds = new Set(entry.efforts.map((e) => e.id));
+			for (const [model, variants] of Object.entries(entry.modelVariants)) {
+				expect(modelIds.has(model)).toBe(true);
+				for (const effort of Object.keys(variants)) {
+					expect(effortIds.has(effort)).toBe(true);
+				}
+			}
 		}
 	});
 });
@@ -321,6 +373,146 @@ describe("buildAgentEffortArgs", () => {
 	it("returns [] for effort ids outside the preset's curated list", () => {
 		expect(buildAgentEffortArgs("claude", "bogus")).toEqual([]);
 		expect(buildAgentEffortArgs("copilot", "max")).toEqual([]);
+	});
+
+	it("returns [] for cursor-agent, whose effort rides the model id", () => {
+		expect(
+			buildAgentEffortArgs("cursor-agent", "low", "claude-opus-5-high"),
+		).toEqual([]);
+	});
+
+	it("drops an effort the selected model does not accept", () => {
+		expect(buildAgentEffortArgs("codex", "ultra", "gpt-5.6-sol")).toEqual([
+			"-c",
+			"model_reasoning_effort=ultra",
+		]);
+		expect(buildAgentEffortArgs("codex", "ultra", "gpt-5.5")).toEqual([]);
+	});
+});
+
+describe("getAgentEfforts", () => {
+	it("offers codex's top efforts only alongside the models that take them", () => {
+		expect(getAgentEfforts("codex", "gpt-5.6-sol").map((e) => e.id)).toEqual([
+			"low",
+			"medium",
+			"high",
+			"xhigh",
+			"max",
+			"ultra",
+		]);
+		expect(getAgentEfforts("codex", "gpt-6-astra").map((e) => e.id)).toEqual([
+			"low",
+			"medium",
+			"high",
+			"xhigh",
+			"max",
+		]);
+		expect(getAgentEfforts("codex", "gpt-5.6-luna").map((e) => e.id)).toEqual([
+			"low",
+			"medium",
+			"high",
+			"xhigh",
+			"max",
+		]);
+		expect(getAgentEfforts("codex", "gpt-5.5").map((e) => e.id)).toEqual([
+			"low",
+			"medium",
+			"high",
+			"xhigh",
+		]);
+	});
+
+	it("keeps the full list when the model is unset or uncurated", () => {
+		// Both launch on the agent's own default model.
+		expect(getAgentEfforts("codex").map((e) => e.id)).toContain("ultra");
+		expect(getAgentEfforts("codex", "gpt-9").map((e) => e.id)).toContain(
+			"ultra",
+		);
+	});
+
+	it("returns [] for presets without effort support", () => {
+		expect(getAgentEfforts("gemini")).toEqual([]);
+	});
+
+	it("offers cursor-agent efforts only for models with a ladder", () => {
+		expect(
+			getAgentEfforts("cursor-agent", "claude-opus-4-8-high").map((e) => e.id),
+		).toEqual(["low", "medium", "high", "xhigh", "max"]);
+		expect(
+			getAgentEfforts("cursor-agent", "claude-opus-5-high").map((e) => e.id),
+		).toEqual(["low", "medium", "high"]);
+		expect(
+			getAgentEfforts("cursor-agent", "gpt-5.6-sol-medium").map((e) => e.id),
+		).toEqual(["none", "low", "medium", "high", "xhigh", "max"]);
+		expect(
+			getAgentEfforts("cursor-agent", "kimi-k3-max").map((e) => e.id),
+		).toEqual(["low", "high", "max"]);
+		expect(getAgentEfforts("cursor-agent", "auto")).toEqual([]);
+		expect(getAgentEfforts("cursor-agent", "composer-2.5")).toEqual([]);
+		expect(getAgentEfforts("cursor-agent")).toEqual([]);
+		expect(getAgentEfforts("cursor-agent", "gpt-9")).toEqual([]);
+	});
+});
+
+describe("buildAgentModelArgs with effort", () => {
+	it("swaps in the cursor-agent sibling id for the effort", () => {
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-opus-4-8-high", "low"),
+		).toEqual(["--model", "claude-opus-4-8-low"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "gpt-5.3-codex", "medium"),
+		).toEqual(["--model", "gpt-5.3-codex"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "gpt-5.3-codex", "xhigh"),
+		).toEqual(["--model", "gpt-5.3-codex-xhigh"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "gpt-5.6-luna-medium", "none"),
+		).toEqual(["--model", "gpt-5.6-luna-none"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "gpt-5.5-medium", "xhigh"),
+		).toEqual(["--model", "gpt-5.5-extra-high"]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-opus-4-7-xhigh", "low"),
+		).toEqual(["--model", "claude-opus-4-7-low"]);
+	});
+
+	it("keeps the default level when the model has no such effort", () => {
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-opus-5-high", "max"),
+		).toEqual(["--model", "claude-opus-5-high"]);
+		expect(buildAgentModelArgs("cursor-agent", "auto", "high")).toEqual([
+			"--model",
+			"auto",
+		]);
+		expect(buildAgentModelArgs("cursor-agent", "auto")).toEqual([
+			"--model",
+			"auto",
+		]);
+	});
+
+	it("still launches a sibling id saved before it was folded into its family", () => {
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-fable-5-thinking-xhigh"),
+		).toEqual(["--model", "claude-fable-5-thinking-xhigh"]);
+		expect(buildAgentModelArgs("cursor-agent", "claude-opus-4-8-low")).toEqual([
+			"--model",
+			"claude-opus-4-8-low",
+		]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-opus-4-8-bogus"),
+		).toEqual([]);
+		expect(isCuratedAgentModel("cursor-agent", "gpt-5.5-extra-high")).toBe(
+			true,
+		);
+		expect(isCuratedAgentModel("claude", "claude-opus-5")).toBe(true);
+		expect(isCuratedAgentModel("claude", "opus-9")).toBe(false);
+	});
+
+	it("ignores effort for flag-based presets", () => {
+		expect(buildAgentModelArgs("claude", "opus", "high")).toEqual([
+			"--model",
+			"opus",
+		]);
 	});
 });
 

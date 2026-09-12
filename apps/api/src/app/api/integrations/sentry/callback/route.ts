@@ -34,7 +34,7 @@ const web = (params = "") =>
  */
 export async function GET(request: Request) {
 	const callback = await resolveCallback(request, {
-		params: ["code", "installationId"],
+		params: ["code", "installationId", "orgSlug"],
 		redirect: (error) => web(`?error=${error}`),
 		stateFrom: (req) =>
 			readCookie(req.headers.get("cookie"), SENTRY_STATE_COOKIE),
@@ -54,7 +54,10 @@ export async function GET(request: Request) {
 		return web("?error=token_exchange_failed");
 	}
 
-	const organization = await fetchSentryOrganization(token.token);
+	const organization = await fetchSentryOrganization(
+		token.token,
+		params.orgSlug,
+	);
 	if (!organization) return web("?error=organization_lookup_failed");
 
 	const config: SentryConfig = {
@@ -74,7 +77,14 @@ export async function GET(request: Request) {
 		externalOrgName: organization.name,
 		config,
 	});
-	if (result.conflict) return web("?error=organization_already_linked");
+	if (result.conflict) {
+		// Who holds it, so the message can name someone to ask — the blocked org
+		// cannot see the other organization's connection, let alone disconnect it.
+		const owner = result.conflict.ownerEmail
+			? `&owner=${encodeURIComponent(result.conflict.ownerEmail)}`
+			: "";
+		return web(`?error=organization_already_linked${owner}`);
+	}
 
 	// Verify Install, if the app has it on; best-effort, the token already works.
 	await verifySentryInstall(installationId, token.token);

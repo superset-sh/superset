@@ -35,11 +35,11 @@ export function useBranchContext(
 	const isCloud = hostId === CLOUD_HOST_ID;
 	const hostUrl = useHostUrl(isCloud ? null : hostId);
 	const organizationId = useActiveOrganizationId();
-	// Resolve the repo first: branches are read from GitHub by owner/name, not
-	// from a project id, since a cloud workspace has no checkout to enumerate.
-	const cloudRepo = cloudTrpc.cloudWorkspace.repoForProject.useQuery(
-		{ organizationId: organizationId ?? "", projectId: projectId ?? "" },
-		{ enabled: isCloud && !!organizationId && !!projectId },
+	// Branches are read from GitHub by owner/name: a cloud workspace has no
+	// checkout to enumerate, and no project to resolve one from.
+	const cloudRepo = cloudTrpc.cloudWorkspace.repo.useQuery(
+		{ organizationId: organizationId ?? "" },
+		{ enabled: isCloud && !!organizationId },
 	);
 	// Read through the local host's `gh` — the same path issue and PR lookups
 	// take — so it uses the user's own auth rather than an App installation.

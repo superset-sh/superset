@@ -3,9 +3,15 @@ import hostServicePackageJson from "@superset/host-service/package.json" with {
 	type: "json",
 };
 import { getHostId } from "@superset/shared/host-info";
-import { eq } from "drizzle-orm";
+import {
+	isWorkspaceTagVisibleTo,
+	normalizeWorkspaceTags,
+	visibleWorkspaceTags,
+	type WorkspaceTagAssignment,
+} from "@superset/shared/workspace-tags";
+import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../db";
-import { workspaces } from "../db/schema";
+import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
 import type { ApiClient } from "../types";
@@ -23,6 +29,23 @@ export interface WorkspaceStoreContext {
 	api?: ApiClient;
 	organizationId?: string;
 	clientMachineId?: string;
+	/** The acting user; tags they write are theirs (see `workspaceTags`). */
+	userId?: string;
+}
+
+/**
+ * Stored value for a tag whose creator is unknown (`workspaceTags` keeps the
+ * column NOT NULL so it can sit in the primary key). Never leaves the store:
+ * assignments surface it as null.
+ */
+const UNKNOWN_TAG_CREATOR = "";
+
+function toStoredTagCreator(userId: string | null | undefined): string {
+	return userId ?? UNKNOWN_TAG_CREATOR;
+}
+
+function fromStoredTagCreator(stored: string): string | null {
+	return stored === UNKNOWN_TAG_CREATOR ? null : stored;
 }
 
 /**
@@ -79,7 +102,10 @@ export interface CloudShapedWorkspace {
 	updatedAt: Date;
 }
 
-export function toWorkspaceSnapshot(row: HostWorkspaceRow): WorkspaceSnapshot {
+export function toWorkspaceSnapshot(
+	row: HostWorkspaceRow,
+	tagAssignments: WorkspaceTagAssignment[],
+): WorkspaceSnapshot {
 	return {
 		id: row.id,
 		projectId: row.projectId,
@@ -91,7 +117,87 @@ export function toWorkspaceSnapshot(row: HostWorkspaceRow): WorkspaceSnapshot {
 		createdByUserId: row.createdByUserId,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
+		lastActivityAt: row.lastActivityAt,
+		// A broadcast reaches every connected client, whoever they are, so
+		// the snapshot carries who applied each tag and each client keeps its
+		// own. `tags` stays the full union for consumers that predate that.
+		tags: visibleWorkspaceTags(tagAssignments, null),
+		tagAssignments,
 	};
+}
+
+/** Every tag on a workspace with its creator, whoever is asking. */
+export function getWorkspaceTagAssignments(
+	db: HostDb,
+	workspaceId: string,
+): WorkspaceTagAssignment[] {
+	return db
+		.select({
+			tag: workspaceTags.tag,
+			createdByUserId: workspaceTags.createdByUserId,
+		})
+		.from(workspaceTags)
+		.where(eq(workspaceTags.workspaceId, workspaceId))
+		.all()
+		.map((row) => ({
+			tag: row.tag,
+			createdByUserId: fromStoredTagCreator(row.createdByUserId),
+		}));
+}
+
+/**
+ * A workspace's tags as `viewerUserId` sees them (their own plus any with
+ * no known creator), already-normalized in storage, read back sorted.
+ */
+export function getWorkspaceTags(
+	db: HostDb,
+	workspaceId: string,
+	viewerUserId: string | null | undefined,
+): string[] {
+	return visibleWorkspaceTags(
+		getWorkspaceTagAssignments(db, workspaceId),
+		viewerUserId,
+	);
+}
+
+/**
+ * Batch tag lookup for list responses, scoped to the viewer like
+ * {@link getWorkspaceTags}; ids absent from the map have none they can see.
+ */
+export function getWorkspaceTagsByWorkspaceId(
+	db: HostDb,
+	workspaceIds: string[],
+	viewerUserId: string | null | undefined,
+): Map<string, string[]> {
+	const byWorkspace = new Map<string, string[]>();
+	if (workspaceIds.length === 0) return byWorkspace;
+	const rows = db
+		.select({
+			workspaceId: workspaceTags.workspaceId,
+			tag: workspaceTags.tag,
+			createdByUserId: workspaceTags.createdByUserId,
+		})
+		.from(workspaceTags)
+		.where(inArray(workspaceTags.workspaceId, workspaceIds))
+		.all();
+	for (const row of rows) {
+		if (
+			!isWorkspaceTagVisibleTo(
+				fromStoredTagCreator(row.createdByUserId),
+				viewerUserId,
+			)
+		) {
+			continue;
+		}
+		const tags = byWorkspace.get(row.workspaceId);
+		if (tags) {
+			tags.push(row.tag);
+		} else {
+			byWorkspace.set(row.workspaceId, [row.tag]);
+		}
+	}
+	for (const tags of byWorkspace.values()) tags.sort();
+	return byWorkspace;
 }
 
 export function toCloudShape(
@@ -132,6 +238,7 @@ export interface InsertLocalWorkspaceValues {
 	type?: "main" | "worktree" | "session";
 	taskId?: string | null;
 	createdByUserId?: string | null;
+	tags?: string[];
 }
 
 /**
@@ -144,24 +251,43 @@ export function insertLocalWorkspace(
 ): HostWorkspaceRow {
 	const now = Date.now();
 	const id = values.id ?? randomUUID();
-	ctx.db
-		.insert(workspaces)
-		.values({
-			id,
-			projectId: values.projectId,
-			worktreePath: values.worktreePath,
-			branch: values.branch,
-			name: values.name,
-			type: values.type ?? "worktree",
-			taskId: values.taskId ?? null,
-			createdByUserId: values.createdByUserId ?? null,
-			createdAt: now,
-			updatedAt: now,
-		})
-		.run();
+	const tags = normalizeWorkspaceTags(values.tags);
+	ctx.db.transaction((tx) => {
+		tx.insert(workspaces)
+			.values({
+				id,
+				projectId: values.projectId,
+				worktreePath: values.worktreePath,
+				branch: values.branch,
+				name: values.name,
+				type: values.type ?? "worktree",
+				taskId: values.taskId ?? null,
+				createdByUserId: values.createdByUserId ?? null,
+				createdAt: now,
+				updatedAt: now,
+			})
+			.run();
+		if (tags.length > 0) {
+			// Adoption paths don't stamp the row's creator, but the tags are
+			// still the acting user's — never let them fall through as public.
+			const createdByUserId = toStoredTagCreator(
+				values.createdByUserId ?? ctx.userId,
+			);
+			tx.insert(workspaceTags)
+				.values(
+					tags.map((tag) => ({
+						workspaceId: id,
+						tag,
+						createdByUserId,
+						createdAt: now,
+					})),
+				)
+				.run();
+		}
+	});
 	const row = getLocalWorkspace(ctx.db, id);
 	if (!row) throw new Error(`Workspace insert readback failed: ${id}`);
-	emitWorkspaceChanged(ctx.eventBus, "created", row);
+	emitWorkspaceChanged(ctx, "created", row);
 	trackWorkspaceEvent(ctx, "workspace_created", row);
 	return row;
 }
@@ -172,6 +298,12 @@ export interface UpdateLocalWorkspacePatch {
 	worktreePath?: string;
 	taskId?: string | null;
 	projectId?: string;
+	/**
+	 * Full replacement of the acting user's tag set (`ctx.userId`); already-
+	 * normalized by the caller. Other users' tags on the workspace are
+	 * untouched — they were never in the set the caller read back.
+	 */
+	tags?: string[];
 }
 
 /** Patch a local row, bump `updatedAt`, and broadcast. */
@@ -182,16 +314,54 @@ export function updateLocalWorkspace(
 ): HostWorkspaceRow | undefined {
 	const existing = getLocalWorkspace(ctx.db, id);
 	if (!existing) return undefined;
-	ctx.db
-		.update(workspaces)
-		.set({
-			...patch,
-			updatedAt: Date.now(),
-		})
-		.where(eq(workspaces.id, id))
-		.run();
+	const { tags, ...columns } = patch;
+	const normalizedTags =
+		tags === undefined ? undefined : normalizeWorkspaceTags(tags);
+	// Tag replacement is delete-then-insert; the transaction keeps a throw
+	// between them from losing the whole set.
+	ctx.db.transaction((tx) => {
+		tx.update(workspaces)
+			.set({
+				...columns,
+				updatedAt: Date.now(),
+			})
+			.where(eq(workspaces.id, id))
+			.run();
+		if (normalizedTags !== undefined) {
+			const createdByUserId = toStoredTagCreator(ctx.userId);
+			// The caller read back its own tags plus the creator-less ones and
+			// sends the whole set back, so both are what gets replaced; a
+			// caller with no identity read everything and replaces everything.
+			tx.delete(workspaceTags)
+				.where(
+					ctx.userId == null
+						? eq(workspaceTags.workspaceId, id)
+						: and(
+								eq(workspaceTags.workspaceId, id),
+								inArray(workspaceTags.createdByUserId, [
+									createdByUserId,
+									UNKNOWN_TAG_CREATOR,
+								]),
+							),
+				)
+				.run();
+			if (normalizedTags.length > 0) {
+				const now = Date.now();
+				tx.insert(workspaceTags)
+					.values(
+						normalizedTags.map((tag) => ({
+							workspaceId: id,
+							tag,
+							createdByUserId,
+							createdAt: now,
+						})),
+					)
+					.run();
+			}
+		}
+	});
 	const row = getLocalWorkspace(ctx.db, id);
-	if (row) emitWorkspaceChanged(ctx.eventBus, "updated", row);
+	if (row) emitWorkspaceChanged(ctx, "updated", row);
 	return row;
 }
 
@@ -204,15 +374,21 @@ export function deleteLocalWorkspace(
 ): void {
 	const existing = getLocalWorkspace(ctx.db, id);
 	ctx.db.delete(workspaces).where(eq(workspaces.id, id)).run();
-	if (existing) {
-		ctx.eventBus.broadcastWorkspaceChanged({
-			workspaceId: id,
-			eventType: "deleted",
-			workspace: null,
-			occurredAt: Date.now(),
-		});
-		trackWorkspaceEvent(ctx, "workspace_deleted", existing);
-	}
+	if (existing) emitLocalWorkspaceDeleted(ctx, existing);
+}
+
+/** Broadcast/track a row deleted by a larger transaction (for example project removal). */
+export function emitLocalWorkspaceDeleted(
+	ctx: WorkspaceStoreContext,
+	row: HostWorkspaceRow,
+): void {
+	ctx.eventBus.broadcastWorkspaceChanged({
+		workspaceId: row.id,
+		eventType: "deleted",
+		workspace: null,
+		occurredAt: Date.now(),
+	});
+	trackWorkspaceEvent(ctx, "workspace_deleted", row);
 }
 
 /**
@@ -280,18 +456,63 @@ export function unarchiveLocalWorkspace(
 			.run();
 	}
 	const row = getLocalWorkspace(ctx.db, id);
-	if (row) emitWorkspaceChanged(ctx.eventBus, "created", row);
+	if (row) emitWorkspaceChanged(ctx, "created", row);
+}
+
+/**
+ * Agent hooks fire on every tool call; one write per burst is plenty for a
+ * "last active" ranking, and it keeps a chatty agent from broadcasting a
+ * workspace:changed per tool use.
+ */
+export const WORKSPACE_ACTIVITY_THROTTLE_MS = 30_000;
+
+/**
+ * Record agent activity on a live workspace: stamp `lastActivityAt` and
+ * broadcast the row as `updated`. The first event after a quiet period
+ * writes immediately; further events inside the throttle window are
+ * dropped. Only `lastActivityAt` moves — `updatedAt` stays a metadata
+ * signal, and no analytics fire (unlike create/delete, a touch is not a
+ * workspace lifecycle event).
+ *
+ * Returns whether a write happened, for the caller's own bookkeeping.
+ */
+export function touchLocalWorkspaceActivity(
+	ctx: Pick<WorkspaceStoreContext, "db" | "eventBus">,
+	id: string,
+	occurredAt: number,
+): boolean {
+	const existing = getLocalWorkspace(ctx.db, id);
+	if (!existing || existing.archivedAt != null) return false;
+	if (
+		existing.lastActivityAt != null &&
+		occurredAt - existing.lastActivityAt < WORKSPACE_ACTIVITY_THROTTLE_MS
+	) {
+		return false;
+	}
+	ctx.db
+		.update(workspaces)
+		.set({ lastActivityAt: occurredAt })
+		.where(eq(workspaces.id, id))
+		.run();
+	emitWorkspaceChanged(ctx, "updated", {
+		...existing,
+		lastActivityAt: occurredAt,
+	});
+	return true;
 }
 
 function emitWorkspaceChanged(
-	eventBus: EventBus,
+	ctx: Pick<WorkspaceStoreContext, "db" | "eventBus">,
 	eventType: "created" | "updated",
 	row: HostWorkspaceRow,
 ): void {
-	eventBus.broadcastWorkspaceChanged({
+	ctx.eventBus.broadcastWorkspaceChanged({
 		workspaceId: row.id,
 		eventType,
-		workspace: toWorkspaceSnapshot(row),
+		workspace: toWorkspaceSnapshot(
+			row,
+			getWorkspaceTagAssignments(ctx.db, row.id),
+		),
 		occurredAt: Date.now(),
 	});
 }

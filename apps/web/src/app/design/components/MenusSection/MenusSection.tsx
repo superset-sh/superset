@@ -1,5 +1,8 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
 import {
 	ContextMenu,
@@ -34,7 +37,6 @@ import {
 	MenubarTrigger,
 } from "@superset/ui/menubar";
 import { useState } from "react";
-
 import { ComponentCard } from "../ComponentCard";
 import { ShowcaseSection } from "../ShowcaseSection";
 
@@ -46,105 +48,148 @@ export function MenusSection() {
 		<ShowcaseSection
 			id="menus"
 			index="04"
-			title="Menus"
-			description="Dropdown, context, and application menus"
+			title={i18n._(msg({ message: "Menus" }))}
+			description={i18n._(
+				msg({
+					message: "Dropdown, context, and application menus",
+				}),
+			)}
 		>
 			<ComponentCard
-				title="Dropdown Menu"
+				title={i18n._(
+					msg({
+						message: "Dropdown Menu",
+					}),
+				)}
 				importPath="@superset/ui/dropdown-menu"
 			>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant="outline">Workspace actions</Button>
+						<Button variant="outline">
+							<Trans>Workspace actions</Trans>
+						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent className="w-56">
-						<DropdownMenuLabel>component-showcase</DropdownMenuLabel>
+						<DropdownMenuLabel>
+							<Trans>component-showcase</Trans>
+						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem>
-							Open in editor
+							<Trans>Open in editor</Trans>
 							<DropdownMenuShortcut>⌘O</DropdownMenuShortcut>
 						</DropdownMenuItem>
 						<DropdownMenuCheckboxItem
 							checked={showDiff}
 							onCheckedChange={setShowDiff}
 						>
-							Show diff panel
+							<Trans>Show diff panel</Trans>
 						</DropdownMenuCheckboxItem>
 						<DropdownMenuSub>
-							<DropdownMenuSubTrigger>Layout</DropdownMenuSubTrigger>
+							<DropdownMenuSubTrigger>
+								<Trans>Layout</Trans>
+							</DropdownMenuSubTrigger>
 							<DropdownMenuSubContent>
 								<DropdownMenuRadioGroup
 									value={layout}
 									onValueChange={setLayout}
 								>
 									<DropdownMenuRadioItem value="split">
-										Split
+										<Trans>Split</Trans>
 									</DropdownMenuRadioItem>
 									<DropdownMenuRadioItem value="stacked">
-										Stacked
+										<Trans>Stacked</Trans>
 									</DropdownMenuRadioItem>
 								</DropdownMenuRadioGroup>
 							</DropdownMenuSubContent>
 						</DropdownMenuSub>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem variant="destructive">
-							Delete workspace
+							<Trans>Delete workspace</Trans>
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</ComponentCard>
 
 			<ComponentCard
-				title="Context Menu"
+				title={i18n._(
+					msg({
+						message: "Context Menu",
+					}),
+				)}
 				importPath="@superset/ui/context-menu"
 			>
 				<ContextMenu>
 					<ContextMenuTrigger className="flex h-28 w-full max-w-64 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-						Right-click here
+						<Trans>Right-click here</Trans>
 					</ContextMenuTrigger>
 					<ContextMenuContent className="w-52">
 						<ContextMenuItem>
-							Copy path
+							<Trans>Copy path</Trans>
 							<ContextMenuShortcut>⌘C</ContextMenuShortcut>
 						</ContextMenuItem>
-						<ContextMenuItem>Reveal in Finder</ContextMenuItem>
+						<ContextMenuItem>
+							<Trans>Reveal in Finder</Trans>
+						</ContextMenuItem>
 						<ContextMenuSeparator />
 						<ContextMenuItem variant="destructive">
-							Discard changes
+							<Trans>Discard changes</Trans>
 						</ContextMenuItem>
 					</ContextMenuContent>
 				</ContextMenu>
 			</ComponentCard>
 
-			<ComponentCard title="Menubar" importPath="@superset/ui/menubar" span>
+			<ComponentCard
+				title={i18n._(
+					msg({
+						message: "Menubar",
+					}),
+				)}
+				importPath="@superset/ui/menubar"
+				span
+			>
 				<Menubar>
 					<MenubarMenu>
-						<MenubarTrigger>File</MenubarTrigger>
+						<MenubarTrigger>
+							<Trans>File</Trans>
+						</MenubarTrigger>
 						<MenubarContent>
 							<MenubarItem>
-								New workspace <MenubarShortcut>⌘N</MenubarShortcut>
+								<Trans>New workspace</Trans>{" "}
+								<MenubarShortcut>⌘N</MenubarShortcut>
 							</MenubarItem>
-							<MenubarItem>Open recent</MenubarItem>
+							<MenubarItem>
+								<Trans>Open recent</Trans>
+							</MenubarItem>
 							<MenubarSeparator />
-							<MenubarItem>Close</MenubarItem>
-						</MenubarContent>
-					</MenubarMenu>
-					<MenubarMenu>
-						<MenubarTrigger>Edit</MenubarTrigger>
-						<MenubarContent>
 							<MenubarItem>
-								Undo <MenubarShortcut>⌘Z</MenubarShortcut>
-							</MenubarItem>
-							<MenubarItem>
-								Redo <MenubarShortcut>⇧⌘Z</MenubarShortcut>
+								<Trans>Close</Trans>
 							</MenubarItem>
 						</MenubarContent>
 					</MenubarMenu>
 					<MenubarMenu>
-						<MenubarTrigger>View</MenubarTrigger>
+						<MenubarTrigger>
+							<Trans>Edit</Trans>
+						</MenubarTrigger>
 						<MenubarContent>
-							<MenubarItem>Toggle sidebar</MenubarItem>
-							<MenubarItem>Zoom in</MenubarItem>
+							<MenubarItem>
+								<Trans>Undo</Trans> <MenubarShortcut>⌘Z</MenubarShortcut>
+							</MenubarItem>
+							<MenubarItem>
+								<Trans>Redo</Trans> <MenubarShortcut>⇧⌘Z</MenubarShortcut>
+							</MenubarItem>
+						</MenubarContent>
+					</MenubarMenu>
+					<MenubarMenu>
+						<MenubarTrigger>
+							<Trans context="menu">View</Trans>
+						</MenubarTrigger>
+						<MenubarContent>
+							<MenubarItem>
+								<Trans>Toggle sidebar</Trans>
+							</MenubarItem>
+							<MenubarItem>
+								<Trans>Zoom in</Trans>
+							</MenubarItem>
 						</MenubarContent>
 					</MenubarMenu>
 				</Menubar>

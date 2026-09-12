@@ -1,17 +1,23 @@
 import { Database } from "bun:sqlite";
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
 import * as schema from "../../../db/schema";
+import { TerminalAgentStore } from "../../../terminal-agents";
 import { setDefaultAccountSelection } from "../usage/default-account";
 import {
+	bindResumedSession,
 	buildAgentCommandString,
 	buildTerminalAgentLaunch,
+	continuationTarget,
 	validateAgentEffortSelection,
+	validateAgentForkSelection,
 	validateAgentModelSelection,
 	validateAgentModeSelection,
 	validateAgentResumeSelection,
@@ -26,6 +32,7 @@ const argvConfig = {
 	promptTransport: "argv" as const,
 	promptArgs: [],
 	resumeArgs: ["--resume"],
+	forkArgs: ["--resume", "{sessionId}", "--fork-session"],
 	env: {},
 };
 
@@ -38,6 +45,7 @@ const stdinConfig = {
 	promptTransport: "stdin" as const,
 	promptArgs: [],
 	resumeArgs: ["threads", "continue"],
+	forkArgs: [],
 	env: {},
 };
 
@@ -158,6 +166,29 @@ describe("buildAgentCommandString", () => {
 			"'claude' '--dangerously-skip-permissions' '--resume' 'x'\\''; rm -rf /'",
 		);
 	});
+
+	it("uses placeholder-based native fork args", () => {
+		expect(
+			buildAgentCommandString(argvConfig, "", [], {
+				forkSessionId: "abc-123",
+				randomId: RANDOM_ID,
+			}),
+		).toBe(
+			"'claude' '--dangerously-skip-permissions' '--resume' 'abc-123' '--fork-session'",
+		);
+	});
+
+	it("appends a session id when native fork args omit a placeholder", () => {
+		const config = { ...argvConfig, command: "codex", forkArgs: ["fork"] };
+		expect(
+			buildAgentCommandString(config, "continue", [], {
+				forkSessionId: "thread-42",
+				randomId: RANDOM_ID,
+			}),
+		).toBe(
+			"'codex' '--dangerously-skip-permissions' 'fork' 'thread-42' 'continue'",
+		);
+	});
 });
 
 describe("validateAgentResumeSelection", () => {
@@ -201,6 +232,27 @@ describe("validateAgentResumeSelection", () => {
 	});
 });
 
+describe("validateAgentForkSelection", () => {
+	it("accepts a native fork id when the config has fork args", () => {
+		expect(() =>
+			validateAgentForkSelection(argvConfig, "abc-123"),
+		).not.toThrow();
+	});
+
+	it("rejects forking a config without fork args", () => {
+		try {
+			validateAgentForkSelection({ ...argvConfig, forkArgs: [] }, "abc-123");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect(error).toBeInstanceOf(TRPCError);
+			expect((error as TRPCError).code).toBe("BAD_REQUEST");
+			expect((error as Error).message).toBe(
+				"Claude does not support forking a session by id. Omit forkSessionId to start a new session.",
+			);
+		}
+	});
+});
+
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../../drizzle");
 
 function createTestDb(): HostDb {
@@ -222,6 +274,11 @@ describe("buildTerminalAgentLaunch", () => {
 				promptTransport: "argv",
 				promptArgsJson: "[]",
 				resumeArgsJson: JSON.stringify(["--resume"]),
+				forkArgsJson: JSON.stringify([
+					"--resume",
+					"{sessionId}",
+					"--fork-session",
+				]),
 				envJson: JSON.stringify({ FOO: "bar" }),
 				displayOrder: 0,
 			})
@@ -254,6 +311,128 @@ describe("buildTerminalAgentLaunch", () => {
 		expect(launch.fullCommand).toBe(
 			"FOO='bar' 'claude' '--dangerously-skip-permissions' '--resume' 'abc-123'",
 		);
+	});
+
+	it("forks a previous provider session without changing the source", () => {
+		const db = createTestDb();
+		seedConfig(db);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "",
+			forkSessionId: "session-source",
+		});
+		expect(launch.fullCommand).toContain(
+			"'--resume' 'session-source' '--fork-session'",
+		);
+	});
+
+	it("rejects combining resume and fork", () => {
+		const db = createTestDb();
+		seedConfig(db);
+		expect(() =>
+			buildTerminalAgentLaunch(db, {
+				workspaceId: "11111111-1111-1111-1111-111111111111",
+				agent: "claude",
+				prompt: "",
+				resumeSessionId: "session-source",
+				forkSessionId: "session-source",
+			}),
+		).toThrow("Choose either resumeSessionId or forkSessionId, not both.");
+	});
+
+	it("refuses a fork of a session the harness no longer has", () => {
+		const db = createTestDb();
+		seedConfig(db);
+		// A refusal is only justified when the harness's project directory is
+		// visible and holds no such session, so the fixture has to provide one.
+		// Pinning the agent to a temp CLAUDE_CONFIG_DIR keeps it out of ~/.claude.
+		const configDir = mkdtempSync(join(tmpdir(), "fork-preflight-"));
+		const worktreePath = mkdtempSync(join(tmpdir(), "fork-worktree-"));
+		mkdirSync(
+			join(configDir, "projects", worktreePath.replaceAll(/[/.]/g, "-")),
+			{ recursive: true },
+		);
+		db.insert(schema.workspaces)
+			.values({
+				id: "11111111-1111-1111-1111-111111111111",
+				worktreePath,
+				branch: "main",
+				name: "fixture",
+			})
+			.run();
+		db.update(schema.hostAgentConfigs)
+			.set({ envJson: JSON.stringify({ CLAUDE_CONFIG_DIR: configDir }) })
+			.where(eq(schema.hostAgentConfigs.presetId, "claude"))
+			.run();
+		// The claude locator reads ~/.claude/projects/<encoded cwd>/<id>.jsonl,
+		// and this workspace has no such file, so the answer is a confident no.
+		expect(() =>
+			buildTerminalAgentLaunch(db, {
+				workspaceId: "11111111-1111-1111-1111-111111111111",
+				agent: "claude",
+				prompt: "",
+				forkSessionId: "99999999-9999-4999-8999-999999999999",
+			}),
+		).toThrow(/no longer has session/);
+	});
+
+	it("still forks when the harness keeps sessions somewhere we cannot read", () => {
+		const db = createTestDb();
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000d",
+				presetId: "grok",
+				label: "Grok",
+				command: "grok",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				resumeArgsJson: JSON.stringify(["--resume"]),
+				forkArgsJson: JSON.stringify([
+					"--resume",
+					"{sessionId}",
+					"--fork-session",
+				]),
+				envJson: "{}",
+				displayOrder: 3,
+			})
+			.run();
+		// Server-side sessions answer "unknown"; unknown must not block.
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "grok",
+			prompt: "",
+			forkSessionId: "99999999-9999-4999-8999-999999999999",
+		});
+		expect(launch.fullCommand).toContain("--fork-session");
+	});
+
+	it("names the conflict even when the agent cannot fork at all", () => {
+		const db = createTestDb();
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000c",
+				presetId: "no-fork",
+				label: "No Fork",
+				command: "no-fork",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				resumeArgsJson: JSON.stringify(["--resume"]),
+				envJson: "{}",
+				displayOrder: 2,
+			})
+			.run();
+		expect(() =>
+			buildTerminalAgentLaunch(db, {
+				workspaceId: "11111111-1111-1111-1111-111111111111",
+				agent: "no-fork",
+				prompt: "",
+				resumeSessionId: "session-source",
+				forkSessionId: "session-source",
+			}),
+		).toThrow("Choose either resumeSessionId or forkSessionId, not both.");
 	});
 
 	it("rejects a resume when the agent config has no resume args", () => {
@@ -354,6 +533,28 @@ describe("buildTerminalAgentLaunch", () => {
 describe("buildTerminalAgentLaunch default account env", () => {
 	// tmpdir always exists, which is all resolveDefaultAccountEnv checks.
 	const existingDir = tmpdir();
+
+	// setDefaultAccountSelection also publishes the host-wide pointer files
+	// under SUPERSET_HOME_DIR, which agent launches read on every start. Give
+	// each case its own home: without one these writes land in the real
+	// ~/.superset and repoint the developer's Codex and Claude accounts at
+	// $TMPDIR. scripts/test-preload.ts keeps that off the real home even if
+	// this hook is lost; the per-test dir also keeps the cases independent.
+	let previousSupersetHome: string | undefined;
+	let supersetHome = "";
+
+	beforeEach(() => {
+		previousSupersetHome = process.env.SUPERSET_HOME_DIR;
+		supersetHome = mkdtempSync(join(tmpdir(), "agents-default-account-"));
+		process.env.SUPERSET_HOME_DIR = supersetHome;
+	});
+
+	afterEach(() => {
+		if (previousSupersetHome === undefined)
+			delete process.env.SUPERSET_HOME_DIR;
+		else process.env.SUPERSET_HOME_DIR = previousSupersetHome;
+		rmSync(supersetHome, { recursive: true, force: true });
+	});
 
 	function seedClaude(db: HostDb, env: Record<string, string> = {}) {
 		db.insert(schema.hostAgentConfigs)
@@ -509,13 +710,27 @@ describe("validateAgentEffortSelection", () => {
 
 	it("rejects an invalid effort with the supported values", () => {
 		try {
-			validateAgentEffortSelection("codex", "Codex", "max");
+			validateAgentEffortSelection("codex", "Codex", "extreme");
 			throw new Error("Expected validation to fail");
 		} catch (error) {
 			expect(error).toBeInstanceOf(TRPCError);
 			expect((error as TRPCError).code).toBe("BAD_REQUEST");
 			expect((error as Error).message).toBe(
-				'Unsupported reasoning effort "max" for Codex. Choose one of: low, medium, high, xhigh.',
+				'Unsupported reasoning effort "extreme" for Codex. Choose one of: low, medium, high, xhigh, max, ultra.',
+			);
+		}
+	});
+
+	it("rejects an effort the selected model does not accept", () => {
+		expect(() =>
+			validateAgentEffortSelection("codex", "Codex", "ultra", "gpt-5.6-sol"),
+		).not.toThrow();
+		try {
+			validateAgentEffortSelection("codex", "Codex", "ultra", "gpt-5.5");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect((error as Error).message).toBe(
+				'Unsupported reasoning effort "ultra" for Codex with model gpt-5.5. Choose one of: low, medium, high, xhigh.',
 			);
 		}
 	});
@@ -529,6 +744,48 @@ describe("validateAgentEffortSelection", () => {
 			expect((error as TRPCError).code).toBe("BAD_REQUEST");
 			expect((error as Error).message).toBe(
 				"Superset does not support a reasoning effort override. Omit effort to use the agent default.",
+			);
+		}
+	});
+
+	it("accepts a cursor-agent effort sibling passed as the model itself", () => {
+		expect(() =>
+			validateAgentModelSelection(
+				"cursor-agent",
+				"Cursor Agent",
+				"claude-fable-5-thinking-xhigh",
+			),
+		).not.toThrow();
+	});
+
+	it("accepts cursor-agent efforts only on models with a ladder", () => {
+		expect(() =>
+			validateAgentEffortSelection(
+				"cursor-agent",
+				"Cursor Agent",
+				"low",
+				"claude-opus-4-8-high",
+			),
+		).not.toThrow();
+		try {
+			validateAgentEffortSelection(
+				"cursor-agent",
+				"Cursor Agent",
+				"low",
+				"auto",
+			);
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect((error as Error).message).toBe(
+				"Cursor Agent does not support a reasoning effort override with model auto. Omit effort to use the agent default.",
+			);
+		}
+		try {
+			validateAgentEffortSelection("cursor-agent", "Cursor Agent", "low");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect((error as Error).message).toBe(
+				"Cursor Agent does not support a reasoning effort override without a model. Omit effort to use the agent default.",
 			);
 		}
 	});
@@ -557,5 +814,225 @@ describe("validateAgentModeSelection", () => {
 		expect(() =>
 			validateAgentModeSelection("claude", "Claude", "plan"),
 		).toThrow("Claude does not support a launch mode override");
+	});
+});
+
+describe("bindResumedSession", () => {
+	function seedCodexConfig(db: HostDb) {
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000c",
+				presetId: "codex",
+				label: "Codex",
+				command: "codex",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: JSON.stringify(["--"]),
+				resumeArgsJson: JSON.stringify(["resume"]),
+				forkArgsJson: JSON.stringify(["fork", "{sessionId}"]),
+				envJson: "{}",
+				displayOrder: 0,
+			})
+			.run();
+	}
+
+	const WORKSPACE_ID = "11111111-1111-1111-1111-111111111111";
+	const TERMINAL_ID = "22222222-2222-2222-2222-222222222222";
+
+	it("binds the resumed session id without waiting for a hook", () => {
+		const db = createTestDb();
+		seedCodexConfig(db);
+		const store = new TerminalAgentStore();
+
+		bindResumedSession(
+			{ db, terminalAgentStore: store },
+			{
+				workspaceId: WORKSPACE_ID,
+				agent: "codex",
+				prompt: "",
+				resumeSessionId: "01a058a7-3990-7921-bb87-66c7370b999e",
+			},
+			TERMINAL_ID,
+		);
+
+		expect(store.list()).toMatchObject([
+			{
+				terminalId: TERMINAL_ID,
+				agentId: "codex",
+				agentSessionId: "01a058a7-3990-7921-bb87-66c7370b999e",
+				lastEventType: "Attached",
+			},
+		]);
+	});
+
+	it("leaves a fresh (non-resumed) launch unbound", () => {
+		const db = createTestDb();
+		seedCodexConfig(db);
+		const store = new TerminalAgentStore();
+
+		bindResumedSession(
+			{ db, terminalAgentStore: store },
+			{ workspaceId: WORKSPACE_ID, agent: "codex", prompt: "go" },
+			TERMINAL_ID,
+		);
+
+		expect(store.list()).toEqual([]);
+	});
+
+	it("keeps the bound id when the wrapper's launch report arrives without one", () => {
+		const db = createTestDb();
+		seedCodexConfig(db);
+		const store = new TerminalAgentStore();
+
+		bindResumedSession(
+			{ db, terminalAgentStore: store },
+			{
+				workspaceId: WORKSPACE_ID,
+				agent: "codex",
+				prompt: "",
+				resumeSessionId: "01a058a7-3990-7921-bb87-66c7370b999e",
+			},
+			TERMINAL_ID,
+		);
+		store.recordEvent({
+			terminalId: TERMINAL_ID,
+			workspaceId: WORKSPACE_ID,
+			eventType: "Attached",
+			agentId: "codex",
+			occurredAt: Date.now(),
+		});
+
+		expect(store.list()[0]?.agentSessionId).toBe(
+			"01a058a7-3990-7921-bb87-66c7370b999e",
+		);
+	});
+});
+
+describe("continuationTarget", () => {
+	const workspaceId = "11111111-1111-1111-1111-111111111111";
+	const terminalId = "22222222-2222-2222-2222-222222222222";
+
+	function seedClaude(db: HostDb) {
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000a",
+				presetId: "claude",
+				label: "Claude",
+				command: "claude",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				resumeArgsJson: "[]",
+				forkArgsJson: "[]",
+				envJson: "{}",
+				displayOrder: 0,
+			})
+			.run();
+	}
+
+	// Seeded too, so a codex binding resolves to a REAL config that differs
+	// from claude. Without it `bound` is null and the identity comparison is
+	// never the thing doing the rejecting.
+	function seedCodex(db: HostDb) {
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000b",
+				presetId: "codex",
+				label: "Codex",
+				command: "codex",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				resumeArgsJson: "[]",
+				forkArgsJson: "[]",
+				envJson: "{}",
+				displayOrder: 1,
+			})
+			.run();
+	}
+
+	function boundStore(agentId: "claude" | "codex" = "claude") {
+		const store = new TerminalAgentStore();
+		store.recordEvent({
+			terminalId,
+			workspaceId,
+			eventType: "Attached",
+			agentId,
+			occurredAt: Date.now(),
+		});
+		return store;
+	}
+
+	const run = {
+		workspaceId,
+		agent: "claude",
+		prompt: "go",
+		continueTerminalId: terminalId,
+	};
+
+	it("accepts the live session the caller named", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		expect(continuationTarget(db, boundStore(), run)).toEqual({
+			terminalId,
+			label: "Claude",
+		});
+	});
+
+	it("declines when the caller named no terminal", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		expect(
+			continuationTarget(db, boundStore(), {
+				...run,
+				continueTerminalId: undefined,
+			}),
+		).toBeNull();
+	});
+
+	it("declines an empty prompt, which only a launch can honour", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		expect(
+			continuationTarget(db, boundStore(), { ...run, prompt: "   " }),
+		).toBeNull();
+	});
+
+	// A running process cannot adopt a different model/effort/mode, so these
+	// have to launch rather than be silently dropped.
+	for (const option of ["model", "effort", "mode"] as const) {
+		it(`declines when ${option} is set, since it only applies at launch`, () => {
+			const db = createTestDb();
+			seedClaude(db);
+			expect(
+				continuationTarget(db, boundStore(), { ...run, [option]: "x" }),
+			).toBeNull();
+		});
+	}
+
+	it("declines a terminal with no live agent binding", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		expect(continuationTarget(db, new TerminalAgentStore(), run)).toBeNull();
+	});
+
+	// The guard that stops a prompt landing in whatever agent happens to hold
+	// the terminal now.
+	it("declines when a different agent is bound to that terminal", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		seedCodex(db);
+		expect(continuationTarget(db, boundStore("codex"), run)).toBeNull();
+	});
+
+	it("declines a binding that belongs to another workspace", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		expect(
+			continuationTarget(db, boundStore(), {
+				...run,
+				workspaceId: "33333333-3333-3333-3333-333333333333",
+			}),
+		).toBeNull();
 	});
 });

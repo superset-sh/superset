@@ -1,8 +1,8 @@
-import {
-	formatCompactNumber,
-	formatCurrency,
-	formatPercent,
-} from "@superset/i18n/format";
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
+import { formatCompactNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { createContext, useContext, useMemo } from "react";
 import { View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -83,7 +83,11 @@ const ContextIcon = () => {
 
 	return (
 		<Svg
-			accessibilityLabel="Model context usage"
+			accessibilityLabel={i18n._(
+				msg({
+					message: "Model context usage",
+				}),
+			)}
 			height={20}
 			viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
 			width={20}
@@ -118,6 +122,8 @@ const ContextIcon = () => {
 export type ContextTriggerProps = ButtonProps;
 
 export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
+	const { formatPercent } = useFormat();
+
 	const { usedTokens, maxTokens } = useContextValue();
 	const usedPercent = usedTokens / maxTokens;
 	const renderedPercent = formatPercent(usedPercent);
@@ -155,6 +161,8 @@ export const ContextContentHeader = ({
 	className,
 	...props
 }: ContextContentHeaderProps) => {
+	const { formatCompactNumber, formatPercent } = useFormat();
+
 	const { usedTokens, maxTokens } = useContextValue();
 	const usedPercent = usedTokens / maxTokens;
 	const displayPct = formatPercent(usedPercent);
@@ -202,6 +210,8 @@ export const ContextContentFooter = ({
 	className,
 	...props
 }: ContextContentFooterProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { modelId, usage } = useContextValue();
 	const costUSD = modelId
 		? getUsage({
@@ -225,7 +235,9 @@ export const ContextContentFooter = ({
 			>
 				{children ?? (
 					<>
-						<Text className="text-muted-foreground">Total cost</Text>
+						<Text className="text-muted-foreground">
+							<Trans>Total cost</Trans>
+						</Text>
 						<Text>{totalCost}</Text>
 					</>
 				)}
@@ -256,6 +268,8 @@ export const ContextInputUsage = ({
 	children,
 	...props
 }: ContextInputUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const inputTokens = usage?.inputTokens ?? 0;
 
@@ -280,7 +294,9 @@ export const ContextInputUsage = ({
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Input</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans>Input</Trans>
+			</Text>
 			<TokensWithCost costText={inputCostText} tokens={inputTokens} />
 		</View>
 	);
@@ -293,6 +309,8 @@ export const ContextOutputUsage = ({
 	children,
 	...props
 }: ContextOutputUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const outputTokens = usage?.outputTokens ?? 0;
 
@@ -317,7 +335,9 @@ export const ContextOutputUsage = ({
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Output</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans>Output</Trans>
+			</Text>
 			<TokensWithCost costText={outputCostText} tokens={outputTokens} />
 		</View>
 	);
@@ -330,6 +350,8 @@ export const ContextReasoningUsage = ({
 	children,
 	...props
 }: ContextReasoningUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const reasoningTokens = usage?.reasoningTokens ?? 0;
 
@@ -354,7 +376,9 @@ export const ContextReasoningUsage = ({
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Reasoning</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans>Reasoning</Trans>
+			</Text>
 			<TokensWithCost costText={reasoningCostText} tokens={reasoningTokens} />
 		</View>
 	);
@@ -367,6 +391,8 @@ export const ContextCacheUsage = ({
 	children,
 	...props
 }: ContextCacheUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const cacheTokens = usage?.cachedInputTokens ?? 0;
 
@@ -391,7 +417,9 @@ export const ContextCacheUsage = ({
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Cache</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans>Cache</Trans>
+			</Text>
 			<TokensWithCost costText={cacheCostText} tokens={cacheTokens} />
 		</View>
 	);

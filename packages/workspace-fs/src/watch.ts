@@ -1,5 +1,12 @@
+import { watch as probeNativeWatch } from "node:fs";
 import { realpath, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {
+	clearInterval,
+	clearTimeout,
+	setInterval,
+	setTimeout,
+} from "node:timers";
 import {
 	type AsyncSubscription,
 	type Event as ParcelWatcherEvent,
@@ -65,11 +72,42 @@ function escapeGlobMagic(input: string): string {
 	return input.replace(/[\\*?{}()[\]!+@|^$]/g, (char) => `\\${char}`);
 }
 
+// Linux: @parcel/watcher's inotify backend starts on a thread and the caller
+// blocks until that thread signals it started. When inotify_init fails
+// (EMFILE at fs.inotify.max_user_instances, 128 by default and shared by
+// every process of the user) the thread throws before signalling and the
+// calling thread — host-service's event loop — waits forever. A throwaway
+// fs.watch makes the same inotify_init call and fails cleanly instead.
+function assertNativeWatchAvailable(dir: string): void {
+	if (process.platform !== "linux") return;
+	let probe: ReturnType<typeof probeNativeWatch>;
+	try {
+		probe = probeNativeWatch(dir, { persistent: false });
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code ?? "unknown";
+		throw new Error(
+			`Cannot watch path: inotify unavailable (${code}); raise fs.inotify.max_user_instances or close other watchers: ${dir}`,
+		);
+	}
+	probe.close();
+}
+
 // Wall-clock budget for the nested-repo scan (bounds attach latency on a slow
 // or network-backed FS, where readdir latency — not directory count — is the
 // limiter). The static ignore globs still cover the known worktree conventions
 // if the scan truncates here.
 const NESTED_REPO_SCAN_DEADLINE_MS = 3_000;
+
+/**
+ * Nested-repo scans allowed to run at once. Watcher attaches arrive in bursts —
+ * every non-archived workspace registers git interest at the same time — and a
+ * scan holds its whole breadth-first frontier until it returns. Running them
+ * all together stacks those frontiers without finishing any of them sooner:
+ * `readdir` is served by libuv's threadpool and a scan awaits one at a time, so
+ * one scan can only ever keep one thread busy. Unbounded, that is how
+ * host-service reached V8's heap limit and aborted (DESKTOP-H1).
+ */
+const NESTED_REPO_SCAN_CONCURRENCY = 4;
 
 /**
  * Whether a root-relative path falls under any pruned directory: a static
@@ -256,6 +294,12 @@ export class FsWatcherManager {
 	 * needs to bump `fs.inotify.max_user_watches` and restart.
 	 */
 	private enospcErrorLogged = false;
+
+	/** Slots held/queued for `computeNestedRepoRelDirs`. A finishing scan hands
+	 * its slot straight to the next waiter, so the count only moves when a slot
+	 * is created or released. */
+	private runningNestedRepoScans = 0;
+	private readonly waitingNestedRepoScans: (() => void)[] = [];
 
 	constructor(options: FsWatcherManagerOptions = {}) {
 		this.debounceMs = options.debounceMs ?? 75;
@@ -561,6 +605,7 @@ export class FsWatcherManager {
 		// Subscribe to the resolved real path so kernel paths come back in a
 		// consistent form; we map them back to `state.absolutePath` in
 		// `normalizeEvents`. Mirrors VS Code's parcelWatcher.ts:364.
+		assertNativeWatchAvailable(realPath);
 		state.subscription = await subscribeToFilesystem(
 			realPath,
 			(error, events) => {
@@ -627,6 +672,13 @@ export class FsWatcherManager {
 	 * pre-existing behavior, not a crash).
 	 */
 	private async computeNestedRepoRelDirs(realPath: string): Promise<string[]> {
+		if (this.runningNestedRepoScans >= NESTED_REPO_SCAN_CONCURRENCY) {
+			await new Promise<void>((resolve) =>
+				this.waitingNestedRepoScans.push(resolve),
+			);
+		} else {
+			this.runningNestedRepoScans += 1;
+		}
 		try {
 			const { roots, truncated } = await findNestedRepoRoots(realPath, {
 				pruneDirNames: DEFAULT_IGNORE_DIR_NAMES,
@@ -645,6 +697,10 @@ export class FsWatcherManager {
 				error: toErrorMessage(error),
 			});
 			return [];
+		} finally {
+			const next = this.waitingNestedRepoScans.shift();
+			if (next) next();
+			else this.runningNestedRepoScans -= 1;
 		}
 	}
 

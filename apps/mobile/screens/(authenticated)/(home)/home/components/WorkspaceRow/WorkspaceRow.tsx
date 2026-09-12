@@ -1,6 +1,7 @@
+import { useLingui } from "@lingui/react/macro";
 import type { SelectGithubPullRequest } from "@superset/db/schema";
 import { useRouter } from "expo-router";
-import { FolderGit2, Plus } from "lucide-react-native";
+import { FolderGit2 } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { AgentMark } from "@/screens/(authenticated)/(home)/new-session/agent";
 import { AsciiSpinner } from "@/screens/(authenticated)/components/AsciiSpinner";
 import { PingDot } from "@/screens/(authenticated)/components/PingDot";
+import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinnedWorkspacesStore";
 import {
 	PULL_REQUEST_STATUS,
 	pullRequestStatus,
@@ -24,7 +26,6 @@ import type {
 	TerminalRowData,
 } from "../../hooks/useHostTerminals";
 import type { DiffStats } from "../../hooks/useVisibleDiffStats";
-import { useChatTargetStore } from "../../stores/chatTargetStore";
 import { WorkspaceRowMenu } from "./components/WorkspaceRowMenu";
 import { useWorkspaceRowActions } from "./hooks/useWorkspaceRowActions";
 
@@ -40,6 +41,7 @@ export function WorkspaceRow({
 	attention,
 	sessions,
 	cloudStatus,
+	onCopied,
 }: {
 	workspace: HostWorkspaceItem;
 	pullRequest?: SelectGithubPullRequest;
@@ -49,20 +51,15 @@ export function WorkspaceRow({
 	sessions: TerminalRowData[];
 	/** Set for a cloud workspace; drives the row's pending/failed treatment. */
 	cloudStatus?: CloudWorkspaceStatus;
+	/** Copy ID landed on the pasteboard; the screen shows its "Copied" notice. */
+	onCopied: () => void;
 }) {
+	const { t } = useLingui();
 	const router = useRouter();
 	const theme = useTheme();
 	const prIcon = pullRequest
 		? PULL_REQUEST_STATUS[pullRequestStatus(pullRequest)]
 		: null;
-	const setTarget = useChatTargetStore((state) => state.setTarget);
-	const targeted = useChatTargetStore(
-		(state) => state.target?.workspaceId === workspace.id,
-	);
-	const canChat =
-		workspace.hostReachable &&
-		workspace.worktreeExists !== false &&
-		(cloudStatus === undefined || cloudStatus === "ready");
 	const {
 		renameWorkspace,
 		deleteWorkspace,
@@ -70,10 +67,14 @@ export function WorkspaceRow({
 		shareWorkspace,
 		isUnread,
 		toggleUnread,
-	} = useWorkspaceRowActions(workspace, cache, sessions, cloudStatus);
+	} = useWorkspaceRowActions(workspace, cache, sessions, cloudStatus, onCopied);
 	// A manual mark reads as `review` — desktop's rollup ranks it lowest, so
 	// any live status the sessions are reporting keeps the slot.
 	const rowAttention = attention ?? (isUnread ? "review" : null);
+	const pinned = usePinnedWorkspacesStore(
+		(state) => workspace.id in state.pinnedAt,
+	);
+	const togglePin = usePinnedWorkspacesStore((state) => state.togglePin);
 
 	return (
 		<WorkspaceRowMenu
@@ -89,6 +90,8 @@ export function WorkspaceRow({
 			}
 			isUnread={isUnread}
 			onToggleUnread={toggleUnread}
+			pinned={pinned}
+			onTogglePin={() => togglePin(workspace.id)}
 			onRename={() => void renameWorkspace()}
 			onDelete={deleteWorkspace}
 			onCopyId={copyId}
@@ -97,10 +100,7 @@ export function WorkspaceRow({
 			{/* Default press behavior on purpose: the system context-menu lift
 			    owns the hold animation, and custom press feedback fights it. */}
 			<Pressable
-				className={cn(
-					"flex-row items-center gap-3 rounded-xl py-2 pl-10 pr-3",
-					targeted ? "bg-foreground/5" : "bg-background",
-				)}
+				className="bg-background flex-row items-center gap-3 rounded-xl py-2 pl-10 pr-3"
 				onPress={() =>
 					router.push(`/(authenticated)/workspace/${workspace.id}`)
 				}
@@ -117,7 +117,9 @@ export function WorkspaceRow({
 					<View className="size-6 items-center justify-center">
 						{prIcon && pullRequest ? (
 							<Button
-								accessibilityLabel={`Pull request #${pullRequest.prNumber}`}
+								accessibilityLabel={t({
+									message: `Pull request #${pullRequest.prNumber}`,
+								})}
 								ph-label="workspace-row-pull-request"
 								variant="ghost"
 								size="icon"
@@ -209,23 +211,6 @@ export function WorkspaceRow({
 						) : null}
 					</View>
 				) : null}
-				<Button
-					accessibilityLabel={`New agent in ${workspace.name}`}
-					ph-label="workspace-row-new-agent"
-					variant="ghost"
-					size="icon"
-					disabled={!canChat}
-					onPress={() =>
-						setTarget({
-							workspaceId: workspace.id,
-							workspaceName: workspace.name,
-							branch: workspace.branch,
-							hostId: workspace.hostId,
-						})
-					}
-				>
-					<Icon as={Plus} className="text-muted-foreground size-5" />
-				</Button>
 			</Pressable>
 		</WorkspaceRowMenu>
 	);

@@ -1,4 +1,7 @@
+import { msg } from "@lingui/core/macro";
+import { Plural, Trans } from "@lingui/react/macro";
 import { useControllableState } from "@rn-primitives/hooks";
+import { i18n } from "@superset/i18n";
 import { BrainIcon, ChevronDownIcon } from "lucide-react-native";
 import type { ReactNode } from "react";
 import {
@@ -159,12 +162,26 @@ export type ReasoningTriggerProps = React.ComponentProps<
 
 const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
 	if (isStreaming || duration === 0) {
-		return <Shimmer duration={1}>Thinking...</Shimmer>;
+		return (
+			<Shimmer duration={1}>{i18n._(msg({ message: "Thinking..." }))}</Shimmer>
+		);
 	}
 	if (duration === undefined) {
-		return <Text>Thought for a few seconds</Text>;
+		return (
+			<Text>
+				<Trans>Thought for a few seconds</Trans>
+			</Text>
+		);
 	}
-	return <Text>Thought for {duration} seconds</Text>;
+	return (
+		<Text>
+			<Plural
+				value={duration}
+				one="Thought for # second"
+				other="Thought for # seconds"
+			/>
+		</Text>
+	);
 };
 
 export const ReasoningTrigger = memo(

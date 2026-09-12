@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import type { ChartConfig } from "@superset/ui/chart";
 import {
 	ChartContainer,
@@ -13,7 +14,7 @@ import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useHostUsageHistory } from "../../hooks/useHostUsageHistory";
 import type { HistoryMetric } from "../UsageHistorySection/constants";
 import {
-	PROVIDER_CHART_CONFIG,
+	AGENT_CHART_CONFIG,
 	RANGE_OPTIONS,
 } from "../UsageHistorySection/constants";
 import {
@@ -38,6 +39,8 @@ export function UsageDrilldownPage({
 	kind: DrilldownKind;
 	entityKey: string;
 }) {
+	const { formatDate } = useFormat();
+
 	const { t } = useLingui();
 	const [days, setDays] = useState<number>(30);
 	const [metric, setMetric] = useState<HistoryMetric>("usd");
@@ -59,21 +62,20 @@ export function UsageDrilldownPage({
 				: history.modelDetails[entityKey]) ?? null)
 		: null;
 
-	const provider =
+	const agent =
 		kind === "model"
-			? (entityKey.split("|")[0] as keyof typeof PROVIDER_CHART_CONFIG)
+			? (entityKey.split("|")[0] as keyof typeof AGENT_CHART_CONFIG)
 			: null;
 	const title = kind === "model" ? entityKey.split("|")[1] : entityKey;
 	const seriesColor =
-		provider && PROVIDER_CHART_CONFIG[provider]
-			? PROVIDER_CHART_CONFIG[provider].color
+		agent && AGENT_CHART_CONFIG[agent]
+			? AGENT_CHART_CONFIG[agent].color
 			: "#d06a48";
 	const chartConfig = {
 		value: {
 			label:
 				title ??
 				t({
-					id: "settings.usage.drilldown.chartFallbackLabel",
 					message: "Usage",
 				}),
 			color: seriesColor,
@@ -120,7 +122,7 @@ export function UsageDrilldownPage({
 					className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					<LuArrowLeft className="size-3" />
-					<Trans id="settings.usage.drilldown.backToUsage">Usage</Trans>
+					<Trans>Usage</Trans>
 				</Link>
 				<span className="text-muted-foreground/60">/</span>
 				<h1 className="flex items-center gap-2 text-base font-semibold tracking-tight">
@@ -132,9 +134,9 @@ export function UsageDrilldownPage({
 				</h1>
 				<span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
 					{kind === "workspace" ? (
-						<Trans id="settings.usage.drilldown.kindWorkspace">workspace</Trans>
+						<Trans>workspace</Trans>
 					) : (
-						<Trans id="settings.usage.drilldown.kindModel">model</Trans>
+						<Trans>model</Trans>
 					)}
 				</span>
 				<div className="ml-auto flex items-center gap-1.5">
@@ -144,10 +146,10 @@ export function UsageDrilldownPage({
 					>
 						<TabsList className="h-6">
 							<TabsTrigger value="usd" className="h-4 px-1.5 text-[10px]">
-								<Trans id="settings.usage.drilldown.metricCost">Cost</Trans>
+								<Trans>Cost</Trans>
 							</TabsTrigger>
 							<TabsTrigger value="tokens" className="h-4 px-1.5 text-[10px]">
-								<Trans id="settings.usage.drilldown.metricTokens">Tokens</Trans>
+								<Trans>Tokens</Trans>
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
@@ -172,18 +174,16 @@ export function UsageDrilldownPage({
 
 			{!history ? (
 				<div className="py-8 text-center text-xs text-muted-foreground">
-					<Trans id="settings.usage.drilldown.loading">
-						Loading usage history…
-					</Trans>
+					<Trans>Loading usage history…</Trans>
 				</div>
 			) : !detail ? (
 				<div className="py-8 text-center text-xs text-muted-foreground">
 					{kind === "workspace" ? (
-						<Trans id="settings.usage.drilldown.noUsageWorkspace">
+						<Trans>
 							No usage recorded for this workspace in the selected range.
 						</Trans>
 					) : (
-						<Trans id="settings.usage.drilldown.noUsageModel">
+						<Trans>
 							No usage recorded for this model in the selected range.
 						</Trans>
 					)}
@@ -198,12 +198,12 @@ export function UsageDrilldownPage({
 						</span>
 						<span className="text-[11px] text-muted-foreground">
 							{metric === "usd" ? (
-								<Trans id="settings.usage.drilldown.shareSummaryCost">
+								<Trans>
 									{Math.round(100 * shareOfTotal)}% of total cost ·{" "}
 									{formatTokens(detail.tokens)} tokens · * at API list rates
 								</Trans>
 							) : (
-								<Trans id="settings.usage.drilldown.shareSummaryTokens">
+								<Trans>
 									{Math.round(100 * shareOfTotal)}% of all tokens ·{" "}
 									{formatTokens(detail.tokens)} tokens
 								</Trans>
@@ -264,17 +264,13 @@ export function UsageDrilldownPage({
 						<div className="flex items-baseline justify-between border-b py-1 text-[11px] text-muted-foreground">
 							<span className="font-medium">
 								{kind === "workspace" ? (
-									<Trans id="settings.usage.drilldown.modelsUsed">
-										Models used
-									</Trans>
+									<Trans>Models used</Trans>
 								) : (
-									<Trans id="settings.usage.drilldown.workspaces">
-										Workspaces
-									</Trans>
+									<Trans>Workspaces</Trans>
 								)}
 							</span>
 							<span className="font-medium">
-								<Trans id="settings.usage.drilldown.breakdownCost">Cost</Trans>
+								<Trans>Cost</Trans>
 							</span>
 						</div>
 						{detail.breakdown.slice(0, 8).map((row) => {
@@ -299,8 +295,7 @@ export function UsageDrilldownPage({
 											<span
 												className="size-1.5 shrink-0 rounded-[2px]"
 												style={{
-													background:
-														PROVIDER_CHART_CONFIG[row.provider]?.color,
+													background: AGENT_CHART_CONFIG[row.agent]?.color,
 												}}
 											/>
 											{rowTitle}
@@ -317,7 +312,7 @@ export function UsageDrilldownPage({
 											className="h-full rounded-full"
 											style={{
 												width: `${breakdownMax > 0 ? Math.max(1, (100 * row.usd) / breakdownMax) : 0}%`,
-												background: PROVIDER_CHART_CONFIG[row.provider]?.color,
+												background: AGENT_CHART_CONFIG[row.agent]?.color,
 												opacity: 0.6,
 											}}
 										/>
@@ -350,14 +345,12 @@ export function UsageDrilldownPage({
 							<div className="flex flex-col gap-1.5">
 								<div className="flex items-baseline justify-between border-b py-1 text-[11px] text-muted-foreground">
 									<span className="font-medium">
-										<Trans id="settings.usage.drilldown.topSessions">
+										<Trans>
 											Sessions · top {detail.sessions.length} by cost
 										</Trans>
 									</span>
 									<span className="font-medium">
-										<Trans id="settings.usage.drilldown.sessionsCost">
-											Cost
-										</Trans>
+										<Trans>Cost</Trans>
 									</span>
 								</div>
 								{detail.sessions.map((session) => {
@@ -369,7 +362,6 @@ export function UsageDrilldownPage({
 											type="button"
 											onClick={() => copySessionId(session.id)}
 											title={`${session.id}\n${t({
-												id: "settings.usage.drilldown.sessionCopyTitle",
 												message:
 													"Click to copy the session ID (resume with `claude --resume <id>`).",
 											})}`}
@@ -381,28 +373,25 @@ export function UsageDrilldownPage({
 														className="size-1.5 shrink-0 rounded-[2px]"
 														style={{
 															background:
-																PROVIDER_CHART_CONFIG[session.provider]?.color,
+																AGENT_CHART_CONFIG[session.agent]?.color,
 														}}
 													/>
 													<span className="truncate">
 														{session.label ??
 															t({
-																id: "settings.usage.drilldown.sessionFallbackLabel",
 																message: `Session ${session.id.slice(0, 8)}`,
 															})}
 													</span>
 													<span className="shrink-0 text-muted-foreground">
-														{new Date(session.lastMs).toLocaleDateString(
-															undefined,
-															{ month: "short", day: "numeric" },
-														)}
+														{formatDate(new Date(session.lastMs), {
+															month: "short",
+															day: "numeric",
+														})}
 													</span>
 													{copied ? (
 														<span className="flex shrink-0 items-center gap-1 text-[10px] text-emerald-500">
 															<LuCheck className="size-2.5" />
-															<Trans id="settings.usage.drilldown.idCopied">
-																ID copied
-															</Trans>
+															<Trans>ID copied</Trans>
 														</span>
 													) : (
 														<LuCopy className="size-2.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
@@ -421,7 +410,7 @@ export function UsageDrilldownPage({
 													style={{
 														width: `${sessionMax > 0 ? Math.max(1, (100 * session.usd) / sessionMax) : 0}%`,
 														background:
-															PROVIDER_CHART_CONFIG[session.provider]?.color,
+															AGENT_CHART_CONFIG[session.agent]?.color,
 														opacity: 0.6,
 													}}
 												/>

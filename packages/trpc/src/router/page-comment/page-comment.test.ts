@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { TRPCError } from "@trpc/server";
 import type { TRPCContext } from "../../trpc";
-import { agentSessionFor, assertActivatedForAgent } from "./agent-access";
+import {
+	agentSessionFor,
+	assertActivatedForAgent,
+	shouldActivateOnWrite,
+} from "./agent-access";
 
 const ctx = (agentCaller: TRPCContext["agentCaller"]) =>
 	({ agentCaller }) as TRPCContext;
@@ -31,6 +35,29 @@ describe("agentSessionFor", () => {
 		expect(agentSessionFor(ctx({ transport: "mcp", label: null }))).toBe(
 			"mcp:unknown",
 		);
+	});
+});
+
+describe("shouldActivateOnWrite", () => {
+	const fresh = { agentActivatedAt: null };
+	const already = { agentActivatedAt: new Date() };
+
+	it("opens a fresh thread when a person writes on it", () => {
+		expect(shouldActivateOnWrite(fresh, null)).toBe(true);
+	});
+
+	it("does not re-stamp a thread that is already open", () => {
+		expect(shouldActivateOnWrite(already, null)).toBe(false);
+	});
+
+	it("never activates on an agent's own write — that would be a self-invite", () => {
+		expect(shouldActivateOnWrite(fresh, "pane-7")).toBe(false);
+		expect(shouldActivateOnWrite(fresh, "mcp:claude")).toBe(false);
+	});
+
+	it("leaves an open thread open when an agent replies, so it can reply again", () => {
+		expect(shouldActivateOnWrite(already, "pane-7")).toBe(false);
+		expect(() => assertActivatedForAgent(already, "pane-7")).not.toThrow();
 	});
 });
 

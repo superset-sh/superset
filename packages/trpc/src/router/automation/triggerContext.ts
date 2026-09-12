@@ -16,7 +16,6 @@ type TriggerEvent = Pick<
 	| "ref"
 	| "repositoryId"
 	| "payload"
-	| "receivedAt"
 >;
 
 /**
@@ -35,13 +34,13 @@ export function promptWithTriggerContext(
 	},
 	event: TriggerEvent | null,
 ): string {
-	const payload = event ? boundedPayload(event.payload) : null;
+	const payload = event ? boundedPayload(providerPayload(event)) : null;
 	const triggerContext = !event
 		? { schedule: { scheduledFor: context.scheduledFor?.toISOString() } }
 		: event.provider === "webhook"
 			? { webhookPayload: payload?.value }
 			: {
-					[event.provider]: {
+					[event.provider]: withoutNulls({
 						eventType: event.eventType,
 						title: event.title,
 						url: event.url,
@@ -49,13 +48,12 @@ export function promptWithTriggerContext(
 						ref: event.ref,
 						repositoryId: event.repositoryId,
 						payload: payload?.value,
-					},
+					}),
 				};
 
 	const info = {
 		automationId: context.automationId,
 		triggerId: context.triggerId,
-		...(event ? { receivedAt: event.receivedAt.toISOString() } : {}),
 		triggerContext,
 		...(payload?.truncated ? { payloadTruncated: true } : {}),
 	};
@@ -68,6 +66,52 @@ export function promptWithTriggerContext(
 		"",
 		prompt,
 	].join("\n");
+}
+
+/** Null and undefined entries carry no information the agent can act on. */
+function withoutNulls<T extends Record<string, unknown>>(record: T): T {
+	return Object.fromEntries(
+		Object.entries(record).filter(([, value]) => value != null),
+	) as T;
+}
+
+/**
+ * What of the provider's raw payload actually reaches the prompt. A webhook
+ * body is the user's own data and passes verbatim (handled by the caller);
+ * Slack's envelope is mostly transport plumbing — `blocks` restates `text`,
+ * `authorizations`/`api_app_id`/`event_id` identify the delivery, not the
+ * message — so only the fields an agent acts on survive. Other providers
+ * store API objects that are already the content and pass through until each
+ * gets the same treatment.
+ */
+function providerPayload(event: TriggerEvent): unknown {
+	if (event.provider !== "slack") return event.payload;
+	const envelope = event.payload as {
+		event?: {
+			type?: string;
+			channel?: string;
+			user?: string;
+			text?: string;
+			ts?: string;
+			thread_ts?: string;
+			reaction?: string;
+			item?: unknown;
+			team?: string;
+		};
+	} | null;
+	const message = envelope?.event;
+	if (!message) return event.payload;
+	return withoutNulls({
+		type: message.type,
+		channel: message.channel,
+		user: message.user,
+		text: message.text,
+		ts: message.ts,
+		threadTs: message.thread_ts,
+		reaction: message.reaction,
+		item: message.item,
+		team: message.team,
+	});
 }
 
 function boundedPayload(payload: unknown): {

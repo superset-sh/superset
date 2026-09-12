@@ -24,7 +24,7 @@ import { getOpenCodeConfigDir, getOpenCodePluginDir } from "./paths";
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
 
 const OPENCODE_PLUGIN_SIGNATURE = "// Superset opencode plugin";
-const OPENCODE_PLUGIN_VERSION = "v8";
+const OPENCODE_PLUGIN_VERSION = "v10";
 export const OPENCODE_PLUGIN_MARKER = `${OPENCODE_PLUGIN_SIGNATURE} ${OPENCODE_PLUGIN_VERSION}`;
 
 /**
@@ -66,13 +66,17 @@ export function getClaudeGlobalSettingsJsonPath(): string {
 }
 
 // StopFailure is the API-error hook; it fires while the session stays alive,
-// unlike Stop.
+// unlike Stop. SubagentStart/SubagentStop feed the per-terminal subagent
+// roster; the notify script routes them by their agent_id, never as the
+// terminal's own lifecycle.
 const CLAUDE_MANAGED_EVENTS: Record<string, { matcher?: string }> = {
 	SessionStart: {},
 	SessionEnd: {},
 	UserPromptSubmit: {},
 	Stop: {},
 	StopFailure: {},
+	SubagentStart: {},
+	SubagentStop: {},
 	PostToolUse: { matcher: "*" },
 	PostToolUseFailure: { matcher: "*" },
 	PermissionRequest: { matcher: "*" },
@@ -154,10 +158,20 @@ export function getCodexGlobalHooksJsonPath(): string {
 	return path.join(os.homedir(), ".codex", "hooks.json");
 }
 
+// SubagentStart/SubagentStop fire for spawn_agent children (multi_agent is
+// on by default); the notify script forwards them to the subagent roster.
 const CODEX_MANAGED_EVENTS: Record<string, { matcher?: string }> = {
 	SessionStart: {},
+	SessionEnd: {},
 	UserPromptSubmit: {},
+	// A planning question blocks on user input; resume working after its answer.
+	// Match only this tool so ordinary tool calls never signal a waiting state.
+	PreToolUse: { matcher: "^request_user_input$" },
+	PostToolUse: { matcher: "^request_user_input$" },
 	Stop: {},
+	Interrupt: {},
+	SubagentStart: {},
+	SubagentStop: {},
 };
 
 function codexHooksSpec(
@@ -276,8 +290,11 @@ export function createCodexWrapper(): void {
 	const notifyPath = getNotifyScriptPath();
 	const script = buildWrapperScript(
 		"codex",
-		buildDefaultAccountResolver("CODEX_HOME", "default-codex-home") +
-			buildCodexWrapperExecLine(notifyPath),
+		buildDefaultAccountResolver(
+			"CODEX_HOME",
+			"default-codex-home",
+			"SUPERSET_AMBIENT_CODEX_HOME",
+		) + buildCodexWrapperExecLine(notifyPath),
 		{ agentId: "codex" },
 	);
 	createWrapper("codex", script);

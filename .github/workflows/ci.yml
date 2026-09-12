@@ -112,11 +112,15 @@ jobs:
       - name: Lint
         run: bun run lint
 
-      # Message catalogs must match source (extract) and compile with no
-      # missing translations (--strict); a dirty diff means someone forgot
-      # to run `bun run --cwd packages/i18n check` after changing strings.
-      - name: Audit i18n catalogs
-        run: bun run --cwd packages/i18n check
+      - name: Check i18n catalogs
+        run: bun run check:i18n && git diff --exit-code --stat HEAD -- packages/i18n/locales
+
+      # `plugins/<name>/versions/<v>/` and the manifests bundled into
+      # @superset/shared are both written by `superset plugins publish`. An edit
+      # to a plugin that skipped publishing leaves the API resolving a stale
+      # manifest — and that manifest names the token_url and the proxy target.
+      - name: Audit plugin marketplace
+        run: bun run check:plugins
 
   test:
     name: Test
@@ -143,6 +147,7 @@ jobs:
       - name: Test
         env:
           RELAY_URL: ${{ secrets.RELAY_URL }}
+          REALTIME_URL: ${{ secrets.REALTIME_URL }}
         run: bun run test
 
       # The terminal launch-protection suites (src/terminal/*.node-test.ts)
@@ -223,6 +228,7 @@ jobs:
       - name: Build Desktop
         env:
           RELAY_URL: ${{ secrets.RELAY_URL }}
+          REALTIME_URL: ${{ secrets.REALTIME_URL }}
         run: bun turbo run build --filter=@superset/desktop
 
   build-cli:

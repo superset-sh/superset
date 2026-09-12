@@ -1,0 +1,58 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "superset-usercontent",
+	"main": "src/index.ts",
+	"workers_dev": false,
+	// One origin per page under `frame.`; files get their own first-level host
+	// later. Needs proxied DNS records for `*.frame`, `frame` and `@`, and
+	// Advanced Certificate Manager for the second-level wildcard certificate.
+	"routes": [
+		{
+			"pattern": "*.frame.supersetusercontent.com/*",
+			"zone_name": "supersetusercontent.com"
+		},
+		{
+			"pattern": "frame.supersetusercontent.com/*",
+			"zone_name": "supersetusercontent.com"
+		},
+		{
+			"pattern": "media.supersetusercontent.com/*",
+			"zone_name": "supersetusercontent.com"
+		},
+		{
+			"pattern": "supersetusercontent.com/*",
+			"zone_name": "supersetusercontent.com"
+		}
+	],
+	"compatibility_date": "2026-07-01",
+	"compatibility_flags": ["nodejs_als"],
+	"vars": {
+		"USERCONTENT_URL": "https://frame.supersetusercontent.com",
+		"MEDIA_URL": "https://media.supersetusercontent.com",
+		"APP_URL": "https://app.superset.sh",
+		// Who may frame a page. `file:` is the packaged desktop renderer; a
+		// frame still needs a valid ticket, so this admits embedding, not reading.
+		"FRAME_ANCESTORS": "https://app.superset.sh file:"
+	},
+	// The public bucket (avatars, logos, icons) is served by the CDN under its
+	// own domain and never passes through here.
+	"r2_buckets": [{ "binding": "PRIVATE", "bucket_name": "superset-private" }],
+	"observability": { "enabled": true },
+	"dev": { "port": 8787 },
+	"env": {
+		// `wrangler dev --env dev` via `bun run dev`: no routes, so the
+		// per-page host reaches the Worker as sent (with routes, local dev
+		// rewrites it to the zone). Only topology lives here — the port and
+		// the URL vars that embed it are machine-specific, so scripts/dev.ts
+		// derives them from the worktree's .env (setup's port allocator,
+		// offset +14) into a generated .dev.vars.dev. Chromium resolves
+		// `*.localhost` to loopback; curl needs `--resolve`.
+		"dev": {
+			"workers_dev": true,
+			"routes": [],
+			"r2_buckets": [
+				{ "binding": "PRIVATE", "bucket_name": "superset-private-dev" }
+			]
+		}
+	}
+}

@@ -1,4 +1,3 @@
-import { msg } from "@lingui/core/macro";
 import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
 import { LuClock } from "react-icons/lu";
 import { ScheduleSentence } from "../../ScheduleSentence";
@@ -11,10 +10,10 @@ type ScheduleConfig = Extract<TriggerConfigInput, { kind: "schedule" }>;
  * rather than when this module loads — otherwise every schedule created in a
  * long-lived window shares the timestamp the app booted at.
  */
-function createScheduleConfig(): ScheduleConfig {
+function createScheduleConfig(rrule: string): ScheduleConfig {
 	return {
 		kind: "schedule",
-		rrule: "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
+		rrule,
 		dtstart: new Date().toISOString(),
 		timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
 	};
@@ -22,18 +21,30 @@ function createScheduleConfig(): ScheduleConfig {
 
 export const scheduleProvider: TriggerProvider<ScheduleConfig> = {
 	kind: "schedule",
-	label: msg({
-		id: "dashboard.automations.providers.schedule.label",
-		message: "Scheduled",
-	}),
+	label: "Scheduled",
 	icon: LuClock,
 	menu: [
 		{
-			label: msg({
-				id: "dashboard.automations.providers.schedule.menuScheduled",
-				message: "Scheduled",
-			}),
-			create: createScheduleConfig,
+			label: "Hourly",
+			create: () => createScheduleConfig("FREQ=HOURLY"),
+		},
+		{
+			label: "Daily",
+			create: () => createScheduleConfig("FREQ=DAILY;BYHOUR=9;BYMINUTE=0"),
+		},
+		{
+			label: "Weekly",
+			create: () =>
+				createScheduleConfig("FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;BYMINUTE=0"),
+		},
+		{
+			// No preset matches this rule, so the row opens in raw-RRULE editing
+			// with a valid weekdays template already in the box.
+			label: "Custom",
+			create: () =>
+				createScheduleConfig(
+					"FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0",
+				),
 		},
 	],
 	renderSentence: (config, { set, nextRun, disabled }) => (

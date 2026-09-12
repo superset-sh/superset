@@ -91,7 +91,6 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		) {
 			toast.error(
 				t({
-					id: "dashboard.tasks.openInWorkspace.enableAgentFirst",
 					message: "Enable an agent in Settings > Agents first",
 				}),
 			);
@@ -149,14 +148,12 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				if (launchResult.status === "failed") {
 					toast.error(
 						t({
-							id: "dashboard.tasks.openInWorkspace.startAgentFailed",
 							message: "Failed to start agent",
 						}),
 						{
 							description:
 								launchResult.error ??
 								t({
-									id: "dashboard.tasks.openInWorkspace.startAgentSessionFailed",
 									message: "Failed to start agent session.",
 								}),
 						},
@@ -168,11 +165,9 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			toast.success(
 				result.wasExisting
 					? t({
-							id: "dashboard.tasks.openInWorkspace.openedExisting",
 							message: "Opened existing workspace",
 						})
 					: t({
-							id: "dashboard.tasks.openInWorkspace.workspaceCreated",
 							message: "Workspace created",
 						}),
 			);
@@ -181,7 +176,6 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				errorMessage(
 					err,
 					t({
-						id: "dashboard.tasks.openInWorkspace.createWorkspaceFailed",
 						message: "Failed to create workspace",
 					}),
 				),
@@ -192,9 +186,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	return (
 		<div className="flex flex-col gap-2">
 			<span className="text-xs text-muted-foreground">
-				<Trans id="dashboard.tasks.openInWorkspace.title">
-					Open in workspace
-				</Trans>
+				<Trans>Open in workspace</Trans>
 			</span>
 			<div className="flex gap-1.5">
 				<DropdownMenu>
@@ -220,9 +212,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 									</>
 								) : (
 									<span className="text-muted-foreground">
-										<Trans id="dashboard.tasks.openInWorkspace.selectProject">
-											Select project
-										</Trans>
+										<Trans>Select project</Trans>
 									</span>
 								)}
 							</span>
@@ -235,9 +225,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					>
 						{recentProjects.length === 0 ? (
 							<DropdownMenuItem disabled>
-								<Trans id="dashboard.tasks.openInWorkspace.noProjects">
-									No projects found
-								</Trans>
+								<Trans>No projects found</Trans>
 							</DropdownMenuItem>
 						) : (
 							recentProjects
@@ -278,23 +266,19 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				agents={enabledAgentPresets}
 				value={selectedAgent}
 				placeholder={t({
-					id: "dashboard.tasks.openInWorkspace.selectAgent",
 					message: "Select agent",
 				})}
 				onValueChange={setSelectedAgent}
 				triggerClassName="h-8 text-xs"
 				allowNone
 				noneLabel={t({
-					id: "dashboard.tasks.openInWorkspace.noAgent",
 					message: "No agent",
 				})}
 				noneValue="none"
 			/>
 			<div className="flex items-center justify-between">
 				<Label htmlFor="auto-run-toggle" className="text-xs font-normal">
-					<Trans id="dashboard.tasks.openInWorkspace.autoRun">
-						Auto-run command
-					</Trans>
+					<Trans>Auto-run command</Trans>
 				</Label>
 				<Switch
 					id="auto-run-toggle"

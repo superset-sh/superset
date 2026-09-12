@@ -1,10 +1,10 @@
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuRadioGroup,
-	DropdownMenuRadioItem,
+	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { LuCheck } from "react-icons/lu";
 import { ChipButton } from "../ChipButton";
 
 /**
@@ -12,7 +12,9 @@ import { ChipButton } from "../ChipButton";
  *
  * A dropdown rather than a Select: Select's trigger carries its own height,
  * padding and font size that a chip has to fight, and the sentence already
- * speaks in dropdowns everywhere else.
+ * speaks in dropdowns everywhere else. The selected value is marked with a
+ * trailing check, the way SelectItem does it — the RadioItem dot indents
+ * every row for a gutter only one of them uses.
  */
 export function SelectChip({
 	value,
@@ -41,13 +43,20 @@ export function SelectChip({
 				</span>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="max-h-80 overflow-y-auto">
-				<DropdownMenuRadioGroup value={value} onValueChange={onChange}>
-					{options.map((option) => (
-						<DropdownMenuRadioItem key={option.value} value={option.value}>
-							{option.label}
-						</DropdownMenuRadioItem>
-					))}
-				</DropdownMenuRadioGroup>
+				{options.map((option) => (
+					<DropdownMenuItem
+						key={option.value}
+						className="relative pr-8"
+						onSelect={() => onChange(option.value)}
+					>
+						{option.label}
+						{option.value === value && (
+							<span className="absolute right-2 flex size-3.5 items-center justify-center">
+								<LuCheck className="size-4" />
+							</span>
+						)}
+					</DropdownMenuItem>
+				))}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

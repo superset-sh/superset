@@ -4,6 +4,11 @@
 
 @source "./**/*.{ts,tsx}";
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
+/* @superset/panes renders inside this app with its own class names. Without
+   this scan any utility used only there (PANE_MIN_SIZE_CLASS_NAME's
+   min-w-[260px], the pane header's @container) never gets generated and
+   silently does nothing — panes could squeeze far below their minimum. */
+@source "../../../../packages/panes/src/**/*.{ts,tsx}";
 @source "../../../../packages/ui/node_modules/streamdown/dist/*.js";
 
 /**
@@ -36,6 +41,7 @@
 	--destructive-foreground: #ffcccc;
 	--warning: #e5c07b;
 	--warning-foreground: #000000;
+	--success: #5fb37f;
 	--border: #2a2827;
 	--input: #2a2827;
 	--ring: #3a3837;
@@ -84,6 +90,7 @@
 	--destructive-foreground: oklch(0.985 0 0);
 	--warning: oklch(0.554 0.113 86.265);
 	--warning-foreground: oklch(0.985 0 0);
+	--success: oklch(0.596 0.145 163.225);
 	--border: oklch(0.922 0 0);
 	--input: oklch(0.922 0 0);
 	--ring: oklch(0.708 0 0);
@@ -129,6 +136,7 @@
 	--color-destructive-foreground: var(--destructive-foreground);
 	--color-warning: var(--warning);
 	--color-warning-foreground: var(--warning-foreground);
+	--color-success: var(--success);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
@@ -366,4 +374,10 @@
 	.tiptap-chat-input p {
 		margin: 0;
 	}
+}
+
+/* Embedded documents hit-test ahead of the host; while a host gesture is in
+   flight they yield to it. See renderer/lib/pointer-passthrough.ts. */
+html[data-pointer-passthrough] iframe {
+	pointer-events: none;
 }

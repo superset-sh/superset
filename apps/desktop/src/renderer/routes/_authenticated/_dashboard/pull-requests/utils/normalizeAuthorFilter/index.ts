@@ -1,1 +1,4 @@
-export { normalizeAuthorFilter } from "./normalizeAuthorFilter";
+export {
+	normalizeAuthorFilter,
+	normalizeAuthorFilters,
+} from "./normalizeAuthorFilter";

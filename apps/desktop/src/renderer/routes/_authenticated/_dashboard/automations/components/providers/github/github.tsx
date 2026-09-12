@@ -1,178 +1,13 @@
-import { msg } from "@lingui/core/macro";
-import { i18n } from "@superset/i18n";
-import { isEmptyScope } from "@superset/shared/automation-triggers";
+import { configHasMeScope } from "@superset/shared/automation-matching";
 import { FaGithub } from "react-icons/fa";
-import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
-import { TextFilterChip } from "../../TriggerSentence/components/TextFilterChip";
 import { Sentence } from "../components/Sentence";
-import type { SentenceContext, TriggerProvider } from "../types";
-import {
-	GITHUB_MENU,
-	GITHUB_SENTENCES,
-	type GithubConfig,
-	type Slot,
-} from "./grammar";
-
-/**
- * Renders one slot of a GitHub sentence. Each slot names the config field it
- * edits, so `set` patches by that name and `mark` finds it in the problems.
- */
-function renderSlot(
-	config: GithubConfig,
-	slot: Slot,
-	index: number,
-	{ set, mark, options, disabled }: SentenceContext,
-) {
-	// The slot list is derived from this event, so the fields it names are
-	// present on this config member even where the union type cannot say so.
-	const c = config as unknown as Record<string, never>;
-	switch (slot) {
-		case "repositories":
-			return (
-				<ScopeChip
-					key={index}
-					scope={c.repositories}
-					onChange={(v) => set({ repositories: v })}
-					className={mark("repositories")}
-					options={options.github?.repositories ?? []}
-					emptyLabel={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.selectRepos",
-							message: "Select repos",
-						}),
-					)}
-					anyLabel={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.anyRepo",
-							message: "Any repo",
-						}),
-					)}
-					disabled={disabled}
-				/>
-			);
-		case "branches":
-			return (
-				<ScopeChip
-					key={index}
-					scope={c.branches}
-					// Clearing an optional filter means "any", not "none": the chip
-					// says "Any branch" either way, and an empty list would make that
-					// a lie.
-					onChange={(v) =>
-						set({ branches: isEmptyScope(v) ? { mode: "any" } : v })
-					}
-					options={[]}
-					emptyLabel={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.anyBranchEmpty",
-							message: "Any branch",
-						}),
-					)}
-					anyLabel={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.anyBranch",
-							message: "Any branch",
-						}),
-					)}
-					disabled={disabled}
-				/>
-			);
-		case "labels":
-			return (
-				<ScopeChip
-					key={index}
-					scope={c.labels}
-					onChange={(v) =>
-						set({ labels: isEmptyScope(v) ? { mode: "any" } : v })
-					}
-					options={[]}
-					emptyLabel={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.anyLabelEmpty",
-							message: "Any label",
-						}),
-					)}
-					anyLabel={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.anyLabel",
-							message: "Any label",
-						}),
-					)}
-					disabled={disabled}
-				/>
-			);
-		case "actor":
-			return (
-				<ScopeChip
-					key={index}
-					scope={c.actor}
-					onChange={(v) => set({ actor: v })}
-					className={mark("actor")}
-					options={options.github?.people ?? []}
-					emptyLabel={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.actorSelectPeople",
-							message: "Select people",
-						}),
-					)}
-					anyLabel={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.actorAnyone",
-							message: "Anyone",
-						}),
-					)}
-					disabled={disabled}
-				/>
-			);
-		case "subjectAuthor":
-			return (
-				<ScopeChip
-					key={index}
-					scope={c.subjectAuthor}
-					onChange={(v) => set({ subjectAuthor: v })}
-					className={mark("subjectAuthor")}
-					options={options.github?.people ?? []}
-					emptyLabel={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.subjectAuthorSelectPeople",
-							message: "Select people",
-						}),
-					)}
-					anyLabel={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.subjectAuthorAnyone",
-							message: "Anyone",
-						}),
-					)}
-					disabled={disabled}
-				/>
-			);
-		case "commentFilter":
-			return (
-				<TextFilterChip
-					key={index}
-					value={c.commentFilter}
-					onChange={(v) => set({ commentFilter: v })}
-					emptyLabel={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.anyComment",
-							message: "Any comment",
-						}),
-					)}
-					placeholder={i18n._(
-						msg({
-							id: "dashboard.automations.providers.github.commentFilterPlaceholder",
-							message: "Contains this text...",
-						}),
-					)}
-					disabled={disabled}
-				/>
-			);
-	}
-}
+import type { TriggerProvider } from "../types";
+import { GithubSentenceSlot } from "./components/GithubSentenceSlot";
+import { GITHUB_MENU, GITHUB_SENTENCES, type GithubConfig } from "./grammar";
 
 export const githubProvider: TriggerProvider<GithubConfig> = {
 	kind: "github",
+	connectionProvider: "github",
 	optionGroup: "github",
 	label: "GitHub",
 	icon: FaGithub,
@@ -181,7 +16,26 @@ export const githubProvider: TriggerProvider<GithubConfig> = {
 		<Sentence
 			parts={GITHUB_SENTENCES[config.event]}
 			fallback={config.event}
-			renderSlot={(slot, index) => renderSlot(config, slot, index, ctx)}
+			renderSlot={(slot, index) => (
+				<GithubSentenceSlot
+					config={config}
+					slot={slot}
+					index={index}
+					context={ctx}
+				/>
+			)}
 		/>
 	),
+	// "Me" resolves against the owner's GitHub identity when each event
+	// arrives; with no identity connected it resolves to nobody and the
+	// trigger is configured fine but permanently silent. The check reads the
+	// viewer's identity — edits are owner-gated, so for the person who can
+	// act on this they are the same account.
+	runtimeWarnings: (config, options) => {
+		if (!configHasMeScope(config)) return [];
+		if ((options.github?.viewer ?? []).length > 0) return [];
+		return [
+			'This trigger filters by "Me", but no GitHub account is connected for you — it will not fire until one is.',
+		];
+	},
 };

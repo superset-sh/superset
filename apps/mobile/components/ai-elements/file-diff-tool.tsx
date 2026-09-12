@@ -1,3 +1,6 @@
+import { msg } from "@lingui/core/macro";
+import { Plural, Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	ChevronDownIcon,
 	ExternalLinkIcon,
@@ -169,9 +172,15 @@ const DiffLines = ({ lines }: { lines: DiffLine[] }) => {
 					onPress={() => setIsExpanded((prev) => !prev)}
 				>
 					<Text className="text-muted-foreground text-xs underline">
-						{isExpanded
-							? "Show less"
-							: `Show ${lines.length - MAX_VISIBLE_LINES} more lines`}
+						{isExpanded ? (
+							<Trans>Show less</Trans>
+						) : (
+							<Plural
+								value={lines.length - MAX_VISIBLE_LINES}
+								one="Show # more line"
+								other="Show # more lines"
+							/>
+						)}
 					</Text>
 				</Pressable>
 			) : null}
@@ -232,12 +241,24 @@ export const FileDiffTool = ({
 	const titleNode =
 		isStreaming && !filePath ? (
 			<ShimmerLabel isShimmering shimmerClassName="text-foreground text-xs">
-				{isWriteMode ? "Writing file..." : "Editing file..."}
+				{isWriteMode
+					? i18n._(
+							msg({
+								message: "Writing file...",
+							}),
+						)
+					: i18n._(
+							msg({
+								message: "Editing file...",
+							}),
+						)}
 			</ShimmerLabel>
 		) : (
 			<View className="min-w-0 shrink flex-row items-center gap-1">
 				<Text className="shrink-0 font-mono text-foreground text-xs">
-					{isWriteMode ? "Wrote" : "Edited"}
+					{isWriteMode
+						? i18n._(msg({ message: "Wrote" }))
+						: i18n._(msg({ message: "Edited" }))}
 				</Text>
 				{canOpenFile && filePath ? (
 					<Text
@@ -278,34 +299,52 @@ export const FileDiffTool = ({
 		hasOpenMenu && filePath ? (
 			<DropdownMenu>
 				<DropdownMenuTrigger
-					accessibilityLabel={`Open ${filePath}`}
+					accessibilityLabel={i18n._({
+						...msg({
+							message: "Open {filePath}",
+						}),
+						values: { filePath },
+					})}
 					className="mr-1 flex-row items-center gap-1 rounded px-1 py-0.5"
 				>
 					<Icon
 						as={ExternalLinkIcon}
 						className="size-3 text-muted-foreground"
 					/>
-					<Text className="text-muted-foreground text-xs">Open</Text>
+					<Text className="text-muted-foreground text-xs">
+						<Trans>Open</Trans>
+					</Text>
 					<Icon as={ChevronDownIcon} className="size-3 text-muted-foreground" />
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end">
 					<DropdownMenuItem onPress={() => onFilePathClick?.(filePath)}>
-						<Text>Open in File pane</Text>
+						<Text>
+							<Trans>Open in File pane</Trans>
+						</Text>
 					</DropdownMenuItem>
 					<DropdownMenuItem onPress={() => onDiffPathClick?.(filePath)}>
-						<Text>Open in Changes pane</Text>
+						<Text>
+							<Trans>Open in Changes pane</Trans>
+						</Text>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
 		) : canOpenFile && filePath ? (
 			<Pressable
-				accessibilityLabel={`Open ${filePath}`}
+				accessibilityLabel={i18n._({
+					...msg({
+						message: "Open {filePath}",
+					}),
+					values: { filePath },
+				})}
 				accessibilityRole="button"
 				className="mr-1 flex-row items-center gap-1 rounded px-1 py-0.5"
 				onPress={() => onFilePathClick?.(filePath)}
 			>
 				<Icon as={ExternalLinkIcon} className="size-3 text-muted-foreground" />
-				<Text className="text-muted-foreground text-xs">Open</Text>
+				<Text className="text-muted-foreground text-xs">
+					<Trans>Open</Trans>
+				</Text>
 			</Pressable>
 		) : undefined;
 

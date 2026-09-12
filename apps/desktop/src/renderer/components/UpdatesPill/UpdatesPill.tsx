@@ -280,9 +280,7 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 								{version ? (
 									`v${displayVersion(version)}`
 								) : (
-									<Trans id="components.updatesPill.downloaded">
-										downloaded
-									</Trans>
+									<Trans>downloaded</Trans>
 								)}
 							</span>
 						</>
@@ -290,14 +288,14 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 						<>
 							<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 animate-pulse" />
 							<span>
-								<Trans id="components.updatesPill.update">↑ update</Trans>
+								<Trans>↑ update</Trans>
 							</span>
 						</>
 					) : (
 						<>
 							<span className="size-1.5 shrink-0 rounded-full bg-destructive animate-pulse" />
 							<span>
-								<Trans id="components.updatesPill.retry">↻ retry</Trans>
+								<Trans>↻ retry</Trans>
 							</span>
 						</>
 					)}

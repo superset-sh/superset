@@ -58,12 +58,92 @@ enum ComposerMetrics {
   static let slashPanelInset: CGFloat = 6
   static let slashRowVerticalPadding: CGFloat = 10
   static let slashDescriptionFontSize: CGFloat = 12
-  static let quickKeySpacing: CGFloat = 8
-  /// Only the glyph and a floor for single-character keys are set; `.glass`
-  /// owns the padding and the height.
+  /// Keys sit inside one surface now, so they are packed tighter than nine
+  /// separate chips could be — the spacing here is between keys, not between
+  /// backdrops.
+  static let quickKeySpacing: CGFloat = 1
   static let quickKeyGlyphSize: CGFloat = 13
   static let quickKeyMinWidth: CGFloat = 22
-  static let quickKeyRadius: CGFloat = 10
+  /// The shared surface: its corner and the inset holding the keys off its edge.
+  /// The bar hugs whatever the keys need plus that inset on every side — it is
+  /// no longer pinned to the key height, which left a pressed key exactly as
+  /// tall as its container with nowhere to sit.
+  static let quickKeyBarRadius: CGFloat = 11
+  static let quickKeyBarInset: CGFloat = 4
+  /// Concentric with the bar: a rounded rect inset by *n* inside another only
+  /// looks nested if its radius is smaller by the same *n*. Derived rather than
+  /// written down, so the two corners cannot drift apart.
+  static let quickKeyRadius: CGFloat = quickKeyBarRadius - quickKeyBarInset
+  static let quickKeyHeight: CGFloat = 28
+  static let quickKeyPaddingH: CGFloat = 7
+  static let quickKeyDividerHeight: CGFloat = 15
+  /// Air either side of a group divider. The keys sit a hair apart from each
+  /// other, so without this the hairline is as close to its neighbours as they
+  /// are to each other and stops reading as a break between groups.
+  static let quickKeyDividerGap: CGFloat = 4
+  /// The edge fade, in unit space rather than points: the mask is a gradient
+  /// laid out across the surface, and it has no geometry to read from.
+  static let quickKeyFadeFraction: CGFloat = 0.07
+  /// Slack before a scroll offset counts as "there is more that way", so a
+  /// rubber-band overshoot does not flicker the fades.
+  static let quickKeyScrollThreshold: CGFloat = 4
+  /// The bar's outer height — a key plus the inset either side of it — which
+  /// is also the side of the square control ahead of it.
+  static let quickKeyBarHeight: CGFloat = quickKeyHeight + quickKeyBarInset * 2
+  /// Air between that control and the bar. Wider than the keys' own spacing:
+  /// the break is what says the control is not one of them.
+  static let quickKeyActionGap: CGFloat = 8
+  /// A drawn mark needs more box than an SF Symbol at the same nominal size —
+  /// the symbol's own bounds already carry optical padding, a 24-unit lucide
+  /// path does not.
+  static let quickKeyActionMark: CGFloat = 16
+
+  /// The session tab strip, above the quick keys.
+  ///
+  /// One gap for the whole row: tab-to-tab, tab-to-`+`, `+`-to-grid, and the
+  /// air the chevron leaves in front of the first tab are all this. The strip
+  /// reads as one rhythm rather than as tabs with controls bolted on.
+  static let sessionTabGap: CGFloat = 8
+  static let sessionTabRadius: CGFloat = 8
+  static let sessionTabPaddingH: CGFloat = 10
+  static let sessionTabPaddingV: CGFloat = 5
+  static let sessionTabIconGap: CGFloat = 6
+  static let sessionTabFontSize: CGFloat = 12
+  static let sessionTabMarkSize: CGFloat = 13
+  /// A long branch name has to truncate rather than push the trailing controls
+  /// off the row.
+  static let sessionTabMaxLabelWidth: CGFloat = 128
+  static let sessionTabDotSize: CGFloat = 6
+  static let sessionTabCloseSize: CGFloat = 15
+  /// The width the close disc occupies over the end of a selected tab: the
+  /// glyph plus the air after it. It is overlaid, so it costs the pill no
+  /// layout at all — this is only how far the title is faded out beneath it.
+  static let sessionTabCloseSlot: CGFloat = sessionTabCloseSize + sessionTabPaddingV
+  /// Softens the tail of a title too short to have truncated, where the disc
+  /// necessarily sits over it.
+  static let sessionTabCloseFade: CGFloat = 12
+  static let sessionTabControlSize: CGFloat = 28
+  static let sessionTabControlGlyph: CGFloat = 13
+  static let sessionTabControlGap: CGFloat = sessionTabGap
+  /// How far the strip scrolls before the scroll-home chevron is fully in.
+  /// The reveal is a ratio of this, not a threshold crossing, so the control
+  /// arrives with the content rather than popping once it has gone far enough.
+  static let sessionTabChevronReveal: CGFloat = 32
+  /// `.white.opacity(0.12)` composited over the app background, as an opaque
+  /// colour. The scroll-home chevron overlays tabs that slide underneath it, so
+  /// it cannot be translucent — but it still has to match the `+` and the grid
+  /// beside it, which sit on the background and can be.
+  static let sessionTabControlOpaque = Color(white: 0.155)
+  static let sessionTabControlOpaquePressed = Color(white: 0.22)
+  /// Where the scroll-home chevron stops covering the tabs, measured from the
+  /// scroll view's own leading edge — the row margin is outside it now, so this
+  /// is just the control plus one `sessionTabGap`. The air it leaves in front
+  /// of the first tab is the same air between any two tabs.
+  static let sessionTabChevronZone: CGFloat =
+    sessionTabControlSize + sessionTabGap
+  /// How far past that the tabs take to reach full opacity. The fade is what
+  /// makes a tab sliding under the chevron look like it is going somewhere.
+  static let sessionTabFadeWidth: CGFloat = 18
   /// Measured off frames 6 and 9. The badge sits *inside* the thumbnail, inset
   /// by roughly its own radius — an earlier pass had it bleeding outside the
   /// corner, and the thumbnails were a third too small and proportionally
@@ -77,6 +157,11 @@ enum ComposerMetrics {
   static let fileGlyphRadius: CGFloat = 8
   static let fileChipInset: CGFloat = 7
   static let fileLabelSize: CGFloat = 12
+  /// The upload ring, sized against the 80pt thumbnail: large enough to read
+  /// an arc at a glance, small enough that the image behind it is still
+  /// recognizable as the thing being sent.
+  static let uploadRingSize: CGFloat = 28
+  static let uploadRingWidth: CGFloat = 3
   static let removeBadgeSize: CGFloat = 17
   static let removeBadgeInset: CGFloat = 6
   /// Transparent padding around the badge, because 17pt is less than half
@@ -211,8 +296,33 @@ struct ComposerRootView: View {
             .transition(.composerContent)
           }
           VStack(spacing: ComposerMetrics.quickKeyGap) {
-            if !model.quickKeys.isEmpty {
-              ComposerQuickKeys(keys: model.quickKeys) { model.onQuickKeyPress?($0) }
+            // Above the keys, inside the same stack, so the whole cluster —
+            // tabs, keys, card — is one layout the keyboard moves as one. It
+            // is also what keeps the terminal's inset honest: the height
+            // reported below is measured off this stack, so a tab strip
+            // appearing is already in the number the caller insets by.
+            if !model.sessionTabs.isEmpty {
+              ComposerSessionTabs(
+                tabs: model.sessionTabs,
+                labels: model.sessionTabLabels,
+                onSelect: { model.onSessionTabPress?($0) },
+                onClose: { model.onSessionTabClose?($0) },
+                onRename: { model.onSessionTabRename?($0) },
+                onCopyId: { model.onSessionTabCopyId?($0) },
+                onNewSession: { model.onNewSessionPress?() },
+                onAllSessions: { model.onAllSessionsPress?() }
+              )
+            }
+            // The keys, or the control beside them: select mode empties the
+            // keys, and a workspace with a pull request keeps its row through
+            // that, so the cluster's height holds and the link stays put.
+            if !model.quickKeys.isEmpty || model.quickKeysAction != nil {
+              ComposerQuickKeys(
+                keys: model.quickKeys,
+                action: model.quickKeysAction,
+                onPress: { model.onQuickKeyPress?($0) },
+                onAction: { model.onQuickKeysActionPress?() }
+              )
             }
             surface
               .padding(.horizontal, ComposerMetrics.horizontalMargin)
@@ -232,6 +342,12 @@ struct ComposerRootView: View {
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+    // The caret and every glyph drawn without a colour of its own take the
+    // app's accent, which exists for the system surfaces we present (the photo
+    // picker's controls) and is dark so those read as controls rather than as
+    // a lit disc. The composer sits on near-black and wants the opposite, so
+    // it states its own tint instead of inheriting that one.
+    .tint(.white)
     .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) }
       action: { rootFrame = $0 }
     // Catches the keyboard leaving by a route we did not initiate — the
@@ -366,7 +482,7 @@ struct ComposerRootView: View {
       // High priority so it beats the surface's tap gesture, which wraps this
       // view and would otherwise win arbitration and swallow the drag.
       .highPriorityGesture(dismissDrag)
-      .accessibilityLabel("Dismiss")
+      .accessibilityLabel(composerLocalized("Dismiss"))
   }
 
   /// Drag down to dismiss. The surface tracks the finger while the gesture is
@@ -414,7 +530,7 @@ struct ComposerRootView: View {
             .font(.system(size: 17, weight: .regular))
         }
         .buttonStyle(.composerControl)
-        .accessibilityLabel("Add attachment")
+        .accessibilityLabel(composerLocalized("Add attachment"))
       }
 
       if !isExpanded {
@@ -424,8 +540,8 @@ struct ComposerRootView: View {
       middleBand
 
       // The trigger slot: mic, or whatever dictation has turned it into.
-      // Hidden while sending — the spinner should be the only thing moving.
-      if !model.isSending {
+      // Hidden while busy — the spinner should be the only thing moving.
+      if !isBusy {
         voiceControl
       }
 
@@ -468,7 +584,7 @@ struct ComposerRootView: View {
       }
       .buttonStyle(.composerControl)
       .disabled(true)
-      .accessibilityLabel("Transcribing")
+      .accessibilityLabel(composerLocalized("Transcribing"))
       .transition(.opacity)
     case .idle:
       Button { model.dictation.start() } label: {
@@ -476,26 +592,37 @@ struct ComposerRootView: View {
           .font(.system(size: 17, weight: .regular))
       }
       .buttonStyle(.composerControl)
-      .accessibilityLabel("Dictate")
+      .accessibilityLabel(composerLocalized("Dictate"))
       .transition(.opacity)
     }
   }
 
+  /// Nothing can be sent yet: the last send is still going, or an attachment
+  /// is. Both read the same way in the row — spinner, no mic — because both
+  /// are the composer waiting on something it started.
+  private var isBusy: Bool { model.isSending || model.isUploading }
+
+  private var sendLabel: String {
+    if model.isSending { return composerLocalized("Sending") }
+    if model.isUploading { return composerLocalized("Uploading") }
+    return composerLocalized("Send")
+  }
+
   private var sendButton: some View {
     Button { model.submit() } label: {
-      if model.isSending {
+      if isBusy {
         ComposerSpinner()
       } else {
         Image(systemName: "arrow.up")
           .font(.system(size: 16, weight: .semibold))
       }
     }
-    // In flight the button drops back to the ordinary control fill, so the
-    // spinner sits on the same grey as the mic and `+` beside it. Keeping the
-    // white fill would leave a bright disc that still reads as "ready".
-    .buttonStyle(model.isSending ? .composerControl : .composerSend)
-    .disabled(model.isSending)
-    .accessibilityLabel(model.isSending ? "Sending" : "Send")
+    // While busy the button drops back to the ordinary control fill, so the
+    // spinner sits on the same grey as the `+` beside it. Keeping the white
+    // fill would leave a bright disc that still reads as "ready".
+    .buttonStyle(isBusy ? .composerControl : .composerSend)
+    .disabled(isBusy)
+    .accessibilityLabel(sendLabel)
     .transition(.opacity)
   }
 
@@ -536,11 +663,20 @@ struct ComposerRootView: View {
       .onTapGesture { expand() }
   }
 
+  /// The agent, then its launch settings: `✱ Claude ⌄ · Opus ⌄ · High ⌄`.
   private var modelPicker: some View {
-    ComposerModelPicker(
-      selected: model.selectedModel,
-      onPress: { model.onModelPress?() }
-    )
+    HStack(spacing: ComposerMetrics.chipSpacing) {
+      ComposerModelPicker(
+        selected: model.selectedModel,
+        onPress: { model.onModelPress?() }
+      )
+      ForEach(model.launchOptions) { option in
+        ComposerLaunchOptionButton(
+          option: option,
+          onPress: { model.onLaunchOptionPress?(option.id) }
+        )
+      }
+    }
     .padding(.leading, ComposerMetrics.pickerGap - ComposerMetrics.rowSpacing)
     .padding(.trailing, ComposerMetrics.textInset)
   }

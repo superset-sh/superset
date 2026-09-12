@@ -1,5 +1,6 @@
 import { automationSessionKindValues } from "@superset/db/schema";
 import { draftTriggerSchema } from "@superset/shared/automation-triggers";
+import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { z } from "zod";
 
 /**
@@ -47,6 +48,12 @@ export const createAutomationSchema = z
 		// workspaces.create — no project means session).
 		v2ProjectId: z.string().uuid().nullish(),
 		v2WorkspaceId: z.string().uuid().nullish(),
+		// Workspace tags applied to each run's created workspace, so runs file
+		// themselves into the matching sidebar folders.
+		tags: workspaceTagsInputSchema.optional(),
+		// Deliver each run's prompt into the session the previous run left
+		// behind instead of starting another beside it. Requires v2WorkspaceId.
+		continueAgentSession: z.boolean().optional(),
 		// Optional because an automation may be entirely event-driven. Required
 		// only when no trigger set is supplied, which is the older client shape.
 		rrule: rruleBody.optional(),
@@ -66,12 +73,16 @@ export const createAutomationSchema = z
 export const updateAutomationSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1).max(200).optional(),
+	prompt: z.string().max(100_000).optional(),
 	agent: agentSchema.optional(),
 	targetHostId: z.string().min(1).nullish(),
 	// Explicit null switches the automation to session mode; undefined keeps
 	// the existing project.
 	v2ProjectId: z.string().uuid().nullish(),
 	v2WorkspaceId: z.string().uuid().nullish(),
+	// Full replacement of the tag set; undefined keeps the existing tags.
+	tags: workspaceTagsInputSchema.optional(),
+	continueAgentSession: z.boolean().optional(),
 	rrule: rruleBody.optional(),
 	dtstart: z.coerce.date().optional(),
 	timezone: iana.optional(),

@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { ChevronDownIcon, ExternalLinkIcon, FileCode2Icon } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
@@ -120,6 +121,7 @@ export const FileDiffTool = ({
 	renderExpandedContent,
 	className,
 }: FileDiffToolProps) => {
+	const { t } = useLingui();
 	const hasExpandedRenderer = Boolean(renderExpandedContent);
 	const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
 
@@ -169,12 +171,18 @@ export const FileDiffTool = ({
 	const titleNode =
 		isStreaming && !filePath ? (
 			<ShimmerLabel className="text-xs text-foreground" isShimmering>
-				{isWriteMode ? "Writing file..." : "Editing file..."}
+				{isWriteMode
+					? t({
+							message: "Writing file...",
+						})
+					: t({
+							message: "Editing file...",
+						})}
 			</ShimmerLabel>
 		) : (
 			<span className="min-w-0 truncate text-muted-foreground">
 				<span className="text-foreground">
-					{isWriteMode ? "Wrote" : "Edited"}
+					{isWriteMode ? <Trans>Wrote</Trans> : <Trans>Edited</Trans>}
 				</span>{" "}
 				{canOpenFile && filePath ? (
 					<button
@@ -189,7 +197,7 @@ export const FileDiffTool = ({
 					</button>
 				) : (
 					<span className="text-foreground">
-						{filePath ? extractFilename(filePath) : "file"}
+						{filePath ? extractFilename(filePath) : t({ message: "file" })}
 					</span>
 				)}
 			</span>
@@ -215,32 +223,36 @@ export const FileDiffTool = ({
 				<DropdownMenuTrigger asChild>
 					<button
 						type="button"
-						aria-label={`Open ${filePath}`}
+						aria-label={t({
+							message: `Open ${filePath}`,
+						})}
 						className="mr-1 flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
 					>
 						<ExternalLinkIcon className="h-3 w-3" />
-						Open
+						<Trans>Open</Trans>
 						<ChevronDownIcon className="h-3 w-3" />
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end">
 					<DropdownMenuItem onClick={() => onFilePathClick?.(filePath)}>
-						Open in File pane
+						<Trans>Open in File pane</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={() => onDiffPathClick?.(filePath)}>
-						Open in Changes pane
+						<Trans>Open in Changes pane</Trans>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
 		) : canOpenFile && filePath ? (
 			<button
 				type="button"
-				aria-label={`Open ${filePath}`}
+				aria-label={t({
+					message: `Open ${filePath}`,
+				})}
 				className="mr-1 flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
 				onClick={() => onFilePathClick?.(filePath)}
 			>
 				<ExternalLinkIcon className="h-3 w-3" />
-				Open
+				<Trans>Open</Trans>
 			</button>
 		) : undefined;
 

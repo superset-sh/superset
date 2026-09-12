@@ -5,6 +5,7 @@ import {
 	getDefaultSeedPresets,
 	getPresetById,
 } from "@superset/shared/host-agent-presets";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import * as schema from "../../../db/schema";
@@ -28,9 +29,14 @@ function createTestDb() {
 }
 
 function createCaller() {
+	return createCallerWithDb().caller;
+}
+
+/** For tests that need to reach past the router and edit rows directly. */
+function createCallerWithDb() {
 	const db = createTestDb();
 	const ctx = { db, isAuthenticated: true } as unknown as HostServiceContext;
-	return agentConfigsRouter.createCaller(ctx);
+	return { caller: agentConfigsRouter.createCaller(ctx), db };
 }
 
 async function listFirst(
@@ -98,6 +104,85 @@ describe("agentConfigsRouter", () => {
 
 			const codex = result.find((row) => row.presetId === "codex");
 			expect(codex?.resumeArgs).toEqual(["resume"]);
+		});
+
+		it("seeds native fork args for every harness whose CLI has them", async () => {
+			const caller = createCaller();
+			const result = await caller.list();
+
+			const claude = result.find((row) => row.presetId === "claude");
+			expect(claude?.forkArgs).toEqual([
+				"--resume",
+				"{sessionId}",
+				"--fork-session",
+			]);
+
+			const codex = result.find((row) => row.presetId === "codex");
+			expect(codex?.forkArgs).toEqual(["fork", "{sessionId}"]);
+
+			// Each of these mirrors the harness's own documented syntax, checked
+			// against the installed binaries: the flags are accepted and only the
+			// session id is rejected.
+			const opencode = result.find((row) => row.presetId === "opencode");
+			expect(opencode?.forkArgs).toEqual([
+				"--session",
+				"{sessionId}",
+				"--fork",
+			]);
+
+			const pi = result.find((row) => row.presetId === "pi");
+			expect(pi?.forkArgs).toEqual(["--fork", "{sessionId}"]);
+
+			const grok = result.find((row) => row.presetId === "grok");
+			expect(grok?.forkArgs).toEqual([
+				"--resume",
+				"{sessionId}",
+				"--fork-session",
+			]);
+
+			const droid = result.find((row) => row.presetId === "droid");
+			expect(droid?.forkArgs).toEqual(["--fork", "{sessionId}"]);
+
+			// No fork in their CLIs, so the menu item stays disabled rather than
+			// launching something that quietly starts fresh.
+			for (const presetId of ["amp", "gemini", "copilot", "cursor-agent"]) {
+				const row = result.find((item) => item.presetId === presetId);
+				expect(row?.forkArgs).toEqual([]);
+			}
+		});
+
+		it("backfills fork args onto an install seeded before the preset had them", async () => {
+			const { caller, db } = createCallerWithDb();
+			const seeded = await caller.list();
+			const opencode = seeded.find((row) => row.presetId === "opencode");
+			// Simulate the pre-existing install: the row was seeded when the
+			// preset had no fork support.
+			db.update(schema.hostAgentConfigs)
+				.set({ forkArgsJson: "[]" })
+				.where(eq(schema.hostAgentConfigs.id, opencode?.id ?? ""))
+				.run();
+
+			const after = await caller.list();
+			expect(
+				after.find((row) => row.presetId === "opencode")?.forkArgs,
+			).toEqual(["--session", "{sessionId}", "--fork"]);
+		});
+
+		it("leaves a customised agent's fork args alone", async () => {
+			const { caller, db } = createCallerWithDb();
+			const seeded = await caller.list();
+			const opencode = seeded.find((row) => row.presetId === "opencode");
+			// Cleared fork args on a row whose launch command the user edited:
+			// their row, their settings.
+			db.update(schema.hostAgentConfigs)
+				.set({ forkArgsJson: "[]", command: "opencode --my-flag" })
+				.where(eq(schema.hostAgentConfigs.id, opencode?.id ?? ""))
+				.run();
+
+			const after = await caller.list();
+			expect(
+				after.find((row) => row.presetId === "opencode")?.forkArgs,
+			).toEqual([]);
 		});
 
 		it("returns existing rows on subsequent calls without re-seeding", async () => {
@@ -172,8 +257,9 @@ describe("agentConfigsRouter", () => {
 			expect(created.command).toBe("my-agent");
 			expect(created.args).toEqual(["--flag"]);
 			expect(created.env).toEqual({ FOO: "bar" });
-			// Omitted resumeArgs default to "no id-based resume".
+			// Omitted session capabilities default to unsupported.
 			expect(created.resumeArgs).toEqual([]);
+			expect(created.forkArgs).toEqual([]);
 		});
 
 		it("stores supplied resumeArgs", async () => {

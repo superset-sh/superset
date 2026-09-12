@@ -28,25 +28,20 @@ export function PullRequestChecksSummary({
 		summary.status === "none"
 			? checks.length === 0
 				? t({
-						id: "dashboard.pullRequests.checksSummary.noChecksReported",
 						message: "No checks reported",
 					})
 				: t({
-						id: "dashboard.pullRequests.checksSummary.allSkipped",
 						message: "All checks skipped or cancelled",
 					})
 			: summary.status === "success"
 				? t({
-						id: "dashboard.pullRequests.checksSummary.allPassed",
 						message: `All ${summary.relevantChecks.length} checks passed`,
 					})
 				: summary.status === "failure"
 					? t({
-							id: "dashboard.pullRequests.checksSummary.someFailed",
 							message: `${summary.failing} of ${summary.relevantChecks.length} checks failed`,
 						})
 					: t({
-							id: "dashboard.pullRequests.checksSummary.someRunning",
 							message: `${summary.pending} of ${summary.relevantChecks.length} checks running`,
 						});
 
@@ -66,13 +61,9 @@ export function PullRequestChecksSummary({
 			<span className="hidden tabular-nums @lg:inline">
 				{summary.status === "none" ? (
 					checks.length === 0 ? (
-						<Trans id="dashboard.pullRequests.checksSummary.noChecks">
-							No checks
-						</Trans>
+						<Trans>No checks</Trans>
 					) : (
-						<Trans id="dashboard.pullRequests.checksSummary.skipped">
-							Skipped
-						</Trans>
+						<Trans>Skipped</Trans>
 					)
 				) : (
 					`${summary.passing}/${summary.relevantChecks.length}`

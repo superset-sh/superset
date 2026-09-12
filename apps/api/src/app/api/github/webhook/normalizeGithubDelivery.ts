@@ -53,6 +53,10 @@ export type GithubPayload = {
 		html_url?: string;
 		user?: { login?: string };
 	};
+	// `pull_request.assigned` names the assignee; `review_requested` names the
+	// reviewer, or only a `requested_team` when a team was asked.
+	assignee?: { id?: number | string; login?: string } | null;
+	requested_reviewer?: { id?: number | string; login?: string } | null;
 	ref?: string;
 	workflow_run?: { conclusion?: string; html_url?: string; name?: string };
 	check_suite?: { conclusion?: string };
@@ -141,6 +145,7 @@ export function matchableFrom(
 	repositoryId: string | null,
 	ref: string | null,
 ): GithubMatchableEvent {
+	const assignee = payload.assignee ?? payload.requested_reviewer ?? null;
 	return {
 		provider: "github",
 		eventType,
@@ -172,6 +177,10 @@ export function matchableFrom(
 				payload.pull_request?.user?.id ?? payload.issue?.user?.id ?? undefined;
 			return id !== undefined ? String(id) : null;
 		})(),
+		subjectAuthorLogin:
+			payload.pull_request?.user?.login ?? payload.issue?.user?.login ?? null,
+		assigneeId: assignee?.id !== undefined ? String(assignee.id) : null,
+		assigneeLogin: assignee?.login ?? null,
 	};
 }
 

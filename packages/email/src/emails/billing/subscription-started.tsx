@@ -47,7 +47,7 @@ export function SubscriptionStartedEmail({
 
 			<Text className="text-[15px] leading-7 text-foreground m-0 mb-6">
 				✓ Unlimited team members
-				<br />✓ Remote workspaces
+				<br />✓ Remote access
 				<br />✓ Linear and Slack integrations
 			</Text>
 

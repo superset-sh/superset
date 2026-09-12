@@ -8,6 +8,10 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./bun-plugin": {
+			"types": "./src/bun-plugin.ts",
+			"default": "./src/bun-plugin.ts"
+		},
 		"./errors": {
 			"types": "./src/errors.ts",
 			"default": "./src/errors.ts"
@@ -27,29 +31,42 @@
 		"./react": {
 			"types": "./src/react.tsx",
 			"default": "./src/react.tsx"
+		},
+		"./server": {
+			"types": "./src/server.ts",
+			"default": "./src/server.ts"
 		}
 	},
 	"scripts": {
-		"extract": "lingui extract && bun scripts/sort-po-references.ts",
-		"compile": "lingui compile --strict",
-		"check": "lingui extract --clean && bun scripts/sort-po-references.ts && lingui compile --strict && git diff --exit-code -- locales && test -z \"$(git status --porcelain locales)\"",
-		"pretypecheck": "lingui extract --clean && bun scripts/sort-po-references.ts && lingui compile --strict",
+		"build": "bun run compile",
+		"extract": "bun x --bun lingui extract --clean --overwrite --workers 1",
+		"compile": "bun x --bun lingui compile --strict --verbose --workers 1",
+		"check": "bun run extract && bun run compile",
 		"test": "bun test",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
 		"clean": "git clean -xdf .cache .turbo node_modules"
 	},
 	"dependencies": {
 		"@lingui/core": "6.6.0",
-		"@lingui/react": "6.6.0"
+		"@lingui/react": "6.6.0",
+		"server-only": "0.0.1"
 	},
 	"devDependencies": {
 		"@ast-grep/napi": "0.41.1",
+		"@babel/core": "7.29.7",
+		"@happy-dom/global-registrator": "20.0.2",
+		"@lingui/babel-plugin-lingui-macro": "6.6.0",
 		"@lingui/cli": "6.6.0",
 		"@lingui/format-po": "6.6.0",
+		"@lingui/message-utils": "6.6.0",
 		"@superset/typescript": "workspace:*",
+		"@testing-library/react": "16.3.0",
+		"@types/babel__core": "7.20.5",
 		"@types/react": "19.2.14",
+		"@types/react-dom": "19.2.3",
 		"bun-types": "1.3.14",
 		"react": "19.2.3",
+		"react-dom": "19.2.3",
 		"typescript": "6.0.3"
 	}
 }

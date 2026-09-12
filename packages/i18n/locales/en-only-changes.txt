@@ -1,0 +1,8 @@
+# English edits that do NOT invalidate the ja/zh translations — a typo fix, a
+# reworded sentence the translation already renders correctly. Everything else
+# should be re-translated instead of listed here.
+#
+# Each line is `<message id> <fingerprint>`, where the fingerprint identifies
+# the exact English text the exemption was granted for; a later edit to that
+# message re-triggers the check. `bun run --cwd packages/i18n check` prints the
+# line to paste when it fails.

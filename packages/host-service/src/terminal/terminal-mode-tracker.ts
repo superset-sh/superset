@@ -14,16 +14,12 @@
 // Pattern adapted from VSCode's XtermSerializer
 // (src/vs/platform/terminal/node/ptyService.ts).
 
-import { createRequire } from "node:module";
 import {
 	createLeakedInputModeReclaimer,
 	SHELL_READY_MARKER_PAYLOAD,
 	SHELL_READY_OSC_ID,
 } from "@superset/shared/leaked-input-mode-reclaim";
-
-const require = createRequire(import.meta.url);
-const { Terminal: HeadlessTerminal } =
-	require("@xterm/headless") as typeof import("@xterm/headless");
+import { HeadlessTerminal } from "./headless-xterm.ts";
 
 export interface ModeTracker {
 	feed(bytes: Uint8Array): void;

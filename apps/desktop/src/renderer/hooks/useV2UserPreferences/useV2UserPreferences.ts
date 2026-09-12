@@ -3,15 +3,15 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	type ChangesViewMode,
 	DEFAULT_V2_USER_PREFERENCES,
 	type FolderTierMap,
 	type LinkAction,
 	type LinkTierMap,
+	type SidebarProjectSortMode,
 	V2_USER_PREFERENCES_ID,
 	type V2UserPreferencesRow,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
-
-export type RightSidebarTab = V2UserPreferencesRow["rightSidebarTab"];
 
 export interface V2UserPreferencesApi {
 	preferences: V2UserPreferencesRow;
@@ -20,13 +20,17 @@ export interface V2UserPreferencesApi {
 	setSidebarFileLinks: (next: LinkTierMap) => void;
 	setFolderLinks: (next: FolderTierMap) => void;
 	setPortOpenAction: (next: LinkAction) => void;
+	setPageOpenAction: (next: LinkAction) => void;
 	setRightSidebarOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
-	setRightSidebarTab: (next: RightSidebarTab) => void;
 	setRightSidebarWidth: (next: number) => void;
 	setDeleteLocalBranch: (next: boolean) => void;
 	setShowPresetsBar: (next: boolean | ((prev: boolean) => boolean)) => void;
 	toggleShowPresetsBar: () => void;
+	setChangesViewMode: (next: ChangesViewMode) => void;
+	setSidebarProjectSortMode: (next: SidebarProjectSortMode) => void;
 	setBuiltinPresetHidden: (presetId: string, hidden: boolean) => void;
+	/** Hide/show a tag folder in one project without touching anyone's tags. */
+	setTagFolderHidden: (projectId: string, tag: string, hidden: boolean) => void;
 }
 
 export function useV2UserPreferences(): V2UserPreferencesApi {
@@ -114,6 +118,25 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		[collections],
 	);
 
+	const setPageOpenAction = useCallback(
+		(next: LinkAction) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					pageOpenAction: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.pageOpenAction = next;
+			});
+		},
+		[collections],
+	);
+
 	const setRightSidebarOpen = useCallback(
 		(next: boolean | ((prev: boolean) => boolean)) => {
 			const existing = collections.v2UserPreferences.get(
@@ -132,25 +155,6 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 			}
 			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
 				draft.rightSidebarOpen = value;
-			});
-		},
-		[collections],
-	);
-
-	const setRightSidebarTab = useCallback(
-		(next: RightSidebarTab) => {
-			const existing = collections.v2UserPreferences.get(
-				V2_USER_PREFERENCES_ID,
-			);
-			if (!existing) {
-				collections.v2UserPreferences.insert({
-					...DEFAULT_V2_USER_PREFERENCES,
-					rightSidebarTab: next,
-				});
-				return;
-			}
-			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
-				draft.rightSidebarTab = next;
 			});
 		},
 		[collections],
@@ -222,6 +226,44 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setShowPresetsBar((prev) => !prev);
 	}, [setShowPresetsBar]);
 
+	const setChangesViewMode = useCallback(
+		(next: ChangesViewMode) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					changesViewMode: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.changesViewMode = next;
+			});
+		},
+		[collections],
+	);
+
+	const setSidebarProjectSortMode = useCallback(
+		(next: SidebarProjectSortMode) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					sidebarProjectSortMode: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.sidebarProjectSortMode = next;
+			});
+		},
+		[collections],
+	);
+
 	const setBuiltinPresetHidden = useCallback(
 		(presetId: string, hidden: boolean) => {
 			const existing = collections.v2UserPreferences.get(
@@ -252,6 +294,40 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		[collections],
 	);
 
+	const setTagFolderHidden = useCallback(
+		(projectId: string, tag: string, hidden: boolean) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			const prevMap =
+				existing?.hiddenTagFolders ??
+				DEFAULT_V2_USER_PREFERENCES.hiddenTagFolders;
+			const prev = prevMap[projectId] ?? [];
+			const next = hidden
+				? prev.includes(tag)
+					? prev
+					: [...prev, tag]
+				: prev.filter((entry) => entry !== tag);
+			if (next === prev || (next.length === prev.length && !hidden)) return;
+			const nextMap = { ...prevMap };
+			// Deleting the key (never writing an empty list) keeps the record
+			// from accumulating empty project entries.
+			if (next.length === 0) delete nextMap[projectId];
+			else nextMap[projectId] = next;
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					hiddenTagFolders: nextMap,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.hiddenTagFolders = nextMap;
+			});
+		},
+		[collections],
+	);
+
 	return {
 		preferences,
 		setFileLinks,
@@ -259,12 +335,15 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setSidebarFileLinks,
 		setFolderLinks,
 		setPortOpenAction,
+		setPageOpenAction,
 		setRightSidebarOpen,
-		setRightSidebarTab,
 		setRightSidebarWidth,
 		setDeleteLocalBranch,
 		setShowPresetsBar,
 		toggleShowPresetsBar,
+		setChangesViewMode,
+		setSidebarProjectSortMode,
 		setBuiltinPresetHidden,
+		setTagFolderHidden,
 	};
 }

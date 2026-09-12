@@ -1,101 +1,72 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import { useEffect, useState } from "react";
-import { LuSparkles } from "react-icons/lu";
+import { Trans } from "@lingui/react/macro";
+import { Badge } from "@superset/ui/badge";
+import { Button } from "@superset/ui/button";
+import { LuPlus, LuTimer } from "react-icons/lu";
 import {
 	type AutomationTemplate,
 	ONBOARDING_SUGGESTIONS,
 } from "../../templates";
 import { TemplateCard } from "../TemplateCard";
 
-const PLACEHOLDER_COUNT = 4;
-const PLACEHOLDER_INTERVAL_MS = 5000;
-
 interface AutomationsEmptyStateProps {
 	onSelectTemplate: (template: AutomationTemplate) => void;
-	/** Opens an agent session seeded to create an automation interactively. */
 	onCreateWithAgent: () => void;
+	isCreating: boolean;
+	onCreateManually: () => void;
+	isCreatingManually: boolean;
+	/** The viewer's plan can't create one; the buttons open the paywall. */
+	showProBadge?: boolean;
 }
-
 export function AutomationsEmptyState({
 	onSelectTemplate,
 	onCreateWithAgent,
+	isCreating,
+	onCreateManually,
+	isCreatingManually,
+	showProBadge = false,
 }: AutomationsEmptyStateProps) {
-	const { t } = useLingui();
-	// Concrete, typeable examples (Cursor's rotating-placeholder pattern).
-	// See plans/automations-onboarding.md.
-	const placeholders = [
-		t({
-			id: "dashboard.automations.emptyState.placeholderTriageIssues",
-			message:
-				"Every weekday at 9am, triage new GitHub issues and draft replies for my review",
-		}),
-		t({
-			id: "dashboard.automations.emptyState.placeholderSummarizeCi",
-			message: "Summarize failed CI runs every morning before standup",
-		}),
-		t({
-			id: "dashboard.automations.emptyState.placeholderReleaseNotes",
-			message:
-				"Every Friday at 4pm, draft release notes from this week's merged PRs",
-		}),
-		t({
-			id: "dashboard.automations.emptyState.placeholderNightlyBugFix",
-			message: "Nightly at 2am, find one small bug, fix it, and open a PR",
-		}),
-	];
-	const [placeholderIndex, setPlaceholderIndex] = useState(0);
-	useEffect(() => {
-		const id = setInterval(
-			() => setPlaceholderIndex((i) => (i + 1) % PLACEHOLDER_COUNT),
-			PLACEHOLDER_INTERVAL_MS,
-		);
-		return () => clearInterval(id);
-	}, []);
-
 	return (
-		<div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-10 pb-10">
-			<div className="flex w-full flex-col items-center gap-3 text-center">
-				<h2 className="text-lg font-semibold tracking-tight">
-					<Trans id="dashboard.automations.emptyState.title">
-						What should run on a schedule?
-					</Trans>
-				</h2>
-				{/* Opens an agent session that asks what to automate and creates it
-				    via the superset:automate skill / CLI. Swaps to the inline NL
-				    chat input in Phase 2. */}
-				<button
-					type="button"
-					onClick={onCreateWithAgent}
-					aria-label={t({
-						id: "dashboard.automations.emptyState.createWithAgentAriaLabel",
-						message: "Create an automation with an agent",
-					})}
-					className="flex w-full items-center gap-3 rounded-xl border border-border px-4 py-3.5 text-left transition-colors hover:border-border/80 hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-				>
-					<LuSparkles className="size-4 shrink-0 text-muted-foreground" />
-					{/* Rotating examples are decorative; the stable name is on the button. */}
-					<span
-						key={placeholderIndex}
-						aria-hidden="true"
-						className="min-w-0 truncate text-sm text-muted-foreground animate-in fade-in duration-300"
+		<div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-10 py-12">
+			<div className="flex flex-col items-start gap-4">
+				<div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+					<LuTimer className="size-5" />
+				</div>
+				<div className="space-y-2">
+					<h2 className="flex items-center gap-2 font-semibold text-lg tracking-tight">
+						<Trans>What should run on a schedule?</Trans>
+						{showProBadge && (
+							<Badge variant="default">
+								<Trans>PRO</Trans>
+							</Badge>
+						)}
+					</h2>
+					<p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+						<Trans>
+							Runs land in a workspace. Review the diff, merge what's good.
+						</Trans>
+					</p>
+				</div>
+				<div className="flex flex-wrap items-center gap-2">
+					<Button size="sm" onClick={onCreateWithAgent} disabled={isCreating}>
+						<LuPlus className="size-3.5" />
+						<Trans>Create with AI</Trans>
+					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						className="text-muted-foreground"
+						onClick={onCreateManually}
+						disabled={isCreatingManually}
 					>
-						{placeholders[placeholderIndex]}
-					</span>
-				</button>
-				<p className="text-xs text-muted-foreground">
-					<Trans id="dashboard.automations.emptyState.runsLandHint">
-						Runs land in a workspace. Review the diff, merge what's good.
-					</Trans>
-				</p>
+						<Trans>New automation</Trans>
+					</Button>
+				</div>
 			</div>
-
-			<div className="flex w-full flex-col gap-3">
-				<h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-					<Trans id="dashboard.automations.emptyState.suggested">
-						Suggested
-					</Trans>
+			<div className="space-y-2 border-t border-border/60 pt-6">
+				<h3 className="mb-3 text-xs font-medium text-muted-foreground">
+					<Trans>Suggested</Trans>
 				</h3>
-				<div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+				<div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
 					{ONBOARDING_SUGGESTIONS.map((template) => (
 						<TemplateCard
 							key={template.id}

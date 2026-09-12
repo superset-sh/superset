@@ -7,7 +7,6 @@ import {
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
 import { toast } from "@superset/ui/sonner";
-import { Textarea } from "@superset/ui/textarea";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
 import {
@@ -18,6 +17,7 @@ import {
 	LuLoaderCircle,
 } from "react-icons/lu";
 import { CommentMarkdown } from "renderer/components/CommentMarkdown";
+import { ReviewThreadReplyComposer } from "renderer/routes/_authenticated/_dashboard/components/ReviewThreadReplyComposer";
 import "./comment-thread.css";
 
 interface Comment {
@@ -49,7 +49,8 @@ interface PullRequestCommentThreadProps {
 // visuals, but the resolve mutation is injected via a prop instead of
 // wired to that component's workspaceId-scoped git.setReviewThreadResolution
 // call, since this one's callers (the PR list/detail Code tab) browse a PR
-// directly and don't necessarily have a workspace linked to it.
+// directly and don't necessarily have a workspace linked to it. The reply
+// box is the shared ReviewThreadReplyComposer; only the dispatch differs.
 export function PullRequestCommentThread({
 	isResolved,
 	isOutdated,
@@ -83,7 +84,6 @@ export function PullRequestCommentThread({
 				console.error("[PullRequestCommentThread/copy] Failed to copy:", err);
 				toast.error(
 					t({
-						id: "dashboard.pullRequests.commentThread.copyFailed",
 						message: "Couldn't copy comment",
 					}),
 				);
@@ -100,33 +100,6 @@ export function PullRequestCommentThread({
 	}, [focusTick]);
 
 	const firstComment = comments[0];
-	const handleReplySubmit = () => {
-		const trimmed = replyText.trim();
-		if (!trimmed) return;
-		const dispatched = onReply(trimmed);
-		if (!dispatched) {
-			toast.error(
-				t({
-					id: "dashboard.pullRequests.commentThread.sendReplyFailed",
-					message: "Couldn't send reply",
-				}),
-				{
-					description: t({
-						id: "dashboard.pullRequests.commentThread.sendReplyFailedHint",
-						message: "This thread has no comment to reply to.",
-					}),
-				},
-			);
-			return;
-		}
-		// Optimistic clear: the mutation itself is fire-and-forget from here,
-		// and a failure past this point already surfaces as a toast (see
-		// PullRequestCodeTab's replyToThread onError) — restoring the draft
-		// on failure would need a promise-returning prop for marginal
-		// benefit. `dispatched` only guards against onReply no-op'ing before
-		// ever calling the mutation.
-		setReplyText("");
-	};
 
 	return (
 		<Collapsible
@@ -150,11 +123,9 @@ export function PullRequestCommentThread({
 					aria-label={
 						open
 							? t({
-									id: "dashboard.pullRequests.commentThread.collapseThread",
 									message: "Collapse thread",
 								})
 							: t({
-									id: "dashboard.pullRequests.commentThread.expandThread",
 									message: "Expand thread",
 								})
 					}
@@ -180,7 +151,6 @@ export function PullRequestCommentThread({
 					)}
 					<span className="shrink-0 font-medium text-foreground/90">
 						<Plural
-							id="dashboard.pullRequests.commentThread.commentCount"
 							value={comments.length}
 							one="# comment"
 							other="# comments"
@@ -190,16 +160,12 @@ export function PullRequestCommentThread({
 				<div className="flex shrink-0 items-center gap-1.5">
 					{isOutdated && (
 						<span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-							<Trans id="dashboard.pullRequests.commentThread.outdated">
-								Outdated
-							</Trans>
+							<Trans>Outdated</Trans>
 						</span>
 					)}
 					{isResolved && (
 						<span className="rounded-full bg-[#dcfae8] px-1.5 py-0.5 text-[10px] font-medium text-[#00a558] [.dark_&]:bg-[#064e3b] [.dark_&]:text-[#34d399]">
-							<Trans id="dashboard.pullRequests.commentThread.resolved">
-								Resolved
-							</Trans>
+							<Trans>Resolved</Trans>
 						</span>
 					)}
 					<button
@@ -209,16 +175,13 @@ export function PullRequestCommentThread({
 						aria-label={
 							isCopied
 								? t({
-										id: "dashboard.pullRequests.commentThread.copied",
 										message: "Copied",
 									})
 								: comments.length === 1
 									? t({
-											id: "dashboard.pullRequests.commentThread.copyComment",
 											message: "Copy comment",
 										})
 									: t({
-											id: "dashboard.pullRequests.commentThread.copyComments",
 											message: "Copy comments",
 										})
 						}
@@ -237,7 +200,6 @@ export function PullRequestCommentThread({
 							onClick={(e) => e.stopPropagation()}
 							className="shrink-0 text-muted-foreground hover:text-foreground"
 							aria-label={t({
-								id: "dashboard.pullRequests.commentThread.openOnGitHub",
 								message: "Open on GitHub",
 							})}
 						>
@@ -252,24 +214,13 @@ export function PullRequestCommentThread({
 						<CommentRow key={comment.id} comment={comment} />
 					))}
 				</ul>
-				<div className="flex flex-col gap-2 border-t border-border/50 bg-muted/20 px-3 py-2">
-					<Textarea
-						value={replyText}
-						onChange={(e) => setReplyText(e.target.value)}
-						onKeyDown={(e) => {
-							if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-								e.preventDefault();
-								handleReplySubmit();
-							}
-						}}
-						placeholder={t({
-							id: "dashboard.pullRequests.commentThread.replyPlaceholder",
-							message: "Write a reply…",
-						})}
-						rows={2}
-						className="resize-none bg-background text-xs"
-					/>
-					<div className="flex items-center justify-end gap-2">
+				<ReviewThreadReplyComposer
+					value={replyText}
+					onChange={setReplyText}
+					onReply={onReply}
+					isPending={isReplyPending}
+					className="border-border/50 bg-muted/20 px-3"
+					actions={
 						<Button
 							type="button"
 							size="xs"
@@ -281,30 +232,13 @@ export function PullRequestCommentThread({
 								<LuLoaderCircle className="size-3 animate-spin" />
 							)}
 							{isResolved ? (
-								<Trans id="dashboard.pullRequests.commentThread.unresolve">
-									Unresolve
-								</Trans>
+								<Trans>Unresolve</Trans>
 							) : (
-								<Trans id="dashboard.pullRequests.commentThread.resolveConversation">
-									Resolve conversation
-								</Trans>
+								<Trans>Resolve conversation</Trans>
 							)}
 						</Button>
-						<Button
-							type="button"
-							size="xs"
-							disabled={!replyText.trim() || isReplyPending}
-							onClick={handleReplySubmit}
-						>
-							{isReplyPending && (
-								<LuLoaderCircle className="size-3 animate-spin" />
-							)}
-							<Trans id="dashboard.pullRequests.commentThread.reply">
-								Reply
-							</Trans>
-						</Button>
-					</div>
-				</div>
+					}
+				/>
 			</CollapsibleContent>
 		</Collapsible>
 	);

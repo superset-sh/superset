@@ -14,6 +14,192 @@ describe("TerminalAgentStore", () => {
 		store = new TerminalAgentStore();
 	});
 
+	describe("subagent roster", () => {
+		// Roster staleness is measured against the wall clock.
+		const NOW = Date.now();
+		const attach = () =>
+			store.recordEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "Start",
+				agentId: "claude",
+				agentSessionId: "s1",
+				occurredAt: NOW + 100,
+			});
+
+		it("tracks a subagent from SubagentStart until SubagentStop without touching the parent", () => {
+			attach();
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStart",
+				subagentId: "a1",
+				agentType: "Explore",
+				occurredAt: NOW + 200,
+			});
+
+			const binding = store.get("t1");
+			expect(binding?.lastEventType).toBe("Start");
+			expect(binding?.lastEventAt).toBe(NOW + 100);
+			expect(binding?.subagents).toEqual([
+				{
+					id: "a1",
+					agentType: "Explore",
+					startedAt: NOW + 200,
+					lastEventAt: NOW + 200,
+				},
+			]);
+			expect(store.listByWorkspace(WORKSPACE)[0]?.subagents).toHaveLength(1);
+
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStop",
+				subagentId: "a1",
+				occurredAt: NOW + 300,
+			});
+			expect(store.get("t1")?.subagents).toBeUndefined();
+		});
+
+		it("re-adds a child from its tool events when the start was missed and keeps the earlier type", () => {
+			attach();
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStart",
+				subagentId: "a1",
+				agentType: "general-purpose",
+				occurredAt: NOW + 200,
+			});
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "PostToolUse",
+				subagentId: "a1",
+				occurredAt: NOW + 250,
+			});
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "PostToolUse",
+				subagentId: "a2",
+				agentType: "Plan",
+				occurredAt: NOW + 260,
+			});
+
+			expect(store.get("t1")?.subagents).toEqual([
+				{
+					id: "a1",
+					agentType: "general-purpose",
+					startedAt: NOW + 200,
+					lastEventAt: NOW + 250,
+				},
+				{
+					id: "a2",
+					agentType: "Plan",
+					startedAt: NOW + 260,
+					lastEventAt: NOW + 260,
+				},
+			]);
+		});
+
+		it("ignores subagent events for a terminal with no live agent", () => {
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStart",
+				subagentId: "a1",
+				occurredAt: NOW + 200,
+			});
+			expect(store.get("t1")).toBeUndefined();
+			attach();
+			expect(store.get("t1")?.subagents).toBeUndefined();
+		});
+
+		it("drops the roster when the parent ends or a new session starts in the terminal", () => {
+			attach();
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStart",
+				subagentId: "a1",
+				occurredAt: NOW + 200,
+			});
+			store.recordEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "Attached",
+				agentId: "claude",
+				agentSessionId: "s2",
+				occurredAt: NOW + 300,
+			});
+			expect(store.get("t1")?.subagents).toBeUndefined();
+
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStart",
+				subagentId: "a2",
+				occurredAt: NOW + 400,
+			});
+			expect(store.get("t1")?.subagents).toHaveLength(1);
+			store.markTerminalExited("t1");
+			attach();
+			expect(store.get("t1")?.subagents).toBeUndefined();
+		});
+
+		it("expires a child that went quiet without a stop", () => {
+			attach();
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStart",
+				subagentId: "a1",
+				occurredAt: NOW - 11 * 60_000,
+			});
+			expect(store.get("t1")?.subagents).toBeUndefined();
+		});
+
+		it("caps the roster per terminal, dropping the oldest child", () => {
+			attach();
+			for (let i = 0; i < 70; i += 1) {
+				store.recordSubagentEvent({
+					terminalId: "t1",
+					workspaceId: WORKSPACE,
+					eventType: "SubagentStart",
+					subagentId: `a${i}`,
+					occurredAt: NOW + 200 + i,
+				});
+			}
+			const ids = store.get("t1")?.subagents?.map((s) => s.id) ?? [];
+			expect(ids).toHaveLength(64);
+			expect(ids[0]).toBe("a6");
+			expect(ids[ids.length - 1]).toBe("a69");
+		});
+
+		it("emits change on roster mutations only", () => {
+			attach();
+			const changes: string[] = [];
+			store.on("change", (workspaceId: string) => changes.push(workspaceId));
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStop",
+				subagentId: "never-started",
+				occurredAt: NOW + 200,
+			});
+			expect(changes).toEqual([]);
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStart",
+				subagentId: "a1",
+				occurredAt: NOW + 200,
+			});
+			expect(changes).toEqual([WORKSPACE]);
+		});
+	});
+
 	it("creates a binding on first event and exposes it via get/list/findActive", () => {
 		store.recordEvent({
 			terminalId: "t1",
@@ -56,6 +242,88 @@ describe("TerminalAgentStore", () => {
 		expect(binding?.lastEventAt).toBe(200);
 		expect(binding?.lastEventType).toBe("Start");
 		expect(binding?.agentId).toBe("claude");
+	});
+
+	it("Attached refreshes the binding without downgrading an active working state", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "codex",
+			agentSessionId: "s1",
+			occurredAt: 100,
+		});
+		// The wrapper's launch report is delayed and can land after the first
+		// prompt already marked the agent working; it must not flip the
+		// working indicator back to idle.
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "codex",
+			occurredAt: 200,
+		});
+
+		const binding = store.get("t1");
+		expect(binding?.lastEventType).toBe("Start");
+		expect(binding?.lastEventAt).toBe(200);
+		expect(binding?.agentSessionId).toBe("s1");
+	});
+
+	it("Attached preserves every same-session lifecycle state, not just working ones", () => {
+		// Stop must survive: an Attached lastEventType would erase the row's
+		// resume-candidate status; Failed must survive so the failure stays
+		// surfaced.
+		for (const [i, lastEventType] of [
+			"PermissionRequest",
+			"Stop",
+			"Failed",
+		].entries()) {
+			const terminalId = `t-preserve-${i}`;
+			store.recordEvent({
+				terminalId,
+				workspaceId: WORKSPACE,
+				eventType: lastEventType,
+				agentId: "codex",
+				agentSessionId: "s1",
+				occurredAt: 100,
+			});
+			store.recordEvent({
+				terminalId,
+				workspaceId: WORKSPACE,
+				eventType: "Attached",
+				agentId: "codex",
+				agentSessionId: "s1",
+				occurredAt: 200,
+			});
+
+			expect(store.get(terminalId)?.lastEventType).toBe(lastEventType);
+			expect(store.get(terminalId)?.lastEventAt).toBe(200);
+		}
+	});
+
+	it("Attached with a new session id overrides the previous session's working state", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "codex",
+			agentSessionId: "s1",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "codex",
+			agentSessionId: "s2",
+			occurredAt: 200,
+		});
+
+		const binding = store.get("t1");
+		expect(binding?.lastEventType).toBe("Attached");
+		expect(binding?.agentSessionId).toBe("s2");
+		expect(binding?.startedAt).toBe(200);
 	});
 
 	it("deletes the binding on Detached/exit/error", () => {

@@ -47,65 +47,81 @@ overlay renders "Unknown host".
 
 ## Addressing and auth
 
-**The address is brokered and expires.** A sandbox has no stable URL — a
-preview token is minted per workspace and re-minted before expiry
-(`SandboxAccessProvider`). Code that caches a sandbox URL for longer than the
-token's life will start 401ing. `mintPreviewAccess` talks to the provider's
-control plane, not the sandbox, so it works even when the sandbox itself is
-asleep or wedged.
+**The address is brokered and expires.** A sandbox has no stable URL the
+client can keep — the API resolves the sandbox's domain and signs a
+short-lived token per access, re-minted before expiry
+(`SandboxAccessProvider`, `useWorkspaceHostUrl`). Code that caches a token
+for longer than its life will start 401ing. Resolving talks to the provider's
+control plane, not the sandbox, so it works when the sandbox is stopped.
 
-**Three separate gates sit between the renderer and a sandbox**, and all three
-fail as a bare `TypeError: Failed to fetch`: the renderer's CSP `connect-src`
-allowlist, CORS on the provider's edge (set via the preview's
-`responseHeaders`), and the WebSocket, which can't carry a header from a
-browser and so takes the preview token as a `bl_preview_token` query param.
-Testing from Node proves nothing about the renderer here.
+**Addressing and waking are different requests.** The sidebar keeps a live
+address for every ready cloud workspace, and none of those mints may resume a
+sandbox — that is how every desktop in the organization kept every Blaxel
+sandbox awake for the whole of its life. Only the open workspace's own mint
+passes `wake`, which resumes a stopped session (a resumed session boots from
+the filesystem snapshot with no processes, so host-service is started again)
+and extends a running one so it never hits the idle stop while someone is in
+it. `resolveSandboxAddress` is the one place that knows the difference.
 
-**The edge sets a cookie, and the desktop's terminal socket depends on it
-without saying so.** Any request that presents the preview token — header or
-query param — comes back with `Set-Cookie: bl_preview_token=…; HttpOnly;
-SameSite=None; Secure; Max-Age=86400`. Only the `/events` dial puts the token
-on its URL; the `/terminal/<id>` dial (`useWorkspaceWsUrl`) sends `token=<jwt>`
-and nothing for the edge, and works because Electron replays that cookie on
-the upgrade. So terminals on desktop authenticate through a cookie the event
-bus happened to earn first. Mobile can't inherit that — its terminal socket
-lives in a WKWebView with its own cookie store — so it signs every terminal
-dial with `bl_preview_token` explicitly. The desktop should too rather than
-rely on ordering.
+**A woken sandbox answers seconds after the wake, and every pane reconnects
+at once.** A resumed session has no processes; `wake` starts host-service
+and returns before it listens. The open workspace's hook therefore holds the
+address back until `health.check` answers (`waitForHost`), and the host
+fan-out skips a sandbox the last access reported as not running (`running`
+on the access response) until that hook re-addresses it. Without both, every
+hook fired into the boot window, the terminal-agent auto-resume burned its
+one attempt on a 502, and the agent pane sat on "Disconnected" until the
+next token refresh minutes later. What a person sees now: the pane
+reconnects, the lost session is reported gone, and the agent is resumed into
+a fresh terminal with its scrollback (the cold-restore path), about 15–20 s
+after opening.
 
-**The host-service secret does not apply, and a sandbox says so instead of
-pretending otherwise.** Locally the secret stops anything else on the machine
-from talking to a host-service bound to loopback; desktop and service share
-one trusted device. A sandbox is reached across the internet, where the gate
-that actually holds is the provider's private preview: the edge turns away
-anything without a preview token, and only our API can mint one.
+**Two gates sit between the renderer and a sandbox**, and both fail as a bare
+`TypeError: Failed to fetch`: the renderer's CSP `connect-src` allowlist
+(`https://*.vercel.run`), and the WebSocket, which can't carry a header from a
+browser and so takes the token as the `token` query param — the same param a
+local host reads its secret from. CORS is answered by host-service itself in
+sandbox mode (`*`; the bearer, never a cookie, is what gates it). Testing from
+Node proves nothing about the renderer here.
 
-Keeping the PSK as a second layer was tried and rejected. One secret baked
-into every sandbox is a cross-tenant credential, and every sandbox hands an
-agent a shell that can read its own env — a second factor each tenant can read
-is not a second factor, it just makes the posture look deeper than it is.
-Generating one per sandbox would have worked, but it buys a layer whose only
-job is to survive a misconfigured preview, at the cost of a stored secret per
-workspace.
+**The sandbox's URL is public, so host-service is the gate.** Locally the
+pre-shared secret stops anything else on the machine from talking to a
+host-service bound to loopback. A Vercel sandbox's exposed port is a public
+`vercel.run` domain with nothing in front of it, so in sandbox mode
+host-service checks a token the API signed for exactly this workspace
+(`SandboxAccessHostAuthProvider`): Ed25519, ten-minute expiry, audience = the
+cloud workspace id. The sandbox holds only the public key
+(`SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY`), so nothing inside it — an agent that
+can read its own environment included — can mint access to itself or to any
+other sandbox, and a token for one workspace is refused by every other. A
+sandbox booted without the key refuses to serve rather than serving everyone.
 
-So in sandbox mode host-service uses `EdgeGuardedHostAuthProvider`, which
-accepts everything, and the honest statement of the posture is: **one gate, at
-the edge.** A sandbox whose preview is ever made public is open to anyone with
-the URL. Treat preview configuration (`public: false`) as the security-
-critical setting it now is.
+That replaces the Blaxel-era posture, where a private provider preview did
+the gating and host-service accepted everything (`EdgeGuardedHostAuthProvider`,
+gone). The old reasoning against a host-side secret was that a *shared* one
+is a cross-tenant credential every tenant can read; a signed token has no
+secret in the box to read. `health.check` stays public on purpose — it is
+how a client tells a booting sandbox from a dead one — so probe the gate on a
+guarded route (`/events`), not on health.
 
-**Model credentials never enter the sandbox.** The provider's egress proxy
-substitutes them at the edge from a `{{SECRET:...}}` routing rule; the sandbox
+**Model credentials never enter a sandbox.** The organization's keys are
+injected into egress by the sandbox firewall: a `transform` rule on
+`api.anthropic.com` / `api.openai.com` sets the auth header, and the sandbox
 env holds only `SANDBOX_CREDENTIAL_PLACEHOLDER`. The placeholder must still be
-*set* — an unset key reads as "not logged in" and produces no request for the
-proxy to rewrite.
+*set* — an unset key reads as "not logged in" and produces no request to
+rewrite. A workspace that brings its own credential for a provider — an
+environment variable, or the person's own sign-in (`agent_credentials`) —
+gets no rule for that provider, so its credential reaches the API untouched;
+a Claude subscription token counts as Anthropic being provided, since a rule
+would otherwise add a second, conflicting auth header to its requests.
 
-**Credentials are fixed at creation, so a sandbox can't gain one later.** The
-routing rules that carry them are part of the create call, which is the
-property that stops a sandbox being re-pointed at a different secret mid-life.
-The cost is that adding a provider, or rotating a key, reaches only sandboxes
-created afterwards — existing ones keep the credential set they were born
-with, and have to be recreated to change it.
+**The firewall terminates TLS for the domains it rewrites, and the terminal
+must trust its CA.** The platform mounts a per-sandbox CA and points
+`NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE` and friends at the system bundle.
+host-service builds PTY env from a login-shell snapshot, never from its own
+process env, so those variables would be lost and every model call from a
+terminal would fail with a certificate error; the sandbox-mode passthrough
+forwards them (`SANDBOX_FIREWALL_CA_KEYS`).
 
 ## Runtime environment
 
@@ -197,48 +213,173 @@ What it needs, roughly in order of how much it buys:
   push the branch, provision a fresh sandbox, restore the checkout. Slower,
   but it must exist for the cases where in-place fails.
 
-Note that the *image tag* is a deploy-time env var (`BLAXEL_SANDBOX_IMAGE`),
-so new sandboxes pick up a rebuilt image for free. It is only existing ones
+Note that the *image tag* lives on the environment row (`sourceRef`, seeded from
+the `SANDBOX_IMAGE_NAME` constant), so new sandboxes pick up a rebuilt image for free. It is only existing ones
 that strand — which is why this reads as fine right up until the first
 long-lived workspace.
 
 ## Provider constraints
 
-**The image's ENTRYPOINT belongs to the provider.** The SDK appends
-`ENTRYPOINT ["/usr/local/bin/sandbox-api"]` only when the image declares none,
-and that binary is what serves `/process`, `/fs` and the preview routes.
-Declaring our own to auto-start host-service produced a sandbox the platform
-could not talk to at all — every exec came back 502, and there is no way to
-debug from inside a sandbox whose exec is the broken thing. Long-running
-processes are registered *through* the API instead (`process.exec` with
-`waitForCompletion: false`).
+**The platform runs no ENTRYPOINT or CMD for a custom image.** `/app/start.sh`
+is launched through `runCommand` (detached) after create, and again on every
+wake, guarded by a port check so two wakes can't stack two servers.
+(Blaxel was the opposite: its own `sandbox-api` owned the entrypoint slot.)
 
-**The platform injects `PORT`, and it beats the image's `ENV`.** host-service
-reads `PORT`, so a sandbox that doesn't override it tries to bind 80 — reserved,
-along with 443 and 8080 — and exits with `EADDRINUSE` before serving anything.
-`start.sh` exports the port it means to use.
+**A freshly pushed image is not usable for a few minutes.** VCR reports the
+tag `Preparing` while it optimises a `linux/amd64` build (a gigabyte takes
+about four minutes), and `Sandbox.create` answers 409 `image_not_ready` until
+it reads `Ready`. `sandbox:release` waits; anything else pointing an
+environment at a tag it just pushed has to as well.
 
-**The first two sandboxes after an image build take ~35s; the rest take ~0.3s.**
-Measured on a freshly built image: 37.3s, 35.2s, then 0.3s, 0.2s, 0.3s. It is an
-image pull, and the image is around a gigabyte — 766 MB of that `node_modules`,
-230 MB the baked repo, 18 MB host-service itself. Two consequences worth knowing
-rather than fixing: a stopwatch started right after a rebuild measures the pull,
-not the product (which is how a 5s path got reported here as 40s), and most of
-the weight is packages host-service imports at module load and never calls, so
-the lever is that import graph rather than anything about sandboxes.
+**Disk is 64 GB regardless of memory.** Memory is 2 GB per vCPU and the plan
+caps it (Pro: 8 vCPU, 16 GB); disk is separate NVMe. This retires the Blaxel
+rule that the writable root was tmpfs at half of memory and that a full disk
+wedged every exec — the reason goldens ran at 32 GB. The internal golden runs
+8 vCPU for the dev stack's RAM, forks inherit it, and image workspaces get
+the same: at 4 vCPU / 8 GB an agent that brought up the dev stack and an
+Electron instance took the VM down (2026-09-11).
 
-**host-service has no HTTP health route.** Readiness is the `health.check` tRPC
-procedure; `GET /health` 404s. A probe on the wrong path looks exactly like a
-sandbox that never came up, which cost an afternoon here.
+**A session ends; the sandbox does not.** A session stops at its timeout
+(`SESSION_TIMEOUT_MS`, four hours, extended while a workspace is open) or on
+`stop()`, and the platform snapshots the filesystem. The next wake boots a
+new session from that snapshot with *no processes*: uncommitted files survive,
+a running agent does not. Blaxel froze the VM instead, processes intact. So
+an unattended agent run has to finish within a session, and the idle stop
+must not fire on a workspace someone is using — which is what the open
+workspace's `wake` on every token refresh is for. Sessions cap at 24 hours on
+the plan; past that the extension is refused and the next open resumes.
 
+**A fork starts from the source's snapshot, not its live filesystem.** A
+golden is therefore a *stopped* sandbox: `promoteSandboxToEnvironment` takes
+a snapshot of the promoting workspace, creates the golden from it with an
+empty env, removes the identity files, and stops it — that stop is what forks
+start from. Identity, git token and agent credentials are configuration on
+Vercel, not files, so a golden created with `env: {}` simply doesn't have
+them; no blanking on the fork request as Blaxel needed.
 
-**Proxy secret injection needs the workspace entitlement.** Routing rules send
-egress through the workspace's egress gateway; without it every request fails
-its upstream CONNECT with a 407. Enabled for `superset` on 2026-08-16. Note
-`/egressgateways` and `/vpcs` still 403 with "Dedicated IPs feature is not
-enabled" even though routing works, so don't use those as a health check.
+**`snapshot()` ends the session, and the snapshot is what the sandbox resumes
+from.** Measured while promoting: the source is `stopped` afterwards, and its
+`currentSnapshotId` is the snapshot just taken. Deleting that snapshot — the
+obvious tidy-up once the golden exists — leaves the workspace unable to ever
+resume (`410 Cannot resume sandbox: no snapshot available`), which is how one
+e2e workspace died. So the snapshot stays (`keepLastSnapshots` evicts it on
+the source's next stop), and a source that was running is started again
+before promote returns. A row whose sandbox is gone or unresumable is marked
+`failed` by the next `access`, so it gets the failed screen and a Remove
+button rather than a sidebar entry that never opens.
+
+**`stop()` returns before the stop's snapshot is current.** The sandbox is
+still `stopping` when the call resolves, and a fork taken then boots from
+whatever snapshot was current before — for a sandbox that has never stopped
+(a golden fresh from the image), nothing but the image. Measured: a file
+written just before the stop was absent from an immediate fork, and release
+probes forked that early found an empty `/workspace`, cloned into it and lost
+every baked dependency, with the golden itself intact minutes later. Promote
+and the release poll until `currentSnapshotId` has changed and the status is
+`stopped` (`waitForStopSnapshot`) before anything forks.
+
+**Snapshots exist only in the region they were taken.** Forking a golden into
+another region is refused (`snapshot_region_mismatch`), and failover regions
+don't replicate it. Forks therefore inherit the golden's region and only
+image-created sandboxes get `VERCEL_SANDBOX_REGION` — passing the setting on
+a fork was what failed every workspace once the goldens moved to sfo1.
+
+**The firewall policy is live-updatable and forks carry it.** Credential
+brokering (`networkPolicy` with `transform` rules) can be set at create, on a
+fork, or changed on a running sandbox, and a fork copies the source's policy
+unless overridden. Both Blaxel limitations — routing fixed at creation, forks
+unable to have the proxy at all — are gone, which is why every sandbox now
+brokers the organization's keys. A custom policy denies everything it doesn't
+list: the `"*": []` catch-all is what keeps npm, git and the rest reachable.
+
+**A fork copies the source's config; every field we pass is an override.**
+Resources, timeout, ports, tags, network policy, persistence and env are all
+inherited unless set on the fork request. Provisioning passes the workspace's
+full env and policy explicitly so nothing rides in from the golden by
+accident.
+
+**Sandboxes and images are scoped to one Vercel project.** Everything lives in
+the team's `sandboxes` project (`VERCEL_SANDBOX_PROJECT_ID`); the deploy
+token for the API project cannot see it, hence the separate
+`VERCEL_SANDBOX_TOKEN`. Deleting a sandbox keeps its snapshots (and their
+storage bill) unless `deleteOrphanSnapshots` is passed; `deleteSandbox` does.
+
+**The sandbox's config env is capped at 4 KB.** `Sandbox.create`/`fork`
+answer `400 env payload too large` past that, and the internal environment's
+variables alone are ~9 KB (Blaxel took 98 keys without comment). So the
+sandbox env carries only the workspace's identity and credentials (checked
+against the cap at provision), and the environment's variables are written
+to `/data/environment.env` (root-only) right after create, which
+`/app/start.sh` sources on every boot before host-service and the desktop
+session start. A golden has that file removed at promote; a fork gets its
+own. Same delivery as before from the sandbox's point of view: everything
+below the boot script sees them as process env.
+
+**The desktop is an Xfce session, view-only until taken.** The display is
+1920×1200 at 96 DPI and runs `xfce4-session` (panel, xfwm4, xfdesktop,
+Thunar, xfce4-terminal) with Plank for the dock (Chrome, Files, Terminal) and
+one of eight generated wallpapers chosen by the workspace id, so it is stable
+across wakes and differs between boxes. Chrome runs as root and so launches
+with `--no-sandbox` (plus `--test-type`, which hides the bar that flag
+otherwise adds to every window); its first run is pre-answered — the `First
+Run` sentinel and `--no-first-run` skip the terms dialog, and a managed
+policy turns off sign-in, sync and the default-browser prompt. The golden's
+dev stack is an Xfce autostart entry (`superset-dev-stack`) rather than an
+openbox autostart. In the app, the Desktop pane connects view-only and only
+forwards input after "Take control" — an agent may be driving that desktop,
+and a pane that merely has focus must not type into its browser.
+
+**A multi-line variable (a PEM key) did not survive into `/workspace/.env`.**
+The in-sandbox materializer skipped values containing newlines, so the dev
+stack's API failed env validation on `GH_APP_PRIVATE_KEY`. It now writes them
+double-quoted with `\n`, which dotenv reads back as newlines.
+
+**Ports answer at a random per-sandbox domain.** `sandbox.domain(4879)` is
+`https://sb-<random>.vercel.run`, unrelated to the sandbox's name and stable
+for the sandbox's life. There is no per-port authentication — see the auth
+section — and up to 15 ports may be exposed; exactly one is.
 
 **Native modules pin the image.** node-pty's prebuild links glibc (so no
 Alpine) and only the pinned version ships prebuilds at all; better-sqlite3 must
 match what host-service was built against or it crashes on load. The image
 asserts the prebuild exists rather than letting something compile silently.
+
+**Local dev cannot exercise a sandbox, and the failure mode if you force it is
+silent.** `setup.local.sh` copies `.env.local.example` to `.env`, which sets
+`VERCEL_SANDBOX_TOKEN=fake-vercel-sandbox-token` — so provisioning fails at the
+provider and no sandbox is ever created. That part is loud and fine. The trap is
+what happens when someone supplies real Vercel credentials to a local API to try
+a sandbox end-to-end: provisioning passes `SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL`
+into the sandbox, and in local dev that value is `http://localhost:<port>`. Inside
+the container `localhost` is the container, so the sandbox boots, serves, and
+looks healthy while every call it makes back to the API dials itself. Nothing
+reports an error at provision time. Treat sandboxes as a deployed-API-only
+surface, or tunnel a public URL and override `NEXT_PUBLIC_API_URL` for the
+provisioning process specifically.
+
+**Sandbox telemetry does not travel with the desktop build.** The host-service
+Sentry DSN is compiled into the desktop bundle at desktop build time
+(`apps/desktop/electron.vite.config.ts`) and handed to host-service when the
+desktop spawns it. A sandbox is started by the API and never sees a desktop
+bundle, so it can never receive that DSN — which is why sandbox startup crashes
+were invisible for as long as sandboxes have existed, rather than merely
+under-reported. Sandboxes now report to their own project via
+`SENTRY_DSN_SANDBOX` on the API, tagged with the cloud workspace id, image tag
+and provider. Keep the workspace id on both sides: a provisioning failure is
+recorded against the API and a runtime failure against the sandbox, and that id
+is the only thing that joins the two halves of one broken workspace.
+
+## Shared memory is 64 MB
+
+**The app assumes:** `/dev/shm` is sized like a desktop (half of RAM). Chromium
+without a GPU composites in software and backs every window's tiles with
+shared memory there.
+
+**A sandbox is:** a VM with the container default, a 64 MB tmpfs. The third
+1920×1200 Electron window on the sandbox display aborted its renderer with
+`partition_alloc::TerminateBecauseOutOfMemory` from
+`CreateSharedImageForSoftwareCompositor` every time (minidump on the bench,
+2026-09-11); a few heavy Chrome tabs get there too.
+
+**What we did:** `start.sh` remounts `/dev/shm` at 50% of RAM at boot, after
+which four windows open without a crash.

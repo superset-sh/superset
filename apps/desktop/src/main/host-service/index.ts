@@ -9,6 +9,7 @@ import { serve } from "@hono/node-server";
 import {
 	captureFatalStartupError,
 	createApp,
+	detachFromLaunchDirectory,
 	initSentry,
 	installProcessSafetyNet,
 	installUpgradeSocketGuard,
@@ -33,8 +34,8 @@ import {
 } from "main/lib/host-service-manifest";
 import { pollHealthCheck } from "main/lib/host-service-utils";
 import { env } from "./env";
+import { createShutdown } from "./shutdown";
 
-const SHUTDOWN_GRACE_MS = 3_000;
 const WATCHDOG_INTERVAL_MS = 2_000;
 const MANIFEST_RECLAIM_INTERVAL_MS = 15_000;
 
@@ -43,35 +44,30 @@ type Server = ReturnType<typeof serve>;
 async function main(): Promise<void> {
 	initSentry({ organizationId: env.ORGANIZATION_ID });
 
+	// Whatever directory the app was launched from can be deleted while this
+	// host runs — a workspace worktree, most of all — and a process sitting in
+	// a deleted directory cannot start a worker thread (HOST-SERVICE-5D).
+	detachFromLaunchDirectory();
+
 	// Install the parent watchdog before any awaits so a crash during
-	// startup can still reap this child. `serverRef` is filled in once
-	// serve() returns; shutdown handles both pre- and post-bind states.
+	// startup can still reap this child. `serverRef` / `disposeRef` are filled
+	// in once serve() / createApp() return; shutdown handles both pre- and
+	// post-bind states. Sequencing lives in ./shutdown.ts — see there for why
+	// a plain process.exit() could leave this child orphaned forever.
 	const serverRef: { current: Server | null } = { current: null };
-	let shuttingDown = false;
-	let manifestReclaimTimer: NodeJS.Timeout | null = null;
-	const shutdown = (reason: string) => {
-		if (shuttingDown) return;
-		shuttingDown = true;
-		// A reclaim tick during the drain window would resurrect the manifest
-		// the coordinator just removed, leaving it naming a dead pid.
-		if (manifestReclaimTimer) clearInterval(manifestReclaimTimer);
-		console.log(`[host-service] shutdown (${reason}), draining connections`);
-		const server = serverRef.current;
-		if (!server) {
-			process.exit(0);
-		}
-		server.close();
-		// SSE/WS streams (chat, watchers) ignore server.close() — give in-flight
-		// HTTP a brief window, then forcibly tear sockets down.
-		const forceExit = setTimeout(() => {
-			const httpServer = server as unknown as {
-				closeAllConnections?: () => void;
-			};
-			httpServer.closeAllConnections?.();
-			process.exit(0);
-		}, SHUTDOWN_GRACE_MS);
-		forceExit.unref();
+	const disposeRef: { current: (() => Promise<void>) | null } = {
+		current: null,
 	};
+	let manifestReclaimTimer: NodeJS.Timeout | null = null;
+	const shutdown = createShutdown({
+		getServer: () => serverRef.current,
+		getDispose: () => disposeRef.current,
+		clearReclaimTimer: () => {
+			if (manifestReclaimTimer) clearInterval(manifestReclaimTimer);
+		},
+		exit: (code) => process.exit(code),
+		hardExit: () => process.kill(process.pid, "SIGKILL"),
+	});
 
 	process.on("SIGTERM", () => shutdown("SIGTERM"));
 	process.on("SIGINT", () => shutdown("SIGINT"));
@@ -105,7 +101,7 @@ async function main(): Promise<void> {
 		apiUrl: env.SUPERSET_API_URL,
 	});
 
-	const { app, injectWebSocket, api, db } = createApp({
+	const { app, injectWebSocket, api, db, dispose } = createApp({
 		config: {
 			organizationId: env.ORGANIZATION_ID,
 			dbPath: env.HOST_DB_PATH,
@@ -123,6 +119,7 @@ async function main(): Promise<void> {
 			credentials: new LocalGitCredentialProvider(),
 		},
 	});
+	disposeRef.current = dispose;
 
 	const startedAt = Date.now();
 	const server = serve(

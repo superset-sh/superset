@@ -21,8 +21,10 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import Database from "better-sqlite3";
+import { type CursorUsageEvent, cursorEventsToEntries } from "./cursor-events";
 import type { UsageLogEntry } from "./parse";
-import { num } from "./parse";
+
+export { type CursorUsageEvent, cursorEventsToEntries } from "./cursor-events";
 
 const execFileAsync = promisify(execFile);
 
@@ -35,20 +37,6 @@ const FETCH_TIMEOUT_MS = 15_000;
 // for every render poll. Keyed per cutoff so range switches stay fresh.
 const EVENTS_CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_LABEL_DB_OPENS = 200;
-
-export interface CursorUsageEvent {
-	timestamp?: string;
-	model?: string;
-	conversationId?: string;
-	tokenUsage?: {
-		inputTokens?: number;
-		outputTokens?: number;
-		cacheReadTokens?: number;
-		cacheWriteTokens?: number;
-		totalCents?: number;
-	};
-	chargedCents?: number;
-}
 
 export function cursorChatsDir(): string {
 	return join(homedir(), ".cursor", "chats");
@@ -145,41 +133,6 @@ let cachedEvents: {
 	events: CursorUsageEvent[];
 } | null = null;
 
-/** Pure event → entry mapping, exported for tests. */
-export function cursorEventsToEntries(
-	events: CursorUsageEvent[],
-	cutoffMs: number,
-): UsageLogEntry[] {
-	const entries: UsageLogEntry[] = [];
-	for (const event of events) {
-		const usage = event.tokenUsage;
-		if (!usage) continue;
-		const timestampMs = Number(event.timestamp);
-		if (!Number.isFinite(timestampMs) || timestampMs < cutoffMs) continue;
-		const cents = usage.totalCents ?? event.chargedCents;
-		const costUsd =
-			typeof cents === "number" && Number.isFinite(cents) && cents > 0
-				? cents / 100
-				: undefined;
-		entries.push({
-			provider: "cursor",
-			model: event.model || "unknown",
-			timestampMs,
-			cwd: null,
-			sessionId: event.conversationId || "unknown",
-			// Cursor reports cache reads separately from inputTokens.
-			uncachedInput: num(usage.inputTokens),
-			cachedInput: num(usage.cacheReadTokens),
-			cacheWrite5m: num(usage.cacheWriteTokens),
-			cacheWrite1h: 0,
-			output: num(usage.outputTokens),
-			reasoningOutput: 0,
-			...(costUsd !== undefined ? { costUsd } : {}),
-		});
-	}
-	return entries;
-}
-
 interface ChatDirIndex {
 	/** conversationId → md5-of-cwd segment. */
 	hashByConversation: Map<string, string>;
@@ -247,7 +200,7 @@ function readChatTitle(dbPath: string): string | null {
 
 /**
  * Fetches and appends cursor entries. Network/auth failures are the caller's
- * to swallow — cursor must never take the local providers down with it.
+ * to swallow — cursor must never take the local agents down with it.
  */
 export async function collectCursorEntries(
 	cutoffMs: number,

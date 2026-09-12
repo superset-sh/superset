@@ -1,6 +1,9 @@
 "use client";
 
-import { PIN_SIZE, type PinPoint, STACK_OFFSET } from "../../utils/pinLayout";
+import { msg } from "@lingui/core/macro";
+import { i18n } from "../../../../../../lib/i18n";
+import type { CommentIntent } from "../../../../providers/CommentProvider";
+import { type PinPoint, pinTransform } from "../../utils/pinLayout";
 import { pinClassName } from "./pinClassName";
 
 interface CommentBubbleProps {
@@ -9,6 +12,7 @@ interface CommentBubbleProps {
 	initials: string;
 	count: number;
 	resolved: boolean;
+	intent?: CommentIntent | null;
 	active: boolean;
 	onClick: () => void;
 }
@@ -19,6 +23,7 @@ export function CommentBubble({
 	initials,
 	count,
 	resolved,
+	intent,
 	active,
 	onClick,
 }: CommentBubbleProps) {
@@ -28,11 +33,16 @@ export function CommentBubble({
 			data-comment-ui=""
 			onClick={onClick}
 			style={{
-				transform: `translate(${point.x - PIN_SIZE / 2 + stackIndex * STACK_OFFSET}px, ${point.y - PIN_SIZE / 2}px)`,
+				transform: pinTransform(point, stackIndex),
 				zIndex: stackIndex,
 			}}
-			className={pinClassName({ resolved, active, interactive: true })}
-			aria-label={`${count} comment${count === 1 ? "" : "s"}`}
+			className={pinClassName({ resolved, active, intent, interactive: true })}
+			aria-label={i18n._({
+				...msg({
+					message: "{count, plural, one {# comment} other {# comments}}",
+				}),
+				values: { count },
+			})}
 		>
 			{count > 1 ? count : initials}
 		</button>

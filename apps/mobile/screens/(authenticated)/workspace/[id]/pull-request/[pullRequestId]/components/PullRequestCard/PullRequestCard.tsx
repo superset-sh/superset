@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Fragment, type ReactElement } from "react";
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
@@ -49,6 +50,7 @@ export function PullRequestCard({
 	onOpenCheck?: (check: PullRequestCheck) => void;
 	onOpenReviewers?: () => void;
 }) {
+	const { t } = useLingui();
 	const detail = { pullRequest, checks, reviewers, mergeability, capabilities };
 	const state = resolvePullRequestState(detail);
 	const actions = resolveActions(state, detail);
@@ -80,7 +82,9 @@ export function PullRequestCard({
 		return (
 			<CardRow
 				key="merged-by"
-				label={`Merged by ${mergedBy.login}`}
+				label={t({
+					message: `Merged by ${mergedBy.login}`,
+				})}
 				leading={
 					<ReviewerAvatar
 						reviewer={{

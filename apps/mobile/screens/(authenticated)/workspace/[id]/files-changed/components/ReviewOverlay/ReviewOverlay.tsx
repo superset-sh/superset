@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Stack } from "expo-router";
 
 // Native bottom toolbar bar buttons: UIKit owns sizing/placement, matching
@@ -13,6 +14,7 @@ export function ReviewOverlay({
 	onFinishReview: () => void;
 	onJumpToFile: () => void;
 }) {
+	const { t } = useLingui();
 	return (
 		<Stack.Toolbar placement="bottom">
 			<Stack.Toolbar.Spacer />
@@ -22,11 +24,17 @@ export function ReviewOverlay({
 				tintColor="#16a34a"
 				onPress={onFinishReview}
 			>
-				{draftCount > 1 ? `Send to chat (${draftCount})` : "Send to chat"}
+				{draftCount > 1
+					? t({
+							message: `Send to chat (${draftCount})`,
+						})
+					: t({ message: "Send to chat" })}
 			</Stack.Toolbar.Button>
 			<Stack.Toolbar.Button
 				icon="text.line.first.and.arrowtriangle.forward"
-				accessibilityLabel="Jump to file"
+				accessibilityLabel={t({
+					message: "Jump to file",
+				})}
 				onPress={onJumpToFile}
 			/>
 		</Stack.Toolbar>

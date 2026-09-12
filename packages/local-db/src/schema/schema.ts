@@ -244,6 +244,9 @@ export const settings = sqliteTable("settings", {
 	>(),
 	terminalCursorBlink: integer("terminal_cursor_blink", { mode: "boolean" }),
 	terminalParkedRuntimeCap: integer("terminal_parked_runtime_cap"),
+	terminalCopyOnSelect: integer("terminal_copy_on_select", {
+		mode: "boolean",
+	}),
 	editorFontFamily: text("editor_font_family"),
 	editorFontSize: integer("editor_font_size"),
 	editorLineHeight: real("editor_line_height"),
@@ -251,6 +254,7 @@ export const settings = sqliteTable("settings", {
 	editorFontWeight: integer("editor_font_weight"),
 	editorLigatures: integer("editor_ligatures", { mode: "boolean" }),
 	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
+	showUsageInSidebar: integer("show_usage_in_sidebar", { mode: "boolean" }),
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
 	browserHomepageUrl: text("browser_homepage_url"),
@@ -317,7 +321,6 @@ export const users = sqliteTable(
 	"users",
 	{
 		id: text("id").primaryKey(),
-		clerk_id: text("clerk_id").notNull().unique(),
 		name: text("name").notNull(),
 		email: text("email").notNull().unique(),
 		avatar_url: text("avatar_url"),
@@ -325,10 +328,7 @@ export const users = sqliteTable(
 		created_at: text("created_at").notNull(),
 		updated_at: text("updated_at").notNull(),
 	},
-	(table) => [
-		index("users_email_idx").on(table.email),
-		index("users_clerk_id_idx").on(table.clerk_id),
-	],
+	(table) => [index("users_email_idx").on(table.email)],
 );
 
 export type InsertUser = typeof users.$inferInsert;
@@ -341,7 +341,6 @@ export const organizations = sqliteTable(
 	"organizations",
 	{
 		id: text("id").primaryKey(),
-		clerk_org_id: text("clerk_org_id").unique(),
 		name: text("name").notNull(),
 		slug: text("slug").notNull().unique(),
 		github_org: text("github_org"),
@@ -349,10 +348,7 @@ export const organizations = sqliteTable(
 		created_at: text("created_at").notNull(),
 		updated_at: text("updated_at").notNull(),
 	},
-	(table) => [
-		index("organizations_slug_idx").on(table.slug),
-		index("organizations_clerk_org_id_idx").on(table.clerk_org_id),
-	],
+	(table) => [index("organizations_slug_idx").on(table.slug)],
 );
 
 export type InsertOrganization = typeof organizations.$inferInsert;

@@ -1,6 +1,7 @@
 ---
 title: Automations
 description: Schedule agent sessions to run on a recurring basis
+pro: true
 ---
 
 ## Overview
@@ -20,6 +21,7 @@ The list shows 7-day health stats (Active, Created, Failed), groups enabled auto
 
 ## Requirements
 
+- **A Pro plan**: Automations are a [Pro feature](https://superset.sh/pricing). Creating, running, and resuming an automation needs a Pro or Enterprise subscription on the organization, from the app, the CLI, or the SDK alike. An organization that downgrades keeps its automations and can still edit, pause, or delete them, but they stop firing until it upgrades again.
 - **A project, or session mode**: automations usually run against a v2 project linked to a GitHub repo. Pick **No project** and each run creates a [session workspace](/workspaces#sessions) instead.
 - **A target device**: The run fires on the device you pick when creating the automation.
 
@@ -85,6 +87,12 @@ superset automations create --name "Nightly audit" --rrule "FREQ=DAILY;BYHOUR=3;
 
 # Omit --project and --workspace for session mode (a session workspace per run)
 superset automations create --name "Scratch triage" --rrule "FREQ=DAILY;BYHOUR=8;BYMINUTE=0" --prompt "…"
+
+# Each run's workspace carries the automation's tags and groups into the matching
+# sidebar folders. Default tag: "automation" — runs collect in an "automation"
+# folder per project. --tag (repeatable) files them elsewhere; clearing the tags
+# in the editor opts out of grouping.
+superset automations create --name "Nightly audit" --rrule "FREQ=DAILY;BYHOUR=3;BYMINUTE=0" --project <projectId> --prompt "…" --tag audits
 
 superset automations update <id> --session   # switch an existing automation to session mode
 superset automations get <id>

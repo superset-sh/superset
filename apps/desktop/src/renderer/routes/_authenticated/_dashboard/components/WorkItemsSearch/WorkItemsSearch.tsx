@@ -10,6 +10,8 @@ interface WorkItemsSearchProps {
 	placeholder: string;
 	label: string;
 	className?: string;
+	/** Extends the positioning wrapper (the icon anchors to it), not the input. */
+	containerClassName?: string;
 }
 
 export function WorkItemsSearch({
@@ -18,6 +20,7 @@ export function WorkItemsSearch({
 	placeholder,
 	label,
 	className,
+	containerClassName,
 }: WorkItemsSearchProps) {
 	const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,7 +34,9 @@ export function WorkItemsSearch({
 	);
 
 	return (
-		<div className="relative w-full @4xl:w-56 @6xl:w-64">
+		<div
+			className={cn("relative w-full @4xl:w-56 @6xl:w-64", containerClassName)}
+		>
 			<HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 			<Input
 				ref={inputRef}

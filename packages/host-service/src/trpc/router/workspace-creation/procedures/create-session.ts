@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { basename } from "node:path";
 import { generateFriendlyBranchName } from "@superset/shared/workspace-launch";
+import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { TRPCError } from "@trpc/server";
 import { isNull } from "drizzle-orm";
 import { z } from "zod";
@@ -41,6 +42,10 @@ const createSessionInputSchema = z.object({
 	agents: z.array(agentLaunchSchema).optional(),
 	command: z.string().min(1).optional(),
 	namingPrompt: z.string().min(1).optional(),
+	// Sessions render in a flat lane (no per-project folders), but the tags
+	// are stored so listings and future consumers see them — automation
+	// dispatch sends its tag set for sessions and worktrees alike.
+	tags: workspaceTagsInputSchema.optional(),
 });
 
 /** Names already claimed: session dirs on disk plus session rows in the DB.
@@ -145,6 +150,8 @@ export const createSession = protectedProcedure
 				branch: "main",
 				name: typedName || folderName,
 				type: "session",
+				createdByUserId: ctx.userId ?? null,
+				tags: input.tags,
 			});
 		} catch (err) {
 			// The folder was allocated this call and holds only the scaffold —

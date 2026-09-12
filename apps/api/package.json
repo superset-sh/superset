@@ -34,14 +34,13 @@
 		"@upstash/qstash": "2.10.1",
 		"@upstash/ratelimit": "2.0.8",
 		"@upstash/redis": "1.37.0",
-		"@vercel/blob": "2.3.2",
 		"better-auth": "1.6.22",
 		"date-fns": "4.1.0",
 		"drizzle-orm": "0.45.2",
 		"import-in-the-middle": "2.0.1",
 		"jose": "6.2.2",
 		"lodash.chunk": "4.2.0",
-		"next": "16.2.11",
+		"next": "16.3.3",
 		"posthog-node": "5.28.8",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
@@ -52,6 +51,7 @@
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
+		"@lingui/swc-plugin": "6.6.0",
 		"@microsoft/microsoft-graph-types": "2.43.1",
 		"@superset/typescript": "workspace:*",
 		"@types/lodash.chunk": "4.2.9",

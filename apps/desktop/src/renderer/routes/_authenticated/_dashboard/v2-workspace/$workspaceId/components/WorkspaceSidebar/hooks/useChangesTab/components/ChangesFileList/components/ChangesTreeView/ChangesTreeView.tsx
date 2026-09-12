@@ -23,14 +23,16 @@ import {
 } from "renderer/lib/clickPolicy";
 import { useFallthroughIcons } from "renderer/lib/fileIcons";
 import {
+	buildCollisionSafeTreePaths,
 	createPierreTreeStyle,
 	FILE_STATUS_TO_PIERRE,
+	formatDiffStats,
 	PIERRE_TREE_UNSAFE_CSS,
 	type PierreGitStatusEntry,
 	stripTrailingSlash,
 } from "renderer/lib/pierreTree";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
-import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PierreRowContextMenu";
+import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/PierreRowContextMenu";
 import {
 	type ChangesetFile,
 	getChangesetFileKey,
@@ -41,11 +43,15 @@ import {
 } from "shared/absolute-paths";
 import type { FoldSignal } from "../../ChangesFileList";
 import { setFileDragData } from "../../hooks/useFileDrag";
+import { useStagingMutations } from "../../hooks/useStagingMutations";
+import { StageToggleButton } from "../StageToggleButton";
 import { FileRowContextMenuItems } from "./components/FileRowContextMenuItems";
 import { FolderContextMenuItems } from "./components/FolderContextMenuItems";
-import { ShadowRowHoverActions } from "./components/ShadowRowHoverActions";
+import {
+	HOVER_ACTIONS_ROW_CSS,
+	ShadowRowHoverActions,
+} from "./components/ShadowRowHoverActions";
 import { useMeasuredTreeHeight } from "./hooks/useMeasuredTreeHeight";
-import { buildCollisionSafeTreePaths } from "./utils/buildCollisionSafeTreePaths";
 import { buildTreeShape } from "./utils/buildTreeShape";
 
 const ITEM_HEIGHT = 24;
@@ -70,6 +76,8 @@ interface ChangesTreeViewProps {
 	worktreePath?: string;
 	/** Absolute path of the file whose diff is currently open, if any. */
 	selectedFilePath?: string;
+	/** Disambiguates a path present in several sections (staged + unstaged). */
+	selectedChangeKey?: string;
 	/** Bumped by the toolbar's expand-all / collapse-all buttons. */
 	foldSignal: FoldSignal;
 	onSelectFile?: (
@@ -89,7 +97,8 @@ interface ChangesTreeViewProps {
  *  - `renderRowDecoration`: `+N/−N` on files, file count on directories
  *  - `renderContextMenu`: file-row actions matching `FileRow`; folder-row
  *    actions (open in editor, copy path)
- *  - hover actions overlay (Discard on unstaged + more-actions ⌄ dropdown)
+ *  - hover actions overlay (Discard + Stage on unstaged, Unstage on staged,
+ *    plus the more-actions ⌄ dropdown)
  *  - `useChangesSidebarFilePolicy` for settings-driven click routing
  *  - selection echo: when the diff pane's file is in this section, focus it
  *
@@ -103,6 +112,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	workspaceId,
 	worktreePath,
 	selectedFilePath,
+	selectedChangeKey,
 	foldSignal,
 	onSelectFile,
 	onOpenFile,
@@ -148,7 +158,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		paths: treePaths,
 		initialExpansion: "open",
 		search: false,
-		unsafeCSS: PIERRE_TREE_UNSAFE_CSS,
+		unsafeCSS: PIERRE_TREE_UNSAFE_CSS + HOVER_ACTIONS_ROW_CSS,
 		gitStatus: initialGitStatusEntriesRef.current,
 		icons: { set: "complete", colored: true },
 		itemHeight: ITEM_HEIGHT,
@@ -217,13 +227,26 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	useEffect(() => {
 		if (!selectedRelPath) return;
 		const selectedTreePath = toTreePath.get(selectedRelPath) ?? selectedRelPath;
-		if (!fileByTreePath.has(selectedTreePath)) return;
+		const file = fileByTreePath.get(selectedTreePath);
+		if (!file) return;
+		// The same path can sit in several sections (staged + unstaged); only
+		// the section holding the selected change echoes the focus, or every
+		// section's copy would light up. A section that previously held the
+		// focus keeps Pierre's row highlight until something else in it is
+		// focused — the FileTree model exposes focusPath but no deselect, so
+		// the stale highlight can't be cleared without remounting the tree.
+		if (
+			selectedChangeKey != null &&
+			getChangesetFileKey(file) !== selectedChangeKey
+		) {
+			return;
+		}
 		if (lastUserSelectRef.current === selectedRelPath) {
 			lastUserSelectRef.current = null;
 			return;
 		}
 		model.focusPath(selectedTreePath);
-	}, [model, selectedRelPath, fileByTreePath, toTreePath]);
+	}, [model, selectedRelPath, selectedChangeKey, fileByTreePath, toTreePath]);
 
 	handlersRef.current.onSelect = (treePath) => {
 		const realPath = toRealPath.get(treePath) ?? treePath;
@@ -321,12 +344,10 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		onSuccess: () => {
 			void utils.git.getStatus.invalidate({ workspaceId });
 			void utils.git.getDiff.invalidate({ workspaceId });
-			void utils.git.getDiffBulk.invalidate({ workspaceId });
 		},
 		onError: (err) => {
 			toast.error(
 				t({
-					id: "workspace.changesTreeView.discardFailed",
 					message: "Couldn't discard changes",
 				}),
 				{
@@ -335,6 +356,8 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			);
 		},
 	});
+
+	const { stageFile, unstageFile } = useStagingMutations(workspaceId);
 
 	const fileMenuItems = (file: ChangesetFile) => (
 		<FileRowContextMenuItems
@@ -345,6 +368,8 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			onOpenFile={onOpenFile}
 			onOpenInEditor={onOpenInEditor}
 			onRequestDiscard={setDiscardTarget}
+			onStageFile={stageFile}
+			onUnstageFile={unstageFile}
 		/>
 	);
 
@@ -378,33 +403,38 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	};
 
 	const renderHoverInlineActions = (treePath: string) => {
-		if (sectionKind !== "unstaged") return null;
 		const file = fileByTreePath.get(treePath);
 		if (!file) return null;
+		if (sectionKind === "staged") {
+			return (
+				<StageToggleButton action="unstage" onClick={() => unstageFile(file)} />
+			);
+		}
+		if (sectionKind !== "unstaged") return null;
 		return (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						aria-label={t({
-							id: "workspace.changesTreeView.discardChangesAria",
-							message: "Discard changes",
-						})}
-						className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
-						onClick={(e) => {
-							e.stopPropagation();
-							setDiscardTarget(file);
-						}}
-					>
-						<Undo2 className="size-3.5" />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="top">
-					<Trans id="workspace.changesTreeView.discardChangesTooltip">
-						Discard changes
-					</Trans>
-				</TooltipContent>
-			</Tooltip>
+			<>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							aria-label={t({
+								message: "Discard changes",
+							})}
+							className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
+							onClick={(e) => {
+								e.stopPropagation();
+								setDiscardTarget(file);
+							}}
+						>
+							<Undo2 className="size-3.5" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="top">
+						<Trans>Discard changes</Trans>
+					</TooltipContent>
+				</Tooltip>
+				<StageToggleButton action="stage" onClick={() => stageFile(file)} />
+			</>
 		);
 	};
 
@@ -447,23 +477,19 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 					title={
 						discardIsDelete
 							? t({
-									id: "workspace.changesTreeView.deleteConfirmTitle",
 									message: `Delete "${discardBasename}"?`,
 								})
 							: t({
-									id: "workspace.changesTreeView.discardConfirmTitle",
 									message: `Discard changes to "${discardBasename}"?`,
 								})
 					}
 					description={
 						discardIsDelete
 							? t({
-									id: "workspace.changesTreeView.deleteConfirmBody",
 									message:
 										"This will permanently delete this file. This action cannot be undone.",
 								})
 							: t({
-									id: "workspace.changesTreeView.discardConfirmBody",
 									message:
 										"This will revert all changes to this file. This action cannot be undone.",
 								})
@@ -471,11 +497,9 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 					confirmLabel={
 						discardIsDelete
 							? t({
-									id: "workspace.changesTreeView.deleteConfirmAction",
 									message: "Delete",
 								})
 							: t({
-									id: "workspace.changesTreeView.discardConfirmAction",
 									message: "Discard",
 								})
 					}
@@ -501,11 +525,4 @@ function buildPierreGitStatus(
 		path: toTreePath.get(file.path) ?? file.path,
 		status: FILE_STATUS_TO_PIERRE[file.status],
 	}));
-}
-
-function formatDiffStats(additions: number, deletions: number): string {
-	if (additions === 0 && deletions === 0) return "";
-	if (additions === 0) return `−${deletions}`;
-	if (deletions === 0) return `+${additions}`;
-	return `+${additions} −${deletions}`;
 }

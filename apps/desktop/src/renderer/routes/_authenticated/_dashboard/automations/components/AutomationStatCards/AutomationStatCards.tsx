@@ -34,19 +34,18 @@ export function AutomationStatCards({
 		<div className="grid grid-cols-3 gap-2">
 			<div className={CARD}>
 				<p className={LABEL}>
-					<Trans id="dashboard.automations.statCards.active">Active</Trans>
+					<Trans>Active</Trans>
 				</p>
 				<p className={VALUE}>{active}</p>
 			</div>
 			<div
 				className={CARD}
 				title={t({
-					id: "dashboard.automations.statCards.created7dTitle",
 					message: "Workspaces created by runs in the last 7 days",
 				})}
 			>
 				<p className={LABEL}>
-					<Trans id="dashboard.automations.statCards.created7d">
+					<Trans>
 						Created <span className="text-muted-foreground/60">· 7d</span>
 					</Trans>
 				</p>
@@ -62,16 +61,13 @@ export function AutomationStatCards({
 				title={
 					failedFilter
 						? t({
-								id: "dashboard.automations.statCards.showAllTitle",
 								message: "Show all automations again",
 							})
 						: canFilterFailed
 							? t({
-									id: "dashboard.automations.statCards.showFailedTitle",
 									message: "Show only automations whose last run failed",
 								})
 							: t({
-									id: "dashboard.automations.statCards.noFailingTitle",
 									message:
 										"Runs failed earlier this week, but nothing is failing right now",
 								})
@@ -85,14 +81,12 @@ export function AutomationStatCards({
 				)}
 			>
 				<p className={LABEL}>
-					<Trans id="dashboard.automations.statCards.failed7d">
+					<Trans>
 						Failed <span className="text-muted-foreground/60">· 7d</span>
 					</Trans>
 					{failedFilter && (
 						<span className="ml-1.5 text-red-600 dark:text-red-400">
-							<Trans id="dashboard.automations.statCards.filtering">
-								filtering
-							</Trans>
+							<Trans>filtering</Trans>
 						</span>
 					)}
 				</p>

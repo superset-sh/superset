@@ -7,6 +7,7 @@ import {
 import posthog from "posthog-js";
 
 import { env } from "@/env";
+import { registerBaseProperties } from "@/lib/posthog-client";
 
 posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 	api_host: "/ingest",
@@ -22,16 +23,12 @@ posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 	persistence_name: POSTHOG_COOKIE_NAME,
 });
 
-posthog.register({
-	app_name: "web",
-	domain: window.location.hostname,
-});
+registerBaseProperties();
 
 Sentry.init({
 	dsn: env.NEXT_PUBLIC_SENTRY_DSN_WEB,
 	environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	enabled: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production",
-	tracesSampleRate: 0.05,
 	replaysSessionSampleRate: 0,
 	replaysOnErrorSampleRate: 0,
 	sendDefaultPii: true,

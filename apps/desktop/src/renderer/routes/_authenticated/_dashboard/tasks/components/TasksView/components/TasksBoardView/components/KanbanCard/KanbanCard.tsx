@@ -112,9 +112,7 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 
 				{createdDate && (
 					<span className="text-[10px] text-muted-foreground ml-auto">
-						<Trans id="dashboard.tasks.kanbanCard.createdDate">
-							Created {createdDate}
-						</Trans>
+						<Trans>Created {createdDate}</Trans>
 					</span>
 				)}
 			</div>

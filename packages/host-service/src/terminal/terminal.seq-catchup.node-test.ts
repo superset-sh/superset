@@ -45,8 +45,10 @@ import {
 	getDaemonClient,
 } from "./daemon-client-singleton.ts";
 import { initTerminalBaseEnv } from "./env.ts";
+import { HeadlessTerminal } from "./headless-xterm.ts";
 import {
 	__resetSessionsForTesting,
+	__setClientPingIntervalForTesting,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 	registerWorkspaceTerminalRoute,
@@ -55,10 +57,7 @@ import {
 } from "./terminal.ts";
 import { __setAccountShellForTesting } from "./user-shell.ts";
 
-const require = (await import("node:module")).createRequire(import.meta.url);
-const { Terminal: HeadlessTerminal } =
-	require("@xterm/headless") as typeof import("@xterm/headless");
-type Headless = InstanceType<typeof HeadlessTerminal>;
+type Headless = HeadlessTerminal;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_HOME = path.join(os.tmpdir(), `host-svc-seqcatchup-${process.pid}`);
@@ -248,10 +247,23 @@ class SeqRenderer {
 	private counting = false;
 	private ws: WebSocket | null = null;
 	private writeChain: Promise<void> = Promise.resolve();
+	/**
+	 * Whether to answer the host's liveness pings. Flip to false mid-session
+	 * to play a phone that went half-open: the socket stays up, nothing comes
+	 * back. `never` plays a build predating the message, which the host must
+	 * keep attached indefinitely.
+	 */
+	answerPings: boolean | "never" = true;
+	/** Fires when the host closes our socket (rather than us closing it). */
+	droppedByHost: Promise<void>;
+	private resolveDropped: () => void = () => {};
 
 	constructor(
 		dims: { cols: number; rows: number } = { cols: COLS, rows: ROWS },
 	) {
+		this.droppedByHost = new Promise((resolve) => {
+			this.resolveDropped = resolve;
+		});
 		this.term = new HeadlessTerminal({
 			cols: dims.cols,
 			rows: dims.rows,
@@ -304,6 +316,12 @@ class SeqRenderer {
 				const message = JSON.parse(String(data)) as
 					| SyncedMessage
 					| { type: string };
+				if (message.type === "ping") {
+					if (this.answerPings === true) {
+						ws.send(JSON.stringify({ type: "pong" }));
+					}
+					return;
+				}
 				if (message.type === "attached") {
 					if (options.autoResize !== false) {
 						this.sendResize(this.term.cols, this.term.rows);
@@ -322,6 +340,11 @@ class SeqRenderer {
 			ws.addEventListener("error", () => {
 				clearTimeout(timer);
 				reject(new Error("ws error during connect"));
+			});
+			// disconnect() nulls `ws` before closing, so a close that still finds
+			// it set came from the host.
+			ws.addEventListener("close", () => {
+				if (this.ws === ws) this.resolveDropped();
 			});
 		});
 	}
@@ -411,6 +434,45 @@ function sendCommand(terminalId: string, command: string): void {
 		data: `${command}\n`,
 	});
 	assert.ok(!("error" in result), JSON.stringify(result));
+}
+
+/**
+ * Waits for an attached client's stream position to hold still. A resize
+ * makes the TUI repaint under a trapped SIGWINCH, and bash drops a line it
+ * was mid-`read` on when the trap fires — so no command may be in flight
+ * until the repaint has landed.
+ */
+async function quiesce(renderer: SeqRenderer): Promise<void> {
+	let seen = -1;
+	await waitFor(
+		async () => {
+			const now = renderer.anchor?.seq ?? 0;
+			if (now === seen) return true;
+			seen = now;
+			await sleep(300);
+			return false;
+		},
+		15_000,
+		"renderer stream to quiesce",
+	);
+	await renderer.drain();
+}
+
+/** Asks size.sh for the PTY's size as the kernel holds it, via `renderer`. */
+function makeSizeProbe(renderer: SeqRenderer): () => Promise<string> {
+	let probes = 0;
+	return async () => {
+		probes += 1;
+		const marker = `SIZE ${String(probes).padStart(3, "0")} `;
+		renderer.sendInput("size\n");
+		await renderer.waitVisible(marker);
+		await renderer.drain();
+		const line = visibleText(renderer.term)
+			.split("\n")
+			.find((text) => text.includes(marker));
+		assert.ok(line, `no size report for probe ${probes}`);
+		return line.slice(line.indexOf(marker) + marker.length).trim();
+	};
 }
 
 async function waitForTrackerText(
@@ -929,6 +991,32 @@ test(
 				false,
 				"legacy clients must never receive seq-protocol messages",
 			);
+
+			// Output withheld from a hidden, resize-diverged client is not
+			// zero-socket output: it must not land in the FIFO and be replayed
+			// to the next legacy attach, whose screen it was not laid out for.
+			const phone = new SeqRenderer({ cols: 45, rows: 20 });
+			try {
+				await phone.connect(terminalId);
+				await phone.waitSynced();
+				await sleep(400);
+				phone.sendVisible(false);
+				await sleep(400);
+				await disconnectLegacy();
+				await sleep(300);
+				sendCommand(terminalId, "ticks 10");
+				await waitForTrackerText(terminalId, "INPUT 000020");
+				await connectLegacy();
+				await sleep(600);
+				await writeChain;
+				assert.ok(
+					!visibleText(term).includes("INPUT 000020"),
+					"bytes withheld from a hidden client must not be replayed as legacy FIFO",
+				);
+			} finally {
+				await phone.disconnect().catch(() => {});
+				phone.dispose();
+			}
 		} finally {
 			await disconnectLegacy().catch(() => {});
 			term.dispose();
@@ -1030,19 +1118,7 @@ test(
 		// that never speaks the message has to keep constraining the size.
 		const desktop = new SeqRenderer({ cols: 120, rows: 30 });
 		const phone = new SeqRenderer({ cols: 45, rows: 20 });
-		let probes = 0;
-		const probeSize = async (): Promise<string> => {
-			probes += 1;
-			const marker = `SIZE ${String(probes).padStart(3, "0")} `;
-			desktop.sendInput("size\n");
-			await desktop.waitVisible(marker);
-			await desktop.drain();
-			const line = visibleText(desktop.term)
-				.split("\n")
-				.find((text) => text.includes(marker));
-			assert.ok(line, `no size report for probe ${probes}`);
-			return line.slice(line.indexOf(marker) + marker.length).trim();
-		};
+		const probeSize = makeSizeProbe(desktop);
 
 		try {
 			await desktop.connect(terminalId);
@@ -1095,6 +1171,325 @@ test(
 				"a departing client releases its size constraint",
 			);
 		} finally {
+			await phone.disconnect().catch(() => {});
+			phone.dispose();
+			await desktop.disconnect().catch(() => {});
+			desktop.dispose();
+			await disposeSessionAndWait(terminalId, db).catch(() => {});
+		}
+	},
+);
+
+test(
+	"a client that stops answering pings is dropped and its size constraint released",
+	{ timeout: 90_000 },
+	async () => {
+		const terminalId = `seq-zombie-${randomUUID().slice(0, 8)}`;
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			cols: COLS,
+			rows: ROWS,
+			initialCommand: `exec bash '${path.join(TEST_HOME, "size.sh")}'`,
+		});
+		if ("error" in session) assert.fail(session.error);
+		// The desktop client answers pings, so the host holds it to the protocol
+		// too: it is dropped after CLIENT_PONG_MISS_LIMIT silent sweeps like any
+		// other. Keep the interval well above any event-loop stall this process
+		// could have while writing PTY bytes into xterm, or a slow machine drops
+		// the desktop and the failure surfaces as a confusing waitVisible
+		// timeout instead of the assertion under test.
+		__setClientPingIntervalForTesting(1_000);
+
+		const desktop = new SeqRenderer({ cols: 120, rows: 30 });
+		// A build predating pong: the host never hears one, so it must never
+		// drop the socket — its dims keep constraining the size as before.
+		const legacyPhone = new SeqRenderer({ cols: 45, rows: 20 });
+		legacyPhone.answerPings = "never";
+		// A current build that goes half-open mid-session: the socket stays up
+		// from the host's point of view, but nothing ever comes back on it.
+		const phone = new SeqRenderer({ cols: 45, rows: 20 });
+		const probeSize = makeSizeProbe(desktop);
+
+		try {
+			await desktop.connect(terminalId);
+			await desktop.waitVisible("READY-SIZE");
+			assert.equal(await probeSize(), "30x120");
+
+			await legacyPhone.connect(terminalId);
+			await legacyPhone.waitSynced();
+			assert.equal(await probeSize(), "20x45");
+			// Several sweeps' worth of silence, well past the miss limit.
+			await sleep(3_500);
+			assert.equal(
+				await probeSize(),
+				"20x45",
+				"a client that never speaks pong is never dropped",
+			);
+			await legacyPhone.disconnect();
+			await sleep(400);
+			assert.equal(await probeSize(), "30x120");
+
+			await phone.connect(terminalId);
+			await phone.waitSynced();
+			assert.equal(await probeSize(), "20x45");
+
+			// Before this fix the host waited on a close event that a half-open
+			// peer never sends, and the desktop stayed at phone width until the
+			// host-service restarted.
+			phone.answerPings = false;
+			// The drop lands two silent sweeps after the last pong, so ~3s here.
+			await Promise.race([
+				phone.droppedByHost,
+				sleep(15_000).then(() => {
+					throw new Error("host never dropped the silent client");
+				}),
+			]);
+			assert.equal(
+				await probeSize(),
+				"30x120",
+				"dropping the silent client hands the desktop its width back",
+			);
+		} finally {
+			__setClientPingIntervalForTesting(15_000);
+			await phone.disconnect().catch(() => {});
+			phone.dispose();
+			await legacyPhone.disconnect().catch(() => {});
+			legacyPhone.dispose();
+			await desktop.disconnect().catch(() => {});
+			desktop.dispose();
+			await disposeSessionAndWait(terminalId, db).catch(() => {});
+		}
+	},
+);
+
+test(
+	"a reattach whose anchor predates a resize reanchors instead of catching up at the old width",
+	{ timeout: 120_000 },
+	async () => {
+		const terminalId = `seq-resize-${randomUUID().slice(0, 8)}`;
+		// Desktop-sized at ROWS tall so the tracker snapshot (last ROWS lines)
+		// covers the whole screen.
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			cols: 120,
+			rows: ROWS,
+			initialCommand: `exec bash '${path.join(TEST_HOME, "tui.sh")}'`,
+		});
+		if ("error" in session) assert.fail(session.error);
+
+		const desktop = new SeqRenderer({ cols: 120, rows: ROWS });
+		const phone = new SeqRenderer({ cols: 45, rows: 20 });
+		try {
+			await desktop.connect(terminalId);
+			await desktop.waitVisible("TUI READY");
+			await phone.connect(terminalId);
+			await phone.waitSynced();
+			// The phone's resize shrinks the PTY; the TUI repaints for it.
+			await waitForTrackerText(terminalId, "FULL-REDRAW");
+			await phone.waitVisible("FULL-REDRAW");
+			await quiesce(desktop);
+
+			// ── A: the phone goes to the background and comes back on the same socket.
+			// Off screen it leaves the size minimum, the PTY grows back to the
+			// desktop, and everything the program emits from here on is laid out
+			// for 120 columns. None of it may reach a 45-column buffer nobody is
+			// looking at.
+			const countedBeforeHide = phone.countedThisAttach;
+			phone.sendVisible(false);
+			await sleep(400);
+			await quiesce(desktop);
+			sendCommand(terminalId, "ticks 5");
+			await waitForTrackerText(terminalId, "INPUT 000005");
+			await desktop.waitVisible("INPUT 000005");
+			await phone.drain();
+			assert.equal(
+				phone.countedThisAttach,
+				countedBeforeHide,
+				"a hidden client must receive no output",
+			);
+			// Back on screen the PTY shrinks for it again and the program
+			// repaints at 45 columns: the phone is told its new position and
+			// converges by repaint, never by bytes laid out for another width.
+			phone.sendVisible(true);
+			await phone.waitVisible("INPUT 000005", 15_000);
+			await quiesce(phone);
+			assert.equal(
+				phone.lastSynced?.mode,
+				"reanchor",
+				"a client back on screen after a resize must be reanchored",
+			);
+			assert.equal(
+				visibleText(phone.term),
+				await trackerVisible(terminalId),
+				"a client back on screen after a resize must converge by repaint",
+			);
+
+			// ── B: the phone is dropped while hidden and redials with its anchor.
+			phone.sendVisible(false);
+			await sleep(400);
+			await quiesce(desktop);
+			sendCommand(terminalId, "ticks 5");
+			await waitForTrackerText(terminalId, "INPUT 000010");
+			await desktop.waitVisible("INPUT 000010");
+			// The liveness sweep would drop it here. Redialing restores its
+			// 45-column snapshot and asks to catch up from where it left off; the
+			// host must refuse the exact catch-up and let the program repaint.
+			await phone.disconnect();
+			await sleep(300);
+			await phone.connect(terminalId, { autoResize: false });
+			const synced = await phone.waitSynced();
+			assert.equal(
+				synced.mode,
+				"reanchor",
+				"an anchor from before the PTY resized must reanchor, not catch up bytes laid out for another width",
+			);
+			await sleep(400);
+			await phone.drain();
+			assert.equal(
+				phone.countedThisAttach,
+				0,
+				"a reanchor across a resize must deliver no content bytes",
+			);
+			phone.sendResize(45, 20);
+			await phone.waitVisible("INPUT 000010", 15_000);
+			await quiesce(phone);
+			assert.equal(
+				visibleText(phone.term),
+				await trackerVisible(terminalId),
+				"the repaint after the phone's resize must converge its grid",
+			);
+
+			// ── C: a client on screen when the PTY resized saw it in-band, so its
+			// anchor stays exact: a desktop that dragged a pane divider and later
+			// reconnects must keep receiving exactly the bytes it missed.
+			await phone.disconnect();
+			await sleep(400);
+			desktop.sendResize(100, ROWS);
+			await sleep(400);
+			await quiesce(desktop);
+			await desktop.disconnect();
+			await sleep(300);
+			sendCommand(terminalId, "ticks 5");
+			await waitForTrackerText(terminalId, "INPUT 000015");
+			await desktop.connect(terminalId);
+			assert.equal(
+				(await desktop.waitSynced()).mode,
+				"exact",
+				"a resize the client watched live is not a boundary for it",
+			);
+			await desktop.waitVisible("INPUT 000015");
+
+			// ── D: hidden without a resize is not withheld. Parking the wide
+			// desktop while the phone still sets the size changes nothing about
+			// the PTY, so the desktop keeps streaming — its scrollback must be
+			// whole when it comes back, however long it was away.
+			await phone.connect(terminalId);
+			await phone.waitSynced();
+			await sleep(400);
+			await quiesce(desktop);
+			const countedBeforePark = desktop.countedThisAttach;
+			desktop.sendVisible(false);
+			await sleep(400);
+			sendCommand(terminalId, "ticks 5");
+			await waitForTrackerText(terminalId, "INPUT 000020");
+			await desktop.waitVisible("INPUT 000020");
+			assert.ok(
+				desktop.countedThisAttach > countedBeforePark,
+				"a hidden client keeps receiving output while the PTY size holds",
+			);
+			desktop.sendVisible(true);
+			await sleep(400);
+			await desktop.drain();
+			assert.equal(
+				desktop.lastSynced?.mode,
+				"exact",
+				"a hidden client that stayed in step needs no resync on return",
+			);
+			desktop.assertNoReset("whole run");
+			phone.assertNoReset("whole run");
+		} finally {
+			await phone.disconnect().catch(() => {});
+			phone.dispose();
+			await desktop.disconnect().catch(() => {});
+			desktop.dispose();
+			await disposeSessionAndWait(terminalId, db).catch(() => {});
+		}
+	},
+);
+
+test(
+	"a client that said it is off screen is not dropped for silence",
+	{ timeout: 90_000 },
+	async () => {
+		const terminalId = `seq-hidden-${randomUUID().slice(0, 8)}`;
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			cols: COLS,
+			rows: ROWS,
+			initialCommand: `exec bash '${path.join(TEST_HOME, "size.sh")}'`,
+		});
+		if ("error" in session) assert.fail(session.error);
+		__setClientPingIntervalForTesting(1_000);
+
+		const desktop = new SeqRenderer({ cols: 120, rows: 30 });
+		const phone = new SeqRenderer({ cols: 45, rows: 20 });
+		const probeSize = makeSizeProbe(desktop);
+		const wasDropped = () =>
+			Promise.race([
+				phone.droppedByHost.then(() => true),
+				sleep(0).then(() => false),
+			]);
+
+		try {
+			await desktop.connect(terminalId);
+			await desktop.waitVisible("READY-SIZE");
+			await phone.connect(terminalId);
+			await phone.waitSynced();
+			assert.equal(await probeSize(), "20x45");
+
+			// A backgrounded phone's page is suspended: it stops answering, and
+			// that silence is expected. It already sits outside the size
+			// minimum, so dropping it would only force a redial when it returns.
+			phone.sendVisible(false);
+			phone.answerPings = false;
+			await sleep(400);
+			assert.equal(await probeSize(), "30x120");
+			await sleep(3_500);
+			assert.equal(
+				await wasDropped(),
+				false,
+				"a hidden client that stops answering must keep its socket",
+			);
+
+			phone.answerPings = true;
+			phone.sendVisible(true);
+			await sleep(400);
+			assert.equal(
+				await probeSize(),
+				"20x45",
+				"coming back on screen re-imposes the constraint on the same socket",
+			);
+
+			// On screen and silent is the half-open case: still dropped.
+			phone.answerPings = false;
+			await Promise.race([
+				phone.droppedByHost,
+				sleep(15_000).then(() => {
+					throw new Error("host never dropped the silent visible client");
+				}),
+			]);
+			assert.equal(await probeSize(), "30x120");
+		} finally {
+			__setClientPingIntervalForTesting(15_000);
 			await phone.disconnect().catch(() => {});
 			phone.dispose();
 			await desktop.disconnect().catch(() => {});

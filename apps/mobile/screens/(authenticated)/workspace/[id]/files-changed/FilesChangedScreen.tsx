@@ -1,4 +1,6 @@
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
+import { useFormat } from "@superset/i18n/react";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -20,6 +22,7 @@ import { tokenizeCode } from "@/components/ai-elements/code-block";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import {
@@ -59,7 +62,6 @@ import {
 	DIFF_LINE_HEIGHT,
 	ESTIMATED_CHAR_WIDTH,
 	GUTTER_WIDTH,
-	HUNK_ROW_HEIGHT,
 } from "./utils/diffMetrics";
 
 const MAX_HIGHLIGHT_BYTES = 200_000;
@@ -73,6 +75,9 @@ const FETCH_PIPELINE_LOOKAHEAD = 3;
 const ANIMATED_TOGGLE_MAX_PX = 1_400;
 
 export function FilesChangedScreen() {
+	const { formatNumber } = useFormat();
+
+	const { t } = useLingui();
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
 	const workspaceId = id ?? null;
@@ -357,7 +362,11 @@ export function FilesChangedScreen() {
 		(comment: DraftComment) => {
 			ActionSheetIOS.showActionSheetWithOptions(
 				{
-					options: ["Edit", "Delete", "Cancel"],
+					options: [
+						t({ message: "Edit" }),
+						t({ message: "Delete" }),
+						t({ message: "Cancel" }),
+					],
 					destructiveButtonIndex: 1,
 					cancelButtonIndex: 2,
 				},
@@ -389,16 +398,21 @@ export function FilesChangedScreen() {
 				},
 			);
 		},
-		[workspaceId, openComposer, removeComment, router],
+		[workspaceId, openComposer, removeComment, router, t],
 	);
 
 	const deleteFile = useCallback(
 		(file: ChangesetFile) => {
 			if (!workspace || !changeset.hostUrl) return;
-			Alert.alert("Delete file", file.path, [
-				{ text: "Cancel", style: "cancel" },
+			Alert.alert(t({ message: "Delete file" }), file.path, [
 				{
-					text: "Delete",
+					text: t({ message: "Cancel" }),
+					style: "cancel",
+				},
+				{
+					text: t({
+						message: "Delete",
+					}),
 					style: "destructive",
 					onPress: () => {
 						getHostServiceClientByUrl(changeset.hostUrl as string)
@@ -409,15 +423,17 @@ export function FilesChangedScreen() {
 							.then(() => changeset.refetch())
 							.catch((cause: unknown) => {
 								Alert.alert(
-									"Could not delete file",
-									cause instanceof Error ? cause.message : String(cause),
+									t({
+										message: "Could not delete file",
+									}),
+									errorCopy(cause),
 								);
 							});
 					},
 				},
 			]);
 		},
-		[workspace, changeset.hostUrl, changeset.refetch],
+		[workspace, changeset.hostUrl, changeset.refetch, t],
 	);
 
 	const copyFilePath = useCallback((file: ChangesetFile) => {
@@ -515,17 +531,6 @@ export function FilesChangedScreen() {
 							onToggleViewed={onToggleViewed}
 						/>
 					);
-				case "hunk":
-					return (
-						<View
-							className="bg-sky-500/10 justify-center px-3"
-							style={{ height: HUNK_ROW_HEIGHT }}
-						>
-							<Text className="text-sky-300/80 font-mono text-[12px]">
-								{item.header}
-							</Text>
-						</View>
-					);
 				case "segment":
 					return (
 						<HunkSegmentCell
@@ -551,7 +556,11 @@ export function FilesChangedScreen() {
 					return (
 						<View className="items-center px-3 py-2">
 							<Text className="text-muted-foreground text-xs">
-								Diff truncated — {item.hiddenCount} more lines on the host
+								<Plural
+									value={item.hiddenCount}
+									one="Diff truncated — # more line on the host"
+									other="Diff truncated — # more lines on the host"
+								/>
 							</Text>
 						</View>
 					);
@@ -575,8 +584,12 @@ export function FilesChangedScreen() {
 							) : (
 								<Text className="text-muted-foreground text-xs">
 									{item.note === "binary"
-										? "Binary file changed"
-										: "Could not load this diff"}
+										? t({
+												message: "Binary file changed",
+											})
+										: t({
+												message: "Could not load this diff",
+											})}
 								</Text>
 							)}
 						</View>
@@ -597,6 +610,7 @@ export function FilesChangedScreen() {
 			openLineComposer,
 			addExpansion,
 			onCommentMenu,
+			t,
 		],
 	);
 
@@ -606,36 +620,51 @@ export function FilesChangedScreen() {
 
 	return (
 		<View className="bg-background flex-1">
-			<Stack.Screen options={{ title: "Files changed" }}>
+			<Stack.Screen
+				options={{
+					title: t({
+						message: "Files changed",
+					}),
+				}}
+			>
 				<Stack.Title asChild>
 					<View className="items-center">
-						<Text className="font-semibold text-[16px]">Files changed</Text>
+						<Text className="font-semibold text-[16px]">
+							<Trans>Files changed</Trans>
+						</Text>
 						<View className="flex-row gap-1.5">
 							<Text className="text-green-500 font-semibold text-[11.5px]">
-								+{changeset.additions.toLocaleString()}
+								+{formatNumber(changeset.additions)}
 							</Text>
 							<Text className="text-red-500 font-semibold text-[11.5px]">
-								−{changeset.deletions.toLocaleString()}
+								−{formatNumber(changeset.deletions)}
 							</Text>
 						</View>
 					</View>
 				</Stack.Title>
 				<Stack.Toolbar placement="right">
-					<Stack.Toolbar.Menu icon="ellipsis" accessibilityLabel="More actions">
+					<Stack.Toolbar.Menu
+						icon="ellipsis"
+						accessibilityLabel={t({
+							message: "More actions",
+						})}
+					>
 						<Stack.Toolbar.MenuAction
 							icon="square.and.arrow.up"
 							onPress={() => {
 								if (shareUrl) void Share.share({ url: shareUrl });
 							}}
 						>
-							Share
+							{t({ message: "Share" })}
 						</Stack.Toolbar.MenuAction>
 						{pullRequest ? (
 							<Stack.Toolbar.MenuAction
 								icon="arrow.up.right.square"
 								onPress={() => void Linking.openURL(pullRequest.url)}
 							>
-								Open on GitHub
+								{t({
+									message: "Open on GitHub",
+								})}
 							</Stack.Toolbar.MenuAction>
 						) : null}
 					</Stack.Toolbar.Menu>
@@ -666,7 +695,7 @@ export function FilesChangedScreen() {
 										strokeWidth={1.4}
 									/>
 									<Text className="text-muted-foreground text-center text-sm">
-										No changes on this branch yet.
+										<Trans>No changes on this branch yet.</Trans>
 									</Text>
 								</View>
 							) : null

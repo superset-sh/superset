@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Check } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
@@ -26,6 +27,7 @@ export function ChecksSection({
 	onOpenChecks?: () => void;
 	onOpenCheck?: (check: PullRequestCheck) => void;
 }) {
+	const { t } = useLingui();
 	if (tally.total === 0) return null;
 	const mode = checksRowMode(tally);
 
@@ -45,7 +47,9 @@ export function ChecksSection({
 						className="active:opacity-60"
 						onPress={onOpenChecks}
 					>
-						<Text className="text-muted-foreground text-[15px]">View All</Text>
+						<Text className="text-muted-foreground text-[15px]">
+							<Trans>View All</Trans>
+						</Text>
 					</Pressable>
 				) : null}
 			</View>
@@ -55,17 +59,25 @@ export function ChecksSection({
 	if (mode === "ring") {
 		return (
 			<CardRow
-				label={`${tally.passed}/${tally.total} Checks Passing`}
+				label={t({
+					message: `${tally.passed}/${tally.total} Checks Passing`,
+				})}
 				leading={<ChecksRing tally={tally} />}
 				onPress={onOpenChecks}
-				subLabel={`${tally.running} Running`}
+				subLabel={t({
+					message: `${tally.running} Running`,
+				})}
 			/>
 		);
 	}
 
 	return (
 		<CardRow
-			label={tally.passed > 0 ? "All Checks Passed" : "Checks Skipped"}
+			label={
+				tally.passed > 0
+					? t({ message: "All Checks Passed" })
+					: t({ message: "Checks Skipped" })
+			}
 			leading={
 				<View className="size-[26px] items-center justify-center rounded-full bg-green-500">
 					<Icon

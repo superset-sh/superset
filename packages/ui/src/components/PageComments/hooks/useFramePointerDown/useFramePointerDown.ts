@@ -1,7 +1,10 @@
 "use client";
 
+import {
+	FRAME_CHANNEL,
+	type FrameMessage,
+} from "@superset/shared/page-comments-runtime";
 import { useEffect, useRef } from "react";
-import { FRAME_CHANNEL, type FrameMessage } from "../../utils/commentRuntime";
 
 export function useFramePointerDown(onPointerDown: () => void) {
 	const handler = useRef(onPointerDown);

@@ -673,6 +673,153 @@
       "when": 1787876925405,
       "tag": "0095_user_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1787954887157,
+      "tag": "0096_user_last_active_organization",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1787960672440,
+      "tag": "0097_add_page_watch_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1788022153311,
+      "tag": "0098_automation_tags",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1788022153312,
+      "tag": "0099_add_leaderboard_axis_cost",
+      "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1788134015857,
+      "tag": "0100_drop_chat_attachments_rename_page_version_storage_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1788145777142,
+      "tag": "0101_add_files_and_attachments",
+      "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1788147817056,
+      "tag": "0102_drop_circleback_trigger_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1788209866856,
+      "tag": "0103_stage_page_assets",
+      "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1788310273488,
+      "tag": "0104_environments",
+      "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1788319505909,
+      "tag": "0105_drop_cloud_workspace_project",
+      "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1788489378410,
+      "tag": "0106_plugin_marketplace_installs_and_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1788589621442,
+      "tag": "0107_drop_v2_hosts_is_online",
+      "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1788593295841,
+      "tag": "0108_add_handles_public_profiles_awards",
+      "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1788593305453,
+      "tag": "0109_move_participants_to_public_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1788808109667,
+      "tag": "0110_add_v2_hosts_version_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1788934235832,
+      "tag": "0111_page_comment_thread_intent",
+      "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1789074124482,
+      "tag": "0112_automation_continue_agent_session",
+      "breakpoints": true
+    },
+    {
+      "idx": 113,
+      "version": "7",
+      "when": 1789162453342,
+      "tag": "0113_agent_credentials_and_vercel_sandboxes",
+      "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1789162454064,
+      "tag": "0114_retire_blaxel_sandboxes",
+      "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1789238654475,
+      "tag": "0115_agent_status_and_live_activity_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1789241008713,
+      "tag": "0116_live_activity_token_device",
+      "breakpoints": true
     }
   ]
 }

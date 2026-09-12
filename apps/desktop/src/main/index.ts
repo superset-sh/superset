@@ -1,13 +1,20 @@
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { msg } from "@lingui/core/macro";
 import {
 	setAgentSetupTemplatesDir,
 	setupAgentIntegrations,
 	writeSharedDisabledAgentIds,
 	writeSharedDisabledSkillIds,
 } from "@superset/agent-setup";
-import { initI18n, resolveLocale } from "@superset/i18n";
+import { i18n, initI18nAsync } from "@superset/i18n";
 import { settings } from "@superset/local-db";
+import {
+	devAppProfileDirName,
+	isDevAppProfileDirName,
+	workspaceDevAppProfileDirName,
+} from "@superset/shared/dev-app-profile";
 import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
@@ -23,25 +30,29 @@ import {
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
+import { sweepDevAppProfiles } from "./dev-app-profile-sweep";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { startBrowserBridge } from "./lib/browser/browser-bridge";
+import { browserManager } from "./lib/browser/browser-manager";
 import { downloadManager } from "./lib/browser/download-manager";
 import { installBundledCliShim } from "./lib/bundled-cli";
+import { installDevRunnerExit } from "./lib/dev-runner-exit";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { getHostServiceCoordinator } from "./lib/host-service-coordinator";
+import { resolveAppLocale } from "./lib/language";
 import { localDb } from "./lib/local-db";
 import { requestLocalNetworkAccess } from "./lib/local-network-permission";
 import { menuEmitter } from "./lib/menu-events";
-import { PAGE_SCHEME, pageProtocolHandler } from "./lib/pageContent";
 import {
 	initTanstackDbPersistence,
 	shutdownTanstackDbPersistence,
 } from "./lib/persistence/persistence";
 import { syncInstalledPluginMcpServers } from "./lib/plugin-installs";
+import { portForwardManager } from "./lib/port-forward";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { runQuitCleanup } from "./lib/quit-sequence";
 import { initSentry } from "./lib/sentry";
@@ -71,11 +82,30 @@ void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
 });
 
-// Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
+// Keep the readable dock label separate from the stable storage identity.
 if (IS_DEV) {
+	const profilePath = path.join(
+		app.getPath("appData"),
+		workspaceDevAppProfileDirName({
+			workspaceId: process.env.SUPERSET_WORKSPACE_ID,
+			appPath: app.getAppPath(),
+		}),
+	);
+	mkdirSync(profilePath, { recursive: true });
+	app.setPath("userData", profilePath);
+	app.setPath("sessionData", profilePath);
 	const workspaceName = resolveDevWorkspaceName();
-	if (workspaceName) {
-		app.setName(`Superset (${workspaceName})`);
+	const profileName = workspaceName
+		? devAppProfileDirName(workspaceName)
+		: undefined;
+	// Retain the existing validation for the display label.
+	if (profileName && isDevAppProfileDirName(profileName)) {
+		app.setName(profileName);
+	} else if (profileName) {
+		console.warn(
+			"[main] Not renaming the app: unusable profile name",
+			profileName,
+		);
 	}
 }
 
@@ -95,12 +125,14 @@ async function processDeepLink(url: string): Promise<void> {
 	if (authLink.type !== "not-auth") {
 		// Never log the auth URL: it contains the desktop session token.
 		console.log("[main] Processing auth deep link");
+		// `error` stays English: it is the log line. What the user reads is
+		// resolved separately below so it can be translated.
 		const result =
 			authLink.type === "valid"
 				? await handleAuthCallback(authLink.params)
 				: {
 						success: false as const,
-						error: "The sign-in link was incomplete. Please try again.",
+						error: "sign-in link was missing required parameters",
 					};
 		if (result.success) {
 			focusMainWindow();
@@ -108,9 +140,20 @@ async function processDeepLink(url: string): Promise<void> {
 			console.error("[main] Auth deep link failed:", result.error);
 			focusMainWindow();
 			dialog.showErrorBox(
-				"Sign-in failed",
-				result.error ??
-					"Superset could not complete sign-in. Please try again.",
+				i18n._(msg({ message: "Sign-in failed" })),
+				authLink.type === "valid"
+					? (result.error ??
+							i18n._(
+								msg({
+									message:
+										"Superset could not complete sign-in. Please try again.",
+								}),
+							))
+					: i18n._(
+							msg({
+								message: "The sign-in link was incomplete. Please try again.",
+							}),
+						),
 			);
 		}
 		return;
@@ -126,6 +169,10 @@ async function processDeepLink(url: string): Promise<void> {
 	const target = getFocusedOrLastWindow();
 	target?.webContents.send("deep-link-navigate", path);
 }
+
+browserManager.on("deep-link", (url: string) => {
+	void processDeepLink(url);
+});
 
 function findDeepLinkInArgv(argv: string[]): string | undefined {
 	return argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
@@ -188,6 +235,10 @@ app.on("open-url", async (event, url) => {
 
 let isQuitting = false;
 let skipQuitConfirmation = false;
+// A second quit request while the confirmation is open would open a second
+// dialog on top of the first — the overlay close button on Linux makes that
+// easy to trigger.
+let quitConfirmationOpen = false;
 let forceFullCleanup = false;
 
 export function setSkipQuitConfirmation(): void {
@@ -229,32 +280,56 @@ function getConfirmOnQuitSetting(): boolean {
 	}
 }
 
+// macOS keeps running without windows (dock and tray reopen it); elsewhere a
+// windowless app is an invisible process nothing brings back.
+app.on("window-all-closed", () => {
+	if (process.platform === "darwin") return;
+	// The last window's close already asked; with no window left there is
+	// nothing a cancelled confirmation could keep.
+	skipQuitConfirmation = true;
+	app.quit();
+});
+
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
 	const isDev = process.env.NODE_ENV === "development";
 	if (!skipQuitConfirmation && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
+		if (quitConfirmationOpen) return;
+		quitConfirmationOpen = true;
 
 		try {
 			const { response } = await dialog.showMessageBox({
 				type: "question",
-				buttons: ["Quit", "Cancel"],
+				buttons: [
+					i18n._(msg({ message: "Quit" })),
+					i18n._(msg({ message: "Cancel" })),
+				],
 				defaultId: 0,
 				cancelId: 1,
-				title: "Quit Superset",
-				message: "Are you sure you want to quit?",
+				title: i18n._(msg({ message: "Quit Superset" })),
+				message: i18n._(
+					msg({
+						message: "Are you sure you want to quit?",
+					}),
+				),
 			});
 
+			quitConfirmationOpen = false;
 			if (response === 1) {
 				return;
 			}
 		} catch (error) {
 			console.error("[main] Quit confirmation dialog failed:", error);
 		}
+		quitConfirmationOpen = false;
 	}
 
 	isQuitting = true;
+	// Local port-forward listeners hold no state worth draining; drop them so
+	// nothing keeps 127.0.0.1:<port> bound after the app is gone.
+	portForwardManager.stopAll();
 	// Snapshot all open windows (bounds + org) before they close, so relaunch
 	// restores them. markAppQuitting() stops per-window close handlers from
 	// shrinking the set as windows close one-by-one.
@@ -297,42 +372,27 @@ process.on("unhandledRejection", (reason) => {
 	console.error("[main] Unhandled rejection:", reason);
 });
 
-// Without these handlers, Electron may not quit when electron-vite sends SIGTERM
 if (process.env.NODE_ENV === "development") {
-	let signalHandled = false;
-	const handleTerminationSignal = (signal: string) => {
-		if (signalHandled) return;
-		signalHandled = true;
-		console.log(`[main] Received ${signal}, quitting...`);
-		getHostServiceCoordinator().stopAll();
-		void Promise.allSettled([teardownTerminalHost()]).finally(() =>
-			app.exit(0),
-		);
-	};
-
-	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
-	process.on("SIGINT", () => handleTerminationSignal("SIGINT"));
-
-	// Fallback: electron-vite may exit without signaling the child Electron process
-	const parentPid = process.ppid;
-	const isParentAlive = (): boolean => {
-		try {
-			process.kill(parentPid, 0);
-			return true;
-		} catch {
-			return false;
-		}
-	};
-
-	const parentCheckInterval = setInterval(() => {
-		if (!isParentAlive()) {
-			console.log("[main] Parent process exited, quitting...");
-			clearInterval(parentCheckInterval);
-			handleTerminationSignal("parent-exit");
-		}
-	}, 1000);
-	parentCheckInterval.unref();
+	installDevRunnerExit({
+		parentPid: process.ppid,
+		stdio: [process.stdout, process.stderr],
+		subscribeSignal: (signal, handler) => {
+			process.on(signal, handler);
+		},
+		markQuitting: () => {
+			isQuitting = true;
+		},
+		stopHostServices: () => getHostServiceCoordinator().stopAll(),
+		teardownTerminalHost,
+		exit: (code) => app.exit(code),
+	});
 }
+
+// Chromium refuses to cache any single entry larger than about an eighth
+// of the disk cache, and the default cache is a few hundred MB — too
+// small for a video inside a page. 1 GiB lifts the per-entry cap to
+// roughly 128 MB.
+app.commandLine.appendSwitch("disk-cache-size", String(1024 * 1024 * 1024));
 
 protocol.registerSchemesAsPrivileged([
 	{
@@ -351,13 +411,6 @@ protocol.registerSchemesAsPrivileged([
 			secure: true,
 			bypassCSP: true,
 			supportFetchAPI: true,
-		},
-	},
-	{
-		scheme: PAGE_SCHEME,
-		privileges: {
-			standard: true,
-			secure: true,
 		},
 	},
 ]);
@@ -400,13 +453,9 @@ if (!gotTheLock) {
 	(async () => {
 		await app.whenReady();
 		// Persisted language setting wins; otherwise infer from OS preferences
-		// (plans/20260826-i18n-strategy.md).
-		initI18n(
-			resolveLocale([
-				...(getLanguageSetting() ? [getLanguageSetting() as string] : []),
-				...app.getPreferredSystemLanguages(),
-			]),
-		);
+		// (plans/20260826-i18n-strategy.md). Menus are built later in
+		// initAppServices/initTray, so a plain activate is enough here.
+		await initI18nAsync(resolveAppLocale(getLanguageSetting()));
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();
@@ -425,11 +474,6 @@ if (!gotTheLock) {
 		session
 			.fromPartition("persist:superset")
 			.protocol.handle("superset-icon", iconProtocolHandler);
-
-		protocol.handle(PAGE_SCHEME, pageProtocolHandler);
-		session
-			.fromPartition("persist:superset")
-			.protocol.handle(PAGE_SCHEME, pageProtocolHandler);
 
 		// Serve system fonts (e.g. SF Mono on macOS) via custom protocol
 		// so the renderer can use @font-face with font-src 'self' CSP
@@ -468,6 +512,7 @@ if (!gotTheLock) {
 		initTanstackDbPersistence();
 
 		sweepNetworkLogs();
+		sweepDevAppProfiles();
 
 		await loadWebviewBrowserExtension();
 

@@ -4,6 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import {
 	type ComponentPropsWithoutRef,
 	forwardRef,
@@ -17,12 +18,14 @@ import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useFocusVisible } from "renderer/hooks/useFocusVisible";
 import { HotkeyLabel } from "renderer/hotkeys";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
 	DashboardSidebarWorkspace,
+	DashboardSidebarWorkspaceIndentation,
 	DashboardSidebarWorkspacePullRequest,
 } from "../../../../types";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
@@ -34,23 +37,19 @@ const PR_STATE_LABEL: Record<
 	MessageDescriptor
 > = {
 	open: msg({
-		id: "dashboard.sidebar.expandedWorkspaceRow.prStateOpen",
 		message: "Open",
+		context: "status",
 	}),
 	merged: msg({
-		id: "dashboard.sidebar.expandedWorkspaceRow.prStateMerged",
 		message: "Merged",
 	}),
 	closed: msg({
-		id: "dashboard.sidebar.expandedWorkspaceRow.prStateClosed",
 		message: "Closed",
 	}),
 	draft: msg({
-		id: "dashboard.sidebar.expandedWorkspaceRow.prStateDraft",
 		message: "Draft",
 	}),
 	queued: msg({
-		id: "dashboard.sidebar.expandedWorkspaceRow.prStateQueued",
 		message: "Queued",
 	}),
 };
@@ -65,6 +64,7 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	diffStats: DiffStats | null;
 	workspaceStatus?: ActivePaneStatus | null;
 	isInSection?: boolean;
+	indentation?: DashboardSidebarWorkspaceIndentation;
 	isBulkSelectable?: boolean;
 	isSelected?: boolean;
 	/** Present when rendered in the Pinned section: shows the project avatar. */
@@ -95,6 +95,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			diffStats,
 			workspaceStatus = null,
 			isInSection = false,
+			indentation,
 			isBulkSelectable = false,
 			isSelected = false,
 			pinnedContext,
@@ -113,6 +114,8 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		ref,
 	) => {
 		const { t } = useLingui();
+		const resolvedIndentation =
+			indentation ?? (isInSection ? "grouped" : "workspace");
 		const {
 			hostType,
 			hostIsOnline,
@@ -123,7 +126,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		} = workspace;
 		const isPending = pendingTransaction?.type === "insert";
 		const localRef = useRef<HTMLDivElement>(null);
-		const openUrl = electronTrpc.external.openUrl.useMutation();
+		const navigate = useNavigate();
 		// Drives the name's hover-reveal for keyboard users: the row, not the
 		// name span, is what's actually tabbable.
 		const {
@@ -195,7 +198,11 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					onBlur={handleRowBlur}
 					className={cn(
 						"group relative flex h-7 w-full items-center pr-2",
-						isInSection ? "pl-10" : "pl-6",
+						resolvedIndentation === "top-level"
+							? "pl-2"
+							: resolvedIndentation === "grouped"
+								? "pl-10"
+								: "pl-6",
 						onClick && "cursor-pointer",
 					)}
 				>
@@ -211,7 +218,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 										type="button"
 										onClick={(event) => {
 											event.stopPropagation();
-											openUrl.mutate(pullRequest.url);
+											// Lands in the workspace with its PR pane open, rather
+											// than on GitHub; the pane keeps the GitHub link.
+											usePullRequestPaneIntent.getState().request({
+												workspaceId: workspace.id,
+												prNumber: pullRequest.number,
+											});
+											void navigateToV2Workspace(workspace.id, navigate);
 										}}
 										onKeyDown={(event) => {
 											if (event.key === "Enter" || event.key === " ") {
@@ -219,7 +232,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 											}
 										}}
 										aria-label={t({
-											id: "dashboard.sidebar.expandedWorkspaceRow.openPrAriaLabel",
 											message: `Open pull request #${pullRequest.number}`,
 										})}
 										className="relative mr-2 flex size-4 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-foreground/10"
@@ -254,15 +266,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								{pullRequest ? (
 									<>
 										<p className="text-xs font-medium">
-											<Trans id="dashboard.sidebar.expandedWorkspaceRow.prTooltipTitle">
+											<Trans>
 												PR #{pullRequest.number} —{" "}
 												{i18n._(PR_STATE_LABEL[pullRequest.state])}
 											</Trans>
 										</p>
 										<p className="text-xs text-muted-foreground">
-											<Trans id="dashboard.sidebar.expandedWorkspaceRow.prTooltipOpenHint">
-												Click to open on GitHub
-											</Trans>
+											<Trans>Click to open on GitHub</Trans>
 										</p>
 									</>
 								) : (
@@ -271,46 +281,32 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 											{isMainWorkspace ? (
 												workspaceKindTitle
 											) : hostType === "local-device" ? (
-												<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindLocal">
-													Local workspace
-												</Trans>
+												<Trans>Local workspace</Trans>
 											) : hostType === "remote-device" ? (
 												hostIsOnline === false ? (
-													<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindRemoteOffline">
-														Remote workspace — device offline
-													</Trans>
+													<Trans>Remote workspace — device offline</Trans>
 												) : (
-													<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindRemote">
-														Remote workspace
-													</Trans>
+													<Trans>Remote workspace</Trans>
 												)
 											) : (
-												<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindCloud">
-													Cloud workspace
-												</Trans>
+												<Trans>Cloud workspace</Trans>
 											)}
 										</p>
 										<p className="text-xs text-muted-foreground">
 											{isMainWorkspace ? (
 												workspaceKindDescription
 											) : hostType === "local-device" ? (
-												<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindLocalDescription">
-													Running on this device
-												</Trans>
+												<Trans>Running on this device</Trans>
 											) : hostType === "remote-device" ? (
 												hostIsOnline === false ? (
-													<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindRemoteOfflineDescription">
+													<Trans>
 														The associated device isn't reachable right now
 													</Trans>
 												) : (
-													<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindRemoteDescription">
-														Running on a paired device
-													</Trans>
+													<Trans>Running on a paired device</Trans>
 												)
 											) : (
-												<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindCloudDescription">
-													Hosted in the cloud
-												</Trans>
+												<Trans>Hosted in the cloud</Trans>
 											)}
 										</p>
 									</>
@@ -327,7 +323,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 										projectName={
 											pinnedContext.projectName ??
 											t({
-												id: "dashboard.sidebar.expandedWorkspaceRow.sessionThumbnailFallback",
 												message: "Session",
 											})
 										}
@@ -339,7 +334,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							<TooltipContent side="right" sideOffset={8}>
 								{pinnedContext.projectName ??
 									t({
-										id: "dashboard.sidebar.expandedWorkspaceRow.sessionTooltipFallback",
 										message: "Session",
 									})}
 							</TooltipContent>
@@ -371,9 +365,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								/>
 								{isSelected && (
 									<span className="sr-only">
-										<Trans id="dashboard.sidebar.expandedWorkspaceRow.selected">
-											, selected
-										</Trans>
+										<Trans>, selected</Trans>
 									</span>
 								)}
 							</>
@@ -422,7 +414,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													}}
 													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
 													aria-label={t({
-														id: "dashboard.sidebar.expandedWorkspaceRow.removeFromSidebarAriaLabel",
 														message: "Remove from sidebar",
 													})}
 												>
@@ -432,7 +423,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 											<TooltipContent side="top">
 												<HotkeyLabel
 													label={t({
-														id: "dashboard.sidebar.expandedWorkspaceRow.removeFromSidebar",
 														message: "Remove from sidebar",
 													})}
 												/>
@@ -458,7 +448,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													}}
 													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
 													aria-label={t({
-														id: "dashboard.sidebar.expandedWorkspaceRow.closeWorkspaceAriaLabel",
 														message: "Close workspace",
 													})}
 												>
@@ -468,7 +457,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 											<TooltipContent side="top">
 												<HotkeyLabel
 													label={t({
-														id: "dashboard.sidebar.expandedWorkspaceRow.closeWorkspace",
 														message: "Close workspace",
 													})}
 													id={isActive ? "CLOSE_WORKSPACE" : undefined}
@@ -485,6 +473,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					<DashboardSidebarWorkspaceChips
 						workspaceId={workspace.id}
 						isInSection={isInSection}
+						indentation={resolvedIndentation}
 						onClick={onWorkspaceChipsClick}
 					/>
 				)}

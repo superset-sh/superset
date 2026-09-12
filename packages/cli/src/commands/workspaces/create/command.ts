@@ -2,12 +2,19 @@ import { boolean, CLIError, number, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 import { uploadAttachments } from "../../../lib/upload-attachments";
+import { createCloudWorkspace } from "./createCloudWorkspace";
 
 export default command({
-	description: "Create a workspace on a host",
+	description: "Create a workspace on a host, or a cloud sandbox with --cloud",
 	options: {
 		host: string().desc("Target host machineId"),
 		local: boolean().desc("Target this machine"),
+		cloud: boolean().desc(
+			"Provision a cloud sandbox instead of using one of your machines",
+		),
+		environment: string().desc(
+			"Environment the cloud sandbox boots from (id or name; defaults to the first). Requires --cloud",
+		),
 		project: string().desc(
 			"Project ID. Omit to create a project-less session (a managed scratch folder)",
 		),
@@ -29,6 +36,9 @@ export default command({
 		prompt: string().desc(
 			"Initial prompt the agent starts with. Required when --agent is set",
 		),
+		model: string().desc(
+			"Model for the spawned agent (agent-specific; omit to use the agent default)",
+		),
 		effort: string().desc(
 			"Reasoning effort for the spawned agent (agent-specific; omit to use the agent default)",
 		),
@@ -40,11 +50,30 @@ export default command({
 			.desc(
 				"Local file path to upload as an attachment to the host. Repeatable. Only used when --agent is set",
 			),
+		tag: string()
+			.variadic()
+			.desc(
+				"Workspace tag. Repeatable. Each tag files the workspace into a sidebar folder of the same name",
+			),
 	},
 	run: async ({ ctx, options }) => {
 		const organizationId = ctx.config.organizationId;
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
+		}
+
+		if (options.cloud) {
+			return await createCloudWorkspace({
+				api: ctx.api,
+				organizationId,
+				options,
+			});
+		}
+		if (options.environment) {
+			throw new CLIError(
+				"--environment requires --cloud",
+				"Environments belong to cloud sandboxes; a workspace on your own machine has none",
+			);
 		}
 
 		const projectId = options.project;
@@ -56,6 +85,7 @@ export default command({
 				["--base-branch", options.baseBranch],
 				["--task", options.task],
 				["--skip-branch-prefix", options.skipBranchPrefix || undefined],
+				["--tag", options.tag?.length ? options.tag : undefined],
 			] as const) {
 				if (value !== undefined) {
 					throw new CLIError(
@@ -97,6 +127,12 @@ export default command({
 				"Pass --agent <id> alongside --effort",
 			);
 		}
+		if (options.model && !options.agent) {
+			throw new CLIError(
+				"--model requires --agent",
+				"Pass --agent <id> alongside --model",
+			);
+		}
 		if (options.attachment && options.attachment.length > 0 && !options.agent) {
 			throw new CLIError(
 				"--attachment requires --agent",
@@ -130,6 +166,7 @@ export default command({
 						{
 							agent: options.agent,
 							prompt: options.prompt,
+							model: options.model,
 							effort: options.effort,
 							...(attachmentIds.length > 0 ? { attachmentIds } : {}),
 						},
@@ -161,6 +198,7 @@ export default command({
 			skipBranchPrefix: options.skipBranchPrefix ?? undefined,
 			agents,
 			command: options.command ?? undefined,
+			...(options.tag?.length ? { tags: options.tag } : {}),
 		});
 
 		return {

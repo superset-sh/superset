@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useCallback } from "react";
 import { View } from "react-native";
 import ReorderableList, {
@@ -56,9 +57,11 @@ export function SessionList({
 			contentContainerClassName="grow px-2 pb-8"
 			ListEmptyComponent={
 				<View className="flex-1 items-center justify-center gap-1">
-					<Text className="text-muted-foreground text-sm">No sessions</Text>
+					<Text className="text-muted-foreground text-sm">
+						<Trans>No sessions</Trans>
+					</Text>
 					<Text className="text-muted-foreground/70 text-xs">
-						Start one with + in the tab strip.
+						<Trans>Start one with + in the tab strip.</Trans>
 					</Text>
 				</View>
 			}

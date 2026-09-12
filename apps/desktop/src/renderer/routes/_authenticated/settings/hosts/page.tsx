@@ -1,8 +1,7 @@
 import { Trans } from "@lingui/react/macro";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
-import { useHostsPresence } from "renderer/hooks/useHostsPresence";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 
 export const Route = createFileRoute("/_authenticated/settings/hosts/")({
 	component: HostsIndexPage,
@@ -11,16 +10,14 @@ export const Route = createFileRoute("/_authenticated/settings/hosts/")({
 function HostsIndexPage() {
 	const navigate = useNavigate();
 
-	const { data: hosts = [], isPending } =
-		cloudTrpc.v2Host.list.useQuery(undefined);
-
-	const presence = useHostsPresence(hosts);
+	const { hosts, settled } = useKnownHosts();
+	const isPending = !settled;
 
 	const firstHostId = useMemo(() => {
 		const sorted = [...hosts].sort((a, b) => a.name.localeCompare(b.name));
-		const online = sorted.find((h) => presence?.get(h.machineId) ?? h.isOnline);
+		const online = sorted.find((h) => h.isOnline);
 		return (online ?? sorted[0])?.machineId ?? null;
-	}, [hosts, presence]);
+	}, [hosts]);
 
 	useEffect(() => {
 		if (firstHostId) {
@@ -36,7 +33,7 @@ function HostsIndexPage() {
 		if (isPending) return null;
 		return (
 			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
-				<Trans id="settings.hosts.empty">No hosts yet.</Trans>
+				<Trans>No hosts yet.</Trans>
 			</div>
 		);
 	}

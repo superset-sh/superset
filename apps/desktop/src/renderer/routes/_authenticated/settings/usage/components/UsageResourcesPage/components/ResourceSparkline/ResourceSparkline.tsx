@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { formatDate } from "@superset/i18n/format";
 import {
 	ChartContainer,
 	ChartTooltip,
@@ -9,7 +10,7 @@ import { Area, AreaChart, XAxis, YAxis } from "recharts";
 import type { ResourceSample } from "../../hooks/useResourceSampleBuffer";
 
 function formatTime(at: number): string {
-	return new Date(at).toLocaleTimeString(undefined, {
+	return formatDate(new Date(at), {
 		hour: "2-digit",
 		minute: "2-digit",
 		second: "2-digit",
@@ -49,9 +50,7 @@ export function ResourceSparkline({
 			</div>
 			{data.length < 2 ? (
 				<div className="flex h-16 items-center justify-center text-[10px] text-muted-foreground">
-					<Trans id="settings.usage.resourceSparkline.collecting">
-						Collecting…
-					</Trans>
+					<Trans>Collecting…</Trans>
 				</div>
 			) : (
 				<ChartContainer

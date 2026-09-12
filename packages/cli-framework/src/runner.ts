@@ -81,13 +81,23 @@ export function formatError(
 	if (error instanceof Error) {
 		const trpcError = error as Error & {
 			code?: string;
-			data?: { code?: string };
+			data?: { code?: string; requiredPlan?: string | null };
 		};
 		const code = trpcError.data?.code ?? trpcError.code;
 		if (code === "UNAUTHORIZED") {
 			return {
 				message: "Session expired",
 				hint: `Run: ${cliName} auth login`,
+			};
+		}
+		// A plan gate: the server sets data.requiredPlan on every such refusal
+		// (planRequiredError in @superset/trpc), so no matching on message text.
+		const requiredPlan = trpcError.data?.requiredPlan;
+		if (requiredPlan) {
+			const tier = requiredPlan === "enterprise" ? "Enterprise" : "Pro";
+			return {
+				message: error.message,
+				hint: `Needs the ${tier} plan. Upgrade at https://superset.sh/pricing, or in the app under Settings → Billing.`,
 			};
 		}
 		if (code === "NOT_FOUND") {

@@ -1,7 +1,9 @@
+import { msg } from "@lingui/core/macro";
 import {
 	enabledTriggerKinds,
 	type TriggerConfigInput,
 } from "./automation-triggers";
+import { i18n } from "./i18n";
 
 /**
  * The integration roster every surface renders from: the web integrations
@@ -11,9 +13,15 @@ import {
  */
 export interface Integration {
 	provider: string;
+	/** Brand name — never translated (see packages/i18n/glossary.md). */
 	label: string;
-	description: string;
-	category: string;
+	/**
+	 * Display-only, localized at call time: packages/shared is imported by the
+	 * CLI and host-service, so these stay functions rather than macro
+	 * descriptors and are resolved where they are rendered.
+	 */
+	description: () => string;
+	category: () => string;
 	webPath: string;
 	/** The trigger kinds a connection to this provider feeds. */
 	triggerKinds: readonly TriggerConfigInput["kind"][];
@@ -31,8 +39,18 @@ export const INTEGRATIONS = [
 	{
 		provider: "linear",
 		label: "Linear",
-		description: "Sync issues bidirectionally with Linear.",
-		category: "Task Management",
+		description: () =>
+			i18n._(
+				msg({
+					message: "Sync issues bidirectionally with Linear.",
+				}),
+			),
+		category: () =>
+			i18n._(
+				msg({
+					message: "Task Management",
+				}),
+			),
 		webPath: "/integrations/linear",
 		triggerKinds: ["linear"],
 		standalone: true,
@@ -40,8 +58,18 @@ export const INTEGRATIONS = [
 	{
 		provider: "github",
 		label: "GitHub",
-		description: "Connect repos and sync pull requests.",
-		category: "Version Control",
+		description: () =>
+			i18n._(
+				msg({
+					message: "Connect repos and sync pull requests.",
+				}),
+			),
+		category: () =>
+			i18n._(
+				msg({
+					message: "Version Control",
+				}),
+			),
 		webPath: "/integrations/github",
 		triggerKinds: ["github"],
 		standalone: true,
@@ -49,8 +77,18 @@ export const INTEGRATIONS = [
 	{
 		provider: "slack",
 		label: "Slack",
-		description: "Manage tasks from Slack conversations.",
-		category: "Communication",
+		description: () =>
+			i18n._(
+				msg({
+					message: "Manage tasks from Slack conversations.",
+				}),
+			),
+		category: () =>
+			i18n._(
+				msg({
+					message: "Communication",
+				}),
+			),
 		webPath: "/integrations/slack",
 		triggerKinds: ["slack"],
 		standalone: true,
@@ -58,32 +96,72 @@ export const INTEGRATIONS = [
 	{
 		provider: "notion",
 		label: "Notion",
-		description: "Run automations on data source and comment activity.",
-		category: "Knowledge",
+		description: () =>
+			i18n._(
+				msg({
+					message: "Run automations on data source and comment activity.",
+				}),
+			),
+		category: () =>
+			i18n._(
+				msg({
+					message: "Knowledge",
+				}),
+			),
 		webPath: "/integrations/notion",
 		triggerKinds: ["notion"],
 	},
 	{
 		provider: "microsoft_teams",
 		label: "Microsoft Teams",
-		description: "Trigger automations from Teams channel messages.",
-		category: "Communication",
+		description: () =>
+			i18n._(
+				msg({
+					message: "Trigger automations from Teams channel messages.",
+				}),
+			),
+		category: () =>
+			i18n._(
+				msg({
+					message: "Communication",
+				}),
+			),
 		webPath: "/integrations/microsoft-teams",
 		triggerKinds: ["microsoft_teams"],
 	},
 	{
 		provider: "sentry",
 		label: "Sentry",
-		description: "Run automations when Sentry issues change.",
-		category: "Monitoring",
+		description: () =>
+			i18n._(
+				msg({
+					message: "Run automations when Sentry issues change.",
+				}),
+			),
+		category: () =>
+			i18n._(
+				msg({
+					message: "Monitoring",
+				}),
+			),
 		webPath: "/integrations/sentry",
 		triggerKinds: ["sentry"],
 	},
 	{
 		provider: "google",
 		label: "Google",
-		description: "Trigger automations from Google Calendar and Gmail.",
-		category: "Productivity",
+		description: () =>
+			i18n._(
+				msg({
+					message: "Trigger automations from Google Calendar and Gmail.",
+				}),
+			),
+		category: () =>
+			i18n._(
+				msg({
+					message: "Productivity",
+				}),
+			),
 		webPath: "/integrations/google",
 		triggerKinds: ["google_calendar", "gmail"],
 	},

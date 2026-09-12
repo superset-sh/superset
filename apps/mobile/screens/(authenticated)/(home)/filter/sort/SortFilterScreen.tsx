@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { posthog } from "@/lib/posthog";
@@ -18,7 +19,7 @@ export function SortFilterScreen() {
 			{SORT_OPTIONS.map((option, index) => (
 				<ListRow
 					key={option.value}
-					label={option.label}
+					label={i18n._(option.label)}
 					trailing={<ListRowCheck visible={option.value === sort} />}
 					onPress={() => {
 						setSort(option.value);

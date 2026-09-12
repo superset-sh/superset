@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import { initI18n } from "@superset/i18n";
 import type { PullRequestCheck } from "../../../../../../utils/pullRequest/types";
 import { checksFilterState } from "./checksFilter";
+
+initI18n();
 
 function check(
 	name: string,

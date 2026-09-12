@@ -79,16 +79,78 @@ function guardStorage(
 	};
 }
 
+type StorageEventListener = (event: StorageEvent) => void;
+
+export interface QuotaGuardStorageEventApi {
+	addEventListener(type: string, listener: StorageEventListener): void;
+	removeEventListener(type: string, listener: StorageEventListener): void;
+}
+
+/**
+ * The library's cross-window sync handler drops any `storage` event whose
+ * `storageArea` is not the collection's own `storage` object. Substituting
+ * the guard object above silently broke that comparison — the real event
+ * carries `window.localStorage`, the collection holds the wrapper — so no
+ * localStorage-backed collection ever saw another window's writes (symptom:
+ * renaming a sidebar folder in one window left the old row rendering as a
+ * ghost empty folder in every other window). This event api re-targets the
+ * event's `storageArea` at the guard so the handler's identity check passes.
+ */
+function crossWindowStorageEventApi(
+	guarded: QuotaGuardStorage,
+): QuotaGuardStorageEventApi {
+	const wrappedByListener = new Map<
+		StorageEventListener,
+		StorageEventListener
+	>();
+	return {
+		addEventListener: (type, listener) => {
+			if (type !== "storage" || wrappedByListener.has(listener)) return;
+			const wrapped: StorageEventListener = (event) => {
+				if (event.storageArea !== window.localStorage) return;
+				listener(
+					new Proxy(event, {
+						get: (target, prop) =>
+							prop === "storageArea"
+								? guarded
+								: Reflect.get(target, prop, target),
+					}),
+				);
+			};
+			wrappedByListener.set(listener, wrapped);
+			window.addEventListener("storage", wrapped);
+		},
+		removeEventListener: (type, listener) => {
+			if (type !== "storage") return;
+			const wrapped = wrappedByListener.get(listener);
+			if (!wrapped) return;
+			wrappedByListener.delete(listener);
+			window.removeEventListener("storage", wrapped);
+		},
+	};
+}
+
 /**
  * Wrap `localStorageCollectionOptions` input so quota exhaustion degrades to a
  * dropped write instead of a rollback loop. Composes with `withReadHeal`, and
  * respects a `storage` already present on the options so tests keep control of
- * the backing store.
+ * the backing store. When the backing store is the real `window.localStorage`,
+ * a matching `storageEventApi` keeps the library's cross-window sync alive —
+ * see {@link crossWindowStorageEventApi}.
  */
 export function withQuotaGuard<T>(options: T, handlers: QuotaGuardHandlers): T {
 	const base =
 		handlers.storage ??
 		(options as { storage?: QuotaGuardStorage }).storage ??
 		window.localStorage;
-	return { ...options, storage: guardStorage(base, handlers) } as T;
+	const guarded = guardStorage(base, handlers);
+	const isRealLocalStorage =
+		typeof window !== "undefined" && base === window.localStorage;
+	return {
+		...options,
+		storage: guarded,
+		...(isRealLocalStorage
+			? { storageEventApi: crossWindowStorageEventApi(guarded) }
+			: {}),
+	} as T;
 }

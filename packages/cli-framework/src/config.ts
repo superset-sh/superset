@@ -1,4 +1,5 @@
 import { dirname, resolve } from "node:path";
+import type { BunPlugin } from "bun";
 import type { HelpBranding } from "./help";
 import type { GenericBuilderInternals } from "./option";
 
@@ -11,6 +12,8 @@ export interface CliConfig {
 	outfile?: string;
 	/** Build-time constants forwarded to `Bun.build({ define })`. */
 	define?: Record<string, string>;
+	/** Bundler plugins forwarded to `Bun.build({ plugins })`. */
+	plugins?: BunPlugin[];
 	/** Global option builders (shown on every command). */
 	globals?: Record<string, GenericBuilderInternals>;
 	/** Branding/curation for the root help screen and interactive browser. */

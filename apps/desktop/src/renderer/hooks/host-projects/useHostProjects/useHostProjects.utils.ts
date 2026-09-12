@@ -3,6 +3,14 @@ import type { ProjectSnapshotPayload } from "@superset/workspace-client";
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 
 /** A project row as served by a host (`project.list`). */
+/** One tag folder's host-side presentation row. */
+export interface HostTagSetting {
+	tag: string;
+	displayName: string | null;
+	color: string | null;
+	tabOrder: number | null;
+}
+
 export interface HostProjectRow {
 	id: string;
 	name: string;
@@ -17,6 +25,8 @@ export interface HostProjectRow {
 	color: string | null;
 	createdAt: number;
 	updatedAt: number;
+	/** @deprecated Mixed-version fallback; canonical reads use tagFolders. */
+	tagSettings?: HostTagSetting[];
 }
 
 /**
@@ -44,6 +54,8 @@ export interface HostProjectItem {
 	hostReachable: boolean;
 	createdAt: number;
 	updatedAt: number;
+	/** @deprecated Mixed-version fallback; canonical reads use tagFolders. */
+	tagSettings?: HostTagSetting[];
 }
 
 export interface HostProjectsQueryTarget {
@@ -52,6 +64,13 @@ export interface HostProjectsQueryTarget {
 	/** Null when the host is known but unreachable (offline remote). */
 	hostUrl: string | null;
 	isLocal: boolean;
+}
+
+/** One host's unmerged project rows, retained for host-specific adapters. */
+export interface HostProjectRowsResult {
+	target: HostProjectsQueryTarget;
+	rows: HostProjectRow[] | undefined;
+	reachable: boolean;
 }
 
 export interface HostRowForTargets {
@@ -144,6 +163,7 @@ export function normalizeHostProjectRow(
 		color: row.color ?? null,
 		createdAt: row.createdAt ?? 0,
 		updatedAt: row.updatedAt ?? row.createdAt ?? 0,
+		tagSettings: row.tagSettings,
 	};
 }
 
@@ -249,6 +269,9 @@ export function applyProjectChangedEvent(
 		color: snapshot.color ?? null,
 		createdAt: snapshot.createdAt,
 		updatedAt: snapshot.updatedAt,
+		// Old hosts publish settings on project snapshots. New hosts may retain
+		// the field as a compatibility adapter; omission keeps the last value.
+		tagSettings: snapshot.tagSettings ?? existing?.tagSettings,
 	};
 	if (!rows) return [nextRow];
 	return existing
@@ -265,11 +288,7 @@ export function applyProjectChangedEvent(
 export function mergeHostProjects({
 	hostResults,
 }: {
-	hostResults: Array<{
-		target: HostProjectsQueryTarget;
-		rows: HostProjectRow[] | undefined;
-		reachable: boolean;
-	}>;
+	hostResults: HostProjectRowsResult[];
 }): HostProjectItem[] {
 	const byKey = new Map<string, HostProjectItem>();
 
@@ -293,6 +312,7 @@ export function mergeHostProjects({
 					hostReachable: result.reachable,
 					createdAt: row.createdAt,
 					updatedAt: row.updatedAt,
+					tagSettings: row.tagSettings,
 				});
 				continue;
 			}
@@ -314,6 +334,12 @@ export function mergeHostProjects({
 				existing.repoName = row.repoName;
 				existing.icon = row.icon;
 				existing.color = row.color;
+			}
+			if (
+				row.tagSettings !== undefined &&
+				(existing.tagSettings === undefined || result.target.isLocal)
+			) {
+				existing.tagSettings = row.tagSettings;
 			}
 		}
 	}

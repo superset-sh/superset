@@ -1,4 +1,3 @@
-import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
@@ -21,7 +20,6 @@ interface WebhookSentenceProps {
 
 /** "Webhook triggered" + inbound URL + auth header button. The token is shown once. */
 export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
-	const { t } = useLingui();
 	const { automationId } = useParams({ strict: false });
 	const url = automationId
 		? `${env.NEXT_PUBLIC_API_URL}/api/automations/webhook/${automationId}`
@@ -47,33 +45,22 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 			}
 		},
 		onError: (error) =>
-			toast.error(
-				errorMessage(
-					error,
-					t({
-						id: "dashboard.automations.webhookSentence.generateTokenFailedToast",
-						message: "Failed to generate token",
-					}),
-				),
-			),
+			toast.error(errorMessage(error, "Failed to generate token")),
 	});
 
 	const copyHeader = () =>
 		navigator.clipboard.writeText(`Authorization: Bearer ${token}`).then(
-			() =>
-				toast.success(
-					t({
-						id: "dashboard.automations.webhookSentence.headerCopiedToast",
-						message: "Auth header copied",
-					}),
-				),
-			() =>
-				toast.error(
-					t({
-						id: "dashboard.automations.webhookSentence.copyFailedToast",
-						message: "Copy failed",
-					}),
-				),
+			() => toast.success("Auth header copied"),
+			() => toast.error("Copy failed"),
+		);
+
+	// Most webhook settings pages accept nothing but a URL, so the URL that
+	// carries the token is the copy that makes those work; the header stays for
+	// producers that can send one, since URLs end up in intermediary logs.
+	const copyTokenUrl = () =>
+		navigator.clipboard.writeText(`${url}?token=${token}`).then(
+			() => toast.success("Webhook URL copied"),
+			() => toast.error("Copy failed"),
 		);
 
 	const generate = () => {
@@ -83,28 +70,12 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 			return;
 		}
 		alert({
-			title: t({
-				id: "dashboard.automations.webhookSentence.regenerateDialogTitle",
-				message: "Regenerate auth header?",
-			}),
-			description: t({
-				id: "dashboard.automations.webhookSentence.regenerateDialogDescription",
-				message: `The current token (${secretPrefix}…) stops working immediately.`,
-			}),
+			title: "Regenerate auth header?",
+			description: `The current token (${secretPrefix}…) stops working immediately.`,
 			actions: [
+				{ label: "Cancel", variant: "outline", onClick: () => {} },
 				{
-					label: t({
-						id: "dashboard.automations.webhookSentence.regenerateDialogCancel",
-						message: "Cancel",
-					}),
-					variant: "outline",
-					onClick: () => {},
-				},
-				{
-					label: t({
-						id: "dashboard.automations.webhookSentence.regenerateDialogConfirm",
-						message: "Regenerate",
-					}),
+					label: "Regenerate",
 					variant: "destructive",
 					onClick: () => rotate.mutate(triggerId),
 				},
@@ -112,27 +83,16 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 		});
 	};
 
-	const headerLabel = token
-		? t({
-				id: "dashboard.automations.webhookSentence.copyAuthHeader",
-				message: "Copy auth header",
-			})
+	const keyLabel = token
+		? "Copy URL with token"
 		: secretPrefix
-			? t({
-					id: "dashboard.automations.webhookSentence.regenerateAuthHeader",
-					message: "Regenerate auth header",
-				})
-			: t({
-					id: "dashboard.automations.webhookSentence.generateAuthHeader",
-					message: "Generate auth header",
-				});
+			? "Regenerate token"
+			: "Generate token";
 
 	return (
 		<>
 			<span className="text-[13px] text-muted-foreground">
-				<Trans id="dashboard.automations.webhookSentence.webhookTriggered">
-					Webhook triggered
-				</Trans>
+				Webhook triggered
 			</span>
 			<EndpointChip url={url} />
 			<Tooltip>
@@ -141,42 +101,44 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 						<button
 							type="button"
 							disabled={disabled || !triggerId || rotate.isPending}
-							onClick={() => (token ? copyHeader() : generate())}
+							onClick={() => (token ? copyTokenUrl() : generate())}
 							className={cn(CHIP, !token && !secretPrefix && CHIP_EMPTY)}
 						>
 							<LuKeyRound className="size-3 shrink-0 opacity-50" />
 							<span className="truncate">
-								{rotate.isPending ? (
-									<Trans id="dashboard.automations.webhookSentence.generating">
-										Generating...
-									</Trans>
-								) : (
-									headerLabel
-								)}
+								{rotate.isPending ? "Generating..." : keyLabel}
 							</span>
 						</button>
 					</span>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					{!triggerId ? (
-						<Trans id="dashboard.automations.webhookSentence.saveTriggersFirst">
-							Save triggers first
-						</Trans>
-					) : token ? (
-						<Trans id="dashboard.automations.webhookSentence.copiesHeaderTooltip">
-							Copies the Authorization header. It is only shown now.
-						</Trans>
-					) : secretPrefix ? (
-						<Trans id="dashboard.automations.webhookSentence.tokenSetTooltip">
-							Token {secretPrefix}… is set. Regenerating replaces it.
-						</Trans>
-					) : (
-						<Trans id="dashboard.automations.webhookSentence.issuesTokenTooltip">
-							Issues a bearer token for this trigger.
-						</Trans>
-					)}
+					{!triggerId
+						? "Save triggers first"
+						: token
+							? "The URL alone triggers the run — paste it where only a URL fits. Shown once."
+							: secretPrefix
+								? `Token ${secretPrefix}… is set. Regenerating replaces it.`
+								: "Issues the token this URL authenticates with."}
 				</TooltipContent>
 			</Tooltip>
+			{token && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							disabled={disabled}
+							onClick={copyHeader}
+							className={cn(CHIP)}
+						>
+							<span className="truncate">Copy auth header</span>
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom">
+						The same token as an Authorization header, for senders that can set
+						one — headers stay out of URL logs.
+					</TooltipContent>
+				</Tooltip>
+			)}
 		</>
 	);
 }

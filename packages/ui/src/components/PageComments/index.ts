@@ -1,7 +1,13 @@
+export type {
+	CommentAnchor,
+	FrameRect,
+} from "@superset/shared/page-comments-runtime";
+export { AllCommentsButton } from "./components/AllCommentsButton";
 export {
 	CommentModeButton,
 	CommentModeToggle,
 } from "./components/CommentModeToggle";
+export { CommentsPanel } from "./components/CommentsPanel";
 export { PageCommentsView } from "./components/PageCommentsView";
 export {
 	DeletePageDialog,
@@ -17,6 +23,7 @@ export {
 export { useFramePointerDown } from "./hooks/useFramePointerDown";
 export {
 	type CommentDraft,
+	type CommentIntent,
 	CommentProvider,
 	type CommentStore,
 	type CommentThread,
@@ -24,7 +31,13 @@ export {
 	type PageCommentUser,
 	useComments,
 } from "./providers/CommentProvider";
-export type {
-	CommentAnchor,
-	FrameRect,
-} from "./utils/commentRuntime";
+export {
+	AGENT_DISPLAY_NAME,
+	type CommentAuthor,
+	commentAuthor,
+} from "./utils/commentAuthor";
+export {
+	isOptimisticId,
+	OPTIMISTIC_ID_PREFIX,
+	optimisticId,
+} from "./utils/optimisticId";

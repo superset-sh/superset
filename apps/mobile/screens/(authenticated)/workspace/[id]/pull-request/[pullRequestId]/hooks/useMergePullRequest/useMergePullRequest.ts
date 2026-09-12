@@ -1,6 +1,10 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import { useMutation } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -10,10 +14,16 @@ import type {
 	PullRequestDetail,
 } from "../../../../utils/pullRequest";
 
-const METHOD_LABEL: Record<MergeMethod, string> = {
-	squash: "Squash & Merge",
-	merge: "Merge Commit",
-	rebase: "Rebase & Merge",
+const METHOD_LABEL: Record<MergeMethod, MessageDescriptor> = {
+	squash: msg({
+		message: "Squash & Merge",
+	}),
+	merge: msg({
+		message: "Merge Commit",
+	}),
+	rebase: msg({
+		message: "Rebase & Merge",
+	}),
 };
 
 /**
@@ -35,6 +45,7 @@ export function useMergePullRequest({
 	pullNumber: number | null;
 	onMerged: () => void;
 }) {
+	const { i18n, t } = useLingui();
 	const { host } = useWorkspaceHost(workspaceId);
 	const hostUrl =
 		host?.isOnline === true
@@ -56,7 +67,12 @@ export function useMergePullRequest({
 		},
 		onSuccess: onMerged,
 		onError: (error: Error) => {
-			Alert.alert("GitHub refused the merge", error.message);
+			Alert.alert(
+				t({
+					message: "GitHub refused the merge",
+				}),
+				errorCopy(error),
+			);
 		},
 	});
 
@@ -64,18 +80,27 @@ export function useMergePullRequest({
 		const method = detail.mergeability.allowedMergeMethods[0];
 		if (!method) {
 			Alert.alert(
-				"No merge method allowed",
-				"This repository does not allow merging from here.",
+				t({
+					message: "No merge method allowed",
+				}),
+				t({
+					message: "This repository does not allow merging from here.",
+				}),
 			);
 			return;
 		}
 		Alert.alert(
-			METHOD_LABEL[method],
-			`#${detail.pullRequest.number} ${detail.pullRequest.title}\n\nThis merges into ${detail.pullRequest.baseBranch} and cannot be undone here.`,
+			i18n._(METHOD_LABEL[method]),
+			t({
+				message: `#${detail.pullRequest.number} ${detail.pullRequest.title}\n\nThis merges into ${detail.pullRequest.baseBranch} and cannot be undone here.`,
+			}),
 			[
-				{ text: "Cancel", style: "cancel" },
 				{
-					text: METHOD_LABEL[method],
+					text: t({ message: "Cancel" }),
+					style: "cancel",
+				},
+				{
+					text: i18n._(METHOD_LABEL[method]),
 					style: "destructive",
 					onPress: () => mutation.mutate(method),
 				},

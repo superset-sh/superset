@@ -7,8 +7,12 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { discoverCodexHomes } from "./profiles";
-import type { UsageAccount, UsageQuotaWindow } from "./types";
+import { type CodexHome, discoverCodexHomes } from "./profiles";
+import type {
+	UsageAccount,
+	UsageAccountStatus,
+	UsageQuotaWindow,
+} from "./types";
 
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 const FETCH_TIMEOUT_MS = 10_000;
@@ -105,7 +109,7 @@ export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
 	const defaultHome = homes[0]?.home ?? null;
 	const accounts = await Promise.all(
 		homes.map((home) =>
-			fetchCodexAccountForHome(home.home, home.home === defaultHome),
+			fetchCodexAccountForHome(home, home.home === defaultHome),
 		),
 	);
 	// Dedupe by account email — one login used from several homes is one
@@ -119,11 +123,109 @@ export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
 	});
 }
 
+/** What the ChatGPT usage endpoint says about one access token. */
+export interface CodexSubscriptionQuota {
+	email: string | null;
+	plan: string | null;
+	status: UsageAccountStatus;
+	statusDetail: string | null;
+	windows: UsageQuotaWindow[];
+	creditsBalance: number | null;
+}
+
+export const CODEX_EXPIRED_TOKEN_DETAIL =
+	"Codex token expired — run `codex` to refresh it.";
+
+/**
+ * Reads the subscription quota behind a ChatGPT OAuth access token. The
+ * OpenCode reader shares this: its OpenAI login is the same OAuth client.
+ */
+export async function fetchCodexSubscriptionQuota(
+	accessToken: string,
+	accountId?: string,
+): Promise<CodexSubscriptionQuota> {
+	const empty = { email: null, plan: null, windows: [], creditsBalance: null };
+	try {
+		const headers: Record<string, string> = {
+			Authorization: `Bearer ${accessToken}`,
+		};
+		if (accountId) headers["chatgpt-account-id"] = accountId;
+		const response = await fetch(CODEX_USAGE_URL, {
+			headers,
+			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+		});
+
+		if (response.status === 401 || response.status === 403) {
+			return {
+				...empty,
+				status: "token_expired",
+				statusDetail: CODEX_EXPIRED_TOKEN_DETAIL,
+			};
+		}
+		if (!response.ok) {
+			return {
+				...empty,
+				status: "unavailable",
+				statusDetail: `Usage endpoint returned ${response.status}.`,
+			};
+		}
+
+		const usage = (await response.json()) as CodexUsageResponse;
+		const windows = mapWindows(usage);
+		const balance = Number.parseFloat(usage.credits?.balance ?? "");
+		return {
+			email: usage.email ?? null,
+			plan: usage.plan_type ?? null,
+			status: windows.length > 0 ? "ok" : "unavailable",
+			statusDetail:
+				windows.length > 0 ? null : "No quota data returned for this plan.",
+			windows,
+			creditsBalance: Number.isFinite(balance) ? balance : null,
+		};
+	} catch (error) {
+		return {
+			...empty,
+			status: "unavailable",
+			statusDetail:
+				error instanceof Error ? error.message : "Failed to fetch usage.",
+		};
+	}
+}
+
 async function fetchCodexAccountForHome(
-	codexHome: string,
+	home: CodexHome,
 	isDefaultHome: boolean,
 ): Promise<UsageAccount[]> {
+	const codexHome = home.home;
 	const authPath = join(codexHome, "auth.json");
+	const base = {
+		agent: "codex" as const,
+		credentialKind: home.credentialKind,
+		accountKey: authPath,
+		sourceLabel: codexHome.replace(homedir(), "~"),
+		extraUsage: null,
+		selection: isDefaultHome ? null : codexHome,
+		// Decorated per-query from host settings; the quota cache outlives it.
+		isDefault: false,
+		fetchedAt: new Date(),
+	};
+
+	// API billing has no quota endpoint, and the auth.json holds the raw key —
+	// the card is built from the marker alone.
+	if (home.credentialKind === "api_key") {
+		return [
+			{
+				...base,
+				email: null,
+				plan: null,
+				status: "ok",
+				statusDetail:
+					"Billed per token through the OpenAI Platform — no quota windows.",
+				windows: [],
+				creditsBalance: null,
+			},
+		];
+	}
 
 	let auth: CodexAuthFile;
 	try {
@@ -134,84 +236,9 @@ async function fetchCodexAccountForHome(
 	const accessToken = auth.tokens?.access_token;
 	if (!accessToken) return [];
 
-	const base = {
-		provider: "codex" as const,
-		accountKey: authPath,
-		sourceLabel: codexHome.replace(homedir(), "~"),
-		extraUsage: null,
-		selection: isDefaultHome ? null : codexHome,
-		// Decorated per-query from host settings; the quota cache outlives it.
-		isDefault: false,
-		fetchedAt: new Date(),
-	};
-
-	try {
-		const headers: Record<string, string> = {
-			Authorization: `Bearer ${accessToken}`,
-		};
-		if (auth.tokens?.account_id) {
-			headers["chatgpt-account-id"] = auth.tokens.account_id;
-		}
-		const response = await fetch(CODEX_USAGE_URL, {
-			headers,
-			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-		});
-
-		if (response.status === 401 || response.status === 403) {
-			return [
-				{
-					...base,
-					email: null,
-					plan: null,
-					status: "token_expired",
-					statusDetail: "Codex token expired — run `codex` to refresh it.",
-					windows: [],
-					creditsBalance: null,
-				},
-			];
-		}
-		if (!response.ok) {
-			return [
-				{
-					...base,
-					email: null,
-					plan: null,
-					status: "unavailable",
-					statusDetail: `Usage endpoint returned ${response.status}.`,
-					windows: [],
-					creditsBalance: null,
-				},
-			];
-		}
-
-		const usage = (await response.json()) as CodexUsageResponse;
-		const windows = mapWindows(usage);
-		const balance = Number.parseFloat(usage.credits?.balance ?? "");
-
-		return [
-			{
-				...base,
-				email: usage.email ?? null,
-				plan: usage.plan_type ?? null,
-				status: windows.length > 0 ? "ok" : "unavailable",
-				statusDetail:
-					windows.length > 0 ? null : "No quota data returned for this plan.",
-				windows,
-				creditsBalance: Number.isFinite(balance) ? balance : null,
-			},
-		];
-	} catch (error) {
-		return [
-			{
-				...base,
-				email: null,
-				plan: null,
-				status: "unavailable",
-				statusDetail:
-					error instanceof Error ? error.message : "Failed to fetch usage.",
-				windows: [],
-				creditsBalance: null,
-			},
-		];
-	}
+	const quota = await fetchCodexSubscriptionQuota(
+		accessToken,
+		auth.tokens?.account_id,
+	);
+	return [{ ...base, ...quota }];
 }

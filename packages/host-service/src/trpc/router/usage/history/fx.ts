@@ -111,7 +111,7 @@ export async function collectFxEntries(
 				if (!timestampMs || timestampMs < cutoffMs) continue;
 
 				out.push({
-					provider: "fx",
+					agent: "fx",
 					model: model.model,
 					timestampMs,
 					cwd,

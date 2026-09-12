@@ -1,3 +1,6 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Stack, useRouter } from "expo-router";
 import { Check } from "lucide-react-native";
 import { ScrollView, View } from "react-native";
@@ -9,12 +12,29 @@ import type {
 } from "../../../../utils/pullRequest";
 import { ReviewerAvatar } from "../ReviewerAvatar";
 
-const GROUPS: { state: ReviewerState; title: string }[] = [
-	{ state: "CHANGES_REQUESTED", title: "Requested Changes" },
-	{ state: "APPROVED", title: "Approved" },
-	{ state: "REQUESTED", title: "Assigned" },
-	{ state: "COMMENTED", title: "Commented" },
-	{ state: "DISMISSED", title: "Dismissed" },
+const GROUPS: { state: ReviewerState; title: MessageDescriptor }[] = [
+	{
+		state: "CHANGES_REQUESTED",
+		title: msg({
+			message: "Requested Changes",
+		}),
+	},
+	{
+		state: "APPROVED",
+		title: msg({ message: "Approved" }),
+	},
+	{
+		state: "REQUESTED",
+		title: msg({ message: "Assigned" }),
+	},
+	{
+		state: "COMMENTED",
+		title: msg({ message: "Commented" }),
+	},
+	{
+		state: "DISMISSED",
+		title: msg({ message: "Dismissed" }),
+	},
 ];
 
 /** The whole review picture, one group per state, worst news first. */
@@ -23,6 +43,7 @@ export function ReviewersSheet({
 }: {
 	reviewers: PullRequestReviewer[];
 }) {
+	const { i18n, t } = useLingui();
 	const router = useRouter();
 	const groups = GROUPS.map((group) => ({
 		...group,
@@ -31,10 +52,16 @@ export function ReviewersSheet({
 
 	return (
 		<>
-			<Stack.Screen options={{ title: "Reviewers" }} />
+			<Stack.Screen
+				options={{
+					title: t({ message: "Reviewers" }),
+				}}
+			/>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
-					accessibilityLabel="Close"
+					accessibilityLabel={t({
+						message: "Close",
+					})}
 					icon="xmark"
 					onPress={() => router.back()}
 				/>
@@ -46,13 +73,13 @@ export function ReviewersSheet({
 			>
 				{groups.length === 0 ? (
 					<Text className="text-muted-foreground text-[15px]">
-						No reviewers assigned yet.
+						<Trans>No reviewers assigned yet.</Trans>
 					</Text>
 				) : null}
 				{groups.map((group) => (
 					<View className="gap-3" key={group.state}>
 						<Text className="text-muted-foreground text-[15px]">
-							{group.title}{" "}
+							{i18n._(group.title)}{" "}
 							<Text className="text-muted-foreground/60 text-[15px]">
 								{group.members.length}
 							</Text>

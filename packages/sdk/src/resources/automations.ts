@@ -14,7 +14,7 @@ export class Automations extends APIResource {
 		options?: RequestOptions,
 	): APIPromise<AutomationListResponse> {
 		return this._client.query<AutomationListResponse>(
-			"automation.list",
+			{ method: "automations.list", procedure: "automation.list" },
 			params,
 			options,
 		);
@@ -31,7 +31,7 @@ export class Automations extends APIResource {
 		options?: RequestOptions,
 	): APIPromise<AutomationSummary> {
 		return this._client.query<AutomationSummary>(
-			"automation.get",
+			{ method: "automations.retrieve", procedure: "automation.get" },
 			{ id },
 			options,
 		);
@@ -47,7 +47,7 @@ export class Automations extends APIResource {
 		options?: RequestOptions,
 	): APIPromise<Automation> {
 		return this._client.mutation<Automation>(
-			"automation.create",
+			{ method: "automations.create", procedure: "automation.create" },
 			body,
 			options,
 		);
@@ -63,7 +63,7 @@ export class Automations extends APIResource {
 		options?: RequestOptions,
 	): APIPromise<Automation> {
 		return this._client.mutation<Automation>(
-			"automation.update",
+			{ method: "automations.update", procedure: "automation.update" },
 			body,
 			options,
 		);
@@ -76,7 +76,7 @@ export class Automations extends APIResource {
 	 */
 	delete(id: string, options?: RequestOptions): APIPromise<void> {
 		return this._client
-			.mutation<unknown>("automation.delete", { id }, options)
+			.mutation<unknown>({ method: "automations.delete", procedure: "automation.delete" }, { id }, options)
 			._thenUnwrap(() => undefined);
 	}
 
@@ -87,7 +87,7 @@ export class Automations extends APIResource {
 	 */
 	run(id: string, options?: RequestOptions): APIPromise<AutomationRunDispatched> {
 		return this._client.mutation<AutomationRunDispatched>(
-			"automation.runNow",
+			{ method: "automations.run", procedure: "automation.runNow" },
 			{ id },
 			options,
 		);
@@ -100,7 +100,7 @@ export class Automations extends APIResource {
 	 */
 	pause(id: string, options?: RequestOptions): APIPromise<Automation> {
 		return this._client.mutation<Automation>(
-			"automation.setEnabled",
+			{ method: "automations.pause", procedure: "automation.setEnabled" },
 			{ id, enabled: false },
 			options,
 		);
@@ -113,7 +113,7 @@ export class Automations extends APIResource {
 	 */
 	resume(id: string, options?: RequestOptions): APIPromise<Automation> {
 		return this._client.mutation<Automation>(
-			"automation.setEnabled",
+			{ method: "automations.resume", procedure: "automation.setEnabled" },
 			{ id, enabled: true },
 			options,
 		);
@@ -130,7 +130,7 @@ export class Automations extends APIResource {
 		options?: RequestOptions,
 	): APIPromise<AutomationLogsResponse> {
 		return this._client.query<AutomationLogsResponse>(
-			"automation.listRuns",
+			{ method: "automations.logs", procedure: "automation.listRuns" },
 			{ automationId, limit: params?.limit ?? 20 },
 			options,
 		);
@@ -147,7 +147,7 @@ export class Automations extends APIResource {
 		options?: RequestOptions,
 	): APIPromise<{ prompt: string }> {
 		return this._client.query<{ prompt: string }>(
-			"automation.getPrompt",
+			{ method: "automations.getPrompt", procedure: "automation.getPrompt" },
 			{ id },
 			options,
 		);
@@ -165,7 +165,7 @@ export class Automations extends APIResource {
 		options?: RequestOptions,
 	): APIPromise<Automation> {
 		return this._client.mutation<Automation>(
-			"automation.setPrompt",
+			{ method: "automations.setPrompt", procedure: "automation.setPrompt" },
 			{ id, prompt },
 			options,
 		);
@@ -187,6 +187,13 @@ export interface AutomationSummary {
 	/** Null = session automation: runs use project-less session workspaces. */
 	v2ProjectId: string | null;
 	v2WorkspaceId: string | null;
+	/**
+	 * Whether each run continues the agent session the previous run left,
+	 * rather than starting another beside it. Only meaningful with a pin.
+	 */
+	continueAgentSession: boolean;
+	/** Workspace tags applied to each run's created workspace. */
+	tags: string[];
 	rrule: string;
 	dtstart: string;
 	timezone: string;
@@ -235,12 +242,24 @@ export interface AutomationCreateParams {
 	 */
 	v2WorkspaceId?: string | null;
 	/**
+	 * Deliver each run's prompt into the agent session the previous run left
+	 * behind instead of starting another. Requires `v2WorkspaceId` — that
+	 * workspace is where the session lives.
+	 */
+	continueAgentSession?: boolean;
+	/**
 	 * Pin the automation to a specific host. When passing `v2WorkspaceId`, set
 	 * this to the workspace's `hostId`.
 	 */
 	targetHostId?: string | null;
 	/** ISO timestamp; defaults to now if omitted. */
 	dtstart?: string;
+	/**
+	 * Workspace tags applied to each run's created workspace; each tag files
+	 * it into a sidebar folder of the same name. Defaults to ["automation"]
+	 * so runs group out of the box; pass [] to opt out.
+	 */
+	tags?: string[];
 }
 
 export interface AutomationUpdateParams {
@@ -267,9 +286,17 @@ export interface AutomationUpdateParams {
 	 * `v2ProjectId` from the same workspace row.
 	 */
 	v2WorkspaceId?: string | null;
+	/**
+	 * Deliver each run's prompt into the agent session the previous run left
+	 * behind instead of starting another. Requires `v2WorkspaceId` — that
+	 * workspace is where the session lives.
+	 */
+	continueAgentSession?: boolean;
 	rrule?: string;
 	dtstart?: string;
 	timezone?: string;
+	/** Full replacement of the automation's tag set. */
+	tags?: string[];
 }
 
 export interface AutomationRun {

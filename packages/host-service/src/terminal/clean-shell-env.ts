@@ -157,7 +157,43 @@ function spawnCleanShellEnv(): Promise<Record<string, string>> {
 		const stdoutBuffers: Buffer[] = [];
 		const stderrBuffers: Buffer[] = [];
 
-		child.stdout?.on("data", (data: Buffer) => stdoutBuffers.push(data));
+		// Settling releases this process's read ends of the two pipes. The
+		// shell's rc files run whatever the user put there, and a daemon they
+		// start inherits the shell's stdout/stderr: it keeps the write ends open
+		// after the shell exits, so `close` never fires on its own and, without
+		// this, the two descriptors stay in this process's table until that
+		// daemon dies. Every timed-out resolution then leaked two more (nothing
+		// is cached on failure, and the credential path resolves the env on
+		// every status poll), until the table filled and git could not be
+		// spawned at all — see HOST-SERVICE-4E.
+		let settled = false;
+		const settle = (outcome: () => void) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timeout);
+			child.stdout?.destroy();
+			child.stderr?.destroy();
+			outcome();
+		};
+
+		// Completion is the shell exiting with its output fully read: the shell
+		// prints the closing delimiter itself, immediately before `exit`, so
+		// once both have happened nothing that arrives later can matter. `exit`
+		// can fire before the pipe has been drained, so both orderings are
+		// handled; `close` still covers a shell that exited without ever
+		// printing the delimiter.
+		let exit: { code: number | null; signal: NodeJS.Signals | null } | null =
+			null;
+		const finishIfOutputComplete = () => {
+			if (!exit) return;
+			const stdout = Buffer.concat(stdoutBuffers).toString("utf8");
+			if (stdout.split(DELIMITER).length > 2) finish(exit.code, exit.signal);
+		};
+
+		child.stdout?.on("data", (data: Buffer) => {
+			stdoutBuffers.push(data);
+			finishIfOutputComplete();
+		});
 		child.stderr?.on("data", (data: Buffer) => stderrBuffers.push(data));
 
 		const timeout = setTimeout(() => {
@@ -171,51 +207,61 @@ function spawnCleanShellEnv(): Promise<Record<string, string>> {
 				}
 			}
 
-			reject(
-				new Error(
-					`Shell env resolution timed out after ${SHELL_ENV_TIMEOUT_MS}ms`,
+			settle(() =>
+				reject(
+					new Error(
+						`Shell env resolution timed out after ${SHELL_ENV_TIMEOUT_MS}ms`,
+					),
 				),
 			);
 		}, SHELL_ENV_TIMEOUT_MS);
 
 		child.on("error", (error) => {
-			clearTimeout(timeout);
-			reject(new Error(`Shell process error for ${shell}: ${error.message}`));
+			settle(() =>
+				reject(new Error(`Shell process error for ${shell}: ${error.message}`)),
+			);
 		});
 
-		child.on("close", (code, signal) => {
-			clearTimeout(timeout);
-
-			const stdout = Buffer.concat(stdoutBuffers).toString("utf8");
-			const stderr = Buffer.concat(stderrBuffers).toString("utf8").trim();
-			if (stderr) {
-				console.debug("[terminal-clean-shell-env] stderr:", stderr);
-			}
-
-			if (code !== 0 && code !== null) {
-				return reject(
-					new Error(
-						`Shell ${shell} exited with code ${code}${signal ? `, signal ${signal}` : ""}` +
-							(stderr ? ` stderr=${truncateForDiagnostics(stderr)}` : "") +
-							(stdout ? ` stdout=${truncateForDiagnostics(stdout)}` : ""),
-					),
-				);
-			}
-
-			try {
-				resolve(parseEnvOutput(stdout));
-			} catch (error) {
-				const detail = error instanceof Error ? error.message : String(error);
-				reject(
-					new Error(
-						`${detail} (shell=${shell}` +
-							` stdout=${truncateForDiagnostics(stdout)}` +
-							(stderr ? ` stderr=${truncateForDiagnostics(stderr)}` : "") +
-							")",
-					),
-				);
-			}
+		child.on("exit", (code, signal) => {
+			exit = { code, signal };
+			finishIfOutputComplete();
 		});
+
+		child.on("close", finish);
+
+		function finish(code: number | null, signal: NodeJS.Signals | null) {
+			settle(() => {
+				const stdout = Buffer.concat(stdoutBuffers).toString("utf8");
+				const stderr = Buffer.concat(stderrBuffers).toString("utf8").trim();
+				if (stderr) {
+					console.debug("[terminal-clean-shell-env] stderr:", stderr);
+				}
+
+				if (code !== 0 && code !== null) {
+					return reject(
+						new Error(
+							`Shell ${shell} exited with code ${code}${signal ? `, signal ${signal}` : ""}` +
+								(stderr ? ` stderr=${truncateForDiagnostics(stderr)}` : "") +
+								(stdout ? ` stdout=${truncateForDiagnostics(stdout)}` : ""),
+						),
+					);
+				}
+
+				try {
+					resolve(parseEnvOutput(stdout));
+				} catch (error) {
+					const detail = error instanceof Error ? error.message : String(error);
+					reject(
+						new Error(
+							`${detail} (shell=${shell}` +
+								` stdout=${truncateForDiagnostics(stdout)}` +
+								(stderr ? ` stderr=${truncateForDiagnostics(stderr)}` : "") +
+								")",
+						),
+					);
+				}
+			});
+		}
 
 		child.unref();
 	});

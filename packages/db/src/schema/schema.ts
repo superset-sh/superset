@@ -1,5 +1,6 @@
 import { desc, sql } from "drizzle-orm";
 import {
+	bigint,
 	boolean,
 	check,
 	foreignKey,
@@ -18,7 +19,9 @@ import {
 } from "drizzle-orm/pg-core";
 import { organizations, users } from "./auth";
 import {
+	agentCredentialKindValues,
 	automationPromptSourceValues,
+	automationRunErrorCodeValues,
 	automationRunStatusValues,
 	automationSessionKindValues,
 	automationTriggerKindValues,
@@ -27,13 +30,17 @@ import {
 	desktopNoticeCtaActionValues,
 	desktopNoticeSeverityValues,
 	desktopNoticeTriggerValues,
+	environmentSourceKindValues,
 	integrationProviderValues,
 	pageCommentAnchorKindValues,
 	pageCommentAuthorKindValues,
+	pageCommentIntentValues,
 	pageVisibilityValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
+	v2AgentStateValues,
 	v2ClientTypeValues,
+	v2LiveActivityTokenKindValues,
 	v2UsersHostRoleValues,
 	v2WorkspaceTypeValues,
 	workspaceTypeValues,
@@ -54,14 +61,27 @@ export const integrationProvider = pgEnum(
 	integrationProviderValues,
 );
 export const commandStatus = pgEnum("command_status", commandStatusValues);
+export const agentCredentialKind = pgEnum(
+	"agent_credential_kind",
+	agentCredentialKindValues,
+);
 export const cloudWorkspaceStatus = pgEnum(
 	"cloud_workspace_status",
 	cloudWorkspaceStatusValues,
+);
+export const environmentSourceKind = pgEnum(
+	"environment_source_kind",
+	environmentSourceKindValues,
 );
 export const v2ClientType = pgEnum("v2_client_type", v2ClientTypeValues);
 export const v2UsersHostRole = pgEnum(
 	"v2_users_host_role",
 	v2UsersHostRoleValues,
+);
+export const v2AgentState = pgEnum("v2_agent_state", v2AgentStateValues);
+export const v2LiveActivityTokenKind = pgEnum(
+	"v2_live_activity_token_kind",
+	v2LiveActivityTokenKindValues,
 );
 export const v2WorkspaceType = pgEnum(
 	"v2_workspace_type",
@@ -75,6 +95,11 @@ export const pageCommentAnchorKind = pgEnum(
 export const pageCommentAuthorKind = pgEnum(
 	"page_comment_author_kind",
 	pageCommentAuthorKindValues,
+);
+
+export const pageCommentIntent = pgEnum(
+	"page_comment_intent",
+	pageCommentIntentValues,
 );
 
 export const taskStatuses = pgTable(
@@ -537,6 +562,70 @@ export type SelectV2Project = typeof v2Projects.$inferSelect;
  * provider's wake-on-inbound sleep. Clients reach it directly at `sandbox_url`
  * with a token brokered by the cloud.
  */
+export const environments = pgTable(
+	"environments",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		provider: text().notNull().default("vercel"),
+		sourceKind: environmentSourceKind("source_kind").notNull(),
+		sourceRef: text("source_ref").notNull(),
+		archivedAt: timestamp("archived_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("environments_organization_id_idx").on(table.organizationId),
+		unique("environments_organization_id_name_unique").on(
+			table.organizationId,
+			table.name,
+		),
+	],
+);
+
+export const environmentSecrets = pgTable(
+	"environment_secrets",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		environmentId: uuid("environment_id")
+			.notNull()
+			.references(() => environments.id, { onDelete: "cascade" }),
+		key: text().notNull(),
+		encryptedValue: text("encrypted_value").notNull(),
+		sensitive: boolean().notNull(),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		unique("environment_secrets_environment_id_organization_id_key_unique").on(
+			table.environmentId,
+			table.organizationId,
+			table.key,
+		),
+		index("environment_secrets_environment_id_idx").on(table.environmentId),
+		index("environment_secrets_organization_id_idx").on(table.organizationId),
+	],
+);
+
 export const cloudWorkspaces = pgTable(
 	"cloud_workspaces",
 	{
@@ -544,9 +633,6 @@ export const cloudWorkspaces = pgTable(
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
-		projectId: uuid("project_id")
-			.notNull()
-			.references(() => v2Projects.id, { onDelete: "cascade" }),
 		// Creation inputs, not the workspace's identity: the sandbox's own
 		// host.db owns the workspace row (name, branch) once it is seeded, the
 		// same way every other host does. Read these to provision a sandbox,
@@ -554,10 +640,15 @@ export const cloudWorkspaces = pgTable(
 		// behind.
 		name: text().notNull(),
 		branch: text().notNull(),
-		provider: text().notNull().default("blaxel"),
+		provider: text().notNull().default("vercel"),
 		providerSandboxId: text("provider_sandbox_id").notNull(),
 		sandboxUrl: text("sandbox_url"),
 		status: cloudWorkspaceStatus().notNull().default("provisioning"),
+		environmentId: uuid("environment_id")
+			.notNull()
+			.references(() => environments.id),
+		hostVersion: text("host_version"),
+		deletedAt: timestamp("deleted_at", { withTimezone: true }),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
@@ -571,7 +662,6 @@ export const cloudWorkspaces = pgTable(
 	},
 	(table) => [
 		index("cloud_workspaces_organization_id_idx").on(table.organizationId),
-		index("cloud_workspaces_project_id_idx").on(table.projectId),
 		unique("cloud_workspaces_provider_sandbox_id_unique").on(
 			table.provider,
 			table.providerSandboxId,
@@ -590,10 +680,15 @@ export const v2Hosts = pgTable(
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		machineId: text("machine_id").notNull(),
 		name: text().notNull(),
-		isOnline: boolean("is_online").notNull().default(false),
 		// User-defined command run locally to wake/start this host (e.g. resume a
 		// cloud sandbox, start a VM). Null when the host has no wake command.
 		wakeCommand: text("wake_command"),
+		// Reported by the host-service at registration (`host.ensure`), which
+		// runs once per process, so these describe the build currently serving
+		// the host. Null for hosts that registered before they were reported.
+		version: text(),
+		platform: text(),
+		installSource: text("install_source"),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
@@ -681,6 +776,102 @@ export const v2UsersHosts = pgTable(
 
 export type InsertV2UsersHosts = typeof v2UsersHosts.$inferInsert;
 export type SelectV2UsersHosts = typeof v2UsersHosts.$inferSelect;
+
+/**
+ * The latest card state per terminal, reported by the host that runs it.
+ * Rows exist only while the agent is on the card: the host deletes them by
+ * reporting `gone`. The cloud holds nothing richer about an agent.
+ */
+export const v2AgentStatus = pgTable(
+	"v2_agent_status",
+	{
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		machineId: text("machine_id").notNull(),
+		terminalId: text("terminal_id").notNull(),
+		workspaceId: text("workspace_id").notNull(),
+		workspaceName: text("workspace_name").notNull(),
+		projectId: text("project_id"),
+		projectName: text("project_name"),
+		state: v2AgentState().notNull(),
+		sinceAt: timestamp("since_at", { withTimezone: true }).notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.organizationId, table.machineId, table.terminalId],
+		}),
+		foreignKey({
+			columns: [table.organizationId, table.machineId],
+			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
+			name: "v2_agent_status_host_fk",
+		}).onDelete("cascade"),
+	],
+);
+
+export type SelectV2AgentStatus = typeof v2AgentStatus.$inferSelect;
+
+/**
+ * The words the card shows, in the phone's language. The API never
+ * translates; the phone sends its Lingui catalog's words with the token.
+ * `more` is a template holding `{n}`.
+ */
+export interface LiveActivityLabels {
+	working: string;
+	review: string;
+	permission: string;
+	failed: string;
+	more: string;
+}
+
+/**
+ * Apple push tokens for the Lock Screen card. An `update` token addresses one
+ * running Live Activity; a `push_to_start` token addresses the app itself and
+ * lets the API start the card while the app is closed.
+ */
+export const v2LiveActivityTokens = pgTable(
+	"v2_live_activity_tokens",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		kind: v2LiveActivityTokenKind().notNull(),
+		/**
+		 * The phone, so one user's two phones each get the right push: an
+		 * `update` for a phone with a running card, `push_to_start` for one
+		 * without. iOS's identifierForVendor, stable per install.
+		 */
+		deviceId: text("device_id").notNull(),
+		token: text().notNull(),
+		activityId: text("activity_id"),
+		labels: jsonb().$type<LiveActivityLabels>().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("v2_live_activity_tokens_token_idx").on(table.token),
+		index("v2_live_activity_tokens_user_org_idx").on(
+			table.userId,
+			table.organizationId,
+		),
+	],
+);
+
+export type SelectV2LiveActivityToken =
+	typeof v2LiveActivityTokens.$inferSelect;
 
 export const v2Workspaces = pgTable(
 	"v2_workspaces",
@@ -793,37 +984,14 @@ export const chatSessions = pgTable(
 export type InsertChatSession = typeof chatSessions.$inferInsert;
 export type SelectChatSession = typeof chatSessions.$inferSelect;
 
-export const chatAttachments = pgTable(
-	"chat_attachments",
-	{
-		id: uuid().primaryKey().defaultRandom(),
-		chatSessionId: uuid("chat_session_id")
-			.notNull()
-			.references(() => chatSessions.id, { onDelete: "cascade" }),
-		createdBy: uuid("created_by")
-			.notNull()
-			.references(() => users.id, { onDelete: "cascade" }),
-		organizationId: uuid("organization_id")
-			.notNull()
-			.references(() => organizations.id, { onDelete: "cascade" }),
-		blobPathname: text("blob_pathname").notNull(),
-		mediaType: text("media_type").notNull(),
-		filename: text().notNull(),
-		sizeBytes: integer("size_bytes").notNull(),
-		createdAt: timestamp("created_at").notNull().defaultNow(),
-	},
-	(table) => [
-		index("chat_attachments_session_idx").on(table.chatSessionId),
-		index("chat_attachments_created_by_idx").on(table.createdBy),
-	],
-);
-
-export type InsertChatAttachment = typeof chatAttachments.$inferInsert;
-export type SelectChatAttachment = typeof chatAttachments.$inferSelect;
-
 export const automationRunStatus = pgEnum(
 	"automation_run_status",
 	automationRunStatusValues,
+);
+
+export const automationRunErrorCode = pgEnum(
+	"automation_run_error_code",
+	automationRunErrorCodeValues,
 );
 
 export const automationSessionKind = pgEnum(
@@ -862,6 +1030,23 @@ export const automations = pgTable(
 		// workspace (or the pinned v2WorkspaceId is itself a session).
 		v2ProjectId: uuid("v2_project_id"),
 		v2WorkspaceId: uuid("v2_workspace_id"),
+
+		// Workspace tags applied to each run's created workspace, so scheduled
+		// runs file themselves into the matching sidebar folders. Stored
+		// normalized (see @superset/shared/workspace-tags). Defaults to
+		// ["automation"] so every automation groups its runs out of the box;
+		// clearing the set in the editor is the opt-out.
+		tags: jsonb().$type<string[]>().notNull().default(["automation"]),
+
+		// Deliver each run's prompt into the agent session the previous run
+		// left behind, rather than starting another beside it. Needs a pinned
+		// v2WorkspaceId — that is where the session lives. Off by default: a
+		// run that lands in a conversation already holding context behaves
+		// differently from one starting clean, and that is a choice to make
+		// per automation rather than a default to inherit.
+		continueAgentSession: boolean("continue_agent_session")
+			.notNull()
+			.default(false),
 
 		// The schedule lives in the automation's `schedule` trigger.
 		enabled: boolean().notNull().default(true),
@@ -1064,6 +1249,7 @@ export const automationRuns = pgTable(
 
 		status: automationRunStatus().notNull(),
 		error: text(),
+		errorCode: automationRunErrorCode("error_code"),
 		dispatchedAt: timestamp("dispatched_at", { withTimezone: true }),
 
 		createdAt: timestamp("created_at", { withTimezone: true })
@@ -1227,6 +1413,8 @@ export const pages = pgTable(
 		description: text(),
 		visibility: pageVisibility().notNull().default("just_me"),
 		sharedVersion: integer("shared_version"),
+		watchedByAgent: text("watched_by_agent"),
+		watchHeartbeatAt: timestamp("watch_heartbeat_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
@@ -1257,7 +1445,7 @@ export const pageVersions = pgTable(
 			.references(() => pages.id, { onDelete: "cascade" }),
 		version: integer().notNull(),
 		label: text(),
-		blobPathname: text("blob_pathname").notNull(),
+		storageKey: text("storage_key").notNull(),
 		contentType: text("content_type").notNull(),
 		sizeBytes: integer("size_bytes").notNull(),
 		sha256: text().notNull(),
@@ -1305,6 +1493,100 @@ export const workspacePages = pgTable(
 export type InsertWorkspacePage = typeof workspacePages.$inferInsert;
 export type SelectWorkspacePage = typeof workspacePages.$inferSelect;
 
+export const fileStatus = pgEnum("file_status", ["pending", "ready"]);
+
+export const attachmentParentKind = pgEnum("attachment_parent_kind", [
+	"page_version",
+	"issue",
+	"doc",
+	"chat_session",
+	"comment",
+	// Staging. Assets upload against the page before the version they will
+	// belong to exists; publish snapshots them onto that version and clears
+	// the staged rows, so a version is never served missing its own assets.
+	"page",
+]);
+
+/**
+ * The library: one row per uploaded object, bytes at
+ * `files/<id>/original` in the private bucket. `contentType` holds the
+ * client's declaration while `pending` and the server-sniffed type once
+ * `ready` — the serve-time policy keys on it, so it is never trusted from
+ * the client. A file with no attachments left is deleted; `pending` rows
+ * older than a day are swept.
+ */
+export const files = pgTable(
+	"files",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		contentType: text("content_type").notNull(),
+		sizeBytes: bigint("size_bytes", { mode: "number" }).notNull(),
+		sha256: text().notNull(),
+		status: fileStatus().notNull().default("pending"),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("files_organization_id_created_at_idx").on(
+			table.organizationId,
+			desc(table.createdAt),
+		),
+		index("files_status_created_at_idx").on(table.status, table.createdAt),
+	],
+);
+
+export type InsertFile = typeof files.$inferInsert;
+export type SelectFile = typeof files.$inferSelect;
+
+/**
+ * Places a file on a parent — a page version, an issue, a doc, a chat
+ * session, a comment. Access to the bytes always derives from access to the
+ * parent; no foreign key on the parent because the kinds live in different
+ * tables (and some don't exist yet). `path` is the relative path a page
+ * asset was published at, unique within its version; null for everything
+ * else.
+ */
+export const attachments = pgTable(
+	"attachments",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		fileId: uuid("file_id")
+			.notNull()
+			.references(() => files.id, { onDelete: "cascade" }),
+		parentKind: attachmentParentKind("parent_kind").notNull(),
+		parentId: uuid("parent_id").notNull(),
+		path: text(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		index("attachments_file_id_idx").on(table.fileId),
+		index("attachments_parent_kind_parent_id_idx").on(
+			table.parentKind,
+			table.parentId,
+		),
+		uniqueIndex("attachments_parent_path_unique")
+			.on(table.parentKind, table.parentId, table.path)
+			.where(sql`${table.path} is not null`),
+	],
+);
+
+export type InsertAttachment = typeof attachments.$inferInsert;
+export type SelectAttachment = typeof attachments.$inferSelect;
+
 export const pageCommentThreads = pgTable(
 	"page_comment_threads",
 	{
@@ -1316,6 +1598,7 @@ export const pageCommentThreads = pgTable(
 			.notNull()
 			.references(() => pageVersions.id, { onDelete: "cascade" }),
 		anchorKind: pageCommentAnchorKind("anchor_kind").notNull(),
+		intent: pageCommentIntent("intent"),
 		anchor: jsonb(),
 		anchorText: text("anchor_text"),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
@@ -1390,3 +1673,50 @@ export const pageComments = pgTable(
 
 export type InsertPageComment = typeof pageComments.$inferInsert;
 export type SelectPageComment = typeof pageComments.$inferSelect;
+
+/**
+ * A person's own agent sign-in, used when they start a cloud workspace. The
+ * credential belongs to the person rather than an organization, so one row
+ * serves every organization they work in and it leaves with the account.
+ */
+export const agentCredentials = pgTable(
+	"agent_credentials",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		/** Agent preset id, e.g. "claude" or "codex". Text so a custom agent fits. */
+		agent: text().notNull(),
+		kind: agentCredentialKind().notNull(),
+		encryptedValue: text("encrypted_value").notNull(),
+		/** Set when the key is for a gateway or a compatible endpoint. */
+		baseUrl: text("base_url"),
+		/**
+		 * Which custom provider the value came from, e.g. "gateway". Null for a
+		 * plain provider key, including one pointed at a compatible endpoint —
+		 * a base URL alone does not make a credential a custom provider.
+		 */
+		provider: text(),
+		/** What to show in settings, e.g. the account email. Never the credential. */
+		accountLabel: text("account_label"),
+		lastValidatedAt: timestamp("last_validated_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		unique("agent_credentials_user_id_agent_unique").on(
+			table.userId,
+			table.agent,
+		),
+		index("agent_credentials_user_id_idx").on(table.userId),
+	],
+);
+
+export type InsertAgentCredential = typeof agentCredentials.$inferInsert;
+export type SelectAgentCredential = typeof agentCredentials.$inferSelect;

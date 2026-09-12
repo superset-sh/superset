@@ -1,6 +1,7 @@
+import { msg } from "@lingui/core/macro";
 import Image from "next/image";
-
 import { env } from "@/env";
+import { initServerI18n } from "@/lib/i18n-server";
 import { CliAuthCodeDisplay } from "./components/CliAuthCodeDisplay";
 
 interface CliAuthCodePageProps {
@@ -10,6 +11,8 @@ interface CliAuthCodePageProps {
 export default async function CliAuthCodePage({
 	searchParams,
 }: CliAuthCodePageProps) {
+	const i18n = await initServerI18n();
+
 	const params = await searchParams;
 	const code = params.code;
 	const state = params.state;
@@ -32,7 +35,11 @@ export default async function CliAuthCodePage({
 				{oauthError ? (
 					<div className="mx-auto flex w-full max-w-md flex-col items-center space-y-3 text-center">
 						<h1 className="text-2xl font-semibold tracking-tight text-destructive">
-							Authorization failed
+							{i18n._(
+								msg({
+									message: "Authorization failed",
+								}),
+							)}
 						</h1>
 						<p className="text-muted-foreground text-sm">
 							{params.error_description ?? oauthError}
@@ -42,7 +49,12 @@ export default async function CliAuthCodePage({
 					<CliAuthCodeDisplay code={code} state={state} />
 				) : (
 					<p className="text-muted-foreground">
-						Missing authorization code. Re-run <code>superset auth login</code>.
+						{i18n._(
+							msg({
+								message: "Missing authorization code. Re-run",
+							}),
+						)}{" "}
+						<code>superset auth login</code>.
 					</p>
 				)}
 			</main>

@@ -44,6 +44,22 @@ export type V2ClientType = z.infer<typeof v2ClientTypeEnum>;
 
 export const v2UsersHostRoleValues = ["owner", "member"] as const;
 export const v2UsersHostRoleEnum = z.enum(v2UsersHostRoleValues);
+
+export const v2AgentStateValues = [
+	"working",
+	"review",
+	"permission",
+	"failed",
+] as const;
+export const v2AgentStateEnum = z.enum(v2AgentStateValues);
+
+export const v2LiveActivityTokenKindValues = [
+	"update",
+	"push_to_start",
+] as const;
+export const v2LiveActivityTokenKindEnum = z.enum(
+	v2LiveActivityTokenKindValues,
+);
 export type V2UsersHostRole = z.infer<typeof v2UsersHostRoleEnum>;
 
 export const commandStatusValues = [
@@ -69,6 +85,10 @@ export const cloudWorkspaceStatusValues = [
 export const cloudWorkspaceStatusEnum = z.enum(cloudWorkspaceStatusValues);
 export type CloudWorkspaceStatus = z.infer<typeof cloudWorkspaceStatusEnum>;
 
+export const environmentSourceKindValues = ["image", "fork"] as const;
+export const environmentSourceKindEnum = z.enum(environmentSourceKindValues);
+export type EnvironmentSourceKind = z.infer<typeof environmentSourceKindEnum>;
+
 export const workspaceTypeValues = ["local", "cloud"] as const;
 export const workspaceTypeEnum = z.enum(workspaceTypeValues);
 export type WorkspaceType = z.infer<typeof workspaceTypeEnum>;
@@ -87,6 +107,22 @@ export const automationRunStatusValues = [
 ] as const;
 export const automationRunStatusEnum = z.enum(automationRunStatusValues);
 export type AutomationRunStatus = z.infer<typeof automationRunStatusEnum>;
+
+/**
+ * Why a run failed, in a form a client can branch on. `error` stays the
+ * detail; this is the part that decides which guidance to render, so it must
+ * never be derived from that text — the clients used to grep the English
+ * message, which stops working the moment it is translated. Null means
+ * unclassified: show `error` alone.
+ */
+export const automationRunErrorCodeValues = [
+	"no_instructions",
+	"host_offline",
+	"agent_not_found",
+	"workspace_not_found",
+] as const;
+export const automationRunErrorCodeEnum = z.enum(automationRunErrorCodeValues);
+export type AutomationRunErrorCode = z.infer<typeof automationRunErrorCodeEnum>;
 
 export const automationSessionKindValues = ["chat", "terminal"] as const;
 export const automationSessionKindEnum = z.enum(automationSessionKindValues);
@@ -118,7 +154,6 @@ export const automationTriggerKindValues = [
 	"google_calendar",
 	"gmail",
 	"notion",
-	"circleback",
 ] as const satisfies readonly TriggerConfigInput["kind"][];
 
 export type _EveryKindHasEnumValue = [
@@ -162,6 +197,22 @@ export const pageCommentAuthorKindValues = ["human", "agent"] as const;
 export const pageCommentAuthorKindEnum = z.enum(pageCommentAuthorKindValues);
 export type PageCommentAuthorKind = z.infer<typeof pageCommentAuthorKindEnum>;
 
+export const pageCommentIntentValues = ["delete", "approve"] as const;
+export const pageCommentIntentEnum = z.enum(pageCommentIntentValues);
+export type PageCommentIntent = z.infer<typeof pageCommentIntentEnum>;
+
 export const leaderboardVisibilityValues = ["public", "hidden"] as const;
 export const leaderboardVisibilityEnum = z.enum(leaderboardVisibilityValues);
 export type LeaderboardVisibility = z.infer<typeof leaderboardVisibilityEnum>;
+
+export const handleOwnerTypeValues = [
+	"user",
+	"organization",
+	"reserved",
+] as const;
+export const handleOwnerTypeEnum = z.enum(handleOwnerTypeValues);
+export type HandleOwnerType = z.infer<typeof handleOwnerTypeEnum>;
+
+/** How a person signed their agent in: a subscription token, or a provider API key. */
+export const agentCredentialKindValues = ["subscription", "api_key"] as const;
+export type AgentCredentialKind = (typeof agentCredentialKindValues)[number];

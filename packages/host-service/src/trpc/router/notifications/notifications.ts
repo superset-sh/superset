@@ -4,6 +4,7 @@ import { z } from "zod";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import { mapEventType } from "../../../events";
 import type { HostServiceContext } from "../../../types";
+import { touchLocalWorkspaceActivity } from "../../../workspaces/local-workspace-store";
 import { publicProcedure, router } from "../../index";
 
 // Hook scripts emit "" for unset env vars; we coerce to undefined so the
@@ -16,10 +17,24 @@ const agentIdentityInput = z
 	})
 	.optional();
 
+// Set when the hook fired inside a subagent (Claude Task tool, Codex
+// spawn_agent). Such events feed the terminal's subagent roster only.
+const subagentInput = z
+	.object({
+		id: z.string(),
+		type: z.string().optional(),
+		/** The child's hook session id — a Codex child's own thread id. */
+		sessionId: z.string().optional(),
+		transcriptPath: z.string().optional(),
+		agentTranscriptPath: z.string().optional(),
+	})
+	.optional();
+
 const hookInput = z.object({
 	terminalId: z.string().optional(),
 	eventType: z.string().optional(),
 	agent: agentIdentityInput,
+	subagent: subagentInput,
 });
 
 function trimOrUndefined(value: string | undefined): string | undefined {
@@ -84,8 +99,9 @@ export const notificationsRouter = router({
 	 * would leak it into every agent shell's env for zero practical gain.
 	 */
 	hook: publicProcedure.input(hookInput).mutation(async ({ ctx, input }) => {
-		const eventType = mapEventType(input.eventType);
-		if (!eventType) {
+		const subagentId = trimOrUndefined(input.subagent?.id);
+		const eventType = subagentId ? undefined : mapEventType(input.eventType);
+		if (!subagentId && !eventType) {
 			return { success: true, ignored: true as const };
 		}
 
@@ -103,8 +119,43 @@ export const notificationsRouter = router({
 			return { success: true, ignored: true as const };
 		}
 
-		const agent = normalizeAgentIdentity(input.agent);
 		const occurredAt = Date.now();
+
+		// Subagent activity is not the terminal's lifecycle: no chime, no
+		// status change, no session id capture. The roster change is fanned
+		// out as an invalidation so the sidebar refetches bindings.
+		if (subagentId) {
+			const agentType = trimOrUndefined(input.subagent?.type);
+			const recorded = ctx.terminalAgentStore.recordSubagentHook({
+				terminalId: input.terminalId,
+				workspaceId: terminalSession.originWorkspaceId,
+				eventType: input.eventType ?? "",
+				subagentId,
+				...(agentType ? { agentType } : {}),
+				hint: {
+					subagentId,
+					sessionId: trimOrUndefined(input.subagent?.sessionId),
+					transcriptPath: trimOrUndefined(input.subagent?.transcriptPath),
+					agentTranscriptPath: trimOrUndefined(
+						input.subagent?.agentTranscriptPath,
+					),
+				},
+				occurredAt,
+			});
+			if (!recorded) {
+				return { success: true, ignored: true as const };
+			}
+			ctx.eventBus.broadcastAgentBindingsChanged({
+				workspaceId: terminalSession.originWorkspaceId,
+				occurredAt,
+			});
+			return { success: true, ignored: false as const };
+		}
+		if (!eventType) {
+			return { success: true, ignored: true as const };
+		}
+
+		const agent = normalizeAgentIdentity(input.agent);
 
 		ctx.eventBus.broadcastAgentLifecycle({
 			workspaceId: terminalSession.originWorkspaceId,
@@ -123,6 +174,22 @@ export const notificationsRouter = router({
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
 			occurredAt,
 		});
+
+		// Every lifecycle event is activity for the sidebar's "Last active"
+		// ranking. Best-effort: a failed write must not fail the hook, which
+		// also drives the chime and the status dots.
+		try {
+			touchLocalWorkspaceActivity(
+				ctx,
+				terminalSession.originWorkspaceId,
+				occurredAt,
+			);
+		} catch (err) {
+			console.warn(
+				`[notifications.hook] failed to record activity for workspace ${terminalSession.originWorkspaceId}:`,
+				err,
+			);
+		}
 
 		// An agent began working in this workspace — nudge the linked task
 		// to In Progress.

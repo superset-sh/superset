@@ -62,19 +62,15 @@ export function WorkItemDetailHeader({
 						className="h-8 gap-1.5 px-2 @md:px-3"
 						onClick={onAddToWorkspace}
 						aria-label={t({
-							id: "dashboard.workItemDetailHeader.addToWorkspaceLabel",
 							message: "Add to workspace",
 						})}
 						title={t({
-							id: "dashboard.workItemDetailHeader.addToWorkspaceTitle",
 							message: "Add to workspace",
 						})}
 					>
 						<LuPlus className="size-4" />
 						<span className="hidden @md:inline">
-							<Trans id="dashboard.workItemDetailHeader.addToWorkspace">
-								Add to workspace
-							</Trans>
+							<Trans>Add to workspace</Trans>
 						</span>
 					</Button>
 				)}

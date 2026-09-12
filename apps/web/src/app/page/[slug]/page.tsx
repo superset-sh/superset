@@ -1,13 +1,18 @@
-import { PageCommentsView } from "@superset/ui/page-comments";
+import { msg } from "@lingui/core/macro";
+import {
+	AllCommentsButton,
+	CommentsPanel,
+	PageCommentsView,
+} from "@superset/ui/page-comments";
 import { TRPCClientError } from "@trpc/client";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "../../../trpc/server";
 import { PageCommentsShell } from "./components/PageCommentsShell";
 import { PageHeaderBar } from "./components/PageHeaderBar";
 import { WrongOrganization } from "./components/WrongOrganization";
-import { getPageContent } from "./utils/getPageContent";
 import { getPagesAccess } from "./utils/getPagesAccess";
 import { isForbidden, isNotFound } from "./utils/trpcErrors";
 
@@ -47,6 +52,8 @@ export async function generateMetadata({
 }
 
 export default async function PublishedPage({ params }: PageProps) {
+	const i18n = await initServerI18n();
+
 	const { slug } = await params;
 
 	const { hasPagesAccess, session } = await getPagesAccess();
@@ -63,12 +70,7 @@ export default async function PublishedPage({ params }: PageProps) {
 		throw error;
 	}
 
-	const [html, versions, access] = await Promise.all([
-		getPageContent({
-			downloadUrl: page.downloadUrl,
-			slug,
-			version: page.version,
-		}),
+	const [versions, access] = await Promise.all([
 		pullVersions(slug),
 		pullAccess(slug),
 	]);
@@ -77,9 +79,10 @@ export default async function PublishedPage({ params }: PageProps) {
 		<PageCommentsShell
 			pageId={page.id}
 			version={page.version}
+			pageOwnerId={page.createdByUserId}
 			user={{
 				id: session?.user.id ?? "",
-				name: session?.user.name ?? "You",
+				name: session?.user.name ?? i18n._(msg({ message: "You" })),
 				image: session?.user.image ?? null,
 			}}
 		>
@@ -99,11 +102,18 @@ export default async function PublishedPage({ params }: PageProps) {
 					}}
 					versions={versions}
 					currentUserId={session?.user.id}
+					slug={slug}
+					watching={page.watch.watching}
+					watchAgentId={page.watch.agentId}
 				/>
 
-				<main className="min-h-0 flex-1">
-					<PageCommentsView html={html} title={page.title} />
-				</main>
+				<div className="relative flex min-h-0 flex-1">
+					<main className="min-h-0 flex-1">
+						<PageCommentsView src={page.viewUrl} title={page.title} />
+					</main>
+					<AllCommentsButton />
+					<CommentsPanel servedVersion={page.version} />
+				</div>
 			</div>
 		</PageCommentsShell>
 	);

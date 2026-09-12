@@ -9,6 +9,11 @@ import {
 } from "@superset/db/schema";
 import type { DraftTrigger } from "@superset/shared/automation-triggers";
 import {
+	AUTOMATIONS_REQUIRED_PLAN,
+	planAllowsAutomations,
+	planTierFromSubscription,
+} from "@superset/shared/billing";
+import {
 	describeSchedule,
 	nextOccurrenceAfter,
 	nextOccurrences,
@@ -17,12 +22,17 @@ import {
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, asc, desc, eq, ilike } from "drizzle-orm";
 import { z } from "zod";
-import { resolveUserRelayUrl } from "../../lib/relay-url";
-import { protectedProcedure, userError } from "../../trpc";
-import { requireActiveOrgMembership } from "../utils/active-org";
+import { env } from "../../env";
+import { planRequiredError, protectedProcedure, userError } from "../../trpc";
+import { joinSlackTriggerChannels } from "../integration/slack/joinChannels";
+import {
+	requireActiveOrgMembership,
+	requireActiveOrgMembershipWithSubscription,
+} from "../utils/active-org";
 import { dispatchAutomation } from "./dispatch";
 import {
 	automationBaseColumns,
+	automationNotFound,
 	getAutomationForUser,
 	NO_SCHEDULE,
 	promptSourceFromSession,
@@ -42,6 +52,27 @@ import {
 import { saveTriggerSet } from "./triggerSet";
 import { automationVersionsRouter } from "./versions";
 import { generateWebhookToken, hashWebhookToken } from "./webhookSecret";
+
+/**
+ * Membership plus the Pro gate. Automations are a Pro feature: creating,
+ * running, and resuming one needs a paying org. Reading, editing, pausing,
+ * and deleting stay open so a downgraded org keeps control of what it has —
+ * those rows simply stop firing (the dispatchers apply the same tier map).
+ */
+async function requireAutomationsPlan(
+	ctx: Parameters<typeof requireActiveOrgMembershipWithSubscription>[0],
+): Promise<string> {
+	const { organizationId, subscription } =
+		await requireActiveOrgMembershipWithSubscription(ctx);
+	if (!planAllowsAutomations(planTierFromSubscription(subscription))) {
+		throw planRequiredError({
+			message: "Automations require the Pro plan.",
+			i18nKey: "serverError.automation.automationsRequireThePro",
+			requiredPlan: AUTOMATIONS_REQUIRED_PLAN,
+		});
+	}
+	return organizationId;
+}
 
 function escapeLikePattern(value: string): string {
 	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
@@ -253,11 +284,7 @@ export const automationRouter = {
 			// Reads are org-scoped (Team tab links to any member's automation);
 			// mutations stay owner-scoped via getAutomationForUser.
 			if (!row) {
-				throw userError({
-					code: "NOT_FOUND",
-					message: "Automation not found",
-					i18nKey: "serverError.automation.automationNotFound",
-				});
+				throw await automationNotFound(input.id, ctx.session.user.id);
 			}
 
 			// The whole set, since the editor saves it as one and needs the ids to
@@ -288,7 +315,7 @@ export const automationRouter = {
 	create: protectedProcedure
 		.input(createAutomationSchema)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx);
+			const organizationId = await requireAutomationsPlan(ctx);
 
 			if (input.targetHostId) {
 				await verifyHostAccess(
@@ -331,6 +358,14 @@ export const automationRouter = {
 				}
 				v2ProjectId = workspace.projectId;
 			}
+			if (input.continueAgentSession && !input.v2WorkspaceId) {
+				throw userError({
+					code: "BAD_REQUEST",
+					message: "Continuing an agent session requires a pinned workspace",
+					i18nKey: "serverError.automation.continueNeedsPinnedWorkspace",
+				});
+			}
+
 			// No project and no pin = session automation: each run creates a
 			// project-less session workspace on the host.
 
@@ -372,6 +407,10 @@ export const automationRouter = {
 						targetHostId,
 						v2ProjectId,
 						v2WorkspaceId: input.v2WorkspaceId ?? null,
+						// Every automation groups its runs out of the box; explicit
+						// tags (including []) override the default.
+						tags: input.tags ?? ["automation"],
+						continueAgentSession: input.continueAgentSession ?? false,
 					})
 					.returning();
 
@@ -416,6 +455,11 @@ export const automationRouter = {
 
 			// Reported from what was actually written, not from the input: a
 			// trigger set may describe a different schedule, or none at all.
+			// After the commit: joining can only make a saved trigger start working.
+			if (input.triggers) {
+				await joinSlackTriggerChannels(organizationId, input.triggers);
+			}
+
 			return withSchedule(created, input.triggers ?? null, legacySchedule);
 		}),
 
@@ -520,6 +564,22 @@ export const automationRouter = {
 				);
 			}
 
+			// Asking for it without a pin is a mistake worth reporting; losing the
+			// pin some other way (a host or project change nulls it above) just
+			// takes the flag with it, since the session it would continue lived
+			// in that workspace.
+			if (input.continueAgentSession === true && nextWorkspaceId === null) {
+				throw userError({
+					code: "BAD_REQUEST",
+					message: "Continuing an agent session requires a pinned workspace",
+					i18nKey: "serverError.automation.continueNeedsPinnedWorkspace",
+				});
+			}
+			const nextContinueAgentSession =
+				nextWorkspaceId === null
+					? false
+					: (input.continueAgentSession ?? existing.continueAgentSession);
+
 			const nextRrule = input.rrule ?? existing.rrule;
 			const nextDtstart = input.dtstart ?? existing.dtstart;
 			const nextTimezone = input.timezone ?? existing.timezone;
@@ -546,6 +606,9 @@ export const automationRouter = {
 						targetHostId: nextTargetHostId,
 						v2ProjectId: nextProjectId,
 						v2WorkspaceId: nextWorkspaceId,
+						tags: input.tags ?? existing.tags,
+						continueAgentSession: nextContinueAgentSession,
+						prompt: input.prompt ?? existing.prompt,
 					})
 					.where(eq(automations.id, input.id))
 					.returning();
@@ -558,6 +621,16 @@ export const automationRouter = {
 					});
 				}
 
+				// Only on a real change, so saving a scope tweak doesn't mint a
+				// version identical to the last one.
+				if (input.prompt !== undefined && input.prompt !== existing.prompt) {
+					await recordPromptVersion(tx, {
+						automationId: row.id,
+						authorUserId: ctx.session.user.id,
+						content: input.prompt,
+						source: promptSourceFromSession(ctx.session),
+					});
+				}
 				if (input.triggers) {
 					await saveTriggerSet(tx, {
 						automationId: row.id,
@@ -577,6 +650,10 @@ export const automationRouter = {
 
 				return row;
 			});
+
+			if (input.triggers) {
+				await joinSlackTriggerChannels(organizationId, input.triggers);
+			}
 
 			// Same as create: a trigger set may have replaced or removed the
 			// schedule, so the response reflects what was saved.
@@ -609,11 +686,7 @@ export const automationRouter = {
 				)
 				.limit(1);
 			if (!existing) {
-				throw userError({
-					code: "NOT_FOUND",
-					message: "Automation not found",
-					i18nKey: "serverError.automation.automationNotFound",
-				});
+				throw await automationNotFound(input.id, ctx.session.user.id);
 			}
 			return existing;
 		}),
@@ -674,7 +747,7 @@ export const automationRouter = {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			await getAutomationForUser(ctx.session.user.id, organizationId, input.id);
 
-			await dbWs.delete(automations).where(eq(automations.id, input.id));
+			await db.delete(automations).where(eq(automations.id, input.id));
 
 			return { ok: true };
 		}),
@@ -682,7 +755,10 @@ export const automationRouter = {
 	setEnabled: protectedProcedure
 		.input(z.object({ id: z.string().uuid(), enabled: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx);
+			// Pausing is always allowed; resuming is what needs the plan.
+			const organizationId = input.enabled
+				? await requireAutomationsPlan(ctx)
+				: await requireActiveOrgMembership(ctx);
 			const existing = await getAutomationForUser(
 				ctx.session.user.id,
 				organizationId,
@@ -728,7 +804,7 @@ export const automationRouter = {
 	runNow: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx);
+			const organizationId = await requireAutomationsPlan(ctx);
 			const automation = await getAutomationForUser(
 				ctx.session.user.id,
 				organizationId,
@@ -748,7 +824,7 @@ export const automationRouter = {
 			const outcome = await dispatchAutomation({
 				automation,
 				scheduledFor: new Date(),
-				relayUrl: await resolveUserRelayUrl(automation.ownerUserId),
+				relayUrl: env.RELAY_URL,
 			});
 
 			if (outcome.status === "conflict") {
@@ -758,16 +834,21 @@ export const automationRouter = {
 					i18nKey: "serverError.automation.aRunForThisAutomation",
 				});
 			}
+			// The message is the host's own wording, so there is nothing to
+			// translate — but the code travels with it so the client picks its
+			// guidance without reading the prose.
 			if (outcome.status === "dispatch_failed") {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: outcome.error,
+					cause: { automationErrorCode: outcome.errorCode },
 				});
 			}
 			if (outcome.status === "skipped_offline") {
 				throw new TRPCError({
 					code: "PRECONDITION_FAILED",
 					message: outcome.error,
+					cause: { automationErrorCode: outcome.errorCode },
 				});
 			}
 			return { automationId: automation.id, runId: outcome.runId };

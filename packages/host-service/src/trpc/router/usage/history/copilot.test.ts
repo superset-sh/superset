@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { CopilotUsageRow } from "./copilot";
-import { copilotRowsToEntries } from "./copilot";
+import type { CopilotUsageRow } from "./copilot-rows";
+import { copilotRowsToEntries } from "./copilot-rows";
 import type { UsageLogEntry } from "./parse";
 
-// The sqlite read path itself can't run under bun (better-sqlite3 is
-// node-only); this covers the row mapping the query feeds.
+// Keep this test on the pure mapping module: the SQLite reader uses the
+// Node-only better-sqlite3 native binding, while the unit suite runs in Bun.
 
 function row(over: Partial<CopilotUsageRow> = {}): CopilotUsageRow {
 	return {
@@ -29,7 +29,7 @@ describe("copilotRowsToEntries", () => {
 		copilotRowsToEntries([row()], 0, out, labels);
 		expect(out).toHaveLength(1);
 		expect(out[0]).toMatchObject({
-			provider: "copilot",
+			agent: "copilot",
 			model: "claude-sonnet-4.5",
 			cwd: "/tmp/proj",
 			sessionId: "sess-1",

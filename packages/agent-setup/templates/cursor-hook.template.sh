@@ -37,6 +37,8 @@ json_escape() {
 # This script only fires for Cursor sessions, so an unset SUPERSET_AGENT_ID
 # means Cursor ran outside a Superset wrapper: the cursor-agent CLI stamps
 # CURSOR_AGENT/CURSOR_CLI into its env; anything else is the IDE Composer.
+# Another agent's identity means cursor-agent is running under it (a tool
+# call), which is not this terminal's lifecycle.
 AGENT_ID="$SUPERSET_AGENT_ID"
 if [ -z "$AGENT_ID" ]; then
   if [ -n "$CURSOR_AGENT" ] || [ -n "$CURSOR_CLI" ]; then
@@ -44,6 +46,8 @@ if [ -z "$AGENT_ID" ]; then
   else
     AGENT_ID="cursor-composer"
   fi
+elif [ "$AGENT_ID" != "cursor-agent" ]; then
+  exit 0
 fi
 
 # Resolve the host-service endpoint at call time: the env URL is frozen at

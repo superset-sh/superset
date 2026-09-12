@@ -16,10 +16,19 @@ export default command({
 		host: string().desc("New target host id"),
 		project: string().desc("New v2 project id"),
 		workspace: string().desc("New v2 workspace id"),
+		continueSession: boolean().desc(
+			"Continue the agent session the previous run left (--continue-session) or start a new one each run (--no-continue-session). Requires a pinned workspace",
+		),
 		session: boolean().desc(
 			"Switch to session mode: no project, each run creates a project-less session workspace",
 		),
 		enabled: boolean().desc("Enable or pause the automation"),
+		tag: string()
+			.variadic()
+			.desc(
+				"Replace the tag set applied to each run's created workspace. Repeatable",
+			),
+		clearTags: boolean().desc("Remove every tag from the automation"),
 	},
 	run: async ({ ctx, args, options }) => {
 		const id = args.id as string;
@@ -29,6 +38,21 @@ export default command({
 		if (options.session && (options.workspace || options.project)) {
 			throw new CLIError(
 				"--session cannot be combined with --project or --workspace",
+			);
+		}
+		if (options.tag?.length && options.clearTags) {
+			throw new CLIError(
+				"Cannot combine --tag and --clear-tags",
+				"Pass one or the other",
+			);
+		}
+
+		// Ahead of every mutation: `setEnabled` runs before the update, and a
+		// combination the server will refuse must not flip `enabled` first.
+		if (options.session && options.continueSession) {
+			throw new CLIError(
+				"--continue-session requires a pinned workspace",
+				"Session mode has none; drop --session or pass --no-continue-session",
 			);
 		}
 
@@ -78,6 +102,15 @@ export default command({
 				: {}),
 			// Session mode clears both the project and any workspace pin.
 			...(options.session ? { v2ProjectId: null, v2WorkspaceId: null } : {}),
+			...(options.continueSession === undefined
+				? {}
+				: { continueAgentSession: options.continueSession }),
+			// --tag replaces the whole set; --clear-tags empties it.
+			...(options.clearTags
+				? { tags: [] }
+				: options.tag?.length
+					? { tags: options.tag }
+					: {}),
 			...target,
 		});
 

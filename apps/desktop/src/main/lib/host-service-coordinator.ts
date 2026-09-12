@@ -2,9 +2,13 @@ import * as childProcess from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import path from "node:path";
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { organizations, settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
+import { HOST_INSTALL_SOURCE_ENV } from "@superset/shared/host-version";
 import { eq } from "drizzle-orm";
 import { app, dialog } from "electron";
 import log from "electron-log/main";
@@ -31,9 +35,9 @@ import {
 	MAX_HOST_LOG_BYTES,
 	openRotatingLogFd,
 	pollHealthCheck,
+	redactCrashTail,
 } from "./host-service-utils";
 import { localDb } from "./local-db";
-import { getRelayUrl } from "./relay-url";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 
 export type HostServiceStatus = "starting" | "running" | "stopped";
@@ -115,6 +119,33 @@ const START_OR_ADOPT_DEADLINE_MS = SPAWN_LOCK_STALE_MS + HEALTH_POLL_TIMEOUT_MS;
 const ADOPT_WAIT_INTERVAL_MS = 250;
 
 /**
+ * How long a SIGTERMed child gets to exit on its own before SIGKILL. The
+ * child's own shutdown budget (grace + dispose deadline in
+ * `host-service/shutdown.ts`) is ~5s, so this only fires for a child whose
+ * signal handler never ran at all.
+ */
+const STOP_KILL_ESCALATION_MS = 5_000;
+
+/**
+ * Startup reap identity window. `ps` reports process age at 1 s granularity
+ * and the manifest's `startedAt` is written after createApp() (migrations
+ * included), so the process is somewhat older than the manifest, never
+ * younger. A process that started after the manifest cannot have written it.
+ */
+const REAP_IDENTITY_MAX_OLDER_MS = 10 * 60_000;
+const REAP_IDENTITY_MAX_YOUNGER_MS = 60_000;
+
+/** After SIGKILLing a wedged holder, wait this long for its port to free. */
+const REAP_EXIT_WAIT_MS = 1_000;
+const REAP_EXIT_POLL_MS = 25;
+
+/** What `ps` reports for a live pid; null when the pid cannot be inspected. */
+interface ProcessIdentity {
+	elapsedMs: number;
+	command: string;
+}
+
+/**
  * A Node abort dumps ~5KB of native + JS backtrace on the way down, so a
  * smaller window would evict the assertion line and every app log before it.
  */
@@ -152,6 +183,88 @@ function getStablePortForOrganization(organizationId: string): number {
 	return STABLE_PORT_BASE + ((hash >>> 0) % STABLE_PORT_COUNT);
 }
 
+/**
+ * `ps -o etime=,command=` for one pid. Returns null on Windows (no `ps`),
+ * for a pid that is gone, or for output we cannot parse; callers treat null
+ * as "unknown", never as "safe to kill".
+ */
+async function inspectProcessWithPs(
+	pid: number,
+): Promise<ProcessIdentity | null> {
+	if (process.platform === "win32") return null;
+	// Async on purpose: a synchronous subprocess here would stall the whole
+	// main process (every IPC reply queues behind it) for as long as `ps` takes.
+	const stdout = await new Promise<string | null>((resolve) => {
+		childProcess.execFile(
+			"ps",
+			["-o", "etime=,command=", "-p", String(pid)],
+			{ encoding: "utf8", timeout: 2_000 },
+			(error, out) => resolve(error ? null : out),
+		);
+	});
+	if (stdout == null) return null;
+	const line = stdout.trim().split("\n")[0]?.trim();
+	const match = line ? /^(\S+)\s+(.*)$/.exec(line) : null;
+	if (!match) return null;
+	const elapsedMs = parseEtime(match[1] ?? "");
+	if (elapsedMs == null) return null;
+	return { elapsedMs, command: match[2] ?? "" };
+}
+
+/** Parse ps's `[[dd-]hh:]mm:ss` elapsed-time column into milliseconds. */
+export function parseEtime(etime: string): number | null {
+	const match = /^(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+)$/.exec(etime.trim());
+	if (!match) return null;
+	const [, days = "0", hours = "0", minutes, seconds] = match;
+	return (
+		(((Number(days) * 24 + Number(hours)) * 60 + Number(minutes)) * 60 +
+			Number(seconds)) *
+		1000
+	);
+}
+
+/**
+ * macOS inherits the task's Mach exception ports across fork and exec, so a
+ * plain spawn hands host-service, and every git, hook, login shell and agent
+ * CLI it launches, the port Crashpad registered in this process: their crashes
+ * upload as Superset minidumps carrying an unrelated program's memory. node-pty's
+ * spawn-helper (patched, see patches/README.md) clears those ports before exec,
+ * and launching host-service through it detaches the whole subtree. host-service's
+ * own crashes are reported by handleChildExit with the exit signal and output
+ * tail; pty-daemon's are not reported at all after this. The helper is built
+ * by the native rebuild alongside pty.node, so it is resolved the way node-pty
+ * resolves it and the plain spawn is kept for a tree without the build.
+ *
+ * Two properties of the helper this relies on, both checked on macOS:
+ * - Before exec it runs `close(open(ttyname(STDIN_FILENO), O_RDWR))` to attach
+ *   a pty's controlling terminal. The spawn below gives it /dev/null as stdin,
+ *   for which ttyname() returns NULL (ENOTTY), and open(NULL) fails with
+ *   EFAULT instead of faulting, so the step is inert. It could only act if
+ *   stdin were a terminal, and even then this spawn creates no new session,
+ *   so the terminal would not be acquired.
+ * - A failed execvp exits 1, so a helper that cannot run electron surfaces
+ *   through handleChildExit as a nonzero exit rather than silently; the plain
+ *   spawn fallback only needs to cover the helper not being built.
+ */
+function crashPortClearingLauncher(): string | null {
+	if (process.platform !== "darwin") return null;
+	let helper: string;
+	try {
+		helper = path
+			.join(
+				path.dirname(require.resolve("node-pty")),
+				"..",
+				"build",
+				"Release",
+				"spawn-helper",
+			)
+			.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
+	} catch {
+		return null;
+	}
+	return fs.existsSync(helper) ? helper : null;
+}
+
 function isValidPort(port: number | null | undefined): port is number {
 	return (
 		typeof port === "number" &&
@@ -177,6 +290,12 @@ export class HostServiceCoordinator extends EventEmitter {
 	private devReloadWatcher: fs.FSWatcher | null = null;
 	private respawns = new Map<string, RespawnState>();
 	private desiredOrganizationIds = new Set<string>();
+	/**
+	 * SIGKILL escalations pending for SIGTERMed children, by pid. Cancelled by
+	 * `handleChildExit` so a pid the kernel has since recycled is never
+	 * signalled.
+	 */
+	private killEscalations = new Map<number, ReturnType<typeof setTimeout>>();
 	private startGeneration = 0;
 	private configProvider: (() => Promise<SpawnConfig | null>) | null = null;
 	/**
@@ -189,6 +308,12 @@ export class HostServiceCoordinator extends EventEmitter {
 		delayMs: number,
 	) => ReturnType<typeof setTimeout> = (run, delayMs) =>
 		setTimeout(run, delayMs);
+	/**
+	 * Seam for the startup reap's identity check. Production shells out to
+	 * `ps`; tests hand back a canned identity for their fake pids.
+	 */
+	private inspectProcess: (pid: number) => Promise<ProcessIdentity | null> =
+		inspectProcessWithPs;
 
 	/**
 	 * Supplies fresh spawn config for automatic respawns. A respawn must not
@@ -332,7 +457,10 @@ export class HostServiceCoordinator extends EventEmitter {
 		// drop our local reference below; never SIGTERM it or remove its manifest.
 		if (instance.owned) {
 			try {
-				if (instance.pid > 0) killProcess(instance.pid, "SIGTERM");
+				if (instance.pid > 0) {
+					killProcess(instance.pid, "SIGTERM");
+					this.scheduleKillEscalation(organizationId, instance.pid);
+				}
 			} catch {}
 			this.removeManifestIfHeldBy(organizationId, instance.pid);
 		}
@@ -446,12 +574,23 @@ export class HostServiceCoordinator extends EventEmitter {
 			.map(([id]) => id);
 	}
 
-	async restartAll(config: SpawnConfig): Promise<void> {
-		await Promise.all(
-			this.getActiveOrganizationIds().map((orgId) =>
-				this.restart(orgId, config),
-			),
+	async restartAll(config: SpawnConfig): Promise<number> {
+		// Failed starts and crashed children may have no active instance. Keep
+		// them in a manual retry using the authenticated membership set, never
+		// host directories left on disk by a previous session.
+		const organizationIds = new Set([
+			...this.desiredOrganizationIds,
+			...this.getActiveOrganizationIds(),
+		]);
+		const results = await Promise.allSettled(
+			[...organizationIds].map((orgId) => this.restart(orgId, config)),
 		);
+		// Don't release the settings mutation while another org is still
+		// restarting: a second toggle could otherwise race that pending start.
+		for (const result of results) {
+			if (result.status === "rejected") throw result.reason;
+		}
+		return organizationIds.size;
 	}
 
 	/**
@@ -627,6 +766,7 @@ export class HostServiceCoordinator extends EventEmitter {
 					// attempt and taking the lock — re-check before spawning.
 					const raced = await this.tryAdopt(organizationId, isStartAllowed);
 					if (raced) return raced;
+					await this.reapWedgedManifestHolder(organizationId);
 					return await this.spawn(
 						organizationId,
 						config,
@@ -761,14 +901,33 @@ export class HostServiceCoordinator extends EventEmitter {
 		// lines must not.
 		logStream?.on("error", () => {});
 
+		const launcher = crashPortClearingLauncher();
+		if (process.platform === "darwin" && !launcher) {
+			log.warn(
+				`[host-service:${organizationId}] node-pty spawn-helper not built; the child will inherit this process's crash handler`,
+			);
+		}
+		// spawn-helper's first argument is a cwd to chdir into; empty keeps ours.
+		const [command, args] = launcher
+			? [launcher, ["", process.execPath, this.scriptPath]]
+			: [process.execPath, [this.scriptPath]];
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
-			child = childProcess.spawn(process.execPath, [this.scriptPath], {
+			child = childProcess.spawn(command, args, {
 				detached: false,
 				stdio: ["ignore", "pipe", "pipe"],
 				env: childEnv,
 				// Avoid a flashing CMD window on Windows.
 				windowsHide: true,
+			});
+			// ENOENT/EACCES arrive on the child asynchronously, even when the
+			// missing-pid check below has already rejected and cleaned up startup.
+			// Keep a listener attached so a failed launcher cannot crash Electron.
+			child.on("error", (error) => {
+				log.error(
+					`[host-service:${organizationId}] failed to launch host service`,
+					error,
+				);
 			});
 		} catch (error) {
 			logStream?.end();
@@ -867,6 +1026,10 @@ export class HostServiceCoordinator extends EventEmitter {
 			HOST_SERVICE_SECRET: secret,
 			HOST_SERVICE_PORT: String(port),
 			HOST_MANIFEST_DIR: organizationDir,
+			// This host-service lives inside the app bundle and only the app's
+			// auto-updater can replace it; the host-service reports that so a
+			// remote client never offers an in-place update for it.
+			[HOST_INSTALL_SOURCE_ENV]: "desktop",
 			HOST_DB_PATH: path.join(organizationDir, "host.db"),
 			HOST_MIGRATIONS_FOLDER: app.isPackaged
 				? path.join(process.resourcesPath, "resources/host-migrations")
@@ -914,11 +1077,10 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		// `getProcessEnvWithShellPath` merges in the user's interactive shell env,
 		// which in dev has `RELAY_URL` set. Enforce the toggle *after* that merge
-		// so the child definitely doesn't see a relay URL when disabled. The
-		// effective URL comes from the PostHog `relay-url-override` flag with
-		// `env.RELAY_URL` as fallback (see main/lib/relay-url) so we can A/B-test
-		// alternate relay deployments per-user.
-		const effectiveRelayUrl = getRelayUrl();
+		// so the child definitely doesn't see a relay URL when disabled. This is
+		// only the child's fallback; it asks the API for the relay once
+		// authenticated.
+		const effectiveRelayUrl = mainEnv.RELAY_URL;
 		if (exposeViaRelay && effectiveRelayUrl) {
 			childEnv.RELAY_URL = effectiveRelayUrl;
 		} else {
@@ -970,8 +1132,9 @@ export class HostServiceCoordinator extends EventEmitter {
 		signal: NodeJS.Signals | null,
 	): void {
 		log.info(
-			`[host-service:${organizationId}] exited with code ${code} signal ${signal}`,
+			`[host-service:${organizationId}] pid=${childPid} exited with code ${code} signal ${signal}`,
 		);
+		this.cancelKillEscalation(childPid);
 		const current = this.instances.get(organizationId);
 		if (!current || current.pid !== childPid || current.status === "stopped")
 			return;
@@ -1007,10 +1170,10 @@ export class HostServiceCoordinator extends EventEmitter {
 							pid: childPid,
 							version: app.getVersion(),
 							uptimeMs: Date.now() - current.spawnedAt,
-							outputTail: current.redactions.reduce(
-								(tail, secret) => tail.split(secret).join("[redacted]"),
-								current.outputTail,
-							),
+							outputTail: redactCrashTail(current.outputTail, {
+								secrets: current.redactions,
+								homeDir: os.homedir(),
+							}),
 						},
 					}),
 				)
@@ -1165,6 +1328,125 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	/**
+	 * SIGTERM is a request the child can fail to honour: a host-worker wedged
+	 * in native code leaves `process.exit()` blocked joining it, and the child
+	 * then ignores every later SIGTERM. Follow up with SIGKILL after a grace.
+	 * Unref'd on purpose: on quit the parent must not wait around for this,
+	 * and the startup reap in `reapWedgedManifestHolder` covers a child that
+	 * outlives us.
+	 */
+	private scheduleKillEscalation(organizationId: string, pid: number): void {
+		this.cancelKillEscalation(pid);
+		const timer = this.scheduleRespawnTimer(() => {
+			// A cancelled escalation (the child exited, `handleChildExit` ran) is
+			// no longer the registered one; never signal a pid we know is gone.
+			if (this.killEscalations.get(pid) !== timer) return;
+			this.killEscalations.delete(pid);
+			if (!isProcessAlive(pid)) return;
+			log.warn(
+				`[host-service:${organizationId}] pid=${pid} still alive ${STOP_KILL_ESCALATION_MS}ms after SIGTERM; escalating to SIGKILL`,
+			);
+			try {
+				killProcess(pid, "SIGKILL");
+			} catch (error) {
+				log.warn(
+					`[host-service:${organizationId}] SIGKILL of pid=${pid} failed`,
+					error,
+				);
+			}
+		}, STOP_KILL_ESCALATION_MS);
+		timer.unref?.();
+		this.killEscalations.set(pid, timer);
+	}
+
+	private cancelKillEscalation(pid: number): void {
+		const timer = this.killEscalations.get(pid);
+		if (!timer) return;
+		clearTimeout(timer);
+		this.killEscalations.delete(pid);
+	}
+
+	/**
+	 * Kill a manifest holder that is alive but failed the adopt health probe
+	 * before spawning beside it. That holder is a wedged host-service: in
+	 * practice an orphan of a Squirrel auto-update relaunch whose exit hung
+	 * joining a stuck worker. Left alone it keeps the port (the replacement
+	 * ends up on a fallback port) and its pty-daemon subscriptions, which
+	 * freezes those terminals for the replacement too. Runs under the spawn
+	 * lock, right after the under-lock adopt miss, so the probe verdict is
+	 * fresh. A pid started before this boot is skipped: pids recycle across
+	 * reboots, and a pre-boot `startedAt` can name any process at all.
+	 *
+	 * Pids recycle within a boot too, and `kill(pid, 0)` only proves *a*
+	 * process exists. So before SIGKILL the live process must look like the
+	 * host-service that wrote the manifest: our script on its command line and
+	 * an age consistent with `startedAt`. Anything else, including a pid `ps`
+	 * cannot inspect, is left alone.
+	 */
+	private async reapWedgedManifestHolder(
+		organizationId: string,
+	): Promise<void> {
+		const manifest = readManifest(organizationId);
+		if (!manifest || !isProcessAlive(manifest.pid)) return;
+		// tryAdopt() returns null without probing when the endpoint is
+		// unparsable; only a probed miss is evidence of a wedge.
+		let port: number | null = null;
+		try {
+			port = Number(new URL(manifest.endpoint).port);
+		} catch {}
+		if (!isValidPort(port)) return;
+		const bootedAt = Date.now() - os.uptime() * 1000;
+		if (manifest.startedAt < bootedAt) return;
+
+		const identity = await this.inspectProcess(manifest.pid);
+		const processStartedAt =
+			identity == null ? null : Date.now() - identity.elapsedMs;
+		const looksLikeHolder =
+			identity != null &&
+			processStartedAt != null &&
+			identity.command.includes(path.basename(this.scriptPath)) &&
+			processStartedAt >= manifest.startedAt - REAP_IDENTITY_MAX_OLDER_MS &&
+			processStartedAt <= manifest.startedAt + REAP_IDENTITY_MAX_YOUNGER_MS;
+		if (!looksLikeHolder) {
+			log.warn(
+				`[host-service:${organizationId}] manifest pid=${manifest.pid} is alive but unhealthy and does not look like the host-service that wrote the manifest (${identity ? `"${identity.command}", age ${Math.round(identity.elapsedMs / 1000)}s` : "not inspectable"}); leaving it alone`,
+			);
+			return;
+		}
+
+		log.warn(
+			`[host-service:${organizationId}] manifest pid=${manifest.pid} at ${manifest.endpoint} is alive but unhealthy; SIGKILLing it before spawning`,
+		);
+		try {
+			killProcess(manifest.pid, "SIGKILL");
+		} catch (error) {
+			log.warn(
+				`[host-service:${organizationId}] reap: SIGKILL of pid=${manifest.pid} failed`,
+				error,
+			);
+		}
+		// SIGKILL is asynchronous: give the kernel a moment to tear the process
+		// down so spawn()'s findFreePort sees its preferred port free instead
+		// of falling back to a random one.
+		const exited = await this.waitForExit(manifest.pid, REAP_EXIT_WAIT_MS);
+		if (!exited) {
+			log.warn(
+				`[host-service:${organizationId}] reap: pid=${manifest.pid} still alive ${REAP_EXIT_WAIT_MS}ms after SIGKILL`,
+			);
+		}
+		this.removeManifestIfHeldBy(organizationId, manifest.pid);
+	}
+
+	private async waitForExit(pid: number, timeoutMs: number): Promise<boolean> {
+		const deadline = Date.now() + timeoutMs;
+		while (isProcessAlive(pid)) {
+			if (Date.now() >= deadline) return false;
+			await new Promise((r) => setTimeout(r, REAP_EXIT_POLL_MS));
+		}
+		return true;
+	}
+
+	/**
 	 * Alert on a crash we could not recover from. Recovery is the existing
 	 * tray > Host Service > Restart. Async on purpose: a synchronous error box
 	 * blocks the main process until dismissed.
@@ -1173,10 +1455,32 @@ export class HostServiceCoordinator extends EventEmitter {
 		const orgName = this.getOrganizationName(organizationId);
 		void dialog.showMessageBox({
 			type: "error",
-			title: "Host service crashed",
-			message: `The Superset host service${orgName ? ` for ${orgName}` : ""} stopped unexpectedly (${cause}) and could not be restarted automatically.`,
-			detail:
-				"Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.",
+			title: i18n._(
+				msg({
+					message: "Host service crashed",
+				}),
+			),
+			message: orgName
+				? i18n._({
+						...msg({
+							message:
+								"The Superset host service for {organization} stopped unexpectedly ({cause}) and could not be restarted automatically.",
+						}),
+						values: { organization: orgName, cause },
+					})
+				: i18n._({
+						...msg({
+							message:
+								"The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically.",
+						}),
+						values: { cause },
+					}),
+			detail: i18n._(
+				msg({
+					message:
+						"Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.",
+				}),
+			),
 		});
 	}
 

@@ -87,26 +87,20 @@ export function FontPreview({
 					<>
 						<span className="size-2 rounded-full bg-primary" />
 						<span>
-							<Trans id="settings.appearance.fontPreview.terminalTitle">
-								Terminal
-							</Trans>
+							<Trans>Terminal</Trans>
 						</span>
 						<span className="ml-auto">
-							<Trans id="settings.appearance.fontPreview.shell">zsh</Trans>
+							<Trans>zsh</Trans>
 						</span>
 					</>
 				) : (
 					<>
 						<span className="size-2 rounded-full bg-blue-500" />
 						<span>
-							<Trans id="settings.appearance.fontPreview.editorFileName">
-								settings.ts
-							</Trans>
+							<Trans>settings.ts</Trans>
 						</span>
 						<span className="ml-auto">
-							<Trans id="settings.appearance.fontPreview.editorLanguage">
-								TypeScript
-							</Trans>
+							<Trans>TypeScript</Trans>
 						</span>
 					</>
 				)}
@@ -143,9 +137,7 @@ export function FontPreview({
 					)}
 					<div>
 						<span className="text-primary">
-							<Trans id="settings.appearance.fontPreview.prompt">
-								~/agent $
-							</Trans>
+							<Trans>~/agent $</Trans>
 						</span>{" "}
 						<span
 							aria-hidden="true"
@@ -191,20 +183,14 @@ export function FontPreview({
 				<span className="ml-auto shrink-0 whitespace-nowrap">
 					{fontWeight} ·{" "}
 					{ligatures ? (
-						<Trans id="settings.appearance.fontPreview.ligaturesOn">
-							Ligatures on
-						</Trans>
+						<Trans>Ligatures on</Trans>
 					) : (
-						<Trans id="settings.appearance.fontPreview.ligaturesOff">
-							Ligatures off
-						</Trans>
+						<Trans>Ligatures off</Trans>
 					)}
 					{isTerminal && minimumContrast !== null ? (
 						<>
 							{" · "}
-							<Trans id="settings.appearance.fontPreview.contrastSuffix">
-								{minimumContrast}:1 contrast
-							</Trans>
+							<Trans>{minimumContrast}:1 contrast</Trans>
 						</>
 					) : (
 						""

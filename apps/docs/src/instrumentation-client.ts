@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { inferLocaleWithSource } from "@superset/i18n";
 import { POSTHOG_COOKIE_NAME } from "@superset/shared/constants";
 import {
 	SENTRY_DENY_URLS,
@@ -21,9 +22,12 @@ if (env.NEXT_PUBLIC_POSTHOG_KEY) {
 		persistence: "cookie",
 		persistence_name: POSTHOG_COOKIE_NAME,
 		loaded: (posthog) => {
+			const { locale, source } = inferLocaleWithSource();
 			posthog.register({
 				app_name: "docs",
 				domain: window.location.hostname,
+				app_locale: locale,
+				app_locale_source: source,
 			});
 		},
 	});
@@ -33,7 +37,6 @@ Sentry.init({
 	dsn: env.NEXT_PUBLIC_SENTRY_DSN_DOCS,
 	environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	enabled: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production",
-	tracesSampleRate: 0.01,
 	replaysSessionSampleRate: 0,
 	replaysOnErrorSampleRate: 0,
 	sendDefaultPii: true,

@@ -1,5 +1,8 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -40,7 +43,6 @@ import {
 	TableRow,
 } from "@superset/ui/table";
 import { FolderGitIcon, MoreHorizontalIcon } from "lucide-react";
-
 import { ComponentCard } from "../ComponentCard";
 import { ShowcaseSection } from "../ShowcaseSection";
 
@@ -55,31 +57,68 @@ export function DataSection() {
 		<ShowcaseSection
 			id="data"
 			index="07"
-			title="Data display"
-			description="Badges, avatars, cards, tables, and lists"
+			title={i18n._(
+				msg({
+					message: "Data display",
+				}),
+			)}
+			description={i18n._(
+				msg({
+					message: "Badges, avatars, cards, tables, and lists",
+				}),
+			)}
 		>
 			<ComponentCard
-				title="Badge"
+				title={i18n._(msg({ message: "Badge" }))}
 				importPath="@superset/ui/badge"
-				description="Includes the Superset-specific box variant"
+				description={i18n._(
+					msg({
+						message: "Includes the Superset-specific box variant",
+					}),
+				)}
 			>
-				<Badge>Default</Badge>
-				<Badge variant="secondary">Secondary</Badge>
-				<Badge variant="outline">Outline</Badge>
-				<Badge variant="destructive">Destructive</Badge>
-				<Badge variant="box">Box</Badge>
+				<Badge>
+					<Trans>Default</Trans>
+				</Badge>
+				<Badge variant="secondary">
+					<Trans>Secondary</Trans>
+				</Badge>
+				<Badge variant="outline">
+					<Trans>Outline</Trans>
+				</Badge>
+				<Badge variant="destructive">
+					<Trans>Destructive</Trans>
+				</Badge>
+				<Badge variant="box">
+					<Trans>Box</Trans>
+				</Badge>
 			</ComponentCard>
 
-			<ComponentCard title="Avatar" importPath="@superset/ui/avatar">
+			<ComponentCard
+				title={i18n._(
+					msg({
+						message: "Avatar",
+					}),
+				)}
+				importPath="@superset/ui/avatar"
+			>
 				<Avatar>
 					<AvatarImage
 						src="https://github.com/superset-sh.png"
-						alt="Superset"
+						alt={i18n._(
+							msg({
+								message: "Superset",
+							}),
+						)}
 					/>
-					<AvatarFallback>SS</AvatarFallback>
+					<AvatarFallback>
+						<Trans>SS</Trans>
+					</AvatarFallback>
 				</Avatar>
 				<Avatar>
-					<AvatarFallback>AP</AvatarFallback>
+					<AvatarFallback>
+						<Trans>AP</Trans>
+					</AvatarFallback>
 				</Avatar>
 				<div className="flex -space-x-2">
 					{["A", "B", "C"].map((letter) => (
@@ -90,42 +129,68 @@ export function DataSection() {
 				</div>
 			</ComponentCard>
 
-			<ComponentCard title="Card" importPath="@superset/ui/card">
+			<ComponentCard
+				title={i18n._(msg({ message: "Card" }))}
+				importPath="@superset/ui/card"
+			>
 				<Card className="w-full max-w-72">
 					<CardHeader>
-						<CardTitle>Notifications</CardTitle>
-						<CardDescription>Choose when Superset pings you.</CardDescription>
+						<CardTitle>
+							<Trans>Notifications</Trans>
+						</CardTitle>
+						<CardDescription>
+							<Trans>Choose when Superset pings you.</Trans>
+						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-3">
 						<div className="flex items-center justify-between">
-							<Label htmlFor="dsg-card-done">Agent finished</Label>
+							<Label htmlFor="dsg-card-done">
+								<Trans>Agent finished</Trans>
+							</Label>
 							<Switch id="dsg-card-done" defaultChecked />
 						</div>
 						<div className="flex items-center justify-between">
-							<Label htmlFor="dsg-card-fail">CI failed</Label>
+							<Label htmlFor="dsg-card-fail">
+								<Trans>CI failed</Trans>
+							</Label>
 							<Switch id="dsg-card-fail" />
 						</div>
 					</CardContent>
 					<CardFooter>
 						<Button size="sm" className="w-full">
-							Save preferences
+							<Trans>Save preferences</Trans>
 						</Button>
 					</CardFooter>
 				</Card>
 			</ComponentCard>
 
-			<ComponentCard title="Item" importPath="@superset/ui/item">
+			<ComponentCard
+				title={i18n._(msg({ message: "Item" }))}
+				importPath="@superset/ui/item"
+			>
 				<ItemGroup className="w-full max-w-80">
 					<Item>
 						<ItemMedia variant="icon">
 							<FolderGitIcon />
 						</ItemMedia>
 						<ItemContent>
-							<ItemTitle>component-showcase</ItemTitle>
-							<ItemDescription>2 agents · 14 files changed</ItemDescription>
+							<ItemTitle>
+								<Trans>component-showcase</Trans>
+							</ItemTitle>
+							<ItemDescription>
+								<Trans>2 agents · 14 files changed</Trans>
+							</ItemDescription>
 						</ItemContent>
 						<ItemActions>
-							<Button variant="ghost" size="icon-sm" aria-label="More">
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								aria-label={i18n._(
+									msg({
+										message: "More",
+									}),
+								)}
+							>
 								<MoreHorizontalIcon />
 							</Button>
 						</ItemActions>
@@ -136,21 +201,38 @@ export function DataSection() {
 							<FolderGitIcon />
 						</ItemMedia>
 						<ItemContent>
-							<ItemTitle>fix-auth-redirect</ItemTitle>
-							<ItemDescription>Idle · branch pushed</ItemDescription>
+							<ItemTitle>
+								<Trans>fix-auth-redirect</Trans>
+							</ItemTitle>
+							<ItemDescription>
+								<Trans>Idle · branch pushed</Trans>
+							</ItemDescription>
 						</ItemContent>
 					</Item>
 				</ItemGroup>
 			</ComponentCard>
 
-			<ComponentCard title="Table" importPath="@superset/ui/table" span bleed>
+			<ComponentCard
+				title={i18n._(msg({ message: "Table" }))}
+				importPath="@superset/ui/table"
+				span
+				bleed
+			>
 				<Table>
-					<TableCaption>Active agent sessions.</TableCaption>
+					<TableCaption>
+						<Trans>Active agent sessions.</Trans>
+					</TableCaption>
 					<TableHeader>
 						<TableRow>
-							<TableHead>Workspace</TableHead>
-							<TableHead>Agent</TableHead>
-							<TableHead className="text-right">Status</TableHead>
+							<TableHead>
+								<Trans>Workspace</Trans>
+							</TableHead>
+							<TableHead>
+								<Trans>Agent</Trans>
+							</TableHead>
+							<TableHead className="text-right">
+								<Trans>Status</Trans>
+							</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -175,7 +257,15 @@ export function DataSection() {
 				</Table>
 			</ComponentCard>
 
-			<ComponentCard title="Carousel" importPath="@superset/ui/carousel" span>
+			<ComponentCard
+				title={i18n._(
+					msg({
+						message: "Carousel",
+					}),
+				)}
+				importPath="@superset/ui/carousel"
+				span
+			>
 				<Carousel className="w-full max-w-56">
 					<CarouselContent>
 						{[1, 2, 3, 4, 5].map((slide) => (

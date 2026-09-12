@@ -66,7 +66,7 @@ export function TemplateGalleryModal({
 			if (isV2CloudEnabled) {
 				if (!activeHostUrl) {
 					showHostServiceUnavailableToast(hostService, {
-						action: "create the project",
+						action: "createProject",
 					});
 					return;
 				}

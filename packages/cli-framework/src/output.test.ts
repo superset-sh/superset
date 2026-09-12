@@ -26,16 +26,27 @@ afterEach(() => setTTY(originalIsTTY));
 describe("table", () => {
 	test("truncates a cell wider than its cap", () => {
 		setTTY(false);
+		const out = table(
+			[{ title: "Schema history for every published page and version" }],
+			["title"],
+			undefined,
+			[30],
+		);
+		expect(out).toContain("Schema history for every publ…");
+	});
+
+	test("prints a URL in full however narrow its column", () => {
+		setTTY(false);
 		const out = table(ROWS, COLUMNS, undefined, CAPS);
-		expect(out).toContain(`${URL.slice(0, 49)}…`);
+		expect(out).toContain(URL);
+		expect(out).not.toContain("…");
 		expect(out).not.toContain("\x1b]8;;");
 	});
 
-	test("links the whole URL even when the visible text is truncated", () => {
+	test("links the URL it prints", () => {
 		setTTY(true);
 		const out = table(ROWS, COLUMNS, undefined, CAPS);
-		expect(out).toContain(`\x1b]8;;${URL}\x07`);
-		expect(out).toContain(`${URL.slice(0, 49)}…\x1b]8;;\x07`);
+		expect(out).toContain(`\x1b]8;;${URL}\x07${URL}\x1b]8;;\x07`);
 	});
 
 	test("keeps padding outside the link so it stops at the URL", () => {
@@ -57,6 +68,23 @@ describe("table", () => {
 				.map((line) => line.replace(OSC8, "").length);
 		});
 		expect(widths[0]).toEqual(widths[1]!);
+	});
+
+	test("lines the next column up behind a URL wider than its cap", () => {
+		setTTY(false);
+		const lines = table(
+			[
+				{ url: URL, id: "4a436fc7" },
+				{ url: "http://a.dev", id: "860b82f8" },
+			],
+			["url", "id"],
+			["URL", "ID"],
+			[20, 10],
+		).split("\n");
+		const starts = ["ID", "4a436fc7", "860b82f8"].map((cell, i) =>
+			lines[i]?.indexOf(cell),
+		);
+		expect(new Set(starts).size).toBe(1);
 	});
 
 	test("leaves non-URL cells alone", () => {

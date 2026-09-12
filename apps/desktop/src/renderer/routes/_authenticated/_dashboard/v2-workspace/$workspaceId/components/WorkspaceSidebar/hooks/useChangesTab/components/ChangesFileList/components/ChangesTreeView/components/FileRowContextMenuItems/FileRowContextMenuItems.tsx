@@ -8,6 +8,8 @@ import {
 	ExternalLink,
 	FileText,
 	GitCompare,
+	Minus,
+	Plus,
 	SquarePlus,
 	Trash2,
 	Undo2,
@@ -16,12 +18,12 @@ import {
 	modifierLabel,
 	useChangesSidebarFilePolicy,
 } from "renderer/lib/clickPolicy";
-import { PathActionsMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PathActionsMenuItems";
 import {
 	type ChangesetFile,
 	getChangesetFileKey,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
+import { PathActionsMenuItems } from "../../../PathActionsMenuItems";
 
 interface FileRowContextMenuItemsProps {
 	file: ChangesetFile;
@@ -41,6 +43,8 @@ interface FileRowContextMenuItemsProps {
 	 * inside it before the user could confirm.
 	 */
 	onRequestDiscard?: (file: ChangesetFile) => void;
+	onStageFile?: (file: ChangesetFile) => void;
+	onUnstageFile?: (file: ChangesetFile) => void;
 }
 
 /**
@@ -56,12 +60,16 @@ export function FileRowContextMenuItems({
 	onOpenFile,
 	onOpenInEditor,
 	onRequestDiscard,
+	onStageFile,
+	onUnstageFile,
 }: FileRowContextMenuItemsProps) {
 	const { t } = useLingui();
 	const absolutePath = worktreePath
 		? toAbsoluteWorkspacePath(worktreePath, file.path)
 		: undefined;
-	const canDiscard = sectionKind === "unstaged";
+	const canDiscard = sectionKind === "unstaged" && onRequestDiscard;
+	const canStage = sectionKind === "unstaged" && onStageFile;
+	const canUnstage = sectionKind === "staged" && onUnstageFile;
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
 	const changeKey = getChangesetFileKey(file);
 
@@ -76,15 +84,13 @@ export function FileRowContextMenuItems({
 				onSelect={() => onSelectFile?.(file.path, false, changeKey)}
 			>
 				<GitCompare />
-				<Trans id="workspace.fileRowMenuItems.openDiff">Open Diff</Trans>
+				<Trans>Open Diff</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onSelect={() => onSelectFile?.(file.path, true, changeKey)}
 			>
 				<SquarePlus />
-				<Trans id="workspace.fileRowMenuItems.openDiffNewTab">
-					Open Diff in New Tab
-				</Trans>
+				<Trans>Open Diff in New Tab</Trans>
 				{diffNewTabTier && (
 					<DropdownMenuShortcut>
 						{modifierLabel(diffNewTabTier)}
@@ -96,7 +102,7 @@ export function FileRowContextMenuItems({
 				disabled={!onOpenFile || !absolutePath}
 			>
 				<FileText />
-				<Trans id="workspace.fileRowMenuItems.openFile">Open File</Trans>
+				<Trans>Open File</Trans>
 				{fileTier && (
 					<DropdownMenuShortcut>{modifierLabel(fileTier)}</DropdownMenuShortcut>
 				)}
@@ -106,18 +112,14 @@ export function FileRowContextMenuItems({
 				disabled={!onOpenFile || !absolutePath}
 			>
 				<SquarePlus />
-				<Trans id="workspace.fileRowMenuItems.openFileNewTab">
-					Open File in New Tab
-				</Trans>
+				<Trans>Open File in New Tab</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onSelect={() => onOpenInEditor?.(file.path)}
 				disabled={!onOpenInEditor}
 			>
 				<ExternalLink />
-				<Trans id="workspace.fileRowMenuItems.openInEditor">
-					Open in Editor
-				</Trans>
+				<Trans>Open in Editor</Trans>
 				{externalTier && (
 					<DropdownMenuShortcut>
 						{modifierLabel(externalTier)}
@@ -134,25 +136,33 @@ export function FileRowContextMenuItems({
 					/>
 				</>
 			)}
-			{canDiscard && onRequestDiscard && (
-				<>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						variant="destructive"
-						onSelect={() => onRequestDiscard(file)}
-					>
-						{isDeleteAction ? <Trash2 /> : <Undo2 />}
-						{isDeleteAction
-							? t({
-									id: "workspace.fileRowContextMenuItems.delete",
-									message: "Delete",
-								})
-							: t({
-									id: "workspace.fileRowContextMenuItems.discardChanges",
-									message: "Discard changes",
-								})}
-					</DropdownMenuItem>
-				</>
+			{(canStage || canUnstage || canDiscard) && <DropdownMenuSeparator />}
+			{canStage && (
+				<DropdownMenuItem onSelect={() => onStageFile(file)}>
+					<Plus />
+					<Trans>Stage file</Trans>
+				</DropdownMenuItem>
+			)}
+			{canUnstage && (
+				<DropdownMenuItem onSelect={() => onUnstageFile(file)}>
+					<Minus />
+					<Trans>Unstage file</Trans>
+				</DropdownMenuItem>
+			)}
+			{canDiscard && (
+				<DropdownMenuItem
+					variant="destructive"
+					onSelect={() => onRequestDiscard(file)}
+				>
+					{isDeleteAction ? <Trash2 /> : <Undo2 />}
+					{isDeleteAction
+						? t({
+								message: "Delete",
+							})
+						: t({
+								message: "Discard changes",
+							})}
+				</DropdownMenuItem>
 			)}
 		</>
 	);

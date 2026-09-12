@@ -80,7 +80,6 @@ export function LinearProjectFilter({
 						selected
 							? selected.name
 							: t({
-									id: "dashboard.tasks.linearProjectFilter.projectLabel",
 									message: "Project",
 								})
 					}
@@ -88,7 +87,6 @@ export function LinearProjectFilter({
 						selected
 							? selected.name
 							: t({
-									id: "dashboard.tasks.linearProjectFilter.projectLabel",
 									message: "Project",
 								})
 					}
@@ -96,13 +94,7 @@ export function LinearProjectFilter({
 				>
 					<HiOutlineFolder className="size-4" />
 					<span className="text-sm hidden @4xl:inline">
-						{selected ? (
-							selected.name
-						) : (
-							<Trans id="dashboard.tasks.linearProjectFilter.project">
-								Project
-							</Trans>
-						)}
+						{selected ? selected.name : <Trans>Project</Trans>}
 					</span>
 					<HiChevronDown className="size-3" />
 				</Button>
@@ -111,7 +103,6 @@ export function LinearProjectFilter({
 				<Command shouldFilter={false}>
 					<CommandInput
 						placeholder={t({
-							id: "dashboard.tasks.linearProjectFilter.searchProjects",
 							message: "Search projects...",
 						})}
 						value={search}
@@ -120,9 +111,7 @@ export function LinearProjectFilter({
 					<CommandList className="max-h-80">
 						{filtered.length === 0 && search && (
 							<CommandEmpty>
-								<Trans id="dashboard.tasks.linearProjectFilter.noProjects">
-									No projects found.
-								</Trans>
+								<Trans>No projects found.</Trans>
 							</CommandEmpty>
 						)}
 						<CommandGroup>
@@ -130,9 +119,7 @@ export function LinearProjectFilter({
 								<CommandItem onSelect={() => handleSelect(null)}>
 									<HiOutlineFolder className="size-4 shrink-0" />
 									<span className="text-sm truncate">
-										<Trans id="dashboard.tasks.linearProjectFilter.allProjects">
-											All projects
-										</Trans>
+										<Trans>All projects</Trans>
 									</span>
 									{value === null && (
 										<HiCheck className="ml-auto size-3.5 shrink-0" />

@@ -46,12 +46,12 @@ struct ComposerImageViewer: View {
               .frame(width: Self.controlSize, height: Self.controlSize)
               .background(.white.opacity(0.12), in: .circle)
           }
-          .accessibilityLabel("Close")
+          .accessibilityLabel(composerLocalized("Close"))
 
           Spacer()
 
           Button(action: onClose) {
-            Text("Done")
+            Text(composerLocalized("Done"))
               .font(.system(size: 16, weight: .semibold))
               .foregroundStyle(.white)
               .padding(.horizontal, 18)

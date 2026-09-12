@@ -48,7 +48,11 @@ export const getDiff = protectedProcedure
 						`${repo.owner}/${repo.name}`,
 					],
 					// Large diffs take longer than the 10s default; give gh room.
-					{ timeout: 30_000 },
+					// And a larger stdout cap: a PR touching generated single-line
+					// files (locale catalogs, lockfiles) can produce a raw diff
+					// well past execGh's 10MB default; the renderer already
+					// lazy-hides oversized/generated files per-file.
+					{ timeout: 30_000, maxBuffer: 200 * 1024 * 1024 },
 				);
 				// `gh pr diff` prints a raw unified diff, not JSON — execGh only
 				// JSON-parses when it can, so this is already the plain string.

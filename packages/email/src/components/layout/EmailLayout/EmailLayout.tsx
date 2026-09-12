@@ -11,6 +11,7 @@ import {
 	Text,
 } from "@react-email/components";
 import { Tailwind } from "@react-email/tailwind";
+import { COMPANY } from "@superset/shared/constants";
 import type { ReactNode } from "react";
 import { env } from "../../../lib/env";
 
@@ -99,6 +100,17 @@ export function EmailLayout({
 								margin: "40px 0 20px",
 							}}
 						/>
+						<Section style={{ paddingBottom: "16px" }}>
+							<Link href={COMPANY.APP_STORE_URL}>
+								<Img
+									src={`${assets}/badge-appstore.png`}
+									alt="Download Superset on the App Store"
+									width="108"
+									height="32"
+									style={{ display: "inline-block" }}
+								/>
+							</Link>
+						</Section>
 						<Text style={footerText}>
 							<Link
 								href="https://superset.sh"

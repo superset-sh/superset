@@ -88,6 +88,13 @@ export const SETTINGS: SettingDefinition[] = [
 		defaultValue: true,
 	},
 	{
+		key: "showUsageInSidebar",
+		type: "boolean",
+		section: "usage",
+		description: "Show a Usage button in the home sidebar",
+		defaultValue: false,
+	},
+	{
 		key: "openLinksInApp",
 		type: "boolean",
 		section: "behavior",
@@ -188,6 +195,13 @@ export const SETTINGS: SettingDefinition[] = [
 		integer: true,
 		description: "Max number of background terminals kept running",
 		defaultValue: 12,
+	},
+	{
+		key: "terminalCopyOnSelect",
+		type: "boolean",
+		section: "terminal",
+		description: "Copy selected terminal text to the clipboard right away",
+		defaultValue: false,
 	},
 	{
 		key: "showPresetsBar",

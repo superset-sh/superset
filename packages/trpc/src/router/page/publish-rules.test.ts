@@ -1,20 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { TRPCError } from "@trpc/server";
 import {
 	isVersionConflict,
-	MAX_PAGE_BYTES,
-	PAGE_CONTENT_TYPES,
 	titleFromFilename,
-	validatePublishContent,
+	validateAssetPaths,
 } from "./publish-rules";
-
-const base64 = (text: string) => Buffer.from(text).toString("base64");
-
-describe("PAGE_CONTENT_TYPES", () => {
-	test("is html only — a page is one self-contained file, with no assets beside it", () => {
-		expect([...PAGE_CONTENT_TYPES]).toEqual(["text/html"]);
-	});
-});
 
 describe("titleFromFilename", () => {
 	test("drops the extension and un-slugifies the stem", () => {
@@ -62,40 +51,35 @@ describe("isVersionConflict", () => {
 	});
 });
 
-describe("validatePublishContent", () => {
-	test("accepts html and returns its digest", () => {
-		const { buffer, sha256 } = validatePublishContent({
-			content: base64("<h1>hi</h1>"),
-			contentType: "text/html",
-		});
-		expect(buffer.toString()).toBe("<h1>hi</h1>");
-		expect(sha256).toHaveLength(64);
+describe("validateAssetPaths", () => {
+	const ok = (path: string) =>
+		expect(() => validateAssetPaths([{ path }])).not.toThrow();
+	const bad = (path: string) =>
+		expect(() => validateAssetPaths([{ path }])).toThrow();
+
+	test("accepts ordinary relative paths", () => {
+		ok("demo.mp4");
+		ok("img/chart.png");
+		ok("styles/site.css");
+		ok("versions.png");
 	});
 
-	test("rejects an image as a page — those are files now", () => {
-		expect(() =>
-			validatePublishContent({
-				content: base64("\x89PNG"),
-				contentType: "image/png",
-			}),
-		).toThrow(TRPCError);
+	test("refuses escapes, reserved shapes, and shadows", () => {
+		bad("/abs.png");
+		bad("../up.png");
+		bad("a/../b.png");
+		bad("a//b.png");
+		bad("versions/1/x.png");
+		bad("files/abc");
+		bad("_superset/runtime.js");
+		bad("~ticket/x.png");
+		bad("index.html");
+		bad("thumbnail.jpg");
 	});
 
-	test("rejects markdown until the viewer can render it", () => {
+	test("refuses duplicates", () => {
 		expect(() =>
-			validatePublishContent({
-				content: base64("# hi"),
-				contentType: "text/markdown",
-			}),
-		).toThrow(TRPCError);
-	});
-
-	test("rejects a page over the size cap", () => {
-		expect(() =>
-			validatePublishContent({
-				content: Buffer.alloc(MAX_PAGE_BYTES + 1, 0x61).toString("base64"),
-				contentType: "text/html",
-			}),
-		).toThrow(/too large/i);
+			validateAssetPaths([{ path: "a.png" }, { path: "a.png" }]),
+		).toThrow();
 	});
 });

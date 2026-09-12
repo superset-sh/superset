@@ -6,7 +6,7 @@
  * Usage (dry-run by default, pass --apply to mutate):
  *   RESEND_API_KEY=... bun scripts/sync-automations.ts [--apply] [--force]
  *
- * Three hard-won rules this script encodes:
+ * Four hard-won rules this script encodes:
  * - ONLY `user.signed_up` is safe as a trigger: it fires once per user, from
  *   better-auth's `user.create.after` hook. `user.activated` fires on every
  *   workspace create and `app.first_opened` on every first-host/onboarding
@@ -15,6 +15,11 @@
  *   230 people on 2026-08-21. Repeating events belong in `wait_for_event`,
  *   which absorbs duplicates. Events fan out to every matching consumer, so
  *   any number of automations can wait on the same one.
+ * - GATING an emitter is the mirror of that rule: it hits every consumer. The
+ *   signup hook withholds `user.signed_up` from the activation A/B's control
+ *   arm, so a second automation triggering on it would silently lose that arm
+ *   too. That is why only activation-drip is defined here. Before adding
+ *   another `user.signed_up` trigger, split enrolment into its own event.
  * - NEVER update an enabled automation's steps: despite the API's wording,
  *   doing so cancelled every in-flight run (2026-08-20, ~324 users dropped
  *   mid-drip). Migration is create-new-enabled, then stop (not edit) the old
@@ -125,44 +130,6 @@ const desired: DesiredAutomation[] = [
 			{ from: "send_first_prompt", to: "wait_activation_2", type: "default" },
 			{ from: "send_first_agent", to: "wait_activation_2", type: "default" },
 			{ from: "wait_activation_2", to: "send_founder_note", type: "timeout" },
-		],
-	},
-	{
-		// Post-activation habit drip. Triggered by signup and *gated* on
-		// activation rather than triggered by it — see the trigger-cardinality
-		// rule above. On timeout the run simply ends: a user who never
-		// activates should not get habit mail.
-		name: "habit-drip",
-		steps: [
-			{
-				key: "start",
-				type: "trigger",
-				config: { eventName: "user.signed_up" },
-			},
-			{
-				key: "wait_activation",
-				type: "wait_for_event",
-				config: { eventName: "user.activated", timeout: "30 days" },
-			},
-			{ key: "delay_1", type: "delay", config: { duration: "1 day" } },
-			{
-				key: "send_parallel",
-				type: "send_email",
-				config: { template: template("habit-01-parallel") },
-			},
-			{ key: "delay_2", type: "delay", config: { duration: "12 days" } },
-			{
-				key: "send_automations",
-				type: "send_email",
-				config: { template: template("habit-02-automations") },
-			},
-		],
-		connections: [
-			{ from: "start", to: "wait_activation", type: "default" },
-			{ from: "wait_activation", to: "delay_1", type: "event_received" },
-			{ from: "delay_1", to: "send_parallel", type: "default" },
-			{ from: "send_parallel", to: "delay_2", type: "default" },
-			{ from: "delay_2", to: "send_automations", type: "default" },
 		],
 	},
 ];

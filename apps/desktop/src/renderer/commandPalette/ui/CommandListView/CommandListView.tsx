@@ -24,7 +24,7 @@ export function CommandListView({ query, onSelect }: CommandListViewProps) {
 	return (
 		<CommandList>
 			<CommandEmpty>
-				<Trans id="commandPalette.commandList.empty">No commands found.</Trans>
+				<Trans>No commands found.</Trans>
 			</CommandEmpty>
 			{ranked.map((section) => (
 				<CommandGroup key={section.id} heading={i18n._(section.label)}>

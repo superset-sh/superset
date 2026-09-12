@@ -26,23 +26,18 @@ export function PriorityMenuItems({
 	const { t } = useLingui();
 	const priorityLabels: Record<TaskPriority, string> = {
 		none: t({
-			id: "dashboard.tasks.priorityMenuItems.priorityNone",
 			message: "No priority",
 		}),
 		urgent: t({
-			id: "dashboard.tasks.priorityMenuItems.priorityUrgent",
 			message: "Urgent",
 		}),
 		high: t({
-			id: "dashboard.tasks.priorityMenuItems.priorityHigh",
 			message: "High",
 		}),
 		medium: t({
-			id: "dashboard.tasks.priorityMenuItems.priorityMedium",
 			message: "Medium",
 		}),
 		low: t({
-			id: "dashboard.tasks.priorityMenuItems.priorityLow",
 			message: "Low",
 		}),
 	};

@@ -20,12 +20,10 @@ export function WorkspaceNotFoundState({
 				/>
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						<Trans id="workspace.states.notFoundTitle">
-							Workspace not found
-						</Trans>
+						<Trans>Workspace not found</Trans>
 					</h1>
 					<p className="text-[13px] leading-relaxed text-muted-foreground">
-						<Trans id="workspace.states.notFoundBody">
+						<Trans>
 							This workspace may have been removed, or you no longer have access
 							to it.
 						</Trans>
@@ -33,7 +31,7 @@ export function WorkspaceNotFoundState({
 				</div>
 				<div className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5">
 					<span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
-						<Trans id="workspace.states.notFoundIdLabel">ID</Trans>
+						<Trans>ID</Trans>
 					</span>
 					<code className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
 						{workspaceId}
@@ -46,9 +44,7 @@ export function WorkspaceNotFoundState({
 					className="-ml-2 h-7 gap-1.5 px-2 text-[13px] font-medium text-foreground hover:bg-muted/60"
 				>
 					<Link to="/v2-workspaces">
-						<Trans id="workspace.states.notFoundBrowseWorkspaces">
-							Browse workspaces
-						</Trans>
+						<Trans>Browse workspaces</Trans>
 						<ArrowRight
 							className="size-3.5"
 							strokeWidth={2}

@@ -57,9 +57,7 @@ export function CreateTaskStatusPicker({
 						</>
 					) : (
 						<span className="text-muted-foreground">
-							<Trans id="dashboard.tasks.createTaskStatusPicker.status">
-								Status
-							</Trans>
+							<Trans>Status</Trans>
 						</span>
 					)}
 					<HiChevronDown className="size-3.5 text-muted-foreground" />

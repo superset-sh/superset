@@ -1,5 +1,8 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	Conversation,
 	ConversationContent,
@@ -12,7 +15,6 @@ import {
 	ReasoningTrigger,
 } from "@superset/ui/ai-elements/reasoning";
 import { Suggestion, Suggestions } from "@superset/ui/ai-elements/suggestion";
-
 import { ComponentCard } from "../../../components/ComponentCard";
 import { ShowcaseSection } from "../../../components/ShowcaseSection";
 
@@ -27,13 +29,30 @@ export function AiChatSection() {
 		<ShowcaseSection
 			id="ai-chat"
 			index="03"
-			title="AI · Conversation"
-			description="Chat surfaces: messages, reasoning, suggestions"
+			title={i18n._(
+				msg({
+					message: "AI · Conversation",
+				}),
+			)}
+			description={i18n._(
+				msg({
+					message: "Chat surfaces: messages, reasoning, suggestions",
+				}),
+			)}
 		>
 			<ComponentCard
-				title="Conversation · Message"
+				title={i18n._(
+					msg({
+						message: "Conversation · Message",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/conversation"
-				description="Also: @superset/ui/ai-elements/message — sticks to bottom as content streams"
+				description={i18n._(
+					msg({
+						message:
+							"Also: @superset/ui/ai-elements/message — sticks to bottom as content streams",
+					}),
+				)}
 				span
 				bleed
 			>
@@ -41,18 +60,22 @@ export function AiChatSection() {
 					<ConversationContent className="mx-auto max-w-2xl">
 						<Message from="user">
 							<MessageContent>
-								Can you standardize the tooltips across the app?
+								<Trans>Can you standardize the tooltips across the app?</Trans>
 							</MessageContent>
 						</Message>
 						<Message from="assistant">
 							<MessageContent>
-								Done — the bordered chip style used by the presets bar is now
-								the default for every tooltip, and the copy-pasted overrides are
-								removed (net −90 lines).
+								<Trans>
+									Done — the bordered chip style used by the presets bar is now
+									the default for every tooltip, and the copy-pasted overrides
+									are removed (net −90 lines).
+								</Trans>
 							</MessageContent>
 						</Message>
 						<Message from="user">
-							<MessageContent>Nice, open a PR when ready.</MessageContent>
+							<MessageContent>
+								<Trans>Nice, open a PR when ready.</Trans>
+							</MessageContent>
 						</Message>
 					</ConversationContent>
 					<ConversationScrollButton />
@@ -60,9 +83,17 @@ export function AiChatSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title="Reasoning"
+				title={i18n._(
+					msg({
+						message: "Reasoning",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/reasoning"
-				description="Collapsible thinking block with duration label"
+				description={i18n._(
+					msg({
+						message: "Collapsible thinking block with duration label",
+					}),
+				)}
 			>
 				<Reasoning
 					className="w-full"
@@ -76,7 +107,11 @@ export function AiChatSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title="Suggestions"
+				title={i18n._(
+					msg({
+						message: "Suggestions",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/suggestion"
 			>
 				<Suggestions className="w-full">

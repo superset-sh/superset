@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { useEffect, useRef } from "react";
 import { HOTKEYS, type HotkeyId, PLATFORM } from "../../registry";
@@ -127,26 +128,29 @@ function checkReserved(
 	const canonical = canonicalizeChord(keys);
 	if (TERMINAL_RESERVED_CHORDS.has(canonical))
 		return {
-			reason: i18n._({
-				id: "hotkeys.record.reservedByTerminal",
-				message: "Reserved by terminal",
-			}),
+			reason: i18n._(
+				msg({
+					message: "Reserved by terminal",
+				}),
+			),
 			severity: "error",
 		};
 	if (OS_RESERVED[PLATFORM].has(canonical))
 		return {
-			reason: i18n._({
-				id: "hotkeys.record.reservedByOs",
-				message: "Reserved by OS",
-			}),
+			reason: i18n._(
+				msg({
+					message: "Reserved by OS",
+				}),
+			),
 			severity: "warning",
 		};
 	if (PLATFORM === "mac" && isMacAltOnlyChord(canonical))
 		return {
-			reason: i18n._({
-				id: "hotkeys.record.macAltWarning",
-				message: "Option shortcuts may prevent typing special characters",
-			}),
+			reason: i18n._(
+				msg({
+					message: "Option shortcuts may prevent typing special characters",
+				}),
+			),
 			severity: "warning",
 		};
 	return null;

@@ -1,10 +1,13 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
+import { Plural, Trans } from "@lingui/react/macro";
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { BrainIcon, ChevronDownIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
 import { Streamdown } from "streamdown";
+import { i18n } from "../../lib/i18n";
 import { cn } from "../../lib/utils";
 import {
 	Collapsible,
@@ -121,14 +124,26 @@ const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
 	if (isStreaming || duration === 0) {
 		return (
 			<ShimmerLabel className="text-xs text-muted-foreground">
-				Thinking...
+				{i18n._(msg({ message: "Thinking..." }))}
 			</ShimmerLabel>
 		);
 	}
 	if (duration === undefined) {
-		return <p>Thought for a few seconds</p>;
+		return (
+			<p>
+				<Trans>Thought for a few seconds</Trans>
+			</p>
+		);
 	}
-	return <p>Thought for {duration} seconds</p>;
+	return (
+		<p>
+			<Plural
+				one="Thought for # second"
+				other="Thought for # seconds"
+				value={duration}
+			/>
+		</p>
+	);
 };
 
 export const ReasoningTrigger = memo(

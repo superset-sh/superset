@@ -63,11 +63,9 @@ export function useStarNagCard({
 	return {
 		id: "star-nag",
 		title: t({
-			id: "components.starNagCard.title",
 			message: "Enjoying Superset?",
 		}),
 		description: t({
-			id: "components.starNagCard.description",
 			message:
 				"Superset is open source. If it's helped you today, a GitHub star helps other developers find it.",
 		}),

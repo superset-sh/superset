@@ -9,6 +9,7 @@ import {
 } from "shared/themes";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
+import { electronTrpcClient } from "../../lib/trpc-client";
 import { trpcThemeStorage } from "../../lib/trpc-storage";
 import { applyUIColors, toXtermTheme, updateThemeClass } from "./utils";
 
@@ -121,6 +122,14 @@ function findTheme(themeId: string, customThemes: Theme[]): Theme | undefined {
 const builtInThemeIds = new Set(builtInThemes.map((theme) => theme.id));
 
 /**
+ * Drop custom themes whose id a built-in now owns. A theme imported from the
+ * marketplace before it shipped in the app would otherwise show twice.
+ */
+function withoutBuiltInIds(customThemes: Theme[]): Theme[] {
+	return customThemes.filter((theme) => !builtInThemeIds.has(theme.id));
+}
+
+/**
  * Sync theme data to localStorage for instant access before hydration.
  * This enables flash-free terminal rendering on app start.
  * Caches terminal colors directly to support custom themes without lookup.
@@ -146,6 +155,12 @@ function applyTheme(theme: Theme): {
 } {
 	// Apply UI colors to CSS variables
 	applyUIColors(theme.ui);
+
+	// The window-controls overlay (Windows, Linux) is painted by the window,
+	// not the page, so it follows the theme from here.
+	electronTrpcClient.window.setTitleBarOverlay
+		.mutate({ color: theme.ui.background, symbolColor: theme.ui.foreground })
+		.catch(() => {});
 
 	// Update dark/light class
 	updateThemeClass(theme.type);
@@ -201,14 +216,16 @@ export const useThemeStore = create<ThemeState>()(
 				}) => {
 					// Canonical themeState changed outside the renderer (CLI write +
 					// /settings-changed nudge). Replace state wholesale and re-apply.
-					const customThemes = Array.isArray(external.customThemes)
-						? external.customThemes.filter(
-								(theme) =>
-									typeof theme === "object" &&
-									theme !== null &&
-									typeof theme.id === "string",
-							)
-						: [];
+					const customThemes = withoutBuiltInIds(
+						Array.isArray(external.customThemes)
+							? external.customThemes.filter(
+									(theme) =>
+										typeof theme === "object" &&
+										theme !== null &&
+										typeof theme.id === "string",
+								)
+							: [],
+					);
 					const systemLightThemeId =
 						external.systemLightThemeId ?? DEFAULT_LIGHT_THEME_ID;
 					const systemDarkThemeId =
@@ -390,15 +407,14 @@ export const useThemeStore = create<ThemeState>()(
 				initializeTheme: () => {
 					const state = get();
 
+					const customThemes = withoutBuiltInIds(state.customThemes);
+					if (customThemes.length !== state.customThemes.length) {
+						set({ customThemes });
+					}
+
 					// Normalize stale system theme IDs before resolving
-					const lightExists = findTheme(
-						state.systemLightThemeId,
-						state.customThemes,
-					);
-					const darkExists = findTheme(
-						state.systemDarkThemeId,
-						state.customThemes,
-					);
+					const lightExists = findTheme(state.systemLightThemeId, customThemes);
+					const darkExists = findTheme(state.systemDarkThemeId, customThemes);
 					const normalizedLightId = lightExists
 						? state.systemLightThemeId
 						: DEFAULT_LIGHT_THEME_ID;
@@ -417,9 +433,9 @@ export const useThemeStore = create<ThemeState>()(
 						state.activeThemeId,
 						normalizedLightId,
 						normalizedDarkId,
-						state.customThemes,
+						customThemes,
 					);
-					const theme = findTheme(resolvedId, state.customThemes);
+					const theme = findTheme(resolvedId, customThemes);
 
 					if (theme) {
 						const { terminalTheme } = applyTheme(theme);

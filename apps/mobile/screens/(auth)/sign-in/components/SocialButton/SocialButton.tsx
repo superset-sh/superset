@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { useColorScheme, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import type { ButtonProps } from "@/components/ui/button";
@@ -68,6 +69,7 @@ export function SocialButton({
 	className,
 	...props
 }: SocialButtonProps) {
+	const { t } = useLingui();
 	const colorScheme = useColorScheme();
 	const iconColor = colorScheme === "dark" ? "white" : "black";
 
@@ -87,7 +89,11 @@ export function SocialButton({
 					<GoogleIcon />
 				)}
 			</View>
-			<Text className="flex-1 max-w-36 text-center">{`Continue with ${PROVIDER_NAME[provider]}`}</Text>
+			<Text className="flex-1 max-w-36 text-center">
+				{t({
+					message: `Continue with ${PROVIDER_NAME[provider]}`,
+				})}
+			</Text>
 		</Button>
 	);
 }

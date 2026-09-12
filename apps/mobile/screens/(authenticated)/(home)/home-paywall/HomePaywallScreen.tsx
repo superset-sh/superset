@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Trans, useLingui } from "@lingui/react/macro";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
@@ -14,6 +15,7 @@ import { OrganizationHeaderButton } from "../home/components/OrganizationHeaderB
  * entry, so plan changes, org switches, and account deletion all use the
  * normal surfaces. The trpc middleware is the actual wall. */
 export function HomePaywallScreen() {
+	const { t } = useLingui();
 	const theme = useTheme();
 	const router = useRouter();
 	const { refetch } = useSession();
@@ -39,17 +41,24 @@ export function HomePaywallScreen() {
 
 				<View className="items-center gap-2">
 					<Text className="text-2xl font-semibold text-foreground">
-						Superset Mobile is part of Pro
+						<Trans>Superset Mobile is part of Pro</Trans>
 					</Text>
 					<Text className="text-center text-base text-muted-foreground">
 						{activeOrganization
-							? `${activeOrganization.name} is on the Free plan. Superset Mobile is available for organizations on Pro.`
-							: "This organization is on the Free plan. Superset Mobile is available for organizations on Pro."}
+							? t({
+									message: `${activeOrganization.name} is on the Free plan. Superset Mobile is available for organizations on Pro.`,
+								})
+							: t({
+									message:
+										"This organization is on the Free plan. Superset Mobile is available for organizations on Pro.",
+								})}
 					</Text>
 				</View>
 
 				<Button size="lg" className="w-4/5" onPress={() => void refetch()}>
-					<Text>Refresh</Text>
+					<Text>
+						<Trans>Refresh</Trans>
+					</Text>
 				</Button>
 			</View>
 		</>

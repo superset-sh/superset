@@ -260,6 +260,25 @@ export const acceptInvitationEndpoint = {
 					activeOrganizationId: invitation.organization.id,
 				});
 
+				// Accepting an invitation is a deliberate landing, so remember it
+				// the same way an explicit switch is remembered — otherwise the
+				// next session resumes whatever they were in before the invite.
+				// Best effort: the invitation is already accepted and the session
+				// already created, and the cookie and the one-time token cleanup
+				// still have to run. Failing here would strand the user with an
+				// accepted invitation, no cookie, and a token that now returns 409.
+				try {
+					await db
+						.update(users)
+						.set({ lastActiveOrganizationId: invitation.organization.id })
+						.where(eq(users.id, user.id));
+				} catch (error) {
+					console.error(
+						`[invitation/accept] Failed to remember active organization for ${user.id}:`,
+						error,
+					);
+				}
+
 				// Set session cookie (follows Better Auth's setSessionCookie pattern)
 				await ctx.setSignedCookie(
 					ctx.context.authCookies.sessionToken.name,

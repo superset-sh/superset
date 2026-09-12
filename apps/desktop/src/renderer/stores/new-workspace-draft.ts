@@ -34,6 +34,8 @@ export interface NewWorkspaceDraft {
 	/** Explicit "No project" (session) choice — distinct from not-yet-selected. */
 	isSession: boolean;
 	hostId: string | null;
+	/** Cloud only. Null until picked; submit falls back to the first. */
+	environmentId: string | null;
 	prompt: string;
 	baseBranch: string | null;
 	baseBranchSource: BaseBranchSource | null;
@@ -69,6 +71,7 @@ function buildInitialDraft(): NewWorkspaceDraft {
 		selectedProjectId: null,
 		isSession: false,
 		hostId: null,
+		environmentId: null,
 		prompt: "",
 		baseBranch: null,
 		baseBranchSource: null,
@@ -133,6 +136,7 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 			set((state) => ({
 				...buildInitialDraft(),
 				hostId: state.hostId,
+				environmentId: state.environmentId,
 				resetKey: state.resetKey + 1,
 			})),
 	}),

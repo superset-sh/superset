@@ -3,19 +3,25 @@ import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { createFileRoute } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { ZoomStable } from "renderer/components/ZoomStable";
+import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { AppMenuButton } from "renderer/routes/_authenticated/_dashboard/components/AppMenuButton";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { RightSidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/RightSidebarToggle";
 import { TopBarPortsDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/TopBarPortsDropdown";
-import { WindowControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/WindowControls";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
+import {
+	parseSubagentSearch,
+	readSubagentSearch,
+} from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications";
@@ -23,27 +29,34 @@ import {
 	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
+import { useStore } from "zustand";
 import { StateScreenShell } from "../components/StateScreenShell";
 import { useWorkspace } from "../providers/WorkspaceProvider";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { BackgroundTerminalsButton } from "./components/BackgroundTerminalsButton";
+import { ChangesControl } from "./components/ChangesControl";
 import { V2NotificationStatusIndicator } from "./components/V2NotificationStatusIndicator";
 import { V2PresetsBar } from "./components/V2PresetsBar";
+import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
 import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceMissingWorktreeState } from "./components/WorkspaceMissingWorktreeState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSessions";
-import { useBrowserShellInteractionPassthrough } from "./hooks/useBrowserShellInteractionPassthrough";
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
+import { useConsumeSubagentLink } from "./hooks/useConsumeSubagentLink";
 import { useCreatePendingMigratedTerminals } from "./hooks/useCreatePendingMigratedTerminals";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
+import { useDiffPaneTarget } from "./hooks/useDiffPaneTarget";
 import { usePagePaneIntentOpener } from "./hooks/usePagePaneIntentOpener";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
+import { usePullRequestPaneIntentOpener } from "./hooks/usePullRequestPaneIntentOpener";
+import { useRunWorkspaceCreationPresets } from "./hooks/useRunWorkspaceCreationPresets";
+import { useShellInteractionPassthrough } from "./hooks/useShellInteractionPassthrough";
 import { useSlotElement } from "./hooks/useSlotElement";
 import { useTabCloseGuard } from "./hooks/useTabCloseGuard";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
@@ -56,11 +69,17 @@ import { useWorkspacePaneOpeners } from "./hooks/useWorkspacePaneOpeners";
 import { WorkspaceGitStatusProvider } from "./providers/WorkspaceGitStatusProvider";
 import { FileDocumentStoreProvider } from "./state/fileDocumentStore";
 import type { PaneViewerData } from "./types";
+import { findVisibleChangesPane } from "./utils/openChangesPaneInStore";
 import type { V2WorkspaceUrlOpenTarget } from "./utils/openUrlInV2Workspace";
 
 interface WorkspaceSearch {
 	terminalId?: string;
 	focusRequestId?: string;
+	/** Deep link from the sidebar's agents chip into a subagent transcript. */
+	subagentTerminalId?: string;
+	subagentId?: string;
+	subagentAgentId?: string;
+	subagentType?: string;
 	openUrl?: string;
 	openUrlTarget?: V2WorkspaceUrlOpenTarget;
 	openUrlRequestId?: string;
@@ -84,6 +103,7 @@ export const Route = createFileRoute(
 	validateSearch: (raw: Record<string, unknown>): WorkspaceSearch => ({
 		terminalId: parseNonEmptyString(raw.terminalId),
 		focusRequestId: parseNonEmptyString(raw.focusRequestId),
+		...readSubagentSearch(raw),
 		openUrl: parseNonEmptyString(raw.openUrl),
 		openUrlTarget: parseOpenUrlTarget(raw.openUrlTarget),
 		openUrlRequestId: parseNonEmptyString(raw.openUrlRequestId),
@@ -123,6 +143,10 @@ function V2WorkspaceContent() {
 	const {
 		terminalId,
 		focusRequestId,
+		subagentTerminalId,
+		subagentId,
+		subagentAgentId,
+		subagentType,
 		openUrl,
 		openUrlTarget,
 		openUrlRequestId,
@@ -133,7 +157,6 @@ function V2WorkspaceContent() {
 	const {
 		preferences: v2UserPreferences,
 		setRightSidebarOpen,
-		setRightSidebarTab,
 		setRightSidebarWidth,
 		setShowPresetsBar,
 	} = useV2UserPreferences();
@@ -163,7 +186,29 @@ function V2WorkspaceContent() {
 		terminalId,
 		focusRequestId,
 	});
+	const subagentLink = useMemo(
+		() =>
+			parseSubagentSearch({
+				subagentTerminalId,
+				subagentId,
+				subagentAgentId,
+				subagentType,
+			}),
+		[subagentTerminalId, subagentId, subagentAgentId, subagentType],
+	);
+	useConsumeSubagentLink({
+		store,
+		isLayoutReady,
+		link: subagentLink,
+		focusRequestId,
+	});
 	useCreatePendingMigratedTerminals({ workspaceId, isLayoutReady });
+	useRunWorkspaceCreationPresets({
+		workspaceId,
+		isLayoutReady,
+		executePreset,
+		resolvePresetCommands,
+	});
 	useAutoAdoptBackgroundSessions({ store, workspaceId, isLayoutReady });
 	useConsumeOpenUrlRequest({
 		store,
@@ -182,9 +227,26 @@ function V2WorkspaceContent() {
 	} = useWorkspaceFileNavigation({
 		store,
 		setRightSidebarOpen,
-		setRightSidebarTab,
 	});
 
+	const {
+		openDiffPane,
+		addTerminalTab,
+		addChatV3Tab,
+		addBrowserTab,
+		openChangesPane,
+		toggleChangesPane,
+		openCommentPane,
+		openPagePane,
+		openPullRequestPane,
+	} = useWorkspacePaneOpeners({
+		store,
+		launcher,
+		newTabPresets,
+		executePreset,
+		setRightSidebarOpen,
+		pageOpenAction: v2UserPreferences.pageOpenAction,
+	});
 	const paneRegistry = usePaneRegistry({
 		onOpenFile: openFilePaneFromTreeClick,
 		onRevealPath: revealPath,
@@ -195,21 +257,26 @@ function V2WorkspaceContent() {
 		paneRegistry,
 		launcher,
 	});
-	const {
-		openDiffPane,
-		addTerminalTab,
-		addChatV3Tab,
-		addBrowserTab,
-		openCommentPane,
-		openPagePane,
-	} = useWorkspacePaneOpeners({
+	const diffPaneTarget = useDiffPaneTarget(store);
+	const isChangesPaneOpen = useStore(
 		store,
-		launcher,
-		newTabPresets,
-		executePreset,
-	});
+		(state) => findVisibleChangesPane(state) != null,
+	);
 
 	usePagePaneIntentOpener({ workspaceId, isLayoutReady, openPagePane });
+	usePullRequestPaneIntentOpener({
+		workspaceId,
+		isLayoutReady,
+		openPullRequestPane,
+	});
+	const hostTarget = useWorkspaceHostTarget(workspaceId);
+	const isSandbox =
+		hostTarget.status === "ready" && hostTarget.kind === "sandbox";
+	const addDesktopTab = useCallback(() => {
+		store.getState().addTab({
+			panes: [{ kind: "desktop", data: { kind: "desktop" } }],
+		});
+	}, [store]);
 	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
 
 	const quickOpenOpen = useQuickOpenStore(
@@ -232,10 +299,9 @@ function V2WorkspaceContent() {
 	const handleQuickOpenSelectFile = useCallback(
 		(filePath: string, openInNewTab?: boolean) => {
 			setRightSidebarOpen(true);
-			setRightSidebarTab("files");
 			openFilePaneFromTreeClick(filePath, openInNewTab);
 		},
-		[openFilePaneFromTreeClick, setRightSidebarOpen, setRightSidebarTab],
+		[openFilePaneFromTreeClick, setRightSidebarOpen],
 	);
 	const defaultPaneActions = useDefaultPaneActions({ launcher });
 	const onBeforeCloseTab = useTabCloseGuard();
@@ -246,7 +312,7 @@ function V2WorkspaceContent() {
 	const sidebarWidth = v2UserPreferences.rightSidebarWidth ?? 340;
 	const [isSidebarResizing, setIsSidebarResizing] = useState(false);
 	const { onSidebarResizeDragging, onWorkspaceInteractionStateChange } =
-		useBrowserShellInteractionPassthrough({ sidebarOpen });
+		useShellInteractionPassthrough({ sidebarOpen });
 	const handleSidebarResizingChange = useCallback(
 		(resizing: boolean) => {
 			setIsSidebarResizing(resizing);
@@ -264,9 +330,11 @@ function V2WorkspaceContent() {
 		matchedPresets,
 		executePreset,
 		addTerminalTab,
+		openChangesPane,
 		paneRegistry,
 		launcher,
 		onBeforeCloseTab,
+		isSandbox,
 	});
 	useHotkey("QUICK_OPEN", handleQuickOpen);
 	useHotkey("RUN_WORKSPACE_COMMAND", () => {
@@ -299,11 +367,7 @@ function V2WorkspaceContent() {
 
 	return (
 		<FileDocumentStoreProvider>
-			<WorkspaceGitStatusProvider
-				workspaceId={workspaceId}
-				store={store}
-				sidebarOpen={sidebarOpen}
-			>
+			<WorkspaceGitStatusProvider workspaceId={workspaceId}>
 				<div className="flex min-h-0 min-w-0 flex-1">
 					<div
 						className="flex min-h-0 min-w-[320px] flex-1 flex-col overflow-hidden"
@@ -335,6 +399,8 @@ function V2WorkspaceContent() {
 									onAddTerminal={addTerminalTab}
 									onAddChatV3={isChatV3Enabled ? addChatV3Tab : undefined}
 									onAddBrowser={addBrowserTab}
+									onAddChanges={openChangesPane}
+									onAddDesktop={isSandbox ? addDesktopTab : undefined}
 									showPresetsBar={showPresetsBar}
 									onToggleShowPresetsBar={setShowPresetsBar}
 								/>
@@ -359,6 +425,7 @@ function V2WorkspaceContent() {
 													enabled={isMac}
 													className="flex items-center gap-1.5 px-1"
 												>
+													{!isMac && <AppMenuButton />}
 													<SidebarToggle />
 													<NavigationControls />
 												</ZoomStable>
@@ -381,14 +448,27 @@ function V2WorkspaceContent() {
 											store={store}
 										/>
 									)}
-									{workspaceRunButton}
+									{isLayoutReady && (
+										<ChangesControl
+											workspaceId={workspaceId}
+											isChangesOpen={isChangesPaneOpen}
+											onToggleChanges={toggleChangesPane}
+											onOpenPullRequest={openPullRequestPane}
+										/>
+									)}
+									{/* Open-in must not depend on the right sidebar being open,
+									    so it lives here rather than in the sidebar's top strip
+									    (#7167). Without an @container ancestor its branch label
+									    stays hidden, which keeps it compact for the tab bar. */}
+									<V2WorkspaceOpenInButton workspaceId={workspaceId} />
 									<RightSidebarToggle />
-									{!isMac && <WindowControls />}
+									{!isMac && !sidebarOpen && <WindowControlsInset />}
 								</div>
 							)}
 							renderEmptyState={() => (
 								<WorkspaceEmptyState
 									onOpenBrowser={addBrowserTab}
+									onOpenChanges={openChangesPane}
 									onOpenChatV3={isChatV3Enabled ? addChatV3Tab : undefined}
 									onOpenQuickOpen={handleQuickOpen}
 									onOpenTerminal={addTerminalTab}
@@ -415,11 +495,14 @@ function V2WorkspaceContent() {
 						>
 							<WorkspaceSidebar
 								workspaceId={workspaceId}
+								runButton={workspaceRunButton}
 								onSelectFile={openFilePaneFromTreeClick}
 								onSelectDiffFile={openDiffPane}
 								onOpenComment={openCommentPane}
+								onOpenPullRequest={openPullRequestPane}
 								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
+								selectedDiffTarget={diffPaneTarget}
 								pendingReveal={pendingReveal}
 							/>
 						</ResizablePanel>,

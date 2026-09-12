@@ -64,7 +64,6 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 			return {
 				id: "unassigned",
 				name: t({
-					id: "dashboard.tasks.assigneeFilter.unassignedSelected",
 					message: "Unassigned",
 				}),
 				image: null,
@@ -79,7 +78,6 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 						name:
 							ext.name ||
 							t({
-								id: "dashboard.tasks.assigneeFilter.externalSelected",
 								message: "External",
 							}),
 						image: ext.avatar,
@@ -151,14 +149,12 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 					title={
 						selectedUser?.name ??
 						t({
-							id: "dashboard.tasks.assigneeFilter.assignee",
 							message: "Assignee",
 						})
 					}
 					aria-label={
 						selectedUser?.name ??
 						t({
-							id: "dashboard.tasks.assigneeFilter.assignee",
 							message: "Assignee",
 						})
 					}
@@ -183,9 +179,7 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 						<>
 							<HiOutlineUserCircle className="size-4" />
 							<span className="text-sm hidden @4xl:inline">
-								<Trans id="dashboard.tasks.assigneeFilter.assignee">
-									Assignee
-								</Trans>
+								<Trans>Assignee</Trans>
 							</span>
 						</>
 					)}
@@ -196,7 +190,6 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 				<Command shouldFilter={false}>
 					<CommandInput
 						placeholder={t({
-							id: "dashboard.tasks.assigneeFilter.searchPeople",
 							message: "Search people...",
 						})}
 						value={search}
@@ -215,15 +208,11 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 								}`}
 							>
 								{tabValue === "all" ? (
-									<Trans id="dashboard.tasks.assigneeFilter.tabAll">All</Trans>
+									<Trans>All</Trans>
 								) : tabValue === "internal" ? (
-									<Trans id="dashboard.tasks.assigneeFilter.tabInternal">
-										Internal
-									</Trans>
+									<Trans>Internal</Trans>
 								) : (
-									<Trans id="dashboard.tasks.assigneeFilter.tabExternal">
-										External
-									</Trans>
+									<Trans>External</Trans>
 								)}
 							</button>
 						))}
@@ -237,18 +226,14 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 							<CommandGroup>
 								<CommandItem onSelect={() => handleSelect(null)}>
 									<span className="text-sm">
-										<Trans id="dashboard.tasks.assigneeFilter.allAssignees">
-											All assignees
-										</Trans>
+										<Trans>All assignees</Trans>
 									</span>
 									{value === null && <HiCheck className="ml-auto size-3.5" />}
 								</CommandItem>
 								<CommandItem onSelect={() => handleSelect("unassigned")}>
 									<HiOutlineUserCircle className="size-4" />
 									<span className="text-sm">
-										<Trans id="dashboard.tasks.assigneeFilter.unassigned">
-											Unassigned
-										</Trans>
+										<Trans>Unassigned</Trans>
 									</span>
 									{value === "unassigned" && (
 										<HiCheck className="ml-auto size-3.5" />
@@ -258,9 +243,7 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 
 							{!hasResults && search && (
 								<CommandEmpty>
-									<Trans id="dashboard.tasks.assigneeFilter.noPeople">
-										No people found.
-									</Trans>
+									<Trans>No people found.</Trans>
 								</CommandEmpty>
 							)}
 
@@ -271,7 +254,6 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 										heading={
 											tab === "all" && visibleExternal.length > 0
 												? t({
-														id: "dashboard.tasks.assigneeFilter.headingInternal",
 														message: "Internal",
 													})
 												: undefined
@@ -309,7 +291,6 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 										heading={
 											tab === "all" && visibleUsers.length > 0
 												? t({
-														id: "dashboard.tasks.assigneeFilter.headingExternal",
 														message: "External",
 													})
 												: undefined
@@ -325,7 +306,6 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 													fullName={
 														ext.name ||
 														t({
-															id: "dashboard.tasks.assigneeFilter.externalName",
 															message: "External",
 														})
 													}
@@ -334,7 +314,6 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 												<span className="text-sm truncate">
 													{ext.name ||
 														t({
-															id: "dashboard.tasks.assigneeFilter.externalName",
 															message: "External",
 														})}
 												</span>

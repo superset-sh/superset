@@ -3,7 +3,7 @@ import {
 	normalizeProjectFilters,
 	serializeProjectFilters,
 } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
-import { normalizeAuthorFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/normalizeAuthorFilter";
+import { normalizeAuthorFilters } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/normalizeAuthorFilter";
 import {
 	normalizePullRequestReviewFilter,
 	type PullRequestReviewFilter,
@@ -50,7 +50,7 @@ export function migratePullRequestsFilterState(
 		projectFilters: normalizeProjectFilters(
 			state.projectFilters ?? (legacyProject ? [legacyProject] : []),
 		),
-		authorFilter: normalizeAuthorFilter(state.authorFilter),
+		authorFilter: normalizeAuthorFilters(state.authorFilter),
 		reviewFilter: normalizePullRequestReviewFilter(state.reviewFilter),
 		includeClosed: state.includeClosed === true,
 		mergedOnly: state.mergedOnly === true,
@@ -77,7 +77,7 @@ export const usePullRequestsFilterStore = create<PullRequestsFilterState>()(
 						: { projectFilters: next };
 				}),
 			setAuthorFilter: (authorFilter) =>
-				set({ authorFilter: normalizeAuthorFilter(authorFilter) }),
+				set({ authorFilter: normalizeAuthorFilters(authorFilter) }),
 			setReviewFilter: (reviewFilter) =>
 				set({
 					reviewFilter: normalizePullRequestReviewFilter(reviewFilter),

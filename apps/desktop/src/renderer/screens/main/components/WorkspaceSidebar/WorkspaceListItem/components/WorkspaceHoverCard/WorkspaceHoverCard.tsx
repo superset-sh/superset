@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { formatDistanceToNow } from "date-fns";
@@ -29,6 +31,8 @@ export function WorkspaceHoverCardContent({
 	workspaceAlias,
 	onEditBranchClick,
 }: WorkspaceHoverCardContentProps) {
+	const { _: translate } = useTranslation();
+
 	const { data: worktreeInfo } =
 		electronTrpc.workspaces.getWorktreeInfo.useQuery(
 			{ workspaceId },
@@ -89,7 +93,7 @@ export function WorkspaceHoverCardContent({
 									type="button"
 									onClick={() => onEditBranchClick(branchName)}
 									className={`group/branch flex min-w-0 flex-1 items-center gap-1 font-mono break-all text-left hover:text-foreground hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
-									title="Rename branch"
+									title={translate(msg({ message: "Rename branch" }))}
 								>
 									<span className="break-all">{branchName}</span>
 									<LuPencil
@@ -110,7 +114,7 @@ export function WorkspaceHoverCardContent({
 									target="_blank"
 									rel="noopener noreferrer"
 									className="shrink-0 text-muted-foreground hover:text-foreground"
-									title="Open branch on GitHub"
+									title={translate(msg({ message: "Open branch on GitHub" }))}
 									onClick={(e) => e.stopPropagation()}
 								>
 									<LuExternalLink
@@ -167,9 +171,7 @@ export function WorkspaceHoverCardContent({
 						</div>
 						<div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
 							<span className="text-emerald-500">+{pr.additions}</span>
-							<span className="text-destructive-foreground">
-								-{pr.deletions}
-							</span>
+							<span className="text-destructive">-{pr.deletions}</span>
 						</div>
 					</div>
 

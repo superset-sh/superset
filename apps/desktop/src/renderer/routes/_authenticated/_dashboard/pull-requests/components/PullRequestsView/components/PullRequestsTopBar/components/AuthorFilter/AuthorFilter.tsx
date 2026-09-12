@@ -15,7 +15,10 @@ import { useMemo, useState } from "react";
 import { HiCheck, HiChevronDown, HiOutlineUserCircle } from "react-icons/hi2";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import type { ProjectQueryTarget } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
-import { normalizeAuthorFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/normalizeAuthorFilter";
+import {
+	normalizeAuthorFilter,
+	normalizeAuthorFilters,
+} from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/normalizeAuthorFilter";
 
 interface AuthorFilterProps {
 	value: string | null;
@@ -34,10 +37,14 @@ export function AuthorFilter({
 	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
+	const selectedAuthors = useMemo(() => value?.split(",") ?? [], [value]);
+	const isSelected = (login: string) =>
+		selectedAuthors.some(
+			(author) => author.toLowerCase() === login.toLowerCase(),
+		);
 	const label = value
-		? `@${value}`
+		? selectedAuthors.map((author) => `@${author}`).join(", ")
 		: t({
-				id: "dashboard.pullRequests.authorFilter.allAuthors",
 				message: "All authors",
 			});
 
@@ -69,10 +76,20 @@ export function AuthorFilter({
 
 	const filtered = useMemo(() => {
 		const q = search.trim().replace(/^@/, "").toLowerCase();
-		const list = contributors ?? [];
+		const list = [...(contributors ?? [])];
+		for (const login of selectedAuthors) {
+			if (
+				!list.some(
+					(contributor) =>
+						contributor.login.toLowerCase() === login.toLowerCase(),
+				)
+			) {
+				list.push({ login });
+			}
+		}
 		if (!q) return list;
 		return list.filter((c) => c.login.toLowerCase().includes(q));
-	}, [contributors, search]);
+	}, [contributors, search, selectedAuthors]);
 
 	const normalizedSearch = normalizeAuthorFilter(search)?.toLowerCase() ?? null;
 	const showCustomOption =
@@ -85,8 +102,16 @@ export function AuthorFilter({
 	};
 
 	const handleSelect = (login: string | null) => {
-		onChange(login);
-		setOpen(false);
+		const next =
+			login === null
+				? []
+				: isSelected(login)
+					? selectedAuthors.filter(
+							(author) => author.toLowerCase() !== login.toLowerCase(),
+						)
+					: [...selectedAuthors, login];
+		onChange(normalizeAuthorFilters(next.join(",")));
+		setSearch("");
 	};
 
 	return (
@@ -97,7 +122,6 @@ export function AuthorFilter({
 					size="sm"
 					title={label}
 					aria-label={t({
-						id: "dashboard.pullRequests.authorFilter.triggerAria",
 						message: `Author: ${label}`,
 					})}
 					className="h-8 max-w-44 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
@@ -113,11 +137,9 @@ export function AuthorFilter({
 						placeholder={
 							singleTarget
 								? t({
-										id: "dashboard.pullRequests.authorFilter.searchAuthors",
 										message: "Search authors…",
 									})
 								: t({
-										id: "dashboard.pullRequests.authorFilter.githubUsername",
 										message: "GitHub username…",
 									})
 						}
@@ -127,20 +149,19 @@ export function AuthorFilter({
 					<CommandList className="max-h-72">
 						{singleTarget && isLoading && !contributors && (
 							<div className="px-3 py-4 text-center text-sm text-muted-foreground">
-								<Trans id="dashboard.pullRequests.authorFilter.loadingContributors">
-									Loading contributors…
-								</Trans>
+								<Trans>Loading contributors…</Trans>
 							</div>
 						)}
 						{(!search || filtered.length > 0 || showCustomOption) && (
 							<CommandGroup>
 								{!search && (
-									<CommandItem onSelect={() => handleSelect(null)}>
+									<CommandItem
+										aria-checked={!value}
+										onSelect={() => handleSelect(null)}
+									>
 										<HiOutlineUserCircle className="size-4 shrink-0" />
 										<span className="text-sm">
-											<Trans id="dashboard.pullRequests.authorFilter.allAuthorsOption">
-												All authors
-											</Trans>
+											<Trans>All authors</Trans>
 										</span>
 										{!value && (
 											<HiCheck className="ml-auto size-3.5 shrink-0" />
@@ -150,6 +171,12 @@ export function AuthorFilter({
 								{filtered.map((contributor) => (
 									<CommandItem
 										key={contributor.login}
+										aria-label={contributor.login}
+										aria-checked={isSelected(contributor.login)}
+										disabled={
+											!isSelected(contributor.login) &&
+											selectedAuthors.length >= 20
+										}
 										onSelect={() => handleSelect(contributor.login)}
 									>
 										<Avatar className="size-4 shrink-0 rounded-sm">
@@ -164,18 +191,19 @@ export function AuthorFilter({
 										<span className="truncate text-sm">
 											{contributor.login}
 										</span>
-										{value === contributor.login && (
+										{isSelected(contributor.login) && (
 											<HiCheck className="ml-auto size-3.5 shrink-0" />
 										)}
 									</CommandItem>
 								))}
 								{showCustomOption && normalizedSearch && (
-									<CommandItem onSelect={() => handleSelect(normalizedSearch)}>
+									<CommandItem
+										disabled={selectedAuthors.length >= 20}
+										onSelect={() => handleSelect(normalizedSearch)}
+									>
 										<HiOutlineUserCircle className="size-4 shrink-0" />
 										<span className="text-sm">
-											<Trans id="dashboard.pullRequests.authorFilter.filterByUser">
-												Filter by @{normalizedSearch}
-											</Trans>
+											<Trans>Filter by @{normalizedSearch}</Trans>
 										</span>
 									</CommandItem>
 								)}
@@ -183,7 +211,7 @@ export function AuthorFilter({
 						)}
 						{singleTarget && !isLoading && error && (
 							<div className="px-3 py-4 text-center text-sm text-muted-foreground">
-								<Trans id="dashboard.pullRequests.authorFilter.contributorsError">
+								<Trans>
 									Couldn't load contributors — type a username instead.
 								</Trans>
 							</div>
@@ -196,13 +224,9 @@ export function AuthorFilter({
 								(contributors && contributors.length === 0)) && (
 								<CommandEmpty>
 									{search ? (
-										<Trans id="dashboard.pullRequests.authorFilter.noAuthorsFound">
-											No authors found.
-										</Trans>
+										<Trans>No authors found.</Trans>
 									) : (
-										<Trans id="dashboard.pullRequests.authorFilter.noContributorsFound">
-											No contributors found.
-										</Trans>
+										<Trans>No contributors found.</Trans>
 									)}
 								</CommandEmpty>
 							)}

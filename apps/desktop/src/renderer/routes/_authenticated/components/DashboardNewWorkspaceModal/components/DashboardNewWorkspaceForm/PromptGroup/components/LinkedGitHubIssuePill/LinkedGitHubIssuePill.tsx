@@ -36,7 +36,6 @@ export function LinkedGitHubIssuePill({
 				/>
 				<Button
 					aria-label={t({
-						id: "dashboard.newWorkspaceModal.linkedGitHubIssuePill.removeAria",
 						message: "Remove linked issue",
 					})}
 					className="pointer-events-none absolute inset-0 size-7 cursor-pointer rounded-md p-0 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 [&>svg]:size-3"
@@ -49,9 +48,7 @@ export function LinkedGitHubIssuePill({
 				>
 					<XIcon />
 					<span className="sr-only">
-						<Trans id="dashboard.newWorkspaceModal.linkedGitHubIssuePill.remove">
-							Remove
-						</Trans>
+						<Trans>Remove</Trans>
 					</span>
 				</Button>
 			</div>
@@ -61,9 +58,7 @@ export function LinkedGitHubIssuePill({
 					<span>#{issueNumber}</span>
 					<span>·</span>
 					<span>
-						<Trans id="dashboard.newWorkspaceModal.linkedGitHubIssuePill.source">
-							GitHub
-						</Trans>
+						<Trans>GitHub</Trans>
 					</span>
 				</div>
 			</div>

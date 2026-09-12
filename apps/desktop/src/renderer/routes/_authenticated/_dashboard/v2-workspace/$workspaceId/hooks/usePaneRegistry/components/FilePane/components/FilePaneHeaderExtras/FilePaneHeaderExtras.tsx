@@ -70,7 +70,6 @@ export function FilePaneHeaderExtras({
 					<button
 						type="button"
 						aria-label={t({
-							id: "workspace.filePane.copyPathAria",
 							message: "Copy path",
 						})}
 						onClick={() => void copyToClipboard(filePath)}
@@ -84,11 +83,7 @@ export function FilePaneHeaderExtras({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					{copied ? (
-						<Trans id="workspace.filePane.pathCopied">Copied</Trans>
-					) : (
-						<Trans id="workspace.filePane.copyPath">Copy path</Trans>
-					)}
+					{copied ? <Trans>Copied</Trans> : <Trans>Copy path</Trans>}
 				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
@@ -96,7 +91,6 @@ export function FilePaneHeaderExtras({
 					<button
 						type="button"
 						aria-label={t({
-							id: "workspace.filePane.revealInFinderAria",
 							message: "Reveal in Finder",
 						})}
 						onClick={handleOpenInFinder}
@@ -106,7 +100,7 @@ export function FilePaneHeaderExtras({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="workspace.filePane.revealInFinder">Reveal in Finder</Trans>
+					<Trans>Reveal in Finder</Trans>
 				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
@@ -114,7 +108,6 @@ export function FilePaneHeaderExtras({
 					<button
 						type="button"
 						aria-label={t({
-							id: "workspace.filePane.openInEditorAria",
 							message: "Open in editor",
 						})}
 						onClick={handleOpenExternal}
@@ -124,7 +117,7 @@ export function FilePaneHeaderExtras({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans id="workspace.filePane.openInEditor">Open in editor</Trans>
+					<Trans>Open in editor</Trans>
 				</TooltipContent>
 			</Tooltip>
 		</div>

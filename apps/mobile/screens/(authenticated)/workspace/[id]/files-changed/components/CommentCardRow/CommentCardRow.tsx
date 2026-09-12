@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
@@ -15,6 +16,7 @@ export function CommentCardRow({
 	orphaned?: boolean;
 	onLongPress: (comment: DraftComment) => void;
 }) {
+	const { t } = useLingui();
 	return (
 		<PressableScale
 			className="bg-card border-border mx-3 my-1.5 ml-12 rounded-xl border px-3 py-2.5"
@@ -23,13 +25,17 @@ export function CommentCardRow({
 		>
 			<View className="flex-row items-center gap-2">
 				<Text className="text-muted-foreground text-[11px]">
-					Draft{comment.line > 0 ? ` · line ${comment.line}` : " · file"}
+					{comment.line > 0
+						? t({
+								message: `Draft · line ${comment.line}`,
+							})
+						: t({ message: "Draft · file" })}
 					{orphaned ? ` · ${comment.path}` : ""}
 				</Text>
 				{stale ? (
 					<View className="bg-amber-500/15 rounded-full px-2 py-0.5">
 						<Text className="text-amber-500 text-[10px] font-semibold">
-							line changed
+							<Trans>line changed</Trans>
 						</Text>
 					</View>
 				) : null}

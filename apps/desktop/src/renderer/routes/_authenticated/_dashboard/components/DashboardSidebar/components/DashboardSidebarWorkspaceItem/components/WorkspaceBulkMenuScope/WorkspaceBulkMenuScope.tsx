@@ -2,7 +2,7 @@ import { createContext, type ReactNode, useContext, useMemo } from "react";
 import type { DashboardSidebarWorkspace } from "../../../../types";
 
 interface WorkspaceBulkMenuScopeValue {
-	projectId: string;
+	projectId: string | null;
 	workspacesById: ReadonlyMap<string, DashboardSidebarWorkspace>;
 	sectionIdByWorkspaceId: ReadonlyMap<string, string>;
 }
@@ -20,7 +20,7 @@ export function WorkspaceBulkMenuScope({
 	groupInfo,
 	children,
 }: {
-	projectId: string;
+	projectId: string | null;
 	workspacesById: ReadonlyMap<string, DashboardSidebarWorkspace>;
 	groupInfo: ReadonlyMap<string, { sectionId: string }>;
 	children: ReactNode;

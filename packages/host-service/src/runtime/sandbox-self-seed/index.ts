@@ -1,4 +1,5 @@
 export {
+	launchSandboxAgentOnce,
 	readSandboxIdentity,
 	runSandboxSelfSeed,
 	type SandboxIdentity,

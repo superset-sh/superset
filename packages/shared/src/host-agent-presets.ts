@@ -10,6 +10,7 @@ export interface HostAgentPreset {
 	promptTransport: PromptTransport;
 	promptArgs: string[];
 	resumeArgs: string[];
+	forkArgs: string[];
 	env: Record<string, string>;
 }
 
@@ -41,6 +42,8 @@ function deriveSuffixArgs(
  *
  * Resuming a previous session splices `[...resumeArgs, sessionId]` after the
  * base args. Empty `resumeArgs` means the agent has no id-based resume.
+ * Forking uses `forkArgs`; `{sessionId}` marks the provider-specific id
+ * position, otherwise the id is appended after those args.
  */
 export const HOST_AGENT_PRESETS: readonly HostAgentPreset[] =
 	BUILTIN_TERMINAL_AGENTS.map((agent) => {
@@ -55,6 +58,7 @@ export const HOST_AGENT_PRESETS: readonly HostAgentPreset[] =
 			promptTransport: agent.promptTransport ?? "argv",
 			promptArgs: deriveSuffixArgs(commandTokens, agent.promptCommand),
 			resumeArgs: deriveSuffixArgs(commandTokens, agent.resumeCommand),
+			forkArgs: deriveSuffixArgs(commandTokens, agent.forkCommand),
 			env: {},
 		};
 	});
@@ -65,6 +69,7 @@ function clonePreset(preset: HostAgentPreset): HostAgentPreset {
 		args: [...preset.args],
 		promptArgs: [...preset.promptArgs],
 		resumeArgs: [...preset.resumeArgs],
+		forkArgs: [...preset.forkArgs],
 		env: { ...preset.env },
 	};
 }

@@ -59,6 +59,7 @@ export function useTerminalAgentBindings(
 	}, [queryClient, queryKey]);
 
 	useWorkspaceEvent("agent:lifecycle", workspaceId, invalidate, enabled);
+	useWorkspaceEvent("agent:bindings-changed", workspaceId, invalidate, enabled);
 	useWorkspaceEvent("terminal:lifecycle", workspaceId, invalidate, enabled);
 
 	return useMemo(() => {

@@ -1,22 +1,28 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import { getHostTerminalsQueryKey } from "../../../../hooks/useHostTerminals";
-import type { ChatTarget } from "../../../../stores/chatTargetStore";
+
+export interface WorkspaceTerminalTarget {
+	workspaceId: string;
+	hostId: string;
+}
 
 /**
  * Launch a NEW agent session in an existing workspace (`agents.run` bakes the
  * prompt into the launch command) and land on its tab. Always a fresh session
- * — the composer says "New agent in …", and delivering into an already-running
- * session belongs to explicit flows like the terminal composer or the
- * finish-review target picker, never to this one.
+ * — delivering into an already-running session belongs to explicit flows like
+ * the terminal composer or the finish-review target picker, never to this one.
  */
 export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 	const router = useRouter();
@@ -27,10 +33,15 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 			target,
 			message,
 			agentId,
+			model,
+			effort,
 		}: {
-			target: ChatTarget;
+			target: WorkspaceTerminalTarget;
 			message: PromptInputMessage;
 			agentId: string;
+			/** Null launches the agent's own default. */
+			model: string | null;
+			effort: string | null;
 		}) => {
 			const workspace = workspaces.find(
 				(item) => item.id === target.workspaceId,
@@ -49,6 +60,8 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 				workspaceId: target.workspaceId,
 				agent: agentId,
 				prompt: text,
+				model: model ?? undefined,
+				effort: effort ?? undefined,
 			});
 			if (result.kind !== "terminal") {
 				throw new Error(`${result.label} did not start a terminal session`);
@@ -59,9 +72,14 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 				hostId: target.hostId,
 			};
 		},
-		onSuccess: ({ workspaceId, terminalId, hostId }, { agentId }) => {
+		onSuccess: (
+			{ workspaceId, terminalId, hostId },
+			{ agentId, model, effort },
+		) => {
 			posthog.capture("agent_session_launch", {
 				agent_type: agentId,
+				model,
+				effort,
 				workspace_id: workspaceId,
 				result: "launched",
 			});
@@ -79,8 +97,12 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 				result: "failed",
 			});
 			Alert.alert(
-				"Could not start agent",
-				error instanceof Error ? error.message : String(error),
+				i18n._(
+					msg({
+						message: "Could not start agent",
+					}),
+				),
+				errorCopy(error),
 			);
 		},
 	});

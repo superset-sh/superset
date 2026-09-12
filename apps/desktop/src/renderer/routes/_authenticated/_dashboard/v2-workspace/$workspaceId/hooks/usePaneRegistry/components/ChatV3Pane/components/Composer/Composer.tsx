@@ -93,7 +93,6 @@ export function Composer({
 				placeholder={
 					placeholder ??
 					t({
-						id: "workspace.chat.composerPlaceholder",
 						message: "Message the agent",
 					})
 				}

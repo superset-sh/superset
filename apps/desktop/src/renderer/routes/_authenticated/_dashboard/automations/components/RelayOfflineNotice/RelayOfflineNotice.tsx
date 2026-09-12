@@ -26,7 +26,7 @@ const ICON = (
 
 /**
  * Automations dispatch from the cloud through the relay, so even the local
- * device is unreachable until relay access is enabled in Settings > Remote Workspaces.
+ * device is unreachable until relay access is enabled in Settings > Remote Access.
  * Renders nothing while connectivity is unknown (row not yet synced).
  */
 export function RelayOfflineNotice({
@@ -45,7 +45,7 @@ export function RelayOfflineNotice({
 				<div className="flex min-w-[240px] flex-1 items-start gap-2">
 					{ICON}
 					<span>
-						<Trans id="dashboard.automations.relayOfflineNotice.localBody">
+						<Trans>
 							This device isn't connected to the Superset relay, so automation
 							runs will be skipped.
 						</Trans>
@@ -57,14 +57,12 @@ export function RelayOfflineNotice({
 					className="ml-auto h-7 shrink-0 border-warning/40 bg-warning/10 px-2.5 text-xs text-warning hover:bg-warning/20"
 					disabled={isPending}
 					onClick={() =>
-						gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, () =>
+						gateFeature(GATED_FEATURES.REMOTE_ACCESS, () =>
 							setConfirmOpen(true),
 						)
 					}
 				>
-					<Trans id="dashboard.automations.relayOfflineNotice.enableRelay">
-						Enable relay access…
-					</Trans>
+					<Trans>Enable relay access…</Trans>
 				</Button>
 				<ExposeViaRelayConfirmDialog
 					open={confirmOpen}
@@ -85,7 +83,7 @@ export function RelayOfflineNotice({
 			<div className="flex min-w-[240px] flex-1 items-start gap-2">
 				{ICON}
 				<span>
-					<Trans id="dashboard.automations.relayOfflineNotice.remoteBody">
+					<Trans>
 						<span className="font-medium">{remoteHost.name}</span> isn't
 						connected to the Superset relay, so its runs will be skipped. Check
 						its{" "}
@@ -96,8 +94,8 @@ export function RelayOfflineNotice({
 						>
 							host settings
 						</Link>
-						, and make sure relay access is on in Settings &gt; Remote
-						Workspaces on that device.
+						, and make sure relay access is on in Settings &gt; Remote Access on
+						that device.
 					</Trans>
 				</span>
 			</div>

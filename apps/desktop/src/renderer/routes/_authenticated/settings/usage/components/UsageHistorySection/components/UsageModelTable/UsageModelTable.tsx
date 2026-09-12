@@ -1,7 +1,7 @@
 import { Trans } from "@lingui/react/macro";
 import { useNavigate } from "@tanstack/react-router";
 import type { UsageHistory } from "../../../../hooks/useHostUsageHistory";
-import { PROVIDER_CHART_CONFIG } from "../../constants";
+import { AGENT_CHART_CONFIG } from "../../constants";
 import { formatTokens, formatUsd } from "../../utils/formatUsage";
 
 const MAX_ROWS = 6;
@@ -17,28 +17,28 @@ export function UsageModelTable({ history }: { history: UsageHistory }) {
 			<thead>
 				<tr className="border-b text-left text-muted-foreground">
 					<th className="py-1 pr-2 font-medium">
-						<Trans id="settings.usage.modelTable.columnModel">Model</Trans>
+						<Trans>Model</Trans>
 					</th>
 					<th className="py-1 pr-2 text-right font-medium">
-						<Trans id="settings.usage.modelTable.columnCost">Cost</Trans>
+						<Trans>Cost</Trans>
 					</th>
 					<th className="py-1 pr-2 text-right font-medium">
-						<Trans id="settings.usage.modelTable.columnShare">Share</Trans>
+						<Trans>Share</Trans>
 					</th>
 					<th className="py-1 text-right font-medium">
-						<Trans id="settings.usage.modelTable.columnTokens">Tokens</Trans>
+						<Trans>Tokens</Trans>
 					</th>
 				</tr>
 			</thead>
 			<tbody>
 				{rows.map((row) => (
 					<tr
-						key={`${row.provider}|${row.model}`}
+						key={`${row.agent}|${row.model}`}
 						className="cursor-pointer transition-colors hover:bg-muted/60"
 						onClick={() =>
 							navigate({
 								to: "/settings/usage/model/$modelKey",
-								params: { modelKey: `${row.provider}|${row.model}` },
+								params: { modelKey: `${row.agent}|${row.model}` },
 							})
 						}
 					>
@@ -46,7 +46,7 @@ export function UsageModelTable({ history }: { history: UsageHistory }) {
 							<span
 								className="size-1.5 shrink-0 rounded-[2px]"
 								style={{
-									background: PROVIDER_CHART_CONFIG[row.provider].color,
+									background: AGENT_CHART_CONFIG[row.agent].color,
 								}}
 							/>
 							<span className="truncate">{row.model}</span>
@@ -69,7 +69,7 @@ export function UsageModelTable({ history }: { history: UsageHistory }) {
 			<tfoot>
 				<tr className="border-t font-medium">
 					<td className="py-1 pr-2">
-						<Trans id="settings.usage.modelTable.total">Total</Trans>
+						<Trans>Total</Trans>
 					</td>
 					<td className="py-1 pr-2 text-right tabular-nums">
 						{history.totals.approximate ? "~" : ""}

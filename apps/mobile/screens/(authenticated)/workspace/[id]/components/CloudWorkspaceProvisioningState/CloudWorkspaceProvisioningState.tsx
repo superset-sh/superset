@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useRouter } from "expo-router";
 import {
 	AlertCircle,
@@ -36,6 +37,7 @@ export function CloudWorkspaceProvisioningState({
 }: {
 	cloud: CloudWorkspaceRow;
 }) {
+	const { t } = useLingui();
 	const elapsed = useElapsedSeconds();
 
 	if (cloud.status === "failed") {
@@ -50,17 +52,26 @@ export function CloudWorkspaceProvisioningState({
 
 	return (
 		<Frame icon={Cloud} iconClassName="text-muted-foreground">
-			<Heading title="Starting workspace" name={cloud.name} />
+			<Heading
+				title={t({
+					message: "Starting workspace",
+				})}
+				name={cloud.name}
+			/>
 			<BranchLine branch={cloud.branch} />
 			{/* The steps stay left-aligned inside their own column so the icons
 			    line up; the column itself sits centered like everything else. */}
 			<View className="gap-2.5">
 				<StepRow
-					label="Creating sandbox"
+					label={t({
+						message: "Creating sandbox",
+					})}
 					state={sandboxReady ? "done" : "active"}
 				/>
 				<StepRow
-					label="Connecting to the workspace"
+					label={t({
+						message: "Connecting to the workspace",
+					})}
 					state={sandboxReady ? "active" : "pending"}
 				/>
 			</View>
@@ -69,7 +80,7 @@ export function CloudWorkspaceProvisioningState({
 			</Text>
 			{elapsed >= STUCK_AFTER_SECONDS ? (
 				<Text className="text-muted-foreground max-w-[280px] text-center text-xs leading-relaxed">
-					Taking longer than usual. It keeps going if you leave.
+					<Trans>Taking longer than usual. It keeps going if you leave.</Trans>
 				</Text>
 			) : null}
 		</Frame>
@@ -82,6 +93,7 @@ export function CloudWorkspaceProvisioningState({
  * is disposing of it, which is also the only way to clear it from the list.
  */
 function CloudWorkspaceFailedState({ cloud }: { cloud: CloudWorkspaceRow }) {
+	const { t } = useLingui();
 	const router = useRouter();
 	const { remove: removeCloudWorkspace } = useCloudWorkspaceActions();
 	const [isDeleting, setIsDeleting] = useState(false);
@@ -92,20 +104,31 @@ function CloudWorkspaceFailedState({ cloud }: { cloud: CloudWorkspaceRow }) {
 			await removeCloudWorkspace(cloud.id);
 			router.back();
 		} catch {
-			Alert.alert("Delete failed");
+			Alert.alert(t({ message: "Delete failed" }));
 			setIsDeleting(false);
 		}
 	};
 
 	return (
 		<Frame icon={AlertCircle} iconClassName="text-destructive">
-			<Heading title="Couldn't start workspace" name={cloud.name} />
+			<Heading
+				title={t({
+					message: "Couldn't start workspace",
+				})}
+				name={cloud.name}
+			/>
 			<BranchLine branch={cloud.branch} />
 			<Text className="text-muted-foreground max-w-[300px] text-center text-[13px] leading-relaxed">
-				Nothing is running. Remove it and create a new one.
+				<Trans>Nothing is running. Remove it and create a new one.</Trans>
 			</Text>
 			<Button variant="secondary" disabled={isDeleting} onPress={remove}>
-				<Text>{isDeleting ? "Removing…" : "Remove workspace"}</Text>
+				<Text>
+					{isDeleting
+						? t({ message: "Removing…" })
+						: t({
+								message: "Remove workspace",
+							})}
+				</Text>
 			</Button>
 		</Frame>
 	);
@@ -135,6 +158,7 @@ function Frame({
 }
 
 function Heading({ title, name }: { title: string; name: string }) {
+	const { t } = useLingui();
 	return (
 		<View className="items-center gap-1">
 			<Text className="text-center text-lg font-semibold">{title}</Text>
@@ -142,7 +166,10 @@ function Heading({ title, name }: { title: string; name: string }) {
 				className="text-muted-foreground text-center text-[15px]"
 				numberOfLines={1}
 			>
-				{name || "Untitled workspace"}
+				{name ||
+					t({
+						message: "Untitled workspace",
+					})}
 			</Text>
 		</View>
 	);

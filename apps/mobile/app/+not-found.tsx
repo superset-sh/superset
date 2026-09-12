@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { router, Stack, usePathname } from "expo-router";
 import { Compass } from "lucide-react-native";
 import { Pressable, View } from "react-native";
@@ -13,6 +14,7 @@ import { Text } from "@/components/ui/text";
  * behind us, and a back button that does nothing is worse than none.
  */
 export default function NotFoundScreen() {
+	const { t } = useLingui();
 	const pathname = usePathname();
 	return (
 		<>
@@ -23,12 +25,16 @@ export default function NotFoundScreen() {
 				</View>
 				<View className="gap-2">
 					<Text className="text-center font-semibold text-[20px] tracking-[-0.2px]">
-						This screen doesn't exist
+						<Trans>This screen doesn't exist</Trans>
 					</Text>
 					<Text className="text-muted-foreground text-center text-[15px] leading-[21px]">
 						{pathname && pathname !== "/"
-							? `Nothing lives at ${pathname}.`
-							: "That link doesn't lead anywhere in the app."}
+							? t({
+									message: `Nothing lives at ${pathname}.`,
+								})
+							: t({
+									message: "That link doesn't lead anywhere in the app.",
+								})}
 					</Text>
 				</View>
 				<Pressable
@@ -36,7 +42,9 @@ export default function NotFoundScreen() {
 					className="bg-secondary h-[42px] items-center justify-center rounded-md px-6 active:opacity-80"
 					onPress={() => router.replace("/")}
 				>
-					<Text className="font-medium text-[15px]">Go home</Text>
+					<Text className="font-medium text-[15px]">
+						<Trans>Go home</Trans>
+					</Text>
 				</Pressable>
 			</View>
 		</>

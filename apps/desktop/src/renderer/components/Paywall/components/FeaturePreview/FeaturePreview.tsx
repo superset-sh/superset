@@ -4,18 +4,20 @@ import { cn } from "@superset/ui/utils";
 import type { ComponentType } from "react";
 import type { ProFeature } from "../../constants";
 import { PRO_FEATURES } from "../../constants";
+import { AutomationsDemo } from "./components/AutomationsDemo";
 import { DitheredBackground } from "./components/DitheredBackground";
 import { MobileAppDemo } from "./components/MobileAppDemo";
-import { RemoteWorkspacesDemo } from "./components/RemoteWorkspacesDemo";
+import { RemoteAccessDemo } from "./components/RemoteAccessDemo";
 import { SlackIntegrationDemo } from "./components/SlackIntegrationDemo";
 import { TasksDemo } from "./components/TasksDemo";
 import { TeamCollaborationDemo } from "./components/TeamCollaborationDemo";
 
 const DEMO_COMPONENTS: Record<string, ComponentType> = {
+	automations: AutomationsDemo,
 	"team-collaboration": TeamCollaborationDemo,
 	tasks: TasksDemo,
 	"slack-integration": SlackIntegrationDemo,
-	"remote-workspaces": RemoteWorkspacesDemo,
+	"remote-access": RemoteAccessDemo,
 	"mobile-app": MobileAppDemo,
 };
 
@@ -58,13 +60,11 @@ export function FeaturePreview({ selectedFeature }: FeaturePreviewProps) {
 						{i18n._(selectedFeature.title)}
 					</span>
 					<Badge variant="default">
-						<Trans id="components.featurePreview.proBadge">PRO</Trans>
+						<Trans>PRO</Trans>
 					</Badge>
 					{selectedFeature.comingSoon && (
 						<Badge variant="secondary" className="text-[10px]">
-							<Trans id="components.featurePreview.comingSoon">
-								(Coming Soon)
-							</Trans>
+							<Trans>(Coming Soon)</Trans>
 						</Badge>
 					)}
 				</div>

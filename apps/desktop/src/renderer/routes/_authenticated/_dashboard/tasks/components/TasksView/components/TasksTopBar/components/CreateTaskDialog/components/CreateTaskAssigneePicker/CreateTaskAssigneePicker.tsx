@@ -78,9 +78,7 @@ export function CreateTaskAssigneePicker({
 						<>
 							<HiOutlineUserCircle className="size-4 text-muted-foreground" />
 							<span className="text-muted-foreground">
-								<Trans id="dashboard.tasks.createTaskAssigneePicker.assignee">
-									Assignee
-								</Trans>
+								<Trans>Assignee</Trans>
 							</span>
 						</>
 					)}
@@ -91,7 +89,6 @@ export function CreateTaskAssigneePicker({
 				<Command shouldFilter={false}>
 					<CommandInput
 						placeholder={t({
-							id: "dashboard.tasks.createTaskAssigneePicker.searchPeople",
 							message: "Search people...",
 						})}
 						value={search}
@@ -102,9 +99,7 @@ export function CreateTaskAssigneePicker({
 							<CommandItem onSelect={() => handleSelect(null)}>
 								<HiOutlineUserCircle className="size-4" />
 								<span className="flex-1 text-sm">
-									<Trans id="dashboard.tasks.createTaskAssigneePicker.noAssignee">
-										No assignee
-									</Trans>
+									<Trans>No assignee</Trans>
 								</span>
 								{value === null && <HiCheck className="size-3.5" />}
 							</CommandItem>
@@ -112,9 +107,7 @@ export function CreateTaskAssigneePicker({
 
 						{filteredUsers.length === 0 ? (
 							<CommandEmpty>
-								<Trans id="dashboard.tasks.createTaskAssigneePicker.noPeople">
-									No people found.
-								</Trans>
+								<Trans>No people found.</Trans>
 							</CommandEmpty>
 						) : (
 							<CommandGroup>

@@ -10,6 +10,7 @@ export type UsageQuotaWindow = UsageAccount["windows"][number];
 
 export const HOST_USAGE_QUOTA_QUERY_KEY = ["host-usage-quota"] as const;
 const USAGE_REFETCH_INTERVAL_MS = 5 * 60_000;
+const USAGE_CACHE_MS = 24 * 60 * 60_000;
 
 /**
  * Subscription quota for every AI CLI login on the given host. The host
@@ -30,6 +31,8 @@ export function useHostUsageQuota(hostUrl: string | null) {
 		},
 		refetchInterval: USAGE_REFETCH_INTERVAL_MS,
 		staleTime: USAGE_REFETCH_INTERVAL_MS,
+		// Keep the last accounts visible when returning after a long absence.
+		gcTime: USAGE_CACHE_MS,
 	});
 
 	const refresh = useCallback(async () => {

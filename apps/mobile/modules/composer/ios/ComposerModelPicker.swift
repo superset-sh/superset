@@ -32,7 +32,31 @@ struct ComposerModelPicker: View {
         .lineLimit(1)
       }
       .buttonStyle(.plain)
-      .accessibilityLabel("Model: \(selected.label)")
+      .accessibilityLabel(String(format: composerLocalized("Model: %@"), selected.label))
     }
+  }
+}
+
+/// One launch setting beside the agent — "Opus ⌄", "High ⌄" — drawn like a
+/// header chip. Same contract as the model picker: reports the press, and the
+/// list it opens lives in React Native.
+struct ComposerLaunchOptionButton: View {
+  let option: ComposerMenuOption
+  let onPress: () -> Void
+
+  var body: some View {
+    Button(action: onPress) {
+      HStack(spacing: 4) {
+        Text(option.label)
+          .font(.system(size: ComposerMetrics.chromeFontSize))
+          .foregroundStyle(option.muted ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+        Image(systemName: "chevron.down")
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(.secondary)
+      }
+      .lineLimit(1)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(option.label)
   }
 }

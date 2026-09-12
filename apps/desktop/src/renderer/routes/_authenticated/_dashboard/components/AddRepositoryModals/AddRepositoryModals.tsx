@@ -25,7 +25,6 @@ export function AddRepositoryModals() {
 				onSuccess={(result) => {
 					toast.success(
 						t({
-							id: "dashboard.addRepositoryModals.emptyProjectCreated",
 							message: "Project created.",
 						}),
 					);
@@ -34,7 +33,6 @@ export function AddRepositoryModals() {
 				onError={(message) =>
 					toast.error(
 						t({
-							id: "dashboard.addRepositoryModals.emptyProjectCreateFailed",
 							message: `Create failed: ${message}`,
 						}),
 					)
@@ -48,7 +46,6 @@ export function AddRepositoryModals() {
 				onSuccess={(result) => {
 					toast.success(
 						t({
-							id: "dashboard.addRepositoryModals.newProjectCreated",
 							message: "Project created.",
 						}),
 					);
@@ -57,7 +54,6 @@ export function AddRepositoryModals() {
 				onError={(message) =>
 					toast.error(
 						t({
-							id: "dashboard.addRepositoryModals.newProjectCreateFailed",
 							message: `Create failed: ${message}`,
 						}),
 					)
@@ -71,7 +67,6 @@ export function AddRepositoryModals() {
 				onCreated={(result) => {
 					toast.success(
 						t({
-							id: "dashboard.addRepositoryModals.templateProjectCreated",
 							message: "Project created.",
 						}),
 					);
@@ -80,7 +75,6 @@ export function AddRepositoryModals() {
 				onError={(message) =>
 					toast.error(
 						t({
-							id: "dashboard.addRepositoryModals.templateProjectCreateFailed",
 							message: `Create failed: ${message}`,
 						}),
 					)

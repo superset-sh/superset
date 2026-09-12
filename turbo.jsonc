@@ -4,10 +4,7 @@
 	"globalEnv": [
 		"DATABASE_URL",
 		"DATABASE_URL_UNPOOLED",
-		"BLOB_READ_WRITE_TOKEN",
-		"NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-		"NEXT_PUBLIC_CLERK_SIGN_IN_URL",
-		"NEXT_PUBLIC_CLERK_SIGN_UP_URL",
+		"USERCONTENT_URL",
 		"NEXT_PUBLIC_API_URL",
 		"NEXT_PUBLIC_WEB_URL",
 		"NEXT_PUBLIC_MARKETING_URL",
@@ -28,6 +25,7 @@
 		"VERCEL_URL",
 		"npm_lifecycle_event",
 		"RENDERER_REMOTE_DEBUG_PORT",
+		"SUPERSET_WORKSPACE_ID",
 		"SUPERSET_PTY_DAEMON_ADOPT_IN_DEV",
 		"SUPERSET_HOST_WORKER_SCRIPT_PATH",
 		"SUPERSET_CHAT_V3_MIGRATIONS",
@@ -47,6 +45,10 @@
 			]
 		},
 		"dev": {
+			// Compiled Lingui catalogs are generated, not committed, so dev has to
+			// build them before anything imports @superset/i18n. Scoped to that one
+			// package so starting dev doesn't drag in every other build.
+			"dependsOn": ["@superset/i18n#build"],
 			"cache": false,
 			"persistent": true
 		},
@@ -55,6 +57,10 @@
 			"outputs": ["coverage/**"]
 		},
 		"build:types": {
+			// Emits declarations from source, so it needs the same upstream
+			// generated inputs a build does — the compiled Lingui catalogs in
+			// particular, which host-service reaches through @superset/i18n.
+			"dependsOn": ["^build"],
 			"outputs": ["dist-types/**"]
 		},
 		"typecheck": {

@@ -27,11 +27,9 @@ export function PullRequestDetailToggle() {
 			aria-label={
 				isDetailCollapsed
 					? t({
-							id: "dashboard.pullRequests.detailToggle.show",
 							message: "Show pull request preview",
 						})
 					: t({
-							id: "dashboard.pullRequests.detailToggle.hide",
 							message: "Hide pull request preview",
 						})
 			}

@@ -22,6 +22,13 @@ export const users = authSchema.table(
 		emailVerified: boolean("email_verified").default(false).notNull(),
 		image: text("image"),
 		organizationIds: uuid("organization_ids").array().default([]).notNull(),
+		// The organization this user last switched to, so a new session resumes
+		// where they left off. `sessions.active_organization_id` only remembers
+		// it for the life of one session; without this a fresh session falls
+		// back to the newest membership, which silently moves people between
+		// organizations. Not a foreign key, matching the session column —
+		// membership is re-checked on read, so a stale id is harmless.
+		lastActiveOrganizationId: uuid("last_active_organization_id"),
 		onboardedAt: timestamp("onboarded_at"),
 		// BCP 47 tag of the user's preferred UI language; null = auto-detect.
 		// Written by clients (desktop write-through, later web/mobile); read by

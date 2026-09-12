@@ -1,5 +1,7 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -13,22 +15,27 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { cn } from "@superset/ui/utils";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Area, AreaChart, XAxis, YAxis } from "recharts";
 
 import { useTRPC } from "@/trpc/react";
 
+import { useSigmaMetric } from "../../hooks/useSigmaMetric";
 import { makeDateAxis } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 import { type MrrDatum, MrrTooltip } from "./MrrTooltip";
 
-const chartConfig = {
-	mrrUsd: { label: "MRR", color: "var(--chart-1)" },
-} satisfies ChartConfig;
-
 const RANGE_DAYS = { "7d": 7, "35d": 35, "180d": 180 } as const;
 type RangeKey = keyof typeof RANGE_DAYS;
+
+// Matches the timestamp InsightTileFrame renders in the header, so the two
+// read as the same kind of fact.
+const TIMESTAMP_FORMAT: Intl.DateTimeFormatOptions = {
+	month: "short",
+	day: "numeric",
+	hour: "numeric",
+	minute: "2-digit",
+};
 
 // One daily-180d Stripe query serves every range; ranges differ only in
 // sampling: 7d shows days, 35d shows 7d intervals, 180d shows month ends.
@@ -51,20 +58,33 @@ function bucketPoints(all: MrrDatum[], range: RangeKey): MrrDatum[] {
 }
 
 export function MrrTile() {
-	const trpc = useTRPC();
-	const [range, setRange] = useState<RangeKey>("7d");
-	const query = useQuery(
-		trpc.business.getMrr.queryOptions(undefined, {
-			refetchInterval: (q) =>
-				q.state.data && !q.state.data.available ? 10_000 : false,
-		}),
-	);
+	const { formatDateTime, formatNumber } = useFormat();
 
-	const unavailableReason =
-		query.data && !query.data.available ? query.data.reason : null;
+	const { t } = useLingui();
+	const trpc = useTRPC();
+	const chartConfig = {
+		mrrUsd: {
+			label: t({ message: "MRR" }),
+			color: "var(--chart-1)",
+		},
+	} satisfies ChartConfig;
+	const [range, setRange] = useState<RangeKey>("7d");
+	const {
+		data: series,
+		isLoading,
+		error,
+		unavailableReason,
+		isComputing,
+		refresh,
+		isRefreshing,
+	} = useSigmaMetric({
+		query: trpc.business.getMrr.queryOptions(),
+		refresh: trpc.business.refreshMrr.mutationOptions(),
+	});
+
 	// Server returns 180 daily points; range switches filter client-side.
 	const days = RANGE_DAYS[range];
-	const allPoints = query.data?.available ? query.data.points : [];
+	const allPoints = series?.points ?? [];
 	const enriched: MrrDatum[] = allPoints.map((p, i) => {
 		const prev = allPoints[i - days];
 		return {
@@ -85,18 +105,28 @@ export function MrrTile() {
 
 	return (
 		<InsightTileFrame
-			title="MRR — daily (Stripe)"
-			description="Stripe's own Sigma MRR report, computed on demand via the Query Run API"
-			lastRefresh={query.data?.available ? query.data.dataLoadTime : null}
-			isLoading={query.isLoading}
-			error={query.error}
+			title={t({ message: "MRR — daily (Stripe)" })}
+			description={t({
+				message:
+					"Stripe's own Sigma MRR report, computed on demand via the Query Run API",
+			})}
+			lastRefresh={series?.dataLoadTime ?? null}
+			fill
+			isLoading={isLoading}
+			onRefresh={refresh}
+			isRefreshing={isRefreshing}
+			error={error}
 			empty={points.length === 0}
 			emptyLabel={
-				unavailableReason === "computing"
-					? "Computing in Stripe — up to a minute on first load"
+				isComputing
+					? t({
+							message: "Computing in Stripe — up to a minute on first load",
+						})
 					: unavailableReason
-						? `Unavailable: ${unavailableReason}`
-						: "No data"
+						? t({
+								message: `Unavailable: ${unavailableReason}`,
+							})
+						: undefined
 			}
 			headerAction={
 				<Select value={range} onValueChange={(v) => setRange(v as RangeKey)}>
@@ -113,12 +143,15 @@ export function MrrTile() {
 				</Select>
 			}
 		>
-			<div className="space-y-4">
+			{/* A column with a definite height: the chart's h-full has nothing to
+			    resolve against inside an auto-height wrapper, and recharts renders
+			    no svg at all when it measures zero. */}
+			<div className="flex h-full flex-col gap-4">
 				{latest ? (
-					<div>
+					<div className="shrink-0">
 						<div className="flex items-baseline gap-2">
 							<span className="text-3xl font-bold">
-								${latest.mrrUsd.toLocaleString()}
+								${formatNumber(latest.mrrUsd, undefined)}
 							</span>
 							{changePct !== null ? (
 								<span
@@ -134,13 +167,27 @@ export function MrrTile() {
 						</div>
 						{latest?.prevUsd !== null && latest?.prevUsd !== undefined ? (
 							<p className="text-muted-foreground text-sm">
-								${latest.prevUsd.toLocaleString()} previous period (
-								{latest.prevDate})
+								{t({
+									message: `$${formatNumber(latest.prevUsd, undefined)} previous period (${latest.prevDate})`,
+								})}
+							</p>
+						) : null}
+						{series?.dataThrough ? (
+							// Sigma's MRR table runs hours behind live, so the header's
+							// refresh time is not how current the figure is. Say when the
+							// data actually ends, or a correct number reads as a stale one.
+							<p className="text-muted-foreground text-xs">
+								{t({
+									message: `Stripe data through ${formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)}`,
+								})}
 							</p>
 						) : null}
 					</div>
 				) : null}
-				<ChartContainer config={chartConfig} className="h-[200px] w-full">
+				<ChartContainer
+					config={chartConfig}
+					className="aspect-auto w-full flex-1 min-h-[160px]"
+				>
 					<AreaChart data={points}>
 						<XAxis
 							dataKey="date"
@@ -155,7 +202,7 @@ export function MrrTile() {
 							axisLine={false}
 							width={56}
 							domain={["auto", "auto"]}
-							tickFormatter={(v: number) => `$${v.toLocaleString()}`}
+							tickFormatter={(v: number) => `$${formatNumber(v, undefined)}`}
 						/>
 						<ChartTooltip content={<MrrTooltip />} />
 						<Area

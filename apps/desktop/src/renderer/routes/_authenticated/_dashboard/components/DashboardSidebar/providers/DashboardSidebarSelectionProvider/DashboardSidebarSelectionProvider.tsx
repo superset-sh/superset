@@ -43,6 +43,7 @@ interface DashboardSidebarSelectionContextValue {
 
 interface DashboardSidebarSelectionProviderProps {
 	availableWorkspaceIds: ReadonlySet<string>;
+	activeWorkspaceId: string | null;
 	children: ReactNode;
 }
 
@@ -51,6 +52,7 @@ const DashboardSidebarSelectionContext =
 
 export function DashboardSidebarSelectionProvider({
 	availableWorkspaceIds,
+	activeWorkspaceId,
 	children,
 }: DashboardSidebarSelectionProviderProps) {
 	const [selection, setSelection] = useState<WorkspaceSelectionState>(
@@ -117,11 +119,15 @@ export function DashboardSidebarSelectionProvider({
 			event.preventDefault();
 			event.stopPropagation();
 			setSelection((current) =>
-				applyWorkspaceSelection(current, { ...options, mode }),
+				applyWorkspaceSelection(current, {
+					...options,
+					mode,
+					activeWorkspaceId,
+				}),
 			);
 			return true;
 		},
-		[],
+		[activeWorkspaceId],
 	);
 
 	const removeSelectedWorkspaces = useCallback((workspaceIds: string[]) => {

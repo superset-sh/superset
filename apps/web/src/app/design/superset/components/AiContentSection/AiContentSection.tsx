@@ -1,5 +1,8 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	Artifact,
 	ArtifactActions,
@@ -36,7 +39,6 @@ import {
 } from "@superset/ui/ai-elements/sources";
 import { Button } from "@superset/ui/button";
 import { DownloadIcon } from "lucide-react";
-
 import { ComponentCard } from "../../../components/ComponentCard";
 import { ShowcaseSection } from "../../../components/ShowcaseSection";
 
@@ -82,13 +84,29 @@ export function AiContentSection() {
 		<ShowcaseSection
 			id="ai-content"
 			index="05"
-			title="AI · Content"
-			description="Rendered output: code, sources, citations, context"
+			title={i18n._(
+				msg({
+					message: "AI · Content",
+				}),
+			)}
+			description={i18n._(
+				msg({
+					message: "Rendered output: code, sources, citations, context",
+				}),
+			)}
 		>
 			<ComponentCard
-				title="Code Block"
+				title={i18n._(
+					msg({
+						message: "Code Block",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/code-block"
-				description="Shiki-highlighted, with optional line numbers"
+				description={i18n._(
+					msg({
+						message: "Shiki-highlighted, with optional line numbers",
+					}),
+				)}
 				span
 				bleed
 			>
@@ -101,27 +119,56 @@ export function AiContentSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title="Sources"
+				title={i18n._(
+					msg({
+						message: "Sources",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/sources"
 			>
 				<Sources className="w-full">
 					<SourcesTrigger count={3} />
 					<SourcesContent>
-						<Source href="#ai-content" title="Radix Tooltip docs" />
-						<Source href="#ai-content" title="Tailwind v4 theme reference" />
-						<Source href="#ai-content" title="shadcn/ui tooltip recipe" />
+						<Source
+							href="#ai-content"
+							title={i18n._(
+								msg({
+									message: "Radix Tooltip docs",
+								}),
+							)}
+						/>
+						<Source
+							href="#ai-content"
+							title={i18n._(
+								msg({
+									message: "Tailwind v4 theme reference",
+								}),
+							)}
+						/>
+						<Source
+							href="#ai-content"
+							title={i18n._(
+								msg({
+									message: "shadcn/ui tooltip recipe",
+								}),
+							)}
+						/>
 					</SourcesContent>
 				</Sources>
 			</ComponentCard>
 
 			<ComponentCard
-				title="Inline Citation"
+				title={i18n._(
+					msg({
+						message: "Inline Citation",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/inline-citation"
 			>
 				<p className="max-w-sm text-sm text-muted-foreground">
 					<InlineCitation>
 						<InlineCitationText>
-							Radix rotates the tooltip arrow wrapper per side,
+							<Trans>Radix rotates the tooltip arrow wrapper per side,</Trans>
 						</InlineCitationText>
 						<InlineCitationCard>
 							<InlineCitationCardTrigger
@@ -129,23 +176,37 @@ export function AiContentSection() {
 							/>
 							<InlineCitationCardBody>
 								<div className="p-3 text-sm">
-									<p className="font-medium">Radix Primitives</p>
+									<p className="font-medium">
+										<Trans>Radix Primitives</Trans>
+									</p>
 									<p className="mt-1 text-muted-foreground">
-										Popper-based positioning places and rotates arrow elements
-										automatically.
+										<Trans>
+											Popper-based positioning places and rotates arrow elements
+											automatically.
+										</Trans>
 									</p>
 								</div>
 							</InlineCitationCardBody>
 						</InlineCitationCard>
 					</InlineCitation>{" "}
-					so a border on two edges of the rotated square always faces outward.
+					<Trans>
+						so a border on two edges of the rotated square always faces outward.
+					</Trans>
 				</p>
 			</ComponentCard>
 
 			<ComponentCard
-				title="Context"
+				title={i18n._(
+					msg({
+						message: "Context",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/context"
-				description="Token budget indicator — hover the percentage"
+				description={i18n._(
+					msg({
+						message: "Token budget indicator — hover the percentage",
+					}),
+				)}
 			>
 				<Context usedTokens={87_400} maxTokens={200_000}>
 					<ContextTrigger />
@@ -153,7 +214,7 @@ export function AiContentSection() {
 						<ContextContentHeader />
 						<ContextContentBody>
 							<p className="text-xs text-muted-foreground">
-								87.4K of 200K tokens used in this session.
+								<Trans>87.4K of 200K tokens used in this session.</Trans>
 							</p>
 						</ContextContentBody>
 					</ContextContent>
@@ -161,19 +222,27 @@ export function AiContentSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title="Checkpoint"
+				title={i18n._(
+					msg({
+						message: "Checkpoint",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/checkpoint"
 			>
 				<Checkpoint className="w-full">
 					<CheckpointIcon />
 					<CheckpointTrigger tooltip="Restore the conversation to this point">
-						Checkpoint · before tooltip refactor
+						<Trans>Checkpoint · before tooltip refactor</Trans>
 					</CheckpointTrigger>
 				</Checkpoint>
 			</ComponentCard>
 
 			<ComponentCard
-				title="Artifact"
+				title={i18n._(
+					msg({
+						message: "Artifact",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/artifact"
 				span
 				bleed
@@ -181,28 +250,51 @@ export function AiContentSection() {
 				<Artifact className="rounded-none border-0">
 					<ArtifactHeader>
 						<div>
-							<ArtifactTitle>tooltip-refactor.diff</ArtifactTitle>
-							<ArtifactDescription>45 files · +82 −172</ArtifactDescription>
+							<ArtifactTitle>
+								<Trans>tooltip-refactor.diff</Trans>
+							</ArtifactTitle>
+							<ArtifactDescription>
+								<Trans>45 files · +82 −172</Trans>
+							</ArtifactDescription>
 						</div>
 						<ArtifactActions>
-							<Button variant="ghost" size="icon-sm" aria-label="Download">
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								aria-label={i18n._(
+									msg({
+										message: "Download",
+									}),
+								)}
+							>
 								<DownloadIcon />
 							</Button>
 							<ArtifactClose />
 						</ArtifactActions>
 					</ArtifactHeader>
 					<div className="p-4 font-mono text-xs text-muted-foreground">
-						- className="rounded-sm border border-border bg-background …"
+						<Trans>
+							- className="rounded-sm border border-border bg-background …"
+						</Trans>
 						<br />+ {`<TooltipContent side="bottom">`}
 					</div>
 				</Artifact>
 			</ComponentCard>
 
 			<ComponentCard
-				title="Not demoed here"
+				title={i18n._(
+					msg({
+						message: "Not demoed here",
+					}),
+				)}
 				importPath="@superset/ui/ai-elements/*"
 				copyable={false}
-				description="Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
+				description={i18n._(
+					msg({
+						message:
+							"Need live chat/tool-call state (ToolUIPart, streams) or an app shell",
+					}),
+				)}
 				span
 			>
 				<div className="flex flex-wrap gap-1.5">

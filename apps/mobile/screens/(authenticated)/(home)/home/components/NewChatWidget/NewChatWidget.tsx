@@ -1,45 +1,60 @@
+import { useLingui } from "@lingui/react/macro";
 import { Composer, type ComposerHandle } from "@superset/composer";
+import { errorMessage } from "@superset/i18n/errors";
+import { isCloudAgentId } from "@superset/shared/cloud-agent-launch";
+import { getPresetById } from "@superset/shared/host-agent-presets";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { useCloudEnvironments } from "@/hooks/useCloudEnvironments";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
+import { awaitAttachmentUploads } from "@/lib/attachments/upload";
 import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
+import {
+	agentLaunchPresetId,
+	useAgentLaunchPreferences,
+} from "@/screens/(authenticated)/hooks/useAgentLaunchPreferences";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
+import { useAttachmentUploads } from "@/screens/(authenticated)/hooks/useAttachmentUploads";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
 import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
 import { HOME_DRAFT_KEY } from "@/screens/(authenticated)/stores/composerDraftsStore";
-import {
-	type ChatTarget,
-	useChatTargetStore,
-} from "../../stores/chatTargetStore";
+import { useComposerFocusStore } from "../../stores/composerFocusStore";
 import { useAgentIconUri } from "./hooks/useAgentIconUri";
 import { useCreateCloudWorkspace } from "./hooks/useCreateCloudWorkspace";
 import { useNewChatTargets } from "./hooks/useNewChatTargets";
-import { useStartWorkspaceTerminal } from "./hooks/useStartWorkspaceTerminal";
 import { useNewSessionPreferencesStore } from "./stores/newSessionPreferencesStore";
+
+/** The built-in preset a cloud workspace launches, in the shape a host config has. */
+function cloudAgentConfig(agentId: string | null) {
+	// A preset picked for a laptop may not exist in the sandbox image.
+	const wanted = agentId && isCloudAgentId(agentId) ? agentId : "claude";
+	const preset = getPresetById(wanted);
+	return preset
+		? {
+				presetId: preset.presetId,
+				label: preset.label,
+				iconId: preset.presetId,
+				command: preset.command,
+			}
+		: undefined;
+}
 
 export function NewChatWidget({
 	workspaces,
-	fixedTarget,
-	placeholder,
 }: {
 	workspaces: HostWorkspaceItem[];
-	/**
-	 * Pins the composer to one workspace: the target/project/branch/model rows
-	 * disappear and every submit starts a chat in this workspace.
-	 */
-	fixedTarget?: ChatTarget;
-	placeholder?: string;
 }) {
+	const { t } = useLingui();
 	const router = useRouter();
 	const composerRef = useRef<ComposerHandle>(null);
 
@@ -49,6 +64,7 @@ export function NewChatWidget({
 	const draft = useComposerDraft(HOME_DRAFT_KEY);
 	const openAttachmentsSheet = useAttachmentsSheet(HOME_DRAFT_KEY);
 	const addPasted = usePasteAttachments(HOME_DRAFT_KEY);
+	const uploads = useAttachmentUploads(HOME_DRAFT_KEY);
 
 	// What was typed here last time, pinned at mount: a starting value handed to
 	// the composer as it is set up, never a binding.
@@ -66,6 +82,13 @@ export function NewChatWidget({
 		targets.find((target) => target.key === targetKey) ?? defaultTarget;
 	const isCloudTarget = selectedTarget?.kind === "cloud";
 	const cloudScope = useWorkspaceScope() === "cloud";
+	const environmentId = useNewSessionPreferencesStore(
+		(state) => state.environmentId,
+	);
+	const environmentsQuery = useCloudEnvironments();
+	const environments = environmentsQuery.data ?? [];
+	const selectedEnvironment =
+		environments.find((row) => row.id === environmentId) ?? environments[0];
 
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
@@ -85,7 +108,6 @@ export function NewChatWidget({
 				if (!organizationId) return null;
 				return apiClient.cloudWorkspace.listBranches.query({
 					organizationId,
-					projectId: selectedTarget.projectId,
 				});
 			}
 			return getHostServiceClientByUrl(
@@ -103,31 +125,67 @@ export function NewChatWidget({
 	const { data: agentConfigs } = useHostAgentConfigs({
 		machineId: selectedTarget?.machineId ?? null,
 		hostUrl: selectedTarget?.hostUrl ?? null,
-		// A cloud target has no host to list agents from, and create doesn't
-		// launch one (the prompt only feeds the auto-name).
+		// A cloud target has no host to list agents from; it offers the
+		// built-in presets instead (SUPER-2127 for custom ones).
 		enabled: !isCloudTarget,
 	});
-	const selectedAgent = agentConfigs?.find(
-		(config) => config.presetId === agentId,
-	);
+	const selectedAgent = isCloudTarget
+		? cloudAgentConfig(agentId)
+		: agentConfigs?.find((config) => config.presetId === agentId);
+	// A preset picked for a laptop may not exist in the sandbox; under Cloud
+	// the effective agent is the one that will actually launch.
+	const effectiveAgentId = isCloudTarget
+		? (selectedAgent?.presetId ?? "claude")
+		: agentId;
 	const agentIconUri = useAgentIconUri(selectedAgent?.iconId ?? agentId);
+	// Remembered per launch preset; null means the agent's own default and
+	// nothing rides the launch. Until the host's configs answer the preset id
+	// stands in for the launch preset, so a send made before they arrive
+	// still carries the pick — the two only differ for a config whose
+	// executable is not its preset's.
+	const launchPresetId = selectedAgent
+		? agentLaunchPresetId(selectedAgent)
+		: agentId;
+	const launch = useAgentLaunchPreferences(launchPresetId);
+	const model = launch.model?.id ?? null;
+	const effort = launch.effort?.id ?? null;
+	// One dropdown after the agent, naming the model; the sheet it opens also
+	// holds the effort. An agent with only an effort flag names that instead,
+	// and one with neither shows nothing.
+	const launchOptionLabel =
+		launch.models !== undefined
+			? (launch.model?.label ?? t({ message: "Default model" }))
+			: launch.efforts.length > 0
+				? (launch.effort?.label ?? t({ message: "Default effort" }))
+				: null;
+	const launchOptions = launchOptionLabel
+		? [{ id: "launch", label: launchOptionLabel }]
+		: [];
 	// Null until the branch list resolves. The previous fallback was the literal
 	// string "default", which reads as a branch name and is not one.
 	const branchLabel = baseBranch ?? branchData?.defaultBranch ?? null;
 
-	const storeTarget = useChatTargetStore((state) => state.target);
-	const clearChatTarget = useChatTargetStore((state) => state.clearTarget);
-	const chatTarget = fixedTarget ?? storeTarget;
-	const startWorkspaceTerminal = useStartWorkspaceTerminal(workspaces);
-
+	// Only a request made after mount counts: the store keeps the last nonce,
+	// and a remount that read it as "positive" would focus without anyone
+	// asking.
+	const focusNonce = useComposerFocusStore((state) => state.focusNonce);
+	const seenFocusNonce = useRef(focusNonce);
 	useEffect(() => {
-		if (storeTarget) composerRef.current?.focus();
-	}, [storeTarget]);
+		if (focusNonce === seenFocusNonce.current) return;
+		seenFocusNonce.current = focusNonce;
+		composerRef.current?.focus();
+	}, [focusNonce]);
 
+	// A send now begins with an await — the attachment uploads — so the
+	// mutation's own `isPending` no longer covers the whole of it. Without a
+	// lock taken before that await, a second tap slips through the gap and
+	// creates a second workspace with its own id.
+	const sending = useRef(false);
+	const [isHoldingSend, setIsHoldingSend] = useState(false);
 	const isSending =
+		isHoldingSend ||
 		createTerminalWorkspace.isPending ||
-		createCloudWorkspace.isPending ||
-		startWorkspaceTerminal.isPending;
+		createCloudWorkspace.isPending;
 
 	// The draft and the tray are cleared together, on success only. The native
 	// composer's `clear()` reaches its own text and nothing else — the tray is
@@ -138,45 +196,45 @@ export function NewChatWidget({
 		draft.clear();
 	};
 
-	const dismiss = () => {
-		clearChatTarget();
-		composerRef.current?.blur();
+	const submit = async (message: PromptInputMessage) => {
+		if (sending.current) return;
+		sending.current = true;
+		setIsHoldingSend(true);
+		try {
+			await send(message);
+		} finally {
+			sending.current = false;
+			setIsHoldingSend(false);
+		}
 	};
 
-	const submit = (message: PromptInputMessage) => {
+	const send = async (message: PromptInputMessage) => {
 		posthog.capture("chat_message_sent", {
 			has_attachments: message.attachments.length > 0,
 			attachment_count: message.attachments.length,
 			message_length: message.text.trim().length,
 			draft_restored: initialDraft.length > 0,
-			// A cloud create launches nothing today — the prompt only feeds the
-			// server-side auto-name — so there is no agent to name.
-			agent: chatTarget || !isCloudTarget ? agentId : null,
-			destination: chatTarget
-				? "existing_workspace"
-				: isCloudTarget
-					? "new_cloud_workspace"
-					: "new_workspace",
+			agent: effectiveAgentId,
+			model,
+			effort,
+			destination: isCloudTarget ? "new_cloud_workspace" : "new_workspace",
 		});
-		if (chatTarget) {
-			startWorkspaceTerminal
-				.mutateAsync({ target: chatTarget, message, agentId })
-				.then(() => {
-					clearChatTarget();
-					clearComposer();
-				})
-				.catch(() => {});
-			return;
-		}
 		if (!selectedTarget) {
-			Alert.alert("No project available");
+			Alert.alert(
+				t({
+					message: "No project available",
+				}),
+			);
 			return;
 		}
 		if (selectedTarget.kind === "cloud") {
-			createCloudWorkspace
+			await createCloudWorkspace
 				.mutateAsync({
-					target: selectedTarget,
 					branch: baseBranch ?? branchData?.defaultBranch ?? null,
+					environmentId: selectedEnvironment?.id ?? null,
+					agent: effectiveAgentId,
+					model,
+					effort,
 					message,
 				})
 				.then(() => {
@@ -186,14 +244,35 @@ export function NewChatWidget({
 				.catch(() => {});
 			return;
 		}
-		createTerminalWorkspace
+		// Before the create is recorded, so the failed screen's retry replays
+		// ids rather than URIs the cleared draft no longer has. Usually
+		// instant: the upload started when the file was attached, and the ring
+		// on the thumbnail is what shows the rare case where it has not
+		// finished.
+		let attachmentFileIds: string[];
+		try {
+			attachmentFileIds = await awaitAttachmentUploads(
+				HOME_DRAFT_KEY,
+				message.attachments,
+			);
+		} catch (error) {
+			Alert.alert(
+				t({ message: "Could not attach files" }),
+				errorMessage(error),
+			);
+			return;
+		}
+		await createTerminalWorkspace
 			.mutateAsync({
 				target: selectedTarget,
 				baseBranch,
 				branchLabel,
 				agentId,
 				agentLabel: selectedAgent?.label ?? "Claude",
+				model,
+				effort,
 				message,
+				attachmentFileIds,
 			})
 			.then(() => {
 				setBaseBranch(null);
@@ -202,57 +281,50 @@ export function NewChatWidget({
 			.catch(() => {});
 	};
 
-	// Collapse BOTH dimensions: a width-0 proposal makes Text wrap one glyph
-	// per line, leaving a tall invisible column that clipped() hides but layout
-	// still counts.
-	// Frame 4's header row, as data. A target picked at runtime replaces the
-	// project/branch pair, the way the old `header` slot swapped them out —
-	// but only a *picked* one. `fixedTarget` pins the composer to a workspace
-	// and is not the user's to clear, so it gets no chips at all: the chip's
-	// press only clears `storeTarget`, which would leave it stuck on screen.
 	// Under Cloud there is no project to show: a sandbox has no real project
 	// structure yet, so the chip is the place itself and the repo it clones is
 	// resolved without asking.
-	const headerChips = fixedTarget
-		? []
-		: storeTarget
+	const headerChips = [
+		cloudScope
+			? {
+					id: "project",
+					label: t({ message: "Cloud" }),
+				}
+			: {
+					id: "project",
+					label: selectedTarget?.projectName ?? t({ message: "No project" }),
+					avatar: true,
+					iconUri: selectedTarget?.projectIconUrl ?? undefined,
+				},
+		...(cloudScope
 			? [
 					{
-						id: "clear-target",
-						label: `New agent in ${storeTarget.workspaceName}`,
+						id: "environment",
+						label:
+							selectedEnvironment?.name ??
+							t({
+								message: "Environment",
+							}),
 					},
 				]
-			: [
-					cloudScope
-						? { id: "project", label: "Cloud" }
-						: {
-								id: "project",
-								label: selectedTarget?.projectName ?? "No project",
-								avatar: true,
-								iconUri: selectedTarget?.projectIconUrl ?? undefined,
-							},
-					...(branchLabel
-						? [{ id: "branch", label: branchLabel, muted: true }]
-						: []),
-				];
+			: []),
+		...(branchLabel ? [{ id: "branch", label: branchLabel, muted: true }] : []),
+	];
 
-	// No agent chip for a cloud target: nothing launches on create (parity
-	// with desktop; the sandbox-side launch is a follow-up).
-	const selectedModel =
-		fixedTarget || isCloudTarget
-			? undefined
-			: {
-					id: agentId ?? "claude",
-					label: selectedAgent?.label ?? "Claude",
-					iconUri: agentIconUri ?? undefined,
-				};
+	const selectedModel = {
+		id: effectiveAgentId ?? "claude",
+		label: selectedAgent?.label ?? "Claude",
+		iconUri: agentIconUri ?? undefined,
+	};
 
 	// No KeyboardAvoidingView, no absolute-fill backdrop, no safe-area padding:
 	// the native composer owns its own keyboard tracking, dimming and dismissal.
 	return (
 		<Composer
 			ref={composerRef}
-			placeholder={placeholder ?? "Plan, ask, build..."}
+			placeholder={t({
+				message: "What do you want to do?",
+			})}
 			initialDraft={initialDraft}
 			isSending={isSending}
 			onDictationError={(message: string) => Alert.alert(message)}
@@ -261,19 +333,35 @@ export function NewChatWidget({
 				uri: item.uri ?? "",
 				kind: item.type === "image" ? ("image" as const) : ("file" as const),
 				name: item.name,
+				// Dropped the moment the id lands, so a settled tray draws no
+				// rings — only what is still in flight is marked.
+				progress: uploads[item.id]?.fileId
+					? undefined
+					: uploads[item.id]?.progress,
+				failed: uploads[item.id]?.error !== undefined,
 			}))}
 			headerChips={headerChips}
 			selectedModel={selectedModel}
-			onSubmit={(text) => submit({ text, attachments: draft.attachments })}
+			launchOptions={launchOptions}
+			onLaunchOptionPress={() => {
+				if (!launchPresetId) return;
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				router.push({
+					pathname: "/(authenticated)/(home)/new-session/model",
+					params: {
+						presetId: launchPresetId,
+						agentLabel: selectedAgent?.label ?? "",
+					},
+				});
+			}}
+			onSubmit={(text) => void submit({ text, attachments: draft.attachments })}
 			onDraftChange={draft.setText}
 			onRemoveAttachment={(id) => draft.remove(id)}
 			onExpandedChange={(expanded) => {
-				// Only where the project/branch/agent rows are live: pinned to a
-				// workspace, expanding the composer starts a message, not a session.
-				if (expanded && !wasExpanded.current && !fixedTarget && !storeTarget) {
+				if (expanded && !wasExpanded.current) {
 					posthog.capture("new_session_started", {
 						target_kind: selectedTarget?.kind ?? null,
-						agent: isCloudTarget ? null : agentId,
+						agent: effectiveAgentId,
 					});
 				}
 				wasExpanded.current = expanded;
@@ -298,8 +386,8 @@ export function NewChatWidget({
 			onChipPress={(id) => {
 				if (id === "project" && cloudScope) return;
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				if (id === "clear-target") {
-					dismiss();
+				if (id === "environment") {
+					router.push("/(authenticated)/(home)/new-session/environment");
 				} else if (id === "project") {
 					if (targets.length > 0) {
 						router.push({

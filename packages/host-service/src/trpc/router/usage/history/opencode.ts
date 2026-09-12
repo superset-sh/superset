@@ -1,37 +1,32 @@
 /**
- * OpenCode usage. Every assistant message is one small JSON file under
- * `<data>/opencode/storage/message/<sessionID>/msg_*.json` carrying
- * normalized tokens (input is already non-cached — opencode subtracts cache
- * reads/writes itself), the model, the cwd, and a real cost in USD. Session
- * titles live in `<data>/opencode/storage/session/<projectID>/<ses>.json`.
+ * OpenCode usage. Since v1.x every session lives in `<data>/opencode/opencode.db`
+ * (see opencode-db.ts); older installs left one JSON file per message under
+ * `<data>/opencode/storage/message/<sessionID>/msg_*.json` with titles in
+ * `storage/session/<projectID>/<ses>.json`. OpenCode migrated that tree into
+ * the database, so when the database exists the tree is history already
+ * counted and is skipped.
  */
 
 import { readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { type OpencodeMessage, opencodeMessageToEntry } from "./opencode-rows";
 import type { UsageLogEntry } from "./parse";
-import { num } from "./parse";
 
-export function opencodeStorageDir(): string {
+export function opencodeDataDir(): string {
 	const dataHome =
 		process.env.XDG_DATA_HOME?.trim() || join(homedir(), ".local", "share");
-	return join(dataHome, "opencode", "storage");
+	return join(dataHome, "opencode");
 }
 
-interface OpencodeMessage {
-	sessionID?: string;
-	role?: string;
-	time?: { created?: number; completed?: number };
-	modelID?: string;
-	providerID?: string;
-	path?: { cwd?: string };
-	cost?: number;
-	tokens?: {
-		input?: number;
-		output?: number;
-		reasoning?: number;
-		cache?: { read?: number; write?: number };
-	};
+export function opencodeDbPath(dataDir: string = opencodeDataDir()): string {
+	return join(dataDir, "opencode.db");
+}
+
+export function opencodeStorageDir(
+	dataDir: string = opencodeDataDir(),
+): string {
+	return join(dataDir, "storage");
 }
 
 async function readSessionTitles(
@@ -79,11 +74,11 @@ async function readSessionTitles(
 }
 
 /** Returns the number of message files scanned. */
-export async function collectOpencodeEntries(
+async function collectLegacyStorageEntries(
+	storageDir: string,
 	cutoffMs: number,
 	out: UsageLogEntry[],
 	sessionLabels?: Map<string, string>,
-	storageDir: string = opencodeStorageDir(),
 ): Promise<number> {
 	const messageRoot = join(storageDir, "message");
 	let sessionDirs: string[];
@@ -122,34 +117,11 @@ export async function collectOpencodeEntries(
 			} catch {
 				continue;
 			}
-			if (message.role !== "assistant") continue;
-			const timestampMs = num(message.time?.completed ?? message.time?.created);
-			if (!timestampMs || timestampMs < cutoffMs) continue;
-			const tokens = message.tokens;
-			if (!tokens) continue;
-			const uncachedInput = num(tokens.input);
-			const cachedInput = num(tokens.cache?.read);
-			const cacheWrite = num(tokens.cache?.write);
-			const output = num(tokens.output);
-			if (uncachedInput + cachedInput + cacheWrite + output === 0) continue;
-
 			const sessionId = message.sessionID ?? sessionDir;
+			const entry = opencodeMessageToEntry(message, sessionId, cutoffMs);
+			if (!entry) continue;
 			seenSessions.add(sessionId);
-			const cost = num(message.cost);
-			out.push({
-				provider: "opencode",
-				model: message.modelID || "unknown",
-				timestampMs,
-				cwd: typeof message.path?.cwd === "string" ? message.path.cwd : null,
-				sessionId,
-				uncachedInput,
-				cachedInput,
-				cacheWrite5m: cacheWrite,
-				cacheWrite1h: 0,
-				output,
-				reasoningOutput: num(tokens.reasoning),
-				...(cost > 0 ? { costUsd: cost } : {}),
-			});
+			out.push(entry);
 		}
 	}
 
@@ -157,4 +129,30 @@ export async function collectOpencodeEntries(
 		await readSessionTitles(storageDir, seenSessions, sessionLabels);
 	}
 	return scanned;
+}
+
+/** Returns the number of messages read (database rows or files). */
+export async function collectOpencodeEntries(
+	cutoffMs: number,
+	out: UsageLogEntry[],
+	sessionLabels?: Map<string, string>,
+	dataDir: string = opencodeDataDir(),
+): Promise<number> {
+	const dbPath = opencodeDbPath(dataDir);
+	let hasDb = false;
+	try {
+		hasDb = (await stat(dbPath)).isFile();
+	} catch {
+		// No database: a pre-1.x install still on the JSON tree.
+	}
+	if (hasDb) {
+		const { collectOpencodeDbEntries } = await import("./opencode-db");
+		return collectOpencodeDbEntries(dbPath, cutoffMs, out, sessionLabels);
+	}
+	return collectLegacyStorageEntries(
+		opencodeStorageDir(dataDir),
+		cutoffMs,
+		out,
+		sessionLabels,
+	);
 }

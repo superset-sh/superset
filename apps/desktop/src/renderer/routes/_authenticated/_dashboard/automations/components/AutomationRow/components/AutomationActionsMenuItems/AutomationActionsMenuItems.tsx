@@ -8,13 +8,21 @@ import {
 	DropdownMenuSeparator,
 } from "@superset/ui/dropdown-menu";
 import type { ReactNode } from "react";
-import { LuClock, LuPause, LuPencil, LuPlay, LuTrash2 } from "react-icons/lu";
+import {
+	LuClock,
+	LuLink,
+	LuPause,
+	LuPencil,
+	LuPlay,
+	LuTrash2,
+} from "react-icons/lu";
 
 interface AutomationActionsMenuItemsProps {
 	kind: "context" | "dropdown";
 	isOwner: boolean;
 	enabled: boolean;
 	onEdit: () => void;
+	onCopyLink: () => void;
 	onRunNow: () => void;
 	onToggleEnabled: () => void;
 	onHistory: () => void;
@@ -26,6 +34,7 @@ export function AutomationActionsMenuItems({
 	isOwner,
 	enabled,
 	onEdit,
+	onCopyLink,
 	onRunNow,
 	onToggleEnabled,
 	onHistory,
@@ -58,11 +67,16 @@ export function AutomationActionsMenuItems({
 				children: (
 					<>
 						<LuPencil className="size-4" />
-						{isOwner ? (
-							<Trans id="dashboard.automations.actionsMenu.edit">Edit</Trans>
-						) : (
-							<Trans id="dashboard.automations.actionsMenu.view">View</Trans>
-						)}
+						{isOwner ? <Trans>Edit</Trans> : <Trans>View</Trans>}
+					</>
+				),
+			})}
+			{renderItem({
+				onSelect: onCopyLink,
+				children: (
+					<>
+						<LuLink className="size-4" />
+						<Trans>Copy link</Trans>
 					</>
 				),
 			})}
@@ -73,9 +87,7 @@ export function AutomationActionsMenuItems({
 						children: (
 							<>
 								<LuPlay className="size-4" />
-								<Trans id="dashboard.automations.actionsMenu.runNow">
-									Run now
-								</Trans>
+								<Trans>Run now</Trans>
 							</>
 						),
 					})}
@@ -84,16 +96,12 @@ export function AutomationActionsMenuItems({
 						children: enabled ? (
 							<>
 								<LuPause className="size-4" />
-								<Trans id="dashboard.automations.actionsMenu.pause">
-									Pause
-								</Trans>
+								<Trans>Pause</Trans>
 							</>
 						) : (
 							<>
 								<LuPlay className="size-4" />
-								<Trans id="dashboard.automations.actionsMenu.resume">
-									Resume
-								</Trans>
+								<Trans>Resume</Trans>
 							</>
 						),
 					})}
@@ -102,9 +110,7 @@ export function AutomationActionsMenuItems({
 						children: (
 							<>
 								<LuClock className="size-4" />
-								<Trans id="dashboard.automations.actionsMenu.promptHistory">
-									Prompt history
-								</Trans>
+								<Trans>Prompt history</Trans>
 							</>
 						),
 					})}
@@ -119,9 +125,7 @@ export function AutomationActionsMenuItems({
 						children: (
 							<>
 								<LuTrash2 className="size-4" />
-								<Trans id="dashboard.automations.actionsMenu.delete">
-									Delete
-								</Trans>
+								<Trans>Delete</Trans>
 							</>
 						),
 					})}

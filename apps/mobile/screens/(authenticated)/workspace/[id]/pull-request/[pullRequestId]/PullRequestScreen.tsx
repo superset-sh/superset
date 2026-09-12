@@ -1,3 +1,4 @@
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { router, Stack } from "expo-router";
@@ -15,8 +16,8 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { posthog } from "@/lib/posthog";
+import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
 import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
-import { HeaderNotice } from "../../components/HeaderNotice";
 import { PullRequestCard } from "./components/PullRequestCard";
 import { PullRequestDescription } from "./components/PullRequestDescription";
 import { PullRequestHeader } from "./components/PullRequestHeader";
@@ -30,6 +31,7 @@ const NOTICE_MS = 1500;
 
 /** One pull request: what it is waiting on and what you can do about it. */
 export function PullRequestScreen() {
+	const { t } = useLingui();
 	const {
 		detail,
 		isLoading,
@@ -79,7 +81,7 @@ export function PullRequestScreen() {
 		if (!detail) return;
 		await Clipboard.setStringAsync(detail.pullRequest.url);
 		void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-		setNotice("Copied Link");
+		setNotice(t({ message: "Copied Link" }));
 	};
 
 	const [pulling, setPulling] = useState(false);
@@ -105,8 +107,12 @@ export function PullRequestScreen() {
 			<View className="bg-background flex-1 items-center justify-center gap-5 px-10">
 				<Text className="text-muted-foreground text-center text-[15px] leading-[21px]">
 					{error
-						? "Could not reach the host to load this pull request."
-						: "This pull request is no longer available."}
+						? t({
+								message: "Could not reach the host to load this pull request.",
+							})
+						: t({
+								message: "This pull request is no longer available.",
+							})}
 				</Text>
 				<Pressable
 					accessibilityRole="button"
@@ -116,7 +122,9 @@ export function PullRequestScreen() {
 					}
 				>
 					<Text className="font-medium text-[15px]">
-						{router.canGoBack() ? "Go back" : "Go home"}
+						{router.canGoBack()
+							? t({ message: "Go back" })
+							: t({ message: "Go home" })}
 					</Text>
 				</Pressable>
 			</View>
@@ -155,13 +163,17 @@ export function PullRequestScreen() {
 			/>
 			<Stack.Toolbar placement="right">
 				<Stack.Toolbar.Button
-					accessibilityLabel="Copy link to pull request"
+					accessibilityLabel={t({
+						message: "Copy link to pull request",
+					})}
 					icon="link"
 					onPress={() => void copyLink()}
 					separateBackground
 				/>
 				<Stack.Toolbar.Menu
-					accessibilityLabel="Pull request actions"
+					accessibilityLabel={t({
+						message: "Pull request actions",
+					})}
 					icon="ellipsis"
 					separateBackground
 				>
@@ -169,19 +181,21 @@ export function PullRequestScreen() {
 						icon="doc.on.doc"
 						onPress={() => void copyLink()}
 					>
-						Copy link
+						{t({ message: "Copy link" })}
 					</Stack.Toolbar.MenuAction>
 					<Stack.Toolbar.MenuAction
 						icon="arrow.up.right"
 						onPress={() => void Linking.openURL(detail.pullRequest.url)}
 					>
-						Open in GitHub
+						{t({
+							message: "Open in GitHub",
+						})}
 					</Stack.Toolbar.MenuAction>
 					<Stack.Toolbar.MenuAction
 						icon="square.and.arrow.up"
 						onPress={() => void Share.share({ url: detail.pullRequest.url })}
 					>
-						Share
+						{t({ message: "Share" })}
 					</Stack.Toolbar.MenuAction>
 				</Stack.Toolbar.Menu>
 			</Stack.Toolbar>
@@ -240,7 +254,9 @@ export function PullRequestScreen() {
 				<PullRequestDescription body={detail.pullRequest.body} />
 				<View className="bg-border mx-4 h-px" />
 				<View className="mx-4 gap-3">
-					<Text className="text-muted-foreground text-[15px]">Files</Text>
+					<Text className="text-muted-foreground text-[15px]">
+						<Trans>Files</Trans>
+					</Text>
 					<Pressable
 						accessibilityRole="button"
 						className="border-border flex-row items-center justify-between rounded-xl border px-4 py-3.5 active:opacity-60"
@@ -252,8 +268,11 @@ export function PullRequestScreen() {
 						}
 					>
 						<Text className="text-[15px]">
-							{detail.pullRequest.changedFiles}{" "}
-							{detail.pullRequest.changedFiles === 1 ? "file" : "files"} changed
+							<Plural
+								value={detail.pullRequest.changedFiles}
+								one="# file changed"
+								other="# files changed"
+							/>
 						</Text>
 						<Icon as={ChevronRight} className="text-muted-foreground size-4" />
 					</Pressable>

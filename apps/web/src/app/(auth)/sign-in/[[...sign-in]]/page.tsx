@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { authClient } from "@superset/auth/client";
 import {
 	DEV_EMAIL,
@@ -38,6 +39,7 @@ function rememberLastUsedMethod(method: AuthMethod) {
 }
 
 export default function SignInPage() {
+	const { t } = useLingui();
 	const searchParams = useSearchParams();
 	const redirect = searchParams.get("redirect");
 	const callbackURL = redirect
@@ -65,7 +67,11 @@ export default function SignInPage() {
 			});
 		} catch (err) {
 			console.error("Sign in failed:", err);
-			setError("Failed to sign in. Please try again.");
+			setError(
+				t({
+					message: "Failed to sign in. Please try again.",
+				}),
+			);
 			setIsLoadingGoogle(false);
 		}
 	};
@@ -82,7 +88,11 @@ export default function SignInPage() {
 			});
 		} catch (err) {
 			console.error("Sign in failed:", err);
-			setError("Failed to sign in. Please try again.");
+			setError(
+				t({
+					message: "Failed to sign in. Please try again.",
+				}),
+			);
 			setIsLoadingGithub(false);
 		}
 	};
@@ -115,7 +125,11 @@ export default function SignInPage() {
 			window.location.href = callbackURL;
 		} catch (err) {
 			console.error("Dev sign in failed:", err);
-			setError(err instanceof Error ? err.message : "Dev sign-in failed");
+			setError(
+				err instanceof Error
+					? err.message
+					: t({ message: "Dev sign-in failed" }),
+			);
 			setIsLoadingDev(false);
 		}
 	};
@@ -124,16 +138,18 @@ export default function SignInPage() {
 
 	const lastUsedBadge = (
 		<span className="bg-muted text-muted-foreground absolute right-3 rounded-full px-2 py-0.5 text-xs">
-			Last used
+			<Trans>Last used</Trans>
 		</span>
 	);
 
 	return (
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
 			<div className="flex flex-col space-y-2 text-center">
-				<h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+				<h1 className="text-2xl font-semibold tracking-tight">
+					<Trans>Welcome back</Trans>
+				</h1>
 				<p className="text-muted-foreground text-sm">
-					Sign in to continue to Superset
+					<Trans>Sign in to continue to Superset</Trans>
 				</p>
 			</div>
 			<div className="grid gap-4">
@@ -147,7 +163,11 @@ export default function SignInPage() {
 						onClick={signInAsDev}
 						className="relative w-full"
 					>
-						{isLoadingDev ? "Signing in..." : "Sign in as Local Admin (dev)"}
+						{isLoadingDev ? (
+							<Trans>Signing in...</Trans>
+						) : (
+							<Trans>Sign in as Local Admin (dev)</Trans>
+						)}
 						{lastUsedMethod === "dev" && lastUsedBadge}
 					</Button>
 				)}
@@ -158,7 +178,11 @@ export default function SignInPage() {
 					className="relative w-full"
 				>
 					<FaGithub className="mr-2 size-4" />
-					{isLoadingGithub ? "Loading..." : "Sign in with GitHub"}
+					{isLoadingGithub ? (
+						<Trans>Loading...</Trans>
+					) : (
+						<Trans>Sign in with GitHub</Trans>
+					)}
 					{lastUsedMethod === "github" && lastUsedBadge}
 				</Button>
 				<Button
@@ -168,38 +192,46 @@ export default function SignInPage() {
 					className="relative w-full"
 				>
 					<FcGoogle className="mr-2 size-4" />
-					{isLoadingGoogle ? "Loading..." : "Sign in with Google"}
+					{isLoadingGoogle ? (
+						<Trans>Loading...</Trans>
+					) : (
+						<Trans>Sign in with Google</Trans>
+					)}
 					{lastUsedMethod === "google" && lastUsedBadge}
 				</Button>
 				<p className="text-muted-foreground px-8 text-center text-sm">
-					By clicking continue, you agree to our{" "}
-					<a
-						href={`${env.NEXT_PUBLIC_MARKETING_URL}/terms`}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="hover:text-primary underline underline-offset-4"
-					>
-						Terms of Service
-					</a>{" "}
-					and{" "}
-					<a
-						href={`${env.NEXT_PUBLIC_MARKETING_URL}/privacy`}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="hover:text-primary underline underline-offset-4"
-					>
-						Privacy Policy
-					</a>
-					.
+					<Trans>
+						By clicking continue, you agree to our{" "}
+						<a
+							href={`${env.NEXT_PUBLIC_MARKETING_URL}/terms`}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="hover:text-primary underline underline-offset-4"
+						>
+							Terms of Service
+						</a>{" "}
+						and{" "}
+						<a
+							href={`${env.NEXT_PUBLIC_MARKETING_URL}/privacy`}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="hover:text-primary underline underline-offset-4"
+						>
+							Privacy Policy
+						</a>
+						.
+					</Trans>
 				</p>
 				<p className="text-center text-sm">
-					Don&apos;t have an account?{" "}
-					<Link
-						href="/sign-up"
-						className="hover:text-primary underline underline-offset-4"
-					>
-						Sign up
-					</Link>
+					<Trans>
+						Don&apos;t have an account?{" "}
+						<Link
+							href="/sign-up"
+							className="hover:text-primary underline underline-offset-4"
+						>
+							Sign up
+						</Link>
+					</Trans>
 				</p>
 			</div>
 		</div>

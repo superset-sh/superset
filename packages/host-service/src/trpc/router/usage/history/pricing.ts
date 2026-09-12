@@ -1,4 +1,4 @@
-import type { UsageProvider } from "../types";
+import type { UsageAgent } from "../types";
 
 /**
  * API list prices in USD per million tokens. Used to price subscription
@@ -6,13 +6,19 @@ import type { UsageProvider } from "../types";
  * always labeled as an estimate in the UI, never as money spent.
  *
  * Longest-prefix match on the lowercased model id; unknown models fall back
- * to the provider's cheapest rate and mark the result approximate.
+ * to the agent's cheapest rate and mark the result approximate.
  */
-export const PRICING_TABLE_UPDATED = "2026-08-16";
+export const PRICING_TABLE_UPDATED = "2026-09-11";
 
 export interface ModelRate {
 	inputPerM: number;
 	outputPerM: number;
+	/**
+	 * Cache-read price in USD per million tokens, for models priced off the
+	 * usual `CACHE_READ_MULTIPLIER` share of input.
+	 */
+	cacheReadPerM?: number;
+	longContext?: ModelRate;
 }
 
 /** Cache multipliers applied against the model's input rate. */
@@ -21,6 +27,10 @@ export const CACHE_WRITE_5M_MULTIPLIER = 1.25;
 export const CACHE_WRITE_1H_MULTIPLIER = 2;
 
 const CLAUDE_RATES: Record<string, ModelRate> = {
+	// Fable 5.1 and Mythos 5.1 keep Fable 5's token price but cut cache reads
+	// to $0.25/M (0.025x input) instead of the usual 0.1x.
+	"claude-fable-5-1": { inputPerM: 10, outputPerM: 50, cacheReadPerM: 0.25 },
+	"claude-mythos-5-1": { inputPerM: 10, outputPerM: 50, cacheReadPerM: 0.25 },
 	"claude-fable-5": { inputPerM: 10, outputPerM: 50 },
 	"claude-mythos": { inputPerM: 10, outputPerM: 50 },
 	"claude-opus-5": { inputPerM: 5, outputPerM: 25 },
@@ -30,17 +40,23 @@ const CLAUDE_RATES: Record<string, ModelRate> = {
 	"claude-opus-4-5": { inputPerM: 5, outputPerM: 25 },
 	// Opus 4.0/4.1 predate the price cut.
 	"claude-opus-4": { inputPerM: 15, outputPerM: 75 },
-	"claude-sonnet-5": { inputPerM: 3, outputPerM: 15 },
+	// Sonnet 5's launch price is permanent: the $3/$15 increase scheduled for
+	// 2026-09-01 was cancelled.
+	"claude-sonnet-5": { inputPerM: 2, outputPerM: 10 },
 	"claude-sonnet-4": { inputPerM: 3, outputPerM: 15 },
 	"claude-haiku-4-5": { inputPerM: 1, outputPerM: 5 },
 	"claude-3-5-haiku": { inputPerM: 0.8, outputPerM: 4 },
 };
 
 const CODEX_RATES: Record<string, ModelRate> = {
-	"gpt-5.6-sol": { inputPerM: 5, outputPerM: 30 },
+	// GPT-6 Astra (2026-09-03): cached input is $1/M, the usual 0.1x.
+	"gpt-6-astra": { inputPerM: 10, outputPerM: 50 },
+	// Sol's promotional price, published as lasting at least through
+	// 2026-11-21; the bare `gpt-5.6` id follows Sol.
+	"gpt-5.6-sol": { inputPerM: 4, outputPerM: 20 },
 	"gpt-5.6-terra": { inputPerM: 2, outputPerM: 12 },
 	"gpt-5.6-luna": { inputPerM: 0.2, outputPerM: 1.2 },
-	"gpt-5.6": { inputPerM: 5, outputPerM: 30 },
+	"gpt-5.6": { inputPerM: 4, outputPerM: 20 },
 	"gpt-5.3-codex": { inputPerM: 1.75, outputPerM: 14 },
 	"gpt-5.3": { inputPerM: 1.75, outputPerM: 14 },
 	"gpt-5-codex": { inputPerM: 1.25, outputPerM: 10 },
@@ -59,38 +75,77 @@ const GROK_RATES: Record<string, ModelRate> = {
 	"grok-3": { inputPerM: 3, outputPerM: 15 },
 };
 
+const AGY_RATES: Record<string, ModelRate> = {
+	...CLAUDE_RATES,
+	...CODEX_RATES,
+	"gemini-3.1-pro": {
+		inputPerM: 2,
+		outputPerM: 12,
+		longContext: { inputPerM: 4, outputPerM: 18 },
+	},
+	"gemini-3-flash": { inputPerM: 0.5, outputPerM: 3 },
+	"gemini-2.5-pro": {
+		inputPerM: 1.25,
+		outputPerM: 10,
+		longContext: { inputPerM: 2.5, outputPerM: 15 },
+	},
+	"gemini-2.5-flash": { inputPerM: 0.3, outputPerM: 2.5 },
+};
+
 // Cursor prices per request server-side; its usage events carry the real
 // cost, so this table is only the fallback for events without one.
 const CURSOR_RATES: Record<string, ModelRate> = {
 	composer: { inputPerM: 1.25, outputPerM: 10 },
 };
 
-/** Multi-model harnesses (opencode, pi, omp, copilot, fx) route to many
+// Meta Model API list prices. The contributor tier is the same model sold
+// cheaper for training-permitted traffic; the bare `muse-spark` prefix covers
+// every standard-tier version.
+const MUSE_RATES: Record<string, ModelRate> = {
+	"muse-spark-1.3-contributor": {
+		inputPerM: 0.1,
+		outputPerM: 0.2,
+		cacheReadPerM: 0.002,
+	},
+	"muse-spark-1.2-contributor": {
+		inputPerM: 0.1,
+		outputPerM: 0.2,
+		cacheReadPerM: 0.002,
+	},
+	"muse-spark": { inputPerM: 1.25, outputPerM: 4.25, cacheReadPerM: 0.15 },
+};
+
+/** Multi-model harnesses (opencode, pi, omp, copilot, fx, devin) route to many
  * upstream providers — match against every table we know. Harness-reported
  * costs, when present, take precedence over these rates anyway. */
-const MULTI_PROVIDER_RATES: Record<string, ModelRate> = {
+const MULTI_AGENT_RATES: Record<string, ModelRate> = {
 	...CLAUDE_RATES,
 	...CODEX_RATES,
 	...GROK_RATES,
 };
 
-const RATES_BY_PROVIDER: Record<UsageProvider, Record<string, ModelRate>> = {
+const RATES_BY_AGENT: Record<UsageAgent, Record<string, ModelRate>> = {
 	claude: CLAUDE_RATES,
 	codex: CODEX_RATES,
 	grok: GROK_RATES,
+	agy: AGY_RATES,
 	cursor: CURSOR_RATES,
-	opencode: MULTI_PROVIDER_RATES,
-	copilot: MULTI_PROVIDER_RATES,
-	pi: MULTI_PROVIDER_RATES,
-	omp: MULTI_PROVIDER_RATES,
-	fx: MULTI_PROVIDER_RATES,
+	opencode: MULTI_AGENT_RATES,
+	copilot: MULTI_AGENT_RATES,
+	pi: MULTI_AGENT_RATES,
+	omp: MULTI_AGENT_RATES,
+	fx: MULTI_AGENT_RATES,
+	muse: MUSE_RATES,
+	// Devin's own SWE models are billed in ACUs with no published token
+	// price; they take the cheapest fallback, marked approximate.
+	devin: MULTI_AGENT_RATES,
 };
 
-const cheapestByProvider = new Map<UsageProvider, ModelRate>();
-function cheapestRate(provider: UsageProvider): ModelRate {
-	let cheapest = cheapestByProvider.get(provider);
+const cheapestByAgent = new Map<UsageAgent, ModelRate>();
+function cheapestRate(agent: UsageAgent): ModelRate {
+	let cheapest = cheapestByAgent.get(agent);
 	if (!cheapest) {
-		for (const rate of Object.values(RATES_BY_PROVIDER[provider])) {
+		for (const rate of Object.values(RATES_BY_AGENT[agent])) {
 			if (
 				!cheapest ||
 				rate.inputPerM + rate.outputPerM <
@@ -99,7 +154,7 @@ function cheapestRate(provider: UsageProvider): ModelRate {
 				cheapest = rate;
 			}
 		}
-		cheapestByProvider.set(provider, cheapest as ModelRate);
+		cheapestByAgent.set(agent, cheapest as ModelRate);
 	}
 	return cheapest as ModelRate;
 }
@@ -110,10 +165,11 @@ export interface MatchedRate extends ModelRate {
 }
 
 export function matchModelRate(
-	provider: UsageProvider,
+	agent: UsageAgent,
 	model: string,
+	promptTokens = 0,
 ): MatchedRate {
-	const rates = RATES_BY_PROVIDER[provider];
+	const rates = RATES_BY_AGENT[agent];
 	const normalized = model.toLowerCase();
 	// Multi-model harnesses vendor-qualify ids ("anthropic/claude-sonnet-4");
 	// also match on the segment after the last slash so those don't fall
@@ -134,8 +190,14 @@ export function matchModelRate(
 			}
 		}
 	}
-	if (best) return { ...best.rate, approximate: false };
-	return { ...cheapestRate(provider), approximate: true };
+	if (best) {
+		const rate =
+			promptTokens > 200_000 && best.rate.longContext
+				? best.rate.longContext
+				: best.rate;
+		return { ...rate, approximate: false };
+	}
+	return { ...cheapestRate(agent), approximate: true };
 }
 
 export interface TokenCounts {
@@ -146,11 +208,16 @@ export interface TokenCounts {
 	output: number;
 }
 
+/** The model's own cache-read price, else the usual share of its input rate. */
+function cacheReadPerM(rate: ModelRate): number {
+	return rate.cacheReadPerM ?? rate.inputPerM * CACHE_READ_MULTIPLIER;
+}
+
 export function costUsd(rate: ModelRate, tokens: TokenCounts): number {
 	return (
 		(tokens.uncachedInput / 1e6) * rate.inputPerM +
 		(tokens.output / 1e6) * rate.outputPerM +
-		(tokens.cachedInput / 1e6) * rate.inputPerM * CACHE_READ_MULTIPLIER +
+		(tokens.cachedInput / 1e6) * cacheReadPerM(rate) +
 		(tokens.cacheWrite5m / 1e6) * rate.inputPerM * CACHE_WRITE_5M_MULTIPLIER +
 		(tokens.cacheWrite1h / 1e6) * rate.inputPerM * CACHE_WRITE_1H_MULTIPLIER
 	);
@@ -158,7 +225,5 @@ export function costUsd(rate: ModelRate, tokens: TokenCounts): number {
 
 /** Dollars saved by cache reads vs paying full input price for them. */
 export function cacheSavingsUsd(rate: ModelRate, tokens: TokenCounts): number {
-	return (
-		(tokens.cachedInput / 1e6) * rate.inputPerM * (1 - CACHE_READ_MULTIPLIER)
-	);
+	return (tokens.cachedInput / 1e6) * (rate.inputPerM - cacheReadPerM(rate));
 }

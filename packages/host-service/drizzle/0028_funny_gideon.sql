@@ -1,0 +1,1 @@
+ALTER TABLE `host_agent_configs` ADD `fork_args_json` text DEFAULT '[]' NOT NULL;

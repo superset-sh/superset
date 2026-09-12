@@ -1,4 +1,4 @@
-import type { UsageProvider } from "../types";
+import type { UsageAgent } from "../types";
 import { collectUsageEntries } from "./entries";
 import { type FactoryDay, groupFactoryDays } from "./factory-days";
 import type { UsageLogEntry } from "./parse";
@@ -6,7 +6,9 @@ import { costUsd, matchModelRate, PRICING_TABLE_UPDATED } from "./pricing";
 
 export interface LeaderboardDay {
 	day: string;
-	provider: UsageProvider;
+	/** Public leaderboard API compatibility field. Internally this value is an
+	 * agent; the server schema still calls it `provider`. */
+	provider: UsageAgent;
 	model: string;
 	uncachedInput: number;
 	cachedInput: number;
@@ -51,13 +53,13 @@ export function groupEntriesByDay(entries: UsageLogEntry[]): LeaderboardDay[] {
 
 	for (const entry of entries) {
 		const day = utcDayKey(entry.timestampMs);
-		const key = `${day}|${entry.provider}|${entry.model}`;
+		const key = `${day}|${entry.agent}|${entry.model}`;
 
 		let bucket = buckets.get(key);
 		if (!bucket) {
 			bucket = {
 				day,
-				provider: entry.provider,
+				provider: entry.agent,
 				model: entry.model,
 				uncachedInput: 0,
 				cachedInput: 0,
@@ -72,7 +74,11 @@ export function groupEntriesByDay(entries: UsageLogEntry[]): LeaderboardDay[] {
 			buckets.set(key, bucket);
 		}
 
-		const rate = matchModelRate(entry.provider, entry.model);
+		const rate = matchModelRate(
+			entry.agent,
+			entry.model,
+			entry.uncachedInput + entry.cachedInput,
+		);
 		bucket.uncachedInput += entry.uncachedInput;
 		bucket.cachedInput += entry.cachedInput;
 		bucket.cacheWrite5m += entry.cacheWrite5m;

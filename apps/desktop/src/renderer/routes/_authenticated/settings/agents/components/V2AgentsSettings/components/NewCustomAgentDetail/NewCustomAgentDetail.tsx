@@ -20,6 +20,7 @@ export interface CreateCustomAgentInput {
 	promptTransport: PromptTransport;
 	promptArgs: string[];
 	resumeArgs: string[];
+	forkArgs: string[];
 	env: Record<string, string>;
 	presetId: string;
 	iconId?: string;
@@ -43,6 +44,7 @@ export function NewCustomAgentDetail({
 	const [commandText, setCommandText] = useState("");
 	const [promptArgsText, setPromptArgsText] = useState("");
 	const [resumeArgsText, setResumeArgsText] = useState("");
+	const [forkArgsText, setForkArgsText] = useState("");
 	const [promptTransport, setPromptTransport] =
 		useState<PromptTransport>("argv");
 
@@ -62,6 +64,7 @@ export function NewCustomAgentDetail({
 			promptTransport,
 			promptArgs: parseArgs(promptArgsText),
 			resumeArgs: parseArgs(resumeArgsText),
+			forkArgs: parseArgs(forkArgsText),
 			env: parsedCommand.env,
 			presetId: "custom",
 			iconId: iconId ?? undefined,
@@ -73,12 +76,8 @@ export function NewCustomAgentDetail({
 			<AgentDetailHeader
 				iconId={iconId}
 				presetId="custom"
-				title={
-					trimmedLabel ||
-					t({ id: "settings.agents.create.title", message: "New agent" })
-				}
+				title={trimmedLabel || t({ message: "New agent" })}
 				subtitle={t({
-					id: "settings.agents.create.subtitle",
 					message: "Add your own terminal agent to this device.",
 				})}
 			/>
@@ -92,13 +91,11 @@ export function NewCustomAgentDetail({
 			>
 				<Section
 					title={t({
-						id: "settings.agents.create.identitySection",
 						message: "Identity",
 					})}
 				>
 					<StackedField
 						label={t({
-							id: "settings.agents.create.labelField",
 							message: "Label",
 						})}
 						htmlFor="new-agent-label"
@@ -108,7 +105,6 @@ export function NewCustomAgentDetail({
 							value={label}
 							onChange={(e) => setLabel(e.target.value)}
 							placeholder={t({
-								id: "settings.agents.create.labelPlaceholder",
 								message: "My Agent",
 							})}
 							autoFocus
@@ -117,11 +113,9 @@ export function NewCustomAgentDetail({
 
 					<StackedField
 						label={t({
-							id: "settings.agents.create.iconField",
 							message: "Icon",
 						})}
 						hint={t({
-							id: "settings.agents.create.iconHint",
 							message: "Shown in launchers and this list.",
 						})}
 					>
@@ -137,16 +131,18 @@ export function NewCustomAgentDetail({
 					onPromptArgsTextChange={setPromptArgsText}
 					resumeArgsText={resumeArgsText}
 					onResumeArgsTextChange={setResumeArgsText}
+					forkArgsText={forkArgsText}
+					onForkArgsTextChange={setForkArgsText}
 					promptTransport={promptTransport}
 					onPromptTransportChange={setPromptTransport}
 				/>
 
 				<div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
 					<Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-						<Trans id="settings.agents.create.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button type="submit" size="sm" disabled={!canCreate}>
-						<Trans id="settings.agents.create.submit">Add agent</Trans>
+						<Trans>Add agent</Trans>
 					</Button>
 				</div>
 			</form>

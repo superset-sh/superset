@@ -13,6 +13,7 @@ import {
 	HiOutlineComputerDesktop,
 	HiOutlineCpuChip,
 	HiOutlineCreditCard,
+	HiOutlineCube,
 	HiOutlineFolder,
 	HiOutlineGlobeAlt,
 	HiOutlineKey,
@@ -25,7 +26,8 @@ import {
 	HiOutlineUser,
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
-import { LuBrain, LuGitBranch, LuKeyboard } from "react-icons/lu";
+import { LuGitBranch, LuKeyboard, LuKeyRound } from "react-icons/lu";
+import { useHostsNeedingUpdateCount } from "renderer/hooks/host-version/useHostsNeedingUpdate";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
@@ -50,7 +52,7 @@ type SettingsRoute =
 	| "/settings/agents"
 	| "/settings/terminal"
 	| "/settings/links"
-	| "/settings/models"
+	| "/settings/agent-accounts"
 	| "/settings/experimental"
 	| "/settings/integrations"
 	| "/settings/billing"
@@ -58,7 +60,8 @@ type SettingsRoute =
 	| "/settings/security"
 	| "/settings/permissions"
 	| "/settings/projects"
-	| "/settings/hosts";
+	| "/settings/hosts"
+	| "/settings/environments";
 
 interface SectionItem {
 	id: SettingsRoute;
@@ -78,7 +81,6 @@ interface SectionGroup {
 const SECTION_GROUPS: SectionGroup[] = [
 	{
 		label: msg({
-			id: "settings.components.generalSettings.groupPersonal",
 			message: "Personal",
 		}),
 		items: [
@@ -86,7 +88,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/account",
 				section: "account",
 				label: msg({
-					id: "settings.components.generalSettings.account",
 					message: "Account",
 				}),
 				icon: <HiOutlineUser className="h-4 w-4" />,
@@ -95,7 +96,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/appearance",
 				section: "appearance",
 				label: msg({
-					id: "settings.components.generalSettings.appearance",
 					message: "Appearance",
 				}),
 				icon: <HiOutlinePaintBrush className="h-4 w-4" />,
@@ -104,7 +104,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/ringtones",
 				section: "ringtones",
 				label: msg({
-					id: "settings.components.generalSettings.notifications",
 					message: "Notifications",
 				}),
 				icon: <HiOutlineBell className="h-4 w-4" />,
@@ -113,7 +112,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/usage",
 				section: "usage",
 				label: msg({
-					id: "settings.components.generalSettings.usage",
 					message: "Usage",
 				}),
 				icon: <HiOutlineChartBar className="h-4 w-4" />,
@@ -123,7 +121,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 	},
 	{
 		label: msg({
-			id: "settings.components.generalSettings.groupEditorWorkflow",
 			message: "Editor & Workflow",
 		}),
 		items: [
@@ -131,7 +128,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/behavior",
 				section: "behavior",
 				label: msg({
-					id: "settings.components.generalSettings.general",
 					message: "General",
 				}),
 				icon: <HiOutlineSparkles className="h-4 w-4" />,
@@ -140,7 +136,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/keyboard",
 				section: "keyboard",
 				label: msg({
-					id: "settings.components.generalSettings.keyboard",
 					message: "Keyboard",
 				}),
 				icon: <LuKeyboard className="h-4 w-4" />,
@@ -149,7 +144,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/git",
 				section: "git",
 				label: msg({
-					id: "settings.components.generalSettings.gitWorktrees",
 					message: "Git & Worktrees",
 				}),
 				icon: <LuGitBranch className="h-4 w-4" />,
@@ -158,8 +152,7 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/agents",
 				section: "agents",
 				label: msg({
-					id: "settings.components.generalSettings.agents",
-					message: "Agents",
+					message: "Agent commands",
 				}),
 				icon: <HiOutlineCpuChip className="h-4 w-4" />,
 				fullWidth: true,
@@ -168,7 +161,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/terminal",
 				section: "terminal",
 				label: msg({
-					id: "settings.components.generalSettings.terminal",
 					message: "Terminal",
 				}),
 				icon: <HiOutlineCommandLine className="h-4 w-4" />,
@@ -177,7 +169,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/links",
 				section: "links",
 				label: msg({
-					id: "settings.components.generalSettings.links",
 					message: "Links",
 				}),
 				icon: <HiOutlineLink className="h-4 w-4" />,
@@ -186,25 +177,37 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/browser",
 				section: "browser",
 				label: msg({
-					id: "settings.components.generalSettings.browser",
 					message: "Browser",
 				}),
 				icon: <HiOutlineGlobeAlt className="h-4 w-4" />,
-			},
-			{
-				id: "/settings/models",
-				section: "models",
-				label: msg({
-					id: "settings.components.generalSettings.models",
-					message: "Models",
-				}),
-				icon: <LuBrain className="h-4 w-4" />,
 			},
 		],
 	},
 	{
 		label: msg({
-			id: "settings.components.generalSettings.groupOrganization",
+			message: "Cloud",
+		}),
+		items: [
+			{
+				id: "/settings/environments",
+				section: "environments",
+				label: msg({
+					message: "Environments",
+				}),
+				icon: <HiOutlineCube className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/agent-accounts",
+				section: "agentAccounts",
+				label: msg({
+					message: "Agents",
+				}),
+				icon: <LuKeyRound className="h-4 w-4" />,
+			},
+		],
+	},
+	{
+		label: msg({
 			message: "Organization",
 		}),
 		items: [
@@ -212,7 +215,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/organization",
 				section: "organization",
 				label: msg({
-					id: "settings.components.generalSettings.organization",
 					message: "Organization",
 				}),
 				icon: <HiOutlineBuildingOffice2 className="h-4 w-4" />,
@@ -221,7 +223,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/teams",
 				section: "teams",
 				label: msg({
-					id: "settings.components.generalSettings.teams",
 					message: "Teams",
 				}),
 				icon: <HiOutlineUserGroup className="h-4 w-4" />,
@@ -230,7 +231,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/projects",
 				section: "project",
 				label: msg({
-					id: "settings.components.generalSettings.projects",
 					message: "Projects",
 				}),
 				icon: <HiOutlineFolder className="h-4 w-4" />,
@@ -240,7 +240,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/hosts",
 				section: "hosts",
 				label: msg({
-					id: "settings.components.generalSettings.hosts",
 					message: "Hosts",
 				}),
 				icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
@@ -250,7 +249,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/integrations",
 				section: "integrations",
 				label: msg({
-					id: "settings.components.generalSettings.integrations",
 					message: "Integrations",
 				}),
 				icon: <HiOutlinePuzzlePiece className="h-4 w-4" />,
@@ -259,7 +257,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/billing",
 				section: "billing",
 				label: msg({
-					id: "settings.components.generalSettings.billing",
 					message: "Billing",
 				}),
 				icon: <HiOutlineCreditCard className="h-4 w-4" />,
@@ -268,7 +265,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/api-keys",
 				section: "apikeys",
 				label: msg({
-					id: "settings.components.generalSettings.apiKeys",
 					message: "API Keys",
 				}),
 				icon: <HiOutlineKey className="h-4 w-4" />,
@@ -277,7 +273,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 	},
 	{
 		label: msg({
-			id: "settings.components.generalSettings.groupSystem",
 			message: "System",
 		}),
 		items: [
@@ -285,8 +280,7 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/security",
 				section: "security",
 				label: msg({
-					id: "settings.components.generalSettings.remoteWorkspaces",
-					message: "Remote Workspaces",
+					message: "Remote Access",
 				}),
 				icon: <HiOutlineLockClosed className="h-4 w-4" />,
 			},
@@ -294,7 +288,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/permissions",
 				section: "permissions",
 				label: msg({
-					id: "settings.components.generalSettings.permissions",
 					message: "Permissions",
 				}),
 				icon: <HiOutlineShieldCheck className="h-4 w-4" />,
@@ -304,7 +297,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/experimental",
 				section: "experimental",
 				label: msg({
-					id: "settings.components.generalSettings.experimental",
 					message: "Experimental",
 				}),
 				icon: <HiOutlineBeaker className="h-4 w-4" />,
@@ -326,6 +318,7 @@ export const FULL_WIDTH_SECTION_PATHS: readonly string[] =
 
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
+	const hostsNeedingUpdate = useHostsNeedingUpdateCount();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
 	const isV2CloudEnabled = useIsV2CloudEnabled();
@@ -376,6 +369,26 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 												{count}
 											</span>
 										)}
+										{!matchCounts &&
+											section.section === "hosts" &&
+											hostsNeedingUpdate > 0 && (
+												<span
+													className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-amber-700 ring-1 ring-inset ring-amber-500/35 dark:text-amber-300"
+													title={i18n._({
+														...msg({
+															message:
+																"{count} hosts run an older host service than this app",
+														}),
+														values: { count: hostsNeedingUpdate },
+													})}
+												>
+													<span
+														aria-hidden="true"
+														className="size-1.5 rounded-full bg-amber-500"
+													/>
+													{hostsNeedingUpdate}
+												</span>
+											)}
 									</Link>
 								);
 							})}

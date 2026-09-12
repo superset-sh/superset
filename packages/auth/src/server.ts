@@ -11,6 +11,7 @@ import { WelcomeEmail } from "@superset/email/emails/activation/00-welcome";
 import { MemberAddedBillingEmail } from "@superset/email/emails/billing/member-added";
 import { MemberRemovedBillingEmail } from "@superset/email/emails/billing/member-removed";
 import { PaymentFailedEmail } from "@superset/email/emails/billing/payment-failed";
+import { RenewalUpcomingEmail } from "@superset/email/emails/billing/renewal-upcoming";
 import { SubscriptionCancelledEmail } from "@superset/email/emails/billing/subscription-cancelled";
 import { SubscriptionStartedEmail } from "@superset/email/emails/billing/subscription-started";
 import { OrganizationInvitationEmail } from "@superset/email/emails/team/invitation";
@@ -33,8 +34,10 @@ import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
+import { captureBillingEvent } from "./lib/billing-analytics";
 import { jwksAdapter } from "./lib/cached-jwks";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
+import { getActivationVariant } from "./lib/lifecycle";
 import { loadCustomSessionData } from "./lib/load-custom-session-data";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
@@ -89,6 +92,26 @@ const desktopDevOrigins =
 				`http://127.0.0.1:${desktopDevPort}`,
 			]
 		: [];
+
+/**
+ * Stripe is the authority here, not our `subscriptions` row: the row is keyed
+ * by organization, so an organization that resubscribed has more than one and
+ * the wrong status can win. On a read failure this answers `false`, which
+ * sends the mail — a duplicate notice beats swallowing a real one.
+ */
+async function isStripeSubscriptionCancelled(stripeSubscriptionId: string) {
+	try {
+		const stripeSubscription =
+			await stripeClient.subscriptions.retrieve(stripeSubscriptionId);
+		return stripeSubscription.status === "canceled";
+	} catch (error) {
+		console.error(
+			"[stripe/payment-failed] Failed to read subscription status:",
+			error,
+		);
+		return false;
+	}
+}
 
 function serializeCancellationDetails(
 	cancellationDetails?: Stripe.Subscription.CancellationDetails | null,
@@ -163,6 +186,43 @@ export const auth = betterAuth({
 				});
 			}
 		}),
+		// Remember the switch on the user, not just on the session that made it.
+		// `sessions.active_organization_id` dies with its session, and the next
+		// session would fall back to the newest membership — which is how people
+		// ended up in an organization they never chose. Better-auth has no
+		// set-active hook, so the route is the choke point; every client reaches
+		// it through `organization.setActive`.
+		//
+		// `ctx.context.returned` rather than `newSession`: the dispatcher hands
+		// after-hooks a shallow copy of the context, so the `setNewSession` the
+		// endpoint called is not visible here. `returned` is the organization
+		// the route settled on, or null when the active organization is cleared.
+		after: createAuthMiddleware(async (ctx) => {
+			if (ctx.path !== "/organization/set-active") return;
+			const returned = ctx.context.returned;
+			if (returned instanceof APIError) return;
+
+			const organizationId =
+				returned && typeof returned === "object" && "id" in returned
+					? String(returned.id)
+					: null;
+			const userId = (await getSessionFromCtx(ctx))?.user?.id;
+			if (!userId) return;
+
+			// The switch itself has already been persisted and the cookie set;
+			// throwing here would report a failure for something that worked.
+			try {
+				await db
+					.update(authSchema.users)
+					.set({ lastActiveOrganizationId: organizationId })
+					.where(eq(authSchema.users.id, userId));
+			} catch (error) {
+				console.error(
+					`[organization/set-active] Failed to remember active organization for ${userId}:`,
+					error,
+				);
+			}
+		}),
 	},
 	advanced: {
 		crossSubDomainCookies: {
@@ -191,6 +251,7 @@ export const auth = betterAuth({
 		google: {
 			clientId: env.GOOGLE_CLIENT_ID,
 			clientSecret: env.GOOGLE_CLIENT_SECRET,
+			prompt: "select_account",
 		},
 		apple: {
 			clientId: env.APPLE_CLIENT_ID,
@@ -259,10 +320,9 @@ export const auth = betterAuth({
 							.where(eq(authSchema.sessions.userId, user.id));
 					}
 
-					// Lifecycle emails ship to every signup. The A/B (experiment
-					// 387868) was retired inconclusive: at ~143 signups/day the
-					// diluted intent-to-treat effect would need years to resolve.
-					// Kill switch for the nudges is the Resend automation toggle.
+					// The welcome email is unconditional in BOTH arms. Gating it is
+					// what invalidated experiment 387868: a6beb048b changed the control
+					// condition mid-flight and the run became unreadable.
 					try {
 						const { error } = await resend.emails.send({
 							from: "Superset <noreply@superset.sh>",
@@ -283,18 +343,35 @@ export const auth = betterAuth({
 						);
 					}
 
-					try {
-						const { error } = await resend.events.send({
-							event: "user.signed_up",
-							email: user.email,
-							payload: { userId: user.id, name: user.name },
-						});
-						if (error) throw new Error(error.message);
-					} catch (error) {
-						console.error(
-							`[lifecycle] Failed to emit signup event for ${user.id}:`,
-							error,
-						);
+					// Only drip enrolment is randomised. Nothing differs between arms
+					// until the first nudge (>=23h after signup), so "not activated at
+					// 22h" stays a pre-treatment covariate and the analysis can restrict
+					// to it without selection bias. Kill switch for the nudges is still
+					// the Resend automation toggle.
+					//
+					// CAUTION: withholding this event withholds it from EVERY consumer,
+					// not just the activation drip. Safe today because activation-drip
+					// is the only automation in sync-automations.ts triggering on
+					// `user.signed_up` — but that script is create-only and Resend can
+					// hold automations it never defined, so check the live account
+					// before trusting that. A second consumer means splitting enrolment
+					// first: emit `user.signed_up` unconditionally and gate an
+					// activation-only event instead, or the control arm silently drops
+					// out of that campaign too.
+					if ((await getActivationVariant(user.id)) === "test") {
+						try {
+							const { error } = await resend.events.send({
+								event: "user.signed_up",
+								email: user.email,
+								payload: { userId: user.id, name: user.name },
+							});
+							if (error) throw new Error(error.message);
+						} catch (error) {
+							console.error(
+								`[lifecycle] Failed to emit signup event for ${user.id}:`,
+								error,
+							);
+						}
 					}
 				},
 			},
@@ -321,7 +398,7 @@ export const auth = betterAuth({
 				definePayload: async ({
 					user,
 				}: {
-					user: { id: string; email: string };
+					user: { id: string };
 					session: Record<string, unknown>;
 				}) => {
 					const userMemberships = await db.query.members.findMany({
@@ -331,7 +408,7 @@ export const auth = betterAuth({
 					const organizationIds = [
 						...new Set(userMemberships.map((m) => m.organizationId)),
 					];
-					return { sub: user.id, email: user.email, organizationIds };
+					return { sub: user.id, organizationIds };
 				},
 			},
 		}),
@@ -944,7 +1021,11 @@ export const auth = betterAuth({
 				const { activeOrganizationId, allMemberships, membership } =
 					await resolveSessionOrganizationState(
 						{ userId, session },
-						{ listMemberships: async () => data.memberships },
+						{
+							listMemberships: async () => data.memberships,
+							getLastActiveOrganization: async () =>
+								data.lastActiveOrganizationId,
+						},
 					);
 
 				const organizationIds = [
@@ -1135,6 +1216,33 @@ export const auth = betterAuth({
 							error,
 						);
 					}
+
+					// The paid conversion. Emitted here rather than from an
+					// `onEvent` case for `checkout.session.completed` because Better
+					// Auth calls both for that one webhook, and this hook is the side
+					// that already knows the plan, seat count and interval.
+					await captureBillingEvent({
+						event: "subscription_started",
+						organizationId: subscription.referenceId,
+						initiatedByUserId: stripeSubscription.metadata?.userId,
+						// This hook is handed the subscription, not the webhook event, so
+						// the subscription id is the stable key. One `subscription_started`
+						// per subscription is the intended meaning anyway.
+						idempotencyKey: stripeSubscription.id,
+						occurredAt: new Date(stripeSubscription.created * 1000),
+						properties: {
+							plan: plan.name,
+							billing_interval: billingInterval,
+							seats: subscription.seats ?? 1,
+							// Deliberately not `revenue`: that property is what PostHog
+							// revenue analytics sums, and `payment_succeeded` below is the
+							// one event where money actually moved. Naming it here too
+							// would double-count every subscription.
+							subscription_value: pricePerSeat * (subscription.seats ?? 1),
+							currency,
+							stripe_subscription_id: stripeSubscription.id,
+						},
+					});
 				},
 
 				onSubscriptionCancel: async ({
@@ -1153,24 +1261,26 @@ export const auth = betterAuth({
 					);
 					const accessEndsAt = subscription.periodEnd ?? new Date();
 
-					const portalSession =
-						await stripeClient.billingPortal.sessions.create({
-							customer: org.stripeCustomerId,
-							return_url: env.NEXT_PUBLIC_WEB_URL,
-						});
+					// periodEnd is the period Stripe was trying to bill for, so on a
+					// collection failure it sits weeks in the future while access has
+					// already stopped. Only a voluntary cancel keeps access until then.
+					const dueToPaymentFailure =
+						(cancellationDetails ?? stripeSubscription.cancellation_details)
+							?.reason === "payment_failed";
 
 					await resend.batch.send(
 						recipients.map((recipient) => ({
 							from: "Superset <noreply@superset.sh>",
 							to: recipient.email,
-							subject: `Your ${subscription.plan} subscription has been cancelled`,
+							subject: dueToPaymentFailure
+								? `Your ${subscription.plan} subscription ended`
+								: `Your ${subscription.plan} subscription has been cancelled`,
 							react: SubscriptionCancelledEmail({
 								recipientName: recipient.name,
 								organizationName: org.name,
 								planName: subscription.plan,
 								accessEndsAt,
-								billingPortalUrl:
-									recipient.role === "owner" ? portalSession.url : undefined,
+								dueToPaymentFailure,
 							}),
 						})),
 					);
@@ -1219,36 +1329,59 @@ export const auth = betterAuth({
 							where: eq(subscriptions.referenceId, org.id),
 						});
 
-						const recipients = await getOrganizationBillingRecipients(org.id);
-						const amount = formatPrice(invoice.amount_due, invoice.currency);
-
-						const portalSession =
-							await stripeClient.billingPortal.sessions.create({
-								customer: org.stripeCustomerId,
-								return_url: env.NEXT_PUBLIC_WEB_URL,
-							});
-
-						await resend.batch.send(
-							recipients.map((recipient) => ({
-								from: "Superset <noreply@superset.sh>",
-								to: recipient.email,
-								subject: `Payment failed for ${org.name}`,
-								react: PaymentFailedEmail({
-									recipientName: recipient.name,
-									organizationName: org.name,
-									planName: subscription?.plan ?? "Pro",
-									amount,
-									billingPortalUrl:
-										recipient.role === "owner" ? portalSession.url : undefined,
-								}),
-							})),
-						);
-
+						// The invoice names the subscription this event is about, so it
+						// wins. The organization-level row is only a fallback: the lookup
+						// above is unordered and an organization that resubscribed has
+						// several, so preferring it can check — or notify Slack about —
+						// a subscription that has nothing to do with this invoice.
 						const stripeSubId =
-							subscription?.stripeSubscriptionId ??
 							(invoice.parent?.subscription_details?.subscription as
 								| string
-								| undefined);
+								| undefined) ?? subscription?.stripeSubscriptionId;
+
+						const isFinalAttempt = invoice.next_payment_attempt == null;
+						const isFirstAttempt = (invoice.attempt_count ?? 0) <= 1;
+
+						// Stripe keeps retrying the closing invoice after someone cancels,
+						// so this still fires for subscriptions that are already gone.
+						// Warning them they are about to lose access would be false, and
+						// nagging someone who already left is worse than saying nothing.
+						const alreadyCancelled = stripeSubId
+							? await isStripeSubscriptionCancelled(stripeSubId)
+							: false;
+
+						// Stripe fires this on every retry. Mailing all of them trains
+						// people to ignore the one that matters, so only the opening
+						// notice and the last-chance notice go out.
+						if (!alreadyCancelled && (isFirstAttempt || isFinalAttempt)) {
+							const recipients = await getOrganizationBillingRecipients(org.id);
+							const amount = formatPrice(invoice.amount_due, invoice.currency);
+							const nextRetryDate = invoice.next_payment_attempt
+								? new Date(invoice.next_payment_attempt * 1000)
+								: null;
+
+							await resend.batch.send(
+								recipients.map((recipient) => ({
+									from: "Superset <noreply@superset.sh>",
+									to: recipient.email,
+									subject: isFinalAttempt
+										? `Final notice: payment failed for ${org.name}`
+										: `Payment failed for ${org.name}`,
+									react: PaymentFailedEmail({
+										recipientName: recipient.name,
+										organizationName: org.name,
+										planName: subscription?.plan ?? "Pro",
+										amount,
+										nextRetryDate,
+										// Anyone holding the link can settle a hosted invoice,
+										// so every billing recipient gets it. The old
+										// owners-only gate existed because this used to be a
+										// billing portal session, which needs ownership.
+										payInvoiceUrl: invoice.hosted_invoice_url ?? undefined,
+									}),
+								})),
+							);
+						}
 
 						if (stripeSubId) {
 							try {
@@ -1269,13 +1402,96 @@ export const auth = betterAuth({
 								);
 							}
 						}
+
+						await captureBillingEvent({
+							event: "payment_failed",
+							organizationId: org.id,
+							initiatedByUserId:
+								invoice.parent?.subscription_details?.metadata?.userId,
+							idempotencyKey: event.id,
+							occurredAt: new Date(event.created * 1000),
+							properties: {
+								// No money moved, so this must not be `revenue`.
+								amount_due: invoice.amount_due,
+								currency: invoice.currency,
+								attempt_count: invoice.attempt_count ?? 0,
+								is_final_attempt: isFinalAttempt,
+								already_cancelled: alreadyCancelled,
+								stripe_subscription_id: stripeSubId ?? null,
+							},
+						});
+					}
+
+					if (event.type === "invoice.upcoming") {
+						const invoice = event.data.object as Stripe.Invoice;
+
+						const customerId =
+							typeof invoice.customer === "string"
+								? invoice.customer
+								: invoice.customer?.id;
+
+						if (!customerId) return;
+
+						const stripeSubId = invoice.parent?.subscription_details
+							?.subscription as string | undefined;
+
+						if (!stripeSubId) return;
+
+						// Matched on the Stripe id, not the organization: an organization
+						// that resubscribed has several rows and the wrong one can win.
+						const subscription = await db.query.subscriptions.findFirst({
+							where: eq(subscriptions.stripeSubscriptionId, stripeSubId),
+						});
+
+						// Annual only — see RenewalUpcomingEmail for why monthly plans and
+						// seat changes are deliberately left out.
+						if (subscription?.billingInterval !== "yearly") return;
+
+						const renewsAtSeconds =
+							invoice.next_payment_attempt ?? invoice.period_end;
+
+						if (!renewsAtSeconds) return;
+
+						const org = await db.query.organizations.findFirst({
+							where: eq(authSchema.organizations.stripeCustomerId, customerId),
+						});
+
+						if (!org) return;
+
+						const recipients = await getOrganizationBillingRecipients(org.id);
+						// Max, not sum: a proration line carries its own quantity and
+						// adding them together reports more seats than exist.
+						const seatCount = invoice.lines.data.reduce(
+							(largest, line) => Math.max(largest, line.quantity ?? 0),
+							0,
+						);
+
+						await resend.batch.send(
+							recipients.map((recipient) => ({
+								from: "Superset <noreply@superset.sh>",
+								to: recipient.email,
+								subject: `${org.name}'s ${subscription.plan} plan renews soon`,
+								react: RenewalUpcomingEmail({
+									recipientName: recipient.name,
+									organizationName: org.name,
+									planName: subscription.plan,
+									amount: formatPrice(invoice.amount_due, invoice.currency),
+									renewsAt: new Date(renewsAtSeconds * 1000),
+									seatCount: Math.max(1, seatCount),
+									isOwner: recipient.role === "owner",
+								}),
+							})),
+						);
 					}
 
 					if (event.type === "invoice.paid") {
 						const invoice = event.data.object as Stripe.Invoice;
 
-						const stripeSubId = invoice.parent?.subscription_details
-							?.subscription as string | undefined;
+						const subscriptionDetails =
+							invoice.parent?.subscription_details ?? undefined;
+						const stripeSubId = subscriptionDetails?.subscription as
+							| string
+							| undefined;
 
 						if (stripeSubId) {
 							try {
@@ -1297,6 +1513,54 @@ export const auth = betterAuth({
 									error,
 								);
 							}
+						}
+
+						// `referenceId` is the organization id — Better Auth writes it
+						// onto the subscription, and Stripe copies subscription metadata
+						// onto every invoice it raises, so this needs no lookup.
+						const organizationId = subscriptionDetails?.metadata?.referenceId;
+
+						if (organizationId) {
+							await captureBillingEvent({
+								event: "payment_succeeded",
+								organizationId,
+								initiatedByUserId: subscriptionDetails?.metadata?.userId,
+								idempotencyKey: event.id,
+								occurredAt: new Date(event.created * 1000),
+								properties: {
+									revenue: invoice.amount_paid,
+									currency: invoice.currency,
+									// `subscription_create` is the first payment, everything
+									// else is a renewal or a seat change.
+									billing_reason: invoice.billing_reason,
+									stripe_subscription_id: stripeSubId ?? null,
+								},
+							});
+						}
+					}
+
+					// Stripe expires an unpaid Checkout session ~24h after it opens, so
+					// this arrives late by design. It is the only signal that someone
+					// reached the payment page and did not pay — the paid side comes
+					// through `onSubscriptionComplete` instead.
+					if (event.type === "checkout.session.expired") {
+						const session = event.data.object as Stripe.Checkout.Session;
+						const organizationId = session.metadata?.organizationId;
+
+						if (organizationId) {
+							await captureBillingEvent({
+								event: "checkout_abandoned",
+								organizationId,
+								initiatedByUserId: session.metadata?.userId,
+								idempotencyKey: event.id,
+								occurredAt: new Date(event.created * 1000),
+								properties: {
+									// No money moved, so this must not be `revenue`.
+									abandoned_value: session.amount_total ?? 0,
+									currency: session.currency ?? "usd",
+									stripe_session_id: session.id,
+								},
+							});
 						}
 					}
 
@@ -1357,7 +1621,6 @@ export type User = typeof auth.$Infer.Session.user;
  */
 export async function mintUserJwt(args: {
 	userId: string;
-	email?: string;
 	organizationIds: string[];
 	scope?: string;
 	runId?: string;
@@ -1370,7 +1633,6 @@ export async function mintUserJwt(args: {
 		body: {
 			payload: {
 				sub: args.userId,
-				email: args.email,
 				organizationIds: args.organizationIds,
 				scope: args.scope,
 				runId: args.runId,

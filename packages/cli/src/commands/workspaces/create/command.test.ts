@@ -29,7 +29,15 @@ mock.module("../../../lib/upload-attachments", () => ({
 const { default: createWorkspaceCommand } = await import("./command");
 
 function invoke(
-	overrides: { agent?: string; prompt?: string; effort?: string } = {},
+	overrides: {
+		agent?: string;
+		prompt?: string;
+		effort?: string;
+		tag?: string[];
+		project?: string | undefined;
+		branch?: string | undefined;
+		model?: string;
+	} = {},
 ) {
 	return createWorkspaceCommand.run({
 		ctx: {
@@ -53,6 +61,24 @@ afterEach(() => {
 });
 
 describe("workspaces create", () => {
+	test("forwards model to the agent launched with the workspace", async () => {
+		await invoke({
+			agent: "claude",
+			prompt: "Implement the feature",
+			model: "sonnet",
+		});
+
+		expect(createInput).toMatchObject({
+			agents: [
+				{
+					agent: "claude",
+					prompt: "Implement the feature",
+					model: "sonnet",
+				},
+			],
+		});
+	});
+
 	test("forwards effort to the agent launched with the workspace", async () => {
 		await invoke({
 			agent: "claude",
@@ -74,6 +100,30 @@ describe("workspaces create", () => {
 	test("rejects effort when no agent is selected", async () => {
 		await expect(invoke({ effort: "high" })).rejects.toThrow(
 			/--effort requires --agent/,
+		);
+		expect(createInput).toBeUndefined();
+	});
+
+	test("forwards repeatable --tag values as the tags set", async () => {
+		await invoke({ tag: ["Perf Work", "infra"] });
+		expect(createInput).toMatchObject({ tags: ["Perf Work", "infra"] });
+	});
+
+	test("omits tags entirely when --tag is not passed", async () => {
+		await invoke();
+		expect(createInput).not.toHaveProperty("tags");
+	});
+
+	test("rejects --tag on a project-less session", async () => {
+		await expect(
+			invoke({ project: undefined, branch: undefined, tag: ["perf"] }),
+		).rejects.toThrow(/--tag requires --project/);
+		expect(createInput).toBeUndefined();
+	});
+
+	test("rejects model when no agent is selected", async () => {
+		await expect(invoke({ model: "sonnet" })).rejects.toThrow(
+			/--model requires --agent/,
 		);
 		expect(createInput).toBeUndefined();
 	});

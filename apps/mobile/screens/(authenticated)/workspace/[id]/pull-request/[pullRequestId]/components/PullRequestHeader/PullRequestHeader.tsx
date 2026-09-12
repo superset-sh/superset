@@ -1,3 +1,5 @@
+import { Plural, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,7 @@ export function PullRequestHeader({
 	queued?: boolean;
 	onOpenFiles?: () => void;
 }) {
+	const { t } = useLingui();
 	const status =
 		PULL_REQUEST_STATUS[pullRequestStatus(pullRequest, queued === true)];
 	return (
@@ -35,10 +38,12 @@ export function PullRequestHeader({
 						status.ink,
 					)}
 				>
-					{status.label}
+					{i18n._(status.label)}
 				</Text>
 				<Pressable
-					accessibilityLabel="View files changed"
+					accessibilityLabel={t({
+						message: "View files changed",
+					})}
 					accessibilityRole={onOpenFiles ? "button" : undefined}
 					className="flex-row items-center gap-1.5 active:opacity-60"
 					disabled={!onOpenFiles}
@@ -51,8 +56,12 @@ export function PullRequestHeader({
 						−{pullRequest.deletions}
 					</Text>
 					<Text className="text-muted-foreground text-[13px]">
-						· {pullRequest.changedFiles}{" "}
-						{pullRequest.changedFiles === 1 ? "File" : "Files"}
+						·{" "}
+						<Plural
+							value={pullRequest.changedFiles}
+							one="# File"
+							other="# Files"
+						/>
 					</Text>
 				</Pressable>
 			</View>

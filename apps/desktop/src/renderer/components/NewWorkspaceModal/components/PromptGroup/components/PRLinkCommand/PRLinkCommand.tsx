@@ -171,7 +171,6 @@ export function PRLinkCommand({
 				<Command shouldFilter={false}>
 					<CommandInput
 						placeholder={t({
-							id: "components.prLinkCommand.searchPlaceholder",
 							message: "Search pull requests...",
 						})}
 						value={searchQuery}
@@ -187,9 +186,7 @@ export function PRLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							<Trans id="components.prLinkCommand.showClosed">
-								Show closed
-							</Trans>
+							<Trans>Show closed</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[280px]">
@@ -197,30 +194,18 @@ export function PRLinkCommand({
 							<CommandEmpty>
 								{isLoading ? (
 									debouncedTrimmed ? (
-										<Trans id="components.prLinkCommand.searching">
-											Searching...
-										</Trans>
+										<Trans>Searching...</Trans>
 									) : (
-										<Trans id="components.prLinkCommand.loadingPullRequests">
-											Loading pull requests...
-										</Trans>
+										<Trans>Loading pull requests...</Trans>
 									)
 								) : isCrossRepositoryUrl ? (
-									<Trans id="components.prLinkCommand.crossRepositoryUrl">
-										PR URL must match {selectedRepositoryLabel}.
-									</Trans>
+									<Trans>PR URL must match {selectedRepositoryLabel}.</Trans>
 								) : debouncedTrimmed ? (
-									<Trans id="components.prLinkCommand.noResultsForSearch">
-										No pull requests found.
-									</Trans>
+									<Trans>No pull requests found.</Trans>
 								) : showClosed ? (
-									<Trans id="components.prLinkCommand.noPullRequests">
-										No pull requests found.
-									</Trans>
+									<Trans>No pull requests found.</Trans>
 								) : (
-									<Trans id="components.prLinkCommand.noOpenPullRequests">
-										No open pull requests.
-									</Trans>
+									<Trans>No open pull requests.</Trans>
 								)}
 							</CommandEmpty>
 						)}
@@ -229,7 +214,6 @@ export function PRLinkCommand({
 								heading={
 									debouncedTrimmed
 										? t({
-												id: "components.prLinkCommand.resultsCount",
 												message: plural(pullRequests.length, {
 													one: "# result",
 													other: "# results",
@@ -237,11 +221,9 @@ export function PRLinkCommand({
 											})
 										: showClosed
 											? t({
-													id: "components.prLinkCommand.recentPullRequests",
 													message: "Recent pull requests",
 												})
 											: t({
-													id: "components.prLinkCommand.openPullRequests",
 													message: "Open pull requests",
 												})
 								}
@@ -264,9 +246,7 @@ export function PRLinkCommand({
 											{pr.title}
 										</span>
 										<span className="shrink-0 hidden text-xs text-muted-foreground group-data-[selected=true]:inline">
-											<Trans id="components.prLinkCommand.linkHint">
-												Link ↵
-											</Trans>
+											<Trans>Link ↵</Trans>
 										</span>
 									</CommandItem>
 								))}

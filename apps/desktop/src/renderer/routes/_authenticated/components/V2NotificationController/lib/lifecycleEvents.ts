@@ -8,6 +8,7 @@ import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useRingtoneStore } from "renderer/stores/ringtone";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
+import { applyRememberedV2PaneSelection } from "renderer/stores/v2-pane-selection";
 import { getV2NativeNotificationContent } from "./notificationContent";
 import {
 	isV2NotificationTargetVisible,
@@ -37,12 +38,15 @@ export function handleV2AgentLifecycleEvent({
 	volume: number;
 	muted: boolean;
 }): void {
+	const localPaneLayout = paneLayout
+		? applyRememberedV2PaneSelection(workspaceId, paneLayout)
+		: paneLayout;
 	const target = resolveV2NotificationTarget({
 		workspaceId,
 		payload,
-		paneLayout,
+		paneLayout: localPaneLayout,
 	});
-	markSeenIfTargetVisible({ payload, paneLayout, target });
+	markSeenIfTargetVisible({ payload, paneLayout: localPaneLayout, target });
 
 	// Only Stop and PermissionRequest deserve sound. Start fires per-prompt
 	// (the working spinner is feedback enough); Attached/Detached fire on
@@ -55,7 +59,7 @@ export function handleV2AgentLifecycleEvent({
 	) {
 		return;
 	}
-	if (shouldSuppress(target, paneLayout)) return;
+	if (shouldSuppress(target, localPaneLayout)) return;
 
 	const ringtoneId = useRingtoneStore.getState().selectedRingtoneId;
 	void playRingtone({ ringtoneId, volume, muted });
@@ -81,12 +85,15 @@ export function markV2AgentLifecycleTargetSeen({
 	payload: AgentLifecyclePayload;
 	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
 }): void {
+	const localPaneLayout = paneLayout
+		? applyRememberedV2PaneSelection(workspaceId, paneLayout)
+		: paneLayout;
 	const target = resolveV2NotificationTarget({
 		workspaceId,
 		payload,
-		paneLayout,
+		paneLayout: localPaneLayout,
 	});
-	markSeenIfTargetVisible({ payload, paneLayout, target });
+	markSeenIfTargetVisible({ payload, paneLayout: localPaneLayout, target });
 }
 
 export function handleV2TerminalLifecycleEvent({

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const KEY_BUTTONS: Array<{ label: string; sequence: string }> = [
@@ -22,6 +23,7 @@ export function MobileTerminalInput({
 	onSend,
 	visibility = "mobile",
 }: MobileTerminalInputProps) {
+	const { t } = useLingui();
 	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 	const isComposingRef = useRef(false);
 	const [focused, setFocused] = useState(false);
@@ -68,14 +70,22 @@ export function MobileTerminalInput({
 		>
 			<textarea
 				ref={textareaRef}
-				aria-label="Terminal input"
+				aria-label={t({
+					message: "Terminal input",
+				})}
 				autoCapitalize="none"
 				autoComplete="off"
 				autoCorrect="off"
 				className="w-full resize-none overflow-hidden rounded border px-3 py-2 text-sm outline-none"
 				enterKeyHint="enter"
 				inputMode="text"
-				placeholder={focused ? undefined : "Type here to send to the terminal"}
+				placeholder={
+					focused
+						? undefined
+						: t({
+								message: "Type here to send to the terminal",
+							})
+				}
 				rows={1}
 				spellCheck={false}
 				style={{

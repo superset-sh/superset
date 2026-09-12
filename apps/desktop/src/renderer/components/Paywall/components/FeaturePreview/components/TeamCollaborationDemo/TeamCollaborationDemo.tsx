@@ -27,9 +27,7 @@ export function TeamCollaborationDemo() {
 							<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
 						</div>
 						<span className="text-xs text-muted-foreground ml-1">
-							<Trans id="components.teamCollaborationDemo.windowTitle">
-								Team
-							</Trans>
+							<Trans>Team</Trans>
 						</span>
 					</div>
 				</div>
@@ -37,9 +35,7 @@ export function TeamCollaborationDemo() {
 				{/* Team members */}
 				<div className="p-4">
 					<div className="text-[10px] uppercase text-muted-foreground/70 font-medium tracking-wider mb-3">
-						<Trans id="components.teamCollaborationDemo.onlineNow">
-							Online Now
-						</Trans>
+						<Trans>Online Now</Trans>
 					</div>
 					<div className="flex items-center -space-x-2 mb-4">
 						{TEAM_MEMBERS.map((member, index) => (
@@ -58,9 +54,7 @@ export function TeamCollaborationDemo() {
 
 					{/* Activity feed */}
 					<div className="text-[10px] uppercase text-muted-foreground/70 font-medium tracking-wider mb-2">
-						<Trans id="components.teamCollaborationDemo.recentActivity">
-							Recent Activity
-						</Trans>
+						<Trans>Recent Activity</Trans>
 					</div>
 					<div className="space-y-2">
 						{ACTIVITY.map((item) => (

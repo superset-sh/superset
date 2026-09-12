@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { Button } from "@superset/ui/button";
 import {
 	Empty,
 	EmptyDescription,
@@ -7,7 +8,7 @@ import {
 	EmptyTitle,
 } from "@superset/ui/empty";
 import { Skeleton } from "@superset/ui/skeleton";
-import { LuFileText, LuSearchX } from "react-icons/lu";
+import { LuFileText, LuPlus, LuSearchX } from "react-icons/lu";
 import { PageCard, type PageCardItem } from "./components/PageCard";
 import { THUMBNAIL_ASPECT_RATIO } from "./constants";
 
@@ -21,23 +22,31 @@ const SKELETON_KEYS = [
 ] as const;
 
 interface PagesGridProps {
+	onCreate: () => void;
+	isCreating: boolean;
 	pages: PageCardItem[];
 	pinnedPageIds: ReadonlySet<string>;
+	currentUserId: string | undefined;
 	isPending: boolean;
 	error?: string;
 	hasFilters: boolean;
 	onOpen: (page: PageCardItem, event: React.MouseEvent) => void;
 	onTogglePin: (pageId: string) => void;
+	onDelete: (pageId: string) => Promise<void>;
 }
 
 export function PagesGrid({
+	onCreate,
+	isCreating,
 	pages,
 	pinnedPageIds,
+	currentUserId,
 	isPending,
 	error,
 	hasFilters,
 	onOpen,
 	onTogglePin,
+	onDelete,
 }: PagesGridProps) {
 	if (isPending) {
 		return (
@@ -67,8 +76,8 @@ export function PagesGrid({
 
 	if (pages.length === 0) {
 		return (
-			<Empty className="mt-10">
-				<EmptyHeader>
+			<Empty className="my-auto min-h-80 items-start border-0 px-0 py-20 text-left max-w-md mx-auto w-full md:px-0 md:py-20">
+				<EmptyHeader className="items-start text-left">
 					<EmptyMedia variant="icon">
 						{hasFilters ? (
 							<LuSearchX className="size-5" />
@@ -78,26 +87,27 @@ export function PagesGrid({
 					</EmptyMedia>
 					<EmptyTitle>
 						{hasFilters ? (
-							<Trans id="dashboard.pages.grid.emptyFilteredTitle">
-								No pages match
-							</Trans>
+							<Trans>No pages match</Trans>
 						) : (
-							<Trans id="dashboard.pages.grid.emptyTitle">No pages yet</Trans>
+							<Trans>No pages yet</Trans>
 						)}
 					</EmptyTitle>
 					<EmptyDescription>
 						{hasFilters ? (
-							<Trans id="dashboard.pages.grid.emptyFilteredDescription">
-								Try a different search or filter.
-							</Trans>
+							<Trans>Try a different search or filter.</Trans>
 						) : (
-							<Trans id="dashboard.pages.grid.emptyDescription">
-								Publish a page from an agent or the CLI and it will show up
-								here.
+							<Trans>
+								Share designs and reports. Let your agent handle the feedback.
 							</Trans>
 						)}
 					</EmptyDescription>
 				</EmptyHeader>
+				{!hasFilters && (
+					<Button size="sm" onClick={onCreate} disabled={isCreating}>
+						<LuPlus className="size-3.5" />
+						<Trans>Create with AI</Trans>
+					</Button>
+				)}
 			</Empty>
 		);
 	}
@@ -109,8 +119,10 @@ export function PagesGrid({
 					key={page.id}
 					page={page}
 					isPinned={pinnedPageIds.has(page.id)}
+					currentUserId={currentUserId}
 					onOpen={onOpen}
 					onTogglePin={onTogglePin}
+					onDelete={onDelete}
 				/>
 			))}
 		</div>

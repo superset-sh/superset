@@ -18,9 +18,9 @@ Exposing your primary workstation through the relay means anything reachable by 
 Use the desktop toggle when you genuinely need it on this machine. Otherwise prefer the CLI path on a dedicated host.
 </Callout>
 
-Open the desktop app and go to **Settings → Security**. Flip on **Allow remote workspaces to access this device via relay**.
+Open the desktop app and go to **Settings → Remote Access**. Flip on **Allow remote access to this device via relay**.
 
-![Settings → Security relay toggle](/images/remote-workspaces-security-toggle.png)
+![Settings → Remote Access relay toggle](/images/remote-workspaces-security-toggle.png)
 
 Enabling the toggle restarts the host service, so any running terminals on this device will be interrupted. You'll be asked to type a confirmation phrase before the change applies.
 
@@ -84,11 +84,21 @@ Pick a remote host to see the workspaces hosted there. Open one and you get the 
 
 ### Ports on a remote host
 
-The ports sidebar shows ports listening **on the remote host**. They aren't forwarded to your machine yet, so `localhost:PORT` only works on the host itself. Forwarding is on the roadmap; until then, [forward a port yourself](/ports#forward-a-port-yourself) with SSH or Tailscale.
+The ports sidebar shows ports listening **on the remote host**. When you select a remote workspace, the desktop app forwards each of its ports to the same port number on your machine, so `localhost:3000` reaches the dev server on the host. All traffic for a workspace shares one tunnel, established when you select the workspace; every connection reuses it. When you select another workspace, the app stops those forwards and starts the new workspace's forwards.
+
+Only ports that the workspace started are forwarded. Other services on the host stay unreachable.
+
+If a local process already uses the port, the row shows **local port busy** and offers two actions: stop the local process (only when a Superset workspace started it) or **Use another port**, which maps the remote port to a free local port and shows the mapping, for example `3000 → localhost:54321`.
+
+The remote server sees each forwarded connection as coming from its own loopback address — there is no real client IP. Only TCP is carried; anything UDP (WebRTC media, mDNS) does not ride the forward.
+
+Forwarding needs a host on the current relay running host-service 1.26 or newer. For a host you reach some other way, [forward a port yourself](/ports#forward-a-port-yourself) with SSH or Tailscale.
+
+Forwarded traffic passes through the Superset relay, like terminal traffic does. A browser talking to a forwarded dev server sends whatever it normally would — cookies, auth headers, query strings — so treat a forwarded port like the remote service it reaches, not like localhost.
 
 ## Turning access off
 
-- **Desktop**: flip the toggle in **Settings → Security** back off. The host service restarts and stops accepting relay traffic.
+- **Desktop**: flip the toggle in **Settings → Remote Access** back off. The host service restarts and stops accepting relay traffic.
 - **CLI**: run `superset stop` on the host machine.
 
 In both cases, in-flight terminals and host-backed work on that machine are interrupted.

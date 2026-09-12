@@ -1,4 +1,5 @@
 "use client";
+import { Trans } from "@lingui/react/macro";
 import type { TOCItemType } from "fumadocs-core/toc";
 import * as Primitive from "fumadocs-core/toc";
 import { ChevronRight, Text } from "lucide-react";
@@ -61,7 +62,7 @@ export function Toc(props: HTMLAttributes<HTMLDivElement>) {
 export function TocItemsEmpty() {
 	return (
 		<div className="rounded-lg border bg-fd-card p-3 text-xs text-fd-muted-foreground">
-			No Headings
+			<Trans>No Headings</Trans>
 		</div>
 	);
 }
@@ -357,7 +358,7 @@ export function TocPopoverTrigger({
 			)}
 		>
 			<Text className="size-4 shrink-0" />
-			On this page
+			<Trans>On this page</Trans>
 			<ChevronRight
 				className={cn(
 					"size-4 shrink-0 text-fd-muted-foreground transition-all",

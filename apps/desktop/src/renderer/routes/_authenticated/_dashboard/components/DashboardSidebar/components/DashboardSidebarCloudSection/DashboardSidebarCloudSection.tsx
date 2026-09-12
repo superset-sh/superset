@@ -1,10 +1,23 @@
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useMemo } from "react";
+import { LuPlus } from "react-icons/lu";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
+import { useOpenNewWorkspaceForHost } from "renderer/hooks/useOpenNewWorkspace";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { CLOUD_HOST_ID } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/DevicePicker";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
+import {
+	type CloudPullRequestRef,
+	cloudPullRequestRefKey,
+	useSidebarCloudPullRequests,
+} from "../../hooks/useSidebarCloudPullRequests";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarSectionHeader } from "../DashboardSidebarSectionHeader";
 import { DashboardSidebarWorkspaceItem } from "../DashboardSidebarWorkspaceItem";
@@ -18,9 +31,9 @@ import { DashboardSidebarWorkspaceItem } from "../DashboardSidebarWorkspaceItem"
  *
  * The cloud row owns the workspace's identity — it is what created, named and
  * lists it. The row inside the sandbox exists only so host-service has
- * something to serve panes against, so its name is ignored here; live git
- * state (branch) still comes from the sandbox, which is the only thing that
- * knows it.
+ * something to serve panes against, so its name is ignored here. Only the
+ * open workspace's sandbox is in the fan-out, so every other row shows the
+ * branch it was created on; pull requests come from the cloud table.
  */
 export function DashboardSidebarCloudSection({
 	isCollapsed,
@@ -32,6 +45,12 @@ export function DashboardSidebarCloudSection({
 	const { t } = useLingui();
 	const { workspaces: cloudWorkspaces } = useCloudWorkspaces();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	// The same flag that offers Cloud in the device picker, and the same
+	// audience the API allows (`assertInternal`). Undefined means the flags
+	// haven't resolved, which is neither a yes nor a no.
+	const cloudFlag = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
+	const isCloudEnabled = cloudFlag === true;
+	const openNewWorkspaceForHost = useOpenNewWorkspaceForHost();
 	const isSectionCollapsed = useSidebarSectionsCollapseStore(
 		(s) => s.collapsed.cloud,
 	);
@@ -50,12 +69,45 @@ export function DashboardSidebarCloudSection({
 					isHidden: local.sidebarState.isHidden,
 					pinnedAt: local.sidebarState.pinnedAt,
 					tabOrder: local.sidebarState.tabOrder,
+					suppressedPullRequestUrl: local.sidebarState.suppressedPullRequestUrl,
 				})),
 		[collections],
 	);
 
+	// Every cloud workspace clones the one cloud repository.
+	const organizationId = useActiveOrganizationId();
+	const { data: cloudRepo } = cloudTrpc.cloudWorkspace.repo.useQuery(
+		{ organizationId: organizationId ?? "" },
+		{
+			enabled: organizationId !== null && cloudWorkspaces.length > 0,
+			// Finite so an App installed mid-session is picked up.
+			staleTime: 5 * 60_000,
+		},
+	);
+	const cloudRepoFullName = cloudRepo
+		? `${cloudRepo.owner}/${cloudRepo.name}`
+		: null;
+
+	// Only the open workspace's sandbox is in the fan-out, so this holds at
+	// most one row.
+	const servedById = useMemo(
+		() => new Map(hostWorkspaces.map((row) => [row.id, row])),
+		[hostWorkspaces],
+	);
+
+	const pullRequestRefs = useMemo<CloudPullRequestRef[]>(
+		() =>
+			cloudRepoFullName
+				? cloudWorkspaces.map((cloud) => ({
+						repoFullName: cloudRepoFullName,
+						headBranch: servedById.get(cloud.id)?.branch ?? cloud.branch,
+					}))
+				: [],
+		[servedById, cloudRepoFullName, cloudWorkspaces],
+	);
+	const cloudPullRequests = useSidebarCloudPullRequests(pullRequestRefs);
+
 	const rows = useMemo<DashboardSidebarWorkspace[]>(() => {
-		const servedById = new Map(hostWorkspaces.map((row) => [row.id, row]));
 		const localById = new Map(
 			localStateRows.map((row) => [row.workspaceId, row]),
 		);
@@ -74,6 +126,16 @@ export function DashboardSidebarCloudSection({
 			)
 			.map((cloud) => {
 				const served = servedById.get(cloud.id);
+				const branch = served?.branch ?? cloud.branch;
+				const pullRequest = cloudRepoFullName
+					? (cloudPullRequests.byRef.get(
+							cloudPullRequestRefKey({
+								repoFullName: cloudRepoFullName,
+								headBranch: branch,
+							}),
+						) ?? null)
+					: null;
+				const suppressedUrl = localById.get(cloud.id)?.suppressedPullRequestUrl;
 				return {
 					id: cloud.id,
 					// Grouping is by section here, and the sandbox's project id means
@@ -86,9 +148,15 @@ export function DashboardSidebarCloudSection({
 					// behind it to report on.
 					hostIsOnline: null,
 					accentColor: null,
+					// The sandbox host stamps this like any other host; null until
+					// its list has answered.
+					lastActivityAt: served?.lastActivityAt ?? null,
 					name: cloud.name,
-					branch: served?.branch ?? cloud.branch,
-					pullRequest: null,
+					branch,
+					pullRequest:
+						pullRequest && pullRequest.url !== suppressedUrl
+							? pullRequest
+							: null,
 					repoUrl: null,
 					branchExistsOnRemote: true,
 					previewUrl: null,
@@ -114,9 +182,25 @@ export function DashboardSidebarCloudSection({
 							: null,
 				};
 			});
-	}, [cloudWorkspaces, hostWorkspaces, localStateRows]);
+	}, [
+		servedById,
+		cloudPullRequests.byRef,
+		cloudRepoFullName,
+		cloudWorkspaces,
+		localStateRows,
+	]);
 
-	if (rows.length === 0) return null;
+	// A definite no takes the rows with it. The list query is gated on the same
+	// flag, but react-query keeps what it already fetched when a query is
+	// disabled, so a flag that flips off mid-session would otherwise leave the
+	// section it gates on screen.
+	if (cloudFlag === false) return null;
+	// The header carries the only way to create a cloud workspace, so it stays
+	// at zero rows like the Sessions header does — a user with no cloud
+	// workspaces is exactly who needs the "+". Only on a definite yes, so
+	// unresolved flags don't leave an empty Cloud section behind; the
+	// collapsed rail has no headers, so there it is still rows or nothing.
+	if (rows.length === 0 && (isCollapsed || !isCloudEnabled)) return null;
 
 	if (isCollapsed) {
 		return (
@@ -137,14 +221,37 @@ export function DashboardSidebarCloudSection({
 	return (
 		<div className="mt-3 pb-1 first:mt-0">
 			<DashboardSidebarSectionHeader
-				label={t({ id: "dashboard.sidebar.sectionCloud", message: "Cloud" })}
+				label={t({ message: "Cloud" })}
 				section="cloud"
-			/>
+			>
+				{isCloudEnabled && (
+					<Tooltip delayDuration={700}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								aria-label={t({ message: "New cloud workspace" })}
+								onClick={(event) => {
+									event.stopPropagation();
+									openNewWorkspaceForHost(CLOUD_HOST_ID);
+								}}
+								onKeyDown={(event) => event.stopPropagation()}
+								className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+							>
+								<LuPlus className="size-3.5" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">
+							<Trans>New cloud workspace</Trans>
+						</TooltipContent>
+					</Tooltip>
+				)}
+			</DashboardSidebarSectionHeader>
 			{!isSectionCollapsed &&
 				rows.map((workspace) => (
 					<DashboardSidebarWorkspaceItem
 						key={workspace.id}
 						workspace={workspace}
+						indentation="top-level"
 						onHoverCardOpen={onWorkspaceHover}
 					/>
 				))}

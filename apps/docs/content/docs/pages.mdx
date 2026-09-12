@@ -1,0 +1,77 @@
+---
+title: Pages
+description: Share agent-created designs and reports with your team, and turn comments into updates
+---
+
+Superset Pages gives your agents a way to present designs, reports, and analysis to your team. Teammates comment directly on the page, and an agent picks up the feedback, makes changes, and publishes an updated version.
+
+Your teammates can talk directly to your agent. You no longer have to copy feedback from a review into an agent session and carry the result back.
+
+## The Design Loop
+
+1. **Create.** Ask an agent to build a design doc, report, or proposal and publish it as a Page.
+2. **Share.** Send the page's link to your team.
+3. **Comment.** Teammates pin feedback to the part of the page they want to discuss.
+4. **Iterate.** The agent watching the page receives new comments, updates the source, republishes, and replies to the threads it addressed.
+
+This is how we use Pages internally at Superset: someone creates a design doc, presents it to the team, and the doc evolves as teammates leave feedback. The discussion and the agent's updates stay together on the page.
+
+## Create Your First Page
+
+Open the **Pages** tab and click **Create with AI**. Superset starts an agent session that asks what you want to create, helps build the page, and publishes a link for your team. The help icon beside the **Pages** title opens this guide.
+
+You can also ask an agent in an existing Superset workspace:
+
+```text
+Create a design doc for our onboarding flow and publish it as a Superset Page
+so the team can review it and leave comments.
+```
+
+Or start with work the agent has already done:
+
+```text
+Turn your findings into a report and publish it as a Page for the team.
+```
+
+The Superset plugin includes a [Pages skill](/skills) that guides agents through building, publishing, and updating pages. A page can be a self-contained HTML file or a directory with an `index.html` and supporting assets.
+
+To publish from the CLI, keep the source inside your workspace and run:
+
+```bash
+superset pages publish design.html --title "Onboarding design" --label "First draft"
+```
+
+The command returns a shareable URL. New pages are visible to your organization by default. For a private draft, add `--visibility just_me` when you first publish.
+
+## Send Feedback Directly to an Agent
+
+Open the page, enter comment mode, and click an element to pin feedback to it. The agent receives the comment along with context identifying the element, so teammates can point to exactly what they want changed.
+
+Publishing from an agent's Superset terminal automatically sets that session to watch the page for new comments. In the workspace page pane, use the agent menu in the page header to see which agent is watching, select another running agent, or choose **Stop watching**.
+
+Keep the host and agent session running for automatic feedback delivery. If the menu says **Nothing is watching this page**, select a running agent. New comments are delivered when the agent is available to handle them.
+
+The agent can change the page, answer a question in the thread, or leave feedback open when it needs more discussion. When it makes a change, it republishes the page, replies with what changed, and resolves the feedback it addressed.
+
+## Keep Iterating on the Same Page
+
+Publish the same source path from the same workspace to create a new version of the existing page. Your team keeps using the same link, and earlier versions remain in version history.
+
+```bash
+superset pages publish design.html --label "Simplified onboarding after team review"
+```
+
+If the source moved or you're publishing from another workspace, pass the existing page ID explicitly:
+
+```bash
+superset pages publish design.html --page <page-id> --label "Updated onboarding flow"
+```
+
+Republishing preserves the page's visibility. You can also inspect version history or retrieve a published version:
+
+```bash
+superset pages versions <page-id-or-slug>
+superset pages pull <page-id-or-slug> --version 1 > original-design.html
+```
+
+Agents connecting through MCP can publish, retrieve versions, and reply to or resolve comments with the [Pages tools](/mcp-server#pages).

@@ -1,3 +1,4 @@
+import { Plural, useLingui } from "@lingui/react/macro";
 import {
 	type NativeStackNavigationProp,
 	Stack,
@@ -39,6 +40,7 @@ import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinne
  * aren't in memory to search. The count row says which pool answered.
  */
 export function SearchScreen() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const navigation =
 		useNavigation<NativeStackNavigationProp<Record<string, undefined>>>();
@@ -49,25 +51,15 @@ export function SearchScreen() {
 	const selectedHost = useSelectedHost();
 	const cloudScope = useWorkspaceScope() === "cloud";
 	const { workspaces } = useHostWorkspaces(selectedHost);
-	const { items: cloudItems, targets: sandboxes } = useCloudWorkspaceItems();
+	const { items: cloudItems } = useCloudWorkspaceItems();
 	const { projects } = useHostProjects(selectedHost);
 	const pinnedAt = usePinnedWorkspacesStore((state) => state.pinnedAt);
 
 	// Same hosts the home list polls, so the query keys are shared and the
 	// sheet decorates from cache instead of paying its own fan-out.
 	const terminalHosts = useMemo<TerminalsHost[]>(
-		() =>
-			cloudScope
-				? sandboxes.map((sandbox) => ({
-						organizationId: sandbox.organizationId,
-						machineId: sandbox.workspaceId,
-						isOnline: true,
-						refetchIntervalMs: 30_000,
-					}))
-				: selectedHost
-					? [selectedHost]
-					: [],
-		[selectedHost, sandboxes, cloudScope],
+		() => (cloudScope || !selectedHost ? [] : [selectedHost]),
+		[selectedHost, cloudScope],
 	);
 	const { terminalsByWorkspace } = useHostsTerminals(terminalHosts);
 
@@ -170,13 +162,17 @@ export function SearchScreen() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					icon="xmark"
-					accessibilityLabel="Close"
+					accessibilityLabel={t({
+						message: "Close",
+					})}
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
 			<Stack.SearchBar
 				ref={searchBarRef}
-				placeholder="Search workspaces"
+				placeholder={t({
+					message: "Search workspaces",
+				})}
 				placement="stacked"
 				hideWhenScrolling={false}
 				hideNavigationBar={false}
@@ -198,7 +194,19 @@ export function SearchScreen() {
 				ListHeaderComponent={
 					searching ? (
 						<Text className="text-muted-foreground px-4 pb-1 pt-2 font-semibold text-xs">
-							{`${results.length} ${results.length === 1 ? "result" : "results"} ${cloudScope ? "in Cloud" : "on this host"}`}
+							{cloudScope ? (
+								<Plural
+									value={results.length}
+									one="# result in Cloud"
+									other="# results in Cloud"
+								/>
+							) : (
+								<Plural
+									value={results.length}
+									one="# result on this host"
+									other="# results on this host"
+								/>
+							)}
 						</Text>
 					) : null
 				}
@@ -239,10 +247,16 @@ export function SearchScreen() {
 					<View className="items-center py-16">
 						<Text className="text-muted-foreground text-sm">
 							{searching
-								? "No workspaces match your search"
+								? t({
+										message: "No workspaces match your search",
+									})
 								: cloudScope
-									? "No cloud workspaces yet"
-									: "No workspaces on this host yet"}
+									? t({
+											message: "No cloud workspaces yet",
+										})
+									: t({
+											message: "No workspaces on this host yet",
+										})}
 						</Text>
 					</View>
 				}

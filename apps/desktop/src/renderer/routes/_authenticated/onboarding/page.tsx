@@ -1,4 +1,6 @@
-import { chatServiceTrpc } from "@superset/provider-auth/client";
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
+import { SUPPORTED_LOCALES } from "@superset/i18n";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
@@ -6,14 +8,10 @@ import { cn } from "@superset/ui/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { HiArrowUpRight } from "react-icons/hi2";
-import { SiGithub, SiOpenai } from "react-icons/si";
+import { SiGithub } from "react-icons/si";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { GhAuthDialog, type GhAuthDialogMode } from "./components/GhAuthDialog";
-import {
-	type Provider,
-	ProviderConnectModal,
-} from "./components/ProviderConnectModal";
-import { ClaudeLogo } from "./providers/components/ClaudeLogo";
+import { OnboardingLanguageRow } from "./components/OnboardingLanguageRow";
 
 export const Route = createFileRoute("/_authenticated/onboarding/")({
 	component: OnboardingDashboardPage,
@@ -22,7 +20,8 @@ export const Route = createFileRoute("/_authenticated/onboarding/")({
 const PREREQ_POLL_MS = 4000;
 
 function OnboardingDashboardPage() {
-	const [connectProvider, setConnectProvider] = useState<Provider | null>(null);
+	const { _: translate } = useTranslation();
+
 	const [ghDialogMode, setGhDialogMode] = useState<GhAuthDialogMode | null>(
 		null,
 	);
@@ -37,16 +36,9 @@ function OnboardingDashboardPage() {
 		isPending: isPendingGh,
 	} = electronTrpc.system.detectGhCli.useQuery(undefined, statusPolling);
 	const { data: brewStatus } = electronTrpc.system.detectBrew.useQuery();
-	const { data: anthropicStatus, isPending: isPendingAnthropic } =
-		chatServiceTrpc.auth.getAnthropicStatus.useQuery(undefined, statusPolling);
-	const { data: openAIStatus, isPending: isPendingOpenAI } =
-		chatServiceTrpc.auth.getOpenAIStatus.useQuery(undefined, statusPolling);
 
 	const ghInstalled = ghStatus?.installed === true;
 	const ghReady = ghInstalled && ghStatus?.authenticated === true;
-	const claudeConnected =
-		!!anthropicStatus?.authenticated && !anthropicStatus.issue;
-	const codexConnected = !!openAIStatus?.authenticated && !openAIStatus.issue;
 
 	const ghStatusLabel = ghReady
 		? ghStatus?.version
@@ -77,11 +69,14 @@ function OnboardingDashboardPage() {
 					Detecting automatically · statuses update as you install or sign in
 				</p>
 				<div className="divide-y divide-border">
+					{SUPPORTED_LOCALES.length > 1 && <OnboardingLanguageRow />}
 					<OnboardingRow
 						icon={<SiGithub className="size-4.5" />}
 						chipClassName="bg-foreground text-background"
 						name="GitHub CLI"
-						description="Clone, push, and create PRs."
+						description={translate(
+							msg({ message: "Clone, push, and create PRs." }),
+						)}
 						status={rowStatus(isPendingGh, ghReady)}
 						statusLabel={ghStatusLabel}
 						statusTone={ghInstalled ? "warning" : "neutral"}
@@ -96,51 +91,8 @@ function OnboardingDashboardPage() {
 							ghInstalled ? () => setGhDialogMode("auth") : openGitHubInstall
 						}
 					/>
-					<OnboardingRow
-						icon={<ClaudeLogo className="size-4.5 text-white" />}
-						chipClassName="bg-[#D97757]"
-						name="Claude Code"
-						description="Anthropic's coding agent."
-						status={rowStatus(isPendingAnthropic, claudeConnected)}
-						statusLabel={claudeConnected ? "Connected" : "Not signed in"}
-						statusTone="warning"
-						actionLabel="Sign in"
-						onAction={() => setConnectProvider("anthropic")}
-					/>
-					<OnboardingRow
-						icon={<SiOpenai className="size-4.5" />}
-						chipClassName="bg-foreground text-background"
-						name="Codex"
-						description="OpenAI's coding agent."
-						status={rowStatus(isPendingOpenAI, codexConnected)}
-						statusLabel={codexConnected ? "Connected" : "Not signed in"}
-						statusTone="warning"
-						actionLabel="Sign in"
-						onAction={() => setConnectProvider("openai")}
-					/>
 				</div>
-				<button
-					type="button"
-					onClick={() =>
-						window.open(
-							"https://docs.superset.sh/providers",
-							"_blank",
-							"noopener,noreferrer",
-						)
-					}
-					className="mt-5 flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-				>
-					Need Bedrock, Vertex, or another provider? Provider docs
-					<HiArrowUpRight className="size-3" />
-				</button>
 			</div>
-
-			<ProviderConnectModal
-				provider={connectProvider}
-				onOpenChange={(open) => {
-					if (!open) setConnectProvider(null);
-				}}
-			/>
 
 			<GhAuthDialog
 				open={ghDialogMode !== null}

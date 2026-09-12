@@ -57,7 +57,11 @@ export function PaneHeader({
 		<div
 			ref={setRef}
 			className={cn(
-				"flex h-7 shrink-0 cursor-grab items-center transition-opacity duration-150",
+				// Not the @container/pane-header itself: containment would make
+				// this a stacking context, trapping the URL-bar suggestions
+				// (an absolute z-50 box inside the header) under later siblings
+				// like the import banner. The pane root carries the container.
+				"flex h-7 shrink-0 cursor-grab items-center border-b border-border/20 bg-muted/30 transition-opacity duration-150",
 				!isActive &&
 					!isDragging &&
 					"opacity-60 hover:opacity-100 focus-within:opacity-100",

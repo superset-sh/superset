@@ -1,1 +1,0 @@
-export { ClaudeBrandIcon } from "./ClaudeBrandIcon";

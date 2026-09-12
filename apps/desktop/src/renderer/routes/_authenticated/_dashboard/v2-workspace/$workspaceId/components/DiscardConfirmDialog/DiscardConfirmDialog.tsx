@@ -28,9 +28,7 @@ export function DiscardConfirmDialog({
 	onConfirm,
 }: DiscardConfirmDialogProps) {
 	const { t } = useLingui();
-	const resolvedConfirmLabel =
-		confirmLabel ??
-		t({ id: "workspace.discardConfirmDialog.confirm", message: "Discard" });
+	const resolvedConfirmLabel = confirmLabel ?? t({ message: "Discard" });
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<EnterEnabledAlertDialogContent className="max-w-[360px] gap-0 p-0">
@@ -45,7 +43,7 @@ export function DiscardConfirmDialog({
 						className="h-7 px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
-						<Trans id="workspace.discardConfirmDialog.cancel">Cancel</Trans>
+						<Trans>Cancel</Trans>
 					</Button>
 					<AlertDialogAction
 						variant="destructive"

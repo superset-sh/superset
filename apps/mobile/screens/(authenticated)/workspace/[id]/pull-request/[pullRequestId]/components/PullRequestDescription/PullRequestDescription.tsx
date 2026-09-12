@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useMemo, useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import { EnrichedMarkdownText } from "react-native-enriched-markdown";
@@ -10,6 +11,7 @@ const COLLAPSED_HEIGHT = 280;
 
 /** The description, clamped until asked for. */
 export function PullRequestDescription({ body }: { body: string }) {
+	const { t } = useLingui();
 	const [expanded, setExpanded] = useState(false);
 	const markdown = useMemo(() => stripHtml(body), [body]);
 	const [measured, setMeasured] = useState<{
@@ -24,7 +26,7 @@ export function PullRequestDescription({ body }: { body: string }) {
 	return (
 		<View className="mx-4 gap-1">
 			<Text className="pb-1 font-semibold text-[21px] tracking-[-0.3px]">
-				Description
+				<Trans>Description</Trans>
 			</Text>
 			<View
 				className="overflow-hidden"
@@ -53,13 +55,15 @@ export function PullRequestDescription({ body }: { body: string }) {
 			</View>
 			{overflows ? (
 				<Pressable
-					accessibilityLabel="Toggle description"
+					accessibilityLabel={t({
+						message: "Toggle description",
+					})}
 					accessibilityRole="button"
 					className="self-start pt-1 pb-2 pr-3 active:opacity-60"
 					onPress={() => setExpanded((open) => !open)}
 				>
 					<Text className="text-muted-foreground text-[15px]">
-						{expanded ? "See Less" : "See More"}
+						{expanded ? t({ message: "See Less" }) : t({ message: "See More" })}
 					</Text>
 				</Pressable>
 			) : null}

@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import type {
 	CommentAnchor,
 	FrameRect,
-} from "../../../../utils/commentRuntime";
-import { pinPointOf, stackPins } from "./pinLayout";
+} from "@superset/shared/page-comments-runtime";
+import { PIN_SIZE, pinPointOf, stackPins } from "./pinLayout";
 
 const rect: FrameRect = { top: 100, left: 200, width: 400, height: 80 };
 
@@ -16,18 +16,27 @@ describe("pinPointOf", () => {
 		expect(pinPointOf(rect, anchorAt(0.5, 0.5))).toEqual({ x: 400, y: 140 });
 	});
 
-	test("keeps the pin inside the element when the click was on its edge", () => {
-		expect(pinPointOf(rect, anchorAt(0, 0))).toEqual({ x: 212, y: 112 });
-		expect(pinPointOf(rect, anchorAt(1, 1))).toEqual({ x: 588, y: 168 });
+	test("keeps the pin's box inside the element when the click was on its edge", () => {
+		expect(pinPointOf(rect, anchorAt(0, 0))).toEqual({ x: 200, y: 124 });
+		expect(pinPointOf(rect, anchorAt(1, 1))).toEqual({ x: 576, y: 180 });
 	});
 
-	test("centres on a target too small to inset into", () => {
+	test("rests the pin on a target too small to inset into", () => {
 		const thin: FrameRect = { top: 10, left: 10, width: 400, height: 4 };
-		expect(pinPointOf(thin, anchorAt(0.25, 1))).toEqual({ x: 110, y: 12 });
+		expect(pinPointOf(thin, anchorAt(0.25, 1))).toEqual({ x: 110, y: 34 });
 	});
 
 	test("falls back to the corner for a thread written before click points", () => {
-		expect(pinPointOf(rect, anchorAt())).toEqual({ x: 200, y: 100 });
+		expect(pinPointOf(rect, anchorAt())).toEqual({ x: 200, y: 124 });
+	});
+
+	test("never puts the pin box above the frame, which clips it", () => {
+		const atTop: FrameRect = { top: 0, left: 0, width: 400, height: 80 };
+		for (const anchor of [anchorAt(0, 0), anchorAt(0.5, 0), anchorAt()]) {
+			const { x, y } = pinPointOf(atTop, anchor);
+			expect(y - PIN_SIZE).toBeGreaterThanOrEqual(0);
+			expect(x).toBeGreaterThanOrEqual(0);
+		}
 	});
 });
 

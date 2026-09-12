@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { Button, type buttonVariants } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
@@ -120,7 +121,7 @@ const Alerter = () => {
 							onClick={() => handleAction(action, i)}
 							disabled={loadingIndex !== null}
 						>
-							{loadingIndex === i ? "Loading..." : action.label}
+							{loadingIndex === i ? <Trans>Loading...</Trans> : action.label}
 						</Button>
 					))}
 				</DialogFooter>

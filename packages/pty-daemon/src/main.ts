@@ -109,11 +109,15 @@ async function runHandoffReceiver(): Promise<void> {
 	// aren't.
 	let snapshotPath: string | undefined;
 	let socketPath: string | undefined;
+	let bufferBytes: number | undefined;
 	for (const arg of process.argv) {
 		if (arg.startsWith("--snapshot=")) {
 			snapshotPath = arg.slice("--snapshot=".length);
 		} else if (arg.startsWith("--socket=")) {
 			socketPath = arg.slice("--socket=".length);
+		} else if (arg.startsWith("--buffer-bytes=")) {
+			const parsed = Number.parseInt(arg.slice("--buffer-bytes=".length), 10);
+			if (Number.isFinite(parsed) && parsed > 0) bufferBytes = parsed;
 		}
 	}
 	if (!snapshotPath) throw new Error("--snapshot=PATH not set in argv");
@@ -144,7 +148,11 @@ async function runHandoffReceiver(): Promise<void> {
 		return;
 	}
 	log(`read snapshot: sessions=${snapshot.sessions.length}`);
-	const server = new Server({ socketPath, daemonVersion });
+	const server = new Server({
+		socketPath,
+		daemonVersion,
+		bufferCap: bufferBytes,
+	});
 
 	try {
 		log(`adopting ${snapshot.sessions.length} sessions`);

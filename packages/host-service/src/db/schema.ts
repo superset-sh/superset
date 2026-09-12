@@ -22,6 +22,14 @@ export const terminalSessions = sqliteTable(
 			{ onDelete: "set null" },
 		),
 		status: text().notNull().default("active"),
+		/**
+		 * The name the user gave this session, or null for "no name" — which
+		 * is also what an empty or whitespace-only rename stores. Titles the
+		 * shell reports over OSC are not persisted at all; this column is the
+		 * only durable name a session has, and it outranks the OSC one
+		 * wherever a session is displayed.
+		 */
+		customTitle: text("custom_title"),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),
@@ -63,6 +71,9 @@ export const terminalAgentBindings = sqliteTable(
 		// = deliberately killed (pane close, CLI kill) — never resumable.
 		endedAt: integer("ended_at"),
 		endReason: text("end_reason"),
+		// The terminal a "resumed" binding's session was relaunched into, so a
+		// pane that missed the relaunch can follow it there.
+		resumedIntoTerminalId: text("resumed_into_terminal_id"),
 	},
 	(table) => [
 		index("terminal_agent_bindings_workspace_id_idx").on(table.workspaceId),
@@ -146,8 +157,9 @@ export const pullRequests = sqliteTable(
 		reviewDecision: text("review_decision"),
 		checksStatus: text("checks_status").notNull().default("none"),
 		checksJson: text("checks_json").notNull().default("[]"),
-		// Set when the PR is first observed merged; never cleared. Anchors
-		// "merged in the last N days" windows on the workspaces board.
+		// GitHub's own merge time once a fetch has carried one, otherwise the
+		// time the merge was first observed; never cleared. Anchors "merged in
+		// the last N days" windows on the workspaces board.
 		mergedAt: integer("merged_at"),
 		lastFetchedAt: integer("last_fetched_at"),
 		error: text(),
@@ -192,6 +204,8 @@ export const hostAgentConfigs = sqliteTable(
 		// Args that resume a previous session; the session id is appended after
 		// them. Empty means the agent has no id-based resume.
 		resumeArgsJson: text("resume_args_json").notNull().default("[]"),
+		// Args that fork a previous session into a new provider session id.
+		forkArgsJson: text("fork_args_json").notNull().default("[]"),
 		envJson: text("env_json").notNull().default("{}"),
 		displayOrder: integer("display_order").notNull(),
 		createdAt: integer("created_at")
@@ -244,6 +258,12 @@ export const workspaces = sqliteTable(
 			.$defaultFn(() => Date.now()),
 		// 0 means "predates local ownership"; write paths always set it.
 		updatedAt: integer("updated_at").notNull().default(0),
+		// Epoch ms of the newest agent lifecycle event in this workspace (see
+		// touchLocalWorkspaceActivity). Distinct from updatedAt, which only
+		// moves on metadata writes. Inserts stamp creation as the first
+		// activity; rows that predate the column stay null and consumers fall
+		// back to updatedAt.
+		lastActivityAt: integer("last_activity_at").$defaultFn(() => Date.now()),
 		// Null = local changes not yet pushed to the cloud mirror (dual-write
 		// era only; the column and reconciler go away in R3).
 		// Tombstone: null = live. Set at the destroy commit point; rows are
@@ -264,6 +284,81 @@ export const workspaces = sqliteTable(
 		uniqueIndex("workspaces_one_main_per_project")
 			.on(table.projectId)
 			.where(sql`type = 'main'`),
+	],
+);
+
+/**
+ * Host-local presentation for a tag folder. A row exists only once someone
+ * customises the folder (same lifecycle as the old local row), beside the
+ * workspace tags it describes. `tag` stays the stable slug agents target;
+ * `display_name` is what the sidebar shows — which makes rename a one-row
+ * update instead of retagging every member.
+ *
+ * A folder is a (scope, tag) pair. `scope` is a project id, or the
+ * `SESSIONS_TAG_SCOPE` sentinel for the project-less Sessions lane — project
+ * ids are UUIDs, so the sentinel can never collide. Keying on one NOT NULL
+ * column (rather than a nullable `project_id`) keeps a single read path and
+ * sidesteps SQLite's quirk of permitting NULLs inside a PRIMARY KEY, which
+ * would silently allow duplicate session rows.
+ *
+ * The trade for dropping the old FK to `projects`: deleting a project no
+ * longer cascades here, so `project.remove` clears its rows explicitly.
+ */
+export const tagFolderSettings = sqliteTable(
+	"tag_folder_settings",
+	{
+		scope: text().notNull(),
+		tag: text().notNull(),
+		// A folder is personal like the tags it derives from (see
+		// `workspaceTags`): keyed per user so renaming yours never renames a
+		// teammate's folder of the same tag. Same NOT NULL / empty-string
+		// convention: '' = customised before folders had an owner.
+		createdByUserId: text("created_by_user_id").notNull().default(""),
+		displayName: text("display_name"),
+		color: text(),
+		tabOrder: integer("tab_order"),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.scope, table.tag, table.createdByUserId],
+		}),
+	],
+);
+
+/**
+ * Plain-string tags on workspaces — no tag entity, no tag ids. `tag` is
+ * stored already-normalized (trimmed + lowercased, see
+ * `@superset/shared/workspace-tags`); sidebar folders derive from these
+ * rows, so any actor that can tag a workspace can file it.
+ *
+ * A tag belongs to whoever applied it: on a shared host, every user files
+ * the same workspaces into their own folders, and one user's grouping must
+ * not appear in another's sidebar. `created_by_user_id` is part of the key
+ * so two users can each carry the same tag on one workspace. It is NOT NULL
+ * because SQLite treats NULLs inside a primary key as distinct, which would
+ * let duplicate rows through; the empty string is the "creator unknown"
+ * value for rows written by callers that carry no user (visible to all).
+ */
+export const workspaceTags = sqliteTable(
+	"workspace_tags",
+	{
+		workspaceId: text("workspace_id")
+			.notNull()
+			.references(() => workspaces.id, { onDelete: "cascade" }),
+		tag: text().notNull(),
+		createdByUserId: text("created_by_user_id").notNull().default(""),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.workspaceId, table.tag, table.createdByUserId],
+		}),
+		index("workspace_tags_tag_idx").on(table.tag),
 	],
 );
 

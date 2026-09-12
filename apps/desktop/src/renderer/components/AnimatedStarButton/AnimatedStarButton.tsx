@@ -98,14 +98,12 @@ export function AnimatedStarButton({
 
 	const isStarred = state === "starred";
 	const label = isStarred
-		? t({ id: "components.animatedStarButton.starred", message: "Starred" })
+		? t({ message: "Starred" })
 		: busy
 			? t({
-					id: "components.animatedStarButton.starring",
 					message: "Starring…",
 				})
 			: t({
-					id: "components.animatedStarButton.starOnGithub",
 					message: "Star on GitHub",
 				});
 

@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -30,6 +31,8 @@ export function HistoryDialog({
 	onOpenChange,
 	onSelect,
 }: HistoryDialogProps) {
+	const { formatDate } = useFormat();
+
 	const { t } = useLingui();
 	const [entries, setEntries] = useState<HistoryEntry[]>([]);
 	const [query, setQuery] = useState("");
@@ -99,14 +102,13 @@ export function HistoryDialog({
 			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>
-						<Trans id="workspace.browserPane.historyTitle">History</Trans>
+						<Trans>History</Trans>
 					</DialogTitle>
 				</DialogHeader>
 				<Input
 					value={query}
 					onChange={(e) => setQuery(e.target.value)}
 					placeholder={t({
-						id: "workspace.browserPane.searchHistoryPlaceholder",
 						message: "Search history",
 					})}
 					autoFocus
@@ -115,13 +117,9 @@ export function HistoryDialog({
 					{filtered.length === 0 ? (
 						<p className="py-8 text-center text-sm text-muted-foreground">
 							{entries.length === 0 ? (
-								<Trans id="workspace.browserPane.noHistory">
-									No history yet
-								</Trans>
+								<Trans>No history yet</Trans>
 							) : (
-								<Trans id="workspace.browserPane.historyNoMatches">
-									No matches
-								</Trans>
+								<Trans>No matches</Trans>
 							)}
 						</p>
 					) : (
@@ -154,7 +152,7 @@ export function HistoryDialog({
 										</div>
 									</div>
 									<div className="shrink-0 text-xs text-muted-foreground/70">
-										{new Date(entry.lastVisitedAt).toLocaleDateString()}
+										{formatDate(new Date(entry.lastVisitedAt), undefined)}
 									</div>
 								</button>
 							))}
@@ -168,7 +166,7 @@ export function HistoryDialog({
 						onClick={handleClearHistory}
 						disabled={entries.length === 0}
 					>
-						<Trans id="workspace.browserPane.clearHistory">Clear history</Trans>
+						<Trans>Clear history</Trans>
 					</Button>
 				</div>
 			</DialogContent>

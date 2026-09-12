@@ -17,7 +17,7 @@ import type { Command } from "../../core/types";
  */
 export const openUsageCommand: Command = {
 	id: "usage.open",
-	title: msg({ id: "commandPalette.resources.usage", message: "Usage" }),
+	title: msg({ message: "Usage" }),
 	section: "actions",
 	icon: HiOutlineChartBar,
 	keywords: [
@@ -43,7 +43,6 @@ export const openUsageCommand: Command = {
 export const checkResourcesCommand: Command = {
 	id: "resources.check",
 	title: msg({
-		id: "commandPalette.resources.checkResources",
 		message: "Check resources",
 	}),
 	section: "actions",

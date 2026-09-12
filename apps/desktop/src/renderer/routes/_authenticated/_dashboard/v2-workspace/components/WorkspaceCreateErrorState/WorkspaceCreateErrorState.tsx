@@ -59,14 +59,11 @@ export function WorkspaceCreateErrorState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						<Trans id="workspace.states.createErrorTitle">
-							Couldn't create workspace
-						</Trans>
+						<Trans>Couldn't create workspace</Trans>
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
 						{name ||
 							t({
-								id: "workspace.states.createErrorUntitled",
 								message: "Untitled workspace",
 							})}
 					</p>
@@ -93,10 +90,10 @@ export function WorkspaceCreateErrorState({
 
 				<div className="flex items-center gap-2">
 					<Button size="sm" onClick={handleRetry}>
-						<Trans id="workspace.states.createErrorTryAgain">Try again</Trans>
+						<Trans>Try again</Trans>
 					</Button>
 					<Button size="sm" variant="ghost" onClick={handleDismiss}>
-						<Trans id="workspace.states.createErrorDismiss">Dismiss</Trans>
+						<Trans>Dismiss</Trans>
 					</Button>
 				</div>
 			</div>

@@ -1,18 +1,24 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import {
+	deriveWorkspaceBranchFromPrompt,
 	generateFriendlyBranchName,
 	sanitizeUserBranchName,
 } from "@superset/shared/workspace-launch";
+import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
+import { getGitAuthorName } from "../../../runtime/git/identity";
 import { type ResolvedRef, resolveRef } from "../../../runtime/git/refs";
 import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
-import { gitFetchBaseRefTask } from "../../../workers/tasks/git";
+import {
+	gitAuthorNameTask,
+	gitFetchBaseRefTask,
+} from "../../../workers/tasks/git";
 import {
 	type CloudShapedWorkspace,
 	getLocalWorkspace,
@@ -56,7 +62,6 @@ import {
 } from "../workspace-creation/shared/sparse-checkout";
 import type { GitClient } from "../workspace-creation/shared/types";
 import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-paths";
-import { generateBranchNameFromPrompt } from "../workspace-creation/utils/ai-branch-name";
 import {
 	applyAiWorkspaceRename,
 	applyGeneratedWorkspaceNames,
@@ -116,6 +121,7 @@ const createInputSchema = z
 		// When false, skip the setup terminal. Used by worktree import,
 		// where the worktree is usually already set up.
 		runSetup: z.boolean().optional(),
+		tags: workspaceTagsInputSchema.optional(),
 	})
 	.refine((value) => !(value.branch && value.pr), {
 		message: "`branch` and `pr` cannot both be set",
@@ -287,6 +293,23 @@ function createWorkerBaseRefFetcher(
 			},
 		);
 	};
+}
+
+/**
+ * `resolveProjectBranchPrefix`'s `getAuthorName` for callers with no other
+ * git need (unlike `create`, which already holds an on-loop client bound to
+ * `repoPath` from building the worktree). Reads the *same repo's*
+ * `user.name` off-loop in the worker pool instead of constructing a new
+ * `ctx.git()` client on this loop (see the no-main-loop-blocking ratchet) —
+ * repo-scoped, not the home-directory identity `gitIdentityTask` reads for
+ * the global settings preview, so a repo-local `user.name` override still
+ * agrees with what `create` used for this same branch.
+ */
+function createOffLoopAuthorNameGetter(
+	repoPath: string,
+): () => Promise<string | null> {
+	return () =>
+		getHostWorkerPool().run(gitAuthorNameTask, { worktreePath: repoPath });
 }
 
 async function planBranchSource(
@@ -479,6 +502,7 @@ async function registerLocalWorkspace(args: {
 	branch: string;
 	worktreePath: string;
 	taskId: string | undefined;
+	tags: string[] | undefined;
 	rollbackWorktree: () => Promise<void>;
 }): Promise<CloudWorkspace> {
 	const { ctx } = args;
@@ -492,6 +516,8 @@ async function registerLocalWorkspace(args: {
 			branch: args.branch,
 			name: args.name,
 			taskId: args.taskId ?? null,
+			createdByUserId: ctx.userId ?? null,
+			tags: args.tags,
 		});
 	} catch (err) {
 		await args.rollbackWorktree();
@@ -565,6 +591,10 @@ export const workspacesRouter = router({
 			// branch — the one case where the deferred AI rename may also
 			// rename the git branch.
 			let aiCanRenameBranch = false;
+			// The prefix applied to that auto-generated branch, so the
+			// deferred AI rename below can reapply the same prefix instead
+			// of re-resolving it (and instead of losing it).
+			let resolvedBranchPrefix: string | undefined;
 
 			await ensureMainWorkspace(ctx, input.projectId, repoPath);
 
@@ -679,6 +709,7 @@ export const workspacesRouter = router({
 								baseBranch: prMetadata.baseRefName,
 								idempotencyId: input.id,
 								taskId: input.taskId,
+								tags: input.tags,
 							});
 							workspaceRow = result.workspace;
 							alreadyExists = result.alreadyExists;
@@ -787,6 +818,7 @@ export const workspacesRouter = router({
 								branch: resolvedBranch,
 								worktreePath,
 								taskId: input.taskId,
+								tags: input.tags,
 								rollbackWorktree: rollbackCreatedWorktree,
 							});
 
@@ -829,6 +861,7 @@ export const workspacesRouter = router({
 					baseBranch: input.baseBranch,
 					idempotencyId: input.id,
 					taskId: input.taskId,
+					tags: input.tags,
 				});
 				workspaceRow = result.workspace;
 				alreadyExists = result.alreadyExists;
@@ -874,7 +907,7 @@ export const workspacesRouter = router({
 						const prefix = await resolveProjectBranchPrefix({
 							ctx,
 							project: localProject,
-							git,
+							getAuthorName: () => getGitAuthorName(git),
 							existingBranches: existing,
 						});
 						if (prefix) {
@@ -901,9 +934,10 @@ export const workspacesRouter = router({
 					const prefix = await resolveProjectBranchPrefix({
 						ctx,
 						project: localProject,
-						git,
+						getAuthorName: () => getGitAuthorName(git),
 						existingBranches: existing,
 					});
+					resolvedBranchPrefix = prefix;
 					const typedNameSlug = input.name
 						? sanitizeBranchCandidate(input.name)
 						: "";
@@ -949,6 +983,7 @@ export const workspacesRouter = router({
 							baseBranch: baseShortName,
 							idempotencyId: input.id,
 							taskId: input.taskId,
+							tags: input.tags,
 						});
 						workspaceRow = result.workspace;
 						alreadyExists = result.alreadyExists;
@@ -1013,6 +1048,7 @@ export const workspacesRouter = router({
 										baseBranch: baseShortName,
 										idempotencyId: input.id,
 										taskId: input.taskId,
+										tags: input.tags,
 									});
 									adoptedRow = result.workspace;
 									alreadyExists = result.alreadyExists;
@@ -1062,6 +1098,7 @@ export const workspacesRouter = router({
 								branch: resolvedBranch,
 								worktreePath,
 								taskId: input.taskId,
+								tags: input.tags,
 								rollbackWorktree,
 							});
 							aiCanRenameBranch = !typedBranch;
@@ -1091,6 +1128,7 @@ export const workspacesRouter = router({
 							names,
 							renameTitle: true,
 							renameBranch: aiCanRenameBranch,
+							branchPrefix: resolvedBranchPrefix,
 						});
 						if (applied) {
 							// Keep the original row object: it carries the create txid.
@@ -1138,6 +1176,16 @@ export const workspacesRouter = router({
 				}
 			}
 
+			// Not chaining? Then the agent and the setup script are independent —
+			// that is what this path means — so launch the agent first. Its
+			// session is the one the user came for, and every client's tab order
+			// follows creation order, which had been handing the first slot to a
+			// setup shell nobody asked to look at.
+			const earlyAgentsResult =
+				chainAgent === null && sugarLaunches.length > 0
+					? await dispatchSugarAgents(ctx, workspaceRow.id, sugarLaunches)
+					: null;
+
 			let chainedAgentResult: AgentLaunchResult | null = null;
 			if (!alreadyExists && input.runSetup !== false) {
 				const { terminal, warning, chained } =
@@ -1166,11 +1214,12 @@ export const workspacesRouter = router({
 			}
 
 			const [agentsResult, commandResult] = await Promise.all([
-				dispatchSugarAgents(
-					ctx,
-					workspaceRow.id,
-					chainedAgentResult ? [] : sugarLaunches,
-				),
+				earlyAgentsResult ??
+					dispatchSugarAgents(
+						ctx,
+						workspaceRow.id,
+						chainedAgentResult ? [] : sugarLaunches,
+					),
 				input.command
 					? startCommandTerminal({
 							ctx,
@@ -1308,10 +1357,25 @@ export const workspacesRouter = router({
 					message: "Local project not found for workspace",
 				});
 			}
+			const repoPath = project.repoPath ?? "";
+			const branchPrefix = repoPath
+				? await resolveProjectBranchPrefix({
+						ctx,
+						project,
+						getAuthorName: createOffLoopAuthorNameGetter(repoPath),
+						existingBranches: await listBranchNames(ctx, repoPath),
+					}).catch((err) => {
+						console.warn(
+							"[workspaces.aiRename] branch prefix resolution failed",
+							err,
+						);
+						return undefined;
+					})
+				: undefined;
 			void applyAiWorkspaceRename({
 				ctx,
 				workspaceId: input.workspaceId,
-				repoPath: project.repoPath ?? "",
+				repoPath,
 				worktreePath: local.worktreePath,
 				oldBranchName: local.branch,
 				oldWorkspaceName: local.name || local.branch,
@@ -1319,6 +1383,7 @@ export const workspacesRouter = router({
 				namingInstructions: project.namingInstructions,
 				renameTitle: true,
 				renameBranch: true,
+				branchPrefix,
 			}).catch((err) => {
 				console.warn("[workspaces.aiRename] failed", err);
 			});
@@ -1338,11 +1403,18 @@ export const workspacesRouter = router({
 				ctx,
 				localProject.repoPath,
 			);
-			const branchName = await generateBranchNameFromPrompt(
-				input.prompt,
+			const derived = deriveWorkspaceBranchFromPrompt(input.prompt);
+			if (!derived) return { branchName: null };
+			// Preview must match what create will actually produce, so it
+			// carries the same prefix resolution the real auto-gen path uses.
+			const prefix = await resolveProjectBranchPrefix({
+				ctx,
+				project: localProject,
+				getAuthorName: createOffLoopAuthorNameGetter(localProject.repoPath),
 				existingBranches,
-			);
-			return { branchName };
+			});
+			const candidate = prefix ? `${prefix}/${derived}` : derived;
+			return { branchName: deduplicateBranchName(candidate, existingBranches) };
 		}),
 });
 

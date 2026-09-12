@@ -5,6 +5,7 @@ import { FaSlack } from "react-icons/fa";
 import {
 	HiDevicePhoneMobile,
 	HiOutlineClipboardDocumentList,
+	HiOutlineClock,
 	HiOutlineSignal,
 	HiUsers,
 } from "react-icons/hi2";
@@ -12,8 +13,9 @@ import {
 export const GATED_FEATURES = {
 	INVITE_MEMBERS: "invite-members",
 	TASKS: "tasks",
-	REMOTE_WORKSPACES: "remote-workspaces",
+	REMOTE_ACCESS: "remote-access",
 	MOBILE_APP: "mobile-app",
+	AUTOMATIONS: "automations",
 } as const;
 
 export type GatedFeature = (typeof GATED_FEATURES)[keyof typeof GATED_FEATURES];
@@ -30,13 +32,11 @@ export interface ProFeature {
 
 export const PRO_FEATURES: ProFeature[] = [
 	{
-		id: "remote-workspaces",
+		id: "remote-access",
 		title: msg({
-			id: "components.paywall.remoteWorkspaces.title",
-			message: "Remote Workspaces",
+			message: "Remote Access",
 		}),
 		description: msg({
-			id: "components.paywall.remoteWorkspaces.description",
 			message:
 				"Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client.",
 		}),
@@ -45,13 +45,24 @@ export const PRO_FEATURES: ProFeature[] = [
 		gradientColors: ["#be185d", "#9d174d", "#831843", "#1a1a2e"],
 	},
 	{
+		id: "automations",
+		title: msg({
+			message: "Automations",
+		}),
+		description: msg({
+			message:
+				"Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review.",
+		}),
+		icon: HiOutlineClock,
+		iconColor: "text-amber-500",
+		gradientColors: ["#b45309", "#92400e", "#78350f", "#1a1a2e"],
+	},
+	{
 		id: "team-collaboration",
 		title: msg({
-			id: "components.paywall.teamCollaboration.title",
 			message: "Team Collaboration",
 		}),
 		description: msg({
-			id: "components.paywall.teamCollaboration.description",
 			message:
 				"Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents.",
 		}),
@@ -62,11 +73,9 @@ export const PRO_FEATURES: ProFeature[] = [
 	{
 		id: "tasks",
 		title: msg({
-			id: "components.paywall.tasks.title",
 			message: "Tasks",
 		}),
 		description: msg({
-			id: "components.paywall.tasks.description",
 			message:
 				"Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset.",
 		}),
@@ -77,11 +86,9 @@ export const PRO_FEATURES: ProFeature[] = [
 	{
 		id: "slack-integration",
 		title: msg({
-			id: "components.paywall.slackIntegration.title",
 			message: "Slack Integration",
 		}),
 		description: msg({
-			id: "components.paywall.slackIntegration.description",
 			message:
 				"Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts.",
 		}),
@@ -92,11 +99,9 @@ export const PRO_FEATURES: ProFeature[] = [
 	{
 		id: "mobile-app",
 		title: msg({
-			id: "components.paywall.mobileApp.title",
 			message: "Mobile App",
 		}),
 		description: msg({
-			id: "components.paywall.mobileApp.description",
 			message:
 				"Monitor workspaces and manage tasks on the go. Continue conversations from anywhere.",
 		}),
@@ -111,6 +116,7 @@ export const PRO_FEATURES: ProFeature[] = [
 export const FEATURE_ID_MAP: Record<GatedFeature, string> = {
 	[GATED_FEATURES.INVITE_MEMBERS]: "team-collaboration",
 	[GATED_FEATURES.TASKS]: "tasks",
-	[GATED_FEATURES.REMOTE_WORKSPACES]: "remote-workspaces",
+	[GATED_FEATURES.REMOTE_ACCESS]: "remote-access",
 	[GATED_FEATURES.MOBILE_APP]: "mobile-app",
+	[GATED_FEATURES.AUTOMATIONS]: "automations",
 };

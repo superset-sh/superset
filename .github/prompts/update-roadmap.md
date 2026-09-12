@@ -33,9 +33,14 @@ The Notion database "Product Roadmap" (data source `collection://7cbe2be9-46f2-4
 Regenerate the `ROADMAP_ITEMS` array in `apps/marketing/src/app/roadmap/data.ts`:
 
 - `id`: kebab-case slug of the public title (stable across runs — reuse existing ids where the item is unchanged).
-- `title` = `Public title`, `description` = `Public description`, `category` = `Public category`, `status` = mapped lane.
+- `title` and `description` are Lingui message descriptors, not plain strings. Write them as
+  `msg({ id: "marketing.roadmap.item.<camelCaseSlug>.title", message: "Public title" })` and
+  `msg({ id: "marketing.roadmap.item.<camelCaseSlug>.description", message: "Public description" })`,
+  where `<camelCaseSlug>` is the item's `id` in camelCase. Message IDs are permanent: when an item's
+  copy changes, edit the `message` and keep the existing ID. Only a genuinely new item gets a new ID.
+- `category` = `Public category`, `status` = mapped lane. Both stay raw union values, not descriptors.
 - Order within each lane: keep the existing file's order for unchanged items; append new items at the end of their lane.
-- Do not change the types, `CATEGORIES`, `STATUS_LABELS`, or `STATUS_DESCRIPTIONS` unless a `Public category` value doesn't exist in the union — in that case flag it in the PR description instead of editing types.
+- Do not change the types, `CATEGORIES`, `CATEGORY_LABELS`, `STATUS_LABELS`, or `STATUS_DESCRIPTIONS` unless a `Public category` value doesn't exist in the union — in that case flag it in the PR description instead of editing types.
 
 ## Ship it
 

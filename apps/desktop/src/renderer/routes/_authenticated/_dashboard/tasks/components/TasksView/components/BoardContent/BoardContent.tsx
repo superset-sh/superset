@@ -51,9 +51,7 @@ export function BoardContent({
 				<div className="flex flex-col items-center gap-2 text-muted-foreground">
 					<HiCheckCircle className="h-8 w-8" />
 					<span className="text-sm">
-						<Trans id="dashboard.tasks.boardContent.empty">
-							No tasks found
-						</Trans>
+						<Trans>No tasks found</Trans>
 					</span>
 				</div>
 			</div>
@@ -74,9 +72,7 @@ export function BoardContent({
 				<div className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground">
 					<LuRefreshCw className="size-3.5 animate-spin motion-reduce:animate-none" />
 					<span>
-						<Trans id="dashboard.tasks.boardContent.loadingMore">
-							Loading more…
-						</Trans>
+						<Trans>Loading more…</Trans>
 					</span>
 				</div>
 			)}

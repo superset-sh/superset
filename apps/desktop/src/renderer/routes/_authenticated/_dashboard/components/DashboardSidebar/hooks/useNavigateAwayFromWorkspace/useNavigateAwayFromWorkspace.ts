@@ -4,6 +4,7 @@ import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dash
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useTagFolderContext } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { getFlattenedV2WorkspaceIds } from "../../utils/getFlattenedV2WorkspaceIds";
 import { resolveWorkspaceRemovalNavigationTarget } from "./navigationTarget";
 
@@ -22,6 +23,7 @@ export function useNavigateAwayFromWorkspace() {
 	const matchRoute = useMatchRoute();
 	const collections = useCollections();
 	const { workspaces, isReady } = useHostWorkspaces();
+	const tagFolderContext = useTagFolderContext();
 	const workspaceIds = useMemo(
 		() => new Set(workspaces.map((workspace) => workspace.id)),
 		[workspaces],
@@ -41,7 +43,11 @@ export function useNavigateAwayFromWorkspace() {
 			const target = resolveWorkspaceRemovalNavigationTarget({
 				activeWorkspaceId,
 				removedWorkspaceId: workspaceId,
-				orderedWorkspaceIds: getFlattenedV2WorkspaceIds(collections),
+				orderedWorkspaceIds: getFlattenedV2WorkspaceIds(
+					collections,
+					workspaces,
+					tagFolderContext,
+				),
 				// Before the host fan-out settles, an unlisted sibling means
 				// "unknown", not "gone" — prefer navigating to it over home; the
 				// workspace route's own not-found handling covers a true miss.
@@ -68,7 +74,15 @@ export function useNavigateAwayFromWorkspace() {
 				reportRemovalNavigationError,
 			);
 		},
-		[collections, workspaceIds, matchRoute, navigate, isReady],
+		[
+			collections,
+			workspaceIds,
+			workspaces,
+			tagFolderContext,
+			matchRoute,
+			navigate,
+			isReady,
+		],
 	);
 
 	return { navigateAwayFromWorkspace };

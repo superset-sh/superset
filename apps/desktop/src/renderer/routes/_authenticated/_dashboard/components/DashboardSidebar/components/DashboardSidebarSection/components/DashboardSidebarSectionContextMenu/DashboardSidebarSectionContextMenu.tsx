@@ -16,6 +16,7 @@ export function DashboardSidebarSectionContextMenu({
 	onRename,
 	onSetColor,
 	onDelete,
+	onHide,
 	children,
 }: DashboardSidebarSectionContextMenuProps) {
 	return (
@@ -31,6 +32,7 @@ export function DashboardSidebarSectionContextMenu({
 					kind="context"
 					onRename={onRename}
 					onSetColor={onSetColor}
+					onHide={onHide}
 					onDelete={onDelete}
 				/>
 			</ContextMenuContent>

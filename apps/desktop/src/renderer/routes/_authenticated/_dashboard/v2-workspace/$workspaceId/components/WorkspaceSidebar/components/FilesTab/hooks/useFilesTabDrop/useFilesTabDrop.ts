@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import type { FileTree } from "@pierre/trees";
 import { i18n } from "@superset/i18n";
@@ -100,10 +101,11 @@ function resolveDropDirRel(e: React.DragEvent): string {
 
 function dirLabel(dirRel: string): string {
 	return dirRel === ""
-		? i18n._({
-				id: "workspace.filesTab.workspaceRootLabel",
-				message: "workspace root",
-			})
+		? i18n._(
+				msg({
+					message: "workspace root",
+				}),
+			)
 		: basename(dirRel);
 }
 
@@ -304,7 +306,6 @@ export function useFilesTabDrop({
 				if (bridge.isCurrent(versionToken)) {
 					toast.error(
 						t({
-							id: "workspace.filesTab.dropReadFailed",
 							message: "Could not read the dropped files",
 						}),
 					);
@@ -317,7 +318,6 @@ export function useFilesTabDrop({
 			if (tree.files.length === 0 && tree.dirs.length === 0) {
 				toast.error(
 					t({
-						id: "workspace.filesTab.dropReadFailed",
 						message: "Could not read the dropped files",
 					}),
 				);
@@ -402,11 +402,9 @@ export function useFilesTabDrop({
 				toast.success(
 					added === 1
 						? t({
-								id: "workspace.filesTab.dropAddedOne",
 								message: `Added 1 file to ${where}`,
 							})
 						: t({
-								id: "workspace.filesTab.dropAddedMany",
 								message: `Added ${added} files to ${where}`,
 							}),
 				);
@@ -414,11 +412,9 @@ export function useFilesTabDrop({
 				toast.success(
 					createdDirs === 1
 						? t({
-								id: "workspace.filesTab.dropCreatedFolderOne",
 								message: `Created 1 folder in ${where}`,
 							})
 						: t({
-								id: "workspace.filesTab.dropCreatedFolderMany",
 								message: `Created ${createdDirs} folders in ${where}`,
 							}),
 				);
@@ -430,11 +426,9 @@ export function useFilesTabDrop({
 				toast.error(
 					failed === 1
 						? t({
-								id: "workspace.filesTab.dropAddFailedOne",
 								message: "Failed to add 1 file",
 							})
 						: t({
-								id: "workspace.filesTab.dropAddFailedMany",
 								message: `Failed to add ${failed} files`,
 							}),
 				);
@@ -442,11 +436,9 @@ export function useFilesTabDrop({
 				toast.error(
 					failedDirs === 1
 						? t({
-								id: "workspace.filesTab.dropCreateFolderFailedOne",
 								message: "Failed to create 1 folder",
 							})
 						: t({
-								id: "workspace.filesTab.dropCreateFolderFailedMany",
 								message: `Failed to create ${failedDirs} folders`,
 							}),
 				);
@@ -472,26 +464,21 @@ export function useFilesTabDrop({
 			alert({
 				title: many
 					? t({
-							id: "workspace.filesTab.replaceConfirmTitleMany",
 							message: `${collisions.length} files already exist in ${where}. Do you want to replace them?`,
 						})
 					: t({
-							id: "workspace.filesTab.replaceConfirmTitleOne",
 							message: `A file named '${firstName}' already exists in ${where}. Do you want to replace it?`,
 						}),
 				description: t({
-					id: "workspace.filesTab.replaceConfirmBody",
 					message: "This action is irreversible.",
 				}),
 				actions: [
 					{
 						label: many
 							? t({
-									id: "workspace.filesTab.replaceConfirmActionAll",
 									message: "Replace All",
 								})
 							: t({
-									id: "workspace.filesTab.replaceConfirmAction",
 									message: "Replace",
 								}),
 						variant: "destructive",
@@ -516,11 +503,9 @@ export function useFilesTabDrop({
 								toast.success(
 									replaced === 1
 										? t({
-												id: "workspace.filesTab.replaceSuccessOne",
 												message: `Replaced 1 file in ${where}`,
 											})
 										: t({
-												id: "workspace.filesTab.replaceSuccessMany",
 												message: `Replaced ${replaced} files in ${where}`,
 											}),
 								);
@@ -529,11 +514,9 @@ export function useFilesTabDrop({
 								toast.error(
 									replaceFailed === 1
 										? t({
-												id: "workspace.filesTab.replaceFailedOne",
 												message: "Failed to replace 1 file",
 											})
 										: t({
-												id: "workspace.filesTab.replaceFailedMany",
 												message: `Failed to replace ${replaceFailed} files`,
 											}),
 								);
@@ -542,7 +525,6 @@ export function useFilesTabDrop({
 					},
 					{
 						label: t({
-							id: "workspace.filesTab.replaceConfirmCancel",
 							message: "Cancel",
 						}),
 						variant: "ghost",
@@ -598,7 +580,6 @@ export function useFilesTabDrop({
 			if (entries.length === 0 && fallbackFiles.length === 0) {
 				toast.error(
 					t({
-						id: "workspace.filesTab.dropReadFailed",
 						message: "Could not read the dropped files",
 					}),
 				);

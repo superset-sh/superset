@@ -29,6 +29,8 @@ interface V2WorkspacePatch {
 	name?: string;
 	branch?: string;
 	taskId?: string | null;
+	/** Full replacement of the workspace's tag set (sidebar folder membership). */
+	tags?: string[];
 }
 
 type TaskListRow = RouterOutputs["task"]["list"][number];
@@ -322,6 +324,7 @@ export function useOptimisticActions() {
 						name: patch.name,
 						branch: patch.branch,
 						taskId: patch.taskId,
+						tags: patch.tags,
 					})
 					.catch((error: unknown) => {
 						hostWorkspacesCache.invalidateHost(workspace.hostId);
@@ -446,8 +449,8 @@ export function useOptimisticActions() {
 					runHostsMutation("Failed to delete host", () =>
 						makeTransaction(
 							"delete",
-							apiTrpcClient.v2Host.delete.mutate({ hostId }).finally(() => {
-								void utils.v2Host.invalidate();
+							apiTrpcClient.host.delete.mutate({ hostId }).finally(() => {
+								void utils.host.invalidate();
 							}),
 						),
 					),
@@ -455,11 +458,9 @@ export function useOptimisticActions() {
 					runHostsMutation("Failed to rename host", () =>
 						makeTransaction(
 							"update",
-							apiTrpcClient.v2Host.rename
-								.mutate({ hostId, name })
-								.finally(() => {
-									void utils.v2Host.invalidate();
-								}),
+							apiTrpcClient.host.rename.mutate({ hostId, name }).finally(() => {
+								void utils.host.invalidate();
+							}),
 						),
 					),
 			},
@@ -473,14 +474,14 @@ export function useOptimisticActions() {
 					runUsersHostsMutation("Failed to add member", () =>
 						makeTransaction(
 							"insert",
-							apiTrpcClient.v2Host.addMember
+							apiTrpcClient.host.addMember
 								.mutate({
 									hostId: input.hostId,
 									userId: input.userId,
 									role: input.role ?? "member",
 								})
 								.finally(() => {
-									void utils.v2Host.invalidate();
+									void utils.host.invalidate();
 								}),
 						),
 					),
@@ -489,10 +490,10 @@ export function useOptimisticActions() {
 						const { userId, hostId } = parseUsersHostsKey(rowKey);
 						return makeTransaction(
 							"delete",
-							apiTrpcClient.v2Host.removeMember
+							apiTrpcClient.host.removeMember
 								.mutate({ hostId, userId })
 								.finally(() => {
-									void utils.v2Host.invalidate();
+									void utils.host.invalidate();
 								}),
 						);
 					}),
@@ -501,10 +502,10 @@ export function useOptimisticActions() {
 						const { userId, hostId } = parseUsersHostsKey(rowKey);
 						return makeTransaction(
 							"update",
-							apiTrpcClient.v2Host.setMemberRole
+							apiTrpcClient.host.setMemberRole
 								.mutate({ hostId, userId, role })
 								.finally(() => {
-									void utils.v2Host.invalidate();
+									void utils.host.invalidate();
 								}),
 						);
 					}),

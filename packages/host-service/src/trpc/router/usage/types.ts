@@ -1,22 +1,50 @@
 /**
- * Providers that can appear in usage history/analytics. Quota accounts exist
- * only for "claude" and "codex"; the rest surface transcript-derived token
+ * Agents that can appear in usage history/analytics. Quota accounts exist
+ * only for agents listed by QuotaCapableAgent; the rest surface transcript-derived token
  * history. Agents whose CLIs record no usable local usage data (gemini, amp,
  * kimi, vibe, kiro, droid, hermes, mastracode) are intentionally absent.
  */
-export type UsageProvider =
+export type UsageAgent =
 	| "claude"
 	| "codex"
 	| "grok"
+	| "agy"
 	| "cursor"
 	| "opencode"
 	| "copilot"
 	| "pi"
 	| "omp"
-	| "fx";
+	| "fx"
+	| "muse"
+	| "devin";
 
-/** The subset of providers with quota accounts and switchable logins. */
-export type UsageAccountProvider = "claude" | "codex";
+/** The subset of agents with quota accounts. Claude and Codex logins are
+ * also switchable; OpenCode's are the Anthropic/OpenAI subscriptions it is
+ * signed into, read-only. */
+export type QuotaCapableAgent =
+	| "claude"
+	| "codex"
+	| "grok"
+	| "agy"
+	| "opencode";
+
+/** How the provider bills work launched from this login: a subscription
+ * plan with quota windows, or pay-per-token API billing (Anthropic Console,
+ * OpenAI Platform) that exposes no quota. */
+export type UsageAccountCredentialKind = "subscription" | "api_key";
+
+/** The upstream company/service serving a model. This is deliberately
+ * separate from UsageAgent: multi-model agents can route to several of these. */
+export type ModelProvider =
+	| "anthropic"
+	| "openai"
+	| "google"
+	| "xai"
+	| "meta"
+	| "cognition"
+	| "cursor"
+	| "github"
+	| "other";
 
 export type UsageAccountStatus =
 	/** Quota fetched successfully. */
@@ -25,6 +53,10 @@ export type UsageAccountStatus =
 	 * tokens ourselves — refreshing from a second client can trip provider
 	 * token-reuse protection and sign the user's CLI out. */
 	| "token_expired"
+	/** The access token is past its expiry but the refresh token is not: the
+	 * CLI is still signed in and mints a fresh access token the next time it
+	 * runs. Quota is unreadable until then, but no re-login is needed. */
+	| "token_stale"
 	/** Credentials exist but the provider returned no usable quota data
 	 * (org-managed/education plans, endpoint changes, transient errors). */
 	| "unavailable"
@@ -43,7 +75,8 @@ export interface UsageQuotaWindow {
 }
 
 export interface UsageAccount {
-	provider: UsageAccountProvider;
+	agent: QuotaCapableAgent;
+	credentialKind: UsageAccountCredentialKind;
 	/** Stable key for the credential source (config path or keychain item),
 	 * used to dedupe and as a React key. */
 	accountKey: string;

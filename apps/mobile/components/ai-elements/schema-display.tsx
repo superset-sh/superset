@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useControllableState } from "@rn-primitives/hooks";
 import { ChevronRightIcon } from "lucide-react-native";
 import { createContext, useContext, useMemo, useState } from "react";
@@ -72,7 +73,9 @@ const SectionChevron = ({ isOpen }: { isOpen: boolean }) => (
 
 const RequiredBadge = () => (
 	<Badge className="bg-red-100 dark:bg-red-900/30" variant="secondary">
-		<Text className="text-red-700 dark:text-red-400">required</Text>
+		<Text className="text-red-700 dark:text-red-400">
+			<Trans>required</Trans>
+		</Text>
 	</Badge>
 );
 
@@ -254,7 +257,9 @@ export const SchemaDisplayParameters = ({
 		>
 			<CollapsibleTrigger className="w-full flex-row items-center gap-2 px-4 py-3">
 				<SectionChevron isOpen={isOpen} />
-				<Text className="font-medium text-sm">Parameters</Text>
+				<Text className="font-medium text-sm">
+					<Trans>Parameters</Trans>
+				</Text>
 				<Badge className="ml-auto" variant="secondary">
 					<Text>{parameters?.length}</Text>
 				</Badge>
@@ -387,7 +392,9 @@ export const SchemaDisplayRequest = ({
 		>
 			<CollapsibleTrigger className="w-full flex-row items-center gap-2 px-4 py-3">
 				<SectionChevron isOpen={isOpen} />
-				<Text className="font-medium text-sm">Request Body</Text>
+				<Text className="font-medium text-sm">
+					<Trans>Request Body</Trans>
+				</Text>
 			</CollapsibleTrigger>
 			<CollapsibleContent>
 				<View className="border-border border-t">
@@ -430,7 +437,9 @@ export const SchemaDisplayResponse = ({
 		>
 			<CollapsibleTrigger className="w-full flex-row items-center gap-2 px-4 py-3">
 				<SectionChevron isOpen={isOpen} />
-				<Text className="font-medium text-sm">Response</Text>
+				<Text className="font-medium text-sm">
+					<Trans>Response</Trans>
+				</Text>
 			</CollapsibleTrigger>
 			<CollapsibleContent>
 				<View className="border-border border-t">

@@ -365,4 +365,47 @@ describe("detectLanguage", () => {
 		expect(detectLanguage("src/components/Button.tsx")).toBe("typescript");
 		expect(detectLanguage("deep/nested/path/config.json")).toBe("json");
 	});
+
+	test("detects Dockerfiles by name, at any depth", () => {
+		expect(detectLanguage("Dockerfile")).toBe("dockerfile");
+		expect(detectLanguage("docker/Dockerfile")).toBe("dockerfile");
+		expect(detectLanguage("apps/desktop/dockerfile")).toBe("dockerfile");
+		expect(detectLanguage("Containerfile")).toBe("dockerfile");
+	});
+
+	test("detects Dockerfile variants", () => {
+		expect(detectLanguage("Dockerfile.prod")).toBe("dockerfile");
+		expect(detectLanguage("docker/Dockerfile.dev")).toBe("dockerfile");
+		expect(detectLanguage("prod.Dockerfile")).toBe("dockerfile");
+		expect(detectLanguage("app.dockerfile")).toBe("dockerfile");
+		expect(detectLanguage("Containerfile.base")).toBe("dockerfile");
+	});
+
+	test("does not mistake other files for Dockerfiles", () => {
+		expect(detectLanguage("dockerfiles/build.sh")).toBe("shell");
+		expect(detectLanguage("docker-compose.yml")).toBe("yaml");
+		expect(detectLanguage("dockerfile.md")).toBe("markdown");
+	});
+
+	test("detects Makefiles at any depth", () => {
+		expect(detectLanguage("Makefile")).toBe("makefile");
+		expect(detectLanguage("build/Makefile")).toBe("makefile");
+	});
+
+	test("handles Windows paths", () => {
+		expect(detectLanguage("C:\\Users\\me\\repo\\Dockerfile")).toBe(
+			"dockerfile",
+		);
+		expect(detectLanguage("docker\\Dockerfile.prod")).toBe("dockerfile");
+		expect(detectLanguage("src\\components\\Button.tsx")).toBe("typescript");
+	});
+
+	test("ignores inherited Object properties as filenames", () => {
+		expect(detectLanguage("constructor")).toBe("plaintext");
+		expect(detectLanguage("__proto__")).toBe("plaintext");
+		expect(detectLanguage("toString")).toBe("plaintext");
+		expect(detectLanguage("src/valueOf")).toBe("plaintext");
+		expect(detectLanguage("file.constructor")).toBe("plaintext");
+		expect(detectLanguage("hasOwnProperty.prod")).toBe("plaintext");
+	});
 });

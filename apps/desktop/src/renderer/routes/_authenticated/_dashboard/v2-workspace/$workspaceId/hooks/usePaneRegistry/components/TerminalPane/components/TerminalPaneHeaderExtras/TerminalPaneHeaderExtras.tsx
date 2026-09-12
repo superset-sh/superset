@@ -3,17 +3,29 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { SquarePen } from "lucide-react";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import type { SubagentPaneData } from "../../../../../../types";
 import {
 	terminalRichInputOpenStore,
 	useTerminalRichInputOpen,
 } from "../../richInputOpenStore";
 import { TerminalConnectionIndicator } from "./components/TerminalConnectionIndicator";
 import { TerminalIdCopyMenu } from "./components/TerminalIdCopyMenu";
+import { TerminalPageWatchChip } from "./components/TerminalPageWatchChip";
+import { TerminalSessionHandoffMenu } from "./components/TerminalSessionHandoffMenu";
+import { TerminalSubagentsMenu } from "./components/TerminalSubagentsMenu";
 
 interface TerminalPaneHeaderExtrasProps {
 	workspaceId: string;
 	terminalId: string;
 	terminalInstanceId: string;
+	onCreateNewAgentSession: (input: {
+		configId: string;
+		placement: "split-pane" | "new-tab";
+		prompt: string;
+		forkSessionId?: string;
+	}) => Promise<{ terminalId: string } | null>;
+	/** Open (or focus) the live transcript pane for one of this agent's subagents. */
+	onOpenSubagent: (data: SubagentPaneData) => void;
 }
 
 /**
@@ -26,6 +38,8 @@ export function TerminalPaneHeaderExtras({
 	workspaceId,
 	terminalId,
 	terminalInstanceId,
+	onCreateNewAgentSession,
+	onOpenSubagent,
 }: TerminalPaneHeaderExtrasProps) {
 	const { t } = useLingui();
 	const isOpen = useTerminalRichInputOpen();
@@ -33,21 +47,33 @@ export function TerminalPaneHeaderExtras({
 	const label =
 		hotkeyText === "Unassigned"
 			? t({
-					id: "workspace.terminalPane.richInputLabel",
 					message: "Rich input",
 				})
 			: t({
-					id: "workspace.terminalPane.richInputLabelWithHotkey",
 					message: `Rich input (${hotkeyText})`,
 				});
 
 	return (
-		<div className="flex items-center">
+		<div className="flex items-center gap-1">
+			<TerminalSubagentsMenu
+				workspaceId={workspaceId}
+				terminalId={terminalId}
+				onOpenSubagent={onOpenSubagent}
+			/>
 			<TerminalConnectionIndicator
 				terminalId={terminalId}
 				terminalInstanceId={terminalInstanceId}
 			/>
+			<TerminalPageWatchChip
+				workspaceId={workspaceId}
+				terminalId={terminalId}
+			/>
 			<TerminalIdCopyMenu workspaceId={workspaceId} terminalId={terminalId} />
+			<TerminalSessionHandoffMenu
+				workspaceId={workspaceId}
+				terminalId={terminalId}
+				onCreateNewAgentSession={onCreateNewAgentSession}
+			/>
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<button
@@ -56,7 +82,8 @@ export function TerminalPaneHeaderExtras({
 						aria-label={label}
 						aria-pressed={isOpen}
 						className={cn(
-							"rounded p-0.5 transition-colors",
+							// ⌘I still opens it; the button yields to split/close first.
+							"hidden rounded p-1 transition-colors @min-[200px]/pane-header:block",
 							isOpen
 								? "bg-secondary text-foreground"
 								: "text-muted-foreground/60 hover:text-muted-foreground",

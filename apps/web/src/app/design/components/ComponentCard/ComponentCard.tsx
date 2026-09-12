@@ -1,5 +1,7 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { cn } from "@superset/ui/utils";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { useState } from "react";
@@ -54,7 +56,11 @@ export function ComponentCard({
 					<button
 						type="button"
 						onClick={copyImport}
-						title="Copy import path"
+						title={i18n._(
+							msg({
+								message: "Copy import path",
+							}),
+						)}
 						className="flex max-w-[55%] shrink-0 items-center gap-1.5 rounded-md border border-transparent bg-muted/60 px-2 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
 					>
 						<span className="truncate">{importPath}</span>
@@ -66,7 +72,11 @@ export function ComponentCard({
 					</button>
 				) : (
 					<span
-						title="Source path (not an import)"
+						title={i18n._(
+							msg({
+								message: "Source path (not an import)",
+							}),
+						)}
 						className="flex max-w-[55%] shrink-0 items-center rounded-md bg-muted/60 px-2 py-1 font-mono text-[11px] text-muted-foreground"
 					>
 						<span className="truncate">{importPath}</span>

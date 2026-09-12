@@ -1,12 +1,16 @@
 import { CLIError } from "@superset/cli-framework";
 import type { AppRouter as HostServiceRouter } from "@superset/host-service/trpc";
 import { getHostId } from "@superset/shared/host-info";
-import { buildHostRoutingKey } from "@superset/shared/host-routing";
+import {
+	buildHostRoutingKey,
+	SUPERSET_USER_ID_HEADER,
+} from "@superset/shared/host-routing";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import SuperJSON from "superjson";
 import type { ApiClient } from "../api-client";
 import { isProcessAlive, readManifest } from "../host/manifest";
 import { getRelayUrl } from "../host/relay-url";
+import { readJwtSubject } from "./readJwtSubject";
 
 export type HostServiceClient = ReturnType<
 	typeof createTRPCClient<HostServiceRouter>
@@ -52,6 +56,7 @@ export async function resolveHostTarget(
 ): Promise<ResolvedHostTarget> {
 	const localHostId = getHostId();
 	const targetHostId = options.requestedHostId;
+	const userId = readJwtSubject(options.userJwt);
 
 	if (targetHostId === localHostId) {
 		const manifest = readManifest(options.organizationId);
@@ -78,6 +83,9 @@ export async function resolveHostTarget(
 						headers: {
 							Authorization: `Bearer ${manifest.authToken}`,
 							"x-superset-client-machine-id": localHostId,
+							// Names the user to the local host so it can stamp
+							// createdByUserId; the relay does this for remote hosts.
+							...(userId ? { [SUPERSET_USER_ID_HEADER]: userId } : {}),
 						},
 					}),
 				],

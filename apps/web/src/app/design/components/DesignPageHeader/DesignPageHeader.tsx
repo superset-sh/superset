@@ -1,9 +1,21 @@
+import { msg } from "@lingui/core/macro";
 import { cn } from "@superset/ui/utils";
 import Link from "next/link";
+import { initServerI18n } from "@/lib/i18n-server";
 
 const PAGES = [
-	{ key: "primitives", href: "/design", label: "Primitives" },
-	{ key: "superset", href: "/design/superset", label: "Superset components" },
+	{
+		key: "primitives",
+		href: "/design",
+		label: msg({ message: "Primitives" }),
+	},
+	{
+		key: "superset",
+		href: "/design/superset",
+		label: msg({
+			message: "Superset components",
+		}),
+	},
 ] as const;
 
 interface DesignPageHeaderProps {
@@ -12,16 +24,22 @@ interface DesignPageHeaderProps {
 	description: React.ReactNode;
 }
 
-export function DesignPageHeader({
+export async function DesignPageHeader({
 	active,
 	title,
 	description,
 }: DesignPageHeaderProps) {
+	const i18n = await initServerI18n();
+
 	return (
 		<header className="border-b border-border">
 			<div className="mx-auto max-w-6xl px-6 pt-12">
 				<p className="mb-3 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-					packages/ui · component registry
+					{i18n._(
+						msg({
+							message: "packages/ui · component registry",
+						}),
+					)}
 				</p>
 				<h1 className="text-3xl font-medium tracking-tight text-foreground">
 					{title}
@@ -42,7 +60,7 @@ export function DesignPageHeader({
 									: "border-transparent text-muted-foreground hover:text-foreground",
 							)}
 						>
-							{page.label}
+							{i18n._(page.label)}
 						</Link>
 					))}
 				</nav>

@@ -30,13 +30,18 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 				.from({ sidebarProjects: collections.v2SidebarProjects })
 				.select(({ sidebarProjects }) => ({
 					projectId: sidebarProjects.projectId,
+					isHidden: sidebarProjects.isHidden,
 				})),
 		[collections],
 	);
 	const { projects: hostProjects } = useHostProjects();
+	// A hidden project is out of the sidebar for this purpose too: its
+	// workspaces stop raising notifications until it is shown again.
 	const sidebarProjects = useMemo(() => {
 		const known = new Set(hostProjects.map((project) => project.projectKey));
-		return sidebarPlacementRows.filter((row) => known.has(row.projectId));
+		return sidebarPlacementRows.filter(
+			(row) => !row.isHidden && known.has(row.projectId),
+		);
 	}, [sidebarPlacementRows, hostProjects]);
 
 	const { data: localStateRows = [] } = useLiveQuery(

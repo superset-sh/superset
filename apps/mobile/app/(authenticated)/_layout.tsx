@@ -1,12 +1,17 @@
+import { useLingui } from "@lingui/react/macro";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Redirect, Stack, usePathname } from "expo-router";
 import { usePrimeRelayUrl } from "@/hooks/usePrimeRelayUrl";
 import { useSession } from "@/lib/auth/client";
 
-const settingsScreenOptions = (title: string) => ({
+const pageScreenOptions = {
 	headerShown: true,
 	headerBackButtonDisplayMode: "minimal" as const,
 	headerShadowVisible: false,
+};
+
+const settingsScreenOptions = (title: string) => ({
+	...pageScreenOptions,
 	title,
 });
 
@@ -25,6 +30,7 @@ const glassHeaderOptions = {
 export default function AuthenticatedLayout() {
 	usePrimeRelayUrl();
 
+	const { t } = useLingui();
 	const { data: session } = useSession();
 	const pathname = usePathname();
 
@@ -37,7 +43,7 @@ export default function AuthenticatedLayout() {
 	if (
 		unpaid &&
 		pathname !== "/" &&
-		pathname !== "/organizations" &&
+		!pathname.startsWith("/organizations") &&
 		!pathname.startsWith("/settings")
 	) {
 		return <Redirect href="/(authenticated)/(home)" />;
@@ -48,18 +54,100 @@ export default function AuthenticatedLayout() {
 			{/* Root headers are hidden — `title` here only names routes in
 			    back-button long-press menus (otherwise raw route names leak,
 			    e.g. "(home)"). */}
-			<Stack.Screen name="(home)" options={{ title: "Home" }} />
+			<Stack.Screen name="(home)" options={{ title: t({ message: "Home" }) }} />
+			<Stack.Screen
+				name="pages/index"
+				options={{ ...pageScreenOptions, title: t({ message: "Pages" }) }}
+			/>
+			<Stack.Screen
+				name="pages/filter"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Filter" }),
+					sheetAllowedDetents: [0.4],
+					sheetGrabberVisible: true,
+					...glassHeaderOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/index"
+				options={{
+					...pageScreenOptions,
+					title: "",
+					headerBackTitle: t({ message: "Pages" }),
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/preview"
+				options={{
+					presentation: "formSheet",
+					title: "",
+					sheetAllowedDetents: [0.6, 1.0],
+					sheetGrabberVisible: true,
+					...glassHeaderOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/compose"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Write a comment" }),
+					sheetAllowedDetents: [0.5],
+					sheetGrabberVisible: true,
+					...glassHeaderOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/quick"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Quick feedback" }),
+					sheetAllowedDetents: [0.6],
+					sheetGrabberVisible: true,
+					...glassHeaderOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/thread"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Comment" }),
+					sheetAllowedDetents: [0.7],
+					sheetGrabberVisible: true,
+					...glassHeaderOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/comments"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "All comments" }),
+					sheetAllowedDetents: [1.0],
+					sheetGrabberVisible: true,
+					...glassHeaderOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/share"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Share page" }),
+					sheetAllowedDetents: [0.75],
+					sheetGrabberVisible: true,
+					...glassHeaderOptions,
+				}}
+			/>
 			<Stack.Screen
 				name="settings/index"
-				options={settingsScreenOptions("Settings")}
+				options={settingsScreenOptions(t({ message: "Settings" }))}
 			/>
 			<Stack.Screen
 				name="settings/organization"
-				options={settingsScreenOptions("Organization")}
+				options={settingsScreenOptions(t({ message: "Organization" }))}
 			/>
 			<Stack.Screen
 				name="settings/hosts"
-				options={settingsScreenOptions("Hosts")}
+				options={settingsScreenOptions(t({ message: "Hosts" }))}
 			/>
 			<Stack.Screen
 				name="workspace/[id]/index"
@@ -67,7 +155,7 @@ export default function AuthenticatedLayout() {
 					headerShown: true,
 					headerBackButtonDisplayMode: "minimal",
 					headerShadowVisible: false,
-					title: "Workspace",
+					title: t({ message: "Workspace" }),
 				}}
 			/>
 			<Stack.Screen
@@ -76,7 +164,9 @@ export default function AuthenticatedLayout() {
 					headerShown: true,
 					headerBackButtonDisplayMode: "minimal",
 					headerShadowVisible: false,
-					title: "Files changed",
+					title: t({
+						message: "Files changed",
+					}),
 					// The one screen that has to keep this. Its code panes scroll
 					// sideways on a PanResponder, and the system gesture beats a JS
 					// responder every time — with the swipe on, a drag across a diff
@@ -97,7 +187,7 @@ export default function AuthenticatedLayout() {
 					sheetAllowedDetents: [0.75],
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
-					title: "Commits",
+					title: t({ message: "Commits" }),
 				}}
 			/>
 			<Stack.Screen
@@ -107,7 +197,9 @@ export default function AuthenticatedLayout() {
 					sheetAllowedDetents: [0.75],
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
-					title: "Add comment",
+					title: t({
+						message: "Add comment",
+					}),
 				}}
 			/>
 			<Stack.Screen
@@ -117,7 +209,9 @@ export default function AuthenticatedLayout() {
 					sheetAllowedDetents: [0.75],
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
-					title: "Finish review",
+					title: t({
+						message: "Finish review",
+					}),
 				}}
 			/>
 			<Stack.Screen
@@ -139,7 +233,7 @@ export default function AuthenticatedLayout() {
 					sheetAllowedDetents: [0.5],
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
-					title: "Sessions",
+					title: t({ message: "Sessions" }),
 				}}
 			/>
 			<Stack.Screen
@@ -149,7 +243,9 @@ export default function AuthenticatedLayout() {
 					sheetAllowedDetents: [0.5],
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
-					title: "New session",
+					title: t({
+						message: "New session",
+					}),
 				}}
 			/>
 			<Stack.Screen
@@ -163,7 +259,12 @@ export default function AuthenticatedLayout() {
 			/>
 			<Stack.Screen
 				name="workspace/[id]/pull-request/[pullRequestId]/index"
-				options={{ ...glassHeaderOptions, title: "Pull request" }}
+				options={{
+					...glassHeaderOptions,
+					title: t({
+						message: "Pull request",
+					}),
+				}}
 			/>
 			<Stack.Screen
 				name="workspace/[id]/pull-request/[pullRequestId]/checks"
@@ -199,7 +300,9 @@ export default function AuthenticatedLayout() {
 					sheetAllowedDetents: [0.75],
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
-					title: "Jump to file",
+					title: t({
+						message: "Jump to file",
+					}),
 				}}
 			/>
 		</Stack>

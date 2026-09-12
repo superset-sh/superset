@@ -21,20 +21,20 @@ function StatusBadge({ granted }: { granted: boolean | undefined }) {
 	if (granted === true) {
 		return (
 			<Badge variant="secondary">
-				<Trans id="settings.permissions.statusGranted">Granted</Trans>
+				<Trans>Granted</Trans>
 			</Badge>
 		);
 	}
 	if (granted === false) {
 		return (
 			<Badge variant="outline">
-				<Trans id="settings.permissions.statusNotGranted">Not granted</Trans>
+				<Trans>Not granted</Trans>
 			</Badge>
 		);
 	}
 	return (
 		<Badge variant="outline">
-			<Trans id="settings.permissions.statusUnknown">Unknown</Trans>
+			<Trans>Unknown</Trans>
 		</Badge>
 	);
 }
@@ -66,7 +66,7 @@ function PermissionRow({
 				<StatusBadge granted={granted} />
 				<Button variant="outline" size="sm" onClick={onRequest}>
 					<LuExternalLink className="h-3.5 w-3.5 mr-1.5" />
-					<Trans id="settings.permissions.openSettings">Open settings</Trans>
+					<Trans>Open settings</Trans>
 				</Button>
 			</div>
 		</div>
@@ -112,12 +112,10 @@ export function PermissionsSettings({
 		<div className="p-6 max-w-4xl w-full mx-auto">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.permissions.title">Permissions</Trans>
+					<Trans>Permissions</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					<Trans id="settings.permissions.subtitle">
-						Grant the OS permissions Superset needs.
-					</Trans>
+					<Trans>Grant the OS permissions Superset needs.</Trans>
 				</p>
 			</div>
 
@@ -136,11 +134,9 @@ export function PermissionsSettings({
 						) && (
 							<PermissionRow
 								label={t({
-									id: "settings.permissions.fullDiskAccessLabel",
 									message: "Full Disk Access",
 								})}
 								description={t({
-									id: "settings.permissions.fullDiskAccessDescription",
 									message:
 										"Persistent access to Documents, Downloads, Desktop, and iCloud.",
 								})}
@@ -155,11 +151,9 @@ export function PermissionsSettings({
 						) && (
 							<PermissionRow
 								label={t({
-									id: "settings.permissions.accessibilityLabel",
 									message: "Accessibility",
 								})}
 								description={t({
-									id: "settings.permissions.accessibilityDescription",
 									message:
 										"Send keystrokes, manage windows, and control other applications.",
 								})}
@@ -174,11 +168,9 @@ export function PermissionsSettings({
 						) && (
 							<PermissionRow
 								label={t({
-									id: "settings.permissions.microphoneLabel",
 									message: "Microphone",
 								})}
 								description={t({
-									id: "settings.permissions.microphoneDescription",
 									message: "Use voice transcription and push-to-talk features.",
 								})}
 								granted={status?.microphone}
@@ -192,11 +184,9 @@ export function PermissionsSettings({
 						) && (
 							<PermissionRow
 								label={t({
-									id: "settings.permissions.automationLabel",
 									message: "Automation",
 								})}
 								description={t({
-									id: "settings.permissions.automationDescription",
 									message:
 										"Run terminal commands and interact with other applications.",
 								})}
@@ -211,11 +201,9 @@ export function PermissionsSettings({
 						) && (
 							<PermissionRow
 								label={t({
-									id: "settings.permissions.localNetworkLabel",
 									message: "Local Network",
 								})}
 								description={t({
-									id: "settings.permissions.localNetworkDescription",
 									message:
 										"Discover and connect to development servers on your network.",
 								})}

@@ -1,18 +1,30 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { useMutation } from "@tanstack/react-query";
 import { useRef } from "react";
 import { Alert } from "react-native";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
 import type { PlainActionId } from "../../utils/pullRequestState";
 
-const REFUSED_TITLE: Record<PlainActionId, string> = {
-	"mark-ready": "Could not mark ready",
-	"update-branch": "Could not update the branch",
-	reopen: "Could not reopen",
-	dequeue: "Could not leave the queue",
+const REFUSED_TITLE: Record<PlainActionId, MessageDescriptor> = {
+	"mark-ready": msg({
+		message: "Could not mark ready",
+	}),
+	"update-branch": msg({
+		message: "Could not update the branch",
+	}),
+	reopen: msg({
+		message: "Could not reopen",
+	}),
+	dequeue: msg({
+		message: "Could not leave the queue",
+	}),
 };
 
 /**
@@ -61,7 +73,7 @@ export function usePullRequestActions({
 		},
 		onSuccess: onDone,
 		onError: (error: Error, action) => {
-			Alert.alert(REFUSED_TITLE[action], error.message);
+			Alert.alert(i18n._(REFUSED_TITLE[action]), errorCopy(error));
 		},
 	});
 

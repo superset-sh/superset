@@ -1,15 +1,20 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	Composer,
 	type ComposerHandle,
 	type ComposerQuickKey,
+	type ComposerQuickKeysAction,
+	type ComposerSessionTab,
 	type ComposerSlashCommand,
 } from "@superset/composer";
 import type { SlashCommand } from "@superset/shared/slash-commands";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { errorCopy } from "@/lib/errors";
 import { posthog } from "@/lib/posthog";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
+import { useAttachmentUploads } from "@/screens/(authenticated)/hooks/useAttachmentUploads";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
 import { workspaceDraftKey } from "@/screens/(authenticated)/stores/composerDraftsStore";
@@ -48,6 +53,28 @@ interface TerminalComposerProps {
 	 * how the panel stays hidden there.
 	 */
 	slashCommands: SlashCommand[];
+	/**
+	 * The workspace's sessions, drawn by the composer above the quick keys.
+	 * Empty hides the strip — a workspace with nothing running has its own
+	 * empty state, which already carries a way to start one.
+	 */
+	sessionTabs: ComposerSessionTab[];
+	onSessionTabPress: (terminalId: string) => void;
+	/** Close was chosen. Nothing is dead yet — this is where the confirm goes. */
+	onSessionTabClose: (terminalId: string) => void;
+	/** Rename was chosen from the press-and-hold menu. */
+	onSessionTabRename: (terminalId: string) => void;
+	/** Copy id was chosen from the press-and-hold menu. */
+	onSessionTabCopyId: (terminalId: string) => void;
+	onNewSessionPress: () => void;
+	onAllSessionsPress: () => void;
+	/**
+	 * The static chip beside the quick keys — this workspace's pull requests.
+	 * Omitted when it has none, which is also how a workspace that never
+	 * produced one never grows the control.
+	 */
+	quickKeysAction?: ComposerQuickKeysAction;
+	onQuickKeysActionPress: () => void;
 	/** Focused, or the keyboard is up — the screen covers the terminal with a
 	 *  tap-to-dismiss target while this is true. */
 	onActiveChange?: (active: boolean) => void;
@@ -75,12 +102,21 @@ export const TerminalComposer = forwardRef<
 >(function TerminalComposer(
 	{
 		workspaceId,
-		placeholder = "Type a message...",
+		placeholder,
 		onSubmit,
 		onQuickKey,
 		attachmentTarget,
 		allowAttachments,
 		slashCommands,
+		sessionTabs,
+		onSessionTabPress,
+		onSessionTabClose,
+		onSessionTabRename,
+		onSessionTabCopyId,
+		onNewSessionPress,
+		onAllSessionsPress,
+		quickKeysAction,
+		onQuickKeysActionPress,
 		onActiveChange,
 		onHeightChange,
 		selectActive,
@@ -89,6 +125,7 @@ export const TerminalComposer = forwardRef<
 	},
 	ref,
 ) {
+	const { t } = useLingui();
 	const composerRef = useRef<ComposerHandle>(null);
 	// The screen owns the tap-to-dismiss target over the terminal, so it needs
 	// the composer's blur: `Keyboard.dismiss()` alone cannot lower the keyboard,
@@ -104,6 +141,7 @@ export const TerminalComposer = forwardRef<
 	const draft = useComposerDraft(draftKey);
 	const openAttachmentsSheet = useAttachmentsSheet(draftKey);
 	const addPasted = usePasteAttachments(draftKey);
+	const uploads = useAttachmentUploads(draftKey);
 
 	// What was typed here last time, pinned at mount: a starting value handed to
 	// the composer as it is set up, never a binding.
@@ -114,12 +152,20 @@ export const TerminalComposer = forwardRef<
 
 	const quickKeys: ComposerQuickKey[] = selectActive
 		? selectHasSelection
-			? [{ id: COPY_SELECTION_KEY, label: "Copy Selection" }]
+			? [
+					{
+						id: COPY_SELECTION_KEY,
+						label: t({
+							message: "Copy Selection",
+						}),
+					},
+				]
 			: []
 		: QUICK_KEYS.map((key) => ({
 				id: key.id,
 				label: key.label,
 				symbol: key.symbol,
+				divider: key.divider,
 			}));
 
 	const submit = async ({ text, attachments: files }: PromptInputMessage) => {
@@ -130,7 +176,11 @@ export const TerminalComposer = forwardRef<
 		// submit, not just the `+` button.
 		if (allowAttachments && files.length > 0) {
 			if (!attachmentTarget) {
-				Alert.alert("Attachments need an online host");
+				Alert.alert(
+					t({
+						message: "Attachments need an online host",
+					}),
+				);
 				return;
 			}
 			// A PTY takes bytes, not files: the agent gets the attachments as
@@ -161,10 +211,7 @@ export const TerminalComposer = forwardRef<
 			if (allowAttachments) draft.clear();
 			else draft.setText("");
 		} catch (cause) {
-			Alert.alert(
-				"Could not send",
-				cause instanceof Error ? cause.message : String(cause),
-			);
+			Alert.alert(t({ message: "Could not send" }), errorCopy(cause));
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -174,7 +221,12 @@ export const TerminalComposer = forwardRef<
 		<View>
 			<Composer
 				ref={composerRef}
-				placeholder={placeholder}
+				placeholder={
+					placeholder ??
+					t({
+						message: "Type a message...",
+					})
+				}
 				initialDraft={initialDraft}
 				// The transcript stays live behind the composer: reading the scrollback
 				// while typing the next command is the whole point of this screen.
@@ -182,6 +234,36 @@ export const TerminalComposer = forwardRef<
 				autocapitalization="never"
 				showAttachments={allowAttachments}
 				quickKeys={quickKeys}
+				sessionTabs={sessionTabs}
+				// Translated here because the composer has no catalog of its own.
+				sessionTabLabels={{
+					rename: t({
+						message: "Rename session",
+					}),
+					copyId: t({
+						message: "Copy session ID",
+					}),
+					close: t({
+						message: "Close session",
+					}),
+					newSession: t({
+						message: "New session",
+					}),
+					allSessions: t({
+						message: "Manage sessions",
+					}),
+					scrollToStart: t({
+						message: "Scroll to the first session",
+					}),
+				}}
+				onSessionTabPress={onSessionTabPress}
+				onSessionTabClose={onSessionTabClose}
+				onSessionTabRename={onSessionTabRename}
+				onSessionTabCopyId={onSessionTabCopyId}
+				onNewSessionPress={onNewSessionPress}
+				onAllSessionsPress={onAllSessionsPress}
+				quickKeysAction={quickKeysAction}
+				onQuickKeysActionPress={onQuickKeysActionPress}
 				slashCommands={slashCommands.map(
 					(command): ComposerSlashCommand => ({
 						id: `${command.trigger}${command.name}`,
@@ -207,6 +289,10 @@ export const TerminalComposer = forwardRef<
 										? ("image" as const)
 										: ("file" as const),
 								name: item.name,
+								progress: uploads[item.id]?.fileId
+									? undefined
+									: uploads[item.id]?.progress,
+								failed: uploads[item.id]?.error !== undefined,
 							}))
 						: []
 				}

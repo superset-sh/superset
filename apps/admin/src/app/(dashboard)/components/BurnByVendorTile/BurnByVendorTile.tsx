@@ -1,5 +1,7 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
@@ -9,6 +11,9 @@ import { InsightTileFrame } from "../InsightTileFrame";
 // Where the money goes: average monthly outflow per counterparty over the
 // last 3 complete months — the actionable half of a burn chart.
 export function BurnByVendorTile() {
+	const { formatNumber } = useFormat();
+
+	const { t } = useLingui();
 	const trpc = useTRPC();
 	const query = useQuery(trpc.business.getCashFlow.queryOptions());
 
@@ -19,17 +24,26 @@ export function BurnByVendorTile() {
 
 	return (
 		<InsightTileFrame
-			title="Burn by vendor (Mercury)"
-			description="Avg monthly outflow per counterparty, last 3 complete months"
+			title={t({
+				message: "Burn by vendor (Mercury)",
+			})}
+			description={t({
+				message: "Avg monthly outflow per counterparty, last 3 complete months",
+			})}
 			lastRefresh={query.data?.available ? query.data.asOf : null}
+			fill
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={vendors.length === 0}
 			emptyLabel={
-				unavailableReason ? `Unavailable: ${unavailableReason}` : "No data"
+				unavailableReason
+					? t({
+							message: `Unavailable: ${unavailableReason}`,
+						})
+					: undefined
 			}
 		>
-			<div className="space-y-2">
+			<div className="flex h-full flex-col justify-center gap-2">
 				{vendors.map((vendor) => (
 					<div key={vendor.name} className="flex items-center gap-2 text-xs">
 						<span className="w-40 shrink-0 truncate" title={vendor.name}>
@@ -45,7 +59,7 @@ export function BurnByVendorTile() {
 							/>
 						</div>
 						<span className="w-20 shrink-0 text-right tabular-nums">
-							${vendor.avgMonthlyUsd.toLocaleString()}/mo
+							${formatNumber(vendor.avgMonthlyUsd, undefined)}/mo
 						</span>
 					</div>
 				))}

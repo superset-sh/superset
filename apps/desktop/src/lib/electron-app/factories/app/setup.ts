@@ -1,5 +1,6 @@
 import { app, BrowserWindow, shell } from "electron";
 import { env } from "main/env.main";
+import { isBrowserPanePopup } from "main/lib/browser/popup-window";
 import { loadReactDevToolsExtension } from "main/lib/extensions";
 import { PLATFORM } from "shared/constants";
 import { makeAppId } from "shared/utils";
@@ -44,6 +45,13 @@ export async function makeAppSetup(
 	app.on("web-contents-created", (_, contents) => {
 		if (contents.getType() === "webview") return;
 		contents.on("will-navigate", (event, url) => {
+			// A popup a browser pane opened navigates in place: it is a real
+			// `window.open` window (an OAuth sign-in, typically) that has to stay
+			// on the pane's session. Handing it to the system browser strands the
+			// sign-in in a different cookie jar than the pane that started it
+			// (SUPER-1272). Checked here rather than above because the popup is
+			// marked on `did-create-window`, after this listener is attached.
+			if (isBrowserPanePopup(contents)) return;
 			// Always prevent in-app navigation for external URLs
 			if (url.startsWith("http://") || url.startsWith("https://")) {
 				event.preventDefault();

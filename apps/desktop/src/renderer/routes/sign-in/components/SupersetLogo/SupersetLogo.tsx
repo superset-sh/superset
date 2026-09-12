@@ -25,7 +25,7 @@ export function SupersetLogo({
 			aria-label="Superset"
 		>
 			<title>
-				<Trans id="auth.signIn.logoTitle">Superset</Trans>
+				<Trans>Superset</Trans>
 			</title>
 			{gradient && (
 				<defs>

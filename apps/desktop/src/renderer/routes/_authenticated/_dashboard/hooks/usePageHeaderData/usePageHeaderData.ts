@@ -1,10 +1,10 @@
-import { authClient } from "@superset/auth/client";
 import type {
 	CommentThread,
 	PageHeaderPage,
 	PageHeaderVersion,
 } from "@superset/ui/page-comments";
 import { useCallback } from "react";
+import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { toThreads } from "renderer/routes/_authenticated/_dashboard/utils/toThreads";
 
@@ -37,10 +37,11 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 
 	const version = pull.data?.version ?? 0;
 	const comments = cloudTrpc.pageComment.list.useQuery(
-		{ pageId: pageId ?? "", version },
+		{ pageId: pageId ?? "" },
 		{ enabled: Boolean(pageId) && version > 0 },
 	);
 
+	const utils = cloudTrpc.useUtils();
 	const setVisibility = cloudTrpc.page.setVisibility.useMutation();
 	const setSharedVersion = cloudTrpc.page.setSharedVersion.useMutation();
 	const deletePage = cloudTrpc.page.delete.useMutation();
@@ -75,8 +76,13 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 		currentUserId: session?.user.id,
 		onSetVisibility: async (visibility) => {
 			if (!pageId) return;
-			await setVisibility.mutateAsync({ id: pageId, visibility });
-			await refresh();
+			const updated = await setVisibility.mutateAsync({
+				id: pageId,
+				visibility,
+			});
+			utils.page.pull.setData(ref, (prev) =>
+				prev ? { ...prev, visibility: updated.visibility } : prev,
+			);
 		},
 		onSetSharedVersion: async (version) => {
 			if (!pageId) return;

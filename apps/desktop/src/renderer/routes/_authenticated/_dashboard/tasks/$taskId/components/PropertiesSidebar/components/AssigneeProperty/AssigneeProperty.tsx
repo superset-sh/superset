@@ -81,13 +81,10 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 							<span className="text-sm">
 								{task.assigneeDisplayName ||
 									t({
-										id: "dashboard.tasks.assigneeProperty.externalFallback",
 										message: "External",
 									})}{" "}
 								<span className="text-muted-foreground">
-									<Trans id="dashboard.tasks.assigneeProperty.externalSuffix">
-										(external)
-									</Trans>
+									<Trans>(external)</Trans>
 								</span>
 							</span>
 						</>
@@ -95,9 +92,7 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 						<>
 							<HiOutlineUserCircle className="w-5 h-5 text-muted-foreground" />
 							<span className="text-sm text-muted-foreground">
-								<Trans id="dashboard.tasks.assigneeProperty.unassigned">
-									Unassigned
-								</Trans>
+								<Trans>Unassigned</Trans>
 							</span>
 						</>
 					)}
@@ -111,9 +106,7 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 					>
 						<HiOutlineUserCircle className="w-5 h-5 text-muted-foreground shrink-0" />
 						<span className="text-sm">
-							<Trans id="dashboard.tasks.assigneeProperty.noAssignee">
-								No assignee
-							</Trans>
+							<Trans>No assignee</Trans>
 						</span>
 						{!task.assigneeId && !task.assigneeExternalId && (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>

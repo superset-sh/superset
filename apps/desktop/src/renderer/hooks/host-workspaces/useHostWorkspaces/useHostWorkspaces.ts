@@ -1,7 +1,9 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { authClient } from "renderer/lib/auth-client";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -16,6 +18,7 @@ import {
 	loadHostWorkspacesSnapshot,
 	mergeHostWorkspaces,
 	saveHostWorkspacesSnapshot,
+	toHostWorkspaceItem,
 } from "./useHostWorkspaces.utils";
 
 export type { HostWorkspaceItem } from "./useHostWorkspaces.utils";
@@ -108,6 +111,20 @@ export function useHostWorkspacesSource(
 	} = useKnownHosts();
 	const { targets: sandboxes, isReady: sandboxesReady } = useSandboxAccess();
 
+	// Only the open workspace's sandbox is a host here, and only once it has a
+	// running session: a stopped sandbox's URL answers nothing until the open
+	// workspace's own access wakes it and re-addresses it, and polling it
+	// before then is a stream of failed requests. The sidebar renders cloud
+	// rows from the cloud row, so nothing else needs a sandbox's served rows.
+	const { workspaceId: openWorkspaceId } = useParams({ strict: false });
+	const openSandbox = useMemo(
+		() =>
+			sandboxes.find(
+				(sandbox) => sandbox.workspaceId === openWorkspaceId && sandbox.running,
+			) ?? null,
+		[sandboxes, openWorkspaceId],
+	);
+
 	const targets = useMemo(() => {
 		const all = deriveHostWorkspacesQueryTargets({
 			activeHostUrl,
@@ -115,7 +132,7 @@ export function useHostWorkspacesSource(
 			machineId,
 			relayUrl,
 			fallbackOrganizationId: knownHostsOrgId,
-			sandboxes,
+			openSandbox,
 		});
 		return scopedHostId === undefined
 			? all
@@ -126,7 +143,7 @@ export function useHostWorkspacesSource(
 		knownHostsOrgId,
 		machineId,
 		relayUrl,
-		sandboxes,
+		openSandbox,
 		scopedHostId,
 	]);
 
@@ -221,19 +238,28 @@ export function useHostWorkspacesSource(
 	});
 
 	const busEverOpenedRef = useRef<Set<string>>(new Set());
+	const { data: session } = authClient.useSession();
+	const currentUserId = session?.user?.id ?? null;
+
+	// Served rows are scoped to whoever asked (tags are personal), so rows
+	// fetched before the session resolved, or by the previous account, are
+	// not this user's view: refetch every host once the user is known.
+	const targetsRef = useRef(targets);
+	targetsRef.current = targets;
+	useEffect(() => {
+		if (currentUserId === null) return;
+		for (const target of targetsRef.current) {
+			void queryClient.invalidateQueries({
+				queryKey: getHostWorkspacesQueryKey(target),
+			});
+		}
+	}, [currentUserId, queryClient]);
 
 	// Live updates: each reachable host's workspace:changed patches its own
 	// cached list without a refetch.
 	//
-	// Not for sandboxes. The provider counts a held connection as activity, so
-	// subscribing here would keep every cloud workspace's VM awake for as long
-	// as the app is open — ten in the sidebar, ten warm machines, whether or not
-	// anyone is looking at them. And there is nothing to be gained: a sandbox
-	// holds exactly one workspace whose identity the cloud row owns; the only
-	// field read off its served row is the branch, which has a fallback and can
-	// only change while someone is inside it — when the open workspace's own
-	// subscribers hold a socket anyway. Sandboxes are polled, and connected to
-	// only while open.
+	// Not for the sandbox: while its workspace is open, the workspace's own
+	// subscribers already hold a socket to it, and the poll covers its one row.
 	useEffect(() => {
 		const cleanups: Array<() => void> = [];
 		for (const target of targets) {
@@ -255,6 +281,7 @@ export function useHostWorkspacesSource(
 									machineId: target.machineId,
 								},
 								workspaceId,
+								currentUserId,
 							);
 							if (next && next !== rows) {
 								saveHostWorkspacesSnapshot(
@@ -316,7 +343,7 @@ export function useHostWorkspacesSource(
 		return () => {
 			for (const cleanup of cleanups) cleanup();
 		};
-	}, [targets, queryClient, includeArchived]);
+	}, [targets, queryClient, includeArchived, currentUserId]);
 
 	const workspaces = useMemo(() => {
 		const merged = mergeHostWorkspaces({
@@ -337,14 +364,13 @@ export function useHostWorkspacesSource(
 		const archived: HostWorkspaceItem[] = targets.flatMap((_target, index) => {
 			const query = archivedQueries[index];
 			const rows = query?.data ?? [];
-			return rows
-				.filter((row) => !liveIds.has(row.id))
-				.map((row) => ({
-					...row,
+			return (
+				rows
+					.filter((row) => !liveIds.has(row.id))
 					// react-query retains prior data across a failed refetch —
 					// don't report a host as answering when it did not.
-					hostReachable: !query?.isError,
-				}));
+					.map((row) => toHostWorkspaceItem(row, !query?.isError))
+			);
 		});
 		return [...merged, ...archived];
 	}, [targets, queries, includeArchived, archivedQueries, snapshots]);

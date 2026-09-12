@@ -1,8 +1,4 @@
 import type { TriggerConfigInput } from "../automation-triggers";
-import {
-	type CirclebackMatchableEvent,
-	circlebackTriggerMatches,
-} from "./circleback";
 import type { BaseMatchableEvent, MatchResult } from "./core";
 import { type GithubMatchableEvent, githubTriggerMatches } from "./github";
 import {
@@ -21,7 +17,6 @@ import { type SentryMatchableEvent, sentryTriggerMatches } from "./sentry";
 import { type SlackMatchableEvent, slackTriggerMatches } from "./slack";
 import { type WebhookMatchableEvent, webhookTriggerMatches } from "./webhook";
 
-export * from "./circleback";
 export * from "./core";
 export * from "./github";
 export * from "./google";
@@ -46,7 +41,6 @@ export type MatchableEvent =
 	| NotionMatchableEvent
 	| LinearMatchableEvent
 	| SlackMatchableEvent
-	| CirclebackMatchableEvent
 	| MicrosoftTeamsMatchableEvent
 	| SentryMatchableEvent
 	| GoogleCalendarMatchableEvent
@@ -100,11 +94,6 @@ export function triggerMatches(
 		case "slack":
 			return slackTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "slack" }>,
-				event,
-			);
-		case "circleback":
-			return circlebackTriggerMatches(
-				config as Extract<TriggerConfigInput, { kind: "circleback" }>,
 				event,
 			);
 		case "microsoft_teams":

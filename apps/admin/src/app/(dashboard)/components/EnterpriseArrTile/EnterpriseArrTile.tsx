@@ -1,5 +1,7 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
@@ -18,6 +20,9 @@ function initials(name: string): string {
 // money from Stripe subscriptions. Unbilled deals stay visible so revenue
 // that exists only on paper can't hide.
 export function EnterpriseArrTile() {
+	const { formatNumber } = useFormat();
+
+	const { t } = useLingui();
 	const trpc = useTRPC();
 	const query = useQuery(trpc.business.getEnterpriseArr.queryOptions());
 	const data = query.data;
@@ -27,22 +32,33 @@ export function EnterpriseArrTile() {
 
 	return (
 		<InsightTileFrame
-			title="Enterprise ARR by account"
+			title={t({
+				message: "Enterprise ARR by account",
+			})}
 			description={
 				data?.available
-					? `$${data.arrUsd.toLocaleString()}/yr across ${accounts.length} logos — already inside MRR, not additive${
-							data.unbilledLogos > 0
-								? `. ${data.unbilledLogos} not yet modeled as Stripe subscriptions`
-								: ""
-						}`
-					: (data?.reason ?? "Annualized enterprise Stripe subscriptions")
+					? t({
+							message: `$${formatNumber(data.arrUsd, undefined)}/yr across ${accounts.length} logos — already inside MRR, not additive`,
+						}) +
+						(data.unbilledLogos > 0
+							? t({
+									message: `. ${data.unbilledLogos} not yet modeled as Stripe subscriptions`,
+								})
+							: "")
+					: (data?.reason ??
+						t({
+							message: "Annualized enterprise Stripe subscriptions",
+						}))
 			}
+			fill
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={accounts.length === 0}
-			emptyLabel="No active enterprise accounts"
+			emptyLabel={t({
+				message: "No active enterprise accounts",
+			})}
 		>
-			<div className="space-y-3">
+			<div className="flex h-full flex-col justify-center gap-3">
 				{accounts.map((account) => (
 					<div key={account.name} className="flex items-center gap-3">
 						{account.logo ? (
@@ -64,8 +80,10 @@ export function EnterpriseArrTile() {
 								</span>
 								<span className="shrink-0 text-sm tabular-nums">
 									{account.billed
-										? `$${account.arrUsd.toLocaleString()}/yr`
-										: "unbilled"}
+										? `$${formatNumber(account.arrUsd, undefined)}/yr`
+										: t({
+												message: "unbilled",
+											})}
 								</span>
 							</div>
 							<div className="bg-muted/40 mt-1 h-1.5 overflow-hidden rounded-full">

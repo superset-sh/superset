@@ -2,6 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { HiArrowLeft } from "react-icons/hi2";
 import { LuExternalLink } from "react-icons/lu";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import type { TaskWithStatus } from "../../../components/TasksView/hooks/useTasksTable";
 import { TaskActionMenu } from "../TaskActionMenu";
 
@@ -25,7 +26,6 @@ export function TaskDetailHeader({
 				className="h-8 w-8"
 				onClick={onBack}
 				aria-label={t({
-					id: "dashboard.tasks.taskDetailHeader.backToTasks",
 					message: "Back to tasks",
 				})}
 			>
@@ -42,7 +42,6 @@ export function TaskDetailHeader({
 						rel="noopener noreferrer"
 						className="text-muted-foreground hover:text-foreground transition-colors p-2"
 						title={t({
-							id: "dashboard.tasks.taskDetailHeader.openInLinear",
 							message: "Open in Linear",
 						})}
 					>
@@ -51,6 +50,7 @@ export function TaskDetailHeader({
 				)}
 				<TaskActionMenu task={task} onDelete={onDelete} />
 			</div>
+			<WindowControlsInset />
 		</div>
 	);
 }

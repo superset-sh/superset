@@ -1,5 +1,8 @@
 "use client";
 
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -19,7 +22,7 @@ import {
 	SidebarRail,
 } from "@superset/ui/sidebar";
 import { usePathname } from "next/navigation";
-import { LuChevronRight, LuHouse } from "react-icons/lu";
+import { LuChevronRight, LuHouse, LuTrendingUp } from "react-icons/lu";
 
 import { AppSidebarHeader } from "./components/AppSidebarHeader";
 import { NavUser, type SidebarUser } from "./components/NavUser";
@@ -27,15 +30,20 @@ import { SearchForm } from "./components/SearchForm";
 
 const topLevelNav = [
 	{
-		title: "Home",
+		title: msg({ message: "Home" }),
 		url: "/",
 		icon: LuHouse,
+	},
+	{
+		title: msg({ message: "Growth" }),
+		url: "/growth",
+		icon: LuTrendingUp,
 	},
 ];
 
 const sections: {
-	title: string;
-	items: { title: string; url: string; icon: typeof LuHouse }[];
+	title: MessageDescriptor;
+	items: { title: MessageDescriptor; url: string; icon: typeof LuHouse }[];
 }[] = [];
 
 export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -43,6 +51,7 @@ export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
+	const { i18n } = useLingui();
 	const pathname = usePathname();
 
 	const isActive = (url: string) => {
@@ -61,11 +70,11 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 					<SidebarGroupContent>
 						<SidebarMenu>
 							{topLevelNav.map((item) => (
-								<SidebarMenuItem key={item.title}>
+								<SidebarMenuItem key={item.url}>
 									<SidebarMenuButton asChild isActive={isActive(item.url)}>
 										<a href={item.url}>
 											<item.icon className="size-4" />
-											{item.title}
+											{i18n._(item.title)}
 										</a>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
@@ -76,8 +85,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
 				{sections.map((section) => (
 					<Collapsible
-						key={section.title}
-						title={section.title}
+						key={section.title.id}
+						title={i18n._(section.title)}
 						defaultOpen
 						className="group/collapsible"
 					>
@@ -87,7 +96,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 								className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm"
 							>
 								<CollapsibleTrigger>
-									{section.title}
+									{i18n._(section.title)}
 									<LuChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
 								</CollapsibleTrigger>
 							</SidebarGroupLabel>
@@ -95,14 +104,14 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 								<SidebarGroupContent>
 									<SidebarMenu>
 										{section.items.map((item) => (
-											<SidebarMenuItem key={item.title}>
+											<SidebarMenuItem key={item.url}>
 												<SidebarMenuButton
 													asChild
 													isActive={isActive(item.url)}
 												>
 													<a href={item.url}>
 														{item.icon && <item.icon className="size-4" />}
-														{item.title}
+														{i18n._(item.title)}
 													</a>
 												</SidebarMenuButton>
 											</SidebarMenuItem>

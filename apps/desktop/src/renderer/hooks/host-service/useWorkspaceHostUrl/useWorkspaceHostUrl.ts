@@ -1,13 +1,51 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { setSandboxCredentials } from "renderer/lib/host-service-auth";
+import { setHostServiceSecret } from "renderer/lib/host-service-auth";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 const ACCESS_RETRY_MS = 15_000;
+/**
+ * A woken sandbox answers a few seconds after the grant: the session boots
+ * from the filesystem snapshot and host-service is started fresh. Publishing
+ * the address before it listens sends every pane into a failed reconnect that
+ * is only retried on the next token refresh, minutes later — so the address
+ * is held back until the host answers, for at most this long.
+ */
+const HOST_READY_TIMEOUT_MS = 45_000;
+const HOST_READY_POLL_MS = 1_000;
+const HOST_READY_REQUEST_TIMEOUT_MS = 5_000;
+
+/**
+ * One poll per host, however many callers are waiting: this hook has a
+ * consumer per pane and provider, and a loop each would hit the booting
+ * sandbox dozens of times a second.
+ */
+const hostReadyWaits = new Map<string, Promise<void>>();
+
+function waitForHost(url: string, token: string): Promise<void> {
+	const pending = hostReadyWaits.get(url);
+	if (pending) return pending;
+	const wait = (async () => {
+		const deadline = Date.now() + HOST_READY_TIMEOUT_MS;
+		while (Date.now() < deadline) {
+			const ok = await fetch(`${url}/trpc/health.check`, {
+				headers: { Authorization: `Bearer ${token}` },
+				signal: AbortSignal.timeout(HOST_READY_REQUEST_TIMEOUT_MS),
+			})
+				.then((response) => response.ok)
+				.catch(() => false);
+			if (ok) return;
+			await new Promise((resolve) => setTimeout(resolve, HOST_READY_POLL_MS));
+		}
+	})().finally(() => hostReadyWaits.delete(url));
+	hostReadyWaits.set(url, wait);
+	return wait;
+}
 
 export type WorkspaceHostTarget =
 	| { status: "loading" }
@@ -57,7 +95,14 @@ export function useWorkspaceHostTarget(
 			) ?? null)
 		: null;
 	const access = cloudTrpc.cloudWorkspace.access.useMutation();
-	const [sandboxUrl, setSandboxUrl] = useState<string | null>(null);
+	const queryClient = useQueryClient();
+	// Keyed by workspace: a switch leaves the previous grant in state until the
+	// new one lands, and an unkeyed URL would report the new workspace ready
+	// at the old workspace's sandbox.
+	const [grant, setGrant] = useState<{
+		workspaceId: string;
+		url: string;
+	} | null>(null);
 	// The mutation object is a new identity on every render; the effect below
 	// must key on the workspace alone or it re-mints on each one.
 	const requestAccess = useRef(access.mutateAsync);
@@ -69,38 +114,51 @@ export function useWorkspaceHostTarget(
 		let cancelled = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
 
-		const grant = async () => {
+		const requestGrant = async () => {
 			try {
-				const granted = await requestAccess.current({ id: cloudWorkspaceId });
-				if (cancelled) return;
-				setSandboxCredentials(granted.url, {
-					previewToken: granted.token,
+				// This is the open workspace, so the mint wakes the sandbox: a
+				// stopped session resumes, a running one is kept from its idle
+				// stop. The sidebar's mints for every other workspace never wake.
+				const granted = await requestAccess.current({
+					id: cloudWorkspaceId,
+					wake: true,
 				});
-				setSandboxUrl(granted.url);
-				// The provider's token outlives neither an open workspace nor its
-				// socket, so re-mint ahead of expiry rather than on failure.
+				if (cancelled) return;
+				setHostServiceSecret(granted.url, granted.token);
+				await waitForHost(granted.url, granted.token);
+				if (cancelled) return;
+				setGrant({ workspaceId: cloudWorkspaceId, url: granted.url });
+				// The sidebar addressed this sandbox as stopped and left it out of
+				// the host fan-out; now that it answers, let it re-address.
+				if (!granted.running) {
+					void queryClient.invalidateQueries({
+						queryKey: ["cloud-workspace", "access", cloudWorkspaceId],
+					});
+				}
+				// The token outlives neither an open workspace nor its socket, so
+				// re-mint ahead of expiry rather than on failure.
 				const remaining = new Date(granted.expiresAt).getTime() - Date.now();
-				timer = setTimeout(grant, Math.max(30_000, remaining * 0.8));
+				timer = setTimeout(requestGrant, Math.max(30_000, remaining * 0.8));
 			} catch {
-				if (!cancelled) timer = setTimeout(grant, ACCESS_RETRY_MS);
+				if (!cancelled) timer = setTimeout(requestGrant, ACCESS_RETRY_MS);
 			}
 		};
-		void grant();
+		void requestGrant();
 
 		return () => {
 			cancelled = true;
 			if (timer) clearTimeout(timer);
 		};
-	}, [cloudWorkspaceId]);
+	}, [cloudWorkspaceId, queryClient]);
 
 	return useMemo(() => {
 		if (cloudMatch) {
-			if (!sandboxUrl) return { status: "loading" };
+			if (grant?.workspaceId !== cloudMatch.id) return { status: "loading" };
 			return {
 				status: "ready",
 				kind: "sandbox",
 				hostId: cloudMatch.id,
-				url: sandboxUrl,
+				url: grant.url,
 			};
 		}
 		if (!workspaceId || (!isReady && !match)) return { status: "loading" };
@@ -135,7 +193,7 @@ export function useWorkspaceHostTarget(
 		relayUrl,
 		cloudMatch,
 		cloudPending,
-		sandboxUrl,
+		grant,
 	]);
 }
 

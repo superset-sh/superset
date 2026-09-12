@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import type {
 	AgentLifecycleEvent,
 	NotificationIds,
@@ -65,15 +67,34 @@ export class NotificationManager {
 
 		const isPermissionRequest = event.eventType === "PermissionRequest";
 		const isPendingQuestion = event.eventType === "PendingQuestion";
+		const isWaiting = isPermissionRequest || isPendingQuestion;
 		const notification = this.deps.createNotification({
-			title:
-				isPermissionRequest || isPendingQuestion
-					? `Awaiting Response — ${workspaceName}`
-					: `Agent Complete — ${workspaceName}`,
-			body:
-				isPermissionRequest || isPendingQuestion
-					? `"${title}" is waiting for your reply`
-					: `"${title}" has finished its task`,
+			title: isWaiting
+				? i18n._({
+						...msg({
+							message: "Awaiting Response — {workspaceName}",
+						}),
+						values: { workspaceName },
+					})
+				: i18n._({
+						...msg({
+							message: "Agent Complete — {workspaceName}",
+						}),
+						values: { workspaceName },
+					}),
+			body: isWaiting
+				? i18n._({
+						...msg({
+							message: '"{title}" is waiting for your reply',
+						}),
+						values: { title },
+					})
+				: i18n._({
+						...msg({
+							message: '"{title}" has finished its task',
+						}),
+						values: { title },
+					}),
 			silent: true,
 		});
 

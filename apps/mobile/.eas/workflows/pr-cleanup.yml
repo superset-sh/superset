@@ -1,0 +1,12 @@
+name: Mobile cleanup
+
+on:
+  ref_delete: {}
+
+jobs:
+  delete_update_branch:
+    name: Delete update branch
+    type: branch-delete
+    params:
+      branch_name: ${{ github.ref_name }}
+      fail_on_missing: false

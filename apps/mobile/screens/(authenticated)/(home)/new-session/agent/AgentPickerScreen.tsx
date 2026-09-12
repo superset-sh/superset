@@ -1,14 +1,15 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { isCloudAgentId } from "@superset/shared/cloud-agent-launch";
+import { HOST_AGENT_PRESETS } from "@superset/shared/host-agent-presets";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
-import { useMemo } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { useHostsPresence } from "@/hooks/useHostsPresence";
-import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { agentIconSource } from "@/lib/agent-icons";
 import { hostServiceUrl } from "@/lib/host-service/client";
@@ -16,6 +17,15 @@ import { posthog } from "@/lib/posthog";
 import { CLOUD_TARGET_ID } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
+
+const CLOUD_AGENT_CONFIGS = HOST_AGENT_PRESETS.filter((preset) =>
+	isCloudAgentId(preset.presetId),
+).map((preset) => ({
+	id: preset.presetId,
+	presetId: preset.presetId,
+	label: preset.label,
+	iconId: preset.presetId as string | null,
+}));
 
 export function AgentMark({
 	agentId,
@@ -42,24 +52,25 @@ export function AgentMark({
  * matches what the host can actually run.
  */
 export function AgentPickerScreen() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const theme = useTheme();
 	const insets = useSafeAreaInsets();
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const setAgentId = useNewSessionPreferencesStore((state) => state.setAgentId);
 	const { machineId } = useLocalSearchParams<{ machineId?: string }>();
+	// Under Cloud a laptop-only preset resolves to the one that launches.
+	const selectedAgentId =
+		machineId === CLOUD_TARGET_ID && (!agentId || !isCloudAgentId(agentId))
+			? "claude"
+			: agentId;
 
-	const hostsQuery = useOrgHostsQuery();
+	const { hosts, query: hostsQuery } = useOrgHosts();
 	const host =
 		machineId && machineId !== CLOUD_TARGET_ID
-			? (hostsQuery.data?.find((entry) => entry.machineId === machineId) ??
-				null)
+			? (hosts.find((entry) => entry.machineId === machineId) ?? null)
 			: null;
-	const presenceTargets = useMemo(() => (host ? [host] : []), [host]);
-	const presence = useHostsPresence(presenceTargets);
-	const isOnline = host
-		? (presence?.get(host.machineId) ?? host.isOnline)
-		: false;
+	const isOnline = host?.isOnline ?? false;
 
 	const configsQuery = useHostAgentConfigs({
 		machineId: host?.machineId ?? null,
@@ -68,34 +79,51 @@ export function AgentPickerScreen() {
 				? hostServiceUrl(host.organizationId, host.machineId)
 				: null,
 	});
-	const configs = configsQuery.data ?? [];
+	// A cloud workspace launches one of the built-in presets; the sandbox has
+	// no host config of its own to list (custom agents: SUPER-2127).
+	const configs =
+		machineId === CLOUD_TARGET_ID
+			? CLOUD_AGENT_CONFIGS
+			: (configsQuery.data ?? []);
 
 	let notice: string | null = null;
 	let isLoading = false;
 	let retry: (() => void) | null = null;
 	if (!machineId) {
-		notice = "No project selected";
+		notice = t({
+			message: "No project selected",
+		});
 	} else if (machineId === CLOUD_TARGET_ID) {
-		notice = "Cloud workspaces don't run an agent yet";
+		// Built-in presets, nothing to load.
 	} else if (!host) {
 		if (hostsQuery.isPending) {
 			isLoading = true;
 		} else if (hostsQuery.isError) {
-			notice = "Could not load your machines";
+			notice = t({
+				message: "Could not load your machines",
+			});
 			retry = () => void hostsQuery.refetch();
 		} else {
-			notice = "That machine is no longer available";
+			notice = t({
+				message: "That machine is no longer available",
+			});
 		}
 	} else if (!isOnline) {
-		notice = `${host.name} is offline`;
+		notice = t({
+			message: `${host.name} is offline`,
+		});
 	} else if (configs.length === 0) {
 		if (configsQuery.isError) {
-			notice = `Could not load agents from ${host.name}`;
+			notice = t({
+				message: `Could not load agents from ${host.name}`,
+			});
 			retry = () => void configsQuery.refetch();
 		} else if (configsQuery.isPending) {
 			isLoading = true;
 		} else {
-			notice = `No agents configured on ${host.name}`;
+			notice = t({
+				message: `No agents configured on ${host.name}`,
+			});
 		}
 	}
 
@@ -126,7 +154,9 @@ export function AgentPickerScreen() {
 					</Text>
 					{retry ? (
 						<Button size="sm" variant="secondary" onPress={retry}>
-							<Text>Try again</Text>
+							<Text>
+								<Trans>Try again</Trans>
+							</Text>
 						</Button>
 					) : null}
 				</View>
@@ -135,7 +165,7 @@ export function AgentPickerScreen() {
 				configs.map((config) => {
 					// Persist the presetId, not the row id: config ids are per-host
 					// UUIDs, presetIds resolve on any host (agents.run accepts both).
-					const isSelected = config.presetId === agentId;
+					const isSelected = config.presetId === selectedAgentId;
 					return (
 						<Pressable
 							key={config.id}

@@ -12,6 +12,30 @@
 			"types": "./src/router/page/schema.ts",
 			"default": "./src/router/page/schema.ts"
 		},
+		"./page-thumbnail": {
+			"types": "./src/router/page/thumbnail.ts",
+			"default": "./src/router/page/thumbnail.ts"
+		},
+		"./file-sweep": {
+			"types": "./src/lib/files/sweep.ts",
+			"default": "./src/lib/files/sweep.ts"
+		},
+		"./storage": {
+			"types": "./src/lib/r2.ts",
+			"default": "./src/lib/r2.ts"
+		},
+		"./realtime": {
+			"types": "./src/lib/realtime.ts",
+			"default": "./src/lib/realtime.ts"
+		},
+		"./leaderboard-reserved-handles": {
+			"types": "./src/router/leaderboard/reserved-handles.ts",
+			"default": "./src/router/leaderboard/reserved-handles.ts"
+		},
+		"./leaderboard-achievements": {
+			"types": "./src/router/leaderboard/achievements.ts",
+			"default": "./src/router/leaderboard/achievements.ts"
+		},
 		"./leaderboard-queries": {
 			"types": "./src/router/leaderboard/queries.ts",
 			"default": "./src/router/leaderboard/queries.ts"
@@ -23,6 +47,10 @@
 		"./leaderboard-periods": {
 			"types": "./src/router/leaderboard/periods.ts",
 			"default": "./src/router/leaderboard/periods.ts"
+		},
+		"./leaderboard-tier": {
+			"types": "./src/router/leaderboard/tier.ts",
+			"default": "./src/router/leaderboard/tier.ts"
 		},
 		"./leaderboard-types": {
 			"types": "./src/router/leaderboard/types.ts",
@@ -44,6 +72,10 @@
 			"types": "./src/router/automation/webhookSecret.ts",
 			"default": "./src/router/automation/webhookSecret.ts"
 		},
+		"./star-history": {
+			"types": "./src/lib/growth/star-history.ts",
+			"default": "./src/lib/growth/star-history.ts"
+		},
 		"./insight-registry": {
 			"types": "./src/router/analytics/insight-registry.ts",
 			"default": "./src/router/analytics/insight-registry.ts"
@@ -60,8 +92,9 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "0.78.0",
+		"@aws-sdk/client-s3": "3.899.0",
+		"@aws-sdk/s3-request-presigner": "3.899.0",
 		"@azure/msal-node": "5.5.0",
-		"@blaxel/core": "0.3.11",
 		"@googleapis/calendar": "16.0.0",
 		"@googleapis/gmail": "18.0.0",
 		"@linear/sdk": "68.1.1",
@@ -72,14 +105,18 @@
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/email": "workspace:*",
+		"@superset/i18n": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "0.13.11",
 		"@trpc/server": "11.16.0",
 		"@upstash/qstash": "2.10.1",
 		"@upstash/ratelimit": "2.0.8",
 		"@upstash/redis": "1.37.0",
-		"@vercel/blob": "2.3.2",
+		"@vercel/functions": "3.9.6",
 		"@vercel/kv": "3.0.0",
+		"@vercel/sandbox": "3.2.2",
+		"aws4fetch": "1.0.20",
+		"better-auth": "1.6.22",
 		"drizzle-orm": "0.45.2",
 		"gaxios": "7.3.1",
 		"google-auth-library": "10.5.0",

@@ -1,3 +1,4 @@
+import { createHmac, randomUUID } from "node:crypto";
 import type { SentryConfig } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -30,25 +31,32 @@ export type SentryOrganization = {
 };
 
 /**
- * The single organization an installation's token belongs to, with its region
- * URL. A public-app token is scoped to one org, so `/organizations/` returns
- * exactly the one this install is for — which is how the org slug is learned
- * from the callback, whose query params carry only the code and install id.
+ * One organization by slug, with its region URL.
+ *
+ * The slug has to be passed in: an installation token is scoped to a single
+ * organization but is not a member of it, so `/organizations/` — which lists
+ * the caller's memberships — answers 200 with an empty array for these tokens.
+ * Sentry sends the slug on the callback as `orgSlug`, which is where the one
+ * this reads comes from.
  */
 export async function fetchSentryOrganization(
 	token: string,
+	slug: string,
 ): Promise<SentryOrganization | null> {
-	const response = await fetch(`${SENTRY_URL}/api/0/organizations/`, {
+	const response = await fetch(`${SENTRY_URL}/api/0/organizations/${slug}/`, {
 		headers: { Authorization: `Bearer ${token}` },
 	});
-	if (!response.ok) return null;
-	const orgs = (await response.json()) as Array<{
+	if (!response.ok) {
+		console.error(
+			`[sentry] Organization lookup for ${slug} returned ${response.status}`,
+		);
+		return null;
+	}
+	const org = (await response.json()) as {
 		slug: string;
 		name: string;
 		links?: { regionUrl?: string };
-	}>;
-	const [org] = orgs;
-	if (!org) return null;
+	};
 	return {
 		slug: org.slug,
 		name: org.name,
@@ -129,18 +137,47 @@ export async function verifySentryInstall(
 }
 
 /**
+ * Sentry's `jwt-bearer` grant: a one-minute HS256 assertion signed with the
+ * app's client secret, which refreshes an installation's token without a
+ * refresh token. Sentry recommends it over `refresh_token` because that grant
+ * is single-use — a rotation Sentry commits but whose response never reaches
+ * us leaves the stored refresh token dead, and the connection with it.
+ */
+function clientSecretAssertion(clientId: string, clientSecret: string) {
+	const now = Math.floor(Date.now() / 1000);
+	const encode = (value: object) =>
+		Buffer.from(JSON.stringify(value)).toString("base64url");
+	const unsigned = `${encode({ alg: "HS256", typ: "JWT" })}.${encode({
+		iss: clientId,
+		sub: clientId,
+		iat: now,
+		exp: now + 60,
+		jti: randomUUID(),
+	})}`;
+	const signature = createHmac("sha256", clientSecret)
+		.update(unsigned)
+		.digest("base64url");
+	return `${unsigned}.${signature}`;
+}
+
+/**
  * A usable access token for a connection, refreshing it first when it is within
  * the buffer of expiry. Public-app tokens live ~8h, so anything cached longer
  * than a session needs this.
+ *
+ * A failed refresh throws rather than disconnecting: the assertion needs only
+ * the app's own credentials, so a rejection is a transient fault or a
+ * misconfiguration, not a lost grant. An uninstall arrives on the webhook as
+ * `installation.deleted`, which is what disconnects.
  */
 export async function getSentryAccessToken(
 	connectionId: string,
 ): Promise<RefreshedToken> {
 	return withRefreshedToken(connectionId, {
 		exchange: async (connection) => {
-			if (!connection.refreshToken || !env.SENTRY_CLIENT_ID) {
-				return { keep: true };
-			}
+			const clientId = env.SENTRY_CLIENT_ID;
+			const clientSecret = env.SENTRY_CLIENT_SECRET;
+			if (!clientId || !clientSecret) return { keep: true };
 
 			// The install uuid is the token endpoint's path segment; without it
 			// there is nothing to refresh against, so the current token is all
@@ -151,12 +188,12 @@ export async function getSentryAccessToken(
 
 			const response = await fetch(authorizationsUrl(installationUuid), {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${clientSecretAssertion(clientId, clientSecret)}`,
+				},
 				body: JSON.stringify({
-					grant_type: "refresh_token",
-					refresh_token: connection.refreshToken,
-					client_id: env.SENTRY_CLIENT_ID,
-					client_secret: env.SENTRY_CLIENT_SECRET,
+					grant_type: "urn:sentry:params:oauth:grant-type:jwt-bearer",
 				}),
 			});
 			if (!response.ok) {
@@ -172,17 +209,6 @@ export async function getSentryAccessToken(
 				refreshToken: data.refreshToken,
 				tokenExpiresAt: new Date(data.expiresAt),
 			};
-		},
-		// A revoked or already-used refresh token comes back as 400 invalid_grant.
-		revokedWhen: (error) => {
-			if (!(error instanceof TokenRefreshError)) return null;
-			const invalidGrant =
-				(error.body as { error?: unknown } | null)?.error === "invalid_grant";
-			return error.status === 401 ||
-				error.status === 403 ||
-				(error.status === 400 && invalidGrant)
-				? "invalid_grant"
-				: null;
 		},
 	});
 }

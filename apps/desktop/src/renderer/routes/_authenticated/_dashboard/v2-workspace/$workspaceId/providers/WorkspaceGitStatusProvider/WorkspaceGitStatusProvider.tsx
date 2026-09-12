@@ -1,8 +1,5 @@
-import type { WorkspaceStore } from "@superset/panes";
-import { createContext, useContext, useSyncExternalStore } from "react";
+import { createContext, useContext } from "react";
 import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
-import type { StoreApi } from "zustand/vanilla";
-import type { PaneViewerData } from "../../types";
 
 type WorkspaceGitStatus = ReturnType<typeof useGitStatus>;
 
@@ -12,19 +9,19 @@ const WorkspaceGitStatusContext = createContext<WorkspaceGitStatus | null>(
 
 interface WorkspaceGitStatusProviderProps {
 	children: React.ReactNode;
-	sidebarOpen: boolean;
-	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	workspaceId: string;
 }
 
+// Always enabled while the workspace route is mounted: the top-bar Changes
+// pill needs status regardless of sidebar/pane state, and the query is
+// event-driven (git:changed subscription + window focus), not an interval
+// poll — it was effectively always-on anyway since the right sidebar
+// defaults to open.
 export function WorkspaceGitStatusProvider({
 	children,
-	sidebarOpen,
-	store,
 	workspaceId,
 }: WorkspaceGitStatusProviderProps) {
-	const hasDiffPane = useHasDiffPane(store);
-	const gitStatus = useGitStatus(workspaceId, sidebarOpen || hasDiffPane);
+	const gitStatus = useGitStatus(workspaceId, true);
 
 	return (
 		<WorkspaceGitStatusContext.Provider value={gitStatus}>
@@ -41,24 +38,4 @@ export function useWorkspaceGitStatus(): WorkspaceGitStatus {
 		);
 	}
 	return value;
-}
-
-function hasDiffPane(store: StoreApi<WorkspaceStore<PaneViewerData>>): boolean {
-	const state = store.getState();
-	for (const tab of state.tabs) {
-		for (const pane of Object.values(tab.panes)) {
-			if (pane.kind === "diff") return true;
-		}
-	}
-	return false;
-}
-
-function useHasDiffPane(
-	store: StoreApi<WorkspaceStore<PaneViewerData>>,
-): boolean {
-	return useSyncExternalStore(
-		store.subscribe,
-		() => hasDiffPane(store),
-		() => false,
-	);
 }

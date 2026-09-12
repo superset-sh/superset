@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { useState } from "react";
 import { Alert, Linking, View } from "react-native";
@@ -7,10 +8,12 @@ import { Text } from "@/components/ui/text";
 import { useSignOut } from "@/hooks/useSignOut";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
+import { errorCopy } from "@/lib/errors";
 import { apiClient } from "@/lib/trpc/client";
 import { useDaysUntilPurge } from "./hooks/useDaysUntilPurge";
 
 export function AccountPendingDeletionScreen() {
+	const { t } = useLingui();
 	const theme = useTheme();
 	const { data: session, refetch } = useSession();
 	const { signOut, isSigningOut } = useSignOut();
@@ -28,8 +31,10 @@ export function AccountPendingDeletionScreen() {
 		} catch (error) {
 			console.error("[account/reactivate] Failed:", error);
 			Alert.alert(
-				"Could not reactivate",
-				error instanceof Error ? error.message : "Something went wrong.",
+				t({
+					message: "Could not reactivate",
+				}),
+				errorCopy(error),
 			);
 		} finally {
 			setIsReactivating(false);
@@ -47,14 +52,21 @@ export function AccountPendingDeletionScreen() {
 
 			<View className="items-center gap-2">
 				<Text className="text-2xl font-semibold text-foreground">
-					Account pending deletion
+					<Trans>Account pending deletion</Trans>
 				</Text>
 				<Text className="text-center text-base text-muted-foreground">
-					Your account is deactivated and will be permanently deleted
-					{daysRemaining !== null && daysRemaining > 0
-						? ` in ${daysRemaining} ${daysRemaining === 1 ? "day" : "days"}`
-						: " soon"}
-					. Reactivate to restore it exactly as you left it.
+					{daysRemaining !== null && daysRemaining > 0 ? (
+						<Plural
+							value={daysRemaining}
+							one="Your account is deactivated and will be permanently deleted in # day. Reactivate to restore it exactly as you left it."
+							other="Your account is deactivated and will be permanently deleted in # days. Reactivate to restore it exactly as you left it."
+						/>
+					) : (
+						<Trans>
+							Your account is deactivated and will be permanently deleted soon.
+							Reactivate to restore it exactly as you left it.
+						</Trans>
+					)}
 				</Text>
 			</View>
 
@@ -65,7 +77,13 @@ export function AccountPendingDeletionScreen() {
 					onPress={isReactivating ? undefined : handleReactivate}
 				>
 					<Text>
-						{isReactivating ? "Reactivating…" : "Reactivate my account"}
+						{isReactivating
+							? t({
+									message: "Reactivating…",
+								})
+							: t({
+									message: "Reactivate my account",
+								})}
 					</Text>
 				</Button>
 				<Button
@@ -74,7 +92,9 @@ export function AccountPendingDeletionScreen() {
 					className="w-4/5"
 					onPress={() => Linking.openURL(COMPANY.MAIL_TO)}
 				>
-					<Text>Contact support</Text>
+					<Text>
+						<Trans>Contact support</Trans>
+					</Text>
 				</Button>
 				<Button
 					variant="ghost"
@@ -82,7 +102,9 @@ export function AccountPendingDeletionScreen() {
 					className="w-4/5"
 					onPress={isSigningOut ? undefined : () => void signOut()}
 				>
-					<Text>Log out</Text>
+					<Text>
+						<Trans>Log out</Trans>
+					</Text>
 				</Button>
 			</View>
 		</View>

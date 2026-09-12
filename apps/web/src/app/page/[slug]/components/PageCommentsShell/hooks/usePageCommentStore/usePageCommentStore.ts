@@ -2,7 +2,13 @@
 
 import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
-import type { CommentStore, CommentThread } from "@superset/ui/page-comments";
+import {
+	type CommentIntent,
+	type CommentStore,
+	type CommentThread,
+	optimisticId,
+	type PageCommentUser,
+} from "@superset/ui/page-comments";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
@@ -23,12 +29,17 @@ function toThreads(rows: ServerThread[]): CommentThread[] {
 							offsetX: row.anchor.offsetX,
 							offsetY: row.anchor.offsetY,
 						},
+						intent: row.intent,
 						resolved: row.resolved,
+						version: row.version,
+						createdByUserId: row.createdByUserId,
 						comments: row.comments.map((comment) => ({
 							id: comment.id,
 							body: comment.body,
 							authorName: comment.authorName,
 							authorImage: comment.authorImage,
+							authorKind: comment.authorKind,
+							authorUserId: comment.authorUserId,
 							createdAt: comment.createdAt.getTime(),
 						})),
 					},
@@ -37,42 +48,154 @@ function toThreads(rows: ServerThread[]): CommentThread[] {
 	);
 }
 
+function optimisticComment({
+	body,
+	user,
+}: {
+	body: string;
+	user: PageCommentUser;
+}): ServerThread["comments"][number] {
+	return {
+		id: optimisticId(),
+		body,
+		authorKind: "human",
+		authorUserId: user.id,
+		authorName: user.name,
+		authorImage: user.image,
+		createdAt: new Date(),
+	};
+}
+
+function optimisticThread({
+	input,
+	user,
+	version,
+}: {
+	input: {
+		anchor?: {
+			path: string;
+			tag: string;
+			offsetX?: number;
+			offsetY?: number;
+		} | null;
+		anchorText?: string | null;
+		body: string;
+		intent?: CommentIntent | null;
+	};
+	user: PageCommentUser;
+	version: number;
+}): ServerThread {
+	return {
+		id: optimisticId(),
+		anchorKind: "element",
+		anchor: input.anchor ?? null,
+		anchorText: input.anchorText ?? null,
+		intent: input.intent ?? null,
+		resolved: false,
+		createdAt: new Date(),
+		version,
+		createdByUserId: user.id,
+		comments: [optimisticComment({ body: input.body, user })],
+	};
+}
+
 export function usePageCommentStore({
 	pageId,
 	version,
+	user,
 }: {
 	pageId: string;
 	version: number;
+	user: PageCommentUser;
 }): CommentStore {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const listOptions = trpc.pageComment.list.queryOptions({ pageId, version });
+	const listOptions = trpc.pageComment.list.queryOptions({ pageId });
 	const list = useQuery(listOptions);
 
-	const invalidate = useCallback(
-		() => queryClient.invalidateQueries({ queryKey: listOptions.queryKey }),
-		[queryClient, listOptions.queryKey],
+	const settle = useCallback(() => {
+		const inFlight = queryClient.isMutating({
+			predicate: (mutation) =>
+				mutation.options.meta?.pageCommentsFor === pageId,
+		});
+		if (inFlight === 1) {
+			queryClient.invalidateQueries({ queryKey: listOptions.queryKey });
+		}
+	}, [queryClient, listOptions.queryKey, pageId]);
+
+	const meta = useMemo(() => ({ pageCommentsFor: pageId }), [pageId]);
+
+	const handlers = useMemo(
+		() => ({
+			meta,
+			onError: (error: { message: string }) => toast.error(errorMessage(error)),
+			onSettled: settle,
+		}),
+		[meta, settle],
 	);
 
-	const onSettled = useMemo(
+	const optimistic = useMemo(
 		() => ({
-			onSuccess: invalidate,
-			onError: (error: { message: string }) => toast.error(errorMessage(error)),
+			onMutate: async (write: (rows: ServerThread[]) => ServerThread[]) => {
+				await queryClient.cancelQueries({ queryKey: listOptions.queryKey });
+				const previous = queryClient.getQueryData(listOptions.queryKey);
+				queryClient.setQueryData(listOptions.queryKey, write(previous ?? []));
+				return { previous };
+			},
+			onError: (
+				error: { message: string },
+				context: { previous: ServerThread[] | undefined } | undefined,
+			) => {
+				if (context?.previous) {
+					queryClient.setQueryData(listOptions.queryKey, context.previous);
+				} else {
+					queryClient.resetQueries({ queryKey: listOptions.queryKey });
+				}
+				toast.error(errorMessage(error));
+			},
+			onSettled: settle,
 		}),
-		[invalidate],
+		[queryClient, listOptions.queryKey, settle],
 	);
 
 	const create = useMutation(
-		trpc.pageComment.create.mutationOptions(onSettled),
+		trpc.pageComment.create.mutationOptions({
+			meta,
+			onMutate: (input) =>
+				optimistic.onMutate((rows) => [
+					...rows,
+					optimisticThread({ input, user, version }),
+				]),
+			onError: (error, _input, context) => optimistic.onError(error, context),
+			onSettled: optimistic.onSettled,
+		}),
 	);
-	const reply = useMutation(trpc.pageComment.reply.mutationOptions(onSettled));
-	const edit = useMutation(trpc.pageComment.edit.mutationOptions(onSettled));
+	const reply = useMutation(
+		trpc.pageComment.reply.mutationOptions({
+			meta,
+			onMutate: (input) =>
+				optimistic.onMutate((rows) =>
+					rows.map((row) =>
+						row.id === input.threadId
+							? {
+									...row,
+									comments: [
+										...row.comments,
+										optimisticComment({ body: input.body, user }),
+									],
+								}
+							: row,
+					),
+				),
+			onError: (error, _input, context) => optimistic.onError(error, context),
+			onSettled: optimistic.onSettled,
+		}),
+	);
+	const edit = useMutation(trpc.pageComment.edit.mutationOptions(handlers));
 	const resolve = useMutation(
-		trpc.pageComment.resolve.mutationOptions(onSettled),
+		trpc.pageComment.resolve.mutationOptions(handlers),
 	);
-	const remove = useMutation(
-		trpc.pageComment.delete.mutationOptions(onSettled),
-	);
+	const remove = useMutation(trpc.pageComment.delete.mutationOptions(handlers));
 
 	const threads = useMemo(() => toThreads(list.data ?? []), [list.data]);
 
@@ -80,7 +203,7 @@ export function usePageCommentStore({
 		() => ({
 			threads,
 			isLoading: list.isPending,
-			createThread: async ({ anchor, anchorText, body }) => {
+			createThread: async ({ anchor, anchorText, body, intent }) => {
 				await create.mutateAsync({
 					pageId,
 					version,
@@ -93,6 +216,7 @@ export function usePageCommentStore({
 					},
 					anchorText: anchorText.slice(0, 500) || null,
 					body,
+					intent,
 				});
 			},
 			addReply: async (threadId, body) => {

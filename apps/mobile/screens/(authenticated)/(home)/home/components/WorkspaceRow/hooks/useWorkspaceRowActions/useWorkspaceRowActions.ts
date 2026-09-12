@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { prompt } from "@superset/alert-prompt";
 import * as Clipboard from "expo-clipboard";
 import { Alert, Share } from "react-native";
@@ -21,7 +22,10 @@ export function useWorkspaceRowActions(
 	sessions: TerminalRowData[],
 	/** Set for a cloud workspace, whose name and lifetime the API owns. */
 	cloudStatus?: CloudWorkspaceStatus,
+	/** Runs once the id is on the pasteboard, for the screen's "Copied" notice. */
+	onCopied?: () => void,
 ) {
+	const { t } = useLingui();
 	const cloud = useCloudWorkspaceActions();
 	const remove = useDeleteWorkspace();
 	const isCloud = cloudStatus !== undefined;
@@ -64,13 +68,19 @@ export function useWorkspaceRowActions(
 	const renameWorkspace = async () => {
 		const hostUrl = isCloud ? null : cache.resolveHostUrl(workspace.hostId);
 		if (!isCloud && !hostUrl) {
-			Alert.alert("Host is not online");
+			Alert.alert(
+				t({
+					message: "Host is not online",
+				}),
+			);
 			return;
 		}
 		const name = await prompt({
-			title: "Rename workspace",
+			title: t({
+				message: "Rename workspace",
+			}),
 			defaultValue: workspace.name,
-			confirmText: "Rename",
+			confirmText: t({ message: "Rename" }),
 			selectText: true,
 		});
 		const trimmed = name?.trim();
@@ -88,7 +98,7 @@ export function useWorkspaceRowActions(
 				});
 			}
 		} catch {
-			Alert.alert("Rename failed");
+			Alert.alert(t({ message: "Rename failed" }));
 		}
 		cache.invalidateHost(workspace.hostId);
 	};
@@ -102,7 +112,8 @@ export function useWorkspaceRowActions(
 			isCloud,
 		});
 
-	const copyId = () => void Clipboard.setStringAsync(workspace.id);
+	const copyId = () =>
+		void Clipboard.setStringAsync(workspace.id).then(onCopied);
 
 	const shareWorkspace = () =>
 		void Share.share({ url: workspaceShareUrl(workspace.id) });

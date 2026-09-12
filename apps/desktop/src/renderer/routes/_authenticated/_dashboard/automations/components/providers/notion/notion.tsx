@@ -16,7 +16,7 @@ function renderSlot(
 	config: NotionConfig,
 	slot: Slot,
 	index: number,
-	{ set, mark, options, disabled }: SentenceContext,
+	{ set, mark, options, state, disabled }: SentenceContext,
 ) {
 	// The slot list is derived from this event, so the fields it names are
 	// present on this config member even where the union type cannot say so.
@@ -32,16 +32,15 @@ function renderSlot(
 					options={options.notion?.dataSources ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.selectDataSources",
 							message: "Select data sources",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.anyDataSource",
 							message: "Any data source",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -57,13 +56,11 @@ function renderSlot(
 					options={[]}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.anyPageEmpty",
 							message: "Any page",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.anyPage",
 							message: "Any page",
 						}),
 					)}
@@ -80,16 +77,15 @@ function renderSlot(
 					options={options.notion?.people ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.actorSelectPeople",
 							message: "Select people",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.actorAnyone",
 							message: "Anyone",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -103,16 +99,15 @@ function renderSlot(
 					options={options.notion?.people ?? []}
 					emptyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.mentionedSelectPeople",
 							message: "Select people",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							id: "dashboard.automations.providers.notion.mentionedAnyone",
 							message: "Anyone",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);

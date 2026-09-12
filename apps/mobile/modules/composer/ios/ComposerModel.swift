@@ -38,6 +38,10 @@ final class ComposerModel {
   /// `ComposerModelPicker`.
   var selectedModel: ComposerMenuOption?
 
+  /// Per-agent launch settings drawn after the agent — model, effort — each a
+  /// chevron button reporting its id. Empty for agents that have none.
+  var launchOptions: [ComposerMenuOption] = []
+
   /// A submit is in flight. The caller owns this — only it knows when delivery
   /// finished — and while it is true the send button shows a spinner and the
   /// mic gets out of the way.
@@ -51,6 +55,18 @@ final class ComposerModel {
 
   /// The terminal's quick keys, above the card. Empty on every other surface.
   var quickKeys: [ComposerQuickKey] = []
+
+  /// The workspace's sessions, above the quick keys. Empty on every other
+  /// surface, which is also how the strip stays off the home composer.
+  var sessionTabs: [ComposerSessionTab] = []
+
+  /// Every string the strip draws, translated in React Native — the composer
+  /// has no catalog. See `ComposerSessionTabLabels`.
+  var sessionTabLabels = ComposerSessionTabLabels()
+
+  /// The control beside the quick keys. Nil on every surface with nothing to
+  /// link to, which is all of them but the workspace terminal.
+  var quickKeysAction: ComposerQuickKeysAction?
 
   /// What the active agent can run behind `/` (or `$`). Empty hides the
   /// suggestion panel entirely — a plain shell, an agent without discovery,
@@ -100,8 +116,22 @@ final class ComposerModel {
   /// round trip.
   @ObservationIgnored var onDictationError: ((String) -> Void)?
   @ObservationIgnored var onModelPress: (() -> Void)?
+  @ObservationIgnored var onLaunchOptionPress: ((String) -> Void)?
   @ObservationIgnored var onChipPress: ((String) -> Void)?
   @ObservationIgnored var onQuickKeyPress: ((String) -> Void)?
+  /// The session strip reports by id and knows nothing else. Selecting swaps
+  /// which terminal is attached, closing raises React Native's confirm before
+  /// anything is killed, and copying puts the terminal id on the pasteboard
+  /// there — where the "Copied" notice already lives.
+  @ObservationIgnored var onSessionTabPress: ((String) -> Void)?
+  @ObservationIgnored var onSessionTabClose: ((String) -> Void)?
+  @ObservationIgnored var onSessionTabRename: ((String) -> Void)?
+  @ObservationIgnored var onSessionTabCopyId: ((String) -> Void)?
+  @ObservationIgnored var onNewSessionPress: (() -> Void)?
+  @ObservationIgnored var onAllSessionsPress: (() -> Void)?
+  /// The control beside the quick keys was pressed. Where it goes is React
+  /// Native's to know.
+  @ObservationIgnored var onQuickKeysActionPress: (() -> Void)?
   /// Files and images pasted into the field, already written to disk. The tray
   /// lives in React Native, so the composer hands over URIs and lets it add
   /// them the same way the pickers do.
@@ -129,6 +159,18 @@ final class ComposerModel {
   /// transaction that revealed send.
   @ObservationIgnored var onDraftChange: ((String) -> Void)?
 
+  /// True while the composer is being placed, false once it has been.
+  ///
+  /// Props delivered during setup are the composer appearing, not changing:
+  /// animating them opens a layout transaction before the card has a frame,
+  /// so it travels in from the origin instead of being drawn where it belongs.
+  /// Same reasoning as `applyInitialDraft`, applied to every prop.
+  @ObservationIgnored private(set) var isAppearing = true
+
+  func beginAppearing() { isAppearing = true }
+
+  func settle() { isAppearing = false }
+
   /// First delivery of `initialDraft` wins; React Native pins the value at
   /// mount, so later deliveries are the same text and must not clobber typing.
   @ObservationIgnored private var hasAppliedInitialDraft = false
@@ -137,6 +179,13 @@ final class ComposerModel {
   @ObservationIgnored var onInteractiveFrameChange: ((CGRect) -> Void)?
 
   var hasContent: Bool { hasDraft || !attachments.isEmpty }
+
+  /// An attachment is still on its way to storage. A send would survive it —
+  /// it waits for the bytes before it launches anything — but a send button
+  /// that looks ready while a ring is still filling invites the tap that
+  /// appears to do nothing. A failed upload does not count: sending is how it
+  /// is retried.
+  var isUploading: Bool { attachments.contains(where: \.isUploading) }
 
   var hasDraft: Bool {
     !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -194,7 +243,7 @@ final class ComposerModel {
   }
 
   func submit() {
-    guard hasContent, !isSending else { return }
+    guard hasContent, !isSending, !isUploading else { return }
     onSubmit?(draft)
   }
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { cn } from "@superset/ui/utils";
 
 export interface MrrDatum {
@@ -16,13 +18,17 @@ interface MrrTooltipProps {
 }
 
 export function MrrTooltip({ active, payload }: MrrTooltipProps) {
+	const { formatNumber } = useFormat();
+
 	const datum = payload?.[0]?.payload;
 	if (!active || !datum) return null;
 
 	return (
 		<div className="border-border/50 bg-background min-w-[11rem] rounded-lg border px-3 py-2 text-xs shadow-xl">
 			<div className="flex items-center justify-between gap-4 pb-1">
-				<span className="font-medium">MRR</span>
+				<span className="font-medium">
+					<Trans>MRR</Trans>
+				</span>
 				{datum.changePct !== null ? (
 					<span
 						className={cn(
@@ -38,14 +44,14 @@ export function MrrTooltip({ active, payload }: MrrTooltipProps) {
 			<div className="flex items-center justify-between gap-4">
 				<span>{datum.date}</span>
 				<span className="font-medium tabular-nums">
-					${datum.mrrUsd.toLocaleString()}
+					${formatNumber(datum.mrrUsd, undefined)}
 				</span>
 			</div>
 			{datum.prevDate && datum.prevUsd !== null ? (
 				<div className="text-muted-foreground flex items-center justify-between gap-4">
 					<span>{datum.prevDate}</span>
 					<span className="tabular-nums">
-						${datum.prevUsd.toLocaleString()}
+						${formatNumber(datum.prevUsd, undefined)}
 					</span>
 				</div>
 			) : null}

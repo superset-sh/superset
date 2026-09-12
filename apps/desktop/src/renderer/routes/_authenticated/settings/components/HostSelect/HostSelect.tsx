@@ -43,9 +43,7 @@ export function HostSelect({
 					<span className="flex items-center gap-1.5">
 						<span className="truncate">
 							{selected?.isLocal ? (
-								<Trans id="settings.components.hostSelect.thisDeviceValue">
-									This device
-								</Trans>
+								<Trans>This device</Trans>
 							) : (
 								(selected?.name ?? value)
 							)}
@@ -55,11 +53,9 @@ export function HostSelect({
 								title={
 									selected.isOnline
 										? t({
-												id: "settings.components.hostSelect.onlineTitle",
 												message: "Online",
 											})
 										: t({
-												id: "settings.components.hostSelect.offlineTitle",
 												message: "Offline",
 											})
 								}
@@ -83,19 +79,11 @@ export function HostSelect({
 								<HiOutlineServer className="size-4 text-muted-foreground" />
 							)}
 							<span className="truncate">
-								{option.isLocal ? (
-									<Trans id="settings.components.hostSelect.thisDeviceOption">
-										This device
-									</Trans>
-								) : (
-									option.name
-								)}
+								{option.isLocal ? <Trans>This device</Trans> : option.name}
 							</span>
 							{!option.isLocal && !option.isOnline && (
 								<span className="text-xs text-muted-foreground">
-									<Trans id="settings.components.hostSelect.offline">
-										offline
-									</Trans>
+									<Trans>offline</Trans>
 								</span>
 							)}
 						</span>

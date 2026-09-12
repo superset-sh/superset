@@ -8,15 +8,16 @@ import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
+import { AppMenuButton } from "../AppMenuButton";
 import { NavigationControls } from "../NavigationControls";
 import { SidebarToggle } from "../SidebarToggle";
+import { WindowControlsInset } from "../WindowControlsInset";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
 import { TopBarPortsDropdown } from "./components/TopBarPortsDropdown";
 import { V2WorkspaceTitle } from "./components/V2WorkspaceTitle";
-import { WindowControls } from "./components/WindowControls";
 
 export function TopBar() {
 	const matchRoute = useMatchRoute();
@@ -75,6 +76,7 @@ export function TopBar() {
 				/>
 				{!sidebarHostsChrome && (
 					<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
+						{!isMac && <AppMenuButton />}
 						<SidebarToggle />
 						<NavigationControls />
 						{!isV2CloudEnabled && <ResourceConsumption surface="v1" />}
@@ -96,7 +98,7 @@ export function TopBar() {
 					<div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
 						<HiOutlineWifi className="size-3.5" />
 						<span>
-							<Trans id="dashboard.topBar.offline">Offline</Trans>
+							<Trans>Offline</Trans>
 						</span>
 					</div>
 				)}
@@ -109,7 +111,7 @@ export function TopBar() {
 				) : null}
 				{!isV2CloudEnabled && <OrganizationDropdown />}
 				{isV2WorkspaceRoute && <RightSidebarToggle />}
-				{!isMac && <WindowControls />}
+				{!isMac && <WindowControlsInset />}
 			</div>
 		</div>
 	);

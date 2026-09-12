@@ -65,6 +65,10 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 	const invalidate = useCallback(
 		(payload?: GitChangedPayload) => {
 			void refreshScheduler.request();
+			// Patch query keys carry the changed-file list, not the working
+			// tree, so an edit to an already-changed file leaves the cached
+			// hunks stale while `loadDiffFiles` reads the file as it is now.
+			void utils.git.getDiffPatch.invalidate({ workspaceId });
 			if (payload?.paths && payload.paths.length > 0) {
 				for (const path of payload.paths) {
 					void utils.git.getDiff.invalidate({ workspaceId, path });
@@ -76,11 +80,6 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 				// picks up the new branch's base.
 				void utils.git.getBaseBranch.invalidate({ workspaceId });
 			}
-			// getDiffBulk queries are keyed by the whole file-path list, not one
-			// path, so they can't be targeted per-path like getDiff above —
-			// invalidate the (small, bounded) set of bulk queries for this
-			// workspace instead.
-			void utils.git.getDiffBulk.invalidate({ workspaceId });
 		},
 		[refreshScheduler, utils, workspaceId],
 	);

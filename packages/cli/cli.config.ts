@@ -1,4 +1,5 @@
 import { boolean, defineConfig, string } from "@superset/cli-framework";
+import { linguiMacroPlugin } from "@superset/i18n/bun-plugin";
 import pkg from "./package.json" with { type: "json" };
 
 const VERSION = pkg.version;
@@ -8,6 +9,7 @@ export default defineConfig({
 	version: VERSION,
 	commandsDir: "./src/commands",
 	outfile: "./dist/superset",
+	plugins: [linguiMacroPlugin],
 	define: {
 		"process.env.RELAY_URL": JSON.stringify(
 			process.env.RELAY_URL ?? "https://relay.superset.sh",
@@ -41,6 +43,10 @@ export default defineConfig({
 			},
 			{ title: "Tasks & automations", commands: ["tasks", "automations"] },
 			{ title: "Pages", commands: ["pages"] },
+			{
+				title: "Plugins",
+				commands: ["plugins", "mcp", "skills"],
+			},
 			{
 				title: "Hosts & projects",
 				commands: ["hosts", "projects", "start", "status", "stop"],

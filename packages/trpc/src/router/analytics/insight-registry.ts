@@ -11,7 +11,6 @@ export const ADMIN_INSIGHTS = {
 	workspacesPerCreator: "crHk64hw",
 	newSiteVisitors: "dF6CnJ8m",
 	downloadCtrMac: "2LtmVxFY",
-	activeOrgs: "IlEQoT55",
 } as const;
 
 export type AdminInsightKey = keyof typeof ADMIN_INSIGHTS;

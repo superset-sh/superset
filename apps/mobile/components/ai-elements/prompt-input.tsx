@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import * as DocumentPicker from "expo-document-picker";
 import { Image } from "expo-image";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
@@ -207,7 +209,13 @@ const useAttachmentsContextValue = (): AttachmentsContext => {
 			add(attachments.filter((attachment) => attachment !== null));
 			return true;
 		} catch {
-			Alert.alert("Could not open Photos");
+			Alert.alert(
+				i18n._(
+					msg({
+						message: "Could not open Photos",
+					}),
+				),
+			);
 			return false;
 		}
 	}, [add]);
@@ -221,7 +229,13 @@ const useAttachmentsContextValue = (): AttachmentsContext => {
 			add(await Promise.all(result.assets.map(documentAssetToAttachment)));
 			return true;
 		} catch {
-			Alert.alert("Could not open Files");
+			Alert.alert(
+				i18n._(
+					msg({
+						message: "Could not open Files",
+					}),
+				),
+			);
 			return false;
 		}
 	}, [add]);
@@ -482,13 +496,24 @@ export const PromptInputAttachment = ({
 		return (
 			<View className={cn("relative", className)} {...props}>
 				<Image
-					accessibilityLabel={data.name ?? "Image attachment"}
+					accessibilityLabel={
+						data.name ??
+						i18n._(
+							msg({
+								message: "Image attachment",
+							}),
+						)
+					}
 					contentFit="cover"
 					source={{ uri: data.uri }}
 					style={{ borderRadius: 8, height: 56, width: 56 }}
 				/>
 				<Pressable
-					accessibilityLabel="Remove attachment"
+					accessibilityLabel={i18n._(
+						msg({
+							message: "Remove attachment",
+						}),
+					)}
 					className="-right-1.5 -top-1.5 absolute size-5 items-center justify-center rounded-full border border-border bg-secondary"
 					hitSlop={8}
 					onPress={handleRemove}
@@ -515,7 +540,11 @@ export const PromptInputAttachment = ({
 				{data.name ?? data.uri}
 			</Text>
 			<Pressable
-				accessibilityLabel="Remove attachment"
+				accessibilityLabel={i18n._(
+					msg({
+						message: "Remove attachment",
+					}),
+				)}
 				className="size-5 items-center justify-center rounded-sm"
 				hitSlop={8}
 				onPress={handleRemove}
@@ -668,7 +697,14 @@ export const PromptInputActionMenuTrigger = ({
 	...props
 }: PromptInputActionMenuTriggerProps) => (
 	<DropdownMenuTrigger asChild>
-		<PromptInputButton accessibilityLabel="Open actions menu" {...props}>
+		<PromptInputButton
+			accessibilityLabel={i18n._(
+				msg({
+					message: "Open actions menu",
+				}),
+			)}
+			{...props}
+		>
 			{children ?? <Icon as={PlusIcon} className="size-4" />}
 		</PromptInputButton>
 	</DropdownMenuTrigger>

@@ -4,28 +4,32 @@
  * undocumented `api.anthropic.com/api/oauth/usage` endpoint.
  *
  * Hard rule: tokens are read-only. If one is expired we report
- * `token_expired` instead of refreshing — a second client refreshing the
- * token can trip Anthropic's token-reuse protection and sign the CLI out.
+ * `token_stale` (refresh token still good — the CLI refreshes on its next
+ * run) or `token_expired` instead of refreshing — a second client
+ * refreshing the token can trip Anthropic's token-reuse protection and sign
+ * the CLI out.
  */
 
-import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { homedir, platform } from "node:os";
+import { homedir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
-import { discoverClaudeProfiles, readKeychainSecret } from "./profiles";
-import type { UsageAccount, UsageQuotaWindow } from "./types";
+import { discoverClaudeProfiles, readKeychainSecrets } from "./profiles";
+import type {
+	UsageAccount,
+	UsageAccountStatus,
+	UsageQuotaWindow,
+} from "./types";
 
-const execFileAsync = promisify(execFile);
-
+const CLAUDE_KEYCHAIN_SERVICE = "Claude Code-credentials";
 const CLAUDE_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
 const CLAUDE_PROFILE_URL = "https://api.anthropic.com/api/oauth/profile";
 const CLAUDE_OAUTH_BETA_HEADER = "oauth-2025-04-20";
 const FETCH_TIMEOUT_MS = 10_000;
 
-interface ClaudeOauthCredential {
+export interface ClaudeOauthCredential {
 	accessToken: string;
 	expiresAt: number | null;
+	refreshTokenExpiresAt: number | null;
 	subscriptionType: string | null;
 	accountKey: string;
 	sourceLabel: string;
@@ -40,6 +44,8 @@ interface ClaudeCredentialFile {
 	claudeAiOauth?: {
 		accessToken?: string;
 		expiresAt?: number;
+		refreshToken?: string;
+		refreshTokenExpiresAt?: number;
 		subscriptionType?: string;
 	};
 }
@@ -57,6 +63,12 @@ function parseCredential(
 		return {
 			accessToken: oauth.accessToken,
 			expiresAt: typeof oauth.expiresAt === "number" ? oauth.expiresAt : null,
+			refreshTokenExpiresAt:
+				typeof oauth.refreshToken === "string" &&
+				oauth.refreshToken.length > 0 &&
+				typeof oauth.refreshTokenExpiresAt === "number"
+					? oauth.refreshTokenExpiresAt
+					: null,
 			subscriptionType:
 				typeof oauth.subscriptionType === "string"
 					? oauth.subscriptionType
@@ -83,40 +95,70 @@ async function readCredentialFile(
 	}
 }
 
+/** The default login's Keychain item: the freshest of the items sharing its
+ * service, since a sibling without a Claude login can sit beside it. */
 async function readKeychainCredential(): Promise<ClaudeOauthCredential | null> {
-	if (platform() !== "darwin") return null;
-	try {
-		const { stdout } = await execFileAsync(
-			"security",
-			["find-generic-password", "-s", "Claude Code-credentials", "-w"],
-			{ timeout: 5_000 },
-		);
-		return parseCredential(
-			stdout.trim(),
-			"keychain:Claude Code-credentials",
-			"Keychain",
-			null,
-		);
-	} catch {
-		return null;
+	const secrets = await readKeychainSecrets(CLAUDE_KEYCHAIN_SERVICE);
+	return pickFreshest(
+		secrets.map((secret) =>
+			parseCredential(
+				secret,
+				`keychain:${CLAUDE_KEYCHAIN_SERVICE}`,
+				"Keychain",
+				null,
+			),
+		),
+	);
+}
+
+export const STALE_TOKEN_DETAIL = "Refreshes when Claude Code next runs.";
+export const EXPIRED_TOKEN_DETAIL =
+	"Sign-in expired — run /login in Claude Code.";
+
+/**
+ * Claude Code access tokens live about eight hours and the CLI renews them
+ * silently from the refresh token on its next run, so a lapsed access token
+ * alone does not mean the login is gone. Only a lapsed (or absent) refresh
+ * token does.
+ */
+export function classifyLapsedToken(
+	credential: Pick<
+		ClaudeOauthCredential,
+		"expiresAt" | "refreshTokenExpiresAt"
+	>,
+	now = Date.now(),
+): "live" | "token_stale" | "token_expired" {
+	if (credential.expiresAt === null || credential.expiresAt > now) {
+		return "live";
 	}
+	if (
+		credential.refreshTokenExpiresAt !== null &&
+		credential.refreshTokenExpiresAt > now
+	) {
+		return "token_stale";
+	}
+	return "token_expired";
 }
 
-function isLive(credential: ClaudeOauthCredential): boolean {
-	return credential.expiresAt === null || credential.expiresAt > Date.now();
-}
+const LAPSED_RANK = { live: 2, token_stale: 1, token_expired: 0 } as const;
 
-/** Live beats expired; among equals the latest expiry wins. */
-function pickFreshest(
-	candidates: Array<ClaudeOauthCredential | null>,
-): ClaudeOauthCredential | null {
-	let best: ClaudeOauthCredential | null = null;
+/** Live beats stale beats expired; among equals the latest expiry wins. */
+export function pickFreshest<T extends ClaudeOauthCredential>(
+	candidates: Array<T | null>,
+	now = Date.now(),
+): T | null {
+	let best: T | null = null;
 	for (const candidate of candidates) {
 		if (!candidate) continue;
+		if (!best) {
+			best = candidate;
+			continue;
+		}
+		const rank = LAPSED_RANK[classifyLapsedToken(candidate, now)];
+		const bestRank = LAPSED_RANK[classifyLapsedToken(best, now)];
 		if (
-			!best ||
-			(isLive(candidate) && !isLive(best)) ||
-			(isLive(candidate) === isLive(best) &&
+			rank > bestRank ||
+			(rank === bestRank &&
 				(candidate.expiresAt ?? Number.POSITIVE_INFINITY) >
 					(best.expiresAt ?? Number.POSITIVE_INFINITY))
 		) {
@@ -153,6 +195,7 @@ export async function readDefaultLoginEmail(): Promise<string | null> {
 async function discoverClaudeCredentials(): Promise<{
 	credentials: ClaudeOauthCredential[];
 	signedOutProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
+	apiProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
 }> {
 	const home = homedir();
 	const defaultCandidates: Array<{ path: string; sourceLabel: string }> = [
@@ -188,22 +231,32 @@ async function discoverClaudeCredentials(): Promise<{
 			profile.sourceLabel,
 			profile.configDir,
 		);
-		if (fromFile) return { ...fromFile, email: profile.email };
+		const candidates: Array<ClaudeOauthCredential | null> = [fromFile];
 		for (const service of profile.keychainServices) {
-			const secret = await readKeychainSecret(service);
-			if (!secret) continue;
-			const parsed = parseCredential(
-				secret,
-				profile.configDir,
-				profile.sourceLabel,
-				profile.configDir,
-			);
-			if (parsed) return { ...parsed, email: profile.email };
+			for (const secret of await readKeychainSecrets(service)) {
+				candidates.push(
+					parseCredential(
+						secret,
+						profile.configDir,
+						profile.sourceLabel,
+						profile.configDir,
+					),
+				);
+			}
 		}
-		return null;
+		const freshest = pickFreshest(candidates);
+		return freshest ? { ...freshest, email: profile.email } : null;
 	};
 
-	const profiles = await discoverClaudeProfiles();
+	// API-billed profiles have no quota to fetch and their credentials stay
+	// unread; only subscription profiles go through the credential readers.
+	const allProfiles = await discoverClaudeProfiles();
+	const profiles = allProfiles.filter(
+		(profile) => profile.credentialKind === "subscription",
+	);
+	const apiProfiles = allProfiles.filter(
+		(profile) => profile.credentialKind === "api_key",
+	);
 	const [defaultEmail, keychainCredential, defaultFiles, explicit, profiled] =
 		await Promise.all([
 			readDefaultLoginEmail(),
@@ -238,7 +291,7 @@ async function discoverClaudeCredentials(): Promise<{
 	const signedOutProfiles = profiles.filter(
 		(_profile, index) => profiled[index] === null,
 	);
-	return { credentials: [...byToken.values()], signedOutProfiles };
+	return { credentials: [...byToken.values()], signedOutProfiles, apiProfiles };
 }
 
 interface ClaudeUsageWindow {
@@ -333,58 +386,47 @@ async function fetchClaudeProfileEmail(
 	}
 }
 
-async function fetchClaudeAccount(
-	credential: ClaudeOauthCredential,
-): Promise<UsageAccount> {
-	const base = {
-		provider: "claude" as const,
-		accountKey: credential.accountKey,
-		sourceLabel: credential.sourceLabel,
-		plan: credential.subscriptionType,
-		creditsBalance: null,
-		selection: credential.selection,
-		// Decorated per-query from host settings; the quota cache outlives it.
-		isDefault: false,
-		fetchedAt: new Date(),
-	};
+/** What the usage endpoint says about one live access token. */
+export interface ClaudeSubscriptionQuota {
+	email: string | null;
+	status: UsageAccountStatus;
+	statusDetail: string | null;
+	windows: UsageQuotaWindow[];
+	extraUsage: UsageAccount["extraUsage"];
+}
 
-	if (credential.expiresAt !== null && Date.now() >= credential.expiresAt) {
-		return {
-			...base,
-			email: credential.email ?? null,
-			status: "token_expired",
-			statusDetail: "Sign-in expired — run /login in Claude Code.",
-			windows: [],
-			extraUsage: null,
-		};
-	}
-
+/**
+ * Reads the subscription quota behind a live Claude OAuth access token. The
+ * OpenCode reader shares this: its Anthropic login is the same OAuth client,
+ * so the same endpoint answers.
+ */
+export async function fetchClaudeSubscriptionQuota(
+	accessToken: string,
+): Promise<ClaudeSubscriptionQuota> {
 	try {
 		const [usageResponse, apiEmail] = await Promise.all([
 			fetch(CLAUDE_USAGE_URL, {
 				headers: {
-					Authorization: `Bearer ${credential.accessToken}`,
+					Authorization: `Bearer ${accessToken}`,
 					"anthropic-beta": CLAUDE_OAUTH_BETA_HEADER,
 				},
 				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 			}),
-			fetchClaudeProfileEmail(credential.accessToken),
+			fetchClaudeProfileEmail(accessToken),
 		]);
 
 		if (usageResponse.status === 401 || usageResponse.status === 403) {
 			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
+				email: apiEmail,
 				status: "token_expired",
-				statusDetail: "Sign-in expired — run /login in Claude Code.",
+				statusDetail: EXPIRED_TOKEN_DETAIL,
 				windows: [],
 				extraUsage: null,
 			};
 		}
 		if (!usageResponse.ok) {
 			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
+				email: apiEmail,
 				status: "unavailable",
 				statusDetail: `Usage endpoint returned ${usageResponse.status}.`,
 				windows: [],
@@ -405,8 +447,7 @@ async function fetchClaudeAccount(
 
 		if (windows.length === 0) {
 			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
+				email: apiEmail,
 				status: "unavailable",
 				statusDetail:
 					"No quota data returned (org-managed and education plans do not expose limits).",
@@ -416,8 +457,7 @@ async function fetchClaudeAccount(
 		}
 
 		return {
-			...base,
-			email: apiEmail ?? credential.email ?? null,
+			email: apiEmail,
 			status: "ok",
 			statusDetail: null,
 			windows,
@@ -425,8 +465,7 @@ async function fetchClaudeAccount(
 		};
 	} catch (error) {
 		return {
-			...base,
-			email: credential.email ?? null,
+			email: null,
 			status: "unavailable",
 			statusDetail:
 				error instanceof Error ? error.message : "Failed to fetch usage.",
@@ -436,12 +475,66 @@ async function fetchClaudeAccount(
 	}
 }
 
+async function fetchClaudeAccount(
+	credential: ClaudeOauthCredential,
+): Promise<UsageAccount> {
+	const base = {
+		agent: "claude" as const,
+		credentialKind: "subscription" as const,
+		accountKey: credential.accountKey,
+		sourceLabel: credential.sourceLabel,
+		plan: credential.subscriptionType,
+		creditsBalance: null,
+		selection: credential.selection,
+		// Decorated per-query from host settings; the quota cache outlives it.
+		isDefault: false,
+		fetchedAt: new Date(),
+	};
+
+	const lapsed = classifyLapsedToken(credential);
+	if (lapsed !== "live") {
+		return {
+			...base,
+			email: credential.email ?? null,
+			status: lapsed,
+			statusDetail:
+				lapsed === "token_stale" ? STALE_TOKEN_DETAIL : EXPIRED_TOKEN_DETAIL,
+			windows: [],
+			extraUsage: null,
+		};
+	}
+
+	const quota = await fetchClaudeSubscriptionQuota(credential.accessToken);
+	return { ...base, ...quota, email: quota.email ?? credential.email ?? null };
+}
+
 export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
-	const { credentials, signedOutProfiles } = await discoverClaudeCredentials();
+	const { credentials, signedOutProfiles, apiProfiles } =
+		await discoverClaudeCredentials();
 	const accounts = await Promise.all(credentials.map(fetchClaudeAccount));
+	for (const profile of apiProfiles) {
+		accounts.push({
+			agent: "claude",
+			credentialKind: "api_key",
+			accountKey: profile.configDir,
+			sourceLabel: profile.sourceLabel,
+			email: profile.email,
+			plan: null,
+			status: "ok",
+			statusDetail:
+				"Billed per token through the Anthropic Console — no quota windows.",
+			windows: [],
+			creditsBalance: null,
+			extraUsage: null,
+			selection: profile.configDir,
+			isDefault: false,
+			fetchedAt: new Date(),
+		});
+	}
 	for (const profile of signedOutProfiles) {
 		accounts.push({
-			provider: "claude",
+			agent: "claude",
+			credentialKind: "subscription",
 			accountKey: profile.configDir,
 			sourceLabel: profile.sourceLabel,
 			email: profile.email,

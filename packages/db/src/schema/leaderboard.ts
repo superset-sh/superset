@@ -5,7 +5,6 @@ import {
 	index,
 	integer,
 	numeric,
-	pgEnum,
 	pgTable,
 	text,
 	timestamp,
@@ -13,12 +12,7 @@ import {
 	uuid,
 } from "drizzle-orm/pg-core";
 import { organizations, users } from "./auth";
-import { leaderboardVisibilityValues } from "./enums";
-
-export const leaderboardVisibility = pgEnum(
-	"leaderboard_visibility",
-	leaderboardVisibilityValues,
-);
+import { leaderboardVisibility, publicProfiles } from "./profiles";
 
 export const leaderboardParticipants = pgTable(
 	"leaderboard_participants",
@@ -38,16 +32,11 @@ export const leaderboardParticipants = pgTable(
 			.notNull()
 			.defaultNow(),
 		revokedAt: timestamp("revoked_at", { withTimezone: true }),
-		// Shadow lever: publish still succeeds, but the board queries exclude the
-		// participant. Distinct from revokedAt, which rejects the publish outright.
 		flaggedAt: timestamp("flagged_at", { withTimezone: true }),
 		lastPublishedAt: timestamp("last_published_at", { withTimezone: true }),
 
 		payloadVersion: integer("payload_version").notNull().default(1),
 
-		// Token rollups of leaderboard_daily, which nothing prunes: `tokens` and
-		// the per-field sums below grow without bound and can pass 2^53, so the
-		// read path selects them as ::text rather than through `mode: "number"`.
 		tokens: bigint({ mode: "number" }).notNull().default(0),
 		usd: numeric({ precision: 20, scale: 6 }).notNull().default("0"),
 		sessions: integer().notNull().default(0),
@@ -85,6 +74,9 @@ export const leaderboardParticipants = pgTable(
 		axisOutput: numeric("axis_output", { precision: 8, scale: 2 })
 			.notNull()
 			.default("0"),
+		axisCost: numeric("axis_cost", { precision: 10, scale: 2 })
+			.notNull()
+			.default("0"),
 
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
@@ -102,18 +94,13 @@ export const leaderboardParticipants = pgTable(
 	],
 );
 
-export type SelectLeaderboardParticipant =
-	typeof leaderboardParticipants.$inferSelect;
-export type InsertLeaderboardParticipant =
-	typeof leaderboardParticipants.$inferInsert;
-
 export const leaderboardDaily = pgTable(
 	"leaderboard_daily",
 	{
 		id: uuid().primaryKey().defaultRandom(),
 		userId: uuid("user_id")
 			.notNull()
-			.references(() => leaderboardParticipants.userId, {
+			.references(() => publicProfiles.userId, {
 				onDelete: "cascade",
 			}),
 
@@ -180,7 +167,7 @@ export const leaderboardDailyFactory = pgTable(
 		id: uuid().primaryKey().defaultRandom(),
 		userId: uuid("user_id")
 			.notNull()
-			.references(() => leaderboardParticipants.userId, {
+			.references(() => publicProfiles.userId, {
 				onDelete: "cascade",
 			}),
 

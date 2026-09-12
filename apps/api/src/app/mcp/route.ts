@@ -15,7 +15,6 @@ import {
 	getOAuthProtectedResourceMetadataUrl,
 	getRequestOrigin,
 } from "@/lib/oauth-metadata";
-import { getRelayUrl } from "@/lib/relay-url";
 
 // Per-credential (or per-IP before auth) ceiling on MCP requests. Generous:
 // a busy orchestrator polling terminals stays well under it; a runaway loop
@@ -197,7 +196,7 @@ async function handle(req: Request): Promise<Response> {
 		throw error;
 	}
 
-	ctx.relayUrl = await getRelayUrl(ctx.userId);
+	ctx.relayUrl = env.RELAY_URL;
 
 	const server = createMcpServer({
 		onToolCall: (event) => {

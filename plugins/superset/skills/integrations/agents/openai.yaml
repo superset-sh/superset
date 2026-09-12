@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Integrations"
+  short_description: "List and call the tools your connected integrations expose"
+  default_prompt: "Use $superset-integrations to see what a connected integration can do, or to call one of its tools."

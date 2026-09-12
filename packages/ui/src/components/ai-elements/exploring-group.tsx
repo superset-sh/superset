@@ -1,8 +1,11 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
 import { ChevronRightIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import { useEffect, useRef, useState } from "react";
+import { i18n } from "../../lib/i18n";
 import { cn } from "../../lib/utils";
 import { ToolCall } from "./tool-call";
 
@@ -35,9 +38,26 @@ function buildSummary(items: ExploringGroupItem[]): string {
 		}
 	}
 	const parts: string[] = [];
-	if (files > 0) parts.push(`${files} ${files === 1 ? "file" : "files"}`);
-	if (searches > 0)
-		parts.push(`${searches} ${searches === 1 ? "search" : "searches"}`);
+	if (files > 0) {
+		parts.push(
+			i18n._({
+				...msg({
+					message: "{count, plural, one {# file} other {# files}}",
+				}),
+				values: { count: files },
+			}),
+		);
+	}
+	if (searches > 0) {
+		parts.push(
+			i18n._({
+				...msg({
+					message: "{count, plural, one {# search} other {# searches}}",
+				}),
+				values: { count: searches },
+			}),
+		);
+	}
 	return parts.join(" ");
 }
 
@@ -79,7 +99,7 @@ export const ExploringGroup = ({
 				<div className="min-w-0 flex flex-1 items-center gap-1">
 					<div className="flex min-w-0 items-center gap-1.5 text-xs">
 						<span className="shrink-0 whitespace-nowrap font-medium text-muted-foreground">
-							{isStreaming ? "Exploring" : "Explored"}
+							{isStreaming ? <Trans>Exploring</Trans> : <Trans>Explored</Trans>}
 						</span>
 						<span className="shrink-0 whitespace-nowrap text-muted-foreground/60">
 							{summary}

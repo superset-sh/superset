@@ -37,9 +37,8 @@ export interface Plan {
 export const PLANS: Record<PlanTier, Plan> = {
 	free: {
 		id: "free",
-		name: msg({ id: "settings.billing.planFreeName", message: "Free" }),
+		name: msg({ message: "Free" }),
 		description: msg({
-			id: "settings.billing.planFreeDescription",
 			message: "For individuals getting started",
 		}),
 		price: null,
@@ -60,9 +59,8 @@ export const PLANS: Record<PlanTier, Plan> = {
 	},
 	pro: {
 		id: "pro",
-		name: msg({ id: "settings.billing.planProName", message: "Pro" }),
+		name: msg({ message: "Pro" }),
 		description: msg({
-			id: "settings.billing.planProDescription",
 			message: "For teams that need more power",
 		}),
 		price: { monthly: 2000, yearly: 18000 },
@@ -90,11 +88,9 @@ export const PLANS: Record<PlanTier, Plan> = {
 	enterprise: {
 		id: "enterprise",
 		name: msg({
-			id: "settings.billing.planEnterpriseName",
 			message: "Enterprise",
 		}),
 		description: msg({
-			id: "settings.billing.planEnterpriseDescription",
 			message: "For organizations with advanced needs",
 		}),
 		price: null,

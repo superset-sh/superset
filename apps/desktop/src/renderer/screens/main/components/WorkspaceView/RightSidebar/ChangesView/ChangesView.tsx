@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { toast } from "@superset/ui/sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
@@ -85,6 +87,8 @@ export function ChangesView({
 	isExpandedView,
 	isActive = true,
 }: ChangesViewProps) {
+	const { _: translate } = useTranslation();
+
 	const { workspaceId } = useParams({ strict: false });
 	const trpcUtils = electronTrpc.useUtils();
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
@@ -854,8 +858,13 @@ export function ChangesView({
 			<DiscardConfirmDialog
 				open={showDiscardUnstagedDialog}
 				onOpenChange={setShowDiscardUnstagedDialog}
-				title="Discard all unstaged changes?"
-				description="This will revert all unstaged modifications and delete untracked files. This action cannot be undone."
+				title={translate(msg({ message: "Discard all unstaged changes?" }))}
+				description={translate(
+					msg({
+						message:
+							"This will revert all unstaged modifications and delete untracked files. This action cannot be undone.",
+					}),
+				)}
 				onConfirm={() =>
 					discardAllUnstagedMutation.mutate({
 						worktreePath: worktreePath || "",
@@ -867,8 +876,13 @@ export function ChangesView({
 			<DiscardConfirmDialog
 				open={showDiscardStagedDialog}
 				onOpenChange={setShowDiscardStagedDialog}
-				title="Discard all staged changes?"
-				description="This will unstage and revert all staged changes. Staged new files will be deleted. This action cannot be undone."
+				title={translate(msg({ message: "Discard all staged changes?" }))}
+				description={translate(
+					msg({
+						message:
+							"This will unstage and revert all staged changes. Staged new files will be deleted. This action cannot be undone.",
+					}),
+				)}
 				onConfirm={() =>
 					discardAllStagedMutation.mutate({
 						worktreePath: worktreePath || "",

@@ -11,7 +11,12 @@ import { portManager } from "../ports/port-manager.ts";
 import { getLabelsForWorkspace } from "../ports/static-ports.ts";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
 import type { GitWatcher } from "./git-watcher.ts";
-import type { ClientMessage, ServerMessage } from "./types.ts";
+import type {
+	ClientMessage,
+	DistributiveOmit,
+	ServerMessage,
+	TerminalLifecycleMessage,
+} from "./types.ts";
 
 type WsSocket = {
 	send: (data: string) => void;
@@ -28,14 +33,31 @@ interface ClientState {
 	fsSubscriptions: Map<string, FsSubscription>;
 	/** Targeted per-file watches, keyed `${workspaceId}\0${absolutePath}`. */
 	fileWatches: Map<string, () => void>;
+	/** Workspaces this client currently holds a `GitWatcher` interest count for. */
+	gitSubscriptions: Set<string>;
 }
 
 /** Open documents per client are bounded by open panes; this is a leak stop. */
 const MAX_FILE_WATCHES_PER_CLIENT = 256;
 
+/**
+ * Generous enough that a heavy user's sidebar (every non-archived workspace,
+ * observed in the hundreds — see #6729) never hits it; still a real ceiling
+ * against a buggy or adversarial client spamming `git:watch` with distinct
+ * workspaceIds, each of which costs GitWatcher a synchronous DB lookup.
+ */
+export const MAX_GIT_WATCHES_PER_CLIENT = 2000;
+
 type WorkspaceChangedListener = (
 	message: Omit<Extract<ServerMessage, { type: "workspace:changed" }>, "type">,
 ) => void;
+
+export type TerminalLifecycleEvent = DistributiveOmit<
+	TerminalLifecycleMessage,
+	"type"
+>;
+
+type TerminalLifecycleListener = (message: TerminalLifecycleEvent) => void;
 
 function sendMessage(socket: WsSocket, message: ServerMessage): void {
 	if (socket.readyState !== 1) return;
@@ -52,7 +74,12 @@ function parseClientMessage(data: unknown): ClientMessage | null {
 			typeof parsed.type === "string" &&
 			typeof parsed.workspaceId === "string"
 		) {
-			if (parsed.type === "fs:watch" || parsed.type === "fs:unwatch") {
+			if (
+				parsed.type === "fs:watch" ||
+				parsed.type === "fs:unwatch" ||
+				parsed.type === "git:watch" ||
+				parsed.type === "git:unwatch"
+			) {
 				return parsed as ClientMessage;
 			}
 			if (
@@ -79,7 +106,8 @@ export interface EventBusOptions {
  * Unified WebSocket event bus for the host-service.
  *
  * One connection per client. Carries:
- * - `git:changed` events (auto-pushed for all workspaces)
+ * - `git:changed` events (on-demand per client `git:watch`/`git:unwatch` —
+ *   drives `GitWatcher`'s refcounted registration, see #6729)
  * - `port:changed` events (auto-pushed for all workspace terminals)
  * - `fs:events` (on-demand per client request)
  */
@@ -87,6 +115,8 @@ export class EventBus {
 	private readonly clients = new Map<WsSocket, ClientState>();
 	private readonly workspaceChangedListeners =
 		new Set<WorkspaceChangedListener>();
+	private readonly terminalLifecycleListeners =
+		new Set<TerminalLifecycleListener>();
 	private readonly gitWatcher: GitWatcher;
 	private readonly filesystem: WorkspaceFilesystemManager;
 	private removeGitListener: (() => void) | null = null;
@@ -137,6 +167,7 @@ export class EventBus {
 		this.clients.set(socket, {
 			fsSubscriptions: new Map(),
 			fileWatches: new Map(),
+			gitSubscriptions: new Set(),
 		});
 	}
 
@@ -160,6 +191,10 @@ export class EventBus {
 			);
 		} else if (message.type === "fs:unwatch-file") {
 			this.stopFsFileWatch(state, message.workspaceId, message.absolutePath);
+		} else if (message.type === "git:watch") {
+			this.startGitWatch(socket, state, message.workspaceId);
+		} else if (message.type === "git:unwatch") {
+			this.stopGitWatch(state, message.workspaceId);
 		}
 	}
 
@@ -203,17 +238,49 @@ export class EventBus {
 	}
 
 	/**
+	 * Fan out binding mutations that are not lifecycle hooks. Renderers refetch
+	 * status from the host, but notification controllers do not treat this as an
+	 * agent completion event.
+	 */
+	broadcastAgentBindingsChanged(
+		message: Omit<
+			Extract<ServerMessage, { type: "agent:bindings-changed" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "agent:bindings-changed", ...message });
+	}
+
+	/**
 	 * Fan out terminal process lifecycle events to renderer clients. Agent hook
 	 * status can otherwise get stuck when a terminal exits while its pane is not
 	 * mounted and therefore cannot observe the terminal websocket `exit` packet.
 	 */
-	broadcastTerminalLifecycle(
+	broadcastTerminalLifecycle(message: TerminalLifecycleEvent): void {
+		for (const listener of this.terminalLifecycleListeners) {
+			try {
+				listener(message);
+			} catch (error) {
+				console.error("[event-bus] terminal-lifecycle listener failed", {
+					error,
+				});
+			}
+		}
+		this.broadcast({ type: "terminal:lifecycle", ...message });
+	}
+
+	onTerminalLifecycle(listener: TerminalLifecycleListener): () => void {
+		this.terminalLifecycleListeners.add(listener);
+		return () => this.terminalLifecycleListeners.delete(listener);
+	}
+
+	broadcastPageWatchChanged(
 		message: Omit<
-			Extract<ServerMessage, { type: "terminal:lifecycle" }>,
+			Extract<ServerMessage, { type: "page-watch:changed" }>,
 			"type"
 		>,
 	): void {
-		this.broadcast({ type: "terminal:lifecycle", ...message });
+		this.broadcast({ type: "page-watch:changed", ...message });
 	}
 
 	/**
@@ -275,6 +342,20 @@ export class EventBus {
 		message: Omit<Extract<ServerMessage, { type: "project:changed" }>, "type">,
 	): void {
 		this.broadcast({ type: "project:changed", ...message });
+	}
+
+	/**
+	 * Fan out tag-folder presentation changes for one scope (a project id, or
+	 * the Sessions lane). Its own channel rather than a field on the project
+	 * snapshot: the Sessions lane has no project to carry it.
+	 */
+	broadcastTagFoldersChanged(
+		message: Omit<
+			Extract<ServerMessage, { type: "tag-folders:changed" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "tag-folders:changed", ...message });
 	}
 
 	/**
@@ -408,6 +489,39 @@ export class EventBus {
 	}
 
 	/**
+	 * Register this client's interest in a workspace's `git:changed` events.
+	 * Idempotent per client — a second `git:watch` for the same workspace from
+	 * the same socket is a no-op (the workspace-client already refcounts
+	 * before ever sending the command, so in practice this only guards
+	 * against a duplicate/replayed message).
+	 */
+	private startGitWatch(
+		socket: WsSocket,
+		state: ClientState,
+		workspaceId: string,
+	): void {
+		if (state.gitSubscriptions.has(workspaceId)) return;
+		if (state.gitSubscriptions.size >= MAX_GIT_WATCHES_PER_CLIENT) {
+			// Addressed to the workspace so the client can drop its local
+			// interest entry and retry later instead of assuming the watch is live.
+			sendMessage(socket, {
+				type: "error",
+				code: "git-watch-cap",
+				workspaceId,
+				message: "Too many git watches for this client",
+			});
+			return;
+		}
+		state.gitSubscriptions.add(workspaceId);
+		this.gitWatcher.watchWorkspace(workspaceId);
+	}
+
+	private stopGitWatch(state: ClientState, workspaceId: string): void {
+		if (!state.gitSubscriptions.delete(workspaceId)) return;
+		this.gitWatcher.unwatchWorkspace(workspaceId);
+	}
+
+	/**
 	 * Targeted watch for one open document. Installs a real per-file watcher
 	 * only when the recursive workspace watch delivers nothing for the path
 	 * (pruned subtree — gitignored build dir, node_modules, nested repo); a
@@ -499,6 +613,10 @@ export class EventBus {
 			dispose();
 		}
 		state.fileWatches.clear();
+		for (const workspaceId of state.gitSubscriptions) {
+			this.gitWatcher.unwatchWorkspace(workspaceId);
+		}
+		state.gitSubscriptions.clear();
 	}
 }
 

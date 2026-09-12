@@ -34,24 +34,22 @@ export function TerminalIdCopyMenu({
 	const tooltipLabel =
 		copiedLabel && copied
 			? t({
-					id: "workspace.terminalPane.copiedIdTooltip",
 					message: `Copied ${copiedLabel}`,
 				})
 			: t({
-					id: "workspace.terminalPane.copyIdsTooltip",
 					message: "Copy IDs",
 				});
+	// Secondary action: yields to split/close when the pane is squeezed
+	// below its minimum (the IDs stay reachable via the session dropdown).
 	const buttonClassName =
-		"rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground";
+		"hidden rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground @min-[200px]/pane-header:block";
 
 	if (!agentSessionId) {
 		const terminalTooltipLabel = copied
 			? t({
-					id: "workspace.terminalPane.copiedTerminalIdTooltip",
 					message: "Copied terminal ID",
 				})
 			: t({
-					id: "workspace.terminalPane.copyTerminalIdTooltip",
 					message: "Copy terminal ID",
 				});
 
@@ -66,7 +64,6 @@ export function TerminalIdCopyMenu({
 							copyId(
 								terminalId,
 								t({
-									id: "workspace.terminalPane.terminalIdLabel",
 									message: "terminal ID",
 								}),
 							)
@@ -110,32 +107,26 @@ export function TerminalIdCopyMenu({
 						copyId(
 							terminalId,
 							t({
-								id: "workspace.terminalPane.terminalIdMenuLabel",
 								message: "terminal ID",
 							}),
 						)
 					}
 				>
 					<TerminalSquare />
-					<Trans id="workspace.terminalPane.copyTerminalId">
-						Copy terminal ID
-					</Trans>
+					<Trans>Copy terminal ID</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onSelect={() =>
 						copyId(
 							agentSessionId,
 							t({
-								id: "workspace.terminalPane.agentSessionIdMenuLabel",
 								message: "agent session ID",
 							}),
 						)
 					}
 				>
 					<Bot />
-					<Trans id="workspace.terminalPane.copyAgentSessionId">
-						Copy agent session ID
-					</Trans>
+					<Trans>Copy agent session ID</Trans>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

@@ -1,54 +1,27 @@
-import { useQueries } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { useQuery } from "@tanstack/react-query";
+import { useFeatureFlag } from "posthog-react-native";
+import { useSession } from "@/lib/auth/client";
 import { apiClient } from "@/lib/trpc/client";
 
 /**
- * Repo URL prefix per cloud project, for matching PR rows the way host
- * projects are matched: a cloud workspace's project isn't served by the
- * selected host, so its repo coordinates come from the API instead.
+ * The repo URL prefix every cloud workspace's pull requests live under. One
+ * repository serves all of them, so this is a single value rather than a map.
  */
-export function useCloudRepoPrefixes(
-	cloudWorkspaces: Array<{
-		projectId: string | null;
-		organizationId: string;
-	}>,
-): Map<string, string> {
-	const projects = useMemo(() => {
-		const seen = new Map<string, string>();
-		for (const row of cloudWorkspaces) {
-			if (row.projectId && !seen.has(row.projectId)) {
-				seen.set(row.projectId, row.organizationId);
-			}
-		}
-		return [...seen.entries()].map(([projectId, organizationId]) => ({
-			projectId,
-			organizationId,
-		}));
-	}, [cloudWorkspaces]);
+export function useCloudRepoPrefix(): string | null {
+	const { data: session } = useSession();
+	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const enabledByFlag = Boolean(useFeatureFlag(FEATURE_FLAGS.CLOUD_WORKSPACES));
 
-	const queries = useQueries({
-		queries: projects.map((project) => ({
-			queryKey: [
-				"cloud",
-				"cloudWorkspace",
-				"repoForProject",
-				project.projectId,
-			],
-			staleTime: Number.POSITIVE_INFINITY,
-			queryFn: () => apiClient.cloudWorkspace.repoForProject.query(project),
-		})),
+	const { data } = useQuery({
+		queryKey: ["cloud", "cloudWorkspace", "repo", organizationId],
+		enabled: enabledByFlag && organizationId !== null,
+		staleTime: Number.POSITIVE_INFINITY,
+		queryFn: () =>
+			apiClient.cloudWorkspace.repo.query({
+				organizationId: organizationId as string,
+			}),
 	});
-
-	return useMemo(() => {
-		const prefixes = new Map<string, string>();
-		projects.forEach((project, index) => {
-			const repo = queries[index]?.data;
-			if (!repo) return;
-			prefixes.set(
-				project.projectId,
-				`https://github.com/${repo.owner}/${repo.name}/`.toLowerCase(),
-			);
-		});
-		return prefixes;
-	}, [projects, queries]);
+	if (!data) return null;
+	return `https://github.com/${data.owner}/${data.name}/`.toLowerCase();
 }

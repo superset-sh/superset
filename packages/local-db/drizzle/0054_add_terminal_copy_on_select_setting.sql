@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `terminal_copy_on_select` integer;

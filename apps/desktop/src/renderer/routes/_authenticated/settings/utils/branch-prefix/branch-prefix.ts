@@ -21,17 +21,14 @@ export const BRANCH_PREFIX_MODE_MESSAGES: Record<
 	BranchPrefixMode,
 	MessageDescriptor
 > = {
-	none: msg({ id: "settings.branchPrefix.modeNone", message: "No prefix" }),
+	none: msg({ message: "No prefix" }),
 	github: msg({
-		id: "settings.branchPrefix.modeGithub",
 		message: "GitHub username",
 	}),
 	author: msg({
-		id: "settings.branchPrefix.modeAuthor",
 		message: "Git author name",
 	}),
 	custom: msg({
-		id: "settings.branchPrefix.modeCustom",
 		message: "Custom prefix",
 	}),
 };
@@ -41,7 +38,6 @@ export const BRANCH_PREFIX_MODE_MESSAGES_WITH_DEFAULT: Record<
 	MessageDescriptor
 > = {
 	default: msg({
-		id: "settings.branchPrefix.modeDefault",
 		message: "Use global default",
 	}),
 	...BRANCH_PREFIX_MODE_MESSAGES,

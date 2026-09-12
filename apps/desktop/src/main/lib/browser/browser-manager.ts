@@ -1,4 +1,7 @@
 import { EventEmitter } from "node:events";
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
+import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
 import { clipboard, Menu, webContents } from "electron";
 import { safeOpenExternal } from "main/lib/safe-url";
 import type {
@@ -6,7 +9,8 @@ import type {
 	DesignModeScreenshot,
 	DesignModeSelectionResult,
 } from "shared/browser-design-mode";
-import { chordFromInput } from "shared/hotkey-chord";
+import { PROTOCOL_SCHEME } from "shared/constants";
+import { chordFromInput, type ForwardedKey } from "shared/hotkey-chord";
 import {
 	forwardSessionFor,
 	handleTargetCommand,
@@ -16,6 +20,7 @@ import {
 import { DesignModeController } from "./design-mode-controller";
 import { captureDesignModeScreenshot } from "./design-mode-screenshot";
 import { buildDesignModeScript } from "./design-mode-script";
+import { markBrowserPanePopup, shouldOpenAsPopup } from "./popup-window";
 
 interface ConsoleEntry {
 	level: "log" | "warn" | "error" | "info" | "debug";
@@ -39,23 +44,16 @@ export interface BrowserPaneInfo {
 
 export interface BrowserOpenRequest {
 	workspaceId: string;
+	projectId: string | null;
 	url: string;
 	target: "current-tab" | "new-tab";
+	show: boolean;
 	requestId: string;
 }
 
 export interface CdpSession {
 	send: (rawMessage: string) => void;
 	detach: () => void;
-}
-
-export interface ForwardedKey {
-	key: string;
-	code: string;
-	meta: boolean;
-	control: boolean;
-	alt: boolean;
-	shift: boolean;
 }
 
 const MAX_CONSOLE_ENTRIES = 500;
@@ -90,12 +88,104 @@ function sanitizeUrl(url: string): string {
 // the pane.
 const ALLOWED_GUEST_SCHEMES = new Set(["http:", "https:", "about:"]);
 
-function isAllowedGuestUrl(url: string): boolean {
-	try {
-		return ALLOWED_GUEST_SCHEMES.has(new URL(url).protocol);
-	} catch {
-		return false;
+// A published page links back with the shipped `superset://` scheme; a dev
+// instance registers `superset-<workspace>` and must honour both.
+const DEEP_LINK_SCHEMES = new Set([
+	`${PROTOCOL_SCHEMES.PROD}:`,
+	`${PROTOCOL_SCHEME}:`,
+]);
+
+/**
+ * Resolves the next `mousedown` in the guest's current document. Installs a
+ * single capture-phase listener the first time (idempotent across repeated
+ * injections into the same document) and queues a resolver per call so a
+ * fresh `executeJavaScript` await always gets the *next* press, not a stale
+ * one. Never calls `stopPropagation`/`preventDefault` — purely observes.
+ */
+const NEXT_MOUSEDOWN_SCRIPT = `(() => {
+	if (!window.__supersetMousedownHook) {
+		window.__supersetMousedownHook = { resolvers: [] };
+		document.addEventListener("mousedown", () => {
+			const hook = window.__supersetMousedownHook;
+			const resolvers = hook.resolvers;
+			hook.resolvers = [];
+			for (const resolve of resolvers) resolve();
+		}, true);
 	}
+	return new Promise((resolve) => {
+		window.__supersetMousedownHook.resolvers.push(resolve);
+	});
+})()`;
+
+function protocolOf(url: string): string | null {
+	try {
+		return new URL(url).protocol;
+	} catch {
+		return null;
+	}
+}
+
+function isAllowedGuestUrl(url: string): boolean {
+	const protocol = protocolOf(url);
+	return protocol !== null && ALLOWED_GUEST_SCHEMES.has(protocol);
+}
+
+export function isDeepLinkUrl(url: string): boolean {
+	const protocol = protocolOf(url);
+	return protocol !== null && DEEP_LINK_SCHEMES.has(protocol);
+}
+
+/**
+ * Shared by panes and by the popups they open. Returns a detach function. A
+ * guest has no protocol handler of its own, so an app deep link is cancelled
+ * in the guest and handed to `onDeepLink` instead of being dropped.
+ */
+function attachNavigationGuard(
+	wc: Electron.WebContents,
+	onDeepLink: (url: string) => void,
+): () => void {
+	const handler = (event: Electron.Event, url: string) => {
+		if (isDeepLinkUrl(url)) {
+			event.preventDefault();
+			onDeepLink(url);
+			return;
+		}
+		if (!isAllowedGuestUrl(url)) event.preventDefault();
+	};
+	wc.on("will-navigate", handler);
+	wc.on("will-redirect", handler);
+	return () => {
+		try {
+			wc.off("will-navigate", handler);
+			wc.off("will-redirect", handler);
+		} catch {
+			// webContents may be destroyed
+		}
+	};
+}
+
+/**
+ * Window options for a popup opened from a guest pane.
+ *
+ * Geometry is deliberately left out: Electron already parses `width`/`height`/
+ * `x`/`y` from the `features` string, and options returned here outrank that
+ * parse — setting them would only re-derive what Chromium worked out, and drift
+ * from it. `partition` is left out for a different reason: the popup inherits
+ * the opener's session, and that shared cookie jar is the point of allowing it.
+ */
+function popupWindowOptions(): Electron.BrowserWindowConstructorOptions {
+	return {
+		autoHideMenuBar: true,
+		// A sign-in window has no business going fullscreen.
+		fullscreenable: false,
+		// `webPreferences` is deliberately not set. Electron inherits the
+		// opener's security preferences and refuses to relax them, so the popup
+		// is already no-Node and context-isolated. Restating them here would be
+		// worse than redundant: if a value we pin ever diverges from the guest's
+		// (`sandbox` especially), Electron isolates the child in its own process
+		// and `window.opener` comes back null, silently breaking the one thing
+		// this popup exists to preserve.
+	};
 }
 
 /**
@@ -155,6 +245,8 @@ class BrowserManager extends EventEmitter {
 	private contextMenuListeners = new Map<string, () => void>();
 	private beforeInputListeners = new Map<string, () => void>();
 	private navigationListeners = new Map<string, () => void>();
+	private popupListeners = new Map<string, () => void>();
+	private focusListeners = new Map<string, () => void>();
 	private cdpDetachers = new Map<string, () => void>();
 	// Ref-count of in-flight agent work per pane (a live CDP session, a
 	// screenshot capture). While present the guest renderer stays
@@ -180,6 +272,8 @@ class BrowserManager extends EventEmitter {
 				this.contextMenuListeners,
 				this.beforeInputListeners,
 				this.navigationListeners,
+				this.popupListeners,
+				this.focusListeners,
 			]) {
 				const cleanup = map.get(paneId);
 				if (cleanup) {
@@ -200,16 +294,12 @@ class BrowserManager extends EventEmitter {
 			// throttled+hidden guest stops presenting frames and CDP input and
 			// screenshots silently break.
 			this.applyThrottling(paneId, wc);
-			wc.setWindowOpenHandler(({ url }) => {
-				if (url && url !== "about:blank") {
-					this.emit(`new-window:${paneId}`, url);
-				}
-				return { action: "deny" as const };
-			});
+			this.setupWindowOpen(paneId, wc);
 			this.setupConsoleCapture(paneId, wc);
 			this.setupContextMenu(paneId, wc);
 			this.setupBeforeInput(paneId, wc);
 			this.setupNavigationGuard(paneId, wc);
+			this.setupFocusForward(paneId, wc);
 		}
 		this.emit("pane-registered", {
 			paneId,
@@ -223,6 +313,8 @@ class BrowserManager extends EventEmitter {
 			this.contextMenuListeners,
 			this.beforeInputListeners,
 			this.navigationListeners,
+			this.popupListeners,
+			this.focusListeners,
 		]) {
 			const cleanup = map.get(paneId);
 			if (cleanup) {
@@ -288,6 +380,24 @@ class BrowserManager extends EventEmitter {
 		} catch {
 			// webContents may be destroyed
 		}
+	}
+
+	/**
+	 * The host window's own subframes — a page pane's iframe, the PDF viewer —
+	 * swallow keystrokes the way a guest webview does: while one has focus the
+	 * host document's listeners never see them. Suppress the forwardable chords
+	 * there too and hand them to that window's renderer to replay. Focus in the
+	 * top frame is left alone so the renderer handles the real event.
+	 */
+	registerHostWindow(wc: Electron.WebContents): void {
+		wc.on("before-input-event", (event, input) => {
+			if (input.type !== "keyDown") return;
+			if (!wc.focusedFrame?.parent) return;
+			const key = this.forwardableKey(input);
+			if (!key) return;
+			event.preventDefault();
+			this.emit(`host-key-forward:${wc.id}`, key);
+		});
 	}
 
 	unregisterAll(): void {
@@ -810,19 +920,90 @@ class BrowserManager extends EventEmitter {
 	// the guest itself, so the policy holds whether the load came from the
 	// toolbar, a link, or a raw CDP `Page.navigate` (which skips sanitizeUrl).
 	private setupNavigationGuard(paneId: string, wc: Electron.WebContents): void {
-		const handler = (event: Electron.Event, url: string) => {
-			if (!isAllowedGuestUrl(url)) event.preventDefault();
+		this.navigationListeners.set(
+			paneId,
+			attachNavigationGuard(wc, (url) => this.emit("deep-link", url)),
+		);
+	}
+
+	private setupWindowOpen(paneId: string, wc: Electron.WebContents): void {
+		wc.setWindowOpenHandler((details) =>
+			this.resolveWindowOpen(paneId, details),
+		);
+		const onCreated = (window: Electron.BrowserWindow) => {
+			this.configurePopupWindow(paneId, window);
 		};
-		wc.on("will-navigate", handler);
-		wc.on("will-redirect", handler);
-		this.navigationListeners.set(paneId, () => {
+		wc.on("did-create-window", onCreated);
+		this.popupListeners.set(paneId, () => {
 			try {
-				wc.off("will-navigate", handler);
-				wc.off("will-redirect", handler);
+				wc.off("did-create-window", onCreated);
 			} catch {
 				// webContents may be destroyed
 			}
 		});
+	}
+
+	/**
+	 * Decide what a guest's `window.open` should do.
+	 *
+	 * A `target="_blank"` link (a tab disposition) keeps the pane behaviour: deny
+	 * the native window and let the renderer open the URL as a split. The one
+	 * exception is an OAuth authorization URL, which arrives with the same
+	 * disposition when a site opens sign-in via a bare `window.open(url)` but
+	 * cannot survive losing its opener — see `shouldOpenAsPopup`.
+	 *
+	 * A real popup has to stay a real popup. `window.open(url, name, "width=…")`
+	 * is how "Sign in with Google" flows work (Firebase `signInWithPopup`, Google
+	 * Identity Services, Auth0): the popup hands its result back through
+	 * `window.opener` and then closes itself. Re-opening that URL as a detached
+	 * pane drops both the opener and the window name, so the flow can never
+	 * complete — the reported symptom is Google bouncing the callback to
+	 * `accounts.google.com/CookieMismatch` (SUPER-1272). Allowing the window also
+	 * keeps it on the opener's session, so it shares the pane's cookie jar.
+	 */
+	private resolveWindowOpen(
+		paneId: string,
+		details: Electron.HandlerDetails,
+	): Electron.WindowOpenHandlerResponse {
+		if (isDeepLinkUrl(details.url)) {
+			this.emit("deep-link", details.url);
+			return { action: "deny" };
+		}
+		if (!isAllowedGuestUrl(details.url)) return { action: "deny" };
+		if (shouldOpenAsPopup(details)) {
+			return {
+				action: "allow",
+				// The default, but worth stating: a sign-in popup must not
+				// outlive the page that opened it.
+				outlivesOpener: false,
+				overrideBrowserWindowOptions: popupWindowOptions(),
+			};
+		}
+		this.emit(`new-window:${paneId}`, details.url);
+		return { action: "deny" };
+	}
+
+	/**
+	 * A popup loads arbitrary web content in the pane's session, so it gets the
+	 * pane's scheme guard, and the same window-open policy so the nested consent
+	 * window Google opens mid-flow stays a popup too.
+	 */
+	private configurePopupWindow(
+		paneId: string,
+		window: Electron.BrowserWindow,
+	): void {
+		const wc = window.webContents;
+		markBrowserPanePopup(wc);
+		const detachGuard = attachNavigationGuard(wc, (url) =>
+			this.emit("deep-link", url),
+		);
+		wc.setWindowOpenHandler((details) =>
+			this.resolveWindowOpen(paneId, details),
+		);
+		wc.on("did-create-window", (child) => {
+			this.configurePopupWindow(paneId, child);
+		});
+		window.on("closed", detachGuard);
 	}
 
 	private setupContextMenu(paneId: string, wc: Electron.WebContents): void {
@@ -837,13 +1018,21 @@ class BrowserManager extends EventEmitter {
 			if (linkURL) {
 				menuItems.push(
 					{
-						label: "Open Link in Default Browser",
+						label: i18n._(
+							msg({
+								message: "Open Link in Default Browser",
+							}),
+						),
 						click: () => {
 							void safeOpenExternal(linkURL);
 						},
 					},
 					{
-						label: "Open Link as New Split",
+						label: i18n._(
+							msg({
+								message: "Open Link as New Split",
+							}),
+						),
 						click: () =>
 							this.emit(`context-menu-action:${paneId}`, {
 								action: "open-in-split" as const,
@@ -851,7 +1040,11 @@ class BrowserManager extends EventEmitter {
 							}),
 					},
 					{
-						label: "Copy Link Address",
+						label: i18n._(
+							msg({
+								message: "Copy Link Address",
+							}),
+						),
 						click: () => clipboard.writeText(linkURL),
 					},
 					{ type: "separator" },
@@ -860,7 +1053,11 @@ class BrowserManager extends EventEmitter {
 
 			if (selectionText) {
 				menuItems.push({
-					label: "Copy",
+					label: i18n._(
+						msg({
+							message: "Copy",
+						}),
+					),
 					enabled: editFlags.canCopy,
 					click: () => wc.copy(),
 				});
@@ -868,14 +1065,22 @@ class BrowserManager extends EventEmitter {
 
 			if (editFlags.canPaste) {
 				menuItems.push({
-					label: "Paste",
+					label: i18n._(
+						msg({
+							message: "Paste",
+						}),
+					),
 					click: () => wc.paste(),
 				});
 			}
 
 			if (editFlags.canSelectAll) {
 				menuItems.push({
-					label: "Select All",
+					label: i18n._(
+						msg({
+							message: "Select All",
+						}),
+					),
 					click: () => wc.selectAll(),
 				});
 			}
@@ -886,17 +1091,29 @@ class BrowserManager extends EventEmitter {
 
 			menuItems.push(
 				{
-					label: "Back",
+					label: i18n._(
+						msg({
+							message: "Back",
+						}),
+					),
 					enabled: wc.canGoBack(),
 					click: () => wc.goBack(),
 				},
 				{
-					label: "Forward",
+					label: i18n._(
+						msg({
+							message: "Forward",
+						}),
+					),
 					enabled: wc.canGoForward(),
 					click: () => wc.goForward(),
 				},
 				{
-					label: "Reload",
+					label: i18n._(
+						msg({
+							message: "Reload",
+						}),
+					),
 					click: () => wc.reload(),
 				},
 			);
@@ -905,7 +1122,11 @@ class BrowserManager extends EventEmitter {
 				menuItems.push(
 					{ type: "separator" },
 					{
-						label: "Open Page in Default Browser",
+						label: i18n._(
+							msg({
+								message: "Open Page in Default Browser",
+							}),
+						),
 						click: () => {
 							if (pageURL && pageURL !== "about:blank") {
 								void safeOpenExternal(pageURL);
@@ -914,7 +1135,11 @@ class BrowserManager extends EventEmitter {
 						enabled: !!pageURL && pageURL !== "about:blank",
 					},
 					{
-						label: "Copy Page URL",
+						label: i18n._(
+							msg({
+								message: "Copy Page URL",
+							}),
+						),
 						click: () => {
 							if (pageURL) clipboard.writeText(pageURL);
 						},
@@ -935,6 +1160,20 @@ class BrowserManager extends EventEmitter {
 				// webContents may be destroyed
 			}
 		});
+	}
+
+	/** The keystroke as a forwardable chord, or null when it is not one. */
+	private forwardableKey(input: Electron.Input): ForwardedKey | null {
+		const chord = chordFromInput(input);
+		if (!chord || !this.forwardableChords.has(chord)) return null;
+		return {
+			key: input.key,
+			code: input.code,
+			meta: input.meta,
+			control: input.control,
+			alt: input.alt,
+			shift: input.shift,
+		};
 	}
 
 	// When a webview has focus, keystrokes route to the guest renderer — host
@@ -961,17 +1200,10 @@ class BrowserManager extends EventEmitter {
 				}
 			}
 
-			const chord = chordFromInput(input);
-			if (!chord || !this.forwardableChords.has(chord)) return;
+			const key = this.forwardableKey(input);
+			if (!key) return;
 			event.preventDefault();
-			this.emit(`key-forward:${paneId}`, {
-				key: input.key,
-				code: input.code,
-				meta: input.meta,
-				control: input.control,
-				alt: input.alt,
-				shift: input.shift,
-			} satisfies ForwardedKey);
+			this.emit(`key-forward:${paneId}`, key);
 		};
 
 		wc.on("before-input-event", handler);
@@ -982,6 +1214,64 @@ class BrowserManager extends EventEmitter {
 				// webContents may be destroyed
 			}
 		});
+	}
+
+	/**
+	 * A click inside the guest never bubbles a DOM event to the pane's own
+	 * mousedown handler — the webview is a separate WebContents, hoisted
+	 * outside the pane tree. `WebContents.on('focus')` looks like the fix
+	 * (Electron's documented signal for focus moving between WebContents in
+	 * the same window) but doesn't actually fire for a `<webview>` guest —
+	 * confirmed live: `wc.isFocused()` stayed false immediately after a click
+	 * that had already moved the host's `document.activeElement` onto the
+	 * webview element. `<webview>` uses the older guest-view plumbing, and its
+	 * focus doesn't route through the same WebContents-level signal a
+	 * WebContentsView would give.
+	 *
+	 * Instead, borrow the same no-preload technique design-mode already uses:
+	 * inject a script that resolves a Promise on the guest's next mousedown,
+	 * `executeJavaScript` awaits it, and re-arms immediately after. No
+	 * preload/nodeIntegration needed — the guest stays untrusted.
+	 */
+	private setupFocusForward(paneId: string, wc: Electron.WebContents): void {
+		let cancelled = false;
+		// Bumped on every main-frame document. A navigation does not reject
+		// the executeJavaScript that was awaiting a mousedown in the old
+		// document — that promise simply never settles — so a loop tied to the
+		// old generation can never notice on its own. dom-ready starts a fresh
+		// loop for the new document; the stale one exits at its next check and
+		// a late resolution from it is dropped rather than emitted.
+		let generation = 0;
+		const loop = async (gen: number): Promise<void> => {
+			while (!cancelled && gen === generation) {
+				if (wc.isDestroyed()) return;
+				try {
+					await wc.executeJavaScript(NEXT_MOUSEDOWN_SCRIPT);
+				} catch {
+					// Script failed to run (mid-navigation, crashed renderer):
+					// retry, but not in a hot spin.
+					await new Promise((resolve) => setTimeout(resolve, 100));
+					continue;
+				}
+				if (cancelled || gen !== generation) return;
+				this.emit(`pane-focus:${paneId}`);
+			}
+		};
+		const rearm = (): void => {
+			generation += 1;
+			void loop(generation);
+		};
+
+		wc.on("dom-ready", rearm);
+		this.focusListeners.set(paneId, () => {
+			cancelled = true;
+			try {
+				wc.off("dom-ready", rearm);
+			} catch {
+				// webContents may be destroyed
+			}
+		});
+		void loop(generation);
 	}
 
 	private setupConsoleCapture(paneId: string, wc: Electron.WebContents): void {

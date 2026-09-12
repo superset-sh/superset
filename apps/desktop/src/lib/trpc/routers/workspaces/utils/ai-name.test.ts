@@ -1,12 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
 
-const getSmallModelMock = mock(
-	(async () => null) as (...args: unknown[]) => Promise<unknown | null>,
-);
-const generateTitleFromMessageMock = mock(
-	(async () => null) as (...args: unknown[]) => Promise<string | null>,
-);
-
 type SelectedWorkspace =
 	| {
 			id: string;
@@ -22,14 +15,6 @@ type SelectedWorkspace =
 			deletingAt: number | null;
 	  }
 	| null;
-
-mock.module("@superset/provider-auth/server/shared", () => ({
-	getSmallModel: getSmallModelMock,
-}));
-
-mock.module("@superset/provider-auth/server", () => ({
-	generateTitleFromMessage: generateTitleFromMessageMock,
-}));
 
 mock.module("drizzle-orm", () => ({
 	and: mock(() => null),
@@ -77,88 +62,19 @@ const {
 } = await import("./ai-name");
 
 describe("generateWorkspaceNameFromPrompt", () => {
-	beforeEach(() => {
-		getSmallModelMock.mockClear();
-		getSmallModelMock.mockResolvedValue(null);
-		generateTitleFromMessageMock.mockClear();
-		generateTitleFromMessageMock.mockResolvedValue(null);
-		selectGetMock.mockReset();
-		selectGetMock.mockReturnValue(null);
-		updateRunMock.mockReset();
-		updateRunMock.mockReturnValue({ changes: 1 });
-		localDbMock.select.mockClear();
-		localDbMock.update.mockClear();
-	});
-
-	it("falls back to a prompt-derived title when no model is available", async () => {
-		await expect(
+	it("derives a title from the prompt text", () => {
+		expect(
 			generateWorkspaceNameFromPrompt("  debug   prod rename failure  "),
-		).resolves.toEqual({
-			name: "debug prod rename failure",
-			usedPromptFallback: true,
-			warning:
-				"A prompt-based title was used because model naming was unavailable.",
-		});
+		).toBe("debug prod rename failure");
 	});
 
-	it("returns the model-generated title when a model is available", async () => {
-		getSmallModelMock.mockResolvedValueOnce({ id: "test-model" });
-		generateTitleFromMessageMock.mockResolvedValueOnce("Checking In");
-
-		await expect(
-			generateWorkspaceNameFromPrompt("hey boss how are you"),
-		).resolves.toEqual({
-			name: "Checking In",
-			usedPromptFallback: false,
-		});
-		expect(generateTitleFromMessageMock).toHaveBeenCalledWith({
-			message: "hey boss how are you",
-			agentModel: { id: "test-model" },
-			agentId: "workspace-namer",
-			agentName: "Workspace Namer",
-			instructions:
-				"You generate concise workspace titles. 20 characters or less. Write the title in the same language as the user's message. Return ONLY the title, nothing else.",
-			tracingContext: { surface: "workspace-auto-name" },
-		});
+	it("returns null when the prompt has no title in it", () => {
+		expect(generateWorkspaceNameFromPrompt("   ")).toBeNull();
 	});
-
-	it("preserves empty-string model results instead of forcing fallback", async () => {
-		getSmallModelMock.mockResolvedValueOnce({ id: "test-model" });
-		generateTitleFromMessageMock.mockResolvedValueOnce("");
-
-		await expect(
-			generateWorkspaceNameFromPrompt("name this workspace"),
-		).resolves.toEqual({
-			name: "",
-			usedPromptFallback: false,
-		});
-	});
-
-	it("falls back when generation throws", async () => {
-		getSmallModelMock.mockResolvedValueOnce({ id: "test-model" });
-		generateTitleFromMessageMock.mockRejectedValueOnce(new Error("boom"));
-
-		await expect(
-			generateWorkspaceNameFromPrompt("rename this workspace from prompt"),
-		).resolves.toEqual({
-			name: "rename this workspace from prompt",
-			usedPromptFallback: true,
-			warning:
-				"A prompt-based title was used because model naming was unavailable.",
-		});
-	});
-});
-
-afterAll(() => {
-	mock.restore();
 });
 
 describe("attemptWorkspaceAutoRenameFromPrompt", () => {
 	beforeEach(() => {
-		getSmallModelMock.mockClear();
-		getSmallModelMock.mockResolvedValue(null);
-		generateTitleFromMessageMock.mockClear();
-		generateTitleFromMessageMock.mockResolvedValue(null);
 		selectGetMock.mockReset();
 		selectGetMock.mockReturnValue(null);
 		updateRunMock.mockReset();
@@ -167,7 +83,28 @@ describe("attemptWorkspaceAutoRenameFromPrompt", () => {
 		localDbMock.update.mockClear();
 	});
 
-	it("skips already named workspaces before invoking provider naming", async () => {
+	it("renames an unnamed workspace to the derived title", async () => {
+		selectGetMock.mockReturnValue({
+			id: "workspace-1",
+			branch: "main",
+			name: "main",
+			isUnnamed: true,
+			deletingAt: null,
+		});
+
+		await expect(
+			attemptWorkspaceAutoRenameFromPrompt({
+				workspaceId: "workspace-1",
+				prompt: "  fix the   login redirect  ",
+			}),
+		).resolves.toEqual({
+			status: "renamed",
+			name: "fix the login redirect",
+		});
+		expect(localDbMock.update).toHaveBeenCalled();
+	});
+
+	it("skips already named workspaces before deriving anything", async () => {
 		selectGetMock.mockReturnValue({
 			id: "workspace-1",
 			branch: "main",
@@ -185,20 +122,17 @@ describe("attemptWorkspaceAutoRenameFromPrompt", () => {
 			status: "skipped",
 			reason: "workspace-named",
 		});
-		expect(getSmallModelMock).not.toHaveBeenCalled();
 		expect(localDbMock.update).not.toHaveBeenCalled();
 	});
 
-	it("treats empty generated names as an empty-name skip, not a generation failure", async () => {
+	it("skips a workspace that is being deleted", async () => {
 		selectGetMock.mockReturnValue({
 			id: "workspace-1",
 			branch: "main",
 			name: "main",
 			isUnnamed: true,
-			deletingAt: null,
+			deletingAt: 1,
 		});
-		getSmallModelMock.mockResolvedValueOnce({ id: "test-model" });
-		generateTitleFromMessageMock.mockResolvedValueOnce("");
 
 		await expect(
 			attemptWorkspaceAutoRenameFromPrompt({
@@ -207,8 +141,25 @@ describe("attemptWorkspaceAutoRenameFromPrompt", () => {
 			}),
 		).resolves.toEqual({
 			status: "skipped",
-			reason: "empty-generated-name",
+			reason: "workspace-deleting",
 		});
 		expect(localDbMock.update).not.toHaveBeenCalled();
 	});
+
+	it("skips an empty prompt without touching the database", async () => {
+		await expect(
+			attemptWorkspaceAutoRenameFromPrompt({
+				workspaceId: "workspace-1",
+				prompt: "   ",
+			}),
+		).resolves.toEqual({
+			status: "skipped",
+			reason: "empty-prompt",
+		});
+		expect(localDbMock.select).not.toHaveBeenCalled();
+	});
+});
+
+afterAll(() => {
+	mock.restore();
 });

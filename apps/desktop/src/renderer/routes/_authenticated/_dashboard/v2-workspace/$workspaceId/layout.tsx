@@ -65,9 +65,9 @@ function V2WorkspaceLayout() {
 				: null,
 		[hostWorkspaces, workspaceId],
 	);
-	// A sandbox joins the fan-out as its own host, so a cloud workspace is
-	// found the same way as any other — but it has no v2_hosts row for the
-	// remote version gate to check.
+	// The open workspace's sandbox joins the fan-out as its own host, so a
+	// cloud workspace is found the same way as any other — but it has no
+	// v2_hosts row for the remote version gate to check.
 	const { targets: sandboxes } = useSandboxAccess();
 	const isCloud = sandboxes.some(
 		(sandbox) => sandbox.workspaceId === workspaceId,
@@ -169,9 +169,12 @@ function V2WorkspaceLayout() {
 			return (
 				<StateScreenShell>
 					<WorkspaceHostIncompatibleState
+						hostId={hostStatus.hostId}
+						hostUrl={hostStatus.hostUrl}
 						hostName={hostStatus.hostName}
 						hostVersion={hostStatus.hostVersion}
 						minVersion={hostStatus.minVersion}
+						installSource={hostStatus.installSource}
 					/>
 				</StateScreenShell>
 			);

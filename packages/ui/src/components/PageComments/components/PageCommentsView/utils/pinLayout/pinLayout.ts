@@ -1,7 +1,7 @@
 import type {
 	CommentAnchor,
 	FrameRect,
-} from "../../../../utils/commentRuntime";
+} from "@superset/shared/page-comments-runtime";
 
 /** Diameter of a pin, and the gap between two pins stacked on one spot. */
 export const PIN_SIZE = 24;
@@ -21,21 +21,38 @@ export interface PinPoint {
 export function pinPointOf(rect: FrameRect, anchor: CommentAnchor): PinPoint {
 	const { offsetX, offsetY } = anchor;
 	if (offsetX === undefined || offsetY === undefined) {
-		return { x: rect.left, y: rect.top };
+		return { x: rect.left, y: rect.top + PIN_SIZE };
 	}
 	return {
-		x: rect.left + inset(offsetX * rect.width, rect.width),
-		y: rect.top + inset(offsetY * rect.height, rect.height),
+		x: rect.left + insetStart(offsetX * rect.width, rect.width),
+		y: rect.top + insetEnd(offsetY * rect.height, rect.height),
 	};
 }
 
 /**
- * Keeps a pin from hanging off the element it belongs to. A target thinner
- * than the pin itself has no room to inset, so the pin centres on it instead.
+ * Where the pin's box goes for an anchor point. The pin is round except for
+ * its bottom-left corner, so that corner is the tip: it rests on the point and
+ * the body sits up and to the right, off the words it marks rather than over
+ * them.
  */
-function inset(offset: number, extent: number): number {
-	if (extent <= PIN_SIZE) return extent / 2;
-	return Math.min(Math.max(offset, PIN_SIZE / 2), extent - PIN_SIZE / 2);
+export function pinTransform(point: PinPoint, stackIndex = 0): string {
+	return `translate(${point.x + stackIndex * STACK_OFFSET}px, ${point.y - PIN_SIZE}px)`;
+}
+
+/**
+ * Keep the pin's box inside the element it belongs to. The box starts at the
+ * point on x and ends at it on y, so the two axes clamp to opposite edges. A
+ * target smaller than the pin has no room, so the pin rests on that edge and
+ * overhangs rather than being pushed off the frame and clipped.
+ */
+function insetStart(offset: number, extent: number): number {
+	if (extent <= PIN_SIZE) return 0;
+	return Math.min(Math.max(offset, 0), extent - PIN_SIZE);
+}
+
+function insetEnd(offset: number, extent: number): number {
+	if (extent <= PIN_SIZE) return PIN_SIZE;
+	return Math.min(Math.max(offset, PIN_SIZE), extent);
 }
 
 /**

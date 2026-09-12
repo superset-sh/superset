@@ -6,6 +6,7 @@ import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { LexicalTypeaheadMenuPlugin } from "@lexical/react/LexicalTypeaheadMenuPlugin";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { getClipboardFiles } from "@superset/ui/lib/clipboard-files";
 import { cn } from "@superset/ui/utils";
 import {
@@ -132,6 +133,7 @@ export function ComposerBody({
 	onAttachmentClick,
 	onChipClick,
 }: ComposerBodyProps) {
+	const { t } = useLingui();
 	const [editor] = useLexicalComposerContext();
 	const [attachments, setAttachments] = useState<PromptInputAttachment[]>([]);
 	const [isEmpty, setIsEmpty] = useState(true);
@@ -566,7 +568,7 @@ export function ComposerBody({
 						dragging ? "scale-100" : "scale-95",
 					)}
 				>
-					Drop to attach
+					<Trans>Drop to attach</Trans>
 				</span>
 			</div>
 			<AttachmentPills
@@ -694,7 +696,9 @@ export function ComposerBody({
 						</span>
 						<button
 							type="button"
-							aria-label="Retry dictation"
+							aria-label={t({
+								message: "Retry dictation",
+							})}
 							onClick={() => void dictationSession.retry()}
 							className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80"
 						>
@@ -702,7 +706,9 @@ export function ComposerBody({
 						</button>
 						<button
 							type="button"
-							aria-label="Discard recording"
+							aria-label={t({
+								message: "Discard recording",
+							})}
 							onClick={dictationSession.cancel}
 							className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 						>
@@ -710,7 +716,9 @@ export function ComposerBody({
 						</button>
 						<button
 							type="button"
-							aria-label="Send message"
+							aria-label={t({
+								message: "Send message",
+							})}
 							disabled
 							className="flex size-8 shrink-0 cursor-not-allowed items-center justify-center rounded-lg bg-secondary text-muted-foreground"
 						>
@@ -725,7 +733,9 @@ export function ComposerBody({
 						/>
 						<button
 							type="button"
-							aria-label="Stop dictation"
+							aria-label={t({
+								message: "Stop dictation",
+							})}
 							disabled={dictationSession.status === "transcribing"}
 							onClick={() => void dictationSession.finish()}
 							className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80 disabled:cursor-default disabled:opacity-50"
@@ -734,7 +744,9 @@ export function ComposerBody({
 						</button>
 						<button
 							type="button"
-							aria-label="Send message"
+							aria-label={t({
+								message: "Send message",
+							})}
 							disabled
 							className="flex size-8 shrink-0 cursor-not-allowed items-center justify-center rounded-lg bg-secondary text-muted-foreground"
 						>
@@ -748,7 +760,9 @@ export function ComposerBody({
 						{dictation && status !== "streaming" && (
 							<button
 								type="button"
-								aria-label="Dictate"
+								aria-label={t({
+									message: "Dictate",
+								})}
 								onClick={() => {
 									setBrowseOpen(false);
 									void dictationSession.start();
@@ -761,7 +775,9 @@ export function ComposerBody({
 						{status === "streaming" ? (
 							<button
 								type="button"
-								aria-label="Stop response"
+								aria-label={t({
+									message: "Stop response",
+								})}
 								onClick={onStop}
 								className="flex size-8 cursor-pointer items-center justify-center rounded-lg bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80"
 							>
@@ -770,7 +786,9 @@ export function ComposerBody({
 						) : (
 							<button
 								type="button"
-								aria-label="Send message"
+								aria-label={t({
+									message: "Send message",
+								})}
 								disabled={!canSend}
 								onClick={submit}
 								className={cn(

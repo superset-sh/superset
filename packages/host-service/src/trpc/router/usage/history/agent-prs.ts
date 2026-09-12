@@ -1,9 +1,10 @@
-import { and, eq, gte, isNotNull } from "drizzle-orm";
+import { and, eq, gte, isNotNull, or } from "drizzle-orm";
 import type { HostDb } from "../../../../db";
 import {
 	pullRequests,
 	terminalAgentBindings,
 	workspacePullRequests,
+	workspaces,
 } from "../../../../db/schema";
 import { utcMidnightCutoff } from "./leaderboard-days";
 
@@ -24,12 +25,20 @@ export function countAgentPrsByDay(
 			workspacePullRequests,
 			eq(workspacePullRequests.pullRequestId, pullRequests.id),
 		)
-		.innerJoin(
+		.leftJoin(
 			terminalAgentBindings,
 			eq(terminalAgentBindings.workspaceId, workspacePullRequests.workspaceId),
 		)
+		.leftJoin(workspaces, eq(workspaces.id, workspacePullRequests.workspaceId))
 		.where(
-			and(isNotNull(pullRequests.mergedAt), gte(pullRequests.mergedAt, cutoff)),
+			and(
+				isNotNull(pullRequests.mergedAt),
+				gte(pullRequests.mergedAt, cutoff),
+				or(
+					isNotNull(terminalAgentBindings.terminalId),
+					isNotNull(workspaces.archivedAt),
+				),
+			),
 		)
 		.all();
 

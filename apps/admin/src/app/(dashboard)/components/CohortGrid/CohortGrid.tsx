@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 
 // Shared cohort-triangle rendering for retention and survival grids: solid
@@ -58,9 +59,11 @@ function Cell({ cell, isBaseline }: { cell: CohortCell; isBaseline: boolean }) {
 export function CohortGrid({
 	columnLabels,
 	rows,
-	labelHeader = "Cohort",
-	sizeHeader = "Size",
+	labelHeader,
+	sizeHeader,
 }: CohortGridProps) {
+	const { t } = useLingui();
+
 	return (
 		<div className="overflow-x-auto">
 			<div
@@ -69,9 +72,11 @@ export function CohortGrid({
 					gridTemplateColumns: `5.5rem 3.5rem repeat(${columnLabels.length}, minmax(3.5rem, 1fr))`,
 				}}
 			>
-				<span className="text-muted-foreground">{labelHeader}</span>
+				<span className="text-muted-foreground">
+					{labelHeader ?? t({ message: "Cohort" })}
+				</span>
 				<span className="text-muted-foreground pr-3 text-right">
-					{sizeHeader}
+					{sizeHeader ?? t({ message: "Size" })}
 				</span>
 				{columnLabels.map((label) => (
 					<span key={label} className="text-muted-foreground text-center">

@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 /**
  * Extracts the workspace ID from a hash-routed URL.
  *
@@ -83,7 +85,12 @@ export function getNotificationTitle({
 }): string {
 	const tab = tabId ? tabs?.find((t) => t.id === tabId) : undefined;
 	const pane = paneId ? panes?.[paneId] : undefined;
-	return tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
+	return (
+		tab?.userTitle?.trim() ||
+		tab?.name ||
+		pane?.name ||
+		i18n._(msg({ message: "Terminal" }))
+	);
 }
 
 interface Workspace {
@@ -105,5 +112,7 @@ export function getWorkspaceName({
 	workspace?: Workspace | null;
 	worktree?: Worktree | null;
 }): string {
-	return workspace?.name || worktree?.branch || "Workspace";
+	return (
+		workspace?.name || worktree?.branch || i18n._(msg({ message: "Workspace" }))
+	);
 }

@@ -53,6 +53,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["v2-pane-scroll-state-v1"],
 	],
 	[
+		"src/renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore/v2WorkspacesFilterStore.ts",
+		["v2-workspaces-view"],
+	],
+	[
 		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatV3Pane/components/Composer/Composer.tsx",
 		["chat-v3-draft:*"],
 	],
@@ -124,6 +128,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/routes/_authenticated/settings/usage/utils/usageLastSection/usageLastSection.ts",
 		["usage-last-section-v1"],
 	],
+	[
+		"src/renderer/routes/_authenticated/settings/usage/components/LeaderboardCard/utils/leaderboardCardCollapsed/leaderboardCardCollapsed.ts",
+		["leaderboard-card-collapsed-v1"],
+	],
 	["src/renderer/stores/inline-workspace-ports.ts", ["inline-workspace-ports"]],
 	["src/renderer/hotkeys/stores/hotkeyOverridesStore.ts", ["hotkey-overrides"]],
 	[
@@ -148,9 +156,8 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	],
 	[
 		"src/renderer/routes/_authenticated/components/LeaderboardAutoPublish/hooks/useLeaderboardAutoPublish/autoPublishState.ts",
-		["leaderboard-auto-publish-v1"],
+		["leaderboard-auto-publish-v2"],
 	],
-	["src/renderer/lib/leaderboard/askedState.ts", ["leaderboard-asked-v1"]],
 	[
 		"src/renderer/hooks/useAgentModelPreference/useAgentModelPreference.ts",
 		["lastSelectedV2WorkspaceCreateModelByPreset"],

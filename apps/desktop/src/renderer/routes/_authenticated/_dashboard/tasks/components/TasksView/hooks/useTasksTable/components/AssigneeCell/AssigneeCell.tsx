@@ -65,7 +65,6 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 							fullName={
 								task.assigneeDisplayName ||
 								t({
-									id: "dashboard.tasks.assigneeCell.externalName",
 									message: "External",
 								})
 							}
@@ -88,9 +87,7 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 					>
 						<HiOutlineUserCircle className="size-5 text-muted-foreground shrink-0" />
 						<span className="text-sm">
-							<Trans id="dashboard.tasks.assigneeCell.noAssignee">
-								No assignee
-							</Trans>
+							<Trans>No assignee</Trans>
 						</span>
 						{!assigneeId && !task.assigneeExternalId && (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>
@@ -98,9 +95,7 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 					</DropdownMenuItem>
 					{isLoadingMembers && (
 						<div className="px-2 py-1.5 text-sm text-muted-foreground">
-							<Trans id="dashboard.tasks.assigneeCell.loadingMembers">
-								Loading members...
-							</Trans>
+							<Trans>Loading members...</Trans>
 						</div>
 					)}
 					{users.map((user) => (

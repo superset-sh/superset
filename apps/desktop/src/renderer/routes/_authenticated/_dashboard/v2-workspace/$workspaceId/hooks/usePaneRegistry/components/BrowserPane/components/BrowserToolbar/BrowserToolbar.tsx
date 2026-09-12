@@ -1,5 +1,12 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
+import { createPortal } from "react-dom";
 import {
 	TbArrowLeft,
 	TbArrowRight,
@@ -7,6 +14,7 @@ import {
 	TbRefresh,
 } from "react-icons/tb";
 import { suspendAncestorDragForTextSelection } from "renderer/lib/dnd";
+import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { BrowserTabFavicon } from "../BrowserTabFavicon";
 import { UrlSuggestions } from "./components/UrlSuggestions";
 import { useUrlAutocomplete } from "./hooks/useUrlAutocomplete";
@@ -16,7 +24,13 @@ function displayUrl(url: string): string {
 	return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
+interface SuggestionsPlacement {
+	container: HTMLElement;
+	style: { top: number; left: number; width: number };
+}
+
 interface BrowserToolbarProps {
+	paneId: string;
 	currentUrl: string;
 	faviconUrl: string | null;
 	isLoading: boolean;
@@ -29,6 +43,7 @@ interface BrowserToolbarProps {
 }
 
 export function BrowserToolbar({
+	paneId,
 	currentUrl,
 	faviconUrl,
 	isLoading,
@@ -109,6 +124,48 @@ export function BrowserToolbar({
 		[autocomplete],
 	);
 
+	// The page is a native <webview> hoisted over the pane, so nothing inside
+	// the toolbar can paint above it — a list hanging under the input is cut
+	// off wherever the page starts. Like the find bar and the design-mode
+	// composer, the suggestions portal into the registry's overlay layer (the
+	// host layer mirroring the page rect, painted above the webview), placed
+	// at the input's edges in that layer's coordinates. Measured while open;
+	// falls back to the in-place list until the pane's overlay is attached.
+	const inputWrapperRef = useRef<HTMLDivElement>(null);
+	const [placement, setPlacement] = useState<SuggestionsPlacement | null>(null);
+	const suggestionsOpen = isEditing && autocomplete.isOpen;
+	useLayoutEffect(() => {
+		if (!suggestionsOpen) {
+			setPlacement(null);
+			return;
+		}
+		const container = browserRuntimeRegistry.getOverlayContainer(paneId);
+		const wrapper = inputWrapperRef.current;
+		if (!container || !wrapper) {
+			setPlacement(null);
+			return;
+		}
+		const measure = () => {
+			const input = wrapper.getBoundingClientRect();
+			const overlay = container.getBoundingClientRect();
+			setPlacement({
+				container,
+				style: {
+					// The overlay starts where the page does; a banner between the
+					// toolbar and the page pushes that below the input, so clamp.
+					top: Math.max(0, input.bottom + 4 - overlay.top),
+					left: input.left - overlay.left,
+					width: input.width,
+				},
+			});
+		};
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(wrapper);
+		observer.observe(container);
+		return () => observer.disconnect();
+	}, [suggestionsOpen, paneId]);
+
 	return (
 		<div className="flex h-full min-w-0 flex-1 items-center gap-1.5 px-2">
 			<div className="flex shrink-0 items-center gap-0.5">
@@ -140,7 +197,10 @@ export function BrowserToolbar({
 					)}
 				</button>
 			</div>
-			<div className="relative flex min-w-0 flex-1 items-center">
+			<div
+				ref={inputWrapperRef}
+				className="relative flex min-w-0 flex-1 items-center"
+			>
 				{isEditing ? (
 					<form
 						onSubmit={handleSubmit}
@@ -154,7 +214,6 @@ export function BrowserToolbar({
 							onBlur={exitEditMode}
 							onKeyDown={handleKeyDown}
 							placeholder={t({
-								id: "workspace.browserPane.urlInputPlaceholder",
 								message: "Enter URL or search...",
 							})}
 							className="h-[22px] w-full rounded-md border border-ring/60 bg-muted/30 px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
@@ -172,9 +231,7 @@ export function BrowserToolbar({
 					>
 						{isBlank ? (
 							<span className="min-w-0 truncate text-muted-foreground/40">
-								<Trans id="workspace.browserPane.urlPlaceholder">
-									Enter URL or search...
-								</Trans>
+								<Trans>Enter URL or search...</Trans>
 							</span>
 						) : (
 							<>
@@ -186,13 +243,24 @@ export function BrowserToolbar({
 						)}
 					</button>
 				)}
-				{isEditing && autocomplete.isOpen && (
-					<UrlSuggestions
-						suggestions={autocomplete.suggestions}
-						highlightedIndex={autocomplete.highlightedIndex}
-						onSelect={autocomplete.selectSuggestion}
-					/>
-				)}
+				{suggestionsOpen &&
+					(placement ? (
+						createPortal(
+							<UrlSuggestions
+								suggestions={autocomplete.suggestions}
+								highlightedIndex={autocomplete.highlightedIndex}
+								onSelect={autocomplete.selectSuggestion}
+								portalStyle={placement.style}
+							/>,
+							placement.container,
+						)
+					) : (
+						<UrlSuggestions
+							suggestions={autocomplete.suggestions}
+							highlightedIndex={autocomplete.highlightedIndex}
+							onSelect={autocomplete.selectSuggestion}
+						/>
+					))}
 			</div>
 		</div>
 	);

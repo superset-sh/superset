@@ -11,6 +11,9 @@ export type SessionOrganizationContext = {
 
 export interface ResolveSessionOrganizationDeps {
 	listMemberships: (userId: string) => Promise<SelectMember[]>;
+	/** Only consulted when the session itself has no usable organization, so
+	 * the common path never pays for it. */
+	getLastActiveOrganization: (userId: string) => Promise<string | null>;
 	updateSessionActiveOrganization: (input: {
 		sessionId: string;
 		previousActiveOrganizationId: string | null;
@@ -25,6 +28,17 @@ const defaultResolveSessionOrganizationDeps: ResolveSessionOrganizationDeps = {
 			where: eq(members.userId, userId),
 			orderBy: desc(members.createdAt),
 		}),
+	getLastActiveOrganization: async (userId) => {
+		const [userRow] = await db
+			.select({
+				lastActiveOrganizationId: authSchema.users.lastActiveOrganizationId,
+			})
+			.from(authSchema.users)
+			.where(eq(authSchema.users.id, userId))
+			.limit(1);
+
+		return userRow?.lastActiveOrganizationId ?? null;
+	},
 	updateSessionActiveOrganization: async ({
 		sessionId,
 		previousActiveOrganizationId,
@@ -56,6 +70,31 @@ const defaultResolveSessionOrganizationDeps: ResolveSessionOrganizationDeps = {
 	},
 };
 
+/**
+ * The organization the user has belonged to longest — the last resort when
+ * nothing else says where this user wants to be.
+ *
+ * It used to be the *newest* membership, which is not a stable answer: it moves
+ * the moment somebody adds you to another organization, so a session that had
+ * to guess silently relocated people into whatever they had joined most
+ * recently. The oldest membership only changes if you leave it.
+ *
+ * `createdAt` ties are real — sign-up auto-enrolment adds several memberships
+ * in one pass — so break them on id, the same way the SQL fallback in
+ * `load-custom-session-data` does, or the two disagree about the same user.
+ */
+function findFallbackMembership(
+	memberships: SelectMember[],
+): SelectMember | undefined {
+	return memberships.reduce<SelectMember | undefined>((oldest, item) => {
+		if (!oldest) return item;
+		const itemTime = item.createdAt.getTime();
+		const oldestTime = oldest.createdAt.getTime();
+		if (itemTime !== oldestTime) return itemTime < oldestTime ? item : oldest;
+		return item.id < oldest.id ? item : oldest;
+	}, undefined);
+}
+
 export async function resolveSessionOrganizationState(
 	{
 		userId,
@@ -79,12 +118,27 @@ export async function resolveSessionOrganizationState(
 
 	const allMemberships = await deps.listMemberships(userId);
 
-	const nextMembership =
-		(previousActiveOrganizationId
-			? allMemberships.find(
-					(item) => item.organizationId === previousActiveOrganizationId,
-				)
-			: undefined) ?? allMemberships[0];
+	// Session first: it is the only thing that knows about an organization this
+	// session was explicitly switched to. Then the user's last switch, so a new
+	// session resumes where the last one left off. Only then a guess, for a user
+	// who has never switched at all — reaching it for anyone else is what
+	// silently moved people between organizations.
+	let nextMembership = previousActiveOrganizationId
+		? allMemberships.find(
+				(item) => item.organizationId === previousActiveOrganizationId,
+			)
+		: undefined;
+
+	if (!nextMembership) {
+		const lastActiveOrganizationId =
+			await deps.getLastActiveOrganization(userId);
+		nextMembership =
+			(lastActiveOrganizationId
+				? allMemberships.find(
+						(item) => item.organizationId === lastActiveOrganizationId,
+					)
+				: undefined) ?? findFallbackMembership(allMemberships);
+	}
 
 	const nextActiveOrganizationId = nextMembership?.organizationId ?? null;
 	if (nextActiveOrganizationId !== previousActiveOrganizationId) {
@@ -114,7 +168,10 @@ export async function resolveSessionOrganizationState(
 			? allMemberships.find(
 					(item) => item.organizationId === activeOrganizationId,
 				)
-			: undefined) ?? (!activeOrganizationId ? allMemberships[0] : undefined);
+			: undefined) ??
+		(!activeOrganizationId
+			? findFallbackMembership(allMemberships)
+			: undefined);
 
 	return {
 		activeOrganizationId,

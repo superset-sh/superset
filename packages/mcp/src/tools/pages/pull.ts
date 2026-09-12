@@ -14,7 +14,7 @@ export function register(server: McpServer): void {
 		name: "pages_pull",
 		annotations: { readOnlyHint: true },
 		description:
-			"Get a download URL for a published page's HTML, plus that version's metadata. Fetch the returned `downloadUrl` to read the bytes — this tool does not return the document itself. The URL is unguessable but not access-gated, so treat it as a secret. Use this when you need to see what a page currently says before editing the source it was published from. Address the page by id or by slug; exactly one is required.",
+			"Get a download URL for a published page's HTML, plus that version's metadata. Fetch the returned `downloadUrl` to read the bytes — this tool does not return the document itself. The URL is signed and expires after an hour, so fetch it promptly and never store it. Use this when you need to see what a page currently says before editing the source it was published from. Address the page by id or by slug; exactly one is required.",
 		inputSchema: z
 			.object({
 				id: optionalish(pageFields.id).describe("Page UUID."),

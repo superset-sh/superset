@@ -141,7 +141,6 @@ export function RunInWorkspacePopover({
 		) {
 			toast.error(
 				t({
-					id: "dashboard.tasks.runInWorkspacePopover.enableAgentFirst",
 					message: "Enable an agent in Settings > Agents first",
 				}),
 			);
@@ -232,7 +231,6 @@ export function RunInWorkspacePopover({
 		if (failCount === 0) {
 			toast.success(
 				t({
-					id: "dashboard.tasks.runInWorkspacePopover.createdWorkspaces",
 					message: plural(successCount, {
 						one: "Created # workspace",
 						other: "Created # workspaces",
@@ -242,7 +240,6 @@ export function RunInWorkspacePopover({
 		} else {
 			toast.warning(
 				t({
-					id: "dashboard.tasks.runInWorkspacePopover.createdWorkspacesWithFailures",
 					message: plural(successCount, {
 						one: `Created # workspace, ${failCount} failed`,
 						other: `Created # workspaces, ${failCount} failed`,
@@ -271,9 +268,7 @@ export function RunInWorkspacePopover({
 					className="h-7 text-xs gap-1.5 bg-muted/50"
 				>
 					<HiMiniPlay className="size-3" />
-					<Trans id="dashboard.tasks.runInWorkspacePopover.trigger">
-						Run in Workspace
-					</Trans>
+					<Trans>Run in Workspace</Trans>
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent
@@ -311,9 +306,7 @@ export function RunInWorkspacePopover({
 										</>
 									) : (
 										<span className="text-muted-foreground">
-											<Trans id="dashboard.tasks.runInWorkspacePopover.selectProject">
-												Select project
-											</Trans>
+											<Trans>Select project</Trans>
 										</span>
 									)}
 								</span>
@@ -326,9 +319,7 @@ export function RunInWorkspacePopover({
 						>
 							{recentProjects.length === 0 ? (
 								<DropdownMenuItem disabled>
-									<Trans id="dashboard.tasks.runInWorkspacePopover.noProjects">
-										No projects found
-									</Trans>
+									<Trans>No projects found</Trans>
 								</DropdownMenuItem>
 							) : (
 								recentProjects
@@ -361,7 +352,6 @@ export function RunInWorkspacePopover({
 						agents={enabledAgentPresets}
 						value={selectedAgent}
 						placeholder={t({
-							id: "dashboard.tasks.runInWorkspacePopover.selectAgent",
 							message: "Select agent",
 						})}
 						onValueChange={setSelectedAgent}
@@ -370,7 +360,6 @@ export function RunInWorkspacePopover({
 						triggerClassName="h-8 text-xs w-full border-0 shadow-none bg-muted/50 rounded-md"
 						allowNone
 						noneLabel={t({
-							id: "dashboard.tasks.runInWorkspacePopover.noAgent",
 							message: "No agent",
 						})}
 						noneValue="none"
@@ -381,9 +370,7 @@ export function RunInWorkspacePopover({
 							htmlFor="batch-auto-run-toggle"
 							className="text-xs font-normal"
 						>
-							<Trans id="dashboard.tasks.runInWorkspacePopover.autoRun">
-								Auto-run command
-							</Trans>
+							<Trans>Auto-run command</Trans>
 						</Label>
 						<Switch
 							id="batch-auto-run-toggle"
@@ -420,13 +407,10 @@ export function RunInWorkspacePopover({
 						{isRunning ? (
 							<>
 								<Spinner className="size-3" />
-								<Trans id="dashboard.tasks.runInWorkspacePopover.creating">
-									Creating...
-								</Trans>
+								<Trans>Creating...</Trans>
 							</>
 						) : (
 							<Plural
-								id="dashboard.tasks.runInWorkspacePopover.runCount"
 								value={tasks.length}
 								one="Run # Workspace"
 								other="Run # Workspaces"

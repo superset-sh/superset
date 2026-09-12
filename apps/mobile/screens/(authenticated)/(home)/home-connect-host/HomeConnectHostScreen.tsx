@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -7,14 +8,14 @@ import { ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { openUrl } from "@/lib/open-url";
 import { posthog } from "@/lib/posthog";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 import { OrganizationHeaderButton } from "../home/components/OrganizationHeaderButton";
 import { SetupStep } from "./components/SetupStep";
 
-const SETUP_DOCS_URL = `${COMPANY.DOCS_URL}/remote-workspaces`;
+const SETUP_DOCS_URL = `${COMPANY.DOCS_URL}/remote-access`;
 
 /**
  * Home for an organization with no device of yours in it. Every list on this
@@ -31,9 +32,10 @@ const SETUP_DOCS_URL = `${COMPANY.DOCS_URL}/remote-workspaces`;
  * lands.
  */
 export function HomeConnectHostScreen() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const { isLoadingOrganizations, activeOrganization } = useOrganizations();
-	const hosts = useOrgHostsQuery();
+	const { query: hosts } = useOrgHosts();
 
 	// Only a tap of Check again shows as checking: the hosts query polls on its
 	// own, and borrowing its isFetching would blink the button every 30s.
@@ -70,29 +72,52 @@ export function HomeConnectHostScreen() {
 					</View>
 					<View className="items-center gap-2">
 						<Text className="text-2xl font-semibold text-foreground">
-							Connect a device
+							<Trans>Connect a device</Trans>
 						</Text>
 						<Text className="text-muted-foreground text-center text-base">
-							Superset Mobile runs agents on the computers you connect.
+							<Trans>
+								Superset Mobile runs agents on the computers you connect.
+							</Trans>
 						</Text>
 					</View>
 				</View>
 
 				<View className="gap-4">
-					<SetupStep step={1} title="Install the desktop app">
-						Download Superset at{" "}
-						<Text className="text-foreground text-sm font-medium">
-							{COMPANY.DOMAIN}/download
-						</Text>
-						.
+					<SetupStep
+						step={1}
+						title={t({
+							message: "Install the desktop app",
+						})}
+					>
+						<Trans>
+							Download Superset at{" "}
+							<Text className="text-foreground text-sm font-medium">
+								{COMPANY.DOMAIN}/download
+							</Text>
+							.
+						</Trans>
 					</SetupStep>
 					<SetupStep
 						step={2}
-						title={`Sign in to ${activeOrganization?.name ?? "this organization"}`}
+						title={t({
+							message: `Sign in to ${
+								activeOrganization?.name ??
+								t({
+									message: "this organization",
+								})
+							}`,
+						})}
 					/>
-					<SetupStep step={3} title="Allow access through the relay">
-						Settings → Security → “Allow remote workspaces to access this device
-						via relay”.
+					<SetupStep
+						step={3}
+						title={t({
+							message: "Allow access through the relay",
+						})}
+					>
+						<Trans>
+							Settings → Remote Access → “Allow remote access to this device via
+							relay”.
+						</Trans>
 					</SetupStep>
 				</View>
 
@@ -106,14 +131,22 @@ export function HomeConnectHostScreen() {
 							void hosts.refetch().finally(() => setChecking(false));
 						}}
 					>
-						<Text>{checking ? "Checking…" : "Check again"}</Text>
+						<Text>
+							{checking
+								? t({ message: "Checking…" })
+								: t({
+										message: "Check again",
+									})}
+						</Text>
 					</Button>
 					<Button
 						size="lg"
 						variant="outline"
 						onPress={() => openUrl(SETUP_DOCS_URL)}
 					>
-						<Text>Read the setup guide</Text>
+						<Text>
+							<Trans>Read the setup guide</Trans>
+						</Text>
 					</Button>
 				</View>
 			</ScrollView>

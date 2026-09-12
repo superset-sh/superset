@@ -32,12 +32,13 @@ export function agentSessionFor(
 	return claimed ?? null;
 }
 
-/**
- * Agents answer threads they were handed, not every thread they can see.
- * A person activates a thread from the page UI; until then this refuses the
- * write. Republishing clears activation, since a new version is not what
- * anyone agreed to.
- */
+export function shouldActivateOnWrite(
+	thread: { agentActivatedAt: Date | null },
+	agentSession: string | null,
+): boolean {
+	return agentSession === null && thread.agentActivatedAt === null;
+}
+
 export function assertActivatedForAgent(
 	thread: { agentActivatedAt: Date | null },
 	agentSession: string | null,
@@ -47,7 +48,7 @@ export function assertActivatedForAgent(
 	throw userError({
 		code: "FORBIDDEN",
 		message:
-			"This thread has not been handed to an agent. Someone has to hand it off from the page first.",
+			"This thread is not open to agents. A person has to comment on it before an agent can reply.",
 		i18nKey: "serverError.pageComment.thisThreadHasNotBeenHanded",
 	});
 }

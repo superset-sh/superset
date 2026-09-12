@@ -21,7 +21,6 @@ export function DashboardContentError({ error }: ErrorComponentProps) {
 			: String(
 					error ??
 						t({
-							id: "dashboard.contentError.unknownError",
 							message: "Unknown error",
 						}),
 				);
@@ -47,9 +46,7 @@ export function DashboardContentError({ error }: ErrorComponentProps) {
 			</div>
 			<div className="flex flex-col items-center gap-1 text-center">
 				<h2 className="text-base font-semibold">
-					<Trans id="dashboard.contentError.title">
-						This view hit an error
-					</Trans>
+					<Trans>This view hit an error</Trans>
 				</h2>
 				<p className="max-w-md text-sm text-muted-foreground select-text cursor-text break-words">
 					{message}
@@ -58,11 +55,11 @@ export function DashboardContentError({ error }: ErrorComponentProps) {
 			<div className="flex items-center gap-2">
 				<Button variant="outline" size="sm" asChild>
 					<Link to="/">
-						<Trans id="dashboard.contentError.goHome">Go home</Trans>
+						<Trans>Go home</Trans>
 					</Link>
 				</Button>
 				<Button size="sm" onClick={() => window.location.reload()}>
-					<Trans id="dashboard.contentError.reloadApp">Reload app</Trans>
+					<Trans>Reload app</Trans>
 				</Button>
 			</div>
 		</div>

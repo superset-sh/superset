@@ -3,8 +3,12 @@ import {
 	BUILTIN_AGENT_IDS,
 } from "@superset/shared/agent-catalog";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
+import { workspaces } from "../../../db/schema";
+import type { EventBus } from "../../../events";
+import { hasHarnessSession } from "../../../terminal/harness-transcript";
 import {
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
@@ -17,6 +21,9 @@ import type {
 import {
 	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
+	findResumedSuccessorTerminalId,
+	getTerminalAgentBinding,
+	markResumeCandidateResumedInto,
 	seedEndedTerminalAgentBinding,
 	unclaimResumeCandidateBinding,
 } from "../../../terminal-agents/persistence";
@@ -27,6 +34,7 @@ import {
 	runAgentInWorkspace,
 } from "../agents/agents";
 import { toTerminalSessionError } from "../terminal/errors";
+import { resolveDefaultAccountEnv } from "../usage/default-account";
 
 type GetOrCreateResult = {
 	binding: TerminalAgentBinding;
@@ -51,12 +59,49 @@ export interface ResumeSessionDeps {
 		workspaceId: string;
 		agent: string;
 		prompt: string;
-		resumeSessionId: string;
+		resumeSessionId?: string;
 	}) => Promise<AgentRunResult>;
 	disposeSession: (terminalId: string) => Promise<unknown>;
+	/**
+	 * Whether the harness still holds a conversation for the binding's session
+	 * id (`null` = cannot tell). Consulted only for a session that never
+	 * progressed past "Attached".
+	 */
+	hasSession: (binding: TerminalAgentBinding) => boolean | null;
+	/** Tells panes on the dead terminal where the session went. */
+	eventBus: Pick<EventBus, "broadcastTerminalLifecycle">;
 }
 
 const resumeInflight = new Map<string, Promise<ResumeResult>>();
+
+/**
+ * Whether the harness behind `binding` still holds its conversation, read
+ * from the directory the relaunch will run under: the default account can
+ * have changed since the session started (that is what the account-switch
+ * restart is for), and session sharing makes the transcript reachable from
+ * the new profile too.
+ */
+function bindingHasHarnessSession(
+	db: HostDb,
+	binding: TerminalAgentBinding,
+): boolean | null {
+	const config = resolveHostAgentConfig(
+		db,
+		binding.definitionId ?? binding.agentId,
+	);
+	if (!config) return null;
+	const worktreePath = db
+		.select({ path: workspaces.worktreePath })
+		.from(workspaces)
+		.where(eq(workspaces.id, binding.workspaceId))
+		.get()?.path;
+	return hasHarnessSession({
+		agentId: config.presetId,
+		sessionId: binding.agentSessionId,
+		worktreePath,
+		env: { ...resolveDefaultAccountEnv(db, config.presetId), ...config.env },
+	});
+}
 
 /**
  * Idempotently resume the agent session behind a dead terminal into a fresh
@@ -66,6 +111,14 @@ const resumeInflight = new Map<string, Promise<ResumeResult>>();
  * one resumed session — later callers either share its result or get
  * `{ resumed: false }`. The dead terminal is disposed after a successful
  * launch; a failed launch un-claims the candidate so it can be retried.
+ *
+ * A session still at "Attached" started but was never prompted, and agents
+ * only persist a conversation once it has a message — when the harness store
+ * shows none, the agent is launched fresh instead of `--resume`-ing into "no
+ * conversation found". A store that does hold one (a resumed session idle
+ * since its restore) or cannot be read resumes as usual. Nothing is lost
+ * either way: the pane comes back as the same agent on the current default
+ * account.
  */
 export async function resumeTerminalAgentSession(
 	deps: ResumeSessionDeps,
@@ -95,18 +148,26 @@ export async function resumeTerminalAgentSession(
 			return { resumed: false };
 		}
 
+		// Only a definite "no transcript" launches fresh: an unreadable or
+		// unsurveyed store must not cost a restored conversation its history.
+		const resumable =
+			claimed.lastEventType !== "Attached" ||
+			deps.hasSession(claimed) !== false;
+
 		let result: AgentRunResult;
 		try {
 			result = await deps.runAgent({
 				workspaceId,
 				agent: config.id,
 				prompt: "",
-				resumeSessionId: claimed.agentSessionId,
+				...(resumable ? { resumeSessionId: claimed.agentSessionId } : {}),
 			});
 		} catch (error) {
 			unclaimResumeCandidateBinding(deps.db, terminalId);
 			throw error;
 		}
+
+		markResumeCandidateResumedInto(deps.db, terminalId, result.sessionId);
 
 		// The replaced terminal is dead (or a respawned empty shell nobody
 		// asked for) — drop it now that the session lives elsewhere.
@@ -117,6 +178,18 @@ export async function resumeTerminalAgentSession(
 			);
 		});
 		deps.terminalAgentStore.markTerminalDisposed(terminalId);
+
+		// Every pane on the dead terminal follows the session — the one whose
+		// mutation this is, panes in other windows, and panes whose host-side
+		// restart never went through a renderer at all.
+		deps.eventBus.broadcastTerminalLifecycle({
+			workspaceId,
+			terminalId,
+			eventType: "resumed",
+			resumedTerminalId: result.sessionId,
+			label: result.label,
+			occurredAt: Date.now(),
+		});
 
 		return {
 			resumed: true,
@@ -131,6 +204,110 @@ export async function resumeTerminalAgentSession(
 	} finally {
 		resumeInflight.delete(key);
 	}
+}
+
+/**
+ * Live agent sessions a default-account switch cannot reach: their PTY env
+ * was frozen at spawn, so they keep the old login until relaunched. A
+ * session qualifies when its binding captured a session id and its config
+ * both belongs to `provider` — the presetId keying resolveDefaultAccountEnv —
+ * and knows how to resume. A session idle since it started ("Attached")
+ * counts: it is exactly the agent the user would otherwise have to close and
+ * relaunch by hand, and the resume path starts it fresh when it has no
+ * conversation yet. Sessions that fail the bar are left running rather than
+ * killed without a way back.
+ */
+export function listAccountRestartCandidates(
+	db: HostDb,
+	store: TerminalAgentStore,
+	provider: "claude" | "codex",
+): Array<{ binding: TerminalAgentBinding; agentLabel: string }> {
+	const out: Array<{ binding: TerminalAgentBinding; agentLabel: string }> = [];
+	for (const binding of store.list()) {
+		if (!binding.agentSessionId) continue;
+		const config = resolveHostAgentConfig(
+			db,
+			binding.definitionId ?? binding.agentId,
+		);
+		if (!config || config.presetId !== provider) continue;
+		if (config.resumeArgs.length === 0) continue;
+		out.push({ binding, agentLabel: config.label });
+	}
+	return out;
+}
+
+/**
+ * Relaunch every live `provider` agent onto the current default account,
+ * without waiting for a pane to notice. Each candidate is killed, then
+ * resumed here on the host through {@link resumeTerminalAgentSession}: same
+ * conversation in a fresh terminal whose agent wrapper re-resolves the
+ * account pointer at launch. Panes still open on the old terminal follow
+ * the "resumed" lifecycle event; a session with no pane anywhere (launched
+ * from the CLI, or in a workspace this client never opened) gets one from
+ * background-session adoption the next time its workspace is viewed. Doing
+ * the resume renderer-side instead would leave such a session stranded: its
+ * terminal is dead, so nothing lists it and nothing ever asks to resume it.
+ */
+export async function restartAccountSessions(
+	deps: ResumeSessionDeps,
+	provider: "claude" | "codex",
+): Promise<{ restartedTerminalIds: string[] }> {
+	const candidates = listAccountRestartCandidates(
+		deps.db,
+		deps.terminalAgentStore,
+		provider,
+	);
+	const restartedTerminalIds: string[] = [];
+	for (const { binding } of candidates) {
+		// Ended crash-style ("terminal-exited", never "disposed") so the
+		// binding is a resume candidate for the relaunch below — and, should
+		// either step fail, for any pane that asks later (a failed relaunch
+		// is un-claimed by the resume path; a failed kill is the reaper's).
+		deps.terminalAgentStore.markTerminalExited(binding.terminalId);
+		try {
+			await deps.disposeSession(binding.terminalId);
+			await resumeTerminalAgentSession(deps, {
+				workspaceId: binding.workspaceId,
+				terminalId: binding.terminalId,
+			});
+		} catch (error) {
+			console.warn("[terminal-agents] account-switch restart failed", {
+				terminalId: binding.terminalId,
+				error,
+			});
+			continue;
+		}
+		restartedTerminalIds.push(binding.terminalId);
+	}
+	return { restartedTerminalIds };
+}
+
+/**
+ * The terminal now hosting the session that was resumed out of
+ * `terminalId`, for a pane that missed the "resumed" lifecycle event. The
+ * label comes from the origin binding: a fresh relaunch (a session that was
+ * never prompted) has no binding of its own until the agent's first hook.
+ */
+export function findResumedSuccessor(
+	db: HostDb,
+	workspaceId: string,
+	terminalId: string,
+): { terminalId: string; label: string } | null {
+	const successorTerminalId = findResumedSuccessorTerminalId(
+		db,
+		workspaceId,
+		terminalId,
+	);
+	const origin = getTerminalAgentBinding(db, terminalId);
+	if (!successorTerminalId || !origin) return null;
+	const config = resolveHostAgentConfig(
+		db,
+		origin.definitionId ?? origin.agentId,
+	);
+	return {
+		terminalId: successorTerminalId,
+		label: config?.label ?? origin.agentId,
+	};
 }
 
 function inflightKey(
@@ -169,6 +346,20 @@ export const terminalAgentsRouter = router({
 				...(definitionId ? { definitionId } : {}),
 			});
 		}),
+
+	/**
+	 * The transcript behind a subagent row, for the subagent pane. Reads
+	 * only a path the roster recorded from the child's own hook events;
+	 * `transcript` is null while the child has not flushed its first record.
+	 */
+	subagentTranscript: protectedProcedure
+		.input(z.object({ terminalId: z.string(), subagentId: z.string() }))
+		.query(({ ctx, input }) =>
+			ctx.terminalAgentStore.getSubagentTranscript(
+				input.terminalId,
+				input.subagentId,
+			),
+		),
 
 	findActive: protectedProcedure
 		.input(
@@ -222,6 +413,13 @@ export const terminalAgentsRouter = router({
 			};
 		}),
 
+	/** See {@link findResumedSuccessor}. */
+	resumedSuccessor: protectedProcedure
+		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
+		.query(({ ctx, input }) =>
+			findResumedSuccessor(ctx.db, input.workspaceId, input.terminalId),
+		),
+
 	/** See {@link resumeTerminalAgentSession}. */
 	resume: protectedProcedure
 		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
@@ -233,8 +431,46 @@ export const terminalAgentsRouter = router({
 					runAgent: (runInput) => runAgentInWorkspace(ctx, runInput),
 					disposeSession: (terminalId) =>
 						disposeSessionAndWait(terminalId, ctx.db),
+					hasSession: (binding) => bindingHasHarnessSession(ctx.db, binding),
+					eventBus: ctx.eventBus,
 				},
 				input,
+			),
+		),
+
+	/**
+	 * The sessions {@link restartAccountSessions} would relaunch — exposed
+	 * separately so the Usage tab can ask before restarting anything.
+	 */
+	accountRestartCandidates: protectedProcedure
+		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
+		.query(({ ctx, input }) =>
+			listAccountRestartCandidates(
+				ctx.db,
+				ctx.terminalAgentStore,
+				input.provider,
+			).map(({ binding, agentLabel }) => ({
+				terminalId: binding.terminalId,
+				workspaceId: binding.workspaceId,
+				agentLabel,
+			})),
+		),
+
+	/** See {@link restartAccountSessions}. */
+	restartAccountSessions: protectedProcedure
+		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
+		.mutation(({ ctx, input }) =>
+			restartAccountSessions(
+				{
+					db: ctx.db,
+					terminalAgentStore: ctx.terminalAgentStore,
+					runAgent: (runInput) => runAgentInWorkspace(ctx, runInput),
+					disposeSession: (terminalId) =>
+						disposeSessionAndWait(terminalId, ctx.db),
+					hasSession: (binding) => bindingHasHarnessSession(ctx.db, binding),
+					eventBus: ctx.eventBus,
+				},
+				input.provider,
 			),
 		),
 
@@ -283,6 +519,10 @@ export const terminalAgentsRouter = router({
 				input.workspaceId,
 				input.terminalId,
 			);
+			ctx.eventBus.broadcastAgentBindingsChanged({
+				workspaceId: input.workspaceId,
+				occurredAt: Date.now(),
+			});
 			return { success: true };
 		}),
 

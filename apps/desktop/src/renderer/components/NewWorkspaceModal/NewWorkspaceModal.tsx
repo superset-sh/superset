@@ -64,7 +64,6 @@ export function NewWorkspaceModal() {
 		} catch (error) {
 			toast.error(
 				t({
-					id: "components.newWorkspaceModal.openProjectFailed",
 					message: "Failed to open project",
 				}),
 				{ description: errorMessage(error, "An unknown error occurred") },
@@ -89,14 +88,10 @@ export function NewWorkspaceModal() {
 				>
 					<DialogHeader className="sr-only">
 						<DialogTitle>
-							<Trans id="components.newWorkspaceModal.title">
-								New Workspace
-							</Trans>
+							<Trans>New Workspace</Trans>
 						</DialogTitle>
 						<DialogDescription>
-							<Trans id="components.newWorkspaceModal.description">
-								Create a new workspace
-							</Trans>
+							<Trans>Create a new workspace</Trans>
 						</DialogDescription>
 					</DialogHeader>
 					<DialogContent

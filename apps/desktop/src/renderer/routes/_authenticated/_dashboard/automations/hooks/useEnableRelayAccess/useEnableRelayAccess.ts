@@ -3,7 +3,7 @@ import { i18n } from "@superset/i18n";
 import { toast } from "@superset/ui/sonner";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
-/** Enable relay access with the same mutation + feedback as Settings > Remote Workspaces. */
+/** Enable relay access with the same mutation + feedback as Settings > Remote Access. */
 export function useEnableRelayAccess() {
 	const utils = electronTrpc.useUtils();
 	const setExpose =
@@ -17,13 +17,11 @@ export function useEnableRelayAccess() {
 		toast.promise(setExpose.mutateAsync({ enabled: true }), {
 			loading: i18n._(
 				msg({
-					id: "dashboard.automations.enableRelay.loadingToast",
 					message: "Restarting host services…",
 				}),
 			),
 			success: i18n._(
 				msg({
-					id: "dashboard.automations.enableRelay.successToast",
 					message: "Relay access enabled, connecting to the relay…",
 				}),
 			),
@@ -31,7 +29,6 @@ export function useEnableRelayAccess() {
 				err.message ??
 				i18n._(
 					msg({
-						id: "dashboard.automations.enableRelay.failedToast",
 						message: "Failed to enable relay access",
 					}),
 				),

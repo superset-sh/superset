@@ -1,4 +1,5 @@
 "use client";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Popover,
 	PopoverContent,
@@ -63,7 +64,7 @@ export function LLMCopyButton({
 			onClick={onClick}
 		>
 			{checked ? <Check /> : <Copy />}
-			Copy Markdown
+			<Trans>Copy Markdown</Trans>
 		</button>
 	);
 }
@@ -81,6 +82,7 @@ export function ViewOptions({
 	 */
 	githubUrl: string;
 }) {
+	const { t } = useLingui();
 	const items = useMemo(() => {
 		const fullMarkdownUrl =
 			typeof window !== "undefined"
@@ -90,7 +92,9 @@ export function ViewOptions({
 
 		return [
 			{
-				title: "Open in GitHub",
+				title: t({
+					message: "Open in GitHub",
+				}),
 				href: githubUrl,
 				icon: (
 					<svg fill="currentColor" role="img" viewBox="0 0 24 24">
@@ -100,7 +104,9 @@ export function ViewOptions({
 				),
 			},
 			{
-				title: "Open in Scira AI",
+				title: t({
+					message: "Open in Scira AI",
+				}),
 				href: `https://scira.ai/?${new URLSearchParams({
 					q,
 				})}`,
@@ -164,7 +170,9 @@ export function ViewOptions({
 				),
 			},
 			{
-				title: "Open in ChatGPT",
+				title: t({
+					message: "Open in ChatGPT",
+				}),
 				href: `https://chatgpt.com/?${new URLSearchParams({
 					hints: "search",
 					q,
@@ -182,7 +190,9 @@ export function ViewOptions({
 				),
 			},
 			{
-				title: "Open in Claude",
+				title: t({
+					message: "Open in Claude",
+				}),
 				href: `https://claude.ai/new?${new URLSearchParams({
 					q,
 				})}`,
@@ -199,14 +209,18 @@ export function ViewOptions({
 				),
 			},
 			{
-				title: "Open in T3 Chat",
+				title: t({
+					message: "Open in T3 Chat",
+				}),
 				href: `https://t3.chat/new?${new URLSearchParams({
 					q,
 				})}`,
 				icon: <MessageCircleIcon />,
 			},
 			{
-				title: "Open in Copilot",
+				title: t({
+					message: "Open in Copilot",
+				}),
 				href: `https://copilot.microsoft.com/?${new URLSearchParams({
 					q,
 				})}`,
@@ -223,7 +237,9 @@ export function ViewOptions({
 				),
 			},
 			{
-				title: "Open in Cursor",
+				title: t({
+					message: "Open in Cursor",
+				}),
 				href: `https://cursor.com/link/prompt?${new URLSearchParams({
 					text: q,
 				})}`,
@@ -240,7 +256,7 @@ export function ViewOptions({
 				),
 			},
 		];
-	}, [githubUrl, markdownUrl]);
+	}, [githubUrl, markdownUrl, t]);
 
 	return (
 		<Popover>
@@ -253,7 +269,7 @@ export function ViewOptions({
 					}),
 				)}
 			>
-				Open in
+				<Trans>Open in</Trans>
 				<ChevronDown className="size-3.5 text-fd-muted-foreground" />
 			</PopoverTrigger>
 			<PopoverContent className="flex flex-col">

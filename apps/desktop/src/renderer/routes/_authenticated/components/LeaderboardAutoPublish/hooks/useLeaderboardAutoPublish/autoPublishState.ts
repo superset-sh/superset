@@ -1,7 +1,7 @@
 import type { AutoPublishState } from "./autoPublishSchedule";
 import { INITIAL_AUTO_PUBLISH_STATE } from "./autoPublishSchedule";
 
-const STORAGE_KEY = "leaderboard-auto-publish-v1";
+const STORAGE_KEY = "leaderboard-auto-publish-v2";
 
 export function readAutoPublishState(handle: string): AutoPublishState {
 	try {

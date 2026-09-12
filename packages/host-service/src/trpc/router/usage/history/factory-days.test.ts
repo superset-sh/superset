@@ -4,7 +4,7 @@ import type { UsageLogEntry } from "./parse";
 
 function entry(over: Partial<UsageLogEntry> = {}): UsageLogEntry {
 	return {
-		provider: "claude",
+		agent: "claude",
 		model: "claude-opus-5",
 		timestampMs: Date.parse("2026-08-20T12:00:00.000Z"),
 		cwd: "/Users/someone/secret-project",

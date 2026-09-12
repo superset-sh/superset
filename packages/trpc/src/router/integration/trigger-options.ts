@@ -10,8 +10,19 @@ import { sentryTriggerOptions } from "./sentry/trigger-options";
 import { slackTriggerOptions } from "./slack/trigger-options";
 import { verifyOrgMembership } from "./utils";
 
-/** One selectable value in a scope or actor chip. */
-export type TriggerOption = { id: string; label: string };
+/**
+ * One selectable value in a scope or actor chip. `botMember` is set only by
+ * sources whose events require our bot to be inside the thing the option
+ * names (Slack channels): false means the trigger will stay silent until
+ * someone invites the bot, and the editor warns from it.
+ */
+export type TriggerOption = {
+	id: string;
+	label: string;
+	/** Muted context beside the label — a repo's owner org. */
+	hint?: string;
+	botMember?: boolean;
+};
 
 export type TriggerOptionContext = {
 	organizationId: string;

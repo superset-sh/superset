@@ -1,21 +1,41 @@
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { sandboxWorkspacesQuery } from "@/hooks/useCloudWorkspaceItems";
 import {
 	type CloudWorkspaceRow,
 	useCloudWorkspaces,
 } from "@/hooks/useCloudWorkspaces";
-import { useHostsPresence } from "@/hooks/useHostsPresence";
 import {
 	getHostWorkspacesQueryKey,
 	type HostWorkspaceRow,
 } from "@/hooks/useHostWorkspaces";
-import { NO_HOSTS, type OrgHost, useOrgHostsQuery } from "@/hooks/useOrgHosts";
-import { useSandboxAccess } from "@/hooks/useSandboxAccess";
+import { type OrgHost, useOrgHosts } from "@/hooks/useOrgHosts";
+import { type SandboxTarget, useSandboxAccess } from "@/hooks/useSandboxAccess";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
+
+const SANDBOX_REFETCH_INTERVAL_MS = 30_000;
+
+/**
+ * The row a sandbox serves for its own workspace, restated under the cloud
+ * workspace's id: the sandbox reports the machine id of the container it
+ * happens to run in, which addresses nothing from here.
+ */
+function sandboxWorkspacesQuery(target: SandboxTarget) {
+	return {
+		queryKey: getHostWorkspacesQueryKey(target.workspaceId, target.url),
+		refetchInterval: SANDBOX_REFETCH_INTERVAL_MS,
+		retry: 1,
+		networkMode: "always" as const,
+		queryFn: async (): Promise<HostWorkspaceRow[]> => {
+			const rows = await getHostServiceClientByUrl(
+				target.url,
+			).workspace.list.query();
+			return rows.map((row) => ({ ...row, hostId: target.workspaceId }));
+		},
+	};
+}
 
 export interface WorkspaceHostResult {
 	workspace: HostWorkspaceRow | null;
@@ -41,9 +61,7 @@ export interface WorkspaceHostResult {
 export function useWorkspaceHost(
 	workspaceId: string | null,
 ): WorkspaceHostResult {
-	const hostsQuery = useOrgHostsQuery();
-	const hosts = hostsQuery.data ?? NO_HOSTS;
-	const presence = useHostsPresence(hosts);
+	const { hosts, query: hostsQuery } = useOrgHosts();
 
 	const { workspaces: cloudRows, isReady: cloudReady } = useCloudWorkspaces();
 	const cloud = useMemo(
@@ -60,16 +78,12 @@ export function useWorkspaceHost(
 			cloud
 				? []
 				: hosts
-						.map((host) => ({
-							...host,
-							isOnline: presence?.get(host.machineId) ?? host.isOnline,
-						}))
 						.filter((host) => host.isOnline)
 						.map((host) => ({
 							host,
 							hostUrl: hostServiceUrl(host.organizationId, host.machineId),
 						})),
-		[cloud, hosts, presence],
+		[cloud, hosts],
 	);
 
 	const queries = useQueries({
@@ -103,6 +117,9 @@ export function useWorkspaceHost(
 							organizationId: cloud.organizationId,
 							machineId: cloud.id,
 							name: "Cloud",
+							version: null,
+							platform: null,
+							installSource: null,
 							// A sandbox is reachable or it isn't; there is no offline
 							// device behind it to report on.
 							isOnline: true,

@@ -64,6 +64,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"Anthropic's coding agent for reading code, editing files, and running terminal workflows.",
 		command: "claude --dangerously-skip-permissions",
 		resumeCommand: "claude --dangerously-skip-permissions --resume",
+		forkCommand:
+			"claude --dangerously-skip-permissions --resume {sessionId} --fork-session",
 		nonInteractiveCommand: "claude -p",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -89,6 +91,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust --",
 		resumeCommand:
 			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust resume",
+		forkCommand:
+			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust fork {sessionId}",
 		nonInteractiveCommand: "codex exec --skip-git-repo-check",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -121,6 +125,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		command: "opencode",
 		promptCommand: "opencode --prompt",
 		resumeCommand: "opencode --session",
+		forkCommand: "opencode --session {sessionId} --fork",
 		nonInteractiveCommand: "opencode run --agent plan",
 	}),
 	createBuiltinTerminalAgent({
@@ -138,6 +143,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"Minimal terminal coding harness for flexible coding workflows.",
 		command: "pi",
 		resumeCommand: "pi --session",
+		forkCommand: "pi --fork {sessionId}",
 		nonInteractiveCommand: "pi --no-tools -p",
 	}),
 	createBuiltinTerminalAgent({
@@ -179,6 +185,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"xAI's coding agent for reading, editing, and running code from the terminal.",
 		command: "grok --always-approve",
 		resumeCommand: "grok --always-approve --resume",
+		forkCommand: "grok --always-approve --resume {sessionId} --fork-session",
 		nonInteractiveCommand: "grok --permission-mode plan -p",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -197,6 +204,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description: "Factory's autonomous coding agent for terminal workflows.",
 		command: "droid",
 		resumeCommand: "droid --resume",
+		forkCommand: "droid --fork {sessionId}",
 		nonInteractiveCommand: "droid exec",
 	}),
 	createBuiltinTerminalAgent({
@@ -249,6 +257,27 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		promptCommandSuffix: "; hermes chat --yolo -c",
 		resumeCommand: "hermes chat --yolo -r",
 		nonInteractiveCommand: "hermes chat -q",
+	}),
+	createBuiltinTerminalAgent({
+		id: "muse",
+		label: "Muse Code",
+		description:
+			"Meta's terminal coding agent with persistent subagents and worktree fan-out.",
+		command: "muse",
+		resumeCommand: "muse resume",
+		nonInteractiveCommand: "muse exec",
+	}),
+	createBuiltinTerminalAgent({
+		id: "devin",
+		label: "Devin",
+		description:
+			"Cognition's Devin agent in the terminal, with handoff to Devin Cloud.",
+		command: "devin --permission-mode dangerous",
+		promptCommand: "devin --permission-mode dangerous --",
+		resumeCommand: "devin --permission-mode dangerous --resume",
+		// Print mode cannot show the workspace trust prompt and fails in an
+		// untrusted directory without this.
+		nonInteractiveCommand: "devin --respect-workspace-trust false -p",
 	}),
 ] as const;
 

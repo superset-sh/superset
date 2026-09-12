@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Check,
 	ChevronDown,
@@ -51,9 +52,11 @@ export function PageTitleMenu({
 	onPickVersion,
 	compact = false,
 }: PageTitleMenuProps) {
+	const { t } = useLingui();
 	useFramePointerDown(useCallback(() => onOpenChange(false), [onOpenChange]));
 
 	const served = page.servedVersion;
+	const updatedAgo = relativeTime(page.updatedAt);
 	const itemClass = compact ? "text-xs" : undefined;
 	const iconClass = compact ? "size-3.5" : undefined;
 
@@ -88,8 +91,12 @@ export function PageTitleMenu({
 
 			<DropdownMenuContent align="start" className="w-56">
 				<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
-					{isOwner ? "Page by you" : (page.owner?.name ?? "Page")} · updated{" "}
-					{relativeTime(page.updatedAt)}
+					{isOwner ? (
+						<Trans>Page by you</Trans>
+					) : (
+						(page.owner?.name ?? t({ message: "Page" }))
+					)}{" "}
+					<Trans>· updated {updatedAgo}</Trans>
 				</DropdownMenuLabel>
 
 				<DropdownMenuSeparator />
@@ -102,13 +109,13 @@ export function PageTitleMenu({
 					}}
 				>
 					<Share2 className={iconClass} />
-					Share
+					<Trans>Share</Trans>
 				</DropdownMenuItem>
 
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger className={itemClass}>
 						<History className={iconClass} />
-						Version history
+						<Trans>Version history</Trans>
 						<span className="text-muted-foreground tabular-nums">
 							{versions.length}
 						</span>
@@ -116,7 +123,7 @@ export function PageTitleMenu({
 					<DropdownMenuSubContent className="w-56">
 						{versions.length === 0 ? (
 							<DropdownMenuItem disabled className={itemClass}>
-								No versions yet
+								<Trans>No versions yet</Trans>
 							</DropdownMenuItem>
 						) : (
 							versions.map((entry) => (
@@ -127,7 +134,10 @@ export function PageTitleMenu({
 									onSelect={() => onPickVersion(entry.version)}
 								>
 									<span className="truncate">
-										{entry.label ?? `Version ${entry.version}`}
+										{entry.label ??
+											t({
+												message: `Version ${entry.version}`,
+											})}
 										<span className="ml-1 text-muted-foreground">
 											{relativeTime(entry.createdAt)}
 										</span>
@@ -153,7 +163,7 @@ export function PageTitleMenu({
 							}}
 						>
 							<Trash2 className={compact ? "size-3.5" : undefined} />
-							Delete page
+							<Trans>Delete page</Trans>
 						</DropdownMenuItem>
 					</>
 				) : null}

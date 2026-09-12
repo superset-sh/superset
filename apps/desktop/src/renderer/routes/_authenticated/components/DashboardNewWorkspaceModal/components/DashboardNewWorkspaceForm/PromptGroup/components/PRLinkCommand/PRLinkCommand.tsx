@@ -97,7 +97,6 @@ export function PRLinkCommand({
 		lastToastedError.current = msg;
 		toast.error(
 			t({
-				id: "dashboard.newWorkspaceModal.prLink.loadFailed",
 				message: `Couldn't load pull requests: ${msg}`,
 			}),
 		);
@@ -146,7 +145,6 @@ export function PRLinkCommand({
 				<Command shouldFilter={false}>
 					<CommandInput
 						placeholder={t({
-							id: "dashboard.newWorkspaceModal.prLink.searchPlaceholder",
 							message: "Search pull requests...",
 						})}
 						value={searchQuery}
@@ -162,9 +160,7 @@ export function PRLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							<Trans id="dashboard.newWorkspaceModal.prLink.showClosed">
-								Show closed
-							</Trans>
+							<Trans>Show closed</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[420px]">
@@ -172,40 +168,26 @@ export function PRLinkCommand({
 							<CommandEmpty>
 								{isLoading ? (
 									debouncedTrimmed ? (
-										<Trans id="dashboard.newWorkspaceModal.prLink.searching">
-											Searching...
-										</Trans>
+										<Trans>Searching...</Trans>
 									) : (
-										<Trans id="dashboard.newWorkspaceModal.prLink.loading">
-											Loading...
-										</Trans>
+										<Trans>Loading...</Trans>
 									)
 								) : error instanceof Error ? (
 									<span className="select-text cursor-text text-destructive">
 										{error.message}
 									</span>
 								) : repoMismatch ? (
-									<Trans id="dashboard.newWorkspaceModal.prLink.repoMismatch">
-										PR URL must match {repoMismatch}.
-									</Trans>
+									<Trans>PR URL must match {repoMismatch}.</Trans>
 								) : debouncedTrimmed ? (
 									showClosed ? (
-										<Trans id="dashboard.newWorkspaceModal.prLink.noResultsAll">
-											No pull requests found.
-										</Trans>
+										<Trans>No pull requests found.</Trans>
 									) : (
-										<Trans id="dashboard.newWorkspaceModal.prLink.noResultsOpen">
-											No open pull requests found.
-										</Trans>
+										<Trans>No open pull requests found.</Trans>
 									)
 								) : showClosed ? (
-									<Trans id="dashboard.newWorkspaceModal.prLink.emptyAll">
-										No pull requests found.
-									</Trans>
+									<Trans>No pull requests found.</Trans>
 								) : (
-									<Trans id="dashboard.newWorkspaceModal.prLink.emptyOpen">
-										No open pull requests.
-									</Trans>
+									<Trans>No open pull requests.</Trans>
 								)}
 							</CommandEmpty>
 						)}
@@ -214,7 +196,6 @@ export function PRLinkCommand({
 								heading={
 									debouncedTrimmed
 										? t({
-												id: "dashboard.newWorkspaceModal.prLink.resultCount",
 												message: plural(pullRequests.length, {
 													one: "# result",
 													other: "# results",
@@ -222,11 +203,9 @@ export function PRLinkCommand({
 											})
 										: showClosed
 											? t({
-													id: "dashboard.newWorkspaceModal.prLink.recentPrs",
 													message: "Recent PRs",
 												})
 											: t({
-													id: "dashboard.newWorkspaceModal.prLink.openPrs",
 													message: "Open PRs",
 												})
 								}

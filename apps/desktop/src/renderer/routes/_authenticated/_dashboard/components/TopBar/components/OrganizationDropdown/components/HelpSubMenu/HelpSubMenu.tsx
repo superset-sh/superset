@@ -38,29 +38,23 @@ export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 			<DropdownMenuSubTrigger>
 				<HiOutlineQuestionMarkCircle className="h-4 w-4" />
 				<span>
-					<Trans id="dashboard.topBar.helpMenu.help">Help</Trans>
+					<Trans>Help</Trans>
 				</span>
 			</DropdownMenuSubTrigger>
 			<DropdownMenuSubContent className="w-56">
 				<DropdownMenuItem onSelect={onSubmitPrompt}>
 					<LuMegaphone className="h-4 w-4" />
-					<Trans id="dashboard.topBar.helpMenu.submitPrompt">
-						Submit a prompt
-					</Trans>
+					<Trans>Submit a prompt</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuItem onSelect={() => openExternal(COMPANY.DOCS_URL)}>
 					<HiOutlineBookOpen className="h-4 w-4" />
-					<Trans id="dashboard.topBar.helpMenu.documentation">
-						Documentation
-					</Trans>
+					<Trans>Documentation</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/keyboard" })}
 				>
 					<LuKeyboard className="h-4 w-4" />
-					<Trans id="dashboard.topBar.helpMenu.keyboardShortcuts">
-						Keyboard Shortcuts
-					</Trans>
+					<Trans>Keyboard Shortcuts</Trans>
 					{shortcutsHotkey !== "Unassigned" && (
 						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
 					)}
@@ -69,23 +63,23 @@ export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 					onSelect={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
 				>
 					<IoBugOutline className="h-4 w-4" />
-					<Trans id="dashboard.topBar.helpMenu.reportIssue">Report Issue</Trans>
+					<Trans>Report Issue</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>
 						<HiOutlineChatBubbleLeftRight className="h-4 w-4" />
-						<Trans id="dashboard.topBar.helpMenu.contactUs">Contact Us</Trans>
+						<Trans>Contact Us</Trans>
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent sideOffset={8} className="w-56">
 						<DropdownMenuItem onSelect={() => openExternal(COMPANY.GITHUB_URL)}>
 							<FaGithub className="h-4 w-4" />
-							<Trans id="dashboard.topBar.helpMenu.github">GitHub</Trans>
+							<Trans>GitHub</Trans>
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onSelect={() => openExternal(COMPANY.DISCORD_URL)}
 						>
 							<FaDiscord className="h-4 w-4" />
-							<Trans id="dashboard.topBar.helpMenu.discord">Discord</Trans>
+							<Trans>Discord</Trans>
 						</DropdownMenuItem>
 						<DropdownMenuItem onSelect={() => openExternal(COMPANY.X_URL)}>
 							<FaXTwitter className="h-4 w-4" />
@@ -94,9 +88,7 @@ export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 						</DropdownMenuItem>
 						<DropdownMenuItem onSelect={() => openExternal(COMPANY.MAIL_TO)}>
 							<HiOutlineEnvelope className="h-4 w-4" />
-							<Trans id="dashboard.topBar.helpMenu.emailSupport">
-								Email Support
-							</Trans>
+							<Trans>Email Support</Trans>
 						</DropdownMenuItem>
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>

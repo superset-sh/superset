@@ -32,7 +32,6 @@ export function WorktreeLocationPicker({
 	const resolvedDialogTitle =
 		dialogTitle ??
 		t({
-			id: "settings.components.worktreeLocationPicker.dialogTitle",
 			message: "Select worktree location",
 		});
 
@@ -50,9 +49,7 @@ export function WorktreeLocationPicker({
 		<div className="flex items-center justify-between">
 			<div className="space-y-0.5">
 				<Label className="text-sm font-medium">
-					<Trans id="settings.components.worktreeLocationPicker.directory">
-						Directory
-					</Trans>
+					<Trans>Directory</Trans>
 				</Label>
 				<code className="text-xs bg-muted px-1.5 py-0.5 rounded text-foreground block mt-1">
 					{currentPath ?? defaultPathLabel}
@@ -65,9 +62,7 @@ export function WorktreeLocationPicker({
 					onClick={handleBrowse}
 					disabled={disabled || selectDirectory.isPending}
 				>
-					<Trans id="settings.components.worktreeLocationPicker.browse">
-						Browse...
-					</Trans>
+					<Trans>Browse...</Trans>
 				</Button>
 				{currentPath && (
 					<Button
@@ -76,9 +71,7 @@ export function WorktreeLocationPicker({
 						onClick={onReset}
 						disabled={disabled}
 					>
-						<Trans id="settings.components.worktreeLocationPicker.reset">
-							Reset
-						</Trans>
+						<Trans>Reset</Trans>
 					</Button>
 				)}
 			</div>

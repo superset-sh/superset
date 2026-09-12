@@ -61,7 +61,6 @@ function V1Body() {
 			<Label className="text-sm font-medium">
 				<HighlightText
 					text={t({
-						id: "settings.git.worktreeLocation.label",
 						message: "Worktree location",
 					})}
 					query={searchQuery}
@@ -70,7 +69,6 @@ function V1Body() {
 			<p className="text-xs text-muted-foreground">
 				<HighlightText
 					text={t({
-						id: "settings.git.worktreeLocation.baseDirHint",
 						message: "Base directory for new worktrees",
 					})}
 					query={searchQuery}
@@ -79,7 +77,6 @@ function V1Body() {
 			<WorktreeLocationPicker
 				currentPath={worktreeBaseDir}
 				defaultPathLabel={t({
-					id: "settings.git.worktreeLocation.defaultPathLabel",
 					message: `Default (${defaultWorktreePath})`,
 				})}
 				defaultBrowsePath={worktreeBaseDir}
@@ -107,7 +104,6 @@ function V2Body() {
 				name:
 					currentDeviceName ??
 					t({
-						id: "settings.git.worktreeLocation.thisDeviceOption",
 						message: "This device",
 					}),
 				isLocal: true,
@@ -141,7 +137,6 @@ function V2Body() {
 	const hasMultipleHosts = hostOptions.length > 1;
 
 	const thisDeviceLabel = t({
-		id: "settings.git.worktreeLocation.thisDevice",
 		message: "this device",
 	});
 	const selectedHostLabel = selectedHost?.isLocal
@@ -166,7 +161,6 @@ function V2Body() {
 					<Label className="text-sm font-medium">
 						<HighlightText
 							text={t({
-								id: "settings.git.worktreeLocation.v2Label",
 								message: "Worktree location",
 							})}
 							query={searchQuery}
@@ -175,13 +169,11 @@ function V2Body() {
 					<p className="text-xs text-muted-foreground">
 						{hasMultipleHosts ? (
 							t({
-								id: "settings.git.worktreeLocation.baseDirOnHost",
 								message: `Base directory for new worktrees on ${selectedHostLabel}`,
 							})
 						) : (
 							<HighlightText
 								text={t({
-									id: "settings.git.worktreeLocation.v2BaseDirHint",
 									message: "Base directory for new worktrees",
 								})}
 								query={searchQuery}
@@ -207,7 +199,6 @@ function V2Body() {
 				isRemoteTarget={!isLocal}
 				disabled={disabled}
 				browseTitle={t({
-					id: "settings.git.worktreeLocation.browseTitle",
 					message: "Select default worktree location",
 				})}
 				onSelect={(path) => setLocation.mutate(path)}
@@ -215,10 +206,9 @@ function V2Body() {
 			/>
 			{hasMultipleHosts && !isOnline ? (
 				<p className="text-xs text-muted-foreground">
-					<Trans id="settings.git.worktreeLocation.hostOffline">
+					<Trans>
 						{selectedHost?.name ??
 							t({
-								id: "settings.git.worktreeLocation.thisDeviceOffline",
 								message: "This device",
 							})}{" "}
 						is offline.

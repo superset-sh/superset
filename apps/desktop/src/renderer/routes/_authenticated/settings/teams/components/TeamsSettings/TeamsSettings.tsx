@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatDate as formatLocaleDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { Skeleton } from "@superset/ui/skeleton";
 import {
 	Table,
@@ -18,6 +18,8 @@ import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { CreateTeamButton } from "./components/CreateTeamButton";
 
 export function TeamsSettings() {
+	const { formatDate: formatLocaleDate } = useFormat();
+
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const navigate = useNavigate();
@@ -54,12 +56,12 @@ export function TeamsSettings() {
 					<div>
 						<h2 className="text-2xl font-semibold">
 							<HighlightText
-								text={t({ id: "settings.teams.title", message: "Teams" })}
+								text={t({ message: "Teams" })}
 								query={searchQuery}
 							/>
 						</h2>
 						<p className="text-sm text-muted-foreground mt-1">
-							<Trans id="settings.teams.subtitle">
+							<Trans>
 								Organize your work into teams. Tasks and integrations can sync
 								per-team.
 							</Trans>
@@ -85,7 +87,7 @@ export function TeamsSettings() {
 							</div>
 						) : teams.length === 0 ? (
 							<div className="text-center py-12 text-muted-foreground border rounded-lg">
-								<Trans id="settings.teams.emptyState">No teams yet</Trans>
+								<Trans>No teams yet</Trans>
 							</div>
 						) : (
 							<div className="border rounded-lg">
@@ -93,10 +95,10 @@ export function TeamsSettings() {
 									<TableHeader>
 										<TableRow>
 											<TableHead>
-												<Trans id="settings.teams.columnName">Name</Trans>
+												<Trans>Name</Trans>
 											</TableHead>
 											<TableHead>
-												<Trans id="settings.teams.columnCreated">Created</Trans>
+												<Trans>Created</Trans>
 											</TableHead>
 										</TableRow>
 									</TableHeader>

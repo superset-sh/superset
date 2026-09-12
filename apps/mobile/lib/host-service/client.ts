@@ -6,8 +6,9 @@ import { createTRPCClient, httpLink, type TRPCClient } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
 import { getJwt } from "../auth/client";
+import { transportRetryLink } from "../errors";
 import { getRelayUrl } from "../host/client";
-import { getSandboxAccess, sandboxPreviewToken } from "../sandbox-access";
+import { getSandboxAccess, sandboxToken } from "../sandbox-access";
 
 export type HostServiceClient = TRPCClient<AppRouter>;
 
@@ -48,17 +49,16 @@ export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {
 
 	const client = createTRPCClient<AppRouter>({
 		links: [
+			transportRetryLink(),
 			httpLink({
 				url: `${hostUrl}/trpc`,
 				transformer: superjson,
 				headers: () => {
 					const headers: Record<string, string> = {};
-					const jwt = getJwt();
-					if (jwt) headers.Authorization = `Bearer ${jwt}`;
-					// The provider's edge is the only gate in front of a sandbox;
-					// host-service behind it checks nothing itself.
-					const previewToken = sandboxPreviewToken(hostUrl);
-					if (previewToken) headers["X-Blaxel-Preview-Token"] = previewToken;
+					// A sandbox's host-service checks the token the cloud signed for
+					// it; a relay-reached host takes the user's JWT.
+					const bearer = sandboxToken(hostUrl) ?? getJwt();
+					if (bearer) headers.Authorization = `Bearer ${bearer}`;
 					return headers;
 				},
 			}),

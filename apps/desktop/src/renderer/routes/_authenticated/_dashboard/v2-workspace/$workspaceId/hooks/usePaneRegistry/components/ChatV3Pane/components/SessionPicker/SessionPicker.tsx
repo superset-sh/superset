@@ -55,11 +55,7 @@ export function SessionPicker({
 		>
 			<DropdownMenuTrigger asChild>
 				<Button size="sm" variant="ghost">
-					{active ? (
-						sessionLabel(active)
-					) : (
-						<Trans id="workspace.chat.sessionsFallback">Sessions</Trans>
-					)}
+					{active ? sessionLabel(active) : <Trans>Sessions</Trans>}
 					<ChevronDown className="ml-1 size-3" />
 				</Button>
 			</DropdownMenuTrigger>
@@ -78,7 +74,7 @@ export function SessionPicker({
 				{sessions.length > 0 && <DropdownMenuSeparator />}
 				<DropdownMenuItem onSelect={onNewSession}>
 					<Plus className="mr-1 size-3.5" />
-					<Trans id="workspace.chat.newSession">New session</Trans>
+					<Trans>New session</Trans>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

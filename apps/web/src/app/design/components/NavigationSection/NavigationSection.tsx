@@ -1,5 +1,8 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	Accordion,
 	AccordionContent,
@@ -40,7 +43,6 @@ import {
 } from "@superset/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { ChevronsUpDownIcon } from "lucide-react";
-
 import { ComponentCard } from "../ComponentCard";
 import { ShowcaseSection } from "../ShowcaseSection";
 
@@ -49,42 +51,72 @@ export function NavigationSection() {
 		<ShowcaseSection
 			id="navigation"
 			index="06"
-			title="Navigation"
-			description="Wayfinding and disclosure"
+			title={i18n._(
+				msg({
+					message: "Navigation",
+				}),
+			)}
+			description={i18n._(
+				msg({
+					message: "Wayfinding and disclosure",
+				}),
+			)}
 		>
-			<ComponentCard title="Tabs" importPath="@superset/ui/tabs">
+			<ComponentCard
+				title={i18n._(
+					msg({
+						message: "Tabs",
+					}),
+				)}
+				importPath="@superset/ui/tabs"
+			>
 				<Tabs defaultValue="terminal" className="w-full max-w-72">
 					<TabsList className="w-full">
-						<TabsTrigger value="terminal">Terminal</TabsTrigger>
-						<TabsTrigger value="diff">Diff</TabsTrigger>
-						<TabsTrigger value="notes">Notes</TabsTrigger>
+						<TabsTrigger value="terminal">
+							<Trans>Terminal</Trans>
+						</TabsTrigger>
+						<TabsTrigger value="diff">
+							<Trans>Diff</Trans>
+						</TabsTrigger>
+						<TabsTrigger value="notes">
+							<Trans>Notes</Trans>
+						</TabsTrigger>
 					</TabsList>
 					<TabsContent
 						value="terminal"
 						className="pt-2 text-sm text-muted-foreground"
 					>
-						Interactive agent terminal.
+						<Trans>Interactive agent terminal.</Trans>
 					</TabsContent>
 					<TabsContent
 						value="diff"
 						className="pt-2 text-sm text-muted-foreground"
 					>
-						Review pending changes.
+						<Trans>Review pending changes.</Trans>
 					</TabsContent>
 					<TabsContent
 						value="notes"
 						className="pt-2 text-sm text-muted-foreground"
 					>
-						Session notes and context.
+						<Trans>Session notes and context.</Trans>
 					</TabsContent>
 				</Tabs>
 			</ComponentCard>
 
-			<ComponentCard title="Breadcrumb" importPath="@superset/ui/breadcrumb">
+			<ComponentCard
+				title={i18n._(
+					msg({
+						message: "Breadcrumb",
+					}),
+				)}
+				importPath="@superset/ui/breadcrumb"
+			>
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem>
-							<BreadcrumbLink href="#navigation">Home</BreadcrumbLink>
+							<BreadcrumbLink href="#navigation">
+								<Trans>Home</Trans>
+							</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
@@ -92,17 +124,28 @@ export function NavigationSection() {
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
-							<BreadcrumbLink href="#navigation">Workspaces</BreadcrumbLink>
+							<BreadcrumbLink href="#navigation">
+								<Trans>Workspaces</Trans>
+							</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
-							<BreadcrumbPage>component-showcase</BreadcrumbPage>
+							<BreadcrumbPage>
+								<Trans>component-showcase</Trans>
+							</BreadcrumbPage>
 						</BreadcrumbItem>
 					</BreadcrumbList>
 				</Breadcrumb>
 			</ComponentCard>
 
-			<ComponentCard title="Pagination" importPath="@superset/ui/pagination">
+			<ComponentCard
+				title={i18n._(
+					msg({
+						message: "Pagination",
+					}),
+				)}
+				importPath="@superset/ui/pagination"
+			>
 				<Pagination>
 					<PaginationContent>
 						<PaginationItem>
@@ -127,28 +170,38 @@ export function NavigationSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title="Navigation Menu"
+				title={i18n._(
+					msg({
+						message: "Navigation Menu",
+					}),
+				)}
 				importPath="@superset/ui/navigation-menu"
 			>
 				<NavigationMenu>
 					<NavigationMenuList>
 						<NavigationMenuItem>
-							<NavigationMenuTrigger>Product</NavigationMenuTrigger>
+							<NavigationMenuTrigger>
+								<Trans>Product</Trans>
+							</NavigationMenuTrigger>
 							<NavigationMenuContent>
 								<ul className="grid w-64 gap-1 p-2">
 									<li>
 										<NavigationMenuLink href="#navigation">
-											<span className="font-medium">Workspaces</span>
+											<span className="font-medium">
+												<Trans>Workspaces</Trans>
+											</span>
 											<span className="text-muted-foreground">
-												Parallel agent worktrees
+												<Trans>Parallel agent worktrees</Trans>
 											</span>
 										</NavigationMenuLink>
 									</li>
 									<li>
 										<NavigationMenuLink href="#navigation">
-											<span className="font-medium">Tasks</span>
+											<span className="font-medium">
+												<Trans>Tasks</Trans>
+											</span>
 											<span className="text-muted-foreground">
-												Queue work for agents
+												<Trans>Queue work for agents</Trans>
 											</span>
 										</NavigationMenuLink>
 									</li>
@@ -156,36 +209,68 @@ export function NavigationSection() {
 							</NavigationMenuContent>
 						</NavigationMenuItem>
 						<NavigationMenuItem>
-							<NavigationMenuLink href="#navigation">Docs</NavigationMenuLink>
+							<NavigationMenuLink href="#navigation">
+								<Trans>Docs</Trans>
+							</NavigationMenuLink>
 						</NavigationMenuItem>
 					</NavigationMenuList>
 				</NavigationMenu>
 			</ComponentCard>
 
-			<ComponentCard title="Accordion" importPath="@superset/ui/accordion">
+			<ComponentCard
+				title={i18n._(
+					msg({
+						message: "Accordion",
+					}),
+				)}
+				importPath="@superset/ui/accordion"
+			>
 				<Accordion type="single" collapsible className="w-full max-w-72">
 					<AccordionItem value="worktrees">
-						<AccordionTrigger>What is a workspace?</AccordionTrigger>
+						<AccordionTrigger>
+							<Trans>What is a workspace?</Trans>
+						</AccordionTrigger>
 						<AccordionContent>
-							An isolated git worktree where an agent runs without touching your
-							main checkout.
+							<Trans>
+								An isolated git worktree where an agent runs without touching
+								your main checkout.
+							</Trans>
 						</AccordionContent>
 					</AccordionItem>
 					<AccordionItem value="agents">
-						<AccordionTrigger>Which agents are supported?</AccordionTrigger>
+						<AccordionTrigger>
+							<Trans>Which agents are supported?</Trans>
+						</AccordionTrigger>
 						<AccordionContent>
-							Claude Code, Codex, Cursor, OpenCode, and more.
+							<Trans>Claude Code, Codex, Cursor, OpenCode, and more.</Trans>
 						</AccordionContent>
 					</AccordionItem>
 				</Accordion>
 			</ComponentCard>
 
-			<ComponentCard title="Collapsible" importPath="@superset/ui/collapsible">
+			<ComponentCard
+				title={i18n._(
+					msg({
+						message: "Collapsible",
+					}),
+				)}
+				importPath="@superset/ui/collapsible"
+			>
 				<Collapsible className="w-full max-w-72">
 					<div className="flex items-center justify-between">
-						<span className="text-sm font-medium">3 archived workspaces</span>
+						<span className="text-sm font-medium">
+							<Trans>3 archived workspaces</Trans>
+						</span>
 						<CollapsibleTrigger asChild>
-							<Button variant="ghost" size="icon-sm" aria-label="Toggle">
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								aria-label={i18n._(
+									msg({
+										message: "Toggle",
+									}),
+								)}
+							>
 								<ChevronsUpDownIcon />
 							</Button>
 						</CollapsibleTrigger>

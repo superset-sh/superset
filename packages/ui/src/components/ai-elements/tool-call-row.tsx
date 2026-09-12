@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import {
 	ChevronDownIcon,
 	ChevronRightIcon,
@@ -87,7 +88,7 @@ export function ToolCallRow({
 		(isError ? (
 			<span className="ml-2 flex items-center gap-1 font-medium uppercase tracking-wide text-red-500">
 				<XCircleIcon className="h-3 w-3 shrink-0" />
-				Error
+				<Trans>Error</Trans>
 			</span>
 		) : null);
 
@@ -149,7 +150,9 @@ export function ToolCallRow({
 														<TriangleAlertIcon className="h-3 w-3 text-amber-500" />
 													</span>
 												</TooltipTrigger>
-												<TooltipContent>Not configured</TooltipContent>
+												<TooltipContent>
+													<Trans>Not configured</Trans>
+												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
 									)}

@@ -95,22 +95,19 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 	}, [forceStopWorkspaceRun]);
 
 	const buttonLabel = isRunning
-		? t({ id: "dashboard.topBar.runButton.stop", message: "Stop" })
+		? t({ message: "Stop" })
 		: hasRunCommand
-			? t({ id: "dashboard.topBar.runButton.run", message: "Run" })
-			: t({ id: "dashboard.topBar.runButton.setRun", message: "Set Run" });
+			? t({ message: "Run" })
+			: t({ message: "Set Run" });
 	const buttonAriaLabel = isRunning
 		? t({
-				id: "dashboard.topBar.runButton.stopAriaLabel",
 				message: "Stop workspace run command",
 			})
 		: hasRunCommand
 			? t({
-					id: "dashboard.topBar.runButton.runAriaLabel",
 					message: "Run workspace command",
 				})
 			: t({
-					id: "dashboard.topBar.runButton.configureAriaLabel",
 					message: "Configure workspace run command",
 				});
 
@@ -182,9 +179,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 								className="text-destructive focus:text-destructive"
 							>
 								<HiMiniXMark className="mr-2 size-4 text-destructive" />
-								<Trans id="dashboard.topBar.runButton.forceStop">
-									Force Stop
-								</Trans>
+								<Trans>Force Stop</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>
@@ -192,11 +187,9 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 					<DropdownMenuItem onClick={handleConfigureClick}>
 						<HiMiniCog6Tooth className="mr-2 size-4" />
 						{runDefinition?.source === "terminal-preset" ? (
-							<Trans id="dashboard.topBar.runButton.editRunScript">
-								Edit Run Script
-							</Trans>
+							<Trans>Edit Run Script</Trans>
 						) : (
-							<Trans id="dashboard.topBar.runButton.configure">Configure</Trans>
+							<Trans>Configure</Trans>
 						)}
 					</DropdownMenuItem>
 				</DropdownMenuContent>

@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import type { TableOfContents } from "fumadocs-core/toc";
 import { AnchorProvider } from "fumadocs-core/toc";
 import { Edit, Text } from "lucide-react";
@@ -5,6 +6,7 @@ import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
 import { buttonVariants } from "@/components/Button";
 import { cn } from "@/lib/cn";
+import { initServerI18n } from "@/lib/i18n-server";
 import type { TOCProps } from "./components/PageClient/components/TableOfContents/TableOfContents";
 import {
 	TOCItems,
@@ -57,7 +59,7 @@ export interface DocsPageProps {
 	article?: HTMLAttributes<HTMLElement>;
 }
 
-export function DocsPage({
+export async function DocsPage({
 	toc = [],
 	full = false,
 	tableOfContentPopover: {
@@ -81,6 +83,8 @@ export function DocsPage({
 	container,
 	article,
 }: DocsPageProps) {
+	const i18n = await initServerI18n();
+
 	const isTocRequired =
 		toc.length > 0 ||
 		tocOptions.footer !== undefined ||
@@ -148,7 +152,7 @@ export function DocsPage({
 					{tocOptions.header}
 					<h3 className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
 						<Text className="size-4" />
-						On this page
+						{i18n._(msg({ message: "On this page" }))}
 					</h3>
 					<TOCScrollArea>
 						<TOCItems items={toc} />
@@ -162,13 +166,15 @@ export function DocsPage({
 	);
 }
 
-function EditOnGitHub({
+async function EditOnGitHub({
 	owner,
 	repo,
 	branch = "main",
 	path,
 	...props
 }: EditOnGitHubOptions) {
+	const i18n = await initServerI18n();
+
 	const href = `https://github.com/${owner}/${repo}/blob/${branch}/${path.startsWith("/") ? path.slice(1) : path}`;
 
 	return (
@@ -188,7 +194,7 @@ function EditOnGitHub({
 			)}
 		>
 			<Edit className="size-3.5" />
-			Edit on GitHub
+			{i18n._(msg({ message: "Edit on GitHub" }))}
 		</a>
 	);
 }

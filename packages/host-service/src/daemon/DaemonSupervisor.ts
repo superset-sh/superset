@@ -30,6 +30,17 @@ import semver from "semver";
 import { DaemonClient } from "../terminal/DaemonClient/index.ts";
 import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
 import { MAX_DAEMON_LOG_BYTES, openRotatingLogFd } from "./log-fd.ts";
+
+/**
+ * Replay buffer the daemon retains per session. Its own default is 64 KB,
+ * which is enough to repaint a screen on reattach but not to answer "what
+ * happened in this session" after a host-service restart: adoption refills
+ * the host's 2 MB catch-up ring from this buffer alone, so it is the real
+ * ceiling on a post-restart session handoff. Sized to leave a useful
+ * transcript without holding megabytes per session across many worktrees.
+ */
+const DAEMON_REPLAY_BUFFER_BYTES = 512 * 1024;
+
 import {
 	assertIsolatedDaemonNamespaceInTests,
 	isProcessAlive,
@@ -1249,7 +1260,11 @@ export class DaemonSupervisor {
 			const isWindows = process.platform === "win32";
 			const command = isWindows ? process.execPath : "/bin/sh";
 			const commandArgs = isWindows
-				? [this.opts.scriptPath, `--socket=${socketPath}`]
+				? [
+						this.opts.scriptPath,
+						`--socket=${socketPath}`,
+						`--buffer-bytes=${DAEMON_REPLAY_BUFFER_BYTES}`,
+					]
 				: [
 						"-c",
 						'ulimit -n 1048576 2>/dev/null || ulimit -n "$(ulimit -Hn)" 2>/dev/null || true; exec "$@"',
@@ -1257,6 +1272,7 @@ export class DaemonSupervisor {
 						process.execPath,
 						this.opts.scriptPath,
 						`--socket=${socketPath}`,
+						`--buffer-bytes=${DAEMON_REPLAY_BUFFER_BYTES}`,
 					];
 			child = childProcess.spawn(command, commandArgs, {
 				detached: !isDev,

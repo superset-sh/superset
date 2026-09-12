@@ -28,14 +28,14 @@ export function FeatureSidebar({
 	}, [highlightedFeatureId]);
 
 	return (
-		<div className="flex flex-col border-r bg-card">
+		<div className="flex w-[249px] shrink-0 flex-col border-r bg-card">
 			<div className="px-5 pt-5 pb-2.5">
 				<h1 className="mb-0 text-lg font-bold text-foreground">
-					<Trans id="components.featureSidebar.title">Pro Features</Trans>
+					<Trans>Pro Features</Trans>
 				</h1>
 			</div>
 
-			<div className="flex flex-col gap-2.5 px-5 py-2.5">
+			<div className="flex flex-col gap-2 py-2.5">
 				{orderedFeatures.map((proFeature) => (
 					<FeatureButton
 						key={proFeature.id}
@@ -64,7 +64,7 @@ function FeatureButton({ feature, isSelected, onSelect }: FeatureButtonProps) {
 			type="button"
 			onClick={onSelect}
 			className={cn(
-				"group flex w-[209px] h-16 items-center gap-3 px-4 py-3.5 transition-all duration-200 ease-out",
+				"group flex h-14 w-full items-center gap-3 px-5 py-2.5 transition-all duration-200 ease-out",
 				"cursor-pointer text-left",
 				isSelected
 					? "bg-muted text-foreground"
@@ -90,9 +90,7 @@ function FeatureButton({ feature, isSelected, onSelect }: FeatureButtonProps) {
 				</span>
 				{feature.comingSoon && (
 					<span className="text-[11px] text-muted-foreground font-normal">
-						<Trans id="components.featureSidebar.comingSoon">
-							(Coming Soon)
-						</Trans>
+						<Trans>(Coming Soon)</Trans>
 					</span>
 				)}
 			</span>

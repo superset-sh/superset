@@ -51,8 +51,8 @@ export function useDiffCodeViewScroll({
 }: UseDiffCodeViewScrollOptions): UseDiffCodeViewScrollResult {
 	// Identifies the click/focus request currently being tracked, and whether
 	// it's still "sticky" — i.e. whether we should keep re-asserting
-	// `scrollTo` for it as `items` shifts under the viewport (a later
-	// `getDiffBulk` group resolving, a comment thread arriving) instead of
+	// `scrollTo` for it as `items` shifts under the viewport (a deferred
+	// diff loading in, a comment thread arriving) instead of
 	// landing once and never correcting for drift.
 	const activeScrollKeyRef = useRef<string | null>(null);
 	const stickyRef = useRef(true);

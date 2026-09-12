@@ -32,6 +32,11 @@ export function DashboardSidebarAgentsChip({
 	const { isOpen, onOpenChange, onPointerEnter, onPointerLeave, toggleOpen } =
 		useDashboardSidebarChipHoverSuppression();
 
+	const subagentCount = agents.reduce(
+		(total, agent) => total + agent.subagents.length,
+		0,
+	);
+
 	const primaryAgent = agents.reduce((best, agent) => {
 		if (STATUS_PRIORITY[agent.status] !== STATUS_PRIORITY[best.status]) {
 			return STATUS_PRIORITY[agent.status] > STATUS_PRIORITY[best.status]
@@ -67,23 +72,31 @@ export function DashboardSidebarAgentsChip({
 							}
 						}}
 						aria-expanded={isOpen}
-						aria-label={
+						aria-label={[
 							isOpen
 								? t({
-										id: "dashboard.sidebar.agentsChip.hideDetailsAriaLabel",
 										message: plural(agents.length, {
 											one: "# running agent — hide details",
 											other: "# running agents — hide details",
 										}),
 									})
 								: t({
-										id: "dashboard.sidebar.agentsChip.showDetailsAriaLabel",
 										message: plural(agents.length, {
 											one: "# running agent — show details",
 											other: "# running agents — show details",
 										}),
+									}),
+							subagentCount > 0
+								? t({
+										message: plural(subagentCount, {
+											one: "# subagent running",
+											other: "# subagents running",
+										}),
 									})
-						}
+								: null,
+						]
+							.filter(Boolean)
+							.join(", ")}
 						className={cn(
 							"group/chip h-[18px] overflow-visible bg-muted/60 px-1.5 py-0 text-[9px] font-medium tabular-nums text-muted-foreground",
 							"[&>svg]:size-2.5 hover:bg-muted hover:text-foreground",
@@ -91,6 +104,11 @@ export function DashboardSidebarAgentsChip({
 					>
 						<DashboardSidebarAgentAvatar agent={primaryAgent} />
 						<span className="shrink-0">{agents.length}</span>
+						{subagentCount > 0 && (
+							<span className="shrink-0 font-normal text-muted-foreground">
+								+{subagentCount}
+							</span>
+						)}
 					</button>
 				</Badge>
 			</HoverCardTrigger>
@@ -102,7 +120,7 @@ export function DashboardSidebarAgentsChip({
 			>
 				<div className="flex items-center justify-between px-2 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
 					<span>
-						<Trans id="dashboard.sidebar.agentsChip.title">Agents</Trans>
+						<Trans>Agents</Trans>
 					</span>
 					<span className="tabular-nums">{agents.length}</span>
 				</div>

@@ -147,7 +147,7 @@ export async function collectGrokEntries(
 		pending.push({
 			sid,
 			entry: {
-				provider: "grok",
+				agent: "grok",
 				model: "unknown",
 				timestampMs,
 				cwd: null,

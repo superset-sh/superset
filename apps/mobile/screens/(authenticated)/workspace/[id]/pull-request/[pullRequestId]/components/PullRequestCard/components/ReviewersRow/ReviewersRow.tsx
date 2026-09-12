@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { PullRequestReviewer } from "../../../../../../utils/pullRequest";
 import { CardRow } from "../CardRow";
 import { ReviewerAvatarStack } from "./components/ReviewerAvatarStack";
@@ -22,8 +23,17 @@ export function ReviewersRow({
 	reviewers: PullRequestReviewer[];
 	onPress?: () => void;
 }) {
+	const { t } = useLingui();
 	if (reviewers.length === 0) {
-		return <CardRow label="No Reviewers Assigned" muted onPress={onPress} />;
+		return (
+			<CardRow
+				label={t({
+					message: "No Reviewers Assigned",
+				})}
+				muted
+				onPress={onPress}
+			/>
+		);
 	}
 
 	const sorted = [...reviewers].sort((a, b) => ORDER[a.state] - ORDER[b.state]);
@@ -32,17 +42,27 @@ export function ReviewersRow({
 		(reviewer) => reviewer.state === "REQUESTED",
 	).length;
 
-	const label = actor
-		? `${actor.login} ${
-				actor.state === "CHANGES_REQUESTED"
-					? "Requested Changes"
-					: actor.state === "APPROVED"
-						? "Approved"
-						: actor.state === "DISMISSED"
-							? "Review Dismissed"
-							: "Commented"
-			}`
-		: "Waiting for Review";
+	const actorVerb = actor
+		? actor.state === "CHANGES_REQUESTED"
+			? t({
+					message: "Requested Changes",
+				})
+			: actor.state === "APPROVED"
+				? t({ message: "Approved" })
+				: actor.state === "DISMISSED"
+					? t({
+							message: "Review Dismissed",
+						})
+					: t({ message: "Commented" })
+		: null;
+	const label =
+		actor && actorVerb
+			? t({
+					message: `${actor.login} ${actorVerb}`,
+				})
+			: t({
+					message: "Waiting for Review",
+				});
 
 	return (
 		<CardRow
@@ -50,7 +70,13 @@ export function ReviewersRow({
 			leading={<ReviewerAvatarStack reviewers={sorted} />}
 			muted={!actor}
 			onPress={onPress}
-			subLabel={waiting > 0 && actor ? `${waiting} Waiting` : null}
+			subLabel={
+				waiting > 0 && actor
+					? t({
+							message: `${waiting} Waiting`,
+						})
+					: null
+			}
 		/>
 	);
 }

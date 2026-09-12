@@ -1,5 +1,8 @@
 import { COMPANY } from "@superset/shared/constants";
-import { FAQ_ITEMS } from "@/app/components/FAQSection/constants";
+import {
+	FAQ_ITEMS,
+	faqSourceText,
+} from "@/app/[lang]/components/FAQSection/constants";
 import { API_URL, MCP_SERVER_URL } from "./api-url";
 import { getBlogPosts } from "./blog";
 import { getCategoryPages } from "./category";
@@ -135,9 +138,9 @@ export function buildLlmsTxt(): string {
 		"## FAQ",
 		"",
 		...FAQ_ITEMS.flatMap((item) => [
-			`### ${item.question}`,
+			`### ${faqSourceText(item.question)}`,
 			"",
-			item.answer,
+			faqSourceText(item.answer),
 			"",
 		]),
 	];

@@ -4,6 +4,7 @@
 // the credential provider) and crosses as plain data.
 
 import {
+	getGitAuthorName,
 	type ResolvedGitInfo,
 	readGitIdentity,
 } from "../../runtime/git/identity.ts";
@@ -14,9 +15,16 @@ import {
 } from "../../runtime/pull-requests/utils/workspace-refs.ts";
 import type { ChangedFile } from "../../trpc/router/git/types.ts";
 import type { BaseRefFetchTarget } from "../../trpc/router/git/utils/base-ref-freshness.ts";
+import { buildDiffPatch } from "../../trpc/router/git/utils/diff-patch.ts";
+import {
+	type DiffSide,
+	diffSideObjectSpec,
+	readDiffSideBlob,
+} from "../../trpc/router/git/utils/diff-side-blob.ts";
 import {
 	type DiffCategory,
 	getChangedFilesForDiff,
+	getDefaultBranchName,
 	loadFileDiffContent,
 	mapWithConcurrency,
 	resolveDiffCategoryRefs,
@@ -139,6 +147,107 @@ export const gitDiffBulkTask = defineWorkerTask<
 	},
 });
 
+// Whole-category patch for the Changes pane. `git diff` runs here rather
+// than on the host-service event loop, and the patch is a fraction of the
+// bytes `getDiffBulk` moves — hunks with three lines of context instead of
+// two complete copies of every changed file.
+export const gitDiffPatchTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		category: DiffCategory;
+		paths?: string[];
+		untrackedPaths?: string[];
+		baseBranch?: string;
+		commitHash?: string;
+		fromHash?: string;
+		gitEnv: GitTaskEnv;
+	},
+	{ patch: string }
+>({
+	type: "git/getDiffPatch",
+	handler: async ({
+		worktreePath,
+		category,
+		paths,
+		untrackedPaths,
+		baseBranch,
+		commitHash,
+		fromHash,
+		gitEnv,
+	}) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		const refs = await resolveDiffCategoryRefs(git, category, {
+			baseBranch,
+			commitHash,
+			fromHash,
+		});
+		const patch = await buildDiffPatch({
+			cwd: worktreePath,
+			env: gitEnv,
+			category,
+			refs,
+			paths,
+			untrackedPaths,
+		});
+		return { patch };
+	},
+});
+
+export type DiffSideBlobResult =
+	| { kind: "missing" }
+	| {
+			kind: "bytes";
+			/** base64; null when the blob is over the cap */
+			content: string | null;
+			byteLength: number;
+			exceededLimit: boolean;
+	  };
+
+export const gitDiffSideBlobTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		category: DiffCategory;
+		side: DiffSide;
+		path: string;
+		maxBytes: number;
+		baseBranch?: string;
+		commitHash?: string;
+		fromHash?: string;
+		gitEnv: GitTaskEnv;
+	},
+	DiffSideBlobResult
+>({
+	type: "git/readDiffSideBlob",
+	handler: async ({
+		worktreePath,
+		category,
+		side,
+		path,
+		maxBytes,
+		baseBranch,
+		commitHash,
+		fromHash,
+		gitEnv,
+	}) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		const refs = await resolveDiffCategoryRefs(git, category, {
+			baseBranch,
+			commitHash,
+			fromHash,
+		});
+		const spec = diffSideObjectSpec(category, side, path, refs);
+		if (!spec) return { kind: "missing" };
+		const blob = await readDiffSideBlob(git, spec, maxBytes);
+		if (blob.kind === "missing") return { kind: "missing" };
+		return {
+			kind: "bytes",
+			content: blob.content?.toString("base64") ?? null,
+			byteLength: blob.byteLength,
+			exceededLimit: blob.exceededLimit,
+		};
+	},
+});
+
 export const gitWorkspaceRefsTask = defineWorkerTask<
 	{ worktreePath: string; gitEnv: GitTaskEnv },
 	WorkspaceRefsSnapshot
@@ -156,6 +265,23 @@ export const gitIdentityTask = defineWorkerTask<
 >({
 	type: "git/readGitIdentity",
 	handler: ({ shellEnv }) => readGitIdentity(shellEnv),
+});
+
+/**
+ * Repository-scoped `user.name`, unlike `gitIdentityTask` (which reads the
+ * home-directory/global identity). A repo can locally override `user.name`,
+ * so branch-prefix resolution must read the same repo `create` binds its
+ * on-loop client to — reading the global identity instead would let the
+ * "author" prefix disagree between the branch `create` makes and the one an
+ * AI/derived rename or live preview later proposes for it.
+ */
+export const gitAuthorNameTask = defineWorkerTask<
+	{ worktreePath: string },
+	string | null
+>({
+	type: "git/readAuthorName",
+	handler: ({ worktreePath }) =>
+		getGitAuthorName(createUserSimpleGit(worktreePath)),
 });
 
 // Delete-preview + destroy-preflight state for workspace cleanup.
@@ -197,7 +323,7 @@ export const gitWorktreeStateTask = defineWorkerTask<
 
 export const gitWorktreeRemoveTask = defineWorkerTask<
 	{ repoPath: string; worktreePath: string; gitEnv: GitTaskEnv },
-	{ stillRegistered: boolean }
+	{ stillRegistered: boolean; removeError?: string }
 >({
 	type: "git/removeWorktree",
 	// This task outlives its caller's budget in the field (HOST-SERVICE-17,
@@ -214,15 +340,25 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 		// (macOS `/var` → `/private/var`) still matches its registration.
 		// `realpathSync.native` is a blocking syscall, hence its own phase.
 		const target = normalizeWorktreePath(worktreePath);
-		// Best-effort: the registry read below is authoritative, not the
-		// command's locale- and version-dependent exit text. `--force --force`
-		// also unregisters a worktree whose directory is already gone, so no
-		// separate prune (which would clobber other stale worktrees' metadata)
-		// is needed.
+		// The registry read below decides "registered or not" (the command's
+		// exit text is locale- and version-dependent), but registration is
+		// not the whole story: git can unregister the worktree and still fail
+		// partway through its recursive delete (#6730). Keep the error — it
+		// is the only record of why files were left behind — and let the
+		// caller re-check the disk. `--force --force` also unregisters a
+		// worktree whose directory is already gone, so no separate prune
+		// (which would clobber other stale worktrees' metadata) is needed.
 		reportPhase?.("worktree-remove");
+		let removeError: string | undefined;
 		await git
 			.raw(["worktree", "remove", "--force", "--force", target])
-			.catch(() => {});
+			.catch((err: unknown) => {
+				removeError = (err instanceof Error ? err.message : String(err)).trim();
+				console.warn("[git/removeWorktree] git worktree remove failed", {
+					target,
+					error: removeError,
+				});
+			});
 		// A `worktree list` failure throws out of the task: the post-remove
 		// state is unknown and the caller must not treat it as removed.
 		reportPhase?.("worktree-list");
@@ -231,6 +367,7 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 			stillRegistered: parseWorktreeList(raw).some(
 				(w) => normalizeWorktreePath(w.path) === target,
 			),
+			removeError,
 		};
 	},
 });
@@ -253,14 +390,172 @@ export const gitDeleteBranchTask = defineWorkerTask<
 	},
 });
 
+export const gitStagePathsTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		paths: string[];
+		action: "stage" | "unstage";
+		gitEnv: GitTaskEnv;
+	},
+	{ success: true }
+>({
+	type: "git/stagePaths",
+	handler: async ({ worktreePath, paths, action, gitEnv }) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		// Paths come from status output, not from a pathspec the user typed;
+		// without this, a name like `:(glob)**` would match the whole tree.
+		const command = action === "stage" ? ["add", "-A"] : ["reset", "HEAD"];
+		await git.raw(["--literal-pathspecs", ...command, "--", ...paths]);
+		return { success: true };
+	},
+});
+
+export const gitCommitTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		message: string;
+		stageAll: boolean;
+		gitEnv: GitTaskEnv;
+	},
+	{ ok: true; hash: string } | { ok: false; reason: "nothing-to-commit" }
+>({
+	type: "git/commit",
+	handler: async ({ worktreePath, message, stageAll, gitEnv }) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		if (stageAll) await git.raw(["add", "-A"]);
+		// Read the staged file list instead of `--quiet` exit codes:
+		// simple-git treats a non-zero exit with empty stderr as success, so
+		// `diff --quiet`'s exit-1 signal never surfaces as a rejection.
+		const staged = (await git.raw(["diff", "--cached", "--name-only"])).trim();
+		if (!staged) return { ok: false, reason: "nothing-to-commit" };
+		await git.raw(["commit", "-m", message]);
+		const hash = (await git.revparse(["HEAD"])).trim();
+		return { ok: true, hash };
+	},
+});
+
+export const gitPushTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		/** The workspace's linked PR head branch, when one exists. */
+		linkedPrHeadBranch: string | null;
+		gitEnv: GitTaskEnv;
+	},
+	{ ok: true } | { ok: false; reason: "detached-head" | "no-remote" }
+>({
+	type: "git/push",
+	handler: async ({ worktreePath, linkedPrHeadBranch, gitEnv }) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		const branch = (
+			await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
+		).trim();
+		if (!branch || branch === "HEAD")
+			return { ok: false, reason: "detached-head" };
+
+		// Workspace branches fork from the base branch, so git's
+		// autoSetupMerge usually leaves them tracking e.g. origin/main — a
+		// plain `git push` refuses that name mismatch, and honoring it would
+		// mean pushing to main. But a different-name upstream is deliberate
+		// for PR-checkout workspaces (local alice/feature-x tracking the PR
+		// head feature-x), so the linked PR's head branch decides: matching
+		// upstream → push to it; anything else → publish under the branch's
+		// own name and re-point the upstream there (v1's push flow).
+		const upstreamRef = await git
+			.raw(["rev-parse", "--abbrev-ref", "@{upstream}"])
+			.then(
+				(ref) => ref.trim(),
+				() => null,
+			);
+		// `branch.<name>.remote` distinguishes remote tracking from tracking
+		// a local branch ("."), where @{upstream} prints a bare branch name
+		// that must never be mistaken for a remote.
+		const configuredRemote = (
+			await git.raw(["config", `branch.${branch}.remote`]).catch(() => "")
+		).trim();
+		const hasRemoteUpstream =
+			upstreamRef != null && !!configuredRemote && configuredRemote !== ".";
+		const upstreamBranch = !hasRemoteUpstream
+			? null
+			: upstreamRef.startsWith(`${configuredRemote}/`)
+				? upstreamRef.slice(configuredRemote.length + 1)
+				: upstreamRef.split("/").slice(1).join("/");
+
+		if (hasRemoteUpstream && upstreamBranch === branch) {
+			await git.raw(["push"]);
+			return { ok: true };
+		}
+
+		const remotes = await git.getRemotes(false).catch(() => []);
+		const fallbackRemote =
+			remotes.find((r) => r.name === "origin")?.name ?? remotes[0]?.name;
+		const remote = hasRemoteUpstream ? configuredRemote : fallbackRemote;
+		if (!remote) return { ok: false, reason: "no-remote" };
+
+		if (
+			hasRemoteUpstream &&
+			upstreamBranch != null &&
+			linkedPrHeadBranch === upstreamBranch
+		) {
+			// PR checkout: the upstream deliberately points at the PR's head
+			// under a different local name. Push there and keep the tracking.
+			await git.raw(["push", remote, `HEAD:refs/heads/${upstreamBranch}`]);
+			return { ok: true };
+		}
+
+		// HEAD refspec avoids resolving the branch name as a local ref —
+		// more reliable in worktrees (mirrors v1's pushWithSetUpstream).
+		await git.raw([
+			"push",
+			"--set-upstream",
+			remote,
+			`HEAD:refs/heads/${branch}`,
+		]);
+		return { ok: true };
+	},
+});
+
+export const gitPrHeadBaseTask = defineWorkerTask<
+	{ worktreePath: string; gitEnv: GitTaskEnv },
+	{
+		head: string | null;
+		configuredBase: string | null;
+		defaultBranch: string | null;
+	}
+>({
+	type: "git/prHeadBase",
+	handler: async ({ worktreePath, gitEnv }) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		const rawHead = (
+			await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
+		).trim();
+		const head = !rawHead || rawHead === "HEAD" ? null : rawHead;
+		const configuredBase = head
+			? (
+					await git.raw(["config", `branch.${head}.base`]).catch(() => "")
+				).trim() || null
+			: null;
+		return {
+			head,
+			configuredBase,
+			defaultBranch: await getDefaultBranchName(git),
+		};
+	},
+});
+
 export const gitTasks = [
 	gitStatusSnapshotTask,
 	gitFetchBaseRefTask,
 	gitCommitFilesTask,
 	gitDiffBulkTask,
+	gitDiffPatchTask,
+	gitDiffSideBlobTask,
 	gitWorkspaceRefsTask,
 	gitIdentityTask,
+	gitAuthorNameTask,
 	gitWorktreeStateTask,
 	gitWorktreeRemoveTask,
 	gitDeleteBranchTask,
+	gitCommitTask,
+	gitPushTask,
+	gitPrHeadBaseTask,
 ];

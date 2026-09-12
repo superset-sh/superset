@@ -41,6 +41,16 @@ const relayBackupHttpOrigin = process.env.RELAY_BACKUP_URL
 const relayBackupWsOrigin = relayBackupHttpOrigin
 	? relayBackupHttpOrigin.replace(/^http/, "ws")
 	: null;
+// Published pages are framed from their own origin, one subdomain per page.
+// An unset GitHub Actions var arrives as an empty string, which `??`
+// does not catch — and `new URL("")` throws before Next even loads.
+const usercontentUrl = new URL(
+	process.env.USERCONTENT_URL ||
+		(isProduction
+			? "https://frame.supersetusercontent.com"
+			: "http://frame.usercontent.localhost:8787"),
+);
+const usercontentFrameSource = `${usercontentUrl.protocol}//*.${usercontentUrl.host}`;
 
 const contentSecurityPolicy = [
 	"default-src 'self'",
@@ -52,17 +62,12 @@ const contentSecurityPolicy = [
 		relayHttpOrigin,
 		relayBackupWsOrigin,
 		relayBackupHttpOrigin,
-		// The Durable Objects relay a user can be routed to via
-		// relay-url-override; the runtime relay comes from that flag while
-		// this header is built at compile time, so it must be listed
-		// explicitly. Removable once relay2 answers on relay.superset.sh.
-		"https://superset-relay2.avi-6ac.workers.dev",
-		"wss://superset-relay2.avi-6ac.workers.dev",
 		"https://*.ingest.sentry.io",
 		"https://*.sentry.io",
 		"https://us.i.posthog.com",
 		"https://us-assets.i.posthog.com",
 		"https://us.posthog.com",
+		"https://cloudflareinsights.com",
 		!isProduction && "ws:",
 		!isProduction && "wss:",
 	]
@@ -71,12 +76,14 @@ const contentSecurityPolicy = [
 	"font-src 'self' data: https://fonts.gstatic.com",
 	"form-action 'self'",
 	"frame-ancestors 'none'",
+	`frame-src ${usercontentFrameSource}`,
 	"img-src 'self' data: blob: https:",
 	"object-src 'none'",
 	[
 		// wasm-unsafe-eval: WebAssembly.instantiate only — NOT eval()/Function.
 		// Without it Chrome blocks wasm under script-src (WEB-2K, /oauth/consent).
 		"script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+		"https://static.cloudflareinsights.com",
 		!isProduction && "'unsafe-eval'",
 	]
 		.filter(Boolean)
@@ -124,15 +131,6 @@ const config: NextConfig = {
 	// lockstep with Next's swc_core ABI — see plans/20260826-i18n-strategy.md.
 	experimental: {
 		swcPlugins: [["@lingui/swc-plugin", {}]],
-	},
-
-	images: {
-		remotePatterns: [
-			{
-				protocol: "https",
-				hostname: "*.public.blob.vercel-storage.com",
-			},
-		],
 	},
 
 	async rewrites() {

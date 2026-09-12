@@ -9,17 +9,25 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTRPC } from "@/trpc/react";
+import { OpenInSupersetButton } from "./components/OpenInSupersetButton";
+import { PageWatchBadge } from "./components/PageWatchBadge";
 
 interface PageHeaderBarProps {
 	page: PageHeaderPage;
 	versions: PageHeaderVersion[];
 	currentUserId: string | undefined;
+	slug: string;
+	watching: boolean;
+	watchAgentId: string | null;
 }
 
 export function PageHeaderBar({
 	page,
 	versions,
 	currentUserId,
+	slug,
+	watching,
+	watchAgentId,
 }: PageHeaderBarProps) {
 	const trpc = useTRPC();
 	const router = useRouter();
@@ -34,7 +42,17 @@ export function PageHeaderBar({
 			page={page}
 			versions={versions}
 			currentUserId={currentUserId}
-			trailing={<CommentModeToggle />}
+			trailing={
+				<>
+					<OpenInSupersetButton slug={slug} />
+					<PageWatchBadge
+						slug={slug}
+						initialWatching={watching}
+						initialAgentId={watchAgentId}
+					/>
+					<CommentModeToggle />
+				</>
+			}
 			onSetVisibility={async (visibility) => {
 				await setVisibility.mutateAsync({ id: page.id, visibility });
 				router.refresh();
