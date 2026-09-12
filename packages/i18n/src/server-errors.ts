@@ -13,6 +13,78 @@ export const serverErrorMessages: Record<
 	string,
 	(params?: Record<string, unknown>) => string
 > = {
+	"serverError.agentCredential.anthropicRejectedKey": () =>
+		i18n._(
+			msg({
+				message: "Anthropic rejected this API key.",
+			}),
+		),
+	"serverError.agentCredential.anthropicRejectedToken": () =>
+		i18n._(
+			msg({
+				message: "Anthropic rejected this token.",
+			}),
+		),
+	"serverError.agentCredential.empty": () =>
+		i18n._(
+			msg({
+				message: "Enter a value.",
+			}),
+		),
+	"serverError.agentCredential.gatewayRejectedKey": () =>
+		i18n._(
+			msg({
+				message: "Vercel AI Gateway rejected this key.",
+			}),
+		),
+	"serverError.agentCredential.gatewayNeedsApiKey": () =>
+		i18n._(
+			msg({
+				message: "A gateway is signed in with an API key.",
+			}),
+		),
+	"serverError.agentCredential.insecureEndpoint": () =>
+		i18n._(
+			msg({
+				message: "The endpoint must use https.",
+			}),
+		),
+	"serverError.agentCredential.openaiRejectedKey": () =>
+		i18n._(
+			msg({
+				message: "OpenAI rejected this API key.",
+			}),
+		),
+	"serverError.agentCredential.providerAnswered": (params) =>
+		i18n._(
+			msg({
+				message: `The provider answered ${params?.status}.`,
+			}),
+		),
+	"serverError.agentCredential.providerUnreachable": () =>
+		i18n._(
+			msg({
+				message: "Could not reach the provider. Try again.",
+			}),
+		),
+	"serverError.agentCredential.restrictedEndpoint": () =>
+		i18n._(
+			msg({
+				message: "That endpoint is not allowed.",
+			}),
+		),
+	"serverError.agentCredential.unresolvableEndpoint": () =>
+		i18n._(
+			msg({
+				message: "That endpoint could not be resolved.",
+			}),
+		),
+	"serverError.agentCredential.unsupported": (params) =>
+		i18n._(
+			msg({
+				message: `${params?.agent} cannot be signed in this way yet.`,
+			}),
+		),
 	"serverError.apiKey.activeOrganizationRequiredToCreate": () =>
 		i18n._(
 			msg({
@@ -49,10 +121,22 @@ export const serverErrorMessages: Record<
 				message: `This automation belongs to ${params?.organizationName}. Switch to that organization to open it.`,
 			}),
 		),
+	"serverError.automation.automationsRequireThePro": () =>
+		i18n._(
+			msg({
+				message: "Automations require the Pro plan.",
+			}),
+		),
 	"serverError.automation.automationNotFound": () =>
 		i18n._(
 			msg({
 				message: "Automation not found",
+			}),
+		),
+	"serverError.automation.continueNeedsPinnedWorkspace": () =>
+		i18n._(
+			msg({
+				message: "Continuing an agent session requires a pinned workspace",
 			}),
 		),
 	"serverError.automation.failedToCreateAutomation": () =>
@@ -119,18 +203,6 @@ export const serverErrorMessages: Record<
 		i18n._(
 			msg({
 				message: "Only owners can manage billing",
-			}),
-		),
-	"serverError.blaxel.couldNotMintSandboxAccessToken": () =>
-		i18n._(
-			msg({
-				message: "Could not mint sandbox access token",
-			}),
-		),
-	"serverError.blaxel.sandboxPreviewHasNoUrl": () =>
-		i18n._(
-			msg({
-				message: "Sandbox preview has no URL",
 			}),
 		),
 	"serverError.chat.chatSessionNotFound": () =>

@@ -158,7 +158,6 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/routes/_authenticated/components/LeaderboardAutoPublish/hooks/useLeaderboardAutoPublish/autoPublishState.ts",
 		["leaderboard-auto-publish-v2"],
 	],
-	["src/renderer/lib/leaderboard/askedState.ts", ["leaderboard-asked-v1"]],
 	[
 		"src/renderer/hooks/useAgentModelPreference/useAgentModelPreference.ts",
 		["lastSelectedV2WorkspaceCreateModelByPreset"],

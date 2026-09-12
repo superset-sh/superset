@@ -42,6 +42,7 @@ import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton"
 import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
+import { useAgentLiveActivity } from "./hooks/useAgentLiveActivity";
 import { useCloudRepoPrefix } from "./hooks/useCloudRepoPrefixes";
 import { useFirstPaint } from "./hooks/useFirstPaint";
 import {
@@ -163,6 +164,16 @@ export function HomeScreen() {
 
 	// Projects are fully local — served by the selected host, not the cloud.
 	const { projects, isReady: projectsReady } = useHostProjects(selectedHost);
+
+	// Mirrors the rows above onto the Lock Screen and Dynamic Island while the
+	// app is open. Foreground-only for now: nothing server-side knows an agent
+	// needs attention yet, so the card goes stale (and says so) once the app
+	// closes. ActivityKit push updates are the follow-up that fixes that.
+	useAgentLiveActivity({
+		terminalsByWorkspace,
+		workspaces,
+		projects,
+	});
 	const pullRequests = usePullRequests();
 	const hostsQuery = useOrgHostsQuery();
 

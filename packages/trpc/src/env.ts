@@ -51,10 +51,15 @@ export const env = createEnv({
 		// every marketing render as one visitor (Vercel shares egress IPs).
 		// Absent means every read is anonymous and rate-limited.
 		LEADERBOARD_INTERNAL_TOKEN: z.string().min(1).optional(),
-		// Blaxel (cloud workspace sandboxes).
-		BLAXEL_API_KEY: z.string().min(1),
-		BLAXEL_WORKSPACE: z.string().min(1),
-		BLAXEL_REGION: z.string().min(1),
+		// Vercel Sandbox (cloud workspace sandboxes). A token for the team's
+		// `sandboxes` project, not the deploy token.
+		VERCEL_SANDBOX_TOKEN: z.string().min(1),
+		VERCEL_SANDBOX_TEAM_ID: z.string().min(1),
+		VERCEL_SANDBOX_PROJECT_ID: z.string().min(1),
+		VERCEL_SANDBOX_REGION: z.string().min(1).default("iad1"),
+		// Ed25519 private key (base64url PKCS#8) that signs the tokens
+		// host-service in a sandbox checks; each sandbox gets the public half.
+		SANDBOX_ACCESS_SIGNING_KEY: z.string().min(1),
 		SENTRY_DSN_SANDBOX: z.string().optional(),
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
 			.enum(["development", "preview", "production"])

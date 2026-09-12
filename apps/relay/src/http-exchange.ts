@@ -21,7 +21,10 @@ export type HttpExchangeResult =
 			headers: Record<string, string>;
 			body: Uint8Array<ArrayBuffer>;
 	  }
-	| { ok: false; reason: "timeout" | "dial-failed" };
+	| {
+			ok: false;
+			reason: "timeout" | "dial-failed" | "denied" | "access-error";
+	  };
 
 interface Exchange {
 	request: HttpExchangeRequest;

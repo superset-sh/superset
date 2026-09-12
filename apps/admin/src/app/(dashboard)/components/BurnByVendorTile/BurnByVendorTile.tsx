@@ -43,7 +43,7 @@ export function BurnByVendorTile() {
 					: undefined
 			}
 		>
-			<div className="space-y-2">
+			<div className="flex h-full flex-col justify-center gap-2">
 				{vendors.map((vendor) => (
 					<div key={vendor.name} className="flex items-center gap-2 text-xs">
 						<span className="w-40 shrink-0 truncate" title={vendor.name}>

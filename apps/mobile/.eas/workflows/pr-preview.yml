@@ -1,0 +1,47 @@
+name: Mobile preview
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - apps/mobile/**
+      - packages/shared/**
+      - packages/trpc/**
+      - packages/i18n/**
+      - packages/db/**
+      - packages/auth/**
+      - "!**/*.md"
+
+jobs:
+  publish:
+    name: Publish
+    environment: development
+    outputs:
+      comment: ${{ steps.publish.outputs.comment }}
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - id: publish
+        run: |
+          set -euo pipefail
+          cd "$(git rev-parse --show-toplevel)/apps/mobile"
+          eas() { npx -y eas-cli@24.3.0 "$@"; }
+          json() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s.slice(s.search(/[\[{]/)));console.log(eval(process.argv[1])??"")})' "$1"; }
+          HASH=$(eas fingerprint:generate -p ios --build-profile development --json | json 'j.hash')
+          BUILD=$(eas build:list -p ios --build-profile development --status finished --fingerprint-hash "$HASH" --limit 1 --json --non-interactive | json 'j[0]?.id')
+          if [ -z "$BUILD" ]; then
+            set-output comment "No installed development build can load this pull request as an update: its native fingerprint is \`${HASH:0:12}\` and no development build has it. Add the \`mobile-build\` label to build one."
+            exit 0
+          fi
+          BRANCH="${{ github.event.pull_request.head.ref || github.ref_name }}"
+          eas update -p ios --branch "$BRANCH" --message "$(git log -1 --pretty=%s)" --non-interactive --json > update.json
+          UPDATE_ID=$(json 'j[0].id' < update.json)
+          GROUP=$(json 'j[0].group' < update.json)
+          set-output comment "Preview update published for development build \`${BUILD:0:8}\` (fingerprint \`${HASH:0:12}\`). Open the build on your phone and scan:<br><img src=\"https://qr.expo.dev/eas-update?updateId=${UPDATE_ID}&appScheme=superset&host=u.expo.dev\" width=\"180\"><br>[Update group ${GROUP:0:8}](https://expo.dev/accounts/supserset-sh/projects/superset/updates/${GROUP})"
+
+  comment:
+    name: Comment
+    needs: [publish]
+    type: github-comment
+    params:
+      payload: ${{ needs.publish.outputs.comment }}

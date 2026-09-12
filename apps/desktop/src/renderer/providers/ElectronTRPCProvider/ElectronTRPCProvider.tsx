@@ -92,6 +92,9 @@ const PERSIST_KEY_PREFIXES = new Set([
 	"issue-detail",
 	"dashboard-sidebar", // sidebar per-workspace PR state (badges/checks)
 ]);
+// tRPC queries persisted by procedure path: the host roster, so the sidebar
+// fans out to remote hosts on a cold or offline boot before the cloud answers.
+const PERSIST_TRPC_PATHS = new Set(["v2Host.list"]);
 
 export function ElectronTRPCProvider({
 	children,
@@ -114,8 +117,11 @@ export function ElectronTRPCProvider({
 							shouldDehydrateQuery: (query) => {
 								if (!defaultShouldDehydrateQuery(query)) return false;
 								const head = query.queryKey[0];
+								if (typeof head === "string") {
+									return PERSIST_KEY_PREFIXES.has(head);
+								}
 								return (
-									typeof head === "string" && PERSIST_KEY_PREFIXES.has(head)
+									Array.isArray(head) && PERSIST_TRPC_PATHS.has(head.join("."))
 								);
 							},
 						},

@@ -39,6 +39,7 @@ import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
+import { AppMenuButton } from "renderer/routes/_authenticated/_dashboard/components/AppMenuButton";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { TopBarPortsDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/TopBarPortsDropdown";
@@ -163,7 +164,8 @@ export function DashboardSidebarHeader({
 	const isPluginsEnabled =
 		(useFeatureFlagEnabled(FEATURE_FLAGS.PLUGINS) ?? false) ||
 		env.NODE_ENV === "development";
-	const { myFailedCount } = useFailedAutomations();
+	const { myFailedCount, hasAutomations, automationsPending } =
+		useFailedAutomations();
 
 	const {
 		tab: lastTab,
@@ -187,8 +189,20 @@ export function DashboardSidebarHeader({
 		navigate({ to: "/v2-workspaces" });
 	};
 
+	// Automations are Pro, but an org that already has some (a downgrade) can
+	// still reach the list to pause, edit, or delete them; the page gates the
+	// actions that need the plan. A Free org with none meets the paywall here.
+	// While the list is still loading the answer is unknown, so let the click
+	// through: an empty list page gates every action itself, and a wrong
+	// paywall on a downgraded org would be the worse mistake.
 	const handleAutomationsClick = () => {
-		navigate({ to: "/automations" });
+		if (hasAutomations || automationsPending) {
+			navigate({ to: "/automations" });
+			return;
+		}
+		gateFeature(GATED_FEATURES.AUTOMATIONS, () => {
+			navigate({ to: "/automations" });
+		});
 	};
 
 	const handleTasksClick = () => {
@@ -551,6 +565,7 @@ export function DashboardSidebarHeader({
 					style={{ width: isMac ? `${80 / zoomFactor}px` : "8px" }}
 				/>
 				<ZoomStable enabled={isMac} className="flex items-center gap-1">
+					{!isMac && <AppMenuButton />}
 					<SidebarToggle />
 					<NavigationControls />
 					{/* Lives here (persistent chrome) rather than the workspace tab

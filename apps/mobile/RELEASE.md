@@ -72,6 +72,77 @@ rejections in this category are one of these.
 - [ ] Screenshots and description match the build (no features that are behind
       a flag or not in this build).
 
+## Shipping an update
+
+JS-only changes reach installed builds over the air; anything that changes the
+native layer needs a build. The `fingerprint` job in `.eas/workflows/` decides
+which. Every publish is signed with `UPDATES_SIGNING_KEY` (an EAS file secret)
+against `certs/certificate.pem`, and builds carrying that certificate reject
+unsigned updates — so every publish and every rollback needs the key.
+
+Channels: `preview` for internal builds, `production` for the store build.
+`e2e-test` deliberately has none.
+
+| Change | Lane |
+|---|---|
+| JS merged to main | `deploy.yml` publishes to `preview` |
+| Native merged to main | `deploy.yml` builds and uploads to App Store Connect; App Review stays manual |
+| JS on a pull request | `pr-preview.yml` publishes to a branch named after the git branch and comments a QR code, when a development build matches the fingerprint |
+| Native on a pull request | Add the `mobile-build` label; `build-pr.yml` builds a development client |
+
+### Production
+
+Never automatic. Dispatch `update-production.yml`, approve it in the run, and it
+publishes at 10%. Adoption ramps on cold start, so judge it over days.
+
+```bash
+# Expand.
+eas update:edit --branch production --rollout-percentage 50 --non-interactive
+eas update:edit --branch production --rollout-percentage 100 --non-interactive
+
+# Back out during a rollout. Republishes the previous update to everyone,
+# including users who already took the bad one.
+eas update:revert-update-rollout --branch production --non-interactive \
+  --private-key-path ~/.superset/keys/mobile-updates/private-key.pem
+
+# Back out after a rollout completed.
+eas update:rollback --private-key-path ~/.superset/keys/mobile-updates/private-key.pem
+```
+
+One rollout per branch at a time, and it must reach 100 or be reverted before
+the next production update can publish. An update that migrates persisted state
+is not rollback-safe; fix forward.
+
+The private key lives in 1Password and nowhere in this repository. EAS holds a
+copy it will never show you, so 1Password is the only backup.
+
+Publish only from EAS, never `eas update` from a laptop: the workflows hold the
+signing key and the Sentry token, and production goes through an approval. A
+build accepts an update only when the update's runtime version equals the
+fingerprint computed when the binary was built, and an outdated eas-cli
+computes a different one — `cli.version` in `eas.json` sets the floor. The
+rollback commands above are safe: they republish existing update groups on the
+server and compute nothing.
+
+Signed publishing needs the EAS Production plan or above; on a lower plan the
+publish is rejected at its final step, after the bundle has already uploaded.
+
+A build carries the certificate only when `MOBILE_SIGNED_UPDATES=1` is in its
+EAS environment, which is `preview` and `production`. Development builds and
+anything built on a laptop have no certificate, so `expo start` serves them
+without the key; a build that embeds the certificate would refuse Metro until
+`--private-key-path` is passed. `app.config.ts` refuses to build a preview or
+production binary without the variable, so deleting it breaks the build
+instead of shipping an unsigned store app.
+
+### Retiring old builds
+
+`GET /api/mobile/version` (`apps/api/src/app/api/mobile/version/route.ts`)
+carries `MINIMUM_MOBILE_VERSION`; a build below it shows a full-screen
+"Update Required" with an App Store button and nothing else. Raise it only
+once the replacement build is live in the store, or that build is bricked.
+The check fails open: no answer from the server, no gate.
+
 ## When the build is rejected
 
 Work the list top to bottom; each step costs minutes and they compound.

@@ -28,6 +28,12 @@ export function register(server: McpServer): void {
 				.nullish()
 				.describe("Pass null to switch to session mode (no project)."),
 			v2WorkspaceId: z.string().uuid().nullish(),
+			continueAgentSession: z
+				.boolean()
+				.optional()
+				.describe(
+					"Continue the agent session the previous run left, instead of starting another. Requires a pinned v2WorkspaceId.",
+				),
 			rrule: z.string().min(1).max(500).optional(),
 			dtstart: z
 				.string()

@@ -363,7 +363,6 @@ export function TerminalSessionDropdown({
 						})}
 						title={triggerTitle}
 						className="flex min-w-0 max-w-96 items-center gap-1.5 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-						onMouseDown={(event) => event.stopPropagation()}
 						onClick={(event) => event.stopPropagation()}
 					>
 						<TerminalPaneIcon
@@ -479,7 +478,7 @@ export function TerminalSessionDropdown({
 											aria-label={t({
 												message: `Rename ${title}`,
 											})}
-											className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100"
+											className="shrink-0 rounded p-1 opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100"
 											onClick={(event) => {
 												event.preventDefault();
 												event.stopPropagation();
@@ -504,7 +503,7 @@ export function TerminalSessionDropdown({
 														})
 											}
 											disabled={killTerminalSession.isPending}
-											className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100"
+											className="shrink-0 rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100"
 											onClick={(event) => {
 												event.preventDefault();
 												event.stopPropagation();

@@ -27,6 +27,7 @@ interface TabItemProps<TData> {
 	registry: PaneRegistry<TData>;
 	index: number;
 	isActive: boolean;
+	flushLeft: boolean;
 	onSelect: () => void;
 	onClose: () => void;
 	onCloseOthers: () => void;
@@ -42,6 +43,7 @@ export function TabItem<TData>({
 	registry,
 	index,
 	isActive,
+	flushLeft,
 	onSelect,
 	onClose,
 	onCloseOthers,
@@ -128,6 +130,7 @@ export function TabItem<TData>({
 						isActive
 							? "border border-border border-b-transparent bg-background text-foreground"
 							: "border border-transparent border-b-border text-muted-foreground/70 hover:bg-border/20 hover:text-muted-foreground",
+						flushLeft && "border-l-transparent",
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}

@@ -177,6 +177,13 @@ Three traps worth knowing before you touch catalogs:
   Mock that module with a Proxy, never a spread — `i18n` is a class instance and a spread
   drops `load`/`activate`.
 
+## Comments
+
+Never comment unless the thing can never be self-describing in the code. Name it, structure it,
+or type it first; a comment is the last resort for what the code genuinely cannot say — a
+constraint that lives outside the repo, or a trap the next reader would walk into. Rationale goes
+in the commit message and the PR.
+
 ## Further reading
 
 - `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching

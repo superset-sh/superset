@@ -92,6 +92,22 @@ export const automationRunStatusValues = [
 export const automationRunStatusEnum = z.enum(automationRunStatusValues);
 export type AutomationRunStatus = z.infer<typeof automationRunStatusEnum>;
 
+/**
+ * Why a run failed, in a form a client can branch on. `error` stays the
+ * detail; this is the part that decides which guidance to render, so it must
+ * never be derived from that text — the clients used to grep the English
+ * message, which stops working the moment it is translated. Null means
+ * unclassified: show `error` alone.
+ */
+export const automationRunErrorCodeValues = [
+	"no_instructions",
+	"host_offline",
+	"agent_not_found",
+	"workspace_not_found",
+] as const;
+export const automationRunErrorCodeEnum = z.enum(automationRunErrorCodeValues);
+export type AutomationRunErrorCode = z.infer<typeof automationRunErrorCodeEnum>;
+
 export const automationSessionKindValues = ["chat", "terminal"] as const;
 export const automationSessionKindEnum = z.enum(automationSessionKindValues);
 export type AutomationSessionKind = z.infer<typeof automationSessionKindEnum>;
@@ -180,3 +196,7 @@ export const handleOwnerTypeValues = [
 ] as const;
 export const handleOwnerTypeEnum = z.enum(handleOwnerTypeValues);
 export type HandleOwnerType = z.infer<typeof handleOwnerTypeEnum>;
+
+/** How a person signed their agent in: a subscription token, or a provider API key. */
+export const agentCredentialKindValues = ["subscription", "api_key"] as const;
+export type AgentCredentialKind = (typeof agentCredentialKindValues)[number];

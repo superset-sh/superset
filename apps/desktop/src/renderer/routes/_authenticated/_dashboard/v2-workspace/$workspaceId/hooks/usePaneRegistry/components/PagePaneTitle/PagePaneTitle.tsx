@@ -29,11 +29,7 @@ export function PagePaneTitle({ data, paneId, onClose }: PagePaneTitleProps) {
 	}
 
 	return (
-		// biome-ignore lint/a11y/noStaticElementInteractions: keeps the pane drag from starting on the menu trigger
-		<span
-			className="flex min-w-0 items-center"
-			onMouseDown={(event) => event.stopPropagation()}
-		>
+		<span className="flex min-w-0 items-center">
 			<PageTitleMenu
 				page={page}
 				versions={versions}

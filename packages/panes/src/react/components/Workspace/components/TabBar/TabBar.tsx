@@ -203,6 +203,7 @@ export function TabBar<TData>({
 								registry={registry}
 								index={i}
 								isActive={tab.id === activeTabId}
+								flushLeft={i === 0 && !renderTabBarLeading}
 								onSelect={() => onSelectTab(tab.id)}
 								onClose={() => onCloseTab(tab.id)}
 								onCloseOthers={() => onCloseOtherTabs(tab.id)}

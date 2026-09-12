@@ -127,21 +127,128 @@ data_freshness AS (
 SELECT daily_mrr_series.*, data_freshness.data_through
 FROM daily_mrr_series CROSS JOIN data_freshness`;
 
+// Net revenue retention, month over month: of the customers paying at the end
+// of one month, what they pay at the end of the next, as a share of what they
+// paid before — expansion and contraction net of churn, new customers excluded.
+// Same events table as MRR above, rolled up per customer at month ends. A
+// customer's MRR at a month end is the running sum of their changes, so the
+// per-customer spine walks every month from the first change to today: a month
+// with no events still has to carry the balance forward. A single latest FX
+// rate converts every currency: the figure is a ratio of the same customers'
+// MRR one month apart, so a rate that is a few days stale moves it by nothing
+// worth a daily FX join. Current month's row is what the cohort pays today.
+const NRR_SQL = `WITH fx AS (
+  SELECT CAST(JSON_PARSE(buy_currency_exchange_rates) AS MAP(VARCHAR, DOUBLE)) AS rate_per_usd
+  FROM exchange_rates_from_usd
+  ORDER BY date DESC
+  LIMIT 1
+),
+monthly_changes AS (
+  SELECT
+    customer_id,
+    DATE_TRUNC('month', DATE(local_event_timestamp)) AS month,
+    SUM(mrr_change / fx.rate_per_usd[currency] * fx.rate_per_usd['usd']) AS mrr_change_usd
+  FROM subscription_item_change_events_v2_beta
+  CROSS JOIN fx
+  GROUP BY 1, 2
+),
+months AS (
+  SELECT month
+  FROM UNNEST(SEQUENCE(
+    (SELECT MIN(month) FROM monthly_changes),
+    DATE_TRUNC('month', CURRENT_DATE),
+    INTERVAL '1' MONTH
+  )) AS t(month)
+),
+customer_months AS (
+  SELECT c.customer_id, m.month
+  FROM (SELECT DISTINCT customer_id FROM monthly_changes) c
+  CROSS JOIN months m
+),
+month_end_mrr AS (
+  SELECT
+    cm.customer_id,
+    cm.month,
+    SUM(COALESCE(mc.mrr_change_usd, 0)) OVER (
+      PARTITION BY cm.customer_id ORDER BY cm.month
+    ) AS mrr_usd
+  FROM customer_months cm
+  LEFT JOIN monthly_changes mc
+    ON mc.customer_id = cm.customer_id AND mc.month = cm.month
+),
+cohort AS (
+  SELECT cur.month, prev.mrr_usd AS start_mrr, cur.mrr_usd AS end_mrr
+  FROM month_end_mrr cur
+  JOIN month_end_mrr prev
+    ON prev.customer_id = cur.customer_id
+    AND prev.month = cur.month - INTERVAL '1' MONTH
+  WHERE prev.mrr_usd > 0
+),
+nrr AS (
+  SELECT
+    month,
+    COUNT(*) AS customers,
+    SUM(start_mrr) AS start_minor,
+    SUM(end_mrr) AS retained_minor,
+    SUM(GREATEST(end_mrr - start_mrr, 0)) AS expansion_minor,
+    SUM(CASE WHEN end_mrr > 0 THEN LEAST(end_mrr - start_mrr, 0) ELSE 0 END) AS contraction_minor,
+    SUM(CASE WHEN end_mrr <= 0 THEN end_mrr - start_mrr ELSE 0 END) AS churn_minor
+  FROM cohort
+  GROUP BY month
+),
+data_freshness AS (
+  SELECT TO_ISO8601(MAX(event_timestamp)) AS data_through
+  FROM subscription_item_change_events_v2_beta
+)
+SELECT
+  CAST(nrr.month AS VARCHAR) AS month,
+  nrr.customers,
+  ROUND(nrr.start_minor / 100, 2) AS start_mrr_usd,
+  ROUND(nrr.retained_minor / 100, 2) AS retained_mrr_usd,
+  ROUND(nrr.expansion_minor / 100, 2) AS expansion_usd,
+  ROUND(nrr.contraction_minor / 100, 2) AS contraction_usd,
+  ROUND(nrr.churn_minor / 100, 2) AS churn_usd,
+  data_freshness.data_through
+FROM nrr CROSS JOIN data_freshness
+WHERE nrr.month >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '12' MONTH
+ORDER BY nrr.month`;
+
 interface MrrPoint {
 	date: string;
 	mrrUsd: number;
 }
 
-type MrrResult =
-	| {
+interface NrrMonth {
+	/** First day of the month. */
+	month: string;
+	customers: number;
+	startMrrUsd: number;
+	retainedMrrUsd: number;
+	expansionUsd: number;
+	contractionUsd: number;
+	churnUsd: number;
+	nrrPct: number;
+}
+
+type SigmaResult<T extends object> =
+	| ({
 			available: true;
 			/** When we ran the query. */
 			dataLoadTime: string | null;
 			/** When Sigma's data actually ends — hours behind dataLoadTime. */
 			dataThrough: string | null;
-			points: MrrPoint[];
-	  }
+	  } & T)
 	| { available: false; reason: string };
+
+type MrrResult = SigmaResult<{ points: MrrPoint[] }>;
+type NrrResult = SigmaResult<{ months: NrrMonth[] }>;
+
+interface SigmaQuery<T extends object> {
+	cacheKey: string;
+	sql: string;
+	/** Null when the CSV does not have the columns the query promised. */
+	parse: (rows: Record<string, string>[]) => T | null;
+}
 
 interface QueryRun {
 	id: string;
@@ -157,37 +264,62 @@ function stripeHeaders() {
 	};
 }
 
-function parseMrrCsv(csv: string): {
-	points: MrrPoint[];
-	dataThrough: string | null;
-} {
+function parseSigmaCsv(csv: string): Record<string, string>[] {
 	const [header, ...rows] = csv.trim().split("\n");
 	const columns = (header ?? "").split(",").map((c) => c.replaceAll('"', ""));
-	const dayIndex = columns.indexOf("day");
-	const mrrIndex = columns.indexOf("total_mrr_in_usd");
-	const throughIndex = columns.indexOf("data_through");
-	if (dayIndex === -1 || mrrIndex === -1) {
-		return { points: [], dataThrough: null };
-	}
-	// One value for the whole run, repeated on every row by the CROSS JOIN.
-	// event_timestamp is UTC and TO_ISO8601 leaves the offset off, so pin it
-	// rather than let the reader guess a zone.
-	const through = (rows[0]?.split(",")[throughIndex] ?? "").replaceAll('"', "");
-	const points = rows
-		.map((row) => {
-			const cells = row.split(",").map((c) => c.replaceAll('"', ""));
-			return {
-				// Sigma emits "2026-08-04 00:00:00.000"; keep the date only
-				date: (cells[dayIndex] ?? "").slice(0, 10),
-				mrrUsd: Number(cells[mrrIndex] ?? Number.NaN),
-			};
-		})
-		.filter((p) => p.date && Number.isFinite(p.mrrUsd))
-		.sort((a, b) => a.date.localeCompare(b.date));
-	return { points, dataThrough: through ? `${through}Z` : null };
+	return rows.map((row) =>
+		Object.fromEntries(
+			row
+				.split(",")
+				.map((cell, index) => [columns[index] ?? "", cell.replaceAll('"', "")]),
+		),
+	);
 }
 
-// Sigma data refreshes ~daily and the query takes ~30-60s, so results are
+const MRR_QUERY: SigmaQuery<{ points: MrrPoint[] }> = {
+	cacheKey: "mrr",
+	sql: MRR_SQL,
+	parse: (rows) => {
+		const points = rows
+			.map((row) => ({
+				// Sigma emits "2026-08-04 00:00:00.000"; keep the date only
+				date: (row.day ?? "").slice(0, 10),
+				mrrUsd: Number(row.total_mrr_in_usd ?? Number.NaN),
+			}))
+			.filter((p) => p.date && Number.isFinite(p.mrrUsd))
+			.sort((a, b) => a.date.localeCompare(b.date));
+		return points.length ? { points } : null;
+	},
+};
+
+const NRR_QUERY: SigmaQuery<{ months: NrrMonth[] }> = {
+	cacheKey: "nrr",
+	sql: NRR_SQL,
+	parse: (rows) => {
+		const months = rows
+			.flatMap((row) => {
+				const numbers = {
+					customers: Number(row.customers ?? Number.NaN),
+					startMrrUsd: Number(row.start_mrr_usd ?? Number.NaN),
+					retainedMrrUsd: Number(row.retained_mrr_usd ?? Number.NaN),
+					expansionUsd: Number(row.expansion_usd ?? Number.NaN),
+					contractionUsd: Number(row.contraction_usd ?? Number.NaN),
+					churnUsd: Number(row.churn_usd ?? Number.NaN),
+				};
+				const month = (row.month ?? "").slice(0, 10);
+				const nrrPct = (numbers.retainedMrrUsd / numbers.startMrrUsd) * 100;
+				const valid =
+					month &&
+					Number.isFinite(nrrPct) &&
+					Object.values(numbers).every(Number.isFinite);
+				return valid ? [{ month, ...numbers, nrrPct }] : [];
+			})
+			.sort((a, b) => a.month.localeCompare(b.month));
+		return months.length ? { months } : null;
+	},
+};
+
+// Sigma data refreshes ~daily and a query takes ~20-60s, so results are
 // cached for 12h. Requests never block on a running query: the first caller
 // kicks off a run and gets { available: false } immediately; later calls (the
 // tile re-polls, or the refresh job) check the same pending run until it lands.
@@ -196,22 +328,26 @@ function parseMrrCsv(csv: string): {
 // instance, so a poll rarely found the run its predecessor started and kicked
 // off a fresh one instead — the tile sat on "computing" indefinitely while
 // burning a Sigma run per dashboard load.
-const MRR_CACHE_KEY = "mrr";
-const MRR_PENDING_KEY = "mrr:pending";
-const MRR_CACHE_TTL_SECONDS = 12 * 60 * 60;
+const SIGMA_CACHE_TTL_SECONDS = 12 * 60 * 60;
 /** A run that has not landed by now is never landing; let the next caller retry. */
-const MRR_PENDING_TTL_SECONDS = 10 * 60;
+const SIGMA_PENDING_TTL_SECONDS = 10 * 60;
 /** Held between claiming the right to start a run and having its id. */
-const MRR_CLAIMING = "claiming";
-const MRR_COMPUTING_REASON = "computing";
+const SIGMA_CLAIMING = "claiming";
+const SIGMA_COMPUTING_REASON = "computing";
 
-async function createMrrRun(): Promise<MrrResult | { runId: string }> {
+function pendingKey(query: SigmaQuery<object>): string {
+	return `${query.cacheKey}:pending`;
+}
+
+async function createSigmaRun(
+	sql: string,
+): Promise<{ available: false; reason: string } | { runId: string }> {
 	const createResponse = await fetch(
 		"https://api.stripe.com/v2/data/reporting/query_runs",
 		{
 			method: "POST",
 			headers: { ...stripeHeaders(), "Content-Type": "application/json" },
-			body: JSON.stringify({ sql: MRR_SQL }),
+			body: JSON.stringify({ sql }),
 		},
 	);
 	const created = (await createResponse.json()) as QueryRun;
@@ -226,7 +362,10 @@ async function createMrrRun(): Promise<MrrResult | { runId: string }> {
 	return { runId: created.id };
 }
 
-async function collectMrrRun(runId: string): Promise<MrrResult | null> {
+async function collectSigmaRun<T extends object>(
+	query: SigmaQuery<T>,
+	runId: string,
+): Promise<SigmaResult<T> | null> {
 	const response = await fetch(
 		`https://api.stripe.com/v2/data/reporting/query_runs/${runId}`,
 		{ headers: stripeHeaders() },
@@ -238,29 +377,32 @@ async function collectMrrRun(runId: string): Promise<MrrResult | null> {
 	if (run.status !== "succeeded" || !downloadUrl) {
 		return { available: false, reason: `Sigma query ${run.status}` };
 	}
-	const csv = await (await fetch(downloadUrl)).text();
-	const { points, dataThrough } = parseMrrCsv(csv);
-	if (!points.length) {
+	const rows = parseSigmaCsv(await (await fetch(downloadUrl)).text());
+	const parsed = query.parse(rows);
+	if (!parsed) {
 		return { available: false, reason: "unexpected Sigma CSV columns" };
 	}
+	// One value for the whole run, repeated on every row by the CROSS JOIN.
+	// event_timestamp is UTC and TO_ISO8601 leaves the offset off, so pin it
+	// rather than let the reader guess a zone.
+	const through = rows[0]?.data_through ?? "";
 	return {
 		available: true,
 		dataLoadTime: new Date().toISOString(),
-		dataThrough,
-		points,
+		dataThrough: through ? `${through}Z` : null,
+		...parsed,
 	};
 }
 
 /**
- * Advance the MRR query by one step: serve the cache, else collect the run in
+ * Advance a Sigma query by one step: serve the cache, else collect the run in
  * flight, else start one. Never blocks on Stripe finishing — callers that want
  * a landed result call this until it stops saying "computing".
  */
-async function advanceSigmaMrr({
-	ignoreCache = false,
-}: {
-	ignoreCache?: boolean;
-} = {}): Promise<MrrResult> {
+async function advanceSigmaQuery<T extends object>(
+	query: SigmaQuery<T>,
+	{ ignoreCache = false }: { ignoreCache?: boolean } = {},
+): Promise<SigmaResult<T>> {
 	if (!env.STRIPE_SECRET_KEY) {
 		return { available: false, reason: "STRIPE_SECRET_KEY not configured" };
 	}
@@ -272,79 +414,106 @@ async function advanceSigmaMrr({
 	}
 
 	if (!ignoreCache) {
-		const cached = await readMetricCache<MrrResult>(MRR_CACHE_KEY);
+		const cached = await readMetricCache<SigmaResult<T>>(query.cacheKey);
 		if (cached?.available) return cached;
 	}
 
-	const pending = await readMetricCache<string>(MRR_PENDING_KEY);
-	if (pending && pending !== MRR_CLAIMING) {
-		const finished = await collectMrrRun(pending);
+	const pending = await readMetricCache<string>(pendingKey(query));
+	if (pending && pending !== SIGMA_CLAIMING) {
+		const finished = await collectSigmaRun(query, pending);
 		if (!finished) {
-			return { available: false, reason: MRR_COMPUTING_REASON };
+			return { available: false, reason: SIGMA_COMPUTING_REASON };
 		}
-		await writeMetricCache(MRR_CACHE_KEY, finished, MRR_CACHE_TTL_SECONDS);
-		await clearMetricCache(MRR_PENDING_KEY);
+		await writeMetricCache(query.cacheKey, finished, SIGMA_CACHE_TTL_SECONDS);
+		await clearMetricCache(pendingKey(query));
 		return finished;
 	}
-	if (pending === MRR_CLAIMING) {
-		return { available: false, reason: MRR_COMPUTING_REASON };
+	if (pending === SIGMA_CLAIMING) {
+		return { available: false, reason: SIGMA_COMPUTING_REASON };
 	}
 
 	// Whoever claims the key owns starting the run; everyone else waits for it
 	// rather than paying Stripe for a duplicate.
 	const claimed = await claimMetricCache(
-		MRR_PENDING_KEY,
-		MRR_CLAIMING,
-		MRR_PENDING_TTL_SECONDS,
+		pendingKey(query),
+		SIGMA_CLAIMING,
+		SIGMA_PENDING_TTL_SECONDS,
 	);
 	if (!claimed) {
-		return { available: false, reason: MRR_COMPUTING_REASON };
+		return { available: false, reason: SIGMA_COMPUTING_REASON };
 	}
 
-	const kicked = await createMrrRun();
+	const kicked = await createSigmaRun(query.sql);
 	if (!("runId" in kicked)) {
-		await clearMetricCache(MRR_PENDING_KEY);
+		await clearMetricCache(pendingKey(query));
 		return kicked;
 	}
 	await writeMetricCache(
-		MRR_PENDING_KEY,
+		pendingKey(query),
 		kicked.runId,
-		MRR_PENDING_TTL_SECONDS,
+		SIGMA_PENDING_TTL_SECONDS,
 	);
-	return { available: false, reason: MRR_COMPUTING_REASON };
+	return { available: false, reason: SIGMA_COMPUTING_REASON };
 }
 
 /**
- * Drive the query to completion. Used by the refresh job, which has the time
- * budget to wait and exists so the tile only ever reads a landed result.
+ * Drive a query to completion. Used by the refresh job, which has the time
+ * budget to wait and exists so the tiles only ever read a landed result.
  */
-export async function refreshSigmaMrr({
-	timeBudgetMs = 120_000,
-	pollIntervalMs = 5_000,
-}: {
-	timeBudgetMs?: number;
-	pollIntervalMs?: number;
-} = {}): Promise<MrrResult> {
+async function refreshSigmaQuery<T extends object>(
+	query: SigmaQuery<T>,
+	{
+		timeBudgetMs = 120_000,
+		pollIntervalMs = 5_000,
+	}: { timeBudgetMs?: number; pollIntervalMs?: number } = {},
+): Promise<SigmaResult<T>> {
 	const startedAt = Date.now();
 	// Ignore the cache on every step. The job runs more often than the entry
 	// expires, so honouring it would hand back the previous result before the
 	// pending run is ever collected — the tile would then only move when the
 	// entry lapsed, with a Sigma run burnt every hour for nothing. The finished
 	// run is returned straight from the pending branch, not via the cache.
-	let last = await advanceSigmaMrr({ ignoreCache: true });
+	let last = await advanceSigmaQuery(query, { ignoreCache: true });
 	while (
 		!last.available &&
-		last.reason === MRR_COMPUTING_REASON &&
+		last.reason === SIGMA_COMPUTING_REASON &&
 		Date.now() - startedAt < timeBudgetMs
 	) {
 		await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-		last = await advanceSigmaMrr({ ignoreCache: true });
+		last = await advanceSigmaQuery(query, { ignoreCache: true });
 	}
 	return last;
 }
 
-async function fetchLatestSigmaMrr(): Promise<MrrResult> {
-	return advanceSigmaMrr();
+export function refreshSigmaMrr(): Promise<MrrResult> {
+	return refreshSigmaQuery(MRR_QUERY);
+}
+
+export function refreshSigmaNrr(): Promise<NrrResult> {
+	return refreshSigmaQuery(NRR_QUERY);
+}
+
+// A tile's refresh button. The hourly job already keeps the entry warm, so the
+// only reason to press this is to get past the cached figure — hence dropping
+// the entry rather than just re-reading it. Dropping it is also what makes the
+// tile's poll follow the new run: the getter serves the cache before it ever
+// looks at a pending run, so an entry left in place would leave this run
+// uncollected until the next hourly job.
+//
+// Kicking the run is all this does. Sigma takes 20-60s and the tRPC route
+// caps at 60s, so driving it to completion here would be a coin flip against
+// the function timeout; the tile polls it down instead.
+async function kickSigmaRefresh<T extends object>(
+	query: SigmaQuery<T>,
+): Promise<SigmaResult<T>> {
+	const result = await advanceSigmaQuery(query, { ignoreCache: true });
+	// Only drop the cached figure once there is a run to replace it with, so a
+	// Stripe blip leaves the last good number on screen rather than trading it
+	// for an error.
+	if (!result.available && result.reason === SIGMA_COMPUTING_REASON) {
+		await clearMetricCache(query.cacheKey);
+	}
+	return result;
 }
 
 interface MercuryAccount {
@@ -609,28 +778,11 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 }
 
 export const businessRouter = {
-	getMrr: adminProcedure.query(() => fetchLatestSigmaMrr()),
+	getMrr: adminProcedure.query(() => advanceSigmaQuery(MRR_QUERY)),
+	refreshMrr: adminProcedure.mutation(() => kickSigmaRefresh(MRR_QUERY)),
 
-	// The tile's refresh button. The hourly job already keeps the entry warm,
-	// so the only reason to press this is to get past the cached figure —
-	// hence dropping the entry rather than just re-reading it. Dropping it is
-	// also what makes the tile's poll follow the new run: getMrr serves the
-	// cache before it ever looks at a pending run, so an entry left in place
-	// would leave this run uncollected until the next hourly job.
-	//
-	// Kicking the run is all this does. Sigma takes 30-60s and the tRPC route
-	// caps at 60s, so driving it to completion here would be a coin flip
-	// against the function timeout; the tile polls it down instead.
-	refreshMrr: adminProcedure.mutation(async () => {
-		const result = await advanceSigmaMrr({ ignoreCache: true });
-		// Only drop the cached figure once there is a run to replace it with,
-		// so a Stripe blip leaves the last good number on screen rather than
-		// trading it for an error.
-		if (!result.available && result.reason === MRR_COMPUTING_REASON) {
-			await clearMetricCache(MRR_CACHE_KEY);
-		}
-		return result;
-	}),
+	getNrr: adminProcedure.query(() => advanceSigmaQuery(NRR_QUERY)),
+	refreshNrr: adminProcedure.mutation(() => kickSigmaRefresh(NRR_QUERY)),
 
 	// Cohort survival: % of subscriptions started in a month still active k
 	// months later. Neon is authoritative for subscription state (D-10).
@@ -717,8 +869,7 @@ export const businessRouter = {
 		}),
 
 	// Logo retention: % of orgs subscribed at the end of month m still
-	// subscribed at the end of m+1. Count-based — dollar NRR needs a second
-	// Sigma query and is intentionally out of scope here.
+	// subscribed at the end of m+1. Count-based; the dollar view is getNrr.
 	getLogoRetention: adminProcedure
 		.input(z.object({ months: z.number().min(3).max(24).default(8) }))
 		.query(async ({ input }) => {

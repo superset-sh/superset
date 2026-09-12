@@ -10,9 +10,14 @@ import {
 } from "@superset/shared/constants";
 import { eq } from "drizzle-orm";
 import { env } from "../../env";
-import { deleteSandbox, provisionSandbox } from "../../lib/blaxel";
-import { resolveCloneTarget } from "../../lib/blaxel/clone-token";
-import { cloudRepo } from "../../lib/blaxel/cloud-repo";
+import {
+	deleteSandbox,
+	provisionSandbox,
+	sandboxAccessVerifier,
+} from "../../lib/sandbox";
+import { resolveCloneTarget } from "../../lib/sandbox/clone-token";
+import { cloudRepo } from "../../lib/sandbox/cloud-repo";
+import { resolveAgentCredentialEnv } from "../agent-credential";
 import { resolveEnvironment } from "../environment/resolve-environment";
 import { generateCloudWorkspaceName } from "./generate-name";
 
@@ -80,6 +85,12 @@ export async function provisionCloudWorkspace(
 			cloudRepo().then((repo) => (repo ? resolveCloneTarget(repo) : null)),
 			resolveEnvironment(row.environmentId, row.organizationId),
 		]);
+		// The person who started the workspace signs the agents in, so their own
+		// subscription or key is what runs inside it. Absent when they have not
+		// connected an agent; the environment's own keys then apply.
+		const agentCredentialEnv = row.createdByUserId
+			? await resolveAgentCredentialEnv({ userId: row.createdByUserId })
+			: {};
 		if (!environment) {
 			throw new Error("Environment not found");
 		}
@@ -104,8 +115,8 @@ export async function provisionCloudWorkspace(
 			provisionSandbox({
 				name: providerSandboxId,
 				environment,
+				environmentEnv: environment.envs,
 				workspaceEnv: {
-					...environment.envs,
 					ORGANIZATION_ID: row.organizationId,
 					HOST_DB_PATH: SANDBOX_HOST_DB_PATH,
 					HOST_MIGRATIONS_FOLDER: "/app/drizzle",
@@ -113,6 +124,9 @@ export async function provisionCloudWorkspace(
 					SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL,
 					SUPERSET_HOST_RUN_MODE: "sandbox",
 					SUPERSET_SANDBOX_WORKSPACE_ID: row.id,
+					// Verifies the access tokens this API signs for the row's id;
+					// the sandbox can check them and nothing else.
+					SUPERSET_SANDBOX_ACCESS_PUBLIC_KEY: sandboxAccessVerifier(),
 					SUPERSET_SANDBOX_WORKSPACE_NAME: resolvedName,
 					SUPERSET_SANDBOX_BRANCH: row.branch,
 					SUPERSET_SANDBOX_WORKSPACE_PATH: SANDBOX_WORKSPACE_PATH,
@@ -131,6 +145,8 @@ export async function provisionCloudWorkspace(
 					SUPERSET_SANDBOX_IMAGE_TAG: environment.sourceRef,
 					SUPERSET_SANDBOX_PROVIDER: row.provider,
 					...cloudAgentLaunchToEnv(input.launch),
+					// Last, so a person's own sign-in beats the shared environment key.
+					...agentCredentialEnv,
 				},
 			}),
 			nameWrite,

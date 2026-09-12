@@ -4,12 +4,15 @@ import {
 	type CloudWorkspaceRow,
 	useCloudWorkspaces,
 } from "@/hooks/useCloudWorkspaces";
-import { useHostsPresence } from "@/hooks/useHostsPresence";
 import {
 	getHostWorkspacesQueryKey,
 	type HostWorkspaceRow,
 } from "@/hooks/useHostWorkspaces";
-import { NO_HOSTS, type OrgHost, useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import {
+	type OrgHost,
+	useOrgHosts,
+	useOrgHostsQuery,
+} from "@/hooks/useOrgHosts";
 import { type SandboxTarget, useSandboxAccess } from "@/hooks/useSandboxAccess";
 import {
 	getHostServiceClientByUrl,
@@ -63,8 +66,7 @@ export function useWorkspaceHost(
 	workspaceId: string | null,
 ): WorkspaceHostResult {
 	const hostsQuery = useOrgHostsQuery();
-	const hosts = hostsQuery.data ?? NO_HOSTS;
-	const presence = useHostsPresence(hosts);
+	const hosts = useOrgHosts();
 
 	const { workspaces: cloudRows, isReady: cloudReady } = useCloudWorkspaces();
 	const cloud = useMemo(
@@ -81,16 +83,12 @@ export function useWorkspaceHost(
 			cloud
 				? []
 				: hosts
-						.map((host) => ({
-							...host,
-							isOnline: presence?.get(host.machineId) ?? host.isOnline,
-						}))
 						.filter((host) => host.isOnline)
 						.map((host) => ({
 							host,
 							hostUrl: hostServiceUrl(host.organizationId, host.machineId),
 						})),
-		[cloud, hosts, presence],
+		[cloud, hosts],
 	);
 
 	const queries = useQueries({

@@ -86,6 +86,28 @@ function sanitizeUrl(url: string): string {
 // the pane.
 const ALLOWED_GUEST_SCHEMES = new Set(["http:", "https:", "about:"]);
 
+/**
+ * Resolves the next `mousedown` in the guest's current document. Installs a
+ * single capture-phase listener the first time (idempotent across repeated
+ * injections into the same document) and queues a resolver per call so a
+ * fresh `executeJavaScript` await always gets the *next* press, not a stale
+ * one. Never calls `stopPropagation`/`preventDefault` — purely observes.
+ */
+const NEXT_MOUSEDOWN_SCRIPT = `(() => {
+	if (!window.__supersetMousedownHook) {
+		window.__supersetMousedownHook = { resolvers: [] };
+		document.addEventListener("mousedown", () => {
+			const hook = window.__supersetMousedownHook;
+			const resolvers = hook.resolvers;
+			hook.resolvers = [];
+			for (const resolve of resolvers) resolve();
+		}, true);
+	}
+	return new Promise((resolve) => {
+		window.__supersetMousedownHook.resolvers.push(resolve);
+	});
+})()`;
+
 function isAllowedGuestUrl(url: string): boolean {
 	try {
 		return ALLOWED_GUEST_SCHEMES.has(new URL(url).protocol);
@@ -193,6 +215,7 @@ class BrowserManager extends EventEmitter {
 	private beforeInputListeners = new Map<string, () => void>();
 	private navigationListeners = new Map<string, () => void>();
 	private popupListeners = new Map<string, () => void>();
+	private focusListeners = new Map<string, () => void>();
 	private cdpDetachers = new Map<string, () => void>();
 	// Ref-count of in-flight agent work per pane (a live CDP session, a
 	// screenshot capture). While present the guest renderer stays
@@ -219,6 +242,7 @@ class BrowserManager extends EventEmitter {
 				this.beforeInputListeners,
 				this.navigationListeners,
 				this.popupListeners,
+				this.focusListeners,
 			]) {
 				const cleanup = map.get(paneId);
 				if (cleanup) {
@@ -244,6 +268,7 @@ class BrowserManager extends EventEmitter {
 			this.setupContextMenu(paneId, wc);
 			this.setupBeforeInput(paneId, wc);
 			this.setupNavigationGuard(paneId, wc);
+			this.setupFocusForward(paneId, wc);
 		}
 		this.emit("pane-registered", {
 			paneId,
@@ -258,6 +283,7 @@ class BrowserManager extends EventEmitter {
 			this.beforeInputListeners,
 			this.navigationListeners,
 			this.popupListeners,
+			this.focusListeners,
 		]) {
 			const cleanup = map.get(paneId);
 			if (cleanup) {
@@ -1148,6 +1174,64 @@ class BrowserManager extends EventEmitter {
 				// webContents may be destroyed
 			}
 		});
+	}
+
+	/**
+	 * A click inside the guest never bubbles a DOM event to the pane's own
+	 * mousedown handler — the webview is a separate WebContents, hoisted
+	 * outside the pane tree. `WebContents.on('focus')` looks like the fix
+	 * (Electron's documented signal for focus moving between WebContents in
+	 * the same window) but doesn't actually fire for a `<webview>` guest —
+	 * confirmed live: `wc.isFocused()` stayed false immediately after a click
+	 * that had already moved the host's `document.activeElement` onto the
+	 * webview element. `<webview>` uses the older guest-view plumbing, and its
+	 * focus doesn't route through the same WebContents-level signal a
+	 * WebContentsView would give.
+	 *
+	 * Instead, borrow the same no-preload technique design-mode already uses:
+	 * inject a script that resolves a Promise on the guest's next mousedown,
+	 * `executeJavaScript` awaits it, and re-arms immediately after. No
+	 * preload/nodeIntegration needed — the guest stays untrusted.
+	 */
+	private setupFocusForward(paneId: string, wc: Electron.WebContents): void {
+		let cancelled = false;
+		// Bumped on every main-frame document. A navigation does not reject
+		// the executeJavaScript that was awaiting a mousedown in the old
+		// document — that promise simply never settles — so a loop tied to the
+		// old generation can never notice on its own. dom-ready starts a fresh
+		// loop for the new document; the stale one exits at its next check and
+		// a late resolution from it is dropped rather than emitted.
+		let generation = 0;
+		const loop = async (gen: number): Promise<void> => {
+			while (!cancelled && gen === generation) {
+				if (wc.isDestroyed()) return;
+				try {
+					await wc.executeJavaScript(NEXT_MOUSEDOWN_SCRIPT);
+				} catch {
+					// Script failed to run (mid-navigation, crashed renderer):
+					// retry, but not in a hot spin.
+					await new Promise((resolve) => setTimeout(resolve, 100));
+					continue;
+				}
+				if (cancelled || gen !== generation) return;
+				this.emit(`pane-focus:${paneId}`);
+			}
+		};
+		const rearm = (): void => {
+			generation += 1;
+			void loop(generation);
+		};
+
+		wc.on("dom-ready", rearm);
+		this.focusListeners.set(paneId, () => {
+			cancelled = true;
+			try {
+				wc.off("dom-ready", rearm);
+			} catch {
+				// webContents may be destroyed
+			}
+		});
+		void loop(generation);
 	}
 
 	private setupConsoleCapture(paneId: string, wc: Electron.WebContents): void {

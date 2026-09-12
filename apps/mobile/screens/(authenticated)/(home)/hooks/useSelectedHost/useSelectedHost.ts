@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { useHostsPresence } from "@/hooks/useHostsPresence";
 import { type OrgHost, useOrgHosts } from "@/hooks/useOrgHosts";
 import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
 
@@ -14,21 +13,14 @@ export function useSelectedHost(): OrgHost | null {
 	const hostFilter = useWorkspacesFilterStore((store) => store.hostFilter);
 	const hasHydrated = useWorkspacesFilterStore((store) => store.hasHydrated);
 
-	const presence = useHostsPresence(hosts);
-
 	return useMemo(() => {
 		if (!hasHydrated) return null;
-		const sorted = hosts
-			.map((host) => ({
-				...host,
-				isOnline: presence?.get(host.machineId) ?? host.isOnline,
-			}))
-			.sort((a, b) => a.name.localeCompare(b.name));
+		const sorted = [...hosts].sort((a, b) => a.name.localeCompare(b.name));
 		return (
 			sorted.find((host) => host.machineId === hostFilter) ??
 			sorted.find((host) => host.isOnline) ??
 			sorted[0] ??
 			null
 		);
-	}, [hosts, hostFilter, presence, hasHydrated]);
+	}, [hosts, hostFilter, hasHydrated]);
 }

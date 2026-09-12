@@ -699,7 +699,14 @@ export function NewWorkspaceScreen({
 			</AnimatePresence>
 			{/* no-drag + clear of the page's window-drag strip (which ends at
 			    right-12) so the button actually receives clicks. */}
-			<div className="no-drag absolute right-3 top-2.5 z-10 flex items-center gap-0.5">
+			<div
+				className="no-drag absolute top-2.5 z-10 flex items-center gap-0.5"
+				// Clear of the window-controls overlay on Windows and Linux; zero
+				// extra where there is none.
+				style={{
+					right: "calc(0.75rem + (100vw - env(titlebar-area-width, 100vw)))",
+				}}
+			>
 				{selectedProject && !needsSetup && (
 					<Tooltip>
 						<TooltipTrigger asChild>

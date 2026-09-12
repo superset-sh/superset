@@ -8,8 +8,8 @@ import superjson from "superjson";
 import { formatError, userError } from "./i18n-error";
 import { posthog } from "./lib/analytics";
 
-export type { I18nErrorCause } from "./i18n-error";
-export { isI18nErrorCause, userError } from "./i18n-error";
+export type { I18nErrorCause, RequiredPlan } from "./i18n-error";
+export { isI18nErrorCause, planRequiredError, userError } from "./i18n-error";
 
 export interface ApiClientInfo {
 	product: "desktop" | "mobile" | "cli" | "sdk";

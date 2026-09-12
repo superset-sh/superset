@@ -12,6 +12,7 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuShortcut,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
@@ -24,6 +25,8 @@ import {
 	ExternalLink,
 	FileText,
 	GitCompare,
+	Minus,
+	Plus,
 	SquarePlus,
 	Trash2,
 	Undo2,
@@ -42,8 +45,10 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import { useFileDrag } from "../../hooks/useFileDrag";
+import { useStagingMutations } from "../../hooks/useStagingMutations";
 import { DiffStatText } from "../DiffStatText";
 import { PathActionsMenuItems } from "../PathActionsMenuItems";
+import { StageToggleButton } from "../StageToggleButton";
 
 function splitPath(path: string): { dir: string; basename: string } {
 	const lastSlash = path.lastIndexOf("/");
@@ -88,7 +93,9 @@ export const FileRow = memo(function FileRow({
 		? toAbsoluteWorkspacePath(worktreePath, file.path)
 		: undefined;
 	const changeKey = getChangesetFileKey(file);
-	const canDiscard = file.source.kind === "unstaged";
+	const canStage = file.source.kind === "unstaged";
+	const canUnstage = file.source.kind === "staged";
+	const canDiscard = canStage;
 	const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
 	const utils = workspaceTrpc.useUtils();
@@ -112,6 +119,7 @@ export const FileRow = memo(function FileRow({
 		setShowDiscardConfirm(false);
 		discardMutation.mutate({ workspaceId, filePath: file.path });
 	};
+	const { stageFile, unstageFile } = useStagingMutations(workspaceId);
 
 	const policy = useChangesSidebarFilePolicy();
 	const diffNewTabTier = policy.tierForIntent("diffNewTab");
@@ -151,7 +159,7 @@ export const FileRow = memo(function FileRow({
 						{basename}
 					</span>
 				</span>
-				<span className="ml-auto flex shrink-0 items-center gap-1.5 group-hover:invisible">
+				<span className="ml-auto flex shrink-0 items-center gap-1.5 group-hover:invisible group-has-[[data-state=open]]:invisible">
 					{(file.additions > 0 || file.deletions > 0) && (
 						<span className="text-[10px] text-muted-foreground">
 							<DiffStatText
@@ -185,6 +193,15 @@ export const FileRow = memo(function FileRow({
 							<Trans>Discard changes</Trans>
 						</TooltipContent>
 					</Tooltip>
+				)}
+				{canStage && (
+					<StageToggleButton action="stage" onClick={() => stageFile(file)} />
+				)}
+				{canUnstage && (
+					<StageToggleButton
+						action="unstage"
+						onClick={() => unstageFile(file)}
+					/>
 				)}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -248,6 +265,24 @@ export const FileRow = memo(function FileRow({
 								</DropdownMenuShortcut>
 							)}
 						</DropdownMenuItem>
+						{canStage && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem onSelect={() => stageFile(file)}>
+									<Plus />
+									<Trans>Stage file</Trans>
+								</DropdownMenuItem>
+							</>
+						)}
+						{canUnstage && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem onSelect={() => unstageFile(file)}>
+									<Minus />
+									<Trans>Unstage file</Trans>
+								</DropdownMenuItem>
+							</>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
@@ -318,21 +353,31 @@ export const FileRow = memo(function FileRow({
 						/>
 					</>
 				)}
+				{(canStage || canUnstage) && <ContextMenuSeparator />}
+				{canStage && (
+					<ContextMenuItem onSelect={() => stageFile(file)}>
+						<Plus />
+						<Trans>Stage file</Trans>
+					</ContextMenuItem>
+				)}
+				{canUnstage && (
+					<ContextMenuItem onSelect={() => unstageFile(file)}>
+						<Minus />
+						<Trans>Unstage file</Trans>
+					</ContextMenuItem>
+				)}
 				{canDiscard && (
-					<>
-						<ContextMenuSeparator />
-						<ContextMenuItem
-							variant="destructive"
-							onSelect={() => setShowDiscardConfirm(true)}
-						>
-							{isDeleteAction ? <Trash2 /> : <Undo2 />}
-							{isDeleteAction
-								? t({ message: "Delete" })
-								: t({
-										message: "Discard changes",
-									})}
-						</ContextMenuItem>
-					</>
+					<ContextMenuItem
+						variant="destructive"
+						onSelect={() => setShowDiscardConfirm(true)}
+					>
+						{isDeleteAction ? <Trash2 /> : <Undo2 />}
+						{isDeleteAction
+							? t({ message: "Delete" })
+							: t({
+									message: "Discard changes",
+								})}
+					</ContextMenuItem>
 				)}
 			</ContextMenuContent>
 			<DiscardConfirmDialog

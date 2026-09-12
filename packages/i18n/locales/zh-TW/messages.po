@@ -93,6 +93,9 @@ msgstr "（外部）"
 msgid "(no output)"
 msgstr "（無輸出）"
 
+msgid "(so far)"
+msgstr "（截至目前）"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {#個活動埠 — 隱藏詳情} other {#個活動埠 — 隱藏詳情}}"
@@ -313,6 +316,10 @@ msgstr "{0}與{1}化身終端恐龍一決勝負。數據決定輸贏。"
 #. placeholder {0}: formatTokens(Math.max(0, me.tokens - below.tokens))
 msgid "{0} behind you"
 msgstr "落後你 {0}"
+
+#. placeholder {0}: params?.agent
+msgid "{0} cannot be signed in this way yet."
+msgstr "{0}還不能用這種方式登入。"
 
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
@@ -721,6 +728,9 @@ msgstr "{kindLabel}主題"
 msgid "{label} (partial week)"
 msgstr "{label}（不完整週）"
 
+msgid "{label} in cloud workspaces"
+msgstr "雲端工作區中的{label}"
+
 msgid "{level} · {gate} · {statusLabel}"
 msgstr "{level} · {gate} · {statusLabel}"
 
@@ -771,6 +781,9 @@ msgstr "{name} 是內建的，無法取代"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} 尚未新增"
+
+msgid "{needing, plural, one {# needs you} other {# need you}}"
+msgstr "{needing, plural, other {# 個需要你}}"
 
 msgid "{nonBrandPct} of clicks"
 msgstr "佔點擊的 {nonBrandPct}"
@@ -889,6 +902,12 @@ msgstr "{threshold, plural, other {已合併 # 個智慧代理 PR}}"
 msgid "{toolName} interrupted"
 msgstr "{toolName}已中斷"
 
+msgid "{total, plural, one {# agent working} other {# agents working}}"
+msgstr "{total, plural, other {# 個代理程式執行中}}"
+
+msgid "{total, plural, one {# agent} other {# agents}}"
+msgstr "{total, plural, other {# 個代理程式}}"
+
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {#項檢查全部通過} other {#項檢查全部通過}}"
 
@@ -981,6 +1000,9 @@ msgstr "⇧點選"
 msgid "+{0} −{1} · {2, plural, one {# file} other {# files}}"
 msgstr "+{0} −{1} · {2, plural, one {#個檔案} other {#個檔案}}"
 
+msgid "+{hidden} more"
+msgstr "還有 {hidden} 個"
+
 msgid "+{hiddenCount} earlier"
 msgstr "更早的+{hiddenCount}條"
 
@@ -1048,6 +1070,12 @@ msgstr "✓ 2小時前"
 msgid "✓ 3d ago"
 msgstr "✓ 3天前"
 
+#. placeholder {0}: formatNumber(latest.startMrrUsd, undefined)
+#. placeholder {1}: latest.customers
+#. placeholder {2}: formatNumber(latest.retainedMrrUsd, undefined)
+msgid "${0} from {1} customers became ${2}"
+msgstr "{1} 位客戶的 MRR 從 ${0} 變為 ${2}"
+
 #. placeholder {0}: formatNumber(latest.prevUsd, undefined)
 #. placeholder {1}: latest.prevDate
 msgid "${0} previous period ({1})"
@@ -1093,6 +1121,9 @@ msgstr "10分鐘"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10條以上並行工作流且不丟狀態"
+
+msgid "100% (retain everything)"
+msgstr "100%（全部留存）"
 
 msgid "15 minutes"
 msgstr "15分鐘"
@@ -1189,6 +1220,9 @@ msgstr "集中清理全應用的崩潰、卡死和重連失敗。"
 
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "整體重做樣式：更緊湊的行、每個工作區下方的埠和代理程式標籤、一鍵全部停止。"
+
+msgid "A gateway is signed in with an API key."
+msgstr "閘道使用 API 金鑰登入。"
 
 msgid "A host must have at least one owner."
 msgstr "主機必須至少有一位擁有者。"
@@ -1508,6 +1542,9 @@ msgstr "管理員不能將成員提升為擁有者"
 msgid "Adopt v1 workspaces under their imported v2 project."
 msgstr "將 v1 工作區遷入已匯入的對應 v2 專案。"
 
+msgid "Advanced"
+msgstr "進階"
+
 msgid "Advanced options"
 msgstr "進階選項"
 
@@ -1522,6 +1559,9 @@ msgstr "對比main"
 
 msgid "Agent"
 msgstr "代理程式"
+
+msgid "Agent commands"
+msgstr "代理程式指令"
 
 msgid "Agent Complete — {workspaceName}"
 msgstr "代理程式已完成 — {workspaceName}"
@@ -1889,6 +1929,12 @@ msgstr "另一臺裝置"
 msgid "Answered"
 msgstr "已回答"
 
+msgid "Anthropic rejected this API key."
+msgstr "Anthropic拒絕了此API金鑰。"
+
+msgid "Anthropic rejected this token."
+msgstr "Anthropic拒絕了此權杖。"
+
 msgid "Any calendar"
 msgstr "任意日曆"
 
@@ -1993,6 +2039,9 @@ msgstr "外觀"
 
 msgid "Apple logo"
 msgstr "Apple 標誌"
+
+msgid "Application menu"
+msgstr "應用程式選單"
 
 msgid "Applies to"
 msgstr "適用於"
@@ -2274,6 +2323,9 @@ msgstr "自動化（{myFailedCount}個失敗）"
 msgid "Automations & event triggers"
 msgstr "自動化與事件觸發"
 
+msgid "Automations require the Pro plan."
+msgstr "自動化需要Pro方案。"
+
 msgid "Automations, {myFailedCount} failing"
 msgstr "自動化，{myFailedCount}個失敗"
 
@@ -2398,6 +2450,9 @@ msgstr "{selectedHostLabel}上新建worktree的基準目錄"
 msgid "Base directory for new worktrees on {selectedHostName}."
 msgstr "{selectedHostName}上新建worktree的基準目錄。"
 
+msgid "Base URL"
+msgstr "基礎URL"
+
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
 msgid "based off PR #{0}"
@@ -2422,9 +2477,6 @@ msgstr "落後main ?個提交，需要變基"
 
 msgid "Being built right now."
 msgstr "正在構建中。"
-
-msgid "Beta"
-msgstr "Beta"
 
 msgid "Beyond: F5 is not a near-term claim"
 msgstr "再往後：F5不是近期的主張"
@@ -3042,6 +3094,9 @@ msgstr "選擇Superset在什麼時候通知你。"
 msgid "Choose which agent watches this page for comments"
 msgstr "選擇由哪個代理程式關注此頁面的評論"
 
+msgid "Churn"
+msgstr "流失"
+
 msgid "CI failed"
 msgstr "CI失敗"
 
@@ -3331,9 +3386,6 @@ msgstr "關閉目前窗格"
 
 msgid "Close the current tab"
 msgstr "關閉目前分頁"
-
-msgid "Close window"
-msgstr "關閉視窗"
 
 msgid "Close Window"
 msgstr "關閉視窗"
@@ -3699,6 +3751,12 @@ msgstr "已連線到"
 msgid "Connected to {connectedOrgName}"
 msgstr "已連線到{connectedOrgName}"
 
+msgid "Connected via subscription"
+msgstr "已透過訂閱連線"
+
+msgid "Connected with API key"
+msgstr "已用API金鑰連線"
+
 msgid "Connected, but Microsoft Graph refused the notification subscriptions."
 msgstr "已連線，但Microsoft Graph拒絕了通知訂閱。"
 
@@ -3796,6 +3854,9 @@ msgstr "繼續"
 msgid "Continue or fork session"
 msgstr "繼續或分支會話"
 
+msgid "Continue the session the last run left"
+msgstr "繼續上次執行留下的工作階段"
+
 msgid "Continue update"
 msgstr "繼續更新"
 
@@ -3814,6 +3875,15 @@ msgstr "使用GitHub繼續"
 
 msgid "Continue with Google"
 msgstr "使用Google繼續"
+
+msgid "Continuing an agent session requires a pinned workspace"
+msgstr "繼續代理程式工作階段需要已釘選的工作區"
+
+msgid "continuing the last session"
+msgstr "繼續上一個工作階段"
+
+msgid "Contraction"
+msgstr "縮減"
 
 msgid "Contributions"
 msgstr "貢獻"
@@ -4097,9 +4167,6 @@ msgstr "無法載入你的機器"
 msgid "Could not mark ready"
 msgstr "無法標記為待審查"
 
-msgid "Could not mint sandbox access token"
-msgstr "無法簽發沙箱存取權杖"
-
 msgid "Could not open Files"
 msgstr "無法開啟「檔案」"
 
@@ -4117,6 +4184,9 @@ msgstr "無法連線到主機以載入此拉取請求。"
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "無法連線主機以開始更新。請確認主機在線上後重試。"
+
+msgid "Could not reach the provider. Try again."
+msgstr "無法連線到提供商，請重試。"
 
 msgid "Could not reach the server."
 msgstr "無法連線到伺服器。"
@@ -4312,6 +4382,9 @@ msgstr "無法暫存更改"
 msgid "Couldn't stage design feedback"
 msgstr "無法暫存設計回饋"
 
+msgid "Couldn't stage file"
+msgstr "無法暫存檔案"
+
 msgid "Couldn't start a new agent session"
 msgstr "無法啟動新的代理程式會話"
 
@@ -4329,6 +4402,9 @@ msgstr "無法啟動工作區"
 
 msgid "Couldn't unstage changes"
 msgstr "無法取消暫存更改"
+
+msgid "Couldn't unstage file"
+msgstr "無法取消暫存檔案"
 
 msgid "Couldn't update pull request"
 msgstr "無法更新拉取請求"
@@ -4593,6 +4669,9 @@ msgstr "自訂字首"
 
 msgid "Custom pricing"
 msgstr "定製價格"
+
+msgid "Custom provider"
+msgstr "自訂提供商"
 
 msgid "Custom terminal agents"
 msgstr "自訂終端代理程式"
@@ -5556,6 +5635,9 @@ msgstr "請輸入有效的電子郵件地址。"
 msgid "Enter a valid recurrence rule."
 msgstr "請輸入有效的重複規則。"
 
+msgid "Enter a value."
+msgstr "請輸入一個值。"
+
 msgid "Enter URL or search..."
 msgstr "輸入URL或搜尋..."
 
@@ -5732,6 +5814,9 @@ msgstr "展開討論"
 msgid "Expand workspace"
 msgstr "展開工作區"
 
+msgid "Expansion"
+msgstr "擴張"
+
 msgid "Experimental"
 msgstr "實驗功能"
 
@@ -5799,6 +5884,10 @@ msgstr "工廠等級{tier}"
 msgid "failed"
 msgstr "失敗"
 
+msgid "Failed"
+msgstr "失敗"
+
+msgctxt "agent status"
 msgid "Failed"
 msgstr "失敗"
 
@@ -6717,11 +6806,17 @@ msgstr "生成中"
 msgid "Generating..."
 msgstr "正在生成..."
 
+msgid "Get an API key"
+msgstr "取得API金鑰"
+
 msgid "Get an architecture tour: entry points, how to run it, what to read first."
 msgstr "來一次架構導覽：入口在哪、怎麼跑起來、先讀什麼。"
 
 msgid "Get in touch with the {companyName} team."
 msgstr "與 {companyName} 團隊聯繫。"
+
+msgid "Get key"
+msgstr "取得金鑰"
 
 msgid "Get more out of Superset"
 msgstr "把Superset用得更好"
@@ -6949,6 +7044,9 @@ msgstr "已隱藏的資料夾"
 msgid "Hidden until you join"
 msgstr "加入後才會顯示"
 
+msgid "Hide"
+msgstr "隱藏"
+
 msgid "Hide checks"
 msgstr "隱藏檢查"
 
@@ -7152,6 +7250,9 @@ msgstr "等級如何計算 →"
 msgid "How to install {name} in Superset"
 msgstr "如何在Superset中安裝{name}"
 
+msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
+msgstr "你的代理程式在雲端工作區中如何登入。其他人連接各自的訂閱或API金鑰；在這台機器上，每個代理程式繼續使用它上面已有的登入。"
+
 msgid "https://"
 msgstr "https://"
 
@@ -7311,6 +7412,9 @@ msgstr "改進代理程式說明"
 
 msgid "Improved diff viewer"
 msgstr "更好的差異檢視器"
+
+msgid "in a new session"
+msgstr "在新的工作階段中"
 
 msgid "in a terminal on this host."
 msgstr "（在此主機的終端中）。"
@@ -7830,6 +7934,9 @@ msgstr "2026年末"
 
 msgid "Latency"
 msgstr "延遲"
+
+msgid "Later"
+msgstr "稍後"
 
 msgid "Latest"
 msgstr "最新"
@@ -8390,9 +8497,6 @@ msgstr "讓快速鍵匹配鍵盤上的標籤（例如⌘Z始終觸發標有「Z�
 msgid "Max"
 msgstr "最大"
 
-msgid "Maximize window"
-msgstr "最大化視窗"
-
 msgid "Maximum"
 msgstr "最大"
 
@@ -8553,9 +8657,6 @@ msgstr "最小化"
 msgid "Minimize GitHub issues"
 msgstr "最小化GitHub議題"
 
-msgid "Minimize window"
-msgstr "最小化視窗"
-
 msgid "Minimum contrast"
 msgstr "最小對比度"
 
@@ -8656,6 +8757,12 @@ msgstr "按月"
 msgid "Monthly at {time}"
 msgstr "每月{time}"
 
+msgid "monthly NRR"
+msgstr "月度 NRR"
+
+msgid "monthly NRR (month so far)"
+msgstr "月度 NRR（本月至今）"
+
 msgid "Monthly on {day}"
 msgstr "每月{day}"
 
@@ -8709,6 +8816,9 @@ msgstr "MRR"
 
 msgid "MRR — daily (Stripe)"
 msgstr "MRR — 按日（Stripe）"
+
+msgid "MRR from customers paying at the end of the prior month, as a share of what they paid then: expansion and contraction net of churn, new customers excluded"
+msgstr "上月底付費客戶的 MRR 佔其當時付費額的比例：擴張與縮減扣除流失後的淨值，不含新客戶"
 
 msgid "Multi-select"
 msgstr "多選"
@@ -8808,6 +8918,10 @@ msgstr "需要更新"
 msgid "Needs update"
 msgstr "需要更新"
 
+msgctxt "agent status"
+msgid "Needs you"
+msgstr "需要你"
+
 msgid "Nerd Fonts"
 msgstr "Nerd Fonts"
 
@@ -8816,6 +8930,9 @@ msgstr "淨支出"
 
 msgid "Net burn — monthly (Mercury)"
 msgstr "淨支出 — 按月（Mercury）"
+
+msgid "Net revenue retention — monthly (Stripe)"
+msgstr "淨收入留存率 — 每月（Stripe）"
 
 msgid "Network Changed"
 msgstr "網路已變更"
@@ -9622,6 +9739,10 @@ msgstr "尚未在此主機上配置"
 msgid "not sorted"
 msgstr "未排序"
 
+msgctxt "agent status"
+msgid "Not updating"
+msgstr "未更新"
+
 msgid "Notes"
 msgstr "筆記"
 
@@ -10244,6 +10365,9 @@ msgstr "開啟工作區"
 msgid "Open workspace in external app (Cursor, VS Code, etc.)"
 msgstr "在外部應用中開啟工作區（Cursor、VS Code等）"
 
+msgid "OpenAI rejected this API key."
+msgstr "OpenAI拒絕了此API金鑰。"
+
 msgid "Opened"
 msgstr "已建立"
 
@@ -10691,6 +10815,9 @@ msgstr "選擇一個工作區"
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "選擇圖示和顏色，或上傳自訂圖片。預設使用關聯的GitHub擁有者頭像。"
 
+msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
+msgstr "選擇{label}在沙箱中的登入方式。憑證在啟動時交給代理程式的行程，不會存放在沙箱裡。"
+
 msgid "Pick the best agent."
 msgstr "挑選最合適的代理程式。"
 
@@ -10714,6 +10841,9 @@ msgstr "PID"
 
 msgid "Pin"
 msgstr "固定"
+
+msgid "Pin a workspace to continue its agent session between runs"
+msgstr "釘選一個工作區，以便在多次執行之間繼續其代理程式工作階段"
 
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "把工作區固定在專案上方，再⌘點選批次選中，一次性移動、分組或刪除。"
@@ -11246,6 +11376,9 @@ msgstr "正在推送…"
 msgid "Put recurring work on a schedule"
 msgstr "把重複的活兒排進日程"
 
+msgid "Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review."
+msgstr "將重複性工作排入排程，或設定為由事件觸發。代理程式會自行執行，並將結果放入工作區供你審查。"
+
 msgid "px"
 msgstr "px"
 
@@ -11519,6 +11652,9 @@ msgstr "已啟用中繼存取，正在連線中繼…"
 
 msgid "Release"
 msgstr "版本"
+
+msgid "Release control"
+msgstr "釋放控制"
 
 msgid "Release…"
 msgstr "版本…"
@@ -11940,6 +12076,9 @@ msgstr "重啟終端守護程式？"
 msgid "Restart terminals"
 msgstr "重啟終端"
 
+msgid "Restart to use the latest version of Superset."
+msgstr "重新啟動以使用最新版本的 Superset。"
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "已重啟{restartedOrgCount}個主機服務"
 
@@ -12008,6 +12147,9 @@ msgstr "恢復自動化"
 msgid "Resuming {0}…"
 msgstr "正在恢復{0}…"
 
+msgid "Retained MRR"
+msgstr "留存 MRR"
+
 msgid "Retention and revenue"
 msgstr "留存與營收"
 
@@ -12064,6 +12206,10 @@ msgstr "先看營收，再看實際使用人數，最後看營運成本。"
 
 msgid "Review"
 msgstr "審查"
+
+msgctxt "agent status"
+msgid "Review"
+msgstr "待檢視"
 
 msgid "Review and CI queues eat the gains agents create."
 msgstr "審查和CI排隊把代理程式帶來的收益吃掉了。"
@@ -12163,6 +12309,9 @@ msgstr "旋轉裝置"
 
 msgid "Roundups"
 msgstr "綜合評測"
+
+msgid "Route {label} through a provider you run, with the credentials you hold. Saved values are handed to the agent at launch."
+msgstr "讓{label}走你自己運行的提供商，用你手中的憑證。已儲存的值會在啟動時交給代理程式。"
 
 msgid "Routine tickets with no mid-task intervention"
 msgstr "常規工單無需中途干預"
@@ -12305,9 +12454,6 @@ msgstr "SAML SSO與SCIM帳號開通"
 
 msgid "San Francisco"
 msgstr "舊金山"
-
-msgid "Sandbox preview has no URL"
-msgstr "沙箱預覽沒有URL"
 
 msgid "Save"
 msgstr "儲存"
@@ -12926,6 +13072,9 @@ msgstr "設定密碼"
 msgid "Set Run"
 msgstr "設定執行命令"
 
+msgid "Set up"
+msgstr "設定"
+
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上設定專案"
 
@@ -13022,6 +13171,9 @@ msgstr "交付"
 
 msgid "Shortcut already in use"
 msgstr "快速鍵已被使用"
+
+msgid "Show"
+msgstr "顯示"
 
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "退出應用時顯示確認對話方塊"
@@ -13216,6 +13368,9 @@ msgstr "使用GitHub登入"
 msgid "Sign in with Google"
 msgstr "使用Google登入"
 
+msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
+msgstr "使用你的Claude帳戶登入，或在終端中執行<0>claude setup-token</0><1><2/></1>，然後把權杖貼到這裡。"
+
 msgid "Sign out"
 msgstr "登出"
 
@@ -13251,8 +13406,14 @@ msgstr "登入已過期——請執行"
 msgid "Sign-in failed"
 msgstr "登入失敗"
 
+msgid "Signed in as {accountLabel}"
+msgstr "已登入為{accountLabel}"
+
 msgid "Signed in as <0>{userName}</0>"
 msgstr "已登入為<0>{userName}</0>"
+
+msgid "Signed in. The token is stored encrypted and is never shown again."
+msgstr "已登入。權杖以加密方式儲存，且不會再次顯示。"
 
 msgid "Signed out"
 msgstr "已登出"
@@ -13262,6 +13423,9 @@ msgstr "已登入的站點"
 
 msgid "Signing in..."
 msgstr "正在登入..."
+
+msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
+msgstr "以Codex CLI的方式登入。或在終端中執行<0>codex login</0>，然後把它的權杖貼到這裡。"
 
 msgid "signup → paid ≤30d"
 msgstr "註冊 → 30天內付費"
@@ -13552,6 +13716,9 @@ msgstr "堆疊"
 msgid "Stage all"
 msgstr "全部暫存"
 
+msgid "Stage file"
+msgstr "暫存檔案"
+
 msgid "Staged"
 msgstr "已暫存"
 
@@ -13612,6 +13779,9 @@ msgstr "開始一段對話，訊息會顯示在這裡"
 msgid "Start a fresh agent session seeded with this terminal's recent context. Workspace files remain the source of truth."
 msgstr "以這個終端最近的上下文啟動新的代理程式會話。工作區中的檔案仍是準確來源。"
 
+msgid "Start a new agent session each run"
+msgstr "每次執行都啟動新的代理程式工作階段"
+
 msgid "Start a session"
 msgstr "開始一個會話"
 
@@ -13629,6 +13799,10 @@ msgstr "免費開始。團隊用不夠時再升級。企業方案面向有進階
 
 msgid "Start from a template"
 msgstr "從模板開始"
+
+#. placeholder {0}: datum.customers
+msgid "Start MRR ({0} customers)"
+msgstr "起始 MRR（{0} 位客戶）"
 
 msgid "Start new session"
 msgstr "開始新會話"
@@ -14122,6 +14296,9 @@ msgstr "Tailwind v4主題參考"
 msgid "Take a screenshot"
 msgstr "截圖"
 
+msgid "Take control"
+msgstr "接管控制"
+
 msgid "Take me home"
 msgstr "回到首頁"
 
@@ -14344,6 +14521,12 @@ msgstr "多行文字框"
 msgid "Thanks for reaching out"
 msgstr "感謝聯絡"
 
+msgid "That endpoint could not be resolved."
+msgstr "無法解析該端點。"
+
+msgid "That endpoint is not allowed."
+msgstr "不允許該端點。"
+
 msgid "That handle is taken."
 msgstr "該使用者名稱已被佔用。"
 
@@ -14409,6 +14592,9 @@ msgstr "差異仍是最新的，只是評論沒能載入。"
 
 msgid "The dispatcher appears"
 msgstr "排程員出現"
+
+msgid "The endpoint must use https."
+msgstr "端點必須使用 https。"
 
 msgid "The factory"
 msgstr "工廠"
@@ -14552,6 +14738,13 @@ msgstr "你要找的頁面不存在。"
 msgid "The people behind Superset."
 msgstr "Superset背後的團隊。"
 
+#. placeholder {0}: params?.status
+msgid "The provider answered {0}."
+msgstr "提供商回應了{0}。"
+
+msgid "The provider refused it."
+msgstr "提供商拒絕了它。"
+
 msgid "The recovery period has ended. Contact support@superset.sh."
 msgstr "恢復期已結束。請聯絡support@superset.sh。"
 
@@ -14634,6 +14827,9 @@ msgstr "工作區尚未就緒。請重試。"
 msgid "The workspace may still have been created. This screen opens it if it appears."
 msgstr "工作區可能仍已建立。如果出現，此畫面會開啟它。"
 
+msgid "The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings."
+msgstr "此自動化所釘選的工作區在其主機上已不存在。請在自動化設定中釘選另一個工作區。"
+
 msgid "The worktree and any uncommitted changes will be removed. This cannot be undone."
 msgstr "worktree及其中所有未提交的更改都會被移除。此操作無法復原。"
 
@@ -14688,6 +14884,9 @@ msgstr "該應用程式將可以存取所選組織中的資料。"
 #. placeholder {0}: params?.organizationName
 msgid "This automation belongs to {0}. Switch to that organization to open it."
 msgstr "此自動化屬於 {0}。請切換到該組織後開啟。"
+
+msgid "This automation has no instructions yet. Write a prompt in its settings before running it."
+msgstr "此自動化尚未有指示。請先在設定中撰寫提示，再執行。"
 
 msgid "This automation is in another organization"
 msgstr "此自動化位於其他組織"
@@ -15446,6 +15645,9 @@ msgstr "未儲存的更改"
 msgid "Unstage all"
 msgstr "全部取消暫存"
 
+msgid "Unstage file"
+msgstr "取消暫存檔案"
+
 msgid "Unstaged"
 msgstr "未暫存"
 
@@ -15498,12 +15700,18 @@ msgstr "更新出錯"
 msgid "Update host service"
 msgstr "更新主機服務"
 
+msgid "Update in the App Store"
+msgstr "在 App Store 中更新"
+
 msgid "Update naming instructions"
 msgstr "更新命名規則"
 
 #. placeholder {0}: selectedProject.name
 msgid "Update naming instructions for {0}"
 msgstr "更新{0}的命名規則"
+
+msgid "Update ready"
+msgstr "更新已就緒"
 
 msgid "Update Required"
 msgstr "需要更新"
@@ -15685,6 +15893,15 @@ msgstr "v2ProjectId與該工作區的專案不匹配"
 
 msgid "Variables"
 msgstr "變數"
+
+msgid "Vercel AI Gateway"
+msgstr "Vercel AI Gateway"
+
+msgid "Vercel AI Gateway rejected this key."
+msgstr "Vercel AI Gateway 拒絕了此金鑰。"
+
+msgid "Verified and saved"
+msgstr "已驗證並儲存"
 
 msgid "Verified through sign-in"
 msgstr "透過登入驗證"
@@ -16147,6 +16364,10 @@ msgstr "工作流教程"
 
 msgid "Working"
 msgstr "工作中"
+
+msgctxt "agent status"
+msgid "Working"
+msgstr "執行中"
 
 msgid "Works when environments are clean. Environments are rarely clean."
 msgstr "環境乾淨時可行。而環境很少乾淨。"

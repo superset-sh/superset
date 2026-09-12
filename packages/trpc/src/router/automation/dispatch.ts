@@ -1,5 +1,6 @@
 import { mintUserJwt } from "@superset/auth/server";
 import { db } from "@superset/db/client";
+import type { AutomationRunErrorCode } from "@superset/db/enums";
 import {
 	automationEvents,
 	automationRuns,
@@ -17,7 +18,7 @@ import {
 	sanitizeBranchNameWithMaxLength,
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { RelayDispatchError, relayMutation } from "./relay-client";
 import { promptWithTriggerContext } from "./triggerContext";
@@ -26,8 +27,18 @@ type AgentRunResult = { kind: "terminal"; sessionId: string; label: string };
 
 export type DispatchOutcome =
 	| { status: "dispatched"; runId: string }
-	| { status: "skipped_offline"; runId: string | null; error: string }
-	| { status: "dispatch_failed"; runId: string | null; error: string }
+	| {
+			status: "skipped_offline";
+			runId: string | null;
+			error: string;
+			errorCode: AutomationRunErrorCode | null;
+	  }
+	| {
+			status: "dispatch_failed";
+			runId: string | null;
+			error: string;
+			errorCode: AutomationRunErrorCode | null;
+	  }
 	| { status: "conflict" };
 
 /**
@@ -46,6 +57,7 @@ export type DispatchableAutomation = Pick<
 	| "v2ProjectId"
 	| "v2WorkspaceId"
 	| "tags"
+	| "continueAgentSession"
 >;
 
 /**
@@ -112,8 +124,14 @@ export async function dispatchAutomation(
 			automation.targetHostId,
 			"dispatch_failed",
 			error,
+			"no_instructions",
 		);
-		return { status: "dispatch_failed", runId: inserted?.id ?? null, error };
+		return {
+			status: "dispatch_failed",
+			runId: inserted?.id ?? null,
+			error,
+			errorCode: "no_instructions",
+		};
 	}
 
 	const candidates = await resolveCandidateHosts(automation);
@@ -125,8 +143,14 @@ export async function dispatchAutomation(
 			null,
 			"skipped_offline",
 			error,
+			"host_offline",
 		);
-		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
+		return {
+			status: "skipped_offline",
+			runId: inserted?.id ?? null,
+			error,
+			errorCode: "host_offline",
+		};
 	}
 
 	const host = await pickOnlineHost(automation, relayUrl, candidates);
@@ -138,8 +162,14 @@ export async function dispatchAutomation(
 			candidates[0]?.machineId ?? null,
 			"skipped_offline",
 			error,
+			"host_offline",
 		);
-		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
+		return {
+			status: "skipped_offline",
+			runId: inserted?.id ?? null,
+			error,
+			errorCode: "host_offline",
+		};
 	}
 
 	const [run] = await db
@@ -215,6 +245,13 @@ export async function dispatchAutomation(
 			event,
 		);
 
+		// Opt-in, and only for a pinned workspace: that is where a session from
+		// a previous run can still be alive.
+		const continueTerminalId =
+			automation.continueAgentSession && automation.v2WorkspaceId
+				? await previousRunTerminal(automation.id, automation.v2WorkspaceId)
+				: undefined;
+
 		const runAgent = (targetWorkspaceId: string) =>
 			runAgentOnHost({
 				relayUrl,
@@ -223,6 +260,11 @@ export async function dispatchAutomation(
 				workspaceId: targetWorkspaceId,
 				agent: automation.agent,
 				prompt,
+				// Only the pinned workspace holds that session; the stale-pin
+				// recovery below branches a fresh one, which has none.
+				...(continueTerminalId && targetWorkspaceId === automation.v2WorkspaceId
+					? { continueTerminalId }
+					: {}),
 			});
 
 		workspaceId = automation.v2WorkspaceId ?? (await createFreshWorkspace());
@@ -246,7 +288,9 @@ export async function dispatchAutomation(
 			// a fresh workspace from here on.
 			await db
 				.update(automations)
-				.set({ v2WorkspaceId: null })
+				// The session to continue lived in that workspace, so the flag
+				// goes with the pin — the same rule the API applies on update.
+				.set({ v2WorkspaceId: null, continueAgentSession: false })
 				.where(
 					and(
 						eq(automations.id, automation.id),
@@ -272,15 +316,17 @@ export async function dispatchAutomation(
 			.where(eq(automationRuns.id, run.id));
 	} catch (err) {
 		const error = describeError(err, "dispatch");
+		const errorCode = classifyDispatchError(err);
 		await db
 			.update(automationRuns)
 			.set({
 				status: "dispatch_failed",
 				v2WorkspaceId: workspaceId,
 				error,
+				errorCode,
 			})
 			.where(eq(automationRuns.id, run.id));
-		return { status: "dispatch_failed", runId: run.id, error };
+		return { status: "dispatch_failed", runId: run.id, error, errorCode };
 	}
 
 	return { status: "dispatched", runId: run.id };
@@ -402,6 +448,7 @@ async function recordUndispatched(
 	hostId: string | null,
 	status: "skipped_offline" | "dispatch_failed",
 	error: string,
+	errorCode: AutomationRunErrorCode,
 ): Promise<{ id: string } | undefined> {
 	const [row] = await db
 		.insert(automationRuns)
@@ -413,6 +460,7 @@ async function recordUndispatched(
 			hostId,
 			status,
 			error,
+			errorCode,
 		})
 		.onConflictDoNothing(runDedupTarget(cause))
 		.returning({ id: automationRuns.id });
@@ -605,12 +653,15 @@ async function runAgentOnHost(args: {
 	workspaceId: string;
 	agent: string;
 	prompt: string;
+	/** See {@link previousRunTerminal}. */
+	continueTerminalId?: string;
 }): Promise<AgentRunResult> {
 	return relayMutation<
 		{
 			workspaceId: string;
 			agent: string;
 			prompt: string;
+			continueTerminalId?: string;
 		},
 		AgentRunResult
 	>(
@@ -620,8 +671,67 @@ async function runAgentOnHost(args: {
 			workspaceId: args.workspaceId,
 			agent: args.agent,
 			prompt: args.prompt,
+			// A host that predates this strips the unknown key and launches,
+			// which is exactly what every host did before it existed.
+			...(args.continueTerminalId
+				? { continueTerminalId: args.continueTerminalId }
+				: {}),
 		},
 	);
+}
+
+/**
+ * The terminal this automation's own last run left in its pinned workspace,
+ * for the host to deliver into instead of launching beside it.
+ *
+ * Deliberately the automation's own previous run rather than any live agent in
+ * the workspace: a person may be working in there too, and a scheduled prompt
+ * must never land in a session they started. An unpinned automation branches a
+ * fresh workspace per run and so has nothing to continue.
+ *
+ * The host decides in the end — this only nominates, and a stale nomination
+ * costs a launch, which is the old behaviour.
+ */
+async function previousRunTerminal(
+	automationId: string,
+	workspaceId: string,
+): Promise<string | undefined> {
+	const [previous] = await db
+		.select({ terminalSessionId: automationRuns.terminalSessionId })
+		.from(automationRuns)
+		.where(
+			and(
+				eq(automationRuns.automationId, automationId),
+				eq(automationRuns.v2WorkspaceId, workspaceId),
+				eq(automationRuns.status, "dispatched"),
+				eq(automationRuns.sessionKind, "terminal"),
+				isNotNull(automationRuns.terminalSessionId),
+			),
+		)
+		// createdAt rather than dispatchedAt: it matches automation_runs_history_idx.
+		.orderBy(desc(automationRuns.createdAt))
+		.limit(1);
+	return previous?.terminalSessionId ?? undefined;
+}
+
+/**
+ * The host's failure, as something a client can branch on.
+ *
+ * Matched on the host's wording here rather than in each client: the desktop
+ * used to grep these strings itself, which breaks the moment the message is
+ * translated, and left three packages coupled through prose. This is still a
+ * string match, but it is one, on the server, next to the transport that
+ * produced it — swap it for a typed cause once the host floor carries one.
+ */
+function classifyDispatchError(err: unknown): AutomationRunErrorCode | null {
+	if (!(err instanceof RelayDispatchError)) return null;
+	if (err.message.includes("No host agent config matching")) {
+		return "agent_not_found";
+	}
+	if (err.status === 404 && err.message.includes("not found on this host")) {
+		return "workspace_not_found";
+	}
+	return null;
 }
 
 function describeError(err: unknown, context: string): string {

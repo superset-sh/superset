@@ -1,18 +1,58 @@
 import { describe, expect, test } from "bun:test";
-import { planAllowsTriggerKind, requiredPlanForTriggerKind } from "./billing";
+import {
+	planAllowsAutomations,
+	planAllowsTriggerKind,
+	planTierFromSubscription,
+	requiredPlanForTriggerKind,
+} from "./billing";
 import { LAUNCHED_TRIGGER_KINDS } from "./constants";
 
-/** The one kind every plan gets. Everything else is a paid provider. */
-const FREE_KINDS = new Set<string>(["schedule"]);
+describe("planAllowsAutomations", () => {
+	test("free cannot, paid plans can", () => {
+		expect(planAllowsAutomations("free")).toBe(false);
+		expect(planAllowsAutomations("pro")).toBe(true);
+		expect(planAllowsAutomations("enterprise")).toBe(true);
+	});
+});
+
+describe("planTierFromSubscription", () => {
+	test("no subscription is free", () => {
+		expect(planTierFromSubscription(null)).toBe("free");
+		expect(planTierFromSubscription(undefined)).toBe("free");
+	});
+
+	test("a paying subscription resolves to its plan", () => {
+		expect(planTierFromSubscription({ plan: "pro", status: "active" })).toBe(
+			"pro",
+		);
+		expect(
+			planTierFromSubscription({ plan: "enterprise", status: "trialing" }),
+		).toBe("enterprise");
+		// Stripe is still retrying; access continues through its dunning window.
+		expect(planTierFromSubscription({ plan: "pro", status: "past_due" })).toBe(
+			"pro",
+		);
+	});
+
+	test("a lapsed subscription is free again", () => {
+		expect(planTierFromSubscription({ plan: "pro", status: "canceled" })).toBe(
+			"free",
+		);
+		expect(planTierFromSubscription({ plan: "free", status: "active" })).toBe(
+			"free",
+		);
+	});
+});
 
 describe("planAllowsTriggerKind", () => {
-	test("free plans get schedules and nothing else", () => {
-		expect(planAllowsTriggerKind("free", "schedule")).toBe(true);
+	test("free plans get no trigger kinds at all", () => {
+		expect(planAllowsTriggerKind("free", "schedule")).toBe(false);
 		expect(planAllowsTriggerKind("free", "slack")).toBe(false);
 		expect(planAllowsTriggerKind("free", "microsoft_teams")).toBe(false);
 	});
 
-	test("pro gets the pro providers but not the enterprise ones", () => {
+	test("pro gets schedules and the pro providers but not the enterprise ones", () => {
+		expect(planAllowsTriggerKind("pro", "schedule")).toBe(true);
 		expect(planAllowsTriggerKind("pro", "slack")).toBe(true);
 		expect(planAllowsTriggerKind("pro", "linear")).toBe(true);
 		expect(planAllowsTriggerKind("pro", "microsoft_teams")).toBe(false);
@@ -37,15 +77,12 @@ describe("planAllowsTriggerKind", () => {
  *
  * Adding a provider is a code-only change everywhere else, so nothing forces
  * whoever adds one to think about billing — and a kind missing from the map is
- * silently free for everybody. This fails the moment that happens.
+ * silently free for everybody, when automations as a whole are Pro. This
+ * fails the moment that happens.
  */
 describe("every launched provider is priced", () => {
 	for (const kind of LAUNCHED_TRIGGER_KINDS) {
 		test(`${kind}`, () => {
-			if (FREE_KINDS.has(kind)) {
-				expect(requiredPlanForTriggerKind(kind)).toBeUndefined();
-				return;
-			}
 			expect(requiredPlanForTriggerKind(kind)).toBeDefined();
 			expect(planAllowsTriggerKind("free", kind)).toBe(false);
 		});
