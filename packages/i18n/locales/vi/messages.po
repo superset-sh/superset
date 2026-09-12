@@ -10855,9 +10855,6 @@ msgstr "Gói"
 msgid "Plan restored"
 msgstr "Đã khôi phục gói"
 
-msgid "Plan, ask, build..."
-msgstr "Lên kế hoạch, hỏi, xây dựng..."
-
 msgid "Planning the tooltip refactor"
 msgstr "Lên kế hoạch refactor tooltip"
 

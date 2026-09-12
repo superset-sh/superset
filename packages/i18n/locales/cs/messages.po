@@ -10855,9 +10855,6 @@ msgstr "Tarif"
 msgid "Plan restored"
 msgstr "Tarif obnoven"
 
-msgid "Plan, ask, build..."
-msgstr "Plánujte, ptejte se, tvořte..."
-
 msgid "Planning the tooltip refactor"
 msgstr "Plánuji refaktor tooltipů"
 

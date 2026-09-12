@@ -323,7 +323,7 @@ export function NewChatWidget({
 		<Composer
 			ref={composerRef}
 			placeholder={t({
-				message: "Plan, ask, build...",
+				message: "What do you want to do?",
 			})}
 			initialDraft={initialDraft}
 			isSending={isSending}

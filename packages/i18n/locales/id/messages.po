@@ -10855,9 +10855,6 @@ msgstr "Paket"
 msgid "Plan restored"
 msgstr "Paket dipulihkan"
 
-msgid "Plan, ask, build..."
-msgstr "Rencanakan, tanya, bangun..."
-
 msgid "Planning the tooltip refactor"
 msgstr "Merencanakan refactor tooltip"
 

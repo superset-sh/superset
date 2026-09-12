@@ -10855,9 +10855,6 @@ msgstr "方案"
 msgid "Plan restored"
 msgstr "方案已恢复"
 
-msgid "Plan, ask, build..."
-msgstr "规划、提问、构建..."
-
 msgid "Planning the tooltip refactor"
 msgstr "正在规划tooltip重构"
 

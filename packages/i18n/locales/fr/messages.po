@@ -10855,9 +10855,6 @@ msgstr "Forfait"
 msgid "Plan restored"
 msgstr "Forfait rétabli"
 
-msgid "Plan, ask, build..."
-msgstr "Planifier, demander, construire..."
-
 msgid "Planning the tooltip refactor"
 msgstr "Planification du refactor du tooltip"
 

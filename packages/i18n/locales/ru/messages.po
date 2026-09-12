@@ -10855,9 +10855,6 @@ msgstr "Тариф"
 msgid "Plan restored"
 msgstr "Тариф восстановлен"
 
-msgid "Plan, ask, build..."
-msgstr "Планируйте, спрашивайте, стройте..."
-
 msgid "Planning the tooltip refactor"
 msgstr "Планируем рефакторинг tooltip"
 

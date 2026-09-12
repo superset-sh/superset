@@ -10855,9 +10855,6 @@ msgstr "플랜"
 msgid "Plan restored"
 msgstr "플랜이 복원되었습니다"
 
-msgid "Plan, ask, build..."
-msgstr "계획, 질문, 개발..."
-
 msgid "Planning the tooltip refactor"
 msgstr "툴팁 리팩터링 계획 중"
 

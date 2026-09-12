@@ -10855,9 +10855,6 @@ msgstr "Plan"
 msgid "Plan restored"
 msgstr "Plan geri yüklendi"
 
-msgid "Plan, ask, build..."
-msgstr "Planlayın, sorun, geliştirin..."
-
 msgid "Planning the tooltip refactor"
 msgstr "Tooltip yeniden düzenlemesi planlanıyor"
 
