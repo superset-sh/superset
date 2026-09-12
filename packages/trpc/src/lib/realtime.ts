@@ -1,8 +1,6 @@
 import type { RealtimeNudgeKind } from "@superset/shared/realtime";
 import { env } from "../env";
 
-let warnedUnconfigured = false;
-
 /**
  * Tell an organization's subscribed windows that a kind of thing changed, so
  * they refetch instead of polling. Called after the write; never fails the
@@ -12,13 +10,6 @@ export async function nudge(
 	organizationId: string,
 	kind: RealtimeNudgeKind,
 ): Promise<void> {
-	if (!env.REALTIME_NUDGE_SECRET) {
-		if (!warnedUnconfigured) {
-			warnedUnconfigured = true;
-			console.warn("[realtime] REALTIME_NUDGE_SECRET unset; nudges skipped");
-		}
-		return;
-	}
 	try {
 		const response = await fetch(`${env.REALTIME_URL}/v2/nudge`, {
 			method: "POST",

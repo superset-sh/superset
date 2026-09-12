@@ -73,9 +73,7 @@ export const env = createEnv({
 		OPENAI_API_KEY: z.string().min(1),
 		RELAY_URL: z.string().url().default("https://relay.superset.sh"),
 		REALTIME_URL: z.string().url().default("https://realtime.superset.sh"),
-		// Unset means nudges are skipped, which only costs freshness: clients
-		// still refetch on focus and reconnect.
-		REALTIME_NUDGE_SECRET: z.string().min(1).optional(),
+		REALTIME_NUDGE_SECRET: z.string().min(1),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
 		GOOGLE_CLIENT_ID: z.string().min(1),
