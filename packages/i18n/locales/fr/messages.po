@@ -104,6 +104,10 @@ msgstr "{0, plural, one {# port actif — masquer les détails} other {# ports a
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# port actif — afficher les détails} other {# ports actifs — afficher les détails}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {# automation} other {# automations}}"
+msgstr "{0, plural, one {# automatisation} other {# automatisations}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# fichier modifié} other {# fichiers modifiés}}"
@@ -153,6 +157,10 @@ msgstr "{0, plural, one {# projet masqué} other {# projets masqués}}"
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# élément d'historique} other {# éléments d'historique}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, one {# hôte sans autre propriétaire, ainsi que ses espaces de travail} other {# hôtes sans autre propriétaire, ainsi que leurs espaces de travail}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# login} other {# logins}}"
@@ -240,6 +248,14 @@ msgstr "{0, plural, one {Création de # espace de travail...} other {Création d
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {Supprimer # espace de travail ?} other {Supprimer # espaces de travail ?}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
+msgstr "{0, plural, one {# automatisation supprimée.} other {# automatisations supprimées.}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
+msgstr "{0, plural, one {# hôte sans autre propriétaire supprimé, ainsi que ses espaces de travail.} other {# hôtes sans autre propriétaire supprimés, ainsi que leurs espaces de travail.}}"
+
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
 msgstr "{0, plural, one {# espace de travail supprimé} other {# espaces de travail supprimés}}"
@@ -273,6 +289,10 @@ msgstr "{0, plural, one {Afficher # ligne de plus} other {Afficher # lignes de p
 #. placeholder {0}: importableWorktrees.length
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {# worktree existant sera importé dans Superset en tant qu'espace de travail. Chaque worktree présent sur le disque sera suivi et apparaîtra dans votre barre latérale. Aucun fichier ne sera modifié.} other {# worktrees existants seront importés dans Superset en tant qu'espaces de travail. Chaque worktree présent sur le disque sera suivi et apparaîtra dans votre barre latérale. Aucun fichier ne sera modifié.}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
+msgstr "{0, plural, one {# automatisation vous a été transférée, en pause.} other {# automatisations vous ont été transférées, en pause.}}"
 
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
@@ -14863,6 +14883,9 @@ msgstr "Cette action est irréversible."
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Cet agent n'existe plus sur l'appareil sélectionné (ses agents ont peut-être été réinitialisés). Les exécutions échoueront tant que vous n'en aurez pas choisi un nouveau."
 
+msgid "This also deletes:"
+msgstr "Cela supprime aussi :"
+
 msgid "This application will be able to:"
 msgstr "Cette application pourra :"
 
@@ -15335,6 +15358,9 @@ msgstr "Traque ce test instable…"
 
 msgid "Tracking"
 msgstr "Suivi"
+
+msgid "Transfer their automations to me (paused) instead of deleting them"
+msgstr "Me transférer leurs automatisations (en pause) au lieu de les supprimer"
 
 msgid "Translated"
 msgstr "Traduit"

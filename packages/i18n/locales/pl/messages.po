@@ -104,6 +104,10 @@ msgstr "{0, plural, one {# aktywny port — ukryj szczegóły} few {# aktywne po
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# aktywny port — pokaż szczegóły} few {# aktywne porty — pokaż szczegóły} many {# aktywnych portów — pokaż szczegóły} other {# aktywnego portu — pokaż szczegóły}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {# automation} other {# automations}}"
+msgstr "{0, plural, one {# automatyzacja} few {# automatyzacje} many {# automatyzacji} other {# automatyzacji}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# zmieniony plik} few {# zmienione pliki} many {# zmienionych plików} other {# zmienionego pliku}}"
@@ -153,6 +157,10 @@ msgstr "{0, plural, one {# ukryty projekt} few {# ukryte projekty} many {# ukryt
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# element historii} few {# elementy historii} many {# elementów historii} other {# elementu historii}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, one {# host bez innego właściciela, wraz z jego przestrzeniami roboczymi} few {# hosty bez innego właściciela, wraz z ich przestrzeniami roboczymi} many {# hostów bez innego właściciela, wraz z ich przestrzeniami roboczymi} other {# hostów bez innego właściciela, wraz z ich przestrzeniami roboczymi}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# login} other {# logins}}"
@@ -240,6 +248,14 @@ msgstr "{0, plural, one {Tworzenie # obszaru roboczego...} few {Tworzenie # obsz
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {Usunąć # obszar roboczy?} few {Usunąć # obszary robocze?} many {Usunąć # obszarów roboczych?} other {Usunąć # obszaru roboczego?}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
+msgstr "{0, plural, one {Usunięto # automatyzację.} few {Usunięto # automatyzacje.} many {Usunięto # automatyzacji.} other {Usunięto # automatyzacji.}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
+msgstr "{0, plural, one {Usunięto # host bez innego właściciela wraz z jego przestrzeniami roboczymi.} few {Usunięto # hosty bez innego właściciela wraz z ich przestrzeniami roboczymi.} many {Usunięto # hostów bez innego właściciela wraz z ich przestrzeniami roboczymi.} other {Usunięto # hostów bez innego właściciela wraz z ich przestrzeniami roboczymi.}}"
+
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
 msgstr "{0, plural, one {Usunięto # obszar roboczy} few {Usunięto # obszary robocze} many {Usunięto # obszarów roboczych} other {Usunięto # obszaru roboczego}}"
@@ -273,6 +289,10 @@ msgstr "{0, plural, one {Pokaż jeszcze # wiersz} few {Pokaż jeszcze # wiersze}
 #. placeholder {0}: importableWorktrees.length
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Spowoduje to zaimportowanie # istniejącego worktree do Superset jako obszaru roboczego. Każdy worktree na dysku będzie śledzony i pojawi się na pasku bocznym. Żadne pliki nie zostaną zmienione.} few {Spowoduje to zaimportowanie # istniejących worktree do Superset jako obszarów roboczych. Każdy worktree na dysku będzie śledzony i pojawi się na pasku bocznym. Żadne pliki nie zostaną zmienione.} many {Spowoduje to zaimportowanie # istniejących worktree do Superset jako obszarów roboczych. Każdy worktree na dysku będzie śledzony i pojawi się na pasku bocznym. Żadne pliki nie zostaną zmienione.} other {Spowoduje to zaimportowanie # istniejących worktree do Superset jako obszarów roboczych. Każdy worktree na dysku będzie śledzony i pojawi się na pasku bocznym. Żadne pliki nie zostaną zmienione.}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
+msgstr "{0, plural, one {Przeniesiono do Ciebie # automatyzację (wstrzymana).} few {Przeniesiono do Ciebie # automatyzacje (wstrzymane).} many {Przeniesiono do Ciebie # automatyzacji (wstrzymane).} other {Przeniesiono do Ciebie # automatyzacji (wstrzymane).}}"
 
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
@@ -14863,6 +14883,9 @@ msgstr "Tej operacji nie można cofnąć."
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Ten agent już nie istnieje na wybranym urządzeniu (jego agenci mogli zostać zresetowani). Uruchomienia będą kończyć się błędem, dopóki nie wybierzesz nowego."
 
+msgid "This also deletes:"
+msgstr "Spowoduje to również usunięcie:"
+
 msgid "This application will be able to:"
 msgstr "Ta aplikacja będzie mogła:"
 
@@ -15335,6 +15358,9 @@ msgstr "Wytrop ten niestabilny test…"
 
 msgid "Tracking"
 msgstr "Śledzenie"
+
+msgid "Transfer their automations to me (paused) instead of deleting them"
+msgstr "Przenieś ich automatyzacje do mnie (wstrzymane) zamiast je usuwać"
 
 msgid "Translated"
 msgstr "Przetłumaczone"

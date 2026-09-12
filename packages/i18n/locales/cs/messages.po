@@ -104,6 +104,10 @@ msgstr "{0, plural, one {# aktivní port — skrýt podrobnosti} few {# aktivní
 msgid "{0, plural, one {# active port — show details} other {# active ports — show details}}"
 msgstr "{0, plural, one {# aktivní port — zobrazit podrobnosti} few {# aktivní porty — zobrazit podrobnosti} many {# aktivního portu — zobrazit podrobnosti} other {# aktivních portů — zobrazit podrobnosti}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {# automation} other {# automations}}"
+msgstr "{0, plural, one {# automatizace} few {# automatizace} many {# automatizace} other {# automatizací}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# změněný soubor} few {# změněné soubory} many {# změněného souboru} other {# změněných souborů}}"
@@ -153,6 +157,10 @@ msgstr "{0, plural, one {# skrytý projekt} few {# skryté projekty} many {# skr
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# položka historie} few {# položky historie} many {# položky historie} other {# položek historie}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, one {# host bez dalšího vlastníka, včetně jeho pracovních prostorů} few {# hosty bez dalšího vlastníka, včetně jejich pracovních prostorů} many {# hosta bez dalšího vlastníka, včetně jejich pracovních prostorů} other {# hostů bez dalšího vlastníka, včetně jejich pracovních prostorů}}"
 
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# login} other {# logins}}"
@@ -240,6 +248,14 @@ msgstr "{0, plural, one {Vytvářím # pracovní prostor...} few {Vytvářím # 
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {Smazat # pracovní prostor?} few {Smazat # pracovní prostory?} many {Smazat # pracovního prostoru?} other {Smazat # pracovních prostorů?}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
+msgstr "{0, plural, one {Smazána # automatizace.} few {Smazány # automatizace.} many {Smazáno # automatizace.} other {Smazáno # automatizací.}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
+msgstr "{0, plural, one {Smazán # host bez dalšího vlastníka i s jeho pracovními prostory.} few {Smazány # hosty bez dalšího vlastníka i s jejich pracovními prostory.} many {Smazáno # hosta bez dalšího vlastníka i s jejich pracovními prostory.} other {Smazáno # hostů bez dalšího vlastníka i s jejich pracovními prostory.}}"
+
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
 msgstr "{0, plural, one {Smazán # pracovní prostor} few {Smazány # pracovní prostory} many {Smazáno # pracovního prostoru} other {Smazáno # pracovních prostorů}}"
@@ -273,6 +289,10 @@ msgstr "{0, plural, one {Zobrazit ještě # řádek} few {Zobrazit ještě # ř�
 #. placeholder {0}: importableWorktrees.length
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Tímto se do Superset naimportuje # existující worktree jako pracovní prostor. Každý worktree na disku bude sledován a objeví se v postranním panelu. Žádné soubory se nezmění.} few {Tímto se do Superset naimportují # existující worktree jako pracovní prostory. Každý worktree na disku bude sledován a objeví se v postranním panelu. Žádné soubory se nezmění.} many {Tímto se do Superset naimportuje # existujícího worktree jako pracovní prostory. Každý worktree na disku bude sledován a objeví se v postranním panelu. Žádné soubory se nezmění.} other {Tímto se do Superset naimportuje # existujících worktree jako pracovní prostory. Každý worktree na disku bude sledován a objeví se v postranním panelu. Žádné soubory se nezmění.}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
+msgstr "{0, plural, one {# automatizace byla převedena na vás (pozastavená).} few {# automatizace byly převedeny na vás (pozastavené).} many {# automatizace bylo převedeno na vás (pozastavené).} other {# automatizací bylo převedeno na vás (pozastavené).}}"
 
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
@@ -14863,6 +14883,9 @@ msgstr "Tuto akci nelze vrátit zpět."
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Tento agent už na vybraném zařízení neexistuje (jeho agenti mohli být resetováni). Běhy budou selhávat, dokud nevyberete jiného."
 
+msgid "This also deletes:"
+msgstr "Tím se také smaže:"
+
 msgid "This application will be able to:"
 msgstr "Tato aplikace bude moci:"
 
@@ -15335,6 +15358,9 @@ msgstr "Vypátrej ten nestabilní test…"
 
 msgid "Tracking"
 msgstr "Sleduji"
+
+msgid "Transfer their automations to me (paused) instead of deleting them"
+msgstr "Převést jejich automatizace na mě (pozastavené) místo smazání"
 
 msgid "Translated"
 msgstr "Přeloženo"
