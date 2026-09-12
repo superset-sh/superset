@@ -32,13 +32,22 @@ type WindowOpenHandler = (
 	details: Electron.HandlerDetails,
 ) => Electron.WindowOpenHandlerResponse;
 
+interface FakeSession {
+	setPermissionRequestHandler: ReturnType<typeof mock>;
+	setPermissionCheckHandler: ReturnType<typeof mock>;
+}
+
+type Listener = (...args: unknown[]) => void;
+
 interface FakeWebContents {
 	throttlingCalls: boolean[];
+	session: FakeSession;
+	listeners: Map<string, Listener>;
 	isDestroyed: () => boolean;
 	setBackgroundThrottling: (allowed: boolean) => void;
 	setWindowOpenHandler: (handler: WindowOpenHandler) => void;
 	windowOpen: WindowOpenHandler | null;
-	on: () => void;
+	on: (event: string, listener: Listener) => void;
 	off: () => void;
 	getURL: () => string;
 	getTitle: () => string;
@@ -55,10 +64,23 @@ interface FakeWebContents {
 
 let nextId = 1;
 
-function makeWc(): { wc: FakeWebContents; id: number } {
+function makeSession(): FakeSession {
+	return {
+		setPermissionRequestHandler: mock(() => {}),
+		setPermissionCheckHandler: mock(() => {}),
+	};
+}
+
+function makeWc(session: FakeSession = makeSession()): {
+	wc: FakeWebContents;
+	id: number;
+} {
 	const throttlingCalls: boolean[] = [];
+	const listeners = new Map<string, Listener>();
 	const wc: FakeWebContents = {
 		throttlingCalls,
+		session,
+		listeners,
 		isDestroyed: () => false,
 		setBackgroundThrottling: (allowed: boolean) => {
 			throttlingCalls.push(allowed);
@@ -67,7 +89,9 @@ function makeWc(): { wc: FakeWebContents; id: number } {
 			wc.windowOpen = handler;
 		},
 		windowOpen: null,
-		on: () => {},
+		on: (event, listener) => {
+			listeners.set(event, listener);
+		},
 		off: () => {},
 		getURL: () => "https://example.com",
 		getTitle: () => "Example",
@@ -374,6 +398,19 @@ describe("forced CDP detach", () => {
 	});
 });
 
+describe("guest permission policy", () => {
+	test("register installs the permission handlers on the guest's session, once", () => {
+		const session = makeSession();
+		const a = makeWc(session);
+		const b = makeWc(session);
+		browserManager.register("pane-perm-a", a.id, "ws-1");
+		browserManager.register("pane-perm-b", b.id, "ws-1");
+		registered.push("pane-perm-a", "pane-perm-b");
+		expect(session.setPermissionRequestHandler).toHaveBeenCalledTimes(1);
+		expect(session.setPermissionCheckHandler).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe("host window key forwarding", () => {
 	type BeforeInput = (
 		event: { preventDefault: () => void },
@@ -385,6 +422,7 @@ describe("host window key forwarding", () => {
 		const wc = {
 			id: 4242,
 			focusedFrame,
+			session: makeSession(),
 			on: (event: string, listener: BeforeInput) => {
 				if (event === "before-input-event") handler = listener;
 			},

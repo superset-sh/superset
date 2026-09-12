@@ -4,6 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import {
 	getAppCommand,
+	isMacOsBundlePath,
+	openFolderInFileBrowser,
 	pathIsMissing,
 	RelativePathWithoutCwdError,
 	resolvePath,
@@ -796,5 +798,84 @@ describe("pathIsMissing", () => {
 		// ENAMETOOLONG: we cannot tell whether the path is there, so the app
 		// still gets to try and its failure still reports.
 		expect(await pathIsMissing(`/${"a".repeat(5000)}`)).toBe(false);
+	});
+});
+
+describe("isMacOsBundlePath", () => {
+	test("recognizes app and plugin bundles regardless of case", () => {
+		expect(isMacOsBundlePath("/Applications/Evil.app")).toBe(true);
+		expect(isMacOsBundlePath("/tmp/Evil.APP")).toBe(true);
+		expect(isMacOsBundlePath("/tmp/thing.prefPane")).toBe(true);
+		expect(isMacOsBundlePath("/tmp/run.workflow")).toBe(true);
+	});
+
+	test("leaves ordinary folders alone", () => {
+		expect(isMacOsBundlePath("/tmp/project")).toBe(false);
+		expect(isMacOsBundlePath("/tmp/app")).toBe(false);
+		expect(isMacOsBundlePath("/tmp/my.folder")).toBe(false);
+	});
+});
+
+describe("openFolderInFileBrowser", () => {
+	let tmpDir: string;
+	const originalPlatform = process.platform;
+	const opened: string[] = [];
+	const openPath = async (path: string) => {
+		opened.push(path);
+		return "";
+	};
+
+	beforeEach(async () => {
+		Object.defineProperty(process, "platform", { value: "darwin" });
+		opened.length = 0;
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "open-folder-"));
+	});
+
+	afterEach(async () => {
+		Object.defineProperty(process, "platform", { value: originalPlatform });
+		await fs.rm(tmpDir, { recursive: true, force: true });
+	});
+
+	test("opens a plain folder", async () => {
+		const folder = path.join(tmpDir, "project");
+		await fs.mkdir(folder);
+		await openFolderInFileBrowser(folder, openPath);
+		expect(opened).toEqual([folder]);
+	});
+
+	test("refuses an app bundle even though it stats as a directory", async () => {
+		const bundle = path.join(tmpDir, "Evil.app");
+		await fs.mkdir(bundle);
+		await expect(openFolderInFileBrowser(bundle, openPath)).rejects.toThrow(
+			/application bundle/,
+		);
+		expect(opened).toEqual([]);
+	});
+
+	test("refuses a symlink that resolves to an app bundle", async () => {
+		const bundle = path.join(tmpDir, "Evil.app");
+		await fs.mkdir(bundle);
+		const link = path.join(tmpDir, "innocent");
+		await fs.symlink(bundle, link);
+		await expect(openFolderInFileBrowser(link, openPath)).rejects.toThrow(
+			/application bundle/,
+		);
+		expect(opened).toEqual([]);
+	});
+
+	test("refuses a file, which would open in its default handler", async () => {
+		const script = path.join(tmpDir, "run.command");
+		await fs.writeFile(script, "#!/bin/sh\necho hi\n", { mode: 0o755 });
+		await expect(openFolderInFileBrowser(script, openPath)).rejects.toThrow(
+			/Not a folder/,
+		);
+		expect(opened).toEqual([]);
+	});
+
+	test("reports a missing path as not found", async () => {
+		await expect(
+			openFolderInFileBrowser(path.join(tmpDir, "gone"), openPath),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		expect(opened).toEqual([]);
 	});
 });
