@@ -671,6 +671,10 @@
         "wrangler": "4.118.0",
       },
     },
+    "apps/review-host": {
+      "name": "@superset/review-host",
+      "version": "0.0.0",
+    },
     "apps/usercontent": {
       "name": "@superset/usercontent",
       "version": "0.1.0",
@@ -3122,6 +3126,8 @@
     "@superset/realtime": ["@superset/realtime@workspace:apps/realtime"],
 
     "@superset/relay": ["@superset/relay@workspace:apps/relay"],
+
+    "@superset/review-host": ["@superset/review-host@workspace:apps/review-host"],
 
     "@superset/sdk": ["@superset/sdk@workspace:packages/sdk"],
 
