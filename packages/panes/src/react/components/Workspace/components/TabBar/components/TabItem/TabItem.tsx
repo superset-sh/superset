@@ -27,7 +27,6 @@ interface TabItemProps<TData> {
 	registry: PaneRegistry<TData>;
 	index: number;
 	isActive: boolean;
-	flushLeft: boolean;
 	onSelect: () => void;
 	onClose: () => void;
 	onCloseOthers: () => void;
@@ -43,7 +42,6 @@ export function TabItem<TData>({
 	registry,
 	index,
 	isActive,
-	flushLeft,
 	onSelect,
 	onClose,
 	onCloseOthers,
@@ -120,17 +118,10 @@ export function TabItem<TData>({
 				<div
 					ref={setRef}
 					className={cn(
-						// Inverted scheme matching the right sidebar tabs: the active tab is
-						// outlined on left/right/top with a transparent bottom border and an
-						// opaque fill, so it flows straight into the content below. Inactive
-						// tabs keep a 1px border on all sides (transparent except the bottom
-						// line) so the bar's line runs unbroken beneath them and tabs don't
-						// shift when switching.
-						"group relative flex h-full w-full items-center transition-colors",
+						"group relative flex h-full w-full items-center rounded-t-md transition-colors",
 						isActive
-							? "border border-border border-b-transparent bg-background text-foreground"
-							: "border border-transparent border-b-border text-muted-foreground/70 hover:bg-border/20 hover:text-muted-foreground",
-						flushLeft && "border-l-transparent",
+							? "border border-border/70 border-b-transparent bg-background text-foreground"
+							: "border border-transparent border-b-border text-muted-foreground/70 hover:bg-muted/40 hover:text-muted-foreground",
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
