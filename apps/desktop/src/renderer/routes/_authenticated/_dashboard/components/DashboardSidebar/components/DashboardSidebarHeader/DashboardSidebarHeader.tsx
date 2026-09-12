@@ -108,9 +108,10 @@ export function DashboardSidebarHeader({
 	const handleImportFolder = async () => {
 		const result = await folderImport.start();
 		if (result) {
+			openNewWorkspace(result.projectId);
 			toast.success(
 				t({
-					message: "Project ready — open it from the sidebar.",
+					message: "Project imported and selected.",
 				}),
 			);
 		}
