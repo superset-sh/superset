@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { SHELF_RETENTION_MS } from "renderer/lib/workspaces/isShelvedWorkspace";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
@@ -19,6 +20,7 @@ import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { useRemoteHostStatus } from "../hooks/useRemoteHostStatus";
 import { useWorkspaceMissVerdict } from "../hooks/useWorkspaceMissVerdict";
 import { WorkspaceProvider } from "../providers/WorkspaceProvider";
+import { ArchivedWorkspaceBanner } from "./components/ArchivedWorkspaceBanner";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspace/$workspaceId",
@@ -184,9 +186,24 @@ function V2WorkspaceLayout() {
 		}
 	}
 
+	// Opening an archived workspace never restores it, so say so at the top of
+	// the route and put the one control that does right next to the message.
 	return (
 		<WorkspaceProvider workspace={workspace}>
-			<Outlet />
+			<div className="flex min-h-0 min-w-0 flex-1 flex-col">
+				{workspace.shelvedAt != null && (
+					<ArchivedWorkspaceBanner
+						workspaceId={workspace.id}
+						workspaceName={workspace.name}
+						deleteAt={workspace.shelvedAt + SHELF_RETENTION_MS}
+						isPaused={workspace.purgeBlockedReason != null}
+						pauseReason={workspace.purgeBlockedReason ?? null}
+					/>
+				)}
+				<div className="relative flex min-h-0 min-w-0 flex-1">
+					<Outlet />
+				</div>
+			</div>
 		</WorkspaceProvider>
 	);
 }
