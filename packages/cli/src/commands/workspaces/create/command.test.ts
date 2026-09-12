@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 
 let createInput: Record<string, unknown> | undefined;
+/** Per-launch outcomes the mocked host returns in `agents[]`. */
+let agentsResult: { ok: boolean; error?: string }[] | undefined;
 
 mock.module("../../../lib/host-target", () => ({
 	requireHostTarget: () => "host-1",
@@ -12,8 +14,18 @@ mock.module("../../../lib/host-target", () => ({
 					mutate: async (input: Record<string, unknown>) => {
 						createInput = input;
 						return {
-							workspace: { name: "agent-effort" },
+							workspace: { id: "ws-1", name: "agent-effort" },
+							agents: agentsResult,
 							alreadyExists: false,
+						};
+					},
+				},
+				createSession: {
+					mutate: async (input: Record<string, unknown>) => {
+						createInput = input;
+						return {
+							workspace: { id: "ws-1", name: "agent-effort" },
+							agents: agentsResult,
 						};
 					},
 				},
@@ -58,6 +70,7 @@ function invoke(
 
 afterEach(() => {
 	createInput = undefined;
+	agentsResult = undefined;
 });
 
 describe("workspaces create", () => {
@@ -126,5 +139,83 @@ describe("workspaces create", () => {
 			/--model requires --agent/,
 		);
 		expect(createInput).toBeUndefined();
+	});
+
+	test("fails when the requested agent never launched (#5767)", async () => {
+		agentsResult = [{ ok: false, error: "no agent config for `claude`" }];
+
+		await expect(
+			invoke({ agent: "claude", prompt: "Implement the feature" }),
+		).rejects.toThrow(/Agent launch failed: no agent config for `claude`/);
+		expect(createInput).toMatchObject({ agents: [{ agent: "claude" }] });
+	});
+
+	test("names the surviving workspace so the caller can retry or clean up", async () => {
+		agentsResult = [{ ok: false, error: "spawn failed" }];
+
+		const error = await invoke({
+			agent: "claude",
+			prompt: "Implement the feature",
+		}).catch((err: Error & { suggestion?: string }) => err);
+
+		expect((error as { suggestion?: string }).suggestion).toContain("ws-1");
+	});
+
+	test("retry hint includes --host so remote creates stay retryable", async () => {
+		agentsResult = [{ ok: false, error: "spawn failed" }];
+
+		const error = await invoke({
+			agent: "claude",
+			prompt: "Implement the feature",
+		}).catch((err: Error & { suggestion?: string }) => err);
+
+		expect((error as { suggestion?: string }).suggestion).toContain(
+			"--host host-1",
+		);
+	});
+
+	test("reports every failed launch, not just the first", async () => {
+		agentsResult = [
+			{ ok: false, error: "first failure" },
+			{ ok: false, error: "second failure" },
+		];
+
+		await expect(
+			invoke({ agent: "claude", prompt: "Implement the feature" }),
+		).rejects.toThrow(/first failure; second failure/);
+	});
+
+	test("fails a project-less session the same way", async () => {
+		agentsResult = [{ ok: false, error: "spawn failed" }];
+
+		await expect(
+			invoke({
+				project: undefined,
+				branch: undefined,
+				agent: "claude",
+				prompt: "Implement the feature",
+			}),
+		).rejects.toThrow(/Agent launch failed: spawn failed/);
+	});
+
+	test("succeeds when the agent launched", async () => {
+		agentsResult = [{ ok: true }];
+
+		const result = await invoke({
+			agent: "claude",
+			prompt: "Implement the feature",
+		});
+
+		expect(result).toMatchObject({
+			message: expect.stringContaining("Created workspace"),
+		});
+	});
+
+	test("succeeds when no agent was requested", async () => {
+		const result = await invoke();
+
+		expect(result).toMatchObject({
+			message: expect.stringContaining("Created workspace"),
+		});
 	});
 });

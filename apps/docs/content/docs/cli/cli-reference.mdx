@@ -742,6 +742,10 @@ runs a one-off shell command in the worktree and is independent of
 `--agent`/`--prompt`. Pass either or both. `--model` and `--effort` require
 `--agent`; see the [agent effort levels](#agent-effort-levels) below.
 
+When `--agent` is set and the agent fails to launch, the command exits
+non-zero and prints the host's error, even though the workspace itself was
+created — scripts can gate on the exit status instead of parsing `--json`.
+
 Omitting `--project` creates a **session**: a project-less workspace backed
 by a managed folder under `~/.superset/sessions`, initialized as its own git
 repo. Sessions have no branch semantics, so `--branch`, `--pr`, `--task`,
