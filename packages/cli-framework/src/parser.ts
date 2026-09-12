@@ -61,6 +61,43 @@ export function parseArgv(
 		}
 	}
 
+	/**
+	 * Whether a token that follows an option is that option's value or the
+	 * next flag. Only a leading `-` used to be enough to call it a flag, which
+	 * made a legitimately dash-shaped value unpassable: `--prompt-arg -p`
+	 * failed even though `-p` is an arg for the agent being configured, not an
+	 * option of this command.
+	 *
+	 * So the question is answered against the flags this command actually
+	 * declares, plus the tokens the loop above handles specially. Forgetting a
+	 * value (`--label --command foo`) still reports a missing value, because
+	 * `--command` is a real flag here; `-p`, `--model`, and `-5` are values,
+	 * because nothing here answers to them.
+	 */
+	function isAnotherFlag(token: string): boolean {
+		if (!token.startsWith("-") || token === "-") return false;
+		// The positional separator, never a value.
+		if (token === "--") return true;
+		// `--flag=value` is handled above as a flag, so judge it by its name.
+		const eqIdx = token.indexOf("=");
+		if (optionsByFlag.has(eqIdx === -1 ? token : token.slice(0, eqIdx)))
+			return true;
+		// `--no-x` negates a declared boolean, so it is a flag in its own right.
+		if (token.startsWith("--no-")) {
+			const positive = optionsByFlag.get(`--${token.slice(5)}`);
+			if (positive?.[1].type === "boolean") return true;
+		}
+		// Help and version short-circuit unless the command declares them.
+		if ((token === "--help" || token === "-h") && !optionsByFlag.has("--help"))
+			return true;
+		if (
+			(token === "--version" || token === "-v") &&
+			!optionsByFlag.has("--version")
+		)
+			return true;
+		return false;
+	}
+
 	for (let i = 0; i < args.length; i++) {
 		const arg = args[i]!;
 
@@ -146,7 +183,7 @@ export function parseArgv(
 
 			// String/number: consume next arg as value
 			const nextArg = args[i + 1];
-			if (nextArg === undefined || nextArg.startsWith("-")) {
+			if (nextArg === undefined || isAnotherFlag(nextArg)) {
 				throw new CLIError(
 					`Option ${arg} requires a value`,
 					entry[1].enumVals

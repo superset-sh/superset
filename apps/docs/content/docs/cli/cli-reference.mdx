@@ -1002,6 +1002,113 @@ Other agents, including Superset chat, currently use their own default and
 reject an explicit effort override.
 </Command>
 
+#### Managing presets
+
+`superset agents presets add|edit|remove` writes the same host rows that
+`agents list` reads and `agents create --agent` resolves against. Writes land
+in the host's SQLite immediately — no `superset stop`/`start` in between — so a
+script can add a preset and launch it in the next command.
+
+<Command
+	name="superset agents presets add"
+	options={[
+		{ flag: "--label <text>", required: true, description: "Display name shown in the agent picker." },
+		{ flag: "--command <string>", required: true, description: "Launch command, e.g. `\"claude --model claude-sonnet-4-6\"`. Split on whitespace into the binary plus its args, the same way built-in presets are." },
+		{ flag: "--prompt-transport <argv|stdin>", description: "How the prompt reaches the agent: appended to argv (default), or piped to stdin." },
+		{ flag: "--prompt-arg <token>", description: "Arg inserted before the prompt. Repeatable, and may itself be a flag (`--prompt-arg -p`)." },
+		{ flag: "--env KEY=VALUE", description: "Environment variable for the agent process. Repeatable; split on the first `=`, so values may contain `=`." },
+		{ flag: "--preset-id <slug>", description: "Metadata tag used for icon and description lookup. Defaults to `custom`." },
+		{ flag: "--host <id>", description: "Target host machineId." },
+		{ flag: "--local", description: "Target this machine. Mutually exclusive with --host; exactly one is required." },
+	]}
+	output={`{
+  id: string;
+  presetId: string;
+  label: string;
+  command: string;
+  args: string[];
+  promptTransport: "argv" | "stdin";
+  promptArgs: string[];
+  env: Record<string, string>;
+  order: number;
+}`}
+	quiet="the new agent instance ID"
+>
+Add an agent preset on a host. Preset ids need not be unique — every row gets
+its own UUID, which is what `--quiet` prints.
+
+```bash
+superset agents presets add --local \
+  --label "Claude Sonnet" \
+  --command "claude --model claude-sonnet-4-6 --dangerously-skip-permissions" \
+  --preset-id claude-sonnet
+
+# Add it, capture the id, and put it to work
+agent=$(superset agents presets add --local --label "Codex debug" \
+  --command "codex --sandbox danger-full-access" \
+  --env RUST_LOG=debug --quiet)
+superset agents create --workspace ws_… --agent "$agent" --prompt "Reproduce the crash"
+```
+</Command>
+
+<Command
+	name="superset agents presets edit <id>"
+	args={[
+		{ name: "id", required: true, description: "Agent config ID from `superset agents list`." },
+	]}
+	options={[
+		{ flag: "--label <text>", description: "New display name." },
+		{ flag: "--command <string>", description: "New launch command. Replaces both the binary and its args." },
+		{ flag: "--prompt-transport <argv|stdin>", description: "How the prompt reaches the agent." },
+		{ flag: "--prompt-arg <token>", description: "Replaces the prompt args. Repeatable, and may itself be a flag." },
+		{ flag: "--env KEY=VALUE", description: "Replaces the environment. Repeatable." },
+		{ flag: "--host <id>", description: "Target host machineId." },
+		{ flag: "--local", description: "Target this machine. Mutually exclusive with --host; exactly one is required." },
+	]}
+	output={`{
+  id: string;
+  presetId: string;
+  label: string;
+  command: string;
+  args: string[];
+  promptTransport: "argv" | "stdin";
+  promptArgs: string[];
+  env: Record<string, string>;
+  order: number;
+}`}
+	quiet="the agent instance ID"
+>
+Patch an existing agent preset. Pass at least one field; anything you omit is
+left alone, and anything you pass replaces the stored value rather than
+merging into it. `presetId` and display order are immutable.
+
+```bash
+superset agents presets edit 8f2c… --local --label "Claude Sonnet (fast)"
+superset agents presets edit 8f2c… --local --command "claude --model claude-opus-4-8"
+superset agents presets edit 8f2c… --local --env ANTHROPIC_LOG=debug --env NO_COLOR=1
+```
+</Command>
+
+<Command
+	name="superset agents presets remove <id>"
+	args={[
+		{ name: "id", required: true, description: "Agent config ID from `superset agents list`." },
+	]}
+	options={[
+		{ flag: "--host <id>", description: "Target host machineId." },
+		{ flag: "--local", description: "Target this machine. Mutually exclusive with --host; exactly one is required." },
+	]}
+	output={`{ id: string }`}
+	quiet="the removed agent instance ID"
+>
+Delete an agent preset from a host. Removing every preset is fine — the next
+`agents list` reseeds the bundled defaults.
+
+```bash
+superset agents presets remove 8f2c… --local
+```
+</Command>
+
 ---
 
 ### terminals (alias: `term`)

@@ -14,7 +14,12 @@ export interface HostAgentPreset {
 	env: Record<string, string>;
 }
 
-function tokenize(commandString: string): string[] {
+/**
+ * Split a launch command into its binary plus args. Exported so callers that
+ * author a preset from a command string (the `superset agents presets` CLI)
+ * split it exactly the way the bundled presets below do.
+ */
+export function tokenizeAgentCommand(commandString: string): string[] {
 	return commandString.split(/\s+/).filter(Boolean);
 }
 
@@ -25,7 +30,7 @@ function deriveSuffixArgs(
 	variantCommand: string | undefined,
 ): string[] {
 	if (!variantCommand) return [];
-	return tokenize(variantCommand).slice(commandTokens.length);
+	return tokenizeAgentCommand(variantCommand).slice(commandTokens.length);
 }
 
 /**
@@ -47,7 +52,7 @@ function deriveSuffixArgs(
  */
 export const HOST_AGENT_PRESETS: readonly HostAgentPreset[] =
 	BUILTIN_TERMINAL_AGENTS.map((agent) => {
-		const commandTokens = tokenize(agent.command);
+		const commandTokens = tokenizeAgentCommand(agent.command);
 		const [bin = agent.id, ...args] = commandTokens;
 		return {
 			presetId: agent.id,
