@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import SuperJSON from "superjson";
 import { parseEnvPairs } from "./parseEnvPairs";
 
 describe("parseEnvPairs", () => {
@@ -36,5 +37,30 @@ describe("parseEnvPairs", () => {
 	test("rejects a pair with an empty key", () => {
 		expect(() => parseEnvPairs(["=bar"])).toThrow(/Invalid --env value/);
 		expect(() => parseEnvPairs(["  =bar"])).toThrow(/Invalid --env value/);
+	});
+
+	test("rejects names the host record cannot carry", () => {
+		expect(() => parseEnvPairs(["__proto__=value"])).toThrow(
+			/Unsupported --env name/,
+		);
+		expect(() => parseEnvPairs(["constructor=value"])).toThrow(
+			/Unsupported --env name/,
+		);
+		expect(() => parseEnvPairs(["prototype=value"])).toThrow(
+			/Unsupported --env name/,
+		);
+	});
+
+	test("keeps a name that merely shadows a prototype method", () => {
+		expect(parseEnvPairs(["toString=v"])).toEqual({ toString: "v" });
+	});
+
+	// The host tRPC link transforms with SuperJSON, which throws on the names
+	// above. Anything parseEnvPairs accepts must survive that transform.
+	test("returns a record the host transport accepts", () => {
+		const env = parseEnvPairs(["FOO=bar", "toString=v", "valueOf=1"]);
+		expect(
+			SuperJSON.parse<Record<string, string>>(SuperJSON.stringify(env)),
+		).toEqual(env);
 	});
 });
