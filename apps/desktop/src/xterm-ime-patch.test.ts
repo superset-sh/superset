@@ -3,6 +3,10 @@ import { dirname, join } from "node:path";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import type { Terminal as XtermTerminal } from "@xterm/xterm";
 
+// Removal checklist: https://github.com/superset-sh/superset/issues/7490
+// Upstream fix: https://github.com/xtermjs/xterm.js/pull/6162
+// Once our pinned xterm release includes it, remove only the CompositionHelper
+// patch hunks. Keep these behavioral tests; patches/README.md has the checklist.
 // Exercise the installed bundles, so dropping the version-pinned dependency
 // patch fails behaviorally. DOM measurement is stubbed; actual glyph clipping
 // is covered by the D2Coding CDP reproduction linked in patches/README.md.
@@ -135,10 +139,10 @@ for (const bundle of ["xterm.js", "xterm.mjs"]) {
 				compose("글");
 				core._renderService.dimensions.css.cell.width = 9;
 				compose("글");
-				expect(
-					(view.firstElementChild?.firstElementChild as HTMLElement).style
-						.width,
-				).toBe("18px");
+				const cell = view.firstElementChild?.firstElementChild;
+				if (!(cell instanceof HTMLElement))
+					throw new Error("Composition cell missing");
+				expect(cell.style.width).toBe("18px");
 			});
 		});
 

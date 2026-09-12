@@ -145,10 +145,21 @@ applied — duplicated output on a resize during heavy output.
    helper and Unicode-service injection. Existing buffer/disposal bundle code
    is preserved. No font substitution or dependency upgrade is involved.
 
-**IME evidence:** [D2Coding before/after verification](https://app.superset.sh/page/pr-7357-verified-cjk-ime-gaps-remain-vcywaa).
-The controlled xterm experiment on that page compares stock 6.1.0-beta.302
-with this upstream helper in the real desktop renderer. It uses CDP IME events,
-not a physical keyboard/input-method session.
+**IME removal condition:** Follow-up: [Superset #7490](https://github.com/superset-sh/superset/issues/7490). Track [upstream fix #6162](https://github.com/xtermjs/xterm.js/pull/6162)
+and [upstream issue #6161](https://github.com/xtermjs/xterm.js/issues/6161).
+An upstream merge alone is not enough: wait for a published xterm version
+containing the fix and upgrade Superset's pinned dependency to that version.
+Then regenerate this patch, removing only the `CompositionHelper` source and
+both runtime-bundle IME hunks (including their Unicode-service import/injection).
+Keep the independent `WriteBuffer` and `RenderDebouncer` fixes until each is
+also supplied upstream. Keep the behavioral IME tests and rerun the D2Coding
+before/after case against the upgraded package; do not drop coverage just
+because the implementation moved upstream.
+
+**IME evidence:** [PR #7488 actual-bundle before/after verification](https://app.superset.sh/page/pr-7488-verified-actual-xterm-bundles-before-and-a-nqp4nv).
+The parent commit's patched xterm bundles and this PR's shipped bundles were
+compared in the real desktop app. The input uses CDP IME events, not a physical
+keyboard/input-method session.
 
 **Guard tests:** `apps/desktop/src/xterm-flushsync-patch.test.ts` asserts the
 hunk 1–2 markers in both bundles and reproduces the failure against the real
