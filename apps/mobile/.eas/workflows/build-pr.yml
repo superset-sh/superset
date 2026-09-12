@@ -1,4 +1,4 @@
-name: Build development client for pull request
+name: Mobile build
 
 on:
   pull_request:

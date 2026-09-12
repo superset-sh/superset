@@ -1,4 +1,4 @@
-name: Deploy mobile from main
+name: Deploy Mobile
 
 on:
   push:
