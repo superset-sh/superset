@@ -10168,6 +10168,9 @@ msgstr "Open in Scira AI"
 msgid "Open in split pane"
 msgstr "Open in split pane"
 
+msgid "Open in Superset"
+msgstr "Open in Superset"
+
 msgid "Open in T3 Chat"
 msgstr "Open in T3 Chat"
 

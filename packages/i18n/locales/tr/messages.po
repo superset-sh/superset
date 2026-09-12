@@ -10168,6 +10168,9 @@ msgstr "Scira AI'da aç"
 msgid "Open in split pane"
 msgstr "Bölünmüş bölmede aç"
 
+msgid "Open in Superset"
+msgstr "Superset'te aç"
+
 msgid "Open in T3 Chat"
 msgstr "T3 Chat'te aç"
 

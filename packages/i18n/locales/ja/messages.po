@@ -10168,6 +10168,9 @@ msgstr "Scira AIで開く"
 msgid "Open in split pane"
 msgstr "分割ペインで開く"
 
+msgid "Open in Superset"
+msgstr "Supersetで開く"
+
 msgid "Open in T3 Chat"
 msgstr "T3 Chatで開く"
 
