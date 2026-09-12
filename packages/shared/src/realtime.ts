@@ -2,11 +2,7 @@
  * The realtime channel carries invalidations, never data: the API tells an
  * organization's subscribers that a kind of thing changed, and they refetch.
  */
-export const REALTIME_NUDGE_KINDS = [
-	"hosts",
-	"pull_requests",
-	"cloud_workspaces",
-] as const;
+export const REALTIME_NUDGE_KINDS = ["hosts", "cloud_workspaces"] as const;
 
 export type RealtimeNudgeKind = (typeof REALTIME_NUDGE_KINDS)[number];
 

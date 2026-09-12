@@ -13,8 +13,8 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 /**
  * One socket per window to the realtime Worker. The API sends a nudge after
- * it writes hosts, pull requests or cloud workspaces, and this refetches the
- * matching queries, which is why none of them poll. A reopen refetches
+ * it writes hosts or cloud workspaces, and this refetches the matching
+ * queries, which is why neither polls. A reopen refetches
  * everything once, since nudges sent while the socket was down are gone.
  * Rendered inside the providers: the subscription needs the active
  * organization.
@@ -35,12 +35,6 @@ export function RealtimeNudges() {
 				switch (kind) {
 					case "hosts":
 						void utils.v2Host.list.invalidate(undefined, options);
-						break;
-					case "pull_requests":
-						void utils.integration.github.getByBranches.invalidate(
-							undefined,
-							options,
-						);
 						break;
 					case "cloud_workspaces":
 						void utils.cloudWorkspace.list.invalidate(undefined, options);

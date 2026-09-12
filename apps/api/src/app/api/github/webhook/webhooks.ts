@@ -6,9 +6,7 @@ import {
 	githubPullRequests,
 	githubRepositories,
 } from "@superset/db/schema";
-import { nudge } from "@superset/trpc/realtime";
 import { and, eq } from "drizzle-orm";
-import { after } from "next/server";
 
 import { env } from "@/env";
 
@@ -232,7 +230,6 @@ webhooks.on(
 		);
 
 		await upsertPullRequest(repo, pr);
-		after(() => nudge(repo.organizationId, "pull_requests"));
 	},
 );
 
@@ -258,7 +255,6 @@ webhooks.on(
 		);
 
 		await upsertPullRequest(repo, pr);
-		after(() => nudge(repo.organizationId, "pull_requests"));
 	},
 );
 
@@ -323,7 +319,6 @@ webhooks.on(
 					),
 				);
 		}
-		after(() => nudge(repo.organizationId, "pull_requests"));
 	},
 );
 
@@ -415,7 +410,6 @@ webhooks.on(
 					lastSyncedAt: new Date(),
 				})
 				.where(eq(githubPullRequests.id, currentPr.id));
-			after(() => nudge(repo.organizationId, "pull_requests"));
 		}
 	},
 );
