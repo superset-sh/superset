@@ -145,9 +145,6 @@ jobs:
           RELAY_URL: ${{ secrets.RELAY_URL }}
           REALTIME_URL: ${{ secrets.REALTIME_URL }}
           REALTIME_NUDGE_SECRET: ${{ secrets.REALTIME_NUDGE_SECRET }}
-          APNS_KEY_ID: ${{ secrets.APNS_KEY_ID }}
-          APNS_TEAM_ID: ${{ secrets.APNS_TEAM_ID }}
-          APNS_PRIVATE_KEY: ${{ secrets.APNS_PRIVATE_KEY }}
           VERCEL_SANDBOX_TOKEN: ${{ secrets.VERCEL_SANDBOX_TOKEN }}
           VERCEL_SANDBOX_TEAM_ID: ${{ secrets.VERCEL_SANDBOX_TEAM_ID }}
           VERCEL_SANDBOX_PROJECT_ID: ${{ secrets.VERCEL_SANDBOX_PROJECT_ID }}
@@ -231,9 +228,6 @@ jobs:
             --env RELAY_URL=$RELAY_URL \
             --env REALTIME_URL=$REALTIME_URL \
             --env REALTIME_NUDGE_SECRET=$REALTIME_NUDGE_SECRET \
-            --env APNS_KEY_ID=$APNS_KEY_ID \
-            --env APNS_TEAM_ID=$APNS_TEAM_ID \
-            --env APNS_PRIVATE_KEY=$APNS_PRIVATE_KEY \
             --env VERCEL_SANDBOX_TOKEN=$VERCEL_SANDBOX_TOKEN \
             --env VERCEL_SANDBOX_TEAM_ID=$VERCEL_SANDBOX_TEAM_ID \
             --env VERCEL_SANDBOX_PROJECT_ID=$VERCEL_SANDBOX_PROJECT_ID \

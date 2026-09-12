@@ -10,8 +10,8 @@ struct AgentRowRecord: Record {
   @Field var iconFile: String? = nil
   @Field var status: String = ""
   @Field var state: String = "working"
-  /// Epoch milliseconds. See AgentRow.since.
-  @Field var since: Double = 0
+  /// Pre-formatted time in state — "12m", "1h". See AgentRow.elapsed.
+  @Field var elapsed: String = ""
   @Field var isQuiet: Bool = false
 }
 
@@ -33,7 +33,7 @@ private func contentState(
     rows: snapshot.rows.map {
       AgentActivityAttributes.AgentRow(
         id: $0.id, workspaceId: $0.workspaceId, name: $0.name, project: $0.project, iconFile: $0.iconFile,
-        status: $0.status, state: $0.state, since: $0.since, isQuiet: $0.isQuiet)
+        status: $0.status, state: $0.state, elapsed: $0.elapsed, isQuiet: $0.isQuiet)
     },
     more: snapshot.more,
     totalCount: snapshot.totalCount,
@@ -54,28 +54,9 @@ private func iconsDirectory() throws -> URL {
   return dir
 }
 
-private extension Data {
-  var hex: String { map { String(format: "%02x", $0) }.joined() }
-}
-
 public final class LiveActivityModule: Module {
-  private var observers: [Task<Void, Never>] = []
-  private var pushToStartToken: String?
-  private var activityTokens: [String: String] = [:]
-
   public func definition() -> ModuleDefinition {
     Name("LiveActivity")
-
-    // ActivityKit hands out push tokens over async sequences that only yield
-    // on change, so the module remembers the latest and JS asks for them on
-    // mount; the events cover everything after that.
-    Events("onPushToken", "onPushToStartToken", "onActivityEnded")
-
-    OnStartObserving { self.startObserving() }
-    OnStopObserving { self.stopObserving() }
-
-    Function("pushToStartToken") { () -> String? in self.pushToStartToken }
-    Function("activityTokens") { () -> [String: String] in self.activityTokens }
 
     Function("areActivitiesEnabled") { () -> Bool in
       ActivityAuthorizationInfo().areActivitiesEnabled
@@ -130,9 +111,8 @@ public final class LiveActivityModule: Module {
       let activity = try Activity.request(
         attributes: AgentActivityAttributes(machineName: snapshot.machineName),
         content: .init(state: contentState(from: snapshot), staleDate: stale),
-        pushType: .token
+        pushType: nil
       )
-      self.watch(activity)
       return activity.id
     }
 
@@ -149,49 +129,5 @@ public final class LiveActivityModule: Module {
         await activity.end(nil, dismissalPolicy: .immediate)
       }
     }
-  }
-
-  private func startObserving() {
-    stopObserving()
-    observers.append(Task { @MainActor in
-      for await data in Activity<AgentActivityAttributes>.pushToStartTokenUpdates {
-        let token = data.hex
-        self.pushToStartToken = token
-        self.sendEvent("onPushToStartToken", ["token": token])
-      }
-    })
-    for activity in Activity<AgentActivityAttributes>.activities {
-      watch(activity)
-    }
-    // Activities started by a push-to-start arrive here, never through
-    // `start`, and their update tokens still have to reach the API.
-    observers.append(Task { @MainActor in
-      for await activity in Activity<AgentActivityAttributes>.activityUpdates {
-        self.watch(activity)
-      }
-    })
-  }
-
-  private func stopObserving() {
-    for task in observers { task.cancel() }
-    observers.removeAll()
-  }
-
-  private func watch(_ activity: Activity<AgentActivityAttributes>) {
-    observers.append(Task { @MainActor in
-      for await data in activity.pushTokenUpdates {
-        let token = data.hex
-        self.activityTokens[activity.id] = token
-        self.sendEvent("onPushToken", ["activityId": activity.id, "token": token])
-      }
-    })
-    observers.append(Task { @MainActor in
-      for await state in activity.activityStateUpdates {
-        guard state == .ended || state == .dismissed else { continue }
-        let token = self.activityTokens.removeValue(forKey: activity.id)
-        self.sendEvent("onActivityEnded", ["activityId": activity.id, "token": token as Any])
-        break
-      }
-    })
   }
 }

@@ -12,8 +12,12 @@ export interface AgentRow {
 	/** Pre-translated status word, e.g. "Needs you". */
 	status: string;
 	state: "permission" | "working" | "failed" | "review";
-	/** When the row entered its state, epoch ms; the widget ticks from it. */
-	since: number;
+	/**
+	 * Time in the current state, already formatted — "12m", "1h", "3d".
+	 * Formatted here rather than in Swift: SwiftUI's free-ticking timer can
+	 * only render mm:ss, and units belong in Lingui's catalogs.
+	 */
+	elapsed: string;
 	isQuiet?: boolean;
 }
 
@@ -49,16 +53,6 @@ export function orderRows(rows: AgentRow[]): AgentRow[] {
 	);
 }
 
-type LiveActivityEvents = {
-	/** A running activity's APNs token; only fires when the token changes. */
-	onPushToken: (event: { activityId: string; token: string }) => void;
-	/** The app-wide token a server uses to start the card from nothing. */
-	onPushToStartToken: (event: { token: string }) => void;
-	onActivityEnded: (event: { activityId: string; token?: string }) => void;
-};
-
-// expo-modules-core 56.0.23 exports a broken `NativeModule` type alias (the
-// constructor type, generic dropped), so the emitter surface is typed by hand.
 interface LiveActivityModule {
 	areActivitiesEnabled: () => boolean;
 	activeIds: () => string[];
@@ -67,13 +61,6 @@ interface LiveActivityModule {
 	start: (snapshot: AgentSnapshot) => Promise<string>;
 	update: (id: string, snapshot: AgentSnapshot) => Promise<void>;
 	endAll: () => Promise<void>;
-	/** Last tokens seen, for a listener that mounts after they were issued. */
-	pushToStartToken: () => string | null;
-	activityTokens: () => Record<string, string>;
-	addListener<Name extends keyof LiveActivityEvents>(
-		eventName: Name,
-		listener: LiveActivityEvents[Name],
-	): { remove(): void };
 }
 
 export default requireNativeModule<LiveActivityModule>("LiveActivity");

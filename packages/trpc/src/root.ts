@@ -15,7 +15,6 @@ import { environmentRouter } from "./router/environment";
 import { hostManagementRouter, hostRouter } from "./router/host";
 import { integrationRouter } from "./router/integration";
 import { leaderboardRouter } from "./router/leaderboard";
-import { mobileRouter } from "./router/mobile";
 import { organizationRouter } from "./router/organization";
 import { pageRouter } from "./router/page";
 import { pageCommentRouter } from "./router/page-comment";
@@ -43,7 +42,6 @@ export const appRouter = createTRPCRouter({
 	host: { ...hostRouter, ...hostManagementRouter },
 	integration: integrationRouter,
 	leaderboard: leaderboardRouter,
-	mobile: mobileRouter,
 	organization: organizationRouter,
 	page: pageRouter,
 	pageComment: pageCommentRouter,

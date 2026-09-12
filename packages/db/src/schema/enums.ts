@@ -44,22 +44,6 @@ export type V2ClientType = z.infer<typeof v2ClientTypeEnum>;
 
 export const v2UsersHostRoleValues = ["owner", "member"] as const;
 export const v2UsersHostRoleEnum = z.enum(v2UsersHostRoleValues);
-
-export const v2AgentStateValues = [
-	"working",
-	"review",
-	"permission",
-	"failed",
-] as const;
-export const v2AgentStateEnum = z.enum(v2AgentStateValues);
-
-export const v2LiveActivityTokenKindValues = [
-	"update",
-	"push_to_start",
-] as const;
-export const v2LiveActivityTokenKindEnum = z.enum(
-	v2LiveActivityTokenKindValues,
-);
 export type V2UsersHostRole = z.infer<typeof v2UsersHostRoleEnum>;
 
 export const commandStatusValues = [

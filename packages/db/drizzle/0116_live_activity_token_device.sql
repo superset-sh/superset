@@ -1,1 +1,0 @@
-ALTER TABLE "v2_live_activity_tokens" ADD COLUMN "device_id" text NOT NULL;

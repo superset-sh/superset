@@ -116,13 +116,12 @@ private struct Row: View {
 				.foregroundStyle(stateColor(row.state))
 				.lineLimit(1)
 				.fixedSize()
-			Text(Date(timeIntervalSince1970: row.since / 1000), style: .relative)
+			Text(row.elapsed)
 				.font(.system(size: Metrics.metaSize))
 				.monospacedDigit()
 				.foregroundStyle(.tertiary)
-				.lineLimit(1)
 				.multilineTextAlignment(.trailing)
-				.frame(minWidth: Metrics.timeWidth, alignment: .trailing)
+				.frame(width: Metrics.timeWidth, alignment: .trailing)
 		}
 		.opacity(row.isQuiet ? 0.42 : 1)
 	}

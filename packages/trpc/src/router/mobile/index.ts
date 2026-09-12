@@ -1,1 +1,0 @@
-export { mobileRouter } from "./mobile";

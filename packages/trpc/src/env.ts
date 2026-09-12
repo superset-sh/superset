@@ -74,13 +74,6 @@ export const env = createEnv({
 		RELAY_URL: z.string().url().default("https://relay.superset.sh"),
 		REALTIME_URL: z.string().url().default("https://realtime.superset.sh"),
 		REALTIME_NUDGE_SECRET: z.string().min(1),
-		// Optional: without an APNs key the Lock Screen card is only updated
-		// while the phone app is open, which is how it worked before pushes.
-		APNS_KEY_ID: z.string().min(1).optional(),
-		APNS_TEAM_ID: z.string().min(1).optional(),
-		APNS_PRIVATE_KEY: z.string().min(1).optional(),
-		APNS_BUNDLE_ID: z.string().min(1).default("sh.superset.mobile"),
-		APNS_HOST: z.string().min(1).default("api.push.apple.com"),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
 		GOOGLE_CLIENT_ID: z.string().min(1),
