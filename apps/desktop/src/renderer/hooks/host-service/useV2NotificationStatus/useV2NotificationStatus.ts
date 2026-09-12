@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import type { HostWorkspaceRow } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import {
 	getV2NotificationSourceKey,
 	getV2NotificationSourcesForPane,
@@ -16,6 +17,10 @@ import {
 	deriveTerminalAgentStatus,
 	useTerminalAgentStatuses,
 } from "../useTerminalAgentStatuses";
+import {
+	countsTowardDockAttention,
+	type DockAttentionWorkspaceType,
+} from "./countsTowardDockAttention";
 
 const TERMINAL_PREFIX = "terminal:";
 
@@ -59,11 +64,14 @@ export function useV2PaneNotificationStatus(
 }
 
 /**
- * Number of distinct workspaces needing attention (any derived terminal
- * status other than `working`, or a manual unread mark). Drives the OS dock
- * badge. Aggregates over the bindings queries already mounted by the
- * sidebar's workspace status provider via the react-query cache; workspaces
- * with no observed bindings query contribute only their manual unread mark.
+ * Number of distinct workspaces needing attention (permission/failed, or
+ * review on a non-session workspace, or a manual unread mark). Drives the OS
+ * dock badge. Aggregates over the bindings queries already mounted by the
+ * sidebar's workspace status provider via the react-query cache; workspace
+ * types come from the host-workspaces list cache so session+review does not
+ * badge while the board (#6506 / deriveBoardColumn) parks those in Idle.
+ * Workspaces with no observed bindings query contribute only their manual
+ * unread mark.
  */
 export function useV2AttentionWorkspaceCount(): number {
 	const queryClient = useQueryClient();
@@ -81,7 +89,13 @@ export function useV2AttentionWorkspaceCount(): number {
 			if (event.type !== "updated" && event.type !== "removed") {
 				return;
 			}
-			if (event.query.queryKey[0] === "terminal-agent-bindings") {
+			const key0 = event.query.queryKey[0];
+			if (
+				key0 === "terminal-agent-bindings" ||
+				(key0 === "host-service" &&
+					event.query.queryKey[1] === "workspaces" &&
+					event.query.queryKey[2] === "list")
+			) {
 				setCacheVersion((version) => version + 1);
 			}
 		});
@@ -89,6 +103,18 @@ export function useV2AttentionWorkspaceCount(): number {
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: cacheVersion re-reads the query cache
 	return useMemo(() => {
+		const workspaceTypeById = new Map<string, DockAttentionWorkspaceType>();
+		const hostWorkspaceEntries = queryClient.getQueriesData<HostWorkspaceRow[]>(
+			{
+				queryKey: ["host-service", "workspaces", "list"],
+			},
+		);
+		for (const [, rows] of hostWorkspaceEntries) {
+			for (const row of rows ?? []) {
+				workspaceTypeById.set(row.id, row.type);
+			}
+		}
+
 		const workspaceIds = new Set(Object.keys(manualUnread));
 		const entries = queryClient.getQueriesData<TerminalAgentBinding[]>({
 			queryKey: ["terminal-agent-bindings"],
@@ -101,9 +127,10 @@ export function useV2AttentionWorkspaceCount(): number {
 					lastSeenAt: terminalSeenAt[binding.terminalId],
 				});
 				if (
-					status === "permission" ||
-					status === "review" ||
-					status === "failed"
+					countsTowardDockAttention({
+						status,
+						workspaceType: workspaceTypeById.get(binding.workspaceId),
+					})
 				) {
 					workspaceIds.add(binding.workspaceId);
 				}
