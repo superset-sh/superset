@@ -7,7 +7,10 @@ import { cloudTrpc, cloudTrpcClient } from "renderer/lib/cloud-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { NewWorkspacePromptContextApi } from "renderer/stores/new-workspace-prompt-context";
 import { usePromptHistoryStore } from "renderer/stores/prompt-history";
-import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
+import {
+	reportableAgentLaunchError,
+	useWorkspaceCreates,
+} from "renderer/stores/workspace-creates";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
 import { CLOUD_HOST_ID } from "../../../components/DevicePicker/DevicePicker";
 import type { WorkspaceCreateAgent } from "../../types";
@@ -290,10 +293,17 @@ export function useSubmitWorkspace(
 		};
 
 		void completed.then((outcome) => {
-			if (!outcome.ok) return;
+			// A failed agent launch is the one failure the store records no
+			// failed-create row for, so this toast is its only channel. Every
+			// other failure already shows the create-error card on this route.
+			const launchError = reportableAgentLaunchError(outcome);
+			if (launchError !== null) toast.error(launchError);
 
 			// The server can resolve the optimistic workspace to a different
 			// canonical id; follow it only if we're still on the optimistic route.
+			// The failure outcome carries that id too — the local state behind the
+			// optimistic route has already been deleted.
+			if (outcome.workspaceId === undefined) return;
 			if (outcome.workspaceId === workspaceId) return;
 			if (!isViewingOptimisticWorkspace()) return;
 			void navigate({

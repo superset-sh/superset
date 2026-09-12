@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# área de trabalho} other {# áreas de trabalho}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Um agente em execução ainda usa a conta anterior — a troca só vale para novos lançamentos.} other {# agentes em execução ainda usam a conta anterior — a troca só vale para novos lançamentos.}}"
 
+#. placeholder {0}: failures.notCreated
+msgid "{0, plural, one {Couldn't create # workspace: {error}} other {Couldn't create # workspaces: {error}}}"
+msgstr "{0, plural, one {Não foi possível criar # área de trabalho: {error}} other {Não foi possível criar # áreas de trabalho: {error}}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -269,6 +273,10 @@ msgstr "{0, plural, one {Executar # área de trabalho} other {Executar # áreas 
 #. placeholder {0}: lines.length - MAX_VISIBLE_LINES
 msgid "{0, plural, one {Show # more line} other {Show # more lines}}"
 msgstr "{0, plural, one {Mostrar mais # linha} other {Mostrar mais # linhas}}"
+
+#. placeholder {0}: failures.agentFailed
+msgid "{0, plural, one {The agent didn't start in # workspace: {error}} other {The agents didn't start in # workspaces: {error}}}"
+msgstr "{0, plural, one {O agente não iniciou em # área de trabalho: {error}} other {Os agentes não iniciaram em # áreas de trabalho: {error}}}"
 
 #. placeholder {0}: importableWorktrees.length
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
@@ -1568,6 +1576,9 @@ msgstr "Independência de agente"
 
 msgid "Agent launch configuration"
 msgstr "Configuração de execução do agente"
+
+msgid "Agent launch failed: {detail}"
+msgstr "Falha ao iniciar o agente: {detail}"
 
 msgid "Agent picker (Claude, Codex, Cursor…) used by every session-creation flow"
 msgstr "Seletor de agente (Claude, Codex, Cursor…) usado em todo fluxo de criação de sessão"

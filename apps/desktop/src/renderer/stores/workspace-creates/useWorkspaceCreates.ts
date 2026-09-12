@@ -24,6 +24,7 @@ import type {
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useStarNagStore } from "renderer/stores/star-nag";
+import { completeWorkspaceCreate } from "./completeWorkspaceCreate";
 import { queueWorkspaceCreationPresets } from "./queueWorkspaceCreationPresets";
 import { useWorkspaceTransactionsStore } from "./workspaceTransactions";
 import { writeWorkspacePaneLayout } from "./writeWorkspacePaneLayout";
@@ -38,7 +39,12 @@ export interface SubmitArgs {
 
 export type SubmitOutcome =
 	| { ok: true; workspaceId: string }
-	| { ok: false; error: string };
+	/**
+	 * `workspaceId` is set only when the create kept a workspace it then failed
+	 * inside — a requested agent that never launched. Callers that navigate
+	 * must follow it; there is no failed-create row to fall back on.
+	 */
+	| { ok: false; error: string; workspaceId?: string };
 
 export interface SubmitHandle {
 	workspaceId: string;
@@ -411,29 +417,44 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 						deleteWorkspaceLocalState(workspaceId);
 						hostWorkspacesCache.removeWorkspace(args.hostId, workspaceId);
 					}
-					// Only genuinely new worktrees count as created — never reopened
-					// ones or project-less sessions (createSession has no
-					// alreadyExists signal, so an undefined value here is treated as
-					// "not new").
-					if (
-						result.workspace.projectId !== null &&
-						result.alreadyExists === false
-					) {
-						useStarNagStore.getState().recordWorkspaceCreated();
-						// Creation presets follow the same rule, and additionally skip
-						// adopting an existing worktree (the host reports that as new)
-						// and creates that opted out of setup, e.g. "Import worktrees"
-						// with "Run setup" off.
-						const adoptsWorktree =
-							"worktreePath" in snapshot && !!snapshot.worktreePath;
-						const skipsSetup =
-							"runSetup" in snapshot && snapshot.runSetup === false;
-						if (!adoptsWorktree && !skipsSetup) {
-							queueWorkspaceCreationPresets(collections, {
-								id: result.workspace.id,
-								projectId: result.workspace.projectId,
-							});
-						}
+					const adoptsWorktree =
+						"worktreePath" in snapshot && !!snapshot.worktreePath;
+					const skipsSetup =
+						"runSetup" in snapshot && snapshot.runSetup === false;
+					const detail = completeWorkspaceCreate(
+						{
+							workspace: result.workspace,
+							agents: result.agents,
+							alreadyExists: result.alreadyExists,
+							requestedAgents: !!snapshot.agents?.length,
+							skipsCreationPresets: adoptsWorktree || skipsSetup,
+							unknownError: i18n._(
+								msg({
+									message: "Unknown error",
+								}),
+							),
+						},
+						{
+							recordWorkspaceCreated: () =>
+								useStarNagStore.getState().recordWorkspaceCreated(),
+							queueCreationPresets: (workspace) =>
+								queueWorkspaceCreationPresets(collections, workspace),
+						},
+					);
+					// Requested agents that never spawned: keep the workspace, the
+					// panes already written and the bookkeeping above, but fail the
+					// submit outcome so create toasts cannot soft-succeed over an
+					// empty agent pane.
+					if (detail !== null) {
+						return {
+							ok: false,
+							workspaceId: result.workspace.id,
+							error: i18n._(
+								msg({
+									message: `Agent launch failed: ${detail}`,
+								}),
+							),
+						};
 					}
 					return {
 						ok: true,

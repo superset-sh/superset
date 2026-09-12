@@ -22,7 +22,10 @@ import { ProjectThumbnail } from "renderer/routes/_authenticated/components/Proj
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
-import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
+import {
+	reportableAgentLaunchError,
+	useWorkspaceCreates,
+} from "renderer/stores/workspace-creates";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 
 const AGENT_STORAGE_KEY = "lastSelectedV2TaskAgent";
@@ -253,8 +256,16 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		});
 
 		void completed.then((outcome) => {
-			if (!outcome.ok) return;
-			if (outcome.workspaceId !== snapshotId) {
+			// A failed agent launch is the one failure the store records no
+			// failed-create row for, so this toast is its only channel. Every
+			// other failure already shows the create-error card on the route the
+			// user lands on.
+			const launchError = reportableAgentLaunchError(outcome);
+			if (launchError !== null) toast.error(launchError);
+			if (
+				outcome.workspaceId !== undefined &&
+				outcome.workspaceId !== snapshotId
+			) {
 				void navigate({
 					to: "/v2-workspace/$workspaceId",
 					params: { workspaceId: outcome.workspaceId },

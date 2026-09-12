@@ -226,6 +226,10 @@ msgstr "{0, plural, one {#个工作区} other {#个工作区}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。} other {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。}}"
 
+#. placeholder {0}: failures.notCreated
+msgid "{0, plural, one {Couldn't create # workspace: {error}} other {Couldn't create # workspaces: {error}}}"
+msgstr "{0, plural, one {无法创建#个工作区：{error}} other {无法创建#个工作区：{error}}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -269,6 +273,10 @@ msgstr "{0, plural, one {运行#个工作区} other {运行#个工作区}}"
 #. placeholder {0}: lines.length - MAX_VISIBLE_LINES
 msgid "{0, plural, one {Show # more line} other {Show # more lines}}"
 msgstr "{0, plural, one {再显示#行} other {再显示#行}}"
+
+#. placeholder {0}: failures.agentFailed
+msgid "{0, plural, one {The agent didn't start in # workspace: {error}} other {The agents didn't start in # workspaces: {error}}}"
+msgstr "{0, plural, one {#个工作区中的智能体未启动：{error}} other {#个工作区中的智能体未启动：{error}}}"
 
 #. placeholder {0}: importableWorktrees.length
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
@@ -1568,6 +1576,9 @@ msgstr "智能体无关"
 
 msgid "Agent launch configuration"
 msgstr "智能体启动配置"
+
+msgid "Agent launch failed: {detail}"
+msgstr "智能体启动失败：{detail}"
 
 msgid "Agent picker (Claude, Codex, Cursor…) used by every session-creation flow"
 msgstr "智能体选择器（Claude、Codex、Cursor…），所有创建会话的流程都在用"

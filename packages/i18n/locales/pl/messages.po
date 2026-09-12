@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# obszar roboczy} few {# obszary robocze} many {# obsza
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# działający agent nadal korzysta z poprzedniego konta — zmiana obejmuje tylko nowe uruchomienia.} few {# działających agentów nadal korzysta z poprzedniego konta — zmiana obejmuje tylko nowe uruchomienia.} many {# działających agentów nadal korzysta z poprzedniego konta — zmiana obejmuje tylko nowe uruchomienia.} other {# działającego agenta nadal korzysta z poprzedniego konta — zmiana obejmuje tylko nowe uruchomienia.}}"
 
+#. placeholder {0}: failures.notCreated
+msgid "{0, plural, one {Couldn't create # workspace: {error}} other {Couldn't create # workspaces: {error}}}"
+msgstr "{0, plural, one {Nie udało się utworzyć # obszaru roboczego: {error}} few {Nie udało się utworzyć # obszarów roboczych: {error}} many {Nie udało się utworzyć # obszarów roboczych: {error}} other {Nie udało się utworzyć # obszaru roboczego: {error}}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -269,6 +273,10 @@ msgstr "{0, plural, one {Uruchom # obszar roboczy} few {Uruchom # obszary robocz
 #. placeholder {0}: lines.length - MAX_VISIBLE_LINES
 msgid "{0, plural, one {Show # more line} other {Show # more lines}}"
 msgstr "{0, plural, one {Pokaż jeszcze # wiersz} few {Pokaż jeszcze # wiersze} many {Pokaż jeszcze # wierszy} other {Pokaż jeszcze # wiersza}}"
+
+#. placeholder {0}: failures.agentFailed
+msgid "{0, plural, one {The agent didn't start in # workspace: {error}} other {The agents didn't start in # workspaces: {error}}}"
+msgstr "{0, plural, one {Agent nie wystartował w # obszarze roboczym: {error}} few {Agenci nie wystartowali w # obszarach roboczych: {error}} many {Agenci nie wystartowali w # obszarach roboczych: {error}} other {Agenci nie wystartowali w # obszarach roboczych: {error}}}"
 
 #. placeholder {0}: importableWorktrees.length
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
@@ -1568,6 +1576,9 @@ msgstr "Niezależność od agenta"
 
 msgid "Agent launch configuration"
 msgstr "Konfiguracja uruchamiania agenta"
+
+msgid "Agent launch failed: {detail}"
+msgstr "Nie udało się uruchomić agenta: {detail}"
 
 msgid "Agent picker (Claude, Codex, Cursor…) used by every session-creation flow"
 msgstr "Wybór agenta (Claude, Codex, Cursor…) używany w każdym przepływie tworzenia sesji"
