@@ -25,6 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "$(git rev-parse --show-toplevel)/apps/mobile"
+          eas() { npx -y eas-cli@24.3.0 "$@"; }
           json() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s.slice(s.search(/[\[{]/)));console.log(eval(process.argv[1])??"")})' "$1"; }
           HASH=$(eas fingerprint:generate -p ios --build-profile development --json | json 'j.hash')
           BUILD=$(eas build:list -p ios --build-profile development --status finished --fingerprint-hash "$HASH" --limit 1 --json --non-interactive | json 'j[0]?.id')
