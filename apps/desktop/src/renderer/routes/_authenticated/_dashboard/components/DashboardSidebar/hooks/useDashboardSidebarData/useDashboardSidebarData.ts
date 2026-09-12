@@ -665,7 +665,7 @@ export function useDashboardSidebarData() {
 					tabOrder: localState?.tabOrder ?? 0,
 					sectionId: localState?.sectionId ?? null,
 					tags: workspace.tags,
-					pinnedAt: null as number | null,
+					pinnedAt: localState?.pinnedAt ?? null,
 					hostIsOnline:
 						hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
 					pendingTransaction: null,
@@ -689,7 +689,15 @@ export function useDashboardSidebarData() {
 				visibleSidebarWorkspaces: archivedRows,
 				machineId,
 				pullRequestsByWorkspaceId,
-			}).filter((project) => project.children.length > 0),
+			}).filter((project) =>
+				// Folder rows exist whether or not anything sits in them, so a
+				// project counts as archived only when it holds a workspace row.
+				project.children.some((child) =>
+					child.type === "workspace"
+						? true
+						: child.section.workspaces.length > 0,
+				),
+			),
 		[
 			archivedRows,
 			machineId,
