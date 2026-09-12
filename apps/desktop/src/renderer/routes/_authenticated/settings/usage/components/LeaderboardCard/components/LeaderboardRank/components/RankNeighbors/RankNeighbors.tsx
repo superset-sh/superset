@@ -7,12 +7,12 @@ import { cn } from "@superset/ui/utils";
 
 export interface NeighborRow {
 	rank: number;
-	tokens: number;
+	tokens: string;
 	tier: number;
 }
 
 interface RankNeighborsProps {
-	me: { rank: number; tokens: number };
+	me: { rank: number; tokens: string };
 	rows: NeighborRow[];
 }
 
@@ -74,8 +74,10 @@ export function RankNeighbors({ me, rows }: RankNeighborsProps) {
 			label: <Trans>You</Trans>,
 			detail: above ? (
 				<Trans>
-					{formatTokens(Math.max(0, above.tokens - me.tokens))} to pass #
-					{formatNumber(above.rank)}
+					{formatTokens(
+						Math.max(0, Number(BigInt(above.tokens) - BigInt(me.tokens))),
+					)}{" "}
+					to pass #{formatNumber(above.rank)}
 				</Trans>
 			) : null,
 			isMe: true,
@@ -88,7 +90,10 @@ export function RankNeighbors({ me, rows }: RankNeighborsProps) {
 				// Clamped: standings are CDN-cached, so right after a publish
 				// the live "me" total can already have overtaken a stale neighbor.
 				<Trans>
-					{formatTokens(Math.max(0, me.tokens - below.tokens))} behind you
+					{formatTokens(
+						Math.max(0, Number(BigInt(me.tokens) - BigInt(below.tokens))),
+					)}{" "}
+					behind you
 				</Trans>
 			),
 			isMe: false,
