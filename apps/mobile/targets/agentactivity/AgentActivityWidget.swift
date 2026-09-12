@@ -130,8 +130,8 @@ private struct Row: View {
 private struct CardBody: View {
 	let context: ActivityViewContext<AgentActivityAttributes>
 
-	/// With no headline, the footer is the one line where the card can admit
-	/// it has stopped hearing anything.
+	/// The footer is the one line where the card can admit it has stopped
+	/// hearing anything.
 	private var footer: String? {
 		context.isStale ? context.state.staleDetail : context.state.more
 	}
@@ -168,13 +168,6 @@ struct AgentActivityWidget: Widget {
 				.widgetURL(URL(string: "superset:///"))
 		} dynamicIsland: { context in
 			DynamicIsland {
-				DynamicIslandExpandedRegion(.leading) {
-					Text(context.state.headline)
-						.font(.system(size: 13))
-						.foregroundStyle(stateColor(context.state.topState))
-						.lineLimit(1)
-						.padding(.leading, 4)
-				}
 				DynamicIslandExpandedRegion(.bottom) {
 					VStack(alignment: .leading, spacing: Metrics.rowGap) {
 						ForEach(context.state.rows.prefix(3)) { row in

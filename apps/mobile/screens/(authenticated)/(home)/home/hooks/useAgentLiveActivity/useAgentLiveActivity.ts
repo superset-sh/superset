@@ -1,4 +1,3 @@
-import { plural } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import LiveActivity, {
 	type AgentRow,
@@ -118,21 +117,8 @@ export function useAgentLiveActivity({
 		const ranked = orderRows(all);
 		const shown = ranked.slice(0, MAX_ROWS);
 		const hidden = ranked.length - shown.length;
-		const needing = all.filter((row) => row.state === "permission").length;
 
 		const snapshot: AgentSnapshot = {
-			// Dynamic Island only; the Lock Screen card shows the rows alone.
-			// Rendered verbatim — no pluralisation layer sits below a
-			// pre-formatted string, so "1 agents working" would ship as-is.
-			headline: needing
-				? `${plural(needing, { one: "# needs you", other: "# need you" })} · ${plural(
-						total,
-						{ one: "# agent", other: "# agents" },
-					)}`
-				: plural(total, {
-						one: "# agent working",
-						other: "# agents working",
-					}),
 			rows: shown,
 			totalCount: total,
 			topState: shown[0]?.state ?? "working",

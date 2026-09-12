@@ -782,9 +782,6 @@ msgstr "{name} est intégré et ne peut pas être remplacé"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} n'est pas ajouté"
 
-msgid "{needing, plural, one {# needs you} other {# need you}}"
-msgstr "{needing, plural, one {# vous attend} other {# vous attendent}}"
-
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} des clics"
 
@@ -901,12 +898,6 @@ msgstr "{threshold, plural, one {# PR d'agent fusionnée} other {# PR d'agent fu
 
 msgid "{toolName} interrupted"
 msgstr "{toolName} interrompu"
-
-msgid "{total, plural, one {# agent working} other {# agents working}}"
-msgstr "{total, plural, one {# agent en cours} other {# agents en cours}}"
-
-msgid "{total, plural, one {# agent} other {# agents}}"
-msgstr "{total, plural, one {# agent} other {# agents}}"
 
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {La vérification a réussi} other {Les # vérifications ont toutes réussi}}"

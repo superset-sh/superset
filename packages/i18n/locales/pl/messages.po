@@ -782,9 +782,6 @@ msgstr "{name} jest wbudowany i nie można go zastąpić"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} nie został dodany"
 
-msgid "{needing, plural, one {# needs you} other {# need you}}"
-msgstr "{needing, plural, one {# czeka na Ciebie} few {# czekają na Ciebie} many {# czeka na Ciebie} other {# czeka na Ciebie}}"
-
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} kliknięć"
 
@@ -901,12 +898,6 @@ msgstr "{threshold, plural, one {scalono # PR agenta} few {scalono # PR agenta} 
 
 msgid "{toolName} interrupted"
 msgstr "{toolName} przerwane"
-
-msgid "{total, plural, one {# agent working} other {# agents working}}"
-msgstr "{total, plural, one {# agent pracuje} few {# agenci pracują} many {# agentów pracuje} other {# agentów pracuje}}"
-
-msgid "{total, plural, one {# agent} other {# agents}}"
-msgstr "{total, plural, one {# agent} few {# agenci} many {# agentów} other {# agentów}}"
 
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Kontrola przeszła} few {Wszystkie # kontrole przeszły} many {Wszystkie # kontroli przeszło} other {Wszystkie # kontroli przeszło}}"

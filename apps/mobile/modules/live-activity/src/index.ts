@@ -22,8 +22,6 @@ export interface AgentRow {
 }
 
 export interface AgentSnapshot {
-	/** Dynamic Island only; the Lock Screen card shows the rows alone. */
-	headline: string;
 	rows: AgentRow[];
 	more?: string;
 	/** Every agent, not just the rows that fit on the card. */
@@ -61,11 +59,7 @@ interface LiveActivityModule {
 	/** Downloads, downscales and caches a project icon into the App Group. */
 	cacheIcon: (key: string, url: string) => Promise<string>;
 	start: (snapshot: AgentSnapshot) => Promise<string>;
-	update: (
-		id: string,
-		snapshot: AgentSnapshot,
-		alert?: string | null,
-	) => Promise<void>;
+	update: (id: string, snapshot: AgentSnapshot) => Promise<void>;
 	endAll: () => Promise<void>;
 }
 

@@ -782,9 +782,6 @@ msgstr "{name} встроен и не может быть заменён"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} не добавлен"
 
-msgid "{needing, plural, one {# needs you} other {# need you}}"
-msgstr "{needing, plural, one {# ждёт вас} few {# ждут вас} many {# ждут вас} other {# ждут вас}}"
-
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} от кликов"
 
@@ -901,12 +898,6 @@ msgstr "{threshold, plural, one {влит # PR агента} few {влито # P
 
 msgid "{toolName} interrupted"
 msgstr "{toolName} прерван"
-
-msgid "{total, plural, one {# agent working} other {# agents working}}"
-msgstr "{total, plural, one {# агент работает} few {# агента работают} many {# агентов работают} other {# агентов работают}}"
-
-msgid "{total, plural, one {# agent} other {# agents}}"
-msgstr "{total, plural, one {# агент} few {# агента} many {# агентов} other {# агентов}}"
 
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Проверка пройдена} few {Все # проверки пройдены} many {Все # проверок пройдены} other {Все # проверки пройдены}}"

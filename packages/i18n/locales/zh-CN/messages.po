@@ -782,9 +782,6 @@ msgstr "{name} 是内置的，无法替换"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} 尚未添加"
 
-msgid "{needing, plural, one {# needs you} other {# need you}}"
-msgstr "{needing, plural, other {# 个需要你}}"
-
 msgid "{nonBrandPct} of clicks"
 msgstr "占点击的 {nonBrandPct}"
 
@@ -901,12 +898,6 @@ msgstr "{threshold, plural, other {已合并 # 个智能体 PR}}"
 
 msgid "{toolName} interrupted"
 msgstr "{toolName}已中断"
-
-msgid "{total, plural, one {# agent working} other {# agents working}}"
-msgstr "{total, plural, other {# 个智能体运行中}}"
-
-msgid "{total, plural, one {# agent} other {# agents}}"
-msgstr "{total, plural, other {# 个智能体}}"
 
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {#项检查全部通过} other {#项检查全部通过}}"

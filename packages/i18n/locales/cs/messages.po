@@ -782,9 +782,6 @@ msgstr "{name} je vestavěný a nelze jej nahradit"
 msgid "serverError.plugins.marketplaceNotAdded"
 msgstr "{name} není přidán"
 
-msgid "{needing, plural, one {# needs you} other {# need you}}"
-msgstr "{needing, plural, one {# čeká na tebe} few {# čekají na tebe} many {# čeká na tebe} other {# čeká na tebe}}"
-
 msgid "{nonBrandPct} of clicks"
 msgstr "{nonBrandPct} kliknutí"
 
@@ -901,12 +898,6 @@ msgstr "{threshold, plural, one {sloučen # PR agenta} few {sloučeny # PR agent
 
 msgid "{toolName} interrupted"
 msgstr "{toolName} přerušeno"
-
-msgid "{total, plural, one {# agent working} other {# agents working}}"
-msgstr "{total, plural, one {# agent pracuje} few {# agenti pracují} many {# agenta pracuje} other {# agentů pracuje}}"
-
-msgid "{total, plural, one {# agent} other {# agents}}"
-msgstr "{total, plural, one {# agent} few {# agenti} many {# agenta} other {# agentů}}"
 
 msgid "{total, plural, one {The check passed} other {All # checks passed}}"
 msgstr "{total, plural, one {Kontrola prošla} few {Všechny # kontroly prošly} many {Všech # kontroly prošlo} other {Všech # kontrol prošlo}}"
