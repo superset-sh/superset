@@ -10,8 +10,11 @@ import { useCallback, useEffect, useRef } from "react";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	isPaneGoneBeforeStartMessage,
+	isTerminalAttachCanceledMessage,
+} from "renderer/lib/terminal/attach-cancel";
 import { writeCommandsInPane } from "renderer/lib/terminal/launch-command";
-import { isTerminalAttachCanceledMessage } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/attach-cancel";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
@@ -123,10 +126,25 @@ export function WorkspaceInitEffects() {
 				write: (input) => terminalWrite.mutateAsync(input),
 			}).then((result) => {
 				if (result.status !== "failed") return;
-				if (isTerminalAttachCanceledMessage(result.error ?? undefined)) return;
+				console.error(
+					"[WorkspaceInitEffects] Failed to start agent:",
+					result.error,
+				);
+				// A cancellation used to be swallowed here, because a launch that
+				// joins the pane's in-flight attach is cancelled whenever the
+				// `<Terminal>` that owns it unmounts or re-attaches. That is now
+				// retried in `ensureTerminalAttached`, so one surviving this far
+				// means the pane really never came up — the workspace ends up with
+				// its setup terminal and no agent, which the user has to be told.
+				//
+				// Both pane-gone sentinels reach us as raw protocol strings, and a
+				// retry that lands after the pane was killed swaps one for the
+				// other, so they share the prose rather than leaking either.
 				toast.error("Failed to start agent", {
-					description:
-						result.error ?? "Failed to start agent session in workspace setup.",
+					description: isPaneGoneBeforeStartMessage(result.error ?? undefined)
+						? "The agent terminal was closed before it could start. Start the agent again from the workspace."
+						: (result.error ??
+							"Failed to start agent session in workspace setup."),
 				});
 			});
 		},

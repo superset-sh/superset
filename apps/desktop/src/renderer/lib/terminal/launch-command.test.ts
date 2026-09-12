@@ -1,6 +1,8 @@
 import { describe, expect, it, mock } from "bun:test";
 import {
+	ATTACH_ATTEMPT_LIMIT,
 	buildTerminalCommand,
+	ensureTerminalAttached,
 	launchCommandInPane,
 	writeCommandsInPane,
 } from "./launch-command";
@@ -173,5 +175,119 @@ describe("writeCommandsInPane", () => {
 		});
 
 		expect(write).not.toHaveBeenCalled();
+	});
+});
+
+describe("ensureTerminalAttached cancellation retries", () => {
+	const canceled = () => new Error("TERMINAL_ATTACH_CANCELED");
+
+	it("retries when the owner of the joined attach cancels it", async () => {
+		let calls = 0;
+		const createOrAttach = mock(async () => {
+			calls += 1;
+			if (calls === 1) throw canceled();
+			return {};
+		});
+		const write = mock(async () => ({}));
+
+		await launchCommandInPane({
+			paneId: "pane-canceled-once",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			command: "claude",
+			createOrAttach,
+			write,
+		});
+
+		expect(calls).toBe(2);
+		expect(write).toHaveBeenCalledWith({
+			paneId: "pane-canceled-once",
+			data: "claude\n",
+			throwOnError: true,
+		});
+	});
+
+	it("surfaces the cancellation once the retry budget is spent", async () => {
+		const createOrAttach = mock(async () => {
+			throw canceled();
+		});
+		const write = mock(async () => ({}));
+
+		await expect(
+			launchCommandInPane({
+				paneId: "pane-canceled-always",
+				tabId: "tab-1",
+				workspaceId: "ws-1",
+				command: "claude",
+				createOrAttach,
+				write,
+			}),
+		).rejects.toThrow("TERMINAL_ATTACH_CANCELED");
+
+		expect(createOrAttach).toHaveBeenCalledTimes(ATTACH_ATTEMPT_LIMIT);
+		expect(write).not.toHaveBeenCalled();
+	});
+
+	it("does not retry a pane whose session was killed", async () => {
+		const createOrAttach = mock(async () => {
+			throw new Error("TERMINAL_SESSION_KILLED");
+		});
+		const write = mock(async () => ({}));
+
+		await expect(
+			launchCommandInPane({
+				paneId: "pane-killed",
+				tabId: "tab-1",
+				workspaceId: "ws-1",
+				command: "claude",
+				createOrAttach,
+				write,
+			}),
+		).rejects.toThrow("TERMINAL_SESSION_KILLED");
+
+		expect(createOrAttach).toHaveBeenCalledTimes(1);
+		expect(write).not.toHaveBeenCalled();
+	});
+
+	it("does not retry unrelated attach failures", async () => {
+		const createOrAttach = mock(async () => {
+			throw new Error("WORKTREE_GONE");
+		});
+		const write = mock(async () => ({}));
+
+		await expect(
+			launchCommandInPane({
+				paneId: "pane-worktree-gone",
+				tabId: "tab-1",
+				workspaceId: "ws-1",
+				command: "claude",
+				createOrAttach,
+				write,
+			}),
+		).rejects.toThrow("WORKTREE_GONE");
+
+		expect(createOrAttach).toHaveBeenCalledTimes(1);
+		expect(write).not.toHaveBeenCalled();
+	});
+
+	it("keeps joining the pending attach on every retry", async () => {
+		const inputs: Array<{ joinPending?: boolean }> = [];
+		const createOrAttach = async (input: { joinPending?: boolean }) => {
+			inputs.push(input);
+			if (inputs.length === 1) throw canceled();
+			return {};
+		};
+
+		await ensureTerminalAttached({
+			paneId: "pane-join-flag",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			createOrAttach,
+		});
+
+		expect(inputs).toHaveLength(2);
+		for (const input of inputs) {
+			expect(input.joinPending).toBe(true);
+		}
 	});
 });
