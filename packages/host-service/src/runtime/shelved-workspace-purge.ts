@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { projects, workspaces } from "../db/schema";
 import { destroyWorkspace } from "../trpc/router/workspace-cleanup";
+import { cleanupGitOps } from "../trpc/router/workspace-cleanup/git-ops";
 import type { HostServiceContext } from "../types";
 import {
 	getLocalWorkspace,
@@ -74,22 +75,14 @@ async function readWorktreeStateForPurge(
 	let hasChanges = false;
 	let hasUnpushedCommits = false;
 	for (const target of targets) {
-		const git = await ctx.git(target.path, {
-			timeout: { block: 15_000, stdOut: false, stdErr: false },
+		const gitEnv = await cleanupGitOps.resolveGitEnv(ctx, target.path);
+		const state = await cleanupGitOps.readPurgeState({
+			...target,
+			checkStatus: target.ref === "HEAD",
+			gitEnv,
 		});
-		if (target.ref === "HEAD") hasChanges = !(await git.status()).isClean();
-		const result = (
-			await git.raw([
-				"rev-list",
-				"--count",
-				target.ref,
-				"--not",
-				"--remotes",
-				"--",
-			])
-		).trim();
-		if (!/^\d+$/.test(result)) throw new Error("Invalid purge commit count");
-		hasUnpushedCommits ||= Number(result) > 0;
+		hasChanges ||= state.hasChanges;
+		hasUnpushedCommits ||= state.hasUnpushedCommits;
 	}
 	return { hasChanges, hasUnpushedCommits };
 }

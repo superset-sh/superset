@@ -1,5 +1,5 @@
 import { Database as BunDatabase } from "bun:sqlite";
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { mkdtempSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -11,6 +11,7 @@ import type { HostDb } from "../db";
 import * as schema from "../db/schema";
 import { projects, workspaces } from "../db/schema";
 import type { EventBus } from "../events";
+import { cleanupGitOps } from "../trpc/router/workspace-cleanup/git-ops";
 import type { HostServiceContext } from "../types";
 import {
 	runShelvedWorkspacePurge,
@@ -64,16 +65,14 @@ function makeDb(): HostDb {
 
 describe("runShelvedWorkspacePurge", () => {
 	let db: HostDb;
+	let originalResolveGitEnv: typeof cleanupGitOps.resolveGitEnv;
+	let originalReadPurgeState: typeof cleanupGitOps.readPurgeState;
 
 	function makeCtx(): HostServiceContext {
 		return {
 			isAuthenticated: true,
 			organizationId: "00000000-0000-0000-0000-000000000001",
 			db,
-			git: mock(async () => ({
-				status: async () => ({ isClean: () => true }),
-				raw: async () => "0\n",
-			})),
 			eventBus: {
 				broadcastWorkspaceChanged: mock(() => {}),
 			} as unknown as EventBus,
@@ -107,6 +106,22 @@ describe("runShelvedWorkspacePurge", () => {
 
 	beforeEach(() => {
 		db = makeDb();
+		originalResolveGitEnv = cleanupGitOps.resolveGitEnv;
+		originalReadPurgeState = cleanupGitOps.readPurgeState;
+		cleanupGitOps.resolveGitEnv = mock(async (_ctx, path) => ({
+			PURGE_TARGET: path,
+			GIT_OPTIONAL_LOCKS: "0",
+			LC_ALL: "C",
+		}));
+		cleanupGitOps.readPurgeState = mock(async () => ({
+			hasChanges: false,
+			hasUnpushedCommits: false,
+		}));
+	});
+
+	afterEach(() => {
+		cleanupGitOps.resolveGitEnv = originalResolveGitEnv;
+		cleanupGitOps.readPurgeState = originalReadPurgeState;
 	});
 
 	test("a worktree whose git status cannot be read is kept, marked, and never destroyed", async () => {
@@ -170,15 +185,22 @@ describe("runShelvedWorkspacePurge", () => {
 						.run();
 				}
 				const ctx = makeCtx();
-				const raw = mock(async (args: string[]) => {
-					if (args.includes("HEAD")) return "0\n";
-					if (result === "failure") throw new Error("unreadable Git object");
-					return result;
-				});
-				ctx.git = mock(async () => ({
-					status: async () => ({ isClean: () => true }),
-					raw,
-				})) as unknown as HostServiceContext["git"];
+				const readPurgeState = mock(
+					async ({
+						ref,
+					}: Parameters<typeof cleanupGitOps.readPurgeState>[0]) => {
+						if (ref === "HEAD")
+							return { hasChanges: false, hasUnpushedCommits: false };
+						if (result !== "1\n")
+							throw new Error(
+								result === "invalid"
+									? "Invalid purge commit count"
+									: "unreadable Git object",
+							);
+						return { hasChanges: false, hasUnpushedCommits: true };
+					},
+				);
+				cleanupGitOps.readPurgeState = readPurgeState;
 				const destroy = mock(async () => ({ success: true }));
 
 				await runShelvedWorkspacePurge(
@@ -186,17 +208,20 @@ describe("runShelvedWorkspacePurge", () => {
 					destroy as unknown as Parameters<typeof runShelvedWorkspacePurge>[1],
 				);
 
-				expect(ctx.git).toHaveBeenCalledWith("/repo", {
-					timeout: { block: 15_000, stdOut: false, stdErr: false },
+				expect(cleanupGitOps.resolveGitEnv).toHaveBeenCalledWith(ctx, "/repo");
+				expect(readPurgeState).toHaveBeenCalledWith({
+					path: "/repo",
+					ref: "refs/heads/feat/ws-branch",
+					checkStatus: false,
+					gitEnv: {
+						PURGE_TARGET: "/repo",
+						GIT_OPTIONAL_LOCKS: "0",
+						LC_ALL: "C",
+					},
 				});
-				expect(raw).toHaveBeenCalledWith([
-					"rev-list",
-					"--count",
-					"refs/heads/feat/ws-branch",
-					"--not",
-					"--remotes",
-					"--",
-				]);
+				expect(readPurgeState).toHaveBeenCalledTimes(
+					!missing && result === "1\n" ? 2 : 1,
+				);
 				expect(destroy).not.toHaveBeenCalled();
 				expect(readRow("ws-branch")?.purgeBlockedReason).toBe(
 					result === "1\n" ? "dirty" : "unverifiable",
@@ -225,18 +250,18 @@ describe("runShelvedWorkspacePurge", () => {
 				.run();
 			const tombstone = readRow("ws-tombstone");
 			const ctx = makeCtx();
-			const raw = mock(async (args: string[]) => {
-				if (args.includes("refs/heads/feat/obsolete")) {
-					throw new Error("obsolete branch no longer exists");
-				}
-				return unpushed && args.includes("refs/heads/feat/renamed")
-					? "1\n"
-					: "0\n";
-			});
-			ctx.git = mock(async () => ({
-				status: async () => ({ isClean: () => true }),
-				raw,
-			})) as unknown as HostServiceContext["git"];
+			const readPurgeState = mock(
+				async ({ ref }: Parameters<typeof cleanupGitOps.readPurgeState>[0]) => {
+					if (ref === "refs/heads/feat/obsolete") {
+						throw new Error("obsolete branch no longer exists");
+					}
+					return {
+						hasChanges: false,
+						hasUnpushedCommits: unpushed && ref === "refs/heads/feat/renamed",
+					};
+				},
+			);
+			cleanupGitOps.readPurgeState = readPurgeState;
 			const destroy = mock(async () => ({ success: true }));
 
 			await runShelvedWorkspacePurge(
@@ -244,7 +269,7 @@ describe("runShelvedWorkspacePurge", () => {
 				destroy as unknown as Parameters<typeof runShelvedWorkspacePurge>[1],
 			);
 
-			expect(raw.mock.calls.map(([args]) => args[2])).toEqual([
+			expect(readPurgeState.mock.calls.map(([input]) => input.ref)).toEqual([
 				"refs/heads/feat/renamed",
 				"HEAD",
 			]);
@@ -265,36 +290,44 @@ describe("runShelvedWorkspacePurge", () => {
 		});
 	}
 
-	test("a clean checkout with an unreadable HEAD is kept", async () => {
-		seedShelved("ws-head", expired);
-		const dir = mkdtempSync(join(tmpdir(), "shelved-purge-wt-"));
-		db.update(workspaces)
-			.set({ worktreePath: dir })
-			.where(eq(workspaces.id, "ws-head"))
-			.run();
-		const ctx = makeCtx();
-		const status = mock(async () => ({ isClean: () => true }));
-		ctx.git = mock(async () => ({
-			status,
-			raw: async (args: string[]) => {
-				if (args.includes("HEAD")) throw new Error("unreadable Git object");
-				return "0\n";
-			},
-		})) as unknown as HostServiceContext["git"];
-		const destroy = mock(async () => ({ success: true }));
+	for (const result of ["failure", "dirty", "unpushed"]) {
+		test(`checkout HEAD reporting ${result} keeps the workspace`, async () => {
+			seedShelved("ws-head", expired);
+			const dir = mkdtempSync(join(tmpdir(), "shelved-purge-wt-"));
+			db.update(workspaces)
+				.set({ worktreePath: dir })
+				.where(eq(workspaces.id, "ws-head"))
+				.run();
+			const ctx = makeCtx();
+			cleanupGitOps.readPurgeState = mock(async ({ ref }) => {
+				if (ref === "HEAD" && result === "failure") {
+					throw new Error("unreadable Git object");
+				}
+				return {
+					hasChanges: ref === "HEAD" && result === "dirty",
+					hasUnpushedCommits: ref === "HEAD" && result === "unpushed",
+				};
+			});
+			const destroy = mock(async () => ({ success: true }));
 
-		await runShelvedWorkspacePurge(
-			ctx,
-			destroy as unknown as Parameters<typeof runShelvedWorkspacePurge>[1],
-		);
+			await runShelvedWorkspacePurge(
+				ctx,
+				destroy as unknown as Parameters<typeof runShelvedWorkspacePurge>[1],
+			);
 
-		expect(status).toHaveBeenCalledTimes(1);
-		expect(ctx.git).toHaveBeenCalledWith(dir, {
-			timeout: { block: 15_000, stdOut: false, stdErr: false },
+			expect(cleanupGitOps.resolveGitEnv).toHaveBeenCalledWith(ctx, dir);
+			expect(cleanupGitOps.readPurgeState).toHaveBeenCalledWith({
+				path: dir,
+				ref: "HEAD",
+				checkStatus: true,
+				gitEnv: { PURGE_TARGET: dir, GIT_OPTIONAL_LOCKS: "0", LC_ALL: "C" },
+			});
+			expect(destroy).not.toHaveBeenCalled();
+			expect(readRow("ws-head")?.purgeBlockedReason).toBe(
+				result === "failure" ? "unverifiable" : "dirty",
+			);
 		});
-		expect(destroy).not.toHaveBeenCalled();
-		expect(readRow("ws-head")?.purgeBlockedReason).toBe("unverifiable");
-	});
+	}
 
 	test("a restore during the worktree check wins over the purge", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "shelved-purge-wt-"));

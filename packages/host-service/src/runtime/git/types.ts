@@ -1,4 +1,4 @@
-import type { SimpleGit, SimpleGitOptions } from "simple-git";
+import type { SimpleGit } from "simple-git";
 
 /** Whether `host` had no credential at all, or one GitHub refused. */
 export type CredentialProblem = "missing" | "rejected";
@@ -17,9 +17,4 @@ export interface GitCredentialProvider {
 	credentialRemedy(host: string, problem: CredentialProblem): string;
 }
 
-export type GitFactoryOptions = Partial<Pick<SimpleGitOptions, "timeout">>;
-
-export type GitFactory = (
-	path: string,
-	options?: GitFactoryOptions,
-) => Promise<SimpleGit>;
+export type GitFactory = (path: string) => Promise<SimpleGit>;
