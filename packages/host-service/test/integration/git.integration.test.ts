@@ -209,6 +209,24 @@ describe("git router integration", () => {
 		]);
 	});
 
+	test("stageFile treats pathspec magic as a literal file name", async () => {
+		await scenario.repo.commit("seed", { "ordinary.txt": "base" });
+		writeFileSync(join(scenario.repo.repoPath, "ordinary.txt"), "changed");
+
+		await expect(
+			scenario.host.trpc.git.stageFile.mutate({
+				workspaceId: scenario.workspaceId,
+				filePath: ":(glob)**",
+			}),
+		).rejects.toBeInstanceOf(TRPCClientError);
+
+		const status = await scenario.host.trpc.git.getStatus.query({
+			workspaceId: scenario.workspaceId,
+		});
+		expect(status.staged).toEqual([]);
+		expect(status.unstaged.map((f) => f.path)).toEqual(["ordinary.txt"]);
+	});
+
 	test("stageFile and unstageFile reject paths outside the worktree", async () => {
 		const unsafe = ["/etc/passwd", "../escape.txt"];
 		const inputs = [

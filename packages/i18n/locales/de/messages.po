@@ -4361,7 +4361,7 @@ msgid "Couldn't unstage changes"
 msgstr "Stagen konnte nicht aufgehoben werden"
 
 msgid "Couldn't unstage file"
-msgstr "Stagen der Datei konnte nicht aufgehoben werden"
+msgstr "Datei konnte nicht unstaged werden"
 
 msgid "Couldn't update pull request"
 msgstr "Pull Request konnte nicht aktualisiert werden"
