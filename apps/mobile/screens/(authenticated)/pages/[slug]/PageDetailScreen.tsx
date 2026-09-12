@@ -99,6 +99,10 @@ export function PageDetailScreen({
 		() => toAnchoredThreads(comments.data ?? []),
 		[comments.data],
 	);
+	const unresolvedThreads = useMemo(
+		() => threads.filter((thread) => !thread.resolved),
+		[threads],
+	);
 
 	const send = useCallback(
 		(message: Parameters<PageFrameHandle["send"]>[0]) =>
@@ -119,12 +123,12 @@ export function PageDetailScreen({
 	useEffect(() => {
 		send({
 			type: "track",
-			anchors: threads.map((thread) => ({
+			anchors: unresolvedThreads.map((thread) => ({
 				id: thread.id,
 				anchor: thread.anchor,
 			})),
 		});
-	}, [threads, frameEpoch, send]);
+	}, [unresolvedThreads, frameEpoch, send]);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -165,13 +169,13 @@ export function PageDetailScreen({
 
 	const pins = useMemo(() => {
 		const out: Array<{ id: string; point: { x: number; y: number } }> = [];
-		for (const thread of threads) {
+		for (const thread of unresolvedThreads) {
 			const rect = rects[thread.id];
 			if (rect)
 				out.push({ id: thread.id, point: pinPointOf(rect, thread.anchor) });
 		}
 		return out;
-	}, [rects, threads]);
+	}, [rects, unresolvedThreads]);
 
 	const stackIndex = useMemo(() => stackPins(pins), [pins]);
 	const pinPoints = useMemo(
@@ -330,7 +334,7 @@ export function PageDetailScreen({
 						className="absolute inset-0 overflow-hidden"
 						pointerEvents="box-none"
 					>
-						{threads.map((thread) => {
+						{unresolvedThreads.map((thread) => {
 							const point = pinPoints.get(thread.id);
 							if (!point) return null;
 							return (
