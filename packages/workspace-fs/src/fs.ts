@@ -86,14 +86,41 @@ function ensureWithinRoot({
 	return normalizedAbsolutePath;
 }
 
+/**
+ * The root as given plus its resolved form. Realpath-resolved candidates are
+ * compared against the resolved root — a workspace under /tmp, /var or a
+ * symlinked ~/code would otherwise fail every containment check — while a
+ * dangling symlink's lexical target may legitimately match either spelling.
+ */
+async function resolveRootPaths(rootPath: string): Promise<string[]> {
+	const normalizedRootPath = normalizeAbsolutePath(rootPath);
+	try {
+		const realRootPath = normalizeAbsolutePath(
+			await fs.realpath(normalizedRootPath),
+		);
+		return realRootPath === normalizedRootPath
+			? [normalizedRootPath]
+			: [realRootPath, normalizedRootPath];
+	} catch (error) {
+		if (isEnoent(error)) {
+			return [normalizedRootPath];
+		}
+		throw error;
+	}
+}
+
+function isPathWithinAnyRoot(
+	rootPaths: readonly string[],
+	absolutePath: string,
+): boolean {
+	return rootPaths.some((rootPath) => isPathWithinRoot(rootPath, absolutePath));
+}
+
 async function assertParentWithinRoot(
 	rootPath: string,
 	absolutePath: string,
 ): Promise<void> {
-	const normalizedRootPath = ensureWithinRoot({
-		rootPath,
-		absolutePath: rootPath,
-	});
+	const rootPaths = await resolveRootPaths(rootPath);
 	let currentPath = path.dirname(absolutePath);
 
 	while (currentPath !== path.dirname(currentPath)) {
@@ -110,7 +137,7 @@ async function assertParentWithinRoot(
 					const targetRealPath = normalizeAbsolutePath(
 						await fs.realpath(resolvedTarget),
 					);
-					if (!isPathWithinRoot(normalizedRootPath, targetRealPath)) {
+					if (!isPathWithinAnyRoot(rootPaths, targetRealPath)) {
 						throw new WorkspaceFsPathError(
 							"Symlink in path resolves outside workspace root",
 							"SYMLINK_ESCAPE",
@@ -123,8 +150,8 @@ async function assertParentWithinRoot(
 						error.code === "ENOENT"
 					) {
 						if (
-							!isPathWithinRoot(
-								normalizedRootPath,
+							!isPathWithinAnyRoot(
+								rootPaths,
 								normalizeAbsolutePath(resolvedTarget),
 							)
 						) {
@@ -150,7 +177,7 @@ async function assertParentWithinRoot(
 			const parentRealPath = normalizeAbsolutePath(
 				await fs.realpath(currentPath),
 			);
-			if (!isPathWithinRoot(normalizedRootPath, parentRealPath)) {
+			if (!isPathWithinAnyRoot(rootPaths, parentRealPath)) {
 				throw new WorkspaceFsPathError(
 					"Parent directory resolves outside workspace root",
 					"SYMLINK_ESCAPE",
@@ -187,10 +214,7 @@ async function assertDanglingSymlinkSafe(
 	rootPath: string,
 	absolutePath: string,
 ): Promise<void> {
-	const normalizedRootPath = ensureWithinRoot({
-		rootPath,
-		absolutePath: rootPath,
-	});
+	const rootPaths = await resolveRootPaths(rootPath);
 
 	try {
 		const stats = await fs.lstat(absolutePath);
@@ -201,10 +225,7 @@ async function assertDanglingSymlinkSafe(
 				: path.resolve(path.dirname(absolutePath), linkTarget);
 
 			if (
-				!isPathWithinRoot(
-					normalizedRootPath,
-					normalizeAbsolutePath(resolvedTarget),
-				)
+				!isPathWithinAnyRoot(rootPaths, normalizeAbsolutePath(resolvedTarget))
 			) {
 				throw new WorkspaceFsPathError(
 					"Dangling symlink points outside workspace root",
@@ -232,14 +253,11 @@ async function assertRealpathWithinRoot(
 	rootPath: string,
 	absolutePath: string,
 ): Promise<void> {
-	const normalizedRootPath = ensureWithinRoot({
-		rootPath,
-		absolutePath: rootPath,
-	});
+	const rootPaths = await resolveRootPaths(rootPath);
 
 	try {
 		const realPath = normalizeAbsolutePath(await fs.realpath(absolutePath));
-		if (!isPathWithinRoot(normalizedRootPath, realPath)) {
+		if (!isPathWithinAnyRoot(rootPaths, realPath)) {
 			throw new WorkspaceFsPathError(
 				"Path resolves outside workspace root",
 				"SYMLINK_ESCAPE",
@@ -258,6 +276,48 @@ async function assertRealpathWithinRoot(
 			"SYMLINK_ESCAPE",
 		);
 	}
+}
+
+/**
+ * Containment check for an existing entry that is moved, copied or removed as
+ * a whole. A symlink entry is operated on as a link and never followed, so
+ * only its ancestry has to resolve inside the root; anything else must
+ * resolve there itself.
+ */
+async function assertEntryWithinRoot(
+	rootPath: string,
+	absolutePath: string,
+): Promise<void> {
+	let stats: Stats;
+	try {
+		stats = await fs.lstat(absolutePath);
+	} catch (error) {
+		if (isEnoent(error)) {
+			await assertRealpathWithinRoot(rootPath, absolutePath);
+			return;
+		}
+		throw error;
+	}
+
+	if (stats.isSymbolicLink()) {
+		await assertParentWithinRoot(rootPath, absolutePath);
+		return;
+	}
+
+	await assertRealpathWithinRoot(rootPath, absolutePath);
+}
+
+async function assertDestinationAbsent(destinationPath: string): Promise<void> {
+	await fs.access(destinationPath).then(
+		() => {
+			throw new Error(`Destination already exists: ${destinationPath}`);
+		},
+		(error: NodeJS.ErrnoException) => {
+			if (error.code !== "ENOENT") {
+				throw error;
+			}
+		},
+	);
 }
 
 function getPathLockDirectory(absolutePath: string): string {
@@ -887,6 +947,7 @@ export async function deletePath({
 	}
 
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	await assertEntryWithinRoot(rootPath, targetPath);
 
 	if (!permanent && trashItem) {
 		await trashItem(targetPath);
@@ -908,7 +969,6 @@ export async function deletePath({
 		return { absolutePath: targetPath };
 	}
 
-	await assertRealpathWithinRoot(rootPath, targetPath);
 	await fs.rm(targetPath, { recursive: true, force: true });
 	return { absolutePath: targetPath };
 }
@@ -930,17 +990,9 @@ export async function movePath({
 		rootPath,
 		absolutePath: destinationAbsolutePath,
 	});
-
-	await fs.access(destinationPath).then(
-		() => {
-			throw new Error(`Destination already exists: ${destinationPath}`);
-		},
-		(error: NodeJS.ErrnoException) => {
-			if (error.code !== "ENOENT") {
-				throw error;
-			}
-		},
-	);
+	await assertEntryWithinRoot(rootPath, sourcePath);
+	await assertRealpathWithinRoot(rootPath, destinationPath);
+	await assertDestinationAbsent(destinationPath);
 
 	await fs.rename(sourcePath, destinationPath);
 	return { fromAbsolutePath: sourcePath, toAbsolutePath: destinationPath };
@@ -963,7 +1015,14 @@ export async function copyPath({
 		rootPath,
 		absolutePath: destinationAbsolutePath,
 	});
+	await assertEntryWithinRoot(rootPath, sourcePath);
+	await assertRealpathWithinRoot(rootPath, destinationPath);
+	await assertDestinationAbsent(destinationPath);
 
-	await fs.cp(sourcePath, destinationPath, { recursive: true });
+	await fs.cp(sourcePath, destinationPath, {
+		recursive: true,
+		force: false,
+		errorOnExist: true,
+	});
 	return { fromAbsolutePath: sourcePath, toAbsolutePath: destinationPath };
 }

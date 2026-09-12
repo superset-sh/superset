@@ -3,12 +3,15 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
+	copyPath,
 	createDirectory,
 	createUniqueEntry,
+	deletePath,
 	movePath,
 	readFile,
 	removeEmptyDirectory,
 	removeFileIfUnchanged,
+	WorkspaceFsPathError,
 	writeFile,
 } from "./fs";
 
@@ -657,5 +660,237 @@ describe("movePath", () => {
 
 		expect(didThrow).toEqual(true);
 		expect((await fs.stat(sourceAbsolutePath)).isDirectory()).toEqual(true);
+	});
+});
+
+async function expectSymlinkEscape(promise: Promise<unknown>): Promise<void> {
+	let error: unknown;
+	try {
+		await promise;
+	} catch (caught) {
+		error = caught;
+	}
+	expect(error).toBeInstanceOf(WorkspaceFsPathError);
+	expect((error as WorkspaceFsPathError).code).toEqual("SYMLINK_ESCAPE");
+}
+
+/** `rootPath/link` -> `outsidePath`, with `outsidePath/secret.txt` present. */
+async function createOutsideLink(
+	rootPath: string,
+): Promise<{ outsidePath: string; linkPath: string }> {
+	const outsidePath = await createTempRoot();
+	await fs.writeFile(path.join(outsidePath, "secret.txt"), "secret");
+	const linkPath = path.join(rootPath, "link");
+	await fs.symlink(outsidePath, linkPath);
+	return { outsidePath, linkPath };
+}
+
+describe("symlink containment for move, copy and delete", () => {
+	it("movePath refuses a source behind a symlink that leaves the root", async () => {
+		const rootPath = await createTempRoot();
+		const { outsidePath, linkPath } = await createOutsideLink(rootPath);
+
+		await expectSymlinkEscape(
+			movePath({
+				rootPath,
+				sourceAbsolutePath: path.join(linkPath, "secret.txt"),
+				destinationAbsolutePath: path.join(rootPath, "stolen.txt"),
+			}),
+		);
+
+		expect(await fs.readdir(outsidePath)).toEqual(["secret.txt"]);
+		expect(await fs.readdir(rootPath)).toEqual(["link"]);
+	});
+
+	it("movePath refuses a destination behind a symlink that leaves the root", async () => {
+		const rootPath = await createTempRoot();
+		const { outsidePath, linkPath } = await createOutsideLink(rootPath);
+		const sourceAbsolutePath = path.join(rootPath, "a.txt");
+		await fs.writeFile(sourceAbsolutePath, "a");
+
+		await expectSymlinkEscape(
+			movePath({
+				rootPath,
+				sourceAbsolutePath,
+				destinationAbsolutePath: path.join(linkPath, "a.txt"),
+			}),
+		);
+
+		expect(await fs.readdir(outsidePath)).toEqual(["secret.txt"]);
+		expect(await fs.readFile(sourceAbsolutePath, "utf8")).toEqual("a");
+	});
+
+	it("movePath renames a symlink entry itself without following it", async () => {
+		const rootPath = await createTempRoot();
+		const { outsidePath, linkPath } = await createOutsideLink(rootPath);
+		const destinationAbsolutePath = path.join(rootPath, "renamed-link");
+
+		await movePath({
+			rootPath,
+			sourceAbsolutePath: linkPath,
+			destinationAbsolutePath,
+		});
+
+		expect(await fs.readlink(destinationAbsolutePath)).toEqual(outsidePath);
+		expect(await fs.readdir(outsidePath)).toEqual(["secret.txt"]);
+	});
+
+	it("copyPath refuses a source behind a symlink that leaves the root", async () => {
+		const rootPath = await createTempRoot();
+		const { linkPath } = await createOutsideLink(rootPath);
+
+		await expectSymlinkEscape(
+			copyPath({
+				rootPath,
+				sourceAbsolutePath: path.join(linkPath, "secret.txt"),
+				destinationAbsolutePath: path.join(rootPath, "copied.txt"),
+			}),
+		);
+
+		expect(await fs.readdir(rootPath)).toEqual(["link"]);
+	});
+
+	it("copyPath refuses a destination behind a symlink that leaves the root", async () => {
+		const rootPath = await createTempRoot();
+		const { outsidePath, linkPath } = await createOutsideLink(rootPath);
+		const sourceAbsolutePath = path.join(rootPath, "a.txt");
+		await fs.writeFile(sourceAbsolutePath, "a");
+
+		await expectSymlinkEscape(
+			copyPath({
+				rootPath,
+				sourceAbsolutePath,
+				destinationAbsolutePath: path.join(linkPath, "secret.txt"),
+			}),
+		);
+
+		expect(
+			await fs.readFile(path.join(outsidePath, "secret.txt"), "utf8"),
+		).toEqual("secret");
+	});
+
+	it("deletePath refuses to trash a path behind a symlink that leaves the root", async () => {
+		const rootPath = await createTempRoot();
+		const { outsidePath, linkPath } = await createOutsideLink(rootPath);
+		const trashed: string[] = [];
+
+		await expectSymlinkEscape(
+			deletePath({
+				rootPath,
+				absolutePath: path.join(linkPath, "secret.txt"),
+				trashItem: async (absolutePath) => {
+					trashed.push(absolutePath);
+				},
+			}),
+		);
+
+		expect(trashed).toEqual([]);
+		expect(await fs.readdir(outsidePath)).toEqual(["secret.txt"]);
+	});
+
+	it("deletePath still trashes a symlink entry that points outside the root", async () => {
+		const rootPath = await createTempRoot();
+		const { outsidePath, linkPath } = await createOutsideLink(rootPath);
+		const trashed: string[] = [];
+
+		await deletePath({
+			rootPath,
+			absolutePath: linkPath,
+			trashItem: async (absolutePath) => {
+				trashed.push(absolutePath);
+			},
+		});
+
+		expect(trashed).toEqual([linkPath]);
+		expect(await fs.readdir(outsidePath)).toEqual(["secret.txt"]);
+	});
+});
+
+describe("copyPath", () => {
+	it("copies a directory onto a free name", async () => {
+		const rootPath = await createTempRoot();
+		const sourceAbsolutePath = path.join(rootPath, "src");
+		await fs.mkdir(sourceAbsolutePath);
+		await fs.writeFile(path.join(sourceAbsolutePath, "a.txt"), "a");
+
+		await copyPath({
+			rootPath,
+			sourceAbsolutePath,
+			destinationAbsolutePath: path.join(rootPath, "copy"),
+		});
+
+		expect(
+			await fs.readFile(path.join(rootPath, "copy", "a.txt"), "utf8"),
+		).toEqual("a");
+	});
+
+	it("rejects a destination that already exists instead of overwriting it", async () => {
+		const rootPath = await createTempRoot();
+		const sourceAbsolutePath = path.join(rootPath, "a.txt");
+		const destinationAbsolutePath = path.join(rootPath, "b.txt");
+		await fs.writeFile(sourceAbsolutePath, "new");
+		await fs.writeFile(destinationAbsolutePath, "old");
+		let didThrow = false;
+
+		try {
+			await copyPath({ rootPath, sourceAbsolutePath, destinationAbsolutePath });
+		} catch {
+			didThrow = true;
+		}
+
+		expect(didThrow).toEqual(true);
+		expect(await fs.readFile(destinationAbsolutePath, "utf8")).toEqual("old");
+	});
+});
+
+describe("workspace root reached through a symlink", () => {
+	async function createLinkedRoot(): Promise<{
+		rootPath: string;
+		realRootPath: string;
+	}> {
+		const realRootPath = await createTempRoot();
+		const holder = await createTempRoot();
+		const rootPath = path.join(holder, "linked-root");
+		await fs.symlink(realRootPath, rootPath);
+		return { rootPath, realRootPath };
+	}
+
+	it("writes, reads, creates and deletes inside the root", async () => {
+		const { rootPath, realRootPath } = await createLinkedRoot();
+		const absolutePath = path.join(rootPath, "a.txt");
+
+		const written = await writeFile({ rootPath, absolutePath, content: "a" });
+		expect(written.ok).toEqual(true);
+		expect(await fs.readFile(path.join(realRootPath, "a.txt"), "utf8")).toEqual(
+			"a",
+		);
+
+		const read = await readFile({ rootPath, absolutePath, encoding: "utf-8" });
+		expect(read.kind === "text" && read.content).toEqual("a");
+
+		await createDirectory({
+			rootPath,
+			absolutePath: path.join(rootPath, "nested", "dir"),
+			recursive: true,
+		});
+		expect(
+			(await fs.stat(path.join(realRootPath, "nested", "dir"))).isDirectory(),
+		).toEqual(true);
+
+		await deletePath({ rootPath, absolutePath, permanent: true });
+		expect(await fs.readdir(realRootPath)).toEqual(["nested"]);
+	});
+
+	it("still rejects a symlink inside it that leaves the root", async () => {
+		const { rootPath } = await createLinkedRoot();
+		const { linkPath } = await createOutsideLink(rootPath);
+
+		await expectSymlinkEscape(
+			writeFile({
+				rootPath,
+				absolutePath: path.join(linkPath, "x.txt"),
+				content: "x",
+			}),
+		);
 	});
 });
