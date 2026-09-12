@@ -68,6 +68,30 @@ describe("getGitStatusPartial", () => {
 		rmSync(repo, { recursive: true, force: true });
 	});
 
+	test("a file edit inside a tracked nested repository refreshes its root entry", async () => {
+		const nestedPath = join(repo, "nested");
+		await mkdir(nestedPath);
+		const nested = await initRepo(nestedPath);
+		await writeFile(join(nestedPath, "tracked.txt"), "original\n");
+		await nested.add(".");
+		await nested.commit("nested init");
+		await git.add("nested");
+		await git.commit("add gitlink");
+		const before = await full(git, repo);
+		await writeFile(join(nestedPath, "new.txt"), "new\n");
+		const partial = await getGitStatusPartial({
+			git,
+			worktreePath: repo,
+			paths: ["nested/new.txt"],
+		});
+		expect(partial.paths).toEqual(["nested"]);
+		const { snapshot } = await patch(git, repo, before, ["nested/new.txt"]);
+		expect(normalize(snapshot.unstaged)).toEqual(
+			normalize((await full(git, repo)).unstaged),
+		);
+		expect(snapshot.unstaged.map((file) => file.path)).toContain("nested");
+	});
+
 	test("a tracked edit patches to the same state as a full walk", async () => {
 		const before = await full(git, repo);
 		await writeFile(join(repo, "src", "a.ts"), "const a = 1;\nconst c = 3;\n");

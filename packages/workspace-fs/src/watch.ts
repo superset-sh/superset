@@ -118,6 +118,8 @@ const NESTED_REPO_SCAN_CONCURRENCY = 4;
  * over-reporting a file there as watched only costs a missed targeted watch
  * on a file type nobody opens.
  */
+const WORKTREE_CONTAINER_NAMES = new Set([".worktrees", ".conductor"]);
+
 export function isRelPathUnderPrunedDirs(
 	relative: string,
 	prunedRelPrefixes: readonly string[],
@@ -128,16 +130,13 @@ export function isRelPathUnderPrunedDirs(
 		const segment = segments[i] as string;
 		if (
 			segment === ".git" ||
+			WORKTREE_CONTAINER_NAMES.has(segment) ||
 			(useDefaultIgnores && DEFAULT_IGNORE_DIR_NAMES.has(segment))
 		) {
 			return true;
 		}
 		// `**/.claude/worktrees/**` is the one multi-segment static glob.
-		if (
-			useDefaultIgnores &&
-			segment === ".claude" &&
-			segments[i + 1] === "worktrees"
-		) {
+		if (segment === ".claude" && segments[i + 1] === "worktrees") {
 			return true;
 		}
 	}
@@ -266,7 +265,7 @@ function internalToSearchPatchEvent(
 export interface FsWatcherManagerOptions {
 	debounceMs?: number;
 	ignore?: string[];
-	/** Disable search-oriented exclusions for git status consumers; .git stays pruned. */
+	/** Disable search exclusions; .git and sibling-worktree containers stay pruned. */
 	useDefaultIgnores?: boolean;
 	/**
 	 * Returns watch-root-relative directories that git ignores entirely
@@ -319,7 +318,12 @@ export class FsWatcherManager {
 		// directories are still pruned by the dynamic listing below.
 		const defaults =
 			options.useDefaultIgnores === false
-				? ["**/.git/**"]
+				? [
+						"**/.git/**",
+						"**/.worktrees/**",
+						"**/.claude/worktrees/**",
+						"**/.conductor/**",
+					]
 				: DEFAULT_IGNORE_PATTERNS;
 		this.ignore = [...new Set([...defaults, ...(options.ignore ?? [])])];
 		this.listGitIgnoredDirs = options.listGitIgnoredDirs;

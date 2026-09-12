@@ -969,7 +969,29 @@ export function patchSearchIndexesForRoot(
 	// Each directory event scans every key of every cached index; a batch
 	// from `rm -rf` or a branch switch is cheaper to rebuild than to patch.
 	if (
-		events.some(forcesFullRebuild) ||
+		events.some((event) => {
+			if (forcesFullRebuild(event)) return true;
+			if (
+				!event.isDirectory ||
+				event.kind !== "rename" ||
+				!event.oldAbsolutePath
+			)
+				return false;
+			const oldAbsolutePath = event.oldAbsolutePath;
+			// An excluded source has no cached children to re-key. Rebuild if
+			// the destination changes eligibility for either cached variant.
+			return [true, false].some(
+				(includeHidden) =>
+					shouldIndexRelativePath(
+						`${toRelativePath(rootPath, oldAbsolutePath)}/file`,
+						includeHidden,
+					) !==
+					shouldIndexRelativePath(
+						`${toRelativePath(rootPath, event.absolutePath)}/file`,
+						includeHidden,
+					),
+			);
+		}) ||
 		events.filter((event) => event.isDirectory).length >
 			MAX_DIRECTORY_PATCH_EVENTS
 	) {

@@ -1,5 +1,5 @@
-import { realpath } from "node:fs/promises";
-import { isAbsolute, posix, relative } from "node:path";
+import { access, realpath } from "node:fs/promises";
+import { isAbsolute, join, posix, relative } from "node:path";
 import type { SimpleGit } from "simple-git";
 import type { ChangedFile } from "../../types";
 import {
@@ -51,8 +51,32 @@ export async function getGitStatusPartial({
 	const realWorktreePath = await realpath(worktreePath).catch(
 		() => worktreePath,
 	);
-	const scope = coalescePaths(
+	// Git represents a nested repository as its root entry, even when a
+	// watcher reports an edited file below it. A deeper pathspec omits that
+	// entry entirely. Share ancestor probes across this bounded batch.
+	const nestedRoots = new Map<string, Promise<boolean>>();
+	const relativePaths = coalescePaths(
 		toWorktreeRelative([worktreePath, realWorktreePath], paths),
+	);
+	const scope = coalescePaths(
+		await Promise.all(
+			relativePaths.map(async (filePath) => {
+				const parts = filePath.split("/");
+				for (let depth = 1; depth < parts.length; depth++) {
+					const ancestor = parts.slice(0, depth).join("/");
+					let isRepo = nestedRoots.get(ancestor);
+					if (!isRepo) {
+						isRepo = access(join(worktreePath, ancestor, ".git")).then(
+							() => true,
+							() => false,
+						);
+						nestedRoots.set(ancestor, isRepo);
+					}
+					if (await isRepo) return ancestor;
+				}
+				return filePath;
+			}),
+		),
 	);
 	if (scope.length === 0) return { paths: [], unstaged: [] };
 	const pathspecs = literalPathspecs(scope);

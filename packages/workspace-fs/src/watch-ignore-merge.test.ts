@@ -77,3 +77,34 @@ describe("FsWatcherManager ignore patterns", () => {
 		expect(seen).not.toContain(path.join(rootPath, "custom/skip.ts"));
 	});
 });
+
+it("git-status watches build files while pruning sibling-worktree containers", async () => {
+	const rootPath = await createTempRoot();
+	tempRoots.push(rootPath);
+	const containers = [".worktrees", ".conductor", ".claude/worktrees"];
+	for (const dir of [...containers, "build"])
+		await fs.mkdir(path.join(rootPath, dir), { recursive: true });
+	const manager = new FsWatcherManager({
+		debounceMs: 50,
+		useDefaultIgnores: false,
+	});
+	managers.push(manager);
+	const seen: string[] = [];
+	await manager.subscribe({ absolutePath: rootPath }, (batch) => {
+		for (const event of batch.events) seen.push(event.absolutePath);
+	});
+	for (const dir of containers)
+		await fs.writeFile(path.join(rootPath, dir, "ignored.ts"), "x");
+	const visible = path.join(rootPath, "build", "tracked.ts");
+	await fs.writeFile(visible, "x");
+	await waitForCondition(() => seen.includes(visible));
+	const barrier = path.join(rootPath, "barrier.ts");
+	await fs.writeFile(barrier, "x");
+	await waitForCondition(() => seen.includes(barrier));
+	for (const dir of containers) {
+		const ignored = path.join(rootPath, dir, "ignored.ts");
+		expect(seen).not.toContain(ignored);
+		expect(manager.isPathPruned(rootPath, ignored)).toBe(true);
+	}
+	expect(manager.isPathPruned(rootPath, visible)).toBe(false);
+});

@@ -294,3 +294,32 @@ describe("getSearchIndex restart path", () => {
 		}
 	}, 20_000);
 });
+
+for (const source of [".hidden", "build"]) {
+	it(`renaming ${source} into a searchable directory rebuilds missing children`, async () => {
+		const root = await makeRepoRoot();
+		await fs.mkdir(path.join(root, source));
+		await fs.writeFile(path.join(root, source, "found.ts"), "x");
+		const before = await getSearchIndex({
+			rootPath: root,
+			includeHidden: false,
+		});
+		expect(before).toHaveLength(0);
+		await fs.rename(path.join(root, source), path.join(root, "visible"));
+		patchSearchIndexesForRoot(root, [
+			{
+				kind: "rename",
+				oldAbsolutePath: path.join(root, source),
+				absolutePath: path.join(root, "visible"),
+				isDirectory: true,
+			},
+		]);
+		const after = await getSearchIndex({
+			rootPath: root,
+			includeHidden: false,
+		});
+		expect(after.map((entry) => entry.relativePath)).toEqual([
+			path.join("visible", "found.ts"),
+		]);
+	});
+}
