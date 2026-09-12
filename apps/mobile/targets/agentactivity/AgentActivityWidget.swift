@@ -60,6 +60,37 @@ private func cachedIcon(_ file: String?) -> UIImage? {
 	return UIImage(contentsOfFile: dir.appendingPathComponent("icons/\(file)").path)
 }
 
+/// The app icon's bracket mark, drawn rather than shipped as an image so it
+/// tints with the fleet's state the way the SF Symbol it replaces did. Each
+/// row is one cell high; `#` cells are filled.
+private struct SupersetMark: Shape {
+	private static let rows = [
+		".##..##.##..##.",
+		".#...#...#...#.",
+		"#...#.....#...#",
+		"#...#.....#...#",
+		".#...#...#...#.",
+		".##..##.##..##.",
+	]
+	static let aspectRatio = CGFloat(rows[0].count) / CGFloat(rows.count)
+
+	func path(in rect: CGRect) -> Path {
+		let cell = min(rect.width / CGFloat(Self.rows[0].count), rect.height / CGFloat(Self.rows.count))
+		let origin = CGPoint(
+			x: rect.midX - cell * CGFloat(Self.rows[0].count) / 2,
+			y: rect.midY - cell * CGFloat(Self.rows.count) / 2)
+		var path = Path()
+		for (y, row) in Self.rows.enumerated() {
+			for (x, on) in row.enumerated() where on == "#" {
+				path.addRect(CGRect(
+					x: origin.x + CGFloat(x) * cell, y: origin.y + CGFloat(y) * cell,
+					width: cell, height: cell))
+			}
+		}
+		return path
+	}
+}
+
 private struct ProjectIcon: View {
 	let row: AgentActivityAttributes.AgentRow
 
@@ -172,9 +203,10 @@ struct AgentActivityWidget: Widget {
 					.padding(.horizontal, 4)
 				}
 			} compactLeading: {
-				Image(systemName: context.state.topState == "permission"
-					? "person.wave.2.fill" : "terminal.fill")
-					.foregroundStyle(stateColor(context.state.topState))
+				SupersetMark()
+					.fill(stateColor(context.state.topState))
+					.aspectRatio(SupersetMark.aspectRatio, contentMode: .fit)
+					.frame(height: 12)
 			} compactTrailing: {
 				// The island is a single tap target by design, so it shows the
 				// count rather than pretending to be a list.
@@ -182,8 +214,10 @@ struct AgentActivityWidget: Widget {
 					.font(.system(size: 14, weight: .medium))
 					.monospacedDigit()
 			} minimal: {
-				Image(systemName: "terminal.fill")
-					.foregroundStyle(stateColor(context.state.topState))
+				SupersetMark()
+					.fill(stateColor(context.state.topState))
+					.aspectRatio(SupersetMark.aspectRatio, contentMode: .fit)
+					.frame(height: 10)
 			}
 		}
 	}
