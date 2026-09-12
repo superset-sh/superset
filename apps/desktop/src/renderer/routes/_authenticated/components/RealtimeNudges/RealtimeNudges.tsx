@@ -34,7 +34,7 @@ export function RealtimeNudges() {
 			for (const kind of kinds) {
 				switch (kind) {
 					case "hosts":
-						void utils.v2Host.list.invalidate(undefined, options);
+						void utils.host.roster.invalidate(undefined, options);
 						break;
 					case "cloud_workspaces":
 						void utils.cloudWorkspace.list.invalidate(undefined, options);

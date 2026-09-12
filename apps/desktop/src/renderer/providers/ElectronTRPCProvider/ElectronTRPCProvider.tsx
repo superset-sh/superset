@@ -87,7 +87,7 @@ const PERSIST_KEY_PREFIXES = new Set([
 ]);
 // tRPC queries persisted by procedure path: the host roster, so the sidebar
 // fans out to remote hosts on a cold or offline boot before the cloud answers.
-const PERSIST_TRPC_PATHS = new Set(["v2Host.list"]);
+const PERSIST_TRPC_PATHS = new Set(["host.roster"]);
 
 export function ElectronTRPCProvider({
 	children,

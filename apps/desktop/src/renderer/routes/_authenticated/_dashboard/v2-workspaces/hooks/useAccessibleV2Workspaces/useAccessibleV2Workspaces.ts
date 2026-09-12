@@ -290,7 +290,7 @@ export function useAccessibleV2Workspaces(
 
 	const { hosts: hostRows } = useKnownHosts();
 
-	const { data: hostMemberRows = [] } = cloudTrpc.v2Host.listMembers.useQuery(
+	const { data: hostMemberRows = [] } = cloudTrpc.host.listMembers.useQuery(
 		undefined,
 		{},
 	);

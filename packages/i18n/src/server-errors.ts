@@ -739,63 +739,57 @@ export const serverErrorMessages: Record<
 					"You are the only owner of an organization that has other members. Transfer ownership or delete the organization first.",
 			}),
 		),
-	"serverError.v2Host.aHostMustHaveAtLeast": () =>
+	"serverError.host.aHostMustHaveAtLeast": () =>
 		i18n._(
 			msg({
 				message: "A host must have at least one owner.",
 			}),
 		),
-	"serverError.v2Host.hostNotFoundInThisOrganization": () =>
+	"serverError.host.hostNotFoundInThisOrganization": () =>
 		i18n._(
 			msg({
 				message: "Host not found in this organization",
 			}),
 		),
-	"serverError.v2Host.notAMemberOfThisOrganization": () =>
-		i18n._(
-			msg({
-				message: "Not a member of this organization",
-			}),
-		),
-	"serverError.v2Host.onlyHostOwnersCanChangeMembership": () =>
+	"serverError.host.onlyHostOwnersCanChangeMembership": () =>
 		i18n._(
 			msg({
 				message: "Only host owners can change membership",
 			}),
 		),
-	"serverError.v2Host.onlyHostOwnersCanDelete": () =>
+	"serverError.host.onlyHostOwnersCanDelete": () =>
 		i18n._(
 			msg({
 				message: "Only host owners can delete this host",
 			}),
 		),
-	"serverError.v2Host.thisUserRunsTheHostService": () =>
+	"serverError.host.thisUserRunsTheHostService": () =>
 		i18n._(
 			msg({
 				message:
 					"This user runs the host service for this device and can't be removed.",
 			}),
 		),
-	"serverError.v2Host.thisUserRunsTheHostService2": () =>
+	"serverError.host.thisUserRunsTheHostService2": () =>
 		i18n._(
 			msg({
 				message:
 					"This user runs the host service for this device and must remain an owner.",
 			}),
 		),
-	"serverError.v2Host.userAlreadyHasAccess": () =>
+	"serverError.host.userAlreadyHasAccess": () =>
 		i18n._(
 			msg({
 				message: "User already has access to this host",
 			}),
 		),
-	"serverError.v2Host.userIsNotAMember": () =>
+	"serverError.host.userIsNotAMember": () =>
 		i18n._(
 			msg({
 				message: "User is not a member of this organization",
 			}),
 		),
-	"serverError.v2Host.userIsNotAMemberOf2": () =>
+	"serverError.host.userIsNotAMemberOf2": () =>
 		i18n._(
 			msg({
 				message: "User is not a member of this host",

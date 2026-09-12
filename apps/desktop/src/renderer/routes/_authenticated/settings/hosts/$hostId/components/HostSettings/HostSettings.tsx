@@ -59,7 +59,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 	);
 
 	const { data: allHostMembers = [] } =
-		cloudTrpc.v2Host.listMembers.useQuery(undefined);
+		cloudTrpc.host.listMembers.useQuery(undefined);
 	const hostUserRows = useMemo(
 		() => allHostMembers.filter((row) => row.hostId === hostId),
 		[allHostMembers, hostId],

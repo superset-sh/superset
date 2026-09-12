@@ -48,7 +48,6 @@ export const CLOUD_TRPC_ROUTER_ROOTS = [
 	"task",
 	"team",
 	"user",
-	"v2Host",
 	"v2Project",
 ] as const;
 

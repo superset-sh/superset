@@ -29,7 +29,7 @@ async function requireHostOwner(
 		throw userError({
 			code: "NOT_FOUND",
 			message: "Host not found in this organization",
-			i18nKey: "serverError.v2Host.hostNotFoundInThisOrganization",
+			i18nKey: "serverError.host.hostNotFoundInThisOrganization",
 		});
 	}
 
@@ -46,7 +46,7 @@ async function requireHostOwner(
 		throw userError({
 			code: "FORBIDDEN",
 			message: "Only host owners can change membership",
-			i18nKey: "serverError.v2Host.onlyHostOwnersCanChangeMembership",
+			i18nKey: "serverError.host.onlyHostOwnersCanChangeMembership",
 		});
 	}
 
@@ -66,12 +66,12 @@ async function requireOrgMember(userId: string, organizationId: string) {
 		throw userError({
 			code: "BAD_REQUEST",
 			message: "User is not a member of this organization",
-			i18nKey: "serverError.v2Host.userIsNotAMember",
+			i18nKey: "serverError.host.userIsNotAMember",
 		});
 	}
 }
 
-export const v2HostRouter = {
+export const hostManagementRouter = {
 	/**
 	 * The roster: which hosts this user may reach in the organization, and
 	 * what they are called. Membership only; liveness is the relay's and
@@ -79,10 +79,11 @@ export const v2HostRouter = {
 	 * phones from before it existed, which scope by the active-org header,
 	 * keep their host list until they update.
 	 *
-	 * TODO(2026-10-11): make the input required and drop the header fallback;
-	 * by then auto-update has moved the fleet past 1.28.
+	 * TODO(2026-10-11): make the input required, drop the header fallback and
+	 * the v2Host alias in root.ts; by then auto-update has moved the fleet
+	 * past 1.28.
 	 */
-	list: protectedProcedure
+	roster: protectedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }).optional())
 		.query(async ({ ctx, input }) => {
 			const organizationId = input?.organizationId ?? requireActiveOrgId(ctx);
@@ -155,7 +156,7 @@ export const v2HostRouter = {
 					throw userError({
 						code: "NOT_FOUND",
 						message: "Host not found in this organization",
-						i18nKey: "serverError.v2Host.hostNotFoundInThisOrganization",
+						i18nKey: "serverError.host.hostNotFoundInThisOrganization",
 					});
 				}
 				return await getCurrentTxid(tx);
@@ -187,7 +188,7 @@ export const v2HostRouter = {
 					throw userError({
 						code: "FORBIDDEN",
 						message: "Not a member of this organization",
-						i18nKey: "serverError.v2Host.notAMemberOfThisOrganization",
+						i18nKey: "serverError.host.notAMemberOfThisOrganization",
 					});
 				}
 
@@ -207,7 +208,7 @@ export const v2HostRouter = {
 					throw userError({
 						code: "NOT_FOUND",
 						message: "Host not found in this organization",
-						i18nKey: "serverError.v2Host.hostNotFoundInThisOrganization",
+						i18nKey: "serverError.host.hostNotFoundInThisOrganization",
 					});
 				}
 
@@ -228,7 +229,7 @@ export const v2HostRouter = {
 					throw userError({
 						code: "FORBIDDEN",
 						message: "Only host owners can delete this host",
-						i18nKey: "serverError.v2Host.onlyHostOwnersCanDelete",
+						i18nKey: "serverError.host.onlyHostOwnersCanDelete",
 					});
 				}
 
@@ -246,7 +247,7 @@ export const v2HostRouter = {
 					throw userError({
 						code: "NOT_FOUND",
 						message: "Host not found in this organization",
-						i18nKey: "serverError.v2Host.hostNotFoundInThisOrganization",
+						i18nKey: "serverError.host.hostNotFoundInThisOrganization",
 					});
 				}
 
@@ -295,7 +296,7 @@ export const v2HostRouter = {
 				throw userError({
 					code: "CONFLICT",
 					message: "User already has access to this host",
-					i18nKey: "serverError.v2Host.userAlreadyHasAccess",
+					i18nKey: "serverError.host.userAlreadyHasAccess",
 				});
 			}
 
@@ -323,7 +324,7 @@ export const v2HostRouter = {
 					code: "BAD_REQUEST",
 					message:
 						"This user runs the host service for this device and can't be removed.",
-					i18nKey: "serverError.v2Host.thisUserRunsTheHostService",
+					i18nKey: "serverError.host.thisUserRunsTheHostService",
 				});
 			}
 
@@ -358,7 +359,7 @@ export const v2HostRouter = {
 						throw userError({
 							code: "BAD_REQUEST",
 							message: "A host must have at least one owner.",
-							i18nKey: "serverError.v2Host.aHostMustHaveAtLeast",
+							i18nKey: "serverError.host.aHostMustHaveAtLeast",
 						});
 					}
 				}
@@ -404,7 +405,7 @@ export const v2HostRouter = {
 					code: "BAD_REQUEST",
 					message:
 						"This user runs the host service for this device and must remain an owner.",
-					i18nKey: "serverError.v2Host.thisUserRunsTheHostService2",
+					i18nKey: "serverError.host.thisUserRunsTheHostService2",
 				});
 			}
 
@@ -422,7 +423,7 @@ export const v2HostRouter = {
 					throw userError({
 						code: "NOT_FOUND",
 						message: "User is not a member of this host",
-						i18nKey: "serverError.v2Host.userIsNotAMemberOf2",
+						i18nKey: "serverError.host.userIsNotAMemberOf2",
 					});
 				}
 
@@ -443,7 +444,7 @@ export const v2HostRouter = {
 						throw userError({
 							code: "BAD_REQUEST",
 							message: "A host must have at least one owner.",
-							i18nKey: "serverError.v2Host.aHostMustHaveAtLeast",
+							i18nKey: "serverError.host.aHostMustHaveAtLeast",
 						});
 					}
 				}
@@ -463,7 +464,7 @@ export const v2HostRouter = {
 					throw userError({
 						code: "NOT_FOUND",
 						message: "User is not a member of this host",
-						i18nKey: "serverError.v2Host.userIsNotAMemberOf2",
+						i18nKey: "serverError.host.userIsNotAMemberOf2",
 					});
 				}
 				return await getCurrentTxid(tx);

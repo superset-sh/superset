@@ -6,7 +6,7 @@ import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
 
-type HostRow = RouterOutputs["v2Host"]["list"][number];
+type HostRow = RouterOutputs["host"]["roster"][number];
 
 export type KnownHostRow = HostRow & { isOnline: boolean };
 
@@ -40,7 +40,7 @@ export function useKnownHosts(): {
 } {
 	const organizationId = useActiveOrganizationId();
 	const relayUrl = useRelayUrl();
-	const hostsQuery = cloudTrpc.v2Host.list.useQuery(
+	const hostsQuery = cloudTrpc.host.roster.useQuery(
 		{ organizationId: organizationId ?? "" },
 		{
 			enabled: organizationId !== null,

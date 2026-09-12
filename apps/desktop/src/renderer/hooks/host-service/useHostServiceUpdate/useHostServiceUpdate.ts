@@ -74,7 +74,7 @@ export function useHostServiceUpdate(options: {
 			void queryClient.invalidateQueries({
 				queryKey: hostServiceInfoQueryKey(hostUrl),
 			});
-			void cloudUtils.v2Host.list.invalidate();
+			void cloudUtils.host.roster.invalidate();
 			update({ stage: "updated", error: null });
 		};
 		const fail = (error: string) => update({ stage: "failed", error });

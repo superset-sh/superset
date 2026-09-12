@@ -45,7 +45,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 	const { hosts: hostRows } = useKnownHosts();
 
 	const { data: hostMemberRows = [] } =
-		cloudTrpc.v2Host.listMembers.useQuery(undefined);
+		cloudTrpc.host.listMembers.useQuery(undefined);
 
 	const accessibleHosts = useMemo(() => {
 		const accessibleHostIds = new Set(

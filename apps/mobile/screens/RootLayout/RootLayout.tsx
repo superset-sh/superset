@@ -32,7 +32,7 @@ import { PostHogProvider } from "./providers/PostHogProvider";
 // credential and must not reach disk. Decoration and terminal lists are live.
 const PERSISTED_QUERY_PREFIXES = [
 	["cloud", "user", "myOrganizations"],
-	["cloud", "v2Host", "list"],
+	["cloud", "host", "roster"],
 	["cloud", "cloudWorkspace", "list"],
 	["host-service", "workspaces", "list"],
 	["host-service", "projects", "list"],

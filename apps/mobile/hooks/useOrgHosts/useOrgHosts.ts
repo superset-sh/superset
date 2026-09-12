@@ -5,7 +5,7 @@ import { useHostsPresence } from "@/hooks/useHostsPresence";
 import { useSession } from "@/lib/auth/client";
 import { apiClient } from "@/lib/trpc/client";
 
-export type OrgHostRow = RouterOutputs["v2Host"]["list"][number];
+export type OrgHostRow = RouterOutputs["host"]["roster"][number];
 export type OrgHost = OrgHostRow & { isOnline: boolean };
 
 export const NO_HOSTS: OrgHost[] = [];
@@ -16,10 +16,10 @@ function useOrgHostsQuery(): UseQueryResult<OrgHostRow[]> {
 	const organizationId = session?.session?.activeOrganizationId ?? null;
 
 	return useQuery({
-		queryKey: ["cloud", "v2Host", "list", organizationId],
+		queryKey: ["cloud", "host", "roster", organizationId],
 		enabled: organizationId !== null,
 		queryFn: () =>
-			apiClient.v2Host.list.query({ organizationId: organizationId ?? "" }),
+			apiClient.host.roster.query({ organizationId: organizationId ?? "" }),
 		staleTime: 30_000,
 	});
 }
