@@ -45,10 +45,7 @@ describe("shell-ready scanner (bytes)", () => {
 
 	it("strips the marker terminated by ST (ESC \\) in a single chunk", () => {
 		const state = createScanState();
-		const r = scanForShellReady(
-			state,
-			enc.encode("hello\x1b]133;A\x1b\\$ "),
-		);
+		const r = scanForShellReady(state, enc.encode("hello\x1b]133;A\x1b\\$ "));
 		expect(r.matched).toBe(true);
 		expect(dec.decode(r.output)).toBe("hello$ ");
 	});
