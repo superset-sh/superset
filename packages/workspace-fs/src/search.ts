@@ -488,7 +488,10 @@ async function searchContentWithRipgrep({
 		args.push("--glob", `!${normalizePathForGlob(pattern)}`);
 	}
 
-	args.push(query, ".");
+	// `-e` keeps a query that starts with `-` (a CSS `-webkit-` prefix, or an
+	// injected `--pre=<cmd>`) from being parsed as ripgrep flags; `--` does
+	// the same for the path.
+	args.push("-e", query, "--", ".");
 
 	try {
 		const { stdout } = await runRipgrep(args, {

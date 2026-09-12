@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { projects, workspaces, worktrees } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, not } from "drizzle-orm";
@@ -40,6 +41,7 @@ import {
 	worktreeExists,
 } from "../utils/git";
 import { GitEnvironmentError } from "../utils/git-errors";
+import { gitRefSchema } from "../utils/git-ref-schema";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
 import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
@@ -442,8 +444,8 @@ export const createCreateProcedures = () => {
 						projectId: z.string(),
 						name: z.string().optional(),
 						prompt: z.string().optional(),
-						branchName: z.string().optional(),
-						compareBaseBranch: z.string().optional(),
+						branchName: gitRefSchema.optional(),
+						compareBaseBranch: gitRefSchema.optional(),
 						sourceWorkspaceId: z.string().optional(),
 						useExistingBranch: z.boolean().optional(),
 						applyPrefix: z.boolean().optional().default(true),
@@ -559,23 +561,41 @@ export const createCreateProcedures = () => {
 					});
 				}
 
+				// Sanitizing can strip a name to nothing; an empty branch would
+				// record the directory shared by every worktree of the project
+				// as this workspace's path.
+				if (!branch) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `"${input.branchName}" contains no characters that are valid in a branch name`,
+					});
+				}
+
+				const openExistingWorkspace = (
+					existing: NonNullable<
+						ReturnType<typeof findWorktreeWorkspaceByBranch>
+					>,
+				) => {
+					touchWorkspace(existing.workspace.id);
+					setLastActiveWorkspace(existing.workspace.id);
+					activateProject(project);
+					return {
+						workspace: existing.workspace,
+						initialCommands: null,
+						worktreePath: existing.worktree.path,
+						projectId: project.id,
+						isInitializing: false,
+						wasExisting: true,
+					};
+				};
+
 				if (input.branchName?.trim()) {
 					const existing = findWorktreeWorkspaceByBranch({
 						projectId: input.projectId,
 						branch,
 					});
 					if (existing) {
-						touchWorkspace(existing.workspace.id);
-						setLastActiveWorkspace(existing.workspace.id);
-						activateProject(project);
-						return {
-							workspace: existing.workspace,
-							initialCommands: null,
-							worktreePath: existing.worktree.path,
-							projectId: project.id,
-							isInitializing: false,
-							wasExisting: true,
-						};
+						return openExistingWorkspace(existing);
 					}
 
 					const orphanedWorktree = findOrphanedWorktreeByBranch({
@@ -638,6 +658,27 @@ export const createCreateProcedures = () => {
 				}
 
 				const worktreePath = resolveWorktreePath(project, branch);
+
+				// `git worktree add` would fail on an occupied path anyway, but a
+				// workspace recorded against it would run teardown in, and then
+				// delete, whatever is there — on a case-insensitive filesystem
+				// that is a sibling worktree whose branch differs only in case.
+				if (existsSync(worktreePath)) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `A directory already exists at ${worktreePath}. Choose a different branch name or remove it first.`,
+					});
+				}
+
+				// The awaits above let a concurrent create for the same branch slip
+				// past the earlier lookup; nothing yields between here and the inserts.
+				const raced = findWorktreeWorkspaceByBranch({
+					projectId: input.projectId,
+					branch,
+				});
+				if (raced) {
+					return openExistingWorkspace(raced);
+				}
 
 				const compareBaseBranch = resolveWorkspaceBaseBranch({
 					explicitBaseBranch: requestedCompareBaseBranch,
@@ -728,7 +769,7 @@ export const createCreateProcedures = () => {
 			.input(
 				z.object({
 					projectId: z.string(),
-					branch: z.string().optional(),
+					branch: gitRefSchema.optional(),
 					name: z.string().optional(),
 				}),
 			)
