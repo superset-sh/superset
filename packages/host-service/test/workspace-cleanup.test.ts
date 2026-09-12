@@ -32,12 +32,16 @@ type WorkspaceRow = {
 	archivedAt?: number | null;
 };
 type ProjectRow = { id: string; repoPath: string; worktreeBaseDir?: string };
+type OtherProjectRow = { id: string; repoPath: string };
 
 type WorktreeState = { hasChanges: boolean; hasUnpushedCommits: boolean };
 
 interface ContextSpec {
 	workspace?: WorkspaceRow;
 	project?: ProjectRow;
+	// Every project row on the host (the other-project checkout guard
+	// scans them); defaults to just `project`.
+	allProjects?: OtherProjectRow[];
 	// git-ops behavior for this test; the ops are patched below so the
 	// saga's git work never spawns anything. Task-internal behaviors
 	// (rev-list swallow, `--force --force` semantics, registry verification)
@@ -140,6 +144,12 @@ function makeCtx(spec: ContextSpec): HostServiceContext & {
 					// getHostWorktreeBaseDir when a spec sets no per-project
 					// worktreeBaseDir ("no host settings row" shape).
 					where: () => ({ all: terminalSelectAll, get: () => undefined }),
+					// Unfiltered `.all` serves findProjectByRepoPath's scan.
+					all: () =>
+						spec.allProjects ??
+						(spec.project
+							? [{ id: spec.project.id, repoPath: spec.project.repoPath }]
+							: []),
 				}),
 			}),
 			update: () => ({
@@ -226,6 +236,30 @@ describe("isMainWorkspace", () => {
 		});
 		const result = await isMainWorkspace(ctx, "ws-1");
 		expect(result.isMain).toBe(true);
+	});
+
+	test("returns isMain: true when the worktree is another project's checkout", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "superset-other-project-"));
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: tmp,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: "/repo" },
+				allProjects: [
+					{ id: "p-1", repoPath: "/repo" },
+					{ id: "p-2", repoPath: tmp },
+				],
+			});
+			const result = await isMainWorkspace(ctx, "ws-1");
+			expect(result.isMain).toBe(true);
+			expect(result.reason).toContain("another project");
+		} finally {
+			rmSync(tmp, { recursive: true, force: true });
+		}
 	});
 
 	test("returns isMain: false when neither path equality nor local type fires", async () => {

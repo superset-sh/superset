@@ -20,6 +20,7 @@ import {
 	isUnbornHeadError,
 	parsePorcelainStatusV2,
 	parsePrUrl,
+	removeWorktree,
 } from "./git";
 
 const TEST_DIR = join(
@@ -665,6 +666,84 @@ describe("createWorktree hook tolerance", () => {
 			.toString()
 			.trim();
 		expect(currentBranch).toBe("feature/new-workspace");
+	}, 10_000);
+});
+
+describe("removeWorktree", () => {
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	function listWorktrees(repoPath: string): string {
+		return execSync("git worktree list --porcelain", { cwd: repoPath })
+			.toString()
+			.trim();
+	}
+
+	test("removes a linked worktree from disk and from git", async () => {
+		const repoPath = createTestRepo("remove-linked");
+		seedCommit(repoPath);
+		const worktreePath = join(TEST_DIR, "remove-linked-worktrees", "feature");
+		await createWorktree(repoPath, "feature", worktreePath, "HEAD");
+
+		await removeWorktree(repoPath, worktreePath);
+
+		expect(existsSync(worktreePath)).toBe(false);
+		expect(listWorktrees(repoPath)).not.toContain(worktreePath);
+	}, 10_000);
+
+	test("leaves the main repository alone", async () => {
+		const repoPath = createTestRepo("remove-main");
+		seedCommit(repoPath);
+
+		await removeWorktree(repoPath, repoPath);
+
+		expect(existsSync(join(repoPath, "README.md"))).toBe(true);
+	}, 10_000);
+
+	test("leaves a directory that is not a linked worktree alone", async () => {
+		const repoPath = createTestRepo("remove-unregistered");
+		seedCommit(repoPath);
+		const strayPath = join(TEST_DIR, "remove-unregistered-stray");
+		mkdirSync(strayPath, { recursive: true });
+		writeFileSync(join(strayPath, "keep.txt"), "keep\n");
+
+		await removeWorktree(repoPath, strayPath);
+
+		expect(existsSync(join(strayPath, "keep.txt"))).toBe(true);
+	}, 10_000);
+
+	test("leaves the directory shared by the project's worktrees alone", async () => {
+		const repoPath = createTestRepo("remove-parent");
+		seedCommit(repoPath);
+		const parentPath = join(TEST_DIR, "remove-parent-worktrees");
+		const worktreePath = join(parentPath, "feature");
+		await createWorktree(repoPath, "feature", worktreePath, "HEAD");
+
+		// A workspace whose branch sanitized to "" records the parent directory
+		// as its worktree path.
+		await removeWorktree(repoPath, parentPath);
+
+		expect(existsSync(join(worktreePath, "README.md"))).toBe(true);
+		expect(listWorktrees(repoPath)).toContain(worktreePath);
+	}, 10_000);
+
+	test("prunes a registered worktree whose directory is already gone", async () => {
+		const repoPath = createTestRepo("remove-pruned");
+		seedCommit(repoPath);
+		const worktreePath = join(TEST_DIR, "remove-pruned-worktrees", "feature");
+		await createWorktree(repoPath, "feature", worktreePath, "HEAD");
+		rmSync(worktreePath, { recursive: true, force: true });
+
+		await removeWorktree(repoPath, worktreePath);
+
+		expect(listWorktrees(repoPath)).not.toContain(worktreePath);
 	}, 10_000);
 });
 

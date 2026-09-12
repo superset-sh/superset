@@ -24,6 +24,7 @@ import {
 } from "../../../tag-folders";
 import { emitLocalWorkspaceDeleted } from "../../../workspaces/local-workspace-store";
 import { machineOnlyProcedure, protectedProcedure, router } from "../../index";
+import { findProjectByRepoPath } from "../workspace-cleanup/is-main-workspace";
 import {
 	normalizeSparseCheckoutPaths,
 	parseSparseCheckoutPaths,
@@ -870,7 +871,9 @@ export const projectRouter = router({
 				.filter((ws) => ws.archivedAt == null || existsSync(ws.worktreePath));
 
 			for (const ws of localWorkspaces) {
-				if (ws.worktreePath === localProject.repoPath) continue;
+				// Skips this project's own checkout and any other project whose
+				// git root is one of these worktrees (see isMainWorkspace).
+				if (findProjectByRepoPath(ctx, ws.worktreePath)) continue;
 				try {
 					const git = await ctx.git(localProject.repoPath);
 					await git.raw(["worktree", "remove", ws.worktreePath]);

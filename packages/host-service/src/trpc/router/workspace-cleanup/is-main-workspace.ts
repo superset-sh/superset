@@ -15,6 +15,9 @@ export type IsMainWorkspaceResult = {
 export const MAIN_WORKSPACE_REASON =
 	"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.";
 
+export const OTHER_PROJECT_CHECKOUT_REASON =
+	"This worktree is the main checkout of another project on this host. Remove that project instead.";
+
 /**
  * Authoritative "is this a main workspace?" check for the cleanup router.
  *
@@ -57,7 +60,33 @@ export async function isMainWorkspace(
 		return { isMain: true, reason: MAIN_WORKSPACE_REASON, local, project };
 	}
 
+	// A linked worktree can be imported as its own project (its git root is
+	// the worktree path). Destroying the workspace row that adopted it here
+	// would `worktree remove --force --force` that project's checkout.
+	if (local && findProjectByRepoPath(ctx, local.worktreePath)) {
+		return {
+			isMain: true,
+			reason: OTHER_PROJECT_CHECKOUT_REASON,
+			local,
+			project,
+		};
+	}
+
 	return { isMain: false, reason: null, local, project };
+}
+
+/** The project whose checkout lives at `path`, compared after realpath
+ * normalization like the main-workspace check above. */
+export function findProjectByRepoPath(
+	ctx: Pick<HostServiceContext, "db">,
+	path: string,
+): ProjectRow | undefined {
+	const target = normalizePath(path);
+	return ctx.db
+		.select()
+		.from(projects)
+		.all()
+		.find((row) => normalizePath(row.repoPath) === target);
 }
 
 function normalizePath(p: string): string {
