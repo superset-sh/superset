@@ -36,6 +36,7 @@ const { archiveWorkspaceWithUndo } = await import(
 
 function setup(
 	overrides: {
+		workspaceId?: string;
 		shelve?: () => Promise<unknown>;
 		unshelve?: () => Promise<unknown>;
 		isActive?: boolean;
@@ -75,6 +76,7 @@ function setup(
 		focusSidebarList,
 		run: () =>
 			archiveWorkspaceWithUndo({
+				workspaceId: overrides.workspaceId ?? "workspace-1",
 				workspaceName: "feature-row",
 				isActive: overrides.isActive ?? true,
 				shelve,
@@ -172,6 +174,71 @@ describe("archiveWorkspaceWithUndo", () => {
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		expect(context.unshelve).toHaveBeenCalledTimes(1);
+	});
+
+	test("overlapping callers cannot rearchive after Undo or while Undo is pending", async () => {
+		let completeArchive!: () => void;
+		let completeUndo!: () => void;
+		let archived = false;
+		const sidebar = setup({
+			shelve: async () => {
+				await new Promise<void>((resolve) => {
+					completeArchive = resolve;
+				});
+				archived = true;
+			},
+			unshelve: async () => {
+				await new Promise<void>((resolve) => {
+					completeUndo = resolve;
+				});
+				archived = false;
+			},
+		});
+		const palette = setup({
+			shelve: async () => {
+				archived = true;
+			},
+		});
+		const pendingArchive = sidebar.run();
+		await palette.run();
+		expect(palette.shelve).not.toHaveBeenCalled();
+		completeArchive();
+		await pendingArchive;
+		expect(archived).toBe(true);
+		expect(toastCalls).toHaveLength(1);
+
+		toastCalls[0]?.action?.onClick();
+		await palette.run();
+		expect(palette.shelve).not.toHaveBeenCalled();
+		completeUndo();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(archived).toBe(false);
+		expect(sidebar.unshelve).toHaveBeenCalledTimes(1);
+		expect(palette.navigateAway).not.toHaveBeenCalled();
+
+		await palette.run();
+		expect(palette.shelve).toHaveBeenCalledTimes(1);
+		expect(archived).toBe(true);
+	});
+
+	test("an archive failure releases only its workspace guard", async () => {
+		let rejectArchive!: (error: Error) => void;
+		const first = setup({
+			shelve: () =>
+				new Promise((_, reject) => {
+					rejectArchive = reject;
+				}),
+		});
+		const pendingArchive = first.run();
+		const other = setup({ workspaceId: "workspace-2" });
+		await other.run();
+		expect(other.shelve).toHaveBeenCalledTimes(1);
+		rejectArchive(new Error("host unreachable"));
+		await pendingArchive;
+
+		const retry = setup();
+		await retry.run();
+		expect(retry.shelve).toHaveBeenCalledTimes(1);
 	});
 
 	test("a failed Undo reports the error and leaves the route alone", async () => {

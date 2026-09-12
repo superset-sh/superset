@@ -196,6 +196,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		const sidebarList = getSidebarListElement?.() ?? null;
 		try {
 			await archiveWorkspaceWithUndo({
+				workspaceId,
 				workspaceName: workspaceName || branch,
 				isActive,
 				shelve,
@@ -448,7 +449,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 }
 
+const archiveOperationsInFlight = new Set<string>();
+
 interface ArchiveWorkspaceWithUndoOptions {
+	workspaceId: string;
 	workspaceName: string;
 	/** Whether the row being archived is the workspace currently open. */
 	isActive: boolean;
@@ -468,6 +472,7 @@ interface ArchiveWorkspaceWithUndoOptions {
  * exercised without standing up the sidebar's provider tree.
  */
 export async function archiveWorkspaceWithUndo({
+	workspaceId,
 	workspaceName,
 	isActive,
 	shelve,
@@ -476,50 +481,61 @@ export async function archiveWorkspaceWithUndo({
 	navigateBack,
 	focusSidebarList,
 }: ArchiveWorkspaceWithUndoOptions): Promise<void> {
+	if (archiveOperationsInFlight.has(workspaceId)) return;
+	archiveOperationsInFlight.add(workspaceId);
 	try {
-		await shelve();
-	} catch (error) {
-		toast.error(errorMessage(error));
-		return;
-	}
-	if (isActive) navigateAway();
-	focusSidebarList();
+		try {
+			await shelve();
+		} catch (error) {
+			toast.error(errorMessage(error));
+			return;
+		}
+		if (isActive) navigateAway();
+		focusSidebarList();
 
-	const retention = plural(SHELF_RETENTION_DAYS, {
-		one: "# day",
-		other: "# days",
-	});
-	let undoing = false;
-	toast(
-		i18n._(
-			msg({
-				message: `Archived "${workspaceName}" · deletes in ${retention}`,
-			}),
-		),
-		{
-			action: {
-				label: i18n._(
-					msg({
-						message: "Undo",
-					}),
-				),
-				onClick: () => {
-					// The toast can be clicked again before the first unshelve
-					// settles; only the first click acts.
-					if (undoing) return;
-					undoing = true;
-					void (async () => {
-						try {
-							await unshelve();
-						} catch (error) {
-							toast.error(errorMessage(error));
-							return;
-						}
-						if (isActive) await navigateBack();
-						focusSidebarList();
-					})();
+		const retention = plural(SHELF_RETENTION_DAYS, {
+			one: "# day",
+			other: "# days",
+		});
+		let undoing = false;
+		toast(
+			i18n._(
+				msg({
+					message: `Archived "${workspaceName}" · deletes in ${retention}`,
+				}),
+			),
+			{
+				action: {
+					label: i18n._(
+						msg({
+							message: "Undo",
+						}),
+					),
+					onClick: () => {
+						// The toast can be clicked again before the first unshelve
+						// settles; only the first click acts.
+						if (undoing || archiveOperationsInFlight.has(workspaceId)) return;
+						undoing = true;
+						archiveOperationsInFlight.add(workspaceId);
+						void (async () => {
+							try {
+								try {
+									await unshelve();
+								} catch (error) {
+									toast.error(errorMessage(error));
+									return;
+								}
+								if (isActive) await navigateBack();
+								focusSidebarList();
+							} finally {
+								archiveOperationsInFlight.delete(workspaceId);
+							}
+						})();
+					},
 				},
 			},
-		},
-	);
+		);
+	} finally {
+		archiveOperationsInFlight.delete(workspaceId);
+	}
 }
