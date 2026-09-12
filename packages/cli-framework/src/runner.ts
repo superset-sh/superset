@@ -82,9 +82,13 @@ export function formatError(
 		const trpcError = error as Error & {
 			code?: string;
 			data?: { code?: string; requiredPlan?: string | null };
+			meta?: { response?: { status?: number } };
+			cause?: { status?: number };
 		};
 		const code = trpcError.data?.code ?? trpcError.code;
-		if (code === "UNAUTHORIZED") {
+		const httpStatus =
+			trpcError.meta?.response?.status ?? trpcError.cause?.status;
+		if (code === "UNAUTHORIZED" || (!code && httpStatus === 401)) {
 			return {
 				message: "Session expired",
 				hint: `Run: ${cliName} auth login`,
