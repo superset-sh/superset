@@ -12118,7 +12118,7 @@ msgstr "Restartuje se…"
 msgid "Restore"
 msgstr "Obnovit"
 
-#. placeholder {0}: formatRelativeTime( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, )
+#. placeholder {0}: formatRelativeTime( Math.max( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, Date.now(), ), )
 msgid "Restore · deletes {0}"
 msgstr "Obnovit · smaže se {0}"
 

@@ -12118,7 +12118,7 @@ msgstr "다시 시작 중…"
 msgid "Restore"
 msgstr "복원"
 
-#. placeholder {0}: formatRelativeTime( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, )
+#. placeholder {0}: formatRelativeTime( Math.max( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, Date.now(), ), )
 msgid "Restore · deletes {0}"
 msgstr "복원 · {0} 삭제"
 

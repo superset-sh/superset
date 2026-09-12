@@ -12118,7 +12118,7 @@ msgstr "正在重新啟動…"
 msgid "Restore"
 msgstr "恢復"
 
-#. placeholder {0}: formatRelativeTime( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, )
+#. placeholder {0}: formatRelativeTime( Math.max( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, Date.now(), ), )
 msgid "Restore · deletes {0}"
 msgstr "還原 · {0}刪除"
 

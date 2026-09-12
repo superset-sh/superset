@@ -12118,7 +12118,7 @@ msgstr "Перезапуск…"
 msgid "Restore"
 msgstr "Восстановить"
 
-#. placeholder {0}: formatRelativeTime( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, )
+#. placeholder {0}: formatRelativeTime( Math.max( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, Date.now(), ), )
 msgid "Restore · deletes {0}"
 msgstr "Восстановить · будет удалена {0}"
 
