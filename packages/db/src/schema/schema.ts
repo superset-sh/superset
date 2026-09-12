@@ -38,7 +38,9 @@ import {
 	pageVisibilityValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
+	v2AgentStateValues,
 	v2ClientTypeValues,
+	v2LiveActivityTokenKindValues,
 	v2UsersHostRoleValues,
 	v2WorkspaceTypeValues,
 	workspaceTypeValues,
@@ -75,6 +77,11 @@ export const v2ClientType = pgEnum("v2_client_type", v2ClientTypeValues);
 export const v2UsersHostRole = pgEnum(
 	"v2_users_host_role",
 	v2UsersHostRoleValues,
+);
+export const v2AgentState = pgEnum("v2_agent_state", v2AgentStateValues);
+export const v2LiveActivityTokenKind = pgEnum(
+	"v2_live_activity_token_kind",
+	v2LiveActivityTokenKindValues,
 );
 export const v2WorkspaceType = pgEnum(
 	"v2_workspace_type",
@@ -769,6 +776,96 @@ export const v2UsersHosts = pgTable(
 
 export type InsertV2UsersHosts = typeof v2UsersHosts.$inferInsert;
 export type SelectV2UsersHosts = typeof v2UsersHosts.$inferSelect;
+
+/**
+ * The latest card state per terminal, reported by the host that runs it.
+ * Rows exist only while the agent is on the card: the host deletes them by
+ * reporting `gone`. The cloud holds nothing richer about an agent.
+ */
+export const v2AgentStatus = pgTable(
+	"v2_agent_status",
+	{
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		machineId: text("machine_id").notNull(),
+		terminalId: text("terminal_id").notNull(),
+		workspaceId: text("workspace_id").notNull(),
+		workspaceName: text("workspace_name").notNull(),
+		projectId: text("project_id"),
+		projectName: text("project_name"),
+		state: v2AgentState().notNull(),
+		sinceAt: timestamp("since_at", { withTimezone: true }).notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.organizationId, table.machineId, table.terminalId],
+		}),
+		foreignKey({
+			columns: [table.organizationId, table.machineId],
+			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
+			name: "v2_agent_status_host_fk",
+		}).onDelete("cascade"),
+	],
+);
+
+export type SelectV2AgentStatus = typeof v2AgentStatus.$inferSelect;
+
+/**
+ * The words the card shows, in the phone's language. The API never
+ * translates; the phone sends its Lingui catalog's words with the token.
+ * `more` is a template holding `{n}`.
+ */
+export interface LiveActivityLabels {
+	working: string;
+	review: string;
+	permission: string;
+	failed: string;
+	more: string;
+}
+
+/**
+ * Apple push tokens for the Lock Screen card. An `update` token addresses one
+ * running Live Activity; a `push_to_start` token addresses the app itself and
+ * lets the API start the card while the app is closed.
+ */
+export const v2LiveActivityTokens = pgTable(
+	"v2_live_activity_tokens",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		kind: v2LiveActivityTokenKind().notNull(),
+		token: text().notNull(),
+		activityId: text("activity_id"),
+		labels: jsonb().$type<LiveActivityLabels>().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("v2_live_activity_tokens_token_idx").on(table.token),
+		index("v2_live_activity_tokens_user_org_idx").on(
+			table.userId,
+			table.organizationId,
+		),
+	],
+);
+
+export type SelectV2LiveActivityToken =
+	typeof v2LiveActivityTokens.$inferSelect;
 
 export const v2Workspaces = pgTable(
 	"v2_workspaces",

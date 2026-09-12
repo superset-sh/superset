@@ -3,9 +3,11 @@ import {
 	members,
 	subscriptions,
 	users,
+	v2AgentStatus,
 	v2Hosts,
 	v2UsersHosts,
 } from "@superset/db/schema";
+import { AGENT_CARD_STATES } from "@superset/shared/agent-status";
 import {
 	ACTIVE_SUBSCRIPTION_STATUSES,
 	isActiveSubscriptionStatus,
@@ -17,10 +19,12 @@ import {
 } from "@superset/shared/host-routing";
 import { HOST_INSTALL_SOURCES } from "@superset/shared/host-version";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { waitUntil } from "@vercel/functions";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { emitAppFirstOpened } from "../../lib/activation-events";
+import { pushCardsForHost } from "../../lib/live-activity";
 import { nudge } from "../../lib/realtime";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { jwtProcedure, userError } from "../../trpc";
@@ -323,5 +327,122 @@ export const hostRouter = {
 					),
 				);
 			return { success: true };
+		}),
+
+	/**
+	 * A host's agents changed what they want. The cloud keeps only the latest
+	 * card state per terminal so it can push the Lock Screen card; the host
+	 * batches and debounces, so one call carries a quiet period's changes.
+	 */
+	reportAgentStatus: jwtProcedure
+		.input(
+			z.object({
+				machineId: z.string().min(1),
+				terminals: z
+					.array(
+						z.object({
+							terminalId: z.string().min(1),
+							workspaceId: z.string(),
+							workspaceName: z.string(),
+							projectId: z.string().optional(),
+							projectName: z.string().optional(),
+							state: z.enum([...AGENT_CARD_STATES, "gone"]),
+							sinceAt: z.number(),
+						}),
+					)
+					.min(1)
+					.max(200),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.activeOrganizationId;
+			if (!organizationId) {
+				throw userError({
+					code: "BAD_REQUEST",
+					message: "No active organization",
+					i18nKey: "serverError.billing.noActiveOrganization",
+				});
+			}
+			const access = await db.query.v2UsersHosts.findFirst({
+				where: and(
+					eq(v2UsersHosts.organizationId, organizationId),
+					eq(v2UsersHosts.userId, ctx.userId),
+					eq(v2UsersHosts.hostId, input.machineId),
+				),
+			});
+			if (!access) {
+				throw userError({
+					code: "FORBIDDEN",
+					message: "No access to this host",
+					i18nKey: "serverError.host.noAccessToThisHost",
+				});
+			}
+
+			const gone = input.terminals.filter((t) => t.state === "gone");
+			const live = input.terminals.flatMap((t) =>
+				t.state === "gone"
+					? []
+					: [
+							{
+								organizationId,
+								machineId: input.machineId,
+								terminalId: t.terminalId,
+								workspaceId: t.workspaceId,
+								workspaceName: t.workspaceName,
+								projectId: t.projectId ?? null,
+								projectName: t.projectName ?? null,
+								state: t.state,
+								sinceAt: new Date(t.sinceAt),
+							},
+						],
+			);
+			await db.transaction(async (tx) => {
+				if (gone.length > 0) {
+					await tx.delete(v2AgentStatus).where(
+						and(
+							eq(v2AgentStatus.organizationId, organizationId),
+							eq(v2AgentStatus.machineId, input.machineId),
+							inArray(
+								v2AgentStatus.terminalId,
+								gone.map((t) => t.terminalId),
+							),
+						),
+					);
+				}
+				if (live.length > 0) {
+					await tx
+						.insert(v2AgentStatus)
+						.values(live)
+						.onConflictDoUpdate({
+							target: [
+								v2AgentStatus.organizationId,
+								v2AgentStatus.machineId,
+								v2AgentStatus.terminalId,
+							],
+							set: {
+								workspaceId: sql`excluded.workspace_id`,
+								workspaceName: sql`excluded.workspace_name`,
+								projectId: sql`excluded.project_id`,
+								projectName: sql`excluded.project_name`,
+								state: sql`excluded.state`,
+								sinceAt: sql`excluded.since_at`,
+							},
+						});
+				}
+			});
+
+			// Working is the frequent, boring transition; only the moments a
+			// person cares about spend Apple's per-device high-priority budget.
+			const urgent = input.terminals.some((t) => t.state !== "working");
+			waitUntil(
+				pushCardsForHost({
+					organizationId,
+					machineId: input.machineId,
+					priority: urgent ? 10 : 5,
+				}).catch((error) => {
+					console.warn("[live-activity] push after report failed:", error);
+				}),
+			);
+			return { ok: true as const };
 		}),
 } satisfies TRPCRouterRecord;
