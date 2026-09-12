@@ -206,6 +206,65 @@ describe("runShelvedWorkspacePurge", () => {
 		}
 	}
 
+	for (const unpushed of [false, true]) {
+		test(`a replacement sharing a stale tombstone path uses its own branch when unpushed is ${unpushed}`, async () => {
+			const dir = mkdtempSync(join(tmpdir(), "shelved-purge-wt-"));
+			seedShelved("ws-tombstone", expired);
+			db.update(workspaces)
+				.set({
+					worktreePath: dir,
+					archivedAt: Date.now(),
+					branch: "feat/obsolete",
+				})
+				.where(eq(workspaces.id, "ws-tombstone"))
+				.run();
+			seedShelved("ws-replacement", expired);
+			db.update(workspaces)
+				.set({ worktreePath: dir, branch: "feat/renamed" })
+				.where(eq(workspaces.id, "ws-replacement"))
+				.run();
+			const tombstone = readRow("ws-tombstone");
+			const ctx = makeCtx();
+			const raw = mock(async (args: string[]) => {
+				if (args.includes("refs/heads/feat/obsolete")) {
+					throw new Error("obsolete branch no longer exists");
+				}
+				return unpushed && args.includes("refs/heads/feat/renamed")
+					? "1\n"
+					: "0\n";
+			});
+			ctx.git = mock(async () => ({
+				status: async () => ({ isClean: () => true }),
+				raw,
+			})) as unknown as HostServiceContext["git"];
+			const destroy = mock(async () => ({ success: true }));
+
+			await runShelvedWorkspacePurge(
+				ctx,
+				destroy as unknown as Parameters<typeof runShelvedWorkspacePurge>[1],
+			);
+
+			expect(raw.mock.calls.map(([args]) => args[2])).toEqual([
+				"refs/heads/feat/renamed",
+				"HEAD",
+			]);
+			expect(destroy).toHaveBeenCalledTimes(unpushed ? 0 : 1);
+			if (!unpushed) {
+				expect(destroy).toHaveBeenCalledWith(ctx, {
+					workspaceId: "ws-replacement",
+					expectedShelvedAt: readRow("ws-replacement")?.shelvedAt,
+					deleteBranch: true,
+					force: false,
+					teardownMode: "best-effort",
+				});
+			}
+			expect(readRow("ws-replacement")?.purgeBlockedReason).toBe(
+				unpushed ? "dirty" : null,
+			);
+			expect(readRow("ws-tombstone")).toEqual(tombstone);
+		});
+	}
+
 	test("a clean checkout with an unreadable HEAD is kept", async () => {
 		seedShelved("ws-head", expired);
 		const dir = mkdtempSync(join(tmpdir(), "shelved-purge-wt-"));

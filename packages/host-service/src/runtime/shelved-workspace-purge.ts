@@ -49,17 +49,17 @@ type WorktreeState = { hasChanges: boolean; hasUnpushedCommits: boolean };
 type ReadWorktreeState = (
 	ctx: HostServiceContext,
 	worktreePath: string,
+	workspaceId: string,
 ) => Promise<WorktreeState>;
 
 async function readWorktreeStateForPurge(
 	ctx: HostServiceContext,
 	worktreePath: string,
+	workspaceId: string,
 ): Promise<WorktreeState> {
 	const missing =
 		lstatSync(worktreePath, { throwIfNoEntry: false }) === undefined;
-	const local = ctx.db.query.workspaces
-		.findFirst({ where: eq(workspaces.worktreePath, worktreePath) })
-		.sync();
+	const local = getLocalWorkspace(ctx.db, workspaceId);
 	const project = local?.projectId
 		? ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, local.projectId) })
@@ -155,7 +155,7 @@ export async function runShelvedWorkspacePurge(
 		for (const row of expired) {
 			let state: WorktreeState;
 			try {
-				state = await readWorktreeState(ctx, row.worktreePath);
+				state = await readWorktreeState(ctx, row.worktreePath, row.id);
 			} catch {
 				if (stillShelved(ctx, row)) {
 					markShelvedPurgeBlocked(ctx, row.id, "unverifiable");
