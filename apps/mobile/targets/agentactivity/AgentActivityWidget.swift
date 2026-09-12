@@ -60,34 +60,20 @@ private func cachedIcon(_ file: String?) -> UIImage? {
 	return UIImage(contentsOfFile: dir.appendingPathComponent("icons/\(file)").path)
 }
 
-/// The app icon's bracket mark, drawn rather than shipped as an image so it
-/// tints with the fleet's state the way the SF Symbol it replaces did. Each
-/// row is one cell high; `#` cells are filled.
-private struct SupersetMark: Shape {
-	private static let rows = [
-		".##..##.##..##.",
-		".#...#...#...#.",
-		"#...#.....#...#",
-		"#...#.....#...#",
-		".#...#...#...#.",
-		".##..##.##..##.",
-	]
-	static let aspectRatio = CGFloat(rows[0].count) / CGFloat(rows.count)
+/// The app icon's bracket mark, from the target's asset catalog. A template
+/// image so it tints with the fleet's state the way the SF Symbol it
+/// replaces did; the asset itself is white.
+private struct SupersetMark: View {
+	let height: CGFloat
+	let tint: Color
 
-	func path(in rect: CGRect) -> Path {
-		let cell = min(rect.width / CGFloat(Self.rows[0].count), rect.height / CGFloat(Self.rows.count))
-		let origin = CGPoint(
-			x: rect.midX - cell * CGFloat(Self.rows[0].count) / 2,
-			y: rect.midY - cell * CGFloat(Self.rows.count) / 2)
-		var path = Path()
-		for (y, row) in Self.rows.enumerated() {
-			for (x, on) in row.enumerated() where on == "#" {
-				path.addRect(CGRect(
-					x: origin.x + CGFloat(x) * cell, y: origin.y + CGFloat(y) * cell,
-					width: cell, height: cell))
-			}
-		}
-		return path
+	var body: some View {
+		Image("superset-mark")
+			.renderingMode(.template)
+			.resizable()
+			.aspectRatio(contentMode: .fit)
+			.frame(height: height)
+			.foregroundStyle(tint)
 	}
 }
 
@@ -203,10 +189,7 @@ struct AgentActivityWidget: Widget {
 					.padding(.horizontal, 4)
 				}
 			} compactLeading: {
-				SupersetMark()
-					.fill(stateColor(context.state.topState))
-					.aspectRatio(SupersetMark.aspectRatio, contentMode: .fit)
-					.frame(height: 12)
+				SupersetMark(height: 12, tint: stateColor(context.state.topState))
 			} compactTrailing: {
 				// The island is a single tap target by design, so it shows the
 				// count rather than pretending to be a list.
@@ -214,10 +197,7 @@ struct AgentActivityWidget: Widget {
 					.font(.system(size: 14, weight: .medium))
 					.monospacedDigit()
 			} minimal: {
-				SupersetMark()
-					.fill(stateColor(context.state.topState))
-					.aspectRatio(SupersetMark.aspectRatio, contentMode: .fit)
-					.frame(height: 10)
+				SupersetMark(height: 10, tint: stateColor(context.state.topState))
 			}
 		}
 	}
