@@ -141,7 +141,7 @@ export const TerminalWebView = forwardRef<
 	onTapRef.current = onTap;
 	const onScrollChangeRef = useRef(onScrollChange);
 	onScrollChangeRef.current = onScrollChange;
-	const openLink = useOpenLink();
+	const openLink = useOpenLink({ workspaceId });
 	const openLinkRef = useRef(openLink);
 	openLinkRef.current = openLink;
 
@@ -166,7 +166,6 @@ export const TerminalWebView = forwardRef<
 	// re-mint rather than reuse the URL that worked last time.
 	const buildDialUrl = useCallback(
 		async (seq: string): Promise<string> => {
-			const token = await getHostAuthToken();
 			const query = [
 				`workspaceId=${encodeURIComponent(workspaceId)}`,
 				"themeType=dark",
@@ -174,16 +173,16 @@ export const TerminalWebView = forwardRef<
 				// asks for the bytes it missed, "new" for the ring tail,
 				// "none" to reanchor without overwriting restored content.
 				`seq=${encodeURIComponent(seq)}`,
-				`token=${encodeURIComponent(token)}`,
 			];
 			const path = `/terminal/${encodeURIComponent(terminalId)}`;
 			if (isSandboxHost(host.machineId)) {
 				// A browser can't put a header on a WebSocket upgrade, so the
-				// provider's edge reads its token from the query string here.
+				// sandbox's host-service reads its token from the query string.
 				const access = await ensureSandboxAccess(host.machineId);
-				query.push(`bl_preview_token=${encodeURIComponent(access.token)}`);
+				query.push(`token=${encodeURIComponent(access.token)}`);
 				return `${access.url.replace(/^http/, "ws")}${path}?${query.join("&")}`;
 			}
+			query.push(`token=${encodeURIComponent(await getHostAuthToken())}`);
 			const base = getRelayUrl().replace(/^http/, "ws");
 			const routingKey = buildHostRoutingKey(
 				host.organizationId,

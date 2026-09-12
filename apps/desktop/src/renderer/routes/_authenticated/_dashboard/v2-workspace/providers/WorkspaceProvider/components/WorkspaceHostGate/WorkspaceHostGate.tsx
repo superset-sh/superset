@@ -3,13 +3,11 @@ import { i18n } from "@superset/i18n";
 import { useWorkspaceHostUrl } from "@superset/workspace-client";
 import type { ReactNode } from "react";
 import type { HostShapedWorkspace } from "renderer/hooks/host-workspaces/useHostWorkspaces";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useHostReachability } from "../../../../hooks/useHostReachability";
 import { LOCAL_HOST_SERVICE_DETAIL } from "../../utils/localHostServiceDetail";
 import { HostConnectionStrip } from "./components/HostConnectionStrip";
-
-const HOST_LIST_STALE_MS = 30_000;
 
 /** Keeps loaded panes accessible while reporting the shared host connection. */
 export function WorkspaceHostGate({
@@ -33,9 +31,7 @@ export function WorkspaceHostGate({
 		detail,
 		retry,
 	} = useHostReachability(hostUrl);
-	const { data: hostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined, {
-		staleTime: HOST_LIST_STALE_MS,
-	});
+	const { hosts: hostRows } = useKnownHosts();
 
 	const hostRow =
 		hostRows.find(

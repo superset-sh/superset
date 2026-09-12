@@ -16,6 +16,7 @@ import {
 	gitDiffSideBlobTask,
 	gitFetchBaseRefTask,
 	gitPushTask,
+	gitStagePathsTask,
 	gitStatusPartialTask,
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
@@ -222,6 +223,25 @@ const getDiffInputShape = z.object({
  * runaway/malicious request. */
 const MAX_DIFF_BULK_PATHS = 2000;
 const DIFF_SIDE_FILE_MAX_BYTES = 10 * 1024 * 1024;
+
+// A rename is two index entries (delete of `oldPath`, add of `filePath`);
+// staging or unstaging only one end would split it into a delete plus an add.
+const stagingTargetInput = z.object({
+	workspaceId: z.string(),
+	filePath: z.string(),
+	oldPath: z.string().optional(),
+});
+
+function resolveStagingTargetPaths(
+	input: z.infer<typeof stagingTargetInput>,
+): string[] {
+	assertSafeRelativePath(input.filePath);
+	if (input.oldPath == null || input.oldPath === input.filePath) {
+		return [input.filePath];
+	}
+	assertSafeRelativePath(input.oldPath);
+	return [input.filePath, input.oldPath];
+}
 
 export const gitRouter = router({
 	listBranches: queryProcedure
@@ -583,6 +603,38 @@ export const gitRouter = router({
 			}
 			invalidateStatus(input.workspaceId);
 			return { success: true };
+		}),
+
+	stageFile: protectedProcedure
+		.input(stagingTargetInput)
+		.mutation(async ({ ctx, input }) => {
+			const paths = resolveStagingTargetPaths(input);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const result = await getHostWorkerPool().run(gitStagePathsTask, {
+				worktreePath,
+				paths,
+				action: "stage",
+				gitEnv,
+			});
+			invalidateStatus(input.workspaceId);
+			return result;
+		}),
+
+	unstageFile: protectedProcedure
+		.input(stagingTargetInput)
+		.mutation(async ({ ctx, input }) => {
+			const paths = resolveStagingTargetPaths(input);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const result = await getHostWorkerPool().run(gitStagePathsTask, {
+				worktreePath,
+				paths,
+				action: "unstage",
+				gitEnv,
+			});
+			invalidateStatus(input.workspaceId);
+			return result;
 		}),
 
 	stageAll: protectedProcedure

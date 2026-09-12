@@ -104,6 +104,9 @@ export const publicProfiles = pgTable(
 			.notNull()
 			.default(0),
 
+		// Token rollups of leaderboard_daily, which nothing prunes: `tokens` and
+		// the per-field sums below grow without bound and can pass 2^53, so the
+		// read path selects them as ::text rather than through `mode: "number"`.
 		tokens: bigint({ mode: "number" }).notNull().default(0),
 		usd: numeric({ precision: 20, scale: 6 }).notNull().default("0"),
 		sessions: integer().notNull().default(0),

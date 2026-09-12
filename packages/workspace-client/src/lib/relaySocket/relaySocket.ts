@@ -17,6 +17,12 @@ export interface RelaySocketOptions {
 	/** Keep re-probing at this cadence after a 403 instead of closing. */
 	accessDeniedRetryMs?: number;
 	/**
+	 * Re-probe at this cadence after a 503 (host not connected to the relay)
+	 * instead of partysocket's seconds-scale backoff: an offline host stays
+	 * offline for minutes or days, and the probe is what says when it is back.
+	 */
+	hostOfflineRetryMs?: number;
+	/**
 	 * Called with the `_whoowns` probe result before every WS attempt (null
 	 * when the URL isn't relay-routed or the relay is unreachable). Lets callers
 	 * surface *why* a stream is down — host offline (503), unauthorized (401),
@@ -55,16 +61,16 @@ function signUrl(url: string, token: string | null): string {
  */
 export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 	let socket: ReconnectingWebSocket | null = null;
-	let cancelAccessDeniedWait: (() => void) | undefined;
-	const waitAfterAccessDenied = (ms: number) =>
+	let cancelRetryWait: (() => void) | undefined;
+	const waitBeforeRetry = (ms: number) =>
 		new Promise<void>((resolve) => {
 			const finish = () => {
 				clearTimeout(timer);
-				cancelAccessDeniedWait = undefined;
+				cancelRetryWait = undefined;
 				resolve();
 			};
 			const timer = setTimeout(finish, ms);
-			cancelAccessDeniedWait = finish;
+			cancelRetryWait = finish;
 		});
 
 	// Per-dial epoch so a slow preflight from a superseded dial (URL swap,
@@ -82,11 +88,15 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 			if (opts.accessDeniedRetryMs == null) {
 				socket?.close(1000, "relay access denied");
 			} else {
-				await waitAfterAccessDenied(opts.accessDeniedRetryMs);
+				await waitBeforeRetry(opts.accessDeniedRetryMs);
 			}
 			// Rejecting aborts this attempt; partysocket surfaces it as an error
 			// event and re-enters its backoff loop (no-op once close() was called).
 			throw new Error("relay access denied");
+		}
+		if (probe?.status === 503 && opts.hostOfflineRetryMs != null) {
+			await waitBeforeRetry(opts.hostOfflineRetryMs);
+			throw new Error("relay host offline");
 		}
 		return url;
 	};
@@ -99,17 +109,17 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 		maxEnqueuedMessages: opts.maxEnqueuedMessages ?? 0,
 	});
 
-	// The URL provider holds partysocket's connection lock while awaiting the
-	// denial cooldown. Wake it on explicit retry/close so the provider settles
+	// The URL provider holds partysocket's connection lock while awaiting a
+	// cooldown. Wake it on explicit retry/close so the provider settles
 	// promptly and the native retry loop can honor the user's action.
 	const reconnect = socket.reconnect.bind(socket);
 	socket.reconnect = (code, reason) => {
-		cancelAccessDeniedWait?.();
+		cancelRetryWait?.();
 		reconnect(code, reason);
 	};
 	const close = socket.close.bind(socket);
 	socket.close = (code, reason) => {
-		cancelAccessDeniedWait?.();
+		cancelRetryWait?.();
 		close(code, reason);
 	};
 

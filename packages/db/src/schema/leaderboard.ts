@@ -69,6 +69,7 @@ export const leaderboardParticipants = pgTable(
 		axisWidth: numeric("axis_width", { precision: 6, scale: 2 })
 			.notNull()
 			.default("0"),
+		// Bounded tier score rather than a rollup, so a number is safe here.
 		axisDepth: bigint("axis_depth", { mode: "number" }).notNull().default(0),
 		axisOutput: numeric("axis_output", { precision: 8, scale: 2 })
 			.notNull()

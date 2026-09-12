@@ -28,6 +28,8 @@ export const AGENT_SETUP_TARGETS = [
 	{ id: "grok", managedBinary: true },
 	{ id: "copilot", managedBinary: true },
 	{ id: "vibe", managedBinary: true },
+	{ id: "devin", managedBinary: true },
+	{ id: "muse", managedBinary: true },
 ] as const satisfies readonly AgentSetupTarget[];
 
 export type AgentSetupTargetId = (typeof AGENT_SETUP_TARGETS)[number]["id"];

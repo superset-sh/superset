@@ -1,12 +1,23 @@
 import * as Sentry from "@sentry/cloudflare";
-import { buildUpstreamHeaders } from "@superset/shared/host-routing";
+import {
+	buildUpstreamHeaders,
+	parseHostRoutingKey,
+} from "@superset/shared/host-routing";
 import { RELAY_CLOSE } from "@superset/shared/tunnel-protocol";
+import { type AuthContext, verifyJWT } from "@superset/shared/verify-jwt";
 import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { getServerByName } from "partyserver";
-import { accessDenialMessage, checkHostAccess } from "./access";
-import { type AuthContext, verifyJWT } from "./auth";
+import {
+	type AccessDenial,
+	accessDenialMessage,
+	type Caller,
+	callerOf,
+	checkHostAccessForRegister,
+	checkOrgAccess,
+	isServerPresenceScope,
+} from "./access";
 import { HostTunnel } from "./host-tunnel";
 import { placeHost, readPlacement } from "./placement";
 import { isTrpcPath, trpcErrorResponse } from "./trpc-error";
@@ -16,7 +27,7 @@ type AppContext = {
 	Bindings: RelayEnv;
 	Variables: {
 		auth: AuthContext;
-		token: string;
+		caller: Caller;
 		hostId: string;
 	};
 };
@@ -60,29 +71,44 @@ function acceptAndClose(code: number, reason: string): Response {
 
 type Denial = { status: 401 | 403 | 500; message: string };
 
+// What the Worker decides on its own: a valid token and a host in one of the
+// caller's organizations. Whether this user may reach this host is the
+// host's object's decision, made inside each call it serves; a host's own
+// control connect is the exception, checked against the API here because its
+// object may not exist yet.
 async function authenticate(
 	c: Context<AppContext>,
 	hostId: string,
+	purpose: "register" | "reach",
 ): Promise<{ auth: AuthContext; token: string } | Denial> {
 	const token = extractToken(c);
 	if (!token) return { status: 401, message: "Unauthorized" };
 	const auth = await verifyJWT(token, c.env.NEXT_PUBLIC_API_URL);
 	if (!auth) return { status: 401, message: "Unauthorized" };
-	const access = await checkHostAccess(
-		auth,
-		token,
-		hostId,
-		c.env.NEXT_PUBLIC_API_URL,
-	);
-	if (!access.ok) {
-		const message = `Forbidden: ${accessDenialMessage(access.reason)}`;
-		// "error" means the access check itself failed (API unreachable), not
-		// a denial — 500 so clients keep retrying instead of giving up.
-		return access.reason === "error"
-			? { status: 500, message }
-			: { status: 403, message };
-	}
+	const access =
+		purpose === "register"
+			? await checkHostAccessForRegister(
+					auth,
+					token,
+					hostId,
+					c.env.NEXT_PUBLIC_API_URL,
+				)
+			: checkOrgAccess(auth, hostId);
+	if (!access.ok) return denial(access.reason);
 	return { auth, token };
+}
+
+function denial(reason: AccessDenial): Denial {
+	const message = `Forbidden: ${accessDenialMessage(reason)}`;
+	// "error" means the access check itself failed (API unreachable), not a
+	// denial — 500 so clients keep retrying instead of giving up.
+	return reason === "error"
+		? { status: 500, message }
+		: { status: 403, message };
+}
+
+function accessDenial(access: "denied" | "error"): Denial {
+	return denial(access === "denied" ? "not_registered" : "error");
 }
 
 function isDenial(value: unknown): value is Denial {
@@ -97,7 +123,7 @@ app.get("/v2/control", async (c) => {
 	}
 	const hostId = c.req.query("hostId");
 	if (!hostId) return acceptAndClose(RELAY_CLOSE.badRequest, "Missing hostId");
-	const result = await authenticate(c, hostId);
+	const result = await authenticate(c, hostId, "register");
 	if (isDenial(result)) {
 		return acceptAndClose(
 			result.status === 401 ? RELAY_CLOSE.authExpired : RELAY_CLOSE.forbidden,
@@ -155,20 +181,26 @@ app.get("/presence", async (c) => {
 	const auth = await verifyJWT(token, c.env.NEXT_PUBLIC_API_URL);
 	if (!auth) return c.json({ error: "Unauthorized" }, 401);
 
-	// Denied and unknown hosts are omitted rather than erroring the batch: a
-	// partial answer still renders every dot the caller may see.
+	// Denied hosts are omitted rather than erroring the batch: a partial answer
+	// still renders every dot the caller may see. A host that has never
+	// connected has no object and is offline without any access check.
+	const serverRead = isServerPresenceScope(auth.scope);
 	const entries = await Promise.all(
 		hostIds.map(async (hostId) => {
-			const access = await checkHostAccess(
-				auth,
-				token,
-				hostId,
-				c.env.NEXT_PUBLIC_API_URL,
-			);
-			if (!access.ok) return null;
+			const parsed = parseHostRoutingKey(hostId);
+			if (!parsed || !auth.organizationIds.includes(parsed.organizationId)) {
+				return null;
+			}
 			const stub = await tunnelStub(c, hostId);
 			if (!stub) return [hostId, { online: false, lastSeenAt: null }] as const;
-			return [hostId, await stub.presenceInfo()] as const;
+			const presence = await stub.presenceInfo(
+				serverRead ? null : callerOf(auth, token),
+			);
+			if (presence.access !== "allowed") return null;
+			return [
+				hostId,
+				{ online: presence.online, lastSeenAt: presence.lastSeenAt },
+			] as const;
 		}),
 	);
 	const hosts: Record<string, { online: boolean; lastSeenAt: number | null }> =
@@ -188,12 +220,18 @@ function pathAfterHost(c: Context<AppContext>): string {
 
 app.get("/hosts/:hostId/_whoowns", async (c) => {
 	const hostId = c.req.param("hostId");
-	const result = await authenticate(c, hostId);
+	const result = await authenticate(c, hostId, "reach");
 	if (isDenial(result)) {
 		return c.json({ error: result.message }, result.status);
 	}
 	const stub = await tunnelStub(c, hostId);
-	if (!stub || !(await stub.isConnected())) {
+	if (!stub) return c.json({ error: "Host not connected" }, 503);
+	const connected = await stub.isConnected(callerOf(result.auth, result.token));
+	if (connected.access !== "allowed") {
+		const refused = accessDenial(connected.access);
+		return c.json({ error: refused.message }, refused.status);
+	}
+	if (!connected.connected) {
 		return c.json({ error: "Host not connected" }, 503);
 	}
 	return c.json({ ok: true });
@@ -202,7 +240,7 @@ app.get("/hosts/:hostId/_whoowns", async (c) => {
 const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 	const hostId = c.req.param("hostId");
 	if (!hostId) return c.json({ error: "Missing hostId" }, 400);
-	const result = await authenticate(c, hostId);
+	const result = await authenticate(c, hostId, "reach");
 	if (isDenial(result)) {
 		if (isTrpcPath(pathAfterHost(c))) {
 			return trpcErrorResponse(
@@ -214,7 +252,7 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 		return c.json({ error: result.message }, result.status);
 	}
 	c.set("auth", result.auth);
-	c.set("token", result.token);
+	c.set("caller", callerOf(result.auth, result.token));
 	c.set("hostId", hostId);
 	return next();
 };
@@ -233,13 +271,24 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 	if (!stub) {
 		return trpcErrorResponse(c, "SERVICE_UNAVAILABLE", "Host is not online");
 	}
-	const result = await stub.proxyHttp({
+	const caller = c.get("caller");
+	const result = await stub.proxyHttp(caller, {
 		method: c.req.method,
 		pathWithQuery: query ? `${path}?${query}` : path,
 		headers,
 		body: new Uint8Array(await c.req.raw.arrayBuffer()),
 	});
 	if (!result.ok) {
+		if (result.reason === "denied" || result.reason === "access-error") {
+			const refused = accessDenial(
+				result.reason === "denied" ? "denied" : "error",
+			);
+			return trpcErrorResponse(
+				c,
+				refused.status === 403 ? "FORBIDDEN" : "INTERNAL_SERVER_ERROR",
+				refused.message,
+			);
+		}
 		if (result.reason === "dial-failed") {
 			return trpcErrorResponse(
 				c,
@@ -247,7 +296,8 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 				"Host could not reach the relay",
 			);
 		}
-		return (await stub.isConnected())
+		const connected = await stub.isConnected(caller);
+		return connected.access === "allowed" && connected.connected
 			? trpcErrorResponse(c, "BAD_GATEWAY", "Request timed out")
 			: trpcErrorResponse(c, "SERVICE_UNAVAILABLE", "Host is not online");
 	}
@@ -272,7 +322,16 @@ app.get("/hosts/:hostId/*", async (c) => {
 	// before the handshake instead of open-then-close.
 	const stub = await tunnelStub(c, hostId);
 	if (!stub) return c.json({ error: "Host not connected" }, 503);
-	const prepared = await stub.prepareStream(ticket, path, query || undefined);
+	const prepared = await stub.prepareStream(
+		c.get("caller"),
+		ticket,
+		path,
+		query || undefined,
+	);
+	if (prepared === "denied" || prepared === "access-error") {
+		const refused = accessDenial(prepared === "denied" ? "denied" : "error");
+		return c.json({ error: refused.message }, refused.status);
+	}
 	if (prepared === "no-host") {
 		return c.json({ error: "Host not connected" }, 503);
 	}

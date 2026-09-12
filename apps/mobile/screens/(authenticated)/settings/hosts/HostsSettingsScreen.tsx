@@ -4,8 +4,7 @@ import { useMemo } from "react";
 import { ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { useHostsPresence } from "@/hooks/useHostsPresence";
-import { NO_HOSTS, useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { openUrl } from "@/lib/open-url";
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
@@ -14,19 +13,11 @@ import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 export function HostsSettingsScreen() {
 	const { t } = useLingui();
 	const theme = useTheme();
-	const hostsQuery = useOrgHostsQuery();
-	const hosts = hostsQuery.data ?? NO_HOSTS;
-	const presence = useHostsPresence(hosts);
+	const { hosts, query: hostsQuery } = useOrgHosts();
 
 	const hostRows = useMemo(
-		() =>
-			hosts
-				.map((host) => ({
-					...host,
-					isOnline: presence?.get(host.machineId) ?? host.isOnline,
-				}))
-				.sort((a, b) => a.name.localeCompare(b.name)),
-		[hosts, presence],
+		() => [...hosts].sort((a, b) => a.name.localeCompare(b.name)),
+		[hosts],
 	);
 
 	return (

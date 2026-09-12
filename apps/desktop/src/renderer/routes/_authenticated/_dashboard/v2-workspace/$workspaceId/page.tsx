@@ -12,11 +12,12 @@ import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { AppMenuButton } from "renderer/routes/_authenticated/_dashboard/components/AppMenuButton";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { RightSidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/RightSidebarToggle";
 import { TopBarPortsDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/TopBarPortsDropdown";
-import { WindowControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/WindowControls";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import {
 	parseSubagentSearch,
 	readSubagentSearch,
@@ -244,6 +245,7 @@ function V2WorkspaceContent() {
 		newTabPresets,
 		executePreset,
 		setRightSidebarOpen,
+		pageOpenAction: v2UserPreferences.pageOpenAction,
 	});
 	const paneRegistry = usePaneRegistry({
 		onOpenFile: openFilePaneFromTreeClick,
@@ -423,6 +425,7 @@ function V2WorkspaceContent() {
 													enabled={isMac}
 													className="flex items-center gap-1.5 px-1"
 												>
+													{!isMac && <AppMenuButton />}
 													<SidebarToggle />
 													<NavigationControls />
 												</ZoomStable>
@@ -459,7 +462,7 @@ function V2WorkspaceContent() {
 									    stays hidden, which keeps it compact for the tab bar. */}
 									<V2WorkspaceOpenInButton workspaceId={workspaceId} />
 									<RightSidebarToggle />
-									{!isMac && <WindowControls />}
+									{!isMac && !sidebarOpen && <WindowControlsInset />}
 								</div>
 							)}
 							renderEmptyState={() => (

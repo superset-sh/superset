@@ -5,7 +5,7 @@ const DAY_MS = 86_400_000;
 
 export interface DailyTokens {
 	day: string;
-	tokens: number;
+	tokens: number | string;
 }
 
 export interface CalendarCell {
@@ -41,7 +41,10 @@ export function buildCalendar(
 ): Calendar {
 	const tokensByDay = new Map<string, number>();
 	for (const row of daily) {
-		tokensByDay.set(row.day, (tokensByDay.get(row.day) ?? 0) + row.tokens);
+		tokensByDay.set(
+			row.day,
+			(tokensByDay.get(row.day) ?? 0) + Number(row.tokens),
+		);
 	}
 
 	const end = Date.parse(`${endDay}T00:00:00Z`);

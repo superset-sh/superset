@@ -37,8 +37,7 @@ export function WorkspaceHostIncompatibleState({
 		update.progress.stage !== "updated" &&
 		update.progress.stage !== "failed";
 	const { data: session } = authClient.useSession();
-	const { data: members = [] } =
-		cloudTrpc.v2Host.listMembers.useQuery(undefined);
+	const { data: members = [] } = cloudTrpc.host.listMembers.useQuery(undefined);
 	const { data: info } = useHostServiceInfo(hostUrl);
 	const isOwner = members.some(
 		(member) =>

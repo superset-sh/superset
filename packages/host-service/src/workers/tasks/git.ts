@@ -4,6 +4,7 @@
 // the credential provider) and crosses as plain data.
 
 import {
+	getGitAuthorName,
 	type ResolvedGitInfo,
 	readGitIdentity,
 } from "../../runtime/git/identity.ts";
@@ -279,6 +280,23 @@ export const gitIdentityTask = defineWorkerTask<
 	handler: ({ shellEnv }) => readGitIdentity(shellEnv),
 });
 
+/**
+ * Repository-scoped `user.name`, unlike `gitIdentityTask` (which reads the
+ * home-directory/global identity). A repo can locally override `user.name`,
+ * so branch-prefix resolution must read the same repo `create` binds its
+ * on-loop client to — reading the global identity instead would let the
+ * "author" prefix disagree between the branch `create` makes and the one an
+ * AI/derived rename or live preview later proposes for it.
+ */
+export const gitAuthorNameTask = defineWorkerTask<
+	{ worktreePath: string },
+	string | null
+>({
+	type: "git/readAuthorName",
+	handler: ({ worktreePath }) =>
+		getGitAuthorName(createUserSimpleGit(worktreePath)),
+});
+
 // Delete-preview + destroy-preflight state for workspace cleanup.
 // Unpushed-commit detection uses `rev-list --not --remotes` so brand-new
 // branches with no upstream still report unpushed commits correctly.
@@ -382,6 +400,26 @@ export const gitDeleteBranchTask = defineWorkerTask<
 		if (listed.trim().length === 0) return { deleted: false };
 		await git.raw(["branch", "-D", branch]);
 		return { deleted: true };
+	},
+});
+
+export const gitStagePathsTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		paths: string[];
+		action: "stage" | "unstage";
+		gitEnv: GitTaskEnv;
+	},
+	{ success: true }
+>({
+	type: "git/stagePaths",
+	handler: async ({ worktreePath, paths, action, gitEnv }) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		// Paths come from status output, not from a pathspec the user typed;
+		// without this, a name like `:(glob)**` would match the whole tree.
+		const command = action === "stage" ? ["add", "-A"] : ["reset", "HEAD"];
+		await git.raw(["--literal-pathspecs", ...command, "--", ...paths]);
+		return { success: true };
 	},
 });
 
@@ -527,9 +565,11 @@ export const gitTasks = [
 	gitDiffSideBlobTask,
 	gitWorkspaceRefsTask,
 	gitIdentityTask,
+	gitAuthorNameTask,
 	gitWorktreeStateTask,
 	gitWorktreeRemoveTask,
 	gitDeleteBranchTask,
+	gitStagePathsTask,
 	gitCommitTask,
 	gitPushTask,
 	gitPrHeadBaseTask,

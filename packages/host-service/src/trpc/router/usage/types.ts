@@ -14,10 +14,19 @@ export type UsageAgent =
 	| "copilot"
 	| "pi"
 	| "omp"
-	| "fx";
+	| "fx"
+	| "muse"
+	| "devin";
 
-/** The subset of agents with quota accounts and switchable logins. */
-export type QuotaCapableAgent = "claude" | "codex" | "grok" | "agy";
+/** The subset of agents with quota accounts. Claude and Codex logins are
+ * also switchable; OpenCode's are the Anthropic/OpenAI subscriptions it is
+ * signed into, read-only. */
+export type QuotaCapableAgent =
+	| "claude"
+	| "codex"
+	| "grok"
+	| "agy"
+	| "opencode";
 
 /** How the provider bills work launched from this login: a subscription
  * plan with quota windows, or pay-per-token API billing (Anthropic Console,
@@ -31,6 +40,8 @@ export type ModelProvider =
 	| "openai"
 	| "google"
 	| "xai"
+	| "meta"
+	| "cognition"
 	| "cursor"
 	| "github"
 	| "other";

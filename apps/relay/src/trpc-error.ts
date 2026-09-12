@@ -5,12 +5,14 @@ import superjson from "superjson";
 type TrpcErrorCode =
 	| "UNAUTHORIZED"
 	| "FORBIDDEN"
+	| "INTERNAL_SERVER_ERROR"
 	| "SERVICE_UNAVAILABLE"
 	| "BAD_GATEWAY";
 
 const RPC_CODE: Record<TrpcErrorCode, number> = {
 	UNAUTHORIZED: -32001,
 	FORBIDDEN: -32003,
+	INTERNAL_SERVER_ERROR: -32603,
 	SERVICE_UNAVAILABLE: -32603,
 	BAD_GATEWAY: -32603,
 };
@@ -18,6 +20,7 @@ const RPC_CODE: Record<TrpcErrorCode, number> = {
 const HTTP_STATUS: Record<TrpcErrorCode, ContentfulStatusCode> = {
 	UNAUTHORIZED: 401,
 	FORBIDDEN: 403,
+	INTERNAL_SERVER_ERROR: 500,
 	SERVICE_UNAVAILABLE: 503,
 	BAD_GATEWAY: 502,
 };

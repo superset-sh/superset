@@ -7,8 +7,8 @@ import {
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { promoteSandboxToEnvironment } from "../../lib/blaxel";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
+import { promoteSandboxToEnvironment } from "../../lib/sandbox";
 import { jwtProcedure, userError } from "../../trpc";
 import { secretsRouter } from "./secrets";
 
@@ -103,7 +103,7 @@ export const environmentRouter = {
 				.values({
 					organizationId: input.organizationId,
 					name: input.name,
-					provider: "blaxel",
+					provider: "vercel",
 					sourceKind: "image",
 					sourceRef: SANDBOX_IMAGE_NAME,
 				})

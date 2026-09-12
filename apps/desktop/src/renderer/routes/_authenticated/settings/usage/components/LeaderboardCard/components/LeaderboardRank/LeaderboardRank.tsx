@@ -30,7 +30,7 @@ export function LeaderboardRank({
 
 	const { t } = useLingui();
 	const { handle, rank, total, tokens } = membership;
-	const ranked = tokens > 0;
+	const ranked = BigInt(tokens) > 0n;
 	const profileUrl = `${COMPANY.MARKETING_URL}/user/${handle}`;
 	// The tier only exists on the standings row, which can lag a fresh
 	// publish; no badge beats a stale one.

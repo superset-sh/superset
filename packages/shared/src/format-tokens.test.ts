@@ -28,6 +28,15 @@ describe("formatTokens", () => {
 		expect(formatTokens(1_000_000)).toBe("1.0M");
 		expect(formatTokens(1_000_000_000)).toBe("1.0B");
 	});
+
+	// Guards the signature only: the body widens to a double before scaling, so
+	// this cannot show that an exact sum survived the trip.
+	it("renders string and bigint inputs instead of NaN", () => {
+		expect(formatTokens("13930000000")).toBe("13.9B");
+		expect(formatTokens("0")).toBe("0");
+		expect(formatTokens(13_930_000_000n)).toBe("13.9B");
+		expect(formatTokens(0n)).toBe("0");
+	});
 });
 
 describe("formatScaled", () => {

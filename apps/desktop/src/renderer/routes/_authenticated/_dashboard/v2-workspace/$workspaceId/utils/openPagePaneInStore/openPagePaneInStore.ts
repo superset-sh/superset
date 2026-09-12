@@ -11,12 +11,13 @@ function isSamePage(pane: PagePaneData, page: PagePaneData): boolean {
 export function openPagePaneInStore(
 	store: StoreApi<WorkspaceStore<PaneViewerData>>,
 	page: PagePaneData,
+	placement: "split" | "tab" = "split",
 ): void {
 	focusOrOpenPane<PagePaneData>(
 		store,
 		"page",
 		(pane) => isSamePage(pane, page),
 		page,
-		"tab",
+		placement,
 	);
 }

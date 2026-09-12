@@ -169,6 +169,50 @@ describe("diff loading guards", () => {
 		).toBe(true);
 	});
 
+	test("rejects contents the host could not read at the patch's ref", () => {
+		// loadFileDiffContent answers a failed `git show` with "" instead of an
+		// error; hydrated from nothing, every hunk line is one @pierre/diffs
+		// walks straight off the end of.
+		const unreadable: FileContents = { name: FILE_PATH, contents: "" };
+		expect(
+			isDiffContentStale(REWRITES_MIDDLE, {
+				oldFile: unreadable,
+				newFile: unreadable,
+			}),
+		).toBe(true);
+		expect(
+			isDiffContentStale(REWRITES_MIDDLE, {
+				oldFile: fileContents(COMMITTED_LINES),
+				newFile: unreadable,
+			}),
+		).toBe(true);
+	});
+
+	test("rejects contents shorter than the patch's hunks", () => {
+		expect(
+			isDiffContentStale(REWRITES_MIDDLE, {
+				oldFile: fileContents(COMMITTED_LINES.slice(0, 5)),
+				newFile: fileContents(MIDDLE_REWRITTEN_LINES.slice(0, 5)),
+			}),
+		).toBe(true);
+	});
+
+	test("rejects contents whose lines moved under the patch", () => {
+		// Two lines inserted at the top and two dropped at the bottom: same
+		// length and the same trailing count, but the hunk's rows would show
+		// lines the patch never described.
+		expect(
+			isDiffContentStale(REWRITES_MIDDLE, {
+				oldFile: fileContents(COMMITTED_LINES),
+				newFile: fileContents([
+					"written_after_the_patch_1",
+					"written_after_the_patch_2",
+					...MIDDLE_REWRITTEN_LINES.slice(0, -2),
+				]),
+			}),
+		).toBe(true);
+	});
+
 	test("rejects contents missing a side the diff needs", () => {
 		expect(
 			isDiffContentStale(REWRITES_TO_END_OF_FILE, {

@@ -15,6 +15,7 @@ mock.module("main/lib/safe-url", () => ({
 }));
 
 const { browserManager } = await import("./browser-manager");
+const { PROTOCOL_SCHEME } = await import("shared/constants");
 
 interface FakeImage {
 	isEmpty: () => boolean;
@@ -32,14 +33,17 @@ type WindowOpenHandler = (
 	details: Electron.HandlerDetails,
 ) => Electron.WindowOpenHandlerResponse;
 
+type WcListener = (...args: unknown[]) => void;
+
 interface FakeWebContents {
 	throttlingCalls: boolean[];
 	isDestroyed: () => boolean;
 	setBackgroundThrottling: (allowed: boolean) => void;
 	setWindowOpenHandler: (handler: WindowOpenHandler) => void;
 	windowOpen: WindowOpenHandler | null;
-	on: () => void;
-	off: () => void;
+	listeners: Map<string, WcListener[]>;
+	on: (event: string, listener: WcListener) => void;
+	off: (event: string, listener: WcListener) => void;
 	getURL: () => string;
 	getTitle: () => string;
 	isLoading: () => boolean;
@@ -67,8 +71,16 @@ function makeWc(): { wc: FakeWebContents; id: number } {
 			wc.windowOpen = handler;
 		},
 		windowOpen: null,
-		on: () => {},
-		off: () => {},
+		listeners: new Map(),
+		on: (event, listener) => {
+			wc.listeners.set(event, [...(wc.listeners.get(event) ?? []), listener]);
+		},
+		off: (event, listener) => {
+			wc.listeners.set(
+				event,
+				(wc.listeners.get(event) ?? []).filter((l) => l !== listener),
+			);
+		},
 		getURL: () => "https://example.com",
 		getTitle: () => "Example",
 		isLoading: () => false,
@@ -546,5 +558,77 @@ describe("window.open handling", () => {
 			)?.action,
 		).toBe("deny");
 		expect(emitted).toEqual([]);
+	});
+});
+
+describe("deep links from guest pages", () => {
+	function navigate(wc: FakeWebContents, url: string): boolean {
+		const event = {
+			defaultPrevented: false,
+			preventDefault() {
+				this.defaultPrevented = true;
+			},
+		};
+		for (const listener of wc.listeners.get("will-navigate") ?? []) {
+			listener(event, url);
+		}
+		return event.defaultPrevented;
+	}
+
+	function collectDeepLinks(): { urls: string[]; stop: () => void } {
+		const urls: string[] = [];
+		const listener = (url: string) => {
+			urls.push(url);
+		};
+		browserManager.on("deep-link", listener);
+		return { urls, stop: () => browserManager.off("deep-link", listener) };
+	}
+
+	test("a superset:// link click is cancelled in the guest and handed to the app", () => {
+		const wc = register("pane-deep-link");
+		const { urls, stop } = collectDeepLinks();
+		expect(navigate(wc, "superset://pages/my-page")).toBe(true);
+		expect(urls).toEqual(["superset://pages/my-page"]);
+		stop();
+	});
+
+	test("the instance's own registered scheme is handled the same way", () => {
+		const wc = register("pane-deep-link-own");
+		const { urls, stop } = collectDeepLinks();
+		const url = `${PROTOCOL_SCHEME}://tasks/my-task`;
+		expect(navigate(wc, url)).toBe(true);
+		expect(urls).toEqual([url]);
+		stop();
+	});
+
+	test("a target=_blank superset:// link is denied as a window and handed to the app", () => {
+		const wc = register("pane-deep-link-blank");
+		const { urls, stop } = collectDeepLinks();
+		const result = wc.windowOpen?.({
+			url: "superset://pages/my-page",
+			frameName: "_blank",
+			features: "",
+			disposition: "foreground-tab",
+			referrer: { url: "", policy: "default" },
+		} as Electron.HandlerDetails);
+		expect(result?.action).toBe("deny");
+		expect(urls).toEqual(["superset://pages/my-page"]);
+		stop();
+	});
+
+	test("other disallowed schemes are still cancelled without a deep link", () => {
+		const wc = register("pane-deep-link-file");
+		const { urls, stop } = collectDeepLinks();
+		expect(navigate(wc, "file:///etc/passwd")).toBe(true);
+		expect(urls).toEqual([]);
+		stop();
+	});
+
+	test("ordinary web navigation is untouched", () => {
+		const wc = register("pane-deep-link-http");
+		const { urls, stop } = collectDeepLinks();
+		expect(navigate(wc, "https://example.com/docs")).toBe(false);
+		expect(urls).toEqual([]);
+		stop();
 	});
 });

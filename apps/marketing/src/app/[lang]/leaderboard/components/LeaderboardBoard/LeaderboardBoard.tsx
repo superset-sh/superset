@@ -242,9 +242,10 @@ export function LeaderboardBoard({
 								message: "Cache read",
 							}),
 							value: `${
-								totals.tokens > 0
+								Number(totals.tokens) > 0
 									? Math.round(
-											((stats?.tokenSplit.cachedInput ?? 0) / totals.tokens) *
+											(Number(stats?.tokenSplit.cachedInput ?? 0) /
+												Number(totals.tokens)) *
 												100,
 										)
 									: 0

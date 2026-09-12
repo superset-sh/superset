@@ -79,6 +79,8 @@ export function PageDetailScreen({
 	const [commentMode, setCommentMode] = useState(false);
 	const [focused, setFocused] = useState(true);
 	const [selection, setSelection] = useState<Selection | null>(null);
+	const selectionRef = useRef(selection);
+	selectionRef.current = selection;
 	const [rects, setRects] = useState<Record<string, FrameRect>>({});
 	const [container, setContainer] = useState({ width: 0, height: 0 });
 
@@ -99,6 +101,10 @@ export function PageDetailScreen({
 		() => toAnchoredThreads(comments.data ?? []),
 		[comments.data],
 	);
+	const unresolvedThreads = useMemo(
+		() => threads.filter((thread) => !thread.resolved),
+		[threads],
+	);
 
 	const send = useCallback(
 		(message: Parameters<PageFrameHandle["send"]>[0]) =>
@@ -108,19 +114,23 @@ export function PageDetailScreen({
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: frameEpoch is a resend trigger, not a value read here
 	useEffect(() => {
-		send({ type: "set-mode", enabled: commentMode });
-	}, [commentMode, frameEpoch, send]);
+		send({
+			type: "set-mode",
+			enabled: commentMode,
+			locked: selection !== null,
+		});
+	}, [commentMode, selection, frameEpoch, send]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: frameEpoch resends the anchor set to a runtime that just restarted
 	useEffect(() => {
 		send({
 			type: "track",
-			anchors: threads.map((thread) => ({
+			anchors: unresolvedThreads.map((thread) => ({
 				id: thread.id,
 				anchor: thread.anchor,
 			})),
 		});
-	}, [threads, frameEpoch, send]);
+	}, [unresolvedThreads, frameEpoch, send]);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -151,20 +161,25 @@ export function PageDetailScreen({
 		}
 		if (message.type === "pointer-down") setSelection(null);
 		if (message.type === "pick") {
-			void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-			setSelection({ anchor: message.anchor, rect: message.rect });
+			if (!selectionRef.current) {
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			}
+			setSelection(
+				(previous) =>
+					previous ?? { anchor: message.anchor, rect: message.rect },
+			);
 		}
 	}, []);
 
 	const pins = useMemo(() => {
 		const out: Array<{ id: string; point: { x: number; y: number } }> = [];
-		for (const thread of threads) {
+		for (const thread of unresolvedThreads) {
 			const rect = rects[thread.id];
 			if (rect)
 				out.push({ id: thread.id, point: pinPointOf(rect, thread.anchor) });
 		}
 		return out;
-	}, [rects, threads]);
+	}, [rects, unresolvedThreads]);
 
 	const stackIndex = useMemo(() => stackPins(pins), [pins]);
 	const pinPoints = useMemo(
@@ -323,7 +338,7 @@ export function PageDetailScreen({
 						className="absolute inset-0 overflow-hidden"
 						pointerEvents="box-none"
 					>
-						{threads.map((thread) => {
+						{unresolvedThreads.map((thread) => {
 							const point = pinPoints.get(thread.id);
 							if (!point) return null;
 							return (

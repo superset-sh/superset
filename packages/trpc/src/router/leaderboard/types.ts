@@ -6,7 +6,7 @@ export interface StandingRow {
 	rank: number;
 	handle: string;
 	name: string | null;
-	tokens: number;
+	tokens: string;
 	usd: string;
 	sessions: number;
 	approximate: boolean;
@@ -44,12 +44,12 @@ export interface TierDistribution {
 }
 
 export interface TokenSplit {
-	uncachedInput: number;
-	cachedInput: number;
-	cacheWrite5m: number;
-	cacheWrite1h: number;
-	output: number;
-	reasoningOutput: number;
+	uncachedInput: string;
+	cachedInput: string;
+	cacheWrite5m: string;
+	cacheWrite1h: string;
+	output: string;
+	reasoningOutput: string;
 }
 
 export interface LeaderboardStats {
@@ -57,7 +57,7 @@ export interface LeaderboardStats {
 	range: DayRange | null;
 	totals: {
 		participants: number;
-		tokens: number;
+		tokens: string;
 		usd: string;
 		sessions: number;
 	};
@@ -68,13 +68,13 @@ export interface LeaderboardStats {
 			provider: string;
 			model: string;
 			usd: string;
-			tokens: number;
+			tokens: string;
 		}>;
 		byTokens: Array<{
 			provider: string;
 			model: string;
 			usd: string;
-			tokens: number;
+			tokens: string;
 		}>;
 	};
 	tiers: TierDistribution;
@@ -87,14 +87,14 @@ export interface ParticipantProfile {
 	lastPublishedAt: Date | null;
 	dayRange: DayRange | null;
 	allTime: {
-		tokens: number;
+		tokens: string;
 		usd: string;
 		sessions: number;
 		approximate: boolean;
 	};
 	window: {
 		range: DayRange | null;
-		tokens: number;
+		tokens: string;
 		usd: string;
 		sessions: number;
 	};
@@ -109,10 +109,10 @@ export interface ParticipantProfile {
 	models: Array<{
 		provider: string;
 		model: string;
-		tokens: number;
+		tokens: string;
 		usd: string;
 	}>;
-	daily: Array<{ day: string; tokens: number; usd: string }>;
+	daily: Array<{ day: string; tokens: string; usd: string }>;
 	bio: string | null;
 	githubHandle: string | null;
 	xHandle: string | null;

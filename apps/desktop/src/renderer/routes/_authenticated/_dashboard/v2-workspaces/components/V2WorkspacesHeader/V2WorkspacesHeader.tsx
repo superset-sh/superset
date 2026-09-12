@@ -37,6 +37,7 @@ import {
 	LuUsers,
 } from "react-icons/lu";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
 import { BoardColumnIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/BoardColumnIcon";
 import type {
@@ -361,6 +362,7 @@ export function V2WorkspacesHeader({
 				>
 					<Trans>Create workspace</Trans>
 				</Button>
+				<WindowControlsInset />
 			</div>
 
 			<div className="flex flex-wrap items-center justify-between gap-2">

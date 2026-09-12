@@ -1,3 +1,4 @@
+import { watch as probeNativeWatch } from "node:fs";
 import { realpath, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
@@ -69,6 +70,26 @@ const PROBE_TIMEOUT_MS = 4_000;
 // Mirrors the metacharacter set `is-glob`/picomatch@2 recognize.
 function escapeGlobMagic(input: string): string {
 	return input.replace(/[\\*?{}()[\]!+@|^$]/g, (char) => `\\${char}`);
+}
+
+// Linux: @parcel/watcher's inotify backend starts on a thread and the caller
+// blocks until that thread signals it started. When inotify_init fails
+// (EMFILE at fs.inotify.max_user_instances, 128 by default and shared by
+// every process of the user) the thread throws before signalling and the
+// calling thread — host-service's event loop — waits forever. A throwaway
+// fs.watch makes the same inotify_init call and fails cleanly instead.
+function assertNativeWatchAvailable(dir: string): void {
+	if (process.platform !== "linux") return;
+	let probe: ReturnType<typeof probeNativeWatch>;
+	try {
+		probe = probeNativeWatch(dir, { persistent: false });
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code ?? "unknown";
+		throw new Error(
+			`Cannot watch path: inotify unavailable (${code}); raise fs.inotify.max_user_instances or close other watchers: ${dir}`,
+		);
+	}
+	probe.close();
 }
 
 // Wall-clock budget for the nested-repo scan (bounds attach latency on a slow
@@ -599,6 +620,7 @@ export class FsWatcherManager {
 		// Subscribe to the resolved real path so kernel paths come back in a
 		// consistent form; we map them back to `state.absolutePath` in
 		// `normalizeEvents`. Mirrors VS Code's parcelWatcher.ts:364.
+		assertNativeWatchAvailable(realPath);
 		state.subscription = await subscribeToFilesystem(
 			realPath,
 			(error, events) => {

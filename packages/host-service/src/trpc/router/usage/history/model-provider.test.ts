@@ -7,6 +7,9 @@ describe("inferModelProvider", () => {
 		expect(inferModelProvider("codex", "gpt-5.6")).toBe("openai");
 		expect(inferModelProvider("grok", "grok-code-fast-1")).toBe("xai");
 		expect(inferModelProvider("cursor", "composer")).toBe("cursor");
+		expect(inferModelProvider("muse", "muse-spark-1.2")).toBe("meta");
+		expect(inferModelProvider("devin", "swe-1-6-slow")).toBe("cognition");
+		expect(inferModelProvider("devin", "claude-opus-4.6")).toBe("anthropic");
 	});
 
 	test("attributes multi-model agents from vendor-qualified model ids", () => {

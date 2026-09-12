@@ -20,6 +20,7 @@ export {
 
 import fs from "node:fs";
 import os from "node:os";
+import { AGENT_CREDENTIAL_ENV_NAMES } from "@superset/shared/agent-credentials";
 import {
 	TERMINAL_TERM_PROGRAM,
 	TERMINAL_TERM_PROGRAM_VERSION,
@@ -48,7 +49,27 @@ let cachedMacosSystemCertAvailable: boolean | null = null;
  * Read from `process.env` rather than the validated `env` so that importing
  * this module doesn't require a fully-populated host environment.
  */
-const SANDBOX_AGENT_CREDENTIAL_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"];
+const SANDBOX_AGENT_CREDENTIAL_KEYS = [...AGENT_CREDENTIAL_ENV_NAMES];
+
+/**
+ * The sandbox firewall terminates TLS for the domains it injects credentials
+ * into, presenting a per-sandbox CA that the platform trusts through these
+ * variables. Node ignores the system store without them, so an agent in a
+ * terminal that lost them fails every model call with a certificate error.
+ */
+const SANDBOX_FIREWALL_CA_KEYS = [
+	"NODE_EXTRA_CA_CERTS",
+	"NODE_USE_SYSTEM_CA",
+	"SSL_CERT_FILE",
+	"CURL_CA_BUNDLE",
+	"REQUESTS_CA_BUNDLE",
+	"AWS_CA_BUNDLE",
+	"GIT_SSL_CAINFO",
+	"NPM_CONFIG_CAFILE",
+	"PIP_CERT",
+	"CARGO_HTTP_CAINFO",
+	"GRPC_DEFAULT_SSL_ROOTS_FILE_PATH",
+];
 
 function hasMacosSystemCertBundle(): boolean {
 	if (cachedMacosSystemCertAvailable !== null) {
@@ -276,7 +297,10 @@ export function buildV2TerminalEnv(
 	}
 
 	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
-		for (const key of SANDBOX_AGENT_CREDENTIAL_KEYS) {
+		for (const key of [
+			...SANDBOX_AGENT_CREDENTIAL_KEYS,
+			...SANDBOX_FIREWALL_CA_KEYS,
+		]) {
 			const value = process.env[key];
 			if (value) env[key] = value;
 		}

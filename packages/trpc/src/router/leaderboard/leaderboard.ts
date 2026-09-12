@@ -223,7 +223,10 @@ const HANDLE_CONSTRAINT = "handles_pkey";
 
 async function requireParticipant(userId: string) {
 	const [row] = await db
-		.select()
+		.select({
+			userId: publicProfiles.userId,
+			revokedAt: publicProfiles.revokedAt,
+		})
 		.from(publicProfiles)
 		.where(eq(publicProfiles.userId, userId))
 		.limit(1);
@@ -311,7 +314,7 @@ export async function recomputeTier(userId: string): Promise<void> {
 		db
 			.select({
 				day: leaderboardDaily.day,
-				tokens: sql<number>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
+				tokens: sql<string>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
 				usd: sql<string>`coalesce(sum(${leaderboardDaily.usdEstimate}), 0)`,
 			})
 			.from(leaderboardDaily)
@@ -441,7 +444,7 @@ async function runWindowTier(userId: string): Promise<number> {
 		db
 			.select({
 				day: leaderboardDaily.day,
-				tokens: sql<number>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
+				tokens: sql<string>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
 				usd: sql<string>`coalesce(sum(${leaderboardDaily.usdEstimate}), 0)`,
 			})
 			.from(leaderboardDaily)
@@ -529,7 +532,7 @@ export async function recomputeAwards(userId: string): Promise<EarnedAward[]> {
 async function rankFor(
 	period: LeaderboardPeriod,
 	periodStart: string | undefined,
-	tokens: number,
+	tokens: number | string,
 	excludeUserId: string | null,
 ): Promise<{ rank: number; total: number }> {
 	const range = resolveDayRange(period, periodStart);
@@ -956,7 +959,16 @@ export const leaderboardRouter = createTRPCRouter({
 	me: protectedProcedure.input(meSchema).query(async ({ ctx, input }) => {
 		const userId = ctx.session.user.id;
 		const [row] = await db
-			.select()
+			.select({
+				handle: publicProfiles.handle,
+				visibility: publicProfiles.visibility,
+				revokedAt: publicProfiles.revokedAt,
+				lastPublishedAt: publicProfiles.lastPublishedAt,
+				tokens: sql<string>`${publicProfiles.tokens}::text`,
+				usd: publicProfiles.usd,
+				sessions: publicProfiles.sessions,
+				approximate: publicProfiles.approximate,
+			})
 			.from(publicProfiles)
 			.where(eq(publicProfiles.userId, userId))
 			.limit(1);
@@ -969,7 +981,7 @@ export const leaderboardRouter = createTRPCRouter({
 		if (range) {
 			const [agg] = await db
 				.select({
-					tokens: sql<number>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
+					tokens: sql<string>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
 				})
 				.from(leaderboardDaily)
 				.where(
@@ -979,7 +991,7 @@ export const leaderboardRouter = createTRPCRouter({
 						lte(leaderboardDaily.day, range.to),
 					),
 				);
-			tokens = Number(agg?.tokens ?? 0);
+			tokens = agg?.tokens ?? "0";
 		}
 
 		const { rank, total } = await rankFor(

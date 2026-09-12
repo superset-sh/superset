@@ -5,7 +5,27 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { type ReactNode, useCallback, useRef, useState } from "react";
+import {
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
+
+const HOVER_ACTIONS_ROW_ATTR = "data-hover-actions";
+
+/**
+ * Pierre paints the `+N/−N` and status letter inside its shadow root, where
+ * the overlay would draw on top of them; hide them on the row the overlay is
+ * anchored to. Append to the tree's `unsafeCSS`.
+ */
+export const HOVER_ACTIONS_ROW_CSS = `
+	[${HOVER_ACTIONS_ROW_ATTR}] [data-item-section="decoration"],
+	[${HOVER_ACTIONS_ROW_ATTR}] [data-item-section="git"] {
+		visibility: hidden;
+	}
+`;
 
 interface ShadowRowHoverActionsProps {
 	/**
@@ -41,10 +61,21 @@ export function ShadowRowHoverActions({
 	} | null>(null);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const hoverRowRef = useRef<HTMLElement | null>(null);
+	const overlayRef = useRef<HTMLDivElement | null>(null);
+
+	useEffect(() => {
+		const row = hoverRowRef.current;
+		if (!hover || !row) return;
+		row.setAttribute(HOVER_ACTIONS_ROW_ATTR, "");
+		return () => row.removeAttribute(HOVER_ACTIONS_ROW_ATTR);
+	}, [hover]);
 
 	const handleMouseOver = useCallback(
 		(e: React.MouseEvent<HTMLDivElement>) => {
 			if (menuOpen) return;
+			// The overlay sits over the row it belongs to; entering one of its
+			// buttons must not read as leaving the row.
+			if (overlayRef.current?.contains(e.target as Node)) return;
 			const row = findFileRow(e);
 			if (!row) {
 				if (hoverRowRef.current) {
@@ -99,7 +130,10 @@ export function ShadowRowHoverActions({
 						pointerEvents: "none",
 					}}
 				>
-					<div className="pointer-events-auto absolute inset-y-0 right-2 flex items-center gap-0.5">
+					<div
+						ref={overlayRef}
+						className="pointer-events-auto absolute inset-y-0 right-2 flex items-center gap-0.5"
+					>
 						{renderInlineActions?.(hover.treePath)}
 						<DropdownMenu
 							open={menuOpen}

@@ -7,8 +7,7 @@ import { cn } from "@superset/ui/utils";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useAppVersion } from "renderer/hooks/host-version/useHostVersionState";
-import { useHostsPresence } from "renderer/hooks/useHostsPresence";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { hostVersionDotClass } from "renderer/routes/_authenticated/components/HostVersionBadge";
 import {
 	type SettingsListGroup,
@@ -34,22 +33,10 @@ export function HostsSettingsSidebar({
 }: HostsSettingsSidebarProps) {
 	const { t } = useLingui();
 	const appVersion = useAppVersion();
-	const { data: hosts = [] } = cloudTrpc.v2Host.list.useQuery(undefined);
-
-	const presence = useHostsPresence(hosts);
-	const hostsWithPresence = useMemo(
-		() =>
-			presence
-				? hosts.map((host) => ({
-						...host,
-						isOnline: presence.get(host.machineId)?.online ?? host.isOnline,
-					}))
-				: hosts,
-		[hosts, presence],
-	);
+	const { hosts } = useKnownHosts();
 
 	const listGroups = useMemo<Array<SettingsListGroup<HostRow>>>(() => {
-		const sorted = hostsWithPresence
+		const sorted = hosts
 			.map((host) => ({
 				id: host.machineId,
 				name: host.name,
@@ -75,7 +62,7 @@ export function HostsSettingsSidebar({
 				rows: sorted.filter((h) => !h.isOnline),
 			},
 		];
-	}, [hostsWithPresence, appVersion, t]);
+	}, [hosts, appVersion, t]);
 
 	return (
 		<SettingsListSidebar

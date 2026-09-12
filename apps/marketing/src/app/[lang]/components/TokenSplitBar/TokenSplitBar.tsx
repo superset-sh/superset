@@ -15,12 +15,12 @@ export function TokenSplitBar({
 	split,
 }: {
 	split: {
-		uncachedInput: number;
-		cachedInput: number;
-		cacheWrite5m: number;
-		cacheWrite1h: number;
-		output: number;
-		reasoningOutput: number;
+		uncachedInput: string;
+		cachedInput: string;
+		cacheWrite5m: string;
+		cacheWrite1h: string;
+		output: string;
+		reasoningOutput: string;
 	};
 }) {
 	const { t, i18n } = useLingui();
@@ -28,13 +28,13 @@ export function TokenSplitBar({
 		{
 			id: "input",
 			label: msg({ message: "Input" }),
-			tokens: split.uncachedInput,
+			tokens: Number(split.uncachedInput),
 			color: "#d25611",
 		},
 		{
 			id: "output",
 			label: msg({ message: "Output" }),
-			tokens: split.output,
+			tokens: Number(split.output),
 			color: "#c19a5b",
 		},
 		{
@@ -42,7 +42,7 @@ export function TokenSplitBar({
 			label: msg({
 				message: "Cache read",
 			}),
-			tokens: split.cachedInput,
+			tokens: Number(split.cachedInput),
 			color: "#6b8ca3",
 		},
 		{
@@ -50,7 +50,7 @@ export function TokenSplitBar({
 			label: msg({
 				message: "Cache write",
 			}),
-			tokens: split.cacheWrite5m + split.cacheWrite1h,
+			tokens: Number(split.cacheWrite5m) + Number(split.cacheWrite1h),
 			color: "#7a9e7e",
 		},
 	];

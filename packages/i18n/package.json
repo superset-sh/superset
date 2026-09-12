@@ -39,8 +39,8 @@
 	},
 	"scripts": {
 		"build": "bun run compile",
-		"extract": "bunx --bun lingui extract --clean --overwrite --workers 1",
-		"compile": "bunx --bun lingui compile --strict --verbose --workers 1",
+		"extract": "bun x --bun lingui extract --clean --overwrite --workers 1",
+		"compile": "bun x --bun lingui compile --strict --verbose --workers 1",
 		"check": "bun run extract && bun run compile",
 		"test": "bun test",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",

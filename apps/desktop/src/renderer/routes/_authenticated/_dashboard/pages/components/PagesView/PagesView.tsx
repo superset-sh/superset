@@ -176,7 +176,10 @@ export function PagesView({
 							!orgEmpty && (Boolean(search.trim()) || activeScope !== "all")
 						}
 						onOpen={(page, event) =>
-							openPage(page, { inPane: isPaneModifier(event) })
+							openPage(
+								page,
+								isPaneModifier(event) ? { inPane: true } : undefined,
+							)
 						}
 						onTogglePin={toggleFavorite}
 						onDelete={async (pageId) => {

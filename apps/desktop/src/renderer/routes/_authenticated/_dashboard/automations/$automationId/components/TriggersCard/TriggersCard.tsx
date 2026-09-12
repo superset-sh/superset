@@ -17,6 +17,7 @@ import { RelayOfflineNotice } from "../../../components/RelayOfflineNotice";
 import { TriggersEditor } from "../../../components/TriggersEditor";
 import { WorkspacePicker } from "../../../components/WorkspacePicker";
 import { AutomationTagsPicker } from "./components/AutomationTagsPicker";
+import { SessionModePicker } from "./components/SessionModePicker";
 
 export type AutomationUpdatePatch = Partial<
 	Omit<Parameters<typeof apiTrpcClient.automation.update.mutate>[0], "id">
@@ -28,6 +29,7 @@ export interface ScopeDraft {
 	v2ProjectId: string | null;
 	targetHostId: string | null;
 	v2WorkspaceId: string | null;
+	continueAgentSession: boolean;
 	tags: string[];
 }
 
@@ -121,7 +123,11 @@ export function TriggersCard({
 							onScopeChange(
 								v2ProjectId === scope.v2ProjectId
 									? { v2ProjectId }
-									: { v2ProjectId, v2WorkspaceId: null },
+									: {
+											v2ProjectId,
+											v2WorkspaceId: null,
+											continueAgentSession: false,
+										},
 							)
 						}
 					/>
@@ -135,7 +141,11 @@ export function TriggersCard({
 							onScopeChange(
 								nextHostId === scope.targetHostId
 									? { targetHostId: nextHostId }
-									: { targetHostId: nextHostId, v2WorkspaceId: null },
+									: {
+											targetHostId: nextHostId,
+											v2WorkspaceId: null,
+											continueAgentSession: false,
+										},
 							)
 						}
 					/>
@@ -149,6 +159,7 @@ export function TriggersCard({
 						onChange={(v2WorkspaceId) =>
 							onScopeChange({
 								v2WorkspaceId,
+								...(v2WorkspaceId ? {} : { continueAgentSession: false }),
 								// Denormalized pin: the cloud stores both without a registry lookup.
 								...(v2WorkspaceId && hostId
 									? {
@@ -166,6 +177,16 @@ export function TriggersCard({
 						projectId={scope.v2ProjectId}
 						disabled={readOnly}
 						onChange={(tags) => onScopeChange({ tags })}
+					/>
+					<span>running</span>
+					<SessionModePicker
+						className={SCOPE_CHIP}
+						continueAgentSession={scope.continueAgentSession}
+						pinnedWorkspaceId={scope.v2WorkspaceId}
+						disabled={readOnly}
+						onChange={(continueAgentSession) =>
+							onScopeChange({ continueAgentSession })
+						}
 					/>
 				</div>
 			</TriggersEditor>

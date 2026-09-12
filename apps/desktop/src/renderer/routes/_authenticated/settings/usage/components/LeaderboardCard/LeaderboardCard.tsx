@@ -50,7 +50,7 @@ export function LeaderboardCard({ hostUrl }: { hostUrl: string | null }) {
 	});
 
 	const membership = optIn.membership;
-	const ranked = Boolean(membership && membership.tokens > 0);
+	const ranked = Boolean(membership && BigInt(membership.tokens) > 0n);
 
 	// The rows just above and below the user, so the rank reads as a race
 	// rather than a number. Public and CDN-cached, so cheap to ask for.

@@ -12,6 +12,7 @@ import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createTrpcContext } from "lib/trpc/context";
 import { createAppRouter } from "lib/trpc/routers";
 import { resolveDevWorkspaceName } from "main/lib/dev-workspace-name";
+import { getIconPath } from "main/lib/dock-icon";
 import { localDb } from "main/lib/local-db";
 import { isExpectedRendererExit } from "main/lib/renderer-exit";
 import { NOTIFICATION_EVENTS, PLATFORM } from "shared/constants";
@@ -361,6 +362,14 @@ export async function restoreWindows(): Promise<void> {
  * @param key    The window's persisted identity. Supplied when restoring so the
  *               window finds its own tab layout again; minted for a new window.
  */
+
+/** The overlay's colours follow the OS theme until the renderer's theme store sets its own. */
+export function titleBarOverlayColors(): Electron.TitleBarOverlay {
+	return nativeTheme.shouldUseDarkColors
+		? { color: "#252525", symbolColor: "#e5e5e5", height: 40 }
+		: { color: "#ffffff", symbolColor: "#1f1f1f", height: 40 };
+}
+
 export async function createPlatformWindow({
 	orgId,
 	bounds,
@@ -407,9 +416,14 @@ export async function createPlatformWindow({
 		acceptFirstMouse: true,
 		alwaysOnTop: false,
 		autoHideMenuBar: true,
-		frame: false,
 		titleBarStyle: "hidden",
-		trafficLightPosition: { x: 16, y: 16 },
+		// macOS keeps its traffic lights, positioned for the sidebar header.
+		// Elsewhere the window-controls overlay draws minimize/maximize/close
+		// on every screen, sign-in included, and the renderer keeps its top
+		// strip clear of them through the titlebar-area CSS variables.
+		...(PLATFORM.IS_MAC
+			? { frame: false, trafficLightPosition: { x: 16, y: 16 } }
+			: { titleBarOverlay: titleBarOverlayColors(), icon: getIconPath() }),
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			webviewTag: true,
@@ -578,7 +592,15 @@ export async function createPlatformWindow({
 		console.error(`  Error:`, error);
 	});
 
-	window.on("close", () => {
+	window.on("close", (event) => {
+		// Outside macOS the last window is the app: quit through its
+		// confirmation instead of leaving a windowless process, and keep the
+		// window when the confirmation is cancelled.
+		if (!appQuitting && !PLATFORM.IS_MAC && getAllWindows().length === 1) {
+			event.preventDefault();
+			app.quit();
+			return;
+		}
 		// Save window state first, before any cleanup
 		const isMaximized = window.isMaximized();
 		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();

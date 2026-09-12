@@ -10,11 +10,7 @@ export function PaneHeaderActions<TData>({
 	context: RendererContext<TData>;
 }) {
 	return (
-		// biome-ignore lint/a11y/noStaticElementInteractions: stop mousedown from triggering pane focus re-render before click fires
-		<div
-			className="flex shrink-0 items-center gap-0.5"
-			onMouseDown={(e) => e.stopPropagation()}
-		>
+		<div className="flex shrink-0 items-center gap-1">
 			{actions.map((action, _index) => {
 				const icon =
 					typeof action.icon === "function"
@@ -29,7 +25,7 @@ export function PaneHeaderActions<TData>({
 					<button
 						type="button"
 						onClick={() => action.onClick(context)}
-						className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+						className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 					>
 						{icon}
 					</button>

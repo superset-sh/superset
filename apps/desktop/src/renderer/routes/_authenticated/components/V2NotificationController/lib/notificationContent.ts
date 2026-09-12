@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import {
 	AGENT_IDENTITY_LABELS,
 	type AgentIdentityId,
@@ -18,7 +20,11 @@ export function getV2NativeNotificationContent({
 }: V2NativeNotificationContentOptions): { title: string; body: string } {
 	const agentLabel = getAgentLabel(payload.agent);
 	const action =
-		payload.eventType === "PermissionRequest" ? "Needs Attention" : "Complete";
+		payload.eventType === "PermissionRequest"
+			? "Needs Attention"
+			: payload.eventType === "Failed"
+				? i18n._(msg({ message: "Failed" }))
+				: "Complete";
 	const workspaceLabel = cleanLabel(workspaceName) ?? "Workspace";
 
 	return {

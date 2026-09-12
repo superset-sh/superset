@@ -21,14 +21,14 @@ afterAll(async () => {
 	if (!alreadyRegistered) await GlobalRegistrator.unregister();
 });
 
-function membership(tokens: number) {
+function membership(tokens: number | string) {
 	return {
 		handle: "kiet",
 		visibility: "public" as const,
 		lastPublishedAt: null,
 		period: "30d" as const,
 		range: { from: "2026-08-04", to: "2026-09-02" },
-		tokens,
+		tokens: String(tokens),
 		usd: "0",
 		sessions: 0,
 		approximate: false,
@@ -38,6 +38,22 @@ function membership(tokens: number) {
 }
 
 describe("LeaderboardRank", () => {
+	test("preserves one-token neighbor gaps above the safe integer limit", () => {
+		const { container } = render(
+			React.createElement(LeaderboardRank, {
+				membership: membership("9007199254740993"),
+				neighbors: [
+					{ rank: 11, tokens: "9007199254740994", tier: 2 },
+					{ rank: 13, tokens: "9007199254740992", tier: 1 },
+				],
+				collapsed: false,
+				onToggleCollapsed: () => {},
+				onManage: () => {},
+			}),
+		);
+		expect(container.textContent).toContain("1 to pass #11");
+		expect(container.textContent).toContain("1 behind you");
+	});
 	test("shows the rank and links to the profile and the board", () => {
 		const { container, getByText } = render(
 			React.createElement(LeaderboardRank, {
@@ -65,11 +81,11 @@ describe("LeaderboardRank", () => {
 				rank: 11,
 				handle: "ahead",
 				name: "Ada Ahead",
-				tokens: 1_700_000,
+				tokens: "1700000",
 				tier: 2,
 			},
-			{ rank: 12, handle: "kiet", name: null, tokens: 1_500_000, tier: 1 },
-			{ rank: 13, handle: "behind", name: null, tokens: 1_100_000, tier: 1 },
+			{ rank: 12, handle: "kiet", name: null, tokens: "1500000", tier: 1 },
+			{ rank: 13, handle: "behind", name: null, tokens: "1100000", tier: 1 },
 		];
 		const { container } = render(
 			React.createElement(LeaderboardRank, {
@@ -121,7 +137,7 @@ describe("LeaderboardRank", () => {
 		const { container, getByLabelText } = render(
 			React.createElement(LeaderboardRank, {
 				membership: membership(1_500_000),
-				neighbors: [{ rank: 11, tokens: 1_700_000, tier: 2 }],
+				neighbors: [{ rank: 11, tokens: "1700000", tier: 2 }],
 				collapsed: true,
 				onToggleCollapsed,
 				onManage: () => {},

@@ -43,6 +43,21 @@ describe("getV2NativeNotificationContent", () => {
 		});
 	});
 
+	it("labels Failed as Failed, not Complete", () => {
+		const result = getV2NativeNotificationContent({
+			workspaceName: "Improve notifications",
+			payload: payload({
+				eventType: "Failed",
+				agent: { agentId: "claude" },
+			}),
+		});
+		expect(result).toMatchObject({
+			title: "Claude - Failed",
+			body: "Improve notifications",
+		});
+		expect(result.title).not.toContain("Complete");
+	});
+
 	it("falls back to generic labels", () => {
 		expect(
 			getV2NativeNotificationContent({

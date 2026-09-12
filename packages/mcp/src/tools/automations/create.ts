@@ -65,6 +65,12 @@ export function register(server: McpServer): void {
 				.string()
 				.min(1)
 				.describe("IANA timezone (e.g. America/New_York)."),
+			continueAgentSession: z
+				.boolean()
+				.optional()
+				.describe(
+					"Deliver each run's prompt into the agent session the previous run left behind instead of starting another beside it. Requires v2WorkspaceId — that is where the session lives. Use for an automation that should build up one conversation (triaging items one by one) rather than starting clean each time.",
+				),
 			tags: workspaceTagsInputSchema
 				.optional()
 				.describe(

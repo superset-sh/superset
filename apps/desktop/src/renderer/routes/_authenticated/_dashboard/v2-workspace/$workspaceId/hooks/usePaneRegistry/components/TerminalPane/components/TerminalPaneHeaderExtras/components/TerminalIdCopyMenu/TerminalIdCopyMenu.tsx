@@ -39,8 +39,10 @@ export function TerminalIdCopyMenu({
 			: t({
 					message: "Copy IDs",
 				});
+	// Secondary action: yields to split/close when the pane is squeezed
+	// below its minimum (the IDs stay reachable via the session dropdown).
 	const buttonClassName =
-		"rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground";
+		"hidden rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground @min-[200px]/pane-header:block";
 
 	if (!agentSessionId) {
 		const terminalTooltipLabel = copied

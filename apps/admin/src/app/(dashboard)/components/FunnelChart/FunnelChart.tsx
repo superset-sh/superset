@@ -118,9 +118,13 @@ export function FunnelChart({
 			</p>
 		</div>
 	) : (
-		<div className="h-full overflow-x-auto">
+		<div className="h-full overflow-auto">
+			{/* Bars and footers sit in two shared rows, so every bar ends on the
+			    same baseline however many lines its step's label and stats take.
+			    The bar row carries the minimum, not the bars: an item taller than
+			    its row would paint over the labels below it. */}
 			<div
-				className="grid h-full min-w-[720px] gap-0"
+				className="grid h-full min-w-[720px] grid-rows-[minmax(120px,1fr)_auto] gap-x-0 gap-y-2"
 				style={{
 					gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))`,
 				}}
@@ -153,9 +157,9 @@ export function FunnelChart({
 					return (
 						<div
 							key={step.name + String(index)}
-							className="border-border/60 flex h-full flex-col gap-2 border-l px-2 first:border-l-0"
+							className="border-border/60 grid row-span-2 grid-rows-subgrid border-l px-2 first:border-l-0"
 						>
-							<div className="relative min-h-[160px] flex-1 overflow-hidden rounded-sm">
+							<div className="relative overflow-hidden rounded-sm">
 								{pctOfFirst < 100 ? (
 									<Tooltip>
 										<TooltipTrigger asChild>

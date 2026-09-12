@@ -14,11 +14,14 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
+import { env } from "renderer/env.renderer";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
 import {
 	actionLabel,
 	type FolderClickPolicy,
 	folderIntentLabel,
+	type LinkAction,
 	LinkHoverHint,
 	useTerminalFilePolicy,
 	useTerminalFolderPolicy,
@@ -57,6 +60,7 @@ import {
 } from "./richInputOpenStore";
 import { PasteUploadLimitError, uploadPastedFiles } from "./uploadPastedFiles";
 import { shellEscapePaths } from "./utils";
+import { parseSupersetPageUrl } from "./utils/parseSupersetPageUrl";
 import {
 	runFileLinkAction,
 	runFolderLinkAction,
@@ -82,6 +86,7 @@ export function TerminalPane({
 	const urlPolicy = useTerminalUrlPolicy();
 	const folderPolicy = useTerminalFolderPolicy();
 	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
+	const { preferences } = useV2UserPreferences();
 	const {
 		hoveredLink,
 		liveHoveredLinkRef,
@@ -339,6 +344,18 @@ export function TerminalPane({
 					);
 				},
 				onUrlClick: (event, url) => {
+					const pageSlug = isPagesEnabled
+						? parseSupersetPageUrl(url, env.NEXT_PUBLIC_WEB_URL)
+						: null;
+					if (pageSlug) {
+						event.preventDefault();
+						runUrlLinkAction(
+							linkActionDepsRef.current,
+							url,
+							preferences.pageOpenAction,
+						);
+						return;
+					}
 					const action = urlPolicy.getAction(event);
 					if (action === null) {
 						showHint(event.clientX, event.clientY);
@@ -362,6 +379,8 @@ export function TerminalPane({
 		filePolicy,
 		urlPolicy,
 		folderPolicy,
+		isPagesEnabled,
+		preferences.pageOpenAction,
 	]);
 
 	// Publish what a right-click landed on so the pane context menu (built in
@@ -653,6 +672,8 @@ export function TerminalPane({
 					urlPolicy,
 					folderPolicy,
 					worktreePath,
+					isPagesEnabled,
+					preferences.pageOpenAction,
 				)}
 				hoverPosition={hoveredLink}
 				clickHint={hint}
@@ -672,6 +693,8 @@ function resolveHoverLabel(
 	urlPolicy: ReturnType<typeof useTerminalUrlPolicy>,
 	folderPolicy: FolderClickPolicy,
 	worktreePath: string | undefined,
+	isPagesEnabled: boolean,
+	pageOpenAction: LinkAction,
 ): string | null {
 	if (!hovered) return null;
 	const event = {
@@ -680,7 +703,10 @@ function resolveHoverLabel(
 		shiftKey: hovered.shift,
 	};
 	if (hovered.info.kind === "url") {
-		const action = urlPolicy.getAction(event);
+		const pageSlug = isPagesEnabled
+			? parseSupersetPageUrl(hovered.info.url, env.NEXT_PUBLIC_WEB_URL)
+			: null;
+		const action = pageSlug ? pageOpenAction : urlPolicy.getAction(event);
 		return action ? actionLabel(action, "url") : null;
 	}
 	if (hovered.info.isDirectory) {

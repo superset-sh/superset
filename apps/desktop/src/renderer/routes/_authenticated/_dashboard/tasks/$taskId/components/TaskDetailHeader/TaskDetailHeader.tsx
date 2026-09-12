@@ -2,6 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { HiArrowLeft } from "react-icons/hi2";
 import { LuExternalLink } from "react-icons/lu";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import type { TaskWithStatus } from "../../../components/TasksView/hooks/useTasksTable";
 import { TaskActionMenu } from "../TaskActionMenu";
 
@@ -49,6 +50,7 @@ export function TaskDetailHeader({
 				)}
 				<TaskActionMenu task={task} onDelete={onDelete} />
 			</div>
+			<WindowControlsInset />
 		</div>
 	);
 }

@@ -19,7 +19,9 @@ import {
 } from "drizzle-orm/pg-core";
 import { organizations, users } from "./auth";
 import {
+	agentCredentialKindValues,
 	automationPromptSourceValues,
+	automationRunErrorCodeValues,
 	automationRunStatusValues,
 	automationSessionKindValues,
 	automationTriggerKindValues,
@@ -36,7 +38,9 @@ import {
 	pageVisibilityValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
+	v2AgentStateValues,
 	v2ClientTypeValues,
+	v2LiveActivityTokenKindValues,
 	v2UsersHostRoleValues,
 	v2WorkspaceTypeValues,
 	workspaceTypeValues,
@@ -57,6 +61,10 @@ export const integrationProvider = pgEnum(
 	integrationProviderValues,
 );
 export const commandStatus = pgEnum("command_status", commandStatusValues);
+export const agentCredentialKind = pgEnum(
+	"agent_credential_kind",
+	agentCredentialKindValues,
+);
 export const cloudWorkspaceStatus = pgEnum(
 	"cloud_workspace_status",
 	cloudWorkspaceStatusValues,
@@ -69,6 +77,11 @@ export const v2ClientType = pgEnum("v2_client_type", v2ClientTypeValues);
 export const v2UsersHostRole = pgEnum(
 	"v2_users_host_role",
 	v2UsersHostRoleValues,
+);
+export const v2AgentState = pgEnum("v2_agent_state", v2AgentStateValues);
+export const v2LiveActivityTokenKind = pgEnum(
+	"v2_live_activity_token_kind",
+	v2LiveActivityTokenKindValues,
 );
 export const v2WorkspaceType = pgEnum(
 	"v2_workspace_type",
@@ -557,7 +570,7 @@ export const environments = pgTable(
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		name: text().notNull(),
-		provider: text().notNull().default("blaxel"),
+		provider: text().notNull().default("vercel"),
 		sourceKind: environmentSourceKind("source_kind").notNull(),
 		sourceRef: text("source_ref").notNull(),
 		archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -627,7 +640,7 @@ export const cloudWorkspaces = pgTable(
 		// behind.
 		name: text().notNull(),
 		branch: text().notNull(),
-		provider: text().notNull().default("blaxel"),
+		provider: text().notNull().default("vercel"),
 		providerSandboxId: text("provider_sandbox_id").notNull(),
 		sandboxUrl: text("sandbox_url"),
 		status: cloudWorkspaceStatus().notNull().default("provisioning"),
@@ -764,6 +777,102 @@ export const v2UsersHosts = pgTable(
 export type InsertV2UsersHosts = typeof v2UsersHosts.$inferInsert;
 export type SelectV2UsersHosts = typeof v2UsersHosts.$inferSelect;
 
+/**
+ * The latest card state per terminal, reported by the host that runs it.
+ * Rows exist only while the agent is on the card: the host deletes them by
+ * reporting `gone`. The cloud holds nothing richer about an agent.
+ */
+export const v2AgentStatus = pgTable(
+	"v2_agent_status",
+	{
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		machineId: text("machine_id").notNull(),
+		terminalId: text("terminal_id").notNull(),
+		workspaceId: text("workspace_id").notNull(),
+		workspaceName: text("workspace_name").notNull(),
+		projectId: text("project_id"),
+		projectName: text("project_name"),
+		state: v2AgentState().notNull(),
+		sinceAt: timestamp("since_at", { withTimezone: true }).notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.organizationId, table.machineId, table.terminalId],
+		}),
+		foreignKey({
+			columns: [table.organizationId, table.machineId],
+			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
+			name: "v2_agent_status_host_fk",
+		}).onDelete("cascade"),
+	],
+);
+
+export type SelectV2AgentStatus = typeof v2AgentStatus.$inferSelect;
+
+/**
+ * The words the card shows, in the phone's language. The API never
+ * translates; the phone sends its Lingui catalog's words with the token.
+ * `more` is a template holding `{n}`.
+ */
+export interface LiveActivityLabels {
+	working: string;
+	review: string;
+	permission: string;
+	failed: string;
+	more: string;
+}
+
+/**
+ * Apple push tokens for the Lock Screen card. An `update` token addresses one
+ * running Live Activity; a `push_to_start` token addresses the app itself and
+ * lets the API start the card while the app is closed.
+ */
+export const v2LiveActivityTokens = pgTable(
+	"v2_live_activity_tokens",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		kind: v2LiveActivityTokenKind().notNull(),
+		/**
+		 * The phone, so one user's two phones each get the right push: an
+		 * `update` for a phone with a running card, `push_to_start` for one
+		 * without. iOS's identifierForVendor, stable per install.
+		 */
+		deviceId: text("device_id").notNull(),
+		token: text().notNull(),
+		activityId: text("activity_id"),
+		labels: jsonb().$type<LiveActivityLabels>().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("v2_live_activity_tokens_token_idx").on(table.token),
+		index("v2_live_activity_tokens_user_org_idx").on(
+			table.userId,
+			table.organizationId,
+		),
+	],
+);
+
+export type SelectV2LiveActivityToken =
+	typeof v2LiveActivityTokens.$inferSelect;
+
 export const v2Workspaces = pgTable(
 	"v2_workspaces",
 	{
@@ -880,6 +989,11 @@ export const automationRunStatus = pgEnum(
 	automationRunStatusValues,
 );
 
+export const automationRunErrorCode = pgEnum(
+	"automation_run_error_code",
+	automationRunErrorCodeValues,
+);
+
 export const automationSessionKind = pgEnum(
 	"automation_session_kind",
 	automationSessionKindValues,
@@ -923,6 +1037,16 @@ export const automations = pgTable(
 		// ["automation"] so every automation groups its runs out of the box;
 		// clearing the set in the editor is the opt-out.
 		tags: jsonb().$type<string[]>().notNull().default(["automation"]),
+
+		// Deliver each run's prompt into the agent session the previous run
+		// left behind, rather than starting another beside it. Needs a pinned
+		// v2WorkspaceId — that is where the session lives. Off by default: a
+		// run that lands in a conversation already holding context behaves
+		// differently from one starting clean, and that is a choice to make
+		// per automation rather than a default to inherit.
+		continueAgentSession: boolean("continue_agent_session")
+			.notNull()
+			.default(false),
 
 		// The schedule lives in the automation's `schedule` trigger.
 		enabled: boolean().notNull().default(true),
@@ -1125,6 +1249,7 @@ export const automationRuns = pgTable(
 
 		status: automationRunStatus().notNull(),
 		error: text(),
+		errorCode: automationRunErrorCode("error_code"),
 		dispatchedAt: timestamp("dispatched_at", { withTimezone: true }),
 
 		createdAt: timestamp("created_at", { withTimezone: true })
@@ -1548,3 +1673,50 @@ export const pageComments = pgTable(
 
 export type InsertPageComment = typeof pageComments.$inferInsert;
 export type SelectPageComment = typeof pageComments.$inferSelect;
+
+/**
+ * A person's own agent sign-in, used when they start a cloud workspace. The
+ * credential belongs to the person rather than an organization, so one row
+ * serves every organization they work in and it leaves with the account.
+ */
+export const agentCredentials = pgTable(
+	"agent_credentials",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		/** Agent preset id, e.g. "claude" or "codex". Text so a custom agent fits. */
+		agent: text().notNull(),
+		kind: agentCredentialKind().notNull(),
+		encryptedValue: text("encrypted_value").notNull(),
+		/** Set when the key is for a gateway or a compatible endpoint. */
+		baseUrl: text("base_url"),
+		/**
+		 * Which custom provider the value came from, e.g. "gateway". Null for a
+		 * plain provider key, including one pointed at a compatible endpoint —
+		 * a base URL alone does not make a credential a custom provider.
+		 */
+		provider: text(),
+		/** What to show in settings, e.g. the account email. Never the credential. */
+		accountLabel: text("account_label"),
+		lastValidatedAt: timestamp("last_validated_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		unique("agent_credentials_user_id_agent_unique").on(
+			table.userId,
+			table.agent,
+		),
+		index("agent_credentials_user_id_idx").on(table.userId),
+	],
+);
+
+export type InsertAgentCredential = typeof agentCredentials.$inferInsert;
+export type SelectAgentCredential = typeof agentCredentials.$inferSelect;

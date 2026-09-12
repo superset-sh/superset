@@ -47,6 +47,8 @@ describe("mapEventType", () => {
 	});
 
 	it("maps Vibe hook events", () => {
+		expect(mapEventType("pre_tool")).toBe("Start");
+		expect(mapEventType("post_agent")).toBe("Stop");
 		expect(mapEventType("before_tool")).toBe("Start");
 		expect(mapEventType("post_agent_turn")).toBe("Stop");
 	});

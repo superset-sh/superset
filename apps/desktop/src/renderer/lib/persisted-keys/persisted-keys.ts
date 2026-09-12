@@ -39,6 +39,8 @@ export const DEAD_KEYS: DeadKey[] = [
 	{ key: "v2-available-banner-v1", match: "exact" },
 	// Bumped to v2 so updated clients republish a full 30-day leaderboard window
 	{ key: "leaderboard-auto-publish-v1", match: "exact" },
+	// Launch-time "join the leaderboard" prompt removed; joining lives in settings
+	{ key: "leaderboard-asked-v1", match: "exact" },
 ];
 
 function matchesDeadKey(key: string): boolean {

@@ -14,12 +14,13 @@ const UNITS: readonly ScaleUnit[] = [
 
 /** "1.24T", "13.9B", "4.2M", "850K", "312" */
 export function formatTokens(
-	tokens: number,
+	tokens: number | bigint | string,
 	locale = getActiveLocale(),
 ): string {
+	const value = Number(tokens);
 	if (!locale.startsWith("en"))
-		return formatCompactNumber(tokens, { maximumFractionDigits: 2 }, locale);
-	return formatScaled(tokens, UNITS, (value) =>
+		return formatCompactNumber(value, { maximumFractionDigits: 2 }, locale);
+	return formatScaled(value, UNITS, (value) =>
 		formatNumber(Math.round(value), undefined, locale),
 	);
 }

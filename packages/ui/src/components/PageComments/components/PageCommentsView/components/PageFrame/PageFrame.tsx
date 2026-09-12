@@ -7,6 +7,7 @@ interface PageFrameProps {
 	title: string;
 	ref?: Ref<HTMLIFrameElement>;
 	onLoad?: () => void;
+	ready?: boolean;
 }
 
 /**
@@ -15,9 +16,13 @@ interface PageFrameProps {
  * ever being ours. The omissions are the policy: no top navigation, no
  * downloads, and popups stay sandboxed.
  */
-export function PageFrame({ src, title, ref, onLoad }: PageFrameProps) {
+export function PageFrame({ src, title, ref, onLoad, ready }: PageFrameProps) {
 	const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
-	const loaded = loadedSrc === src;
+	// `ready` covers the one case `load` cannot: the server-rendered frame
+	// finished before hydration, so React never saw its load event. Once any
+	// load has been observed, every later src swap gets a real one, and the
+	// handshake must not reveal a frame that is still loading.
+	const loaded = loadedSrc === src || (ready === true && loadedSrc === null);
 
 	return (
 		<div className="relative h-full w-full bg-background">

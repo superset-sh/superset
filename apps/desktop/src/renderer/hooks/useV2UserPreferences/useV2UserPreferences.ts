@@ -3,6 +3,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	type ChangesViewMode,
 	DEFAULT_V2_USER_PREFERENCES,
 	type FolderTierMap,
 	type LinkAction,
@@ -19,11 +20,13 @@ export interface V2UserPreferencesApi {
 	setSidebarFileLinks: (next: LinkTierMap) => void;
 	setFolderLinks: (next: FolderTierMap) => void;
 	setPortOpenAction: (next: LinkAction) => void;
+	setPageOpenAction: (next: LinkAction) => void;
 	setRightSidebarOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
 	setRightSidebarWidth: (next: number) => void;
 	setDeleteLocalBranch: (next: boolean) => void;
 	setShowPresetsBar: (next: boolean | ((prev: boolean) => boolean)) => void;
 	toggleShowPresetsBar: () => void;
+	setChangesViewMode: (next: ChangesViewMode) => void;
 	setSidebarProjectSortMode: (next: SidebarProjectSortMode) => void;
 	setBuiltinPresetHidden: (presetId: string, hidden: boolean) => void;
 	/** Hide/show a tag folder in one project without touching anyone's tags. */
@@ -110,6 +113,25 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 			}
 			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
 				draft.portOpenAction = next;
+			});
+		},
+		[collections],
+	);
+
+	const setPageOpenAction = useCallback(
+		(next: LinkAction) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					pageOpenAction: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.pageOpenAction = next;
 			});
 		},
 		[collections],
@@ -204,6 +226,25 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setShowPresetsBar((prev) => !prev);
 	}, [setShowPresetsBar]);
 
+	const setChangesViewMode = useCallback(
+		(next: ChangesViewMode) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					changesViewMode: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.changesViewMode = next;
+			});
+		},
+		[collections],
+	);
+
 	const setSidebarProjectSortMode = useCallback(
 		(next: SidebarProjectSortMode) => {
 			const existing = collections.v2UserPreferences.get(
@@ -294,11 +335,13 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setSidebarFileLinks,
 		setFolderLinks,
 		setPortOpenAction,
+		setPageOpenAction,
 		setRightSidebarOpen,
 		setRightSidebarWidth,
 		setDeleteLocalBranch,
 		setShowPresetsBar,
 		toggleShowPresetsBar,
+		setChangesViewMode,
 		setSidebarProjectSortMode,
 		setBuiltinPresetHidden,
 		setTagFolderHidden,

@@ -309,6 +309,7 @@ export const automationBaseColumns = {
 	v2ProjectId: automations.v2ProjectId,
 	v2WorkspaceId: automations.v2WorkspaceId,
 	tags: automations.tags,
+	continueAgentSession: automations.continueAgentSession,
 	enabled: automations.enabled,
 	createdAt: automations.createdAt,
 	updatedAt: automations.updatedAt,

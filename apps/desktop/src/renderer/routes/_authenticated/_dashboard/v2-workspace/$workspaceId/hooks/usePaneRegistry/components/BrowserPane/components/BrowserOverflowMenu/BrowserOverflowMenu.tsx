@@ -83,6 +83,10 @@ export function BrowserOverflowMenu({
 		return () => pointerPassthrough.set(source, false);
 	}, [paneId, isMenuOpen]);
 
+	const handleOpenDevTools = () => {
+		electronTrpcClient.browser.openDevTools.mutate({ paneId }).catch(() => {});
+	};
+
 	const handlePrint = () => browserRuntimeRegistry.print(paneId);
 
 	const handleZoomOut = () => browserRuntimeRegistry.stepZoom(paneId, "out");
@@ -170,6 +174,9 @@ export function BrowserOverflowMenu({
 					<DropdownMenuItem onClick={handlePrint} disabled={!hasPage}>
 						<Trans>Print</Trans>
 					</DropdownMenuItem>
+					<DropdownMenuItem onClick={handleOpenDevTools} disabled={!hasPage}>
+						<Trans>Open DevTools</Trans>
+					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					{/* A plain row of buttons here would be unreachable by arrow-key menu
 					    navigation (Radix only moves focus between registered items) and
@@ -195,7 +202,7 @@ export function BrowserOverflowMenu({
 						<span>
 							<Trans>Zoom</Trans>
 						</span>
-						<div className="flex items-center gap-0.5">
+						<div className="flex items-center gap-1">
 							<button
 								type="button"
 								tabIndex={-1}

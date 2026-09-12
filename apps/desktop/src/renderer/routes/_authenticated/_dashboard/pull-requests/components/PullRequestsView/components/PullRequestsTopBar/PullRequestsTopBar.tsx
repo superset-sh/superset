@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { cn } from "@superset/ui/utils";
 import { LuListFilter } from "react-icons/lu";
 import { ProjectFilter } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
 import type { ProjectQueryTarget } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import { PullRequestDetailToggle } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailToggle";
@@ -106,6 +107,7 @@ export function PullRequestsTopBar({
 				<div className="ml-auto shrink-0">
 					<PullRequestDetailToggle />
 				</div>
+				<WindowControlsInset />
 			</div>
 			<div className="flex items-center gap-1.5">
 				<div className="min-w-0 flex-1">

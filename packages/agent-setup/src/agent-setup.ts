@@ -15,6 +15,8 @@ import {
 	createCursorAgentWrapper,
 	createCursorHookScript,
 	createCursorHooksJson,
+	createDevinConfigJson,
+	createDevinWrapper,
 	createDroidSettingsJson,
 	createDroidWrapper,
 	createGeminiHookScript,
@@ -27,6 +29,9 @@ import {
 	createKimiWrapper,
 	createMastraHooksJson,
 	createMastraWrapper,
+	createMuseManagedHooksFile,
+	createMuseSettingsJson,
+	createMuseWrapper,
 	createOmpExtension,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
@@ -37,11 +42,13 @@ import {
 	removeClaudeManagedHooks,
 	removeCodexManagedHooks,
 	removeCursorManagedHooks,
+	removeDevinManagedHooks,
 	removeDroidManagedHooks,
 	removeGeminiManagedHooks,
 	removeGrokManagedHooks,
 	removeKimiManagedHooks,
 	removeMastraManagedHooks,
+	removeMuseManagedHooks,
 	removeOmpExtension,
 	removePiExtension,
 	removeVibeManagedHooks,
@@ -136,6 +143,18 @@ const AGENT_SETUP_DEFINITIONS: Record<
 	vibe: {
 		setup: [createVibeHooksToml, createVibeWrapper],
 		teardown: [removeVibeManagedHooks],
+	},
+	devin: {
+		setup: [createDevinConfigJson, createDevinWrapper],
+		teardown: [removeDevinManagedHooks],
+	},
+	muse: {
+		setup: [
+			createMuseManagedHooksFile,
+			createMuseSettingsJson,
+			createMuseWrapper,
+		],
+		teardown: [removeMuseManagedHooks],
 	},
 };
 
