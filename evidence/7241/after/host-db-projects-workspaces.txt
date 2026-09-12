@@ -1,0 +1,11 @@
+-- host.db projects (org a1b2c3d4-e5f6-7890-abcd-ef1234567890) touching ~/tmp-7241
+id|name|repo_path|repo_owner|repo_name|repo_url|remote_name
+f4a10b9f-39e7-4c37-aa52-ea0729924e8e|a|/Users/kietho/tmp-7241/a|fix7241|a|https://github.com/fix7241/a|origin
+2003e055-78f0-4210-87a5-32878fccd921|b|/Users/kietho/tmp-7241/b|fix7241|b|https://github.com/fix7241/b|origin
+
+-- host.db workspaces touching ~/tmp-7241
+id|project_id|name|branch|type|worktree_path|archived_at
+2f262577-5823-4925-9e8d-64cbdc719324|2003e055-78f0-4210-87a5-32878fccd921|main|main|main|/Users/kietho/tmp-7241/b|
+9fa033c7-848e-433e-95d8-b2afc30c0fec|2003e055-78f0-4210-87a5-32878fccd921|feature|feature|worktree|/Users/kietho/tmp-7241/b-worktrees/feature|
+f3a1a0a4-cd78-4460-9f30-3623be83ff00|f4a10b9f-39e7-4c37-aa52-ea0729924e8e|main|main|main|/Users/kietho/tmp-7241/a|
+535facde-08e0-46dd-8fe9-925e0b7b9126|f4a10b9f-39e7-4c37-aa52-ea0729924e8e|a-feature|a-feature|worktree|/Users/kietho/tmp-7241/a-worktrees/a-feature|

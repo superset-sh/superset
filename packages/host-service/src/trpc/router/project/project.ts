@@ -37,7 +37,7 @@ import {
 	createFromTemplate,
 } from "./handlers";
 import { ensureMainWorkspace } from "./utils/ensure-main-workspace";
-import { getGitHubRemotes } from "./utils/git-remote";
+import { getAllRemoteUrls, getGitHubRemotes } from "./utils/git-remote";
 import { persistLocalProject } from "./utils/persist-project";
 import {
 	cloneRepoInto,
@@ -66,6 +66,9 @@ export interface FindByPathCandidate {
 	repoCloneUrl: string | null;
 	source: "local-path" | "remote";
 	matchesExpected: boolean;
+	/** Discovered through the repo's `origin` remote. A `remote` candidate
+	 * reached only via a secondary remote is another repo's project. */
+	viaOrigin: boolean;
 }
 
 export const projectRouter = router({
@@ -465,6 +468,7 @@ export const projectRouter = router({
 					candidates: [],
 					cloudErrors: [] as { url: string; message: string }[],
 					needsGitInit: true as const,
+					hasOriginRemote: false,
 				};
 			}
 
@@ -503,9 +507,11 @@ export const projectRouter = router({
 							repoCloneUrl: localProject.repoUrl ?? null,
 							source: "local-path" as const,
 							matchesExpected: matches(localProject.repoUrl ?? null),
+							viaOrigin: false,
 						},
 					],
 					cloudErrors: [] as { url: string; message: string }[],
+					hasOriginRemote: false,
 				};
 			}
 
@@ -513,12 +519,20 @@ export const projectRouter = router({
 			// hit means the caller creates a fresh local project; the cloud
 			// is never consulted.
 			if (!input.walkAllRemotes) {
-				return { candidates: [], cloudErrors: [] };
+				return { candidates: [], cloudErrors: [], hasOriginRemote: false };
 			}
 
 			// walkAllRemotes branch — v1→v2 importer, no local row: discover
 			// linkable cloud candidates across every GitHub remote.
-			const allRemotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
+			const git = createUserSimpleGit(gitRoot);
+			const [allRemotes, rawRemotes] = await Promise.all([
+				getGitHubRemotes(git),
+				getAllRemoteUrls(git),
+			]);
+			// `origin` can live on a non-GitHub host, which getGitHubRemotes
+			// drops — its mere existence still makes any GitHub match secondary.
+			const hasOriginRemote = rawRemotes.has("origin");
+			const originUrl = allRemotes.get("origin")?.url.toLowerCase();
 
 			const urlsToQuery = new Map<string, ParsedGitHubRemote>();
 			for (const parsed of allRemotes.values()) {
@@ -535,6 +549,7 @@ export const projectRouter = router({
 			// importer (the only caller that sets walkAllRemotes).
 			const cloudErrors: { url: string; message: string }[] = [];
 			for (const parsed of urlsToQuery.values()) {
+				const viaOrigin = parsed.url.toLowerCase() === originUrl;
 				try {
 					const { candidates } =
 						await ctx.api.v2Project.findByGitHubRemote.query({
@@ -548,6 +563,7 @@ export const projectRouter = router({
 							// candidate and merge the match flag.
 							existing.matchesExpected =
 								existing.matchesExpected || matches(parsed.url);
+							existing.viaOrigin = existing.viaOrigin || viaOrigin;
 							existing.repoCloneUrl = existing.repoCloneUrl ?? parsed.url;
 						} else {
 							byId.set(c.id, {
@@ -556,6 +572,7 @@ export const projectRouter = router({
 								repoCloneUrl: parsed.url,
 								source: "remote",
 								matchesExpected: matches(parsed.url),
+								viaOrigin,
 							});
 						}
 					}
@@ -570,8 +587,11 @@ export const projectRouter = router({
 				}
 			}
 
-			// Sort: matchesExpected first, then alphabetic.
+			// Sort: origin-derived first, then matchesExpected, then alphabetic.
 			const candidates = Array.from(byId.values()).sort((a, b) => {
+				if (a.viaOrigin !== b.viaOrigin) {
+					return a.viaOrigin ? -1 : 1;
+				}
 				if (a.matchesExpected !== b.matchesExpected) {
 					return a.matchesExpected ? -1 : 1;
 				}
@@ -582,7 +602,7 @@ export const projectRouter = router({
 			// one cloud query failed — so users see a clear "couldn't reach
 			// cloud" instead of a misleading "Import" (which would create a
 			// duplicate v2 project).
-			return { candidates, cloudErrors };
+			return { candidates, cloudErrors, hasOriginRemote };
 		}),
 
 	create: machineOnlyProcedure

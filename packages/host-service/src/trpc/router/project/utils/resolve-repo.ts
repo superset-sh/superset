@@ -10,6 +10,7 @@ import type { GitCredentialProvider } from "../../../../runtime/git";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import {
 	findMatchingRemote,
+	getAllRemoteUrls,
 	getGitHubRemotes,
 	type ParsedGitHubRemote,
 } from "./git-remote";
@@ -261,7 +262,10 @@ export async function initLocalRepoInPlace(
 /**
  * Validates that a path is a git working tree and returns the canonical git
  * root plus the GitHub remote whose `owner/name` matches `expectedSlug`.
- * Throws if no matching remote exists.
+ * Throws if no matching remote exists, and CONFLICT when the match is not
+ * the repo's `origin` while an `origin` exists: the folder is a checkout of
+ * a different repo that merely references this one (fork upstream, sync
+ * mirror), so claiming it would move the project between repos (#7241).
  *
  * Used when the caller has an authoritative clone URL from the cloud and
  * wants to confirm this local repo is actually that project (`setup
@@ -273,8 +277,19 @@ export async function resolveMatchingSlug(
 ): Promise<ResolvedGitHubRepo> {
 	validateDirectoryPath(repoPath, "Path");
 	const gitRoot = await revParseGitRoot(repoPath);
-	const remotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
+	const git = createUserSimpleGit(gitRoot);
+	const [remotes, rawRemotes] = await Promise.all([
+		getGitHubRemotes(git),
+		getAllRemoteUrls(git),
+	]);
 	const remoteName = findMatchingRemote(remotes, expectedSlug);
+	const originUrl = rawRemotes.get("origin");
+	if (remoteName && remoteName !== "origin" && originUrl) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: `${gitRoot} is a checkout of ${originUrl} (origin), not ${expectedSlug}; its "${remoteName}" remote only references that repository. Import the folder as its own project instead.`,
+		});
+	}
 	if (!remoteName) {
 		const found = [...remotes.entries()]
 			.map(([name, parsed]) => `${name}: ${parsed.owner}/${parsed.name}`)

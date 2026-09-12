@@ -1,0 +1,12 @@
+-- git remotes
+[a]
+remote.origin.url git@github.com:fix7241/a.git
+[b]
+remote.origin.url git@github.com:fix7241/b.git
+remote.a.url git@github.com:fix7241/a.git
+
+-- worktrees
+/Users/kietho/tmp-7241/a                      db19314 [main]
+/Users/kietho/tmp-7241/a-worktrees/a-feature  db19314 [a-feature]
+/Users/kietho/tmp-7241/b                    df6e20a [main]
+/Users/kietho/tmp-7241/b-worktrees/feature  df6e20a [feature]

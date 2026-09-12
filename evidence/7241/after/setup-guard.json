@@ -1,0 +1,10 @@
+{
+	"allowRelocate=false": {
+		"error": "/Users/kietho/tmp-7241/b is a checkout of git@github.com:fix7241/b.git (origin), not fix7241/a; its \"a\" remote only references that repository. Import the folder as its own project instead.",
+		"code": "CONFLICT"
+	},
+	"allowRelocate=true": {
+		"error": "/Users/kietho/tmp-7241/b is a checkout of git@github.com:fix7241/b.git (origin), not fix7241/a; its \"a\" remote only references that repository. Import the folder as its own project instead.",
+		"code": "CONFLICT"
+	}
+}
