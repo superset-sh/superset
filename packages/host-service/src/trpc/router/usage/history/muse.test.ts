@@ -98,6 +98,34 @@ describe("parseMuseLine", () => {
 		});
 	});
 
+	test("reads the record a real Meta-provider session writes (Muse Code 1.1.1)", () => {
+		const parsed = parseMuseLine(
+			runEvent(
+				{
+					kind: "model_completed",
+					usage: {
+						input_tokens: 28316,
+						output_tokens: 22,
+						cached_tokens: 0,
+						cache_write_tokens: 0,
+						cache_read_tokens: 0,
+						reasoning_tokens: 11,
+					},
+					duration_ms: 11291,
+					model: "muse-spark-1.3-contributor",
+				},
+				"226ca60b-42f2-4860-ab44-dc1a2bef4833",
+				1789173576554136,
+			),
+		);
+		expect(parsed).toMatchObject({
+			timestampMs: 1789173576554,
+			recordId: "226ca60b-42f2-4860-ab44-dc1a2bef4833",
+			completedModel: "muse-spark-1.3-contributor",
+			usage: { input_tokens: 28316, output_tokens: 22, reasoning_tokens: 11 },
+		});
+	});
+
 	test("ignores lines that are not JSON envelopes", () => {
 		expect(parseMuseLine("garbage")).toBeNull();
 		expect(parseMuseLine('{"payload":null}')).toBeNull();
