@@ -4,7 +4,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -135,6 +135,7 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
 	const { t } = useLingui();
 	const {
+		archivedGroups,
 		groups,
 		hiddenProjects,
 		pinnedWorkspaces,
@@ -171,6 +172,10 @@ export function DashboardSidebar({
 	const { preferences, setSidebarProjectSortMode } = useV2UserPreferences();
 	const sortMode = preferences.sidebarProjectSortMode;
 	const [projectFilterQuery, setProjectFilterQuery] = useState("");
+	// Archived view: the same project tree, holding only archived rows. Only
+	// the expanded sidebar offers the toggle; the icon rail always shows live.
+	const [showArchived, setShowArchived] = useState(false);
+	const isArchivedView = showArchived && !isCollapsed;
 	// The icon rail hides the Projects header (and its filter input); a
 	// filter left active there would invisibly hide projects.
 	useEffect(() => {
@@ -194,12 +199,13 @@ export function DashboardSidebar({
 
 	// Sort, then filter, as derived views: `orderedGroups` and the persisted
 	// tabOrder stay untouched, so Manual restores the drag order exactly.
+	const sourceGroups = isArchivedView ? archivedGroups : orderedGroups;
 	const sortedGroups = useMemo(
 		() =>
 			sortMode === "manual"
-				? orderedGroups
-				: sortDashboardSidebarProjects(orderedGroups, sortMode),
-		[sortMode, orderedGroups],
+				? sourceGroups
+				: sortDashboardSidebarProjects(sourceGroups, sortMode),
+		[sortMode, sourceGroups],
 	);
 	const displayedGroups = useMemo(
 		() => filterDashboardSidebarProjects(sortedGroups, projectFilterQuery),
@@ -214,8 +220,9 @@ export function DashboardSidebar({
 	// The sort modes only reorder rows inside a project, so the project list
 	// is still the manual order and stays draggable; only a filter, which
 	// hides projects outright, makes a project drop unsafe to commit.
-	const isProjectDragDisabled = isFilterActive;
-	const isChildDragDisabled = sortMode !== "manual" || isFilterActive;
+	const isProjectDragDisabled = isFilterActive || isArchivedView;
+	const isChildDragDisabled =
+		sortMode !== "manual" || isFilterActive || isArchivedView;
 
 	// Sorted but unfiltered, so ⌘1–⌘9 targets stay put while typing a query.
 	// The filtered view expands matches through derived objects, so a jump
@@ -354,35 +361,43 @@ export function DashboardSidebar({
 									<OverflowFadeContainer
 										fadeEdges={["top", "bottom"]}
 										className="flex-1 overflow-y-auto hide-scrollbar"
+										data-dashboard-sidebar-list
 									>
-										{(isCollapsed || !workspacesListCollapsed) && (
-											<DashboardSidebarPinnedSection
-												pinnedWorkspaces={pinnedWorkspaces}
+										{(isCollapsed || !workspacesListCollapsed) &&
+											!isArchivedView && (
+												<DashboardSidebarPinnedSection
+													pinnedWorkspaces={pinnedWorkspaces}
+													isCollapsed={isCollapsed}
+													onWorkspaceHover={refreshWorkspacePullRequest}
+												/>
+											)}
+										{!isArchivedView && (
+											<DashboardSidebarCloudSection
 												isCollapsed={isCollapsed}
 												onWorkspaceHover={refreshWorkspacePullRequest}
 											/>
 										)}
-										<DashboardSidebarCloudSection
-											isCollapsed={isCollapsed}
-											onWorkspaceHover={refreshWorkspacePullRequest}
-										/>
-										<DashboardSidebarSessionsSection
-											sessionWorkspaces={sessionWorkspaces}
-											isCollapsed={isCollapsed}
-											workspaceShortcutLabels={workspaceShortcutLabels}
-											onWorkspaceHover={refreshWorkspacePullRequest}
-											onDeleteSection={deleteSection}
-											onRenameSection={renameSection}
-											onToggleSectionCollapse={toggleSectionCollapsed}
-										/>
+										{!isArchivedView && (
+											<DashboardSidebarSessionsSection
+												sessionWorkspaces={sessionWorkspaces}
+												isCollapsed={isCollapsed}
+												workspaceShortcutLabels={workspaceShortcutLabels}
+												onWorkspaceHover={refreshWorkspacePullRequest}
+												onDeleteSection={deleteSection}
+												onRenameSection={renameSection}
+												onToggleSectionCollapse={toggleSectionCollapsed}
+											/>
+										)}
 										{!isCollapsed && (
 											<div className="mt-3 first:mt-0">
-												<DashboardSidebarBulkActions projects={orderedGroups}>
+												<DashboardSidebarBulkActions projects={sourceGroups}>
 													<DashboardSidebarWorkspacesHeader
 														sortMode={sortMode}
 														onSortModeChange={setSidebarProjectSortMode}
 														filterQuery={projectFilterQuery}
 														onFilterQueryChange={setProjectFilterQuery}
+														showArchived={showArchived}
+														onShowArchivedChange={setShowArchived}
 													/>
 												</DashboardSidebarBulkActions>
 											</div>
@@ -408,12 +423,22 @@ export function DashboardSidebar({
 												))}
 											</SortableContext>
 										)}
-										{!isCollapsed && !workspacesListCollapsed && (
-											<DashboardSidebarHiddenProjects
-												projects={hiddenProjects}
-												onShow={showHiddenProject}
-											/>
-										)}
+										{isArchivedView &&
+											!workspacesListCollapsed &&
+											!isFilterActive &&
+											displayedGroups.length === 0 && (
+												<div className="select-text cursor-text px-4 py-2 text-xs text-muted-foreground">
+													<Trans>No archived workspaces</Trans>
+												</div>
+											)}
+										{!isCollapsed &&
+											!workspacesListCollapsed &&
+											!isArchivedView && (
+												<DashboardSidebarHiddenProjects
+													projects={hiddenProjects}
+													onShow={showHiddenProject}
+												/>
+											)}
 										{!isCollapsed &&
 											isFilterActive &&
 											displayedGroups.length === 0 && (

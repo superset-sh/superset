@@ -68,6 +68,8 @@ export interface SidebarWorkspaceInput {
 	tags?: readonly string[] | null;
 	pinnedAt: number | null;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
+	shelvedAt?: number | null;
+	purgeBlockedReason?: string | null;
 }
 
 /**
@@ -124,6 +126,8 @@ function decorateSidebarWorkspace(
 		taskId: workspace.taskId,
 		isPinned: workspace.pinnedAt != null,
 		pendingTransaction: workspace.pendingTransaction,
+		shelvedAt: workspace.shelvedAt ?? null,
+		purgeBlockedReason: workspace.purgeBlockedReason ?? null,
 	};
 }
 

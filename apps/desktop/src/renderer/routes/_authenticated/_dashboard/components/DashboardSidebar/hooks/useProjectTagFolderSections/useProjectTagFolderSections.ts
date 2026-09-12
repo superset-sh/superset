@@ -1,5 +1,6 @@
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
+import { isShelvedWorkspace } from "renderer/lib/workspaces/isShelvedWorkspace";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import {
@@ -44,14 +45,20 @@ export function useProjectTagFolderSections(projectId: string | null): {
 				})),
 		[collections],
 	);
+	// Same shelf filter the sidebar applies before deriving its folders, so the
+	// menu can't offer a folder the sidebar doesn't render.
+	const activeWorkspaces = useMemo(
+		() => hostWorkspaces.filter((workspace) => !isShelvedWorkspace(workspace)),
+		[hostWorkspaces],
+	);
 	const sections = useMemo(() => {
 		if (projectId === null) {
 			return deriveSessionTagFolders(
-				hostWorkspaces,
+				activeWorkspaces,
 				tagFolderContext.tagSettings,
 			).map(({ tag, name, color }) => ({ id: tag, name, color }));
 		}
-		return deriveTagFolders(storedSections, hostWorkspaces, tagFolderContext)
+		return deriveTagFolders(storedSections, activeWorkspaces, tagFolderContext)
 			.filter((section) => section.projectId === projectId)
 			.sort(
 				(left, right) =>
@@ -63,7 +70,7 @@ export function useProjectTagFolderSections(projectId: string | null): {
 				name: section.name,
 				color: section.color,
 			}));
-	}, [projectId, storedSections, hostWorkspaces, tagFolderContext]);
+	}, [projectId, storedSections, activeWorkspaces, tagFolderContext]);
 	// Derived folders come from host rows, so "ready" needs the host fan-out
 	// too — otherwise the menu claims a complete list before tags arrive.
 	return { sections, areSectionsReady: isReady && hostWorkspacesReady };

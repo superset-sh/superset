@@ -2,6 +2,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo } from "react";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { authClient } from "renderer/lib/auth-client";
+import { isShelvedWorkspace } from "renderer/lib/workspaces/isShelvedWorkspace";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
@@ -53,14 +54,18 @@ export function usePlaceWorktreesInSidebar(): void {
 	);
 	const candidates = useMemo<WorkspaceForPlacement[]>(
 		() =>
-			workspaces.map((workspace) => ({
-				id: workspace.id,
-				projectId: workspace.projectId,
-				type: workspace.type,
-				hostId: workspace.hostId,
-				hostReachable: workspace.hostReachable,
-				createdByUserId: workspace.createdByUserId ?? null,
-			})),
+			// An archived (shelved) worktree is deliberately out of the sidebar;
+			// auto-placement must not put it back. Restoring is always explicit.
+			workspaces
+				.filter((workspace) => !isShelvedWorkspace(workspace))
+				.map((workspace) => ({
+					id: workspace.id,
+					projectId: workspace.projectId,
+					type: workspace.type,
+					hostId: workspace.hostId,
+					hostReachable: workspace.hostReachable,
+					createdByUserId: workspace.createdByUserId ?? null,
+				})),
 		[workspaces],
 	);
 

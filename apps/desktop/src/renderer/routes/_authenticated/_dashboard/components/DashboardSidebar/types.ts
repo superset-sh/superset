@@ -57,6 +57,10 @@ export interface DashboardSidebarWorkspace {
 	taskId: string | null;
 	isPinned: boolean;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
+	/** Epoch ms the user archived it; null or absent when live. */
+	shelvedAt?: number | null;
+	/** Why its host paused the purge ("dirty" or "unverifiable"); null when not paused. */
+	purgeBlockedReason?: string | null;
 }
 
 /**

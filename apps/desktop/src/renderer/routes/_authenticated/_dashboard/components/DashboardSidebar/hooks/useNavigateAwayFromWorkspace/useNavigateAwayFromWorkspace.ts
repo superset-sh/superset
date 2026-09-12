@@ -1,5 +1,6 @@
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
+import { isShelvedWorkspace } from "renderer/lib/workspaces/isShelvedWorkspace";
 import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dashboard/stores/deletingWorkspacesStore";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -22,8 +23,14 @@ export function useNavigateAwayFromWorkspace() {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const collections = useCollections();
-	const { workspaces, isReady } = useHostWorkspaces();
+	const { workspaces: allWorkspaces, isReady } = useHostWorkspaces();
 	const tagFolderContext = useTagFolderContext();
+	// An archived (shelved) row is not a place to land: it has no sidebar row
+	// and opening it shows the archived banner instead of the workspace.
+	const workspaces = useMemo(
+		() => allWorkspaces.filter((workspace) => !isShelvedWorkspace(workspace)),
+		[allWorkspaces],
+	);
 	const workspaceIds = useMemo(
 		() => new Set(workspaces.map((workspace) => workspace.id)),
 		[workspaces],
