@@ -1,0 +1,12 @@
+-- local.db v1_migration_state (org a1b2c3d4-e5f6-7890-abcd-ef1234567890)
+v1_id|kind|v2_id|organization_id|status|reason|migrated_at
+11111111-b000-4000-8000-00000000000b|project|f4a10b9f-39e7-4c37-aa52-ea0729924e8e|a1b2c3d4-e5f6-7890-abcd-ef1234567890|success||1789240751737
+33333333-b000-4000-8000-00000000000b|workspace|dde6676d-56b0-48eb-9b31-1ee52de85d33|a1b2c3d4-e5f6-7890-abcd-ef1234567890|success||1789240783794
+
+-- local.db v1 projects visible to the importer (tab_order not null)
+id|name|main_repo_path|github_owner|tab_order
+11111111-b000-4000-8000-00000000000b|b|/Users/kietho/tmp-7241/b||0
+
+-- local.db v1 workspaces + worktrees of project B
+id|type|branch|name|path
+33333333-b000-4000-8000-00000000000b|worktree|feature|feature|/Users/kietho/tmp-7241/b-worktrees/feature

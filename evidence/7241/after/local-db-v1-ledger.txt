@@ -1,0 +1,12 @@
+-- local.db v1_migration_state (org a1b2c3d4-e5f6-7890-abcd-ef1234567890)
+
+-- (1) right after the headless pass (runV1Migration, the V1AutoMigration boot path), read back
+--     through electronV1MigrationIpc.ledgerList in the renderer. Project A untouched; B skipped:
+v1Id                                 kind     v2Id  status   reason
+11111111-b000-4000-8000-00000000000b project  null  skipped  non-origin-only
+-- summary: projects {migrated 0, linked 0, skipped 1, failed 0}, gateComplete true
+
+-- (2) after the wizard's manual "Link" on row b (creates b as its own project) + "Adopt all":
+v1_id|kind|v2_id|organization_id|status|reason|migrated_at
+11111111-b000-4000-8000-00000000000b|project|2003e055-78f0-4210-87a5-32878fccd921|a1b2c3d4-e5f6-7890-abcd-ef1234567890|success||1789241207428
+33333333-b000-4000-8000-00000000000b|workspace|9fa033c7-848e-433e-95d8-b2afc30c0fec|a1b2c3d4-e5f6-7890-abcd-ef1234567890|success||1789241226263

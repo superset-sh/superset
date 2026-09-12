@@ -54,17 +54,27 @@ async function createTempGitRepo(): Promise<string> {
 
 function createRecordingApiStub() {
 	const calls: string[] = [];
+	/** Canonical GitHub URL (lower-cased) → cloud project ids it resolves to. */
+	const byRemoteUrl = new Map<string, string[]>();
 	const api = {
 		v2Project: {
 			findByGitHubRemote: {
-				query: async () => {
+				query: async ({ repoCloneUrl }: { repoCloneUrl: string }) => {
 					calls.push("v2Project.findByGitHubRemote");
-					return { candidates: [] };
+					const ids = byRemoteUrl.get(repoCloneUrl.toLowerCase()) ?? [];
+					return { candidates: ids.map((id) => ({ id, name: id })) };
 				},
 			},
 		},
 	};
-	return { api, calls };
+	return { api, calls, byRemoteUrl };
+}
+
+async function addRemotes(root: string, remotes: Record<string, string>) {
+	const git = createUserSimpleGit(root);
+	for (const [name, url] of Object.entries(remotes)) {
+		await git.raw(["remote", "add", name, url]);
+	}
 }
 
 function createTestContext(db: HostDb, api: unknown): HostServiceContext {
@@ -127,6 +137,170 @@ describe("findByPath walkAllRemotes (v1 importer)", () => {
 
 		expect(result.candidates).toHaveLength(0);
 		expect(calls).toContain("v2Project.findByGitHubRemote");
+	});
+
+	// #7241: repo B (origin → owner/b, secondary remote → owner/a) where
+	// only owner/a is a cloud project. No expectedRemoteUrl hint, which is
+	// what the importer sends in practice (v1 github_owner is empty).
+	it("flags a lone candidate reached only via a secondary remote", async () => {
+		const db = createTestDb();
+		const { api, byRemoteUrl } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const root = await createTempGitRepo();
+		await addRemotes(root, {
+			origin: "git@github.com:owner/b.git",
+			a: "git@github.com:owner/a.git",
+		});
+		byRemoteUrl.set("https://github.com/owner/a", ["project-a"]);
+
+		const caller = createCallerFactory(projectRouter)(ctx);
+		const result = await caller.findByPath({
+			repoPath: root,
+			walkAllRemotes: true,
+		});
+
+		expect(result.hasOriginRemote).toBe(true);
+		expect(result.candidates).toEqual([
+			expect.objectContaining({
+				id: "project-a",
+				source: "remote",
+				viaOrigin: false,
+				matchesExpected: false,
+			}),
+		]);
+	});
+
+	it("ranks the origin-derived candidate first without any hint", async () => {
+		const db = createTestDb();
+		const { api, byRemoteUrl } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const root = await createTempGitRepo();
+		// Config order and alphabetical order both put `a` before origin's
+		// project, so only origin ranking can win here.
+		await addRemotes(root, {
+			a: "git@github.com:owner/a.git",
+			origin: "git@github.com:owner/b.git",
+		});
+		byRemoteUrl.set("https://github.com/owner/a", ["project-a"]);
+		byRemoteUrl.set("https://github.com/owner/b", ["project-b"]);
+
+		const caller = createCallerFactory(projectRouter)(ctx);
+		const result = await caller.findByPath({
+			repoPath: root,
+			walkAllRemotes: true,
+		});
+
+		expect(result.candidates.map((c) => [c.id, c.viaOrigin])).toEqual([
+			["project-b", true],
+			["project-a", false],
+		]);
+	});
+
+	it("reports hasOriginRemote for a non-GitHub origin", async () => {
+		const db = createTestDb();
+		const { api, byRemoteUrl } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const root = await createTempGitRepo();
+		await addRemotes(root, {
+			origin: "https://gitlab.com/owner/b.git",
+			a: "git@github.com:owner/a.git",
+		});
+		byRemoteUrl.set("https://github.com/owner/a", ["project-a"]);
+
+		const caller = createCallerFactory(projectRouter)(ctx);
+		const result = await caller.findByPath({
+			repoPath: root,
+			walkAllRemotes: true,
+		});
+
+		expect(result.hasOriginRemote).toBe(true);
+		expect(result.candidates[0]?.viaOrigin).toBe(false);
+	});
+});
+
+describe("setup import refuses to move a project between repos (#7241)", () => {
+	const projectA = "6b8d3c1e-6f7a-4b9c-8d1e-2f3a4b5c6d7e";
+	const setupInput = (repoPath: string, allowRelocate = false) => ({
+		projectId: projectA,
+		origin: { repoCloneUrl: "https://github.com/owner/a", name: "a" },
+		mode: { kind: "import" as const, repoPath, allowRelocate },
+	});
+
+	it("rejects a folder whose origin is another repo when the project has no local row", async () => {
+		const db = createTestDb();
+		const { api } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const repoB = await createTempGitRepo();
+		await addRemotes(repoB, {
+			origin: "git@github.com:owner/b.git",
+			a: "git@github.com:owner/a.git",
+		});
+
+		const caller = createCallerFactory(projectRouter)(ctx);
+		await expect(caller.setup(setupInput(repoB))).rejects.toMatchObject({
+			code: "CONFLICT",
+		});
+		expect(db.select().from(projects).all()).toHaveLength(0);
+	});
+
+	it("rejects the same folder even when the caller allows relocating", async () => {
+		const db = createTestDb();
+		const { api } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const repoA = await createTempGitRepo();
+		await addRemotes(repoA, { origin: "git@github.com:owner/a.git" });
+		const repoB = await createTempGitRepo();
+		await addRemotes(repoB, {
+			origin: "git@github.com:owner/b.git",
+			a: "git@github.com:owner/a.git",
+		});
+		db.insert(projects)
+			.values({
+				id: projectA,
+				repoPath: repoA,
+				name: "a",
+				repoUrl: "https://github.com/owner/a",
+				updatedAt: 1,
+			})
+			.run();
+
+		const caller = createCallerFactory(projectRouter)(ctx);
+		await expect(caller.setup(setupInput(repoB, true))).rejects.toMatchObject({
+			code: "CONFLICT",
+		});
+		const row = db
+			.select()
+			.from(projects)
+			.where(eq(projects.id, projectA))
+			.get();
+		expect(row?.repoPath).toBe(repoA);
+		expect(row?.repoUrl).toBe("https://github.com/owner/a");
+	});
+
+	it("still relocates to another checkout of the same repo", async () => {
+		const db = createTestDb();
+		const { api } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const oldCheckout = await createTempGitRepo();
+		await addRemotes(oldCheckout, { origin: "git@github.com:owner/a.git" });
+		const newCheckout = await createTempGitRepo();
+		await addRemotes(newCheckout, {
+			upstream: "git@github.com:other/fork.git",
+			origin: "git@github.com:owner/a.git",
+		});
+		db.insert(projects)
+			.values({ id: projectA, repoPath: oldCheckout, name: "a", updatedAt: 1 })
+			.run();
+
+		const caller = createCallerFactory(projectRouter)(ctx);
+		const result = await caller.setup(setupInput(newCheckout, true));
+		expect(result.repoPath).toBe(newCheckout);
+		const row = db
+			.select()
+			.from(projects)
+			.where(eq(projects.id, projectA))
+			.get();
+		expect(row?.remoteName).toBe("origin");
 	});
 });
 

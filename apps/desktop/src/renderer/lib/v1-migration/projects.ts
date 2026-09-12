@@ -28,22 +28,53 @@ export type ProjectImportOutcome =
 export type ProjectImportDecision =
 	| { kind: "already-imported"; v2ProjectId: string }
 	| { kind: "import" }
-	| { kind: "skip"; reason: "multiple-candidates" | "cloud-unreachable" };
+	| {
+			kind: "skip";
+			reason: "multiple-candidates" | "cloud-unreachable" | "non-origin-only";
+	  };
+
+type FindByPathCandidate = ProjectFindByPathResult["candidates"][number];
+
+/**
+ * A cloud candidate reached only through a secondary remote, on a repo that
+ * has an `origin`, is another repo's project (fork upstream, sync mirror):
+ * linking to it would move that project onto this folder (#7241). Older
+ * hosts report neither flag, which leaves their candidates trusted as before.
+ */
+function isSecondaryRemoteOnly(
+	candidate: FindByPathCandidate,
+	result: Pick<ProjectFindByPathResult, "hasOriginRemote">,
+): boolean {
+	return (
+		candidate.source === "remote" &&
+		result.hasOriginRemote === true &&
+		!candidate.viaOrigin
+	);
+}
 
 /**
  * Decide what to do with a v1 project from its findByPath result. Mirrors
  * the wizard's "Import all" rules: a `local-path` candidate means the repo
  * is already a v2 project on this host; multiple cloud candidates need a
- * human to pick; cloud errors with no candidate mean we can't tell whether
- * a legacy cloud project exists, so don't risk creating a duplicate.
+ * human to pick; a lone candidate found only via a secondary remote is
+ * another repo's project and needs a human too; cloud errors with no
+ * candidate mean we can't tell whether a legacy cloud project exists, so
+ * don't risk creating a duplicate.
  */
 export function decideProjectImport(
-	result: Pick<ProjectFindByPathResult, "candidates" | "cloudErrors">,
+	result: Pick<
+		ProjectFindByPathResult,
+		"candidates" | "cloudErrors" | "hasOriginRemote"
+	>,
 ): ProjectImportDecision {
 	const local = result.candidates.find((c) => c.source === "local-path");
 	if (local) return { kind: "already-imported", v2ProjectId: local.id };
 	if (result.candidates.length > 1) {
 		return { kind: "skip", reason: "multiple-candidates" };
+	}
+	const lone = result.candidates[0];
+	if (lone && isSecondaryRemoteOnly(lone, result)) {
+		return { kind: "skip", reason: "non-origin-only" };
 	}
 	if (result.candidates.length === 0 && result.cloudErrors.length > 0) {
 		return { kind: "skip", reason: "cloud-unreachable" };
@@ -90,6 +121,19 @@ export function extractExistingPath(message: string): string | null {
 }
 
 /**
+ * The candidate an import links to when the caller did not pick one: the
+ * host ranks origin-derived candidates first, and a first candidate that is
+ * only reachable via a secondary remote is never linked implicitly.
+ */
+function autoLinkCandidate(
+	result: ProjectFindByPathResult | undefined,
+): FindByPathCandidate | undefined {
+	const first = result?.candidates[0];
+	if (!first || isSecondaryRemoteOnly(first, result)) return undefined;
+	return first;
+}
+
+/**
  * Import one v1 project into v2: link it onto an existing v2 project
  * candidate via `project.setup`, or create a fresh local-first project via
  * `project.create {kind:'importLocal'}`. Pure host-service calls — UI side
@@ -112,7 +156,7 @@ export async function importV1Project({
 
 	const targetCandidate = linkToProjectId
 		? candidates.find((c) => c.id === linkToProjectId)
-		: candidates[0];
+		: autoLinkCandidate(findByPathResult);
 
 	if (linkToProjectId && !targetCandidate) {
 		throw new Error(
