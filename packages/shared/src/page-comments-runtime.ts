@@ -59,6 +59,7 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 
 	let enabled = false;
 	let locked = false;
+	let lockedAtPointerDown = false;
 	let tracked = [];
 	let lastHoverPath = null;
 	let frame = 0;
@@ -181,9 +182,13 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		true,
 	);
 
+	// The host dismisses whatever is open on pointer-down and unlocks the frame
+	// before this same gesture's click arrives, so the click has to remember
+	// that it began as a dismiss or it starts a new pick.
 	document.addEventListener(
 		"mousedown",
 		() => {
+			lockedAtPointerDown = locked;
 			post({ type: "pointer-down" });
 		},
 		true,
@@ -192,10 +197,12 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	document.addEventListener(
 		"click",
 		(event) => {
+			const dismissing = lockedAtPointerDown;
+			lockedAtPointerDown = false;
 			if (!enabled) return;
 			event.preventDefault();
 			event.stopPropagation();
-			if (locked) return;
+			if (locked || dismissing) return;
 			const el = targetAt(event.clientX, event.clientY);
 			if (!el) return;
 			const rect = rectOf(el);
