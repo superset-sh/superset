@@ -25,17 +25,25 @@ export function RealtimeNudges() {
 
 	useEffect(() => {
 		if (!organizationId) return;
+		// A hidden window marks the query stale and refetches on focus, the way
+		// its polls used to pause in the background.
 		const invalidate = (kinds: readonly RealtimeNudgeKind[]) => {
+			const options = {
+				refetchType: document.hidden ? ("none" as const) : ("active" as const),
+			};
 			for (const kind of kinds) {
 				switch (kind) {
 					case "hosts":
-						void utils.v2Host.list.invalidate();
+						void utils.v2Host.list.invalidate(undefined, options);
 						break;
 					case "pull_requests":
-						void utils.integration.github.getByBranches.invalidate();
+						void utils.integration.github.getByBranches.invalidate(
+							undefined,
+							options,
+						);
 						break;
 					case "cloud_workspaces":
-						void utils.cloudWorkspace.list.invalidate();
+						void utils.cloudWorkspace.list.invalidate(undefined, options);
 						break;
 				}
 			}
