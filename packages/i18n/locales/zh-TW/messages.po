@@ -120,6 +120,11 @@ msgstr "{0, plural, one {#條評論} other {#條評論}}"
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {#個提交} other {#個提交}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, other {已結束 # 個}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {已更新#個現有主題} other {已更新#個現有主題}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}：{statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} 個執行中"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName}（此裝置）"
 
@@ -877,6 +885,9 @@ msgstr "{stars}個星標 · 本週{perDay}/天 · 尖峰{peakPerDay}/天"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 個子代理程式執行中}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {# 個子代理程式}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {已建立#個工作區，{failCount}個失敗} other {已建立#個工作區，{failCount}個失敗}}"
@@ -10652,6 +10663,9 @@ msgstr "父目錄"
 msgid "Parent directory on {hostName}"
 msgstr "{hostName}上的父目錄"
 
+msgid "Parent unknown"
+msgstr "父代理未知"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "一半是記錄，一半是下注。前兩條已經在發生。其餘的寫得足夠具體，足以被證明是錯的。"
 
@@ -13289,6 +13303,9 @@ msgstr "為此代理程式顯示狀態併發送通知。"
 msgid "Show translation"
 msgstr "顯示譯文"
 
+msgid "Show tree in sidebar"
+msgstr "在側邊欄顯示樹狀結構"
+
 msgid "Show usage tab on sidebar"
 msgstr "在側邊欄顯示用量分頁"
 
@@ -13902,6 +13919,9 @@ msgid "Stop workspace run command"
 msgstr "停止工作區執行命令"
 
 msgid "stopped"
+msgstr "已停止"
+
+msgid "Stopped"
 msgstr "已停止"
 
 msgid "Strikethrough"

@@ -156,3 +156,27 @@ export function formatCompactRelativeTime(
 		locale,
 	);
 }
+
+const DURATION_UNITS: readonly [Intl.NumberFormatOptions["unit"], number][] = [
+	["hour", 3_600_000],
+	["minute", 60_000],
+	["second", 1_000],
+];
+
+// Compact elapsed time for dense UI: "42s", "3m", "2h". Locale-aware via
+// `unitDisplay: "narrow"`; never negative, never below one second.
+export function formatCompactDuration(
+	ms: number,
+	locale = getActiveLocale(),
+): string {
+	const clamped = Math.max(0, ms);
+	const [unit, unitMs] =
+		DURATION_UNITS.find(([, size]) => clamped >= size) ??
+		DURATION_UNITS[DURATION_UNITS.length - 1];
+	const value = Math.max(1, Math.floor(clamped / unitMs));
+	return new Intl.NumberFormat(locale, {
+		style: "unit",
+		unit,
+		unitDisplay: "narrow",
+	}).format(value);
+}

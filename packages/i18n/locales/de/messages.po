@@ -120,6 +120,11 @@ msgstr "{0, plural, one {# Kommentar} other {# Kommentare}}"
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {# Commit} other {# Commits}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, one {# beendet} other {# beendet}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {# vorhandenes Theme aktualisiert} other {# vorhandene Themes aktualisiert}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} aktiv"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName} (dieses Gerät)"
 
@@ -877,6 +885,9 @@ msgstr "{stars} Stars · {perDay}/Tag diese Woche · {peakPerDay}/Tag im Hoch"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# Subagent läuft} other {# Subagenten laufen}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# Subagent} other {# Subagenten}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# Arbeitsbereich erstellt, {failCount} fehlgeschlagen} other {# Arbeitsbereiche erstellt, {failCount} fehlgeschlagen}}"
@@ -10652,6 +10663,9 @@ msgstr "Übergeordnetes Verzeichnis"
 msgid "Parent directory on {hostName}"
 msgstr "Übergeordnetes Verzeichnis auf {hostName}"
 
+msgid "Parent unknown"
+msgstr "Übergeordneter Agent unbekannt"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "Teils Protokoll, teils Wette. Die ersten beiden Einträge passieren bereits. Der Rest ist konkret genug formuliert, um falsch sein zu können."
 
@@ -13289,6 +13303,9 @@ msgstr "Status anzeigen und Benachrichtigungen für diesen Agenten senden."
 msgid "Show translation"
 msgstr "Übersetzung anzeigen"
 
+msgid "Show tree in sidebar"
+msgstr "Baum in der Seitenleiste anzeigen"
+
 msgid "Show usage tab on sidebar"
 msgstr "Nutzungs-Tab in der Seitenleiste anzeigen"
 
@@ -13903,6 +13920,9 @@ msgstr "Run-Befehl des Arbeitsbereichs stoppen"
 
 msgid "stopped"
 msgstr "gestoppt"
+
+msgid "Stopped"
+msgstr "Gestoppt"
 
 msgid "Strikethrough"
 msgstr "Durchgestrichen"

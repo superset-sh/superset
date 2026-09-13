@@ -120,6 +120,11 @@ msgstr "{0, plural, one {# komentar} other {# komentar}}"
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {# Commit} other {# Commit}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, other {# selesai}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {# tema yang ada diperbarui} other {# tema yang ada diperbarui}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} aktif"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName} (perangkat ini)"
 
@@ -877,6 +885,9 @@ msgstr "{stars} star · {perDay}/hari minggu ini · {peakPerDay}/hari saat punca
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# subagen berjalan}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {# subagen}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Membuat # workspace, {failCount} gagal} other {Membuat # workspace, {failCount} gagal}}"
@@ -10652,6 +10663,9 @@ msgstr "Direktori induk"
 msgid "Parent directory on {hostName}"
 msgstr "Direktori induk di {hostName}"
 
+msgid "Parent unknown"
+msgstr "Induk tidak diketahui"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "Sebagian catatan, sebagian taruhan. Dua entri pertama sudah terjadi. Sisanya dinyatakan cukup konkret untuk bisa dinyatakan salah."
 
@@ -13289,6 +13303,9 @@ msgstr "Tampilkan status dan kirim notifikasi untuk agen ini."
 msgid "Show translation"
 msgstr "Tampilkan terjemahan"
 
+msgid "Show tree in sidebar"
+msgstr "Tampilkan pohon di bilah samping"
+
 msgid "Show usage tab on sidebar"
 msgstr "Tampilkan tab penggunaan di bilah samping"
 
@@ -13903,6 +13920,9 @@ msgstr "Hentikan perintah run workspace"
 
 msgid "stopped"
 msgstr "berhenti"
+
+msgid "Stopped"
+msgstr "Dihentikan"
 
 msgid "Strikethrough"
 msgstr "Coret"

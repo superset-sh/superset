@@ -120,6 +120,11 @@ msgstr "{0, plural, one {# yorum} other {# yorum}}"
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {# commit} other {# commit}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, one {# bitti} other {# bitti}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {# mevcut tema güncellendi} other {# mevcut tema güncellendi}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} etkin"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName} (bu cihaz)"
 
@@ -877,6 +885,9 @@ msgstr "{stars} yıldız · bu hafta {perDay}/gün · zirvede {peakPerDay}/gün"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# alt ajan çalışıyor} other {# alt ajan çalışıyor}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# alt ajan} other {# alt ajan}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# çalışma alanı oluşturuldu, {failCount} başarısız} other {# çalışma alanı oluşturuldu, {failCount} başarısız}}"
@@ -10652,6 +10663,9 @@ msgstr "Üst dizin"
 msgid "Parent directory on {hostName}"
 msgstr "{hostName} üzerindeki üst dizin"
 
+msgid "Parent unknown"
+msgstr "Üst ajan bilinmiyor"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "Bir kısmı kayıt, bir kısmı bahis. İlk iki madde zaten gerçekleşiyor. Gerisi, yanılabileceğimiz kadar somut ifade edildi."
 
@@ -13289,6 +13303,9 @@ msgstr "Bu ajan için durum göster ve bildirim gönder."
 msgid "Show translation"
 msgstr "Çeviriyi göster"
 
+msgid "Show tree in sidebar"
+msgstr "Ağacı kenar çubuğunda göster"
+
 msgid "Show usage tab on sidebar"
 msgstr "Kenar çubuğunda kullanım sekmesini göster"
 
@@ -13903,6 +13920,9 @@ msgstr "Çalışma alanı çalıştırma komutunu durdur"
 
 msgid "stopped"
 msgstr "durduruldu"
+
+msgid "Stopped"
+msgstr "Durduruldu"
 
 msgid "Strikethrough"
 msgstr "Üstü çizili"

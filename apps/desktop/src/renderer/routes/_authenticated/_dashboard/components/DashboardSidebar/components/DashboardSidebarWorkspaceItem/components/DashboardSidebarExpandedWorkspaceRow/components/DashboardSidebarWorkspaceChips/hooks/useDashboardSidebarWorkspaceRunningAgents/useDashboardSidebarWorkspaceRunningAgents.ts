@@ -3,6 +3,7 @@ import {
 	type AgentIdentityId,
 } from "@superset/shared/agent-catalog";
 import { useMemo } from "react";
+import type { AgentTreeSubagentInput } from "renderer/routes/_authenticated/_dashboard/components/AgentTree";
 import { useSidebarWorkspaceStatus } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarWorkspaceStatusProvider";
 import type { V2NotificationSource } from "renderer/stores/v2-notifications";
 import type { PaneStatus } from "shared/tabs-types";
@@ -14,11 +15,7 @@ import type { PaneStatus } from "shared/tabs-types";
 export type RunningAgentStatus = PaneStatus;
 
 /** A subagent the bound agent spawned, as reported by its hooks. */
-export interface DashboardSidebarRunningSubagent {
-	id: string;
-	/** Harness agent type (`Explore`, `general-purpose`, a Codex role), when known. */
-	agentType?: string;
-}
+export type DashboardSidebarRunningSubagent = AgentTreeSubagentInput;
 
 export interface DashboardSidebarRunningAgent {
 	/** Stable key for React lists, derived from the notification source. */
@@ -36,6 +33,8 @@ export interface DashboardSidebarRunningAgent {
 	label: string;
 	/** Live subagents under this agent, oldest first. */
 	subagents: DashboardSidebarRunningSubagent[];
+	/** Children that finished recently, oldest ended first. */
+	endedSubagents: DashboardSidebarRunningSubagent[];
 }
 
 /**
@@ -62,10 +61,8 @@ export function useDashboardSidebarWorkspaceRunningAgents(
 				status: statuses.get(binding.terminalId) ?? "idle",
 				startedAt: binding.startedAt,
 				label: AGENT_IDENTITY_LABELS[binding.agentId] ?? binding.agentId,
-				subagents: (binding.subagents ?? []).map((subagent) => ({
-					id: subagent.id,
-					...(subagent.agentType ? { agentType: subagent.agentType } : {}),
-				})),
+				subagents: binding.subagents ?? [],
+				endedSubagents: binding.endedSubagents ?? [],
 			});
 		}
 		agents.sort((a, b) => a.startedAt - b.startedAt);

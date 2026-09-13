@@ -120,6 +120,11 @@ msgstr "{0, plural, one {# bình luận} other {# bình luận}}"
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {# commit} other {# commit}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, other {# đã kết thúc}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {Đã cập nhật # theme có sẵn} other {Đã cập nhật # theme có sẵn}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} đang chạy"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName} (thiết bị này)"
 
@@ -877,6 +885,9 @@ msgstr "{stars} star · {perDay}/ngày tuần này · {peakPerDay}/ngày lúc ca
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# agent con đang chạy}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {# agent con}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Đã tạo # workspace, {failCount} thất bại} other {Đã tạo # workspace, {failCount} thất bại}}"
@@ -10652,6 +10663,9 @@ msgstr "Thư mục cha"
 msgid "Parent directory on {hostName}"
 msgstr "Thư mục cha trên {hostName}"
 
+msgid "Parent unknown"
+msgstr "Không rõ tác nhân cha"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "Một phần là ghi nhận, một phần là đặt cược. Hai mục đầu đang diễn ra. Phần còn lại được nêu đủ cụ thể để có thể sai."
 
@@ -13289,6 +13303,9 @@ msgstr "Hiển thị trạng thái và gửi thông báo cho agent này."
 msgid "Show translation"
 msgstr "Xem bản dịch"
 
+msgid "Show tree in sidebar"
+msgstr "Hiện cây trong thanh bên"
+
 msgid "Show usage tab on sidebar"
 msgstr "Hiển thị thẻ mức sử dụng trên thanh bên"
 
@@ -13903,6 +13920,9 @@ msgstr "Dừng lệnh chạy của workspace"
 
 msgid "stopped"
 msgstr "đã dừng"
+
+msgid "Stopped"
+msgstr "Đã dừng"
 
 msgid "Strikethrough"
 msgstr "Gạch ngang"

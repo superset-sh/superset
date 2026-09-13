@@ -120,6 +120,11 @@ msgstr "{0, plural, one {# comment} other {# comments}}"
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {# Commit} other {# Commits}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, one {# ended} other {# ended}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} live"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName} (this device)"
 
@@ -877,6 +885,9 @@ msgstr "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# subagent} other {# subagents}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
@@ -10652,6 +10663,9 @@ msgstr "Parent directory"
 msgid "Parent directory on {hostName}"
 msgstr "Parent directory on {hostName}"
 
+msgid "Parent unknown"
+msgstr "Parent unknown"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 
@@ -13289,6 +13303,9 @@ msgstr "Show status and send notifications for this agent."
 msgid "Show translation"
 msgstr "Show translation"
 
+msgid "Show tree in sidebar"
+msgstr "Show tree in sidebar"
+
 msgid "Show usage tab on sidebar"
 msgstr "Show usage tab on sidebar"
 
@@ -13903,6 +13920,9 @@ msgstr "Stop workspace run command"
 
 msgid "stopped"
 msgstr "stopped"
+
+msgid "Stopped"
+msgstr "Stopped"
 
 msgid "Strikethrough"
 msgstr "Strikethrough"

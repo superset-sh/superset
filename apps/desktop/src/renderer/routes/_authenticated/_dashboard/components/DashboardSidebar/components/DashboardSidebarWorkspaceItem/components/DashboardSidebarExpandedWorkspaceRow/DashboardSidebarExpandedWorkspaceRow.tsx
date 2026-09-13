@@ -30,6 +30,7 @@ import type {
 } from "../../../../types";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
+import { DashboardSidebarAgentTree } from "./components/DashboardSidebarAgentTree";
 import { DashboardSidebarWorkspaceChips } from "./components/DashboardSidebarWorkspaceChips";
 
 const PR_STATE_LABEL: Record<
@@ -470,12 +471,19 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					</div>
 				</div>
 				{!isPending && (
-					<DashboardSidebarWorkspaceChips
-						workspaceId={workspace.id}
-						isInSection={isInSection}
-						indentation={resolvedIndentation}
-						onClick={onWorkspaceChipsClick}
-					/>
+					<>
+						<DashboardSidebarWorkspaceChips
+							workspaceId={workspace.id}
+							isInSection={isInSection}
+							indentation={resolvedIndentation}
+							onClick={onWorkspaceChipsClick}
+						/>
+						<DashboardSidebarAgentTree
+							workspaceId={workspace.id}
+							isInSection={isInSection}
+							indentation={resolvedIndentation}
+						/>
+					</>
 				)}
 			</div>
 		);
