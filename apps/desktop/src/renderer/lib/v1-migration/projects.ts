@@ -28,22 +28,46 @@ export type ProjectImportOutcome =
 export type ProjectImportDecision =
 	| { kind: "already-imported"; v2ProjectId: string }
 	| { kind: "import" }
-	| { kind: "skip"; reason: "multiple-candidates" | "cloud-unreachable" };
+	| {
+			kind: "skip";
+			reason: "multiple-candidates" | "cloud-unreachable" | "non-origin-only";
+	  };
 
 /**
  * Decide what to do with a v1 project from its findByPath result. Mirrors
  * the wizard's "Import all" rules: a `local-path` candidate means the repo
  * is already a v2 project on this host; multiple cloud candidates need a
- * human to pick; cloud errors with no candidate mean we can't tell whether
- * a legacy cloud project exists, so don't risk creating a duplicate.
+ * human to pick; a lone candidate found only via a non-`origin` remote (when
+ * an `origin` remote exists) is another repo's project — rejected rather than
+ * silently relocating that project (multi-remote hijack guard); cloud errors
+ * with no candidate mean we can't tell whether a legacy cloud project exists,
+ * so don't risk creating a duplicate.
  */
 export function decideProjectImport(
-	result: Pick<ProjectFindByPathResult, "candidates" | "cloudErrors">,
+	result: Pick<
+		ProjectFindByPathResult,
+		"candidates" | "cloudErrors" | "hasOriginRemote"
+	>,
 ): ProjectImportDecision {
 	const local = result.candidates.find((c) => c.source === "local-path");
 	if (local) return { kind: "already-imported", v2ProjectId: local.id };
 	if (result.candidates.length > 1) {
 		return { kind: "skip", reason: "multiple-candidates" };
+	}
+	// A single cloud candidate that was discovered via a non-`origin` remote,
+	// on a repo that has an `origin` remote, is almost certainly another repo's
+	// v2 project (the multi-remote hijack from #7241). Never auto-link it —
+	// surface it as a skip so the wizard forces the user to explicitly pick
+	// (which the relocate-confirm flow already covers) or create a fresh local
+	// project instead of silently re-pointing the wrong repo.
+	const lone = result.candidates[0];
+	if (
+		lone &&
+		lone.source === "remote" &&
+		result.hasOriginRemote &&
+		!lone.viaOrigin
+	) {
+		return { kind: "skip", reason: "non-origin-only" };
 	}
 	if (result.candidates.length === 0 && result.cloudErrors.length > 0) {
 		return { kind: "skip", reason: "cloud-unreachable" };
