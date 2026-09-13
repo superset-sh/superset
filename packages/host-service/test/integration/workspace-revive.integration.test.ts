@@ -99,6 +99,72 @@ describe("workspaceCleanup.revive integration", () => {
 		expect(events).toContain("created");
 	});
 
+	test("archive endpoint forces archive semantics and preserves the branch for revival", async () => {
+		const input = {
+			workspaceId: scenario.featureWorkspaceId,
+			archive: false,
+			deleteBranch: true,
+		};
+		const result =
+			await scenario.host.trpc.workspaceCleanup.archive.mutate(input);
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
+		expect(result.branchDeleted).toBe(false);
+		expect(readRow(scenario.featureWorkspaceId)?.archiveReason).toBe(
+			"archived",
+		);
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+		expect(
+			await scenario.repo.git.raw(["branch", "--list", scenario.branch]),
+		).toContain(scenario.branch);
+		await scenario.host.trpc.workspaceCleanup.revive.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+		});
+		expect(readRow(scenario.featureWorkspaceId)?.archivedAt).toBeNull();
+		expect(existsSync(join(scenario.worktreePath, ".git"))).toBe(true);
+	});
+
+	test("archive endpoint defaults to preflight and blocking teardown", async () => {
+		writeFileSync(join(scenario.worktreePath, "archive-dirty.txt"), "dirty");
+		const hook = spyOn(teardown, "runTeardown").mockResolvedValue({
+			status: "failed",
+			exitCode: 1,
+			signal: null,
+			timedOut: false,
+			outputTail: "teardown failed",
+		});
+		try {
+			await expectCode(
+				scenario.host.trpc.workspaceCleanup.archive.mutate({
+					workspaceId: scenario.featureWorkspaceId,
+				}),
+				"CONFLICT",
+			);
+			expect(hook).not.toHaveBeenCalled();
+			await expectCode(
+				scenario.host.trpc.workspaceCleanup.archive.mutate({
+					workspaceId: scenario.featureWorkspaceId,
+					force: true,
+				}),
+				"PRECONDITION_FAILED",
+			);
+			expect(hook).toHaveBeenCalledTimes(1);
+			expect(readRow(scenario.featureWorkspaceId)?.archivedAt).toBeNull();
+			expect(existsSync(join(scenario.worktreePath, ".git"))).toBe(true);
+			await scenario.host.trpc.workspaceCleanup.archive.mutate({
+				workspaceId: scenario.featureWorkspaceId,
+				force: true,
+				skipTeardown: true,
+			});
+			expect(hook).toHaveBeenCalledTimes(1);
+			expect(readRow(scenario.featureWorkspaceId)?.archiveReason).toBe(
+				"archived",
+			);
+		} finally {
+			hook.mockRestore();
+		}
+	});
+
 	test("rejects restore and destroy while the workspace lifecycle guard is held", async () => {
 		await destroyFeature();
 		__testDestroysInFlight.add(scenario.featureWorkspaceId);
