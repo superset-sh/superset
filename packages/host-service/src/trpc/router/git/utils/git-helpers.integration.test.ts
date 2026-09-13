@@ -119,6 +119,7 @@ describe("resolveBaseComparison (integration)", () => {
 		// Simulate a remote so origin/HEAD can be set. We don't need an
 		// actual remote to fetch from — `symbolic-ref` on the remote HEAD
 		// is all getDefaultBranchName reads.
+		await git.raw(["remote", "add", "origin", "https://example.com/repo.git"]);
 		await git.raw(["update-ref", "refs/remotes/origin/main", "HEAD"]);
 		await git.raw([
 			"symbolic-ref",
@@ -170,6 +171,69 @@ describe("resolveBaseComparison (integration)", () => {
 			branchName: "main",
 			baseRef: "upstream/main",
 			fetchTarget: { remote: "upstream", branch: "main" },
+		});
+	});
+
+	test("local-only stacked base renders a real diff, not an empty Changes tab (#5298)", async () => {
+		// The actual #5298 scenario: a stacked workspace whose base is
+		// another LOCAL branch that was never pushed. Create the local
+		// parent, then a child branch off it with committed work, and
+		// assert the full chain (resolve → diff) returns the work.
+		await git.raw(["checkout", "-b", "feature/parent"]);
+		await commitFile(git, repo, "parent.md", "p", "parent work");
+		await git.raw(["checkout", "-b", "feature/child"]);
+		await commitFile(git, repo, "child.md", "c", "child work");
+
+		const base = await resolveBaseComparison(git, "feature/parent");
+		expect(base).toEqual({
+			branchName: "feature/parent",
+			baseRef: "feature/parent",
+			fetchTarget: null,
+		});
+		if (!base) throw new Error("expected base comparison");
+
+		// The "Against base" view: diff the base ref against HEAD. This is
+		// the exact pipeline that rendered empty before the fix.
+		const files = await getChangedFilesForDiff(git, [`${base.baseRef}..HEAD`]);
+		expect(files.map((f) => f.path)).toEqual(["child.md"]);
+	});
+
+	test("prefers origin/<branch> when both remote and local refs exist", async () => {
+		await git.raw(["update-ref", "refs/remotes/origin/feature", "HEAD"]);
+		await git.raw(["checkout", "-b", "feature"]);
+		await commitFile(git, repo, "feature.md", "x", "feature work");
+		expect(await resolveBaseComparison(git, "feature")).toEqual({
+			branchName: "feature",
+			baseRef: "origin/feature",
+			fetchTarget: { remote: "origin", branch: "feature" },
+		});
+	});
+
+	test("prefers origin when both origin and upstream have the branch", async () => {
+		// Put upstream first in git's configured remote order so origin's
+		// priority cannot depend on whichever remote happens to be listed first.
+		await git.raw(["remote", "remove", "origin"]);
+		await git.raw(["remote", "add", "upstream", "https://example.com/up.git"]);
+		await git.raw(["remote", "add", "origin", "https://example.com/repo.git"]);
+		await git.raw(["update-ref", "refs/remotes/upstream/feature", "HEAD"]);
+		await git.raw(["update-ref", "refs/remotes/origin/feature", "HEAD"]);
+
+		expect(await resolveBaseComparison(git, "feature")).toEqual({
+			branchName: "feature",
+			baseRef: "origin/feature",
+			fetchTarget: { remote: "origin", branch: "feature" },
+		});
+	});
+
+	test("finds the base ref on a non-origin remote (fork workflow)", async () => {
+		// Remote named `upstream`, branch exists only there (no local
+		// tracking): the remote-ref probe must not hardcode `origin`.
+		await git.raw(["remote", "add", "upstream", "https://example.com/up.git"]);
+		await git.raw(["update-ref", "refs/remotes/upstream/feature", "HEAD"]);
+		expect(await resolveBaseComparison(git, "feature")).toEqual({
+			branchName: "feature",
+			baseRef: "upstream/feature",
+			fetchTarget: { remote: "upstream", branch: "feature" },
 		});
 	});
 
