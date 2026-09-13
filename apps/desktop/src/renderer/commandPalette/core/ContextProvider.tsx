@@ -13,6 +13,7 @@ import {
 	useContext,
 	useMemo,
 } from "react";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -50,6 +51,7 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 	const v2WorkspaceId = v2Match !== false ? v2Match.workspaceId : null;
 
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const { hosts } = useKnownHosts();
 	const v2Workspace = useMemo(() => {
 		if (!v2WorkspaceId) return null;
 		const workspace = hostWorkspaces.find((w) => w.id === v2WorkspaceId);
@@ -60,8 +62,13 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 			projectId: workspace.projectId,
 			type: workspace.type,
 			hostId: workspace.hostId,
+			hostIsOnline:
+				workspace.hostId === machineId
+					? null
+					: (hosts.find((host) => host.machineId === workspace.hostId)
+							?.isOnline ?? false),
 		};
-	}, [hostWorkspaces, v2WorkspaceId]);
+	}, [hostWorkspaces, hosts, machineId, v2WorkspaceId]);
 	const projectId = v2Workspace?.projectId ?? null;
 
 	const { data: preferredAppRows = [] } = useLiveQuery(
@@ -76,6 +83,16 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 		(preferredAppRows[0]?.defaultOpenInApp as ExternalApp | null | undefined) ??
 		undefined;
 
+	const { data: placementRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ ls: collections.v2WorkspaceLocalState })
+				.where(({ ls }) => eq(ls.workspaceId, v2WorkspaceId ?? ""))
+				.select(({ ls }) => ({ workspaceId: ls.workspaceId })),
+		[collections, v2WorkspaceId],
+	);
+	const hasSidebarPlacement = placementRows.length > 0;
+
 	const { data: notificationSoundsMuted = false } =
 		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
 
@@ -89,6 +106,8 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 						projectId: v2Workspace.projectId ?? undefined,
 						workspaceType: v2Workspace.type,
 						hostId: v2Workspace.hostId ?? undefined,
+						hostIsOnline: v2Workspace.hostIsOnline,
+						hasSidebarPlacement,
 						preferredOpenInApp,
 					}
 				: null,
@@ -105,6 +124,7 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 		[
 			location.pathname,
 			v2Workspace,
+			hasSidebarPlacement,
 			preferredOpenInApp,
 			activeHostUrl,
 			activeOrganizationId,

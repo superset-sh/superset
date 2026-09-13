@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect } from "react";
 import { CommandContextProvider } from "./core/ContextProvider";
 import { registerAllModules } from "./modules";
+import { ArchiveWorkspaceMount } from "./ui/ArchiveWorkspaceMount/ArchiveWorkspaceMount";
 import { CommandPalette } from "./ui/CommandPalette/CommandPalette";
 import { CommandPaletteTrigger } from "./ui/CommandPaletteTrigger/CommandPaletteTrigger";
 import { DeleteWorkspaceMount } from "./ui/DeleteWorkspaceMount/DeleteWorkspaceMount";
@@ -21,6 +22,7 @@ export function CommandPaletteHost({ children }: { children?: ReactNode }) {
 			<CommandPalette />
 			<DeleteWorkspaceMount />
 			<RemoveFromSidebarMount />
+			<ArchiveWorkspaceMount />
 			<SetPreferredOpenInAppMount />
 			<FolderImportMount />
 			<QuickCreateWorkspaceMount />

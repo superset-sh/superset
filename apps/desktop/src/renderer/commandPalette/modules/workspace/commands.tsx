@@ -1,6 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import {
 	ArchiveIcon,
+	EyeOffIcon,
 	FileIcon,
 	LinkIcon,
 	PlusIcon,
@@ -8,6 +9,7 @@ import {
 	ZapIcon,
 } from "lucide-react";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
+import { useArchiveWorkspaceIntent } from "renderer/stores/archive-workspace-intent";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useQuickCreateWorkspaceIntent } from "renderer/stores/quick-create-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
@@ -84,7 +86,7 @@ export const workspaceProvider: CommandProvider = {
 					message: "Remove from sidebar",
 				}),
 				section: "workspace",
-				icon: ArchiveIcon,
+				icon: EyeOffIcon,
 				keywords: ["hide"],
 				run: () =>
 					useRemoveFromSidebarIntent.getState().request({
@@ -92,6 +94,37 @@ export const workspaceProvider: CommandProvider = {
 						workspaceName: workspace.name,
 						projectId: workspace.projectId ?? "",
 						isMain,
+					}),
+			});
+		}
+
+		// Archiving destroys a worktree keeping its branch; main and session
+		// workspaces can't be archived, so they get no command, and an offline
+		// host can't be asked to — same gate as the sidebar. The last clause
+		// mirrors the Archived view's scoping: without a placement row on a
+		// remote host the archived workspace would show up in no list this
+		// user can reach, leaving no way back.
+		const archiveHostId = workspace.hostId;
+		if (
+			workspace.workspaceType === "worktree" &&
+			archiveHostId !== undefined &&
+			workspace.hostIsOnline !== false &&
+			(workspace.hasSidebarPlacement ||
+				archiveHostId === context.localMachineId)
+		) {
+			commands.push({
+				id: `workspace.archive:${workspace.id}`,
+				title: msg({
+					message: "Archive workspace",
+				}),
+				section: "workspace",
+				icon: ArchiveIcon,
+				keywords: ["archive"],
+				run: () =>
+					useArchiveWorkspaceIntent.getState().request({
+						workspaceId: workspace.id,
+						workspaceName: workspace.name,
+						hostId: archiveHostId,
 					}),
 			});
 		}
@@ -104,7 +137,7 @@ export const workspaceProvider: CommandProvider = {
 				}),
 				section: "workspace",
 				icon: Trash2Icon,
-				keywords: ["archive", "remove", "close"],
+				keywords: ["remove", "close"],
 				hotkeyId: "CLOSE_WORKSPACE",
 				run: () =>
 					useDeleteWorkspaceIntent.getState().request({
