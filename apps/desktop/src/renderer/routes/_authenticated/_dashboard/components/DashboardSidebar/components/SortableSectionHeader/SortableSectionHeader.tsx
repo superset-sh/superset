@@ -92,9 +92,9 @@ export function SortableSectionHeader({
 				transform: CSS.Translate.toString(transform),
 				transition,
 				opacity: isDragging ? 0.5 : undefined,
-				borderLeft: hasColor
-					? `2px solid ${section.color}`
-					: "2px solid var(--color-border)",
+				boxShadow: hasColor
+					? `inset 3px 0 ${section.color}`
+					: "inset 2px 0 var(--color-border)",
 			}}
 		>
 			<DashboardSidebarSectionContextMenu

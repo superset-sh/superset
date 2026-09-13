@@ -100,7 +100,7 @@ export function SortableWorkspaceItem({
 				transform: CSS.Translate.toString(transform),
 				transition,
 				opacity: isDragging || isDragPlaceholder ? 0.5 : undefined,
-				borderLeft: accentColor ? `2px solid ${accentColor}` : undefined,
+				boxShadow: accentColor ? `inset 3px 0 ${accentColor}` : undefined,
 			}}
 			{...attributes}
 			{...listeners}
@@ -113,9 +113,6 @@ export function SortableWorkspaceItem({
 			<div
 				className={cn(
 					"grid transition-[grid-template-rows,opacity] duration-150 ease-out",
-					// Pull the row back over the accent border so grouped rows keep
-					// the same left edge whether or not their folder has a color.
-					accentColor && "-ml-0.5",
 					collapsed
 						? "grid-rows-[0fr] opacity-0"
 						: "grid-rows-[1fr] opacity-100",
