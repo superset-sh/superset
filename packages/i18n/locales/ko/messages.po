@@ -563,6 +563,9 @@ msgstr "{closedCount}개 닫힘"
 msgid "{completed} of {0} checks complete"
 msgstr "검사 {0}개 중 {completed}개 완료"
 
+msgid "{completed} of {total} tried"
+msgstr "{total}개 중 {completed}개 시도"
+
 msgid "{configTitle} font size"
 msgstr "{configTitle} 글꼴 크기"
 
@@ -3723,6 +3726,9 @@ msgstr "Notion 워크스페이스를 연결하고 자동화가 지켜볼 페이�
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Slack 워크스페이스를 연결해 대화에서 바로 작업을 관리하세요."
 
+msgid "Connect your tools"
+msgstr "도구 연결하기"
+
 msgid "Connected"
 msgstr "연결됨"
 
@@ -6817,6 +6823,9 @@ msgstr "Mac에서 Superset 사용하기"
 
 msgid "Get Superset Pro"
 msgstr "Superset Pro 시작하기"
+
+msgid "Getting started"
+msgstr "시작하기"
 
 msgid "Ghost"
 msgstr "고스트"
@@ -10410,6 +10419,9 @@ msgstr "병렬 에이전트 오케스트레이션"
 msgid "Orchestrate Them All."
 msgstr "모두 오케스트레이션하세요."
 
+msgid "Orchestrate your agents"
+msgstr "에이전트 조율하기"
+
 msgid "Orchestrated"
 msgstr "오케스트레이션"
 
@@ -11293,6 +11305,9 @@ msgstr "공개"
 
 msgid "Public leaderboard"
 msgstr "공개 리더보드"
+
+msgid "Publish your first page"
+msgstr "첫 페이지 게시하기"
 
 msgid "Published"
 msgstr "게시일"
@@ -13062,6 +13077,9 @@ msgstr "실행 설정"
 
 msgid "Set up"
 msgstr "설정"
+
+msgid "Set up an automation"
+msgstr "자동화 설정하기"
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName}에 프로젝트 설정"

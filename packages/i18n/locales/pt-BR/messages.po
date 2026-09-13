@@ -563,6 +563,9 @@ msgstr "{closedCount} fechados"
 msgid "{completed} of {0} checks complete"
 msgstr "{completed} de {0} verificações concluídas"
 
+msgid "{completed} of {total} tried"
+msgstr "{completed} de {total} experimentados"
+
 msgid "{configTitle} font size"
 msgstr "Tamanho da fonte de {configTitle}"
 
@@ -3723,6 +3726,9 @@ msgstr "Conecte seu workspace do Notion e compartilhe as páginas e fontes de da
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Conecte seu workspace do Slack para gerenciar tarefas a partir das conversas."
 
+msgid "Connect your tools"
+msgstr "Conecte suas ferramentas"
+
 msgid "Connected"
 msgstr "Conectado"
 
@@ -6817,6 +6823,9 @@ msgstr "Instale o Superset no seu Mac"
 
 msgid "Get Superset Pro"
 msgstr "Assinar o Superset Pro"
+
+msgid "Getting started"
+msgstr "Primeiros passos"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -10410,6 +10419,9 @@ msgstr "Orquestrar agentes em paralelo"
 msgid "Orchestrate Them All."
 msgstr "Orquestre todos eles."
 
+msgid "Orchestrate your agents"
+msgstr "Coordene seus agentes"
+
 msgid "Orchestrated"
 msgstr "Orquestrado"
 
@@ -11293,6 +11305,9 @@ msgstr "Público"
 
 msgid "Public leaderboard"
 msgstr "Ranking público"
+
+msgid "Publish your first page"
+msgstr "Publique sua primeira página"
 
 msgid "Published"
 msgstr "Publicado"
@@ -13062,6 +13077,9 @@ msgstr "Definir execução"
 
 msgid "Set up"
 msgstr "Configurar"
+
+msgid "Set up an automation"
+msgstr "Configure uma automação"
 
 msgid "Set up project on {hostName}"
 msgstr "Configurar o projeto em {hostName}"

@@ -563,6 +563,9 @@ msgstr "{closedCount}項未開啟"
 msgid "{completed} of {0} checks complete"
 msgstr "{0}項檢查中已完成{completed}項"
 
+msgid "{completed} of {total} tried"
+msgstr "已嘗試 {completed} / {total} 項"
+
 msgid "{configTitle} font size"
 msgstr "{configTitle}字型大小"
 
@@ -3723,6 +3726,9 @@ msgstr "連線你的Notion工作區，並共享需要自動化監聽的頁面和
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "連線你的Slack工作區，直接在對話中管理任務。"
 
+msgid "Connect your tools"
+msgstr "連接你的工具"
+
 msgid "Connected"
 msgstr "已連線"
 
@@ -6817,6 +6823,9 @@ msgstr "在Mac上獲取Superset"
 
 msgid "Get Superset Pro"
 msgstr "獲取Superset Pro"
+
+msgid "Getting started"
+msgstr "開始使用"
 
 msgid "Ghost"
 msgstr "幽靈"
@@ -10410,6 +10419,9 @@ msgstr "編排並行代理程式"
 msgid "Orchestrate Them All."
 msgstr "統一編排。"
 
+msgid "Orchestrate your agents"
+msgstr "協調你的代理程式"
+
 msgid "Orchestrated"
 msgstr "編排"
 
@@ -11293,6 +11305,9 @@ msgstr "公開"
 
 msgid "Public leaderboard"
 msgstr "公開排行榜"
+
+msgid "Publish your first page"
+msgstr "發布你的第一個頁面"
 
 msgid "Published"
 msgstr "發布時間"
@@ -13062,6 +13077,9 @@ msgstr "設定執行命令"
 
 msgid "Set up"
 msgstr "設定"
+
+msgid "Set up an automation"
+msgstr "設定自動化"
 
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上設定專案"

@@ -563,6 +563,9 @@ msgstr "{closedCount} zavřených"
 msgid "{completed} of {0} checks complete"
 msgstr "Dokončeno {completed} z {0} kontrol"
 
+msgid "{completed} of {total} tried"
+msgstr "Vyzkoušeno {completed} z {total}"
+
 msgid "{configTitle} font size"
 msgstr "Velikost písma: {configTitle}"
 
@@ -3723,6 +3726,9 @@ msgstr "Připojte svůj Notion workspace a nasdílejte stránky a datové zdroje
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Připojte svůj Slack workspace a spravujte úkoly přímo z konverzací."
 
+msgid "Connect your tools"
+msgstr "Připojte své nástroje"
+
 msgid "Connected"
 msgstr "Připojeno"
 
@@ -6817,6 +6823,9 @@ msgstr "Získejte Superset na svůj Mac"
 
 msgid "Get Superset Pro"
 msgstr "Pořídit Superset Pro"
+
+msgid "Getting started"
+msgstr "Začínáme"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -10410,6 +10419,9 @@ msgstr "Řiďte paralelní agenty"
 msgid "Orchestrate Them All."
 msgstr "Řiďte je všechny."
 
+msgid "Orchestrate your agents"
+msgstr "Koordinujte své agenty"
+
 msgid "Orchestrated"
 msgstr "Orchestrovaný"
 
@@ -11293,6 +11305,9 @@ msgstr "Veřejný"
 
 msgid "Public leaderboard"
 msgstr "Veřejný žebříček"
+
+msgid "Publish your first page"
+msgstr "Publikujte svou první stránku"
 
 msgid "Published"
 msgstr "Publikováno"
@@ -13062,6 +13077,9 @@ msgstr "Nastavit spuštění"
 
 msgid "Set up"
 msgstr "Nastavit"
+
+msgid "Set up an automation"
+msgstr "Nastavte automatizaci"
 
 msgid "Set up project on {hostName}"
 msgstr "Nastavit projekt na {hostName}"

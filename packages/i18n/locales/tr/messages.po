@@ -563,6 +563,9 @@ msgstr "{closedCount} kapalı"
 msgid "{completed} of {0} checks complete"
 msgstr "{0} kontrolden {completed} tanesi tamamlandı"
 
+msgid "{completed} of {total} tried"
+msgstr "{total} adımdan {completed} tanesi denendi"
+
 msgid "{configTitle} font size"
 msgstr "{configTitle} yazı tipi boyutu"
 
@@ -3723,6 +3726,9 @@ msgstr "Notion çalışma alanınızı bağlayın ve otomasyonların izlemesi ge
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Görevleri konuşmalardan yönetmek için Slack çalışma alanınızı bağlayın."
 
+msgid "Connect your tools"
+msgstr "Araçlarını bağla"
+
 msgid "Connected"
 msgstr "Bağlı"
 
@@ -6817,6 +6823,9 @@ msgstr "Superset'i Mac'inize alın"
 
 msgid "Get Superset Pro"
 msgstr "Superset Pro'yu edinin"
+
+msgid "Getting started"
+msgstr "Başlangıç"
 
 msgid "Ghost"
 msgstr "Hayalet"
@@ -10410,6 +10419,9 @@ msgstr "Paralel ajanları orkestre edin"
 msgid "Orchestrate Them All."
 msgstr "Hepsini orkestre edin."
 
+msgid "Orchestrate your agents"
+msgstr "Ajanlarını koordine et"
+
 msgid "Orchestrated"
 msgstr "Orkestre edilmiş"
 
@@ -11293,6 +11305,9 @@ msgstr "Herkese açık"
 
 msgid "Public leaderboard"
 msgstr "Herkese açık lider tablosu"
+
+msgid "Publish your first page"
+msgstr "İlk sayfanı yayınla"
 
 msgid "Published"
 msgstr "Yayınlanma"
@@ -13062,6 +13077,9 @@ msgstr "Çalıştırmayı ayarla"
 
 msgid "Set up"
 msgstr "Kur"
+
+msgid "Set up an automation"
+msgstr "Bir otomasyon kur"
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName} üzerinde projeyi kur"
