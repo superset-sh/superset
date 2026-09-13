@@ -35,9 +35,9 @@ describe("react-native-screens form sheet scroll view observer patch", () => {
 			.map(([, file]) => file)) {
 			const patch = readFileSync(join(repoRoot, path), "utf8");
 			expect(patch).toContain("ios/RNSScreen.mm");
-			expect(patch).toMatch(/\+\s*BOOL _invalidated;/);
+			// 4.27+ declares `invalidated` itself, so a regenerated patch adds only
+			// the early return; the assignment line is upstream's from then on.
 			expect(patch).toMatch(/\+\s*if \(_invalidated\) \{/);
-			expect(patch).toMatch(/\+\s*_invalidated = YES;/);
 		}
 	});
 

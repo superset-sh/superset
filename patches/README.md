@@ -310,10 +310,11 @@ must not add the ivar again — only the early return is needed.
 
 ```bash
 bun patch react-native-screens@<new-version>
-# in node_modules/react-native-screens/ios/RNSScreen.mm:
-#   add `BOOL _invalidated;` to the RNSScreenView ivar block,
-#   set `_invalidated = YES;` first thing in invalidateImpl,
-#   and return early from applyFrameCorrectionForDescendantScrollView when it is set
+# in node_modules/react-native-screens/ios/RNSScreen.mm, return early from
+# applyFrameCorrectionForDescendantScrollView when `_invalidated` is set.
+# Before 4.27.0 only: also add `BOOL _invalidated;` to the RNSScreenView ivar
+# block and set `_invalidated = YES;` first thing in invalidateImpl (4.27.0+
+# already has both; adding the ivar again fails to compile).
 bun patch --commit 'node_modules/react-native-screens'
 bun test apps/mobile/react-native-screens-sheet-patch.test.ts
 ```
