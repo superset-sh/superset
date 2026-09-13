@@ -4183,9 +4183,6 @@ msgstr "Copie seu histórico de navegação e seus logins de outro navegador par
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "Copie sua chave agora — você não vai poder vê-la de novo."
 
-msgid "Copying configuration"
-msgstr "Copiando a configuração"
-
 msgid "Cost"
 msgstr "Custo"
 
@@ -4712,9 +4709,6 @@ msgstr "criando"
 
 msgid "Creating"
 msgstr "Criando"
-
-msgid "Creating git worktree"
-msgstr "Criando a worktree do git"
 
 msgid "Creating PR..."
 msgstr "Criando PR…"
@@ -6652,9 +6646,6 @@ msgstr "Filtros"
 msgid "Filters, {activeFilterCount} active"
 msgstr "Filtros, {activeFilterCount} ativos"
 
-msgid "Finalizing setup"
-msgstr "Finalizando o setup"
-
 msgid "Find"
 msgstr "Localizar"
 
@@ -7687,9 +7678,6 @@ msgstr "Inicializar o Git"
 
 msgid "Initialize Git Repository?"
 msgstr "Inicializar repositório Git?"
-
-msgid "Initializing session"
-msgstr "Inicializando a sessão"
 
 msgid "Initializing..."
 msgstr "Inicializando..."
@@ -14717,9 +14705,6 @@ msgstr "Sincronizar repositórios"
 msgid "Sync started"
 msgstr "Sincronização iniciada"
 
-msgid "Syncing with remote"
-msgstr "Sincronizando com o remoto"
-
 msgid "Syncing..."
 msgstr "Sincronizando..."
 
@@ -16441,9 +16426,6 @@ msgstr "Verifique isto"
 
 msgid "Verify your identity"
 msgstr "Verificar sua identidade"
-
-msgid "Verifying base branch"
-msgstr "Verificando a branch base"
 
 msgid "Version"
 msgstr "Versão"

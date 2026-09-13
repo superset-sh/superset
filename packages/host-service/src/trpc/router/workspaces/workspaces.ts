@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import {
 	deriveWorkspaceBranchFromPrompt,
+	deriveWorkspaceTitleFromPrompt,
 	generateFriendlyBranchName,
 	sanitizeUserBranchName,
 } from "@superset/shared/workspace-launch";
@@ -72,9 +74,7 @@ import { normalizeWorktreePath } from "../workspace-creation/shared/worktree-lis
 import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-paths";
 import {
 	applyAiWorkspaceRename,
-	applyGeneratedWorkspaceNames,
-	type GeneratedWorkspaceNames,
-	generateWorkspaceNamesFromPrompt,
+	generateWorkspaceTitleInBackground,
 	sanitizeBranchCandidate,
 } from "../workspace-creation/utils/ai-workspace-names";
 import { resolveProjectBranchPrefix } from "../workspace-creation/utils/branch-prefix";
@@ -615,14 +615,6 @@ export const workspacesRouter = router({
 			const localProject = requireLocalProject(ctx, input.projectId);
 			const repoPath = requireProjectRepoPath(localProject);
 
-			// Kick off AI naming when the user supplied a prompt but no
-			// workspace name. The worktree add and registration run with an
-			// immediately-available branch while the LLM call proceeds in
-			// parallel; the AI title (and branch, when auto-generated) is
-			// applied as a rename before terminals/agents start. A typed
-			// name suppresses naming entirely — it titles the workspace and
-			// seeds the branch. The PR and worktree-adopt paths skip too:
-			// their names are already meaningful.
 			const composerPrompt =
 				input.agents?.[0]?.prompt?.trim() || input.namingPrompt?.trim() || "";
 			const wantAi =
@@ -631,27 +623,6 @@ export const workspacesRouter = router({
 				input.name === undefined &&
 				!!composerPrompt;
 			const namingAgent = input.agents?.[0]?.agent;
-			const aiNamesPromise: Promise<GeneratedWorkspaceNames | null> | null =
-				wantAi
-					? generateWorkspaceNamesFromPrompt(
-							composerPrompt,
-							namingAgent ? { db: ctx.db, agent: namingAgent } : undefined,
-							localProject.namingInstructions,
-						).catch((err) => {
-							console.warn("[workspaces.create] AI naming failed", err);
-							return null;
-						})
-					: null;
-			aiNamesPromise?.catch(() => {});
-
-			// True only when this call freshly created an auto-generated
-			// branch — the one case where the deferred AI rename may also
-			// rename the git branch.
-			let aiCanRenameBranch = false;
-			// The prefix applied to that auto-generated branch, so the
-			// deferred AI rename below can reapply the same prefix instead
-			// of re-resolving it (and instead of losing it).
-			let resolvedBranchPrefix: string | undefined;
 
 			const git = await ctx.git(repoPath);
 			const fetchBaseRefOffLoop = createWorkerBaseRefFetcher(ctx, repoPath);
@@ -1038,10 +1009,6 @@ export const workspacesRouter = router({
 						}
 					}
 				} else {
-					// Auto-gen branch: a typed workspace name seeds the branch
-					// slug; otherwise friendly random. The AI branch name (when a
-					// prompt exists) lands as a rename after registration — the
-					// worktree add never waits for the LLM.
 					const [startPoint, existing] = await Promise.all([
 						resolveNewBranchStartPoint(
 							git,
@@ -1056,11 +1023,15 @@ export const workspacesRouter = router({
 						getAuthorName: () => getGitAuthorName(git),
 						existingBranches: existing,
 					});
-					resolvedBranchPrefix = prefix;
 					const typedNameSlug = input.name
 						? sanitizeBranchCandidate(input.name)
 						: "";
-					const candidate = typedNameSlug || generateFriendlyBranchName();
+					const promptSlug = deriveWorkspaceBranchFromPrompt(composerPrompt);
+					const candidate =
+						typedNameSlug ||
+						(promptSlug
+							? `${promptSlug}-${(input.id ?? randomUUID()).slice(0, 8)}`
+							: generateFriendlyBranchName());
 					const prefixed = prefix ? `${prefix}/${candidate}` : candidate;
 					resolvedBranch = deduplicateBranchName(prefixed, existing);
 					plan = {
@@ -1213,55 +1184,31 @@ export const workspacesRouter = router({
 								ctx,
 								id: input.id,
 								projectId: input.projectId,
-								name: input.name ?? resolvedBranch,
+								name:
+									input.name ??
+									((wantAi
+										? deriveWorkspaceTitleFromPrompt(composerPrompt)
+										: "") ||
+										resolvedBranch),
 								branch: resolvedBranch,
 								worktreePath,
 								taskId: input.taskId,
 								tags: input.tags,
 								rollbackWorktree,
 							});
-							aiCanRenameBranch = !typedBranch;
 						}
 					}
 				}
 			}
 
-			// Apply AI names before terminals/agents start, so setup scripts
-			// and agents only ever observe the final branch name. The naming
-			// call has been running since the top of the mutation and is
-			// bounded by its own timeouts, so this usually adds well under a
-			// second on top of the git work; the rename itself (`branch -m`
-			// plus a row update) is milliseconds. The worktree directory
-			// keeps its creation-time name.
-			if (!alreadyExists && aiNamesPromise && worktreePath !== undefined) {
-				const names = await aiNamesPromise;
-				if (names) {
-					try {
-						const applied = await applyGeneratedWorkspaceNames({
-							ctx,
-							workspaceId: workspaceRow.id,
-							repoPath,
-							worktreePath,
-							oldBranchName: resolvedBranch,
-							oldWorkspaceName: workspaceRow.name || resolvedBranch,
-							names,
-							renameTitle: true,
-							renameBranch: aiCanRenameBranch,
-							branchPrefix: resolvedBranchPrefix,
-						});
-						if (applied) {
-							// Keep the original row object: it carries the create txid.
-							workspaceRow = {
-								...workspaceRow,
-								name: applied.name || applied.branch,
-								branch: applied.branch,
-							};
-							resolvedBranch = applied.branch;
-						}
-					} catch (err) {
-						console.warn("[workspaces.create] AI rename failed", err);
-					}
-				}
+			if (!alreadyExists && wantAi) {
+				generateWorkspaceTitleInBackground({
+					ctx,
+					workspace: workspaceRow,
+					prompt: composerPrompt,
+					agent: namingAgent,
+					namingInstructions: localProject.namingInstructions,
+				});
 			}
 
 			const terminalsResult: Array<{ terminalId: string; label?: string }> = [];
@@ -1381,8 +1328,11 @@ export const workspacesRouter = router({
 				});
 			}
 
+			const latest = getLocalWorkspace(ctx.db, workspaceRow.id);
 			return {
-				workspace: workspaceRow,
+				workspace: latest
+					? { ...workspaceRow, ...toCloudShape(latest, ctx.organizationId) }
+					: workspaceRow,
 				terminals: terminalsResult,
 				agents: chainedAgentResult
 					? [chainedAgentResult, ...agentsResult]
@@ -1394,7 +1344,7 @@ export const workspacesRouter = router({
 
 	/**
 	 * Enqueue-and-return variant of `create` for renderer clients: the full
-	 * create (worktree add, AI naming, agent dispatch) can run for minutes,
+	 * create (worktree add, agent dispatch) can run for minutes,
 	 * which would pin one of Chromium's 6-per-origin pooled sockets — and
 	 * relay-fronted hosts hard-cap request exchanges at 30s. Validates
 	 * cheaply, responds immediately, then runs the real `create` in the
@@ -1543,8 +1493,6 @@ export const workspacesRouter = router({
 			);
 			const derived = deriveWorkspaceBranchFromPrompt(input.prompt);
 			if (!derived) return { branchName: null };
-			// Preview must match what create will actually produce, so it
-			// carries the same prefix resolution the real auto-gen path uses.
 			const prefix = await resolveProjectBranchPrefix({
 				ctx,
 				project: localProject,
@@ -1561,4 +1509,4 @@ export const workspacesRouter = router({
 // request time, long after module init.
 const createWorkspacesCaller = createCallerFactory(workspacesRouter);
 
-export { generateWorkspaceNamesFromPrompt as _aiNamesGenerator };
+export { generateWorkspaceNamesFromPrompt as _aiNamesGenerator } from "../workspace-creation/utils/ai-workspace-names";

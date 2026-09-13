@@ -20,7 +20,13 @@ import {
 import { z } from "zod";
 import type { HostDb } from "../../../../db";
 import type { HostServiceContext } from "../../../../types";
-import { updateLocalWorkspace } from "../../../../workspaces/local-workspace-store";
+import {
+	getLocalWorkspace,
+	type HostWorkspaceRow,
+	updateLocalWorkspace,
+	type WorkspaceStoreContext,
+} from "../../../../workspaces/local-workspace-store";
+import { queueWorkspaceTitleJob } from "../../../../workspaces/workspace-title-jobs";
 import { resolveHostAgentConfig } from "../../agents/agents";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
@@ -130,9 +136,6 @@ function buildInstructions(namingInstructions?: string | null): string {
 	return lines.join("\n");
 }
 
-// Agent CLIs cold-start (~2-4s) before the model call. Workspace creation
-// blocks on naming, so this is also the worst-case added create latency;
-// past it we fall back to names derived from the prompt itself.
 const AGENT_GENERATE_TIMEOUT_MS = 20_000;
 
 function buildAgentJsonInstructions(
@@ -489,4 +492,42 @@ export async function applyGeneratedWorkspaceNames(
 		return null;
 	}
 	return { name: updated.name, branch: updated.branch };
+}
+
+export function generateWorkspaceTitleInBackground({
+	ctx,
+	workspace,
+	prompt,
+	agent,
+	namingInstructions,
+}: {
+	ctx: WorkspaceStoreContext;
+	workspace: Pick<HostWorkspaceRow, "id" | "name">;
+	prompt: string;
+	agent?: string;
+	namingInstructions?: string | null;
+}): void {
+	queueWorkspaceTitleJob(ctx.db, workspace.id, async (isCurrent) => {
+		const existing = getLocalWorkspace(ctx.db, workspace.id);
+		if (
+			!existing ||
+			existing.archivedAt != null ||
+			existing.name !== workspace.name
+		)
+			return;
+		const names = await generateWorkspaceNamesFromPrompt(
+			prompt,
+			agent ? { db: ctx.db, agent } : undefined,
+			namingInstructions,
+		);
+		if (!names?.title || !isCurrent()) return;
+		const current = getLocalWorkspace(ctx.db, workspace.id);
+		if (
+			!current ||
+			current.archivedAt != null ||
+			current.name !== workspace.name
+		)
+			return;
+		updateLocalWorkspace(ctx, workspace.id, { name: names.title });
+	});
 }
