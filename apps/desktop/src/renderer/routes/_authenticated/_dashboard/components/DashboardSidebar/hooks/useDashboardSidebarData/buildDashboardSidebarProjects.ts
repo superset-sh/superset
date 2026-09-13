@@ -68,6 +68,8 @@ export interface SidebarWorkspaceInput {
 	tags?: readonly string[] | null;
 	pinnedAt: number | null;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
+	/** Non-null = archived: the worktree is gone, the row is restorable. */
+	archivedAt?: number | null;
 }
 
 /**
@@ -124,6 +126,7 @@ function decorateSidebarWorkspace(
 		taskId: workspace.taskId,
 		isPinned: workspace.pinnedAt != null,
 		pendingTransaction: workspace.pendingTransaction,
+		archivedAt: workspace.archivedAt ?? null,
 	};
 }
 

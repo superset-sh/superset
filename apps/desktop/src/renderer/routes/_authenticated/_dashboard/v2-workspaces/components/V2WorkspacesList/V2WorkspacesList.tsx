@@ -53,6 +53,7 @@ const LIST_SECTION_ORDER: BoardColumnKey[] = [
 	"working",
 	"review",
 	"idle",
+	"archived",
 	"merged",
 	"deleted",
 ];

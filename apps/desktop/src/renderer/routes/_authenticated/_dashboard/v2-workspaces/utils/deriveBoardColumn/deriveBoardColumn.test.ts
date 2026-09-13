@@ -4,7 +4,7 @@ import { deriveBoardColumn } from "./deriveBoardColumn";
 
 function make(overrides: {
 	archivedAt?: number | null;
-	archiveReason?: "merged" | "deleted" | null;
+	archiveReason?: "merged" | "deleted" | "archived" | null;
 	agentStatus?: PaneStatus;
 	prState?: "open" | "draft" | "merged" | "closed" | "queued" | null;
 	type?: "main" | "worktree" | "session";
@@ -26,6 +26,18 @@ describe("deriveBoardColumn", () => {
 		expect(
 			deriveBoardColumn(make({ archivedAt: 1, archiveReason: "merged" })),
 		).toBe("merged");
+	});
+
+	test("a user-archived tombstone lands in Archived", () => {
+		expect(
+			deriveBoardColumn(
+				make({
+					archivedAt: 1,
+					archiveReason: "archived",
+					agentStatus: "working",
+				}),
+			),
+		).toBe("archived");
 	});
 
 	test("archived wins over live signals", () => {

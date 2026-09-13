@@ -113,6 +113,7 @@ export const V2_WORKSPACES_BOARD_LANES = [
 	"working",
 	"attention",
 	"review",
+	"archived",
 	"merged",
 	"deleted",
 ] as const;

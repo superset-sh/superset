@@ -100,7 +100,7 @@ export interface AccessibleV2Workspace {
 	diffStats: V2WorkspaceDiffStats | null;
 	/** Non-null = archived tombstone (soft-deleted workspace). */
 	archivedAt: number | null;
-	archiveReason: "merged" | "deleted" | null;
+	archiveReason: "merged" | "deleted" | "archived" | null;
 }
 
 export interface V2WorkspaceHostOption {
@@ -385,7 +385,7 @@ export function useAccessibleV2Workspaces(
 			sidebarWorkspaceId: string | null;
 			sidebarIsHidden: boolean;
 			archivedAt: number | null;
-			archiveReason: "merged" | "deleted" | null;
+			archiveReason: "merged" | "deleted" | "archived" | null;
 		};
 		return hostWorkspaces.flatMap((workspace): AccessibleRowDraft[] => {
 			if (workspace.organizationId !== activeOrganizationId) return [];

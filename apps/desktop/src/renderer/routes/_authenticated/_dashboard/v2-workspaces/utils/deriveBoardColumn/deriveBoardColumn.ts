@@ -10,6 +10,7 @@ export type BoardColumnKey =
 	| "working"
 	| "attention"
 	| "review"
+	| "archived"
 	| "merged"
 	| "deleted";
 
@@ -19,6 +20,7 @@ export const BOARD_COLUMN_ORDER: BoardColumnKey[] = [
 	"working",
 	"attention",
 	"review",
+	"archived",
 	"merged",
 	"deleted",
 ];
@@ -33,6 +35,9 @@ export const BOARD_COLUMN_LABELS: Record<BoardColumnKey, MessageDescriptor> = {
 	}),
 	review: msg({
 		message: "Needs review",
+	}),
+	archived: msg({
+		message: "Archived",
 	}),
 	merged: msg({
 		message: "Merged",
@@ -53,6 +58,7 @@ type BoardColumnInputs = Pick<
  * Column derivation, first match wins:
  *   1. archived "deleted"                → Deleted
  *   2. archived "merged"                 → Merged
+ *   2b. archived "archived"              → Archived
  *   3. live PR merged                    → Merged
  *   4. agent permission/failed           → Needs attention
  *   5. agent working                     → Working
@@ -71,7 +77,9 @@ export function deriveBoardColumn(
 	workspace: BoardColumnInputs,
 ): BoardColumnKey {
 	if (workspace.archivedAt != null) {
-		return workspace.archiveReason === "merged" ? "merged" : "deleted";
+		if (workspace.archiveReason === "merged") return "merged";
+		if (workspace.archiveReason === "archived") return "archived";
+		return "deleted";
 	}
 	if (workspace.pr?.state === "merged") return "merged";
 	if (

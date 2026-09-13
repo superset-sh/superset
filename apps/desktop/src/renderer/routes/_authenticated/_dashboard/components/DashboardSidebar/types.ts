@@ -57,6 +57,8 @@ export interface DashboardSidebarWorkspace {
 	taskId: string | null;
 	isPinned: boolean;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
+	/** Epoch ms it was archived; null or absent when live. */
+	archivedAt?: number | null;
 }
 
 /**

@@ -179,6 +179,8 @@ function BoardCardBody({
 					<span className={PILL_CLASS}>
 						{workspace.archiveReason === "merged" ? (
 							<Trans>Merged</Trans>
+						) : workspace.archiveReason === "archived" ? (
+							<Trans>Archived</Trans>
 						) : (
 							<Trans>Deleted</Trans>
 						)}

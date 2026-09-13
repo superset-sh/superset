@@ -43,7 +43,7 @@ export interface HostWorkspaceRow extends HostShapedWorkspace {
 	worktreeExists: boolean;
 	/** Non-null = archived tombstone (only served on `includeArchived`). */
 	archivedAt?: number | null;
-	archiveReason?: "merged" | "deleted" | null;
+	archiveReason?: "merged" | "deleted" | "archived" | null;
 }
 
 /** Merged item returned by useHostWorkspaces. */
@@ -55,7 +55,7 @@ export interface HostWorkspaceItem extends HostShapedWorkspace {
 	hostReachable: boolean;
 	/** Non-null = archived tombstone (only present on `includeArchived`). */
 	archivedAt?: number | null;
-	archiveReason?: "merged" | "deleted" | null;
+	archiveReason?: "merged" | "deleted" | "archived" | null;
 }
 
 export interface HostWorkspacesQueryTarget {

@@ -1,5 +1,10 @@
 import { cn } from "@superset/ui/utils";
-import { LuCircleAlert, LuCircleCheck, LuCircleX } from "react-icons/lu";
+import {
+	LuArchive,
+	LuCircleAlert,
+	LuCircleCheck,
+	LuCircleX,
+} from "react-icons/lu";
 import type { BoardColumnKey } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
 
 const RADIUS = 5;
@@ -63,6 +68,12 @@ export function BoardColumnIcon({ column, className }: BoardColumnIconProps) {
 				<PieIcon
 					fraction={0.75}
 					className={cn("text-emerald-500", className)}
+				/>
+			);
+		case "archived":
+			return (
+				<LuArchive
+					className={cn("size-3.5 text-muted-foreground", className)}
 				/>
 			);
 		case "merged":

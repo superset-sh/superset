@@ -3,6 +3,7 @@ import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { useHostWorkspacesSource } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -164,7 +165,11 @@ function useStableDashboardSidebarProjects(
 	}, [projects]);
 }
 
-export function useDashboardSidebarData() {
+export function useDashboardSidebarData(options?: {
+	/** Fetch every host's archived rows for the sidebar's Archived view. */
+	includeArchived?: boolean;
+}) {
+	const includeArchived = options?.includeArchived ?? false;
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
@@ -291,6 +296,12 @@ export function useDashboardSidebarData() {
 				(workspace) => !hostWorkspacesCache.isSandboxHost(workspace.hostId),
 			),
 		[allHostWorkspaces, hostWorkspacesCache],
+	);
+	// Archived rows are tombstones the shared live list never carries; they
+	// come from their own opt-in query, enabled only while the view is open.
+	const { workspaces: hostWorkspacesWithArchived } = useHostWorkspacesSource(
+		undefined,
+		{ includeArchived },
 	);
 	const hostWorkspacesById = useMemo(
 		() => new Map(hostWorkspaces.map((workspace) => [workspace.id, workspace])),
@@ -629,8 +640,106 @@ export function useDashboardSidebarData() {
 	);
 	const pinnedWorkspaces = useJsonStable(computedPinnedWorkspaces);
 
+	// The archived view is the same project tree built from archived rows, so
+	// each project lists only its archived workspaces. A row keeps its section
+	// and order from its placement row; one placed nowhere (an archived row
+	// that lost its placement) lands at the top of its project.
+	const archivedRows = useMemo(() => {
+		if (!includeArchived) return [];
+		const localStateByWorkspaceId = new Map(
+			sidebarLocalStateRows.map((row) => [row.workspaceId, row]),
+		);
+		return hostWorkspacesWithArchived.flatMap((workspace) => {
+			// Only tombstones the user chose to Archive: a plain Delete leaves the
+			// same kind of row, and the Deleted lane on the board is its place.
+			if (
+				workspace.archivedAt == null ||
+				workspace.archiveReason !== "archived"
+			)
+				return [];
+			if (workspace.type !== "worktree") return [];
+			if (hostWorkspacesCache.isSandboxHost(workspace.hostId)) return [];
+			const localState = localStateByWorkspaceId.get(workspace.id);
+			if (!localState && workspace.hostId !== machineId) return [];
+			const projectId = localState?.projectId ?? workspace.projectId;
+			if (projectId === null) return [];
+			return [
+				{
+					id: workspace.id,
+					projectId,
+					hostId: workspace.hostId,
+					type: workspace.type,
+					name: workspace.name,
+					branch: workspace.branch,
+					taskId: workspace.taskId,
+					createdAt: workspace.createdAt,
+					updatedAt: workspace.updatedAt,
+					lastActivityAt: workspace.lastActivityAt,
+					tabOrder: localState?.tabOrder ?? 0,
+					sectionId: localState?.sectionId ?? null,
+					tags: workspace.tags,
+					pinnedAt: localState?.pinnedAt ?? null,
+					hostIsOnline:
+						hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
+					pendingTransaction: null,
+					archivedAt: workspace.archivedAt,
+				},
+			];
+		});
+	}, [
+		hostWorkspacesWithArchived,
+		hostWorkspacesCache,
+		includeArchived,
+		hostsByMachineId,
+		machineId,
+		sidebarLocalStateRows,
+	]);
+	const computedArchivedGroups = useMemo<DashboardSidebarProject[]>(
+		() =>
+			buildDashboardSidebarProjects({
+				sidebarProjects,
+				sidebarSections: deriveTagFolders(
+					storedSidebarSections,
+					archivedRows,
+					tagFolderContext,
+				).map((section) => ({
+					id: section.sectionId,
+					projectId: section.projectId,
+					name: section.name,
+					createdAt: section.createdAt,
+					isCollapsed: section.isCollapsed,
+					tabOrder: section.tabOrder,
+					color: section.color,
+					tag: section.tag,
+				})),
+				visibleSidebarWorkspaces: archivedRows,
+				machineId,
+				pullRequestsByWorkspaceId,
+			}).filter((project) =>
+				// Folder rows exist whether or not anything sits in them, so a
+				// project counts as archived only when it holds a workspace row.
+				project.children.some((child) =>
+					child.type === "workspace"
+						? true
+						: child.section.workspaces.length > 0,
+				),
+			),
+		[
+			archivedRows,
+			machineId,
+			pullRequestsByWorkspaceId,
+			sidebarProjects,
+			storedSidebarSections,
+			tagFolderContext,
+		],
+	);
+	const archivedGroups = useStableDashboardSidebarProjects(
+		computedArchivedGroups,
+	);
+
 	return {
 		groups,
+		archivedGroups,
 		hiddenProjects,
 		pinnedWorkspaces,
 		sessionWorkspaces,
