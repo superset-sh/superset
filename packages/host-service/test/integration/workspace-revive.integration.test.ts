@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../src/db/schema";
+import { __testDestroysInFlight } from "../../src/trpc/router/workspace-cleanup/workspace-cleanup";
 import { cloudFlows } from "../helpers/cloud-fakes";
 import {
 	createFeatureWorktreeScenario,
@@ -84,6 +85,54 @@ describe("workspaceCleanup.revive integration", () => {
 		expect(worktrees).toContain(`worktree ${scenario.worktreePath}`);
 		expect(worktrees).toContain(`branch refs/heads/${scenario.branch}`);
 		expect(events).toContain("created");
+	});
+
+	test("rejects restore and destroy while the workspace lifecycle guard is held", async () => {
+		await destroyFeature();
+		__testDestroysInFlight.add(scenario.featureWorkspaceId);
+		try {
+			await expectCode(
+				scenario.host.trpc.workspaceCleanup.revive.mutate({
+					workspaceId: scenario.featureWorkspaceId,
+				}),
+				"CONFLICT",
+			);
+			await expectCode(
+				scenario.host.trpc.workspaceCleanup.destroy.mutate({
+					workspaceId: scenario.featureWorkspaceId,
+				}),
+				"CONFLICT",
+			);
+			expect(readRow(scenario.featureWorkspaceId)?.archiveReason).toBe("archived");
+			expect(existsSync(scenario.worktreePath)).toBe(false);
+		} finally {
+			__testDestroysInFlight.delete(scenario.featureWorkspaceId);
+		}
+		await scenario.host.trpc.workspaceCleanup.revive.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+		});
+		expect(existsSync(scenario.worktreePath)).toBe(true);
+	});
+
+	test("rejects archiving a session before changing its row or removing its directory", async () => {
+		const workspaceId = scenario.featureWorkspaceId;
+		scenario.host.db
+			.update(workspaces)
+			.set({ type: "session", projectId: null, branch: null })
+			.where(eq(workspaces.id, workspaceId))
+			.run();
+		await expectCode(
+			scenario.host.trpc.workspaceCleanup.destroy.mutate({
+				workspaceId,
+				archive: true,
+				force: true,
+			}),
+			"BAD_REQUEST",
+		);
+		expect(readRow(workspaceId)?.archivedAt).toBeNull();
+		expect(readRow(workspaceId)?.archiveReason).toBeNull();
+		expect(existsSync(scenario.worktreePath)).toBe(true);
+		expect(existsSync(`${scenario.worktreePath}/.git`)).toBe(true);
 	});
 
 	test("refuses a workspace that is not archived", async () => {

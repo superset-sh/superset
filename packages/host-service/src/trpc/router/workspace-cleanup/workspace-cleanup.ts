@@ -283,6 +283,16 @@ async function runDestroy(
 			? { archivedAt: local.archivedAt, archiveReason: local.archiveReason }
 			: null;
 	const worktreeGone = local ? isMissingDirectory(local.worktreePath) : true;
+	if (
+		input.archive &&
+		local &&
+		(local.type !== "worktree" || !local.projectId || !local.branch)
+	) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Only worktree workspaces can be archived",
+		});
+	}
 	if (marked) {
 		archiveLocalWorkspace(
 			ctx,

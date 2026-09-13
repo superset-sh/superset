@@ -24,8 +24,6 @@ import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-
 import { parseSparseCheckoutPaths } from "../workspace-creation/shared/sparse-checkout";
 import { addBranchWorktree } from "../workspaces/workspaces";
 
-const revivesInFlight = new Set<string>();
-
 export interface ReviveWorkspaceResult {
 	workspace: CloudShapedWorkspace;
 	warnings: string[];
@@ -49,17 +47,20 @@ export async function reviveWorkspace(
 	ctx: HostServiceContext,
 	workspaceId: string,
 ): Promise<ReviveWorkspaceResult> {
-	if (revivesInFlight.has(workspaceId)) {
+	const { __testDestroysInFlight: workspaceLifecycleInFlight } = await import(
+		"./workspace-cleanup"
+	);
+	if (workspaceLifecycleInFlight.has(workspaceId)) {
 		throw new TRPCError({
 			code: "CONFLICT",
-			message: "Restore already in progress for this workspace",
+			message: "Workspace lifecycle operation already in progress",
 		});
 	}
-	revivesInFlight.add(workspaceId);
+	workspaceLifecycleInFlight.add(workspaceId);
 	try {
 		return await runRevive(ctx, workspaceId);
 	} finally {
-		revivesInFlight.delete(workspaceId);
+		workspaceLifecycleInFlight.delete(workspaceId);
 	}
 }
 
