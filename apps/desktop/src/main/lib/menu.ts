@@ -329,6 +329,39 @@ export function createApplicationMenu() {
 				},
 			],
 		});
+	} else {
+		template.unshift({
+			label: i18n._(
+				msg({
+					message: "File",
+				}),
+			),
+			submenu: [
+				{
+					label: i18n._(
+						msg({
+							message: "Settings...",
+						}),
+					),
+					accelerator: openSettingsAccelerator,
+					click: () => {
+						menuEmitter.emit("open-settings");
+					},
+				},
+				{
+					label: i18n._(
+						msg({
+							message: "Check for Updates...",
+						}),
+					),
+					click: () => {
+						checkForUpdatesInteractive();
+					},
+				},
+				{ type: "separator" },
+				{ role: "quit" },
+			],
+		});
 	}
 
 	const menu = Menu.buildFromTemplate(template);
