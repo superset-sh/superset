@@ -6,9 +6,9 @@ import {
 	organizationClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
-import * as SecureStore from "expo-secure-store";
 import { env } from "../env";
 import { transportFetch } from "../errors";
+import { sessionStorage } from "./sessionStorage";
 
 let jwt: string | null = null;
 
@@ -26,7 +26,7 @@ export const authClient = createAuthClient({
 		expoClient({
 			scheme: "superset",
 			storagePrefix: "superset",
-			storage: SecureStore,
+			storage: sessionStorage,
 		}),
 		organizationClient({
 			teams: { enabled: true },
