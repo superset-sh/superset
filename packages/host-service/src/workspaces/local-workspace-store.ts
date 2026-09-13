@@ -11,7 +11,7 @@ import {
 } from "@superset/shared/workspace-tags";
 import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../db";
-import { workspaces, workspaceTags } from "../db/schema";
+import { type ArchiveReason, workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
 import type { ApiClient } from "../types";
@@ -396,16 +396,20 @@ export function emitLocalWorkspaceDeleted(
  * `deleted` event shape as a hard delete so every existing consumer drops
  * the row identically; the row itself survives for the board's
  * Merged/Deleted history. Idempotent — re-archiving keeps the original
- * timestamp and reason.
+ * timestamp and reason, except that deleting an "archived" tombstone (the
+ * user chose Delete on an archived workspace) restamps it as a delete of
+ * now: it leaves the Archived view and can no longer be restored.
  */
 export function archiveLocalWorkspace(
 	ctx: WorkspaceStoreContext,
 	id: string,
-	reason: "merged" | "deleted",
+	reason: ArchiveReason,
 ): void {
 	const existing = getLocalWorkspace(ctx.db, id);
 	if (!existing) return;
-	if (existing.archivedAt == null) {
+	const supersedesArchive =
+		existing.archiveReason === "archived" && reason !== "archived";
+	if (existing.archivedAt == null || supersedesArchive) {
 		ctx.db
 			.update(workspaces)
 			.set({
@@ -434,6 +438,34 @@ export function trackWorkspaceDeleted(
 	row: HostWorkspaceRow,
 ): void {
 	trackWorkspaceEvent(ctx, "workspace_deleted", row);
+}
+
+/**
+ * Put a tombstone's previous stamps back — the destroy of an already
+ * archived row failed after restamping it, so it is archived (restorable)
+ * again rather than deleted. Broadcasts `deleted` like the stamp did: the
+ * row is still absent from live lists, and tombstone readers refetch.
+ */
+export function restampLocalWorkspaceTombstone(
+	ctx: WorkspaceStoreContext,
+	id: string,
+	tombstone: { archivedAt: number; archiveReason: ArchiveReason | null },
+): void {
+	ctx.db
+		.update(workspaces)
+		.set({
+			archivedAt: tombstone.archivedAt,
+			archiveReason: tombstone.archiveReason,
+			updatedAt: Date.now(),
+		})
+		.where(eq(workspaces.id, id))
+		.run();
+	ctx.eventBus.broadcastWorkspaceChanged({
+		workspaceId: id,
+		eventType: "deleted",
+		workspace: null,
+		occurredAt: Date.now(),
+	});
 }
 
 /**

@@ -17,6 +17,7 @@ import type { HostServiceContext } from "../../../types";
 import type { GitTaskEnv } from "../../../workers/tasks/git";
 import {
 	archiveLocalWorkspace,
+	restampLocalWorkspaceTombstone,
 	trackWorkspaceDeleted,
 	unarchiveLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
@@ -31,6 +32,7 @@ import { isInsideProjectWorktreesRoot } from "../workspace-creation/shared/workt
 import { cleanupGitOps, isIndeterminateGitTaskFailure } from "./git-ops";
 import { isMainWorkspace } from "./is-main-workspace";
 import { removeDirectoryTree } from "./remove-directory-tree";
+import { revive } from "./revive";
 
 /**
  * Process-local guard against concurrent destroys of the same workspace.
@@ -64,6 +66,12 @@ export interface DestroyWorkspaceInput {
 	 *   - "skip":        don't run — the interactive force-retry contract.
 	 */
 	teardownMode: "blocking" | "best-effort" | "skip";
+	/**
+	 * The user chose Archive rather than Delete: the tombstone is stamped
+	 * "archived" so the Archived view can tell it from a plain delete. Git
+	 * semantics are unchanged; the caller keeps the branch on its own.
+	 */
+	archive?: boolean;
 }
 
 /**
@@ -191,6 +199,8 @@ export const workspaceCleanupRouter = router({
 	 *   - PRECONDITION_FAILED  → no cloud API configured
 	 *   - pass-through         → cloud auth / network failure
 	 */
+	revive,
+
 	destroy: protectedProcedure
 		.input(
 			z.object({
@@ -204,6 +214,7 @@ export const workspaceCleanupRouter = router({
 				// anyway" must still run teardown, otherwise editing any
 				// tracked file silently disables the user's cleanup script.
 				skipTeardown: z.boolean().default(false),
+				archive: z.boolean().default(false),
 			}),
 		)
 		.mutation(async ({ ctx, input }) =>
@@ -212,6 +223,7 @@ export const workspaceCleanupRouter = router({
 				deleteBranch: input.deleteBranch,
 				force: input.force,
 				teardownMode: input.skipTeardown ? "skip" : "blocking",
+				archive: input.archive,
 			}),
 		),
 });
@@ -263,8 +275,20 @@ async function runDestroy(
 	// "deleted"), and session folder names are claimed against ALL rows
 	// including tombstones, so a tombstone's path can't be reused.
 	const marked = local != null;
+	// Deleting an archived workspace: the row is already a tombstone and the
+	// worktree is already gone. The stamp flips to a delete below; a failure
+	// puts the archive stamp back rather than reviving a row with no worktree.
+	const priorTombstone =
+		local?.archivedAt != null
+			? { archivedAt: local.archivedAt, archiveReason: local.archiveReason }
+			: null;
+	const worktreeGone = local ? isMissingDirectory(local.worktreePath) : true;
 	if (marked) {
-		archiveLocalWorkspace(ctx, input.workspaceId, archiveReasonFor(ctx, local));
+		archiveLocalWorkspace(
+			ctx,
+			input.workspaceId,
+			input.archive ? "archived" : archiveReasonFor(ctx, local),
+		);
 	}
 
 	try {
@@ -314,7 +338,9 @@ async function runDestroy(
 		// (potentially slow) script never delays the row leaving the UI; a
 		// blocking failure throws, the catch below un-archives, and the
 		// globally-mounted dialog re-opens with a force-retry.
-		if (input.teardownMode !== "skip" && local && project) {
+		// Nothing to tear down once the worktree is gone: an archived
+		// workspace's teardown already ran when it was archived.
+		if (input.teardownMode !== "skip" && local && project && !worktreeGone) {
 			const teardown: TeardownResult = await runTeardown({
 				db: ctx.db,
 				workspaceId: input.workspaceId,
@@ -353,7 +379,13 @@ async function runDestroy(
 		if (marked && local) trackWorkspaceDeleted(ctx, local);
 		return result;
 	} catch (err) {
-		if (marked) unarchiveLocalWorkspace(ctx, input.workspaceId);
+		if (marked) {
+			if (priorTombstone) {
+				restampLocalWorkspaceTombstone(ctx, input.workspaceId, priorTombstone);
+			} else {
+				unarchiveLocalWorkspace(ctx, input.workspaceId);
+			}
+		}
 		throw err;
 	}
 }

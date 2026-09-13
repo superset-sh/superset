@@ -17,7 +17,11 @@ export async function runArchivedWorkspaceReconcile(
 	ctx: HostServiceContext,
 ): Promise<void> {
 	const archived = ctx.db
-		.select({ id: workspaces.id, worktreePath: workspaces.worktreePath })
+		.select({
+			id: workspaces.id,
+			worktreePath: workspaces.worktreePath,
+			archiveReason: workspaces.archiveReason,
+		})
 		.from(workspaces)
 		.where(isNotNull(workspaces.archivedAt))
 		.all();
@@ -54,6 +58,9 @@ export async function runArchivedWorkspaceReconcile(
 				deleteBranch: false,
 				force: true,
 				teardownMode: "best-effort",
+				// Finishing the delete the user asked for, whichever kind it was:
+				// an archive stays restorable.
+				archive: row.archiveReason === "archived",
 			});
 		} catch (err) {
 			console.warn(

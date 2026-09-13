@@ -220,6 +220,8 @@ export const hostAgentConfigs = sqliteTable(
 	],
 );
 
+export type ArchiveReason = "merged" | "deleted" | "archived";
+
 export const workspaces = sqliteTable(
 	"workspaces",
 	{
@@ -269,8 +271,10 @@ export const workspaces = sqliteTable(
 		// Tombstone: null = live. Set at the destroy commit point; rows are
 		// kept forever and surface on the board's Merged/Deleted columns.
 		archivedAt: integer("archived_at"),
-		// "merged" when the linked PR was merged at destroy time.
-		archiveReason: text("archive_reason").$type<"merged" | "deleted">(),
+		// "archived" when the user chose Archive over Delete (the branch is
+		// kept, so the row is meant to be restored); otherwise "merged" when
+		// the linked PR was merged at destroy time.
+		archiveReason: text("archive_reason").$type<ArchiveReason>(),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
