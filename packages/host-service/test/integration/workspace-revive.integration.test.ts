@@ -1,9 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { existsSync, symlinkSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../src/db/schema";
 import { __testDestroysInFlight } from "../../src/trpc/router/workspace-cleanup/workspace-cleanup";
+import * as gitConfig from "../../src/trpc/router/workspace-creation/shared/git-config";
 import { cloudFlows } from "../helpers/cloud-fakes";
 import {
 	createFeatureWorktreeScenario,
@@ -222,6 +224,75 @@ describe("workspaceCleanup.revive integration", () => {
 		);
 		expect(readRow(scenario.featureWorkspaceId)?.archivedAt).not.toBeNull();
 		expect(existsSync(scenario.worktreePath)).toBe(false);
+	});
+
+	test("refuses revival when another workspace acquires the recreated worktree during Git setup", async () => {
+		await destroyFeature();
+		const archivedAt = readRow(scenario.featureWorkspaceId)?.archivedAt;
+		const enablePushAutoSetupRemote = gitConfig.enablePushAutoSetupRemote;
+		let ownerId = "";
+		const setup = spyOn(gitConfig, "enablePushAutoSetupRemote");
+		setup.mockImplementation(async (...args) => {
+			await enablePushAutoSetupRemote(...args);
+			expect(existsSync(scenario.worktreePath)).toBe(true);
+			ownerId = seedWorkspace(scenario.host, {
+				projectId: scenario.projectId,
+				worktreePath: scenario.worktreePath,
+				branch: scenario.branch,
+			}).id;
+		});
+		try {
+			await expectCode(
+				scenario.host.trpc.workspaceCleanup.revive.mutate({
+					workspaceId: scenario.featureWorkspaceId,
+				}),
+				"CONFLICT",
+			);
+			expect(setup).toHaveBeenCalledTimes(1);
+			expect(ownerId).not.toBe("");
+			expect(readRow(ownerId)?.archivedAt).toBeNull();
+			expect(readRow(scenario.featureWorkspaceId)?.archivedAt).toEqual(
+				archivedAt,
+			);
+			expect(readRow(scenario.featureWorkspaceId)?.archiveReason).toBe(
+				"archived",
+			);
+			expect(existsSync(join(scenario.worktreePath, ".git"))).toBe(true);
+		} finally {
+			setup.mockRestore();
+		}
+	});
+
+	test("restores a surviving registered worktree through a symlink alias", async () => {
+		const aliasDir = join(scenario.repo.repoPath, "worktrees-alias");
+		symlinkSync(dirname(scenario.worktreePath), aliasDir, "junction");
+		const aliasPath = join(aliasDir, basename(scenario.worktreePath));
+		scenario.host.db
+			.update(workspaces)
+			.set({
+				worktreePath: aliasPath,
+				archivedAt: Date.now(),
+				archiveReason: "archived",
+			})
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.run();
+
+		const result = await scenario.host.trpc.workspaceCleanup.revive.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+		});
+
+		expect(result.workspace.id).toBe(scenario.featureWorkspaceId);
+		expect(readRow(scenario.featureWorkspaceId)?.worktreePath).toBe(aliasPath);
+		expect(readRow(scenario.featureWorkspaceId)?.archivedAt).toBeNull();
+		expect(readRow(scenario.featureWorkspaceId)?.archiveReason).toBeNull();
+		expect(existsSync(join(aliasPath, ".git"))).toBe(true);
+		const worktrees = await scenario.repo.git.raw([
+			"worktree",
+			"list",
+			"--porcelain",
+		]);
+		expect(worktrees).toContain(`worktree ${scenario.worktreePath}`);
+		expect(worktrees).not.toContain(`worktree ${aliasPath}`);
 	});
 
 	test("a revived workspace can be archived and revived again", async () => {

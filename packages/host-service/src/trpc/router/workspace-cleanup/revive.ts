@@ -22,6 +22,7 @@ import {
 } from "../workspace-creation/shared/local-project";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import { parseSparseCheckoutPaths } from "../workspace-creation/shared/sparse-checkout";
+import { normalizeWorktreePath } from "../workspace-creation/shared/worktree-list";
 import { addBranchWorktree } from "../workspaces/workspaces";
 
 export interface ReviveWorkspaceResult {
@@ -134,7 +135,11 @@ async function runRevive(
 	const checkedOutAt = (await listWorktreeBranches(git)).worktreeMap.get(
 		branch,
 	);
-	if (checkedOutAt !== undefined && checkedOutAt !== row.worktreePath) {
+	if (
+		checkedOutAt !== undefined &&
+		normalizeWorktreePath(checkedOutAt) !==
+			normalizeWorktreePath(row.worktreePath)
+	) {
 		throw new TRPCError({
 			code: "CONFLICT",
 			message: `Branch "${branch}" is already checked out at ${checkedOutAt}`,
@@ -162,6 +167,27 @@ async function runRevive(
 			row.worktreePath,
 			"[workspace-cleanup.revive]",
 		);
+	}
+
+	const liveOwner = ctx.db
+		.select({ id: workspaces.id })
+		.from(workspaces)
+		.where(
+			and(
+				eq(workspaces.projectId, row.projectId),
+				isNull(workspaces.archivedAt),
+				or(
+					eq(workspaces.worktreePath, row.worktreePath),
+					eq(workspaces.branch, branch),
+				),
+			),
+		)
+		.get();
+	if (liveOwner) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: `"${branch}" is already open in another workspace`,
+		});
 	}
 
 	if (branch !== row.branch) {
