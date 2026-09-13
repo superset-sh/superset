@@ -18,69 +18,51 @@ export type WorkspaceHostTarget =
 	  };
 
 /**
- * Resolves a workspace ID to its owning host-service target.
- *
- * The status union lets callers distinguish "still loading the collection"
- * from "local host hasn't booted yet" from "workspace doesn't exist on this
- * client" — three states the previous `string | null` API collapsed into one.
+ * Resolves a workspace ID to its owning host-service target: a cloud
+ * workspace's sandbox edge address once its sandbox is awake, this machine's
+ * host-service, or another host through the relay.
  */
 export function useWorkspaceHostTarget(
 	workspaceId: string | null,
 ): WorkspaceHostTarget {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
-
 	const { workspaces, isReady } = useHostWorkspaces();
-	const match = workspaceId
-		? (workspaces.find((w) => w.id === workspaceId) ?? null)
-		: null;
-
-	// A cloud workspace has no host row, so it never appears above. Its
-	// address comes from the sandbox access provider, which wakes the open
-	// workspace's sandbox and reports it once host-service answers.
-	const {
-		workspaces: cloudWorkspaces,
-		organizationId,
-		isFetched: cloudFetched,
-	} = useCloudWorkspaces();
+	const { workspaces: cloudWorkspaces, isSettled: cloudSettled } =
+		useCloudWorkspaces();
 	const { targets: sandboxes } = useSandboxAccess();
-	const cloudMatch = workspaceId
-		? (cloudWorkspaces.find(
-				(w) => w.id === workspaceId && w.status === "ready",
-			) ?? null)
-		: null;
-	const sandbox = cloudMatch
-		? (sandboxes.find(
-				(target) => target.workspaceId === cloudMatch.id && target.running,
-			) ?? null)
-		: null;
-	const cloudPending = Boolean(organizationId) && !match && !cloudFetched;
+
+	const match = workspaces.find((w) => w.id === workspaceId) ?? null;
+	const isCloud = cloudWorkspaces.some((w) => w.id === workspaceId);
+	const sandbox =
+		sandboxes.find((t) => t.workspaceId === workspaceId && t.running) ?? null;
 
 	return useMemo(() => {
-		if (cloudMatch) {
-			if (!sandbox) return { status: "loading" };
-			return {
-				status: "ready",
-				kind: "sandbox",
-				hostId: cloudMatch.id,
-				url: sandbox.url,
-			};
+		if (!workspaceId) return { status: "loading" };
+		if (isCloud) {
+			return sandbox
+				? {
+						status: "ready",
+						kind: "sandbox",
+						hostId: workspaceId,
+						url: sandbox.url,
+					}
+				: { status: "loading" };
 		}
-		if (!workspaceId || (!isReady && !match)) return { status: "loading" };
-		// The cloud list decides "not-found" as much as the host fan-out does;
-		// answering before it lands flashes a not-found on every cloud open.
-		if (!match && cloudPending) return { status: "loading" };
-		if (!match) return { status: "not-found" };
+		if (!match) {
+			return isReady && cloudSettled
+				? { status: "not-found" }
+				: { status: "loading" };
+		}
 		if (machineId && match.hostId === machineId) {
-			if (activeHostUrl) {
-				return {
-					status: "ready",
-					kind: "local",
-					hostId: match.hostId,
-					url: activeHostUrl,
-				};
-			}
-			return { status: "local-starting", hostId: match.hostId };
+			return activeHostUrl
+				? {
+						status: "ready",
+						kind: "local",
+						hostId: match.hostId,
+						url: activeHostUrl,
+					}
+				: { status: "local-starting", hostId: match.hostId };
 		}
 		const routingKey = buildHostRoutingKey(match.organizationId, match.hostId);
 		return {
@@ -91,21 +73,18 @@ export function useWorkspaceHostTarget(
 		};
 	}, [
 		workspaceId,
-		isReady,
+		isCloud,
+		sandbox,
 		match,
+		isReady,
+		cloudSettled,
 		machineId,
 		activeHostUrl,
 		relayUrl,
-		cloudMatch,
-		sandbox,
-		cloudPending,
 	]);
 }
 
-/**
- * Backwards-compatible URL-only form for existing callers. Returns null
- * for any non-`ready` status (loading, local-starting, not-found).
- */
+/** URL-only form: null for any non-`ready` status. */
 export function useWorkspaceHostUrl(workspaceId: string | null): string | null {
 	const target = useWorkspaceHostTarget(workspaceId);
 	return target.status === "ready" ? target.url : null;

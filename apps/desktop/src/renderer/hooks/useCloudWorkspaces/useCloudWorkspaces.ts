@@ -16,8 +16,8 @@ const PROVISIONING_POLL_MS = 1_000;
 export interface CloudWorkspacesValue {
 	workspaces: CloudWorkspaceRow[];
 	organizationId: string | null;
-	/** False until the list has been fetched once. */
-	isFetched: boolean;
+	/** True once the list has been fetched, or when it never will be (flag off, no organization). */
+	isSettled: boolean;
 }
 
 /**
@@ -32,13 +32,14 @@ export interface CloudWorkspacesValue {
  * change arrives as a realtime nudge.
  */
 export function useCloudWorkspaces(): CloudWorkspacesValue {
-	const enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
+	const flagEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
 	const organizationId = useActiveOrganizationId();
+	const enabled = Boolean(flagEnabled && organizationId);
 
 	const query = cloudTrpc.cloudWorkspace.list.useQuery(
 		{ organizationId: organizationId ?? "" },
 		{
-			enabled: Boolean(enabled && organizationId),
+			enabled,
 			// The realtime channel nudges on every status write; the fast poll
 			// only bridges a provisioning row so `ready` lands within a second.
 			refetchInterval: (current) =>
@@ -51,6 +52,6 @@ export function useCloudWorkspaces(): CloudWorkspacesValue {
 	return {
 		workspaces: query.data ?? [],
 		organizationId,
-		isFetched: query.isFetched,
+		isSettled: !enabled || query.isFetched,
 	};
 }
