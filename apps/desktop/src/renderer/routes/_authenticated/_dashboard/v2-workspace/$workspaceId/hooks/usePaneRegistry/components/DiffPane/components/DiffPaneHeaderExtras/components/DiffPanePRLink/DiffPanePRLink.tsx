@@ -55,17 +55,17 @@ export function DiffPanePRLink({ workspaceId, store }: DiffPanePRLinkProps) {
 						aria-label={t({
 							message: `Open pull request #${pr.number}`,
 						})}
-						className="group flex h-5 items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-1.5 transition-colors hover:bg-accent/60"
+						className="group flex h-5 shrink-0 items-center whitespace-nowrap gap-1.5 rounded-md border border-border/60 bg-muted/30 px-1.5 transition-colors hover:bg-accent/60"
 					>
-						<PRIcon state={state} className="size-3.5" />
+						<PRIcon state={state} className="size-3.5 shrink-0" />
 						{/* Verb-first label: the bare number read as a badge, not as
 						    an action that opens the PR. */}
-						<span className="font-medium text-[11px] text-foreground tabular-nums">
+						<span className="hidden max-w-48 truncate font-medium text-[11px] text-foreground tabular-nums @min-[360px]/pane-header:inline">
 							{t({
 								message: `Open PR #${pr.number}`,
 							})}
 						</span>
-						<LuArrowRight className="size-3 text-muted-foreground transition-transform group-hover:translate-x-px" />
+						<LuArrowRight className="hidden size-3 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-px @min-[360px]/pane-header:block" />
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
@@ -75,7 +75,7 @@ export function DiffPanePRLink({ workspaceId, store }: DiffPanePRLinkProps) {
 			{/* Rendered here, not by the parent, so no stray divider shows when
 			    the link is hidden (no PR / session workspace). */}
 			<div
-				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
+				className="mx-1 h-3.5 w-px shrink-0 bg-muted-foreground/30"
 				aria-hidden="true"
 			/>
 		</>
