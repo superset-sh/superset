@@ -1,6 +1,5 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useMemo } from "react";
-import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -28,19 +27,16 @@ export function useWorkspaceHostTarget(
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 	const { workspaces, isReady } = useHostWorkspaces();
-	const { workspaces: cloudWorkspaces, isSettled: cloudSettled } =
-		useCloudWorkspaces();
-	const { targets: sandboxes } = useSandboxAccess();
+	const { targets: sandboxes, isReady: sandboxesReady } = useSandboxAccess();
 
 	const match = workspaces.find((w) => w.id === workspaceId) ?? null;
-	const isCloud = cloudWorkspaces.some((w) => w.id === workspaceId);
 	const sandbox =
-		sandboxes.find((t) => t.workspaceId === workspaceId && t.running) ?? null;
+		sandboxes.find((target) => target.workspaceId === workspaceId) ?? null;
 
 	return useMemo(() => {
 		if (!workspaceId) return { status: "loading" };
-		if (isCloud) {
-			return sandbox
+		if (sandbox) {
+			return sandbox.running
 				? {
 						status: "ready",
 						kind: "sandbox",
@@ -50,7 +46,7 @@ export function useWorkspaceHostTarget(
 				: { status: "loading" };
 		}
 		if (!match) {
-			return isReady && cloudSettled
+			return isReady && sandboxesReady
 				? { status: "not-found" }
 				: { status: "loading" };
 		}
@@ -73,11 +69,10 @@ export function useWorkspaceHostTarget(
 		};
 	}, [
 		workspaceId,
-		isCloud,
 		sandbox,
 		match,
 		isReady,
-		cloudSettled,
+		sandboxesReady,
 		machineId,
 		activeHostUrl,
 		relayUrl,

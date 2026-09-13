@@ -74,7 +74,7 @@ function V2WorkspaceLayout() {
 	);
 	// The cloud row exists from the moment the workspace is created, which is
 	// well before there is a sandbox to serve it.
-	const { workspaces: cloudWorkspaces } = useCloudWorkspaces();
+	const { workspaces: cloudWorkspaces = [] } = useCloudWorkspaces();
 	const cloudWorkspace =
 		cloudWorkspaces.find((row) => row.id === workspaceId) ?? null;
 	const { data: failedEntries } = useLiveQuery(

@@ -43,7 +43,7 @@ export function DashboardSidebarCloudSection({
 	onWorkspaceHover?: (workspaceId: string) => void | Promise<void>;
 }) {
 	const { t } = useLingui();
-	const { workspaces: cloudWorkspaces } = useCloudWorkspaces();
+	const { workspaces: cloudWorkspaces = [] } = useCloudWorkspaces();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	// The same flag that offers Cloud in the device picker, and the same
 	// audience the API allows (`assertInternal`). Undefined means the flags

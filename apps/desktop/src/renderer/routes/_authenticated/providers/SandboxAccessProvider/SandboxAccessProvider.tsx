@@ -30,7 +30,7 @@ export interface SandboxTarget {
 
 export interface SandboxAccessValue {
 	targets: SandboxTarget[];
-	/** False until every ready cloud workspace has been addressed once. */
+	/** False until the cloud list is known and every ready workspace in it has been addressed once. */
 	isReady: boolean;
 }
 
@@ -54,7 +54,10 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 	// else, and a provisioning workspace asking for a ticket every few seconds
 	// would be a retry loop against a guaranteed rejection.
 	const workspaces = useMemo(
-		() => cloudWorkspaces.filter((workspace) => workspace.status === "ready"),
+		() =>
+			(cloudWorkspaces ?? []).filter(
+				(workspace) => workspace.status === "ready",
+			),
 		[cloudWorkspaces],
 	);
 
@@ -112,9 +115,11 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 		}
 		return {
 			targets,
-			isReady: results.every((result) => result.isFetched),
+			isReady:
+				cloudWorkspaces !== undefined &&
+				results.every((result) => result.isFetched),
 		};
-	}, [workspaces, results, organizationId]);
+	}, [cloudWorkspaces, workspaces, results, organizationId]);
 
 	return (
 		<SandboxAccessContext.Provider value={value}>

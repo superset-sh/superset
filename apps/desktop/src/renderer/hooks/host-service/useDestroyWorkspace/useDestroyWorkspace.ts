@@ -133,7 +133,7 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 	// it: a workspace still provisioning, or one whose sandbox stopped
 	// answering, is no less a cloud workspace — and deleting it anywhere but at
 	// the API would leave the sandbox running.
-	const { workspaces: cloudWorkspaces } = useCloudWorkspaces();
+	const { workspaces: cloudWorkspaces = [] } = useCloudWorkspaces();
 	const isSandbox = cloudWorkspaces.some((row) => row.id === workspaceId);
 	const utils = cloudTrpc.useUtils();
 
