@@ -1,10 +1,7 @@
-import { lstatSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../db/schema";
-import { resolveRef } from "../../../runtime/git/refs";
 import type { HostServiceContext } from "../../../types";
 import {
 	type CloudShapedWorkspace,
@@ -14,16 +11,13 @@ import {
 	updateLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
 import { protectedProcedure } from "../../index";
-import { listWorktreeBranches } from "../workspace-creation/shared/branch-search";
-import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
 import {
 	requireLocalProject,
 	requireProjectRepoPath,
 } from "../workspace-creation/shared/local-project";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import { parseSparseCheckoutPaths } from "../workspace-creation/shared/sparse-checkout";
-import { normalizeWorktreePath } from "../workspace-creation/shared/worktree-list";
-import { addBranchWorktree } from "../workspaces/workspaces";
+import { cleanupGitOps } from "./git-ops";
 
 export interface ReviveWorkspaceResult {
 	workspace: CloudShapedWorkspace;
@@ -114,71 +108,19 @@ async function runRevive(
 		});
 	}
 
-	const git = await ctx.git(repoPath);
-	await git
-		.raw(["worktree", "prune"])
-		.catch((err) =>
-			console.warn("[workspace-cleanup.revive] worktree prune failed:", err),
-		);
-
-	const resolved = await resolveRef(git, row.branch, {
+	const gitEnv = await cleanupGitOps.resolveGitEnv(ctx, repoPath);
+	const result = await cleanupGitOps.reviveWorktree({
+		repoPath,
+		worktreePath: row.worktreePath,
+		archivedBranch: row.branch,
 		remote: localProject.remoteName ?? "origin",
+		sparsePaths: parseSparseCheckoutPaths(localProject.sparseCheckoutPaths),
+		gitEnv,
 	});
-	if (!resolved || resolved.kind === "tag" || resolved.kind === "head") {
-		throw new TRPCError({
-			code: "PRECONDITION_FAILED",
-			message: `Branch "${row.branch}" no longer exists, so this workspace cannot be restored`,
-		});
+	if (!result.ok) {
+		throw new TRPCError({ code: result.code, message: result.message });
 	}
-	const branch = resolved.shortName;
-
-	const checkedOutAt = (await listWorktreeBranches(git)).worktreeMap.get(
-		branch,
-	);
-	if (
-		checkedOutAt !== undefined &&
-		normalizeWorktreePath(checkedOutAt) !==
-			normalizeWorktreePath(row.worktreePath)
-	) {
-		throw new TRPCError({
-			code: "CONFLICT",
-			message: `Branch "${branch}" is already checked out at ${checkedOutAt}`,
-		});
-	}
-	if (checkedOutAt === undefined) {
-		if (lstatSync(row.worktreePath, { throwIfNoEntry: false }) !== undefined) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: `Something else already exists at ${row.worktreePath}`,
-			});
-		}
-		mkdirSync(dirname(row.worktreePath), { recursive: true });
-		await addBranchWorktree({
-			git,
-			plan: { branch, startPoint: resolved, usedExistingBranch: true },
-			worktreePath: row.worktreePath,
-			sparsePaths: parseSparseCheckoutPaths(localProject.sparseCheckoutPaths),
-		});
-		await enablePushAutoSetupRemote(
-			git,
-			row.worktreePath,
-			"[workspace-cleanup.revive]",
-		);
-	}
-
-	const worktreeRoot = await git
-		.raw(["-C", row.worktreePath, "rev-parse", "--show-toplevel"])
-		.catch(() => null);
-	if (
-		!worktreeRoot ||
-		normalizeWorktreePath(worktreeRoot.trim()) !==
-			normalizeWorktreePath(row.worktreePath)
-	) {
-		throw new TRPCError({
-			code: "PRECONDITION_FAILED",
-			message: `No usable worktree exists at ${row.worktreePath}`,
-		});
-	}
+	const { branch } = result;
 
 	const liveOwner = ctx.db
 		.select({ id: workspaces.id })

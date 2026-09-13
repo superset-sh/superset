@@ -3,11 +3,14 @@
 // host-service event loop. Credential env is resolved in-process (it needs
 // the credential provider) and crosses as plain data.
 
+import { lstatSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import {
 	getGitAuthorName,
 	type ResolvedGitInfo,
 	readGitIdentity,
 } from "../../runtime/git/identity.ts";
+import { resolveRef } from "../../runtime/git/refs.ts";
 import { createUserSimpleGit } from "../../runtime/git/simple-git.ts";
 import {
 	readWorkspaceRefs,
@@ -31,6 +34,12 @@ import {
 } from "../../trpc/router/git/utils/git-helpers.ts";
 import type { GitStatusSnapshotComputation } from "../../trpc/router/git/utils/git-status.ts";
 import { getGitStatusSnapshot } from "../../trpc/router/git/utils/git-status.ts";
+import {
+	findWorktreeAtPath,
+	listWorktreeBranches,
+} from "../../trpc/router/workspace-creation/shared/branch-search.ts";
+import { enablePushAutoSetupRemote } from "../../trpc/router/workspace-creation/shared/git-config.ts";
+import { addWorktreeWithSparseCheckout } from "../../trpc/router/workspace-creation/shared/sparse-checkout.ts";
 import {
 	normalizeWorktreePath,
 	parseWorktreeList,
@@ -321,6 +330,129 @@ export const gitWorktreeStateTask = defineWorkerTask<
 	},
 });
 
+export interface ReviveWorktreeInput {
+	repoPath: string;
+	worktreePath: string;
+	archivedBranch: string;
+	remote: string;
+	sparsePaths: string[];
+	gitEnv: GitTaskEnv;
+}
+
+export type ReviveWorktreeResult =
+	| { ok: true; branch: string }
+	| { ok: false; code: "CONFLICT" | "PRECONDITION_FAILED"; message: string };
+
+export const gitReviveWorktreeTask = defineWorkerTask<
+	ReviveWorktreeInput,
+	ReviveWorktreeResult
+>({
+	type: "git/reviveWorktree",
+	handler: async ({
+		repoPath,
+		worktreePath,
+		archivedBranch,
+		remote,
+		sparsePaths,
+		gitEnv,
+	}) => {
+		const git = createUserSimpleGit(repoPath).env(gitEnv);
+		await git
+			.raw(["worktree", "prune"])
+			.catch((err) =>
+				console.warn("[workspace-cleanup.revive] worktree prune failed:", err),
+			);
+
+		const resolved = await resolveRef(git, archivedBranch, {
+			remote,
+		});
+		if (!resolved || resolved.kind === "tag" || resolved.kind === "head") {
+			return {
+				ok: false,
+				code: "PRECONDITION_FAILED",
+				message: `Branch "${archivedBranch}" no longer exists, so this workspace cannot be restored`,
+			};
+		}
+		const branch = resolved.shortName;
+
+		const checkedOutAt = (await listWorktreeBranches(git)).worktreeMap.get(
+			branch,
+		);
+		if (
+			checkedOutAt !== undefined &&
+			normalizeWorktreePath(checkedOutAt) !==
+				normalizeWorktreePath(worktreePath)
+		) {
+			return {
+				ok: false,
+				code: "CONFLICT",
+				message: `Branch "${branch}" is already checked out at ${checkedOutAt}`,
+			};
+		}
+		if (checkedOutAt === undefined) {
+			if (lstatSync(worktreePath, { throwIfNoEntry: false }) !== undefined) {
+				return {
+					ok: false,
+					code: "CONFLICT",
+					message: `Something else already exists at ${worktreePath}`,
+				};
+			}
+			mkdirSync(dirname(worktreePath), { recursive: true });
+			await addWorktreeWithSparseCheckout({
+				git,
+				worktreeArgs:
+					resolved.kind === "remote-tracking"
+						? ["--track", "-b", branch, worktreePath, resolved.remoteShortName]
+						: [worktreePath, resolved.shortName],
+				worktreePath,
+				sparsePaths,
+				logPrefix: "[workspace-cleanup.revive]",
+				hookTolerance: {
+					context: `Worktree created at ${worktreePath}`,
+					didSucceed: async () => {
+						if (!(await findWorktreeAtPath(git, worktreePath, branch))) {
+							return false;
+						}
+						try {
+							await git.raw([
+								"-C",
+								worktreePath,
+								"rev-parse",
+								"--verify",
+								"HEAD",
+							]);
+							return true;
+						} catch {
+							return false;
+						}
+					},
+				},
+			});
+			await enablePushAutoSetupRemote(
+				git,
+				worktreePath,
+				"[workspace-cleanup.revive]",
+			);
+		}
+
+		const worktreeRoot = await git
+			.raw(["-C", worktreePath, "rev-parse", "--show-toplevel"])
+			.catch(() => null);
+		if (
+			!worktreeRoot ||
+			normalizeWorktreePath(worktreeRoot.trim()) !==
+				normalizeWorktreePath(worktreePath)
+		) {
+			return {
+				ok: false,
+				code: "PRECONDITION_FAILED",
+				message: `No usable worktree exists at ${worktreePath}`,
+			};
+		}
+		return { ok: true, branch };
+	},
+});
+
 export const gitWorktreeRemoveTask = defineWorkerTask<
 	{ repoPath: string; worktreePath: string; gitEnv: GitTaskEnv },
 	{ stillRegistered: boolean; removeError?: string }
@@ -553,6 +685,7 @@ export const gitTasks = [
 	gitIdentityTask,
 	gitAuthorNameTask,
 	gitWorktreeStateTask,
+	gitReviveWorktreeTask,
 	gitWorktreeRemoveTask,
 	gitDeleteBranchTask,
 	gitCommitTask,

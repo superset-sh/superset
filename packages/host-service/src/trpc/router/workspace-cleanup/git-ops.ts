@@ -13,8 +13,11 @@ import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
 	type GitTaskEnv,
 	gitDeleteBranchTask,
+	gitReviveWorktreeTask,
 	gitWorktreeRemoveTask,
 	gitWorktreeStateTask,
+	type ReviveWorktreeInput,
+	type ReviveWorktreeResult,
 } from "../../../workers/tasks/git";
 import {
 	WorkerTaskAbortedError,
@@ -66,6 +69,12 @@ export const cleanupGitOps = {
 		// directory, which can take a while for large trees (node_modules
 		// etc.).
 		return getHostWorkerPool().run(gitWorktreeRemoveTask, input, {
+			timeoutMs: 120_000,
+		});
+	},
+
+	reviveWorktree(input: ReviveWorktreeInput): Promise<ReviveWorktreeResult> {
+		return getHostWorkerPool().run(gitReviveWorktreeTask, input, {
 			timeoutMs: 120_000,
 		});
 	},

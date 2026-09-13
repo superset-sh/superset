@@ -4,8 +4,8 @@ import { basename, dirname, join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../src/db/schema";
+import { cleanupGitOps } from "../../src/trpc/router/workspace-cleanup/git-ops";
 import { __testDestroysInFlight } from "../../src/trpc/router/workspace-cleanup/workspace-cleanup";
-import * as gitConfig from "../../src/trpc/router/workspace-creation/shared/git-config";
 import { cloudFlows } from "../helpers/cloud-fakes";
 import {
 	createFeatureWorktreeScenario,
@@ -105,7 +105,9 @@ describe("workspaceCleanup.revive integration", () => {
 				}),
 				"CONFLICT",
 			);
-			expect(readRow(scenario.featureWorkspaceId)?.archiveReason).toBe("archived");
+			expect(readRow(scenario.featureWorkspaceId)?.archiveReason).toBe(
+				"archived",
+			);
 			expect(existsSync(scenario.worktreePath)).toBe(false);
 		} finally {
 			__testDestroysInFlight.delete(scenario.featureWorkspaceId);
@@ -120,9 +122,10 @@ describe("workspaceCleanup.revive integration", () => {
 		const workspaceId = scenario.featureWorkspaceId;
 		scenario.host.db
 			.update(workspaces)
-			.set({ type: "session", projectId: null, branch: null })
+			.set({ type: "session", projectId: null, branch: "main" })
 			.where(eq(workspaces.id, workspaceId))
 			.run();
+		const session = readRow(workspaceId);
 		await expectCode(
 			scenario.host.trpc.workspaceCleanup.destroy.mutate({
 				workspaceId,
@@ -131,6 +134,7 @@ describe("workspaceCleanup.revive integration", () => {
 			}),
 			"BAD_REQUEST",
 		);
+		expect(readRow(workspaceId)).toEqual(session);
 		expect(readRow(workspaceId)?.archivedAt).toBeNull();
 		expect(readRow(workspaceId)?.archiveReason).toBeNull();
 		expect(existsSync(scenario.worktreePath)).toBe(true);
@@ -204,7 +208,9 @@ describe("workspaceCleanup.revive integration", () => {
 			"PRECONDITION_FAILED",
 		);
 		expect(error.message).toContain(scenario.branch);
-		expect(readRow(scenario.featureWorkspaceId)?.archiveReason).toBe("archived");
+		expect(readRow(scenario.featureWorkspaceId)?.archiveReason).toBe(
+			"archived",
+		);
 		expect(existsSync(scenario.worktreePath)).toBe(false);
 	});
 
@@ -229,17 +235,18 @@ describe("workspaceCleanup.revive integration", () => {
 	test("refuses revival when another workspace acquires the recreated worktree during Git setup", async () => {
 		await destroyFeature();
 		const archivedAt = readRow(scenario.featureWorkspaceId)?.archivedAt;
-		const enablePushAutoSetupRemote = gitConfig.enablePushAutoSetupRemote;
+		const reviveWorktree = cleanupGitOps.reviveWorktree;
 		let ownerId = "";
-		const setup = spyOn(gitConfig, "enablePushAutoSetupRemote");
+		const setup = spyOn(cleanupGitOps, "reviveWorktree");
 		setup.mockImplementation(async (...args) => {
-			await enablePushAutoSetupRemote(...args);
+			const result = await reviveWorktree(...args);
 			expect(existsSync(scenario.worktreePath)).toBe(true);
 			ownerId = seedWorkspace(scenario.host, {
 				projectId: scenario.projectId,
 				worktreePath: scenario.worktreePath,
 				branch: scenario.branch,
 			}).id;
+			return result;
 		});
 		try {
 			await expectCode(
