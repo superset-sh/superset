@@ -1,7 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
-import type { AppRouter } from "@superset/host-service";
 import { workspaceTrpc } from "@superset/workspace-client";
-import type { inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
 import { LuMessageSquare } from "react-icons/lu";
 import type { CommentPaneData, DiffFocusSide } from "../../../../types";
@@ -9,12 +7,10 @@ import {
 	coerceCheckStatus,
 	computeChecksRollup,
 } from "../../../../utils/computeChecksStatus";
+import { normalizeThreadsToComments } from "../../../CommentsSection/utils/normalizeThreadsToComments";
 import type { SidebarTabDefinition } from "../../types";
 import { ReviewTabContent } from "./components/ReviewTabContent";
 import type { NormalizedComment, NormalizedPR } from "./types";
-
-type RouterOutputs = inferRouterOutputs<AppRouter>;
-type V2ThreadsData = RouterOutputs["git"]["getPullRequestThreads"];
 
 interface UseReviewTabParams {
 	workspaceId: string;
@@ -133,50 +129,4 @@ function computeDurationText(
 	if (seconds < 60) return `${seconds}s`;
 	const minutes = Math.round(seconds / 60);
 	return `${minutes}m`;
-}
-
-function normalizeThreadsToComments(data: V2ThreadsData): NormalizedComment[] {
-	const comments: NormalizedComment[] = [];
-
-	for (const thread of data.reviewThreads) {
-		const first = thread.comments[0];
-		if (!first) continue;
-		comments.push({
-			id: first.id,
-			authorLogin: first.author.login,
-			avatarUrl: first.author.avatarUrl || undefined,
-			body: first.body,
-			createdAt: first.createdAt,
-			url: undefined,
-			kind: "review",
-			path: thread.path || undefined,
-			line: thread.line ?? undefined,
-			diffSide: thread.diffSide,
-			isResolved: thread.isResolved,
-			isOutdated: thread.isOutdated,
-			threadId: thread.id,
-		});
-	}
-
-	for (const c of data.conversationComments) {
-		comments.push({
-			id: String(c.id),
-			authorLogin: c.user.login,
-			avatarUrl: c.user.avatarUrl || undefined,
-			body: c.body,
-			createdAt: c.createdAt,
-			url: c.htmlUrl || undefined,
-			kind: "conversation",
-			isResolved: false,
-			threadId: undefined,
-		});
-	}
-
-	comments.sort((a, b) => {
-		const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-		const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-		return ta - tb;
-	});
-
-	return comments;
 }

@@ -69,6 +69,7 @@ import {
 	focusOrAddTerminalPane,
 } from "../../utils/focusTerminalPane";
 import { openSubagentPaneInStore } from "../../utils/openSubagentPaneInStore";
+import type { OpenReviewDiff } from "../useReviewCommentNavigation";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { ChatV3Pane } from "./components/ChatV3Pane";
@@ -138,6 +139,8 @@ const MOD_KEY = navigator.platform.toLowerCase().includes("mac")
 	: "Ctrl+";
 
 interface UsePaneRegistryOptions {
+	onOpenDiff: OpenReviewDiff;
+	onOpenComment: (comment: CommentPaneData) => void;
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
 	onRevealPath: (path: string) => void;
 	launcher: TerminalLauncher;
@@ -145,6 +148,8 @@ interface UsePaneRegistryOptions {
 }
 
 export function usePaneRegistry({
+	onOpenDiff,
+	onOpenComment,
 	onOpenFile,
 	onRevealPath,
 	launcher,
@@ -800,7 +805,11 @@ export function usePaneRegistry({
 					return t({ message: `Pull request #${data.prNumber}` });
 				},
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
-					<PullRequestPane data={ctx.pane.data as PullRequestPaneData} />
+					<PullRequestPane
+						data={ctx.pane.data as PullRequestPaneData}
+						onOpenDiff={onOpenDiff}
+						onOpenComment={onOpenComment}
+					/>
 				),
 				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
 					<PullRequestPaneHeaderExtras
@@ -908,6 +917,8 @@ export function usePaneRegistry({
 			killTerminalSessionSilently,
 			isKillingTerminalSession,
 			launcher,
+			onOpenDiff,
+			onOpenComment,
 			onOpenFile,
 			onRevealPath,
 			createNewAgentSession,

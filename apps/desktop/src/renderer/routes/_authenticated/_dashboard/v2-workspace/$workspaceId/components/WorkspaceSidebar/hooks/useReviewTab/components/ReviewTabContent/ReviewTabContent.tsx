@@ -1,9 +1,9 @@
 import { Trans } from "@lingui/react/macro";
 import { memo } from "react";
 import type { CommentPaneData, DiffFocusSide } from "../../../../../../types";
+import { CommentsSection } from "../../../../../CommentsSection";
 import type { NormalizedComment, NormalizedPR } from "../../types";
 import { ChecksSection } from "../ChecksSection";
-import { CommentsSection } from "../CommentsSection";
 import { PRHeader } from "../PRHeader";
 
 interface ReviewTabContentProps {

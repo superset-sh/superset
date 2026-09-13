@@ -248,6 +248,8 @@ function V2WorkspaceContent() {
 		pageOpenAction: v2UserPreferences.pageOpenAction,
 	});
 	const paneRegistry = usePaneRegistry({
+		onOpenDiff: openDiffPane,
+		onOpenComment: openCommentPane,
 		onOpenFile: openFilePaneFromTreeClick,
 		onRevealPath: revealPath,
 		launcher,
