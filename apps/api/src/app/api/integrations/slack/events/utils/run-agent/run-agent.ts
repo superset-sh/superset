@@ -5,6 +5,7 @@ import { env } from "@/env";
 import { DEFAULT_SLACK_MODEL } from "../../../constants";
 import type { AgentAction } from "../slack-blocks";
 import type { SlackImageAsset } from "../slack-image-assets";
+import { forwardSlackImageAttachments } from "./forward-image-attachments";
 import {
 	createSupersetMcpClient,
 	mcpToolToAnthropicTool,
@@ -330,6 +331,10 @@ const DENIED_SUPERSET_TOOLS = new Set([
 	"organization_members_list",
 	"tasks_statuses_list",
 	"hosts_list",
+	// Driven by `forwardSlackImageAttachments`, not by the model: an LLM cannot
+	// re-emit the bytes of an image it was shown, so exposing the upload tool
+	// would only invite calls it can't fill in.
+	"attachments_upload",
 ]);
 
 const SLACK_GET_CHANNEL_HISTORY_TOOL: Anthropic.Tool = {
@@ -404,6 +409,9 @@ Guidelines:
 - If an action fails, explain what went wrong and suggest alternatives
 - When answering questions that need up-to-date info, use web_search to find current information
 - Cite sources when sharing information from web search results
+
+Attachments:
+- Images attached to the Slack message are forwarded automatically to any agent you spawn — you do not need to describe them into the prompt or ask the user to re-send them
 
 Context gathering:
 - Thread context is automatically included if the mention is in a thread
@@ -507,6 +515,9 @@ export async function runSlackAgent(
 ): Promise<SlackAgentResult> {
 	const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 	const actions: AgentAction[] = [];
+	// Host id -> attachment ids for this message's images, so a run that creates
+	// a workspace and then launches a second agent uploads them only once.
+	const attachmentUploadsByHost = new Map<string, string[]>();
 
 	let supersetMcp: Client | null = null;
 	let cleanupSuperset: (() => Promise<void>) | null = null;
@@ -652,9 +663,17 @@ ${agentContext}`;
 							continue;
 						}
 
+						const toolArguments = await forwardSlackImageAttachments({
+							toolName,
+							args: toolUse.input as Record<string, unknown>,
+							images: params.images,
+							mcpClient: supersetMcp,
+							cache: attachmentUploadsByHost,
+						});
+
 						const result = await supersetMcp.callTool({
 							name: toolName,
-							arguments: toolUse.input as Record<string, unknown>,
+							arguments: toolArguments,
 						});
 
 						resultContent = JSON.stringify(result.content);
