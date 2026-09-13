@@ -25,6 +25,9 @@ mock.module("renderer/lib/trpc-client", () => ({
 	electronTrpcClient: { external: { copyText: { mutate: async () => {} } } },
 }));
 mock.module("renderer/stores", () => ({ useTheme: () => ({ type: "dark" }) }));
+mock.module("renderer/components/CommentMarkdown", () => ({
+	CommentMarkdown: ({ body }: { body: string }) => <p>{body}</p>,
+}));
 const { cleanup, fireEvent, render } = await import("@testing-library/react");
 const { PullRequestCommentCard } = await import("./PullRequestCommentCard");
 afterEach(cleanup);
@@ -42,7 +45,7 @@ const comment = {
 	isResolved: false,
 };
 describe("review cards", () => {
-	test("renders full Markdown without making the body a navigation button", () => {
+	test("renders the full comment body without making it a navigation button", () => {
 		const onOpenInDiff = mock(() => {});
 		const view = render(
 			<PullRequestCommentCard
@@ -52,13 +55,10 @@ describe("review cards", () => {
 				onOpenInDiff={onOpenInDiff}
 			/>,
 		);
-		expect(view.getByText("selected line").tagName).toBe("STRONG");
-		const link = view.getByRole("link", { name: "the context" });
-		expect(link.getAttribute("href")).toBe(
-			"https://github.com/example/repo/pull/1",
-		);
-		expect(link.closest("button")).toBeNull();
-		fireEvent.click(view.getByText("selected line"));
+		const body = view.getByText(/Keep the/);
+		expect(body.textContent).toBe(comment.body);
+		expect(body.closest("button")).toBeNull();
+		fireEvent.click(body);
 		expect(onOpenInDiff).not.toHaveBeenCalled();
 	});
 	test.each([
