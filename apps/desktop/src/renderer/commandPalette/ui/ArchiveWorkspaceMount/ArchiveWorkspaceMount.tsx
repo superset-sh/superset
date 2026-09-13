@@ -22,10 +22,7 @@ export function ArchiveWorkspaceMount() {
 		target?.hostId,
 	);
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
-	// One archive in flight: the palette still offers the command until the
-	// host settles, and a repeat run would fire a duplicate toast and
-	// navigation.
-	const archiveInFlight = useRef(false);
+	const archiveInFlight = useRef(new Set<string>());
 
 	useEffect(() => {
 		if (!target) return;
@@ -33,8 +30,8 @@ export function ArchiveWorkspaceMount() {
 		// One-shot consumer: clear up front so a repeat request re-fires, and
 		// let the archive flow run on the callbacks captured here.
 		clear();
-		if (archiveInFlight.current) return;
-		archiveInFlight.current = true;
+		if (archiveInFlight.current.has(workspaceId)) return;
+		archiveInFlight.current.add(workspaceId);
 		void (async () => {
 			try {
 				await archiveWorkspaceWithUndo({
@@ -58,7 +55,7 @@ export function ArchiveWorkspaceMount() {
 					focusSidebarList: () => {},
 				});
 			} finally {
-				archiveInFlight.current = false;
+				archiveInFlight.current.delete(workspaceId);
 			}
 		})();
 	}, [
