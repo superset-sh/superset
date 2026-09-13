@@ -4,6 +4,7 @@ import { basename, dirname, join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../src/db/schema";
+import * as teardown from "../../src/runtime/teardown";
 import { cleanupGitOps } from "../../src/trpc/router/workspace-cleanup/git-ops";
 import { __testDestroysInFlight } from "../../src/trpc/router/workspace-cleanup/workspace-cleanup";
 import { cloudFlows } from "../helpers/cloud-fakes";
@@ -195,6 +196,185 @@ describe("workspaceCleanup.revive integration", () => {
 			}),
 			"PRECONDITION_FAILED",
 		);
+	});
+
+	for (const force of [false, true]) {
+		test(`refuses deleting an archive adopted at an equivalent path (force=${force})`, async () => {
+			await destroyFeature();
+			await scenario.repo.git.raw([
+				"worktree",
+				"add",
+				scenario.worktreePath,
+				scenario.branch,
+			]);
+			const alias = join(scenario.repo.repoPath, "adopted-alias");
+			symlinkSync(dirname(scenario.worktreePath), alias, "junction");
+			const adopted = await scenario.host.trpc.workspaces.create.mutate({
+				projectId: scenario.projectId,
+				name: "adopted",
+				branch: scenario.branch,
+			});
+			const ownerId = adopted?.workspace?.id;
+			if (!ownerId) throw new Error("Expected an adopted workspace");
+			expect(ownerId).not.toBe(scenario.featureWorkspaceId);
+			scenario.host.db
+				.update(workspaces)
+				.set({
+					worktreePath: `${alias}/./${basename(scenario.worktreePath)}/`,
+				})
+				.where(eq(workspaces.id, ownerId))
+				.run();
+			const archived = readRow(scenario.featureWorkspaceId);
+			const remove = spyOn(cleanupGitOps, "removeWorktree");
+			const teardownCall = spyOn(teardown, "runTeardown");
+			try {
+				const error = await expectCode(
+					scenario.host.trpc.workspaceCleanup.destroy.mutate({
+						workspaceId: scenario.featureWorkspaceId,
+						deleteBranch: true,
+						force,
+					}),
+					"CONFLICT",
+				);
+				expect(error.message).toContain("owned by another live workspace");
+				expect(remove).not.toHaveBeenCalled();
+				expect(teardownCall).not.toHaveBeenCalled();
+				expect(readRow(scenario.featureWorkspaceId)).toEqual(archived);
+				expect(readRow(ownerId)?.archivedAt).toBeNull();
+				expect(existsSync(join(scenario.worktreePath, ".git"))).toBe(true);
+				expect(
+					await scenario.repo.git.raw(["branch", "--list", scenario.branch]),
+				).toContain(scenario.branch);
+			} finally {
+				remove.mockRestore();
+				teardownCall.mockRestore();
+			}
+		});
+	}
+
+	test("preserves a live owner's branch at a different path when deleting an archive", async () => {
+		await destroyFeature();
+		const owner = seedWorkspace(scenario.host, {
+			projectId: scenario.projectId,
+			worktreePath: `${scenario.worktreePath}-other`,
+			branch: scenario.branch,
+		});
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+			deleteBranch: true,
+		});
+		expect(result.success).toBe(true);
+		expect(result.branchDeleted).toBe(false);
+		expect(result.warnings.join(" ")).toContain(
+			"owned by another live workspace",
+		);
+		expect(readRow(owner.id)?.archivedAt).toBeNull();
+		expect(readRow(scenario.featureWorkspaceId)?.archiveReason).toBe("deleted");
+		expect(
+			await scenario.repo.git.raw(["branch", "--list", scenario.branch]),
+		).toContain(scenario.branch);
+	});
+
+	for (const boundary of [
+		"readWorktreeState",
+		"runTeardown",
+		"resolveGitEnv",
+		"removeWorktree",
+	] as const) {
+		test(`protects a path acquired during awaited ${boundary}`, async () => {
+			await destroyFeature();
+			await scenario.repo.git.raw([
+				"worktree",
+				"add",
+				scenario.worktreePath,
+				scenario.branch,
+			]);
+			const archived = readRow(scenario.featureWorkspaceId);
+			let ownerId = "";
+			const claim = () => {
+				ownerId = seedWorkspace(scenario.host, {
+					projectId: scenario.projectId,
+					worktreePath: scenario.worktreePath,
+					branch: scenario.branch,
+				}).id;
+			};
+			const originalResolve = cleanupGitOps.resolveGitEnv;
+			const originalRead = cleanupGitOps.readWorktreeState;
+			const hook =
+				boundary === "runTeardown"
+					? spyOn(teardown, "runTeardown").mockImplementation(async () => {
+							claim();
+							return { status: "skipped" };
+						})
+					: boundary === "resolveGitEnv"
+						? spyOn(cleanupGitOps, "resolveGitEnv").mockImplementation(
+								async (...args) => {
+									const result = await originalResolve(...args);
+									claim();
+									return result;
+								},
+							)
+						: boundary === "readWorktreeState"
+							? spyOn(cleanupGitOps, "readWorktreeState").mockImplementation(
+									async (...args) => {
+										const result = await originalRead(...args);
+										claim();
+										return result;
+									},
+								)
+							: spyOn(cleanupGitOps, "removeWorktree").mockImplementation(
+									async () => {
+										claim();
+										return { stillRegistered: false };
+									},
+								);
+			try {
+				await expectCode(
+					scenario.host.trpc.workspaceCleanup.destroy.mutate({
+						workspaceId: scenario.featureWorkspaceId,
+						deleteBranch: true,
+						force: boundary !== "readWorktreeState",
+						skipTeardown:
+							boundary !== "readWorktreeState" && boundary !== "runTeardown",
+					}),
+					"CONFLICT",
+				);
+				expect(ownerId).not.toBe("");
+				expect(readRow(ownerId)?.archivedAt).toBeNull();
+				expect(readRow(scenario.featureWorkspaceId)).toEqual(archived);
+				expect(existsSync(join(scenario.worktreePath, ".git"))).toBe(true);
+			} finally {
+				hook.mockRestore();
+			}
+		});
+	}
+
+	test("preserves a branch acquired while worktree removal is awaited", async () => {
+		await destroyFeature();
+		const originalRemove = cleanupGitOps.removeWorktree;
+		const remove = spyOn(cleanupGitOps, "removeWorktree").mockImplementation(
+			async (...args) => {
+				const result = await originalRemove(...args);
+				seedWorkspace(scenario.host, {
+					projectId: scenario.projectId,
+					worktreePath: `${scenario.worktreePath}-other`,
+					branch: scenario.branch,
+				});
+				return result;
+			},
+		);
+		try {
+			const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+				workspaceId: scenario.featureWorkspaceId,
+				deleteBranch: true,
+			});
+			expect(result.branchDeleted).toBe(false);
+			expect(
+				await scenario.repo.git.raw(["branch", "--list", scenario.branch]),
+			).toContain(scenario.branch);
+		} finally {
+			remove.mockRestore();
+		}
 	});
 
 	test("refuses when the branch no longer exists", async () => {

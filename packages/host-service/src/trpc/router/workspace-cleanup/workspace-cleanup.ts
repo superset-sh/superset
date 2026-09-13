@@ -1,5 +1,6 @@
-import { existsSync, lstatSync, statSync } from "node:fs";
+import { existsSync, lstatSync, realpathSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
+import { basename, dirname, join, resolve } from "node:path";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
 import { eq, isNull } from "drizzle-orm";
@@ -260,6 +261,7 @@ async function runDestroy(
 		throw new TRPCError({ code: "BAD_REQUEST", message: main.reason });
 	}
 	const { local, project } = main;
+	if (local) assertNoLivePathOwner(ctx, local);
 
 	// ─── Step 0: Archive (the commit point) ────────────────────────
 	// FIRST, before any slow work (git preflight, teardown script): the
@@ -351,6 +353,7 @@ async function runDestroy(
 		// Nothing to tear down once the worktree is gone: an archived
 		// workspace's teardown already ran when it was archived.
 		if (input.teardownMode !== "skip" && local && project && !worktreeGone) {
+			assertNoLivePathOwner(ctx, local);
 			const teardown: TeardownResult = await runTeardown({
 				db: ctx.db,
 				workspaceId: input.workspaceId,
@@ -459,6 +462,7 @@ async function runDestroyPhases(
 	},
 ) {
 	// ─── Step 3: Local cleanup ─────────────────────────────────────
+	if (local) assertNoLivePathOwner(ctx, local);
 	// 3a. PTYs
 	try {
 		const killed = await disposeSessionsByWorkspaceId(
@@ -477,6 +481,7 @@ async function runDestroyPhases(
 	//     clears stale metadata when the directory was manually removed.
 	//     Runs in the worker pool: the removal is a recursive delete of the
 	//     whole worktree directory, which would otherwise stall the loop.
+	if (local) assertNoLivePathOwner(ctx, local);
 	let worktreeRemoved = false;
 	let branchDeleted = false;
 	let repoGitEnv: GitTaskEnv | null = null;
@@ -493,6 +498,7 @@ async function runDestroyPhases(
 					`Skipped folder removal at ${local.worktreePath}: not inside the managed sessions root`,
 				);
 			} else {
+				assertNoLivePathOwner(ctx, local);
 				try {
 					await rm(local.worktreePath, { recursive: true, force: true });
 					worktreeRemoved = true;
@@ -538,6 +544,7 @@ async function runDestroyPhases(
 					`Skipped worktree removal at ${local.worktreePath}: project repo at ${project.repoPath} is missing and the folder is outside the managed worktrees root`,
 				);
 			} else {
+				assertNoLivePathOwner(ctx, local);
 				try {
 					await rm(local.worktreePath, { recursive: true, force: true });
 					worktreeRemoved = true;
@@ -572,6 +579,7 @@ async function runDestroyPhases(
 			// orphaning disk past the archive commit point.
 			let stillRegistered = true;
 			let removeError: string | undefined;
+			assertNoLivePathOwner(ctx, local);
 			try {
 				({ stillRegistered, removeError } = await cleanupGitOps.removeWorktree({
 					repoPath: project.repoPath,
@@ -585,6 +593,7 @@ async function runDestroyPhases(
 					message: `Failed to verify worktree removal at ${local.worktreePath}: ${message}`,
 				});
 			}
+			assertNoLivePathOwner(ctx, local);
 			if (stillRegistered) {
 				// git still tracks a live worktree here — removal genuinely
 				// failed. Un-archive so the workspace stays visible and
@@ -618,6 +627,7 @@ async function runDestroyPhases(
 						`Worktree at ${local.worktreePath} is no longer registered with git, but its folder is outside the managed worktrees root and was left on disk`,
 					);
 				} else {
+					assertNoLivePathOwner(ctx, local);
 					try {
 						await removeDirectoryTree(local.worktreePath);
 					} catch (err) {
@@ -649,12 +659,24 @@ async function runDestroyPhases(
 	// being mistaken for "already gone".
 	if (repoGitEnv && project && local?.branch && input.deleteBranch) {
 		try {
-			await cleanupGitOps.deleteLocalBranch({
-				repoPath: project.repoPath,
-				branch: local.branch,
-				gitEnv: repoGitEnv,
-			});
-			branchDeleted = true;
+			if (
+				liveOwners(ctx, local).some(
+					(owner) =>
+						owner.projectId === local.projectId &&
+						owner.branch === local.branch,
+				)
+			) {
+				warnings.push(
+					`Skipped branch deletion: ${local.branch} is owned by another live workspace`,
+				);
+			} else {
+				await cleanupGitOps.deleteLocalBranch({
+					repoPath: project.repoPath,
+					branch: local.branch,
+					gitEnv: repoGitEnv,
+				});
+				branchDeleted = true;
+			}
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
@@ -692,6 +714,45 @@ async function runDestroyPhases(
 		branchDeleted,
 		warnings,
 	};
+}
+
+function normalizeOwnershipPath(path: string): string {
+	const absolute = resolve(path);
+	try {
+		return realpathSync(absolute);
+	} catch {
+		const parent = dirname(absolute);
+		return parent === absolute
+			? absolute
+			: join(normalizeOwnershipPath(parent), basename(absolute));
+	}
+}
+
+function liveOwners(ctx: HostServiceContext, local: { id: string }) {
+	return ctx.db
+		.select()
+		.from(workspaces)
+		.where(isNull(workspaces.archivedAt))
+		.all()
+		.filter((row) => row.id !== local.id);
+}
+
+function assertNoLivePathOwner(
+	ctx: HostServiceContext,
+	local: { id: string; worktreePath: string },
+) {
+	const path = normalizeOwnershipPath(local.worktreePath);
+	if (
+		liveOwners(ctx, local).some(
+			(owner) => normalizeOwnershipPath(owner.worktreePath) === path,
+		)
+	) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message:
+				"Cannot delete workspace: its path is owned by another live workspace",
+		});
+	}
 }
 
 /**
