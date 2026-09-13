@@ -38,14 +38,17 @@ describe("selectWorktreesToPlace", () => {
 		expect(result).toEqual([{ id: "wt-1", projectId: "p1" }]);
 	});
 
-	it("never places main workspaces — they surface via the gated path", () => {
+	it("places local workspaces exactly like worktrees — placement never depends on type", () => {
 		const result = selectWorktreesToPlace(
-			[worktree("main-1", { type: "main" }), worktree("wt-1")],
+			[worktree("local-1", { type: "local" }), worktree("wt-1")],
 			new Set(),
 			hosts,
 		);
 
-		expect(result).toEqual([{ id: "wt-1", projectId: "p1" }]);
+		expect(result).toEqual([
+			{ id: "local-1", projectId: "p1" },
+			{ id: "wt-1", projectId: "p1" },
+		]);
 	});
 
 	it("skips worktrees that already have a row (placed, hidden, or removed)", () => {

@@ -1236,6 +1236,9 @@ msgstr "Ainda há um processo rodando nesta aba"
 msgid "A process is still running in this terminal"
 msgstr "Ainda há um processo rodando neste terminal"
 
+msgid "A pull request always gets its own worktree"
+msgstr "Um pull request sempre tem seu próprio worktree"
+
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "Uma superfície de chat reconstruída para conduzir agentes: saída de ferramentas mais rica, condução mais fluida e tudo mais rápido."
 
@@ -3025,6 +3028,9 @@ msgstr "Verificando…"
 
 msgid "Checklist"
 msgstr "Lista de tarefas"
+
+msgid "Checkout: {label}"
+msgstr "Checkout: {label}"
 
 msgid "Checkpoint"
 msgstr "Checkpoint"
@@ -7719,6 +7725,9 @@ msgstr "Itálico"
 msgid "Item"
 msgstr "Item"
 
+msgid "Its own branch and copy of the files"
+msgstr "Sua própria branch e sua própria cópia dos arquivos"
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "As áreas de trabalho e os terminais dele ficam indisponíveis até reiniciar — use o menu da bandeja do Superset > Serviço do host > Reiniciar."
 
@@ -8299,6 +8308,9 @@ msgstr "Carregando..."
 msgid "Loading…"
 msgstr "Carregando…"
 
+msgid "Local"
+msgstr "Local"
+
 msgid "Local Device"
 msgstr "Dispositivo local"
 
@@ -8373,9 +8385,6 @@ msgstr "Magenta"
 
 msgid "Main"
 msgstr "Main"
-
-msgid "Main workspace"
-msgstr "Área de trabalho principal"
 
 msgid "Make all panes equal size"
 msgstr "Deixar todos os painéis do mesmo tamanho"
@@ -13156,6 +13165,9 @@ msgstr "Arquivos JSON de tema compartilhados que você pode importar no Superset
 msgid "Shared version"
 msgstr "Versão compartilhada"
 
+msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
+msgstr "Compartilha o checkout do projeto (arquivos, índice do git e branch) com suas outras áreas de trabalho locais"
+
 msgid "Sheet"
 msgstr "Sheet"
 
@@ -14746,6 +14758,9 @@ msgstr "A página que você procura não existe."
 msgid "The people behind Superset."
 msgstr "As pessoas por trás do Superset."
 
+msgid "The project's checkout as it is: files and branch are shared"
+msgstr "O checkout do projeto como está: arquivos e branch são compartilhados"
+
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."
 msgstr "O provedor respondeu {0}."
@@ -14908,6 +14923,12 @@ msgstr "Isso fecha todas as sessões de terminal — nesta área de trabalho e e
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Isso fecha todas as sessões de terminal da sua organização{runningCountSuffix} e inicia um daemon novo."
 
+msgid "This closes the selected workspaces and their terminals. The project's files and branches stay as they are."
+msgstr "Isso fecha as áreas de trabalho selecionadas e seus terminais. Os arquivos e as branches do projeto permanecem como estão."
+
+msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
+msgstr "Isso fecha a área de trabalho e seus terminais. Os arquivos, as branches e as outras áreas de trabalho do projeto permanecem como estão."
+
 msgid "This comment is no longer here"
 msgstr "Este comentário não está mais aqui"
 
@@ -15049,8 +15070,8 @@ msgstr "Isso remove o host, o acesso a ele e as áreas de trabalho dele. Os arqu
 msgid "This removes the project from every reachable device."
 msgstr "Isso remove o projeto de todos os dispositivos acessíveis."
 
-msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
-msgstr "Isso remove a worktree do disco. O registro da área de trabalho na nuvem também será removido."
+msgid "This removes the worktree from disk and closes the workspace."
+msgstr "Isso remove o worktree do disco e fecha a área de trabalho."
 
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "Isso substitui o rótulo, comando, argumentos, configurações de prompt e retomada, variáveis de ambiente e ícone pela configuração incluída na versão atual."
@@ -16495,6 +16516,9 @@ msgstr "Local das worktrees atualizado"
 msgid "Worktree missing"
 msgstr "Worktree ausente"
 
+msgid "Worktree on this device"
+msgstr "Worktree neste dispositivo"
+
 msgid "Worktree opened"
 msgstr "Worktree aberta"
 
@@ -16503,6 +16527,9 @@ msgstr "Worktree fora de sincronia"
 
 msgid "Worktrees"
 msgstr "Worktrees"
+
+msgid "Worktrees are removed from disk; workspaces on the project's checkout only close. Files in the checkout stay as they are."
+msgstr "Os worktrees são removidos do disco; as áreas de trabalho no checkout do projeto apenas são fechadas. Os arquivos do checkout permanecem como estão."
 
 msgid "Worktrees with uncommitted changes are left on disk."
 msgstr "Worktrees com alterações não commitadas permanecem no disco."

@@ -11,7 +11,6 @@ const hostUrl = "http://host-service";
 const repoPath = "/repos/octocat";
 const setupResult = {
 	repoPath,
-	mainWorkspaceId: "workspace-1",
 };
 const cloudError = {
 	url: "https://github.com/octocat/hello.git",
@@ -36,7 +35,6 @@ const setupMock = mock(async () => setupResult);
 const createMock = mock(async () => ({
 	projectId: "created-project",
 	repoPath,
-	mainWorkspaceId: "workspace-created",
 }));
 const finalizeSetupMock = mock(() => undefined);
 const requestGitInitMock = mock(async () => false);
@@ -151,12 +149,10 @@ describe("useFolderFirstImport", () => {
 		expect(finalizeSetupMock).toHaveBeenCalledWith(hostUrl, {
 			projectId: "created-project",
 			repoPath,
-			mainWorkspaceId: "workspace-created",
 		});
 		expect(result).toEqual({
 			projectId: "created-project",
 			repoPath,
-			mainWorkspaceId: "workspace-created",
 		});
 		expect(onError).not.toHaveBeenCalled();
 	});

@@ -70,6 +70,7 @@ import {
 import { DevicePicker } from "../DashboardNewWorkspaceForm/components/DevicePicker";
 import { CLOUD_HOST_ID } from "../DashboardNewWorkspaceForm/components/DevicePicker/DevicePicker";
 import { useWorkspaceHostOptions } from "../DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
+import { CheckoutPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/CheckoutPickerPill";
 import { CompareBaseBranchPicker } from "../DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker";
 import { EnvironmentPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/EnvironmentPickerPill";
 import { GitHubIssueLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/GitHubIssueLinkCommand";
@@ -446,12 +447,10 @@ export function NewWorkspaceScreen({
 		promptCardsVariant === null ? "rows" : PROMPT_LAYOUTS[promptCardsVariant];
 
 	// One signal drives both the prompt tier and the dismiss affordance: has
-	// this person shipped anything yet. `main` is auto-created for every new
-	// account, so it cannot count.
+	// this person shipped anything yet. Every workspace is something they
+	// created — nothing seeds one for them.
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
-	const hasRealWorkspace = hostWorkspaces.some(
-		(workspace) => workspace.type !== "main",
-	);
+	const hasRealWorkspace = hostWorkspaces.length > 0;
 
 	const samplePromptTier = hasRealWorkspace ? "returning" : "first-run";
 	const { prompts: samplePrompts, isPending: samplePromptsPending } =
@@ -1061,12 +1060,27 @@ export function NewWorkspaceScreen({
 								/>
 							)}
 							{draft.linkedPR ? (
-								<span className="flex items-center gap-1 text-xs text-muted-foreground">
-									<LuGitPullRequest className="size-3 shrink-0" />
-									<Trans>based off PR #{draft.linkedPR.prNumber}</Trans>
-								</span>
-							) : draft.isSession ? null : (
-								<CompareBaseBranchPicker {...pickerProps} />
+								<>
+									<CheckoutPickerPill
+										checkout="worktree"
+										onSelectCheckout={() => {}}
+										disabled
+									/>
+									<span className="flex items-center gap-1 text-xs text-muted-foreground">
+										<LuGitPullRequest className="size-3 shrink-0" />
+										<Trans>based off PR #{draft.linkedPR.prNumber}</Trans>
+									</span>
+								</>
+							) : draft.isSession || draft.hostId === CLOUD_HOST_ID ? null : (
+								<>
+									<CheckoutPickerPill
+										checkout={draft.checkout}
+										onSelectCheckout={(checkout) => updateDraft({ checkout })}
+									/>
+									{draft.checkout === "worktree" && (
+										<CompareBaseBranchPicker {...pickerProps} />
+									)}
+								</>
 							)}
 						</div>
 						{needsSetup && (

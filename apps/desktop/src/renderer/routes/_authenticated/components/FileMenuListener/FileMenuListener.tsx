@@ -1,10 +1,14 @@
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
+import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWorkspace";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 
 export function FileMenuListener() {
 	const navigate = useNavigate();
+	const { t } = useLingui();
+	const openNewWorkspace = useOpenNewWorkspaceForLocalProject();
 	const folderImport = useFolderFirstImport({
 		onError: (message) => {
 			toast.error(`Import failed: ${message}`);
@@ -25,7 +29,8 @@ export function FileMenuListener() {
 			if (event.type !== "open-project") return;
 			const result = await folderImport.start();
 			if (result) {
-				toast.success("Project ready — open it from the sidebar.");
+				openNewWorkspace(result.projectId);
+				toast.success(t({ message: "Project imported and selected." }));
 			}
 		},
 	});

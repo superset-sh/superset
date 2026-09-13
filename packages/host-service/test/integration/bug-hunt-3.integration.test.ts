@@ -257,8 +257,8 @@ describe("bug-hunt-3: more concurrency probes", () => {
 			.run();
 
 		// Two different branches in parallel — they both call
-		// `git worktree add` and `git branch.<name>.base` writes via
-		// ensureMainWorkspace / inside the procedure.
+		// `git worktree add` and `git branch.<name>.base` writes inside the
+		// procedure.
 		const results = await Promise.allSettled([
 			host.trpc.workspaces.create.mutate({
 				projectId,

@@ -12,6 +12,8 @@ export interface BulkWorkspaceInspectionItem {
 	reason: string | null;
 	hasChanges: boolean;
 	hasUnpushedCommits: boolean;
+	/** Known only once inspected: the row lives on the project checkout. */
+	sharesProjectCheckout: boolean | null;
 }
 
 export async function executeBulkWorkspaceDeleteTargets<
@@ -90,6 +92,7 @@ export function buildBulkWorkspaceInspectionSummary(
 				reason: null,
 				hasChanges: false,
 				hasUnpushedCommits: false,
+				sharesProjectCheckout: null,
 			};
 		}
 		if (inspection.status === "error") {
@@ -101,6 +104,7 @@ export function buildBulkWorkspaceInspectionSummary(
 				reason: "Couldn’t verify workspace",
 				hasChanges: false,
 				hasUnpushedCommits: false,
+				sharesProjectCheckout: null,
 			};
 		}
 		if (!inspection.preview.canDelete) {
@@ -116,6 +120,7 @@ export function buildBulkWorkspaceInspectionSummary(
 				reason: inspection.preview.reason,
 				hasChanges: false,
 				hasUnpushedCommits: false,
+				sharesProjectCheckout: false,
 			};
 		}
 
@@ -128,8 +133,13 @@ export function buildBulkWorkspaceInspectionSummary(
 			reason: null,
 			hasChanges: inspection.preview.hasChanges,
 			hasUnpushedCommits: inspection.preview.hasUnpushedCommits,
+			sharesProjectCheckout: inspection.preview.sharesProjectCheckout === true,
 		};
 	});
+	// Unknown rows count as worktrees: the destructive copy is the safe default.
+	const worktreeCount = items.filter(
+		(item) => item.sharesProjectCheckout !== true,
+	).length;
 
 	return {
 		loadingCount,
@@ -140,6 +150,7 @@ export function buildBulkWorkspaceInspectionSummary(
 		blocked,
 		changedCount,
 		unpushedCount,
+		worktreeCount,
 		items,
 		// Checks never gate deletion — only hard blockers (main workspaces,
 		// which the host refuses anyway) do.

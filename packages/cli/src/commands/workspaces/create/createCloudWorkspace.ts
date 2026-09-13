@@ -5,6 +5,7 @@ import { resolveCloudEnvironment } from "../../../lib/cloud-workspaces";
 /** What `ws create` parsed; the host-only flags are here only to be refused. */
 export interface CloudCreateOptions {
 	name?: string;
+	checkout?: string;
 	branch?: string;
 	agent?: string;
 	prompt?: string;
@@ -36,6 +37,7 @@ export async function createCloudWorkspace(args: {
 
 	// A sandbox's checkout is its workspace: no project, worktree or host.
 	for (const [flag, value] of [
+		["--checkout", options.checkout],
 		["--host", options.host],
 		["--local", options.local || undefined],
 		["--project", options.project],

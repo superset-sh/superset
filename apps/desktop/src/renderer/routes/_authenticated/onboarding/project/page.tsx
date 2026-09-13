@@ -13,7 +13,7 @@ import {
 } from "react-icons/lu";
 import { showStarNagOnboardingToast } from "renderer/components/StarNagToast";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
-import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
+import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWorkspace";
 import { track } from "renderer/lib/analytics";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -71,7 +71,7 @@ function OnboardingProjectPage() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { refetch: refetchSession } = authClient.useSession();
 	const { waitForHostReady } = useLocalHostService();
-	const openNewWorkspace = useOpenNewWorkspace();
+	const openNewWorkspace = useOpenNewWorkspaceForLocalProject();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 	const cloneTargetDir = homeDir ? `${homeDir}/.superset/projects` : null;
 	const [url, setUrl] = useState("");

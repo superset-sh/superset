@@ -5,7 +5,7 @@ export type DashboardSidebarWorkspaceHostType =
 	| "remote-device"
 	| "cloud";
 
-export type DashboardSidebarWorkspaceType = "main" | "worktree" | "session";
+export type DashboardSidebarWorkspaceType = "local" | "worktree" | "session";
 
 export type DashboardSidebarWorkspaceIndentation =
 	| "top-level"

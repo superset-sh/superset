@@ -29,7 +29,7 @@ import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { isInsideSessionsRoot } from "../workspace-creation/shared/session-paths";
 import { isInsideProjectWorktreesRoot } from "../workspace-creation/shared/worktree-paths";
 import { cleanupGitOps, isIndeterminateGitTaskFailure } from "./git-ops";
-import { isMainWorkspace } from "./is-main-workspace";
+import { isLocalCheckoutWorkspace } from "./is-local-checkout-workspace";
 import { removeDirectoryTree } from "./remove-directory-tree";
 
 /**
@@ -77,12 +77,16 @@ type InspectResult =
 			reason: null;
 			hasChanges: boolean;
 			hasUnpushedCommits: boolean;
+			/** The files are the project's checkout: deleting drops only the
+			 * workspace record and its sessions. */
+			sharesProjectCheckout: boolean;
 	  }
 	| {
 			canDelete: false;
 			reason: string;
 			hasChanges: false;
 			hasUnpushedCommits: false;
+			sharesProjectCheckout: false;
 	  };
 
 export const workspaceCleanupRouter = router({
@@ -102,23 +106,19 @@ export const workspaceCleanupRouter = router({
 	inspect: protectedProcedure
 		.input(z.object({ workspaceId: z.string() }))
 		.query(async ({ ctx, input, signal }): Promise<InspectResult> => {
-			const main = await isMainWorkspace(ctx, input.workspaceId);
-			if (main.isMain) {
-				return {
-					canDelete: false,
-					reason: main.reason,
-					hasChanges: false,
-					hasUnpushedCommits: false,
-				};
-			}
-
-			const { local } = main;
-			if (!local) {
+			const { local, sharesProjectCheckout } = await isLocalCheckoutWorkspace(
+				ctx,
+				input.workspaceId,
+			);
+			// Nothing on disk goes away with a local workspace, so there is
+			// no uncommitted or unpushed work to warn about losing.
+			if (!local || sharesProjectCheckout) {
 				return {
 					canDelete: true,
 					reason: null,
 					hasChanges: false,
 					hasUnpushedCommits: false,
+					sharesProjectCheckout,
 				};
 			}
 
@@ -140,6 +140,7 @@ export const workspaceCleanupRouter = router({
 					reason: null,
 					hasChanges: state.hasChanges,
 					hasUnpushedCommits: state.hasUnpushedCommits,
+					sharesProjectCheckout: false,
 				};
 			} catch {
 				return {
@@ -147,6 +148,7 @@ export const workspaceCleanupRouter = router({
 					reason: null,
 					hasChanges: false,
 					hasUnpushedCommits: false,
+					sharesProjectCheckout: false,
 				};
 			}
 		}),
@@ -187,7 +189,11 @@ export const workspaceCleanupRouter = router({
 	 *                            a toast and do NOT force-retry.
 	 *   - PRECONDITION_FAILED with `data.teardownFailure` → teardown
 	 *                            script failed; prompt force-retry
-	 *   - BAD_REQUEST          → main workspace; cannot be deleted
+	 *
+	 * A workspace on the project's own checkout (`type = "local"`, or any row
+	 * whose path is the repo) runs only steps 0, 3a and 5: its files are the
+	 * repository, shared with every other local workspace, so preflight,
+	 * teardown, worktree removal and branch deletion are all skipped.
 	 *   - PRECONDITION_FAILED  → no cloud API configured
 	 *   - pass-through         → cloud auth / network failure
 	 */
@@ -241,13 +247,10 @@ async function runDestroy(
 ) {
 	const warnings: string[] = [];
 
-	// `isMainWorkspace` already loads workspace + project rows from sqlite;
-	// thread them through to avoid duplicate sync queries downstream.
-	const main = await isMainWorkspace(ctx, input.workspaceId);
-	if (main.isMain) {
-		throw new TRPCError({ code: "BAD_REQUEST", message: main.reason });
-	}
-	const { local, project } = main;
+	// `isLocalCheckoutWorkspace` already loads workspace + project rows from
+	// sqlite; thread them through to avoid duplicate sync queries downstream.
+	const { local, project, sharesProjectCheckout } =
+		await isLocalCheckoutWorkspace(ctx, input.workspaceId);
 
 	// ─── Step 0: Archive (the commit point) ────────────────────────
 	// FIRST, before any slow work (git preflight, teardown script): the
@@ -273,7 +276,12 @@ async function runDestroy(
 		// case). Missing/broken local state is handled by the cleanup phase.
 		// Sessions are standalone repos — the same dirty check applies even
 		// though they have no project row.
-		if (!input.force && local && (project || local.type === "session")) {
+		if (
+			!input.force &&
+			!sharesProjectCheckout &&
+			local &&
+			(project || local.type === "session")
+		) {
 			try {
 				const gitEnv = await cleanupGitOps.resolveGitEnv(
 					ctx,
@@ -314,7 +322,14 @@ async function runDestroy(
 		// (potentially slow) script never delays the row leaving the UI; a
 		// blocking failure throws, the catch below un-archives, and the
 		// globally-mounted dialog re-opens with a force-retry.
-		if (input.teardownMode !== "skip" && local && project) {
+		// A teardown script on the shared checkout would stop services every
+		// other local workspace on it is using.
+		if (
+			input.teardownMode !== "skip" &&
+			!sharesProjectCheckout &&
+			local &&
+			project
+		) {
 			const teardown: TeardownResult = await runTeardown({
 				db: ctx.db,
 				workspaceId: input.workspaceId,
@@ -346,6 +361,7 @@ async function runDestroy(
 		const result = await runDestroyPhases(ctx, input, {
 			local,
 			project,
+			sharesProjectCheckout,
 			warnings,
 		});
 		// Telemetry at the true commit: a failed destroy un-archives below and
@@ -409,12 +425,12 @@ async function runDestroyPhases(
 	{
 		local,
 		project,
+		sharesProjectCheckout,
 		warnings,
-	}: {
-		local: Awaited<ReturnType<typeof isMainWorkspace>>["local"];
-		project: Awaited<ReturnType<typeof isMainWorkspace>>["project"];
-		warnings: string[];
-	},
+	}: Pick<
+		Awaited<ReturnType<typeof isLocalCheckoutWorkspace>>,
+		"local" | "project" | "sharesProjectCheckout"
+	> & { warnings: string[] },
 ) {
 	// ─── Step 3: Local cleanup ─────────────────────────────────────
 	// 3a. PTYs
@@ -438,7 +454,10 @@ async function runDestroyPhases(
 	let worktreeRemoved = false;
 	let branchDeleted = false;
 	let repoGitEnv: GitTaskEnv | null = null;
-	if (local?.type === "session") {
+	if (sharesProjectCheckout) {
+		// The files are the repository itself; nothing on disk belongs to
+		// this workspace alone.
+	} else if (local?.type === "session") {
 		// Sessions are standalone repos in the managed sessions root — no
 		// `git worktree remove`, just delete the folder. The root guard is
 		// load-bearing: a corrupt worktreePath must never point rm -rf at
@@ -471,7 +490,7 @@ async function runDestroyPhases(
 			);
 		}
 	}
-	if (local && project) {
+	if (local && project && !sharesProjectCheckout) {
 		worktreeRemoved = !existsSync(local.worktreePath);
 		if (!worktreeRemoved && isMissingDirectory(project.repoPath)) {
 			// The project repo was moved or deleted outside Superset: there is

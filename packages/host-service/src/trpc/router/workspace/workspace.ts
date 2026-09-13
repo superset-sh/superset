@@ -118,13 +118,6 @@ export const workspaceRouter = router({
 					message: "Workspace not found",
 				});
 			}
-			if (input.name !== undefined && current.type === "main") {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						'The local workspace cannot be renamed — it always displays as "local".',
-				});
-			}
 			const patch: {
 				name?: string;
 				branch?: string;

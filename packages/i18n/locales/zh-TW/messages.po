@@ -1236,6 +1236,9 @@ msgstr "此分頁中仍有處理程序在執行"
 msgid "A process is still running in this terminal"
 msgstr "此終端中仍有處理程序在執行"
 
+msgid "A pull request always gets its own worktree"
+msgstr "拉取請求總是使用自己的 worktree"
+
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "重建的代理程式驅動聊天介面：更豐富的工具輸出、更順手的引導，一切都更快。"
 
@@ -3025,6 +3028,9 @@ msgstr "正在檢查…"
 
 msgid "Checklist"
 msgstr "清單"
+
+msgid "Checkout: {label}"
+msgstr "簽出：{label}"
 
 msgid "Checkpoint"
 msgstr "檢查點"
@@ -7719,6 +7725,9 @@ msgstr "斜體"
 msgid "Item"
 msgstr "條目"
 
+msgid "Its own branch and copy of the files"
+msgstr "獨立的分支和檔案副本"
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "在它重啟之前，其工作區和終端都不可用，請使用Superset托盤選單 > 主機服務 > 重啟。"
 
@@ -8299,6 +8308,9 @@ msgstr "載入中..."
 msgid "Loading…"
 msgstr "正在載入…"
 
+msgid "Local"
+msgstr "本地"
+
 msgid "Local Device"
 msgstr "本地裝置"
 
@@ -8373,9 +8385,6 @@ msgstr "品紅"
 
 msgid "Main"
 msgstr "主處理程序"
-
-msgid "Main workspace"
-msgstr "主工作區"
 
 msgid "Make all panes equal size"
 msgstr "使所有窗格大小相同"
@@ -13156,6 +13165,9 @@ msgstr "可匯入Superset的共享主題JSON檔案。"
 msgid "Shared version"
 msgstr "分享的版本"
 
+msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
+msgstr "與該專案的其他本地工作區共用專案的簽出（檔案、git 索引和分支）"
+
 msgid "Sheet"
 msgstr "側邊面板"
 
@@ -14746,6 +14758,9 @@ msgstr "你要找的頁面不存在。"
 msgid "The people behind Superset."
 msgstr "Superset背後的團隊。"
 
+msgid "The project's checkout as it is: files and branch are shared"
+msgstr "按原樣使用專案的簽出: 檔案和分支是共用的"
+
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."
 msgstr "提供商回應了{0}。"
@@ -14908,6 +14923,12 @@ msgstr "這會關閉所有終端會話 — 包括此工作區和其他工作區�
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "這會關閉你組織的所有終端會話{runningCountSuffix}並啟動全新的守護程式。"
 
+msgid "This closes the selected workspaces and their terminals. The project's files and branches stay as they are."
+msgstr "這將關閉所選工作區及其終端機。專案的檔案和分支保持不變。"
+
+msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
+msgstr "這將關閉該工作區及其終端機。專案的檔案、分支和其他工作區保持不變。"
+
 msgid "This comment is no longer here"
 msgstr "此留言已不存在"
 
@@ -15049,8 +15070,8 @@ msgstr "這將移除該主機、其存取權限及其工作區。機器上的檔
 msgid "This removes the project from every reachable device."
 msgstr "這會從所有可連線的裝置中移除該專案。"
 
-msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
-msgstr "這會把worktree從磁碟上移除。雲端的工作區記錄也會一併移除。"
+msgid "This removes the worktree from disk and closes the workspace."
+msgstr "這將從磁碟中移除該 worktree 並關閉工作區。"
 
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "這會用目前內建配置替換它的名稱、命令、引數、提示詞與恢復設定、環境變數和圖示。"
@@ -16495,6 +16516,9 @@ msgstr "已更新worktree位置"
 msgid "Worktree missing"
 msgstr "worktree缺失"
 
+msgid "Worktree on this device"
+msgstr "此裝置上的 worktree"
+
 msgid "Worktree opened"
 msgstr "worktree已開啟"
 
@@ -16503,6 +16527,9 @@ msgstr "worktree不同步"
 
 msgid "Worktrees"
 msgstr "Worktree"
+
+msgid "Worktrees are removed from disk; workspaces on the project's checkout only close. Files in the checkout stay as they are."
+msgstr "worktree 會從磁碟中移除；位於專案簽出上的工作區僅會關閉。簽出中的檔案保持不變。"
 
 msgid "Worktrees with uncommitted changes are left on disk."
 msgstr "有未提交變更的worktree會保留在磁碟上。"

@@ -24,7 +24,7 @@ interface WorkspaceHostRow {
 	workspaceId: string;
 	organizationId: string;
 	hostId: string;
-	type: "main" | "worktree" | "session";
+	type: "local" | "worktree" | "session";
 	name: string;
 	projectName?: string;
 	branch: string;

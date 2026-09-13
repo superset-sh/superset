@@ -175,10 +175,8 @@ export function runSandboxSelfSeed(
 			updatedAt: now,
 		})
 		.run();
-	// type='main' because the checkout *is* the repo here — there is no base
-	// repo it was branched from. It also keeps the boot-time main-workspace
-	// sweep from adding a second, phantom workspace to satisfy its
-	// one-main-per-project index.
+	// type='local' because the checkout *is* the repo here — there is no base
+	// repo it was branched from.
 	db.insert(workspaces)
 		.values({
 			id: identity.workspaceId,
@@ -186,7 +184,7 @@ export function runSandboxSelfSeed(
 			worktreePath: identity.worktreePath,
 			branch: identity.branch,
 			name: identity.workspaceName,
-			type: "main",
+			type: "local",
 			createdAt: now,
 			updatedAt: now,
 		})

@@ -14,7 +14,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cleanupGitOps } from "../src/trpc/router/workspace-cleanup/git-ops";
-import { isMainWorkspace } from "../src/trpc/router/workspace-cleanup/is-main-workspace";
+import { isLocalCheckoutWorkspace } from "../src/trpc/router/workspace-cleanup/is-local-checkout-workspace";
 import {
 	__testDestroysInFlight,
 	workspaceCleanupRouter,
@@ -27,7 +27,7 @@ type WorkspaceRow = {
 	projectId: string | null;
 	worktreePath: string;
 	branch: string;
-	type?: "main" | "worktree" | "session";
+	type?: "local" | "worktree" | "session";
 	pullRequestId?: string | null;
 	archivedAt?: number | null;
 };
@@ -161,16 +161,16 @@ function makeCtx(spec: ContextSpec): HostServiceContext & {
 	});
 }
 
-describe("isMainWorkspace", () => {
-	test("returns isMain: false when no local workspace row", async () => {
+describe("isLocalCheckoutWorkspace", () => {
+	test("does not share the checkout when no local workspace row", async () => {
 		const ctx = makeCtx({});
-		const result = await isMainWorkspace(ctx, "ws-1");
-		expect(result.isMain).toBe(false);
-		expect(result.reason).toBe(null);
+		const result = await isLocalCheckoutWorkspace(ctx, "ws-1");
+		expect(result.sharesProjectCheckout).toBe(false);
+		expect(result.local).toBeUndefined();
 	});
 
-	test("returns isMain: true when worktreePath equals project repoPath", async () => {
-		const tmp = mkdtempSync(join(tmpdir(), "is-main-"));
+	test("shares the checkout when worktreePath equals project repoPath", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "is-local-"));
 		try {
 			const ctx = makeCtx({
 				workspace: {
@@ -181,16 +181,15 @@ describe("isMainWorkspace", () => {
 				},
 				project: { id: "p-1", repoPath: tmp },
 			});
-			const result = await isMainWorkspace(ctx, "ws-1");
-			expect(result.isMain).toBe(true);
-			expect(result.reason).toContain("Main workspaces cannot be deleted");
+			const result = await isLocalCheckoutWorkspace(ctx, "ws-1");
+			expect(result.sharesProjectCheckout).toBe(true);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
 		}
 	});
 
 	test("normalizes paths via realpath (symlinked worktree path equals repoPath)", async () => {
-		const tmp = mkdtempSync(join(tmpdir(), "is-main-"));
+		const tmp = mkdtempSync(join(tmpdir(), "is-local-"));
 		const realRepo = join(tmp, "real-repo");
 		const symRepo = join(tmp, "sym-repo");
 		mkdirSync(realRepo);
@@ -206,29 +205,29 @@ describe("isMainWorkspace", () => {
 				},
 				project: { id: "p-1", repoPath: realRepo },
 			});
-			const result = await isMainWorkspace(ctx, "ws-1");
-			expect(result.isMain).toBe(true);
+			const result = await isLocalCheckoutWorkspace(ctx, "ws-1");
+			expect(result.sharesProjectCheckout).toBe(true);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
 		}
 	});
 
-	test("returns isMain: true via local type even when paths differ", async () => {
+	test("shares the checkout via local type even when paths differ", async () => {
 		const ctx = makeCtx({
 			workspace: {
 				id: "ws-1",
 				projectId: "p-1",
 				worktreePath: "/some/branch/wt",
 				branch: "feature",
-				type: "main",
+				type: "local",
 			},
 			project: { id: "p-1", repoPath: "/some/repo" },
 		});
-		const result = await isMainWorkspace(ctx, "ws-1");
-		expect(result.isMain).toBe(true);
+		const result = await isLocalCheckoutWorkspace(ctx, "ws-1");
+		expect(result.sharesProjectCheckout).toBe(true);
 	});
 
-	test("returns isMain: false when neither path equality nor local type fires", async () => {
+	test("does not share the checkout when neither path equality nor local type fires", async () => {
 		const ctx = makeCtx({
 			workspace: {
 				id: "ws-1",
@@ -239,8 +238,8 @@ describe("isMainWorkspace", () => {
 			},
 			project: { id: "p-1", repoPath: "/repo" },
 		});
-		const result = await isMainWorkspace(ctx, "ws-1");
-		expect(result.isMain).toBe(false);
+		const result = await isLocalCheckoutWorkspace(ctx, "ws-1");
+		expect(result.sharesProjectCheckout).toBe(false);
 	});
 });
 
@@ -255,17 +254,23 @@ describe("workspaceCleanup.inspect", () => {
 		project: { id: "p-1", repoPath: "/repo" },
 	};
 
-	test("blocks main workspaces with a destructive reason", async () => {
+	test("a local workspace is deletable without reading the shared checkout's state", async () => {
 		const ctx = makeCtx({
 			...wsAndProject,
-			workspace: { ...wsAndProject.workspace, type: "main" },
+			workspace: { ...wsAndProject.workspace, type: "local" },
+			worktreeState: async () => {
+				throw new Error("must not read the checkout");
+			},
 		});
 		const caller = workspaceCleanupRouter.createCaller(ctx);
 		const result = await caller.inspect({ workspaceId: "ws-1" });
-		expect(result.canDelete).toBe(false);
-		expect(result.reason).toContain("Main workspaces cannot be deleted");
-		expect(result.hasChanges).toBe(false);
-		expect(result.hasUnpushedCommits).toBe(false);
+		expect(result).toEqual({
+			canDelete: true,
+			reason: null,
+			hasChanges: false,
+			hasUnpushedCommits: false,
+			sharesProjectCheckout: true,
+		});
 	});
 
 	test("returns canDelete: true with no warnings when no local row", async () => {
@@ -277,6 +282,7 @@ describe("workspaceCleanup.inspect", () => {
 			reason: null,
 			hasChanges: false,
 			hasUnpushedCommits: false,
+			sharesProjectCheckout: false,
 		});
 	});
 
@@ -314,6 +320,7 @@ describe("workspaceCleanup.inspect", () => {
 			reason: null,
 			hasChanges: false,
 			hasUnpushedCommits: false,
+			sharesProjectCheckout: false,
 		});
 	});
 
@@ -329,6 +336,7 @@ describe("workspaceCleanup.inspect", () => {
 			reason: null,
 			hasChanges: false,
 			hasUnpushedCommits: false,
+			sharesProjectCheckout: false,
 		});
 	});
 });
@@ -397,6 +405,55 @@ describe("workspaceCleanup.destroy in-flight guard", () => {
 
 describe("workspaceCleanup.destroy cleanup ordering", () => {
 	beforeEach(() => __testDestroysInFlight.clear());
+
+	test("a local workspace retires its record without touching git or disk", async () => {
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		writeFileSync(join(repo, "dirty.txt"), "uncommitted");
+		let gitTouched = false;
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: repo,
+					branch: "main",
+					type: "local",
+				},
+				project: { id: "p-1", repoPath: repo },
+				worktreeState: async () => {
+					gitTouched = true;
+					return { hasChanges: true, hasUnpushedCommits: true };
+				},
+				removeWorktree: async () => {
+					gitTouched = true;
+					return { stillRegistered: false };
+				},
+				deleteBranch: async () => {
+					gitTouched = true;
+					return { deleted: true };
+				},
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: true,
+				force: false,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(false);
+			expect(result.branchDeleted).toBe(false);
+			expect(gitTouched).toBe(false);
+			expect(existsSync(join(repo, "dirty.txt"))).toBe(true);
+			const events = ctx.__mocks.broadcastWorkspaceChanged.mock.calls.map(
+				(call) => (call[0] as { eventType: string }).eventType,
+			);
+			expect(events).toEqual(["deleted"]);
+		} finally {
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
 
 	test("worktree removal failure blocks local delete while the path still exists", async () => {
 		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));

@@ -168,12 +168,12 @@ describe("sortDashboardSidebarProjects", () => {
 });
 
 describe("sortDashboardSidebarProjectChildren", () => {
-	const mainChild: DashboardSidebarProjectChild = {
+	const localChild: DashboardSidebarProjectChild = {
 		type: "workspace",
 		workspace: makeWorkspace({
-			id: "w-main",
+			id: "w-local",
 			name: "local",
-			type: "main",
+			type: "local",
 			lastActivityAt: at("2026-01-01"),
 		}),
 	};
@@ -223,30 +223,12 @@ describe("sortDashboardSidebarProjectChildren", () => {
 		);
 	});
 
-	it("keeps the local main pinned first despite older activity", () => {
+	it("sorts a local workspace by activity like any other row", () => {
 		const sorted = sortDashboardSidebarProjectChildren(
-			[oldWorktree, newWorktree, mainChild],
+			[oldWorktree, newWorktree, localChild],
 			"active",
 		);
-		expect(childIds(sorted)).toEqual(["w-main", "w-new", "w-old"]);
-	});
-
-	it("does not pin a remote host's main workspace", () => {
-		const remoteMain: DashboardSidebarProjectChild = {
-			type: "workspace",
-			workspace: makeWorkspace({
-				id: "w-remote-main",
-				name: "remote",
-				type: "main",
-				hostType: "remote-device",
-				lastActivityAt: at("2026-01-01"),
-			}),
-		};
-		const sorted = sortDashboardSidebarProjectChildren(
-			[remoteMain, newWorktree],
-			"active",
-		);
-		expect(childIds(sorted)).toEqual(["w-new", "w-remote-main"]);
+		expect(childIds(sorted)).toEqual(["w-new", "w-old", "w-local"]);
 	});
 
 	it("sorts workspaces inside sections and ranks sections by newest member", () => {
@@ -406,10 +388,10 @@ describe("sortDashboardSidebarProjectChildren", () => {
 				],
 			}),
 		};
-		const children = [mainChild, newWorktree, orderedSection, oldWorktree];
+		const children = [newWorktree, orderedSection, oldWorktree, localChild];
 		const sorted = sortDashboardSidebarProjectChildren(children, "active");
 		expect(sorted).toBe(children);
-		expect(sorted[2]).toBe(orderedSection);
+		expect(sorted[1]).toBe(orderedSection);
 	});
 });
 

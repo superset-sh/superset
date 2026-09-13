@@ -47,7 +47,6 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	isSessionWorkspace?: boolean;
 	isInSection?: boolean;
 	isLocalWorkspace: boolean;
-	isLocalMainWorkspace?: boolean;
 	isPinned: boolean;
 	isUnread: boolean;
 	hasStatus: boolean;
@@ -77,7 +76,6 @@ export function DashboardSidebarWorkspaceContextMenu({
 	isSessionWorkspace = false,
 	isInSection,
 	isLocalWorkspace,
-	isLocalMainWorkspace = false,
 	isPinned,
 	isUnread,
 	hasStatus,
@@ -200,7 +198,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 				    row doesn't display — the change would only surface on unpin.
 				    Cloud rows are project-less but ungroupable: they stay in the Cloud
 				    section, so grouping them would write tags with nothing to show. */}
-				{!isPinned && !isLocalMainWorkspace && canJoinGroup && (
+				{!isPinned && canJoinGroup && (
 					<>
 						<ContextMenuSeparator />
 						<ContextMenuItem onSelect={onCreateSection}>

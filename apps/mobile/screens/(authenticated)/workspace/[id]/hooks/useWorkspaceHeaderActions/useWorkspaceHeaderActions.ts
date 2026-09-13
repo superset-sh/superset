@@ -80,6 +80,7 @@ export function useWorkspaceHeaderActions(
 			{
 				id: workspace.id,
 				name: workspace.name,
+				type: workspace.type,
 				hostId: host.machineId,
 				hostUrl: hostServiceUrl(host.organizationId, host.machineId),
 				isCloud,

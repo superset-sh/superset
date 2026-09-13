@@ -1236,6 +1236,9 @@ msgstr "Vẫn còn một tiến trình đang chạy trong tab này"
 msgid "A process is still running in this terminal"
 msgstr "Vẫn còn một tiến trình đang chạy trong terminal này"
 
+msgid "A pull request always gets its own worktree"
+msgstr "Pull request luôn có worktree riêng"
+
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "Giao diện chat được dựng lại để điều khiển agent: output tool phong phú hơn, lái mượt hơn, mọi thứ nhanh hơn."
 
@@ -3025,6 +3028,9 @@ msgstr "Đang kiểm tra…"
 
 msgid "Checklist"
 msgstr "Danh sách kiểm"
+
+msgid "Checkout: {label}"
+msgstr "Checkout: {label}"
 
 msgid "Checkpoint"
 msgstr "Checkpoint"
@@ -7719,6 +7725,9 @@ msgstr "Nghiêng"
 msgid "Item"
 msgstr "Item"
 
+msgid "Its own branch and copy of the files"
+msgstr "Nhánh riêng và bản sao tệp riêng"
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Các workspace và terminal của nó không khả dụng cho đến khi khởi động lại — dùng menu khay Superset > Host Service > Restart."
 
@@ -8299,6 +8308,9 @@ msgstr "Đang tải..."
 msgid "Loading…"
 msgstr "Đang tải…"
 
+msgid "Local"
+msgstr "Cục bộ"
+
 msgid "Local Device"
 msgstr "Thiết bị cục bộ"
 
@@ -8373,9 +8385,6 @@ msgstr "Đỏ tía"
 
 msgid "Main"
 msgstr "Main"
-
-msgid "Main workspace"
-msgstr "Workspace chính"
 
 msgid "Make all panes equal size"
 msgstr "Làm mọi khung bằng nhau"
@@ -13156,6 +13165,9 @@ msgstr "Các tệp JSON chủ đề được chia sẻ, bạn có thể nhập v
 msgid "Shared version"
 msgstr "Phiên bản được chia sẻ"
 
+msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
+msgstr "Dùng chung checkout của dự án — tệp, chỉ mục git và nhánh — với các workspace cục bộ khác"
+
 msgid "Sheet"
 msgstr "Sheet"
 
@@ -14746,6 +14758,9 @@ msgstr "Trang bạn tìm không tồn tại."
 msgid "The people behind Superset."
 msgstr "Những người đứng sau Superset."
 
+msgid "The project's checkout as it is: files and branch are shared"
+msgstr "Checkout của dự án như hiện có: tệp và nhánh được dùng chung"
+
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."
 msgstr "Nhà cung cấp trả về {0}."
@@ -14908,6 +14923,12 @@ msgstr "Thao tác này đóng mọi phiên terminal — trong workspace này và
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Thao tác này đóng mọi phiên terminal của tổ chức bạn{runningCountSuffix} và khởi động một daemon mới."
 
+msgid "This closes the selected workspaces and their terminals. The project's files and branches stay as they are."
+msgstr "Thao tác này đóng các workspace đã chọn và terminal của chúng. Tệp và nhánh của dự án vẫn giữ nguyên."
+
+msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
+msgstr "Thao tác này đóng workspace và các terminal của nó. Tệp, nhánh và các workspace khác của dự án vẫn giữ nguyên."
+
 msgid "This comment is no longer here"
 msgstr "Bình luận này không còn ở đây"
 
@@ -15049,8 +15070,8 @@ msgstr "Thao tác này gỡ host, quyền truy cập và các workspace của n�
 msgid "This removes the project from every reachable device."
 msgstr "Thao tác này sẽ gỡ dự án khỏi mọi thiết bị có thể kết nối."
 
-msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
-msgstr "Thao tác này xóa worktree khỏi đĩa. Bản ghi workspace trên cloud cũng sẽ bị xóa."
+msgid "This removes the worktree from disk and closes the workspace."
+msgstr "Thao tác này xóa worktree khỏi ổ đĩa và đóng workspace."
 
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "Thao tác này thay nhãn, lệnh, tham số, cài đặt prompt và resume, biến môi trường cùng biểu tượng bằng cấu hình đi kèm hiện tại."
@@ -16495,6 +16516,9 @@ msgstr "Đã cập nhật vị trí worktree"
 msgid "Worktree missing"
 msgstr "Thiếu worktree"
 
+msgid "Worktree on this device"
+msgstr "Worktree trên thiết bị này"
+
 msgid "Worktree opened"
 msgstr "Đã mở worktree"
 
@@ -16503,6 +16527,9 @@ msgstr "Worktree không còn đồng bộ"
 
 msgid "Worktrees"
 msgstr "Worktree"
+
+msgid "Worktrees are removed from disk; workspaces on the project's checkout only close. Files in the checkout stay as they are."
+msgstr "Các worktree bị xóa khỏi ổ đĩa; các workspace trên checkout của dự án chỉ được đóng. Tệp trong checkout vẫn giữ nguyên."
 
 msgid "Worktrees with uncommitted changes are left on disk."
 msgstr "Các worktree có thay đổi chưa commit sẽ được giữ lại trên ổ đĩa."

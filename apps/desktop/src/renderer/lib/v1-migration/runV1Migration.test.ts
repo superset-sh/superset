@@ -27,6 +27,7 @@ interface HostWorkspace {
 	id: string;
 	projectId: string;
 	branch: string;
+	type?: "local" | "worktree";
 }
 
 class FakeHost {
@@ -73,13 +74,7 @@ class FakeHost {
 							throw new Error(this.brokenRepos.get(project.repoPath));
 						}
 						this.mutations.push({ kind: "project.setup", args: projectId });
-						const main = this.workspaces.find(
-							(w) => w.projectId === projectId && w.branch === "main",
-						);
-						return {
-							mainWorkspaceId: main?.id ?? null,
-							repoPath: project.repoPath,
-						};
+						return { repoPath: project.repoPath };
 					},
 				},
 				create: {
@@ -96,17 +91,10 @@ class FakeHost {
 						this.mutations.push({ kind: "project.create", args: name });
 						const project = { id: this.id("v2p"), repoPath: mode.repoPath };
 						this.projects.push(project);
-						const main = {
-							tags: [],
-							id: this.id("v2w"),
-							projectId: project.id,
-							branch: "main",
-						};
-						this.workspaces.push(main);
 						return {
 							projectId: project.id,
-							mainWorkspaceId: main.id,
 							repoPath: project.repoPath,
+							created: true,
 						};
 					},
 				},
@@ -178,6 +166,26 @@ class FakeHost {
 					},
 				},
 			},
+			workspaces: {
+				createLocal: {
+					mutate: async (args: {
+						projectId: string;
+						checkout: "local";
+						name: string;
+					}) => {
+						this.mutations.push({ kind: "workspaces.create", args });
+						const row: HostWorkspace = {
+							tags: [],
+							id: this.id("v2w"),
+							projectId: args.projectId,
+							branch: "main",
+							type: "local",
+						};
+						this.workspaces.push(row);
+						return { workspace: row, alreadyExists: false };
+					},
+				},
+			},
 			workspaceCreation: {
 				listProjectWorktrees: {
 					query: async ({ projectId }: { projectId: string }) => {
@@ -186,7 +194,10 @@ class FakeHost {
 							? (this.diskBranches.get(project.repoPath) ?? new Set())
 							: new Set<string>();
 						return {
-							worktrees: [...branches].map((branch) => ({ branch })),
+							worktrees: [...branches].map((branch) => ({
+								branch,
+								isMainWorktree: branch === "main",
+							})),
 						};
 					},
 				},
@@ -320,8 +331,8 @@ describe("runV1Migration scenarios", () => {
 
 		const first = await run(ipc, host);
 		expect(first.projects.migrated).toBe(2);
-		expect(first.workspaces.migrated).toBe(1); // feat adopted
-		expect(first.workspaces.linked).toBe(1); // main pre-created by the import
+		expect(first.workspaces.migrated).toBe(2); // feat adopted, main-repo workspace created as local
+		expect(first.workspaces.linked).toBe(0);
 		expect(first.workspaces.skipped).toBe(1); // stale: no worktree on disk
 		expect(first.gateComplete).toBe(true); // skips don't block (F1)
 
@@ -354,7 +365,7 @@ describe("runV1Migration scenarios", () => {
 		expect(host.mutations.filter((m) => m.kind === "project.setIcon")).toEqual([
 			{
 				kind: "project.setIcon",
-				args: { projectId: "v2p-5", icon: "none" },
+				args: { projectId: "v2p-3", icon: "none" },
 			},
 		]);
 	});
@@ -466,6 +477,7 @@ const ALLOWED_MUTATIONS = new Set([
 	"project.setBranchPrefix",
 	"settings.branchPrefix.set",
 	"workspaceCreation.adopt",
+	"workspaces.create",
 ]);
 
 describe("runV1Migration invariants (seeded fuzz)", () => {
@@ -555,6 +567,8 @@ describe("v1 groups to tags", () => {
 		const host = new FakeHost();
 		ipc.projects = [project("p", "/repo")];
 		ipc.workspaces = [{ ...workspace("w", "p", "main"), sectionId: "g" }];
+		// The repo root is always a worktree on its checked-out branch.
+		host.diskBranches.set("/repo", new Set(["main"]));
 		await run(ipc, host); // Backfill a migration that finished before groups existed.
 		ipc.groups = [
 			{

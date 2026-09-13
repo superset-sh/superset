@@ -345,7 +345,6 @@ async function importProject({
 		finalizeSetup(activeHostUrl, {
 			projectId: result.v2ProjectId,
 			repoPath: result.repoPath,
-			mainWorkspaceId: result.mainWorkspaceId,
 		});
 		recordV1MigrationOutcome(organizationId, {
 			v1Id: project.id,

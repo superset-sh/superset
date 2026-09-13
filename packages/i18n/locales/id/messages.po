@@ -1236,6 +1236,9 @@ msgstr "Masih ada proses yang berjalan di tab ini"
 msgid "A process is still running in this terminal"
 msgstr "Masih ada proses yang berjalan di terminal ini"
 
+msgid "A pull request always gets its own worktree"
+msgstr "Pull request selalu mendapat worktree sendiri"
+
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "Permukaan chat yang dibangun ulang untuk mengendalikan agen: output alat lebih kaya, pengarahan lebih halus, semuanya lebih cepat."
 
@@ -3025,6 +3028,9 @@ msgstr "Memeriksa…"
 
 msgid "Checklist"
 msgstr "Daftar centang"
+
+msgid "Checkout: {label}"
+msgstr "Checkout: {label}"
 
 msgid "Checkpoint"
 msgstr "Checkpoint"
@@ -7719,6 +7725,9 @@ msgstr "Miring"
 msgid "Item"
 msgstr "Item"
 
+msgid "Its own branch and copy of the files"
+msgstr "Branch dan salinan file tersendiri"
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Workspace dan terminalnya tidak tersedia sampai layanan ini dimulai ulang — pakai menu tray Superset > Host Service > Restart."
 
@@ -8299,6 +8308,9 @@ msgstr "Memuat..."
 msgid "Loading…"
 msgstr "Memuat…"
 
+msgid "Local"
+msgstr "Lokal"
+
 msgid "Local Device"
 msgstr "Perangkat Lokal"
 
@@ -8373,9 +8385,6 @@ msgstr "Magenta"
 
 msgid "Main"
 msgstr "Main"
-
-msgid "Main workspace"
-msgstr "Workspace utama"
 
 msgid "Make all panes equal size"
 msgstr "Samakan ukuran semua panel"
@@ -13156,6 +13165,9 @@ msgstr "File JSON tema bersama yang bisa Anda impor ke Superset."
 msgid "Shared version"
 msgstr "Versi yang dibagikan"
 
+msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
+msgstr "Berbagi checkout proyek — file, indeks git, dan branch — dengan workspace lokal lainnya"
+
 msgid "Sheet"
 msgstr "Sheet"
 
@@ -14746,6 +14758,9 @@ msgstr "Halaman yang Anda cari tidak ada."
 msgid "The people behind Superset."
 msgstr "Orang-orang di balik Superset."
 
+msgid "The project's checkout as it is: files and branch are shared"
+msgstr "Checkout proyek apa adanya: file dan branch dibagikan"
+
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."
 msgstr "Penyedia menjawab {0}."
@@ -14908,6 +14923,12 @@ msgstr "Ini menutup setiap sesi terminal — di workspace ini maupun yang lain �
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Ini menutup setiap sesi terminal untuk organisasi Anda{runningCountSuffix} dan menjalankan daemon yang baru."
 
+msgid "This closes the selected workspaces and their terminals. The project's files and branches stay as they are."
+msgstr "Ini menutup workspace yang dipilih beserta terminalnya. File dan branch proyek tetap seperti semula."
+
+msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
+msgstr "Ini menutup workspace beserta terminalnya. File, branch, dan workspace lain dari proyek tetap seperti semula."
+
 msgid "This comment is no longer here"
 msgstr "Komentar ini sudah tidak ada"
 
@@ -15049,8 +15070,8 @@ msgstr "Ini menghapus host, aksesnya, dan workspace-nya. File di mesin itu tetap
 msgid "This removes the project from every reachable device."
 msgstr "Ini menghapus proyek dari setiap perangkat yang dapat dijangkau."
 
-msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
-msgstr "Ini menghapus worktree dari disk. Catatan workspace di cloud juga akan dihapus."
+msgid "This removes the worktree from disk and closes the workspace."
+msgstr "Ini menghapus worktree dari disk dan menutup workspace."
 
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "Ini mengganti label, perintah, argumen, pengaturan prompt dan resume, variabel environment, serta ikonnya dengan konfigurasi bawaan yang berlaku sekarang."
@@ -16495,6 +16516,9 @@ msgstr "Lokasi worktree diperbarui"
 msgid "Worktree missing"
 msgstr "Worktree hilang"
 
+msgid "Worktree on this device"
+msgstr "Worktree di perangkat ini"
+
 msgid "Worktree opened"
 msgstr "Worktree dibuka"
 
@@ -16503,6 +16527,9 @@ msgstr "Worktree tidak sinkron"
 
 msgid "Worktrees"
 msgstr "Worktree"
+
+msgid "Worktrees are removed from disk; workspaces on the project's checkout only close. Files in the checkout stay as they are."
+msgstr "Worktree dihapus dari disk; workspace di checkout proyek hanya ditutup. File di checkout tetap seperti semula."
 
 msgid "Worktrees with uncommitted changes are left on disk."
 msgstr "Worktree dengan perubahan yang belum di-commit tetap berada di disk."

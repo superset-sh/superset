@@ -1236,6 +1236,9 @@ msgstr "Bu sekmede hâlâ bir süreç çalışıyor"
 msgid "A process is still running in this terminal"
 msgstr "Bu terminalde hâlâ bir süreç çalışıyor"
 
+msgid "A pull request always gets its own worktree"
+msgstr "Bir pull request her zaman kendi worktree'sini alır"
+
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "Ajanları yönetmek için yeniden yapılmış bir sohbet yüzeyi: daha zengin araç çıktısı, daha akıcı yönlendirme, her şey daha hızlı."
 
@@ -3025,6 +3028,9 @@ msgstr "Denetleniyor…"
 
 msgid "Checklist"
 msgstr "Kontrol listesi"
+
+msgid "Checkout: {label}"
+msgstr "Checkout: {label}"
 
 msgid "Checkpoint"
 msgstr "Kontrol noktası"
@@ -7719,6 +7725,9 @@ msgstr "İtalik"
 msgid "Item"
 msgstr "Öğe"
 
+msgid "Its own branch and copy of the files"
+msgstr "Kendi dalı ve dosyaların kendi kopyası"
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Yeniden başlayana kadar çalışma alanları ve terminalleri kullanılamaz — Superset tepsi menüsünde Host hizmeti > Yeniden başlat yolunu kullanın."
 
@@ -8299,6 +8308,9 @@ msgstr "Yükleniyor..."
 msgid "Loading…"
 msgstr "Yükleniyor…"
 
+msgid "Local"
+msgstr "Yerel"
+
 msgid "Local Device"
 msgstr "Yerel cihaz"
 
@@ -8373,9 +8385,6 @@ msgstr "Macenta"
 
 msgid "Main"
 msgstr "Ana"
-
-msgid "Main workspace"
-msgstr "Ana çalışma alanı"
 
 msgid "Make all panes equal size"
 msgstr "Tüm bölmeleri eşit boyuta getir"
@@ -13156,6 +13165,9 @@ msgstr "Superset'e içe aktarabileceğiniz paylaşılan tema JSON dosyaları."
 msgid "Shared version"
 msgstr "Paylaşılan sürüm"
 
+msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
+msgstr "Projenin checkout'unu (dosyalar, git indeksi ve dal) diğer yerel çalışma alanlarıyla paylaşır"
+
 msgid "Sheet"
 msgstr "Sayfa"
 
@@ -14746,6 +14758,9 @@ msgstr "Aradığınız sayfa mevcut değil."
 msgid "The people behind Superset."
 msgstr "Superset'in arkasındaki insanlar."
 
+msgid "The project's checkout as it is: files and branch are shared"
+msgstr "Projenin checkout'u olduğu gibi: dosyalar ve dal paylaşılır"
+
 #. placeholder {0}: params?.status
 msgid "The provider answered {0}."
 msgstr "Sağlayıcı {0} yanıtı verdi."
@@ -14908,6 +14923,12 @@ msgstr "Bu işlem, bu çalışma alanındaki ve diğerlerindeki her terminal otu
 msgid "This closes every terminal session for your organization{runningCountSuffix} and starts a fresh daemon."
 msgstr "Bu işlem kuruluşunuzdaki her terminal oturumunu kapatır{runningCountSuffix} ve yeni bir daemon başlatır."
 
+msgid "This closes the selected workspaces and their terminals. The project's files and branches stay as they are."
+msgstr "Bu, seçili çalışma alanlarını ve terminallerini kapatır. Projenin dosyaları ve dalları olduğu gibi kalır."
+
+msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
+msgstr "Bu, çalışma alanını ve terminallerini kapatır. Projenin dosyaları, dalları ve diğer çalışma alanları olduğu gibi kalır."
+
 msgid "This comment is no longer here"
 msgstr "Bu yorum artık burada değil"
 
@@ -15049,8 +15070,8 @@ msgstr "Bu işlem host'u, erişimini ve çalışma alanlarını kaldırır. Maki
 msgid "This removes the project from every reachable device."
 msgstr "Bu, projeyi erişilebilir tüm cihazlardan kaldırır."
 
-msgid "This removes the worktree from disk. The cloud workspace record will also be removed."
-msgstr "Bu işlem worktree'yi diskten kaldırır. Bulut çalışma alanı kaydı da kaldırılır."
+msgid "This removes the worktree from disk and closes the workspace."
+msgstr "Bu, worktree'yi diskten kaldırır ve çalışma alanını kapatır."
 
 msgid "This replaces its label, command, arguments, prompt and resume settings, environment variables, and icon with the current bundled configuration."
 msgstr "Bu işlem; etiketini, komutunu, argümanlarını, istem ve sürdürme ayarlarını, ortam değişkenlerini ve simgesini birlikte gelen güncel yapılandırmayla değiştirir."
@@ -16495,6 +16516,9 @@ msgstr "Worktree konumu güncellendi"
 msgid "Worktree missing"
 msgstr "Worktree eksik"
 
+msgid "Worktree on this device"
+msgstr "Bu cihazdaki worktree"
+
 msgid "Worktree opened"
 msgstr "Worktree açıldı"
 
@@ -16503,6 +16527,9 @@ msgstr "Worktree eşitlenmemiş"
 
 msgid "Worktrees"
 msgstr "Worktree'ler"
+
+msgid "Worktrees are removed from disk; workspaces on the project's checkout only close. Files in the checkout stay as they are."
+msgstr "Worktree'ler diskten kaldırılır; projenin checkout'undaki çalışma alanları yalnızca kapanır. Checkout'taki dosyalar olduğu gibi kalır."
 
 msgid "Worktrees with uncommitted changes are left on disk."
 msgstr "Commit edilmemiş değişiklikleri olan worktree'ler diskte bırakılır."

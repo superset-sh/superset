@@ -20,7 +20,6 @@ export type ProjectImportOutcome =
 	| {
 			kind: "imported";
 			v2ProjectId: string;
-			mainWorkspaceId: string | null;
 			repoPath: string;
 	  }
 	| { kind: "needs-relocate"; v2ProjectId: string; message: string };
@@ -141,7 +140,6 @@ export async function importV1Project({
 			return {
 				kind: "imported",
 				v2ProjectId: targetCandidate.id,
-				mainWorkspaceId: result.mainWorkspaceId,
 				repoPath: result.repoPath,
 			};
 		} catch (err) {
@@ -170,7 +168,6 @@ export async function importV1Project({
 	return {
 		kind: "imported",
 		v2ProjectId: result.projectId,
-		mainWorkspaceId: result.mainWorkspaceId,
 		repoPath: result.repoPath,
 	};
 }

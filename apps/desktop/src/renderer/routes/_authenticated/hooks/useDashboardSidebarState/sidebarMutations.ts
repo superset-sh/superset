@@ -61,18 +61,20 @@ export function tombstoneSidebarWorkspaceRecord(
 }
 
 /**
- * Puts a project in the sidebar. A hidden row counts as absent: every path
- * that would add the project (setting it up on this device, opening one of
- * its workspaces, an agent creating a worktree in it) reveals it again, the
- * same way re-adding a removed project used to.
+ * Puts a project in the sidebar. By default a hidden row counts as absent:
+ * a deliberate user action on the project (setting it up on this device,
+ * opening one of its workspaces) reveals it again, the same way re-adding a
+ * removed project used to. Background placement passes `reveal: false`: a
+ * workspace created by the CLI or an agent must not undo an explicit hide.
  */
 export function ensureSidebarProjectRecord(
 	collections: Pick<AppCollections, "v2SidebarProjects">,
 	projectId: string,
+	{ reveal = true }: { reveal?: boolean } = {},
 ): void {
 	const existing = collections.v2SidebarProjects.get(projectId);
 	if (existing) {
-		if (existing.isHidden) {
+		if (existing.isHidden && reveal) {
 			collections.v2SidebarProjects.update(projectId, (draft) => {
 				draft.isHidden = false;
 			});

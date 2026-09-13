@@ -14,7 +14,12 @@ export interface HostWorkspaceRow {
 	hostId: string;
 	name: string;
 	branch: string;
-	type: "main" | "worktree" | "session";
+	/**
+	 * "local" shares the project's primary checkout; "worktree" owns its own;
+	 * "session" is project-less. Hosts before 1.29 serve the checkout row as
+	 * "main".
+	 */
+	type: "local" | "worktree" | "session" | "main";
 	createdByUserId: string | null;
 	taskId: string | null;
 	createdAt: Date;
@@ -64,7 +69,8 @@ export class Workspaces extends APIResource {
 	 * and/or run a one-off shell `command` in the worktree.
 	 *
 	 * The host service must be running and reachable via the relay tunnel.
-	 * Provide exactly one of `branch` or `pr`.
+	 * Use `checkout: "local"` without branch or PR to share the project checkout.
+	 * Otherwise provide a branch or PR for an isolated worktree.
 	 */
 	create(
 		params: WorkspaceCreateParams,
@@ -72,9 +78,13 @@ export class Workspaces extends APIResource {
 	): APIPromise<WorkspaceCreateResult> {
 		return this._client.hostMutation<WorkspaceCreateResult>(
 			params.hostId,
-			{ method: "workspaces.create", procedure: "workspaces.create" },
+			{
+				method: "workspaces.create",
+				procedure: params.checkout === "local" ? "workspaces.createLocal" : "workspaces.create",
+			},
 			{
 				projectId: params.projectId,
+				checkout: params.checkout,
 				name: params.name,
 				branch: params.branch,
 				pr: params.pr,
@@ -189,7 +199,14 @@ export interface WorkspaceCreateParams {
 	projectId: string;
 	/** Workspace name. */
 	name: string;
-	/** Git branch the workspace tracks. Required unless `pr` is set. */
+	/**
+	 * "worktree" (default) checks out `branch` in its own worktree. "local"
+	 * registers the workspace on the project's primary checkout — no clone,
+	 * worktree, or branch switch — so `branch`, `pr` and `baseBranch` must be
+	 * omitted.
+	 */
+	checkout?: "worktree" | "local";
+	/** Git branch the workspace tracks. Required unless `pr` or `checkout: "local"` is set. */
 	branch?: string;
 	/** Pull request number — server checks out the verified PR head and derives the branch. */
 	pr?: number;

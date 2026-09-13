@@ -37,8 +37,6 @@ export const workspaceProvider: CommandProvider = {
 
 		if (!context.workspace) return [quickCreate];
 		const workspace = context.workspace;
-		const isMain = workspace.workspaceType === "main";
-
 		const commands: Command[] = [
 			{
 				id: "workspace.new",
@@ -91,28 +89,24 @@ export const workspaceProvider: CommandProvider = {
 						workspaceId: workspace.id,
 						workspaceName: workspace.name,
 						projectId: workspace.projectId ?? "",
-						isMain,
 					}),
 			});
 		}
-
-		if (!isMain) {
-			commands.push({
-				id: `workspace.delete:${workspace.id}`,
-				title: msg({
-					message: "Delete workspace",
+		commands.push({
+			id: `workspace.delete:${workspace.id}`,
+			title: msg({
+				message: "Delete workspace",
+			}),
+			section: "workspace",
+			icon: Trash2Icon,
+			keywords: ["archive", "remove", "close"],
+			hotkeyId: "CLOSE_WORKSPACE",
+			run: () =>
+				useDeleteWorkspaceIntent.getState().request({
+					workspaceId: workspace.id,
+					workspaceName: workspace.name,
 				}),
-				section: "workspace",
-				icon: Trash2Icon,
-				keywords: ["archive", "remove", "close"],
-				hotkeyId: "CLOSE_WORKSPACE",
-				run: () =>
-					useDeleteWorkspaceIntent.getState().request({
-						workspaceId: workspace.id,
-						workspaceName: workspace.name,
-					}),
-			});
-		}
+		});
 
 		return commands;
 	},

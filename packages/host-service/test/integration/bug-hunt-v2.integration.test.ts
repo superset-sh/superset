@@ -5,6 +5,8 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { existsSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { projects, workspaces } from "../../src/db/schema";
 import { createTestHost, type TestHost } from "../helpers/createTestHost";
 import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
@@ -37,13 +39,11 @@ describe("bug-hunt-v2: workspaceCleanup.destroy phase ordering", () => {
 		repo.dispose();
 	});
 
-	test("destroy rejects a main workspace BEFORE running teardown or cloud-delete", async () => {
+	test("destroy of a workspace on the project checkout never runs teardown or touches the repo", async () => {
 		// We can't exercise the actual `teardown.sh` script in bun:test
-		// (the harness has no PTY). What we *can* verify here is the
-		// phase-0 main-workspace guard fires first, so a destructive cloud
-		// delete is never attempted on a main workspace even if teardown
-		// would otherwise be skipped. Real TEARDOWN_FAILED behavior would
-		// need a PTY-enabled harness to cover.
+		// (the harness has no PTY). What we *can* verify here is that a
+		// workspace whose path IS the project repo takes the record-only
+		// path: no teardown, no cloud delete, and the repo stays on disk.
 		const workspaceId = randomUUID();
 		host = await createTestHost({
 			apiOverrides: {
@@ -64,10 +64,15 @@ describe("bug-hunt-v2: workspaceCleanup.destroy phase ordering", () => {
 				branch: "main",
 			})
 			.run();
+		writeFileSync(join(repo.repoPath, "dirty.txt"), "uncommitted");
 
-		await expect(
-			host.trpc.workspaceCleanup.destroy.mutate({ workspaceId }),
-		).rejects.toThrow(/Main workspaces cannot be deleted/i);
+		const result = await host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId,
+		});
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(false);
+		expect(existsSync(join(repo.repoPath, ".git"))).toBe(true);
+		expect(existsSync(join(repo.repoPath, "dirty.txt"))).toBe(true);
 
 		expect(
 			host.apiCalls.some((c) => c.path === "v2Workspace.delete.mutate"),

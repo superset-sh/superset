@@ -424,11 +424,17 @@ export function useDashboardSidebarState() {
 	);
 
 	const ensureWorkspaceInSidebar = useCallback(
-		(workspaceId: string, projectId: string | null) => {
+		(
+			workspaceId: string,
+			projectId: string | null,
+			{ revealProject = true }: { revealProject?: boolean } = {},
+		) => {
 			// Sessions (null projectId) have no project placement row — the
 			// Sessions section renders unconditionally.
 			if (projectId !== null) {
-				ensureSidebarProjectRecord(collections, projectId);
+				ensureSidebarProjectRecord(collections, projectId, {
+					reveal: revealProject,
+				});
 			}
 			ensureSidebarWorkspaceRecord(
 				collections,
