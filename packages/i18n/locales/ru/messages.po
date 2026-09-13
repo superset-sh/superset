@@ -120,6 +120,11 @@ msgstr "{0, plural, one {# комментарий} few {# комментария
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {# коммит} few {# коммита} many {# коммитов} other {# коммита}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, one {# завершён} few {# завершены} many {# завершено} other {# завершено}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {# существующая тема обновлена} few {# существующие темы обновлено} many {# существующих тем обновлено} other {# существующей темы обновлено}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} активных"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName} (это устройство)"
 
@@ -877,6 +885,9 @@ msgstr "{stars} звёзд · {perDay}/день на этой неделе · {p
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# субагент выполняется} few {# субагента выполняются} many {# субагентов выполняются} other {# субагента выполняются}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# субагент} few {# субагента} many {# субагентов} other {# субагента}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Создана # рабочая область, {failCount} с ошибкой} few {Создано # рабочие области, {failCount} с ошибкой} many {Создано # рабочих областей, {failCount} с ошибкой} other {Создано # рабочей области, {failCount} с ошибкой}}"
@@ -10652,6 +10663,9 @@ msgstr "Родительская папка"
 msgid "Parent directory on {hostName}"
 msgstr "Родительская папка на {hostName}"
 
+msgid "Parent unknown"
+msgstr "Родительский агент неизвестен"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "Отчасти хроника, отчасти ставка. Первые два пункта уже происходят. Остальное сформулировано достаточно конкретно, чтобы в нём можно было ошибиться."
 
@@ -13289,6 +13303,9 @@ msgstr "Показывать статус и отправлять уведомл
 msgid "Show translation"
 msgstr "Показать перевод"
 
+msgid "Show tree in sidebar"
+msgstr "Показывать дерево в боковой панели"
+
 msgid "Show usage tab on sidebar"
 msgstr "Показывать вкладку использования на боковой панели"
 
@@ -13903,6 +13920,9 @@ msgstr "Остановить команду запуска рабочей обл
 
 msgid "stopped"
 msgstr "остановлена"
+
+msgid "Stopped"
+msgstr "Остановлен"
 
 msgid "Strikethrough"
 msgstr "Зачёркнутый"

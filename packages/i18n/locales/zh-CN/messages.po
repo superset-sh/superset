@@ -120,6 +120,11 @@ msgstr "{0, plural, one {#条评论} other {#条评论}}"
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {#个提交} other {#个提交}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, other {已结束 # 个}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {已更新#个现有主题} other {已更新#个现有主题}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}：{statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} 个运行中"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName}（此设备）"
 
@@ -877,6 +885,9 @@ msgstr "{stars}个星标 · 本周{perDay}/天 · 峰值{peakPerDay}/天"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 个子智能体运行中}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {# 个子智能体}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {已创建#个工作区，{failCount}个失败} other {已创建#个工作区，{failCount}个失败}}"
@@ -10652,6 +10663,9 @@ msgstr "父目录"
 msgid "Parent directory on {hostName}"
 msgstr "{hostName}上的父目录"
 
+msgid "Parent unknown"
+msgstr "父代理未知"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "一半是记录，一半是下注。前两条已经在发生。其余的写得足够具体，足以被证明是错的。"
 
@@ -13289,6 +13303,9 @@ msgstr "为此智能体显示状态并发送通知。"
 msgid "Show translation"
 msgstr "显示译文"
 
+msgid "Show tree in sidebar"
+msgstr "在侧边栏显示树"
+
 msgid "Show usage tab on sidebar"
 msgstr "在侧边栏显示用量选项卡"
 
@@ -13902,6 +13919,9 @@ msgid "Stop workspace run command"
 msgstr "停止工作区运行命令"
 
 msgid "stopped"
+msgstr "已停止"
+
+msgid "Stopped"
 msgstr "已停止"
 
 msgid "Strikethrough"

@@ -151,6 +151,9 @@ export const workspaceLocalStateSchema = z.object({
 		// "Remove PR link" for cloud-sourced chips: that PR stays hidden, a
 		// different PR still shows.
 		suppressedPullRequestUrl: z.string().nullable().default(null),
+		// "Show tree in sidebar" on the agents chip: the workspace's agent tree
+		// stays open as rows under the row.
+		agentTreeShown: z.boolean().default(false),
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	viewedFiles: z.array(z.string()).default([]),
@@ -199,6 +202,7 @@ const SIDEBAR_STATE_DEFAULTS = {
 	isHidden: false,
 	pinnedAt: null,
 	suppressedPullRequestUrl: null,
+	agentTreeShown: false,
 } as const;
 
 const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {

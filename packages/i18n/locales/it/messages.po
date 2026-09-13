@@ -120,6 +120,11 @@ msgstr "{0, plural, one {# commento} other {# commenti}}"
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {# commit} other {# commit}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, one {# terminato} other {# terminati}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {# tema esistente aggiornato} other {# temi esistenti aggiornati}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} attivi"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName} (questo dispositivo)"
 
@@ -877,6 +885,9 @@ msgstr "{stars} star · {perDay}/giorno questa settimana · {peakPerDay}/giorno 
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# sottoagente in esecuzione} other {# sottoagenti in esecuzione}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# sottoagente} other {# sottoagenti}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Creato # workspace, {failCount} non riusciti} other {Creati # workspace, {failCount} non riusciti}}"
@@ -10652,6 +10663,9 @@ msgstr "Directory padre"
 msgid "Parent directory on {hostName}"
 msgstr "Directory padre su {hostName}"
 
+msgid "Parent unknown"
+msgstr "Genitore sconosciuto"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "In parte cronaca, in parte scommessa. Le prime due voci stanno già accadendo. Il resto è formulato in modo abbastanza concreto da poter risultare sbagliato."
 
@@ -13289,6 +13303,9 @@ msgstr "Mostra lo stato e invia notifiche per questo agente."
 msgid "Show translation"
 msgstr "Mostra la traduzione"
 
+msgid "Show tree in sidebar"
+msgstr "Mostra albero nella barra laterale"
+
 msgid "Show usage tab on sidebar"
 msgstr "Mostra la scheda di utilizzo nella barra laterale"
 
@@ -13903,6 +13920,9 @@ msgstr "Arresta il comando di esecuzione del workspace"
 
 msgid "stopped"
 msgstr "arrestato"
+
+msgid "Stopped"
+msgstr "Interrotto"
 
 msgid "Strikethrough"
 msgstr "Barrato"

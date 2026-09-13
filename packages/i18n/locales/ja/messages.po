@@ -120,6 +120,11 @@ msgstr "{0, plural, one {#件のコメント} other {#件のコメント}}"
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {#件のコミット} other {#件のコミット}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, other {終了 # 件}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {既存のテーマを#件更新しました} other {既存のテーマを#件更新しました}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} 実行中"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName}（このデバイス）"
 
@@ -877,6 +885,9 @@ msgstr "{stars}スター · 今週{perDay}/日 · ピーク{peakPerDay}/日"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 件のサブエージェントが実行中}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {サブエージェント # 件}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {#件のワークスペースを作成、{failCount}件失敗} other {#件のワークスペースを作成、{failCount}件失敗}}"
@@ -10652,6 +10663,9 @@ msgstr "親ディレクトリ"
 msgid "Parent directory on {hostName}"
 msgstr "{hostName}上の親ディレクトリ"
 
+msgid "Parent unknown"
+msgstr "親エージェント不明"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "半分は記録、半分は賭けです。最初の2項目はすでに起きています。残りは、外れたと判定できる程度に具体的に書いてあります。"
 
@@ -13289,6 +13303,9 @@ msgstr "このエージェントのステータス表示と通知を有効にし
 msgid "Show translation"
 msgstr "翻訳を表示"
 
+msgid "Show tree in sidebar"
+msgstr "サイドバーにツリーを表示"
+
 msgid "Show usage tab on sidebar"
 msgstr "サイドバーに使用状況タブを表示"
 
@@ -13902,6 +13919,9 @@ msgid "Stop workspace run command"
 msgstr "ワークスペースの実行コマンドを停止"
 
 msgid "stopped"
+msgstr "停止"
+
+msgid "Stopped"
 msgstr "停止"
 
 msgid "Strikethrough"

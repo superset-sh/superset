@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { i18n, initI18n } from "../index";
 import {
+	formatCompactDuration,
 	formatCompactNumber,
 	formatCompactRelativeTime,
 	formatCurrency,
@@ -92,5 +93,22 @@ describe("formatRelativeTime", () => {
 		} finally {
 			i18n.activate("en");
 		}
+	});
+});
+
+describe("formatCompactDuration", () => {
+	test("picks the largest whole unit and floors", () => {
+		expect(formatCompactDuration(42_000, "en")).toBe("42s");
+		expect(formatCompactDuration(70_000, "en")).toBe("1m");
+		expect(formatCompactDuration(2 * 3_600_000 + 5, "en")).toBe("2h");
+	});
+
+	test("never goes below one second or negative", () => {
+		expect(formatCompactDuration(0, "en")).toBe("1s");
+		expect(formatCompactDuration(-5_000, "en")).toBe("1s");
+	});
+
+	test("follows the locale", () => {
+		expect(formatCompactDuration(70_000, "ja")).toBe("1分");
 	});
 });

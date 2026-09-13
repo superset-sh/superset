@@ -120,6 +120,11 @@ msgstr "{0, plural, one {# opmerking} other {# opmerkingen}}"
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {# commit} other {# commits}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, one {# beëindigd} other {# beëindigd}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {# bestaand thema bijgewerkt} other {# bestaande thema's bijgewerkt}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} actief"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName} (dit apparaat)"
 
@@ -877,6 +885,9 @@ msgstr "{stars} sterren · {perDay}/dag deze week · {peakPerDay}/dag op de piek
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent actief} other {# subagents actief}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# subagent} other {# subagents}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# werkruimte aangemaakt, {failCount} mislukt} other {# werkruimtes aangemaakt, {failCount} mislukt}}"
@@ -10652,6 +10663,9 @@ msgstr "Bovenliggende map"
 msgid "Parent directory on {hostName}"
 msgstr "Bovenliggende map op {hostName}"
 
+msgid "Parent unknown"
+msgstr "Bovenliggende agent onbekend"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "Deels verslag, deels weddenschap. De eerste twee punten gebeuren al. De rest staat concreet genoeg om ongelijk over te krijgen."
 
@@ -13289,6 +13303,9 @@ msgstr "Status tonen en meldingen sturen voor deze agent."
 msgid "Show translation"
 msgstr "Vertaling tonen"
 
+msgid "Show tree in sidebar"
+msgstr "Boom in zijbalk tonen"
+
 msgid "Show usage tab on sidebar"
 msgstr "Gebruikstabblad tonen in zijbalk"
 
@@ -13903,6 +13920,9 @@ msgstr "Run-commando van werkruimte stoppen"
 
 msgid "stopped"
 msgstr "gestopt"
+
+msgid "Stopped"
+msgstr "Gestopt"
 
 msgid "Strikethrough"
 msgstr "Doorhalen"

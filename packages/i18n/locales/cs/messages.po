@@ -120,6 +120,11 @@ msgstr "{0, plural, one {# komentář} few {# komentáře} many {# komentáře} 
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {# commit} few {# commity} many {# commitu} other {# commitů}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, one {# ukončený} few {# ukončené} many {# ukončeného} other {# ukončených}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {# existující motiv aktualizován} few {# existující motivy aktualizovány} many {# existujícího motivu aktualizováno} other {# existujících motivů aktualizováno}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} aktivní"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName} (toto zařízení)"
 
@@ -877,6 +885,9 @@ msgstr "{stars} hvězd · {perDay}/den tento týden · {peakPerDay}/den ve špi�
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent běží} few {# subagenti běží} many {# subagenta běží} other {# subagentů běží}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# subagent} few {# subagenti} many {# subagenta} other {# subagentů}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Vytvořen # pracovní prostor, {failCount} selhalo} few {Vytvořeny # pracovní prostory, {failCount} selhalo} many {Vytvořeno # pracovního prostoru, {failCount} selhalo} other {Vytvořeno # pracovních prostorů, {failCount} selhalo}}"
@@ -10652,6 +10663,9 @@ msgstr "Nadřazený adresář"
 msgid "Parent directory on {hostName}"
 msgstr "Nadřazený adresář na {hostName}"
 
+msgid "Parent unknown"
+msgstr "Nadřazený agent neznámý"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "Zčásti záznam, zčásti sázka. První dvě položky se už dějí. Zbytek je popsaný dost konkrétně na to, abychom se v něm mohli mýlit."
 
@@ -13289,6 +13303,9 @@ msgstr "Zobrazovat stav a posílat oznámení pro tohoto agenta."
 msgid "Show translation"
 msgstr "Zobrazit překlad"
 
+msgid "Show tree in sidebar"
+msgstr "Zobrazit strom v postranním panelu"
+
 msgid "Show usage tab on sidebar"
 msgstr "Zobrazit kartu využití v postranním panelu"
 
@@ -13903,6 +13920,9 @@ msgstr "Zastavit spouštěcí příkaz pracovního prostoru"
 
 msgid "stopped"
 msgstr "zastaveno"
+
+msgid "Stopped"
+msgstr "Zastaveno"
 
 msgid "Strikethrough"
 msgstr "Přeškrtnuté"

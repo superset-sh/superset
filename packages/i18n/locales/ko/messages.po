@@ -120,6 +120,11 @@ msgstr "{0, plural, one {코멘트 #개} other {코멘트 #개}}"
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {커밋 #개} other {커밋 #개}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, other {종료 #개}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {기존 테마 #개가 업데이트되었습니다} other {기존 테마 #개가 업데이트되었습니다}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} 실행 중"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName} (이 기기)"
 
@@ -877,6 +885,9 @@ msgstr "스타 {stars}개 · 이번 주 {perDay}/일 · 최고 {peakPerDay}/일"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {서브 에이전트 #개 실행 중}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, other {서브 에이전트 #개}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {워크스페이스 #개를 만들었고 {failCount}개는 실패했습니다} other {워크스페이스 #개를 만들었고 {failCount}개는 실패했습니다}}"
@@ -10652,6 +10663,9 @@ msgstr "상위 디렉터리"
 msgid "Parent directory on {hostName}"
 msgstr "{hostName}의 상위 디렉터리"
 
+msgid "Parent unknown"
+msgstr "상위 에이전트 알 수 없음"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "일부는 기록이고 일부는 베팅입니다. 앞의 두 항목은 이미 일어나고 있습니다. 나머지는 틀릴 수 있을 만큼 구체적으로 적었습니다."
 
@@ -13289,6 +13303,9 @@ msgstr "이 에이전트의 상태를 표시하고 알림을 보냅니다."
 msgid "Show translation"
 msgstr "번역 보기"
 
+msgid "Show tree in sidebar"
+msgstr "사이드바에 트리 표시"
+
 msgid "Show usage tab on sidebar"
 msgstr "사이드바에 사용량 탭 표시"
 
@@ -13902,6 +13919,9 @@ msgid "Stop workspace run command"
 msgstr "워크스페이스 실행 명령 중지"
 
 msgid "stopped"
+msgstr "중지됨"
+
+msgid "Stopped"
 msgstr "중지됨"
 
 msgid "Strikethrough"

@@ -120,6 +120,11 @@ msgstr "{0, plural, one {# komentarz} few {# komentarze} many {# komentarzy} oth
 msgid "{0, plural, one {# Commit} other {# Commits}}"
 msgstr "{0, plural, one {# commit} few {# commity} many {# commitów} other {# commita}}"
 
+#. placeholder {0}: endedSubagents.length
+#. placeholder {0}: tree.ended.length
+msgid "{0, plural, one {# ended} other {# ended}}"
+msgstr "{0, plural, one {# zakończony} few {# zakończone} many {# zakończonych} other {# zakończonego}}"
+
 #. placeholder {0}: summary.updated
 msgid "{0, plural, one {# existing theme updated} other {# existing themes updated}}"
 msgstr "{0, plural, one {Zaktualizowano # istniejący motyw} few {Zaktualizowano # istniejące motywy} many {Zaktualizowano # istniejących motywów} other {Zaktualizowano # istniejącego motywu}}"
@@ -737,6 +742,9 @@ msgstr "{level} · {gate} · {statusLabel}"
 msgid "{level} {gate}: {statusLabel}"
 msgstr "{level} {gate}: {statusLabel}"
 
+msgid "{liveCount} live"
+msgstr "{liveCount} aktywne"
+
 msgid "{localHostName} (this device)"
 msgstr "{localHostName} (to urządzenie)"
 
@@ -877,6 +885,9 @@ msgstr "{stars} gwiazdek · {perDay}/dzień w tym tygodniu · {peakPerDay}/dzie�
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent działa} few {# subagenty działają} many {# subagentów działa} other {# subagenta działa}}"
+
+msgid "{subagentCount, plural, one {# subagent} other {# subagents}}"
+msgstr "{subagentCount, plural, one {# subagent} few {# subagenty} many {# subagentów} other {# subagenta}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Utworzono # obszar roboczy, {failCount} nieudanych} few {Utworzono # obszary robocze, {failCount} nieudanych} many {Utworzono # obszarów roboczych, {failCount} nieudanych} other {Utworzono # obszaru roboczego, {failCount} nieudanych}}"
@@ -10652,6 +10663,9 @@ msgstr "Katalog nadrzędny"
 msgid "Parent directory on {hostName}"
 msgstr "Katalog nadrzędny na {hostName}"
 
+msgid "Parent unknown"
+msgstr "Nieznany agent nadrzędny"
+
 msgid "Part record, part bet. The first two entries are already happening. The rest is stated concretely enough to be wrong about."
 msgstr "Po części zapis, po części zakład. Dwa pierwsze punkty już się dzieją. Reszta jest opisana na tyle konkretnie, że da się w niej pomylić."
 
@@ -13289,6 +13303,9 @@ msgstr "Pokazuj status i wysyłaj powiadomienia dla tego agenta."
 msgid "Show translation"
 msgstr "Pokaż tłumaczenie"
 
+msgid "Show tree in sidebar"
+msgstr "Pokaż drzewo na pasku bocznym"
+
 msgid "Show usage tab on sidebar"
 msgstr "Pokaż kartę użycia na pasku bocznym"
 
@@ -13903,6 +13920,9 @@ msgstr "Zatrzymaj polecenie uruchamiania obszaru roboczego"
 
 msgid "stopped"
 msgstr "zatrzymana"
+
+msgid "Stopped"
+msgstr "Zatrzymano"
 
 msgid "Strikethrough"
 msgstr "Przekreślenie"
