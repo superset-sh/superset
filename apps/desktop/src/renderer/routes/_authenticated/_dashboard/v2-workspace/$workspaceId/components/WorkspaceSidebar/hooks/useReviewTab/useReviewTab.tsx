@@ -76,8 +76,8 @@ export function useReviewTab({
 	const comments = useMemo<NormalizedComment[]>(() => {
 		const data = threadsQuery.data;
 		if (!data) return [];
-		return normalizeThreadsToComments(data);
-	}, [threadsQuery.data]);
+		return normalizeThreadsToComments(data, pr?.url);
+	}, [threadsQuery.data, pr?.url]);
 
 	const openReviewCount = comments.filter(
 		(c) => c.kind === "review" && !c.isResolved,

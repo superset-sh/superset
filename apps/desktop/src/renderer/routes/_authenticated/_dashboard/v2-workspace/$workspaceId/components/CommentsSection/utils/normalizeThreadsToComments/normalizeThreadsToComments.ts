@@ -7,27 +7,31 @@ type V2ThreadsData =
 
 export function normalizeThreadsToComments(
 	data: V2ThreadsData,
+	prUrl?: string,
 ): NormalizedComment[] {
 	const comments: NormalizedComment[] = [];
 
 	for (const thread of data.reviewThreads) {
-		const first = thread.comments[0];
-		if (!first) continue;
-		comments.push({
-			id: first.id,
-			authorLogin: first.author.login,
-			avatarUrl: first.author.avatarUrl || undefined,
-			body: first.body,
-			createdAt: first.createdAt,
-			url: undefined,
-			kind: "review",
-			path: thread.path || undefined,
-			line: thread.line ?? undefined,
-			diffSide: thread.diffSide,
-			isResolved: thread.isResolved,
-			isOutdated: thread.isOutdated,
-			threadId: thread.id,
-		});
+		for (const comment of thread.comments) {
+			comments.push({
+				id: comment.id,
+				authorLogin: comment.author.login,
+				avatarUrl: comment.author.avatarUrl || undefined,
+				body: comment.body,
+				createdAt: comment.createdAt,
+				url:
+					prUrl && comment.databaseId
+						? `${prUrl}#discussion_r${comment.databaseId}`
+						: undefined,
+				kind: "review",
+				path: thread.path || undefined,
+				line: thread.line ?? undefined,
+				diffSide: thread.diffSide,
+				isResolved: thread.isResolved,
+				isOutdated: thread.isOutdated,
+				threadId: thread.id,
+			});
+		}
 	}
 
 	for (const c of data.conversationComments) {

@@ -40,8 +40,11 @@ export function PullRequestPane({
 		},
 	);
 	const comments = useMemo(
-		() => (threads.data ? normalizeThreadsToComments(threads.data) : []),
-		[threads.data],
+		() =>
+			threads.data
+				? normalizeThreadsToComments(threads.data, linkedPR.data?.url)
+				: [],
+		[threads.data, linkedPR.data?.url],
 	);
 	const onOpenInDiff = useReviewCommentNavigation(workspace.id, onOpenDiff);
 	const detail = usePullRequestDetail({

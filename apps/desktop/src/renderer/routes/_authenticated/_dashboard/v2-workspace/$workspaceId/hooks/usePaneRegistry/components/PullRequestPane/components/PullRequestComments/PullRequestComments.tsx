@@ -44,11 +44,11 @@ export function PullRequestComments({
 							{...props}
 						/>
 					))
-				) : (
+				) : comments.length === 0 ? (
 					<p className="py-8 text-center text-sm text-muted-foreground">
 						<Trans>No comments yet.</Trans>
 					</p>
-				)}
+				) : null}
 				{resolved.length ? (
 					<details className="group">
 						<summary className="cursor-pointer py-2 text-xs font-medium text-muted-foreground">
