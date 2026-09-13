@@ -44,6 +44,15 @@ export interface HostWorkspaceRow extends HostShapedWorkspace {
 	/** Non-null = archived tombstone (only served on `includeArchived`). */
 	archivedAt?: number | null;
 	archiveReason?: "merged" | "deleted" | null;
+	/**
+	 * Non-null (epoch ms) = shelved — the UI's "archived", a live workspace
+	 * the user moved off every active surface. Unrelated to `archivedAt`,
+	 * which is a tombstone. Optional for the same reason as `tags`: a host
+	 * predating the column omits it, which reads as live.
+	 */
+	shelvedAt?: number | null;
+	/** Why the host cannot purge this shelved workspace yet; null = nothing blocking. */
+	purgeBlockedReason?: string | null;
 }
 
 /** Merged item returned by useHostWorkspaces. */
@@ -56,6 +65,10 @@ export interface HostWorkspaceItem extends HostShapedWorkspace {
 	/** Non-null = archived tombstone (only present on `includeArchived`). */
 	archivedAt?: number | null;
 	archiveReason?: "merged" | "deleted" | null;
+	/** Non-null = shelved (the UI's "archived") — see HostWorkspaceRow. */
+	shelvedAt?: number | null;
+	/** Why the host cannot purge this shelved workspace yet. */
+	purgeBlockedReason?: string | null;
 }
 
 export interface HostWorkspacesQueryTarget {
@@ -271,6 +284,16 @@ export function applyWorkspaceChangedEvent(
 		// A host broadcasting created/updated just acted on the worktree;
 		// keep a known value over assuming.
 		worktreeExists: existing?.worktreeExists ?? true,
+		// An older host's events omit shelf state; keep the row's last known
+		// values then, so a routine update never reads as an unshelve.
+		shelvedAt:
+			snapshot.shelvedAt !== undefined
+				? snapshot.shelvedAt
+				: (existing?.shelvedAt ?? null),
+		purgeBlockedReason:
+			snapshot.purgeBlockedReason !== undefined
+				? snapshot.purgeBlockedReason
+				: (existing?.purgeBlockedReason ?? null),
 	};
 	if (!rows) return [nextRow];
 	return existing

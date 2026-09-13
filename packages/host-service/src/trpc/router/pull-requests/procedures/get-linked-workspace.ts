@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { pullRequests, workspaces } from "../../../../db/schema";
 import { protectedProcedure } from "../../../index";
@@ -28,20 +28,30 @@ export const getLinkedWorkspace = protectedProcedure
 				),
 			)
 			.get();
-		if (!pr) return { workspaceId: null };
+		if (!pr) return { workspaceId: null, isShelved: false };
 
 		// workspaces.pullRequestId has no unique constraint — more than one
 		// non-archived workspace can link to the same PR (two worktrees
 		// checking out the same branch, a stale duplicate). Break the tie
-		// deterministically by picking the most recently active one instead
-		// of an arbitrary DB row order.
+		// deterministically by preferring a workspace the user can actually
+		// see — shelving one is what makes it stale — and then by the most
+		// recently active, instead of an arbitrary DB row order.
 		const workspace = ctx.db
-			.select({ id: workspaces.id })
+			.select({ id: workspaces.id, shelvedAt: workspaces.shelvedAt })
 			.from(workspaces)
 			.where(
 				and(eq(workspaces.pullRequestId, pr.id), isNull(workspaces.archivedAt)),
 			)
-			.orderBy(desc(workspaces.updatedAt), desc(workspaces.createdAt))
+			.orderBy(
+				sql`${workspaces.shelvedAt} is not null`,
+				desc(workspaces.updatedAt),
+				desc(workspaces.createdAt),
+			)
 			.get();
-		return { workspaceId: workspace?.id ?? null };
+		// A query never restores what it finds: the caller decides whether
+		// sending into a shelved workspace is worth unshelving it.
+		return {
+			workspaceId: workspace?.id ?? null,
+			isShelved: workspace?.shelvedAt != null,
+		};
 	});

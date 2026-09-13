@@ -17,6 +17,11 @@ import {
 } from "../shared/local-project";
 import type { BranchRow } from "../shared/types";
 
+// `hasShelvedWorkspace` is this procedure's own field, not part of the shared
+// BranchRow shape: only the picker needs to tell a hidden-but-restorable
+// workspace apart from a visible one.
+type SearchedBranchRow = BranchRow & { hasShelvedWorkspace: boolean };
+
 type BranchAccum = {
 	name: string;
 	lastCommitDate: number;
@@ -34,7 +39,7 @@ export const searchBranches = protectedProcedure
 		if (!localProject) {
 			return {
 				defaultBranch: null as string | null,
-				items: [] as BranchRow[],
+				items: [] as SearchedBranchRow[],
 				nextCursor: null as string | null,
 			};
 		}
@@ -56,23 +61,29 @@ export const searchBranches = protectedProcedure
 		const { worktreeMap, checkedOutBranches } = await listWorktreeBranches(git);
 		const recencyMap = await getRecentBranchOrder(git, 30);
 
-		// Branches that already have a workspace row on this host. The
-		// Worktree tab uses this to distinguish Open (has row) from
-		// Create (orphan worktree — worktree on disk, no workspace row).
-		const workspaceBranches = new Set<string>(
-			ctx.db
-				.select()
-				.from(workspaces)
-				.where(
-					and(
-						eq(workspaces.projectId, input.projectId),
-						isNull(workspaces.archivedAt),
-					),
-				)
-				.all()
-				.map((workspace) => workspace.branch)
-				.filter((branch): branch is string => Boolean(branch)),
-		);
+		// Branches that already have a workspace row on this host, mapped to
+		// whether *every* such row is shelved. The Worktree tab uses the
+		// presence to distinguish Open (has row) from Create (orphan worktree
+		// — worktree on disk, no workspace row), and the shelved flag to
+		// offer Restore instead of Open for a row `workspace.list` hides.
+		const workspaceBranches = new Map<string, boolean>();
+		for (const workspace of ctx.db
+			.select()
+			.from(workspaces)
+			.where(
+				and(
+					eq(workspaces.projectId, input.projectId),
+					isNull(workspaces.archivedAt),
+				),
+			)
+			.all()) {
+			if (!workspace.branch) continue;
+			const allShelved = workspaceBranches.get(workspace.branch) ?? true;
+			workspaceBranches.set(
+				workspace.branch,
+				allShelved && workspace.shelvedAt != null,
+			);
+		}
 
 		const branchMap = new Map<string, BranchAccum>();
 		try {
@@ -160,7 +171,7 @@ export const searchBranches = protectedProcedure
 		});
 
 		const page = branches.slice(offset, offset + limit);
-		const items: BranchRow[] = page.map((branch) => ({
+		const items: SearchedBranchRow[] = page.map((branch) => ({
 			name: branch.name,
 			lastCommitDate: branch.lastCommitDate,
 			isLocal: branch.isLocal,
@@ -168,6 +179,7 @@ export const searchBranches = protectedProcedure
 			recency: recencyMap.get(branch.name) ?? null,
 			worktreePath: worktreeMap.get(branch.name) ?? null,
 			hasWorkspace: workspaceBranches.has(branch.name),
+			hasShelvedWorkspace: workspaceBranches.get(branch.name) === true,
 			isCheckedOut: checkedOutBranches.has(branch.name),
 		}));
 

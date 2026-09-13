@@ -861,6 +861,9 @@ msgstr "{selectedCount} selected"
 msgid "{share}% human"
 msgstr "{share}% human"
 
+msgid "{SHELF_RETENTION_DAYS, plural, one {# day} other {# days}}"
+msgstr "{SHELF_RETENTION_DAYS, plural, one {# day} other {# days}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown} of {total}"
 
@@ -2074,8 +2077,23 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Archive"
 
+msgid "Archive · deletes the workspace and its branch in {SHELF_RETENTION_DAYS, plural, one {# day} other {# days}} unless restored"
+msgstr "Archive · deletes the workspace and its branch in {SHELF_RETENTION_DAYS, plural, one {# day} other {# days}} unless restored"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "Archive · unavailable while this workspace's host is offline"
+
+msgid "Archive workspace"
+msgstr "Archive workspace"
+
+msgid "archived"
+msgstr "archived"
+
 msgid "Archived"
 msgstr "Archived"
+
+msgid "Archived \"{workspaceName}\" · deletes in {retention}"
+msgstr "Archived \"{workspaceName}\" · deletes in {retention}"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Are you sure you want to delete this file? This action cannot be undone."
@@ -9172,6 +9190,9 @@ msgstr "No agents yet."
 msgid "No API keys yet."
 msgstr "No API keys yet."
 
+msgid "No archived workspaces"
+msgstr "No archived workspaces"
+
 msgid "No assignee"
 msgstr "No assignee"
 
@@ -12105,6 +12126,13 @@ msgstr "Restarting…"
 msgid "Restore"
 msgstr "Restore"
 
+#. placeholder {0}: formatRelativeTime( Math.max( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, Date.now(), ), )
+msgid "Restore · deletes {0}"
+msgstr "Restore · deletes {0}"
+
+msgid "Restore · deletion paused"
+msgstr "Restore · deletion paused"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "Restore {0} to defaults?"
@@ -12124,8 +12152,18 @@ msgstr "restore the agent defaults"
 msgid "Restore this version?"
 msgstr "Restore this version?"
 
+msgid "Restore workspace"
+msgstr "Restore workspace"
+
 msgid "Restored"
 msgstr "Restored"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "Restored \"{0}\" from archive"
+
+msgid "Restored \"{workspaceName}\" from archive"
+msgstr "Restored \"{workspaceName}\" from archive"
 
 msgid "Restoring your session"
 msgstr "Restoring your session"
@@ -13186,6 +13224,9 @@ msgstr "Show a confirmation dialog when quitting the app"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Show a Usage button in the home sidebar, under Pull requests"
 
+msgid "Show active workspaces"
+msgstr "Show active workspaces"
+
 msgid "Show all {count}"
 msgstr "Show all {count}"
 
@@ -13197,6 +13238,9 @@ msgstr "Show all comments"
 
 msgid "Show all lines"
 msgstr "Show all lines"
+
+msgid "Show archived workspaces"
+msgstr "Show archived workspaces"
 
 msgid "Show checks"
 msgstr "Show checks"
@@ -15040,6 +15084,9 @@ msgstr "This pull request is no longer available."
 msgid "This pull request link is invalid."
 msgstr "This pull request link is invalid."
 
+msgid "This pull request's workspace is archived — sending restores it."
+msgstr "This pull request's workspace is archived — sending restores it."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "This removes every selected worktree from disk and deletes its workspace record."
 
@@ -15145,6 +15192,19 @@ msgstr "This will unstage and revert all staged changes. Staged new files will b
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
+
+#. placeholder {0}: formatRelativeTime(deleteAt)
+msgid "This workspace is archived · deletes {0}"
+msgstr "This workspace is archived · deletes {0}"
+
+msgid "This workspace is archived · deletes soon"
+msgstr "This workspace is archived · deletes soon"
+
+msgid "This workspace is archived · deletion paused: couldn't verify the worktree"
+msgstr "This workspace is archived · deletion paused: couldn't verify the worktree"
+
+msgid "This workspace is archived · deletion paused: uncommitted changes"
+msgstr "This workspace is archived · deletion paused: uncommitted changes"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "This workspace may have been removed, or you no longer have access to it."

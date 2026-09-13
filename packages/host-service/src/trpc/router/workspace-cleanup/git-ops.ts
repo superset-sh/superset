@@ -13,6 +13,7 @@ import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
 	type GitTaskEnv,
 	gitDeleteBranchTask,
+	gitPurgeStateTask,
 	gitWorktreeRemoveTask,
 	gitWorktreeStateTask,
 } from "../../../workers/tasks/git";
@@ -54,6 +55,17 @@ export const cleanupGitOps = {
 		return getHostWorkerPool().run(gitWorktreeStateTask, input, {
 			timeoutMs: 15_000,
 			signal,
+		});
+	},
+
+	readPurgeState(input: {
+		path: string;
+		ref: string;
+		checkStatus: boolean;
+		gitEnv: GitTaskEnv;
+	}): Promise<{ hasChanges: boolean; hasUnpushedCommits: boolean }> {
+		return getHostWorkerPool().run(gitPurgeStateTask, input, {
+			timeoutMs: 15_000,
 		});
 	},
 

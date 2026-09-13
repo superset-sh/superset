@@ -861,6 +861,9 @@ msgstr "{selectedCount}件選択中"
 msgid "{share}% human"
 msgstr "人間{share}%"
 
+msgid "{SHELF_RETENTION_DAYS, plural, one {# day} other {# days}}"
+msgstr "{SHELF_RETENTION_DAYS, plural, one {#日} other {#日}}"
+
 msgid "{shown} of {total}"
 msgstr "{total}件中{shown}件"
 
@@ -2074,8 +2077,23 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "アーカイブ"
 
+msgid "Archive · deletes the workspace and its branch in {SHELF_RETENTION_DAYS, plural, one {# day} other {# days}} unless restored"
+msgstr "アーカイブ · 復元しない限り{SHELF_RETENTION_DAYS, plural, one {#日} other {#日}}後にワークスペースとそのブランチを削除します"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "アーカイブ · このワークスペースのホストがオフラインのため利用できません"
+
+msgid "Archive workspace"
+msgstr "ワークスペースをアーカイブ"
+
+msgid "archived"
+msgstr "アーカイブ済み"
+
 msgid "Archived"
 msgstr "アーカイブ済み"
+
+msgid "Archived \"{workspaceName}\" · deletes in {retention}"
+msgstr "「{workspaceName}」をアーカイブしました · {retention}後に削除されます"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "このファイルを削除してもよろしいですか?この操作は元に戻せません。"
@@ -9172,6 +9190,9 @@ msgstr "エージェントはまだありません。"
 msgid "No API keys yet."
 msgstr "APIキーはまだありません。"
 
+msgid "No archived workspaces"
+msgstr "アーカイブ済みのワークスペースはありません"
+
 msgid "No assignee"
 msgstr "担当者なし"
 
@@ -12105,6 +12126,13 @@ msgstr "再起動中…"
 msgid "Restore"
 msgstr "復元"
 
+#. placeholder {0}: formatRelativeTime( Math.max( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, Date.now(), ), )
+msgid "Restore · deletes {0}"
+msgstr "復元 · {0}に削除"
+
+msgid "Restore · deletion paused"
+msgstr "復元 · 削除を保留中"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "{0}をデフォルトに戻しますか?"
@@ -12124,8 +12152,18 @@ msgstr "エージェントの既定値を復元する"
 msgid "Restore this version?"
 msgstr "このバージョンを復元しますか?"
 
+msgid "Restore workspace"
+msgstr "ワークスペースを復元"
+
 msgid "Restored"
 msgstr "復元済み"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "「{0}」をアーカイブから復元しました"
+
+msgid "Restored \"{workspaceName}\" from archive"
+msgstr "「{workspaceName}」をアーカイブから復元しました"
 
 msgid "Restoring your session"
 msgstr "セッションを復元中"
@@ -13186,6 +13224,9 @@ msgstr "アプリ終了時に確認ダイアログを表示"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "ホームのサイドバーの「プルリクエスト」の下に「使用量」ボタンを表示"
 
+msgid "Show active workspaces"
+msgstr "アクティブなワークスペースを表示"
+
 msgid "Show all {count}"
 msgstr "{count}件すべて表示"
 
@@ -13197,6 +13238,9 @@ msgstr "すべてのコメントを表示"
 
 msgid "Show all lines"
 msgstr "すべての行を表示"
+
+msgid "Show archived workspaces"
+msgstr "アーカイブ済みのワークスペースを表示"
 
 msgid "Show checks"
 msgstr "チェックを表示"
@@ -15040,6 +15084,9 @@ msgstr "このプルリクエストは利用できなくなりました。"
 msgid "This pull request link is invalid."
 msgstr "このプルリクエストのリンクは無効です。"
 
+msgid "This pull request's workspace is archived — sending restores it."
+msgstr "このプルリクエストのワークスペースはアーカイブ済みです。送信すると復元されます。"
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "選択したすべてのワークツリーをディスクから削除し、ワークスペースの記録も削除します。"
 
@@ -15145,6 +15192,19 @@ msgstr "ステージされたすべての変更をステージから外して元
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "ステージ済みの変更をすべてステージ解除して元に戻します。ステージ済みの新規ファイルは削除されます。元に戻せません。"
+
+#. placeholder {0}: formatRelativeTime(deleteAt)
+msgid "This workspace is archived · deletes {0}"
+msgstr "このワークスペースはアーカイブ済みです · {0}に削除"
+
+msgid "This workspace is archived · deletes soon"
+msgstr "このワークスペースはアーカイブ済みです · まもなく削除"
+
+msgid "This workspace is archived · deletion paused: couldn't verify the worktree"
+msgstr "このワークスペースはアーカイブ済み · 削除を保留中: worktree を確認できませんでした"
+
+msgid "This workspace is archived · deletion paused: uncommitted changes"
+msgstr "このワークスペースはアーカイブ済みです · 削除を保留中: 未コミットの変更"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "このワークスペースは削除されたか、アクセス権がなくなった可能性があります。"

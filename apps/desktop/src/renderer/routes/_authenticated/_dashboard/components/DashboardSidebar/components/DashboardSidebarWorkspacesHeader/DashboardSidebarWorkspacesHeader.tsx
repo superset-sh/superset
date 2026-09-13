@@ -7,8 +7,10 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { HiArchiveBox, HiOutlineArchiveBox } from "react-icons/hi2";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -33,6 +35,8 @@ interface DashboardSidebarWorkspacesHeaderProps {
 	onSortModeChange: (mode: SidebarProjectSortMode) => void;
 	filterQuery: string;
 	onFilterQueryChange: (query: string) => void;
+	showArchived: boolean;
+	onShowArchivedChange: (showArchived: boolean) => void;
 }
 
 export function DashboardSidebarWorkspacesHeader({
@@ -40,6 +44,8 @@ export function DashboardSidebarWorkspacesHeader({
 	onSortModeChange,
 	filterQuery,
 	onFilterQueryChange,
+	showArchived,
+	onShowArchivedChange,
 }: DashboardSidebarWorkspacesHeaderProps) {
 	const { t } = useLingui();
 	const isSectionCollapsed = useSidebarSectionsCollapseStore(
@@ -115,9 +121,15 @@ export function DashboardSidebarWorkspacesHeader({
 
 	return (
 		<DashboardSidebarSectionHeader
-			label={t({
-				message: "Projects",
-			})}
+			label={
+				showArchived
+					? t({
+							message: "Archived",
+						})
+					: t({
+							message: "Projects",
+						})
+			}
 			section="workspaces"
 			labelHidden={isFilterExpanded}
 		>
@@ -131,6 +143,46 @@ export function DashboardSidebarWorkspacesHeader({
 				sortMode={sortMode}
 				onSortModeChange={onSortModeChange}
 			/>
+			<Tooltip delayDuration={700}>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						aria-pressed={showArchived}
+						aria-label={
+							showArchived
+								? t({
+										message: "Show active workspaces",
+									})
+								: t({
+										message: "Show archived workspaces",
+									})
+						}
+						onClick={(event) => {
+							event.stopPropagation();
+							onShowArchivedChange(!showArchived);
+							if (isSectionCollapsed) toggleSectionCollapsed("workspaces");
+						}}
+						onKeyDown={(event) => event.stopPropagation()}
+						className={cn(
+							"flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground",
+							showArchived && "bg-fill-hover text-foreground",
+						)}
+					>
+						{showArchived ? (
+							<HiArchiveBox className="size-3.5" />
+						) : (
+							<HiOutlineArchiveBox className="size-3.5" />
+						)}
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">
+					{showArchived ? (
+						<Trans>Show active workspaces</Trans>
+					) : (
+						<Trans>Show archived workspaces</Trans>
+					)}
+				</TooltipContent>
+			</Tooltip>
 			<DropdownMenu>
 				<Tooltip delayDuration={700}>
 					<TooltipTrigger asChild>

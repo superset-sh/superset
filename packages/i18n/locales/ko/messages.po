@@ -861,6 +861,9 @@ msgstr "{selectedCount}개 선택됨"
 msgid "{share}% human"
 msgstr "사람 {share}%"
 
+msgid "{SHELF_RETENTION_DAYS, plural, one {# day} other {# days}}"
+msgstr "{SHELF_RETENTION_DAYS, plural, one {#일} other {#일}}"
+
 msgid "{shown} of {total}"
 msgstr "{total}개 중 {shown}개"
 
@@ -2074,8 +2077,23 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "보관"
 
+msgid "Archive · deletes the workspace and its branch in {SHELF_RETENTION_DAYS, plural, one {# day} other {# days}} unless restored"
+msgstr "보관 · 복원하지 않으면 {SHELF_RETENTION_DAYS, plural, one {#일} other {#일}} 후 워크스페이스와 브랜치를 삭제합니다"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "보관 · 이 워크스페이스의 호스트가 오프라인이어서 사용할 수 없습니다"
+
+msgid "Archive workspace"
+msgstr "워크스페이스 보관"
+
+msgid "archived"
+msgstr "보관됨"
+
 msgid "Archived"
 msgstr "보관됨"
+
+msgid "Archived \"{workspaceName}\" · deletes in {retention}"
+msgstr "“{workspaceName}” 보관됨 · {retention} 후 삭제"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "이 파일을 삭제할까요? 되돌릴 수 없습니다."
@@ -9172,6 +9190,9 @@ msgstr "아직 에이전트가 없습니다."
 msgid "No API keys yet."
 msgstr "아직 API 키가 없습니다."
 
+msgid "No archived workspaces"
+msgstr "보관된 워크스페이스가 없습니다"
+
 msgid "No assignee"
 msgstr "담당자 없음"
 
@@ -12105,6 +12126,13 @@ msgstr "다시 시작 중…"
 msgid "Restore"
 msgstr "복원"
 
+#. placeholder {0}: formatRelativeTime( Math.max( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, Date.now(), ), )
+msgid "Restore · deletes {0}"
+msgstr "복원 · {0} 삭제"
+
+msgid "Restore · deletion paused"
+msgstr "복원 · 삭제 일시 중지됨"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "{0}을(를) 기본값으로 복원할까요?"
@@ -12124,8 +12152,18 @@ msgstr "에이전트 기본값을 복원할"
 msgid "Restore this version?"
 msgstr "이 버전을 복원할까요?"
 
+msgid "Restore workspace"
+msgstr "워크스페이스 복원"
+
 msgid "Restored"
 msgstr "복원됨"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "\"{0}\"을(를) 보관함에서 복원했습니다"
+
+msgid "Restored \"{workspaceName}\" from archive"
+msgstr "“{workspaceName}”을(를) 보관함에서 복원했습니다"
 
 msgid "Restoring your session"
 msgstr "세션을 복원하는 중"
@@ -13186,6 +13224,9 @@ msgstr "앱을 종료할 때 확인 대화 상자를 표시합니다"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "홈 사이드바의 풀 리퀘스트 아래에 사용량 버튼을 표시합니다"
 
+msgid "Show active workspaces"
+msgstr "활성 워크스페이스 표시"
+
 msgid "Show all {count}"
 msgstr "{count}개 모두 보기"
 
@@ -13197,6 +13238,9 @@ msgstr "모든 댓글 표시"
 
 msgid "Show all lines"
 msgstr "모든 줄 표시"
+
+msgid "Show archived workspaces"
+msgstr "보관된 워크스페이스 표시"
 
 msgid "Show checks"
 msgstr "검사 표시"
@@ -15040,6 +15084,9 @@ msgstr "이 풀 리퀘스트는 더 이상 사용할 수 없습니다."
 msgid "This pull request link is invalid."
 msgstr "이 풀 리퀘스트 링크가 올바르지 않습니다."
 
+msgid "This pull request's workspace is archived — sending restores it."
+msgstr "이 풀 리퀘스트의 워크스페이스는 보관되어 있습니다. 전송하면 복원됩니다."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "선택한 worktree를 디스크에서 모두 제거하고 해당 워크스페이스 기록도 삭제합니다."
 
@@ -15145,6 +15192,19 @@ msgstr "스테이징된 모든 변경을 스테이징 해제하고 되돌립니�
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "스테이징된 변경 사항을 모두 스테이징 해제하고 되돌립니다. 스테이징된 새 파일은 삭제됩니다. 되돌릴 수 없습니다."
+
+#. placeholder {0}: formatRelativeTime(deleteAt)
+msgid "This workspace is archived · deletes {0}"
+msgstr "이 워크스페이스는 보관됨 · {0} 삭제"
+
+msgid "This workspace is archived · deletes soon"
+msgstr "이 워크스페이스는 보관됨 · 곧 삭제"
+
+msgid "This workspace is archived · deletion paused: couldn't verify the worktree"
+msgstr "이 워크스페이스는 보관됨 · 삭제 일시 중지됨: worktree를 확인할 수 없습니다"
+
+msgid "This workspace is archived · deletion paused: uncommitted changes"
+msgstr "이 워크스페이스는 보관됨 · 삭제 일시 중지됨: 커밋되지 않은 변경 사항"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "이 워크스페이스가 제거되었거나 더 이상 접근 권한이 없을 수 있습니다."

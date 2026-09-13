@@ -6,6 +6,7 @@ import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { isShelvedWorkspace } from "renderer/lib/workspaces/isShelvedWorkspace";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
@@ -284,11 +285,16 @@ export function useDashboardSidebarData() {
 	const { workspaces: allHostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();
 	// Cloud workspaces render in the Cloud section only, whatever placement
-	// their local-state row carries.
+	// their local-state row carries. Archived (shelved) rows leave every
+	// active surface at once — project sections, tag folders, the Pinned
+	// list, sessions — by being filtered out here, before anything derives
+	// from them; they come back only through `archivedGroups` below.
 	const hostWorkspaces = useMemo(
 		() =>
 			allHostWorkspaces.filter(
-				(workspace) => !hostWorkspacesCache.isSandboxHost(workspace.hostId),
+				(workspace) =>
+					!hostWorkspacesCache.isSandboxHost(workspace.hostId) &&
+					!isShelvedWorkspace(workspace),
 			),
 		[allHostWorkspaces, hostWorkspacesCache],
 	);
@@ -629,8 +635,98 @@ export function useDashboardSidebarData() {
 	);
 	const pinnedWorkspaces = useJsonStable(computedPinnedWorkspaces);
 
+	// The archived view is the same project tree built from shelved rows, so
+	// each project lists only its archived workspaces. A row keeps its section
+	// and order from its placement row; one placed nowhere (an archived row
+	// that lost its placement) lands at the top of its project.
+	const archivedRows = useMemo(() => {
+		const localStateByWorkspaceId = new Map(
+			sidebarLocalStateRows.map((row) => [row.workspaceId, row]),
+		);
+		return allHostWorkspaces.flatMap((workspace) => {
+			if (!isShelvedWorkspace(workspace)) return [];
+			if (hostWorkspacesCache.isSandboxHost(workspace.hostId)) return [];
+			const localState = localStateByWorkspaceId.get(workspace.id);
+			if (!localState && workspace.hostId !== machineId) return [];
+			const projectId = localState?.projectId ?? workspace.projectId;
+			if (projectId === null) return [];
+			return [
+				{
+					id: workspace.id,
+					projectId,
+					hostId: workspace.hostId,
+					type: workspace.type,
+					name: workspace.name,
+					branch: workspace.branch,
+					taskId: workspace.taskId,
+					createdAt: workspace.createdAt,
+					updatedAt: workspace.updatedAt,
+					lastActivityAt: workspace.lastActivityAt,
+					tabOrder: localState?.tabOrder ?? 0,
+					sectionId: localState?.sectionId ?? null,
+					tags: workspace.tags,
+					pinnedAt: localState?.pinnedAt ?? null,
+					hostIsOnline:
+						hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
+					pendingTransaction: null,
+					shelvedAt: workspace.shelvedAt ?? null,
+					purgeBlockedReason: workspace.purgeBlockedReason ?? null,
+				},
+			];
+		});
+	}, [
+		allHostWorkspaces,
+		hostWorkspacesCache,
+		hostsByMachineId,
+		machineId,
+		sidebarLocalStateRows,
+	]);
+	const computedArchivedGroups = useMemo<DashboardSidebarProject[]>(
+		() =>
+			buildDashboardSidebarProjects({
+				sidebarProjects,
+				sidebarSections: deriveTagFolders(
+					storedSidebarSections,
+					archivedRows,
+					tagFolderContext,
+				).map((section) => ({
+					id: section.sectionId,
+					projectId: section.projectId,
+					name: section.name,
+					createdAt: section.createdAt,
+					isCollapsed: section.isCollapsed,
+					tabOrder: section.tabOrder,
+					color: section.color,
+					tag: section.tag,
+				})),
+				visibleSidebarWorkspaces: archivedRows,
+				machineId,
+				pullRequestsByWorkspaceId,
+			}).filter((project) =>
+				// Folder rows exist whether or not anything sits in them, so a
+				// project counts as archived only when it holds a workspace row.
+				project.children.some((child) =>
+					child.type === "workspace"
+						? true
+						: child.section.workspaces.length > 0,
+				),
+			),
+		[
+			archivedRows,
+			machineId,
+			pullRequestsByWorkspaceId,
+			sidebarProjects,
+			storedSidebarSections,
+			tagFolderContext,
+		],
+	);
+	const archivedGroups = useStableDashboardSidebarProjects(
+		computedArchivedGroups,
+	);
+
 	return {
 		groups,
+		archivedGroups,
 		hiddenProjects,
 		pinnedWorkspaces,
 		sessionWorkspaces,

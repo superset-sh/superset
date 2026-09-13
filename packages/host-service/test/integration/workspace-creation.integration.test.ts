@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { eq } from "drizzle-orm";
+import { workspaces } from "../../src/db/schema";
 import { createProjectScenario } from "../helpers/scenarios";
 import { seedWorkspace } from "../helpers/seed";
 
@@ -112,6 +114,48 @@ describe("workspaceCreation.searchBranches integration", () => {
 			});
 		const branch = result.items.find((b) => b.name === "with-workspace");
 		expect(branch?.hasWorkspace).toBe(true);
+	});
+
+	test("flags a branch whose only workspace is shelved, unless a live one shares it", async () => {
+		await scenario.repo.git.checkoutLocalBranch("shelved-branch");
+		await scenario.repo.commit("shelf", { "shelf.txt": "shelf" });
+		await scenario.repo.git.checkout("main");
+
+		const { id: shelvedId } = seedWorkspace(scenario.host, {
+			projectId: scenario.projectId,
+			worktreePath: `${scenario.repo.repoPath}/.worktrees/shelved-branch`,
+			branch: "shelved-branch",
+		});
+		scenario.host.db
+			.update(workspaces)
+			.set({ shelvedAt: Date.now() })
+			.where(eq(workspaces.id, shelvedId))
+			.run();
+
+		const shelvedOnly =
+			await scenario.host.trpc.workspaceCreation.searchBranches.query({
+				projectId: scenario.projectId,
+			});
+		const shelvedRow = shelvedOnly.items.find(
+			(b) => b.name === "shelved-branch",
+		);
+		expect(shelvedRow?.hasWorkspace).toBe(true);
+		expect(shelvedRow?.hasShelvedWorkspace).toBe(true);
+
+		seedWorkspace(scenario.host, {
+			projectId: scenario.projectId,
+			worktreePath: `${scenario.repo.repoPath}/.worktrees/shelved-branch-live`,
+			branch: "shelved-branch",
+		});
+
+		const withLive =
+			await scenario.host.trpc.workspaceCreation.searchBranches.query({
+				projectId: scenario.projectId,
+			});
+		expect(
+			withLive.items.find((b) => b.name === "shelved-branch")
+				?.hasShelvedWorkspace,
+		).toBe(false);
 	});
 
 	test("includes worktreePath on branch rows that are checked out in worktrees", async () => {

@@ -180,6 +180,7 @@ export function CompareBaseBranchPicker({
 						{branches.map((branch) => {
 							const isRemoteOnly = branch.isRemote && !branch.isLocal;
 							const isWorktree = Boolean(branch.worktreePath);
+							const isShelved = branch.hasShelvedWorkspace;
 							return (
 								<CommandItem
 									key={branch.name}
@@ -236,6 +237,14 @@ export function CompareBaseBranchPicker({
 													</span>
 												</>
 											)}
+											{isShelved && (
+												<>
+													<span aria-hidden>·</span>
+													<span>
+														<Trans>archived</Trans>
+													</span>
+												</>
+											)}
 										</span>
 									</div>
 									<span className="ml-2 flex shrink-0 items-center gap-1.5 self-center">
@@ -248,7 +257,11 @@ export function CompareBaseBranchPicker({
 												handleOpenChange(false);
 											}}
 										>
-											<Trans>Open workspace</Trans>
+											{isShelved ? (
+												<Trans>Restore workspace</Trans>
+											) : (
+												<Trans>Open workspace</Trans>
+											)}
 											<span className="ml-1.5 text-[10px] opacity-70">
 												{MOD_KEY}↵
 											</span>

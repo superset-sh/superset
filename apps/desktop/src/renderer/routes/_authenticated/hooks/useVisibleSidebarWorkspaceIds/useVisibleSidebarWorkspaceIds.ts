@@ -1,6 +1,7 @@
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { isShelvedWorkspace } from "renderer/lib/workspaces/isShelvedWorkspace";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	getSidebarWorkspaceIsHidden,
@@ -56,7 +57,14 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 		[collections],
 	);
 
-	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const { workspaces: allHostWorkspaces } = useHostWorkspaces();
+	// An archived (shelved) workspace is out of the sidebar, so it stops
+	// raising notifications and stops polling ports until it is restored.
+	const hostWorkspaces = useMemo(
+		() =>
+			allHostWorkspaces.filter((workspace) => !isShelvedWorkspace(workspace)),
+		[allHostWorkspaces],
+	);
 
 	return useMemo(() => {
 		const workspaceIds = new Set(

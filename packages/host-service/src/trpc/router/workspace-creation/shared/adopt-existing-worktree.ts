@@ -9,6 +9,7 @@ import {
 	getLocalWorkspace,
 	insertLocalWorkspace,
 	toCloudShape,
+	unshelveLocalWorkspace,
 	updateLocalWorkspace,
 	type WorkspaceStoreContext,
 } from "../../../../workspaces/local-workspace-store";
@@ -99,8 +100,11 @@ export async function adoptExistingWorktree(
 					worktreePath,
 					branch,
 				}) ?? existing;
+			// Relinking states the worktree is in use just as much as the
+			// reuse paths below do, so it clears a shelf stamp too.
+			const restored = unshelveLocalWorkspace(store, existingWorkspaceId);
 			return {
-				workspace: toCloudShape(updated, ctx.organizationId),
+				workspace: toCloudShape(restored ?? updated, ctx.organizationId),
 				alreadyExists: true,
 			};
 		}
@@ -131,8 +135,20 @@ export async function adoptExistingWorktree(
 		.sync();
 	if (existingByBranch && existingByBranch.worktreePath === worktreePath) {
 		await recordBaseBranch(git, branch, baseBranch);
+		const current = getLocalWorkspace(ctx.db, existingByBranch.id);
+		if (!current || current.archivedAt != null) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Workspace was deleted during adoption",
+			});
+		}
+		// Adopting is a statement that the worktree is in use, so it clears a
+		// shelf stamp along with the rest of the reconciliation — otherwise the
+		// adopt reports success while the row stays hidden and scheduled for
+		// purge.
+		const reused = unshelveLocalWorkspace(store, existingByBranch.id);
 		return {
-			workspace: toCloudShape(existingByBranch, ctx.organizationId),
+			workspace: toCloudShape(reused ?? existingByBranch, ctx.organizationId),
 			alreadyExists: true,
 		};
 	}
@@ -157,9 +173,17 @@ export async function adoptExistingWorktree(
 		});
 		const updated = updateLocalWorkspace(store, existingByPath.id, { branch });
 		await recordBaseBranch(git, branch, baseBranch);
+		const current = getLocalWorkspace(ctx.db, existingByPath.id);
+		if (!current || current.archivedAt != null) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Workspace was deleted during adoption",
+			});
+		}
+		const reused = unshelveLocalWorkspace(store, existingByPath.id);
 		if (updated) {
 			return {
-				workspace: toCloudShape(updated, ctx.organizationId),
+				workspace: toCloudShape(reused ?? updated, ctx.organizationId),
 				alreadyExists: true,
 			};
 		}
@@ -225,8 +249,11 @@ function deleteLocalWorkspaceConflicts(
 				),
 				ne(workspaces.id, args.keepWorkspaceId),
 				// Tombstones aren't phantoms — same-branch history must survive
-				// re-creating a workspace on that branch.
+				// re-creating a workspace on that branch. A shelved row is even
+				// less of a phantom: it is live and restorable, with a worktree
+				// still on disk that a hard delete here would orphan.
 				isNull(workspaces.archivedAt),
+				isNull(workspaces.shelvedAt),
 			),
 		)
 		.all();

@@ -861,6 +861,9 @@ msgstr "{selectedCount} geselecteerd"
 msgid "{share}% human"
 msgstr "{share}% mens"
 
+msgid "{SHELF_RETENTION_DAYS, plural, one {# day} other {# days}}"
+msgstr "{SHELF_RETENTION_DAYS, plural, one {# dag} other {# dagen}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown} van {total}"
 
@@ -2074,8 +2077,23 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Archiveren"
 
+msgid "Archive · deletes the workspace and its branch in {SHELF_RETENTION_DAYS, plural, one {# day} other {# days}} unless restored"
+msgstr "Archiveren · verwijdert de werkruimte en de branch over {SHELF_RETENTION_DAYS, plural, one {# dag} other {# dagen}} tenzij hersteld"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "Archiveren · niet beschikbaar zolang de host van deze werkruimte offline is"
+
+msgid "Archive workspace"
+msgstr "Werkruimte archiveren"
+
+msgid "archived"
+msgstr "gearchiveerd"
+
 msgid "Archived"
 msgstr "Gearchiveerd"
+
+msgid "Archived \"{workspaceName}\" · deletes in {retention}"
+msgstr "„{workspaceName}” gearchiveerd · wordt over {retention} verwijderd"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Weet je zeker dat je dit bestand wilt verwijderen? Dit kan niet ongedaan worden gemaakt."
@@ -9172,6 +9190,9 @@ msgstr "Nog geen agents."
 msgid "No API keys yet."
 msgstr "Nog geen API-sleutels."
 
+msgid "No archived workspaces"
+msgstr "Geen gearchiveerde werkruimtes"
+
 msgid "No assignee"
 msgstr "Geen toegewezen persoon"
 
@@ -12105,6 +12126,13 @@ msgstr "Bezig met herstarten…"
 msgid "Restore"
 msgstr "Herstellen"
 
+#. placeholder {0}: formatRelativeTime( Math.max( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, Date.now(), ), )
+msgid "Restore · deletes {0}"
+msgstr "Herstellen · wordt {0} verwijderd"
+
+msgid "Restore · deletion paused"
+msgstr "Herstellen · verwijderen gepauzeerd"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "{0} terugzetten naar standaardwaarden?"
@@ -12124,8 +12152,18 @@ msgstr "de standaardwaarden van de agent herstellen"
 msgid "Restore this version?"
 msgstr "Deze versie herstellen?"
 
+msgid "Restore workspace"
+msgstr "Werkruimte herstellen"
+
 msgid "Restored"
 msgstr "Hersteld"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "\"{0}\" hersteld uit het archief"
+
+msgid "Restored \"{workspaceName}\" from archive"
+msgstr "„{workspaceName}” hersteld uit archief"
 
 msgid "Restoring your session"
 msgstr "Je sessie wordt hersteld"
@@ -13186,6 +13224,9 @@ msgstr "Toon een bevestiging bij het afsluiten van de app"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Toon een knop Gebruik in de zijbalk van het startscherm, onder Pull requests"
 
+msgid "Show active workspaces"
+msgstr "Actieve werkruimtes tonen"
+
 msgid "Show all {count}"
 msgstr "Alle {count} tonen"
 
@@ -13197,6 +13238,9 @@ msgstr "Alle opmerkingen tonen"
 
 msgid "Show all lines"
 msgstr "Alle regels tonen"
+
+msgid "Show archived workspaces"
+msgstr "Gearchiveerde werkruimtes tonen"
 
 msgid "Show checks"
 msgstr "Checks tonen"
@@ -15040,6 +15084,9 @@ msgstr "Deze pull request is niet meer beschikbaar."
 msgid "This pull request link is invalid."
 msgstr "Deze link naar een pull request is ongeldig."
 
+msgid "This pull request's workspace is archived — sending restores it."
+msgstr "De werkruimte van deze pull request is gearchiveerd — verzenden herstelt hem."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Hiermee wordt elke geselecteerde worktree van schijf gehaald en het bijbehorende werkruimterecord verwijderd."
 
@@ -15145,6 +15192,19 @@ msgstr "Dit haalt alle gestagede wijzigingen uit staging en draait ze terug. Ges
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Hiermee worden alle gestagede wijzigingen ge-unstaged en teruggedraaid. Gestagede nieuwe bestanden worden verwijderd. Dit kan niet ongedaan worden gemaakt."
+
+#. placeholder {0}: formatRelativeTime(deleteAt)
+msgid "This workspace is archived · deletes {0}"
+msgstr "Deze werkruimte is gearchiveerd · wordt {0} verwijderd"
+
+msgid "This workspace is archived · deletes soon"
+msgstr "Deze werkruimte is gearchiveerd · wordt binnenkort verwijderd"
+
+msgid "This workspace is archived · deletion paused: couldn't verify the worktree"
+msgstr "Deze werkruimte is gearchiveerd · verwijderen gepauzeerd: worktree kon niet worden gecontroleerd"
+
+msgid "This workspace is archived · deletion paused: uncommitted changes"
+msgstr "Deze werkruimte is gearchiveerd · verwijderen gepauzeerd: niet-gecommitte wijzigingen"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Deze werkruimte is mogelijk verwijderd, of je hebt er geen toegang meer toe."

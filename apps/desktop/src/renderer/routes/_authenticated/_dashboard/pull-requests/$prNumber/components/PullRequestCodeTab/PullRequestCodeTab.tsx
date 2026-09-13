@@ -17,6 +17,7 @@ import {
 	type AgentPromptFileSide,
 	formatAgentPromptWithFileContext,
 } from "renderer/hooks/host-service/useSendToTerminalAgent";
+import { useShelveWorkspace } from "renderer/hooks/host-service/useShelveWorkspace";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	createPierreTreeStyle,
@@ -435,6 +436,11 @@ export function PullRequestCodeTab({
 		gcTime: 10 * 60_000,
 	});
 	const linkedWorkspaceId = linkedWorkspaceData?.workspaceId ?? null;
+	// The lookup is a query and never restores on its own, so a linked
+	// workspace can be archived — hidden from every workspace list, and no
+	// place to quietly drop a prompt into.
+	const isLinkedWorkspaceShelved = linkedWorkspaceData?.isShelved ?? false;
+	const { unshelve } = useShelveWorkspace(linkedWorkspaceId ?? "");
 	const { submit: submitWorkspaceCreate } = useWorkspaceCreates();
 
 	// Mirrors DiffPane's split between "send to an existing terminal" and
@@ -462,6 +468,21 @@ export function PullRequestCodeTab({
 					side: input.side,
 				},
 			});
+
+			// Sending into an archived workspace is what takes it back off the
+			// shelf — otherwise the prompt lands somewhere the user can't open.
+			if (linkedWorkspaceId) {
+				const client = getHostServiceClientByUrl(hostUrl);
+				const workspace = await client.workspace.get.query({
+					id: linkedWorkspaceId,
+				});
+				if (
+					workspace.type === "worktree" &&
+					workspace.shelvedAt !== undefined
+				) {
+					await unshelve();
+				}
+			}
 
 			if (input.target.kind === "existing") {
 				if (!linkedWorkspaceId) {
@@ -931,36 +952,46 @@ export function PullRequestCodeTab({
 							if (!metadata) return null;
 							if (metadata.kind === "composer") {
 								return (
-									<PullRequestCommentComposer
-										// Keyed on the target so re-selecting a different
-										// line/file while the composer is already open
-										// remounts it instead of possibly carrying over a
-										// draft or in-flight submitting state from the
-										// previous target.
-										key={`${metadata.path}:${metadata.startLine}-${metadata.endLine}`}
-										contextLabel={
-											metadata.startLine === metadata.endLine
-												? t({
-														message: `Line ${metadata.startLine}`,
-													})
-												: t({
-														message: `Lines ${metadata.startLine}–${metadata.endLine}`,
-													})
-										}
-										hostUrl={hostUrl}
-										linkedWorkspaceId={linkedWorkspaceId}
-										onCancel={closeComposer}
-										onSubmit={async ({ comment, target }) => {
-											await sendCommentToAgent.mutateAsync({
-												comment,
-												target,
-												path: metadata.path,
-												startLine: metadata.startLine,
-												endLine: metadata.endLine,
-												side: rangeSide(metadata.startSide, metadata.endSide),
-											});
-										}}
-									/>
+									<>
+										{isLinkedWorkspaceShelved && (
+											<div className="mx-3 mt-1.5 rounded-md border border-border/80 bg-muted/40 px-3 py-1.5 font-sans text-[11px] text-muted-foreground">
+												<Trans>
+													This pull request's workspace is archived — sending
+													restores it.
+												</Trans>
+											</div>
+										)}
+										<PullRequestCommentComposer
+											// Keyed on the target so re-selecting a different
+											// line/file while the composer is already open
+											// remounts it instead of possibly carrying over a
+											// draft or in-flight submitting state from the
+											// previous target.
+											key={`${metadata.path}:${metadata.startLine}-${metadata.endLine}`}
+											contextLabel={
+												metadata.startLine === metadata.endLine
+													? t({
+															message: `Line ${metadata.startLine}`,
+														})
+													: t({
+															message: `Lines ${metadata.startLine}–${metadata.endLine}`,
+														})
+											}
+											hostUrl={hostUrl}
+											linkedWorkspaceId={linkedWorkspaceId}
+											onCancel={closeComposer}
+											onSubmit={async ({ comment, target }) => {
+												await sendCommentToAgent.mutateAsync({
+													comment,
+													target,
+													path: metadata.path,
+													startLine: metadata.startLine,
+													endLine: metadata.endLine,
+													side: rangeSide(metadata.startSide, metadata.endSide),
+												});
+											}}
+										/>
+									</>
 								);
 							}
 							const isFocused =

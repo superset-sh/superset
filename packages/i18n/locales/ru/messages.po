@@ -861,6 +861,9 @@ msgstr "Выбрано: {selectedCount}"
 msgid "{share}% human"
 msgstr "{share}% человека"
 
+msgid "{SHELF_RETENTION_DAYS, plural, one {# day} other {# days}}"
+msgstr "{SHELF_RETENTION_DAYS, plural, one {# день} few {# дня} many {# дней} other {# дня}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown} из {total}"
 
@@ -2074,8 +2077,23 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Архивировать"
 
+msgid "Archive · deletes the workspace and its branch in {SHELF_RETENTION_DAYS, plural, one {# day} other {# days}} unless restored"
+msgstr "Архивировать · удалит рабочую область и её ветку через {SHELF_RETENTION_DAYS, plural, one {# день} few {# дня} many {# дней} other {# дня}}, если не восстановить"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "Архивировать · недоступно, пока хост этой рабочей области не в сети"
+
+msgid "Archive workspace"
+msgstr "Архивировать рабочую область"
+
+msgid "archived"
+msgstr "в архиве"
+
 msgid "Archived"
 msgstr "Архив"
+
+msgid "Archived \"{workspaceName}\" · deletes in {retention}"
+msgstr "«{workspaceName}» архивирована · будет удалена через {retention}"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Точно удалить этот файл? Действие нельзя отменить."
@@ -9172,6 +9190,9 @@ msgstr "Агентов пока нет."
 msgid "No API keys yet."
 msgstr "Ключей API пока нет."
 
+msgid "No archived workspaces"
+msgstr "Нет архивированных рабочих областей"
+
 msgid "No assignee"
 msgstr "Без исполнителя"
 
@@ -12105,6 +12126,13 @@ msgstr "Перезапуск…"
 msgid "Restore"
 msgstr "Восстановить"
 
+#. placeholder {0}: formatRelativeTime( Math.max( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, Date.now(), ), )
+msgid "Restore · deletes {0}"
+msgstr "Восстановить · будет удалена {0}"
+
+msgid "Restore · deletion paused"
+msgstr "Восстановить · удаление приостановлено"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "Восстановить значения по умолчанию для {0}?"
@@ -12124,8 +12152,18 @@ msgstr "восстановить настройки агента по умолч
 msgid "Restore this version?"
 msgstr "Восстановить эту версию?"
 
+msgid "Restore workspace"
+msgstr "Восстановить рабочее пространство"
+
 msgid "Restored"
 msgstr "Восстановлено"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "«{0}» восстановлена из архива"
+
+msgid "Restored \"{workspaceName}\" from archive"
+msgstr "«{workspaceName}» восстановлена из архива"
 
 msgid "Restoring your session"
 msgstr "Восстановление сессии"
@@ -13186,6 +13224,9 @@ msgstr "Показывать подтверждение при выходе из
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Показывать кнопку «Использование» в боковой панели главного экрана под пул-реквестами"
 
+msgid "Show active workspaces"
+msgstr "Показать активные рабочие области"
+
 msgid "Show all {count}"
 msgstr "Показать все {count}"
 
@@ -13197,6 +13238,9 @@ msgstr "Показать все комментарии"
 
 msgid "Show all lines"
 msgstr "Показать все строки"
+
+msgid "Show archived workspaces"
+msgstr "Показать архивированные рабочие области"
 
 msgid "Show checks"
 msgstr "Показать проверки"
@@ -15040,6 +15084,9 @@ msgstr "Этот пул-реквест больше недоступен."
 msgid "This pull request link is invalid."
 msgstr "Эта ссылка на пул-реквест недействительна."
 
+msgid "This pull request's workspace is archived — sending restores it."
+msgstr "Рабочее пространство этого пул-реквеста в архиве — отправка восстановит его."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Это удалит каждый выбранный worktree с диска и сотрёт запись о его рабочей области."
 
@@ -15145,6 +15192,19 @@ msgstr "Все индексированные изменения будут уд
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Это снимет индексацию и откатит все проиндексированные изменения. Проиндексированные новые файлы будут удалены. Отменить нельзя."
+
+#. placeholder {0}: formatRelativeTime(deleteAt)
+msgid "This workspace is archived · deletes {0}"
+msgstr "Эта рабочая область архивирована · будет удалена {0}"
+
+msgid "This workspace is archived · deletes soon"
+msgstr "Эта рабочая область архивирована · скоро будет удалена"
+
+msgid "This workspace is archived · deletion paused: couldn't verify the worktree"
+msgstr "Эта рабочая область в архиве · удаление приостановлено: не удалось проверить worktree"
+
+msgid "This workspace is archived · deletion paused: uncommitted changes"
+msgstr "Эта рабочая область архивирована · удаление приостановлено: незакоммиченные изменения"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Возможно, эта рабочая область удалена или у вас больше нет к ней доступа."

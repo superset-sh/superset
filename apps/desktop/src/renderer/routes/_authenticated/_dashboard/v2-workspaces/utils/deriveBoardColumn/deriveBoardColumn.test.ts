@@ -5,6 +5,7 @@ import { deriveBoardColumn } from "./deriveBoardColumn";
 function make(overrides: {
 	archivedAt?: number | null;
 	archiveReason?: "merged" | "deleted" | null;
+	shelvedAt?: number | null;
 	agentStatus?: PaneStatus;
 	prState?: "open" | "draft" | "merged" | "closed" | "queued" | null;
 	type?: "main" | "worktree" | "session";
@@ -12,6 +13,7 @@ function make(overrides: {
 	return {
 		archivedAt: overrides.archivedAt ?? null,
 		archiveReason: overrides.archiveReason ?? null,
+		shelvedAt: overrides.shelvedAt ?? null,
 		agentStatus: overrides.agentStatus ?? ("idle" as const),
 		pr: overrides.prState ? { state: overrides.prState } : null,
 		type: overrides.type ?? ("worktree" as const),
@@ -26,6 +28,17 @@ describe("deriveBoardColumn", () => {
 		expect(
 			deriveBoardColumn(make({ archivedAt: 1, archiveReason: "merged" })),
 		).toBe("merged");
+	});
+
+	test("a user-archived (shelved) row lands in Archived unless tombstoned", () => {
+		expect(
+			deriveBoardColumn(make({ shelvedAt: 1, agentStatus: "working" })),
+		).toBe("archived");
+		expect(
+			deriveBoardColumn(
+				make({ shelvedAt: 1, archivedAt: 2, archiveReason: "deleted" }),
+			),
+		).toBe("deleted");
 	});
 
 	test("archived wins over live signals", () => {

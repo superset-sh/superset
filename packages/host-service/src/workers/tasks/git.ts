@@ -3,6 +3,8 @@
 // host-service event loop. Credential env is resolved in-process (it needs
 // the credential provider) and crosses as plain data.
 
+import { USER_GIT_ENV_SIMPLE_GIT_OPTIONS } from "@superset/shared/simple-git-options";
+import simpleGit, { type SimpleGitOptions } from "simple-git";
 import {
 	getGitAuthorName,
 	type ResolvedGitInfo,
@@ -334,6 +336,43 @@ export const gitWorktreeStateTask = defineWorkerTask<
 	},
 });
 
+type GitPurgeStateInput = {
+	path: string;
+	ref: string;
+	checkStatus: boolean;
+	gitEnv: GitTaskEnv;
+};
+
+type PurgeGitClient = {
+	env(env: GitTaskEnv): PurgeGitClient;
+	status(): Promise<{ isClean(): boolean }>;
+	raw(args: string[]): Promise<string>;
+};
+
+export async function readGitPurgeState(
+	{ path, ref, checkStatus, gitEnv }: GitPurgeStateInput,
+	createGit: (
+		path: string,
+		options: Partial<SimpleGitOptions>,
+	) => PurgeGitClient = simpleGit,
+): Promise<{ hasChanges: boolean; hasUnpushedCommits: boolean }> {
+	const git = createGit(path, {
+		...USER_GIT_ENV_SIMPLE_GIT_OPTIONS,
+		timeout: { block: 15_000, stdOut: false, stdErr: false },
+	}).env(gitEnv);
+	const hasChanges = checkStatus ? !(await git.status()).isClean() : false;
+	const result = (
+		await git.raw(["rev-list", "--count", ref, "--not", "--remotes", "--"])
+	).trim();
+	if (!/^\d+$/.test(result)) throw new Error("Invalid purge commit count");
+	return { hasChanges, hasUnpushedCommits: Number(result) > 0 };
+}
+
+export const gitPurgeStateTask = defineWorkerTask({
+	type: "git/purgeState",
+	handler: (input: GitPurgeStateInput) => readGitPurgeState(input),
+});
+
 export const gitWorktreeRemoveTask = defineWorkerTask<
 	{ repoPath: string; worktreePath: string; gitEnv: GitTaskEnv },
 	{ stillRegistered: boolean; removeError?: string }
@@ -567,6 +606,7 @@ export const gitTasks = [
 	gitIdentityTask,
 	gitAuthorNameTask,
 	gitWorktreeStateTask,
+	gitPurgeStateTask,
 	gitWorktreeRemoveTask,
 	gitDeleteBranchTask,
 	gitStagePathsTask,

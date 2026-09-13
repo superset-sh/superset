@@ -1,7 +1,8 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
+import { formatRelativeTime } from "@superset/i18n/format";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
@@ -13,11 +14,22 @@ import {
 	useEffect,
 	useRef,
 } from "react";
-import { HiCheck, HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
+import {
+	HiCheck,
+	HiMiniArchiveBox,
+	HiMiniArrowUturnLeft,
+	HiMiniMinus,
+	HiMiniTrash,
+	HiMiniXMark,
+} from "react-icons/hi2";
 import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useFocusVisible } from "renderer/hooks/useFocusVisible";
 import { HotkeyLabel } from "renderer/hotkeys";
+import {
+	SHELF_RETENTION_DAYS,
+	SHELF_RETENTION_MS,
+} from "renderer/lib/workspaces/isShelvedWorkspace";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
@@ -67,6 +79,8 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	indentation?: DashboardSidebarWorkspaceIndentation;
 	isBulkSelectable?: boolean;
 	isSelected?: boolean;
+	/** Worktree rows only: main and session workspaces cannot be archived. */
+	canArchive: boolean;
 	/** Present when rendered in the Pinned section: shows the project avatar. */
 	/** projectName is null for pinned project-less "session" workspaces. */
 	pinnedContext?: { projectName: string | null; projectIconUrl: string | null };
@@ -75,6 +89,9 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	onWorkspaceChipsClick?: MouseEventHandler<HTMLDivElement>;
 	onDoubleClick?: () => void;
 	onCloseWorkspaceClick: () => void;
+	onArchiveWorkspaceClick?: () => void;
+	/** Archived rows only: restores the workspace in place. */
+	onRestoreWorkspaceClick?: () => void;
 	onRemoveFromSidebarClick: () => void;
 	onRenameValueChange: (value: string) => void;
 	onSubmitRename: () => void;
@@ -98,12 +115,15 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			indentation,
 			isBulkSelectable = false,
 			isSelected = false,
+			canArchive,
 			pinnedContext,
 			onClick,
 			onKeyboardActivate,
 			onWorkspaceChipsClick,
 			onDoubleClick,
 			onCloseWorkspaceClick,
+			onArchiveWorkspaceClick,
+			onRestoreWorkspaceClick,
 			onRemoveFromSidebarClick,
 			onRenameValueChange,
 			onSubmitRename,
@@ -150,6 +170,20 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		// minus would remove the project's anchor row. Removal stays available via
 		// the context menu.
 		const isLocalMainWorkspace = isMainWorkspace && hostType === "local-device";
+		const isShelved = workspace.shelvedAt != null;
+		const isHostOffline = hostIsOnline === false;
+		const restoreTooltip = isShelved
+			? workspace.purgeBlockedReason != null
+				? t({ message: "Restore · deletion paused" })
+				: t({
+						message: `Restore · deletes ${formatRelativeTime(
+							Math.max(
+								(workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS,
+								Date.now(),
+							),
+						)}`,
+					})
+			: null;
 		const workspaceKindTitle = isMainWorkspace
 			? "Main workspace"
 			: "Worktree workspace";
@@ -394,75 +428,209 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 											{shortcutLabel}
 										</span>
 									)}
-									{isLocalMainWorkspace ? null : isMainWorkspace ? (
-										<Tooltip delayDuration={300}>
-											<TooltipTrigger asChild>
-												<button
-													type="button"
-													onClick={(event) => {
-														event.stopPropagation();
-														onRemoveFromSidebarClick();
-													}}
-													onKeyDown={(event) => {
-														if (
-															event.key === "Enter" ||
-															event.key === " " ||
-															event.key === "Spacebar"
-														) {
+									{isShelved ? (
+										<>
+											<Tooltip delayDuration={300}>
+												<TooltipTrigger asChild>
+													<button
+														type="button"
+														aria-disabled={isHostOffline}
+														onClick={(event) => {
 															event.stopPropagation();
-														}
-													}}
-													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-													aria-label={t({
-														message: "Remove from sidebar",
-													})}
-												>
-													<HiMiniMinus className="size-3.5" />
-												</button>
-											</TooltipTrigger>
-											<TooltipContent side="top">
-												<HotkeyLabel
-													label={t({
-														message: "Remove from sidebar",
-													})}
-												/>
-											</TooltipContent>
-										</Tooltip>
+															if (isHostOffline) return;
+															onRestoreWorkspaceClick?.();
+														}}
+														onKeyDown={(event) => {
+															if (
+																event.key === "Enter" ||
+																event.key === " " ||
+																event.key === "Spacebar"
+															) {
+																event.stopPropagation();
+															}
+														}}
+														className={cn(
+															"flex items-center justify-center text-muted-foreground",
+															isHostOffline
+																? "cursor-not-allowed text-muted-foreground/50"
+																: "hover:text-foreground",
+														)}
+														aria-label={t({
+															message: "Restore workspace",
+														})}
+													>
+														<HiMiniArrowUturnLeft className="size-3.5" />
+													</button>
+												</TooltipTrigger>
+												<TooltipContent side="top">
+													{isHostOffline ? (
+														<Trans>This workspace's host is offline</Trans>
+													) : (
+														restoreTooltip
+													)}
+												</TooltipContent>
+											</Tooltip>
+											<Tooltip delayDuration={300}>
+												<TooltipTrigger asChild>
+													<button
+														type="button"
+														onClick={(event) => {
+															event.stopPropagation();
+															onCloseWorkspaceClick();
+														}}
+														onKeyDown={(event) => {
+															if (
+																event.key === "Enter" ||
+																event.key === " " ||
+																event.key === "Spacebar"
+															) {
+																event.stopPropagation();
+															}
+														}}
+														className="flex items-center justify-center text-muted-foreground hover:text-destructive"
+														aria-label={t({
+															message: "Delete workspace",
+														})}
+													>
+														<HiMiniTrash className="size-3.5" />
+													</button>
+												</TooltipTrigger>
+												<TooltipContent side="top">
+													<Trans>Delete workspace</Trans>
+												</TooltipContent>
+											</Tooltip>
+										</>
 									) : (
-										<Tooltip delayDuration={300}>
-											<TooltipTrigger asChild>
-												<button
-													type="button"
-													onClick={(event) => {
-														event.stopPropagation();
-														onCloseWorkspaceClick();
-													}}
-													onKeyDown={(event) => {
-														if (
-															event.key === "Enter" ||
-															event.key === " " ||
-															event.key === "Spacebar"
-														) {
-															event.stopPropagation();
-														}
-													}}
-													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-													aria-label={t({
-														message: "Close workspace",
-													})}
-												>
-													<HiMiniXMark className="size-3.5" />
-												</button>
-											</TooltipTrigger>
-											<TooltipContent side="top">
-												<HotkeyLabel
-													label={t({
-														message: "Close workspace",
-													})}
-													id={isActive ? "CLOSE_WORKSPACE" : undefined}
-												/>
-											</TooltipContent>
-										</Tooltip>
+										<>
+											{canArchive && onArchiveWorkspaceClick && (
+												<Tooltip delayDuration={300}>
+													{/* aria-disabled, not disabled: a disabled button
+											leaves the tab order and fires no pointer events,
+											so the offline explanation would reach neither
+											keyboard nor pointer users. */}
+													<TooltipTrigger asChild>
+														<button
+															type="button"
+															aria-disabled={isHostOffline}
+															onClick={(event) => {
+																event.stopPropagation();
+																if (isHostOffline) return;
+																onArchiveWorkspaceClick();
+															}}
+															onKeyDown={(event) => {
+																if (
+																	event.key === "Enter" ||
+																	event.key === " " ||
+																	event.key === "Spacebar"
+																) {
+																	event.stopPropagation();
+																}
+															}}
+															className={cn(
+																"flex items-center justify-center text-muted-foreground",
+																isHostOffline
+																	? "cursor-not-allowed text-muted-foreground/50"
+																	: "hover:text-foreground",
+															)}
+															aria-label={t({
+																message: "Archive workspace",
+															})}
+														>
+															<HiMiniArchiveBox className="size-3.5" />
+														</button>
+													</TooltipTrigger>
+													<TooltipContent side="top">
+														{isHostOffline ? (
+															<Trans>
+																Archive · unavailable while this workspace's
+																host is offline
+															</Trans>
+														) : (
+															<Trans>
+																Archive · deletes the workspace and its branch
+																in{" "}
+																<Plural
+																	value={SHELF_RETENTION_DAYS}
+																	one="# day"
+																	other="# days"
+																/>{" "}
+																unless restored
+															</Trans>
+														)}
+													</TooltipContent>
+												</Tooltip>
+											)}
+											{isLocalMainWorkspace ? null : isMainWorkspace ? (
+												<Tooltip delayDuration={300}>
+													<TooltipTrigger asChild>
+														<button
+															type="button"
+															onClick={(event) => {
+																event.stopPropagation();
+																onRemoveFromSidebarClick();
+															}}
+															onKeyDown={(event) => {
+																if (
+																	event.key === "Enter" ||
+																	event.key === " " ||
+																	event.key === "Spacebar"
+																) {
+																	event.stopPropagation();
+																}
+															}}
+															className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+															aria-label={t({
+																message: "Remove from sidebar",
+															})}
+														>
+															<HiMiniMinus className="size-3.5" />
+														</button>
+													</TooltipTrigger>
+													<TooltipContent side="top">
+														<HotkeyLabel
+															label={t({
+																message: "Remove from sidebar",
+															})}
+														/>
+													</TooltipContent>
+												</Tooltip>
+											) : (
+												<Tooltip delayDuration={300}>
+													<TooltipTrigger asChild>
+														<button
+															type="button"
+															onClick={(event) => {
+																event.stopPropagation();
+																onCloseWorkspaceClick();
+															}}
+															onKeyDown={(event) => {
+																if (
+																	event.key === "Enter" ||
+																	event.key === " " ||
+																	event.key === "Spacebar"
+																) {
+																	event.stopPropagation();
+																}
+															}}
+															className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+															aria-label={t({
+																message: "Close workspace",
+															})}
+														>
+															<HiMiniXMark className="size-3.5" />
+														</button>
+													</TooltipTrigger>
+													<TooltipContent side="top">
+														<HotkeyLabel
+															label={t({
+																message: "Close workspace",
+															})}
+															id={isActive ? "CLOSE_WORKSPACE" : undefined}
+														/>
+													</TooltipContent>
+												</Tooltip>
+											)}
+										</>
 									)}
 								</div>
 							)}

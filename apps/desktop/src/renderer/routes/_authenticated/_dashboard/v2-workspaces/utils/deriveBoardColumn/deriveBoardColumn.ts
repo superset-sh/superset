@@ -10,6 +10,7 @@ export type BoardColumnKey =
 	| "working"
 	| "attention"
 	| "review"
+	| "archived"
 	| "merged"
 	| "deleted";
 
@@ -19,6 +20,7 @@ export const BOARD_COLUMN_ORDER: BoardColumnKey[] = [
 	"working",
 	"attention",
 	"review",
+	"archived",
 	"merged",
 	"deleted",
 ];
@@ -34,6 +36,9 @@ export const BOARD_COLUMN_LABELS: Record<BoardColumnKey, MessageDescriptor> = {
 	review: msg({
 		message: "Needs review",
 	}),
+	archived: msg({
+		message: "Archived",
+	}),
 	merged: msg({
 		message: "Merged",
 	}),
@@ -44,7 +49,7 @@ export const BOARD_COLUMN_LABELS: Record<BoardColumnKey, MessageDescriptor> = {
 
 type BoardColumnInputs = Pick<
 	AccessibleV2Workspace,
-	"archivedAt" | "archiveReason" | "agentStatus" | "type"
+	"archivedAt" | "archiveReason" | "shelvedAt" | "agentStatus" | "type"
 > & {
 	pr: { state: V2WorkspacePrState } | null;
 };
@@ -53,6 +58,7 @@ type BoardColumnInputs = Pick<
  * Column derivation, first match wins:
  *   1. archived "deleted"                → Deleted
  *   2. archived "merged"                 → Merged
+ *   2b. shelved (user-archived, live)     → Archived
  *   3. live PR merged                    → Merged
  *   4. agent permission/failed           → Needs attention
  *   5. agent working                     → Working
@@ -73,6 +79,7 @@ export function deriveBoardColumn(
 	if (workspace.archivedAt != null) {
 		return workspace.archiveReason === "merged" ? "merged" : "deleted";
 	}
+	if (workspace.shelvedAt != null) return "archived";
 	if (workspace.pr?.state === "merged") return "merged";
 	if (
 		workspace.agentStatus === "permission" ||

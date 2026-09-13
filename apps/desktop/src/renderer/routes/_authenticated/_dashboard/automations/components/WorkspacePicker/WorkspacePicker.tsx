@@ -13,6 +13,7 @@ import { HiCheck } from "react-icons/hi2";
 import { LuGitBranch, LuSparkles, LuTriangleAlert } from "react-icons/lu";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
+import { isShelvedWorkspace } from "renderer/lib/workspaces/isShelvedWorkspace";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 
 interface WorkspacePickerProps {
@@ -59,7 +60,10 @@ export function WorkspacePicker({
 		() =>
 			hostId && projectId !== undefined
 				? workspaceRows.filter(
-						(w) => w.hostId === hostId && w.projectId === projectId,
+						(w) =>
+							w.hostId === hostId &&
+							w.projectId === projectId &&
+							!isShelvedWorkspace(w),
 					)
 				: [],
 		[workspaceRows, hostId, projectId],

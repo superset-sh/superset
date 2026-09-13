@@ -94,6 +94,10 @@ export interface UseHostWorkspacesResult {
  * workspaces) under a separate query key — the shared live cache never sees
  * archived rows. Tombstones append after live rows with
  * `archivedAt`/`archiveReason` set.
+ *
+ * Shelved rows (the UI's "archived") are the opposite case: they are live
+ * workspaces, so the shared list always includes them and consumers exclude
+ * them with `isShelvedWorkspace`.
  */
 export function useHostWorkspacesSource(
 	scopedHostId?: string | null,
@@ -193,8 +197,13 @@ export function useHostWorkspacesSource(
 			queryFn: async (): Promise<HostWorkspaceRow[]> => {
 				if (!target.hostUrl) return [];
 				const client = getHostServiceClientByUrl(target.hostUrl);
-				const served =
-					(await client.workspace.list.query()) as HostWorkspaceRow[];
+				// Shelved ("archived" in the UI) rows are live workspaces read on
+				// several surfaces, so they ride the shared list rather than a
+				// second query key like archived tombstones; every consumer that
+				// wants only active rows filters with `isShelvedWorkspace`.
+				const served = (await client.workspace.list.query({
+					includeShelved: true,
+				})) as HostWorkspaceRow[];
 				// A sandbox reports the machine id of the container it happens to
 				// be running in, which addresses nothing from here. Restate it as
 				// the cloud workspace's id so every host-keyed lookup downstream

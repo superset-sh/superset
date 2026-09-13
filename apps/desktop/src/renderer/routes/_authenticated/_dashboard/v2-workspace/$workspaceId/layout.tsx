@@ -3,13 +3,21 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { SHELF_RETENTION_MS } from "renderer/lib/workspaces/isShelvedWorkspace";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
+import {
+	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
+	useWorkspaceSidebarStore,
+} from "renderer/stores/workspace-sidebar-state";
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
 import { StateScreenShell } from "../components/StateScreenShell";
 import { WorkspaceCreateErrorState } from "../components/WorkspaceCreateErrorState";
@@ -19,6 +27,7 @@ import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { useRemoteHostStatus } from "../hooks/useRemoteHostStatus";
 import { useWorkspaceMissVerdict } from "../hooks/useWorkspaceMissVerdict";
 import { WorkspaceProvider } from "../providers/WorkspaceProvider";
+import { ArchivedWorkspaceBanner } from "./components/ArchivedWorkspaceBanner";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspace/$workspaceId",
@@ -41,6 +50,22 @@ function V2WorkspaceLayout() {
 	// settles — not when the host-served row first arrives, which happens
 	// mid-create before agent/terminal panes are seeded.
 	const isCreatePending = pendingTransaction?.type === "insert";
+
+	// _dashboard/layout.tsx drops the TopBar (and its inset) once the v2
+	// sidebar is open, which makes the banner the window's top-right content.
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const isSidebarOpen = useWorkspaceSidebarStore((state) => state.isOpen);
+	const isSidebarCollapsed = useWorkspaceSidebarStore((state) =>
+		state.isCollapsed(),
+	);
+	const zoomFactor = useZoomFactor();
+	const workspaceContentRef = useRef<HTMLDivElement>(null);
+	const bannerNeedsWindowControlsInset =
+		platform !== undefined &&
+		platform !== "darwin" &&
+		isV2CloudEnabled &&
+		isSidebarOpen;
 
 	const { toggleShowPresetsBar } = useV2UserPreferences();
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
@@ -184,9 +209,59 @@ function V2WorkspaceLayout() {
 		}
 	}
 
+	// Opening an archived workspace never restores it, so say so at the top of
+	// the route and put the one control that does right next to the message.
 	return (
-		<WorkspaceProvider workspace={workspace}>
-			<Outlet />
-		</WorkspaceProvider>
+		<div className="flex min-h-0 min-w-0 flex-1 flex-col">
+			{workspace.shelvedAt != null && (
+				<div className="drag flex shrink-0 items-stretch">
+					{(platform === undefined || platform === "darwin") &&
+						isV2CloudEnabled &&
+						isSidebarOpen &&
+						isSidebarCollapsed && (
+							<div
+								className="shrink-0 border-b border-border bg-muted/50"
+								style={{
+									width: Math.max(
+										80 / zoomFactor - COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
+										0,
+									),
+								}}
+							/>
+						)}
+					<div className="min-w-0 flex-1">
+						<ArchivedWorkspaceBanner
+							key={workspace.id}
+							workspaceId={workspace.id}
+							workspaceName={workspace.name}
+							deleteAt={workspace.shelvedAt + SHELF_RETENTION_MS}
+							isPaused={workspace.purgeBlockedReason != null}
+							pauseReason={workspace.purgeBlockedReason ?? null}
+							onRestored={() => {
+								const content = workspaceContentRef.current;
+								if (content?.dataset.workspaceId === workspace.id) {
+									content.focus();
+								}
+							}}
+						/>
+					</div>
+					{bannerNeedsWindowControlsInset && (
+						<div className="border-b border-border bg-muted/50">
+							<WindowControlsInset />
+						</div>
+					)}
+				</div>
+			)}
+			<div
+				ref={workspaceContentRef}
+				data-workspace-id={workspace.id}
+				tabIndex={-1}
+				className="relative flex min-h-0 min-w-0 flex-1 outline-none"
+			>
+				<WorkspaceProvider workspace={workspace}>
+					<Outlet />
+				</WorkspaceProvider>
+			</div>
+		</div>
 	);
 }

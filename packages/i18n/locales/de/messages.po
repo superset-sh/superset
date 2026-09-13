@@ -861,6 +861,9 @@ msgstr "{selectedCount} ausgewählt"
 msgid "{share}% human"
 msgstr "{share} % Mensch"
 
+msgid "{SHELF_RETENTION_DAYS, plural, one {# day} other {# days}}"
+msgstr "{SHELF_RETENTION_DAYS, plural, one {# Tag} other {# Tagen}}"
+
 msgid "{shown} of {total}"
 msgstr "{shown} von {total}"
 
@@ -2074,8 +2077,23 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Archivieren"
 
+msgid "Archive · deletes the workspace and its branch in {SHELF_RETENTION_DAYS, plural, one {# day} other {# days}} unless restored"
+msgstr "Archivieren · löscht den Arbeitsbereich und seinen Branch in {SHELF_RETENTION_DAYS, plural, one {# Tag} other {# Tagen}}, sofern nicht wiederhergestellt"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "Archivieren · nicht verfügbar, solange der Host dieses Arbeitsbereichs offline ist"
+
+msgid "Archive workspace"
+msgstr "Arbeitsbereich archivieren"
+
+msgid "archived"
+msgstr "archiviert"
+
 msgid "Archived"
 msgstr "Archiviert"
+
+msgid "Archived \"{workspaceName}\" · deletes in {retention}"
+msgstr "„{workspaceName}“ archiviert · wird in {retention} gelöscht"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Willst du diese Datei wirklich löschen? Das lässt sich nicht rückgängig machen."
@@ -9172,6 +9190,9 @@ msgstr "Noch keine Agenten."
 msgid "No API keys yet."
 msgstr "Noch keine API-Schlüssel."
 
+msgid "No archived workspaces"
+msgstr "Keine archivierten Arbeitsbereiche"
+
 msgid "No assignee"
 msgstr "Kein Zuständiger"
 
@@ -12105,6 +12126,13 @@ msgstr "Wird neu gestartet…"
 msgid "Restore"
 msgstr "Wiederherstellen"
 
+#. placeholder {0}: formatRelativeTime( Math.max( (workspace.shelvedAt ?? 0) + SHELF_RETENTION_MS, Date.now(), ), )
+msgid "Restore · deletes {0}"
+msgstr "Wiederherstellen · wird {0} gelöscht"
+
+msgid "Restore · deletion paused"
+msgstr "Wiederherstellen · Löschen pausiert"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "{0} auf Standardwerte zurücksetzen?"
@@ -12124,8 +12152,18 @@ msgstr "die Agenten-Standardwerte wiederherstellen"
 msgid "Restore this version?"
 msgstr "Diese Version wiederherstellen?"
 
+msgid "Restore workspace"
+msgstr "Arbeitsbereich wiederherstellen"
+
 msgid "Restored"
 msgstr "Wiederhergestellt"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "„{0}“ aus dem Archiv wiederhergestellt"
+
+msgid "Restored \"{workspaceName}\" from archive"
+msgstr "„{workspaceName}“ aus dem Archiv wiederhergestellt"
 
 msgid "Restoring your session"
 msgstr "Sitzung wird wiederhergestellt"
@@ -13186,6 +13224,9 @@ msgstr "Beim Beenden der App einen Bestätigungsdialog anzeigen"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Eine Schaltfläche „Nutzung“ in der Seitenleiste der Startansicht unter „Pull Requests“ anzeigen"
 
+msgid "Show active workspaces"
+msgstr "Aktive Arbeitsbereiche anzeigen"
+
 msgid "Show all {count}"
 msgstr "Alle {count} anzeigen"
 
@@ -13197,6 +13238,9 @@ msgstr "Alle Kommentare anzeigen"
 
 msgid "Show all lines"
 msgstr "Alle Zeilen anzeigen"
+
+msgid "Show archived workspaces"
+msgstr "Archivierte Arbeitsbereiche anzeigen"
 
 msgid "Show checks"
 msgstr "Prüfungen anzeigen"
@@ -15040,6 +15084,9 @@ msgstr "Dieser Pull Request ist nicht mehr verfügbar."
 msgid "This pull request link is invalid."
 msgstr "Dieser Pull-Request-Link ist ungültig."
 
+msgid "This pull request's workspace is archived — sending restores it."
+msgstr "Der Arbeitsbereich dieses Pull Requests ist archiviert — beim Senden wird er wiederhergestellt."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Damit wird jeder ausgewählte Worktree von der Festplatte entfernt und sein Arbeitsbereich-Eintrag gelöscht."
 
@@ -15145,6 +15192,19 @@ msgstr "Alle vorgemerkten Änderungen werden aus dem Index entfernt und zurückg
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Damit werden alle gestageden Änderungen aus dem Index genommen und zurückgesetzt. Gestagede neue Dateien werden gelöscht. Das lässt sich nicht rückgängig machen."
+
+#. placeholder {0}: formatRelativeTime(deleteAt)
+msgid "This workspace is archived · deletes {0}"
+msgstr "Dieser Arbeitsbereich ist archiviert · wird {0} gelöscht"
+
+msgid "This workspace is archived · deletes soon"
+msgstr "Dieser Arbeitsbereich ist archiviert · wird bald gelöscht"
+
+msgid "This workspace is archived · deletion paused: couldn't verify the worktree"
+msgstr "Dieser Arbeitsbereich ist archiviert · Löschen pausiert: Worktree konnte nicht geprüft werden"
+
+msgid "This workspace is archived · deletion paused: uncommitted changes"
+msgstr "Dieser Arbeitsbereich ist archiviert · Löschen pausiert: nicht committete Änderungen"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Dieser Arbeitsbereich wurde möglicherweise entfernt, oder du hast keinen Zugriff mehr darauf."
