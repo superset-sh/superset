@@ -24,6 +24,8 @@ export interface SubagentTranscript {
 
 /** Tail this much of a large transcript; the pane wants the recent story. */
 const MAX_READ_BYTES = 2 * 1024 * 1024;
+/** A Codex `session_meta` line carries the base instructions (~25 KB). */
+const MAX_HEAD_BYTES = 256 * 1024;
 const MAX_ENTRY_CHARS = 4000;
 
 export function clip(text: string): string {
@@ -118,4 +120,38 @@ export function readTranscriptTail(
 	}
 	if (start > 0) text = text.slice(text.indexOf("\n") + 1);
 	return { text, size: stat.size, mtimeMs: stat.mtimeMs };
+}
+
+/**
+ * The first line of a transcript, parsed as JSON. Null when the file does
+ * not exist or has nothing to read yet; undefined when the line is not JSON.
+ */
+export function readTranscriptHeadRecord(
+	transcriptPath: string,
+): Record<string, unknown> | null | undefined {
+	let fd: number;
+	try {
+		fd = fs.openSync(transcriptPath, "r");
+	} catch {
+		return null;
+	}
+	let text: string;
+	try {
+		const buffer = Buffer.alloc(MAX_HEAD_BYTES);
+		const bytesRead = fs.readSync(fd, buffer, 0, buffer.length, 0);
+		text = buffer.toString("utf8", 0, bytesRead);
+	} catch {
+		return null;
+	} finally {
+		fs.closeSync(fd);
+	}
+	const newline = text.indexOf("\n");
+	const line = (newline === -1 ? text : text.slice(0, newline)).trim();
+	if (!line) return null;
+	try {
+		const record: unknown = JSON.parse(line);
+		return isRecord(record) ? record : undefined;
+	} catch {
+		return undefined;
+	}
 }

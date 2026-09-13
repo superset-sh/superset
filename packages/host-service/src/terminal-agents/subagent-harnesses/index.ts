@@ -13,6 +13,8 @@ import type { SubagentHarness } from "./types";
 export type {
 	ParsedSubagentTranscript,
 	SubagentHarness,
+	SubagentParentContext,
+	SubagentParentResolution,
 	SubagentTranscriptHint,
 } from "./types";
 export { defineSubagentHarness } from "./types";

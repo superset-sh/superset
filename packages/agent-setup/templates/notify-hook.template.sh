@@ -61,6 +61,10 @@ json_field() {
 }
 SUBAGENT_ID=$(json_field agent_id agentId)
 SUBAGENT_TYPE=$(json_field agent_type agentType)
+# What a subagent is doing right now, for the tree view: the tool and the
+# first argument-like field of its input.
+TOOL_NAME=$(json_field tool_name toolName)
+TOOL_SUMMARY=$(json_field command file_path path pattern query url prompt description)
 # transcript_path is the file the hook ran against (Claude: the parent
 # session; Codex: the child's own rollout); agent_transcript_path is the
 # child's transcript on SubagentStop. The host derives the child's file from
@@ -194,7 +198,7 @@ dispatch_to_host() {
 if [ -n "$SUBAGENT_ID" ]; then
   debug_log "subagent event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$AGENT_ID subagentId=$SUBAGENT_ID subagentType=$SUBAGENT_TYPE"
   [ -n "$SUPERSET_TERMINAL_ID" ] || exit 0
-  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"subagent\":{\"id\":\"$(json_escape "$SUBAGENT_ID")\",\"type\":\"$(json_escape "$SUBAGENT_TYPE")\",\"sessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"transcriptPath\":\"$(json_escape "$TRANSCRIPT_PATH")\",\"agentTranscriptPath\":\"$(json_escape "$AGENT_TRANSCRIPT_PATH")\"}}}"
+  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"subagent\":{\"id\":\"$(json_escape "$SUBAGENT_ID")\",\"type\":\"$(json_escape "$SUBAGENT_TYPE")\",\"sessionId\":\"$(json_escape "$HOOK_SESSION_ID")\",\"transcriptPath\":\"$(json_escape "$TRANSCRIPT_PATH")\",\"agentTranscriptPath\":\"$(json_escape "$AGENT_TRANSCRIPT_PATH")\",\"toolName\":\"$(json_escape "$TOOL_NAME")\",\"toolSummary\":\"$(json_escape "$TOOL_SUMMARY")\"}}}"
   exit 0
 fi
 

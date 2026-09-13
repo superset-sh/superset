@@ -107,11 +107,30 @@ export function parseClaudeSubagentTranscript(
 }
 
 /**
+ * The `agent-<id>.meta.json` sidecar Claude writes beside a child's
+ * transcript at spawn: the Task description, and for a nested child the
+ * `parentAgentId` and `spawnDepth` of the agent that spawned it. Null when
+ * the file is not there yet or unreadable.
+ */
+function readClaudeMeta(
+	transcriptPath: string,
+): Record<string, unknown> | null {
+	const metaPath = transcriptPath.replace(/\.jsonl$/, ".meta.json");
+	try {
+		const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+		return isRecord(meta) ? meta : null;
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Claude Code. Hooks inside a child run against the parent session file
- * (`<dir>/<sessionId>.jsonl`, same session id as the parent) while the child
- * writes `<dir>/<sessionId>/subagents/agent-<id>.jsonl` with an
- * `agent-<id>.meta.json` sidecar carrying the Task description. SubagentStop
- * names the child directly as `agent_transcript_path`.
+ * (`<dir>/<sessionId>.jsonl`, same session id as the parent, at every
+ * depth) while the child writes `<dir>/<sessionId>/subagents/agent-<id>.jsonl`
+ * with an `agent-<id>.meta.json` sidecar. SubagentStop names the child
+ * directly as `agent_transcript_path`. Only the sidecar knows who spawned a
+ * nested child.
  */
 export const claudeSubagentHarness = defineSubagentHarness({
 	belongsToParentSession: (hint, parentSessionId) =>
@@ -132,14 +151,19 @@ export const claudeSubagentHarness = defineSubagentHarness({
 	},
 	parseTranscript: (text) => ({ entries: parseClaudeSubagentTranscript(text) }),
 	readDescription(transcriptPath) {
-		const metaPath = transcriptPath.replace(/\.jsonl$/, ".meta.json");
-		try {
-			const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
-			return isRecord(meta) && typeof meta.description === "string"
-				? meta.description
-				: undefined;
-		} catch {
-			return undefined;
-		}
+		const description = readClaudeMeta(transcriptPath)?.description;
+		return typeof description === "string" ? description : undefined;
+	},
+	resolveParent(hint, context) {
+		const transcriptPath =
+			context.transcriptPath ??
+			claudeSubagentHarness.resolveTranscriptPath(hint);
+		if (!transcriptPath) return { known: false };
+		const meta = readClaudeMeta(transcriptPath);
+		if (meta === null) return undefined;
+		const parent = meta.parentAgentId;
+		return typeof parent === "string" && parent && parent !== hint.subagentId
+			? { parentSubagentId: parent, known: true }
+			: { known: true };
 	},
 });

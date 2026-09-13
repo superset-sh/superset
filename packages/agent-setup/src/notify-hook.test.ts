@@ -104,7 +104,7 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v15");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v16");
 	});
 
 	it("forwards hooks fired inside a subagent (agent_id present) to the host roster only", async () => {
@@ -132,6 +132,8 @@ describe("getNotifyScriptContent", () => {
 							sessionId: "child-thread",
 							transcriptPath: "/tmp/sessions/child-thread.jsonl",
 							agentTranscriptPath: "",
+							toolName: "",
+							toolSummary: "",
 						},
 					},
 				},
@@ -170,6 +172,8 @@ describe("getNotifyScriptContent", () => {
 							sessionId: "child-thread",
 							transcriptPath: "/tmp/sessions/parent.jsonl",
 							agentTranscriptPath: "/tmp/sessions/child.jsonl",
+							toolName: "",
+							toolSummary: "",
 						},
 					},
 				},
@@ -212,6 +216,54 @@ describe("getNotifyScriptContent", () => {
 				sessionId: "parent",
 				transcriptPath: "/tmp/sessions/parent.jsonl",
 				agentTranscriptPath: "/tmp/sessions/parent/subagents/agent-a1.jsonl",
+				toolName: "",
+				toolSummary: "",
+			});
+		} finally {
+			host.stop();
+		}
+	});
+
+	it("forwards the tool a subagent is running and the gist of its input", async () => {
+		const host = fakeHostService(false);
+		try {
+			const result = await runNotifyHookAsync(
+				{
+					hook_event_name: "PreToolUse",
+					session_id: "parent",
+					transcript_path: "/tmp/sessions/parent.jsonl",
+					agent_id: "a1",
+					agent_type: "Explore",
+					tool_name: "Bash",
+					tool_input: {
+						command: "bun test packages/host-service",
+						description: "Run host-service tests",
+					},
+				},
+				{ SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook` },
+			);
+			expect(result.exitCode).toBe(0);
+			expect(host.requests[0]?.json.subagent).toMatchObject({
+				id: "a1",
+				toolName: "Bash",
+				toolSummary: "bun test packages/host-service",
+			});
+
+			const readResult = await runNotifyHookAsync(
+				{
+					hook_event_name: "PostToolUse",
+					session_id: "parent",
+					agent_id: "a1",
+					tool_name: "Read",
+					tool_input: { file_path: "/repo/src/index.ts" },
+					tool_response: { file_path: "/repo/src/other.ts" },
+				},
+				{ SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook` },
+			);
+			expect(readResult.exitCode).toBe(0);
+			expect(host.requests[1]?.json.subagent).toMatchObject({
+				toolName: "Read",
+				toolSummary: "/repo/src/index.ts",
 			});
 		} finally {
 			host.stop();

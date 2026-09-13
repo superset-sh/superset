@@ -1,4 +1,5 @@
 import type { SubagentTranscriptEntry } from "../subagent-transcript";
+import type { TerminalSubagent } from "../types";
 
 /**
  * What a hook event inside a subagent tells us about where its transcript
@@ -11,6 +12,25 @@ export interface SubagentTranscriptHint {
 	sessionId?: string;
 	transcriptPath?: string;
 	agentTranscriptPath?: string;
+}
+
+/**
+ * Where a child sits in the tree. `parentSubagentId` absent with `known`
+ * means a direct child of the terminal's agent; `known: false` means the
+ * harness had evidence to look at but it named nothing in the roster.
+ */
+export interface SubagentParentResolution {
+	parentSubagentId?: string;
+	known: boolean;
+}
+
+export interface SubagentParentContext {
+	/** The terminal agent's own session id, when the binding knows it. */
+	parentSessionId?: string;
+	/** The rest of the terminal's roster, live and ended. */
+	siblings: readonly TerminalSubagent[];
+	/** The child's transcript as the roster recorded it. */
+	transcriptPath?: string;
 }
 
 export interface ParsedSubagentTranscript {
@@ -45,6 +65,14 @@ export interface SubagentHarness {
 	parseTranscript(text: string): ParsedSubagentTranscript;
 	/** A title kept beside the transcript rather than inside it, if any. */
 	readDescription(transcriptPath: string): string | undefined;
+	/**
+	 * Which roster entry spawned this child. `undefined` means the evidence
+	 * is not on disk yet and the next event should ask again.
+	 */
+	resolveParent(
+		hint: SubagentTranscriptHint,
+		context: SubagentParentContext,
+	): SubagentParentResolution | undefined;
 }
 
 /** Hook event names that end a child's turn in the Claude schema and its forks. */
@@ -56,6 +84,7 @@ const defaults: Omit<SubagentHarness, "parseTranscript"> = {
 	resolveTranscriptPath: (hint) =>
 		hint.agentTranscriptPath || hint.transcriptPath || undefined,
 	readDescription: () => undefined,
+	resolveParent: () => ({ known: false }),
 };
 
 /**

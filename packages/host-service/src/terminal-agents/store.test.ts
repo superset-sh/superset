@@ -45,10 +45,12 @@ describe("TerminalAgentStore", () => {
 				{
 					id: "a1",
 					agentType: "Explore",
+					status: "working",
 					startedAt: NOW + 200,
 					lastEventAt: NOW + 200,
 				},
 			]);
+			expect(binding?.endedSubagents).toBeUndefined();
 			expect(store.listByWorkspace(WORKSPACE)[0]?.subagents).toHaveLength(1);
 
 			store.recordSubagentEvent({
@@ -59,6 +61,148 @@ describe("TerminalAgentStore", () => {
 				occurredAt: NOW + 300,
 			});
 			expect(store.get("t1")?.subagents).toBeUndefined();
+			expect(store.get("t1")?.endedSubagents).toEqual([
+				{
+					id: "a1",
+					agentType: "Explore",
+					status: "completed",
+					startedAt: NOW + 200,
+					lastEventAt: NOW + 300,
+					endedAt: NOW + 300,
+					endReason: "completed",
+				},
+			]);
+		});
+
+		it("derives status from each event: waiting on a permission request, working again on the next tool", () => {
+			attach();
+			const record = (eventType: string, occurredAt: number) =>
+				store.recordSubagentEvent({
+					terminalId: "t1",
+					workspaceId: WORKSPACE,
+					eventType,
+					subagentId: "a1",
+					occurredAt,
+				});
+			record("SubagentStart", NOW + 200);
+			expect(store.get("t1")?.subagents?.[0]?.status).toBe("working");
+			record("PermissionRequest", NOW + 210);
+			expect(store.get("t1")?.subagents?.[0]?.status).toBe("waiting");
+			record("PostToolUse", NOW + 220);
+			expect(store.get("t1")?.subagents?.[0]?.status).toBe("working");
+			record("Notification", NOW + 230);
+			expect(store.get("t1")?.subagents?.[0]?.status).toBe("waiting");
+			record("SubagentStop", NOW + 240);
+			expect(store.get("t1")?.subagents).toBeUndefined();
+			expect(store.get("t1")?.endedSubagents?.[0]).toMatchObject({
+				status: "completed",
+				endReason: "completed",
+				endedAt: NOW + 240,
+			});
+		});
+
+		it("records the latest tool as activity and keeps it across non-tool events", () => {
+			attach();
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "PreToolUse",
+				subagentId: "a1",
+				toolName: "Bash",
+				toolSummary: `  ${"x".repeat(200)}  `,
+				occurredAt: NOW + 200,
+			});
+			expect(store.get("t1")?.subagents?.[0]?.activity).toEqual({
+				toolName: "Bash",
+				summary: `${"x".repeat(160)}…`,
+				at: NOW + 200,
+			});
+
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "PostToolUse",
+				subagentId: "a1",
+				toolName: "Read",
+				toolSummary: "/repo/file.ts",
+				occurredAt: NOW + 210,
+			});
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "PermissionRequest",
+				subagentId: "a1",
+				occurredAt: NOW + 220,
+			});
+			expect(store.get("t1")?.subagents?.[0]?.activity).toEqual({
+				toolName: "Read",
+				summary: "/repo/file.ts",
+				at: NOW + 210,
+			});
+
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStop",
+				subagentId: "a1",
+				occurredAt: NOW + 230,
+			});
+			expect(store.get("t1")?.endedSubagents?.[0]?.activity).toEqual({
+				toolName: "Read",
+				summary: "/repo/file.ts",
+				at: NOW + 210,
+			});
+		});
+
+		it("applies the parent placement once and never overwrites it", () => {
+			attach();
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStart",
+				subagentId: "a1",
+				sessionId: "child-thread",
+				occurredAt: NOW + 200,
+			});
+			expect(store.get("t1")?.subagents?.[0]).toMatchObject({
+				sessionId: "child-thread",
+			});
+			expect(store.get("t1")?.subagents?.[0]?.parentUnknown).toBeUndefined();
+
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "PostToolUse",
+				subagentId: "a1",
+				parent: { parentSubagentId: "a0", known: true },
+				occurredAt: NOW + 210,
+			});
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "PostToolUse",
+				subagentId: "a1",
+				parent: { known: false },
+				occurredAt: NOW + 220,
+			});
+			expect(store.get("t1")?.subagents?.[0]).toMatchObject({
+				parentSubagentId: "a0",
+				sessionId: "child-thread",
+			});
+			expect(store.get("t1")?.subagents?.[0]?.parentUnknown).toBeUndefined();
+
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStart",
+				subagentId: "a2",
+				parent: { known: false },
+				occurredAt: NOW + 230,
+			});
+			expect(store.get("t1")?.subagents?.[1]).toMatchObject({
+				id: "a2",
+				parentUnknown: true,
+			});
 		});
 
 		it("re-adds a child from its tool events when the start was missed and keeps the earlier type", () => {
@@ -91,12 +235,14 @@ describe("TerminalAgentStore", () => {
 				{
 					id: "a1",
 					agentType: "general-purpose",
+					status: "working",
 					startedAt: NOW + 200,
 					lastEventAt: NOW + 250,
 				},
 				{
 					id: "a2",
 					agentType: "Plan",
+					status: "working",
 					startedAt: NOW + 260,
 					lastEventAt: NOW + 260,
 				},
@@ -148,16 +294,49 @@ describe("TerminalAgentStore", () => {
 			expect(store.get("t1")?.subagents).toBeUndefined();
 		});
 
-		it("expires a child that went quiet without a stop", () => {
+		it("marks a child that went quiet without a stop as stopped", () => {
 			attach();
 			store.recordSubagentEvent({
 				terminalId: "t1",
 				workspaceId: WORKSPACE,
 				eventType: "SubagentStart",
 				subagentId: "a1",
+				agentType: "Explore",
 				occurredAt: NOW - 11 * 60_000,
 			});
 			expect(store.get("t1")?.subagents).toBeUndefined();
+			expect(store.get("t1")?.endedSubagents).toEqual([
+				{
+					id: "a1",
+					agentType: "Explore",
+					status: "stopped",
+					startedAt: NOW - 11 * 60_000,
+					lastEventAt: NOW - 11 * 60_000,
+					endedAt: NOW - 60_000,
+					endReason: "stale",
+				},
+			]);
+			expect(store.getSubagent("t1", "a1")?.status).toBe("stopped");
+		});
+
+		it("drops an ended child once its retention lapses", () => {
+			attach();
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStart",
+				subagentId: "a1",
+				occurredAt: NOW - 3 * 60 * 60_000,
+			});
+			store.recordSubagentEvent({
+				terminalId: "t1",
+				workspaceId: WORKSPACE,
+				eventType: "SubagentStop",
+				subagentId: "a1",
+				occurredAt: NOW - 2 * 60 * 60_000,
+			});
+			expect(store.get("t1")?.endedSubagents).toBeUndefined();
+			expect(store.getSubagent("t1", "a1")).toBeUndefined();
 		});
 
 		it("caps the roster per terminal, dropping the oldest child", () => {
