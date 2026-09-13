@@ -13,7 +13,14 @@ import {
 	useEffect,
 	useRef,
 } from "react";
-import { HiCheck, HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
+import {
+	HiCheck,
+	HiMiniArchiveBox,
+	HiMiniArrowUturnLeft,
+	HiMiniMinus,
+	HiMiniTrash,
+	HiMiniXMark,
+} from "react-icons/hi2";
 import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useFocusVisible } from "renderer/hooks/useFocusVisible";
@@ -67,6 +74,8 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	indentation?: DashboardSidebarWorkspaceIndentation;
 	isBulkSelectable?: boolean;
 	isSelected?: boolean;
+	/** Worktree rows only: main and session workspaces cannot be archived. */
+	canArchive: boolean;
 	/** Present when rendered in the Pinned section: shows the project avatar. */
 	/** projectName is null for pinned project-less "session" workspaces. */
 	pinnedContext?: { projectName: string | null; projectIconUrl: string | null };
@@ -75,6 +84,9 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	onWorkspaceChipsClick?: MouseEventHandler<HTMLDivElement>;
 	onDoubleClick?: () => void;
 	onCloseWorkspaceClick: () => void;
+	onArchiveWorkspaceClick?: () => void;
+	/** Archived rows only: rebuilds the worktree and reopens the workspace. */
+	onRestoreWorkspaceClick?: () => void;
 	onRemoveFromSidebarClick: () => void;
 	onRenameValueChange: (value: string) => void;
 	onSubmitRename: () => void;
@@ -98,12 +110,15 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			indentation,
 			isBulkSelectable = false,
 			isSelected = false,
+			canArchive,
 			pinnedContext,
 			onClick,
 			onKeyboardActivate,
 			onWorkspaceChipsClick,
 			onDoubleClick,
 			onCloseWorkspaceClick,
+			onArchiveWorkspaceClick,
+			onRestoreWorkspaceClick,
 			onRemoveFromSidebarClick,
 			onRenameValueChange,
 			onSubmitRename,
@@ -150,6 +165,8 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		// minus would remove the project's anchor row. Removal stays available via
 		// the context menu.
 		const isLocalMainWorkspace = isMainWorkspace && hostType === "local-device";
+		const isArchived = workspace.archivedAt != null;
+		const isHostOffline = hostIsOnline === false;
 		const workspaceKindTitle = isMainWorkspace
 			? "Main workspace"
 			: "Worktree workspace";
@@ -387,12 +404,144 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									/>
 								)
 							)}
-							{!isPending && !isSelected && (
+							{!isPending && !isSelected && isArchived && (
+								// Always visible: Restore and Delete are all an archived row
+								// affords, so they must not wait for a hover to be discovered.
+								<div className="flex items-center justify-end gap-1.5">
+									<Tooltip delayDuration={300}>
+										<TooltipTrigger asChild>
+											<button
+												type="button"
+												aria-disabled={isHostOffline}
+												onClick={(event) => {
+													event.stopPropagation();
+													if (isHostOffline) return;
+													onRestoreWorkspaceClick?.();
+												}}
+												onKeyDown={(event) => {
+													if (
+														event.key === "Enter" ||
+														event.key === " " ||
+														event.key === "Spacebar"
+													) {
+														event.stopPropagation();
+													}
+												}}
+												className={cn(
+													"flex items-center justify-center text-muted-foreground",
+													isHostOffline
+														? "cursor-not-allowed text-muted-foreground/50"
+														: "hover:text-foreground",
+												)}
+												aria-label={t({
+													message: "Restore workspace",
+												})}
+											>
+												<HiMiniArrowUturnLeft className="size-3.5" />
+											</button>
+										</TooltipTrigger>
+										<TooltipContent side="top">
+											{isHostOffline ? (
+												<Trans>This workspace's host is offline</Trans>
+											) : (
+												<Trans>
+													Restore · checks the branch out again at its original
+													path, chats included
+												</Trans>
+											)}
+										</TooltipContent>
+									</Tooltip>
+									<Tooltip delayDuration={300}>
+										<TooltipTrigger asChild>
+											<button
+												type="button"
+												onClick={(event) => {
+													event.stopPropagation();
+													onCloseWorkspaceClick();
+												}}
+												onKeyDown={(event) => {
+													if (
+														event.key === "Enter" ||
+														event.key === " " ||
+														event.key === "Spacebar"
+													) {
+														event.stopPropagation();
+													}
+												}}
+												className="flex items-center justify-center text-muted-foreground hover:text-destructive"
+												aria-label={t({
+													message: "Delete workspace",
+												})}
+											>
+												<HiMiniTrash className="size-3.5" />
+											</button>
+										</TooltipTrigger>
+										<TooltipContent side="top">
+											<Trans>
+												Delete · makes the archive final; can't be restored
+											</Trans>
+										</TooltipContent>
+									</Tooltip>
+								</div>
+							)}
+							{!isPending && !isSelected && !isArchived && (
 								<div className="hidden items-center justify-end gap-1.5 group-hover:flex group-focus-within:flex">
 									{shortcutLabel && (
 										<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
 											{shortcutLabel}
 										</span>
+									)}
+									{canArchive && onArchiveWorkspaceClick && (
+										<Tooltip delayDuration={300}>
+											{/* aria-disabled, not disabled: a disabled button
+											leaves the tab order and fires no pointer events,
+											so the offline explanation would reach neither
+											keyboard nor pointer users. */}
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													aria-disabled={isHostOffline}
+													onClick={(event) => {
+														event.stopPropagation();
+														if (isHostOffline) return;
+														onArchiveWorkspaceClick();
+													}}
+													onKeyDown={(event) => {
+														if (
+															event.key === "Enter" ||
+															event.key === " " ||
+															event.key === "Spacebar"
+														) {
+															event.stopPropagation();
+														}
+													}}
+													className={cn(
+														"flex items-center justify-center text-muted-foreground",
+														isHostOffline
+															? "cursor-not-allowed text-muted-foreground/50"
+															: "hover:text-foreground",
+													)}
+													aria-label={t({
+														message: "Archive workspace",
+													})}
+												>
+													<HiMiniArchiveBox className="size-3.5" />
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="top">
+												{isHostOffline ? (
+													<Trans>
+														Archive · unavailable while this workspace's host is
+														offline
+													</Trans>
+												) : (
+													<Trans>
+														Archive · removes the worktree and keeps the branch;
+														restore it any time
+													</Trans>
+												)}
+											</TooltipContent>
+										</Tooltip>
 									)}
 									{isLocalMainWorkspace ? null : isMainWorkspace ? (
 										<Tooltip delayDuration={300}>

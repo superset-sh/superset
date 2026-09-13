@@ -10,6 +10,7 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { HiMiniArchiveBox, HiMiniArrowUturnLeft } from "react-icons/hi2";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
@@ -61,6 +62,15 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onCopyBranchName: () => void;
 	onCopyWorkspaceId: () => void;
 	onRemoveFromSidebar: () => void;
+	/** Only archivable rows (worktree workspaces) get an Archive entry. */
+	onArchive?: () => void;
+	/**
+	 * An archived row has no worktree, so the menu offers only what still
+	 * applies: Restore (when the host can be reached), the copy actions, and
+	 * Delete, which makes the archive final.
+	 */
+	isArchived?: boolean;
+	onRestore?: () => void;
 	onRename?: () => void;
 	/** Cloud workspaces only: turn this sandbox into a reusable environment. */
 	onPromoteToEnvironment?: () => void;
@@ -91,6 +101,9 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onCopyBranchName,
 	onCopyWorkspaceId,
 	onRemoveFromSidebar,
+	onArchive,
+	isArchived = false,
+	onRestore,
 	onRename,
 	onPromoteToEnvironment,
 	onDelete,
@@ -115,6 +128,47 @@ export function DashboardSidebarWorkspaceContextMenu({
 		if (isKillingPorts) return;
 		void killPorts(ports);
 	};
+
+	if (isArchived) {
+		return (
+			<ContextMenu onOpenChange={setContextMenuOpen}>
+				<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+				<ContextMenuContent
+					onCloseAutoFocus={(event) => event.preventDefault()}
+				>
+					{onRestore && (
+						<>
+							<ContextMenuItem onSelect={onRestore}>
+								<HiMiniArrowUturnLeft className="size-4 mr-2" />
+								<Trans>Restore</Trans>
+							</ContextMenuItem>
+							<ContextMenuSeparator />
+						</>
+					)}
+					<ContextMenuItem onSelect={onCopyBranchName}>
+						<LuGitBranch className="size-4 mr-2" />
+						<Trans>Copy Branch Name</Trans>
+					</ContextMenuItem>
+					<ContextMenuItem onSelect={onCopyWorkspaceId}>
+						<LuHash className="size-4 mr-2" />
+						<Trans>Copy Workspace ID</Trans>
+					</ContextMenuItem>
+					{onDelete && (
+						<>
+							<ContextMenuSeparator />
+							<ContextMenuItem
+								onSelect={onDelete}
+								className="text-destructive focus:text-destructive"
+							>
+								<LuTrash2 className="size-4 mr-2 text-destructive" />
+								<Trans>Delete</Trans>
+							</ContextMenuItem>
+						</>
+					)}
+				</ContextMenuContent>
+			</ContextMenu>
+		);
+	}
 
 	return (
 		<ContextMenu onOpenChange={setContextMenuOpen}>
@@ -251,6 +305,12 @@ export function DashboardSidebarWorkspaceContextMenu({
 					>
 						<LuRadioTower className="size-4 mr-2" />
 						<Trans>Close all ports</Trans>
+					</ContextMenuItem>
+				)}
+				{onArchive && (
+					<ContextMenuItem onSelect={onArchive}>
+						<HiMiniArchiveBox className="size-4 mr-2" />
+						<Trans>Archive</Trans>
 					</ContextMenuItem>
 				)}
 				<ContextMenuItem onSelect={onRemoveFromSidebar}>

@@ -97,8 +97,14 @@ export function DashboardSidebarWorkspaceItem({
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
 	const isSessionWorkspace = workspace.type === "session";
+	// Cloud rows have no host row to archive; the host would refuse anyway.
+	const canArchive = workspace.type === "worktree" && hostType !== "cloud";
+	const isArchived = workspace.archivedAt != null;
 	const { status: workspaceStatus, diffStats } = useSidebarWorkspaceStatus(id);
+	const rowRef = useRef<HTMLDivElement>(null);
 	const {
+		archiveWorkspace,
+		restoreWorkspace,
 		cancelRename,
 		pendingName,
 		handleClearStatus,
@@ -123,6 +129,7 @@ export function DashboardSidebarWorkspaceItem({
 		submitRename,
 	} = useDashboardSidebarWorkspaceItemActions({
 		workspaceId: id,
+		hostId: workspace.hostId,
 		projectId,
 		isSessionWorkspace,
 		workspaceName: name,
@@ -131,7 +138,18 @@ export function DashboardSidebarWorkspaceItem({
 		isCloudWorkspace: hostType === "cloud",
 		isMainWorkspace,
 		isPinned: workspace.isPinned,
+		// Focus lands on the sidebar's scroller once the archived row unmounts.
+		getSidebarListElement: () =>
+			rowRef.current?.closest<HTMLElement>("[data-dashboard-sidebar-list]") ??
+			null,
 	});
+
+	const handleArchiveClick = () => {
+		void archiveWorkspace();
+	};
+	const handleRestoreClick = () => {
+		void restoreWorkspace();
+	};
 
 	// Renders the submitted name until the store reports it, so the row never
 	// falls back to the pre-rename value for a frame.
@@ -155,8 +173,8 @@ export function DashboardSidebarWorkspaceItem({
 		requestClose: hoverRequestClose,
 		syncIfHovered: hoverSyncIfHovered,
 	} = useDashboardSidebarHoverActions();
-	const rowRef = useRef<HTMLDivElement>(null);
-	const hoverEligible = !isPending;
+	// An archived row has no worktree, PR pane or branch to edit behind it.
+	const hoverEligible = !isPending && !isArchived;
 	const hoverPayload = useMemo(
 		() => ({ workspace, onEditBranchClick: setRenameBranchTarget }),
 		[workspace],
@@ -308,6 +326,12 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyBranchName={handleCopyBranchName}
 							onCopyWorkspaceId={handleCopyWorkspaceId}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
+							onArchive={
+								canArchive && !isArchived && hostIsOnline !== false
+									? handleArchiveClick
+									: undefined
+							}
+							onRestore={isArchived ? handleRestoreClick : undefined}
 							onRemovePullRequest={handleRemovePullRequest}
 							onRename={isMainWorkspace ? undefined : startRename}
 							onDelete={isMainWorkspace ? undefined : requestDelete}
@@ -354,14 +378,23 @@ export function DashboardSidebarWorkspaceItem({
 				indentation={indentation}
 				isBulkSelectable={onSelectionClick != null}
 				isSelected={isSelected}
-				onClick={handleExpandedClick}
+				// An archived row opens nothing: its worktree is gone, so Restore
+				// is the only way in.
+				onClick={isArchived ? undefined : handleExpandedClick}
 				onMouseDown={handleExpandedMouseDown}
 				onContextMenu={handleExpandedContextMenu}
-				onKeyboardActivate={handleExpandedKeyboardActivate}
+				onKeyboardActivate={
+					isArchived ? undefined : handleExpandedKeyboardActivate
+				}
 				onWorkspaceChipsClick={handleWorkspaceChipsClick}
-				onDoubleClick={isPending || isMainWorkspace ? undefined : startRename}
+				onDoubleClick={
+					isPending || isMainWorkspace || isArchived ? undefined : startRename
+				}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
 				onCloseWorkspaceClick={requestDelete}
+				canArchive={canArchive}
+				onArchiveWorkspaceClick={handleArchiveClick}
+				onRestoreWorkspaceClick={handleRestoreClick}
 				onRenameValueChange={setRenameValue}
 				onSubmitRename={submitRename}
 				onCancelRename={cancelRename}
@@ -401,6 +434,17 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyBranchName={handleCopyBranchName}
 						onCopyWorkspaceId={handleCopyWorkspaceId}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
+						isArchived={isArchived}
+						onArchive={
+							canArchive && !isArchived && hostIsOnline !== false
+								? handleArchiveClick
+								: undefined
+						}
+						onRestore={
+							isArchived && hostIsOnline !== false
+								? handleRestoreClick
+								: undefined
+						}
 						onRemovePullRequest={handleRemovePullRequest}
 						onRename={isMainWorkspace ? undefined : startRename}
 						onDelete={isMainWorkspace ? undefined : requestDelete}
