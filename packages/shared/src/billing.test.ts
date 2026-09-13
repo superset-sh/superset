@@ -4,6 +4,7 @@ import {
 	planAllowsTriggerKind,
 	planTierFromSubscription,
 	requiredPlanForTriggerKind,
+	resolveCurrentPlan,
 } from "./billing";
 import { LAUNCHED_TRIGGER_KINDS } from "./constants";
 
@@ -87,4 +88,46 @@ describe("every launched provider is priced", () => {
 			expect(planAllowsTriggerKind("free", kind)).toBe(false);
 		});
 	}
+});
+
+describe("resolveCurrentPlan", () => {
+	test("prefers the live subscription plan over a stale session plan", () => {
+		expect(
+			resolveCurrentPlan({
+				subscriptionPlan: "pro",
+				sessionPlan: "free",
+				subscriptionsLoaded: true,
+			}),
+		).toBe("pro");
+	});
+
+	test("treats loaded subscriptions with no active plan as free", () => {
+		expect(
+			resolveCurrentPlan({
+				subscriptionPlan: null,
+				sessionPlan: "pro",
+				subscriptionsLoaded: true,
+			}),
+		).toBe("free");
+	});
+
+	test("falls back to the session plan while subscriptions are still loading", () => {
+		expect(
+			resolveCurrentPlan({
+				subscriptionPlan: null,
+				sessionPlan: "pro",
+				subscriptionsLoaded: false,
+			}),
+		).toBe("pro");
+	});
+
+	test("supports enterprise subscriptions", () => {
+		expect(
+			resolveCurrentPlan({
+				subscriptionPlan: "enterprise",
+				sessionPlan: "free",
+				subscriptionsLoaded: true,
+			}),
+		).toBe("enterprise");
+	});
 });

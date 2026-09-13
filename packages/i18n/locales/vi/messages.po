@@ -819,6 +819,9 @@ msgstr "{pending}/{total} check đang chạy"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Tham gia {joined}"
 
+msgid "{planLabel} plan"
+msgstr "Gói {planLabel}"
+
 msgid "{presetLabel} reset to defaults"
 msgstr "Đã đặt lại {presetLabel} về mặc định"
 
@@ -2366,6 +2369,9 @@ msgstr "Quay lại"
 msgid "Back to About"
 msgstr "Quay lại Giới thiệu"
 
+msgid "Back to billing"
+msgstr "Quay lại thanh toán"
+
 msgid "Back to Blog"
 msgstr "Quay lại Blog"
 
@@ -2820,6 +2826,7 @@ msgid "Cancelled"
 msgstr "Đã hủy"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
+#. placeholder {0}: formatDate(cancelAt)
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "Hủy vào {0} — chuyển xuống Free khi hết kỳ thanh toán."
 
@@ -4155,6 +4162,9 @@ msgstr "Không thể tải danh sách máy của bạn"
 msgid "Could not mark ready"
 msgstr "Không thể đánh dấu sẵn sàng"
 
+msgid "Could not open billing. Please try again."
+msgstr "Không thể mở trang thanh toán. Vui lòng thử lại."
+
 msgid "Could not open Files"
 msgstr "Không thể mở Files"
 
@@ -4223,6 +4233,9 @@ msgstr "Không thể đặt biểu tượng"
 
 msgid "Could not start agent"
 msgstr "Không thể khởi động agent"
+
+msgid "Could not start checkout. Please try again."
+msgstr "Không thể bắt đầu thanh toán. Vui lòng thử lại."
 
 msgid "Could not start cloud workspace provisioning"
 msgstr "Không thể bắt đầu cấp phát workspace trên cloud"
@@ -7628,6 +7641,9 @@ msgstr "Mời nhóm của bạn vào workspace chung. Xem cập nhật theo th�
 msgid "Invited By"
 msgstr "Người mời"
 
+msgid "Invoices and payment method"
+msgstr "Hóa đơn và phương thức thanh toán"
+
 msgid "iOS app"
 msgstr "Ứng dụng iOS"
 
@@ -8382,6 +8398,9 @@ msgstr "Cho nút Chạy khởi động script terminal này với các dự án 
 msgid "Manage"
 msgstr "Quản lý"
 
+msgid "Manage billing"
+msgstr "Quản lý thanh toán"
+
 msgid "Manage integrations in the web app to connect and configure services."
 msgstr "Quản lý tích hợp trong ứng dụng web để kết nối và cấu hình dịch vụ."
 
@@ -8418,9 +8437,6 @@ msgstr "Quản lý cài đặt tài khoản của bạn"
 
 msgid "Manage your organization's branding and members."
 msgstr "Quản lý nhận diện thương hiệu và thành viên của tổ chức."
-
-msgid "Manage your subscription and billing in the desktop app."
-msgstr "Quản lý gói đăng ký và thanh toán trong ứng dụng máy tính."
 
 msgid "Managed"
 msgstr "Được quản lý"
@@ -9897,6 +9913,9 @@ msgstr "Đang trực tuyến"
 msgid "Online Now"
 msgstr "Đang trực tuyến"
 
+msgid "Only an organization owner can change the plan. Ask yours to upgrade."
+msgstr "Chỉ chủ sở hữu tổ chức mới đổi được gói. Hãy nhờ chủ sở hữu nâng cấp."
+
 msgid "Only available on macOS."
 msgstr "Chỉ có trên macOS."
 
@@ -10113,9 +10132,6 @@ msgstr "Mở ở tab hiện tại"
 
 msgid "Open in Cursor"
 msgstr "Mở trong Cursor"
-
-msgid "Open in Desktop App"
-msgstr "Mở trong ứng dụng máy tính"
 
 msgid "Open in diff"
 msgstr "Mở trong diff"
@@ -11836,6 +11852,7 @@ msgid "Renders a registered hotkey inside dropdown/menubar items"
 msgstr "Hiển thị một phím tắt đã đăng ký bên trong mục dropdown/menubar"
 
 #. placeholder {0}: format(new Date(periodEnd), "MMMM d, yyyy")
+#. placeholder {0}: formatDate(periodEnd)
 msgid "Renews {0}."
 msgstr "Gia hạn vào {0}."
 
@@ -14100,6 +14117,9 @@ msgstr "Superset Mobile thuộc gói Pro"
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile chạy agent trên những máy tính bạn kết nối."
 
+msgid "Superset Mobile, cloud workspaces, automations, and priority support."
+msgstr "Superset Mobile, workspace đám mây, tự động hóa và hỗ trợ ưu tiên."
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset cần quyền Full Disk Access để đọc dữ liệu của trình duyệt khác. Cấp quyền trong System Settings rồi kiểm tra lại."
 
@@ -15698,6 +15718,9 @@ msgstr "Cập nhật quy tắc đặt tên"
 msgid "Update naming instructions for {0}"
 msgstr "Cập nhật quy tắc đặt tên cho {0}"
 
+msgid "Update payment method"
+msgstr "Cập nhật phương thức thanh toán"
+
 msgid "Update ready"
 msgstr "Bản cập nhật đã sẵn sàng"
 
@@ -15742,9 +15765,16 @@ msgstr "Nâng cấp"
 msgid "Upgrade a dependency and fix what breaks…"
 msgstr "Nâng cấp một dependency và sửa những gì hỏng…"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Upgrade on {0}"
+msgstr "Nâng cấp trên {0}"
+
 #. placeholder {0}: i18n._(plan.name)
 msgid "Upgrade to {0}"
 msgstr "Nâng cấp lên {0}"
+
+msgid "Upgrade to Pro"
+msgstr "Nâng cấp lên Pro"
 
 msgid "Upload files"
 msgstr "Tải tệp lên"
@@ -16546,6 +16576,9 @@ msgstr "BẠN"
 msgid "You appear to be offline"
 msgstr "Có vẻ bạn đang ngoại tuyến"
 
+msgid "You are not a member of that organization."
+msgstr "Bạn không phải là thành viên của tổ chức đó."
+
 msgid "You are not a member of this organization"
 msgstr "Bạn không phải thành viên của tổ chức này"
 
@@ -16648,6 +16681,9 @@ msgstr "Quá trình tải xuống sẽ tự động bắt đầu. Nếu không, 
 
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "Liên kết GitHub của bạn lấy từ tài khoản bạn đã đăng nhập, nên nó hiển thị là đã xác minh và không sửa được ở đây."
+
+msgid "Your last payment failed. Update your payment method to keep Pro."
+msgstr "Lần thanh toán gần nhất không thành công. Hãy cập nhật phương thức thanh toán để giữ Pro."
 
 msgid "Your name"
 msgstr "Tên của bạn"

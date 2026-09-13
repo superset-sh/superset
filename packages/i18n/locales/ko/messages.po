@@ -819,6 +819,9 @@ msgstr "검사 {total}개 중 {pending}개 실행 중"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · {joined} 가입"
 
+msgid "{planLabel} plan"
+msgstr "{planLabel} 플랜"
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel}이(가) 기본값으로 초기화되었습니다"
 
@@ -2366,6 +2369,9 @@ msgstr "뒤로"
 msgid "Back to About"
 msgstr "소개로 돌아가기"
 
+msgid "Back to billing"
+msgstr "결제로 돌아가기"
+
 msgid "Back to Blog"
 msgstr "블로그로 돌아가기"
 
@@ -2820,6 +2826,7 @@ msgid "Cancelled"
 msgstr "취소됨"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
+#. placeholder {0}: formatDate(cancelAt)
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "{0}에 해지됩니다 — 결제 기간이 끝나면 무료 플랜으로 전환됩니다."
 
@@ -4155,6 +4162,9 @@ msgstr "머신을 불러오지 못했습니다"
 msgid "Could not mark ready"
 msgstr "준비됨으로 표시할 수 없습니다"
 
+msgid "Could not open billing. Please try again."
+msgstr "결제 페이지를 열 수 없습니다. 다시 시도해 주세요."
+
 msgid "Could not open Files"
 msgstr "파일 앱을 열지 못했습니다"
 
@@ -4223,6 +4233,9 @@ msgstr "아이콘을 설정할 수 없습니다"
 
 msgid "Could not start agent"
 msgstr "에이전트를 시작하지 못했습니다"
+
+msgid "Could not start checkout. Please try again."
+msgstr "결제를 시작할 수 없습니다. 다시 시도해 주세요."
 
 msgid "Could not start cloud workspace provisioning"
 msgstr "클라우드 워크스페이스 프로비저닝을 시작할 수 없습니다"
@@ -7628,6 +7641,9 @@ msgstr "공유 워크스페이스에 팀을 초대하세요. 실시간 업데이
 msgid "Invited By"
 msgstr "초대한 사람"
 
+msgid "Invoices and payment method"
+msgstr "청구서 및 결제 수단"
+
 msgid "iOS app"
 msgstr "iOS 앱"
 
@@ -8382,6 +8398,9 @@ msgstr "해당하는 프로젝트에서 실행 버튼이 이 터미널 스크립
 msgid "Manage"
 msgstr "관리"
 
+msgid "Manage billing"
+msgstr "결제 관리"
+
 msgid "Manage integrations in the web app to connect and configure services."
 msgstr "웹 앱에서 연동을 관리하며 서비스를 연결하고 설정할 수 있습니다."
 
@@ -8418,9 +8437,6 @@ msgstr "계정 설정을 관리합니다"
 
 msgid "Manage your organization's branding and members."
 msgstr "조직의 브랜딩과 멤버를 관리합니다."
-
-msgid "Manage your subscription and billing in the desktop app."
-msgstr "구독과 결제는 데스크톱 앱에서 관리합니다."
 
 msgid "Managed"
 msgstr "관리됨"
@@ -9897,6 +9913,9 @@ msgstr "현재 온라인"
 msgid "Online Now"
 msgstr "현재 접속 중"
 
+msgid "Only an organization owner can change the plan. Ask yours to upgrade."
+msgstr "플랜은 조직 소유자만 변경할 수 있습니다. 소유자에게 업그레이드를 요청하세요."
+
 msgid "Only available on macOS."
 msgstr "macOS에서만 사용할 수 있습니다."
 
@@ -10113,9 +10132,6 @@ msgstr "현재 탭에서 열기"
 
 msgid "Open in Cursor"
 msgstr "Cursor에서 열기"
-
-msgid "Open in Desktop App"
-msgstr "데스크톱 앱에서 열기"
 
 msgid "Open in diff"
 msgstr "차이에서 열기"
@@ -11836,6 +11852,7 @@ msgid "Renders a registered hotkey inside dropdown/menubar items"
 msgstr "드롭다운/메뉴 바 항목 안에 등록된 단축키를 렌더링합니다"
 
 #. placeholder {0}: format(new Date(periodEnd), "MMMM d, yyyy")
+#. placeholder {0}: formatDate(periodEnd)
 msgid "Renews {0}."
 msgstr "{0}에 갱신됩니다."
 
@@ -14100,6 +14117,9 @@ msgstr "Superset Mobile은 Pro에 포함되어 있습니다"
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile은 연결한 컴퓨터에서 에이전트를 실행합니다."
 
+msgid "Superset Mobile, cloud workspaces, automations, and priority support."
+msgstr "Superset Mobile, 클라우드 워크스페이스, 자동화, 우선 지원."
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "다른 브라우저의 데이터를 읽으려면 Superset에 전체 디스크 접근 권한이 필요합니다. 시스템 설정에서 권한을 허용한 다음 다시 확인하세요."
 
@@ -15698,6 +15718,9 @@ msgstr "이름 지정 지침 업데이트"
 msgid "Update naming instructions for {0}"
 msgstr "{0}의 이름 지정 지침 업데이트"
 
+msgid "Update payment method"
+msgstr "결제 수단 업데이트"
+
 msgid "Update ready"
 msgstr "업데이트 준비 완료"
 
@@ -15742,9 +15765,16 @@ msgstr "업그레이드"
 msgid "Upgrade a dependency and fix what breaks…"
 msgstr "의존성을 업그레이드하고 깨진 부분 고치기…"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Upgrade on {0}"
+msgstr "{0}에서 업그레이드"
+
 #. placeholder {0}: i18n._(plan.name)
 msgid "Upgrade to {0}"
 msgstr "{0}(으)로 업그레이드"
+
+msgid "Upgrade to Pro"
+msgstr "Pro로 업그레이드"
 
 msgid "Upload files"
 msgstr "파일 업로드"
@@ -16546,6 +16576,9 @@ msgstr "나"
 msgid "You appear to be offline"
 msgstr "오프라인 상태로 보입니다"
 
+msgid "You are not a member of that organization."
+msgstr "해당 조직의 멤버가 아닙니다."
+
 msgid "You are not a member of this organization"
 msgstr "이 조직의 멤버가 아닙니다"
 
@@ -16648,6 +16681,9 @@ msgstr "다운로드가 자동으로 시작됩니다. 시작되지 않으면 여
 
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "GitHub 링크는 로그인에 사용한 계정에서 가져오므로 확인됨으로 표시되며 여기서는 수정할 수 없습니다."
+
+msgid "Your last payment failed. Update your payment method to keep Pro."
+msgstr "최근 결제에 실패했습니다. Pro를 유지하려면 결제 수단을 업데이트하세요."
 
 msgid "Your name"
 msgstr "이름"

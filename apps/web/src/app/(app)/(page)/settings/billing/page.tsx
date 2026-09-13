@@ -1,33 +1,24 @@
 import { msg } from "@lingui/core/macro";
-import {
-	DOWNLOAD_URL_MAC_ARM64,
-	PROTOCOL_SCHEMES,
-} from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
-import { Download, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { HiCheckCircle } from "react-icons/hi2";
 import { initServerI18n } from "@/lib/i18n-server";
+import { BillingSettings } from "./components/BillingSettings";
 
 export default async function BillingPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ success?: string }>;
+	searchParams: Promise<{ success?: string; organization?: string }>;
 }) {
-	const i18n = await initServerI18n();
+	const { success, organization } = await searchParams;
 
-	const { success } = await searchParams;
-	const isSuccess = success === "true";
-
-	if (isSuccess) {
+	if (success === "true") {
+		const i18n = await initServerI18n();
 		return (
 			<div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
 				<HiCheckCircle className="h-12 w-12 text-green-500" />
 				<h1 className="text-2xl font-semibold">
-					{i18n._(
-						msg({
-							message: "Payment Successful",
-						}),
-					)}
+					{i18n._(msg({ message: "Payment Successful" }))}
 				</h1>
 				<p className="text-muted-foreground">
 					{i18n._(
@@ -37,47 +28,14 @@ export default async function BillingPage({
 						}),
 					)}
 				</p>
+				<Button variant="outline" className="mt-3" asChild>
+					<Link href="/settings/billing">
+						{i18n._(msg({ message: "Back to billing" }))}
+					</Link>
+				</Button>
 			</div>
 		);
 	}
 
-	return (
-		<div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
-			<div>
-				<h1 className="mb-2 text-2xl font-semibold">
-					{i18n._(msg({ message: "Billing" }))}
-				</h1>
-				<p className="text-muted-foreground">
-					{i18n._(
-						msg({
-							message:
-								"Manage your subscription and billing in the desktop app.",
-						}),
-					)}
-				</p>
-			</div>
-			<div className="flex flex-wrap justify-center gap-3">
-				<Button size="lg" className="gap-2" asChild>
-					<a href={`${PROTOCOL_SCHEMES.PROD}://settings/billing`}>
-						{i18n._(
-							msg({
-								message: "Open in Desktop App",
-							}),
-						)}
-						<ExternalLink className="size-4" />
-					</a>
-				</Button>
-				<Button variant="outline" size="lg" className="gap-2" asChild>
-					<a href={DOWNLOAD_URL_MAC_ARM64}>
-						{i18n._(
-							msg({
-								message: "Download for Mac",
-							}),
-						)}
-						<Download className="size-4" />
-					</a>
-				</Button>
-			</div>
-		</div>
-	);
+	return <BillingSettings organizationId={organization} />;
 }

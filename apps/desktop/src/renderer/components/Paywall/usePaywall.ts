@@ -1,9 +1,6 @@
+import { isPaidPlanTier, resolveCurrentPlan } from "@superset/shared/billing";
 import { useRef } from "react";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
-import {
-	isPaidPlanTier,
-	resolveCurrentPlan,
-} from "renderer/hooks/useCurrentPlan";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import type { GatedFeature } from "./constants";

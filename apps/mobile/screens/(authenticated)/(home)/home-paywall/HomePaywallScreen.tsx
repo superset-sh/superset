@@ -1,14 +1,20 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Trans, useLingui } from "@lingui/react/macro";
+import { COMPANY } from "@superset/shared/constants";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { View } from "react-native";
+import { useEffect } from "react";
+import { AppState, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
+import { openUrl } from "@/lib/open-url";
+import { billingSettingsUrl } from "@/lib/web-links";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 import { OrganizationHeaderButton } from "../home/components/OrganizationHeaderButton";
+
+const PLAN_POLL_MS = 10_000;
 
 /** Home content for accounts whose active org has no paid plan. The shell
  * stays fully navigable — the org switcher sheet also carries the Settings
@@ -19,7 +25,21 @@ export function HomePaywallScreen() {
 	const theme = useTheme();
 	const router = useRouter();
 	const { refetch } = useSession();
-	const { activeOrganization } = useOrganizations();
+	const { activeOrganization, activeOrganizationId } = useOrganizations();
+
+	// Paying happens in the browser, so the plan flips while this screen is
+	// up or backgrounded. iOS freezes timers in the background; the AppState
+	// listener is the resume path.
+	useEffect(() => {
+		const interval = setInterval(() => void refetch(), PLAN_POLL_MS);
+		const subscription = AppState.addEventListener("change", (state) => {
+			if (state === "active") void refetch();
+		});
+		return () => {
+			clearInterval(interval);
+			subscription.remove();
+		};
+	}, [refetch]);
 
 	return (
 		<>
@@ -55,9 +75,13 @@ export function HomePaywallScreen() {
 					</Text>
 				</View>
 
-				<Button size="lg" className="w-4/5" onPress={() => void refetch()}>
+				<Button
+					size="lg"
+					className="w-4/5"
+					onPress={() => openUrl(billingSettingsUrl(activeOrganizationId))}
+				>
 					<Text>
-						<Trans>Refresh</Trans>
+						<Trans>Upgrade on {COMPANY.DOMAIN}</Trans>
 					</Text>
 				</Button>
 			</View>

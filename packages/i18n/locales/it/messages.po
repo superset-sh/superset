@@ -819,6 +819,9 @@ msgstr "{pending} controlli su {total} in esecuzione"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · Iscritto il {joined}"
 
+msgid "{planLabel} plan"
+msgstr "Piano {planLabel}"
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} reimpostato ai valori predefiniti"
 
@@ -2366,6 +2369,9 @@ msgstr "Indietro"
 msgid "Back to About"
 msgstr "Torna a Chi siamo"
 
+msgid "Back to billing"
+msgstr "Torna alla fatturazione"
+
 msgid "Back to Blog"
 msgstr "Torna al blog"
 
@@ -2820,6 +2826,7 @@ msgid "Cancelled"
 msgstr "Annullato"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
+#. placeholder {0}: formatDate(cancelAt)
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "Si disdice il {0} — passa a Free alla fine del periodo di fatturazione."
 
@@ -4155,6 +4162,9 @@ msgstr "Impossibile caricare le tue macchine"
 msgid "Could not mark ready"
 msgstr "Impossibile segnare come pronta"
 
+msgid "Could not open billing. Please try again."
+msgstr "Impossibile aprire la fatturazione. Riprova."
+
 msgid "Could not open Files"
 msgstr "Impossibile aprire File"
 
@@ -4223,6 +4233,9 @@ msgstr "Impossibile impostare l'icona"
 
 msgid "Could not start agent"
 msgstr "Impossibile avviare l'agente"
+
+msgid "Could not start checkout. Please try again."
+msgstr "Impossibile avviare il checkout. Riprova."
 
 msgid "Could not start cloud workspace provisioning"
 msgstr "Impossibile avviare il provisioning del workspace cloud"
@@ -7628,6 +7641,9 @@ msgstr "Invita il tuo team nei workspace condivisi. Guarda gli aggiornamenti in 
 msgid "Invited By"
 msgstr "Invitato da"
 
+msgid "Invoices and payment method"
+msgstr "Fatture e metodo di pagamento"
+
 msgid "iOS app"
 msgstr "App iOS"
 
@@ -8382,6 +8398,9 @@ msgstr "Fa sì che il pulsante Esegui avvii questo script del terminale per i pr
 msgid "Manage"
 msgstr "Gestisci"
 
+msgid "Manage billing"
+msgstr "Gestisci fatturazione"
+
 msgid "Manage integrations in the web app to connect and configure services."
 msgstr "Gestisci le integrazioni nell'app web per collegare e configurare i servizi."
 
@@ -8418,9 +8437,6 @@ msgstr "Gestisci le impostazioni del tuo account"
 
 msgid "Manage your organization's branding and members."
 msgstr "Gestisci il branding e i membri della tua organizzazione."
-
-msgid "Manage your subscription and billing in the desktop app."
-msgstr "Gestisci l'abbonamento e la fatturazione nell'app desktop."
 
 msgid "Managed"
 msgstr "Gestita"
@@ -9897,6 +9913,9 @@ msgstr "Online adesso"
 msgid "Online Now"
 msgstr "Online ora"
 
+msgid "Only an organization owner can change the plan. Ask yours to upgrade."
+msgstr "Solo un proprietario dell'organizzazione può cambiare piano. Chiedi al tuo di eseguire l'upgrade."
+
 msgid "Only available on macOS."
 msgstr "Disponibile solo su macOS."
 
@@ -10113,9 +10132,6 @@ msgstr "Apri nella scheda corrente"
 
 msgid "Open in Cursor"
 msgstr "Apri in Cursor"
-
-msgid "Open in Desktop App"
-msgstr "Apri nell'app desktop"
 
 msgid "Open in diff"
 msgstr "Apri nel diff"
@@ -11836,6 +11852,7 @@ msgid "Renders a registered hotkey inside dropdown/menubar items"
 msgstr "Renderizza una scorciatoia registrata dentro le voci dei menu a discesa e della menubar"
 
 #. placeholder {0}: format(new Date(periodEnd), "MMMM d, yyyy")
+#. placeholder {0}: formatDate(periodEnd)
 msgid "Renews {0}."
 msgstr "Si rinnova il {0}."
 
@@ -14100,6 +14117,9 @@ msgstr "Superset Mobile fa parte di Pro"
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile esegue gli agenti sui computer che colleghi."
 
+msgid "Superset Mobile, cloud workspaces, automations, and priority support."
+msgstr "Superset Mobile, workspace cloud, automazioni e supporto prioritario."
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset ha bisogno dell'Accesso completo al disco per leggere i dati di un altro browser. Concedilo in Impostazioni di Sistema, poi controlla di nuovo."
 
@@ -15698,6 +15718,9 @@ msgstr "Aggiorna le istruzioni di denominazione"
 msgid "Update naming instructions for {0}"
 msgstr "Aggiorna le istruzioni di denominazione per {0}"
 
+msgid "Update payment method"
+msgstr "Aggiorna metodo di pagamento"
+
 msgid "Update ready"
 msgstr "Aggiornamento pronto"
 
@@ -15742,9 +15765,16 @@ msgstr "Passa a Pro"
 msgid "Upgrade a dependency and fix what breaks…"
 msgstr "Aggiorna una dipendenza e correggi ciò che si rompe…"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Upgrade on {0}"
+msgstr "Esegui l'upgrade su {0}"
+
 #. placeholder {0}: i18n._(plan.name)
 msgid "Upgrade to {0}"
 msgstr "Passa a {0}"
+
+msgid "Upgrade to Pro"
+msgstr "Passa a Pro"
 
 msgid "Upload files"
 msgstr "Carica file"
@@ -16546,6 +16576,9 @@ msgstr "TU"
 msgid "You appear to be offline"
 msgstr "Sembra che tu sia offline"
 
+msgid "You are not a member of that organization."
+msgstr "Non sei membro di quell'organizzazione."
+
 msgid "You are not a member of this organization"
 msgstr "Non sei membro di questa organizzazione"
 
@@ -16648,6 +16681,9 @@ msgstr "Il download parte automaticamente. Se non è partito, scaricalo qui."
 
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "Il tuo link GitHub proviene dall'account con cui hai effettuato l'accesso, quindi risulta verificato e non è modificabile qui."
+
+msgid "Your last payment failed. Update your payment method to keep Pro."
+msgstr "L'ultimo pagamento non è andato a buon fine. Aggiorna il metodo di pagamento per mantenere Pro."
 
 msgid "Your name"
 msgstr "Il tuo nome"

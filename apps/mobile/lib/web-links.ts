@@ -11,8 +11,11 @@ export function workspaceShareUrl(workspaceId: string): string {
 
 /**
  * Where a plan is actually changed. The mobile app never sells a plan — the
- * organization's owner does it on the web — so the settings row links here.
+ * organization's owner does it on the web. The web session has its own active
+ * organization, so the link names the one this app is showing.
  */
-export function billingSettingsUrl(): string {
-	return `${env.EXPO_PUBLIC_WEB_URL.replace(/\/$/, "")}/settings/billing`;
+export function billingSettingsUrl(organizationId?: string | null): string {
+	const url = new URL("/settings/billing", env.EXPO_PUBLIC_WEB_URL);
+	if (organizationId) url.searchParams.set("organization", organizationId);
+	return url.toString();
 }

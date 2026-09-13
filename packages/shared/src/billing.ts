@@ -38,6 +38,33 @@ export function isPaymentFailingStatus(
 	return status === "past_due";
 }
 
+export function isPaidPlanTier(
+	plan: string | null | undefined,
+): plan is "pro" | "enterprise" {
+	return plan === "pro" || plan === "enterprise";
+}
+
+/**
+ * The tier to render right now. The subscription row wins over the session
+ * (which can lag a checkout), but an unresolved query must not read as free —
+ * that would show a live Upgrade to an organization that may already pay —
+ * so the session plan fills in until it arrives.
+ */
+export function resolveCurrentPlan({
+	subscriptionPlan,
+	sessionPlan,
+	subscriptionsLoaded,
+}: {
+	subscriptionPlan?: string | null;
+	sessionPlan?: string | null;
+	subscriptionsLoaded: boolean;
+}): PlanTier {
+	if (isPaidPlanTier(subscriptionPlan)) return subscriptionPlan;
+	if (subscriptionsLoaded) return "free";
+	if (isPaidPlanTier(sessionPlan)) return sessionPlan;
+	return "free";
+}
+
 export const PLAN_RANK: Record<PlanTier, number> = {
 	free: 0,
 	pro: 1,

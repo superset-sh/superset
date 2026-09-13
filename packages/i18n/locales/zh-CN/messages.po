@@ -819,6 +819,9 @@ msgstr "{total}项检查中有{pending}项运行中"
 msgid "{planLabel} · Joined {joined}"
 msgstr "{planLabel} · 加入于{joined}"
 
+msgid "{planLabel} plan"
+msgstr "{planLabel}方案"
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel}已重置为默认值"
 
@@ -2366,6 +2369,9 @@ msgstr "返回"
 msgid "Back to About"
 msgstr "返回关于页"
 
+msgid "Back to billing"
+msgstr "返回账单"
+
 msgid "Back to Blog"
 msgstr "返回博客"
 
@@ -2820,6 +2826,7 @@ msgid "Cancelled"
 msgstr "已取消"
 
 #. placeholder {0}: format(new Date(cancelAt), "MMMM d, yyyy")
+#. placeholder {0}: formatDate(cancelAt)
 msgid "Cancels {0} — downgrades to Free at the end of the billing period."
 msgstr "将于{0}取消，在计费周期结束时降级为免费版。"
 
@@ -4155,6 +4162,9 @@ msgstr "无法加载你的机器"
 msgid "Could not mark ready"
 msgstr "无法标记为待审查"
 
+msgid "Could not open billing. Please try again."
+msgstr "无法打开账单，请重试。"
+
 msgid "Could not open Files"
 msgstr "无法打开“文件”"
 
@@ -4223,6 +4233,9 @@ msgstr "无法设置图标"
 
 msgid "Could not start agent"
 msgstr "无法启动智能体"
+
+msgid "Could not start checkout. Please try again."
+msgstr "无法开始结账，请重试。"
 
 msgid "Could not start cloud workspace provisioning"
 msgstr "无法开始配置云端工作区"
@@ -7628,6 +7641,9 @@ msgstr "邀请团队加入共享工作区。查看实时更新、同步配置，
 msgid "Invited By"
 msgstr "邀请人"
 
+msgid "Invoices and payment method"
+msgstr "发票和支付方式"
+
 msgid "iOS app"
 msgstr "iOS应用"
 
@@ -8382,6 +8398,9 @@ msgstr "让匹配项目的“运行”按钮启动此终端脚本。"
 msgid "Manage"
 msgstr "管理"
 
+msgid "Manage billing"
+msgstr "管理账单"
+
 msgid "Manage integrations in the web app to connect and configure services."
 msgstr "在网页应用中管理集成，以连接和配置服务。"
 
@@ -8418,9 +8437,6 @@ msgstr "管理你的账户设置"
 
 msgid "Manage your organization's branding and members."
 msgstr "管理组织的品牌形象和成员。"
-
-msgid "Manage your subscription and billing in the desktop app."
-msgstr "在桌面应用中管理你的订阅和账单。"
 
 msgid "Managed"
 msgstr "托管"
@@ -9897,6 +9913,9 @@ msgstr "当前在线"
 msgid "Online Now"
 msgstr "当前在线"
 
+msgid "Only an organization owner can change the plan. Ask yours to upgrade."
+msgstr "只有组织所有者才能更改方案，请联系所有者升级。"
+
 msgid "Only available on macOS."
 msgstr "仅在macOS上可用。"
 
@@ -10113,9 +10132,6 @@ msgstr "在当前标签页打开"
 
 msgid "Open in Cursor"
 msgstr "在Cursor中打开"
-
-msgid "Open in Desktop App"
-msgstr "在桌面应用中打开"
 
 msgid "Open in diff"
 msgstr "在差异视图中打开"
@@ -11836,6 +11852,7 @@ msgid "Renders a registered hotkey inside dropdown/menubar items"
 msgstr "在下拉菜单／菜单栏项中渲染已注册的快捷键"
 
 #. placeholder {0}: format(new Date(periodEnd), "MMMM d, yyyy")
+#. placeholder {0}: formatDate(periodEnd)
 msgid "Renews {0}."
 msgstr "将于{0}续订。"
 
@@ -14100,6 +14117,9 @@ msgstr "Superset Mobile属于专业版"
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile在你连接的电脑上运行智能体。"
 
+msgid "Superset Mobile, cloud workspaces, automations, and priority support."
+msgstr "Superset Mobile、云工作区、自动化和优先支持。"
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset需要“完全磁盘访问权限”才能读取其他浏览器的数据。请在系统设置中授予权限，然后重新检查。"
 
@@ -15698,6 +15718,9 @@ msgstr "更新命名规则"
 msgid "Update naming instructions for {0}"
 msgstr "更新{0}的命名规则"
 
+msgid "Update payment method"
+msgstr "更新支付方式"
+
 msgid "Update ready"
 msgstr "更新已就绪"
 
@@ -15742,9 +15765,16 @@ msgstr "升级"
 msgid "Upgrade a dependency and fix what breaks…"
 msgstr "升级一个依赖，并修好被它弄坏的地方…"
 
+#. placeholder {0}: COMPANY.DOMAIN
+msgid "Upgrade on {0}"
+msgstr "在 {0} 升级"
+
 #. placeholder {0}: i18n._(plan.name)
 msgid "Upgrade to {0}"
 msgstr "升级到{0}"
+
+msgid "Upgrade to Pro"
+msgstr "升级到 Pro"
 
 msgid "Upload files"
 msgstr "上传文件"
@@ -16546,6 +16576,9 @@ msgstr "你"
 msgid "You appear to be offline"
 msgstr "你似乎处于离线状态"
 
+msgid "You are not a member of that organization."
+msgstr "你不是该组织的成员。"
+
 msgid "You are not a member of this organization"
 msgstr "你不是此组织的成员"
 
@@ -16648,6 +16681,9 @@ msgstr "下载将自动开始。如果没有，请点此获取。"
 
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "你的 GitHub 链接来自登录所用的账号，因此显示为已验证，无法在此编辑。"
+
+msgid "Your last payment failed. Update your payment method to keep Pro."
+msgstr "上次付款失败。请更新支付方式以继续使用 Pro。"
 
 msgid "Your name"
 msgstr "你的姓名"

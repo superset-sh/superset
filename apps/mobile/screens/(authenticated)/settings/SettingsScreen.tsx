@@ -42,7 +42,7 @@ export function SettingsScreen() {
 	const theme = useTheme();
 	const insets = useSafeAreaInsets();
 	const { data: session } = useSession();
-	const { activeOrganization } = useOrganizations();
+	const { activeOrganization, activeOrganizationId } = useOrganizations();
 	const { signOut, isSigningOut } = useSignOut();
 	const { deleteAccount, isDeleting } = useDeleteAccount();
 
@@ -79,7 +79,7 @@ export function SettingsScreen() {
 					text: t({ message: "Dismiss" }),
 				},
 				{
-					onPress: () => openUrl(billingSettingsUrl()),
+					onPress: () => openUrl(billingSettingsUrl(activeOrganizationId)),
 					text: t({ message: `Manage on ${COMPANY.DOMAIN}` }),
 				},
 			],
