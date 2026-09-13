@@ -19,6 +19,13 @@ afterAll(() => rmSync(directory, { recursive: true, force: true }));
 describe("Pi completion notifications", () => {
 	it.each([
 		{
+			stopReason: undefined,
+			text: undefined,
+			errorMessage: undefined,
+			event: "Stop",
+			preview: undefined,
+		},
+		{
 			stopReason: "stop",
 			text: "Checks passed.",
 			errorMessage: undefined,
@@ -60,14 +67,16 @@ describe("Pi completion notifications", () => {
 			});
 			handlers.get("agent_end")?.(
 				{
-					messages: [
-						{
-							role: "assistant",
-							stopReason: scenario.stopReason,
-							errorMessage: scenario.errorMessage,
-							content: [{ type: "text", text: scenario.text }],
-						},
-					],
+					messages: scenario.stopReason
+						? [
+								{
+									role: "assistant",
+									stopReason: scenario.stopReason,
+									errorMessage: scenario.errorMessage,
+									content: [{ type: "text", text: scenario.text }],
+								},
+							]
+						: undefined,
 				},
 				{ hasUI: true },
 			);
@@ -82,7 +91,7 @@ describe("Pi completion notifications", () => {
 			}
 			expect(payload).toEqual({
 				hook_event_name: scenario.event,
-				message: scenario.preview,
+				...(scenario.preview ? { message: scenario.preview } : {}),
 			});
 		} finally {
 			if (previousHome === undefined) delete process.env.SUPERSET_HOME_DIR;

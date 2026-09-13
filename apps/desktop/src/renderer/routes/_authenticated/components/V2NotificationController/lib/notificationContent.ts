@@ -82,9 +82,10 @@ function cleanPreview(value: string | undefined): string | null {
 		.replace(/[*`~]/g, "")
 		.replace(/\s+/g, " ")
 		.trim();
+	const characters = Array.from(text);
 	return text
-		? text.length > 180
-			? `${text.slice(0, 179).trimEnd()}…`
+		? characters.length > 180
+			? `${characters.slice(0, 179).join("").trimEnd()}…`
 			: text
 		: null;
 }

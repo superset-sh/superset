@@ -102,6 +102,14 @@ it("cleans and bounds previews without exposing markdown links or ANSI styling",
 	expect(result.body.length).toBe(180);
 	expect(result.body.endsWith("…")).toBe(true);
 });
+it("truncates emoji previews without splitting Unicode code points", () => {
+	const result = getV2NativeNotificationContent({
+		workspaceName: "test",
+		payload: payload({ preview: "😀".repeat(200) }),
+	});
+	expect(result.body).toBe(`${"😀".repeat(179)}…`);
+});
+
 it("uses the permission text as the preview", () => {
 	expect(
 		getV2NativeNotificationContent({

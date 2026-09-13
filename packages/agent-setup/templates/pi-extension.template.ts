@@ -92,7 +92,7 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("agent_end", (event, ctx) => {
 		if (skip(ctx)) return;
-		const assistant = event.messages.findLast((message) => message.role === "assistant");
+		const assistant = event.messages?.findLast((message) => message.role === "assistant");
 		const failed = assistant?.stopReason === "error";
 		const text = assistant?.content.filter((part) => part.type === "text").map((part) => part.text).join("\n");
 		fire(failed ? "Failed" : "Stop", failed ? assistant?.errorMessage : text);
