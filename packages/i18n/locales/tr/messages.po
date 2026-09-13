@@ -78,6 +78,12 @@ msgstr "\"{title}\" görevini tamamladı"
 msgid "\"{title}\" is waiting for your reply"
 msgstr "\"{title}\" yanıtınızı bekliyor"
 
+msgid "\"{workspaceName}\" can't be archived while its host is unreachable."
+msgstr "\"{workspaceName}\", ana makinesine ulaşılamadığı sürece arşivlenemez."
+
+msgid "\"{workspaceName}\" has uncommitted changes. Commit or stash them first, or delete the workspace instead."
+msgstr "\"{workspaceName}\" içinde commit'lenmemiş değişiklikler var. Önce commit'leyin ya da stash'leyin veya bunun yerine çalışma alanını silin."
+
 msgid "({aliveCount} running)"
 msgstr "({aliveCount} çalışıyor)"
 
@@ -2083,8 +2089,20 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Arşivle"
 
+msgid "Archive · removes the worktree and keeps the branch; restore it any time"
+msgstr "Arşivle · worktree'yi kaldırır ve dalı korur; istediğiniz zaman geri yükleyebilirsiniz"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "Arşivle · bu çalışma alanının host'u çevrimdışıyken kullanılamaz"
+
+msgid "Archive workspace"
+msgstr "Çalışma alanını arşivle"
+
 msgid "Archived"
 msgstr "Arşivlenmiş"
+
+msgid "Archived \"{workspaceName}\""
+msgstr "\"{workspaceName}\" arşivlendi"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Bu dosyayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
@@ -4806,6 +4824,9 @@ msgstr "Devredilmiş"
 
 msgid "Delete"
 msgstr "Sil"
+
+msgid "Delete · makes the archive final; can't be restored"
+msgstr "Sil · arşivlemeyi kesinleştirir; geri yüklenemez"
 
 #. placeholder {0}: target.name
 msgid "Delete \"{0}\"? This removes its worktree from the host."
@@ -9168,6 +9189,9 @@ msgstr "Henüz ajan yok."
 msgid "No API keys yet."
 msgstr "Henüz API anahtarı yok."
 
+msgid "No archived workspaces"
+msgstr "Arşivlenmiş çalışma alanı yok"
+
 msgid "No assignee"
 msgstr "Atanan yok"
 
@@ -12097,6 +12121,9 @@ msgstr "Yeniden başlatılıyor…"
 msgid "Restore"
 msgstr "Geri yükle"
 
+msgid "Restore · checks the branch out again at its original path, chats included"
+msgstr "Geri yükle · dalı özgün yolunda yeniden checkout eder, sohbetler dahil"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "{0} varsayılanlara geri yüklensin mi?"
@@ -12116,8 +12143,19 @@ msgstr "ajan varsayılanlarını geri yükleme"
 msgid "Restore this version?"
 msgstr "Bu sürüm geri yüklensin mi?"
 
+msgid "Restore workspace"
+msgstr "Çalışma alanını geri yükle"
+
 msgid "Restored"
 msgstr "Geri yüklendi"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "\"{0}\" arşivden geri yüklendi"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restoring \"{0}\"…"
+msgstr "\"{0}\" geri yükleniyor…"
 
 msgid "Restoring your session"
 msgstr "Oturumunuz geri yükleniyor"
@@ -13178,6 +13216,9 @@ msgstr "Uygulamadan çıkarken onay penceresi göster"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Ana sayfa kenar çubuğunda, pull request'lerin altında bir Kullanım düğmesi göster"
 
+msgid "Show active workspaces"
+msgstr "Etkin çalışma alanlarını göster"
+
 msgid "Show all {count}"
 msgstr "Tümünü göster ({count})"
 
@@ -13189,6 +13230,9 @@ msgstr "Tüm yorumları göster"
 
 msgid "Show all lines"
 msgstr "Tüm satırları göster"
+
+msgid "Show archived workspaces"
+msgstr "Arşivlenmiş çalışma alanlarını göster"
 
 msgid "Show checks"
 msgstr "Kontrolleri göster"
@@ -14814,6 +14858,9 @@ msgstr "hedef host"
 
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "Takım daveti ya süresi dolmuş ya da mevcut değil. Takım sahibinden yeni bir bağlantı isteyin veya URL'nin doğru girildiğini kontrol edin."
+
+msgid "The teardown script for \"{workspaceName}\" failed. Delete the workspace to retry without it."
+msgstr "\"{workspaceName}\" için kapatma betiği başarısız oldu. Betik olmadan yeniden denemek için çalışma alanını silin."
 
 msgid "The web agents UI is a read-only preview for now."
 msgstr "Web ajan arayüzü şimdilik salt okunur bir önizlemedir."

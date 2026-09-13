@@ -78,6 +78,12 @@ msgstr "「{title}」がタスクを完了しました"
 msgid "\"{title}\" is waiting for your reply"
 msgstr "「{title}」が返信を待っています"
 
+msgid "\"{workspaceName}\" can't be archived while its host is unreachable."
+msgstr "「{workspaceName}」はホストに到達できない間はアーカイブできません。"
+
+msgid "\"{workspaceName}\" has uncommitted changes. Commit or stash them first, or delete the workspace instead."
+msgstr "「{workspaceName}」には未コミットの変更があります。先にコミットまたは stash するか、代わりにワークスペースを削除してください。"
+
 msgid "({aliveCount} running)"
 msgstr "({aliveCount}件実行中)"
 
@@ -2083,8 +2089,20 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "アーカイブ"
 
+msgid "Archive · removes the worktree and keeps the branch; restore it any time"
+msgstr "アーカイブ · worktree を削除し、ブランチは残します。いつでも復元できます"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "アーカイブ · このワークスペースのホストがオフラインのため利用できません"
+
+msgid "Archive workspace"
+msgstr "ワークスペースをアーカイブ"
+
 msgid "Archived"
 msgstr "アーカイブ済み"
+
+msgid "Archived \"{workspaceName}\""
+msgstr "「{workspaceName}」をアーカイブしました"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "このファイルを削除してもよろしいですか?この操作は元に戻せません。"
@@ -4806,6 +4824,9 @@ msgstr "委任"
 
 msgid "Delete"
 msgstr "削除"
+
+msgid "Delete · makes the archive final; can't be restored"
+msgstr "削除 · アーカイブを確定します。復元できなくなります"
 
 #. placeholder {0}: target.name
 msgid "Delete \"{0}\"? This removes its worktree from the host."
@@ -9168,6 +9189,9 @@ msgstr "エージェントはまだありません。"
 msgid "No API keys yet."
 msgstr "APIキーはまだありません。"
 
+msgid "No archived workspaces"
+msgstr "アーカイブ済みのワークスペースはありません"
+
 msgid "No assignee"
 msgstr "担当者なし"
 
@@ -12097,6 +12121,9 @@ msgstr "再起動中…"
 msgid "Restore"
 msgstr "復元"
 
+msgid "Restore · checks the branch out again at its original path, chats included"
+msgstr "復元 · 元のパスにブランチを再チェックアウトします（チャットも含む）"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "{0}をデフォルトに戻しますか?"
@@ -12116,8 +12143,19 @@ msgstr "エージェントの既定値を復元する"
 msgid "Restore this version?"
 msgstr "このバージョンを復元しますか?"
 
+msgid "Restore workspace"
+msgstr "ワークスペースを復元"
+
 msgid "Restored"
 msgstr "復元済み"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "「{0}」をアーカイブから復元しました"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restoring \"{0}\"…"
+msgstr "「{0}」を復元中…"
 
 msgid "Restoring your session"
 msgstr "セッションを復元中"
@@ -13178,6 +13216,9 @@ msgstr "アプリ終了時に確認ダイアログを表示"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "ホームのサイドバーの「プルリクエスト」の下に「使用量」ボタンを表示"
 
+msgid "Show active workspaces"
+msgstr "アクティブなワークスペースを表示"
+
 msgid "Show all {count}"
 msgstr "{count}件すべて表示"
 
@@ -13189,6 +13230,9 @@ msgstr "すべてのコメントを表示"
 
 msgid "Show all lines"
 msgstr "すべての行を表示"
+
+msgid "Show archived workspaces"
+msgstr "アーカイブ済みのワークスペースを表示"
 
 msgid "Show checks"
 msgstr "チェックを表示"
@@ -14814,6 +14858,9 @@ msgstr "対象ホスト"
 
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "チームの招待は期限切れか、存在しません。チームのオーナーに新しいリンクを依頼するか、URLが正しく入力されているか確認してください。"
+
+msgid "The teardown script for \"{workspaceName}\" failed. Delete the workspace to retry without it."
+msgstr "「{workspaceName}」のティアダウンスクリプトが失敗しました。スクリプトなしで再試行するには、ワークスペースを削除してください。"
 
 msgid "The web agents UI is a read-only preview for now."
 msgstr "Web版のエージェントUIは現時点では読み取り専用のプレビューです。"

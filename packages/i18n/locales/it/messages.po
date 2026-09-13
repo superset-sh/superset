@@ -78,6 +78,12 @@ msgstr "\"{title}\" ha completato il suo task"
 msgid "\"{title}\" is waiting for your reply"
 msgstr "\"{title}\" è in attesa della tua risposta"
 
+msgid "\"{workspaceName}\" can't be archived while its host is unreachable."
+msgstr "\"{workspaceName}\" non può essere archiviato finché il suo host non è raggiungibile."
+
+msgid "\"{workspaceName}\" has uncommitted changes. Commit or stash them first, or delete the workspace instead."
+msgstr "\"{workspaceName}\" ha modifiche non committate. Fai prima commit o stash, oppure elimina il workspace."
+
 msgid "({aliveCount} running)"
 msgstr "({aliveCount} in esecuzione)"
 
@@ -2083,8 +2089,20 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Archivia"
 
+msgid "Archive · removes the worktree and keeps the branch; restore it any time"
+msgstr "Archivia · rimuove il worktree e conserva il branch; ripristinabile in qualsiasi momento"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "Archivia · non disponibile mentre l'host di questo workspace è offline"
+
+msgid "Archive workspace"
+msgstr "Archivia il workspace"
+
 msgid "Archived"
 msgstr "Archiviati"
+
+msgid "Archived \"{workspaceName}\""
+msgstr "\"{workspaceName}\" archiviato"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Vuoi davvero eliminare questo file? L'operazione non può essere annullata."
@@ -4806,6 +4824,9 @@ msgstr "Delegato"
 
 msgid "Delete"
 msgstr "Elimina"
+
+msgid "Delete · makes the archive final; can't be restored"
+msgstr "Elimina · rende definitiva l'archiviazione; non può essere ripristinato"
 
 #. placeholder {0}: target.name
 msgid "Delete \"{0}\"? This removes its worktree from the host."
@@ -9168,6 +9189,9 @@ msgstr "Ancora nessun agente."
 msgid "No API keys yet."
 msgstr "Ancora nessuna chiave API."
 
+msgid "No archived workspaces"
+msgstr "Nessun workspace archiviato"
+
 msgid "No assignee"
 msgstr "Nessun assegnatario"
 
@@ -12097,6 +12121,9 @@ msgstr "Riavvio…"
 msgid "Restore"
 msgstr "Ripristina"
 
+msgid "Restore · checks the branch out again at its original path, chats included"
+msgstr "Ripristina · rifà il checkout del branch nel percorso originale, chat incluse"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "Ripristinare {0} ai valori predefiniti?"
@@ -12116,8 +12143,19 @@ msgstr "ripristinare i valori predefiniti degli agenti"
 msgid "Restore this version?"
 msgstr "Ripristinare questa versione?"
 
+msgid "Restore workspace"
+msgstr "Ripristina spazio di lavoro"
+
 msgid "Restored"
 msgstr "Ripristinato"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "\"{0}\" ripristinato dall'archivio"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restoring \"{0}\"…"
+msgstr "Ripristino di \"{0}\"…"
 
 msgid "Restoring your session"
 msgstr "Ripristino della sessione"
@@ -13178,6 +13216,9 @@ msgstr "Mostra una finestra di conferma quando esci dall'app"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Mostra un pulsante Utilizzo nella barra laterale della home, sotto Pull request"
 
+msgid "Show active workspaces"
+msgstr "Mostra i workspace attivi"
+
 msgid "Show all {count}"
 msgstr "Mostra tutti i {count}"
 
@@ -13189,6 +13230,9 @@ msgstr "Mostra tutti i commenti"
 
 msgid "Show all lines"
 msgstr "Mostra tutte le righe"
+
+msgid "Show archived workspaces"
+msgstr "Mostra i workspace archiviati"
 
 msgid "Show checks"
 msgstr "Mostra i controlli"
@@ -14814,6 +14858,9 @@ msgstr "l'host di destinazione"
 
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "L'invito al team è scaduto oppure non esiste. Chiedi un nuovo link al proprietario del team o controlla che l'URL sia corretto."
+
+msgid "The teardown script for \"{workspaceName}\" failed. Delete the workspace to retry without it."
+msgstr "Lo script di teardown di \"{workspaceName}\" non è riuscito. Elimina il workspace per riprovare senza di esso."
 
 msgid "The web agents UI is a read-only preview for now."
 msgstr "L'interfaccia web degli agenti è per ora un'anteprima in sola lettura."

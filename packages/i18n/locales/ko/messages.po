@@ -78,6 +78,12 @@ msgstr "\"{title}\"이(가) 작업을 완료했습니다"
 msgid "\"{title}\" is waiting for your reply"
 msgstr "\"{title}\"이(가) 답변을 기다리고 있습니다"
 
+msgid "\"{workspaceName}\" can't be archived while its host is unreachable."
+msgstr "\"{workspaceName}\"의 호스트에 연결할 수 없는 동안에는 보관할 수 없습니다."
+
+msgid "\"{workspaceName}\" has uncommitted changes. Commit or stash them first, or delete the workspace instead."
+msgstr "\"{workspaceName}\"에 커밋되지 않은 변경 사항이 있습니다. 먼저 커밋하거나 stash하거나, 대신 워크스페이스를 삭제하세요."
+
 msgid "({aliveCount} running)"
 msgstr "({aliveCount}개 실행 중)"
 
@@ -2083,8 +2089,20 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "보관"
 
+msgid "Archive · removes the worktree and keeps the branch; restore it any time"
+msgstr "보관 · worktree를 제거하고 브랜치는 유지합니다. 언제든지 복원할 수 있습니다"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "보관 · 이 워크스페이스의 호스트가 오프라인이어서 사용할 수 없습니다"
+
+msgid "Archive workspace"
+msgstr "워크스페이스 보관"
+
 msgid "Archived"
 msgstr "보관됨"
+
+msgid "Archived \"{workspaceName}\""
+msgstr "\"{workspaceName}\" 보관됨"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "이 파일을 삭제할까요? 되돌릴 수 없습니다."
@@ -4806,6 +4824,9 @@ msgstr "위임"
 
 msgid "Delete"
 msgstr "삭제"
+
+msgid "Delete · makes the archive final; can't be restored"
+msgstr "삭제 · 보관을 확정합니다. 더 이상 복원할 수 없습니다"
 
 #. placeholder {0}: target.name
 msgid "Delete \"{0}\"? This removes its worktree from the host."
@@ -9168,6 +9189,9 @@ msgstr "아직 에이전트가 없습니다."
 msgid "No API keys yet."
 msgstr "아직 API 키가 없습니다."
 
+msgid "No archived workspaces"
+msgstr "보관된 워크스페이스가 없습니다"
+
 msgid "No assignee"
 msgstr "담당자 없음"
 
@@ -12097,6 +12121,9 @@ msgstr "다시 시작 중…"
 msgid "Restore"
 msgstr "복원"
 
+msgid "Restore · checks the branch out again at its original path, chats included"
+msgstr "복원 · 원래 경로에 브랜치를 다시 체크아웃합니다. 채팅도 포함됩니다"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "{0}을(를) 기본값으로 복원할까요?"
@@ -12116,8 +12143,19 @@ msgstr "에이전트 기본값을 복원할"
 msgid "Restore this version?"
 msgstr "이 버전을 복원할까요?"
 
+msgid "Restore workspace"
+msgstr "워크스페이스 복원"
+
 msgid "Restored"
 msgstr "복원됨"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "\"{0}\"을(를) 보관함에서 복원했습니다"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restoring \"{0}\"…"
+msgstr "\"{0}\" 복원 중…"
 
 msgid "Restoring your session"
 msgstr "세션을 복원하는 중"
@@ -13178,6 +13216,9 @@ msgstr "앱을 종료할 때 확인 대화 상자를 표시합니다"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "홈 사이드바의 풀 리퀘스트 아래에 사용량 버튼을 표시합니다"
 
+msgid "Show active workspaces"
+msgstr "활성 워크스페이스 표시"
+
 msgid "Show all {count}"
 msgstr "{count}개 모두 보기"
 
@@ -13189,6 +13230,9 @@ msgstr "모든 댓글 표시"
 
 msgid "Show all lines"
 msgstr "모든 줄 표시"
+
+msgid "Show archived workspaces"
+msgstr "보관된 워크스페이스 표시"
 
 msgid "Show checks"
 msgstr "검사 표시"
@@ -14814,6 +14858,9 @@ msgstr "대상 호스트"
 
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "팀 초대가 만료되었거나 존재하지 않습니다. 팀 소유자에게 새 링크를 요청하거나 URL이 올바르게 입력되었는지 확인하세요."
+
+msgid "The teardown script for \"{workspaceName}\" failed. Delete the workspace to retry without it."
+msgstr "\"{workspaceName}\"의 정리 스크립트가 실패했습니다. 스크립트 없이 다시 시도하려면 워크스페이스를 삭제하세요."
 
 msgid "The web agents UI is a read-only preview for now."
 msgstr "웹 에이전트 UI는 아직 읽기 전용 미리 보기입니다."

@@ -78,6 +78,12 @@ msgstr "\"{title}\" đã hoàn thành tác vụ"
 msgid "\"{title}\" is waiting for your reply"
 msgstr "\"{title}\" đang chờ bạn trả lời"
 
+msgid "\"{workspaceName}\" can't be archived while its host is unreachable."
+msgstr "Không thể lưu trữ \"{workspaceName}\" khi không kết nối được với host của nó."
+
+msgid "\"{workspaceName}\" has uncommitted changes. Commit or stash them first, or delete the workspace instead."
+msgstr "\"{workspaceName}\" có thay đổi chưa commit. Hãy commit hoặc stash trước, hoặc xóa workspace thay vào đó."
+
 msgid "({aliveCount} running)"
 msgstr "(đang chạy {aliveCount})"
 
@@ -2083,8 +2089,20 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Lưu trữ"
 
+msgid "Archive · removes the worktree and keeps the branch; restore it any time"
+msgstr "Lưu trữ · xóa worktree và giữ lại nhánh; có thể khôi phục bất cứ lúc nào"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "Lưu trữ · không khả dụng khi host của workspace này ngoại tuyến"
+
+msgid "Archive workspace"
+msgstr "Lưu trữ workspace"
+
 msgid "Archived"
 msgstr "Đã lưu trữ"
+
+msgid "Archived \"{workspaceName}\""
+msgstr "Đã lưu trữ \"{workspaceName}\""
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Bạn chắc chắn muốn xóa tệp này? Không thể hoàn tác."
@@ -4806,6 +4824,9 @@ msgstr "Ủy quyền"
 
 msgid "Delete"
 msgstr "Xóa"
+
+msgid "Delete · makes the archive final; can't be restored"
+msgstr "Xóa · lưu trữ trở thành vĩnh viễn; không thể khôi phục"
 
 #. placeholder {0}: target.name
 msgid "Delete \"{0}\"? This removes its worktree from the host."
@@ -9168,6 +9189,9 @@ msgstr "Chưa có agent nào."
 msgid "No API keys yet."
 msgstr "Chưa có khóa API nào."
 
+msgid "No archived workspaces"
+msgstr "Không có workspace nào được lưu trữ"
+
 msgid "No assignee"
 msgstr "Không có người phụ trách"
 
@@ -12097,6 +12121,9 @@ msgstr "Đang khởi động lại…"
 msgid "Restore"
 msgstr "Khôi phục"
 
+msgid "Restore · checks the branch out again at its original path, chats included"
+msgstr "Khôi phục · checkout lại nhánh tại đường dẫn ban đầu, bao gồm cả các cuộc trò chuyện"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "Khôi phục {0} về mặc định?"
@@ -12116,8 +12143,19 @@ msgstr "khôi phục mặc định của agent"
 msgid "Restore this version?"
 msgstr "Khôi phục phiên bản này?"
 
+msgid "Restore workspace"
+msgstr "Khôi phục không gian làm việc"
+
 msgid "Restored"
 msgstr "Đã khôi phục"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "Đã khôi phục \"{0}\" từ kho lưu trữ"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restoring \"{0}\"…"
+msgstr "Đang khôi phục \"{0}\"…"
 
 msgid "Restoring your session"
 msgstr "Đang khôi phục phiên của bạn"
@@ -13178,6 +13216,9 @@ msgstr "Hiện hộp thoại xác nhận khi thoát ứng dụng"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Hiện nút Mức sử dụng trong thanh bên trang chủ, bên dưới Pull request"
 
+msgid "Show active workspaces"
+msgstr "Hiện các workspace đang hoạt động"
+
 msgid "Show all {count}"
 msgstr "Hiện tất cả {count}"
 
@@ -13189,6 +13230,9 @@ msgstr "Hiển thị tất cả bình luận"
 
 msgid "Show all lines"
 msgstr "Hiện tất cả các dòng"
+
+msgid "Show archived workspaces"
+msgstr "Hiện các workspace đã lưu trữ"
 
 msgid "Show checks"
 msgstr "Hiện check"
@@ -14814,6 +14858,9 @@ msgstr "host đích"
 
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "Lời mời vào nhóm đã hết hạn hoặc không tồn tại. Hãy xin liên kết mới từ chủ sở hữu nhóm hoặc kiểm tra lại URL xem đã nhập đúng chưa."
+
+msgid "The teardown script for \"{workspaceName}\" failed. Delete the workspace to retry without it."
+msgstr "Script teardown của \"{workspaceName}\" đã thất bại. Hãy xóa workspace để thử lại mà không cần script này."
 
 msgid "The web agents UI is a read-only preview for now."
 msgstr "Giao diện agent trên web hiện chỉ là bản xem trước chỉ đọc."

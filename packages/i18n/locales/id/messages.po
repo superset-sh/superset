@@ -78,6 +78,12 @@ msgstr "\"{title}\" telah menyelesaikan tugasnya"
 msgid "\"{title}\" is waiting for your reply"
 msgstr "\"{title}\" sedang menunggu balasan Anda"
 
+msgid "\"{workspaceName}\" can't be archived while its host is unreachable."
+msgstr "\"{workspaceName}\" tidak dapat diarsipkan selama host-nya tidak dapat dijangkau."
+
+msgid "\"{workspaceName}\" has uncommitted changes. Commit or stash them first, or delete the workspace instead."
+msgstr "\"{workspaceName}\" memiliki perubahan yang belum di-commit. Commit atau stash dulu, atau hapus saja workspace-nya."
+
 msgid "({aliveCount} running)"
 msgstr "({aliveCount} berjalan)"
 
@@ -2083,8 +2089,20 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 msgid "Archive"
 msgstr "Arsipkan"
 
+msgid "Archive · removes the worktree and keeps the branch; restore it any time"
+msgstr "Arsipkan · menghapus worktree dan mempertahankan branch; bisa dipulihkan kapan saja"
+
+msgid "Archive · unavailable while this workspace's host is offline"
+msgstr "Arsipkan · tidak tersedia saat host workspace ini offline"
+
+msgid "Archive workspace"
+msgstr "Arsipkan workspace"
+
 msgid "Archived"
 msgstr "Diarsipkan"
+
+msgid "Archived \"{workspaceName}\""
+msgstr "\"{workspaceName}\" diarsipkan"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Yakin ingin menghapus file ini? Tindakan ini tidak bisa dibatalkan."
@@ -4806,6 +4824,9 @@ msgstr "Didelegasikan"
 
 msgid "Delete"
 msgstr "Hapus"
+
+msgid "Delete · makes the archive final; can't be restored"
+msgstr "Hapus · menjadikan arsip permanen; tidak bisa dipulihkan"
 
 #. placeholder {0}: target.name
 msgid "Delete \"{0}\"? This removes its worktree from the host."
@@ -9168,6 +9189,9 @@ msgstr "Belum ada agen."
 msgid "No API keys yet."
 msgstr "Belum ada kunci API."
 
+msgid "No archived workspaces"
+msgstr "Tidak ada workspace yang diarsipkan"
+
 msgid "No assignee"
 msgstr "Tanpa penerima tugas"
 
@@ -12097,6 +12121,9 @@ msgstr "Memulai ulang…"
 msgid "Restore"
 msgstr "Pulihkan"
 
+msgid "Restore · checks the branch out again at its original path, chats included"
+msgstr "Pulihkan · melakukan checkout branch lagi di path aslinya, termasuk chat"
+
 #. placeholder {0}: config.label
 msgid "Restore {0} to defaults?"
 msgstr "Pulihkan {0} ke setelan bawaan?"
@@ -12116,8 +12143,19 @@ msgstr "memulihkan setelan bawaan agen"
 msgid "Restore this version?"
 msgstr "Pulihkan versi ini?"
 
+msgid "Restore workspace"
+msgstr "Pulihkan ruang kerja"
+
 msgid "Restored"
 msgstr "Dipulihkan"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restored \"{0}\" from archive"
+msgstr "\"{0}\" dipulihkan dari arsip"
+
+#. placeholder {0}: workspaceName || branch
+msgid "Restoring \"{0}\"…"
+msgstr "Memulihkan \"{0}\"…"
 
 msgid "Restoring your session"
 msgstr "Memulihkan sesi Anda"
@@ -13178,6 +13216,9 @@ msgstr "Tampilkan dialog konfirmasi saat keluar dari aplikasi"
 msgid "Show a Usage button in the home sidebar, under Pull requests"
 msgstr "Tampilkan tombol Penggunaan di sidebar beranda, di bawah Pull request"
 
+msgid "Show active workspaces"
+msgstr "Tampilkan workspace aktif"
+
 msgid "Show all {count}"
 msgstr "Tampilkan semua {count}"
 
@@ -13189,6 +13230,9 @@ msgstr "Tampilkan semua komentar"
 
 msgid "Show all lines"
 msgstr "Tampilkan semua baris"
+
+msgid "Show archived workspaces"
+msgstr "Tampilkan workspace yang diarsipkan"
 
 msgid "Show checks"
 msgstr "Tampilkan check"
@@ -14814,6 +14858,9 @@ msgstr "host tujuan"
 
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "Undangan tim ini sudah kedaluwarsa atau tidak ada. Minta tautan baru dari pemilik tim atau periksa URL-nya sudah benar."
+
+msgid "The teardown script for \"{workspaceName}\" failed. Delete the workspace to retry without it."
+msgstr "Skrip teardown untuk \"{workspaceName}\" gagal. Hapus workspace untuk mencoba lagi tanpa skrip itu."
 
 msgid "The web agents UI is a read-only preview for now."
 msgstr "UI agen di web masih pratinjau baca-saja untuk saat ini."
