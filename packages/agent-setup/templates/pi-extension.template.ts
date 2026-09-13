@@ -36,7 +36,7 @@ export default function (pi: ExtensionAPI) {
 	const notifyScript = join(supersetHome, "hooks", "notify.sh");
 	if (!existsSync(notifyScript)) return;
 
-	const fire = (eventName: string) => {
+	const fire = (eventName: string, message?: string) => {
 		try {
 			const child = spawn(notifyScript, [], {
 				stdio: ["pipe", "ignore", "ignore"],
@@ -49,7 +49,7 @@ export default function (pi: ExtensionAPI) {
 			child.stdin?.on("error", () => {
 				/* swallow — happens if notify.sh exits before we finish writing */
 			});
-			child.stdin?.end(JSON.stringify({ hook_event_name: eventName }));
+			child.stdin?.end(JSON.stringify({ hook_event_name: eventName, ...(message ? { message: message.slice(0, 4000) } : {}) }));
 			child.unref();
 		} catch {
 			// spawn() can throw synchronously (EACCES, ENOENT). Stay silent.
@@ -90,9 +90,12 @@ export default function (pi: ExtensionAPI) {
 		fire("PostToolUse");
 	});
 
-	pi.on("agent_end", (_event, ctx) => {
+	pi.on("agent_end", (event, ctx) => {
 		if (skip(ctx)) return;
-		fire("Stop");
+		const assistant = event.messages.findLast((message) => message.role === "assistant");
+		const failed = assistant?.stopReason === "error";
+		const text = assistant?.content.filter((part) => part.type === "text").map((part) => part.text).join("\n");
+		fire(failed ? "Failed" : "Stop", failed ? assistant?.errorMessage : text);
 	});
 
 	// Ensure we mark the agent as "stopped" if pi is killed mid-run, so the

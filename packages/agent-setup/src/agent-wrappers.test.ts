@@ -26,7 +26,7 @@ let mockedHomeDir = path.join(TEST_ROOT, "home");
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v15",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v17",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},
@@ -135,9 +135,9 @@ describe("agent-wrappers opencode", () => {
 	beforeEach(() => {
 		delete (
 			globalThis as typeof globalThis & {
-				__supersetOpencodeNotifyPluginV10?: boolean;
+				__supersetOpencodeNotifyPluginV11?: boolean;
 			}
-		).__supersetOpencodeNotifyPluginV10;
+		).__supersetOpencodeNotifyPluginV11;
 	});
 
 	afterEach(() => {
@@ -146,6 +146,48 @@ describe("agent-wrappers opencode", () => {
 		} else {
 			process.env.SUPERSET_TERMINAL_ID = originalTerminalId;
 		}
+	});
+
+	it("reports a session error as Failed with its error message", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notifications: unknown[] = [];
+		const hooks = await SupersetNotifyPlugin({
+			$: (
+				_parts: TemplateStringsArray,
+				_notifyPath: string,
+				payload: string,
+			) => {
+				notifications.push(JSON.parse(payload));
+			},
+			client: { session: { list: async () => ({ data: [{ id: "root" }] }) } },
+		});
+		await hooks.event({
+			event: {
+				type: "session.status",
+				properties: { sessionID: "root", status: { type: "busy" } },
+			},
+		});
+		await hooks.event({
+			event: {
+				type: "session.error",
+				properties: {
+					sessionID: "root",
+					error: { data: { message: "Provider unavailable" } },
+				},
+			},
+		});
+		await hooks.event({
+			event: { type: "session.idle", properties: { sessionID: "root" } },
+		});
+		expect(notifications).toEqual([
+			{ hook_event_name: "Start", session_id: "root" },
+			{
+				hook_event_name: "Failed",
+				session_id: "root",
+				message: "Provider unavailable",
+			},
+		]);
 	});
 
 	it.each([

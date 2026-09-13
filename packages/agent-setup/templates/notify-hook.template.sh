@@ -213,10 +213,11 @@ esac
 PREVIEW_FIELD=""
 PREVIEW_KEYS="last_assistant_message last-assistant-message message"
 case "$EVENT_TYPE" in
-  PermissionRequest|Notification|notification) PREVIEW_KEYS="message last_assistant_message last-assistant-message" ;;
+  StopFailure|stop_failure|Failed|failed) PREVIEW_KEYS="error_details error_message message last_assistant_message last-assistant-message" ;;
+  PermissionRequest|Notification|notification|PreToolUse|preToolUse|pre_tool_use|exec_approval_request|apply_patch_approval_request|request_user_input) PREVIEW_KEYS="message last_assistant_message last-assistant-message" ;;
 esac
 case "$EVENT_TYPE" in
-  Stop|stop|PermissionRequest|Notification|notification)
+  Stop|stop|Interrupt|AfterAgent|agent-turn-complete|task_complete|post_agent|post_agent_turn|StopFailure|stop_failure|Failed|failed|PermissionRequest|Notification|notification|PreToolUse|preToolUse|pre_tool_use|exec_approval_request|apply_patch_approval_request|request_user_input)
     for PREVIEW_KEY in $PREVIEW_KEYS; do
       PREVIEW_VALUE=$(printf '%s' "$INPUT" | grep -oE "\"$PREVIEW_KEY\"[[:space:]]*:[[:space:]]*\"(\\\\.|[^\"\\\\])*\"" | head -n 1 | sed -E 's/^[^:]*:[[:space:]]*//')
       if [ -n "$PREVIEW_VALUE" ] && [ "$PREVIEW_VALUE" != '""' ]; then

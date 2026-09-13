@@ -104,7 +104,7 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v16");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v17");
 	});
 
 	it("forwards hooks fired inside a subagent (agent_id present) to the host roster only", async () => {
@@ -763,6 +763,56 @@ it("prefers the current permission message over assistant output", async () => {
 			{ SUPERSET_HOST_AGENT_HOOK_URL: host.url },
 		);
 		expect(host.requests[0]?.json.preview).toBe("Allow this command?");
+	} finally {
+		host.stop();
+	}
+});
+
+it.each([
+	"Stop",
+	"stop",
+	"Interrupt",
+	"AfterAgent",
+	"post_agent",
+	"post_agent_turn",
+	"task_complete",
+])("forwards completion preview for %s", async (eventType) => {
+	const host = fakeHostService(false);
+	try {
+		await runNotifyHookAsync(
+			{
+				hook_event_name: eventType,
+				last_assistant_message: "Finished checking the workspace.",
+			},
+			{ SUPERSET_HOST_AGENT_HOOK_URL: host.url },
+		);
+		expect(host.requests[0]?.json.preview).toBe(
+			"Finished checking the workspace.",
+		);
+	} finally {
+		host.stop();
+	}
+});
+
+it.each([
+	"StopFailure",
+	"stop_failure",
+	"Failed",
+	"failed",
+])("forwards the error preview for %s", async (eventType) => {
+	const host = fakeHostService(false);
+	try {
+		await runNotifyHookAsync(
+			{
+				hook_event_name: eventType,
+				error_details: "The provider rejected the request.",
+				last_assistant_message: "Earlier successful turn.",
+			},
+			{ SUPERSET_HOST_AGENT_HOOK_URL: host.url },
+		);
+		expect(host.requests[0]?.json.preview).toBe(
+			"The provider rejected the request.",
+		);
 	} finally {
 		host.stop();
 	}

@@ -5,7 +5,7 @@
  * This plugin sends desktop notifications when OpenCode sessions need attention.
  * It hooks into session.status (busy/idle), session.idle, session.error, and permission.ask events.
  *
- * ROBUSTNESS FEATURES (v10):
+ * ROBUSTNESS FEATURES (v11):
  * - Session-scoped: Tracks root sessionID, ignores events from other sessions
  * - Deduplication: Only sends Start on idle→busy, Stop on busy→idle transitions
  * - Safe defaults: On error, assumes child session to avoid false positives
@@ -23,8 +23,8 @@
  * @see https://github.com/sst/opencode/blob/dev/packages/app/src/context/notification.tsx
  */
 export const SupersetNotifyPlugin = async ({ $, client }) => {
-  if (globalThis.__supersetOpencodeNotifyPluginV10) return {};
-  globalThis.__supersetOpencodeNotifyPluginV10 = true;
+  if (globalThis.__supersetOpencodeNotifyPluginV11) return {};
+  globalThis.__supersetOpencodeNotifyPluginV11 = true;
 
   // Only run inside a v2 Superset terminal session.
   if (!process?.env?.SUPERSET_TERMINAL_ID) return {};
@@ -45,12 +45,13 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
    * Sends a notification to Superset's notification server.
    * Best-effort only - failures are silently ignored to avoid breaking the agent.
    */
-  const notify = async (hookEventName, sessionID = rootSessionID) => {
+  const notify = async (hookEventName, sessionID = rootSessionID, message) => {
     // An event from a different root must not replace the active session's
     // identity or end its binding (the host uses this ID for native resume).
     if (rootSessionID && sessionID && sessionID !== rootSessionID) return;
     const payload = JSON.stringify({
       hook_event_name: hookEventName,
+      ...(typeof message === "string" && message.trim() ? { message: message.slice(0, 4000) } : {}),
       ...(sessionID ? { session_id: sessionID } : {}),
     });
     log('Sending notification:', hookEventName);
@@ -134,7 +135,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
    * Only sends Stop once per busy period and only for root session.
    * Retains rootSessionID while idle so unrelated events cannot steal resume.
    */
-  const handleStop = async (sessionID, reason) => {
+  const handleStop = async (sessionID, reason, message) => {
     // Only process events for our root session (if we have one)
     if (rootSessionID && sessionID !== rootSessionID) {
       log('Ignoring stop from non-root session:', sessionID, 'reason:', reason);
@@ -146,7 +147,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
       currentState = 'idle';
       stopSent = true;
       log('Stopping, reason:', reason);
-      await notify('Stop', sessionID);
+      await notify(reason === 'session.error' ? 'Failed' : 'Stop', sessionID, message);
     } else {
       log('Skipping Stop - state:', currentState, 'stopSent:', stopSent, 'reason:', reason);
     }
@@ -245,7 +246,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
 
       // Handle session errors (also means session stopped)
       if (event.type === "session.error") {
-        await handleStop(sessionID, 'session.error');
+        await handleStop(sessionID, 'session.error', event.properties?.error?.data?.message ?? event.properties?.error?.message);
       }
     }),
     "permission.ask": (permission, output) => enqueue(async () => {

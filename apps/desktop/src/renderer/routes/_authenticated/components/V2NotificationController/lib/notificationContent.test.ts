@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { AGENT_IDENTITY_LABELS } from "@superset/shared/agent-catalog";
 import type { AgentLifecyclePayload } from "@superset/workspace-client";
 import { getV2NativeNotificationContent } from "./notificationContent";
 
@@ -111,4 +112,35 @@ it("uses the permission text as the preview", () => {
 			}),
 		}).body,
 	).toBe("Run bun install?");
+});
+
+describe("agent and finish-type matrix", () => {
+	for (const agentId of Object.keys(AGENT_IDENTITY_LABELS) as Array<
+		keyof typeof AGENT_IDENTITY_LABELS
+	>) {
+		const label = AGENT_IDENTITY_LABELS[agentId];
+		for (const [eventType, status] of [
+			["Stop", "Finished"],
+			["PermissionRequest", "Needs attention"],
+			["Failed", "Failed"],
+		] as const) {
+			it(`${agentId} ${eventType} preserves context, status, and preview`, () => {
+				expect(
+					getV2NativeNotificationContent({
+						projectName: "Superset",
+						workspaceName: "test",
+						payload: payload({
+							agent: { agentId },
+							eventType,
+							preview: "Actual agent text.",
+						}),
+					}),
+				).toEqual({
+					title: "Superset › test",
+					subtitle: `${label} · ${status}`,
+					body: "Actual agent text.",
+				});
+			});
+		}
+	}
 });
