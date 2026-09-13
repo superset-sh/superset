@@ -1,7 +1,8 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it, mock } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { resolve } from "node:path";
+import path, { resolve } from "node:path";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
@@ -249,6 +250,102 @@ describe("notificationsRouter.hook", () => {
 		expect(
 			terminalAgentStore.get("terminal-codex")?.subagents?.[0]?.transcriptPath,
 		).toBe(`${homedir()}/sessions/parent.jsonl`);
+	});
+
+	it("places children with the parent binding's harness and records tool activity", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+		await caller.hook({
+			terminalId: "terminal-claude",
+			eventType: "Start",
+			agent: { agentId: "claude", sessionId: "parent" },
+		});
+		// Claude places a child by the meta sidecar beside its transcript,
+		// which must live under the home directory to pass the trust check.
+		const sessionsDir = mkdtempSync(path.join(homedir(), ".superset-test-"));
+		const subagentsDir = path.join(sessionsDir, "parent", "subagents");
+		mkdirSync(subagentsDir, { recursive: true });
+		writeFileSync(
+			path.join(subagentsDir, "agent-child.meta.json"),
+			JSON.stringify({ agentType: "general-purpose", description: "Child" }),
+		);
+		writeFileSync(
+			path.join(subagentsDir, "agent-grandchild.meta.json"),
+			JSON.stringify({ parentAgentId: "child", spawnDepth: 2 }),
+		);
+		try {
+			await caller.hook({
+				terminalId: "terminal-claude",
+				eventType: "PreToolUse",
+				subagent: {
+					id: "child",
+					sessionId: "parent",
+					transcriptPath: path.join(sessionsDir, "parent.jsonl"),
+					toolName: " Bash ",
+					toolSummary: " bun test ",
+				},
+			});
+			await caller.hook({
+				terminalId: "terminal-claude",
+				eventType: "PreToolUse",
+				subagent: {
+					id: "grandchild",
+					sessionId: "parent",
+					transcriptPath: path.join(sessionsDir, "parent.jsonl"),
+					toolName: "Read",
+					toolSummary: "",
+				},
+			});
+		} finally {
+			rmSync(sessionsDir, { recursive: true, force: true });
+		}
+		await caller.hook({
+			terminalId: "terminal-claude",
+			eventType: "PreToolUse",
+			subagent: { id: "orphan" },
+		});
+
+		const claudeChildren = terminalAgentStore.get("terminal-claude")?.subagents;
+		expect(claudeChildren?.[0]).toMatchObject({
+			id: "child",
+			sessionId: "parent",
+			status: "working",
+			description: "Child",
+			activity: { toolName: "Bash", summary: "bun test" },
+		});
+		expect(claudeChildren?.[0]?.parentSubagentId).toBeUndefined();
+		expect(claudeChildren?.[0]?.parentUnknown).toBeUndefined();
+		expect(claudeChildren?.[1]).toMatchObject({
+			id: "grandchild",
+			parentSubagentId: "child",
+			activity: { toolName: "Read", summary: "" },
+		});
+		expect(claudeChildren?.[2]).toMatchObject({
+			id: "orphan",
+			parentUnknown: true,
+		});
+		expect(claudeChildren?.[2]?.activity).toBeUndefined();
+
+		// A Codex child's placement lives in its rollout; until that file
+		// exists the child stays unplaced rather than being rooted as unknown.
+		await caller.hook({
+			terminalId: "terminal-codex",
+			eventType: "Start",
+			agent: { agentId: "codex", sessionId: "root-thread" },
+		});
+		await caller.hook({
+			terminalId: "terminal-codex",
+			eventType: "SubagentStart",
+			subagent: {
+				id: "c1",
+				sessionId: "child-thread",
+				transcriptPath: `${homedir()}/sessions/nonexistent-rollout.jsonl`,
+			},
+		});
+		const codexChild = terminalAgentStore.get("terminal-codex")?.subagents?.[0];
+		expect(codexChild?.sessionId).toBe("child-thread");
+		expect(codexChild?.parentSubagentId).toBeUndefined();
+		expect(codexChild?.parentUnknown).toBeUndefined();
 	});
 
 	it("drops a Claude child event that names the parent's previous session", async () => {

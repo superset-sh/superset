@@ -3,6 +3,7 @@ import {
 	clip,
 	isRecord,
 	parseTimestamp,
+	readTranscriptHeadRecord,
 	type SubagentTranscriptEntry,
 	summarizeToolInput,
 } from "../subagent-transcript";
@@ -18,6 +19,43 @@ function codexContentText(content: unknown): string {
 		)
 		.filter(Boolean)
 		.join("\n");
+}
+
+/** The child's title from a rollout's `session_meta` payload. */
+function sessionMetaDescription(
+	payload: Record<string, unknown>,
+): string | undefined {
+	const nickname =
+		typeof payload.agent_nickname === "string" ? payload.agent_nickname : "";
+	const agentPath =
+		typeof payload.agent_path === "string" ? payload.agent_path : "";
+	return [nickname, agentPath].filter(Boolean).join(" · ") || undefined;
+}
+
+function sessionMetaPayload(
+	record: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+	return record.type === "session_meta" && isRecord(record.payload)
+		? record.payload
+		: undefined;
+}
+
+/**
+ * The thread that spawned this one, from
+ * `session_meta.payload.source.subagent.thread_spawn.parent_thread_id`
+ * (codex_cli_rs 0.117).
+ */
+function sessionMetaParentThreadId(
+	payload: Record<string, unknown>,
+): string | undefined {
+	const source = isRecord(payload.source) ? payload.source : undefined;
+	const subagent = isRecord(source?.subagent) ? source.subagent : undefined;
+	const spawn = isRecord(subagent?.thread_spawn)
+		? subagent.thread_spawn
+		: undefined;
+	return typeof spawn?.parent_thread_id === "string"
+		? spawn.parent_thread_id
+		: undefined;
 }
 
 export function parseCodexRolloutTranscript(text: string): {
@@ -43,14 +81,7 @@ export function parseCodexRolloutTranscript(text: string): {
 		const id = typeof payload.id === "string" ? payload.id : `line-${line}`;
 
 		if (record.type === "session_meta") {
-			const nickname =
-				typeof payload.agent_nickname === "string"
-					? payload.agent_nickname
-					: "";
-			const agentPath =
-				typeof payload.agent_path === "string" ? payload.agent_path : "";
-			description =
-				[nickname, agentPath].filter(Boolean).join(" · ") || undefined;
+			description = sessionMetaDescription(payload);
 			continue;
 		}
 		if (record.type !== "response_item") continue;
@@ -136,4 +167,24 @@ export function parseCodexRolloutTranscript(text: string): {
  */
 export const codexSubagentHarness = defineSubagentHarness({
 	parseTranscript: parseCodexRolloutTranscript,
+	readDescription(transcriptPath) {
+		const record = readTranscriptHeadRecord(transcriptPath);
+		const payload = record ? sessionMetaPayload(record) : undefined;
+		return payload && sessionMetaDescription(payload);
+	},
+	resolveParent(_hint, context) {
+		if (!context.transcriptPath) return { known: false };
+		const record = readTranscriptHeadRecord(context.transcriptPath);
+		if (record === null) return undefined;
+		const payload = record && sessionMetaPayload(record);
+		const parentThreadId = payload && sessionMetaParentThreadId(payload);
+		if (!parentThreadId) return { known: false };
+		if (parentThreadId === context.parentSessionId) return { known: true };
+		const spawner = context.siblings.find(
+			(sibling) => sibling.sessionId === parentThreadId,
+		);
+		return spawner
+			? { parentSubagentId: spawner.id, known: true }
+			: { known: false };
+	},
 });

@@ -7,6 +7,8 @@ export { TerminalAgentStore } from "./store";
 export type {
 	ParsedSubagentTranscript,
 	SubagentHarness,
+	SubagentParentContext,
+	SubagentParentResolution,
 	SubagentTranscriptHint,
 } from "./subagent-harnesses";
 export {
@@ -24,4 +26,7 @@ export type {
 	TerminalAgentBinding,
 	TerminalAgentId,
 	TerminalSubagent,
+	TerminalSubagentActivity,
+	TerminalSubagentEndReason,
+	TerminalSubagentStatus,
 } from "./types";

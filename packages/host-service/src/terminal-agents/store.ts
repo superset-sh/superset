@@ -4,8 +4,11 @@ import {
 	getSubagentHarness,
 	isTrustedTranscriptPath,
 	readSubagentTranscript,
+	type SubagentHarness,
+	type SubagentParentResolution,
 	type SubagentTranscriptHint,
 } from "./subagent-harnesses";
+import { deriveSubagentStatus } from "./subagent-status";
 import type { SubagentTranscript } from "./subagent-transcript";
 import type {
 	TerminalAgentBinding,
@@ -31,7 +34,12 @@ interface RecordSubagentEventInput {
 	eventType: string;
 	subagentId: string;
 	agentType?: string;
+	sessionId?: string;
 	transcriptPath?: string;
+	toolName?: string;
+	toolSummary?: string;
+	/** Applied only while the entry has no parent placement yet. */
+	parent?: SubagentParentResolution;
 	occurredAt: number;
 }
 
@@ -42,6 +50,8 @@ interface RecordSubagentHookInput {
 	eventType: string;
 	subagentId: string;
 	agentType?: string;
+	toolName?: string;
+	toolSummary?: string;
 	hint: SubagentTranscriptHint;
 	occurredAt: number;
 }
@@ -69,10 +79,12 @@ const END_STRAGGLER_WINDOW_MS = 30_000;
 
 /**
  * A subagent whose SubagentStop never arrived (parent interrupted, hook
- * dropped) must not sit in the roster forever. Live children re-assert on
- * every tool call, so anything quiet this long is gone.
+ * dropped) must not stay live forever. Live children re-assert on every
+ * tool call, so anything quiet this long is marked stopped.
  */
 const SUBAGENT_STALE_MS = 10 * 60_000;
+
+const MAX_ACTIVITY_SUMMARY_CHARS = 160;
 
 /**
  * Finished children stay addressable (their transcript pane may still be
@@ -234,7 +246,7 @@ export class TerminalAgentStore extends EventEmitter {
 	/**
 	 * A hook fired inside a subagent of the terminal's agent. Any event keeps
 	 * the child live (lost SubagentStarts self-heal on its next tool call);
-	 * a stop drops it. Never touches the parent binding's lifecycle state.
+	 * a stop ends it. Never touches the parent binding's lifecycle state.
 	 */
 	recordSubagentEvent(input: RecordSubagentEventInput): void {
 		const {
@@ -243,22 +255,44 @@ export class TerminalAgentStore extends EventEmitter {
 			eventType,
 			subagentId,
 			agentType,
+			sessionId,
 			transcriptPath,
+			toolName,
+			toolSummary,
+			parent,
+			occurredAt,
 		} = input;
-		const occurredAt = input.occurredAt;
 		const roster = this.subagentsByTerminal.get(terminalId);
 		const existing = roster?.get(subagentId);
 
 		const harness = getSubagentHarness(
 			this.byTerminal.get(terminalId)?.agentId,
 		);
+		const status = deriveSubagentStatus(eventType, harness);
+		const nextPath = transcriptPath ?? existing?.transcriptPath;
+		const description =
+			existing?.description ??
+			(nextPath ? harness.readDescription(nextPath) : undefined);
+		const activity =
+			toolName !== undefined
+				? {
+						toolName,
+						summary: clipActivitySummary(toolSummary ?? ""),
+						at: occurredAt,
+					}
+				: existing?.activity;
+
 		if (harness.isStopEvent(eventType)) {
 			if (!existing || existing.endedAt !== undefined) return;
 			roster?.set(subagentId, {
 				...existing,
-				...(transcriptPath ? { transcriptPath } : {}),
+				...(description ? { description } : {}),
+				...(nextPath ? { transcriptPath: nextPath } : {}),
+				...(activity ? { activity } : {}),
+				status,
 				lastEventAt: occurredAt,
 				endedAt: occurredAt,
+				endReason: "completed",
 			});
 			this.emit("change", workspaceId);
 			return;
@@ -269,17 +303,22 @@ export class TerminalAgentStore extends EventEmitter {
 		if (!this.byTerminal.has(terminalId)) return;
 
 		const nextType = agentType ?? existing?.agentType;
-		const nextPath = transcriptPath ?? existing?.transcriptPath;
+		const nextSessionId = sessionId ?? existing?.sessionId;
 		const next: TerminalSubagent = {
 			id: subagentId,
 			...(nextType ? { agentType: nextType } : {}),
-			...(nextPath ? { transcriptPath: nextPath } : {}),
+			...(description ? { description } : {}),
+			...(nextSessionId ? { sessionId: nextSessionId } : {}),
+			...placementOf(existing, parent),
+			status,
+			...(activity ? { activity } : {}),
 			// A stopped child that speaks again (Codex send_input) is live again.
 			startedAt:
 				existing && existing.endedAt === undefined
 					? existing.startedAt
 					: occurredAt,
 			lastEventAt: occurredAt,
+			...(nextPath ? { transcriptPath: nextPath } : {}),
 		};
 		if (roster) {
 			roster.set(subagentId, next);
@@ -297,9 +336,10 @@ export class TerminalAgentStore extends EventEmitter {
 	/**
 	 * A hook event that fired inside a subagent, straight from the hook
 	 * endpoint. The parent binding's harness decides whether the event
-	 * belongs to the current session and where the child's transcript
-	 * lives; the path is kept only when it passes the trust check, since the
-	 * endpoint is unauthenticated. Returns false when the event was dropped.
+	 * belongs to the current session, where the child's transcript lives,
+	 * and which roster entry spawned it; the path is kept only when it
+	 * passes the trust check, since the endpoint is unauthenticated. Returns
+	 * false when the event was dropped.
 	 */
 	recordSubagentHook(input: RecordSubagentHookInput): boolean {
 		const parent = this.byTerminal.get(input.terminalId);
@@ -315,16 +355,56 @@ export class TerminalAgentStore extends EventEmitter {
 			resolvedPath && isTrustedTranscriptPath(resolvedPath)
 				? resolvedPath
 				: undefined;
+		const placement = this.resolveSubagentParent(
+			input.terminalId,
+			input.subagentId,
+			harness,
+			input.hint,
+			transcriptPath,
+			parent?.agentSessionId,
+		);
 		this.recordSubagentEvent({
 			terminalId: input.terminalId,
 			workspaceId: input.workspaceId,
 			eventType: input.eventType,
 			subagentId: input.subagentId,
 			...(input.agentType ? { agentType: input.agentType } : {}),
+			...(input.hint.sessionId ? { sessionId: input.hint.sessionId } : {}),
 			...(transcriptPath ? { transcriptPath } : {}),
+			...(input.toolName ? { toolName: input.toolName } : {}),
+			...(input.toolSummary ? { toolSummary: input.toolSummary } : {}),
+			...(placement ? { parent: placement } : {}),
 			occurredAt: input.occurredAt,
 		});
 		return true;
+	}
+
+	/**
+	 * Ask the harness where a child sits in the tree, until it has been
+	 * placed once. The harness gets the roster as siblings so a Codex
+	 * grandchild can be matched to the sibling whose thread spawned it.
+	 */
+	private resolveSubagentParent(
+		terminalId: string,
+		subagentId: string,
+		harness: SubagentHarness,
+		hint: SubagentTranscriptHint,
+		transcriptPath: string | undefined,
+		parentSessionId: string | undefined,
+	): SubagentParentResolution | undefined {
+		const roster = this.subagentsByTerminal.get(terminalId);
+		const existing = roster?.get(subagentId);
+		if (existing && isPlaced(existing)) return undefined;
+		const siblings = roster
+			? [...roster.values()].filter((sibling) => sibling.id !== subagentId)
+			: [];
+		return harness.resolveParent(hint, {
+			...(parentSessionId ? { parentSessionId } : {}),
+			siblings,
+			...((transcriptPath ?? existing?.transcriptPath)
+				? { transcriptPath: transcriptPath ?? existing?.transcriptPath }
+				: {}),
+		});
 	}
 
 	/**
@@ -438,22 +518,31 @@ export class TerminalAgentStore extends EventEmitter {
 	}
 
 	/**
-	 * Attach the terminal's live subagents to a binding read. Stale entries
-	 * are dropped here rather than on a timer so the store stays passive.
+	 * Attach the terminal's live and recently ended subagents to a binding
+	 * read. Stale entries are settled here rather than on a timer so the
+	 * store stays passive.
 	 */
 	private withSubagents(binding: TerminalAgentBinding): TerminalAgentBinding {
 		const roster = this.pruneSubagents(binding.terminalId);
 		if (!roster) return binding;
-		const live = [...roster.values()]
-			.filter((subagent) => subagent.endedAt === undefined)
-			.sort((a, b) => a.startedAt - b.startedAt);
-		return live.length > 0 ? { ...binding, subagents: live } : binding;
+		const live: TerminalSubagent[] = [];
+		const ended: TerminalSubagent[] = [];
+		for (const subagent of roster.values()) {
+			(subagent.endedAt === undefined ? live : ended).push(subagent);
+		}
+		live.sort((a, b) => a.startedAt - b.startedAt);
+		ended.sort((a, b) => (a.endedAt ?? 0) - (b.endedAt ?? 0));
+		return {
+			...binding,
+			...(live.length > 0 ? { subagents: live } : {}),
+			...(ended.length > 0 ? { endedSubagents: ended } : {}),
+		};
 	}
 
 	/**
-	 * Drop children that went quiet without a stop, and ended children past
-	 * their retention. Runs on read rather than on a timer so the store stays
-	 * passive.
+	 * Mark children that went quiet without a stop as stopped, and drop
+	 * ended children past their retention. Runs on read rather than on a
+	 * timer so the store stays passive.
 	 */
 	private pruneSubagents(
 		terminalId: string,
@@ -462,11 +551,18 @@ export class TerminalAgentStore extends EventEmitter {
 		if (!roster) return undefined;
 		const now = Date.now();
 		for (const [id, subagent] of roster) {
-			const expired =
-				subagent.endedAt === undefined
-					? subagent.lastEventAt < now - SUBAGENT_STALE_MS
-					: subagent.endedAt < now - SUBAGENT_ENDED_RETENTION_MS;
-			if (expired) roster.delete(id);
+			if (subagent.endedAt === undefined) {
+				if (subagent.lastEventAt < now - SUBAGENT_STALE_MS) {
+					roster.set(id, {
+						...subagent,
+						status: "stopped",
+						endedAt: subagent.lastEventAt + SUBAGENT_STALE_MS,
+						endReason: "stale",
+					});
+				}
+			} else if (subagent.endedAt < now - SUBAGENT_ENDED_RETENTION_MS) {
+				roster.delete(id);
+			}
 		}
 		if (roster.size === 0) {
 			this.subagentsByTerminal.delete(terminalId);
@@ -524,4 +620,40 @@ export class TerminalAgentStore extends EventEmitter {
 		const workspaceId = marked?.workspaceId ?? existing?.workspaceId;
 		if (workspaceId) this.emit("change", workspaceId);
 	}
+}
+
+function clipActivitySummary(summary: string): string {
+	const trimmed = summary.trim();
+	return trimmed.length > MAX_ACTIVITY_SUMMARY_CHARS
+		? `${trimmed.slice(0, MAX_ACTIVITY_SUMMARY_CHARS)}…`
+		: trimmed;
+}
+
+function isPlaced(subagent: TerminalSubagent): boolean {
+	return (
+		subagent.parentSubagentId !== undefined || subagent.parentUnknown === true
+	);
+}
+
+/**
+ * The tree placement to carry on the next roster entry: an existing
+ * placement wins, otherwise the resolution from this event, if any.
+ */
+function placementOf(
+	existing: TerminalSubagent | undefined,
+	resolution: SubagentParentResolution | undefined,
+): Pick<TerminalSubagent, "parentSubagentId" | "parentUnknown"> | undefined {
+	if (existing && isPlaced(existing)) {
+		return {
+			...(existing.parentSubagentId
+				? { parentSubagentId: existing.parentSubagentId }
+				: {}),
+			...(existing.parentUnknown ? { parentUnknown: true } : {}),
+		};
+	}
+	if (!resolution) return undefined;
+	if (!resolution.known) return { parentUnknown: true };
+	return resolution.parentSubagentId
+		? { parentSubagentId: resolution.parentSubagentId }
+		: {};
 }

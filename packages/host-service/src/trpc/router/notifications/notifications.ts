@@ -27,6 +27,8 @@ const subagentInput = z
 		sessionId: z.string().optional(),
 		transcriptPath: z.string().optional(),
 		agentTranscriptPath: z.string().optional(),
+		toolName: z.string().optional(),
+		toolSummary: z.string().optional(),
 	})
 	.optional();
 
@@ -126,12 +128,16 @@ export const notificationsRouter = router({
 		// out as an invalidation so the sidebar refetches bindings.
 		if (subagentId) {
 			const agentType = trimOrUndefined(input.subagent?.type);
+			const toolName = trimOrUndefined(input.subagent?.toolName);
+			const toolSummary = trimOrUndefined(input.subagent?.toolSummary);
 			const recorded = ctx.terminalAgentStore.recordSubagentHook({
 				terminalId: input.terminalId,
 				workspaceId: terminalSession.originWorkspaceId,
 				eventType: input.eventType ?? "",
 				subagentId,
 				...(agentType ? { agentType } : {}),
+				...(toolName ? { toolName } : {}),
+				...(toolSummary ? { toolSummary } : {}),
 				hint: {
 					subagentId,
 					sessionId: trimOrUndefined(input.subagent?.sessionId),

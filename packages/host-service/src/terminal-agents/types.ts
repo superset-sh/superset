@@ -35,16 +35,43 @@ export type TerminalAgentEndReason =
  * only: it lives and dies with the parent's session, so it is never a resume
  * concern and needs no row.
  */
+export type TerminalSubagentStatus =
+	| "working"
+	| "waiting"
+	| "completed"
+	| "failed"
+	| "stopped";
+
+/** "stale" means the child went quiet without a stop and the roster gave up on it. */
+export type TerminalSubagentEndReason = "completed" | "stale";
+
+export interface TerminalSubagentActivity {
+	toolName: string;
+	summary: string;
+	at: number;
+}
+
 export interface TerminalSubagent {
 	id: string;
 	/** Harness agent type (`Explore`, `general-purpose`, a Codex role), if reported. */
 	agentType?: string;
+	/** Harness title: Claude Task description (agent-<id>.meta.json), Codex nickname/agent path (session_meta). */
+	description?: string;
+	/** The child's own hook session id (a Codex child's thread id). */
+	sessionId?: string;
+	/** Absent with parentUnknown unset = direct child of the terminal's agent. */
+	parentSubagentId?: string;
+	/** No harness evidence could place this child; the renderer roots it at level 1 with a dashed rail. */
+	parentUnknown?: boolean;
+	status: TerminalSubagentStatus;
+	activity?: TerminalSubagentActivity;
 	startedAt: number;
 	lastEventAt: number;
 	/** The child's own transcript on disk, once a hook event revealed it. */
 	transcriptPath?: string;
-	/** Set once the child reported its stop; such entries leave `subagents`. */
+	/** Set once the child ended; such entries move from `subagents` to `endedSubagents`. */
 	endedAt?: number;
+	endReason?: TerminalSubagentEndReason;
 }
 
 export interface TerminalAgentBinding {
@@ -60,4 +87,6 @@ export interface TerminalAgentBinding {
 	endReason?: TerminalAgentEndReason;
 	/** Live subagents under this agent, oldest first. Absent when none. */
 	subagents?: TerminalSubagent[];
+	/** Children with `endedAt` set, oldest-ended first. Absent when none. */
+	endedSubagents?: TerminalSubagent[];
 }
