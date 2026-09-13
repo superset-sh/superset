@@ -1358,6 +1358,7 @@
     "trpc-electron@0.1.2": "patches/trpc-electron@0.1.2.patch",
     "node-pty@1.2.0-beta.14": "patches/node-pty@1.2.0-beta.14.patch",
     "@xterm/xterm@6.1.0-beta.302": "patches/@xterm%2Fxterm@6.1.0-beta.302.patch",
+    "react-native-screens@4.26.0": "patches/react-native-screens@4.26.0.patch",
   },
   "overrides": {
     "@tiptap/extension-dropcursor": "3.30.5",

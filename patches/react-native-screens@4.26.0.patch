@@ -1,0 +1,33 @@
+diff --git a/ios/RNSScreen.mm b/ios/RNSScreen.mm
+index 9b66012dc8db1e3af0cb5457f8dad86e7f2fe5e3..b8e075934de53bee9326affb1d2d4a64550d30e3 100644
+--- a/ios/RNSScreen.mm
++++ b/ios/RNSScreen.mm
+@@ -53,6 +53,7 @@ @interface RNSScreenView () <UIAdaptivePresentationControllerDelegate,
+ 
+ @implementation RNSScreenView {
+   __weak RCTScrollViewComponentView *_sheetsScrollView;
++  BOOL _invalidated;
+ 
+   /// Up-to-date only when sheet is in `fitToContents` mode.
+   CGFloat _sheetContentHeight;
+@@ -177,6 +178,12 @@ - (void)updateBounds
+ 
+ - (void)applyFrameCorrectionForDescendantScrollView
+ {
++  // A dismissed sheet still gets a layout pass after it has been invalidated,
++  // by which time Fabric may have recycled its scroll view into the screen
++  // that replaced it; sizing that to the sheet clips the new screen.
++  if (_invalidated) {
++    return;
++  }
+   RCTScrollViewComponentView *scrollView = [self tryFindDescendantScrollView];
+   if (_sheetsScrollView != scrollView) {
+     [_sheetsScrollView removeObserver:self forKeyPath:@"bounds" context:nil];
+@@ -769,6 +776,7 @@ - (BOOL)isTransparentModal
+ 
+ - (void)invalidateImpl
+ {
++  _invalidated = YES;
+   // Since the scroll view might get immediately recycled we remove ourselves
+   // immediately.
+   if (_sheetsScrollView != nil) {
