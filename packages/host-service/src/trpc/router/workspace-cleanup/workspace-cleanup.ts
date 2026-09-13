@@ -264,18 +264,6 @@ async function runDestroy(
 	if (local) assertNoLivePathOwner(ctx, local);
 
 	// ─── Step 0: Archive (the commit point) ────────────────────────
-	// FIRST, before any slow work (git preflight, teardown script): the
-	// tombstone is a durable delete-intent record, and its broadcast is
-	// what drops the row from every list — archiving up front is what
-	// makes the delete feel instant. If the host crashes mid-cleanup the
-	// startup reconciler finishes the job with best-effort teardown. ANY
-	// failure below un-archives so the workspace reappears live and
-	// retryable. The renderer's delete dialog is globally mounted (not
-	// under the row) so a teardown-failure prompt survives the row
-	// vanishing here. Sessions tombstone too — they're workspaces with
-	// a little missing data (no project, no PRs; reason is always
-	// "deleted"), and session folder names are claimed against ALL rows
-	// including tombstones, so a tombstone's path can't be reused.
 	const marked = local != null;
 	// Deleting an archived workspace: the row is already a tombstone and the
 	// worktree is already gone. The stamp flips to a delete below; a failure
@@ -285,15 +273,27 @@ async function runDestroy(
 			? { archivedAt: local.archivedAt, archiveReason: local.archiveReason }
 			: null;
 	const worktreeGone = local ? isMissingDirectory(local.worktreePath) : true;
-	if (
-		input.archive &&
-		local &&
-		(local.type !== "worktree" || !local.projectId || !local.branch)
-	) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Only worktree workspaces can be archived",
-		});
+	if (input.archive) {
+		if (input.deleteBranch) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Cannot delete the branch when archiving a workspace",
+			});
+		}
+		if (
+			!local ||
+			local.type !== "worktree" ||
+			!local.projectId ||
+			!local.branch ||
+			!project
+		) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Only worktree workspaces can be archived",
+			});
+		}
+		await assertArchiveIdentity(ctx, local);
+		assertNoLivePathOwner(ctx, local);
 	}
 	if (marked) {
 		archiveLocalWorkspace(
@@ -400,6 +400,33 @@ async function runDestroy(
 			}
 		}
 		throw err;
+	}
+}
+
+async function assertArchiveIdentity(
+	ctx: HostServiceContext,
+	local: { worktreePath: string; branch: string | null },
+) {
+	try {
+		const gitEnv = await cleanupGitOps.resolveGitEnv(ctx, local.worktreePath);
+		const refs = await cleanupGitOps.readWorkspaceRefs({
+			worktreePath: local.worktreePath,
+			gitEnv,
+		});
+		if (!refs.branch || !refs.headSha || refs.branch !== local.branch) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message:
+					"Cannot archive workspace: HEAD must be readable and attached to the recorded branch",
+			});
+		}
+	} catch (err) {
+		if (err instanceof TRPCError) throw err;
+		const message = err instanceof Error ? err.message : String(err);
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: `Couldn't verify archive identity at ${local.worktreePath}: ${message}`,
+		});
 	}
 }
 
@@ -522,6 +549,7 @@ async function runDestroyPhases(
 	if (local && project) {
 		worktreeRemoved = !existsSync(local.worktreePath);
 		if (!worktreeRemoved && isMissingDirectory(project.repoPath)) {
+			if (input.archive) await assertArchiveIdentity(ctx, local);
 			// The project repo was moved or deleted outside Superset: there is
 			// no repository to run `git worktree remove` in, and the worktree's
 			// gitdir pointer is already dead, so no retry can ever succeed.
@@ -561,7 +589,7 @@ async function runDestroyPhases(
 				repoGitEnv = await cleanupGitOps.resolveGitEnv(ctx, project.repoPath);
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
-				if (!worktreeRemoved) {
+				if (input.archive || !worktreeRemoved) {
 					throw new TRPCError({
 						code: "INTERNAL_SERVER_ERROR",
 						message: `Failed to open project repo at ${project.repoPath}: ${message}`,
@@ -579,6 +607,7 @@ async function runDestroyPhases(
 			// orphaning disk past the archive commit point.
 			let stillRegistered = true;
 			let removeError: string | undefined;
+			if (input.archive) await assertArchiveIdentity(ctx, local);
 			assertNoLivePathOwner(ctx, local);
 			try {
 				({ stillRegistered, removeError } = await cleanupGitOps.removeWorktree({

@@ -142,6 +142,115 @@ describe("workspaceCleanup.revive integration", () => {
 		expect(existsSync(`${scenario.worktreePath}/.git`)).toBe(true);
 	});
 
+	for (const force of [false, true]) {
+		test(`rejects archive with branch deletion before tombstoning (force=${force})`, async () => {
+			const before = readRow(scenario.featureWorkspaceId);
+			await expectCode(
+				scenario.host.trpc.workspaceCleanup.destroy.mutate({
+					workspaceId: scenario.featureWorkspaceId,
+					archive: true,
+					deleteBranch: true,
+					force,
+				}),
+				"BAD_REQUEST",
+			);
+			expect(readRow(scenario.featureWorkspaceId)).toEqual(before);
+			expect(existsSync(join(scenario.worktreePath, ".git"))).toBe(true);
+			expect(
+				await scenario.repo.git.raw(["branch", "--list", scenario.branch]),
+			).toContain(scenario.branch);
+		});
+
+		for (const identity of ["detached", "mismatched", "unreadable"] as const) {
+			for (const duringTeardown of [false, true]) {
+				test(`rejects ${identity} archive identity (force=${force}, duringTeardown=${duringTeardown})`, async () => {
+					const workspaceId = scenario.featureWorkspaceId;
+					const changeIdentity = async () => {
+						if (identity === "detached") {
+							await scenario.repo.git.raw([
+								"-C",
+								scenario.worktreePath,
+								"checkout",
+								"--detach",
+							]);
+							await scenario.repo.git.raw([
+								"-C",
+								scenario.worktreePath,
+								"commit",
+								"--allow-empty",
+								"-m",
+								"Detached archive commit",
+							]);
+						} else if (identity === "mismatched") {
+							await scenario.repo.git.raw([
+								"-C",
+								scenario.worktreePath,
+								"checkout",
+								"-b",
+								"archive-other-branch",
+							]);
+						} else {
+							await scenario.repo.git.raw([
+								"update-ref",
+								"-d",
+								`refs/heads/${scenario.branch}`,
+							]);
+						}
+					};
+					if (!duringTeardown) await changeIdentity();
+					const remove = spyOn(cleanupGitOps, "removeWorktree");
+					const hook = spyOn(teardown, "runTeardown").mockImplementation(
+						async () => {
+							expect(readRow(workspaceId)?.archiveReason).toBe("archived");
+							await changeIdentity();
+							return { status: "skipped" };
+						},
+					);
+					try {
+						const error = await expectCode(
+							scenario.host.trpc.workspaceCleanup.destroy.mutate({
+								workspaceId,
+								archive: true,
+								force,
+							}),
+							"CONFLICT",
+						);
+						expect(error.message).toContain(
+							"HEAD must be readable and attached",
+						);
+						expect(hook).toHaveBeenCalledTimes(duringTeardown ? 1 : 0);
+						expect(remove).not.toHaveBeenCalled();
+						expect(readRow(workspaceId)?.archivedAt).toBeNull();
+						expect(readRow(workspaceId)?.archiveReason).toBeNull();
+						expect(existsSync(join(scenario.worktreePath, ".git"))).toBe(true);
+						expect(__testDestroysInFlight.has(workspaceId)).toBe(false);
+						if (identity !== "unreadable") {
+							expect(
+								await scenario.repo.git.raw([
+									"-C",
+									scenario.worktreePath,
+									"rev-parse",
+									"--verify",
+									"HEAD",
+								]),
+							).not.toBe("");
+							expect(
+								await scenario.repo.git.raw([
+									"branch",
+									"--list",
+									scenario.branch,
+								]),
+							).toContain(scenario.branch);
+						}
+					} finally {
+						hook.mockRestore();
+						remove.mockRestore();
+					}
+				});
+			}
+		}
+	}
+
 	test("refuses a workspace that is not archived", async () => {
 		await expectCode(
 			scenario.host.trpc.workspaceCleanup.revive.mutate({
@@ -420,7 +529,7 @@ describe("workspaceCleanup.revive integration", () => {
 					scenario.host.trpc.workspaceCleanup.destroy.mutate({
 						workspaceId,
 						archive: true,
-						deleteBranch: true,
+						deleteBranch: false,
 						force: true,
 					}),
 					code,

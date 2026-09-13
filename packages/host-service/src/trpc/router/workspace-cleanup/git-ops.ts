@@ -14,6 +14,7 @@ import {
 	type GitTaskEnv,
 	gitDeleteBranchTask,
 	gitReviveWorktreeTask,
+	gitWorkspaceRefsTask,
 	gitWorktreeRemoveTask,
 	gitWorktreeStateTask,
 	type ReviveWorktreeInput,
@@ -57,6 +58,12 @@ export const cleanupGitOps = {
 		return getHostWorkerPool().run(gitWorktreeStateTask, input, {
 			timeoutMs: 15_000,
 			signal,
+		});
+	},
+
+	readWorkspaceRefs(input: { worktreePath: string; gitEnv: GitTaskEnv }) {
+		return getHostWorkerPool().run(gitWorkspaceRefsTask, input, {
+			timeoutMs: 15_000,
 		});
 	},
 
