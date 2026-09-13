@@ -7,6 +7,8 @@ import { useDestroyDialogState } from "./hooks/useDestroyDialogState";
 interface DashboardSidebarDeleteDialogProps {
 	workspaceId: string;
 	workspaceName: string;
+	/** The host of a row the live list no longer carries (archived). */
+	hostId?: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	/** Fires after a successful destroy (any warnings reported via toast). */
@@ -22,6 +24,7 @@ interface DashboardSidebarDeleteDialogProps {
 export function DashboardSidebarDeleteDialog({
 	workspaceId,
 	workspaceName,
+	hostId,
 	open,
 	onOpenChange,
 	onDeleted,
@@ -44,6 +47,7 @@ export function DashboardSidebarDeleteDialog({
 	} = useDestroyDialogState({
 		workspaceId,
 		workspaceName,
+		hostId,
 		open,
 		onOpenChange,
 		onDeleted,

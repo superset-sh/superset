@@ -30,6 +30,7 @@ export function DeleteWorkspaceMount() {
 			key={workspaceId}
 			workspaceId={workspaceId}
 			workspaceName={target.workspaceName}
+			hostId={target.hostId}
 			open={open}
 			onOpenChange={(next) => setOpen(workspaceId, next)}
 			onDeleted={() => {

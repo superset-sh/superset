@@ -17,6 +17,7 @@ import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/Host
 interface UseDestroyDialogStateOptions {
 	workspaceId: string;
 	workspaceName: string;
+	hostId?: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onDeleted?: () => void;
@@ -31,12 +32,16 @@ type InspectState =
 export function useDestroyDialogState({
 	workspaceId,
 	workspaceName,
+	hostId,
 	open,
 	onOpenChange,
 	onDeleted,
 }: UseDestroyDialogStateOptions) {
 	const { t } = useLingui();
-	const { destroy, inspect, hostTarget } = useDestroyWorkspace(workspaceId);
+	const { destroy, inspect, hostTarget } = useDestroyWorkspace(
+		workspaceId,
+		hostId,
+	);
 	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();

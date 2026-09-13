@@ -3,6 +3,9 @@ import { create } from "zustand";
 export interface DeleteWorkspaceTarget {
 	workspaceId: string;
 	workspaceName: string;
+	/** Set by entry points whose row the live list no longer carries (an
+	 * archived workspace), so the dialog can still address its host. */
+	hostId?: string;
 }
 
 /**

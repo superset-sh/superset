@@ -65,8 +65,14 @@ export type WorkspaceHostTarget =
  * from "local host hasn't booted yet" from "workspace doesn't exist on this
  * client" — three states the previous `string | null` API collapsed into one.
  */
+/**
+ * `hostIdHint` addresses a workspace the live list no longer carries — an
+ * archived tombstone being restored or deleted — by the host its row named.
+ * A live match still wins.
+ */
 export function useWorkspaceHostTarget(
 	workspaceId: string | null,
+	hostIdHint?: string | null,
 ): WorkspaceHostTarget {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
@@ -165,29 +171,28 @@ export function useWorkspaceHostTarget(
 		// The cloud list decides "not-found" as much as the host fan-out does;
 		// answering before it lands flashes a not-found on every cloud open.
 		if (!match && cloudPending) return { status: "loading" };
-		if (!match) return { status: "not-found" };
-		if (machineId && match.hostId === machineId) {
+		const hostId = match?.hostId ?? hostIdHint ?? null;
+		const hostOrganizationId = match?.organizationId ?? organizationId;
+		if (!hostId || !hostOrganizationId) return { status: "not-found" };
+		if (machineId && hostId === machineId) {
 			if (activeHostUrl) {
-				return {
-					status: "ready",
-					kind: "local",
-					hostId: match.hostId,
-					url: activeHostUrl,
-				};
+				return { status: "ready", kind: "local", hostId, url: activeHostUrl };
 			}
-			return { status: "local-starting", hostId: match.hostId };
+			return { status: "local-starting", hostId };
 		}
-		const routingKey = buildHostRoutingKey(match.organizationId, match.hostId);
+		const routingKey = buildHostRoutingKey(hostOrganizationId, hostId);
 		return {
 			status: "ready",
 			kind: "remote",
-			hostId: match.hostId,
+			hostId,
 			url: `${relayUrl}/hosts/${routingKey}`,
 		};
 	}, [
 		workspaceId,
 		isReady,
 		match,
+		hostIdHint,
+		organizationId,
 		machineId,
 		activeHostUrl,
 		relayUrl,

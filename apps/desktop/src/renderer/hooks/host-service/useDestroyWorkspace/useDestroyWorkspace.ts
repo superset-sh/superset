@@ -22,6 +22,8 @@ export interface DestroyWorkspaceInput {
 	/** Consent to abandon the teardown script — only the teardown-failed
 	 * retry sets this. */
 	skipTeardown?: boolean;
+	/** Stamp the tombstone as archived rather than deleted. */
+	archive?: boolean;
 }
 
 export interface DestroyWorkspaceSuccess {
@@ -81,6 +83,7 @@ export async function destroyWorkspaceAtHost(
 			deleteBranch: input.deleteBranch ?? false,
 			force: input.force ?? false,
 			skipTeardown: input.skipTeardown ?? false,
+			archive: input.archive ?? false,
 		});
 	} catch (error) {
 		throw normalizeDestroyWorkspaceError(error);
@@ -109,8 +112,13 @@ export async function inspectWorkspaceAtHost({
  *   - prompt force-retry on `teardown-failed`
  *   - render `host-unavailable` as a checking-status spinner, not an error
  */
-export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
-	const hostTarget = useWorkspaceHostTarget(workspaceId);
+/** `hostId` addresses a workspace the live list no longer carries (an archived
+ * tombstone); see `useWorkspaceHostTarget`. */
+export function useDestroyWorkspace(
+	workspaceId: string,
+	hostId?: string | null,
+): UseDestroyWorkspace {
+	const hostTarget = useWorkspaceHostTarget(workspaceId, hostId);
 	const { activeHostUrl } = useLocalHostService();
 
 	// Reduce the (object-identity-unstable) hostTarget down to two scalars so
