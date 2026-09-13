@@ -194,7 +194,7 @@ local_write_env() {
   local CODE_INSPECTOR_PORT=$((BASE + 11))
   local RELAY_PORT=$((BASE + 13))
   local USERCONTENT_DEV_PORT=$((BASE + 14))
-  local SANDBOX_EDGE_DEV_PORT=$((BASE + 15))
+  local SANDBOX_GATE_DEV_PORT=$((BASE + 15))
   local REALTIME_PORT=$((BASE + 18))
 
   {
@@ -230,7 +230,7 @@ local_write_env() {
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
     write_env_var "RELAY_PORT" "$RELAY_PORT"
     write_env_var "USERCONTENT_DEV_PORT" "$USERCONTENT_DEV_PORT"
-    write_env_var "SANDBOX_EDGE_DEV_PORT" "$SANDBOX_EDGE_DEV_PORT"
+    write_env_var "SANDBOX_GATE_DEV_PORT" "$SANDBOX_GATE_DEV_PORT"
     write_env_var "REALTIME_PORT" "$REALTIME_PORT"
     echo ""
     echo "# Cross-app URLs (allocated ports)"
@@ -246,7 +246,7 @@ local_write_env() {
     write_env_var "REALTIME_NUDGE_SECRET" "fake-realtime-nudge-secret"
     write_env_var "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "USERCONTENT_URL" "http://frame.usercontent.localhost:$USERCONTENT_DEV_PORT"
-    write_env_var "SANDBOX_EDGE_ORIGIN" "http://127.0.0.1:$SANDBOX_EDGE_DEV_PORT"
+    write_env_var "SANDBOX_GATE_ORIGIN" "http://127.0.0.1:$SANDBOX_GATE_DEV_PORT"
     echo ""
     echo "# Streams URLs"
     write_env_var "PORT" "$STREAMS_PORT"
@@ -271,7 +271,7 @@ local_write_env() {
     { "port": $DESKTOP_NOTIFICATIONS_PORT, "label": "Notifications" },
     { "port": $STREAMS_PORT, "label": "Streams" },
     { "port": $USERCONTENT_DEV_PORT, "label": "Usercontent Worker" },
-    { "port": $SANDBOX_EDGE_DEV_PORT, "label": "Sandbox Edge Worker" },
+    { "port": $SANDBOX_GATE_DEV_PORT, "label": "Gate Worker" },
     { "port": $LOCAL_PG_PORT, "label": "Postgres" },
     { "port": $LOCAL_NEON_PROXY_PORT, "label": "Neon Proxy" },
     { "port": $LOCAL_REDIS_PORT, "label": "Redis" },

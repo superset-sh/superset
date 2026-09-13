@@ -13,7 +13,7 @@
  *
  *   SUPERSET_INTERNAL_ORGANIZATION_ID=… bun run sandbox:release [--production] [--skip-base] [--keep-old]
  *
- * Needs the VERCEL_SANDBOX_* variables and SANDBOX_EDGE_SECRET, plus
+ * Needs the VERCEL_SANDBOX_* variables and SANDBOX_GATE_SECRET, plus
  * NEON_API_KEY / NEON_PROJECT_ID (all in the root .env) and, for the image, a
  * Docker daemon and `vercel vcr login docker`. The rows go to DATABASE_URL, or
  * with --production to the Neon project's default branch, resolved through the

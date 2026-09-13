@@ -33,13 +33,13 @@ Run from a throwaway script against the `sandboxes` project in the
   builds `linux/amd64` and pushes `superset-hostsvc:<tag>`; VCR reports `Ready`. (~10 min incl. VCR Preparing)
 - [x] **2.2 Natives load** — in a sandbox from the image: `node -e
   'require("/app/node_modules/better-sqlite3"); require("/app/node_modules/node-pty")'`
-  exits 0. No compile step ran (no build-essential in the image). (smoke)
+  exits 0. No compile step ran (no build-essential in the image). (gate probe, 2026-09-12)
 - [x] **2.3 host-service serves** — `/app/start.sh` run through `runCommand`
   (detached) brings `/trpc/health.check` to 200 via `sandbox.domain(4879)`
   within 30s. Confirms the platform runs no ENTRYPOINT, honours `WORKDIR`, and
-  that `PORT` is not injected against us. (smoke: 200 in ~7s)
+  that `PORT` is not injected against us. (gate probe: 200)
 - [x] **2.4 Runs as root with the baked Claude config** — `id -u` is 0 and
-  `/root/.claude.json` has `bypassPermissionsModeAccepted`. (smoke)
+  `/root/.claude.json` has `bypassPermissionsModeAccepted`. (gate probe, 2026-09-12)
 - [x] **2.5 Firewall CA reaches the terminal** — inside a PTY opened through
   host-service, `curl https://api.anthropic.com/v1/models` with the placeholder
   key returns an Anthropic response (not a TLS error) when a transform rule is
@@ -49,13 +49,13 @@ Run from a throwaway script against the `sandboxes` project in the
 
 - [x] **3.1 No token → 401** — `GET <domain>/events` with no `Authorization`
   header is refused by host-service (not by an edge); `/trpc/health.check` is
-  public by design. (smoke)
+  public by design. (gate probe, 2026-09-12)
 - [x] **3.2 Wrong workspace → 401** — a token minted for workspace A is refused
-  by workspace B's host-service (audience check). (smoke)
+  by workspace B's host-service (audience check). (gate probe, 2026-09-12)
 - [x] **3.3 Expired token → 401** — a token past `exp` is refused. (same verifier; exp checked in verifySandboxAccessToken)
-- [x] **3.4 Forged token → 401** — a token signed with another key is refused. (smoke)
+- [x] **3.4 Forged token → 401** — a token signed with another key is refused. (gate probe, 2026-09-12)
 - [x] **3.5 Valid token → 200** on HTTP, and the WebSocket routes (`/events`,
-  `/terminal/*`, `/desktop/vnc`) accept it as the `token` query param. (smoke + desktop)
+  `/terminal/*`, `/desktop/vnc`) accept it as the `token` query param. (gate probe + desktop)
 - [x] **3.6 The sandbox cannot mint** — the sandbox env holds only the public
   key (`grep SIGNING /proc/1/environ` finds nothing private).
 

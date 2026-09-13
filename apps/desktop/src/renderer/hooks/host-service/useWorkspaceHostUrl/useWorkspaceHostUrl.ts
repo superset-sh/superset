@@ -18,7 +18,7 @@ export type WorkspaceHostTarget =
 
 /**
  * Resolves a workspace ID to its owning host-service target: a cloud
- * workspace's sandbox edge address once its sandbox is awake, this machine's
+ * workspace's sandbox gate address once its sandbox is awake, this machine's
  * host-service, or another host through the relay.
  */
 export function useWorkspaceHostTarget(

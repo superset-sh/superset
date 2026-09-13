@@ -125,7 +125,7 @@ export async function provisionCloudWorkspace(
 					SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL,
 					SUPERSET_HOST_RUN_MODE: "sandbox",
 					SUPERSET_SANDBOX_WORKSPACE_ID: row.id,
-					// What the edge presents; nothing else reaches host-service.
+					// What the gate presents; nothing else reaches host-service.
 					HOST_SERVICE_SECRET: await sandboxHostSecretFor(row.id),
 					SUPERSET_SANDBOX_WORKSPACE_NAME: resolvedName,
 					SUPERSET_SANDBOX_BRANCH: row.branch,

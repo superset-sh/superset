@@ -15,7 +15,7 @@ import {
 	deleteSandbox,
 	HOST_SERVICE_PORT,
 	listRemoteBranches,
-	mintSandboxEdgeAccess,
+	mintSandboxGateAccess,
 	resolveSandboxAddress,
 	SandboxNotReadyError,
 	SandboxUnavailableError,
@@ -344,7 +344,7 @@ export const cloudWorkspaceRouter = {
 					cause: { kind: "CLOUD_WORKSPACE_NOT_READY", status: "failed" },
 				});
 			}
-			const { url, token, expiresAt } = await mintSandboxEdgeAccess({
+			const { url, token, expiresAt } = await mintSandboxGateAccess({
 				workspaceId: row.id,
 				userId: ctx.userId,
 				port: HOST_SERVICE_PORT,

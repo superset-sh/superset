@@ -58,13 +58,13 @@ operation, or route git through the proxy the same way.
 
 **A sandbox has exactly one gate, and it is ours.** A sandbox's own port is
 a public URL that clients never see; they reach a workspace through the
-sandbox edge (`apps/sandbox-edge`), which verifies a ticket the API signed
+sandbox gate (`apps/gate`), which verifies a ticket the API signed
 for that person's session and forwards with a bearer only it and the API can
 derive. host-service behind it accepts that bearer and nothing else. Nothing
 in the box holds the shared secret, a ticket for one workspace fails every
 other, and a sandbox booted without its secret answers nobody. What remains
 is a leaked unexpired ticket — hours of terminals, git and the filesystem for
-one workspace, through the edge only.
+one workspace, through the gate only.
 
 What makes that worth more than the sandbox itself: code execution inside gets
 the customer's repo, the write-scoped GitHub token in `.git/config` above, and
@@ -76,17 +76,17 @@ is only us:
 
 - **Get the ticket out of the query string.** A browser can't set headers on a
   WebSocket upgrade, so the ticket rides as `token` in the socket URL, where it
-  reaches logs and proxies far more readily than a header would. The edge owns
+  reaches logs and proxies far more readily than a header would. The gate owns
   the upgrade now, so `Sec-WebSocket-Protocol` (a header a browser can set) or
   single-use socket tickets are both available.
-- **Narrow CORS.** The edge answers `Access-Control-Allow-Origin: *`. It grants
+- **Narrow CORS.** The gate answers `Access-Control-Allow-Origin: *`. It grants
   no ambient authority (the ticket is not a cookie), but it does make a leaked
   ticket usable from any origin. Pin it to the app's origins once they are
   enumerable.
-- **Secret rotation.** `SANDBOX_EDGE_SECRET` signs every ticket and derives
+- **Secret rotation.** `SANDBOX_GATE_SECRET` signs every ticket and derives
   every sandbox's host secret; rotating it invalidates every running sandbox's
   bearer at once, so a rotation is a re-provision. Accepting two secrets at
-  the edge during a window is the usual shape.
+  the gate during a window is the usual shape.
 
 ## A saturated sandbox looks like a dead one
 

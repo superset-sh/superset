@@ -57,12 +57,12 @@ export const env = createEnv({
 		VERCEL_SANDBOX_TEAM_ID: z.string().min(1),
 		VERCEL_SANDBOX_PROJECT_ID: z.string().min(1),
 		VERCEL_SANDBOX_REGION: z.string().min(1).default("iad1"),
-		// Shared with the sandbox edge Worker: signs the tickets clients present
+		// Shared with the gate Worker: signs the tickets clients present
 		// there and derives the secret each sandbox's host-service is booted with.
-		SANDBOX_EDGE_SECRET: z.string().min(32),
-		// The edge with `*` where a workspace's `<id>-<port>` label goes, e.g.
+		SANDBOX_GATE_SECRET: z.string().min(32),
+		// The gate with `*` where a workspace's `<id>-<port>` label goes, e.g.
 		// https://*.sandbox.supersetusercontent.com; a local wrangler dev has no `*`.
-		SANDBOX_EDGE_ORIGIN: z
+		SANDBOX_GATE_ORIGIN: z
 			.string()
 			.url()
 			.or(z.string().regex(/^https?:\/\/\*\./)),

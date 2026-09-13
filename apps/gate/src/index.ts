@@ -1,11 +1,11 @@
 import { SUPERSET_USER_ID_HEADER } from "@superset/shared/host-routing";
 import {
-	parseSandboxEdgeHost,
-	SANDBOX_EDGE_TICKET_PARAM,
+	parseSandboxGateHost,
+	SANDBOX_GATE_TICKET_PARAM,
 	sandboxHostSecret,
-	verifySandboxEdgeTicket,
-} from "@superset/shared/sandbox-edge";
-import { assertEnv, type SandboxEdgeEnv } from "./env";
+	verifySandboxGateTicket,
+} from "@superset/shared/sandbox-gate";
+import { assertEnv, type SandboxGateEnv } from "./env";
 
 /**
  * The desktop renderer is a browser, so every call is cross-origin. A ticket
@@ -28,7 +28,7 @@ const CORS_HEADERS: Record<string, string> = {
 function ticketFrom(request: Request, url: URL): string | null {
 	const header = request.headers.get("authorization");
 	if (header?.startsWith("Bearer ")) return header.slice(7);
-	return url.searchParams.get(SANDBOX_EDGE_TICKET_PARAM);
+	return url.searchParams.get(SANDBOX_GATE_TICKET_PARAM);
 }
 
 function refused(): Response {
@@ -44,13 +44,13 @@ export default {
 		const url = new URL(request.url);
 		const ticket = ticketFrom(request, url);
 		const claims = ticket
-			? await verifySandboxEdgeTicket(env.SANDBOX_EDGE_SECRET, ticket)
+			? await verifySandboxGateTicket(env.SANDBOX_GATE_SECRET, ticket)
 			: null;
 		if (!claims) return refused();
 		// Every workspace is its own origin, so a ticket must not open one
 		// workspace's hostname onto another's sandbox.
-		if (env.SANDBOX_EDGE_DOMAIN) {
-			const bound = parseSandboxEdgeHost(url.hostname, env.SANDBOX_EDGE_DOMAIN);
+		if (env.SANDBOX_GATE_DOMAIN) {
+			const bound = parseSandboxGateHost(url.hostname, env.SANDBOX_GATE_DOMAIN);
 			if (
 				!bound ||
 				bound.workspaceId !== claims.workspaceId ||
@@ -61,12 +61,12 @@ export default {
 		}
 
 		const hostSecret = await sandboxHostSecret(
-			env.SANDBOX_EDGE_SECRET,
+			env.SANDBOX_GATE_SECRET,
 			claims.workspaceId,
 		);
 		const upstream = new URL(`${url.pathname}${url.search}`, claims.target);
-		if (upstream.searchParams.has(SANDBOX_EDGE_TICKET_PARAM)) {
-			upstream.searchParams.set(SANDBOX_EDGE_TICKET_PARAM, hostSecret);
+		if (upstream.searchParams.has(SANDBOX_GATE_TICKET_PARAM)) {
+			upstream.searchParams.set(SANDBOX_GATE_TICKET_PARAM, hostSecret);
 		}
 		const headers = new Headers(request.headers);
 		headers.set("authorization", `Bearer ${hostSecret}`);
@@ -89,4 +89,4 @@ export default {
 		}
 		return out;
 	},
-} satisfies ExportedHandler<SandboxEdgeEnv>;
+} satisfies ExportedHandler<SandboxGateEnv>;

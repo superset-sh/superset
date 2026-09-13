@@ -427,6 +427,21 @@
         "typescript": "6.0.3",
       },
     },
+    "apps/gate": {
+      "name": "@superset/gate",
+      "version": "0.1.0",
+      "dependencies": {
+        "@superset/shared": "workspace:*",
+        "jose": "6.2.2",
+        "zod": "4.4.3",
+      },
+      "devDependencies": {
+        "@cloudflare/workers-types": "5.20260801.1",
+        "@superset/typescript": "workspace:*",
+        "typescript": "6.0.3",
+        "wrangler": "4.118.0",
+      },
+    },
     "apps/marketing": {
       "name": "@superset/marketing",
       "version": "0.1.0",
@@ -674,20 +689,6 @@
     "apps/review-host": {
       "name": "@superset/review-host",
       "version": "0.0.0",
-    },
-    "apps/sandbox-edge": {
-      "name": "@superset/sandbox-edge",
-      "version": "0.1.0",
-      "dependencies": {
-        "@superset/shared": "workspace:*",
-        "zod": "4.4.3",
-      },
-      "devDependencies": {
-        "@cloudflare/workers-types": "5.20260801.1",
-        "@superset/typescript": "workspace:*",
-        "typescript": "6.0.3",
-        "wrangler": "4.118.0",
-      },
     },
     "apps/usercontent": {
       "name": "@superset/usercontent",
@@ -3115,6 +3116,8 @@
 
     "@superset/email": ["@superset/email@workspace:packages/email"],
 
+    "@superset/gate": ["@superset/gate@workspace:apps/gate"],
+
     "@superset/host-client": ["@superset/host-client@workspace:packages/host-client"],
 
     "@superset/host-service": ["@superset/host-service@workspace:packages/host-service"],
@@ -3142,8 +3145,6 @@
     "@superset/relay": ["@superset/relay@workspace:apps/relay"],
 
     "@superset/review-host": ["@superset/review-host@workspace:apps/review-host"],
-
-    "@superset/sandbox-edge": ["@superset/sandbox-edge@workspace:apps/sandbox-edge"],
 
     "@superset/sdk": ["@superset/sdk@workspace:packages/sdk"],
 

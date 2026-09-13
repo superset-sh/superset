@@ -1,12 +1,14 @@
 # Cloud workspace sandboxes
 
 This directory provisions and bootstraps the Vercel sandboxes that back cloud
-workspaces, and signs the tokens that gate them (`access.ts`). The desktop half
+workspaces, and mints the tickets clients present at the sandbox gate
+(`access.ts`). The gate itself is the Worker in `apps/gate`; the desktop half
 lives in `apps/desktop/src/renderer` (the sidebar's cloud section,
-`SandboxAccessProvider`, the host fan-out), the check inside the sandbox in
-`packages/host-service/src/providers/host-auth/SandboxAccessHostAuthProvider`,
-and the image in `scripts/sandbox/image.ts` — a change here usually needs one
-of those too. `docs/cloud-sandbox-acceptance.md` is what to run afterwards.
+`SandboxAccessProvider`, the host fan-out); host-service inside the sandbox
+checks the secret the gate presents with the same `PskHostAuthProvider` a
+local host uses; and the image is `scripts/sandbox/image.ts` — a change here
+usually needs one of those too. `docs/cloud-sandbox-acceptance.md` is what to
+run afterwards.
 
 **Read `docs/cloud-sandbox-mismatches.md` before changing anything in here.**
 It is the list of places where a sandbox doesn't behave like the machine the

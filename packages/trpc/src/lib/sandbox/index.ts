@@ -1,4 +1,4 @@
-export { mintSandboxEdgeAccess, sandboxHostSecretFor } from "./access";
+export { mintSandboxGateAccess, sandboxHostSecretFor } from "./access";
 export { type CloudRepo, cloudRepo } from "./cloud-repo";
 export {
 	listRemoteBranches,

@@ -1,8 +1,8 @@
 import {
-	sandboxEdgeUrl,
+	sandboxGateUrl,
 	sandboxHostSecret,
-	signSandboxEdgeTicket,
-} from "@superset/shared/sandbox-edge";
+	signSandboxGateTicket,
+} from "@superset/shared/sandbox-gate";
 import { env } from "../../env";
 
 /**
@@ -17,14 +17,14 @@ const TICKET_TTL_MS = 12 * 60 * 60 * 1000;
  * authorization decision — is this person allowed in — happens before this
  * is called; this only turns a yes into an address and a ticket.
  */
-export async function mintSandboxEdgeAccess(args: {
+export async function mintSandboxGateAccess(args: {
 	workspaceId: string;
 	userId: string;
 	port: number;
 	target: string;
 }): Promise<{ url: string; token: string; expiresAt: Date }> {
 	const expiresAt = new Date(Date.now() + TICKET_TTL_MS);
-	const token = await signSandboxEdgeTicket(env.SANDBOX_EDGE_SECRET, {
+	const token = await signSandboxGateTicket(env.SANDBOX_GATE_SECRET, {
 		workspaceId: args.workspaceId,
 		userId: args.userId,
 		port: args.port,
@@ -32,13 +32,13 @@ export async function mintSandboxEdgeAccess(args: {
 		exp: Math.floor(expiresAt.getTime() / 1000),
 	});
 	return {
-		url: sandboxEdgeUrl(env.SANDBOX_EDGE_ORIGIN, args.workspaceId, args.port),
+		url: sandboxGateUrl(env.SANDBOX_GATE_ORIGIN, args.workspaceId, args.port),
 		token,
 		expiresAt,
 	};
 }
 
-/** The bearer host-service in this workspace's sandbox is booted with and the edge presents. */
+/** The bearer host-service in this workspace's sandbox is booted with and the gate presents. */
 export function sandboxHostSecretFor(workspaceId: string): Promise<string> {
-	return sandboxHostSecret(env.SANDBOX_EDGE_SECRET, workspaceId);
+	return sandboxHostSecret(env.SANDBOX_GATE_SECRET, workspaceId);
 }

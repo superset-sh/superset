@@ -84,15 +84,15 @@ local host reads its secret from. CORS is answered by host-service itself in
 sandbox mode (`*`; the bearer, never a cookie, is what gates it). Testing from
 Node proves nothing about the renderer here.
 
-**The sandbox's own address is public, so the edge is the gate.** Locally the
+**The sandbox's own address is public, so the gate is the gate.** Locally the
 pre-shared secret stops anything else on the machine from talking to a
 host-service bound to loopback. A Vercel sandbox's exposed port is a public
 `vercel.run` domain with nothing in front of it, so clients never see it: they
 reach a workspace at `<id>-<port>.sandbox.supersetusercontent.com`, a Worker
-(`apps/sandbox-edge`) that verifies a ticket the API minted for that person's
+(`apps/gate`) that verifies a ticket the API minted for that person's
 session — workspace, port, target, hours-long expiry — and forwards to the
 sandbox with a bearer only it and the API can derive
-(`sandboxHostSecret(SANDBOX_EDGE_SECRET, workspaceId)`). host-service in the
+(`sandboxHostSecret(SANDBOX_GATE_SECRET, workspaceId)`). host-service in the
 sandbox runs the same `PskHostAuthProvider` as a local host, booted with that
 secret as `HOST_SERVICE_SECRET`; nothing a client holds opens the box
 directly, and nothing inside the box — an agent that can read its own

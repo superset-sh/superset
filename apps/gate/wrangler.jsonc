@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "superset-sandbox-edge",
+	"name": "superset-gate",
 	"main": "src/index.ts",
 	"workers_dev": false,
 	// One hostname per workspace and port. Needs a proxied `*.sandbox` DNS
@@ -14,15 +14,14 @@
 	],
 	"compatibility_date": "2026-07-01",
 	"vars": {
-		"SANDBOX_EDGE_DOMAIN": "sandbox.supersetusercontent.com"
+		"SANDBOX_GATE_DOMAIN": "sandbox.supersetusercontent.com"
 	},
 	"observability": { "enabled": true },
 	"dev": { "port": 8790 },
 	"env": {
-		// `wrangler dev --env dev` via `bun run dev`: one hostname for every
-		// workspace, so the domain binding is off and the ticket alone routes.
-		// scripts/dev.ts writes the secret from the worktree's .env into a
-		// generated .dev.vars.dev.
+		// `bun run dev`: one hostname for every workspace, so the domain binding
+		// is off and the ticket alone routes; the port and the secret come from
+		// the worktree's .env.
 		"dev": {
 			"workers_dev": true,
 			"routes": [],

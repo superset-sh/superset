@@ -301,7 +301,7 @@ export async function resolveSandboxAddress(args: {
 	providerSandboxId: string;
 	wake: { hostSecret: string } | false;
 }): Promise<{
-	/** The sandbox's own origin for host-service's port; the edge forwards here. */
+	/** The sandbox's own origin for host-service's port; the gate forwards here. */
 	target: string;
 	/**
 	 * Whether a session was running before this call. A stopped sandbox's

@@ -39,7 +39,7 @@ const SandboxAccessContext = createContext<SandboxAccessValue | null>(null);
 /**
  * Keeps a live address for every ready cloud workspace.
  *
- * A sandbox has no `v2_hosts` row; it is reached through the sandbox edge
+ * A sandbox has no `v2_hosts` row; it is reached through the sandbox gate
  * with a ticket the API mints, and this is the one place that asks for one.
  * Addressing talks to the Superset API, not the sandbox, so it wakes
  * nothing — a sidebar full of sleeping sandboxes must stay asleep. Only the
@@ -66,7 +66,7 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 			const wake = workspace.id === openWorkspaceId;
 			return {
 				queryKey: ["cloud-workspace", "access", workspace.id, wake] as const,
-				// The edge is reachable over the public internet, so this must not
+				// The gate is reachable over the public internet, so this must not
 				// pause with navigator.onLine the way the default mode would.
 				networkMode: "always" as const,
 				queryFn: async () => {

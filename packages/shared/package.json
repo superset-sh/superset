@@ -68,9 +68,9 @@
 			"types": "./src/plugins/index.ts",
 			"default": "./src/plugins/index.ts"
 		},
-		"./sandbox-edge": {
-			"types": "./src/sandbox-edge.ts",
-			"default": "./src/sandbox-edge.ts"
+		"./sandbox-gate": {
+			"types": "./src/sandbox-gate.ts",
+			"default": "./src/sandbox-gate.ts"
 		},
 		"./sentry": {
 			"types": "./src/sentry.ts",
