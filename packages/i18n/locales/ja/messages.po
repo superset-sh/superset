@@ -563,6 +563,9 @@ msgstr "{closedCount}件未通過"
 msgid "{completed} of {0} checks complete"
 msgstr "{0}件中{completed}件のチェックが完了"
 
+msgid "{completed} of {total} tried"
+msgstr "{total} 件中 {completed} 件を試しました"
+
 msgid "{configTitle} font size"
 msgstr "{configTitle}のフォントサイズ"
 
@@ -3723,6 +3726,9 @@ msgstr "Notionのワークスペースを接続し、オートメーションに
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Slackのワークスペースを接続して、会話からタスクを管理します。"
 
+msgid "Connect your tools"
+msgstr "ツールを接続する"
+
 msgid "Connected"
 msgstr "接続済み"
 
@@ -6817,6 +6823,9 @@ msgstr "MacでSupersetを使う"
 
 msgid "Get Superset Pro"
 msgstr "Superset Proを入手"
+
+msgid "Getting started"
+msgstr "はじめに"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -10410,6 +10419,9 @@ msgstr "並列エージェントを指揮"
 msgid "Orchestrate Them All."
 msgstr "すべてを指揮する。"
 
+msgid "Orchestrate your agents"
+msgstr "エージェントを連携させる"
+
 msgid "Orchestrated"
 msgstr "オーケストレーション"
 
@@ -11293,6 +11305,9 @@ msgstr "パブリック"
 
 msgid "Public leaderboard"
 msgstr "公開リーダーボード"
+
+msgid "Publish your first page"
+msgstr "最初のページを公開する"
 
 msgid "Published"
 msgstr "公開日"
@@ -13062,6 +13077,9 @@ msgstr "実行を設定"
 
 msgid "Set up"
 msgstr "設定する"
+
+msgid "Set up an automation"
+msgstr "自動化を設定する"
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName}でプロジェクトをセットアップ"

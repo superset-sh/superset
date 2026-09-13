@@ -563,6 +563,9 @@ msgstr "{closedCount} tertutup"
 msgid "{completed} of {0} checks complete"
 msgstr "{completed} dari {0} check selesai"
 
+msgid "{completed} of {total} tried"
+msgstr "{completed} dari {total} telah dicoba"
+
 msgid "{configTitle} font size"
 msgstr "Ukuran font {configTitle}"
 
@@ -3723,6 +3726,9 @@ msgstr "Hubungkan workspace Notion Anda dan bagikan halaman serta sumber data ya
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Hubungkan workspace Slack Anda untuk mengelola tugas dari percakapan."
 
+msgid "Connect your tools"
+msgstr "Hubungkan alatmu"
+
 msgid "Connected"
 msgstr "Terhubung"
 
@@ -6817,6 +6823,9 @@ msgstr "Dapatkan Superset di Mac Anda"
 
 msgid "Get Superset Pro"
 msgstr "Dapatkan Superset Pro"
+
+msgid "Getting started"
+msgstr "Mulai"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -10410,6 +10419,9 @@ msgstr "Orkestrasi Agen Paralel"
 msgid "Orchestrate Them All."
 msgstr "Orkestrasi Semuanya."
 
+msgid "Orchestrate your agents"
+msgstr "Koordinasikan agenmu"
+
 msgid "Orchestrated"
 msgstr "Terorkestrasi"
 
@@ -11293,6 +11305,9 @@ msgstr "Publik"
 
 msgid "Public leaderboard"
 msgstr "Papan peringkat publik"
+
+msgid "Publish your first page"
+msgstr "Terbitkan halaman pertamamu"
 
 msgid "Published"
 msgstr "Diterbitkan"
@@ -13062,6 +13077,9 @@ msgstr "Setel Run"
 
 msgid "Set up"
 msgstr "Siapkan"
+
+msgid "Set up an automation"
+msgstr "Siapkan otomatisasi"
 
 msgid "Set up project on {hostName}"
 msgstr "Siapkan proyek di {hostName}"
