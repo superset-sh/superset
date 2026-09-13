@@ -268,6 +268,25 @@ export const gitWorkspaceRefsTask = defineWorkerTask<
 	},
 });
 
+export const gitArchiveIdentityTask = defineWorkerTask<
+	{ worktreePath: string; gitEnv: GitTaskEnv },
+	{ headRef: string | null; headSha: string | null }
+>({
+	type: "git/readArchiveIdentity",
+	handler: async ({ worktreePath, gitEnv }) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		const headRef = await git
+			.raw(["symbolic-ref", "HEAD"])
+			.then((ref) => ref.trim() || null)
+			.catch(() => null);
+		const headSha = await git
+			.raw(["rev-parse", "--verify", "HEAD^{commit}"])
+			.then((sha) => sha.trim() || null)
+			.catch(() => null);
+		return { headRef, headSha };
+	},
+});
+
 export const gitIdentityTask = defineWorkerTask<
 	{ shellEnv: GitTaskEnv },
 	ResolvedGitInfo
@@ -682,6 +701,7 @@ export const gitTasks = [
 	gitDiffPatchTask,
 	gitDiffSideBlobTask,
 	gitWorkspaceRefsTask,
+	gitArchiveIdentityTask,
 	gitIdentityTask,
 	gitAuthorNameTask,
 	gitWorktreeStateTask,

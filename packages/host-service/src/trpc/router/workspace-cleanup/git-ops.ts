@@ -12,9 +12,9 @@ import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
 	type GitTaskEnv,
+	gitArchiveIdentityTask,
 	gitDeleteBranchTask,
 	gitReviveWorktreeTask,
-	gitWorkspaceRefsTask,
 	gitWorktreeRemoveTask,
 	gitWorktreeStateTask,
 	type ReviveWorktreeInput,
@@ -61,8 +61,8 @@ export const cleanupGitOps = {
 		});
 	},
 
-	readWorkspaceRefs(input: { worktreePath: string; gitEnv: GitTaskEnv }) {
-		return getHostWorkerPool().run(gitWorkspaceRefsTask, input, {
+	readArchiveIdentity(input: { worktreePath: string; gitEnv: GitTaskEnv }) {
+		return getHostWorkerPool().run(gitArchiveIdentityTask, input, {
 			timeoutMs: 15_000,
 		});
 	},

@@ -143,6 +143,47 @@ describe("workspaceCleanup.revive integration", () => {
 	});
 
 	for (const force of [false, true]) {
+		for (const branch of ["release", "heads/release"]) {
+			test(`archives and revives the exact ${branch} branch (force=${force})`, async () => {
+				const workspaceId = scenario.featureWorkspaceId;
+				await scenario.repo.git.raw(["branch", "-m", scenario.branch, branch]);
+				if (branch === "release") {
+					await scenario.repo.git.raw(["tag", branch, `refs/heads/${branch}`]);
+				}
+				scenario.host.db
+					.update(workspaces)
+					.set({ branch })
+					.where(eq(workspaces.id, workspaceId))
+					.run();
+				const identityInput = {
+					worktreePath: scenario.worktreePath,
+					gitEnv: {},
+				};
+				const before = await cleanupGitOps.readArchiveIdentity(identityInput);
+				expect(before.headRef).toBe(`refs/heads/${branch}`);
+				expect(before.headSha).toBeTruthy();
+
+				await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+					workspaceId,
+					archive: true,
+					force,
+				});
+				expect(existsSync(scenario.worktreePath)).toBe(false);
+				expect(readRow(workspaceId)?.archiveReason).toBe("archived");
+				expect(readRow(workspaceId)?.branch).toBe(branch);
+
+				await scenario.host.trpc.workspaceCleanup.revive.mutate({
+					workspaceId,
+				});
+				expect(readRow(workspaceId)?.archivedAt).toBeNull();
+				expect(readRow(workspaceId)?.archiveReason).toBeNull();
+				expect(readRow(workspaceId)?.branch).toBe(branch);
+				expect(await cleanupGitOps.readArchiveIdentity(identityInput)).toEqual(
+					before,
+				);
+			});
+		}
+
 		test(`rejects archive with branch deletion before tombstoning (force=${force})`, async () => {
 			const before = readRow(scenario.featureWorkspaceId);
 			await expectCode(

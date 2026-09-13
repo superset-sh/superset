@@ -409,11 +409,11 @@ async function assertArchiveIdentity(
 ) {
 	try {
 		const gitEnv = await cleanupGitOps.resolveGitEnv(ctx, local.worktreePath);
-		const refs = await cleanupGitOps.readWorkspaceRefs({
+		const refs = await cleanupGitOps.readArchiveIdentity({
 			worktreePath: local.worktreePath,
 			gitEnv,
 		});
-		if (!refs.branch || !refs.headSha || refs.branch !== local.branch) {
+		if (!refs.headSha || refs.headRef !== `refs/heads/${local.branch}`) {
 			throw new TRPCError({
 				code: "CONFLICT",
 				message:
