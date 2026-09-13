@@ -60,12 +60,14 @@ import {
 	requireLocalProject,
 	requireProjectRepoPath,
 } from "../workspace-creation/shared/local-project";
+import { requireIndependentWorktree } from "../workspace-creation/shared/require-independent-worktree";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import {
 	addWorktreeWithSparseCheckout,
 	parseSparseCheckoutPaths,
 } from "../workspace-creation/shared/sparse-checkout";
 import type { GitClient } from "../workspace-creation/shared/types";
+import { normalizeWorktreePath } from "../workspace-creation/shared/worktree-list";
 import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-paths";
 import {
 	applyAiWorkspaceRename,
@@ -196,6 +198,14 @@ async function acquireWorkspaceCreateLock(key: string): Promise<() => void> {
 // cloud-compatible row shape is the response type.
 type CloudWorkspace = CloudShapedWorkspace;
 
+type WorkspaceCreateResult = {
+	workspace: CloudWorkspace;
+	terminals: Array<{ terminalId: string; label?: string }>;
+	agents: AgentLaunchResult[];
+	alreadyExists: boolean;
+	txid: number | null;
+};
+
 function extractCreateTxid(row: CloudWorkspace): number | null {
 	const txid = (row as { txid?: unknown }).txid;
 	return typeof txid === "number" ? txid : null;
@@ -215,6 +225,7 @@ function findExistingWorkspaceByBranch(
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.branch, branch),
+				eq(workspaces.type, "worktree"),
 				// Deletes tombstone the row instead of removing it, so a
 				// tombstone must not satisfy idempotency: matching one returns
 				// the archived row with `alreadyExists: true` and silently
@@ -226,6 +237,12 @@ function findExistingWorkspaceByBranch(
 			),
 		})
 		.sync();
+	if (
+		local &&
+		normalizeWorktreePath(local.worktreePath) ===
+			normalizeWorktreePath(requireLocalProject(ctx, projectId).repoPath)
+	)
+		return null;
 	return local ? toCloudShape(local, ctx.organizationId) : null;
 }
 
@@ -753,6 +770,8 @@ export const workspacesRouter = router({
 						const existingWorktreePath = (
 							await listWorktreeBranches(git)
 						).worktreeMap.get(resolvedBranch);
+						if (existingWorktreePath)
+							requireIndependentWorktree(repoPath, existingWorktreePath);
 						const recordMaterializedWarning = (
 							materialized: MaterializePrBranchResult,
 						) => {
@@ -1429,6 +1448,21 @@ export const workspacesRouter = router({
 
 			return { workspaceId };
 		}),
+
+	createLocal: protectedProcedure
+		.input(createInputSchema)
+		.mutation(
+			({ ctx, input }): Promise<WorkspaceCreateResult> =>
+				createWorkspacesCaller(ctx).create({ ...input, checkout: "local" }),
+		),
+
+	createLocalEnqueued: protectedProcedure.input(createInputSchema).mutation(
+		({ ctx, input }): Promise<{ workspaceId: string }> =>
+			createWorkspacesCaller(ctx).createEnqueued({
+				...input,
+				checkout: "local",
+			}),
+	),
 
 	aiRename: protectedProcedure
 		.input(

@@ -1,14 +1,14 @@
 import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
+import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWorkspace";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 
 export function FileMenuListener() {
 	const navigate = useNavigate();
 	const { t } = useLingui();
-	const openNewWorkspace = useOpenNewWorkspace();
+	const openNewWorkspace = useOpenNewWorkspaceForLocalProject();
 	const folderImport = useFolderFirstImport({
 		onError: (message) => {
 			toast.error(`Import failed: ${message}`);

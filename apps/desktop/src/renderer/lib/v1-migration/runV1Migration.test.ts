@@ -167,7 +167,7 @@ class FakeHost {
 				},
 			},
 			workspaces: {
-				create: {
+				createLocal: {
 					mutate: async (args: {
 						projectId: string;
 						checkout: "local";

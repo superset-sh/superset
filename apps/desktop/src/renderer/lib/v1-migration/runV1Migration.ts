@@ -338,7 +338,7 @@ async function migrateWorkspaces(
 
 	for (const entry of plan.toCreateLocal) {
 		try {
-			const result = await deps.hostClient.workspaces.create.mutate({
+			const result = await deps.hostClient.workspaces.createLocal.mutate({
 				projectId: entry.v2ProjectId,
 				checkout: "local",
 				name: entry.name,

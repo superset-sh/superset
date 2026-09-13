@@ -14,6 +14,7 @@ import { isTrpcErrorWithData } from "@/lib/host-service/errors";
 export interface DeleteWorkspaceTarget {
 	id: string;
 	name: string;
+	type: HostWorkspaceRow["type"];
 	/** Host owning the worktree. Unused for a cloud workspace. */
 	hostId: string | null;
 	/** Where that host answers — null when it is offline. */
@@ -137,13 +138,20 @@ export function useDeleteWorkspace() {
 				}
 			};
 
+			const sharesProjectCheckout = ["local", "main"].includes(target.type);
+			const workspaceName = target.name;
 			Alert.alert(
-				t({
-					message: "Delete workspace",
-				}),
-				t({
-					message: `Delete "${target.name}"? This removes its worktree from the host.`,
-				}),
+				sharesProjectCheckout
+					? t({ message: `Delete workspace "${workspaceName}"?` })
+					: t({ message: "Delete workspace" }),
+				sharesProjectCheckout
+					? t({
+							message:
+								"This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are.",
+						})
+					: t({
+							message: `Delete "${target.name}"? This removes its worktree from the host.`,
+						}),
 				[
 					{
 						style: "cancel",

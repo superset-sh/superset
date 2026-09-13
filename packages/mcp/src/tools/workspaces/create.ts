@@ -38,8 +38,14 @@ export function register(server: McpServer): void {
 		name: "workspaces_create",
 		annotations: { destructiveHint: false },
 		description:
-			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. When `projectId` is set, provide exactly one of `branch` or `pr`. Omit `projectId` (and `branch`/`pr`/`baseBranch`/`taskId`) to create a project-less session instead — a managed scratch folder (its own git repo, no branch/PR semantics). Optionally pass `agents` to spawn one or more agents in the workspace as soon as it is ready (each entry runs the equivalent of `agents_create` against the new workspace), and/or pass `command` to run a one-off shell command in the worktree. Use projects_list and hosts_list first to get the projectId and hostId.",
+			"Create a workspace on a host. Use `checkout: local` to share the project checkout without switching branches, or omit checkout to create an isolated worktree. Local workspaces share files, index and branch with other local workspaces. For worktrees, provide a branch or PR. Omit `projectId` (and `branch`/`pr`/`baseBranch`/`taskId`) to create a project-less session instead — a managed scratch folder (its own git repo, no branch/PR semantics). Optionally pass `agents` to spawn one or more agents in the workspace as soon as it is ready (each entry runs the equivalent of `agents_create` against the new workspace), and/or pass `command` to run a one-off shell command in the worktree. Use projects_list and hosts_list first to get the projectId and hostId.",
 		inputSchema: {
+			checkout: z
+				.enum(["worktree", "local"])
+				.optional()
+				.describe(
+					"Where files live. Local shares the project checkout; worktree creates an isolated checkout.",
+				),
 			projectId: z
 				.string()
 				.uuid()
@@ -53,7 +59,7 @@ export function register(server: McpServer): void {
 				.min(1)
 				.optional()
 				.describe(
-					"Git branch the workspace tracks. Required unless `pr` is set.",
+					"Git branch the workspace tracks. Omit for a local checkout.",
 				),
 			pr: z
 				.number()
@@ -91,8 +97,15 @@ export function register(server: McpServer): void {
 				.describe("Shell command to run in the new worktree after creation."),
 		},
 		handler: async (input, ctx) => {
+			if (input.checkout === "local") {
+				for (const field of ["branch", "pr", "baseBranch"] as const) {
+					if (input[field] !== undefined)
+						throw new Error(`${field} cannot be combined with checkout local`);
+				}
+			}
 			if (input.projectId === undefined) {
 				for (const [field, value] of [
+					["checkout", input.checkout],
 					["branch", input.branch],
 					["pr", input.pr],
 					["baseBranch", input.baseBranch],
@@ -152,10 +165,13 @@ export function register(server: McpServer): void {
 					hostId: input.hostId,
 					jwt: ctx.bearerToken,
 				},
-				"workspaces.create",
+				input.checkout === "local"
+					? "workspaces.createLocal"
+					: "workspaces.create",
 				"mutation",
 				{
 					projectId: input.projectId,
+					checkout: input.checkout,
 					name: input.name,
 					branch: input.branch,
 					pr: input.pr,

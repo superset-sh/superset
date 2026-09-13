@@ -556,7 +556,7 @@ Create a fresh project on a host. Two modes:
   on disk.
 
 Either way, the project is registered on the host with no workspaces yet;
-create one with `superset ws create --project <id> --checkout local` (the
+create one with `superset ws create --project <id> --name local --checkout local --local` (the
 repo's checkout as it is) or `--branch <name>` (its own worktree).
 
 `create` always creates a new cloud project, even if your org already has
@@ -676,7 +676,7 @@ superset hosts wake my-sandbox
 
 ### workspaces (alias: `ws`)
 
-Workspaces are branch-scoped working copies on a host.
+Workspaces use a shared project checkout, an isolated worktree, or a project-less session folder on a host.
 
 **Routing:** when `--host` resolves to the local machine, the CLI calls
 the host server directly over loopback HTTP: no cloud roundtrip, works
@@ -718,7 +718,8 @@ project id when the host doesn't know the project's name.
 	options={[
 		{ flag: "--project <projectId>", description: "Project ID. Omit to create a project-less session (a managed scratch folder)." },
 		{ flag: "--name <name>", description: "Workspace name. Required when `--project` is set; optional for sessions." },
-		{ flag: "--branch <branch>", description: "Workspace branch. Required unless `--pr` or `--task` is set." },
+		{ flag: "--checkout <local|worktree>", description: "Use the shared project checkout or an isolated worktree (default). Requires --project; incompatible with --cloud." },
+		{ flag: "--branch <branch>", description: "Workspace branch. Required unless `--pr`, `--task`, or `--checkout local` is set." },
 		{ flag: "--pr <number>", description: "Pull request number. Checks out the verified PR head." },
 		{ flag: "--task <id>", description: "Task ID to link. When `--branch` is omitted, the task's provider branch name (e.g. Linear's) is used verbatim." },
 		{ flag: "--base-branch <branch>", description: "Branch to fork from when `--branch` does not exist. Defaults to the project default branch." },
@@ -736,16 +737,22 @@ project id when the host doesn't know the project's name.
 	output={`{ workspace: Workspace; alreadyExists: boolean }`}
 >
 Create a workspace on the target host. With `--project`, specify one of
-`--branch`, `--pr`, or `--task` (`--branch` and `--pr` are mutually
+`--checkout local`, `--branch`, `--pr`, or `--task` (`--branch` and `--pr` are mutually
 exclusive). If you pass `--agent`, you must also pass `--prompt`. `--command`
 runs a one-off shell command in the worktree and is independent of
 `--agent`/`--prompt`. Pass either or both. `--model` and `--effort` require
 `--agent`; see the [agent effort levels](#agent-effort-levels) below.
 
+`--checkout local` shares the project's existing files, git index and checked-out branch.
+It does not switch branches or run setup. Do not combine it with `--branch`, `--pr`,
+`--base-branch`, or `--skip-branch-prefix`. Local creation requires a host that
+supports local workspaces; older hosts reject it without creating a worktree.
+`--local` selects this machine and is independent of `--checkout local`.
+
 Omitting `--project` creates a **session**: a project-less workspace backed
 by a managed folder under `~/.superset/sessions`, initialized as its own git
 repo. Sessions have no branch semantics, so `--branch`, `--pr`, `--task`,
-`--base-branch`, and `--skip-branch-prefix` are rejected, `--name` is
+`--base-branch`, `--checkout`, and `--skip-branch-prefix` are rejected, `--name` is
 optional, and the output has no `alreadyExists` field.
 
 ```bash
@@ -800,7 +807,7 @@ superset workspaces delete ws_a ws_b ws_c
   id: string;
   name: string;
   branch: string;
-  type: "main" | "worktree";
+  type: "local" | "worktree" | "session" | "main"; // "main" on older hosts
   projectId: string;
   projectName: string;
   hostId: string;

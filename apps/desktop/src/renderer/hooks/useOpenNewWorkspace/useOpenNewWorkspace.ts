@@ -1,6 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 import { useNewWorkspaceModalStore } from "renderer/stores/new-workspace-modal";
 
 /**
@@ -13,17 +15,32 @@ export function useOpenNewWorkspace() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	return useCallback(
-		(projectId?: string | null) => {
+		(projectId?: string | null, hostId?: string) => {
 			if (!isV2CloudEnabled) {
 				useNewWorkspaceModalStore.getState().openModal(projectId ?? undefined);
 				return;
 			}
+			if (hostId) {
+				useNewWorkspaceDraftStore.getState().updateDraft({ hostId });
+			}
 			void navigate({
 				to: "/new-workspace",
-				search: projectId ? { projectId } : undefined,
+				search:
+					projectId || hostId
+						? { projectId: projectId ?? undefined, host: hostId }
+						: undefined,
 			});
 		},
 		[isV2CloudEnabled, navigate],
+	);
+}
+
+export function useOpenNewWorkspaceForLocalProject() {
+	const { machineId } = useLocalHostService();
+	const openNewWorkspace = useOpenNewWorkspace();
+	return useCallback(
+		(projectId: string) => openNewWorkspace(projectId, machineId),
+		[machineId, openNewWorkspace],
 	);
 }
 

@@ -13,7 +13,10 @@ import {
 	type WorkspaceStoreContext,
 } from "../../../../workspaces/local-workspace-store";
 import { gitConfigWrite } from "../../git/utils/config-write";
+import { requireLocalProject } from "./local-project";
+import { requireIndependentWorktree } from "./require-independent-worktree";
 import type { GitClient } from "./types";
+import { normalizeWorktreePath } from "./worktree-list";
 
 // Workspaces have no cloud mirror since local-first (#5731); the host's own
 // cloud-compatible row shape is the response type.
@@ -74,6 +77,22 @@ export async function adoptExistingWorktree(
 		taskId,
 		tags,
 	} = args;
+	const project = requireLocalProject(ctx, projectId);
+	requireIndependentWorktree(project.repoPath, worktreePath);
+	if (existingWorkspaceId) {
+		const existing = getLocalWorkspace(ctx.db, existingWorkspaceId);
+		if (
+			existing?.type === "local" ||
+			(existing && existing.projectId !== projectId)
+		) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "This workspace cannot be relinked to a worktree.",
+			});
+		}
+		if (existing)
+			requireIndependentWorktree(project.repoPath, existing.worktreePath);
+	}
 	const store: WorkspaceStoreContext = {
 		db: ctx.db,
 		eventBus: ctx.eventBus,
@@ -90,6 +109,7 @@ export async function adoptExistingWorktree(
 			worktreePath,
 			branch,
 			keepWorkspaceId: existingWorkspaceId,
+			repoPath: project.repoPath,
 		});
 		const existing = getLocalWorkspace(ctx.db, existingWorkspaceId);
 		if (existing) {
@@ -124,6 +144,7 @@ export async function adoptExistingWorktree(
 		.findFirst({
 			where: and(
 				eq(workspaces.projectId, projectId),
+				eq(workspaces.type, "worktree"),
 				eq(workspaces.branch, branch),
 				isNull(workspaces.archivedAt),
 			),
@@ -143,6 +164,7 @@ export async function adoptExistingWorktree(
 		.findFirst({
 			where: and(
 				eq(workspaces.projectId, projectId),
+				eq(workspaces.type, "worktree"),
 				eq(workspaces.worktreePath, worktreePath),
 				isNull(workspaces.archivedAt),
 			),
@@ -154,6 +176,7 @@ export async function adoptExistingWorktree(
 			worktreePath,
 			branch,
 			keepWorkspaceId: existingByPath.id,
+			repoPath: project.repoPath,
 		});
 		const updated = updateLocalWorkspace(store, existingByPath.id, { branch });
 		await recordBaseBranch(git, branch, baseBranch);
@@ -174,6 +197,7 @@ export async function adoptExistingWorktree(
 		worktreePath,
 		branch,
 		keepWorkspaceId: id,
+		repoPath: project.repoPath,
 	});
 
 	let inserted: ReturnType<typeof insertLocalWorkspace>;
@@ -211,14 +235,16 @@ function deleteLocalWorkspaceConflicts(
 		worktreePath: string;
 		branch: string;
 		keepWorkspaceId: string;
+		repoPath: string;
 	},
 ): void {
 	const conflicts = store.db
-		.select({ id: workspaces.id })
+		.select({ id: workspaces.id, worktreePath: workspaces.worktreePath })
 		.from(workspaces)
 		.where(
 			and(
 				eq(workspaces.projectId, args.projectId),
+				eq(workspaces.type, "worktree"),
 				or(
 					eq(workspaces.branch, args.branch),
 					eq(workspaces.worktreePath, args.worktreePath),
@@ -231,7 +257,12 @@ function deleteLocalWorkspaceConflicts(
 		)
 		.all();
 	for (const conflict of conflicts) {
-		deleteLocalWorkspace(store, conflict.id);
+		if (
+			normalizeWorktreePath(conflict.worktreePath) !==
+			normalizeWorktreePath(args.repoPath)
+		) {
+			deleteLocalWorkspace(store, conflict.id);
+		}
 	}
 }
 

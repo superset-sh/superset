@@ -220,7 +220,11 @@ export default command({
 		if (!options.name) {
 			throw new CLIError("--name is required when --project is set");
 		}
-		const result = await target.client.workspaces.create.mutate({
+		const create =
+			checkout === "local"
+				? target.client.workspaces.createLocal
+				: target.client.workspaces.create;
+		const result = await create.mutate({
 			projectId,
 			name: options.name,
 			...(checkout === "local" ? { checkout } : {}),

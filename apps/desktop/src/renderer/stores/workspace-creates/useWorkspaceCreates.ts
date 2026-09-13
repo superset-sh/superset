@@ -164,11 +164,15 @@ async function createViaEnqueue(
 		});
 
 		try {
-			await client.workspaces.createEnqueued.mutate(payload, {
+			const enqueue =
+				payload.checkout === "local"
+					? client.workspaces.createLocalEnqueued
+					: client.workspaces.createEnqueued;
+			await enqueue.mutate(payload, {
 				signal: AbortSignal.timeout(ENQUEUE_TIMEOUT_MS),
 			});
 		} catch (error) {
-			if (isMissingProcedureError(error)) {
+			if (payload.checkout !== "local" && isMissingProcedureError(error)) {
 				// Legacy host: fall back to the long-held synchronous create.
 				const result = await client.workspaces.create.mutate(payload);
 				return result;

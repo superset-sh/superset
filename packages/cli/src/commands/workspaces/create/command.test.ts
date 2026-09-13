@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 
+let localCreateError: Error | undefined;
+let createProcedure: string | undefined;
 let createInput: Record<string, unknown> | undefined;
 
 mock.module("../../../lib/host-target", () => ({
@@ -8,8 +10,17 @@ mock.module("../../../lib/host-target", () => ({
 		hostId: "host-1",
 		client: {
 			workspaces: {
+				createLocal: {
+					mutate: async (input: Record<string, unknown>) => {
+						createProcedure = "createLocal";
+						if (localCreateError) throw localCreateError;
+						createInput = input;
+						return { workspace: { name: "local" }, alreadyExists: false };
+					},
+				},
 				create: {
 					mutate: async (input: Record<string, unknown>) => {
+						createProcedure = "create";
 						createInput = input;
 						return {
 							workspace: { name: "agent-effort" },
@@ -60,6 +71,8 @@ function invoke(
 
 afterEach(() => {
 	createInput = undefined;
+	createProcedure = undefined;
+	localCreateError = undefined;
 });
 
 describe("workspaces create", () => {
@@ -132,12 +145,25 @@ describe("workspaces create", () => {
 
 	test("--checkout local sends the local checkout and no branch", async () => {
 		await invoke({ checkout: "local", branch: undefined });
+		expect(createProcedure).toBe("createLocal");
 		expect(createInput?.checkout).toBe("local");
 		expect(createInput?.branch).toBeUndefined();
 	});
 
+	test("does not fall back to worktree creation when an older host lacks local creation", async () => {
+		localCreateError = new Error(
+			"No procedure found on path workspaces.createLocal",
+		);
+		await expect(
+			invoke({ checkout: "local", branch: undefined }),
+		).rejects.toThrow("No procedure found");
+		expect(createProcedure).toBe("createLocal");
+		expect(createInput).toBeUndefined();
+	});
+
 	test("omits checkout entirely for the default worktree create", async () => {
 		await invoke();
+		expect(createProcedure).toBe("create");
 		expect(createInput).not.toHaveProperty("checkout");
 	});
 

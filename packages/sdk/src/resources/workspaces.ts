@@ -69,7 +69,8 @@ export class Workspaces extends APIResource {
 	 * and/or run a one-off shell `command` in the worktree.
 	 *
 	 * The host service must be running and reachable via the relay tunnel.
-	 * Provide exactly one of `branch` or `pr`.
+	 * Use `checkout: "local"` without branch or PR to share the project checkout.
+	 * Otherwise provide a branch or PR for an isolated worktree.
 	 */
 	create(
 		params: WorkspaceCreateParams,
@@ -77,7 +78,10 @@ export class Workspaces extends APIResource {
 	): APIPromise<WorkspaceCreateResult> {
 		return this._client.hostMutation<WorkspaceCreateResult>(
 			params.hostId,
-			{ method: "workspaces.create", procedure: "workspaces.create" },
+			{
+				method: "workspaces.create",
+				procedure: params.checkout === "local" ? "workspaces.createLocal" : "workspaces.create",
+			},
 			{
 				projectId: params.projectId,
 				checkout: params.checkout,

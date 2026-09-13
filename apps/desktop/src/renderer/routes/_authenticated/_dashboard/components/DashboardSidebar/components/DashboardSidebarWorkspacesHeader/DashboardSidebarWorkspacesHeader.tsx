@@ -15,7 +15,7 @@ import {
 	VscLayout,
 	VscNewFolder,
 } from "react-icons/vsc";
-import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
+import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWorkspace";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import type { SidebarProjectSortMode } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import {
@@ -72,7 +72,7 @@ export function DashboardSidebarWorkspacesHeader({
 		wasSectionCollapsedRef.current = isSectionCollapsed;
 	}, [isSectionCollapsed, onFilterQueryChange, setIsFilterExpanded]);
 	const openEmptyProject = useOpenEmptyProjectModal();
-	const openNewWorkspace = useOpenNewWorkspace();
+	const openNewWorkspace = useOpenNewWorkspaceForLocalProject();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
 	const navigate = useNavigate();
