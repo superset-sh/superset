@@ -221,3 +221,32 @@ Then:
 4. Send test emails before production use
 
 React Email components are tested across major email clients (Gmail, Outlook, Apple Mail, etc.).
+
+## Pro cancellation feedback
+
+[Resend automation](https://resend.com/automations/01a0983b-d36f-731b-af0e-a6bf972e9d19/editor)
+uses the published [pro-cancellation-feedback template](https://resend.com/templates/23458b3f-39fb-4465-a3f8-431b73d51aa4/editor).
+The graph is included in `scripts/sync-automations.ts`.
+
+The billing cancellation callback schedules a QStash job with a **45-minute (2,700-second) delay**.
+The `/api/integrations/stripe/jobs/cancellation-feedback` job checks Stripe again
+before emitting `pro.cancellation_feedback_due`; the Resend automation then sends
+one email immediately. Do not add another delay in Resend.
+
+Only new Pro cancellation requests schedule jobs. There is no historical backfill.
+The job targets organization owners who are existing, subscribed Resend contacts.
+It skips reversed or superseded cancellations, payment failures, replacement active
+subscriptions, pending account deletions, and cancellations with written feedback.
+
+A persistent Redis claim permits at most one enrollment per subscription and owner.
+Because Resend events do not offer idempotency keys, a failed or ambiguous event
+request keeps its claim: delivery can be missed, but retrying the QStash job cannot
+send a duplicate. Investigate `[stripe/cancellation-feedback]` errors and Resend run
+history before manually recovering a missed enrollment. Do not delete claims or
+replay campaign events in bulk.
+
+The API deployment must include both the cancellation callback and the job route.
+Until that deployment, the enabled Resend automation receives no events from this
+code. Stop the automation in Resend to disable campaign sending. Never test by
+emitting an event for a customer; local eligibility and deduplication tests live
+beside the job route.

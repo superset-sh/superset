@@ -7,8 +7,10 @@
  *   RESEND_API_KEY=... bun scripts/sync-automations.ts [--apply] [--force]
  *
  * Four hard-won rules this script encodes:
- * - ONLY `user.signed_up` is safe as a trigger: it fires once per user, from
- *   better-auth's `user.create.after` hook. `user.activated` fires on every
+ * - Triggers must be deduplicated: `user.signed_up` fires once per user, from
+ *   better-auth's `user.create.after` hook; `pro.cancellation_feedback_due`
+ *   claims a Redis key per subscription and recipient before emission.
+ *   `user.activated` fires on every
  *   workspace create and `app.first_opened` on every first-host/onboarding
  *   path, so triggering on either enrols a user once per occurrence. Pointing
  *   habit-drip's trigger at `user.activated` sent 1,487 copies of one email to
@@ -18,7 +20,7 @@
  * - GATING an emitter is the mirror of that rule: it hits every consumer. The
  *   signup hook withholds `user.signed_up` from the activation A/B's control
  *   arm, so a second automation triggering on it would silently lose that arm
- *   too. That is why only activation-drip is defined here. Before adding
+ *   too. Only activation-drip uses that trigger here. Before adding
  *   another `user.signed_up` trigger, split enrolment into its own event.
  * - NEVER update an enabled automation's steps: despite the API's wording,
  *   doing so cancelled every in-flight run (2026-08-20, ~324 users dropped
@@ -68,6 +70,33 @@ function template(alias: string, variables?: Record<string, unknown>) {
 }
 
 const desired: DesiredAutomation[] = [
+	{
+		name: "pro-cancellation-feedback",
+		steps: [
+			{
+				key: "trigger",
+				type: "trigger",
+				config: { eventName: "pro.cancellation_feedback_due" },
+			},
+			{
+				key: "send_email-7961cf59-b3a1-4af6-b167-e675656fd80a",
+				type: "send_email",
+				config: {
+					template: { id: "23458b3f-39fb-4465-a3f8-431b73d51aa4" },
+					subject: "",
+					from: "Kiet <kiet@hey.superset.sh>",
+					replyTo: "kiet@superset.sh",
+				},
+			},
+		],
+		connections: [
+			{
+				from: "trigger",
+				to: "send_email-7961cf59-b3a1-4af6-b167-e675656fd80a",
+				type: "default",
+			},
+		],
+	},
 	{
 		// Signup drip. Listens for first-open from minute zero; a user with no
 		// first-open event by day 1 cannot have activated (onboarding precedes
@@ -152,7 +181,8 @@ function canonDuration(v: string): string {
 function canonConfig(c: Record<string, unknown>): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
 	for (const [k, v] of Object.entries(c)) {
-		const key = k === "event_name" ? "eventName" : k;
+		const key =
+			k === "event_name" ? "eventName" : k === "reply_to" ? "replyTo" : k;
 		out[key] =
 			(key === "timeout" || key === "duration") && typeof v === "string"
 				? canonDuration(v)

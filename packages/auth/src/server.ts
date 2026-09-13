@@ -1268,6 +1268,30 @@ export const auth = betterAuth({
 						(cancellationDetails ?? stripeSubscription.cancellation_details)
 							?.reason === "payment_failed";
 
+					if (
+						subscription.plan === "pro" &&
+						!dueToPaymentFailure &&
+						stripeSubscription.canceled_at
+					) {
+						try {
+							await qstash.publishJSON({
+								url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/jobs/cancellation-feedback`,
+								body: {
+									stripeSubscriptionId: stripeSubscription.id,
+									canceledAt: stripeSubscription.canceled_at,
+								},
+								delay: 2700,
+								retries: 3,
+								deduplicationId: `pro-cancellation-feedback-${stripeSubscription.id}-${stripeSubscription.canceled_at}`,
+							});
+						} catch (error) {
+							console.error(
+								"[stripe/cancellation-feedback] Failed to queue feedback:",
+								error,
+							);
+						}
+					}
+
 					await resend.batch.send(
 						recipients.map((recipient) => ({
 							from: "Superset <noreply@superset.sh>",
