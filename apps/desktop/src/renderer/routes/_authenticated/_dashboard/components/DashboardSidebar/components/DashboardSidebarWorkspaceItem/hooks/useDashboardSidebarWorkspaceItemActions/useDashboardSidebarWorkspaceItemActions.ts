@@ -7,7 +7,10 @@ import { toast } from "@superset/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { useArchiveWorkspaceWithTarget } from "renderer/hooks/host-service/useArchiveWorkspace";
+import {
+	type UseArchiveWorkspace,
+	useArchiveWorkspaceWithTarget,
+} from "renderer/hooks/host-service/useArchiveWorkspace";
 import type { DestroyWorkspaceError } from "renderer/hooks/host-service/useDestroyWorkspace";
 import { getTerminalAgentBindingsQueryKey } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
@@ -477,8 +480,8 @@ interface ArchiveWorkspaceWithUndoOptions {
 	workspaceName: string;
 	/** Whether the row being archived is the workspace currently open. */
 	isActive: boolean;
-	archive: () => Promise<unknown>;
-	restore: () => Promise<unknown>;
+	archive: UseArchiveWorkspace["archive"];
+	restore: UseArchiveWorkspace["restore"];
 	navigateAway: () => void;
 	navigateBack: () => void | Promise<void>;
 	focusSidebarList: () => void;
@@ -512,7 +515,8 @@ export async function archiveWorkspaceWithUndo({
 	try {
 		if (isActive) navigateAway();
 		try {
-			await archive();
+			const { warnings } = await archive();
+			for (const warning of warnings) toast.warning(warning);
 		} catch (error) {
 			toast.error(describeArchiveFailure(workspaceName, error));
 			if (isActive) await navigateBack();
@@ -543,7 +547,8 @@ export async function archiveWorkspaceWithUndo({
 						void (async () => {
 							try {
 								try {
-									await restore();
+									const { warnings } = await restore();
+									for (const warning of warnings) toast.warning(warning);
 								} catch (error) {
 									toast.error(errorMessage(error));
 									return;

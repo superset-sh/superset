@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
+import type { UseArchiveWorkspace } from "renderer/hooks/host-service/useArchiveWorkspace";
 
 interface ToastAction {
 	label: string;
@@ -7,12 +8,23 @@ interface ToastAction {
 
 const toastCalls: { message: string; action: ToastAction | undefined }[] = [];
 const errorToasts: string[] = [];
+const warningToasts: string[] = [];
+const archiveResult = {
+	success: true,
+	worktreeRemoved: true,
+	branchDeleted: false,
+	cloudDeleted: false,
+	warnings: [],
+};
 
 const toast = Object.assign(
 	(message: string, options?: { action?: ToastAction }) => {
 		toastCalls.push({ message, action: options?.action });
 	},
 	{
+		warning: (message: string) => {
+			warningToasts.push(message);
+		},
 		error: (message: string) => {
 			errorToasts.push(message);
 		},
@@ -40,8 +52,8 @@ const { useDeletingWorkspacesStore } = await import(
 function setup(
 	overrides: {
 		workspaceId?: string;
-		archive?: () => Promise<unknown>;
-		restore?: () => Promise<unknown>;
+		archive?: UseArchiveWorkspace["archive"];
+		restore?: UseArchiveWorkspace["restore"];
 		isActive?: boolean;
 	} = {},
 ) {
@@ -50,12 +62,14 @@ function setup(
 		overrides.archive ??
 			(async () => {
 				order.push("archive");
+				return archiveResult;
 			}),
 	);
 	const restore = mock(
 		overrides.restore ??
 			(async () => {
 				order.push("restore");
+				return { warnings: [] };
 			}),
 	);
 	const navigateAway = mock(() => {
@@ -93,6 +107,7 @@ describe("archiveWorkspaceWithUndo", () => {
 	beforeEach(() => {
 		toastCalls.length = 0;
 		errorToasts.length = 0;
+		warningToasts.length = 0;
 	});
 
 	test("leaves the workspace before the host drops it, then offers Undo", async () => {
@@ -120,12 +135,37 @@ describe("archiveWorkspaceWithUndo", () => {
 				seenWhileArchiving = useDeletingWorkspacesStore
 					.getState()
 					.deletingIds.has("workspace-1");
+				return archiveResult;
 			},
 		});
 
 		await context.run();
 
 		expect(seenWhileArchiving).toBe(true);
+	});
+
+	test("archive and Undo surface warnings while completing successfully", async () => {
+		const context = setup({
+			archive: async () => ({
+				...archiveResult,
+				warnings: ["Terminals may still be running"],
+			}),
+			restore: async () => ({ warnings: ["Setup terminal could not start"] }),
+		});
+
+		await context.run();
+
+		expect(warningToasts).toEqual(["Terminals may still be running"]);
+		expect(toastCalls[0]?.message).toBe('Archived "feature-row"');
+		await runUndo(toastCalls[0]?.action);
+
+		expect(warningToasts).toEqual([
+			"Terminals may still be running",
+			"Setup terminal could not start",
+		]);
+		expect(context.navigateBack).toHaveBeenCalledTimes(1);
+		expect(context.focusSidebarList).toHaveBeenCalledTimes(2);
+		expect(errorToasts).toEqual([]);
 	});
 
 	test("a dirty worktree is refused with an explanation and the user is put back", async () => {
@@ -222,17 +262,20 @@ describe("archiveWorkspaceWithUndo", () => {
 					completeArchive = resolve;
 				});
 				archived = true;
+				return archiveResult;
 			},
 			restore: async () => {
 				await new Promise<void>((resolve) => {
 					completeUndo = resolve;
 				});
 				archived = false;
+				return { warnings: [] };
 			},
 		});
 		const palette = setup({
 			archive: async () => {
 				archived = true;
+				return archiveResult;
 			},
 		});
 		const pendingArchive = sidebar.run();
