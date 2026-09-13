@@ -349,6 +349,106 @@ describe("workspaceCleanup.revive integration", () => {
 		});
 	}
 
+	for (const { adopt, outcome, code, message } of [
+		{
+			adopt: true,
+			outcome: "skipped",
+			code: "CONFLICT",
+			message:
+				"Cannot delete workspace: its path is owned by another live workspace",
+		},
+		...[true, false].flatMap((adopt) => [
+			{
+				adopt,
+				outcome: "failed",
+				code: "PRECONDITION_FAILED",
+				message: "Teardown script failed",
+			},
+			{
+				adopt,
+				outcome: "throw",
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Unexpected teardown failure",
+			},
+		]),
+	]) {
+		test(`rolls back live workspace cleanup safely after teardown ${outcome} (adopt=${adopt})`, async () => {
+			const workspaceId = scenario.featureWorkspaceId;
+			expect(readRow(workspaceId)?.archivedAt).toBeNull();
+			let tombstone: ReturnType<typeof readRow>;
+			let owner: ReturnType<typeof readRow>;
+			const remove = spyOn(cleanupGitOps, "removeWorktree");
+			const hook = spyOn(teardown, "runTeardown").mockImplementation(
+				async () => {
+					tombstone = readRow(workspaceId);
+					expect(tombstone?.archivedAt).not.toBeNull();
+					expect(tombstone?.archiveReason).toBe("archived");
+					if (adopt) {
+						const adopted = await scenario.host.trpc.workspaces.create.mutate({
+							projectId: scenario.projectId,
+							name: "adopted during teardown",
+							branch: scenario.branch,
+						});
+						const ownerId = adopted?.workspace?.id;
+						if (!ownerId) throw new Error("Expected an adopted workspace");
+						expect(ownerId).not.toBe(workspaceId);
+						const alias = join(scenario.repo.repoPath, "cleanup-owner-alias");
+						symlinkSync(dirname(scenario.worktreePath), alias, "junction");
+						scenario.host.db
+							.update(workspaces)
+							.set({
+								worktreePath: `${alias}/./${basename(scenario.worktreePath)}/`,
+							})
+							.where(eq(workspaces.id, ownerId))
+							.run();
+						owner = readRow(ownerId);
+					}
+					if (outcome === "throw") throw new Error(message);
+					return outcome === "failed"
+						? {
+								status: "failed",
+								exitCode: 1,
+								signal: null,
+								timedOut: false,
+								outputTail: "teardown failed",
+							}
+						: { status: "skipped" };
+				},
+			);
+			try {
+				const error = await expectCode(
+					scenario.host.trpc.workspaceCleanup.destroy.mutate({
+						workspaceId,
+						archive: true,
+						deleteBranch: true,
+						force: true,
+					}),
+					code,
+				);
+				expect(error.message).toBe(message);
+				expect(hook).toHaveBeenCalledTimes(1);
+				expect(remove).not.toHaveBeenCalled();
+				if (adopt) {
+					expect(readRow(workspaceId)).toEqual(tombstone);
+					if (!owner) throw new Error("Expected a live path owner");
+					expect(owner.archivedAt).toBeNull();
+					expect(readRow(owner.id)).toEqual(owner);
+				} else {
+					expect(readRow(workspaceId)?.archivedAt).toBeNull();
+					expect(readRow(workspaceId)?.archiveReason).toBeNull();
+				}
+				expect(__testDestroysInFlight.has(workspaceId)).toBe(false);
+				expect(existsSync(join(scenario.worktreePath, ".git"))).toBe(true);
+				expect(
+					await scenario.repo.git.raw(["branch", "--list", scenario.branch]),
+				).toContain(scenario.branch);
+			} finally {
+				hook.mockRestore();
+				remove.mockRestore();
+			}
+		});
+	}
+
 	test("preserves a branch acquired while worktree removal is awaited", async () => {
 		await destroyFeature();
 		const originalRemove = cleanupGitOps.removeWorktree;

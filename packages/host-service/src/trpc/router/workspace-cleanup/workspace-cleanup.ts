@@ -395,7 +395,7 @@ async function runDestroy(
 		if (marked) {
 			if (priorTombstone) {
 				restampLocalWorkspaceTombstone(ctx, input.workspaceId, priorTombstone);
-			} else {
+			} else if (local && !hasLivePathOwner(ctx, local)) {
 				unarchiveLocalWorkspace(ctx, input.workspaceId);
 			}
 		}
@@ -737,16 +737,21 @@ function liveOwners(ctx: HostServiceContext, local: { id: string }) {
 		.filter((row) => row.id !== local.id);
 }
 
-function assertNoLivePathOwner(
+function hasLivePathOwner(
 	ctx: HostServiceContext,
 	local: { id: string; worktreePath: string },
 ) {
 	const path = normalizeOwnershipPath(local.worktreePath);
-	if (
-		liveOwners(ctx, local).some(
-			(owner) => normalizeOwnershipPath(owner.worktreePath) === path,
-		)
-	) {
+	return liveOwners(ctx, local).some(
+		(owner) => normalizeOwnershipPath(owner.worktreePath) === path,
+	);
+}
+
+function assertNoLivePathOwner(
+	ctx: HostServiceContext,
+	local: { id: string; worktreePath: string },
+) {
+	if (hasLivePathOwner(ctx, local)) {
 		throw new TRPCError({
 			code: "CONFLICT",
 			message:
