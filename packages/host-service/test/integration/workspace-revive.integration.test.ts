@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { existsSync, symlinkSync } from "node:fs";
+import { existsSync, rmSync, symlinkSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
@@ -261,6 +261,39 @@ describe("workspaceCleanup.revive integration", () => {
 		} finally {
 			setup.mockRestore();
 		}
+	});
+
+	test("keeps a locked worktree archived when its directory is missing", async () => {
+		const archivedAt = Date.now();
+		scenario.host.db
+			.update(workspaces)
+			.set({ archivedAt, archiveReason: "archived" })
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.run();
+		await scenario.repo.git.raw(["worktree", "lock", scenario.worktreePath]);
+		rmSync(scenario.worktreePath, { recursive: true, force: true });
+
+		await expectCode(
+			scenario.host.trpc.workspaceCleanup.revive.mutate({
+				workspaceId: scenario.featureWorkspaceId,
+			}),
+			"PRECONDITION_FAILED",
+		);
+
+		expect(readRow(scenario.featureWorkspaceId)?.archivedAt).toEqual(
+			archivedAt,
+		);
+		expect(readRow(scenario.featureWorkspaceId)?.archiveReason).toBe(
+			"archived",
+		);
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+		const worktrees = await scenario.repo.git.raw([
+			"worktree",
+			"list",
+			"--porcelain",
+		]);
+		expect(worktrees).toContain(`worktree ${scenario.worktreePath}`);
+		expect(worktrees).toContain("locked");
 	});
 
 	test("restores a surviving registered worktree through a symlink alias", async () => {

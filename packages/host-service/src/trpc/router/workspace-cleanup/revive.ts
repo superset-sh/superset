@@ -145,9 +145,6 @@ async function runRevive(
 			message: `Branch "${branch}" is already checked out at ${checkedOutAt}`,
 		});
 	}
-	// A registered worktree at the tombstone's own path is a delete the host
-	// crashed out of before removing the directory; it is exactly what a
-	// restore wants, so there is nothing to recreate.
 	if (checkedOutAt === undefined) {
 		if (lstatSync(row.worktreePath, { throwIfNoEntry: false }) !== undefined) {
 			throw new TRPCError({
@@ -167,6 +164,20 @@ async function runRevive(
 			row.worktreePath,
 			"[workspace-cleanup.revive]",
 		);
+	}
+
+	const worktreeRoot = await git
+		.raw(["-C", row.worktreePath, "rev-parse", "--show-toplevel"])
+		.catch(() => null);
+	if (
+		!worktreeRoot ||
+		normalizeWorktreePath(worktreeRoot.trim()) !==
+			normalizeWorktreePath(row.worktreePath)
+	) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: `No usable worktree exists at ${row.worktreePath}`,
+		});
 	}
 
 	const liveOwner = ctx.db
