@@ -45,6 +45,23 @@ apply_rootfs() {
 	log "apply-rootfs installed=${installed} skipped=${skipped}"
 }
 
+# A staged archive the manifest no longer names is an earlier build's; it
+# would otherwise sit beside the current one forever, and a step that
+# globs the directory could pick it.
+prune_media() {
+	local file hash
+	for file in "${SUPERSET_MEDIA_DIR}"/*; do
+		[ -f "$file" ] || continue
+		case "$file" in *.hash) continue ;; esac
+		[ -f "${file}.hash" ] || continue
+		hash="$(tr -d '\n\r' < "${file}.hash")"
+		if ! grep -qF "$hash" "${BUNDLE_DIR}/assets.tsv"; then
+			rm -f "$file" "${file}.hash"
+			log "pruned ${file}"
+		fi
+	done
+}
+
 # --- files fetched by hash from the bucket -------------------------------
 sync_assets() {
 	local tmp changed
@@ -54,6 +71,7 @@ sync_assets() {
 	export SUPERSET_ASSET_BASE_URL SUPERSET_ASSET_TMP="$tmp" SUPERSET_ASSET_CHANGED="$changed"
 	local started
 	started="$(now_ms)"
+	prune_media
 	if ! xargs -r -a "${BUNDLE_DIR}/assets.tsv" -d '\n' -P 16 -n 1 bash -c '
 set -euo pipefail
 line="$1"; tab=$'"'"'\t'"'"'

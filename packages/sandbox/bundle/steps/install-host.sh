@@ -6,8 +6,16 @@
 # are native, and a mismatch is a crash on the first terminal, not a warning.
 set -euo pipefail
 . /etc/superset/contract.sh
-archive="$(ls "${SUPERSET_MEDIA_DIR}"/host-service-*.tar.gz | head -1)"
-[ -f "$archive" ] || { echo "no host-service tarball under ${SUPERSET_MEDIA_DIR}" >&2; exit 1; }
+# The tarball this bundle declares, by hash: an earlier build's can still be
+# staged beside it, and which one `ls` lists first is chance.
+archive=""
+for candidate in "${SUPERSET_MEDIA_DIR}"/host-service-*.tar.gz; do
+	[ -f "${candidate}.hash" ] || continue
+	if grep -qF "$(tr -d '\n\r' < "${candidate}.hash")" "${SUPERSET_BUNDLE_DIR}/assets.tsv"; then
+		archive="$candidate"
+	fi
+done
+[ -n "$archive" ] || { echo "no host-service tarball of this bundle under ${SUPERSET_MEDIA_DIR}" >&2; exit 1; }
 sha="$(tr -d '\n\r' < "${archive}.hash")"
 target="${SUPERSET_HOST_ROOT}/${sha}"
 if [ ! -f "${target}/host-service.js" ]; then

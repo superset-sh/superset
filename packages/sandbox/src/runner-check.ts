@@ -156,6 +156,28 @@ try {
 		sync2.trim(),
 	);
 
+	// A staged archive the manifest no longer names is pruned; one it names
+	// stays. Sidecars are what make a file "staged": a bare file is left alone.
+	const media = SANDBOX_PATHS.media;
+	sh(
+		`printf stale > ${media}/stale.bin && printf ${sha256("stale")} > ${media}/stale.bin.hash && printf keep > ${media}/keep.bin && printf ${goodSha} > ${media}/keep.bin.hash && printf loose > ${media}/loose.bin`,
+	);
+	const sync3 = sh("/bundle/setup sync-assets 2>&1 | grep pruned || true");
+	expect(
+		"sync-assets prunes a staged archive the manifest no longer lists",
+		/stale\.bin/.test(sync3) &&
+			sh(
+				`ls ${media}/stale.bin ${media}/stale.bin.hash 2>&1 | grep -c 'No such'`,
+			).trim() === "2",
+		sync3.trim(),
+	);
+	expect(
+		"sync-assets keeps a staged archive the manifest lists and a bare file",
+		sh(
+			`ls ${media}/keep.bin ${media}/keep.bin.hash ${media}/loose.bin | wc -l`,
+		).trim() === "3",
+	);
+
 	// run-steps: fail-open.
 	const run1 = sh("/bundle/setup run-steps; echo exit=$?");
 	expect("run-steps exits 0 with a failing step", /exit=0/.test(run1));

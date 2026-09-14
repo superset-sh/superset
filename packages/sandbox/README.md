@@ -43,6 +43,10 @@ build that runs before the publish that uploads the asset poisons the edge it us
 hours; the runner's fetch retries with a cache-busting query when the plain URL 404s, and CI
 publishes before it builds. Locally: publish first.
 
+A staged archive under the media directory that the current manifest does not name is an
+earlier build's; `sync-assets` prunes it before fetching, and a step that needs its asset
+picks it by the manifest's hash rather than by listing the directory.
+
 ## Versioning
 
 - A rootfs file: its sha256, compared to the `.hash` sidecar beside it on the box.
