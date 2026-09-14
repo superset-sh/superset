@@ -121,9 +121,11 @@ export function useSubmitWorkspace(
 			// An environment without repositories of its own takes the picked
 			// ones. No branch means the API resolves the primary's default.
 			const pickedRepositoryIds =
-				environment.repositories.length === 0 ? draft.repositoryIds : [];
+				(environment.repositories ?? []).length === 0
+					? draft.repositoryIds
+					: [];
 			if (
-				environment.repositories.length === 0 &&
+				(environment.repositories ?? []).length === 0 &&
 				pickedRepositoryIds.length === 0
 			) {
 				toast.error(

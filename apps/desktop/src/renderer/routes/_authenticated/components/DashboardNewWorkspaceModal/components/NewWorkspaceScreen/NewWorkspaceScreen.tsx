@@ -166,7 +166,7 @@ export function NewWorkspaceScreen({
 	const environmentPicksRepositories =
 		draft.hostId === CLOUD_HOST_ID &&
 		!!selectedEnvironment &&
-		selectedEnvironment.repositories.length === 0;
+		(selectedEnvironment.repositories ?? []).length === 0;
 	const githubRepositoriesQuery =
 		cloudTrpc.integration.github.listRepositories.useQuery(
 			{ organizationId: activeOrganizationId ?? "" },
@@ -177,7 +177,7 @@ export function NewWorkspaceScreen({
 		if (draft.hostId !== CLOUD_HOST_ID) return null;
 		const primary = environmentPicksRepositories
 			? githubRepositories.find((repo) => repo.id === draft.repositoryIds[0])
-			: selectedEnvironment?.repositories[0];
+			: selectedEnvironment?.repositories?.[0];
 		return primary
 			? {
 					owner: primary.owner,

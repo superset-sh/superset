@@ -137,8 +137,8 @@ export function EnvironmentsSettings({
 										)}
 									</div>
 									<div className="text-xs text-muted-foreground mt-0.5 font-mono truncate">
-										{environment.repositories.length > 0
-											? environment.repositories
+										{(environment.repositories ?? []).length > 0
+											? (environment.repositories ?? [])
 													.map((repo) => repo.fullName)
 													.join(", ")
 											: environment.sourceRef}
@@ -158,7 +158,7 @@ export function EnvironmentsSettings({
 													id: environment.id,
 													name: environment.name,
 													scope: environment.scope,
-													repositoryIds: environment.repositories.map(
+													repositoryIds: (environment.repositories ?? []).map(
 														(repo) => repo.id,
 													),
 													hooksRepositoryId: environment.hooksRepositoryId,

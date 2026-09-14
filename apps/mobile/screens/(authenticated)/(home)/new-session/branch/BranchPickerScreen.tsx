@@ -90,7 +90,7 @@ export function BranchPickerScreen() {
 		(
 			cloudEnvironments.find((row) => row.id === environmentId) ??
 			cloudEnvironments[0]
-		)?.repositories[0]?.id ?? null;
+		)?.repositories?.[0]?.id ?? null;
 
 	const trimmedQuery = query.trim();
 	const { data, isLoading } = useQuery({
