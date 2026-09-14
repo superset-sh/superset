@@ -1,8 +1,10 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useMemo } from "react";
 import {
 	HiOutlineBeaker,
@@ -322,10 +324,19 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
 	const isV2CloudEnabled = useIsV2CloudEnabled();
-	const allowedSections = useMemo(
-		() => getAllowedSectionsForVariant(isV2CloudEnabled),
-		[isV2CloudEnabled],
-	);
+	// Cloud workspaces are a flagged feature on top of the v2 variant: the
+	// server refuses their procedures without the flag, so the pages are not
+	// offered either.
+	const cloudWorkspacesEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
+	const allowedSections = useMemo(() => {
+		const sections = getAllowedSectionsForVariant(isV2CloudEnabled);
+		if (!cloudWorkspacesEnabled) {
+			sections.delete("environments");
+			sections.delete("agents");
+		}
+		return sections;
+	}, [isV2CloudEnabled, cloudWorkspacesEnabled]);
 
 	return (
 		<>
