@@ -26,7 +26,8 @@ export const SANDBOX_PATHS = {
 	contract: "/etc/superset/contract.sh",
 	state: "/var/lib/superset",
 	hostDb: "/var/lib/superset/host.db",
-	checkoutMarker: "/var/lib/superset/workspace-bootstrapped",
+	/** One marker per repository path once its checkout is in place. */
+	checkouts: "/var/lib/superset/checkouts",
 	logs: "/var/log/superset",
 	bootLog: "/var/log/superset/boot.log",
 	run: "/run/superset",
@@ -85,8 +86,13 @@ export const sandboxIdentitySchema = z.object({
 	SUPERSET_API_URL: z.string().url(),
 	SUPERSET_SANDBOX_WORKSPACE_ID: z.string().uuid(),
 	SUPERSET_SANDBOX_ORGANIZATION_ID: z.string().uuid(),
-	SUPERSET_SANDBOX_REPO_URL: z.string().url(),
-	SUPERSET_SANDBOX_BRANCH: z.string().min(1),
+	/**
+	 * The repositories this workspace checks out, as JSON
+	 * (`sandboxRepositoriesSchema`): each at `<workspace>/<path>` on its
+	 * branch. The first is the primary: the one the workspace opens on and
+	 * whose hooks run unless the environment names another.
+	 */
+	SUPERSET_SANDBOX_REPOSITORIES: z.string().min(2),
 	/** The environment row's source (image name or golden), for telemetry. */
 	SUPERSET_SANDBOX_IMAGE_TAG: z.string().min(1),
 	SUPERSET_SANDBOX_PROVIDER: z.string().min(1),
@@ -108,6 +114,33 @@ export const sandboxIdentitySchema = z.object({
 });
 
 export type SandboxIdentity = z.infer<typeof sandboxIdentitySchema>;
+
+/** One checkout on the box; `path` is relative to the workspace root. */
+export const sandboxRepositorySchema = z.object({
+	url: z.string().url(),
+	branch: z.string().min(1),
+	path: z.string().regex(/^[A-Za-z0-9._-]+$/),
+	/** True for the repository whose `.superset/config.json` the box acts on. */
+	hooks: z.boolean().optional(),
+});
+export const sandboxRepositoriesSchema = z
+	.array(sandboxRepositorySchema)
+	.min(1);
+export type SandboxRepository = z.infer<typeof sandboxRepositorySchema>;
+
+/**
+ * Where a repository lands under the workspace root. Its name, unless two
+ * repositories share one, in which case the owner disambiguates.
+ */
+export function sandboxRepositoryPath(
+	repo: { owner: string; name: string },
+	all: ReadonlyArray<{ owner: string; name: string }>,
+): string {
+	const clash = all.some(
+		(other) => other.name === repo.name && other.owner !== repo.owner,
+	);
+	return clash ? `${repo.owner}-${repo.name}` : repo.name;
+}
 
 /**
  * The managed environment the control plane pushes into host-service after
@@ -155,7 +188,7 @@ export function renderContractShell(): string {
 		SUPERSET_CONF: SANDBOX_PATHS.conf,
 		SUPERSET_STATE_DIR: SANDBOX_PATHS.state,
 		SUPERSET_HOST_DB: SANDBOX_PATHS.hostDb,
-		SUPERSET_CHECKOUT_MARKER: SANDBOX_PATHS.checkoutMarker,
+		SUPERSET_CHECKOUTS_DIR: SANDBOX_PATHS.checkouts,
 		SUPERSET_LOG_DIR: SANDBOX_PATHS.logs,
 		SUPERSET_BOOT_LOG: SANDBOX_PATHS.bootLog,
 		SUPERSET_RUN_DIR: SANDBOX_PATHS.run,

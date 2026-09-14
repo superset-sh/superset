@@ -304,6 +304,11 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} tertunda"
 
+#. placeholder {0}: selected[0]?.fullName
+#. placeholder {1}: selected.length - 1
+msgid "{0} +{1}"
+msgstr "{0} +{1}"
+
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "Aksi {0}"
@@ -1248,6 +1253,9 @@ msgstr "Pull request selalu mendapat worktree sendiri"
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "Permukaan chat yang dibangun ulang untuk mengendalikan agen: output alat lebih kaya, pengarahan lebih halus, semuanya lebih cepat."
 
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "Sebuah repositori tidak terhubung ke organisasi ini, atau repositori berasal dari instalasi GitHub yang berbeda"
+
 msgid "A run for this automation is already in progress."
 msgstr "Sebuah run untuk otomatisasi ini sedang berjalan."
 
@@ -2088,6 +2096,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "Arsipkan"
+
+msgid "Archive environment"
+msgstr "Arsipkan environment"
 
 msgid "Archived"
 msgstr "Diarsipkan"
@@ -3646,6 +3657,9 @@ msgstr "Tata letak form yang bisa dikomposisi — berpasangan dengan @superset/u
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "Menghitung di Stripe — hingga satu menit saat pemuatan pertama"
 
+msgid "Config location"
+msgstr "Lokasi konfigurasi"
+
 msgid "Configure"
 msgstr "Atur"
 
@@ -4230,6 +4244,9 @@ msgstr "Tidak bisa membaca akun Google. Silakan coba lagi."
 
 msgid "Could not record cloud workspace"
 msgstr "Tidak bisa mencatat workspace cloud"
+
+msgid "Could not record environment"
+msgstr "Tidak dapat menyimpan environment"
 
 msgid "Could not rename the session"
 msgstr "Tidak dapat mengganti nama sesi"
@@ -5541,6 +5558,9 @@ msgstr "Edit komentar"
 msgid "Edit description"
 msgstr "Edit deskripsi"
 
+msgid "Edit environment"
+msgstr "Edit environment"
+
 msgid "Edit name"
 msgstr "Edit nama"
 
@@ -5689,6 +5709,9 @@ msgstr "Lingkungan"
 
 msgid "Environment created"
 msgstr "Environment dibuat"
+
+msgid "Environment saved"
+msgstr "Environment disimpan"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "Penyiapan environment, tes flaky, dan urusan kredensial — mode kegagalan membosankan yang mematikan run tanpa pengawasan pada 2025 — sebagian besar diselesaikan lewat rekayasa, bukan lewat model."
@@ -8776,8 +8799,8 @@ msgstr "Pantau, arahkan, dan bebaskan agen Anda dari hambatan lewat ponsel."
 msgid "Monitoring"
 msgstr "Pemantauan"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "Monospace"
@@ -9530,8 +9553,14 @@ msgstr "Belum ada konfigurasi agen publik. Rute ini siap untuk daftar konfiguras
 msgid "No pull requests found."
 msgstr "Tidak ada pull request ditemukan."
 
+msgid "No repositories connected."
+msgstr "Tidak ada repositori yang terhubung."
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Tidak ada repositori ditemukan. Pastikan GitHub App Anda punya akses ke repositori."
+
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "Tidak ada repositori. Hubungkan GitHub di Integrasi, lalu segarkan."
 
 msgid "No results"
 msgstr "Tidak ada hasil"
@@ -9697,6 +9726,9 @@ msgstr "non-merek"
 
 msgid "Non-brand clicks"
 msgstr "Klik non-merek"
+
+msgid "None"
+msgstr "Tidak ada"
 
 msgid "none (session)"
 msgstr "tidak ada (sesi)"
@@ -10426,6 +10458,9 @@ msgstr "Membuka TestFlight…"
 msgid "Opening worktree..."
 msgstr "Membuka worktree..."
 
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "Membuka workspace cloud tempat agen memasang yang dibutuhkan proyek dan menulis .superset/config.json miliknya"
+
 msgid "Operator"
 msgstr "Operator"
 
@@ -10846,6 +10881,9 @@ msgstr "Pilih direktori induk"
 msgid "Pick a project location"
 msgstr "Pilih lokasi proyek"
 
+msgid "Pick a repository for this cloud workspace"
+msgstr "Pilih repositori untuk workspace cloud ini"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Pilih suara atau tambahkan milik Anda sendiri. Audio kustom mendukung .mp3, .wav, dan .ogg."
 
@@ -10857,6 +10895,9 @@ msgstr "Pilih workspace"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Pilih ikon dan warna, atau unggah gambar kustom. Bawaannya memakai avatar pemilik GitHub yang ditautkan."
+
+msgid "Pick at least one repository for this workspace"
+msgstr "Pilih setidaknya satu repositori untuk workspace ini"
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 msgstr "Pilih cara {label} masuk di dalam sandbox. Kredensial diserahkan ke proses agen saat diluncurkan dan tidak disimpan di sandbox."
@@ -11669,6 +11710,9 @@ msgstr "Segarkan metrik"
 msgid "Refresh pull requests"
 msgstr "Segarkan pull request"
 
+msgid "Refresh repositories"
+msgstr "Segarkan repositori"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Diperbarui saat Claude Code berikutnya dijalankan."
 
@@ -11951,6 +11995,9 @@ msgstr "Repositori"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "Repositori yang bisa diakses lewat instalasi GitHub App."
+
+msgid "Repositories refreshed"
+msgstr "Repositori disegarkan"
 
 msgid "Repositories will be updated shortly."
 msgstr "Repositori akan segera diperbarui."
@@ -12730,6 +12777,9 @@ msgstr "Cari pull request..."
 msgid "Search pull requests…"
 msgstr "Cari pull request…"
 
+msgid "Search repositories..."
+msgstr "Cari repositori..."
+
 msgid "Search sessions"
 msgstr "Cari sesi"
 
@@ -12955,6 +13005,9 @@ msgstr "Pilih lokasi worktree proyek"
 msgid "Select range..."
 msgstr "Pilih rentang..."
 
+msgid "Select repositories"
+msgstr "Pilih repositori"
+
 msgid "Select repository"
 msgstr "Pilih repositori"
 
@@ -13121,6 +13174,10 @@ msgstr "Setel Run"
 
 msgid "Set up"
 msgstr "Siapkan"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "Siapkan {0}"
 
 msgid "Set up project on {hostName}"
 msgstr "Siapkan proyek di {hostName}"
@@ -13549,6 +13606,9 @@ msgstr "Skill hadir bersama plugin Superset dan selalu diperbarui otomatis di se
 msgid "Skip"
 msgstr "Lewati"
 
+msgid "Skip & save"
+msgstr "Lewati & simpan"
+
 msgid "Skip All"
 msgstr "Lewati Semua"
 
@@ -13840,6 +13900,9 @@ msgstr "Mulai sesi"
 
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "Mulai workspace langsung dari tiket Linear. Agen mengambilnya dan melapor kembali dengan sebuah PR."
+
+msgid "Start agent"
+msgstr "Mulai agen"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Mulai sebuah agen atau terminal untuk mulai bekerja di workspace ini."
@@ -14622,6 +14685,9 @@ msgstr "Agen terbaik akan berganti.<0/>Alur kerja Anda tidak perlu."
 msgid "The Codex sign-in"
 msgstr "Sesi masuk Codex"
 
+msgid "The config repository must be one of the environment's repositories"
+msgstr "Repositori konfigurasi harus salah satu repositori environment"
+
 msgid "The connection timed out"
 msgstr "Koneksinya kehabisan waktu"
 
@@ -14812,6 +14878,9 @@ msgstr "Branch remote sudah menyimpang. Lakukan pull sebelum melanjutkan."
 
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Renderer crash saat startup. Silakan periksa log untuk detailnya."
+
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
+msgstr "Repositori yang di-checkout oleh workspace cloud, dan .superset/config.json milik repositori mana yang diterapkan. Repositori pertama adalah tempat workspace dibuka."
 
 msgid "The repository folder itself is kept."
 msgstr "Folder repositori itu sendiri tetap dipertahankan."

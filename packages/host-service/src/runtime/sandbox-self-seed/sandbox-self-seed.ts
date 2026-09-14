@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -7,7 +8,11 @@ import {
 	type CloudAgentLaunch,
 	readCloudAgentLaunch,
 } from "@superset/shared/cloud-agent-launch";
-import { SANDBOX_PATHS } from "@superset/shared/sandbox-contract";
+import {
+	SANDBOX_PATHS,
+	type SandboxRepository,
+	sandboxRepositoriesSchema,
+} from "@superset/shared/sandbox-contract";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { projects, workspaces } from "../../db/schema";
@@ -40,7 +45,12 @@ export interface SandboxIdentity {
 	workspaceName: string;
 	projectName: string;
 	branch: string;
+	/** The primary repository's checkout: the one the workspace opens on. */
 	worktreePath: string;
+	/** Every checkout on the box, the primary first. */
+	repositories: SandboxRepository[];
+	/** The checkout whose `.superset/config.json` the box acts on. */
+	hooksPath: string;
 	/** The agent the workspace was created with, or null for an idle one. */
 	launch: CloudAgentLaunch | null;
 	/** Written once the launch has happened, so a restart never repeats it. */
@@ -79,20 +89,40 @@ function readSandboxHooks(raw: string | undefined): SandboxHooks | null {
 	}
 }
 
+function readSandboxRepositories(raw: string | undefined): SandboxRepository[] {
+	if (!raw) return [];
+	const parsed = sandboxRepositoriesSchema.safeParse(JSON.parse(raw));
+	if (!parsed.success) {
+		console.warn(
+			"[sandbox] SUPERSET_SANDBOX_REPOSITORIES is not a repository list",
+		);
+		return [];
+	}
+	return parsed.data;
+}
+
 export function readSandboxIdentity(
 	env: NodeJS.ProcessEnv = process.env,
 ): SandboxIdentity | null {
 	const workspaceId = env.SUPERSET_SANDBOX_WORKSPACE_ID;
-	const worktreePath = env.SUPERSET_SANDBOX_WORKSPACE_PATH;
-	if (!workspaceId || !worktreePath) return null;
+	const root = env.SUPERSET_SANDBOX_WORKSPACE_PATH;
+	if (!workspaceId || !root) return null;
+	const repositories = readSandboxRepositories(
+		env.SUPERSET_SANDBOX_REPOSITORIES,
+	);
+	const primary = repositories[0];
+	if (!primary) return null;
+	const hooksRepository = repositories.find((repo) => repo.hooks) ?? primary;
 	return {
 		workspaceId,
-		worktreePath,
+		worktreePath: join(root, primary.path),
+		repositories,
+		hooksPath: join(root, hooksRepository.path),
 		// The API owns the workspace's name; the row here is scratch host-service
 		// serves panes against, so it needs a name, not the name.
 		workspaceName: "workspace",
 		projectName: "project",
-		branch: env.SUPERSET_SANDBOX_BRANCH || "main",
+		branch: primary.branch,
 		launch: readCloudAgentLaunch(env),
 		launchMarkerPath: join(
 			dirname(env.HOST_DB_PATH || SANDBOX_PATHS.hostDb),
@@ -126,7 +156,7 @@ export function runSandboxStartHook(
 		identity.hooks?.start ??
 		(() => {
 			const resolved = resolveScript("start", {
-				repoPath: identity.worktreePath,
+				repoPath: identity.hooksPath,
 				projectId: identity.workspaceId,
 			});
 			if (!resolved) return null;
@@ -138,7 +168,7 @@ export function runSandboxStartHook(
 	const command = commands.join(" && ");
 	const log = openSync(START_HOOK_LOG, "a");
 	const child = spawn("bash", ["-lc", command], {
-		cwd: identity.worktreePath,
+		cwd: identity.hooksPath,
 		env: { ...process.env, ...getManagedEnv(), IS_SANDBOX: "1" },
 		stdio: ["ignore", log, log],
 		detached: true,
@@ -261,40 +291,62 @@ async function waitForFlag(path: string, timeoutMs: number): Promise<boolean> {
 	return false;
 }
 
+/**
+ * A cloud workspace's id names its primary checkout's row, which is what the
+ * app opens; every other repository gets a row of its own with an id derived
+ * from the workspace's, so a restart seeds the same ids.
+ */
+export function sandboxRepositoryWorkspaceId(
+	workspaceId: string,
+	path: string,
+): string {
+	const hash = createHash("sha256")
+		.update(`${workspaceId}:${path}`)
+		.digest("hex");
+	return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
+}
+
 export function runSandboxSelfSeed(
 	db: HostDb,
 	identity: SandboxIdentity,
 ): void {
-	const existing = db
-		.select({ id: workspaces.id })
-		.from(workspaces)
-		.where(eq(workspaces.id, identity.workspaceId))
-		.get();
-	if (existing) return;
-
+	const root = dirname(identity.worktreePath);
 	const now = Date.now();
-	const projectId = crypto.randomUUID();
-	db.insert(projects)
-		.values({
-			id: projectId,
-			repoPath: identity.worktreePath,
-			name: identity.projectName,
-			createdAt: now,
-			updatedAt: now,
-		})
-		.run();
-	// type='local' because the checkout *is* the repo here — there is no base
-	// repo it was branched from.
-	db.insert(workspaces)
-		.values({
-			id: identity.workspaceId,
-			projectId,
-			worktreePath: identity.worktreePath,
-			branch: identity.branch,
-			name: identity.workspaceName,
-			type: "local",
-			createdAt: now,
-			updatedAt: now,
-		})
-		.run();
+	identity.repositories.forEach((repo, index) => {
+		const id =
+			index === 0
+				? identity.workspaceId
+				: sandboxRepositoryWorkspaceId(identity.workspaceId, repo.path);
+		const existing = db
+			.select({ id: workspaces.id })
+			.from(workspaces)
+			.where(eq(workspaces.id, id))
+			.get();
+		if (existing) return;
+		const projectId = crypto.randomUUID();
+		const worktreePath = join(root, repo.path);
+		db.insert(projects)
+			.values({
+				id: projectId,
+				repoPath: worktreePath,
+				name: repo.path,
+				createdAt: now,
+				updatedAt: now,
+			})
+			.run();
+		// type='local' because the checkout *is* the repo here — there is no
+		// base repo it was branched from.
+		db.insert(workspaces)
+			.values({
+				id,
+				projectId,
+				worktreePath,
+				branch: repo.branch,
+				name: index === 0 ? identity.workspaceName : repo.path,
+				type: "local",
+				createdAt: now,
+				updatedAt: now,
+			})
+			.run();
+	});
 }

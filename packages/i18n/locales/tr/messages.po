@@ -304,6 +304,11 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} bekliyor"
 
+#. placeholder {0}: selected[0]?.fullName
+#. placeholder {1}: selected.length - 1
+msgid "{0} +{1}"
+msgstr "{0} +{1}"
+
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "{0} eylemleri"
@@ -1248,6 +1253,9 @@ msgstr "Bir pull request her zaman kendi worktree'sini alır"
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "Ajanları yönetmek için yeniden yapılmış bir sohbet yüzeyi: daha zengin araç çıktısı, daha akıcı yönlendirme, her şey daha hızlı."
 
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "Bir depo bu organizasyona bağlı değil veya depolar farklı GitHub kurulumlarından geliyor"
+
 msgid "A run for this automation is already in progress."
 msgstr "Bu otomasyon için bir çalıştırma zaten sürüyor."
 
@@ -2088,6 +2096,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "Arşivle"
+
+msgid "Archive environment"
+msgstr "Ortamı arşivle"
 
 msgid "Archived"
 msgstr "Arşivlenmiş"
@@ -3646,6 +3657,9 @@ msgstr "Birleştirilebilir form düzeni — react-hook-form için @superset/ui/f
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "Stripe üzerinde hesaplanıyor — ilk yüklemede bir dakikayı bulabilir"
 
+msgid "Config location"
+msgstr "Yapılandırma konumu"
+
 msgid "Configure"
 msgstr "Yapılandır"
 
@@ -4230,6 +4244,9 @@ msgstr "Google hesabı okunamadı. Lütfen yeniden deneyin."
 
 msgid "Could not record cloud workspace"
 msgstr "Bulut çalışma alanı kaydedilemedi"
+
+msgid "Could not record environment"
+msgstr "Ortam kaydedilemedi"
 
 msgid "Could not rename the session"
 msgstr "Oturum yeniden adlandırılamadı"
@@ -5541,6 +5558,9 @@ msgstr "Yorumu düzenle"
 msgid "Edit description"
 msgstr "Açıklamayı düzenle"
 
+msgid "Edit environment"
+msgstr "Ortamı düzenle"
+
 msgid "Edit name"
 msgstr "Adı düzenle"
 
@@ -5689,6 +5709,9 @@ msgstr "Ortam"
 
 msgid "Environment created"
 msgstr "Ortam oluşturuldu"
+
+msgid "Environment saved"
+msgstr "Ortam kaydedildi"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "Ortam kurulumu, kararsız testler ve kimlik bilgisi tesisatı, yani 2025'te gözetimsiz çalıştırmaları öldüren sıkıcı hata biçimleri, modelleyerek değil mühendislikle büyük ölçüde ortadan kaldırılır."
@@ -8776,8 +8799,8 @@ msgstr "Ajanlarınızı telefonunuzdan izleyin, yönlendirin ve engellerini kald
 msgid "Monitoring"
 msgstr "İzleme"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "Eş aralıklı"
@@ -9530,8 +9553,14 @@ msgstr "Henüz herkese açık ajan yapılandırması yok. Bu bölüm gelecekteki
 msgid "No pull requests found."
 msgstr "Pull request bulunamadı."
 
+msgid "No repositories connected."
+msgstr "Bağlı depo yok."
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Depo bulunamadı. GitHub App'inizin depolara erişimi olduğundan emin olun."
+
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "Depo yok. Entegrasyonlar'dan GitHub'ı bağlayın, sonra yenileyin."
 
 msgid "No results"
 msgstr "Sonuç yok"
@@ -9697,6 +9726,9 @@ msgstr "marka dışı"
 
 msgid "Non-brand clicks"
 msgstr "Marka dışı tıklamalar"
+
+msgid "None"
+msgstr "Yok"
 
 msgid "none (session)"
 msgstr "yok (oturum)"
@@ -10426,6 +10458,9 @@ msgstr "TestFlight açılıyor…"
 msgid "Opening worktree..."
 msgstr "Worktree açılıyor..."
 
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "Bir ajanın projenin ihtiyaç duyduklarını kurup .superset/config.json dosyasını yazdığı bir bulut çalışma alanı açar"
+
 msgid "Operator"
 msgstr "Operatör"
 
@@ -10846,6 +10881,9 @@ msgstr "Bir üst dizin seçin"
 msgid "Pick a project location"
 msgstr "Bir proje konumu seçin"
 
+msgid "Pick a repository for this cloud workspace"
+msgstr "Bu bulut çalışma alanı için bir depo seçin"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Bir ses seçin veya kendinizinkini ekleyin. Özel ses .mp3, .wav ve .ogg destekler."
 
@@ -10857,6 +10895,9 @@ msgstr "Bir çalışma alanı seçin"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Bir simge ve renk seçin ya da özel bir görsel yükleyin. Varsayılan olarak bağlı GitHub sahibinin avatarı kullanılır."
+
+msgid "Pick at least one repository for this workspace"
+msgstr "Bu çalışma alanı için en az bir depo seçin"
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 msgstr "{label} ajanının bir sandbox içinde nasıl oturum açacağını seçin. Kimlik bilgisi, başlatıldığında ajan sürecine verilir ve sandbox'ta saklanmaz."
@@ -11669,6 +11710,9 @@ msgstr "Metrikleri yenile"
 msgid "Refresh pull requests"
 msgstr "Pull request'leri yenile"
 
+msgid "Refresh repositories"
+msgstr "Depoları yenile"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Claude Code bir sonraki çalıştığında yenilenir."
 
@@ -11951,6 +11995,9 @@ msgstr "Depolar"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "GitHub App kurulumu üzerinden erişilebilen depolar."
+
+msgid "Repositories refreshed"
+msgstr "Depolar yenilendi"
 
 msgid "Repositories will be updated shortly."
 msgstr "Depolar kısa süre içinde güncellenecek."
@@ -12730,6 +12777,9 @@ msgstr "Pull request ara..."
 msgid "Search pull requests…"
 msgstr "Pull request ara…"
 
+msgid "Search repositories..."
+msgstr "Depolarda ara..."
+
 msgid "Search sessions"
 msgstr "Oturumlarda ara"
 
@@ -12955,6 +13005,9 @@ msgstr "Proje worktree konumunu seçin"
 msgid "Select range..."
 msgstr "Aralık seçin..."
 
+msgid "Select repositories"
+msgstr "Depoları seç"
+
 msgid "Select repository"
 msgstr "Depo seçin"
 
@@ -13121,6 +13174,10 @@ msgstr "Çalıştırmayı ayarla"
 
 msgid "Set up"
 msgstr "Kur"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "{0} kurulumu"
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName} üzerinde projeyi kur"
@@ -13549,6 +13606,9 @@ msgstr "Beceriler Superset eklentisiyle gelir ve kullandığınız her ajanda ot
 msgid "Skip"
 msgstr "Atla"
 
+msgid "Skip & save"
+msgstr "Atla ve kaydet"
+
 msgid "Skip All"
 msgstr "Tümünü atla"
 
@@ -13840,6 +13900,9 @@ msgstr "Bir oturum başlat"
 
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "Doğrudan bir Linear biletinden çalışma alanı başlatın. Ajan işi devralır ve bir PR ile geri döner."
+
+msgid "Start agent"
+msgstr "Ajanı başlat"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Bu çalışma alanında çalışmaya başlamak için bir ajan veya terminal başlatın."
@@ -14622,6 +14685,9 @@ msgstr "En iyi ajan değişecek.<0/>İş akışınız değişmemeli."
 msgid "The Codex sign-in"
 msgstr "Codex oturumu"
 
+msgid "The config repository must be one of the environment's repositories"
+msgstr "Yapılandırma deposu, ortamın depolarından biri olmalıdır"
+
 msgid "The connection timed out"
 msgstr "Bağlantı zaman aşımına uğradı"
 
@@ -14812,6 +14878,9 @@ msgstr "Uzak dal ayrıştı. Devam etmeden önce pull yapın."
 
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Başlangıç sırasında renderer çöktü. Ayrıntılar için günlükleri kontrol edin."
+
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
+msgstr "Bir bulut çalışma alanının çektiği depolar ve hangisinin .superset/config.json dosyasını uyguladığı. İlk depo, çalışma alanının açıldığı depodur."
 
 msgid "The repository folder itself is kept."
 msgstr "Depo klasörünün kendisi korunur."

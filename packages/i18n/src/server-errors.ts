@@ -224,6 +224,39 @@ export const serverErrorMessages: Record<
 				"Cloud sandboxes are not enabled for {account}. Ask the Superset team for access.",
 			values: params,
 		}),
+	"serverError.cloudWorkspace.repositoryRequired": () =>
+		i18n._(
+			msg({
+				message: "Pick at least one repository for this workspace",
+			}),
+		),
+	"serverError.cloudWorkspace.repositoryNotConnected": () =>
+		i18n._(
+			msg({
+				message:
+					"A repository is not connected to this organization, or the repositories come from different GitHub installations",
+			}),
+		),
+	"serverError.environment.repositoryNotConnected": () =>
+		i18n._(
+			msg({
+				message:
+					"A repository is not connected to this organization, or the repositories come from different GitHub installations",
+			}),
+		),
+	"serverError.environment.hooksRepositoryNotIncluded": () =>
+		i18n._(
+			msg({
+				message:
+					"The config repository must be one of the environment's repositories",
+			}),
+		),
+	"serverError.environment.couldNotRecord": () =>
+		i18n._(
+			msg({
+				message: "Could not record environment",
+			}),
+		),
 	"serverError.cloudWorkspace.couldNotRecordCloudWorkspace": () =>
 		i18n._(
 			msg({

@@ -304,6 +304,11 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} 대기 중"
 
+#. placeholder {0}: selected[0]?.fullName
+#. placeholder {1}: selected.length - 1
+msgid "{0} +{1}"
+msgstr "{0} +{1}"
+
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "{0} 작업"
@@ -1248,6 +1253,9 @@ msgstr "풀 리퀘스트는 항상 자체 worktree를 갖습니다"
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "에이전트를 다루기 위해 새로 만든 채팅 화면입니다. 더 풍부한 도구 출력, 더 매끄러운 조종, 전반적으로 더 빠른 속도."
 
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "리포지토리가 이 조직에 연결되어 있지 않거나, 리포지토리들이 서로 다른 GitHub 설치에서 왔습니다"
+
 msgid "A run for this automation is already in progress."
 msgstr "이 자동화의 실행이 이미 진행 중입니다."
 
@@ -2088,6 +2096,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "보관"
+
+msgid "Archive environment"
+msgstr "환경 보관"
 
 msgid "Archived"
 msgstr "보관됨"
@@ -3646,6 +3657,9 @@ msgstr "조합 가능한 폼 레이아웃 — react-hook-form을 쓰려면 @supe
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "Stripe에서 계산 중 — 첫 로드 시 최대 1분 소요"
 
+msgid "Config location"
+msgstr "구성 위치"
+
 msgid "Configure"
 msgstr "구성"
 
@@ -4230,6 +4244,9 @@ msgstr "Google 계정을 읽을 수 없습니다. 다시 시도해 주세요."
 
 msgid "Could not record cloud workspace"
 msgstr "클라우드 워크스페이스를 기록할 수 없습니다"
+
+msgid "Could not record environment"
+msgstr "환경을 저장할 수 없습니다"
 
 msgid "Could not rename the session"
 msgstr "세션 이름을 변경할 수 없습니다"
@@ -5541,6 +5558,9 @@ msgstr "코멘트 수정"
 msgid "Edit description"
 msgstr "설명 편집"
 
+msgid "Edit environment"
+msgstr "환경 편집"
+
 msgid "Edit name"
 msgstr "이름 수정"
 
@@ -5689,6 +5709,9 @@ msgstr "환경"
 
 msgid "Environment created"
 msgstr "환경이 생성되었습니다"
+
+msgid "Environment saved"
+msgstr "환경이 저장되었습니다"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "환경 설정, 불안정한 테스트, 자격 증명 연결처럼 2025년에 무인 실행을 망가뜨렸던 지루한 실패 유형은 대부분 모델링이 아니라 엔지니어링으로 해결됩니다."
@@ -8776,8 +8799,8 @@ msgstr "휴대폰에서 에이전트를 지켜보고, 방향을 잡고, 막힌 �
 msgid "Monitoring"
 msgstr "모니터링"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "고정폭"
@@ -9530,8 +9553,14 @@ msgstr "아직 공개된 에이전트 설정이 없습니다. 이 경로는 앞�
 msgid "No pull requests found."
 msgstr "풀 리퀘스트를 찾을 수 없습니다."
 
+msgid "No repositories connected."
+msgstr "연결된 리포지토리가 없습니다."
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "리포지토리를 찾을 수 없습니다. GitHub App이 리포지토리에 접근할 수 있는지 확인하세요."
+
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "리포지토리가 없습니다. 통합에서 GitHub를 연결한 후 새로 고침하세요."
 
 msgid "No results"
 msgstr "결과 없음"
@@ -9697,6 +9726,9 @@ msgstr "비브랜드"
 
 msgid "Non-brand clicks"
 msgstr "비브랜드 클릭"
+
+msgid "None"
+msgstr "없음"
 
 msgid "none (session)"
 msgstr "없음 (세션)"
@@ -10426,6 +10458,9 @@ msgstr "TestFlight를 여는 중…"
 msgid "Opening worktree..."
 msgstr "worktree를 여는 중..."
 
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "에이전트가 프로젝트에 필요한 것을 설치하고 .superset/config.json을 작성하는 클라우드 워크스페이스를 엽니다"
+
 msgid "Operator"
 msgstr "작업자"
 
@@ -10846,6 +10881,9 @@ msgstr "상위 디렉터리를 선택하세요"
 msgid "Pick a project location"
 msgstr "프로젝트 위치를 선택하세요"
 
+msgid "Pick a repository for this cloud workspace"
+msgstr "이 클라우드 워크스페이스에 사용할 리포지토리를 선택하세요"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "소리를 고르거나 직접 추가하세요. 사용자 지정 오디오는 .mp3, .wav, .ogg를 지원합니다."
 
@@ -10857,6 +10895,9 @@ msgstr "워크스페이스 선택"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "아이콘과 색상을 고르거나 직접 만든 이미지를 업로드하세요. 기본값은 연결된 GitHub 소유자의 아바타입니다."
+
+msgid "Pick at least one repository for this workspace"
+msgstr "이 워크스페이스에 사용할 리포지토리를 하나 이상 선택하세요"
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 msgstr "샌드박스 안에서 {label}이(가) 로그인하는 방식을 고르세요. 자격 증명은 실행될 때 에이전트 프로세스로 전달되며 샌드박스에는 저장되지 않습니다."
@@ -11669,6 +11710,9 @@ msgstr "지표 새로 고침"
 msgid "Refresh pull requests"
 msgstr "풀 리퀘스트 새로 고침"
 
+msgid "Refresh repositories"
+msgstr "리포지토리 새로 고침"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "다음에 Claude Code를 실행하면 갱신됩니다."
 
@@ -11951,6 +11995,9 @@ msgstr "리포지토리"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "GitHub App 설치를 통해 접근할 수 있는 리포지토리입니다."
+
+msgid "Repositories refreshed"
+msgstr "리포지토리를 새로 고쳤습니다"
 
 msgid "Repositories will be updated shortly."
 msgstr "리포지토리가 곧 업데이트됩니다."
@@ -12730,6 +12777,9 @@ msgstr "풀 리퀘스트 검색..."
 msgid "Search pull requests…"
 msgstr "풀 리퀘스트 검색…"
 
+msgid "Search repositories..."
+msgstr "리포지토리 검색..."
+
 msgid "Search sessions"
 msgstr "세션 검색"
 
@@ -12955,6 +13005,9 @@ msgstr "프로젝트 worktree 위치 선택"
 msgid "Select range..."
 msgstr "범위 선택..."
 
+msgid "Select repositories"
+msgstr "리포지토리 선택"
+
 msgid "Select repository"
 msgstr "리포지토리 선택"
 
@@ -13121,6 +13174,10 @@ msgstr "실행 설정"
 
 msgid "Set up"
 msgstr "설정"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "{0} 설정"
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName}에 프로젝트 설정"
@@ -13549,6 +13606,9 @@ msgstr "스킬은 Superset 플러그인에 포함되어 있으며 사용하는 �
 msgid "Skip"
 msgstr "건너뛰기"
 
+msgid "Skip & save"
+msgstr "건너뛰고 저장"
+
 msgid "Skip All"
 msgstr "모두 건너뛰기"
 
@@ -13840,6 +13900,9 @@ msgstr "세션 시작"
 
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "Linear 티켓에서 바로 워크스페이스를 시작하세요. 에이전트가 이어받아 PR로 결과를 알려 줍니다."
+
+msgid "Start agent"
+msgstr "에이전트 시작"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "에이전트나 터미널을 시작해 이 워크스페이스에서 작업을 시작하세요."
@@ -14622,6 +14685,9 @@ msgstr "최고의 에이전트는 바뀝니다.<0/>워크플로는 그럴 필요
 msgid "The Codex sign-in"
 msgstr "Codex 로그인"
 
+msgid "The config repository must be one of the environment's repositories"
+msgstr "구성 리포지토리는 환경의 리포지토리 중 하나여야 합니다"
+
 msgid "The connection timed out"
 msgstr "연결 시간이 초과되었습니다"
 
@@ -14812,6 +14878,9 @@ msgstr "원격 브랜치가 갈라졌습니다. 계속하기 전에 pull하세�
 
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "시작 중에 렌더러가 충돌했습니다. 자세한 내용은 로그를 확인하세요."
+
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
+msgstr "클라우드 워크스페이스가 체크아웃하는 리포지토리와 어느 리포지토리의 .superset/config.json을 적용할지 정합니다. 첫 번째 리포지토리가 워크스페이스가 열리는 곳입니다."
 
 msgid "The repository folder itself is kept."
 msgstr "저장소 폴더 자체는 유지됩니다."

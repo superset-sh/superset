@@ -304,6 +304,11 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} pending"
 
+#. placeholder {0}: selected[0]?.fullName
+#. placeholder {1}: selected.length - 1
+msgid "{0} +{1}"
+msgstr "{0} +{1}"
+
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "{0} actions"
@@ -1248,6 +1253,9 @@ msgstr "A pull request always gets its own worktree"
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+
 msgid "A run for this automation is already in progress."
 msgstr "A run for this automation is already in progress."
 
@@ -2088,6 +2096,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "Archive"
+
+msgid "Archive environment"
+msgstr "Archive environment"
 
 msgid "Archived"
 msgstr "Archived"
@@ -3646,6 +3657,9 @@ msgstr "Composable form layout — pairs with @superset/ui/form for react-hook-f
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "Computing in Stripe — up to a minute on first load"
 
+msgid "Config location"
+msgstr "Config location"
+
 msgid "Configure"
 msgstr "Configure"
 
@@ -4230,6 +4244,9 @@ msgstr "Could not read the Google account. Please try again."
 
 msgid "Could not record cloud workspace"
 msgstr "Could not record cloud workspace"
+
+msgid "Could not record environment"
+msgstr "Could not record environment"
 
 msgid "Could not rename the session"
 msgstr "Could not rename the session"
@@ -5541,6 +5558,9 @@ msgstr "Edit comment"
 msgid "Edit description"
 msgstr "Edit description"
 
+msgid "Edit environment"
+msgstr "Edit environment"
+
 msgid "Edit name"
 msgstr "Edit name"
 
@@ -5689,6 +5709,9 @@ msgstr "Environment"
 
 msgid "Environment created"
 msgstr "Environment created"
+
+msgid "Environment saved"
+msgstr "Environment saved"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
@@ -8776,8 +8799,8 @@ msgstr "Monitor, steer, and unblock your agents from your phone."
 msgid "Monitoring"
 msgstr "Monitoring"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "Monospace"
@@ -9530,8 +9553,14 @@ msgstr "No public agent configs yet. This route is ready for future agent config
 msgid "No pull requests found."
 msgstr "No pull requests found."
 
+msgid "No repositories connected."
+msgstr "No repositories connected."
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "No repositories found. Make sure your GitHub App has access to repositories."
+
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "No repositories. Connect GitHub in Integrations, then refresh."
 
 msgid "No results"
 msgstr "No results"
@@ -9697,6 +9726,9 @@ msgstr "non-brand"
 
 msgid "Non-brand clicks"
 msgstr "Non-brand clicks"
+
+msgid "None"
+msgstr "None"
 
 msgid "none (session)"
 msgstr "none (session)"
@@ -10426,6 +10458,9 @@ msgstr "Opening TestFlight…"
 msgid "Opening worktree..."
 msgstr "Opening worktree..."
 
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+
 msgid "Operator"
 msgstr "Operator"
 
@@ -10846,6 +10881,9 @@ msgstr "Pick a parent directory"
 msgid "Pick a project location"
 msgstr "Pick a project location"
 
+msgid "Pick a repository for this cloud workspace"
+msgstr "Pick a repository for this cloud workspace"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 
@@ -10857,6 +10895,9 @@ msgstr "Pick a workspace"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
+
+msgid "Pick at least one repository for this workspace"
+msgstr "Pick at least one repository for this workspace"
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 msgstr "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
@@ -11669,6 +11710,9 @@ msgstr "Refresh metrics"
 msgid "Refresh pull requests"
 msgstr "Refresh pull requests"
 
+msgid "Refresh repositories"
+msgstr "Refresh repositories"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Refreshes when Claude Code next runs."
 
@@ -11951,6 +11995,9 @@ msgstr "Repositories"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "Repositories accessible through the GitHub App installation."
+
+msgid "Repositories refreshed"
+msgstr "Repositories refreshed"
 
 msgid "Repositories will be updated shortly."
 msgstr "Repositories will be updated shortly."
@@ -12730,6 +12777,9 @@ msgstr "Search pull requests..."
 msgid "Search pull requests…"
 msgstr "Search pull requests…"
 
+msgid "Search repositories..."
+msgstr "Search repositories..."
+
 msgid "Search sessions"
 msgstr "Search sessions"
 
@@ -12955,6 +13005,9 @@ msgstr "Select project worktree location"
 msgid "Select range..."
 msgstr "Select range..."
 
+msgid "Select repositories"
+msgstr "Select repositories"
+
 msgid "Select repository"
 msgstr "Select repository"
 
@@ -13121,6 +13174,10 @@ msgstr "Set Run"
 
 msgid "Set up"
 msgstr "Set up"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "Set up {0}"
 
 msgid "Set up project on {hostName}"
 msgstr "Set up project on {hostName}"
@@ -13549,6 +13606,9 @@ msgstr "Skills ship with the Superset plugin and are kept up to date automatical
 msgid "Skip"
 msgstr "Skip"
 
+msgid "Skip & save"
+msgstr "Skip & save"
+
 msgid "Skip All"
 msgstr "Skip All"
 
@@ -13840,6 +13900,9 @@ msgstr "Start a session"
 
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
+
+msgid "Start agent"
+msgstr "Start agent"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Start an agent or a terminal to begin working in this workspace."
@@ -14622,6 +14685,9 @@ msgstr "The best agent will change.<0/>Your workflow shouldn't."
 msgid "The Codex sign-in"
 msgstr "The Codex sign-in"
 
+msgid "The config repository must be one of the environment's repositories"
+msgstr "The config repository must be one of the environment's repositories"
+
 msgid "The connection timed out"
 msgstr "The connection timed out"
 
@@ -14812,6 +14878,9 @@ msgstr "The remote branch has diverged. Pull before continuing."
 
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "The renderer crashed during startup. Please check logs for details."
+
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
+msgstr "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
 
 msgid "The repository folder itself is kept."
 msgstr "The repository folder itself is kept."

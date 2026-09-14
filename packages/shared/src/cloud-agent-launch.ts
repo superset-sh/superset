@@ -68,3 +68,17 @@ export function readCloudAgentLaunch(
 		mode: env[ENV.mode] || undefined,
 	};
 }
+
+/**
+ * What the agent is asked to do when an environment is created with "Start
+ * agent": onboard the checkout so a golden can be promoted from the result.
+ * The person watches in the terminal and desktop and can take over.
+ */
+export const ENVIRONMENT_ONBOARDING_PROMPT = [
+	"You are setting up this repository so a cloud workspace can start from it.",
+	"Work in the checkout you are in. Read its README, package manifests, lockfiles and any existing `.superset/config.json`.",
+	"Install what a developer needs to run the project (dependencies, toolchains, databases as services), then verify the project builds and its tests or dev server run.",
+	"Write `.superset/config.json` with `setup` (what you just did, as commands that can rerun on a fresh checkout), `start` (the services a workspace needs on every boot) and, if the project serves anything, `ports`.",
+	"If a step needs a secret you do not have, stop and list exactly which variables are required and where they are read; do not invent values.",
+	"When everything runs, summarize what you installed, what the hooks do, and what secrets the environment needs, then stop.",
+].join(" ");

@@ -98,6 +98,7 @@ export function NewChatWidget({
 			"branches",
 			selectedTarget?.hostUrl ?? null,
 			selectedTarget?.projectId ?? null,
+			selectedEnvironment?.repositories[0]?.id ?? null,
 			"",
 		],
 		enabled: selectedTarget !== null && (!isCloudTarget || !!organizationId),
@@ -105,9 +106,11 @@ export function NewChatWidget({
 		queryFn: async () => {
 			if (!selectedTarget) return null;
 			if (selectedTarget.kind === "cloud") {
-				if (!organizationId) return null;
+				const repositoryId = selectedEnvironment?.repositories[0]?.id;
+				if (!organizationId || !repositoryId) return null;
 				return apiClient.cloudWorkspace.listBranches.query({
 					organizationId,
+					repositoryId,
 				});
 			}
 			return getHostServiceClientByUrl(

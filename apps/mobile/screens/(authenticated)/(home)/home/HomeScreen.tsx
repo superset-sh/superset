@@ -43,7 +43,7 @@ import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
 import { useAgentLiveActivity } from "./hooks/useAgentLiveActivity";
-import { useCloudRepoPrefix } from "./hooks/useCloudRepoPrefixes";
+import { useCloudRepoPrefixes } from "./hooks/useCloudRepoPrefixes";
 import { useFirstPaint } from "./hooks/useFirstPaint";
 import {
 	type TerminalsHost,
@@ -458,7 +458,7 @@ export function HomeScreen() {
 	// Projects are fully local: PR rows are matched by repo coordinates
 	// parsed from the PR URL (cloud repo UUIDs aren't known host-side).
 	// Cloud rows' projects come from the API instead.
-	const cloudRepoPrefix = useCloudRepoPrefix();
+	const cloudRepoPrefixes = useCloudRepoPrefixes();
 	const repoPrefixesByProject = useMemo(
 		() =>
 			new Map<string, string | null>([
@@ -510,7 +510,7 @@ export function HomeScreen() {
 			}
 			const { workspace, cloudStatus } = item;
 			const repoPrefix = cloudStatus
-				? cloudRepoPrefix
+				? (cloudRepoPrefixes.get(workspace.id) ?? null)
 				: workspace.projectId
 					? repoPrefixesByProject.get(workspace.projectId)
 					: undefined;
@@ -535,7 +535,7 @@ export function HomeScreen() {
 		},
 		[
 			pullRequestsByRepoBranch,
-			cloudRepoPrefix,
+			cloudRepoPrefixes,
 			repoPrefixesByProject,
 			diffStats,
 			cache,

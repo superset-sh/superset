@@ -304,6 +304,11 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} oczekuje"
 
+#. placeholder {0}: selected[0]?.fullName
+#. placeholder {1}: selected.length - 1
+msgid "{0} +{1}"
+msgstr "{0} +{1}"
+
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "Akcje {0}"
@@ -1248,6 +1253,9 @@ msgstr "Pull request zawsze dostaje własny worktree"
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "Przebudowana powierzchnia czatu do prowadzenia agentów: bogatsze wyjście narzędzi, płynniejsze sterowanie, szybsze wszystko."
 
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "Repozytorium nie jest połączone z tą organizacją lub repozytoria pochodzą z różnych instalacji GitHub"
+
 msgid "A run for this automation is already in progress."
 msgstr "Uruchomienie tej automatyzacji jest już w toku."
 
@@ -2088,6 +2096,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "Archiwizuj"
+
+msgid "Archive environment"
+msgstr "Archiwizuj środowisko"
 
 msgid "Archived"
 msgstr "Zarchiwizowane"
@@ -3646,6 +3657,9 @@ msgstr "Składalny układ formularza — działa z @superset/ui/form dla react-h
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "Obliczanie w Stripe — przy pierwszym wczytaniu nawet minuta"
 
+msgid "Config location"
+msgstr "Lokalizacja konfiguracji"
+
 msgid "Configure"
 msgstr "Skonfiguruj"
 
@@ -4230,6 +4244,9 @@ msgstr "Nie udało się odczytać konta Google. Spróbuj ponownie."
 
 msgid "Could not record cloud workspace"
 msgstr "Nie udało się zapisać obszaru roboczego w chmurze"
+
+msgid "Could not record environment"
+msgstr "Nie udało się zapisać środowiska"
 
 msgid "Could not rename the session"
 msgstr "Nie można zmienić nazwy sesji"
@@ -5541,6 +5558,9 @@ msgstr "Edytuj komentarz"
 msgid "Edit description"
 msgstr "Edytuj opis"
 
+msgid "Edit environment"
+msgstr "Edytuj środowisko"
+
 msgid "Edit name"
 msgstr "Edytuj nazwę"
 
@@ -5689,6 +5709,9 @@ msgstr "Środowisko"
 
 msgid "Environment created"
 msgstr "Utworzono środowisko"
+
+msgid "Environment saved"
+msgstr "Zapisano środowisko"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "Konfiguracja środowiska, niestabilne testy i hydraulika poświadczeń — nudne tryby awarii, które zabijały uruchomienia bez nadzoru w 2025 — zostają w większości rozwiązane inżyniersko, a nie modelowo."
@@ -8776,8 +8799,8 @@ msgstr "Monitoruj, steruj i odblokowuj swoich agentów z telefonu."
 msgid "Monitoring"
 msgstr "Monitoring"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "Monospace"
@@ -9530,8 +9553,14 @@ msgstr "Brak publicznych konfiguracji agentów. Ta ścieżka jest gotowa na przy
 msgid "No pull requests found."
 msgstr "Nie znaleziono pull requestów."
 
+msgid "No repositories connected."
+msgstr "Brak połączonych repozytoriów."
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Nie znaleziono repozytoriów. Upewnij się, że Twoja aplikacja GitHub ma do nich dostęp."
+
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "Brak repozytoriów. Połącz GitHub w Integracjach, a następnie odśwież."
 
 msgid "No results"
 msgstr "Brak wyników"
@@ -9697,6 +9726,9 @@ msgstr "niebrandowe"
 
 msgid "Non-brand clicks"
 msgstr "Kliknięcia niebrandowe"
+
+msgid "None"
+msgstr "Brak"
 
 msgid "none (session)"
 msgstr "brak (sesja)"
@@ -10426,6 +10458,9 @@ msgstr "Otwieranie TestFlight…"
 msgid "Opening worktree..."
 msgstr "Otwieranie worktree..."
 
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "Otwiera obszar roboczy w chmurze, w którym agent instaluje to, czego potrzebuje projekt, i zapisuje jego .superset/config.json"
+
 msgid "Operator"
 msgstr "Operator"
 
@@ -10846,6 +10881,9 @@ msgstr "Wybierz katalog nadrzędny"
 msgid "Pick a project location"
 msgstr "Wybierz lokalizację projektu"
 
+msgid "Pick a repository for this cloud workspace"
+msgstr "Wybierz repozytorium dla tego obszaru roboczego w chmurze"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Wybierz dźwięk albo dodaj własny. Obsługiwane formaty własnych plików: .mp3, .wav i .ogg."
 
@@ -10857,6 +10895,9 @@ msgstr "Wybierz obszar roboczy"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Wybierz ikonę i kolor albo prześlij własny obraz. Domyślnie używany jest awatar powiązanego właściciela repozytorium GitHub."
+
+msgid "Pick at least one repository for this workspace"
+msgstr "Wybierz co najmniej jedno repozytorium dla tego obszaru roboczego"
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 msgstr "Wybierz, jak {label} loguje się wewnątrz piaskownicy. Poświadczenie trafia do procesu agenta przy starcie i nie jest przechowywane w piaskownicy."
@@ -11669,6 +11710,9 @@ msgstr "Odśwież metryki"
 msgid "Refresh pull requests"
 msgstr "Odśwież pull requesty"
 
+msgid "Refresh repositories"
+msgstr "Odśwież repozytoria"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Odświeży się przy następnym uruchomieniu Claude Code."
 
@@ -11951,6 +11995,9 @@ msgstr "Repozytoria"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "Repozytoria dostępne przez instalację aplikacji GitHub."
+
+msgid "Repositories refreshed"
+msgstr "Odświeżono repozytoria"
 
 msgid "Repositories will be updated shortly."
 msgstr "Repozytoria zostaną wkrótce zaktualizowane."
@@ -12730,6 +12777,9 @@ msgstr "Szukaj pull requestów..."
 msgid "Search pull requests…"
 msgstr "Szukaj pull requestów…"
 
+msgid "Search repositories..."
+msgstr "Szukaj repozytoriów..."
+
 msgid "Search sessions"
 msgstr "Szukaj sesji"
 
@@ -12955,6 +13005,9 @@ msgstr "Wybierz lokalizację worktree projektu"
 msgid "Select range..."
 msgstr "Wybierz zakres..."
 
+msgid "Select repositories"
+msgstr "Wybierz repozytoria"
+
 msgid "Select repository"
 msgstr "Wybierz repozytorium"
 
@@ -13121,6 +13174,10 @@ msgstr "Ustaw uruchamianie"
 
 msgid "Set up"
 msgstr "Skonfiguruj"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "Skonfiguruj {0}"
 
 msgid "Set up project on {hostName}"
 msgstr "Skonfiguruj projekt na {hostName}"
@@ -13549,6 +13606,9 @@ msgstr "Umiejętności są dostarczane z wtyczką Superset i automatycznie aktua
 msgid "Skip"
 msgstr "Pomiń"
 
+msgid "Skip & save"
+msgstr "Pomiń i zapisz"
+
 msgid "Skip All"
 msgstr "Pomiń wszystkie"
 
@@ -13840,6 +13900,9 @@ msgstr "Uruchom sesję"
 
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "Uruchom obszar roboczy prosto z ticketu w Linear. Agent go podejmuje i wraca z PR-em."
+
+msgid "Start agent"
+msgstr "Uruchom agenta"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Uruchom agenta lub terminal, aby zacząć pracę w tym obszarze roboczym."
@@ -14622,6 +14685,9 @@ msgstr "Najlepszy agent się zmieni.<0/>Twój workflow nie musi."
 msgid "The Codex sign-in"
 msgstr "Logowanie Codex"
 
+msgid "The config repository must be one of the environment's repositories"
+msgstr "Repozytorium konfiguracji musi być jednym z repozytoriów środowiska"
+
 msgid "The connection timed out"
 msgstr "Przekroczono czas połączenia"
 
@@ -14812,6 +14878,9 @@ msgstr "Zdalna gałąź się rozjechała. Pobierz zmiany przed kontynuowaniem."
 
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Renderer uległ awarii podczas uruchamiania. Sprawdź logi, aby poznać szczegóły."
+
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
+msgstr "Repozytoria, które obszar roboczy w chmurze pobiera, oraz to, którego .superset/config.json stosuje. Pierwsze repozytorium to to, w którym otwiera się obszar roboczy."
 
 msgid "The repository folder itself is kept."
 msgstr "Sam folder repozytorium zostaje zachowany."

@@ -304,6 +304,11 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} đang chờ"
 
+#. placeholder {0}: selected[0]?.fullName
+#. placeholder {1}: selected.length - 1
+msgid "{0} +{1}"
+msgstr "{0} +{1}"
+
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "Hành động {0}"
@@ -1248,6 +1253,9 @@ msgstr "Pull request luôn có worktree riêng"
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "Giao diện chat được dựng lại để điều khiển agent: output tool phong phú hơn, lái mượt hơn, mọi thứ nhanh hơn."
 
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "Một repository chưa được kết nối với tổ chức này, hoặc các repository đến từ những cài đặt GitHub khác nhau"
+
 msgid "A run for this automation is already in progress."
 msgstr "Một lần chạy của tự động hóa này đang diễn ra."
 
@@ -2088,6 +2096,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "Lưu trữ"
+
+msgid "Archive environment"
+msgstr "Lưu trữ environment"
 
 msgid "Archived"
 msgstr "Đã lưu trữ"
@@ -3646,6 +3657,9 @@ msgstr "Bố cục form ghép được — dùng chung với @superset/ui/form c
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "Đang tính trong Stripe — có thể mất đến một phút ở lần tải đầu"
 
+msgid "Config location"
+msgstr "Vị trí cấu hình"
+
 msgid "Configure"
 msgstr "Cấu hình"
 
@@ -4230,6 +4244,9 @@ msgstr "Không đọc được tài khoản Google. Vui lòng thử lại."
 
 msgid "Could not record cloud workspace"
 msgstr "Không thể ghi nhận workspace trên cloud"
+
+msgid "Could not record environment"
+msgstr "Không thể lưu environment"
 
 msgid "Could not rename the session"
 msgstr "Không thể đổi tên phiên"
@@ -5541,6 +5558,9 @@ msgstr "Sửa bình luận"
 msgid "Edit description"
 msgstr "Sửa mô tả"
 
+msgid "Edit environment"
+msgstr "Chỉnh sửa environment"
+
 msgid "Edit name"
 msgstr "Sửa tên"
 
@@ -5689,6 +5709,9 @@ msgstr "Môi trường"
 
 msgid "Environment created"
 msgstr "Đã tạo environment"
+
+msgid "Environment saved"
+msgstr "Đã lưu environment"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "Thiết lập môi trường, test chập chờn và việc đấu nối thông tin đăng nhập, những kiểu hỏng buồn tẻ đã giết các lần chạy không giám sát năm 2025, phần lớn được xử lý bằng kỹ thuật chứ không phải bằng mô hình."
@@ -8776,8 +8799,8 @@ msgstr "Theo dõi, điều hướng và gỡ vướng cho agent ngay trên đi�
 msgid "Monitoring"
 msgstr "Giám sát"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "Monospace"
@@ -9530,8 +9553,14 @@ msgstr "Chưa có cấu hình agent công khai nào. Đường dẫn này đã s
 msgid "No pull requests found."
 msgstr "Không tìm thấy pull request nào."
 
+msgid "No repositories connected."
+msgstr "Chưa có repository nào được kết nối."
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Không tìm thấy repository nào. Hãy đảm bảo GitHub App của bạn có quyền truy cập repository."
+
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "Không có repository. Hãy kết nối GitHub trong Tích hợp rồi làm mới."
 
 msgid "No results"
 msgstr "Không có kết quả"
@@ -9697,6 +9726,9 @@ msgstr "không thương hiệu"
 
 msgid "Non-brand clicks"
 msgstr "Lượt nhấp không thương hiệu"
+
+msgid "None"
+msgstr "Không có"
 
 msgid "none (session)"
 msgstr "không có (phiên)"
@@ -10426,6 +10458,9 @@ msgstr "Đang mở TestFlight…"
 msgid "Opening worktree..."
 msgstr "Đang mở worktree..."
 
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "Mở một workspace cloud để agent cài đặt những gì dự án cần và ghi .superset/config.json của nó"
+
 msgid "Operator"
 msgstr "Người vận hành"
 
@@ -10846,6 +10881,9 @@ msgstr "Hãy chọn một thư mục cha"
 msgid "Pick a project location"
 msgstr "Hãy chọn vị trí dự án"
 
+msgid "Pick a repository for this cloud workspace"
+msgstr "Chọn một repository cho workspace cloud này"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Chọn một âm thanh hoặc thêm âm thanh riêng. Âm thanh riêng hỗ trợ .mp3, .wav và .ogg."
 
@@ -10857,6 +10895,9 @@ msgstr "Chọn một workspace"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Chọn biểu tượng và màu, hoặc tải ảnh riêng lên. Mặc định dùng ảnh đại diện của chủ sở hữu GitHub đã liên kết."
+
+msgid "Pick at least one repository for this workspace"
+msgstr "Chọn ít nhất một repository cho workspace này"
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 msgstr "Chọn cách {label} đăng nhập bên trong sandbox. Thông tin xác thực được chuyển cho tiến trình agent khi khởi chạy và không được lưu trong sandbox."
@@ -11669,6 +11710,9 @@ msgstr "Làm mới số liệu"
 msgid "Refresh pull requests"
 msgstr "Làm mới pull request"
 
+msgid "Refresh repositories"
+msgstr "Làm mới repository"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Làm mới khi Claude Code chạy lần tiếp theo."
 
@@ -11951,6 +11995,9 @@ msgstr "Repository"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "Các repository truy cập được qua bản cài đặt GitHub App."
+
+msgid "Repositories refreshed"
+msgstr "Đã làm mới repository"
 
 msgid "Repositories will be updated shortly."
 msgstr "Các repository sẽ được cập nhật trong giây lát."
@@ -12730,6 +12777,9 @@ msgstr "Tìm pull request..."
 msgid "Search pull requests…"
 msgstr "Tìm pull request…"
 
+msgid "Search repositories..."
+msgstr "Tìm repository..."
+
 msgid "Search sessions"
 msgstr "Tìm phiên"
 
@@ -12955,6 +13005,9 @@ msgstr "Chọn vị trí worktree của dự án"
 msgid "Select range..."
 msgstr "Chọn khoảng..."
 
+msgid "Select repositories"
+msgstr "Chọn repository"
+
 msgid "Select repository"
 msgstr "Chọn repository"
 
@@ -13121,6 +13174,10 @@ msgstr "Đặt lệnh chạy"
 
 msgid "Set up"
 msgstr "Thiết lập"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "Thiết lập {0}"
 
 msgid "Set up project on {hostName}"
 msgstr "Thiết lập dự án trên {hostName}"
@@ -13549,6 +13606,9 @@ msgstr "Skill đi kèm plugin Superset và được tự động cập nhật tr
 msgid "Skip"
 msgstr "Bỏ qua"
 
+msgid "Skip & save"
+msgstr "Bỏ qua & lưu"
+
 msgid "Skip All"
 msgstr "Bỏ qua tất cả"
 
@@ -13840,6 +13900,9 @@ msgstr "Bắt đầu một phiên"
 
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "Tạo workspace ngay từ một ticket Linear. Agent nhận việc và báo lại bằng một PR."
+
+msgid "Start agent"
+msgstr "Bắt đầu agent"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Hãy khởi động một agent hoặc terminal để bắt đầu làm việc trong workspace này."
@@ -14622,6 +14685,9 @@ msgstr "Agent tốt nhất sẽ thay đổi.<0/>Quy trình của bạn thì khô
 msgid "The Codex sign-in"
 msgstr "Lần đăng nhập Codex"
 
+msgid "The config repository must be one of the environment's repositories"
+msgstr "Repository cấu hình phải là một trong các repository của environment"
+
 msgid "The connection timed out"
 msgstr "Kết nối đã quá thời gian"
 
@@ -14812,6 +14878,9 @@ msgstr "Nhánh remote đã rẽ nhánh khác. Hãy pull trước khi tiếp tụ
 
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Renderer đã crash khi khởi động. Vui lòng xem log để biết chi tiết."
+
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
+msgstr "Các repository mà workspace cloud checkout, và .superset/config.json của repository nào được áp dụng. Repository đầu tiên là nơi workspace mở ra."
 
 msgid "The repository folder itself is kept."
 msgstr "Thư mục kho lưu trữ vẫn được giữ nguyên."

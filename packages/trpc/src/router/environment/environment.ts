@@ -2,19 +2,25 @@ import { db } from "@superset/db/client";
 import {
 	cloudWorkspaces,
 	environmentHooksSchema,
+	environmentRepositories,
+	environmentScopeValues,
 	environments,
+	githubRepositories,
 } from "@superset/db/schema";
 import {
 	SANDBOX_IMAGE_NAME,
 	SHARED_ENVIRONMENT_ORGANIZATION_ID,
 } from "@superset/shared/constants";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import {
 	buildSandboxClaim,
+	loadRepositories,
 	promoteSandboxToEnvironment,
+	RepositoryError,
+	workspaceRepositories,
 } from "../../lib/sandbox";
 import { jwtProcedure, userError } from "../../trpc";
 import { secretsRouter } from "./secrets";
@@ -65,6 +71,85 @@ function assertOwned(row: { organizationId: string }): void {
 	}
 }
 
+/** The repositories of many environments at once, primary first. */
+async function repositoriesByEnvironment(environmentIds: string[]) {
+	const rows = environmentIds.length
+		? await db
+				.select({
+					environmentId: environmentRepositories.environmentId,
+					id: githubRepositories.id,
+					fullName: githubRepositories.fullName,
+					owner: githubRepositories.owner,
+					name: githubRepositories.name,
+					defaultBranch: githubRepositories.defaultBranch,
+				})
+				.from(environmentRepositories)
+				.innerJoin(
+					githubRepositories,
+					eq(environmentRepositories.repositoryId, githubRepositories.id),
+				)
+				.where(inArray(environmentRepositories.environmentId, environmentIds))
+				.orderBy(asc(environmentRepositories.position))
+		: [];
+	const map = new Map<
+		string,
+		Array<Omit<(typeof rows)[number], "environmentId">>
+	>();
+	for (const { environmentId, ...repo } of rows) {
+		map.set(environmentId, [...(map.get(environmentId) ?? []), repo]);
+	}
+	return map;
+}
+
+async function setEnvironmentRepositories(args: {
+	environmentId: string;
+	organizationId: string;
+	repositoryIds: readonly string[];
+	hooksRepositoryId: string | null | undefined;
+}): Promise<void> {
+	let repositories: Awaited<ReturnType<typeof loadRepositories>>;
+	try {
+		repositories = await loadRepositories({
+			organizationId: args.organizationId,
+			repositoryIds: args.repositoryIds,
+		});
+	} catch (error) {
+		if (!(error instanceof RepositoryError)) throw error;
+		throw userError({
+			code: "BAD_REQUEST",
+			message: error.message,
+			i18nKey: "serverError.environment.repositoryNotConnected",
+		});
+	}
+	if (
+		args.hooksRepositoryId &&
+		!repositories.some((repo) => repo.id === args.hooksRepositoryId)
+	) {
+		throw userError({
+			code: "BAD_REQUEST",
+			message:
+				"The hooks repository must be one of the environment's repositories",
+			i18nKey: "serverError.environment.hooksRepositoryNotIncluded",
+		});
+	}
+	await db
+		.delete(environmentRepositories)
+		.where(eq(environmentRepositories.environmentId, args.environmentId));
+	if (repositories.length) {
+		await db.insert(environmentRepositories).values(
+			repositories.map((repo, position) => ({
+				environmentId: args.environmentId,
+				repositoryId: repo.id,
+				position,
+			})),
+		);
+	}
+	await db
+		.update(environments)
+		.set({ hooksRepositoryId: args.hooksRepositoryId ?? null })
+		.where(eq(environments.id, args.environmentId));
+}
+
 export const environmentRouter = {
 	secrets: secretsRouter,
 
@@ -73,7 +158,7 @@ export const environmentRouter = {
 		.query(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
-			return db
+			const rows = await db
 				.select()
 				.from(environments)
 				.where(
@@ -83,16 +168,35 @@ export const environmentRouter = {
 							SHARED_ENVIRONMENT_ORGANIZATION_ID,
 						]),
 						isNull(environments.archivedAt),
+						// A personal environment is its creator's alone.
+						or(
+							eq(environments.scope, "organization"),
+							eq(environments.createdByUserId, ctx.userId),
+						),
 					),
 				)
 				.orderBy(asc(environments.name));
+			const repos = await repositoriesByEnvironment(rows.map((row) => row.id));
+			return rows.map((row) => ({
+				...row,
+				repositories: repos.get(row.id) ?? [],
+			}));
 		}),
 
 	get: jwtProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
-			return loadEnvironment(input.id, ctx.organizationIds);
+			const row = await loadEnvironment(input.id, ctx.organizationIds);
+			if (row.scope === "personal" && row.createdByUserId !== ctx.userId) {
+				throw userError({
+					code: "NOT_FOUND",
+					message: "Environment not found",
+					i18nKey: "serverError.environment.environmentNotFound",
+				});
+			}
+			const repos = await repositoriesByEnvironment([row.id]);
+			return { ...row, repositories: repos.get(row.id) ?? [] };
 		}),
 
 	create: jwtProcedure
@@ -100,6 +204,11 @@ export const environmentRouter = {
 			z.object({
 				organizationId: z.string().uuid(),
 				name: z.string().min(1).max(100),
+				/** In order; the first is the primary, the one a workspace opens on. */
+				repositoryIds: z.array(z.string().uuid()).min(1).max(20),
+				/** Which repository's `.superset/config.json` the box acts on. */
+				hooksRepositoryId: z.string().uuid().nullable().optional(),
+				scope: z.enum(environmentScopeValues).default("organization"),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -113,8 +222,23 @@ export const environmentRouter = {
 					provider: "vercel",
 					sourceKind: "image",
 					sourceRef: SANDBOX_IMAGE_NAME,
+					scope: input.scope,
+					createdByUserId: ctx.userId,
 				})
 				.returning();
+			if (!row) {
+				throw userError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Could not record environment",
+					i18nKey: "serverError.environment.couldNotRecord",
+				});
+			}
+			await setEnvironmentRepositories({
+				environmentId: row.id,
+				organizationId: input.organizationId,
+				repositoryIds: input.repositoryIds,
+				hooksRepositoryId: input.hooksRepositoryId,
+			});
 			return row;
 		}),
 
@@ -146,6 +270,13 @@ export const environmentRouter = {
 				});
 			}
 
+			const source = await db.query.environments.findFirst({
+				where: eq(environments.id, workspace.environmentId),
+			});
+			const checkouts = await workspaceRepositories({
+				cloudWorkspaceId: workspace.id,
+				hooksRepositoryId: source?.hooksRepositoryId ?? null,
+			});
 			const environmentId = crypto.randomUUID();
 			const goldenName = `env-${environmentId.replaceAll("-", "").slice(0, 24)}`;
 			const { claim } = await buildSandboxClaim({ row: workspace });
@@ -164,8 +295,27 @@ export const environmentRouter = {
 					provider: workspace.provider,
 					sourceKind: "fork",
 					sourceRef: goldenName,
+					bundleSha: source?.bundleSha ?? null,
+					hooks: source?.hooks ?? null,
+					scope: source?.scope ?? "organization",
+					createdByUserId: ctx.userId,
 				})
 				.returning();
+			// The golden baked these checkouts; a fork must ask for the same.
+			await db.insert(environmentRepositories).values(
+				checkouts.map((entry, position) => ({
+					environmentId,
+					repositoryId: entry.repository.id,
+					position,
+				})),
+			);
+			await db
+				.update(environments)
+				.set({
+					hooksRepositoryId:
+						checkouts.find((entry) => entry.hooks)?.repository.id ?? null,
+				})
+				.where(eq(environments.id, environmentId));
 			return row;
 		}),
 
@@ -182,11 +332,31 @@ export const environmentRouter = {
 					.nullable()
 					.optional(),
 				hooks: environmentHooksSchema.nullable().optional(),
+				repositoryIds: z.array(z.string().uuid()).min(1).max(20).optional(),
+				hooksRepositoryId: z.string().uuid().nullable().optional(),
+				scope: z.enum(environmentScopeValues).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
-			assertOwned(await loadEnvironment(input.id, ctx.organizationIds));
+			const current = await loadEnvironment(input.id, ctx.organizationIds);
+			assertOwned(current);
+			if (input.repositoryIds) {
+				await setEnvironmentRepositories({
+					environmentId: input.id,
+					organizationId: current.organizationId,
+					repositoryIds: input.repositoryIds,
+					hooksRepositoryId:
+						input.hooksRepositoryId === undefined
+							? current.hooksRepositoryId
+							: input.hooksRepositoryId,
+				});
+			} else if (input.hooksRepositoryId !== undefined) {
+				await db
+					.update(environments)
+					.set({ hooksRepositoryId: input.hooksRepositoryId })
+					.where(eq(environments.id, input.id));
+			}
 			const [row] = await db
 				.update(environments)
 				.set({
@@ -196,6 +366,7 @@ export const environmentRouter = {
 						? { bundleSha: input.bundleSha }
 						: {}),
 					...(input.hooks !== undefined ? { hooks: input.hooks } : {}),
+					...(input.scope ? { scope: input.scope } : {}),
 				})
 				.where(eq(environments.id, input.id))
 				.returning();

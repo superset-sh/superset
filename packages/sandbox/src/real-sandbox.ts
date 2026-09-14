@@ -57,8 +57,13 @@ const identity: SandboxIdentity = {
 	SUPERSET_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001",
 	SUPERSET_SANDBOX_WORKSPACE_ID: workspaceId,
 	SUPERSET_SANDBOX_ORGANIZATION_ID: randomUUID(),
-	SUPERSET_SANDBOX_REPO_URL: "https://github.com/superset-sh/superset.git",
-	SUPERSET_SANDBOX_BRANCH: "main",
+	SUPERSET_SANDBOX_REPOSITORIES: JSON.stringify([
+		{
+			url: "https://github.com/superset-sh/superset.git",
+			branch: "main",
+			path: "superset",
+		},
+	]),
 	SUPERSET_SANDBOX_IMAGE_TAG: SANDBOX_IMAGE_NAME,
 	SUPERSET_SANDBOX_PROVIDER: "vercel",
 };
@@ -103,6 +108,7 @@ let failed = await probeBox({
 	hostSecret,
 	bundleSha: bundle.sha256,
 	branch: "main",
+	primaryPath: "superset",
 	gate: process.env.SANDBOX_GATE_ORIGIN
 		? { workspaceId, userId: randomUUID() }
 		: null,

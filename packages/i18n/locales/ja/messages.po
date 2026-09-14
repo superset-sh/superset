@@ -304,6 +304,11 @@ msgstr "{0}が{actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} 保留中"
 
+#. placeholder {0}: selected[0]?.fullName
+#. placeholder {1}: selected.length - 1
+msgid "{0} +{1}"
+msgstr "{0} +{1}"
+
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "{0}の操作"
@@ -1248,6 +1253,9 @@ msgstr "プルリクエストには常に専用のワークツリーが作られ
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "エージェントを操作するためのチャット画面を作り直します。ツール出力はより豊かに、誘導はよりスムーズに、すべてが速くなります。"
 
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "リポジトリがこの組織に接続されていないか、リポジトリが異なる GitHub インストールに属しています"
+
 msgid "A run for this automation is already in progress."
 msgstr "このオートメーションの実行はすでに進行中です。"
 
@@ -2088,6 +2096,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "アーカイブ"
+
+msgid "Archive environment"
+msgstr "環境をアーカイブ"
 
 msgid "Archived"
 msgstr "アーカイブ済み"
@@ -3646,6 +3657,9 @@ msgstr "組み合わせ可能なフォームレイアウト — react-hook-form�
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "Stripeで計算中 — 初回読み込みは最大1分かかります"
 
+msgid "Config location"
+msgstr "設定の場所"
+
 msgid "Configure"
 msgstr "設定"
 
@@ -4230,6 +4244,9 @@ msgstr "Googleアカウントを読み取れませんでした。もう一度お
 
 msgid "Could not record cloud workspace"
 msgstr "クラウドワークスペースを記録できませんでした"
+
+msgid "Could not record environment"
+msgstr "環境を保存できませんでした"
 
 msgid "Could not rename the session"
 msgstr "セッションの名前を変更できませんでした"
@@ -5541,6 +5558,9 @@ msgstr "コメントを編集"
 msgid "Edit description"
 msgstr "説明を編集"
 
+msgid "Edit environment"
+msgstr "環境を編集"
+
 msgid "Edit name"
 msgstr "名前を編集"
 
@@ -5689,6 +5709,9 @@ msgstr "環境"
 
 msgid "Environment created"
 msgstr "環境を作成しました"
+
+msgid "Environment saved"
+msgstr "環境を保存しました"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "環境構築、不安定なテスト、認証情報の受け渡し。2025年に無人実行を潰していた退屈な失敗要因は、モデルの進歩ではなくエンジニアリングでほぼ取り除かれます。"
@@ -8776,8 +8799,8 @@ msgstr "スマートフォンからエージェントを監視し、方向を示
 msgid "Monitoring"
 msgstr "モニタリング"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "等幅"
@@ -9530,8 +9553,14 @@ msgstr "公開されているエージェント設定はまだありません。
 msgid "No pull requests found."
 msgstr "プルリクエストが見つかりません。"
 
+msgid "No repositories connected."
+msgstr "接続されているリポジトリがありません。"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "リポジトリが見つかりません。GitHub Appにリポジトリへのアクセス権があるか確認してください。"
+
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "リポジトリがありません。「連携」で GitHub を接続してから更新してください。"
 
 msgid "No results"
 msgstr "結果がありません"
@@ -9697,6 +9726,9 @@ msgstr "非ブランド"
 
 msgid "Non-brand clicks"
 msgstr "非ブランドクリック"
+
+msgid "None"
+msgstr "なし"
 
 msgid "none (session)"
 msgstr "なし (セッション)"
@@ -10426,6 +10458,9 @@ msgstr "TestFlightを開いています…"
 msgid "Opening worktree..."
 msgstr "ワークツリーを開いています..."
 
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "クラウドワークスペースを開き、エージェントがプロジェクトに必要なものをインストールして .superset/config.json を書き込みます"
+
 msgid "Operator"
 msgstr "オペレーター"
 
@@ -10846,6 +10881,9 @@ msgstr "親ディレクトリを選択してください"
 msgid "Pick a project location"
 msgstr "プロジェクトの場所を選択してください"
 
+msgid "Pick a repository for this cloud workspace"
+msgstr "このクラウドワークスペースのリポジトリを選択してください"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "サウンドを選ぶか、独自の音声を追加してください。カスタム音声は.mp3、.wav、.ogg対応です。"
 
@@ -10857,6 +10895,9 @@ msgstr "ワークスペースを選択"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "アイコンと色を選ぶか、独自の画像をアップロードします。既定ではリンクされたGitHubオーナーのアバターになります。"
+
+msgid "Pick at least one repository for this workspace"
+msgstr "このワークスペースには少なくとも 1 つのリポジトリを選択してください"
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 msgstr "サンドボックス内で{label}がどうサインインするかを選びます。認証情報は起動時にエージェントのプロセスへ渡され、サンドボックスには保存されません。"
@@ -11669,6 +11710,9 @@ msgstr "メトリクスを更新"
 msgid "Refresh pull requests"
 msgstr "プルリクエストを更新"
 
+msgid "Refresh repositories"
+msgstr "リポジトリを更新"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "次に Claude Code を実行すると更新されます。"
 
@@ -11951,6 +11995,9 @@ msgstr "リポジトリ"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "GitHub Appのインストールからアクセスできるリポジトリです。"
+
+msgid "Repositories refreshed"
+msgstr "リポジトリを更新しました"
 
 msgid "Repositories will be updated shortly."
 msgstr "まもなくリポジトリが更新されます。"
@@ -12730,6 +12777,9 @@ msgstr "プルリクエストを検索..."
 msgid "Search pull requests…"
 msgstr "プルリクエストを検索…"
 
+msgid "Search repositories..."
+msgstr "リポジトリを検索..."
+
 msgid "Search sessions"
 msgstr "セッションを検索"
 
@@ -12955,6 +13005,9 @@ msgstr "プロジェクトのワークツリーの場所を選択"
 msgid "Select range..."
 msgstr "範囲を選択..."
 
+msgid "Select repositories"
+msgstr "リポジトリを選択"
+
 msgid "Select repository"
 msgstr "リポジトリを選択"
 
@@ -13121,6 +13174,10 @@ msgstr "実行を設定"
 
 msgid "Set up"
 msgstr "設定する"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "{0} をセットアップ"
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName}でプロジェクトをセットアップ"
@@ -13549,6 +13606,9 @@ msgstr "スキルはSupersetプラグインに同梱され、使用するすべ�
 msgid "Skip"
 msgstr "スキップ"
 
+msgid "Skip & save"
+msgstr "スキップして保存"
+
 msgid "Skip All"
 msgstr "すべてスキップ"
 
@@ -13840,6 +13900,9 @@ msgstr "セッションを開始"
 
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "Linearのチケットからそのままワークスペースを作れます。エージェントが引き受け、PRとして返してきます。"
+
+msgid "Start agent"
+msgstr "エージェントを開始"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "エージェントかターミナルを開始して、このワークスペースでの作業を始めましょう。"
@@ -14622,6 +14685,9 @@ msgstr "最良のエージェントは変わります。<0/>ワークフロー�
 msgid "The Codex sign-in"
 msgstr "Codexのサインイン"
 
+msgid "The config repository must be one of the environment's repositories"
+msgstr "設定リポジトリは環境のリポジトリのいずれかである必要があります"
+
 msgid "The connection timed out"
 msgstr "接続がタイムアウトしました"
 
@@ -14812,6 +14878,9 @@ msgstr "リモートブランチが分岐しています。続ける前にpull�
 
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "起動中にレンダラーがクラッシュしました。詳細はログを確認してください。"
+
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
+msgstr "クラウドワークスペースがチェックアウトするリポジトリと、どのリポジトリの .superset/config.json を適用するか。最初のリポジトリがワークスペースを開く場所になります。"
 
 msgid "The repository folder itself is kept."
 msgstr "リポジトリのフォルダ自体は残ります。"

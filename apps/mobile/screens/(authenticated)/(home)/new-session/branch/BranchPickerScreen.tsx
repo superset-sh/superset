@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { useCloudEnvironments } from "@/hooks/useCloudEnvironments";
 import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
@@ -79,6 +80,17 @@ export function BranchPickerScreen() {
 	const projectId = params.projectId || null;
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
+	// A cloud target's branches come from its environment's primary repository.
+	const environmentId = useNewSessionPreferencesStore(
+		(state) => state.environmentId,
+	);
+	const environmentsQuery = useCloudEnvironments();
+	const cloudEnvironments = environmentsQuery.data ?? [];
+	const cloudRepositoryId =
+		(
+			cloudEnvironments.find((row) => row.id === environmentId) ??
+			cloudEnvironments[0]
+		)?.repositories[0]?.id ?? null;
 
 	const trimmedQuery = query.trim();
 	const { data, isLoading } = useQuery({
@@ -87,9 +99,12 @@ export function BranchPickerScreen() {
 			"branches",
 			hostUrl,
 			projectId,
+			cloudRepositoryId,
 			trimmedQuery,
 		],
-		enabled: projectId !== null && (isCloud ? !!organizationId : !!hostUrl),
+		enabled:
+			projectId !== null &&
+			(isCloud ? !!organizationId && !!cloudRepositoryId : !!hostUrl),
 		placeholderData: (previous) => previous,
 		networkMode: "always" as const,
 		queryFn: async (): Promise<{
@@ -100,9 +115,10 @@ export function BranchPickerScreen() {
 			// A cloud target has no host holding a checkout; branches come from
 			// the GitHub remote through the API's App installation instead.
 			if (isCloud) {
-				if (!organizationId) return null;
+				if (!organizationId || !cloudRepositoryId) return null;
 				return apiClient.cloudWorkspace.listBranches.query({
 					organizationId,
+					repositoryId: cloudRepositoryId,
 					query: trimmedQuery || undefined,
 				});
 			}

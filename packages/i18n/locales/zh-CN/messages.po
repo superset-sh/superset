@@ -304,6 +304,11 @@ msgstr "{0}{actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1}待更新"
 
+#. placeholder {0}: selected[0]?.fullName
+#. placeholder {1}: selected.length - 1
+msgid "{0} +{1}"
+msgstr "{0} +{1}"
+
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "{0}的操作"
@@ -1248,6 +1253,9 @@ msgstr "拉取请求总是使用自己的 worktree"
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "重建的智能体驱动聊天界面：更丰富的工具输出、更顺手的引导，一切都更快。"
 
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "某个仓库未连接到此组织，或这些仓库来自不同的 GitHub 安装"
+
 msgid "A run for this automation is already in progress."
 msgstr "此自动化已有一次运行正在进行中。"
 
@@ -2088,6 +2096,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "归档"
+
+msgid "Archive environment"
+msgstr "归档环境"
 
 msgid "Archived"
 msgstr "已归档"
@@ -3646,6 +3657,9 @@ msgstr "可组合的表单布局——搭配@superset/ui/form用于react-hook-fo
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "正在Stripe中计算 — 首次加载最多需要一分钟"
 
+msgid "Config location"
+msgstr "配置位置"
+
 msgid "Configure"
 msgstr "配置"
 
@@ -4230,6 +4244,9 @@ msgstr "无法读取该Google账户。请重试。"
 
 msgid "Could not record cloud workspace"
 msgstr "无法记录云端工作区"
+
+msgid "Could not record environment"
+msgstr "无法保存环境"
 
 msgid "Could not rename the session"
 msgstr "无法重命名会话"
@@ -5541,6 +5558,9 @@ msgstr "编辑评论"
 msgid "Edit description"
 msgstr "编辑描述"
 
+msgid "Edit environment"
+msgstr "编辑环境"
+
 msgid "Edit name"
 msgstr "编辑名称"
 
@@ -5689,6 +5709,9 @@ msgstr "环境"
 
 msgid "Environment created"
 msgstr "环境已创建"
+
+msgid "Environment saved"
+msgstr "环境已保存"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "环境搭建、不稳定的测试、凭据串联，这些在2025年让无人值守运行折戟的无聊失败模式，大多是被工程手段消除的，而不是被模型消除的。"
@@ -8776,8 +8799,8 @@ msgstr "在手机上监控、引导并为智能体解阻。"
 msgid "Monitoring"
 msgstr "监控"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "等宽字体"
@@ -9530,8 +9553,14 @@ msgstr "暂无公开的智能体配置。此页面已为将来的智能体配置
 msgid "No pull requests found."
 msgstr "未找到拉取请求。"
 
+msgid "No repositories connected."
+msgstr "未连接任何仓库。"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "未找到仓库。请确认你的GitHub App有权访问仓库。"
+
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "没有仓库。请在“集成”中连接 GitHub，然后刷新。"
 
 msgid "No results"
 msgstr "无结果"
@@ -9697,6 +9726,9 @@ msgstr "非品牌"
 
 msgid "Non-brand clicks"
 msgstr "非品牌点击"
+
+msgid "None"
+msgstr "无"
 
 msgid "none (session)"
 msgstr "无（会话）"
@@ -10426,6 +10458,9 @@ msgstr "正在打开TestFlight…"
 msgid "Opening worktree..."
 msgstr "正在打开worktree..."
 
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "打开一个云端工作区，由代理安装项目所需内容并写入其 .superset/config.json"
+
 msgid "Operator"
 msgstr "操作员"
 
@@ -10846,6 +10881,9 @@ msgstr "请选择父目录"
 msgid "Pick a project location"
 msgstr "请选择项目位置"
 
+msgid "Pick a repository for this cloud workspace"
+msgstr "请为此云端工作区选择一个仓库"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "选择一个声音或添加自己的。自定义音频支持.mp3、.wav和.ogg。"
 
@@ -10857,6 +10895,9 @@ msgstr "选择一个工作区"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "选择图标和颜色，或上传自定义图片。默认使用关联的GitHub所有者头像。"
+
+msgid "Pick at least one repository for this workspace"
+msgstr "请为此工作区至少选择一个仓库"
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 msgstr "选择{label}在沙箱中的登录方式。凭据在启动时交给智能体进程，不会存放在沙箱里。"
@@ -11669,6 +11710,9 @@ msgstr "刷新指标"
 msgid "Refresh pull requests"
 msgstr "刷新拉取请求"
 
+msgid "Refresh repositories"
+msgstr "刷新仓库"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "下次运行 Claude Code 时刷新。"
 
@@ -11951,6 +11995,9 @@ msgstr "仓库"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "通过GitHub App安装可访问的仓库。"
+
+msgid "Repositories refreshed"
+msgstr "仓库已刷新"
 
 msgid "Repositories will be updated shortly."
 msgstr "仓库将很快更新。"
@@ -12730,6 +12777,9 @@ msgstr "搜索拉取请求..."
 msgid "Search pull requests…"
 msgstr "搜索拉取请求…"
 
+msgid "Search repositories..."
+msgstr "搜索仓库..."
+
 msgid "Search sessions"
 msgstr "搜索会话"
 
@@ -12955,6 +13005,9 @@ msgstr "选择项目worktree位置"
 msgid "Select range..."
 msgstr "选择范围..."
 
+msgid "Select repositories"
+msgstr "选择仓库"
+
 msgid "Select repository"
 msgstr "选择仓库"
 
@@ -13121,6 +13174,10 @@ msgstr "设置运行命令"
 
 msgid "Set up"
 msgstr "设置"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "设置 {0}"
 
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上设置项目"
@@ -13549,6 +13606,9 @@ msgstr "技能随Superset插件一起提供，并会在你使用的每个智能�
 msgid "Skip"
 msgstr "跳过"
 
+msgid "Skip & save"
+msgstr "跳过并保存"
+
 msgid "Skip All"
 msgstr "全部跳过"
 
@@ -13840,6 +13900,9 @@ msgstr "开始一个会话"
 
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "直接从Linear工单启动工作区。智能体接手，并以一个PR回报结果。"
+
+msgid "Start agent"
+msgstr "启动代理"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "启动一个智能体或终端，开始在此工作区中工作。"
@@ -14622,6 +14685,9 @@ msgstr "最好的智能体会变。<0/>你的工作流不该变。"
 msgid "The Codex sign-in"
 msgstr "Codex登录"
 
+msgid "The config repository must be one of the environment's repositories"
+msgstr "配置仓库必须是该环境的仓库之一"
+
 msgid "The connection timed out"
 msgstr "连接已超时"
 
@@ -14812,6 +14878,9 @@ msgstr "远程分支已分叉。请先拉取再继续。"
 
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "渲染进程在启动时崩溃。请查看日志了解详情。"
+
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
+msgstr "云端工作区检出的仓库，以及它使用哪个仓库的 .superset/config.json。第一个仓库是工作区打开时所在的仓库。"
 
 msgid "The repository folder itself is kept."
 msgstr "仓库文件夹本身会保留。"

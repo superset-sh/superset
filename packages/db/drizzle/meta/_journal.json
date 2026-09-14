@@ -820,6 +820,13 @@
       "when": 1789368255082,
       "tag": "0116_environment_bundle_sha_and_hooks",
       "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1789403012489,
+      "tag": "0117_environment_repositories_scope_and_workspace_repositories",
+      "breakpoints": true
     }
   ]
 }

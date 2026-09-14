@@ -40,6 +40,8 @@ export interface NewWorkspaceDraft {
 	checkout: WorkspaceCheckout;
 	/** Cloud only. Null until picked; submit falls back to the first. */
 	environmentId: string | null;
+	/** Cloud only, for an environment without repositories of its own: primary first. */
+	repositoryIds: string[];
 	prompt: string;
 	baseBranch: string | null;
 	baseBranchSource: BaseBranchSource | null;
@@ -77,6 +79,7 @@ function buildInitialDraft(): NewWorkspaceDraft {
 		hostId: null,
 		checkout: "worktree",
 		environmentId: null,
+		repositoryIds: [],
 		prompt: "",
 		baseBranch: null,
 		baseBranchSource: null,
@@ -143,6 +146,7 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 				hostId: state.hostId,
 				checkout: state.checkout,
 				environmentId: state.environmentId,
+				repositoryIds: state.repositoryIds,
 				resetKey: state.resetKey + 1,
 			})),
 	}),

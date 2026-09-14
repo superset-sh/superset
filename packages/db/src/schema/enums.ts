@@ -69,6 +69,10 @@ export const cloudWorkspaceStatusValues = [
 export const cloudWorkspaceStatusEnum = z.enum(cloudWorkspaceStatusValues);
 export type CloudWorkspaceStatus = z.infer<typeof cloudWorkspaceStatusEnum>;
 
+/** Who can see and use an environment: everyone in its organization, or its creator alone. */
+export const environmentScopeValues = ["organization", "personal"] as const;
+export type EnvironmentScope = (typeof environmentScopeValues)[number];
+
 export const environmentSourceKindValues = ["image", "fork"] as const;
 export const environmentSourceKindEnum = z.enum(environmentSourceKindValues);
 export type EnvironmentSourceKind = z.infer<typeof environmentSourceKindEnum>;

@@ -1,24 +1,32 @@
 import { db } from "@superset/db/client";
-import { cloudWorkspaces, environments } from "@superset/db/schema";
+import {
+	cloudWorkspaceRepositories,
+	cloudWorkspaces,
+	environments,
+	githubRepositories,
+} from "@superset/db/schema";
 import { isCloudAgentId } from "@superset/shared/cloud-agent-launch";
 import { SHARED_ENVIRONMENT_ORGANIZATION_ID } from "@superset/shared/constants";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { Client } from "@upstash/qstash";
-import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import { nudge } from "../../lib/realtime";
 import {
 	buildSandboxClaim,
-	cloudRepo,
 	DESKTOP_PORT,
 	deleteSandbox,
 	describeSandbox,
+	environmentRepositoryRows,
 	HOST_SERVICE_PORT,
 	listRemoteBranches,
+	loadRepositories,
 	mintSandboxGateAccess,
+	RepositoryError,
+	recordWorkspaceRepositories,
 	SandboxNotReadyError,
 	SandboxUnavailableError,
 	wakeSandbox,
@@ -67,28 +75,51 @@ export const cloudWorkspaceRouter = {
 				.orderBy(desc(cloudWorkspaces.createdAt));
 		}),
 
+	/** The repositories each listed workspace checked out, primary first. */
+	repositories: jwtProcedure
+		.input(z.object({ organizationId: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			await assertCloudAccess(ctx);
+			assertMember(ctx.organizationIds, input.organizationId);
+			return db
+				.select({
+					cloudWorkspaceId: cloudWorkspaceRepositories.cloudWorkspaceId,
+					repositoryId: githubRepositories.id,
+					fullName: githubRepositories.fullName,
+					branch: cloudWorkspaceRepositories.branch,
+					path: cloudWorkspaceRepositories.path,
+					position: cloudWorkspaceRepositories.position,
+				})
+				.from(cloudWorkspaceRepositories)
+				.innerJoin(
+					cloudWorkspaces,
+					eq(cloudWorkspaceRepositories.cloudWorkspaceId, cloudWorkspaces.id),
+				)
+				.innerJoin(
+					githubRepositories,
+					eq(cloudWorkspaceRepositories.repositoryId, githubRepositories.id),
+				)
+				.where(eq(cloudWorkspaces.organizationId, input.organizationId))
+				.orderBy(asc(cloudWorkspaceRepositories.position));
+		}),
+
 	listBranches: jwtProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
+				repositoryId: z.string().uuid(),
 				query: z.string().max(200).optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
-			const repo = await cloudRepo();
+			const [repo] = await loadRepositories({
+				organizationId: input.organizationId,
+				repositoryIds: [input.repositoryId],
+			}).catch(() => []);
 			if (!repo) return { defaultBranch: null, items: [] };
 			return listRemoteBranches(repo, input.query);
-		}),
-
-	/** The repository a cloud workspace clones, and its default branch. */
-	repo: jwtProcedure
-		.input(z.object({ organizationId: z.string().uuid() }))
-		.query(async ({ ctx, input }) => {
-			await assertCloudAccess(ctx);
-			assertMember(ctx.organizationIds, input.organizationId);
-			return cloudRepo();
 		}),
 
 	/**
@@ -113,6 +144,8 @@ export const cloudWorkspaceRouter = {
 				/** Omitted = the repo's default branch, resolved here — a client
 				 * whose branch query hadn't answered must not guess "main". */
 				branch: z.string().min(1).max(300).optional(),
+				/** Only for an environment without repositories of its own. */
+				repositoryIds: z.array(z.string().uuid()).min(1).max(20).optional(),
 				environmentId: z.string().uuid(),
 				/**
 				 * A built-in agent to launch on first boot with `prompt`. Absent
@@ -154,8 +187,33 @@ export const cloudWorkspaceRouter = {
 				});
 			}
 
-			const branch =
-				input.branch ?? (await cloudRepo())?.defaultBranch ?? "main";
+			// An environment with repositories fixes them; the shared image
+			// environment takes the caller's. Either way one installation.
+			let repositories = await environmentRepositoryRows(environment.id);
+			if (repositories.length === 0) {
+				if (!input.repositoryIds?.length) {
+					throw userError({
+						code: "BAD_REQUEST",
+						message: "Pick at least one repository for this workspace",
+						i18nKey: "serverError.cloudWorkspace.repositoryRequired",
+					});
+				}
+				try {
+					repositories = await loadRepositories({
+						organizationId: input.organizationId,
+						repositoryIds: input.repositoryIds,
+					});
+				} catch (error) {
+					if (!(error instanceof RepositoryError)) throw error;
+					throw userError({
+						code: "BAD_REQUEST",
+						message: error.message,
+						i18nKey: "serverError.cloudWorkspace.repositoryNotConnected",
+					});
+				}
+			}
+			const primary = repositories[0] as (typeof repositories)[number];
+			const branch = input.branch ?? primary.defaultBranch;
 
 			// The id is generated here rather than by the database so the sandbox
 			// name can be derived before the insert. A placeholder would briefly
@@ -184,6 +242,11 @@ export const cloudWorkspaceRouter = {
 					i18nKey: "serverError.cloudWorkspace.couldNotRecordCloudWorkspace",
 				});
 			}
+			await recordWorkspaceRepositories({
+				cloudWorkspaceId: row.id,
+				repositories,
+				primaryBranch: branch,
+			});
 
 			// Naming reads the prompt, and only when the user didn't type a name.
 			const job = {

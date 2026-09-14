@@ -304,6 +304,11 @@ msgstr "{0}{actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1}待更新"
 
+#. placeholder {0}: selected[0]?.fullName
+#. placeholder {1}: selected.length - 1
+msgid "{0} +{1}"
+msgstr "{0} +{1}"
+
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "{0}的操作"
@@ -1248,6 +1253,9 @@ msgstr "拉取請求總是使用自己的 worktree"
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "重建的代理程式驅動聊天介面：更豐富的工具輸出、更順手的引導，一切都更快。"
 
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "某個儲存庫未連結至此組織，或這些儲存庫來自不同的 GitHub 安裝"
+
 msgid "A run for this automation is already in progress."
 msgstr "此自動化已有一次執行正在進行中。"
 
@@ -2088,6 +2096,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "歸檔"
+
+msgid "Archive environment"
+msgstr "封存環境"
 
 msgid "Archived"
 msgstr "已歸檔"
@@ -3646,6 +3657,9 @@ msgstr "可組合的表單佈局——搭配@superset/ui/form用於react-hook-fo
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "正在Stripe中計算 — 首次載入最多需要一分鐘"
 
+msgid "Config location"
+msgstr "設定位置"
+
 msgid "Configure"
 msgstr "配置"
 
@@ -4230,6 +4244,9 @@ msgstr "無法讀取該Google帳戶。請重試。"
 
 msgid "Could not record cloud workspace"
 msgstr "無法記錄雲端工作區"
+
+msgid "Could not record environment"
+msgstr "無法儲存環境"
 
 msgid "Could not rename the session"
 msgstr "無法重新命名會話"
@@ -5541,6 +5558,9 @@ msgstr "編輯評論"
 msgid "Edit description"
 msgstr "編輯描述"
 
+msgid "Edit environment"
+msgstr "編輯環境"
+
 msgid "Edit name"
 msgstr "編輯名稱"
 
@@ -5689,6 +5709,9 @@ msgstr "環境"
 
 msgid "Environment created"
 msgstr "環境已建立"
+
+msgid "Environment saved"
+msgstr "環境已儲存"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "環境搭建、不穩定的測試、憑證串聯，這些在2025年讓無人值守執行折戟的無聊失敗模式，大多是被工程手段消除的，而不是被模型消除的。"
@@ -8776,8 +8799,8 @@ msgstr "在手機上監控、引導併為代理程式解阻。"
 msgid "Monitoring"
 msgstr "監控"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "等寬字型"
@@ -9530,8 +9553,14 @@ msgstr "暫無公開的代理程式配置。此頁面已為將來的代理程式
 msgid "No pull requests found."
 msgstr "未找到拉取請求。"
 
+msgid "No repositories connected."
+msgstr "尚未連結任何儲存庫。"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "未找到儲存庫。請確認你的GitHub App有權存取儲存庫。"
+
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "沒有儲存庫。請在「整合」中連結 GitHub，然後重新整理。"
 
 msgid "No results"
 msgstr "無結果"
@@ -9697,6 +9726,9 @@ msgstr "非品牌"
 
 msgid "Non-brand clicks"
 msgstr "非品牌點擊"
+
+msgid "None"
+msgstr "無"
 
 msgid "none (session)"
 msgstr "無（會話）"
@@ -10426,6 +10458,9 @@ msgstr "正在開啟TestFlight…"
 msgid "Opening worktree..."
 msgstr "正在開啟worktree..."
 
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "開啟雲端工作區，由代理安裝專案所需內容並寫入其 .superset/config.json"
+
 msgid "Operator"
 msgstr "操作員"
 
@@ -10846,6 +10881,9 @@ msgstr "請選擇父目錄"
 msgid "Pick a project location"
 msgstr "請選擇專案位置"
 
+msgid "Pick a repository for this cloud workspace"
+msgstr "請為此雲端工作區選擇一個儲存庫"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "選擇一個聲音或新增自己的。自訂音訊支援.mp3、.wav和.ogg。"
 
@@ -10857,6 +10895,9 @@ msgstr "選擇一個工作區"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "選擇圖示和顏色，或上傳自訂圖片。預設使用關聯的GitHub擁有者頭像。"
+
+msgid "Pick at least one repository for this workspace"
+msgstr "請為此工作區至少選擇一個儲存庫"
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 msgstr "選擇{label}在沙箱中的登入方式。憑證在啟動時交給代理程式的行程，不會存放在沙箱裡。"
@@ -11669,6 +11710,9 @@ msgstr "重新整理指標"
 msgid "Refresh pull requests"
 msgstr "重新整理拉取請求"
 
+msgid "Refresh repositories"
+msgstr "重新整理儲存庫"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "下次執行 Claude Code 時重新整理。"
 
@@ -11951,6 +11995,9 @@ msgstr "儲存庫"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "通過GitHub App安裝可存取的儲存庫。"
+
+msgid "Repositories refreshed"
+msgstr "儲存庫已重新整理"
 
 msgid "Repositories will be updated shortly."
 msgstr "儲存庫將很快更新。"
@@ -12730,6 +12777,9 @@ msgstr "搜尋拉取請求..."
 msgid "Search pull requests…"
 msgstr "搜尋拉取請求…"
 
+msgid "Search repositories..."
+msgstr "搜尋儲存庫..."
+
 msgid "Search sessions"
 msgstr "搜尋會話"
 
@@ -12955,6 +13005,9 @@ msgstr "選擇專案worktree位置"
 msgid "Select range..."
 msgstr "選擇範圍..."
 
+msgid "Select repositories"
+msgstr "選擇儲存庫"
+
 msgid "Select repository"
 msgstr "選擇儲存庫"
 
@@ -13121,6 +13174,10 @@ msgstr "設定執行命令"
 
 msgid "Set up"
 msgstr "設定"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "設定 {0}"
 
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上設定專案"
@@ -13549,6 +13606,9 @@ msgstr "技能隨Superset外掛一起提供，並會在你使用的每個代理�
 msgid "Skip"
 msgstr "跳過"
 
+msgid "Skip & save"
+msgstr "略過並儲存"
+
 msgid "Skip All"
 msgstr "全部跳過"
 
@@ -13840,6 +13900,9 @@ msgstr "開始一個會話"
 
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "直接從Linear工單啟動工作區。代理程式接手，並以一個PR回報結果。"
+
+msgid "Start agent"
+msgstr "啟動代理"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "啟動一個代理程式或終端，開始在此工作區中工作。"
@@ -14622,6 +14685,9 @@ msgstr "最好的代理程式會變。<0/>你的工作流不該變。"
 msgid "The Codex sign-in"
 msgstr "Codex登入"
 
+msgid "The config repository must be one of the environment's repositories"
+msgstr "設定儲存庫必須是該環境的儲存庫之一"
+
 msgid "The connection timed out"
 msgstr "連線已逾時"
 
@@ -14812,6 +14878,9 @@ msgstr "遠端分支已分叉。請先拉取再繼續。"
 
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "渲染處理程序在啟動時崩潰。請檢視日誌瞭解詳情。"
+
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
+msgstr "雲端工作區簽出的儲存庫，以及它套用哪個儲存庫的 .superset/config.json。第一個儲存庫是工作區開啟時所在的儲存庫。"
 
 msgid "The repository folder itself is kept."
 msgstr "儲存庫資料夾本身會保留。"

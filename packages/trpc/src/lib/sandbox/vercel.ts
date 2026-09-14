@@ -385,7 +385,7 @@ const INHERITED_IDENTITY = [
 	SANDBOX_PATHS.hostDb,
 	`${SANDBOX_PATHS.hostDb}-wal`,
 	`${SANDBOX_PATHS.hostDb}-shm`,
-	SANDBOX_PATHS.checkoutMarker,
+	SANDBOX_PATHS.checkouts,
 	`${SANDBOX_PATHS.state}/agent-launched`,
 	`${SANDBOX_PATHS.state}/db-branch`,
 	`${SANDBOX_PATHS.home}/.superset/host`,

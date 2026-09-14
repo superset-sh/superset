@@ -304,6 +304,11 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} ожидается"
 
+#. placeholder {0}: selected[0]?.fullName
+#. placeholder {1}: selected.length - 1
+msgid "{0} +{1}"
+msgstr "{0} +{1}"
+
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "Действия {0}"
@@ -1248,6 +1253,9 @@ msgstr "У pull request всегда есть собственный worktree"
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "Переделанная поверхность чата для управления агентами: богаче вывод инструментов, плавнее управление, всё быстрее."
 
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "Репозиторий не подключён к этой организации, либо репозитории относятся к разным установкам GitHub"
+
 msgid "A run for this automation is already in progress."
 msgstr "Запуск этой автоматизации уже выполняется."
 
@@ -2088,6 +2096,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "Архивировать"
+
+msgid "Archive environment"
+msgstr "Архивировать окружение"
 
 msgid "Archived"
 msgstr "Архив"
@@ -3646,6 +3657,9 @@ msgstr "Составная раскладка формы — сочетаетс�
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "Считается в Stripe — до минуты при первой загрузке"
 
+msgid "Config location"
+msgstr "Расположение конфигурации"
+
 msgid "Configure"
 msgstr "Настроить"
 
@@ -4230,6 +4244,9 @@ msgstr "Не удалось прочитать аккаунт Google. Попро
 
 msgid "Could not record cloud workspace"
 msgstr "Не удалось записать облачную рабочую область"
+
+msgid "Could not record environment"
+msgstr "Не удалось сохранить окружение"
 
 msgid "Could not rename the session"
 msgstr "Не удалось переименовать сессию"
@@ -5541,6 +5558,9 @@ msgstr "Изменить комментарий"
 msgid "Edit description"
 msgstr "Изменить описание"
 
+msgid "Edit environment"
+msgstr "Изменить окружение"
+
 msgid "Edit name"
 msgstr "Изменить имя"
 
@@ -5689,6 +5709,9 @@ msgstr "Окружение"
 
 msgid "Environment created"
 msgstr "Окружение создано"
+
+msgid "Environment saved"
+msgstr "Окружение сохранено"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "Настройка окружения, нестабильные тесты и возня с учётными данными — скучные режимы отказа, которые убивали автономные прогоны в 2025-м, — по большей части решены инженерно, а не моделью."
@@ -8776,8 +8799,8 @@ msgstr "Следите за агентами, направляйте их и р�
 msgid "Monitoring"
 msgstr "Мониторинг"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "Моноширинные"
@@ -9530,8 +9553,14 @@ msgstr "Публичных конфигураций агентов пока не
 msgid "No pull requests found."
 msgstr "Пул-реквесты не найдены."
 
+msgid "No repositories connected."
+msgstr "Нет подключённых репозиториев."
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Репозитории не найдены. Убедитесь, что у вашего GitHub App есть доступ к репозиториям."
+
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "Нет репозиториев. Подключите GitHub в разделе «Интеграции», затем обновите."
 
 msgid "No results"
 msgstr "Ничего не найдено"
@@ -9697,6 +9726,9 @@ msgstr "не бренд"
 
 msgid "Non-brand clicks"
 msgstr "Небрендовые клики"
+
+msgid "None"
+msgstr "Нет"
 
 msgid "none (session)"
 msgstr "нет (сессия)"
@@ -10426,6 +10458,9 @@ msgstr "Открываем TestFlight…"
 msgid "Opening worktree..."
 msgstr "Открытие worktree..."
 
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "Открывает облачную рабочую область, где агент устанавливает всё нужное проекту и записывает его .superset/config.json"
+
 msgid "Operator"
 msgstr "Оператор"
 
@@ -10846,6 +10881,9 @@ msgstr "Выберите родительскую папку"
 msgid "Pick a project location"
 msgstr "Выберите расположение проекта"
 
+msgid "Pick a repository for this cloud workspace"
+msgstr "Выберите репозиторий для этой облачной рабочей области"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Выберите звук или добавьте свой. Поддерживаются .mp3, .wav и .ogg."
 
@@ -10857,6 +10895,9 @@ msgstr "Выберите рабочую область"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Выберите иконку и цвет или загрузите своё изображение. По умолчанию используется аватар связанного владельца на GitHub."
+
+msgid "Pick at least one repository for this workspace"
+msgstr "Выберите хотя бы один репозиторий для этой рабочей области"
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 msgstr "Выберите, как {label} входит внутри песочницы. Учётные данные передаются процессу агента при запуске и в песочнице не хранятся."
@@ -11669,6 +11710,9 @@ msgstr "Обновить метрики"
 msgid "Refresh pull requests"
 msgstr "Обновить пул-реквесты"
 
+msgid "Refresh repositories"
+msgstr "Обновить репозитории"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Обновится при следующем запуске Claude Code."
 
@@ -11951,6 +11995,9 @@ msgstr "Репозитории"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "Репозитории, доступные через установку GitHub App."
+
+msgid "Repositories refreshed"
+msgstr "Репозитории обновлены"
 
 msgid "Repositories will be updated shortly."
 msgstr "Репозитории скоро обновятся."
@@ -12730,6 +12777,9 @@ msgstr "Поиск пул-реквестов..."
 msgid "Search pull requests…"
 msgstr "Поиск пул-реквестов…"
 
+msgid "Search repositories..."
+msgstr "Поиск репозиториев..."
+
 msgid "Search sessions"
 msgstr "Поиск сессий"
 
@@ -12955,6 +13005,9 @@ msgstr "Выберите расположение worktree проекта"
 msgid "Select range..."
 msgstr "Выберите диапазон..."
 
+msgid "Select repositories"
+msgstr "Выбрать репозитории"
+
 msgid "Select repository"
 msgstr "Выберите репозиторий"
 
@@ -13121,6 +13174,10 @@ msgstr "Задать запуск"
 
 msgid "Set up"
 msgstr "Настроить"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "Настроить {0}"
 
 msgid "Set up project on {hostName}"
 msgstr "Настроить проект на {hostName}"
@@ -13549,6 +13606,9 @@ msgstr "Навыки поставляются с плагином Superset и а
 msgid "Skip"
 msgstr "Пропустить"
 
+msgid "Skip & save"
+msgstr "Пропустить и сохранить"
+
 msgid "Skip All"
 msgstr "Пропустить всё"
 
@@ -13840,6 +13900,9 @@ msgstr "Запустить сессию"
 
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "Запускайте рабочую область прямо из тикета Linear. Агент берёт его в работу и отчитывается пул-реквестом."
+
+msgid "Start agent"
+msgstr "Запустить агента"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Запустите агента или терминал, чтобы начать работу в этой рабочей области."
@@ -14622,6 +14685,9 @@ msgstr "Лучший агент будет меняться.<0/>Ваш проц�
 msgid "The Codex sign-in"
 msgstr "Вход в Codex"
 
+msgid "The config repository must be one of the environment's repositories"
+msgstr "Репозиторий конфигурации должен быть одним из репозиториев окружения"
+
 msgid "The connection timed out"
 msgstr "Истекло время ожидания соединения"
 
@@ -14812,6 +14878,9 @@ msgstr "Удалённая ветка разошлась. Получите из�
 
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Рендерер аварийно завершился при запуске. Подробности — в логах."
+
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
+msgstr "Репозитории, которые извлекает облачная рабочая область, и чей .superset/config.json она применяет. Первый репозиторий — тот, в котором открывается рабочая область."
 
 msgid "The repository folder itself is kept."
 msgstr "Сама папка репозитория сохраняется."

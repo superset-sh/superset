@@ -124,7 +124,7 @@ host_env=(
 	"AUTH_TOKEN=sandbox" "SUPERSET_API_URL=${SUPERSET_API_URL}" "SUPERSET_HOST_RUN_MODE=sandbox"
 	"SUPERSET_SANDBOX_WORKSPACE_ID=${SUPERSET_SANDBOX_WORKSPACE_ID}"
 	"SUPERSET_SANDBOX_WORKSPACE_PATH=${SUPERSET_WORKSPACE_DIR}"
-	"SUPERSET_SANDBOX_BRANCH=${SUPERSET_SANDBOX_BRANCH}"
+	"SUPERSET_SANDBOX_REPOSITORIES=${SUPERSET_SANDBOX_REPOSITORIES}"
 	"SUPERSET_SANDBOX_IMAGE_TAG=${SUPERSET_SANDBOX_IMAGE_TAG}" "SUPERSET_SANDBOX_PROVIDER=${SUPERSET_SANDBOX_PROVIDER}"
 	"SUPERSET_RUN_DIR=${SUPERSET_RUN_DIR}" "SUPERSET_SANDBOX_BOOT_LOG=${SUPERSET_BOOT_LOG}"
 	"HOST_SERVICE_SECRET=${HOST_SERVICE_SECRET}"
@@ -182,27 +182,42 @@ start_hook() {
 	esac
 }
 
-checkout() {
-	local ws="$SUPERSET_WORKSPACE_DIR" want="$SUPERSET_SANDBOX_REPO_URL" branch="$SUPERSET_SANDBOX_BRANCH"
-	exec >> "${SUPERSET_LOG_DIR}/checkout.log" 2>&1
-	if [ -f "$SUPERSET_CHECKOUT_MARKER" ]; then stamp "checkout.skipped already done"; return 0; fi
+# One checkout per repository in SUPERSET_SANDBOX_REPOSITORIES, each at
+# <workspace>/<path> on its branch. A marker per path under the state
+# directory says it is done; a golden has the markers stripped so a fork
+# fetches its branch into the checkout it inherited.
+checkout_one() {
+	local url="$1" branch="$2" path="$3"
+	local ws="${SUPERSET_WORKSPACE_DIR}/${path}" marker="${SUPERSET_CHECKOUTS_DIR}/${path}"
+	if [ -f "$marker" ]; then stamp "checkout.skipped ${path} already done"; return 0; fi
 	local baked
 	baked="$(as_user git -C "$ws" remote get-url origin 2>/dev/null || true)"
-	if [ "$baked" = "$want" ] && [ -d "$ws/.git" ]; then
+	if [ "$baked" = "$url" ] && [ -d "$ws/.git" ]; then
 		if as_user git -C "$ws" fetch -q --depth 1 origin "$branch" && as_user git -C "$ws" checkout -q -B "$branch" FETCH_HEAD; then
-			touch "$SUPERSET_CHECKOUT_MARKER"; stamp "checkout.fetched ${branch}"; return 0
+			touch "$marker"; stamp "checkout.fetched ${path} ${branch}"; return 0
 		fi
 		# A clone a previous session interrupted leaves a repository that can
 		# fetch nothing; start over rather than fail every boot.
-		stamp "checkout.fetch.failed ${branch}; recloning"
+		stamp "checkout.fetch.failed ${path} ${branch}; recloning"
 	fi
 	# Empty the directory rather than replace it: a shell already sitting in
 	# it keeps a live cwd.
 	install -d -o "$SUPERSET_USER" -g "$SUPERSET_USER" "$ws"; find "$ws" -mindepth 1 -delete
-	if as_user git clone -q --depth 1 --single-branch --branch "$branch" "$want" "$ws" || as_user git clone -q --depth 1 "$want" "$ws"; then
-		touch "$SUPERSET_CHECKOUT_MARKER"; stamp "checkout.cloned ${want}"; return 0
+	if as_user git clone -q --depth 1 --single-branch --branch "$branch" "$url" "$ws" || as_user git clone -q --depth 1 "$url" "$ws"; then
+		touch "$marker"; stamp "checkout.cloned ${path} ${url}"; return 0
 	fi
-	stamp "checkout.clone.failed"; return 1
+	stamp "checkout.clone.failed ${path}"; return 1
+}
+checkout() {
+	exec >> "${SUPERSET_LOG_DIR}/checkout.log" 2>&1
+	install -d -o "$SUPERSET_USER" -g "$SUPERSET_USER" "$SUPERSET_WORKSPACE_DIR"
+	install -d "$SUPERSET_CHECKOUTS_DIR"
+	local failed=0 url branch path
+	while IFS=$'\t' read -r url branch path; do
+		[ -n "$path" ] || continue
+		checkout_one "$url" "$branch" "$path" || failed=1
+	done < <(printf '%s' "$SUPERSET_SANDBOX_REPOSITORIES" | jq -r '.[] | [.url, .branch, .path] | @tsv')
+	return "$failed"
 }
 (
 	stamp "checkout.start"

@@ -1,6 +1,5 @@
 export { mintSandboxGateAccess, sandboxHostSecretFor } from "./access";
 export { buildSandboxClaim } from "./claim";
-export { type CloudRepo, cloudRepo } from "./cloud-repo";
 export { deriveSandboxCredentials } from "./credentials";
 export {
 	listRemoteBranches,
@@ -8,6 +7,18 @@ export {
 	type RemoteBranchPage,
 } from "./list-branches";
 export { mergeHooks, readRepoHooks } from "./repo-hooks";
+export {
+	cloneUrl,
+	environmentRepositoryRows,
+	installationTokenFor,
+	loadRepositories,
+	RepositoryError,
+	type RepositoryRow,
+	recordWorkspaceRepositories,
+	toSandboxRepositories,
+	type WorkspaceRepository,
+	workspaceRepositories,
+} from "./repositories";
 export {
 	DESKTOP_PORT,
 	deleteSandbox,

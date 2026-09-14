@@ -8,12 +8,12 @@ import {
 	type EnvironmentHooks,
 	environmentHooksSchema,
 } from "@superset/db/schema";
-import type { CloudRepo } from "./cloud-repo";
+import type { RepositoryRow } from "./repositories";
 
 const READ_TIMEOUT_MS = 5_000;
 
 export async function readRepoHooks(args: {
-	repo: CloudRepo;
+	repo: Pick<RepositoryRow, "owner" | "name">;
 	branch: string;
 	token: string | null;
 }): Promise<EnvironmentHooks | null> {

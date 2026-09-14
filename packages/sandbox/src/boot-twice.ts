@@ -87,8 +87,13 @@ const identity = renderSandboxConf({
 	SUPERSET_API_URL: "https://api.example.invalid",
 	SUPERSET_SANDBOX_WORKSPACE_ID: randomUUID(),
 	SUPERSET_SANDBOX_ORGANIZATION_ID: randomUUID(),
-	SUPERSET_SANDBOX_REPO_URL: "https://github.com/superset-sh/superset",
-	SUPERSET_SANDBOX_BRANCH: "main",
+	SUPERSET_SANDBOX_REPOSITORIES: JSON.stringify([
+		{
+			url: "https://github.com/superset-sh/superset.git",
+			branch: "main",
+			path: "superset",
+		},
+	]),
 	SUPERSET_SANDBOX_IMAGE_TAG: IMAGE,
 	SUPERSET_SANDBOX_PROVIDER: "docker",
 });

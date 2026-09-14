@@ -12,15 +12,19 @@ import {
 import {
 	SANDBOX_CONTRACT_VERSION,
 	type SandboxIdentity,
+	type SandboxRepository,
 } from "@superset/shared/sandbox-contract";
 import { env } from "../../env";
 import { resolveAgentCredentialEnv } from "../../router/agent-credential";
 import { resolveEnvironment } from "../../router/environment/resolve-environment";
 import { sandboxHostSecretFor } from "./access";
-import { resolveCloneTarget } from "./clone-token";
-import { cloudRepo } from "./cloud-repo";
 import { deriveSandboxCredentials } from "./credentials";
 import { mergeHooks, readRepoHooks } from "./repo-hooks";
+import {
+	installationTokenFor,
+	toSandboxRepositories,
+	workspaceRepositories,
+} from "./repositories";
 import type { SandboxClaim, SandboxEnvironment } from "./vercel";
 
 type CloudWorkspaceRow = typeof cloudWorkspaces.$inferSelect;
@@ -36,22 +40,31 @@ export async function buildSandboxClaim(args: {
 }): Promise<{
 	claim: SandboxClaim;
 	environment: SandboxEnvironment;
-	repoUrl: string;
+	repositories: SandboxRepository[];
 }> {
-	const [environment, repo, userAgentEnv] = await Promise.all([
+	const [environment, userAgentEnv] = await Promise.all([
 		resolveEnvironment(args.row.environmentId, args.row.organizationId),
-		cloudRepo(),
 		args.row.createdByUserId
 			? resolveAgentCredentialEnv({ userId: args.row.createdByUserId })
 			: Promise.resolve({}),
 	]);
 	if (!environment) throw new Error("Environment not found");
-	if (!repo) throw new Error("No repository to clone");
-	const clone = await resolveCloneTarget(repo);
-	if (!clone) throw new Error("No repository to clone");
-	const repoHooks = args.withRepoHooks
-		? await readRepoHooks({ repo, branch: args.row.branch, token: clone.token })
-		: null;
+	const checkouts = await workspaceRepositories({
+		cloudWorkspaceId: args.row.id,
+		hooksRepositoryId: environment.hooksRepositoryId,
+	});
+	const token = await installationTokenFor(
+		checkouts.map((entry) => entry.repository),
+	);
+	const hooksCheckout = checkouts.find((entry) => entry.hooks) ?? checkouts[0];
+	const repoHooks =
+		args.withRepoHooks && hooksCheckout
+			? await readRepoHooks({
+					repo: hooksCheckout.repository,
+					branch: hooksCheckout.branch,
+					token,
+				})
+			: null;
 	const hooks = mergeHooks(repoHooks, environment.hooks);
 	// The box acts on start and ports; setup is the release's, and can be a
 	// whole script, which has no place in the identity file.
@@ -59,14 +72,14 @@ export async function buildSandboxClaim(args: {
 		environment.hooks?.start || environment.hooks?.ports
 			? { start: environment.hooks.start, ports: environment.hooks.ports }
 			: null;
+	const repositories = toSandboxRepositories(checkouts);
 
 	const identity: SandboxIdentity = {
 		SUPERSET_SANDBOX_CONTRACT: String(SANDBOX_CONTRACT_VERSION) as "1",
 		SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL,
 		SUPERSET_SANDBOX_WORKSPACE_ID: args.row.id,
 		SUPERSET_SANDBOX_ORGANIZATION_ID: args.row.organizationId,
-		SUPERSET_SANDBOX_REPO_URL: clone.cloneUrl,
-		SUPERSET_SANDBOX_BRANCH: args.row.branch,
+		SUPERSET_SANDBOX_REPOSITORIES: JSON.stringify(repositories),
 		SUPERSET_SANDBOX_IMAGE_TAG: environment.sourceRef,
 		SUPERSET_SANDBOX_PROVIDER: args.row.provider,
 		...(environment.bundleSha
@@ -85,7 +98,7 @@ export async function buildSandboxClaim(args: {
 	const { networkPolicy, managedEnv } = deriveSandboxCredentials({
 		environmentEnv: environment.envs,
 		userAgentEnv,
-		githubToken: clone.token,
+		githubToken: token,
 	});
 	return {
 		claim: {
@@ -99,6 +112,6 @@ export async function buildSandboxClaim(args: {
 			sourceKind: environment.sourceKind,
 			sourceRef: environment.sourceRef,
 		},
-		repoUrl: clone.cloneUrl,
+		repositories,
 	};
 }

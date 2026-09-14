@@ -18,6 +18,8 @@ export interface ProbeArgs {
 	/** The bundle the box should be on; from the row or the build. */
 	bundleSha?: string;
 	branch: string;
+	/** The primary repository's path under the workspace root. */
+	primaryPath: string;
 	/** True when the golden's setup installed the monorepo's dependencies. */
 	expectDependencies?: boolean;
 	/** Set when a brokered Anthropic rule is on the box's firewall. */
@@ -118,7 +120,7 @@ export async function probeBox(args: ProbeArgs): Promise<number> {
 	if (
 		!(await until(
 			"checkout on the branch",
-			`git -C ${SANDBOX_PATHS.workspace} rev-parse --abbrev-ref HEAD`,
+			`git -C ${SANDBOX_PATHS.workspace}/${args.primaryPath} rev-parse --abbrev-ref HEAD`,
 			new RegExp(`^${args.branch}$`, "m"),
 			300,
 		))
@@ -128,7 +130,7 @@ export async function probeBox(args: ProbeArgs): Promise<number> {
 	if (args.expectDependencies) {
 		await until(
 			"dependencies survive the fork",
-			`test -d ${SANDBOX_PATHS.workspace}/node_modules && echo ok`,
+			`test -d ${SANDBOX_PATHS.workspace}/${args.primaryPath}/node_modules && echo ok`,
 			/ok/,
 			10,
 		);

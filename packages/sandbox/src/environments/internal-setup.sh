@@ -1,7 +1,7 @@
 #!/bin/bash
 # The internal environment's setup hook: what a Superset engineer's box has
 # beyond the image. Runs once as the sandbox user, with sudo, in the golden
-# after the boot runner has checked the monorepo out at /workspace; the
+# after the boot runner has checked the monorepo out under /workspace; the
 # environment row stores it as its `setup` override, and a fork inherits the
 # result. Its `start` counterpart is superset-dev-stack, written below.
 set -uo pipefail
@@ -13,7 +13,9 @@ log() { printf '[internal-setup] %s\n' "$1"; }
 ME="$(id -un)"
 CONFIG_REPO="${SUPERSET_INTERNAL_CONFIG_REPO:-https://github.com/saddlepaddle/config.git}"
 CONFIG_DIR="$HOME/code/config"
-WORKSPACE="${SUPERSET_WORKSPACE_PATH:-/workspace}"
+# The release runs this in the primary checkout; the box's start hook runs
+# there too, so the dev-stack scripts below take the checkout as their cwd.
+WORKSPACE="$(pwd)"
 
 export DEBIAN_FRONTEND=noninteractive
 sudo -E apt-get update -qq
@@ -31,7 +33,7 @@ sudo npm install -g neonctl@2 >/dev/null 2>&1 && log "neonctl $(neonctl --versio
 sudo tee /usr/local/bin/superset-materialize-env >/dev/null <<'MATERIALIZE'
 #!/usr/bin/env bash
 set -u
-out="${1:-/workspace/.env}"
+out="${1:-$PWD/.env}"
 [ -f "$out" ] && exit 0
 [ -n "${DATABASE_URL:-}" ] || exit 0
 tmp="$(mktemp)"
@@ -68,7 +70,7 @@ sudo chmod 755 /usr/local/bin/superset-materialize-env
 sudo tee /usr/local/bin/superset-workspace-db >/dev/null <<'WORKSPACEDB'
 #!/usr/bin/env bash
 set -u
-ENV_FILE="${1:-/workspace/.env}"
+ENV_FILE="${1:-$PWD/.env}"
 STAMP="/var/lib/superset/db-branch"
 [ -f "$ENV_FILE" ] || exit 0
 [ -f "$STAMP" ] && exit 0
@@ -95,7 +97,7 @@ grep -vE '^(DATABASE_URL|DATABASE_URL_UNPOOLED)=' "$ENV_FILE" > "$tmp"
 printf "DATABASE_URL='%s'\nDATABASE_URL_UNPOOLED='%s'\n" "$pooled" "$direct" >> "$tmp"
 install -m 600 "$tmp" "$ENV_FILE"; rm -f "$tmp"
 echo "workspace-db: branch $name ($branch)"
-( cd /workspace && set -a && . "$ENV_FILE" && set +a && NODE_ENV=development bun run db:seed-dev ) || { echo "workspace-db: db:seed-dev failed"; exit 1; }
+( cd "$(dirname "$ENV_FILE")" && set -a && . "$ENV_FILE" && set +a && NODE_ENV=development bun run db:seed-dev ) || { echo "workspace-db: db:seed-dev failed"; exit 1; }
 printf '%s %s\n' "$name" "$branch" > "$STAMP"
 WORKSPACEDB
 sudo chmod 755 /usr/local/bin/superset-workspace-db
@@ -106,14 +108,16 @@ sudo chmod 755 /usr/local/bin/superset-workspace-db
 # (`tmux attach -t superset`).
 sudo tee /usr/local/bin/superset-dev-stack >/dev/null <<'DEVSTACK'
 #!/usr/bin/env bash
-superset-materialize-env /workspace/.env
-superset-workspace-db /workspace/.env > /var/log/superset/workspace-db.log 2>&1
-if [ -f /workspace/.env ] && command -v tmux >/dev/null; then
+# Runs in the checkout: the box's start hook has the hooks repository as cwd.
+ws="$PWD"
+superset-materialize-env "$ws/.env"
+superset-workspace-db "$ws/.env" > /var/log/superset/workspace-db.log 2>&1
+if [ -f "$ws/.env" ] && command -v tmux >/dev/null; then
   tmux has-session -t superset 2>/dev/null || {
-    tmux new-session -d -s superset -n stack -c /workspace \
-      'export NODE_ENV=development; set -a; . /workspace/.env; set +a; bunx turbo run dev --filter=@superset/api --filter=@superset/web --filter=// 2>&1 | tee /var/log/superset/dev-stack.log'
-    tmux new-window -t superset -n desktop -c /workspace/apps/desktop \
-      "export DISPLAY=${DISPLAY:-:1} NODE_ENV=development; set -a; . /workspace/.env; set +a; bun run dev 2>&1 | tee /var/log/superset/desktop-dev.log"
+    tmux new-session -d -s superset -n stack -c "$ws" \
+      "export NODE_ENV=development; set -a; . '$ws/.env'; set +a; bunx turbo run dev --filter=@superset/api --filter=@superset/web --filter=// 2>&1 | tee /var/log/superset/dev-stack.log"
+    tmux new-window -t superset -n desktop -c "$ws/apps/desktop" \
+      "export DISPLAY=${DISPLAY:-:1} NODE_ENV=development; set -a; . '$ws/.env'; set +a; bun run dev 2>&1 | tee /var/log/superset/desktop-dev.log"
   }
 fi
 DEVSTACK

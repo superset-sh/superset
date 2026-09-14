@@ -304,6 +304,11 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "čeká {0} → {1}"
 
+#. placeholder {0}: selected[0]?.fullName
+#. placeholder {1}: selected.length - 1
+msgid "{0} +{1}"
+msgstr "{0} +{1}"
+
 #. placeholder {0}: skill.name
 msgid "{0} actions"
 msgstr "Akce {0}"
@@ -1248,6 +1253,9 @@ msgstr "Pull request má vždy vlastní worktree"
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "Přestavěné chatovací rozhraní pro řízení agentů: bohatší výstup nástrojů, plynulejší usměrňování, všechno rychlejší."
 
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "Repozitář není připojen k této organizaci, nebo repozitáře pocházejí z různých instalací GitHubu"
+
 msgid "A run for this automation is already in progress."
 msgstr "Běh této automatizace už probíhá."
 
@@ -2088,6 +2096,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "Archivovat"
+
+msgid "Archive environment"
+msgstr "Archivovat prostředí"
 
 msgid "Archived"
 msgstr "Archivované"
@@ -3646,6 +3657,9 @@ msgstr "Skládatelné rozvržení formuláře — funguje s @superset/ui/form pr
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "Počítá se ve Stripe — při prvním načtení až minutu"
 
+msgid "Config location"
+msgstr "Umístění konfigurace"
+
 msgid "Configure"
 msgstr "Nastavit"
 
@@ -4230,6 +4244,9 @@ msgstr "Nepodařilo se přečíst účet Google. Zkuste to prosím znovu."
 
 msgid "Could not record cloud workspace"
 msgstr "Nepodařilo se zaznamenat cloudový pracovní prostor"
+
+msgid "Could not record environment"
+msgstr "Prostředí se nepodařilo uložit"
 
 msgid "Could not rename the session"
 msgstr "Relaci se nepodařilo přejmenovat"
@@ -5541,6 +5558,9 @@ msgstr "Upravit komentář"
 msgid "Edit description"
 msgstr "Upravit popis"
 
+msgid "Edit environment"
+msgstr "Upravit prostředí"
+
 msgid "Edit name"
 msgstr "Upravit název"
 
@@ -5689,6 +5709,9 @@ msgstr "Prostředí"
 
 msgid "Environment created"
 msgstr "Prostředí vytvořeno"
+
+msgid "Environment saved"
+msgstr "Prostředí uloženo"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "Příprava prostředí, nestabilní testy a rozvody přihlašovacích údajů — nudné příčiny selhání, které v roce 2025 zabíjely běhy bez dozoru — se většinou vyřeší inženýrsky, ne modelem."
@@ -8776,8 +8799,8 @@ msgstr "Sledujte, usměrňujte a odblokujte své agenty z telefonu."
 msgid "Monitoring"
 msgstr "Monitoring"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "Neproporcionální"
@@ -9530,8 +9553,14 @@ msgstr "Zatím žádné veřejné konfigurace agentů. Tato adresa je připraven
 msgid "No pull requests found."
 msgstr "Nenalezeny žádné pull requesty."
 
+msgid "No repositories connected."
+msgstr "Žádné připojené repozitáře."
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Nenalezeny žádné repozitáře. Ověřte, že vaše GitHub App má k repozitářům přístup."
+
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "Žádné repozitáře. Připojte GitHub v Integracích a poté obnovte."
 
 msgid "No results"
 msgstr "Žádné výsledky"
@@ -9697,6 +9726,9 @@ msgstr "mimo značku"
 
 msgid "Non-brand clicks"
 msgstr "Kliknutí mimo značku"
+
+msgid "None"
+msgstr "Žádný"
 
 msgid "none (session)"
 msgstr "žádný (relace)"
@@ -10426,6 +10458,9 @@ msgstr "Otevírám TestFlight…"
 msgid "Opening worktree..."
 msgstr "Otevírám worktree..."
 
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "Otevře cloudový pracovní prostor, kde agent nainstaluje vše, co projekt potřebuje, a zapíše jeho .superset/config.json"
+
 msgid "Operator"
 msgstr "Operátor"
 
@@ -10846,6 +10881,9 @@ msgstr "Vyberte nadřazený adresář"
 msgid "Pick a project location"
 msgstr "Vyberte umístění projektu"
 
+msgid "Pick a repository for this cloud workspace"
+msgstr "Vyberte repozitář pro tento cloudový pracovní prostor"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Vyberte zvuk nebo přidejte vlastní. Vlastní zvuk podporuje .mp3, .wav a .ogg."
 
@@ -10857,6 +10895,9 @@ msgstr "Vyberte pracovní prostor"
 
 msgid "Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 msgstr "Vyberte ikonu a barvu nebo nahrajte vlastní obrázek. Ve výchozím stavu se použije avatar propojeného vlastníka na GitHubu."
+
+msgid "Pick at least one repository for this workspace"
+msgstr "Vyberte alespoň jeden repozitář pro tento pracovní prostor"
 
 msgid "Pick how {label} signs in inside a sandbox. The credential is handed to the agent process when it launches and is not stored in the sandbox."
 msgstr "Vyberte, jak se {label} přihlašuje uvnitř sandboxu. Přihlašovací údaj se předá procesu agenta při spuštění a v sandboxu se neukládá."
@@ -11669,6 +11710,9 @@ msgstr "Obnovit metriky"
 msgid "Refresh pull requests"
 msgstr "Obnovit pull requesty"
 
+msgid "Refresh repositories"
+msgstr "Obnovit repozitáře"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Obnoví se při příštím spuštění Claude Code."
 
@@ -11951,6 +11995,9 @@ msgstr "Repozitáře"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "Repozitáře dostupné přes instalaci GitHub App."
+
+msgid "Repositories refreshed"
+msgstr "Repozitáře obnoveny"
 
 msgid "Repositories will be updated shortly."
 msgstr "Repozitáře se za chvíli aktualizují."
@@ -12730,6 +12777,9 @@ msgstr "Hledat pull requesty..."
 msgid "Search pull requests…"
 msgstr "Hledat pull requesty…"
 
+msgid "Search repositories..."
+msgstr "Hledat repozitáře..."
+
 msgid "Search sessions"
 msgstr "Hledat relace"
 
@@ -12955,6 +13005,9 @@ msgstr "Vyberte umístění worktree projektu"
 msgid "Select range..."
 msgstr "Vyberte rozsah..."
 
+msgid "Select repositories"
+msgstr "Vybrat repozitáře"
+
 msgid "Select repository"
 msgstr "Vyberte repozitář"
 
@@ -13121,6 +13174,10 @@ msgstr "Nastavit spuštění"
 
 msgid "Set up"
 msgstr "Nastavit"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "Nastavit {0}"
 
 msgid "Set up project on {hostName}"
 msgstr "Nastavit projekt na {hostName}"
@@ -13549,6 +13606,9 @@ msgstr "Skills se dodávají s pluginem Superset a v každém agentovi, kterého
 msgid "Skip"
 msgstr "Přeskočit"
 
+msgid "Skip & save"
+msgstr "Přeskočit a uložit"
+
 msgid "Skip All"
 msgstr "Přeskočit vše"
 
@@ -13840,6 +13900,9 @@ msgstr "Spustit relaci"
 
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "Založte pracovní prostor rovnou z ticketu v Linearu. Agent ho převezme a ohlásí se s PR."
+
+msgid "Start agent"
+msgstr "Spustit agenta"
 
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Spusťte agenta nebo terminál a začněte v tomto pracovním prostoru pracovat."
@@ -14622,6 +14685,9 @@ msgstr "Nejlepší agent se změní.<0/>Vaše workflow ne."
 msgid "The Codex sign-in"
 msgstr "Přihlášení do Codexu"
 
+msgid "The config repository must be one of the environment's repositories"
+msgstr "Konfigurační repozitář musí být jedním z repozitářů prostředí"
+
 msgid "The connection timed out"
 msgstr "Vypršel časový limit spojení"
 
@@ -14812,6 +14878,9 @@ msgstr "Vzdálená větev se rozešla. Před pokračováním udělejte pull."
 
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Renderer spadl při startu. Podrobnosti najdete v logu."
+
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
+msgstr "Repozitáře, které cloudový pracovní prostor stáhne, a čí .superset/config.json použije. První repozitář je ten, ve kterém se pracovní prostor otevře."
 
 msgid "The repository folder itself is kept."
 msgstr "Samotná složka repozitáře zůstane zachována."

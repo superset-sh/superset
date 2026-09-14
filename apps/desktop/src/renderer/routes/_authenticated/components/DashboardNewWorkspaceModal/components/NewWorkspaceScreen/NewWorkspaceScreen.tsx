@@ -79,6 +79,7 @@ import { LinkedPRPill } from "../DashboardNewWorkspaceForm/PromptGroup/component
 import { PRLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand";
 import { ProjectPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/ProjectPickerPill";
 import { PromptHistoryCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/PromptHistoryCommand";
+import { RepositoryPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/RepositoryPickerPill";
 import { useBranchPickerController } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useBranchPickerController";
 import { useLinkedContext } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useLinkedContext";
 import { useSubmitWorkspace } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useSubmitWorkspace";
@@ -161,6 +162,36 @@ export function NewWorkspaceScreen({
 	const selectedEnvironment =
 		environmentOptions.find((row) => row.id === draft.environmentId) ??
 		environmentOptions[0];
+	// An environment that fixes no repositories takes them from the form.
+	const environmentPicksRepositories =
+		draft.hostId === CLOUD_HOST_ID &&
+		!!selectedEnvironment &&
+		selectedEnvironment.repositories.length === 0;
+	const githubRepositoriesQuery =
+		cloudTrpc.integration.github.listRepositories.useQuery(
+			{ organizationId: activeOrganizationId ?? "" },
+			{ enabled: environmentPicksRepositories && !!activeOrganizationId },
+		);
+	const githubRepositories = githubRepositoriesQuery.data ?? [];
+	const cloudRepository = useMemo(() => {
+		if (draft.hostId !== CLOUD_HOST_ID) return null;
+		const primary = environmentPicksRepositories
+			? githubRepositories.find((repo) => repo.id === draft.repositoryIds[0])
+			: selectedEnvironment?.repositories[0];
+		return primary
+			? {
+					owner: primary.owner,
+					name: primary.name,
+					defaultBranch: primary.defaultBranch,
+				}
+			: null;
+	}, [
+		draft.hostId,
+		draft.repositoryIds,
+		environmentPicksRepositories,
+		githubRepositories,
+		selectedEnvironment,
+	]);
 	const setLastProjectId = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.setLastProjectId,
 	);
@@ -494,6 +525,7 @@ export function NewWorkspaceScreen({
 	const { pickerProps } = useBranchPickerController({
 		projectId,
 		hostId: draft.hostId,
+		cloudRepository,
 		baseBranch: draft.baseBranch,
 		typedWorkspaceName: draft.workspaceName,
 		onBaseBranchChange: (branch, source) => {
@@ -1017,8 +1049,16 @@ export function NewWorkspaceScreen({
 									selectedEnvironment={selectedEnvironment}
 									environments={environmentOptions}
 									onSelectEnvironment={(next) =>
-										updateDraft({ environmentId: next })
+										updateDraft({ environmentId: next, repositoryIds: [] })
 									}
+								/>
+							)}
+							{environmentPicksRepositories && (
+								<RepositoryPickerPill
+									selectedIds={draft.repositoryIds}
+									repositories={githubRepositories}
+									isLoading={githubRepositoriesQuery.isLoading}
+									onChange={(repositoryIds) => updateDraft({ repositoryIds })}
 								/>
 							)}
 							{draft.linkedPR ? (

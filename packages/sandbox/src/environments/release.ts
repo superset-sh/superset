@@ -54,6 +54,8 @@ const ORGANIZATION_ID = process.env.SUPERSET_INTERNAL_ORGANIZATION_ID;
 const ENV_FILE = process.env.SUPERSET_INTERNAL_ENV_FILE;
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 const REPO_URL = "https://github.com/superset-sh/superset.git";
+const REPO_PATH = "superset";
+const REPO_FULL_NAME = "superset-sh/superset";
 const BRANCH = "main";
 
 const started = Date.now();
@@ -150,8 +152,9 @@ function identityFor(workspaceId: string, sourceRef: string): SandboxIdentity {
 		SUPERSET_API_URL: API_URL,
 		SUPERSET_SANDBOX_WORKSPACE_ID: workspaceId,
 		SUPERSET_SANDBOX_ORGANIZATION_ID: ORGANIZATION_ID as string,
-		SUPERSET_SANDBOX_REPO_URL: REPO_URL,
-		SUPERSET_SANDBOX_BRANCH: BRANCH,
+		SUPERSET_SANDBOX_REPOSITORIES: JSON.stringify([
+			{ url: REPO_URL, branch: BRANCH, path: REPO_PATH, hooks: true },
+		]),
 		SUPERSET_SANDBOX_IMAGE_TAG: sourceRef,
 		SUPERSET_SANDBOX_PROVIDER: "vercel",
 		SUPERSET_SANDBOX_HOOKS: JSON.stringify(hooks),
@@ -246,7 +249,7 @@ log(
 );
 const setup = await runLong(
 	goldenBox,
-	`cd ${SANDBOX_PATHS.workspace} && ${hooks.setup.join(" && ")}`,
+	`cd ${SANDBOX_PATHS.workspace}/${REPO_PATH} && ${hooks.setup.join(" && ")}`,
 );
 for (const line of setup.logs
 	.split("\n")
@@ -258,17 +261,17 @@ if (setup.code !== 0)
 const checks: Array<[label: string, command: string, expect: RegExp]> = [
 	[
 		"repo",
-		`git -C ${SANDBOX_PATHS.workspace} remote get-url origin`,
+		`git -C ${SANDBOX_PATHS.workspace}/${REPO_PATH} remote get-url origin`,
 		/superset-sh\/superset/,
 	],
 	[
 		"dependencies",
-		`test -d ${SANDBOX_PATHS.workspace}/node_modules && echo ok`,
+		`test -d ${SANDBOX_PATHS.workspace}/${REPO_PATH}/node_modules && echo ok`,
 		/ok/,
 	],
 	[
 		"turbo",
-		`cd ${SANDBOX_PATHS.workspace} && bun x turbo --version 2>/dev/null | tail -1`,
+		`cd ${SANDBOX_PATHS.workspace}/${REPO_PATH} && bun x turbo --version 2>/dev/null | tail -1`,
 		/^\d+\.\d+\.\d+/m,
 	],
 	[
@@ -363,6 +366,7 @@ let probeFailed = await probeBox({
 	hostSecret: probeSecret,
 	bundleSha: bundle.sha256,
 	branch: BRANCH,
+	primaryPath: REPO_PATH,
 	expectDependencies: true,
 	expectAnthropicRule: Boolean(probeEnv.ANTHROPIC_API_KEY),
 	gate: process.env.SANDBOX_GATE_ORIGIN
@@ -453,6 +457,42 @@ await db
 			archivedAt: null,
 		},
 	});
+// The golden baked the monorepo at its path; a fork asks for the same, and
+// the box acts on the monorepo's own .superset/config.json.
+const { environmentRepositories, githubRepositories } = await import(
+	"@superset/db/schema"
+);
+const { and: andWhere } = await import("drizzle-orm");
+const internal = await db.query.environments.findFirst({
+	where: (row, { and: both, eq: equals }) =>
+		both(
+			equals(row.organizationId, ORGANIZATION_ID as string),
+			equals(row.name, INTERNAL_NAME),
+		),
+});
+const monorepo = await db.query.githubRepositories.findFirst({
+	where: andWhere(
+		eq(githubRepositories.organizationId, ORGANIZATION_ID as string),
+		eq(githubRepositories.fullName, REPO_FULL_NAME),
+	),
+});
+if (!internal) fail(`rows: ${INTERNAL_NAME} row missing after upsert`);
+if (!monorepo)
+	fail(
+		`rows: ${REPO_FULL_NAME} is not connected to organization ${ORGANIZATION_ID}; install the GitHub App there first`,
+	);
+await db
+	.delete(environmentRepositories)
+	.where(eq(environmentRepositories.environmentId, internal.id));
+await db.insert(environmentRepositories).values({
+	environmentId: internal.id,
+	repositoryId: monorepo.id,
+	position: 0,
+});
+await db
+	.update(environments)
+	.set({ hooksRepositoryId: monorepo.id })
+	.where(eq(environments.id, internal.id));
 log(
 	`rows: ${INTERNAL_NAME} -> fork of ${golden}, bundle ${bundle.sha256.slice(0, 12)}`,
 );
