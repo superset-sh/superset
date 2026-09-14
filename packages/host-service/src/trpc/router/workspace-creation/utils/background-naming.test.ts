@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import { eq } from "drizzle-orm";
 import { createBasicScenario } from "../../../../../test/helpers/scenarios";
-import { projects } from "../../../../db/schema";
+import { projects, workspaces } from "../../../../db/schema";
 import { PullRequestRuntimeManager } from "../../../../runtime/pull-requests/pull-requests";
 import {
 	archiveLocalWorkspace,
@@ -261,7 +261,77 @@ for (const kind of ["session", "worktree"] as const) {
 		}, 15000);
 	}
 
+	for (const concurrent of [false, true]) {
+		test(`${kind}: ${concurrent ? "concurrent" : "sequential"} same-ID retries reuse the workspace`, async () => {
+			const f = await fixture();
+			const launch = spyOn(agents, "runAgentInWorkspace").mockResolvedValue({
+				kind: "terminal",
+				sessionId: "test-agent",
+				label: "Test agent",
+			});
+			try {
+				const input = {
+					agents: [{ agent: "test-agent", prompt: "Fix login" }],
+				};
+				const first = f.create(input);
+				if (!concurrent) await first;
+				const results = await Promise.all([first, f.create(input)]);
+				expect(results[0].workspace.id).toBe(f.id);
+				expect(results[1].workspace.id).toBe(f.id);
+				const row = f.row();
+				if (!row) throw new Error("Workspace missing");
+				expect(row.id).toBe(results[0].workspace.id);
+				expect(results[1].workspace.branch).toBe(results[0].workspace.branch);
+				expect(launch).toHaveBeenCalledTimes(1);
+				expect(f.generator).toHaveBeenCalledTimes(1);
+				if (kind === "worktree") {
+					const branches = execFileSync(
+						"git",
+						[
+							"-C",
+							row.worktreePath,
+							"branch",
+							"--list",
+							`fix-login-${f.id.slice(0, 8)}*`,
+						],
+						{ encoding: "utf8" },
+					)
+						.trim()
+						.split("\n");
+					expect(branches).toHaveLength(1);
+				}
+			} finally {
+				launch.mockRestore();
+				await f.cleanup();
+			}
+		});
+	}
+
 	if (kind === "worktree") {
+		for (const invalid of ["archived", "different-project"] as const) {
+			test(`worktree: same-ID retry rejects ${invalid} rows`, async () => {
+				const f = await fixture();
+				try {
+					await f.create();
+					if (invalid === "archived")
+						archiveLocalWorkspace(f.host, f.id, "deleted");
+					else
+						f.host.db
+							.update(workspaces)
+							.set({ projectId: null })
+							.where(eq(workspaces.id, f.id))
+							.run();
+					await expect(f.create()).rejects.toThrow(
+						"Workspace ID is already in use",
+					);
+					if (invalid === "archived") unarchiveLocalWorkspace(f.host, f.id);
+					else updateLocalWorkspace(f.host, f.id, { projectId: f.projectId });
+					expect((await f.create()).workspace.id).toBe(f.id);
+				} finally {
+					await f.cleanup();
+				}
+			});
+		}
 		test("worktree: configured prefix and explicit branches survive title generation", async () => {
 			const f = await fixture();
 			try {

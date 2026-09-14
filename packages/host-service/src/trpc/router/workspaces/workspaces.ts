@@ -607,6 +607,17 @@ export const workspacesRouter = router({
 	createSession,
 	create: machineOnlyProcedure
 		.input(createInputSchema)
+		.use(async ({ ctx, input, next }) => {
+			if (!input.id) return next();
+			const release = await acquireWorkspaceCreateLock(
+				`workspace-id:${ctx.clientMachineId}:${input.id}`,
+			);
+			try {
+				return await next();
+			} finally {
+				release();
+			}
+		})
 		.mutation(async ({ ctx, input }) => {
 			for (const launch of input.agents ?? []) {
 				validateAgentLaunchOptions(ctx.db, launch);
@@ -614,6 +625,29 @@ export const workspacesRouter = router({
 
 			const localProject = requireLocalProject(ctx, input.projectId);
 			const repoPath = requireProjectRepoPath(localProject);
+
+			if (input.id) {
+				const existing = getLocalWorkspace(ctx.db, input.id);
+				if (existing) {
+					if (
+						existing.projectId !== input.projectId ||
+						existing.type !== "worktree" ||
+						existing.archivedAt != null
+					) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: "Workspace ID is already in use",
+						});
+					}
+					return {
+						workspace: toCloudShape(existing, ctx.organizationId),
+						terminals: [],
+						agents: [],
+						alreadyExists: true,
+						txid: null,
+					};
+				}
+			}
 
 			const composerPrompt =
 				input.agents?.[0]?.prompt?.trim() || input.namingPrompt?.trim() || "";
