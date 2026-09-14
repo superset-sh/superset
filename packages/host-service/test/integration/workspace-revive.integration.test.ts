@@ -488,6 +488,7 @@ describe("workspaceCleanup.revive integration", () => {
 									},
 								);
 			try {
+				const destroyStartedAt = Date.now();
 				await expectCode(
 					scenario.host.trpc.workspaceCleanup.destroy.mutate({
 						workspaceId: scenario.featureWorkspaceId,
@@ -500,7 +501,13 @@ describe("workspaceCleanup.revive integration", () => {
 				);
 				expect(ownerId).not.toBe("");
 				expect(readRow(ownerId)?.archivedAt).toBeNull();
-				expect(readRow(scenario.featureWorkspaceId)).toEqual(archived);
+				const restored = readRow(scenario.featureWorkspaceId);
+				expect(restored).toEqual({
+					...archived,
+					updatedAt: expect.any(Number),
+				});
+				expect(restored?.updatedAt).toBeGreaterThanOrEqual(destroyStartedAt);
+				expect(restored?.updatedAt).toBeLessThanOrEqual(Date.now());
 				expect(existsSync(join(scenario.worktreePath, ".git"))).toBe(true);
 			} finally {
 				hook.mockRestore();
