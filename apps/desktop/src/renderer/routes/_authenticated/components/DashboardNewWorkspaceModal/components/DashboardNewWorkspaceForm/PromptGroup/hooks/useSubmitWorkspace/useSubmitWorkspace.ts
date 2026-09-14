@@ -4,7 +4,6 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { cloudTrpc, cloudTrpcClient } from "renderer/lib/cloud-trpc";
-import { recordCloudWorkspaceCreateStart } from "renderer/lib/cloud-workspace-open-timeline";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { NewWorkspacePromptContextApi } from "renderer/stores/new-workspace-prompt-context";
 import { usePromptHistoryStore } from "renderer/stores/prompt-history";
@@ -156,7 +155,6 @@ export function useSubmitWorkspace(
 							timeoutMs: 2000,
 						})
 					: null;
-				const createStartedAt = Date.now();
 				const created = await createCloudWorkspace.mutateAsync({
 					organizationId: activeOrganizationId,
 					environmentId: environment.id,
@@ -178,7 +176,6 @@ export function useSubmitWorkspace(
 							}
 						: {}),
 				});
-				recordCloudWorkspaceCreateStart(created.id, createStartedAt);
 				closeAndResetDraft();
 				// The cloud list is what both the sidebar and the workspace route
 				// read, and nothing used to tell it a workspace had been created —

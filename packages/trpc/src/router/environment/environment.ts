@@ -18,8 +18,10 @@ import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import {
 	buildSandboxClaim,
 	loadRepositories,
+	primaryRepository,
 	promoteSandboxToEnvironment,
 	RepositoryError,
+	sortRepositories,
 	workspaceRepositories,
 } from "../../lib/sandbox";
 import { jwtProcedure, userError } from "../../trpc";
@@ -71,8 +73,17 @@ function assertOwned(row: { organizationId: string }): void {
 	}
 }
 
-/** The repositories of many environments at once, primary first. */
-async function repositoriesByEnvironment(environmentIds: string[]) {
+/** The repositories of many environments at once, the primary first then by name. */
+async function repositoriesByEnvironment(
+	environmentRows: ReadonlyArray<{
+		id: string;
+		hooksRepositoryId: string | null;
+	}>,
+) {
+	const environmentIds = environmentRows.map((row) => row.id);
+	const hooksById = new Map(
+		environmentRows.map((row) => [row.id, row.hooksRepositoryId]),
+	);
 	const rows = environmentIds.length
 		? await db
 				.select({
@@ -89,7 +100,6 @@ async function repositoriesByEnvironment(environmentIds: string[]) {
 					eq(environmentRepositories.repositoryId, githubRepositories.id),
 				)
 				.where(inArray(environmentRepositories.environmentId, environmentIds))
-				.orderBy(asc(environmentRepositories.position))
 		: [];
 	const map = new Map<
 		string,
@@ -97,6 +107,13 @@ async function repositoriesByEnvironment(environmentIds: string[]) {
 	>();
 	for (const { environmentId, ...repo } of rows) {
 		map.set(environmentId, [...(map.get(environmentId) ?? []), repo]);
+	}
+	for (const [environmentId, repos] of map) {
+		const primary = primaryRepository(repos, hooksById.get(environmentId));
+		map.set(environmentId, [
+			...(primary ? [primary] : []),
+			...sortRepositories(repos).filter((repo) => repo.id !== primary?.id),
+		]);
 	}
 	return map;
 }
@@ -137,10 +154,9 @@ async function setEnvironmentRepositories(args: {
 		.where(eq(environmentRepositories.environmentId, args.environmentId));
 	if (repositories.length) {
 		await db.insert(environmentRepositories).values(
-			repositories.map((repo, position) => ({
+			repositories.map((repo) => ({
 				environmentId: args.environmentId,
 				repositoryId: repo.id,
-				position,
 			})),
 		);
 	}
@@ -176,7 +192,7 @@ export const environmentRouter = {
 					),
 				)
 				.orderBy(asc(environments.name));
-			const repos = await repositoriesByEnvironment(rows.map((row) => row.id));
+			const repos = await repositoriesByEnvironment(rows);
 			return rows.map((row) => ({
 				...row,
 				repositories: repos.get(row.id) ?? [],
@@ -195,7 +211,7 @@ export const environmentRouter = {
 					i18nKey: "serverError.environment.environmentNotFound",
 				});
 			}
-			const repos = await repositoriesByEnvironment([row.id]);
+			const repos = await repositoriesByEnvironment([row]);
 			return { ...row, repositories: repos.get(row.id) ?? [] };
 		}),
 
@@ -303,10 +319,9 @@ export const environmentRouter = {
 				.returning();
 			// The golden baked these checkouts; a fork must ask for the same.
 			await db.insert(environmentRepositories).values(
-				checkouts.map((entry, position) => ({
+				checkouts.map((entry) => ({
 					environmentId,
 					repositoryId: entry.repository.id,
-					position,
 				})),
 			);
 			await db

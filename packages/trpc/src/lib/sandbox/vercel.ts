@@ -144,12 +144,6 @@ async function runBoot(sandbox: Sandbox, hostSecret: string): Promise<void> {
  * when boot was fired into it. Job-side clock; the boot runner's own phases
  * are stamped inside the sandbox and read off health.check.
  */
-export interface ProvisionStamps {
-	sandboxCreateStartedAt: Date;
-	sandboxCreateFinishedAt: Date;
-	bootFiredAt: Date;
-}
-
 /**
  * Creates the sandbox, writes its identity and starts boot. Returns once the
  * sandbox's address exists, not once anything listens on it; `settleSandbox`
@@ -167,7 +161,6 @@ export async function provisionSandbox(args: {
 	sandboxUrl: string;
 	hostTarget: string;
 	desktopTarget: string;
-	stamps: ProvisionStamps;
 }> {
 	const kind = args.kind ?? "workspace";
 	const config = {
@@ -183,7 +176,6 @@ export async function provisionSandbox(args: {
 		keepLastSnapshots: { count: 1 },
 		tags: { kind },
 	};
-	const sandboxCreateStartedAt = new Date();
 	const sandbox =
 		(await getSandbox(args.name)) ??
 		(args.environment.sourceKind === "fork"
@@ -199,7 +191,6 @@ export async function provisionSandbox(args: {
 					region: env.VERCEL_SANDBOX_REGION as SandboxRegion,
 					resources: { vcpus: IMAGE_SANDBOX_VCPUS },
 				}));
-	const sandboxCreateFinishedAt = new Date();
 	await writeIdentity(sandbox, args.claim.identity);
 	await runBoot(sandbox, args.claim.hostSecret);
 	return {
@@ -207,11 +198,6 @@ export async function provisionSandbox(args: {
 		sandboxUrl: sandbox.domain(HOST_SERVICE_PORT),
 		hostTarget: sandbox.domain(HOST_SERVICE_PORT),
 		desktopTarget: sandbox.domain(DESKTOP_PORT),
-		stamps: {
-			sandboxCreateStartedAt,
-			sandboxCreateFinishedAt,
-			bootFiredAt: new Date(),
-		},
 	};
 }
 
@@ -251,15 +237,13 @@ export async function settleSandbox(args: {
 	providerSandboxId: string;
 	hostTarget: string;
 	claim: SandboxClaim;
-}): Promise<{ healthyAt: Date }> {
+}): Promise<void> {
 	await waitForHostService(args.hostTarget, args.providerSandboxId);
-	const healthyAt = new Date();
 	await pushManagedEnv(
 		args.hostTarget,
 		args.claim.hostSecret,
 		args.claim.managedEnv,
 	);
-	return { healthyAt };
 }
 
 /**
@@ -326,8 +310,6 @@ export async function wakeSandbox(args: {
 	hostTarget: string;
 	desktopTarget: string;
 	wasRunning: boolean;
-	/** When host-service answered this wake. */
-	healthyAt: Date;
 }> {
 	try {
 		const sandbox = await Sandbox.get({
@@ -361,12 +343,12 @@ export async function wakeSandbox(args: {
 			writeIdentity(sandbox, args.claim.identity),
 		]);
 		await runBoot(sandbox, args.claim.hostSecret);
-		const { healthyAt } = await settleSandbox({
+		await settleSandbox({
 			providerSandboxId: args.providerSandboxId,
 			hostTarget,
 			claim: args.claim,
 		});
-		return { hostTarget, desktopTarget, wasRunning, healthyAt };
+		return { hostTarget, desktopTarget, wasRunning };
 	} catch (error) {
 		if (isUnavailable(error))
 			throw new SandboxUnavailableError(args.providerSandboxId, error);

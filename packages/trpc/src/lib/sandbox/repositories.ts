@@ -23,7 +23,7 @@ import {
 	type SandboxRepository,
 	sandboxRepositoryPath,
 } from "@superset/shared/sandbox-contract";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { env } from "../../env";
 import { installationOctokit } from "./clone-token";
 
@@ -51,9 +51,7 @@ export async function loadRepositories(args: {
 				eq(githubRepositories.organizationId, args.organizationId),
 			),
 		);
-	const byId = new Map(rows.map((row) => [row.id, row]));
-	const ordered = args.repositoryIds.map((id) => byId.get(id));
-	if (ordered.some((row) => !row)) {
+	if (rows.length !== new Set(args.repositoryIds).size) {
 		throw new RepositoryError(
 			"A repository is not connected to this organization",
 		);
@@ -64,7 +62,29 @@ export async function loadRepositories(args: {
 			"Every repository of an environment must come from one GitHub installation",
 		);
 	}
-	return ordered as RepositoryRow[];
+	return sortRepositories(rows);
+}
+
+/** Repositories read the same everywhere: by full name. */
+export function sortRepositories<T extends { fullName: string }>(
+	rows: readonly T[],
+): T[] {
+	return [...rows].sort((a, b) =>
+		a.fullName.localeCompare(b.fullName, "en", { sensitivity: "base" }),
+	);
+}
+
+/**
+ * The repository a workspace opens on: the environment's config location,
+ * else the first by name. Multi-repository workspaces opening at the root,
+ * with a repository picker in the sidebar, is a TODO recorded in the plan.
+ */
+export function primaryRepository<T extends { id: string; fullName: string }>(
+	rows: readonly T[],
+	hooksRepositoryId: string | null | undefined,
+): T | undefined {
+	const sorted = sortRepositories(rows);
+	return sorted.find((row) => row.id === hooksRepositoryId) ?? sorted[0];
 }
 
 export class RepositoryError extends Error {
@@ -74,7 +94,7 @@ export class RepositoryError extends Error {
 	}
 }
 
-/** The environment's repositories, primary first. */
+/** The environment's repositories, by name. */
 export async function environmentRepositoryRows(
 	environmentId: string,
 ): Promise<RepositoryRow[]> {
@@ -85,9 +105,8 @@ export async function environmentRepositoryRows(
 			githubRepositories,
 			eq(environmentRepositories.repositoryId, githubRepositories.id),
 		)
-		.where(eq(environmentRepositories.environmentId, environmentId))
-		.orderBy(asc(environmentRepositories.position));
-	return rows.map((row) => row.repository);
+		.where(eq(environmentRepositories.environmentId, environmentId));
+	return sortRepositories(rows.map((row) => row.repository));
 }
 
 /**
@@ -98,20 +117,23 @@ export async function environmentRepositoryRows(
 export async function recordWorkspaceRepositories(args: {
 	cloudWorkspaceId: string;
 	repositories: readonly RepositoryRow[];
+	primaryRepositoryId: string;
 	primaryBranch: string;
 }): Promise<void> {
 	await db.insert(cloudWorkspaceRepositories).values(
-		args.repositories.map((repository, position) => ({
+		args.repositories.map((repository) => ({
 			cloudWorkspaceId: args.cloudWorkspaceId,
 			repositoryId: repository.id,
-			branch: position === 0 ? args.primaryBranch : repository.defaultBranch,
+			branch:
+				repository.id === args.primaryRepositoryId
+					? args.primaryBranch
+					: repository.defaultBranch,
 			path: sandboxRepositoryPath(repository, args.repositories),
-			position,
 		})),
 	);
 }
 
-/** What a workspace checked out, primary first, with the hooks repository marked. */
+/** What a workspace checked out, the primary first, with the hooks repository marked. */
 export async function workspaceRepositories(args: {
 	cloudWorkspaceId: string;
 	hooksRepositoryId: string | null;
@@ -128,12 +150,24 @@ export async function workspaceRepositories(args: {
 		)
 		.where(
 			eq(cloudWorkspaceRepositories.cloudWorkspaceId, args.cloudWorkspaceId),
-		)
-		.orderBy(asc(cloudWorkspaceRepositories.position));
+		);
 	if (rows.length === 0)
 		throw new RepositoryError("This workspace has no repositories");
-	const hooksId = args.hooksRepositoryId ?? rows[0]?.repository.id;
-	return rows.map(({ link, repository }) => ({
+	const primary = primaryRepository(
+		rows.map((row) => row.repository),
+		args.hooksRepositoryId,
+	);
+	const hooksId = primary?.id;
+	const ordered = [...rows].sort((a, b) =>
+		a.repository.id === hooksId
+			? -1
+			: b.repository.id === hooksId
+				? 1
+				: a.repository.fullName.localeCompare(b.repository.fullName, "en", {
+						sensitivity: "base",
+					}),
+	);
+	return ordered.map(({ link, repository }) => ({
 		repository,
 		branch: link.branch,
 		path: link.path,

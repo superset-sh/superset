@@ -14879,8 +14879,8 @@ msgstr "De remote branch is uiteengelopen. Pull voordat je verdergaat."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "De renderer is tijdens het opstarten gecrasht. Bekijk de logs voor details."
 
-msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
-msgstr "De repositories die een cloudwerkruimte uitcheckt, en van welke de .superset/config.json wordt toegepast. De eerste repository is die waarin de werkruimte opent."
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The workspace opens on the config location, or on the first repository by name."
+msgstr "De repositories die een cloudwerkruimte uitcheckt, en van welke de .superset/config.json wordt toegepast. De werkruimte opent op de configuratielocatie, of anders in de eerste repository op naam."
 
 msgid "The repository folder itself is kept."
 msgstr "De repositorymap zelf blijft behouden."

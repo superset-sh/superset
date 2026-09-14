@@ -176,7 +176,9 @@ export function NewWorkspaceScreen({
 	const cloudRepository = useMemo(() => {
 		if (draft.hostId !== CLOUD_HOST_ID) return null;
 		const primary = environmentPicksRepositories
-			? githubRepositories.find((repo) => repo.id === draft.repositoryIds[0])
+			? githubRepositories
+					.filter((repo) => draft.repositoryIds.includes(repo.id))
+					.sort((a, b) => a.fullName.localeCompare(b.fullName))[0]
 			: selectedEnvironment?.repositories?.[0];
 		return primary
 			? {

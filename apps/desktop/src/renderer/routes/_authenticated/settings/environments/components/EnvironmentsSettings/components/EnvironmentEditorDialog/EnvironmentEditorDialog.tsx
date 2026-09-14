@@ -34,7 +34,6 @@ import { useState } from "react";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuGitBranch, LuRefreshCw } from "react-icons/lu";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { recordCloudWorkspaceCreateStart } from "renderer/lib/cloud-workspace-open-timeline";
 
 type EnvironmentScope = "organization" | "personal";
 
@@ -152,7 +151,6 @@ export function EnvironmentEditorDialog({
 	const onStartAgent = async () => {
 		try {
 			const environmentId = await save();
-			const startedAt = Date.now();
 			const created = await createWorkspace.mutateAsync({
 				organizationId,
 				environmentId,
@@ -160,7 +158,6 @@ export function EnvironmentEditorDialog({
 				prompt: ENVIRONMENT_ONBOARDING_PROMPT,
 				agent: "claude",
 			});
-			recordCloudWorkspaceCreateStart(created.id, startedAt);
 			const listInput = { organizationId };
 			await utils.cloudWorkspace.list.cancel(listInput);
 			utils.cloudWorkspace.list.setData(listInput, (rows) =>
@@ -190,8 +187,8 @@ export function EnvironmentEditorDialog({
 					<DialogDescription>
 						<Trans>
 							The repositories a cloud workspace checks out, and which one's
-							.superset/config.json it acts on. The first repository is the one
-							the workspace opens on.
+							.superset/config.json it acts on. The workspace opens on the
+							config location, or on the first repository by name.
 						</Trans>
 					</DialogDescription>
 				</DialogHeader>

@@ -19,7 +19,6 @@ export interface RepositoryOption {
 }
 
 interface RepositoryPickerPillProps {
-	/** In order: the first is the primary, the one the workspace opens on. */
 	selectedIds: string[];
 	repositories: RepositoryOption[];
 	isLoading: boolean;
@@ -28,7 +27,8 @@ interface RepositoryPickerPillProps {
 
 /**
  * Which repositories a cloud workspace checks out, for an environment that
- * fixes none of its own. Several can be picked; the first picked leads.
+ * fixes none of its own. Several can be picked; the workspace opens on the
+ * first by name.
  */
 export function RepositoryPickerPill({
 	selectedIds,

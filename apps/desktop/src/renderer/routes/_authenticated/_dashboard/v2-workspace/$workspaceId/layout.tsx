@@ -19,7 +19,6 @@ import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
 import { useRemoteHostStatus } from "../hooks/useRemoteHostStatus";
 import { useWorkspaceMissVerdict } from "../hooks/useWorkspaceMissVerdict";
 import { WorkspaceProvider } from "../providers/WorkspaceProvider";
-import { useCloudWorkspaceOpenedEvent } from "./hooks/useCloudWorkspaceOpenedEvent";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspace/$workspaceId",
@@ -79,12 +78,6 @@ function V2WorkspaceLayout() {
 	const { workspaces: cloudWorkspaces = [] } = useCloudWorkspaces();
 	const cloudWorkspace =
 		cloudWorkspaces.find((row) => row.id === workspaceId) ?? null;
-	useCloudWorkspaceOpenedEvent({
-		workspaceId,
-		cloudWorkspace,
-		sandbox,
-		hostAnswered: workspace !== null,
-	});
 	const { data: failedEntries } = useLiveQuery(
 		(q) =>
 			q

@@ -88,7 +88,7 @@ export function DashboardSidebarCloudSection({
 		() =>
 			new Map(
 				(cloudRepositories ?? [])
-					.filter((row) => row.position === 0)
+					.filter((row) => row.primary)
 					.map((row) => [row.cloudWorkspaceId, row.fullName] as const),
 			),
 		[cloudRepositories],

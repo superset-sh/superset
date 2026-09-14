@@ -26,7 +26,7 @@ export function useCloudRepoPrefixes(): Map<string, string> {
 	return useMemo(() => {
 		const prefixes = new Map<string, string>();
 		for (const row of data ?? []) {
-			if (row.position !== 0) continue;
+			if (!row.primary) continue;
 			prefixes.set(
 				row.cloudWorkspaceId,
 				`https://github.com/${row.fullName}/`.toLowerCase(),

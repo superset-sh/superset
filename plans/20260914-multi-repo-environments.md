@@ -83,6 +83,27 @@ repositories (box healthy 12.8 s after provisioning started, both checkouts unde
 `/workspace`, two projects seeded, the agent in the primary). boot-twice and runner-check on
 the multi-repo runner. Records: the implementation checklist, PR 6.
 
+## Decided 2026-09-14 late, with Satya
+
+- **No `position`.** Repositories read alphabetically everywhere; the workspace opens on the
+  environment's config location (`hooks_repository_id`), else the first repository by name.
+  Two columns and one concept fewer (migration 0120).
+- **Boot timing leaves the row.** The five stamp columns are dropped (migration 0119) and the
+  desktop's `cloud_workspace_opened` event and its terminal attach notifier are removed. Where
+  the per-provision timing lands instead is settled separately (Sentry tracing on the API is
+  disabled and last time recorded nothing; a scoped sampler is being probed).
+
+## TODO: multi-repository as a product
+
+Today a multi-repository workspace opens on one checkout (the config location). What it should
+do, and is not built yet:
+
+- Terminals and the agent open at `/workspace`, so an agent sees every checkout.
+- The sidebar offers a repository picker under a multi-repository workspace, and the git
+  panels (changes, branch, pull request) follow the picked repository; the cloud workspace
+  row itself points at the root, which is not a git checkout.
+- One sibling workspace row per repository already exists on the box for that purpose.
+
 ## Not built
 
 - A branch per non-primary repository at create (they take their default branch).

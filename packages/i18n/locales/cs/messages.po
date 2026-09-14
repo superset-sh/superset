@@ -14879,8 +14879,8 @@ msgstr "Vzdálená větev se rozešla. Před pokračováním udělejte pull."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Renderer spadl při startu. Podrobnosti najdete v logu."
 
-msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
-msgstr "Repozitáře, které cloudový pracovní prostor stáhne, a čí .superset/config.json použije. První repozitář je ten, ve kterém se pracovní prostor otevře."
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The workspace opens on the config location, or on the first repository by name."
+msgstr "Repozitáře, které cloudový pracovní prostor stáhne, a čí .superset/config.json použije. Pracovní prostor se otevře v umístění konfigurace, jinak v prvním repozitáři podle názvu."
 
 msgid "The repository folder itself is kept."
 msgstr "Samotná složka repozitáře zůstane zachována."

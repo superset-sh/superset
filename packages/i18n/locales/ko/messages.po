@@ -14879,8 +14879,8 @@ msgstr "원격 브랜치가 갈라졌습니다. 계속하기 전에 pull하세�
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "시작 중에 렌더러가 충돌했습니다. 자세한 내용은 로그를 확인하세요."
 
-msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
-msgstr "클라우드 워크스페이스가 체크아웃하는 리포지토리와 어느 리포지토리의 .superset/config.json을 적용할지 정합니다. 첫 번째 리포지토리가 워크스페이스가 열리는 곳입니다."
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The workspace opens on the config location, or on the first repository by name."
+msgstr "클라우드 워크스페이스가 체크아웃하는 리포지토리와 어느 리포지토리의 .superset/config.json을 적용할지 정합니다. 워크스페이스는 구성 위치에서, 없으면 이름순 첫 번째 리포지토리에서 열립니다."
 
 msgid "The repository folder itself is kept."
 msgstr "저장소 폴더 자체는 유지됩니다."

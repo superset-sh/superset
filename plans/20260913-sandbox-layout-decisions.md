@@ -39,6 +39,9 @@ was put to Satya and settled, per the rule that we emulate first and deviate onl
 | 25 | Repositories per environment | An environment lists its repositories in order, the first being the one a workspace opens on; a workspace fixes its checkouts at create (`cloud_workspace_repositories`); a lone repository is `/workspace` itself, several sit at `/workspace/<name>` (Satya 2026-09-14, over my "always `/workspace/<name>`"); a promoted environment's repositories are fixed, since its golden was built for them (promote again to change); one GitHub installation per workspace because the firewall carries one `github.com` rule. The record is `plans/20260914-multi-repo-environments.md` |
 | 26 | Config location and scope | `environments.hooks_repository_id` names whose `.superset/config.json` the box acts on (the dialog's "Config location"; none means only the row's override); `environments.scope` is `organization` or `personal`, a personal row visible to its creator alone. "Start agent" saves the environment and opens a cloud workspace on it with the onboarding prompt (`ENVIRONMENT_ONBOARDING_PROMPT`) so an agent installs the project and writes its hooks |
 
+| 27 | Boot timing | Off the workspace row (Satya 2026-09-14): the five stamp columns dropped, the desktop's timing event removed; the sink for per-provision stage durations is settled after a probe of a name-scoped Sentry sampler on the API, whose tracing is otherwise disabled |
+| 28 | Repository order | None stored (Satya 2026-09-14): alphabetical everywhere; the workspace opens on the config-location repository, else the first by name. Multi-repository at the root with a sidebar picker is a recorded TODO |
+
 `/workspace` at the root stays (decided earlier: industry convention, matches the reference): the
 checkout itself for one repository, the parent of one directory per repository for several
 (Decision 25).

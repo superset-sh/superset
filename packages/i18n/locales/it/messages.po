@@ -14879,8 +14879,8 @@ msgstr "Il branch remoto è divergente. Fai pull prima di continuare."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Il renderer è andato in crash durante l'avvio. Controlla i log per i dettagli."
 
-msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
-msgstr "I repository di cui un workspace cloud fa il checkout, e di quale applica il .superset/config.json. Il primo repository è quello in cui si apre il workspace."
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The workspace opens on the config location, or on the first repository by name."
+msgstr "I repository di cui un workspace cloud fa il checkout, e di quale applica il .superset/config.json. Il workspace si apre nella posizione della configurazione, oppure nel primo repository per nome."
 
 msgid "The repository folder itself is kept."
 msgstr "La cartella del repository viene mantenuta."

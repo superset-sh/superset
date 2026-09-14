@@ -25,6 +25,7 @@ import {
 	listRemoteBranches,
 	loadRepositories,
 	mintSandboxGateAccess,
+	primaryRepository,
 	RepositoryError,
 	recordWorkspaceRepositories,
 	SandboxNotReadyError,
@@ -75,20 +76,23 @@ export const cloudWorkspaceRouter = {
 				.orderBy(desc(cloudWorkspaces.createdAt));
 		}),
 
-	/** The repositories each listed workspace checked out, primary first. */
+	/**
+	 * The repositories each listed workspace checked out, by name, the one it
+	 * opens on marked primary.
+	 */
 	repositories: jwtProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
-			return db
+			const rows = await db
 				.select({
 					cloudWorkspaceId: cloudWorkspaceRepositories.cloudWorkspaceId,
 					repositoryId: githubRepositories.id,
 					fullName: githubRepositories.fullName,
 					branch: cloudWorkspaceRepositories.branch,
 					path: cloudWorkspaceRepositories.path,
-					position: cloudWorkspaceRepositories.position,
+					hooksRepositoryId: environments.hooksRepositoryId,
 				})
 				.from(cloudWorkspaceRepositories)
 				.innerJoin(
@@ -96,11 +100,29 @@ export const cloudWorkspaceRouter = {
 					eq(cloudWorkspaceRepositories.cloudWorkspaceId, cloudWorkspaces.id),
 				)
 				.innerJoin(
+					environments,
+					eq(cloudWorkspaces.environmentId, environments.id),
+				)
+				.innerJoin(
 					githubRepositories,
 					eq(cloudWorkspaceRepositories.repositoryId, githubRepositories.id),
 				)
 				.where(eq(cloudWorkspaces.organizationId, input.organizationId))
-				.orderBy(asc(cloudWorkspaceRepositories.position));
+				.orderBy(asc(githubRepositories.fullName));
+			const primaryByWorkspace = new Map<string, string>();
+			for (const workspaceId of new Set(rows.map((r) => r.cloudWorkspaceId))) {
+				const own = rows.filter((r) => r.cloudWorkspaceId === workspaceId);
+				const primary = primaryRepository(
+					own.map((r) => ({ id: r.repositoryId, fullName: r.fullName })),
+					own[0]?.hooksRepositoryId,
+				);
+				if (primary) primaryByWorkspace.set(workspaceId, primary.id);
+			}
+			return rows.map(({ hooksRepositoryId: _hooks, ...row }) => ({
+				...row,
+				primary:
+					primaryByWorkspace.get(row.cloudWorkspaceId) === row.repositoryId,
+			}));
 		}),
 
 	listBranches: jwtProcedure
@@ -212,7 +234,10 @@ export const cloudWorkspaceRouter = {
 					});
 				}
 			}
-			const primary = repositories[0] as (typeof repositories)[number];
+			const primary = primaryRepository(
+				repositories,
+				environment.hooksRepositoryId,
+			) as (typeof repositories)[number];
 			const branch = input.branch ?? primary.defaultBranch;
 
 			// The id is generated here rather than by the database so the sandbox
@@ -245,6 +270,7 @@ export const cloudWorkspaceRouter = {
 			await recordWorkspaceRepositories({
 				cloudWorkspaceId: row.id,
 				repositories,
+				primaryRepositoryId: primary.id,
 				primaryBranch: branch,
 			});
 
@@ -383,7 +409,6 @@ export const cloudWorkspaceRouter = {
 				hostTarget: string;
 				desktopTarget: string;
 				running: boolean;
-				healthyAt?: Date;
 			};
 			try {
 				if (input.wake) {
@@ -421,20 +446,6 @@ export const cloudWorkspaceRouter = {
 					message: "Cloud workspace is failed",
 					cause: { kind: "CLOUD_WORKSPACE_NOT_READY", status: "failed" },
 				});
-			}
-			// The first wake is the first time anything sees host-service answer,
-			// which closes the job's timeline; later wakes are reopens and leave it.
-			if (address.healthyAt && !row.firstHealthyAt) {
-				await db
-					.update(cloudWorkspaces)
-					.set({ firstHealthyAt: address.healthyAt })
-					.where(
-						and(
-							eq(cloudWorkspaces.id, row.id),
-							isNull(cloudWorkspaces.firstHealthyAt),
-						),
-					);
-				nudge(row.organizationId, "cloud_workspaces");
 			}
 			const [host, desktop] = await Promise.all([
 				mintSandboxGateAccess({

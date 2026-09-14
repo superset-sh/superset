@@ -14879,8 +14879,8 @@ msgstr "Удалённая ветка разошлась. Получите из�
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Рендерер аварийно завершился при запуске. Подробности — в логах."
 
-msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
-msgstr "Репозитории, которые извлекает облачная рабочая область, и чей .superset/config.json она применяет. Первый репозиторий — тот, в котором открывается рабочая область."
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The workspace opens on the config location, or on the first repository by name."
+msgstr "Репозитории, которые извлекает облачная рабочая область, и чей .superset/config.json она применяет. Рабочая область открывается в расположении конфигурации или в первом репозитории по имени."
 
 msgid "The repository folder itself is kept."
 msgstr "Сама папка репозитория сохраняется."

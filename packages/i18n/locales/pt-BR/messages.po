@@ -14879,8 +14879,8 @@ msgstr "A branch remota divergiu. Faça pull antes de continuar."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "O renderer travou durante a inicialização. Verifique os logs para mais detalhes."
 
-msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
-msgstr "Os repositórios que uma área de trabalho na nuvem faz checkout, e de qual deles o .superset/config.json é aplicado. O primeiro repositório é aquele em que a área de trabalho abre."
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The workspace opens on the config location, or on the first repository by name."
+msgstr "Os repositórios que uma área de trabalho na nuvem faz checkout, e de qual deles o .superset/config.json é aplicado. A área de trabalho abre no local da configuração, ou no primeiro repositório por nome."
 
 msgid "The repository folder itself is kept."
 msgstr "A pasta do repositório em si é mantida."

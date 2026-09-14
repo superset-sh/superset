@@ -482,7 +482,6 @@ await db
 await db.insert(environmentRepositories).values({
 	environmentId: internal.id,
 	repositoryId: monorepo.id,
-	position: 0,
 });
 await db
 	.update(environments)

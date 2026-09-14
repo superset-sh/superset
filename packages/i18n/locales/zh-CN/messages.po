@@ -14879,8 +14879,8 @@ msgstr "远程分支已分叉。请先拉取再继续。"
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "渲染进程在启动时崩溃。请查看日志了解详情。"
 
-msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
-msgstr "云端工作区检出的仓库，以及它使用哪个仓库的 .superset/config.json。第一个仓库是工作区打开时所在的仓库。"
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The workspace opens on the config location, or on the first repository by name."
+msgstr "云端工作区检出的仓库，以及它使用哪个仓库的 .superset/config.json。工作区在配置位置打开，否则在按名称排序的第一个仓库打开。"
 
 msgid "The repository folder itself is kept."
 msgstr "仓库文件夹本身会保留。"

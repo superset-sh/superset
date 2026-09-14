@@ -14879,8 +14879,8 @@ msgstr "Uzak dal ayrıştı. Devam etmeden önce pull yapın."
 msgid "The renderer crashed during startup. Please check logs for details."
 msgstr "Başlangıç sırasında renderer çöktü. Ayrıntılar için günlükleri kontrol edin."
 
-msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The first repository is the one the workspace opens on."
-msgstr "Bir bulut çalışma alanının çektiği depolar ve hangisinin .superset/config.json dosyasını uyguladığı. İlk depo, çalışma alanının açıldığı depodur."
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The workspace opens on the config location, or on the first repository by name."
+msgstr "Bir bulut çalışma alanının çektiği depolar ve hangisinin .superset/config.json dosyasını uyguladığı. Çalışma alanı yapılandırma konumunda, yoksa ada göre ilk depoda açılır."
 
 msgid "The repository folder itself is kept."
 msgstr "Depo klasörünün kendisi korunur."

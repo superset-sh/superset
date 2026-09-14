@@ -229,6 +229,10 @@ export const SANDBOX_WORKSPACE_PATH = "/workspace";
 
 export const SANDBOX_IMAGE_NAME = "superset-hostsvc";
 
+/** The one transaction the API traces: the cloud workspace provision job. */
+export const CLOUD_WORKSPACE_PROVISION_TRANSACTION =
+	"cloud-workspace.provision";
+
 export const SHARED_ENVIRONMENT_ORGANIZATION_ID =
 	"00000000-0000-0000-0000-000000000000";
 
