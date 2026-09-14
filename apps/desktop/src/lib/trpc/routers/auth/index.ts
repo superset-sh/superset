@@ -10,6 +10,7 @@ import { env as sharedEnv } from "shared/env.shared";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	AUTH_STATE_TTL_MS,
 	authEvents,
 	clearToken,
 	loadToken,
@@ -90,8 +91,8 @@ export const createAuthRouter = () => {
 					const state = crypto.randomBytes(32).toString("base64url");
 					stateStore.set(state, Date.now());
 
-					// Clean up expired states (10 minutes)
-					const cutoff = Date.now() - 10 * 60 * 1000;
+					// Clean up expired states
+					const cutoff = Date.now() - AUTH_STATE_TTL_MS;
 					for (const [s, ts] of stateStore) {
 						if (ts < cutoff) stateStore.delete(s);
 					}
