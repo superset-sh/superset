@@ -136,11 +136,11 @@
 		"version": "3.5.1"
 	},
 	"host-service": {
-		"sha256": "71ade5793e30444f355fc2fc41677d0dc24c7d0c63b550baf48a2beda02e99af",
+		"sha256": "0664128e11a9934e30c9be17fd3d30e78145d09a021097ae189f275db4b636ea",
 		"suffix": ".tar.gz",
-		"dest": "/usr/local/share/superset/media/host-service-1.29.0+f9416f422.tar.gz",
+		"dest": "/usr/local/share/superset/media/host-service-1.29.0+73167e155.tar.gz",
 		"mode": "0644",
-		"version": "1.29.0+f9416f422",
+		"version": "1.29.0+73167e155",
 		"node": 24
 	},
 	"wallpaper-0": {

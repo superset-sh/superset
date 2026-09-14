@@ -119,7 +119,7 @@ export function useSubmitWorkspace(
 				return;
 			}
 			// An environment without repositories of its own takes the picked
-			// ones; the primary's default branch is what an untyped name means.
+			// ones. No branch means the API resolves the primary's default.
 			const pickedRepositoryIds =
 				environment.repositories.length === 0 ? draft.repositoryIds : [];
 			if (
@@ -133,7 +133,6 @@ export function useSubmitWorkspace(
 				);
 				return;
 			}
-			const primaryRepository = environment.repositories[0] ?? null;
 			try {
 				// A typed name wins; otherwise the API names it from the prompt,
 				// since nothing about a cloud workspace runs on this device.
@@ -164,7 +163,7 @@ export function useSubmitWorkspace(
 					// 20,000-character cap.
 					prompt:
 						(cloudPrompt ?? draft.prompt).trim().slice(0, 20_000) || undefined,
-					branch: branchName ?? primaryRepository?.defaultBranch ?? undefined,
+					branch: draft.baseBranch ?? branchName ?? undefined,
 					...(pickedRepositoryIds.length
 						? { repositoryIds: pickedRepositoryIds }
 						: {}),

@@ -65,8 +65,17 @@ environment and creates a cloud workspace on it with the onboarding prompt
 terminal and desktop, and promotes the result to a golden from the sidebar when it runs.
 
 The new-workspace form: for an environment with repositories the pill names them; for one
-without, a repository picker appears beside it and the branch picker reads the primary
-repository's branches.
+without, a repository picker appears beside it. The base-branch pill, which the cloud form
+used to hide, reads the primary repository's branches and its choice is the branch the box
+checks out (mobile already sent one).
+
+## Verified
+
+2026-09-14 on the worktree dev stack: dialog create and edit over CDP; the form's repository
+and branch pills on both kinds of environment; a real "Start agent" create on two public
+repositories (box healthy 12.8 s after provisioning started, both checkouts under
+`/workspace`, two projects seeded, the agent in the primary). boot-twice and runner-check on
+the multi-repo runner. Records: the implementation checklist, PR 6.
 
 ## Not built
 

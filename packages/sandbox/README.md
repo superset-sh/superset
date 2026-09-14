@@ -38,6 +38,11 @@ The rule of thumb: if you can answer "where is it on the box", put it there.
 | `bun run release` | Rewrites the host-service asset from this checkout, publishes the bundle, pushes the image (unless `--skip-image`), builds the internal golden with the environment's `setup` hook, probes a fork of it (`src/environments/probe.ts`) including a stop and wake, and writes the environment rows only after the probe passes. |
 | `bun run src/real-sandbox.ts` | The `workflow_dispatch` job: one real dev sandbox from the registry image on this checkout's bundle, the same probe, a stop and a wake. |
 
+An asset URL is content-addressed, so the CDN caches it for hours — including a 404. An image
+build that runs before the publish that uploads the asset poisons the edge it used for four
+hours; the runner's fetch retries with a cache-busting query when the plain URL 404s, and CI
+publishes before it builds. Locally: publish first.
+
 ## Versioning
 
 - A rootfs file: its sha256, compared to the `.hash` sidecar beside it on the box.

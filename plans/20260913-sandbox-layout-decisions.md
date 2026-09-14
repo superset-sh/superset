@@ -36,8 +36,11 @@ was put to Satya and settled, per the rule that we emulate first and deviate onl
 | 22 | Release job | Holds bucket write, registry push, a Vercel token for the sandboxes project and the production database URL; writes the environment row only after the probe passes, so a failed build leaves the previous one live |
 | 23 | Asset bucket | A new R2 bucket, public read, behind `cdn.superset.sh` (a wildcard on superset.sh currently answers every name; a specific record overrides it); sandbox objects under `/sandbox/<sha256><suffix>`; the firewall allowlist must include the host |
 | 24 | End-to-end tests | Every PR builds the image and boots it twice in a Docker container (steps, markers, hooks, secret handoff via env; second boot skips everything); `workflow_dispatch` and the release job boot a real dev-project sandbox for wake, gate and firewall checks |
+| 25 | Repositories per environment | An environment lists its repositories in order, the first being the one a workspace opens on; a workspace fixes its checkouts at create (`cloud_workspace_repositories`); every checkout lands at `/workspace/<name>`, one layout for one repository and for several; one GitHub installation per workspace because the firewall carries one `github.com` rule. Chosen by me 2026-09-14 after Satya asked for the multi-repository creation flow other platforms have; the record is `plans/20260914-multi-repo-environments.md` |
+| 26 | Config location and scope | `environments.hooks_repository_id` names whose `.superset/config.json` the box acts on (the dialog's "Config location"; none means only the row's override); `environments.scope` is `organization` or `personal`, a personal row visible to its creator alone. "Start agent" saves the environment and opens a cloud workspace on it with the onboarding prompt (`ENVIRONMENT_ONBOARDING_PROMPT`) so an agent installs the project and writes its hooks |
 
-`/workspace` at the root stays (decided earlier: industry convention, matches the reference).
+`/workspace` at the root stays (decided earlier: industry convention, matches the reference), now
+as the parent of one directory per repository (Decision 25).
 `/home/ubuntu` follows from decisions 1 and 11.
 
 On the page but not separate calls, because they follow from the above: the `setup` runner's
@@ -106,7 +109,7 @@ archives; `superset-desktop-init` as its own process beside host-service (the re
   leaves it, so host-service spawns; the runner decides when (host-service up, push landed,
   checkout in) through `sandbox.runStartHook`, so every boot-time action reads in `boot.log`.
   Once per boot, marker in `/run/superset`.
-- Repository `ports` are read from `.superset/config.json` at create (GitHub contents API, the
+- Repository `ports` are read from the hooks repository's `.superset/config.json` at create (GitHub contents API, the
   installation token) and published on the sandbox; the access mint still issues tickets for
   the two platform ports only. A ticket per repo port waits for a pane that uses one.
 - ~~Verify the Claude OAuth access-token lifetime~~ closed: the stored credential is the

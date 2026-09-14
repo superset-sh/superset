@@ -162,6 +162,14 @@ The root case is gone: the boot runner is the only thing that runs as root,
 and it drops to `ubuntu` (passwordless sudo) for host-service, the desktop,
 the checkout and every hook.
 
+**Every repository is a directory under `/workspace`.** A cloud workspace checks out one or
+more repositories, each at `/workspace/<repository name>` (the owner is prefixed only when two
+names clash), fixed at create in `cloud_workspace_repositories`. host-service seeds one
+project and one workspace row per checkout; the primary's row carries the cloud workspace's
+id, the others get ids derived from it and the path, so anything keyed on the cloud id (the
+desktop route, the agent launch, the terminals) lands in the primary and the rest are
+siblings. The `start` hook runs in the hooks repository's checkout, not in `/workspace`.
+
 **The checkout is the workspace.** No worktrees, no base repo, no branch
 creation — anything assuming a worktree can be created or discarded next to a
 main checkout has nothing to work with.

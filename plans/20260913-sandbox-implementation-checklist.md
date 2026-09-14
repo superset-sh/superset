@@ -122,6 +122,24 @@ Test
 
 Evidence: two consecutive dev releases and one rollback, each with the box's boot.log.
 
+## PR 6 — Multi-repository environments (added 2026-09-14)
+
+Model (`plans/20260914-multi-repo-environments.md`)
+- [x] `environment_repositories` (ordered, primary first), `cloud_workspace_repositories` (repository, branch, path), `environments.hooks_repository_id`, `scope`, `created_by_user_id` (migration `0117_environment_repositories_scope_and_workspace_repositories`, drizzle-kit output, applied on Neon `sandbox-v2-local-dev`).
+- [x] Identity carries `SUPERSET_SANDBOX_REPOSITORIES`; the runner checks each repository out at `/workspace/<name>` with a marker per path; host-service seeds one project per checkout, the primary under the cloud workspace id.
+- [x] One installation token per workspace, scoped to exactly the workspace's repositories (`repositoryNames` on the mint); the API refuses a mix of installations.
+- [x] `environment.create/update {repositoryIds, hooksRepositoryId, scope}`, `list/get` return `repositories` and hide other people's personal rows; `cloudWorkspace.create {repositoryIds?}` for the shared environment, `listBranches {repositoryId}`, `repositories`.
+
+UI
+- [x] Desktop: environment dialog (name, repositories with resync, config location, scope, Skip & save, Start agent = create + onboarding workspace), edit for existing rows, list shows repositories and scope; new-workspace form shows a repository picker for the shared environment and reads branches from the primary repository.
+- [x] Mobile: branch picker and cloud rows read the per-workspace repositories.
+- [x] CLI/MCP unchanged: they create on environments that carry repositories.
+
+Test
+- [x] boot-twice and runner-check on the multi-repo runner (2026-09-14, local image on bundle `02923e44b5d4`: 24/24 and 13/13; second boot `checkout.skipped superset already done`).
+- [x] The dialog and create flow over CDP (2026-09-14, dev app on the worktree stack): "Monorepo and plans" created from two repositories with the monorepo as config location, edited to personal; the new-workspace form shows the repository pill on `Default` and reads branches from the picked repository, then from the environment's primary after switching; "Start agent" on two public repositories opened a real box in 12.8 s (`first_healthy_at - provision_started_at`) with `/workspace/acme-demo` and `/workspace/homebrew-tap` checked out, two projects seeded (the primary under the cloud id), Claude launched in the primary checkout. A private repository fails in dev as before (the dev App is not installed on the organization; the API refuses to clone a private repository without a token).
+- [ ] A dev release with the monorepo as the internal environment's repository (needs the App installed for the token; production has it).
+
 ## Final acceptance (real sandbox, dev then production)
 
 - [ ] Create → terminal in the time P0 said we'd hit; reopen after a stop within budget. (NOT met: create 15.6 s and reopen 16.4 s medians on the v2 layout (from 19.6 s / 15.4–18.3 s); the box's share is 1.3 s and ours one round trip; 13–15 s is the platform bringing the VM up, which only P5 (a member already booted) can hide. Table in the start-time plan)

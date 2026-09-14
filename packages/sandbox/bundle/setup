@@ -69,7 +69,10 @@ fi
 [ "$current" = "$hash" ] && exit 0
 url="${SUPERSET_ASSET_BASE_URL}/${hash}${suffix}"
 out="$(mktemp "${SUPERSET_ASSET_TMP}/asset-XXXXXX")"
-curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "$out" "$url"
+# A content-addressed URL never changes, so a 404 is a not-yet-published asset or an edge
+# that cached one before the upload landed; the retry after the plain fetch goes around it.
+curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "$out" "$url" \
+  || curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors -o "$out" "${url}?fresh=$(date +%s)"
 got="$(sha256sum "$out" | cut -d" " -f1)"
 if [ "$got" != "$hash" ]; then echo "asset ${dest}: expected ${hash}, got ${got}" >&2; exit 1; fi
 install -D -m "$mode" "$out" "$dest"

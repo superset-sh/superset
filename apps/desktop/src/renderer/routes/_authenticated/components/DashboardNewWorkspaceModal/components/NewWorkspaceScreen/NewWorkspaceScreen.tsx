@@ -1073,7 +1073,9 @@ export function NewWorkspaceScreen({
 										<Trans>based off PR #{draft.linkedPR.prNumber}</Trans>
 									</span>
 								</>
-							) : draft.isSession || draft.hostId === CLOUD_HOST_ID ? null : (
+							) : draft.hostId === CLOUD_HOST_ID ? (
+								<CompareBaseBranchPicker {...pickerProps} />
+							) : draft.isSession ? null : (
 								<>
 									<CheckoutPickerPill
 										checkout={draft.checkout}
