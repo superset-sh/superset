@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { existsSync, rmSync, symlinkSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	renameSync,
+	rmSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
@@ -7,6 +15,7 @@ import { workspaces } from "../../src/db/schema";
 import * as teardown from "../../src/runtime/teardown";
 import { cleanupGitOps } from "../../src/trpc/router/workspace-cleanup/git-ops";
 import { __testDestroysInFlight } from "../../src/trpc/router/workspace-cleanup/workspace-cleanup";
+import * as setupTerminal from "../../src/trpc/router/workspace-creation/shared/setup-terminal";
 import { cloudFlows } from "../helpers/cloud-fakes";
 import {
 	createFeatureWorktreeScenario,
@@ -778,6 +787,91 @@ describe("workspaceCleanup.revive integration", () => {
 			setup.mockRestore();
 		}
 	});
+
+	for (const replacement of ["repository", "wrong branch", "detached HEAD"]) {
+		test(`rejects a locked stale registration replaced by ${replacement}`, async () => {
+			await destroyFeature();
+			const archived = readRow(scenario.featureWorkspaceId);
+			await scenario.repo.git.raw([
+				"worktree",
+				"add",
+				scenario.worktreePath,
+				scenario.branch,
+			]);
+			await scenario.repo.git.raw(["worktree", "lock", scenario.worktreePath]);
+			rmSync(scenario.worktreePath, { recursive: true, force: true });
+			if (replacement === "repository") {
+				await scenario.repo.git.raw([
+					"clone",
+					"--no-hardlinks",
+					"--branch",
+					scenario.branch,
+					scenario.repo.repoPath,
+					scenario.worktreePath,
+				]);
+			} else {
+				const replacementPath = `${scenario.worktreePath}-replacement`;
+				await scenario.repo.git.raw([
+					"worktree",
+					"add",
+					...(replacement === "wrong branch"
+						? ["-b", "replacement"]
+						: ["--detach"]),
+					replacementPath,
+					`refs/heads/${scenario.branch}`,
+				]);
+				await scenario.repo.git.raw(["worktree", "lock", replacementPath]);
+				renameSync(replacementPath, scenario.worktreePath);
+			}
+			const identity = await cleanupGitOps.readArchiveIdentity({
+				worktreePath: scenario.worktreePath,
+				gitEnv: {},
+			});
+			expect(identity.headSha).toBeTruthy();
+			expect(identity.headRef).toBe(
+				replacement === "repository"
+					? `refs/heads/${scenario.branch}`
+					: replacement === "wrong branch"
+						? "refs/heads/replacement"
+						: null,
+			);
+			const marker = join(scenario.worktreePath, "replacement.txt");
+			writeFileSync(marker, "preserve replacement files");
+			const setupDir = join(scenario.worktreePath, ".superset");
+			mkdirSync(setupDir, { recursive: true });
+			const setupScript = join(setupDir, "setup.sh");
+			const script = "printf executed > replacement-setup-ran\n";
+			writeFileSync(setupScript, script);
+			const setup = spyOn(setupTerminal, "startSetupTerminalIfPresent");
+			try {
+				await expectCode(
+					scenario.host.trpc.workspaceCleanup.revive.mutate({
+						workspaceId: scenario.featureWorkspaceId,
+					}),
+					"PRECONDITION_FAILED",
+				);
+				expect(readRow(scenario.featureWorkspaceId)).toEqual(archived);
+				expect(setup).not.toHaveBeenCalled();
+				expect(
+					existsSync(join(scenario.worktreePath, "replacement-setup-ran")),
+				).toBe(false);
+				expect(readFileSync(marker, "utf8")).toBe("preserve replacement files");
+				expect(readFileSync(setupScript, "utf8")).toBe(script);
+				expect(existsSync(join(scenario.worktreePath, ".git"))).toBe(true);
+				const listed = await scenario.repo.git.raw([
+					"worktree",
+					"list",
+					"--porcelain",
+				]);
+				expect(listed).toContain(`worktree ${scenario.worktreePath}`);
+				expect(listed).toContain(
+					`branch refs/heads/${scenario.branch}\nlocked`,
+				);
+			} finally {
+				setup.mockRestore();
+			}
+		});
+	}
 
 	test("keeps a locked worktree archived when its directory is missing", async () => {
 		const archivedAt = Date.now();

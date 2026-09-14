@@ -4,7 +4,7 @@
 // the credential provider) and crosses as plain data.
 
 import { lstatSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import {
 	getGitAuthorName,
 	type ResolvedGitInfo,
@@ -473,7 +473,42 @@ export const gitReviveWorktreeTask = defineWorkerTask<
 				message: `No usable worktree exists at ${worktreePath}`,
 			};
 		}
-		return { ok: true, branch };
+		try {
+			const repoCwd = normalizeWorktreePath(repoPath);
+			const worktreeCwd = normalizeWorktreePath(resolve(repoCwd, worktreePath));
+			const repoCommonDir = (
+				await git.raw(["rev-parse", "--git-common-dir"])
+			).trim();
+			const worktreeGit = createUserSimpleGit(worktreeCwd).env(gitEnv);
+			const worktreeCommonDir = (
+				await worktreeGit.raw(["rev-parse", "--git-common-dir"])
+			).trim();
+			const headRef = (await worktreeGit.raw(["symbolic-ref", "HEAD"])).trim();
+			const headCommit = (
+				await worktreeGit.raw(["rev-parse", "--verify", "HEAD^{commit}"])
+			).trim();
+			if (
+				repoCommonDir &&
+				worktreeCommonDir &&
+				normalizeWorktreePath(resolve(repoCwd, repoCommonDir)) ===
+					normalizeWorktreePath(resolve(worktreeCwd, worktreeCommonDir)) &&
+				headRef === `refs/heads/${archivedBranch}` &&
+				headCommit
+			) {
+				return { ok: true, branch };
+			}
+		} catch {
+			return {
+				ok: false,
+				code: "PRECONDITION_FAILED",
+				message: `Cannot verify worktree identity at ${worktreePath}`,
+			};
+		}
+		return {
+			ok: false,
+			code: "PRECONDITION_FAILED",
+			message: `Worktree identity does not match the archived workspace at ${worktreePath}`,
+		};
 	},
 });
 
