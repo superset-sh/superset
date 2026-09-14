@@ -341,6 +341,7 @@ const { networkPolicy, managedEnv } = deriveSandboxCredentials({
 	environmentEnv: probeEnv,
 	userAgentEnv: {},
 	githubToken: null,
+	gitAuthor: { name: "Superset release", email: "noreply@superset.sh" },
 });
 const probeClaim = {
 	identity: identityFor(probeWorkspaceId, golden),
