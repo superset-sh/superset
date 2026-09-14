@@ -161,6 +161,15 @@ Costs, all one-time:
 > **Resolved 2026-08-21: SwiftUI automatic avoidance, zero code.** The comparison below is kept
 > because it is why the spike was run and what would bring `keyboardLayoutGuide` back. See
 > Progress → Milestone 2 for the result.
+>
+> **Reversed 2026-09-13.** The automatic avoidance stranded the collapsed pill at keyboard height
+> on a phone: it is a global tracker that lifts the hosting view for any keyboard on screen and
+> clears only on the hide it happens to observe, and the composer could neither see nor reset it.
+> The hosting controller's keyboard region is now off (`safeAreaRegions = .container`) and
+> `ComposerKeyboardTracker` applies the keyboard overlap as SwiftUI padding, only while the
+> composer's own editor is first responder. Not `keyboardLayoutGuide`: constraining the hosting
+> view to it was tried and the cluster snapped to its final position while the keyboard was still
+> rising — SwiftUI does not ride a UIKit-driven frame change.
 
 Once full-screen, both are available. They differ precisely on our case: a *growing* multiline input
 during a keyboard transition.

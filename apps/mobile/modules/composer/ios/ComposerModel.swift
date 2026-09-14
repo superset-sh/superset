@@ -171,6 +171,10 @@ final class ComposerModel {
 
   func settle() { isAppearing = false }
 
+  /// How far the cluster sits above the bottom safe area to clear the
+  /// keyboard. Written only by `ComposerKeyboardTracker`.
+  var keyboardInset: CGFloat = 0
+
   /// First delivery of `initialDraft` wins; React Native pins the value at
   /// mount, so later deliveries are the same text and must not clobber typing.
   @ObservationIgnored private var hasAppliedInitialDraft = false
