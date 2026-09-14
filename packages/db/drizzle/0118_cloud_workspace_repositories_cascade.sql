@@ -1,3 +1,0 @@
-ALTER TABLE "cloud_workspace_repositories" DROP CONSTRAINT "cloud_workspace_repositories_repository_id_github_repositories_id_fk";
---> statement-breakpoint
-ALTER TABLE "cloud_workspace_repositories" ADD CONSTRAINT "cloud_workspace_repositories_repository_id_github_repositories_id_fk" FOREIGN KEY ("repository_id") REFERENCES "public"."github_repositories"("id") ON DELETE cascade ON UPDATE no action;

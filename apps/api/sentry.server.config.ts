@@ -12,8 +12,7 @@ Sentry.init({
 	// day, 115x the org quota, and #7388's narrow sampler recorded nothing at
 	// all (cause unknown; the pdx1 move was measured in Vercel Observability).
 	// The one transaction sampled is the cloud workspace provision job, which
-	// runs after its request has answered and flushes itself; if it too never
-	// arrives, the same job's structured log line in Vercel is the record.
+	// runs after its request has answered and flushes itself.
 	tracesSampler: ({ name }) =>
 		name === CLOUD_WORKSPACE_PROVISION_TRANSACTION ? 1 : 0,
 	sendDefaultPii: true,

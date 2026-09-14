@@ -55,8 +55,6 @@ export type ProvisionCloudWorkspaceOutcome =
 export async function provisionCloudWorkspace(
 	input: ProvisionCloudWorkspaceInput,
 ): Promise<ProvisionCloudWorkspaceOutcome> {
-	const startedAt = Date.now();
-	const stages: Record<string, number> = {};
 	const outcome = await Sentry.startSpan(
 		{
 			name: CLOUD_WORKSPACE_PROVISION_TRANSACTION,
@@ -64,40 +62,16 @@ export async function provisionCloudWorkspace(
 			forceTransaction: true,
 			attributes: { "cloud_workspace.id": input.cloudWorkspaceId },
 		},
-		() => provision(input, stages),
+		() => provision(input),
 	);
 	// The job runs after its request has answered, so nothing else flushes
-	// for it; and a log line is the record whether or not the span arrives.
-	console.info(
-		JSON.stringify({
-			event: CLOUD_WORKSPACE_PROVISION_TRANSACTION,
-			cloudWorkspaceId: input.cloudWorkspaceId,
-			outcome,
-			totalMs: Date.now() - startedAt,
-			...stages,
-		}),
-	);
+	// the transaction before the runtime moves on.
 	await Sentry.flush(2_000).catch(() => false);
 	return outcome;
 }
 
-/** A stage of the job as a span and as a duration on the log line. */
-async function stage<T>(
-	stages: Record<string, number>,
-	name: string,
-	run: () => Promise<T>,
-): Promise<T> {
-	const startedAt = Date.now();
-	try {
-		return await Sentry.startSpan({ name, op: "sandbox" }, run);
-	} finally {
-		stages[`${name}Ms`] = Date.now() - startedAt;
-	}
-}
-
 async function provision(
 	input: ProvisionCloudWorkspaceInput,
-	stages: Record<string, number>,
 ): Promise<ProvisionCloudWorkspaceOutcome> {
 	const row = await db.query.cloudWorkspaces.findFirst({
 		where: eq(cloudWorkspaces.id, input.cloudWorkspaceId),
@@ -120,11 +94,14 @@ async function provision(
 					},
 				);
 	try {
-		const { claim, environment } = await stage(stages, "claim", () =>
-			buildSandboxClaim({ row, launch: input.launch, withRepoHooks: true }),
+		const { claim, environment } = await Sentry.startSpan(
+			{ name: "claim", op: "sandbox" },
+			() =>
+				buildSandboxClaim({ row, launch: input.launch, withRepoHooks: true }),
 		);
-		const sandbox = await stage(stages, "create", () =>
-			provisionSandbox({ name: providerSandboxId, environment, claim }),
+		const sandbox = await Sentry.startSpan(
+			{ name: "create", op: "sandbox" },
+			() => provisionSandbox({ name: providerSandboxId, environment, claim }),
 		);
 		const ready = await transitionCloudWorkspace({
 			id: row.id,
@@ -146,7 +123,7 @@ async function provision(
 		// The box is booting; the environment it needs arrives once host-service
 		// answers. The client's own wake pushes it again, so a workspace nobody
 		// opens still gets it (an agent launched at boot waits for this).
-		await stage(stages, "settle", () =>
+		await Sentry.startSpan({ name: "settle", op: "sandbox" }, () =>
 			settleSandbox({
 				providerSandboxId,
 				hostTarget: sandbox.hostTarget,

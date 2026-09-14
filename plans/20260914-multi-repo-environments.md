@@ -87,11 +87,13 @@ the multi-repo runner. Records: the implementation checklist, PR 6.
 
 - **No `position`.** Repositories read alphabetically everywhere; the workspace opens on the
   environment's config location (`hooks_repository_id`), else the first repository by name.
-  Two columns and one concept fewer (migration 0120).
-- **Boot timing leaves the row.** The five stamp columns are dropped (migration 0119) and the
-  desktop's `cloud_workspace_opened` event and its terminal attach notifier are removed. Where
-  the per-provision timing lands instead is settled separately (Sentry tracing on the API is
-  disabled and last time recorded nothing; a scoped sampler is being probed).
+  Two columns and one concept fewer.
+- **Boot timing leaves the row.** No stamp columns; the desktop's `cloud_workspace_opened` event
+  and its terminal attach notifier are removed. The provision job is one Sentry transaction with
+  a span per stage (claim, create, settle), sampled by name so nothing else in the API is traced.
+  Whether it arrives is checked after the production deploy; no fallback is kept.
+- **One migration.** The branch's six incremental migrations were regenerated into
+  `0115_cloud_environments_repositories` before `main`.
 
 ## TODO: multi-repository as a product
 

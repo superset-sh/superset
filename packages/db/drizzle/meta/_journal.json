@@ -810,43 +810,8 @@
     {
       "idx": 115,
       "version": "7",
-      "when": 1789365060557,
-      "tag": "0115_cloud_workspace_boot_stamps",
-      "breakpoints": true
-    },
-    {
-      "idx": 116,
-      "version": "7",
-      "when": 1789368255082,
-      "tag": "0116_environment_bundle_sha_and_hooks",
-      "breakpoints": true
-    },
-    {
-      "idx": 117,
-      "version": "7",
-      "when": 1789403012489,
-      "tag": "0117_environment_repositories_scope_and_workspace_repositories",
-      "breakpoints": true
-    },
-    {
-      "idx": 118,
-      "version": "7",
-      "when": 1789408057147,
-      "tag": "0118_cloud_workspace_repositories_cascade",
-      "breakpoints": true
-    },
-    {
-      "idx": 119,
-      "version": "7",
-      "when": 1789421207045,
-      "tag": "0119_cloud_workspace_boot_stamps_removed",
-      "breakpoints": true
-    },
-    {
-      "idx": 120,
-      "version": "7",
-      "when": 1789421701035,
-      "tag": "0120_repository_links_unordered",
+      "when": 1789422695438,
+      "tag": "0115_cloud_environments_repositories",
       "breakpoints": true
     }
   ]

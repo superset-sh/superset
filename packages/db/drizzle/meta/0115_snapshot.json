@@ -1,5 +1,5 @@
 {
-  "id": "2ce43977-82d6-4b56-8d6b-5d85519057c2",
+  "id": "58919d91-9911-4345-a985-25438fb13a42",
   "prevId": "76f117a5-f0c0-408f-a65d-475d36bc87f8",
   "version": "7",
   "dialect": "postgresql",
@@ -6157,6 +6157,102 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.cloud_workspace_repositories": {
+      "name": "cloud_workspace_repositories",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "cloud_workspace_id": {
+          "name": "cloud_workspace_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "repository_id": {
+          "name": "repository_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "branch": {
+          "name": "branch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "cloud_workspace_repositories_cloud_workspace_id_idx": {
+          "name": "cloud_workspace_repositories_cloud_workspace_id_idx",
+          "columns": [
+            {
+              "expression": "cloud_workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cloud_workspace_repositories_cloud_workspace_id_cloud_workspaces_id_fk": {
+          "name": "cloud_workspace_repositories_cloud_workspace_id_cloud_workspaces_id_fk",
+          "tableFrom": "cloud_workspace_repositories",
+          "tableTo": "cloud_workspaces",
+          "columnsFrom": [
+            "cloud_workspace_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "cloud_workspace_repositories_repository_id_github_repositories_id_fk": {
+          "name": "cloud_workspace_repositories_repository_id_github_repositories_id_fk",
+          "tableFrom": "cloud_workspace_repositories",
+          "tableTo": "github_repositories",
+          "columnsFrom": [
+            "repository_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "cloud_workspace_repositories_workspace_repository_unique": {
+          "name": "cloud_workspace_repositories_workspace_repository_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "cloud_workspace_id",
+            "repository_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.cloud_workspaces": {
       "name": "cloud_workspaces",
       "schema": "",
@@ -6222,36 +6318,6 @@
         "host_version": {
           "name": "host_version",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "provision_started_at": {
-          "name": "provision_started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sandbox_create_started_at": {
-          "name": "sandbox_create_started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sandbox_create_finished_at": {
-          "name": "sandbox_create_finished_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "boot_fired_at": {
-          "name": "boot_fired_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "first_healthy_at": {
-          "name": "first_healthy_at",
-          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -6655,6 +6721,90 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.environment_repositories": {
+      "name": "environment_repositories",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "environment_id": {
+          "name": "environment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "repository_id": {
+          "name": "repository_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "environment_repositories_environment_id_idx": {
+          "name": "environment_repositories_environment_id_idx",
+          "columns": [
+            {
+              "expression": "environment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "environment_repositories_environment_id_environments_id_fk": {
+          "name": "environment_repositories_environment_id_environments_id_fk",
+          "tableFrom": "environment_repositories",
+          "tableTo": "environments",
+          "columnsFrom": [
+            "environment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "environment_repositories_repository_id_github_repositories_id_fk": {
+          "name": "environment_repositories_repository_id_github_repositories_id_fk",
+          "tableFrom": "environment_repositories",
+          "tableTo": "github_repositories",
+          "columnsFrom": [
+            "repository_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "environment_repositories_environment_id_repository_id_unique": {
+          "name": "environment_repositories_environment_id_repository_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "environment_id",
+            "repository_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.environment_secrets": {
       "name": "environment_secrets",
       "schema": "",
@@ -6851,6 +7001,38 @@
           "primaryKey": false,
           "notNull": true
         },
+        "bundle_sha": {
+          "name": "bundle_sha",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hooks": {
+          "name": "hooks",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hooks_repository_id": {
+          "name": "hooks_repository_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "environment_scope",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'organization'"
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "archived_at": {
           "name": "archived_at",
           "type": "timestamp with time zone",
@@ -6902,6 +7084,33 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "environments_hooks_repository_id_github_repositories_id_fk": {
+          "name": "environments_hooks_repository_id_github_repositories_id_fk",
+          "tableFrom": "environments",
+          "tableTo": "github_repositories",
+          "columnsFrom": [
+            "hooks_repository_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "environments_created_by_user_id_users_id_fk": {
+          "name": "environments_created_by_user_id_users_id_fk",
+          "tableFrom": "environments",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -10284,6 +10493,14 @@
         "immediate",
         "pre-update",
         "post-update"
+      ]
+    },
+    "public.environment_scope": {
+      "name": "environment_scope",
+      "schema": "public",
+      "values": [
+        "organization",
+        "personal"
       ]
     },
     "public.environment_source_kind": {
