@@ -7,6 +7,7 @@
 import {
 	SANDBOX_PATHS,
 	SANDBOX_PORTS,
+	sandboxCheckoutDir,
 } from "@superset/shared/sandbox-contract";
 import { mintSandboxGateAccess } from "@superset/trpc/lib/sandbox";
 import { Sandbox } from "@vercel/sandbox";
@@ -120,7 +121,7 @@ export async function probeBox(args: ProbeArgs): Promise<number> {
 	if (
 		!(await until(
 			"checkout on the branch",
-			`git -C ${SANDBOX_PATHS.workspace}/${args.primaryPath} rev-parse --abbrev-ref HEAD`,
+			`git -C ${sandboxCheckoutDir(SANDBOX_PATHS.workspace, args.primaryPath)} rev-parse --abbrev-ref HEAD`,
 			new RegExp(`^${args.branch}$`, "m"),
 			300,
 		))
@@ -130,7 +131,7 @@ export async function probeBox(args: ProbeArgs): Promise<number> {
 	if (args.expectDependencies) {
 		await until(
 			"dependencies survive the fork",
-			`test -d ${SANDBOX_PATHS.workspace}/${args.primaryPath}/node_modules && echo ok`,
+			`test -d ${sandboxCheckoutDir(SANDBOX_PATHS.workspace, args.primaryPath)}/node_modules && echo ok`,
 			/ok/,
 			10,
 		);

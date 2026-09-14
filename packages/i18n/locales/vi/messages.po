@@ -15058,6 +15058,12 @@ msgstr "Thiết bị này chưa kết nối tới relay của Superset nên các
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Thư mục này không tồn tại. Script terminal sẽ quay về thư mục gốc của workspace."
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "Environment này được promote từ một workspace nên các repository của nó đã cố định. Hãy promote lại một workspace để thay đổi."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "Các repository của environment này đã cố định; hãy promote lại một workspace để thay đổi"
+
 msgid "this file"
 msgstr "tệp này"
 

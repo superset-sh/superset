@@ -15058,6 +15058,12 @@ msgstr "Dieses Gerät ist nicht mit dem Superset-Relay verbunden, daher werden A
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Dieses Verzeichnis existiert nicht. Das Terminal-Skript greift auf die Wurzel des Arbeitsbereichs zurück."
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "Diese Umgebung wurde aus einem Arbeitsbereich befördert, daher sind ihre Repositories festgelegt. Befördere erneut einen Arbeitsbereich, um sie zu ändern."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "Die Repositories dieser Umgebung sind festgelegt; befördere erneut einen Arbeitsbereich, um sie zu ändern"
+
 msgid "this file"
 msgstr "diese Datei"
 

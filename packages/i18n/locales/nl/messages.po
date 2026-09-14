@@ -15058,6 +15058,12 @@ msgstr "Dit apparaat is niet verbonden met de Superset-relay, dus runs van autom
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Deze map bestaat niet. Het terminalscript valt terug op de root van de werkruimte."
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "Deze omgeving is gepromoveerd vanuit een werkruimte, dus de repositories liggen vast. Promoveer opnieuw een werkruimte om ze te wijzigen."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "De repositories van deze omgeving liggen vast; promoveer opnieuw een werkruimte om ze te wijzigen"
+
 msgid "this file"
 msgstr "dit bestand"
 

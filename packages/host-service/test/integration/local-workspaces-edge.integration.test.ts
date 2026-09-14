@@ -681,6 +681,7 @@ describe("local workspaces: sessions and sandbox seed", () => {
 		dispose = () => host.dispose();
 		const identity = {
 			workspaceId: randomUUID(),
+			workspaceRoot: "/workspace",
 			worktreePath: "/workspace/repo",
 			workspaceName: "sandbox ws",
 			projectName: "sandbox project",

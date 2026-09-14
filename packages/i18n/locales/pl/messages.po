@@ -15058,6 +15058,12 @@ msgstr "To urządzenie nie jest połączone z przekaźnikiem Superset, więc uru
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Ten katalog nie istnieje. Skrypt terminala użyje katalogu głównego obszaru roboczego."
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "To środowisko powstało z awansowanego obszaru roboczego, więc jego repozytoria są ustalone. Aby je zmienić, ponownie awansuj obszar roboczy."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "Repozytoria tego środowiska są ustalone; aby je zmienić, ponownie awansuj obszar roboczy"
+
 msgid "this file"
 msgstr "ten plik"
 

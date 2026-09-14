@@ -37,7 +37,9 @@ import {
 import {
 	SANDBOX_CONTRACT_VERSION,
 	SANDBOX_PATHS,
+	SANDBOX_ROOT_CHECKOUT,
 	type SandboxIdentity,
+	sandboxCheckoutDir,
 } from "@superset/shared/sandbox-contract";
 import { Sandbox } from "@vercel/sandbox";
 
@@ -54,7 +56,8 @@ const ORGANIZATION_ID = process.env.SUPERSET_INTERNAL_ORGANIZATION_ID;
 const ENV_FILE = process.env.SUPERSET_INTERNAL_ENV_FILE;
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 const REPO_URL = "https://github.com/superset-sh/superset.git";
-const REPO_PATH = "superset";
+const REPO_PATH = SANDBOX_ROOT_CHECKOUT;
+const REPO_DIR = sandboxCheckoutDir(SANDBOX_PATHS.workspace, REPO_PATH);
 const REPO_FULL_NAME = "superset-sh/superset";
 const BRANCH = "main";
 
@@ -249,7 +252,7 @@ log(
 );
 const setup = await runLong(
 	goldenBox,
-	`cd ${SANDBOX_PATHS.workspace}/${REPO_PATH} && ${hooks.setup.join(" && ")}`,
+	`cd ${REPO_DIR} && ${hooks.setup.join(" && ")}`,
 );
 for (const line of setup.logs
 	.split("\n")
@@ -259,19 +262,11 @@ if (setup.code !== 0)
 	fail(`setup hook exited ${setup.code}; ${golden} left for inspection`);
 
 const checks: Array<[label: string, command: string, expect: RegExp]> = [
-	[
-		"repo",
-		`git -C ${SANDBOX_PATHS.workspace}/${REPO_PATH} remote get-url origin`,
-		/superset-sh\/superset/,
-	],
-	[
-		"dependencies",
-		`test -d ${SANDBOX_PATHS.workspace}/${REPO_PATH}/node_modules && echo ok`,
-		/ok/,
-	],
+	["repo", `git -C ${REPO_DIR} remote get-url origin`, /superset-sh\/superset/],
+	["dependencies", `test -d ${REPO_DIR}/node_modules && echo ok`, /ok/],
 	[
 		"turbo",
-		`cd ${SANDBOX_PATHS.workspace}/${REPO_PATH} && bun x turbo --version 2>/dev/null | tail -1`,
+		`cd ${REPO_DIR} && bun x turbo --version 2>/dev/null | tail -1`,
 		/^\d+\.\d+\.\d+/m,
 	],
 	[

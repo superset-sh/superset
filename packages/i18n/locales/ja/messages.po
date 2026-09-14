@@ -15058,6 +15058,12 @@ msgstr "このデバイスはSupersetリレーに接続されていないため�
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "このディレクトリは存在しません。ターミナルスクリプトはワークスペースルートにフォールバックします。"
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "この環境はワークスペースから昇格されたため、リポジトリは固定されています。変更するにはワークスペースを再度昇格してください。"
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "この環境のリポジトリは固定されています。変更するにはワークスペースを再度昇格してください"
+
 msgid "this file"
 msgstr "このファイル"
 

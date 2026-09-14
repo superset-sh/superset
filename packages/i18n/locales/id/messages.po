@@ -15058,6 +15058,12 @@ msgstr "Perangkat ini tidak terhubung ke relay Superset, jadi run otomatisasi ak
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Direktori ini tidak ada. Skrip terminal akan memakai root workspace."
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "Environment ini dipromosikan dari sebuah workspace, sehingga repositorinya sudah tetap. Promosikan workspace lagi untuk mengubahnya."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "Repositori environment ini sudah tetap; promosikan workspace lagi untuk mengubahnya"
+
 msgid "this file"
 msgstr "file ini"
 

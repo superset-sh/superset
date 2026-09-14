@@ -15058,6 +15058,12 @@ msgstr "Это устройство не подключено к реле Supers
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Такой папки не существует. Скрипт терминала запустится в корне рабочей области."
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "Это окружение было создано повышением рабочей области, поэтому его репозитории зафиксированы. Чтобы изменить их, снова повысьте рабочую область."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "Репозитории этого окружения зафиксированы; чтобы изменить их, снова повысьте рабочую область"
+
 msgid "this file"
 msgstr "этот файл"
 

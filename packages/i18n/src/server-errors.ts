@@ -251,6 +251,13 @@ export const serverErrorMessages: Record<
 					"The config repository must be one of the environment's repositories",
 			}),
 		),
+	"serverError.environment.repositoriesFrozen": () =>
+		i18n._(
+			msg({
+				message:
+					"This environment's repositories are fixed; promote a workspace again to change them",
+			}),
+		),
 	"serverError.environment.couldNotRecord": () =>
 		i18n._(
 			msg({

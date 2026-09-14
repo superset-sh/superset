@@ -162,6 +162,8 @@ export function EnvironmentsSettings({
 														(repo) => repo.id,
 													),
 													hooksRepositoryId: environment.hooksRepositoryId,
+													repositoriesFrozen:
+														environment.sourceKind !== "image",
 												},
 											})
 										}

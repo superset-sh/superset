@@ -162,9 +162,11 @@ The root case is gone: the boot runner is the only thing that runs as root,
 and it drops to `ubuntu` (passwordless sudo) for host-service, the desktop,
 the checkout and every hook.
 
-**Every repository is a directory under `/workspace`.** A cloud workspace checks out one or
-more repositories, each at `/workspace/<repository name>` (the owner is prefixed only when two
-names clash), fixed at create in `cloud_workspace_repositories`. host-service seeds one
+**Several repositories are directories under `/workspace`.** A cloud workspace on one
+repository has it at `/workspace`; on several, each sits at `/workspace/<repository name>`
+(the owner is prefixed only when two names clash). The layout is fixed at create in
+`cloud_workspace_repositories` (`.` is the root), and a promoted environment's repository set
+is frozen because its golden was built for it. host-service seeds one
 project and one workspace row per checkout; the primary's row carries the cloud workspace's
 id, the others get ids derived from it and the path, so anything keyed on the cloud id (the
 desktop route, the agent launch, the terminals) lands in the primary and the rest are

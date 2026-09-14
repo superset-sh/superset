@@ -15058,6 +15058,12 @@ msgstr "此裝置沒有連線到Superset中繼，自動化的執行會被跳過�
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "此目錄不存在。終端指令碼將回退到工作區根目錄。"
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "此環境由工作區提升而來，因此其儲存庫已固定。請再次提升一個工作區以變更它們。"
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "此環境的儲存庫已固定；請再次提升一個工作區以變更它們"
+
 msgid "this file"
 msgstr "該檔案"
 

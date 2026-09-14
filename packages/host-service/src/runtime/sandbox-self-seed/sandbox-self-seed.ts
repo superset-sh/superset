@@ -11,6 +11,7 @@ import {
 import {
 	SANDBOX_PATHS,
 	type SandboxRepository,
+	sandboxCheckoutDir,
 	sandboxRepositoriesSchema,
 } from "@superset/shared/sandbox-contract";
 import { eq } from "drizzle-orm";
@@ -45,6 +46,8 @@ export interface SandboxIdentity {
 	workspaceName: string;
 	projectName: string;
 	branch: string;
+	/** The directory the checkouts live under. */
+	workspaceRoot: string;
 	/** The primary repository's checkout: the one the workspace opens on. */
 	worktreePath: string;
 	/** Every checkout on the box, the primary first. */
@@ -115,9 +118,10 @@ export function readSandboxIdentity(
 	const hooksRepository = repositories.find((repo) => repo.hooks) ?? primary;
 	return {
 		workspaceId,
-		worktreePath: join(root, primary.path),
+		workspaceRoot: root,
+		worktreePath: sandboxCheckoutDir(root, primary.path),
 		repositories,
-		hooksPath: join(root, hooksRepository.path),
+		hooksPath: sandboxCheckoutDir(root, hooksRepository.path),
 		// The API owns the workspace's name; the row here is scratch host-service
 		// serves panes against, so it needs a name, not the name.
 		workspaceName: "workspace",
@@ -310,7 +314,7 @@ export function runSandboxSelfSeed(
 	db: HostDb,
 	identity: SandboxIdentity,
 ): void {
-	const root = dirname(identity.worktreePath);
+	const root = identity.workspaceRoot;
 	const now = Date.now();
 	identity.repositories.forEach((repo, index) => {
 		const id =
@@ -324,12 +328,12 @@ export function runSandboxSelfSeed(
 			.get();
 		if (existing) return;
 		const projectId = crypto.randomUUID();
-		const worktreePath = join(root, repo.path);
+		const worktreePath = sandboxCheckoutDir(root, repo.path);
 		db.insert(projects)
 			.values({
 				id: projectId,
 				repoPath: worktreePath,
-				name: repo.path,
+				name: index === 0 ? identity.projectName : repo.path,
 				createdAt: now,
 				updatedAt: now,
 			})

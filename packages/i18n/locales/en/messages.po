@@ -15058,6 +15058,12 @@ msgstr "This device isn't connected to the Superset relay, so automation runs wi
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "This directory does not exist. The terminal script will fall back to the workspace root."
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "This environment's repositories are fixed; promote a workspace again to change them"
+
 msgid "this file"
 msgstr "this file"
 

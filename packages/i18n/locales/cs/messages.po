@@ -15058,6 +15058,12 @@ msgstr "Toto zařízení není připojené k Superset relay, takže běhy automa
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Tento adresář neexistuje. Terminálový skript se vrátí ke kořeni pracovního prostoru."
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "Toto prostředí bylo povýšeno z pracovního prostoru, takže jeho repozitáře jsou pevně dané. Pro jejich změnu znovu povyšte pracovní prostor."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "Repozitáře tohoto prostředí jsou pevně dané; pro jejich změnu znovu povyšte pracovní prostor"
+
 msgid "this file"
 msgstr "tento soubor"
 

@@ -341,6 +341,16 @@ export const environmentRouter = {
 			await assertCloudAccess(ctx);
 			const current = await loadEnvironment(input.id, ctx.organizationIds);
 			assertOwned(current);
+			// A golden was built for its repositories: cloned, set up, snapshotted.
+			// A different set means a different golden, so it is promoted again.
+			if (input.repositoryIds && current.sourceKind !== "image") {
+				throw userError({
+					code: "FORBIDDEN",
+					message:
+						"This environment's repositories are fixed; promote a workspace again to change them",
+					i18nKey: "serverError.environment.repositoriesFrozen",
+				});
+			}
 			if (input.repositoryIds) {
 				await setEnvironmentRepositories({
 					environmentId: input.id,
@@ -357,17 +367,21 @@ export const environmentRouter = {
 					.set({ hooksRepositoryId: input.hooksRepositoryId })
 					.where(eq(environments.id, input.id));
 			}
+			const patch = {
+				...(input.name ? { name: input.name } : {}),
+				...(input.sourceRef ? { sourceRef: input.sourceRef } : {}),
+				...(input.bundleSha !== undefined
+					? { bundleSha: input.bundleSha }
+					: {}),
+				...(input.hooks !== undefined ? { hooks: input.hooks } : {}),
+				...(input.scope ? { scope: input.scope } : {}),
+			};
+			if (Object.keys(patch).length === 0) {
+				return loadEnvironment(input.id, ctx.organizationIds);
+			}
 			const [row] = await db
 				.update(environments)
-				.set({
-					...(input.name ? { name: input.name } : {}),
-					...(input.sourceRef ? { sourceRef: input.sourceRef } : {}),
-					...(input.bundleSha !== undefined
-						? { bundleSha: input.bundleSha }
-						: {}),
-					...(input.hooks !== undefined ? { hooks: input.hooks } : {}),
-					...(input.scope ? { scope: input.scope } : {}),
-				})
+				.set(patch)
 				.where(eq(environments.id, input.id))
 				.returning();
 			return row;

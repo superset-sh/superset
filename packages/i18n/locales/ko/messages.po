@@ -15058,6 +15058,12 @@ msgstr "이 기기가 Superset 릴레이에 연결되어 있지 않아 자동화
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "이 디렉터리가 없습니다. 터미널 스크립트는 워크스페이스 루트에서 실행됩니다."
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "이 환경은 워크스페이스에서 승격되었기 때문에 리포지토리가 고정되어 있습니다. 변경하려면 워크스페이스를 다시 승격하세요."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "이 환경의 리포지토리는 고정되어 있습니다. 변경하려면 워크스페이스를 다시 승격하세요"
+
 msgid "this file"
 msgstr "이 파일"
 

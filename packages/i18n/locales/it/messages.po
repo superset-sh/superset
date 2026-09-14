@@ -15058,6 +15058,12 @@ msgstr "Questo dispositivo non è connesso al relay di Superset, quindi le esecu
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Questa directory non esiste. Lo script del terminale userà la radice del workspace."
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "Questo ambiente è stato promosso da un workspace, quindi i suoi repository sono fissi. Promuovi di nuovo un workspace per cambiarli."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "I repository di questo ambiente sono fissi; promuovi di nuovo un workspace per cambiarli"
+
 msgid "this file"
 msgstr "questo file"
 

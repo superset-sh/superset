@@ -15058,6 +15058,12 @@ msgstr "Bu cihaz Superset rölesine bağlı değil, bu yüzden otomasyon çalı�
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Bu dizin mevcut değil. Terminal betiği çalışma alanı köküne geri dönecek."
 
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "Bu ortam bir çalışma alanından yükseltildiği için depoları sabittir. Değiştirmek için bir çalışma alanını yeniden yükseltin."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "Bu ortamın depoları sabittir; değiştirmek için bir çalışma alanını yeniden yükseltin"
+
 msgid "this file"
 msgstr "bu dosya"
 

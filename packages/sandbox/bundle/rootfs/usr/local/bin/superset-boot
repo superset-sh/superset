@@ -183,12 +183,14 @@ start_hook() {
 }
 
 # One checkout per repository in SUPERSET_SANDBOX_REPOSITORIES, each at
-# <workspace>/<path> on its branch. A marker per path under the state
-# directory says it is done; a golden has the markers stripped so a fork
-# fetches its branch into the checkout it inherited.
+# <workspace>/<path> on its branch, or at the workspace root itself when its
+# path is ".". A marker per path under the state directory says it is done;
+# a golden has the markers stripped so a fork fetches its branch into the
+# checkout it inherited.
 checkout_one() {
 	local url="$1" branch="$2" path="$3"
 	local ws="${SUPERSET_WORKSPACE_DIR}/${path}" marker="${SUPERSET_CHECKOUTS_DIR}/${path}"
+	if [ "$path" = "." ]; then ws="$SUPERSET_WORKSPACE_DIR"; marker="${SUPERSET_CHECKOUTS_DIR}/@root"; fi
 	if [ -f "$marker" ]; then stamp "checkout.skipped ${path} already done"; return 0; fi
 	local baked
 	baked="$(as_user git -C "$ws" remote get-url origin 2>/dev/null || true)"

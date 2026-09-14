@@ -91,7 +91,7 @@ const identity = renderSandboxConf({
 		{
 			url: "https://github.com/superset-sh/superset.git",
 			branch: "main",
-			path: "superset",
+			path: ".",
 		},
 	]),
 	SUPERSET_SANDBOX_IMAGE_TAG: IMAGE,

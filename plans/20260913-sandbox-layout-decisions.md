@@ -36,11 +36,12 @@ was put to Satya and settled, per the rule that we emulate first and deviate onl
 | 22 | Release job | Holds bucket write, registry push, a Vercel token for the sandboxes project and the production database URL; writes the environment row only after the probe passes, so a failed build leaves the previous one live |
 | 23 | Asset bucket | A new R2 bucket, public read, behind `cdn.superset.sh` (a wildcard on superset.sh currently answers every name; a specific record overrides it); sandbox objects under `/sandbox/<sha256><suffix>`; the firewall allowlist must include the host |
 | 24 | End-to-end tests | Every PR builds the image and boots it twice in a Docker container (steps, markers, hooks, secret handoff via env; second boot skips everything); `workflow_dispatch` and the release job boot a real dev-project sandbox for wake, gate and firewall checks |
-| 25 | Repositories per environment | An environment lists its repositories in order, the first being the one a workspace opens on; a workspace fixes its checkouts at create (`cloud_workspace_repositories`); every checkout lands at `/workspace/<name>`, one layout for one repository and for several; one GitHub installation per workspace because the firewall carries one `github.com` rule. Chosen by me 2026-09-14 after Satya asked for the multi-repository creation flow other platforms have; the record is `plans/20260914-multi-repo-environments.md` |
+| 25 | Repositories per environment | An environment lists its repositories in order, the first being the one a workspace opens on; a workspace fixes its checkouts at create (`cloud_workspace_repositories`); a lone repository is `/workspace` itself, several sit at `/workspace/<name>` (Satya 2026-09-14, over my "always `/workspace/<name>`"); a promoted environment's repositories are fixed, since its golden was built for them (promote again to change); one GitHub installation per workspace because the firewall carries one `github.com` rule. The record is `plans/20260914-multi-repo-environments.md` |
 | 26 | Config location and scope | `environments.hooks_repository_id` names whose `.superset/config.json` the box acts on (the dialog's "Config location"; none means only the row's override); `environments.scope` is `organization` or `personal`, a personal row visible to its creator alone. "Start agent" saves the environment and opens a cloud workspace on it with the onboarding prompt (`ENVIRONMENT_ONBOARDING_PROMPT`) so an agent installs the project and writes its hooks |
 
-`/workspace` at the root stays (decided earlier: industry convention, matches the reference), now
-as the parent of one directory per repository (Decision 25).
+`/workspace` at the root stays (decided earlier: industry convention, matches the reference): the
+checkout itself for one repository, the parent of one directory per repository for several
+(Decision 25).
 `/home/ubuntu` follows from decisions 1 and 11.
 
 On the page but not separate calls, because they follow from the above: the `setup` runner's

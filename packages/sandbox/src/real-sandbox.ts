@@ -61,7 +61,7 @@ const identity: SandboxIdentity = {
 		{
 			url: "https://github.com/superset-sh/superset.git",
 			branch: "main",
-			path: "superset",
+			path: ".",
 		},
 	]),
 	SUPERSET_SANDBOX_IMAGE_TAG: SANDBOX_IMAGE_NAME,
@@ -108,7 +108,7 @@ let failed = await probeBox({
 	hostSecret,
 	bundleSha: bundle.sha256,
 	branch: "main",
-	primaryPath: "superset",
+	primaryPath: ".",
 	gate: process.env.SANDBOX_GATE_ORIGIN
 		? { workspaceId, userId: randomUUID() }
 		: null,

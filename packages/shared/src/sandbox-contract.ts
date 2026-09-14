@@ -115,11 +115,17 @@ export const sandboxIdentitySchema = z.object({
 
 export type SandboxIdentity = z.infer<typeof sandboxIdentitySchema>;
 
-/** One checkout on the box; `path` is relative to the workspace root. */
+/** The `path` of a repository that is the workspace root itself. */
+export const SANDBOX_ROOT_CHECKOUT = ".";
+
+/**
+ * One checkout on the box; `path` is relative to the workspace root, or
+ * `SANDBOX_ROOT_CHECKOUT` for the root itself.
+ */
 export const sandboxRepositorySchema = z.object({
 	url: z.string().url(),
 	branch: z.string().min(1),
-	path: z.string().regex(/^[A-Za-z0-9._-]+$/),
+	path: z.string().regex(/^(\.|[A-Za-z0-9_-][A-Za-z0-9._-]*)$/),
 	/** True for the repository whose `.superset/config.json` the box acts on. */
 	hooks: z.boolean().optional(),
 });
@@ -129,17 +135,23 @@ export const sandboxRepositoriesSchema = z
 export type SandboxRepository = z.infer<typeof sandboxRepositorySchema>;
 
 /**
- * Where a repository lands under the workspace root. Its name, unless two
- * repositories share one, in which case the owner disambiguates.
+ * Where a repository lands. A lone repository is the workspace root itself;
+ * several sit under it by name, the owner disambiguating a clash.
  */
 export function sandboxRepositoryPath(
 	repo: { owner: string; name: string },
 	all: ReadonlyArray<{ owner: string; name: string }>,
 ): string {
+	if (all.length === 1) return SANDBOX_ROOT_CHECKOUT;
 	const clash = all.some(
 		(other) => other.name === repo.name && other.owner !== repo.owner,
 	);
 	return clash ? `${repo.owner}-${repo.name}` : repo.name;
+}
+
+/** The absolute directory of a checkout under the workspace root. */
+export function sandboxCheckoutDir(root: string, path: string): string {
+	return path === SANDBOX_ROOT_CHECKOUT ? root : `${root}/${path}`;
 }
 
 /**

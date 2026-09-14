@@ -44,6 +44,8 @@ export interface EnvironmentEditorSeed {
 	scope: EnvironmentScope;
 	repositoryIds: string[];
 	hooksRepositoryId: string | null;
+	/** A promoted environment's golden was built for its repositories. */
+	repositoriesFrozen: boolean;
 }
 
 interface EnvironmentEditorDialogProps {
@@ -81,6 +83,7 @@ export function EnvironmentEditorDialog({
 		environment?.scope ?? "organization",
 	);
 	const [repositoriesOpen, setRepositoriesOpen] = useState(false);
+	const repositoriesFrozen = environment?.repositoriesFrozen ?? false;
 
 	const repositoriesQuery =
 		cloudTrpc.integration.github.listRepositories.useQuery(
@@ -217,6 +220,7 @@ export function EnvironmentEditorDialog({
 								<PopoverTrigger asChild>
 									<Button
 										className="flex-1 justify-between font-normal"
+										disabled={repositoriesFrozen}
 										id="environment-repositories"
 										variant="outline"
 									>
@@ -287,7 +291,7 @@ export function EnvironmentEditorDialog({
 							</Popover>
 							<Button
 								aria-label={t({ message: "Refresh repositories" })}
-								disabled={resync.isPending}
+								disabled={resync.isPending || repositoriesFrozen}
 								onClick={() => resync.mutate({ organizationId })}
 								size="icon"
 								title={t({ message: "Refresh repositories" })}
@@ -300,6 +304,15 @@ export function EnvironmentEditorDialog({
 								/>
 							</Button>
 						</div>
+						{repositoriesFrozen && (
+							<p className="text-xs text-muted-foreground">
+								<Trans>
+									This environment was promoted from a workspace, so its
+									repositories are fixed. Promote a workspace again to change
+									them.
+								</Trans>
+							</p>
+						)}
 					</div>
 
 					<div className="flex flex-col gap-2">

@@ -29,10 +29,16 @@ and an agent that onboards the checkout. Each call below was mine; overturn any 
 
 ## The box
 
-- Every repository lands at `/workspace/<path>`, `path` being the repository's name (the owner
-  disambiguates a clash). This is a change from the single checkout at `/workspace`: one
-  layout for one repository and for several, so nothing branches on the count. The reference
-  machine used `/workspace` for its one repository; consistency across counts won.
+- A lone repository is the workspace root, `/workspace`, as the reference machine had it;
+  several sit under it at `/workspace/<name>` (the owner disambiguates a clash). The path is
+  data on the workspace row (`.` for the root), so the runner, the seeding and the hooks read
+  it rather than count. Decided with Satya 2026-09-14 over "always `/workspace/<name>`".
+- **A promoted environment's repositories are fixed.** Its golden was cloned, set up and
+  snapshotted for that set; a repository added later would be a bare clone with no setup, one
+  removed would stay baked into every fork, and under the root layout a sibling would land
+  inside the first checkout. `environment.update` refuses the change; the dialog shows the
+  set read-only with "promote again to change". Image-backed environments (the shared
+  `Default`, anything not yet promoted) change freely: every workspace on them clones fresh.
 - The identity carries `SUPERSET_SANDBOX_REPOSITORIES` (JSON: url, branch, path, hooks flag)
   instead of one URL and branch. The boot runner checks each out, a marker per path under
   `/var/lib/superset/checkouts/`, and `checkout.ready` once all are in; a golden has the
