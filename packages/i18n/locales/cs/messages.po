@@ -10526,9 +10526,6 @@ msgstr "URL organizace změněna!"
 msgid "Organization: <0>{0}</0>"
 msgstr "Organizace: <0>{0}</0>"
 
-msgid "Organizations"
-msgstr "Organizace"
-
 msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
 msgstr "Organizace s druhým členem oproti účtům s jedním členem; čára ukazuje týmy na 1 000."
 

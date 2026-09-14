@@ -190,6 +190,24 @@ export function SettingsScreen() {
 				<ListRow
 					icon={
 						<Ionicons
+							name="document-text-outline"
+							size={20}
+							color={theme.mutedForeground}
+						/>
+					}
+					label={t({ message: "Pages" })}
+					trailing={
+						<Ionicons
+							name="chevron-forward"
+							size={18}
+							color={theme.mutedForeground}
+						/>
+					}
+					onPress={() => router.push("/(authenticated)/pages")}
+				/>
+				<ListRow
+					icon={
+						<Ionicons
 							name="desktop-outline"
 							size={20}
 							color={theme.mutedForeground}

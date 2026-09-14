@@ -10526,9 +10526,6 @@ msgstr "Kuruluş URL'si güncellendi!"
 msgid "Organization: <0>{0}</0>"
 msgstr "Kuruluş: <0>{0}</0>"
 
-msgid "Organizations"
-msgstr "Kuruluşlar"
-
 msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
 msgstr "İkinci üyesi olan organizasyonlara karşı tek üyeli hesaplar; çizgi 1.000 başına ekip sayısıdır."
 

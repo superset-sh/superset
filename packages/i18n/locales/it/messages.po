@@ -10526,9 +10526,6 @@ msgstr "URL dell'organizzazione aggiornato!"
 msgid "Organization: <0>{0}</0>"
 msgstr "Organizzazione: <0>{0}</0>"
 
-msgid "Organizations"
-msgstr "Organizzazioni"
-
 msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
 msgstr "Organizzazioni con un secondo membro rispetto agli account con un solo membro; la linea indica i team ogni 1.000."
 

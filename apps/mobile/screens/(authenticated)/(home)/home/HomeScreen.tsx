@@ -587,7 +587,7 @@ export function HomeScreen() {
 				logo={activeOrganization?.logo}
 				onPress={() => {
 					void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-					router.push("/(authenticated)/(home)/organizations");
+					router.push("/(authenticated)/settings");
 				}}
 			/>
 			{/* Search opens as a sheet rather than a search bar in this header: on

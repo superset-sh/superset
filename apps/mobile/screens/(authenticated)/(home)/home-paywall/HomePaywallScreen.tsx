@@ -48,7 +48,7 @@ export function HomePaywallScreen() {
 				logo={activeOrganization?.logo}
 				onPress={() => {
 					void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-					router.push("/(authenticated)/(home)/organizations");
+					router.push("/(authenticated)/settings");
 				}}
 			/>
 			<View className="flex-1 items-center justify-center gap-6 bg-background p-6">
