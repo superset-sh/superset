@@ -955,6 +955,10 @@ msgstr "{worktreeCount, plural, one {Thao tác này sẽ gỡ dự án và # wor
 msgid "{years}y ago"
 msgstr "{years} năm trước"
 
+#. placeholder {0}: connection.login
+msgid "@{0} · cloud workspaces commit, push and open pull requests as you"
+msgstr "@{0} · workspace cloud commit, push và mở pull request dưới tên bạn"
+
 msgid "@superset"
 msgstr "@superset"
 
@@ -3801,6 +3805,9 @@ msgstr "Đã kết nối. Việc đăng nhập bị hủy nên các trigger theo
 
 msgid "Connecting"
 msgstr "Đang kết nối"
+
+msgid "Connecting GitHub is not configured on this server"
+msgstr "Máy chủ này chưa cấu hình kết nối GitHub"
 
 msgid "Connecting to the desktop…"
 msgstr "Đang kết nối tới màn hình nền…"
@@ -6917,6 +6924,9 @@ msgstr "Đã cài GitHub App thành công!"
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "Đã kết nối GitHub, nhưng lần đồng bộ đầu tiên không khởi động được. Vui lòng thử kết nối lại."
 
+msgid "GitHub disconnected"
+msgstr "Đã ngắt kết nối GitHub"
+
 msgid "GitHub installation not found"
 msgstr "Không tìm thấy bản cài đặt GitHub"
 
@@ -9748,6 +9758,9 @@ msgstr "Chưa xác thực. Vui lòng đăng nhập."
 msgid "Not authenticated. Provide a bearer JWT, x-api-key, or session."
 msgstr "Chưa xác thực. Hãy cung cấp bearer JWT, x-api-key hoặc session."
 
+msgid "Not available on this server"
+msgstr "Không khả dụng trên máy chủ này"
+
 msgid "Not bound · configure in Settings → Links"
 msgstr "Chưa gán · cấu hình trong Cài đặt → Liên kết"
 
@@ -9759,6 +9772,9 @@ msgstr "Chưa kết nối"
 
 msgid "Not Connected"
 msgstr "Chưa kết nối"
+
+msgid "Not connected · cloud workspaces push as your organization's GitHub App"
+msgstr "Chưa kết nối · workspace cloud push dưới danh nghĩa GitHub App của tổ chức bạn"
 
 msgid "Not connected: {unavailableReason}. Add a Google service account to the Search Console property and set GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
 msgstr "Chưa kết nối: {unavailableReason}. Thêm tài khoản dịch vụ Google vào thuộc tính Search Console và đặt GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
@@ -16820,6 +16836,9 @@ msgstr "Code của bạn mặc định ở lại cục bộ, với quyền kiể
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Quá trình tải xuống sẽ tự động bắt đầu. Nếu không, hãy tải tại đây."
 
+msgid "Your GitHub account cannot reach a repository in this environment"
+msgstr "Tài khoản GitHub của bạn không truy cập được một repository trong environment này"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "Liên kết GitHub của bạn lấy từ tài khoản bạn đã đăng nhập, nên nó hiển thị là đã xác minh và không sửa được ở đây."
 
@@ -16831,6 +16850,9 @@ msgstr "Tên của bạn"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Tên của bạn <0>(nếu dùng prompt của bạn, chúng tôi sẽ ghi công trong changelog)</0>"
+
+msgid "Your own accounts. Your organization's integrations let Superset reach its tools; connecting yours makes the work Superset does for you show up as you."
+msgstr "Tài khoản của riêng bạn. Các tích hợp của tổ chức giúp Superset truy cập công cụ của tổ chức; kết nối tài khoản của bạn giúp công việc Superset làm cho bạn hiển thị dưới tên bạn."
 
 msgid "Your rank"
 msgstr "Thứ hạng của bạn"

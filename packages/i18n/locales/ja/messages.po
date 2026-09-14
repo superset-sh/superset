@@ -955,6 +955,10 @@ msgstr "{worktreeCount, plural, one {到達可能なすべてのデバイスか�
 msgid "{years}y ago"
 msgstr "{years}年前"
 
+#. placeholder {0}: connection.login
+msgid "@{0} · cloud workspaces commit, push and open pull requests as you"
+msgstr "@{0} · クラウドワークスペースはあなたとしてコミット、プッシュ、プルリクエストの作成を行います"
+
 msgid "@superset"
 msgstr "@superset"
 
@@ -3801,6 +3805,9 @@ msgstr "接続しました。サインインがキャンセルされたため、
 
 msgid "Connecting"
 msgstr "接続中"
+
+msgid "Connecting GitHub is not configured on this server"
+msgstr "このサーバーでは GitHub の接続が設定されていません"
 
 msgid "Connecting to the desktop…"
 msgstr "デスクトップに接続しています…"
@@ -6917,6 +6924,9 @@ msgstr "GitHub Appをインストールしました!"
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHubは接続しましたが、初回同期を開始できませんでした。再接続をお試しください。"
 
+msgid "GitHub disconnected"
+msgstr "GitHub の接続を解除しました"
+
 msgid "GitHub installation not found"
 msgstr "GitHubのインストールが見つかりません"
 
@@ -9748,6 +9758,9 @@ msgstr "認証されていません。サインインしてください。"
 msgid "Not authenticated. Provide a bearer JWT, x-api-key, or session."
 msgstr "認証されていません。ベアラーJWT、x-api-key、またはセッションを指定してください。"
 
+msgid "Not available on this server"
+msgstr "このサーバーでは利用できません"
+
 msgid "Not bound · configure in Settings → Links"
 msgstr "未割り当て · 設定 → リンクで設定"
 
@@ -9759,6 +9772,9 @@ msgstr "未接続"
 
 msgid "Not Connected"
 msgstr "未接続"
+
+msgid "Not connected · cloud workspaces push as your organization's GitHub App"
+msgstr "未接続 · クラウドワークスペースは組織の GitHub App としてプッシュします"
 
 msgid "Not connected: {unavailableReason}. Add a Google service account to the Search Console property and set GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
 msgstr "未接続: {unavailableReason}。Search Console のプロパティに Google サービスアカウントを追加し、GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT を設定してください。"
@@ -16820,6 +16836,9 @@ msgstr "コードは既定でローカルに留まり、連携するサービス
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "ダウンロードは自動的に開始されます。開始されない場合はこちらから取得してください。"
 
+msgid "Your GitHub account cannot reach a repository in this environment"
+msgstr "あなたの GitHub アカウントはこの環境のリポジトリにアクセスできません"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "GitHub のリンクはサインインしたアカウントから取得されるため、確認済みと表示され、ここでは編集できません。"
 
@@ -16831,6 +16850,9 @@ msgstr "あなたの名前"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "お名前 <0>(プロンプトを採用した場合、changelogでクレジットします)</0>"
+
+msgid "Your own accounts. Your organization's integrations let Superset reach its tools; connecting yours makes the work Superset does for you show up as you."
+msgstr "あなた自身のアカウントです。組織の連携は Superset がそのツールにアクセスするためのもので、あなたのアカウントを接続すると、Superset があなたのために行った作業があなたの名前で表示されます。"
 
 msgid "Your rank"
 msgstr "あなたのランク"

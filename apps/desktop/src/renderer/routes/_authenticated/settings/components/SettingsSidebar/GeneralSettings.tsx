@@ -28,7 +28,7 @@ import {
 	HiOutlineUser,
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
-import { LuGitBranch, LuKeyboard, LuKeyRound } from "react-icons/lu";
+import { LuGitBranch, LuKeyboard, LuKeyRound, LuLink } from "react-icons/lu";
 import { useHostsNeedingUpdateCount } from "renderer/hooks/host-version/useHostsNeedingUpdate";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -42,6 +42,7 @@ interface GeneralSettingsProps {
 
 type SettingsRoute =
 	| "/settings/account"
+	| "/settings/connections"
 	| "/settings/organization"
 	| "/settings/teams"
 	| "/settings/appearance"
@@ -93,6 +94,14 @@ const SECTION_GROUPS: SectionGroup[] = [
 					message: "Account",
 				}),
 				icon: <HiOutlineUser className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/connections",
+				section: "connections",
+				label: msg({
+					message: "Connections",
+				}),
+				icon: <LuLink className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/appearance",
@@ -334,6 +343,7 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 		if (!cloudWorkspacesEnabled) {
 			sections.delete("environments");
 			sections.delete("agents");
+			sections.delete("connections");
 		}
 		return sections;
 	}, [isV2CloudEnabled, cloudWorkspacesEnabled]);

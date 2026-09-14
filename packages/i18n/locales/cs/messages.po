@@ -955,6 +955,10 @@ msgstr "{worktreeCount, plural, one {Tím se projekt a jeho # pracovní prostor 
 msgid "{years}y ago"
 msgstr "před {years} r."
 
+#. placeholder {0}: connection.login
+msgid "@{0} · cloud workspaces commit, push and open pull requests as you"
+msgstr "@{0} · cloudové pracovní prostory commitují, pushují a otevírají pull requesty vaším jménem"
+
 msgid "@superset"
 msgstr "@superset"
 
@@ -3801,6 +3805,9 @@ msgstr "Připojeno. Přihlášení bylo zrušeno, takže spouštěče „Já“ 
 
 msgid "Connecting"
 msgstr "Připojuji"
+
+msgid "Connecting GitHub is not configured on this server"
+msgstr "Připojení ke GitHubu není na tomto serveru nastaveno"
 
 msgid "Connecting to the desktop…"
 msgstr "Připojování k ploše…"
@@ -6917,6 +6924,9 @@ msgstr "GitHub App byla úspěšně nainstalována!"
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub je připojený, ale úvodní synchronizace se nespustila. Zkuste se prosím připojit znovu."
 
+msgid "GitHub disconnected"
+msgstr "GitHub odpojen"
+
 msgid "GitHub installation not found"
 msgstr "Instalace GitHubu nenalezena"
 
@@ -9748,6 +9758,9 @@ msgstr "Nejste přihlášeni. Přihlaste se prosím."
 msgid "Not authenticated. Provide a bearer JWT, x-api-key, or session."
 msgstr "Nejste přihlášeni. Zadejte bearer JWT, x-api-key nebo relaci."
 
+msgid "Not available on this server"
+msgstr "Na tomto serveru není k dispozici"
+
 msgid "Not bound · configure in Settings → Links"
 msgstr "Nepřiřazeno · nastavte v Nastavení → Odkazy"
 
@@ -9759,6 +9772,9 @@ msgstr "Nepřipojeno"
 
 msgid "Not Connected"
 msgstr "Nepřipojeno"
+
+msgid "Not connected · cloud workspaces push as your organization's GitHub App"
+msgstr "Nepřipojeno · cloudové pracovní prostory pushují jako GitHub App vaší organizace"
 
 msgid "Not connected: {unavailableReason}. Add a Google service account to the Search Console property and set GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
 msgstr "Nepřipojeno: {unavailableReason}. Přidejte účet služby Google k službě v Search Console a nastavte GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
@@ -16820,6 +16836,9 @@ msgstr "Váš kód zůstává ve výchozím stavu lokálně a připojené služb
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Stahování se spustí automaticky. Pokud ne, stáhněte si to zde."
 
+msgid "Your GitHub account cannot reach a repository in this environment"
+msgstr "Váš účet GitHub nemá přístup k repozitáři tohoto prostředí"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "Odkaz na GitHub pochází z účtu, kterým jste se přihlásili, proto je označen jako ověřený a nelze ho zde upravit."
 
@@ -16831,6 +16850,9 @@ msgstr "Vaše jméno"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Vaše jméno <0>(pokud váš prompt použijeme, uvedeme vás v changelogu)</0>"
+
+msgid "Your own accounts. Your organization's integrations let Superset reach its tools; connecting yours makes the work Superset does for you show up as you."
+msgstr "Vaše vlastní účty. Integrace vaší organizace umožňují Supersetu přístup k jejím nástrojům; když připojíte své účty, práce, kterou pro vás Superset udělá, se zobrazí pod vaším jménem."
 
 msgid "Your rank"
 msgstr "Vaše pozice"

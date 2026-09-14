@@ -955,6 +955,10 @@ msgstr "{worktreeCount, plural, one {Ini menghapus proyek beserta # workspace-ny
 msgid "{years}y ago"
 msgstr "{years}thn lalu"
 
+#. placeholder {0}: connection.login
+msgid "@{0} · cloud workspaces commit, push and open pull requests as you"
+msgstr "@{0} · workspace cloud melakukan commit, push, dan membuka pull request atas nama Anda"
+
 msgid "@superset"
 msgstr "@superset"
 
@@ -3801,6 +3805,9 @@ msgstr "Terhubung. Proses masuk dibatalkan, jadi pemicu oleh \"Saya\" tidak akan
 
 msgid "Connecting"
 msgstr "Menghubungkan"
+
+msgid "Connecting GitHub is not configured on this server"
+msgstr "Koneksi GitHub belum dikonfigurasi di server ini"
 
 msgid "Connecting to the desktop…"
 msgstr "Menghubungkan ke desktop…"
@@ -6917,6 +6924,9 @@ msgstr "GitHub App berhasil dipasang!"
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub terhubung, tapi sinkronisasi awal gagal dimulai. Silakan coba hubungkan ulang."
 
+msgid "GitHub disconnected"
+msgstr "GitHub terputus"
+
 msgid "GitHub installation not found"
 msgstr "Instalasi GitHub tidak ditemukan"
 
@@ -9748,6 +9758,9 @@ msgstr "Belum terautentikasi. Silakan masuk."
 msgid "Not authenticated. Provide a bearer JWT, x-api-key, or session."
 msgstr "Belum terautentikasi. Berikan bearer JWT, x-api-key, atau session."
 
+msgid "Not available on this server"
+msgstr "Tidak tersedia di server ini"
+
 msgid "Not bound · configure in Settings → Links"
 msgstr "Tidak terikat · atur di Pengaturan → Tautan"
 
@@ -9759,6 +9772,9 @@ msgstr "Tidak terhubung"
 
 msgid "Not Connected"
 msgstr "Tidak Terhubung"
+
+msgid "Not connected · cloud workspaces push as your organization's GitHub App"
+msgstr "Belum terhubung · workspace cloud melakukan push sebagai GitHub App organisasi Anda"
 
 msgid "Not connected: {unavailableReason}. Add a Google service account to the Search Console property and set GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
 msgstr "Tidak terhubung: {unavailableReason}. Tambahkan akun layanan Google ke properti Search Console dan atur GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
@@ -16820,6 +16836,9 @@ msgstr "Kode Anda tetap lokal secara bawaan, dengan kendali eksplisit atas layan
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Unduhan Anda dimulai otomatis. Jika tidak, ambil di sini."
 
+msgid "Your GitHub account cannot reach a repository in this environment"
+msgstr "Akun GitHub Anda tidak dapat menjangkau repositori di environment ini"
+
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "Tautan GitHub Anda berasal dari akun yang Anda gunakan untuk masuk, jadi ditampilkan sebagai terverifikasi dan tidak bisa diubah di sini."
 
@@ -16831,6 +16850,9 @@ msgstr "Nama Anda"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Nama Anda <0>(kalau prompt Anda kami pakai, kami akan mencantumkan Anda di changelog)</0>"
+
+msgid "Your own accounts. Your organization's integrations let Superset reach its tools; connecting yours makes the work Superset does for you show up as you."
+msgstr "Akun milik Anda sendiri. Integrasi organisasi memungkinkan Superset menjangkau alat-alatnya; menghubungkan akun Anda membuat pekerjaan yang dilakukan Superset untuk Anda tampil atas nama Anda."
 
 msgid "Your rank"
 msgstr "Peringkat Anda"

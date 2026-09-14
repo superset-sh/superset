@@ -12,6 +12,10 @@
 			"types": "./src/lib/sandbox/index.ts",
 			"default": "./src/lib/sandbox/index.ts"
 		},
+		"./lib/github-user": {
+			"types": "./src/lib/github-user/index.ts",
+			"default": "./src/lib/github-user/index.ts"
+		},
 		"./page-schema": {
 			"types": "./src/router/page/schema.ts",
 			"default": "./src/router/page/schema.ts"

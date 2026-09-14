@@ -59,6 +59,7 @@ const SECTION_ORDER: SettingsSection[] = [
  */
 const SECTION_PATHS: Partial<Record<SettingsSection, string>> = {
 	account: "/settings/account",
+	connections: "/settings/connections",
 	organization: "/settings/organization",
 	teams: "/settings/teams",
 	appearance: "/settings/appearance",

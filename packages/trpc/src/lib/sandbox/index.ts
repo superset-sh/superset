@@ -6,6 +6,10 @@ export {
 	type RemoteBranch,
 	type RemoteBranchPage,
 } from "./list-branches";
+export {
+	type RefreshSandboxCredentialsOutcome,
+	refreshSandboxCredentials,
+} from "./refresh-credentials";
 export { readRepoHooks } from "./repo-hooks";
 export {
 	cloneUrl,

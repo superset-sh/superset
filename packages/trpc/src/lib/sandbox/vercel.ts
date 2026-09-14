@@ -270,6 +270,28 @@ export async function pushManagedEnv(
 	}
 }
 
+/**
+ * Re-applies the credential rules to a running box: the GitHub token in them
+ * lasts an hour (a user token eight), so a box nobody reopens asks for this
+ * before it expires. Wakes nothing; a stopped box gets fresh rules on wake.
+ */
+export async function applySandboxPolicy(args: {
+	providerSandboxId: string;
+	networkPolicy: NetworkPolicy;
+}): Promise<"applied" | "not-running"> {
+	const sandbox = await Sandbox.get({
+		...credentials(),
+		name: args.providerSandboxId,
+		resume: false,
+	}).catch((error: unknown) => {
+		if (isNotFound(error)) return null;
+		throw error;
+	});
+	if (!sandbox || sandbox.status !== "running") return "not-running";
+	await sandbox.update({ networkPolicy: args.networkPolicy });
+	return "applied";
+}
+
 /** The sandbox's addresses and whether a session is running, waking nothing. */
 export async function describeSandbox(providerSandboxId: string): Promise<{
 	hostTarget: string;

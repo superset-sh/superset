@@ -14,6 +14,10 @@ import { and, asc, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
+import {
+	githubRepositoriesOutOfReach,
+	githubUserTokenFor,
+} from "../../lib/github-user";
 import { nudge } from "../../lib/realtime";
 import {
 	buildSandboxClaim,
@@ -238,6 +242,22 @@ export const cloudWorkspaceRouter = {
 				environment.hooksRepositoryId,
 			) as (typeof repositories)[number];
 			const branch = input.branch ?? primary.defaultBranch;
+			// A connected person's workspace acts as them on GitHub, so a
+			// repository they cannot see would fail to clone later; say so now.
+			const githubToken = await githubUserTokenFor(ctx.userId);
+			if (githubToken) {
+				const outOfReach = await githubRepositoriesOutOfReach({
+					token: githubToken,
+					repositories,
+				});
+				if (outOfReach.length > 0) {
+					throw userError({
+						code: "FORBIDDEN",
+						message: `Your GitHub account cannot reach ${outOfReach.join(", ")}`,
+						i18nKey: "serverError.cloudWorkspace.githubRepositoryOutOfReach",
+					});
+				}
+			}
 
 			// The id is generated here rather than by the database so the sandbox
 			// name can be derived before the insert. A placeholder would briefly

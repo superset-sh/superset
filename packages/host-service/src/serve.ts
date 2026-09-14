@@ -13,6 +13,7 @@ import { provisionAgentIntegrations } from "./runtime/agent-provisioning";
 import { processStartedAt, recordBootStamp } from "./runtime/boot-stamps";
 import { resolveBrowserBridgeFromEnv } from "./runtime/browser-bridge/env";
 import { applyLoginShellEnvToProcess } from "./runtime/login-shell-env";
+import { startSandboxCredentialRefresh } from "./runtime/sandbox-credential-refresh";
 import { detachFromLaunchDirectory } from "./runtime/working-directory";
 import { installProcessSafetyNet, installUpgradeSocketGuard } from "./safety";
 import { configureSelfUpdater } from "./self-update";
@@ -142,6 +143,14 @@ async function main(): Promise<void> {
 		// and event bus are up, and a person opening the workspace sees the
 		// agent's terminal the way they would on their own machine.
 		void launchSandboxAgent();
+		const sandboxWorkspaceId = process.env.SUPERSET_SANDBOX_WORKSPACE_ID;
+		if (env.SUPERSET_HOST_RUN_MODE === "sandbox" && sandboxWorkspaceId) {
+			startSandboxCredentialRefresh({
+				apiUrl: env.SUPERSET_API_URL,
+				workspaceId: sandboxWorkspaceId,
+				hostSecret: env.HOST_SERVICE_SECRET,
+			});
+		}
 
 		if (env.RELAY_URL && env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
 			tunnelPromise = connectRelay({

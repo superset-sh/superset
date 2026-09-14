@@ -1691,3 +1691,38 @@ export const agentCredentials = pgTable(
 
 export type InsertAgentCredential = typeof agentCredentials.$inferInsert;
 export type SelectAgentCredential = typeof agentCredentials.$inferSelect;
+
+/**
+ * A person's own GitHub account, authorized through the GitHub App, so their
+ * cloud workspaces commit, push and open pull requests as them. One per user:
+ * a GitHub account belongs to a person, not an organization.
+ */
+export const githubUserConnections = pgTable("github_user_connections", {
+	id: uuid().primaryKey().defaultRandom(),
+	userId: uuid("user_id")
+		.notNull()
+		.unique()
+		.references(() => users.id, { onDelete: "cascade" }),
+	githubUserId: text("github_user_id").notNull(),
+	login: text().notNull(),
+	name: text(),
+	encryptedAccessToken: text("encrypted_access_token").notNull(),
+	/** Null when the App issues tokens that do not expire. */
+	accessTokenExpiresAt: timestamp("access_token_expires_at", {
+		withTimezone: true,
+	}),
+	encryptedRefreshToken: text("encrypted_refresh_token"),
+	refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
+		withTimezone: true,
+	}),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.notNull()
+		.defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true })
+		.notNull()
+		.defaultNow()
+		.$onUpdate(() => new Date()),
+});
+
+export type SelectGithubUserConnection =
+	typeof githubUserConnections.$inferSelect;

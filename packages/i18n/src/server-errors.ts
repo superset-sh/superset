@@ -251,6 +251,19 @@ export const serverErrorMessages: Record<
 					"The config repository must be one of the environment's repositories",
 			}),
 		),
+	"serverError.githubUser.notConfigured": () =>
+		i18n._(
+			msg({
+				message: "Connecting GitHub is not configured on this server",
+			}),
+		),
+	"serverError.cloudWorkspace.githubRepositoryOutOfReach": () =>
+		i18n._(
+			msg({
+				message:
+					"Your GitHub account cannot reach a repository in this environment",
+			}),
+		),
 	"serverError.environment.repositoriesFrozen": () =>
 		i18n._(
 			msg({

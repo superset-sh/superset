@@ -22,8 +22,37 @@ export interface SandboxCredentialInputs {
 	environmentEnv: Record<string, string>;
 	/** The workspace creator's own agent sign-ins, already decrypted. */
 	userAgentEnv: Record<string, string>;
-	/** A GitHub App installation token for the workspace's repository, if any. */
+	/**
+	 * The GitHub token the box's git and gh requests carry: the workspace
+	 * creator's own user token when they have connected GitHub, else the App
+	 * installation's, else none.
+	 */
 	githubToken: string | null;
+	/** Who commits made on the box are by. */
+	gitAuthor: GitAuthor;
+}
+
+export interface GitAuthor {
+	name: string;
+	email: string;
+}
+
+/**
+ * A connected GitHub account commits under its no-reply address, which links
+ * the commit to the profile and passes GitHub's "block pushes that expose my
+ * email" setting; without one, the Superset account's name and email.
+ */
+export function gitAuthorFor(args: {
+	github: { id: string; login: string; name: string | null } | null;
+	user: { name: string; email: string };
+}): GitAuthor {
+	if (args.github) {
+		return {
+			name: args.github.name || args.github.login,
+			email: `${args.github.id}+${args.github.login}@users.noreply.github.com`,
+		};
+	}
+	return { name: args.user.name, email: args.user.email };
 }
 
 export interface SandboxCredentials {
@@ -60,6 +89,13 @@ export function deriveSandboxCredentials(
 	for (const [key, value] of Object.entries(inputs.environmentEnv)) {
 		if (!brokeredKeys.has(key)) managedEnv[key] = value;
 	}
+	// git reads these over any user.name in a config file, so a commit on the
+	// box is the person's without writing one; set after the environment's
+	// variables because authorship belongs to the person, not the environment.
+	managedEnv.GIT_AUTHOR_NAME = inputs.gitAuthor.name;
+	managedEnv.GIT_AUTHOR_EMAIL = inputs.gitAuthor.email;
+	managedEnv.GIT_COMMITTER_NAME = inputs.gitAuthor.name;
+	managedEnv.GIT_COMMITTER_EMAIL = inputs.gitAuthor.email;
 
 	const pick = (key: string): string | undefined =>
 		inputs.userAgentEnv[key] || inputs.environmentEnv[key] || undefined;
