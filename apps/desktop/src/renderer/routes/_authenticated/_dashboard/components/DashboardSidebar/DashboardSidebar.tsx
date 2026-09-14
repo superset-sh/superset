@@ -207,6 +207,13 @@ export function DashboardSidebar({
 				: sortDashboardSidebarProjects(sourceGroups, sortMode),
 		[sortMode, sourceGroups],
 	);
+	const shortcutGroups = useMemo(
+		() =>
+			sortMode === "manual"
+				? orderedGroups
+				: sortDashboardSidebarProjects(orderedGroups, sortMode),
+		[sortMode, orderedGroups],
+	);
 	const displayedGroups = useMemo(
 		() => filterDashboardSidebarProjects(sortedGroups, projectFilterQuery),
 		[sortedGroups, projectFilterQuery],
@@ -228,7 +235,7 @@ export function DashboardSidebar({
 	// The filtered view expands matches through derived objects, so a jump
 	// must not toggle the persisted collapse state while it is active.
 	const workspaceShortcutLabels = useDashboardSidebarShortcuts(
-		sortedGroups,
+		shortcutGroups,
 		sessionWorkspaces,
 		sessionChildren,
 		{ revealCollapsed: !isFilterActive },

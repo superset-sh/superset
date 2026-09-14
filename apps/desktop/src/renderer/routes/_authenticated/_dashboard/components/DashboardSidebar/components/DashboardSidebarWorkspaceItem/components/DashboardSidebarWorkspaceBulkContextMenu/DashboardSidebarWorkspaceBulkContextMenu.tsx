@@ -36,6 +36,7 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 	const {
 		createGroupFromSelection,
 		groupedWorkspaceIds,
+		hasArchivedSelection,
 		moveSelectionToSection,
 		sectionMenuState,
 		sections,
@@ -58,7 +59,7 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
 				<ContextMenuSub>
-					<ContextMenuSubTrigger>
+					<ContextMenuSubTrigger disabled={hasArchivedSelection}>
 						<LuArrowRightLeft className="size-4 mr-2" />
 						<Trans>Move {count} to Group</Trans>
 					</ContextMenuSubTrigger>
@@ -94,7 +95,10 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 					</ContextMenuSubContent>
 				</ContextMenuSub>
 				{groupedWorkspaceIds.length > 0 && (
-					<ContextMenuItem onSelect={ungroupSelection}>
+					<ContextMenuItem
+						disabled={hasArchivedSelection}
+						onSelect={ungroupSelection}
+					>
 						<LuArrowUp className="size-4 mr-2" />
 						<Trans>Ungroup</Trans>
 					</ContextMenuItem>

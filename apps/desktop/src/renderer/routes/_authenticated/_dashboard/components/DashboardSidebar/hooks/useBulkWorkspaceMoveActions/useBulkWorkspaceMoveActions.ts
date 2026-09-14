@@ -42,6 +42,9 @@ export function useBulkWorkspaceMoveActions({
 		const workspace = workspacesById.get(workspaceId);
 		return workspace ? [workspace] : [];
 	});
+	const hasArchivedSelection = selectedWorkspaces.some(
+		(workspace) => workspace.archivedAt != null,
+	);
 	const selectedIds = selectedWorkspaces.map((workspace) => workspace.id);
 	const groupedWorkspaceIds = selectedIds.filter((workspaceId) =>
 		sectionIdByWorkspaceId.has(workspaceId),
@@ -111,6 +114,7 @@ export function useBulkWorkspaceMoveActions({
 	return {
 		createGroupFromSelection,
 		groupedWorkspaceIds,
+		hasArchivedSelection,
 		moveSelectionToSection,
 		sectionMenuState,
 		sections,

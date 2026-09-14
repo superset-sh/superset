@@ -63,6 +63,7 @@ export function DashboardSidebarBulkActions({
 	const {
 		createGroupFromSelection,
 		groupedWorkspaceIds,
+		hasArchivedSelection,
 		moveSelectionToSection,
 		sectionMenuState,
 		sections,
@@ -124,7 +125,7 @@ export function DashboardSidebarBulkActions({
 					<DropdownMenu>
 						<Tooltip delayDuration={300}>
 							<TooltipTrigger asChild>
-								<DropdownMenuTrigger asChild>
+								<DropdownMenuTrigger asChild disabled={hasArchivedSelection}>
 									<button
 										type="button"
 										className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
@@ -181,7 +182,9 @@ export function DashboardSidebarBulkActions({
 						<TooltipTrigger asChild>
 							<button
 								type="button"
-								disabled={groupedWorkspaceIds.length === 0}
+								disabled={
+									hasArchivedSelection || groupedWorkspaceIds.length === 0
+								}
 								onClick={ungroupSelection}
 								className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
 								aria-label={t({
