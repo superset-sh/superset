@@ -187,24 +187,26 @@ export function SettingsScreen() {
 					}
 					onPress={() => router.push("/(authenticated)/settings/organization")}
 				/>
-				<ListRow
-					icon={
-						<Ionicons
-							name="document-text-outline"
-							size={20}
-							color={theme.mutedForeground}
-						/>
-					}
-					label={t({ message: "Pages" })}
-					trailing={
-						<Ionicons
-							name="chevron-forward"
-							size={18}
-							color={theme.mutedForeground}
-						/>
-					}
-					onPress={() => router.push("/(authenticated)/pages")}
-				/>
+				{plan ? (
+					<ListRow
+						icon={
+							<Ionicons
+								name="document-text-outline"
+								size={20}
+								color={theme.mutedForeground}
+							/>
+						}
+						label={t({ message: "Pages" })}
+						trailing={
+							<Ionicons
+								name="chevron-forward"
+								size={18}
+								color={theme.mutedForeground}
+							/>
+						}
+						onPress={() => router.push("/(authenticated)/pages")}
+					/>
+				) : null}
 				<ListRow
 					icon={
 						<Ionicons
