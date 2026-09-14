@@ -10,7 +10,6 @@ import {
 	type ResolvedGitInfo,
 	readGitIdentity,
 } from "../../runtime/git/identity.ts";
-import { resolveRef } from "../../runtime/git/refs.ts";
 import { createUserSimpleGit } from "../../runtime/git/simple-git.ts";
 import {
 	readWorkspaceRefs,
@@ -382,17 +381,24 @@ export const gitReviveWorktreeTask = defineWorkerTask<
 				console.warn("[workspace-cleanup.revive] worktree prune failed:", err),
 			);
 
-		const resolved = await resolveRef(git, archivedBranch, {
-			remote,
-		});
-		if (!resolved || resolved.kind === "tag" || resolved.kind === "head") {
+		const refs = (
+			await git.raw([
+				"for-each-ref",
+				"--format=%(refname)",
+				"refs/heads/",
+				`refs/remotes/${remote}/`,
+			])
+		).split("\n");
+		const localExists = refs.includes(`refs/heads/${archivedBranch}`);
+		const remoteRef = `refs/remotes/${remote}/${archivedBranch}`;
+		if (!localExists && !refs.includes(remoteRef)) {
 			return {
 				ok: false,
 				code: "PRECONDITION_FAILED",
 				message: `Branch "${archivedBranch}" no longer exists, so this workspace cannot be restored`,
 			};
 		}
-		const branch = resolved.shortName;
+		const branch = archivedBranch;
 
 		const checkedOutAt = (await listWorktreeBranches(git)).worktreeMap.get(
 			branch,
@@ -419,10 +425,9 @@ export const gitReviveWorktreeTask = defineWorkerTask<
 			mkdirSync(dirname(worktreePath), { recursive: true });
 			await addWorktreeWithSparseCheckout({
 				git,
-				worktreeArgs:
-					resolved.kind === "remote-tracking"
-						? ["--track", "-b", branch, worktreePath, resolved.remoteShortName]
-						: [worktreePath, resolved.shortName],
+				worktreeArgs: localExists
+					? [worktreePath, branch]
+					: ["--track", "-b", branch, worktreePath, remoteRef],
 				worktreePath,
 				sparsePaths,
 				logPrefix: "[workspace-cleanup.revive]",

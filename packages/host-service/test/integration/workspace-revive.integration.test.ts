@@ -644,6 +644,85 @@ describe("workspaceCleanup.revive integration", () => {
 		expect(existsSync(scenario.worktreePath)).toBe(false);
 	});
 
+	for (const exactRemoteExists of [false, true]) {
+		test(`preserves archived origin/feature identity after local deletion (exactRemoteExists=${exactRemoteExists})`, async () => {
+			const branch = "origin/feature";
+			const workspaceId = scenario.featureWorkspaceId;
+			await scenario.repo.git.raw(["branch", "-m", scenario.branch, branch]);
+			scenario.host.db
+				.update(workspaces)
+				.set({ branch })
+				.where(eq(workspaces.id, workspaceId))
+				.run();
+			await scenario.repo.git.raw([
+				"remote",
+				"add",
+				"origin",
+				scenario.repo.repoPath,
+			]);
+			const identityInput = {
+				worktreePath: scenario.worktreePath,
+				gitEnv: {},
+			};
+			const before = await cleanupGitOps.readArchiveIdentity(identityInput);
+			expect(before.headRef).toBe("refs/heads/origin/feature");
+			expect(before.headSha).toBeTruthy();
+			await scenario.repo.git.raw([
+				"update-ref",
+				"refs/remotes/origin/feature",
+				`refs/heads/${branch}`,
+			]);
+			if (exactRemoteExists) {
+				await scenario.repo.git.raw([
+					"update-ref",
+					"refs/remotes/origin/origin/feature",
+					`refs/heads/${branch}`,
+				]);
+			}
+			await destroyFeature();
+			await scenario.repo.git.raw(["branch", "-D", branch]);
+			const archived = readRow(workspaceId);
+			const revive = scenario.host.trpc.workspaceCleanup.revive.mutate({
+				workspaceId,
+			});
+			if (exactRemoteExists) {
+				const result = await revive;
+				expect(result.workspace.branch).toBe(branch);
+				expect(readRow(workspaceId)?.branch).toBe(branch);
+				expect(readRow(workspaceId)?.archivedAt).toBeNull();
+				expect(readRow(workspaceId)?.archiveReason).toBeNull();
+				expect(await cleanupGitOps.readArchiveIdentity(identityInput)).toEqual(
+					before,
+				);
+				expect(
+					(
+						await scenario.repo.git.raw([
+							"config",
+							"--get",
+							`branch.${branch}.merge`,
+						])
+					).trim(),
+				).toBe("refs/heads/origin/feature");
+			} else {
+				const error = await expectCode(revive, "PRECONDITION_FAILED");
+				expect(error.message).toContain(branch);
+				expect(readRow(workspaceId)).toEqual(archived);
+				expect(existsSync(scenario.worktreePath)).toBe(false);
+			}
+			const localRefs = (
+				await scenario.repo.git.raw([
+					"for-each-ref",
+					"--format=%(refname)",
+					"refs/heads/",
+				])
+			).split("\n");
+			expect(localRefs).not.toContain("refs/heads/feature");
+			expect(localRefs.includes("refs/heads/origin/feature")).toBe(
+				exactRemoteExists,
+			);
+		});
+	}
+
 	test("refuses when a live workspace already owns the branch", async () => {
 		await destroyFeature();
 		seedWorkspace(scenario.host, {
