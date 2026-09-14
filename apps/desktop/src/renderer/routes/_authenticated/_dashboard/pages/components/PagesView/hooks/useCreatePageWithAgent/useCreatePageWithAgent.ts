@@ -5,7 +5,10 @@ import { useState } from "react";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
+import {
+	reportableAgentLaunchError,
+	useWorkspaceCreates,
+} from "renderer/stores/workspace-creates";
 import { PAGE_AGENT_PROMPT } from "./constants";
 
 export function useCreatePageWithAgent() {
@@ -49,9 +52,16 @@ export function useCreatePageWithAgent() {
 				agents: [{ agent, prompt: PAGE_AGENT_PROMPT }],
 			},
 		});
-		// The store shows creation failures on the optimistic sidebar row; this
-		// just re-arms the button if the user navigates back.
-		void completed.finally(() => setCreatingWithAgent(false));
+		// The store shows a create that never produced a workspace on the
+		// optimistic sidebar row. An agent that fails to launch inside a created
+		// workspace is not shown there — the user is dropped into the workspace
+		// with an empty agent pane and nothing else says why.
+		void completed
+			.then((outcome) => {
+				const launchError = reportableAgentLaunchError(outcome);
+				if (launchError !== null) toast.error(launchError);
+			})
+			.finally(() => setCreatingWithAgent(false));
 		navigate({
 			to: "/v2-workspace/$workspaceId",
 			params: { workspaceId },

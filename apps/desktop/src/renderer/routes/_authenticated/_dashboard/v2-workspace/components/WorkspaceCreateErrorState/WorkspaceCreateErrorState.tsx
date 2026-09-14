@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
+import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, GitBranch } from "lucide-react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -27,7 +28,16 @@ export function WorkspaceCreateErrorState({
 			snapshot: entry.input,
 		});
 		void completed.then((outcome) => {
-			if (outcome.ok && outcome.workspaceId !== workspaceId) {
+			// Submitting cleared this card. A retry that creates the workspace but
+			// fails its agent never records a new one, so nothing would replace the
+			// screen the user is looking at — report it here instead.
+			if (!outcome.ok && outcome.workspaceId !== undefined) {
+				toast.error(outcome.error);
+			}
+			if (
+				outcome.workspaceId !== undefined &&
+				outcome.workspaceId !== workspaceId
+			) {
 				void navigate({
 					to: "/v2-workspace/$workspaceId",
 					params: { workspaceId: outcome.workspaceId },

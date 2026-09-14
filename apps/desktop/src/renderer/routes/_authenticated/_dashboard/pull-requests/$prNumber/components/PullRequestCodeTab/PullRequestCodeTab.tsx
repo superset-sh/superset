@@ -9,14 +9,10 @@ import { parsePatchFiles } from "@pierre/diffs";
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import { FileTree as PierreFileTree, useFileTree } from "@pierre/trees/react";
 import { errorMessage } from "@superset/i18n/errors";
-import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-	type AgentPromptFileSide,
-	formatAgentPromptWithFileContext,
-} from "renderer/hooks/host-service/useSendToTerminalAgent";
+import type { AgentPromptFileSide } from "renderer/hooks/host-service/useSendToTerminalAgent";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	createPierreTreeStyle,
@@ -24,10 +20,9 @@ import {
 	PIERRE_TREE_UNSAFE_CSS,
 	type PierreGitStatus,
 } from "renderer/lib/pierreTree";
-import { normalizeTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
-import type { AgentTarget } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/hooks/useDiffCommentTarget";
 import { useDiffCardCodeViewTheme } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/DiffPane/hooks/useDiffCodeViewTheme";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { DiffFileCollapseButton } from "renderer/screens/main/components/DiffFileCollapseButton";
 import { DiffFileHeaderName } from "renderer/screens/main/components/DiffFileHeaderName";
 import { DiffViewToolbar } from "renderer/screens/main/components/DiffViewToolbar";
@@ -35,6 +30,19 @@ import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel"
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates/useWorkspaceCreates";
 import { PullRequestCommentComposer } from "../PullRequestCommentComposer";
 import { PullRequestCommentThread } from "../PullRequestCommentThread";
+import {
+	type CachedLinkedWorkspace,
+	mergeLinkedWorkspace,
+	reconcileCachedLinkedWorkspace,
+} from "./mergeLinkedWorkspace";
+import {
+	liveWorkspaceIdsForHost,
+	resolveLinkedWorkspaceId,
+} from "./resolveLinkedWorkspaceId";
+import {
+	type SendCommentToAgentInput,
+	sendCommentToAgent as sendCommentToAgentRequest,
+} from "./sendCommentToAgent";
 
 interface PullRequestCodeTabProps {
 	projectId: string;
@@ -416,93 +424,106 @@ export function PullRequestCodeTab({
 			);
 		},
 	});
-	const linkedWorkspaceQueryKey = [
-		"pull-request-linked-workspace",
-		projectId,
-		hostUrl,
-		prNumber,
-	];
-	const { data: linkedWorkspaceData } = useQuery({
+	const linkedWorkspaceQueryKey = useMemo(
+		() => ["pull-request-linked-workspace", projectId, hostUrl, prNumber],
+		[projectId, hostUrl, prNumber],
+	);
+	const { data: linkedWorkspaceData } = useQuery<CachedLinkedWorkspace>({
 		queryKey: linkedWorkspaceQueryKey,
 		queryFn: async () => {
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.getLinkedWorkspace.query({
+			const answered = await client.pullRequests.getLinkedWorkspace.query({
 				projectId,
 				prNumber,
 			});
+			// The host's pull-request sync can trail this tab's own create by
+			// minutes, so a `null` here does not retire an id we seeded.
+			return mergeLinkedWorkspace(
+				queryClient.getQueryData<CachedLinkedWorkspace>(
+					linkedWorkspaceQueryKey,
+				),
+				answered,
+			);
 		},
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
 	});
-	const linkedWorkspaceId = linkedWorkspaceData?.workspaceId ?? null;
+	const { workspaces: liveWorkspaces, answeredHostIds } = useHostWorkspaces();
+	const liveWorkspaceIds = useMemo(
+		() =>
+			liveWorkspaceIdsForHost({
+				hostId,
+				workspaces: liveWorkspaces,
+				answeredHostIds,
+			}),
+		[hostId, liveWorkspaces, answeredHostIds],
+	);
+	const linkedWorkspaceId = resolveLinkedWorkspaceId({
+		workspaceId: linkedWorkspaceData?.workspaceId,
+		liveWorkspaceIds,
+	});
+	useEffect(() => {
+		// Write down what the host's list proves instead of only recomputing
+		// it every render: a seeded id survives every `null` the host answers,
+		// so an id left in the cache comes back the moment a failed
+		// `workspace.list` refetch takes the evidence against it away.
+		const write = reconcileCachedLinkedWorkspace({
+			cached: linkedWorkspaceData,
+			liveWorkspaceIds,
+		});
+		if (!write) return;
+		queryClient.setQueryData(linkedWorkspaceQueryKey, write);
+	}, [
+		linkedWorkspaceData,
+		liveWorkspaceIds,
+		queryClient,
+		linkedWorkspaceQueryKey,
+	]);
 	const { submit: submitWorkspaceCreate } = useWorkspaceCreates();
 
-	// Mirrors DiffPane's split between "send to an existing terminal" and
-	// "create a new agent session", but the PR tab has no fixed workspace to
-	// launch a new session *in* — when no workspace is linked to this PR yet,
-	// "new" means spinning up a whole PR-checkout workspace (via the same
-	// useWorkspaceCreates path "Start Workspace" uses) with the prompt baked
-	// into its first agent launch, not just a fresh terminal in one that
-	// already exists.
 	const sendCommentToAgent = useMutation({
-		mutationFn: async (input: {
-			comment: string;
-			target: AgentTarget;
-			path: string;
-			startLine: number;
-			endLine: number;
-			side: AgentPromptFileSide;
-		}) => {
-			const text = formatAgentPromptWithFileContext({
-				comment: input.comment,
-				file: {
-					path: input.path,
-					startLine: input.startLine,
-					endLine: input.endLine,
-					side: input.side,
-				},
-			});
-
-			if (input.target.kind === "existing") {
-				if (!linkedWorkspaceId) {
-					throw new Error("No workspace open for this session");
-				}
-				const client = getHostServiceClientByUrl(hostUrl);
-				await client.terminal.writeInput.mutate({
-					workspaceId: linkedWorkspaceId,
-					terminalId: input.target.terminalId,
-					data: normalizeTerminalCommand(sanitizePromptForPty(text)),
-				});
-				return;
-			}
-
-			if (linkedWorkspaceId) {
-				const client = getHostServiceClientByUrl(hostUrl);
-				await client.agents.run.mutate({
-					workspaceId: linkedWorkspaceId,
-					agent: input.target.configId,
-					prompt: text,
-				});
-				return;
-			}
-
-			if (!hostId) {
-				throw new Error("No host available to create a workspace");
-			}
-			const { completed } = submitWorkspaceCreate({
-				hostId,
-				snapshot: {
-					id: crypto.randomUUID(),
+		mutationFn: (input: SendCommentToAgentInput) =>
+			sendCommentToAgentRequest(
+				{
+					hostId,
 					projectId,
-					pr: prNumber,
-					agents: [{ agent: input.target.configId, prompt: text }],
+					prNumber,
+					// The cache, not the render's copy of it: a create earlier in
+					// this same send seeds the id there, and the retry that
+					// follows must see it.
+					getLinkedWorkspaceId: () =>
+						resolveLinkedWorkspaceId({
+							workspaceId: queryClient.getQueryData<CachedLinkedWorkspace>(
+								linkedWorkspaceQueryKey,
+							)?.workspaceId,
+							liveWorkspaceIds,
+						}),
+					writeTerminalInput: (args) =>
+						getHostServiceClientByUrl(hostUrl).terminal.writeInput.mutate(args),
+					runAgent: (args) =>
+						getHostServiceClientByUrl(hostUrl).agents.run.mutate(args),
+					submitWorkspaceCreate,
+					// A create whose agent failed still leaves the PR checked out,
+					// and the next send belongs in that workspace. The host links
+					// `workspaces.pullRequestId` from its own PR sync, which can
+					// land long after this tab refetches, so seed the answer
+					// rather than invalidating. `seeded` is what keeps it: the
+					// merge above holds it against every `null` the host answers
+					// until the host confirms a link.
+					onWorkspaceCreated: (workspaceId) => {
+						queryClient.setQueryData(linkedWorkspaceQueryKey, {
+							workspaceId,
+							seeded: true,
+						});
+					},
 				},
-			});
-			const outcome = await completed;
-			if (!outcome.ok) throw new Error(outcome.error);
-		},
+				input,
+			),
 		onSuccess: () => {
-			void queryClient.invalidateQueries({ queryKey: linkedWorkspaceQueryKey });
+			// No invalidation: the only send that changes which workspace is
+			// linked is the create branch, and that one seeds the id above. A
+			// refetch here would race the host's PR sync for nothing — the
+			// merge would answer with the seeded id anyway.
 			toast.success(
 				t({
 					message: "Sent to agent",
