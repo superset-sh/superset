@@ -6,6 +6,9 @@ import {
 
 import * as agentsCreate from "./agents/create";
 import * as agentsList from "./agents/list";
+import * as agentsPresetsAdd from "./agents/presets/add";
+import * as agentsPresetsEdit from "./agents/presets/edit";
+import * as agentsPresetsRemove from "./agents/presets/remove";
 import * as automationsCreate from "./automations/create";
 import * as automationsDelete from "./automations/delete";
 import * as automationsGet from "./automations/get";
@@ -75,6 +78,9 @@ const REGISTRARS = [
 	cloudWorkspacesDelete,
 	agentsCreate,
 	agentsList,
+	agentsPresetsAdd,
+	agentsPresetsEdit,
+	agentsPresetsRemove,
 	terminalsCreate,
 	terminalsList,
 	terminalsSend,
