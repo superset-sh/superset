@@ -23,13 +23,76 @@ export function canActivateStarAction(state: GithubStarActionState): boolean {
 // (GitHubStarPill, StarNagCard) unmounts it mid-animation.
 export const STAR_SUCCESS_ANIMATION_MS = 1700;
 
+// How long after this session's own star mutation succeeds an observed
+// "starred" transition is still attributed to that click. The transition
+// normally lands within the same tick (the mutation's onSuccess writes
+// "starred" straight into the query cache), so this only needs to absorb
+// the awaited cancel() and React's render latency — generous is harmless,
+// since any read confirming "starred" this soon after a real star deserves
+// the celebration anyway.
+export const JUST_STARRED_ATTRIBUTION_WINDOW_MS = 5_000;
+
+// When this session's star mutation last confirmed a star; null if it never
+// has. Deliberately module-level (per renderer window, like the query cache
+// it shadows): every mounted surface must agree on it, and it's the ONLY
+// thing separating a real "the user just clicked star" transition from a
+// background refetch recovering to "starred" for an already-starred user.
+let lastStarConfirmedAt: number | null = null;
+
+/**
+ * Whether an observed `prevState -> state` flip is a star the user just
+ * performed — and therefore worth a celebration — rather than a routine
+ * cache correction. Requires both the transition shape (not_starred/unknown
+ * -> starred) AND a star mutation confirmed by this session within the
+ * attribution window. The transition shape alone is NOT evidence of a click:
+ * a flaky checkStarred read (gh timeout, GitHub's 204/404 flap) caches
+ * "unknown"/"not_starred" for an already-starred user, and the next
+ * refetch's recovery to "starred" then looks identical — that's the phantom
+ * "star button flash" on freshly-opened workspaces this gate exists to
+ * prevent. Exported standalone, like the other decision functions in this
+ * module, so the gating is unit-testable without a mounted component.
+ */
+export function shouldCelebrateStarTransition(params: {
+	prevState: GithubStarActionState;
+	state: GithubStarActionState;
+	starConfirmedAt: number | null;
+	now: number;
+}): boolean {
+	const { prevState, state, starConfirmedAt, now } = params;
+	if (state !== "starred") return false;
+	if (prevState !== "not_starred" && prevState !== "unknown") return false;
+	if (starConfirmedAt === null) return false;
+	return now - starConfirmedAt <= JUST_STARRED_ATTRIBUTION_WINDOW_MS;
+}
+
+/**
+ * Live wrapper over shouldCelebrateStarTransition for the two transition
+ * watchers (useJustStarredWindow below and AnimatedStarButton's confetti
+ * effect), so neither re-derives the gate against this module's private
+ * confirmation timestamp.
+ */
+export function isCelebratableStarTransition(
+	prevState: GithubStarActionState,
+	state: GithubStarActionState,
+): boolean {
+	return shouldCelebrateStarTransition({
+		prevState,
+		state,
+		starConfirmedAt: lastStarConfirmedAt,
+		now: Date.now(),
+	});
+}
+
 /**
  * Whether `state` is "starred" as a direct result of an action taken in this
  * session — true for STAR_SUCCESS_ANIMATION_MS after the transition, so a
  * surface that normally hides once starred can instead keep showing the
  * button (with its confetti/label celebration) for that window before
- * hiding. Not true for a repo that was *already* starred on mount — only a
- * live not_starred/unknown -> starred transition counts.
+ * hiding. Not true for a repo that was *already* starred on mount, and not
+ * true for a background refetch recovering to "starred" after a flaky
+ * "unknown"/"not_starred" read — only a transition attributable to this
+ * session's own successful star mutation counts (see
+ * shouldCelebrateStarTransition).
  *
  * Centralizes a subtlety two call sites (GitHubStarPill, StarNagCard) used
  * to reimplement by hand, with a real risk of drifting: the "just
@@ -44,17 +107,14 @@ export function useJustStarredWindow(state: GithubStarActionState): boolean {
 	const prevStateRef = useRef(state);
 	const prevState = prevStateRef.current;
 	prevStateRef.current = state;
-	const justTransitioned =
-		(prevState === "not_starred" || prevState === "unknown") &&
-		state === "starred";
+	const justTransitioned = isCelebratableStarTransition(prevState, state);
 
 	const [staysVisible, setStaysVisible] = useState(false);
 	const prevStateForTimerRef = useRef(state);
 	useEffect(() => {
 		const prev = prevStateForTimerRef.current;
 		prevStateForTimerRef.current = state;
-		const justTransitionedForTimer =
-			(prev === "not_starred" || prev === "unknown") && state === "starred";
+		const justTransitionedForTimer = isCelebratableStarTransition(prev, state);
 		if (!justTransitionedForTimer) return;
 		setStaysVisible(true);
 		const timer = setTimeout(
@@ -218,6 +278,10 @@ export function useGithubStarAction(options?: UseGithubStarActionOptions) {
 		// for a real result costs nothing but correctness.
 		starMutation.mutate(undefined, {
 			onSuccess: async (starred) => {
+				// Stamped before the awaited cancel() below so the "starred" cache
+				// write can never outrun it — the transition watchers attribute the
+				// flip to this click only while the stamp is fresh.
+				if (starred) lastStarConfirmedAt = Date.now();
 				// Cancel any in-flight checkStarred fetch first: it may have
 				// started before this mutation resolved (e.g. Settings'
 				// alwaysFreshOnMount, or a fresh mount elsewhere) and, if left

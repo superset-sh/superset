@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
 	canActivateStarAction,
+	JUST_STARRED_ATTRIBUTION_WINDOW_MS,
 	msUntilUnstarGraceWindowCloses,
+	shouldCelebrateStarTransition,
 	shouldUnmuteOnUnstarredRead,
 	UNSTAR_CONFIRM_DELAY_MS,
 } from "./useGithubStarAction";
@@ -12,6 +14,78 @@ describe("canActivateStarAction", () => {
 		expect(canActivateStarAction("loading")).toBe(false);
 		expect(canActivateStarAction("unknown")).toBe(false);
 		expect(canActivateStarAction("starred")).toBe(false);
+	});
+});
+
+describe("shouldCelebrateStarTransition", () => {
+	const now = 1_000_000;
+
+	test("celebrates a not_starred/unknown -> starred flip right after this session's star mutation succeeded", () => {
+		for (const prevState of ["not_starred", "unknown"] as const) {
+			expect(
+				shouldCelebrateStarTransition({
+					prevState,
+					state: "starred",
+					starConfirmedAt: now - 50,
+					now,
+				}),
+			).toBe(true);
+		}
+	});
+
+	test("never celebrates without a star mutation this session — a background refetch recovering to starred after a flaky read is not a fresh star", () => {
+		for (const prevState of ["not_starred", "unknown"] as const) {
+			expect(
+				shouldCelebrateStarTransition({
+					prevState,
+					state: "starred",
+					starConfirmedAt: null,
+					now,
+				}),
+			).toBe(false);
+		}
+	});
+
+	test("stops attributing transitions to a star mutation once the window has elapsed", () => {
+		expect(
+			shouldCelebrateStarTransition({
+				prevState: "unknown",
+				state: "starred",
+				starConfirmedAt: now - JUST_STARRED_ATTRIBUTION_WINDOW_MS,
+				now,
+			}),
+		).toBe(true);
+		expect(
+			shouldCelebrateStarTransition({
+				prevState: "unknown",
+				state: "starred",
+				starConfirmedAt: now - JUST_STARRED_ATTRIBUTION_WINDOW_MS - 1,
+				now,
+			}),
+		).toBe(false);
+	});
+
+	test("only the not_starred/unknown -> starred shape counts, even with a fresh confirmation", () => {
+		// A cold mount resolving straight from "loading" was already starred
+		// before this session; a starred -> starred re-read is no transition.
+		for (const prevState of ["loading", "starred"] as const) {
+			expect(
+				shouldCelebrateStarTransition({
+					prevState,
+					state: "starred",
+					starConfirmedAt: now - 50,
+					now,
+				}),
+			).toBe(false);
+		}
+		expect(
+			shouldCelebrateStarTransition({
+				prevState: "not_starred",
+				state: "unknown",
+				starConfirmedAt: now - 50,
+				now,
+			}),
+		).toBe(false);
 	});
 });
 
