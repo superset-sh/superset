@@ -46,6 +46,15 @@ const SHELL_BOOTSTRAP_KEYS = [
 	"REQUESTS_CA_BUNDLE",
 	// System-level timezone override.
 	"TZ",
+	// Linux display server connection. Set by the display manager or session
+	// script, not by rc files. The bootstrap shell only sees what we pass here,
+	// so omitting these strips them from the snapshot that becomes the PTY env.
+	// Terminal agents shell out to xclip/xsel/wl-paste to read images from the
+	// clipboard; without a reachable display server those reads fail and image
+	// paste reports "no image in the clipboard". (#5003)
+	"DISPLAY",
+	"XAUTHORITY",
+	"WAYLAND_DISPLAY",
 ];
 
 const COMMON_MACOS_PATHS = [
