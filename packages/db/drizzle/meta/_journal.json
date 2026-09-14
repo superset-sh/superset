@@ -827,6 +827,13 @@
       "when": 1789403012489,
       "tag": "0117_environment_repositories_scope_and_workspace_repositories",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1789408057147,
+      "tag": "0118_cloud_workspace_repositories_cascade",
+      "breakpoints": true
     }
   ]
 }

@@ -741,7 +741,7 @@ export const cloudWorkspaceRepositories = pgTable(
 			.references(() => cloudWorkspaces.id, { onDelete: "cascade" }),
 		repositoryId: uuid("repository_id")
 			.notNull()
-			.references(() => githubRepositories.id),
+			.references(() => githubRepositories.id, { onDelete: "cascade" }),
 		branch: text().notNull(),
 		path: text().notNull(),
 		position: integer().notNull().default(0),
