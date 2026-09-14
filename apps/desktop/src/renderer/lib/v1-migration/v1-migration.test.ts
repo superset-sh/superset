@@ -10,11 +10,17 @@ import { planHostBranchPrefix, planProjectPrefs } from "./settings";
 import { planTerminalMigration, resolveMigratedPaneResume } from "./terminals";
 import { planWorkspaceAdoptions } from "./workspaces";
 
-type Candidate = { id: string; source: string };
-const findByPath = (candidates: Candidate[], cloudErrors: unknown[] = []) =>
+type Candidate = { id: string; source: string; viaOrigin?: boolean };
+const findByPath = (
+	candidates: Candidate[],
+	cloudErrors: unknown[] = [],
+	hasOriginRemote?: boolean,
+) =>
 	// Structural subset of ProjectFindByPathResult — decideProjectImport only
-	// reads candidates/cloudErrors.
-	({ candidates, cloudErrors }) as Parameters<typeof decideProjectImport>[0];
+	// reads candidates/cloudErrors/hasOriginRemote.
+	({ candidates, cloudErrors, hasOriginRemote }) as Parameters<
+		typeof decideProjectImport
+	>[0];
 
 describe("decideProjectImport", () => {
 	test("local-path candidate means already imported", () => {
@@ -50,6 +56,217 @@ describe("decideProjectImport", () => {
 			decideProjectImport(findByPath([{ id: "a", source: "github-remote" }])),
 		).toEqual({ kind: "import" });
 		expect(decideProjectImport(findByPath([]))).toEqual({ kind: "import" });
+	});
+
+	// #7241: repo B's only candidate is repo A's project, reached through a
+	// secondary remote — the multiple-candidates guard cannot see it.
+	test("lone candidate found only via a secondary remote needs a human", () => {
+		expect(
+			decideProjectImport(
+				findByPath([{ id: "a", source: "remote", viaOrigin: false }], [], true),
+			),
+		).toEqual({ kind: "skip", reason: "non-origin-only" });
+	});
+
+	test("lone origin-derived candidate imports", () => {
+		expect(
+			decideProjectImport(
+				findByPath([{ id: "a", source: "remote", viaOrigin: true }], [], true),
+			),
+		).toEqual({ kind: "import" });
+	});
+
+	test("older host without the origin flags keeps importing a lone candidate", () => {
+		expect(
+			decideProjectImport(findByPath([{ id: "a", source: "remote" }])),
+		).toEqual({ kind: "import" });
+	});
+
+	test("a folder that is no longer a git repo wins over a secondary-only candidate", () => {
+		expect(
+			decideProjectImport({
+				...findByPath(
+					[{ id: "a", source: "remote", viaOrigin: false }],
+					[],
+					true,
+				),
+				needsGitInit: true,
+			}),
+		).toEqual({ kind: "skip", reason: "not-a-git-repo" });
+	});
+
+	test("several candidates still need a pick even when the first is origin-derived", () => {
+		expect(
+			decideProjectImport(
+				findByPath(
+					[
+						{ id: "own", source: "remote", viaOrigin: true },
+						{ id: "other", source: "remote", viaOrigin: false },
+					],
+					[],
+					true,
+				),
+			),
+		).toEqual({ kind: "skip", reason: "multiple-candidates" });
+	});
+
+	test("secondary-only candidate next to a failed origin lookup is skipped for the origin reason", () => {
+		expect(
+			decideProjectImport(
+				findByPath(
+					[{ id: "a", source: "remote", viaOrigin: false }],
+					[{ url: "https://github.com/owner/b", message: "cloud down" }],
+					true,
+				),
+			),
+		).toEqual({ kind: "skip", reason: "non-origin-only" });
+	});
+
+	test("lone secondary-remote candidate imports when the repo has no origin", () => {
+		expect(
+			decideProjectImport(
+				findByPath(
+					[{ id: "a", source: "remote", viaOrigin: false }],
+					[],
+					false,
+				),
+			),
+		).toEqual({ kind: "import" });
+	});
+});
+
+describe("importV1Project link target", () => {
+	const v1Project = {
+		id: "v1-b",
+		name: "b",
+		mainRepoPath: "/tmp/b",
+		githubOwner: null,
+	};
+
+	function recordingHostClient() {
+		const setupCalls: unknown[] = [];
+		const createCalls: unknown[] = [];
+		const client = {
+			project: {
+				setup: {
+					mutate: async (input: unknown) => {
+						setupCalls.push(input);
+						return { repoPath: "/tmp/b" };
+					},
+				},
+				create: {
+					mutate: async (input: unknown) => {
+						createCalls.push(input);
+						return {
+							projectId: "p-new",
+							repoPath: "/tmp/b",
+							created: true,
+						};
+					},
+				},
+				setColor: { mutate: async () => {} },
+				setIcon: { mutate: async () => {} },
+			},
+		} as unknown as HostServiceClient;
+		return { client, setupCalls, createCalls };
+	}
+
+	const secondaryOnly = {
+		candidates: [
+			{
+				id: "project-a",
+				name: "a",
+				repoCloneUrl: "https://github.com/owner/a",
+				source: "remote",
+				matchesExpected: false,
+				viaOrigin: false,
+			},
+		],
+		cloudErrors: [],
+		hasOriginRemote: true,
+	} as unknown as ProjectFindByPathResult;
+
+	test("never links implicitly to a secondary-remote-only candidate", async () => {
+		const { client, setupCalls, createCalls } = recordingHostClient();
+		const result = await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: secondaryOnly,
+		});
+		expect(setupCalls).toHaveLength(0);
+		expect(createCalls).toEqual([
+			{ name: "b", mode: { kind: "importLocal", repoPath: "/tmp/b" } },
+		]);
+		expect(result).toMatchObject({ kind: "imported", v2ProjectId: "p-new" });
+	});
+
+	test("links to an explicitly picked candidate", async () => {
+		const { client, setupCalls, createCalls } = recordingHostClient();
+		await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: secondaryOnly,
+			linkToProjectId: "project-a",
+		});
+		expect(createCalls).toHaveLength(0);
+		expect(setupCalls).toEqual([
+			expect.objectContaining({ projectId: "project-a" }),
+		]);
+	});
+
+	test("links implicitly when the repo has no origin remote", async () => {
+		const { client, setupCalls } = recordingHostClient();
+		const noOrigin = {
+			...secondaryOnly,
+			hasOriginRemote: false,
+		} as ProjectFindByPathResult;
+		await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: noOrigin,
+		});
+		expect(setupCalls).toHaveLength(1);
+	});
+
+	test("the host's origin-mismatch CONFLICT surfaces as an error, never as needs-relocate", async () => {
+		const client = {
+			project: {
+				setup: {
+					mutate: async () => {
+						throw new Error(
+							'/tmp/b is a checkout of git@github.com:owner/b.git (origin), not owner/a; its "a" remote only references that repository. Import the folder as its own project instead.',
+						);
+					},
+				},
+				create: {
+					mutate: async () => {
+						throw new Error("create should not be called");
+					},
+				},
+			},
+		} as unknown as HostServiceClient;
+		await expect(
+			importV1Project({
+				hostClient: client,
+				project: v1Project,
+				findByPathResult: secondaryOnly,
+				linkToProjectId: "project-a",
+			}),
+		).rejects.toThrow("is a checkout of");
+	});
+
+	test("links implicitly to an origin-derived candidate", async () => {
+		const { client, setupCalls } = recordingHostClient();
+		const viaOrigin = {
+			...secondaryOnly,
+			candidates: [{ ...secondaryOnly.candidates[0], viaOrigin: true }],
+		} as ProjectFindByPathResult;
+		await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: viaOrigin,
+		});
+		expect(setupCalls).toHaveLength(1);
 	});
 });
 

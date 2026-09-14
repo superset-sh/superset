@@ -41,6 +41,8 @@ class FakeHost {
 	missingPaths = new Set<string>();
 	/** Existing folders that are not git repos (findByPath → needsGitInit). */
 	nonGitPaths = new Set<string>();
+	/** repoPath → cloud project id reachable only through a secondary remote. */
+	secondaryOnlyCandidates = new Map<string, string>();
 	/** Throw the next N adopt calls (transient host fault). */
 	adoptFaults = 0;
 	tagFaults = 0;
@@ -70,10 +72,30 @@ class FakeHost {
 							return { candidates: [], cloudErrors: [], needsGitInit: true };
 						}
 						const local = this.projects.find((p) => p.repoPath === repoPath);
-						return {
-							candidates: local ? [{ id: local.id, source: "local-path" }] : [],
-							cloudErrors: [],
-						};
+						if (local) {
+							return {
+								candidates: [{ id: local.id, source: "local-path" }],
+								cloudErrors: [],
+							};
+						}
+						const secondary = this.secondaryOnlyCandidates.get(repoPath);
+						if (secondary) {
+							return {
+								candidates: [
+									{
+										id: secondary,
+										name: secondary,
+										repoCloneUrl: "https://github.com/owner/other",
+										source: "remote",
+										matchesExpected: false,
+										viaOrigin: false,
+									},
+								],
+								cloudErrors: [],
+								hasOriginRemote: true,
+							};
+						}
+						return { candidates: [], cloudErrors: [] };
 					},
 				},
 				setup: {
@@ -516,6 +538,53 @@ describe("runV1Migration scenarios", () => {
 			status: "skipped",
 			reason: "not-a-git-repo",
 		});
+	});
+
+	test("a repo whose only match is another repo's project is skipped, its workspaces wait, and a later manual import links it (#7241)", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		host.projects.push({ id: "v2p-other", repoPath: "/repo/other" });
+		ipc.projects = [project("b", "/repo/b")];
+		ipc.worktrees = [{ id: "wt-b", path: "/trees/feat", baseBranch: "main" }];
+		ipc.workspaces = [workspace("w-b", "b", "feat", "wt-b")];
+		host.secondaryOnlyCandidates.set("/repo/b", "v2p-other");
+
+		const first = await run(ipc, host);
+		expect(first.projects).toMatchObject({
+			skipped: 1,
+			failed: 0,
+			migrated: 0,
+		});
+		expect(first.workspaces).toMatchObject({ skipped: 1, migrated: 0 });
+		expect(first.gateComplete).toBe(true);
+		expect(host.mutations).toHaveLength(0);
+		expect(ipc.ledger.get("project\0b")).toMatchObject({
+			status: "skipped",
+			reason: "non-origin-only",
+		});
+		expect(ipc.ledger.get("workspace\0w-b")).toBeUndefined();
+
+		// Skips are non-terminal: the next pass re-evaluates and still refuses.
+		const second = await run(ipc, host);
+		expect(second.projects.skipped).toBe(1);
+		expect(host.mutations).toHaveLength(0);
+
+		// The user imports the folder as its own project (the wizard's Link,
+		// or Add project); the next pass links it and adopts its workspace.
+		host.projects.push({ id: "v2p-b", repoPath: "/repo/b" });
+		host.diskBranches.set("/repo/b", new Set(["feat"]));
+		const third = await run(ipc, host);
+		expect(third.projects.linked).toBe(1);
+		expect(third.workspaces.migrated).toBe(1);
+		expect(ipc.ledger.get("project\0b")).toMatchObject({
+			status: "linked",
+			v2Id: "v2p-b",
+		});
+		expect(
+			host.workspaces.find(
+				(w) => w.projectId === "v2p-other" && w.branch === "feat",
+			),
+		).toBeUndefined();
 	});
 
 	test("on v1, a ledger row pointing at a project the host no longer has is re-imported, not trusted", async () => {
