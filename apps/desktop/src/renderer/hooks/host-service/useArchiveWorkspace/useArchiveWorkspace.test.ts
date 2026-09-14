@@ -35,6 +35,7 @@ mock.module(
 );
 mock.module("../useWorkspaceHostUrl", () => ({
 	useWorkspaceHostTarget: () => target,
+	useWorkspaceHostUrl: () => (target.status === "ready" ? target.url : null),
 }));
 mock.module("../useDestroyWorkspace", () => ({
 	normalizeDestroyWorkspaceError: normalizeError,
