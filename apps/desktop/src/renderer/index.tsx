@@ -31,7 +31,6 @@ initBootErrorHandling(rootElement);
 pruneExpiredTerminalState();
 // Keys from removed features otherwise live on user profiles forever.
 sweepDeadPersistedKeys();
-
 const router = createRouter({
 	routeTree,
 	history: persistentHistory,
