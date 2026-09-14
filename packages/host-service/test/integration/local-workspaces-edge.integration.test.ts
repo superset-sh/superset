@@ -15,7 +15,10 @@ import { join, resolve } from "node:path";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { terminalSessions, workspaces } from "../../src/db/schema";
-import { runSandboxSelfSeed } from "../../src/runtime/sandbox-self-seed/sandbox-self-seed";
+import {
+	runSandboxSelfSeed,
+	sandboxRepositoryWorkspaceId,
+} from "../../src/runtime/sandbox-self-seed/sandbox-self-seed";
 import { cloudFlows } from "../helpers/cloud-fakes";
 import { createTestHost } from "../helpers/createTestHost";
 import { createGitFixture } from "../helpers/git-fixture";
@@ -678,21 +681,41 @@ describe("local workspaces: sessions and sandbox seed", () => {
 		dispose = () => host.dispose();
 		const identity = {
 			workspaceId: randomUUID(),
-			worktreePath: "/data/repo",
+			worktreePath: "/workspace/repo",
 			workspaceName: "sandbox ws",
 			projectName: "sandbox project",
 			branch: "main",
+			repositories: [
+				{
+					url: "https://github.com/acme/repo.git",
+					branch: "main",
+					path: "repo",
+				},
+				{
+					url: "https://github.com/acme/docs.git",
+					branch: "main",
+					path: "docs",
+				},
+			],
+			hooksPath: "/workspace/repo",
 		} as Parameters<typeof runSandboxSelfSeed>[1];
 		runSandboxSelfSeed(host.db, identity);
 		runSandboxSelfSeed(host.db, identity);
 		const rows = host.db.select().from(workspaces).all();
-		expect(rows).toHaveLength(1);
-		expect(rows[0]).toMatchObject({
-			id: identity.workspaceId,
+		// One local workspace per checkout: the primary under the cloud
+		// workspace's id, the sibling under an id derived from it.
+		expect(rows).toHaveLength(2);
+		expect(rows.find((row) => row.id === identity.workspaceId)).toMatchObject({
 			type: "local",
-			worktreePath: "/data/repo",
+			worktreePath: "/workspace/repo",
 			name: "sandbox ws",
 		});
+		expect(
+			rows.find(
+				(row) =>
+					row.id === sandboxRepositoryWorkspaceId(identity.workspaceId, "docs"),
+			),
+		).toMatchObject({ type: "local", worktreePath: "/workspace/docs" });
 		// A sandbox's only workspace can still be retired record-only.
 		const preview = await host.trpc.workspaceCleanup.inspect.query({
 			workspaceId: identity.workspaceId,
