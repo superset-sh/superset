@@ -3,6 +3,7 @@ import { detectLanguage } from "shared/detect-language";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { toRegisteredWorktreeRelativePath } from "../workspace-fs-service";
+import { gitRevisionSchema } from "./security/git-revision";
 import { runGitTask } from "./workers/git-task-runner";
 import type { GitTaskPayloadMap } from "./workers/git-task-types";
 
@@ -15,7 +16,7 @@ export const createFileContentsRouter = () => {
 					absolutePath: z.string(),
 					oldAbsolutePath: z.string().optional(),
 					category: z.enum(["against-base", "committed", "staged"]),
-					commitHash: z.string().optional(),
+					commitHash: gitRevisionSchema.optional(),
 					defaultBranch: z.string().optional(),
 				}),
 			)
