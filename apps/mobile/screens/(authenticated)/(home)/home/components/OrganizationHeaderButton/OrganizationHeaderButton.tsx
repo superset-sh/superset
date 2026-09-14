@@ -19,10 +19,13 @@ export function OrganizationHeaderButton({
 	if (isLoading) return null;
 	return (
 		<Stack.Toolbar placement="left">
-			<Stack.Toolbar.View hidesSharedBackground>
-				<Pressable onPress={onPress} className="flex-row items-center gap-2">
-					<OrganizationAvatar name={name} logo={logo} size={28} />
-					<Text className="text-xl font-semibold text-foreground">
+			<Stack.Toolbar.View>
+				<Pressable
+					onPress={onPress}
+					className="flex-row items-center gap-2 py-1.5 pl-1.5 pr-3.5"
+				>
+					<OrganizationAvatar name={name} logo={logo} size={26} />
+					<Text className="text-base font-semibold text-foreground">
 						{name ?? "Organization"}
 					</Text>
 				</Pressable>
