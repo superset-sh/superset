@@ -3,7 +3,6 @@ CREATE TABLE "cloud_workspace_repositories" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"cloud_workspace_id" uuid NOT NULL,
 	"repository_id" uuid NOT NULL,
-	"branch" text NOT NULL,
 	"path" text NOT NULL,
 	CONSTRAINT "cloud_workspace_repositories_workspace_repository_unique" UNIQUE("cloud_workspace_id","repository_id")
 );
@@ -16,7 +15,6 @@ CREATE TABLE "environment_repositories" (
 );
 --> statement-breakpoint
 ALTER TABLE "environments" ADD COLUMN "bundle_sha" text;--> statement-breakpoint
-ALTER TABLE "environments" ADD COLUMN "hooks" jsonb;--> statement-breakpoint
 ALTER TABLE "environments" ADD COLUMN "hooks_repository_id" uuid;--> statement-breakpoint
 ALTER TABLE "environments" ADD COLUMN "scope" "environment_scope" DEFAULT 'organization' NOT NULL;--> statement-breakpoint
 ALTER TABLE "environments" ADD COLUMN "created_by_user_id" uuid;--> statement-breakpoint

@@ -43,16 +43,3 @@ export const workspaceConfigSchema = z.union([
 	cloudWorkspaceConfigSchema,
 ]);
 export type WorkspaceConfig = LocalWorkspaceConfig | CloudWorkspaceConfig;
-
-/**
- * The hooks a repository declares in `.superset/config.json`, as an
- * environment may override them. `setup` runs once when the environment's
- * golden is built, `start` on every boot of a workspace once host-service is
- * up, and `ports` are published beside the platform's own.
- */
-export const environmentHooksSchema = z.object({
-	setup: z.array(z.string()).optional(),
-	start: z.array(z.string()).optional(),
-	ports: z.array(z.number().int().min(1).max(65535)).max(13).optional(),
-});
-export type EnvironmentHooks = z.infer<typeof environmentHooksSchema>;

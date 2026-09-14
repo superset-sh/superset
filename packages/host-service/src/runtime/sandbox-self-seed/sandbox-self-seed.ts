@@ -58,38 +58,6 @@ export interface SandboxIdentity {
 	launch: CloudAgentLaunch | null;
 	/** Written once the launch has happened, so a restart never repeats it. */
 	launchMarkerPath: string;
-	/** The environment's overrides for the repository's hooks. */
-	hooks: SandboxHooks | null;
-}
-
-/** The hook overrides the box acts on; `setup` is the release's and never arrives here. */
-export interface SandboxHooks {
-	start?: string[];
-	ports?: number[];
-}
-
-function readSandboxHooks(raw: string | undefined): SandboxHooks | null {
-	if (!raw) return null;
-	try {
-		const parsed: unknown = JSON.parse(raw);
-		if (!parsed || typeof parsed !== "object") return null;
-		const hooks = parsed as Record<string, unknown>;
-		const strings = (value: unknown) =>
-			Array.isArray(value) && value.every((item) => typeof item === "string")
-				? (value as string[])
-				: undefined;
-		return {
-			start: strings(hooks.start),
-			ports: Array.isArray(hooks.ports)
-				? hooks.ports.filter((port): port is number => typeof port === "number")
-				: undefined,
-		};
-	} catch {
-		console.warn(
-			"[sandbox] SUPERSET_SANDBOX_HOOKS is not JSON; overrides ignored",
-		);
-		return null;
-	}
 }
 
 function readSandboxRepositories(raw: string | undefined): SandboxRepository[] {
@@ -132,7 +100,6 @@ export function readSandboxIdentity(
 			dirname(env.HOST_DB_PATH || SANDBOX_PATHS.hostDb),
 			"agent-launched",
 		),
-		hooks: readSandboxHooks(env.SUPERSET_SANDBOX_HOOKS),
 	};
 }
 
@@ -156,18 +123,15 @@ export function runSandboxStartHook(
 ): StartHookOutcome {
 	if (existsSync(START_HOOK_MARKER))
 		return { started: false, reason: "already-started" };
-	const commands =
-		identity.hooks?.start ??
-		(() => {
-			const resolved = resolveScript("start", {
-				repoPath: identity.hooksPath,
-				projectId: identity.workspaceId,
-			});
-			if (!resolved) return null;
-			return resolved.kind === "commands"
-				? resolved.commands
-				: [`bash ${shellSingleQuote(resolved.scriptPath)}`];
-		})();
+	const resolved = resolveScript("start", {
+		repoPath: identity.hooksPath,
+		projectId: identity.workspaceId,
+	});
+	const commands = !resolved
+		? null
+		: resolved.kind === "commands"
+			? resolved.commands
+			: [`bash ${shellSingleQuote(resolved.scriptPath)}`];
 	if (!commands?.length) return { started: false, reason: "no-hook" };
 	const command = commands.join(" && ");
 	const log = openSync(START_HOOK_LOG, "a");

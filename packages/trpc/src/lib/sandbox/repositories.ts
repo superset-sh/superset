@@ -111,23 +111,16 @@ export async function environmentRepositoryRows(
 
 /**
  * Fixes a new workspace's checkouts: the repositories it was created with,
- * each on its branch (the primary's chosen, the rest on their defaults) at
- * a path under the workspace root.
+ * each at a path under the workspace root.
  */
 export async function recordWorkspaceRepositories(args: {
 	cloudWorkspaceId: string;
 	repositories: readonly RepositoryRow[];
-	primaryRepositoryId: string;
-	primaryBranch: string;
 }): Promise<void> {
 	await db.insert(cloudWorkspaceRepositories).values(
 		args.repositories.map((repository) => ({
 			cloudWorkspaceId: args.cloudWorkspaceId,
 			repositoryId: repository.id,
-			branch:
-				repository.id === args.primaryRepositoryId
-					? args.primaryBranch
-					: repository.defaultBranch,
 			path: sandboxRepositoryPath(repository, args.repositories),
 		})),
 	);
@@ -137,6 +130,8 @@ export async function recordWorkspaceRepositories(args: {
 export async function workspaceRepositories(args: {
 	cloudWorkspaceId: string;
 	hooksRepositoryId: string | null;
+	/** The workspace's branch; the other repositories check out their default. */
+	primaryBranch: string;
 }): Promise<WorkspaceRepository[]> {
 	const rows = await db
 		.select({
@@ -169,7 +164,8 @@ export async function workspaceRepositories(args: {
 	);
 	return ordered.map(({ link, repository }) => ({
 		repository,
-		branch: link.branch,
+		branch:
+			repository.id === hooksId ? args.primaryBranch : repository.defaultBranch,
 		path: link.path,
 		hooks: repository.id === hooksId,
 	}));

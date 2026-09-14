@@ -1,5 +1,4 @@
 import { db } from "@superset/db/client";
-import type { EnvironmentHooks } from "@superset/db/schema";
 import { environmentSecrets, environments } from "@superset/db/schema";
 import { isReservedKey } from "@superset/shared/environment-secrets";
 import { and, eq } from "drizzle-orm";
@@ -11,7 +10,6 @@ export interface ResolvedEnvironment {
 	sourceKind: "image" | "fork";
 	sourceRef: string;
 	bundleSha: string | null;
-	hooks: EnvironmentHooks | null;
 	hooksRepositoryId: string | null;
 	envs: Record<string, string>;
 }
@@ -54,7 +52,6 @@ export async function resolveEnvironment(
 		sourceKind: row.sourceKind,
 		sourceRef: row.sourceRef,
 		bundleSha: row.bundleSha,
-		hooks: row.hooks,
 		hooksRepositoryId: row.hooksRepositoryId,
 		envs,
 	};

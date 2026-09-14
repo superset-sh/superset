@@ -19,7 +19,7 @@ import { resolveAgentCredentialEnv } from "../../router/agent-credential";
 import { resolveEnvironment } from "../../router/environment/resolve-environment";
 import { sandboxHostSecretFor } from "./access";
 import { deriveSandboxCredentials } from "./credentials";
-import { mergeHooks, readRepoHooks } from "./repo-hooks";
+import { readRepoHooks } from "./repo-hooks";
 import {
 	installationTokenFor,
 	toSandboxRepositories,
@@ -52,6 +52,7 @@ export async function buildSandboxClaim(args: {
 	const checkouts = await workspaceRepositories({
 		cloudWorkspaceId: args.row.id,
 		hooksRepositoryId: environment.hooksRepositoryId,
+		primaryBranch: args.row.branch,
 	});
 	const token = await installationTokenFor(
 		checkouts.map((entry) => entry.repository),
@@ -64,13 +65,6 @@ export async function buildSandboxClaim(args: {
 					branch: hooksCheckout.branch,
 					token,
 				})
-			: null;
-	const hooks = mergeHooks(repoHooks, environment.hooks);
-	// The box acts on start and ports; setup is the release's, and can be a
-	// whole script, which has no place in the identity file.
-	const boxHooks =
-		environment.hooks?.start || environment.hooks?.ports
-			? { start: environment.hooks.start, ports: environment.hooks.ports }
 			: null;
 	const repositories = toSandboxRepositories(checkouts);
 
@@ -85,7 +79,6 @@ export async function buildSandboxClaim(args: {
 		...(environment.bundleSha
 			? { SUPERSET_BUNDLE_SHA: environment.bundleSha }
 			: {}),
-		...(boxHooks ? { SUPERSET_SANDBOX_HOOKS: JSON.stringify(boxHooks) } : {}),
 		...(env.SENTRY_DSN_SANDBOX
 			? {
 					HOST_SERVICE_SENTRY_DSN: env.SENTRY_DSN_SANDBOX,
@@ -106,7 +99,7 @@ export async function buildSandboxClaim(args: {
 			hostSecret: await sandboxHostSecretFor(args.row.id),
 			managedEnv,
 			networkPolicy,
-			ports: hooks.ports,
+			ports: repoHooks?.ports,
 		},
 		environment: {
 			sourceKind: environment.sourceKind,

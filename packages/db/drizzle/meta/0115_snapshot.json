@@ -1,5 +1,5 @@
 {
-  "id": "58919d91-9911-4345-a985-25438fb13a42",
+  "id": "c17c7049-d526-4da4-82b5-764b6b4373db",
   "prevId": "76f117a5-f0c0-408f-a65d-475d36bc87f8",
   "version": "7",
   "dialect": "postgresql",
@@ -6180,12 +6180,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "branch": {
-          "name": "branch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "path": {
           "name": "path",
           "type": "text",
@@ -7004,12 +6998,6 @@
         "bundle_sha": {
           "name": "bundle_sha",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hooks": {
-          "name": "hooks",
-          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },

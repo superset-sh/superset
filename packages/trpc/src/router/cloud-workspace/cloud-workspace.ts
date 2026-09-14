@@ -90,7 +90,6 @@ export const cloudWorkspaceRouter = {
 					cloudWorkspaceId: cloudWorkspaceRepositories.cloudWorkspaceId,
 					repositoryId: githubRepositories.id,
 					fullName: githubRepositories.fullName,
-					branch: cloudWorkspaceRepositories.branch,
 					path: cloudWorkspaceRepositories.path,
 					hooksRepositoryId: environments.hooksRepositoryId,
 				})
@@ -270,8 +269,6 @@ export const cloudWorkspaceRouter = {
 			await recordWorkspaceRepositories({
 				cloudWorkspaceId: row.id,
 				repositories,
-				primaryRepositoryId: primary.id,
-				primaryBranch: branch,
 			});
 
 			// Naming reads the prompt, and only when the user didn't type a name.

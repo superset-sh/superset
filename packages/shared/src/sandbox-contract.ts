@@ -102,7 +102,6 @@ export const sandboxIdentitySchema = z.object({
 	 * `setup` never travels here; the release runs it. host-service runs
 	 * `start` once the managed environment has arrived.
 	 */
-	SUPERSET_SANDBOX_HOOKS: z.string().optional(),
 	HOST_SERVICE_SENTRY_DSN: z.string().optional(),
 	HOST_SERVICE_SENTRY_ENVIRONMENT: z.string().optional(),
 	/** A built-in agent to run once on first boot; see cloud-agent-launch. */

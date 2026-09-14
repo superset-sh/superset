@@ -6,7 +6,7 @@ export {
 	type RemoteBranch,
 	type RemoteBranchPage,
 } from "./list-branches";
-export { mergeHooks, readRepoHooks } from "./repo-hooks";
+export { readRepoHooks } from "./repo-hooks";
 export {
 	cloneUrl,
 	environmentRepositoryRows,

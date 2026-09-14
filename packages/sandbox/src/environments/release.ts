@@ -59,7 +59,8 @@ const REPO_URL = "https://github.com/superset-sh/superset.git";
 const REPO_PATH = SANDBOX_ROOT_CHECKOUT;
 const REPO_DIR = sandboxCheckoutDir(SANDBOX_PATHS.workspace, REPO_PATH);
 const REPO_FULL_NAME = "superset-sh/superset";
-const BRANCH = "main";
+/** The monorepo branch the golden is built from; its `.superset/config.json` supplies `start`. */
+const BRANCH = process.env.SUPERSET_INTERNAL_BRANCH ?? "main";
 
 const started = Date.now();
 const at = () => `${((Date.now() - started) / 1000).toFixed(0).padStart(4)}s`;
@@ -146,7 +147,7 @@ const setupScript = readFileSync(
 	join(import.meta.dir, "internal-setup.sh"),
 	"utf8",
 );
-const hooks = { setup: [setupScript], start: ["superset-dev-stack"] };
+const setupHook = [setupScript];
 
 function identityFor(workspaceId: string, sourceRef: string): SandboxIdentity {
 	return {
@@ -160,7 +161,6 @@ function identityFor(workspaceId: string, sourceRef: string): SandboxIdentity {
 		]),
 		SUPERSET_SANDBOX_IMAGE_TAG: sourceRef,
 		SUPERSET_SANDBOX_PROVIDER: "vercel",
-		SUPERSET_SANDBOX_HOOKS: JSON.stringify(hooks),
 	};
 }
 
@@ -252,7 +252,7 @@ log(
 );
 const setup = await runLong(
 	goldenBox,
-	`cd ${REPO_DIR} && ${hooks.setup.join(" && ")}`,
+	`cd ${REPO_DIR} && ${setupHook.join(" && ")}`,
 );
 for (const line of setup.logs
 	.split("\n")
@@ -439,7 +439,6 @@ await db
 		sourceKind: "fork",
 		sourceRef: golden,
 		bundleSha: bundle.sha256,
-		hooks,
 	})
 	.onConflictDoUpdate({
 		target: [environments.organizationId, environments.name],
@@ -448,7 +447,6 @@ await db
 			sourceKind: "fork",
 			sourceRef: golden,
 			bundleSha: bundle.sha256,
-			hooks,
 			archivedAt: null,
 		},
 	});

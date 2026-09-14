@@ -1,7 +1,6 @@
 import { db } from "@superset/db/client";
 import {
 	cloudWorkspaces,
-	environmentHooksSchema,
 	environmentRepositories,
 	environmentScopeValues,
 	environments,
@@ -292,6 +291,7 @@ export const environmentRouter = {
 			const checkouts = await workspaceRepositories({
 				cloudWorkspaceId: workspace.id,
 				hooksRepositoryId: source?.hooksRepositoryId ?? null,
+				primaryBranch: workspace.branch,
 			});
 			const environmentId = crypto.randomUUID();
 			const goldenName = `env-${environmentId.replaceAll("-", "").slice(0, 24)}`;
@@ -312,7 +312,6 @@ export const environmentRouter = {
 					sourceKind: "fork",
 					sourceRef: goldenName,
 					bundleSha: source?.bundleSha ?? null,
-					hooks: source?.hooks ?? null,
 					scope: source?.scope ?? "organization",
 					createdByUserId: ctx.userId,
 				})
@@ -346,7 +345,6 @@ export const environmentRouter = {
 					.regex(/^[0-9a-f]{64}$/)
 					.nullable()
 					.optional(),
-				hooks: environmentHooksSchema.nullable().optional(),
 				repositoryIds: z.array(z.string().uuid()).min(1).max(20).optional(),
 				hooksRepositoryId: z.string().uuid().nullable().optional(),
 				scope: z.enum(environmentScopeValues).optional(),
@@ -388,7 +386,6 @@ export const environmentRouter = {
 				...(input.bundleSha !== undefined
 					? { bundleSha: input.bundleSha }
 					: {}),
-				...(input.hooks !== undefined ? { hooks: input.hooks } : {}),
 				...(input.scope ? { scope: input.scope } : {}),
 			};
 			if (Object.keys(patch).length === 0) {

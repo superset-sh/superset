@@ -51,7 +51,7 @@ import type {
 	TriggerConfig,
 	UserIdentityMetadata,
 } from "./types";
-import type { EnvironmentHooks, WorkspaceConfig } from "./zod";
+import type { WorkspaceConfig } from "./zod";
 
 export const taskStatus = pgEnum("task_status", taskStatusEnumValues);
 export const taskPriority = pgEnum("task_priority", taskPriorityValues);
@@ -573,8 +573,6 @@ export const environments = pgTable(
 		sourceRef: text("source_ref").notNull(),
 		/** The sandbox bundle every workspace of this environment boots on; null keeps the image's own. */
 		bundleSha: text("bundle_sha"),
-		/** Overrides for the repository's `.superset/config.json` hooks. */
-		hooks: jsonb().$type<EnvironmentHooks>(),
 		/**
 		 * Which of the environment's repositories carries the `.superset/config.json`
 		 * the box acts on; null means none does and only `hooks` applies.
@@ -725,7 +723,6 @@ export const cloudWorkspaceRepositories = pgTable(
 		repositoryId: uuid("repository_id")
 			.notNull()
 			.references(() => githubRepositories.id, { onDelete: "cascade" }),
-		branch: text().notNull(),
 		path: text().notNull(),
 	},
 	(table) => [
