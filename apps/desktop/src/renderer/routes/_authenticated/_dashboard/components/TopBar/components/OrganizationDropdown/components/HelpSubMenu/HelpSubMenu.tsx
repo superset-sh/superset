@@ -20,6 +20,8 @@ import { LuKeyboard, LuMegaphone } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
+import { useGettingStartedStore } from "renderer/stores/getting-started";
+
 interface HelpSubMenuProps {
 	onSubmitPrompt: () => void;
 }
@@ -42,6 +44,12 @@ export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 				</span>
 			</DropdownMenuSubTrigger>
 			<DropdownMenuSubContent className="w-56">
+				<DropdownMenuItem
+					onSelect={() => useGettingStartedStore.getState().show()}
+				>
+					<HiOutlineBookOpen className="h-4 w-4" />
+					<Trans>Getting started</Trans>
+				</DropdownMenuItem>
 				<DropdownMenuItem onSelect={onSubmitPrompt}>
 					<LuMegaphone className="h-4 w-4" />
 					<Trans>Submit a prompt</Trans>

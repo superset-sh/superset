@@ -563,6 +563,9 @@ msgstr "{closedCount} đã đóng"
 msgid "{completed} of {0} checks complete"
 msgstr "{completed} trong {0} check đã xong"
 
+msgid "{completed} of {total} tried"
+msgstr "Đã thử {completed} trên {total}"
+
 msgid "{configTitle} font size"
 msgstr "Cỡ chữ {configTitle}"
 
@@ -3754,6 +3757,9 @@ msgstr "Kết nối workspace Notion của bạn và chia sẻ các trang cùng 
 msgid "Connect your Slack workspace to manage tasks from conversations."
 msgstr "Kết nối workspace Slack của bạn để quản lý tác vụ ngay trong hội thoại."
 
+msgid "Connect your tools"
+msgstr "Kết nối công cụ"
+
 msgid "Connected"
 msgstr "Đã kết nối"
 
@@ -6863,6 +6869,9 @@ msgstr "Cài Superset trên máy Mac"
 
 msgid "Get Superset Pro"
 msgstr "Mua Superset Pro"
+
+msgid "Getting started"
+msgstr "Bắt đầu"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -10465,6 +10474,9 @@ msgstr "Điều phối agent song song"
 msgid "Orchestrate Them All."
 msgstr "Điều phối tất cả."
 
+msgid "Orchestrate your agents"
+msgstr "Điều phối các tác tử"
+
 msgid "Orchestrated"
 msgstr "Điều phối"
 
@@ -11348,6 +11360,9 @@ msgstr "Công khai"
 
 msgid "Public leaderboard"
 msgstr "Bảng xếp hạng công khai"
+
+msgid "Publish your first page"
+msgstr "Xuất bản trang đầu tiên"
 
 msgid "Published"
 msgstr "Phát hành"
@@ -13121,6 +13136,9 @@ msgstr "Đặt lệnh chạy"
 
 msgid "Set up"
 msgstr "Thiết lập"
+
+msgid "Set up an automation"
+msgstr "Thiết lập tự động hóa"
 
 msgid "Set up project on {hostName}"
 msgstr "Thiết lập dự án trên {hostName}"

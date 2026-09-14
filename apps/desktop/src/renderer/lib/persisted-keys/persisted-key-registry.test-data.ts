@@ -6,6 +6,7 @@
 export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	readonly [file: string, keys: readonly string[]]
 > = [
+	["src/renderer/stores/getting-started/store.ts", ["getting-started-v1"]],
 	[
 		"src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts",
 		[
