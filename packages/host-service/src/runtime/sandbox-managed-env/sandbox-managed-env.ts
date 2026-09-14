@@ -16,8 +16,18 @@ function reset(): void {
 }
 reset();
 
+/**
+ * Replaces the set. It is mirrored into this process's own environment so
+ * everything host-service spawns itself (gh, git, the credential helper, an
+ * agent) sees it the way a terminal does; a key dropped by the next push
+ * leaves the process environment too.
+ */
 export function setManagedEnv(variables: Record<string, string>): void {
+	for (const key of Object.keys(managed ?? {})) {
+		if (!(key in variables)) delete process.env[key];
+	}
 	managed = { ...variables };
+	Object.assign(process.env, managed);
 	resolveFirstPush();
 }
 
@@ -41,6 +51,7 @@ export function waitForManagedEnv(timeoutMs: number): Promise<boolean> {
 }
 
 export function resetManagedEnvForTests(): void {
+	for (const key of Object.keys(managed ?? {})) delete process.env[key];
 	managed = null;
 	reset();
 }
