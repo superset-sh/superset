@@ -3,8 +3,12 @@ import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
+import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+
+const CONNECT_POLL_MS = 2_000;
+const CONNECT_WAIT_MS = 5 * 60_000;
 
 /** A person's own accounts, as opposed to the organization's integrations. */
 export function ConnectionsSettings() {
@@ -32,13 +36,21 @@ export function ConnectionsSettings() {
 function GithubConnectionRow() {
 	const { t } = useLingui();
 	const utils = cloudTrpc.useUtils();
-	// The flow finishes in the browser; coming back to the app is when the
-	// connection changes, so a focus refetch is what shows it.
+	// The flow finishes in the browser, and returning to an Electron window
+	// never makes the page "visible" again, so a focus refetch would not fire:
+	// poll from the moment Connect is clicked until the connection appears.
+	const [waitingSince, setWaitingSince] = useState<number | null>(null);
 	const status = cloudTrpc.githubUser.get.useQuery(undefined, {
-		refetchOnWindowFocus: true,
+		refetchInterval: (query) =>
+			waitingSince !== null &&
+			!query.state.data?.connection &&
+			Date.now() - waitingSince < CONNECT_WAIT_MS
+				? CONNECT_POLL_MS
+				: false,
 	});
 	const connect = cloudTrpc.githubUser.connect.useMutation({
 		onSuccess: ({ url }) => {
+			setWaitingSince(Date.now());
 			window.open(url, "_blank");
 		},
 		onError: (error) => toast.error(errorMessage(error)),
