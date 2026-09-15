@@ -4394,7 +4394,7 @@ msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "无法为{0}连接云端：{1}"
 
 msgid "Couldn't reach workspace"
-msgstr "无法连接工作区"
+msgstr "无法连接到工作区"
 
 msgid "Couldn't read this terminal's context."
 msgstr "无法读取该终端的上下文。"

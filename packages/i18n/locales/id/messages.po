@@ -9577,7 +9577,7 @@ msgid "No repositories connected."
 msgstr "Tidak ada repositori yang terhubung."
 
 msgid "No repositories found"
-msgstr "Tidak ada repositori ditemukan"
+msgstr "Tidak ada repositori yang ditemukan"
 
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Tidak ada repositori ditemukan. Pastikan GitHub App Anda punya akses ke repositori."
