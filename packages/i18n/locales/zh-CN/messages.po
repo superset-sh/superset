@@ -4393,6 +4393,9 @@ msgstr "无法发布回复"
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "无法为{0}连接云端：{1}"
 
+msgid "Couldn't reach workspace"
+msgstr "无法连接工作区"
+
 msgid "Couldn't read this terminal's context."
 msgstr "无法读取该终端的上下文。"
 
@@ -9573,6 +9576,9 @@ msgstr "未找到拉取请求。"
 msgid "No repositories connected."
 msgstr "未连接任何仓库。"
 
+msgid "No repositories found"
+msgstr "未找到仓库"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "未找到仓库。请确认你的GitHub App有权访问仓库。"
 
@@ -14022,6 +14028,9 @@ msgstr "第{step}步：{name}"
 
 msgid "Still can't reach the host."
 msgstr "仍然无法连接到主机。"
+
+msgid "Still trying. If it keeps failing, remove it and create a new one."
+msgstr "仍在重试。如果一直失败，移除它，再建一个。"
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "仍在处理 — 大仓库可能需要几分钟。你可以离开；工作区就绪后会出现在首页。"

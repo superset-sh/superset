@@ -34,14 +34,27 @@ const STUCK_AFTER_SECONDS = 45;
  */
 export function CloudWorkspaceProvisioningState({
 	cloud,
+	unreachable,
+	onRetry,
 }: {
 	cloud: CloudWorkspaceRow;
+	/** The sandbox couldn't be woken or didn't answer; attempts continue. */
+	unreachable: boolean;
+	onRetry: () => void;
 }) {
 	const { t } = useLingui();
 	const elapsed = useElapsedSeconds();
 
 	if (cloud.status === "failed") {
 		return <CloudWorkspaceFailedState cloud={cloud} />;
+	}
+	// A booting sandbox fails its first requests too; only a stuck one is unreachable.
+	if (
+		cloud.status === "ready" &&
+		unreachable &&
+		elapsed >= STUCK_AFTER_SECONDS
+	) {
+		return <CloudWorkspaceUnreachableState cloud={cloud} onRetry={onRetry} />;
 	}
 
 	// `ready` means the provider handed back a preview URL, which is a step
@@ -94,20 +107,6 @@ export function CloudWorkspaceProvisioningState({
  */
 function CloudWorkspaceFailedState({ cloud }: { cloud: CloudWorkspaceRow }) {
 	const { t } = useLingui();
-	const router = useRouter();
-	const { remove: removeCloudWorkspace } = useCloudWorkspaceActions();
-	const [isDeleting, setIsDeleting] = useState(false);
-
-	const remove = async () => {
-		setIsDeleting(true);
-		try {
-			await removeCloudWorkspace(cloud.id);
-			router.back();
-		} catch {
-			Alert.alert(t({ message: "Delete failed" }));
-			setIsDeleting(false);
-		}
-	};
 
 	return (
 		<Frame icon={AlertCircle} iconClassName="text-destructive">
@@ -121,16 +120,75 @@ function CloudWorkspaceFailedState({ cloud }: { cloud: CloudWorkspaceRow }) {
 			<Text className="text-muted-foreground max-w-[300px] text-center text-[13px] leading-relaxed">
 				<Trans>Nothing is running. Remove it and create a new one.</Trans>
 			</Text>
-			<Button variant="secondary" disabled={isDeleting} onPress={remove}>
-				<Text>
-					{isDeleting
-						? t({ message: "Removing…" })
-						: t({
-								message: "Remove workspace",
-							})}
-				</Text>
-			</Button>
+			<RemoveWorkspaceButton workspaceId={cloud.id} />
 		</Frame>
+	);
+}
+
+/**
+ * The row says ready but its sandbox won't wake or answer. Attempts keep
+ * going behind this; one that never recovers is only cleared by removing it.
+ */
+function CloudWorkspaceUnreachableState({
+	cloud,
+	onRetry,
+}: {
+	cloud: CloudWorkspaceRow;
+	onRetry: () => void;
+}) {
+	const { t } = useLingui();
+
+	return (
+		<Frame icon={AlertCircle} iconClassName="text-destructive">
+			<Heading
+				title={t({ message: "Couldn't reach workspace" })}
+				name={cloud.name}
+			/>
+			<BranchLine branch={cloud.branch} />
+			<Text className="text-muted-foreground max-w-[300px] text-center text-[13px] leading-relaxed">
+				<Trans>
+					Still trying. If it keeps failing, remove it and create a new one.
+				</Trans>
+			</Text>
+			<View className="flex-row gap-2">
+				<Button variant="secondary" onPress={onRetry}>
+					<Text>
+						<Trans>Try again</Trans>
+					</Text>
+				</Button>
+				<RemoveWorkspaceButton workspaceId={cloud.id} />
+			</View>
+		</Frame>
+	);
+}
+
+function RemoveWorkspaceButton({ workspaceId }: { workspaceId: string }) {
+	const { t } = useLingui();
+	const router = useRouter();
+	const { remove: removeCloudWorkspace } = useCloudWorkspaceActions();
+	const [isDeleting, setIsDeleting] = useState(false);
+
+	const remove = async () => {
+		setIsDeleting(true);
+		try {
+			await removeCloudWorkspace(workspaceId);
+			router.back();
+		} catch {
+			Alert.alert(t({ message: "Delete failed" }));
+			setIsDeleting(false);
+		}
+	};
+
+	return (
+		<Button variant="secondary" disabled={isDeleting} onPress={remove}>
+			<Text>
+				{isDeleting
+					? t({ message: "Removing…" })
+					: t({
+							message: "Remove workspace",
+						})}
+			</Text>
+		</Button>
 	);
 }
 

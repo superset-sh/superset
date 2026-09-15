@@ -4393,6 +4393,9 @@ msgstr "Yanıt gönderilemedi"
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "{0} için buluta erişilemedi: {1}"
 
+msgid "Couldn't reach workspace"
+msgstr "Çalışma alanına ulaşılamadı"
+
 msgid "Couldn't read this terminal's context."
 msgstr "Bu terminalin bağlamı okunamadı."
 
@@ -9573,6 +9576,9 @@ msgstr "Pull request bulunamadı."
 msgid "No repositories connected."
 msgstr "Bağlı depo yok."
 
+msgid "No repositories found"
+msgstr "Depo bulunamadı"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Depo bulunamadı. GitHub App'inizin depolara erişimi olduğundan emin olun."
 
@@ -14022,6 +14028,9 @@ msgstr "Adım {step}: {name}"
 
 msgid "Still can't reach the host."
 msgstr "Host'a hâlâ ulaşılamıyor."
+
+msgid "Still trying. If it keeps failing, remove it and create a new one."
+msgstr "Hâlâ deneniyor. Başarısız olmaya devam ederse bunu kaldırıp yeni bir tane oluşturun."
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Hâlâ çalışıyor — büyük depolar birkaç dakika sürebilir. Ayrılabilirsiniz; çalışma alanı hazır olduğunda Ana sayfada görünecek."

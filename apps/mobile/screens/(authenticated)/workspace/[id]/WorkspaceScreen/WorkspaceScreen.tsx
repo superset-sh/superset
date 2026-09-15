@@ -126,7 +126,14 @@ export function WorkspaceScreen() {
 	const insets = useSafeAreaInsets();
 	const queryClient = useQueryClient();
 
-	const { workspace, host, cloud, isResolving } = useWorkspaceHost(id ?? null);
+	const {
+		workspace,
+		host,
+		cloud,
+		sandboxUnreachable,
+		retrySandbox,
+		isResolving,
+	} = useWorkspaceHost(id ?? null);
 	const { terminalsByWorkspace, isReady } = useHostTerminals(host);
 	const pullRequests = useWorkspacePullRequests(id ?? null);
 
@@ -928,7 +935,11 @@ export function WorkspaceScreen() {
 						/>
 					</>
 				) : cloud && !workspace ? (
-					<CloudWorkspaceProvisioningState cloud={cloud} />
+					<CloudWorkspaceProvisioningState
+						cloud={cloud}
+						unreachable={sandboxUnreachable}
+						onRetry={retrySandbox}
+					/>
 				) : isResolving || ((!isReady || !tabsHydrated) && host) ? (
 					<Centered>
 						<ActivityIndicator />

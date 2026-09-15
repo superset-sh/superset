@@ -4393,6 +4393,9 @@ msgstr "Tidak bisa mengirim balasan"
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Tidak bisa menjangkau cloud untuk {0}: {1}"
 
+msgid "Couldn't reach workspace"
+msgstr "Tidak bisa menjangkau workspace"
+
 msgid "Couldn't read this terminal's context."
 msgstr "Konteks terminal ini tidak bisa dibaca."
 
@@ -9573,6 +9576,9 @@ msgstr "Tidak ada pull request ditemukan."
 msgid "No repositories connected."
 msgstr "Tidak ada repositori yang terhubung."
 
+msgid "No repositories found"
+msgstr "Tidak ada repositori ditemukan"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Tidak ada repositori ditemukan. Pastikan GitHub App Anda punya akses ke repositori."
 
@@ -14022,6 +14028,9 @@ msgstr "Langkah {step}: {name}"
 
 msgid "Still can't reach the host."
 msgstr "Host masih tidak dapat dijangkau."
+
+msgid "Still trying. If it keeps failing, remove it and create a new one."
+msgstr "Masih mencoba. Jika terus gagal, hapus dan buat yang baru."
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Masih berjalan — repo besar bisa makan beberapa menit. Anda boleh keluar; workspace-nya akan muncul di Beranda saat siap."

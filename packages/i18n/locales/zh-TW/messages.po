@@ -4393,6 +4393,9 @@ msgstr "無法釋出回覆"
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "無法為{0}連線雲端：{1}"
 
+msgid "Couldn't reach workspace"
+msgstr "無法連線到工作區"
+
 msgid "Couldn't read this terminal's context."
 msgstr "無法讀取這個終端的上下文。"
 
@@ -9573,6 +9576,9 @@ msgstr "未找到拉取請求。"
 msgid "No repositories connected."
 msgstr "尚未連結任何儲存庫。"
 
+msgid "No repositories found"
+msgstr "未找到儲存庫"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "未找到儲存庫。請確認你的GitHub App有權存取儲存庫。"
 
@@ -14022,6 +14028,9 @@ msgstr "第{step}步：{name}"
 
 msgid "Still can't reach the host."
 msgstr "仍然無法連線到主機。"
+
+msgid "Still trying. If it keeps failing, remove it and create a new one."
+msgstr "仍在重試。如果一直失敗，移除它，再建一個。"
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "仍在處理 — 大儲存庫可能需要幾分鐘。你可以離開；工作區就緒後會出現在首頁。"

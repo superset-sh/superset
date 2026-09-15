@@ -4393,6 +4393,9 @@ msgstr "Nepodařilo se odeslat odpověď"
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Nepodařilo se spojit s cloudem pro {0}: {1}"
 
+msgid "Couldn't reach workspace"
+msgstr "Pracovní prostor se nepodařilo zastihnout"
+
 msgid "Couldn't read this terminal's context."
 msgstr "Kontext tohoto terminálu se nepodařilo načíst."
 
@@ -9573,6 +9576,9 @@ msgstr "Nenalezeny žádné pull requesty."
 msgid "No repositories connected."
 msgstr "Žádné připojené repozitáře."
 
+msgid "No repositories found"
+msgstr "Nenalezeny žádné repozitáře"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Nenalezeny žádné repozitáře. Ověřte, že vaše GitHub App má k repozitářům přístup."
 
@@ -14022,6 +14028,9 @@ msgstr "Krok {step}: {name}"
 
 msgid "Still can't reach the host."
 msgstr "Host je stále nedostupný."
+
+msgid "Still trying. If it keeps failing, remove it and create a new one."
+msgstr "Stále to zkoušíme. Pokud to dál selhává, odeberte ho a vytvořte nový."
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Stále pracuji — u velkých repozitářů to může trvat pár minut. Můžete odejít; pracovní prostor se objeví na úvodní obrazovce, až bude hotový."

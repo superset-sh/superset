@@ -4393,6 +4393,9 @@ msgstr "답글을 게시하지 못했습니다"
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "{0}에 대해 클라우드에 연결할 수 없습니다: {1}"
 
+msgid "Couldn't reach workspace"
+msgstr "워크스페이스에 연결하지 못했습니다"
+
 msgid "Couldn't read this terminal's context."
 msgstr "이 터미널의 컨텍스트를 읽을 수 없습니다."
 
@@ -9573,6 +9576,9 @@ msgstr "풀 리퀘스트를 찾을 수 없습니다."
 msgid "No repositories connected."
 msgstr "연결된 리포지토리가 없습니다."
 
+msgid "No repositories found"
+msgstr "리포지토리를 찾을 수 없습니다"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "리포지토리를 찾을 수 없습니다. GitHub App이 리포지토리에 접근할 수 있는지 확인하세요."
 
@@ -14022,6 +14028,9 @@ msgstr "{step}단계: {name}"
 
 msgid "Still can't reach the host."
 msgstr "아직 호스트에 연결할 수 없습니다."
+
+msgid "Still trying. If it keeps failing, remove it and create a new one."
+msgstr "계속 시도하는 중입니다. 계속 실패하면 제거하고 새로 만드세요."
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "아직 진행 중입니다 — 큰 리포지토리는 몇 분 걸릴 수 있습니다. 나가도 되며, 준비되면 홈에 워크스페이스가 표시됩니다."

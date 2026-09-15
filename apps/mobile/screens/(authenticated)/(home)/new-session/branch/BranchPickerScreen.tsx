@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { useCloudEnvironments } from "@/hooks/useCloudEnvironments";
 import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
@@ -20,6 +19,7 @@ import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 import { CLOUD_TARGET_ID } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
+import { useCloudCreateSelection } from "@/screens/(authenticated)/(home)/hooks/useCloudCreateSelection";
 
 function BranchRow({
 	name,
@@ -80,17 +80,7 @@ export function BranchPickerScreen() {
 	const projectId = params.projectId || null;
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
-	// A cloud target's branches come from its environment's primary repository.
-	const environmentId = useNewSessionPreferencesStore(
-		(state) => state.environmentId,
-	);
-	const environmentsQuery = useCloudEnvironments();
-	const cloudEnvironments = environmentsQuery.data ?? [];
-	const cloudRepositoryId =
-		(
-			cloudEnvironments.find((row) => row.id === environmentId) ??
-			cloudEnvironments[0]
-		)?.repositories?.[0]?.id ?? null;
+	const cloudRepositoryId = useCloudCreateSelection().repository?.id ?? null;
 
 	const trimmedQuery = query.trim();
 	const { data, isLoading } = useQuery({

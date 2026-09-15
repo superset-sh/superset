@@ -16,6 +16,8 @@ interface CreateCloudWorkspaceArgs {
 	branch: string | null;
 	/** Null when no environment exists yet; create cannot proceed without one. */
 	environmentId: string | null;
+	/** Only for an environment without repositories; null otherwise. */
+	repositoryId: string | null;
 	/** Built-in agent to launch with the message as its prompt; null for none. */
 	agent: string | null;
 	/** Null launches the agent's own default. Ignored without an agent. */
@@ -40,6 +42,7 @@ export function useCreateCloudWorkspace() {
 		mutationFn: async ({
 			branch,
 			environmentId,
+			repositoryId,
 			agent,
 			model,
 			effort,
@@ -63,6 +66,7 @@ export function useCreateCloudWorkspace() {
 			return apiClient.cloudWorkspace.create.mutate({
 				organizationId,
 				environmentId,
+				repositoryIds: repositoryId ? [repositoryId] : undefined,
 				prompt: message.text.trim() || undefined,
 				// Omitted when unresolved: the server falls back to the repo's
 				// actual default branch, which the client must not guess.

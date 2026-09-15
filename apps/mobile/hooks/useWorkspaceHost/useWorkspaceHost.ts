@@ -45,6 +45,9 @@ export interface WorkspaceHostResult {
 	 * moment it is created, long before a sandbox serves it. Null otherwise.
 	 */
 	cloud: CloudWorkspaceRow | null;
+	/** Cloud only: the API could not address or wake the sandbox. Attempts continue. */
+	sandboxUnreachable: boolean;
+	retrySandbox: () => void;
 	/** True while no host has answered yet. */
 	isResolving: boolean;
 }
@@ -68,10 +71,12 @@ export function useWorkspaceHost(
 		() => cloudRows.find((row) => row.id === workspaceId) ?? null,
 		[cloudRows, workspaceId],
 	);
-	const cloudTargets = useMemo(() => (cloud ? [cloud] : []), [cloud]);
-	const { targets: sandboxes, isReady: sandboxReady } =
-		useSandboxAccess(cloudTargets);
-	const sandbox = sandboxes[0] ?? null;
+	const {
+		target: sandbox,
+		isReady: sandboxReady,
+		isError: sandboxUnreachable,
+		retry: retrySandbox,
+	} = useSandboxAccess(cloud);
 
 	const targets = useMemo(
 		() =>
@@ -126,6 +131,12 @@ export function useWorkspaceHost(
 						}
 					: null,
 				cloud,
+				sandboxUnreachable:
+					!workspace && (sandboxUnreachable || served?.isError === true),
+				retrySandbox: () => {
+					retrySandbox();
+					void served?.refetch();
+				},
 				isResolving:
 					!workspace &&
 					cloud.status === "ready" &&
@@ -147,11 +158,20 @@ export function useWorkspaceHost(
 			(hostsQuery.isLoading ||
 				!cloudReady ||
 				queries.some((query) => query.isLoading));
-		return { workspace, host, cloud: null, isResolving };
+		return {
+			workspace,
+			host,
+			cloud: null,
+			sandboxUnreachable: false,
+			retrySandbox,
+			isResolving,
+		};
 	}, [
 		cloud,
 		sandbox,
 		sandboxReady,
+		sandboxUnreachable,
+		retrySandbox,
 		targets,
 		queries,
 		workspaceId,

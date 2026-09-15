@@ -4393,6 +4393,9 @@ msgstr "Не удалось отправить ответ"
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Не удалось связаться с облаком для {0}: {1}"
 
+msgid "Couldn't reach workspace"
+msgstr "Не удалось подключиться к рабочей области"
+
 msgid "Couldn't read this terminal's context."
 msgstr "Не удалось прочитать контекст этого терминала."
 
@@ -9573,6 +9576,9 @@ msgstr "Пул-реквесты не найдены."
 msgid "No repositories connected."
 msgstr "Нет подключённых репозиториев."
 
+msgid "No repositories found"
+msgstr "Репозитории не найдены"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Репозитории не найдены. Убедитесь, что у вашего GitHub App есть доступ к репозиториям."
 
@@ -14022,6 +14028,9 @@ msgstr "Шаг {step}: {name}"
 
 msgid "Still can't reach the host."
 msgstr "Хост по-прежнему недоступен."
+
+msgid "Still trying. If it keeps failing, remove it and create a new one."
+msgstr "Продолжаем попытки. Если не получится, удалите её и создайте новую."
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Ещё работаем — большие репозитории могут занять несколько минут. Можно выйти; рабочая область появится на главной, когда будет готова."

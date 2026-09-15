@@ -4393,6 +4393,9 @@ msgstr "返信を投稿できませんでした"
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "{0}のクラウドに接続できませんでした: {1}"
 
+msgid "Couldn't reach workspace"
+msgstr "ワークスペースに接続できませんでした"
+
 msgid "Couldn't read this terminal's context."
 msgstr "このターミナルのコンテキストを読み取れませんでした。"
 
@@ -9573,6 +9576,9 @@ msgstr "プルリクエストが見つかりません。"
 msgid "No repositories connected."
 msgstr "接続されているリポジトリがありません。"
 
+msgid "No repositories found"
+msgstr "リポジトリが見つかりません"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "リポジトリが見つかりません。GitHub Appにリポジトリへのアクセス権があるか確認してください。"
 
@@ -14022,6 +14028,9 @@ msgstr "ステップ{step}: {name}"
 
 msgid "Still can't reach the host."
 msgstr "ホストにまだ接続できません。"
+
+msgid "Still trying. If it keeps failing, remove it and create a new one."
+msgstr "再試行しています。失敗が続く場合は、削除して新しく作成してください。"
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "処理を続けています — 大きなリポジトリでは数分かかることがあります。画面を離れても構いません。準備ができるとホームに表示されます。"

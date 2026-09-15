@@ -4393,6 +4393,9 @@ msgstr "Impossible de publier la réponse"
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Impossible de joindre le cloud pour {0} : {1}"
 
+msgid "Couldn't reach workspace"
+msgstr "Impossible de joindre l'espace de travail"
+
 msgid "Couldn't read this terminal's context."
 msgstr "Impossible de lire le contexte de ce terminal."
 
@@ -9573,6 +9576,9 @@ msgstr "Aucune pull request trouvée."
 msgid "No repositories connected."
 msgstr "Aucun dépôt connecté."
 
+msgid "No repositories found"
+msgstr "Aucun dépôt trouvé"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Aucun dépôt trouvé. Vérifiez que votre GitHub App a accès à des dépôts."
 
@@ -14022,6 +14028,9 @@ msgstr "Étape {step} : {name}"
 
 msgid "Still can't reach the host."
 msgstr "L'hôte reste injoignable."
+
+msgid "Still trying. If it keeps failing, remove it and create a new one."
+msgstr "Nouvelle tentative en cours. Si l'échec persiste, supprimez-le et créez-en un nouveau."
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Toujours en cours — les gros dépôts peuvent prendre quelques minutes. Vous pouvez quitter ; l'espace de travail apparaîtra sur l'accueil dès qu'il sera prêt."

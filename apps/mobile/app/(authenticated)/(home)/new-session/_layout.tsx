@@ -44,6 +44,12 @@ export default function NewSessionLayout() {
 					}),
 				}}
 			/>
+			<Stack.Screen
+				name="repository"
+				options={{
+					title: t({ message: "Repository" }),
+				}}
+			/>
 		</Stack>
 	);
 }

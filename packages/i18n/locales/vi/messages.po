@@ -4393,6 +4393,9 @@ msgstr "Không thể đăng trả lời"
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Không kết nối được tới cloud cho {0}: {1}"
 
+msgid "Couldn't reach workspace"
+msgstr "Không kết nối được workspace"
+
 msgid "Couldn't read this terminal's context."
 msgstr "Không đọc được ngữ cảnh của terminal này."
 
@@ -9573,6 +9576,9 @@ msgstr "Không tìm thấy pull request nào."
 msgid "No repositories connected."
 msgstr "Chưa có repository nào được kết nối."
 
+msgid "No repositories found"
+msgstr "Không tìm thấy repository nào"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Không tìm thấy repository nào. Hãy đảm bảo GitHub App của bạn có quyền truy cập repository."
 
@@ -14022,6 +14028,9 @@ msgstr "Bước {step}: {name}"
 
 msgid "Still can't reach the host."
 msgstr "Vẫn không thể kết nối tới host."
+
+msgid "Still trying. If it keeps failing, remove it and create a new one."
+msgstr "Vẫn đang thử. Nếu tiếp tục lỗi, hãy gỡ nó và tạo cái mới."
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Vẫn đang xử lý — repo lớn có thể mất vài phút. Bạn có thể rời đi; workspace sẽ xuất hiện ở Trang chủ khi sẵn sàng."

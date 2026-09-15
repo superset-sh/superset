@@ -13,6 +13,8 @@ interface NewSessionPreferencesStore {
 	baseBranch: string | null;
 	/** Cloud only. Null until picked; create falls back to the first. */
 	environmentId: string | null;
+	/** Cloud only, for an environment with no repositories of its own. */
+	repositoryId: string | null;
 	/**
 	 * Last-picked model and effort per launch preset ("claude", "codex", …).
 	 * No entry means the agent's own default: nothing is sent at launch. Keyed
@@ -27,6 +29,7 @@ interface NewSessionPreferencesStore {
 	setTargetKey: (targetKey: string) => void;
 	setBaseBranch: (baseBranch: string | null) => void;
 	setEnvironmentId: (environmentId: string) => void;
+	setRepositoryId: (repositoryId: string) => void;
 	/** Null clears the pick back to the agent default. */
 	setModel: (presetId: string, model: string | null) => void;
 	setEffort: (presetId: string, effort: string | null) => void;
@@ -51,13 +54,18 @@ export const useNewSessionPreferencesStore =
 				targetKey: null,
 				baseBranch: null,
 				environmentId: null,
+				repositoryId: null,
 				modelByAgent: {},
 				effortByAgent: {},
 				hasHydrated: false,
 				setAgentId: (agentId) => set({ agentId }),
 				setTargetKey: (targetKey) => set({ targetKey, baseBranch: null }),
 				setBaseBranch: (baseBranch) => set({ baseBranch }),
-				setEnvironmentId: (environmentId) => set({ environmentId }),
+				// A picked branch belongs to the repository it was listed from.
+				setEnvironmentId: (environmentId) =>
+					set({ environmentId, baseBranch: null }),
+				setRepositoryId: (repositoryId) =>
+					set({ repositoryId, baseBranch: null }),
 				setModel: (presetId, model) =>
 					set((state) => ({
 						modelByAgent: withPick(state.modelByAgent, presetId, model),
@@ -74,6 +82,7 @@ export const useNewSessionPreferencesStore =
 					agentId: state.agentId,
 					targetKey: state.targetKey,
 					environmentId: state.environmentId,
+					repositoryId: state.repositoryId,
 					modelByAgent: state.modelByAgent,
 					effortByAgent: state.effortByAgent,
 				}),
