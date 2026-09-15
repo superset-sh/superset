@@ -4394,7 +4394,7 @@ msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Nepodařilo se spojit s cloudem pro {0}: {1}"
 
 msgid "Couldn't reach workspace"
-msgstr "Pracovní prostor se nepodařilo zastihnout"
+msgstr "Nepodařilo se spojit s pracovním prostorem"
 
 msgid "Couldn't read this terminal's context."
 msgstr "Kontext tohoto terminálu se nepodařilo načíst."
