@@ -2,8 +2,9 @@
  * The one place the publish result is shaped, for humans and agents alike.
  * The contract mirrors an artifact publish — what was published, where it
  * lives, and whether this session watches it — with notes in a fixed order
- * so single-file and directory publishes read the same, and `assets` and
- * `watching` always present in the JSON.
+ * so single-file and directory publishes read the same, and `assets`,
+ * `unanchored` and `watching` always present in the JSON — `--json` prints
+ * only `data`, so anything a caller has to act on lives there too.
  */
 export function publishResult({
 	page,
@@ -55,6 +56,7 @@ export function publishResult({
 	return {
 		data: {
 			...page,
+			unanchored,
 			watching,
 			assets: { uploaded: assets.uploaded, reused: assets.reused },
 		},

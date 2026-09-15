@@ -269,8 +269,8 @@ to being keyed by filename alone (`/external/report.html`), which means two
 unrelated files with the same name will version each other. Keeping it in the
 workspace also keeps the source next to the work it describes.
 
-Outside a workspace entirely — a chat session, or a shell with no
-`$SUPERSET_WORKSPACE_ID` and no `--workspace` — the publish still goes through.
+Outside a workspace entirely (a chat session, or a shell with no
+`$SUPERSET_WORKSPACE_ID` and no `--workspace`) the publish still goes through.
 The page is created and listed like any other; it just has no entry path, so
 there is nothing for a later publish to resolve against. **Keep the page id the
 publish prints** and pass `--page <id>` to add a version. Publishing the same

@@ -50,7 +50,7 @@ describe("publishResult", () => {
 	});
 
 	test("unanchored publish: says how to reach this page again", () => {
-		const { message } = publishResult({
+		const { data, message } = publishResult({
 			page: PAGE,
 			assets: { uploaded: 0, reused: 0, warnings: [] },
 			externalPath: null,
@@ -64,6 +64,8 @@ describe("publishResult", () => {
 			"No workspace, so the next publish of this file would create a second page",
 			"To add a version instead: superset pages publish <path> --page p1",
 		]);
+		expect(data.unanchored).toBe(true);
+		expect(data.id).toBe("p1");
 	});
 
 	test("anchored publish says nothing about --page", () => {
