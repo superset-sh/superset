@@ -43,7 +43,7 @@ export function register(server: McpServer): void {
 					"`org` (the default) lets anyone in the organization open it; `just_me` keeps it private to the publisher.",
 				),
 				workspaceId: optionalish(pageFields.workspaceId).describe(
-					"The workspace this page belongs to. Pass it whenever you have one — it is how a later publish of the same `entryPath` becomes a version rather than a second page. Get it from the `SUPERSET_WORKSPACE_ID` environment variable, or by running `superset workspaces list`. Omit it when you are not working in a workspace; the page is still created and still listed, and `pageId` is then the only way to version it.",
+					"The workspace this page belongs to. Pass it whenever you have one — it is how a later publish of the same `entryPath` becomes a version rather than a second page. Check `$SUPERSET_WORKSPACE_ID` before deciding you have none: every agent running in a Superset terminal has it set, and leaving it out there is what turns the next republish into a second page. Otherwise run `superset workspaces list`. Omit it only when you are genuinely outside a workspace; the page is still created and still listed, and `pageId` is then the only way to version it.",
 				),
 				entryPath: optionalish(pageFields.entryPath).describe(
 					"Where this page lives in the workspace, as a path relative to the workspace root, e.g. `reports/q3-pipeline.html`. Together with `workspaceId` it is the key a later publish reuses to add a version rather than minting a second page, so reuse the same value when updating. Pass both or neither.",
@@ -78,7 +78,7 @@ export function register(server: McpServer): void {
 				}
 			}
 
-			return caller.page.publish({
+			const published = await caller.page.publish({
 				...rest,
 				fileId: staged.fileId,
 				filename: name,
@@ -88,6 +88,16 @@ export function register(server: McpServer): void {
 				...(description ? { description } : {}),
 				...(label ? { label } : {}),
 			});
+
+			// The model that omitted `workspaceId` has no other way to learn that
+			// this page is reachable only by id: the next call without `pageId`
+			// would publish a second page, and the link the reader holds would
+			// keep showing this one.
+			if (published.linked || rest.pageId) return published;
+			return {
+				...published,
+				republish: `Not linked to a workspace — call pages_publish with pageId: "${published.id}" to add a version, or this file gets a second page.`,
+			};
 		},
 	});
 }
