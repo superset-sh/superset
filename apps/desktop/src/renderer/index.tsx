@@ -1,6 +1,8 @@
+import { configureZodLocale } from "shared/zod-locale";
 import { initSentry } from "./lib/sentry";
 
 initSentry();
+configureZodLocale();
 
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDom from "react-dom/client";
