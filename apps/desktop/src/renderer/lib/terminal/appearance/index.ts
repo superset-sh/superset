@@ -18,6 +18,7 @@ export interface TerminalAppearance {
 	minimumContrastRatio: number;
 	cursorStyle: "block" | "bar" | "underline";
 	cursorBlink: boolean;
+	macOptionIsMeta: boolean;
 }
 
 export interface TerminalFontSettings {
@@ -30,6 +31,7 @@ export interface TerminalFontSettings {
 	terminalMinimumContrast?: number | null;
 	terminalCursorStyle?: "block" | "bar" | "underline" | null;
 	terminalCursorBlink?: boolean | null;
+	terminalMacOptionIsMeta?: boolean | null;
 }
 
 export const TERMINAL_FONT_FAMILY_CSS_VARIABLE =
@@ -110,6 +112,7 @@ export const DEFAULT_TERMINAL_LIGATURES = true;
 export const DEFAULT_TERMINAL_MINIMUM_CONTRAST = 1;
 export const DEFAULT_TERMINAL_CURSOR_STYLE = "block" as const;
 export const DEFAULT_TERMINAL_CURSOR_BLINK = true;
+export const DEFAULT_TERMINAL_MAC_OPTION_IS_META = false;
 
 const MONOSPACE_GENERIC_FAMILIES = new Set(["monospace", "ui-monospace"]);
 
@@ -299,6 +302,9 @@ export function resolveTerminalAppearance(
 			fontSettings.terminalCursorStyle ?? DEFAULT_TERMINAL_CURSOR_STYLE,
 		cursorBlink:
 			fontSettings.terminalCursorBlink ?? DEFAULT_TERMINAL_CURSOR_BLINK,
+		macOptionIsMeta:
+			fontSettings.terminalMacOptionIsMeta ??
+			DEFAULT_TERMINAL_MAC_OPTION_IS_META,
 	};
 }
 
