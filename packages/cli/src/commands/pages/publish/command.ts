@@ -41,7 +41,7 @@ export default command({
 			"Publish a new version of this page id, instead of resolving by workspace",
 		),
 		workspace: string().desc(
-			"Workspace to publish into, by name or id (defaults to $SUPERSET_WORKSPACE_ID)",
+			"Workspace to publish into, by name or id (defaults to $SUPERSET_WORKSPACE_ID). Without one the page is still published, but only --page can version it later",
 		),
 		noWatch: boolean().desc(
 			"Do not watch this page for new comments from this session",
@@ -100,12 +100,6 @@ export default command({
 				: externalEntryPath(entryFilePath));
 
 		const workspaceRef = options.workspace ?? process.env.SUPERSET_WORKSPACE_ID;
-		if (!workspaceRef && !options.page) {
-			throw new CLIError(
-				"No workspace to publish into",
-				"Run this inside a Superset workspace, pass --workspace <name|id>, or pass --page <id> to add a version to an existing page",
-			);
-		}
 		const workspaceId = workspaceRef
 			? await resolveWorkspaceId({
 					value: workspaceRef,
@@ -164,6 +158,8 @@ export default command({
 				? entryPath
 				: null;
 
+		const unanchored = !link && !options.page;
+
 		const terminalId = watchTerminalId();
 		const organizationId = ctx.config.organizationId;
 		let watching = false;
@@ -199,6 +195,7 @@ export default command({
 			page,
 			assets: uploaded,
 			externalPath,
+			unanchored,
 			watching,
 			watchNote,
 		});

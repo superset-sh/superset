@@ -257,10 +257,11 @@ superset pages publish ./report/ --title "Q3 pipeline"
 spaces, so name the file well or pass the flag. `--label` is what shows in
 version history; write what changed, not "update".
 
-**Every page belongs to a workspace.** The CLI records the file's path relative
-to the workspace root as the page's entry path, and that path is the key:
-publish the same path again and it becomes **version 2 of the same page** rather
-than a second page.
+**Attach a workspace whenever you have one.** The CLI records the file's path
+relative to the workspace root as the page's entry path, and that path is the
+key: publish the same path again and it becomes **version 2 of the same page**
+rather than a second page. That is the only way a republish versions itself
+without you tracking an id.
 
 Write the `.html` **inside the workspace**, not in `/tmp` or an agent
 scratchpad. A file outside the workspace has no relative path, so it falls back
@@ -268,9 +269,13 @@ to being keyed by filename alone (`/external/report.html`), which means two
 unrelated files with the same name will version each other. Keeping it in the
 workspace also keeps the source next to the work it describes.
 
-Outside a workspace entirely, with no `$SUPERSET_WORKSPACE_ID` and no
-`--workspace`, the publish is refused rather than creating a page nothing can
-list. Pass `--page <id>` to add a version to a page you already have.
+Outside a workspace entirely — a chat session, or a shell with no
+`$SUPERSET_WORKSPACE_ID` and no `--workspace` — the publish still goes through.
+The page is created and listed like any other; it just has no entry path, so
+there is nothing for a later publish to resolve against. **Keep the page id the
+publish prints** and pass `--page <id>` to add a version. Publishing the same
+file again without it creates a second page, and the link you already shared
+keeps showing the first.
 
 Keep the source file. It is the only copy you can edit; the published version is
 derived from it.

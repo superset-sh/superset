@@ -20,12 +20,8 @@ describe("publishPageSchema", () => {
 		).toBe(false);
 	});
 
-	test("rejects a publish anchored to nothing", () => {
-		const result = publishPageSchema.safeParse(base);
-		if (result.success) throw new Error("expected a validation failure");
-		expect(result.error.issues[0]?.message).toBe(
-			"A publish must name where it lives: pass workspaceId and entryPath, or pageId to add a version to an existing page",
-		);
+	test("accepts a publish anchored to nothing", () => {
+		expect(publishPageSchema.safeParse(base).success).toBe(true);
 	});
 
 	test("accepts a publish anchored by pageId alone", () => {

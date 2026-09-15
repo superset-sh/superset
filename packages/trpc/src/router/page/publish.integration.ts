@@ -347,6 +347,13 @@ describe("publish", () => {
 		expect(result.version).toBe(1);
 	});
 
+	test("a second unlinked publish mints its own page rather than a version", async () => {
+		const first = await publish({ title: "Session Report" });
+		const second = await publish({ title: "Session Report" });
+		expect(second.id).not.toBe(first.id);
+		expect(second.version).toBe(1);
+	});
+
 	test("titles the page from the filename when none is given", async () => {
 		const result = await publish({ filename: "quarterly-report.html" });
 		expect(result.title).toBe("quarterly report");

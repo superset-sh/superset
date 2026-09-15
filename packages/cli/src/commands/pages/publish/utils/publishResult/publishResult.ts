@@ -9,10 +9,11 @@ export function publishResult({
 	page,
 	assets,
 	externalPath,
+	unanchored,
 	watching,
 	watchNote,
 }: {
-	page: { title: string; version: number; url: string } & Record<
+	page: { id: string; title: string; version: number; url: string } & Record<
 		string,
 		unknown
 	>;
@@ -22,6 +23,7 @@ export function publishResult({
 		warnings: string[];
 	};
 	externalPath: string | null;
+	unanchored: boolean;
 	watching: boolean;
 	watchNote: string | null;
 }): { data: Record<string, unknown>; message: string } {
@@ -40,6 +42,12 @@ export function publishResult({
 	if (externalPath) {
 		lines.push(
 			`Outside the workspace, so this page is keyed as "${externalPath}"`,
+		);
+	}
+	if (unanchored) {
+		lines.push(
+			"No workspace, so the next publish of this file would create a second page",
+			`To add a version instead: superset pages publish <path> --page ${page.id}`,
 		);
 	}
 	if (watchNote) lines.push(watchNote);

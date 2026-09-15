@@ -14,6 +14,7 @@ describe("publishResult", () => {
 			page: PAGE,
 			assets: { uploaded: 0, reused: 0, warnings: [] },
 			externalPath: null,
+			unanchored: false,
 			watching: false,
 			watchNote: null,
 		});
@@ -32,6 +33,7 @@ describe("publishResult", () => {
 				warnings: ["demo.mov may not play in every browser"],
 			},
 			externalPath: "~external/report/index.html",
+			unanchored: false,
 			watching: true,
 			watchNote: "Watching for comments — they will be sent to this session",
 		});
@@ -47,11 +49,41 @@ describe("publishResult", () => {
 		expect(data.assets).toEqual({ uploaded: 1, reused: 1 });
 	});
 
+	test("unanchored publish: says how to reach this page again", () => {
+		const { message } = publishResult({
+			page: PAGE,
+			assets: { uploaded: 0, reused: 0, warnings: [] },
+			externalPath: null,
+			unanchored: true,
+			watching: false,
+			watchNote: null,
+		});
+		expect(message.split("\n")).toEqual([
+			'Published "Q3 Report" v3',
+			PAGE.url,
+			"No workspace, so the next publish of this file would create a second page",
+			"To add a version instead: superset pages publish <path> --page p1",
+		]);
+	});
+
+	test("anchored publish says nothing about --page", () => {
+		const { message } = publishResult({
+			page: PAGE,
+			assets: { uploaded: 0, reused: 0, warnings: [] },
+			externalPath: null,
+			unanchored: false,
+			watching: false,
+			watchNote: null,
+		});
+		expect(message).not.toContain("--page");
+	});
+
 	test("one asset, none reused: singular wording, no reuse suffix", () => {
 		const { message } = publishResult({
 			page: PAGE,
 			assets: { uploaded: 1, reused: 0, warnings: [] },
 			externalPath: null,
+			unanchored: false,
 			watching: false,
 			watchNote: null,
 		});
