@@ -80,6 +80,9 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	let lastScrollY = 0;
 	let restoreY = null;
 	let restoreDeadline = 0;
+	let lastScrollPost = 0;
+	let settleTimer = 0;
+	const SCROLL_POST_IDLE_MS = 150;
 
 	const post = (message) => {
 		parent.postMessage({ channel: FRAME, ...message }, "*");
@@ -153,15 +156,31 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		});
 	};
 
+	const postScroll = () => {
+		if (settleTimer) {
+			clearTimeout(settleTimer);
+			settleTimer = 0;
+		}
+		if (restoreY !== null || scrollY === lastScrollY) return;
+		lastScrollY = scrollY;
+		lastScrollPost = Date.now();
+		post({ type: "scroll", y: scrollY });
+	};
+
 	const schedule = () => {
 		if (frame) return;
 		frame = requestAnimationFrame(() => {
 			frame = 0;
-			syncRects();
+			const pinned = tracked.length > 0;
+			if (pinned) syncRects();
 			if (restoreY !== null && Date.now() > restoreDeadline) restoreY = null;
-			if (restoreY === null && scrollY !== lastScrollY) {
-				lastScrollY = scrollY;
-				post({ type: "scroll", y: scrollY });
+			if (restoreY !== null || scrollY === lastScrollY) return;
+			if (pinned || Date.now() - lastScrollPost >= SCROLL_POST_IDLE_MS) {
+				postScroll();
+				return;
+			}
+			if (!settleTimer) {
+				settleTimer = setTimeout(postScroll, SCROLL_POST_IDLE_MS);
 			}
 		});
 	};

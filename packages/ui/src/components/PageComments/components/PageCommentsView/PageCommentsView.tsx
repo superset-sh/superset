@@ -270,10 +270,9 @@ export function PageCommentsView({
 		send({
 			type: "track",
 			anchors: [
-				...unresolvedThreads.map((thread) => ({
-					id: thread.id,
-					anchor: thread.anchor,
-				})),
+				...unresolvedThreads.flatMap((thread) =>
+					thread.anchor ? [{ id: thread.id, anchor: thread.anchor }] : [],
+				),
 				...(draft ? [{ id: PENDING_ANCHOR_ID, anchor: draft.anchor }] : []),
 			],
 		});
@@ -283,7 +282,7 @@ export function PageCommentsView({
 		const out: { id: string; point: PinPoint }[] = [];
 		for (const thread of unresolvedThreads) {
 			const rect = rects[thread.id];
-			if (rect)
+			if (rect && thread.anchor)
 				out.push({ id: thread.id, point: pinPointOf(rect, thread.anchor) });
 		}
 		return out;

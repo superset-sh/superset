@@ -274,6 +274,10 @@ msgstr "{0, plural, one {Tampilkan # baris lagi} other {Tampilkan # baris lagi}}
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Ini akan mengimpor # worktree yang ada ke Superset sebagai workspace. Tiap worktree di disk akan dilacak dan muncul di sidebar Anda. Tidak ada file yang diubah.} other {Ini akan mengimpor # worktree yang ada ke Superset sebagai workspace. Tiap worktree di disk akan dilacak dan muncul di sidebar Anda. Tidak ada file yang diubah.}}"
 
+#. placeholder {0}: resolved.length
+msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
+msgstr "{0, plural, other {Lihat # komentar yang selesai}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {Memantau # halaman untuk komentar} other {Memantau # halaman untuk komentar}}"
@@ -1395,6 +1399,9 @@ msgstr "Tambah"
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "Add {0} account"
 msgstr "Tambah akun {0}"
+
+msgid "Add a comment…"
+msgstr "Tambahkan komentar…"
 
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Tambahkan skrip run lifecycle di Pengaturan Proyek atau tandai sebuah skrip terminal sebagai run workspace."
@@ -2845,6 +2852,9 @@ msgstr "Batalkan suntingan"
 msgid "Cancel plan"
 msgstr "Batalkan paket"
 
+msgid "Cancel reply"
+msgstr "Batalkan balasan"
+
 msgid "Canceled"
 msgstr "Dibatalkan"
 
@@ -3574,6 +3584,9 @@ msgstr "Komentar tidak terkirim"
 
 msgid "Comment on this page"
 msgstr "Komentari halaman ini"
+
+msgid "Comment options"
+msgstr "Opsi komentar"
 
 msgid "Commented"
 msgstr "Dikomentari"
@@ -7160,6 +7173,9 @@ msgstr "Sembunyikan pratinjau pull request"
 
 msgid "Hide resolved ({resolvedCount})"
 msgstr "Sembunyikan yang terselesaikan ({resolvedCount})"
+
+msgid "Hide resolved comments"
+msgstr "Sembunyikan komentar yang selesai"
 
 msgid "Hide review comments"
 msgstr "Sembunyikan komentar review"
@@ -11987,6 +12003,9 @@ msgstr "Balas"
 msgid "Reply to thread…"
 msgstr "Balas thread…"
 
+msgid "Replying to {replyingTo}"
+msgstr "Membalas {replyingTo}"
+
 msgid "repo"
 msgstr "repo"
 
@@ -12618,6 +12637,9 @@ msgstr "Menyimpan…"
 
 msgid "Saw the paywall"
 msgstr "Melihat paywall"
+
+msgid "Say something, or tap a block to pin a note."
+msgstr "Tulis sesuatu, atau ketuk blok untuk menyematkan catatan."
 
 msgid "Scale from two agents to 100+"
 msgstr "Naik dari dua agen ke 100+"
@@ -14451,9 +14473,6 @@ msgstr "Bicara dengan Superset"
 msgid "Tap anything on the page to comment on it"
 msgstr "Ketuk apa saja di halaman untuk mengomentarinya"
 
-msgid "Tap the focus button to comment on a block."
-msgstr "Ketuk tombol fokus untuk mengomentari blok."
-
 msgid "Target agent"
 msgstr "Agen tujuan"
 
@@ -15048,9 +15067,6 @@ msgstr "Ini menutup workspace yang dipilih beserta terminalnya. File dan branch 
 
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Ini menutup workspace beserta terminalnya. File, branch, dan workspace lain dari proyek tetap seperti semula."
-
-msgid "This comment is no longer here"
-msgstr "Komentar ini sudah tidak ada"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Ini menghapus scrollback tersimpan yang dipakai untuk pemulihan setelah reboot/crash."

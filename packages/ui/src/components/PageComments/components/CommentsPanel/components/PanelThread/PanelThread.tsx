@@ -56,7 +56,7 @@ export function PanelThread({
 		>
 			<CommentList
 				thread={{ ...thread, comments: head }}
-				anchorText={thread.anchor.text || undefined}
+				anchorText={thread.anchor?.text || undefined}
 				onAnchorClick={onSelect}
 				{...listProps}
 			/>

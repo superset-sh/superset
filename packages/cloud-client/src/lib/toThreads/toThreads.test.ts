@@ -41,14 +41,17 @@ describe("toThreads", () => {
 		});
 	});
 
-	test("drops a thread with no anchor", () => {
-		expect(toThreads([row({ anchor: null })])).toEqual([]);
+	test("keeps a page-level thread, with a null anchor so it draws no pin", () => {
+		const [thread] = toThreads([row({ anchor: null })]);
+
+		expect(thread?.anchor).toBeNull();
+		expect(thread?.comments).toHaveLength(1);
 	});
 
 	test("falls back to empty anchor text", () => {
 		const [thread] = toThreads([row({ anchorText: null })]);
 
-		expect(thread?.anchor.text).toBe("");
+		expect(thread?.anchor?.text).toBe("");
 	});
 
 	test("converts comment timestamps to epoch millis", () => {

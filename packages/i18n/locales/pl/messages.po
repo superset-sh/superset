@@ -274,6 +274,10 @@ msgstr "{0, plural, one {Pokaż jeszcze # wiersz} few {Pokaż jeszcze # wiersze}
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Spowoduje to zaimportowanie # istniejącego worktree do Superset jako obszaru roboczego. Każdy worktree na dysku będzie śledzony i pojawi się na pasku bocznym. Żadne pliki nie zostaną zmienione.} few {Spowoduje to zaimportowanie # istniejących worktree do Superset jako obszarów roboczych. Każdy worktree na dysku będzie śledzony i pojawi się na pasku bocznym. Żadne pliki nie zostaną zmienione.} many {Spowoduje to zaimportowanie # istniejących worktree do Superset jako obszarów roboczych. Każdy worktree na dysku będzie śledzony i pojawi się na pasku bocznym. Żadne pliki nie zostaną zmienione.} other {Spowoduje to zaimportowanie # istniejących worktree do Superset jako obszarów roboczych. Każdy worktree na dysku będzie śledzony i pojawi się na pasku bocznym. Żadne pliki nie zostaną zmienione.}}"
 
+#. placeholder {0}: resolved.length
+msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
+msgstr "{0, plural, one {Pokaż # rozwiązany komentarz} few {Pokaż # rozwiązane komentarze} many {Pokaż # rozwiązanych komentarzy} other {Pokaż # rozwiązanych komentarzy}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {Obserwuje # stronę pod kątem komentarzy} few {Obserwuje # strony pod kątem komentarzy} many {Obserwuje # stron pod kątem komentarzy} other {Obserwuje # strony pod kątem komentarzy}}"
@@ -1395,6 +1399,9 @@ msgstr "Dodaj"
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "Add {0} account"
 msgstr "Dodaj konto {0}"
+
+msgid "Add a comment…"
+msgstr "Dodaj komentarz…"
 
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Dodaj skrypt uruchamiania w Ustawieniach projektu albo oznacz skrypt terminala jako uruchomienie obszaru roboczego."
@@ -2845,6 +2852,9 @@ msgstr "Anuluj edycję"
 msgid "Cancel plan"
 msgstr "Anuluj plan"
 
+msgid "Cancel reply"
+msgstr "Anuluj odpowiedź"
+
 msgid "Canceled"
 msgstr "Anulowane"
 
@@ -3574,6 +3584,9 @@ msgstr "Komentarz nie został opublikowany"
 
 msgid "Comment on this page"
 msgstr "Skomentuj tę stronę"
+
+msgid "Comment options"
+msgstr "Opcje komentarza"
 
 msgid "Commented"
 msgstr "Skomentowany"
@@ -7160,6 +7173,9 @@ msgstr "Ukryj podgląd pull requesta"
 
 msgid "Hide resolved ({resolvedCount})"
 msgstr "Ukryj rozwiązane ({resolvedCount})"
+
+msgid "Hide resolved comments"
+msgstr "Ukryj rozwiązane komentarze"
 
 msgid "Hide review comments"
 msgstr "Ukryj komentarze przeglądu"
@@ -11987,6 +12003,9 @@ msgstr "Odpowiedz"
 msgid "Reply to thread…"
 msgstr "Odpowiedz w wątku…"
 
+msgid "Replying to {replyingTo}"
+msgstr "Odpowiadasz: {replyingTo}"
+
 msgid "repo"
 msgstr "repo"
 
@@ -12618,6 +12637,9 @@ msgstr "Zapisywanie…"
 
 msgid "Saw the paywall"
 msgstr "Wyświetlenie paywalla"
+
+msgid "Say something, or tap a block to pin a note."
+msgstr "Napisz coś lub dotknij bloku, aby przypiąć notatkę."
 
 msgid "Scale from two agents to 100+"
 msgstr "Skaluj od dwóch agentów do 100+"
@@ -14451,9 +14473,6 @@ msgstr "Napisz do Superset"
 msgid "Tap anything on the page to comment on it"
 msgstr "Dotknij dowolnego elementu strony, aby go skomentować"
 
-msgid "Tap the focus button to comment on a block."
-msgstr "Dotknij przycisku ostrości, aby skomentować blok."
-
 msgid "Target agent"
 msgstr "Agent docelowy"
 
@@ -15048,9 +15067,6 @@ msgstr "Spowoduje to zamknięcie wybranych obszarów roboczych i ich terminali. 
 
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Spowoduje to zamknięcie obszaru roboczego i jego terminali. Pliki, gałęzie i pozostałe obszary robocze projektu pozostaną bez zmian."
-
-msgid "This comment is no longer here"
-msgstr "Tego komentarza już tu nie ma"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Usuwa to zapisany bufor przewijania używany do odzyskiwania po restarcie lub awarii."

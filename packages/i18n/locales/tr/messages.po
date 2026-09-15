@@ -274,6 +274,10 @@ msgstr "{0, plural, one {# satır daha göster} other {# satır daha göster}}"
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Bu işlem, mevcut # worktree'yi Superset'e çalışma alanı olarak aktarır. Diskteki her worktree izlenir ve kenar çubuğunuzda görünür. Hiçbir dosya değiştirilmez.} other {Bu işlem, mevcut # worktree'yi Superset'e çalışma alanı olarak aktarır. Diskteki her worktree izlenir ve kenar çubuğunuzda görünür. Hiçbir dosya değiştirilmez.}}"
 
+#. placeholder {0}: resolved.length
+msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
+msgstr "{0, plural, one {# çözülen yorumu göster} other {# çözülen yorumu göster}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {Yorumlar için # sayfa izleniyor} other {Yorumlar için # sayfa izleniyor}}"
@@ -1395,6 +1399,9 @@ msgstr "Ekle"
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "Add {0} account"
 msgstr "{0} hesabı ekle"
+
+msgid "Add a comment…"
+msgstr "Yorum ekle…"
 
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Proje Ayarları'nda bir yaşam döngüsü çalıştırma betiği ekleyin veya bir terminal betiğini çalışma alanı çalıştırması olarak işaretleyin."
@@ -2845,6 +2852,9 @@ msgstr "Düzenlemeleri iptal et"
 msgid "Cancel plan"
 msgstr "Planı iptal et"
 
+msgid "Cancel reply"
+msgstr "Yanıtı iptal et"
+
 msgid "Canceled"
 msgstr "İptal edildi"
 
@@ -3574,6 +3584,9 @@ msgstr "Yorum gönderilmedi"
 
 msgid "Comment on this page"
 msgstr "Bu sayfaya yorum yap"
+
+msgid "Comment options"
+msgstr "Yorum seçenekleri"
 
 msgid "Commented"
 msgstr "Yorum yapıldı"
@@ -7160,6 +7173,9 @@ msgstr "Pull request önizlemesini gizle"
 
 msgid "Hide resolved ({resolvedCount})"
 msgstr "Çözülenleri gizle ({resolvedCount})"
+
+msgid "Hide resolved comments"
+msgstr "Çözülen yorumları gizle"
 
 msgid "Hide review comments"
 msgstr "İnceleme yorumlarını gizle"
@@ -11987,6 +12003,9 @@ msgstr "Yanıtla"
 msgid "Reply to thread…"
 msgstr "Konuya yanıt verin…"
 
+msgid "Replying to {replyingTo}"
+msgstr "{replyingTo} kullanıcısına yanıt veriliyor"
+
 msgid "repo"
 msgstr "depo"
 
@@ -12618,6 +12637,9 @@ msgstr "Kaydediliyor…"
 
 msgid "Saw the paywall"
 msgstr "Ödeme duvarını gördü"
+
+msgid "Say something, or tap a block to pin a note."
+msgstr "Bir şeyler yazın veya not iliştirmek için bir bloğa dokunun."
 
 msgid "Scale from two agents to 100+"
 msgstr "İki ajandan 100+ ajana ölçeklenin"
@@ -14451,9 +14473,6 @@ msgstr "Superset ile konuşun"
 msgid "Tap anything on the page to comment on it"
 msgstr "Yorum yapmak için sayfadaki herhangi bir yere dokun"
 
-msgid "Tap the focus button to comment on a block."
-msgstr "Bir bloğa yorum yapmak için odak düğmesine dokun."
-
 msgid "Target agent"
 msgstr "Hedef ajan"
 
@@ -15048,9 +15067,6 @@ msgstr "Bu, seçili çalışma alanlarını ve terminallerini kapatır. Projenin
 
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Bu, çalışma alanını ve terminallerini kapatır. Projenin dosyaları, dalları ve diğer çalışma alanları olduğu gibi kalır."
-
-msgid "This comment is no longer here"
-msgstr "Bu yorum artık burada değil"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Bu işlem, yeniden başlatma/çökme kurtarma için saklanan kaydırma geçmişini siler."

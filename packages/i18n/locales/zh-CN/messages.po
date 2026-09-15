@@ -274,6 +274,10 @@ msgstr "{0, plural, one {再显示#行} other {再显示#行}}"
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {这会把#个已有worktree作为工作区导入Superset。磁盘上的每个worktree都会被跟踪并出现在侧边栏里。不会修改任何文件。} other {这会把#个已有worktree作为工作区导入Superset。磁盘上的每个worktree都会被跟踪并出现在侧边栏里。不会修改任何文件。}}"
 
+#. placeholder {0}: resolved.length
+msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
+msgstr "{0, plural, other {查看 # 条已解决的评论}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {正在关注#个页面的评论} other {正在关注#个页面的评论}}"
@@ -1395,6 +1399,9 @@ msgstr "添加"
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "Add {0} account"
 msgstr "添加{0}账户"
+
+msgid "Add a comment…"
+msgstr "添加评论…"
 
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "在项目设置中添加生命周期运行脚本，或将某个终端脚本标记为工作区运行命令。"
@@ -2845,6 +2852,9 @@ msgstr "取消编辑"
 msgid "Cancel plan"
 msgstr "取消方案"
 
+msgid "Cancel reply"
+msgstr "取消回复"
+
 msgid "Canceled"
 msgstr "已取消"
 
@@ -3574,6 +3584,9 @@ msgstr "评论未发布"
 
 msgid "Comment on this page"
 msgstr "评论这个页面"
+
+msgid "Comment options"
+msgstr "评论选项"
 
 msgid "Commented"
 msgstr "已评论"
@@ -7160,6 +7173,9 @@ msgstr "隐藏拉取请求预览"
 
 msgid "Hide resolved ({resolvedCount})"
 msgstr "隐藏已解决 ({resolvedCount})"
+
+msgid "Hide resolved comments"
+msgstr "隐藏已解决的评论"
 
 msgid "Hide review comments"
 msgstr "隐藏审查评论"
@@ -11987,6 +12003,9 @@ msgstr "回复"
 msgid "Reply to thread…"
 msgstr "回复讨论串…"
 
+msgid "Replying to {replyingTo}"
+msgstr "正在回复 {replyingTo}"
+
 msgid "repo"
 msgstr "仓库"
 
@@ -12618,6 +12637,9 @@ msgstr "正在保存…"
 
 msgid "Saw the paywall"
 msgstr "看到付费墙"
+
+msgid "Say something, or tap a block to pin a note."
+msgstr "说点什么，或点按某个区块以固定备注。"
 
 msgid "Scale from two agents to 100+"
 msgstr "从两个智能体扩到100多个"
@@ -14451,9 +14473,6 @@ msgstr "联系Superset"
 msgid "Tap anything on the page to comment on it"
 msgstr "点按页面上的任意元素即可评论"
 
-msgid "Tap the focus button to comment on a block."
-msgstr "点按聚焦按钮即可评论某个区块。"
-
 msgid "Target agent"
 msgstr "目标智能体"
 
@@ -15048,9 +15067,6 @@ msgstr "这将关闭所选工作区及其终端。项目的文件和分支保持
 
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "这将关闭该工作区及其终端。项目的文件、分支和其他工作区保持不变。"
-
-msgid "This comment is no longer here"
-msgstr "此评论已不存在"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "这将删除用于重启/崩溃恢复的已保存回滚缓冲。"

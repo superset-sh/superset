@@ -274,6 +274,10 @@ msgstr "{0, plural, one {さらに#行を表示} other {さらに#行を表示}}
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {既存のワークツリー#件をワークスペースとしてSupersetにインポートします。ディスク上の各ワークツリーが追跡され、サイドバーに表示されます。ファイルは変更されません。} other {既存のワークツリー#件をワークスペースとしてSupersetにインポートします。ディスク上の各ワークツリーが追跡され、サイドバーに表示されます。ファイルは変更されません。}}"
 
+#. placeholder {0}: resolved.length
+msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
+msgstr "{0, plural, other {解決済みのコメント # 件を表示}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {#件のページのコメントを監視中} other {#件のページのコメントを監視中}}"
@@ -1395,6 +1399,9 @@ msgstr "追加"
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "Add {0} account"
 msgstr "{0}アカウントを追加"
+
+msgid "Add a comment…"
+msgstr "コメントを追加…"
 
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "プロジェクト設定でライフサイクルの実行スクリプトを追加するか、ターミナルスクリプトをワークスペース実行に指定してください。"
@@ -2845,6 +2852,9 @@ msgstr "編集をキャンセル"
 msgid "Cancel plan"
 msgstr "プランをキャンセル"
 
+msgid "Cancel reply"
+msgstr "返信をキャンセル"
+
 msgid "Canceled"
 msgstr "キャンセル済み"
 
@@ -3574,6 +3584,9 @@ msgstr "コメントを投稿できませんでした"
 
 msgid "Comment on this page"
 msgstr "このページにコメント"
+
+msgid "Comment options"
+msgstr "コメントの操作"
 
 msgid "Commented"
 msgstr "コメント"
@@ -7160,6 +7173,9 @@ msgstr "プルリクエストのプレビューを隠す"
 
 msgid "Hide resolved ({resolvedCount})"
 msgstr "解決済みを非表示 ({resolvedCount})"
+
+msgid "Hide resolved comments"
+msgstr "解決済みのコメントを非表示"
 
 msgid "Hide review comments"
 msgstr "レビューコメントを隠す"
@@ -11987,6 +12003,9 @@ msgstr "返信"
 msgid "Reply to thread…"
 msgstr "スレッドに返信…"
 
+msgid "Replying to {replyingTo}"
+msgstr "{replyingTo} に返信中"
+
 msgid "repo"
 msgstr "リポジトリ"
 
@@ -12618,6 +12637,9 @@ msgstr "保存中…"
 
 msgid "Saw the paywall"
 msgstr "ペイウォールを表示"
+
+msgid "Say something, or tap a block to pin a note."
+msgstr "何か書くか、ブロックをタップしてメモをピン留めしましょう。"
 
 msgid "Scale from two agents to 100+"
 msgstr "2体から100体以上へ広げる"
@@ -14451,9 +14473,6 @@ msgstr "Supersetに相談する"
 msgid "Tap anything on the page to comment on it"
 msgstr "ページ上の要素をタップしてコメントできます"
 
-msgid "Tap the focus button to comment on a block."
-msgstr "フォーカスボタンをタップしてブロックにコメントできます。"
-
 msgid "Target agent"
 msgstr "対象のエージェント"
 
@@ -15048,9 +15067,6 @@ msgstr "選択したワークスペースとそのターミナルを閉じます
 
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "ワークスペースとそのターミナルを閉じます。プロジェクトのファイル、ブランチ、他のワークスペースはそのまま残ります。"
-
-msgid "This comment is no longer here"
-msgstr "このコメントはもうありません"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "再起動やクラッシュからの復旧に使う保存済みスクロールバックを削除します。"

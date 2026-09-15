@@ -5,13 +5,13 @@ interface PageCommentStore {
 	pageId: string | null;
 	version: number | null;
 	anchor: CommentAnchor | null;
-	threadId: string | null;
+	focusThreadId: string | null;
 	setPick: (pick: {
 		pageId: string;
 		version: number;
 		anchor: CommentAnchor;
 	}) => void;
-	setThreadId: (threadId: string | null) => void;
+	setFocusThreadId: (threadId: string | null) => void;
 	clear: () => void;
 }
 
@@ -19,10 +19,10 @@ export const usePageCommentStore = create<PageCommentStore>()((set) => ({
 	pageId: null,
 	version: null,
 	anchor: null,
-	threadId: null,
+	focusThreadId: null,
 	setPick: ({ pageId, version, anchor }) =>
-		set({ pageId, version, anchor, threadId: null }),
-	setThreadId: (threadId) => set({ threadId }),
+		set({ pageId, version, anchor, focusThreadId: null }),
+	setFocusThreadId: (focusThreadId) => set({ focusThreadId }),
 	clear: () =>
-		set({ pageId: null, version: null, anchor: null, threadId: null }),
+		set({ pageId: null, version: null, anchor: null, focusThreadId: null }),
 }));

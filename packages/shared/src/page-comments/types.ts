@@ -20,7 +20,9 @@ export type CommentIntent = "delete" | "approve";
 
 export interface CommentThread {
 	id: string;
-	anchor: CommentAnchor;
+	/** Null for a page-level thread: it belongs to the page, not to an element,
+	 * so it has no rect to track and draws no pin. */
+	anchor: CommentAnchor | null;
 	intent?: CommentIntent | null;
 	comments: PageComment[];
 	resolved: boolean;
@@ -35,8 +37,8 @@ export interface CommentDraft {
 }
 
 export interface CreateThreadInput {
-	anchor: CommentAnchor;
-	anchorText: string;
+	anchor?: CommentAnchor;
+	anchorText?: string;
 	body: string;
 	intent?: CommentIntent | null;
 }

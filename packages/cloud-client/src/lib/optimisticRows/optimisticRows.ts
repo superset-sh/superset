@@ -43,7 +43,7 @@ export function optimisticThread({
 }): ServerThread {
 	return {
 		id: optimisticId(),
-		anchorKind: "element",
+		anchorKind: input.anchor ? "element" : "page",
 		anchor: input.anchor ?? null,
 		anchorText: input.anchorText ?? null,
 		intent: input.intent ?? null,

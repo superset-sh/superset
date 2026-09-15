@@ -274,6 +274,10 @@ msgstr "{0, plural, one {# regel meer tonen} other {# regels meer tonen}}"
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Hiermee wordt # bestaande worktree als werkruimte in Superset geïmporteerd. Elke worktree op schijf wordt gevolgd en verschijnt in je zijbalk. Er worden geen bestanden gewijzigd.} other {Hiermee worden # bestaande worktrees als werkruimtes in Superset geïmporteerd. Elke worktree op schijf wordt gevolgd en verschijnt in je zijbalk. Er worden geen bestanden gewijzigd.}}"
 
+#. placeholder {0}: resolved.length
+msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
+msgstr "{0, plural, one {# opgeloste reactie tonen} other {# opgeloste reacties tonen}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {Volgt # pagina voor reacties} other {Volgt # pagina's voor reacties}}"
@@ -1395,6 +1399,9 @@ msgstr "Toevoegen"
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "Add {0} account"
 msgstr "{0}-account toevoegen"
+
+msgid "Add a comment…"
+msgstr "Voeg een reactie toe…"
 
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Voeg een lifecycle-runscript toe in de projectinstellingen of markeer een terminalscript als de run van de werkruimte."
@@ -2845,6 +2852,9 @@ msgstr "Bewerkingen annuleren"
 msgid "Cancel plan"
 msgstr "Plan opzeggen"
 
+msgid "Cancel reply"
+msgstr "Reactie annuleren"
+
 msgid "Canceled"
 msgstr "Geannuleerd"
 
@@ -3574,6 +3584,9 @@ msgstr "Opmerking niet geplaatst"
 
 msgid "Comment on this page"
 msgstr "Reageren op deze pagina"
+
+msgid "Comment options"
+msgstr "Reactieopties"
 
 msgid "Commented"
 msgstr "Opmerking geplaatst"
@@ -7160,6 +7173,9 @@ msgstr "Voorbeeld van pull request verbergen"
 
 msgid "Hide resolved ({resolvedCount})"
 msgstr "Opgeloste verbergen ({resolvedCount})"
+
+msgid "Hide resolved comments"
+msgstr "Opgeloste reacties verbergen"
 
 msgid "Hide review comments"
 msgstr "Reviewopmerkingen verbergen"
@@ -11987,6 +12003,9 @@ msgstr "Antwoorden"
 msgid "Reply to thread…"
 msgstr "Reageren op thread…"
 
+msgid "Replying to {replyingTo}"
+msgstr "Antwoord aan {replyingTo}"
+
 msgid "repo"
 msgstr "repo"
 
@@ -12618,6 +12637,9 @@ msgstr "Opslaan…"
 
 msgid "Saw the paywall"
 msgstr "Zag de paywall"
+
+msgid "Say something, or tap a block to pin a note."
+msgstr "Schrijf iets of tik op een blok om een notitie vast te pinnen."
 
 msgid "Scale from two agents to 100+"
 msgstr "Schaal van twee agents naar 100+"
@@ -14451,9 +14473,6 @@ msgstr "Praat met Superset"
 msgid "Tap anything on the page to comment on it"
 msgstr "Tik op iets op de pagina om erop te reageren"
 
-msgid "Tap the focus button to comment on a block."
-msgstr "Tik op de focusknop om op een blok te reageren."
-
 msgid "Target agent"
 msgstr "Doelagent"
 
@@ -15048,9 +15067,6 @@ msgstr "Hiermee sluit je de geselecteerde werkruimtes en hun terminals. De besta
 
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Hiermee sluit je de werkruimte en de bijbehorende terminals. De bestanden, branches en andere werkruimtes van het project blijven ongewijzigd."
-
-msgid "This comment is no longer here"
-msgstr "Deze reactie is er niet meer"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Hiermee wordt de opgeslagen scrollback voor herstel na herstart of crash verwijderd."

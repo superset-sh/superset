@@ -9,6 +9,11 @@ export {
 	optimisticId,
 } from "./optimisticId";
 export { pageCommentUser } from "./pageCommentUser";
+export {
+	type PopoverPlacement,
+	type PopoverPoint,
+	popoverPlacement,
+} from "./popoverLayout";
 export type {
 	CommentDraft,
 	CommentIntent,

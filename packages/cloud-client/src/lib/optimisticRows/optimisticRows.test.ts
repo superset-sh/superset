@@ -31,10 +31,18 @@ describe("optimisticThread", () => {
 		expect(thread.anchor).toBeNull();
 		expect(thread.anchorText).toBeNull();
 		expect(thread.intent).toBeNull();
-		expect(thread.anchorKind).toBe("element");
 		expect(thread.resolved).toBe(false);
 		expect(thread.version).toBe(3);
 		expect(thread.createdByUserId).toBe("u1");
+	});
+
+	test("calls an anchorless row a page thread so it draws no pin in flight", () => {
+		const thread = optimisticThread({
+			input: { body: "hi" },
+			user,
+			version: 1,
+		});
+		expect(thread.anchorKind).toBe("page");
 	});
 
 	test("carries the body through as its single first comment", () => {
@@ -58,5 +66,6 @@ describe("optimisticThread", () => {
 		expect(thread.anchor).toEqual(anchor);
 		expect(thread.anchorText).toBe("quoted");
 		expect(thread.intent).toBe("delete");
+		expect(thread.anchorKind).toBe("element");
 	});
 });

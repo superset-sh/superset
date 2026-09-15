@@ -274,6 +274,10 @@ msgstr "{0, plural, one {Show # more line} other {Show # more lines}}"
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 
+#. placeholder {0}: resolved.length
+msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
+msgstr "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
@@ -1395,6 +1399,9 @@ msgstr "Add"
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "Add {0} account"
 msgstr "Add {0} account"
+
+msgid "Add a comment…"
+msgstr "Add a comment…"
 
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
@@ -2845,6 +2852,9 @@ msgstr "Cancel edits"
 msgid "Cancel plan"
 msgstr "Cancel plan"
 
+msgid "Cancel reply"
+msgstr "Cancel reply"
+
 msgid "Canceled"
 msgstr "Canceled"
 
@@ -3574,6 +3584,9 @@ msgstr "Comment not posted"
 
 msgid "Comment on this page"
 msgstr "Comment on this page"
+
+msgid "Comment options"
+msgstr "Comment options"
 
 msgid "Commented"
 msgstr "Commented"
@@ -7160,6 +7173,9 @@ msgstr "Hide pull request preview"
 
 msgid "Hide resolved ({resolvedCount})"
 msgstr "Hide resolved ({resolvedCount})"
+
+msgid "Hide resolved comments"
+msgstr "Hide resolved comments"
 
 msgid "Hide review comments"
 msgstr "Hide review comments"
@@ -11987,6 +12003,9 @@ msgstr "Reply"
 msgid "Reply to thread…"
 msgstr "Reply to thread…"
 
+msgid "Replying to {replyingTo}"
+msgstr "Replying to {replyingTo}"
+
 msgid "repo"
 msgstr "repo"
 
@@ -12618,6 +12637,9 @@ msgstr "Saving…"
 
 msgid "Saw the paywall"
 msgstr "Saw the paywall"
+
+msgid "Say something, or tap a block to pin a note."
+msgstr "Say something, or tap a block to pin a note."
 
 msgid "Scale from two agents to 100+"
 msgstr "Scale from two agents to 100+"
@@ -14451,9 +14473,6 @@ msgstr "Talk to Superset"
 msgid "Tap anything on the page to comment on it"
 msgstr "Tap anything on the page to comment on it"
 
-msgid "Tap the focus button to comment on a block."
-msgstr "Tap the focus button to comment on a block."
-
 msgid "Target agent"
 msgstr "Target agent"
 
@@ -15048,9 +15067,6 @@ msgstr "This closes the selected workspaces and their terminals. The project's f
 
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
-
-msgid "This comment is no longer here"
-msgstr "This comment is no longer here"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "This deletes the saved scrollback used for reboot/crash recovery."

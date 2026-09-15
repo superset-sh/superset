@@ -274,6 +274,10 @@ msgstr "{0, plural, one {#줄 더 보기} other {#줄 더 보기}}"
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {기존 worktree #개를 워크스페이스로 Superset에 가져옵니다. 디스크의 각 worktree가 추적되어 사이드바에 표시됩니다. 파일은 변경되지 않습니다.} other {기존 worktree #개를 워크스페이스로 Superset에 가져옵니다. 디스크의 각 worktree가 추적되어 사이드바에 표시됩니다. 파일은 변경되지 않습니다.}}"
 
+#. placeholder {0}: resolved.length
+msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
+msgstr "{0, plural, other {해결된 댓글 #개 보기}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {#개 페이지의 댓글을 감시 중} other {#개 페이지의 댓글을 감시 중}}"
@@ -1395,6 +1399,9 @@ msgstr "추가"
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "Add {0} account"
 msgstr "{0} 계정 추가"
+
+msgid "Add a comment…"
+msgstr "댓글 추가…"
 
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "프로젝트 설정에서 라이프사이클 실행 스크립트를 추가하거나, 터미널 스크립트를 워크스페이스 실행으로 지정하세요."
@@ -2845,6 +2852,9 @@ msgstr "편집 취소"
 msgid "Cancel plan"
 msgstr "플랜 해지"
 
+msgid "Cancel reply"
+msgstr "답글 취소"
+
 msgid "Canceled"
 msgstr "취소됨"
 
@@ -3574,6 +3584,9 @@ msgstr "코멘트를 게시하지 못했습니다"
 
 msgid "Comment on this page"
 msgstr "이 페이지에 댓글 달기"
+
+msgid "Comment options"
+msgstr "댓글 옵션"
 
 msgid "Commented"
 msgstr "댓글 남김"
@@ -7160,6 +7173,9 @@ msgstr "풀 리퀘스트 미리보기 숨기기"
 
 msgid "Hide resolved ({resolvedCount})"
 msgstr "해결된 항목 숨기기 ({resolvedCount})"
+
+msgid "Hide resolved comments"
+msgstr "해결된 댓글 숨기기"
 
 msgid "Hide review comments"
 msgstr "리뷰 코멘트 숨기기"
@@ -11987,6 +12003,9 @@ msgstr "답글"
 msgid "Reply to thread…"
 msgstr "스레드에 답글…"
 
+msgid "Replying to {replyingTo}"
+msgstr "{replyingTo}님에게 답글 작성 중"
+
 msgid "repo"
 msgstr "리포"
 
@@ -12618,6 +12637,9 @@ msgstr "저장하는 중…"
 
 msgid "Saw the paywall"
 msgstr "페이월 조회"
+
+msgid "Say something, or tap a block to pin a note."
+msgstr "의견을 남기거나 블록을 탭해 메모를 고정하세요."
 
 msgid "Scale from two agents to 100+"
 msgstr "에이전트 2개에서 100개 이상까지"
@@ -14451,9 +14473,6 @@ msgstr "Superset에 문의하기"
 msgid "Tap anything on the page to comment on it"
 msgstr "페이지의 아무 곳이나 탭하여 댓글을 남기세요"
 
-msgid "Tap the focus button to comment on a block."
-msgstr "포커스 버튼을 눌러 블록에 댓글을 남기세요."
-
 msgid "Target agent"
 msgstr "대상 에이전트"
 
@@ -15048,9 +15067,6 @@ msgstr "선택한 워크스페이스와 해당 터미널을 닫습니다. 프로
 
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "워크스페이스와 해당 터미널을 닫습니다. 프로젝트의 파일, 브랜치, 다른 워크스페이스는 그대로 유지됩니다."
-
-msgid "This comment is no longer here"
-msgstr "이 댓글은 더 이상 없습니다"
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "재부팅/충돌 복구에 사용하는 저장된 스크롤백을 삭제합니다."
