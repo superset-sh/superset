@@ -216,7 +216,10 @@ Superset works with any CLI-based coding agent, including:
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/opencode-white.svg" /><img height="16" align="top" alt="OpenCode" src="packages/ui/src/assets/icons/preset-icons/opencode.svg" /></picture> &nbsp;[OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/pi-white.svg" /><img height="16" align="top" alt="Pi" src="packages/ui/src/assets/icons/preset-icons/pi.svg" /></picture> &nbsp;[Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/polygraph-white.svg" /><img height="16" align="top" alt="Polygraph" src="packages/ui/src/assets/icons/preset-icons/polygraph.svg" /></picture> &nbsp;[Polygraph](https://trypolygraph.com/) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/mcode-white.svg" /><img height="16" align="top" alt="MiniMax Code" src="packages/ui/src/assets/icons/preset-icons/mcode.svg" /></picture> &nbsp;[MiniMax Code](https://agent.minimax.io) | Custom terminal agent |
 | Any other CLI agent | Works without configuration |
+
+To use MiniMax Code, follow its [CLI installation instructions](https://www.npmjs.com/package/@minimax-ai/code), run `mcode login`, then add a custom agent in **Settings → Agents** with **Label** `MiniMax Code` and **Command** `mcode`. Set **Prompt-only args** to `--` and **Resume args** to `--session`. The CLI must be on Superset's `PATH`.
 
 If it runs in a terminal, it runs on Superset
 
