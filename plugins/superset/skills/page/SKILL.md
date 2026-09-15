@@ -272,10 +272,11 @@ workspace also keeps the source next to the work it describes.
 Outside a workspace entirely (a chat session, or a shell with no
 `$SUPERSET_WORKSPACE_ID` and no `--workspace`) the publish still goes through.
 The page is created and listed like any other; it just has no entry path, so
-there is nothing for a later publish to resolve against. **Keep the page id the
-publish prints** and pass `--page <id>` to add a version. Publishing the same
-file again without it creates a second page, and the link you already shared
-keeps showing the first.
+there is nothing for a later publish to resolve against. The result says
+`"unanchored": true` and carries a `republish` command with the id already in
+it. **Keep that command** and run it to add a version. Publishing the same
+file again without `--page` creates a second page, and the link you already
+shared keeps showing the first.
 
 Keep the source file. It is the only copy you can edit; the published version is
 derived from it.

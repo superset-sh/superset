@@ -4,10 +4,14 @@
  * lives, and whether this session watches it — with notes in a fixed order
  * so single-file and directory publishes read the same, and `assets`,
  * `unanchored` and `watching` always present in the JSON — `--json` prints
- * only `data`, so anything a caller has to act on lives there too.
+ * only `data`, so anything a caller has to act on lives there too. That is
+ * why an unanchored publish puts the whole `--page` command in `republish`:
+ * agent mode turns `--json` on by itself, so the hint in `message` is the one
+ * thing the caller who needs it never sees.
  */
 export function publishResult({
 	page,
+	path,
 	assets,
 	externalPath,
 	unanchored,
@@ -18,6 +22,7 @@ export function publishResult({
 		string,
 		unknown
 	>;
+	path: string;
 	assets: {
 		uploaded: number;
 		reused: number;
@@ -28,6 +33,9 @@ export function publishResult({
 	watching: boolean;
 	watchNote: string | null;
 }): { data: Record<string, unknown>; message: string } {
+	const republish = `superset pages publish ${
+		/\s/.test(path) ? JSON.stringify(path) : path
+	} --page ${page.id}`;
 	const lines = [`Published "${page.title}" v${page.version}`, page.url];
 	const count = assets.uploaded + assets.reused;
 	if (count > 0) {
@@ -48,7 +56,7 @@ export function publishResult({
 	if (unanchored) {
 		lines.push(
 			"No workspace, so the next publish of this file would create a second page",
-			`To add a version instead: superset pages publish <path> --page ${page.id}`,
+			`To add a version instead: ${republish}`,
 		);
 	}
 	if (watchNote) lines.push(watchNote);
@@ -57,6 +65,7 @@ export function publishResult({
 		data: {
 			...page,
 			unanchored,
+			...(unanchored ? { republish } : {}),
 			watching,
 			assets: { uploaded: assets.uploaded, reused: assets.reused },
 		},

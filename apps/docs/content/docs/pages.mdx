@@ -71,6 +71,8 @@ If the source moved or you're publishing from another workspace, pass the existi
 superset pages publish design.html --page <page-id> --label "Updated onboarding flow"
 ```
 
+Publishing from outside a workspace works too, but there's no path for a later publish to resolve against: every run creates a separate page unless you pass `--page`. The publish tells you when that happened and prints the command to reuse.
+
 Republishing preserves the page's visibility. You can also inspect version history or retrieve a published version:
 
 ```bash

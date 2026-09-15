@@ -126,7 +126,7 @@ export default command({
 
 		// Assets stage against a page, so a directory publish resolves or creates
 		// one before uploading. A single-file publish still lets `publish` mint it.
-		const pageId =
+		const target =
 			assets.length > 0
 				? await resolvePageId({
 						api: ctx.api,
@@ -134,31 +134,48 @@ export default command({
 						link,
 						title,
 					})
-				: options.page;
+				: null;
+		const pageId = target?.id ?? options.page;
 
-		const uploaded =
-			assets.length > 0 && pageId
-				? await uploadAssets({ api: ctx.api, assets, pageId })
-				: { uploaded: 0, reused: 0, warnings: [] };
-
-		const page = await ctx.api.page.publish.mutate({
-			fileId,
-			filename,
-			...(pageId ? { pageId } : (link ?? {})),
-			...(title ? { title } : {}),
-			...(options.description ? { description: options.description } : {}),
-			...(options.label ? { label: options.label } : {}),
-			...(options.visibility
-				? { visibility: options.visibility as (typeof VISIBILITIES)[number] }
-				: {}),
-		});
+		let uploaded = { uploaded: 0, reused: 0, warnings: [] as string[] };
+		let page: Awaited<ReturnType<typeof ctx.api.page.publish.mutate>>;
+		try {
+			if (target) {
+				uploaded = await uploadAssets({
+					api: ctx.api,
+					assets,
+					pageId: target.id,
+				});
+			}
+			page = await ctx.api.page.publish.mutate({
+				fileId,
+				filename,
+				...(pageId ? { pageId } : (link ?? {})),
+				...(title ? { title } : {}),
+				...(options.description ? { description: options.description } : {}),
+				...(options.label ? { label: options.label } : {}),
+				...(options.visibility
+					? { visibility: options.visibility as (typeof VISIBILITIES)[number] }
+					: {}),
+			});
+		} catch (error) {
+			// A page minted above and never published into has no versions and, with
+			// no workspace and no id in the caller's hands, nothing to find it by
+			// again: every retry would add another. Linked, the retry resolves this
+			// same page, and deleting it could take a version a concurrent publish
+			// put there in between.
+			if (target?.created && !link) {
+				await ctx.api.page.delete.mutate({ id: target.id }).catch(() => {});
+			}
+			throw error;
+		}
 
 		const externalPath =
 			link && entryPath.startsWith(EXTERNAL_ENTRY_PREFIX) && !options.page
 				? entryPath
 				: null;
 
-		const unanchored = !link && !options.page;
+		const unanchored = !page.linked && !options.page;
 
 		const terminalId = watchTerminalId();
 		const organizationId = ctx.config.organizationId;
@@ -193,6 +210,7 @@ export default command({
 
 		return publishResult({
 			page,
+			path: args.path as string,
 			assets: uploaded,
 			externalPath,
 			unanchored,

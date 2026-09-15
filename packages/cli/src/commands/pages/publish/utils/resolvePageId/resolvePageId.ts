@@ -10,6 +10,10 @@ export interface WorkspaceLink {
  * front — `publish` mints one — but assets have to attach to something that
  * already exists, so a directory publish resolves the page it is republishing
  * or creates an empty one to publish into.
+ *
+ * `created` says which of the two happened, because a page minted here and
+ * never published into is a page with no versions: the caller cleans it up
+ * rather than leaving one behind per failed attempt.
  */
 export async function resolvePageId({
 	api,
@@ -21,8 +25,8 @@ export async function resolvePageId({
 	explicitPageId: string | undefined;
 	link: WorkspaceLink | undefined;
 	title: string | undefined;
-}): Promise<string> {
-	if (explicitPageId) return explicitPageId;
+}): Promise<{ id: string; created: boolean }> {
+	if (explicitPageId) return { id: explicitPageId, created: false };
 
 	if (link) {
 		// Best effort: a lookup failure just means this publish creates a page,
@@ -30,12 +34,12 @@ export async function resolvePageId({
 		const resolved = await api.page.resolveByEntryPath
 			.query(link)
 			.catch(() => null);
-		if (resolved) return resolved.id;
+		if (resolved) return { id: resolved.id, created: false };
 	}
 
 	const created = await api.page.create.mutate({
 		...(link ?? {}),
 		...(title ? { title } : {}),
 	});
-	return created.id;
+	return { id: created.id, created: true };
 }
