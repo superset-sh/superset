@@ -12,8 +12,10 @@ describe("publishResult", () => {
 	test("default response: title, version, url — nothing else", () => {
 		const { data, message } = publishResult({
 			page: PAGE,
+			path: "report.html",
 			assets: { uploaded: 0, reused: 0, warnings: [] },
 			externalPath: null,
+			unanchored: false,
 			watching: false,
 			watchNote: null,
 		});
@@ -26,12 +28,14 @@ describe("publishResult", () => {
 	test("directory publish: notes in fixed order — assets, warnings, external, watch", () => {
 		const { data, message } = publishResult({
 			page: PAGE,
+			path: "report.html",
 			assets: {
 				uploaded: 1,
 				reused: 1,
 				warnings: ["demo.mov may not play in every browser"],
 			},
 			externalPath: "~external/report/index.html",
+			unanchored: false,
 			watching: true,
 			watchNote: "Watching for comments — they will be sent to this session",
 		});
@@ -47,11 +51,79 @@ describe("publishResult", () => {
 		expect(data.assets).toEqual({ uploaded: 1, reused: 1 });
 	});
 
+	test("unanchored publish: says how to reach this page again", () => {
+		const { data, message } = publishResult({
+			page: PAGE,
+			path: "reports/q3.html",
+			assets: { uploaded: 0, reused: 0, warnings: [] },
+			externalPath: null,
+			unanchored: true,
+			watching: false,
+			watchNote: null,
+		});
+		expect(message.split("\n")).toEqual([
+			'Published "Q3 Report" v3',
+			PAGE.url,
+			"No workspace, so the next publish of this file would create a second page",
+			"To add a version instead: superset pages publish reports/q3.html --page p1",
+		]);
+		expect(data.unanchored).toBe(true);
+		expect(data.id).toBe("p1");
+	});
+
+	// --json is on by default under an agent, and prints only `data`. An agent
+	// that never sees `message` still has to be told how to avoid a second page.
+	test("unanchored publish: the command is in data, not only in the message", () => {
+		const { data } = publishResult({
+			page: PAGE,
+			path: "reports/q3.html",
+			assets: { uploaded: 0, reused: 0, warnings: [] },
+			externalPath: null,
+			unanchored: true,
+			watching: false,
+			watchNote: null,
+		});
+		expect(data.republish).toBe(
+			"superset pages publish reports/q3.html --page p1",
+		);
+	});
+
+	test("unanchored publish: a path with spaces stays runnable", () => {
+		const { data } = publishResult({
+			page: PAGE,
+			path: "my reports/q3.html",
+			assets: { uploaded: 0, reused: 0, warnings: [] },
+			externalPath: null,
+			unanchored: true,
+			watching: false,
+			watchNote: null,
+		});
+		expect(data.republish).toBe(
+			'superset pages publish "my reports/q3.html" --page p1',
+		);
+	});
+
+	test("anchored publish says nothing about --page", () => {
+		const { data, message } = publishResult({
+			page: PAGE,
+			path: "report.html",
+			assets: { uploaded: 0, reused: 0, warnings: [] },
+			externalPath: null,
+			unanchored: false,
+			watching: false,
+			watchNote: null,
+		});
+		expect(message).not.toContain("--page");
+		expect(data.republish).toBeUndefined();
+	});
+
 	test("one asset, none reused: singular wording, no reuse suffix", () => {
 		const { message } = publishResult({
 			page: PAGE,
+			path: "report.html",
 			assets: { uploaded: 1, reused: 0, warnings: [] },
 			externalPath: null,
+			unanchored: false,
 			watching: false,
 			watchNote: null,
 		});

@@ -345,6 +345,33 @@ describe("publish", () => {
 			.where(eq(workspacePages.pageId, result.id));
 		expect(links).toHaveLength(0);
 		expect(result.version).toBe(1);
+		expect(result.linked).toBe(false);
+	});
+
+	test("a second unlinked publish mints its own page rather than a version", async () => {
+		const first = await publish({ title: "Session Report" });
+		const second = await publish({ title: "Session Report" });
+		expect(second.id).not.toBe(first.id);
+		expect(second.version).toBe(1);
+	});
+
+	// What the CLI and the MCP tool read to decide whether to tell their caller
+	// to hold on to the id, rather than each re-deriving it from its own input.
+	test("`linked` reports the workspace link, including on a publish by id", async () => {
+		const anchored = await publish({
+			entryPath: "linked/index.html",
+			workspaceId: WORKSPACE,
+			title: "Linked",
+		});
+		expect(anchored.linked).toBe(true);
+
+		const byId = await publish({ pageId: anchored.id });
+		expect(byId.id).toBe(anchored.id);
+		expect(byId.linked).toBe(true);
+
+		const loose = await publish({ title: "Loose" });
+		const looseById = await publish({ pageId: loose.id });
+		expect(looseById.linked).toBe(false);
 	});
 
 	test("titles the page from the filename when none is given", async () => {

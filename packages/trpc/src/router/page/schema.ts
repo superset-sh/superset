@@ -58,22 +58,6 @@ export const WORKSPACE_LINK_MESSAGE = {
 };
 
 /**
- * A publish with no anchor mints a page no workspace lists and no later publish
- * can find — including the id needed to pass `pageId`.
- */
-export const isAnchoredPublish = (value: {
-	pageId?: string | undefined;
-	workspaceId?: string | undefined;
-	entryPath?: string | undefined;
-}) => Boolean(value.pageId) || Boolean(value.workspaceId && value.entryPath);
-
-export const ANCHOR_MESSAGE = {
-	message:
-		"A publish must name where it lives: pass workspaceId and entryPath, or pageId to add a version to an existing page",
-	path: ["workspaceId"],
-};
-
-/**
  * Strict on purpose. Zod strips unknown keys by default, so a newer client
  * against an older server has its extra fields silently discarded — a CLI
  * that uploaded assets and sent them here would get a successful publish
@@ -82,8 +66,7 @@ export const ANCHOR_MESSAGE = {
  */
 export const publishPageSchema = publishPageFieldsSchema
 	.strict()
-	.refine(hasCompleteWorkspaceLink, WORKSPACE_LINK_MESSAGE)
-	.refine(isAnchoredPublish, ANCHOR_MESSAGE);
+	.refine(hasCompleteWorkspaceLink, WORKSPACE_LINK_MESSAGE);
 
 export type PublishPageInput = z.infer<typeof publishPageSchema>;
 
