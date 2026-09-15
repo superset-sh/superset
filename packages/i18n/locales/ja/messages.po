@@ -826,6 +826,12 @@ msgstr "{planLabel} · {joined}に参加"
 msgid "{planLabel} plan"
 msgstr "{planLabel}プラン"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} の OAuth クライアントはこのデプロイにまだ設定されていません。"
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} はインストールされていません。"
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel}をデフォルトに戻しました"
 
@@ -1471,9 +1477,6 @@ msgstr "サイドバーのメニューから追加して始めましょう。"
 
 msgid "Add photos or files"
 msgstr "写真やファイルを追加"
-
-msgid "Add plugin"
-msgstr "プラグインを追加"
 
 msgid "Add project"
 msgstr "プロジェクトを追加"
@@ -2241,9 +2244,6 @@ msgstr "監査ログ"
 msgid "Aug 2026"
 msgstr "2026年8月"
 
-msgid "Authenticate your {displayName} account"
-msgstr "{displayName} アカウントを認証"
-
 msgid "Authentication"
 msgstr "認証"
 
@@ -2270,6 +2270,12 @@ msgstr "許可"
 
 msgid "Authorize {displayName}"
 msgstr "{displayName}を許可"
+
+msgid "Authorize Superset so your plugins, automations and triggers can act on your behalf."
+msgstr "プラグイン、オートメーション、トリガーがあなたに代わって操作できるよう、Superset を承認します。"
+
+msgid "Authorize Superset to act on your behalf."
+msgstr "Superset があなたに代わって操作することを承認します。"
 
 msgid "Authorizing..."
 msgstr "許可中..."
@@ -3699,6 +3705,12 @@ msgstr "終了前に確認"
 msgid "Connect"
 msgstr "接続"
 
+msgid "Connect {displayName}"
+msgstr "{displayName} を接続"
+
+msgid "Connect {name}"
+msgstr "{name} を接続"
+
 msgid "Connect a device"
 msgstr "デバイスを接続"
 
@@ -3771,9 +3783,8 @@ msgstr "Slackのワークスペースを接続して、会話からタスクを�
 msgid "Connected"
 msgstr "接続済み"
 
-#. placeholder {0}: formatDate(new Date(connection.createdAt))
-msgid "connected {0}"
-msgstr "{0} に接続"
+msgid "Connected {label}"
+msgstr "{label} に接続しました"
 
 msgid "Connected as"
 msgstr "接続アカウント"
@@ -3805,6 +3816,9 @@ msgstr "接続中"
 msgid "Connecting GitHub is not configured on this server"
 msgstr "このサーバーでは GitHub の接続が設定されていません"
 
+msgid "Connecting lets your agents read and act in {name} on your behalf. Review what you are granting before you continue."
+msgstr "接続すると、エージェントがあなたに代わって {name} で読み取りと操作を行えるようになります。続行する前に許可する内容を確認してください。"
+
 msgid "Connecting to the desktop…"
 msgstr "デスクトップに接続しています…"
 
@@ -3835,6 +3849,18 @@ msgstr "接続がタイムアウトしました"
 
 msgid "Connections"
 msgstr "接続"
+
+msgid "Connector"
+msgstr "コネクタ"
+
+msgid "Connectors carry risk"
+msgstr "コネクタにはリスクがあります"
+
+msgid "Connects for your whole team."
+msgstr "チーム全体で共有されます。"
+
+msgid "Connects your account. Teammates connect their own."
+msgstr "あなたのアカウントを接続します。チームメイトは各自で接続します。"
 
 msgid "consecutive active days"
 msgstr "連続アクティブ日数"
@@ -3892,6 +3918,10 @@ msgstr "セッションを続行またはフォーク"
 
 msgid "Continue the session the last run left"
 msgstr "前回の実行が残したセッションを継続"
+
+#. placeholder {0}: connector.displayName
+msgid "Continue to {0}"
+msgstr "{0} に進む"
 
 msgid "Continue update"
 msgstr "更新を続行"
@@ -4141,6 +4171,9 @@ msgstr "セッションを終了できませんでした"
 
 msgid "Could not close the session"
 msgstr "セッションを閉じられませんでした"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "{plugin} に接続できませんでした。もう一度お試しください。"
 
 msgid "Could not copy the link"
 msgstr "リンクをコピーできませんでした"
@@ -4664,6 +4697,9 @@ msgstr "ワークツリーを作成中"
 msgid "Creating..."
 msgstr "作成中..."
 
+msgid "Credentials stay on the server"
+msgstr "認証情報はサーバー上に保持されます"
+
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "packages/uiの外にある機能横断のコンポーネント — 新しく作る前にここを確認してください"
 
@@ -5121,6 +5157,9 @@ msgstr "開発用サインイン"
 msgid "Dev sign-in failed"
 msgstr "開発用サインインに失敗しました"
 
+msgid "Developed by {author}"
+msgstr "開発元: {author}"
+
 msgid "Developer"
 msgstr "開発者"
 
@@ -5238,10 +5277,6 @@ msgstr "破棄しました — 今後は確認しません"
 
 msgid "Disconnect"
 msgstr "切断"
-
-#. placeholder {0}: connection.account ?? displayName
-msgid "Disconnect {0}"
-msgstr "{0} を切断"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHubの接続を解除しますか?"
@@ -7582,6 +7617,9 @@ msgstr "並列コーディングエージェントと開発者の生産性につ
 msgid "Inspecting {0}"
 msgstr "{0}を検査中"
 
+msgid "Install"
+msgstr "インストール"
+
 msgid "Install & restart"
 msgstr "インストールして再起動"
 
@@ -7594,11 +7632,17 @@ msgstr "インストールに失敗しました"
 msgid "Install GitHub App"
 msgstr "GitHub Appをインストール"
 
+msgid "Install plugin"
+msgstr "プラグインをインストール"
+
 msgid "Install Superset MCP in your client"
 msgstr "クライアントにSuperset MCPをインストール"
 
 msgid "Install the desktop app"
 msgstr "デスクトップアプリをインストール"
+
+msgid "Install the plugin to connect"
+msgstr "接続するにはプラグインをインストールしてください"
 
 msgid "Install the Superset GitHub App to connect your repositories."
 msgstr "Superset GitHub Appをインストールしてリポジトリを接続します。"
@@ -14249,6 +14293,9 @@ msgstr "Superset Mobile、クラウドワークスペース、オートメーシ
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "他のブラウザのデータを読み取るには、Supersetにフルディスクアクセスが必要です。システム設定で許可してから再確認してください。"
 
+msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
+msgstr "Superset はこのコネクタが要求する権限のみを受け取ります。接続を解除すればいつでも取り消せます。"
+
 msgid "Superset originals"
 msgstr "Superset独自コンポーネント"
 
@@ -14654,6 +14701,9 @@ msgstr "Textarea"
 
 msgid "Thanks for reaching out"
 msgstr "お問い合わせありがとうございます"
+
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "{plugin} のサインインリンクの有効期限が切れました。もう一度接続してください。"
 
 msgid "That endpoint could not be resolved."
 msgstr "そのエンドポイントを解決できませんでした。"
@@ -15172,9 +15222,6 @@ msgstr "このパスは存在しますが、ディレクトリではありませ
 msgid "This path is a directory"
 msgstr "このパスはディレクトリです"
 
-msgid "This plugin needs no account — its skills are ready to use."
-msgstr "このプラグインにアカウントは不要です — スキルはすぐに使えます。"
-
 msgid "This port is still in use"
 msgstr "このポートはまだ使用中です"
 
@@ -15412,6 +15459,9 @@ msgstr "トークン使用量"
 
 msgid "Tokens"
 msgstr "トークン"
+
+msgid "Tokens are held by Superset and attached to requests there. They are never written into your local agent config."
+msgstr "トークンは Superset が保持し、サーバー側でリクエストに付与されます。ローカルのエージェント設定には書き込まれません。"
 
 msgid "Tokens per session"
 msgstr "セッションあたりのトークン"
@@ -16773,6 +16823,12 @@ msgstr "このサブスクリプションはアプリでは変更できません
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "この操作は元に戻せません。ターミナルペインに「Process exited」と表示され、再起動できます。"
 
+msgid "You control the access"
+msgstr "アクセス権はあなたが管理します"
+
+msgid "You declined the {plugin} authorization request."
+msgstr "{plugin} の認可リクエストを拒否しました。"
+
 msgid "You don't have access to this host"
 msgstr "このホストへのアクセス権がありません"
 
@@ -16781,6 +16837,9 @@ msgstr "このターミナルへのアクセス権がありません。"
 
 msgid "You don't have permission to remove this member"
 msgstr "このメンバーを削除する権限がありません"
+
+msgid "You need to be part of an organization to connect accounts."
+msgstr "アカウントを接続するには、組織に所属している必要があります。"
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "連携を使うには組織に所属している必要があります。"

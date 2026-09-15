@@ -330,7 +330,8 @@ describe("a Slack row watching a channel the bot is not in", () => {
  *   ⌗ Message in channel  Requires connection      [🗑] [Connect ↗]
  */
 describe("a Slack row whose integration is not connected", () => {
-	const disconnected = () => row(message(), { requiresConnection: true });
+	const disconnected = () =>
+		row(message(), { requiresConnection: true, onConnect: () => {} });
 
 	test("collapses to the name of the trigger", async () => {
 		const { ui } = await disconnected();

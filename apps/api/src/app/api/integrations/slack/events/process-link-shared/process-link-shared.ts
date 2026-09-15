@@ -1,7 +1,11 @@
 import type { EntityMetadata, LinkSharedEvent } from "@slack/types";
 import { db } from "@superset/db/client";
-import { integrationConnections, tasks } from "@superset/db/schema";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { tasks } from "@superset/db/schema";
+import {
+	accountConnection,
+	connectionBotToken,
+} from "@superset/trpc/connectors";
+import { and, eq } from "drizzle-orm";
 import { createSlackClient } from "../utils/slack-client";
 import {
 	createTaskWorkObject,
@@ -25,17 +29,7 @@ export async function processLinkShared({
 		linkCount: event.links.length,
 	});
 
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.provider, "slack"),
-			eq(integrationConnections.externalOrgId, teamId),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		orderBy: [
-			desc(integrationConnections.updatedAt),
-			desc(integrationConnections.id),
-		],
-	});
+	const connection = await accountConnection("slack", teamId);
 
 	if (!connection) {
 		console.error(
@@ -45,7 +39,7 @@ export async function processLinkShared({
 		return;
 	}
 
-	const slack = createSlackClient(connection.accessToken);
+	const slack = createSlackClient(await connectionBotToken(connection));
 
 	const entities: EntityMetadata[] = [];
 

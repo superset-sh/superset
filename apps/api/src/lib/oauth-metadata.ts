@@ -39,6 +39,35 @@ export function getOAuthProtectedResourceMetadataUrl(req: Request): string {
 	)}`;
 }
 
+/**
+ * The resource every Superset MCP endpoint authorizes against. Plugin
+ * endpoints live under /mcp/plugins/<marketplace>/<plugin>, an unbounded path
+ * the authorization server's audience allowlist cannot enumerate, so they
+ * present the one audience it already issues. Nothing scopes a token to a
+ * single endpoint anyway: the audience check is on the token, not the path.
+ */
+export const MCP_RESOURCE_PATH = "/mcp";
+
+export function mcpProtectedResourceMetadataUrl(req: Request): string {
+	return `${getRequestOrigin(req)}/.well-known/oauth-protected-resource${MCP_RESOURCE_PATH}`;
+}
+
+export function mcpUnauthorizedResponse(
+	req: Request,
+	message: string,
+): Response {
+	return new Response(
+		JSON.stringify({ error: { code: "UNAUTHORIZED", message } }),
+		{
+			status: 401,
+			headers: {
+				"WWW-Authenticate": `Bearer realm="superset", resource_metadata="${mcpProtectedResourceMetadataUrl(req)}"`,
+				"Content-Type": "application/json",
+			},
+		},
+	);
+}
+
 export function buildProtectedResourceMetadata(
 	req: Request,
 	resourcePath: string,

@@ -1,9 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { auth } from "@superset/auth/server";
-import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
 import { findOrgMembership } from "@superset/db/utils";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { accountConnection } from "@superset/trpc/connectors";
 import { headers } from "next/headers";
 import { env } from "@/env";
 import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
@@ -54,17 +52,7 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.provider, "slack"),
-			eq(integrationConnections.externalOrgId, payload.teamId),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		orderBy: [
-			desc(integrationConnections.updatedAt),
-			desc(integrationConnections.id),
-		],
-	});
+	const connection = await accountConnection("slack", payload.teamId);
 
 	if (!connection) {
 		return new Response(

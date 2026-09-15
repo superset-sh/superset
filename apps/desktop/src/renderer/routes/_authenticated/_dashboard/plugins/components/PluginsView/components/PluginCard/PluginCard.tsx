@@ -26,6 +26,7 @@ interface PluginCardProps {
 	isDisabled: boolean;
 	isBusy: boolean;
 	onOpen: (plugin: CatalogPlugin) => void;
+	onInstall: (plugin: CatalogPlugin) => void;
 	onUninstall: (plugin: CatalogPlugin) => void;
 	onSetEnabled: (name: string, enabled: boolean) => void;
 	onUpdate: (name: string) => void;
@@ -38,6 +39,7 @@ export function PluginCard({
 	isDisabled,
 	isBusy,
 	onOpen,
+	onInstall,
 	onUninstall,
 	onSetEnabled,
 	onUpdate,
@@ -149,7 +151,20 @@ export function PluginCard({
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
-			) : null}
+			) : (
+				<Button
+					variant="outline"
+					size="sm"
+					className="shrink-0"
+					disabled={isBusy}
+					onClick={(event) => {
+						event.stopPropagation();
+						onInstall(plugin);
+					}}
+				>
+					<Trans>Install</Trans>
+				</Button>
+			)}
 		</div>
 	);
 }

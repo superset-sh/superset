@@ -8,16 +8,12 @@ import { disconnectProcedure, getConnectionProcedure } from "../connections";
  * settings page use.
  */
 export const sentryRouter = {
-	getConnection: getConnectionProcedure(
-		"sentry",
-		{ id: true, externalOrgId: true, externalOrgName: true, createdAt: true },
-		(connection) => ({
-			id: connection.id,
-			organizationSlug: connection.externalOrgId,
-			organizationName: connection.externalOrgName,
-			connectedAt: connection.createdAt,
-		}),
-	),
+	getConnection: getConnectionProcedure("sentry", (connection) => ({
+		id: connection.id,
+		organizationSlug: connection.externalAccountId,
+		organizationName: connection.externalAccountLabel,
+		connectedAt: connection.createdAt,
+	})),
 
 	disconnect: disconnectProcedure("sentry"),
 } satisfies TRPCRouterRecord;

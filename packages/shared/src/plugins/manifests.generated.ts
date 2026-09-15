@@ -9,7 +9,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"github": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "github",
-		"version": "1.0.0",
+		"version": "1.0.1",
 		"description": "Work with issues, pull requests, and CI across your repositories.",
 		"author": {
 			"name": "Superset",
@@ -32,41 +32,9 @@ export const FIRST_PARTY_MANIFESTS = {
 					"category": "Developer tools",
 					"icon": "github"
 				},
-				"auth": [
-					{
-						"type": "oauth2",
-						"provider": "github",
-						"authorization_url": "https://github.com/login/oauth/authorize",
-						"token_url": "https://github.com/login/oauth/access_token",
-						"scopes": [
-							"repo",
-							"read:org",
-							"workflow"
-						],
-						"scope_separator": " ",
-						"token_request_auth_method": "client_secret_post",
-						"requires_env": [
-							"PLUGIN_GITHUB_CLIENT_ID",
-							"PLUGIN_GITHUB_CLIENT_SECRET"
-						],
-						"identity": {
-							"url": "https://api.github.com/user",
-							"method": "GET",
-							"headers": {
-								"Authorization": "Bearer ${config.access_token}",
-								"Accept": "application/vnd.github+json"
-							},
-							"id": "$.id",
-							"label": "$.login"
-						},
-						"label": "OAuth 2.0",
-						"bind": {
-							"headers": {
-								"Authorization": "Bearer ${config.access_token}"
-							}
-						}
-					}
-				],
+				"connector": {
+					"slug": "github"
+				},
 				"mcp": {
 					"type": "streamable-http",
 					"url": "https://api.githubcopilot.com/mcp/"
@@ -87,7 +55,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"linear": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "linear",
-		"version": "1.4.0",
+		"version": "1.5.2",
 		"description": "Plan and build products: create, search, and update Linear issues.",
 		"author": {
 			"name": "Superset",
@@ -109,78 +77,9 @@ export const FIRST_PARTY_MANIFESTS = {
 					"category": "Productivity",
 					"icon": "linear"
 				},
-				"auth": [
-					{
-						"type": "oauth2",
-						"label": "OAuth 2.0",
-						"provider": "linear",
-						"authorization_url": "https://linear.app/oauth/authorize",
-						"token_url": "https://api.linear.app/oauth/token",
-						"scopes": [
-							"read",
-							"write",
-							"issues:create"
-						],
-						"scope_separator": ",",
-						"token_request_auth_method": "client_secret_post",
-						"token_expiration_buffer": 300,
-						"requires_env": [
-							"PLUGIN_LINEAR_CLIENT_ID",
-							"PLUGIN_LINEAR_CLIENT_SECRET"
-						],
-						"identity": {
-							"url": "https://api.linear.app/graphql",
-							"method": "POST",
-							"headers": {
-								"Authorization": "Bearer ${config.access_token}",
-								"Content-Type": "application/json"
-							},
-							"body": {
-								"query": "query { viewer { id name organization { id name } } }"
-							},
-							"id": "$.data.viewer.organization.id",
-							"label": "$.data.viewer.organization.name"
-						},
-						"bind": {
-							"headers": {
-								"Authorization": "Bearer ${config.access_token}"
-							}
-						}
-					},
-					{
-						"type": "api_key",
-						"label": "Personal API key",
-						"credential_input": "api_key",
-						"inputs": [
-							{
-								"name": "api_key",
-								"label": "Linear API key",
-								"placeholder": "lin_api_…",
-								"description": "Linear → Settings → Security & access → Personal API keys",
-								"required": true,
-								"secret": true
-							}
-						],
-						"identity": {
-							"url": "https://api.linear.app/graphql",
-							"method": "POST",
-							"headers": {
-								"Authorization": "${config.access_token}",
-								"Content-Type": "application/json"
-							},
-							"body": {
-								"query": "query { viewer { id name organization { id name } } }"
-							},
-							"id": "$.data.viewer.organization.id",
-							"label": "$.data.viewer.organization.name"
-						},
-						"bind": {
-							"headers": {
-								"Authorization": "Bearer ${config.access_token}"
-							}
-						}
-					}
-				],
+				"connector": {
+					"slug": "linear"
+				},
 				"mcp": {
 					"type": "streamable-http",
 					"url": "https://mcp.linear.app/mcp"
@@ -201,6 +100,118 @@ export const FIRST_PARTY_MANIFESTS = {
 				"description": "Draft a Linear project status update from what actually moved — progress, risks, and the one decision that needs making. Use when someone asks for a project update, a status post, where a project stands, whether it will land on time, or what to tell stakeholders."
 			}
 		]
+	} as const,
+	"notion": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "notion",
+		"version": "1.0.2",
+		"description": "Search, read, and write your Notion workspace: pages, databases, and comments.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"notion",
+			"docs",
+			"notes",
+			"knowledge-base",
+			"wiki"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Notion",
+					"category": "Productivity",
+					"icon": "notion"
+				},
+				"connector": {
+					"slug": "notion"
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.notion.com/mcp"
+				}
+			}
+		},
+		"skills": [
+			{
+				"name": "find-in-notion",
+				"description": "Find what the workspace already says before you answer or write — search Notion, tell the canonical page from the stale copy, and cite what you used. Use when the user asks what's in Notion, refers to a doc, spec, or meeting note, or asks a question the workspace probably already answers."
+			},
+			{
+				"name": "write-to-notion",
+				"description": "Write a page into Notion that someone else can find and trust — pick the right parent, check for the page that already exists, and structure it for a reader who was not in this conversation. Use when the user says to write up, document, save, or capture something in Notion, or to update an existing page."
+			}
+		]
+	} as const,
+	"slack": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "slack",
+		"version": "1.2.3",
+		"description": "Search, read, and post across your Slack workspace: channels, DMs, and threads.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"slack",
+			"chat",
+			"messages",
+			"communication",
+			"search"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Slack",
+					"category": "Communication",
+					"icon": "slack"
+				},
+				"connector": {
+					"slug": "slack"
+				}
+			}
+		},
+		"skills": []
+	} as const,
+	"gmail": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "gmail",
+		"version": "1.1.5",
+		"description": "Read, search, send, and organize mail in your Gmail account.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"gmail",
+			"email",
+			"mail",
+			"google",
+			"inbox"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Gmail",
+					"category": "Communication",
+					"icon": "gmail"
+				},
+				"connector": {
+					"slug": "google"
+				}
+			}
+		},
+		"skills": []
 	} as const,
 } as const;
 

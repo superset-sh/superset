@@ -1,5 +1,5 @@
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { connections } from "@superset/db/schema";
 import { refreshLinearToken } from "@superset/trpc/integrations/linear";
 import { and, eq, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
@@ -13,18 +13,17 @@ export async function POST(request: Request) {
 	);
 	if (rejected) return rejected;
 
-	const stale = await db.query.integrationConnections.findMany({
-		where: and(
-			eq(integrationConnections.provider, "linear"),
-			isNull(integrationConnections.disconnectedAt),
-			isNotNull(integrationConnections.refreshToken),
-			lt(
-				integrationConnections.tokenExpiresAt,
-				sql`now() + interval '90 minutes'`,
+	const stale = await db
+		.select({ id: connections.id })
+		.from(connections)
+		.where(
+			and(
+				eq(connections.connector, "linear"),
+				isNull(connections.disconnectedAt),
+				isNotNull(connections.refreshToken),
+				lt(connections.tokenExpiresAt, sql`now() + interval '90 minutes'`),
 			),
-		),
-		columns: { id: true },
-	});
+		);
 
 	const results = await Promise.allSettled(
 		stale.map(async (connection) => {

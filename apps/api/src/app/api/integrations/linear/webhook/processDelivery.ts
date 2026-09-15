@@ -3,9 +3,8 @@ import type {
 	LinearWebhookPayload,
 } from "@linear/sdk/webhooks";
 import { db } from "@superset/db/client";
-import type { SelectIntegrationConnection } from "@superset/db/schema";
+import type { SelectConnection } from "@superset/db/schema";
 import {
-	integrationConnections,
 	members,
 	taskStatuses,
 	tasks,
@@ -13,11 +12,15 @@ import {
 	webhookEvents,
 } from "@superset/db/schema";
 import {
-	getLinearClient,
+	accountConnection,
+	accountConnections,
+} from "@superset/trpc/connectors";
+import {
 	isLinearAuthError,
+	linearClientFor,
 	mapPriorityFromLinear,
 } from "@superset/trpc/integrations/linear";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
 import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
@@ -53,19 +56,8 @@ export interface DeliveryResult {
 export async function hasActiveSubscriber(
 	externalOrgId: string,
 ): Promise<boolean> {
-	const [subscriber] = await db
-		.select({ id: integrationConnections.id })
-		.from(integrationConnections)
-		.where(
-			and(
-				eq(integrationConnections.externalOrgId, externalOrgId),
-				eq(integrationConnections.provider, "linear"),
-				isNull(integrationConnections.disconnectedAt),
-			),
-		)
-		.limit(1);
-
-	return subscriber !== undefined;
+	const subscriber = await accountConnection("linear", externalOrgId);
+	return subscriber !== null;
 }
 
 /**
@@ -88,16 +80,12 @@ export async function processDelivery({
 	payload: LinearWebhookPayload;
 	deliveryId: string | null;
 }): Promise<DeliveryResult> {
-	const connections = await db.query.integrationConnections.findMany({
-		where: and(
-			eq(integrationConnections.externalOrgId, payload.organizationId),
-			eq(integrationConnections.provider, "linear"),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		orderBy: [asc(integrationConnections.id)],
-	});
+	const subscribers = await accountConnections(
+		"linear",
+		payload.organizationId,
+	);
 
-	if (connections.length === 0) {
+	if (subscribers.length === 0) {
 		console.log(
 			"[linear/process-delivery] No active connections for Linear org:",
 			payload.organizationId,
@@ -105,11 +93,15 @@ export async function processDelivery({
 		return { status: "no_subscribers", results: [] };
 	}
 
+	console.log(
+		`[linear/process-delivery] ${payload.type}.${payload.action} fans out to ${subscribers.length} connection(s) across ${new Set(subscribers.map((c) => c.organizationId)).size} organization(s)`,
+	);
+
 	// Caught per connection, and the loop runs to the end regardless: one
 	// organization's broken token or missing workflow state must not cost the
 	// other sixteen their delivery.
 	const results: ConnectionResult[] = [];
-	for (const connection of connections) {
+	for (const connection of subscribers) {
 		results.push(
 			await processForConnection(payload, deliveryId, connection).catch(
 				(error) => ({
@@ -132,7 +124,7 @@ export async function processDelivery({
 async function processForConnection(
 	payload: LinearWebhookPayload,
 	deliveryId: string | null,
-	connection: SelectIntegrationConnection,
+	connection: SelectConnection,
 ): Promise<ConnectionResult> {
 	// One webhookEvents row per (Linear event × Superset connection) so each
 	// tenant's processing status is independently retryable, and so a retried
@@ -229,7 +221,7 @@ function isEntityDelivery(payload: unknown): payload is LinearDelivery {
 async function ingest(
 	delivery: LinearDelivery,
 	deliveryHeader: string | null,
-	connection: SelectIntegrationConnection,
+	connection: SelectConnection,
 	webhookEventId: string,
 ): Promise<void> {
 	const event = matchableFrom(delivery);
@@ -261,10 +253,10 @@ async function ingest(
 // rethrown so the webhook-event retry path re-runs the sync instead of
 // recording a processed event with a stale branch.
 async function fetchIssueBranchName(
-	organizationId: string,
+	connection: SelectConnection,
 	issueId: string,
 ): Promise<string | null> {
-	const client = await getLinearClient(organizationId);
+	const client = await linearClientFor(connection);
 	if (!client) return null;
 	try {
 		const response = await client.client.request<
@@ -290,7 +282,7 @@ async function fetchIssueBranchName(
 
 async function processIssueEvent(
 	payload: EntityWebhookPayloadWithIssueData,
-	connection: SelectIntegrationConnection,
+	connection: SelectConnection,
 ): Promise<"processed" | "skipped"> {
 	const issue = payload.data;
 
@@ -364,10 +356,7 @@ async function processIssueEvent(
 			assigneeAvatarUrl = issue.assignee.avatarUrl ?? null;
 		}
 
-		const branchName = await fetchIssueBranchName(
-			connection.organizationId,
-			issue.id,
-		);
+		const branchName = await fetchIssueBranchName(connection, issue.id);
 
 		const taskData = {
 			slug: issue.identifier,

@@ -69,13 +69,16 @@ async function fetchAllTriggerOptions(
  */
 const inFlight = new Map<string, Promise<TriggerOptionsQuery | null>>();
 
-function triggerOptionsFor(organizationId: string) {
-	let pending = inFlight.get(organizationId);
+function triggerOptionsFor(organizationId: string, userId: string) {
+	const key = `${organizationId}:${userId}`;
+	let pending = inFlight.get(key);
 	if (!pending) {
-		pending = callLinear(organizationId, fetchAllTriggerOptions).finally(() =>
-			inFlight.delete(organizationId),
-		);
-		inFlight.set(organizationId, pending);
+		pending = callLinear(
+			organizationId,
+			userId,
+			fetchAllTriggerOptions,
+		).finally(() => inFlight.delete(key));
+		inFlight.set(key, pending);
 	}
 	return pending;
 }
@@ -95,8 +98,8 @@ const byLabel = (options: TriggerOption[]) =>
 function source(
 	pick: (result: TriggerOptionsQuery) => TriggerOption[],
 ): TriggerOptionSource {
-	return async ({ organizationId }) => {
-		const result = await triggerOptionsFor(organizationId);
+	return async ({ organizationId, userId }) => {
+		const result = await triggerOptionsFor(organizationId, userId);
 		return result ? byLabel(pick(result)) : [];
 	};
 }

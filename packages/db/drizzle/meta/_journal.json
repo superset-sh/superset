@@ -820,6 +820,13 @@
       "when": 1789426475004,
       "tag": "0116_github_user_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1789477930353,
+      "tag": "0117_plugin_oauth_clients_and_connectors",
+      "breakpoints": true
     }
   ]
 }

@@ -826,6 +826,12 @@ msgstr "{planLabel} · Joined {joined}"
 msgid "{planLabel} plan"
 msgstr "{planLabel} plan"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} has no OAuth client configured on this deployment yet."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} is no longer installed."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} reset to defaults"
 
@@ -1471,9 +1477,6 @@ msgstr "Add one from the menu in the sidebar to get started."
 
 msgid "Add photos or files"
 msgstr "Add photos or files"
-
-msgid "Add plugin"
-msgstr "Add plugin"
 
 msgid "Add project"
 msgstr "Add project"
@@ -2241,9 +2244,6 @@ msgstr "Audit logs"
 msgid "Aug 2026"
 msgstr "Aug 2026"
 
-msgid "Authenticate your {displayName} account"
-msgstr "Authenticate your {displayName} account"
-
 msgid "Authentication"
 msgstr "Authentication"
 
@@ -2270,6 +2270,12 @@ msgstr "Authorize"
 
 msgid "Authorize {displayName}"
 msgstr "Authorize {displayName}"
+
+msgid "Authorize Superset so your plugins, automations and triggers can act on your behalf."
+msgstr "Authorize Superset so your plugins, automations and triggers can act on your behalf."
+
+msgid "Authorize Superset to act on your behalf."
+msgstr "Authorize Superset to act on your behalf."
 
 msgid "Authorizing..."
 msgstr "Authorizing..."
@@ -3699,6 +3705,12 @@ msgstr "Confirm before quitting"
 msgid "Connect"
 msgstr "Connect"
 
+msgid "Connect {displayName}"
+msgstr "Connect {displayName}"
+
+msgid "Connect {name}"
+msgstr "Connect {name}"
+
 msgid "Connect a device"
 msgstr "Connect a device"
 
@@ -3771,9 +3783,8 @@ msgstr "Connect your Slack workspace to manage tasks from conversations."
 msgid "Connected"
 msgstr "Connected"
 
-#. placeholder {0}: formatDate(new Date(connection.createdAt))
-msgid "connected {0}"
-msgstr "connected {0}"
+msgid "Connected {label}"
+msgstr "Connected {label}"
 
 msgid "Connected as"
 msgstr "Connected as"
@@ -3805,6 +3816,9 @@ msgstr "Connecting"
 msgid "Connecting GitHub is not configured on this server"
 msgstr "Connecting GitHub is not configured on this server"
 
+msgid "Connecting lets your agents read and act in {name} on your behalf. Review what you are granting before you continue."
+msgstr "Connecting lets your agents read and act in {name} on your behalf. Review what you are granting before you continue."
+
 msgid "Connecting to the desktop…"
 msgstr "Connecting to the desktop…"
 
@@ -3835,6 +3849,18 @@ msgstr "Connection Timed Out"
 
 msgid "Connections"
 msgstr "Connections"
+
+msgid "Connector"
+msgstr "Connector"
+
+msgid "Connectors carry risk"
+msgstr "Connectors carry risk"
+
+msgid "Connects for your whole team."
+msgstr "Connects for your whole team."
+
+msgid "Connects your account. Teammates connect their own."
+msgstr "Connects your account. Teammates connect their own."
 
 msgid "consecutive active days"
 msgstr "consecutive active days"
@@ -3892,6 +3918,10 @@ msgstr "Continue or fork session"
 
 msgid "Continue the session the last run left"
 msgstr "Continue the session the last run left"
+
+#. placeholder {0}: connector.displayName
+msgid "Continue to {0}"
+msgstr "Continue to {0}"
 
 msgid "Continue update"
 msgstr "Continue update"
@@ -4141,6 +4171,9 @@ msgstr "Could not close session"
 
 msgid "Could not close the session"
 msgstr "Could not close the session"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Could not connect {plugin}. Try again."
 
 msgid "Could not copy the link"
 msgstr "Could not copy the link"
@@ -4664,6 +4697,9 @@ msgstr "Creating worktree"
 msgid "Creating..."
 msgstr "Creating..."
 
+msgid "Credentials stay on the server"
+msgstr "Credentials stay on the server"
+
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "Cross-feature components living outside packages/ui — check here before building a new one"
 
@@ -5121,6 +5157,9 @@ msgstr "Dev sign in"
 msgid "Dev sign-in failed"
 msgstr "Dev sign-in failed"
 
+msgid "Developed by {author}"
+msgstr "Developed by {author}"
+
 msgid "Developer"
 msgstr "Developer"
 
@@ -5238,10 +5277,6 @@ msgstr "Discarded — won't ask again"
 
 msgid "Disconnect"
 msgstr "Disconnect"
-
-#. placeholder {0}: connection.account ?? displayName
-msgid "Disconnect {0}"
-msgstr "Disconnect {0}"
 
 msgid "Disconnect GitHub?"
 msgstr "Disconnect GitHub?"
@@ -7582,6 +7617,9 @@ msgstr "Insights from the Superset team about parallel coding agents and develop
 msgid "Inspecting {0}"
 msgstr "Inspecting {0}"
 
+msgid "Install"
+msgstr "Install"
+
 msgid "Install & restart"
 msgstr "Install & restart"
 
@@ -7594,11 +7632,17 @@ msgstr "Install failed"
 msgid "Install GitHub App"
 msgstr "Install GitHub App"
 
+msgid "Install plugin"
+msgstr "Install plugin"
+
 msgid "Install Superset MCP in your client"
 msgstr "Install Superset MCP in your client"
 
 msgid "Install the desktop app"
 msgstr "Install the desktop app"
+
+msgid "Install the plugin to connect"
+msgstr "Install the plugin to connect"
 
 msgid "Install the Superset GitHub App to connect your repositories."
 msgstr "Install the Superset GitHub App to connect your repositories."
@@ -14249,6 +14293,9 @@ msgstr "Superset Mobile, cloud workspaces, automations, and priority support."
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 
+msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
+msgstr "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
+
 msgid "Superset originals"
 msgstr "Superset originals"
 
@@ -14654,6 +14701,9 @@ msgstr "Textarea"
 
 msgid "Thanks for reaching out"
 msgstr "Thanks for reaching out"
+
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "That {plugin} sign-in link expired. Try connecting again."
 
 msgid "That endpoint could not be resolved."
 msgstr "That endpoint could not be resolved."
@@ -15172,9 +15222,6 @@ msgstr "This path exists, but it is not a directory."
 msgid "This path is a directory"
 msgstr "This path is a directory"
 
-msgid "This plugin needs no account — its skills are ready to use."
-msgstr "This plugin needs no account — its skills are ready to use."
-
 msgid "This port is still in use"
 msgstr "This port is still in use"
 
@@ -15412,6 +15459,9 @@ msgstr "Token usage"
 
 msgid "Tokens"
 msgstr "Tokens"
+
+msgid "Tokens are held by Superset and attached to requests there. They are never written into your local agent config."
+msgstr "Tokens are held by Superset and attached to requests there. They are never written into your local agent config."
 
 msgid "Tokens per session"
 msgstr "Tokens per session"
@@ -16773,6 +16823,12 @@ msgstr "You can't change this subscription in the app. Your organization's plan 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 
+msgid "You control the access"
+msgstr "You control the access"
+
+msgid "You declined the {plugin} authorization request."
+msgstr "You declined the {plugin} authorization request."
+
 msgid "You don't have access to this host"
 msgstr "You don't have access to this host"
 
@@ -16781,6 +16837,9 @@ msgstr "You don't have access to this terminal."
 
 msgid "You don't have permission to remove this member"
 msgstr "You don't have permission to remove this member"
+
+msgid "You need to be part of an organization to connect accounts."
+msgstr "You need to be part of an organization to connect accounts."
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "You need to be part of an organization to use integrations."

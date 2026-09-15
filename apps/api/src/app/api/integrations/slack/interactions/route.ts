@@ -1,6 +1,7 @@
 import { db } from "@superset/db/client";
-import { integrationConnections, userIdentities } from "@superset/db/schema";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { userIdentities } from "@superset/db/schema";
+import { accountConnection } from "@superset/trpc/connectors";
+import { and, eq } from "drizzle-orm";
 import { posthog } from "@/lib/analytics";
 import { DEFAULT_SLACK_MODEL } from "../constants";
 import { processAppHomeOpened } from "../events/process-app-home-opened";
@@ -70,18 +71,7 @@ export async function POST(request: Request) {
 
 		// The identity is scoped by organization, and an interaction payload only
 		// names the Slack workspace — so resolve the connection to get one.
-		const connection = await db.query.integrationConnections.findFirst({
-			where: and(
-				eq(integrationConnections.provider, "slack"),
-				eq(integrationConnections.externalOrgId, teamId),
-				isNull(integrationConnections.disconnectedAt),
-			),
-			columns: { organizationId: true },
-			orderBy: [
-				desc(integrationConnections.updatedAt),
-				desc(integrationConnections.id),
-			],
-		});
+		const connection = await accountConnection("slack", teamId);
 		if (!connection) {
 			console.warn("[slack/interactions] No active connection for team:", {
 				teamId,

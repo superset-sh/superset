@@ -826,6 +826,12 @@ msgstr "{planLabel} · {joined} 가입"
 msgid "{planLabel} plan"
 msgstr "{planLabel} 플랜"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "이 배포에는 {plugin}의 OAuth 클라이언트가 아직 구성되지 않았습니다."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin}이(가) 더 이상 설치되어 있지 않습니다."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel}이(가) 기본값으로 초기화되었습니다"
 
@@ -1471,9 +1477,6 @@ msgstr "사이드바 메뉴에서 하나 추가해 시작하세요."
 
 msgid "Add photos or files"
 msgstr "사진 또는 파일 추가"
-
-msgid "Add plugin"
-msgstr "플러그인 추가"
 
 msgid "Add project"
 msgstr "프로젝트 추가"
@@ -2241,9 +2244,6 @@ msgstr "감사 로그"
 msgid "Aug 2026"
 msgstr "2026년 8월"
 
-msgid "Authenticate your {displayName} account"
-msgstr "{displayName} 계정 인증"
-
 msgid "Authentication"
 msgstr "인증"
 
@@ -2270,6 +2270,12 @@ msgstr "승인"
 
 msgid "Authorize {displayName}"
 msgstr "{displayName} 승인"
+
+msgid "Authorize Superset so your plugins, automations and triggers can act on your behalf."
+msgstr "플러그인, 자동화, 트리거가 사용자를 대신해 작동할 수 있도록 Superset을 승인합니다."
+
+msgid "Authorize Superset to act on your behalf."
+msgstr "Superset가 사용자를 대신해 작업하도록 승인하세요."
 
 msgid "Authorizing..."
 msgstr "승인하는 중..."
@@ -3699,6 +3705,12 @@ msgstr "종료 전 확인"
 msgid "Connect"
 msgstr "연결"
 
+msgid "Connect {displayName}"
+msgstr "{displayName} 연결"
+
+msgid "Connect {name}"
+msgstr "{name} 연결"
+
 msgid "Connect a device"
 msgstr "기기 연결"
 
@@ -3771,9 +3783,8 @@ msgstr "Slack 워크스페이스를 연결해 대화에서 바로 작업을 관�
 msgid "Connected"
 msgstr "연결됨"
 
-#. placeholder {0}: formatDate(new Date(connection.createdAt))
-msgid "connected {0}"
-msgstr "{0}에 연결됨"
+msgid "Connected {label}"
+msgstr "{label} 연결됨"
 
 msgid "Connected as"
 msgstr "연결 계정"
@@ -3805,6 +3816,9 @@ msgstr "연결 중"
 msgid "Connecting GitHub is not configured on this server"
 msgstr "이 서버에는 GitHub 연결이 구성되어 있지 않습니다"
 
+msgid "Connecting lets your agents read and act in {name} on your behalf. Review what you are granting before you continue."
+msgstr "연결하면 에이전트가 사용자를 대신해 {name}에서 읽고 작업할 수 있습니다. 계속하기 전에 부여하는 권한을 확인하세요."
+
 msgid "Connecting to the desktop…"
 msgstr "데스크톱에 연결하는 중…"
 
@@ -3835,6 +3849,18 @@ msgstr "연결 시간 초과"
 
 msgid "Connections"
 msgstr "연결"
+
+msgid "Connector"
+msgstr "커넥터"
+
+msgid "Connectors carry risk"
+msgstr "커넥터에는 위험이 따릅니다"
+
+msgid "Connects for your whole team."
+msgstr "팀 전체에 연결됩니다."
+
+msgid "Connects your account. Teammates connect their own."
+msgstr "내 계정을 연결합니다. 팀원은 각자 연결합니다."
 
 msgid "consecutive active days"
 msgstr "연속 활동 일수"
@@ -3892,6 +3918,10 @@ msgstr "세션 계속하기 또는 포크"
 
 msgid "Continue the session the last run left"
 msgstr "마지막 실행이 남긴 세션을 계속"
+
+#. placeholder {0}: connector.displayName
+msgid "Continue to {0}"
+msgstr "{0}(으)로 계속"
 
 msgid "Continue update"
 msgstr "업데이트 계속"
@@ -4141,6 +4171,9 @@ msgstr "세션을 닫을 수 없습니다"
 
 msgid "Could not close the session"
 msgstr "세션을 닫지 못했습니다"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "{plugin}을(를) 연결하지 못했습니다. 다시 시도하세요."
 
 msgid "Could not copy the link"
 msgstr "링크를 복사할 수 없습니다"
@@ -4664,6 +4697,9 @@ msgstr "worktree 만드는 중"
 msgid "Creating..."
 msgstr "만드는 중..."
 
+msgid "Credentials stay on the server"
+msgstr "자격 증명은 서버에 보관됩니다"
+
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "packages/ui 밖에 있는 기능 공통 컴포넌트 — 새로 만들기 전에 여기를 확인하세요"
 
@@ -5121,6 +5157,9 @@ msgstr "개발용 로그인"
 msgid "Dev sign-in failed"
 msgstr "dev 로그인 실패"
 
+msgid "Developed by {author}"
+msgstr "개발: {author}"
+
 msgid "Developer"
 msgstr "개발자"
 
@@ -5238,10 +5277,6 @@ msgstr "버렸습니다 — 다시 묻지 않습니다"
 
 msgid "Disconnect"
 msgstr "연결 해제"
-
-#. placeholder {0}: connection.account ?? displayName
-msgid "Disconnect {0}"
-msgstr "{0} 연결 해제"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHub 연결을 해제할까요?"
@@ -7582,6 +7617,9 @@ msgstr "병렬 코딩 에이전트와 개발자 생산성에 대한 Superset 팀
 msgid "Inspecting {0}"
 msgstr "{0} 검사 중"
 
+msgid "Install"
+msgstr "설치"
+
 msgid "Install & restart"
 msgstr "설치 후 재시작"
 
@@ -7594,11 +7632,17 @@ msgstr "설치 실패"
 msgid "Install GitHub App"
 msgstr "GitHub App 설치"
 
+msgid "Install plugin"
+msgstr "플러그인 설치"
+
 msgid "Install Superset MCP in your client"
 msgstr "클라이언트에 Superset MCP 설치하기"
 
 msgid "Install the desktop app"
 msgstr "데스크톱 앱 설치"
+
+msgid "Install the plugin to connect"
+msgstr "연결하려면 플러그인을 설치하세요"
 
 msgid "Install the Superset GitHub App to connect your repositories."
 msgstr "리포지토리를 연결하려면 Superset GitHub App을 설치하세요."
@@ -14249,6 +14293,9 @@ msgstr "Superset Mobile, 클라우드 워크스페이스, 자동화, 우선 지�
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "다른 브라우저의 데이터를 읽으려면 Superset에 전체 디스크 접근 권한이 필요합니다. 시스템 설정에서 권한을 허용한 다음 다시 확인하세요."
 
+msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
+msgstr "Superset는 이 커넥터가 요청한 권한만 받습니다. 언제든지 연결을 해제해 취소할 수 있습니다."
+
 msgid "Superset originals"
 msgstr "Superset 오리지널"
 
@@ -14654,6 +14701,9 @@ msgstr "텍스트 영역"
 
 msgid "Thanks for reaching out"
 msgstr "연락해 주셔서 감사합니다"
+
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "해당 {plugin} 로그인 링크가 만료되었습니다. 다시 연결해 보세요."
 
 msgid "That endpoint could not be resolved."
 msgstr "해당 엔드포인트를 확인할 수 없습니다."
@@ -15172,9 +15222,6 @@ msgstr "이 경로는 있지만 디렉터리가 아닙니다."
 msgid "This path is a directory"
 msgstr "이 경로는 디렉터리입니다"
 
-msgid "This plugin needs no account — its skills are ready to use."
-msgstr "이 플러그인은 계정이 필요 없습니다 — 스킬을 바로 사용할 수 있습니다."
-
 msgid "This port is still in use"
 msgstr "이 포트는 아직 사용 중입니다"
 
@@ -15412,6 +15459,9 @@ msgstr "토큰 사용량"
 
 msgid "Tokens"
 msgstr "토큰"
+
+msgid "Tokens are held by Superset and attached to requests there. They are never written into your local agent config."
+msgstr "토큰은 Superset가 보관하며 서버에서 요청에 첨부됩니다. 로컬 에이전트 설정에는 기록되지 않습니다."
 
 msgid "Tokens per session"
 msgstr "세션당 토큰"
@@ -16773,6 +16823,12 @@ msgstr "이 구독은 앱에서 변경할 수 없습니다. 조직의 플랜은 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "이 작업은 되돌릴 수 없습니다. 터미널 패널에 \"Process exited\"가 표시되며 다시 시작할 수 있습니다."
 
+msgid "You control the access"
+msgstr "접근 권한은 사용자가 관리합니다"
+
+msgid "You declined the {plugin} authorization request."
+msgstr "{plugin} 인증 요청을 거부했습니다."
+
 msgid "You don't have access to this host"
 msgstr "이 호스트에 접근할 권한이 없습니다"
 
@@ -16781,6 +16837,9 @@ msgstr "이 터미널에 접근할 권한이 없습니다."
 
 msgid "You don't have permission to remove this member"
 msgstr "이 멤버를 제거할 권한이 없습니다"
+
+msgid "You need to be part of an organization to connect accounts."
+msgstr "계정을 연결하려면 조직에 속해 있어야 합니다."
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "연동을 사용하려면 조직에 속해 있어야 합니다."

@@ -139,6 +139,7 @@ function renderSlot(
 export const gmailProvider: TriggerProvider<GmailConfig> = {
 	kind: "gmail",
 	optionGroup: "google",
+	connectionProvider: "google",
 	label: "Gmail",
 	icon: SiGmail,
 	menu: GMAIL_MENU,

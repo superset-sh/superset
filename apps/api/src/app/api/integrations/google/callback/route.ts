@@ -1,12 +1,17 @@
-import { integrationConnections } from "@superset/db/schema";
+import { db } from "@superset/db/client";
+import { connections } from "@superset/db/schema";
+import {
+	connectorMethod,
+	requireConnector,
+	upsertConnection,
+} from "@superset/trpc/connectors";
 import { googleTokenResponseSchema } from "@superset/trpc/integrations/google";
 import { Client } from "@upstash/qstash";
-import { sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
-import { upsertConnection } from "@/lib/integrations/upsertConnection";
 import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN, baseUrl: env.QSTASH_URL });
@@ -88,24 +93,46 @@ export async function GET(request: Request) {
 	const info = parsedInfo.data;
 	const email = info.email.toLowerCase();
 
+	const connector = requireConnector("google");
 	const result = await upsertConnection({
+		connector,
+		slug: "google",
+		authMethod: connectorMethod(connector, "oauth2").type,
 		organizationId,
 		userId,
-		provider: "google",
-		accessToken: tokens.access_token,
-		refreshToken: tokens.refresh_token,
-		tokenExpiresAt: new Date(Date.now() + tokens.expires_in * 1000),
-		// The account's address, not an organization: Calendar and Gmail are
-		// one person's, and everything downstream treats them as theirs.
-		externalOrgId: email,
-		externalOrgName: email,
-		config: { provider: "google" },
-		// Reconnecting the same account keeps its sync tokens and channels;
-		// a different account starts over. The old account's channels are
-		// then unknown to the push route and expire within a week.
-		configOnUpdate: sql`CASE WHEN ${integrationConnections.externalOrgId} = ${email} THEN ${integrationConnections.config} ELSE '{"provider":"google"}'::jsonb END`,
+		tokens: {
+			accessToken: tokens.access_token,
+			refreshToken: tokens.refresh_token,
+			expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+			scopes: tokens.scope ? tokens.scope.split(" ") : null,
+			stored: {},
+			raw: tokens as unknown as Record<string, unknown>,
+		},
+		identity: {
+			// The account's address, not an organization: Calendar and Gmail are
+			// one person's, and everything downstream treats them as theirs.
+			account: { id: email, label: email },
+			user: { id: info.sub, label: email },
+		},
+		state: { provider: "google" },
+		// Reconnecting the same account keeps its sync tokens and channels.
+		stateOnUpdate: sql`${connections.state}`,
 	});
 	if (result.conflict) return fail("account_already_linked");
+
+	// A different Google account is a different row under the connector
+	// uniqueness, and a member holds one. The old row's channels are then
+	// unknown to the push route and expire within a week.
+	await db
+		.delete(connections)
+		.where(
+			and(
+				eq(connections.organizationId, organizationId),
+				eq(connections.connector, "google"),
+				eq(connections.connectedByUserId, userId),
+				ne(connections.id, result.connectionId),
+			),
+		);
 
 	// The identity's external id is the address rather than Google's subject
 	// id, because calendar events and mail headers name people by address.

@@ -1,5 +1,5 @@
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { connections } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -33,16 +33,25 @@ export const integrationRouter = {
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 
-			return db.query.integrationConnections.findMany({
-				where: eq(integrationConnections.organizationId, input.organizationId),
-				columns: {
-					id: true,
-					provider: true,
-					externalOrgId: true,
-					externalOrgName: true,
-					createdAt: true,
-					updatedAt: true,
-				},
-			});
+			const rows = await db
+				.select({
+					id: connections.id,
+					connector: connections.connector,
+					externalAccountId: connections.externalAccountId,
+					externalAccountLabel: connections.externalAccountLabel,
+					createdAt: connections.createdAt,
+					updatedAt: connections.updatedAt,
+				})
+				.from(connections)
+				.where(eq(connections.organizationId, input.organizationId));
+
+			return rows.map((row) => ({
+				id: row.id,
+				provider: row.connector,
+				externalOrgId: row.externalAccountId,
+				externalOrgName: row.externalAccountLabel,
+				createdAt: row.createdAt,
+				updatedAt: row.updatedAt,
+			}));
 		}),
 } satisfies TRPCRouterRecord;

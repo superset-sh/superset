@@ -1,6 +1,4 @@
 export type {
-	AuthInput,
-	AuthMethod,
 	CatalogPlugin,
 	PluginSkill,
 } from "./usePluginCatalog";

@@ -3,52 +3,6 @@ export const SUPERSET_EXTENSION = "superset";
 /** The marketplace whose manifests we ship and review. */
 export const FIRST_PARTY_MARKETPLACE = "superset";
 
-export interface AuthInput {
-	name: string;
-	label?: string;
-	placeholder?: string;
-	description?: string;
-	required?: boolean;
-	secret?: boolean;
-}
-
-export interface AuthIdentity {
-	url: string;
-	method?: "GET" | "POST";
-	headers?: Record<string, string>;
-	body?: unknown;
-	id: string;
-	label?: string;
-}
-
-export interface PluginAuthMethod {
-	type: "oauth2" | "api_key";
-	label?: string;
-	provider?: string;
-	inputs?: AuthInput[];
-	credential_input?: string;
-	authorization_url?: string;
-	token_url?: string;
-	scopes?: string[];
-	scope_separator?: string;
-	token_request_auth_method?: string;
-	token_expiration_buffer?: number;
-	requires_env?: string[];
-	identity?: AuthIdentity;
-	bind?: PluginBind;
-}
-
-export type PluginAuth = PluginAuthMethod[];
-
-export function authMethod(
-	auth: PluginAuth | undefined,
-	type?: string,
-): PluginAuthMethod | undefined {
-	if (!auth?.length) return undefined;
-	if (!type) return auth.length === 1 ? auth[0] : undefined;
-	return auth.find((method) => method.type === type);
-}
-
 export interface PluginMcp {
 	type: "streamable-http";
 	url: string;
@@ -60,18 +14,23 @@ export interface PluginBind {
 	env?: Record<string, string>;
 }
 
-export interface PluginServer {
-	path?: string;
-	integrity?: string;
-	ref?: string;
+export interface PluginConnectorRef {
+	readonly slug: string;
 }
 
 export interface SupersetExtension {
 	interface?: { displayName: string; category?: string; icon?: string };
-	auth?: PluginAuth;
+	connector?: PluginConnectorRef;
 	bind?: PluginBind;
 	mcp?: PluginMcp;
-	server?: PluginServer;
+}
+
+export function pluginConnector(manifest: PluginManifest): string | undefined {
+	return supersetExtension(manifest)?.connector?.slug;
+}
+
+export function pluginNeedsConnection(manifest: PluginManifest): boolean {
+	return pluginConnector(manifest) !== undefined;
 }
 
 export interface PluginManifest {
@@ -114,17 +73,10 @@ export function resolveTemplate(value: string, scope: TemplateScope): string {
 export function resolveUrlTemplate(
 	value: string,
 	scope: TemplateScope,
-	auth?: PluginAuthMethod,
+	secretInputs?: readonly string[],
 	what = "URL",
 ): string {
-	const secrets = new Set(
-		(auth?.inputs ?? [])
-			.filter((input) => input.secret)
-			.map((input) => input.name),
-	);
-	if (auth?.type === "api_key") {
-		secrets.add(auth.credential_input ?? DEFAULT_CREDENTIAL_INPUT);
-	}
+	const secrets = new Set(secretInputs ?? []);
 	return value.replace(TEMPLATE, (whole, root: string, key: string) => {
 		if (root === "config") {
 			throw new Error(
@@ -190,10 +142,13 @@ export function readPath(source: unknown, path: string): unknown {
 	return current;
 }
 
+const CREDENTIAL_FETCH_TIMEOUT_MS = 10_000;
+
 export async function credentialFetch(
 	url: string,
 	init: RequestInit,
 	what: string,
+	timeoutMs: number = CREDENTIAL_FETCH_TIMEOUT_MS,
 ): Promise<Response> {
 	let parsed: URL;
 	try {
@@ -207,7 +162,12 @@ export async function credentialFetch(
 		);
 	}
 
-	const response = await fetch(url, { ...init, redirect: "manual" });
+	const deadline = AbortSignal.timeout(timeoutMs);
+	const response = await fetch(url, {
+		...init,
+		redirect: "manual",
+		signal: init.signal ? AbortSignal.any([init.signal, deadline]) : deadline,
+	});
 	if (response.status >= 300 && response.status < 400) {
 		throw new Error(
 			`${what} URL redirected to ${response.headers.get("location") ?? "an unnamed location"}; refusing to resend the credential.`,

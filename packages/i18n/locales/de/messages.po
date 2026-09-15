@@ -826,6 +826,12 @@ msgstr "{planLabel} · Beigetreten {joined}"
 msgid "{planLabel} plan"
 msgstr "Tarif {planLabel}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "Für {plugin} ist in dieser Bereitstellung noch kein OAuth-Client konfiguriert."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} ist nicht mehr installiert."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} auf Standardwerte zurückgesetzt"
 
@@ -1471,9 +1477,6 @@ msgstr "Füge über das Menü in der Seitenleiste einen hinzu, um loszulegen."
 
 msgid "Add photos or files"
 msgstr "Fotos oder Dateien hinzufügen"
-
-msgid "Add plugin"
-msgstr "Plugin hinzufügen"
 
 msgid "Add project"
 msgstr "Projekt hinzufügen"
@@ -2241,9 +2244,6 @@ msgstr "Audit-Logs"
 msgid "Aug 2026"
 msgstr "Aug. 2026"
 
-msgid "Authenticate your {displayName} account"
-msgstr "Authentifiziere dein {displayName}-Konto"
-
 msgid "Authentication"
 msgstr "Authentifizierung"
 
@@ -2270,6 +2270,12 @@ msgstr "Autorisieren"
 
 msgid "Authorize {displayName}"
 msgstr "{displayName} autorisieren"
+
+msgid "Authorize Superset so your plugins, automations and triggers can act on your behalf."
+msgstr "Autorisieren Sie Superset, damit Ihre Plugins, Automatisierungen und Trigger in Ihrem Namen handeln können."
+
+msgid "Authorize Superset to act on your behalf."
+msgstr "Autorisieren Sie Superset, in Ihrem Namen zu handeln."
 
 msgid "Authorizing..."
 msgstr "Wird autorisiert..."
@@ -3699,6 +3705,12 @@ msgstr "Vor dem Beenden bestätigen"
 msgid "Connect"
 msgstr "Verbinden"
 
+msgid "Connect {displayName}"
+msgstr "{displayName} verbinden"
+
+msgid "Connect {name}"
+msgstr "{name} verbinden"
+
 msgid "Connect a device"
 msgstr "Gerät verbinden"
 
@@ -3771,9 +3783,8 @@ msgstr "Verbinde deinen Slack-Workspace, um Aufgaben aus Unterhaltungen zu verwa
 msgid "Connected"
 msgstr "Verbunden"
 
-#. placeholder {0}: formatDate(new Date(connection.createdAt))
-msgid "connected {0}"
-msgstr "verbunden {0}"
+msgid "Connected {label}"
+msgstr "{label} verbunden"
 
 msgid "Connected as"
 msgstr "Verbunden als"
@@ -3805,6 +3816,9 @@ msgstr "Verbindet"
 msgid "Connecting GitHub is not configured on this server"
 msgstr "Die GitHub-Verbindung ist auf diesem Server nicht eingerichtet"
 
+msgid "Connecting lets your agents read and act in {name} on your behalf. Review what you are granting before you continue."
+msgstr "Durch das Verbinden können Ihre Agenten in {name} in Ihrem Namen lesen und handeln. Prüfen Sie vor dem Fortfahren, was Sie gewähren."
+
 msgid "Connecting to the desktop…"
 msgstr "Verbindung zum Desktop wird hergestellt …"
 
@@ -3835,6 +3849,18 @@ msgstr "Zeitüberschreitung der Verbindung"
 
 msgid "Connections"
 msgstr "Verbindungen"
+
+msgid "Connector"
+msgstr "Konnektor"
+
+msgid "Connectors carry risk"
+msgstr "Connectors bergen Risiken"
+
+msgid "Connects for your whole team."
+msgstr "Wird für Ihr gesamtes Team verbunden."
+
+msgid "Connects your account. Teammates connect their own."
+msgstr "Verbindet Ihr Konto. Teammitglieder verbinden ihr eigenes."
 
 msgid "consecutive active days"
 msgstr "aufeinanderfolgende aktive Tage"
@@ -3892,6 +3918,10 @@ msgstr "Sitzung fortsetzen oder forken"
 
 msgid "Continue the session the last run left"
 msgstr "Die Sitzung des letzten Laufs fortsetzen"
+
+#. placeholder {0}: connector.displayName
+msgid "Continue to {0}"
+msgstr "Weiter zu {0}"
 
 msgid "Continue update"
 msgstr "Update fortsetzen"
@@ -4141,6 +4171,9 @@ msgstr "Sitzung konnte nicht geschlossen werden"
 
 msgid "Could not close the session"
 msgstr "Sitzung konnte nicht geschlossen werden"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "{plugin} konnte nicht verbunden werden. Versuchen Sie es erneut."
 
 msgid "Could not copy the link"
 msgstr "Link konnte nicht kopiert werden"
@@ -4664,6 +4697,9 @@ msgstr "Worktree wird erstellt"
 msgid "Creating..."
 msgstr "Wird erstellt..."
 
+msgid "Credentials stay on the server"
+msgstr "Zugangsdaten bleiben auf dem Server"
+
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "Feature-übergreifende Komponenten außerhalb von packages/ui — schau hier nach, bevor du eine neue baust"
 
@@ -5121,6 +5157,9 @@ msgstr "Dev-Anmeldung"
 msgid "Dev sign-in failed"
 msgstr "Dev-Anmeldung fehlgeschlagen"
 
+msgid "Developed by {author}"
+msgstr "Entwickelt von {author}"
+
 msgid "Developer"
 msgstr "Entwickler"
 
@@ -5238,10 +5277,6 @@ msgstr "Verworfen — wird nicht mehr gefragt"
 
 msgid "Disconnect"
 msgstr "Trennen"
-
-#. placeholder {0}: connection.account ?? displayName
-msgid "Disconnect {0}"
-msgstr "{0} trennen"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHub trennen?"
@@ -7582,6 +7617,9 @@ msgstr "Einblicke vom Superset-Team zu parallelen Coding-Agenten und Entwicklerp
 msgid "Inspecting {0}"
 msgstr "{0} wird untersucht"
 
+msgid "Install"
+msgstr "Installieren"
+
 msgid "Install & restart"
 msgstr "Installieren & neu starten"
 
@@ -7594,11 +7632,17 @@ msgstr "Installation fehlgeschlagen"
 msgid "Install GitHub App"
 msgstr "GitHub-App installieren"
 
+msgid "Install plugin"
+msgstr "Plugin installieren"
+
 msgid "Install Superset MCP in your client"
 msgstr "Superset MCP in deinem Client installieren"
 
 msgid "Install the desktop app"
 msgstr "Desktop-App installieren"
+
+msgid "Install the plugin to connect"
+msgstr "Installieren Sie das Plugin, um zu verbinden"
 
 msgid "Install the Superset GitHub App to connect your repositories."
 msgstr "Installiere die Superset-GitHub-App, um deine Repositories zu verbinden."
@@ -14249,6 +14293,9 @@ msgstr "Superset Mobile, Cloud-Workspaces, Automatisierungen und priorisierter S
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset braucht Festplattenvollzugriff, um die Daten eines anderen Browsers zu lesen. Erteile ihn in den Systemeinstellungen und prüfe dann erneut."
 
+msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
+msgstr "Superset erhält nur die Berechtigungen, die dieser Connector anfordert. Trennen Sie die Verbindung jederzeit, um sie zu widerrufen."
+
 msgid "Superset originals"
 msgstr "Superset-Originale"
 
@@ -14654,6 +14701,9 @@ msgstr "Textarea"
 
 msgid "Thanks for reaching out"
 msgstr "Danke für deine Nachricht"
+
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Dieser Anmeldelink für {plugin} ist abgelaufen. Versuchen Sie es erneut."
 
 msgid "That endpoint could not be resolved."
 msgstr "Dieser Endpunkt konnte nicht aufgelöst werden."
@@ -15172,9 +15222,6 @@ msgstr "Dieser Pfad existiert, ist aber kein Verzeichnis."
 msgid "This path is a directory"
 msgstr "Dieser Pfad ist ein Verzeichnis"
 
-msgid "This plugin needs no account — its skills are ready to use."
-msgstr "Dieses Plugin braucht kein Konto — seine Skills sind sofort einsatzbereit."
-
 msgid "This port is still in use"
 msgstr "Dieser Port ist noch in Benutzung"
 
@@ -15412,6 +15459,9 @@ msgstr "Token-Nutzung"
 
 msgid "Tokens"
 msgstr "Tokens"
+
+msgid "Tokens are held by Superset and attached to requests there. They are never written into your local agent config."
+msgstr "Tokens werden von Superset gehalten und dort an Anfragen angehängt. Sie werden nie in Ihre lokale Agent-Konfiguration geschrieben."
 
 msgid "Tokens per session"
 msgstr "Tokens pro Sitzung"
@@ -16773,6 +16823,12 @@ msgstr "Dieses Abo lässt sich nicht in der App ändern. Der Tarif deiner Organi
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Das lässt sich nicht rückgängig machen. Terminal-Bereiche zeigen dann \"Process exited\" und können neu gestartet werden."
 
+msgid "You control the access"
+msgstr "Sie behalten die Kontrolle"
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Sie haben die Autorisierungsanfrage für {plugin} abgelehnt."
+
 msgid "You don't have access to this host"
 msgstr "Du hast keinen Zugriff auf diesen Host"
 
@@ -16781,6 +16837,9 @@ msgstr "Du hast keinen Zugriff auf dieses Terminal."
 
 msgid "You don't have permission to remove this member"
 msgstr "Du hast keine Berechtigung, dieses Mitglied zu entfernen"
+
+msgid "You need to be part of an organization to connect accounts."
+msgstr "Sie müssen Teil einer Organisation sein, um Konten zu verbinden."
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "Du musst Teil einer Organisation sein, um Integrationen zu nutzen."

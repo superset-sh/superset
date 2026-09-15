@@ -2,7 +2,15 @@ import { cn } from "@superset/ui/utils";
 import type { IconType } from "react-icons";
 import { FaGithub } from "react-icons/fa";
 import { LuBookOpen, LuDrama, LuPuzzle } from "react-icons/lu";
-import { SiGooglechrome, SiSentry, SiStripe, SiVercel } from "react-icons/si";
+import {
+	SiGmail,
+	SiGooglechrome,
+	SiGoogledocs,
+	SiGooglesheets,
+	SiSentry,
+	SiStripe,
+	SiVercel,
+} from "react-icons/si";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import circlebackIconUrl from "renderer/assets/icons/circleback-icon.png";
 import figmaIconUrl from "renderer/assets/icons/figma-icon.svg";
@@ -54,6 +62,9 @@ const PLUGIN_ICONS: Record<
 	context7: { icon: LuBookOpen },
 	playwright: { icon: LuDrama, color: "#2EAD33" },
 	"chrome-devtools": { icon: SiGooglechrome, color: "#4285F4" },
+	gmail: { icon: SiGmail, color: "#EA4335" },
+	"google-docs": { icon: SiGoogledocs, color: "#4285F4" },
+	"google-sheets": { icon: SiGooglesheets, color: "#0F9D58" },
 	vercel: { icon: SiVercel, scale: "size-1/2" },
 };
 

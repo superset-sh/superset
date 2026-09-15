@@ -1,8 +1,6 @@
 import { db } from "@superset/db/client";
-import {
-	githubInstallations,
-	integrationConnections,
-} from "@superset/db/schema";
+import { connections, githubInstallations } from "@superset/db/schema";
+import { getConnector } from "@superset/shared/connectors";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
@@ -13,37 +11,26 @@ import { verifyOrgMembership } from "./utils";
  *
  * One procedure rather than the seven per-provider queries the settings pane
  * makes, because the trigger editor asks on every render of every row and
- * polls while the page is open. Three queries answer all of them: the
- * organization's live connections, the caller's own Google connection, and the
- * GitHub installation, which lives in its own table.
+ * polls while the page is open. Two queries answer all of them: the
+ * organization's live connections, and the GitHub installation, which lives in
+ * its own table.
  *
  * "Connected" means the same thing here as everywhere else — a row marked
- * disconnected is not connected — so this stays in step with
- * `activeConnection` and the per-provider `getConnection` procedures.
+ * disconnected is not connected — so this stays in step with the per-provider
+ * `getConnection` procedures.
  */
 export const connectionStatusProcedure = protectedProcedure
 	.input(z.object({ organizationId: z.uuid() }))
 	.query(async ({ ctx, input }): Promise<Record<string, boolean>> => {
 		await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 
-		const [orgConnections, googleConnection, installation] = await Promise.all([
-			db.query.integrationConnections.findMany({
+		const [connectorRows, installation] = await Promise.all([
+			db.query.connections.findMany({
 				where: and(
-					eq(integrationConnections.organizationId, input.organizationId),
-					isNull(integrationConnections.disconnectedAt),
+					eq(connections.organizationId, input.organizationId),
+					isNull(connections.disconnectedAt),
 				),
-				columns: { provider: true },
-			}),
-			// Google is per member: another member's mailbox is not this caller's
-			// to trigger on, so their connection must not read as connected here.
-			db.query.integrationConnections.findFirst({
-				where: and(
-					eq(integrationConnections.organizationId, input.organizationId),
-					eq(integrationConnections.provider, "google"),
-					eq(integrationConnections.connectedByUserId, ctx.session.user.id),
-					isNull(integrationConnections.disconnectedAt),
-				),
-				columns: { id: true },
+				columns: { connector: true, connectedByUserId: true },
 			}),
 			db.query.githubInstallations.findFirst({
 				where: eq(githubInstallations.organizationId, input.organizationId),
@@ -52,11 +39,15 @@ export const connectionStatusProcedure = protectedProcedure
 		]);
 
 		const connected: Record<string, boolean> = {};
-		for (const row of orgConnections) connected[row.provider] = true;
+		for (const row of connectorRows) {
+			if (
+				getConnector(row.connector)?.scope === "user" &&
+				row.connectedByUserId !== ctx.session.user.id
+			)
+				continue;
+			connected[row.connector] = true;
+		}
 
-		// Both overrides narrow rather than widen: the org-wide scan above would
-		// otherwise report someone else's Google account as this caller's.
-		connected.google = googleConnection !== undefined;
 		// A suspended installation still has a row, and delivers nothing.
 		connected.github = installation !== undefined && !installation.suspended;
 

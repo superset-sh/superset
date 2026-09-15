@@ -4,6 +4,10 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./connectors": {
+			"types": "./src/connectors/index.ts",
+			"default": "./src/connectors/index.ts"
+		},
 		"./page-zoom": {
 			"types": "./src/page-zoom.ts",
 			"default": "./src/page-zoom.ts"
@@ -311,6 +315,10 @@
 		"./theme-colors": {
 			"types": "./src/themes/types.ts",
 			"default": "./src/themes/types.ts"
+		},
+		"./plugins/manifest-schema": {
+			"types": "./src/plugins/manifest-schema.ts",
+			"default": "./src/plugins/manifest-schema.ts"
 		}
 	},
 	"scripts": {

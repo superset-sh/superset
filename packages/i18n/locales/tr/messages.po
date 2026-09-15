@@ -826,6 +826,12 @@ msgstr "{planLabel} · Katılım {joined}"
 msgid "{planLabel} plan"
 msgstr "{planLabel} planı"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} için bu dağıtımda henüz bir OAuth istemcisi yapılandırılmadı."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} artık yüklü değil."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} varsayılanlara sıfırlandı"
 
@@ -1471,9 +1477,6 @@ msgstr "Başlamak için kenar çubuğundaki menüden bir tane ekleyin."
 
 msgid "Add photos or files"
 msgstr "Fotoğraf veya dosya ekle"
-
-msgid "Add plugin"
-msgstr "Eklenti ekle"
 
 msgid "Add project"
 msgstr "Proje ekle"
@@ -2241,9 +2244,6 @@ msgstr "Denetim günlükleri"
 msgid "Aug 2026"
 msgstr "Ağu 2026"
 
-msgid "Authenticate your {displayName} account"
-msgstr "{displayName} hesabınızın kimliğini doğrulayın"
-
 msgid "Authentication"
 msgstr "Kimlik doğrulama"
 
@@ -2270,6 +2270,12 @@ msgstr "Yetkilendir"
 
 msgid "Authorize {displayName}"
 msgstr "{displayName} uygulamasını yetkilendir"
+
+msgid "Authorize Superset so your plugins, automations and triggers can act on your behalf."
+msgstr "Eklentilerinizin, otomasyonlarınızın ve tetikleyicilerinizin sizin adınıza işlem yapabilmesi için Superset'e yetki verin."
+
+msgid "Authorize Superset to act on your behalf."
+msgstr "Superset'in sizin adınıza işlem yapmasına izin verin."
 
 msgid "Authorizing..."
 msgstr "Yetkilendiriliyor..."
@@ -3699,6 +3705,12 @@ msgstr "Çıkmadan önce onay iste"
 msgid "Connect"
 msgstr "Bağla"
 
+msgid "Connect {displayName}"
+msgstr "{displayName} bağla"
+
+msgid "Connect {name}"
+msgstr "{name} bağla"
+
 msgid "Connect a device"
 msgstr "Cihaz bağla"
 
@@ -3771,9 +3783,8 @@ msgstr "Görevleri konuşmalardan yönetmek için Slack çalışma alanınızı 
 msgid "Connected"
 msgstr "Bağlı"
 
-#. placeholder {0}: formatDate(new Date(connection.createdAt))
-msgid "connected {0}"
-msgstr "bağlandı {0}"
+msgid "Connected {label}"
+msgstr "{label} bağlandı"
 
 msgid "Connected as"
 msgstr "Şu hesapla bağlı"
@@ -3805,6 +3816,9 @@ msgstr "Bağlanılıyor"
 msgid "Connecting GitHub is not configured on this server"
 msgstr "Bu sunucuda GitHub bağlantısı yapılandırılmamış"
 
+msgid "Connecting lets your agents read and act in {name} on your behalf. Review what you are granting before you continue."
+msgstr "Bağlanmak, aracılarınızın {name} içinde sizin adınıza okuma ve işlem yapmasına izin verir. Devam etmeden önce neyi verdiğinizi gözden geçirin."
+
 msgid "Connecting to the desktop…"
 msgstr "Masaüstüne bağlanılıyor…"
 
@@ -3835,6 +3849,18 @@ msgstr "Bağlantı zaman aşımına uğradı"
 
 msgid "Connections"
 msgstr "Bağlantılar"
+
+msgid "Connector"
+msgstr "Bağlayıcı"
+
+msgid "Connectors carry risk"
+msgstr "Bağlayıcılar risk taşır"
+
+msgid "Connects for your whole team."
+msgstr "Tüm ekibiniz için bağlanır."
+
+msgid "Connects your account. Teammates connect their own."
+msgstr "Hesabınızı bağlar. Takım arkadaşlarınız kendi hesaplarını bağlar."
 
 msgid "consecutive active days"
 msgstr "art arda aktif gün"
@@ -3892,6 +3918,10 @@ msgstr "Oturumu sürdür veya forkla"
 
 msgid "Continue the session the last run left"
 msgstr "Son çalıştırmanın bıraktığı oturumu sürdür"
+
+#. placeholder {0}: connector.displayName
+msgid "Continue to {0}"
+msgstr "{0} adresine devam et"
 
 msgid "Continue update"
 msgstr "Güncellemeye devam et"
@@ -4141,6 +4171,9 @@ msgstr "Oturum kapatılamadı"
 
 msgid "Could not close the session"
 msgstr "Oturum kapatılamadı"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "{plugin} bağlanamadı. Yeniden deneyin."
 
 msgid "Could not copy the link"
 msgstr "Bağlantı kopyalanamadı"
@@ -4664,6 +4697,9 @@ msgstr "Worktree oluşturuluyor"
 msgid "Creating..."
 msgstr "Oluşturuluyor..."
 
+msgid "Credentials stay on the server"
+msgstr "Kimlik bilgileri sunucuda kalır"
+
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "packages/ui dışında yaşayan, özellikler arası bileşenler — yenisini geliştirmeden önce buraya bakın"
 
@@ -5121,6 +5157,9 @@ msgstr "Dev oturum açma"
 msgid "Dev sign-in failed"
 msgstr "Dev oturum açma başarısız"
 
+msgid "Developed by {author}"
+msgstr "Geliştiren: {author}"
+
 msgid "Developer"
 msgstr "Geliştirici"
 
@@ -5238,10 +5277,6 @@ msgstr "Atıldı — bir daha sorulmayacak"
 
 msgid "Disconnect"
 msgstr "Bağlantıyı kes"
-
-#. placeholder {0}: connection.account ?? displayName
-msgid "Disconnect {0}"
-msgstr "{0} bağlantısını kes"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHub bağlantısı kesilsin mi?"
@@ -7582,6 +7617,9 @@ msgstr "Superset ekibinden paralel kodlama ajanları ve geliştirici verimliliğ
 msgid "Inspecting {0}"
 msgstr "{0} inceleniyor"
 
+msgid "Install"
+msgstr "Kur"
+
 msgid "Install & restart"
 msgstr "Kur ve yeniden başlat"
 
@@ -7594,11 +7632,17 @@ msgstr "Kurulum başarısız"
 msgid "Install GitHub App"
 msgstr "GitHub App'i kur"
 
+msgid "Install plugin"
+msgstr "Eklenti kur"
+
 msgid "Install Superset MCP in your client"
 msgstr "Superset MCP'yi istemcinize kurun"
 
 msgid "Install the desktop app"
 msgstr "Masaüstü uygulamasını kurun"
+
+msgid "Install the plugin to connect"
+msgstr "Bağlanmak için eklentiyi kurun"
 
 msgid "Install the Superset GitHub App to connect your repositories."
 msgstr "Depolarınızı bağlamak için Superset GitHub App'i kurun."
@@ -14249,6 +14293,9 @@ msgstr "Superset Mobile, bulut çalışma alanları, otomasyonlar ve öncelikli 
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset'in başka bir tarayıcının verilerini okuyabilmesi için Tam Disk Erişimi gerekir. Sistem Ayarları'ndan verin, sonra yeniden denetleyin."
 
+msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
+msgstr "Superset yalnızca bu bağlayıcının istediği izinleri alır. İzinleri geri almak için istediğiniz zaman bağlantıyı kesin."
+
 msgid "Superset originals"
 msgstr "Superset özgünleri"
 
@@ -14654,6 +14701,9 @@ msgstr "Metin alanı"
 
 msgid "Thanks for reaching out"
 msgstr "Bize ulaştığınız için teşekkürler"
+
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Bu {plugin} oturum açma bağlantısının süresi doldu. Yeniden bağlanmayı deneyin."
 
 msgid "That endpoint could not be resolved."
 msgstr "Bu uç nokta çözümlenemedi."
@@ -15172,9 +15222,6 @@ msgstr "Bu yol mevcut, ancak bir dizin değil."
 msgid "This path is a directory"
 msgstr "Bu yol bir dizin"
 
-msgid "This plugin needs no account — its skills are ready to use."
-msgstr "Bu eklenti hesap gerektirmez — Becerileri kullanıma hazır."
-
 msgid "This port is still in use"
 msgstr "Bu port hâlâ kullanımda"
 
@@ -15412,6 +15459,9 @@ msgstr "Token kullanımı"
 
 msgid "Tokens"
 msgstr "Token"
+
+msgid "Tokens are held by Superset and attached to requests there. They are never written into your local agent config."
+msgstr "Anahtarlar Superset tarafından tutulur ve isteklere orada eklenir. Yerel aracı yapılandırmanıza asla yazılmaz."
 
 msgid "Tokens per session"
 msgstr "Oturum başına token"
@@ -16773,6 +16823,12 @@ msgstr "Bu aboneliği uygulamada değiştiremezsiniz. Kuruluşunuzun planı, {0}
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Bu işlemi geri alamazsınız. Terminal bölmelerinde \"Process exited\" görünür ve yeniden başlatılabilirler."
 
+msgid "You control the access"
+msgstr "Erişimi siz kontrol edersiniz"
+
+msgid "You declined the {plugin} authorization request."
+msgstr "{plugin} yetkilendirme isteğini reddettiniz."
+
 msgid "You don't have access to this host"
 msgstr "Bu host'a erişiminiz yok"
 
@@ -16781,6 +16837,9 @@ msgstr "Bu terminale erişiminiz yok."
 
 msgid "You don't have permission to remove this member"
 msgstr "Bu üyeyi kaldırma izniniz yok"
+
+msgid "You need to be part of an organization to connect accounts."
+msgstr "Hesap bağlamak için bir organizasyona üye olmanız gerekir."
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "Entegrasyonları kullanmak için bir kuruluşun parçası olmanız gerekir."

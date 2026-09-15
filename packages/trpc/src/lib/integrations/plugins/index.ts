@@ -2,16 +2,13 @@ export {
 	AmbiguousPluginError,
 	installedManifest,
 	installedPlugin,
-	manifestAuth,
-	upsertConnection,
 } from "../../../router/plugins/connections";
 export {
-	authMethod,
+	decryptSecret,
+	encryptSecret,
+} from "../../../router/plugins/crypto";
+export {
 	DEFAULT_CREDENTIAL_INPUT,
+	pluginConnector,
 	trustedManifest,
 } from "../../../router/plugins/manifest";
-export {
-	buildAuthorizationUrl,
-	exchangeCode,
-	resolveIdentity,
-} from "../../../router/plugins/oauth";

@@ -826,6 +826,12 @@ msgstr "{planLabel} · Připojeno {joined}"
 msgid "{planLabel} plan"
 msgstr "Tarif {planLabel}"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} zatím nemá v tomto nasazení nakonfigurovaného klienta OAuth."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} už není nainstalován."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} obnoveno na výchozí"
 
@@ -1471,9 +1477,6 @@ msgstr "Začněte tím, že jednoho přidáte z nabídky v postranním panelu."
 
 msgid "Add photos or files"
 msgstr "Přidat fotky nebo soubory"
-
-msgid "Add plugin"
-msgstr "Přidat plugin"
 
 msgid "Add project"
 msgstr "Přidat projekt"
@@ -2241,9 +2244,6 @@ msgstr "Auditní logy"
 msgid "Aug 2026"
 msgstr "Srp 2026"
 
-msgid "Authenticate your {displayName} account"
-msgstr "Ověřte svůj účet {displayName}"
-
 msgid "Authentication"
 msgstr "Ověřování"
 
@@ -2270,6 +2270,12 @@ msgstr "Autorizovat"
 
 msgid "Authorize {displayName}"
 msgstr "Autorizovat {displayName}"
+
+msgid "Authorize Superset so your plugins, automations and triggers can act on your behalf."
+msgstr "Autorizujte Superset, aby vaše pluginy, automatizace a spouštěče mohly jednat vaším jménem."
+
+msgid "Authorize Superset to act on your behalf."
+msgstr "Autorizujte Superset, aby jednal vaším jménem."
 
 msgid "Authorizing..."
 msgstr "Autorizuji..."
@@ -3699,6 +3705,12 @@ msgstr "Potvrdit před ukončením"
 msgid "Connect"
 msgstr "Připojit"
 
+msgid "Connect {displayName}"
+msgstr "Připojit {displayName}"
+
+msgid "Connect {name}"
+msgstr "Připojit {name}"
+
 msgid "Connect a device"
 msgstr "Připojit zařízení"
 
@@ -3771,9 +3783,8 @@ msgstr "Připojte svůj Slack workspace a spravujte úkoly přímo z konverzací
 msgid "Connected"
 msgstr "Připojeno"
 
-#. placeholder {0}: formatDate(new Date(connection.createdAt))
-msgid "connected {0}"
-msgstr "připojeno {0}"
+msgid "Connected {label}"
+msgstr "Připojeno {label}"
 
 msgid "Connected as"
 msgstr "Připojeno jako"
@@ -3805,6 +3816,9 @@ msgstr "Připojuji"
 msgid "Connecting GitHub is not configured on this server"
 msgstr "Připojení ke GitHubu není na tomto serveru nastaveno"
 
+msgid "Connecting lets your agents read and act in {name} on your behalf. Review what you are granting before you continue."
+msgstr "Připojením umožníte svým agentům číst a jednat v {name} vaším jménem. Než budete pokračovat, zkontrolujte, co udělujete."
+
 msgid "Connecting to the desktop…"
 msgstr "Připojování k ploše…"
 
@@ -3835,6 +3849,18 @@ msgstr "Vypršel časový limit spojení"
 
 msgid "Connections"
 msgstr "Připojení"
+
+msgid "Connector"
+msgstr "Konektor"
+
+msgid "Connectors carry risk"
+msgstr "Konektory přinášejí riziko"
+
+msgid "Connects for your whole team."
+msgstr "Připojuje se pro celý váš tým."
+
+msgid "Connects your account. Teammates connect their own."
+msgstr "Připojí váš účet. Kolegové si připojí vlastní."
 
 msgid "consecutive active days"
 msgstr "po sobě jdoucích aktivních dní"
@@ -3892,6 +3918,10 @@ msgstr "Pokračovat nebo forkovat relaci"
 
 msgid "Continue the session the last run left"
 msgstr "Pokračovat v relaci, kterou zanechalo poslední spuštění"
+
+#. placeholder {0}: connector.displayName
+msgid "Continue to {0}"
+msgstr "Pokračovat na {0}"
 
 msgid "Continue update"
 msgstr "Pokračovat v aktualizaci"
@@ -4141,6 +4171,9 @@ msgstr "Relaci se nepodařilo zavřít"
 
 msgid "Could not close the session"
 msgstr "Relaci se nepodařilo zavřít"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "Nepodařilo se připojit {plugin}. Zkuste to znovu."
 
 msgid "Could not copy the link"
 msgstr "Odkaz se nepodařilo zkopírovat"
@@ -4664,6 +4697,9 @@ msgstr "Vytvářím worktree"
 msgid "Creating..."
 msgstr "Vytvářím..."
 
+msgid "Credentials stay on the server"
+msgstr "Přihlašovací údaje zůstávají na serveru"
+
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "Komponenty napříč funkcemi mimo packages/ui — podívejte se sem, než budete stavět novou"
 
@@ -5121,6 +5157,9 @@ msgstr "Vývojářské přihlášení"
 msgid "Dev sign-in failed"
 msgstr "Dev přihlášení selhalo"
 
+msgid "Developed by {author}"
+msgstr "Vyvinul {author}"
+
 msgid "Developer"
 msgstr "Vývojář"
 
@@ -5238,10 +5277,6 @@ msgstr "Zahozeno — příště se nezeptáme"
 
 msgid "Disconnect"
 msgstr "Odpojit"
-
-#. placeholder {0}: connection.account ?? displayName
-msgid "Disconnect {0}"
-msgstr "Odpojit {0}"
 
 msgid "Disconnect GitHub?"
 msgstr "Odpojit GitHub?"
@@ -7582,6 +7617,9 @@ msgstr "Postřehy týmu Superset o paralelních kódovacích agentech a produkti
 msgid "Inspecting {0}"
 msgstr "Zkoumám {0}"
 
+msgid "Install"
+msgstr "Nainstalovat"
+
 msgid "Install & restart"
 msgstr "Nainstalovat a restartovat"
 
@@ -7594,11 +7632,17 @@ msgstr "Instalace selhala"
 msgid "Install GitHub App"
 msgstr "Nainstalovat GitHub App"
 
+msgid "Install plugin"
+msgstr "Nainstalovat plugin"
+
 msgid "Install Superset MCP in your client"
 msgstr "Nainstalujte Superset MCP do svého klienta"
 
 msgid "Install the desktop app"
 msgstr "Nainstalujte desktopovou aplikaci"
+
+msgid "Install the plugin to connect"
+msgstr "Pro připojení nainstalujte plugin"
 
 msgid "Install the Superset GitHub App to connect your repositories."
 msgstr "Nainstalujte Superset GitHub App a připojte své repozitáře."
@@ -14249,6 +14293,9 @@ msgstr "Superset Mobile, cloudové workspaces, automatizace a prioritní podpora
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset potřebuje Plný přístup k disku, aby mohl číst data jiného prohlížeče. Povolte ho v Nastavení systému a zkontrolujte to znovu."
 
+msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
+msgstr "Superset získá pouze oprávnění, o která tento konektor žádá. Kdykoli je můžete odvolat odpojením."
+
 msgid "Superset originals"
 msgstr "Originály Superset"
 
@@ -14654,6 +14701,9 @@ msgstr "Textové pole"
 
 msgid "Thanks for reaching out"
 msgstr "Díky, že jste se ozvali"
+
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Odkaz pro přihlášení k {plugin} vypršel. Zkuste se připojit znovu."
 
 msgid "That endpoint could not be resolved."
 msgstr "Tento koncový bod se nepodařilo přeložit."
@@ -15172,9 +15222,6 @@ msgstr "Tato cesta existuje, ale není to adresář."
 msgid "This path is a directory"
 msgstr "Tato cesta je adresář"
 
-msgid "This plugin needs no account — its skills are ready to use."
-msgstr "Tento plugin nevyžaduje účet — jeho Skills jsou připraveny k použití."
-
 msgid "This port is still in use"
 msgstr "Tento port se stále používá"
 
@@ -15412,6 +15459,9 @@ msgstr "Využití tokenů"
 
 msgid "Tokens"
 msgstr "Tokeny"
+
+msgid "Tokens are held by Superset and attached to requests there. They are never written into your local agent config."
+msgstr "Tokeny uchovává Superset a připojuje je k požadavkům na své straně. Nikdy se nezapisují do vaší místní konfigurace agenta."
 
 msgid "Tokens per session"
 msgstr "Tokenů na relaci"
@@ -16773,6 +16823,12 @@ msgstr "Toto předplatné nelze změnit v aplikaci. Tarif vaší organizace spra
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Tuto akci nelze vrátit zpět. Panely terminálu zobrazí „Proces skončil“ a půjde je spustit znovu."
 
+msgid "You control the access"
+msgstr "Přístup máte pod kontrolou"
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Žádost o autorizaci pro {plugin} jste odmítli."
+
 msgid "You don't have access to this host"
 msgstr "K tomuto hostu nemáte přístup"
 
@@ -16781,6 +16837,9 @@ msgstr "K tomuto terminálu nemáte přístup."
 
 msgid "You don't have permission to remove this member"
 msgstr "Nemáte oprávnění tohoto člena odebrat"
+
+msgid "You need to be part of an organization to connect accounts."
+msgstr "Pro připojení účtů musíte být součástí organizace."
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "Pro používání integrací musíte být součástí organizace."

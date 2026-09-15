@@ -15,7 +15,7 @@
 			},
 			"category": "development",
 			"source": "./plugins/github",
-			"version": "1.0.0"
+			"version": "1.0.1"
 		},
 		{
 			"name": "linear",
@@ -25,7 +25,37 @@
 			},
 			"category": "productivity",
 			"source": "./plugins/linear",
-			"version": "1.4.0"
+			"version": "1.5.2"
+		},
+		{
+			"name": "notion",
+			"description": "Search, read, and write your Notion workspace: pages, databases, and comments.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "productivity",
+			"source": "./plugins/notion",
+			"version": "1.0.2"
+		},
+		{
+			"name": "slack",
+			"description": "Search, read, and post across your Slack workspace: channels, DMs, and threads.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "communication",
+			"source": "./plugins/slack",
+			"version": "1.2.3"
+		},
+		{
+			"name": "gmail",
+			"description": "Read, search, send, and organize mail in your Gmail account.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "communication",
+			"source": "./plugins/gmail",
+			"version": "1.1.5"
 		}
 	],
 	"featured": ["github", "linear"],

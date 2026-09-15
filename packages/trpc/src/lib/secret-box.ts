@@ -1,13 +1,16 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
-import { env } from "../env";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 const VERSION = 1;
 
+export function secretsKeyConfigured(): boolean {
+	return Boolean(process.env.SECRETS_ENCRYPTION_KEY);
+}
+
 function getKey(): Buffer {
-	const raw = env.SECRETS_ENCRYPTION_KEY;
+	const raw = process.env.SECRETS_ENCRYPTION_KEY;
 	if (!raw) throw new Error("SECRETS_ENCRYPTION_KEY not set");
 	const key = Buffer.from(raw, "base64");
 	if (key.length !== 32)

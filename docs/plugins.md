@@ -6,16 +6,19 @@ and are listed in `.agent-marketplace.json` at the repo root.
 
 ## What is source and what is generated
 
-Only three things in a plugin directory are hand-written:
+Only two things in a plugin directory are hand-written:
 
 | Path | Owner |
 | --- | --- |
 | `plugins/<name>/plugin.json` | you |
 | `plugins/<name>/skills/*/SKILL.md` | you |
-| `plugins/<name>/src/index.ts` | you (optional MCP server) |
-| `plugins/<name>/server/` | `superset plugins build` (committed: it is what a release ships) |
 | `.agent-marketplace.json` | `superset plugins create` / `publish` |
 | `packages/shared/src/plugins/manifests.generated.ts` | `superset plugins publish` |
+
+A plugin ships no code. Tools come either from the vendor's own MCP server, which Superset proxies
+to, or from a server Superset hosts itself for the handful of plugins whose vendor publishes none
+(`SUPERSET_HOSTED_PLUGINS` in `packages/shared/src/plugins/index.ts`, implemented under
+`packages/trpc/src/router/plugins/servers/`). Hosted tools ship on an API deploy, not a plugin tag.
 
 `manifests.generated.ts` is generated; editing it by hand is the one way to get a marketplace that
 disagrees with itself. It exists because the API must resolve `token_url` and the proxy target
@@ -23,9 +26,8 @@ disagrees with itself. It exists because the API must resolve `token_url` and th
 exfiltration path.
 
 **A release is a git tag, not a folder.** `<name>@<version>` on the marketplace repo is the version:
-`plugins install` fetches that tag and takes the plugin's tree at it, and the generated manifest
-pins a bundled server by `path` + `ref` + `integrity`, so the bytes a host downloads belong to the
-version rather than to whatever the branch holds now. A `path:` marketplace has no releases in it
+`plugins install` fetches that tag and takes the plugin's skills at it, so what a host installs
+belongs to the version rather than to whatever the branch holds now. A `path:` marketplace has no releases in it
 and installs the working tree, which is what makes local authoring work.
 
 ## Changing a plugin
@@ -52,19 +54,47 @@ that must not change under them.
 
 - `interface` — `displayName`, `category` (one of `PLUGIN_CATEGORIES` in
   `packages/shared/src/plugins/index.ts`), and `icon`.
-- `auth` — an array of methods, each `oauth2` or `api_key`. OAuth entries carry
-  `authorization_url`, `token_url`, `scopes`, `requires_env` (the client id/secret env names the API
-  reads — name the service's pair, not the plugin's, so two plugins for one service share one
-  registered OAuth app; only `PLUGIN_<SERVICE>_CLIENT_ID`/`_SECRET` may be named), an `identity`
-  probe that names the connected account, and `bind`, which says how the
-  credential is attached to outbound calls. `${config.access_token}` and `${inputs.<name>}`
-  placeholders are resolved server-side by `apps/api/src/lib/plugins/manifest.ts`.
-- `mcpServers` — server name → config, the same shape as an `.mcp.json` value. The name lands
-  verbatim as a config key in agent CLIs.
+- `connectors` — the connections this plugin needs, as a list of `{ "slug", "required" }`. A slug
+  names a connector in `packages/shared/src/connectors/connectors.json`; the manifest carries no
+  OAuth configuration of its own — no scopes, no client mode, no `requires_env`. A connection is
+  account state, and the connections system already owns obtaining, refreshing and disconnecting
+  it, so naming one is all a plugin does. Dispatch runs under the first `required` connector,
+  falling back to declaration order.
+- `bind` — how the connection's credential is attached to outbound calls.
+  `${config.access_token}` and `${inputs.<name>}` placeholders are resolved server-side by
+  `packages/trpc/src/router/plugins/manifest.ts`.
+- `mcp` — the vendor's own MCP server (`type: "streamable-http"`, `url`, optional `headers`), not a
+  map: a plugin serves tools from exactly one place. Omit it for a Superset-hosted plugin.
 
-Credentials never reach the manifest, the renderer, or the agent's machine. They are encrypted at
-rest with `BETTER_AUTH_SECRET` (`apps/api/src/lib/plugins/crypto.ts`) and attached by the proxy in
-`apps/api/src/lib/plugins/dispatch.ts`, so a tool call goes out from the API, not from the agent.
+The published JSON Schema at `https://superset.sh/schemas/plugin/1.0.0.json` is generated from
+`pluginManifestSchema` in `packages/shared/src/plugins/manifest-schema.ts`, and
+`superset plugins publish` validates against that same definition — so the schema we serve and the
+schema we enforce cannot drift.
+
+### Where a connection comes from
+
+How a connector obtains its connection is the connections system's decision, not a manifest field.
+A connector either names a pre-registered client through `requires_env` in `connectors.json`, or
+declares `"client": "dynamic"` and takes both endpoints and client identity from the MCP server at
+connect time: the API reads `/.well-known/oauth-protected-resource`, follows it to the
+authorization server's metadata, and then gets a client identity one of two ways:
+
+- the server advertises `client_id_metadata_document_supported`, so the client id is the URL of a
+  document we host at `/api/connectors/<connector>/client-metadata` — nothing is registered or
+  stored; or
+- the server offers a `registration_endpoint`, so we register once per authorization server
+  (RFC 7591) and keep the result in `plugin_oauth_clients`, keyed by issuer and redirect URI so
+  every user shares one registration.
+
+Either way the flow is PKCE with a `resource` indicator, the authorization response's `iss` is
+checked against the discovered issuer before the code is redeemed (RFC 9207), and refresh happens
+before a tool call. This is what lets a hosted MCP server be installable without anyone registering an
+OAuth app first.
+
+Credentials never reach the manifest, the renderer, or the agent's machine. They are sealed at rest
+by `packages/trpc/src/lib/secret-box.ts` under `SECRETS_ENCRYPTION_KEY` and attached by the proxy in
+`packages/trpc/src/router/plugins/proxy/`, so a tool call goes out from the API, not from the
+agent.
 
 ## Install state on a machine
 

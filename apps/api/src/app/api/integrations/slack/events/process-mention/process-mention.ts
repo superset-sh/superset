@@ -1,6 +1,10 @@
 import { db } from "@superset/db/client";
-import { integrationConnections, subscriptions } from "@superset/db/schema";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { subscriptions } from "@superset/db/schema";
+import {
+	accountConnection,
+	connectionBotToken,
+} from "@superset/trpc/connectors";
+import { and, eq } from "drizzle-orm";
 import { posthog } from "@/lib/analytics";
 import { findSlackUserLink } from "../../lib/find-slack-user-link";
 import { generateConnectUrl } from "../utils/generate-connect-url";
@@ -55,17 +59,7 @@ export async function processSlackMention({
 		user: event.user,
 	});
 
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.provider, "slack"),
-			eq(integrationConnections.externalOrgId, teamId),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		orderBy: [
-			desc(integrationConnections.updatedAt),
-			desc(integrationConnections.id),
-		],
-	});
+	const connection = await accountConnection("slack", teamId);
 
 	if (!connection) {
 		console.error(
@@ -75,7 +69,8 @@ export async function processSlackMention({
 		return;
 	}
 
-	const slack = createSlackClient(connection.accessToken);
+	const botToken = await connectionBotToken(connection);
+	const slack = createSlackClient(botToken);
 
 	const [slackUserLink, activeSubscription] = await Promise.all([
 		event.user
@@ -211,7 +206,7 @@ export async function processSlackMention({
 		const imageAssets = await extractSlackImageAssets({
 			eventFiles: event.files,
 			slack,
-			slackToken: connection.accessToken,
+			slackToken: botToken,
 		});
 
 		const resolve = await resolveUserMentions({
@@ -225,7 +220,7 @@ export async function processSlackMention({
 			threadTs,
 			organizationId: connection.organizationId,
 			userId: slackUserLink.userId,
-			slackToken: connection.accessToken,
+			slackToken: botToken,
 			model: slackUserLink.modelPreference ?? undefined,
 			images: imageAssets,
 			onProgress: messageTs

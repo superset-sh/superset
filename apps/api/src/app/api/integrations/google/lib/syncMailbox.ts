@@ -1,8 +1,5 @@
 import { db } from "@superset/db/client";
-import {
-	automationEvents,
-	type SelectIntegrationConnection,
-} from "@superset/db/schema";
+import { automationEvents, type SelectConnection } from "@superset/db/schema";
 import type { GmailMatchableEvent } from "@superset/shared/automation-matching";
 import {
 	type GmailMessage,
@@ -41,9 +38,9 @@ export type MailboxSyncResult = {
  * the profile; whatever arrived in the gap is not replayed.
  */
 export async function syncMailbox(
-	connection: SelectIntegrationConnection,
+	connection: SelectConnection,
 ): Promise<MailboxSyncResult> {
-	const state = googleConfigOf(connection.config).gmail;
+	const state = googleConfigOf(connection.state).gmail;
 	if (!state?.historyId) {
 		const profile = await getProfile(connection.id);
 		await patchGmailState(connection.id, { historyId: profile.historyId });
@@ -113,7 +110,7 @@ export async function syncMailbox(
  * the body stays in the mailbox.
  */
 export function normalizeMessage(
-	connection: SelectIntegrationConnection,
+	connection: SelectConnection,
 	message: GmailMessage,
 ): NormalizedDelivery {
 	const from = headerValue(message, "From");

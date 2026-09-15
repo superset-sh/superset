@@ -11,10 +11,9 @@ let calls: Array<{
 
 // Both stubbed so the real clients — and the validated env and database
 // connection they open at import — stay out of this test's module graph.
-// Bun keeps the export names of the first stub of a module for the whole
-// run, so this lists `dbWs` for test files that load after it and import it.
+// `mock.module` is process-wide, so every export the real module has must be
+// here: another file's import of `dbWs` resolves against this stub too.
 mock.module("@superset/db/client", () => ({
-	dbWs: {},
 	db: {
 		query: {
 			users: {
@@ -26,6 +25,9 @@ mock.module("@superset/db/client", () => ({
 				},
 			},
 		},
+	},
+	dbWs: {
+		transaction: () => Promise.reject(new Error("dbWs is stubbed in tests")),
 	},
 }));
 mock.module("../analytics", () => ({

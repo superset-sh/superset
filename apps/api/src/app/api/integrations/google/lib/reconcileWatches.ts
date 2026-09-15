@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import type { SelectIntegrationConnection } from "@superset/db/schema";
+import type { SelectConnection } from "@superset/db/schema";
 import {
 	findGoogleConnectionById,
 	googleConfigOf,
@@ -55,7 +55,7 @@ export async function reconcileWatches(
 		);
 	const calendars = listed.slice(0, MAX_WATCHED_CALENDARS);
 	result.calendars = calendars.length;
-	const known = googleConfigOf(connection.config).calendars ?? {};
+	const known = googleConfigOf(connection.state).calendars ?? {};
 	const now = Date.now();
 	const address = `${env.NEXT_PUBLIC_API_URL}/api/integrations/google/calendar/push`;
 
@@ -154,11 +154,11 @@ export async function reconcileWatches(
 }
 
 async function reconcileGmailWatch(
-	connection: SelectIntegrationConnection,
+	connection: SelectConnection,
 	topicName: string,
 	now: number,
 ): Promise<void> {
-	const state = googleConfigOf(connection.config).gmail;
+	const state = googleConfigOf(connection.state).gmail;
 	const expiresSoon =
 		(state?.watchExpiresAt ?? 0) - now < WATCH_RENEW_WINDOW_MS;
 	if (!expiresSoon) return;

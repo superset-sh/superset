@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
 	const { organizationId, creatorUserId } = parsed.data;
 
-	const client = await getLinearClient(organizationId);
+	const client = await getLinearClient(organizationId, creatorUserId);
 	if (!client) {
 		return Response.json({
 			error: "No Linear connection or connection disconnected",

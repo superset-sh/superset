@@ -1,22 +1,24 @@
 import { db } from "@superset/db/client";
 import {
+	connections,
 	type GoogleCalendarWatchState,
 	type GoogleConfig,
-	integrationConnections,
+	type SelectConnection,
 } from "@superset/db/schema";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { connectionById, userConnection } from "../../../lib/connectors";
 
 /**
- * The per-connection sync state lives in `integration_connections.config`.
- * Every write here is a jsonb merge in SQL rather than a read-modify-write in
- * JavaScript, because two calendars on one connection can be syncing at once
- * and the second write must not undo the first.
+ * The per-connection sync state lives in `connections.state`, plaintext beside
+ * the encrypted `config`. Every write here is a jsonb merge in SQL rather than
+ * a read-modify-write in JavaScript, because two calendars on one connection
+ * can be syncing at once and the second write must not undo the first.
  */
 
-export function googleConfigOf(config: unknown): GoogleConfig {
-	if (config && typeof config === "object" && "provider" in config) {
-		const candidate = config as { provider?: string };
-		if (candidate.provider === "google") return config as GoogleConfig;
+export function googleConfigOf(state: unknown): GoogleConfig {
+	if (state && typeof state === "object" && "provider" in state) {
+		const candidate = state as { provider?: string };
+		if (candidate.provider === "google") return state as GoogleConfig;
 	}
 	return { provider: "google" };
 }
@@ -28,29 +30,20 @@ export function googleConfigOf(config: unknown): GoogleConfig {
 export async function findGoogleConnection(
 	organizationId: string,
 	userId: string,
-) {
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.organizationId, organizationId),
-			eq(integrationConnections.provider, "google"),
-			eq(integrationConnections.connectedByUserId, userId),
-			isNull(integrationConnections.disconnectedAt),
-		),
-	});
-	return connection ?? null;
+): Promise<SelectConnection | null> {
+	return userConnection(organizationId, "google", userId);
 }
 
-export async function findGoogleConnectionById(connectionId: string) {
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.id, connectionId),
-			eq(integrationConnections.provider, "google"),
-		),
+export async function findGoogleConnectionById(
+	connectionId: string,
+): Promise<SelectConnection | null> {
+	return connectionById(connectionId, {
+		connector: "google",
+		includeDisconnected: true,
 	});
-	return connection ?? null;
 }
 
-/** Merges `patch` into `config.calendars[calendarId]`, creating as needed. */
+/** Merges `patch` into `state.calendars[calendarId]`, creating as needed. */
 export async function patchCalendarState(
 	connectionId: string,
 	calendarId: string,
@@ -58,19 +51,19 @@ export async function patchCalendarState(
 ): Promise<void> {
 	const json = JSON.stringify(patch);
 	await db
-		.update(integrationConnections)
+		.update(connections)
 		.set({
-			config: sql`jsonb_set(
+			state: sql`jsonb_set(
 				jsonb_set(
-					coalesce(${integrationConnections.config}, '{}'::jsonb) || '{"provider":"google"}'::jsonb,
+					coalesce(${connections.state}, '{}'::jsonb) || '{"provider":"google"}'::jsonb,
 					'{calendars}',
-					coalesce(${integrationConnections.config} -> 'calendars', '{}'::jsonb)
+					coalesce(${connections.state} -> 'calendars', '{}'::jsonb)
 				),
 				ARRAY['calendars', ${calendarId}]::text[],
-				coalesce(${integrationConnections.config} #> ARRAY['calendars', ${calendarId}]::text[], '{}'::jsonb) || ${json}::jsonb
+				coalesce(${connections.state} #> ARRAY['calendars', ${calendarId}]::text[], '{}'::jsonb) || ${json}::jsonb
 			)`,
 		})
-		.where(eq(integrationConnections.id, connectionId));
+		.where(eq(connections.id, connectionId));
 }
 
 export async function removeCalendarState(
@@ -78,11 +71,11 @@ export async function removeCalendarState(
 	calendarId: string,
 ): Promise<void> {
 	await db
-		.update(integrationConnections)
+		.update(connections)
 		.set({
-			config: sql`${integrationConnections.config} #- ARRAY['calendars', ${calendarId}]::text[]`,
+			state: sql`${connections.state} #- ARRAY['calendars', ${calendarId}]::text[]`,
 		})
-		.where(eq(integrationConnections.id, connectionId));
+		.where(eq(connections.id, connectionId));
 }
 
 export async function patchGmailState(
@@ -91,13 +84,13 @@ export async function patchGmailState(
 ): Promise<void> {
 	const json = JSON.stringify(patch);
 	await db
-		.update(integrationConnections)
+		.update(connections)
 		.set({
-			config: sql`jsonb_set(
-				coalesce(${integrationConnections.config}, '{}'::jsonb) || '{"provider":"google"}'::jsonb,
+			state: sql`jsonb_set(
+				coalesce(${connections.state}, '{}'::jsonb) || '{"provider":"google"}'::jsonb,
 				'{gmail}',
-				coalesce(${integrationConnections.config} -> 'gmail', '{}'::jsonb) || ${json}::jsonb
+				coalesce(${connections.state} -> 'gmail', '{}'::jsonb) || ${json}::jsonb
 			)`,
 		})
-		.where(eq(integrationConnections.id, connectionId));
+		.where(eq(connections.id, connectionId));
 }
