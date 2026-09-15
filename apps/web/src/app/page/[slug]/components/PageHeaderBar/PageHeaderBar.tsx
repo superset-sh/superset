@@ -7,9 +7,9 @@ import {
 	type PageHeaderVersion,
 } from "@superset/ui/page-comments";
 import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTRPC } from "@/trpc/react";
-import { OpenInSupersetButton } from "./components/OpenInSupersetButton";
+import { OpenInSupersetButton } from "../OpenInSupersetButton";
 import { PageWatchBadge } from "./components/PageWatchBadge";
 
 interface PageHeaderBarProps {
@@ -19,6 +19,7 @@ interface PageHeaderBarProps {
 	slug: string;
 	watching: boolean;
 	watchAgentId: string | null;
+	previewVersion: number | null;
 }
 
 export function PageHeaderBar({
@@ -28,13 +29,16 @@ export function PageHeaderBar({
 	slug,
 	watching,
 	watchAgentId,
+	previewVersion,
 }: PageHeaderBarProps) {
 	const trpc = useTRPC();
 	const router = useRouter();
+	const pathname = usePathname();
 	const setVisibility = useMutation(trpc.page.setVisibility.mutationOptions());
 	const setSharedVersion = useMutation(
 		trpc.page.setSharedVersion.mutationOptions(),
 	);
+	const updatePage = useMutation(trpc.page.update.mutationOptions());
 	const deletePage = useMutation(trpc.page.delete.mutationOptions());
 
 	return (
@@ -42,6 +46,7 @@ export function PageHeaderBar({
 			page={page}
 			versions={versions}
 			currentUserId={currentUserId}
+			previewVersion={previewVersion}
 			trailing={
 				<>
 					<OpenInSupersetButton slug={slug} />
@@ -60,6 +65,14 @@ export function PageHeaderBar({
 			onSetSharedVersion={async (version) => {
 				await setSharedVersion.mutateAsync({ id: page.id, version });
 				router.refresh();
+			}}
+			onRename={async (title) => {
+				await updatePage.mutateAsync({ id: page.id, title });
+				router.refresh();
+			}}
+			onRefresh={() => router.refresh()}
+			onPreviewVersion={(version) => {
+				router.push(version === null ? pathname : `${pathname}?v=${version}`);
 			}}
 			onDelete={async () => {
 				await deletePage.mutateAsync({ id: page.id });

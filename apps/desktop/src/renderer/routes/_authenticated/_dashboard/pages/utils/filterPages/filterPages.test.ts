@@ -26,6 +26,7 @@ const page = (
 const team = page("1", "Q3 Metrics", "org", null, "user-a");
 const mine = page("2", "Ingest Runbook", "just_me", "hookdeck notes", "user-b");
 const other = page("3", "Warning Tokens", "org");
+const published = page("4", "Launch Notes", "everyone", null, "user-a");
 
 describe("isPageScope", () => {
 	it("accepts known scopes and rejects anything else", () => {
@@ -58,6 +59,11 @@ describe("matchesScope", () => {
 		expect(matchesScope(mine, "team", pinned)).toBe(false);
 		expect(matchesScope(mine, "mine", pinned)).toBe(true);
 		expect(matchesScope(team, "mine", pinned)).toBe(false);
+	});
+
+	it("keeps a page shared with everyone in the team scope", () => {
+		expect(matchesScope(published, "team", pinned)).toBe(true);
+		expect(matchesScope(published, "mine", pinned)).toBe(false);
 	});
 
 	it("uses the pinned set rather than visibility for the pinned scope", () => {

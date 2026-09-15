@@ -2003,6 +2003,9 @@ msgstr "Herkes"
 msgid "Anyone in your organization"
 msgstr "Kuruluşunuzdaki herkes"
 
+msgid "Anyone with the link"
+msgstr "Bağlantıya sahip herkes"
+
 msgid "anything"
 msgstr "herhangi bir şey"
 
@@ -2409,6 +2412,9 @@ msgstr "Değişiklik günlüğüne dön"
 
 msgid "Back to checklist"
 msgstr "Kontrol listesine dön"
+
+msgid "Back to current"
+msgstr "Güncel sürüme dön"
 
 msgid "Back to GitHub issues"
 msgstr "GitHub issue'larına dön"
@@ -4256,6 +4262,9 @@ msgstr "Ortam kaydedilemedi"
 
 msgid "Could not rename the session"
 msgstr "Oturum yeniden adlandırılamadı"
+
+msgid "Could not rename this page"
+msgstr "Bu sayfa yeniden adlandırılamadı"
 
 msgid "Could not reopen"
 msgstr "Yeniden açılamadı"
@@ -10688,6 +10697,9 @@ msgstr "Sayfa bulunamadı"
 msgid "Page Not Found"
 msgstr "Sayfa bulunamadı"
 
+msgid "Page title"
+msgstr "Sayfa başlığı"
+
 msgid "Page views"
 msgstr "Sayfa görüntülemeleri"
 
@@ -11909,6 +11921,9 @@ msgstr "Grubu yeniden adlandır"
 
 msgid "Rename host"
 msgstr "Host'u yeniden adlandır"
+
+msgid "Rename page"
+msgstr "Sayfayı yeniden adlandır"
 
 msgid "Rename session"
 msgstr "Oturumu yeniden adlandır"
@@ -13246,6 +13261,9 @@ msgstr "Tasarımları ve raporları paylaşın. Geri bildirimleri ajanınız ele
 msgid "Share page"
 msgstr "Sayfayı paylaş"
 
+msgid "Share settings"
+msgstr "Paylaşım ayarları"
+
 msgid "Share this page"
 msgstr "Bu sayfayı paylaş"
 
@@ -13266,6 +13284,9 @@ msgstr "Superset'e içe aktarabileceğiniz paylaşılan tema JSON dosyaları."
 
 msgid "Shared version"
 msgstr "Paylaşılan sürüm"
+
+msgid "Shared with everyone"
+msgstr "Herkesle paylaşıldı"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "Projenin checkout'unu (dosyalar, git indeksi ve dal) diğer yerel çalışma alanlarıyla paylaşır"
@@ -13474,6 +13495,9 @@ msgstr "Superset'e devam etmek için oturum açın"
 
 msgid "Sign in to get started"
 msgstr "Başlamak için oturum açın"
+
+msgid "Sign in to view this page"
+msgstr "Bu sayfayı görmek için oturum açın"
 
 msgid "Sign in with email"
 msgstr "E-posta ile oturum aç"
@@ -14961,6 +14985,9 @@ msgstr "hedef host"
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "Takım daveti ya süresi dolmuş ya da mevcut değil. Takım sahibinden yeni bir bağlantı isteyin veya URL'nin doğru girildiğini kontrol edin."
 
+msgid "The title shows everywhere this page is listed and in its link preview."
+msgstr "Başlık, bu sayfanın listelendiği her yerde ve bağlantı önizlemesinde görünür."
+
 msgid "The web agents UI is a read-only preview for now."
 msgstr "Web ajan arayüzü şimdilik salt okunur bir önizlemedir."
 
@@ -15159,6 +15186,10 @@ msgstr "Bu sayfa başka bir yerden yayımlanıyor — yeniden deneyin"
 
 msgid "This page is in another organization"
 msgstr "Bu sayfa başka bir kuruluşta"
+
+#. placeholder {0}: url.replace(/^https?:\/\//, "")
+msgid "This page is live at <0>{0}</0>"
+msgstr "Bu sayfa <0>{0}</0> adresinde yayında"
 
 msgid "This page isn't here"
 msgstr "Bu sayfa burada değil"
@@ -16762,6 +16793,9 @@ msgstr "Başka üyeleri olan bir kuruluşun tek sahibisiniz. Önce sahipliği de
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "{0} gün kullanım birikene kadar sıralama dışısın. Tablo bütün resmi gördüğünde puanlama başlar."
+
+msgid "You are viewing version {version}, read-only"
+msgstr "Sürüm {version} görüntüleniyor, salt okunur"
 
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "En fazla {MAX_ATTACHMENTS} dosya ekleyebilirsiniz"

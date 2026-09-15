@@ -3,6 +3,7 @@ import type {
 	CommentThread,
 	PageHeaderPage,
 	PageHeaderVersion,
+	PageVisibility,
 } from "@superset/ui/page-comments";
 import { useCallback } from "react";
 import { authClient } from "renderer/lib/auth-client";
@@ -19,8 +20,10 @@ interface PageHeaderData {
 	versions: PageHeaderVersion[];
 	threads: CommentThread[];
 	currentUserId: string | undefined;
-	onSetVisibility: (visibility: "just_me" | "org") => Promise<void>;
+	onSetVisibility: (visibility: PageVisibility) => Promise<void>;
 	onSetSharedVersion: (version: number | null) => Promise<void>;
+	onRename: (title: string) => Promise<void>;
+	onRefresh: () => void;
 	onDelete: () => Promise<void>;
 }
 
@@ -44,6 +47,7 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 	const utils = cloudTrpc.useUtils();
 	const setVisibility = cloudTrpc.page.setVisibility.useMutation();
 	const setSharedVersion = cloudTrpc.page.setSharedVersion.useMutation();
+	const updatePage = cloudTrpc.page.update.useMutation();
 	const deletePage = cloudTrpc.page.delete.useMutation();
 
 	const refresh = useCallback(async () => {
@@ -55,9 +59,12 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 		resolved && pageId
 			? {
 					id: pageId,
-					title: data.title ?? resolved.title ?? data.slug,
+					// The pull wins over the caller's cached label: a pane carries
+					// the title it was opened with, and a rename has to show there
+					// without waiting for the pane to re-resolve.
+					title: resolved.title ?? data.title ?? data.slug,
 					url: resolved.url,
-					visibility: resolved.visibility === "just_me" ? "just_me" : "org",
+					visibility: resolved.visibility,
 					createdByUserId: resolved.createdByUserId,
 					owner: access.data?.owner ?? null,
 					updatedAt: resolved.updatedAt,
@@ -86,6 +93,22 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 			if (!pageId) return;
 			await setSharedVersion.mutateAsync({ id: pageId, version });
 			await refresh();
+		},
+		onRename: async (title) => {
+			if (!pageId) return;
+			const updated = await updatePage.mutateAsync({ id: pageId, title });
+			utils.page.pull.setData(ref, (prev) =>
+				prev ? { ...prev, title: updated.title } : prev,
+			);
+			// The grid and any other pane reading this page hold their own
+			// entries, and neither is keyed by the ref patched above.
+			await Promise.all([
+				utils.page.pull.invalidate(),
+				utils.page.list.invalidate(),
+			]);
+		},
+		onRefresh: () => {
+			void refresh();
 		},
 		onDelete: async () => {
 			if (!pageId) return;

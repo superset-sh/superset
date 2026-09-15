@@ -16,9 +16,9 @@ import {
 } from "@superset/shared/page-zoom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useComments } from "../../providers/CommentProvider";
+import { PageFrame } from "../PageFrame";
 import { CommentBubble, pinClassName } from "./components/CommentBubble";
 import { CommentPopover } from "./components/CommentPopover";
-import { PageFrame } from "./components/PageFrame";
 import {
 	type PinPoint,
 	pinPointOf,

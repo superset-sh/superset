@@ -2003,6 +2003,9 @@ msgstr "N'importe qui"
 msgid "Anyone in your organization"
 msgstr "Toute personne de votre organisation"
 
+msgid "Anyone with the link"
+msgstr "Toute personne disposant du lien"
+
 msgid "anything"
 msgstr "n'importe quoi"
 
@@ -2409,6 +2412,9 @@ msgstr "Retour au changelog"
 
 msgid "Back to checklist"
 msgstr "Retour à la liste de contrôle"
+
+msgid "Back to current"
+msgstr "Revenir à la version actuelle"
 
 msgid "Back to GitHub issues"
 msgstr "Retour aux issues GitHub"
@@ -4256,6 +4262,9 @@ msgstr "Impossible d'enregistrer l'environnement"
 
 msgid "Could not rename the session"
 msgstr "Impossible de renommer la session"
+
+msgid "Could not rename this page"
+msgstr "Impossible de renommer cette page"
 
 msgid "Could not reopen"
 msgstr "Impossible de rouvrir"
@@ -10688,6 +10697,9 @@ msgstr "Page introuvable"
 msgid "Page Not Found"
 msgstr "Page introuvable"
 
+msgid "Page title"
+msgstr "Titre de la page"
+
 msgid "Page views"
 msgstr "Pages vues"
 
@@ -11909,6 +11921,9 @@ msgstr "Renommer le groupe"
 
 msgid "Rename host"
 msgstr "Renommer l'hôte"
+
+msgid "Rename page"
+msgstr "Renommer la page"
 
 msgid "Rename session"
 msgstr "Renommer la session"
@@ -13246,6 +13261,9 @@ msgstr "Partagez des maquettes et des rapports. Laissez votre agent traiter les 
 msgid "Share page"
 msgstr "Partager la page"
 
+msgid "Share settings"
+msgstr "Paramètres de partage"
+
 msgid "Share this page"
 msgstr "Partager cette page"
 
@@ -13266,6 +13284,9 @@ msgstr "Des fichiers JSON de thèmes partagés que vous pouvez importer dans Sup
 
 msgid "Shared version"
 msgstr "Version partagée"
+
+msgid "Shared with everyone"
+msgstr "Partagée avec tout le monde"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "Partage le checkout du projet — fichiers, index git et branche — avec ses autres espaces de travail locaux"
@@ -13474,6 +13495,9 @@ msgstr "Connectez-vous pour continuer vers Superset"
 
 msgid "Sign in to get started"
 msgstr "Connectez-vous pour commencer"
+
+msgid "Sign in to view this page"
+msgstr "Connectez-vous pour voir cette page"
 
 msgid "Sign in with email"
 msgstr "Se connecter par e-mail"
@@ -14961,6 +14985,9 @@ msgstr "l'hôte cible"
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "L'invitation à l'équipe a expiré ou n'existe pas. Demandez un nouveau lien au propriétaire de l'équipe ou vérifiez que l'URL est correctement saisie."
 
+msgid "The title shows everywhere this page is listed and in its link preview."
+msgstr "Le titre apparaît partout où cette page est listée ainsi que dans son aperçu de lien."
+
 msgid "The web agents UI is a read-only preview for now."
 msgstr "L'interface web des agents est pour l'instant un aperçu en lecture seule."
 
@@ -15159,6 +15186,10 @@ msgstr "Cette page est en cours de publication ailleurs — réessayez"
 
 msgid "This page is in another organization"
 msgstr "Cette page appartient à une autre organisation"
+
+#. placeholder {0}: url.replace(/^https?:\/\//, "")
+msgid "This page is live at <0>{0}</0>"
+msgstr "Cette page est en ligne sur <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Cette page n'est pas ici"
@@ -16762,6 +16793,9 @@ msgstr "Vous êtes le seul propriétaire d'une organisation qui compte d'autres 
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Vous n'êtes pas classé tant que {0} jours n'ont pas d'activité. Le score démarre une fois la vue d'ensemble disponible."
+
+msgid "You are viewing version {version}, read-only"
+msgstr "Vous consultez la version {version}, en lecture seule"
 
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "Vous pouvez joindre jusqu'à {MAX_ATTACHMENTS} fichiers"

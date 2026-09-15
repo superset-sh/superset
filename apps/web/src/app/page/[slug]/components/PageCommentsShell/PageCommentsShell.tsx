@@ -12,6 +12,12 @@ interface PageCommentsShellProps {
 	version: number;
 	user: PageCommentUser;
 	pageOwnerId?: string | null;
+	/**
+	 * A historical version is read-only, so comment mode is pinned off: a new
+	 * thread here would be anchored to content the page no longer serves, and
+	 * a watching agent would be asked to act on it.
+	 */
+	readOnly?: boolean;
 	children: ReactNode;
 }
 
@@ -20,6 +26,7 @@ export function PageCommentsShell({
 	version,
 	user,
 	pageOwnerId,
+	readOnly,
 	children,
 }: PageCommentsShellProps) {
 	const store = usePageComments({
@@ -30,7 +37,12 @@ export function PageCommentsShell({
 	});
 
 	return (
-		<CommentProvider user={user} store={store} pageOwnerId={pageOwnerId}>
+		<CommentProvider
+			user={user}
+			store={store}
+			pageOwnerId={pageOwnerId}
+			{...(readOnly ? { enabled: false } : {})}
+		>
 			{children}
 		</CommentProvider>
 	);

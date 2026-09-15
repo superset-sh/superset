@@ -1,6 +1,7 @@
 import { readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
+import { OFFERED_VISIBILITIES } from "@superset/trpc/page-schema";
 import { command } from "../../../lib/command";
 import { resolveWorkspaceId } from "../workspaceRef";
 import {
@@ -16,8 +17,6 @@ import {
 } from "./utils/resolveEntryPath";
 import { resolvePageId } from "./utils/resolvePageId";
 import { uploadAssets, uploadDocument } from "./utils/upload";
-
-const VISIBILITIES = ["just_me", "org"] as const;
 
 export default command({
 	description: "Publish an HTML file, or a directory of files, as a page",
@@ -35,7 +34,7 @@ export default command({
 			.alias("l")
 			.desc("What changed in this version, shown in the version history"),
 		visibility: string().desc(
-			`One of: ${VISIBILITIES.join(", ")} (new pages default to org)`,
+			`One of: ${OFFERED_VISIBILITIES.join(", ")} (new pages default to org)`,
 		),
 		page: string().desc(
 			"Publish a new version of this page id, instead of resolving by workspace",
@@ -79,11 +78,11 @@ export default command({
 		}
 		if (
 			options.visibility &&
-			!VISIBILITIES.includes(options.visibility as never)
+			!OFFERED_VISIBILITIES.includes(options.visibility as never)
 		) {
 			throw new CLIError(
 				`Invalid visibility: ${options.visibility}`,
-				`Use one of: ${VISIBILITIES.join(", ")}`,
+				`Use one of: ${OFFERED_VISIBILITIES.join(", ")}`,
 			);
 		}
 
@@ -155,7 +154,10 @@ export default command({
 			...(options.description ? { description: options.description } : {}),
 			...(options.label ? { label: options.label } : {}),
 			...(options.visibility
-				? { visibility: options.visibility as (typeof VISIBILITIES)[number] }
+				? {
+						visibility:
+							options.visibility as (typeof OFFERED_VISIBILITIES)[number],
+					}
 				: {}),
 		});
 

@@ -17,6 +17,7 @@ export {
 } from "./components/CommentModeToggle";
 export { CommentsPanel } from "./components/CommentsPanel";
 export { PageCommentsView } from "./components/PageCommentsView";
+export { PageFrame } from "./components/PageFrame";
 export {
 	DeletePageDialog,
 	PageHeader,
@@ -26,7 +27,9 @@ export {
 	type PageHeaderVersion,
 	PageSharePopover,
 	PageTitleMenu,
+	PageVersionBanner,
 	type PageVisibility,
+	RenamePageDialog,
 } from "./components/PageHeader";
 export { useFramePointerDown } from "./hooks/useFramePointerDown";
 export {

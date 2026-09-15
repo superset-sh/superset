@@ -1,4 +1,8 @@
-import { DeletePageDialog, PageTitleMenu } from "@superset/ui/page-comments";
+import {
+	DeletePageDialog,
+	PageTitleMenu,
+	RenamePageDialog,
+} from "@superset/ui/page-comments";
 import { FileText } from "lucide-react";
 import { useState } from "react";
 import { usePageHeaderData } from "renderer/routes/_authenticated/_dashboard/hooks/usePageHeaderData";
@@ -13,11 +17,12 @@ interface PagePaneTitleProps {
 }
 
 export function PagePaneTitle({ data, paneId, onClose }: PagePaneTitleProps) {
-	const { page, versions, currentUserId, onSetSharedVersion, onDelete } =
+	const { page, versions, currentUserId, onRename, onRefresh, onDelete } =
 		usePageHeaderData(data);
-	const { setShareOpen } = usePagePaneUi(paneId);
+	const { setShareOpen, setPreviewVersion } = usePagePaneUi(paneId);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [renameOpen, setRenameOpen] = useState(false);
 
 	if (!page) {
 		return (
@@ -50,10 +55,12 @@ export function PagePaneTitle({ data, paneId, onClose }: PagePaneTitleProps) {
 					setDeleteOpen(true);
 				}}
 				compact
-				onPickVersion={(version) => {
+				onRename={() => {
 					setMenuOpen(false);
-					void onSetSharedVersion(version);
+					setRenameOpen(true);
 				}}
+				onRefresh={onRefresh}
+				onPreviewVersion={setPreviewVersion}
 			/>
 			<DeletePageDialog
 				open={deleteOpen}
@@ -64,6 +71,12 @@ export function PagePaneTitle({ data, paneId, onClose }: PagePaneTitleProps) {
 					await onDelete();
 					onClose();
 				}}
+			/>
+			<RenamePageDialog
+				open={renameOpen}
+				onOpenChange={setRenameOpen}
+				title={page.title}
+				onRename={onRename}
 			/>
 		</span>
 	);

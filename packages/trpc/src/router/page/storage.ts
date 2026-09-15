@@ -141,14 +141,15 @@ export async function deletePageObjects({
 }
 
 /**
- * A public page needs no ticket; anything narrower gets one bound to the
- * page and, when given, to a single version.
+ * A public page needs no ticket for the version its link resolves to;
+ * anything narrower — including another version of that same public page —
+ * gets one bound to the page and, when given, to a single version.
  */
 export async function mintPageTicket(
 	page: Pick<SelectPage, "id" | "visibility">,
 	{ version, ttlSeconds }: { version?: number; ttlSeconds?: number } = {},
 ): Promise<string | undefined> {
-	if (page.visibility === "everyone") return undefined;
+	if (page.visibility === "everyone" && version === undefined) return undefined;
 	const now = Math.floor(Date.now() / 1000);
 	const window =
 		version !== undefined

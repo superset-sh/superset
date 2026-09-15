@@ -2003,6 +2003,9 @@ msgstr "Kdokoli"
 msgid "Anyone in your organization"
 msgstr "Kdokoli ve vaší organizaci"
 
+msgid "Anyone with the link"
+msgstr "Kdokoli s odkazem"
+
 msgid "anything"
 msgstr "cokoli"
 
@@ -2409,6 +2412,9 @@ msgstr "Zpět na changelog"
 
 msgid "Back to checklist"
 msgstr "Zpět na seznam kroků"
+
+msgid "Back to current"
+msgstr "Zpět na aktuální"
 
 msgid "Back to GitHub issues"
 msgstr "Zpět na GitHub issues"
@@ -4256,6 +4262,9 @@ msgstr "Prostředí se nepodařilo uložit"
 
 msgid "Could not rename the session"
 msgstr "Relaci se nepodařilo přejmenovat"
+
+msgid "Could not rename this page"
+msgstr "Tuto stránku se nepodařilo přejmenovat"
 
 msgid "Could not reopen"
 msgstr "Nepodařilo se znovu otevřít"
@@ -10688,6 +10697,9 @@ msgstr "Stránka nenalezena"
 msgid "Page Not Found"
 msgstr "Stránka nenalezena"
 
+msgid "Page title"
+msgstr "Název stránky"
+
 msgid "Page views"
 msgstr "Zobrazení stránek"
 
@@ -11909,6 +11921,9 @@ msgstr "Přejmenovat skupinu"
 
 msgid "Rename host"
 msgstr "Přejmenovat hosta"
+
+msgid "Rename page"
+msgstr "Přejmenovat stránku"
 
 msgid "Rename session"
 msgstr "Přejmenovat relaci"
@@ -13246,6 +13261,9 @@ msgstr "Sdílejte návrhy a zprávy. Zpětnou vazbu nechte na svém agentovi."
 msgid "Share page"
 msgstr "Sdílet stránku"
 
+msgid "Share settings"
+msgstr "Nastavení sdílení"
+
 msgid "Share this page"
 msgstr "Sdílet tuto stránku"
 
@@ -13266,6 +13284,9 @@ msgstr "Sdílené JSON soubory motivů, které si můžete naimportovat do Super
 
 msgid "Shared version"
 msgstr "Sdílená verze"
+
+msgid "Shared with everyone"
+msgstr "Sdíleno se všemi"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "Sdílí checkout projektu — soubory, git index a větev — s ostatními lokálními pracovními prostory"
@@ -13474,6 +13495,9 @@ msgstr "Přihlaste se a pokračujte do Superset"
 
 msgid "Sign in to get started"
 msgstr "Přihlaste se a můžete začít"
+
+msgid "Sign in to view this page"
+msgstr "Přihlaste se, abyste zobrazili tuto stránku"
 
 msgid "Sign in with email"
 msgstr "Přihlásit se e-mailem"
@@ -14961,6 +14985,9 @@ msgstr "cílový host"
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "Pozvánka do týmu buď vypršela, nebo neexistuje. Vyžádejte si od vlastníka týmu nový odkaz nebo zkontrolujte, že je URL zadaná správně."
 
+msgid "The title shows everywhere this page is listed and in its link preview."
+msgstr "Název se zobrazuje všude, kde je tato stránka uvedena, a v náhledu odkazu."
+
 msgid "The web agents UI is a read-only preview for now."
 msgstr "Webové rozhraní agentů je zatím náhled jen pro čtení."
 
@@ -15159,6 +15186,10 @@ msgstr "Tato stránka se právě zveřejňuje odjinud — zkuste to znovu"
 
 msgid "This page is in another organization"
 msgstr "Tato stránka patří do jiné organizace"
+
+#. placeholder {0}: url.replace(/^https?:\/\//, "")
+msgid "This page is live at <0>{0}</0>"
+msgstr "Tato stránka je živá na <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Tahle stránka tu není"
@@ -16762,6 +16793,9 @@ msgstr "Jste jediný vlastník organizace, která má další členy. Nejprve p�
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Nemáš pořadí, dokud nebude dní s aktivitou: {0}. Bodování začne, až bude vidět celý obrázek."
+
+msgid "You are viewing version {version}, read-only"
+msgstr "Prohlížíte si verzi {version}, jen pro čtení"
 
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "Můžete přiložit nejvýše {MAX_ATTACHMENTS} souborů"

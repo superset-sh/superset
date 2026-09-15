@@ -555,6 +555,12 @@ export const serverErrorMessages: Record<
 				message: "Provide either id or slug",
 			}),
 		),
+	"serverError.page.rateLimitExceeded": () =>
+		i18n._(
+			msg({
+				message: "Rate limit exceeded.",
+			}),
+		),
 	"serverError.page.thisPageIsBeingPublishedFrom": () =>
 		i18n._(
 			msg({

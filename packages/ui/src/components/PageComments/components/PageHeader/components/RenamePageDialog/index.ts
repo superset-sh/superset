@@ -1,0 +1,1 @@
+export { RenamePageDialog } from "./RenamePageDialog";

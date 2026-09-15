@@ -2003,6 +2003,9 @@ msgstr "Кто угодно"
 msgid "Anyone in your organization"
 msgstr "Любой в вашей организации"
 
+msgid "Anyone with the link"
+msgstr "Все, у кого есть ссылка"
+
 msgid "anything"
 msgstr "что угодно"
 
@@ -2409,6 +2412,9 @@ msgstr "К changelog"
 
 msgid "Back to checklist"
 msgstr "К списку задач"
+
+msgid "Back to current"
+msgstr "Вернуться к текущей"
 
 msgid "Back to GitHub issues"
 msgstr "К задачам GitHub"
@@ -4256,6 +4262,9 @@ msgstr "Не удалось сохранить окружение"
 
 msgid "Could not rename the session"
 msgstr "Не удалось переименовать сессию"
+
+msgid "Could not rename this page"
+msgstr "Не удалось переименовать эту страницу"
 
 msgid "Could not reopen"
 msgstr "Не удалось открыть заново"
@@ -10688,6 +10697,9 @@ msgstr "Страница не найдена"
 msgid "Page Not Found"
 msgstr "Страница не найдена"
 
+msgid "Page title"
+msgstr "Заголовок страницы"
+
 msgid "Page views"
 msgstr "Просмотры страниц"
 
@@ -11909,6 +11921,9 @@ msgstr "Переименовать группу"
 
 msgid "Rename host"
 msgstr "Переименовать хост"
+
+msgid "Rename page"
+msgstr "Переименовать страницу"
 
 msgid "Rename session"
 msgstr "Переименовать сессию"
@@ -13246,6 +13261,9 @@ msgstr "Делитесь дизайнами и отчётами. Пусть ва
 msgid "Share page"
 msgstr "Поделиться страницей"
 
+msgid "Share settings"
+msgstr "Настройки доступа"
+
 msgid "Share this page"
 msgstr "Поделиться этой страницей"
 
@@ -13266,6 +13284,9 @@ msgstr "Общие JSON-файлы тем, которые можно импор�
 
 msgid "Shared version"
 msgstr "Общедоступная версия"
+
+msgid "Shared with everyone"
+msgstr "Доступна всем"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "Использует checkout проекта — файлы, индекс git и ветку — совместно с другими локальными рабочими областями"
@@ -13474,6 +13495,9 @@ msgstr "Войдите, чтобы продолжить в Superset"
 
 msgid "Sign in to get started"
 msgstr "Войдите, чтобы начать"
+
+msgid "Sign in to view this page"
+msgstr "Войдите, чтобы открыть эту страницу"
 
 msgid "Sign in with email"
 msgstr "Войти по email"
@@ -14961,6 +14985,9 @@ msgstr "целевой хост"
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "Приглашение в команду истекло или не существует. Запросите новую ссылку у владельца команды или проверьте правильность URL."
 
+msgid "The title shows everywhere this page is listed and in its link preview."
+msgstr "Заголовок отображается везде, где указана эта страница, и в превью ссылки."
+
 msgid "The web agents UI is a read-only preview for now."
 msgstr "Веб-интерфейс агентов пока доступен только для просмотра."
 
@@ -15159,6 +15186,10 @@ msgstr "Эта страница публикуется откуда-то ещё 
 
 msgid "This page is in another organization"
 msgstr "Эта страница в другой организации"
+
+#. placeholder {0}: url.replace(/^https?:\/\//, "")
+msgid "This page is live at <0>{0}</0>"
+msgstr "Эта страница опубликована по адресу <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Этой страницы здесь нет"
@@ -16762,6 +16793,9 @@ msgstr "Вы единственный владелец организации, �
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "Вы вне рейтинга, пока не наберётся дней с активностью: {0}. Подсчёт очков начнётся, когда картина станет полной."
+
+msgid "You are viewing version {version}, read-only"
+msgstr "Вы просматриваете версию {version}, только для чтения"
 
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "Можно прикрепить не более {MAX_ATTACHMENTS} файлов"

@@ -95,3 +95,18 @@ export function parsePageManifest(text: string): PageManifest | null {
 export function servedVersionOf(manifest: PageManifest): number | null {
 	return manifest.sharedVersion ?? manifest.latestVersion;
 }
+
+/**
+ * "Anyone with the link" shares the version the link resolves to, not the
+ * history behind it. The page id is public on a shared page — it is the host
+ * of the unfurl thumbnail — so every other version stays behind a ticket, and
+ * a version the owner moved away from stops being readable the moment they do.
+ */
+export function publiclyReadable(
+	manifest: PageManifest,
+	version: number,
+): boolean {
+	return (
+		manifest.visibility === "everyone" && version === servedVersionOf(manifest)
+	);
+}

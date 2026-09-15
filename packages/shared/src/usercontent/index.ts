@@ -22,6 +22,7 @@ export {
 	type PageManifestVersion,
 	type PageVisibility,
 	parsePageManifest,
+	publiclyReadable,
 	servedVersionOf,
 } from "./manifest";
 export { PAGE_THEME_CSS } from "./theme";

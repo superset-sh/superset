@@ -2003,6 +2003,9 @@ msgstr "任何人"
 msgid "Anyone in your organization"
 msgstr "你组织中的任何人"
 
+msgid "Anyone with the link"
+msgstr "知道链接的任何人"
+
 msgid "anything"
 msgstr "任意内容"
 
@@ -2409,6 +2412,9 @@ msgstr "返回更新日志"
 
 msgid "Back to checklist"
 msgstr "返回清单"
+
+msgid "Back to current"
+msgstr "返回当前版本"
 
 msgid "Back to GitHub issues"
 msgstr "返回GitHub议题"
@@ -4256,6 +4262,9 @@ msgstr "无法保存环境"
 
 msgid "Could not rename the session"
 msgstr "无法重命名会话"
+
+msgid "Could not rename this page"
+msgstr "无法重命名此页面"
 
 msgid "Could not reopen"
 msgstr "无法重新打开"
@@ -10688,6 +10697,9 @@ msgstr "未找到页面"
 msgid "Page Not Found"
 msgstr "页面未找到"
 
+msgid "Page title"
+msgstr "页面标题"
+
 msgid "Page views"
 msgstr "页面浏览"
 
@@ -11909,6 +11921,9 @@ msgstr "重命名分组"
 
 msgid "Rename host"
 msgstr "重命名主机"
+
+msgid "Rename page"
+msgstr "重命名页面"
 
 msgid "Rename session"
 msgstr "重命名会话"
@@ -13246,6 +13261,9 @@ msgstr "分享设计和报告，让你的智能体处理反馈。"
 msgid "Share page"
 msgstr "分享页面"
 
+msgid "Share settings"
+msgstr "共享设置"
+
 msgid "Share this page"
 msgstr "分享此页面"
 
@@ -13266,6 +13284,9 @@ msgstr "可导入Superset的共享主题JSON文件。"
 
 msgid "Shared version"
 msgstr "分享的版本"
+
+msgid "Shared with everyone"
+msgstr "已与所有人共享"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "与该项目的其他本地工作区共享项目的检出（文件、git 索引和分支）"
@@ -13474,6 +13495,9 @@ msgstr "登录以继续使用Superset"
 
 msgid "Sign in to get started"
 msgstr "登录即可开始"
+
+msgid "Sign in to view this page"
+msgstr "登录以查看此页面"
 
 msgid "Sign in with email"
 msgstr "使用邮箱登录"
@@ -14961,6 +14985,9 @@ msgstr "目标主机"
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "该团队邀请已过期或不存在。请向团队所有者索取新链接，或检查URL是否输入正确。"
 
+msgid "The title shows everywhere this page is listed and in its link preview."
+msgstr "标题会显示在此页面列出的所有位置以及链接预览中。"
+
 msgid "The web agents UI is a read-only preview for now."
 msgstr "网页版智能体界面目前是只读预览。"
 
@@ -15159,6 +15186,10 @@ msgstr "此页面正在别处发布，请重试"
 
 msgid "This page is in another organization"
 msgstr "这个页面属于另一个组织"
+
+#. placeholder {0}: url.replace(/^https?:\/\//, "")
+msgid "This page is live at <0>{0}</0>"
+msgstr "此页面已发布在 <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "找不到这个页面"
@@ -16762,6 +16793,9 @@ msgstr "你是某个仍有其他成员的组织的唯一所有者。请先转移
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "在累计 {0} 天使用记录之前你不参与排名。等看板掌握完整情况后才会开始计分。"
+
+msgid "You are viewing version {version}, read-only"
+msgstr "您正在查看版本 {version}，只读"
 
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "最多可附加{MAX_ATTACHMENTS}个文件"

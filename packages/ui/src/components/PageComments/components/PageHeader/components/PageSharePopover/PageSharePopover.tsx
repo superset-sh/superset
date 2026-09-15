@@ -1,8 +1,9 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { getInitials } from "@superset/shared/names";
-import { Building2, Check, Link2, Lock } from "lucide-react";
+import { Building2, Check, Globe, Link2, Lock } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../../../ui/avatar";
 import { Button } from "../../../../../ui/button";
@@ -95,11 +96,10 @@ export function PageSharePopover({
 		} catch (error) {
 			setPending(null);
 			toast.error(
-				error instanceof Error
-					? error.message
-					: t({
-							message: "Could not change who can see this page",
-						}),
+				errorMessage(
+					error,
+					t({ message: "Could not change who can see this page" }),
+				),
 			);
 		} finally {
 			setBusy(false);
@@ -111,7 +111,7 @@ export function PageSharePopover({
 		try {
 			await action();
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : failure);
+			toast.error(errorMessage(error, failure));
 		} finally {
 			setBusy(false);
 		}
@@ -202,6 +202,10 @@ export function PageSharePopover({
 							<SelectItem value="org">
 								<Building2 className="size-3.5 text-muted-foreground" />
 								<Trans>Anyone in your organization</Trans>
+							</SelectItem>
+							<SelectItem value="everyone">
+								<Globe className="size-3.5 text-muted-foreground" />
+								<Trans>Anyone with the link</Trans>
 							</SelectItem>
 						</SelectContent>
 					</Select>

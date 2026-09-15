@@ -34,7 +34,7 @@ export function matchesScope(
 ): boolean {
 	switch (scope) {
 		case "team":
-			return page.visibility === "org";
+			return page.visibility !== "just_me";
 		case "mine":
 			return page.visibility === "just_me";
 		default:

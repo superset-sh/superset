@@ -2,7 +2,7 @@ import { formatDate } from "@superset/i18n/format";
 import { getInitials } from "@superset/shared/names";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { FileText, Globe, Lock } from "lucide-react-native";
+import { Building2, FileText, Globe, Lock } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -18,6 +18,12 @@ export function PageRow({ page }: { page: OrgPage }) {
 	const timestamp = formatDate(
 		edited - created > EDIT_THRESHOLD_MS ? edited : created,
 	);
+	const VisibilityIcon =
+		page.visibility === "everyone"
+			? Globe
+			: page.visibility === "org"
+				? Building2
+				: Lock;
 
 	return (
 		<Pressable
@@ -51,7 +57,7 @@ export function PageRow({ page }: { page: OrgPage }) {
 						{page.title ?? page.slug}
 					</Text>
 					<Icon
-						as={page.visibility === "org" ? Globe : Lock}
+						as={VisibilityIcon}
 						className="text-muted-foreground size-3 shrink-0"
 					/>
 				</View>
