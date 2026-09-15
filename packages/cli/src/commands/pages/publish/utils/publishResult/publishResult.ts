@@ -11,6 +11,7 @@ export function publishResult({
 	externalPath,
 	watching,
 	watchNote,
+	openNote,
 }: {
 	page: { title: string; version: number; url: string } & Record<
 		string,
@@ -24,6 +25,7 @@ export function publishResult({
 	externalPath: string | null;
 	watching: boolean;
 	watchNote: string | null;
+	openNote: string | null;
 }): { data: Record<string, unknown>; message: string } {
 	const lines = [`Published "${page.title}" v${page.version}`, page.url];
 	const count = assets.uploaded + assets.reused;
@@ -43,11 +45,14 @@ export function publishResult({
 		);
 	}
 	if (watchNote) lines.push(watchNote);
+	if (openNote) lines.push(openNote);
 
 	return {
 		data: {
 			...page,
 			watching,
+			...(watchNote ? { watchNote } : {}),
+			...(openNote ? { openNote } : {}),
 			assets: { uploaded: assets.uploaded, reused: assets.reused },
 		},
 		message: lines.join("\n"),

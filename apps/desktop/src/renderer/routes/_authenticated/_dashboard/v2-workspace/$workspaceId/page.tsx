@@ -46,6 +46,7 @@ import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSe
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
+import { useConsumePageOpenLink } from "./hooks/useConsumePageOpenLink";
 import { useConsumeSubagentLink } from "./hooks/useConsumeSubagentLink";
 import { useCreatePendingMigratedTerminals } from "./hooks/useCreatePendingMigratedTerminals";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
@@ -83,6 +84,8 @@ interface WorkspaceSearch {
 	openUrl?: string;
 	openUrlTarget?: V2WorkspaceUrlOpenTarget;
 	openUrlRequestId?: string;
+	pageId?: string;
+	pageSlug?: string;
 }
 
 function parseOpenUrlTarget(
@@ -107,6 +110,8 @@ export const Route = createFileRoute(
 		openUrl: parseNonEmptyString(raw.openUrl),
 		openUrlTarget: parseOpenUrlTarget(raw.openUrlTarget),
 		openUrlRequestId: parseNonEmptyString(raw.openUrlRequestId),
+		pageId: parseNonEmptyString(raw.pageId),
+		pageSlug: parseNonEmptyString(raw.pageSlug),
 	}),
 });
 
@@ -150,6 +155,8 @@ function V2WorkspaceContent() {
 		openUrl,
 		openUrlTarget,
 		openUrlRequestId,
+		pageId,
+		pageSlug,
 	} = Route.useSearch();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
@@ -215,6 +222,13 @@ function V2WorkspaceContent() {
 		url: openUrl,
 		target: openUrlTarget,
 		requestId: openUrlRequestId,
+	});
+	useConsumePageOpenLink({
+		store,
+		isLayoutReady,
+		pageId,
+		pageSlug,
+		focusRequestId,
 	});
 
 	const {
