@@ -13701,6 +13701,9 @@ msgstr "一部のファイルは最大サイズを超えているため追加さ
 msgid "Some models were priced with a fallback rate"
 msgstr "一部のモデルはフォールバックのレートで計算しています"
 
+msgid "Some pages couldn't load, so this list is incomplete."
+msgstr "一部のページを読み込めなかったため、この一覧は不完全です。"
+
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"
 msgstr "一部のリポジトリを読み込めませんでした: {0}"

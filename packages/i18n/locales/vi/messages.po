@@ -13701,6 +13701,9 @@ msgstr "Một số tệp vượt quá kích thước tối đa nên không đư�
 msgid "Some models were priced with a fallback rate"
 msgstr "Một số mô hình được tính giá theo mức dự phòng"
 
+msgid "Some pages couldn't load, so this list is incomplete."
+msgstr "Không thể tải một số trang nên danh sách này chưa đầy đủ."
+
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"
 msgstr "Một số repository không tải được: {0}"
