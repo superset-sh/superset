@@ -16,6 +16,8 @@ import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
 import type { ApiClient } from "../types";
 
+import { cancelWorkspaceTitleJob } from "./workspace-title-jobs";
+
 export type HostWorkspaceRow = typeof workspaces.$inferSelect;
 
 /**
@@ -360,6 +362,7 @@ export function updateLocalWorkspace(
 			}
 		}
 	});
+	if (patch.name !== undefined) cancelWorkspaceTitleJob(ctx.db, id);
 	const row = getLocalWorkspace(ctx.db, id);
 	if (row) emitWorkspaceChanged(ctx, "updated", row);
 	return row;
@@ -382,6 +385,7 @@ export function emitLocalWorkspaceDeleted(
 	ctx: WorkspaceStoreContext,
 	row: HostWorkspaceRow,
 ): void {
+	cancelWorkspaceTitleJob(ctx.db, row.id);
 	ctx.eventBus.broadcastWorkspaceChanged({
 		workspaceId: row.id,
 		eventType: "deleted",
@@ -416,6 +420,7 @@ export function archiveLocalWorkspace(
 			.where(eq(workspaces.id, id))
 			.run();
 	}
+	cancelWorkspaceTitleJob(ctx.db, id);
 	ctx.eventBus.broadcastWorkspaceChanged({
 		workspaceId: id,
 		eventType: "deleted",

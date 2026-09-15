@@ -1050,9 +1050,6 @@ msgstr "<0>對比</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "本週預計約{stars}"
 
-msgid "~{totalSeconds}s typical"
-msgstr "通常約{totalSeconds}秒"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "通常約{TYPICAL_SECONDS}秒"
 
@@ -4111,9 +4108,6 @@ msgstr "把其他瀏覽器的瀏覽歷史和登入資訊複製到Superset。原�
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "請立即複製你的金鑰，之後將無法再次檢視。"
 
-msgid "Copying configuration"
-msgstr "正在複製配置"
-
 msgid "Cost"
 msgstr "費用"
 
@@ -4634,9 +4628,6 @@ msgstr "建立中"
 
 msgid "Creating"
 msgstr "建立中"
-
-msgid "Creating git worktree"
-msgstr "正在建立git worktree"
 
 msgid "Creating PR..."
 msgstr "正在建立PR…"
@@ -6553,9 +6544,6 @@ msgstr "篩選"
 msgid "Filters, {activeFilterCount} active"
 msgstr "篩選，{activeFilterCount}項生效"
 
-msgid "Finalizing setup"
-msgstr "正在完成設定"
-
 msgid "Find"
 msgstr "尋找"
 
@@ -7546,9 +7534,6 @@ msgstr "初始化Git"
 
 msgid "Initialize Git Repository?"
 msgstr "初始化Git儲存庫？"
-
-msgid "Initializing session"
-msgstr "正在初始化會話"
 
 msgid "Initializing..."
 msgstr "正在初始化..."
@@ -14402,9 +14387,6 @@ msgstr "同步儲存庫"
 msgid "Sync started"
 msgstr "同步已開始"
 
-msgid "Syncing with remote"
-msgstr "正在與遠端同步"
-
 msgid "Syncing..."
 msgstr "正在同步..."
 
@@ -16105,9 +16087,6 @@ msgstr "核實這裡"
 
 msgid "Verify your identity"
 msgstr "驗證你的身份"
-
-msgid "Verifying base branch"
-msgstr "正在校驗基礎分支"
 
 msgid "Version"
 msgstr "版本"

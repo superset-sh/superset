@@ -1050,9 +1050,6 @@ msgstr "<0>vs</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "~{stars} projetées cette semaine"
 
-msgid "~{totalSeconds}s typical"
-msgstr "~{totalSeconds} s en général"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "~{TYPICAL_SECONDS} s en général"
 
@@ -4111,9 +4108,6 @@ msgstr "Copiez votre historique de navigation et vos identifiants depuis un autr
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "Copiez votre clé maintenant — vous ne pourrez plus la voir ensuite."
 
-msgid "Copying configuration"
-msgstr "Copie de la configuration"
-
 msgid "Cost"
 msgstr "Coût"
 
@@ -4634,9 +4628,6 @@ msgstr "création"
 
 msgid "Creating"
 msgstr "Création"
-
-msgid "Creating git worktree"
-msgstr "Création du worktree git"
 
 msgid "Creating PR..."
 msgstr "Création de la PR…"
@@ -6553,9 +6544,6 @@ msgstr "Filtres"
 msgid "Filters, {activeFilterCount} active"
 msgstr "Filtres, {activeFilterCount} actifs"
 
-msgid "Finalizing setup"
-msgstr "Finalisation de la configuration"
-
 msgid "Find"
 msgstr "Rechercher"
 
@@ -7546,9 +7534,6 @@ msgstr "Initialiser Git"
 
 msgid "Initialize Git Repository?"
 msgstr "Initialiser un dépôt Git ?"
-
-msgid "Initializing session"
-msgstr "Initialisation de la session"
 
 msgid "Initializing..."
 msgstr "Initialisation..."
@@ -14402,9 +14387,6 @@ msgstr "Synchroniser les dépôts"
 msgid "Sync started"
 msgstr "Synchronisation démarrée"
 
-msgid "Syncing with remote"
-msgstr "Synchronisation avec le dépôt distant"
-
 msgid "Syncing..."
 msgstr "Synchronisation..."
 
@@ -16105,9 +16087,6 @@ msgstr "Vérifier ceci"
 
 msgid "Verify your identity"
 msgstr "Vérifier votre identité"
-
-msgid "Verifying base branch"
-msgstr "Vérification de la branche de base"
 
 msgid "Version"
 msgstr "Version"
