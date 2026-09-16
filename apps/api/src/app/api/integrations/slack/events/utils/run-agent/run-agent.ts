@@ -59,6 +59,7 @@ export async function fetchThreadContext({
 	threadTs,
 	messageTs,
 	deadline,
+	sinceTs,
 	limit = 20,
 }: {
 	token: string;
@@ -66,6 +67,8 @@ export async function fetchThreadContext({
 	threadTs: string;
 	messageTs: string;
 	deadline?: number;
+	/** The newest message the agent had already read; later ones are flagged. */
+	sinceTs?: string;
 	limit?: number;
 }): Promise<string> {
 	try {
@@ -109,14 +112,21 @@ export async function fetchThreadContext({
 			slack,
 		});
 
+		const isNew = (ts: string | undefined) =>
+			sinceTs !== undefined && ts !== undefined && Number(ts) > Number(sinceTs);
+		const newCount = messages.filter((msg) => isNew(msg.ts)).length;
 		const formatted = messages
 			.map(
 				(msg) =>
-					`${msg.user ? resolve(`<@${msg.user}>`) : "unknown"}: ${resolve(msg.text ?? "")}`,
+					`${isNew(msg.ts) ? "[new] " : ""}${msg.user ? resolve(`<@${msg.user}>`) : "unknown"}: ${resolve(msg.text ?? "")}`,
 			)
 			.join("\n");
 
-		return `--- Thread Context (${messages.length} previous messages) ---\n${formatted}\n--- End Thread Context ---`;
+		const header =
+			newCount > 0
+				? `--- Thread Context (${messages.length} previous messages; ${newCount} marked [new] arrived after your last reply) ---`
+				: `--- Thread Context (${messages.length} previous messages) ---`;
+		return `${header}\n${formatted}\n--- End Thread Context ---`;
 	} catch (error) {
 		console.warn("[slack-agent] Failed to fetch thread context:", error);
 		return "";
@@ -145,6 +155,8 @@ interface RunSlackAgentParams {
 		quiet: boolean;
 		set: (quiet: boolean) => Promise<void>;
 	};
+	/** The newest thread message the agent had read before this turn. */
+	lastContextTs?: string;
 	onProgress?: (status: string) => void | Promise<void>;
 }
 
@@ -560,6 +572,7 @@ export async function runSlackAgent(
 				threadTs: params.threadTs,
 				messageTs: params.messageTs,
 				deadline,
+				sinceTs: params.lastContextTs,
 			}),
 			createSupersetMcpClient({
 				organizationId: params.organizationId,

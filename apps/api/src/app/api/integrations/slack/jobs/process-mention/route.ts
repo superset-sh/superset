@@ -26,6 +26,7 @@ const payloadSchema = z.object({
 		event_ts: z.string(),
 		thread_ts: z.string().optional(),
 		files: z.array(slackFileSchema).optional(),
+		queued_ts: z.array(z.string()).optional(),
 	}),
 	teamId: z.string(),
 	eventId: z.string(),

@@ -24,6 +24,13 @@ const claim = mock(
 	}),
 );
 const finish = mock(async (_id: string, _succeeded: boolean) => {});
+const release = mock(async (_id: string) => {});
+const publishJSON = mock(async (_options: unknown) => ({}));
+mock.module("@upstash/qstash", () => ({
+	Client: class {
+		publishJSON = publishJSON;
+	},
+}));
 const findLink = mock(
 	async (_args: unknown): Promise<{ userId: string } | undefined> => ({
 		userId: "linked-user",
@@ -61,23 +68,37 @@ mock.module("../utils/run-agent", () => ({
 mock.module("../utils/agent-delivery", () => ({
 	claimAgentDelivery: claim,
 	finishAgentDelivery: finish,
+	releaseAgentDelivery: release,
 }));
 const session = {
 	id: "thread-session",
 	quiet: false,
+	lastContextTs: "5.0",
 	entityLog: [
 		{ kind: "workspace", id: "ws-1", label: "fix-login (feat/login)", at: "x" },
 	],
 };
-const beginThread = mock(async (_args: unknown) => session);
+const beginThread = mock(
+	async (
+		_args: unknown,
+	): Promise<
+		{ status: "running"; session: typeof session } | { status: "queued" }
+	> => ({ status: "running", session }),
+);
 const finishThread = mock(async (_args: unknown) => {});
 const setQuiet = mock(async (_args: unknown) => {});
 const followUpsEnabled = mock(async (_teamId: string) => true);
+const takeQueued = mock(
+	async (
+		_id: string,
+	): Promise<{ ts: string; user: string; text: string }[]> => [],
+);
 mock.module("../utils/thread-sessions", () => ({
 	beginThreadRun: beginThread,
 	finishThreadRun: finishThread,
 	setThreadQuiet: setQuiet,
 	threadFollowUpsEnabled: followUpsEnabled,
+	takeQueuedEvents: takeQueued,
 	parseThreadCommand: (text: string) => {
 		const t = text
 			.replace(/<@[A-Z0-9]+>/g, "")
@@ -141,6 +162,17 @@ beforeEach(() => {
 	setQuiet.mockClear();
 	followUpsEnabled.mockReset();
 	followUpsEnabled.mockImplementation(async () => true);
+	release.mockClear();
+	publishJSON.mockClear();
+	takeQueued.mockReset();
+	takeQueued.mockImplementation(async () => []);
+});
+
+test("with the flag off, nothing is queued and nothing is handed back", async () => {
+	followUpsEnabled.mockImplementationOnce(async () => false);
+	await processAgentMessage(params);
+	expect(takeQueued).not.toHaveBeenCalled();
+	expect(publishJSON).not.toHaveBeenCalled();
 });
 
 test("with the flag off, no session is opened, no memory is injected, and no quiet tool is offered", async () => {
@@ -178,7 +210,10 @@ test("!unmute reopens the thread without running the agent", async () => {
 });
 
 test("the agent is given the thread's quiet state and a way to change it", async () => {
-	beginThread.mockImplementationOnce(async () => ({ ...session, quiet: true }));
+	beginThread.mockImplementationOnce(async () => ({
+		status: "running",
+		session: { ...session, quiet: true },
+	}));
 	await processAgentMessage(params);
 	const args = runAgent.mock.calls[0]?.[0] as {
 		threadQuiet: { quiet: boolean; set: (q: boolean) => Promise<void> };
@@ -188,6 +223,61 @@ test("the agent is given the thread's quiet state and a way to change it", async
 	expect(setQuiet).toHaveBeenCalledWith(
 		expect.objectContaining({ threadTs: "1.0", quiet: false }),
 	);
+});
+
+test("a reply that arrives mid-turn is queued: no run, claim released, reaction kept", async () => {
+	beginThread.mockImplementationOnce(async () => ({ status: "queued" }));
+	await processAgentMessage(params);
+	expect(runAgent).not.toHaveBeenCalled();
+	expect(release).toHaveBeenCalledWith("delivery");
+	expect(finish).not.toHaveBeenCalled();
+	expect(removeReaction).not.toHaveBeenCalled();
+	expect(
+		postMessage.mock.calls.every(([a]) => a.text !== "**Completed**"),
+	).toBe(true);
+});
+
+test("after a turn, queued replies are handed back by re-delivering the newest one", async () => {
+	takeQueued.mockImplementationOnce(async () => [
+		{ ts: "11.0", user: "U2", text: "first" },
+		{ ts: "12.0", user: "U3", text: "second" },
+	]);
+	await processAgentMessage(params);
+	expect(publishJSON).toHaveBeenCalledTimes(1);
+	expect(publishJSON.mock.calls[0]?.[0]).toMatchObject({
+		deduplicationId: "queued:T1:12.0",
+		body: {
+			teamId: "T1",
+			event: {
+				ts: "12.0",
+				user: "U3",
+				text: "second",
+				thread_ts: "1.0",
+				queued_ts: ["11.0"],
+			},
+		},
+	});
+});
+
+test("a re-delivered queued message clears the reactions of the ones behind it", async () => {
+	await processAgentMessage({
+		...params,
+		event: {
+			...params.event,
+			type: "message",
+			channel_type: "channel",
+			queued_ts: ["8.0", "9.0"],
+		},
+	});
+	const cleared = removeReaction.mock.calls.map(
+		([a]) => (a as { timestamp: string }).timestamp,
+	);
+	expect(cleared).toEqual(["10.0", "8.0", "9.0"]);
+});
+
+test("the agent is told which thread messages it had already read", async () => {
+	await processAgentMessage(params);
+	expect(runAgent.mock.calls[0]?.[0]).toMatchObject({ lastContextTs: "5.0" });
 });
 
 test("a run opens the thread session, hands its memory to the agent, and records what was made", async () => {
@@ -207,6 +297,7 @@ test("a run opens the thread session, hands its memory to the agent, and records
 		channelId: "C1",
 		threadTs: "1.0",
 		userId: "linked-user",
+		event: { ts: "10.0", user: "U1", text: "Help" },
 	});
 	expect(runAgent.mock.calls[0]?.[0]).toMatchObject({
 		threadMemory: "fix-login (feat/login)",
@@ -221,6 +312,8 @@ test("a run opens the thread session, hands its memory to the agent, and records
 		],
 		lastContextTs: "10.0",
 	});
+	expect(takeQueued).toHaveBeenCalledWith("thread-session");
+	expect(publishJSON).not.toHaveBeenCalled();
 });
 
 test("!mute quiets the thread without running the agent", async () => {

@@ -130,6 +130,29 @@ describe("thread context", () => {
 	});
 });
 
+describe("thread context since last turn", () => {
+	test("flags messages newer than the last one the agent read", async () => {
+		replies.mockImplementation(async () => ({
+			messages: [
+				{ ts: "1.0", text: "start" },
+				{ ts: "6.0", text: "arrived later" },
+				{ ts: "50.0", text: "current" },
+			],
+			response_metadata: { next_cursor: "" },
+		}));
+		const text = await fetchThreadContext({
+			token: "t",
+			channelId: "C1",
+			threadTs: "1.0",
+			messageTs: "50.0",
+			sinceTs: "5.0",
+		});
+		expect(text).toContain("1 marked [new]");
+		expect(text).toContain("[new] unknown: arrived later");
+		expect(text).not.toContain("[new] unknown: start");
+	});
+});
+
 describe("agent loop", () => {
 	test("uses Sonnet 5 with thinking, caching and curated tools", async () => {
 		await runSlackAgent(params);

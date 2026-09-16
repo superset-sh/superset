@@ -72,6 +72,11 @@ export async function claimAgentDelivery(params: {
 	return stale ? { status: "stale" } : { status: "duplicate" };
 }
 
+/** A message that was queued behind a running turn is re-delivered later. */
+export async function releaseAgentDelivery(id: string): Promise<void> {
+	await db.delete(webhookEvents).where(eq(webhookEvents.id, id));
+}
+
 export async function finishAgentDelivery(
 	id: string,
 	succeeded: boolean,

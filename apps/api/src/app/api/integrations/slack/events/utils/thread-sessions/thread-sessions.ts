@@ -2,11 +2,12 @@ import { db } from "@superset/db/client";
 import {
 	integrationConnections,
 	type SelectSlackThreadSession,
+	type SlackQueuedEvent,
 	type SlackThreadEntity,
 	slackThreadSessions,
 } from "@superset/db/schema";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { posthog } from "@/lib/analytics";
 import type { AgentAction } from "../slack-blocks";
 
@@ -14,6 +15,9 @@ const MAX_REMEMBERED_ENTITIES = 30;
 const MAX_LABEL_LENGTH = 80;
 const FLAG_CACHE_TTL_MS = 60_000;
 const FLAG_TIMEOUT_MS = 1_000;
+/** A run older than the job route's maxDuration with no finish belongs to a dead worker. */
+const STALE_RUN_MS = 6 * 60_000;
+const MAX_QUEUED_EVENTS = 20;
 
 interface ThreadKey {
 	organizationId: string;
@@ -142,11 +146,39 @@ export async function setThreadQuiet(
 		});
 }
 
-/** Create or resume the thread's session and mark it running. */
+export type ThreadRunClaim =
+	| { status: "running"; session: SelectSlackThreadSession }
+	| { status: "queued" };
+
+/**
+ * Take the thread for this turn. Exactly one delivery owns a running
+ * session: an idle (or stale) session flips to running atomically, a
+ * missing one is inserted, and anything else queues the event for the
+ * owner to hand back when it finishes.
+ */
 export async function beginThreadRun(
-	key: ThreadKey & { userId: string },
-): Promise<SelectSlackThreadSession> {
-	const [session] = await db
+	key: ThreadKey & { userId: string; event: SlackQueuedEvent },
+): Promise<ThreadRunClaim> {
+	const now = new Date();
+	const [claimed] = await db
+		.update(slackThreadSessions)
+		.set({ status: "running", lastActivityAt: now })
+		.where(
+			and(
+				whereThread(key),
+				or(
+					eq(slackThreadSessions.status, "idle"),
+					lt(
+						slackThreadSessions.lastActivityAt,
+						new Date(now.getTime() - STALE_RUN_MS),
+					),
+				),
+			),
+		)
+		.returning();
+	if (claimed) return { status: "running", session: claimed };
+
+	const [inserted] = await db
 		.insert(slackThreadSessions)
 		.values({
 			organizationId: key.organizationId,
@@ -156,13 +188,43 @@ export async function beginThreadRun(
 			startedByUserId: key.userId,
 			status: "running",
 		})
-		.onConflictDoUpdate({
-			target: THREAD_CONFLICT_TARGET,
-			set: { status: "running", lastActivityAt: new Date() },
-		})
+		.onConflictDoNothing({ target: THREAD_CONFLICT_TARGET })
 		.returning();
-	if (!session) throw new Error("Slack thread session upsert returned no row");
-	return session;
+	if (inserted) return { status: "running", session: inserted };
+
+	await db
+		.update(slackThreadSessions)
+		.set({
+			queuedEvents: sql`(
+				SELECT COALESCE(jsonb_agg(e), '[]'::jsonb)
+				FROM (
+					SELECT e FROM jsonb_array_elements(
+						${slackThreadSessions.queuedEvents} || ${JSON.stringify([key.event])}::jsonb
+					) WITH ORDINALITY AS q(e, n)
+					ORDER BY n DESC
+					LIMIT ${MAX_QUEUED_EVENTS}
+				) AS newest
+			)`,
+		})
+		.where(whereThread(key));
+	return { status: "queued" };
+}
+
+/**
+ * Hand back what arrived while the turn ran. Called after the session is
+ * idle again; the caller re-delivers the newest event so a fresh turn reads
+ * the whole thread, including the older queued messages.
+ */
+export async function takeQueuedEvents(
+	id: string,
+): Promise<SlackQueuedEvent[]> {
+	const [row] = await db
+		.update(slackThreadSessions)
+		.set({ queuedEvents: [] })
+		.where(eq(slackThreadSessions.id, id))
+		.returning({ queuedEvents: slackThreadSessions.queuedEvents });
+	// Stored newest first; return oldest first.
+	return [...(row?.queuedEvents ?? [])].reverse();
 }
 
 export async function finishThreadRun(params: {
