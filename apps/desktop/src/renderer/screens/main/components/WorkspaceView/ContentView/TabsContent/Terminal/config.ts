@@ -3,6 +3,7 @@ import {
 	DEFAULT_TERMINAL_FONT_FAMILY as SHARED_DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE as SHARED_DEFAULT_TERMINAL_FONT_SIZE,
 } from "renderer/lib/terminal/appearance";
+import { isTerminalDebugEnabled } from "renderer/lib/terminal/debug";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 
 // Use user's theme
@@ -13,9 +14,7 @@ export const FIRST_RENDER_RESTORE_FALLBACK_MS = 250;
 
 // Debug logging for terminal lifecycle (enable via localStorage)
 // Run in DevTools console: localStorage.setItem('SUPERSET_TERMINAL_DEBUG', '1')
-export const DEBUG_TERMINAL =
-	typeof localStorage !== "undefined" &&
-	localStorage.getItem("SUPERSET_TERMINAL_DEBUG") === "1";
+export const DEBUG_TERMINAL = isTerminalDebugEnabled();
 
 // Shared terminal font defaults are serialized as a valid CSS font-family value.
 export const DEFAULT_TERMINAL_FONT_FAMILY = SHARED_DEFAULT_TERMINAL_FONT_FAMILY;

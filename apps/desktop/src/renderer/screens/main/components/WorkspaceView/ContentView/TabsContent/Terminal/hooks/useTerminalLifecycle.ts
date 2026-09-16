@@ -4,6 +4,7 @@ import type { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, ITheme, Terminal as XTerm } from "@xterm/xterm";
 import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isTerminalAttachCanceledMessage } from "renderer/lib/terminal/attach-cancel";
 import { writeCommandInPane } from "renderer/lib/terminal/launch-command";
 import type { DetectedLink } from "renderer/lib/terminal/links";
 import { runWhenParserIdle } from "renderer/lib/terminal/parser-idle-gate";
@@ -16,7 +17,6 @@ import { installTerminalKeyEventHandler } from "renderer/lib/terminal/terminal-k
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
-import { isTerminalAttachCanceledMessage } from "../attach-cancel";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { isCommandEchoed, sanitizeForTitle } from "../commandBuffer";
 import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
@@ -871,7 +871,7 @@ export function useTerminalLifecycle({
 
 			if (paneDestroyed) {
 				// Pane was explicitly destroyed — full cleanup.
-				killTerminalForPane(paneId);
+				killTerminalForPane(paneId, "pane-destroyed-on-unmount");
 				coldRestoreState.delete(paneId);
 				pendingDetaches.delete(paneId);
 				v1TerminalCache.dispose(paneId);
