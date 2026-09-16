@@ -270,6 +270,7 @@ export class PageWatchManager {
 					text: buildWatchPrompt({
 						title: entry.title,
 						slug: entry.slug,
+						pageId: entry.pageId,
 						threads: result.fired,
 					}),
 				});

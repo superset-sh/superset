@@ -352,7 +352,7 @@ The loop, in order:
 ```bash
 superset pages comments list --page <page-id-or-slug>
 # edit the source file, fixing what each thread asked for
-superset pages publish report.html --label "addressed review comments"
+superset pages publish report.html --page <page-id> --label "addressed review comments"
 superset pages comments reply --thread <thread-id> "Recomputed from the Q3 close; the total is 1.42M now."
 superset pages comments resolve --thread <thread-id>
 ```
