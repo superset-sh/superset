@@ -429,7 +429,7 @@ async function handleGetChannelHistory({
 const SYSTEM_PROMPT = `You are a helpful assistant in Slack for Superset, a platform for managing tasks and running coding agents in workspaces.
 
 You can:
-- Create and search tasks using superset_* tools (updating and deleting tasks is not available from Slack yet)
+- Create, search and update tasks using superset_* tools (deleting tasks is not available from Slack)
 - Spawn workspaces and launch coding agents to do the work using superset_* tools
 - Read recent channel messages using slack_get_channel_history
 - Search the web for current information using web_search
