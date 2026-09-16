@@ -237,10 +237,32 @@ test("!mute quiets the thread without running the agent", async () => {
 		quiet: true,
 	});
 	expect(runAgent).not.toHaveBeenCalled();
-	expect(claim).not.toHaveBeenCalled();
+	expect(claim).toHaveBeenCalledTimes(1);
+	expect(finish).toHaveBeenCalledWith("delivery", true);
 	expect(postMessage.mock.calls[0]?.[0].text).toContain(
 		"stay out of this thread",
 	);
+});
+
+test("a redelivered command does not reapply an older setting", async () => {
+	claim.mockImplementationOnce(async () => ({ status: "duplicate" }));
+	await processAgentMessage({
+		...params,
+		event: { ...params.event, text: "<@UBOT> !mute" },
+	});
+	expect(setQuiet).not.toHaveBeenCalled();
+	expect(postMessage).not.toHaveBeenCalled();
+});
+
+test("a queued follow-up is dropped when the worker sees the flag off", async () => {
+	followUpsEnabled.mockImplementationOnce(async () => false);
+	await processAgentMessage({
+		...params,
+		event: { ...params.event, type: "message", channel_type: "channel" },
+	});
+	expect(runAgent).not.toHaveBeenCalled();
+	expect(claim).not.toHaveBeenCalled();
+	expect(postMessage).not.toHaveBeenCalled();
 });
 
 test("in a DM, !mute is ordinary text and no quiet tool is offered", async () => {

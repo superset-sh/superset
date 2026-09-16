@@ -223,18 +223,14 @@ export async function processAgentMessage({
 		userId: slackUserLink.userId,
 	};
 
+	// A thread reply without a mention only reaches this worker through the
+	// follow-up path, which the flag opened at enqueue time. It may have
+	// closed since, and the unflagged path never runs the agent for one.
+	const isFollowUp = event.type === "message" && !isDm;
+	if (isFollowUp && !sessions) return;
 	// Every DM already reaches the agent, so quieting means nothing there.
 	const command =
 		sessions && !isDm ? parseThreadCommand(event.text ?? "") : null;
-	if (command) {
-		await setThreadQuiet({ ...threadKey, quiet: command === "mute" });
-		await slack.chat.postMessage({
-			channel: event.channel,
-			thread_ts: threadTs,
-			text: command === "mute" ? QUIETED_TEXT : UNQUIETED_TEXT,
-		});
-		return;
-	}
 	// assistant.threads.setStatus only works in assistant (DM) threads; Slack
 	// answers method_not_supported_for_channel_type anywhere else. Channels get
 	// a placeholder message that carries progress and is removed once the final
@@ -314,6 +310,21 @@ export async function processAgentMessage({
 		return;
 	}
 	const deliveryId = claim.id;
+	if (command) {
+		let applied = false;
+		try {
+			await setThreadQuiet({ ...threadKey, quiet: command === "mute" });
+			await run.chat.postMessage({
+				channel: event.channel,
+				thread_ts: threadTs,
+				text: command === "mute" ? QUIETED_TEXT : UNQUIETED_TEXT,
+			});
+			applied = true;
+		} finally {
+			await finishAgentDelivery(deliveryId, applied);
+		}
+		return;
+	}
 	let delivered = false;
 	let actions: AgentAction[] = [];
 	let threadSessionId: string | undefined;
