@@ -75,7 +75,7 @@ export default command({
 		if (match.length === 0) {
 			throw new CLIError(
 				`No thread ${options.threadId} found`,
-				"Run without --threadId to see every thread",
+				"Run without --thread to see every thread",
 			);
 		}
 		return match;

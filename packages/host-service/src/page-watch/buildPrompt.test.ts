@@ -102,4 +102,17 @@ describe("buildWatchPrompt", () => {
 		expect(prompt).toContain(`superset pages publish <file> --page ${PAGE_ID}`);
 		expect(prompt).toContain("creates a second page");
 	});
+	// `--threadId` parses as nothing: reply exits silently having posted no
+	// reply, and the agent reports work it did not do.
+	it("spells the thread flag the way the CLI accepts it", () => {
+		const prompt = buildWatchPrompt({
+			title: "Report",
+			slug: "report",
+			pageId: PAGE_ID,
+			threads: [thread()],
+		});
+		expect(prompt).toContain('comments reply --thread <id> "…"');
+		expect(prompt).toContain("comments resolve --thread <id>");
+		expect(prompt).not.toContain("--threadId");
+	});
 });
