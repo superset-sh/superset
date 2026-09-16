@@ -388,8 +388,13 @@ export async function processAgentMessage({
 						text: event.text ?? "",
 						files: event.files,
 					},
+					handBack: event.queued_ts !== undefined,
 				})
 			: null;
+		if (claimedThread?.status === "covered") {
+			delivered = true;
+			return;
+		}
 		if (claimedThread?.status === "queued") {
 			// The running turn hands this back when it finishes; the 👀 stays
 			// on the message until that later turn clears it.

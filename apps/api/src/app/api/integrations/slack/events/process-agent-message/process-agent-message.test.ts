@@ -82,7 +82,9 @@ const beginThread = mock(
 	async (
 		_args: unknown,
 	): Promise<
-		{ status: "running"; session: typeof session } | { status: "queued" }
+		| { status: "running"; session: typeof session }
+		| { status: "queued" }
+		| { status: "covered" }
 	> => ({ status: "running", session }),
 );
 const finishThread = mock(async (_args: unknown) => {});
@@ -320,6 +322,31 @@ test("a failed hand-back leaves the queue for the next turn", async () => {
 	expect(postMessage.mock.calls.at(-1)?.[0].text).toBe("**Completed**");
 });
 
+test("a handed-back reply a finished turn already covered stands down and clears its eyes", async () => {
+	beginThread.mockImplementationOnce(async () => ({ status: "covered" }));
+	await processAgentMessage({
+		...params,
+		eventId: "queued:T1:10.0:9.0",
+		event: {
+			...params.event,
+			type: "message",
+			channel_type: "channel",
+			queued_ts: ["8.0"],
+		},
+	});
+	expect(beginThread.mock.calls[0]?.[0]).toMatchObject({ handBack: true });
+	expect(runAgent).not.toHaveBeenCalled();
+	expect(finish).toHaveBeenCalledWith("delivery", true);
+	expect(
+		removeReaction.mock.calls.map(
+			([a]) => (a as { timestamp: string }).timestamp,
+		),
+	).toEqual(["10.0", "8.0"]);
+	expect(
+		postMessage.mock.calls.every(([a]) => a.text !== "**Completed**"),
+	).toBe(true);
+});
+
 test("a handed-back reply does not re-ask the flag", async () => {
 	followUpsEnabled.mockImplementationOnce(async () => false);
 	await processAgentMessage({
@@ -382,14 +409,16 @@ test("a run opens the thread session, hands its memory to the agent, and records
 		],
 	}));
 	await processAgentMessage(params);
-	expect(beginThread).toHaveBeenCalledWith({
-		organizationId: "org",
-		teamId: "T1",
-		channelId: "C1",
-		threadTs: "1.0",
-		userId: "linked-user",
-		event: { ts: "10.0", user: "U1", text: "Help" },
-	});
+	expect(beginThread).toHaveBeenCalledWith(
+		expect.objectContaining({
+			organizationId: "org",
+			teamId: "T1",
+			channelId: "C1",
+			threadTs: "1.0",
+			userId: "linked-user",
+			event: { ts: "10.0", user: "U1", text: "Help" },
+		}),
+	);
 	expect(runAgent.mock.calls[0]?.[0]).toMatchObject({
 		threadMemory: "fix-login (feat/login)",
 	});

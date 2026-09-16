@@ -152,7 +152,9 @@ export async function setThreadQuiet(
 
 export type ThreadRunClaim =
 	| { status: "running"; session: SelectSlackThreadSession }
-	| { status: "queued" };
+	| { status: "queued" }
+	/** A finished turn already ran with this message or a later one as its trigger. */
+	| { status: "covered" };
 
 /**
  * Take the thread for this turn. Exactly one delivery owns a running
@@ -161,7 +163,16 @@ export type ThreadRunClaim =
  * owner to hand back when it finishes.
  */
 export async function beginThreadRun(
-	key: ThreadKey & { userId: string; event: SlackQueuedEvent },
+	key: ThreadKey & {
+		userId: string;
+		event: SlackQueuedEvent;
+		/**
+		 * A hand-back may reach the thread twice (a publish whose response was
+		 * lost, then restored and published again). The second copy finds the
+		 * session's last trigger at or past its own message and stands down.
+		 */
+		handBack?: boolean;
+	},
 ): Promise<ThreadRunClaim> {
 	for (let attempt = 0; attempt < CLAIM_ATTEMPTS; attempt++) {
 		const now = new Date();
@@ -181,7 +192,20 @@ export async function beginThreadRun(
 				),
 			)
 			.returning();
-		if (claimed) return { status: "running", session: claimed };
+		if (claimed) {
+			if (
+				key.handBack &&
+				claimed.lastContextTs &&
+				Number(claimed.lastContextTs) >= Number(key.event.ts)
+			) {
+				await db
+					.update(slackThreadSessions)
+					.set({ status: "idle" })
+					.where(eq(slackThreadSessions.id, claimed.id));
+				return { status: "covered" };
+			}
+			return { status: "running", session: claimed };
+		}
 
 		const [inserted] = await db
 			.insert(slackThreadSessions)
@@ -250,7 +274,16 @@ export async function restoreQueuedEvents(
 	await db
 		.update(slackThreadSessions)
 		.set({
-			queuedEvents: sql`${slackThreadSessions.queuedEvents} || ${JSON.stringify([...events].reverse())}::jsonb`,
+			queuedEvents: sql`(
+				SELECT COALESCE(jsonb_agg(e ORDER BY n), '[]'::jsonb)
+				FROM (
+					SELECT e, n FROM jsonb_array_elements(
+						${slackThreadSessions.queuedEvents} || ${JSON.stringify([...events].reverse())}::jsonb
+					) WITH ORDINALITY AS q(e, n)
+					ORDER BY n
+					LIMIT ${MAX_QUEUED_EVENTS}
+				) AS newest
+			)`,
 		})
 		.where(eq(slackThreadSessions.id, id));
 }
