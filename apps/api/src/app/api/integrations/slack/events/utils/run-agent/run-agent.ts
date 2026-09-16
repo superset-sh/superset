@@ -832,10 +832,12 @@ ${agentContext}`;
 						: AGENT_COPY.turnLimit;
 			return { text, actions };
 		}
+		// Web search splits one paragraph into several text blocks around its
+		// citations; they are fragments of the same prose, not paragraphs.
 		const text = response.content
 			.filter((block): block is Anthropic.TextBlock => block.type === "text")
 			.map((block) => block.text)
-			.join("\n\n");
+			.join("");
 		return { text: text || AGENT_COPY.empty, actions };
 	} catch (error) {
 		console.error("[slack-agent] Agent request failed", error);

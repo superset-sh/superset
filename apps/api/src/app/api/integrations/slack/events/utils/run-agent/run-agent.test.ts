@@ -211,6 +211,21 @@ describe("agent loop", () => {
 		expect(set).toHaveBeenCalledWith(false);
 	});
 
+	test("text split around citations comes back as one paragraph", async () => {
+		create.mockImplementationOnce(async () => ({
+			stop_reason: "end_turn",
+			content: [
+				{ type: "text", text: "Bun 1.4.2 fixes 7 issues", citations: [{}] },
+				{ type: "text", text: ", including two regressions", citations: [{}] },
+				{ type: "text", text: ".", citations: [] },
+			],
+		}));
+		const result = await runSlackAgent(params);
+		expect(result.text).toBe(
+			"Bun 1.4.2 fixes 7 issues, including two regressions.",
+		);
+	});
+
 	test("thread memory is user-turn data, never part of the system prompt", async () => {
 		await runSlackAgent({
 			...params,
