@@ -32,11 +32,12 @@ import {
 } from "../utils/slack-image-assets";
 import {
 	beginThreadRun,
+	clearQueuedEventsThrough,
 	finishThreadRun,
 	parseThreadCommand,
+	readQueuedEvents,
 	renderThreadMemory,
 	setThreadQuiet,
-	takeQueuedEvents,
 	threadFollowUpsEnabled,
 } from "../utils/thread-sessions";
 
@@ -50,7 +51,10 @@ const LOST_TRACK_TEXT =
 const QUIETED_TEXT =
 	"Got it. I'll stay out of this thread unless someone mentions me.";
 const UNQUIETED_TEXT = "Got it. I'll answer replies in this thread again.";
-const MENTION_JOB_URL = `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-mention`;
+const JOB_URLS = {
+	mention: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-mention`,
+	assistant: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-assistant-message`,
+};
 
 interface SlackEventFile {
 	id: string;
@@ -331,6 +335,7 @@ export async function processAgentMessage({
 			applied = true;
 		} finally {
 			await finishAgentDelivery(deliveryId, applied);
+			await removeEyes();
 		}
 		return;
 	}
@@ -508,7 +513,8 @@ export async function processAgentMessage({
 /**
  * Re-deliver the newest message that arrived during the turn. Its own job
  * takes the thread, reads the whole thread including the older queued
- * messages, and clears their reactions.
+ * messages, and clears their reactions. The queue is cleared only after
+ * QStash has the job, so a failed publish leaves it for the next turn.
  */
 async function handBackQueued({
 	threadSessionId,
@@ -519,16 +525,17 @@ async function handBackQueued({
 	teamId: string;
 	event: SlackAgentMessageEvent;
 }): Promise<void> {
-	const pending = await takeQueuedEvents(threadSessionId);
+	const pending = await readQueuedEvents(threadSessionId);
 	const newest = pending.at(-1);
 	if (!newest) return;
+	const isDm = event.channel_type === "im";
 	const qstash = new QStash({ token: env.QSTASH_TOKEN });
 	await qstash.publishJSON({
-		url: MENTION_JOB_URL,
+		url: isDm ? JOB_URLS.assistant : JOB_URLS.mention,
 		body: {
 			event: {
 				type: "message",
-				channel_type: event.channel_type === "im" ? undefined : "channel",
+				channel_type: isDm ? "im" : "channel",
 				user: newest.user,
 				text: newest.text,
 				ts: newest.ts,
@@ -543,4 +550,5 @@ async function handBackQueued({
 		deduplicationId: `queued:${teamId}:${newest.ts}`,
 		retries: 3,
 	});
+	await clearQueuedEventsThrough(threadSessionId, newest.ts);
 }
