@@ -18,12 +18,15 @@ function deliveryKey({
 	teamId,
 	channelId,
 	messageTs,
+	handoff,
 }: {
 	teamId: string;
 	channelId: string;
 	messageTs: string;
+	handoff?: string;
 }): string {
-	return `slack-agent:${teamId}:${channelId}:${messageTs}`;
+	const key = `slack-agent:${teamId}:${channelId}:${messageTs}`;
+	return handoff ? `${key}:${handoff}` : key;
 }
 
 /**
@@ -36,6 +39,12 @@ export async function claimAgentDelivery(params: {
 	teamId: string;
 	channelId: string;
 	messageTs: string;
+	/**
+	 * A message handed back from the queue is a new delivery: its original
+	 * claim may still be mid-release, and it may be handed back more than
+	 * once before a turn is free to run it.
+	 */
+	handoff?: string;
 }): Promise<AgentDeliveryClaim> {
 	const eventId = deliveryKey(params);
 	const [delivery] = await db

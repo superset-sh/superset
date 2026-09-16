@@ -22,11 +22,21 @@ export interface SlackThreadEntity {
 	seq: number;
 }
 
+export interface SlackQueuedFile {
+	id: string;
+	name?: string;
+	mimetype?: string;
+	size?: number;
+	url_private?: string;
+	url_private_download?: string;
+}
+
 /** A follow-up that arrived while the thread's agent was mid-turn. */
 export interface SlackQueuedEvent {
 	ts: string;
 	user: string;
 	text: string;
+	files?: SlackQueuedFile[];
 }
 
 /**

@@ -310,6 +310,7 @@ export async function processAgentMessage({
 		teamId,
 		channelId: event.channel,
 		messageTs: event.ts,
+		handoff: event.queued_ts ? eventId : undefined,
 	});
 	if (claim.status === "duplicate") return;
 	if (claim.status === "stale") {
@@ -374,7 +375,12 @@ export async function processAgentMessage({
 		const claimedThread = sessions
 			? await beginThreadRun({
 					...threadKey,
-					event: { ts: event.ts, user: event.user, text: event.text ?? "" },
+					event: {
+						ts: event.ts,
+						user: event.user,
+						text: event.text ?? "",
+						files: event.files,
+					},
 				})
 			: null;
 		if (claimedThread?.status === "queued") {
@@ -529,6 +535,11 @@ async function handBackQueued({
 	const newest = pending.at(-1);
 	if (!newest) return;
 	const isDm = event.channel_type === "im";
+	// One id per hand-off, not per message: the same reply can be handed
+	// back again if another turn takes the thread before its job arrives,
+	// and QStash would swallow a repeat of the first id for ten minutes.
+	const handoffId = `queued:${teamId}:${newest.ts}:${event.ts}`;
+	const files = pending.flatMap((e) => e.files ?? []);
 	const qstash = new QStash({ token: env.QSTASH_TOKEN });
 	await qstash.publishJSON({
 		url: isDm ? JOB_URLS.assistant : JOB_URLS.mention,
@@ -543,11 +554,12 @@ async function handBackQueued({
 				event_ts: newest.ts,
 				thread_ts: event.thread_ts ?? event.ts,
 				queued_ts: pending.slice(0, -1).map((e) => e.ts),
+				...(files.length > 0 ? { files } : {}),
 			},
 			teamId,
-			eventId: `queued:${teamId}:${newest.ts}`,
+			eventId: handoffId,
 		},
-		deduplicationId: `queued:${teamId}:${newest.ts}`,
+		deduplicationId: handoffId,
 		retries: 3,
 	});
 	await clearQueuedEventsThrough(threadSessionId, newest.ts);

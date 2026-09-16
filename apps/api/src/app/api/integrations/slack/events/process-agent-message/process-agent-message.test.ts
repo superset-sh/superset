@@ -249,9 +249,10 @@ test("after a turn, queued replies are handed back by re-delivering the newest o
 	expect(publishJSON).toHaveBeenCalledTimes(1);
 	expect(publishJSON.mock.calls[0]?.[0]).toMatchObject({
 		url: expect.stringContaining("/jobs/process-mention"),
-		deduplicationId: "queued:T1:12.0",
+		deduplicationId: "queued:T1:12.0:10.0",
 		body: {
 			teamId: "T1",
+			eventId: "queued:T1:12.0:10.0",
 			event: {
 				channel_type: "channel",
 				ts: "12.0",
@@ -262,7 +263,47 @@ test("after a turn, queued replies are handed back by re-delivering the newest o
 			},
 		},
 	});
+	expect(publishJSON.mock.calls[0]?.[0]).not.toHaveProperty("body.event.files");
 	expect(clearQueued).toHaveBeenCalledWith("thread-session", "12.0");
+});
+
+test("a reply queued mid-turn keeps its attachments through the hand-back", async () => {
+	const file = { id: "F1", mimetype: "image/png", url_private: "u" };
+	beginThread.mockImplementationOnce(async () => ({ status: "queued" }));
+	await processAgentMessage({
+		...params,
+		event: { ...params.event, files: [file] },
+	});
+	expect(beginThread.mock.calls[0]?.[0]).toMatchObject({
+		event: { ts: "10.0", files: [file] },
+	});
+	readQueued.mockImplementationOnce(async () => [
+		{ ts: "11.0", user: "U2", text: "see this", files: [file] },
+		{ ts: "12.0", user: "U3", text: "and this" },
+	]);
+	await processAgentMessage(params);
+	expect(publishJSON.mock.calls[0]?.[0]).toMatchObject({
+		body: { event: { ts: "12.0", files: [file] } },
+	});
+});
+
+test("a handed-back reply claims a delivery of its own, so a second hand-back can still run it", async () => {
+	await processAgentMessage({
+		...params,
+		eventId: "queued:T1:10.0:9.0",
+		event: {
+			...params.event,
+			type: "message",
+			channel_type: "channel",
+			queued_ts: [],
+		},
+	});
+	expect(claim.mock.calls[0]?.[0]).toMatchObject({
+		messageTs: "10.0",
+		handoff: "queued:T1:10.0:9.0",
+	});
+	await processAgentMessage(params);
+	expect(claim.mock.calls[1]?.[0]).toMatchObject({ handoff: undefined });
 });
 
 test("a failed hand-back leaves the queue for the next turn", async () => {
