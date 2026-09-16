@@ -3,10 +3,12 @@ import { type UseQueryResult, useQuery } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
 import { apiClient } from "@/lib/trpc/client";
 
-export type OrgPage = RouterOutputs["page"]["list"][number];
+export type OrgPage = RouterOutputs["page"]["list"]["items"][number];
 export type PulledPage = RouterOutputs["page"]["pull"];
 
 export const NO_PAGES: OrgPage[] = [];
+
+const PAGES_PER_REQUEST = 200;
 
 export function usePagesQuery(): UseQueryResult<OrgPage[]> {
 	const { data: session } = useSession();
@@ -15,7 +17,22 @@ export function usePagesQuery(): UseQueryResult<OrgPage[]> {
 	return useQuery({
 		queryKey: ["cloud", "page", "list", organizationId],
 		enabled: organizationId !== null,
-		queryFn: () => apiClient.page.list.query({}),
+		queryFn: async ({ signal }) => {
+			const items: OrgPage[] = [];
+			let cursor: { updatedAt: string; id: string } | undefined;
+			do {
+				const result = await apiClient.page.list.query(
+					{
+						limit: PAGES_PER_REQUEST,
+						...(cursor ? { cursor } : {}),
+					},
+					{ signal },
+				);
+				items.push(...result.items);
+				cursor = result.nextCursor ?? undefined;
+			} while (cursor);
+			return items;
+		},
 		staleTime: 30_000,
 	});
 }

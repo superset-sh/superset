@@ -13690,6 +13690,9 @@ msgstr "일부 파일이 최대 크기를 초과해 추가되지 않았습니다
 msgid "Some models were priced with a fallback rate"
 msgstr "일부 모델은 대체 단가로 계산했습니다"
 
+msgid "Some pages couldn't load, so this list is incomplete."
+msgstr "일부 페이지를 불러오지 못해 이 목록은 불완전합니다."
+
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"
 msgstr "일부 리포지토리를 불러오지 못했습니다: {0}"

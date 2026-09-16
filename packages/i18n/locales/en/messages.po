@@ -13690,6 +13690,9 @@ msgstr "Some files exceed the maximum size and were not added."
 msgid "Some models were priced with a fallback rate"
 msgstr "Some models were priced with a fallback rate"
 
+msgid "Some pages couldn't load, so this list is incomplete."
+msgstr "Some pages couldn't load, so this list is incomplete."
+
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"
 msgstr "Some repositories could not be loaded: {0}"

@@ -13690,6 +13690,9 @@ msgstr "Některé soubory překračují maximální velikost a nebyly přidány.
 msgid "Some models were priced with a fallback rate"
 msgstr "U některých modelů byla použita náhradní sazba"
 
+msgid "Some pages couldn't load, so this list is incomplete."
+msgstr "Některé stránky se nepodařilo načíst, takže tento seznam je neúplný."
+
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"
 msgstr "Některé repozitáře se nepodařilo načíst: {0}"

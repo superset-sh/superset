@@ -105,9 +105,32 @@ export const createPageSchema = z
 
 export type CreatePageInput = z.infer<typeof createPageSchema>;
 
+export const PAGE_LIST_DEFAULT_LIMIT = 50;
+export const PAGE_LIST_MAX_LIMIT = 200;
+
+const POSTGRES_TIMESTAMPTZ_TEXT =
+	/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,6})?[+-]\d{2}(:\d{2}(:\d{2})?)?$/;
+
+export const pageListCursorSchema = z.object({
+	updatedAt: z.string().max(64).regex(POSTGRES_TIMESTAMPTZ_TEXT),
+	id: pageFields.id,
+});
+
 export const listPagesSchema = z
-	.object({ workspaceId: pageFields.workspaceId.optional() })
+	.object({
+		workspaceId: pageFields.workspaceId.optional(),
+		search: z.string().min(1).max(200).optional(),
+		cursor: pageListCursorSchema.optional(),
+		limit: z
+			.number()
+			.int()
+			.min(1)
+			.max(PAGE_LIST_MAX_LIMIT)
+			.default(PAGE_LIST_DEFAULT_LIMIT),
+	})
 	.optional();
+
+export type PageListCursor = z.infer<typeof pageListCursorSchema>;
 
 const pageRefFieldsSchema = z.object({
 	id: pageFields.id.optional(),

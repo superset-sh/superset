@@ -13690,6 +13690,9 @@ msgstr "部分檔案超過大小上限，未新增。"
 msgid "Some models were priced with a fallback rate"
 msgstr "部分模型按備用費率計價"
 
+msgid "Some pages couldn't load, so this list is incomplete."
+msgstr "部分頁面載入失敗，因此這份清單並不完整。"
+
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"
 msgstr "部分儲存庫無法載入：{0}"

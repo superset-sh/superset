@@ -13690,6 +13690,9 @@ msgstr "Bazı dosyalar en büyük boyutu aşıyor ve eklenmedi."
 msgid "Some models were priced with a fallback rate"
 msgstr "Bazı modeller yedek bir tarifeyle fiyatlandırıldı"
 
+msgid "Some pages couldn't load, so this list is incomplete."
+msgstr "Bazı sayfalar yüklenemedi, bu nedenle bu liste eksik."
+
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"
 msgstr "Bazı depolar yüklenemedi: {0}"

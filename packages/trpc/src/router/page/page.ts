@@ -19,7 +19,17 @@ import {
 	pageViewUrl,
 } from "@superset/shared/usercontent";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
+import {
+	and,
+	desc,
+	eq,
+	ilike,
+	inArray,
+	lt,
+	or,
+	type SQL,
+	sql,
+} from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { deleteObjects, presignedGetUrl } from "../../lib/r2";
@@ -35,6 +45,7 @@ import {
 	createPageSchema,
 	deletePageSchema,
 	listPagesSchema,
+	PAGE_LIST_DEFAULT_LIMIT,
 	pageFields,
 	pageRefSchema,
 	publishPageSchema,
@@ -52,6 +63,10 @@ import {
 import { enqueuePageThumbnail } from "./thumbnail";
 import { watchState } from "./watch";
 import { assertWorkspaceAccess } from "./workspace-access";
+
+function escapeLikePattern(term: string): string {
+	return term.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
 
 function visibilityFilter(userId: string) {
 	return or(
@@ -235,6 +250,7 @@ export const pageRouter = {
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const userId = ctx.session.user.id;
+			const limit = input?.limit ?? PAGE_LIST_DEFAULT_LIMIT;
 
 			if (input?.workspaceId) {
 				await assertWorkspaceAccess({
@@ -267,6 +283,7 @@ export const pageRouter = {
 					sharedVersion: pages.sharedVersion,
 					createdAt: pages.createdAt,
 					updatedAt: pages.updatedAt,
+					updatedAtCursor: sql<string>`${pages.updatedAt}::text`,
 					createdByUserId: pages.createdByUserId,
 					ownerName: users.name,
 					ownerImage: users.image,
@@ -279,27 +296,51 @@ export const pageRouter = {
 				.leftJoin(users, eq(users.id, pages.createdByUserId))
 				.leftJoinLateral(latest, sql`true`);
 
+			const filters: (SQL | undefined)[] = [
+				eq(pages.organizationId, organizationId),
+				visibilityFilter(userId),
+			];
+
+			if (input?.search) {
+				const term = `%${escapeLikePattern(input.search)}%`;
+				filters.push(or(ilike(pages.title, term), ilike(pages.slug, term)));
+			}
+
+			if (input?.cursor) {
+				const at = sql`${input.cursor.updatedAt}::timestamptz`;
+				filters.push(
+					or(
+						lt(pages.updatedAt, at),
+						and(eq(pages.updatedAt, at), lt(pages.id, input.cursor.id)),
+					),
+				);
+			}
+
 			const scoped = input?.workspaceId
 				? base
 						.innerJoin(workspacePages, eq(workspacePages.pageId, pages.id))
 						.where(
 							and(
-								eq(pages.organizationId, organizationId),
+								...filters,
 								eq(workspacePages.workspaceId, input.workspaceId),
-								visibilityFilter(userId),
 							),
 						)
-				: base.where(
-						and(
-							eq(pages.organizationId, organizationId),
-							visibilityFilter(userId),
-						),
-					);
+				: base.where(and(...filters));
 
-			const rows = await scoped.orderBy(desc(pages.updatedAt));
+			const rows = await scoped
+				.orderBy(desc(pages.updatedAt), desc(pages.id))
+				.limit(limit + 1);
+
+			const pageRows = rows.slice(0, limit);
+			const last = pageRows.at(-1);
+			const nextCursor =
+				rows.length > limit && last
+					? { updatedAt: last.updatedAtCursor, id: last.id }
+					: null;
+
 			const baseUrl = env.USERCONTENT_URL;
-			return await Promise.all(
-				rows.map(async (row) => {
+			const items = await Promise.all(
+				pageRows.map(async ({ updatedAtCursor: _cursor, ...row }) => {
 					const served = servedVersion(row.sharedVersion, row.latestVersion);
 					const ticket = await mintPageTicket(row);
 					// Version-bound, so it turns daily instead of hourly — the capture
@@ -326,6 +367,8 @@ export const pageRouter = {
 					};
 				}),
 			);
+
+			return { items, nextCursor };
 		}),
 
 	get: protectedProcedure.input(pageRefSchema).query(async ({ ctx, input }) => {

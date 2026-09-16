@@ -13690,6 +13690,9 @@ msgstr "Sebagian file melebihi ukuran maksimum dan tidak ditambahkan."
 msgid "Some models were priced with a fallback rate"
 msgstr "Sebagian model dihitung dengan tarif cadangan"
 
+msgid "Some pages couldn't load, so this list is incomplete."
+msgstr "Beberapa halaman gagal dimuat, sehingga daftar ini tidak lengkap."
+
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"
 msgstr "Sebagian repositori tidak bisa dimuat: {0}"

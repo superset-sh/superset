@@ -1,6 +1,7 @@
 import { boolean, CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../../lib/command";
 import { resolvePageId } from "../../pageId";
+import { fetchAllPages } from "../../pageList";
 import { agentSessionId } from "../agentSession";
 
 interface ThreadComment {
@@ -46,9 +47,11 @@ export default command({
 				...activatedOnly,
 			})) as unknown as Thread[];
 		} else {
-			const pages = await ctx.api.page.list.query(
-				options.workspace ? { workspaceId: options.workspace } : undefined,
-			);
+			const pages = await fetchAllPages<{
+				id: string;
+				title: string;
+				slug: string;
+			}>(ctx, options.workspace ? { workspaceId: options.workspace } : {});
 			const perPage = await mapWithConcurrency(pages, 8, async (page) => {
 				const rows = (await ctx.api.pageComment.list.query({
 					pageId: page.id,
