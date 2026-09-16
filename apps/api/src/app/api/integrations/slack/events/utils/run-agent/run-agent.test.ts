@@ -68,9 +68,12 @@ mock.module("./mcp-clients", () => ({
 		toolName: name.slice(name.indexOf("_") + 1),
 	}),
 }));
-const { fetchThreadContext, formatErrorForSlack, runSlackAgent } = await import(
-	"./run-agent"
-);
+const {
+	fetchThreadContext,
+	formatErrorForSlack,
+	rateLimitWaitMs,
+	runSlackAgent,
+} = await import("./run-agent");
 const params = {
 	prompt: "Help",
 	channelId: "C1",
@@ -251,6 +254,20 @@ describe("agent loop", () => {
 		}));
 		expect((await runSlackAgent(params)).text).toBe("Reconnected");
 		expect(loopCalls()).toBe(2);
+	});
+
+	test("rateLimitWaitMs reads delay-seconds or an HTTP-date, bounded", () => {
+		const headers = (v: string | null) => ({ headers: { get: () => v } });
+		const now = Date.parse("2026-09-16T08:00:00Z");
+		expect(rateLimitWaitMs(headers("3"), now)).toBe(3_000);
+		expect(rateLimitWaitMs(headers("Wed, 16 Sep 2026 08:00:04 GMT"), now)).toBe(
+			4_000,
+		);
+		expect(rateLimitWaitMs(headers("Wed, 16 Sep 2026 07:59:00 GMT"), now)).toBe(
+			2_000,
+		);
+		expect(rateLimitWaitMs(headers("120"), now)).toBe(10_000);
+		expect(rateLimitWaitMs(headers(null), now)).toBe(2_000);
 	});
 
 	test("text split around citations comes back as one paragraph", async () => {
