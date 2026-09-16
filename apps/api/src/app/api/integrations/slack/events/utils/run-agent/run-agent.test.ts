@@ -21,10 +21,12 @@ const callTool = mock(
 );
 const cleanup = mock(async () => {});
 const listTools = mock(async () => ({
-	tools: ["tasks_create", "tasks_update", "tasks_delete", "terminals_send"].map((name) => ({
-		name,
-		inputSchema: { type: "object" },
-	})),
+	tools: ["tasks_create", "tasks_update", "tasks_delete", "terminals_send"].map(
+		(name) => ({
+			name,
+			inputSchema: { type: "object" },
+		}),
+	),
 }));
 mock.module("@/env", () => ({ env: { ANTHROPIC_API_KEY: "test" } }));
 mock.module("@anthropic-ai/sdk", () => ({
