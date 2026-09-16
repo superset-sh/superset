@@ -490,17 +490,18 @@ export async function processAgentMessage({
 				);
 			}
 		}
-		if (queued) return;
-		try {
-			await finishAgentDelivery(deliveryId, delivered);
-		} catch (error) {
-			console.error(
-				"[slack/process-agent-message] Failed to finish delivery",
-				error,
-			);
+		if (!queued) {
+			try {
+				await finishAgentDelivery(deliveryId, delivered);
+			} catch (error) {
+				console.error(
+					"[slack/process-agent-message] Failed to finish delivery",
+					error,
+				);
+			}
+			await clearProgress();
+			await removeEyes();
 		}
-		await clearProgress();
-		await removeEyes();
 	}
 }
 
