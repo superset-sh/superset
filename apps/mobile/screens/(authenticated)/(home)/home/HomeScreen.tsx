@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { isAfter } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useFeatureFlag } from "posthog-react-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
@@ -132,6 +133,7 @@ export function HomeScreen() {
 	);
 	const { height: windowHeight } = useWindowDimensions();
 	const insets = useSafeAreaInsets();
+	const headerHeight = useHeaderHeight();
 	const queryClient = useQueryClient();
 	const setTargetKey = useNewSessionPreferencesStore(
 		(state) => state.setTargetKey,
@@ -597,6 +599,7 @@ export function HomeScreen() {
 			    offline — its list isn't shown, so there is nothing to search. */}
 			<Stack.Screen
 				options={{
+					headerTransparent: true,
 					headerTitle: notice
 						? () => (
 								<HeaderNotice
@@ -629,6 +632,7 @@ export function HomeScreen() {
 					style={{
 						minHeight:
 							windowHeight - insets.top - NAVIGATION_BAR_HEIGHT - insets.bottom,
+						paddingTop: headerHeight,
 					}}
 				>
 					{scopeBar}
