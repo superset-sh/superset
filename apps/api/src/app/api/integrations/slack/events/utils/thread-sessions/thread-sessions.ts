@@ -12,6 +12,8 @@ import type { AgentAction } from "../slack-blocks";
 
 const MAX_REMEMBERED_ENTITIES = 30;
 const MAX_LABEL_LENGTH = 80;
+const FLAG_CACHE_TTL_MS = 60_000;
+const FLAG_TIMEOUT_MS = 1_000;
 
 interface ThreadKey {
 	organizationId: string;
@@ -20,9 +22,57 @@ interface ThreadKey {
 	threadTs: string;
 }
 
-/** "only respond when I mention you", "only reply when someone @s you", … */
-export const QUIET_THREAD_PATTERN =
-	/\bonly\s+(?:respond|reply)\b.*\b(?:mention|@|tag)/i;
+export type ThreadCommand = "mute" | "unmute";
+
+/**
+ * Explicit commands only. Intent phrased in prose ("only reply when I
+ * mention you") goes to the model, which has a tool for it, so an ordinary
+ * request that happens to contain those words is not swallowed.
+ */
+export function parseThreadCommand(text: string): ThreadCommand | null {
+	const stripped = text
+		.replace(/<@[A-Z0-9]+>/g, "")
+		.trim()
+		.toLowerCase();
+	if (/^!(mute|quiet)\b/.test(stripped)) return "mute";
+	if (/^!(unmute|unquiet)\b/.test(stripped)) return "unmute";
+	return null;
+}
+
+const flagCache = new Map<string, { enabled: boolean; expiresAt: number }>();
+
+/**
+ * Whether the team has thread follow-ups. Cached per team so the Slack
+ * events route, which must answer within three seconds, pays for PostHog at
+ * most once a minute, and bounded so a slow PostHog reads as off rather
+ * than as a late acknowledgement.
+ */
+export async function threadFollowUpsEnabled(teamId: string): Promise<boolean> {
+	const cached = flagCache.get(teamId);
+	if (cached && cached.expiresAt > Date.now()) return cached.enabled;
+	let enabled = false;
+	try {
+		enabled =
+			(await Promise.race([
+				posthog.isFeatureEnabled(
+					FEATURE_FLAGS.SLACK_THREAD_FOLLOW_UPS,
+					`slack-team:${teamId}`,
+					{ sendFeatureFlagEvents: false },
+				),
+				new Promise<undefined>((resolve) =>
+					setTimeout(() => resolve(undefined), FLAG_TIMEOUT_MS),
+				),
+			])) === true;
+	} catch (error) {
+		console.warn("[slack-agent] thread follow-up flag check failed:", error);
+	}
+	flagCache.set(teamId, { enabled, expiresAt: Date.now() + FLAG_CACHE_TTL_MS });
+	return enabled;
+}
+
+export function resetThreadFollowUpFlagCache(): void {
+	flagCache.clear();
+}
 
 const THREAD_CONFLICT_TARGET = [
 	slackThreadSessions.organizationId,
@@ -63,20 +113,15 @@ export async function threadFollowUpTarget(key: {
 		columns: { organizationId: true },
 	});
 	if (!connection) return null;
+	if (!(await threadFollowUpsEnabled(key.teamId))) return null;
 	const session = await db.query.slackThreadSessions.findFirst({
 		where: whereThread({ ...key, organizationId: connection.organizationId }),
 	});
-	if (!session || session.quiet) return null;
-	const enabled = await posthog.isFeatureEnabled(
-		FEATURE_FLAGS.SLACK_THREAD_FOLLOW_UPS,
-		`slack-team:${key.teamId}`,
-		{ sendFeatureFlagEvents: false },
-	);
-	return enabled ? session : null;
+	return !session || session.quiet ? null : session;
 }
 
-export async function quietThread(
-	key: ThreadKey & { userId: string },
+export async function setThreadQuiet(
+	key: ThreadKey & { userId: string; quiet: boolean },
 ): Promise<void> {
 	await db
 		.insert(slackThreadSessions)
@@ -86,11 +131,11 @@ export async function quietThread(
 			channelId: key.channelId,
 			threadTs: key.threadTs,
 			startedByUserId: key.userId,
-			quiet: true,
+			quiet: key.quiet,
 		})
 		.onConflictDoUpdate({
 			target: THREAD_CONFLICT_TARGET,
-			set: { quiet: true, lastActivityAt: new Date() },
+			set: { quiet: key.quiet, lastActivityAt: new Date() },
 		});
 }
 

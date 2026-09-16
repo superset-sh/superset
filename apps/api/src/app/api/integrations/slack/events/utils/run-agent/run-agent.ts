@@ -137,6 +137,14 @@ interface RunSlackAgentParams {
 	deadline?: number;
 	/** What the agent already created in this thread; see renderThreadMemory. */
 	threadMemory?: string;
+	/**
+	 * Present when the thread is a session: its current quiet state and the
+	 * way to change it. Absent, the quiet tool is not offered.
+	 */
+	threadQuiet?: {
+		quiet: boolean;
+		set: (quiet: boolean) => Promise<void>;
+	};
 	onProgress?: (status: string) => void | Promise<void>;
 }
 
@@ -291,6 +299,7 @@ const TOOL_PROGRESS_STATUS: Record<string, string> = {
 	agents_create: "Launching agent...",
 	// Server-side
 	slack_get_channel_history: "Reading channel history...",
+	slack_thread_quiet: "Updating thread settings...",
 };
 
 // Explicit opt-in: newly added MCP tools must not silently acquire Slack access.
@@ -316,6 +325,22 @@ export const ALLOWED_SLACK_TOOLS = new Set([
 	"pages_pull",
 	"pages_comments_list",
 ]);
+
+const SLACK_THREAD_QUIET_TOOL: Anthropic.Tool = {
+	name: "slack_thread_quiet",
+	description:
+		"Change whether you answer replies in this thread without being mentioned. quiet=true: only replies that mention you reach you. quiet=false: every reply in the thread reaches you. Call it when someone asks you to only respond when mentioned, to stop replying unprompted, or to start replying freely again; then confirm in one short sentence.",
+	input_schema: {
+		type: "object" as const,
+		properties: {
+			quiet: {
+				type: "boolean",
+				description: "true to require mentions, false to answer every reply",
+			},
+		},
+		required: ["quiet"],
+	},
+};
 
 const SLACK_GET_CHANNEL_HISTORY_TOOL: Anthropic.Tool = {
 	name: "slack_get_channel_history",
@@ -572,13 +597,20 @@ export async function runSlackAgent(
 		const tools: Anthropic.Messages.ToolUnion[] = [
 			...supersetTools,
 			SLACK_GET_CHANNEL_HISTORY_TOOL,
+			...(params.threadQuiet ? [SLACK_THREAD_QUIET_TOOL] : []),
 			webSearchTool,
 		];
 
+		const threadState = params.threadQuiet
+			? params.threadQuiet.quiet
+				? "- This thread is quiet: only replies that mention you reach you. If asked to respond without mentions again, call slack_thread_quiet with quiet=false."
+				: "- This thread is open: every reply in it reaches you without a mention. If asked to only respond when mentioned, call slack_thread_quiet with quiet=true."
+			: "";
 		const contextualSystem = `Current context:
 - Slack Channel: ${params.channelId}
 - Thread: ${params.threadTs}
 - Organization ID: ${params.organizationId}
+${threadState}
 
 ${agentContext}`;
 
@@ -689,6 +721,14 @@ ${agentContext}`;
 							deadline,
 							limit: input.limit,
 						});
+					} else if (
+						toolUse.name === "slack_thread_quiet" &&
+						params.threadQuiet
+					) {
+						const quiet = (toolUse.input as { quiet?: unknown }).quiet === true;
+						await params.threadQuiet.set(quiet);
+						params.threadQuiet.quiet = quiet;
+						resultContent = JSON.stringify({ quiet });
 					} else {
 						const { prefix, toolName } = parseToolName(toolUse.name);
 

@@ -62,21 +62,33 @@ mock.module("../utils/agent-delivery", () => ({
 	claimAgentDelivery: claim,
 	finishAgentDelivery: finish,
 }));
-const beginThread = mock(async (_args: unknown) => ({
+const session = {
 	id: "thread-session",
+	quiet: false,
 	entityLog: [
 		{ kind: "workspace", id: "ws-1", label: "fix-login (feat/login)", at: "x" },
 	],
-}));
+};
+const beginThread = mock(async (_args: unknown) => session);
 const finishThread = mock(async (_args: unknown) => {});
-const quiet = mock(async (_args: unknown) => {});
+const setQuiet = mock(async (_args: unknown) => {});
+const followUpsEnabled = mock(async (_teamId: string) => true);
 mock.module("../utils/thread-sessions", () => ({
 	beginThreadRun: beginThread,
 	finishThreadRun: finishThread,
-	quietThread: quiet,
+	setThreadQuiet: setQuiet,
+	threadFollowUpsEnabled: followUpsEnabled,
+	parseThreadCommand: (text: string) => {
+		const t = text
+			.replace(/<@[A-Z0-9]+>/g, "")
+			.trim()
+			.toLowerCase();
+		if (t.startsWith("!mute")) return "mute";
+		if (t.startsWith("!unmute")) return "unmute";
+		return null;
+	},
 	renderThreadMemory: (entities: { label: string }[]) =>
 		entities.map((e) => e.label).join(", "),
-	QUIET_THREAD_PATTERN: /\bonly\s+(?:respond|reply)\b.*\b(?:mention|@|tag)/i,
 }));
 const { slackRateLimitRetryAfterMs } = await import(
 	"../utils/slack-client/request-bounds"
@@ -126,7 +138,56 @@ beforeEach(() => {
 	findLink.mockClear();
 	beginThread.mockClear();
 	finishThread.mockClear();
-	quiet.mockClear();
+	setQuiet.mockClear();
+	followUpsEnabled.mockReset();
+	followUpsEnabled.mockImplementation(async () => true);
+});
+
+test("with the flag off, no session is opened, no memory is injected, and no quiet tool is offered", async () => {
+	followUpsEnabled.mockImplementationOnce(async () => false);
+	await processAgentMessage(params);
+	expect(beginThread).not.toHaveBeenCalled();
+	expect(finishThread).not.toHaveBeenCalled();
+	expect(runAgent.mock.calls[0]?.[0]).not.toHaveProperty("threadMemory");
+	expect(runAgent.mock.calls[0]?.[0]).not.toHaveProperty("threadQuiet");
+	expect(postMessage.mock.calls.at(-1)?.[0].text).toBe("**Completed**");
+});
+
+test("with the flag off, !mute is an ordinary message", async () => {
+	followUpsEnabled.mockImplementationOnce(async () => false);
+	await processAgentMessage({
+		...params,
+		event: { ...params.event, text: "<@UBOT> !mute" },
+	});
+	expect(setQuiet).not.toHaveBeenCalled();
+	expect(runAgent).toHaveBeenCalledTimes(1);
+});
+
+test("!unmute reopens the thread without running the agent", async () => {
+	await processAgentMessage({
+		...params,
+		event: { ...params.event, text: "<@UBOT> !unmute" },
+	});
+	expect(setQuiet).toHaveBeenCalledWith(
+		expect.objectContaining({ quiet: false }),
+	);
+	expect(runAgent).not.toHaveBeenCalled();
+	expect(postMessage.mock.calls[0]?.[0].text).toContain(
+		"answer replies in this thread again",
+	);
+});
+
+test("the agent is given the thread's quiet state and a way to change it", async () => {
+	beginThread.mockImplementationOnce(async () => ({ ...session, quiet: true }));
+	await processAgentMessage(params);
+	const args = runAgent.mock.calls[0]?.[0] as {
+		threadQuiet: { quiet: boolean; set: (q: boolean) => Promise<void> };
+	};
+	expect(args.threadQuiet.quiet).toBe(true);
+	await args.threadQuiet.set(false);
+	expect(setQuiet).toHaveBeenCalledWith(
+		expect.objectContaining({ threadTs: "1.0", quiet: false }),
+	);
 });
 
 test("a run opens the thread session, hands its memory to the agent, and records what was made", async () => {
@@ -162,23 +223,36 @@ test("a run opens the thread session, hands its memory to the agent, and records
 	});
 });
 
-test("asking it to only respond when mentioned quiets the thread without running", async () => {
+test("!mute quiets the thread without running the agent", async () => {
 	await processAgentMessage({
 		...params,
-		event: { ...params.event, text: "<@UBOT> only respond when I mention you" },
+		event: { ...params.event, text: "<@UBOT> !mute" },
 	});
-	expect(quiet).toHaveBeenCalledWith({
+	expect(setQuiet).toHaveBeenCalledWith({
 		organizationId: "org",
 		teamId: "T1",
 		channelId: "C1",
 		threadTs: "1.0",
 		userId: "linked-user",
+		quiet: true,
 	});
 	expect(runAgent).not.toHaveBeenCalled();
 	expect(claim).not.toHaveBeenCalled();
 	expect(postMessage.mock.calls[0]?.[0].text).toContain(
 		"stay out of this thread",
 	);
+});
+
+test("prose about mentions is an ordinary request, not a mute", async () => {
+	await processAgentMessage({
+		...params,
+		event: {
+			...params.event,
+			text: "<@UBOT> build a bot that should only respond when mentioned",
+		},
+	});
+	expect(setQuiet).not.toHaveBeenCalled();
+	expect(runAgent).toHaveBeenCalledTimes(1);
 });
 
 test("a thread reply without a mention runs through the same path", async () => {

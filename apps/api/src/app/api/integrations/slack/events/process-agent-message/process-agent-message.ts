@@ -30,9 +30,10 @@ import {
 import {
 	beginThreadRun,
 	finishThreadRun,
-	QUIET_THREAD_PATTERN,
-	quietThread,
+	parseThreadCommand,
 	renderThreadMemory,
+	setThreadQuiet,
+	threadFollowUpsEnabled,
 } from "../utils/thread-sessions";
 
 import { splitMarkdown } from "./utils/split-markdown";
@@ -44,6 +45,7 @@ const LOST_TRACK_TEXT =
 	"I lost track of this request partway through. Anything listed as changed in this thread did happen; ask again for the rest.";
 const QUIETED_TEXT =
 	"Got it. I'll stay out of this thread unless someone mentions me.";
+const UNQUIETED_TEXT = "Got it. I'll answer replies in this thread again.";
 
 interface SlackEventFile {
 	id: string;
@@ -209,19 +211,24 @@ export async function processAgentMessage({
 	}
 
 	const threadTs = event.thread_ts ?? event.ts;
+	// Thread sessions (memory, quieting, follow-ups) are one feature; a team
+	// without the flag runs the Phase 0 path untouched.
+	const sessions = await threadFollowUpsEnabled(teamId);
+	const threadKey = {
+		organizationId: connection.organizationId,
+		teamId,
+		channelId: event.channel,
+		threadTs,
+		userId: slackUserLink.userId,
+	};
 
-	if (QUIET_THREAD_PATTERN.test(event.text ?? "")) {
-		await quietThread({
-			organizationId: connection.organizationId,
-			teamId,
-			channelId: event.channel,
-			threadTs,
-			userId: slackUserLink.userId,
-		});
+	const command = sessions ? parseThreadCommand(event.text ?? "") : null;
+	if (command) {
+		await setThreadQuiet({ ...threadKey, quiet: command === "mute" });
 		await slack.chat.postMessage({
 			channel: event.channel,
 			thread_ts: threadTs,
-			text: QUIETED_TEXT,
+			text: command === "mute" ? QUIETED_TEXT : UNQUIETED_TEXT,
 		});
 		return;
 	}
@@ -336,14 +343,8 @@ export async function processAgentMessage({
 			slack: run,
 		});
 
-		const threadSession = await beginThreadRun({
-			organizationId: connection.organizationId,
-			teamId,
-			channelId: event.channel,
-			threadTs,
-			userId: slackUserLink.userId,
-		});
-		threadSessionId = threadSession.id;
+		const threadSession = sessions ? await beginThreadRun(threadKey) : null;
+		threadSessionId = threadSession?.id;
 
 		const result = await runSlackAgent({
 			prompt: resolve(event.text ?? ""),
@@ -356,7 +357,15 @@ export async function processAgentMessage({
 			model: slackUserLink.modelPreference ?? undefined,
 			images: imageAssets,
 			deadline,
-			threadMemory: renderThreadMemory(threadSession.entityLog),
+			...(threadSession
+				? {
+						threadMemory: renderThreadMemory(threadSession.entityLog),
+						threadQuiet: {
+							quiet: threadSession.quiet,
+							set: (quiet: boolean) => setThreadQuiet({ ...threadKey, quiet }),
+						},
+					}
+				: {}),
 			onProgress: showProgress,
 		});
 		actions = result.actions;

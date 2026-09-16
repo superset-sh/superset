@@ -48,11 +48,12 @@ const followUpTarget = mock(
 // test files, so a partial mock here would break the handler test's imports.
 mock.module("./utils/thread-sessions", () => ({
 	threadFollowUpTarget: followUpTarget,
-	beginThreadRun: async () => ({ id: "session", entityLog: [] }),
+	beginThreadRun: async () => ({ id: "session", entityLog: [], quiet: false }),
 	finishThreadRun: async () => {},
-	quietThread: async () => {},
+	setThreadQuiet: async () => {},
+	threadFollowUpsEnabled: async () => true,
+	parseThreadCommand: () => null,
 	renderThreadMemory: () => "",
-	QUIET_THREAD_PATTERN: /\bonly\s+(?:respond|reply)\b.*\b(?:mention|@|tag)/i,
 }));
 mock.module("./process-automation-event/normalizeSlackDelivery", () => ({
 	ownBotUserIds: (envelope: { authorizations?: { user_id?: string }[] }) =>

@@ -1,8 +1,11 @@
 export {
 	beginThreadRun,
 	finishThreadRun,
-	QUIET_THREAD_PATTERN,
-	quietThread,
+	parseThreadCommand,
 	renderThreadMemory,
+	resetThreadFollowUpFlagCache,
+	setThreadQuiet,
+	type ThreadCommand,
+	threadFollowUpsEnabled,
 	threadFollowUpTarget,
 } from "./thread-sessions";

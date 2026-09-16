@@ -154,6 +154,37 @@ describe("agent loop", () => {
 		expect(create.mock.calls[0]?.[1]).toMatchObject({ maxRetries: 1 });
 		expect(cleanup).toHaveBeenCalledTimes(1);
 	});
+	test("the quiet tool is offered only for a session, states the thread's mode, and flips it", async () => {
+		await runSlackAgent(params);
+		const plain = create.mock.calls[0]?.[0].tools as { name: string }[];
+		expect(plain.map((t) => t.name)).not.toContain("slack_thread_quiet");
+		create.mockReset();
+		create.mockImplementationOnce(async () => ({
+			stop_reason: "tool_use",
+			content: [
+				{
+					type: "tool_use",
+					id: "q1",
+					name: "slack_thread_quiet",
+					input: { quiet: false },
+				},
+			],
+		}));
+		create.mockImplementationOnce(async () => ({
+			stop_reason: "end_turn",
+			content: [{ type: "text", text: "Done", citations: [] }],
+		}));
+		const set = mock(async (_quiet: boolean) => {});
+		await runSlackAgent({ ...params, threadQuiet: { quiet: true, set } });
+		const first = create.mock.calls[0]?.[0] as {
+			tools: { name: string }[];
+			system: { text: string }[];
+		};
+		expect(first.tools.map((t) => t.name)).toContain("slack_thread_quiet");
+		expect(first.system[1]?.text).toContain("This thread is quiet");
+		expect(set).toHaveBeenCalledWith(false);
+	});
+
 	test("thread memory is user-turn data, never part of the system prompt", async () => {
 		await runSlackAgent({
 			...params,
