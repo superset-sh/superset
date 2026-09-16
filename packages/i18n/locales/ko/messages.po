@@ -1045,9 +1045,6 @@ msgstr "<0>vs</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "이번 주 예상 ~{stars}개"
 
-msgid "~{totalSeconds}s typical"
-msgstr "보통 약 {totalSeconds}초"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "보통 약 {TYPICAL_SECONDS}초"
 
@@ -4106,9 +4103,6 @@ msgstr "다른 브라우저의 방문 기록과 로그인 정보를 Superset으�
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "지금 키를 복사하세요 — 다시 볼 수 없습니다."
 
-msgid "Copying configuration"
-msgstr "설정 복사 중"
-
 msgid "Cost"
 msgstr "비용"
 
@@ -4629,9 +4623,6 @@ msgstr "생성 중"
 
 msgid "Creating"
 msgstr "만드는 중"
-
-msgid "Creating git worktree"
-msgstr "git worktree 만드는 중"
 
 msgid "Creating PR..."
 msgstr "PR 생성 중…"
@@ -6548,9 +6539,6 @@ msgstr "필터"
 msgid "Filters, {activeFilterCount} active"
 msgstr "필터, {activeFilterCount}개 적용됨"
 
-msgid "Finalizing setup"
-msgstr "설정 마무리 중"
-
 msgid "Find"
 msgstr "찾기"
 
@@ -7541,9 +7529,6 @@ msgstr "Git 초기화"
 
 msgid "Initialize Git Repository?"
 msgstr "Git 저장소를 초기화할까요?"
-
-msgid "Initializing session"
-msgstr "세션 초기화 중"
 
 msgid "Initializing..."
 msgstr "초기화하는 중..."
@@ -14385,9 +14370,6 @@ msgstr "리포지토리 동기화"
 msgid "Sync started"
 msgstr "동기화를 시작했습니다"
 
-msgid "Syncing with remote"
-msgstr "원격과 동기화하는 중"
-
 msgid "Syncing..."
 msgstr "동기화하는 중..."
 
@@ -16091,9 +16073,6 @@ msgstr "이것을 확인해 주세요"
 
 msgid "Verify your identity"
 msgstr "신원 확인"
-
-msgid "Verifying base branch"
-msgstr "기준 브랜치 확인 중"
 
 msgid "Version"
 msgstr "버전"

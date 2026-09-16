@@ -1045,9 +1045,6 @@ msgstr "<0>vs</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "今週は約{stars}の見込み"
 
-msgid "~{totalSeconds}s typical"
-msgstr "通常 約{totalSeconds}秒"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "通常約{TYPICAL_SECONDS}秒"
 
@@ -4106,9 +4103,6 @@ msgstr "別のブラウザから閲覧履歴とログイン情報をSupersetに�
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "キーを今すぐコピーしてください — 後で再表示することはできません。"
 
-msgid "Copying configuration"
-msgstr "設定をコピー中"
-
 msgid "Cost"
 msgstr "コスト"
 
@@ -4629,9 +4623,6 @@ msgstr "作成中"
 
 msgid "Creating"
 msgstr "作成中"
-
-msgid "Creating git worktree"
-msgstr "git worktreeを作成中"
 
 msgid "Creating PR..."
 msgstr "PRを作成中…"
@@ -6548,9 +6539,6 @@ msgstr "フィルター"
 msgid "Filters, {activeFilterCount} active"
 msgstr "フィルター、{activeFilterCount}件適用中"
 
-msgid "Finalizing setup"
-msgstr "セットアップを完了中"
-
 msgid "Find"
 msgstr "検索"
 
@@ -7541,9 +7529,6 @@ msgstr "Gitを初期化"
 
 msgid "Initialize Git Repository?"
 msgstr "Gitリポジトリを初期化しますか?"
-
-msgid "Initializing session"
-msgstr "セッションを初期化中"
 
 msgid "Initializing..."
 msgstr "初期化中..."
@@ -14385,9 +14370,6 @@ msgstr "リポジトリを同期"
 msgid "Sync started"
 msgstr "同期を開始しました"
 
-msgid "Syncing with remote"
-msgstr "リモートと同期中"
-
 msgid "Syncing..."
 msgstr "同期中..."
 
@@ -16091,9 +16073,6 @@ msgstr "これを確認して"
 
 msgid "Verify your identity"
 msgstr "本人確認"
-
-msgid "Verifying base branch"
-msgstr "ベースブランチを確認中"
 
 msgid "Version"
 msgstr "バージョン"

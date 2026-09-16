@@ -1045,9 +1045,6 @@ msgstr "<0>vs.</0> <1/>"
 msgid "~{stars} projected this week"
 msgstr "~{stars} erwartet diese Woche"
 
-msgid "~{totalSeconds}s typical"
-msgstr "~{totalSeconds} s üblich"
-
 msgid "~{TYPICAL_SECONDS}s typical"
 msgstr "~{TYPICAL_SECONDS} s üblich"
 
@@ -4106,9 +4103,6 @@ msgstr "Kopiere Browserverlauf und Logins aus einem anderen Browser nach Superse
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "Kopiere deinen Schlüssel jetzt — du kannst ihn später nicht mehr sehen."
 
-msgid "Copying configuration"
-msgstr "Konfiguration wird kopiert"
-
 msgid "Cost"
 msgstr "Kosten"
 
@@ -4629,9 +4623,6 @@ msgstr "wird erstellt"
 
 msgid "Creating"
 msgstr "Wird erstellt"
-
-msgid "Creating git worktree"
-msgstr "Git-Worktree wird erstellt"
 
 msgid "Creating PR..."
 msgstr "PR wird erstellt…"
@@ -6548,9 +6539,6 @@ msgstr "Filter"
 msgid "Filters, {activeFilterCount} active"
 msgstr "Filter, {activeFilterCount} aktiv"
 
-msgid "Finalizing setup"
-msgstr "Setup wird abgeschlossen"
-
 msgid "Find"
 msgstr "Suchen"
 
@@ -7541,9 +7529,6 @@ msgstr "Git initialisieren"
 
 msgid "Initialize Git Repository?"
 msgstr "Git-Repository initialisieren?"
-
-msgid "Initializing session"
-msgstr "Sitzung wird initialisiert"
 
 msgid "Initializing..."
 msgstr "Wird initialisiert..."
@@ -14385,9 +14370,6 @@ msgstr "Repositories synchronisieren"
 msgid "Sync started"
 msgstr "Synchronisierung gestartet"
 
-msgid "Syncing with remote"
-msgstr "Wird mit Remote synchronisiert"
-
 msgid "Syncing..."
 msgstr "Wird synchronisiert..."
 
@@ -16091,9 +16073,6 @@ msgstr "Das überprüfen"
 
 msgid "Verify your identity"
 msgstr "Deine Identität bestätigen"
-
-msgid "Verifying base branch"
-msgstr "Basis-Branch wird geprüft"
 
 msgid "Version"
 msgstr "Version"

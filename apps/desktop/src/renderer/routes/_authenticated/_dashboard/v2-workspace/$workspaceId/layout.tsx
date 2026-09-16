@@ -159,7 +159,8 @@ function V2WorkspaceLayout() {
 				<WorkspaceCreatingState
 					name={workspace.name}
 					branch={workspace.branch}
-					startedAt={new Date(workspace.createdAt).getTime()}
+					startedAt={pendingTransaction.createdAt.getTime()}
+					workspaceReady={Boolean(workspace.worktreePath)}
 					isSession={workspace.type === "session"}
 				/>
 			</StateScreenShell>

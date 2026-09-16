@@ -1,7 +1,10 @@
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { basename } from "node:path";
-import { generateFriendlyBranchName } from "@superset/shared/workspace-launch";
+import {
+	deriveWorkspaceTitleFromPrompt,
+	generateFriendlyBranchName,
+} from "@superset/shared/workspace-launch";
 import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { TRPCError } from "@trpc/server";
 import { isNull } from "drizzle-orm";
@@ -12,7 +15,6 @@ import {
 	getLocalWorkspace,
 	insertLocalWorkspace,
 	toCloudShape,
-	updateLocalWorkspace,
 } from "../../../../workspaces/local-workspace-store";
 import { protectedProcedure } from "../../../index";
 import { validateAgentLaunchOptions } from "../../agents";
@@ -27,7 +29,7 @@ import {
 	safeResolveSessionPath,
 } from "../shared/session-paths";
 import {
-	generateWorkspaceNamesFromPrompt,
+	generateWorkspaceTitleInBackground,
 	sanitizeBranchCandidate,
 } from "../utils/ai-workspace-names";
 import { deduplicateBranchName } from "../utils/sanitize-branch";
@@ -35,9 +37,6 @@ import { deduplicateBranchName } from "../utils/sanitize-branch";
 const createSessionInputSchema = z.object({
 	// Optimistic-UI idempotency key; becomes the row id.
 	id: z.string().uuid().optional(),
-	// Display name; also seeds the folder name. Omitted with an agent
-	// prompt → friendly-random folder plus an LLM title applied before
-	// agents start (the folder keeps its creation-time name).
 	name: z.string().min(1).optional(),
 	agents: z.array(agentLaunchSchema).optional(),
 	command: z.string().min(1).optional(),
@@ -97,15 +96,6 @@ export const createSession = protectedProcedure
 			input.agents?.[0]?.prompt?.trim() || input.namingPrompt?.trim() || "";
 		const wantAi = input.name === undefined && !!composerPrompt;
 		const namingAgent = input.agents?.[0]?.agent;
-		const aiNamesPromise = wantAi
-			? generateWorkspaceNamesFromPrompt(
-					composerPrompt,
-					namingAgent ? { db: ctx.db, agent: namingAgent } : undefined,
-				).catch((err) => {
-					console.warn("[workspaces.createSession] AI naming failed", err);
-					return null;
-				})
-			: null;
 
 		const typedName = input.name?.trim();
 		const folderCandidate =
@@ -148,7 +138,10 @@ export const createSession = protectedProcedure
 				projectId: null,
 				worktreePath: repoPath,
 				branch: "main",
-				name: typedName || folderName,
+				name:
+					typedName ||
+					deriveWorkspaceTitleFromPrompt(composerPrompt) ||
+					folderName,
 				type: "session",
 				createdByUserId: ctx.userId ?? null,
 				tags: input.tags,
@@ -180,9 +173,13 @@ export const createSession = protectedProcedure
 			throw err;
 		}
 
-		const aiNames = aiNamesPromise ? await aiNamesPromise : null;
-		if (aiNames?.title) {
-			row = updateLocalWorkspace(ctx, row.id, { name: aiNames.title }) ?? row;
+		if (wantAi) {
+			generateWorkspaceTitleInBackground({
+				ctx,
+				workspace: row,
+				prompt: composerPrompt,
+				agent: namingAgent,
+			});
 		}
 
 		const terminalsResult: Array<{ terminalId: string; label: string }> = [];
@@ -209,7 +206,10 @@ export const createSession = protectedProcedure
 		}
 
 		return {
-			workspace: toCloudShape(row, ctx.organizationId),
+			workspace: toCloudShape(
+				getLocalWorkspace(ctx.db, row.id) ?? row,
+				ctx.organizationId,
+			),
 			terminals: terminalsResult,
 			agents: agentsResult,
 		};
