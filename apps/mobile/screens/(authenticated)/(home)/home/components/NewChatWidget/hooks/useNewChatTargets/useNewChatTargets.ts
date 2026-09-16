@@ -17,7 +17,6 @@ export interface NewChatTarget {
 	key: string;
 	/** A machine's project, or a project a cloud sandbox can be created for. */
 	kind: "host" | "cloud";
-	/** Null is "No project": a session, which the host creates without a project. */
 	projectId: string | null;
 	projectName: string;
 	projectIconUrl: string | null;
@@ -37,10 +36,10 @@ export function targetKeyFor(projectId: string | null, machineId: string) {
 
 /**
  * Where a new chat workspace can be created under the current Home scope: the
- * selected machine's projects (its `project.list`) led by "No project", or a
- * cloud target per API-listed project when the scope is Cloud. The place is
- * picked by the scope filter at the top of Home — never here. The default pick:
- * last used target, else the most recently updated workspace's target.
+ * selected machine's projects (its `project.list`), or a cloud target per
+ * API-listed project when the scope is Cloud. The place is picked by the scope
+ * filter at the top of Home — never here. The default pick: last used target,
+ * else the most recently updated workspace's target.
  */
 export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 	targets: NewChatTarget[];
@@ -93,9 +92,6 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 		const result: NewChatTarget[] = [];
 		scopedHosts.forEach((host, index) => {
 			const rows = projectListQueries[index]?.data;
-			// Held back until the projects answer: alone in the list it would
-			// become the default, and a send in that beat would start a session
-			// where the last used project was meant.
 			if (!rows) return;
 			result.push({
 				key: targetKeyFor(null, host.machineId),

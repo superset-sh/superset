@@ -289,8 +289,6 @@ export function HomeScreen() {
 			else byProject.set(projectId, [workspace]);
 		}
 
-		// Sessions and the workspaces of projects the host no longer reports
-		// share "No project", which ranks among the projects like any other.
 		const sections = [
 			...projects.map((project) => ({
 				projectId: project.id,

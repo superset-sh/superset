@@ -8,7 +8,6 @@ import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
  */
 export interface PendingWorkspaceCreateInput {
 	target: {
-		/** Null creates a session. */
 		projectId: string | null;
 		machineId: string;
 		hostUrl: string;

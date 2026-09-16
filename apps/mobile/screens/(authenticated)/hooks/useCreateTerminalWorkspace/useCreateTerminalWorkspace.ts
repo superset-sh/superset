@@ -41,8 +41,7 @@ async function importAttachments(
 
 /**
  * Creates a workspace on the target host with the claude agent sugar — the
- * host launches the terminal agent and delivers the first prompt itself. With
- * no project it is a session, the desktop's project-less workspace.
+ * host launches the terminal agent and delivers the first prompt itself.
  * Attachments reach that host through cloud storage first, since the agent
  * needs them on disk before it launches.
  *
@@ -96,8 +95,6 @@ export function useCreateTerminalWorkspace() {
 					},
 				];
 
-				// A synchronous create returns with the row and session already
-				// there; refetch so the screen resolves without waiting for a poll.
 				const refetchCreated = () => {
 					void queryClient.invalidateQueries({
 						queryKey: getHostWorkspacesQueryKey(
@@ -111,9 +108,6 @@ export function useCreateTerminalWorkspace() {
 				};
 
 				if (target.projectId === null) {
-					// A session has no worktree to wait on, so it has no enqueued
-					// variant; the relay's 30s cap applies as it does to a legacy
-					// create below.
 					createRequested = true;
 					await client.workspaces.createSession.mutate({
 						id: workspaceId,
@@ -134,7 +128,8 @@ export function useCreateTerminalWorkspace() {
 						if (!isMissingProcedureError(error)) throw error;
 						// Legacy host: the long-held synchronous create — it can still
 						// die at the relay's 30s cap, same as before this hook went
-						// optimistic.
+						// optimistic. On success the row and session already exist;
+						// refetch so the screen resolves without waiting for a poll.
 						await client.workspaces.create.mutate(createInput);
 						refetchCreated();
 					}

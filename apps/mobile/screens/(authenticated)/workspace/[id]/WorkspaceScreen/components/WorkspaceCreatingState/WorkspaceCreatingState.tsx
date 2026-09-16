@@ -9,9 +9,8 @@ import { cn } from "@/lib/utils";
 import { AsciiSpinner } from "@/screens/(authenticated)/components/AsciiSpinner";
 
 // Synthetic timings, desktop's WorkspaceCreatingState trick: the create
-// streams no progress, so the first steps advance on a clock and the last
-// step before the agent holds until the row actually lands. A session has no
-// worktree, so it has nothing to advance through.
+// streams no progress, so the first steps advance on a clock and the
+// worktree step holds until the row actually lands.
 const WORKTREE_TIMING = { stepDoneAtS: [2, 12], typicalSeconds: 25 };
 const SESSION_TIMING = { stepDoneAtS: [], typicalSeconds: 10 };
 const SLOW_HINT_AT_S = 60;
@@ -127,7 +126,7 @@ function stepState(
 	const activeIndex = stepDoneAtS.findIndex(
 		(doneAt) => elapsedSeconds < doneAt,
 	);
-	// Past the synthetic budget the last setup step holds until the row lands —
+	// Past the synthetic budget the worktree step holds until the row lands —
 	// never claim the agent is starting before the workspace exists.
 	const active = activeIndex === -1 ? setupStepCount - 1 : activeIndex;
 	if (index < active) return "done";

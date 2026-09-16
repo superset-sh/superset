@@ -16,9 +16,9 @@ import {
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 
 /**
- * One flat list of the selected machine's projects, led by "No project". Where
- * the workspace runs is picked at the top of Home, never here — and under Cloud
- * the composer doesn't open this at all.
+ * One flat list of the selected machine's projects. Where the workspace runs
+ * is picked at the top of Home, never here — and under Cloud the composer
+ * doesn't open this at all.
  */
 export function ProjectPickerScreen() {
 	const router = useRouter();

@@ -16,7 +16,6 @@ interface ProjectSectionHeaderProps {
 	count: number;
 	collapsed: boolean;
 	onToggle: () => void;
-	/** Absent when there is nothing to create into. */
 	onNewWorkspace?: () => void;
 }
 
