@@ -39,6 +39,7 @@ describe("parseThreadCommand", () => {
 	test("recognises explicit commands, with or without a leading mention", () => {
 		expect(parseThreadCommand("!mute")).toBe("mute");
 		expect(parseThreadCommand("<@UBOT> !unmute")).toBe("unmute");
+		expect(parseThreadCommand("<@UBOT|superset> !unmute")).toBe("unmute");
 		expect(parseThreadCommand("  !Quiet please")).toBe("mute");
 	});
 	test("leaves prose to the model", () => {

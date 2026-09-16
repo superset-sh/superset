@@ -243,6 +243,17 @@ test("!mute quiets the thread without running the agent", async () => {
 	);
 });
 
+test("in a DM, !mute is ordinary text and no quiet tool is offered", async () => {
+	await processAgentMessage({
+		...params,
+		event: { ...params.event, channel_type: "im", text: "!mute" },
+	});
+	expect(setQuiet).not.toHaveBeenCalled();
+	expect(runAgent).toHaveBeenCalledTimes(1);
+	expect(runAgent.mock.calls[0]?.[0]).toHaveProperty("threadMemory");
+	expect(runAgent.mock.calls[0]?.[0]).not.toHaveProperty("threadQuiet");
+});
+
 test("prose about mentions is an ordinary request, not a mute", async () => {
 	await processAgentMessage({
 		...params,

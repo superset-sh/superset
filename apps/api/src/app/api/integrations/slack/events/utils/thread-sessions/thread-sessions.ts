@@ -31,7 +31,7 @@ export type ThreadCommand = "mute" | "unmute";
  */
 export function parseThreadCommand(text: string): ThreadCommand | null {
 	const stripped = text
-		.replace(/<@[A-Z0-9]+>/g, "")
+		.replace(/<@[A-Z0-9]+(?:\|[^>]*)?>/g, "")
 		.trim()
 		.toLowerCase();
 	if (/^!(mute|quiet)\b/.test(stripped)) return "mute";
@@ -51,6 +51,7 @@ export async function threadFollowUpsEnabled(teamId: string): Promise<boolean> {
 	const cached = flagCache.get(teamId);
 	if (cached && cached.expiresAt > Date.now()) return cached.enabled;
 	let enabled = false;
+	let timer: ReturnType<typeof setTimeout> | undefined;
 	try {
 		enabled =
 			(await Promise.race([
@@ -59,12 +60,14 @@ export async function threadFollowUpsEnabled(teamId: string): Promise<boolean> {
 					`slack-team:${teamId}`,
 					{ sendFeatureFlagEvents: false },
 				),
-				new Promise<undefined>((resolve) =>
-					setTimeout(() => resolve(undefined), FLAG_TIMEOUT_MS),
-				),
+				new Promise<undefined>((resolve) => {
+					timer = setTimeout(() => resolve(undefined), FLAG_TIMEOUT_MS);
+				}),
 			])) === true;
 	} catch (error) {
 		console.warn("[slack-agent] thread follow-up flag check failed:", error);
+	} finally {
+		clearTimeout(timer);
 	}
 	flagCache.set(teamId, { enabled, expiresAt: Date.now() + FLAG_CACHE_TTL_MS });
 	return enabled;
@@ -100,6 +103,7 @@ export async function threadFollowUpTarget(key: {
 	channelId: string;
 	threadTs: string;
 }): Promise<SelectSlackThreadSession | null> {
+	if (!(await threadFollowUpsEnabled(key.teamId))) return null;
 	const connection = await db.query.integrationConnections.findFirst({
 		where: and(
 			eq(integrationConnections.provider, "slack"),
@@ -113,7 +117,6 @@ export async function threadFollowUpTarget(key: {
 		columns: { organizationId: true },
 	});
 	if (!connection) return null;
-	if (!(await threadFollowUpsEnabled(key.teamId))) return null;
 	const session = await db.query.slackThreadSessions.findFirst({
 		where: whereThread({ ...key, organizationId: connection.organizationId }),
 	});

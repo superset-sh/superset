@@ -211,6 +211,7 @@ export async function processAgentMessage({
 	}
 
 	const threadTs = event.thread_ts ?? event.ts;
+	const isDm = event.channel_type === "im";
 	// Thread sessions (memory, quieting, follow-ups) are one feature; a team
 	// without the flag runs the Phase 0 path untouched.
 	const sessions = await threadFollowUpsEnabled(teamId);
@@ -222,7 +223,9 @@ export async function processAgentMessage({
 		userId: slackUserLink.userId,
 	};
 
-	const command = sessions ? parseThreadCommand(event.text ?? "") : null;
+	// Every DM already reaches the agent, so quieting means nothing there.
+	const command =
+		sessions && !isDm ? parseThreadCommand(event.text ?? "") : null;
 	if (command) {
 		await setThreadQuiet({ ...threadKey, quiet: command === "mute" });
 		await slack.chat.postMessage({
@@ -238,7 +241,6 @@ export async function processAgentMessage({
 	// reply exists, so the thread ends with one notifying message.
 	const deadline = Date.now() + RUN_BUDGET_MS;
 	const run = createSlackClient(connection.accessToken, { deadline });
-	const isDm = event.channel_type === "im";
 	let placeholderTs: string | undefined;
 
 	const showProgress = async (status: string) => {
@@ -360,10 +362,15 @@ export async function processAgentMessage({
 			...(threadSession
 				? {
 						threadMemory: renderThreadMemory(threadSession.entityLog),
-						threadQuiet: {
-							quiet: threadSession.quiet,
-							set: (quiet: boolean) => setThreadQuiet({ ...threadKey, quiet }),
-						},
+						...(isDm
+							? {}
+							: {
+									threadQuiet: {
+										quiet: threadSession.quiet,
+										set: (quiet: boolean) =>
+											setThreadQuiet({ ...threadKey, quiet }),
+									},
+								}),
 					}
 				: {}),
 			onProgress: showProgress,

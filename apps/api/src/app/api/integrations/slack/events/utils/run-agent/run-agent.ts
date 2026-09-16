@@ -603,14 +603,13 @@ export async function runSlackAgent(
 
 		const threadState = params.threadQuiet
 			? params.threadQuiet.quiet
-				? "- This thread is quiet: only replies that mention you reach you. If asked to respond without mentions again, call slack_thread_quiet with quiet=false."
-				: "- This thread is open: every reply in it reaches you without a mention. If asked to only respond when mentioned, call slack_thread_quiet with quiet=true."
+				? "\n- This thread is quiet: only replies that mention you reach you. If asked to respond without mentions again, call slack_thread_quiet with quiet=false. People can also type !unmute."
+				: "\n- This thread is open: every reply in it reaches you without a mention. If asked to only respond when mentioned, call slack_thread_quiet with quiet=true. People can also type !mute."
 			: "";
 		const contextualSystem = `Current context:
 - Slack Channel: ${params.channelId}
 - Thread: ${params.threadTs}
-- Organization ID: ${params.organizationId}
-${threadState}
+- Organization ID: ${params.organizationId}${threadState}
 
 ${agentContext}`;
 
