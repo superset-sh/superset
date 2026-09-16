@@ -218,7 +218,10 @@ describe("agent loop", () => {
 			});
 		});
 		await runSlackAgent(params).catch(() => {});
-		expect(create).toHaveBeenCalledTimes(1);
+		// The error rewrite also calls create; count only agent-loop requests.
+		const loopCalls = () =>
+			create.mock.calls.filter(([req]) => "tools" in (req as object)).length;
+		expect(loopCalls()).toBe(1);
 
 		create.mockReset();
 		create.mockImplementationOnce(async () => {
@@ -233,7 +236,7 @@ describe("agent loop", () => {
 		}));
 		const result = await runSlackAgent(params);
 		expect(result.text).toBe("Recovered");
-		expect(create).toHaveBeenCalledTimes(2);
+		expect(loopCalls()).toBe(2);
 	});
 
 	test("text split around citations comes back as one paragraph", async () => {
