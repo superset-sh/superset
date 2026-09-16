@@ -125,13 +125,26 @@ mock.module("../utils/thread-sessions", () => ({
 const { slackRateLimitRetryAfterMs } = await import(
 	"../utils/slack-client/request-bounds"
 );
-const createClient = mock((_token: string, _opts?: { deadline?: number }) => ({
-	chat: { postMessage, update: updateMessage, delete: deleteMessage },
-	assistant: { threads: { setStatus } },
-	reactions: { add: addReaction, remove: removeReaction },
-}));
 mock.module("../utils/slack-client", () => ({
-	createSlackClient: createClient,
+	createSlackClient: (_token: string, options: { deadline?: number } = {}) => {
+		const bounded =
+			<A, R>(call: (args: A) => Promise<R>) =>
+			async (args: A) => {
+				if (options.deadline !== undefined && Date.now() >= options.deadline) {
+					throw new Error("Slack request started after the run deadline");
+				}
+				return call(args);
+			};
+		return {
+			chat: {
+				postMessage: bounded(postMessage),
+				update: bounded(updateMessage),
+				delete: bounded(deleteMessage),
+			},
+			assistant: { threads: { setStatus: bounded(setStatus) } },
+			reactions: { add: bounded(addReaction), remove: bounded(removeReaction) },
+		};
+	},
 	isUnpostableChannelError: () => false,
 	slackRateLimitRetryAfterMs,
 }));
@@ -180,18 +193,6 @@ beforeEach(() => {
 	takeQueued.mockImplementation(async () => []);
 	completeHandoff.mockClear();
 	abandonHandoff.mockClear();
-});
-
-test("replies and cleanup get a client that outlives the run budget", async () => {
-	createClient.mockClear();
-	await processAgentMessage(params);
-	const deadlines = createClient.mock.calls
-		.map(([, opts]) => opts?.deadline)
-		.filter((d): d is number => typeof d === "number");
-	expect(deadlines).toHaveLength(2);
-	expect(deadlines[1]).toBeGreaterThan(deadlines[0] as number);
-	// 240s run + grace stays under the job route's 300s maxDuration.
-	expect((deadlines[1] as number) - Date.now()).toBeLessThan(300_000);
 });
 
 test("with the flag off, nothing is queued and nothing is handed back", async () => {
@@ -605,6 +606,24 @@ test("a rate limit that outlives the budget is not waited on", async () => {
 	await processAgentMessage(params);
 	expect(finish).toHaveBeenCalledWith("delivery", false);
 	expect(postMessage.mock.calls.at(-1)?.[0].text).toBe("Unable to finish");
+});
+
+test("a run that spends its whole budget still posts its reply and clears its indicators", async () => {
+	const realNow = Date.now;
+	runAgent.mockImplementationOnce(async (args) => {
+		const pastDeadline = (args.deadline as number) + 1;
+		Date.now = () => pastDeadline;
+		return { text: "I ran out of time", actions: [] };
+	});
+	try {
+		await processAgentMessage(params);
+	} finally {
+		Date.now = realNow;
+	}
+	expect(postMessage.mock.calls.at(-1)?.[0].text).toBe("I ran out of time");
+	expect(deleteMessage).toHaveBeenCalledWith({ channel: "C1", ts: "msg-1" });
+	expect(removeReaction).toHaveBeenCalledTimes(1);
+	expect(finish).toHaveBeenCalledWith("delivery", true);
 });
 
 test("channel progress updates edit the placeholder instead of posting", async () => {

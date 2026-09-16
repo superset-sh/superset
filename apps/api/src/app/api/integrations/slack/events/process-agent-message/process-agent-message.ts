@@ -48,11 +48,10 @@ import { splitMarkdown } from "./utils/split-markdown";
 const RUN_BUDGET_MS = 240_000;
 const WORKER_FLAG_TIMEOUT_MS = 5_000;
 /**
- * Room after the run budget for the final posts and the finally block;
- * with preflight before the budget starts this sits just under the job
- * route's 300s maxDuration.
+ * The reply, or why there is none, is posted after the run budget is spent,
+ * in what remains of the job route's 300s maxDuration.
  */
-const REPLY_GRACE_MS = 45_000;
+const REPLY_BUDGET_MS = 45_000;
 
 const LOST_TRACK_TEXT =
 	"I lost track of this request partway through. Anything listed as changed in this thread did happen; ask again for the rest.";
@@ -262,10 +261,7 @@ export async function processAgentMessage({
 	// reply exists, so the thread ends with one notifying message.
 	const deadline = Date.now() + RUN_BUDGET_MS;
 	const run = createSlackClient(connection.accessToken, { deadline });
-	// Replies, progress and cleanup outlive the run budget: a turn that spent
-	// it all still has to post its outcome and take its placeholder and 👀
-	// back, or the thread looks stuck.
-	const replyDeadline = deadline + REPLY_GRACE_MS;
+	const replyDeadline = deadline + REPLY_BUDGET_MS;
 	const reply = createSlackClient(connection.accessToken, {
 		deadline: replyDeadline,
 	});
@@ -464,9 +460,8 @@ export async function processAgentMessage({
 				await post();
 			} catch (error) {
 				const wait = slackRateLimitRetryAfterMs(error);
-				if (wait === undefined || Date.now() + wait >= replyDeadline) {
+				if (wait === undefined || Date.now() + wait >= replyDeadline)
 					throw error;
-				}
 				await new Promise((resolve) => setTimeout(resolve, wait));
 				await post();
 			}
