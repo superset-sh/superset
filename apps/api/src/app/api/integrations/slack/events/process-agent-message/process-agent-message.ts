@@ -47,7 +47,11 @@ import { splitMarkdown } from "./utils/split-markdown";
 /** Everything after the claim — preflight, model calls, tools — shares this. */
 const RUN_BUDGET_MS = 240_000;
 const WORKER_FLAG_TIMEOUT_MS = 5_000;
-/** Under the job route's maxDuration (300s) with the run budget: 240 + 45 < 300. */
+/**
+ * Room after the run budget for the final posts and the finally block;
+ * with preflight before the budget starts this sits just under the job
+ * route's 300s maxDuration.
+ */
 const REPLY_GRACE_MS = 45_000;
 
 const LOST_TRACK_TEXT =
@@ -261,8 +265,9 @@ export async function processAgentMessage({
 	// Replies, progress and cleanup outlive the run budget: a turn that spent
 	// it all still has to post its outcome and take its placeholder and 👀
 	// back, or the thread looks stuck.
+	const replyDeadline = deadline + REPLY_GRACE_MS;
 	const reply = createSlackClient(connection.accessToken, {
-		deadline: deadline + REPLY_GRACE_MS,
+		deadline: replyDeadline,
 	});
 	let placeholderTs: string | undefined;
 
@@ -459,7 +464,9 @@ export async function processAgentMessage({
 				await post();
 			} catch (error) {
 				const wait = slackRateLimitRetryAfterMs(error);
-				if (wait === undefined || Date.now() + wait >= deadline) throw error;
+				if (wait === undefined || Date.now() + wait >= replyDeadline) {
+					throw error;
+				}
 				await new Promise((resolve) => setTimeout(resolve, wait));
 				await post();
 			}

@@ -50,7 +50,11 @@ mock.module("@superset/db/client", () => ({
 	},
 }));
 mock.module("@/env", () => ({
-	env: { NEXT_PUBLIC_WEB_URL: "https://app.superset.sh" },
+	env: {
+		NEXT_PUBLIC_WEB_URL: "https://app.superset.sh",
+		NEXT_PUBLIC_API_URL: "https://api.test",
+		QSTASH_TOKEN: "qstash-token",
+	},
 }));
 mock.module("@/lib/analytics", () => ({ posthog: { capture: () => {} } }));
 mock.module("../../lib/find-slack-user-link", () => ({
@@ -267,7 +271,7 @@ test("after a turn, queued replies are handed back by re-delivering the newest o
 	await processAgentMessage(params);
 	expect(publishJSON).toHaveBeenCalledTimes(1);
 	expect(publishJSON.mock.calls[0]?.[0]).toMatchObject({
-		url: expect.stringContaining("/jobs/process-mention"),
+		url: "https://api.test/api/integrations/slack/jobs/process-mention",
 		deduplicationId: "queued-T1-10-0",
 		body: {
 			teamId: "T1",
@@ -401,7 +405,7 @@ test("a DM's queued replies go back through the assistant job as a DM", async ()
 		event: { ...params.event, type: "message", channel_type: "im" },
 	});
 	expect(publishJSON.mock.calls[0]?.[0]).toMatchObject({
-		url: expect.stringContaining("/jobs/process-assistant-message"),
+		url: "https://api.test/api/integrations/slack/jobs/process-assistant-message",
 		body: { event: { channel_type: "im", ts: "11.0", queued_ts: [] } },
 	});
 });

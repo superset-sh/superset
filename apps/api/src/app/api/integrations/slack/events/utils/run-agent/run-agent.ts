@@ -186,6 +186,20 @@ const AGENT_COPY = {
 	empty: "I finished without an answer to show. Ask again with more detail.",
 } as const;
 
+const RATE_LIMIT_DEFAULT_WAIT_MS = 2_000;
+const RATE_LIMIT_MAX_WAIT_MS = 10_000;
+
+function rateLimitWaitMs(error: {
+	headers?: { get?: (name: string) => string | null | undefined };
+}): number {
+	const seconds = Number(error.headers?.get?.("retry-after"));
+	const wait =
+		Number.isFinite(seconds) && seconds > 0
+			? seconds * 1000
+			: RATE_LIMIT_DEFAULT_WAIT_MS;
+	return Math.min(wait, RATE_LIMIT_MAX_WAIT_MS);
+}
+
 export interface SlackAgentResult {
 	text: string;
 	actions: AgentAction[];
@@ -687,14 +701,14 @@ ${agentContext}`;
 				return await request();
 			} catch (error) {
 				if (!(error instanceof Anthropic.APIError)) throw error;
-				const { status, name } = error as { status?: number; name?: string };
 				const retryable =
-					status === 429 ||
-					(status ?? 0) >= 500 ||
-					(status === undefined && name === "APIConnectionError");
-				if (!retryable || deadline - Date.now() < MODEL_CALL_TIMEOUT_MS) {
-					throw error;
-				}
+					error instanceof Anthropic.APIConnectionError
+						? !(error instanceof Anthropic.APIConnectionTimeoutError)
+						: error.status === 429 || (error.status ?? 0) >= 500;
+				if (!retryable) throw error;
+				const wait = error.status === 429 ? rateLimitWaitMs(error) : 0;
+				if (deadline - Date.now() - wait < MODEL_CALL_TIMEOUT_MS) throw error;
+				if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
 				return request();
 			}
 		};
@@ -854,11 +868,20 @@ ${agentContext}`;
 			return { text, actions };
 		}
 		// Web search splits one paragraph into several text blocks around its
-		// citations; they are fragments of the same prose, not paragraphs.
+		// citations: the block after a cited block continues its sentence.
+		// A block after an uncited one (a preamble before a search) is a
+		// new paragraph.
 		const text = response.content
 			.filter((block): block is Anthropic.TextBlock => block.type === "text")
-			.map((block) => block.text)
-			.join("");
+			.reduce(
+				(joined, block, i, blocks) =>
+					i === 0
+						? block.text
+						: joined +
+							(blocks[i - 1]?.citations?.length ? "" : "\n\n") +
+							block.text,
+				"",
+			);
 		return { text: text || AGENT_COPY.empty, actions };
 	} catch (error) {
 		console.error("[slack-agent] Agent request failed", error);

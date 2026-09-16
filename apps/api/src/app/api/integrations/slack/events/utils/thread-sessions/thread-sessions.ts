@@ -170,12 +170,19 @@ export async function beginThreadRun(
 		event: SlackQueuedEvent;
 		/**
 		 * A hand-back may reach the thread twice (a publish whose response was
-		 * lost, then restored and published again). The second copy finds the
-		 * session's last trigger at or past its own message and stands down.
+		 * lost, then taken and published again). The second copy finds the
+		 * session's last trigger at or past its own message and stands down
+		 * without ever taking the session, so nothing can queue behind it.
 		 */
 		handBack?: boolean;
 	},
 ): Promise<ThreadRunClaim> {
+	const notCovered = key.handBack
+		? or(
+				isNull(slackThreadSessions.lastContextTs),
+				sql`${slackThreadSessions.lastContextTs}::numeric < ${key.event.ts}::numeric`,
+			)
+		: undefined;
 	for (let attempt = 0; attempt < CLAIM_ATTEMPTS; attempt++) {
 		const now = new Date();
 		const [claimed] = await db
@@ -191,23 +198,11 @@ export async function beginThreadRun(
 							new Date(now.getTime() - STALE_RUN_MS),
 						),
 					),
+					notCovered,
 				),
 			)
 			.returning();
-		if (claimed) {
-			if (
-				key.handBack &&
-				claimed.lastContextTs &&
-				Number(claimed.lastContextTs) >= Number(key.event.ts)
-			) {
-				await db
-					.update(slackThreadSessions)
-					.set({ status: "idle" })
-					.where(eq(slackThreadSessions.id, claimed.id));
-				return { status: "covered" };
-			}
-			return { status: "running", session: claimed };
-		}
+		if (claimed) return { status: "running", session: claimed };
 
 		const [inserted] = await db
 			.insert(slackThreadSessions)
@@ -222,6 +217,19 @@ export async function beginThreadRun(
 			.onConflictDoNothing({ target: THREAD_CONFLICT_TARGET })
 			.returning();
 		if (inserted) return { status: "running", session: inserted };
+
+		if (key.handBack) {
+			const current = await db.query.slackThreadSessions.findFirst({
+				where: whereThread(key),
+				columns: { lastContextTs: true },
+			});
+			if (
+				current?.lastContextTs &&
+				Number(current.lastContextTs) >= Number(key.event.ts)
+			) {
+				return { status: "covered" };
+			}
+		}
 
 		// Only a running owner can hand the queue back, so queue only while
 		// one exists; if it finished in between, go round and claim instead.

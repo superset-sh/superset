@@ -29,9 +29,17 @@ const listTools = mock(async () => ({
 	),
 }));
 mock.module("@/env", () => ({ env: { ANTHROPIC_API_KEY: "test" } }));
+class FakeAPIError extends Error {
+	status?: number;
+	headers?: Headers;
+}
+class FakeConnectionError extends FakeAPIError {}
+class FakeTimeoutError extends FakeConnectionError {}
 mock.module("@anthropic-ai/sdk", () => ({
 	default: class {
-		static APIError = Error;
+		static APIError = FakeAPIError;
+		static APIConnectionError = FakeConnectionError;
+		static APIConnectionTimeoutError = FakeTimeoutError;
 		messages = { create };
 	},
 }));
@@ -213,9 +221,7 @@ describe("agent loop", () => {
 
 	test("a model request timeout is not retried; a 5xx is retried once", async () => {
 		create.mockImplementationOnce(async () => {
-			throw Object.assign(new Error("Request timed out."), {
-				name: "APIConnectionTimeoutError",
-			});
+			throw new FakeTimeoutError("Request timed out.");
 		});
 		await runSlackAgent(params).catch(() => {});
 		// The error rewrite also calls create; count only agent-loop requests.
@@ -225,10 +231,7 @@ describe("agent loop", () => {
 
 		create.mockReset();
 		create.mockImplementationOnce(async () => {
-			throw Object.assign(new Error("overloaded"), {
-				name: "InternalServerError",
-				status: 500,
-			});
+			throw Object.assign(new FakeAPIError("overloaded"), { status: 500 });
 		});
 		create.mockImplementationOnce(async () => ({
 			stop_reason: "end_turn",
@@ -236,6 +239,17 @@ describe("agent loop", () => {
 		}));
 		const result = await runSlackAgent(params);
 		expect(result.text).toBe("Recovered");
+		expect(loopCalls()).toBe(2);
+
+		create.mockReset();
+		create.mockImplementationOnce(async () => {
+			throw new FakeConnectionError("socket hang up");
+		});
+		create.mockImplementationOnce(async () => ({
+			stop_reason: "end_turn",
+			content: [{ type: "text", text: "Reconnected", citations: [] }],
+		}));
+		expect((await runSlackAgent(params)).text).toBe("Reconnected");
 		expect(loopCalls()).toBe(2);
 	});
 
@@ -251,6 +265,18 @@ describe("agent loop", () => {
 		const result = await runSlackAgent(params);
 		expect(result.text).toBe(
 			"Bun 1.4.2 fixes 7 issues, including two regressions.",
+		);
+
+		create.mockImplementationOnce(async () => ({
+			stop_reason: "end_turn",
+			content: [
+				{ type: "text", text: "Let me check.", citations: [] },
+				{ type: "text", text: "Bun 1.4.2 is out", citations: [{}] },
+				{ type: "text", text: ".", citations: [] },
+			],
+		}));
+		expect((await runSlackAgent(params)).text).toBe(
+			"Let me check.\n\nBun 1.4.2 is out.",
 		);
 	});
 
