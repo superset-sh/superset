@@ -189,14 +189,20 @@ const AGENT_COPY = {
 const RATE_LIMIT_DEFAULT_WAIT_MS = 2_000;
 const RATE_LIMIT_MAX_WAIT_MS = 10_000;
 
-function rateLimitWaitMs(error: {
-	headers?: { get?: (name: string) => string | null | undefined };
-}): number {
-	const seconds = Number(error.headers?.get?.("retry-after"));
+/** Retry-After is delay-seconds or an HTTP-date; either becomes a bounded wait. */
+export function rateLimitWaitMs(
+	error: { headers?: { get?: (name: string) => string | null | undefined } },
+	now = Date.now(),
+): number {
+	const header = error.headers?.get?.("retry-after") ?? "";
+	const seconds = Number(header);
+	const fromDate = Date.parse(header) - now;
 	const wait =
 		Number.isFinite(seconds) && seconds > 0
 			? seconds * 1000
-			: RATE_LIMIT_DEFAULT_WAIT_MS;
+			: Number.isFinite(fromDate) && fromDate > 0
+				? fromDate
+				: RATE_LIMIT_DEFAULT_WAIT_MS;
 	return Math.min(wait, RATE_LIMIT_MAX_WAIT_MS);
 }
 
