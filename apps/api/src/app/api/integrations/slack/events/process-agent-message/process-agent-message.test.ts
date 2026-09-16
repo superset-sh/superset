@@ -93,16 +93,19 @@ const followUpsEnabled = mock(async (_teamId: string) => true);
 const takeQueued = mock(
 	async (
 		_id: string,
+		_handoff: string,
 	): Promise<{ ts: string; user: string; text: string }[]> => [],
 );
-const restoreQueued = mock(async (_id: string, _events: unknown[]) => {});
+const completeHandoff = mock(async (_id: string, _handoff: string) => {});
+const abandonHandoff = mock(async (_id: string, _handoff: string) => {});
 mock.module("../utils/thread-sessions", () => ({
 	beginThreadRun: beginThread,
 	finishThreadRun: finishThread,
 	setThreadQuiet: setQuiet,
 	threadFollowUpsEnabled: followUpsEnabled,
 	takeQueuedEvents: takeQueued,
-	restoreQueuedEvents: restoreQueued,
+	completeHandBack: completeHandoff,
+	abandonHandBack: abandonHandoff,
 	parseThreadCommand: (text: string) => {
 		const t = text
 			.replace(/<@[A-Z0-9]+>/g, "")
@@ -170,7 +173,8 @@ beforeEach(() => {
 	publishJSON.mockClear();
 	takeQueued.mockReset();
 	takeQueued.mockImplementation(async () => []);
-	restoreQueued.mockClear();
+	completeHandoff.mockClear();
+	abandonHandoff.mockClear();
 });
 
 test("with the flag off, nothing is queued and nothing is handed back", async () => {
@@ -251,10 +255,10 @@ test("after a turn, queued replies are handed back by re-delivering the newest o
 	expect(publishJSON).toHaveBeenCalledTimes(1);
 	expect(publishJSON.mock.calls[0]?.[0]).toMatchObject({
 		url: expect.stringContaining("/jobs/process-mention"),
-		deduplicationId: "queued:T1:12.0:10.0",
+		deduplicationId: "queued:T1:10.0",
 		body: {
 			teamId: "T1",
-			eventId: "queued:T1:12.0:10.0",
+			eventId: "queued:T1:10.0",
 			event: {
 				channel_type: "channel",
 				ts: "12.0",
@@ -266,7 +270,12 @@ test("after a turn, queued replies are handed back by re-delivering the newest o
 		},
 	});
 	expect(publishJSON.mock.calls[0]?.[0]).not.toHaveProperty("body.event.files");
-	expect(restoreQueued).not.toHaveBeenCalled();
+	expect(takeQueued).toHaveBeenCalledWith("thread-session", "queued:T1:10.0");
+	expect(completeHandoff).toHaveBeenCalledWith(
+		"thread-session",
+		"queued:T1:10.0",
+	);
+	expect(abandonHandoff).not.toHaveBeenCalled();
 });
 
 test("a reply queued mid-turn keeps its attachments through the hand-back", async () => {
@@ -316,9 +325,11 @@ test("a failed hand-back leaves the queue for the next turn", async () => {
 		throw new Error("qstash down");
 	});
 	await processAgentMessage(params);
-	expect(restoreQueued).toHaveBeenCalledWith("thread-session", [
-		{ ts: "11.0", user: "U2", text: "first" },
-	]);
+	expect(abandonHandoff).toHaveBeenCalledWith(
+		"thread-session",
+		"queued:T1:10.0",
+	);
+	expect(completeHandoff).not.toHaveBeenCalled();
 	expect(postMessage.mock.calls.at(-1)?.[0].text).toBe("**Completed**");
 });
 
@@ -432,7 +443,7 @@ test("a run opens the thread session, hands its memory to the agent, and records
 		],
 		lastContextTs: "10.0",
 	});
-	expect(takeQueued).toHaveBeenCalledWith("thread-session");
+	expect(takeQueued).toHaveBeenCalledWith("thread-session", "queued:T1:10.0");
 	expect(publishJSON).not.toHaveBeenCalled();
 });
 

@@ -37,6 +37,9 @@ export interface SlackQueuedEvent {
 	user: string;
 	text: string;
 	files?: SlackQueuedFile[];
+	/** Set while a hand-back for this event is being published; cleared once it is. */
+	handoff?: string;
+	handoffAt?: number;
 }
 
 /**

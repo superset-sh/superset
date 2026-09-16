@@ -19,6 +19,8 @@ const FLAG_TIMEOUT_MS = 1_000;
 const STALE_RUN_MS = 6 * 60_000;
 const MAX_QUEUED_EVENTS = 20;
 const CLAIM_ATTEMPTS = 3;
+/** A hand-back still marked after this long belongs to a worker that died mid-publish. */
+const HANDOFF_STALE_MS = 60_000;
 
 interface ThreadKey {
 	organizationId: string;
@@ -245,44 +247,68 @@ export async function beginThreadRun(
 }
 
 /**
- * Take everything that arrived while the turn ran, oldest first, emptying
- * the queue in the same statement. Taken before the hand-back is published:
- * a reply cannot be queued again until its job arrives, and its job cannot
- * arrive before the publish, so nothing newer is ever swept away with it.
+ * Claim everything that arrived while the turn ran for one hand-back,
+ * oldest first. The events stay in the queue, marked with the hand-off id,
+ * until completeHandBack removes them once QStash has the job; a worker
+ * that dies in between leaves them marked, and a later hand-back takes
+ * them again after HANDOFF_STALE_MS. A hand-back that reaches the thread
+ * twice is caught by the covered check in beginThreadRun.
  */
 export async function takeQueuedEvents(
 	id: string,
+	handoffId: string,
 ): Promise<SlackQueuedEvent[]> {
+	const staleBefore = Date.now() - HANDOFF_STALE_MS;
+	const mark = JSON.stringify({ handoff: handoffId, handoffAt: Date.now() });
 	const [row] = await db
 		.update(slackThreadSessions)
-		.set({ queuedEvents: [] })
-		.from(
-			sql`(SELECT ${slackThreadSessions.id} AS prior_id, ${slackThreadSessions.queuedEvents} AS prior FROM ${slackThreadSessions} WHERE ${slackThreadSessions.id} = ${id} FOR UPDATE) AS taken`,
-		)
-		.where(sql`${slackThreadSessions.id} = taken.prior_id`)
-		.returning({ prior: sql<SlackQueuedEvent[]>`taken.prior` });
+		.set({
+			queuedEvents: sql`(
+				SELECT COALESCE(jsonb_agg(
+					CASE WHEN e->>'handoff' IS NULL OR (e->>'handoffAt')::numeric < ${staleBefore}
+						THEN e || ${mark}::jsonb ELSE e END
+					ORDER BY n), '[]'::jsonb)
+				FROM jsonb_array_elements(${slackThreadSessions.queuedEvents}) WITH ORDINALITY AS q(e, n)
+			)`,
+		})
+		.where(eq(slackThreadSessions.id, id))
+		.returning({ queuedEvents: slackThreadSessions.queuedEvents });
 	// Stored newest first.
-	return [...(row?.prior ?? [])].reverse();
+	return (row?.queuedEvents ?? [])
+		.filter((e) => e.handoff === handoffId)
+		.reverse();
 }
 
-/** Put taken events back, behind anything queued since, when a hand-back fails. */
-export async function restoreQueuedEvents(
+/** QStash has the job: drop the events this hand-back carried. */
+export async function completeHandBack(
 	id: string,
-	events: SlackQueuedEvent[],
+	handoffId: string,
 ): Promise<void> {
-	if (events.length === 0) return;
 	await db
 		.update(slackThreadSessions)
 		.set({
 			queuedEvents: sql`(
 				SELECT COALESCE(jsonb_agg(e ORDER BY n), '[]'::jsonb)
-				FROM (
-					SELECT e, n FROM jsonb_array_elements(
-						${slackThreadSessions.queuedEvents} || ${JSON.stringify([...events].reverse())}::jsonb
-					) WITH ORDINALITY AS q(e, n)
-					ORDER BY n
-					LIMIT ${MAX_QUEUED_EVENTS}
-				) AS newest
+				FROM jsonb_array_elements(${slackThreadSessions.queuedEvents}) WITH ORDINALITY AS q(e, n)
+				WHERE e->>'handoff' IS DISTINCT FROM ${handoffId}
+			)`,
+		})
+		.where(eq(slackThreadSessions.id, id));
+}
+
+/** The publish failed: make the events eligible for the next hand-back now. */
+export async function abandonHandBack(
+	id: string,
+	handoffId: string,
+): Promise<void> {
+	await db
+		.update(slackThreadSessions)
+		.set({
+			queuedEvents: sql`(
+				SELECT COALESCE(jsonb_agg(
+					CASE WHEN e->>'handoff' = ${handoffId} THEN e - 'handoff' - 'handoffAt' ELSE e END
+					ORDER BY n), '[]'::jsonb)
+				FROM jsonb_array_elements(${slackThreadSessions.queuedEvents}) WITH ORDINALITY AS q(e, n)
 			)`,
 		})
 		.where(eq(slackThreadSessions.id, id));

@@ -31,11 +31,12 @@ import {
 	SlackImageAssetError,
 } from "../utils/slack-image-assets";
 import {
+	abandonHandBack,
 	beginThreadRun,
+	completeHandBack,
 	finishThreadRun,
 	parseThreadCommand,
 	renderThreadMemory,
-	restoreQueuedEvents,
 	setThreadQuiet,
 	takeQueuedEvents,
 	threadFollowUpsEnabled,
@@ -550,14 +551,14 @@ async function handBackQueued({
 	teamId: string;
 	event: SlackAgentMessageEvent;
 }): Promise<void> {
-	const pending = await takeQueuedEvents(threadSessionId);
-	const newest = pending.at(-1);
-	if (!newest) return;
-	const isDm = event.channel_type === "im";
 	// One id per hand-off, not per message: the same reply can be handed
 	// back again if another turn takes the thread before its job arrives,
 	// and QStash would swallow a repeat of the first id for ten minutes.
-	const handoffId = `queued:${teamId}:${newest.ts}:${event.ts}`;
+	const handoffId = `queued:${teamId}:${event.ts}`;
+	const pending = await takeQueuedEvents(threadSessionId, handoffId);
+	const newest = pending.at(-1);
+	if (!newest) return;
+	const isDm = event.channel_type === "im";
 	const files = pending.flatMap((e) => e.files ?? []);
 	const qstash = new QStash({ token: env.QSTASH_TOKEN });
 	try {
@@ -572,9 +573,10 @@ async function handBackQueued({
 			files,
 		});
 	} catch (error) {
-		await restoreQueuedEvents(threadSessionId, pending);
+		await abandonHandBack(threadSessionId, handoffId);
 		throw error;
 	}
+	await completeHandBack(threadSessionId, handoffId);
 	console.log("[slack/process-agent-message] Handed back queued replies:", {
 		handoffId,
 		count: pending.length,

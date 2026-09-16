@@ -1,10 +1,11 @@
 export {
+	abandonHandBack,
 	beginThreadRun,
+	completeHandBack,
 	finishThreadRun,
 	parseThreadCommand,
 	renderThreadMemory,
 	resetThreadFollowUpFlagCache,
-	restoreQueuedEvents,
 	setThreadQuiet,
 	type ThreadCommand,
 	type ThreadRunClaim,
