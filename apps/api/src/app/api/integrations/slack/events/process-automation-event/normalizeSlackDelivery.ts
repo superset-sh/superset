@@ -73,7 +73,7 @@ type OwnBotEnvelope = Pick<
  * some deliveries; only an explicit `false` marks the authorization as a
  * person's user token rather than the bot's.
  */
-function ownBotUserIds(envelope: OwnBotEnvelope): string[] {
+export function ownBotUserIds(envelope: OwnBotEnvelope): string[] {
 	return (envelope.authorizations ?? [])
 		.filter((a) => a.is_bot !== false)
 		.map((a) => a.user_id)

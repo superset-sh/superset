@@ -3,6 +3,8 @@ import { verifyQstashRequest } from "@/lib/verifyQstash";
 import { processAssistantMessage } from "../../events/process-assistant-message";
 import { isUnpostableChannelError } from "../../events/utils/slack-client";
 
+export const maxDuration = 300;
+
 const slackFileSchema = z.object({
 	id: z.string(),
 	name: z.string().optional(),
@@ -23,6 +25,7 @@ const payloadSchema = z.object({
 		event_ts: z.string(),
 		thread_ts: z.string().optional(),
 		files: z.array(slackFileSchema).optional(),
+		queued_ts: z.array(z.string()).optional(),
 	}),
 	teamId: z.string(),
 	eventId: z.string(),
@@ -37,7 +40,13 @@ export async function POST(request: Request) {
 	);
 	if (rejected) return rejected;
 
-	const parsed = payloadSchema.safeParse(JSON.parse(body));
+	let payload: unknown;
+	try {
+		payload = JSON.parse(body);
+	} catch {
+		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
+	}
+	const parsed = payloadSchema.safeParse(payload);
 	if (!parsed.success) {
 		console.error(
 			"[slack/process-assistant-message] Invalid payload:",

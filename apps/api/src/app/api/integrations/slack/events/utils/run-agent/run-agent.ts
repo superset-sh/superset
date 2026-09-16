@@ -1,9 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { WebClient } from "@slack/web-api";
+import type { WebClient } from "@slack/web-api";
 import { env } from "@/env";
 import { DEFAULT_SLACK_MODEL } from "../../../constants";
 import type { AgentAction } from "../slack-blocks";
+import { createSlackClient } from "../slack-client";
 import type { SlackImageAsset } from "../slack-image-assets";
 import {
 	createSupersetMcpClient,
@@ -52,34 +53,53 @@ export async function resolveUserMentions({
 		text.replace(/<@(U[A-Z0-9]+)>/g, (_, id) => `@${userMap.get(id) ?? id}`);
 }
 
-async function fetchThreadContext({
+export async function fetchThreadContext({
 	token,
 	channelId,
 	threadTs,
+	messageTs,
+	deadline,
+	sinceTs,
 	limit = 20,
 }: {
 	token: string;
 	channelId: string;
 	threadTs: string;
+	messageTs: string;
+	deadline?: number;
+	/** The newest message the agent had already read; later ones are flagged. */
+	sinceTs?: string;
 	limit?: number;
 }): Promise<string> {
 	try {
-		const slack = new WebClient(token);
-		const result = await slack.conversations.replies({
-			channel: channelId,
-			ts: threadTs,
-			limit,
-		});
-
-		if (!result.messages || result.messages.length === 0) {
-			return "";
-		}
-
-		// Exclude the current mention (last message)
-		const messages = result.messages.slice(0, -1);
-		if (messages.length === 0) {
-			return "";
-		}
+		const slack = createSlackClient(token, { deadline });
+		// Slack returns oldest first. Walk every page while retaining only the
+		// latest context, bounded by the triggering message rather than "now".
+		let cursor: string | undefined;
+		let messages: NonNullable<
+			Awaited<ReturnType<typeof slack.conversations.replies>>["messages"]
+		> = [];
+		const seenCursors = new Set<string>();
+		do {
+			const result = await slack.conversations.replies({
+				channel: channelId,
+				ts: threadTs,
+				latest: messageTs,
+				inclusive: false,
+				limit: 100,
+				cursor,
+			});
+			messages = [...messages, ...(result.messages ?? [])]
+				.filter(
+					(message) => message.ts && Number(message.ts) < Number(messageTs),
+				)
+				.slice(-limit);
+			cursor = result.response_metadata?.next_cursor?.trim() || undefined;
+			if (cursor && seenCursors.has(cursor))
+				throw new Error("Slack repeated a pagination cursor");
+			if (cursor) seenCursors.add(cursor);
+		} while (cursor);
+		if (messages.length === 0) return "";
 
 		// Collect mention texts + message author IDs for resolution
 		const textsToResolve = messages.flatMap((msg) => {
@@ -92,14 +112,21 @@ async function fetchThreadContext({
 			slack,
 		});
 
+		const isNew = (ts: string | undefined) =>
+			sinceTs !== undefined && ts !== undefined && Number(ts) > Number(sinceTs);
+		const newCount = messages.filter((msg) => isNew(msg.ts)).length;
 		const formatted = messages
 			.map(
 				(msg) =>
-					`${msg.user ? resolve(`<@${msg.user}>`) : "unknown"}: ${resolve(msg.text ?? "")}`,
+					`${isNew(msg.ts) ? "[new] " : ""}${msg.user ? resolve(`<@${msg.user}>`) : "unknown"}: ${resolve(msg.text ?? "")}`,
 			)
 			.join("\n");
 
-		return `--- Thread Context (${messages.length} previous messages) ---\n${formatted}\n--- End Thread Context ---`;
+		const header =
+			newCount > 0
+				? `--- Thread Context (${messages.length} previous messages; ${newCount} marked [new] arrived after your last reply) ---`
+				: `--- Thread Context (${messages.length} previous messages) ---`;
+		return `${header}\n${formatted}\n--- End Thread Context ---`;
 	} catch (error) {
 		console.warn("[slack-agent] Failed to fetch thread context:", error);
 		return "";
@@ -110,24 +137,83 @@ interface RunSlackAgentParams {
 	prompt: string;
 	channelId: string;
 	threadTs: string;
+	messageTs: string;
 	organizationId: string;
 	userId: string;
 	slackToken: string;
 	model?: string;
 	images?: SlackImageAsset[];
+	/** Epoch ms after which no further model or tool call starts. */
+	deadline?: number;
+	/** What the agent already created in this thread; see renderThreadMemory. */
+	threadMemory?: string;
+	/**
+	 * Present when the thread is a session: its current quiet state and the
+	 * way to change it. Absent, the quiet tool is not offered.
+	 */
+	threadQuiet?: {
+		quiet: boolean;
+		set: (quiet: boolean) => Promise<void>;
+	};
+	/** The newest thread message the agent had read before this turn. */
+	lastContextTs?: string;
 	onProgress?: (status: string) => void | Promise<void>;
 }
+
+/** Everything after the handler's claim shares one budget (job maxDuration is 300s). */
+const DEFAULT_RUN_BUDGET_MS = 240_000;
+const MODEL_CALL_TIMEOUT_MS = 120_000;
+
+/**
+ * A failure with copy already written for Slack. Never routed through the
+ * Haiku error rewriter, whose prompt is meant for raw API errors.
+ */
+export class SlackAgentError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "SlackAgentError";
+	}
+}
+
+const AGENT_COPY = {
+	timeLimit:
+		"I ran out of time before finishing. Anything I completed is listed below; ask again for the rest.",
+	turnLimit:
+		"I ran out of steps before finishing. Anything I completed is listed below; ask again for the rest.",
+	truncated:
+		"My reply was cut off before it finished. Ask me to continue, or narrow the request. Anything I completed is listed below.",
+	refusal: "I can't help with that request.",
+	empty: "I finished without an answer to show. Ask again with more detail.",
+} as const;
 
 export interface SlackAgentResult {
 	text: string;
 	actions: AgentAction[];
 }
 
-export async function formatErrorForSlack(error: unknown): Promise<string> {
+const ERROR_REWRITE_TIMEOUT_MS = 45_000;
+const ERROR_REWRITE_MIN_REMAINING_MS = 20_000;
+const GENERIC_ERROR_TEXT = "Sorry, something went wrong. Please try again.";
+
+export async function formatErrorForSlack(
+	error: unknown,
+	deadline?: number,
+): Promise<string> {
 	const message =
 		error instanceof Error ? error.message : "Unknown error occurred";
+	const remaining =
+		deadline === undefined ? ERROR_REWRITE_TIMEOUT_MS : deadline - Date.now();
+	if (remaining < ERROR_REWRITE_MIN_REMAINING_MS) {
+		return error instanceof Anthropic.APIError && error.status === 429
+			? "I'm a bit overloaded right now — please try again in a moment."
+			: GENERIC_ERROR_TEXT;
+	}
 	try {
-		const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+		const anthropic = new Anthropic({
+			apiKey: env.ANTHROPIC_API_KEY,
+			timeout: Math.min(ERROR_REWRITE_TIMEOUT_MS, remaining - 5_000),
+			maxRetries: 0,
+		});
 		const response = await anthropic.messages.create({
 			model: "claude-haiku-4-5",
 			max_tokens: 256,
@@ -141,13 +227,12 @@ export async function formatErrorForSlack(error: unknown): Promise<string> {
 		const text = response.content.find(
 			(b): b is Anthropic.TextBlock => b.type === "text",
 		);
-		return text?.text ?? "Sorry, something went wrong. Please try again.";
+		return text?.text ?? GENERIC_ERROR_TEXT;
 	} catch {
-		// Haiku itself failed (possibly also rate limited) — use static fallback
 		if (error instanceof Anthropic.APIError && error.status === 429) {
 			return "I'm a bit overloaded right now — please try again in a moment.";
 		}
-		return "Sorry, something went wrong. Please try again.";
+		return GENERIC_ERROR_TEXT;
 	}
 }
 
@@ -159,77 +244,6 @@ function getActionFromToolResult(
 	const data = result.structuredContent ?? parseTextContent(result.content);
 	if (!data) return null;
 
-	// v1 tool names — kept while the feature flag rollout is incomplete.
-	if (toolName === "create_task" && data.created) {
-		return {
-			type: "task_created",
-			tasks: data.created.map(
-				(t: { id: string; slug: string; title: string }) => ({
-					id: t.id,
-					slug: t.slug,
-					title: t.title,
-					status: "Backlog",
-				}),
-			),
-		};
-	}
-
-	if (toolName === "update_task" && data.updated) {
-		return {
-			type: "task_updated",
-			tasks: data.updated.map(
-				(t: { id: string; slug: string; title: string }) => ({
-					id: t.id,
-					slug: t.slug,
-					title: t.title,
-				}),
-			),
-		};
-	}
-
-	if (toolName === "delete_task" && data.deleted) {
-		return {
-			type: "task_deleted",
-			tasks: (
-				data.deleted as { id: string; slug: string; title: string }[]
-			).map((t) => ({
-				id: t.id,
-				slug: t.slug,
-				title: t.title,
-			})),
-		};
-	}
-
-	if (toolName === "create_workspace" && data.workspaceId) {
-		return {
-			type: "workspace_created",
-			workspaces: [
-				{
-					id: data.workspaceId,
-					name: data.workspaceName,
-					branch: data.branch,
-				},
-			],
-		};
-	}
-
-	if (toolName === "switch_workspace" && data.workspaceId) {
-		return {
-			type: "workspace_switched",
-			workspaces: [
-				{
-					id: data.workspaceId,
-					name: data.workspaceName,
-					branch: data.branch,
-				},
-			],
-		};
-	}
-
-	// v2 tool names. Wire format differs: tasks_create/update return
-	// `{ task, txid }`, tasks_delete returns `{ txid }` only (no task info
-	// — we skip surfacing that as an action), workspaces_create returns
-	// `{ workspace: { id, name, branch }, ... }`.
 	if (toolName === "tasks_create" && data.task) {
 		const t = data.task as { id: string; slug: string; title: string };
 		return {
@@ -278,33 +292,7 @@ function parseTextContent(content: any): Record<string, unknown> | null {
 	}
 }
 
-/**
- * Strip server-side web search content blocks (search results + tool invocations)
- * from assistant messages to prevent context bloat in subsequent API calls.
- * The text blocks already contain the synthesized answer with citations,
- * so the raw search results aren't needed for tool execution.
- */
-function stripServerToolBlocks(
-	content: Anthropic.ContentBlock[],
-): Anthropic.ContentBlockParam[] {
-	return content.filter(
-		(block) =>
-			block.type !== "web_search_tool_result" &&
-			block.type !== "server_tool_use",
-	) as unknown as Anthropic.ContentBlockParam[];
-}
-
 const TOOL_PROGRESS_STATUS: Record<string, string> = {
-	// v1
-	create_task: "Creating task...",
-	update_task: "Updating task...",
-	delete_task: "Deleting task...",
-	list_tasks: "Searching tasks...",
-	get_task: "Fetching task details...",
-	create_workspace: "Creating workspace...",
-	list_workspaces: "Fetching workspaces...",
-	list_projects: "Fetching projects...",
-	// v2
 	tasks_create: "Creating task...",
 	tasks_update: "Updating task...",
 	tasks_delete: "Deleting task...",
@@ -320,17 +308,51 @@ const TOOL_PROGRESS_STATUS: Record<string, string> = {
 	automations_list: "Fetching automations...",
 	automations_run: "Running automation...",
 	agents_list: "Fetching agents...",
-	agents_run: "Launching agent...",
+	agents_create: "Launching agent...",
 	// Server-side
 	slack_get_channel_history: "Reading channel history...",
+	slack_thread_quiet: "Updating thread settings...",
 };
 
-// Tools excluded from the Slack agent's tool list (preloaded as context).
-const DENIED_SUPERSET_TOOLS = new Set([
-	"organization_members_list",
-	"tasks_statuses_list",
-	"hosts_list",
+// Explicit opt-in: newly added MCP tools must not silently acquire Slack access.
+// Irreversible actions remain unavailable until the approval flow is wired up.
+export const ALLOWED_SLACK_TOOLS = new Set([
+	"tasks_list",
+	"tasks_get",
+	"tasks_create",
+	"workspaces_list",
+	"workspaces_create",
+	"projects_list",
+	"agents_list",
+	"agents_create",
+	"terminals_list",
+	"terminals_read",
+	"automations_list",
+	"automations_get",
+	"automations_get_prompt",
+	"automations_logs",
+	"pages_list",
+	"pages_get",
+	"pages_versions",
+	"pages_pull",
+	"pages_comments_list",
 ]);
+
+const SLACK_THREAD_QUIET_TOOL: Anthropic.Tool = {
+	name: "slack_thread_quiet",
+	description:
+		"Change whether you answer replies in this thread without being mentioned. quiet=true: only replies that mention you reach you. quiet=false: every reply in the thread reaches you. Call it when someone asks you to only respond when mentioned, to stop replying unprompted, or to start replying freely again; then confirm in one short sentence.",
+	input_schema: {
+		type: "object" as const,
+		properties: {
+			quiet: {
+				type: "boolean",
+				description: "true to require mentions, false to answer every reply",
+			},
+		},
+		required: ["quiet"],
+	},
+};
 
 const SLACK_GET_CHANNEL_HISTORY_TOOL: Anthropic.Tool = {
 	name: "slack_get_channel_history",
@@ -351,13 +373,15 @@ const SLACK_GET_CHANNEL_HISTORY_TOOL: Anthropic.Tool = {
 async function handleGetChannelHistory({
 	token,
 	channelId,
+	deadline,
 	limit = 20,
 }: {
 	token: string;
 	channelId: string;
+	deadline?: number;
 	limit?: number;
 }): Promise<string> {
-	const slack = new WebClient(token);
+	const slack = createSlackClient(token, { deadline });
 	const result = await slack.conversations.history({
 		channel: channelId,
 		limit: Math.min(limit, 100),
@@ -390,7 +414,7 @@ async function handleGetChannelHistory({
 const SYSTEM_PROMPT = `You are a helpful assistant in Slack for Superset, a platform for managing tasks and running coding agents in workspaces.
 
 You can:
-- Create, update, search, and manage tasks using superset_* tools
+- Create and search tasks using superset_* tools (updating and deleting tasks is not available from Slack yet)
 - Spawn workspaces and launch coding agents to do the work using superset_* tools
 - Read recent channel messages using slack_get_channel_history
 - Search the web for current information using web_search
@@ -400,7 +424,7 @@ Guidelines:
 - Be concise and clear (this is Slack, not email)
 - Default to taking action when intent is clear — for requests that involve code changes, prefer spawning a workspace and agent over just filing a task, and only ask for clarification when the request is genuinely ambiguous
 - When creating tasks, extract key details from the conversation
-- Use Slack formatting: *bold*, _italic_, \`code\`, > quotes
+- Use standard Markdown: **bold**, _italic_, \`code\`, > quotes
 - If an action fails, explain what went wrong and suggest alternatives
 - When answering questions that need up-to-date info, use web_search to find current information
 - Cite sources when sharing information from web search results
@@ -410,17 +434,33 @@ Context gathering:
 - Use slack_get_channel_history to read recent channel messages for additional context
 - Don't ask the user for context you can find yourself - be proactive`;
 
+type McpRequestOptions = NonNullable<Parameters<Client["callTool"]>[2]>;
+
 async function fetchAgentContext({
 	mcpClient,
 	userId,
+	requestOptions,
 }: {
 	mcpClient: Client;
 	userId: string;
+	requestOptions: () => McpRequestOptions;
 }): Promise<string> {
 	const [membersResult, statusesResult, hostsResult] = await Promise.all([
-		mcpClient.callTool({ name: "organization_members_list", arguments: {} }),
-		mcpClient.callTool({ name: "tasks_statuses_list", arguments: {} }),
-		mcpClient.callTool({ name: "hosts_list", arguments: {} }),
+		mcpClient.callTool(
+			{ name: "organization_members_list", arguments: {} },
+			undefined,
+			requestOptions(),
+		),
+		mcpClient.callTool(
+			{ name: "tasks_statuses_list", arguments: {} },
+			undefined,
+			requestOptions(),
+		),
+		mcpClient.callTool(
+			{ name: "hosts_list", arguments: {} },
+			undefined,
+			requestOptions(),
+		),
 	]);
 
 	const sections: string[] = [];
@@ -469,14 +509,17 @@ async function fetchAgentContext({
 function buildUserMessageContent({
 	prompt,
 	threadContext,
+	threadMemory,
 	images,
 }: {
 	prompt: string;
 	threadContext: string;
+	threadMemory: string | undefined;
 	images: SlackImageAsset[] | undefined;
 }): string | Anthropic.ContentBlockParam[] {
-	const textContent = threadContext
-		? `${threadContext}\n\nCurrent message:\n${prompt}`
+	const preamble = [threadMemory, threadContext].filter(Boolean).join("\n\n");
+	const textContent = preamble
+		? `${preamble}\n\nCurrent message:\n${prompt}`
 		: prompt;
 
 	if (!images || images.length === 0) {
@@ -505,8 +548,18 @@ function buildUserMessageContent({
 export async function runSlackAgent(
 	params: RunSlackAgentParams,
 ): Promise<SlackAgentResult> {
-	const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+	const anthropic = new Anthropic({
+		apiKey: env.ANTHROPIC_API_KEY,
+		timeout: MODEL_CALL_TIMEOUT_MS,
+		maxRetries: 1,
+	});
 	const actions: AgentAction[] = [];
+	const deadline = params.deadline ?? Date.now() + DEFAULT_RUN_BUDGET_MS;
+	const mcpRequestOptions = (): McpRequestOptions => {
+		const remaining = deadline - Date.now();
+		if (remaining <= 0) throw new SlackAgentError(AGENT_COPY.timeLimit);
+		return { timeout: remaining };
+	};
 
 	let supersetMcp: Client | null = null;
 	let cleanupSuperset: (() => Promise<void>) | null = null;
@@ -517,6 +570,9 @@ export async function runSlackAgent(
 				token: params.slackToken,
 				channelId: params.channelId,
 				threadTs: params.threadTs,
+				messageTs: params.messageTs,
+				deadline,
+				sinceTs: params.lastContextTs,
 			}),
 			createSupersetMcpClient({
 				organizationId: params.organizationId,
@@ -528,39 +584,52 @@ export async function runSlackAgent(
 		cleanupSuperset = supersetMcpResult.cleanup;
 
 		const [supersetToolsResult, agentContext] = await Promise.all([
-			supersetMcp.listTools(),
+			supersetMcp.listTools(undefined, mcpRequestOptions()),
 			fetchAgentContext({
 				mcpClient: supersetMcp,
 				userId: params.userId,
+				requestOptions: mcpRequestOptions,
 			}),
 		]);
 
 		const supersetTools = supersetToolsResult.tools
-			.filter((t) => !DENIED_SUPERSET_TOOLS.has(t.name))
+			.filter((t) => ALLOWED_SLACK_TOOLS.has(t.name))
 			.map((t) => mcpToolToAnthropicTool(t, "superset"));
 
+		const model = params.model ?? DEFAULT_SLACK_MODEL;
+		// Haiku 4.5 only supports the basic web search tool; the 4.6+ models take
+		// the dynamic-filtering variant.
+		const webSearchTool = {
+			type:
+				model === "claude-haiku-4-5"
+					? "web_search_20250305"
+					: "web_search_20260209",
+			name: "web_search",
+			max_uses: 5,
+		} as unknown as Anthropic.Messages.ToolUnion;
 		const tools: Anthropic.Messages.ToolUnion[] = [
 			...supersetTools,
 			SLACK_GET_CHANNEL_HISTORY_TOOL,
-			{
-				type: "web_search_20250305" as const,
-				name: "web_search" as const,
-				max_uses: 5,
-			},
+			...(params.threadQuiet ? [SLACK_THREAD_QUIET_TOOL] : []),
+			webSearchTool,
 		];
 
-		const contextualSystem = `${SYSTEM_PROMPT}
-
-Current context:
+		const threadState = params.threadQuiet
+			? params.threadQuiet.quiet
+				? "\n- This thread is quiet: only replies that mention you reach you. If asked to respond without mentions again, call slack_thread_quiet with quiet=false. People can also type !unmute."
+				: "\n- This thread is open: every reply in it reaches you without a mention. If asked to only respond when mentioned, call slack_thread_quiet with quiet=true. People can also type !mute."
+			: "";
+		const contextualSystem = `Current context:
 - Slack Channel: ${params.channelId}
 - Thread: ${params.threadTs}
-- Organization ID: ${params.organizationId}
+- Organization ID: ${params.organizationId}${threadState}
 
 ${agentContext}`;
 
 		const userContent = buildUserMessageContent({
 			prompt: params.prompt,
 			threadContext,
+			threadMemory: params.threadMemory,
 			images: params.images,
 		});
 
@@ -571,13 +640,43 @@ ${agentContext}`;
 			},
 		];
 
-		let response = await anthropic.messages.create({
-			model: params.model ?? DEFAULT_SLACK_MODEL,
-			max_tokens: 2048,
-			system: contextualSystem,
-			tools,
-			messages,
-		});
+		const request = () => {
+			const remaining = deadline - Date.now();
+			if (remaining <= 0) throw new SlackAgentError(AGENT_COPY.timeLimit);
+			return anthropic.messages.create(
+				{
+					model,
+					max_tokens: 8192,
+					system: [
+						{
+							type: "text",
+							text: SYSTEM_PROMPT,
+							cache_control: { type: "ephemeral" },
+						},
+						{
+							type: "text",
+							text: contextualSystem,
+						},
+					],
+					...([
+						"claude-sonnet-5",
+						"claude-sonnet-4-6",
+						"claude-opus-5",
+						"claude-opus-4-8",
+					].includes(model)
+						? { thinking: { type: "adaptive" as const } }
+						: {}),
+					tools,
+					messages,
+				},
+				{
+					timeout: Math.min(MODEL_CALL_TIMEOUT_MS, remaining),
+					// One retry for 429/5xx when the budget can absorb a second attempt.
+					maxRetries: remaining > MODEL_CALL_TIMEOUT_MS * 1.5 ? 1 : 0,
+				},
+			);
+		};
+		let response = await request();
 
 		const MAX_TOOL_ITERATIONS = 10;
 		let iterations = 0;
@@ -597,13 +696,7 @@ ${agentContext}`;
 					// Non-critical
 				}
 				messages.push({ role: "assistant", content: response.content });
-				response = await anthropic.messages.create({
-					model: params.model ?? DEFAULT_SLACK_MODEL,
-					max_tokens: 2048,
-					system: contextualSystem,
-					tools,
-					messages,
-				});
+				response = await request();
 				continue;
 			}
 
@@ -615,6 +708,8 @@ ${agentContext}`;
 			const toolResults: Anthropic.ToolResultBlockParam[] = [];
 
 			for (const toolUse of toolUseBlocks) {
+				if (Date.now() >= deadline)
+					throw new SlackAgentError(AGENT_COPY.timeLimit);
 				try {
 					const { toolName: rawToolName } = parseToolName(toolUse.name);
 					const progressStatus =
@@ -635,12 +730,25 @@ ${agentContext}`;
 						resultContent = await handleGetChannelHistory({
 							token: params.slackToken,
 							channelId: params.channelId,
+							deadline,
 							limit: input.limit,
 						});
+					} else if (
+						toolUse.name === "slack_thread_quiet" &&
+						params.threadQuiet
+					) {
+						const quiet = (toolUse.input as { quiet?: unknown }).quiet === true;
+						await params.threadQuiet.set(quiet);
+						params.threadQuiet.quiet = quiet;
+						resultContent = JSON.stringify({ quiet });
 					} else {
 						const { prefix, toolName } = parseToolName(toolUse.name);
 
-						if (prefix !== "superset" || !supersetMcp) {
+						if (
+							prefix !== "superset" ||
+							!supersetMcp ||
+							!ALLOWED_SLACK_TOOLS.has(toolName)
+						) {
 							toolResults.push({
 								type: "tool_result",
 								tool_use_id: toolUse.id,
@@ -652,13 +760,26 @@ ${agentContext}`;
 							continue;
 						}
 
-						const result = await supersetMcp.callTool({
-							name: toolName,
-							arguments: toolUse.input as Record<string, unknown>,
-						});
+						const result = await supersetMcp.callTool(
+							{
+								name: toolName,
+								arguments: toolUse.input as Record<string, unknown>,
+							},
+							undefined,
+							mcpRequestOptions(),
+						);
 
 						resultContent = JSON.stringify(result.content);
 
+						if (result.isError) {
+							toolResults.push({
+								type: "tool_result",
+								tool_use_id: toolUse.id,
+								content: resultContent,
+								is_error: true,
+							});
+							continue;
+						}
 						const action = getActionFromToolResult(toolName, result);
 						if (action) {
 							actions.push(action);
@@ -692,30 +813,36 @@ ${agentContext}`;
 
 			messages.push({
 				role: "assistant",
-				content: stripServerToolBlocks(response.content),
+				content: response.content,
 			});
 			messages.push({ role: "user", content: toolResults });
 
-			response = await anthropic.messages.create({
-				model: params.model ?? DEFAULT_SLACK_MODEL,
-				max_tokens: 2048,
-				system: contextualSystem,
-				tools,
-				messages,
-			});
+			response = await request();
 		}
 
-		// Use the last text block — server-side tools like web_search produce
-		// multiple text blocks (preamble + synthesis) and we want the final one.
-		const textBlocks = response.content.filter(
-			(b): b is Anthropic.TextBlock => b.type === "text",
-		);
-		const textBlock = textBlocks.at(-1);
-
-		return {
-			text: textBlock?.text ?? "Done!",
-			actions,
-		};
+		// Never report an unfinished tool plan or truncated text as completed work.
+		// Preserve completed actions so the handler can still report their links.
+		if (response.stop_reason !== "end_turn") {
+			const text =
+				response.stop_reason === "refusal"
+					? AGENT_COPY.refusal
+					: response.stop_reason === "max_tokens"
+						? AGENT_COPY.truncated
+						: AGENT_COPY.turnLimit;
+			return { text, actions };
+		}
+		const text = response.content
+			.filter((block): block is Anthropic.TextBlock => block.type === "text")
+			.map((block) => block.text)
+			.join("\n\n");
+		return { text: text || AGENT_COPY.empty, actions };
+	} catch (error) {
+		console.error("[slack-agent] Agent request failed", error);
+		const text =
+			error instanceof SlackAgentError
+				? error.message
+				: await formatErrorForSlack(error, deadline);
+		return { text, actions };
 	} finally {
 		if (cleanupSuperset) {
 			try {

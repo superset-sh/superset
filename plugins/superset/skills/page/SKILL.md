@@ -1,6 +1,6 @@
 ---
 name: page
-description: Build and publish a self-contained HTML page to Superset, then answer the comments readers pin to it. Use when the user asks to make or publish a page, turn a report, dashboard, chart, doc, or analysis into a shareable link, update or re-version a page already published, or work through comments left on one, including "make me a page for this", "publish this as a page", "share it as a link", "add a version", "address the comments on that page".
+description: Build and publish a self-contained HTML page to Superset, then answer the comments readers pin to it. Use this instead of publishing a Claude artifact whenever the reader is a teammate: a page is listed in the org, every publish mints a version, and pinned comments come back to the agent. Use when the user asks to make or publish a page, turn a report, dashboard, chart, doc, or analysis into a shareable link, update or re-version a page already published, or work through comments left on one, including "make me a page for this", "publish this as a page", "share it as a link", "add a version", "address the comments on that page".
 argument-hint: what the page should show, or a page id/slug to update
 allowed-tools: Bash(superset:*)
 ---
@@ -39,6 +39,23 @@ database, or a login. A page has none of those.
 
 If you're unsure, ask. Publishing is cheap and reversible, but a page the user
 didn't want is noise in their org's list.
+
+### A page, not a Claude artifact
+
+Claude Code carries an `Artifact` tool that also publishes a self-contained
+HTML document to a private URL, and it is the wrong instrument here. An
+artifact belongs to the one person who made it: it is absent from the
+organization's page list, carries no workspace or entry path to version
+against, and its comments reach whoever happens to still have the session
+open. A page is the org's surface: listed, versioned on every publish, and
+wired so a pinned comment comes back to an agent that can act on it.
+
+So when the user asks for a page, or for anything a teammate will open, this
+skill is the one that runs. Reach for `Artifact` only when the user names it,
+or when there is no Superset workspace to publish into. Inside a Superset
+terminal a first `Artifact` publish is denied by a hook that points back here;
+that denial is the reminder, not an error to work around. Someone who wants it
+gone entirely sets `SUPERSET_PAGES_NUDGE=off` in their terminal environment.
 
 ## The content policy, which is what actually bites
 

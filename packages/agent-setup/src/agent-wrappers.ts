@@ -9,6 +9,8 @@ export {
 } from "./agent-wrappers-amp";
 export {
 	buildCodexWrapperExecLine,
+	CLAUDE_ARTIFACT_GUARD_EVENT,
+	CLAUDE_ARTIFACT_GUARD_MATCHER,
 	cleanupGlobalOpenCodePlugin,
 	createClaudeSettingsJson,
 	createClaudeWrapper,

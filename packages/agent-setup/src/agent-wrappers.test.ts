@@ -92,8 +92,10 @@ const {
 	getPiExtensionContent,
 	getPiExtensionPath,
 	PI_EXTENSION_MARKER,
+	removeClaudeManagedHooks,
 } = await import("./agent-wrappers");
-const { getManagedNotifyHookCommand } = await import("./agent-wrappers-common");
+const { getManagedArtifactGuardHookCommand, getManagedNotifyHookCommand } =
+	await import("./agent-wrappers-common");
 
 function requireContent(content: string | null): string {
 	if (content === null) throw new Error("Expected merged hook content");
@@ -101,6 +103,7 @@ function requireContent(content: string | null): string {
 }
 
 const managedClaudeHookCommand = getClaudeManagedHookCommand();
+const managedArtifactGuardCommand = getManagedArtifactGuardHookCommand();
 const managedDroidHookCommand = getManagedNotifyHookCommand("droid");
 const managedCodexHookCommand = getManagedNotifyHookCommand("codex");
 const managedMastraHookCommand = getManagedNotifyHookCommand("mastracode");
@@ -1571,6 +1574,105 @@ describe("agent-wrappers claude settings.json", () => {
 		expect(parsed.hooks.PostToolUse.some((def) => def.matcher === "*")).toBe(
 			true,
 		);
+	});
+
+	it("registers the Artifact guard as a PreToolUse hook", () => {
+		const content = requireContent(
+			getClaudeGlobalSettingsJsonContent("/tmp/.superset/hooks/notify.sh"),
+		);
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+
+		const guards = parsed.hooks.PreToolUse.filter(
+			(def) => def.matcher === "Artifact",
+		);
+		expect(guards).toHaveLength(1);
+		expect(guards[0]?.hooks[0]?.command).toBe(managedArtifactGuardCommand);
+		expect(managedArtifactGuardCommand).toContain(
+			"$SUPERSET_HOME_DIR/hooks/artifact-guard.sh",
+		);
+		expect(managedArtifactGuardCommand).not.toContain("notify.sh");
+	});
+
+	it("does not duplicate the Artifact guard when merging over its own output", () => {
+		const claudeSettingsPath = path.join(
+			mockedHomeDir,
+			".claude",
+			"settings.json",
+		);
+		mkdirSync(path.dirname(claudeSettingsPath), { recursive: true });
+
+		const notifyPath = "/tmp/.superset/hooks/notify.sh";
+		const first = requireContent(
+			getClaudeGlobalSettingsJsonContent(notifyPath),
+		);
+		writeFileSync(claudeSettingsPath, first);
+		const second = requireContent(
+			getClaudeGlobalSettingsJsonContent(notifyPath),
+		);
+
+		expect(JSON.parse(second)).toEqual(JSON.parse(first));
+		const parsed = JSON.parse(second) as {
+			hooks: Record<string, Array<{ matcher?: string }>>;
+		};
+		expect(
+			parsed.hooks.PreToolUse.filter((def) => def.matcher === "Artifact"),
+		).toHaveLength(1);
+	});
+
+	it("removes the Artifact guard on teardown and keeps user PreToolUse hooks", () => {
+		const claudeSettingsPath = path.join(
+			mockedHomeDir,
+			".claude",
+			"settings.json",
+		);
+		mkdirSync(path.dirname(claudeSettingsPath), { recursive: true });
+		writeFileSync(
+			claudeSettingsPath,
+			requireContent(
+				getClaudeGlobalSettingsJsonContent("/tmp/.superset/hooks/notify.sh"),
+			),
+		);
+		const withUserHook = JSON.parse(
+			readFileSync(claudeSettingsPath, "utf-8"),
+		) as {
+			hooks: Record<
+				string,
+				Array<{
+					matcher?: string;
+					hooks: Array<{ type: string; command: string }>;
+				}>
+			>;
+		};
+		withUserHook.hooks.PreToolUse.push({
+			matcher: "Bash",
+			hooks: [{ type: "command", command: "/opt/my-pretooluse.sh" }],
+		});
+		writeFileSync(claudeSettingsPath, JSON.stringify(withUserHook, null, 2));
+
+		removeClaudeManagedHooks();
+
+		const parsed = JSON.parse(readFileSync(claudeSettingsPath, "utf-8")) as {
+			hooks?: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+		};
+		const remaining = parsed.hooks?.PreToolUse ?? [];
+		expect(
+			remaining.some((def) =>
+				def.hooks.some((hook) => hook.command.includes("artifact-guard.sh")),
+			),
+		).toBe(false);
+		expect(
+			remaining.some((def) =>
+				def.hooks.some((hook) => hook.command === "/opt/my-pretooluse.sh"),
+			),
+		).toBe(true);
 	});
 
 	it("preserves user hooks and non-hook settings when merging", () => {

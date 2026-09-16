@@ -7,7 +7,10 @@ const SUPPORTED_IMAGE_MEDIA_TYPES = new Set([
 	"image/webp",
 ] as const);
 
-const MAX_TOTAL_IMAGE_BYTES = 120 * 1024 * 1024; // 120MB safety ceiling
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// Leave room for base64 expansion, prompts and tool definitions in the API request.
+const MAX_TOTAL_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_IMAGES = 20;
 
 type SupportedImageMediaType =
 	| "image/jpeg"
@@ -35,6 +38,8 @@ interface ExtractSlackImageAssetsParams {
 	eventFiles: unknown;
 	slack: WebClient;
 	slackToken: string;
+	/** Epoch ms; downloads never run past it, so preflight shares the run budget. */
+	deadline?: number;
 }
 
 export interface SlackImageAsset {
@@ -65,10 +70,13 @@ export function formatSlackImageAssetError(error: unknown): string {
 	return error.message;
 }
 
+const DOWNLOAD_TIMEOUT_MS = 30_000;
+
 export async function extractSlackImageAssets({
 	eventFiles,
 	slack,
 	slackToken,
+	deadline,
 }: ExtractSlackImageAssetsParams): Promise<SlackImageAsset[]> {
 	const files = parseEventFiles(eventFiles);
 	if (files.length === 0) {
@@ -100,6 +108,19 @@ export async function extractSlackImageAssets({
 			continue;
 		}
 
+		const sizeError = () =>
+			new SlackImageAssetError(
+				"safety_limit_exceeded",
+				"I couldn't process these images because the total attachment size is too large. Please retry with smaller images.",
+			);
+		const byteLimit = Math.min(
+			MAX_IMAGE_BYTES,
+			MAX_TOTAL_IMAGE_BYTES - totalBytes,
+		);
+		if (assets.length >= MAX_IMAGES || (metadata.size ?? 0) > byteLimit) {
+			throw sizeError();
+		}
+
 		const downloadUrl = metadata.url_private_download ?? metadata.url_private;
 		if (!downloadUrl) {
 			throw new SlackImageAssetError(
@@ -108,7 +129,16 @@ export async function extractSlackImageAssets({
 			);
 		}
 
+		const remaining =
+			deadline === undefined ? DOWNLOAD_TIMEOUT_MS : deadline - Date.now();
+		if (remaining <= 0) {
+			throw new SlackImageAssetError(
+				"download_failed",
+				"I ran out of time downloading the attached images. Please retry with fewer or smaller images.",
+			);
+		}
 		const response = await fetch(downloadUrl, {
+			signal: AbortSignal.timeout(Math.min(DOWNLOAD_TIMEOUT_MS, remaining)),
 			headers: {
 				Authorization: `Bearer ${slackToken}`,
 			},
@@ -139,14 +169,35 @@ export async function extractSlackImageAssets({
 			);
 		}
 
-		const bytes = await response.arrayBuffer();
-		totalBytes += bytes.byteLength;
-		if (totalBytes > MAX_TOTAL_IMAGE_BYTES) {
-			throw new SlackImageAssetError(
-				"safety_limit_exceeded",
-				"I couldn't process these images because the total attachment size is too large. Please retry with smaller images.",
-			);
+		if (Number(response.headers.get("content-length")) > byteLimit) {
+			await response.body?.cancel();
+			throw sizeError();
 		}
+		// Enforce the limit while streaming, including when metadata/headers lie.
+		const reader = response.body?.getReader();
+		if (!reader)
+			throw new SlackImageAssetError(
+				"download_failed",
+				"I couldn't process the image attachment. Please try again.",
+			);
+		const chunks: Uint8Array[] = [];
+		let imageBytes = 0;
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				imageBytes += value.byteLength;
+				if (imageBytes > byteLimit) {
+					await reader.cancel();
+					throw sizeError();
+				}
+				chunks.push(value);
+			}
+		} finally {
+			reader.releaseLock();
+		}
+		const bytes = Buffer.concat(chunks);
+		totalBytes += imageBytes;
 
 		assets.push({
 			filename: metadata.name,

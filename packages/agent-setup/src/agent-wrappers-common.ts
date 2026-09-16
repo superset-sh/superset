@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { SUPERSET_MANAGED_BINARIES } from "./agent-setup-targets";
+import { ARTIFACT_GUARD_SCRIPT_NAME } from "./artifact-guard-hook";
 import { NOTIFY_SCRIPT_NAME } from "./notify-hook";
 import { getBinDir } from "./paths";
 
@@ -32,6 +33,14 @@ export const DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_R
  */
 export function getManagedNotifyHookCommand(agentId: string): string {
 	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" ] && SUPERSET_HOOK_HARNESS=${agentId} "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" || true`;
+}
+
+export const MANAGED_ARTIFACT_GUARD_RELATIVE_PATH = `hooks/${ARTIFACT_GUARD_SCRIPT_NAME}`;
+
+export const DYNAMIC_ARTIFACT_GUARD_PATH_MARKER = `$SUPERSET_HOME_DIR/${MANAGED_ARTIFACT_GUARD_RELATIVE_PATH}`;
+
+export function getManagedArtifactGuardHookCommand(): string {
+	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${MANAGED_ARTIFACT_GUARD_RELATIVE_PATH}" ] && "$SUPERSET_HOME_DIR/${MANAGED_ARTIFACT_GUARD_RELATIVE_PATH}" || true`;
 }
 
 // Dev setup (.superset/lib/setup/steps.sh) points SUPERSET_HOME_DIR at
@@ -87,6 +96,17 @@ export function isManagedNotifyCommand(
 		command?.includes(notifyScriptPath) ||
 			command?.includes(DYNAMIC_NOTIFY_PATH_MARKER) ||
 			isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME),
+	);
+}
+
+export function isManagedArtifactGuardCommand(
+	command: string | undefined,
+	artifactGuardScriptPath: string,
+): boolean {
+	return Boolean(
+		command?.includes(artifactGuardScriptPath) ||
+			command?.includes(DYNAMIC_ARTIFACT_GUARD_PATH_MARKER) ||
+			isSupersetManagedHookCommand(command, ARTIFACT_GUARD_SCRIPT_NAME),
 	);
 }
 

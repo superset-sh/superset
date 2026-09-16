@@ -180,6 +180,12 @@ export const FEATURE_FLAGS = {
 	 */
 	CLOUD_WORKSPACES: "cloud-workspaces",
 	/**
+	 * Lets the Slack agent answer replies in a thread it has already replied
+	 * in without an @-mention. Evaluated per Slack team; off, unloaded or
+	 * offline all mean mention-only.
+	 */
+	SLACK_THREAD_FOLLOW_UPS: "slack-thread-follow-ups",
+	/**
 	 * Shows the Plugins page in the v2 dashboard sidebar. Audience is a
 	 * release condition on the flag (email contains @superset.sh, plus an
 	 * override for the local dev account, which is not on that domain) so

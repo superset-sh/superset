@@ -1,4 +1,11 @@
 import { WebClient } from "@slack/web-api";
+import {
+	deadlineRequestInterceptor,
+	RETRY_BACKOFF,
+	slackRequestBounds,
+} from "./request-bounds";
+
+export { slackRateLimitRetryAfterMs } from "./request-bounds";
 
 /**
  * Slack platform errors meaning "this channel cannot receive our reply" —
@@ -20,6 +27,21 @@ export function isUnpostableChannelError(error: unknown): boolean {
 	return typeof code === "string" && UNPOSTABLE_CHANNEL_ERRORS.has(code);
 }
 
-export function createSlackClient(token: string): WebClient {
-	return new WebClient(token);
+export function createSlackClient(
+	token: string,
+	options: { deadline?: number } = {},
+): WebClient {
+	const { timeout, retries } = slackRequestBounds(options.deadline);
+	return new WebClient(token, {
+		timeout,
+		retryConfig: { retries, ...RETRY_BACKOFF },
+		...(options.deadline === undefined
+			? {}
+			: {
+					// A 429 otherwise sleeps for the full Retry-After inside the
+					// SDK, outside every timeout; callers decide if the wait fits.
+					rejectRateLimitedCalls: true,
+					requestInterceptor: deadlineRequestInterceptor(options.deadline),
+				}),
+	});
 }

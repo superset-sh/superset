@@ -53,16 +53,18 @@ import {
 	removePiExtension,
 	removeVibeManagedHooks,
 } from "./agent-wrappers";
+import { createArtifactGuardScript } from "./artifact-guard-hook";
 import { resolveDisabledSkillIds } from "./disabled-skills";
 import { createManagedSkills } from "./managed-skills";
 import { createNotifyScript } from "./notify-hook";
 
 type LabeledAction = readonly [label: string, action: () => void];
 
-/** Shared prerequisites: per-agent hooks reference the notify script. */
+/** Shared prerequisites: per-agent hooks reference these scripts. */
 const BOOTSTRAP_SETUP: readonly LabeledAction[] = [
 	["cleanup-global-opencode-plugin", cleanupGlobalOpenCodePlugin],
 	["notify-script", createNotifyScript],
+	["artifact-guard-script", createArtifactGuardScript],
 ];
 
 interface AgentSetupDefinition {

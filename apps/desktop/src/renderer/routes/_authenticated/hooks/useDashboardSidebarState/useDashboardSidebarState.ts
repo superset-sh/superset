@@ -611,7 +611,6 @@ export function useDashboardSidebarState() {
 				tagFolderContext,
 				projectId,
 			);
-			const folders = [...folderIndex.values()];
 			const sources = workspaceIds.flatMap((workspaceId) => {
 				const workspace = collections.v2WorkspaceLocalState.get(workspaceId);
 				if (!workspace || workspace.sidebarState.projectId !== projectId)
@@ -627,17 +626,15 @@ export function useDashboardSidebarState() {
 						{ tabOrder: workspace.sidebarState.tabOrder, isGrouped: false },
 					];
 				}
-				const folder =
-					folders.find((item) => item.sectionId === sourceSectionId) ??
-					collections.v2SidebarSections.get(sourceSectionId);
+				// Anchor only on a row this lane owns and renumbers. A folder
+				// without one carries an order from outside the lane — the
+				// derived floor, or a host tag setting — which must not become
+				// the basis of an order we persist.
+				const folder = collections.v2SidebarSections.get(sourceSectionId);
 				return folder ? [{ tabOrder: folder.tabOrder, isGrouped: true }] : [];
 			});
 			const tabOrder = getNewGroupTabOrder(
 				sources,
-				[
-					...topLevelItems.map((item) => item.tabOrder),
-					...folders.map((item) => item.tabOrder),
-				],
 				getNextTabOrder(topLevelItems),
 			);
 

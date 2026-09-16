@@ -3,4 +3,5 @@ export {
 	formatErrorForSlack,
 	resolveUserMentions,
 	runSlackAgent,
+	SlackAgentError,
 } from "./run-agent";

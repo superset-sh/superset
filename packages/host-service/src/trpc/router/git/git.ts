@@ -863,20 +863,25 @@ export const gitRouter = router({
 				assertSafeRelativePath(path);
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
-			return getHostWorkerPool().run(
-				gitDiffPatchTask,
-				{
-					worktreePath,
-					category: input.category,
-					paths: input.paths,
-					untrackedPaths: input.untrackedPaths,
-					baseBranch: input.baseBranch,
-					commitHash: input.commitHash,
-					fromHash: input.fromHash,
-					gitEnv,
-				},
-				{ timeoutMs: 60_000 },
-			);
+			return getHostWorkerPool()
+				.run(
+					gitDiffPatchTask,
+					{
+						worktreePath,
+						category: input.category,
+						paths: input.paths,
+						untrackedPaths: input.untrackedPaths,
+						baseBranch: input.baseBranch,
+						commitHash: input.commitHash,
+						fromHash: input.fromHash,
+						gitEnv,
+					},
+					{ timeoutMs: 60_000 },
+				)
+				.catch((error: unknown) => {
+					rethrowEnvironmentalGitError(error);
+					throw error;
+				});
 		}),
 
 	getBranchSyncStatus: queryProcedure

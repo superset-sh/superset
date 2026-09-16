@@ -662,7 +662,7 @@ export class FsWatcherManager {
 				}
 
 				this.normalizeEvents(visibleEvents, state);
-				state.pendingEvents.push(...visibleEvents);
+				for (const event of visibleEvents) state.pendingEvents.push(event);
 				if (state.flushTimer) {
 					return;
 				}
