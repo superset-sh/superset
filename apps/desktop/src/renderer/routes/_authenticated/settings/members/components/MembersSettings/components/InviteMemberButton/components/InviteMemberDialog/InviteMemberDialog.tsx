@@ -1,10 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
-import {
-	canInvite,
-	type OrganizationRole,
-	organizationRoleName,
-} from "@superset/shared/auth";
+import { canInvite, type OrganizationRole } from "@superset/shared/auth";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -27,6 +23,7 @@ import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { organizationRoleName } from "../../../../utils/organizationRoleName";
 
 interface InviteMemberDialogProps {
 	open: boolean;
