@@ -21,7 +21,7 @@ const callTool = mock(
 );
 const cleanup = mock(async () => {});
 const listTools = mock(async () => ({
-	tools: ["tasks_create", "tasks_delete", "terminals_send"].map((name) => ({
+	tools: ["tasks_create", "tasks_update", "tasks_delete", "terminals_send"].map((name) => ({
 		name,
 		inputSchema: { type: "object" },
 	})),
@@ -168,6 +168,7 @@ describe("agent loop", () => {
 			name: string;
 		}>;
 		expect(requestTools.map((t) => t.name)).toContain("superset_tasks_create");
+		expect(requestTools.map((t) => t.name)).toContain("superset_tasks_update");
 		expect(requestTools.map((t) => t.name)).not.toContain(
 			"superset_tasks_delete",
 		);

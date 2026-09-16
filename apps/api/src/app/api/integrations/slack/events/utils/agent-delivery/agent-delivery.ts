@@ -81,9 +81,20 @@ export async function claimAgentDelivery(params: {
 	return stale ? { status: "stale" } : { status: "duplicate" };
 }
 
-/** A message that was queued behind a running turn is re-delivered later. */
+/**
+ * A message queued behind a running turn is re-delivered later under a
+ * hand-off key. Its own claim stays, marked skipped, so a retry of the
+ * original delivery reads as a duplicate instead of running it again.
+ */
 export async function releaseAgentDelivery(id: string): Promise<void> {
-	await db.delete(webhookEvents).where(eq(webhookEvents.id, id));
+	await db
+		.update(webhookEvents)
+		.set({
+			status: "skipped",
+			processedAt: new Date(),
+			error: "Queued behind a running turn; re-delivered as a hand-back",
+		})
+		.where(eq(webhookEvents.id, id));
 }
 
 export async function finishAgentDelivery(

@@ -320,6 +320,7 @@ export const ALLOWED_SLACK_TOOLS = new Set([
 	"tasks_list",
 	"tasks_get",
 	"tasks_create",
+	"tasks_update",
 	"workspaces_list",
 	"workspaces_create",
 	"projects_list",

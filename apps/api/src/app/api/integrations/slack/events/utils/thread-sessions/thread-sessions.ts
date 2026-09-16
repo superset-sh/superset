@@ -52,7 +52,10 @@ const flagCache = new Map<string, { enabled: boolean; expiresAt: number }>();
  * most once a minute, and bounded so a slow PostHog reads as off rather
  * than as a late acknowledgement.
  */
-export async function threadFollowUpsEnabled(teamId: string): Promise<boolean> {
+export async function threadFollowUpsEnabled(
+	teamId: string,
+	{ timeoutMs = FLAG_TIMEOUT_MS }: { timeoutMs?: number } = {},
+): Promise<boolean> {
 	const cached = flagCache.get(teamId);
 	if (cached && cached.expiresAt > Date.now()) return cached.enabled;
 	let enabled = false;
@@ -66,7 +69,7 @@ export async function threadFollowUpsEnabled(teamId: string): Promise<boolean> {
 					{ sendFeatureFlagEvents: false },
 				),
 				new Promise<undefined>((resolve) => {
-					timer = setTimeout(() => resolve(undefined), FLAG_TIMEOUT_MS);
+					timer = setTimeout(() => resolve(undefined), timeoutMs);
 				}),
 			])) === true;
 	} catch (error) {
@@ -217,34 +220,37 @@ export async function beginThreadRun(
 	throw new Error("Slack thread session could not be claimed or queued");
 }
 
-/** What arrived while the turn ran, oldest first. Nothing is removed. */
-export async function readQueuedEvents(
+/**
+ * Take everything that arrived while the turn ran, oldest first, emptying
+ * the queue in the same statement. Taken before the hand-back is published:
+ * a reply cannot be queued again until its job arrives, and its job cannot
+ * arrive before the publish, so nothing newer is ever swept away with it.
+ */
+export async function takeQueuedEvents(
 	id: string,
 ): Promise<SlackQueuedEvent[]> {
-	const row = await db.query.slackThreadSessions.findFirst({
-		where: eq(slackThreadSessions.id, id),
-		columns: { queuedEvents: true },
-	});
+	const [row] = await db
+		.update(slackThreadSessions)
+		.set({ queuedEvents: [] })
+		.from(
+			sql`(SELECT ${slackThreadSessions.id} AS prior_id, ${slackThreadSessions.queuedEvents} AS prior FROM ${slackThreadSessions} WHERE ${slackThreadSessions.id} = ${id} FOR UPDATE) AS taken`,
+		)
+		.where(sql`${slackThreadSessions.id} = taken.prior_id`)
+		.returning({ prior: sql<SlackQueuedEvent[]>`taken.prior` });
 	// Stored newest first.
-	return [...(row?.queuedEvents ?? [])].reverse();
+	return [...(row?.prior ?? [])].reverse();
 }
 
-/**
- * Drop queued events up to and including `ts`, once their re-delivery is
- * durable. Anything newer stays for the next hand-back.
- */
-export async function clearQueuedEventsThrough(
+/** Put taken events back, behind anything queued since, when a hand-back fails. */
+export async function restoreQueuedEvents(
 	id: string,
-	ts: string,
+	events: SlackQueuedEvent[],
 ): Promise<void> {
+	if (events.length === 0) return;
 	await db
 		.update(slackThreadSessions)
 		.set({
-			queuedEvents: sql`(
-				SELECT COALESCE(jsonb_agg(e), '[]'::jsonb)
-				FROM jsonb_array_elements(${slackThreadSessions.queuedEvents}) AS e
-				WHERE (e->>'ts')::numeric > ${ts}::numeric
-			)`,
+			queuedEvents: sql`${slackThreadSessions.queuedEvents} || ${JSON.stringify([...events].reverse())}::jsonb`,
 		})
 		.where(eq(slackThreadSessions.id, id));
 }
