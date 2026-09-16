@@ -394,6 +394,24 @@ describe("publish", () => {
 		expect(byId.linked).toBe(false);
 	});
 
+	test("`get` reports where the page lives, so a lost source can be restored", async () => {
+		const anchored = await publish({
+			entryPath: "reports/where.html",
+			workspaceId: WORKSPACE,
+			title: "Where",
+		});
+		const page = await caller.page.get({ id: anchored.id });
+		expect(page.workspaceLinks).toEqual([
+			{ workspaceId: WORKSPACE, entryPath: "reports/where.html" },
+		]);
+	});
+
+	test("`get` reports no link for a page published without a workspace", async () => {
+		const loose = await publish({ title: "Nowhere" });
+		const page = await caller.page.get({ id: loose.id });
+		expect(page.workspaceLinks).toEqual([]);
+	});
+
 	test("`onlyIfEmpty` keeps a page whose publish committed", async () => {
 		const published = await publish({ title: "Committed" });
 		const kept = await caller.page.delete({

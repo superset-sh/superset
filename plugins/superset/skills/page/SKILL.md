@@ -335,6 +335,12 @@ superset pages pull <page-id-or-slug> --version 2 > v2.html
 `pull` writes HTML to stdout; use it to recover a source file you no longer
 have, or to diff what actually shipped against what you have locally.
 
+`get` carries `workspaceLinks`: the workspace and the path each publish
+resolved against. When you have lost the source, pull it back to that path
+inside that workspace and a later publish versions the page instead of minting
+a second one. An empty list means the page has no path to resolve against, so
+`--page <page-id>` is the only way to add a version.
+
 ## Answer comments
 
 A reader clicks an element on the published page and pins a comment to it. When

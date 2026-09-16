@@ -348,6 +348,13 @@ export const pageRouter = {
 
 		const latestVersion = await latestVersionNumber(page.id);
 		const served = servedVersion(page.sharedVersion, latestVersion);
+		const workspaceLinks = await db
+			.select({
+				workspaceId: workspacePages.workspaceId,
+				entryPath: workspacePages.entryPath,
+			})
+			.from(workspacePages)
+			.where(eq(workspacePages.pageId, page.id));
 		return {
 			...page,
 			url: pageUrl(page.slug),
@@ -362,6 +369,7 @@ export const pageRouter = {
 			}),
 			latestVersion,
 			servedVersion: served,
+			workspaceLinks,
 			watch: watchState(page, Date.now()),
 		};
 	}),
