@@ -554,7 +554,9 @@ async function handBackQueued({
 	// One id per hand-off, not per message: the same reply can be handed
 	// back again if another turn takes the thread before its job arrives,
 	// and QStash would swallow a repeat of the first id for ten minutes.
-	const handoffId = `queued:${teamId}:${event.ts}`;
+	// QStash rejects a deduplication id containing ":" with a 400, which is
+	// what silently lost the first queued reply in production.
+	const handoffId = `queued-${teamId}-${event.ts.replace(".", "-")}`;
 	const pending = await takeQueuedEvents(threadSessionId, handoffId);
 	const newest = pending.at(-1);
 	if (!newest) return;
