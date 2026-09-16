@@ -159,13 +159,10 @@ export default command({
 					: {}),
 			});
 		} catch (error) {
-			// A page minted above and never published into has no versions and, with
-			// no workspace and no id in the caller's hands, nothing to find it by
-			// again: every retry would add another. Linked, the retry resolves this
-			// same page, and deleting it could take a version a concurrent publish
-			// put there in between.
 			if (target?.created && !link) {
-				await ctx.api.page.delete.mutate({ id: target.id }).catch(() => {});
+				await ctx.api.page.delete
+					.mutate({ id: target.id, onlyIfEmpty: true })
+					.catch(() => {});
 			}
 			throw error;
 		}

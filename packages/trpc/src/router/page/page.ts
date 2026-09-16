@@ -19,7 +19,16 @@ import {
 	pageViewUrl,
 } from "@superset/shared/usercontent";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
+import {
+	and,
+	desc,
+	eq,
+	inArray,
+	notExists,
+	or,
+	type SQL,
+	sql,
+} from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { deleteObjects, presignedGetUrl } from "../../lib/r2";
@@ -556,6 +565,24 @@ export const pageRouter = {
 			const page = await loadPage({ id: input.id, organizationId, userId });
 			assertPageWritable(page, userId);
 
+			if (input.onlyIfEmpty) {
+				const [discarded] = await db
+					.delete(pages)
+					.where(
+						and(
+							eq(pages.id, page.id),
+							notExists(
+								db
+									.select({ one: sql`1` })
+									.from(pageVersions)
+									.where(eq(pageVersions.pageId, page.id)),
+							),
+						),
+					)
+					.returning({ id: pages.id });
+				return { id: page.id, deleted: Boolean(discarded) };
+			}
+
 			const rows = await db
 				.select({
 					id: pageVersions.id,
@@ -616,7 +643,7 @@ export const pageRouter = {
 				});
 			}
 
-			return { id: page.id };
+			return { id: page.id, deleted: true };
 		}),
 
 	versions: protectedProcedure

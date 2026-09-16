@@ -10,10 +10,6 @@ export interface WorkspaceLink {
  * front — `publish` mints one — but assets have to attach to something that
  * already exists, so a directory publish resolves the page it is republishing
  * or creates an empty one to publish into.
- *
- * `created` says which of the two happened, because a page minted here and
- * never published into is a page with no versions: the caller cleans it up
- * rather than leaving one behind per failed attempt.
  */
 export async function resolvePageId({
 	api,

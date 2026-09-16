@@ -4,10 +4,7 @@
  * lives, and whether this session watches it — with notes in a fixed order
  * so single-file and directory publishes read the same, and `assets`,
  * `unanchored` and `watching` always present in the JSON — `--json` prints
- * only `data`, so anything a caller has to act on lives there too. That is
- * why an unanchored publish puts the whole `--page` command in `republish`:
- * agent mode turns `--json` on by itself, so the hint in `message` is the one
- * thing the caller who needs it never sees.
+ * only `data`, so anything a caller has to act on lives there too.
  */
 export function publishResult({
 	page,

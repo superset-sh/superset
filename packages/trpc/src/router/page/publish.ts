@@ -335,9 +335,6 @@ async function runPublish({
 			key,
 			contentType: document.contentType,
 		});
-		// Read rather than derived from the input: a `pageId` publish onto a page
-		// some earlier publish linked is linked too. Callers decide what to tell
-		// their user from this, instead of each guessing what happened here.
 		const [link] = await tx
 			.select({ pageId: workspacePages.pageId })
 			.from(workspacePages)

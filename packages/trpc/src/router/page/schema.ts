@@ -123,7 +123,10 @@ export const setSharedVersionSchema = z.object({
 	version: pageFields.version.nullable(),
 });
 
-export const deletePageSchema = z.object({ id: pageFields.id });
+export const deletePageSchema = z.object({
+	id: pageFields.id,
+	onlyIfEmpty: z.boolean().optional(),
+});
 
 export const pullPageSchema = pageRefFieldsSchema
 	.extend({ version: pageFields.version.optional() })

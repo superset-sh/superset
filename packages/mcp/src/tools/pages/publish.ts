@@ -89,10 +89,6 @@ export function register(server: McpServer): void {
 				...(label ? { label } : {}),
 			});
 
-			// The model that omitted `workspaceId` has no other way to learn that
-			// this page is reachable only by id: the next call without `pageId`
-			// would publish a second page, and the link the reader holds would
-			// keep showing this one.
 			if (published.linked || rest.pageId) return published;
 			return {
 				...published,

@@ -71,8 +71,6 @@ describe("publishResult", () => {
 		expect(data.id).toBe("p1");
 	});
 
-	// --json is on by default under an agent, and prints only `data`. An agent
-	// that never sees `message` still has to be told how to avoid a second page.
 	test("unanchored publish: the command is in data, not only in the message", () => {
 		const { data } = publishResult({
 			page: PAGE,

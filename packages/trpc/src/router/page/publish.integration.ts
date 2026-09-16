@@ -42,6 +42,10 @@ mock.module("../../lib/r2", () => ({
 		if (!objectStore.has(key)) throw new Error("object not found");
 		return `https://storage.test/${key}`;
 	},
+	presignedPutUrl: async ({ key }: { key: string }) => ({
+		url: `https://storage.test/${key}`,
+		headers: {},
+	}),
 }));
 
 const { db, dbWs } = await import("@superset/db/client");
@@ -61,6 +65,9 @@ const { fileOriginalKey } = await import("@superset/shared/usercontent");
 const { MAX_PAGE_BYTES } = await import("@superset/shared/page-content-types");
 const { eq } = await import("drizzle-orm");
 const { publishPage } = await import("./publish");
+const { pageRouter } = await import("./page");
+const { createCallerFactory, createTRPCContext, createTRPCRouter } =
+	await import("../../trpc");
 
 const ORG = crypto.randomUUID();
 const USER = crypto.randomUUID();
@@ -123,6 +130,17 @@ const publish = async ({
 		userId,
 	});
 };
+
+const caller = createCallerFactory(createTRPCRouter({ page: pageRouter }))(
+	createTRPCContext({
+		session: {
+			user: { id: USER, email: `test-${suffix}@example.com` },
+			session: { activeOrganizationId: ORG },
+		} as never,
+		auth: {} as never,
+		headers: new Headers(),
+	}),
+);
 
 beforeAll(async () => {
 	await db.insert(organizations).values([
@@ -355,9 +373,7 @@ describe("publish", () => {
 		expect(second.version).toBe(1);
 	});
 
-	// What the CLI and the MCP tool read to decide whether to tell their caller
-	// to hold on to the id, rather than each re-deriving it from its own input.
-	test("`linked` reports the workspace link, including on a publish by id", async () => {
+	test("`linked` stays true when a linked page is published by id", async () => {
 		const anchored = await publish({
 			entryPath: "linked/index.html",
 			workspaceId: WORKSPACE,
@@ -368,10 +384,42 @@ describe("publish", () => {
 		const byId = await publish({ pageId: anchored.id });
 		expect(byId.id).toBe(anchored.id);
 		expect(byId.linked).toBe(true);
+	});
 
+	test("`linked` stays false when an unlinked page is published by id", async () => {
 		const loose = await publish({ title: "Loose" });
-		const looseById = await publish({ pageId: loose.id });
-		expect(looseById.linked).toBe(false);
+		expect(loose.linked).toBe(false);
+
+		const byId = await publish({ pageId: loose.id });
+		expect(byId.linked).toBe(false);
+	});
+
+	test("`onlyIfEmpty` keeps a page whose publish committed", async () => {
+		const published = await publish({ title: "Committed" });
+		const kept = await caller.page.delete({
+			id: published.id,
+			onlyIfEmpty: true,
+		});
+		expect(kept.deleted).toBe(false);
+		const [survivor] = await db
+			.select({ id: pages.id })
+			.from(pages)
+			.where(eq(pages.id, published.id));
+		expect(survivor?.id).toBe(published.id);
+	});
+
+	test("`onlyIfEmpty` drops a page that never got a version", async () => {
+		const staged = await caller.page.create({ title: "Staged" });
+		const dropped = await caller.page.delete({
+			id: staged.id,
+			onlyIfEmpty: true,
+		});
+		expect(dropped.deleted).toBe(true);
+		const rows = await db
+			.select({ id: pages.id })
+			.from(pages)
+			.where(eq(pages.id, staged.id));
+		expect(rows).toHaveLength(0);
 	});
 
 	test("titles the page from the filename when none is given", async () => {
