@@ -1048,9 +1048,6 @@ msgstr "dự kiến ~{stars} tuần này"
 msgid "~{totalSeconds}s typical"
 msgstr "thường ~{totalSeconds}s"
 
-msgid "~{TYPICAL_SECONDS}s typical"
-msgstr "thường ~{TYPICAL_SECONDS}s"
-
 msgid "~/agent $"
 msgstr "~/agent $"
 

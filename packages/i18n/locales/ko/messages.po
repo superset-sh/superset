@@ -1048,9 +1048,6 @@ msgstr "이번 주 예상 ~{stars}개"
 msgid "~{totalSeconds}s typical"
 msgstr "보통 약 {totalSeconds}초"
 
-msgid "~{TYPICAL_SECONDS}s typical"
-msgstr "보통 약 {TYPICAL_SECONDS}초"
-
 msgid "~/agent $"
 msgstr "~/agent $"
 

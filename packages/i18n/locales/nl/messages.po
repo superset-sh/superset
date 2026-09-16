@@ -1048,9 +1048,6 @@ msgstr "~{stars} verwacht deze week"
 msgid "~{totalSeconds}s typical"
 msgstr "~{totalSeconds}s gebruikelijk"
 
-msgid "~{TYPICAL_SECONDS}s typical"
-msgstr "~{TYPICAL_SECONDS}s gebruikelijk"
-
 msgid "~/agent $"
 msgstr "~/agent $"
 

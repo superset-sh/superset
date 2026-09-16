@@ -1048,9 +1048,6 @@ msgstr "本周预计约{stars}"
 msgid "~{totalSeconds}s typical"
 msgstr "通常约{totalSeconds}秒"
 
-msgid "~{TYPICAL_SECONDS}s typical"
-msgstr "通常约{TYPICAL_SECONDS}秒"
-
 msgid "~/agent $"
 msgstr "~/agent $"
 

@@ -1048,9 +1048,6 @@ msgstr "~{stars} odhad na tento týden"
 msgid "~{totalSeconds}s typical"
 msgstr "obvykle ~{totalSeconds} s"
 
-msgid "~{TYPICAL_SECONDS}s typical"
-msgstr "obvykle ~{TYPICAL_SECONDS} s"
-
 msgid "~/agent $"
 msgstr "~/agent $"
 

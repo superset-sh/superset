@@ -41,7 +41,8 @@ async function importAttachments(
 
 /**
  * Creates a workspace on the target host with the claude agent sugar — the
- * host launches the terminal agent and delivers the first prompt itself.
+ * host launches the terminal agent and delivers the first prompt itself. With
+ * no project it is a session, the desktop's project-less workspace.
  * Attachments reach that host through cloud storage first, since the agent
  * needs them on disk before it launches.
  *
@@ -85,32 +86,19 @@ export function useCreateTerminalWorkspace() {
 					input.attachmentFileIds,
 				);
 
-				const createInput = {
-					id: workspaceId,
-					projectId: target.projectId,
-					baseBranch: baseBranch ?? undefined,
-					agents: [
-						{
-							agent: agentId,
-							prompt: message.text.trim(),
-							attachmentIds:
-								attachmentIds.length > 0 ? attachmentIds : undefined,
-							model: model ?? undefined,
-							effort: effort ?? undefined,
-						},
-					],
-				};
+				const agents = [
+					{
+						agent: agentId,
+						prompt: message.text.trim(),
+						attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
+						model: model ?? undefined,
+						effort: effort ?? undefined,
+					},
+				];
 
-				try {
-					createRequested = true;
-					await client.workspaces.createEnqueued.mutate(createInput);
-				} catch (error) {
-					if (!isMissingProcedureError(error)) throw error;
-					// Legacy host: the long-held synchronous create — it can still
-					// die at the relay's 30s cap, same as before this hook went
-					// optimistic. On success the row and session already exist;
-					// refetch so the screen resolves without waiting for a poll.
-					await client.workspaces.create.mutate(createInput);
+				// A synchronous create returns with the row and session already
+				// there; refetch so the screen resolves without waiting for a poll.
+				const refetchCreated = () => {
 					void queryClient.invalidateQueries({
 						queryKey: getHostWorkspacesQueryKey(
 							target.machineId,
@@ -120,6 +108,36 @@ export function useCreateTerminalWorkspace() {
 					void queryClient.invalidateQueries({
 						queryKey: getHostTerminalsQueryKey(target.machineId),
 					});
+				};
+
+				if (target.projectId === null) {
+					// A session has no worktree to wait on, so it has no enqueued
+					// variant; the relay's 30s cap applies as it does to a legacy
+					// create below.
+					createRequested = true;
+					await client.workspaces.createSession.mutate({
+						id: workspaceId,
+						agents,
+					});
+					refetchCreated();
+				} else {
+					const createInput = {
+						id: workspaceId,
+						projectId: target.projectId,
+						baseBranch: baseBranch ?? undefined,
+						agents,
+					};
+					try {
+						createRequested = true;
+						await client.workspaces.createEnqueued.mutate(createInput);
+					} catch (error) {
+						if (!isMissingProcedureError(error)) throw error;
+						// Legacy host: the long-held synchronous create — it can still
+						// die at the relay's 30s cap, same as before this hook went
+						// optimistic.
+						await client.workspaces.create.mutate(createInput);
+						refetchCreated();
+					}
 				}
 				// The host emits `workspace_created` itself when the row lands; this
 				// is only the client asking, and counting both would double.

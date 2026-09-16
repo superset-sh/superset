@@ -1048,9 +1048,6 @@ msgstr "прогноз на неделю: ~{stars}"
 msgid "~{totalSeconds}s typical"
 msgstr "обычно ~{totalSeconds} с"
 
-msgid "~{TYPICAL_SECONDS}s typical"
-msgstr "обычно ~{TYPICAL_SECONDS} с"
-
 msgid "~/agent $"
 msgstr "~/agent $"
 

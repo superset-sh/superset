@@ -81,6 +81,7 @@ export function NewChatWidget({
 	const selectedTarget =
 		targets.find((target) => target.key === targetKey) ?? defaultTarget;
 	const isCloudTarget = selectedTarget?.kind === "cloud";
+	const isSessionTarget = selectedTarget?.projectId === null;
 	const cloudScope = useWorkspaceScope() === "cloud";
 	const { environment: selectedEnvironment, repository: cloudRepository } =
 		useCloudCreateSelection();
@@ -96,10 +97,13 @@ export function NewChatWidget({
 			cloudRepository?.id ?? null,
 			"",
 		],
-		enabled: selectedTarget !== null && (!isCloudTarget || !!organizationId),
+		enabled:
+			selectedTarget !== null &&
+			!isSessionTarget &&
+			(!isCloudTarget || !!organizationId),
 		networkMode: "always" as const,
 		queryFn: async () => {
-			if (!selectedTarget) return null;
+			if (!selectedTarget?.projectId) return null;
 			if (selectedTarget.kind === "cloud") {
 				if (!organizationId || !cloudRepository) return null;
 				return apiClient.cloudWorkspace.listBranches.query({
@@ -160,7 +164,9 @@ export function NewChatWidget({
 		: [];
 	// Null until the branch list resolves. The previous fallback was the literal
 	// string "default", which reads as a branch name and is not one.
-	const branchLabel = baseBranch ?? branchData?.defaultBranch ?? null;
+	const branchLabel = isSessionTarget
+		? null
+		: (baseBranch ?? branchData?.defaultBranch ?? null);
 
 	// Only a request made after mount counts: the store keeps the last nonce,
 	// and a remount that read it as "positive" would focus without anyone
@@ -290,7 +296,7 @@ export function NewChatWidget({
 			: {
 					id: "project",
 					label: selectedTarget?.projectName ?? t({ message: "No project" }),
-					avatar: true,
+					avatar: !isSessionTarget,
 					iconUri: selectedTarget?.projectIconUrl ?? undefined,
 				},
 		...(cloudScope
@@ -392,7 +398,7 @@ export function NewChatWidget({
 							params: { selectedKey: selectedTarget?.key ?? "" },
 						});
 					}
-				} else if (selectedTarget) {
+				} else if (selectedTarget?.projectId) {
 					router.push({
 						pathname: "/(authenticated)/(home)/new-session/branch",
 						params: {

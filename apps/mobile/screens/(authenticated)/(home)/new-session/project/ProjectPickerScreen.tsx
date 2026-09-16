@@ -1,8 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Trans } from "@lingui/react/macro";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Pressable, ScrollView } from "react-native";
+import { Box } from "lucide-react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { posthog } from "@/lib/posthog";
@@ -14,9 +16,9 @@ import {
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 
 /**
- * One flat list of the selected machine's projects. Where the workspace runs
- * is picked at the top of Home, never here — and under Cloud the composer
- * doesn't open this at all.
+ * One flat list of the selected machine's projects, led by "No project". Where
+ * the workspace runs is picked at the top of Home, never here — and under Cloud
+ * the composer doesn't open this at all.
  */
 export function ProjectPickerScreen() {
 	const router = useRouter();
@@ -52,11 +54,17 @@ export function ProjectPickerScreen() {
 			className="flex-row items-center gap-2.5 py-2.5"
 			ph-label="new-session-project-row"
 		>
-			<ProjectAvatar
-				name={target.projectName}
-				iconUrl={target.projectIconUrl}
-				size={32}
-			/>
+			{target.projectId === null ? (
+				<View className="size-8 items-center justify-center">
+					<Icon as={Box} className="text-muted-foreground size-5" />
+				</View>
+			) : (
+				<ProjectAvatar
+					name={target.projectName}
+					iconUrl={target.projectIconUrl}
+					size={32}
+				/>
+			)}
 			<Text
 				className="flex-1 text-sm font-medium"
 				style={{ color: theme.foreground }}

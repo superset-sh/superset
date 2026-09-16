@@ -1048,9 +1048,6 @@ msgstr "今週は約{stars}の見込み"
 msgid "~{totalSeconds}s typical"
 msgstr "通常 約{totalSeconds}秒"
 
-msgid "~{TYPICAL_SECONDS}s typical"
-msgstr "通常約{TYPICAL_SECONDS}秒"
-
 msgid "~/agent $"
 msgstr "~/agent $"
 

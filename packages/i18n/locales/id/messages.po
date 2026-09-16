@@ -1048,9 +1048,6 @@ msgstr "~{stars} diperkirakan minggu ini"
 msgid "~{totalSeconds}s typical"
 msgstr "~{totalSeconds} dtk biasanya"
 
-msgid "~{TYPICAL_SECONDS}s typical"
-msgstr "~{TYPICAL_SECONDS} dtk biasanya"
-
 msgid "~/agent $"
 msgstr "~/agent $"
 

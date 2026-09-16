@@ -796,6 +796,7 @@ export function WorkspaceScreen() {
 						agentLabel={pendingCreate.input.agentLabel}
 						startedAt={pendingCreate.startedAt}
 						workspaceResolved={workspaceResolved}
+						isSession={pendingCreate.input.target.projectId === null}
 						onBackHome={() => router.back()}
 					/>
 				)}
