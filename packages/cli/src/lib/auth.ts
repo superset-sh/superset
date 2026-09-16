@@ -19,6 +19,17 @@ export interface LoginResult {
 export interface LoginCallbacks {
 	onAuthorizationUrl?: (url: string) => void;
 	promptForPastedCode: (signal: AbortSignal) => Promise<string>;
+	/**
+	 * Injectable hooks so the OAuth flow can be unit-tested without spawning a
+	 * browser, a real TTY, or a real loopback server. Default to the real
+	 * implementations when omitted.
+	 */
+	openBrowser?: (url: string) => Promise<void>;
+	shouldOpenBrowser?: () => boolean;
+	bindLoopbackServer?: () => Promise<{
+		server: Server;
+		port: number;
+	} | null>;
 }
 
 function base64url(buffer: Buffer): string {
@@ -198,6 +209,41 @@ function buildAuthorizeUrl({
 	return url;
 }
 
+/**
+ * Pick the single redirect_uri for a login and build the ONE `/authorize` URL
+ * to present. The loopback and paste flows must share a redirect_uri — if they
+ * differ, the second `/authorize` clobbers the first on the provider's side and
+ * the consent step can resolve the wrong (or already-consumed) pending request,
+ * so Authorize returns without a redirect URL (#6310).
+ *
+ * Loopback is used only when a port bound AND we're opening a local browser;
+ * otherwise (SSH, non-TTY, CI, or bind failed) the paste URL is used. Returns
+ * the URL and whether the loopback flow is active so the caller can open the
+ * browser for exactly the same URL it prints.
+ */
+export function resolveAuthorizeUrl(opts: {
+	apiUrl: string;
+	webUrl: string;
+	loopbackRedirectUri: string | null;
+	codeChallenge: string;
+	state: string;
+	shouldOpenBrowser: boolean;
+}): { authorizeUrl: string; useLoopback: boolean; redirectUri: string } {
+	const pasteRedirectUri = new URL(PASTE_REDIRECT_PATH, opts.webUrl).toString();
+	const useLoopback =
+		opts.loopbackRedirectUri !== null && opts.shouldOpenBrowser;
+	const redirectUri = useLoopback
+		? opts.loopbackRedirectUri!
+		: pasteRedirectUri;
+	const authorizeUrl = buildAuthorizeUrl({
+		apiUrl: opts.apiUrl,
+		redirectUri,
+		codeChallenge: opts.codeChallenge,
+		state: opts.state,
+	}).toString();
+	return { authorizeUrl, useLoopback, redirectUri };
+}
+
 async function exchangeCodeForToken({
 	apiUrl,
 	code,
@@ -292,32 +338,28 @@ export async function login(
 	const codeChallenge = generateCodeChallenge(codeVerifier);
 	const state = generateState();
 
-	const loopback = await bindLoopbackServer();
+	const loopback = await (callbacks.bindLoopbackServer ?? bindLoopbackServer)();
 	const loopbackRedirectUri = loopback
 		? `http://127.0.0.1:${loopback.port}/callback`
 		: null;
-	const pasteRedirectUri = new URL(PASTE_REDIRECT_PATH, webUrl).toString();
+	const openBrowserImpl = callbacks.openBrowser ?? openBrowser;
+	const shouldOpenBrowserImpl =
+		callbacks.shouldOpenBrowser ?? shouldOpenBrowser;
 
-	const pasteAuthorizeUrl = buildAuthorizeUrl({
+	// Drive exactly ONE `/authorize` request per login — see `resolveAuthorizeUrl`.
+	const { authorizeUrl, useLoopback, redirectUri } = resolveAuthorizeUrl({
 		apiUrl,
-		redirectUri: pasteRedirectUri,
+		webUrl,
+		loopbackRedirectUri,
 		codeChallenge,
 		state,
-	}).toString();
+		shouldOpenBrowser: shouldOpenBrowserImpl(),
+	});
 
-	const browserAuthorizeUrl = loopbackRedirectUri
-		? buildAuthorizeUrl({
-				apiUrl,
-				redirectUri: loopbackRedirectUri,
-				codeChallenge,
-				state,
-			}).toString()
-		: pasteAuthorizeUrl;
+	callbacks.onAuthorizationUrl?.(authorizeUrl);
 
-	callbacks.onAuthorizationUrl?.(pasteAuthorizeUrl);
-
-	if (shouldOpenBrowser()) {
-		void openBrowser(browserAuthorizeUrl);
+	if (useLoopback) {
+		void openBrowserImpl(authorizeUrl);
 	}
 
 	if (signal.aborted) {
@@ -349,56 +391,77 @@ export async function login(
 			};
 			signal.addEventListener("abort", onOuterAbort);
 
-			if (loopback && loopbackRedirectUri) {
+			// Drive only the flow whose URL was presented. When the loopback
+			// flow is active, no paste URL was shown, so running the paste prompt
+			// lets an accidental/invalid paste abort a valid browser login and a
+			// browser denial leaves the command waiting indefinitely. When the
+			// paste flow is active, the browser was never opened, so only pasting
+			// can complete it. Either way the code is exchanged with the single
+			// chosen redirect_uri (#6310).
+			if (loopback && useLoopback) {
 				waitForCallback({
 					server: loopback.server,
 					port: loopback.port,
 					expectedState: state,
 					signal: callbackController.signal,
-				})
-					.then((code) => {
+				}).then(
+					(code) => {
 						settle(() => {
 							pasteController.abort();
-							resolve({ code, redirectUri: loopbackRedirectUri });
+							resolve({ code, redirectUri });
 						});
-					})
-					.catch(() => {
-						// Loopback failed (timeout, CSRF, our own cancel). Don't take
-						// down the paste flow — the user can still complete login by
-						// pasting. If paste also fails, that error will surface instead.
-					});
-			}
-
-			callbacks
-				.promptForPastedCode(pasteController.signal)
-				.then((pasted) => {
-					if (pasteController.signal.aborted) return;
-					try {
-						const { code, state: returnedState } = parsePastedCode(pasted);
-						if (returnedState !== state) {
-							throw new CLIError(
-								"State mismatch",
-								"The pasted code does not match this login attempt. Run `superset auth login` again.",
-							);
-						}
+					},
+					(error) => {
+						// The loopback flow is the only one offered; surface its
+						// failure instead of leaving the command waiting forever.
+						// Preserve the underlying reason (denial vs timeout vs CSRF)
+						// so the user can tell a suspicious callback apart from a
+						// normal failure.
 						settle(() => {
-							callbackController.abort();
-							resolve({ code, redirectUri: pasteRedirectUri });
+							pasteController.abort();
+							reject(
+								new CLIError(
+									error instanceof Error
+										? error.message
+										: "Browser login did not complete",
+									"Run `superset auth login` again, or run it in a non-interactive terminal (no browser) to use the paste flow instead.",
+								),
+							);
 						});
-					} catch (err) {
+					},
+				);
+			} else {
+				callbacks
+					.promptForPastedCode(pasteController.signal)
+					.then((pasted) => {
+						if (pasteController.signal.aborted) return;
+						try {
+							const { code, state: returnedState } = parsePastedCode(pasted);
+							if (returnedState !== state) {
+								throw new CLIError(
+									"State mismatch",
+									"The pasted code does not match this login attempt. Run `superset auth login` again.",
+								);
+							}
+							settle(() => {
+								callbackController.abort();
+								resolve({ code, redirectUri });
+							});
+						} catch (err) {
+							settle(() => {
+								callbackController.abort();
+								reject(err);
+							});
+						}
+					})
+					.catch((err) => {
+						if (pasteController.signal.aborted) return;
 						settle(() => {
 							callbackController.abort();
 							reject(err);
 						});
-					}
-				})
-				.catch((err) => {
-					if (pasteController.signal.aborted) return;
-					settle(() => {
-						callbackController.abort();
-						reject(err);
 					});
-				});
+			}
 		});
 
 		return await exchangeCodeForToken({

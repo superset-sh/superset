@@ -131,6 +131,19 @@ export function ConsentForm({
 
 			if (data?.url) {
 				window.location.href = data.url;
+			} else {
+				// No redirect URL and no error: the pending authorization request
+				// could not be resolved (e.g. it was clobbered by a competing
+				// /authorize for the same login — see superset-cli #6310). Surface
+				// it instead of leaving the button stuck on "Authorizing…" forever.
+				console.error(
+					"[oauth/consent] consent() resolved without a redirect URL",
+					{ accept, data },
+				);
+				setError(
+					"Could not complete authorization. Please close this window and restart authorization from the application.",
+				);
+				setIsLoading(false);
 			}
 		} catch (err) {
 			console.error("[oauth/consent] Error:", err);
