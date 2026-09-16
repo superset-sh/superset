@@ -647,7 +647,10 @@ ${agentContext}`;
 			return anthropic.messages.create(
 				{
 					model,
-					max_tokens: 8192,
+					// A Slack turn is a short reply or a tool call. 8192 non-streamed
+					// tokens took longer than the 120s request timeout and burned the
+					// whole budget on a retry of the same generation.
+					max_tokens: 4096,
 					system: [
 						{
 							type: "text",
@@ -672,12 +675,30 @@ ${agentContext}`;
 				},
 				{
 					timeout: Math.min(MODEL_CALL_TIMEOUT_MS, remaining),
-					// One retry for 429/5xx when the budget can absorb a second attempt.
-					maxRetries: remaining > MODEL_CALL_TIMEOUT_MS * 1.5 ? 1 : 0,
+					maxRetries: 0,
 				},
 			);
 		};
-		let response = await request();
+		// Retry once for 429/5xx/connection errors when the budget can absorb
+		// a second attempt. A timeout is not retried: a generation that took
+		// longer than the request timeout takes just as long the second time.
+		const requestWithRetry = async () => {
+			try {
+				return await request();
+			} catch (error) {
+				if (!(error instanceof Anthropic.APIError)) throw error;
+				const { status, name } = error as { status?: number; name?: string };
+				const retryable =
+					status === 429 ||
+					(status ?? 0) >= 500 ||
+					(status === undefined && name === "APIConnectionError");
+				if (!retryable || deadline - Date.now() < MODEL_CALL_TIMEOUT_MS) {
+					throw error;
+				}
+				return request();
+			}
+		};
+		let response = await requestWithRetry();
 
 		const MAX_TOOL_ITERATIONS = 10;
 		let iterations = 0;
@@ -697,7 +718,7 @@ ${agentContext}`;
 					// Non-critical
 				}
 				messages.push({ role: "assistant", content: response.content });
-				response = await request();
+				response = await requestWithRetry();
 				continue;
 			}
 
@@ -818,7 +839,7 @@ ${agentContext}`;
 			});
 			messages.push({ role: "user", content: toolResults });
 
-			response = await request();
+			response = await requestWithRetry();
 		}
 
 		// Never report an unfinished tool plan or truncated text as completed work.

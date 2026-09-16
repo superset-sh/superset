@@ -121,12 +121,13 @@ mock.module("../utils/thread-sessions", () => ({
 const { slackRateLimitRetryAfterMs } = await import(
 	"../utils/slack-client/request-bounds"
 );
+const createClient = mock((_token: string, _opts?: { deadline?: number }) => ({
+	chat: { postMessage, update: updateMessage, delete: deleteMessage },
+	assistant: { threads: { setStatus } },
+	reactions: { add: addReaction, remove: removeReaction },
+}));
 mock.module("../utils/slack-client", () => ({
-	createSlackClient: () => ({
-		chat: { postMessage, update: updateMessage, delete: deleteMessage },
-		assistant: { threads: { setStatus } },
-		reactions: { add: addReaction, remove: removeReaction },
-	}),
+	createSlackClient: createClient,
 	isUnpostableChannelError: () => false,
 	slackRateLimitRetryAfterMs,
 }));
@@ -175,6 +176,18 @@ beforeEach(() => {
 	takeQueued.mockImplementation(async () => []);
 	completeHandoff.mockClear();
 	abandonHandoff.mockClear();
+});
+
+test("replies and cleanup get a client that outlives the run budget", async () => {
+	createClient.mockClear();
+	await processAgentMessage(params);
+	const deadlines = createClient.mock.calls
+		.map(([, opts]) => opts?.deadline)
+		.filter((d): d is number => typeof d === "number");
+	expect(deadlines).toHaveLength(2);
+	expect(deadlines[1]).toBeGreaterThan(deadlines[0] as number);
+	// 240s run + grace stays under the job route's 300s maxDuration.
+	expect((deadlines[1] as number) - Date.now()).toBeLessThan(300_000);
 });
 
 test("with the flag off, nothing is queued and nothing is handed back", async () => {

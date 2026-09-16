@@ -177,7 +177,7 @@ describe("agent loop", () => {
 		expect(requestTools).toContainEqual(
 			expect.objectContaining({ type: "web_search_20260209" }),
 		);
-		expect(create.mock.calls[0]?.[1]).toMatchObject({ maxRetries: 1 });
+		expect(create.mock.calls[0]?.[1]).toMatchObject({ maxRetries: 0 });
 		expect(cleanup).toHaveBeenCalledTimes(1);
 	});
 	test("the quiet tool is offered only for a session, states the thread's mode, and flips it", async () => {
@@ -209,6 +209,31 @@ describe("agent loop", () => {
 		expect(first.tools.map((t) => t.name)).toContain("slack_thread_quiet");
 		expect(first.system[1]?.text).toContain("This thread is quiet");
 		expect(set).toHaveBeenCalledWith(false);
+	});
+
+	test("a model request timeout is not retried; a 5xx is retried once", async () => {
+		create.mockImplementationOnce(async () => {
+			throw Object.assign(new Error("Request timed out."), {
+				name: "APIConnectionTimeoutError",
+			});
+		});
+		await runSlackAgent(params).catch(() => {});
+		expect(create).toHaveBeenCalledTimes(1);
+
+		create.mockReset();
+		create.mockImplementationOnce(async () => {
+			throw Object.assign(new Error("overloaded"), {
+				name: "InternalServerError",
+				status: 500,
+			});
+		});
+		create.mockImplementationOnce(async () => ({
+			stop_reason: "end_turn",
+			content: [{ type: "text", text: "Recovered", citations: [] }],
+		}));
+		const result = await runSlackAgent(params);
+		expect(result.text).toBe("Recovered");
+		expect(create).toHaveBeenCalledTimes(2);
 	});
 
 	test("text split around citations comes back as one paragraph", async () => {
