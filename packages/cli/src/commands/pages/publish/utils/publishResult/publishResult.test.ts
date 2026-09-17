@@ -58,8 +58,10 @@ describe("publishResult", () => {
 	test("open/watch failures land in data, not just the message", () => {
 		const { data } = publishResult({
 			page: PAGE,
+			path: "report.html",
 			assets: { uploaded: 0, reused: 0, warnings: [] },
 			externalPath: null,
+			unanchored: false,
 			watching: false,
 			watchNote: "Not watching for comments: could not reach the host",
 			openNote: null,
@@ -79,6 +81,7 @@ describe("publishResult", () => {
 			unanchored: true,
 			watching: false,
 			watchNote: null,
+			openNote: null,
 		});
 		expect(message.split("\n")).toEqual([
 			'Published "Q3 Report" v3',
@@ -99,6 +102,7 @@ describe("publishResult", () => {
 			unanchored: true,
 			watching: false,
 			watchNote: null,
+			openNote: null,
 		});
 		expect(data.republish).toBe(
 			"superset pages publish reports/q3.html --page p1",
@@ -114,6 +118,7 @@ describe("publishResult", () => {
 			unanchored: true,
 			watching: false,
 			watchNote: null,
+			openNote: null,
 		});
 		expect(data.republish).toBe(
 			'superset pages publish "my reports/q3.html" --page p1',
@@ -129,6 +134,7 @@ describe("publishResult", () => {
 			unanchored: false,
 			watching: false,
 			watchNote: null,
+			openNote: null,
 		});
 		expect(message).not.toContain("--page");
 		expect(data.republish).toBeUndefined();

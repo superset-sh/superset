@@ -1,32 +1,37 @@
-import type { WorkspaceStore } from "@superset/panes";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useRef } from "react";
 import { env } from "renderer/env.renderer";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import type { StoreApi } from "zustand/vanilla";
-import type { PaneViewerData } from "../../types";
-import { openPagePaneInStore } from "../../utils/openPagePaneInStore";
+import type { ConsumeSearch, PagePaneData } from "../../types";
 
 interface UseConsumePageOpenLinkArgs {
-	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	isLayoutReady: boolean;
 	pageId: string | undefined;
 	pageSlug: string | undefined;
 	focusRequestId: string | undefined;
+	openPagePane: (page: PagePaneData) => void;
+	consumeSearch: ConsumeSearch;
 }
 
+/**
+ * Opens the page named by the workspace's search params, the way
+ * `superset pages publish` deep-links into the workspace it just published
+ * from. Each request id is consumed once so a re-render does not reopen the
+ * pane, and the params are dropped once acted on so a relaunch does not.
+ */
 export function useConsumePageOpenLink({
-	store,
 	isLayoutReady,
 	pageId,
 	pageSlug,
 	focusRequestId,
+	openPagePane,
+	consumeSearch,
 }: UseConsumePageOpenLinkArgs): void {
 	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
 	const { preferences } = useV2UserPreferences();
-	const pageOpenAction = preferences.pageOpenAction;
+	const opensExternally = preferences.pageOpenAction === "external";
 	const consumedRef = useRef<Set<string>>(new Set());
 
 	useEffect(() => {
@@ -35,26 +40,24 @@ export function useConsumePageOpenLink({
 		if (consumedRef.current.has(key)) return;
 		consumedRef.current.add(key);
 
-		if (pageOpenAction === "external") {
-			const url = `${env.NEXT_PUBLIC_WEB_URL.replace(/\/$/, "")}/page/${pageSlug}`;
+		if (opensExternally) {
+			const url = `${env.NEXT_PUBLIC_WEB_URL.replace(/\/$/, "")}/page/${encodeURIComponent(pageSlug)}`;
 			electronTrpcClient.external.openUrl.mutate(url).catch((error) => {
 				console.error("[page-open-link] Failed to open URL:", error);
 			});
-			return;
+		} else {
+			openPagePane({ pageId, slug: pageSlug });
 		}
 
-		openPagePaneInStore(
-			store,
-			{ pageId, slug: pageSlug },
-			pageOpenAction === "newTab" ? "tab" : "split",
-		);
+		consumeSearch(["pageId", "pageSlug"]);
 	}, [
-		store,
 		isPagesEnabled,
 		isLayoutReady,
 		pageId,
 		pageSlug,
 		focusRequestId,
-		pageOpenAction,
+		opensExternally,
+		openPagePane,
+		consumeSearch,
 	]);
 }

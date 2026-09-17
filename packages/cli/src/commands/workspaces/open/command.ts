@@ -3,7 +3,7 @@ import type { ApiClient } from "../../../lib/api-client";
 import { resolveWorkspaceHost } from "../../../lib/cloud-workspaces";
 import { command } from "../../../lib/command";
 import { resolveWorkspaceTarget } from "../../../lib/host-workspaces";
-import { openUrl } from "../../../lib/open-url";
+import { desktopWorkspaceLink, openUrl } from "../../../lib/open-url";
 
 export default command({
 	description: "Open a workspace in the Superset desktop app",
@@ -45,7 +45,7 @@ export default command({
 				).workspace
 			: await cloudWorkspaceRow(ctx.api, organizationId, id);
 
-		const url = `superset://v2-workspace/${workspace.id}`;
+		const url = desktopWorkspaceLink(workspace.id);
 
 		if (!options.print) {
 			try {

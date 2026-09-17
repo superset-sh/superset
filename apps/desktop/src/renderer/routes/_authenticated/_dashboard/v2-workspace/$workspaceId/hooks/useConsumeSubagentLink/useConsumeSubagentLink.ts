@@ -2,7 +2,7 @@ import type { WorkspaceStore } from "@superset/panes";
 import { useEffect, useRef } from "react";
 import type { SubagentLinkParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { StoreApi } from "zustand/vanilla";
-import type { PaneViewerData } from "../../types";
+import type { ConsumeSearch, PaneViewerData } from "../../types";
 import { openSubagentPaneInStore } from "../../utils/openSubagentPaneInStore";
 
 interface UseConsumeSubagentLinkArgs {
@@ -10,6 +10,7 @@ interface UseConsumeSubagentLinkArgs {
 	isLayoutReady: boolean;
 	link: SubagentLinkParams | undefined;
 	focusRequestId: string | undefined;
+	consumeSearch: ConsumeSearch;
 }
 
 /**
@@ -23,6 +24,7 @@ export function useConsumeSubagentLink({
 	isLayoutReady,
 	link,
 	focusRequestId,
+	consumeSearch,
 }: UseConsumeSubagentLinkArgs): void {
 	const consumedRef = useRef<Set<string>>(new Set());
 	useEffect(() => {
@@ -31,5 +33,11 @@ export function useConsumeSubagentLink({
 		if (consumedRef.current.has(key)) return;
 		consumedRef.current.add(key);
 		openSubagentPaneInStore(store, link);
-	}, [store, isLayoutReady, link, focusRequestId]);
+		consumeSearch([
+			"subagentTerminalId",
+			"subagentId",
+			"subagentAgentId",
+			"subagentType",
+		]);
+	}, [store, isLayoutReady, link, focusRequestId, consumeSearch]);
 }

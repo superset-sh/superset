@@ -69,7 +69,7 @@ import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
 import { useWorkspacePaneOpeners } from "./hooks/useWorkspacePaneOpeners";
 import { WorkspaceGitStatusProvider } from "./providers/WorkspaceGitStatusProvider";
 import { FileDocumentStoreProvider } from "./state/fileDocumentStore";
-import type { PaneViewerData } from "./types";
+import type { ConsumeSearch, PaneViewerData } from "./types";
 import { findVisibleChangesPane } from "./utils/openChangesPaneInStore";
 import type { V2WorkspaceUrlOpenTarget } from "./utils/openUrlInV2Workspace";
 
@@ -160,6 +160,20 @@ function V2WorkspaceContent() {
 	} = Route.useSearch();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
+	const navigate = Route.useNavigate();
+	const consumeSearch = useCallback<ConsumeSearch>(
+		(keys) => {
+			void navigate({
+				search: (prev) => ({
+					...prev,
+					...Object.fromEntries(keys.map((key) => [key, undefined])),
+					focusRequestId: undefined,
+				}),
+				replace: true,
+			});
+		},
+		[navigate],
+	);
 
 	const {
 		preferences: v2UserPreferences,
@@ -192,6 +206,7 @@ function V2WorkspaceContent() {
 		workspaceId,
 		terminalId,
 		focusRequestId,
+		consumeSearch,
 	});
 	const subagentLink = useMemo(
 		() =>
@@ -208,6 +223,7 @@ function V2WorkspaceContent() {
 		isLayoutReady,
 		link: subagentLink,
 		focusRequestId,
+		consumeSearch,
 	});
 	useCreatePendingMigratedTerminals({ workspaceId, isLayoutReady });
 	useRunWorkspaceCreationPresets({
@@ -222,13 +238,7 @@ function V2WorkspaceContent() {
 		url: openUrl,
 		target: openUrlTarget,
 		requestId: openUrlRequestId,
-	});
-	useConsumePageOpenLink({
-		store,
-		isLayoutReady,
-		pageId,
-		pageSlug,
-		focusRequestId,
+		consumeSearch,
 	});
 
 	const {
@@ -279,6 +289,14 @@ function V2WorkspaceContent() {
 		(state) => findVisibleChangesPane(state) != null,
 	);
 
+	useConsumePageOpenLink({
+		isLayoutReady,
+		pageId,
+		pageSlug,
+		focusRequestId,
+		openPagePane,
+		consumeSearch,
+	});
 	usePagePaneIntentOpener({ workspaceId, isLayoutReady, openPagePane });
 	usePullRequestPaneIntentOpener({
 		workspaceId,
