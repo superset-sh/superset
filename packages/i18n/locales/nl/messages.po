@@ -11003,6 +11003,9 @@ msgstr "Vastzetten"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Zet een workspace vast om de agentsessie tussen runs voort te zetten"
 
+msgid "Pin to sidebar"
+msgstr "Vastzetten in zijbalk"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Zet werkruimtes vast boven je projecten en ⌘-klik daarna een reeks om ze in één keer te verplaatsen, groeperen of verwijderen."
 
@@ -15882,6 +15885,9 @@ msgstr "Onbetaald"
 
 msgid "Unpin"
 msgstr "Losmaken"
+
+msgid "Unpin from sidebar"
+msgstr "Losmaken van zijbalk"
 
 msgctxt "github release action"
 msgid "Unpublished"

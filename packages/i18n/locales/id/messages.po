@@ -11003,6 +11003,9 @@ msgstr "Sematkan"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Sematkan ruang kerja untuk melanjutkan sesi agennya antar proses"
 
+msgid "Pin to sidebar"
+msgstr "Sematkan ke sidebar"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Sematkan workspace di atas proyek Anda, lalu ⌘-klik sekumpulan untuk memindahkan, mengelompokkan, atau menghapus semuanya sekaligus."
 
@@ -15882,6 +15885,9 @@ msgstr "Belum dibayar"
 
 msgid "Unpin"
 msgstr "Lepas sematan"
+
+msgid "Unpin from sidebar"
+msgstr "Lepas sematan dari sidebar"
 
 msgctxt "github release action"
 msgid "Unpublished"

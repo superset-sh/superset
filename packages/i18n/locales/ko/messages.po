@@ -11003,6 +11003,9 @@ msgstr "고정"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "실행 간에 에이전트 세션을 계속하려면 워크스페이스를 고정하세요"
 
+msgid "Pin to sidebar"
+msgstr "사이드바에 고정"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "워크스페이스를 프로젝트 위에 고정하고, ⌘ 클릭으로 여러 개를 골라 한 번에 옮기거나, 묶거나, 삭제하세요."
 
@@ -15882,6 +15885,9 @@ msgstr "미결제"
 
 msgid "Unpin"
 msgstr "고정 해제"
+
+msgid "Unpin from sidebar"
+msgstr "사이드바 고정 해제"
 
 msgctxt "github release action"
 msgid "Unpublished"

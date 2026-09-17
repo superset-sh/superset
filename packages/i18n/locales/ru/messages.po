@@ -11003,6 +11003,9 @@ msgstr "Закрепить"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Закрепите рабочее пространство, чтобы продолжать его сессию агента между запусками"
 
+msgid "Pin to sidebar"
+msgstr "Закрепить в боковой панели"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Закрепляйте рабочие области над проектами, затем выделяйте пачку через ⌘-клик, чтобы переместить, сгруппировать или удалить всё сразу."
 
@@ -15882,6 +15885,9 @@ msgstr "Не оплачен"
 
 msgid "Unpin"
 msgstr "Открепить"
+
+msgid "Unpin from sidebar"
+msgstr "Открепить от боковой панели"
 
 msgctxt "github release action"
 msgid "Unpublished"

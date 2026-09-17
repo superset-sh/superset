@@ -11003,6 +11003,9 @@ msgstr "Připnout"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Připněte pracovní prostor, aby jeho relace agenta pokračovala mezi spuštěními"
 
+msgid "Pin to sidebar"
+msgstr "Připnout na postranní panel"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Připněte si pracovní prostory nad projekty a pak ⌘-kliknutím vyberte skupinu, kterou přesunete, seskupíte nebo smažete naráz."
 
@@ -15882,6 +15885,9 @@ msgstr "Nezaplacená"
 
 msgid "Unpin"
 msgstr "Odepnout"
+
+msgid "Unpin from sidebar"
+msgstr "Odepnout z postranního panelu"
 
 msgctxt "github release action"
 msgid "Unpublished"

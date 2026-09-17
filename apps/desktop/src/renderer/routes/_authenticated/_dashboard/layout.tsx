@@ -25,6 +25,7 @@ import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSide
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { usePortsDisplayMode } from "renderer/stores/inline-workspace-ports";
+import { usePinnedSidebarCommandsStore } from "renderer/stores/pinned-sidebar-commands";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import { syncPersistedStoreAcrossWindows } from "renderer/stores/syncPersistedStoreAcrossWindows";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
@@ -71,11 +72,15 @@ function DashboardLayout() {
 		const stopAgentStateSync = syncPersistedStoreAcrossWindows(
 			useV2NotificationStore,
 		);
+		const stopPinnedCommandsSync = syncPersistedStoreAcrossWindows(
+			usePinnedSidebarCommandsStore,
+		);
 
 		return () => {
 			stopWorkspaceSidebarSync();
 			stopSectionCollapseSync();
 			stopAgentStateSync();
+			stopPinnedCommandsSync();
 		};
 	}, []);
 	// Get current workspace from route to pre-select project in new workspace modal
@@ -273,58 +278,59 @@ function DashboardLayout() {
 		>
 			<PortForwardsProvider>
 				<RemotePortForwarder />
-				<div className="flex h-full w-full overflow-hidden">
-					<CommandPaletteHost />
-					{sidebarOutsideColumn && sidebarPanel}
-					<div className="flex flex-1 flex-col min-w-0 min-h-0">
-						{!hideTopBar && <TopBar />}
-						<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
-							{!sidebarOutsideColumn && sidebarPanel}
-							<div className="relative flex flex-1 min-h-0 min-w-0">
-								{versionMismatch ? (
-									// A v2 user on a stale v1 workspace route has nothing to go
-									// back to, so send them somewhere actionable instead of a
-									// dead-end "pick a workspace" screen. v1 users keep the
-									// static state — /new-workspace is a v2-only surface.
-									isV2CloudEnabled ? (
-										<Redirect to="/new-workspace" replace />
+				<CommandPaletteHost>
+					<div className="flex h-full w-full overflow-hidden">
+						{sidebarOutsideColumn && sidebarPanel}
+						<div className="flex flex-1 flex-col min-w-0 min-h-0">
+							{!hideTopBar && <TopBar />}
+							<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
+								{!sidebarOutsideColumn && sidebarPanel}
+								<div className="relative flex flex-1 min-h-0 min-w-0">
+									{versionMismatch ? (
+										// A v2 user on a stale v1 workspace route has nothing to go
+										// back to, so send them somewhere actionable instead of a
+										// dead-end "pick a workspace" screen. v1 users keep the
+										// static state — /new-workspace is a v2-only surface.
+										isV2CloudEnabled ? (
+											<Redirect to="/new-workspace" replace />
+										) : (
+											<CrossVersionMismatchState />
+										)
 									) : (
-										<CrossVersionMismatchState />
-									)
-								) : (
-									// Contain content-route crashes to this pane: without a
-									// boundary they bubble to the root and unmount the whole
-									// app, which reads as Superset restarting itself
-									// (SUPER-1814). Resets on navigation.
-									<CatchBoundary
-										// Full href, not just pathname: a same-path search/hash
-										// change (filter, tab) must also clear a stuck error pane.
-										getResetKey={() => location.href}
-										errorComponent={DashboardContentError}
-									>
-										<Outlet />
-									</CatchBoundary>
-								)}
+										// Contain content-route crashes to this pane: without a
+										// boundary they bubble to the root and unmount the whole
+										// app, which reads as Superset restarting itself
+										// (SUPER-1814). Resets on navigation.
+										<CatchBoundary
+											// Full href, not just pathname: a same-path search/hash
+											// change (filter, tab) must also clear a stuck error pane.
+											getResetKey={() => location.href}
+											errorComponent={DashboardContentError}
+										>
+											<Outlet />
+										</CatchBoundary>
+									)}
+								</div>
 							</div>
 						</div>
-					</div>
-					<div
-						id="workspace-right-sidebar-slot"
-						className="flex h-full shrink-0"
-					/>
-					<AddRepositoryModals />
-					{deleteTarget && (
-						<DeleteWorkspaceDialog
-							workspaceId={deleteTarget.workspaceId}
-							workspaceName={deleteTarget.workspaceName}
-							workspaceType={deleteTarget.workspaceType}
-							open={true}
-							onOpenChange={(open) => {
-								if (!open) setDeleteTarget(null);
-							}}
+						<div
+							id="workspace-right-sidebar-slot"
+							className="flex h-full shrink-0"
 						/>
-					)}
-				</div>
+						<AddRepositoryModals />
+						{deleteTarget && (
+							<DeleteWorkspaceDialog
+								workspaceId={deleteTarget.workspaceId}
+								workspaceName={deleteTarget.workspaceName}
+								workspaceType={deleteTarget.workspaceType}
+								open={true}
+								onOpenChange={(open) => {
+									if (!open) setDeleteTarget(null);
+								}}
+							/>
+						)}
+					</div>
+				</CommandPaletteHost>
 			</PortForwardsProvider>
 		</DashboardSidebarPortsProvider>
 	);

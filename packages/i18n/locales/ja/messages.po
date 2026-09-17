@@ -11003,6 +11003,9 @@ msgstr "ピン留め"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "実行間でエージェントセッションを継続するには、ワークスペースをピン留めしてください"
 
+msgid "Pin to sidebar"
+msgstr "サイドバーにピン留め"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "ワークスペースをプロジェクトの上にピン留めし、⌘クリックでまとめて選んで移動、グループ化、削除ができます。"
 
@@ -15882,6 +15885,9 @@ msgstr "未払い"
 
 msgid "Unpin"
 msgstr "ピン留めを解除"
+
+msgid "Unpin from sidebar"
+msgstr "サイドバーのピン留めを解除"
 
 msgctxt "github release action"
 msgid "Unpublished"
