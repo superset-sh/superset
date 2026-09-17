@@ -13,7 +13,7 @@ import {
 } from "@superset/ui/dialog";
 import { Label } from "@superset/ui/label";
 import type { VariantProps } from "class-variance-authority";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 type AlertActionVariant = NonNullable<
 	VariantProps<typeof buttonVariants>["variant"]
@@ -38,6 +38,8 @@ interface AlertCheckbox {
 type AlertOptions = {
 	title: string;
 	description: string;
+	/** Structured content below the description, such as a list of consequences. */
+	details?: ReactNode;
 	actions: AlertAction[];
 	/** Optional checkbox rendered above the actions (e.g. "Don't ask again"). */
 	checkbox?: AlertCheckbox;
@@ -102,6 +104,7 @@ const Alerter = () => {
 					<DialogTitle>{alertOptions.title}</DialogTitle>
 					<DialogDescription>{alertOptions.description}</DialogDescription>
 				</DialogHeader>
+				{alertOptions.details}
 				{alertOptions.checkbox && (
 					<Label className="flex items-center gap-2 text-sm font-normal">
 						<Checkbox
