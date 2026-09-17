@@ -193,10 +193,15 @@ export async function setThreadQuiet(
 			threadTs: key.threadTs,
 			startedByUserId: key.userId,
 			quiet: key.quiet,
+			quietedAt: key.quiet ? new Date() : null,
 		})
 		.onConflictDoUpdate({
 			target: THREAD_CONFLICT_TARGET,
-			set: { quiet: key.quiet, lastActivityAt: new Date() },
+			set: {
+				quiet: key.quiet,
+				quietedAt: key.quiet ? new Date() : null,
+				lastActivityAt: new Date(),
+			},
 		});
 }
 
@@ -438,6 +443,16 @@ function entitiesFromActions(actions: AgentAction[]): SlackThreadEntity[] {
 					label: workspace.branch
 						? `${workspace.name} (${workspace.branch})`
 						: workspace.name,
+				});
+			}
+		} else if (action.type === "agent_launched") {
+			for (const agent of action.agents) {
+				push({
+					kind: "agent",
+					id: agent.sessionId,
+					label: agent.workspaceName
+						? `${agent.label} in ${agent.workspaceName}`
+						: agent.label,
 				});
 			}
 		}

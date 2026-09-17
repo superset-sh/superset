@@ -27,6 +27,17 @@ export interface PullRequestData {
 	url: string;
 }
 
+export interface LaunchedAgentData {
+	/** The terminal id `agents_create` returns as `sessionId`. */
+	sessionId: string;
+	label: string;
+	workspaceId: string;
+	/** Host machineId; absent for a cloud workspace. */
+	hostId?: string;
+	workspaceName?: string;
+	workspaceBranch?: string;
+}
+
 export type AgentAction =
 	| {
 			type: "task_created" | "task_updated" | "task_deleted";
@@ -37,7 +48,8 @@ export type AgentAction =
 			workspaces: WorkspaceData[];
 	  }
 	| { type: "issue_created"; issues: IssueData[] }
-	| { type: "pr_opened"; pullRequests: PullRequestData[] };
+	| { type: "pr_opened"; pullRequests: PullRequestData[] }
+	| { type: "agent_launched"; agents: LaunchedAgentData[] };
 
 function escapeMrkdwn(text: string): string {
 	return text
@@ -84,6 +96,12 @@ function actionLines(actions: AgentAction[]): string[] {
 			for (const pr of action.pullRequests) {
 				lines.push(
 					`Opened pull request <${pr.url}|#${pr.number}> ${escapeMrkdwn(pr.title)}`,
+				);
+			}
+		} else if (action.type === "agent_launched") {
+			for (const agent of action.agents) {
+				lines.push(
+					`Launched *${agent.label}*${agent.workspaceName ? ` in workspace *${agent.workspaceName}*` : ""}`,
 				);
 			}
 		}

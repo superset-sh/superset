@@ -834,6 +834,13 @@
       "when": 1789546826052,
       "tag": "0118_slack_thread_stop_requested",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1789592341941,
+      "tag": "0119_slack_agent_launches",
+      "breakpoints": true
     }
   ]
 }

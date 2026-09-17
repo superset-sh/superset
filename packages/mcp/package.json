@@ -15,6 +15,10 @@
 		"./in-memory": {
 			"types": "./src/in-memory.ts",
 			"default": "./src/in-memory.ts"
+		},
+		"./host-service-client": {
+			"types": "./src/host-service-client.ts",
+			"default": "./src/host-service-client.ts"
 		}
 	},
 	"scripts": {

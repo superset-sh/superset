@@ -10,6 +10,7 @@ import {
 	finishAgentDelivery,
 	releaseAgentDelivery,
 } from "../utils/agent-delivery";
+import { recordAgentLaunches } from "../utils/agent-launches";
 import { generateConnectUrl } from "../utils/generate-connect-url";
 import {
 	formatErrorForSlack,
@@ -460,6 +461,13 @@ export async function processAgentMessage({
 			onProgress: showProgress,
 		});
 		actions = result.actions;
+		if (threadSession) {
+			await recordAgentLaunches({
+				threadSessionId: threadSession.id,
+				userId: slackUserLink.userId,
+				actions,
+			});
+		}
 
 		// A new final reply notifies thread participants; editing a placeholder
 		// silently would not. Model output goes in Slack's Markdown block.

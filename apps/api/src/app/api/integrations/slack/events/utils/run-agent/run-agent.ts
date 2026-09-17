@@ -3,7 +3,7 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { WebClient } from "@slack/web-api";
 import { env } from "@/env";
 import { DEFAULT_SLACK_MODEL } from "../../../constants";
-import type { AgentAction } from "../slack-blocks";
+import type { AgentAction, LaunchedAgentData } from "../slack-blocks";
 import { createSlackClient } from "../slack-client";
 import type { SlackImageAsset } from "../slack-image-assets";
 import {
@@ -268,7 +268,36 @@ export async function formatErrorForSlack(
 	}
 }
 
-function getActionFromToolResult({
+interface HostAgentLaunchResult {
+	ok: boolean;
+	sessionId?: string;
+	label?: string;
+}
+
+function launchedAgents(
+	launches: unknown,
+	workspace: { id: string; name?: string; branch?: string; hostId?: string },
+): LaunchedAgentData[] {
+	if (!Array.isArray(launches)) return [];
+	return (launches as unknown[])
+		.filter(
+			(launch): launch is HostAgentLaunchResult & { sessionId: string } =>
+				typeof launch === "object" &&
+				launch !== null &&
+				(launch as HostAgentLaunchResult).ok === true &&
+				typeof (launch as HostAgentLaunchResult).sessionId === "string",
+		)
+		.map((launch) => ({
+			sessionId: launch.sessionId,
+			label: typeof launch.label === "string" ? launch.label : "Agent",
+			workspaceId: workspace.id,
+			hostId: workspace.hostId,
+			workspaceName: workspace.name,
+			workspaceBranch: workspace.branch,
+		}));
+}
+
+function getActionsFromToolResult({
 	prefix,
 	toolName,
 	input,
@@ -278,36 +307,46 @@ function getActionFromToolResult({
 	toolName: string;
 	input: Record<string, unknown>;
 	result: ToolCallResult;
-}): AgentAction | null {
+}): AgentAction[] {
 	const data =
 		(result.structuredContent as Record<string, unknown> | undefined) ??
 		parseTextContent(result.content);
-	if (!data) return null;
+	if (!data) return [];
 
-	if (prefix === "superset") return getSupersetAction(toolName, data);
-	if (prefix === "linear") return getLinearAction(toolName, input, data);
-	if (prefix === "github") return getGithubAction(toolName, input, data);
-	return null;
+	if (prefix === "superset") return getSupersetActions(toolName, input, data);
+	const single =
+		prefix === "linear"
+			? getLinearAction(toolName, input, data)
+			: prefix === "github"
+				? getGithubAction(toolName, input, data)
+				: null;
+	return single ? [single] : [];
 }
 
-function getSupersetAction(
+function getSupersetActions(
 	toolName: string,
+	input: Record<string, unknown>,
 	data: Record<string, unknown>,
-): AgentAction | null {
+): AgentAction[] {
+	const hostId = typeof input.hostId === "string" ? input.hostId : undefined;
 	if (toolName === "tasks_create" && data.task) {
 		const t = data.task as { id: string; slug: string; title: string };
-		return {
-			type: "task_created",
-			tasks: [{ id: t.id, slug: t.slug, title: t.title, status: "Backlog" }],
-		};
+		return [
+			{
+				type: "task_created",
+				tasks: [{ id: t.id, slug: t.slug, title: t.title, status: "Backlog" }],
+			},
+		];
 	}
 
 	if (toolName === "tasks_update" && data.task) {
 		const t = data.task as { id: string; slug: string; title: string };
-		return {
-			type: "task_updated",
-			tasks: [{ id: t.id, slug: t.slug, title: t.title }],
-		};
+		return [
+			{
+				type: "task_updated",
+				tasks: [{ id: t.id, slug: t.slug, title: t.title }],
+			},
+		];
 	}
 
 	if (toolName === "workspaces_create" && data.workspace) {
@@ -316,13 +355,39 @@ function getSupersetAction(
 			name: string;
 			branch: string;
 		};
-		return {
-			type: "workspace_created",
-			workspaces: [{ id: w.id, name: w.name, branch: w.branch }],
-		};
+		const actions: AgentAction[] = [
+			{
+				type: "workspace_created",
+				workspaces: [{ id: w.id, name: w.name, branch: w.branch }],
+			},
+		];
+		const agents = launchedAgents(data.agents, { ...w, hostId });
+		if (agents.length > 0) actions.push({ type: "agent_launched", agents });
+		return actions;
 	}
 
-	return null;
+	if (toolName === "agents_create" && typeof data.sessionId === "string") {
+		const workspaceId =
+			typeof input.workspaceId === "string" ? input.workspaceId : "";
+		return [
+			{
+				type: "agent_launched",
+				agents: [
+					{
+						sessionId: data.sessionId,
+						label:
+							typeof data.label === "string"
+								? data.label
+								: String(input.agent ?? "Agent"),
+						workspaceId,
+						hostId,
+					},
+				],
+			},
+		];
+	}
+
+	return [];
 }
 
 // Linear's server serialises an issue with its identifier (SUP-12) as `id`.
@@ -1067,15 +1132,9 @@ ${agentContext}`;
 							});
 							continue;
 						}
-						const action = getActionFromToolResult({
-							prefix,
-							toolName,
-							input,
-							result,
-						});
-						if (action) {
-							actions.push(action);
-						}
+						actions.push(
+							...getActionsFromToolResult({ prefix, toolName, input, result }),
+						);
 					}
 
 					toolResults.push({

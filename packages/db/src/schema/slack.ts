@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
 	boolean,
+	integer,
 	jsonb,
 	pgTable,
 	text,
@@ -69,6 +70,7 @@ export const slackThreadSessions = pgTable(
 		quiet: boolean().notNull().default(false),
 		/** Set by !stop while a turn is running; the run checks it between steps. */
 		stopRequestedAt: timestamp("stop_requested_at", { withTimezone: true }),
+		quietedAt: timestamp("quieted_at", { withTimezone: true }),
 		lastContextTs: text("last_context_ts"),
 		entityLog: jsonb("entity_log")
 			.$type<SlackThreadEntity[]>()
@@ -102,3 +104,59 @@ export const slackThreadSessions = pgTable(
 
 export type InsertSlackThreadSession = typeof slackThreadSessions.$inferInsert;
 export type SelectSlackThreadSession = typeof slackThreadSessions.$inferSelect;
+
+export type SlackAgentLaunchOutcome =
+	| "posted"
+	| "waiting"
+	| "post_failed"
+	| "expired"
+	| "quieted"
+	| "orphaned";
+
+/**
+ * An agent the Slack agent started from a thread, kept until the thread has
+ * been told how its first turn ended. Hosts, workspaces and terminals are
+ * host-owned rows, so their ids are plain text here.
+ */
+export const slackAgentLaunches = pgTable(
+	"slack_agent_launches",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		threadSessionId: uuid("thread_session_id")
+			.notNull()
+			.references(() => slackThreadSessions.id, { onDelete: "cascade" }),
+		launchedByUserId: uuid("launched_by_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		hostId: text("host_id").notNull(),
+		workspaceId: text("workspace_id").notNull(),
+		terminalId: text("terminal_id").notNull(),
+		agentLabel: text("agent_label").notNull(),
+		workspaceName: text("workspace_name"),
+		workspaceBranch: text("workspace_branch"),
+
+		polls: integer().notNull().default(0),
+		launchedAt: timestamp("launched_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		completedAt: timestamp("completed_at", { withTimezone: true }),
+		outcome: text().$type<SlackAgentLaunchOutcome>(),
+
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(t) => [
+		unique("slack_agent_launches_terminal_unique").on(
+			t.threadSessionId,
+			t.terminalId,
+		),
+	],
+);
+
+export type InsertSlackAgentLaunch = typeof slackAgentLaunches.$inferInsert;
+export type SelectSlackAgentLaunch = typeof slackAgentLaunches.$inferSelect;

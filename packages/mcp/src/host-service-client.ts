@@ -23,6 +23,7 @@ export async function hostServiceCall<TOutput>(
 	procedure: string,
 	method: "query" | "mutation",
 	input?: unknown,
+	request: { signal?: AbortSignal } = {},
 ): Promise<TOutput> {
 	const label =
 		"gateUrl" in options
@@ -56,6 +57,7 @@ export async function hostServiceCall<TOutput>(
 			method: method === "query" ? "GET" : "POST",
 			headers,
 			body,
+			signal: request.signal,
 		});
 	} catch (error) {
 		throw new HostServiceUnreachableError(
