@@ -8,17 +8,18 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { Utf8Base64 } from "./clipboard-base64";
 import { FocusAwareClipboardProvider } from "./clipboard-provider";
+import {
+	ATLAS_PAGE_ADDS_BEFORE_RESET,
+	resetTerminalRenderer,
+} from "./renderer-reset";
 
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
 	progressAddon: ProgressAddon;
 	setLigaturesEnabled: (enabled: boolean) => void;
+	resetRenderer: () => void;
 	dispose: () => void;
 }
-
-// Truecolor-heavy TUIs mint unbounded glyph variants, growing the WebGL glyph
-// atlas without bound (SUPER-1793); reset it after this many page adds.
-const ATLAS_PAGE_ADDS_BEFORE_RESET = 32;
 
 /**
  * Load optional addons onto an already-opened terminal. Returns a cleanup
@@ -121,6 +122,7 @@ export function loadAddons(
 		searchAddon,
 		progressAddon,
 		setLigaturesEnabled,
+		resetRenderer: () => resetTerminalRenderer(terminal, webglAddon),
 		dispose: () => {
 			disposed = true;
 			cancelAnimationFrame(rafId);
