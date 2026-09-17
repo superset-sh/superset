@@ -1,8 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { OFFERED_VISIBILITIES } from "@superset/trpc/page-schema";
 import { command } from "../../../lib/command";
+import { openUrl } from "../../../lib/open-url";
 import { resolveWorkspaceId } from "../workspaceRef";
 import {
 	collectDirectoryPublish,
@@ -207,6 +209,22 @@ export default command({
 			}
 		}
 
+		let openNote: string | null = null;
+		if (page.version === 1 && workspaceId) {
+			const params = new URLSearchParams({
+				pageId: page.id,
+				pageSlug: page.slug,
+				focusRequestId: randomUUID(),
+			});
+			try {
+				await openUrl(`superset://v2-workspace/${workspaceId}?${params}`);
+			} catch (error) {
+				openNote = `Could not open the page: ${
+					error instanceof Error ? error.message : String(error)
+				}`;
+			}
+		}
+
 		return publishResult({
 			page,
 			path: args.path as string,
@@ -215,6 +233,7 @@ export default command({
 			unanchored,
 			watching,
 			watchNote,
+			openNote,
 		});
 	},
 });

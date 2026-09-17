@@ -1,27 +1,9 @@
-import { spawn } from "node:child_process";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import type { ApiClient } from "../../../lib/api-client";
 import { resolveWorkspaceHost } from "../../../lib/cloud-workspaces";
 import { command } from "../../../lib/command";
 import { resolveWorkspaceTarget } from "../../../lib/host-workspaces";
-
-function openUrl(url: string): Promise<void> {
-	const [bin, args]: [string, string[]] =
-		process.platform === "darwin"
-			? ["open", [url]]
-			: process.platform === "win32"
-				? ["cmd", ["/c", "start", "", url]]
-				: ["xdg-open", [url]];
-
-	return new Promise((resolve, reject) => {
-		const child = spawn(bin, args, { stdio: "ignore", detached: true });
-		child.once("error", reject);
-		child.once("spawn", () => {
-			child.unref();
-			resolve();
-		});
-	});
-}
+import { openUrl } from "../../../lib/open-url";
 
 export default command({
 	description: "Open a workspace in the Superset desktop app",
