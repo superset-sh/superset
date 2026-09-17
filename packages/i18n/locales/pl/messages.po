@@ -10955,6 +10955,9 @@ msgstr "Przypnij"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Przypnij obszar roboczy, aby kontynuować jego sesję agenta między uruchomieniami"
 
+msgid "Pin to sidebar"
+msgstr "Przypnij do paska bocznego"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Przypnij obszary robocze nad projektami, a potem ⌘-kliknij grupę, aby przenieść, pogrupować lub usunąć je naraz."
 
@@ -15822,6 +15825,9 @@ msgstr "Nieopłacona"
 
 msgid "Unpin"
 msgstr "Odepnij"
+
+msgid "Unpin from sidebar"
+msgstr "Odepnij od paska bocznego"
 
 msgctxt "github release action"
 msgid "Unpublished"

@@ -10955,6 +10955,9 @@ msgstr "Épingler"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Épinglez un espace de travail pour continuer sa session d'agent entre les exécutions"
 
+msgid "Pin to sidebar"
+msgstr "Épingler à la barre latérale"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Épinglez des espaces de travail au-dessus de vos projets, puis sélectionnez-en un lot avec ⌘ + clic pour les déplacer, les grouper ou les supprimer d'un coup."
 
@@ -15822,6 +15825,9 @@ msgstr "Impayée"
 
 msgid "Unpin"
 msgstr "Désépingler"
+
+msgid "Unpin from sidebar"
+msgstr "Désépingler de la barre latérale"
 
 msgctxt "github release action"
 msgid "Unpublished"

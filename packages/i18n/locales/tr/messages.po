@@ -10955,6 +10955,9 @@ msgstr "Sabitle"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Çalıştırmalar arasında aracı oturumunu sürdürmek için bir çalışma alanı sabitleyin"
 
+msgid "Pin to sidebar"
+msgstr "Kenar çubuğuna sabitle"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Çalışma alanlarını projelerinizin üstüne sabitleyin, sonra ⌘ ile bir grup seçip hepsini birden taşıyın, gruplayın veya silin."
 
@@ -15822,6 +15825,9 @@ msgstr "Ödenmemiş"
 
 msgid "Unpin"
 msgstr "Sabitlemeyi kaldır"
+
+msgid "Unpin from sidebar"
+msgstr "Kenar çubuğundaki sabitlemeyi kaldır"
 
 msgctxt "github release action"
 msgid "Unpublished"

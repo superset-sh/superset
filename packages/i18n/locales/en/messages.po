@@ -10955,6 +10955,9 @@ msgstr "Pin"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Pin a workspace to continue its agent session between runs"
 
+msgid "Pin to sidebar"
+msgstr "Pin to sidebar"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 
@@ -15822,6 +15825,9 @@ msgstr "Unpaid"
 
 msgid "Unpin"
 msgstr "Unpin"
+
+msgid "Unpin from sidebar"
+msgstr "Unpin from sidebar"
 
 msgctxt "github release action"
 msgid "Unpublished"

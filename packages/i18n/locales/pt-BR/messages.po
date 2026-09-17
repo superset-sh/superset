@@ -10955,6 +10955,9 @@ msgstr "Fixar"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Fixe uma área de trabalho para continuar sua sessão de agente entre execuções"
 
+msgid "Pin to sidebar"
+msgstr "Fixar na barra lateral"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Fixe áreas de trabalho acima dos seus projetos e depois ⌘-clique em um lote para mover, agrupar ou excluir tudo de uma vez."
 
@@ -15822,6 +15825,9 @@ msgstr "Não paga"
 
 msgid "Unpin"
 msgstr "Desafixar"
+
+msgid "Unpin from sidebar"
+msgstr "Desafixar da barra lateral"
 
 msgctxt "github release action"
 msgid "Unpublished"

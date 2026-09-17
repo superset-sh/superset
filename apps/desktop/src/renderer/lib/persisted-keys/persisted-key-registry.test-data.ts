@@ -87,6 +87,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["sidebar-workspaces-collapse"],
 	],
 	[
+		"src/renderer/stores/pinned-sidebar-commands/store.ts",
+		["pinned-sidebar-commands-v1"],
+	],
+	[
 		"src/renderer/stores/last-active-v2-workspace.ts",
 		["last-active-v2-workspace"],
 	],

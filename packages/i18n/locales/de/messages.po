@@ -10955,6 +10955,9 @@ msgstr "Anheften"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Hefte einen Workspace an, um seine Agent-Sitzung über Läufe hinweg fortzusetzen"
 
+msgid "Pin to sidebar"
+msgstr "An Seitenleiste anheften"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Hefte Arbeitsbereiche über deine Projekte, dann per ⌘-Klick eine Auswahl treffen und alle auf einmal verschieben, gruppieren oder löschen."
 
@@ -15822,6 +15825,9 @@ msgstr "Unbezahlt"
 
 msgid "Unpin"
 msgstr "Lösen"
+
+msgid "Unpin from sidebar"
+msgstr "Von Seitenleiste lösen"
 
 msgctxt "github release action"
 msgid "Unpublished"

@@ -10955,6 +10955,9 @@ msgstr "Ghim"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Ghim một workspace để tiếp tục phiên agent giữa các lần chạy"
 
+msgid "Pin to sidebar"
+msgstr "Ghim vào thanh bên"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Ghim workspace lên trên các dự án, rồi ⌘-nhấp một loạt để chuyển, gom nhóm hoặc xóa tất cả cùng lúc."
 
@@ -15822,6 +15825,9 @@ msgstr "Chưa thanh toán"
 
 msgid "Unpin"
 msgstr "Bỏ ghim"
+
+msgid "Unpin from sidebar"
+msgstr "Bỏ ghim khỏi thanh bên"
 
 msgctxt "github release action"
 msgid "Unpublished"

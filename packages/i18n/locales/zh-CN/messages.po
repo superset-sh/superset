@@ -10955,6 +10955,9 @@ msgstr "置顶"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "固定一个工作区，以便在多次运行之间继续其智能体会话"
 
+msgid "Pin to sidebar"
+msgstr "固定到侧边栏"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "把工作区固定在项目上方，再⌘点击批量选中，一次性移动、分组或删除。"
 
@@ -15822,6 +15825,9 @@ msgstr "未支付"
 
 msgid "Unpin"
 msgstr "取消置顶"
+
+msgid "Unpin from sidebar"
+msgstr "从侧边栏取消固定"
 
 msgctxt "github release action"
 msgid "Unpublished"

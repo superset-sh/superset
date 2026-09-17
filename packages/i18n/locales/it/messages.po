@@ -10955,6 +10955,9 @@ msgstr "Fissa"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Fissa un workspace per continuare la sessione dell'agente tra le esecuzioni"
 
+msgid "Pin to sidebar"
+msgstr "Fissa nella barra laterale"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Fissa i workspace sopra i tuoi progetti, poi seleziona un gruppo con ⌘-clic per spostarli, raggrupparli o eliminarli tutti insieme."
 
@@ -15822,6 +15825,9 @@ msgstr "Non pagata"
 
 msgid "Unpin"
 msgstr "Rimuovi dai fissati"
+
+msgid "Unpin from sidebar"
+msgstr "Rimuovi dai fissati nella barra laterale"
 
 msgctxt "github release action"
 msgid "Unpublished"

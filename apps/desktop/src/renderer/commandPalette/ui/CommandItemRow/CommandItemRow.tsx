@@ -1,7 +1,9 @@
 import { useLingui } from "@lingui/react/macro";
 import { CommandItem, CommandShortcut } from "@superset/ui/command";
 import { useHotkeyDisplay } from "renderer/hotkeys/hooks/useHotkeyDisplay";
+import { useCommandContext } from "../../core/ContextProvider";
 import type { Command } from "../../core/types";
+import { PinCommandButton } from "./components/PinCommandButton";
 
 interface CommandItemRowProps {
 	command: Command;
@@ -10,12 +12,17 @@ interface CommandItemRowProps {
 
 export function CommandItemRow({ command, onSelect }: CommandItemRowProps) {
 	const { i18n } = useLingui();
+	const { isV2CloudEnabled } = useCommandContext();
 	const display = useHotkeyDisplay(command.hotkeyId ?? "");
 	const Icon = command.icon;
 	const hasShortcut =
 		Boolean(command.hotkeyId) && display.text && display.text !== "Unassigned";
 	return (
-		<CommandItem value={command.id} onSelect={() => onSelect(command)}>
+		<CommandItem
+			value={command.id}
+			onSelect={() => onSelect(command)}
+			className="group/command-row"
+		>
 			{command.iconUrl ? (
 				<img
 					src={command.iconUrl}
@@ -26,7 +33,10 @@ export function CommandItemRow({ command, onSelect }: CommandItemRowProps) {
 				<Icon />
 			) : null}
 			<span>{i18n._(command.title)}</span>
-			{hasShortcut ? <CommandShortcut>{display.text}</CommandShortcut> : null}
+			<span className="-my-1 ml-auto flex items-center gap-2">
+				{hasShortcut ? <CommandShortcut>{display.text}</CommandShortcut> : null}
+				{isV2CloudEnabled ? <PinCommandButton commandId={command.id} /> : null}
+			</span>
 		</CommandItem>
 	);
 }

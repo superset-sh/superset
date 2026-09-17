@@ -66,6 +66,7 @@ import {
 	useOpenNewProjectModal,
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
+import { PinnedSidebarCommands } from "./components/PinnedSidebarCommands";
 
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
@@ -496,6 +497,8 @@ export function DashboardSidebarHeader({
 						</Tooltip>
 					)}
 
+					<PinnedSidebarCommands isCollapsed />
+
 					<DropdownMenu>
 						<Tooltip delayDuration={700}>
 							<TooltipTrigger asChild>
@@ -768,6 +771,8 @@ export function DashboardSidebarHeader({
 					</span>
 				</button>
 			)}
+
+			<PinnedSidebarCommands isCollapsed={false} />
 		</div>
 	);
 }
