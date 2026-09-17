@@ -89,7 +89,10 @@ export const createPageSchema = z
 export type CreatePageInput = z.infer<typeof createPageSchema>;
 
 export const listPagesSchema = z
-	.object({ workspaceId: pageFields.workspaceId.optional() })
+	.object({
+		workspaceId: pageFields.workspaceId.optional(),
+		limit: z.number().int().positive().optional(),
+	})
 	.optional();
 
 const pageRefFieldsSchema = z.object({

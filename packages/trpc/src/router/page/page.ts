@@ -308,7 +308,8 @@ export const pageRouter = {
 						),
 					);
 
-			const rows = await scoped.orderBy(desc(pages.updatedAt));
+			const ordered = scoped.orderBy(desc(pages.updatedAt));
+			const rows = await (input?.limit ? ordered.limit(input.limit) : ordered);
 			const baseUrl = env.USERCONTENT_URL;
 			return await Promise.all(
 				rows.map(async (row) => {
