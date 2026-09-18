@@ -14,6 +14,7 @@ import { collectOpencodeEntries } from "./opencode";
 import type { UsageLogEntry } from "./parse";
 import { parseClaudeLogFile, parseCodexLogFile } from "./parse";
 import { collectPiEntries } from "./pi";
+import { collectTypesafeEntries } from "./typesafe";
 
 export interface CollectedUsage {
 	entries: UsageLogEntry[];
@@ -134,6 +135,7 @@ export async function collectUsageEntries(
 				collectPiEntries("omp", days, cutoffMs, out, sessionLabels),
 		},
 		{ run: (out: UsageLogEntry[]) => collectFxEntries(cutoffMs, out) },
+		{ run: (out: UsageLogEntry[]) => collectTypesafeEntries(cutoffMs, out) },
 		{
 			run: (out: UsageLogEntry[]) =>
 				collectMuseEntries(days, cutoffMs, out, sessionLabels),

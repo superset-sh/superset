@@ -124,6 +124,13 @@ const MULTI_AGENT_RATES: Record<string, ModelRate> = {
 	...GROK_RATES,
 };
 
+/** System One models answer in one forward pass, so TypeSafe meters input
+ * only and publishes output as free. Input is $0.042/MTok.
+ * https://typesafe.ai/blog/introducing-system-one-models-and-jev */
+const TYPESAFE_RATES: Record<string, ModelRate> = {
+	jev: { inputPerM: 0.042, outputPerM: 0 },
+};
+
 const RATES_BY_AGENT: Record<UsageAgent, Record<string, ModelRate>> = {
 	claude: CLAUDE_RATES,
 	codex: CODEX_RATES,
@@ -139,6 +146,7 @@ const RATES_BY_AGENT: Record<UsageAgent, Record<string, ModelRate>> = {
 	// Devin's own SWE models are billed in ACUs with no published token
 	// price; they take the cheapest fallback, marked approximate.
 	devin: MULTI_AGENT_RATES,
+	typesafe: TYPESAFE_RATES,
 };
 
 const cheapestByAgent = new Map<UsageAgent, ModelRate>();
