@@ -158,6 +158,10 @@ msgstr "{0, plural, one {# elemento del historial} other {# elementos del histor
 msgid "{0, plural, one {# login} other {# logins}}"
 msgstr "{0, plural, one {# inicio de sesión} other {# inicios de sesión}}"
 
+#. placeholder {0}: page.openThreadCount
+msgid "{0, plural, one {# open thread} other {# open threads}}"
+msgstr "{0, plural, one {# hilo abierto} other {# hilos abiertos}}"
+
 #. placeholder {0}: summary.passed
 msgid "{0, plural, one {# passed} other {# passed}}"
 msgstr "{0, plural, one {# superada} other {# superadas}}"
@@ -169,6 +173,10 @@ msgstr "{0, plural, one {# proyecto seleccionado.} other {# proyectos selecciona
 #. placeholder {0}: projectFilters.length
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# proyecto} other {# proyectos}}"
+
+#. placeholder {0}: page.commentCount
+msgid "{0, plural, one {# reply} other {# replies}}"
+msgstr "{0, plural, one {# respuesta} other {# respuestas}}"
 
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length

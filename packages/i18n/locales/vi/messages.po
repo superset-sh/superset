@@ -158,6 +158,10 @@ msgstr "{0, plural, one {# mục lịch sử} other {# mục lịch sử}}"
 msgid "{0, plural, one {# login} other {# logins}}"
 msgstr "{0, plural, one {# đăng nhập} other {# đăng nhập}}"
 
+#. placeholder {0}: page.openThreadCount
+msgid "{0, plural, one {# open thread} other {# open threads}}"
+msgstr "{0, plural, one {# luồng đang mở} other {# luồng đang mở}}"
+
 #. placeholder {0}: summary.passed
 msgid "{0, plural, one {# passed} other {# passed}}"
 msgstr "{0, plural, one {# đã qua} other {# đã qua}}"
@@ -169,6 +173,10 @@ msgstr "{0, plural, one {Đã chọn # dự án.} other {Đã chọn # dự án.
 #. placeholder {0}: projectFilters.length
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# dự án} other {# dự án}}"
+
+#. placeholder {0}: page.commentCount
+msgid "{0, plural, one {# reply} other {# replies}}"
+msgstr "{0, plural, one {# phản hồi} other {# phản hồi}}"
 
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length

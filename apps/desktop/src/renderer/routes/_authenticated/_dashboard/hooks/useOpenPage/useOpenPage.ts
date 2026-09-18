@@ -13,6 +13,8 @@ export interface OpenPageTarget {
 
 export interface OpenPageOptions {
 	inPane?: boolean;
+	/** Open with this comment thread selected in the panel. */
+	threadId?: string;
 }
 
 export type OpenPage = (
@@ -63,7 +65,11 @@ export function useOpenPage(): OpenPage {
 					return;
 				}
 			}
-			navigate({ to: "/pages/$slug", params: { slug: page.slug } });
+			navigate({
+				to: "/pages/$slug",
+				params: { slug: page.slug },
+				search: options?.threadId ? { thread: options.threadId } : undefined,
+			});
 		},
 		[
 			navigate,

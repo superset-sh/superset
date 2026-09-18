@@ -158,6 +158,10 @@ msgstr "{0, plural, one {기록 #개} other {기록 #개}}"
 msgid "{0, plural, one {# login} other {# logins}}"
 msgstr "{0, plural, one {로그인 #개} other {로그인 #개}}"
 
+#. placeholder {0}: page.openThreadCount
+msgid "{0, plural, one {# open thread} other {# open threads}}"
+msgstr "{0, plural, one {미해결 스레드 #개} other {미해결 스레드 #개}}"
+
 #. placeholder {0}: summary.passed
 msgid "{0, plural, one {# passed} other {# passed}}"
 msgstr "{0, plural, one {#개 통과} other {#개 통과}}"
@@ -169,6 +173,10 @@ msgstr "{0, plural, one {프로젝트 #개를 선택했습니다.} other {프로
 #. placeholder {0}: projectFilters.length
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {프로젝트 #개} other {프로젝트 #개}}"
+
+#. placeholder {0}: page.commentCount
+msgid "{0, plural, one {# reply} other {# replies}}"
+msgstr "{0, plural, one {답글 #개} other {답글 #개}}"
 
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length

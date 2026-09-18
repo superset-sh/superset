@@ -8,6 +8,7 @@ import {
 	CommentsPanel,
 	PageCommentsView,
 	PageVersionBanner,
+	useComments,
 } from "@superset/ui/page-comments";
 import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
@@ -33,8 +34,30 @@ interface PageViewerProps {
 	onCommentsEnabledChange: (enabled: boolean) => void;
 	onResolved?: (page: ResolvedPage) => void;
 	onFramePointerDown?: () => void;
+	/** Open the comments panel with this thread selected once it loads. */
+	initialThreadId?: string;
 	version?: number | null;
 	onExitPreview?: () => void;
+}
+
+/**
+ * Deep-link target for a card's comment count: once the thread exists in the
+ * store, open the panel and select it (the panel scrolls the active thread
+ * into view). One-shot — later panel closes must stick.
+ */
+function ActivateThread({ threadId }: { threadId: string }) {
+	const { threads, setPanelOpen, setActiveThreadId } = useComments();
+	const activated = useRef(false);
+
+	useEffect(() => {
+		if (activated.current) return;
+		if (!threads.some((thread) => thread.id === threadId)) return;
+		activated.current = true;
+		setPanelOpen(true);
+		setActiveThreadId(threadId);
+	}, [threads, threadId, setPanelOpen, setActiveThreadId]);
+
+	return null;
 }
 
 export function PageViewer({
@@ -45,6 +68,7 @@ export function PageViewer({
 	onCommentsEnabledChange,
 	onResolved,
 	onFramePointerDown,
+	initialThreadId,
 	version,
 	onExitPreview,
 }: PageViewerProps) {
@@ -128,6 +152,7 @@ export function PageViewer({
 			user={user}
 			pageOwnerId={pull.data?.createdByUserId}
 		>
+			{initialThreadId ? <ActivateThread threadId={initialThreadId} /> : null}
 			<div className="flex h-full w-full flex-col">
 				{previewing && onExitPreview ? (
 					<PageVersionBanner

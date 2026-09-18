@@ -158,6 +158,10 @@ msgstr "{0, plural, one {# item riwayat} other {# item riwayat}}"
 msgid "{0, plural, one {# login} other {# logins}}"
 msgstr "{0, plural, one {# login} other {# login}}"
 
+#. placeholder {0}: page.openThreadCount
+msgid "{0, plural, one {# open thread} other {# open threads}}"
+msgstr "{0, plural, one {# thread terbuka} other {# thread terbuka}}"
+
 #. placeholder {0}: summary.passed
 msgid "{0, plural, one {# passed} other {# passed}}"
 msgstr "{0, plural, one {# lulus} other {# lulus}}"
@@ -169,6 +173,10 @@ msgstr "{0, plural, one {# proyek dipilih.} other {# proyek dipilih.}}"
 #. placeholder {0}: projectFilters.length
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# proyek} other {# proyek}}"
+
+#. placeholder {0}: page.commentCount
+msgid "{0, plural, one {# reply} other {# replies}}"
+msgstr "{0, plural, one {# balasan} other {# balasan}}"
 
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length

@@ -158,6 +158,10 @@ msgstr "{0, plural, one {#条历史记录} other {#条历史记录}}"
 msgid "{0, plural, one {# login} other {# logins}}"
 msgstr "{0, plural, one {#项登录信息} other {#项登录信息}}"
 
+#. placeholder {0}: page.openThreadCount
+msgid "{0, plural, one {# open thread} other {# open threads}}"
+msgstr "{0, plural, one {# 个未解决讨论串} other {# 个未解决讨论串}}"
+
 #. placeholder {0}: summary.passed
 msgid "{0, plural, one {# passed} other {# passed}}"
 msgstr "{0, plural, one {#项通过} other {#项通过}}"
@@ -169,6 +173,10 @@ msgstr "{0, plural, one {已选择#个项目。} other {已选择#个项目。}}
 #. placeholder {0}: projectFilters.length
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# 个项目} other {# 个项目}}"
+
+#. placeholder {0}: page.commentCount
+msgid "{0, plural, one {# reply} other {# replies}}"
+msgstr "{0, plural, one {# 条回复} other {# 条回复}}"
 
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length

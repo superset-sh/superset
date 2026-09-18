@@ -158,6 +158,10 @@ msgstr "{0, plural, one {#件の履歴} other {#件の履歴}}"
 msgid "{0, plural, one {# login} other {# logins}}"
 msgstr "{0, plural, one {#件のログイン情報} other {#件のログイン情報}}"
 
+#. placeholder {0}: page.openThreadCount
+msgid "{0, plural, one {# open thread} other {# open threads}}"
+msgstr "{0, plural, one {#件の未解決スレッド} other {#件の未解決スレッド}}"
+
 #. placeholder {0}: summary.passed
 msgid "{0, plural, one {# passed} other {# passed}}"
 msgstr "{0, plural, one {#件成功} other {#件成功}}"
@@ -169,6 +173,10 @@ msgstr "{0, plural, one {#件のプロジェクトを選択中。} other {#件�
 #. placeholder {0}: projectFilters.length
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# 件のプロジェクト} other {# 件のプロジェクト}}"
+
+#. placeholder {0}: page.commentCount
+msgid "{0, plural, one {# reply} other {# replies}}"
+msgstr "{0, plural, one {#件の返信} other {#件の返信}}"
 
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length

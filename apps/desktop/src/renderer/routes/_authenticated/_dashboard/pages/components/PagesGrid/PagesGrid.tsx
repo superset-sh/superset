@@ -9,7 +9,11 @@ import {
 } from "@superset/ui/empty";
 import { Skeleton } from "@superset/ui/skeleton";
 import { LuFileText, LuPlus, LuSearchX } from "react-icons/lu";
-import { PageCard, type PageCardItem } from "./components/PageCard";
+import {
+	type OpenPageCardOptions,
+	PageCard,
+	type PageCardItem,
+} from "./components/PageCard";
 import { THUMBNAIL_ASPECT_RATIO } from "./constants";
 
 const SKELETON_KEYS = [
@@ -30,7 +34,11 @@ interface PagesGridProps {
 	isPending: boolean;
 	error?: string;
 	hasFilters: boolean;
-	onOpen: (page: PageCardItem, event: React.MouseEvent) => void;
+	onOpen: (
+		page: PageCardItem,
+		event: React.MouseEvent,
+		options?: OpenPageCardOptions,
+	) => void;
 	onTogglePin: (pageId: string) => void;
 	onDelete: (pageId: string) => Promise<void>;
 }
