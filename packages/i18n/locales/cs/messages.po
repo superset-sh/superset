@@ -4039,6 +4039,9 @@ msgstr "Kopírovat ID relace agenta"
 msgid "Copy all"
 msgstr "Kopírovat vše"
 
+msgid "Copy as Markdown"
+msgstr "Kopírovat jako Markdown"
+
 msgid "Copy Branch Name"
 msgstr "Kopírovat název větve"
 

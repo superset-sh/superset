@@ -4039,6 +4039,9 @@ msgstr "에이전트 세션 ID 복사"
 msgid "Copy all"
 msgstr "모두 복사"
 
+msgid "Copy as Markdown"
+msgstr "Markdown으로 복사"
+
 msgid "Copy Branch Name"
 msgstr "브랜치 이름 복사"
 

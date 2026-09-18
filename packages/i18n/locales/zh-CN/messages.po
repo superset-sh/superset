@@ -4039,6 +4039,9 @@ msgstr "复制智能体会话ID"
 msgid "Copy all"
 msgstr "全部复制"
 
+msgid "Copy as Markdown"
+msgstr "复制为 Markdown"
+
 msgid "Copy Branch Name"
 msgstr "复制分支名"
 

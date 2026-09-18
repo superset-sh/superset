@@ -4039,6 +4039,9 @@ msgstr "Salin ID sesi agen"
 msgid "Copy all"
 msgstr "Salin semua"
 
+msgid "Copy as Markdown"
+msgstr "Salin sebagai Markdown"
+
 msgid "Copy Branch Name"
 msgstr "Salin Nama Branch"
 

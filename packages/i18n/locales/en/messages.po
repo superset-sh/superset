@@ -4039,6 +4039,9 @@ msgstr "Copy agent session ID"
 msgid "Copy all"
 msgstr "Copy all"
 
+msgid "Copy as Markdown"
+msgstr "Copy as Markdown"
+
 msgid "Copy Branch Name"
 msgstr "Copy Branch Name"
 

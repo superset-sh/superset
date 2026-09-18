@@ -4039,6 +4039,9 @@ msgstr "複製代理程式會話ID"
 msgid "Copy all"
 msgstr "全部複製"
 
+msgid "Copy as Markdown"
+msgstr "複製為 Markdown"
+
 msgid "Copy Branch Name"
 msgstr "複製分支名"
 

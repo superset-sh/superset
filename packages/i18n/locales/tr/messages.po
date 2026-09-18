@@ -4039,6 +4039,9 @@ msgstr "Ajan oturum kimliğini kopyala"
 msgid "Copy all"
 msgstr "Tümünü kopyala"
 
+msgid "Copy as Markdown"
+msgstr "Markdown olarak kopyala"
+
 msgid "Copy Branch Name"
 msgstr "Dal adını kopyala"
 

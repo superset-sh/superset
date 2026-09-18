@@ -4039,6 +4039,9 @@ msgstr "Скопировать ID сессии агента"
 msgid "Copy all"
 msgstr "Скопировать всё"
 
+msgid "Copy as Markdown"
+msgstr "Копировать как Markdown"
+
 msgid "Copy Branch Name"
 msgstr "Скопировать имя ветки"
 

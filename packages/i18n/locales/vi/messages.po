@@ -4039,6 +4039,9 @@ msgstr "Sao chép ID phiên agent"
 msgid "Copy all"
 msgstr "Sao chép tất cả"
 
+msgid "Copy as Markdown"
+msgstr "Sao chép dưới dạng Markdown"
+
 msgid "Copy Branch Name"
 msgstr "Sao chép tên nhánh"
 

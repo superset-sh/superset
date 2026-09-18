@@ -4039,6 +4039,9 @@ msgstr "エージェントセッションIDをコピー"
 msgid "Copy all"
 msgstr "すべてコピー"
 
+msgid "Copy as Markdown"
+msgstr "Markdownとしてコピー"
+
 msgid "Copy Branch Name"
 msgstr "ブランチ名をコピー"
 
