@@ -1,8 +1,11 @@
 import { msg } from "@lingui/core/macro";
+import { STRIP_KATALON_ATTRS_SCRIPT } from "@superset/shared/constants";
 import { Toaster } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
+import Script from "next/script";
+
 import { initServerI18n } from "@/lib/i18n-server";
 
 import "./globals.css";
@@ -53,6 +56,11 @@ export default async function RootLayout({
 	const i18n = await initServerI18n();
 	return (
 		<html lang={i18n.locale} suppressHydrationWarning>
+			<head>
+				<Script id="strip-katalon-attrs" strategy="beforeInteractive">
+					{STRIP_KATALON_ATTRS_SCRIPT}
+				</Script>
+			</head>
 			<body
 				className={cn(
 					"bg-background text-foreground min-h-screen font-sans antialiased",
