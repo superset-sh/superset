@@ -46,12 +46,13 @@ describe("resolveProjectWorktreesFolder", () => {
 	});
 
 	test("steers clear of Windows device names", () => {
-		for (const [name, folder] of [
-			["CON", "_CON"],
-			["nul", "_nul"],
-			["com1.backup", "_com1.backup"],
-			["console", "console"],
-		]) {
+		const expected = {
+			CON: "_CON",
+			nul: "_nul",
+			"com1.backup": "_com1.backup",
+			console: "console",
+		};
+		for (const [name, folder] of Object.entries(expected)) {
 			expect(resolveProjectWorktreesFolder({ id: PROJECT_ID, name }, [])).toBe(
 				folder,
 			);
