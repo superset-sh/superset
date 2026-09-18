@@ -20,6 +20,7 @@ export const pageFields = {
 	label: z.string().max(200),
 	visibility: z.enum(OFFERED_VISIBILITIES),
 	agentId: z.string().min(1).max(200),
+	search: z.string().trim().min(1).max(200),
 } as const;
 
 const publishPageFieldsSchema = z.object({
@@ -89,7 +90,10 @@ export const createPageSchema = z
 export type CreatePageInput = z.infer<typeof createPageSchema>;
 
 export const listPagesSchema = z
-	.object({ workspaceId: pageFields.workspaceId.optional() })
+	.object({
+		workspaceId: pageFields.workspaceId.optional(),
+		search: pageFields.search.optional(),
+	})
 	.optional();
 
 const pageRefFieldsSchema = z.object({

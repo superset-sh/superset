@@ -323,17 +323,32 @@ it, so a page someone narrowed to `just_me` stays that way through every later
 version, and a page created before `org` became the default is still `just_me`
 until someone widens it.
 
-## Read a page back
+## Find a page and read it back
+
+When the user refers to a page by name ("the onboarding doc", "the report you
+made last week"), **list first, then address it by the id or slug the list
+returned**. A slug ends in a random suffix (`q3-pipeline-xgfbar`), so it cannot
+be derived from a title, and a guessed slug returns "Page not found" for a page
+that exists.
 
 ```bash
-superset pages list --workspace <id>     # or omit --workspace for the whole org
+superset pages list                          # every page you can read, org-wide, newest first
+superset pages list --search onboarding      # title, description, or slug contains the text
+superset pages list --workspace <id>         # only pages published from one workspace
 superset pages get <page-id-or-slug>
 superset pages versions <page-id-or-slug>
 superset pages pull <page-id-or-slug> --version 2 > v2.html
 ```
 
+`list` covers the whole organization by default: pages published from other
+workspaces, other machines, and earlier sessions are all there, along with
+your own `just_me` pages. Narrow with `--workspace` only when the user asked
+about one workspace. A page you still cannot find belongs to another
+organization, or is a teammate's `just_me` draft, which only they can open.
+
 `pull` writes HTML to stdout; use it to recover a source file you no longer
-have, or to diff what actually shipped against what you have locally.
+have, to diff what actually shipped against what you have locally, or to read
+back notes, findings, or decisions a page was published to hold.
 
 `get` carries `workspaceLinks`: the workspace and the path each publish
 resolved against. When you have lost the source, pull it back to that path
@@ -384,6 +399,7 @@ Reopen with `superset pages comments resolve --thread <id> --reopen`.
 | Publish rejected on size | Over 16 MB; the `data:` URIs are almost always why |
 | A new page appeared instead of a version | Published from outside the workspace, or the path changed; use `--page <id>` |
 | Reader gets a 404 | Page is `just_me`, either set that way or created before `org` became the default; widen it with `--visibility org` |
+| `superset pages get <slug>` says "Page not found" for a page the user can open | The slug was guessed from the title; run `superset pages list --search <words>` and use the slug or id it returns |
 | Page is blank once published, fine locally | A script threw, or the page loads a script or stylesheet from a remote host |
 | A chart or widget renders nothing and logs no error | The library compiles code with `new Function` or `eval`, which the policy refuses; pick one that does not |
 | Fonts missing when published | A stylesheet `<link>` from a host other than `fonts.googleapis.com`; inline the `@font-face` instead, or use `--sp-font-sans` |
