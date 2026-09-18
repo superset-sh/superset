@@ -203,6 +203,7 @@ export const createStatusProcedures = () => {
 					!branch ||
 					branch === "HEAD" ||
 					branch.startsWith("[") ||
+					branch.startsWith("-") ||
 					branch.includes(" ")
 				) {
 					return { success: false as const, reason: "invalid-branch" as const };
