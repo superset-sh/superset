@@ -8,6 +8,7 @@ import type {
 	V1WorktreeRow,
 } from "./ipc";
 import type { V1LedgerOutcome, V1LedgerRow } from "./ledger";
+import { planV2SurfacePass } from "./pass";
 import { runV1Migration } from "./runV1Migration";
 
 // ---------------------------------------------------------------------------
@@ -369,6 +370,70 @@ describe("runV1Migration scenarios", () => {
 		expect(host.mutations.length).toBe(mutationsAfterFirst); // zero new mutations
 		expect(second.workspaces.skipped).toBe(1); // stale re-skips, still non-blocking
 		expect(second.gateComplete).toBe(true);
+	});
+
+	test("pre-account v1 data on a machine already on v2: every workspace reaches the board", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		ipc.projects = [project("p1", "/repo/a")];
+		ipc.worktrees = [
+			{ id: "wt1", path: "/trees/feat-a", baseBranch: "main" },
+			{ id: "wt2", path: "/trees/feat-b", baseBranch: "main" },
+		];
+		ipc.workspaces = [
+			workspace("w-main", "p1", "main"),
+			workspace("w-feat-a", "p1", "feat-a", "wt1"),
+			workspace("w-feat-b", "p1", "feat-b", "wt2"),
+		];
+		host.diskBranches.set("/repo/a", new Set(["main", "feat-a", "feat-b"]));
+		// File -> Open Project on v2 already made the project and its default
+		// "main" workspace; the ledger is empty because no pass ever ran.
+		host.projects.push({ id: "v2p-open", repoPath: "/repo/a" });
+		host.workspaces.push({
+			tags: [],
+			id: "v2w-open",
+			projectId: "v2p-open",
+			branch: "main",
+			type: "local",
+		});
+		expect(
+			planV2SurfacePass({
+				followUpPending: false,
+				migrationComplete: false,
+				hasV1Data: ipc.projects.length + ipc.workspaces.length > 0,
+			}),
+		).toBe("full");
+
+		const adopted: string[] = [];
+		const first = await runV1Migration({
+			organizationId: "org",
+			hostClient: host.client(),
+			ipc,
+			onWorkspaceAdopted: (id) => adopted.push(id),
+		});
+
+		expect(first.projects.linked).toBe(1);
+		expect(host.projects).toHaveLength(1);
+		expect(first.workspaces.linked).toBe(1);
+		expect(first.workspaces.migrated).toBe(2);
+		expect(first.gateComplete).toBe(true);
+
+		const board = await host.client().workspace.list.query();
+		expect(
+			board
+				.filter((w) => w.projectId === "v2p-open")
+				.map((w) => w.branch)
+				.sort(),
+		).toEqual(["feat-a", "feat-b", "main"]);
+		expect(adopted).toHaveLength(2);
+		for (const v1Id of ["w-main", "w-feat-a", "w-feat-b"]) {
+			expect(ipc.ledger.get(`workspace\0${v1Id}`)?.v2Id).toBeTruthy();
+		}
+
+		const mutationsAfterFirst = host.mutations.length;
+		await run(ipc, host);
+		expect(host.mutations.length).toBe(mutationsAfterFirst);
+		expect(host.workspaces).toHaveLength(3);
 	});
 
 	test("custom v1 color and hide-image carry over; defaults do not", async () => {
