@@ -3220,6 +3220,9 @@ msgstr "Terminal geçmişini temizle"
 msgid "Clear terminal history?"
 msgstr "Terminal geçmişi temizlensin mi?"
 
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "Kenar çubuğunu yeniden düzenlemek için filtreyi temizleyin"
+
 msgid "Clear workspace selection"
 msgstr "Çalışma alanı seçimini temizle"
 
@@ -14412,6 +14415,9 @@ msgstr "Oturumu değiştir"
 
 msgid "Switch sign-in…"
 msgstr "Oturumu değiştir…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "Kenar çubuğunu yeniden düzenlemek için manuel sıralamaya geçin"
 
 msgid "Switch to Tab 1"
 msgstr "1. sekmeye geç"

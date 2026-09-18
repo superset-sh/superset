@@ -3220,6 +3220,9 @@ msgstr "Xóa lịch sử terminal"
 msgid "Clear terminal history?"
 msgstr "Xóa lịch sử terminal?"
 
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "Xóa bộ lọc để sắp xếp lại thanh bên"
+
 msgid "Clear workspace selection"
 msgstr "Bỏ chọn workspace"
 
@@ -14412,6 +14415,9 @@ msgstr "Đổi đăng nhập"
 
 msgid "Switch sign-in…"
 msgstr "Đổi đăng nhập…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "Chuyển sang thứ tự thủ công để sắp xếp lại thanh bên"
 
 msgid "Switch to Tab 1"
 msgstr "Chuyển tới tab 1"

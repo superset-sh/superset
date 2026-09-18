@@ -3220,6 +3220,9 @@ msgstr "터미널 기록 지우기"
 msgid "Clear terminal history?"
 msgstr "터미널 기록을 지울까요?"
 
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "사이드바를 다시 정렬하려면 필터를 지우세요"
+
 msgid "Clear workspace selection"
 msgstr "워크스페이스 선택 해제"
 
@@ -14412,6 +14415,9 @@ msgstr "로그인 전환"
 
 msgid "Switch sign-in…"
 msgstr "로그인 전환…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "사이드바를 다시 정렬하려면 수동 정렬로 전환하세요"
 
 msgid "Switch to Tab 1"
 msgstr "탭 1로 전환"

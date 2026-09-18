@@ -3220,6 +3220,9 @@ msgstr "Terminal-Verlauf löschen"
 msgid "Clear terminal history?"
 msgstr "Terminal-Verlauf löschen?"
 
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "Setze den Filter zurück, um die Seitenleiste neu anzuordnen"
+
 msgid "Clear workspace selection"
 msgstr "Arbeitsbereich-Auswahl aufheben"
 
@@ -14412,6 +14415,9 @@ msgstr "Anmeldung wechseln"
 
 msgid "Switch sign-in…"
 msgstr "Anmeldung wechseln…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "Wechsle zur manuellen Reihenfolge, um die Seitenleiste neu anzuordnen"
 
 msgid "Switch to Tab 1"
 msgstr "Zu Tab 1 wechseln"

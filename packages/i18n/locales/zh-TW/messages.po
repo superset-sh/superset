@@ -3220,6 +3220,9 @@ msgstr "清除終端歷史"
 msgid "Clear terminal history?"
 msgstr "清除終端歷史？"
 
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "清除篩選即可重新排列側邊欄"
+
 msgid "Clear workspace selection"
 msgstr "清除工作區選擇"
 
@@ -14412,6 +14415,9 @@ msgstr "切換登入"
 
 msgid "Switch sign-in…"
 msgstr "切換登入…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "切換到手動排序即可重新排列側邊欄"
 
 msgid "Switch to Tab 1"
 msgstr "切換到分頁1"

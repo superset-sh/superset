@@ -3220,6 +3220,9 @@ msgstr "Bersihkan riwayat terminal"
 msgid "Clear terminal history?"
 msgstr "Bersihkan riwayat terminal?"
 
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "Hapus filter untuk menyusun ulang sidebar"
+
 msgid "Clear workspace selection"
 msgstr "Bersihkan pilihan workspace"
 
@@ -14412,6 +14415,9 @@ msgstr "Ganti sesi masuk"
 
 msgid "Switch sign-in…"
 msgstr "Ganti sesi masuk…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "Beralih ke urutan manual untuk menyusun ulang sidebar"
 
 msgid "Switch to Tab 1"
 msgstr "Beralih ke Tab 1"

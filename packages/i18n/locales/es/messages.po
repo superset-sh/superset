@@ -3220,6 +3220,9 @@ msgstr "Borrar el historial de la terminal"
 msgid "Clear terminal history?"
 msgstr "¿Borrar el historial de la terminal?"
 
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "Borra el filtro para reorganizar la barra lateral"
+
 msgid "Clear workspace selection"
 msgstr "Borrar la selección de espacios de trabajo"
 
@@ -14412,6 +14415,9 @@ msgstr "Cambiar de sesión"
 
 msgid "Switch sign-in…"
 msgstr "Cambiar de sesión…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "Cambia al orden manual para reorganizar la barra lateral"
 
 msgid "Switch to Tab 1"
 msgstr "Ir a la pestaña 1"

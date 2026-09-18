@@ -1,6 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMemo } from "react";
+import { BLOCKED_DRAG_ATTRIBUTE } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useBlockedDragNotice";
 import { useDashboardSidebarDnd } from "../../../../../../hooks/useSidebarDnd";
 import type { DashboardSidebarWorkspace } from "../../../../../../types";
 import { DashboardSidebarWorkspaceItem } from "../../../../../DashboardSidebarWorkspaceItem";
@@ -59,6 +60,7 @@ export function SortableCollapsedWorkspaceItem({
 				position: isDragging ? "relative" : undefined,
 				zIndex: isDragging ? 10 : undefined,
 			}}
+			{...{ [BLOCKED_DRAG_ATTRIBUTE]: isChildDragDisabled || undefined }}
 			{...attributes}
 			{...listeners}
 		>
