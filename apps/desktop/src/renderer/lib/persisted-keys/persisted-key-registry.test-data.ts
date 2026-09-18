@@ -46,7 +46,9 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	["src/renderer/lib/posthog.ts", ["ph_*_posthog", "__ph_opt_in_out_*"]],
 	[
 		"src/renderer/lib/persistent-hash-history/persistent-hash-history.ts",
-		["router-history"],
+		// Bounded by MAX_ENTRIES per window, and by the window set: a window key
+		// only exists while windows-state.json restores it.
+		["router-history", "router-history:*"],
 	],
 	[
 		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/paneScrollStateCache/paneScrollStateCache.ts",
