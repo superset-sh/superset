@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, expect, spyOn, test } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { rmSync } from "node:fs";
+import { basename } from "node:path";
 import { eq } from "drizzle-orm";
 import { createBasicScenario } from "../../../../../test/helpers/scenarios";
-import { projects, workspaces } from "../../../../db/schema";
+import { projects, terminalSessions, workspaces } from "../../../../db/schema";
 import { PullRequestRuntimeManager } from "../../../../runtime/pull-requests/pull-requests";
 import {
 	archiveLocalWorkspace,
@@ -54,7 +55,7 @@ async function until(check: () => boolean) {
 
 const title = {
 	title: "Resolve login failures",
-	branchName: "ai-must-not-change-this",
+	branchName: "fix-login",
 };
 
 for (const kind of ["session", "worktree"] as const) {
@@ -71,6 +72,7 @@ for (const kind of ["session", "worktree"] as const) {
 		const create = (
 			extra: {
 				name?: string;
+				namingPrompt?: string;
 				agents?: Array<{ agent: string; prompt: string }>;
 				branch?: string;
 			} = {},
@@ -109,28 +111,52 @@ for (const kind of ["session", "worktree"] as const) {
 		};
 	}
 
-	test(`${kind}: creation returns before naming and the branch stays fixed`, async () => {
+	test(`${kind}: creation returns before naming and keeps its folder when AI names arrive`, async () => {
 		const f = await fixture();
 		try {
-			const result = await f.create();
-			expect(result.workspace.name).toBe("Fix login");
+			const result = await f.create({
+				namingPrompt: "https://superset.sh please fix login",
+			});
+			expect(result.workspace.name).toMatch(
+				/^[a-z]+-[a-z]+-[0-9a-f]{8}(?:-\d+)?$/,
+			);
+			expect(result.workspace.name).not.toContain("https");
 			await until(() => f.generator.mock.calls.length === 1);
 			const initial = f.row();
 			if (!initial) throw new Error("Workspace row missing");
 			const branch = initial.branch;
-			expect(branch).toBe(
-				kind === "session" ? "main" : `fix-login-${f.id.slice(0, 8)}`,
-			);
+			expect(branch).toBe(kind === "session" ? "main" : result.workspace.name);
+			expect(basename(initial.worktreePath)).toBe(result.workspace.name);
 			f.deferred.resolve(title);
 			await until(() => f.row()?.name === title.title);
-			expect(f.row()?.branch).toBe(branch);
+			expect(f.row()?.worktreePath).toBe(initial.worktreePath);
+			const expectedBranch =
+				kind === "session" ? "main" : `${title.branchName}-${f.id.slice(0, 8)}`;
+			expect(f.row()?.branch).toBe(expectedBranch);
 			expect(
 				execFileSync(
 					"git",
 					["-C", initial.worktreePath, "branch", "--show-current"],
 					{ encoding: "utf8" },
 				).trim(),
-			).toBe(branch);
+			).toBe(expectedBranch);
+		} finally {
+			await f.cleanup();
+		}
+	});
+
+	test(`${kind}: empty composer still creates a valid initial name without AI`, async () => {
+		const f = await fixture();
+		try {
+			const result = await f.create({ namingPrompt: undefined });
+			expect(result.workspace.name).toMatch(
+				/^[a-z]+-[a-z]+-[0-9a-f]{8}(?:-\d+)?$/,
+			);
+			expect(f.row()?.name).toBe(result.workspace.name);
+			expect(result.workspace.branch).toBe(
+				kind === "session" ? "main" : result.workspace.name,
+			);
+			expect(f.generator).not.toHaveBeenCalled();
 		} finally {
 			await f.cleanup();
 		}
@@ -145,12 +171,12 @@ for (const kind of ["session", "worktree"] as const) {
 		test(`${kind}: pending title cannot overwrite ${edit}`, async () => {
 			const f = await fixture();
 			try {
-				await f.create();
+				const result = await f.create();
 				await until(() => f.generator.mock.calls.length === 1);
 				if (edit === "manual" || edit === "away-and-back") {
 					updateLocalWorkspace(f.host, f.id, { name: "My title" });
 					if (edit === "away-and-back")
-						updateLocalWorkspace(f.host, f.id, { name: "Fix login" });
+						updateLocalWorkspace(f.host, f.id, { name: result.workspace.name });
 				} else {
 					archiveLocalWorkspace(f.host, f.id, "deleted");
 					if (edit === "archive-and-restore")
@@ -159,7 +185,7 @@ for (const kind of ["session", "worktree"] as const) {
 				f.deferred.resolve(title);
 				await new Promise((resolve) => setTimeout(resolve, 20));
 				expect(f.row()?.name).toBe(
-					edit === "manual" ? "My title" : "Fix login",
+					edit === "manual" ? "My title" : result.workspace.name,
 				);
 			} finally {
 				await f.cleanup();
@@ -209,7 +235,7 @@ for (const kind of ["session", "worktree"] as const) {
 				),
 			);
 			expect(result.workspace.id).toBe(f.id);
-			expect(f.row()?.name).toBe("Fix login");
+			expect(f.row()?.name).toBe(result.workspace.name);
 		} finally {
 			await f.cleanup();
 			warn.mockRestore();
@@ -238,6 +264,31 @@ for (const kind of ["session", "worktree"] as const) {
 					agents: [{ agent: "test-agent", prompt: "Fix login" }],
 				});
 				await entered.promise;
+				expect(f.generator).not.toHaveBeenCalled();
+				const host = launch.mock.calls[0]?.[0];
+				if (!host) throw new Error("Launch missing");
+				host.db
+					.insert(terminalSessions)
+					.values({ id: "test-agent", originWorkspaceId: f.id })
+					.run();
+				host.terminalAgentStore.recordEvent({
+					terminalId: "test-agent",
+					workspaceId: f.id,
+					agentId: "claude",
+					eventType: "Attached",
+					occurredAt: Date.now(),
+				});
+				expect(f.generator).not.toHaveBeenCalled();
+				host.terminalAgentStore.recordEvent({
+					terminalId: "test-agent",
+					workspaceId: f.id,
+					agentId: "claude",
+					eventType: "Start",
+					occurredAt: Date.now(),
+				});
+				await until(() => f.generator.mock.calls.length === 1);
+				const initialName = f.row()?.name;
+				if (!initialName) throw new Error("Workspace missing");
 				if (resolveBeforeLaunchFinishes) {
 					f.deferred.resolve(title);
 					await until(() => f.row()?.name === title.title);
@@ -246,7 +297,7 @@ for (const kind of ["session", "worktree"] as const) {
 				const result = await creation;
 				expect(result.agents[0]?.ok).toBe(true);
 				expect(result.workspace.name).toBe(
-					resolveBeforeLaunchFinishes ? title.title : "Fix login",
+					resolveBeforeLaunchFinishes ? title.title : initialName,
 				);
 				if (!resolveBeforeLaunchFinishes) {
 					f.deferred.resolve(title);
@@ -283,7 +334,21 @@ for (const kind of ["session", "worktree"] as const) {
 				expect(row.id).toBe(results[0].workspace.id);
 				expect(results[1].workspace.branch).toBe(results[0].workspace.branch);
 				expect(launch).toHaveBeenCalledTimes(1);
-				expect(f.generator).toHaveBeenCalledTimes(1);
+				expect(f.generator).not.toHaveBeenCalled();
+				const host = launch.mock.calls[0]?.[0];
+				if (!host) throw new Error("Launch missing");
+				host.db
+					.insert(terminalSessions)
+					.values({ id: "test-agent", originWorkspaceId: f.id })
+					.run();
+				host.terminalAgentStore.recordEvent({
+					terminalId: "test-agent",
+					workspaceId: f.id,
+					agentId: "claude",
+					eventType: "Start",
+					occurredAt: Date.now(),
+				});
+				await until(() => f.generator.mock.calls.length === 1);
 				if (kind === "worktree") {
 					const branches = execFileSync(
 						"git",
@@ -292,13 +357,14 @@ for (const kind of ["session", "worktree"] as const) {
 							row.worktreePath,
 							"branch",
 							"--list",
-							`fix-login-${f.id.slice(0, 8)}*`,
+							"--format=%(refname:short)",
 						],
 						{ encoding: "utf8" },
 					)
 						.trim()
-						.split("\n");
-					expect(branches).toHaveLength(1);
+						.split("\n")
+						.filter((branch) => branch && branch !== "main");
+					expect(branches).toEqual([row.branch]);
 				}
 			} finally {
 				launch.mockRestore();
@@ -332,6 +398,89 @@ for (const kind of ["session", "worktree"] as const) {
 				}
 			});
 		}
+		for (const protection of ["renamed", "switched", "published"] as const) {
+			test(`worktree: background naming preserves a ${protection} branch`, async () => {
+				const f = await fixture();
+				try {
+					await f.create();
+					const row = f.row();
+					if (!row) throw new Error("Workspace missing");
+					const git = (...args: string[]) =>
+						execFileSync("git", ["-C", row.worktreePath, ...args], {
+							encoding: "utf8",
+						}).trim();
+					await until(() => f.generator.mock.calls.length === 1);
+					if (protection === "renamed") git("branch", "-m", "manual-name");
+					if (protection === "switched") git("checkout", "-b", "other-branch");
+					if (protection === "published")
+						git("update-ref", `refs/remotes/origin/${row.branch}`, "HEAD");
+					const before = git("branch", "--show-current");
+					f.deferred.resolve(title);
+					await until(() => f.row()?.name === title.title);
+					expect(git("branch", "--show-current")).toBe(before);
+					expect(
+						git("branch", "--list", `${title.branchName}-${f.id.slice(0, 8)}`),
+					).toBe("");
+					expect(f.row()?.worktreePath).toBe(row.worktreePath);
+				} finally {
+					await f.cleanup();
+				}
+			});
+		}
+		for (const collisionCount of [1, 2]) {
+			test(`worktree: skips ${collisionCount} occupied generated branch names without changing their refs`, async () => {
+				const f = await fixture();
+				try {
+					await f.create();
+					const row = f.row();
+					if (!row) throw new Error("Workspace missing");
+					const git = (...args: string[]) =>
+						execFileSync("git", ["-C", row.worktreePath, ...args], {
+							encoding: "utf8",
+						}).trim();
+					await until(() => f.generator.mock.calls.length === 1);
+					const candidate = `${title.branchName}-${f.id.slice(0, 8)}`;
+					const occupied = Array.from({ length: collisionCount }, (_, i) =>
+						i === 0 ? candidate : `${candidate}-${i + 1}`,
+					);
+					const originalCommit = git("rev-parse", "HEAD");
+					for (const branch of occupied) git("branch", branch);
+					f.deferred.resolve(title);
+					await until(() => f.row()?.name === title.title);
+					const expected = `${candidate}-${collisionCount + 1}`;
+					expect(git("branch", "--show-current")).toBe(expected);
+					expect(f.row()?.branch).toBe(expected);
+					expect(f.row()?.worktreePath).toBe(row.worktreePath);
+					for (const branch of occupied)
+						expect(git("rev-parse", `refs/heads/${branch}`)).toBe(
+							originalCommit,
+						);
+				} finally {
+					await f.cleanup();
+				}
+			});
+		}
+		test("worktree: generated branch retains the project prefix and unique suffix", async () => {
+			const f = await fixture();
+			try {
+				f.host.db
+					.update(projects)
+					.set({ branchPrefixMode: "custom", branchPrefixCustom: "team" })
+					.where(eq(projects.id, f.projectId))
+					.run();
+				const result = await f.create();
+				expect(result.workspace.branch).toMatch(
+					new RegExp(`^team/[a-z]+-[a-z]+-${f.id.slice(0, 8)}$`),
+				);
+				f.deferred.resolve(title);
+				await until(() => f.row()?.name === title.title);
+				expect(f.row()?.branch).toBe(
+					`team/${title.branchName}-${f.id.slice(0, 8)}`,
+				);
+			} finally {
+				await f.cleanup();
+			}
+		});
 		test("worktree: configured prefix and explicit branches survive title generation", async () => {
 			const f = await fixture();
 			try {
@@ -351,3 +500,40 @@ for (const kind of ["session", "worktree"] as const) {
 		});
 	}
 }
+
+test("host disposal prevents late naming from reading the closed database", async () => {
+	const scenario = await createBasicScenario();
+	const deferred =
+		Promise.withResolvers<naming.GeneratedWorkspaceNames | null>();
+	const generator = spyOn(
+		naming,
+		"generateWorkspaceNamesFromPrompt",
+	).mockReturnValue(deferred.promise);
+	const warn = spyOn(console, "warn").mockImplementation(() => {});
+	let disposed = false;
+	try {
+		const workspace = getLocalWorkspace(scenario.host.db, scenario.workspaceId);
+		if (!workspace) throw new Error("Workspace missing");
+		naming.generateWorkspaceTitleInBackground({
+			ctx: scenario.host,
+			workspace,
+			prompt: "Fix login",
+		});
+		await until(() => generator.mock.calls.length === 1);
+		await scenario.dispose();
+		disposed = true;
+		expect(generator.mock.calls[0]?.[3]?.aborted).toBe(true);
+		deferred.resolve(title);
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(
+			warn.mock.calls.some(
+				(call) => call[0] === "[workspace-title] generation failed",
+			),
+		).toBe(false);
+	} finally {
+		deferred.resolve(null);
+		if (!disposed) await scenario.dispose();
+		generator.mockRestore();
+		warn.mockRestore();
+	}
+});

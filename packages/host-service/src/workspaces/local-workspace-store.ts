@@ -362,7 +362,8 @@ export function updateLocalWorkspace(
 			}
 		}
 	});
-	if (patch.name !== undefined) cancelWorkspaceTitleJob(ctx.db, id);
+	if (patch.name !== undefined || patch.branch !== undefined)
+		cancelWorkspaceTitleJob(ctx.db, id);
 	const row = getLocalWorkspace(ctx.db, id);
 	if (row) emitWorkspaceChanged(ctx, "updated", row);
 	return row;

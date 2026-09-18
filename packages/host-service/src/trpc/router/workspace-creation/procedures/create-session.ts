@@ -1,10 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { basename } from "node:path";
-import {
-	deriveWorkspaceTitleFromPrompt,
-	generateFriendlyBranchName,
-} from "@superset/shared/workspace-launch";
+import { generateFriendlyBranchName } from "@superset/shared/workspace-launch";
 import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { TRPCError } from "@trpc/server";
 import { isNull } from "drizzle-orm";
@@ -100,7 +98,7 @@ export const createSession = protectedProcedure
 		const typedName = input.name?.trim();
 		const folderCandidate =
 			(typedName ? sanitizeBranchCandidate(typedName) : "") ||
-			generateFriendlyBranchName();
+			`${generateFriendlyBranchName()}-${(input.id ?? randomUUID()).slice(0, 8)}`;
 
 		mkdirSync(defaultSessionsRoot(), { recursive: true });
 
@@ -138,10 +136,7 @@ export const createSession = protectedProcedure
 				projectId: null,
 				worktreePath: repoPath,
 				branch: "main",
-				name:
-					typedName ||
-					deriveWorkspaceTitleFromPrompt(composerPrompt) ||
-					folderName,
+				name: typedName || folderName,
 				type: "session",
 				createdByUserId: ctx.userId ?? null,
 				tags: input.tags,
@@ -179,6 +174,9 @@ export const createSession = protectedProcedure
 				workspace: row,
 				prompt: composerPrompt,
 				agent: namingAgent,
+				waitForStart: namingAgent
+					? (start) => ctx.terminalAgentStore.onWorkStarted(row.id, start)
+					: undefined,
 			});
 		}
 

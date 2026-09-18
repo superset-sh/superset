@@ -20,6 +20,7 @@ import {
 	gitStatusPartialTask,
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
+import { cancelAndWaitWorkspaceTitleCommit } from "../../../workspaces/workspace-title-jobs";
 import { protectedProcedure, queryProcedure, router } from "../../index";
 import { rethrowWorkerTaskAbort } from "../../worker-abort";
 import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
@@ -492,6 +493,7 @@ export const gitRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			await cancelAndWaitWorkspaceTitleCommit(ctx.db, input.workspaceId);
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const git = await ctx.git(worktreePath);
 

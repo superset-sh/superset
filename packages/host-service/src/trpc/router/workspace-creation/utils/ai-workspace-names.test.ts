@@ -5,6 +5,17 @@ import {
 } from "./ai-workspace-names";
 
 describe("generateWorkspaceNamesFromPrompt", () => {
+	test("background naming keeps the random fallback when AI is unavailable", async () => {
+		await expect(
+			generateWorkspaceNamesFromPrompt(
+				"https://superset.sh please fix login",
+				undefined,
+				undefined,
+				undefined,
+				false,
+			),
+		).resolves.toBeNull();
+	});
 	test("derives names from the prompt when no agent context is supplied", async () => {
 		await expect(
 			generateWorkspaceNamesFromPrompt("  Fix the login   redirect loop! "),

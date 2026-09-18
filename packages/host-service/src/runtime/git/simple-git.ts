@@ -7,8 +7,11 @@ import simpleGit, { type SimpleGit, type SimpleGitOptions } from "simple-git";
 const SIMPLE_GIT_OPTIONS =
 	USER_GIT_ENV_SIMPLE_GIT_OPTIONS satisfies Partial<SimpleGitOptions>;
 
-export function createUserSimpleGit(baseDir?: string): SimpleGit {
+export function createUserSimpleGit(
+	baseDir?: string,
+	options?: Pick<SimpleGitOptions, "timeout">,
+): SimpleGit {
 	return baseDir
-		? simpleGit(baseDir, SIMPLE_GIT_OPTIONS)
-		: simpleGit(SIMPLE_GIT_OPTIONS);
+		? simpleGit(baseDir, { ...SIMPLE_GIT_OPTIONS, ...options })
+		: simpleGit({ ...SIMPLE_GIT_OPTIONS, ...options });
 }

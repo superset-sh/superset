@@ -132,6 +132,14 @@ export interface TerminalAgentBindingPersistence {
  * Emits `"change"` with the affected workspaceId after every mutation.
  */
 export class TerminalAgentStore extends EventEmitter {
+	onWorkStarted(workspaceId: string, listener: () => void): () => void {
+		const event = `work-started:${workspaceId}`;
+		this.once(event, listener);
+		return () => {
+			this.off(event, listener);
+		};
+	}
+
 	private readonly byTerminal = new Map<string, TerminalAgentBinding>();
 	private readonly subagentsByTerminal = new Map<
 		string,
@@ -239,6 +247,7 @@ export class TerminalAgentStore extends EventEmitter {
 		this.byTerminal.set(terminalId, next);
 		this.persistence?.upsert(next);
 		this.emit("change", workspaceId);
+		if (eventType === "Start") this.emit(`work-started:${workspaceId}`);
 	}
 
 	/**
