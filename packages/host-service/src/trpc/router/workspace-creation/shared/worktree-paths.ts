@@ -44,6 +44,8 @@ export type WorktreeFolderProject = { id: string; name: string };
 
 const MAX_FOLDER_NAME_LENGTH = 80;
 const RESERVED_FOLDER_CHARACTERS = new Set('<>:"/\\|?*');
+// Windows refuses these as a file or folder name, with or without an extension.
+const WINDOWS_DEVICE_NAME = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
 
 function toFolderName(projectName: string): string {
 	const replaced = Array.from(projectName.normalize("NFC"), (character) =>
@@ -52,10 +54,11 @@ function toFolderName(projectName: string): string {
 			? "-"
 			: character,
 	).join("");
-	return replaced
+	const folderName = replaced
 		.replace(/\s+/g, " ")
 		.slice(0, MAX_FOLDER_NAME_LENGTH)
 		.replace(/^[. ]+|[. ]+$/g, "");
+	return WINDOWS_DEVICE_NAME.test(folderName) ? `_${folderName}` : folderName;
 }
 
 function disambiguatedFolderName(folderName: string, projectId: string) {

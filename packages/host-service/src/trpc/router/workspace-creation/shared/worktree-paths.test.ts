@@ -44,6 +44,19 @@ describe("resolveProjectWorktreesFolder", () => {
 			),
 		).toBe("-acme-web-app v2");
 	});
+
+	test("steers clear of Windows device names", () => {
+		for (const [name, folder] of [
+			["CON", "_CON"],
+			["nul", "_nul"],
+			["com1.backup", "_com1.backup"],
+			["console", "console"],
+		]) {
+			expect(resolveProjectWorktreesFolder({ id: PROJECT_ID, name }, [])).toBe(
+				folder,
+			);
+		}
+	});
 });
 
 describe("safeResolveWorktreePath", () => {
