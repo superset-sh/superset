@@ -1,6 +1,10 @@
+import { DRAG_ACTIVATION_DISTANCE_PX } from "../useSidebarDnd/constants";
+
 export const BLOCKED_DRAG_ATTRIBUTE = "data-sidebar-drag-blocked";
 
-const DRAG_DISTANCE_PX = 5;
+export function getBlockedDragProps(isBlocked: boolean) {
+	return isBlocked ? { [BLOCKED_DRAG_ATTRIBUTE]: true } : {};
+}
 
 type PointerLike = Pick<
 	PointerEvent,
@@ -10,8 +14,8 @@ type PointerLike = Pick<
 /**
  * Reports a press-and-move on a row whose sortable is inert. A disabled
  * dnd-kit sortable emits nothing, so an attempted drag would otherwise look
- * like the sidebar ignoring the user. The threshold matches the mouse
- * sensor's activation distance, so a plain click never counts.
+ * like the sidebar ignoring the user. Sharing the mouse sensor's activation
+ * distance means a plain click never counts.
  */
 export function watchBlockedDragAttempts(
 	root: Pick<EventTarget, "addEventListener" | "removeEventListener">,
@@ -33,7 +37,7 @@ export function watchBlockedDragAttempts(
 				move.clientX - clientX,
 				move.clientY - clientY,
 			);
-			if (distance < DRAG_DISTANCE_PX) return;
+			if (distance < DRAG_ACTIVATION_DISTANCE_PX) return;
 			stopTracking?.();
 			onBlockedDrag();
 		};

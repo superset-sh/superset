@@ -5,7 +5,7 @@ import { watchBlockedDragAttempts } from "./watchBlockedDragAttempts";
 
 const NOTICE_TOAST_ID = "sidebar-drag-blocked";
 
-export type BlockedDragReason = "sort" | "filter";
+type BlockedDragReason = "sort" | "filter";
 
 interface UseBlockedDragNoticeOptions {
 	/** Null while every row can be dragged. A filter outranks a sort. */

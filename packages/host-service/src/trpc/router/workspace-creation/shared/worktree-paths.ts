@@ -90,7 +90,7 @@ export function resolveProjectWorktreesFolder(
  * Worktrees keep the absolute path they were created with, so the
  * removal guard has to keep recognising all of them.
  */
-export function projectWorktreesFolderCandidates(
+function projectWorktreesFolderCandidates(
 	project: WorktreeFolderProject,
 ): string[] {
 	const folderName = toFolderName(project.name);

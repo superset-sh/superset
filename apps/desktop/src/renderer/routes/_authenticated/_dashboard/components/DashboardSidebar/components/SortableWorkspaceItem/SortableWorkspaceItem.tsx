@@ -2,7 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@superset/ui/utils";
 import { useMemo } from "react";
-import { BLOCKED_DRAG_ATTRIBUTE } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useBlockedDragNotice";
+import { getBlockedDragProps } from "../../hooks/useBlockedDragNotice";
 import { useDashboardSidebarDnd } from "../../hooks/useSidebarDnd";
 import type { WorkspaceSelectionEvent } from "../../providers/DashboardSidebarSelectionProvider";
 import type {
@@ -103,7 +103,7 @@ export function SortableWorkspaceItem({
 				opacity: isDragging || isDragPlaceholder ? 0.5 : undefined,
 				boxShadow: accentColor ? `inset 3px 0 ${accentColor}` : undefined,
 			}}
-			{...{ [BLOCKED_DRAG_ATTRIBUTE]: isChildDragDisabled || undefined }}
+			{...getBlockedDragProps(isChildDragDisabled)}
 			{...attributes}
 			{...listeners}
 		>

@@ -4,11 +4,11 @@ import { SESSIONS_TAG_SCOPE } from "@superset/shared/workspace-tags";
 import { useCallback, useEffect, useState } from "react";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
-import { BLOCKED_DRAG_ATTRIBUTE } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useBlockedDragNotice";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { parseSidebarFolderKey } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
+import { getBlockedDragProps } from "../../hooks/useBlockedDragNotice";
 import { useDashboardSidebarDnd } from "../../hooks/useSidebarDnd";
 import type {
 	DashboardSidebarSection,
@@ -97,7 +97,7 @@ export function SortableSectionHeader({
 					? `inset 3px 0 ${section.color}`
 					: "inset 2px 0 var(--color-border)",
 			}}
-			{...{ [BLOCKED_DRAG_ATTRIBUTE]: isChildDragDisabled || undefined }}
+			{...getBlockedDragProps(isChildDragDisabled)}
 		>
 			<DashboardSidebarSectionContextMenu
 				color={section.color}

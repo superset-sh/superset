@@ -38,7 +38,7 @@ import { DashboardSidebarSessionsSection } from "./components/DashboardSidebarSe
 import { DashboardSidebarWorkspacesHeader } from "./components/DashboardSidebarWorkspacesHeader";
 import { useV2SetupScriptCard } from "./components/V2SetupScriptCard";
 import {
-	BLOCKED_DRAG_ATTRIBUTE,
+	getBlockedDragProps,
 	useBlockedDragNotice,
 } from "./hooks/useBlockedDragNotice";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
@@ -128,7 +128,7 @@ const SortableProjectWrapper = memo(function SortableProjectWrapper({
 				transition,
 				opacity: isDragging ? 0.5 : undefined,
 			}}
-			{...{ [BLOCKED_DRAG_ATTRIBUTE]: isDragDisabled || undefined }}
+			{...getBlockedDragProps(isDragDisabled)}
 		>
 			{section}
 		</div>

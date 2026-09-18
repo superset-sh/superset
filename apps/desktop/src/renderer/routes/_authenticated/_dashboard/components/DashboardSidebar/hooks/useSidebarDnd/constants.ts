@@ -1,0 +1,1 @@
+export const DRAG_ACTIVATION_DISTANCE_PX = 5;
