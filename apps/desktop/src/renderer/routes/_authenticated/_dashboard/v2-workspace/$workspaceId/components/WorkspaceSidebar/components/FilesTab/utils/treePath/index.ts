@@ -1,6 +1,7 @@
 export {
 	asDirectoryHandle,
 	basename,
+	moveDestinationPath,
 	parentRel,
 	resolveDeleteTreePath,
 	stripTrailingSlash,

@@ -1,5 +1,14 @@
 import { describe, expect, it } from "bun:test";
-import { resolveDeleteTreePath } from "./treePath";
+import { moveDestinationPath, resolveDeleteTreePath } from "./treePath";
+
+describe("moveDestinationPath", () => {
+	it("keeps an entry's type while moving it into a folder or the root", () => {
+		expect(moveDestinationPath("src/file.ts", "assets/")).toBe(
+			"assets/file.ts",
+		);
+		expect(moveDestinationPath("src/components/", null)).toBe("components/");
+	});
+});
 
 describe("resolveDeleteTreePath", () => {
 	it("infers a tracked directory when watcher metadata is absent", () => {

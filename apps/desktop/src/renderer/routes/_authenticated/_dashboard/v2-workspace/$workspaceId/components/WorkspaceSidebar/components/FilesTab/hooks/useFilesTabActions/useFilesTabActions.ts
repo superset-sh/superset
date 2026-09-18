@@ -1,5 +1,9 @@
 import { useLingui } from "@lingui/react/macro";
-import type { FileTree, FileTreeRenameEvent } from "@pierre/trees";
+import type {
+	FileTree,
+	FileTreeDropResult,
+	FileTreeRenameEvent,
+} from "@pierre/trees";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
@@ -19,6 +23,7 @@ import { reduceProvisional } from "../../utils/provisionalEntry";
 import { scrollTreeToRow } from "../../utils/scrollTreeToRow";
 import {
 	asDirectoryHandle,
+	moveDestinationPath,
 	parentRel,
 	stripTrailingSlash,
 	toAbs,
@@ -41,6 +46,8 @@ export interface FilesTabActions {
 	startCreating(mode: "file" | "folder", parentAbs?: string): Promise<void>;
 	/** Commit a Pierre rename event by moving the entry on disk. */
 	handleRename(event: FileTreeRenameEvent): Promise<void>;
+	/** Commit an internal Pierre drag-and-drop move on disk. */
+	handleMove(event: FileTreeDropResult): Promise<void>;
 	/** Surface a name Pierre rejected and stand the creation flow down. */
 	handleRenameError(message: string): void;
 	/** Confirm + delete a file/folder. */
@@ -460,6 +467,50 @@ export function useFilesTabActions({
 		[dispatchProvisional],
 	);
 
+	const handleMove = useCallback(
+		async (event: FileTreeDropResult): Promise<void> => {
+			if (!rootPath) return;
+			const versionToken = bridge.getVersion();
+
+			for (const sourcePath of event.draggedPaths) {
+				const destinationPath = moveDestinationPath(
+					sourcePath,
+					event.target.directoryPath,
+				);
+				const isFolder = sourcePath.endsWith("/");
+				bridge.knownPaths.delete(sourcePath);
+				bridge.knownPaths.add(destinationPath);
+				if (isFolder) {
+					bridge.rekeyDescendants(
+						stripTrailingSlash(sourcePath),
+						stripTrailingSlash(destinationPath),
+					);
+				}
+
+				try {
+					await movePath.mutateAsync({
+						workspaceId,
+						sourceAbsolutePath: toAbs(rootPath, sourcePath),
+						destinationAbsolutePath: toAbs(rootPath, destinationPath),
+					});
+				} catch (error) {
+					if (!bridge.isCurrent(versionToken)) return;
+					void bridge.doRefresh();
+					toast.error(
+						t({
+							message: "Failed",
+						}),
+						{
+							description: error instanceof Error ? error.message : undefined,
+						},
+					);
+					return;
+				}
+			}
+		},
+		[bridge, movePath, rootPath, t, workspaceId],
+	);
+
 	const handleDelete = useCallback(
 		(absolutePath: string, name: string, isDirectory: boolean): void => {
 			alert({
@@ -524,6 +575,7 @@ export function useFilesTabActions({
 		reveal,
 		startCreating,
 		handleRename,
+		handleMove,
 		handleRenameError,
 		handleDelete,
 		collapseAll,
