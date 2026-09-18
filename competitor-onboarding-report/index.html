@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onboarding Research — Superset vs. Competitors</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --accent-soft: #cde2fb;
+    --bar-other: #c3c2b7;
+    --good: #0ca30c;
+    --warn-bg: #fff7e8;
+    --good-bg: #eef8ee;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --border: rgba(255,255,255,0.10);
+    --accent: #3987e5;
+    --accent-soft: #184f95;
+    --bar-other: #383835;
+    --good: #0ca30c;
+    --warn-bg: #2a2214;
+    --good-bg: #14231a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --border: rgba(255,255,255,0.10);
+      --accent: #3987e5;
+      --accent-soft: #184f95;
+      --bar-other: #383835;
+      --good: #0ca30c;
+      --warn-bg: #2a2214;
+      --good-bg: #14231a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    line-height: 1.5;
+    font-size: 15px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 28px 96px; }
+  header.masthead {
+    padding: 48px 0 24px;
+    border-bottom: 1px solid var(--grid);
+    margin-bottom: 32px;
+  }
+  .kicker { color: var(--accent); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  h1 { font-size: 32px; line-height: 1.15; margin: 8px 0 8px; letter-spacing: -0.02em; }
+  .sub { color: var(--ink-2); max-width: 72ch; margin: 0; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 12px; }
+  nav.toc {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--page) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--grid);
+    margin: 0 -28px; padding: 10px 28px;
+    display: flex; gap: 4px; flex-wrap: wrap; align-items: center;
+  }
+  nav.toc a {
+    color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 500;
+    padding: 5px 10px; border-radius: 6px;
+  }
+  nav.toc a:hover { background: var(--surface); color: var(--ink); }
+  nav.toc .spacer { flex: 1; }
+  #themeToggle {
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink-2);
+    border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+  }
+  h2 { font-size: 22px; margin: 52px 0 6px; letter-spacing: -0.01em; scroll-margin-top: 64px; }
+  h3 { font-size: 15px; margin: 24px 0 6px; }
+  .lede { color: var(--ink-2); margin: 0 0 16px; max-width: 78ch; }
+  p { max-width: 78ch; }
+
+  /* cards & tables */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; }
+  table.compare { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; font-size: 13.5px; }
+  table.compare th, table.compare td { padding: 9px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--grid); }
+  table.compare th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; background: color-mix(in srgb, var(--surface) 60%, var(--page)); }
+  table.compare tr:last-child td { border-bottom: none; }
+  table.compare td:first-child { font-weight: 600; white-space: nowrap; }
+  tr.us td { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+  .pill { display: inline-block; font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+  .pill.zero { background: var(--good-bg); color: var(--good); }
+  .pill.some { background: var(--warn-bg); color: #b97a00; }
+  .pill.none { background: color-mix(in srgb, var(--grid) 55%, var(--surface)); color: var(--ink-2); }
+
+  /* bar list */
+  .barlist { display: grid; gap: 10px; margin-top: 18px; }
+  .barrow { display: grid; grid-template-columns: 96px 1fr 34px; gap: 12px; align-items: center; }
+  .barrow .name { font-size: 13px; color: var(--ink-2); text-align: right; }
+  .barrow .track { height: 18px; position: relative; }
+  .barrow .fill { position: absolute; inset: 0 auto 0 0; border-radius: 0 4px 4px 0; background: var(--bar-other); }
+  .barrow.us .fill { background: var(--accent); }
+  .barrow.us .name { color: var(--ink); font-weight: 600; }
+  .barrow .val { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .chart-title { font-weight: 600; margin: 0; }
+  .chart-note { color: var(--muted); font-size: 12.5px; margin-top: 12px; }
+
+  /* summary bullets */
+  ul.tldr { margin: 0 0 20px; padding-left: 20px; }
+  ul.tldr li { margin: 6px 0; max-width: 80ch; }
+
+  /* flow steps (superset) */
+  .flow { display: grid; gap: 10px; margin: 18px 0; }
+  .step { display: grid; grid-template-columns: 40px 1fr; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 16px; }
+  .step .n { width: 26px; height: 26px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+  .step h4 { margin: 0 0 2px; font-size: 14.5px; }
+  .step p { margin: 0; color: var(--ink-2); font-size: 13.5px; max-width: none; }
+
+  /* app sections */
+  .app-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .app-head .tagline { color: var(--muted); font-size: 13.5px; }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 4px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 7px 13px; }
+  .stat .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+  .stat .v { font-size: 14.5px; font-weight: 650; }
+  ul.patterns { margin: 8px 0 16px; padding-left: 20px; color: var(--ink-2); }
+  ul.patterns li { margin: 4px 0; max-width: 82ch; }
+  ul.patterns li strong { color: var(--ink); }
+
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 8px; }
+  .gallery figure { margin: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; cursor: zoom-in; transition: transform .12s ease; }
+  .gallery figure:hover { transform: translateY(-2px); }
+  .gallery img { width: 100%; aspect-ratio: 3/2; object-fit: cover; object-position: top; display: block; background: var(--grid); }
+  .gallery figcaption { padding: 8px 11px 10px; font-size: 12px; color: var(--ink-2); }
+  .gallery figcaption .num { color: var(--muted); font-weight: 600; margin-right: 5px; }
+
+  dialog.lightbox { border: none; border-radius: 12px; padding: 0; max-width: min(1200px, 92vw); background: var(--surface); box-shadow: 0 24px 80px rgba(0,0,0,.4); }
+  dialog.lightbox::backdrop { background: rgba(0,0,0,.62); }
+  dialog.lightbox img { display: block; width: 100%; height: auto; max-height: 82vh; object-fit: contain; }
+  dialog.lightbox .cap { padding: 10px 16px 14px; font-size: 13px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 16px; }
+  dialog.lightbox button { border: 1px solid var(--border); background: transparent; color: var(--ink-2); border-radius: 6px; padding: 2px 10px; cursor: pointer; }
+
+  /* recommendations */
+  .rec { border-left: 3px solid var(--accent); padding: 2px 0 2px 16px; margin: 14px 0; }
+  .rec h4 { margin: 0 0 2px; font-size: 15px; }
+  .rec p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+  .rec .src { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .avoid { border-left-color: #d03b3b; }
+  .keep { border-left-color: var(--good); }
+  code { background: color-mix(in srgb, var(--grid) 50%, var(--surface)); border-radius: 4px; padding: 1px 5px; font-size: 12.5px; }
+  footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--grid); color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">Competitive Research</div>
+  <h1>Onboarding: Superset vs. the best in dev tools</h1>
+  <p class="sub">79 Mobbin screens across six competitor flows, compared against Superset's desktop onboarding as implemented in code. No Mobbin captures exist for Conductor, Terragon, Devin, Warp, or Windsurf.</p>
+  <div class="meta">August 9, 2026 · Superset flow mapped from <code>apps/desktop/…/onboarding</code> · Click any screenshot to zoom</div>
+</header>
+
+<nav class="toc">
+  <a href="#summary">Summary</a>
+  <a href="#scorecard">Scorecard</a>
+  <a href="#superset">Superset</a>
+  <a href="#cursor">Cursor</a>
+  <a href="#claude">Claude</a>
+  <a href="#linear">Linear</a>
+  <a href="#replit">Replit</a>
+  <a href="#lovable">Lovable</a>
+  <a href="#railway">Railway</a>
+  <a href="#patterns">Patterns</a>
+  <a href="#recs">Recommendations</a>
+  <span class="spacer"></span>
+  <button id="themeToggle" type="button">Dark</button>
+</nav>
+
+<!-- ============================ SUMMARY ============================ -->
+<h2 id="summary">TL;DR</h2>
+<ul class="tldr">
+  <li><strong>We're already lean.</strong> 2 steps, 1 required decision, 0 questions — matches the field's best.</li>
+  <li><strong>Two things we do better than anyone:</strong> the live-detecting dependency checklist and the embedded <code>gh</code> auth terminal.</li>
+  <li><strong>Biggest gap: sign-in is dead air.</strong> Every winner demos the product during auth; our OAuth round-trip shows a logo and two buttons.</li>
+  <li><strong>The aha is never shown.</strong> No agent runs during onboarding; Claude and Linear both perform their value in-flow.</li>
+  <li><strong>Smaller gaps:</strong> no trust copy on the GitHub ask, skipped steps never resurface (one-way gate), no completion beat.</li>
+</ul>
+
+<div class="card">
+  <p class="chart-title">Screens from primary CTA to a usable product surface <span style="color:var(--muted);font-weight:400">(OAuth path, approximate)</span></p>
+  <div class="barlist" id="stepsChart"></div>
+  <p class="chart-note">Lower ≠ better by itself — Linear spends its extra screens on habit formation (⌘K, GitHub), not data collection. Cursor's flow ends at a download wall, not the product.</p>
+</div>
+
+<!-- ============================ SCORECARD ============================ -->
+<h2 id="scorecard">Scorecard</h2>
+<p class="lede">"Aha in flow" = core value demonstrated <em>during</em> onboarding, not just promised.</p>
+
+<table class="compare">
+  <thead>
+    <tr><th>Product</th><th>Steps to first value</th><th>Questions</th><th>Progress UI</th><th>Paywall</th><th>Aha in flow</th><th>The "aha"</th></tr>
+  </thead>
+  <tbody>
+    <tr class="us"><td>Superset</td><td>2 steps, 1 decision</td><td><span class="pill zero">0</span></td><td>2 dots</td><td><span class="pill none">No</span></td><td><span class="pill none">No</span></td><td>Composer pre-opened on new project, agent auto-selected, 3 sample prompts</td></tr>
+    <tr><td>Cursor</td><td>~4 clicks (OAuth)</td><td><span class="pill zero">0</span></td><td>None</td><td><span class="pill some">Skippable, pre-product</span></td><td><span class="pill none">No</span></td><td>Outsourced to landing demo; ends in desktop download</td></tr>
+    <tr><td>Claude</td><td>Auth + 1 click</td><td><span class="pill zero">0</span></td><td>None</td><td><span class="pill none">No</span></td><td><span class="pill zero">Yes</span></td><td>"See it work" runs a real canned conversation</td></tr>
+    <tr><td>Linear</td><td>~8 decisions, skippable</td><td><span class="pill zero">0</span></td><td>7 dots</td><td><span class="pill none">No</span></td><td><span class="pill zero">Yes</span></td><td>⌘K performed mid-wizard; lands on "Ask Linear" + 3 prompts</td></tr>
+    <tr><td>Replit</td><td>~7 steps</td><td><span class="pill some">1</span></td><td>None</td><td><span class="pill some">Free-first, end</span></td><td><span class="pill none">No</span></td><td>Landing composer = post-onboarding home, personalized</td></tr>
+    <tr><td>Lovable</td><td>~9 steps</td><td><span class="pill some">4</span></td><td>3 dots</td><td><span class="pill none">No</span></td><td><span class="pill none">No</span></td><td>"Time to ship, {name}" over the landing prompt box</td></tr>
+    <tr><td>Railway</td><td>~6 actions</td><td><span class="pill zero">0</span></td><td>ToS only (1/2)</td><td><span class="pill none">No (trial pill)</span></td><td><span class="pill none">No</span></td><td>Landing hero embeds the real first-run screen</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================ SUPERSET ============================ -->
+<h2 id="superset">Superset — our current flow</h2>
+<p class="lede">Mapped from code. Splash → browser OAuth → auto-created org → two-step wizard → composer.</p>
+
+<div class="flow">
+  <div class="step"><div class="n">1</div><div>
+    <h4>Sign-in</h4>
+    <p>Logo + GitHub/Google buttons + "Last used" badge. Browser OAuth round-trip; the app shows nothing while it happens.</p>
+  </div></div>
+  <div class="step"><div class="n">2</div><div>
+    <h4>Org creation (invisible)</h4>
+    <p>Personal org auto-provisioned server-side; the Create Organization screen is a fallback only.</p>
+  </div></div>
+  <div class="step"><div class="n">3</div><div>
+    <h4>1/2 — "Setup Superset"</h4>
+    <p>Live-detecting checklist (4s poll): GitHub CLI, Claude Code, Codex. Embedded PTY runs <code>gh auth login</code>, auto-copies the code, auto-opens the browser. All skippable.</p>
+  </div></div>
+  <div class="step"><div class="n">4</div><div>
+    <h4>2/2 — "Create or add a project"</h4>
+    <p>Four cards: new / open folder / clone / template. Not skippable — the flow's single required decision, and its completion event.</p>
+  </div></div>
+  <div class="step"><div class="n">5</div><div>
+    <h4>Completion → composer</h4>
+    <p><code>onboarded_at</code> set (one-way, no re-entry). Lands on "What should we build next?" with agent auto-selected + 3 sample prompts. No tour, no recap, no completion beat.</p>
+  </div></div>
+</div>
+
+<h3>Best-in-class</h3>
+<ul class="patterns">
+  <li><strong>Live-detecting checklist</strong> — statuses flip to Connected even from an external terminal.</li>
+  <li><strong>Embedded gh terminal</strong> — code scraped, copied, browser opened automatically.</li>
+  <li><strong>Zero questions, two dots</strong> — same call as Cursor, Claude, Linear, Railway.</li>
+  <li><strong>Actionable clone errors</strong> — auth failures render an inline fix button, not a toast.</li>
+</ul>
+
+<h3>Gaps</h3>
+<ul class="patterns">
+  <li><strong>Sign-in is dead air</strong> during our slowest moment (the OAuth round-trip).</li>
+  <li><strong>Aha never shown</strong> — no agent runs in-flow; sample prompts are passive chips, after.</li>
+  <li><strong>No trust copy</strong> on the GitHub CLI ask.</li>
+  <li><strong>One-way gate</strong> — skipped agent connections never resurface.</li>
+  <li><strong>No completion beat</strong> — jump-cut into the app.</li>
+</ul>
+
+<!-- ============================ CURSOR ============================ -->
+<h2 id="cursor">Cursor</h2>
+<div class="app-head"><span class="tagline">Web flow = auth → monetization → consent → integrations → desktop handoff. Zero product in the flow.</span></div>
+<div class="stats">
+  <div class="stat"><div class="k">Screens</div><div class="v">13</div></div>
+  <div class="stat"><div class="k">Questions</div><div class="v">0</div></div>
+  <div class="stat"><div class="k">Paywall</div><div class="v">Pre-product, skippable, price hidden</div></div>
+  <div class="stat"><div class="k">Ends in</div><div class="v">Desktop download</div></div>
+</div>
+<ul class="patterns">
+  <li><strong>One decision per screen, no chrome</strong> — 7+ screens read as ~4 taps.</li>
+  <li><strong>Skippable early paywall</strong> — gray "Skip for now", price deferred to the dashboard.</li>
+  <li><strong>Integrations sold by feature, offered twice</strong> — same block reappears on the dashboard.</li>
+  <li><strong>Empty usage heatmap</strong> as a day-one retention hook.</li>
+</ul>
+<div class="gallery" data-app="cursor"></div>
+
+<!-- ============================ CLAUDE ============================ -->
+<h2 id="claude">Claude</h2>
+<div class="app-head"><span class="tagline">Most compressed flow in the set: auth is the landing page, onboarding is one button.</span></div>
+<div class="stats">
+  <div class="stat"><div class="k">Screens</div><div class="v">6</div></div>
+  <div class="stat"><div class="k">Questions</div><div class="v">0</div></div>
+  <div class="stat"><div class="k">Paywall</div><div class="v">None</div></div>
+  <div class="stat"><div class="k">Aha</div><div class="v">1 click after auth</div></div>
+</div>
+<ul class="patterns">
+  <li><strong>Signup page demos the product while you type</strong> — an auto-playing agent simulation advances beside the form.</li>
+  <li><strong>One feature, one button</strong> — "See it work" runs a canned session ending in a live widget.</li>
+  <li><strong>Pre-filled, personality-rich composer prompt</strong> models how to talk to the product.</li>
+  <li><strong>Permissions at the moment of need</strong> — notification ask appears only when a response is pending.</li>
+</ul>
+<div class="gallery" data-app="claude"></div>
+
+<!-- ============================ LINEAR ============================ -->
+<h2 id="linear">Linear</h2>
+<div class="app-head"><span class="tagline">Longest flow, most deliberate: screens spent on habit formation and network effects, not data collection.</span></div>
+<div class="stats">
+  <div class="stat"><div class="k">Screens</div><div class="v">18</div></div>
+  <div class="stat"><div class="k">Questions</div><div class="v">0</div></div>
+  <div class="stat"><div class="k">Progress</div><div class="v">7 dots</div></div>
+  <div class="stat"><div class="k">Aha</div><div class="v">⌘K performed mid-wizard</div></div>
+</div>
+<ul class="patterns">
+  <li><strong>Teach the shortcut by making the user perform it</strong> — giant ⌘K keycaps, "Continue" demoted to a text link.</li>
+  <li><strong>Objection handling on the GitHub ask</strong> — "will not ask for code read permissions."</li>
+  <li><strong>Skippable-but-nudged</strong> — "I'll do this later" everywhere; primary button lights up only after engagement.</li>
+  <li><strong>Name once, derive everything</strong> — slug auto-filled; verification doubles as account creation.</li>
+  <li><strong>Ends on a guided action</strong> — recap cards for skipped steps, then "Ask Linear" + 3 prompts. Never an empty state.</li>
+</ul>
+<div class="gallery" data-app="linear"></div>
+
+<!-- ============================ REPLIT ============================ -->
+<h2 id="replit">Replit</h2>
+<div class="app-head"><span class="tagline">Prompt-first landing; onboarding loops you back to the same composer, personalized.</span></div>
+<div class="stats">
+  <div class="stat"><div class="k">Screens</div><div class="v">16</div></div>
+  <div class="stat"><div class="k">Questions</div><div class="v">1 (4 cards)</div></div>
+  <div class="stat"><div class="k">Paywall</div><div class="v">End, free-first, no card</div></div>
+  <div class="stat"><div class="k">Aha</div><div class="v">Same composer, personalized</div></div>
+</div>
+<ul class="patterns">
+  <li><strong>Wizard floats over the live, dimmed workspace</strong> — the user feels already "in".</li>
+  <li><strong>Instant personalization feedback</strong> — greeting flips to "Hi Sam…" the moment the name is submitted.</li>
+  <li><strong>One question, four cards, zero typing.</strong></li>
+  <li><strong>Free-first plan screen</strong> — paid tier nudged, honest AI disclaimer builds trust.</li>
+  <li><strong>Anti-pattern:</strong> the email-verification wall costs 3 screens before any value.</li>
+</ul>
+<div class="gallery" data-app="replit"></div>
+
+<!-- ============================ LOVABLE ============================ -->
+<h2 id="lovable">Lovable</h2>
+<div class="app-head"><span class="tagline">Product-as-landing-page, auth as interrupt — but the heaviest question load in the set.</span></div>
+<div class="stats">
+  <div class="stat"><div class="k">Screens</div><div class="v">14</div></div>
+  <div class="stat"><div class="k">Questions</div><div class="v">4</div></div>
+  <div class="stat"><div class="k">Progress</div><div class="v">3 dots</div></div>
+  <div class="stat"><div class="k">Aha</div><div class="v">"Time to ship, {name}"</div></div>
+</div>
+<ul class="patterns">
+  <li><strong>Auth gates execution, not exploration</strong> — the pending idea is the reason to finish sign-up.</li>
+  <li><strong>Rotating use-case whisper</strong> beside the sign-up form.</li>
+  <li><strong>"Open Gmail" deep link</strong> on the verification screen.</li>
+  <li><strong>Single-tap segmentation with catch-all outs</strong> ("Other / Student") — feels skippable without a skip.</li>
+  <li><strong>Anti-pattern:</strong> 4 questions; every other dev tool here asks 0–1.</li>
+</ul>
+<div class="gallery" data-app="lovable"></div>
+
+<!-- ============================ RAILWAY ============================ -->
+<h2 id="railway">Railway</h2>
+<div class="app-head"><span class="tagline">Fastest to a usable account (~60–90s). Legal turned into the most memorable moment.</span></div>
+<div class="stats">
+  <div class="stat"><div class="k">Screens</div><div class="v">12</div></div>
+  <div class="stat"><div class="k">Questions</div><div class="v">0</div></div>
+  <div class="stat"><div class="k">Paywall</div><div class="v">Never — "30 days or $5.00" pill</div></div>
+  <div class="stat"><div class="k">Aha</div><div class="v">Shown pre-signup on landing</div></div>
+</div>
+<ul class="patterns">
+  <li><strong>Show the product before asking for anything</strong> — landing hero embeds the real first-run screen; auth dims over a deployed canvas.</li>
+  <li><strong>Humanized two-step ToS</strong> — plain-language bullets, accept button in the user's voice: "I will not deploy any of that."</li>
+  <li><strong>Trial as a budget, not a card wall</strong> — always visible, never blocking.</li>
+  <li><strong>Auto-advancing OTP</strong> — no password, no submit button.</li>
+  <li><strong>Handoff toast</strong> — "You may now proceed with your deployment!"</li>
+</ul>
+<div class="gallery" data-app="railway"></div>
+
+<!-- ============================ PATTERNS ============================ -->
+<h2 id="patterns">Cross-cutting patterns</h2>
+<table class="compare">
+  <thead><tr><th>Pattern</th><th>Who</th><th>Superset today</th></tr></thead>
+  <tbody>
+    <tr><td>Product demos itself during auth</td><td>Claude, Railway, Lovable, Cursor</td><td>❌ Dead air during OAuth round-trip</td></tr>
+    <tr><td>0–1 segmentation questions</td><td>All except Lovable (4)</td><td>✅ 0</td></tr>
+    <tr><td>Passwordless-first auth</td><td>All six</td><td>✅ OAuth-only + "Last used" badge</td></tr>
+    <tr><td>Trust copy on integration asks</td><td>Linear, Cursor</td><td>❌ "Required" badge, no reassurance</td></tr>
+    <tr><td>Skipped steps resurface</td><td>Cursor, Linear</td><td>❌ One-way gate</td></tr>
+    <tr><td>Guided first action, not empty state</td><td>Linear, Claude, Replit, Lovable</td><td>⚠️ Sample prompt chips, but nothing guided</td></tr>
+    <tr><td>Completion beat</td><td>Linear, Railway, Cursor</td><td>❌ Jump-cut into the app</td></tr>
+    <tr><td>Onboarding over the live, dimmed app</td><td>Replit, Railway</td><td>❌ Full-screen wizard</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================ RECOMMENDATIONS ============================ -->
+<h2 id="recs">Recommendations</h2>
+<p class="lede">Ranked by leverage. The first three touch every new user.</p>
+
+<div class="rec">
+  <h4>1. Animate the OAuth wait with a product simulation</h4>
+  <p>Agents fanning out across worktrees, PRs landing — while the user authenticates.</p>
+  <div class="src">Claude 01–03 · Railway 02–05 · Lovable 03–06</div>
+</div>
+<div class="rec">
+  <h4>2. Guided "see it work" first task at completion</h4>
+  <p>Make "Explain how this repository works" the celebrated one-button default, not one of three quiet chips.</p>
+  <div class="src">Claude 05–06 · Linear 12, 18</div>
+</div>
+<div class="rec">
+  <h4>3. Trust copy on the GitHub CLI step</h4>
+  <p>State what we never do (e.g. "everything runs locally"). Cheap copy, real conversion.</p>
+  <div class="src">Linear 13</div>
+</div>
+<div class="rec">
+  <h4>4. Resurface skipped setup after onboarding</h4>
+  <p>A dashboard "finish setup" affordance for skipped agent connections.</p>
+  <div class="src">Cursor 13 · Linear 17</div>
+</div>
+<div class="rec">
+  <h4>5. Add a completion beat</h4>
+  <p>One "you're good to go" moment naming what happened + one shortcut.</p>
+  <div class="src">Linear 17 · Railway 11</div>
+</div>
+<div class="rec keep">
+  <h4>Keep</h4>
+  <p>Live checklist, embedded gh terminal, zero questions, two steps. Don't lengthen the wizard.</p>
+</div>
+<div class="rec avoid">
+  <h4>Avoid</h4>
+  <p>Lovable's 4-question quiz; Cursor's pre-product paywall.</p>
+</div>
+
+<footer>
+  Captures © their respective products, via Mobbin. Screens in <code>./shots/&lt;app&gt;/</code>. Click any screenshot to zoom.
+</footer>
+</div>
+
+<dialog class="lightbox" id="lightbox">
+  <img id="lightboxImg" alt="">
+  <div class="cap"><span id="lightboxCap"></span><button type="button" onclick="document.getElementById('lightbox').close()">Close (Esc)</button></div>
+</dialog>
+
+<script>
+const CAPTIONS = {
+  cursor: [
+    "Landing — working product screenshot as hero",
+    "Sign-in — Google / GitHub / Apple / email",
+    "Sign-up — three fields, no company or role",
+    "Sign-up filled — nothing else required",
+    "Password step — email code listed first; password optional",
+    "Password filled",
+    "OTP entry — resend on 27s countdown",
+    "OTP filled — auto-advances",
+    "Paywall — gray 'Skip for now'; no price shown",
+    "Data sharing consent — toggle defaulted ON",
+    "Review Settings — integrations sold by feature",
+    "'You're all set!' — desktop download handoff",
+    "Dashboard — pricing tiers + empty usage heatmap"
+  ],
+  claude: [
+    "Landing + auth — live product demo in right pane",
+    "Email entry — demo advances to agent progress checklist",
+    "Email filled — demo completes; integrations panel",
+    "Magic link sent — code fallback inline",
+    "First in-app — spotlight with one button: 'See it work'",
+    "The aha — real conversation builds a live widget"
+  ],
+  linear: [
+    "Landing — agents-as-assignees hero",
+    "'Create your workspace' — workspace-framed auth",
+    "Email entry — one field",
+    "Email filled — no password anywhere",
+    "'Check your email' — magic link + code fallback",
+    "Manual code entry",
+    "Code filled — verification = account creation",
+    "Create workspace — name, URL, data residency",
+    "Workspace filled — slug auto-derived",
+    "Wizard 1/7 — Welcome; 7-dot progress appears",
+    "2/7 — theme picker with real product previews",
+    "3/7 — ⌘K keycaps; Continue demoted to text link",
+    "4/7 — GitHub: 'will not ask for code read permissions'",
+    "5/7 — invite co-workers; skippable",
+    "6/7 — subscribe toggles off; Continue is a text link",
+    "6/7 — toggles on; Continue becomes primary",
+    "7/7 — 'You're good to go' + recap cards",
+    "In-app — 'Ask Linear' + 3 example prompts"
+  ],
+  replit: [
+    "'What will you build?' — logged-out home IS the composer",
+    "Auth modal over dimmed landing",
+    "Email signup — two fields",
+    "Inline validation — check / warning glyphs",
+    "Password reveal toggle",
+    "Requirement disclosed as tooltip on demand",
+    "Both valid — CTA saturates",
+    "'Verify your email to start building' — hard wall",
+    "Verification spinner",
+    "Success — dead-end tab auto-closes",
+    "Profile setup over live, dimmed workspace",
+    "Name filled",
+    "'What brings you to Replit?' — one question, 4 cards",
+    "Selected — greeting re-personalizes instantly",
+    "Plan chooser — free first-class, Core nudged",
+    "Personalized home — same composer as screen 1"
+  ],
+  lovable: [
+    "Landing — prompt box is the hero",
+    "'Start Building.' — auth interrupts at peak motivation",
+    "Sign-up page — email path",
+    "Email entered — side panel rotates use cases",
+    "Password — live requirements checklist",
+    "Password valid — 'Last used' badge",
+    "Verification interstitial",
+    "'Check your inbox' — 'Open Gmail' deep link",
+    "Email verified — auto-redirect + toast",
+    "Personalize 1/3 — name + theme picker",
+    "Name filled — Next enables",
+    "2/3 — role, eight icon cards",
+    "3/3 — company size, four cards",
+    "'Time to ship, Samlee' — mirrors the landing page"
+  ],
+  railway: [
+    "Landing — hero embeds the real first-run screen",
+    "Auth modal — GitHub privileged; deployed canvas behind",
+    "Email path — Google / email / SSO",
+    "Email entered",
+    "Verification pending — observability charts backdrop",
+    "OTP modal — six boxes",
+    "OTP entering — auto-advancing",
+    "OTP success — check mark, no submit button",
+    "ToS 1/2 — plain-language icon bullets, post-auth",
+    "Fair Use 2/2 — 'I will not deploy any of that'",
+    "Empty dashboard + handoff toast; trial pill",
+    "Resting empty state routes intent"
+  ]
+};
+const COUNTS = { cursor: 13, claude: 6, linear: 18, replit: 16, lovable: 14, railway: 12 };
+
+for (const [app, count] of Object.entries(COUNTS)) {
+  const grid = document.querySelector(`.gallery[data-app="${app}"]`);
+  if (!grid) continue;
+  for (let i = 1; i <= count; i++) {
+    const n = String(i).padStart(2, "0");
+    const cap = CAPTIONS[app]?.[i - 1] || "";
+    const fig = document.createElement("figure");
+    fig.innerHTML = `<img loading="lazy" src="shots/${app}/${n}.webp" alt="${app} onboarding screen ${i}"><figcaption><span class="num">${n}</span>${cap}</figcaption>`;
+    fig.addEventListener("click", () => {
+      document.getElementById("lightboxImg").src = `shots/${app}/${n}.webp`;
+      document.getElementById("lightboxCap").textContent = `${app[0].toUpperCase() + app.slice(1)} ${n} — ${cap}`;
+      document.getElementById("lightbox").showModal();
+    });
+    grid.appendChild(fig);
+  }
+}
+
+// steps-to-product bar list (OAuth path approximations)
+const STEPS = [
+  { name: "Claude", v: 3 },
+  { name: "Superset", v: 4, us: true },
+  { name: "Railway", v: 4 },
+  { name: "Cursor", v: 5 },
+  { name: "Replit", v: 5 },
+  { name: "Lovable", v: 5 },
+  { name: "Linear", v: 10 }
+];
+const maxV = Math.max(...STEPS.map((s) => s.v));
+const chart = document.getElementById("stepsChart");
+for (const s of STEPS) {
+  const row = document.createElement("div");
+  row.className = `barrow${s.us ? " us" : ""}`;
+  row.innerHTML = `<div class="name">${s.name}</div><div class="track"><div class="fill" style="width:${(s.v / maxV) * 100}%"></div></div><div class="val">${s.v}</div>`;
+  chart.appendChild(row);
+}
+
+// theme toggle
+const btn = document.getElementById("themeToggle");
+const applyLabel = () => {
+  const explicit = document.documentElement.dataset.theme;
+  const dark = explicit ? explicit === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  btn.textContent = dark ? "Light" : "Dark";
+};
+btn.addEventListener("click", () => {
+  const explicit = document.documentElement.dataset.theme;
+  const dark = explicit ? explicit === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  applyLabel();
+});
+applyLabel();
+
+document.getElementById("lightbox").addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.close();
+});
+</script>
+</body>
+</html>
