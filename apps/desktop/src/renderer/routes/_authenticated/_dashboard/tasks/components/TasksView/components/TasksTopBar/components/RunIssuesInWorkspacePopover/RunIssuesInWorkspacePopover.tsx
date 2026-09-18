@@ -29,6 +29,7 @@ import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBra
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { SelectedIssue } from "../../../GitHubIssuesContent";
+import { useBatchWorkspaceCreateReport } from "../../hooks/useBatchWorkspaceCreateReport";
 
 const AGENT_STORAGE_KEY = "lastSelectedV2IssueBatchAgent";
 const NONE = "none" as const;
@@ -64,6 +65,7 @@ export function RunIssuesInWorkspacePopover({
 	const { machineId, activeHostUrl } = hostService;
 	const { otherHosts } = useWorkspaceHostOptions();
 	const { submit } = useWorkspaceCreates();
+	const reportBatchOutcome = useBatchWorkspaceCreateReport();
 
 	const lastHostId = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.lastHostId,
@@ -257,15 +259,8 @@ export function RunIssuesInWorkspacePopover({
 
 		const promise = Promise.all(handles.map((handle) => handle.completed)).then(
 			(outcomes) => {
-				const failed = outcomes.filter((outcome) => !outcome.ok).length;
-				if (failed > 0) {
-					const firstFailure = outcomes.find((outcome) => !outcome.ok);
-					const details =
-						firstFailure && !firstFailure.ok ? `: ${firstFailure.error}` : "";
-					throw new Error(
-						`${outcomes.length - failed} of ${outcomes.length} succeeded${details}`,
-					);
-				}
+				const report = reportBatchOutcome(outcomes);
+				if (report !== null) throw new Error(report);
 				return outcomes.length;
 			},
 		);
