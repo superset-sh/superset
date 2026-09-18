@@ -6,6 +6,7 @@ import type { SearchPatchEvent } from "./search";
 import {
 	invalidateAllSearchIndexes,
 	patchSearchIndexesForRoot,
+	searchContent,
 	searchFiles,
 } from "./search";
 
@@ -240,5 +241,104 @@ describe("searchFiles", () => {
 		expect(paths).toContain(flatPath);
 		expect(paths).toContain(nestedPath);
 		expect(paths).toHaveLength(2);
+	});
+});
+
+describe("search path filters", () => {
+	async function createFilterFixture(): Promise<string> {
+		const rootPath = await createTempRoot();
+		await fs.mkdir(path.join(rootPath, "src", "deep"), { recursive: true });
+		await fs.writeFile(path.join(rootPath, "a.ts"), "");
+		await fs.writeFile(path.join(rootPath, "src", "b.ts"), "");
+		await fs.writeFile(path.join(rootPath, "src", "deep", "c.ts"), "");
+		await fs.writeFile(path.join(rootPath, "src", "deep", "d.js"), "");
+		return rootPath;
+	}
+
+	async function relativeMatches(
+		rootPath: string,
+		filters: { includePattern?: string; excludePattern?: string },
+	): Promise<string[]> {
+		const results = await searchFiles({
+			rootPath,
+			query: "ts",
+			limit: 20,
+			...filters,
+		});
+		return results.map((match) => match.relativePath).sort();
+	}
+
+	it("applies include and exclude globs", async () => {
+		const rootPath = await createFilterFixture();
+
+		expect(
+			await relativeMatches(rootPath, { includePattern: "src/**" }),
+		).toEqual(["src/b.ts", "src/deep/c.ts"]);
+		expect(await relativeMatches(rootPath, { includePattern: "*.ts" })).toEqual(
+			["a.ts", "src/b.ts", "src/deep/c.ts"],
+		);
+		expect(await relativeMatches(rootPath, { includePattern: "?.ts" })).toEqual(
+			["a.ts", "src/b.ts", "src/deep/c.ts"],
+		);
+		expect(
+			await relativeMatches(rootPath, { includePattern: "src/?.ts" }),
+		).toEqual(["src/b.ts"]);
+		expect(
+			await relativeMatches(rootPath, {
+				includePattern: "src/**/*.ts",
+				excludePattern: "**/deep/**",
+			}),
+		).toEqual(["src/b.ts"]);
+		expect(await relativeMatches(rootPath, { includePattern: "src/" })).toEqual(
+			["src/b.ts", "src/deep/c.ts"],
+		);
+	});
+
+	it("evaluates a pathological glob in linear time", async () => {
+		const rootPath = await createFilterFixture();
+		const startedAt = Date.now();
+
+		expect(
+			await relativeMatches(rootPath, {
+				includePattern: `${"**/".repeat(40)}x,${"*a".repeat(40)}x`,
+				excludePattern: `${"a*".repeat(40)}/b`,
+			}),
+		).toEqual([]);
+
+		expect(Date.now() - startedAt).toBeLessThan(2_000);
+	});
+});
+
+describe("searchContent scan fallback", () => {
+	it("does not follow a symlink that leaves the workspace", async () => {
+		const rootPath = await createTempRoot();
+		const outsidePath = await createTempRoot();
+		await fs.writeFile(
+			path.join(outsidePath, "secret"),
+			"hunter2 lives here\n",
+		);
+		await fs.writeFile(path.join(rootPath, "notes.txt"), "hunter2 in repo\n");
+		const linkPath = path.join(rootPath, "leak.txt");
+		await fs.symlink(path.join(outsidePath, "secret"), linkPath);
+		// Build the index, then let a watcher-style patch add the symlink to it.
+		await searchFiles({ rootPath, query: "notes", limit: 5 });
+		patchSearchIndexesForRoot(rootPath, [
+			createPatchEvent({
+				kind: "create",
+				absolutePath: linkPath,
+				isDirectory: false,
+			}),
+		]);
+
+		const results = await searchContent({
+			rootPath,
+			query: "hunter2",
+			includeHidden: false,
+			runRipgrep: async () => {
+				throw new Error("rg unavailable");
+			},
+		});
+
+		expect(results.map((match) => match.relativePath)).toEqual(["notes.txt"]);
 	});
 });
