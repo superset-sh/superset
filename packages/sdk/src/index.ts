@@ -36,6 +36,8 @@ export {
 	Tasks,
 	type TaskUpdateParams,
 	type TerminalCloseParams,
+	type TerminalAgentLifecycleEventType,
+	type TerminalAgentStatus,
 	type TerminalCloseResult,
 	type TerminalCreateParams,
 	type TerminalCreateResult,
