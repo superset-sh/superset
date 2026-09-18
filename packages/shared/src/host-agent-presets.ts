@@ -14,7 +14,12 @@ export interface HostAgentPreset {
 	env: Record<string, string>;
 }
 
-function tokenize(commandString: string): string[] {
+/**
+ * Split a launch line into `[binary, ...args]`. Whitespace is the only
+ * separator — there is no quoting, so an arg containing a space has to be
+ * passed structurally rather than through a launch string.
+ */
+export function tokenizeAgentCommand(commandString: string): string[] {
 	return commandString.split(/\s+/).filter(Boolean);
 }
 
@@ -25,7 +30,7 @@ function deriveSuffixArgs(
 	variantCommand: string | undefined,
 ): string[] {
 	if (!variantCommand) return [];
-	return tokenize(variantCommand).slice(commandTokens.length);
+	return tokenizeAgentCommand(variantCommand).slice(commandTokens.length);
 }
 
 /**
@@ -47,7 +52,7 @@ function deriveSuffixArgs(
  */
 export const HOST_AGENT_PRESETS: readonly HostAgentPreset[] =
 	BUILTIN_TERMINAL_AGENTS.map((agent) => {
-		const commandTokens = tokenize(agent.command);
+		const commandTokens = tokenizeAgentCommand(agent.command);
 		const [bin = agent.id, ...args] = commandTokens;
 		return {
 			presetId: agent.id,
