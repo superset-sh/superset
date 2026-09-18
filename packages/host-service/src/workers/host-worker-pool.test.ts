@@ -110,6 +110,11 @@ function shimInput(shim: { dir: string; gitEnv: { PATH: string } }) {
 		repoPath: shim.dir,
 		worktreePath: path.join(shim.dir, "wt"),
 		gitEnv: shim.gitEnv,
+		// Outside the managed worktrees root on purpose: the app-side rm is
+		// skipped, so the hanging git shim is what the timeout catches and
+		// the asserted phase stays "worktree-remove".
+		projectId: "p-1",
+		worktreeBaseDir: null,
 	};
 }
 
