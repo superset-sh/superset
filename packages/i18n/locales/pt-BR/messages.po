@@ -2199,6 +2199,9 @@ msgstr "Pelo menos um time que a gente consiga citar, incluindo o nosso, passa p
 msgid "at once"
 msgstr "ao mesmo tempo"
 
+msgid "Attach image"
+msgstr "Anexar imagem"
+
 msgid "Attached"
 msgstr "Conectada"
 
@@ -4525,6 +4528,10 @@ msgstr "Não foi possível atualizar o pull request"
 
 msgid "Couldn't update thread"
 msgstr "Não foi possível atualizar a thread"
+
+#. placeholder {0}: image.name
+msgid "Couldn't upload {0}"
+msgstr "Não foi possível enviar {0}"
 
 msgid "Couldn’t verify"
 msgstr "Não foi possível verificar"
@@ -7460,6 +7467,9 @@ msgstr "Imagem bloqueada: {0}"
 msgid "Image is too large (max 10MB)"
 msgstr "A imagem é grande demais (máx. 10 MB)"
 
+msgid "Image not found — upload it first"
+msgstr "Imagem não encontrada — envie-a primeiro"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "Prévia da imagem de {0}. Dê zoom com mais e menos, mova com as setas, pressione 0 para redefinir."
@@ -10098,6 +10108,9 @@ msgstr "Só proprietários do host podem alterar este local."
 msgid "Only host owners can delete this host"
 msgstr "Só proprietários do host podem excluir este host"
 
+msgid "Only images can be attached to a comment"
+msgstr "Apenas imagens podem ser anexadas a um comentário"
+
 msgid "Only organization owners can delete this project."
 msgstr "Só proprietários da organização podem excluir este projeto."
 
@@ -11911,6 +11924,9 @@ msgstr "Remover da barra lateral"
 
 msgid "Remove icon"
 msgstr "Remover ícone"
+
+msgid "Remove image"
+msgstr "Remover imagem"
 
 msgid "Remove linked issue"
 msgstr "Remover issue vinculada"
@@ -14915,6 +14931,9 @@ msgstr "O host voltou ao build anterior."
 msgid "The human reads every line before it merges."
 msgstr "A pessoa lê cada linha antes do merge."
 
+msgid "The image upload expired — attach it again"
+msgstr "O envio da imagem expirou — anexe-a novamente"
+
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "A descrição do cargo muda. Quem desenvolve deixa de ser digitador com bom gosto e vira despachante com bom gosto: decompõe o trabalho, direciona para as frotas e arbitra conflitos entre agentes que mexeram no mesmo módulo."
 
@@ -16251,6 +16270,10 @@ msgstr "Ver"
 msgctxt "menu"
 msgid "View"
 msgstr "Visualizar"
+
+#. placeholder {0}: attachment.name
+msgid "View {0}"
+msgstr "Ver {0}"
 
 msgid "View {count} pull requests"
 msgstr "Ver {count} pull requests"

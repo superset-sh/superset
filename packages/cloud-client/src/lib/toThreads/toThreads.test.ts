@@ -22,6 +22,7 @@ function row(overrides: Partial<ServerThread> = {}): ServerThread {
 				authorName: "Sarah",
 				authorImage: null,
 				agentLabel: null,
+				attachments: [],
 				createdAt: new Date("2026-09-11T01:00:00Z"),
 			},
 		],

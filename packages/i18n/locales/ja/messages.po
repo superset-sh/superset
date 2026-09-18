@@ -2199,6 +2199,9 @@ msgstr "名前を挙げられるチームが少なくとも1つ、当社を含�
 msgid "at once"
 msgstr "同時"
 
+msgid "Attach image"
+msgstr "画像を添付"
+
 msgid "Attached"
 msgstr "接続中"
 
@@ -4525,6 +4528,10 @@ msgstr "プルリクエストを更新できませんでした"
 
 msgid "Couldn't update thread"
 msgstr "スレッドを更新できませんでした"
+
+#. placeholder {0}: image.name
+msgid "Couldn't upload {0}"
+msgstr "{0} をアップロードできませんでした"
 
 msgid "Couldn’t verify"
 msgstr "確認できませんでした"
@@ -7460,6 +7467,9 @@ msgstr "画像がブロックされました: {0}"
 msgid "Image is too large (max 10MB)"
 msgstr "画像が大きすぎます(最大10MB)"
 
+msgid "Image not found — upload it first"
+msgstr "画像が見つかりません — 先にアップロードしてください"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "{0}の画像プレビュー。プラスとマイナスでズーム、矢印キーで移動、0でリセットします。"
@@ -10098,6 +10108,9 @@ msgstr "この場所を変更できるのはホストのオーナーのみです
 msgid "Only host owners can delete this host"
 msgstr "このホストを削除できるのはホストのオーナーのみです"
 
+msgid "Only images can be attached to a comment"
+msgstr "コメントに添付できるのは画像のみです"
+
 msgid "Only organization owners can delete this project."
 msgstr "このプロジェクトを削除できるのは組織のオーナーのみです。"
 
@@ -11911,6 +11924,9 @@ msgstr "サイドバーから削除"
 
 msgid "Remove icon"
 msgstr "アイコンを削除"
+
+msgid "Remove image"
+msgstr "画像を削除"
 
 msgid "Remove linked issue"
 msgstr "リンクされたIssueを削除"
@@ -14915,6 +14931,9 @@ msgstr "ホストは以前のビルドに戻りました。"
 msgid "The human reads every line before it merges."
 msgstr "人間がマージ前に全行を読む。"
 
+msgid "The image upload expired — attach it again"
+msgstr "画像のアップロードの有効期限が切れました — もう一度添付してください"
+
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "職務の中身が変わります。エンジニアは審美眼のあるタイピストであることをやめ、審美眼のあるディスパッチャーになります。作業を分解し、フリートに割り振り、同じモジュールに触れたエージェント同士の衝突を裁く役です。"
 
@@ -16251,6 +16270,10 @@ msgstr "表示"
 msgctxt "menu"
 msgid "View"
 msgstr "表示"
+
+#. placeholder {0}: attachment.name
+msgid "View {0}"
+msgstr "{0} を表示"
 
 msgid "View {count} pull requests"
 msgstr "{count}件のプルリクエストを表示"

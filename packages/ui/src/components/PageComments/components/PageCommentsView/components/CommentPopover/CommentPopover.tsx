@@ -2,6 +2,7 @@
 
 import type { MessageDescriptor } from "@lingui/core";
 import {
+	type ComposedImage,
 	isOptimisticId,
 	popoverPlacement,
 } from "@superset/shared/page-comments";
@@ -30,7 +31,11 @@ interface CommentPopoverProps {
 	container: { width: number; height: number };
 	thread: CommentThread | null;
 	initialValue?: string;
-	onSubmit: (body: string) => void | Promise<void>;
+	initialAttachments?: ComposedImage[];
+	onSubmit: (
+		body: string,
+		attachments: ComposedImage[],
+	) => void | Promise<void>;
 	onQuick?: (body: MessageDescriptor, intent?: CommentIntent | null) => void;
 	onEdit?: (commentId: string, body: string) => void | Promise<void>;
 	onToggleResolved?: () => void;
@@ -43,6 +48,7 @@ export function CommentPopover({
 	container,
 	thread,
 	initialValue,
+	initialAttachments,
 	onSubmit,
 	onQuick,
 	onEdit,
@@ -112,6 +118,7 @@ export function CommentPopover({
 
 			{thread && isOptimisticId(thread.id) ? null : (
 				<CommentComposer
+					initialAttachments={initialAttachments}
 					isReply={thread !== null}
 					autoFocus={thread === null}
 					initialValue={initialValue}

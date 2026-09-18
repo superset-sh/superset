@@ -25,6 +25,14 @@ export function toThreads(rows: ServerThread[]): CommentThread[] {
 			authorKind: comment.authorKind,
 			authorUserId: comment.authorUserId,
 			agentLabel: comment.agentLabel,
+			// `?? []` outlives the type: an API a release behind this client
+			// sends comments without the field.
+			attachments: (comment.attachments ?? []).map((attachment) => ({
+				fileId: attachment.fileId,
+				name: attachment.name,
+				contentType: attachment.contentType,
+				url: attachment.url,
+			})),
 			createdAt: comment.createdAt.getTime(),
 		})),
 	}));

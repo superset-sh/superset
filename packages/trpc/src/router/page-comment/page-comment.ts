@@ -1,5 +1,6 @@
 import { db, dbWs } from "@superset/db/client";
 import {
+	files,
 	pageComments,
 	pageCommentThreads,
 	pages,
@@ -7,8 +8,11 @@ import {
 	type SelectPage,
 	users,
 } from "@superset/db/schema";
+import { fileOriginalKey } from "@superset/shared/usercontent";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
+import { detachAll, reapOrphanFiles } from "../../lib/files";
+import { presignedPutUrl } from "../../lib/r2";
 import { protectedProcedure, userError } from "../../trpc";
 import { assertPageReadable } from "../page/access";
 import { requireActiveOrgMembership } from "../utils/active-org";
@@ -18,6 +22,13 @@ import {
 	shouldActivateOnWrite,
 } from "./agent-access";
 import {
+	attachImagesToComment,
+	loadCommentAttachments,
+	shapeAttachments,
+	verifyCommentImages,
+} from "./attachments";
+import {
+	createCommentImageUploadSchema,
 	createPageCommentThreadSchema,
 	deletePageCommentThreadSchema,
 	editPageCommentSchema,
@@ -136,6 +147,10 @@ export const pageCommentRouter = {
 				)
 				.orderBy(asc(pageComments.createdAt));
 
+			const attachmentsByComment = await loadCommentAttachments(
+				commentRows.map((row) => row.comment.id),
+			);
+
 			const byThread = new Map<string, typeof commentRows>();
 			for (const row of commentRows) {
 				const existing = byThread.get(row.comment.threadId);
@@ -148,13 +163,62 @@ export const pageCommentRouter = {
 					thread,
 					version,
 					(byThread.get(thread.id) ?? []).map((row) =>
-						shapeComment(row.comment, {
-							name: row.authorName,
-							image: row.authorImage,
-						}),
+						shapeComment(
+							row.comment,
+							{
+								name: row.authorName,
+								image: row.authorImage,
+							},
+							attachmentsByComment.get(row.comment.id) ?? [],
+						),
 					),
 				),
 			);
+		}),
+
+	/**
+	 * Records an image on its way onto a comment and hands back a presigned
+	 * PUT. The comment doesn't exist yet, so nothing is attached here — the
+	 * row stays `pending` until a create or reply names the file, is checked
+	 * against its declaration there, and is swept in a day if that never
+	 * happens. Gated on reading the page because attaching is: a viewer who
+	 * could never post the comment shouldn't get the upload either.
+	 */
+	createImageUpload: protectedProcedure
+		.input(createCommentImageUploadSchema)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			await loadReadablePage({
+				pageId: input.pageId,
+				organizationId,
+				userId: ctx.session.user.id,
+			});
+
+			const [row] = await db
+				.insert(files)
+				.values({
+					organizationId,
+					name: input.name,
+					contentType: input.contentType,
+					sizeBytes: input.sizeBytes,
+					sha256: input.sha256,
+					createdByUserId: ctx.session.user.id,
+				})
+				.returning({ id: files.id });
+			if (!row) {
+				throw userError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to record the upload",
+					i18nKey: "serverError.page.failedToRecordTheUpload",
+				});
+			}
+
+			const upload = await presignedPutUrl({
+				key: fileOriginalKey(row.id),
+				contentType: input.contentType,
+				contentLength: input.sizeBytes,
+			});
+			return { fileId: row.id, upload };
 		}),
 
 	create: protectedProcedure
@@ -181,6 +245,14 @@ export const pageCommentRouter = {
 					message: `Version ${input.version} not found`,
 				});
 			}
+
+			// Before the transaction: verification reads R2, and a failed image
+			// should cost nothing but the message.
+			const images = await verifyCommentImages({
+				fileIds: input.attachments ?? [],
+				organizationId,
+				userId,
+			});
 
 			return await dbWs.transaction(async (tx) => {
 				const [thread] = await tx
@@ -224,11 +296,17 @@ export const pageCommentRouter = {
 					});
 				}
 
+				await attachImagesToComment(tx, { commentId: comment.id, images });
+
 				return shapeThread(thread, input.version, [
-					shapeComment(comment, {
-						name: ctx.session.user.name,
-						image: ctx.session.user.image ?? null,
-					}),
+					shapeComment(
+						comment,
+						{
+							name: ctx.session.user.name,
+							image: ctx.session.user.image ?? null,
+						},
+						await shapeAttachments(images),
+					),
 				]);
 			});
 		}),
@@ -247,24 +325,34 @@ export const pageCommentRouter = {
 			const agentSession = agentSessionFor(ctx, input.agentSessionId);
 			assertActivatedForAgent(thread, agentSession);
 
-			const [comment] = await db
-				.insert(pageComments)
-				.values({
-					threadId: input.threadId,
-					authorKind: agentSession ? "agent" : "human",
-					authorUserId: userId,
-					agentSessionId: agentSession,
-					body: input.body,
-				})
-				.returning();
+			const images = await verifyCommentImages({
+				fileIds: input.attachments ?? [],
+				organizationId,
+				userId,
+			});
 
-			if (!comment) {
-				throw userError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to post reply",
-					i18nKey: "serverError.pageComment.failedToPostReply",
-				});
-			}
+			const comment = await dbWs.transaction(async (tx) => {
+				const [row] = await tx
+					.insert(pageComments)
+					.values({
+						threadId: input.threadId,
+						authorKind: agentSession ? "agent" : "human",
+						authorUserId: userId,
+						agentSessionId: agentSession,
+						body: input.body,
+					})
+					.returning();
+
+				if (!row) {
+					throw userError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to post reply",
+						i18nKey: "serverError.pageComment.failedToPostReply",
+					});
+				}
+				await attachImagesToComment(tx, { commentId: row.id, images });
+				return row;
+			});
 
 			if (shouldActivateOnWrite(thread, agentSession)) {
 				await db
@@ -273,10 +361,14 @@ export const pageCommentRouter = {
 					.where(eq(pageCommentThreads.id, input.threadId));
 			}
 
-			return shapeComment(comment, {
-				name: ctx.session.user.name,
-				image: ctx.session.user.image ?? null,
-			});
+			return shapeComment(
+				comment,
+				{
+					name: ctx.session.user.name,
+					image: ctx.session.user.image ?? null,
+				},
+				await shapeAttachments(images),
+			);
 		}),
 
 	edit: protectedProcedure
@@ -373,9 +465,22 @@ export const pageCommentRouter = {
 				});
 			}
 
+			// Read before the delete: the cascade takes the comment rows, and
+			// with them the only way to name their attachments.
+			const commentIds = (
+				await db
+					.select({ id: pageComments.id })
+					.from(pageComments)
+					.where(eq(pageComments.threadId, input.threadId))
+			).map((row) => row.id);
+
 			await db
 				.delete(pageCommentThreads)
 				.where(eq(pageCommentThreads.id, input.threadId));
+
+			await reapOrphanFiles(
+				await detachAll({ parentKind: "comment", parentIds: commentIds }),
+			);
 
 			return { id: input.threadId };
 		}),

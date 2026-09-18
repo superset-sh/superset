@@ -405,7 +405,9 @@ export function PageCommentsView({
 						container={container}
 						thread={popoverThread}
 						onDismiss={() => setActiveThreadId(null)}
-						onSubmit={(body) => addReply(popoverThread.id, body)}
+						onSubmit={(body, attachments) =>
+							addReply(popoverThread.id, body, attachments)
+						}
 						onEdit={(commentId, body) =>
 							editComment(popoverThread.id, commentId, body)
 						}
