@@ -77,13 +77,72 @@ type PatchGroupResult =
 /** How many per-file `getDiff` calls the fallback runs at once. */
 const FALLBACK_CONCURRENCY = 6;
 
-function groupKeyFor(input: GetDiffPatchInput): string {
-	return [
+export function groupKeyFor(input: GetDiffPatchInput): string {
+	return JSON.stringify([
+		input.workspaceId,
 		input.category,
-		input.baseBranch ?? "",
-		input.commitHash ?? "",
-		input.fromHash ?? "",
-	].join("\0");
+		input.baseBranch ?? null,
+		input.commitHash ?? null,
+		input.fromHash ?? null,
+		[...(input.paths ?? [])].sort(),
+		[...(input.untrackedPaths ?? [])].sort(),
+	]);
+}
+
+function patchGroupIdentity(input: GetDiffPatchInput): string {
+	return JSON.stringify([
+		input.workspaceId,
+		input.category,
+		input.baseBranch ?? null,
+		input.commitHash ?? null,
+		input.fromHash ?? null,
+	]);
+}
+
+export function buildPatchGroups(
+	workspaceId: string,
+	files: ChangesetFile[],
+	requestedItemIds: ReadonlySet<string>,
+): PatchGroup[] {
+	const groups = new Map<string, PatchGroup>();
+	for (const file of files) {
+		if (file.isBinary) continue;
+		const itemId = getDiffItemId(file);
+		if (isGeneratedDiffFile(file.path) && !requestedItemIds.has(itemId)) {
+			continue;
+		}
+		const input = createGetDiffPatchInput(workspaceId, file);
+		const identity = patchGroupIdentity(input);
+		let group = groups.get(identity);
+		if (!group) {
+			group = {
+				key: "",
+				input: { ...input, paths: [], untrackedPaths: [] },
+				members: [],
+			};
+			groups.set(identity, group);
+		}
+		// `git diff` doesn't report untracked files; those need their own
+		// --no-index section, which the host builds.
+		const bucket =
+			file.status === "untracked"
+				? group.input.untrackedPaths
+				: group.input.paths;
+		bucket?.push(file.path);
+		group.members.push({ file, itemId });
+	}
+	return [...groups.values()].map((group) => {
+		group.input.paths?.sort();
+		group.input.untrackedPaths?.sort();
+		return { ...group, key: groupKeyFor(group.input) };
+	});
+}
+
+export function usablePatchData<T>(query: {
+	data?: T;
+	isError: boolean;
+}): T | undefined {
+	return query.isError ? undefined : query.data;
 }
 
 export function useDiffCodeViewItems({
@@ -144,36 +203,10 @@ export function useDiffCodeViewItems({
 		});
 	}, []);
 
-	const patchGroups = useMemo<PatchGroup[]>(() => {
-		const groups = new Map<string, PatchGroup>();
-		for (const file of files) {
-			if (file.isBinary) continue;
-			const itemId = getDiffItemId(file);
-			if (isGeneratedDiffFile(file.path) && !requestedItemIds.has(itemId)) {
-				continue;
-			}
-			const input = createGetDiffPatchInput(workspaceId, file);
-			const key = groupKeyFor(input);
-			let group = groups.get(key);
-			if (!group) {
-				group = {
-					key,
-					input: { ...input, paths: [], untrackedPaths: [] },
-					members: [],
-				};
-				groups.set(key, group);
-			}
-			// `git diff` doesn't report untracked files; those need their own
-			// --no-index section, which the host builds.
-			const bucket =
-				file.status === "untracked"
-					? group.input.untrackedPaths
-					: group.input.paths;
-			bucket?.push(file.path);
-			group.members.push({ file, itemId });
-		}
-		return [...groups.values()];
-	}, [files, requestedItemIds, workspaceId]);
+	const patchGroups = useMemo(
+		() => buildPatchGroups(workspaceId, files, requestedItemIds),
+		[files, requestedItemIds, workspaceId],
+	);
 
 	const patchQueries = useQueries({
 		queries: patchGroups.map((group) => ({
@@ -247,9 +280,13 @@ export function useDiffCodeViewItems({
 		patchGroups.forEach((group, index) => {
 			liveGroupKeys.add(group.key);
 			const query = patchQueries[index];
-			const data = query?.data;
+			const data = query ? usablePatchData(query) : undefined;
 			const updatedAt = query?.dataUpdatedAt ?? 0;
 			let parsed = cache.get(group.key);
+			if (query?.isError) {
+				cache.delete(group.key);
+				return;
+			}
 			if (data && parsed?.updatedAt !== updatedAt) {
 				const byPath = new Map<string, FileDiffMetadata>();
 				if (data.kind === "patch") {
