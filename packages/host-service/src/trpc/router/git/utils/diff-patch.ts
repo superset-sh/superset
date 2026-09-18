@@ -35,6 +35,27 @@ export const MAX_PATCH_BYTES = 32 * 1024 * 1024;
  * makes even the error message unbounded. */
 const MAX_STDERR_BYTES = 64 * 1024;
 
+/**
+ * The renderer parses the `diff --git a/… b/…` headers with the `a/`/`b/`
+ * prefixes hardcoded, but git derives them from the user's config:
+ * `diff.mnemonicPrefix` emits `i/`→`w/` (unstaged), `c/`→`i/` (staged) and
+ * `1/`→`2/` (`--no-index`), and `diff.noprefix` strips them everywhere. A
+ * header the parser rejects renders the file as "Unable to load diff"
+ * (GH #7596). Pinned with `-c` rather than `--default-prefix`, which needs
+ * git >= 2.45 and is a hard error below it; unknown `-c` keys are ignored
+ * by every git version.
+ */
+const PREFIX_PIN_ARGS = [
+	"-c",
+	"diff.mnemonicPrefix=false",
+	"-c",
+	"diff.noprefix=false",
+	"-c",
+	"diff.srcPrefix=a/",
+	"-c",
+	"diff.dstPrefix=b/",
+];
+
 const BASE_ARGS = [
 	"--no-color",
 	"--no-ext-diff",
@@ -50,10 +71,17 @@ function diffArgsForCategory(
 	refs: DiffCategoryRefs,
 ): string[] {
 	if (category === "against-base") {
-		return ["diff", ...BASE_ARGS, refs.originRef ?? "HEAD", "HEAD"];
+		return [
+			...PREFIX_PIN_ARGS,
+			"diff",
+			...BASE_ARGS,
+			refs.originRef ?? "HEAD",
+			"HEAD",
+		];
 	}
 	if (category === "commit") {
 		return [
+			...PREFIX_PIN_ARGS,
 			"diff",
 			...BASE_ARGS,
 			refs.fromRef ?? "HEAD^",
@@ -61,10 +89,10 @@ function diffArgsForCategory(
 		];
 	}
 	if (category === "staged") {
-		return ["diff", ...BASE_ARGS, "--cached"];
+		return [...PREFIX_PIN_ARGS, "diff", ...BASE_ARGS, "--cached"];
 	}
 	// Unstaged: index against working tree.
-	return ["diff", ...BASE_ARGS];
+	return [...PREFIX_PIN_ARGS, "diff", ...BASE_ARGS];
 }
 
 /** One request's shared byte allowance. The category diff and every
@@ -209,7 +237,15 @@ async function untrackedPatches(
 	return mapWithConcurrency(paths, UNTRACKED_CONCURRENCY, async (path) => {
 		try {
 			return await runDiff(
-				["diff", ...BASE_ARGS, "--no-index", "--", "/dev/null", path],
+				[
+					...PREFIX_PIN_ARGS,
+					"diff",
+					...BASE_ARGS,
+					"--no-index",
+					"--",
+					"/dev/null",
+					path,
+				],
 				options,
 				budget,
 			);

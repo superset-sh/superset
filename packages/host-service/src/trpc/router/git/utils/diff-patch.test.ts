@@ -151,3 +151,74 @@ describe("buildDiffPatch", () => {
 		expect(patch).toContain("+brand new");
 	});
 });
+
+/**
+ * The renderer parses `diff --git a/… b/…` headers with the prefixes
+ * hardcoded, but git derives them from the user's config: mnemonic prefixes
+ * make `git diff` emit `i/`→`w/` (unstaged), `c/`→`i/` (staged) and
+ * `1/`→`2/` (`--no-index`), and `diff.noprefix` strips them everywhere. A
+ * header the parser rejects renders the file as "Unable to load diff"
+ * (GH #7596), so the invocation pins the prefixes instead of inheriting them.
+ */
+describe("buildDiffPatch prefix pinning", () => {
+	let repo: string;
+	let git: SimpleGit;
+
+	beforeEach(async () => {
+		repo = mkdtempSync(join(tmpdir(), "superset-diff-prefix-"));
+		git = await initRepo(repo);
+		await writeFile(join(repo, "tracked.txt"), "one\ntwo\n");
+		await git.add(["tracked.txt"]);
+		await git.commit("initial");
+		await writeFile(join(repo, "tracked.txt"), "one\nTWO\n");
+		await writeFile(join(repo, "fresh.txt"), "brand new\n");
+	});
+
+	afterEach(() => {
+		rmSync(repo, { recursive: true, force: true });
+	});
+
+	async function patchesForConfig(): Promise<{
+		unstaged: string;
+		staged: string;
+	}> {
+		const unstaged = await buildDiffPatch({
+			cwd: repo,
+			env: ENV,
+			category: "unstaged",
+			refs: {},
+			untrackedPaths: ["fresh.txt"],
+		});
+		await git.add(["tracked.txt"]);
+		const staged = await buildDiffPatch({
+			cwd: repo,
+			env: ENV,
+			category: "staged",
+			refs: {},
+		});
+		return { unstaged, staged };
+	}
+
+	test("diff.mnemonicPrefix does not change the headers", async () => {
+		await git.raw(["config", "diff.mnemonicPrefix", "true"]);
+		const { unstaged, staged } = await patchesForConfig();
+		expect(unstaged).toContain("diff --git a/tracked.txt b/tracked.txt");
+		expect(unstaged).toContain("diff --git a/fresh.txt b/fresh.txt");
+		expect(staged).toContain("diff --git a/tracked.txt b/tracked.txt");
+	});
+
+	test("diff.noprefix does not strip the headers", async () => {
+		await git.raw(["config", "diff.noprefix", "true"]);
+		const { unstaged, staged } = await patchesForConfig();
+		expect(unstaged).toContain("diff --git a/tracked.txt b/tracked.txt");
+		expect(unstaged).toContain("diff --git a/fresh.txt b/fresh.txt");
+		expect(staged).toContain("diff --git a/tracked.txt b/tracked.txt");
+	});
+
+	test("custom src/dst prefixes do not change the headers", async () => {
+		await git.raw(["config", "diff.srcPrefix", "left/"]);
+		await git.raw(["config", "diff.dstPrefix", "right/"]);
+		const { unstaged } = await patchesForConfig();
+		expect(unstaged).toContain("diff --git a/tracked.txt b/tracked.txt");
+	});
+});
