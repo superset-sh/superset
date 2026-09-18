@@ -2322,6 +2322,9 @@ msgstr "Otomatis (sistem)"
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "Otomatis mengikuti bahasa sistem Anda. Anda bisa mengubahnya nanti di Pengaturan."
 
+msgid "Auto Save"
+msgstr "Simpan Otomatis"
+
 msgid "auto-generated"
 msgstr "dibuat otomatis"
 
@@ -4013,6 +4016,9 @@ msgstr "Kontrol bagaimana mesin lokal Anda dapat diakses dari luar"
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "Atur apa yang dilakukan tiap klik — biasa atau dengan modifier — pada sebuah file atau URL. Tiap baris mengikat satu kombinasi modifier ke satu aksi."
+
+msgid "Controls when manually edited files are saved"
+msgstr "Mengatur kapan file yang diedit secara manual disimpan"
 
 msgid "Conversation"
 msgstr "Percakapan"

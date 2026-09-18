@@ -2322,6 +2322,9 @@ msgstr "Automaticky (systém)"
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "Automatický režim se řídí jazykem systému. Později to můžete změnit v Nastavení."
 
+msgid "Auto Save"
+msgstr "Automatické ukládání"
+
 msgid "auto-generated"
 msgstr "automaticky"
 
@@ -4013,6 +4016,9 @@ msgstr "Určete, jak je váš lokální počítač dosažitelný zvenčí"
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "Určete, co každé kliknutí — prosté i s modifikátorem — udělá se souborem nebo URL. Každý řádek váže jednu kombinaci modifikátorů k jedné akci."
+
+msgid "Controls when manually edited files are saved"
+msgstr "Určuje, kdy se ručně upravené soubory ukládají"
 
 msgid "Conversation"
 msgstr "Konverzace"

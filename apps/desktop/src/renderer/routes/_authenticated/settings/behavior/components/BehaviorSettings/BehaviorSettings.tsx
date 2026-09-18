@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { FileOpenMode } from "@superset/local-db";
+import type { FileAutoSaveMode, FileOpenMode } from "@superset/local-db";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -33,6 +33,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 	const showFileOpenMode = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE,
+		visibleItems,
+	);
+	const showFileAutoSave = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_FILE_AUTO_SAVE,
 		visibleItems,
 	);
 	const showChangesOpenTarget = isItemVisible(
@@ -95,6 +99,25 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		},
 		onSettled: () => {
 			utils.settings.getFileOpenMode.invalidate();
+		},
+	});
+
+	const { data: fileAutoSave, isLoading: isFileAutoSaveLoading } =
+		electronTrpc.settings.getFileAutoSave.useQuery();
+	const setFileAutoSave = electronTrpc.settings.setFileAutoSave.useMutation({
+		onMutate: async ({ mode }) => {
+			await utils.settings.getFileAutoSave.cancel();
+			const previous = utils.settings.getFileAutoSave.getData();
+			utils.settings.getFileAutoSave.setData(undefined, mode);
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getFileAutoSave.setData(undefined, context.previous);
+			}
+		},
+		onSettled: () => {
+			utils.settings.getFileAutoSave.invalidate();
 		},
 	});
 
@@ -210,6 +233,39 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								<SelectItem value="new-tab">
 									<Trans>New tab</Trans>
 								</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+				)}
+
+				{showFileAutoSave && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label htmlFor="file-auto-save" className="text-sm font-medium">
+								<HighlightText
+									text={t({ message: "Auto Save" })}
+									query={searchQuery}
+								/>
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								<Trans>Controls when manually edited files are saved</Trans>
+							</p>
+						</div>
+						<Select
+							value={fileAutoSave ?? "off"}
+							onValueChange={(value) =>
+								setFileAutoSave.mutate({ mode: value as FileAutoSaveMode })
+							}
+							disabled={isFileAutoSaveLoading || setFileAutoSave.isPending}
+						>
+							<SelectTrigger id="file-auto-save" className="w-[180px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="off">off</SelectItem>
+								<SelectItem value="afterDelay">afterDelay</SelectItem>
+								<SelectItem value="onFocusChange">onFocusChange</SelectItem>
+								<SelectItem value="onWindowChange">onWindowChange</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>

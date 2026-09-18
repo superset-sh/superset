@@ -11,6 +11,7 @@ import {
 	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
 	EXTERNAL_APPS,
+	FILE_AUTO_SAVE_MODES,
 	FILE_OPEN_MODES,
 	NON_EDITOR_APPS,
 	settings,
@@ -53,6 +54,7 @@ import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY,
+	DEFAULT_FILE_AUTO_SAVE,
 	DEFAULT_FILE_OPEN_MODE,
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
@@ -849,6 +851,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { fileOpenMode: input.mode },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getFileAutoSave: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.fileAutoSave ?? DEFAULT_FILE_AUTO_SAVE;
+		}),
+
+		setFileAutoSave: publicProcedure
+			.input(z.object({ mode: z.enum(FILE_AUTO_SAVE_MODES) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, fileAutoSave: input.mode })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { fileAutoSave: input.mode },
 					})
 					.run();
 

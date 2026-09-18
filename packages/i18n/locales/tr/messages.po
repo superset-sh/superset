@@ -2322,6 +2322,9 @@ msgstr "Otomatik (sistem)"
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "Otomatik, sistem dilinizi izler. Daha sonra Ayarlar'dan değiştirebilirsiniz."
 
+msgid "Auto Save"
+msgstr "Otomatik Kaydetme"
+
 msgid "auto-generated"
 msgstr "otomatik oluşturulur"
 
@@ -4013,6 +4016,9 @@ msgstr "Yerel makinenize dışarıdan nasıl erişileceğini kontrol edin"
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "Her tıklamanın — düz ya da değiştirici tuşlu — bir dosyaya veya URL'ye ne yapacağını denetleyin. Her satır bir değiştirici birleşimini bir eyleme bağlar."
+
+msgid "Controls when manually edited files are saved"
+msgstr "Elle düzenlenen dosyaların ne zaman kaydedileceğini belirler"
 
 msgid "Conversation"
 msgstr "Konuşma"

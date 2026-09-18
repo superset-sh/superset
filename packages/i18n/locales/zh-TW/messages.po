@@ -2322,6 +2322,9 @@ msgstr "自動（跟隨系統）"
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "自動模式會跟隨你的系統語言。之後可以在設定中更改。"
 
+msgid "Auto Save"
+msgstr "自動儲存"
+
 msgid "auto-generated"
 msgstr "自動生成"
 
@@ -4013,6 +4016,9 @@ msgstr "控制這台機器如何從外部存取"
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "控制每種點選（普通點選或配合修飾鍵）對檔案或URL的行為。每一行將一種修飾鍵組合繫結到一個操作。"
+
+msgid "Controls when manually edited files are saved"
+msgstr "控制手動編輯的檔案何時儲存"
 
 msgid "Conversation"
 msgstr "對話"

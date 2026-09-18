@@ -6,6 +6,7 @@ import { useCallback, useEffect } from "react";
 import { FileSaveConflictDialog } from "renderer/components/FileSaveConflictDialog";
 import { MarkdownResourceProvider } from "renderer/components/MarkdownRenderer/providers/MarkdownResourceProvider";
 import type { LinkAction } from "renderer/lib/clickPolicy";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getPathDirectory } from "shared/absolute-paths";
 import { useStore } from "zustand";
 import {
@@ -39,6 +40,34 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 		workspaceId,
 		absolutePath: filePath,
 	});
+	const { data: fileAutoSave = "off" } =
+		electronTrpc.settings.getFileAutoSave.useQuery();
+	const currentContent =
+		document.content.kind === "text" ? document.content.value : null;
+
+	useEffect(() => {
+		if (
+			fileAutoSave !== "afterDelay" ||
+			currentContent === null ||
+			!document.dirty ||
+			document.pendingSave
+		) {
+			return;
+		}
+
+		const timeout = window.setTimeout(() => void document.save(), 1000);
+		return () => window.clearTimeout(timeout);
+	}, [currentContent, document, fileAutoSave]);
+
+	useEffect(() => {
+		if (fileAutoSave !== "onWindowChange") return;
+
+		const save = () => {
+			if (document.dirty && !document.pendingSave) void document.save();
+		};
+		window.addEventListener("blur", save);
+		return () => window.removeEventListener("blur", save);
+	}, [document, fileAutoSave]);
 
 	// Images a markdown file points at load through the workspace
 	// filesystem, so they work for cloud sandboxes and never put a raw path
@@ -150,9 +179,21 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 
 	const ViewRenderer = activeView.Renderer;
 
-	return (
-		<div className="flex h-full w-full flex-col">
-			<FileSaveConflictDialog
+  return (
+    <div
+      className="flex h-full w-full flex-col"
+      onBlurCapture={(event) => {
+        if (
+          fileAutoSave === "onFocusChange" &&
+          !event.currentTarget.contains(event.relatedTarget as Node) &&
+          document.dirty &&
+          !document.pendingSave
+        ) {
+          void document.save();
+        }
+      }}
+    >
+      <FileSaveConflictDialog
 				open={document.conflict !== null && context.isActive && isActiveTab}
 				filePath={filePath}
 				localContent={
@@ -167,11 +208,11 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 				onReloadFromDisk={() => void document.resolveConflict("reload")}
 				onOverwrite={() => void document.resolveConflict("overwrite")}
 			/>
-			{document.hasExternalChange && !document.orphaned && (
-				<ExternalChangeBanner
-					onCompare={() => void document.compareWithDisk()}
-				/>
-			)}
+      {document.hasExternalChange && !document.orphaned && (
+        <ExternalChangeBanner
+          onCompare={() => void document.compareWithDisk()}
+        />
+      )}
 			{document.orphaned && (
 				<OrphanedBanner
 					dirty={document.dirty}

@@ -38,6 +38,7 @@ export const SETTING_ITEM_ID = {
 	KEYBOARD_SHORTCUTS: "keyboard-shortcuts",
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
+	BEHAVIOR_FILE_AUTO_SAVE: "behavior-file-auto-save",
 	BEHAVIOR_CHANGES_OPEN_TARGET: "behavior-changes-open-target",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	USAGE_IN_SIDEBAR: "usage-in-sidebar",
@@ -186,6 +187,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 
 	[SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE]: "v1",
+	[SETTING_ITEM_ID.BEHAVIOR_FILE_AUTO_SAVE]: "v2",
 	// The top-bar Changes control is a v2-only surface.
 	[SETTING_ITEM_ID.BEHAVIOR_CHANGES_OPEN_TARGET]: "v2",
 	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
@@ -825,6 +827,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"split pane",
 			"viewer",
 			"behavior",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_FILE_AUTO_SAVE,
+		section: "behavior",
+		title: "Auto Save",
+		description: "Controls when manually edited files are saved",
+		keywords: [
+			"file",
+			"save",
+			"autosave",
+			"auto save",
+			"afterdelay",
+			"onfocuschange",
+			"onwindowchange",
 		],
 	},
 	{

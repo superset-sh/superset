@@ -2322,6 +2322,9 @@ msgstr "自動(システム)"
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "自動ではシステムの言語に従います。後から設定で変更できます。"
 
+msgid "Auto Save"
+msgstr "自動保存"
+
 msgid "auto-generated"
 msgstr "自動生成"
 
@@ -4013,6 +4016,9 @@ msgstr "このマシンに外部からどのように接続できるかを設定
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "クリック(修飾キーの有無)ごとのファイルやURLへの動作を設定します。各行が1つの修飾キーの組み合わせを1つのアクションに割り当てます。"
+
+msgid "Controls when manually edited files are saved"
+msgstr "手動で編集したファイルを保存するタイミングを制御します"
 
 msgid "Conversation"
 msgstr "会話"

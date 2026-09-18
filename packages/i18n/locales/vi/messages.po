@@ -2322,6 +2322,9 @@ msgstr "Tự động (theo hệ thống)"
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "Tự động sẽ theo ngôn ngữ hệ thống. Bạn có thể đổi sau trong Cài đặt."
 
+msgid "Auto Save"
+msgstr "Tự động lưu"
+
 msgid "auto-generated"
 msgstr "tự động tạo"
 
@@ -4013,6 +4016,9 @@ msgstr "Kiểm soát cách máy cục bộ của bạn có thể được truy c
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "Chọn mỗi kiểu nhấp — thường hoặc kèm phím bổ trợ — sẽ làm gì với một tệp hoặc URL. Mỗi dòng gắn một tổ hợp phím bổ trợ với một hành động."
+
+msgid "Controls when manually edited files are saved"
+msgstr "Kiểm soát thời điểm lưu các tệp được chỉnh sửa thủ công"
 
 msgid "Conversation"
 msgstr "Cuộc thảo luận"

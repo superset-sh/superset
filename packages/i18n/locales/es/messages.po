@@ -2322,6 +2322,9 @@ msgstr "Automático (sistema)"
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "Automático sigue el idioma del sistema. Puedes cambiarlo más adelante en Configuración."
 
+msgid "Auto Save"
+msgstr "Guardado automático"
+
 msgid "auto-generated"
 msgstr "generado automáticamente"
 
@@ -4013,6 +4016,9 @@ msgstr "Controla cómo se puede acceder a tu máquina local desde el exterior"
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "Controla qué hace cada clic, solo o con un modificador, sobre un archivo o una URL. Cada fila asocia una combinación de modificadores a una acción."
+
+msgid "Controls when manually edited files are saved"
+msgstr "Controla cuándo se guardan los archivos editados manualmente"
 
 msgid "Conversation"
 msgstr "Conversación"

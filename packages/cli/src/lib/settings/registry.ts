@@ -4,6 +4,7 @@ import type { InsertSettings } from "@superset/local-db/schema";
 import {
 	BRANCH_PREFIX_MODES,
 	EXTERNAL_APPS,
+	FILE_AUTO_SAVE_MODES,
 	FILE_OPEN_MODES,
 	NON_EDITOR_APPS,
 	TERMINAL_LINK_BEHAVIORS,
@@ -79,6 +80,14 @@ export const SETTINGS: SettingDefinition[] = [
 		enumValues: FILE_OPEN_MODES,
 		description: "How files open from the sidebar and terminal links",
 		defaultValue: "split-pane",
+	},
+	{
+		key: "fileAutoSave",
+		type: "enum",
+		section: "behavior",
+		enumValues: FILE_AUTO_SAVE_MODES,
+		description: "When manually edited files are saved",
+		defaultValue: "off",
 	},
 	{
 		key: "showResourceMonitor",

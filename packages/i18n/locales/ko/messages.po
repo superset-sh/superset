@@ -2322,6 +2322,9 @@ msgstr "자동(시스템)"
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "자동은 시스템 언어를 따릅니다. 나중에 설정에서 변경할 수 있습니다."
 
+msgid "Auto Save"
+msgstr "자동 저장"
+
 msgid "auto-generated"
 msgstr "자동 생성"
 
@@ -4013,6 +4016,9 @@ msgstr "외부에서 로컬 머신에 접근하는 방식을 제어합니다"
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "파일이나 URL을 클릭할 때 — 그냥 또는 보조 키와 함께 — 어떤 동작을 할지 설정합니다. 각 행은 보조 키 조합 하나를 동작 하나에 연결합니다."
+
+msgid "Controls when manually edited files are saved"
+msgstr "수동으로 편집한 파일을 저장할 시점을 제어합니다"
 
 msgid "Conversation"
 msgstr "대화"

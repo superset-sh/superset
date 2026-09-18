@@ -2322,6 +2322,9 @@ msgstr "Automatisch (systeem)"
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "Automatisch volgt je systeemtaal. Je kunt dit later wijzigen in Instellingen."
 
+msgid "Auto Save"
+msgstr "Automatisch opslaan"
+
 msgid "auto-generated"
 msgstr "automatisch gegenereerd"
 
@@ -4013,6 +4016,9 @@ msgstr "Bepaal hoe je lokale machine van buitenaf bereikbaar is"
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "Bepaal wat elke klik — kaal of met een modifier — met een bestand of URL doet. Elke rij koppelt één modifiercombinatie aan een actie."
+
+msgid "Controls when manually edited files are saved"
+msgstr "Bepaalt wanneer handmatig bewerkte bestanden worden opgeslagen"
 
 msgid "Conversation"
 msgstr "Gesprek"
