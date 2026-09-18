@@ -634,6 +634,7 @@ export function TerminalPane({
 			<div className="relative min-h-0 flex-1 overflow-hidden">
 				<TerminalSearch
 					searchAddon={searchAddon}
+					terminal={terminal}
 					isOpen={isSearchOpen}
 					onClose={() => setIsSearchOpen(false)}
 				/>
