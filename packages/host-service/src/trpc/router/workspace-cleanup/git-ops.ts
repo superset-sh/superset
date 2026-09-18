@@ -61,12 +61,20 @@ export const cleanupGitOps = {
 		repoPath: string;
 		worktreePath: string;
 		gitEnv: GitTaskEnv;
-	}): Promise<{ stillRegistered: boolean; removeError?: string }> {
+		projectId: string;
+		worktreeBaseDir: string | null;
+	}): Promise<{
+		stillRegistered: boolean;
+		removedByApp: boolean;
+		removeError?: string;
+	}> {
 		// Generous timeout: removal recursively deletes the worktree
-		// directory, which can take a while for large trees (node_modules
-		// etc.).
+		// directory. The task's own fs.rm handles a node_modules heavy tree
+		// (#6887), but a cold-cache walk on a thrashing machine can still be
+		// slow, and a timeout mid-delete leaves the partial states #6730
+		// exists to catch — so err long rather than short.
 		return getHostWorkerPool().run(gitWorktreeRemoveTask, input, {
-			timeoutMs: 120_000,
+			timeoutMs: 600_000,
 		});
 	},
 
