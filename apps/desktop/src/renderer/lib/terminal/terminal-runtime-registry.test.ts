@@ -65,6 +65,7 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 			theme: {},
 			background: "#000",
 			fontFamily: "monospace",
+			imeFontFamily: "monospace",
 			fontSize: 14,
 			lineHeight: 1,
 			letterSpacing: 0,
@@ -109,6 +110,7 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 		).entries;
 		const addedKeys: string[] = [];
 		const setLigatures = mock(() => {});
+		const setProperty = mock((_name: string, _value: string) => {});
 
 		for (const [index, container] of [
 			[0, {} as HTMLDivElement],
@@ -123,7 +125,7 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 				runtime: {
 					container,
 					wrapper: {
-						style: { setProperty: mock(() => {}) },
+						style: { setProperty },
 					} as unknown as HTMLDivElement,
 					terminal: {
 						options: {
@@ -148,6 +150,7 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 				theme: { background: "#000" },
 				background: "#000",
 				fontFamily: "monospace",
+				imeFontFamily: 'monospace, "JetBrains Mono"',
 				fontSize: 15.5,
 				lineHeight: 1.2,
 				letterSpacing: 0.5,
@@ -177,6 +180,12 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 				expect(entry.runtime.ligaturesEnabled).toBe(false);
 			}
 			expect(setLigatures).toHaveBeenCalledTimes(2);
+			// IME 오버레이 스택은 활성·주차 런타임 양쪽 wrapper 에 반영된다.
+			expect(
+				setProperty.mock.calls.filter(
+					([name]) => name === "--superset-terminal-ime-font-family",
+				),
+			).toHaveLength(2);
 		} finally {
 			for (const key of addedKeys) entries.delete(key);
 		}
