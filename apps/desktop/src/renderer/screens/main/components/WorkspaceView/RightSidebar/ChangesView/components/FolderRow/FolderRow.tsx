@@ -25,6 +25,7 @@ import {
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import { usePathActions } from "../../hooks";
 import { DiscardConfirmDialog } from "../DiscardConfirmDialog";
+import { LevelIndicators } from "../LevelIndicators";
 import type { RowHoverAction } from "../RowHoverActions";
 import { RowHoverActions } from "../RowHoverActions";
 
@@ -46,19 +47,6 @@ interface FolderRowProps {
 	defaultApp?: ExternalApp | null;
 }
 
-function LevelIndicators({ level }: { level: number }) {
-	if (level === 0) return null;
-
-	return (
-		<div className="flex self-stretch shrink-0">
-			{Array.from({ length: level }).map((_, i) => (
-				// biome-ignore lint/suspicious/noArrayIndexKey: static visual dividers that never reorder
-				<div key={i} className="w-3 self-stretch border-r border-border/50" />
-			))}
-		</div>
-	);
-}
-
 function FolderRowHeader({
 	name,
 	level,
@@ -74,16 +62,16 @@ function FolderRowHeader({
 }) {
 	return (
 		<>
+			{!isGrouped && <LevelIndicators level={level} />}
 			{!isGrouped && (
 				<VscChevronRight
 					className={cn(
-						"size-2.5 text-muted-foreground shrink-0 transition-transform duration-150",
+						"size-2.5 my-auto text-muted-foreground shrink-0 transition-transform duration-150",
 						isExpanded && "rotate-90",
 					)}
 				/>
 			)}
-			{!isGrouped && <LevelIndicators level={level} />}
-			<div className="flex items-center gap-1 flex-1 min-w-0">
+			<div className="flex items-center gap-1 flex-1 min-w-0 py-0.5">
 				<span
 					className={cn(
 						"truncate",
@@ -182,7 +170,7 @@ export function FolderRow({
 		<CollapsibleTrigger
 			className={cn(
 				"flex-1 min-w-0 flex gap-1.5 text-left overflow-hidden",
-				"text-xs items-stretch py-0.5",
+				"text-xs items-stretch",
 				isGrouped && "text-muted-foreground",
 			)}
 		>
