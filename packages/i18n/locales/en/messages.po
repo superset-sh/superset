@@ -5901,11 +5901,14 @@ msgstr "Everything in Pro plus SSO & SAML, SCIM provisioning, IP restrictions, a
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 
+msgid "Everything since {launchDate}"
+msgstr "Everything since {launchDate}"
+
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Everything we built on top of the primitives — Superset originals, the"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
+msgstr "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
 
 msgid "Existing repo path"
 msgstr "Existing repo path"
@@ -8058,6 +8061,9 @@ msgstr "Large"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
+
+msgid "Last {BACKFILL_DAYS} days only"
+msgstr "Last {BACKFILL_DAYS} days only"
 
 msgid "Last 3 months"
 msgstr "Last 3 months"
@@ -14885,6 +14891,9 @@ msgstr "The associated device isn't reachable right now"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "The best agent will change.<0/>Your workflow shouldn't."
 
+msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
+msgstr "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
+
 msgid "The Codex sign-in"
 msgstr "The Codex sign-in"
 
@@ -16165,6 +16174,9 @@ msgstr "Usage is out of date"
 
 msgid "Usage sections"
 msgstr "Usage sections"
+
+msgid "Usage to publish"
+msgstr "Usage to publish"
 
 msgid "Usage unavailable."
 msgstr "Usage unavailable."

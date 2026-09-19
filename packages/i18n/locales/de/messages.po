@@ -5901,11 +5901,14 @@ msgstr "Alles aus Pro plus SSO & SAML, SCIM-Provisionierung, IP-Beschränkungen,
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "Alles ist skriptbar. Starte Arbeitsbereiche und Agenten über die CLI, binde Superset mit dem SDK in CI ein oder lass deinen Agenten es über MCP steuern."
 
+msgid "Everything since {launchDate}"
+msgstr "Alles seit dem {launchDate}"
+
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Alles, was wir auf den Primitives aufgebaut haben — Superset-Originale, die"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Alles, was du veröffentlicht hast, wird gelöscht, nicht ausgeblendet. Du kannst später wieder beitreten, dann wird es aus den Transkripten auf diesem Rechner neu aufgebaut — nur dein bisheriges Ranking geht verloren."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
+msgstr "Alles, was du veröffentlicht hast, wird gelöscht, nicht ausgeblendet. Du kannst später wieder beitreten und deinen gesamten Verlauf aus den Transkripten auf diesem Rechner neu aufbauen."
 
 msgid "Existing repo path"
 msgstr "Pfad zum vorhandenen Repo"
@@ -8058,6 +8061,9 @@ msgstr "Groß"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "Viele dauerhafte Terminals können CPU- und Speicherverbrauch erhöhen. Beende alte Sitzungen, wenn dir Verzögerungen auffallen."
+
+msgid "Last {BACKFILL_DAYS} days only"
+msgstr "Nur die letzten {BACKFILL_DAYS} Tage"
 
 msgid "Last 3 months"
 msgstr "Letzte 3 Monate"
@@ -14885,6 +14891,9 @@ msgstr "Das zugehörige Gerät ist gerade nicht erreichbar"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Der beste Agent wird wechseln.<0/>Dein Workflow nicht."
 
+msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
+msgstr "Das Ranking beginnt am {launchDate}. Der größere Zeitraum baut alles aus den Transkripten auf diesem Rechner neu auf, sodass dein Platz von vor dem Austritt zurückkommt."
+
 msgid "The Codex sign-in"
 msgstr "Die Codex-Anmeldung"
 
@@ -16165,6 +16174,9 @@ msgstr "Die Nutzungsdaten sind veraltet"
 
 msgid "Usage sections"
 msgstr "Nutzungsbereiche"
+
+msgid "Usage to publish"
+msgstr "Zu veröffentlichende Nutzung"
 
 msgid "Usage unavailable."
 msgstr "Nutzung nicht verfügbar."

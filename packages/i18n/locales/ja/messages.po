@@ -5901,11 +5901,14 @@ msgstr "Proのすべてに加えて、SSOとSAML、SCIMプロビジョニング�
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "すべてスクリプトから操作できます。CLIでワークスペースやエージェントを起動し、SDKでSupersetをCIに組み込み、MCP経由でエージェント自身に操作させることもできます。"
 
+msgid "Everything since {launchDate}"
+msgstr "{launchDate} 以降すべて"
+
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "プリミティブの上に作ったもの一式 — Superset独自のコンポーネント、エージェントUI向けの"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "公開したものはすべて削除され、非表示になるわけではありません。後で再参加すれば、このマシンに残っているトランスクリプトから再構築されます — 失われるのは過去のランキングのみです。"
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
+msgstr "公開したものはすべて削除され、非表示になるわけではありません。後で再参加すれば、このマシンに残っているトランスクリプトから履歴全体を再構築できます。"
 
 msgid "Existing repo path"
 msgstr "既存リポジトリのパス"
@@ -8058,6 +8061,9 @@ msgstr "大"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "多数の永続ターミナルはCPU/メモリ使用量を増やす可能性があります。動作が遅い場合は古いセッションの終了を検討してください。"
+
+msgid "Last {BACKFILL_DAYS} days only"
+msgstr "直近 {BACKFILL_DAYS} 日間のみ"
 
 msgid "Last 3 months"
 msgstr "直近3か月"
@@ -14885,6 +14891,9 @@ msgstr "関連デバイスに現在接続できません"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "最良のエージェントは変わります。<0/>ワークフローは変わるべきではありません。"
 
+msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
+msgstr "ボードの開始日は {launchDate} です。広い範囲を選ぶと、このマシンに残っているトランスクリプトからすべてが再構築され、退出前のランクも戻ります。"
+
 msgid "The Codex sign-in"
 msgstr "Codexのサインイン"
 
@@ -16165,6 +16174,9 @@ msgstr "使用状況が古くなっています"
 
 msgid "Usage sections"
 msgstr "使用量セクション"
+
+msgid "Usage to publish"
+msgstr "公開する使用状況"
 
 msgid "Usage unavailable."
 msgstr "使用量を取得できません。"

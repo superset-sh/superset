@@ -89,8 +89,8 @@ export function LeaderboardSection() {
 				suggestedHandle={suggestedHandle}
 				isLoading={previewLoading}
 				isJoining={joining}
-				onConfirm={async (handle) => {
-					if (await join(handle)) setJoinOpen(false);
+				onConfirm={async (handle, range) => {
+					if (await join(handle, range)) setJoinOpen(false);
 				}}
 			/>
 
@@ -103,8 +103,8 @@ export function LeaderboardSection() {
 						<AlertDialogDescription>
 							<Trans>
 								Everything you've published is deleted, not hidden. You can
-								rejoin later and it will rebuild from the transcripts still on
-								this machine — only your past ranking is lost.
+								rejoin later and rebuild your whole history from the transcripts
+								still on this machine.
 							</Trans>
 						</AlertDialogDescription>
 					</AlertDialogHeader>

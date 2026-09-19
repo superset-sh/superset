@@ -5901,11 +5901,14 @@ msgstr "Mọi thứ trong gói Pro cộng thêm SSO & SAML, cấp phát SCIM, gi
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "Mọi thứ đều viết script được. Tạo workspace và agent từ CLI, nối Superset vào CI bằng SDK, hoặc để agent của bạn điều khiển qua MCP."
 
+msgid "Everything since {launchDate}"
+msgstr "Tất cả kể từ {launchDate}"
+
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Mọi thứ chúng tôi dựng trên nền các primitive — thành phần riêng của Superset, bộ"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Mọi thứ bạn đã đăng sẽ bị xóa, không phải ẩn đi. Bạn có thể tham gia lại sau và dữ liệu sẽ được dựng lại từ các transcript còn trên máy này — chỉ mất thứ hạng cũ."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
+msgstr "Mọi thứ bạn đã công bố sẽ bị xóa chứ không phải ẩn đi. Bạn có thể tham gia lại sau và dựng lại toàn bộ lịch sử từ các bản ghi vẫn còn trên máy này."
 
 msgid "Existing repo path"
 msgstr "Đường dẫn repo có sẵn"
@@ -8058,6 +8061,9 @@ msgstr "Lớn"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "Quá nhiều terminal duy trì có thể làm tăng mức dùng CPU/bộ nhớ. Hãy cân nhắc kết thúc các phiên cũ nếu thấy máy chậm."
+
+msgid "Last {BACKFILL_DAYS} days only"
+msgstr "Chỉ {BACKFILL_DAYS} ngày gần nhất"
 
 msgid "Last 3 months"
 msgstr "3 tháng qua"
@@ -14885,6 +14891,9 @@ msgstr "Hiện không kết nối được tới thiết bị liên quan"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Agent tốt nhất sẽ thay đổi.<0/>Quy trình của bạn thì không."
 
+msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
+msgstr "Bảng xếp hạng bắt đầu từ {launchDate}. Phạm vi rộng hơn sẽ dựng lại mọi thứ từ các bản ghi vẫn còn trên máy này, nên thứ hạng bạn có trước khi rời đi sẽ quay lại."
+
 msgid "The Codex sign-in"
 msgstr "Lần đăng nhập Codex"
 
@@ -16165,6 +16174,9 @@ msgstr "Dữ liệu sử dụng đã cũ"
 
 msgid "Usage sections"
 msgstr "Các mục mức sử dụng"
+
+msgid "Usage to publish"
+msgstr "Mức sử dụng sẽ công bố"
 
 msgid "Usage unavailable."
 msgstr "Không có dữ liệu sử dụng."

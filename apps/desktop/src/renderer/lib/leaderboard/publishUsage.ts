@@ -1,11 +1,24 @@
 import type { RouterInputs, RouterOutputs } from "@superset/trpc";
-import { PUBLISH_PAYLOAD_VERSION } from "@superset/trpc/leaderboard-schema";
+import { daysSinceLaunch } from "@superset/trpc/leaderboard-periods";
+import {
+	PUBLISH_MAX_DAYS,
+	PUBLISH_PAYLOAD_VERSION,
+} from "@superset/trpc/leaderboard-schema";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 
 export const BACKFILL_DAYS = 30;
 
 export const PREVIEW_DAYS = 30;
+
+export type BackfillRange = "recent" | "launch";
+
+export function backfillDays(
+	range: BackfillRange,
+	now: Date = new Date(),
+): number {
+	return range === "launch" ? daysSinceLaunch(now) : BACKFILL_DAYS;
+}
 
 type PublishInput = RouterInputs["leaderboard"]["publish"];
 type PublishResult = RouterOutputs["leaderboard"]["publish"];
@@ -31,20 +44,75 @@ export async function buildPayload(
 	).usage.leaderboardPayload.query({ days });
 }
 
+function groupConsecutiveDays<T extends { day: string }>(
+	rows: readonly T[],
+): T[][] {
+	const groups: T[][] = [];
+	for (const row of rows) {
+		const last = groups.at(-1);
+		if (last?.[0]?.day === row.day) last.push(row);
+		else groups.push([row]);
+	}
+	return groups;
+}
+
+/**
+ * Splits on day boundaries wherever it can, so the server's per-publish
+ * distinct-day count stays a number the caller can sum. A single day wider
+ * than the cap is still cut — it would be rejected whole otherwise.
+ */
+export function chunkRows<T extends { day: string }>(
+	rows: readonly T[],
+	maxRows: number,
+): T[][] {
+	const chunks: T[][] = [];
+	let current: T[] = [];
+
+	for (const group of groupConsecutiveDays(rows)) {
+		if (current.length > 0 && current.length + group.length > maxRows) {
+			chunks.push(current);
+			current = [];
+		}
+		for (const row of group) {
+			if (current.length === maxRows) {
+				chunks.push(current);
+				current = [];
+			}
+			current.push(row);
+		}
+	}
+	if (current.length > 0) chunks.push(current);
+
+	return chunks;
+}
+
 export async function publishPayload(
 	machineId: string,
 	payload: LeaderboardPayload,
 ): Promise<PublishResult> {
-	if (payload.days.length === 0 && payload.factoryDays.length === 0) {
-		return { written: 0, days: 0, awarded: [] };
+	const dayBatches = chunkRows(payload.days, PUBLISH_MAX_DAYS);
+	const factoryBatches = chunkRows(payload.factoryDays, PUBLISH_MAX_DAYS);
+	const batches = Math.max(dayBatches.length, factoryBatches.length);
+
+	let written = 0;
+	const awarded: Awarded = [];
+	for (let batch = 0; batch < batches; batch++) {
+		const result = await apiTrpcClient.leaderboard.publish.mutate({
+			payloadVersion: PUBLISH_PAYLOAD_VERSION,
+			hostId: machineId,
+			days: dayBatches[batch] ?? [],
+			factoryDays: factoryBatches[batch] ?? [],
+		});
+		written += result.written;
+		awarded.push(...result.awarded);
 	}
 
-	return await apiTrpcClient.leaderboard.publish.mutate({
-		payloadVersion: PUBLISH_PAYLOAD_VERSION,
-		hostId: machineId,
-		days: payload.days,
-		factoryDays: payload.factoryDays,
-	});
+	const days = new Set([
+		...payload.days.map((day) => day.day),
+		...payload.factoryDays.map((day) => day.day),
+	]).size;
+
+	return { written, days, awarded };
 }
 
 export async function publishUsage(

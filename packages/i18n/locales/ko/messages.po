@@ -5901,11 +5901,14 @@ msgstr "Pro의 모든 기능에 더해 SSO 및 SAML, SCIM 프로비저닝, IP �
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "모든 것이 스크립트로 가능합니다. CLI에서 워크스페이스와 에이전트를 띄우고, SDK로 Superset을 CI에 연결하고, MCP로 에이전트가 직접 조작하게 하세요."
 
+msgid "Everything since {launchDate}"
+msgstr "{launchDate} 이후 전체"
+
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "프리미티브 위에 우리가 만든 모든 것 — Superset 오리지널, 에이전트 UI용"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "게시한 모든 내용이 숨겨지는 것이 아니라 삭제됩니다. 나중에 다시 참여하면 이 컴퓨터에 남아 있는 기록에서 다시 만들어지며, 지난 순위만 사라집니다."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
+msgstr "게시한 내용은 숨겨지는 것이 아니라 모두 삭제됩니다. 나중에 다시 참여하면 이 컴퓨터에 남아 있는 기록에서 전체 기록을 다시 만들 수 있습니다."
 
 msgid "Existing repo path"
 msgstr "기존 리포지토리 경로"
@@ -8058,6 +8061,9 @@ msgstr "큼"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "지속 실행 터미널이 많으면 CPU/메모리 사용량이 늘어날 수 있습니다. 느려진다면 오래된 세션을 종료해 보세요."
+
+msgid "Last {BACKFILL_DAYS} days only"
+msgstr "최근 {BACKFILL_DAYS}일만"
 
 msgid "Last 3 months"
 msgstr "최근 3개월"
@@ -14885,6 +14891,9 @@ msgstr "연결된 기기에 지금 접근할 수 없습니다"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "최고의 에이전트는 바뀝니다.<0/>워크플로는 그럴 필요 없습니다."
 
+msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
+msgstr "보드는 {launchDate}에 시작합니다. 넓은 범위를 선택하면 이 컴퓨터에 남아 있는 기록에서 전부 다시 만들어져, 떠나기 전 순위도 돌아옵니다."
+
 msgid "The Codex sign-in"
 msgstr "Codex 로그인"
 
@@ -16165,6 +16174,9 @@ msgstr "사용량 정보가 오래되었습니다"
 
 msgid "Usage sections"
 msgstr "사용량 섹션"
+
+msgid "Usage to publish"
+msgstr "게시할 사용량"
 
 msgid "Usage unavailable."
 msgstr "사용량을 볼 수 없습니다."

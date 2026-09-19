@@ -5901,11 +5901,14 @@ msgstr "包含Pro的全部内容，另加SSO与SAML、SCIM账号开通、IP限�
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "一切都能脚本化。用CLI创建工作区和智能体，用SDK把Superset接进CI，或者让你的智能体通过MCP来驱动它。"
 
+msgid "Everything since {launchDate}"
+msgstr "{launchDate} 以来的全部"
+
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "我们在基础组件之上构建的一切——Superset原创组件、面向智能体界面的"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "你发布过的所有内容都会被删除，而不是隐藏。你之后可以重新加入，届时会根据此机器上仍保留的记录重新生成，只有过往排名会丢失。"
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
+msgstr "你发布的所有内容都会被删除，而不是隐藏。你可以稍后重新加入，并从这台机器上仍保留的记录中重建完整历史。"
 
 msgid "Existing repo path"
 msgstr "已有仓库路径"
@@ -8058,6 +8061,9 @@ msgstr "大"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "大量持久化终端会增加CPU/内存占用。如果发现变慢，可以考虑终止旧会话。"
+
+msgid "Last {BACKFILL_DAYS} days only"
+msgstr "仅最近 {BACKFILL_DAYS} 天"
 
 msgid "Last 3 months"
 msgstr "最近3个月"
@@ -14885,6 +14891,9 @@ msgstr "关联的设备现在连不上"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "最好的智能体会变。<0/>你的工作流不该变。"
 
+msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
+msgstr "排行榜从 {launchDate} 开始。选择更大的范围会从这台机器上仍保留的记录中重建全部数据，你离开前的排名也会回来。"
+
 msgid "The Codex sign-in"
 msgstr "Codex登录"
 
@@ -16165,6 +16174,9 @@ msgstr "用量数据已过时"
 
 msgid "Usage sections"
 msgstr "用量分区"
+
+msgid "Usage to publish"
+msgstr "要发布的用量"
 
 msgid "Usage unavailable."
 msgstr "无法获取用量。"

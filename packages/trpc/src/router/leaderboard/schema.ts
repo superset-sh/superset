@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { isDayKey, LEADERBOARD_PERIODS } from "./periods";
+import {
+	isDayKey,
+	LEADERBOARD_LAUNCH_DAY,
+	LEADERBOARD_PERIODS,
+} from "./periods";
 import { HANDLE_PATTERN, isReservedHandle } from "./reserved-handles";
 
 const dayKey = z.string().refine(isDayKey, "Expected a real YYYY-MM-DD date");
@@ -92,12 +96,24 @@ export const publishFactoryDaySchema = z.object({
 export type PublishFactoryDay = z.infer<typeof publishFactoryDaySchema>;
 
 // Rows, not days: 36 days x ~55 provider/model combos. Also keeps the insert
-// under Postgres's 65,535 bind parameters at 15 columns per row.
+// under Postgres's 65,535 bind parameters at 15 columns per row. A
+// since-launch backfill outgrows this as launch recedes, so clients split
+// their payload across publishes rather than this growing.
 export const PUBLISH_MAX_DAYS = 2_000;
 
-// The widest a client legitimately reaches back is the 30-day join backfill;
-// the extra days absorb host/server clock skew around a UTC midnight.
+// The rolling floor, which only applies while launch day is still newer than
+// it; after that `assertDaysInWindow` clamps to launch instead, because a
+// since-launch backfill legitimately reaches further back than this. The extra
+// days over the 30-day window absorb host/server clock skew around a UTC
+// midnight.
 export const PUBLISH_WINDOW_DAYS = 35;
+
+export function publishableDayFloor(nowMs: number): string {
+	const rolling = new Date(nowMs - PUBLISH_WINDOW_DAYS * 86_400_000)
+		.toISOString()
+		.slice(0, 10);
+	return rolling < LEADERBOARD_LAUNCH_DAY ? rolling : LEADERBOARD_LAUNCH_DAY;
+}
 
 // hostId is a free-form client string and part of the upsert key, so without a
 // bound the per-row caps above can be multiplied by inventing hosts.

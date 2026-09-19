@@ -5901,11 +5901,14 @@ msgstr "Всё из Pro плюс SSO и SAML, провижининг SCIM, ог�
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "Всё скриптуется. Поднимайте рабочие области и агентов из CLI, встраивайте Superset в CI через SDK или дайте агенту водить его по MCP."
 
+msgid "Everything since {launchDate}"
+msgstr "Всё с {launchDate}"
+
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Всё, что мы построили поверх примитивов, — оригиналы Superset, набор"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Всё опубликованное удаляется, а не скрывается. Вы можете вернуться позже, и данные соберутся заново из расшифровок, оставшихся на этой машине — потеряется только прошлое место в рейтинге."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
+msgstr "Всё опубликованное удаляется, а не скрывается. Позже вы сможете вернуться и восстановить всю историю из расшифровок, оставшихся на этом компьютере."
 
 msgid "Existing repo path"
 msgstr "Путь к существующему репозиторию"
@@ -8058,6 +8061,9 @@ msgstr "Большой"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "Большое количество постоянных терминалов может увеличить нагрузку на CPU и память. Если заметили замедление, стоит завершить старые сессии."
+
+msgid "Last {BACKFILL_DAYS} days only"
+msgstr "Только последние {BACKFILL_DAYS} дней"
 
 msgid "Last 3 months"
 msgstr "Последние 3 месяца"
@@ -14885,6 +14891,9 @@ msgstr "Связанное устройство сейчас недоступн�
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Лучший агент будет меняться.<0/>Ваш процесс — нет."
 
+msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
+msgstr "Рейтинг начинается {launchDate}. Более широкий диапазон восстановит всё из расшифровок, оставшихся на этом компьютере, так что место, которое у вас было до выхода, вернётся."
+
 msgid "The Codex sign-in"
 msgstr "Вход в Codex"
 
@@ -16165,6 +16174,9 @@ msgstr "Данные об использовании устарели"
 
 msgid "Usage sections"
 msgstr "Разделы использования"
+
+msgid "Usage to publish"
+msgstr "Какие данные опубликовать"
 
 msgid "Usage unavailable."
 msgstr "Данные об использовании недоступны."

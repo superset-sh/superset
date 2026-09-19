@@ -4,7 +4,11 @@ import { toast } from "@superset/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { BACKFILL_DAYS, publishUsage } from "renderer/lib/leaderboard";
+import {
+	type BackfillRange,
+	backfillDays,
+	publishUsage,
+} from "renderer/lib/leaderboard";
 import {
 	clearAutoPublishState,
 	writeAutoPublishState,
@@ -35,7 +39,7 @@ export function useLeaderboardOptIn(period: LeaderboardPeriod = "all") {
 	const [leaving, setLeaving] = useState(false);
 
 	const join = useCallback(
-		async (handle: string) => {
+		async (handle: string, range: BackfillRange = "recent") => {
 			setJoining(true);
 			try {
 				try {
@@ -52,7 +56,7 @@ export function useLeaderboardOptIn(period: LeaderboardPeriod = "all") {
 				if (activeHostUrl && machineId) {
 					try {
 						published = (
-							await publishUsage(activeHostUrl, machineId, BACKFILL_DAYS)
+							await publishUsage(activeHostUrl, machineId, backfillDays(range))
 						).days;
 						writeAutoPublishState({
 							handle,
