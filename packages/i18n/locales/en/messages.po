@@ -2863,6 +2863,9 @@ msgstr "Can I use my own API keys?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Can you standardize the tooltips across the app?"
 
+msgid "Can’t check {hostName}"
+msgstr "Can’t check {hostName}"
+
 msgid "Can't connect right now"
 msgstr "Can't connect right now"
 
@@ -6679,9 +6682,6 @@ msgstr "finished · worked for 7s"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "First-ever pageview on superset.sh, daily"
 
@@ -7095,6 +7095,9 @@ msgstr "Go to next page"
 
 msgid "Go to previous page"
 msgstr "Go to previous page"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "Go to Settings, then Remote Access"
 
 msgid "Go to Slack integration settings"
 msgstr "Go to Slack integration settings"
@@ -7879,6 +7882,9 @@ msgstr "Issue URL must match {repoMismatch}."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "It may be asleep"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "It may have been deleted, or it belongs to another organization."
 
@@ -7899,9 +7905,6 @@ msgstr "Its own branch and copy of the files"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "Its workspaces will appear when it reconnects."
 
 msgid "Jane Doe"
 msgstr "Jane Doe"
@@ -8095,6 +8098,9 @@ msgstr "Last run"
 
 msgid "Last seen"
 msgstr "Last seen"
+
+msgid "Last seen {lastSeen}"
+msgstr "Last seen {lastSeen}"
 
 msgid "Last updated"
 msgstr "Last updated"
@@ -10108,6 +10114,9 @@ msgstr "One of the first hundred on the board"
 msgid "one of the selected repositories"
 msgstr "one of the selected repositories"
 
+msgid "One step left"
+msgstr "One step left"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "One workspace for Claude Code, Codex, and any coding agent."
 
@@ -10518,6 +10527,9 @@ msgstr "Open ship options"
 
 msgid "Open Superset"
 msgstr "Open Superset"
+
+msgid "Open Superset on that computer"
+msgstr "Open Superset on that computer"
 
 msgid "Open System Settings"
 msgstr "Open System Settings"
@@ -11923,6 +11935,9 @@ msgstr "Remote access"
 
 msgid "Remote Access"
 msgstr "Remote Access"
+
+msgid "Remote Access may be off"
+msgstr "Remote Access may be off"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Remote MCP server — connects over HTTP"
@@ -13345,9 +13360,6 @@ msgstr "Set up project on {hostName}"
 msgid "Set up project…"
 msgstr "Set up project…"
 
-msgid "Set up remote access"
-msgstr "Set up remote access"
-
 msgid "Set up this project for Superset"
 msgstr "Set up this project for Superset"
 
@@ -14409,6 +14421,9 @@ msgstr "Superset is the workbench for the F3 to F4 transition: parallel agents i
 
 msgid "Superset isn't on Windows yet"
 msgstr "Superset isn't on Windows yet"
+
+msgid "Superset may be closed"
+msgstr "Superset may be closed"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset may sign you back in after restart. Please try signing out again."
@@ -15777,6 +15792,9 @@ msgstr "Turn chores into scheduled agents: issue triage, changelog drafts, depen
 msgid "Turn failed{0}"
 msgstr "Turn failed{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "Turn on “Allow remote access to this device via relay”"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 
@@ -16415,6 +16433,9 @@ msgstr "waiting for {0} and {1}…"
 msgid "Waiting for Checks"
 msgstr "Waiting for Checks"
 
+msgid "Waiting for it to connect…"
+msgstr "Waiting for it to connect…"
+
 msgid "Waiting for Review"
 msgstr "Waiting for Review"
 
@@ -16460,11 +16481,17 @@ msgstr "We couldn't charge your payment method. Update it to keep this plan."
 msgid "We couldn't detect a package manager or environment config."
 msgstr "We couldn't detect a package manager or environment config."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "We couldn't reach the device. Please try again in a moment."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "We found {hostName}. Turn on Remote Access there to finish."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "We only collect analytics cookies so we can improve your experience."

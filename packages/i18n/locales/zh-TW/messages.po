@@ -2863,6 +2863,9 @@ msgstr "我可以用自己的API金鑰嗎？"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "能把整個應用的tooltip樣式統一一下嗎？"
 
+msgid "Can’t check {hostName}"
+msgstr "無法檢查{hostName}"
+
 msgid "Can't connect right now"
 msgstr "目前無法連線"
 
@@ -6679,9 +6682,6 @@ msgstr "已完成 · 用時7秒"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "首次登入頁 → 認證 → 引導 → 真實工作區（最近7天，2天視窗）"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "第一次使用？請在桌面應用程式的「設定 → 遠端存取」中開啟遠端存取。"
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "每日首次存取superset.sh的頁面瀏覽數"
 
@@ -7095,6 +7095,9 @@ msgstr "轉到下一頁"
 
 msgid "Go to previous page"
 msgstr "轉到上一頁"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "前往「設定」，然後開啟「遠端存取」"
 
 msgid "Go to Slack integration settings"
 msgstr "前往Slack整合設定"
@@ -7879,6 +7882,9 @@ msgstr "議題URL必須匹配{repoMismatch}。"
 msgid "Issue…"
 msgstr "議題…"
 
+msgid "It may be asleep"
+msgstr "裝置可能處於睡眠狀態"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "它可能已被刪除，或屬於另一個組織。"
 
@@ -7899,9 +7905,6 @@ msgstr "獨立的分支和檔案副本"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "在它重啟之前，其工作區和終端都不可用，請使用Superset托盤選單 > 主機服務 > 重啟。"
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "重新連線後，其工作區就會出現。"
 
 msgid "Jane Doe"
 msgstr "張三"
@@ -8095,6 +8098,9 @@ msgstr "上次執行"
 
 msgid "Last seen"
 msgstr "最後上線"
+
+msgid "Last seen {lastSeen}"
+msgstr "上次上線：{lastSeen}"
 
 msgid "Last updated"
 msgstr "最後更新"
@@ -10108,6 +10114,9 @@ msgstr "榜單最早的一百人之一"
 msgid "one of the selected repositories"
 msgstr "所選儲存庫之一"
 
+msgid "One step left"
+msgstr "還差一步"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "一個工作區，容納Claude Code、Codex和任何編碼代理程式。"
 
@@ -10518,6 +10527,9 @@ msgstr "開啟發布選項"
 
 msgid "Open Superset"
 msgstr "開啟Superset"
+
+msgid "Open Superset on that computer"
+msgstr "在那台電腦上開啟Superset"
 
 msgid "Open System Settings"
 msgstr "開啟系統設定"
@@ -11923,6 +11935,9 @@ msgstr "遠端存取"
 
 msgid "Remote Access"
 msgstr "遠端存取"
+
+msgid "Remote Access may be off"
+msgstr "遠端存取可能已關閉"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "遠端MCP伺服器，通過HTTP連線"
@@ -13345,9 +13360,6 @@ msgstr "在{hostName}上設定專案"
 msgid "Set up project…"
 msgstr "配置專案…"
 
-msgid "Set up remote access"
-msgstr "設定遠端存取"
-
 msgid "Set up this project for Superset"
 msgstr "為Superset配置這個專案"
 
@@ -14409,6 +14421,9 @@ msgstr "Superset是F3到F4這段過渡期的工作臺：隔離工作區裡的並
 
 msgid "Superset isn't on Windows yet"
 msgstr "Superset目前僅支援Mac"
+
+msgid "Superset may be closed"
+msgstr "Superset可能已關閉"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "重啟後Superset可能會重新登入。請再次嘗試登出。"
@@ -15777,6 +15792,9 @@ msgstr "把雜活變成定時代理程式：議題分類、更新日誌草稿、
 msgid "Turn failed{0}"
 msgstr "本輪失敗{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "開啟「允許透過中繼遠端存取此裝置」"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "把Slack對話變成任務，從工作區執行代理程式，讓隊友在工作開始的地方保持同步。"
 
@@ -16415,6 +16433,9 @@ msgstr "正在等待 {0} 和 {1}…"
 msgid "Waiting for Checks"
 msgstr "等待檢查"
 
+msgid "Waiting for it to connect…"
+msgstr "正在等待連線…"
+
 msgid "Waiting for Review"
 msgstr "等待審查"
 
@@ -16460,11 +16481,17 @@ msgstr "我們無法從你的支付方式扣款。請更新支付方式以保留
 msgid "We couldn't detect a package manager or environment config."
 msgstr "我們沒有檢測到包管理器或環境配置。"
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "無法連線到Superset以確認它是否在線上。請檢查網路連線後再試一次。"
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "暫時無法連上裝置，請稍後重試。"
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "我們不預測2026或2027年實現完全自動駕駛。誠實地講，未知數有三個：代理程式審查能否扛住對抗性的複雜度；規格說明能否在大規模場景下取代讀程式碼，成為信任的錨點；以及算力成本能否讓夜班始終比它所增強的人力更便宜。F5寫進評分表，是為了在它出現時能認出來，而不是一個承諾。"
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "已找到{hostName}。在那台電腦上開啟遠端存取即可完成。"
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "我們只收集分析類cookie，用於改進你的使用體驗。"

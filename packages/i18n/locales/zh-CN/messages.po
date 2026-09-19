@@ -2863,6 +2863,9 @@ msgstr "我可以用自己的API密钥吗？"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "能把整个应用的tooltip样式统一一下吗？"
 
+msgid "Can’t check {hostName}"
+msgstr "无法检查{hostName}"
+
 msgid "Can't connect right now"
 msgstr "暂时无法连接"
 
@@ -6679,9 +6682,6 @@ msgstr "已完成 · 用时7秒"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "首次登录页 → 认证 → 引导 → 真实工作区（最近7天，2天窗口）"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "第一次使用？请在桌面应用的“设置 → 远程访问”中开启远程访问。"
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "每日首次访问superset.sh的页面浏览数"
 
@@ -7095,6 +7095,9 @@ msgstr "转到下一页"
 
 msgid "Go to previous page"
 msgstr "转到上一页"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "前往“设置”，然后打开“远程访问”"
 
 msgid "Go to Slack integration settings"
 msgstr "前往Slack集成设置"
@@ -7879,6 +7882,9 @@ msgstr "议题URL必须匹配{repoMismatch}。"
 msgid "Issue…"
 msgstr "议题…"
 
+msgid "It may be asleep"
+msgstr "设备可能处于睡眠状态"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "它可能已被删除，或属于另一个组织。"
 
@@ -7899,9 +7905,6 @@ msgstr "独立的分支和文件副本"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "在它重启之前，其工作区和终端都不可用，请使用Superset托盘菜单 > 主机服务 > 重启。"
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "重新连接后，其工作区就会出现。"
 
 msgid "Jane Doe"
 msgstr "张三"
@@ -8095,6 +8098,9 @@ msgstr "上次运行"
 
 msgid "Last seen"
 msgstr "最后在线"
+
+msgid "Last seen {lastSeen}"
+msgstr "上次在线：{lastSeen}"
 
 msgid "Last updated"
 msgstr "最后更新"
@@ -10108,6 +10114,9 @@ msgstr "榜单最早的一百人之一"
 msgid "one of the selected repositories"
 msgstr "所选仓库之一"
 
+msgid "One step left"
+msgstr "还差一步"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "一个工作区，容纳Claude Code、Codex和任何编码智能体。"
 
@@ -10518,6 +10527,9 @@ msgstr "打开发布选项"
 
 msgid "Open Superset"
 msgstr "打开Superset"
+
+msgid "Open Superset on that computer"
+msgstr "在那台电脑上打开Superset"
 
 msgid "Open System Settings"
 msgstr "打开系统设置"
@@ -11923,6 +11935,9 @@ msgstr "远程访问"
 
 msgid "Remote Access"
 msgstr "远程访问"
+
+msgid "Remote Access may be off"
+msgstr "远程访问可能已关闭"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "远程MCP服务器，通过HTTP连接"
@@ -13345,9 +13360,6 @@ msgstr "在{hostName}上设置项目"
 msgid "Set up project…"
 msgstr "配置项目…"
 
-msgid "Set up remote access"
-msgstr "设置远程访问"
-
 msgid "Set up this project for Superset"
 msgstr "为Superset配置这个项目"
 
@@ -14409,6 +14421,9 @@ msgstr "Superset是F3到F4这段过渡期的工作台：隔离工作区里的并
 
 msgid "Superset isn't on Windows yet"
 msgstr "Superset暂不支持Windows"
+
+msgid "Superset may be closed"
+msgstr "Superset可能已关闭"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "重启后Superset可能会重新登录。请再次尝试退出登录。"
@@ -15777,6 +15792,9 @@ msgstr "把杂活变成定时智能体：议题分类、更新日志草稿、依
 msgid "Turn failed{0}"
 msgstr "本轮失败{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "开启“允许通过中继远程访问本设备”"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "把Slack对话变成任务，从工作区运行智能体，让队友在工作开始的地方保持同步。"
 
@@ -16415,6 +16433,9 @@ msgstr "正在等待 {0} 和 {1}…"
 msgid "Waiting for Checks"
 msgstr "等待检查"
 
+msgid "Waiting for it to connect…"
+msgstr "正在等待连接…"
+
 msgid "Waiting for Review"
 msgstr "等待审查"
 
@@ -16460,11 +16481,17 @@ msgstr "我们无法从你的支付方式扣款。请更新支付方式以保留
 msgid "We couldn't detect a package manager or environment config."
 msgstr "我们没有检测到包管理器或环境配置。"
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "无法连接到Superset以确认它是否在线。请检查网络连接后重试。"
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "暂时无法连接到设备，请稍后重试。"
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "我们不预测2026或2027年实现完全自动驾驶。诚实地讲，未知数有三个：智能体审查能否扛住对抗性的复杂度；规格说明能否在大规模场景下取代读代码，成为信任的锚点；以及算力成本能否让夜班始终比它所增强的人力更便宜。F5写进评分表，是为了在它出现时能认出来，而不是一个承诺。"
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "已找到{hostName}。在那台电脑上开启远程访问即可完成。"
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "我们只收集分析类cookie，用于改进你的使用体验。"

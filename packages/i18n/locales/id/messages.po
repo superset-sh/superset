@@ -2863,6 +2863,9 @@ msgstr "Bisakah saya memakai kunci API saya sendiri?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Bisakah kamu menyeragamkan tooltip di seluruh aplikasi?"
 
+msgid "Can’t check {hostName}"
+msgstr "Tidak dapat memeriksa {hostName}"
+
 msgid "Can't connect right now"
 msgstr "Belum bisa terhubung"
 
@@ -6679,9 +6682,6 @@ msgstr "selesai · bekerja 7 dtk"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "Tampilan masuk pertama → auth → onboarding → workspace nyata (7h terakhir, jendela 2h)"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "Baru pertama kali? Aktifkan Akses Jarak Jauh di aplikasi desktop pada Pengaturan → Akses Jarak Jauh."
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "Tampilan halaman pertama kali di superset.sh, harian"
 
@@ -7095,6 +7095,9 @@ msgstr "Ke halaman berikutnya"
 
 msgid "Go to previous page"
 msgstr "Ke halaman sebelumnya"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "Buka Pengaturan, lalu Akses Jarak Jauh"
 
 msgid "Go to Slack integration settings"
 msgstr "Ke pengaturan integrasi Slack"
@@ -7879,6 +7882,9 @@ msgstr "URL issue harus cocok dengan {repoMismatch}."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "Mungkin sedang tidur"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Mungkin sudah dihapus, atau milik organisasi lain."
 
@@ -7899,9 +7905,6 @@ msgstr "Branch dan salinan file tersendiri"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Workspace dan terminalnya tidak tersedia sampai layanan ini dimulai ulang — pakai menu tray Superset > Host Service > Restart."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "Workspace-nya akan muncul saat tersambung lagi."
 
 msgid "Jane Doe"
 msgstr "Jane Doe"
@@ -8095,6 +8098,9 @@ msgstr "Run terakhir"
 
 msgid "Last seen"
 msgstr "Terakhir terlihat"
+
+msgid "Last seen {lastSeen}"
+msgstr "Terakhir terlihat: {lastSeen}"
 
 msgid "Last updated"
 msgstr "Terakhir diperbarui"
@@ -10108,6 +10114,9 @@ msgstr "Termasuk seratus orang pertama di papan"
 msgid "one of the selected repositories"
 msgstr "salah satu repositori yang dipilih"
 
+msgid "One step left"
+msgstr "Tinggal satu langkah"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Satu workspace untuk Claude Code, Codex, dan agen coding apa pun."
 
@@ -10518,6 +10527,9 @@ msgstr "Buka opsi pengiriman"
 
 msgid "Open Superset"
 msgstr "Buka Superset"
+
+msgid "Open Superset on that computer"
+msgstr "Buka Superset di komputer itu"
 
 msgid "Open System Settings"
 msgstr "Buka System Settings"
@@ -11923,6 +11935,9 @@ msgstr "Akses jarak jauh"
 
 msgid "Remote Access"
 msgstr "Akses Jarak Jauh"
+
+msgid "Remote Access may be off"
+msgstr "Akses Jarak Jauh mungkin nonaktif"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Server MCP remote — terhubung lewat HTTP"
@@ -13345,9 +13360,6 @@ msgstr "Siapkan proyek di {hostName}"
 msgid "Set up project…"
 msgstr "Siapkan proyek…"
 
-msgid "Set up remote access"
-msgstr "Siapkan akses jarak jauh"
-
 msgid "Set up this project for Superset"
 msgstr "Siapkan proyek ini untuk Superset"
 
@@ -14409,6 +14421,9 @@ msgstr "Superset adalah meja kerja untuk transisi F3 ke F4: agen paralel di work
 
 msgid "Superset isn't on Windows yet"
 msgstr "Superset baru tersedia untuk Mac"
+
+msgid "Superset may be closed"
+msgstr "Superset mungkin ditutup"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset mungkin memasukkan Anda lagi setelah mulai ulang. Silakan coba keluar sekali lagi."
@@ -15777,6 +15792,9 @@ msgstr "Ubah pekerjaan rutin jadi agen terjadwal: triase issue, draf changelog, 
 msgid "Turn failed{0}"
 msgstr "Giliran gagal{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "Aktifkan “Izinkan akses jarak jauh ke perangkat ini melalui relay”"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Ubah percakapan Slack menjadi tugas, jalankan agen dari workspace Anda, dan libatkan rekan tim di tempat pekerjaan dimulai."
 
@@ -16415,6 +16433,9 @@ msgstr "menunggu {0} dan {1}…"
 msgid "Waiting for Checks"
 msgstr "Menunggu Check"
 
+msgid "Waiting for it to connect…"
+msgstr "Menunggu terhubung…"
+
 msgid "Waiting for Review"
 msgstr "Menunggu Review"
 
@@ -16460,11 +16481,17 @@ msgstr "Kami tidak bisa menagih metode pembayaran Anda. Perbarui untuk mempertah
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Kami tidak menemukan package manager atau konfigurasi environment."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "Kami tidak dapat menghubungi Superset untuk melihat apakah perangkat ini online. Periksa koneksi Anda dan coba lagi."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "Perangkat tidak dapat dijangkau. Coba lagi sebentar lagi."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "Kami tidak memperkirakan full self-driving pada 2026 atau 2027. Yang jujur belum diketahui: apakah review oleh agen bertahan menghadapi kompleksitas yang bermusuhan, apakah spesifikasi bisa menggantikan pembacaan kode sebagai jangkar kepercayaan dalam skala besar, dan apakah ekonomi komputasi menjaga shift malam tetap lebih murah daripada manusia yang dibantunya. F5 adalah entri rubrik supaya kami mengenalinya saat melihatnya, bukan sebuah janji."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "Kami menemukan {hostName}. Aktifkan Akses Jarak Jauh di sana untuk menyelesaikan."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "Kami hanya mengumpulkan cookie analitik agar bisa meningkatkan pengalaman Anda."

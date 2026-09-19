@@ -519,6 +519,7 @@
         "@expo/vector-icons": "15.1.1",
         "@formatjs/intl-locale": "5.3.10",
         "@formatjs/intl-pluralrules": "6.3.13",
+        "@formatjs/intl-relativetimeformat": "12.3.15",
         "@legendapp/list": "3.0.3",
         "@lingui/core": "6.6.0",
         "@lingui/react": "6.6.0",
@@ -2074,6 +2075,8 @@
     "@formatjs/intl-localematcher": ["@formatjs/intl-localematcher@0.8.13", "", { "dependencies": { "@formatjs/fast-memoize": "3.1.7" } }, "sha512-kHEAFOkeJSPNi7c5PaKaRjxcBrJwzzt81ifUu+8uve1EDW/VJl83KsxmqgqNZLzcFEhSliZGvx3+pk/RH0IOmg=="],
 
     "@formatjs/intl-pluralrules": ["@formatjs/intl-pluralrules@6.3.13", "", { "dependencies": { "@formatjs/bigdecimal": "0.2.7", "@formatjs/intl-localematcher": "0.8.13" } }, "sha512-78dxY4nu4BbB9J7WqqIFzr1EbhrbB6VE4KOGw4qlmX+IpS6YPM7tVYLLhDq7qOQCzq9+741iDMrgB1JlhHUM/Q=="],
+
+    "@formatjs/intl-relativetimeformat": ["@formatjs/intl-relativetimeformat@12.3.15", "", { "dependencies": { "@formatjs/intl-localematcher": "0.9.0" } }, "sha512-AUn+GJmU4z0098f4K8VYTxrOl0hfoTzXVeO0MmunJbn9fP5u0hSK2i8LntLQnediQ1oJDL8pyqZMWCBBSAhPDA=="],
 
     "@formatjs/intl-supportedvaluesof": ["@formatjs/intl-supportedvaluesof@2.3.9", "", { "dependencies": { "@formatjs/fast-memoize": "3.1.7" } }, "sha512-RquyMkDVrJ5c0fYJSehVfzp7fWELH7vWY4nIvCoEchkDA32Mdm06ms6QvWdW+slECykCmoG4p8SLhwOKj2nCcg=="],
 
@@ -6916,6 +6919,8 @@
     "@expo/prebuild-config/xml2js": ["xml2js@0.6.0", "", { "dependencies": { "sax": ">=0.6.0", "xmlbuilder": "~11.0.0" } }, "sha512-eLTh0kA8uHceqesPqSE+VvO1CDDJWMwlQfB6LuN6T8w6MaDJ8Txm8P7s5cHD0miF0V+GGTZrDQfxPZQVsur33w=="],
 
     "@expo/xcpretty/chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
+
+    "@formatjs/intl-relativetimeformat/@formatjs/intl-localematcher": ["@formatjs/intl-localematcher@0.9.0", "", { "dependencies": { "@formatjs/fast-memoize": "3.1.7" } }, "sha512-Z7TD3ssNry1Av1dVDoq/mzpxGyxqWwU0ClWEo+BB3k0JQTeQvUGmeK9WZGYvlqStS0UqkaKXk3dfjsb6NaHAxw=="],
 
     "@gorhom/portal/nanoid": ["nanoid@3.3.18", "", { "bin": { "nanoid": "bin/nanoid.cjs" } }, "sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w=="],
 

@@ -2863,6 +2863,9 @@ msgstr "Tôi có thể dùng khóa API của mình không?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Bạn chuẩn hóa tooltip trên toàn ứng dụng được không?"
 
+msgid "Can’t check {hostName}"
+msgstr "Không thể kiểm tra {hostName}"
+
 msgid "Can't connect right now"
 msgstr "Chưa thể kết nối lúc này"
 
@@ -6679,9 +6682,6 @@ msgstr "đã xong · làm trong 7s"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "Lượt xem đăng nhập đầu tiên → xác thực → onboarding → workspace thực (7 ngày qua, cửa sổ 2 ngày)"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "Lần đầu ở đây? Bật Truy cập từ xa trong ứng dụng trên máy tính tại Cài đặt → Truy cập từ xa."
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "Lượt xem trang đầu tiên trên superset.sh, theo ngày"
 
@@ -7095,6 +7095,9 @@ msgstr "Tới trang sau"
 
 msgid "Go to previous page"
 msgstr "Tới trang trước"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "Vào Cài đặt, rồi Truy cập từ xa"
 
 msgid "Go to Slack integration settings"
 msgstr "Tới cài đặt tích hợp Slack"
@@ -7879,6 +7882,9 @@ msgstr "URL của issue phải khớp với {repoMismatch}."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "Máy có thể đang ngủ"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Có thể nó đã bị xóa, hoặc thuộc về một tổ chức khác."
 
@@ -7899,9 +7905,6 @@ msgstr "Nhánh riêng và bản sao tệp riêng"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Các workspace và terminal của nó không khả dụng cho đến khi khởi động lại — dùng menu khay Superset > Host Service > Restart."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "Các workspace của nó sẽ xuất hiện khi kết nối lại."
 
 msgid "Jane Doe"
 msgstr "Nguyễn Văn A"
@@ -8095,6 +8098,9 @@ msgstr "Chạy lần cuối"
 
 msgid "Last seen"
 msgstr "Lần cuối trực tuyến"
+
+msgid "Last seen {lastSeen}"
+msgstr "Lần cuối trực tuyến: {lastSeen}"
 
 msgid "Last updated"
 msgstr "Cập nhật lần cuối"
@@ -10108,6 +10114,9 @@ msgstr "Một trong một trăm người đầu tiên trên bảng"
 msgid "one of the selected repositories"
 msgstr "một trong các repository đã chọn"
 
+msgid "One step left"
+msgstr "Còn một bước nữa"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Một workspace cho Claude Code, Codex và mọi coding agent."
 
@@ -10518,6 +10527,9 @@ msgstr "Mở tùy chọn gửi"
 
 msgid "Open Superset"
 msgstr "Mở Superset"
+
+msgid "Open Superset on that computer"
+msgstr "Mở Superset trên máy tính đó"
 
 msgid "Open System Settings"
 msgstr "Mở System Settings"
@@ -11923,6 +11935,9 @@ msgstr "Truy cập từ xa"
 
 msgid "Remote Access"
 msgstr "Truy cập từ xa"
+
+msgid "Remote Access may be off"
+msgstr "Truy cập từ xa có thể đang tắt"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Server MCP từ xa — kết nối qua HTTP"
@@ -13345,9 +13360,6 @@ msgstr "Thiết lập dự án trên {hostName}"
 msgid "Set up project…"
 msgstr "Thiết lập dự án…"
 
-msgid "Set up remote access"
-msgstr "Thiết lập truy cập từ xa"
-
 msgid "Set up this project for Superset"
 msgstr "Thiết lập dự án này cho Superset"
 
@@ -14409,6 +14421,9 @@ msgstr "Superset là bàn làm việc cho bước chuyển F3 sang F4: agent ch�
 
 msgid "Superset isn't on Windows yet"
 msgstr "Hiện Superset chỉ có trên Mac"
+
+msgid "Superset may be closed"
+msgstr "Superset có thể đã đóng"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset có thể đăng nhập lại cho bạn sau khi khởi động lại. Vui lòng thử đăng xuất lần nữa."
@@ -15777,6 +15792,9 @@ msgstr "Biến việc lặt vặt thành agent chạy theo lịch: phân loại 
 msgid "Turn failed{0}"
 msgstr "Lượt xử lý thất bại{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "Bật “Cho phép truy cập từ xa vào thiết bị này qua relay”"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Biến hội thoại Slack thành tác vụ, chạy agent từ workspace của bạn và giữ đồng đội nắm thông tin ngay nơi công việc bắt đầu."
 
@@ -16415,6 +16433,9 @@ msgstr "đang chờ {0} và {1}…"
 msgid "Waiting for Checks"
 msgstr "Đang chờ check"
 
+msgid "Waiting for it to connect…"
+msgstr "Đang chờ kết nối…"
+
 msgid "Waiting for Review"
 msgstr "Đang chờ review"
 
@@ -16460,11 +16481,17 @@ msgstr "Chúng tôi không thể trừ tiền từ phương thức thanh toán c
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Chúng tôi không phát hiện được trình quản lý gói hay cấu hình môi trường."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "Chúng tôi không thể kết nối tới Superset để xem máy có trực tuyến không. Hãy kiểm tra kết nối và thử lại."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "Không thể kết nối với thiết bị. Vui lòng thử lại sau giây lát."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "Chúng tôi không dự báo tự vận hành hoàn toàn vào năm 2026 hay 2027. Những ẩn số thành thật: liệu agent review có trụ được trước độ phức tạp đối kháng hay không, liệu đặc tả có thay được việc đọc code làm chỗ dựa niềm tin ở quy mô lớn hay không, và liệu kinh tế điện toán có giữ cho ca đêm rẻ hơn những con người mà nó hỗ trợ hay không. F5 là một mục trong thang chấm để ta nhận ra khi nó xảy ra, không phải một lời hứa."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "Đã tìm thấy {hostName}. Bật Truy cập từ xa trên máy đó để hoàn tất."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "Chúng tôi chỉ thu thập cookie phân tích để cải thiện trải nghiệm của bạn."

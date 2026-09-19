@@ -2863,6 +2863,9 @@ msgstr "Kan ik mijn eigen API-sleutels gebruiken?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Kun je de tooltips in de hele app standaardiseren?"
 
+msgid "Can’t check {hostName}"
+msgstr "Kan {hostName} niet controleren"
+
 msgid "Can't connect right now"
 msgstr "Verbinden lukt nu even niet"
 
@@ -6679,9 +6682,6 @@ msgstr "klaar · 7s gewerkt"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "Eerste weergave inlogscherm → auth → onboarding → echte werkruimte (laatste 7d, venster van 2d)"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "Voor het eerst hier? Zet externe toegang aan in de desktopapp onder Instellingen → Externe toegang."
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "Allereerste paginaweergave op superset.sh, dagelijks"
 
@@ -7095,6 +7095,9 @@ msgstr "Naar de volgende pagina"
 
 msgid "Go to previous page"
 msgstr "Naar de vorige pagina"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "Ga naar Instellingen en dan Externe toegang"
 
 msgid "Go to Slack integration settings"
 msgstr "Naar de instellingen van de Slack-integratie"
@@ -7879,6 +7882,9 @@ msgstr "Issue-URL moet overeenkomen met {repoMismatch}."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "Hij staat mogelijk in sluimerstand"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Mogelijk is die verwijderd, of hoort die bij een andere organisatie."
 
@@ -7899,9 +7905,6 @@ msgstr "Een eigen branch en een eigen kopie van de bestanden"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "De werkruimtes en terminals zijn niet beschikbaar tot de service opnieuw start — gebruik het Superset-menu in de menubalk > Hostservice > Opnieuw starten."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "De werkruimtes verschijnen zodra de host weer verbinding maakt."
 
 msgid "Jane Doe"
 msgstr "Jan Jansen"
@@ -8095,6 +8098,9 @@ msgstr "Laatste run"
 
 msgid "Last seen"
 msgstr "Laatst gezien"
+
+msgid "Last seen {lastSeen}"
+msgstr "Laatst gezien: {lastSeen}"
 
 msgid "Last updated"
 msgstr "Laatst bijgewerkt"
@@ -10108,6 +10114,9 @@ msgstr "Bij de eerste honderd op het bord"
 msgid "one of the selected repositories"
 msgstr "een van de geselecteerde repository's"
 
+msgid "One step left"
+msgstr "Nog één stap"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Eén werkruimte voor Claude Code, Codex en elke andere coding agent."
 
@@ -10518,6 +10527,9 @@ msgstr "Verzendopties openen"
 
 msgid "Open Superset"
 msgstr "Superset openen"
+
+msgid "Open Superset on that computer"
+msgstr "Open Superset op die computer"
 
 msgid "Open System Settings"
 msgstr "Systeeminstellingen openen"
@@ -11923,6 +11935,9 @@ msgstr "Externe toegang"
 
 msgid "Remote Access"
 msgstr "Externe toegang"
+
+msgid "Remote Access may be off"
+msgstr "Externe toegang staat mogelijk uit"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Externe MCP-server — verbindt via HTTP"
@@ -13345,9 +13360,6 @@ msgstr "Project instellen op {hostName}"
 msgid "Set up project…"
 msgstr "Project instellen…"
 
-msgid "Set up remote access"
-msgstr "Externe toegang instellen"
-
 msgid "Set up this project for Superset"
 msgstr "Dit project instellen voor Superset"
 
@@ -14409,6 +14421,9 @@ msgstr "Superset is de werkbank voor de overgang van F3 naar F4: parallelle agen
 
 msgid "Superset isn't on Windows yet"
 msgstr "Superset is voorlopig alleen voor Mac"
+
+msgid "Superset may be closed"
+msgstr "Superset is mogelijk gesloten"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset logt je na een herstart mogelijk weer in. Probeer opnieuw uit te loggen."
@@ -15777,6 +15792,9 @@ msgstr "Zet klusjes om in geplande agents: issue-triage, changelog-concepten, de
 msgid "Turn failed{0}"
 msgstr "Beurt mislukt{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "Zet “Externe toegang tot dit apparaat via de relay toestaan” aan"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Zet Slack-gesprekken om in taken, laat agents draaien vanuit je werkruimte en houd teamgenoten op de hoogte waar het werk begint."
 
@@ -16415,6 +16433,9 @@ msgstr "wachten op {0} en {1}…"
 msgid "Waiting for Checks"
 msgstr "Wachten op checks"
 
+msgid "Waiting for it to connect…"
+msgstr "Wachten op verbinding…"
+
 msgid "Waiting for Review"
 msgstr "Wachten op review"
 
@@ -16460,11 +16481,17 @@ msgstr "We konden je betaalmethode niet belasten. Werk die bij om dit plan te be
 msgid "We couldn't detect a package manager or environment config."
 msgstr "We konden geen package manager of omgevingsconfiguratie detecteren."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "We konden Superset niet bereiken om te zien of hij online is. Controleer je verbinding en probeer het opnieuw."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "We konden het apparaat niet bereiken. Probeer het zo nog eens."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "We voorspellen geen volledige zelfsturing in 2026 of 2027. De eerlijke onbekenden: of agentreview standhoudt tegen vijandige complexiteit, of specificatie op schaal het lezen van code kan vervangen als vertrouwensanker, en of de rekeneconomie de nachtploeg goedkoper houdt dan de mensen die zij aanvult. F5 staat in de rubric zodat we het herkennen als we het zien, niet als belofte."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "We hebben {hostName} gevonden. Zet daar externe toegang aan om af te ronden."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "We verzamelen alleen analytische cookies zodat we je ervaring kunnen verbeteren."

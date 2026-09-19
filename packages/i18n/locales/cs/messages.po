@@ -2863,6 +2863,9 @@ msgstr "Můžu použít vlastní API klíče?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Můžeš sjednotit tooltipy napříč aplikací?"
 
+msgid "Can’t check {hostName}"
+msgstr "{hostName} nelze zkontrolovat"
+
 msgid "Can't connect right now"
 msgstr "Teď se nelze připojit"
 
@@ -6679,9 +6682,6 @@ msgstr "hotovo · pracoval 7 s"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "První zobrazení přihlášení → ověření → onboarding → skutečný pracovní prostor (posledních 7 d, okno 2 d)"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "Jste tu poprvé? Zapněte Vzdálený přístup v desktopové aplikaci v Nastavení → Vzdálený přístup."
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "První zobrazení stránky na superset.sh vůbec, denně"
 
@@ -7095,6 +7095,9 @@ msgstr "Přejít na další stránku"
 
 msgid "Go to previous page"
 msgstr "Přejít na předchozí stránku"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "Přejděte do Nastavení a pak do Vzdálený přístup"
 
 msgid "Go to Slack integration settings"
 msgstr "Přejít do nastavení integrace Slacku"
@@ -7879,6 +7882,9 @@ msgstr "URL issue musí odpovídat {repoMismatch}."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "Možná je uspaný"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Mohla být smazána nebo patří jiné organizaci."
 
@@ -7899,9 +7905,6 @@ msgstr "Vlastní větev a vlastní kopie souborů"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Její pracovní prostory a terminály nebudou dostupné, dokud se nerestartuje — použijte nabídku Superset na liště > Host Service > Restart."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "Jeho pracovní prostory se objeví, až se znovu připojí."
 
 msgid "Jane Doe"
 msgstr "Jan Novák"
@@ -8095,6 +8098,9 @@ msgstr "Poslední běh"
 
 msgid "Last seen"
 msgstr "Naposledy viděn"
+
+msgid "Last seen {lastSeen}"
+msgstr "Naposledy viděn: {lastSeen}"
 
 msgid "Last updated"
 msgstr "Naposledy aktualizováno"
@@ -10108,6 +10114,9 @@ msgstr "Mezi první stovkou v žebříčku"
 msgid "one of the selected repositories"
 msgstr "jeden z vybraných repozitářů"
 
+msgid "One step left"
+msgstr "Zbývá jeden krok"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Jeden pracovní prostor pro Claude Code, Codex a jakéhokoli kódovacího agenta."
 
@@ -10518,6 +10527,9 @@ msgstr "Otevřít možnosti odeslání"
 
 msgid "Open Superset"
 msgstr "Otevřít Superset"
+
+msgid "Open Superset on that computer"
+msgstr "Otevřete Superset na tomto počítači"
 
 msgid "Open System Settings"
 msgstr "Otevřít Nastavení systému"
@@ -11923,6 +11935,9 @@ msgstr "Vzdálený přístup"
 
 msgid "Remote Access"
 msgstr "Vzdálený přístup"
+
+msgid "Remote Access may be off"
+msgstr "Vzdálený přístup může být vypnutý"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Vzdálený MCP server — připojuje se přes HTTP"
@@ -13345,9 +13360,6 @@ msgstr "Nastavit projekt na {hostName}"
 msgid "Set up project…"
 msgstr "Nastavit projekt…"
 
-msgid "Set up remote access"
-msgstr "Nastavit vzdálený přístup"
-
 msgid "Set up this project for Superset"
 msgstr "Připravit tento projekt pro Superset"
 
@@ -14409,6 +14421,9 @@ msgstr "Superset je pracovní stůl pro přechod z F3 na F4: paralelní agenti v
 
 msgid "Superset isn't on Windows yet"
 msgstr "Superset je zatím jen pro Mac"
+
+msgid "Superset may be closed"
+msgstr "Superset může být zavřený"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset vás po restartu možná znovu přihlásí. Zkuste se prosím odhlásit znovu."
@@ -15777,6 +15792,9 @@ msgstr "Proměňte rutinu v naplánované agenty: třídění issues, návrhy ch
 msgid "Turn failed{0}"
 msgstr "Tah selhal{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "Zapněte „Povolit vzdálený přístup k tomuto zařízení přes relay“"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Proměňte konverzace ve Slacku v úkoly, spouštějte agenty ze svého pracovního prostoru a držte kolegy v obraze tam, kde práce začíná."
 
@@ -16415,6 +16433,9 @@ msgstr "čeká se na {0} a {1}…"
 msgid "Waiting for Checks"
 msgstr "Čeká na kontroly"
 
+msgid "Waiting for it to connect…"
+msgstr "Čeká se na připojení…"
+
 msgid "Waiting for Review"
 msgstr "Čeká na revizi"
 
@@ -16460,11 +16481,17 @@ msgstr "Nepodařilo se strhnout platbu z vašeho způsobu platby. Aktualizujte h
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Nepodařilo se rozpoznat správce balíčků ani konfiguraci prostředí."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "Nepodařilo se spojit se Supersetem a zjistit, jestli je online. Zkontrolujte připojení a zkuste to znovu."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "K zařízení se nepodařilo připojit. Zkuste to za chvíli znovu."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "Neslibujeme plnou autonomii v roce 2026 ani 2027. Poctivé neznámé: zda obstojí revize agentem proti nepřátelské složitosti, zda specifikace ve velkém nahradí čtení kódu jako kotvu důvěry a zda ekonomika výpočtů udrží noční směnu levnější než lidi, které doplňuje. F5 je položka v rubrice, abychom ji poznali, až ji uvidíme — ne slib."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "Našli jsme {hostName}. Dokončete to zapnutím Vzdáleného přístupu na něm."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "Sbíráme jen analytické cookies, abychom mohli zlepšovat vaši zkušenost."

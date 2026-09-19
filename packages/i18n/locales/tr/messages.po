@@ -2863,6 +2863,9 @@ msgstr "Kendi API anahtarlarımı kullanabilir miyim?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Uygulama genelindeki tooltip'leri standartlaştırabilir misin?"
 
+msgid "Can’t check {hostName}"
+msgstr "{hostName} kontrol edilemiyor"
+
 msgid "Can't connect right now"
 msgstr "Şu anda bağlanamıyoruz"
 
@@ -6679,9 +6682,6 @@ msgstr "bitti · 7 sn çalıştı"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "İlk oturum açma görünümü → kimlik doğrulama → ilk kurulum → gerçek çalışma alanı (son 7g, 2g pencere)"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "İlk kez mi buradasınız? Masaüstü uygulamasında Ayarlar → Uzaktan erişim bölümünden uzaktan erişimi açın."
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "superset.sh üzerinde günlük ilk kez sayfa görüntüleme"
 
@@ -7095,6 +7095,9 @@ msgstr "Sonraki sayfaya git"
 
 msgid "Go to previous page"
 msgstr "Önceki sayfaya git"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "Ayarlar'a, ardından Uzaktan erişim'e gidin"
 
 msgid "Go to Slack integration settings"
 msgstr "Slack entegrasyon ayarlarına git"
@@ -7879,6 +7882,9 @@ msgstr "Issue URL'si {repoMismatch} ile eşleşmeli."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "Uykuda olabilir"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Silinmiş olabilir veya başka bir kuruluşa ait olabilir."
 
@@ -7899,9 +7905,6 @@ msgstr "Kendi dalı ve dosyaların kendi kopyası"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Yeniden başlayana kadar çalışma alanları ve terminalleri kullanılamaz — Superset tepsi menüsünde Host hizmeti > Yeniden başlat yolunu kullanın."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "Yeniden bağlandığında çalışma alanları görünecek."
 
 msgid "Jane Doe"
 msgstr "Ayşe Yılmaz"
@@ -8095,6 +8098,9 @@ msgstr "Son çalıştırma"
 
 msgid "Last seen"
 msgstr "Son görülme"
+
+msgid "Last seen {lastSeen}"
+msgstr "Son görülme: {lastSeen}"
 
 msgid "Last updated"
 msgstr "Son güncelleme"
@@ -10108,6 +10114,9 @@ msgstr "Tablodaki ilk yüz kişiden biri"
 msgid "one of the selected repositories"
 msgstr "seçili depolardan biri"
 
+msgid "One step left"
+msgstr "Bir adım kaldı"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Claude Code, Codex ve her kodlama ajanı için tek bir çalışma alanı."
 
@@ -10518,6 +10527,9 @@ msgstr "Gönderim seçeneklerini aç"
 
 msgid "Open Superset"
 msgstr "Superset'i aç"
+
+msgid "Open Superset on that computer"
+msgstr "O bilgisayarda Superset'i açın"
 
 msgid "Open System Settings"
 msgstr "Sistem Ayarları'nı aç"
@@ -11923,6 +11935,9 @@ msgstr "Uzak erişim"
 
 msgid "Remote Access"
 msgstr "Uzaktan erişim"
+
+msgid "Remote Access may be off"
+msgstr "Uzaktan erişim kapalı olabilir"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Uzak MCP sunucusu — HTTP üzerinden bağlanır"
@@ -13345,9 +13360,6 @@ msgstr "{hostName} üzerinde projeyi kur"
 msgid "Set up project…"
 msgstr "Projeyi kur…"
 
-msgid "Set up remote access"
-msgstr "Uzaktan erişimi ayarla"
-
 msgid "Set up this project for Superset"
 msgstr "Bu projeyi Superset için kur"
 
@@ -14409,6 +14421,9 @@ msgstr "Superset, F3'ten F4'e geçişin tezgâhıdır: yalıtılmış çalışma
 
 msgid "Superset isn't on Windows yet"
 msgstr "Superset şimdilik yalnızca Mac'te"
+
+msgid "Superset may be closed"
+msgstr "Superset kapalı olabilir"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset yeniden başlattıktan sonra sizi tekrar oturuma alabilir. Lütfen yeniden oturum kapatmayı deneyin."
@@ -15777,6 +15792,9 @@ msgstr "Rutin işleri zamanlanmış ajanlara dönüştürün: issue sınıfland�
 msgid "Turn failed{0}"
 msgstr "Tur başarısız{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "“Bu cihaza röle üzerinden uzaktan erişime izin ver” seçeneğini açın"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Slack konuşmalarını göreve dönüştürün, çalışma alanınızdan ajan çalıştırın ve takım arkadaşlarınızı işin başladığı yerde haberdar edin."
 
@@ -16415,6 +16433,9 @@ msgstr "{0} ve {1} bekleniyor…"
 msgid "Waiting for Checks"
 msgstr "Kontroller bekleniyor"
 
+msgid "Waiting for it to connect…"
+msgstr "Bağlanması bekleniyor…"
+
 msgid "Waiting for Review"
 msgstr "İnceleme bekleniyor"
 
@@ -16460,11 +16481,17 @@ msgstr "Ödeme yönteminizden tahsilat yapamadık. Bu planı sürdürmek için g
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Bir paket yöneticisi veya ortam yapılandırması bulamadık."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "Çevrimiçi olup olmadığını görmek için Superset'e ulaşamadık. Bağlantınızı kontrol edip tekrar deneyin."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "Cihaza ulaşamadık. Lütfen birazdan tekrar deneyin."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "2026 veya 2027'de tam otonomi öngörmüyoruz. Dürüst bilinmezler şunlar: ajan incelemesinin düşmanca karmaşıklık karşısında dayanıp dayanmayacağı, spesifikasyonun ölçekte kod okumanın yerini güven çıpası olarak alıp alamayacağı ve işlem ekonomisinin gece vardiyasını desteklediği insanlardan ucuz tutup tutmayacağı. F5, gördüğümüzde tanıyabilelim diye bir değerlendirme maddesidir, bir vaat değil."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "{hostName} bulundu. Tamamlamak için orada uzaktan erişimi açın."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "Deneyiminizi iyileştirebilmek için yalnızca analiz çerezleri topluyoruz."

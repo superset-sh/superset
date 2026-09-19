@@ -2863,6 +2863,9 @@ msgstr "Можно использовать свои ключи API?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Можешь стандартизировать подсказки во всём приложении?"
 
+msgid "Can’t check {hostName}"
+msgstr "Не удаётся проверить {hostName}"
+
 msgid "Can't connect right now"
 msgstr "Сейчас не удаётся подключиться"
 
@@ -6679,9 +6682,6 @@ msgstr "завершил · работал 7 с"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "Первый показ экрана входа → аутентификация → онбординг → реальная рабочая область (за 7 дн., окно 2 дн.)"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "Впервые здесь? Включите удалённый доступ в десктопном приложении: Настройки → Удалённый доступ."
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "Первый в истории просмотр страницы на superset.sh, по дням"
 
@@ -7095,6 +7095,9 @@ msgstr "На следующую страницу"
 
 msgid "Go to previous page"
 msgstr "На предыдущую страницу"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "Откройте Настройки, затем Удалённый доступ"
 
 msgid "Go to Slack integration settings"
 msgstr "Перейти к настройкам интеграции Slack"
@@ -7879,6 +7882,9 @@ msgstr "URL задачи должен соответствовать {repoMismat
 msgid "Issue…"
 msgstr "Задача…"
 
+msgid "It may be asleep"
+msgstr "Возможно, компьютер в режиме сна"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Возможно, она удалена или принадлежит другой организации."
 
@@ -7899,9 +7905,6 @@ msgstr "Собственная ветка и собственная копия �
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Её рабочие области и терминалы недоступны до перезапуска — откройте меню Superset в трее > Host Service > Restart."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "Его рабочие области появятся, когда он снова подключится."
 
 msgid "Jane Doe"
 msgstr "Иван Иванов"
@@ -8095,6 +8098,9 @@ msgstr "Последний запуск"
 
 msgid "Last seen"
 msgstr "Последний раз в сети"
+
+msgid "Last seen {lastSeen}"
+msgstr "Последний раз в сети: {lastSeen}"
 
 msgid "Last updated"
 msgstr "Обновлено"
@@ -10108,6 +10114,9 @@ msgstr "В числе первых ста в рейтинге"
 msgid "one of the selected repositories"
 msgstr "один из выбранных репозиториев"
 
+msgid "One step left"
+msgstr "Остался один шаг"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Одна рабочая область для Claude Code, Codex и любого кодового агента."
 
@@ -10518,6 +10527,9 @@ msgstr "Открыть параметры отправки"
 
 msgid "Open Superset"
 msgstr "Открыть Superset"
+
+msgid "Open Superset on that computer"
+msgstr "Откройте Superset на этом компьютере"
 
 msgid "Open System Settings"
 msgstr "Открыть Системные настройки"
@@ -11923,6 +11935,9 @@ msgstr "Удалённый доступ"
 
 msgid "Remote Access"
 msgstr "Удалённый доступ"
+
+msgid "Remote Access may be off"
+msgstr "Возможно, удалённый доступ выключен"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Удалённый сервер MCP — подключается по HTTP"
@@ -13345,9 +13360,6 @@ msgstr "Настроить проект на {hostName}"
 msgid "Set up project…"
 msgstr "Настроить проект…"
 
-msgid "Set up remote access"
-msgstr "Настроить удалённый доступ"
-
 msgid "Set up this project for Superset"
 msgstr "Настроить этот проект под Superset"
 
@@ -14409,6 +14421,9 @@ msgstr "Superset — верстак для перехода от F3 к F4: па�
 
 msgid "Superset isn't on Windows yet"
 msgstr "Пока Superset работает только на Mac"
+
+msgid "Superset may be closed"
+msgstr "Возможно, Superset закрыт"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset может снова выполнить вход после перезапуска. Попробуйте выйти ещё раз."
@@ -15777,6 +15792,9 @@ msgstr "Превратите рутину в агентов по расписа�
 msgid "Turn failed{0}"
 msgstr "Ход завершился ошибкой{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "Включите «Разрешить удалённый доступ к этому устройству через реле»"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Превращайте обсуждения в Slack в задачи, запускайте агентов из рабочей области и держите команду в курсе там, где начинается работа."
 
@@ -16415,6 +16433,9 @@ msgstr "ожидание {0} и {1}…"
 msgid "Waiting for Checks"
 msgstr "Ожидание проверок"
 
+msgid "Waiting for it to connect…"
+msgstr "Ожидание подключения…"
+
 msgid "Waiting for Review"
 msgstr "Ожидание ревью"
 
@@ -16460,11 +16481,17 @@ msgstr "Не удалось списать средства с вашего сп
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Не удалось определить пакетный менеджер или конфигурацию окружения."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "Не удалось связаться с Superset, чтобы узнать, в сети ли он. Проверьте подключение и попробуйте снова."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "Не удалось связаться с устройством. Попробуйте ещё раз через минуту."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "Мы не прогнозируем полную автономность в 2026 или 2027 году. Честные неизвестные: выдержит ли ревью агентами враждебную сложность, сможет ли спецификация заменить чтение кода как якорь доверия в масштабе и останется ли ночная смена по экономике вычислений дешевле людей, которых она усиливает. F5 — пункт рубрики, чтобы мы узнали его, когда увидим, а не обещание."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "Мы нашли {hostName}. Включите на нём удалённый доступ, чтобы завершить."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "Мы собираем только аналитические cookies, чтобы улучшать ваш опыт."

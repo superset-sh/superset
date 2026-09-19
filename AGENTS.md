@@ -191,8 +191,8 @@ in the commit message and the PR.
 
 ## Further reading
 
-- `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching
-  `SKILL.md` when a task fits its description.
+- `.agents/skills/`: CDP UI verification, mobile simulator verification, DB migrations, ticket
+  format, and more. Read the matching `SKILL.md` when a task fits its description.
 - `docs/agent-tooling.md`: where commands, skills, and per-agent-CLI config live.
 - `docs/plugins.md`: authoring, publishing, and installing marketplace plugins — the manifest
   contract, the credential proxy, and which files are generated.

@@ -2863,6 +2863,9 @@ msgstr "제 API 키를 사용할 수 있나요?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "앱 전반의 툴팁을 표준화해 줄 수 있나요?"
 
+msgid "Can’t check {hostName}"
+msgstr "{hostName}을(를) 확인할 수 없습니다"
+
 msgid "Can't connect right now"
 msgstr "지금은 연결할 수 없어요"
 
@@ -6679,9 +6682,6 @@ msgstr "완료 · 7초 작업"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "첫 로그인 화면 → 인증 → 온보딩 → 실제 워크스페이스 (최근 7일, 2일 윈도우)"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "처음이신가요? 데스크톱 앱의 설정 → 원격 액세스에서 원격 액세스를 켜세요."
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "superset.sh 최초 페이지뷰, 일별"
 
@@ -7095,6 +7095,9 @@ msgstr "다음 페이지로 이동"
 
 msgid "Go to previous page"
 msgstr "이전 페이지로 이동"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "설정에서 원격 액세스로 이동"
 
 msgid "Go to Slack integration settings"
 msgstr "Slack 연동 설정으로 이동"
@@ -7879,6 +7882,9 @@ msgstr "이슈 URL이 {repoMismatch}과(와) 일치해야 합니다."
 msgid "Issue…"
 msgstr "이슈…"
 
+msgid "It may be asleep"
+msgstr "절전 모드일 수 있습니다"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "삭제되었거나 다른 조직에 속한 페이지일 수 있습니다."
 
@@ -7899,9 +7905,6 @@ msgstr "독립된 브랜치와 파일 사본"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "다시 시작할 때까지 해당 워크스페이스와 터미널을 사용할 수 없습니다. Superset 트레이 메뉴 > 호스트 서비스 > 다시 시작을 사용하세요."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "다시 연결되면 워크스페이스가 표시됩니다."
 
 msgid "Jane Doe"
 msgstr "홍길동"
@@ -8095,6 +8098,9 @@ msgstr "마지막 실행"
 
 msgid "Last seen"
 msgstr "마지막 접속"
+
+msgid "Last seen {lastSeen}"
+msgstr "마지막 확인: {lastSeen}"
 
 msgid "Last updated"
 msgstr "최종 업데이트"
@@ -10108,6 +10114,9 @@ msgstr "보드의 첫 100명 중 한 명"
 msgid "one of the selected repositories"
 msgstr "선택한 리포지토리 중 하나"
 
+msgid "One step left"
+msgstr "한 단계 남았습니다"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Claude Code, Codex, 그리고 모든 코딩 에이전트를 위한 하나의 워크스페이스."
 
@@ -10518,6 +10527,9 @@ msgstr "배포 옵션 열기"
 
 msgid "Open Superset"
 msgstr "Superset 열기"
+
+msgid "Open Superset on that computer"
+msgstr "해당 컴퓨터에서 Superset 열기"
 
 msgid "Open System Settings"
 msgstr "시스템 설정 열기"
@@ -11923,6 +11935,9 @@ msgstr "원격 접속"
 
 msgid "Remote Access"
 msgstr "원격 액세스"
+
+msgid "Remote Access may be off"
+msgstr "원격 액세스가 꺼져 있을 수 있습니다"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "원격 MCP 서버 — HTTP로 연결합니다"
@@ -13345,9 +13360,6 @@ msgstr "{hostName}에 프로젝트 설정"
 msgid "Set up project…"
 msgstr "프로젝트 설정…"
 
-msgid "Set up remote access"
-msgstr "원격 액세스 설정"
-
 msgid "Set up this project for Superset"
 msgstr "이 프로젝트를 Superset에 맞게 설정하기"
 
@@ -14409,6 +14421,9 @@ msgstr "Superset은 F3에서 F4로 넘어가는 전환기를 위한 작업대입
 
 msgid "Superset isn't on Windows yet"
 msgstr "현재 Superset은 Mac에서만 사용할 수 있습니다"
+
+msgid "Superset may be closed"
+msgstr "Superset이 종료되었을 수 있습니다"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "재시작 후 Superset이 다시 로그인할 수 있습니다. 로그아웃을 다시 시도해 주세요."
@@ -15777,6 +15792,9 @@ msgstr "반복 업무를 예약된 에이전트로 바꾸세요. 이슈 분류, 
 msgid "Turn failed{0}"
 msgstr "턴 실패{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "“릴레이를 통해 이 기기에 원격 액세스 허용” 켜기"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Slack 대화를 작업으로 바꾸고, 워크스페이스에서 에이전트를 실행하고, 일이 시작되는 곳에서 팀원과 상황을 공유하세요."
 
@@ -16415,6 +16433,9 @@ msgstr "{0}와 {1}을(를) 기다리는 중…"
 msgid "Waiting for Checks"
 msgstr "검사 대기 중"
 
+msgid "Waiting for it to connect…"
+msgstr "연결을 기다리는 중…"
+
 msgid "Waiting for Review"
 msgstr "리뷰 대기 중"
 
@@ -16460,11 +16481,17 @@ msgstr "결제 수단으로 청구하지 못했습니다. 이 플랜을 유지�
 msgid "We couldn't detect a package manager or environment config."
 msgstr "패키지 매니저나 환경 설정을 감지하지 못했습니다."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "온라인 상태인지 확인하기 위해 Superset에 연결하지 못했습니다. 연결을 확인하고 다시 시도하세요."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "기기에 연결하지 못했어요. 잠시 후 다시 시도해 주세요."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "2026년이나 2027년에 완전 자율 주행이 실현되리라고 예측하지는 않습니다. 솔직히 알 수 없는 부분이 있습니다. 에이전트 리뷰가 적대적인 복잡도를 견뎌 낼지, 대규모에서 명세가 코드 읽기를 대신해 신뢰의 기준이 될 수 있을지, 그리고 연산 비용이 야간 근무를 그것이 보완하는 사람보다 계속 저렴하게 유지할지입니다. F5는 약속이 아니라, 실제로 도달했을 때 알아보기 위한 평가 항목입니다."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "{hostName}을(를) 찾았습니다. 거기에서 원격 액세스를 켜면 완료됩니다."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "사용 경험 개선을 위한 분석 쿠키만 수집합니다."

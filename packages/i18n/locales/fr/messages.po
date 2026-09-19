@@ -2863,6 +2863,9 @@ msgstr "Puis-je utiliser mes propres clés d'API ?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Peux-tu uniformiser les tooltips dans toute l'application ?"
 
+msgid "Can’t check {hostName}"
+msgstr "Impossible de vérifier {hostName}"
+
 msgid "Can't connect right now"
 msgstr "Connexion impossible pour le moment"
 
@@ -6679,9 +6682,6 @@ msgstr "terminé · a travaillé 7 s"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "Première vue de connexion → auth → onboarding → espace de travail réel (7 derniers jours, fenêtre de 2 j)"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "Première fois ici ? Activez l'accès distant dans l'application de bureau, sous Paramètres → Accès distant."
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "Toute première page vue sur superset.sh, par jour"
 
@@ -7095,6 +7095,9 @@ msgstr "Aller à la page suivante"
 
 msgid "Go to previous page"
 msgstr "Aller à la page précédente"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "Allez dans Paramètres, puis Accès distant"
 
 msgid "Go to Slack integration settings"
 msgstr "Aller aux paramètres de l'intégration Slack"
@@ -7879,6 +7882,9 @@ msgstr "L'URL de l'issue doit correspondre à {repoMismatch}."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "Il est peut-être en veille"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Elle a peut-être été supprimée, ou elle appartient à une autre organisation."
 
@@ -7899,9 +7905,6 @@ msgstr "Sa propre branche et sa propre copie des fichiers"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Ses espaces de travail et terminaux sont indisponibles jusqu'à son redémarrage — utilisez le menu de la barre d'état Superset > Service hôte > Redémarrer."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "Ses espaces de travail apparaîtront lors de sa reconnexion."
 
 msgid "Jane Doe"
 msgstr "Jane Doe"
@@ -8095,6 +8098,9 @@ msgstr "Dernière exécution"
 
 msgid "Last seen"
 msgstr "Vu pour la dernière fois"
+
+msgid "Last seen {lastSeen}"
+msgstr "Vu pour la dernière fois : {lastSeen}"
 
 msgid "Last updated"
 msgstr "Dernière mise à jour"
@@ -10108,6 +10114,9 @@ msgstr "Parmi les cent premiers du classement"
 msgid "one of the selected repositories"
 msgstr "l'un des dépôts sélectionnés"
 
+msgid "One step left"
+msgstr "Plus qu'une étape"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Un seul espace de travail pour Claude Code, Codex et n'importe quel agent de code."
 
@@ -10518,6 +10527,9 @@ msgstr "Ouvrir les options d'envoi"
 
 msgid "Open Superset"
 msgstr "Ouvrir Superset"
+
+msgid "Open Superset on that computer"
+msgstr "Ouvrez Superset sur cet ordinateur"
 
 msgid "Open System Settings"
 msgstr "Ouvrir les Réglages Système"
@@ -11923,6 +11935,9 @@ msgstr "Accès à distance"
 
 msgid "Remote Access"
 msgstr "Accès distant"
+
+msgid "Remote Access may be off"
+msgstr "L'accès distant est peut-être désactivé"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Serveur MCP distant — se connecte via HTTP"
@@ -13345,9 +13360,6 @@ msgstr "Configurer le projet sur {hostName}"
 msgid "Set up project…"
 msgstr "Configurer le projet…"
 
-msgid "Set up remote access"
-msgstr "Configurer l'accès distant"
-
 msgid "Set up this project for Superset"
 msgstr "Configurer ce projet pour Superset"
 
@@ -14409,6 +14421,9 @@ msgstr "Superset est l'établi de la transition F3 vers F4 : des agents en paral
 
 msgid "Superset isn't on Windows yet"
 msgstr "Superset est réservé au Mac pour l'instant"
+
+msgid "Superset may be closed"
+msgstr "Superset est peut-être fermé"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset pourrait vous reconnecter après un redémarrage. Veuillez réessayer de vous déconnecter."
@@ -15777,6 +15792,9 @@ msgstr "Transformez les corvées en agents planifiés : tri des issues, brouillo
 msgid "Turn failed{0}"
 msgstr "Échec du tour{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "Activez « Autoriser l'accès distant à cet appareil via le relais »"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Transformez les conversations Slack en tâches, exécutez des agents depuis votre espace de travail et tenez vos coéquipiers informés là où le travail commence."
 
@@ -16415,6 +16433,9 @@ msgstr "en attente de {0} et {1}…"
 msgid "Waiting for Checks"
 msgstr "En attente des vérifications"
 
+msgid "Waiting for it to connect…"
+msgstr "En attente de la connexion…"
+
 msgid "Waiting for Review"
 msgstr "En attente de revue"
 
@@ -16460,11 +16481,17 @@ msgstr "Nous n'avons pas pu débiter votre moyen de paiement. Mettez-le à jour 
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Nous n'avons pas pu détecter de gestionnaire de paquets ni de configuration d'environnement."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "Nous n'avons pas pu joindre Superset pour voir s'il est en ligne. Vérifiez votre connexion et réessayez."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "Impossible de joindre l’appareil. Réessayez dans un instant."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "Nous ne prévoyons pas d'autonomie complète en 2026 ni en 2027. Les vraies inconnues : la revue par agents tiendra-t-elle face à une complexité adverse, la spécification pourra-t-elle remplacer la lecture du code comme ancrage de confiance à grande échelle, et l'économie du calcul gardera-t-elle l'équipe de nuit moins chère que les humains qu'elle épaule. F5 est une entrée de grille pour le reconnaître le jour venu, pas une promesse."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "Nous avons trouvé {hostName}. Activez-y l'accès distant pour terminer."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "Nous ne collectons que des cookies analytiques, afin d'améliorer votre expérience."

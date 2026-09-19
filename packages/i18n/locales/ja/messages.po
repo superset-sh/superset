@@ -2863,6 +2863,9 @@ msgstr "自分のAPIキーを使えますか?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "アプリ全体のtooltipを統一できますか?"
 
+msgid "Can’t check {hostName}"
+msgstr "{hostName}を確認できません"
+
 msgid "Can't connect right now"
 msgstr "現在接続できません"
 
@@ -6679,9 +6682,6 @@ msgstr "完了 · 7秒稼働"
 msgid "First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 msgstr "初回サインイン画面 → 認証 → オンボーディング → 実ワークスペース(直近7日、2日ウィンドウ)"
 
-msgid "First time here? Turn on Remote Access in the desktop app under Settings → Remote Access."
-msgstr "初めてですか？デスクトップアプリの設定 → リモートアクセスでリモートアクセスをオンにしてください。"
-
 msgid "First-ever pageview on superset.sh, daily"
 msgstr "superset.shでの初回ページビュー(日次)"
 
@@ -7095,6 +7095,9 @@ msgstr "次のページへ"
 
 msgid "Go to previous page"
 msgstr "前のページへ"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "設定からリモートアクセスを開く"
 
 msgid "Go to Slack integration settings"
 msgstr "Slack連携の設定へ"
@@ -7879,6 +7882,9 @@ msgstr "IssueのURLは{repoMismatch}と一致する必要があります。"
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "スリープ中かもしれません"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "削除されたか、別の組織に属している可能性があります。"
 
@@ -7899,9 +7905,6 @@ msgstr "独自のブランチとファイルのコピー"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "再起動するまで、そのワークスペースとターミナルは利用できません — Supersetのトレイメニューから「ホストサービス」>「再起動」を実行してください。"
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "再接続するとワークスペースが表示されます。"
 
 msgid "Jane Doe"
 msgstr "山田太郎"
@@ -8095,6 +8098,9 @@ msgstr "最終実行"
 
 msgid "Last seen"
 msgstr "最終確認"
+
+msgid "Last seen {lastSeen}"
+msgstr "最終確認: {lastSeen}"
 
 msgid "Last updated"
 msgstr "最終更新"
@@ -10108,6 +10114,9 @@ msgstr "ボード最初の100人のひとり"
 msgid "one of the selected repositories"
 msgstr "選択したリポジトリのいずれか"
 
+msgid "One step left"
+msgstr "あと1ステップ"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Claude Code、Codex、そしてあらゆるコーディングエージェントのための、ひとつのワークスペース。"
 
@@ -10518,6 +10527,9 @@ msgstr "送信オプションを開く"
 
 msgid "Open Superset"
 msgstr "Supersetを開く"
+
+msgid "Open Superset on that computer"
+msgstr "そのコンピュータでSupersetを開く"
 
 msgid "Open System Settings"
 msgstr "システム設定を開く"
@@ -11923,6 +11935,9 @@ msgstr "リモートアクセス"
 
 msgid "Remote Access"
 msgstr "リモートアクセス"
+
+msgid "Remote Access may be off"
+msgstr "リモートアクセスがオフかもしれません"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "リモートMCPサーバー — HTTP経由で接続"
@@ -13345,9 +13360,6 @@ msgstr "{hostName}でプロジェクトをセットアップ"
 msgid "Set up project…"
 msgstr "プロジェクトをセットアップ…"
 
-msgid "Set up remote access"
-msgstr "リモートアクセスを設定"
-
 msgid "Set up this project for Superset"
 msgstr "このプロジェクトをSuperset向けにセットアップ"
 
@@ -14409,6 +14421,9 @@ msgstr "Supersetは、F3からF4への移行のための作業台です。独立
 
 msgid "Superset isn't on Windows yet"
 msgstr "SupersetはまだWindowsに対応していません"
+
+msgid "Superset may be closed"
+msgstr "Supersetが終了しているかもしれません"
 
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "再起動後にSupersetが再びサインインする場合があります。もう一度サインアウトをお試しください。"
@@ -15777,6 +15792,9 @@ msgstr "面倒な作業をスケジュール実行のエージェントにしま
 msgid "Turn failed{0}"
 msgstr "ターンが失敗しました{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "「リレー経由でこのデバイスへのリモートアクセスを許可」をオンにする"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Slackの会話をタスクに変え、ワークスペースからエージェントを実行し、仕事が始まる場所でチームと共有できます。"
 
@@ -16415,6 +16433,9 @@ msgstr "{0}と{1}を待っています…"
 msgid "Waiting for Checks"
 msgstr "チェックを待機中"
 
+msgid "Waiting for it to connect…"
+msgstr "接続を待っています…"
+
 msgid "Waiting for Review"
 msgstr "レビューを待機中"
 
@@ -16460,11 +16481,17 @@ msgstr "お客様の支払い方法に請求できませんでした。このプ
 msgid "We couldn't detect a package manager or environment config."
 msgstr "パッケージマネージャーや環境設定を検出できませんでした。"
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "オンラインかどうかを確認するためのSupersetへの接続に失敗しました。接続を確認して、もう一度お試しください。"
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "デバイスに接続できませんでした。少し待ってからもう一度お試しください。"
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "2026年や2027年に完全自動運転が実現するとは予測していません。正直なところ未知数なのは、エージェントによるレビューが敵対的な複雑さに耐えられるか、仕様が大規模な場面でコードを読むことに代わる信頼の拠り所になれるか、そして計算コストの経済性が夜間シフトを人間より安く保てるかです。F5はルーブリック上の項目であり、実現したときにそれと分かるようにしてあるだけで、約束ではありません。"
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "{hostName}が見つかりました。そちらでリモートアクセスをオンにすると完了です。"
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "体験を改善するため、分析用のCookieのみを収集しています。"
