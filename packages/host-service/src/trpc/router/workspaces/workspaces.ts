@@ -34,6 +34,7 @@ import {
 } from "../../index";
 import {
 	buildTerminalAgentLaunch,
+	prepareAgentLaunchTrust,
 	validateAgentLaunchOptions,
 } from "../agents";
 import {
@@ -1279,15 +1280,25 @@ export const workspacesRouter = router({
 			const soleLaunch = sugarLaunches.length === 1 ? sugarLaunches[0] : null;
 			if (!alreadyExists && input.waitForSetupBeforeAgents && soleLaunch) {
 				try {
-					chainAgent = buildTerminalAgentLaunch(ctx.db, {
-						workspaceId: workspaceRow.id,
-						agent: soleLaunch.agent,
-						prompt: soleLaunch.prompt,
-						attachmentIds: soleLaunch.attachmentIds,
-						model: soleLaunch.model,
-						effort: soleLaunch.effort,
-						mode: soleLaunch.mode,
-					});
+					const localRow = ctx.db.query.workspaces
+						.findFirst({ where: eq(workspaces.id, workspaceRow.id) })
+						.sync();
+					const trustArgs = localRow
+						? await prepareAgentLaunchTrust(ctx.db, localRow, soleLaunch.agent)
+						: [];
+					chainAgent = buildTerminalAgentLaunch(
+						ctx.db,
+						{
+							workspaceId: workspaceRow.id,
+							agent: soleLaunch.agent,
+							prompt: soleLaunch.prompt,
+							attachmentIds: soleLaunch.attachmentIds,
+							model: soleLaunch.model,
+							effort: soleLaunch.effort,
+							mode: soleLaunch.mode,
+						},
+						trustArgs,
+					);
 				} catch (err) {
 					console.warn(
 						"[workspaces.create] wait-for-setup chain unavailable, dispatching agent in parallel:",
