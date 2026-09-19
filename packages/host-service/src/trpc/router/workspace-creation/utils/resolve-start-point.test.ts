@@ -86,11 +86,22 @@ describe("resolveStartPoint", () => {
 		}
 	});
 
-	test("falls back to HEAD when neither exists", async () => {
+	test("throws for an explicit base branch that matches no ref", async () => {
 		const git = createMockGit(new Set());
-		const result = await resolveStartPoint(git, "main");
 
-		expect(result.kind).toBe("head");
+		await expect(resolveStartPoint(git, "maine")).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			message: expect.stringContaining("maine"),
+		});
+	});
+
+	test("throws for a remote-qualified base that matches no local branch", async () => {
+		const git = createMockGit(new Set(["refs/remotes/origin/main"]));
+
+		await expect(resolveStartPoint(git, "origin/main")).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			message: expect.stringContaining("origin/main"),
+		});
 	});
 
 	test("works with explicit branch name", async () => {

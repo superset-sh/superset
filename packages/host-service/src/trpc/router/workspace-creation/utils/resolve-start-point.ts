@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import type { SimpleGit } from "simple-git";
 import {
 	asLocalRef,
@@ -20,7 +21,9 @@ async function refExists(git: SimpleGit, fullRef: string): Promise<boolean> {
 
 /**
  * Resolve the best start point for a new worktree. Prefers a local branch
- * when it exists, falls back to a remote-tracking ref, then HEAD.
+ * when it exists, falls back to a remote-tracking ref. An unresolvable
+ * default branch falls back to HEAD, while an unresolvable explicit base
+ * is rejected.
  *
  * Why local-first: users pick branches from a list of refs they can see
  * locally — they expect to fork from that exact local state, not from a
@@ -40,7 +43,8 @@ export async function resolveStartPoint(
 	git: SimpleGit,
 	baseBranch: string | undefined,
 ): Promise<ResolvedRef> {
-	const branch = baseBranch?.trim() || (await resolveDefaultBranchName(git));
+	const explicit = baseBranch?.trim();
+	const branch = explicit || (await resolveDefaultBranchName(git));
 	const remote = "origin";
 
 	const localRef = asLocalRef(branch);
@@ -57,6 +61,13 @@ export async function resolveStartPoint(
 			remote,
 			remoteShortName: `${remote}/${branch}`,
 		};
+	}
+
+	if (explicit) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Base branch "${explicit}" does not exist as a local branch or as ${remote}/${explicit}`,
+		});
 	}
 
 	return { kind: "head" };
