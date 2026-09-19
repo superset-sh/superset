@@ -36,6 +36,7 @@ import { DashboardSidebarProjectSection } from "./components/DashboardSidebarPro
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
 import { DashboardSidebarSessionsSection } from "./components/DashboardSidebarSessionsSection";
 import { DashboardSidebarWorkspacesHeader } from "./components/DashboardSidebarWorkspacesHeader";
+import { ServerUnreachableNotice } from "./components/ServerUnreachableNotice";
 import { useV2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
@@ -433,6 +434,7 @@ export function DashboardSidebar({
 											hiringCard,
 										]}
 									/>
+									<ServerUnreachableNotice isCollapsed={isCollapsed} />
 									<div
 										className={cn(
 											isCollapsed

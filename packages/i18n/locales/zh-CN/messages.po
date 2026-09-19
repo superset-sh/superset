@@ -2850,6 +2850,9 @@ msgstr "无法在外部编辑器中打开远程工作区路径"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "无法在Finder中打开远程工作区路径"
 
+msgid "Can't reach Superset"
+msgstr "无法连接到 Superset"
+
 msgid "Cancel"
 msgstr "取消"
 

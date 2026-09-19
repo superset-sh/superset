@@ -2850,6 +2850,9 @@ msgstr "No se pueden abrir rutas de espacios de trabajo remotos en un editor ext
 msgid "Can't open remote workspace paths in Finder"
 msgstr "No se pueden abrir rutas de espacios de trabajo remotos en Finder"
 
+msgid "Can't reach Superset"
+msgstr "No se puede conectar con Superset"
+
 msgid "Cancel"
 msgstr "Cancelar"
 

@@ -14,6 +14,7 @@ import {
 	clearToken,
 	loadToken,
 	saveOrganizationIds,
+	saveSessionSnapshot,
 	saveToken,
 	stateStore,
 } from "./utils/auth-functions";
@@ -50,6 +51,17 @@ export const createAuthRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				return await writeAuth(() => saveOrganizationIds(input));
+			}),
+
+		persistSessionSnapshot: publicProcedure
+			.input(
+				z.object({
+					token: z.string(),
+					sessionSnapshot: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				return await writeAuth(() => saveSessionSnapshot(input));
 			}),
 
 		/**

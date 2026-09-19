@@ -2850,6 +2850,9 @@ msgstr "Tidak bisa membuka path workspace jarak jauh di editor eksternal"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Tidak bisa membuka path workspace jarak jauh di Finder"
 
+msgid "Can't reach Superset"
+msgstr "Tidak dapat menjangkau Superset"
+
 msgid "Cancel"
 msgstr "Batal"
 

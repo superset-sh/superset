@@ -2850,6 +2850,9 @@ msgstr "Uzak çalışma alanı yolları harici düzenleyicide açılamaz"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Uzak çalışma alanı yolları Finder'da açılamaz"
 
+msgid "Can't reach Superset"
+msgstr "Superset'e ulaşılamıyor"
+
 msgid "Cancel"
 msgstr "İptal"
 

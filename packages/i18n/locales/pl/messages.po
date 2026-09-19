@@ -2850,6 +2850,9 @@ msgstr "Nie można otwierać ścieżek zdalnego obszaru roboczego w zewnętrznym
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Nie można otwierać ścieżek zdalnego obszaru roboczego w Finderze"
 
+msgid "Can't reach Superset"
+msgstr "Nie można połączyć się z Superset"
+
 msgid "Cancel"
 msgstr "Anuluj"
 

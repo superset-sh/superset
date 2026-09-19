@@ -16,6 +16,7 @@ interface StoredAuth {
 	expiresAt: string;
 	organizationIds?: string[];
 	organizationIdsRevision?: number;
+	sessionSnapshot?: string;
 }
 
 interface LoadedAuth {
@@ -23,7 +24,11 @@ interface LoadedAuth {
 	expiresAt: string | null;
 	organizationIds: string[] | null;
 	organizationIdsRevision: number;
+	sessionSnapshot: string | null;
 }
+
+// A snapshot is one session response; anything far past that is not one.
+const MAX_SESSION_SNAPSHOT_LENGTH = 64_000;
 
 const TOKEN_FILE_NAME = "auth-token.enc";
 const EMPTY_LOADED_AUTH: LoadedAuth = {
@@ -31,6 +36,7 @@ const EMPTY_LOADED_AUTH: LoadedAuth = {
 	expiresAt: null,
 	organizationIds: null,
 	organizationIdsRevision: 0,
+	sessionSnapshot: null,
 };
 
 type InspectedTokenStorage =
@@ -100,6 +106,11 @@ function parseStoredAuth(data: Buffer): StoredAuth {
 			Number.isSafeInteger(candidate.organizationIdsRevision) &&
 			candidate.organizationIdsRevision >= 0
 				? candidate.organizationIdsRevision
+				: undefined,
+		sessionSnapshot:
+			typeof candidate.sessionSnapshot === "string" &&
+			candidate.sessionSnapshot.length <= MAX_SESSION_SNAPSHOT_LENGTH
+				? candidate.sessionSnapshot
 				: undefined,
 	};
 }
@@ -246,6 +257,7 @@ export async function loadToken(): Promise<LoadedAuth> {
 			expiresAt: storedAuth.expiresAt,
 			organizationIds: storedAuth.organizationIds ?? null,
 			organizationIdsRevision: storedAuth.organizationIdsRevision ?? 0,
+			sessionSnapshot: storedAuth.sessionSnapshot ?? null,
 		};
 	} catch (error) {
 		console.error("[auth] Failed to inspect auth token storage", error);
@@ -319,12 +331,47 @@ export async function saveOrganizationIds({
 			expiresAt: storedAuth.expiresAt,
 			organizationIds: normalizedIds,
 			organizationIdsRevision: revision,
+			sessionSnapshot: storedAuth.sessionSnapshot,
 		});
 		authEvents.emit("organization-ids-saved", {
 			token: storedAuth.token,
 			organizationIds: normalizedIds,
 		});
 		return { status: "saved" as const, revision };
+	});
+}
+
+type SaveSessionSnapshotStatus =
+	| "saved"
+	| "unchanged"
+	| "token-mismatch"
+	| "too-large";
+
+/**
+ * Keep the last session the server confirmed for this token, so the app can
+ * start while the server is unreachable. `saveToken` drops it with everything
+ * else: a snapshot never outlives the sign-in it was taken under.
+ */
+export async function saveSessionSnapshot({
+	token,
+	sessionSnapshot,
+}: {
+	token: string;
+	sessionSnapshot: string;
+}): Promise<{ status: SaveSessionSnapshotStatus }> {
+	if (sessionSnapshot.length > MAX_SESSION_SNAPSHOT_LENGTH) {
+		return { status: "too-large" };
+	}
+	return await serializeAuthWrite(async () => {
+		const storedAuth = await readStoredAuth();
+		if (!storedAuth || storedAuth.token !== token) {
+			return { status: "token-mismatch" as const };
+		}
+		if (storedAuth.sessionSnapshot === sessionSnapshot) {
+			return { status: "unchanged" as const };
+		}
+		await writeStoredAuth({ ...storedAuth, sessionSnapshot });
+		return { status: "saved" as const };
 	});
 }
 

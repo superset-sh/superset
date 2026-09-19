@@ -32,6 +32,7 @@ const {
 	loadToken,
 	parseAuthDeepLink,
 	saveOrganizationIds,
+	saveSessionSnapshot,
 	saveToken,
 	stateStore,
 } = await import("./auth-functions");
@@ -89,6 +90,7 @@ describe("auth token storage", () => {
 			expiresAt: "2099-01-01",
 			organizationIds: null,
 			organizationIdsRevision: 0,
+			sessionSnapshot: null,
 		});
 	});
 
@@ -103,6 +105,7 @@ describe("auth token storage", () => {
 				expiresAt: null,
 				organizationIds: null,
 				organizationIdsRevision: 0,
+				sessionSnapshot: null,
 			});
 			expect(errorSpy).not.toHaveBeenCalled();
 		} finally {
@@ -134,6 +137,7 @@ describe("auth token storage", () => {
 			expiresAt: null,
 			organizationIds: null,
 			organizationIdsRevision: 0,
+			sessionSnapshot: null,
 		});
 		expect(fs.existsSync(tokenFile)).toBe(false);
 		const [quarantinedPath] = quarantinedTokenPaths();
@@ -308,6 +312,7 @@ describe("auth token storage", () => {
 			expiresAt: "2099-01-01",
 			organizationIds: null,
 			organizationIdsRevision: 0,
+			sessionSnapshot: null,
 		});
 	});
 });
@@ -329,6 +334,7 @@ describe("cached organization membership", () => {
 			expiresAt: "2099-01-01",
 			organizationIds: ["org-1", "org-2"],
 			organizationIdsRevision: 1,
+			sessionSnapshot: null,
 		});
 		expect(membershipSaved).toHaveBeenCalledWith({
 			token: "token",
@@ -373,6 +379,7 @@ describe("cached organization membership", () => {
 			expiresAt: "2099-02-01",
 			organizationIds: null,
 			organizationIdsRevision: 0,
+			sessionSnapshot: null,
 		});
 	});
 
@@ -390,6 +397,7 @@ describe("cached organization membership", () => {
 			expiresAt: "2099-02-01",
 			organizationIds: null,
 			organizationIdsRevision: 0,
+			sessionSnapshot: null,
 		});
 	});
 
@@ -408,6 +416,7 @@ describe("cached organization membership", () => {
 			expiresAt: null,
 			organizationIds: null,
 			organizationIdsRevision: 0,
+			sessionSnapshot: null,
 		});
 	});
 
@@ -431,6 +440,7 @@ describe("cached organization membership", () => {
 			expiresAt: "2099-01-01",
 			organizationIds: ["current-org"],
 			organizationIdsRevision: 1,
+			sessionSnapshot: null,
 		});
 	});
 
@@ -448,6 +458,77 @@ describe("cached organization membership", () => {
 		expect(result).toEqual({ status: "token-mismatch", revision: 0 });
 		expect(quarantinedTokenPaths()).toHaveLength(1);
 		expect(fs.existsSync(tokenFile)).toBe(false);
+	});
+});
+
+describe("saved session snapshot", () => {
+	test("is stored beside the token it was taken under", async () => {
+		await saveToken({ token: "token", expiresAt: "2099-01-01" });
+
+		expect(
+			await saveSessionSnapshot({ token: "token", sessionSnapshot: "{}" }),
+		).toEqual({ status: "saved" });
+		expect((await loadToken()).sessionSnapshot).toBe("{}");
+	});
+
+	test("is refused for a token that is not the stored one", async () => {
+		await saveToken({ token: "token", expiresAt: "2099-01-01" });
+
+		expect(
+			await saveSessionSnapshot({ token: "other", sessionSnapshot: "{}" }),
+		).toEqual({ status: "token-mismatch" });
+		expect((await loadToken()).sessionSnapshot).toBeNull();
+	});
+
+	test("does not survive a new sign-in", async () => {
+		await saveToken({ token: "token-a", expiresAt: "2099-01-01" });
+		await saveSessionSnapshot({ token: "token-a", sessionSnapshot: "{}" });
+
+		await saveToken({ token: "token-b", expiresAt: "2099-01-01" });
+
+		expect((await loadToken()).sessionSnapshot).toBeNull();
+	});
+
+	test("does not survive sign-out", async () => {
+		await saveToken({ token: "token", expiresAt: "2099-01-01" });
+		await saveSessionSnapshot({ token: "token", sessionSnapshot: "{}" });
+
+		await clearToken();
+
+		expect((await loadToken()).sessionSnapshot).toBeNull();
+	});
+
+	test("is kept when the membership is saved after it", async () => {
+		await saveToken({ token: "token", expiresAt: "2099-01-01" });
+		await saveSessionSnapshot({ token: "token", sessionSnapshot: "{}" });
+
+		await saveOrganizationIds({
+			token: "token",
+			organizationIds: ["org-1"],
+			expectedRevision: 0,
+		});
+
+		expect((await loadToken()).sessionSnapshot).toBe("{}");
+	});
+
+	test("skips the write when nothing changed", async () => {
+		await saveToken({ token: "token", expiresAt: "2099-01-01" });
+		await saveSessionSnapshot({ token: "token", sessionSnapshot: "{}" });
+
+		expect(
+			await saveSessionSnapshot({ token: "token", sessionSnapshot: "{}" }),
+		).toEqual({ status: "unchanged" });
+	});
+
+	test("refuses a payload far larger than a session", async () => {
+		await saveToken({ token: "token", expiresAt: "2099-01-01" });
+
+		expect(
+			await saveSessionSnapshot({
+				token: "token",
+				sessionSnapshot: "x".repeat(64_001),
+			}),
+		).toEqual({ status: "too-large" });
 	});
 });
 

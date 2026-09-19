@@ -2850,6 +2850,9 @@ msgstr "Paden van externe werkruimtes kunnen niet in een externe editor worden g
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Paden van externe werkruimtes kunnen niet in Finder worden geopend"
 
+msgid "Can't reach Superset"
+msgstr "Superset is niet bereikbaar"
+
 msgid "Cancel"
 msgstr "Annuleren"
 

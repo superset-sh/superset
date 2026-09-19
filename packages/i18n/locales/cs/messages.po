@@ -2850,6 +2850,9 @@ msgstr "Cesty vzdáleného pracovního prostoru nejde otevřít v externím edit
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Cesty vzdáleného pracovního prostoru nejde otevřít ve Finderu"
 
+msgid "Can't reach Superset"
+msgstr "Superset není dostupný"
+
 msgid "Cancel"
 msgstr "Zrušit"
 

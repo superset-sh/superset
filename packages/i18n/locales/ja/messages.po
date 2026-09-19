@@ -2850,6 +2850,9 @@ msgstr "リモートワークスペースのパスは外部エディタで開け
 msgid "Can't open remote workspace paths in Finder"
 msgstr "リモートワークスペースのパスはFinderで開けません"
 
+msgid "Can't reach Superset"
+msgstr "Superset に接続できません"
+
 msgid "Cancel"
 msgstr "キャンセル"
 

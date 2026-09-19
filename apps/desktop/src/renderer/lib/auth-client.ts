@@ -42,6 +42,34 @@ export function useAuthToken(): string | null {
 	);
 }
 
+// True while the app runs on the session saved on this machine because the
+// server could not be reached to confirm it.
+let isSessionUnconfirmed = false;
+const sessionUnconfirmedListeners = new Set<() => void>();
+
+function subscribeSessionUnconfirmed(listener: () => void): () => void {
+	sessionUnconfirmedListeners.add(listener);
+	return () => sessionUnconfirmedListeners.delete(listener);
+}
+
+export function setSessionUnconfirmed(next: boolean) {
+	if (isSessionUnconfirmed === next) return;
+	isSessionUnconfirmed = next;
+	for (const listener of sessionUnconfirmedListeners) listener();
+}
+
+export function getIsSessionUnconfirmed(): boolean {
+	return isSessionUnconfirmed;
+}
+
+export function useIsSessionUnconfirmed(): boolean {
+	return useSyncExternalStore(
+		subscribeSessionUnconfirmed,
+		getIsSessionUnconfirmed,
+		() => false,
+	);
+}
+
 let jwt: string | null = null;
 let jwtExpiresAtMs: number | null = null;
 let jwtGeneration = 0;

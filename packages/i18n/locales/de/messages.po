@@ -2850,6 +2850,9 @@ msgstr "Pfade aus Remote-Arbeitsbereichen lassen sich nicht im externen Editor Ã
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Pfade aus Remote-Arbeitsbereichen lassen sich nicht im Finder Ã¶ffnen"
 
+msgid "Can't reach Superset"
+msgstr "Superset ist nicht erreichbar"
+
 msgid "Cancel"
 msgstr "Abbrechen"
 

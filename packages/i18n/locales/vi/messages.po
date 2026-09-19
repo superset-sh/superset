@@ -2850,6 +2850,9 @@ msgstr "Không thể mở đường dẫn workspace từ xa trong trình soạn 
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Không thể mở đường dẫn workspace từ xa trong Finder"
 
+msgid "Can't reach Superset"
+msgstr "Không thể kết nối với Superset"
+
 msgid "Cancel"
 msgstr "Hủy"
 

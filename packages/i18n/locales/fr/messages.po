@@ -2850,6 +2850,9 @@ msgstr "Impossible d'ouvrir les chemins d'un espace de travail distant dans un Ã
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Impossible d'ouvrir les chemins d'un espace de travail distant dans le Finder"
 
+msgid "Can't reach Superset"
+msgstr "Impossible de joindre Superset"
+
 msgid "Cancel"
 msgstr "Annuler"
 

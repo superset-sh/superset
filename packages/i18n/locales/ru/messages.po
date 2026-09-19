@@ -2850,6 +2850,9 @@ msgstr "Пути удалённых рабочих областей нельзя
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Пути удалённых рабочих областей нельзя открыть в Finder"
 
+msgid "Can't reach Superset"
+msgstr "Не удаётся связаться с Superset"
+
 msgid "Cancel"
 msgstr "Отмена"
 
