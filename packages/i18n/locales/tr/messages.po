@@ -568,6 +568,9 @@ msgstr "{closedCount} kapalı"
 msgid "{completed} of {0} checks complete"
 msgstr "{0} kontrolden {completed} tanesi tamamlandı"
 
+msgid "{completed} of {total} completed"
+msgstr "{total} adımdan {completed} tanesi tamamlandı"
+
 msgid "{configTitle} font size"
 msgstr "{configTitle} yazı tipi boyutu"
 
@@ -5748,6 +5751,12 @@ msgstr "Otomatik birleştirmeyi etkinleştir"
 msgid "Enable relay access…"
 msgstr "Röle erişimini etkinleştir…"
 
+msgid "Enable remote access"
+msgstr "Uzaktan erişimi etkinleştirin"
+
+msgid "Enable remote access to reach this computer from your phone. Keep this computer awake and Superset running."
+msgstr "Bu bilgisayara telefonunuzdan ulaşmak için uzaktan erişimi etkinleştirin. Bilgisayarı uyanık ve Superset’i çalışır durumda tutun."
+
 msgid "Enable skill"
 msgstr "Beceriyi etkinleştir"
 
@@ -6988,6 +6997,9 @@ msgstr "Superset'i Mac'inize alın"
 msgid "Get Superset Pro"
 msgstr "Superset Pro'yu edinin"
 
+msgid "Get the best out of Pro"
+msgstr "Pro’dan en iyi şekilde yararlanın"
+
 msgid "Get the iPhone app"
 msgstr "iPhone uygulamasını edinin"
 
@@ -7443,6 +7455,9 @@ msgstr "Zaten Cursor gibi bir IDE kullanıyorum, bu bana göre mi?"
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "{tokens} token ajan kullanımıyla {company} lider tablosunda #{rank} sıradayım."
+
+msgid "I've signed in on my phone"
+msgstr "Telefonumda giriş yaptım"
 
 msgid "Icon"
 msgstr "Simge"
@@ -8155,6 +8170,9 @@ msgstr "Yaprak"
 
 msgid "Learn how to use scripts"
 msgstr "Betiklerin nasıl kullanılacağını öğrenin"
+
+msgid "Learn more"
+msgstr "Daha fazla bilgi"
 
 msgid "Learn the workflow that fits this repo — parallel workspaces and agent setup."
 msgstr "Bu depoya uygun iş akışını öğren — paralel çalışma alanları ve ajan kurulumu."
@@ -8881,6 +8899,9 @@ msgstr "Mobil uygulama"
 
 msgid "Mobile App"
 msgstr "Mobil uygulama"
+
+msgid "Mobile setup confirmed"
+msgstr "Mobil kurulum onaylandı"
 
 msgid "model"
 msgstr "model"
@@ -10233,6 +10254,9 @@ msgstr "Yine de aç"
 
 msgid "Open Anywhere"
 msgstr "Her yerde aç"
+
+msgid "Open App Store"
+msgstr "App Store’u aç"
 
 msgid "Open as comment pane"
 msgstr "Yorum bölmesi olarak aç"
@@ -12770,6 +12794,15 @@ msgstr "Ödeme duvarını gördü"
 msgid "Scale from two agents to 100+"
 msgstr "İki ajandan 100+ ajana ölçeklenin"
 
+msgid "Scan to download Superset for iPhone"
+msgstr "iPhone için Superset’i indirmek üzere tarayın"
+
+msgid "Scan to get the app"
+msgstr "Uygulamayı indirmek için tarayın"
+
+msgid "Scan with your iPhone camera, then sign in with the same Superset account and organization."
+msgstr "iPhone kameranızla tarayın, ardından aynı Superset hesabı ve kuruluşuyla giriş yapın."
+
 msgid "Scanning transcript logs…"
 msgstr "Kayıt günlükleri taranıyor…"
 
@@ -13338,6 +13371,9 @@ msgstr "Kur"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "{0} kurulumu"
+
+msgid "Set up an automation"
+msgstr "Bir otomasyon kur"
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName} üzerinde projeyi kur"
@@ -16197,6 +16233,12 @@ msgstr "Yeni ajanlar için kullan"
 msgid "Use global default"
 msgstr "Genel varsayılanı kullan"
 
+msgid "Use Superset on mobile"
+msgstr "Superset’i mobilde kullanın"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Pro ile Superset’i telefonunuzda kullanın."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Paralel kodlama ajanları çalıştırmaya başlamak için masaüstü uygulamasını kullanın."
 
@@ -17050,6 +17092,9 @@ msgstr "Hesabınız devre dışı bırakıldı ve yakında kalıcı olarak silin
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Hesabınız kuruluşunuz tarafından yönetiliyor. Yeni bir kuruluş oluşturmak için yöneticinizle iletişime geçin."
+
+msgid "Your agents, wherever you are."
+msgstr "Nerede olursanız olun, ajanlarınız yanınızda."
 
 msgid "Your Agents, Your Accounts"
 msgstr "Sizin ajanlarınız, sizin hesaplarınız"

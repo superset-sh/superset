@@ -568,6 +568,9 @@ msgstr "{closedCount} cerradas"
 msgid "{completed} of {0} checks complete"
 msgstr "{completed} de {0} comprobaciones completadas"
 
+msgid "{completed} of {total} completed"
+msgstr "{completed} de {total} completados"
+
 msgid "{configTitle} font size"
 msgstr "Tamaño de fuente de {configTitle}"
 
@@ -5748,6 +5751,12 @@ msgstr "Activar la fusión automática"
 msgid "Enable relay access…"
 msgstr "Habilitar el acceso por relay…"
 
+msgid "Enable remote access"
+msgstr "Activa el acceso remoto"
+
+msgid "Enable remote access to reach this computer from your phone. Keep this computer awake and Superset running."
+msgstr "Activa el acceso remoto para conectarte a este ordenador desde tu teléfono. Mantén el ordenador activo y Superset en ejecución."
+
 msgid "Enable skill"
 msgstr "Activar skill"
 
@@ -6988,6 +6997,9 @@ msgstr "Consigue Superset en tu Mac"
 msgid "Get Superset Pro"
 msgstr "Obtener Superset Pro"
 
+msgid "Get the best out of Pro"
+msgstr "Aprovecha Pro al máximo"
+
 msgid "Get the iPhone app"
 msgstr "Obtener la app para iPhone"
 
@@ -7443,6 +7455,9 @@ msgstr "Ya uso un IDE como Cursor, ¿esto es para mí?"
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "Estoy en el puesto #{rank} de la clasificación de {company} con {tokens} tokens de uso de agentes."
+
+msgid "I've signed in on my phone"
+msgstr "Ya inicié sesión en mi teléfono"
 
 msgid "Icon"
 msgstr "Icono"
@@ -8155,6 +8170,9 @@ msgstr "Hoja"
 
 msgid "Learn how to use scripts"
 msgstr "Aprender a usar los scripts"
+
+msgid "Learn more"
+msgstr "Más información"
 
 msgid "Learn the workflow that fits this repo — parallel workspaces and agent setup."
 msgstr "Aprende el flujo de trabajo que encaja con este repositorio: espacios de trabajo en paralelo y configuración de agentes."
@@ -8881,6 +8899,9 @@ msgstr "App móvil"
 
 msgid "Mobile App"
 msgstr "App móvil"
+
+msgid "Mobile setup confirmed"
+msgstr "Configuración móvil confirmada"
 
 msgid "model"
 msgstr "modelo"
@@ -10233,6 +10254,9 @@ msgstr "Abrir igualmente"
 
 msgid "Open Anywhere"
 msgstr "Abrir en cualquier sitio"
+
+msgid "Open App Store"
+msgstr "Abrir App Store"
 
 msgid "Open as comment pane"
 msgstr "Abrir como panel de comentarios"
@@ -12770,6 +12794,15 @@ msgstr "Vio el muro de pago"
 msgid "Scale from two agents to 100+"
 msgstr "Escala de dos agentes a más de 100"
 
+msgid "Scan to download Superset for iPhone"
+msgstr "Escanea para descargar Superset para iPhone"
+
+msgid "Scan to get the app"
+msgstr "Escanea para obtener la aplicación"
+
+msgid "Scan with your iPhone camera, then sign in with the same Superset account and organization."
+msgstr "Escanea con la cámara de tu iPhone y luego inicia sesión con la misma cuenta y organización de Superset."
+
 msgid "Scanning transcript logs…"
 msgstr "Analizando los logs de transcripción…"
 
@@ -13338,6 +13371,9 @@ msgstr "Configurar"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "Configurar {0}"
+
+msgid "Set up an automation"
+msgstr "Configura una automatización"
 
 msgid "Set up project on {hostName}"
 msgstr "Configurar el proyecto en {hostName}"
@@ -16197,6 +16233,12 @@ msgstr "Usar para los agentes nuevos"
 msgid "Use global default"
 msgstr "Usar el valor global predeterminado"
 
+msgid "Use Superset on mobile"
+msgstr "Usa Superset en el móvil"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Usa Superset en tu teléfono con Pro."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Usa la app de escritorio para empezar a ejecutar agentes de programación en paralelo."
 
@@ -17050,6 +17092,9 @@ msgstr "Tu cuenta está desactivada y se eliminará de forma permanente en breve
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Tu cuenta la gestiona tu organización. Contacta con tu administrador para crear una organización nueva."
+
+msgid "Your agents, wherever you are."
+msgstr "Tus agentes, estés donde estés."
 
 msgid "Your Agents, Your Accounts"
 msgstr "Tus agentes, tus cuentas"

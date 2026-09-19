@@ -568,6 +568,9 @@ msgstr "{closedCount}개 닫힘"
 msgid "{completed} of {0} checks complete"
 msgstr "검사 {0}개 중 {completed}개 완료"
 
+msgid "{completed} of {total} completed"
+msgstr "{total}개 중 {completed}개 완료"
+
 msgid "{configTitle} font size"
 msgstr "{configTitle} 글꼴 크기"
 
@@ -5748,6 +5751,12 @@ msgstr "자동 머지 활성화"
 msgid "Enable relay access…"
 msgstr "릴레이 접근 활성화…"
 
+msgid "Enable remote access"
+msgstr "원격 액세스 활성화하기"
+
+msgid "Enable remote access to reach this computer from your phone. Keep this computer awake and Superset running."
+msgstr "휴대폰에서 이 컴퓨터에 연결하려면 원격 액세스를 활성화하세요. 컴퓨터가 잠자기 모드로 전환되지 않도록 하고 Superset을 실행해 두세요."
+
 msgid "Enable skill"
 msgstr "스킬 활성화"
 
@@ -6988,6 +6997,9 @@ msgstr "Mac에서 Superset 사용하기"
 msgid "Get Superset Pro"
 msgstr "Superset Pro 시작하기"
 
+msgid "Get the best out of Pro"
+msgstr "Pro를 최대한 활용하기"
+
 msgid "Get the iPhone app"
 msgstr "iPhone 앱 받기"
 
@@ -7443,6 +7455,9 @@ msgstr "이미 Cursor 같은 IDE를 쓰고 있는데, 저에게 맞나요?"
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "에이전트 사용량 {tokens} 토큰으로 {company} 리더보드 {rank}위입니다."
+
+msgid "I've signed in on my phone"
+msgstr "휴대폰에서 로그인했습니다"
 
 msgid "Icon"
 msgstr "아이콘"
@@ -8155,6 +8170,9 @@ msgstr "잎"
 
 msgid "Learn how to use scripts"
 msgstr "스크립트 사용법 알아보기"
+
+msgid "Learn more"
+msgstr "자세히 알아보기"
 
 msgid "Learn the workflow that fits this repo — parallel workspaces and agent setup."
 msgstr "이 리포지토리에 맞는 워크플로 익히기 — 병렬 워크스페이스와 에이전트 설정."
@@ -8881,6 +8899,9 @@ msgstr "모바일 앱"
 
 msgid "Mobile App"
 msgstr "모바일 앱"
+
+msgid "Mobile setup confirmed"
+msgstr "모바일 설정 확인됨"
 
 msgid "model"
 msgstr "모델"
@@ -10233,6 +10254,9 @@ msgstr "그래도 열기"
 
 msgid "Open Anywhere"
 msgstr "어디서나 열기"
+
+msgid "Open App Store"
+msgstr "App Store 열기"
 
 msgid "Open as comment pane"
 msgstr "코멘트 패널으로 열기"
@@ -12770,6 +12794,15 @@ msgstr "페이월 조회"
 msgid "Scale from two agents to 100+"
 msgstr "에이전트 2개에서 100개 이상까지"
 
+msgid "Scan to download Superset for iPhone"
+msgstr "스캔하여 iPhone용 Superset 다운로드"
+
+msgid "Scan to get the app"
+msgstr "스캔하여 앱 다운로드"
+
+msgid "Scan with your iPhone camera, then sign in with the same Superset account and organization."
+msgstr "iPhone 카메라로 스캔한 다음 동일한 Superset 계정 및 조직으로 로그인하세요."
+
 msgid "Scanning transcript logs…"
 msgstr "트랜스크립트 로그를 스캔하는 중…"
 
@@ -13338,6 +13371,9 @@ msgstr "설정"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "{0} 설정"
+
+msgid "Set up an automation"
+msgstr "자동화 설정하기"
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName}에 프로젝트 설정"
@@ -16197,6 +16233,12 @@ msgstr "새 에이전트에 사용"
 msgid "Use global default"
 msgstr "전역 기본값 사용"
 
+msgid "Use Superset on mobile"
+msgstr "모바일에서 Superset 사용하기"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Pro로 휴대폰에서 Superset을 사용하세요."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "데스크톱 앱에서 병렬 코딩 에이전트를 실행하세요."
 
@@ -17050,6 +17092,9 @@ msgstr "계정이 비활성화되었으며 곧 영구적으로 삭제됩니다. 
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "계정이 조직에서 관리됩니다. 새 조직을 만들려면 관리자에게 문의하세요."
+
+msgid "Your agents, wherever you are."
+msgstr "어디서나 함께하는 에이전트."
 
 msgid "Your Agents, Your Accounts"
 msgstr "당신의 에이전트, 당신의 계정"

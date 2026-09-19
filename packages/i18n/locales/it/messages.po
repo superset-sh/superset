@@ -568,6 +568,9 @@ msgstr "{closedCount} chiusi"
 msgid "{completed} of {0} checks complete"
 msgstr "{completed} controlli su {0} completati"
 
+msgid "{completed} of {total} completed"
+msgstr "{completed} di {total} completati"
+
 msgid "{configTitle} font size"
 msgstr "Dimensione del font di {configTitle}"
 
@@ -5748,6 +5751,12 @@ msgstr "Attiva il merge automatico"
 msgid "Enable relay access…"
 msgstr "Attiva l'accesso relay…"
 
+msgid "Enable remote access"
+msgstr "Abilita l’accesso remoto"
+
+msgid "Enable remote access to reach this computer from your phone. Keep this computer awake and Superset running."
+msgstr "Abilita l’accesso remoto per raggiungere questo computer dal telefono. Mantieni il computer attivo e Superset in esecuzione."
+
 msgid "Enable skill"
 msgstr "Attiva la skill"
 
@@ -6988,6 +6997,9 @@ msgstr "Ottieni Superset sul tuo Mac"
 msgid "Get Superset Pro"
 msgstr "Passa a Superset Pro"
 
+msgid "Get the best out of Pro"
+msgstr "Sfrutta al massimo Pro"
+
 msgid "Get the iPhone app"
 msgstr "Scarica l'app per iPhone"
 
@@ -7443,6 +7455,9 @@ msgstr "Uso già un IDE come Cursor, fa per me?"
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "Sono #{rank} nella classifica di {company} con {tokens} token di utilizzo degli agenti."
+
+msgid "I've signed in on my phone"
+msgstr "Ho effettuato l’accesso dal telefono"
 
 msgid "Icon"
 msgstr "Icona"
@@ -8155,6 +8170,9 @@ msgstr "Foglia"
 
 msgid "Learn how to use scripts"
 msgstr "Scopri come usare gli script"
+
+msgid "Learn more"
+msgstr "Scopri di più"
 
 msgid "Learn the workflow that fits this repo — parallel workspaces and agent setup."
 msgstr "Impara il flusso di lavoro adatto a questo repo — workspace paralleli e configurazione degli agenti."
@@ -8881,6 +8899,9 @@ msgstr "App mobile"
 
 msgid "Mobile App"
 msgstr "App mobile"
+
+msgid "Mobile setup confirmed"
+msgstr "Configurazione mobile confermata"
 
 msgid "model"
 msgstr "modello"
@@ -10233,6 +10254,9 @@ msgstr "Apri comunque"
 
 msgid "Open Anywhere"
 msgstr "Apri ovunque"
+
+msgid "Open App Store"
+msgstr "Apri App Store"
 
 msgid "Open as comment pane"
 msgstr "Apri come pannello dei commenti"
@@ -12770,6 +12794,15 @@ msgstr "Ha visto il paywall"
 msgid "Scale from two agents to 100+"
 msgstr "Passa da due agenti a più di 100"
 
+msgid "Scan to download Superset for iPhone"
+msgstr "Scansiona per scaricare Superset per iPhone"
+
+msgid "Scan to get the app"
+msgstr "Scansiona per ottenere l’app"
+
+msgid "Scan with your iPhone camera, then sign in with the same Superset account and organization."
+msgstr "Scansiona con la fotocamera dell’iPhone, poi accedi con lo stesso account e la stessa organizzazione Superset."
+
 msgid "Scanning transcript logs…"
 msgstr "Scansione dei log delle trascrizioni…"
 
@@ -13338,6 +13371,9 @@ msgstr "Configura"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "Configura {0}"
+
+msgid "Set up an automation"
+msgstr "Configura un’automazione"
 
 msgid "Set up project on {hostName}"
 msgstr "Configura il progetto su {hostName}"
@@ -16197,6 +16233,12 @@ msgstr "Usa per i nuovi agenti"
 msgid "Use global default"
 msgstr "Usa il valore predefinito globale"
 
+msgid "Use Superset on mobile"
+msgstr "Usa Superset sul cellulare"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Usa Superset sul telefono con Pro."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Usa l'app desktop per iniziare a eseguire agenti di programmazione in parallelo."
 
@@ -17050,6 +17092,9 @@ msgstr "Il tuo account è disattivato e sarà eliminato definitivamente a breve.
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Il tuo account è gestito dalla tua organizzazione. Contatta l'amministratore per creare una nuova organizzazione."
+
+msgid "Your agents, wherever you are."
+msgstr "I tuoi agenti, ovunque tu sia."
 
 msgid "Your Agents, Your Accounts"
 msgstr "I tuoi agenti, i tuoi account"

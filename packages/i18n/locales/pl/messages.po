@@ -568,6 +568,9 @@ msgstr "{closedCount} zamkniętych"
 msgid "{completed} of {0} checks complete"
 msgstr "{completed} z {0} kontroli ukończonych"
 
+msgid "{completed} of {total} completed"
+msgstr "Ukończono {completed} z {total}"
+
 msgid "{configTitle} font size"
 msgstr "Rozmiar czcionki: {configTitle}"
 
@@ -5748,6 +5751,12 @@ msgstr "Włącz automatyczne scalanie"
 msgid "Enable relay access…"
 msgstr "Włącz dostęp przez przekaźnik…"
 
+msgid "Enable remote access"
+msgstr "Włącz dostęp zdalny"
+
+msgid "Enable remote access to reach this computer from your phone. Keep this computer awake and Superset running."
+msgstr "Włącz dostęp zdalny, aby łączyć się z tym komputerem z telefonu. Nie usypiaj komputera i pozostaw Superset uruchomiony."
+
 msgid "Enable skill"
 msgstr "Włącz umiejętność"
 
@@ -6988,6 +6997,9 @@ msgstr "Pobierz Superset na Maca"
 msgid "Get Superset Pro"
 msgstr "Uzyskaj Superset Pro"
 
+msgid "Get the best out of Pro"
+msgstr "Wykorzystaj w pełni Pro"
+
 msgid "Get the iPhone app"
 msgstr "Pobierz aplikację na iPhone'a"
 
@@ -7443,6 +7455,9 @@ msgstr "Używam już IDE takiego jak Cursor — czy to jest dla mnie?"
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "Jestem na miejscu #{rank} w rankingu {company} z {tokens} tokenów zużycia agentów."
+
+msgid "I've signed in on my phone"
+msgstr "Zalogowałem się na telefonie"
 
 msgid "Icon"
 msgstr "Ikona"
@@ -8155,6 +8170,9 @@ msgstr "Liść"
 
 msgid "Learn how to use scripts"
 msgstr "Dowiedz się, jak używać skryptów"
+
+msgid "Learn more"
+msgstr "Dowiedz się więcej"
 
 msgid "Learn the workflow that fits this repo — parallel workspaces and agent setup."
 msgstr "Poznaj workflow pasujący do tego repozytorium — równoległe obszary robocze i konfigurację agentów."
@@ -8881,6 +8899,9 @@ msgstr "Aplikacja mobilna"
 
 msgid "Mobile App"
 msgstr "Aplikacja mobilna"
+
+msgid "Mobile setup confirmed"
+msgstr "Konfiguracja mobilna potwierdzona"
 
 msgid "model"
 msgstr "model"
@@ -10233,6 +10254,9 @@ msgstr "Otwórz mimo to"
 
 msgid "Open Anywhere"
 msgstr "Otwieraj wszędzie"
+
+msgid "Open App Store"
+msgstr "Otwórz App Store"
 
 msgid "Open as comment pane"
 msgstr "Otwórz jako panel komentarzy"
@@ -12770,6 +12794,15 @@ msgstr "Wyświetlenie paywalla"
 msgid "Scale from two agents to 100+"
 msgstr "Skaluj od dwóch agentów do 100+"
 
+msgid "Scan to download Superset for iPhone"
+msgstr "Zeskanuj, aby pobrać Superset na iPhone’a"
+
+msgid "Scan to get the app"
+msgstr "Zeskanuj, aby pobrać aplikację"
+
+msgid "Scan with your iPhone camera, then sign in with the same Superset account and organization."
+msgstr "Zeskanuj aparatem iPhone’a, a następnie zaloguj się na to samo konto Superset i wybierz tę samą organizację."
+
 msgid "Scanning transcript logs…"
 msgstr "Skanowanie logów transkryptów…"
 
@@ -13338,6 +13371,9 @@ msgstr "Skonfiguruj"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "Skonfiguruj {0}"
+
+msgid "Set up an automation"
+msgstr "Skonfiguruj automatyzację"
 
 msgid "Set up project on {hostName}"
 msgstr "Skonfiguruj projekt na {hostName}"
@@ -14363,7 +14399,7 @@ msgid "Superset Enterprise is Superset for teams. Reach out to learn more about 
 msgstr "Superset Enterprise to Superset dla zespołów. Odezwij się, aby dowiedzieć się, co obejmuje i jak może zadziałać w Twojej organizacji."
 
 msgid "Superset for iPhone"
-msgstr "Superset na iPhone'a"
+msgstr "Superset na iPhone’a"
 
 msgid "Superset for iPhone is on the way. Be first to know when it ships."
 msgstr "Superset na iPhone'a jest w drodze. Dowiedz się jako pierwszy, gdy się pojawi."
@@ -16197,6 +16233,12 @@ msgstr "Używaj dla nowych agentów"
 msgid "Use global default"
 msgstr "Użyj domyślnego globalnego"
 
+msgid "Use Superset on mobile"
+msgstr "Korzystaj z Superset na telefonie"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Korzystaj z Superset na telefonie dzięki Pro."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Użyj aplikacji desktopowej, aby uruchamiać równoległych agentów kodujących."
 
@@ -17050,6 +17092,9 @@ msgstr "Konto jest dezaktywowane i wkrótce zostanie trwale usunięte. Reaktywuj
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Twoim kontem zarządza organizacja. Skontaktuj się z administratorem, aby utworzyć nową organizację."
+
+msgid "Your agents, wherever you are."
+msgstr "Twoi agenci, gdziekolwiek jesteś."
 
 msgid "Your Agents, Your Accounts"
 msgstr "Twoi agenci, Twoje konta"

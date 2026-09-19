@@ -568,6 +568,9 @@ msgstr "{closedCount}件未通過"
 msgid "{completed} of {0} checks complete"
 msgstr "{0}件中{completed}件のチェックが完了"
 
+msgid "{completed} of {total} completed"
+msgstr "{total} 件中 {completed} 件完了"
+
 msgid "{configTitle} font size"
 msgstr "{configTitle}のフォントサイズ"
 
@@ -5748,6 +5751,12 @@ msgstr "自動マージを有効にする"
 msgid "Enable relay access…"
 msgstr "リレーアクセスを有効にする…"
 
+msgid "Enable remote access"
+msgstr "リモートアクセスを有効にする"
+
+msgid "Enable remote access to reach this computer from your phone. Keep this computer awake and Superset running."
+msgstr "スマートフォンからこのコンピューターに接続するには、リモートアクセスを有効にしてください。このコンピューターをスリープさせず、Superset を起動したままにしてください。"
+
 msgid "Enable skill"
 msgstr "スキルを有効にする"
 
@@ -6988,6 +6997,9 @@ msgstr "MacでSupersetを使う"
 msgid "Get Superset Pro"
 msgstr "Superset Proを入手"
 
+msgid "Get the best out of Pro"
+msgstr "Proを最大限に活用する"
+
 msgid "Get the iPhone app"
 msgstr "iPhone アプリを入手"
 
@@ -7443,6 +7455,9 @@ msgstr "すでにCursorのようなIDEを使っています。それでも役に
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "{company}のリーダーボードで、エージェント使用量{tokens}トークン、{rank}位です。"
+
+msgid "I've signed in on my phone"
+msgstr "スマートフォンでサインインしました"
 
 msgid "Icon"
 msgstr "アイコン"
@@ -8155,6 +8170,9 @@ msgstr "葉"
 
 msgid "Learn how to use scripts"
 msgstr "スクリプトの使い方を見る"
+
+msgid "Learn more"
+msgstr "詳しく見る"
 
 msgid "Learn the workflow that fits this repo — parallel workspaces and agent setup."
 msgstr "このリポジトリに合うワークフロー — 並列ワークスペースとエージェント設定を学びます。"
@@ -8881,6 +8899,9 @@ msgstr "モバイルアプリ"
 
 msgid "Mobile App"
 msgstr "モバイルアプリ"
+
+msgid "Mobile setup confirmed"
+msgstr "モバイルの設定を確認済み"
 
 msgid "model"
 msgstr "モデル"
@@ -10233,6 +10254,9 @@ msgstr "それでも開く"
 
 msgid "Open Anywhere"
 msgstr "どこでも開く"
+
+msgid "Open App Store"
+msgstr "App Store を開く"
 
 msgid "Open as comment pane"
 msgstr "コメントペインとして開く"
@@ -12770,6 +12794,15 @@ msgstr "ペイウォールを表示"
 msgid "Scale from two agents to 100+"
 msgstr "2体から100体以上へ広げる"
 
+msgid "Scan to download Superset for iPhone"
+msgstr "スキャンして iPhone 用 Superset をダウンロード"
+
+msgid "Scan to get the app"
+msgstr "スキャンしてアプリを入手"
+
+msgid "Scan with your iPhone camera, then sign in with the same Superset account and organization."
+msgstr "iPhone のカメラでスキャンし、同じ Superset アカウントと組織でサインインしてください。"
+
 msgid "Scanning transcript logs…"
 msgstr "トランスクリプトログをスキャン中…"
 
@@ -13338,6 +13371,9 @@ msgstr "設定する"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "{0} をセットアップ"
+
+msgid "Set up an automation"
+msgstr "自動化を設定する"
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName}でプロジェクトをセットアップ"
@@ -14363,7 +14399,7 @@ msgid "Superset Enterprise is Superset for teams. Reach out to learn more about 
 msgstr "Superset Enterpriseは、チーム向けのSupersetです。含まれる内容や組織での活用方法については、お問い合わせください。"
 
 msgid "Superset for iPhone"
-msgstr "iPhone 版 Superset"
+msgstr "iPhone 用 Superset"
 
 msgid "Superset for iPhone is on the way. Be first to know when it ships."
 msgstr "iPhone 版 Superset を準備中です。リリース時にいち早くお知らせします。"
@@ -16197,6 +16233,12 @@ msgstr "新規エージェントに使用"
 msgid "Use global default"
 msgstr "グローバルのデフォルトを使用"
 
+msgid "Use Superset on mobile"
+msgstr "モバイルでSupersetを使う"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Pro でスマートフォンから Superset を使えます。"
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "デスクトップアプリで並列コーディングエージェントの実行を始めましょう。"
 
@@ -17050,6 +17092,9 @@ msgstr "アカウントは無効化されており、まもなく完全に削除
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "アカウントは組織によって管理されています。新しい組織を作成するには管理者に連絡してください。"
+
+msgid "Your agents, wherever you are."
+msgstr "どこにいても、あなたのエージェントと。"
 
 msgid "Your Agents, Your Accounts"
 msgstr "エージェントもアカウントも、あなたのもの"

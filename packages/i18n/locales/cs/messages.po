@@ -568,6 +568,9 @@ msgstr "{closedCount} zavřených"
 msgid "{completed} of {0} checks complete"
 msgstr "Dokončeno {completed} z {0} kontrol"
 
+msgid "{completed} of {total} completed"
+msgstr "Dokončeno {completed} z {total}"
+
 msgid "{configTitle} font size"
 msgstr "Velikost písma: {configTitle}"
 
@@ -5748,6 +5751,12 @@ msgstr "Zapnout auto-merge"
 msgid "Enable relay access…"
 msgstr "Povolit přístup přes relay…"
 
+msgid "Enable remote access"
+msgstr "Povolte vzdálený přístup"
+
+msgid "Enable remote access to reach this computer from your phone. Keep this computer awake and Superset running."
+msgstr "Zapněte vzdálený přístup, abyste se k tomuto počítači mohli připojit z telefonu. Nechte počítač probuzený a Superset spuštěný."
+
 msgid "Enable skill"
 msgstr "Zapnout skill"
 
@@ -6988,6 +6997,9 @@ msgstr "Získejte Superset na svůj Mac"
 msgid "Get Superset Pro"
 msgstr "Pořídit Superset Pro"
 
+msgid "Get the best out of Pro"
+msgstr "Využijte Pro naplno"
+
 msgid "Get the iPhone app"
 msgstr "Získat aplikaci pro iPhone"
 
@@ -7443,6 +7455,9 @@ msgstr "Už používám IDE jako Cursor, je to pro mě?"
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "Jsem #{rank} v žebříčku {company} s {tokens} tokeny využití agentů."
+
+msgid "I've signed in on my phone"
+msgstr "Přihlásil jsem se na telefonu"
 
 msgid "Icon"
 msgstr "Ikona"
@@ -8155,6 +8170,9 @@ msgstr "List"
 
 msgid "Learn how to use scripts"
 msgstr "Jak používat skripty"
+
+msgid "Learn more"
+msgstr "Další informace"
 
 msgid "Learn the workflow that fits this repo — parallel workspaces and agent setup."
 msgstr "Poznejte postup, který k tomuto repozitáři sedí — paralelní pracovní prostory a nastavení agentů."
@@ -8881,6 +8899,9 @@ msgstr "Mobilní aplikace"
 
 msgid "Mobile App"
 msgstr "Mobilní aplikace"
+
+msgid "Mobile setup confirmed"
+msgstr "Mobilní nastavení potvrzeno"
 
 msgid "model"
 msgstr "model"
@@ -10233,6 +10254,9 @@ msgstr "Přesto otevřít"
 
 msgid "Open Anywhere"
 msgstr "Otevřete kdekoli"
+
+msgid "Open App Store"
+msgstr "Otevřít App Store"
 
 msgid "Open as comment pane"
 msgstr "Otevřít jako panel komentářů"
@@ -12770,6 +12794,15 @@ msgstr "Zobrazení paywallu"
 msgid "Scale from two agents to 100+"
 msgstr "Od dvou agentů ke stovkám"
 
+msgid "Scan to download Superset for iPhone"
+msgstr "Naskenujte a stáhněte Superset pro iPhone"
+
+msgid "Scan to get the app"
+msgstr "Naskenujte a stáhněte aplikaci"
+
+msgid "Scan with your iPhone camera, then sign in with the same Superset account and organization."
+msgstr "Naskenujte fotoaparátem iPhonu a poté se přihlaste stejným účtem Superset do stejné organizace."
+
 msgid "Scanning transcript logs…"
 msgstr "Procházím logy přepisů…"
 
@@ -13338,6 +13371,9 @@ msgstr "Nastavit"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "Nastavit {0}"
+
+msgid "Set up an automation"
+msgstr "Nastavte automatizaci"
 
 msgid "Set up project on {hostName}"
 msgstr "Nastavit projekt na {hostName}"
@@ -16197,6 +16233,12 @@ msgstr "Použít pro nové agenty"
 msgid "Use global default"
 msgstr "Použít globální výchozí"
 
+msgid "Use Superset on mobile"
+msgstr "Používejte Superset na mobilu"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Používejte Superset na telefonu s Pro."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Pro spouštění paralelních kódovacích agentů použijte desktopovou aplikaci."
 
@@ -17050,6 +17092,9 @@ msgstr "Váš účet je deaktivovaný a brzy bude trvale smazán. Obnovte ho a b
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Váš účet spravuje vaše organizace. O vytvoření nové organizace požádejte svého správce."
+
+msgid "Your agents, wherever you are."
+msgstr "Vaši agenti, ať jste kdekoli."
 
 msgid "Your Agents, Your Accounts"
 msgstr "Vaši agenti, vaše účty"

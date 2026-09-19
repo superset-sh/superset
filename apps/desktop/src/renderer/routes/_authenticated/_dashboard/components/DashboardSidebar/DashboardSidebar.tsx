@@ -36,6 +36,7 @@ import { DashboardSidebarProjectSection } from "./components/DashboardSidebarPro
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
 import { DashboardSidebarSessionsSection } from "./components/DashboardSidebarSessionsSection";
 import { DashboardSidebarWorkspacesHeader } from "./components/DashboardSidebarWorkspacesHeader";
+import { useGettingStartedCard } from "./components/GettingStartedCard";
 import { useV2SetupScriptCard } from "./components/V2SetupScriptCard";
 import {
 	getBlockedDragProps,
@@ -322,6 +323,7 @@ export function DashboardSidebar({
 		projectId: activeV2Project?.id ?? null,
 		projectName: activeV2Project?.name ?? null,
 	});
+	const gettingStartedCard = useGettingStartedCard();
 	const starNagCard = useStarNagCard({ isCollapsed });
 	const hiringCard = useHiringCard({ surface: "v2" });
 
@@ -439,6 +441,7 @@ export function DashboardSidebar({
 										entries={[
 											paymentFailedCard,
 											setupScriptCard,
+											gettingStartedCard,
 											starNagCard,
 											hiringCard,
 										]}

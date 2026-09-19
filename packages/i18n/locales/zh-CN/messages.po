@@ -568,6 +568,9 @@ msgstr "{closedCount}项未开启"
 msgid "{completed} of {0} checks complete"
 msgstr "{0}项检查中已完成{completed}项"
 
+msgid "{completed} of {total} completed"
+msgstr "已完成 {completed}/{total} 项"
+
 msgid "{configTitle} font size"
 msgstr "{configTitle}字号"
 
@@ -5748,6 +5751,12 @@ msgstr "启用自动合并"
 msgid "Enable relay access…"
 msgstr "启用中继访问…"
 
+msgid "Enable remote access"
+msgstr "启用远程访问"
+
+msgid "Enable remote access to reach this computer from your phone. Keep this computer awake and Superset running."
+msgstr "启用远程访问，以便从手机连接这台电脑。请保持电脑唤醒并运行 Superset。"
+
 msgid "Enable skill"
 msgstr "启用技能"
 
@@ -6988,6 +6997,9 @@ msgstr "在Mac上获取Superset"
 msgid "Get Superset Pro"
 msgstr "获取Superset Pro"
 
+msgid "Get the best out of Pro"
+msgstr "充分利用 Pro"
+
 msgid "Get the iPhone app"
 msgstr "获取 iPhone 应用"
 
@@ -7443,6 +7455,9 @@ msgstr "我已经在用Cursor这样的IDE，这适合我吗？"
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "我在{company}排行榜上排第{rank}名，智能体用量{tokens}个token。"
+
+msgid "I've signed in on my phone"
+msgstr "我已在手机上登录"
 
 msgid "Icon"
 msgstr "图标"
@@ -8155,6 +8170,9 @@ msgstr "叶子"
 
 msgid "Learn how to use scripts"
 msgstr "了解如何使用脚本"
+
+msgid "Learn more"
+msgstr "了解更多"
 
 msgid "Learn the workflow that fits this repo — parallel workspaces and agent setup."
 msgstr "了解适合这个仓库的工作流：并行工作区和智能体配置。"
@@ -8881,6 +8899,9 @@ msgstr "移动应用"
 
 msgid "Mobile App"
 msgstr "移动应用"
+
+msgid "Mobile setup confirmed"
+msgstr "已确认移动端设置"
 
 msgid "model"
 msgstr "模型"
@@ -10233,6 +10254,9 @@ msgstr "仍然打开"
 
 msgid "Open Anywhere"
 msgstr "随处打开"
+
+msgid "Open App Store"
+msgstr "打开 App Store"
 
 msgid "Open as comment pane"
 msgstr "作为评论面板打开"
@@ -12770,6 +12794,15 @@ msgstr "看到付费墙"
 msgid "Scale from two agents to 100+"
 msgstr "从两个智能体扩到100多个"
 
+msgid "Scan to download Superset for iPhone"
+msgstr "扫码下载 iPhone 版 Superset"
+
+msgid "Scan to get the app"
+msgstr "扫码获取应用"
+
+msgid "Scan with your iPhone camera, then sign in with the same Superset account and organization."
+msgstr "使用 iPhone 相机扫码，然后登录相同的 Superset 账号和组织。"
+
 msgid "Scanning transcript logs…"
 msgstr "正在扫描会话记录日志…"
 
@@ -13338,6 +13371,9 @@ msgstr "设置"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "设置 {0}"
+
+msgid "Set up an automation"
+msgstr "设置自动化"
 
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上设置项目"
@@ -14363,7 +14399,7 @@ msgid "Superset Enterprise is Superset for teams. Reach out to learn more about 
 msgstr "Superset Enterprise是面向团队的Superset。联系我们，了解它包含什么，以及如何适配你的组织。"
 
 msgid "Superset for iPhone"
-msgstr "Superset iPhone 版"
+msgstr "iPhone 版 Superset"
 
 msgid "Superset for iPhone is on the way. Be first to know when it ships."
 msgstr "Superset iPhone 版即将到来。发布时第一时间通知你。"
@@ -16197,6 +16233,12 @@ msgstr "用于新智能体"
 msgid "Use global default"
 msgstr "使用全局默认值"
 
+msgid "Use Superset on mobile"
+msgstr "在手机上使用 Superset"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "通过 Pro 在手机上使用 Superset。"
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "使用桌面应用开始并行运行编码智能体。"
 
@@ -17050,6 +17092,9 @@ msgstr "你的账户已停用，并将很快被永久删除。重新激活即可
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "你的账户由你所在的组织管理。请联系管理员来创建新组织。"
+
+msgid "Your agents, wherever you are."
+msgstr "无论身在何处，都能使用你的智能体。"
 
 msgid "Your Agents, Your Accounts"
 msgstr "你的智能体，你的账号"

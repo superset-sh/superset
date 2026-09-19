@@ -568,6 +568,9 @@ msgstr "{closedCount} fermées"
 msgid "{completed} of {0} checks complete"
 msgstr "{completed} vérifications sur {0} terminées"
 
+msgid "{completed} of {total} completed"
+msgstr "{completed} sur {total} terminés"
+
 msgid "{configTitle} font size"
 msgstr "Taille de police de {configTitle}"
 
@@ -5748,6 +5751,12 @@ msgstr "Activer la fusion automatique"
 msgid "Enable relay access…"
 msgstr "Activer l'accès au relais…"
 
+msgid "Enable remote access"
+msgstr "Activer l’accès à distance"
+
+msgid "Enable remote access to reach this computer from your phone. Keep this computer awake and Superset running."
+msgstr "Activez l’accès à distance pour accéder à cet ordinateur depuis votre téléphone. Gardez cet ordinateur éveillé et Superset ouvert."
+
 msgid "Enable skill"
 msgstr "Activer la compétence"
 
@@ -6988,6 +6997,9 @@ msgstr "Obtenir Superset sur votre Mac"
 msgid "Get Superset Pro"
 msgstr "Obtenir Superset Pro"
 
+msgid "Get the best out of Pro"
+msgstr "Profitez pleinement de Pro"
+
 msgid "Get the iPhone app"
 msgstr "Obtenir l'application iPhone"
 
@@ -7443,6 +7455,9 @@ msgstr "J'utilise déjà un IDE comme Cursor, est-ce fait pour moi ?"
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "Je suis n°{rank} du classement {company} avec {tokens} tokens d'utilisation d'agents."
+
+msgid "I've signed in on my phone"
+msgstr "Je me suis connecté sur mon téléphone"
 
 msgid "Icon"
 msgstr "Icône"
@@ -8155,6 +8170,9 @@ msgstr "Feuille"
 
 msgid "Learn how to use scripts"
 msgstr "Découvrir comment utiliser les scripts"
+
+msgid "Learn more"
+msgstr "En savoir plus"
 
 msgid "Learn the workflow that fits this repo — parallel workspaces and agent setup."
 msgstr "Découvrir le flux de travail adapté à ce dépôt — espaces de travail parallèles et configuration des agents."
@@ -8881,6 +8899,9 @@ msgstr "Application mobile"
 
 msgid "Mobile App"
 msgstr "Application mobile"
+
+msgid "Mobile setup confirmed"
+msgstr "Configuration mobile confirmée"
 
 msgid "model"
 msgstr "modèle"
@@ -10233,6 +10254,9 @@ msgstr "Ouvrir quand même"
 
 msgid "Open Anywhere"
 msgstr "Ouvrir partout"
+
+msgid "Open App Store"
+msgstr "Ouvrir l’App Store"
 
 msgid "Open as comment pane"
 msgstr "Ouvrir comme panneau de commentaires"
@@ -12770,6 +12794,15 @@ msgstr "A vu le paywall"
 msgid "Scale from two agents to 100+"
 msgstr "Passez de deux agents à plus de 100"
 
+msgid "Scan to download Superset for iPhone"
+msgstr "Scannez pour télécharger Superset pour iPhone"
+
+msgid "Scan to get the app"
+msgstr "Scannez pour obtenir l’application"
+
+msgid "Scan with your iPhone camera, then sign in with the same Superset account and organization."
+msgstr "Scannez avec l’appareil photo de votre iPhone, puis connectez-vous avec le même compte Superset et la même organisation."
+
 msgid "Scanning transcript logs…"
 msgstr "Analyse des journaux de transcription…"
 
@@ -13338,6 +13371,9 @@ msgstr "Configurer"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "Configurer {0}"
+
+msgid "Set up an automation"
+msgstr "Configurer une automatisation"
 
 msgid "Set up project on {hostName}"
 msgstr "Configurer le projet sur {hostName}"
@@ -16197,6 +16233,12 @@ msgstr "Utiliser pour les nouveaux agents"
 msgid "Use global default"
 msgstr "Utiliser la valeur globale par défaut"
 
+msgid "Use Superset on mobile"
+msgstr "Utiliser Superset sur mobile"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Utilisez Superset sur votre téléphone avec Pro."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Utilisez l'application de bureau pour lancer des agents de code en parallèle."
 
@@ -17050,6 +17092,9 @@ msgstr "Votre compte est désactivé et sera définitivement supprimé prochaine
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Votre compte est géré par votre organisation. Contactez votre administrateur pour créer une nouvelle organisation."
+
+msgid "Your agents, wherever you are."
+msgstr "Vos agents, où que vous soyez."
 
 msgid "Your Agents, Your Accounts"
 msgstr "Vos agents, vos comptes"

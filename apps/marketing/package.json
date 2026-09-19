@@ -56,7 +56,6 @@
 		"stripe-gradient": "1.0.1",
 		"superjson": "2.2.6",
 		"three": "0.181.2",
-		"uqr": "0.1.2",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {

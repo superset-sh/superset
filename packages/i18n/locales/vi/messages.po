@@ -568,6 +568,9 @@ msgstr "{closedCount} đã đóng"
 msgid "{completed} of {0} checks complete"
 msgstr "{completed} trong {0} check đã xong"
 
+msgid "{completed} of {total} completed"
+msgstr "Đã hoàn thành {completed}/{total}"
+
 msgid "{configTitle} font size"
 msgstr "Cỡ chữ {configTitle}"
 
@@ -5748,6 +5751,12 @@ msgstr "Bật tự động merge"
 msgid "Enable relay access…"
 msgstr "Bật truy cập relay…"
 
+msgid "Enable remote access"
+msgstr "Bật truy cập từ xa"
+
+msgid "Enable remote access to reach this computer from your phone. Keep this computer awake and Superset running."
+msgstr "Bật truy cập từ xa để kết nối với máy tính này từ điện thoại. Giữ máy tính hoạt động và Superset đang chạy."
+
 msgid "Enable skill"
 msgstr "Bật skill"
 
@@ -6988,6 +6997,9 @@ msgstr "Cài Superset trên máy Mac"
 msgid "Get Superset Pro"
 msgstr "Mua Superset Pro"
 
+msgid "Get the best out of Pro"
+msgstr "Tận dụng tối đa Pro"
+
 msgid "Get the iPhone app"
 msgstr "Tải ứng dụng iPhone"
 
@@ -7443,6 +7455,9 @@ msgstr "Tôi đã dùng IDE như Cursor, Superset có hợp với tôi không?"
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "Tôi đang xếp hạng #{rank} trên bảng xếp hạng {company} với {tokens} token dùng agent."
+
+msgid "I've signed in on my phone"
+msgstr "Tôi đã đăng nhập trên điện thoại"
 
 msgid "Icon"
 msgstr "Biểu tượng"
@@ -8155,6 +8170,9 @@ msgstr "Chiếc lá"
 
 msgid "Learn how to use scripts"
 msgstr "Tìm hiểu cách dùng script"
+
+msgid "Learn more"
+msgstr "Tìm hiểu thêm"
 
 msgid "Learn the workflow that fits this repo — parallel workspaces and agent setup."
 msgstr "Tìm hiểu quy trình phù hợp với repo này — workspace song song và thiết lập agent."
@@ -8881,6 +8899,9 @@ msgstr "Ứng dụng di động"
 
 msgid "Mobile App"
 msgstr "Ứng dụng di động"
+
+msgid "Mobile setup confirmed"
+msgstr "Đã xác nhận thiết lập di động"
 
 msgid "model"
 msgstr "mô hình"
@@ -10233,6 +10254,9 @@ msgstr "Vẫn mở"
 
 msgid "Open Anywhere"
 msgstr "Mở ở bất cứ đâu"
+
+msgid "Open App Store"
+msgstr "Mở App Store"
 
 msgid "Open as comment pane"
 msgstr "Mở dạng khung bình luận"
@@ -12770,6 +12794,15 @@ msgstr "Đã thấy paywall"
 msgid "Scale from two agents to 100+"
 msgstr "Mở rộng từ hai agent lên hơn 100"
 
+msgid "Scan to download Superset for iPhone"
+msgstr "Quét để tải Superset cho iPhone"
+
+msgid "Scan to get the app"
+msgstr "Quét để tải ứng dụng"
+
+msgid "Scan with your iPhone camera, then sign in with the same Superset account and organization."
+msgstr "Quét bằng camera iPhone, sau đó đăng nhập bằng cùng tài khoản và tổ chức Superset."
+
 msgid "Scanning transcript logs…"
 msgstr "Đang quét log transcript…"
 
@@ -13338,6 +13371,9 @@ msgstr "Thiết lập"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "Thiết lập {0}"
+
+msgid "Set up an automation"
+msgstr "Thiết lập tự động hóa"
 
 msgid "Set up project on {hostName}"
 msgstr "Thiết lập dự án trên {hostName}"
@@ -16197,6 +16233,12 @@ msgstr "Dùng cho agent mới"
 msgid "Use global default"
 msgstr "Dùng mặc định toàn cục"
 
+msgid "Use Superset on mobile"
+msgstr "Dùng Superset trên điện thoại"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Dùng Superset trên điện thoại với Pro."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Dùng ứng dụng máy tính để chạy song song nhiều agent lập trình."
 
@@ -17050,6 +17092,9 @@ msgstr "Tài khoản của bạn đã bị vô hiệu hóa và sẽ sớm bị x
 
 msgid "Your account is managed by your organization. Contact your admin to create a new organization."
 msgstr "Tài khoản của bạn do tổ chức quản lý. Hãy liên hệ admin để tạo tổ chức mới."
+
+msgid "Your agents, wherever you are."
+msgstr "Các tác tử của bạn, dù bạn ở đâu."
 
 msgid "Your Agents, Your Accounts"
 msgstr "Agent của bạn, tài khoản của bạn"
