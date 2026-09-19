@@ -23,6 +23,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
 	ArrowUpIcon,
+	GitBranchIcon,
 	HistoryIcon,
 	PaperclipIcon,
 	Settings2Icon,
@@ -49,6 +50,10 @@ import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProject
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { CLOUD_AGENT_CHOICES } from "renderer/hooks/useV2AgentChoices/cloud-agent-choices";
 import { track } from "renderer/lib/analytics";
+import {
+	getBranchNameBlur,
+	getBranchNameChange,
+} from "renderer/lib/branch-name-input";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
@@ -62,6 +67,7 @@ import {
 	NEW_WORKSPACE_SCREEN_MIN_WIDTH,
 	useNewWorkspaceWidthStore,
 } from "renderer/stores/new-workspace-width";
+import { useSettings } from "renderer/stores/settings";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
 import {
@@ -139,6 +145,7 @@ export function NewWorkspaceScreen({
 }: NewWorkspaceScreenProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
+	const showBranchNameInput = useSettings((state) => state.showBranchNameInput);
 	const [promptSeed, setPromptSeed] = useState(0);
 	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
 	const {
@@ -788,6 +795,39 @@ export function NewWorkspaceScreen({
 								</motion.div>
 							)}
 					</AnimatePresence>
+					{showBranchNameInput &&
+						draft.hostId !== CLOUD_HOST_ID &&
+						!draft.isSession &&
+						draft.checkout === "worktree" &&
+						!draft.linkedPR && (
+							<div className="mb-2 flex min-h-7 items-center gap-2 px-1 text-muted-foreground">
+								<GitBranchIcon
+									className="size-3.5 shrink-0"
+									aria-hidden="true"
+								/>
+								<input
+									id="new-workspace-branch-name"
+									aria-label={t({ message: "Custom branch name" })}
+									className="min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground focus-visible:underline focus-visible:decoration-muted-foreground focus-visible:underline-offset-4 disabled:opacity-50"
+									placeholder={t({ message: "Custom branch name" })}
+									autoComplete="off"
+									onBlur={() => {
+										if (!draft.branchNameFromProvider) {
+											updateDraft(getBranchNameBlur(draft.branchName));
+										}
+									}}
+									spellCheck={false}
+									value={draft.branchName}
+									disabled={isCreating}
+									onChange={(event) =>
+										updateDraft({
+											...getBranchNameChange(event.target.value),
+											branchNameFromProvider: false,
+										})
+									}
+								/>
+							</div>
+						)}
 					<PromptInput
 						onSubmit={handleSubmit}
 						multiple

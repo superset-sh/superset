@@ -29,7 +29,9 @@ function GitSettingsPage() {
 	);
 
 	if (isV2CloudEnabled) {
-		return <V2GitSettings hostId={hostId ?? null} />;
+		return (
+			<V2GitSettings hostId={hostId ?? null} visibleItems={visibleItems} />
+		);
 	}
 
 	return <GitSettings visibleItems={visibleItems} />;

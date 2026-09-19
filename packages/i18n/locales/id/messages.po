@@ -2648,6 +2648,9 @@ msgstr "Nama branch tidak tersedia"
 msgid "Branch names cannot end with a space."
 msgstr "Nama branch tidak boleh diakhiri spasi."
 
+msgid "Branch naming"
+msgstr "Penamaan branch"
+
 msgid "Branch prefix"
 msgstr "Prefix branch"
 
@@ -4786,6 +4789,9 @@ msgstr "Kustom"
 
 msgid "Custom agent…"
 msgstr "Agen kustom…"
+
+msgid "Custom branch name"
+msgstr "Nama branch kustom"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Komponen kustom di luar set shadcn"
@@ -13454,6 +13460,9 @@ msgstr "Pintasan sudah dipakai"
 msgid "Show"
 msgstr "Tampilkan"
 
+msgid "Show a branch name field above the workspace creation prompt"
+msgstr "Tampilkan kolom nama branch di atas prompt pembuatan ruang kerja"
+
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Tampilkan dialog konfirmasi saat keluar dari aplikasi"
 
@@ -13480,6 +13489,9 @@ msgstr "Tampilkan yang ditutup"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Tampilkan penggunaan CPU dan memori di bilah atas"
+
+msgid "Show custom branch name input"
+msgstr "Tampilkan kolom nama branch kustom"
 
 msgid "Show details"
 msgstr "Tampilkan detail"

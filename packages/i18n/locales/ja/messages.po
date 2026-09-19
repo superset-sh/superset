@@ -2648,6 +2648,9 @@ msgstr "ブランチ名は利用できません"
 msgid "Branch names cannot end with a space."
 msgstr "ブランチ名の末尾にスペースは使えません。"
 
+msgid "Branch naming"
+msgstr "ブランチの命名"
+
 msgid "Branch prefix"
 msgstr "ブランチプレフィックス"
 
@@ -4786,6 +4789,9 @@ msgstr "カスタム"
 
 msgid "Custom agent…"
 msgstr "カスタムエージェント…"
+
+msgid "Custom branch name"
+msgstr "カスタムブランチ名"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcnのセットにない独自コンポーネント"
@@ -13454,6 +13460,9 @@ msgstr "ショートカットは使用中です"
 msgid "Show"
 msgstr "表示"
 
+msgid "Show a branch name field above the workspace creation prompt"
+msgstr "ワークスペース作成プロンプトの上にブランチ名の入力欄を表示します"
+
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "アプリ終了時に確認ダイアログを表示"
 
@@ -13480,6 +13489,9 @@ msgstr "クローズ済みも表示"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "トップバーにCPUとメモリ使用量を表示"
+
+msgid "Show custom branch name input"
+msgstr "カスタムブランチ名の入力欄を表示"
 
 msgid "Show details"
 msgstr "詳細を表示"

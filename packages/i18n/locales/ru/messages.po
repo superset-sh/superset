@@ -2648,6 +2648,9 @@ msgstr "Имя ветки недоступно"
 msgid "Branch names cannot end with a space."
 msgstr "Имена веток не могут заканчиваться пробелом."
 
+msgid "Branch naming"
+msgstr "Именование веток"
+
 msgid "Branch prefix"
 msgstr "Префикс ветки"
 
@@ -4786,6 +4789,9 @@ msgstr "Своя"
 
 msgid "Custom agent…"
 msgstr "Свой агент…"
+
+msgid "Custom branch name"
+msgstr "Своё имя ветки"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Свои компоненты за пределами набора shadcn"
@@ -13454,6 +13460,9 @@ msgstr "Сочетание уже используется"
 msgid "Show"
 msgstr "Показать"
 
+msgid "Show a branch name field above the workspace creation prompt"
+msgstr "Показывать поле имени ветки над промптом для создания рабочего пространства"
+
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Показывать подтверждение при выходе из приложения"
 
@@ -13480,6 +13489,9 @@ msgstr "Показать закрытые"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Показывать загрузку CPU и памяти в верхней панели"
+
+msgid "Show custom branch name input"
+msgstr "Показывать поле своего имени ветки"
 
 msgid "Show details"
 msgstr "Показать детали"

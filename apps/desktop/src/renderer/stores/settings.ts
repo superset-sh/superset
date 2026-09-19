@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware";
 export type ChangesOpenTarget = "pane" | "tab";
 
 interface Settings {
+	showBranchNameInput: boolean;
 	diffStyle: "split" | "unified";
 	showDiffComments: boolean;
 	expandUnchanged: boolean;
@@ -19,6 +20,7 @@ interface SettingsStore extends Settings {
 export const useSettings = create<SettingsStore>()(
 	persist(
 		(set) => ({
+			showBranchNameInput: false,
 			diffStyle: "split",
 			showDiffComments: true,
 			expandUnchanged: false,

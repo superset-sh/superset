@@ -8,7 +8,6 @@ import {
 	getEnabledAgentConfigs,
 	indexResolvedAgentConfigs,
 } from "@superset/shared/agent-settings";
-import { sanitizeBranchNameWithMaxLength } from "@superset/shared/workspace-launch";
 import {
 	PromptInput,
 	PromptInputAttachment,
@@ -47,6 +46,11 @@ import { AgentSelect } from "renderer/components/AgentSelect";
 import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { PLATFORM } from "renderer/hotkeys";
+import {
+	getBranchNameBlur,
+	getBranchNameChange,
+	sanitizeCustomBranchName,
+} from "renderer/lib/branch-name-input";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -756,13 +760,7 @@ ${sanitizeText(truncatedBody)}`;
 							prompt: trimmedPrompt || undefined,
 							branchName:
 								(branchNameEdited && branchName.trim()
-									? sanitizeBranchNameWithMaxLength(
-											branchName.trim(),
-											undefined,
-											{
-												preserveCase: true,
-											},
-										)
+									? sanitizeCustomBranchName(branchName)
 									: aiBranchName) || undefined,
 							compareBaseBranch: compareBaseBranch || undefined,
 						},
@@ -983,35 +981,21 @@ ${sanitizeText(truncatedBody)}`;
 						}
 					}}
 				/>
-				<div className="shrink min-w-0 ml-auto max-w-[50%]">
-					<Input
-						className={cn(
-							"border-none bg-transparent dark:bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
-						)}
-						placeholder={t({
-							message: "branch name",
-						})}
-						value={branchName}
-						onChange={(e) =>
-							updateDraft({
-								branchName: e.target.value.replace(/\s+/g, "-"),
-								branchNameEdited: true,
-							})
-						}
-						onBlur={() => {
-							const sanitized = sanitizeBranchNameWithMaxLength(
-								branchName.trim(),
-								undefined,
-								{ preserveCase: true },
-							);
-							if (!sanitized) {
-								updateDraft({ branchName: "", branchNameEdited: false });
-							} else {
-								updateDraft({ branchName: sanitized });
-							}
-						}}
-					/>
-				</div>
+				{!linkedPR && (
+					<div className="shrink min-w-0 ml-auto max-w-[50%]">
+						<Input
+							className={cn(
+								"border-none bg-transparent dark:bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
+							)}
+							placeholder={t({
+								message: "branch name",
+							})}
+							value={branchName}
+							onChange={(e) => updateDraft(getBranchNameChange(e.target.value))}
+							onBlur={() => updateDraft(getBranchNameBlur(branchName))}
+						/>
+					</div>
+				)}
 			</div>
 
 			<PromptInput

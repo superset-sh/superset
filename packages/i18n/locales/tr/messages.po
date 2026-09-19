@@ -2648,6 +2648,9 @@ msgstr "Dal adı kullanılamıyor"
 msgid "Branch names cannot end with a space."
 msgstr "Dal adları boşlukla bitemez."
 
+msgid "Branch naming"
+msgstr "Dal adlandırma"
+
 msgid "Branch prefix"
 msgstr "Dal ön eki"
 
@@ -4786,6 +4789,9 @@ msgstr "Özel"
 
 msgid "Custom agent…"
 msgstr "Özel ajan…"
+
+msgid "Custom branch name"
+msgstr "Özel dal adı"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcn setinin ötesindeki özel bileşenler"
@@ -13454,6 +13460,9 @@ msgstr "Kısayol zaten kullanımda"
 msgid "Show"
 msgstr "Göster"
 
+msgid "Show a branch name field above the workspace creation prompt"
+msgstr "Çalışma alanı oluşturma isteminin üzerinde dal adı alanını göster"
+
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Uygulamadan çıkarken onay penceresi göster"
 
@@ -13480,6 +13489,9 @@ msgstr "Kapalıları göster"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Üst çubukta CPU ve bellek kullanımını göster"
+
+msgid "Show custom branch name input"
+msgstr "Özel dal adı alanını göster"
 
 msgid "Show details"
 msgstr "Ayrıntıları göster"

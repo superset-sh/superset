@@ -46,6 +46,7 @@ export const SETTING_ITEM_ID = {
 	BROWSER_HOMEPAGE: "browser-homepage",
 	BROWSER_IMPORT_HISTORY: "browser-import-history",
 
+	GIT_BRANCH_NAME_INPUT: "git-branch-name-input",
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
 	GIT_WORKTREE_LOCATION: "git-worktree-location",
@@ -198,6 +199,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.BROWSER_IMPORT_HISTORY]: "v2",
 
 	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
+	[SETTING_ITEM_ID.GIT_BRANCH_NAME_INPUT]: "v2",
 	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",
 	[SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH]: "v1",
 	[SETTING_ITEM_ID.GIT_WORKTREE_LOCATION]: "shared",
@@ -780,6 +782,13 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"remove",
 			"cleanup",
 		],
+	},
+	{
+		id: SETTING_ITEM_ID.GIT_BRANCH_NAME_INPUT,
+		section: "git",
+		title: "Show custom branch name input",
+		description: "Show a branch name field above the workspace creation prompt",
+		keywords: ["branch", "name", "input", "workspace", "creation", "prompt"],
 	},
 	{
 		id: SETTING_ITEM_ID.GIT_BRANCH_PREFIX,
