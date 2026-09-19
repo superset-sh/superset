@@ -284,6 +284,9 @@ export function CommentComposer({
 						size="icon"
 						variant="ghost"
 						className="size-7 rounded-md text-muted-foreground hover:text-foreground"
+						// Focus stays in the textarea: the blur would collapse the
+						// composer out from under the click before it lands.
+						onMouseDown={(event) => event.preventDefault()}
 						onClick={() => fileInputRef.current?.click()}
 						aria-label={t({ message: "Attach image" })}
 						disabled={images.length >= MAX_COMMENT_IMAGES}
