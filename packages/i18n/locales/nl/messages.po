@@ -13539,6 +13539,9 @@ msgstr "Zijbalkpil die verschijnt als een app-update klaarstaat"
 msgid "Sign in"
 msgstr "Inloggen"
 
+msgid "Sign in again"
+msgstr "Opnieuw inloggen"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Inloggen als lokale beheerder (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Ingelogd. Het token wordt versleuteld opgeslagen en wordt nooit meer get
 
 msgid "Signed out"
 msgstr "Uitgelogd"
+
+msgid "Signed out of Superset"
+msgstr "Uitgelogd bij Superset"
 
 msgid "Signed-in sites"
 msgstr "Sites waarop je bent ingelogd"

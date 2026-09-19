@@ -13539,6 +13539,9 @@ msgstr "应用更新可安装时显示在侧边栏的胶囊提示"
 msgid "Sign in"
 msgstr "登录"
 
+msgid "Sign in again"
+msgstr "重新登录"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "以本地管理员身份登录（开发）"
 
@@ -13619,6 +13622,9 @@ msgstr "已登录。令牌以加密方式保存，且不会再次显示。"
 
 msgid "Signed out"
 msgstr "已退出登录"
+
+msgid "Signed out of Superset"
+msgstr "已退出 Superset 登录"
 
 msgid "Signed-in sites"
 msgstr "已登录的站点"

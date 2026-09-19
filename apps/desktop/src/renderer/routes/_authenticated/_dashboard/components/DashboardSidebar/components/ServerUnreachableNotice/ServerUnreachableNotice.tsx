@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useIsSessionUnconfirmed } from "renderer/lib/auth-client";
+import { useSessionStatus } from "renderer/lib/auth-client";
 
 interface ServerUnreachableNoticeProps {
 	isCollapsed: boolean;
@@ -9,8 +9,8 @@ export function ServerUnreachableNotice({
 	isCollapsed,
 }: ServerUnreachableNoticeProps) {
 	const { t } = useLingui();
-	const isSessionUnconfirmed = useIsSessionUnconfirmed();
-	if (!isSessionUnconfirmed) return null;
+	const sessionStatus = useSessionStatus();
+	if (sessionStatus !== "unconfirmed") return null;
 
 	const title = t({ message: "Can't reach Superset" });
 	if (isCollapsed) {

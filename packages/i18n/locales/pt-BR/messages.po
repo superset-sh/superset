@@ -13539,6 +13539,9 @@ msgstr "Pílula da barra lateral exibida quando há atualização do app pronta 
 msgid "Sign in"
 msgstr "Entrar"
 
+msgid "Sign in again"
+msgstr "Entrar novamente"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Entrar como Local Admin (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Conectado. O token é guardado criptografado e nunca mais é exibido."
 
 msgid "Signed out"
 msgstr "Sessão encerrada"
+
+msgid "Signed out of Superset"
+msgstr "Sessão do Superset encerrada"
 
 msgid "Signed-in sites"
 msgstr "Sites com login feito"

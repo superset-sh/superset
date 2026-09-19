@@ -13539,6 +13539,9 @@ msgstr "Píldora de la barra lateral que aparece cuando hay una actualización l
 msgid "Sign in"
 msgstr "Iniciar sesión"
 
+msgid "Sign in again"
+msgstr "Iniciar sesión de nuevo"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Iniciar sesión como Local Admin (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Sesión iniciada. El token se guarda cifrado y no se vuelve a mostrar."
 
 msgid "Signed out"
 msgstr "Sesión cerrada"
+
+msgid "Signed out of Superset"
+msgstr "Sesión de Superset cerrada"
 
 msgid "Signed-in sites"
 msgstr "Sitios con sesión iniciada"

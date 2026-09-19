@@ -13539,6 +13539,9 @@ msgstr "Pillola nella barra laterale mostrata quando un aggiornamento dell'app �
 msgid "Sign in"
 msgstr "Accedi"
 
+msgid "Sign in again"
+msgstr "Accedi di nuovo"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Accedi come Local Admin (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Accesso effettuato. Il token è salvato cifrato e non viene più mostrat
 
 msgid "Signed out"
 msgstr "Disconnesso"
+
+msgid "Signed out of Superset"
+msgstr "Disconnesso da Superset"
 
 msgid "Signed-in sites"
 msgstr "Siti con accesso effettuato"

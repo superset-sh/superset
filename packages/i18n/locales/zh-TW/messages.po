@@ -13539,6 +13539,9 @@ msgstr "應用更新可安裝時顯示在側邊欄的膠囊提示"
 msgid "Sign in"
 msgstr "登入"
 
+msgid "Sign in again"
+msgstr "重新登入"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "以本地管理員身份登入（開發）"
 
@@ -13619,6 +13622,9 @@ msgstr "已登入。權杖以加密方式儲存，且不會再次顯示。"
 
 msgid "Signed out"
 msgstr "已登出"
+
+msgid "Signed out of Superset"
+msgstr "已登出 Superset"
 
 msgid "Signed-in sites"
 msgstr "已登入的站點"

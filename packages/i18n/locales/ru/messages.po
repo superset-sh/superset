@@ -13539,6 +13539,9 @@ msgstr "Плашка в боковой панели, появляется, ко�
 msgid "Sign in"
 msgstr "Войти"
 
+msgid "Sign in again"
+msgstr "Войти снова"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Войти как локальный админ (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Вход выполнен. Токен хранится в зашифро
 
 msgid "Signed out"
 msgstr "Выход выполнен"
+
+msgid "Signed out of Superset"
+msgstr "Выполнен выход из Superset"
 
 msgid "Signed-in sites"
 msgstr "Сайты с выполненным входом"

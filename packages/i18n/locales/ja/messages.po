@@ -13539,6 +13539,9 @@ msgstr "アプリの更新をインストールできるときにサイドバー
 msgid "Sign in"
 msgstr "サインイン"
 
+msgid "Sign in again"
+msgstr "もう一度サインイン"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "ローカル管理者としてサインイン(開発用)"
 
@@ -13619,6 +13622,9 @@ msgstr "サインインしました。トークンは暗号化して保存され
 
 msgid "Signed out"
 msgstr "サインアウトしました"
+
+msgid "Signed out of Superset"
+msgstr "Superset からサインアウトしました"
 
 msgid "Signed-in sites"
 msgstr "サインイン中のサイト"

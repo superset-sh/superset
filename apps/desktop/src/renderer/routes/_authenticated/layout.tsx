@@ -298,7 +298,7 @@ function AuthenticatedLayout() {
 	}
 
 	return (
-		<DndProvider manager={dragDropManager}>
+		<DndProvider key={session?.user?.id} manager={dragDropManager}>
 			<CollectionsProvider>
 				<WindowTitle />
 				<GlobalBrowserLifecycle />

@@ -1,6 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
-import { authClient } from "renderer/lib/auth-client";
+import { authClient, setIsSigningOut } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "renderer/lib/posthog";
 
@@ -15,6 +15,9 @@ export function useSignOut() {
 	const setAnalyticsUserId = electronTrpc.analytics.setUserId.useMutation();
 
 	return async () => {
+		// Revoking ends the session on the server before the token is removed
+		// here; without this the app would keep the account on screen as ended.
+		setIsSigningOut(true);
 		posthog.reset();
 		setAnalyticsUserId.mutate({ userId: null });
 		localStorage.removeItem(ACTIVE_ORG_ID_KEY);
@@ -27,6 +30,7 @@ export function useSignOut() {
 		try {
 			await signOutMutation.mutateAsync();
 		} catch (error) {
+			setIsSigningOut(false);
 			toast.error(
 				t({
 					message: "Couldn't remove the local sign-in",

@@ -42,32 +42,45 @@ export function useAuthToken(): string | null {
 	);
 }
 
-// True while the app runs on the session saved on this machine because the
-// server could not be reached to confirm it.
-let isSessionUnconfirmed = false;
-const sessionUnconfirmedListeners = new Set<() => void>();
+// "unconfirmed": running on the session saved on this machine because the
+// server could not be reached. "ended": the server said the session is over and
+// the app keeps running on the last known identity until the user signs in again.
+export type SessionStatus = "confirmed" | "unconfirmed" | "ended";
 
-function subscribeSessionUnconfirmed(listener: () => void): () => void {
-	sessionUnconfirmedListeners.add(listener);
-	return () => sessionUnconfirmedListeners.delete(listener);
+let sessionStatus: SessionStatus = "confirmed";
+const sessionStatusListeners = new Set<() => void>();
+
+function subscribeSessionStatus(listener: () => void): () => void {
+	sessionStatusListeners.add(listener);
+	return () => sessionStatusListeners.delete(listener);
 }
 
-export function setSessionUnconfirmed(next: boolean) {
-	if (isSessionUnconfirmed === next) return;
-	isSessionUnconfirmed = next;
-	for (const listener of sessionUnconfirmedListeners) listener();
+export function setSessionStatus(next: SessionStatus) {
+	if (sessionStatus === next) return;
+	sessionStatus = next;
+	for (const listener of sessionStatusListeners) listener();
 }
 
-export function getIsSessionUnconfirmed(): boolean {
-	return isSessionUnconfirmed;
+export function getSessionStatus(): SessionStatus {
+	return sessionStatus;
 }
 
-export function useIsSessionUnconfirmed(): boolean {
+export function useSessionStatus(): SessionStatus {
 	return useSyncExternalStore(
-		subscribeSessionUnconfirmed,
-		getIsSessionUnconfirmed,
-		() => false,
+		subscribeSessionStatus,
+		getSessionStatus,
+		() => "confirmed",
 	);
+}
+
+let isSigningOut = false;
+
+export function setIsSigningOut(next: boolean) {
+	isSigningOut = next;
+}
+
+export function getIsSigningOut(): boolean {
+	return isSigningOut;
 }
 
 let jwt: string | null = null;
@@ -114,6 +127,9 @@ export function getJwt(): string | null {
  */
 export async function ensureFreshJwt(): Promise<string | null> {
 	if (jwtIsFresh()) return jwt;
+	// The server rejected this sign-in; asking again on every reconnect would
+	// only produce 401s (#5518).
+	if (sessionStatus === "ended") return jwt;
 	if (!jwtRefreshInFlight) {
 		const generationAtStart = jwtGeneration;
 		jwtRefreshInFlight = authClient

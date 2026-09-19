@@ -13539,6 +13539,9 @@ msgstr "Štítek v postranním panelu, když je připravená aktualizace aplikac
 msgid "Sign in"
 msgstr "Přihlásit se"
 
+msgid "Sign in again"
+msgstr "Přihlásit se znovu"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Přihlásit se jako Local Admin (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Přihlášeno. Token je uložen šifrovaně a už se znovu nezobrazí."
 
 msgid "Signed out"
 msgstr "Odhlášeno"
+
+msgid "Signed out of Superset"
+msgstr "Odhlášeno ze služby Superset"
 
 msgid "Signed-in sites"
 msgstr "Weby, kde jste přihlášeni"

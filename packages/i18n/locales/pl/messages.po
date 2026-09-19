@@ -13539,6 +13539,9 @@ msgstr "Plakietka na pasku bocznym, gdy aktualizacja aplikacji jest gotowa do in
 msgid "Sign in"
 msgstr "Zaloguj się"
 
+msgid "Sign in again"
+msgstr "Zaloguj się ponownie"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Zaloguj się jako Local Admin (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Zalogowano. Token jest przechowywany w postaci zaszyfrowanej i nigdy nie
 
 msgid "Signed out"
 msgstr "Wylogowano"
+
+msgid "Signed out of Superset"
+msgstr "Wylogowano z Superset"
 
 msgid "Signed-in sites"
 msgstr "Witryny z zalogowaniem"

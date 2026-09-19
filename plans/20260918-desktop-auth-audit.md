@@ -70,6 +70,10 @@ Both were reproduced in the dev app over CDP on 2026-09-18, before and after the
 - **Five minutes of blank after a session is revoked elsewhere.** The server's session cookie
   cache (`cookieCache`, 5 min) keeps answering "signed in" while the API rejects the token, so the
   organization list fails and the window is blank. Same on `main`.
+- **Fixed after this audit: the server ending a session no longer sends a returning user to
+  `/sign-in`.** The app stays on the last known identity with a "Sign in again" prompt in the
+  sidebar, and a different account coming back remounts the authenticated tree on the user id
+  (finding 10). Decision logic: `AuthProvider/utils/decideSessionRead`.
 - **A dead token still reads "Restoring your session".** With the expiry check gone, a user whose
   session really expired reaches `/sign-in` in about 1.4 s as before, but under the restoring
   subtitle, and recovery polling runs its 12 capped attempts against a token that will never work.

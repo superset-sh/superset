@@ -13539,6 +13539,9 @@ msgstr "Pille in der Seitenleiste, wenn ein App-Update installiert werden kann"
 msgid "Sign in"
 msgstr "Anmelden"
 
+msgid "Sign in again"
+msgstr "Erneut anmelden"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Als lokaler Admin anmelden (Dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Angemeldet. Der Token wird verschlüsselt gespeichert und nie wieder ang
 
 msgid "Signed out"
 msgstr "Abgemeldet"
+
+msgid "Signed out of Superset"
+msgstr "Von Superset abgemeldet"
 
 msgid "Signed-in sites"
 msgstr "Angemeldete Websites"

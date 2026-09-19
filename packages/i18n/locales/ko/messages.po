@@ -13539,6 +13539,9 @@ msgstr "앱 업데이트를 설치할 수 있을 때 사이드바에 표시되�
 msgid "Sign in"
 msgstr "로그인"
 
+msgid "Sign in again"
+msgstr "다시 로그인"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "로컬 관리자로 로그인 (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "로그인했습니다. 토큰은 암호화되어 저장되며 다시 표
 
 msgid "Signed out"
 msgstr "로그아웃됨"
+
+msgid "Signed out of Superset"
+msgstr "Superset에서 로그아웃됨"
 
 msgid "Signed-in sites"
 msgstr "로그인한 사이트"

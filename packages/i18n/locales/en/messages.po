@@ -13539,6 +13539,9 @@ msgstr "Sidebar pill shown when an app update is ready to install"
 msgid "Sign in"
 msgstr "Sign in"
 
+msgid "Sign in again"
+msgstr "Sign in again"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Sign in as Local Admin (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Signed in. The token is stored encrypted and is never shown again."
 
 msgid "Signed out"
 msgstr "Signed out"
+
+msgid "Signed out of Superset"
+msgstr "Signed out of Superset"
 
 msgid "Signed-in sites"
 msgstr "Signed-in sites"

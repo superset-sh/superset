@@ -13539,6 +13539,9 @@ msgstr "Bir uygulama güncellemesi kurulmaya hazır olduğunda gösterilen kenar
 msgid "Sign in"
 msgstr "Oturum aç"
 
+msgid "Sign in again"
+msgstr "Yeniden oturum aç"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Yerel yönetici olarak oturum aç (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Oturum açıldı. Token şifrelenmiş olarak saklanır ve bir daha göst
 
 msgid "Signed out"
 msgstr "Oturum kapatıldı"
+
+msgid "Signed out of Superset"
+msgstr "Superset oturumu kapatıldı"
 
 msgid "Signed-in sites"
 msgstr "Oturum açılmış siteler"

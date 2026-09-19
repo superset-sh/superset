@@ -43,6 +43,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 			"v1-migration-followup-pending-*",
 		],
 	],
+	[
+		"src/renderer/lib/last-auth-method/last-auth-method.ts",
+		["superset-last-auth-method"],
+	],
 	["src/renderer/lib/posthog.ts", ["ph_*_posthog", "__ph_opt_in_out_*"]],
 	[
 		"src/renderer/lib/persistent-hash-history/persistent-hash-history.ts",
@@ -223,5 +227,4 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar/useDevSeedV2Sidebar.ts",
 		["superset:dev:v2-sidebar-seeded"],
 	],
-	["src/renderer/routes/sign-in/page.tsx", ["superset-last-auth-method"]],
 ];

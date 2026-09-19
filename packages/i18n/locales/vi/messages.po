@@ -13539,6 +13539,9 @@ msgstr "Pill ở thanh bên hiện khi có bản cập nhật ứng dụng sẵn
 msgid "Sign in"
 msgstr "Đăng nhập"
 
+msgid "Sign in again"
+msgstr "Đăng nhập lại"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Đăng nhập với quyền Local Admin (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Đã đăng nhập. Token được lưu ở dạng mã hóa và không b
 
 msgid "Signed out"
 msgstr "Đã đăng xuất"
+
+msgid "Signed out of Superset"
+msgstr "Đã đăng xuất khỏi Superset"
 
 msgid "Signed-in sites"
 msgstr "Trang đang đăng nhập"

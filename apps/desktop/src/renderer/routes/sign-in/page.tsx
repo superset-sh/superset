@@ -1,14 +1,13 @@
 import { Trans } from "@lingui/react/macro";
 import { type AuthProvider, COMPANY } from "@superset/shared/constants";
-import {
-	DEV_EMAIL,
-	DEV_NAME,
-	DEV_PASSWORD,
-} from "@superset/shared/dev-credentials";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	useNavigate,
+	useRouter,
+} from "@tanstack/react-router";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
@@ -16,8 +15,14 @@ import { Redirect } from "renderer/components/Redirect";
 import { env } from "renderer/env.renderer";
 import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { track } from "renderer/lib/analytics";
-import { setAuthToken } from "renderer/lib/auth-client";
+import { setAuthToken, useSessionStatus } from "renderer/lib/auth-client";
+import { requestDevSignIn } from "renderer/lib/dev-sign-in";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	type AuthMethod,
+	readLastAuthMethod,
+	writeLastAuthMethod,
+} from "renderer/lib/last-auth-method";
 import { SupersetLogo } from "./components/SupersetLogo";
 import { useSessionRecovery } from "./hooks/useSessionRecovery";
 
@@ -25,29 +30,22 @@ export const Route = createFileRoute("/sign-in/")({
 	component: SignInPage,
 });
 
-const LAST_USED_METHOD_KEY = "superset-last-auth-method";
-
 const workspaceRedirect = <Redirect to="/workspace" replace />;
 
 const SESSION_PENDING_TIMEOUT_MS = 15_000;
-
-type AuthMethod = AuthProvider | "dev";
-
-function readLastUsedMethod(): AuthMethod | null {
-	const stored = window.localStorage.getItem(LAST_USED_METHOD_KEY);
-	return stored === "github" || stored === "google" || stored === "dev"
-		? stored
-		: null;
-}
 
 function SignInPage() {
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
 	const persistToken = electronTrpc.auth.persistToken.useMutation();
 	const navigate = useNavigate();
+	const router = useRouter();
 	const [isLoadingDev, setIsLoadingDev] = useState(false);
 	const [devError, setDevError] = useState<string | null>(null);
-	const [lastUsedMethod, setLastUsedMethod] = useState(readLastUsedMethod);
+	const [lastUsedMethod, setLastUsedMethod] = useState(readLastAuthMethod);
 	const { hasLocalToken, isPending, session } = useSessionRecovery();
+	// The session on screen is the last known identity, not a sign-in: the
+	// person came here from "Sign in again" and needs the buttons.
+	const isSessionEnded = useSessionStatus() === "ended";
 	// A session fetch that never settles must not trap the user on a spinner —
 	// fall through to the sign-in buttons after a while (#5729).
 	const pendingTimedOut = useDelayElapsed(
@@ -70,12 +68,12 @@ function SignInPage() {
 	}
 
 	// If already signed in, redirect to workspace
-	if (session?.user) {
+	if (session?.user && !isSessionEnded) {
 		return workspaceRedirect;
 	}
 
 	const rememberLastUsedMethod = (method: AuthMethod) => {
-		window.localStorage.setItem(LAST_USED_METHOD_KEY, method);
+		writeLastAuthMethod(method);
 		setLastUsedMethod(method);
 	};
 
@@ -90,52 +88,8 @@ function SignInPage() {
 		setDevError(null);
 		rememberLastUsedMethod("dev");
 
-		const postAuth = async (path: string, body: Record<string, unknown>) => {
-			const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				credentials: "omit",
-				body: JSON.stringify(body),
-			});
-			const data = (await response.json().catch(() => ({}))) as {
-				token?: string;
-				code?: string;
-				message?: string;
-			};
-			return { ok: response.ok, status: response.status, data };
-		};
-
 		try {
-			let result = await postAuth("/api/auth/sign-in/email", {
-				email: DEV_EMAIL,
-				password: DEV_PASSWORD,
-			});
-			if (!result.ok && result.data.code === "INVALID_EMAIL_OR_PASSWORD") {
-				const signUp = await postAuth("/api/auth/sign-up/email", {
-					email: DEV_EMAIL,
-					password: DEV_PASSWORD,
-					name: DEV_NAME,
-				});
-				if (!signUp.ok) {
-					throw new Error(
-						signUp.data.message ?? `Sign-up failed (${signUp.status})`,
-					);
-				}
-				result = await postAuth("/api/auth/sign-in/email", {
-					email: DEV_EMAIL,
-					password: DEV_PASSWORD,
-				});
-			}
-			if (!result.ok) {
-				throw new Error(
-					result.data.message ?? `Sign-in failed (${result.status})`,
-				);
-			}
-			const token = result.data.token;
-			if (!token) throw new Error("Sign-in did not return a token");
-			const expiresAt = new Date(
-				Date.now() + 1000 * 60 * 60 * 24 * 30,
-			).toISOString();
+			const { token, expiresAt } = await requestDevSignIn();
 			await persistToken.mutateAsync({ token, expiresAt });
 			setAuthToken(token);
 			await navigate({ to: "/workspace", replace: true });
@@ -168,7 +122,7 @@ function SignInPage() {
 							<Trans>Welcome to Superset</Trans>
 						</h1>
 						<p className="text-sm text-muted-foreground">
-							{hasLocalToken ? (
+							{hasLocalToken && !isSessionEnded ? (
 								<Trans>Restoring your session</Trans>
 							) : (
 								<Trans>Sign in to get started</Trans>
@@ -220,6 +174,17 @@ function SignInPage() {
 							{lastUsedMethod === "google" && lastUsedBadge}
 						</Button>
 					</div>
+
+					{isSessionEnded && (
+						<Button
+							variant="ghost"
+							size="sm"
+							className="mt-4"
+							onClick={() => router.history.back()}
+						>
+							<Trans>Back</Trans>
+						</Button>
+					)}
 
 					<p className="mt-8 text-xs text-muted-foreground/70 text-center max-w-xs">
 						<Trans>

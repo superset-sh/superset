@@ -3,13 +3,18 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
 	authClient,
 	getAuthToken,
+	getIsSigningOut,
+	getSessionStatus,
+	type SessionStatus,
 	setAuthToken,
+	setIsSigningOut,
 	setJwt,
-	setSessionUnconfirmed,
-	useIsSessionUnconfirmed,
+	setSessionStatus,
+	useSessionStatus,
 } from "renderer/lib/auth-client";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { electronTrpc } from "../../lib/electron-trpc";
+import { decideSessionRead } from "./utils/decideSessionRead";
 import { resolveStoredToken } from "./utils/resolveStoredToken";
 import {
 	parseSessionSnapshot,
@@ -32,38 +37,80 @@ function readSession(timedOut: boolean) {
 	return { hasUser: !!read.data?.user, error: read.error, timedOut };
 }
 
-function bootFromSavedSession(
-	token: string,
-	sessionSnapshot: string | null | undefined,
-): boolean {
-	const saved = parseSessionSnapshot(sessionSnapshot, token);
-	if (!saved) return false;
-	sessionAtom().set({
+type SessionState = ReturnType<ReturnType<typeof sessionAtom>["get"]>;
+type SavedSession = NonNullable<ReturnType<typeof parseSessionSnapshot>>;
+
+// Session states this file wrote itself, so the listener below never takes
+// one for an answer from the server.
+const ownWrites = new WeakSet<object>();
+
+function writeSessionState(state: SessionState) {
+	ownWrites.add(state);
+	sessionAtom().set(state);
+}
+
+function keepLastSession(
+	lastSession: SavedSession,
+	status: Exclude<SessionStatus, "confirmed">,
+) {
+	writeSessionState({
 		...sessionAtom().get(),
-		data: saved,
+		data: lastSession as SessionState["data"],
 		error: null,
 		isPending: false,
 		isRefetching: false,
 	});
-	setSessionUnconfirmed(true);
-	return true;
+	setSessionStatus(status);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
 	const queryClient = useQueryClient();
 	const { data: session, refetch: refetchSession } = authClient.useSession();
-	const isSessionUnconfirmed = useIsSessionUnconfirmed();
+	const sessionStatus = useSessionStatus();
+	const isSessionEnded = sessionStatus === "ended";
 	const persistSessionSnapshot =
 		electronTrpc.auth.persistSessionSnapshot.useMutation();
 	const persistedSnapshotRef = useRef<string | null>(null);
-	const savedSnapshotRef = useRef<string | null>(null);
+	const lastSessionRef = useRef<SavedSession | null>(null);
 
 	const { data: storedToken, isSuccess } =
 		electronTrpc.auth.getStoredToken.useQuery(undefined, {
 			refetchOnWindowFocus: false,
 			refetchOnReconnect: false,
 		});
+
+	// Subscribed outside React's render cycle on purpose: the listener puts the
+	// last session back in the same tick the empty read lands, so no component
+	// ever renders signed out and nothing routes to /sign-in.
+	useEffect(
+		() =>
+			sessionAtom().listen((state) => {
+				const decision = decideSessionRead({
+					userId: state.data?.user?.id ?? null,
+					error: state.error,
+					isSettled: !state.isPending && !state.isRefetching,
+					isOwnWrite: ownWrites.has(state),
+					hasToken: !!getAuthToken(),
+					isSigningOut: getIsSigningOut(),
+					lastUserId: lastSessionRef.current?.user.id ?? null,
+				});
+				if (decision.type === "confirmed" && state.data) {
+					// CollectionsProvider picks a window's organization once per
+					// mount; the layout remounts on the user id, and nothing the
+					// previous account cached may be there when it does.
+					if (decision.accountChanged) queryClient.clear();
+					lastSessionRef.current = state.data as SavedSession;
+					setSessionStatus("confirmed");
+				} else if (
+					decision.type === "keep-last-session" &&
+					lastSessionRef.current
+				) {
+					keepLastSession(lastSessionRef.current, decision.status);
+				}
+			}),
+		[queryClient],
+	);
 
 	useEffect(() => {
 		if (!isSuccess || isHydrated) return;
@@ -95,6 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			const token = resolveStoredToken(storedToken);
 			if (token) {
 				setAuthToken(token);
+				const saved = parseSessionSnapshot(storedToken?.sessionSnapshot, token);
+				lastSessionRef.current = saved;
 				// A hung session fetch must not hold boot on the splash forever —
 				// proceed after a bound; the routes show session-pending UI (#5729).
 				const settled = await Promise.race([
@@ -102,19 +151,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					new Promise<boolean>((resolve) =>
 						window.setTimeout(
 							() => resolve(false),
-							storedToken?.sessionSnapshot
-								? SAVED_SESSION_PATIENCE_MS
-								: HYDRATION_TIMEOUT_MS,
+							saved ? SAVED_SESSION_PATIENCE_MS : HYDRATION_TIMEOUT_MS,
 						),
 					),
 				]);
-				savedSnapshotRef.current = storedToken?.sessionSnapshot ?? null;
+				// A read that came back was already handled by the listener above;
+				// what is left is the read that never came back.
 				if (
 					!cancelled &&
+					saved &&
 					getAuthToken() === token &&
 					shouldBootFromSavedSession(readSession(!settled))
 				) {
-					bootFromSavedSession(token, savedSnapshotRef.current);
+					keepLastSession(saved, "unconfirmed");
 				}
 			}
 			if (!cancelled) {
@@ -136,8 +185,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				// authenticated tree. The stale JWT re-mints on the next 401.
 				setAuthToken(data.token);
 				setJwt(null);
-				setSessionUnconfirmed(false);
-				savedSnapshotRef.current = null;
 				persistedSnapshotRef.current = null;
 				try {
 					await refetchSession();
@@ -147,38 +194,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 						err,
 					);
 				}
+				const read = readSession(false);
+				if (read.hasUser && read.error) setSessionStatus("unconfirmed");
 				setIsHydrated(true);
 			} else if (data === null) {
 				setAuthToken(null);
 				setJwt(null);
-				setSessionUnconfirmed(false);
-				savedSnapshotRef.current = null;
+				setSessionStatus("confirmed");
+				lastSessionRef.current = null;
 				persistedSnapshotRef.current = null;
 				// Cached reads belong to the account that made them, and every
 				// window hears this event, not only the one that signed out.
 				queryClient.clear();
-				sessionAtom().set(signedOutSessionState(sessionAtom().get()));
+				writeSessionState(signedOutSessionState(sessionAtom().get()));
+				setIsSigningOut(false);
 			}
 		},
 	});
 
 	useEffect(() => {
 		const token = getAuthToken();
-		if (!isHydrated || isSessionUnconfirmed || !token || !session?.user) return;
+		if (
+			!isHydrated ||
+			sessionStatus !== "confirmed" ||
+			!token ||
+			!session?.user
+		) {
+			return;
+		}
 		const sessionSnapshot = serializeSessionSnapshot(session);
 		if (persistedSnapshotRef.current === sessionSnapshot) return;
 		persistedSnapshotRef.current = sessionSnapshot;
-		savedSnapshotRef.current = sessionSnapshot;
 		persistSessionSnapshot.mutate({ token, sessionSnapshot });
-	}, [
-		isHydrated,
-		isSessionUnconfirmed,
-		session,
-		persistSessionSnapshot.mutate,
-	]);
+	}, [isHydrated, sessionStatus, session, persistSessionSnapshot.mutate]);
 
 	useEffect(() => {
-		if (!isSessionUnconfirmed) return;
+		// Only "unconfirmed" rechecks. A sign-in the server ended does not come
+		// back, so "ended" waits for the user.
+		if (sessionStatus !== "unconfirmed") return;
 		let cancelled = false;
 		let attempt = 0;
 		let timer: number | undefined;
@@ -187,27 +240,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		const recheck = async () => {
 			if (cancelled || inFlight) return;
 			inFlight = true;
-			const token = getAuthToken();
 			try {
 				await refetchSession();
 			} catch {
 				// An unreachable server is what this loop is waiting out.
 			}
 			inFlight = false;
-			if (cancelled || !token || getAuthToken() !== token) return;
-			const read = readSession(false);
-			if (read.hasUser && !read.error) {
-				setSessionUnconfirmed(false);
-				return;
-			}
-			if (!read.hasUser) {
-				if (!shouldBootFromSavedSession(read)) {
-					// The server answered: there is no session. Signed out for real.
-					setSessionUnconfirmed(false);
-					return;
-				}
-				bootFromSavedSession(token, savedSnapshotRef.current);
-			}
+			if (cancelled || getSessionStatus() !== "unconfirmed") return;
 			schedule();
 		};
 		const schedule = () => {
@@ -227,10 +266,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			window.clearTimeout(timer);
 			window.removeEventListener("online", recheckNow);
 		};
-	}, [isSessionUnconfirmed, refetchSession]);
+	}, [sessionStatus, refetchSession]);
 
 	useEffect(() => {
-		if (!isHydrated) return;
+		if (!isHydrated || isSessionEnded) return;
 
 		const refreshJwt = () =>
 			authClient
@@ -247,7 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		refreshJwt();
 		const interval = setInterval(refreshJwt, 50 * 60 * 1000);
 		return () => clearInterval(interval);
-	}, [isHydrated]);
+	}, [isHydrated, isSessionEnded]);
 
 	if (!isHydrated) {
 		return (

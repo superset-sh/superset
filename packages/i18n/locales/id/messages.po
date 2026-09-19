@@ -13539,6 +13539,9 @@ msgstr "Pil sidebar yang muncul saat pembaruan aplikasi siap dipasang"
 msgid "Sign in"
 msgstr "Masuk"
 
+msgid "Sign in again"
+msgstr "Masuk lagi"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Masuk sebagai Local Admin (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Sudah masuk. Token disimpan terenkripsi dan tidak pernah ditampilkan lag
 
 msgid "Signed out"
 msgstr "Sudah keluar"
+
+msgid "Signed out of Superset"
+msgstr "Sudah keluar dari Superset"
 
 msgid "Signed-in sites"
 msgstr "Situs yang sedang masuk"

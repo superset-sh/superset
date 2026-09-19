@@ -13539,6 +13539,9 @@ msgstr "Pastille de barre latérale affichée lorsqu'une mise à jour de l'appli
 msgid "Sign in"
 msgstr "Se connecter"
 
+msgid "Sign in again"
+msgstr "Se reconnecter"
+
 msgid "Sign in as Local Admin (dev)"
 msgstr "Se connecter en tant qu'administrateur local (dev)"
 
@@ -13619,6 +13622,9 @@ msgstr "Connecté. Le jeton est stocké chiffré et n'est plus jamais affiché."
 
 msgid "Signed out"
 msgstr "Déconnecté"
+
+msgid "Signed out of Superset"
+msgstr "Déconnecté de Superset"
 
 msgid "Signed-in sites"
 msgstr "Sites connectés"
