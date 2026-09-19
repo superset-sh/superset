@@ -71,10 +71,8 @@ export function CommentComposer({
 			fileId: image.fileId,
 		})),
 	);
-	const [focused, setFocused] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
-	const open = focused || value.trim().length > 0 || images.length > 0;
 	const uploading = images.some((image) => image.status === "uploading");
 
 	const imagesRef = useRef(images);
@@ -200,11 +198,7 @@ export function CommentComposer({
 				autoFocus={autoFocus}
 				value={value}
 				onChange={(event) => setValue(event.target.value)}
-				onFocus={() => {
-					setFocused(true);
-					onFocus?.();
-				}}
-				onBlur={() => setFocused(false)}
+				onFocus={onFocus}
 				onPaste={(event) => {
 					const files = [...event.clipboardData.files].filter((file) =>
 						file.type.startsWith("image/"),
@@ -224,10 +218,7 @@ export function CommentComposer({
 						? t({ message: "Reply to thread…" })
 						: t({ message: "Write a comment…" })
 				}
-				className={cn(
-					"resize-none rounded-none border-0 bg-transparent p-3 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent",
-					open ? "min-h-[52px]" : "min-h-9 py-2",
-				)}
+				className="min-h-[52px] resize-none rounded-none border-0 bg-transparent p-3 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
 			/>
 			{images.length > 0 ? (
 				<div className="flex flex-wrap gap-1.5 px-3 pb-2">
@@ -267,55 +258,53 @@ export function CommentComposer({
 					))}
 				</div>
 			) : null}
-			{open ? (
-				<div className="flex items-center gap-2 px-3 pb-2.5">
-					<input
-						ref={fileInputRef}
-						type="file"
-						accept="image/*"
-						multiple
-						hidden
-						onChange={(event) => {
-							if (event.target.files) addFiles(event.target.files);
-							event.target.value = "";
-						}}
-					/>
-					<Button
-						size="icon"
-						variant="ghost"
-						className="size-7 rounded-md text-muted-foreground hover:text-foreground"
-						// Focus stays in the textarea: the blur would collapse the
-						// composer out from under the click before it lands.
-						onMouseDown={(event) => event.preventDefault()}
-						onClick={() => fileInputRef.current?.click()}
-						aria-label={t({ message: "Attach image" })}
-						disabled={images.length >= MAX_COMMENT_IMAGES}
-					>
-						<ImagePlus className="size-3.5" />
-					</Button>
-					<Button
-						size="icon"
-						className="ml-auto size-7 rounded-md"
-						onClick={submit}
-						aria-label={
-							isReply
-								? t({ message: "Send reply" })
-								: t({ message: "Post comment" })
-						}
-						disabled={
-							uploading ||
-							(value.trim().length === 0 &&
-								!images.some((image) => image.status === "ready"))
-						}
-					>
-						{uploading ? (
-							<Loader2 className="size-3.5 animate-spin" />
-						) : (
-							<SendHorizontal className="size-3.5" />
-						)}
-					</Button>
-				</div>
-			) : null}
+			<div className="flex items-center gap-2 px-3 pb-2.5">
+				<input
+					ref={fileInputRef}
+					type="file"
+					accept="image/*"
+					multiple
+					hidden
+					onChange={(event) => {
+						if (event.target.files) addFiles(event.target.files);
+						event.target.value = "";
+					}}
+				/>
+				<Button
+					size="icon"
+					variant="ghost"
+					className="size-7 rounded-md text-muted-foreground hover:text-foreground"
+					// Focus stays in the textarea: the blur would collapse the
+					// composer out from under the click before it lands.
+					onMouseDown={(event) => event.preventDefault()}
+					onClick={() => fileInputRef.current?.click()}
+					aria-label={t({ message: "Attach image" })}
+					disabled={images.length >= MAX_COMMENT_IMAGES}
+				>
+					<ImagePlus className="size-3.5" />
+				</Button>
+				<Button
+					size="icon"
+					className="ml-auto size-7 rounded-md"
+					onClick={submit}
+					aria-label={
+						isReply
+							? t({ message: "Send reply" })
+							: t({ message: "Post comment" })
+					}
+					disabled={
+						uploading ||
+						(value.trim().length === 0 &&
+							!images.some((image) => image.status === "ready"))
+					}
+				>
+					{uploading ? (
+						<Loader2 className="size-3.5 animate-spin" />
+					) : (
+						<SendHorizontal className="size-3.5" />
+					)}
+				</Button>
+			</div>
 		</div>
 	);
 }
