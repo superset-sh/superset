@@ -16,6 +16,7 @@ import {
 	serializeSessionSnapshot,
 	shouldBootFromSavedSession,
 } from "./utils/savedSession";
+import { signedOutSessionState } from "./utils/signedOutSessionState";
 
 const HYDRATION_TIMEOUT_MS = 15_000;
 // With a saved session to start from, a slow server is not worth the wait.
@@ -156,14 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				// Cached reads belong to the account that made them, and every
 				// window hears this event, not only the one that signed out.
 				queryClient.clear();
-				try {
-					await refetchSession();
-				} catch (err) {
-					console.warn(
-						"[AuthProvider] session refetch failed after token cleared",
-						err,
-					);
-				}
+				sessionAtom().set(signedOutSessionState(sessionAtom().get()));
 			}
 		},
 	});
