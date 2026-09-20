@@ -123,6 +123,19 @@ describe("settings search - auto save", () => {
 		});
 		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_FILE_AUTO_SAVE);
 	});
+
+	it.each([
+		"after delay",
+		"on focus change",
+		"on window change",
+	])('lists Auto Save for v2 users when searching "%s"', (searchQuery) => {
+		const ids = getVisibleItemsForSection({
+			section: "behavior",
+			searchQuery,
+			isV2: true,
+		});
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_FILE_AUTO_SAVE);
+	});
 });
 
 describe("settings search - mobile rollout", () => {

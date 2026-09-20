@@ -865,9 +865,10 @@ export const createSettingsRouter = () => {
 		setFileAutoSave: publicProcedure
 			.input(z.object({ mode: z.enum(FILE_AUTO_SAVE_MODES) }))
 			.mutation(({ input }) => {
+				const { id } = getSettings();
 				localDb
 					.insert(settings)
-					.values({ id: 1, fileAutoSave: input.mode })
+					.values({ id, fileAutoSave: input.mode })
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { fileAutoSave: input.mode },

@@ -840,8 +840,11 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"autosave",
 			"auto save",
 			"afterdelay",
+			"after delay",
 			"onfocuschange",
+			"on focus change",
 			"onwindowchange",
+			"on window change",
 		],
 	},
 	{
