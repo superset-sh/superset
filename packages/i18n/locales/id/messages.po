@@ -1589,8 +1589,8 @@ msgstr "Opsi lanjutan"
 msgid "After"
 msgstr "Sesudah"
 
-msgid "After delay"
-msgstr "Setelah penundaan"
+msgid "After delay (3s)"
+msgstr "Setelah penundaan (3 dtk)"
 
 msgid "Against base"
 msgstr "Terhadap base"

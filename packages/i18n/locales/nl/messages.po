@@ -1589,8 +1589,8 @@ msgstr "Geavanceerde opties"
 msgid "After"
 msgstr "Na"
 
-msgid "After delay"
-msgstr "Na vertraging"
+msgid "After delay (3s)"
+msgstr "Na vertraging (3 s)"
 
 msgid "Against base"
 msgstr "Ten opzichte van basis"

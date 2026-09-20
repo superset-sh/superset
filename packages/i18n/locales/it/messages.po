@@ -1589,8 +1589,8 @@ msgstr "Opzioni avanzate"
 msgid "After"
 msgstr "Dopo"
 
-msgid "After delay"
-msgstr "Dopo un ritardo"
+msgid "After delay (3s)"
+msgstr "Dopo un ritardo (3s)"
 
 msgid "Against base"
 msgstr "Rispetto alla base"

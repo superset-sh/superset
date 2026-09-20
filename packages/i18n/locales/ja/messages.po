@@ -1589,8 +1589,8 @@ msgstr "詳細オプション"
 msgid "After"
 msgstr "変更後"
 
-msgid "After delay"
-msgstr "遅延後"
+msgid "After delay (3s)"
+msgstr "遅延後（3秒）"
 
 msgid "Against base"
 msgstr "ベースとの差分"

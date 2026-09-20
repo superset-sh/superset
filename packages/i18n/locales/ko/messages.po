@@ -1589,8 +1589,8 @@ msgstr "고급 옵션"
 msgid "After"
 msgstr "변경 후"
 
-msgid "After delay"
-msgstr "지연 후"
+msgid "After delay (3s)"
+msgstr "지연 후(3초)"
 
 msgid "Against base"
 msgstr "기준 대비"

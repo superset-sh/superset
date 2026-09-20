@@ -1589,8 +1589,8 @@ msgstr "Дополнительные параметры"
 msgid "After"
 msgstr "После"
 
-msgid "After delay"
-msgstr "После задержки"
+msgid "After delay (3s)"
+msgstr "После задержки (3 с)"
 
 msgid "Against base"
 msgstr "Против базовой ветки"

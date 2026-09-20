@@ -1589,8 +1589,8 @@ msgstr "Gelişmiş seçenekler"
 msgid "After"
 msgstr "Sonra"
 
-msgid "After delay"
-msgstr "Gecikmeden sonra"
+msgid "After delay (3s)"
+msgstr "Gecikmeden sonra (3 sn)"
 
 msgid "Against base"
 msgstr "Temele göre"

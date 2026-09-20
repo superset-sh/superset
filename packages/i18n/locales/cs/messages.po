@@ -1589,8 +1589,8 @@ msgstr "Pokročilé možnosti"
 msgid "After"
 msgstr "Po"
 
-msgid "After delay"
-msgstr "Po zpoždění"
+msgid "After delay (3s)"
+msgstr "Po zpoždění (3s)"
 
 msgid "Against base"
 msgstr "Proti základní větvi"

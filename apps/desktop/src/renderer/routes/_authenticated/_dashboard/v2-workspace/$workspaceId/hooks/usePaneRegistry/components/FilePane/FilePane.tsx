@@ -46,7 +46,7 @@ export function useDelayedFileAutoSave(
 			return;
 		}
 
-		const timeout = window.setTimeout(() => void document.save(), 1000);
+		const timeout = window.setTimeout(() => void document.save(), 3000);
 		return () => window.clearTimeout(timeout);
 	}, [currentContent, document, document.pendingSave, fileAutoSave]);
 }

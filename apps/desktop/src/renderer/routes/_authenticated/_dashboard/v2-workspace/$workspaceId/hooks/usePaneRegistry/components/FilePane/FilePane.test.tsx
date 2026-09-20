@@ -21,8 +21,10 @@ describe("useDelayedFileAutoSave", () => {
 		const originalSetTimeout = window.setTimeout;
 		const originalClearTimeout = window.clearTimeout;
 		const timers: Array<() => void> = [];
-		window.setTimeout = ((callback: TimerHandler) => {
+		const delays: number[] = [];
+		window.setTimeout = ((callback: TimerHandler, delay?: number) => {
 			timers.push(callback as () => void);
+			delays.push(delay ?? 0);
 			return timers.length;
 		}) as typeof window.setTimeout;
 		window.clearTimeout = (() => {}) as typeof window.clearTimeout;
@@ -55,6 +57,7 @@ describe("useDelayedFileAutoSave", () => {
 			rerender();
 
 			expect(timers).toHaveLength(1);
+			expect(delays).toEqual([3000, 3000]);
 		} finally {
 			window.setTimeout = originalSetTimeout;
 			window.clearTimeout = originalClearTimeout;

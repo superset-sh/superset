@@ -266,7 +266,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 									<Trans>Off</Trans>
 								</SelectItem>
 								<SelectItem value="afterDelay">
-									<Trans>After delay</Trans>
+									<Trans>After delay (3s)</Trans>
 								</SelectItem>
 								<SelectItem value="onFocusChange">
 									<Trans>On focus change</Trans>

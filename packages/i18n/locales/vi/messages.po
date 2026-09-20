@@ -1589,8 +1589,8 @@ msgstr "Tùy chọn nâng cao"
 msgid "After"
 msgstr "Sau"
 
-msgid "After delay"
-msgstr "Sau khoảng trễ"
+msgid "After delay (3s)"
+msgstr "Sau khoảng trễ (3 giây)"
 
 msgid "Against base"
 msgstr "So với nhánh gốc"

@@ -1589,8 +1589,8 @@ msgstr "進階選項"
 msgid "After"
 msgstr "變更後"
 
-msgid "After delay"
-msgstr "延遲後"
+msgid "After delay (3s)"
+msgstr "延遲後（3 秒）"
 
 msgid "Against base"
 msgstr "對比基準分支"

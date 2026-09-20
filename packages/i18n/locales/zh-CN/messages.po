@@ -1589,8 +1589,8 @@ msgstr "高级选项"
 msgid "After"
 msgstr "变更后"
 
-msgid "After delay"
-msgstr "延迟后"
+msgid "After delay (3s)"
+msgstr "延迟后（3 秒）"
 
 msgid "Against base"
 msgstr "对比基准分支"
