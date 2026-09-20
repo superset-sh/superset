@@ -1589,6 +1589,9 @@ msgstr "詳細オプション"
 msgid "After"
 msgstr "変更後"
 
+msgid "After delay"
+msgstr "遅延後"
+
 msgid "Against base"
 msgstr "ベースとの差分"
 
@@ -10126,6 +10129,9 @@ msgstr "{offScopeHostName}上 — ここでは実行されません"
 msgid "On click"
 msgstr "クリック時"
 
+msgid "On focus change"
+msgstr "フォーカス変更時"
+
 msgid "On our radar. Order and scope may change."
 msgstr "視野には入っています。順序や範囲は変わる可能性があります。"
 
@@ -10137,6 +10143,9 @@ msgstr "このペースなら"
 
 msgid "On this page"
 msgstr "このページの内容"
+
+msgid "On window change"
+msgstr "ウィンドウ変更時"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "お使いのマシンです。リポジトリ、ワークツリー、ターミナルの出力、エージェントのセッションは既定でローカルに留まります。クラウド同期の対象はアカウントと組織のメタデータのみです。SupersetはAPI呼び出しを一切中継しません。"

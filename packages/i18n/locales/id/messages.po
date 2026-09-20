@@ -1589,6 +1589,9 @@ msgstr "Opsi lanjutan"
 msgid "After"
 msgstr "Sesudah"
 
+msgid "After delay"
+msgstr "Setelah penundaan"
+
 msgid "Against base"
 msgstr "Terhadap base"
 
@@ -10126,6 +10129,9 @@ msgstr "di {offScopeHostName} — tidak akan berjalan di sini"
 msgid "On click"
 msgstr "Saat diklik"
 
+msgid "On focus change"
+msgstr "Saat fokus berubah"
+
 msgid "On our radar. Order and scope may change."
 msgstr "Ada di radar kami. Urutan dan cakupannya bisa berubah."
 
@@ -10137,6 +10143,9 @@ msgstr "Dengan laju ini"
 
 msgid "On this page"
 msgstr "Di halaman ini"
+
+msgid "On window change"
+msgstr "Saat jendela berubah"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Di mesin Anda. Repo, worktree, output terminal, dan sesi agen tetap lokal secara bawaan; sinkronisasi cloud hanya mencakup metadata akun dan organisasi. Superset tidak mem-proxy panggilan API apa pun."

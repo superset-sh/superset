@@ -1,3 +1,4 @@
+import type { FileAutoSaveMode } from "@superset/local-db";
 import type { RendererContext } from "@superset/panes";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
@@ -9,6 +10,7 @@ import type { LinkAction } from "renderer/lib/clickPolicy";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getPathDirectory } from "shared/absolute-paths";
 import { useStore } from "zustand";
+import type { SharedFileDocument } from "../../../../state/fileDocumentStore";
 import {
 	decodeBase64,
 	useSharedFileDocument,
@@ -27,21 +29,10 @@ interface FilePaneProps {
 	workspaceId: string;
 }
 
-export function FilePane({ context, workspaceId }: FilePaneProps) {
-	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
-	const data = context.pane.data as FilePaneData;
-	const { filePath } = data;
-	const isActiveTab = useStore(
-		context.store,
-		(state) => state.activeTabId === context.tab.id,
-	);
-
-	const document = useSharedFileDocument({
-		workspaceId,
-		absolutePath: filePath,
-	});
-	const { data: fileAutoSave = "off" } =
-		electronTrpc.settings.getFileAutoSave.useQuery();
+export function useDelayedFileAutoSave(
+	document: SharedFileDocument,
+	fileAutoSave: FileAutoSaveMode,
+) {
 	const currentContent =
 		document.content.kind === "text" ? document.content.value : null;
 
@@ -57,7 +48,25 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 
 		const timeout = window.setTimeout(() => void document.save(), 1000);
 		return () => window.clearTimeout(timeout);
-	}, [currentContent, document, fileAutoSave]);
+	}, [currentContent, document, document.pendingSave, fileAutoSave]);
+}
+
+export function FilePane({ context, workspaceId }: FilePaneProps) {
+	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
+	const data = context.pane.data as FilePaneData;
+	const { filePath } = data;
+	const isActiveTab = useStore(
+		context.store,
+		(state) => state.activeTabId === context.tab.id,
+	);
+
+	const document = useSharedFileDocument({
+		workspaceId,
+		absolutePath: filePath,
+	});
+	const { data: fileAutoSave = "off" } =
+		electronTrpc.settings.getFileAutoSave.useQuery();
+	useDelayedFileAutoSave(document, fileAutoSave);
 
 	useEffect(() => {
 		if (fileAutoSave !== "onWindowChange") return;

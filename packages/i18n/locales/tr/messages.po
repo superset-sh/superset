@@ -1589,6 +1589,9 @@ msgstr "Gelişmiş seçenekler"
 msgid "After"
 msgstr "Sonra"
 
+msgid "After delay"
+msgstr "Gecikmeden sonra"
+
 msgid "Against base"
 msgstr "Temele göre"
 
@@ -10126,6 +10129,9 @@ msgstr "{offScopeHostName} üzerinde — burada çalışmaz"
 msgid "On click"
 msgstr "Tıklandığında"
 
+msgid "On focus change"
+msgstr "Odak değiştiğinde"
+
 msgid "On our radar. Order and scope may change."
 msgstr "Radarımızda. Sıra ve kapsam değişebilir."
 
@@ -10137,6 +10143,9 @@ msgstr "Bu hızla"
 
 msgid "On this page"
 msgstr "Bu sayfada"
+
+msgid "On window change"
+msgstr "Pencere değiştiğinde"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Sizin makinenizde. Depolar, worktree'ler, terminal çıktısı ve ajan oturumları varsayılan olarak yerelde kalır; bulut eşitlemesi yalnızca hesap ve kuruluş meta verilerini kapsar. Superset hiçbir API çağrısını vekil olarak iletmez."

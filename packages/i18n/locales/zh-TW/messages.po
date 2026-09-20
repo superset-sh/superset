@@ -1589,6 +1589,9 @@ msgstr "進階選項"
 msgid "After"
 msgstr "變更後"
 
+msgid "After delay"
+msgstr "延遲後"
+
 msgid "Against base"
 msgstr "對比基準分支"
 
@@ -10126,6 +10129,9 @@ msgstr "在{offScopeHostName}上，不會在這裡執行"
 msgid "On click"
 msgstr "點選時"
 
+msgid "On focus change"
+msgstr "焦點變更時"
+
 msgid "On our radar. Order and scope may change."
 msgstr "在我們的視野內。順序和範圍可能會變。"
 
@@ -10137,6 +10143,9 @@ msgstr "按此速度"
 
 msgid "On this page"
 msgstr "本頁內容"
+
+msgid "On window change"
+msgstr "視窗變更時"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "在你自己的機器上。儲存庫、worktree、終端輸出和代理程式會話預設都留在本地；雲端同步只涉及帳戶和組織的後設資料。Superset不代理任何API呼叫。"

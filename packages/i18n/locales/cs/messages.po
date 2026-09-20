@@ -1589,6 +1589,9 @@ msgstr "Pokročilé možnosti"
 msgid "After"
 msgstr "Po"
 
+msgid "After delay"
+msgstr "Po zpoždění"
+
 msgid "Against base"
 msgstr "Proti základní větvi"
 
@@ -10126,6 +10129,9 @@ msgstr "na {offScopeHostName} — tady nepoběží"
 msgid "On click"
 msgstr "Po kliknutí"
 
+msgid "On focus change"
+msgstr "Při změně zaměření"
+
 msgid "On our radar. Order and scope may change."
 msgstr "Máme to na radaru. Pořadí i rozsah se můžou změnit."
 
@@ -10137,6 +10143,9 @@ msgstr "Tímto tempem"
 
 msgid "On this page"
 msgstr "Na této stránce"
+
+msgid "On window change"
+msgstr "Při změně okna"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Na vašem počítači. Repozitáře, worktree, výstup terminálu i relace agentů zůstávají ve výchozím stavu lokálně; cloudová synchronizace se týká jen metadat účtu a organizace. Superset nepřeposílá žádná API volání."

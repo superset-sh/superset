@@ -262,10 +262,18 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="off">off</SelectItem>
-								<SelectItem value="afterDelay">afterDelay</SelectItem>
-								<SelectItem value="onFocusChange">onFocusChange</SelectItem>
-								<SelectItem value="onWindowChange">onWindowChange</SelectItem>
+								<SelectItem value="off">
+									<Trans>Off</Trans>
+								</SelectItem>
+								<SelectItem value="afterDelay">
+									<Trans>After delay</Trans>
+								</SelectItem>
+								<SelectItem value="onFocusChange">
+									<Trans>On focus change</Trans>
+								</SelectItem>
+								<SelectItem value="onWindowChange">
+									<Trans>On window change</Trans>
+								</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>

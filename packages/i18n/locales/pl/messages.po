@@ -1589,6 +1589,9 @@ msgstr "Opcje zaawansowane"
 msgid "After"
 msgstr "Po"
 
+msgid "After delay"
+msgstr "Po opóźnieniu"
+
 msgid "Against base"
 msgstr "Względem bazy"
 
@@ -10126,6 +10129,9 @@ msgstr "na {offScopeHostName} — nie uruchomi się tutaj"
 msgid "On click"
 msgstr "Po kliknięciu"
 
+msgid "On focus change"
+msgstr "Przy zmianie fokusu"
+
 msgid "On our radar. Order and scope may change."
 msgstr "Mamy to na radarze. Kolejność i zakres mogą się zmienić."
 
@@ -10137,6 +10143,9 @@ msgstr "W tym tempie"
 
 msgid "On this page"
 msgstr "Na tej stronie"
+
+msgid "On window change"
+msgstr "Przy zmianie okna"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Na Twojej maszynie. Repozytoria, worktree, wyjście terminala i sesje agentów domyślnie zostają lokalnie; synchronizacja z chmurą obejmuje wyłącznie metadane konta i organizacji. Superset nie pośredniczy w żadnych wywołaniach API."

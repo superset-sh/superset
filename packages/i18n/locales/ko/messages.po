@@ -1589,6 +1589,9 @@ msgstr "고급 옵션"
 msgid "After"
 msgstr "변경 후"
 
+msgid "After delay"
+msgstr "지연 후"
+
 msgid "Against base"
 msgstr "기준 대비"
 
@@ -10126,6 +10129,9 @@ msgstr "{offScopeHostName}에 있음 — 여기서는 실행되지 않습니다"
 msgid "On click"
 msgstr "클릭 시"
 
+msgid "On focus change"
+msgstr "포커스 변경 시"
+
 msgid "On our radar. Order and scope may change."
 msgstr "지켜보고 있습니다. 순서와 범위는 바뀔 수 있습니다."
 
@@ -10137,6 +10143,9 @@ msgstr "이 속도라면"
 
 msgid "On this page"
 msgstr "이 페이지에서"
+
+msgid "On window change"
+msgstr "창 변경 시"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "본인의 머신에서 실행됩니다. 리포지토리, worktree, 터미널 출력, 에이전트 세션은 기본적으로 로컬에 머물고, 클라우드 동기화는 계정과 조직 메타데이터만 다룹니다. Superset은 어떤 API 호출도 중계하지 않습니다."

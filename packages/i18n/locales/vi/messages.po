@@ -1589,6 +1589,9 @@ msgstr "Tùy chọn nâng cao"
 msgid "After"
 msgstr "Sau"
 
+msgid "After delay"
+msgstr "Sau khoảng trễ"
+
 msgid "Against base"
 msgstr "So với nhánh gốc"
 
@@ -10126,6 +10129,9 @@ msgstr "trên {offScopeHostName} — sẽ không chạy ở đây"
 msgid "On click"
 msgstr "Khi nhấp"
 
+msgid "On focus change"
+msgstr "Khi thay đổi tiêu điểm"
+
 msgid "On our radar. Order and scope may change."
 msgstr "Đang trong tầm ngắm. Thứ tự và phạm vi có thể thay đổi."
 
@@ -10137,6 +10143,9 @@ msgstr "Với tốc độ này"
 
 msgid "On this page"
 msgstr "Trên trang này"
+
+msgid "On window change"
+msgstr "Khi thay đổi cửa sổ"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Trên máy của bạn. Repo, worktree, output terminal và phiên agent mặc định vẫn ở cục bộ; đồng bộ cloud chỉ gồm metadata tài khoản và tổ chức. Superset không proxy bất kỳ lệnh gọi API nào."
