@@ -33,6 +33,7 @@ import {
 	serializeSparseCheckoutPaths,
 } from "../workspace-creation/shared/sparse-checkout";
 import { normalizeWorktreeBaseDir } from "../workspace-creation/shared/worktree-paths";
+import { execGh } from "../workspace-creation/utils/exec-gh";
 import {
 	createFromClone,
 	createFromEmpty,
@@ -41,6 +42,7 @@ import {
 } from "./handlers";
 import { listLiveLocalWorkspaces } from "./utils/create-local-workspace";
 import { getGitHubRemotes } from "./utils/git-remote";
+import { parseGitHubRepositories } from "./utils/github-repositories";
 import { persistLocalProject } from "./utils/persist-project";
 import {
 	cloneRepoInto,
@@ -72,6 +74,32 @@ export interface FindByPathCandidate {
 }
 
 export const projectRouter = router({
+	listGitHubRepositories: machineOnlyProcedure.query(async () => {
+		try {
+			const raw = await execGh([
+				"api",
+				"--method",
+				"GET",
+				"--paginate",
+				"--slurp",
+				"user/repos",
+				"-f",
+				"affiliation=owner,collaborator,organization_member",
+				"-f",
+				"sort=updated",
+				"-f",
+				"per_page=100",
+			]);
+			return parseGitHubRepositories(raw);
+		} catch (error) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message: `Could not list GitHub repositories. Run \`gh auth login\` on this host and try again. ${error instanceof Error ? error.message : String(error)}`,
+				cause: error,
+			});
+		}
+	}),
+
 	list: protectedProcedure.query(({ ctx }) => {
 		const tagSettingsByProject = new Map<string, TagSettingSnapshot[]>();
 		for (const { scope, ...setting } of getAllTagFolderSettings(
