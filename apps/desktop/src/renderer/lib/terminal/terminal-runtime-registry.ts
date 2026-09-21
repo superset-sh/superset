@@ -3,6 +3,7 @@ import type { SearchAddon } from "@xterm/addon-search";
 import { DEFAULT_TERMINAL_PARKED_RUNTIME_CAP } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
 import { runWhenParserIdle } from "./parser-idle-gate";
+import { trimTerminalSelection } from "./terminal-copy";
 import type { ImagePasteOverride } from "./terminal-image-paste-fallback";
 import {
 	type LinkHoverInfo,
@@ -546,7 +547,7 @@ class TerminalRuntimeRegistryImpl {
 
 	getSelection(terminalId: string, instanceId?: string): string {
 		const entry = this.getEntry(terminalId, instanceId);
-		return entry?.runtime?.terminal.getSelection() ?? "";
+		return trimTerminalSelection(entry?.runtime?.terminal.getSelection() ?? "");
 	}
 
 	clear(terminalId: string, instanceId?: string): void {

@@ -1,15 +1,5 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
-
-/**
- * Trailing whitespace on a selected row is padding xterm reports as part of
- * the line, not text the user dragged over. Ghostty trims it the same way.
- */
-export function trimSelectionForCopy(selection: string): string {
-	return selection
-		.split("\n")
-		.map((line) => line.trimEnd())
-		.join("\n");
-}
+import { trimTerminalSelection } from "renderer/lib/terminal/terminal-copy";
 
 /**
  * Copy the terminal's selection to the clipboard as soon as it is made —
@@ -32,7 +22,7 @@ export function installCopyOnSelect(
 		const selection = terminal.getSelection();
 		if (!selection || !document.hasFocus()) return;
 
-		const text = trimSelectionForCopy(selection);
+		const text = trimTerminalSelection(selection);
 		if (text === lastCopied) return;
 		lastCopied = text;
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import type { Terminal as XTerm } from "@xterm/xterm";
-import { installCopyOnSelect, trimSelectionForCopy } from "./copyOnSelect";
+import { installCopyOnSelect } from "./copyOnSelect";
 
 function stubClipboard(writeText: (text: string) => Promise<void>) {
 	const previous = Object.getOwnPropertyDescriptor(globalThis, "navigator");
@@ -46,20 +46,6 @@ const restores: Array<() => void> = [];
 
 afterEach(() => {
 	while (restores.length > 0) restores.pop()?.();
-});
-
-describe("trimSelectionForCopy", () => {
-	it("trims the padding xterm reports at the end of each row", () => {
-		expect(trimSelectionForCopy("foo   \nbar  ")).toBe("foo\nbar");
-	});
-
-	it("keeps leading whitespace, which is real indentation", () => {
-		expect(trimSelectionForCopy("  indented   ")).toBe("  indented");
-	});
-
-	it("keeps blank lines inside the selection", () => {
-		expect(trimSelectionForCopy("first  \n   \nlast")).toBe("first\n\nlast");
-	});
 });
 
 describe("installCopyOnSelect", () => {

@@ -21,6 +21,7 @@ import {
 	type ParserIdleGate,
 	wrapWrite,
 } from "renderer/lib/terminal/parser-idle-gate";
+import { installTerminalCopyHandler } from "renderer/lib/terminal/terminal-copy";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { installInputModeReclaimer } from "renderer/lib/terminal/terminalInputModeReclaimer";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -260,37 +261,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
  * Returns a cleanup function to remove the handler.
  */
 export function setupCopyHandler(xterm: XTerm): () => void {
-	const element = xterm.element;
-	if (!element) return () => {};
-
-	const handleCopy = (event: ClipboardEvent) => {
-		const selection = xterm.getSelection();
-		if (!selection) return;
-
-		// Trim trailing whitespace from each line while preserving intentional newlines
-		const trimmedText = selection
-			.split("\n")
-			.map((line) => line.trimEnd())
-			.join("\n");
-
-		// On Linux/Wayland in Electron, clipboardData can be null for copy events.
-		// Only cancel default behavior when we can write directly to event clipboardData.
-		if (event.clipboardData) {
-			event.preventDefault();
-			event.clipboardData.setData("text/plain", trimmedText);
-			return;
-		}
-
-		// Fallback path when clipboardData is unavailable.
-		// Keep default browser copy behavior and best-effort write trimmed text.
-		void navigator.clipboard?.writeText(trimmedText).catch(() => {});
-	};
-
-	element.addEventListener("copy", handleCopy);
-
-	return () => {
-		element.removeEventListener("copy", handleCopy);
-	};
+	return installTerminalCopyHandler(xterm);
 }
 
 export function setupFocusListener(
