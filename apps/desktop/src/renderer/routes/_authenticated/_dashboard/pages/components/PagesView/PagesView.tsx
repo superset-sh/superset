@@ -217,11 +217,11 @@ export function PagesView({
 								activeScope !== "all" ||
 								authorId !== null)
 						}
-						onOpen={(page, event) =>
-							openPage(
-								page,
-								isPaneModifier(event) ? { inPane: true } : undefined,
-							)
+						onOpen={(page, event, options) =>
+							openPage(page, {
+								inPane: isPaneModifier(event),
+								threadId: options?.threadId,
+							})
 						}
 						onTogglePin={toggleFavorite}
 						onDelete={async (pageId) => {

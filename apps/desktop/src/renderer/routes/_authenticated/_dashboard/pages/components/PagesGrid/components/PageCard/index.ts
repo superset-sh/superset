@@ -1,1 +1,5 @@
-export { PageCard, type PageCardItem } from "./PageCard";
+export {
+	type OpenPageCardOptions,
+	PageCard,
+	type PageCardItem,
+} from "./PageCard";

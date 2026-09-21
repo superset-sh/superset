@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pages gallery: replies on cards</title>
+<style>
+  :root {
+    --bg: #0d0e11;
+    --card: #191a20;
+    --line: rgba(255, 255, 255, 0.07);
+    --line-soft: rgba(255, 255, 255, 0.05);
+    --text: #edeef1;
+    --muted: #8b909a;
+    --faint: #5c606a;
+    --indigo: #6e79d6;
+    --amber: #f5a623;
+    --paper: #f3f1ec;
+    --paper-ink: #c9c4ba;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  html, body { overflow-x: clip; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    letter-spacing: -0.006em;
+    -webkit-font-smoothing: antialiased;
+    padding: 0 24px 110px;
+  }
+  ::selection { background: rgba(110, 121, 214, 0.35); }
+  :focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; border-radius: 6px; }
+  .wrap { max-width: 1060px; margin: 0 auto; }
+  code { font-family: var(--mono); font-size: 0.85em; background: rgba(255, 255, 255, 0.055); border: 1px solid var(--line-soft); border-radius: 5px; padding: 1px 5px; color: #d5d7de; white-space: nowrap; }
+
+  /* ------------------------------------------------ header */
+  header { padding: 84px 0 30px; }
+  .kicker { font-size: 13px; color: var(--faint); }
+  h1 {
+    margin-top: 14px;
+    font-size: clamp(30px, 4.6vw, 42px);
+    font-weight: 650;
+    letter-spacing: -0.032em;
+    line-height: 1.08;
+  }
+  .deck { margin-top: 16px; max-width: 60ch; font-size: 15.5px; color: var(--muted); }
+  .deck b { color: var(--text); font-weight: 500; }
+  .status { margin-top: 14px; font-size: 13px; color: var(--faint); max-width: 66ch; }
+  .status s { text-decoration: none; color: #a9adb6; font-family: var(--mono); font-size: 11.5px; }
+
+  h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  section { margin-top: 84px; }
+  @media (max-width: 640px) { section { margin-top: 60px; } header { padding-top: 56px; } }
+
+
+  /* ------------------------------------------------ live captures */
+  .shots { margin-top: 24px; display: flex; flex-direction: column; gap: 20px; }
+  .shots figure { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #101114; }
+  .shots img { display: block; width: 100%; }
+  .shots figcaption { padding: 10px 14px; font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line-soft); }
+  .shots figcaption b { color: var(--text); font-weight: 550; }
+
+  /* ------------------------------------------------ stage */
+  .stage { position: relative; margin-top: 34px; }
+  .stage-glow {
+    position: absolute; inset: -70px -50px;
+    background: radial-gradient(46% 55% at 24% 10%, rgba(110, 121, 214, 0.15), transparent 68%);
+    filter: blur(48px);
+    pointer-events: none;
+  }
+  .horizon {
+    height: 1px; margin: 44px auto 0; max-width: 720px;
+    background: linear-gradient(90deg, transparent, rgba(110, 121, 214, 0.4), transparent);
+  }
+
+  .window {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 14px;
+    background: linear-gradient(180deg, #16171c, #131418 55%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.055),
+      0 1px 1px rgba(0, 0, 0, 0.35),
+      0 30px 90px -30px rgba(0, 0, 0, 0.75);
+    overflow: hidden;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .window { animation: rise 0.65s var(--ease) both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+  }
+
+  .titlebar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(255, 255, 255, 0.014);
+  }
+  .lights { display: inline-flex; gap: 7px; }
+  .lights i { width: 11px; height: 11px; border-radius: 50%; opacity: 0.85; }
+  .lights i:nth-child(1) { background: #ff5f57; }
+  .lights i:nth-child(2) { background: #febc2e; }
+  .lights i:nth-child(3) { background: #28c840; }
+  .crumb { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+
+  .toggle {
+    margin-left: auto;
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 2px;
+    gap: 2px;
+  }
+  .toggle button {
+    appearance: none; border: 0; background: none; cursor: pointer;
+    font-family: inherit; font-size: 11.5px; font-weight: 500; letter-spacing: -0.005em;
+    color: var(--faint); padding: 4px 12px; border-radius: 5px;
+    transition: color 0.18s ease, background-color 0.18s ease;
+    white-space: nowrap;
+  }
+  .toggle button[aria-pressed="true"] {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.09);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .viewhead {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+    padding: 16px 20px 0;
+  }
+  .tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+  .tab {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    font-size: 12.5px; font-weight: 500; color: var(--muted);
+    padding: 5px 10px; border-radius: 6px;
+  }
+  .tab.active { background: rgba(255, 255, 255, 0.07); color: var(--text); }
+  .tab .n { font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .viewhead .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .search {
+    display: flex; align-items: center; gap: 7px;
+    border: 1px solid var(--line); border-radius: 7px;
+    padding: 5px 8px 5px 10px; width: 190px;
+    color: var(--faint); font-size: 12.5px;
+    background: rgba(0, 0, 0, 0.18);
+  }
+  .search svg { width: 12px; height: 12px; flex: none; }
+  .search kbd {
+    margin-left: auto; font-family: var(--mono); font-size: 10px;
+    color: var(--faint); border: 1px solid var(--line); border-radius: 4px;
+    padding: 0 4px; line-height: 15px;
+  }
+  .newpage {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #e7e8ec; color: #101114;
+    border-radius: 7px; padding: 5.5px 11px;
+    font-size: 12.5px; font-weight: 550; letter-spacing: -0.005em;
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  }
+  .newpage svg { width: 11px; height: 11px; }
+
+  /* ------------------------------------------------ cards */
+  .grid {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;
+    padding: 18px 20px 26px;
+  }
+  @media (max-width: 880px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 600px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    body { padding: 0 16px 80px; }
+    .viewhead .right { margin-left: 0; }
+  }
+
+  .card {
+    position: relative; min-width: 0;
+    display: flex; flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.008)), var(--card);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    transition: transform 0.16s var(--ease), border-color 0.16s ease, box-shadow 0.16s ease;
+  }
+  .grid .card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35), 0 18px 44px -18px rgba(0, 0, 0, 0.65);
+  }
+
+  .thumb-wrap { position: relative; }
+  .thumb { aspect-ratio: 1280 / 880; position: relative; overflow: hidden; background: #20211c; }
+  .thumb::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 62%, rgba(0, 0, 0, 0.16));
+  }
+  .thumb.paper { background: var(--paper); }
+  .thumb.paper::after { background: linear-gradient(180deg, transparent 62%, rgba(31, 26, 18, 0.08)); }
+  .sk { position: absolute; border-radius: 2px; background: #34352e; }
+  .paper .sk { background: var(--paper-ink); }
+  .sk.title { height: 6.5%; }
+  .sk.line { height: 3%; }
+  .sk.block { border-radius: 5px; }
+
+  .card-body { border-top: 1px solid var(--line-soft); padding: 10px 12px 11px; display: flex; flex-direction: column; gap: 5px; }
+  .card-title { font-size: 13px; font-weight: 550; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); min-width: 0; }
+  .meta svg { width: 11.5px; height: 11.5px; flex: none; opacity: 0.85; }
+  .meta .sep { color: var(--faint); }
+  .meta .t { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .replies {
+    margin-left: auto; flex: none;
+    display: inline-flex; align-items: center; gap: 4.5px;
+    font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums;
+    color: var(--text);
+    border-radius: 6px; padding: 1px 5px;
+    transition: opacity 0.22s ease, background-color 0.15s ease;
+  }
+  .replies svg { width: 11px; height: 11px; }
+  .replies { position: relative; }
+  .replies:hover { background: rgba(255, 255, 255, 0.07); }
+  .replies.open::before {
+    content: ""; position: absolute; left: 12px; top: 0;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #4cc38a;
+  }
+  .trow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .trow .card-title { min-width: 0; flex: 1; }
+
+  .strip {
+    position: absolute; inset: auto 0 0 0;
+    display: flex; align-items: center; gap: 8px;
+    border-top: 1px solid var(--line-soft);
+    background: rgba(13, 14, 17, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 8.5px 12px; font-size: 11.5px; min-width: 0;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+  .card:hover .strip, .strip.shown { opacity: 1; }
+  .avatar {
+    width: 17px; height: 17px; border-radius: 50%; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 7px; font-weight: 650; letter-spacing: 0.01em; color: #fff;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09), 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+  .avatar.sp { background: radial-gradient(120% 120% at 30% 20%, #a08bf0, #5f4bc0); }
+  .avatar.kh { background: radial-gradient(120% 120% at 30% 20%, #4fc2a4, #237a68); }
+  .avatar.ap { background: radial-gradient(120% 120% at 30% 20%, #f09a63, #c05d2a); }
+  .avatar.agent { background: radial-gradient(120% 120% at 30% 20%, #7d88e6, #4d55a8); }
+  .avatar svg { width: 9.5px; height: 9.5px; }
+  .strip .line { min-width: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .strip .who { font-weight: 550; }
+  .strip .snippet { color: var(--muted); }
+  .strip .when { flex: none; color: var(--faint); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+
+  /* variant B: the newest reply floats as a comment peek (CommentPreviewCard.tsx).
+     Metrics from the component: 12px inset, 10px radius, 150ms motion with a
+     180ms hover-intent delay, muted 11px header over 13px high-contrast copy. */
+  .bubble {
+    position: absolute; z-index: 3; left: 12px; right: 12px; bottom: 12px;
+    padding: 11px 12px 12px;
+    border: 1px solid #33353b;
+    border-radius: 10px;
+    background: #1c1d21;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.44);
+    opacity: 0; transform: translateY(5px);
+    transition: opacity 150ms ease, transform 150ms ease;
+    pointer-events: none;
+  }
+  .bubble.live, .bubble.shown { opacity: 1; transform: none; }
+  .bubble.live { pointer-events: auto; cursor: pointer; }
+  .bhead { display: flex; align-items: center; gap: 7px; color: #9b9da5; font-size: 11px; line-height: 1.4; }
+  .bav {
+    display: flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; flex: none; border-radius: 50%;
+    background: #35383e; color: #eeeef0; font-size: 11px; font-weight: 500;
+  }
+  .bav svg { width: 11px; height: 11px; }
+  .bwho { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bwhen { margin-left: auto; flex: none; }
+  .bcopy {
+    margin-top: 6px; color: #eeeef0; font-size: 13px; line-height: 1.45;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; overflow-wrap: anywhere;
+  }
+  .window[data-hover="strip"] .bubble { display: none; }
+  .window[data-hover="bubble"] .strip { display: none; }
+
+  /* today-mode: the one visible change disappears; hover peeks disarm */
+  .window[data-mode="today"] .replies { opacity: 0; visibility: hidden; }
+  .window[data-mode="today"] .strip { display: none; }
+  .window[data-mode="today"] .bubble { display: none; }
+
+  .caption { margin-top: 16px; font-size: 13px; color: var(--faint); }
+  .caption b { color: var(--muted); font-weight: 500; }
+
+  .swatches {
+    margin-top: 14px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  }
+  .swatch-label { font-size: 12.5px; color: var(--muted); margin-right: 4px; }
+  .swatch {
+    appearance: none; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: inherit; font-size: 12px; font-weight: 500; letter-spacing: -0.005em;
+    color: var(--muted);
+    border: 1px solid var(--line); border-radius: 999px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 4px 11px 4px 6px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .swatch i { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25); }
+  .swatch:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.14); }
+  .swatch[aria-pressed="true"] {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .swatch.hs { padding: 4px 12px; }
+
+  /* ------------------------------------------------ variant labels + light pane */
+  .variant-label { margin: 26px 0 0; font-size: 13px; font-weight: 550; color: var(--muted); }
+  .variant-label span { color: var(--faint); font-weight: 400; }
+
+  /* CommentPreviewCard.tsx demo, reproduced with the component's own values */
+  .bpane {
+    margin-top: 14px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 24px;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;
+  }
+  @media (max-width: 900px) { .bpane { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 590px) { .bpane { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 22px; } }
+
+  .demo-stage { position: relative; }
+  .bcard.hovering, .bcard:hover { border-color: #4a4d55; }
+  /* the component's contract on the real cards: hover waits 180ms, focus is instant */
+  .bcard:focus-visible .bubble { opacity: 1; transform: none; }
+  .bcount:hover, .bcard:focus-visible .bcount { background: #292b30; }
+  .democursor {
+    position: absolute; z-index: 4; width: 20px; height: 20px;
+    right: 16px; bottom: -12px;
+    transition: transform 600ms cubic-bezier(0.3, 0.7, 0.3, 1);
+    pointer-events: none;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+  }
+  .democursor.in { transform: translate(-30px, -46px); }
+  .bp-label { margin-bottom: 12px; color: #9b9da5; font-size: 12px; font-weight: 500; line-height: 1.5; }
+  .bcard {
+    position: relative; min-width: 0;
+    color: #eeeef0; background: #1c1d21;
+    border: 1px solid #33353b; border-radius: 14px; overflow: hidden;
+  }
+  .bmedia { position: relative; aspect-ratio: 1.5; overflow: hidden; background: #edebe4; }
+  .bdoc {
+    position: absolute; inset: 20px 22px -26px;
+    background: #faf9f5; border: 1px solid #d9d7d0;
+    border-radius: 8px 8px 0 0; color: #55564f;
+    box-shadow: 0 6px 16px rgba(48, 48, 37, 0.04);
+  }
+  .bdoc-chrome { height: 27px; border-bottom: 1px solid #e5e3dc; display: flex; align-items: center; gap: 4px; padding: 0 11px; }
+  .bdoc-chrome span { width: 4px; height: 4px; border-radius: 50%; background: #cbc9c1; }
+  .bdoc-body { padding: 19px 16px; }
+  .bdoc-eyebrow { color: #98988d; font-size: 11px; margin-bottom: 4px; }
+  .bdoc-title { font-size: 16px; font-weight: 500; letter-spacing: -0.25px; }
+  .bdoc-toolbar { display: flex; gap: 8px; margin: 16px 0 9px; font-size: 11px; color: #92948b; white-space: nowrap; }
+  .bdoc-toolbar span:first-child { color: #45473f; }
+  .bdoc-row { display: flex; align-items: center; gap: 7px; height: 32px; border-top: 1px solid #e7e6df; font-size: 11px; white-space: nowrap; }
+  .bdoc-dot { width: 5px; height: 5px; border-radius: 50%; flex: none; background: #a6ad9b; }
+  .bdoc-time { margin-left: auto; color: #a0a195; }
+  .bfoot { padding: 15px 16px 17px; border-top: 1px solid #33353b; }
+  .btrow { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+  .btitle { min-width: 0; font-size: 16px; line-height: 1.4; font-weight: 500; letter-spacing: -0.2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bcount {
+    display: flex; align-items: center; justify-content: center; flex: none;
+    gap: 6px; min-width: 39px; min-height: 30px; padding: 3px 6px;
+    border-radius: 6px; color: #eeeef0; font-size: 12px;
+  }
+  .bcount svg { width: 14px; height: 14px; flex: none; }
+  .bcount.open { background: #292b30; }
+  .bcount { position: relative; }
+  .bcount.unresolved::before {
+    content: ""; position: absolute; left: 17px; top: 6px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #4cc38a;
+  }
+  .bmeta { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: #9b9da5; font-size: 12px; line-height: 1.5; }
+
+  /* ------------------------------------------------ states */
+  .states { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 24px; }
+  .state { width: min(320px, 100%); }
+  .state .card:hover { transform: none; }
+  .state-label { margin-top: 10px; font-size: 12px; color: var(--faint); }
+
+  /* ------------------------------------------------ rows */
+  .rows { margin-top: 22px; border-top: 1px solid var(--line-soft); }
+  .row { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; padding: 16px 0; border-bottom: 1px solid var(--line-soft); }
+  @media (max-width: 640px) { .row { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+  .row dt, .row .lead { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .row dd, .row .body { font-size: 13.5px; color: var(--muted); max-width: 64ch; }
+
+  .invite { margin-top: 18px; font-size: 13px; color: var(--faint); max-width: 66ch; }
+  .invite em { font-style: normal; color: #a9adb6; }
+
+  footer {
+    margin-top: 96px; padding-top: 22px; border-top: 1px solid var(--line-soft);
+    color: var(--faint); font-size: 12px;
+  }
+  footer code { font-size: 11px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header>
+  <p class="kicker">Design preview</p>
+  <h1>One quiet signal per card</h1>
+  <p class="deck">A <b>reply count</b> beside the title — white, with a small green dot while threads are open. The <b>newest reply</b> peeks out when you hover the count; clicking the count opens the page on that comment, clicking anywhere else opens the page. A page nobody has commented on is untouched.</p>
+  <p class="status">Implemented on <s>show-replies-view</s>. The desktop shows real data after the next API deploy; until then, this page is the accurate stand-in.</p>
+</header>
+
+
+<section aria-label="Live captures" style="margin-top: 56px;">
+  <h2>Captured live</h2>
+  <p class="section-note" style="margin-top: 8px; color: var(--muted); font-size: 13.5px; max-width: 66ch;">Real screenshots from the dev build on <s style="text-decoration: none; color: #a9adb6; font-family: var(--mono); font-size: 11.5px;">show-replies-view</s>, real org data.</p>
+  <div class="shots">
+    <figure>
+      <img src="shots/rest.png" alt="The Pages gallery at rest: white reply counts beside titles, green dots on pages with open threads, quiet pages unchanged" loading="lazy">
+      <figcaption><b>Rest.</b> White counts beside the title; the green dot marks open threads. Pages without comments are untouched.</figcaption>
+    </figure>
+    <figure>
+      <img src="shots/peek.png" alt="Hovering the count floats the newest reply over the thumbnail" loading="lazy">
+      <figcaption><b>Hovering the count.</b> The newest reply floats over the thumbnail after the 180ms intent delay — here the Agent&rsquo;s reply, with the count pilled while the peek is open.</figcaption>
+    </figure>
+    <figure>
+      <img src="shots/thread.png" alt="Clicking the count opens the page with the comments panel showing that thread" loading="lazy">
+      <figcaption><b>Clicking the count.</b> The page opens with the comments panel already on that reply&rsquo;s thread. Clicking anywhere else on the card opens the page plain.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<div class="horizon" role="presentation"></div>
+
+<section aria-label="Gallery preview" style="margin-top: 0;">
+  <div class="stage">
+    <div class="stage-glow" role="presentation"></div>
+    <figure class="window" id="window" data-mode="replies" data-hover="bubble" aria-label="The Pages view with replies">
+      <div class="titlebar">
+        <span class="lights" role="presentation"><i></i><i></i><i></i></span>
+        <span class="crumb">Pages</span>
+        <div class="toggle" id="toggle" role="group" aria-label="Preview mode">
+          <button type="button" data-mode="today" aria-pressed="false">Today</button>
+          <button type="button" data-mode="replies" aria-pressed="true">With replies</button>
+        </div>
+      </div>
+
+      <div class="viewhead">
+        <div class="tabs">
+          <span class="tab active">All <span class="n">101</span></span>
+          <span class="tab">Pinned <span class="n">1</span></span>
+          <span class="tab">Team <span class="n">98</span></span>
+          <span class="tab">Just me <span class="n">3</span></span>
+        </div>
+        <div class="right">
+          <span class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            Search pages
+            <kbd>&#8984;K</kbd>
+          </span>
+          <span class="newpage">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            New page
+          </span>
+        </div>
+      </div>
+
+      <div class="grid">
+
+        <!-- Support reply queue : open threads -->
+        <article class="card">
+          <div class="thumb-wrap">
+            <div class="thumb paper">
+              <span class="sk title" style="left:8%; top:9%; width:52%"></span>
+              <span class="sk line" style="left:8%; top:22%; width:78%"></span>
+              <span class="sk line" style="left:8%; top:29%; width:70%"></span>
+              <span class="sk line" style="left:8%; top:36%; width:74%"></span>
+              <span class="sk block" style="left:8%; top:48%; width:84%; height:38%; opacity:.32"></span>
+            </div>
+            <div class="strip">
+              <span class="avatar sp">SP</span>
+              <span class="line"><span class="who">Satya Patel</span> <span class="snippet">Can we split the SEMA soft bounces into their own bucket before Monday?</span></span>
+              <span class="when">2h</span>
+            </div>
+            <div class="bubble"><div class="bhead"><span class="bav">S</span><span class="bwho">Satya</span><span class="bwhen">2h ago</span></div><div class="bcopy">Can we split the SEMA soft bounces into their own bucket before Monday?</div></div>
+          </div>
+          <div class="card-body">
+            <div class="trow"><div class="card-title">Support reply queue</div><span class="replies open" title="5 replies, 2 open threads">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>5
+              </span></div>
+            <div class="meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+              <span class="sep">&middot;</span><span class="t">Edited 18 seconds ago</span><span class="sep">&middot;</span><span class="t">Kiet Ho</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Mobile OTA Updates : agent replied, settled -->
+        <article class="card">
+          <div class="thumb-wrap">
+            <div class="thumb paper">
+              <span class="sk title" style="left:10%; top:10%; width:60%"></span>
+              <span class="sk line" style="left:10%; top:24%; width:76%"></span>
+              <span class="sk line" style="left:10%; top:31%; width:64%"></span>
+              <span class="sk block" style="left:10%; top:42%; width:80%; height:16%; opacity:.26"></span>
+              <span class="sk line" style="left:10%; top:66%; width:72%"></span>
+              <span class="sk line" style="left:10%; top:73%; width:68%"></span>
+            </div>
+            <div class="strip">
+              <span class="avatar agent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></span>
+              <span class="line"><span class="who">Agent</span> <span class="snippet">Republished with the runtime-version decision table — resolving.</span></span>
+              <span class="when">1d</span>
+            </div>
+            <div class="bubble"><div class="bhead"><span class="bav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></span><span class="bwho">Agent</span><span class="bwhen">1d ago</span></div><div class="bcopy">Republished with the runtime-version decision table — resolving.</div></div>
+          </div>
+          <div class="card-body">
+            <div class="trow"><div class="card-title">Mobile OTA Updates</div><span class="replies" title="3 replies">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>3
+              </span></div>
+            <div class="meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+              <span class="sep">&middot;</span><span class="t">Edited 15 seconds ago</span><span class="sep">&middot;</span><span class="t">Satya Patel</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- PR review : one open -->
+        <article class="card">
+          <div class="thumb-wrap">
+            <div class="thumb">
+              <span class="sk title" style="left:7%; top:10%; width:48%"></span>
+              <span class="sk line" style="left:7%; top:24%; width:80%"></span>
+              <span class="sk line" style="left:7%; top:31%; width:72%"></span>
+              <span class="sk block" style="left:7%; top:44%; width:40%; height:22%; opacity:.55"></span>
+              <span class="sk block" style="left:53%; top:44%; width:40%; height:22%; opacity:.55"></span>
+              <span class="sk line" style="left:7%; top:76%; width:60%"></span>
+            </div>
+            <div class="strip">
+              <span class="avatar ap">AP</span>
+              <span class="line"><span class="who">Avi Peltz</span> <span class="snippet">Is #7305 really no-action? The maintainer redirected him to v2.</span></span>
+              <span class="when">4h</span>
+            </div>
+            <div class="bubble"><div class="bhead"><span class="bav">A</span><span class="bwho">Avi</span><span class="bwhen">4h ago</span></div><div class="bcopy">Is #7305 really no-action? The maintainer redirected him to v2.</div></div>
+          </div>
+          <div class="card-body">
+            <div class="trow"><div class="card-title">PascalOrdano18 PR Review</div><span class="replies open" title="2 replies, 1 open thread">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>2
+              </span></div>
+            <div class="meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+              <span class="sep">&middot;</span><span class="t">Edited 38 seconds ago</span><span class="sep">&middot;</span><span class="t">Kiet Ho</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- automations pro gate : quiet card, unchanged -->
+        <article class="card">
+          <div class="thumb-wrap">
+            <div class="thumb">
+              <span class="sk title" style="left:8%; top:9%; width:56%"></span>
+              <span class="sk line" style="left:8%; top:22%; width:70%"></span>
+              <span class="sk block" style="left:8%; top:34%; width:84%; height:48%; opacity:.55"></span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-title">automations pro gate</div>
+            <div class="meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+              <span class="sep">&middot;</span><span class="t">Edited 58 seconds ago</span><span class="sep">&middot;</span><span class="t">Kiet Ho</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Vercel spend : agent, settled -->
+        <article class="card">
+          <div class="thumb-wrap">
+            <div class="thumb paper">
+              <span class="sk title" style="left:9%; top:10%; width:64%"></span>
+              <span class="sk block" style="left:9%; top:24%; width:19%; height:14%; opacity:.28"></span>
+              <span class="sk block" style="left:31%; top:24%; width:19%; height:14%; opacity:.28"></span>
+              <span class="sk block" style="left:53%; top:24%; width:19%; height:14%; opacity:.28"></span>
+              <span class="sk block" style="left:75%; top:24%; width:16%; height:14%; opacity:.28"></span>
+              <span class="sk line" style="left:9%; top:48%; width:74%"></span>
+              <span class="sk line" style="left:9%; top:55%; width:78%"></span>
+              <span class="sk line" style="left:9%; top:62%; width:66%"></span>
+            </div>
+            <div class="strip">
+              <span class="avatar agent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></span>
+              <span class="line"><span class="who">Agent</span> <span class="snippet">Broke daily effective cost out by line item as asked.</span></span>
+              <span class="when">3d</span>
+            </div>
+            <div class="bubble"><div class="bhead"><span class="bav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></span><span class="bwho">Agent</span><span class="bwhen">3d ago</span></div><div class="bcopy">Broke daily effective cost out by line item as asked.</div></div>
+          </div>
+          <div class="card-body">
+            <div class="trow"><div class="card-title">Vercel spend, September 2026</div><span class="replies" title="4 replies">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>4
+              </span></div>
+            <div class="meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+              <span class="sep">&middot;</span><span class="t">Edited 54 minutes ago</span><span class="sep">&middot;</span><span class="t">Kiet Ho</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Hiring follow-ups : private, open -->
+        <article class="card">
+          <div class="thumb-wrap">
+            <div class="thumb paper">
+              <span class="sk title" style="left:8%; top:9%; width:44%"></span>
+              <span class="sk line" style="left:8%; top:22%; width:80%"></span>
+              <span class="sk line" style="left:8%; top:29%; width:76%"></span>
+              <span class="sk line" style="left:8%; top:36%; width:80%"></span>
+              <span class="sk line" style="left:8%; top:43%; width:58%"></span>
+              <span class="sk line" style="left:8%; top:56%; width:78%"></span>
+              <span class="sk line" style="left:8%; top:63%; width:72%"></span>
+            </div>
+            <div class="strip">
+              <span class="avatar kh">KH</span>
+              <span class="line"><span class="who">Kiet Ho</span> <span class="snippet">Move Vedanta to Friday — founder-track bar conflict at 2:30.</span></span>
+              <span class="when">3h</span>
+            </div>
+            <div class="bubble"><div class="bhead"><span class="bav">K</span><span class="bwho">Kiet</span><span class="bwhen">3h ago</span></div><div class="bcopy">Move Vedanta to Friday — founder-track bar conflict at 2:30.</div></div>
+          </div>
+          <div class="card-body">
+            <div class="trow"><div class="card-title">Hiring Follow-ups</div><span class="replies open" title="1 reply, 1 open thread">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>1
+              </span></div>
+            <div class="meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span class="sep">&middot;</span><span class="t">Edited 3 hours ago</span><span class="sep">&middot;</span><span class="t">Kiet Ho</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </figure>
+  </div>
+  <p class="caption"><b>Hover the count on any card</b> to peek at the newest reply. The titlebar switch flips back to today&rsquo;s gallery — the only visible difference is the count.</p>
+    <div class="swatches" role="group" aria-label="Hover style">
+    <span class="swatch-label">Hover style</span>
+    <button type="button" class="swatch hs" data-hs="bubble" aria-pressed="true">Bubble</button>
+    <button type="button" class="swatch hs" data-hs="strip" aria-pressed="false">Strip</button>
+  </div>
+</section>
+
+<section>
+  <h2>Two hover treatments</h2>
+  <p class="variant-label">B — Floating bubble <span>(per CommentPreviewCard.tsx; the window above defaults to this — hover the Rest card)</span></p>
+  <div class="bpane">
+    <div>
+      <p class="bp-label">Rest — hover or focus me</p>
+      <article class="bcard" tabindex="0">
+        <div class="bmedia">
+          <div class="bdoc">
+            <div class="bdoc-chrome"><span></span><span></span><span></span></div>
+            <div class="bdoc-body">
+              <div class="bdoc-eyebrow">Support</div>
+              <div class="bdoc-title">Reply queue</div>
+              <div class="bdoc-toolbar"><span>All conversations</span><span>Assigned to me</span></div>
+              <div class="bdoc-row"><span class="bdoc-dot"></span>Workspace invitation<span class="bdoc-time">12m</span></div>
+              <div class="bdoc-row"><span class="bdoc-dot"></span>SEMA delivery issue<span class="bdoc-time">24m</span></div>
+              <div class="bdoc-row"><span class="bdoc-dot"></span>Login link expired<span class="bdoc-time">38m</span></div>
+            </div>
+          </div>
+          <div class="bubble">
+            <div class="bhead"><span class="bav">S</span><span class="bwho">Satya</span><span class="bwhen">2h ago</span></div>
+            <div class="bcopy">Can we split the SEMA soft bounce cases into their own queue?</div>
+          </div>
+        </div>
+        <div class="bfoot">
+          <div class="btrow">
+            <span class="btitle">Support reply queue</span>
+            <span class="bcount unresolved">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>5
+            </span>
+          </div>
+          <div class="bmeta">Kiet<span aria-hidden="true">&middot;</span>Edited 18s ago</div>
+        </div>
+      </article>
+    </div>
+    <div>
+      <p class="bp-label">Hover / focus</p>
+      <article class="bcard">
+        <div class="bmedia">
+          <div class="bdoc">
+            <div class="bdoc-chrome"><span></span><span></span><span></span></div>
+            <div class="bdoc-body">
+              <div class="bdoc-eyebrow">Support</div>
+              <div class="bdoc-title">Reply queue</div>
+              <div class="bdoc-toolbar"><span>All conversations</span><span>Assigned to me</span></div>
+              <div class="bdoc-row"><span class="bdoc-dot"></span>Workspace invitation<span class="bdoc-time">12m</span></div>
+              <div class="bdoc-row"><span class="bdoc-dot"></span>SEMA delivery issue<span class="bdoc-time">24m</span></div>
+              <div class="bdoc-row"><span class="bdoc-dot"></span>Login link expired<span class="bdoc-time">38m</span></div>
+            </div>
+          </div>
+          <div class="bubble shown">
+            <div class="bhead"><span class="bav">S</span><span class="bwho">Satya</span><span class="bwhen">2h ago</span></div>
+            <div class="bcopy">Can we split the SEMA soft bounce cases into their own queue?</div>
+          </div>
+        </div>
+        <div class="bfoot">
+          <div class="btrow">
+            <span class="btitle">Support reply queue</span>
+            <span class="bcount open unresolved">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>5
+            </span>
+          </div>
+          <div class="bmeta">Kiet<span aria-hidden="true">&middot;</span>Edited 18s ago</div>
+        </div>
+      </article>
+    </div>
+    <div id="hoverdemo">
+      <p class="bp-label">Behavior — enters, waits 180ms, opens in 150ms</p>
+      <div class="demo-stage">
+        <article class="bcard">
+          <div class="bmedia">
+            <div class="bdoc">
+              <div class="bdoc-chrome"><span></span><span></span><span></span></div>
+              <div class="bdoc-body">
+                <div class="bdoc-eyebrow">Support</div>
+                <div class="bdoc-title">Reply queue</div>
+                <div class="bdoc-toolbar"><span>All conversations</span><span>Assigned to me</span></div>
+                <div class="bdoc-row"><span class="bdoc-dot"></span>Workspace invitation<span class="bdoc-time">12m</span></div>
+                <div class="bdoc-row"><span class="bdoc-dot"></span>SEMA delivery issue<span class="bdoc-time">24m</span></div>
+                <div class="bdoc-row"><span class="bdoc-dot"></span>Login link expired<span class="bdoc-time">38m</span></div>
+              </div>
+            </div>
+            <div class="bubble">
+              <div class="bhead"><span class="bav">S</span><span class="bwho">Satya</span><span class="bwhen">2h ago</span></div>
+              <div class="bcopy">Can we split the SEMA soft bounce cases into their own queue?</div>
+            </div>
+          </div>
+          <div class="bfoot">
+            <div class="btrow">
+              <span class="btitle">Support reply queue</span>
+              <span class="bcount unresolved">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>5
+              </span>
+            </div>
+            <div class="bmeta">Kiet<span aria-hidden="true">&middot;</span>Edited 18s ago</div>
+          </div>
+        </article>
+        <svg class="democursor" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M4.5 2.2 L4.5 16.6 L8.2 13.1 L10.6 18.3 L13 17.2 L10.7 12.1 L15.7 12.1 Z" fill="#fff" stroke="#111" stroke-width="1.1" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <p class="variant-label">A — Edge strip <span>(flip the Hover style switch to try it in the window)</span></p>
+  <div class="states">
+    <div class="state">
+      <article class="card">
+        <div class="thumb-wrap">
+          <div class="thumb paper">
+            <span class="sk title" style="left:8%; top:9%; width:52%"></span>
+            <span class="sk line" style="left:8%; top:22%; width:78%"></span>
+            <span class="sk line" style="left:8%; top:29%; width:70%"></span>
+            <span class="sk block" style="left:8%; top:42%; width:84%; height:44%; opacity:.32"></span>
+          </div>
+          <div class="strip">
+            <span class="avatar sp">SP</span>
+            <span class="line"><span class="who">Satya Patel</span> <span class="snippet">Can we split the SEMA soft bounces into their own bucket?</span></span>
+            <span class="when">2h</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="trow"><div class="card-title">Support reply queue</div><span class="replies open">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>5
+            </span></div>
+          <div class="meta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            <span class="sep">&middot;</span><span class="t">Edited 18 seconds ago</span><span class="sep">&middot;</span><span class="t">Kiet Ho</span>
+          </div>
+        </div>
+      </article>
+      <p class="state-label">Rest — the count is the whole footprint (hover reveals the strip).</p>
+    </div>
+    <div class="state">
+      <article class="card">
+        <div class="thumb-wrap">
+          <div class="thumb paper">
+            <span class="sk title" style="left:8%; top:9%; width:52%"></span>
+            <span class="sk line" style="left:8%; top:22%; width:78%"></span>
+            <span class="sk line" style="left:8%; top:29%; width:70%"></span>
+            <span class="sk block" style="left:8%; top:42%; width:84%; height:44%; opacity:.32"></span>
+          </div>
+          <div class="strip shown">
+            <span class="avatar sp">SP</span>
+            <span class="line"><span class="who">Satya Patel</span> <span class="snippet">Can we split the SEMA soft bounces into their own bucket?</span></span>
+            <span class="when">2h</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="trow"><div class="card-title">Support reply queue</div><span class="replies open">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>5
+            </span></div>
+          <div class="meta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            <span class="sep">&middot;</span><span class="t">Edited 18 seconds ago</span><span class="sep">&middot;</span><span class="t">Kiet Ho</span>
+          </div>
+        </div>
+      </article>
+      <p class="state-label">Hover — the newest reply overlays the thumbnail, then leaves.</p>
+    </div>
+  </div>
+
+  <div class="rows">
+    <div class="row">
+      <span class="lead">The count</span>
+      <span class="body">Every comment on the page, across threads and versions, in plain white beside the title. A small green dot badges the icon&rsquo;s corner while unresolved threads remain; it disappears once the conversation settles. Screen readers get the whole phrase: &ldquo;5 replies, 2 open threads.&rdquo;</span>
+    </div>
+    <div class="row">
+      <span class="lead">The peek</span>
+      <span class="body">Hovering or focusing the count — not the card — reveals the newest reply: avatar, author, first 240 characters. Per <code>CommentPreviewCard.tsx</code>, hover waits 180ms and keyboard focus opens instantly; Escape closes. Hover-card grace: the pointer can travel from the count into the peek — a 300ms window keeps it open — and clicking the peek opens the thread too. Clicking the count opens the page with that comment&rsquo;s thread selected in the panel; clicking the rest of the card opens the page. Agent replies carry the bot mark and the <code>Agent</code> byline.</span>
+    </div>
+    <div class="row">
+      <span class="lead">The default</span>
+      <span class="body">No comments, no chrome: a quiet page&rsquo;s card is identical to today&rsquo;s, and the settled-gray count is the loudest thing a finished conversation ever gets.</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>How it&rsquo;s wired</h2>
+  <dl class="rows">
+    <div class="row">
+      <dt>One query</dt>
+      <dd><code>page.list</code> gains two correlated laterals: an aggregate for <code>commentCount</code> and <code>openThreadCount</code>, and a limit-1 for the newest reply. The hover peek costs nothing — the data is already on the row.</dd>
+    </div>
+    <div class="row">
+      <dt>Additive shape</dt>
+      <dd>The new fields ride <code>RouterOutputs</code>, so mobile, the CLI, and MCP <code>pages_list</code> inherit them without breakage.</dd>
+    </div>
+    <div class="row">
+      <dt>Localized</dt>
+      <dd>The two new plural strings are hand-translated in all 17 locales, reusing each catalog&rsquo;s established words for &ldquo;reply&rdquo; and &ldquo;thread.&rdquo;</dd>
+    </div>
+  </dl>
+</section>
+
+<section>
+  <h2>Calls to make</h2>
+  <div class="rows">
+    <div class="row">
+      <span class="lead">Dot semantics</span>
+      <span class="body">The green dot currently means any unresolved thread. &ldquo;New since you last opened it&rdquo; is the sharper signal, but needs per-viewer read state we don&rsquo;t track yet.</span>
+    </div>
+    <div class="row">
+      <span class="lead">A needs-reply filter</span>
+      <span class="body">With open counts on every row, a filter beside All, Pinned, and Team is a small follow-up. Left out to keep this change tight.</span>
+    </div>
+  </div>
+  <p class="invite">Pin a comment on anything here — <em>a count, the hover strip, the toggle</em> — and send it to the agent; this page is watched from the branch.</p>
+</section>
+
+<footer>
+  Published from branch <code>show-replies-view</code>. Source: <code>plans/20260911-pages-replies-preview.html</code>
+</footer>
+
+</main>
+
+<script>
+  var windowEl = document.getElementById("window");
+  var toggle = document.getElementById("toggle");
+  var buttons = toggle.querySelectorAll("button");
+  buttons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      buttons.forEach(function (b) { b.setAttribute("aria-pressed", String(b === btn)); });
+      windowEl.dataset.mode = btn.dataset.mode;
+    });
+  });
+
+  var hsButtons = document.querySelectorAll(".swatch.hs");
+  hsButtons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      hsButtons.forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      windowEl.dataset.hover = b.dataset.hs;
+    });
+  });
+
+  (function () {
+    var demo = document.getElementById("hoverdemo");
+    if (!demo) return;
+    var card = demo.querySelector(".bcard");
+    var peek = demo.querySelector(".bubble");
+    var count = demo.querySelector(".bcount");
+    var cursor = demo.querySelector(".democursor");
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      peek.classList.add("shown");
+      count.classList.add("open");
+      cursor.remove();
+      return;
+    }
+    var timers = [];
+    var running = false;
+    function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+    function reset() {
+      timers.forEach(clearTimeout);
+      timers = [];
+      cursor.classList.remove("in");
+      card.classList.remove("hovering");
+      peek.classList.remove("shown");
+      count.classList.remove("open");
+    }
+    function cycle() {
+      if (!running) return;
+      cursor.classList.add("in");
+      later(function () { card.classList.add("hovering"); }, 600);
+      later(function () { peek.classList.add("shown"); count.classList.add("open"); }, 780);
+      later(function () { cursor.classList.remove("in"); }, 2700);
+      later(function () {
+        card.classList.remove("hovering");
+        peek.classList.remove("shown");
+        count.classList.remove("open");
+      }, 3250);
+      later(cycle, 4400);
+    }
+    new IntersectionObserver(function (entries) {
+      var visible = entries.some(function (entry) { return entry.isIntersecting; });
+      if (visible && !running) { running = true; cycle(); }
+      else if (!visible && running) { running = false; reset(); }
+    }, { threshold: 0.4 }).observe(demo);
+  })();
+
+  document.querySelectorAll("#window .card, .bpane .bcard").forEach(function (card) {
+    if (card.closest("#hoverdemo")) return; // the demo tile is loop-driven
+    var chip = card.querySelector(".replies, .bcount");
+    var bubble = card.querySelector(".bubble:not(.shown)");
+    if (!chip || !bubble) return;
+    var openT = null, closeT = null;
+    function show() { bubble.classList.add("live"); }
+    function hide() { bubble.classList.remove("live"); }
+    chip.addEventListener("pointerenter", function () {
+      clearTimeout(closeT); clearTimeout(openT);
+      openT = setTimeout(show, 180);
+    });
+    chip.addEventListener("pointerleave", function () {
+      clearTimeout(openT); clearTimeout(closeT);
+      closeT = setTimeout(hide, 300);
+    });
+    bubble.addEventListener("pointerenter", function () { clearTimeout(closeT); });
+    bubble.addEventListener("pointerleave", function () {
+      clearTimeout(closeT);
+      closeT = setTimeout(hide, 300);
+    });
+  });
+</script>
+</body>
+</html>

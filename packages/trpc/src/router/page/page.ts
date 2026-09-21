@@ -4,6 +4,8 @@ import {
 	files,
 	members,
 	organizations,
+	pageComments,
+	pageCommentThreads,
 	pages,
 	pageVersions,
 	type SelectPage,
@@ -24,6 +26,7 @@ import {
 	desc,
 	eq,
 	inArray,
+	isNull,
 	notExists,
 	or,
 	type SQL,
@@ -269,6 +272,56 @@ export const pageRouter = {
 				.limit(1)
 				.as("latest");
 
+			const commentStats = db
+				.select({
+					commentCount: sql<number>`count(${pageComments.id})::int`.as(
+						"comment_count",
+					),
+					openThreadCount:
+						sql<number>`count(distinct ${pageCommentThreads.id}) filter (where ${pageCommentThreads.resolvedAt} is null)::int`.as(
+							"open_thread_count",
+						),
+				})
+				.from(pageCommentThreads)
+				.leftJoin(
+					pageComments,
+					and(
+						eq(pageComments.threadId, pageCommentThreads.id),
+						isNull(pageComments.deletedAt),
+					),
+				)
+				.where(eq(pageCommentThreads.pageId, pages.id))
+				.as("comment_stats");
+
+			const lastComment = db
+				.select({
+					// The card shows one truncated line; the full body stays behind
+					// the page view, so the list payload carries only a snippet.
+					body: sql<string>`left(${pageComments.body}, 240)`.as(
+						"last_comment_body",
+					),
+					threadId: pageComments.threadId,
+					authorKind: pageComments.authorKind,
+					authorName: users.name,
+					authorImage: users.image,
+					commentedAt: pageComments.createdAt,
+				})
+				.from(pageComments)
+				.innerJoin(
+					pageCommentThreads,
+					eq(pageCommentThreads.id, pageComments.threadId),
+				)
+				.leftJoin(users, eq(users.id, pageComments.authorUserId))
+				.where(
+					and(
+						eq(pageCommentThreads.pageId, pages.id),
+						isNull(pageComments.deletedAt),
+					),
+				)
+				.orderBy(desc(pageComments.createdAt))
+				.limit(1)
+				.as("last_comment");
+
 			const base = db
 				.select({
 					id: pages.id,
@@ -286,10 +339,20 @@ export const pageRouter = {
 					contentType: latest.contentType,
 					sizeBytes: latest.sizeBytes,
 					publishedAt: latest.publishedAt,
+					commentCount: commentStats.commentCount,
+					openThreadCount: commentStats.openThreadCount,
+					lastCommentBody: lastComment.body,
+					lastCommentThreadId: lastComment.threadId,
+					lastCommentAuthorKind: lastComment.authorKind,
+					lastCommentAuthorName: lastComment.authorName,
+					lastCommentAuthorImage: lastComment.authorImage,
+					lastCommentAt: lastComment.commentedAt,
 				})
 				.from(pages)
 				.leftJoin(users, eq(users.id, pages.createdByUserId))
-				.leftJoinLateral(latest, sql`true`);
+				.leftJoinLateral(latest, sql`true`)
+				.leftJoinLateral(commentStats, sql`true`)
+				.leftJoinLateral(lastComment, sql`true`);
 
 			const scoped = input?.workspaceId
 				? base
@@ -312,29 +375,54 @@ export const pageRouter = {
 			const baseUrl = env.USERCONTENT_URL;
 			return await Promise.all(
 				rows.map(async (row) => {
-					const served = servedVersion(row.sharedVersion, row.latestVersion);
-					const ticket = await mintPageTicket(row);
+					const {
+						lastCommentBody,
+						lastCommentThreadId,
+						lastCommentAuthorKind,
+						lastCommentAuthorName,
+						lastCommentAuthorImage,
+						lastCommentAt,
+						...page
+					} = row;
+					const served = servedVersion(page.sharedVersion, page.latestVersion);
+					const ticket = await mintPageTicket(page);
 					// Version-bound, so it turns daily instead of hourly — the capture
 					// is immutable and the stable URL is what lets it cache.
 					const thumbnailTicket =
 						served === null
 							? undefined
-							: await mintPageTicket(row, { version: served });
+							: await mintPageTicket(page, { version: served });
 					return {
-						...row,
-						url: pageUrl(row.slug),
-						viewUrl: pageViewUrl({ baseUrl, pageId: row.id, ticket }),
+						...page,
+						commentCount: page.commentCount ?? 0,
+						openThreadCount: page.openThreadCount ?? 0,
+						lastComment:
+							lastCommentBody === null ||
+							lastCommentThreadId === null ||
+							lastCommentAuthorKind === null ||
+							lastCommentAt === null
+								? null
+								: {
+										body: lastCommentBody,
+										threadId: lastCommentThreadId,
+										authorKind: lastCommentAuthorKind,
+										authorName: lastCommentAuthorName ?? "Unknown",
+										authorImage: lastCommentAuthorImage,
+										createdAt: lastCommentAt,
+									},
+						url: pageUrl(page.slug),
+						viewUrl: pageViewUrl({ baseUrl, pageId: page.id, ticket }),
 						thumbnailUrl:
 							served === null
 								? null
 								: pageThumbnailUrl({
 										baseUrl,
-										pageId: row.id,
+										pageId: page.id,
 										version: served,
 										ticket: thumbnailTicket,
 									}),
 						thumbnailStorageKey:
-							served === null ? null : pageThumbnailKey(row.id, served),
+							served === null ? null : pageThumbnailKey(page.id, served),
 					};
 				}),
 			);

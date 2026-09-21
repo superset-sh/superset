@@ -158,6 +158,10 @@ msgstr "{0, plural, one {# geçmiş öğesi} other {# geçmiş öğesi}}"
 msgid "{0, plural, one {# login} other {# logins}}"
 msgstr "{0, plural, one {# oturum bilgisi} other {# oturum bilgisi}}"
 
+#. placeholder {0}: page.openThreadCount
+msgid "{0, plural, one {# open thread} other {# open threads}}"
+msgstr "{0, plural, one {# açık konu} other {# açık konu}}"
+
 #. placeholder {0}: summary.passed
 msgid "{0, plural, one {# passed} other {# passed}}"
 msgstr "{0, plural, one {# geçti} other {# geçti}}"
@@ -169,6 +173,10 @@ msgstr "{0, plural, one {# proje seçildi.} other {# proje seçildi.}}"
 #. placeholder {0}: projectFilters.length
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# proje} other {# proje}}"
+
+#. placeholder {0}: page.commentCount
+msgid "{0, plural, one {# reply} other {# replies}}"
+msgstr "{0, plural, one {# yanıt} other {# yanıt}}"
 
 #. placeholder {0}: repositories.length
 #. placeholder {0}: selectedProjects.length
