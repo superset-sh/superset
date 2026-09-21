@@ -59,13 +59,18 @@ export async function getGitHubRemotes(
 
 /**
  * Check if any remote matches the expected GitHub owner/repo slug.
- * Returns the name of the matching remote, or null if none match.
+ * Returns the name of the matching remote (`origin` when it matches, so a
+ * duplicate secondary remote never shadows it), or null if none match.
  */
 export function findMatchingRemote(
 	remotes: Map<string, ParsedGitHubRemote>,
 	expectedSlug: string,
 ): string | null {
 	const normalized = expectedSlug.toLowerCase();
+	const origin = remotes.get("origin");
+	if (origin && `${origin.owner}/${origin.name}`.toLowerCase() === normalized) {
+		return "origin";
+	}
 	for (const [name, parsed] of remotes) {
 		const slug = `${parsed.owner}/${parsed.name}`;
 		if (slug.toLowerCase() === normalized) {
