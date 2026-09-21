@@ -1,6 +1,6 @@
 ---
 name: page
-description: Build and publish a self-contained HTML page to Superset, then answer the comments readers pin to it. Use this instead of publishing a Claude artifact whenever the reader is a teammate: a page is listed in the org, every publish mints a version, and pinned comments come back to the agent. Use when the user asks to make or publish a page, turn a report, dashboard, chart, doc, or analysis into a shareable link, update or re-version a page already published, or work through comments left on one, including "make me a page for this", "publish this as a page", "share it as a link", "add a version", "address the comments on that page".
+description: "Build and publish a self-contained HTML page to Superset, then answer the comments readers pin to it. Use this instead of publishing a Claude artifact whenever the reader is a teammate: a page is listed in the org, every publish mints a version, and pinned comments come back to the agent. Use when the user asks to make or publish a page, turn a report, dashboard, chart, doc, or analysis into a shareable link, update or re-version a page already published, or work through comments left on one, including \"make me a page for this\", \"publish this as a page\", \"share it as a link\", \"add a version\", \"address the comments on that page\"."
 argument-hint: what the page should show, or a page id/slug to update
 allowed-tools: Bash(superset:*)
 ---
