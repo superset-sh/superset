@@ -41,6 +41,7 @@ import {
 	probeTerminalRunning,
 } from "renderer/lib/terminal/confirm-close-terminals";
 import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
+import { writeTerminalClipboard } from "renderer/lib/terminal/terminal-clipboard";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -490,7 +491,11 @@ export function usePaneRegistry({
 									terminalId,
 									ctx.pane.id,
 								);
-								if (text) navigator.clipboard.writeText(text);
+								if (text) {
+									void writeTerminalClipboard(text).catch((error: unknown) => {
+										console.error("[terminal] Failed to copy selection", error);
+									});
+								}
 							},
 						},
 						{

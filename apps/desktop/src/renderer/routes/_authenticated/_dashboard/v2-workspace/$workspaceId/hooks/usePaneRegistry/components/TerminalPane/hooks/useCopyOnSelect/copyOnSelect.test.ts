@@ -30,6 +30,16 @@ function createTerminalStub(selection: string) {
 	const dispose = mock(() => {});
 	const terminal = {
 		getSelection: () => selection,
+		_core: { _selectionService: { _activeSelectionMode: 0 } },
+		getSelectionPosition: () => ({
+			start: { x: 0, y: 0 },
+			end: { x: 3, y: 1 },
+		}),
+		buffer: {
+			active: {
+				getLine: () => ({ translateToString: () => "", isWrapped: false }),
+			},
+		},
 		onSelectionChange: (callback: () => void) => {
 			onSelection = callback;
 			return { dispose };
@@ -39,6 +49,9 @@ function createTerminalStub(selection: string) {
 		terminal,
 		dispose,
 		fireSelectionChange: () => onSelection?.(),
+		setSelection: (value: string) => {
+			selection = value;
+		},
 	};
 }
 
@@ -54,7 +67,7 @@ describe("installCopyOnSelect", () => {
 		restores.push(stubClipboard(writeText), stubFocus(true));
 
 		const { terminal, fireSelectionChange } = createTerminalStub("foo   \nbar");
-		installCopyOnSelect(terminal);
+		installCopyOnSelect(terminal, undefined, writeText);
 		fireSelectionChange();
 		await Promise.resolve();
 
@@ -66,7 +79,7 @@ describe("installCopyOnSelect", () => {
 		restores.push(stubClipboard(writeText), stubFocus(true));
 
 		const { terminal, fireSelectionChange } = createTerminalStub("");
-		installCopyOnSelect(terminal);
+		installCopyOnSelect(terminal, undefined, writeText);
 		fireSelectionChange();
 		await Promise.resolve();
 
@@ -78,7 +91,7 @@ describe("installCopyOnSelect", () => {
 		restores.push(stubClipboard(writeText), stubFocus(false));
 
 		const { terminal, fireSelectionChange } = createTerminalStub("hello");
-		installCopyOnSelect(terminal);
+		installCopyOnSelect(terminal, undefined, writeText);
 		fireSelectionChange();
 		await Promise.resolve();
 
@@ -90,7 +103,7 @@ describe("installCopyOnSelect", () => {
 		restores.push(stubClipboard(writeText), stubFocus(true));
 
 		const { terminal, fireSelectionChange } = createTerminalStub("hello");
-		installCopyOnSelect(terminal);
+		installCopyOnSelect(terminal, undefined, writeText);
 		fireSelectionChange();
 		fireSelectionChange();
 		await Promise.resolve();
@@ -103,7 +116,7 @@ describe("installCopyOnSelect", () => {
 		restores.push(stubClipboard(writeText), stubFocus(true));
 
 		const { terminal, fireSelectionChange } = createTerminalStub("hello");
-		installCopyOnSelect(terminal);
+		installCopyOnSelect(terminal, undefined, writeText);
 		fireSelectionChange();
 		await Promise.resolve();
 		fireSelectionChange();
@@ -121,13 +134,23 @@ describe("installCopyOnSelect", () => {
 		let fire: (() => void) | undefined;
 		const terminal = {
 			getSelection: () => selection,
+			_core: { _selectionService: { _activeSelectionMode: 0 } },
+			getSelectionPosition: () => ({
+				start: { x: 0, y: 0 },
+				end: { x: 3, y: 1 },
+			}),
+			buffer: {
+				active: {
+					getLine: () => ({ translateToString: () => "", isWrapped: false }),
+				},
+			},
 			onSelectionChange: (callback: () => void) => {
 				fire = callback;
 				return { dispose: () => {} };
 			},
 		} as unknown as XTerm;
 
-		installCopyOnSelect(terminal, onCopied);
+		installCopyOnSelect(terminal, onCopied, writeText);
 		fire?.();
 		await Promise.resolve();
 		expect(onCopied).toHaveBeenCalledTimes(1);
@@ -150,7 +173,7 @@ describe("installCopyOnSelect", () => {
 
 		const onCopied = mock(() => {});
 		const { terminal, fireSelectionChange } = createTerminalStub("hello");
-		installCopyOnSelect(terminal, onCopied);
+		installCopyOnSelect(terminal, onCopied, writeText);
 		fireSelectionChange();
 		await Promise.resolve();
 		await Promise.resolve();
@@ -163,8 +186,45 @@ describe("installCopyOnSelect", () => {
 		restores.push(stubClipboard(writeText), stubFocus(true));
 
 		const { terminal, dispose } = createTerminalStub("hello");
-		installCopyOnSelect(terminal)();
+		installCopyOnSelect(terminal, undefined, writeText)();
 
 		expect(dispose).toHaveBeenCalled();
+	});
+	it("does not report a pending copy after disposal", async () => {
+		restores.push(stubFocus(true));
+		let finish: (() => void) | undefined;
+		const writeText = () =>
+			new Promise<void>((resolve) => {
+				finish = resolve;
+			});
+		const onCopied = mock(() => {});
+		const { terminal, fireSelectionChange } = createTerminalStub("hello");
+		const dispose = installCopyOnSelect(terminal, onCopied, writeText);
+		fireSelectionChange();
+		dispose();
+		finish?.();
+		await Promise.resolve();
+		expect(onCopied).not.toHaveBeenCalled();
+	});
+
+	it("copies the same text again after selection was cleared in the background", async () => {
+		const writeText = mock(async () => {});
+		restores.push(stubFocus(true));
+		const { terminal, fireSelectionChange, setSelection } =
+			createTerminalStub("hello");
+		installCopyOnSelect(terminal, undefined, writeText);
+		fireSelectionChange();
+		await Promise.resolve();
+		const restoreFocus = stubFocus(false);
+		try {
+			setSelection("");
+			fireSelectionChange();
+		} finally {
+			restoreFocus();
+		}
+		setSelection("hello");
+		fireSelectionChange();
+		await Promise.resolve();
+		expect(writeText).toHaveBeenCalledTimes(2);
 	});
 });

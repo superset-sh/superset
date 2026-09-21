@@ -535,3 +535,50 @@ describe("terminal replacement history", () => {
 		}
 	});
 });
+
+describe("terminalRuntimeRegistry copy selection", () => {
+	test("uses the same copy policy without treating selected spaces as no selection", () => {
+		const entries = (
+			terminalRuntimeRegistry as unknown as { entries: Map<string, unknown> }
+		).entries;
+		const terminalId = "copy-policy-test";
+		const key = `${terminalId}\u0000${terminalId}`;
+		let selection = "foo   \r\nbar\u3000  ";
+		entries.set(key, {
+			terminalId,
+			instanceId: terminalId,
+			runtime: {
+				terminal: {
+					getSelection: () => selection,
+					getSelectionPosition: () => ({
+						start: { x: 0, y: 0 },
+						end: { x: 9, y: 1 },
+					}),
+					_core: { _selectionService: { _activeSelectionMode: 0 } },
+					buffer: {
+						active: {
+							getLine: () => ({
+								translateToString: () => "",
+								isWrapped: false,
+							}),
+						},
+					},
+				},
+			},
+		});
+		try {
+			expect(terminalRuntimeRegistry.getSelection(terminalId, terminalId)).toBe(
+				"foo\r\nbar\u3000",
+			);
+			selection = "   ";
+			expect(terminalRuntimeRegistry.getSelection(terminalId, terminalId)).toBe(
+				"   ",
+			);
+		} finally {
+			entries.delete(key);
+		}
+		expect(terminalRuntimeRegistry.getSelection(terminalId, terminalId)).toBe(
+			"",
+		);
+	});
+});
