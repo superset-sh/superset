@@ -64,4 +64,40 @@ describe("installTerminalCopyHandler", () => {
 
 		expect(preventDefault).not.toHaveBeenCalled();
 	});
+
+	it("uses the clipboard API without canceling the default copy fallback", async () => {
+		let listener: ((event: ClipboardEvent) => void) | undefined;
+		const terminal = {
+			element: {
+				addEventListener: (_type: string, callback: EventListener) => {
+					listener = callback as (event: ClipboardEvent) => void;
+				},
+				removeEventListener: () => {},
+			},
+			getSelection: () => "foo   \nbar  ",
+		} as unknown as XTerm;
+		const preventDefault = mock(() => {});
+		const writeText = mock(() => Promise.resolve());
+		const previousNavigator = Object.getOwnPropertyDescriptor(
+			globalThis,
+			"navigator",
+		);
+		Object.defineProperty(globalThis, "navigator", {
+			value: { clipboard: { writeText } },
+			configurable: true,
+		});
+
+		try {
+			installTerminalCopyHandler(terminal);
+			listener?.({ preventDefault } as unknown as ClipboardEvent);
+			await Promise.resolve();
+
+			expect(writeText).toHaveBeenCalledWith("foo\nbar");
+			expect(preventDefault).not.toHaveBeenCalled();
+		} finally {
+			if (previousNavigator) {
+				Object.defineProperty(globalThis, "navigator", previousNavigator);
+			}
+		}
+	});
 });

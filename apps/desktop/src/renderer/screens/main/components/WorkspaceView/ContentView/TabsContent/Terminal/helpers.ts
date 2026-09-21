@@ -21,7 +21,6 @@ import {
 	type ParserIdleGate,
 	wrapWrite,
 } from "renderer/lib/terminal/parser-idle-gate";
-import { installTerminalCopyHandler } from "renderer/lib/terminal/terminal-copy";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { installInputModeReclaimer } from "renderer/lib/terminal/terminalInputModeReclaimer";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -248,20 +247,6 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 			webglAddon = null;
 		},
 	};
-}
-
-/**
- * Setup copy handler for xterm to trim trailing whitespace from copied text.
- *
- * Terminal emulators fill lines with whitespace to pad to the terminal width.
- * When copying text, this results in unwanted trailing spaces on each line.
- * This handler intercepts copy events and trims trailing whitespace from each
- * line before writing to the clipboard.
- *
- * Returns a cleanup function to remove the handler.
- */
-export function setupCopyHandler(xterm: XTerm): () => void {
-	return installTerminalCopyHandler(xterm);
 }
 
 export function setupFocusListener(

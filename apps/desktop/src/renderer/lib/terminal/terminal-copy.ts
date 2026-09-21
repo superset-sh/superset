@@ -24,6 +24,8 @@ export function installTerminalCopyHandler(terminal: XTerm): () => void {
 			return;
 		}
 
+		// Electron can omit clipboardData on Linux/Wayland. Keep the default copy
+		// path alive while replacing its contents through the async clipboard API.
 		void navigator.clipboard?.writeText(text).catch(() => {});
 	};
 
