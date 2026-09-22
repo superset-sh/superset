@@ -10,6 +10,9 @@ export default command({
 	description: "Start the host service",
 	options: {
 		daemon: boolean().desc("Run in background"),
+		autoUpdate: boolean().desc(
+			"Automatically update and restart this host hourly",
+		),
 		port: number().desc("Port to listen on"),
 		org: string().desc("Organization to register under (id, slug, or name)"),
 	},
@@ -41,6 +44,7 @@ export default command({
 				api: ctx.api,
 				port: options.port,
 				daemon: options.daemon ?? false,
+				autoUpdate: options.autoUpdate ?? false,
 			});
 
 			spinner.stop(

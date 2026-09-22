@@ -184,7 +184,7 @@ async function main(): Promise<void> {
 	// Standalone only: this process owns its listener and relay socket, so it
 	// can hand the port to a successor build (system.update). The desktop
 	// entry never registers this and its host-service stays non-updatable.
-	configureSelfUpdater({
+	const selfUpdater = configureSelfUpdater({
 		stopServing: async () => {
 			// Cancel registration retries before replacing this process.
 			relayAbort.abort();
@@ -204,6 +204,13 @@ async function main(): Promise<void> {
 			]);
 		},
 	});
+	if (env.SUPERSET_HOST_AUTO_UPDATE && selfUpdater.status().updatable) {
+		const timer = setInterval(
+			() => void selfUpdater.checkForUpdates(),
+			60 * 60_000,
+		);
+		timer.unref();
+	}
 }
 
 void main().catch(async (error) => {

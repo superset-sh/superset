@@ -129,10 +129,26 @@ describe("spawnHostService", () => {
 			daemon: true,
 		});
 
+		expect(spawnCalls[0]?.options.env?.SUPERSET_HOST_AUTO_UPDATE).toBe("false");
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(spawnCalls[0]?.options.env?.SUPERSET_AUTH_CONFIG_PATH).toBe(
 			SUPERSET_CONFIG_PATH,
 		);
 		expect(spawnCalls[0]?.options.env?.AUTH_TOKEN).toBe("session-token");
 	});
+});
+
+test("passes the auto-update opt-in to the host", async () => {
+	globalThis.fetch = mock(
+		async () => new Response("ok"),
+	) as unknown as typeof fetch;
+	await spawnHostService({
+		organizationId: "00000000-0000-0000-0000-000000000001",
+		sessionToken: "session-token",
+		api: createApi(),
+		port: 54879,
+		daemon: true,
+		autoUpdate: true,
+	});
+	expect(spawnCalls[0]?.options.env?.SUPERSET_HOST_AUTO_UPDATE).toBe("true");
 });

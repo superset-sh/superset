@@ -30,6 +30,7 @@ export interface SpawnHostOptions {
 	api: ApiClient;
 	port?: number;
 	daemon: boolean;
+	autoUpdate?: boolean;
 }
 
 export interface SpawnHostResult {
@@ -151,6 +152,7 @@ export async function spawnHostService(
 			// A standalone install can replace itself in place (system.update);
 			// the host-service reports this so clients offer the right action.
 			[HOST_INSTALL_SOURCE_ENV]: "cli",
+			SUPERSET_HOST_AUTO_UPDATE: String(options.autoUpdate ?? false),
 			// The desktop injects this into hosts it spawns
 			// (host-service-coordinator.ts); without it the host's PTYs get no
 			// SUPERSET_HOME_DIR and every managed agent hook self-disables on

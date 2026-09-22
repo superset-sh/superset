@@ -4,6 +4,10 @@ import { z } from "zod";
 
 export const env = createEnv({
 	server: {
+		SUPERSET_HOST_AUTO_UPDATE: z
+			.enum(["true", "false"])
+			.default("false")
+			.transform((value) => value === "true"),
 		HOST_SERVICE_SECRET: z
 			.string()
 			.min(1)
