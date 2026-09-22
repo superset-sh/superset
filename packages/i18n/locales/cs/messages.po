@@ -14972,9 +14972,6 @@ msgstr "Přidružené zařízení teď není dostupné"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Nejlepší agent se změní.<0/>Vaše workflow ne."
 
-msgid "The Codex sign-in"
-msgstr "Přihlášení do Codexu"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Konfigurační repozitář musí být jedním z repozitářů prostředí"
 

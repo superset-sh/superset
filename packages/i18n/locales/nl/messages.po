@@ -14972,9 +14972,6 @@ msgstr "Het bijbehorende apparaat is nu niet bereikbaar"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "De beste agent verandert.<0/>Jouw workflow niet."
 
-msgid "The Codex sign-in"
-msgstr "De Codex-login"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "De configuratierepository moet een van de repositories van de omgeving zijn"
 

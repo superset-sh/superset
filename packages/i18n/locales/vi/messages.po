@@ -14972,9 +14972,6 @@ msgstr "Hiện không kết nối được tới thiết bị liên quan"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Agent tốt nhất sẽ thay đổi.<0/>Quy trình của bạn thì không."
 
-msgid "The Codex sign-in"
-msgstr "Lần đăng nhập Codex"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Repository cấu hình phải là một trong các repository của environment"
 

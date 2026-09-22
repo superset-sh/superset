@@ -14972,9 +14972,6 @@ msgstr "关联的设备现在连不上"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "最好的智能体会变。<0/>你的工作流不该变。"
 
-msgid "The Codex sign-in"
-msgstr "Codex登录"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "配置仓库必须是该环境的仓库之一"
 

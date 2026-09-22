@@ -14972,9 +14972,6 @@ msgstr "関連デバイスに現在接続できません"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "最良のエージェントは変わります。<0/>ワークフローは変わるべきではありません。"
 
-msgid "The Codex sign-in"
-msgstr "Codexのサインイン"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "設定リポジトリは環境のリポジトリのいずれかである必要があります"
 

@@ -14972,9 +14972,6 @@ msgstr "Perangkat terkait tidak bisa dijangkau saat ini"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Agen terbaik akan berganti.<0/>Alur kerja Anda tidak perlu."
 
-msgid "The Codex sign-in"
-msgstr "Sesi masuk Codex"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Repositori konfigurasi harus salah satu repositori environment"
 

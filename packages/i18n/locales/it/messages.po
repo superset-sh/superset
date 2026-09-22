@@ -14972,9 +14972,6 @@ msgstr "Il dispositivo associato non è raggiungibile al momento"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Il miglior agente cambierà.<0/>Il tuo flusso di lavoro no."
 
-msgid "The Codex sign-in"
-msgstr "L'accesso Codex"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Il repository di configurazione deve essere uno dei repository dell'ambiente"
 

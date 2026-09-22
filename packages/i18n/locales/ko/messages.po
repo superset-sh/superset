@@ -14972,9 +14972,6 @@ msgstr "연결된 기기에 지금 접근할 수 없습니다"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "최고의 에이전트는 바뀝니다.<0/>워크플로는 그럴 필요 없습니다."
 
-msgid "The Codex sign-in"
-msgstr "Codex 로그인"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "구성 리포지토리는 환경의 리포지토리 중 하나여야 합니다"
 

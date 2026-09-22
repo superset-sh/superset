@@ -20,7 +20,7 @@ describe("addAccountCommand", () => {
 	it("prompts for the Codex key with echo off and pipes it on stdin", () => {
 		const command = addAccountCommand("codex", "api", "api_key");
 		expect(command).toBe(
-			`mkdir -p "$HOME/.codex-api" && printf 'OpenAI API key: ' && read -rs OPENAI_KEY && echo && printf '%s' "$OPENAI_KEY" | CODEX_HOME="$HOME/.codex-api" codex login --with-api-key && printf codex > "$HOME/.codex-api"/.superset-api-billing; unset OPENAI_KEY`,
+			`mkdir -p "$HOME/.codex-api" && (printf 'OpenAI API key: ' && read -rs OPENAI_KEY && echo && printf '%s' "$OPENAI_KEY" | CODEX_HOME="$HOME/.codex-api" codex login --with-api-key && printf codex > "$HOME/.codex-api"/.superset-api-billing; SUPERSET_LOGIN_STATUS=$?; unset OPENAI_KEY; exit "$SUPERSET_LOGIN_STATUS")`,
 		);
 		// The marker must follow the login's own exit status, not the unset.
 		expect(command.indexOf("printf codex")).toBeLessThan(

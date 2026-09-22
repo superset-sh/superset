@@ -14972,9 +14972,6 @@ msgstr "İlgili cihaza şu anda erişilemiyor"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "En iyi ajan değişecek.<0/>İş akışınız değişmemeli."
 
-msgid "The Codex sign-in"
-msgstr "Codex oturumu"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Yapılandırma deposu, ortamın depolarından biri olmalıdır"
 
