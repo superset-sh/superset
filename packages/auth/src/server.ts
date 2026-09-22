@@ -7,7 +7,6 @@ import { members, subscriptions } from "@superset/db/schema";
 import type { sessions } from "@superset/db/schema/auth";
 import * as authSchema from "@superset/db/schema/auth";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
-import { WelcomeEmail } from "@superset/email/emails/activation/00-welcome";
 import { MemberAddedBillingEmail } from "@superset/email/emails/billing/member-added";
 import { MemberRemovedBillingEmail } from "@superset/email/emails/billing/member-removed";
 import { PaymentFailedEmail } from "@superset/email/emails/billing/payment-failed";
@@ -326,17 +325,13 @@ export const auth = betterAuth({
 
 					// The welcome email is unconditional in BOTH arms. Gating it is
 					// what invalidated experiment 387868: a6beb048b changed the control
-					// condition mid-flight and the run became unreadable.
+					// condition mid-flight and the run became unreadable. The `welcome`
+					// automation sends it, because only automation sends get Resend's
+					// unsubscribe link and List-Unsubscribe headers.
 					try {
-						const { error } = await resend.emails.send({
-							from: "Superset <noreply@superset.sh>",
-							replyTo: "support@superset.sh",
-							to: user.email,
-							subject: "Welcome to Superset",
-							react: WelcomeEmail({
-								userName: user.name,
-								userEmail: user.email,
-							}),
+						const { error } = await resend.events.send({
+							event: "user.welcome",
+							email: user.email,
 						});
 						// Resend reports API failures in `error` rather than throwing.
 						if (error) throw new Error(error.message);
