@@ -41,6 +41,13 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 		absolutePath: filePath,
 	});
 
+	useEffect(
+		() => () => {
+			if (context.isActive) fileAutoSave.onFocusChange(document);
+		},
+		[context.isActive, document],
+	);
+
 	// Images a markdown file points at load through the workspace
 	// filesystem, so they work for cloud sandboxes and never put a raw path
 	// in the DOM. Root-relative ones need the worktree path, host-only data
