@@ -818,52 +818,37 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await disposeSessionAndWait(terminalId, db);
 	});
 
-	test("dispose then re-create with the same id works (no zombie state)", async () => {
-		// Rapid lifecycle: user creates terminal, kills it, creates again
-		// with the same id. Daemon-side cleanup must be done by the time
-		// the second create runs, otherwise we'd hit "session already
-		// exists" without an alive shell to adopt.
+	test("disposed ids stay terminal; a replacement uses a fresh id", async () => {
 		const terminalId = `e2e-recycle-${randomUUID().slice(0, 8)}`;
-
 		const first = await createTerminalSessionInternal({
 			terminalId,
 			workspaceId,
 			db,
-			listed: true,
 		});
 		assert.ok(!("error" in first));
-		const firstPid = "error" in first ? -1 : first.pty.pid;
-
 		await disposeSessionAndWait(terminalId, db);
-
-		// Wait for the daemon's onExit handler to mark the session exited
-		// (SIGTERM → shell exits → wireSession.onExit fires → session.exited
-		// flips to true → handleOpen can then recycle the id).
-		await new Promise((r) => setTimeout(r, 800));
-
 		const second = await createTerminalSessionInternal({
 			terminalId,
 			workspaceId,
 			db,
-			listed: true,
 		});
-		if ("error" in second) {
-			assert.fail(`re-create after dispose failed: ${second.error}`);
-		}
-
-		// Different shell pid (real fresh spawn) — not adoption.
-		assert.notEqual(
-			second.pty.pid,
-			firstPid,
-			"re-create after dispose should be a fresh spawn, not adoption of the dead session",
+		assert.ok("error" in second);
+		if ("error" in second) assert.equal(second.kind, "SESSION_EXITED");
+		const replacementId = randomUUID();
+		const replacement = await createTerminalSessionInternal({
+			terminalId: replacementId,
+			workspaceId,
+			db,
+		});
+		assert.ok(!("error" in replacement));
+		assert.equal(
+			db.query.terminalSessions
+				.findFirst({ where: eq(terminalSessions.id, terminalId) })
+				.sync()?.status,
+			"disposed",
 		);
-
-		await disposeSessionAndWait(terminalId, db);
+		await disposeSessionAndWait(replacementId, db);
 	});
-
-	// Regression: SUPER-939 / #4993 — heavy/concurrent output must never wedge
-	// the shell. Output flow control is gone; back-pressure is bounded buffering
-	// on the host side, never a producer pause. These guard both halves of that.
 
 	test("heavy output with no renderer attached never wedges the PTY", async () => {
 		const terminalId = `e2e-heavy-nobody-${randomUUID().slice(0, 8)}`;

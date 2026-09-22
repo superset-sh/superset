@@ -3,6 +3,7 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
+import { COMPANY } from "@superset/shared/constants";
 import { Alerter, alert } from "@superset/ui/atoms/Alert";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
@@ -107,7 +108,6 @@ export function SupersetSection() {
 				importPath="@superset/ui/sidebar-card"
 			>
 				<SidebarCard
-					badge="Beta"
 					title={i18n._(
 						msg({
 							message: "Mobile app",
@@ -118,15 +118,9 @@ export function SupersetSection() {
 							message: "Monitor agents from your phone.",
 						}),
 					)}
-					actionLabel="Join TestFlight"
+					actionLabel={i18n._(msg({ message: "Open App Store" }))}
 					onAction={() =>
-						toast(
-							i18n._(
-								msg({
-									message: "Opening TestFlight…",
-								}),
-							),
-						)
+						window.open(COMPANY.APP_STORE_URL, "_blank", "noopener,noreferrer")
 					}
 					onDismiss={() =>
 						toast(

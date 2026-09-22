@@ -860,3 +860,56 @@ describe("reorderTab", () => {
 		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t2", "t1"]);
 	});
 });
+
+describe("explicit pane close notifications", () => {
+	it("notifies only the originating window after its state is updated", () => {
+		const first = makeStore();
+		first.getState().addTab({ id: "tab", panes: [tp("pane")] });
+		const second = makeStore(first.getState());
+		const local: string[] = [];
+		const remote: string[] = [];
+		first.getState().subscribePaneClose((panes) => {
+			expect(first.getState().getPane("pane")).toBeNull();
+			local.push(...panes.map((pane) => pane.id));
+		});
+		second.getState().subscribePaneClose((panes) => {
+			remote.push(...panes.map((pane) => pane.id));
+		});
+		first.subscribe((state) => second.getState().replaceState(state));
+		first.getState().closePane({ tabId: "tab", paneId: "pane" });
+		expect(local).toEqual(["pane"]);
+		expect(remote).toEqual([]);
+		expect(second.getState().tabs).toEqual([]);
+	});
+
+	it("batches tab closure and does not repeat a missing close", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "tab", panes: [tp("a"), tp("b")] });
+		const batches: string[][] = [];
+		const unsubscribe = store.getState().subscribePaneClose((panes) => {
+			batches.push(panes.map((pane) => pane.id));
+		});
+		store.getState().removeTab("tab");
+		store.getState().removeTab("tab");
+		expect(batches).toEqual([["a", "b"]]);
+		unsubscribe();
+		store.getState().addTab({ id: "other", panes: [tp("c")] });
+		store.getState().removeTab("other");
+		expect(batches).toHaveLength(1);
+	});
+
+	it("reconciliation, movement and explicit view removal never signal termination", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "tab", panes: [tp("a"), tp("b")] });
+		const closed: string[] = [];
+		store
+			.getState()
+			.subscribePaneClose((panes) =>
+				closed.push(...panes.map((pane) => pane.id)),
+			);
+		store.getState().movePaneToNewTab({ paneId: "a" });
+		store.getState().closePane({ tabId: "tab", paneId: "b", intent: "remove" });
+		store.getState().replaceState({ version: 1, tabs: [], activeTabId: null });
+		expect(closed).toEqual([]);
+	});
+});

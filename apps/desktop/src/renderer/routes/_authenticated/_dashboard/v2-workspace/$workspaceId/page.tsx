@@ -41,7 +41,9 @@ import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
 import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceMissingWorktreeState } from "./components/WorkspaceMissingWorktreeState";
+import { WorkspacePagesMenu } from "./components/WorkspacePagesMenu";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
+import { useAgentSessionLauncher } from "./hooks/useAgentSessionLauncher";
 import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSessions";
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
@@ -312,6 +314,10 @@ function V2WorkspaceContent() {
 		});
 	}, [store]);
 	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
+	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
+	const { createNewAgentSession, focusAgentTerminal } = useAgentSessionLauncher(
+		{ workspaceId, store },
+	);
 
 	const quickOpenOpen = useQuickOpenStore(
 		(s) => s.open && s.target?.workspaceId === workspaceId,
@@ -398,6 +404,14 @@ function V2WorkspaceContent() {
 			onForceStop={workspaceRun.forceStopWorkspaceRun}
 		/>
 	);
+
+	const pagesMenu = isPagesEnabled ? (
+		<WorkspacePagesMenu
+			workspaceId={workspaceId}
+			onCreateNewAgentSession={createNewAgentSession}
+			onFocusAgentTerminal={focusAgentTerminal}
+		/>
+	) : null;
 
 	return (
 		<FileDocumentStoreProvider store={store}>
@@ -530,6 +544,7 @@ function V2WorkspaceContent() {
 							<WorkspaceSidebar
 								workspaceId={workspaceId}
 								runButton={workspaceRunButton}
+								pagesMenu={pagesMenu}
 								onSelectFile={openFilePaneFromTreeClick}
 								onSelectDiffFile={openDiffPane}
 								onOpenComment={openCommentPane}

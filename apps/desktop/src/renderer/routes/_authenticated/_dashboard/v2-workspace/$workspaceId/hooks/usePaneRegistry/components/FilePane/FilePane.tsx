@@ -1,9 +1,12 @@
 import { useLingui } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { alert } from "@superset/ui/atoms/Alert";
 import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect } from "react";
 import { MarkdownResourceProvider } from "renderer/components/MarkdownRenderer/providers/MarkdownResourceProvider";
+import type { LinkAction } from "renderer/lib/clickPolicy";
 import { getBaseName } from "renderer/lib/pathBasename";
 import { getPathDirectory } from "shared/absolute-paths";
 import {
@@ -11,6 +14,7 @@ import {
 	useSharedFileDocument,
 } from "../../../../state/fileDocumentStore";
 import type { FilePaneData, PaneViewerData } from "../../../../types";
+import { runUrlLinkAction } from "../../utils/runTerminalLinkAction";
 import { ErrorState } from "./components/ErrorState";
 import { LoadingState } from "./components/LoadingState";
 import { OrphanedBanner } from "./components/OrphanedBanner";
@@ -24,6 +28,7 @@ interface FilePaneProps {
 
 export function FilePane({ context, workspaceId }: FilePaneProps) {
 	const { t } = useLingui();
+	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
 	const data = context.pane.data as FilePaneData;
 	const { filePath } = data;
 
@@ -124,6 +129,18 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 		[context.actions, data],
 	);
 
+	const handleOpenUrl = useCallback(
+		(url: string, action: LinkAction) => {
+			runUrlLinkAction({ store: context.store, isPagesEnabled }, url, action);
+		},
+		[context.store, isPagesEnabled],
+	);
+
+	const handlePositionRevealed = useCallback(() => {
+		const { pendingPosition: _pendingPosition, ...rest } = data;
+		context.actions.updateData(rest);
+	}, [context.actions, data]);
+
 	// Content gating — LoadingState/ErrorState rendered before view resolution when
 	// there's nothing for the view to consume.
 	if (document.content.kind === "loading") {
@@ -196,6 +213,9 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 						isActive={context.isActive}
 						onChangeView={handleChangeView}
 						onForceView={handleForceView}
+						onOpenUrl={handleOpenUrl}
+						pendingPosition={data.pendingPosition}
+						onPositionRevealed={handlePositionRevealed}
 					/>
 				</MarkdownResourceProvider>
 			</div>

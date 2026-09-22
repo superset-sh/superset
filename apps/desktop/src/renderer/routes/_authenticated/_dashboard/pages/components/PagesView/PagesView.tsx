@@ -12,6 +12,7 @@ import {
 	isPaneModifier,
 	useOpenPage,
 } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
+import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
 import {
 	filterPages,
 	matchesScope,
@@ -21,7 +22,6 @@ import {
 import { PagesGrid } from "../PagesGrid";
 import { AuthorFilter, type PageAuthorOption } from "./components/AuthorFilter";
 import { useCreatePageWithAgent } from "./hooks/useCreatePageWithAgent";
-import { usePageFavorites } from "./hooks/usePageFavorites";
 
 const TABS: Array<{ value: PageScope }> = [
 	{ value: "all" },

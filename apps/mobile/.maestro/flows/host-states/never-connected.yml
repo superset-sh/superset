@@ -1,0 +1,25 @@
+# The host list is fetched on mount and focus, not polled, so the app is
+# reopened to see a host registered a moment ago. It normally lands on that
+# host by itself; "Cloud" shows for a moment while the list loads, so the scope
+# is only switched by hand if the setup screen never arrives.
+appId: sh.superset.mobile
+env:
+  HOST_NAME: "E2E Mac mini"
+---
+- stopApp
+- openLink: "superset://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
+- extendedWaitUntil:
+    visible: "One step left"
+    timeout: 60000
+    optional: true
+- runFlow:
+    when:
+      notVisible: "One step left"
+    commands:
+      - tapOn: "Cloud"
+      - tapOn: ${HOST_NAME}
+- extendedWaitUntil:
+    visible: "One step left"
+    timeout: 45000
+- assertVisible: "Waiting for it to connect…"
+- assertNotVisible: ".*is offline"

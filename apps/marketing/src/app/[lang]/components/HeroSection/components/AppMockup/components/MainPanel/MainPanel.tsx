@@ -7,6 +7,7 @@ import { LuGitPullRequest } from "react-icons/lu";
 import { AUTOMATIONS } from "../../constants";
 import type { ActiveDemo } from "../../types";
 import { AsciiSpinner } from "../AsciiSpinner";
+import { ClaudeMascot } from "./components/ClaudeMascot";
 
 function TokenChip({ children }: { children: React.ReactNode }) {
 	return (
@@ -37,20 +38,16 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 				>
 					<div>
 						<div className="mb-5 flex items-start gap-4">
-							<div className="whitespace-pre text-[11px] leading-none text-brand">
-								{`  * ▐▛███▜▌ *
- * ▝▜█████▛▘ *
-  *  ▘▘ ▝▝  *`}
-							</div>
-							<div className="text-[11px] text-muted-foreground">
+							<ClaudeMascot />
+							<div className="min-w-0 text-[11px] text-muted-foreground">
 								<div>
 									<span className="font-medium text-foreground">
 										Claude Code
 									</span>{" "}
-									v2.0.74
+									v2.1.278
 								</div>
-								<div>Opus 4.5 · Claude Max</div>
-								<div className="text-muted-foreground/65">
+								<div>Fable 5.1 with high effort · Claude Max</div>
+								<div className="truncate text-muted-foreground/65">
 									~/.superset/worktrees/superset/cloud-ws
 								</div>
 							</div>

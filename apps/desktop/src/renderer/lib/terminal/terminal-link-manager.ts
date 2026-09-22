@@ -56,7 +56,7 @@ interface LinkProviderDisposable {
  *
  * Providers are registered in priority order (xterm uses first match):
  * 1. LocalLinkDetector (file paths with validation) + styled-text fallback
- * 2. UrlLinkProvider (hard-wrapped URL detection)
+ * 2. UrlLinkProvider (wrapped URL detection)
  * 3. WordLinkDetector (bare filenames like "AGENTS.md")
  */
 export class TerminalLinkManager {
@@ -140,7 +140,7 @@ export class TerminalLinkManager {
 		);
 		this._disposables.push(this._terminal.registerLinkProvider(adapter));
 
-		// 2. URL link provider (handles hard-wrapped URLs)
+		// 2. URL link provider (handles terminal-wrapped URLs)
 		if (handlers.onUrlClick) {
 			const onUrlClick = handlers.onUrlClick;
 			const urlProvider = new UrlLinkProvider(

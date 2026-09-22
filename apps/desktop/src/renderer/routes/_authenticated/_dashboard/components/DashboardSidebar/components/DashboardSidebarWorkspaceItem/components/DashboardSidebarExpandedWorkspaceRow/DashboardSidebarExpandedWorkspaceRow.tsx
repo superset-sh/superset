@@ -348,6 +348,14 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							<>
 								<WorkspaceNameMarquee
 									name={name || branch}
+									prefix={
+										pinnedContext
+											? (pinnedContext.projectName ??
+												t({
+													message: "Session",
+												}))
+											: undefined
+									}
 									forceActive={isFocused}
 									className={cn(
 										"text-[13px] leading-tight transition-colors",

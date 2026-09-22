@@ -29,8 +29,16 @@ export const FRAME_CHANNEL = "superset-comments/frame";
 
 export const PENDING_ANCHOR_ID = "superset-pending-anchor";
 
+export interface PageLinkClick {
+	url: string;
+	metaKey: boolean;
+	ctrlKey: boolean;
+	shiftKey: boolean;
+}
+
 export type HostMessageBody =
 	| { type: "ready" }
+	| { type: "set-link-handling"; enabled: boolean }
 	| { type: "enable-pinch-zoom" }
 	| { type: "set-mode"; enabled: boolean; locked: boolean }
 	| { type: "track"; anchors: { id: string; anchor: CommentAnchor }[] }
@@ -39,6 +47,7 @@ export type HostMessageBody =
 export type HostMessage = HostMessageBody & { channel: typeof HOST_CHANNEL };
 
 export type FrameMessage =
+	| ({ channel: typeof FRAME_CHANNEL; type: "link-click" } & PageLinkClick)
 	| { channel: typeof FRAME_CHANNEL; type: "ready" }
 	| {
 			channel: typeof FRAME_CHANNEL;
@@ -72,6 +81,7 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	const FRAME = ${JSON.stringify(FRAME_CHANNEL)};
 
 	let enabled = false;
+	let handleLinks = false;
 	let locked = false;
 	let lockedAtPointerDown = false;
 	let tracked = [];
@@ -227,12 +237,40 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		true,
 	);
 
+	const forwardLink = (event) => {
+		if (!handleLinks || event.defaultPrevented || event.button > 1) return;
+		const anchor = event.target?.closest?.("a[href]");
+		if (!anchor || anchor.hasAttribute("download")) return;
+		const href = anchor.getAttribute("href")?.trim();
+		if (!href) return;
+		let url;
+		try { url = new URL(href, document.baseURI); } catch { return; }
+		if (!["http:", "https:", "mailto:", "tel:"].includes(url.protocol)) return;
+		const current = new URL(location.href);
+		if (url.href.includes("#") && url.origin === current.origin && url.pathname === current.pathname && url.search === current.search) return;
+		event.preventDefault();
+		event.stopPropagation();
+		post({
+			type: "link-click",
+			url: url.href,
+			metaKey: Boolean(event.metaKey),
+			ctrlKey: Boolean(event.ctrlKey),
+			shiftKey: Boolean(event.shiftKey),
+		});
+	};
+
+	document.addEventListener("auxclick", (event) => {
+		if (event.button !== 1) return;
+		if (enabled) { event.preventDefault(); return; }
+		forwardLink(event);
+	}, true);
+
 	document.addEventListener(
 		"click",
 		(event) => {
 			const dismissing = lockedAtPointerDown;
 			lockedAtPointerDown = false;
-			if (!enabled) return;
+			if (!enabled) { forwardLink(event); return; }
 			event.preventDefault();
 			event.stopPropagation();
 			if (locked || dismissing) return;
@@ -302,6 +340,7 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		const data = event.data;
 		if (!data || data.channel !== HOST) return;
 		if (data.type === "enable-pinch-zoom" && event.source === parent) pinchZoom.enable();
+		if (data.type === "set-link-handling" && event.source === parent) handleLinks = Boolean(data.enabled);
 		if (data.type === "ready") post({ type: "ready" });
 		if (data.type === "set-mode") {
 			enabled = Boolean(data.enabled);

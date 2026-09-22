@@ -13,6 +13,9 @@ jobs:
     name: Deploy Database Migrations
     runs-on: ubuntu-latest
     environment: production
+    concurrency:
+      group: production-database-migrations
+      cancel-in-progress: false
 
     steps:
       - name: Checkout repository
@@ -38,7 +41,28 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
-        run: bun drizzle-kit migrate
+          # drizzle applies every pending migration in one transaction, so a
+          # migration that queues for a lock blocks all traffic behind it.
+          PGOPTIONS: -c lock_timeout=5s -c statement_timeout=60s
+        # Losing a lock race rolls back cleanly, so only that is retried.
+        run: |
+          # GitHub's default shell is `bash -e` without pipefail, so without this
+          # the `| tee` below reports a failed migration as a success.
+          set -o pipefail
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if bun drizzle-kit migrate 2>&1 | tee migrate.log; then exit 0; fi
+            grep -qE "deadlock detected|lock timeout" migrate.log || exit 1
+            echo "::warning::Migration lost a lock race (attempt $attempt), retrying"
+            sleep $((attempt * 5))
+          done
+          exit 1
+
+      - name: Verify migrations applied
+        working-directory: packages/db
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: bun run src/verify-migrations-applied.ts
 
   deploy-api:
     name: Deploy API to Vercel

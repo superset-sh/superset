@@ -217,3 +217,57 @@ describe("EventBus fs:watch-file", () => {
 		await fs.rm(root, { recursive: true, force: true });
 	});
 });
+
+describe("EventBus fs:watch", () => {
+	it("lets a client re-watch after the stream failed", async () => {
+		let attaches = 0;
+		let returned = 0;
+		const eventBus = new EventBus({
+			db: {} as unknown as HostDb,
+			filesystem: {
+				resolveWorkspaceRoot: () => "/repo/worktree",
+				getServiceForWorkspace: () => ({
+					watchPath: () => ({
+						[Symbol.asyncIterator]: () => ({
+							next: async () => {
+								attaches += 1;
+								throw new Error("inotify_add_watch failed");
+							},
+							return: async () => {
+								returned += 1;
+								return { done: true, value: undefined };
+							},
+						}),
+					}),
+				}),
+			} as unknown as WorkspaceFilesystemManager,
+			gitWatcher: { onChanged: () => () => {} } as unknown as GitWatcher,
+		});
+		const sent: Array<{ type: string }> = [];
+		const socket = {
+			readyState: 1,
+			send(data: string) {
+				sent.push(JSON.parse(data));
+			},
+			close() {},
+		};
+		const consoleError = console.error;
+		console.error = () => {};
+		try {
+			eventBus.handleOpen(socket);
+			const watch = JSON.stringify({ type: "fs:watch", workspaceId: "ws-1" });
+			eventBus.handleMessage(socket, watch);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(attaches).toBe(1);
+			expect(returned).toBe(1);
+			expect(sent.filter((m) => m.type === "error")).toHaveLength(1);
+
+			eventBus.handleMessage(socket, watch);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(attaches).toBe(2);
+		} finally {
+			console.error = consoleError;
+			eventBus.handleClose(socket);
+		}
+	});
+});

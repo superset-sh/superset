@@ -6,7 +6,7 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator";
 const alreadyRegistered = GlobalRegistrator.isRegistered;
 if (!alreadyRegistered) GlobalRegistrator.register();
 
-const { afterAll, describe, expect, it } = await import("bun:test");
+const { afterAll, describe, expect, it, spyOn } = await import("bun:test");
 const { Editor } = await import("@tiptap/core");
 const { createMarkdownExtensions } = await import("./createMarkdownExtensions");
 
@@ -41,6 +41,39 @@ function roundTrip(markdown: string): string {
 		editor.destroy();
 	}
 }
+
+describe("preview links", () => {
+	it.each([
+		true,
+		false,
+	])("never opens a link itself when editable is %p", (editable) => {
+		const editor = new Editor({
+			editable,
+			extensions: createMarkdownExtensions({
+				editable,
+				onSaveRef: { current: undefined },
+			}),
+			content: "[**Example**](https://example.com/)",
+		});
+		const open = spyOn(window, "open").mockReturnValue(null);
+		try {
+			const event = new MouseEvent("click", { button: 0 });
+			Object.defineProperty(event, "target", {
+				value: editor.view.dom.querySelector("strong"),
+			});
+
+			const handled = editor.view.someProp("handleClick", (handler) =>
+				handler(editor.view, 1, event),
+			);
+
+			expect(handled).toBeFalsy();
+			expect(open).not.toHaveBeenCalled();
+		} finally {
+			open.mockRestore();
+			editor.destroy();
+		}
+	});
+});
 
 describe("image attribute parsing", () => {
 	// @tiptap/core's default attribute parser (fromString) coerces
@@ -99,5 +132,34 @@ describe("table rendering", () => {
 		} finally {
 			editor.destroy();
 		}
+	});
+});
+
+describe("link attribute parsing", () => {
+	// Same coercion as the image attributes above, on the link mark's title:
+	// pasting <a href="..." title="2024"> loaded title: 2024 (number) and
+	// prosemirror-markdown's link serializer threw on .replace (DESKTOP-1A6).
+	it("keeps a numeric link title as a string and serializes it", () => {
+		const editor = createEditor('[docs](https://example.com "2024")');
+		try {
+			const link = editor.state.doc.firstChild?.firstChild?.marks[0];
+			expect(link?.type.name).toBe("link");
+			expect(link?.attrs.title).toBe("2024");
+			expect(getMarkdown(editor)).toBe('[docs](https://example.com "2024")');
+		} finally {
+			editor.destroy();
+		}
+	});
+
+	it("keeps a boolean-looking link title as a string", () => {
+		expect(roundTrip('[docs](https://example.com "true")')).toBe(
+			'[docs](https://example.com "true")',
+		);
+	});
+
+	it("round-trips a link without a title unchanged", () => {
+		expect(roundTrip("[docs](https://example.com)")).toBe(
+			"[docs](https://example.com)",
+		);
 	});
 });

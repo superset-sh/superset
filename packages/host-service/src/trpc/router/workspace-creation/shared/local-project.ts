@@ -1,9 +1,10 @@
 import { statSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, ne } from "drizzle-orm";
 import { projects } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
 import { projectNotSetupError } from "./project-helpers";
+import { resolveProjectWorktreesFolder } from "./worktree-paths";
 
 export type LocalProject = typeof projects.$inferSelect;
 
@@ -25,6 +26,21 @@ export function requireLocalProject(
 		throw projectNotSetupError(projectId);
 	}
 	return localProject;
+}
+
+export function getProjectWorktreesFolder(
+	ctx: HostServiceContext,
+	localProject: Pick<LocalProject, "id" | "name">,
+): string {
+	const otherProjects = ctx.db
+		.select({ name: projects.name })
+		.from(projects)
+		.where(ne(projects.id, localProject.id))
+		.all();
+	return resolveProjectWorktreesFolder(
+		localProject,
+		otherProjects.map((project) => project.name),
+	);
 }
 
 // A project directory deleted or moved outside the app is a routine

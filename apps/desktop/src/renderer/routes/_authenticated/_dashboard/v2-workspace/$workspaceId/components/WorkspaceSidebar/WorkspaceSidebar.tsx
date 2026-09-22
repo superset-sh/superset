@@ -57,6 +57,8 @@ interface WorkspaceSidebarProps {
 	workspaceId: string;
 	/** Run button rendered by the page, hosted in the sidebar's top strip. */
 	runButton: ReactNode;
+	/** Rendered by the page, which owns the pane store agents launch into. */
+	pagesMenu: ReactNode;
 }
 
 export function WorkspaceSidebar({
@@ -70,6 +72,7 @@ export function WorkspaceSidebar({
 	pendingReveal,
 	workspaceId,
 	runButton,
+	pagesMenu,
 }: WorkspaceSidebarProps) {
 	const { t } = useLingui();
 	const gitStatus = useWorkspaceGitStatus();
@@ -172,7 +175,7 @@ export function WorkspaceSidebar({
 			ref={containerRef}
 			className="isolate flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
 		>
-			<PRActionHeader runButton={runButton} />
+			<PRActionHeader runButton={runButton} pagesMenu={pagesMenu} />
 			<SidebarHeader
 				tabs={tabs}
 				activeTab={activeTabDef?.id ?? activeTab}

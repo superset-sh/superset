@@ -14,6 +14,9 @@ const EDGE_FADE_PX = 14;
 
 interface WorkspaceNameMarqueeProps {
 	name: string;
+	/** Qualifier shown dimmed ahead of the name as `prefix/name`, for rows
+	 * that sit outside the grouping that would otherwise identify them. */
+	prefix?: string;
 	className?: string;
 	/** Reveals the name the same way hover does, driven by the row's own
 	 * focus state — the row (not this span) is the tabbable element, so a
@@ -38,6 +41,7 @@ interface WorkspaceNameMarqueeProps {
  */
 export function WorkspaceNameMarquee({
 	name,
+	prefix,
 	className,
 	forceActive = false,
 }: WorkspaceNameMarqueeProps) {
@@ -45,6 +49,7 @@ export function WorkspaceNameMarquee({
 	const textRef = useRef<HTMLSpanElement>(null);
 	const [overflow, setOverflow] = useState(0);
 	const [hovered, setHovered] = useState(false);
+	const label = prefix ? `${prefix}/${name}` : name;
 
 	const measureOverflow = useCallback(() => {
 		const container = containerRef.current;
@@ -55,7 +60,7 @@ export function WorkspaceNameMarquee({
 	}, []);
 
 	useLayoutEffect(() => {
-		if (!name) return;
+		if (!label) return;
 		measureOverflow();
 		const container = containerRef.current;
 		if (!container || typeof ResizeObserver === "undefined") return;
@@ -65,7 +70,7 @@ export function WorkspaceNameMarquee({
 		const observer = new ResizeObserver(measureOverflow);
 		observer.observe(container);
 		return () => observer.disconnect();
-	}, [name, measureOverflow]);
+	}, [label, measureOverflow]);
 
 	const active = (hovered || forceActive) && overflow > 0;
 	const canScroll = overflow > 0;
@@ -78,7 +83,7 @@ export function WorkspaceNameMarquee({
 		// biome-ignore lint/a11y/noStaticElementInteractions: decorative hover reveal, not a control — the full name is already in the DOM for assistive tech regardless of the CSS transform.
 		<span
 			ref={containerRef}
-			title={name}
+			title={label}
 			className={cn("block overflow-hidden whitespace-nowrap", className)}
 			style={{
 				maskImage:
@@ -110,6 +115,9 @@ export function WorkspaceNameMarquee({
 						: undefined,
 				}}
 			>
+				{prefix && (
+					<span className="text-muted-foreground">{`${prefix}/`}</span>
+				)}
 				{name}
 			</span>
 		</span>

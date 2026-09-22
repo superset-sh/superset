@@ -12,6 +12,7 @@ import {
 	markTerminalSessionReady,
 	rejectTerminalSessionReady,
 } from "renderer/lib/terminal/session-readiness";
+import { installTerminalCopyHandler } from "renderer/lib/terminal/terminal-copy";
 import { installTerminalKeyEventHandler } from "renderer/lib/terminal/terminal-key-event-handler";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -20,11 +21,7 @@ import { isTerminalAttachCanceledMessage } from "../attach-cancel";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { isCommandEchoed, sanitizeForTitle } from "../commandBuffer";
 import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
-import {
-	setupClickToMoveCursor,
-	setupCopyHandler,
-	setupFocusListener,
-} from "../helpers";
+import { setupClickToMoveCursor, setupFocusListener } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
 import { getShellExitedFailure } from "../shell-exited-failure";
 import { coldRestoreState, pendingDetaches } from "../state";
@@ -832,7 +829,7 @@ export function useTerminalLifecycle({
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
 		);
-		const cleanupCopy = setupCopyHandler(xterm);
+		const cleanupCopy = installTerminalCopyHandler(xterm);
 
 		const isPaneDestroyedInStore = () =>
 			isPaneDestroyed(useTabsStore.getState().panes, paneId);

@@ -184,6 +184,7 @@ export function TabItem<TData>({
 										onClose();
 									}}
 									onMouseDown={(event) => {
+										event.preventDefault();
 										event.stopPropagation();
 									}}
 									size="icon"

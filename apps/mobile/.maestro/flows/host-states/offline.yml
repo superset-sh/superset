@@ -1,0 +1,9 @@
+# Going offline is only noticed on the 30s presence interval.
+appId: sh.superset.mobile
+---
+- extendedWaitUntil:
+    visible: "Last seen.*"
+    timeout: 60000
+- assertVisible: ".*is offline"
+- assertVisible: "Try again"
+- assertNotVisible: "One step left"

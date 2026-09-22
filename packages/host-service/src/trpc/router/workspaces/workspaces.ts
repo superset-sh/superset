@@ -57,6 +57,7 @@ import {
 } from "../workspace-creation/shared/dispatch-agents";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
 import {
+	getProjectWorktreesFolder,
 	requireLocalProject,
 	requireProjectRepoPath,
 } from "../workspace-creation/shared/local-project";
@@ -656,6 +657,7 @@ export const workspacesRouter = router({
 			const fetchBaseRefOffLoop = createWorkerBaseRefFetcher(ctx, repoPath);
 			const worktreeBaseDir =
 				localProject.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
+			const worktreesFolder = getProjectWorktreesFolder(ctx, localProject);
 			// Empty means a full checkout. Only applies to worktrees we create —
 			// adopted ones keep whatever checkout they already have.
 			const sparsePaths = parseSparseCheckoutPaths(
@@ -832,7 +834,7 @@ export const workspacesRouter = router({
 							alreadyExists = result.alreadyExists;
 						} else {
 							worktreePath = safeResolveWorktreePath(
-								localProject.id,
+								worktreesFolder,
 								resolvedBranch,
 								worktreeBaseDir,
 							);
@@ -1106,7 +1108,7 @@ export const workspacesRouter = router({
 						alreadyExists = result.alreadyExists;
 					} else {
 						worktreePath = safeResolveWorktreePath(
-							localProject.id,
+							worktreesFolder,
 							resolvedBranch,
 							worktreeBaseDir,
 						);

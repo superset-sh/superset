@@ -1,5 +1,17 @@
 import type { AgentIdentityId } from "@superset/shared/agent-catalog";
+export interface FilePosition {
+	line: number;
+	column?: number;
+}
+
+export type OpenFile = (
+	path: string,
+	openInNewTab?: boolean,
+	position?: FilePosition,
+) => void;
+
 export interface FilePaneData {
+	pendingPosition?: FilePosition;
 	filePath: string;
 	mode: "editor" | "diff" | "preview";
 	language?: string;

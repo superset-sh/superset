@@ -1,358 +1,112 @@
-import type { Terminal } from "@xterm/xterm";
-import {
-	type ContextLine,
-	type LinkMatch,
-	MultiLineLinkProvider,
-} from "./multi-line-link-provider";
+import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
+import { computeLinks } from "./utils/url-parser";
 
-const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
-const URL_AT_END_PATTERN = /https?:\/\/[^\s<>[\]'"]+$/;
-const URL_INCOMPLETE_SCHEME_AT_END_PATTERN = /https?$/i;
-const URL_CONTINUATION_PATTERN = /^[^\s<>[\]'"]+/;
-const URL_SCHEME_PATTERN = /^https?:\/\//i;
-const HARD_WRAP_COLS_TOLERANCE = 2;
-const URL_BREAK_SIGNAL_PATTERN = /[-/?#=&%._~]/;
-const URL_CONTINUATION_SIGNAL_PATTERN = /[/?#=&%._~-]/;
-const MAX_HARD_WRAP_EXTENSION_LINES = 24;
-const MAX_HARD_WRAP_URL_LENGTH = 4096;
-const LIST_MARKER_LINE_PATTERN = /^(?:[-*+•]|\d+[.)])\s+/;
-const PROMPT_LINE_PATTERN = /^(?:[$#>]{1,3}|❯)\s+/;
-const TABLE_MARKER_LINE_PATTERN = /^(?:\||│|┆|┃|├|└|┌|┐|┘|┬|┴|┼)/;
+const MAX_URL_LENGTH = 4096;
 
-function trimUnbalancedParens(url: string): string {
-	let openCount = 0;
-	let endIndex = url.length;
+type Position = ILink["range"]["start"];
 
-	for (let i = 0; i < url.length; i++) {
-		if (url[i] === "(") {
-			openCount++;
-		} else if (url[i] === ")") {
-			if (openCount > 0) {
-				openCount--;
-			} else {
-				endIndex = i;
-				break;
-			}
+function trimUrl(text: string): string {
+	const pairs: Record<string, string> = { ")": "(", "]": "[", "}": "{" };
+	const stack: string[] = [];
+	for (let i = 0; i < text.length; i++) {
+		const char = text[i];
+		if ("([{".includes(char)) stack.push(char);
+		else if (pairs[char]) {
+			if (stack.at(-1) !== pairs[char])
+				return text.slice(0, i).replace(/[.,;:!?([{]+$/, "");
+			stack.pop();
 		}
 	}
-
-	let result = url.slice(0, endIndex);
-
-	while (result.endsWith("(")) {
-		result = result.slice(0, -1);
-	}
-
-	return result;
+	return text.replace(/[.,;:!?([{]+$/, "");
 }
 
-export class UrlLinkProvider extends MultiLineLinkProvider {
-	private readonly URL_PATTERN = /\bhttps?:\/\/[^\s<>[\]'"]+/g;
-
-	private createContextLine(
-		index: number,
-		text: string,
-		leadingTrim = 0,
-	): ContextLine {
-		return {
-			index,
-			lineNumber: index + 1,
-			text,
-			leadingTrim,
-		};
-	}
-
-	private getContextText(lines: ContextLine[]): string {
-		return lines.map((line) => line.text).join("");
-	}
-
-	private getLine(index: number) {
-		return this.terminal.buffer.active.getLine(index);
-	}
-
-	private getLineText(index: number): string | null {
-		return this.getLine(index)?.translateToString(true) ?? null;
-	}
-
-	private isLikelyHardWrapBoundary(text: string): boolean {
-		const cols = this.terminal.cols;
-		if (typeof cols !== "number" || cols <= 0) {
-			return false;
-		}
-		return text.length >= Math.max(1, cols - HARD_WRAP_COLS_TOLERANCE);
-	}
-
-	private getContinuationSegment(
-		rawText: string,
-	): { leadingTrim: number; text: string } | null {
-		const leadingTrim = rawText.length - rawText.trimStart().length;
-		const trimmed = rawText.slice(leadingTrim);
-		if (!trimmed || URL_SCHEME_PATTERN.test(trimmed)) {
-			return null;
-		}
-		if (this.isBoundaryMarkerLine(trimmed)) {
-			return null;
-		}
-
-		const continuationMatch = trimmed.match(URL_CONTINUATION_PATTERN);
-		const continuationText = continuationMatch?.[0];
-		if (!continuationText) {
-			return null;
-		}
-		if (!/[A-Za-z0-9]/.test(continuationText)) {
-			return null;
-		}
-
-		return {
-			leadingTrim,
-			text: continuationText,
-		};
-	}
-
-	private isBoundaryMarkerLine(trimmedLine: string): boolean {
-		return (
-			LIST_MARKER_LINE_PATTERN.test(trimmedLine) ||
-			PROMPT_LINE_PATTERN.test(trimmedLine) ||
-			TABLE_MARKER_LINE_PATTERN.test(trimmedLine)
-		);
-	}
-
-	private shouldAcceptContinuation(
-		prevRawText: string,
-		continuationText: string,
-		leadingTrim: number,
-	): boolean {
-		const trimmedPrev = prevRawText.trimEnd();
-		const prevEnd = trimmedPrev.at(-1) ?? "";
-		const boundaryLooksWrapped =
-			this.isLikelyHardWrapBoundary(prevRawText) ||
-			leadingTrim > 0 ||
-			URL_BREAK_SIGNAL_PATTERN.test(prevEnd);
-		const continuationHasUrlSignal =
-			URL_CONTINUATION_SIGNAL_PATTERN.test(continuationText) ||
-			/^[0-9]/.test(continuationText);
-		const continuationAfterUrlBreak =
-			URL_BREAK_SIGNAL_PATTERN.test(prevEnd) &&
-			/^[A-Za-z0-9]/.test(continuationText);
-		const continuationLooksLikeWrappedWord =
-			leadingTrim > 0 &&
-			/^[A-Za-z0-9]/.test(continuationText) &&
-			/[A-Za-z0-9]$/.test(trimmedPrev);
-		const continuationLooksUrlLike =
-			continuationHasUrlSignal ||
-			continuationAfterUrlBreak ||
-			continuationLooksLikeWrappedWord;
-		const continuationStartsHyphenToken = continuationText.startsWith("-");
-		const hyphenTokenLooksUrlLike =
-			continuationText.length > 1 &&
-			(/[&/?#=.%_~]/.test(continuationText) ||
-				URL_BREAK_SIGNAL_PATTERN.test(prevEnd));
-		const continuationStartsListMarker =
-			prevEnd !== "-" && /^-(?:https?:\/\/|www\.)/i.test(continuationText);
-		const prevIsBoundaryMarkerLine = this.isBoundaryMarkerLine(
-			prevRawText.trimStart(),
-		);
-
-		return (
-			boundaryLooksWrapped &&
-			continuationLooksUrlLike &&
-			(!continuationStartsHyphenToken || hyphenTokenLooksUrlLike) &&
-			(!prevIsBoundaryMarkerLine || URL_AT_END_PATTERN.test(prevRawText)) &&
-			!continuationStartsListMarker
-		);
-	}
-
-	private isLikelyContinuationLine(rawText: string): boolean {
-		const continuation = this.getContinuationSegment(rawText);
-		if (!continuation) {
-			return false;
-		}
-		return (
-			URL_CONTINUATION_SIGNAL_PATTERN.test(continuation.text) ||
-			/^[0-9]/.test(continuation.text) ||
-			(continuation.leadingTrim > 0 && /^[A-Za-z0-9]/.test(continuation.text))
-		);
-	}
-
-	private tryExtendForward(lines: ContextLine[]): boolean {
-		const last = lines[lines.length - 1];
-		if (!last) {
-			return false;
-		}
-
-		const nextBufferLine = this.getLine(last.index + 1);
-		if (!nextBufferLine || nextBufferLine.isWrapped) {
-			return false;
-		}
-
-		const lastRawText = this.getLineText(last.index);
-		if (!lastRawText) {
-			return false;
-		}
-
-		const combinedTail = this.getContextText(lines);
-		if (
-			!URL_AT_END_PATTERN.test(combinedTail) &&
-			!URL_INCOMPLETE_SCHEME_AT_END_PATTERN.test(combinedTail.trimEnd())
-		) {
-			return false;
-		}
-
-		const nextRawText = nextBufferLine.translateToString(true);
-		const continuation = this.getContinuationSegment(nextRawText);
-		if (!continuation) {
-			return false;
-		}
-		if (
-			this.getContextText(lines).length + continuation.text.length >
-			MAX_HARD_WRAP_URL_LENGTH
-		) {
-			return false;
-		}
-
-		if (
-			!this.shouldAcceptContinuation(
-				lastRawText,
-				continuation.text,
-				continuation.leadingTrim,
-			)
-		) {
-			return false;
-		}
-
-		lines.push(
-			this.createContextLine(
-				last.index + 1,
-				continuation.text,
-				continuation.leadingTrim,
-			),
-		);
-		return true;
-	}
-
-	private tryExtendBackward(lines: ContextLine[]): boolean {
-		const first = lines[0];
-		if (!first) {
-			return false;
-		}
-
-		const prevBufferLine = this.getLine(first.index - 1);
-		if (!prevBufferLine || prevBufferLine.isWrapped) {
-			return false;
-		}
-
-		const prevRawText = prevBufferLine.translateToString(true);
-		const firstRawText = this.getLineText(first.index);
-		if (!firstRawText) {
-			return false;
-		}
-
-		const continuation = this.getContinuationSegment(firstRawText);
-		if (!continuation) {
-			return false;
-		}
-		if (
-			this.getContextText(lines).length + prevRawText.length >
-			MAX_HARD_WRAP_URL_LENGTH
-		) {
-			return false;
-		}
-		if (
-			!URL_AT_END_PATTERN.test(prevRawText) &&
-			!this.isLikelyContinuationLine(prevRawText) &&
-			!URL_INCOMPLETE_SCHEME_AT_END_PATTERN.test(prevRawText.trimEnd())
-		) {
-			return false;
-		}
-
-		if (
-			!this.shouldAcceptContinuation(
-				prevRawText,
-				continuation.text,
-				continuation.leadingTrim,
-			)
-		) {
-			return false;
-		}
-
-		lines[0] = {
-			...first,
-			text: continuation.text,
-			leadingTrim: continuation.leadingTrim,
-		};
-		lines.unshift(this.createContextLine(first.index - 1, prevRawText));
-		return true;
-	}
-
-	protected buildContextLines(lineIndex: number): ContextLine[] {
-		const baseLines = super.buildContextLines(lineIndex);
-		if (baseLines.length === 0) {
-			return baseLines;
-		}
-
-		const lines = [...baseLines];
-
-		let backwardExtensions = 0;
-		while (
-			backwardExtensions < MAX_HARD_WRAP_EXTENSION_LINES &&
-			this.tryExtendBackward(lines)
-		) {
-			backwardExtensions++;
-		}
-
-		let forwardExtensions = 0;
-		while (
-			forwardExtensions < MAX_HARD_WRAP_EXTENSION_LINES &&
-			this.tryExtendForward(lines)
-		) {
-			forwardExtensions++;
-		}
-
-		return lines;
-	}
-
+export class UrlLinkProvider implements ILinkProvider {
 	constructor(
-		terminal: Terminal,
+		private readonly terminal: Terminal,
 		private readonly onOpen: (event: MouseEvent, uri: string) => void,
 		private readonly onHover?: (event: MouseEvent, uri: string) => void,
 		private readonly onLeave?: () => void,
-	) {
-		super(terminal);
-	}
+	) {}
 
-	protected handleHover(event: MouseEvent, text: string): void {
-		this.onHover?.(event, text);
-	}
+	provideLinks(
+		bufferLineNumber: number,
+		callback: (links: ILink[] | undefined) => void,
+	): void {
+		const buffer = this.terminal.buffer.active;
+		const current = bufferLineNumber - 1;
+		if (!buffer.getLine(current)) {
+			callback(undefined);
+			return;
+		}
+		const contextRows =
+			Math.ceil((MAX_URL_LENGTH * 2) / this.terminal.cols) + 1;
+		let first = current;
+		let last = current;
+		while (
+			first > Math.max(0, current - contextRows) &&
+			buffer.getLine(first)?.isWrapped
+		)
+			first--;
+		while (last < current + contextRows && buffer.getLine(last + 1)?.isWrapped)
+			last++;
 
-	protected handleLeave(): void {
-		this.onLeave?.();
-	}
-
-	protected getPattern(): RegExp {
-		return new RegExp(this.URL_PATTERN.source, "g");
-	}
-
-	protected shouldSkipMatch(_match: LinkMatch): boolean {
-		return false;
-	}
-
-	protected transformMatch(match: LinkMatch): LinkMatch | null {
-		let text = match.text;
-		text = trimUnbalancedParens(text);
-		text = text.replace(TRAILING_PUNCTUATION, "");
-
-		if (text === match.text) {
-			return match;
+		let text = "";
+		const starts: Position[] = [];
+		const ends: Position[] = [];
+		for (let y = first; y <= last; y++) {
+			const line = buffer.getLine(y);
+			if (!line) break;
+			const next = buffer.getLine(y + 1);
+			for (let x = 0; x < this.terminal.cols; x++) {
+				const cell = line.getCell(x);
+				if (!cell || cell.getWidth() === 0) continue;
+				const chars = cell.getChars();
+				if (
+					x === this.terminal.cols - 1 &&
+					chars === "" &&
+					next?.isWrapped &&
+					next.getCell(0)?.getWidth() === 2
+				)
+					continue;
+				const value = chars || " ";
+				text += value;
+				for (let i = 0; i < value.length; i++) {
+					starts.push({ x: x + 1, y: y + 1 });
+					ends.push({ x: x + cell.getWidth(), y: y + 1 });
+				}
+			}
 		}
 
-		const charsRemoved = match.text.length - text.length;
-		return {
-			...match,
-			text,
-			end: match.end - charsRemoved,
-		};
-	}
-
-	protected handleActivation(event: MouseEvent, text: string): void {
-		this.onOpen(event, text);
+		const links: ILink[] = [];
+		for (const match of computeLinks({
+			getLineCount: () => 1,
+			getLineContent: () => text,
+		})) {
+			const uri = trimUrl(match.url);
+			if (!/^https?:\/\//i.test(uri) || uri.length > MAX_URL_LENGTH) continue;
+			try {
+				if (!new URL(uri).hostname) continue;
+			} catch {
+				continue;
+			}
+			const startIndex = match.range.startColumn - 1;
+			const start = starts[startIndex];
+			const end = ends[startIndex + uri.length - 1];
+			if (
+				!start ||
+				!end ||
+				start.y > bufferLineNumber ||
+				end.y < bufferLineNumber
+			)
+				continue;
+			links.push({
+				text: uri,
+				range: { start, end },
+				activate: (event) => this.onOpen(event, uri),
+				hover: (event) => this.onHover?.(event, uri),
+				leave: () => this.onLeave?.(),
+			});
+		}
+		callback(links.length ? links : undefined);
 	}
 }

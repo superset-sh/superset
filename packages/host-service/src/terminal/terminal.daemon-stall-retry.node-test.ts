@@ -17,7 +17,7 @@ import * as fs from "node:fs";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
-import { after, before, test } from "node:test";
+import { after, before, mock, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
@@ -32,7 +32,11 @@ import { Hono } from "hono";
 import { createDb, type HostDb } from "../db/index.ts";
 import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
-import { disposeDaemonClient } from "./daemon-client-singleton.ts";
+import { DaemonUnavailableError } from "./DaemonClient/index.ts";
+import {
+	disposeDaemonClient,
+	getDaemonClient,
+} from "./daemon-client-singleton.ts";
 import { initTerminalBaseEnv } from "./env.ts";
 import {
 	__resetSessionsForTesting,
@@ -306,3 +310,47 @@ test("retrying the same ids after the daemon recovers attaches exactly once", as
 	assert.deepEqual(reattached, { kind: "attached" });
 	assert.ok(isLiveTerminalSession(existingId));
 });
+
+for (const failure of [
+	new DaemonUnavailableError("Replay timed out"),
+	new Error("Invalid mode checkpoint"),
+]) {
+	test(`attach reports replay failure and can retry: ${failure.message}`, async () => {
+		const terminalId = `replay-attach-${randomUUID().slice(0, 8)}`;
+		const daemon = await getDaemonClient();
+		const stub = mock.method(daemon, "waitForReplay", () => {
+			const rejected = Promise.reject(failure);
+			void rejected.catch(() => {});
+			return rejected;
+		});
+		try {
+			const result = await dial(
+				terminalId,
+				`?workspaceId=${workspaceId}&create=1`,
+			);
+			assert.deepEqual(result, {
+				kind: "error",
+				message: failure.message,
+				code:
+					failure instanceof DaemonUnavailableError
+						? "attach-retryable"
+						: undefined,
+			});
+			assert.equal(isLiveTerminalSession(terminalId), false);
+			const pid = (await daemon.list()).find(
+				(entry) => entry.id === terminalId,
+			)?.pid;
+			assert.ok(pid);
+			stub.mock.restore();
+			assert.deepEqual(await dial(terminalId, `?workspaceId=${workspaceId}`), {
+				kind: "attached",
+			});
+			assert.equal(
+				(await daemon.list()).find((entry) => entry.id === terminalId)?.pid,
+				pid,
+			);
+		} finally {
+			stub.mock.restore();
+		}
+	});
+}

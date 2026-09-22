@@ -123,7 +123,7 @@
 	scroll-margin-top: 6rem;
 }
 
-.prose p {
+.prose p:not(.not-prose *) {
 	margin-top: 1.25rem;
 	margin-bottom: 1.25rem;
 	line-height: 1.75;
@@ -136,19 +136,27 @@
 	padding-left: 1.5rem;
 }
 
+.prose ul {
+	list-style: disc;
+}
+
+.prose ol {
+	list-style: decimal;
+}
+
 .prose li {
 	margin-top: 0.5rem;
 	margin-bottom: 0.5rem;
 }
 
-.prose a {
+.prose a:not(.not-prose, .not-prose *) {
 	text-decoration: underline;
 	text-decoration-color: rgb(255 255 255 / 0.3);
 	text-underline-offset: 2px;
 	transition: text-decoration-color 0.15s;
 }
 
-.prose a:hover {
+.prose a:not(.not-prose, .not-prose *):hover {
 	text-decoration-color: rgb(255 255 255 / 0.6);
 }
 

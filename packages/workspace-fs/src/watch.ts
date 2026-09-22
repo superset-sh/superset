@@ -1,4 +1,3 @@
-import { watch as probeNativeWatch } from "node:fs";
 import { realpath, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
@@ -7,11 +6,6 @@ import {
 	setInterval,
 	setTimeout,
 } from "node:timers";
-import {
-	type AsyncSubscription,
-	type Event as ParcelWatcherEvent,
-	subscribe as subscribeToFilesystem,
-} from "@parcel/watcher";
 import { toErrorMessage } from "./error-message";
 import { findNestedRepoRoots } from "./find-nested-repos";
 import { normalizeAbsolutePath } from "./paths";
@@ -24,6 +18,12 @@ import {
 } from "./search";
 import { ThrottledWorker } from "./throttled-worker";
 import type { FsWatchEvent } from "./types";
+import {
+	defaultWatchBackend,
+	type NativeWatchBackend,
+	type NativeWatchEvent,
+	type NativeWatchSubscription,
+} from "./watch-backend";
 import {
 	coalesceWatchEvents,
 	type InternalWatchEvent,
@@ -70,26 +70,6 @@ const PROBE_TIMEOUT_MS = 4_000;
 // Mirrors the metacharacter set `is-glob`/picomatch@2 recognize.
 function escapeGlobMagic(input: string): string {
 	return input.replace(/[\\*?{}()[\]!+@|^$]/g, (char) => `\\${char}`);
-}
-
-// Linux: @parcel/watcher's inotify backend starts on a thread and the caller
-// blocks until that thread signals it started. When inotify_init fails
-// (EMFILE at fs.inotify.max_user_instances, 128 by default and shared by
-// every process of the user) the thread throws before signalling and the
-// calling thread — host-service's event loop — waits forever. A throwaway
-// fs.watch makes the same inotify_init call and fails cleanly instead.
-function assertNativeWatchAvailable(dir: string): void {
-	if (process.platform !== "linux") return;
-	let probe: ReturnType<typeof probeNativeWatch>;
-	try {
-		probe = probeNativeWatch(dir, { persistent: false });
-	} catch (error) {
-		const code = (error as NodeJS.ErrnoException).code ?? "unknown";
-		throw new Error(
-			`Cannot watch path: inotify unavailable (${code}); raise fs.inotify.max_user_instances or close other watchers: ${dir}`,
-		);
-	}
-	probe.close();
 }
 
 // Wall-clock budget for the nested-repo scan (bounds attach latency on a slow
@@ -172,7 +152,7 @@ interface WatcherState {
 	realPathNormalized: string;
 	realPathDiffers: boolean;
 	/** Null while suspended (root deleted, polling for recreation). */
-	subscription: AsyncSubscription | null;
+	subscription: NativeWatchSubscription | null;
 	recoveryTimer: ReturnType<typeof setInterval> | null;
 	recovering: boolean;
 	/**
@@ -206,7 +186,7 @@ interface WatcherState {
 	prunedRelPrefixes: string[];
 	filePaths: Map<string, true>;
 	directoryPaths: Set<string>;
-	pendingEvents: ParcelWatcherEvent[];
+	pendingEvents: NativeWatchEvent[];
 	flushTimer: ReturnType<typeof setTimeout> | null;
 	/**
 	 * Per-state throttler. VS Code (parcelWatcher.ts:181-188) uses a single
@@ -221,7 +201,7 @@ interface WatcherState {
 // A dead FSEvents stream's unsubscribe can hang forever (observed after the
 // watch root is deleted out from under it); never let it block teardown.
 async function unsubscribeQuietly(
-	subscription: AsyncSubscription | null,
+	subscription: NativeWatchSubscription | null,
 ): Promise<void> {
 	if (!subscription) {
 		return;
@@ -275,6 +255,8 @@ export interface FsWatcherManagerOptions {
 	 * `runRipgrep`. Best-effort: failures degrade to the static list.
 	 */
 	listGitIgnoredDirs?: (rootPath: string) => Promise<string[]>;
+	/** What actually watches the disk. Defaults per platform. */
+	backend?: NativeWatchBackend;
 	/** Per-watcher LRU cap on tracked file paths. Test-only override. */
 	filePathsMax?: number;
 	/** How often a suspended watcher polls for its deleted root to reappear. */
@@ -290,6 +272,7 @@ export class FsWatcherManager {
 	private readonly ignore: string[];
 	private readonly useDefaultIgnores: boolean;
 	private readonly listGitIgnoredDirs?: (rootPath: string) => Promise<string[]>;
+	private readonly backend: NativeWatchBackend;
 	private readonly filePathsMax: number;
 	private readonly recoveryPollMs: number;
 	private readonly overflowRescanInitialMs: number;
@@ -327,6 +310,7 @@ export class FsWatcherManager {
 				: DEFAULT_IGNORE_PATTERNS;
 		this.ignore = [...new Set([...defaults, ...(options.ignore ?? [])])];
 		this.listGitIgnoredDirs = options.listGitIgnoredDirs;
+		this.backend = options.backend ?? defaultWatchBackend();
 		this.filePathsMax = options.filePathsMax ?? FILE_PATHS_MAX;
 		this.recoveryPollMs = options.recoveryPollMs ?? 2_000;
 		this.overflowRescanInitialMs =
@@ -439,7 +423,7 @@ export class FsWatcherManager {
 	 * workaround is omitted — desktop doesn't ship on Windows yet.
 	 */
 	private normalizeEvents(
-		events: ParcelWatcherEvent[],
+		events: NativeWatchEvent[],
 		state: WatcherState,
 	): void {
 		// VS Code (parcelWatcher.ts:534-537) slices by `realPathLength`
@@ -483,7 +467,10 @@ export class FsWatcherManager {
 	private onUnexpectedError(error: unknown, state: WatcherState): void {
 		const msg = toErrorMessage(error);
 
-		if (msg.indexOf("No space left on device") !== -1) {
+		if (
+			msg.indexOf("No space left on device") !== -1 ||
+			(error as NodeJS.ErrnoException | null)?.code === "ENOSPC"
+		) {
 			if (!this.enospcErrorLogged) {
 				console.error(
 					"[workspace-fs/watch] inotify watch limit reached (ENOSPC). " +
@@ -609,79 +596,70 @@ export class FsWatcherManager {
 			(relDir) => `${escapeGlobMagic(relDir)}/**`,
 		);
 
-		// parcel dedupes native backends by (dir, ignore-set); a wedged backend
-		// from the dead stream (its unsubscribe can hang) would be silently
-		// joined and never deliver. The pattern matches nothing real — it only
-		// forces a distinct backend identity.
-		const ignore = [
-			...this.ignore,
-			...(generation === 1
-				? []
-				: [`**/.superset-watch-generation-${generation}/**`]),
-			...prunedDirIgnores,
-		];
+		const ignore = [...this.ignore, ...prunedDirIgnores];
 
 		// Subscribe to the resolved real path so kernel paths come back in a
 		// consistent form; we map them back to `state.absolutePath` in
 		// `normalizeEvents`. Mirrors VS Code's parcelWatcher.ts:364.
-		assertNativeWatchAvailable(realPath);
-		state.subscription = await subscribeToFilesystem(
-			realPath,
-			(error, events) => {
-				if (state.generation !== generation) {
-					// Late callback from a superseded stream (suspended or
-					// replaced by recovery) — its events describe a dead tree.
-					return;
-				}
-				if (error) {
-					this.onUnexpectedError(error, state);
-					// Continue: process whatever events did arrive alongside
-					// the error. Mirrors VS Code's parcelWatcher.ts:373-378
-					// pattern (log error, then onParcelEvents anyway).
-				}
-
-				// Consume the liveness probe before it reaches listeners or the index.
-				const visibleEvents = events.filter((event) => {
-					if (path.basename(event.path).startsWith(PROBE_PREFIX)) {
-						state.probeSeen = true;
-						return false;
-					}
-					return true;
-				});
-
-				if (visibleEvents.length === 0) {
-					return;
-				}
-
-				if (process.env.SUPERSET_FS_EVENTS_DEBUG === "1") {
-					console.log("[fs:debug] parcel callback", {
-						path: state.absolutePath,
-						count: visibleEvents.length,
-						kinds: visibleEvents.map((e) => e.type),
-					});
-				}
-
-				this.normalizeEvents(visibleEvents, state);
-				for (const event of visibleEvents) state.pendingEvents.push(event);
-				if (state.flushTimer) {
-					return;
-				}
-
-				const flushTimer = setTimeout(() => {
-					state.flushTimer = null;
-					const pendingEvents = state.pendingEvents.splice(
-						0,
-						state.pendingEvents.length,
-					);
-					void this.flushPendingEvents(state, pendingEvents);
-				}, this.debounceMs);
-				state.flushTimer = flushTimer;
-				flushTimer.unref?.();
+		state.subscription = await this.backend.subscribe({
+			rootPath: realPath,
+			ignore,
+			generation,
+			// A late callback from a superseded stream (suspended or replaced by
+			// recovery) describes a dead tree.
+			onError: (error) => {
+				if (state.generation !== generation) return;
+				this.onUnexpectedError(error, state);
 			},
-			{
-				ignore,
+			onEvents: (events) => {
+				if (state.generation !== generation) return;
+				this.queueNativeEvents(state, events);
 			},
-		);
+		});
+	}
+
+	private queueNativeEvents(
+		state: WatcherState,
+		events: NativeWatchEvent[],
+	): void {
+		// Consume the liveness probe before it reaches listeners or the index.
+		const visibleEvents = events.filter((event) => {
+			if (path.basename(event.path).startsWith(PROBE_PREFIX)) {
+				state.probeSeen = true;
+				return false;
+			}
+			return true;
+		});
+
+		if (visibleEvents.length === 0) {
+			return;
+		}
+
+		if (process.env.SUPERSET_FS_EVENTS_DEBUG === "1") {
+			console.log("[fs:debug] native watch events", {
+				backend: this.backend.name,
+				path: state.absolutePath,
+				count: visibleEvents.length,
+				kinds: visibleEvents.map((e) => e.type),
+			});
+		}
+
+		this.normalizeEvents(visibleEvents, state);
+		for (const event of visibleEvents) state.pendingEvents.push(event);
+		if (state.flushTimer) {
+			return;
+		}
+
+		const flushTimer = setTimeout(() => {
+			state.flushTimer = null;
+			const pendingEvents = state.pendingEvents.splice(
+				0,
+				state.pendingEvents.length,
+			);
+			void this.flushPendingEvents(state, pendingEvents);
+		}, this.debounceMs);
+		state.flushTimer = flushTimer;
+		flushTimer.unref?.();
 	}
 
 	/**
@@ -1156,7 +1134,7 @@ export class FsWatcherManager {
 
 	private async flushPendingEvents(
 		state: WatcherState,
-		events: ParcelWatcherEvent[],
+		events: NativeWatchEvent[],
 	): Promise<void> {
 		if (events.length === 0) {
 			return;
@@ -1202,7 +1180,7 @@ export class FsWatcherManager {
 
 	private async normalizeEvent(
 		state: WatcherState,
-		event: ParcelWatcherEvent,
+		event: NativeWatchEvent,
 	): Promise<InternalWatchEvent> {
 		const absolutePath = normalizeAbsolutePath(event.path);
 		let isDirectory: boolean | undefined =

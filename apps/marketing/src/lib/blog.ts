@@ -44,6 +44,7 @@ function parseFrontmatter(filePath: string): BlogPost | null {
 			relatedSlugs: data.relatedSlugs,
 			faq: data.faq,
 			keywords: data.keywords,
+			draft: data.draft === true,
 			content,
 		};
 	} catch {
@@ -60,7 +61,7 @@ export function getBlogPosts(): BlogPost[] {
 
 	const posts = files
 		.map((file) => parseFrontmatter(path.join(BLOG_DIR, file)))
-		.filter((post): post is BlogPost => post !== null);
+		.filter((post): post is BlogPost => post !== null && !post.draft);
 
 	return posts.sort((a, b) => {
 		const dateA = new Date(a.date);
@@ -76,18 +77,16 @@ export function getBlogPost(slug: string): BlogPost | undefined {
 		return undefined;
 	}
 
-	return parseFrontmatter(filePath) ?? undefined;
+	const post = parseFrontmatter(filePath);
+	if (!post || post.draft) {
+		return undefined;
+	}
+
+	return post;
 }
 
 export function getAllSlugs(): string[] {
-	if (!fs.existsSync(BLOG_DIR)) {
-		return [];
-	}
-
-	return fs
-		.readdirSync(BLOG_DIR)
-		.filter((f) => f.endsWith(".mdx"))
-		.map((f) => f.replace(".mdx", ""));
+	return getBlogPosts().map((post) => post.slug);
 }
 
 const MAX_RELATED_POSTS = 3;

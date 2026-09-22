@@ -1,9 +1,9 @@
 import { db } from "@superset/db/client";
+import type { integrationProvider } from "@superset/db/schema";
 import { DrizzleQueryError, sql } from "drizzle-orm";
 import { databaseErrorMessage } from "@/lib/databaseErrorMessage";
 
-/** The connector slug a delivery arrived for; free text since 0114. */
-type Provider = string;
+type Provider = (typeof integrationProvider.enumValues)[number];
 
 export interface RecordedDelivery {
 	id: string;

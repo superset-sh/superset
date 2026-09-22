@@ -57,9 +57,11 @@ jobs:
         env:
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url_pooled }}
           DATABASE_URL_UNPOOLED: ${{ steps.create-branch.outputs.db_url }}
+          PGOPTIONS: -c lock_timeout=5s -c statement_timeout=60s
         run: |
           bun drizzle-kit check
           bun drizzle-kit migrate
+          bun run src/verify-migrations-applied.ts
 
       - name: Save database success status
         run: |

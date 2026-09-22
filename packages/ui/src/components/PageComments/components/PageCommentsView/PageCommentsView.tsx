@@ -8,6 +8,7 @@ import {
 	type FrameRect,
 	HOST_CHANNEL,
 	type HostMessageBody,
+	type PageLinkClick,
 	PENDING_ANCHOR_ID,
 } from "@superset/shared/page-comments-runtime";
 import {
@@ -38,6 +39,7 @@ interface PageCommentsViewProps {
 	 * host that focuses on click (a pane) hears about it here instead.
 	 */
 	onFramePointerDown?: () => void;
+	onLinkClick?: (click: PageLinkClick) => void;
 }
 
 export function PageCommentsView({
@@ -47,7 +49,10 @@ export function PageCommentsView({
 	pinchZoomEnabled = false,
 	onScrollYChange,
 	onFramePointerDown,
+	onLinkClick,
 }: PageCommentsViewProps) {
+	const onLinkClickRef = useRef(onLinkClick);
+	onLinkClickRef.current = onLinkClick;
 	const scrollYRef = useRef(initialScrollY ?? 0);
 	const onScrollYChangeRef = useRef(onScrollYChange);
 	onScrollYChangeRef.current = onScrollYChange;
@@ -196,7 +201,18 @@ export function PageCommentsView({
 					height: rect.height * v.scale,
 				};
 			};
+			if (
+				data.type === "link-click" &&
+				typeof data.url === "string" &&
+				/^(https?:|mailto:|tel:)/i.test(data.url)
+			) {
+				onLinkClickRef.current?.(data);
+			}
 			if (data.type === "ready") {
+				send({
+					type: "set-link-handling",
+					enabled: Boolean(onLinkClickRef.current),
+				});
 				if (pinchZoomEnabled) send({ type: "enable-pinch-zoom" });
 				setReadySrc(src);
 				setFrameEpoch((epoch) => epoch + 1);

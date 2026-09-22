@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
-import { terminalSessions } from "../../src/db/schema";
+import { terminalAgentBindings, terminalSessions } from "../../src/db/schema";
 import {
 	disposeDaemonClient,
 	getDaemonClient,
@@ -75,13 +75,19 @@ describe("terminal router integration", () => {
 		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 
-	test("killSession throws NOT_FOUND for unknown terminal", async () => {
-		await expect(
-			scenario.host.trpc.terminal.killSession.mutate({
-				workspaceId: scenario.workspaceId,
-				terminalId: randomUUID(),
-			}),
-		).rejects.toBeInstanceOf(TRPCClientError);
+	test("killSession records idempotent cancellation for a pending terminal", async () => {
+		const terminalId = randomUUID();
+		const input = { workspaceId: scenario.workspaceId, terminalId };
+		const result = await scenario.host.trpc.terminal.killSession.mutate(input);
+		expect(result).toEqual({ terminalId, status: "disposed" });
+		expect(await scenario.host.trpc.terminal.killSession.mutate(input)).toEqual(
+			result,
+		);
+		const row = scenario.host.db.query.terminalSessions
+			.findFirst({ where: eq(terminalSessions.id, terminalId) })
+			.sync();
+		expect(row?.originWorkspaceId).toBe(scenario.workspaceId);
+		expect(row?.disposeRequestedAt).toBeNumber();
 	});
 
 	test("list requires authentication", async () => {
@@ -365,7 +371,28 @@ describe("terminal router integration", () => {
 				.run();
 			__resetSessionsForTesting();
 
-			// First reap pass runs immediately on start.
+			const lostId = randomUUID();
+			scenario.host.db
+				.insert(terminalSessions)
+				.values({
+					id: lostId,
+					originWorkspaceId: scenario.workspaceId,
+					status: "active",
+					createdAt: 1,
+				})
+				.run();
+			scenario.host.db
+				.insert(terminalAgentBindings)
+				.values({
+					terminalId: lostId,
+					workspaceId: scenario.workspaceId,
+					agentId: "claude",
+					agentSessionId: "recoverable",
+					startedAt: 1,
+					lastEventAt: 1,
+					lastEventType: "Stop",
+				})
+				.run();
 			stopReaper = startTerminalReaper(scenario.host.db);
 			await waitForAlive(
 				(alive) => !alive.has(stampedId),
@@ -373,6 +400,16 @@ describe("terminal router integration", () => {
 				"stamped session reaped",
 			);
 			expect((await aliveIds()).has(sparedId)).toBe(true);
+			expect(
+				scenario.host.db.query.terminalSessions
+					.findFirst({ where: eq(terminalSessions.id, lostId) })
+					.sync()?.status,
+			).toBe("active");
+			expect(
+				scenario.host.db.query.terminalAgentBindings
+					.findFirst({ where: eq(terminalAgentBindings.terminalId, lostId) })
+					.sync()?.endedAt,
+			).toBeNull();
 		} finally {
 			stopReaper?.();
 			await scenario.host.trpc.terminal.killSession

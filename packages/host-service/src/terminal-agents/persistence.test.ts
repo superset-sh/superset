@@ -536,3 +536,13 @@ describe("seedEndedTerminalAgentBinding (v1 pane migration)", () => {
 		).toBe("terminal-not-found");
 	});
 });
+
+it("does not hydrate a live binding with pending disposal intent", () => {
+	const db = createTestDb();
+	seedSession(db, { id: "pending", status: "active", workspaceId: "ws-1" });
+	db.update(terminalSessions)
+		.set({ disposeRequestedAt: Date.now() })
+		.where(eq(terminalSessions.id, "pending"))
+		.run();
+	expect(new SqliteTerminalAgentBindingPersistence(db).load()).toEqual([]);
+});

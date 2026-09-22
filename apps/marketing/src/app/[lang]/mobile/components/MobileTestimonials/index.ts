@@ -1,0 +1,1 @@
+export { MobileTestimonials } from "./MobileTestimonials";

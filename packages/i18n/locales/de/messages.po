@@ -568,6 +568,9 @@ msgstr "{closedCount} geschlossen"
 msgid "{completed} of {0} checks complete"
 msgstr "{completed} von {0} Prüfungen abgeschlossen"
 
+msgid "{completed} of {total} completed"
+msgstr "{completed} von {total} abgeschlossen"
+
 msgid "{configTitle} font size"
 msgstr "Schriftgröße für {configTitle}"
 
@@ -1047,6 +1050,12 @@ msgstr "<0>{primaryFont}</0> ist auf diesem System nicht installiert. Es wird au
 msgid "<0>#{0}</0> <1>of {1} on the leaderboard</1>"
 msgstr "<0>#{0}</0> <1>von {1} in der Bestenliste</1>"
 
+msgid "<0>Coming soon to</0><1>Google Play</1>"
+msgstr "<0>Bald verfügbar bei</0><1>Google Play</1>"
+
+msgid "<0>Download on the</0><1>App Store</1>"
+msgstr "<0>Laden im</0><1>App Store</1>"
+
 msgid "<0>F3</0> · you are here"
 msgstr "<0>F3</0> · du bist hier"
 
@@ -1240,6 +1249,9 @@ msgstr "Ein kompletter Neuanstrich: dichtere Zeilen, Port- und Agenten-Chips unt
 
 msgid "A gateway is signed in with an API key."
 msgstr "Ein Gateway ist mit einem API-Schlüssel angemeldet."
+
+msgid "A guilty habit I have is waking up with an idea in the middle of the night and opening the app. By morning it's ready for review."
+msgstr "Ich habe die schlechte Angewohnheit, mitten in der Nacht mit einer Idee aufzuwachen und die App zu öffnen. Am Morgen ist alles zur Prüfung bereit."
 
 msgid "A host must have at least one owner."
 msgstr "Ein Host muss mindestens einen Inhaber haben."
@@ -1787,6 +1799,9 @@ msgstr "Alle deine Daten werden nach {ACCOUNT_DELETION_GRACE_DAYS} Tagen endgül
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Alle offenen Terminal-Sitzungen werden beendet und laufende Host-Dienste gestoppt. Nutze stattdessen “Superset schließen”, wenn die Dienste für den nächsten Start weiterlaufen sollen."
 
+msgid "All pages"
+msgstr "Alle Seiten"
+
 msgid "All plans"
 msgstr "Alle Tarife"
 
@@ -1918,6 +1933,9 @@ msgstr "Ein Update ist bereit zur Installation."
 
 msgid "Analytics, Ops, and more"
 msgstr "Analysen, Betrieb und mehr"
+
+msgid "Android is on the way. Be first to know when it ships."
+msgstr "Android ist unterwegs. Erfahre als Erstes, wenn es erscheint."
 
 msgid "Animate the active terminal cursor."
 msgstr "Den aktiven Terminal-Cursor animieren."
@@ -2848,6 +2866,9 @@ msgstr "Kann ich meine eigenen API-Schlüssel nutzen?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Kannst du die Tooltips in der ganzen App vereinheitlichen?"
 
+msgid "Can’t check {hostName}"
+msgstr "{hostName} kann nicht geprüft werden"
+
 msgid "Can't connect right now"
 msgstr "Verbindung gerade nicht möglich"
 
@@ -3220,6 +3241,9 @@ msgstr "Terminal-Verlauf löschen"
 msgid "Clear terminal history?"
 msgstr "Terminal-Verlauf löschen?"
 
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "Setze den Filter zurück, um die Seitenleiste neu anzuordnen"
+
 msgid "Clear workspace selection"
 msgstr "Arbeitsbereich-Auswahl aufheben"
 
@@ -3480,6 +3504,9 @@ msgstr "Cloud-Sandboxes sind für {account} nicht aktiviert. Bitte den Zugang be
 
 msgid "Cloud workspace"
 msgstr "Cloud-Arbeitsbereich"
+
+msgid "Co-founder & CTO, TrainLoop (YC W25)"
+msgstr "Mitgründer und CTO, TrainLoop (YC W25)"
 
 msgid "Code"
 msgstr "Code"
@@ -3785,6 +3812,9 @@ msgstr "Slack verbinden"
 
 msgid "Connect Slack to manage tasks from conversations. Mention the bot in any channel or send it a direct message to create and update tasks."
 msgstr "Verbinde Slack, um Aufgaben aus Unterhaltungen zu verwalten. Erwähne den Bot in einem beliebigen Kanal oder schreib ihm direkt, um Aufgaben zu erstellen und zu aktualisieren."
+
+msgid "Connect this computer"
+msgstr "Diesen Computer verbinden"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Verbinde deine GitHub-Repositories und synchronisiere Pull Requests. Verfolge CI-Status und Reviews im ganzen Team."
@@ -4724,6 +4754,9 @@ msgstr "Worktree wird erstellt"
 msgid "Creating..."
 msgstr "Wird erstellt..."
 
+msgid "Creative Manager, Valid"
+msgstr "Kreativmanager, Valid"
+
 msgid "Credentials stay on the server"
 msgstr "Zugangsdaten bleiben auf dem Server"
 
@@ -5232,6 +5265,9 @@ msgstr "Diff in neuem Tab"
 msgid "Diff size"
 msgstr "Diff-Größe"
 
+msgid "Digital Product Designer"
+msgstr "Designer für digitale Produkte"
+
 msgid "Direct"
 msgstr "Direkt"
 
@@ -5730,6 +5766,12 @@ msgstr "Auto-Merge aktivieren"
 msgid "Enable relay access…"
 msgstr "Relay-Zugriff aktivieren…"
 
+msgid "Enable remote access"
+msgstr "Fernzugriff aktivieren"
+
+msgid "Enable Remote Access and keep this computer awake with Superset running."
+msgstr "Aktiviere den Fernzugriff und halte diesen Computer mit laufendem Superset wach."
+
 msgid "Enable skill"
 msgstr "Skill aktivieren"
 
@@ -6126,6 +6168,9 @@ msgstr "Aufgabe konnte nicht erstellt werden"
 
 msgid "Failed to create team"
 msgstr "Team konnte nicht erstellt werden"
+
+msgid "Failed to create terminal"
+msgstr "Terminal konnte nicht erstellt werden"
 
 msgid "Failed to create thread"
 msgstr "Thread konnte nicht erstellt werden"
@@ -6850,14 +6895,20 @@ msgstr "Vorwärts"
 msgid "Found 12 tooltip call sites"
 msgstr "12 Tooltip-Aufrufstellen gefunden"
 
+msgid "Founder & CEO, WowMakers"
+msgstr "Gründer und CEO, WowMakers"
+
+msgid "Founding Engineer"
+msgstr "Gründungsingenieur"
+
 msgid "Free"
 msgstr "Free"
 
 msgid "Free for everyone"
 msgstr "Kostenlos für alle"
 
-msgid "Free plan available · No credit card required"
-msgstr "Kostenloser Tarif verfügbar · Ohne Kreditkarte"
+msgid "Free to start · No credit card required"
+msgstr "Kostenlos starten · Keine Kreditkarte erforderlich"
 
 msgid "Frequently<0/>asked questions"
 msgstr "Häufig<0/>gestellte Fragen"
@@ -6960,6 +7011,12 @@ msgstr "Superset auf deinen Mac holen"
 
 msgid "Get Superset Pro"
 msgstr "Superset Pro holen"
+
+msgid "Get the best out of Pro"
+msgstr "Pro optimal nutzen"
+
+msgid "Get the iPhone app"
+msgstr "iPhone-App holen"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -7066,6 +7123,9 @@ msgstr "Zur nächsten Seite"
 msgid "Go to previous page"
 msgstr "Zur vorherigen Seite"
 
+msgid "Go to Settings, then Remote Access"
+msgstr "Gehe zu Einstellungen, dann Fernzugriff"
+
 msgid "Go to Slack integration settings"
 msgstr "Zu den Einstellungen der Slack-Integration"
 
@@ -7104,6 +7164,9 @@ msgstr "Neue Branches unter einem Ordner gruppieren."
 
 msgid "Growth"
 msgstr "Wachstum"
+
+msgid "GTM & AI Automation Architect, Mistral AI"
+msgstr "GTM- und KI-Automatisierungsarchitekt, Mistral AI"
 
 msgid "Guide"
 msgstr "Leitfaden"
@@ -7411,6 +7474,15 @@ msgstr "Menschen schreiben jede Zeile. Werkzeuge kompilieren, linten und meckern
 msgid "I already use an IDE like Cursor, is this for me?"
 msgstr "Ich nutze schon eine IDE wie Cursor — ist das etwas für mich?"
 
+msgid "I also love being able to spin up a local worktree environment on my Mac directly from my phone."
+msgstr "Ich finde es auch toll, direkt von meinem Handy aus eine lokale Worktree-Umgebung auf meinem Mac starten zu können."
+
+msgid "I can be in a café with my coffee while the work keeps moving forward."
+msgstr "Ich kann mit meinem Kaffee im Café sitzen, während die Arbeit weitergeht."
+
+msgid "I start my morning walks with an idea, and end with a pull request."
+msgstr "Ich beginne meine Morgenspaziergänge mit einer Idee und beende sie mit einem Pull Request."
+
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "Ich bin #{rank} im {company}-Leaderboard mit {tokens} Tokens Agenten-Nutzung."
 
@@ -7662,6 +7734,9 @@ msgstr "Installation fehlgeschlagen"
 msgid "Install GitHub App"
 msgstr "GitHub-App installieren"
 
+msgid "Install on your iPhone"
+msgstr "Auf deinem iPhone installieren"
+
 msgid "Install plugin"
 msgstr "Plugin installieren"
 
@@ -7849,6 +7924,9 @@ msgstr "Die Issue-URL muss zu {repoMismatch} passen."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "Möglicherweise im Ruhezustand"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Sie wurde möglicherweise gelöscht oder gehört zu einer anderen Organisation."
 
@@ -7869,9 +7947,6 @@ msgstr "Eigener Branch und eigene Kopie der Dateien"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Seine Arbeitsbereiche und Terminals sind nicht verfügbar, bis er neu startet — nutze das Superset-Menü in der Menüleiste > Host Service > Restart."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "Seine Arbeitsbereiche erscheinen, sobald er sich wieder verbindet."
 
 msgid "Jane Doe"
 msgstr "Erika Mustermann"
@@ -8066,6 +8141,9 @@ msgstr "Letzte Ausführung"
 msgid "Last seen"
 msgstr "Zuletzt gesehen"
 
+msgid "Last seen {lastSeen}"
+msgstr "Zuletzt gesehen: {lastSeen}"
+
 msgid "Last updated"
 msgstr "Zuletzt aktualisiert"
 
@@ -8158,6 +8236,9 @@ msgstr "Team verlassen"
 
 msgid "Leave the leaderboard?"
 msgstr "Leaderboard verlassen?"
+
+msgid "Leave your desk.<0/>Keep building."
+msgstr "Verlass den Schreibtisch.<0/>Bau weiter."
 
 msgid "Leaving organization..."
 msgstr "Organisation wird verlassen..."
@@ -8837,9 +8918,6 @@ msgstr "Erforderliche Eingabe {input} fehlt"
 msgid "Mobile"
 msgstr "Mobil"
 
-msgid "Mobile (coming soon)"
-msgstr "Mobile (bald verfügbar)"
-
 msgid "Mobile app"
 msgstr "Mobile App"
 
@@ -9093,6 +9171,10 @@ msgstr "Netzwerk gewechselt"
 msgid "Never"
 msgstr "Nie"
 
+msgctxt "badge on a page published since the menu was last opened"
+msgid "New"
+msgstr "Neu"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Neue {providerLabel}-Agenten nutzen {accountLabel}."
 
@@ -9147,6 +9229,9 @@ msgstr "Neue Gruppe aus Arbeitsbereich"
 msgid "New issue"
 msgstr "Neues Issue"
 
+msgid "New page"
+msgstr "Neue Seite"
+
 msgid "New password (min 8 characters)"
 msgstr "Neues Passwort (mind. 8 Zeichen)"
 
@@ -9161,6 +9246,9 @@ msgstr "Neue Releases und Produkt-Updates."
 
 msgid "New session"
 msgstr "Neue Sitzung"
+
+msgid "New shell"
+msgstr "Neue Shell"
 
 msgid "New stars"
 msgstr "Neue Stars"
@@ -9953,6 +10041,9 @@ msgstr "jetzt"
 msgid "Now"
 msgstr "Jetzt"
 
+msgid "Now I open the workspace on my phone, type the one line it's waiting for, and it carries on."
+msgstr "Jetzt öffne ich den Workspace auf meinem Handy, tippe die eine Zeile ein, auf die gewartet wird, und es geht weiter."
+
 #. placeholder {0}: versions.expected
 #. placeholder {1}: versions.running
 msgid "Now running {0} (was {1}). All sessions preserved."
@@ -10062,6 +10153,9 @@ msgstr "Unter den ersten hundert im Ranking"
 msgid "one of the selected repositories"
 msgstr "eines der ausgewählten Repositories"
 
+msgid "One step left"
+msgstr "Noch ein Schritt"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Ein Arbeitsbereich für Claude Code, Codex und jeden Coding-Agenten."
 
@@ -10137,6 +10231,9 @@ msgstr "Nur der Autor des Threads oder der Inhaber der Seite kann ihn löschen"
 msgid "Only you"
 msgstr "Nur du"
 
+msgid "Only you can see this page"
+msgstr "Nur du kannst diese Seite sehen"
+
 msgid "open"
 msgstr "öffnen"
 
@@ -10184,6 +10281,9 @@ msgstr "Trotzdem öffnen"
 
 msgid "Open Anywhere"
 msgstr "Überall öffnen"
+
+msgid "Open App Store"
+msgstr "App Store öffnen"
 
 msgid "Open as comment pane"
 msgstr "Als Kommentarbereich öffnen"
@@ -10470,6 +10570,9 @@ msgstr "Versandoptionen öffnen"
 msgid "Open Superset"
 msgstr "Superset öffnen"
 
+msgid "Open Superset on that computer"
+msgstr "Öffne Superset auf diesem Computer"
+
 msgid "Open System Settings"
 msgstr "Systemeinstellungen öffnen"
 
@@ -10547,9 +10650,6 @@ msgstr "Vorhandenen Arbeitsbereich geöffnet"
 
 msgid "opened PR #841 for review"
 msgstr "PR #841 zum Review geöffnet"
-
-msgid "Opening TestFlight…"
-msgstr "TestFlight wird geöffnet…"
 
 msgid "Opening worktree..."
 msgstr "Worktree wird geöffnet..."
@@ -10843,6 +10943,9 @@ msgstr "Teils Protokoll, teils Wette. Die ersten beiden Einträge passieren bere
 
 msgid "Partial"
 msgstr "Teilweise"
+
+msgid "Partner, Transpose Platform"
+msgstr "Partner, Transpose Platform"
 
 msgid "Passed"
 msgstr "Bestanden"
@@ -11872,6 +11975,9 @@ msgstr "Remote-Zugriff"
 msgid "Remote Access"
 msgstr "Fernzugriff"
 
+msgid "Remote Access may be off"
+msgstr "Der Fernzugriff ist möglicherweise aus"
+
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Remote-MCP-Server — verbindet über HTTP"
 
@@ -12127,6 +12233,9 @@ msgstr "Erforderlich"
 
 msgid "Required version: {minimumVersion}+"
 msgstr "Erforderliche Version: {minimumVersion}+"
+
+msgid "Requires iOS 26 or later. Included with Superset Pro."
+msgstr "Erfordert iOS 26 oder neuer. In Superset Pro enthalten."
 
 msgid "Reserved by OS"
 msgstr "Vom Betriebssystem belegt"
@@ -12591,6 +12700,9 @@ msgstr "Arbeitsbereiche überall betreiben"
 msgid "Run your agents from the desktop, any terminal, or your phone."
 msgstr "Agents vom Desktop, aus jedem Terminal oder vom Handy starten."
 
+msgid "Run your agents from your phone."
+msgstr "Agents vom Handy aus starten."
+
 msgid "running"
 msgstr "läuft"
 
@@ -12706,8 +12818,14 @@ msgstr "Wird gespeichert…"
 msgid "Saw the paywall"
 msgstr "Paywall gesehen"
 
-msgid "Scale from two agents to 100+"
-msgstr "Von zwei Agenten auf über 100 skalieren"
+msgid "Scale to 100+ agents"
+msgstr "Auf über 100 Agenten skalieren"
+
+msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
+msgstr "Scanne den QR-Code, melde dich mit demselben Superset-Konto an und wähle diese Organisation aus."
+
+msgid "Scan to download Superset for iPhone"
+msgstr "Scannen, um Superset für iPhone herunterzuladen"
 
 msgid "Scanning transcript logs…"
 msgstr "Transkript-Logs werden durchsucht…"
@@ -13223,6 +13341,9 @@ msgstr "Das Erstellen von Sitzungen im Web kommt bald"
 msgid "Session details"
 msgstr "Sitzungsdetails"
 
+msgid "Session ended"
+msgstr "Sitzung beendet"
+
 msgid "Session name"
 msgstr "Sitzungsname"
 
@@ -13274,6 +13395,9 @@ msgstr "Einrichten"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "{0} einrichten"
+
+msgid "Set up an automation"
+msgstr "Automatisierung einrichten"
 
 msgid "Set up project on {hostName}"
 msgstr "Projekt auf {hostName} einrichten"
@@ -13938,6 +14062,9 @@ msgstr "Stabilitätsverbesserungen"
 msgid "Stacked"
 msgstr "Gestapelt"
 
+msgid "Staff Software Engineer, Vori"
+msgstr "Staff Software Engineer, Vori"
+
 msgid "Stage all"
 msgstr "Alles stagen"
 
@@ -14016,11 +14143,17 @@ msgstr "Starte einen Arbeitsbereich direkt aus einem Linear-Ticket. Der Agent ü
 msgid "Start agent"
 msgstr "Agent starten"
 
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Agents starten, live verfolgen und den Diff vom Handy aus prüfen. Dein Code bleibt auf deinen Rechnern."
+
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Starte einen Agenten oder ein Terminal, um in diesem Arbeitsbereich zu arbeiten."
 
 msgid "Start browsing"
 msgstr "Losbrowsen"
+
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Coding-Agents starten, live verfolgen und den Diff vom Handy aus prüfen. Im App Store erhältlich; Android folgt bald."
 
 msgid "Start free. Upgrade when your team outgrows it. Enterprise plans for organizations with advanced security and compliance needs."
 msgstr "Starte kostenlos. Upgrade, wenn dein Team herauswächst. Enterprise-Tarife für Organisationen mit erhöhten Sicherheits- und Compliance-Anforderungen."
@@ -14043,6 +14176,9 @@ msgstr "Den Run-Befehl des Arbeitsbereichs starten oder stoppen"
 
 msgid "Start with the work."
 msgstr "Fang mit der Arbeit an."
+
+msgid "Start work from anywhere"
+msgstr "Von überall mit der Arbeit beginnen"
 
 msgid "Start Workspace"
 msgstr "Arbeitsbereich starten"
@@ -14226,6 +14362,9 @@ msgstr "-Suite für Agenten-Oberflächen und gemeinsame App-Komponenten. Klicke 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Summe der CPU-Last von Superset und den überwachten Terminal-Prozessbäumen. Über 100 % bedeutet, dass mehrere CPU-Kerne ausgelastet sind. Dauerhaft hohe Werte machen die Oberfläche meist träge und verbrauchen mehr Akku."
 
+msgid "Summarize the changes in this workspace"
+msgstr "Fasse die Änderungen in diesem Arbeitsbereich zusammen"
+
 msgid "Summary"
 msgstr "Übersicht"
 
@@ -14283,6 +14422,9 @@ msgstr "Superset Design System"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise ist Superset für Teams. Melde dich, um mehr darüber zu erfahren, was enthalten ist und wie es für deine Organisation funktionieren kann."
 
+msgid "Superset for iPhone"
+msgstr "Superset für iPhone"
+
 msgid "Superset for your team"
 msgstr "Superset für dein Team"
 
@@ -14325,6 +14467,9 @@ msgstr "Superset ist die Werkbank für den Übergang von F3 zu F4: parallele Age
 msgid "Superset isn't on Windows yet"
 msgstr "Superset gibt es vorerst nur für Mac"
 
+msgid "Superset may be closed"
+msgstr "Superset ist möglicherweise geschlossen"
+
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset meldet dich nach einem Neustart womöglich wieder an. Bitte melde dich erneut ab."
 
@@ -14333,6 +14478,12 @@ msgstr "Superset-Speicher"
 
 msgid "Superset memory · last 5 min"
 msgstr "Superset-Speicher · letzte 5 Min."
+
+msgid "Superset mobile gives me the power of my desktop anywhere I go."
+msgstr "Superset Mobile gibt mir die Leistung meines Desktops, wohin ich auch gehe."
+
+msgid "Superset Mobile is here"
+msgstr "Superset Mobile ist da"
 
 msgid "Superset Mobile is part of Pro"
 msgstr "Superset Mobile gehört zu Pro"
@@ -14374,6 +14525,9 @@ msgstr "Superset funktioniert mit jedem CLI-basierten Coding-Agenten, darunter C
 msgid "superset.sh"
 msgstr "superset.sh"
 
+msgid "Superset's mobile app lets me keep my agents moving and unblock them from anywhere, even when I'm nowhere near my computer."
+msgstr "Mit der mobilen Superset-App kann ich meine Agenten von überall aus am Laufen halten und Blockaden lösen, selbst wenn mein Computer weit weg ist."
+
 msgid "Supervised"
 msgstr "Beaufsichtigt"
 
@@ -14412,6 +14566,9 @@ msgstr "Anmeldung wechseln"
 
 msgid "Switch sign-in…"
 msgstr "Anmeldung wechseln…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "Wechsle zur manuellen Reihenfolge, um die Seitenleiste neu anzuordnen"
 
 msgid "Switch to Tab 1"
 msgstr "Zu Tab 1 wechseln"
@@ -15403,6 +15560,9 @@ msgstr "Alle vorgemerkten Änderungen werden aus dem Index entfernt und zurückg
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Damit werden alle gestageden Änderungen aus dem Index genommen und zurückgesetzt. Gestagede neue Dateien werden gelöscht. Das lässt sich nicht rückgängig machen."
 
+msgid "This workspace"
+msgstr "Dieser Arbeitsbereich"
+
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Dieser Arbeitsbereich wurde möglicherweise entfernt, oder du hast keinen Zugriff mehr darauf."
 
@@ -15685,6 +15845,9 @@ msgstr "Mach aus Fleißarbeit geplante Agenten: Issue-Triage, Changelog-Entwürf
 #. placeholder {0}: group.turn.error ? `: ${group.turn.error.message}` : ""
 msgid "Turn failed{0}"
 msgstr "Zug fehlgeschlagen{0}"
+
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "Aktiviere „Fernzugriff auf dieses Gerät über den Relay erlauben“"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Mach aus Slack-Unterhaltungen Aufgaben, starte Agenten aus deinem Arbeitsbereich und halte dein Team dort auf dem Laufenden, wo die Arbeit beginnt."
@@ -16106,6 +16269,12 @@ msgstr "Für neue Agenten verwenden"
 msgid "Use global default"
 msgstr "Globalen Standard verwenden"
 
+msgid "Use Superset on mobile"
+msgstr "Superset auf dem Handy nutzen"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Nutze Superset mit Pro auf deinem Smartphone."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Nutze die Desktop-App, um parallele Coding-Agenten laufen zu lassen."
 
@@ -16324,6 +16493,9 @@ msgstr "warten auf {0} und {1}…"
 msgid "Waiting for Checks"
 msgstr "Wartet auf Prüfungen"
 
+msgid "Waiting for it to connect…"
+msgstr "Warten auf die Verbindung…"
+
 msgid "Waiting for Review"
 msgstr "Wartet auf Review"
 
@@ -16366,11 +16538,17 @@ msgstr "Wir konnten deine Zahlungsmethode nicht belasten. Aktualisiere sie, um d
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Wir konnten keinen Paketmanager und keine Umgebungskonfiguration erkennen."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "Wir konnten Superset nicht erreichen, um zu prüfen, ob er online ist. Prüfe deine Verbindung und versuche es erneut."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "Wir konnten das Gerät nicht erreichen. Bitte versuche es gleich noch einmal."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "Wir prognostizieren für 2026 oder 2027 kein vollständig autonomes Fahren. Die ehrlichen Unbekannten: ob Agenten-Review gegen bösartige Komplexität standhält, ob Spezifikation das Lesen von Code als Vertrauensanker im großen Maßstab ersetzen kann und ob die Rechenökonomie die Nachtschicht billiger hält als die Menschen, die sie ergänzt. F5 ist ein Rubrikeintrag, damit wir es erkennen, wenn wir es sehen — kein Versprechen."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "Wir haben {hostName} gefunden. Aktiviere dort den Fernzugriff, um abzuschließen."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "Wir erfassen nur Analyse-Cookies, um dein Erlebnis zu verbessern."
@@ -16383,6 +16561,9 @@ msgstr "Wir melden uns in Kürze."
 
 msgid "We'll bring you back as soon as we reconnect."
 msgstr "Sobald die Verbindung wieder steht, geht es hier weiter."
+
+msgid "We'll email you when Superset for Android is ready."
+msgstr "Wir schicken dir eine E-Mail, sobald Superset für Android bereit ist."
 
 msgid "We'll get back to you shortly."
 msgstr "Wir melden uns in Kürze bei dir."
@@ -16496,6 +16677,9 @@ msgstr "Was Entwickler über Superset sagen"
 msgid "What do you want to do?"
 msgstr "Was möchtest du tun?"
 
+msgid "What early users say"
+msgstr "Das sagen die ersten Nutzer"
+
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Wofür Google uns anzeigt und wie viel davon nicht unser eigener Name ist."
 
@@ -16516,6 +16700,9 @@ msgstr "Welches Problem willst du lösen?"
 
 msgid "What should run on a schedule?"
 msgstr "Was soll nach Zeitplan laufen?"
+
+msgid "What should the page show?"
+msgstr "Was soll die Seite zeigen?"
 
 msgid "What should we build next?"
 msgstr "Was bauen wir als Nächstes?"
@@ -16630,6 +16817,9 @@ msgstr "Mit Bezeichnung"
 
 msgid "with or without attachments"
 msgstr "mit oder ohne Anhang"
+
+msgid "With the Superset mobile app, I can address production issues from anywhere."
+msgstr "Mit der mobilen Superset-App kann ich Produktionsprobleme von überall aus beheben."
 
 msgid "Work email"
 msgstr "Geschäftliche E-Mail-Adresse"

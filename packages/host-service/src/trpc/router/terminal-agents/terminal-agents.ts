@@ -12,7 +12,7 @@ import {
 	hasHarnessSession,
 	readHarnessTranscript,
 } from "../../../terminal/harness-transcript";
-import { markStaleActiveRows } from "../../../terminal/reaper/reaper";
+import { reconcileMissingTerminalSessions } from "../../../terminal/reaper/reaper";
 import {
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
@@ -67,7 +67,9 @@ export interface ResumeSessionDeps {
 		prompt: string;
 		resumeSessionId?: string;
 	}) => Promise<AgentRunResult>;
-	disposeSession: (terminalId: string) => Promise<unknown>;
+	disposeSession: (
+		terminalId: string,
+	) => Promise<{ daemonCloseSucceeded: boolean }>;
 	/**
 	 * Whether the harness still holds a conversation for the binding's session
 	 * id (`null` = cannot tell). Consulted only for a session that never
@@ -273,11 +275,9 @@ export async function resumeCrashedAgentSessions(
 	deps: ResumeSessionDeps,
 	limit = MAX_BOOT_RESUMES,
 ): Promise<{ resumedTerminalIds: string[] }> {
-	// A stop leaves the terminal rows saying "active": nothing on the box was
-	// alive to write otherwise. `sweepDefunct` only backfills bindings whose
-	// row already says exited, so without this the list is empty on the boot
-	// that matters and the agents come back one boot late.
-	markStaleActiveRows(deps.db, [], new Map());
+	// This runs only after a sandbox machine resumes: its previous PTYs are
+	// gone, so bindings can be reconciled without a daemon observation.
+	reconcileMissingTerminalSessions(deps.db, [], new Map());
 
 	const resumedTerminalIds: string[] = [];
 	const since = Date.now() - RESUMABLE_WINDOW_MS;
@@ -330,11 +330,13 @@ export async function restartAccountSessions(
 		// is un-claimed by the resume path; a failed kill is the reaper's).
 		deps.terminalAgentStore.markTerminalExited(binding.terminalId);
 		try {
-			await deps.disposeSession(binding.terminalId);
-			await resumeTerminalAgentSession(deps, {
+			const disposed = await deps.disposeSession(binding.terminalId);
+			if (!disposed.daemonCloseSucceeded) continue;
+			const result = await resumeTerminalAgentSession(deps, {
 				workspaceId: binding.workspaceId,
 				terminalId: binding.terminalId,
 			});
+			if (!result.resumed) continue;
 		} catch (error) {
 			console.warn("[terminal-agents] account-switch restart failed", {
 				terminalId: binding.terminalId,
