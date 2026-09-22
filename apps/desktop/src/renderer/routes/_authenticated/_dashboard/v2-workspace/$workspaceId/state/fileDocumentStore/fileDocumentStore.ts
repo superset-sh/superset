@@ -391,10 +391,24 @@ export function dispatchFsEvent(
 	// mid-iteration, which would revisit the same entry and loop forever.
 	for (const entry of Array.from(entries.values())) {
 		if (entry.workspaceId !== workspaceId) continue;
-		const affects =
-			entry.absolutePath === event.absolutePath ||
-			(event.kind === "rename" && event.oldAbsolutePath === entry.absolutePath);
-		if (!affects) continue;
+		const renamedSource =
+			event.kind === "rename" &&
+			event.oldAbsolutePath !== undefined &&
+			(entry.absolutePath === event.oldAbsolutePath ||
+				(event.isDirectory === true &&
+					entry.absolutePath.startsWith(`${event.oldAbsolutePath}/`)));
+		if (renamedSource && event.oldAbsolutePath) {
+			const oldKey = key(entry.workspaceId, entry.absolutePath);
+			entries.delete(oldKey);
+			entry.absolutePath =
+				event.absolutePath +
+				entry.absolutePath.slice(event.oldAbsolutePath.length);
+			entries.set(key(entry.workspaceId, entry.absolutePath), entry);
+			entry.orphaned = false;
+			notify(entry);
+			continue;
+		}
+		if (entry.absolutePath !== event.absolutePath) continue;
 
 		const isContentMutation =
 			event.kind === "create" ||
@@ -404,18 +418,6 @@ export function dispatchFsEvent(
 
 		if (event.kind === "delete") {
 			entry.orphaned = true;
-			notify(entry);
-			continue;
-		}
-
-		if (
-			event.kind === "rename" &&
-			event.oldAbsolutePath === entry.absolutePath
-		) {
-			const oldKey = key(entry.workspaceId, entry.absolutePath);
-			entries.delete(oldKey);
-			entry.absolutePath = event.absolutePath;
-			entries.set(key(entry.workspaceId, entry.absolutePath), entry);
 			notify(entry);
 			continue;
 		}

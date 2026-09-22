@@ -400,7 +400,7 @@ function V2WorkspaceContent() {
 	);
 
 	return (
-		<FileDocumentStoreProvider>
+		<FileDocumentStoreProvider store={store}>
 			<WorkspaceGitStatusProvider workspaceId={workspaceId}>
 				<div className="flex min-h-0 min-w-0 flex-1">
 					<div

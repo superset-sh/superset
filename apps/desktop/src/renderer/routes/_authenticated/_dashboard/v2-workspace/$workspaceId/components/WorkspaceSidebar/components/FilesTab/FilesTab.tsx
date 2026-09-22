@@ -158,6 +158,7 @@ export function FilesTab({
 
 	const bridge = useFilesTabBridge({ model, workspaceId, rootPath });
 	const {
+		canSelectFile,
 		reveal,
 		startCreating,
 		handleRename,
@@ -236,6 +237,7 @@ export function FilesTab({
 	handlersRef.current.onMove = (event) => void handleMove(event);
 	handlersRef.current.onMoveError = (message) => toast.error(message);
 	handlersRef.current.onSelect = (treePath) => {
+		if (!canSelectFile(treePath)) return;
 		const abs = toAbs(rootPath, treePath);
 		// Skip the reveal-induced echo. The reveal flow programmatically
 		// selects the just-opened file's row, which fires onSelectionChange
