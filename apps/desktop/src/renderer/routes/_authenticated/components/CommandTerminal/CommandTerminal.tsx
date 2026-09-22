@@ -1,4 +1,6 @@
 import "@xterm/xterm/css/xterm.css";
+import { errorMessage } from "@superset/i18n/errors";
+import { toast } from "@superset/ui/sonner";
 import { useEffect, useRef } from "react";
 import {
 	attachToContainer,
@@ -7,6 +9,7 @@ import {
 } from "renderer/lib/terminal/terminal-runtime";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTerminalAppearance } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/hooks/useTerminalAppearance";
+import { installCommandTerminalLinks } from "./utils/installCommandTerminalLinks";
 
 interface CommandTerminalProps {
 	command: string;
@@ -41,6 +44,16 @@ export function CommandTerminal({
 
 		const paneId = `command-terminal-${crypto.randomUUID()}`;
 		const runtime = createRuntime(paneId, appearanceRef.current);
+		const disposeLinks = installCommandTerminalLinks(
+			runtime.terminal,
+			(url) => {
+				void electronTrpcClient.external.openUrl
+					.mutate(url)
+					.catch((error: unknown) => {
+						toast.error(errorMessage(error));
+					});
+			},
+		);
 		const syncSize = () => {
 			void electronTrpcClient.terminal.resize.mutate({
 				paneId,
@@ -130,6 +143,7 @@ export function CommandTerminal({
 			disposed = true;
 			for (const timer of refitTimers) window.clearTimeout(timer);
 			inputDisposable.dispose();
+			disposeLinks();
 			subscription.unsubscribe();
 			void electronTrpcClient.terminal.kill.mutate({ paneId });
 			disposeRuntime(runtime);
