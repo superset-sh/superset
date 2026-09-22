@@ -299,6 +299,24 @@ describe("buildTerminalAgentLaunch", () => {
 		);
 	});
 
+	it("places folder-trust args ahead of the resume args, where a CLI's global flags must sit", () => {
+		const db = createTestDb();
+		seedConfig(db);
+		const launch = buildTerminalAgentLaunch(
+			db,
+			{
+				workspaceId: "11111111-1111-1111-1111-111111111111",
+				agent: "claude",
+				prompt: "",
+				resumeSessionId: "abc-123",
+			},
+			["-c", "projects={}"],
+		);
+		expect(launch.fullCommand).toEndWith(
+			"'claude' '--dangerously-skip-permissions' '-c' 'projects={}' '--resume' 'abc-123'",
+		);
+	});
+
 	it("resumes a previous session with an empty prompt", () => {
 		const db = createTestDb();
 		seedConfig(db);
