@@ -36,7 +36,7 @@ import {
 import {
 	isLiveTerminalSession,
 	registerWorkspaceTerminalRoute,
-	writeFramedInputToSession,
+	sendAgentMessage,
 } from "./terminal/terminal";
 import {
 	SqliteTerminalAgentBindingPersistence,
@@ -238,12 +238,14 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				await api.page.clearWatch.mutate({ id: pageId });
 			},
 		},
-		sendToTerminal: async ({ workspaceId, terminalId, text }) => {
-			const result = await writeFramedInputToSession({
+		sendToTerminal: async ({ workspaceId, terminalId, text, signal }) => {
+			const result = await sendAgentMessage({
 				terminalId,
 				workspaceId,
 				text,
 				submit: true,
+				signal,
+				terminalAgentStore,
 				db,
 				eventBus,
 			});

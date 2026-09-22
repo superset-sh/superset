@@ -14,6 +14,7 @@ import {
 	listLiveTerminalSessions,
 	parseThemeType,
 	renameTerminalSession,
+	sendAgentMessage,
 	sessionHasRunningProcess,
 	snapshotSession,
 	transcriptSession,
@@ -188,11 +189,15 @@ export const terminalRouter = router({
 				}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const result = await writeFramedInputToSession({
-				...input,
-				db: ctx.db,
-				eventBus: ctx.eventBus,
-			});
+			const message = { ...input, db: ctx.db, eventBus: ctx.eventBus };
+			const binding = ctx.terminalAgentStore.get(input.terminalId);
+			const result =
+				binding && binding.endedAt === undefined
+					? await sendAgentMessage({
+							...message,
+							terminalAgentStore: ctx.terminalAgentStore,
+						})
+					: await writeFramedInputToSession(message);
 			if ("error" in result) {
 				throw toTerminalSessionError(result);
 			}

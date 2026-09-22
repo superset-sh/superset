@@ -27,6 +27,8 @@ import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import { createDb, type HostDb } from "../db/index.ts";
 import { projects, workspaces } from "../db/schema.ts";
+import { buildWatchPrompt } from "../page-watch/buildPrompt.ts";
+import { TerminalAgentStore } from "../terminal-agents/store.ts";
 import { DaemonUnavailableError } from "./DaemonClient/index.ts";
 import {
 	disposeDaemonClient,
@@ -37,6 +39,7 @@ import {
 	__resetSessionsForTesting,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
+	sendAgentMessage,
 	snapshotSession,
 	writeFramedInputToSession,
 	writeInputToSession,
@@ -55,6 +58,19 @@ let workspaceId: string;
 let otherWorkspaceId: string;
 let worktreePath: string;
 let otherWorktreePath: string;
+const terminalAgentStore = new TerminalAgentStore();
+
+function bindAgent(terminalId: string) {
+	terminalAgentStore.recordEvent({
+		terminalId,
+		workspaceId,
+		agentId: "claude",
+		launchId: randomUUID(),
+		agentSessionId: randomUUID(),
+		eventType: "Attached",
+		occurredAt: Date.now(),
+	});
+}
 
 before(async () => {
 	fs.mkdirSync(TEST_HOME, { recursive: true });
@@ -386,6 +402,196 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 
 		await disposeSessionAndWait(terminalId, db);
 	});
+
+	test("agent feedback stays paste-framed when replay has lost paste mode", async () => {
+		const terminalId = `e2e-agentpaste-${randomUUID().slice(0, 8)}`;
+		const captureFile = path.join(TEST_HOME, `agentpaste-${terminalId}`);
+		const doneFile = path.join(TEST_HOME, `agentpaste-done-${terminalId}`);
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			initialCommand: `printf '\\033[?2004l'; cat > "${captureFile}"; echo done > "${doneFile}"`,
+		});
+		assert.ok(!("error" in session));
+		if ("error" in session) return;
+		await waitFor(() => fs.existsSync(captureFile), 5000);
+		assert.equal(session.modeTracker.isBracketedPasteActive(), false);
+		bindAgent(terminalId);
+
+		const text =
+			'New comment on your page\nthread: t1\n"Kiet": "Looks good 👍"';
+		const result = await sendAgentMessage({
+			terminalId,
+			workspaceId,
+			text,
+			submit: true,
+			terminalAgentStore,
+			db,
+		});
+		assert.deepEqual(result, { success: true });
+		writeInputToSession({ terminalId, workspaceId, data: "\x04" });
+		await waitFor(() => fs.existsSync(doneFile), 5000);
+		assert.equal(
+			fs.readFileSync(captureFile, "utf8"),
+			`\x1b[200~${text}\x1b[201~\n`,
+		);
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("concurrent pages stay isolated across terminals after adoption without paste-mode history", async () => {
+		const targets = Array.from({ length: 2 }, () => {
+			const terminalId = `e2e-watchburst-${randomUUID().slice(0, 8)}`;
+			return {
+				terminalId,
+				captureFile: path.join(TEST_HOME, `watchburst-${terminalId}`),
+			};
+		});
+		for (const { terminalId, captureFile } of targets) {
+			const session = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				initialCommand: `stty raw -echo; cat > "${captureFile}"`,
+			});
+			assert.ok(!("error" in session));
+			if ("error" in session) return;
+			await waitFor(() => fs.existsSync(captureFile), 5000);
+			assert.equal(session.modeTracker.isBracketedPasteActive(), false);
+			bindAgent(terminalId);
+		}
+		__resetSessionsForTesting();
+		await disposeDaemonClient();
+
+		const prompts = Array.from({ length: 8 }, (_, index) =>
+			buildWatchPrompt({
+				title: `Review ${index}`,
+				slug: `review-${index}`,
+				pageId: `page-${index}`,
+				threads: [
+					{
+						id: `thread-${index}`,
+						anchorKind: "element",
+						anchor: { path: "main > section", tag: "section" },
+						anchorText: "日本語 👍🏽 café",
+						resolved: false,
+						version: 1,
+						comments: [
+							{
+								id: `comment-${index}`,
+								authorKind: "human",
+								authorName: "Kiet",
+								body: "Looks good 👍🏽 日本語 café\n".repeat(300),
+								createdAt: new Date(),
+							},
+						],
+					},
+				],
+			}),
+		);
+		const results = await Promise.all(
+			prompts.map((text, index) => {
+				const target = targets[index % targets.length];
+				assert.ok(target);
+				return sendAgentMessage({
+					terminalId: target.terminalId,
+					workspaceId,
+					text,
+					submit: true,
+					terminalAgentStore,
+					db,
+				});
+			}),
+		);
+		for (const result of results) assert.deepEqual(result, { success: true });
+		for (const [
+			targetIndex,
+			{ terminalId, captureFile },
+		] of targets.entries()) {
+			const expected = prompts
+				.filter((_, index) => index % targets.length === targetIndex)
+				.map((text) => `\x1b[200~${text}\x1b[201~\r`)
+				.join("");
+			await waitFor(
+				() => fs.statSync(captureFile).size >= Buffer.byteLength(expected),
+				5000,
+			);
+			assert.equal(fs.readFileSync(captureFile, "utf8"), expected);
+			await disposeSessionAndWait(terminalId, db);
+		}
+	});
+
+	for (const change of [
+		"cancel",
+		"replace",
+		"session",
+		"end",
+		"progress",
+	] as const) {
+		test(`queued agent delivery revalidates ${change} without poisoning later sends`, async () => {
+			const terminalId = `e2e-cancelled-${randomUUID().slice(0, 8)}`;
+			const captureFile = path.join(TEST_HOME, `cancelled-${terminalId}`);
+			const session = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				initialCommand: `stty raw -echo; cat > "${captureFile}"`,
+			});
+			assert.ok(!("error" in session));
+			if ("error" in session) return;
+			await waitFor(() => fs.existsSync(captureFile), 5000);
+			bindAgent(terminalId);
+			const gate = Promise.withResolvers<void>();
+			session.followUpWriteChain = gate.promise;
+			const controller = new AbortController();
+			const cancelled = sendAgentMessage({
+				terminalId,
+				workspaceId,
+				db,
+				text: "queued message",
+				submit: true,
+				terminalAgentStore,
+				signal: controller.signal,
+			});
+			await waitFor(() => session.followUpWriteChain !== gate.promise, 5000);
+			if (change === "cancel") controller.abort();
+			if (change === "replace") bindAgent(terminalId);
+			if (change === "end") terminalAgentStore.markTerminalDisposed(terminalId);
+			if (change === "session" || change === "progress") {
+				terminalAgentStore.recordEvent({
+					terminalId,
+					workspaceId,
+					eventType: "Stop",
+					occurredAt: Date.now(),
+					...(change === "session" ? { agentSessionId: randomUUID() } : {}),
+				});
+			}
+			gate.resolve();
+			const result = await cancelled;
+			if (change === "progress") assert.deepEqual(result, { success: true });
+			else assert.ok("error" in result);
+			if (change === "end") bindAgent(terminalId);
+			const next = await sendAgentMessage({
+				terminalId,
+				workspaceId,
+				db,
+				text: "next message",
+				submit: true,
+				terminalAgentStore,
+			});
+			assert.deepEqual(next, { success: true });
+			await waitFor(
+				() => fs.readFileSync(captureFile, "utf8").endsWith("\r"),
+				5000,
+			);
+			assert.equal(
+				fs.readFileSync(captureFile, "utf8"),
+				(change === "progress" ? "\x1b[200~queued message\x1b[201~\r" : "") +
+					"\x1b[200~next message\x1b[201~\r",
+			);
+			await disposeSessionAndWait(terminalId, db);
+		});
+	}
 
 	test("submit Enter is a separate write, delayed past the paste burst", async () => {
 		const terminalId = `e2e-enterdelay-${randomUUID().slice(0, 8)}`;
@@ -766,6 +972,7 @@ describe("terminal.send / terminal.snapshot tRPC procedures", () => {
 			isAuthenticated: true,
 			organizationId: TEST_ORG_ID,
 			db,
+			terminalAgentStore,
 		} as unknown as Parameters<typeof appRouter.createCaller>[0]);
 	}
 
@@ -804,6 +1011,51 @@ describe("terminal.send / terminal.snapshot tRPC procedures", () => {
 			fs.readFileSync(captureFile, "utf8"),
 			`\x1b[200~${text}\x1b[201~\r`,
 		);
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("manual agent sends sanitize and stage a complete paste without mode history", async () => {
+		const caller = await makeCaller();
+		const terminalId = `e2e-agent-rpc-${randomUUID().slice(0, 8)}`;
+		const captureFile = path.join(TEST_HOME, `agent-rpc-${terminalId}`);
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			initialCommand: `stty raw -echo; cat > "${captureFile}"`,
+		});
+		assert.ok(!("error" in session));
+		if ("error" in session) return;
+		await waitFor(() => fs.existsSync(captureFile), 5000);
+		bindAgent(terminalId);
+		assert.equal(session.modeTracker.isBracketedPasteActive(), false);
+		await assert.rejects(
+			caller.terminal.send({
+				terminalId,
+				workspaceId: otherWorkspaceId,
+				text: "wrong workspace",
+			}),
+			{ code: "FORBIDDEN" },
+		);
+		const staged = await caller.terminal.send({
+			terminalId,
+			workspaceId,
+			text: "first\r\n\x1b[201~second\t👍\x00",
+			submit: false,
+		});
+		assert.deepEqual(staged, { terminalId, submitted: false });
+		const expected = "\x1b[200~first\nsecond    👍\x1b[201~";
+		await waitFor(
+			() => fs.statSync(captureFile).size >= Buffer.byteLength(expected),
+			5000,
+		);
+		assert.equal(fs.readFileSync(captureFile, "utf8"), expected);
+		await caller.terminal.send({ terminalId, workspaceId, text: "" });
+		await waitFor(
+			() => fs.readFileSync(captureFile, "utf8").endsWith("\r"),
+			5000,
+		);
+		assert.equal(fs.readFileSync(captureFile, "utf8"), `${expected}\r`);
 		await disposeSessionAndWait(terminalId, db);
 	});
 
@@ -898,6 +1150,7 @@ describe("terminal.send / terminal.snapshot tRPC procedures", () => {
 			isAuthenticated: false,
 			organizationId: TEST_ORG_ID,
 			db,
+			terminalAgentStore,
 		} as unknown as Parameters<typeof appRouter.createCaller>[0]);
 
 		await assert.rejects(

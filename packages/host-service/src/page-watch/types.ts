@@ -8,6 +8,7 @@ export interface PageWatchAssignment {
 }
 
 export interface PageWatchEntry extends PageWatchAssignment {
+	abortController: AbortController;
 	assignedAt: number;
 	cursor: number;
 	lastHumanCommentAt: number;

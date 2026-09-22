@@ -5,6 +5,7 @@ import {
 	MAX_CONSECUTIVE_FAILURES,
 	MAX_HOLD_MS,
 	MAX_WATCHERS,
+	type PageWatchDeps,
 	PageWatchManager,
 } from "./page-watch-manager.ts";
 import { MAX_PINGS_PER_THREAD } from "./trigger.ts";
@@ -39,6 +40,7 @@ function harness(
 		alive?: Set<string>;
 		busy?: Set<string>;
 		agents?: Set<string>;
+		sendToTerminal?: PageWatchDeps["sendToTerminal"];
 	} = {},
 ) {
 	const sent: { terminalId: string; text: string }[] = [];
@@ -66,8 +68,15 @@ function harness(
 				clearWatchCalls.push(pageId);
 			},
 		},
-		sendToTerminal: async ({ terminalId, text }) => {
+		sendToTerminal: async ({ terminalId, text, signal }) => {
 			if (sendFails) throw new Error("terminal gone");
+			await options.sendToTerminal?.({
+				workspaceId: "ws-1",
+				terminalId,
+				text,
+				signal,
+			});
+			signal.throwIfAborted();
 			sent.push({ terminalId, text });
 		},
 		isTerminalAlive: (terminalId) => alive.has(terminalId),
@@ -146,6 +155,187 @@ describe("PageWatchManager", () => {
 
 		expect(h.manager.list("ws-1").length).toBe(2);
 		expect(h.sent.length).toBe(2);
+	});
+
+	it("isolates all pages at the watcher cap across multiple agents", async () => {
+		const alive = new Set(["term-0", "term-1", "term-2", "term-3"]);
+		const h = harness({
+			alive,
+			agents: alive,
+			listThreads: async (pageId) => [
+				humanThread(`thread-${pageId}`, T0 + 5000),
+			],
+		});
+		for (let index = 0; index < MAX_WATCHERS; index++) {
+			await h.assign({
+				pageId: `page-${index}`,
+				terminalId: `term-${index % 4}`,
+			});
+		}
+		h.advance(5000);
+		await Promise.all([h.manager.tick(), h.manager.tick(), h.manager.tick()]);
+		expect(h.sent).toHaveLength(MAX_WATCHERS);
+		for (let index = 0; index < MAX_WATCHERS; index++) {
+			const messages = h.sent.filter(({ text }) =>
+				text.includes(`thread: thread-page-${index}\n`),
+			);
+			expect(messages).toHaveLength(1);
+			expect(messages[0]?.terminalId).toBe(`term-${index % 4}`);
+		}
+	});
+
+	it("a stalled page does not delay another agent's feedback", async () => {
+		const gate = Promise.withResolvers<WatchedThread[]>();
+		const delivered = Promise.withResolvers<void>();
+		let commentAt = T0 + 5000;
+		const h = harness({
+			alive: new Set(["term-1", "term-2"]),
+			listThreads: (pageId) =>
+				pageId === "page-1"
+					? gate.promise
+					: Promise.resolve([humanThread("independent", commentAt)]),
+			sendToTerminal: async () => {
+				delivered.resolve();
+			},
+		});
+		await h.assign();
+		await h.assign({ pageId: "page-2", terminalId: "term-2" });
+		h.advance(5000);
+		const polling = h.manager.tick();
+		try {
+			await Promise.race([
+				delivered.promise,
+				new Promise((_, reject) =>
+					setTimeout(
+						() => reject(new Error("unrelated agent blocked by stalled page")),
+						100,
+					),
+				),
+			]);
+			commentAt += 5000;
+			h.advance(5000);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			await h.manager.tick();
+			expect(h.sent.map(({ terminalId }) => terminalId)).toEqual([
+				"term-2",
+				"term-2",
+			]);
+		} finally {
+			gate.resolve([]);
+			await polling;
+		}
+		expect(h.sent[0]?.terminalId).toBe("term-2");
+	});
+
+	it("busy agents retain their own cursors while other agents receive feedback", async () => {
+		const h = harness({
+			alive: new Set(["term-1", "term-2"]),
+			busy: new Set(["term-1"]),
+			listThreads: async (pageId) => [humanThread(pageId, T0 + 5000)],
+		});
+		await h.assign();
+		await h.assign({ pageId: "page-2" });
+		await h.assign({ pageId: "page-3", terminalId: "term-2" });
+		h.advance(5000);
+		await h.manager.tick();
+		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual(["term-2"]);
+		h.busy.clear();
+		await h.manager.tick();
+		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual([
+			"term-2",
+			"term-1",
+			"term-1",
+		]);
+		await h.manager.tick();
+		expect(h.sent).toHaveLength(3);
+	});
+
+	it("one agent's failed delivery retries without duplicating another agent's feedback", async () => {
+		let failing = true;
+		const h = harness({
+			alive: new Set(["term-1", "term-2"]),
+			listThreads: async (pageId) => [humanThread(pageId, T0 + 5000)],
+			sendToTerminal: async ({ terminalId }) => {
+				if (terminalId === "term-1" && failing) throw new Error("send failed");
+			},
+		});
+		await h.assign();
+		await h.assign({ pageId: "page-2", terminalId: "term-2" });
+		h.advance(5000);
+		await h.manager.tick();
+		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual(["term-2"]);
+		failing = false;
+		await h.manager.tick();
+		await h.manager.tick();
+		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual([
+			"term-2",
+			"term-1",
+		]);
+	});
+
+	it("reassignment during a fetch sends only to the new agent", async () => {
+		const gate = Promise.withResolvers<WatchedThread[]>();
+		const h = harness({
+			alive: new Set(["term-1", "term-2"]),
+			listThreads: async () => gate.promise,
+		});
+		await h.assign();
+		h.advance(5000);
+		const polling = h.manager.tick();
+		await h.assign({ terminalId: "term-2" });
+		gate.resolve([humanThread("reassigned", T0 + 5000)]);
+		await polling;
+		expect(h.sent).toEqual([]);
+		await h.manager.tick();
+		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual(["term-2"]);
+	});
+
+	it("reassignment cancels queued delivery to the old agent", async () => {
+		const entered = Promise.withResolvers<void>();
+		const release = Promise.withResolvers<void>();
+		const h = harness({
+			alive: new Set(["term-1", "term-2"]),
+			threads: [humanThread("queued", T0 + 5000)],
+			sendToTerminal: async ({ terminalId }) => {
+				if (terminalId === "term-1") {
+					entered.resolve();
+					await release.promise;
+				}
+			},
+		});
+		await h.assign();
+		h.advance(5000);
+		const polling = h.manager.tick();
+		await entered.promise;
+		await h.assign({ terminalId: "term-2" });
+		release.resolve();
+		await polling;
+		expect(h.sent).toEqual([]);
+		await h.manager.tick();
+		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual(["term-2"]);
+	});
+
+	it("stopping the manager cancels queued feedback from every page", async () => {
+		const entered = Promise.withResolvers<void>();
+		const release = Promise.withResolvers<void>();
+		let queued = 0;
+		const h = harness({
+			threads: [humanThread("queued", T0 + 5000)],
+			sendToTerminal: async () => {
+				if (++queued === 2) entered.resolve();
+				await release.promise;
+			},
+		});
+		await h.assign();
+		await h.assign({ pageId: "page-2" });
+		h.advance(5000);
+		const polling = h.manager.tick();
+		await entered.promise;
+		h.manager.stop();
+		release.resolve();
+		await polling;
+		expect(h.sent).toEqual([]);
+		expect(h.manager.list()).toEqual([]);
 	});
 
 	it("drops every page for a terminal that exits, and clears each cloud row", async () => {

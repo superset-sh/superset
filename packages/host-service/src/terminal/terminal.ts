@@ -11,6 +11,7 @@ import {
 	buildFishPromptCommandString,
 	type ParsedPromptHeredocCommand,
 	parsePromptHeredocCommand,
+	sanitizePromptForPty,
 } from "@superset/shared/agent-prompt-launch";
 import {
 	createScanState,
@@ -44,6 +45,8 @@ import { portManager } from "../ports/port-manager.ts";
 import { issueAttributionToken } from "../terminal-agents/attribution-token.ts";
 import { sweepAgentBindingsAfterDaemonLoss } from "../terminal-agents/daemon-loss-sweep.ts";
 import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
+import type { TerminalAgentStore } from "../terminal-agents/store.ts";
+import type { TerminalAgentBinding } from "../terminal-agents/types.ts";
 import {
 	resolveDefaultAccountEnv,
 	resolveDefaultAccountTerminalEnv,
@@ -1130,27 +1133,74 @@ async function getOrAdoptSession({
 	}
 }
 
-/**
- * Public "send a follow-up to whatever runs in this terminal" path. Frames
- * the text as a bracketed paste when the running program has that mode on,
- * so embedded newlines reach a TUI agent (claude/codex) as literal newlines
- * rather than premature Enter presses.
- */
-export async function writeFramedInputToSession({
-	terminalId,
-	workspaceId,
-	text,
-	submit,
-	db,
-	eventBus,
-}: {
+interface SessionMessageInput {
 	terminalId: string;
 	workspaceId: string;
 	text: string;
 	submit: boolean;
 	db: HostDb;
 	eventBus?: EventBus;
+	signal?: AbortSignal;
+}
+
+interface AgentMessageTarget {
+	store: Pick<TerminalAgentStore, "get">;
+	binding: TerminalAgentBinding;
+}
+
+export function writeFramedInputToSession(input: SessionMessageInput) {
+	return writeSessionMessage(input);
+}
+
+export async function sendAgentMessage({
+	terminalAgentStore,
+	...input
+}: SessionMessageInput & {
+	terminalAgentStore: Pick<TerminalAgentStore, "get">;
 }): Promise<{ success: true } | TerminalSessionError> {
+	const binding = terminalAgentStore.get(input.terminalId);
+	if (!binding || binding.endedAt !== undefined) {
+		return {
+			kind: "SESSION_NOT_ACTIVE",
+			error: "No agent is running in this terminal",
+		};
+	}
+	if (binding.workspaceId !== input.workspaceId) {
+		return {
+			kind: "SESSION_WRONG_WORKSPACE",
+			error: "Agent does not belong to this workspace",
+		};
+	}
+	return writeSessionMessage(input, { store: terminalAgentStore, binding });
+}
+
+function isCurrentAgent({ store, binding }: AgentMessageTarget): boolean {
+	const current = store.get(binding.terminalId);
+	return (
+		current !== undefined &&
+		current.endedAt === undefined &&
+		current.workspaceId === binding.workspaceId &&
+		current.agentId === binding.agentId &&
+		(binding.launchId !== undefined
+			? current.launchId === binding.launchId
+			: current.startedAt === binding.startedAt) &&
+		(binding.agentSessionId === undefined ||
+			current.agentSessionId === binding.agentSessionId)
+	);
+}
+
+async function writeSessionMessage(
+	{
+		terminalId,
+		workspaceId,
+		text,
+		submit,
+		signal,
+		db,
+		eventBus,
+	}: SessionMessageInput,
+	agent?: AgentMessageTarget,
+): Promise<{ success: true } | TerminalSessionError> {
 	const session = await getOrAdoptSession({
 		terminalId,
 		workspaceId,
@@ -1168,12 +1218,20 @@ export async function writeFramedInputToSession({
 	const previous = session.followUpWriteChain ?? Promise.resolve();
 	const task = previous.then(
 		async (): Promise<{ success: true } | TerminalSessionError> => {
+			if (signal?.aborted || (agent && !isCurrentAgent(agent))) {
+				return {
+					kind: "SESSION_NOT_ACTIVE",
+					error: "Terminal input target is no longer current",
+				};
+			}
 			if (session.exited) {
 				return { kind: "SESSION_EXITED", error: "Terminal session has exited" };
 			}
-			const framed = session.modeTracker.isBracketedPasteActive()
-				? `\x1b[200~${text}\x1b[201~`
-				: text;
+			const message = agent ? sanitizePromptForPty(text) : text;
+			const framed =
+				agent || session.modeTracker.isBracketedPasteActive()
+					? `\x1b[200~${message}\x1b[201~`
+					: message;
 			if (!submit) {
 				session.pty.write(framed);
 				return { success: true };

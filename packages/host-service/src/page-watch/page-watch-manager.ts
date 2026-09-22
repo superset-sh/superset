@@ -29,6 +29,7 @@ export interface PageWatchDeps {
 		workspaceId: string;
 		terminalId: string;
 		text: string;
+		signal: AbortSignal;
 	}): Promise<void>;
 	isTerminalAlive(terminalId: string): boolean;
 	isAgentBusy(terminalId: string): boolean;
@@ -45,9 +46,7 @@ export class PageWatchManager {
 	private readonly setIntervalFn: typeof setInterval;
 	private readonly clearIntervalFn: typeof clearInterval;
 	private ticker: ReturnType<typeof setInterval> | null = null;
-	private ticking = false;
-	private tickRequested = false;
-	private abort: AbortController | null = null;
+	private readonly polling = new Set<PageWatchEntry>();
 	private removeTerminalListener: (() => void) | null = null;
 	private eventBus: EventBus | null = null;
 
@@ -74,7 +73,7 @@ export class PageWatchManager {
 			);
 		}
 
-		const existing = this.entries.get(assignment.pageId);
+		let existing = this.entries.get(assignment.pageId);
 		if (!existing && this.entries.size >= MAX_WATCHERS) {
 			throw new Error(
 				`This host is already watching ${MAX_WATCHERS} pages. Stop one before starting another.`,
@@ -83,9 +82,12 @@ export class PageWatchManager {
 
 		await this.deps.api.setWatch(assignment.pageId, assignment.agentId);
 
+		existing = this.entries.get(assignment.pageId);
+		existing?.abortController.abort();
 		const at = this.now();
 		this.entries.set(assignment.pageId, {
 			...assignment,
+			abortController: new AbortController(),
 			assignedAt: existing?.assignedAt ?? at,
 			cursor: existing?.cursor ?? at,
 			lastHumanCommentAt: at,
@@ -102,6 +104,7 @@ export class PageWatchManager {
 	async unwatch(pageId: string): Promise<void> {
 		const entry = this.entries.get(pageId);
 		if (!entry) return;
+		entry.abortController.abort();
 		this.entries.delete(pageId);
 		this.stopTickingIfEmpty();
 		this.notifyChanged(entry.workspaceId);
@@ -142,6 +145,7 @@ export class PageWatchManager {
 		this.removeTerminalListener?.();
 		this.removeTerminalListener = null;
 		this.stopTicking();
+		for (const entry of this.entries.values()) entry.abortController.abort();
 		this.entries.clear();
 		this.eventBus = null;
 	}
@@ -150,6 +154,7 @@ export class PageWatchManager {
 		const dropped: PageWatchEntry[] = [];
 		for (const [pageId, entry] of this.entries) {
 			if (entry.terminalId !== terminalId) continue;
+			entry.abortController.abort();
 			this.entries.delete(pageId);
 			dropped.push(entry);
 		}
@@ -164,7 +169,6 @@ export class PageWatchManager {
 
 	private ensureTicking(): void {
 		if (this.ticker) return;
-		this.abort ??= new AbortController();
 		this.ticker = this.setIntervalFn(() => {
 			void this.tick();
 		}, TICK_INTERVAL_MS);
@@ -176,32 +180,24 @@ export class PageWatchManager {
 	}
 
 	private stopTicking(): void {
-		this.tickRequested = false;
 		if (this.ticker) {
 			this.clearIntervalFn(this.ticker);
 			this.ticker = null;
 		}
-		this.abort?.abort();
-		this.abort = null;
 	}
 
 	async tick(): Promise<void> {
-		if (this.ticking) {
-			this.tickRequested = true;
-			return;
-		}
-		this.ticking = true;
-		try {
-			for (const entry of [...this.entries.values()]) {
-				await this.pollEntry(entry);
-			}
-		} finally {
-			this.ticking = false;
-		}
-
-		if (!this.tickRequested) return;
-		this.tickRequested = false;
-		if (this.entries.size > 0) await this.tick();
+		await Promise.all(
+			[...this.entries.values()].map(async (entry) => {
+				if (this.polling.has(entry)) return;
+				this.polling.add(entry);
+				try {
+					await this.pollEntry(entry);
+				} finally {
+					this.polling.delete(entry);
+				}
+			}),
+		);
 	}
 
 	private isDue(entry: PageWatchEntry, at: number): boolean {
@@ -267,6 +263,7 @@ export class PageWatchManager {
 				await this.deps.sendToTerminal({
 					workspaceId: entry.workspaceId,
 					terminalId: entry.terminalId,
+					signal: entry.abortController.signal,
 					text: buildWatchPrompt({
 						title: entry.title,
 						slug: entry.slug,
