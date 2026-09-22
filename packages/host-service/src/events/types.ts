@@ -32,6 +32,7 @@ export interface AgentLifecycleMessage {
 	// Absent when the hook ran without `SUPERSET_AGENT_ID` set (legacy shells
 	// or third-party hook configs that bypass our wrappers).
 	agent?: AgentIdentity;
+	preview?: string;
 	occurredAt: number;
 }
 
@@ -47,15 +48,34 @@ export interface AgentBindingsChangedMessage {
 	occurredAt: number;
 }
 
-export interface TerminalLifecycleMessage {
+interface TerminalLifecycleBase {
 	type: "terminal:lifecycle";
 	workspaceId: string;
 	terminalId: string;
-	eventType: "exit";
-	exitCode: number;
-	signal: number;
 	occurredAt: number;
 }
+
+export type TerminalLifecycleMessage =
+	| (TerminalLifecycleBase & {
+			eventType: "exit";
+			exitCode: number;
+			signal: number;
+	  })
+	/**
+	 * The agent session that was running in `terminalId` now lives in
+	 * `resumedTerminalId`. Panes still pointed at the dead terminal follow
+	 * it there instead of showing an exited shell.
+	 */
+	| (TerminalLifecycleBase & {
+			eventType: "resumed";
+			resumedTerminalId: string;
+			label: string;
+	  });
+
+/** `Omit` that keeps a union a union instead of collapsing it. */
+export type DistributiveOmit<T, K extends keyof T> = T extends unknown
+	? Omit<T, K>
+	: never;
 
 export interface PortChangedMessage {
 	type: "port:changed";
@@ -77,7 +97,7 @@ export interface WorkspaceSnapshot {
 	projectId: string | null;
 	name: string;
 	branch: string;
-	type: "main" | "worktree" | "session";
+	type: "local" | "worktree" | "session";
 	worktreePath: string;
 	taskId: string | null;
 	createdByUserId: string | null;

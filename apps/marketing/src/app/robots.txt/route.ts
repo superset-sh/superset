@@ -26,7 +26,6 @@ User-Agent: *
 Allow: /
 Allow: /api/llms.txt
 Disallow: /api/
-Disallow: /_next/
 
 # AI assistants and AI search crawlers: explicitly welcome
 ${WELCOME_AI_AGENTS.map((agent) => `User-Agent: ${agent}\nAllow: /`).join("\n\n")}
@@ -42,16 +41,18 @@ Disallow: /
 Content-Signal: search=yes, ai-input=yes, ai-train=yes
 
 Sitemap: ${baseUrl}/sitemap.xml
-
-# Agent discovery
-Agentmap: ${baseUrl}/.well-known/ai-catalog.json
-schemamap: ${baseUrl}/schemamap.xml
 `;
 
 	return new Response(content, {
 		headers: {
 			"Content-Type": "text/plain; charset=utf-8",
 			"Cache-Control": "public, max-age=3600, s-maxage=3600",
+			// Discovery links are HTTP metadata, not robots.txt directives.
+			// Google reports custom Agentmap/schemamap lines as syntax errors.
+			Link: [
+				`<${baseUrl}/.well-known/ai-catalog.json>; rel="describedby"; type="application/json"`,
+				`<${baseUrl}/schemamap.xml>; rel="describedby"; type="application/xml"`,
+			].join(", "),
 		},
 	});
 }

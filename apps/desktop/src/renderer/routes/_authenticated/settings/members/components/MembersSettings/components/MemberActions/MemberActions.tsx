@@ -4,7 +4,6 @@ import {
 	getAvailableRoleChanges,
 	getRoleLevel,
 	type OrganizationRole,
-	organizationRoleName,
 } from "@superset/shared/auth";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
@@ -25,6 +24,7 @@ import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { organizationRoleName } from "renderer/lib/organizationRoleName";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { TeamMember } from "../../../../types";
 

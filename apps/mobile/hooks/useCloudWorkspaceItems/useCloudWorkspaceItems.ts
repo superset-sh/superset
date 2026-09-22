@@ -10,7 +10,6 @@ import {
 	type HostWorkspaceRow,
 	type HostWorkspacesCacheOps,
 } from "@/hooks/useHostWorkspaces";
-import { type SandboxTarget, useSandboxAccess } from "@/hooks/useSandboxAccess";
 import { getSandboxAccess } from "@/lib/sandbox-access";
 
 export type CloudWorkspaceStatus = CloudWorkspaceRow["status"];
@@ -27,7 +26,7 @@ export interface CloudWorkspaceItem extends HostWorkspaceItem {
  * Two fields are invented: `worktreeExists: true` keeps the list from
  * filtering the row as a stale shell, and `worktreePath: ""` satisfies the
  * shape — nothing reads a path off a list row. `type` is not invented: the
- * sandbox self-seeds its workspace as `main`. `hostReachable` is false so
+ * sandbox self-seeds its workspace as `local`. `hostReachable` is false so
  * decoration that needs the host (diff stats) waits for the workspace to open.
  */
 function itemFromCloudRow(cloud: CloudWorkspaceRow): CloudWorkspaceItem {
@@ -39,7 +38,7 @@ function itemFromCloudRow(cloud: CloudWorkspaceRow): CloudWorkspaceItem {
 		hostId: cloud.id,
 		name: cloud.name,
 		branch: cloud.branch,
-		type: "main",
+		type: "local",
 		createdByUserId: cloud.createdByUserId ?? null,
 		taskId: null,
 		tags: [],
@@ -59,17 +58,19 @@ function itemFromCloudRow(cloud: CloudWorkspaceRow): CloudWorkspaceItem {
 
 export interface CloudWorkspaceItemsValue {
 	items: CloudWorkspaceItem[];
-	targets: SandboxTarget[];
+	/** Resolves only sandboxes this session has opened; rows never address one. */
 	cache: HostWorkspacesCacheOps;
-	/** True once the cloud list answered and every ready sandbox was addressed. */
+	/** True once the cloud list answered. */
 	isReady: boolean;
 }
 
-/** Cloud workspaces as home-list rows. Addresses are brokered via the API, never the sandbox. */
+/**
+ * Cloud workspaces as home-list rows. Nothing here addresses a sandbox:
+ * addressing wakes it, so only the workspace screen does.
+ */
 export function useCloudWorkspaceItems(): CloudWorkspaceItemsValue {
 	const queryClient = useQueryClient();
-	const { workspaces: cloudRows, isReady: listReady } = useCloudWorkspaces();
-	const { targets, isReady: accessReady } = useSandboxAccess(cloudRows);
+	const { workspaces: cloudRows, isReady } = useCloudWorkspaces();
 
 	const items = useMemo<CloudWorkspaceItem[]>(
 		() => cloudRows.map((cloud) => itemFromCloudRow(cloud)),
@@ -106,10 +107,5 @@ export function useCloudWorkspaceItems(): CloudWorkspaceItemsValue {
 		};
 	}, [queryClient]);
 
-	return {
-		items,
-		targets,
-		cache,
-		isReady: listReady && accessReady,
-	};
+	return { items, cache, isReady };
 }

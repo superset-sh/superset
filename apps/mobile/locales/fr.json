@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"NSSpeechRecognitionUsageDescription": "Superset utilise la reconnaissance vocale pour convertir votre voix en texte.",
+		"NSPhotoLibraryUsageDescription": "Superset a besoin de votre photothèque pour joindre des images aux messages.",
+		"NSCameraUsageDescription": "Superset utilise l’appareil photo pour joindre des photos aux messages.",
+		"NSMicrophoneUsageDescription": "Superset utilise le microphone pour dicter des messages."
+	}
+}

@@ -1,6 +1,6 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useFeatureFlag } from "posthog-react-native";
-import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import {
 	useWorkspacesFilterStore,
 	type WorkspaceScope,
@@ -26,7 +26,7 @@ import {
 export function useWorkspaceScope(): WorkspaceScope {
 	const scope = useWorkspacesFilterStore((store) => store.scope);
 	const cloudEnabled = useCloudScopeEnabled();
-	const hosts = useOrgHostsQuery();
+	const { query: hosts } = useOrgHosts();
 	if (!cloudEnabled) {
 		return "host";
 	}

@@ -12,6 +12,16 @@ export interface WorkerTaskRequestMessage {
 	payload: unknown;
 }
 
+/**
+ * The caller has given up on the task (timeout, abort). The worker kills what
+ * the task spawned and still reports a result for it, which is how the runner
+ * knows the thread is free again.
+ */
+export interface WorkerTaskCancelMessage {
+	kind: "cancel";
+	taskId: string;
+}
+
 export type WorkerTaskResponseMessage =
 	| {
 			kind: "result";

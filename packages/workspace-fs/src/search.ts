@@ -147,13 +147,36 @@ export interface SearchContentOptions {
 const SEARCH_INDEX_CACHE_MAX = 12;
 const SEARCH_INDEX_CACHE_TTL_MS = 30 * 60_000;
 
+const UNTRACKED_ROOT_SCAN_DEPTH = 8;
+const MAX_SEARCH_INDEX_BUILD_RESTARTS = 3;
+/**
+ * Entries per index. A root past this is truncated rather than walked to
+ * the end: the walk is what OOMs host-service on a huge tree, and a search
+ * over the first 200k paths is still useful where no index at all is not.
+ */
+export const MAX_SEARCH_INDEX_ENTRIES = 200_000;
+export const MAX_DIRECTORY_PATCH_EVENTS = 8;
+const truncatedRootsLogged = new Set<string>();
+
+export class SearchIndexBuildAborted extends Error {
+	constructor() {
+		super("Search index build was superseded");
+		this.name = "SearchIndexBuildAborted";
+	}
+}
+
 interface CachedIndex {
 	items: SearchIndexEntry[];
 	lastAccessedAt: number;
 }
 
+interface PendingBuild {
+	items: Promise<SearchIndexEntry[]>;
+	abort: AbortController;
+}
+
 const searchIndexCache = new Map<string, CachedIndex>();
-const searchIndexBuilds = new Map<string, Promise<SearchIndexEntry[]>>();
+const searchIndexBuilds = new Map<string, PendingBuild>();
 
 function evictLruSearchIndexEntries(): void {
 	// Map iteration is insertion-order; re-inserting on hit moves an entry to
@@ -314,12 +337,25 @@ function matchesPathFilters(
 	return true;
 }
 
-async function buildSearchIndex({
-	rootPath,
-	includeHidden,
-}: SearchIndexKeyOptions): Promise<SearchIndexEntry[]> {
+export async function isGitRepositoryRoot(rootPath: string): Promise<boolean> {
+	try {
+		await fs.stat(path.join(rootPath, ".git"));
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+async function buildSearchIndex(
+	{ rootPath, includeHidden }: SearchIndexKeyOptions,
+	signal?: AbortSignal,
+): Promise<SearchIndexEntry[]> {
 	const normalizedRootPath = normalizeAbsolutePath(rootPath);
-	const entries = await fg("**/*", {
+	const deep = (await isGitRepositoryRoot(normalizedRootPath))
+		? Number.POSITIVE_INFINITY
+		: UNTRACKED_ROOT_SCAN_DEPTH;
+
+	const stream = fg.stream("**/*", {
 		cwd: normalizedRootPath,
 		onlyFiles: true,
 		dot: includeHidden,
@@ -327,11 +363,60 @@ async function buildSearchIndex({
 		unique: true,
 		suppressErrors: true,
 		ignore: DEFAULT_IGNORE_PATTERNS,
+		deep,
 	});
 
-	return entries.map((relativePath) =>
-		createSearchIndexEntry(normalizedRootPath, relativePath),
-	);
+	const destroy = () => {
+		(stream as unknown as { destroy: () => void }).destroy();
+	};
+	signal?.addEventListener("abort", destroy, { once: true });
+
+	let collected: { items: SearchIndexEntry[]; truncated: boolean };
+	try {
+		collected = await collectSearchIndexEntries(stream, normalizedRootPath, {
+			maxEntries: MAX_SEARCH_INDEX_ENTRIES,
+			signal,
+			stop: destroy,
+		});
+	} catch (error) {
+		if (signal?.aborted) throw new SearchIndexBuildAborted();
+		throw error;
+	} finally {
+		signal?.removeEventListener("abort", destroy);
+	}
+
+	if (signal?.aborted) throw new SearchIndexBuildAborted();
+	if (collected.truncated && !truncatedRootsLogged.has(normalizedRootPath)) {
+		truncatedRootsLogged.add(normalizedRootPath);
+		console.warn(
+			`[workspace-fs] search index truncated at ${MAX_SEARCH_INDEX_ENTRIES} entries: ${normalizedRootPath}`,
+		);
+	}
+	return collected.items;
+}
+
+/**
+ * Drain a directory walk into index entries, stopping at `maxEntries`.
+ * Leaving the loop early releases the iterator; `stop` then tears the walk
+ * down so it cannot keep reading the tree in the background.
+ */
+export async function collectSearchIndexEntries(
+	entries: AsyncIterable<unknown>,
+	rootPath: string,
+	options: { maxEntries: number; signal?: AbortSignal; stop?: () => void },
+): Promise<{ items: SearchIndexEntry[]; truncated: boolean }> {
+	const items: SearchIndexEntry[] = [];
+	let truncated = false;
+	for await (const entry of entries) {
+		if (options.signal?.aborted) throw new SearchIndexBuildAborted();
+		if (items.length >= options.maxEntries) {
+			truncated = true;
+			break;
+		}
+		items.push(createSearchIndexEntry(rootPath, String(entry)));
+	}
+	if (truncated) options.stop?.();
+	return { items, truncated };
 }
 
 export async function getSearchIndex(
@@ -339,30 +424,54 @@ export async function getSearchIndex(
 ): Promise<SearchIndexEntry[]> {
 	const cacheKey = getSearchCacheKey(options);
 
-	const cached = searchIndexCache.get(cacheKey);
-	if (cached) {
-		// TTL is the freshness contract — bypassing it on hits would let a hot
-		// key serve indefinitely-stale data. Memory is already bounded by LRU.
-		searchIndexCache.delete(cacheKey);
-		if (Date.now() - cached.lastAccessedAt <= SEARCH_INDEX_CACHE_TTL_MS) {
-			cached.lastAccessedAt = Date.now();
-			searchIndexCache.set(cacheKey, cached); // re-insert at MRU position
-			return cached.items;
+	for (let attempt = 0; ; attempt++) {
+		const cached = searchIndexCache.get(cacheKey);
+		if (cached) {
+			// TTL is the freshness contract — bypassing it on hits would let a hot
+			// key serve indefinitely-stale data. Memory is already bounded by LRU.
+			searchIndexCache.delete(cacheKey);
+			if (Date.now() - cached.lastAccessedAt <= SEARCH_INDEX_CACHE_TTL_MS) {
+				cached.lastAccessedAt = Date.now();
+				searchIndexCache.set(cacheKey, cached); // re-insert at MRU position
+				return cached.items;
+			}
+		}
+
+		try {
+			const inFlight =
+				attempt < MAX_SEARCH_INDEX_BUILD_RESTARTS
+					? searchIndexBuilds.get(cacheKey)
+					: undefined;
+			if (inFlight) return await inFlight.items;
+			return await startSearchIndexBuild(options, cacheKey, attempt);
+		} catch (error) {
+			if (error instanceof SearchIndexBuildAborted) continue;
+			throw error;
 		}
 	}
+}
 
-	const inFlight = searchIndexBuilds.get(cacheKey);
-	if (inFlight) {
-		return await inFlight;
-	}
-
-	const buildPromise = buildSearchIndex(options)
+function startSearchIndexBuild(
+	options: SearchIndexKeyOptions,
+	cacheKey: string,
+	attempt: number,
+): Promise<SearchIndexEntry[]> {
+	const abort = new AbortController();
+	const signal =
+		attempt >= MAX_SEARCH_INDEX_BUILD_RESTARTS ? undefined : abort.signal;
+	const buildPromise = buildSearchIndex(options, signal)
 		.then((items) => {
 			// Cache only if this build is still current. Invalidation (FSEvents
 			// overflow, root recovery, watcher patches with no cached index)
-			// deletes the builds entry to cancel us — caching anyway would
+			// aborts and drops the builds entry — caching anyway would
 			// resurrect an index that predates the events that invalidated it.
-			if (searchIndexBuilds.get(cacheKey) === buildPromise) {
+			if (attempt > 0) {
+				if (searchIndexBuilds.get(cacheKey)?.items === buildPromise) {
+					searchIndexBuilds.delete(cacheKey);
+				}
+				return items;
+			}
+			if (searchIndexBuilds.get(cacheKey)?.items === buildPromise) {
 				evictLruSearchIndexEntries();
 				searchIndexCache.set(cacheKey, {
 					items,
@@ -373,14 +482,14 @@ export async function getSearchIndex(
 			return items;
 		})
 		.catch((error) => {
-			if (searchIndexBuilds.get(cacheKey) === buildPromise) {
+			if (searchIndexBuilds.get(cacheKey)?.items === buildPromise) {
 				searchIndexBuilds.delete(cacheKey);
 			}
 			throw error;
 		});
-	searchIndexBuilds.set(cacheKey, buildPromise);
+	searchIndexBuilds.set(cacheKey, { items: buildPromise, abort });
 
-	return await buildPromise;
+	return buildPromise;
 }
 
 function safeSearchLimit(limit: number | undefined): number {
@@ -696,17 +805,50 @@ function shouldIndexRelativePath(
 	return !defaultIgnoreMatchers.some((matcher) => matcher.test(normalizedPath));
 }
 
-function applySearchPatchEvent({
-	itemsByPath,
-	rootPath,
-	includeHidden,
-	event,
-}: {
+interface PatchContext {
 	itemsByPath: Map<string, SearchIndexEntry>;
 	rootPath: string;
 	includeHidden: boolean;
-	event: SearchPatchEvent;
-}): void {
+	maxEntries: number;
+}
+
+/**
+ * Insert or replace one entry, refusing a brand-new key once the index is
+ * at its cap. Existing keys always update, so a truncated index tracks
+ * edits, deletes and renames without growing back past the limit.
+ */
+function setIndexEntry(
+	{ itemsByPath, rootPath, maxEntries }: PatchContext,
+	absolutePath: string,
+	relativePath: string,
+): void {
+	if (!itemsByPath.has(absolutePath) && itemsByPath.size >= maxEntries) {
+		return;
+	}
+	itemsByPath.set(absolutePath, createSearchIndexEntry(rootPath, relativePath));
+}
+
+/**
+ * Apply watcher events to one index. Exported for tests; production goes
+ * through `patchSearchIndexesForRoot` with `MAX_SEARCH_INDEX_ENTRIES`.
+ */
+export function applySearchPatchEvents(
+	context: PatchContext,
+	events: readonly SearchPatchEvent[],
+): void {
+	for (const event of events) applySearchPatchEvent(context, event);
+}
+
+function applySearchPatchEvent(
+	context: PatchContext,
+	event: SearchPatchEvent,
+): void {
+	const { itemsByPath, rootPath, includeHidden } = context;
+	if (event.isDirectory) {
+		applyDirectoryPatchEvent(context, event);
+		return;
+	}
+
 	if (event.kind === "rename" && event.oldAbsolutePath) {
 		itemsByPath.delete(normalizeAbsolutePath(event.oldAbsolutePath));
 		const nextRelativePath = toRelativePath(rootPath, event.absolutePath);
@@ -717,10 +859,10 @@ function applySearchPatchEvent({
 			return;
 		}
 
-		const nextAbsolutePath = normalizeAbsolutePath(event.absolutePath);
-		itemsByPath.set(
-			nextAbsolutePath,
-			createSearchIndexEntry(rootPath, nextRelativePath),
+		setIndexEntry(
+			context,
+			normalizeAbsolutePath(event.absolutePath),
+			nextRelativePath,
 		);
 		return;
 	}
@@ -737,13 +879,21 @@ function applySearchPatchEvent({
 		return;
 	}
 
-	itemsByPath.set(absolutePath, createSearchIndexEntry(rootPath, relativePath));
+	setIndexEntry(context, absolutePath, relativePath);
 }
 
 export function invalidateSearchIndex(options: SearchIndexKeyOptions): void {
 	const cacheKey = getSearchCacheKey(options);
 	searchIndexCache.delete(cacheKey);
+	abortSearchIndexBuild(cacheKey);
+}
+
+function abortSearchIndexBuild(cacheKey: string): void {
+	const pending = searchIndexBuilds.get(cacheKey);
+	if (!pending) return;
 	searchIndexBuilds.delete(cacheKey);
+	pending.abort.abort();
+	pending.items.catch(() => {});
 }
 
 export function invalidateSearchIndexesForRoot(rootPath: string): void {
@@ -754,7 +904,58 @@ export function invalidateSearchIndexesForRoot(rootPath: string): void {
 
 export function invalidateAllSearchIndexes(): void {
 	searchIndexCache.clear();
-	searchIndexBuilds.clear();
+	for (const cacheKey of [...searchIndexBuilds.keys()]) {
+		abortSearchIndexBuild(cacheKey);
+	}
+}
+
+function forcesFullRebuild(event: SearchPatchEvent): boolean {
+	if (!event.isDirectory) return false;
+	if (event.kind === "delete") return false;
+	if (event.kind === "rename" && event.oldAbsolutePath !== undefined) {
+		return false;
+	}
+	return true;
+}
+
+function applyDirectoryPatchEvent(
+	context: PatchContext,
+	event: SearchPatchEvent,
+): void {
+	const { itemsByPath, rootPath, includeHidden } = context;
+	if (event.kind === "delete") {
+		removeIndexedSubtree(
+			itemsByPath,
+			normalizeAbsolutePath(event.absolutePath),
+		);
+		return;
+	}
+
+	if (event.kind !== "rename" || event.oldAbsolutePath === undefined) return;
+
+	const from = normalizeAbsolutePath(event.oldAbsolutePath);
+	const to = normalizeAbsolutePath(event.absolutePath);
+	const moved = removeIndexedSubtree(itemsByPath, from);
+
+	for (const absolutePath of moved) {
+		const nextAbsolutePath = `${to}${absolutePath.slice(from.length)}`;
+		const nextRelativePath = toRelativePath(rootPath, nextAbsolutePath);
+		if (!shouldIndexRelativePath(nextRelativePath, includeHidden)) continue;
+		setIndexEntry(context, nextAbsolutePath, nextRelativePath);
+	}
+}
+
+function removeIndexedSubtree(
+	itemsByPath: Map<string, SearchIndexEntry>,
+	directoryPath: string,
+): string[] {
+	const prefix = `${directoryPath}${path.sep}`;
+	const removed: string[] = [];
+	for (const absolutePath of itemsByPath.keys()) {
+		if (absolutePath.startsWith(prefix)) removed.push(absolutePath);
+	}
+	for (const absolutePath of removed) itemsByPath.delete(absolutePath);
+	return removed;
 }
 
 export function patchSearchIndexesForRoot(
@@ -765,7 +966,35 @@ export function patchSearchIndexesForRoot(
 		return;
 	}
 
-	if (events.some((event) => event.isDirectory)) {
+	// Each directory event scans every key of every cached index; a batch
+	// from `rm -rf` or a branch switch is cheaper to rebuild than to patch.
+	if (
+		events.some((event) => {
+			if (forcesFullRebuild(event)) return true;
+			if (
+				!event.isDirectory ||
+				event.kind !== "rename" ||
+				!event.oldAbsolutePath
+			)
+				return false;
+			const oldAbsolutePath = event.oldAbsolutePath;
+			// An excluded source has no cached children to re-key. Rebuild if
+			// the destination changes eligibility for either cached variant.
+			return [true, false].some(
+				(includeHidden) =>
+					shouldIndexRelativePath(
+						`${toRelativePath(rootPath, oldAbsolutePath)}/file`,
+						includeHidden,
+					) !==
+					shouldIndexRelativePath(
+						`${toRelativePath(rootPath, event.absolutePath)}/file`,
+						includeHidden,
+					),
+			);
+		}) ||
+		events.filter((event) => event.isDirectory).length >
+			MAX_DIRECTORY_PATCH_EVENTS
+	) {
 		invalidateSearchIndexesForRoot(rootPath);
 		return;
 	}
@@ -780,21 +1009,22 @@ export function patchSearchIndexesForRoot(
 		const cached = searchIndexCache.get(cacheKey);
 		if (!cached) {
 			// No cached index — also cancel any in-flight build since it'll be stale
-			searchIndexBuilds.delete(cacheKey);
+			abortSearchIndexBuild(cacheKey);
 			continue;
 		}
 
 		const nextItemsByPath = new Map(
 			cached.items.map((item) => [item.absolutePath, item]),
 		);
-		for (const event of events) {
-			applySearchPatchEvent({
+		applySearchPatchEvents(
+			{
 				itemsByPath: nextItemsByPath,
 				rootPath: normalizedRootPath,
 				includeHidden,
-				event,
-			});
-		}
+				maxEntries: MAX_SEARCH_INDEX_ENTRIES,
+			},
+			events,
+		);
 
 		// Patches imply the worktree is alive — bump to MRU and refresh access time.
 		searchIndexCache.delete(cacheKey);

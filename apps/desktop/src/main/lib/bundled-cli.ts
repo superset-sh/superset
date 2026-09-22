@@ -43,19 +43,40 @@ function quoteCmdLiteral(value: string): string {
 	return `"${value.replaceAll('"', '""')}"`;
 }
 
+/**
+ * A dev build talks to a dev stack, and the binary defaults to production, so
+ * the addresses travel in the shim rather than being compiled into the CLI.
+ */
+function devStackAddresses(): Array<[string, string]> {
+	if (app.isPackaged) return [];
+	const api = process.env.NEXT_PUBLIC_API_URL;
+	const web = process.env.NEXT_PUBLIC_WEB_URL;
+	return [
+		...(api ? ([["SUPERSET_API_URL", api]] as Array<[string, string]>) : []),
+		...(web ? ([["SUPERSET_WEB_URL", web]] as Array<[string, string]>) : []),
+	];
+}
+
 export function buildBundledCliShim(
 	bundledCliPath: string,
 	platform: NodeJS.Platform = process.platform,
 ): string {
+	const addresses = devStackAddresses();
 	if (platform === "win32") {
-		return `@echo off\r\nrem ${BUNDLED_CLI_SHIM_MARKER}\r\n${quoteCmdLiteral(
+		const sets = addresses
+			.map(([key, value]) => `set ${key}=${value}\r\n`)
+			.join("");
+		return `@echo off\r\nrem ${BUNDLED_CLI_SHIM_MARKER}\r\n${sets}${quoteCmdLiteral(
 			bundledCliPath,
 		)} %*\r\n`;
 	}
 
+	const exports = addresses
+		.map(([key, value]) => `export ${key}=${quoteShellLiteral(value)}\n`)
+		.join("");
 	return `#!/bin/sh
 ${BUNDLED_CLI_SHIM_MARKER}
-exec ${quoteShellLiteral(bundledCliPath)} "$@"
+${exports}exec ${quoteShellLiteral(bundledCliPath)} "$@"
 `;
 }
 

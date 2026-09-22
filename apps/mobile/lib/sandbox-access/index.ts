@@ -5,5 +5,6 @@ export {
 	isSandboxHost,
 	pruneSandboxAccess,
 	type SandboxAccess,
-	sandboxPreviewToken,
+	sandboxToken,
+	wakeSandboxAccess,
 } from "./sandbox-access";

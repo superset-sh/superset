@@ -1,6 +1,6 @@
 import "server-only";
+import { githubRepoSlug } from "@superset/shared/github-stars";
 import { env } from "@/env";
-import { getGitHubRepoSlug } from "@/lib/github";
 import {
 	type ReleaseAssetInput,
 	type ReleasePlatform,
@@ -39,7 +39,7 @@ interface GitHubRelease {
 // list and the page falls back to the always-current `/releases/latest` links
 // rather than rendering a broken catalog.
 export async function getDesktopReleases(): Promise<DesktopRelease[]> {
-	const slug = getGitHubRepoSlug();
+	const slug = githubRepoSlug();
 	const headers: Record<string, string> = {
 		Accept: "application/vnd.github+json",
 	};

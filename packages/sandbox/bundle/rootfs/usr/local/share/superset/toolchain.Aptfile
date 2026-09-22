@@ -1,0 +1,30 @@
+# The toolchain a project might need: compilers and headers, Python, a JDK,
+# the usual shell tools. Docker, Go and the GitHub CLI come from their
+# vendors (image.ts), since Debian's lag by years.
+build-essential
+pkg-config
+libx11-dev
+libxkbfile-dev
+libsecret-1-dev
+clang
+python3
+python3-pip
+python3-venv
+pipx
+default-jdk
+universal-ctags
+gnupg
+lsb-release
+iptables
+fuse-overlayfs
+yq
+xvfb
+emacs-nox
+nano
+htop
+lsof
+net-tools
+man-db
+tmux
+pigz
+oathtool

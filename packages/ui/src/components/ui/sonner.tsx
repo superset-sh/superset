@@ -15,6 +15,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
 	return (
 		<Sonner
+			closeButton
 			theme={theme as ToasterProps["theme"]}
 			className="toaster group"
 			icons={{
@@ -32,6 +33,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
 					overflow: "hidden",
 				},
 				classNames: {
+					toast: "group/toast data-[styled=true]:pe-10!",
+					closeButton:
+						"start-auto! end-2! top-2! transform-none! [@media(hover:hover)]:opacity-0 group-hover/toast:opacity-100! group-focus-within/toast:opacity-100!",
 					description: "overflow-y-auto",
 				},
 			}}

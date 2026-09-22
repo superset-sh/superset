@@ -491,7 +491,7 @@ export async function installPlugin(
 		if (fs.existsSync(manifestSrc)) {
 			fs.copyFileSync(manifestSrc, path.join(target, "plugin.json"));
 		}
-		for (const item of ["skills", "server"]) {
+		for (const item of ["skills"]) {
 			const src = path.join(dir, item);
 			if (fs.existsSync(src)) copyTree(src, path.join(target, item));
 		}

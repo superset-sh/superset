@@ -5,25 +5,25 @@ import {
 	isDevAppProfileDirName,
 	isProfileLockHeld,
 	resolveAppDataDir,
+	workspaceDevAppProfileDirName,
 } from "@superset/shared/dev-app-profile";
 
 /**
  * Remove the desktop dev app profile this workspace minted, if any.
  *
- * A dev build renames itself `Superset (<workspace name>)`, which moves the
- * app's user-data directory and so gives every workspace its own Chromium
- * profile — hundreds of megabytes each, and nothing removed them when the
- * workspace went away. Packaged builds never rename themselves, so on a
- * machine that only runs installed Superset there is simply nothing to find.
+ * ID-based profiles are independent of the display name. Name-only calls
+ * support cleanup of legacy profiles after checking for shared ownership.
  *
  * Best-effort by contract: everything here is swallowed, because nothing about
  * reclaiming disk may fail a workspace delete.
  */
 export async function removeDevAppProfile({
 	workspaceName,
+	workspaceId,
 	appDataDir = resolveAppDataDir(),
 }: {
-	workspaceName: string;
+	workspaceName?: string;
+	workspaceId?: string;
 	/**
 	 * Defaults to the real `appData` path, so a test that drives a delete with
 	 * a plausible workspace name would reap a developer's actual profile.
@@ -36,9 +36,11 @@ export async function removeDevAppProfile({
 		// backfilled carry "" (and older callers, none), which would resolve to
 		// the harmless-looking `Superset ()` — a profile no workspace minted.
 		const name = typeof workspaceName === "string" ? workspaceName.trim() : "";
-		if (!name) return;
+		if (!workspaceId?.trim() && !name) return;
 
-		const dirName = devAppProfileDirName(name);
+		const dirName = workspaceId?.trim()
+			? workspaceDevAppProfileDirName({ workspaceId, appPath: "" })
+			: devAppProfileDirName(name);
 		// Guards against a name with a path separator escaping the profiles
 		// directory, and against ever naming an installed build's profile.
 		if (!isDevAppProfileDirName(dirName)) return;
@@ -58,7 +60,7 @@ export async function removeDevAppProfile({
 	} catch (error) {
 		console.warn(
 			"[teardown] Failed to remove dev app profile for workspace",
-			workspaceName,
+			workspaceId ?? workspaceName,
 			error,
 		);
 	}

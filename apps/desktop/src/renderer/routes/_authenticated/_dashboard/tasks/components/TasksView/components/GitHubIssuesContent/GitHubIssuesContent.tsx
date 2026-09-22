@@ -7,6 +7,7 @@ import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { LuMinus, LuPlus, LuRefreshCw } from "react-icons/lu";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { LoadMoreSentinel } from "renderer/routes/_authenticated/_dashboard/components/LoadMoreSentinel";
 import { serializeProjectFilters } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
@@ -16,7 +17,6 @@ import {
 	type LinkedIssue,
 	useNewWorkspaceDraftStore,
 } from "renderer/stores/new-workspace-draft";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 export interface SelectedIssue {
 	issueNumber: number;
@@ -61,7 +61,7 @@ export function GitHubIssuesContent({
 	const updateDraft = useNewWorkspaceDraftStore((s) => s.updateDraft);
 	const selectProject = useNewWorkspaceDraftStore((s) => s.selectProject);
 	const resetDraft = useNewWorkspaceDraftStore((s) => s.resetDraft);
-	const openModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 
 	const {
 		rows: issues,
@@ -153,7 +153,7 @@ export function GitHubIssuesContent({
 		resetDraft();
 		selectProject(issue.projectId);
 		updateDraft({ hostId: issue.hostId, linkedIssues: [linkedIssue] });
-		openModal(issue.projectId);
+		openNewWorkspace(issue.projectId);
 	};
 
 	const handleOpenUrl = (url: string) => {

@@ -111,6 +111,11 @@ final class ComposerOverlayController {
       controller.view.trailingAnchor.constraint(equalTo: passthrough.trailingAnchor),
     ])
     controller.didMove(toParent: parent)
+
+    // Place it before anything is allowed to animate, then settle on the next
+    // turn so the props React Native delivered at mount land unanimated.
+    parent.view.layoutIfNeeded()
+    DispatchQueue.main.async { [weak self] in self?.model.settle() }
   }
 
   func detach() {
@@ -121,5 +126,7 @@ final class ComposerOverlayController {
     controller.removeFromParent()
     hosting = nil
     container = nil
+    // Navigating back re-attaches: that placement is an appearance too.
+    model.beginAppearing()
   }
 }

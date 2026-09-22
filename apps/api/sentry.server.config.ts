@@ -1,20 +1,20 @@
 import * as Sentry from "@sentry/nextjs";
 
+import { CLOUD_WORKSPACE_PROVISION_TRANSACTION } from "@superset/shared/constants";
+
 import { env } from "@/env";
 
 Sentry.init({
 	dsn: env.NEXT_PUBLIC_SENTRY_DSN_API,
 	environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	enabled: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production",
-	// Per-route sampling. /api/auth/* is session/JWT polling from every
-	// client — 87% of api traffic (~600M req/30d) with no diagnostic value,
-	// and at 10% it alone blew the span quota 16x. Webhooks/jobs are low
-	// volume and each trace is useful; the rest gets a working sample.
-	tracesSampler: ({ name }) => {
-		if (name.includes("/api/auth/")) return 0;
-		if (name.includes("/webhook") || name.includes("/jobs/")) return 0.25;
-		return 0.05;
-	},
+	// Tracing is off for requests: a flat 5% sampler once stored ~19M spans a
+	// day, 115x the org quota, and #7388's narrow sampler recorded nothing at
+	// all (cause unknown; the pdx1 move was measured in Vercel Observability).
+	// The one transaction sampled is the cloud workspace provision job, which
+	// runs after its request has answered and flushes itself.
+	tracesSampler: ({ name }) =>
+		name === CLOUD_WORKSPACE_PROVISION_TRANSACTION ? 1 : 0,
 	sendDefaultPii: true,
 	debug: false,
 });

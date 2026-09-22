@@ -1,9 +1,13 @@
+import {
+	connectorMethod,
+	requireConnector,
+	upsertConnection,
+} from "@superset/trpc/connectors";
 import { NOTION_VERSION } from "@superset/trpc/integrations/notion";
 import { z } from "zod";
 
 import { env } from "@/env";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
-import { upsertConnection } from "@/lib/integrations/upsertConnection";
 import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
 
 /**
@@ -79,14 +83,30 @@ export async function GET(request: Request) {
 	}
 	const token = parsed.data;
 
+	const connector = requireConnector("notion");
 	const result = await upsertConnection({
+		connector,
+		slug: "notion",
+		authMethod: connectorMethod(connector, "oauth2").type,
 		organizationId,
 		userId,
-		provider: "notion",
-		accessToken: token.access_token,
-		refreshToken: token.refresh_token ?? null,
-		externalOrgId: token.workspace_id,
-		externalOrgName: token.workspace_name ?? null,
+		tokens: {
+			accessToken: token.access_token,
+			refreshToken: token.refresh_token ?? null,
+			expiresAt: null,
+			scopes: null,
+			stored: {},
+			raw: token as unknown as Record<string, unknown>,
+		},
+		identity: {
+			account: { id: token.workspace_id, label: token.workspace_name ?? null },
+			// The bot id stands in when the grant names no Notion person: a
+			// user-scoped connection has to carry an external user either way.
+			user: {
+				id: token.owner.user?.id ?? token.bot_id,
+				label: token.owner.user?.name ?? null,
+			},
+		},
 	});
 	if (result.conflict) {
 		return Response.redirect(`${settingsUrl}?error=workspace_already_linked`);

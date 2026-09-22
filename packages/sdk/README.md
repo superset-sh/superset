@@ -1,6 +1,6 @@
 # Superset TypeScript SDK
 
-Typed wrapper around the Superset API. Follows the [`superset` CLI](https://docs.superset.sh/docs/cli/getting-started) — same procedures, same shapes.
+Typed wrapper around the Superset API for cloud workspaces: sandboxes Superset runs for your organization, and the terminals and agents inside them. Follows the [`superset` CLI](https://docs.superset.sh/docs/cli/getting-started) — same procedures, same shapes.
 
 Full docs: **<https://docs.superset.sh/docs/sdk/getting-started>**
 
@@ -21,22 +21,34 @@ const client = new Superset({
   organizationId: process.env.SUPERSET_ORGANIZATION_ID, // required for most resources
 });
 
+// Start a cloud workspace from an environment, with an agent on first boot
+const workspace = await client.workspaces.create({
+  environment: 'web',          // id or name; defaults to the first with repositories
+  agent: 'claude',
+  prompt: 'Fix the flaky login test',
+});
+
+// Provisioning runs in the background: wait for `ready`
+let current = workspace;
+while (current.status === 'provisioning') {
+  await new Promise((resolve) => setTimeout(resolve, 5_000));
+  const next = await client.workspaces.retrieve(workspace.id);
+  if (!next) throw new Error('Workspace was deleted');
+  current = next;
+}
+if (current.status !== 'ready') throw new Error(`Workspace is ${current.status}`);
+
+// Drive it: open a terminal, launch another agent, read its screen
+const { terminalId } = await client.terminals.create({ workspaceId: workspace.id, command: 'bun test' });
+const { sessionId } = await client.agents.create({ workspaceId: workspace.id, agent: 'codex', prompt: 'Review the diff' });
+const screen = await client.terminals.read({ workspaceId: workspace.id, terminalId: sessionId });
+
 // Tasks
 const task = await client.tasks.create({ title: 'Wire up auth', priority: 'high' });
-const mine = await client.tasks.list({ assigneeMe: true, priority: 'high' });
-const got  = await client.tasks.retrieve('SUPER-172'); // Task | null
 await client.tasks.update({ id: task.id, statusId: '<uuid>' });
-await client.tasks.delete(task.id);
 
-// Hosts own workspaces and projects — pick a host, then read from it
-const [host] = await client.hosts.list();
-if (!host) throw new Error('No hosts registered — run `superset start` on a machine');
-await client.workspaces.list({ hostId: host.id });
-await client.projects.list({ hostId: host.id });
-await client.automations.list();
-
-// Trigger an automation now (off-schedule)
-await client.automations.run('<automation-id>');
+// Tear the sandbox down when you are done
+await client.workspaces.delete(workspace.id);
 ```
 
 Both `apiKey` and `organizationId` are picked up automatically from `SUPERSET_API_KEY` / `SUPERSET_ORGANIZATION_ID` environment variables — you can omit them in the constructor.
@@ -50,7 +62,6 @@ const client = new Superset({
   apiKey: 'sk_live_…',
   organizationId: '…',
   baseURL: 'https://api.superset.sh',     // override for staging / self-hosted
-  relayURL: 'https://relay.superset.sh',  // host-routed ops (workspace create, automation run)
   timeout: 60_000,
   maxRetries: 2,
   logLevel: 'warn',                       // 'off' | 'error' | 'warn' | 'info' | 'debug'
@@ -74,9 +85,9 @@ try {
 
 ## Two transport paths
 
-Most methods hit `api.superset.sh` directly. Workspace, project, agent, and terminal operations physically execute on a developer machine and route through the relay tunnel to the host named by `hostId`: `workspaces.list/create/update/delete`, `projects.list`, `agents.list/create`, and `terminals.create`. The SDK transparently exchanges your API key for a short-lived JWT to talk to the relay — no token plumbing required.
+Most methods hit `api.superset.sh` directly. `terminals.*` and `agents.create` run inside a workspace's sandbox: the SDK asks the API for a short-lived ticket for that workspace (waking its sandbox if it had stopped), caches it, and calls the sandbox through Superset's gate with it. Your API key is only ever sent to the API.
 
-For relay-bound calls, the target host has to be online and tunneling, otherwise you'll get a `503 Host not connected`.
+The workspace must be `ready`; otherwise the ticket request fails with a `412`.
 
 ## License
 

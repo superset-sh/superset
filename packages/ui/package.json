@@ -15,13 +15,15 @@
 		"./chat-history-sidebar": "./src/components/ChatHistorySidebar/index.ts",
 		"./page-comments": "./src/components/PageComments/index.ts",
 		"./pixel-404": "./src/components/Pixel404/index.ts",
+		"./star-chart": "./src/components/StarChart/index.ts",
 		"./mesh-gradient": "./src/components/mesh-gradient.tsx",
 		"./icons/preset-icons": "./src/assets/icons/preset-icons/index.ts",
 		"./icons/preset-icons/*": "./src/assets/icons/preset-icons/*.svg",
 		"./icons/browser-icons": "./src/assets/icons/browser-icons/index.ts",
 		"./icons/browser-icons/*": "./src/assets/icons/browser-icons/*.svg",
 		"./atoms/*": "./src/atoms/*/index.ts",
-		"./*": "./src/components/ui/*.tsx"
+		"./*": "./src/components/ui/*.tsx",
+		"./app-store-qr": "./src/components/AppStoreQr/index.ts"
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
@@ -91,6 +93,7 @@
 		"tailwind-merge": "3.5.0",
 		"tokenlens": "1.3.1",
 		"tw-animate-css": "1.4.0",
+		"uqr": "0.1.2",
 		"use-stick-to-bottom": "1.1.3",
 		"vaul": "1.1.2",
 		"zod": "4.4.3"

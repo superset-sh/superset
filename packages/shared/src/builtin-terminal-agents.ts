@@ -258,6 +258,27 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		resumeCommand: "hermes chat --yolo -r",
 		nonInteractiveCommand: "hermes chat -q",
 	}),
+	createBuiltinTerminalAgent({
+		id: "muse",
+		label: "Muse Code",
+		description:
+			"Meta's terminal coding agent with persistent subagents and worktree fan-out.",
+		command: "muse",
+		resumeCommand: "muse resume",
+		nonInteractiveCommand: "muse exec",
+	}),
+	createBuiltinTerminalAgent({
+		id: "devin",
+		label: "Devin",
+		description:
+			"Cognition's Devin agent in the terminal, with handoff to Devin Cloud.",
+		command: "devin --permission-mode dangerous",
+		promptCommand: "devin --permission-mode dangerous --",
+		resumeCommand: "devin --permission-mode dangerous --resume",
+		// Print mode cannot show the workspace trust prompt and fails in an
+		// untrusted directory without this.
+		nonInteractiveCommand: "devin --respect-workspace-trust false -p",
+	}),
 ] as const;
 
 export type BuiltinTerminalAgentType =

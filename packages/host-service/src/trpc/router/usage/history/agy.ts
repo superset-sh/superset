@@ -1,11 +1,9 @@
 /** Antigravity CLI transcript usage (`~/.gemini/antigravity-cli/brain`). */
-import { createReadStream } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { createInterface } from "node:readline";
 import type { UsageLogEntry } from "./parse";
-import { toSessionLabel } from "./parse";
+import { forEachLine, toSessionLabel } from "./parse";
 
 type JsonObject = Record<string, unknown>;
 
@@ -135,39 +133,28 @@ export async function collectAgyEntries(
 		} catch {
 			continue;
 		}
-		let stream: ReturnType<typeof createReadStream>;
-		try {
-			stream = createReadStream(path, { encoding: "utf8" });
-		} catch {
-			continue;
-		}
 		scanned += 1;
-		const lines = createInterface({ input: stream, crlfDelay: Infinity });
 		let cwd: string | null = null;
-		try {
-			for await (const line of lines) {
-				let envelope: JsonObject | null = null;
-				try {
-					envelope = object(JSON.parse(line));
-				} catch {
-					continue;
-				}
-				if (!cwd) {
-					const workspace = object(envelope?.workspace);
-					const candidate =
-						envelope?.cwd ?? workspace?.current_dir ?? workspace?.project_dir;
-					if (typeof candidate === "string") cwd = candidate;
-				}
-				if (!sessionLabels.has(sessionId) && envelope?.type === "USER_INPUT") {
-					const label = toSessionLabel(envelope.content);
-					if (label) sessionLabels.set(sessionId, label);
-				}
-				const entry = parseAgyTranscriptLine(line, sessionId, cwd);
-				if (entry && entry.timestampMs >= cutoffMs) out.push(entry);
+		await forEachLine(path, (line) => {
+			let envelope: JsonObject | null = null;
+			try {
+				envelope = object(JSON.parse(line));
+			} catch {
+				return;
 			}
-		} catch {
-			// A concurrently written or removed transcript contributes what was read.
-		}
+			if (!cwd) {
+				const workspace = object(envelope?.workspace);
+				const candidate =
+					envelope?.cwd ?? workspace?.current_dir ?? workspace?.project_dir;
+				if (typeof candidate === "string") cwd = candidate;
+			}
+			if (!sessionLabels.has(sessionId) && envelope?.type === "USER_INPUT") {
+				const label = toSessionLabel(envelope.content);
+				if (label) sessionLabels.set(sessionId, label);
+			}
+			const entry = parseAgyTranscriptLine(line, sessionId, cwd);
+			if (entry && entry.timestampMs >= cutoffMs) out.push(entry);
+		});
 	}
 	return scanned;
 }

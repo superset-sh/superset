@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
 	type ReactNode,
@@ -42,6 +44,8 @@ export function CommentPane({
 	removePane,
 	setFocusedPane,
 }: CommentPaneProps) {
+	const { _: translate } = useTranslation();
+
 	const comment = useTabsStore((s) => s.panes[paneId]?.comment);
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
 	const setPaneName = useTabsStore((s) => s.setPaneName);
@@ -106,7 +110,7 @@ export function CommentPane({
 								target="_blank"
 								rel="noopener noreferrer"
 								className="flex shrink-0 items-center gap-0.5 text-muted-foreground hover:text-foreground"
-								aria-label="View on GitHub"
+								aria-label={translate(msg({ message: "View on GitHub" }))}
 							>
 								<FaGithub className="size-3.5" />
 								<LuArrowUpRight className="size-3" />

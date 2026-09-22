@@ -1,25 +1,8 @@
 export {
 	type AgentCreateParams,
 	type AgentCreateResult,
-	type AgentListParams,
-	type AgentListResponse,
 	Agents,
-	type HostAgentConfig,
-	type PromptTransport,
 } from "./agents";
-export {
-	type Automation,
-	type AutomationCreateParams,
-	type AutomationListResponse,
-	type AutomationLogsParams,
-	type AutomationLogsResponse,
-	type AutomationRun,
-	type AutomationRunDispatched,
-	Automations,
-	type AutomationSummary,
-	type AutomationUpdateParams,
-} from "./automations";
-export { type Host, type HostListResponse, Hosts } from "./hosts";
 export {
 	type Member,
 	type MemberListParams,
@@ -28,7 +11,6 @@ export {
 	Organization,
 	type OrganizationRole,
 } from "./organization";
-export { type Project, type ProjectListResponse, Projects } from "./projects";
 export {
 	type TerminalCloseParams,
 	type TerminalCloseResult,
@@ -56,16 +38,12 @@ export {
 	type TaskUpdateParams,
 } from "./tasks";
 export {
-	type HostWorkspace,
-	type Workspace,
-	type WorkspaceAgentLaunch,
-	type WorkspaceCreateAgentResult,
+	type CloudWorkspace,
+	type CloudWorkspaceStatus,
 	type WorkspaceCreateParams,
-	type WorkspaceCreateResult,
-	type WorkspaceCreateSessionParams,
-	type WorkspaceCreateSessionResult,
 	type WorkspaceDeleteResult,
 	type WorkspaceListParams,
 	type WorkspaceListResponse,
 	Workspaces,
+	type WorkspaceUpdateParams,
 } from "./workspaces";

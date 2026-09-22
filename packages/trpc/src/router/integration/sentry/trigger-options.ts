@@ -1,5 +1,4 @@
-import type { SentryConfig } from "@superset/db/schema";
-import { activeConnection } from "../connections";
+import { orgConnection } from "../../../lib/connectors";
 import type { TriggerOptionSource } from "../trigger-options";
 import { fetchSentryProjects, getSentryAccessToken, SENTRY_URL } from "./utils";
 
@@ -8,20 +7,17 @@ import { fetchSentryProjects, getSentryAccessToken, SENTRY_URL } from "./utils";
  * stop matching the moment someone renames the project. The slug is the label.
  */
 const projects: TriggerOptionSource = async ({ organizationId }) => {
-	const connection = await activeConnection(organizationId, "sentry", {
-		id: true,
-		externalOrgId: true,
-		config: true,
-	});
-	if (!connection?.externalOrgId) return [];
+	const connection = await orgConnection(organizationId, "sentry");
+	if (!connection) return [];
 
 	const token = await getSentryAccessToken(connection.id);
 	if (token.disconnected) return [];
 
-	const config = connection.config as SentryConfig | null;
+	const state =
+		connection.state?.provider === "sentry" ? connection.state : null;
 	const list = await fetchSentryProjects(
-		config?.regionUrl ?? SENTRY_URL,
-		connection.externalOrgId,
+		state?.regionUrl ?? SENTRY_URL,
+		connection.externalAccountId,
 		token.accessToken,
 	);
 	return list.map((project) => ({ id: project.id, label: project.slug }));

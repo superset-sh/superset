@@ -1,10 +1,10 @@
 import path from "node:path";
-import type { Event as ParcelWatcherEvent } from "@parcel/watcher";
 import { normalizeAbsolutePath } from "./paths";
+import type { NativeWatchEvent } from "./watch-backend";
 
 /**
  * Pure event algebra for the file watcher: per-path coalescing of raw
- * parcel events and delete/create pair reconciliation into renames.
+ * native events and delete/create pair reconciliation into renames.
  * No I/O and no manager state — see watch.ts for the FsWatcherManager.
  */
 
@@ -17,9 +17,9 @@ export interface InternalWatchEvent {
 }
 
 function coalesceWatchEvent(
-	current: ParcelWatcherEvent | undefined,
-	next: ParcelWatcherEvent,
-): ParcelWatcherEvent | null {
+	current: NativeWatchEvent | undefined,
+	next: NativeWatchEvent,
+): NativeWatchEvent | null {
 	if (!current) {
 		return next;
 	}
@@ -55,9 +55,9 @@ function coalesceWatchEvent(
 }
 
 export function coalesceWatchEvents(
-	events: ParcelWatcherEvent[],
-): ParcelWatcherEvent[] {
-	const coalescedByPath = new Map<string, ParcelWatcherEvent>();
+	events: NativeWatchEvent[],
+): NativeWatchEvent[] {
+	const coalescedByPath = new Map<string, NativeWatchEvent>();
 
 	for (const event of events) {
 		const nextEvent = coalesceWatchEvent(

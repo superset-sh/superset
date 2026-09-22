@@ -1,9 +1,8 @@
-import { SUPPORTED_LOCALES } from "@superset/i18n";
+import { getLocaleMessages, SUPPORTED_LOCALES } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
 import Script from "next/script";
-
 import { CookieConsent } from "@/components/CookieConsent";
 import {
 	OrganizationJsonLd,
@@ -11,11 +10,13 @@ import {
 	WebsiteJsonLd,
 } from "@/components/JsonLd";
 import { REDDIT_PIXEL_ID } from "@/lib/constants";
+import { isMobileLaunched } from "@/lib/site-flags";
 
 import { CTAButtons } from "./components/CTAButtons";
 import { Footer } from "./components/Footer";
 import { GitHubStarCounter } from "./components/GitHubStarCounter";
 import { Header } from "./components/Header";
+import { MobileLaunchProvider } from "./providers/MobileLaunchProvider";
 import "../globals.css";
 import { initServerI18n } from "../i18n-server";
 import { Providers } from "../providers";
@@ -117,6 +118,8 @@ export default async function RootLayout({
 	children: React.ReactNode;
 }>) {
 	const locale = await initServerI18n();
+	const messages = await getLocaleMessages(locale);
+	const isLaunched = await isMobileLaunched();
 
 	return (
 		<html
@@ -151,13 +154,15 @@ export default async function RootLayout({
 				</Script>
 			</head>
 			<body className="overscroll-none font-sans">
-				<Providers locale={locale}>
-					<Header
-						ctaButtons={<CTAButtons />}
-						starCounter={<GitHubStarCounter />}
-					/>
-					{children}
-					<Footer locale={locale} />
+				<Providers locale={locale} messages={messages}>
+					<MobileLaunchProvider isLaunched={isLaunched}>
+						<Header
+							ctaButtons={<CTAButtons />}
+							starCounter={<GitHubStarCounter />}
+						/>
+						{children}
+						<Footer locale={locale} />
+					</MobileLaunchProvider>
 					<CookieConsent />
 				</Providers>
 			</body>

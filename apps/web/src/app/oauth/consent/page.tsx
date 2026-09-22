@@ -4,7 +4,7 @@ import { db } from "@superset/db/client";
 import { headers } from "next/headers";
 import Image from "next/image";
 import { env } from "@/env";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
 import { ConsentForm } from "./components/ConsentForm";
 
@@ -13,6 +13,8 @@ interface ConsentPageProps {
 }
 
 export default async function ConsentPage({ searchParams }: ConsentPageProps) {
+	const i18n = await initServerI18n();
+
 	const session = await auth.api.getSession({
 		headers: await headers(),
 	});

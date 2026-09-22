@@ -3,7 +3,6 @@ import type {
 	AgentIdentityId,
 } from "@superset/shared/agent-catalog";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
-import { sql } from "drizzle-orm";
 import {
 	index,
 	integer,
@@ -22,6 +21,14 @@ export const terminalSessions = sqliteTable(
 			{ onDelete: "set null" },
 		),
 		status: text().notNull().default("active"),
+		/**
+		 * The name the user gave this session, or null for "no name" — which
+		 * is also what an empty or whitespace-only rename stores. Titles the
+		 * shell reports over OSC are not persisted at all; this column is the
+		 * only durable name a session has, and it outranks the OSC one
+		 * wherever a session is displayed.
+		 */
+		customTitle: text("custom_title"),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),
@@ -63,6 +70,9 @@ export const terminalAgentBindings = sqliteTable(
 		// = deliberately killed (pane close, CLI kill) — never resumable.
 		endedAt: integer("ended_at"),
 		endReason: text("end_reason"),
+		// The terminal a "resumed" binding's session was relaunched into, so a
+		// pane that missed the relaunch can follow it there.
+		resumedIntoTerminalId: text("resumed_into_terminal_id"),
 	},
 	(table) => [
 		index("terminal_agent_bindings_workspace_id_idx").on(table.workspaceId),
@@ -236,8 +246,12 @@ export const workspaces = sqliteTable(
 		// Empty string means "not yet backfilled from cloud" — the startup
 		// backfill sweep targets these rows.
 		name: text().notNull().default(""),
+		// "local" shares the project's primary checkout (files, index, and
+		// the checked-out branch) with every other local workspace of that
+		// project; "worktree" owns an isolated checkout; "session" is
+		// project-less.
 		type: text()
-			.$type<"main" | "worktree" | "session">()
+			.$type<"local" | "worktree" | "session">()
 			.notNull()
 			.default("worktree"),
 		taskId: text("task_id"),
@@ -270,9 +284,6 @@ export const workspaces = sqliteTable(
 			table.upstreamBranch,
 		),
 		index("workspaces_pull_request_id_idx").on(table.pullRequestId),
-		uniqueIndex("workspaces_one_main_per_project")
-			.on(table.projectId)
-			.where(sql`type = 'main'`),
 	],
 );
 

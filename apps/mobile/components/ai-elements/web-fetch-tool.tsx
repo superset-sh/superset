@@ -1,4 +1,5 @@
 import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { i18n } from "@superset/i18n";
 import { GlobeIcon } from "lucide-react-native";
 import { useState } from "react";
@@ -46,6 +47,8 @@ export const WebFetchTool = ({
 	state,
 	className,
 }: WebFetchToolProps) => {
+	const { _: translate } = useTranslation();
+
 	const [isExpanded, setIsExpanded] = useState(false);
 	const isPending = state === "input-streaming" || state === "input-available";
 	const isError = state === "output-error";
@@ -83,7 +86,7 @@ export const WebFetchTool = ({
 			isError={isError}
 			isPending={isPending}
 			statusNode={statusNode}
-			title="Web Fetch"
+			title={translate(msg({ message: "Web Fetch" }))}
 		>
 			{hasContent ? (
 				<View className="px-2.5 py-2">

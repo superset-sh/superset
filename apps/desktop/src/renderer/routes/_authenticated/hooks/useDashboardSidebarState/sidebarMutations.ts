@@ -7,6 +7,7 @@ export type SidebarWorkspaceRow = Pick<
 	HostShapedWorkspace,
 	"id" | "projectId" | "type" | "hostId"
 >;
+
 import { getPrependTabOrder } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 
 /**
@@ -67,18 +68,20 @@ export function tombstoneSidebarWorkspaceRecord(
 }
 
 /**
- * Puts a project in the sidebar. A hidden row counts as absent: every path
- * that would add the project (setting it up on this device, opening one of
- * its workspaces, an agent creating a worktree in it) reveals it again, the
- * same way re-adding a removed project used to.
+ * Puts a project in the sidebar. By default a hidden row counts as absent:
+ * a deliberate user action on the project (setting it up on this device,
+ * opening one of its workspaces) reveals it again, the same way re-adding a
+ * removed project used to. Background placement passes `reveal: false`: a
+ * workspace created by the CLI or an agent must not undo an explicit hide.
  */
 export function ensureSidebarProjectRecord(
 	collections: Pick<AppCollections, "v2SidebarProjects">,
 	projectId: string,
+	{ reveal = true }: { reveal?: boolean } = {},
 ): void {
 	const existing = collections.v2SidebarProjects.get(projectId);
 	if (existing) {
-		if (existing.isHidden) {
+		if (existing.isHidden && reveal) {
 			collections.v2SidebarProjects.update(projectId, (draft) => {
 				draft.isHidden = false;
 			});
@@ -128,10 +131,10 @@ export function setSidebarProjectHidden(
  * worktrees the reconciler could re-pin) means a resurrected project shows only
  * the genuinely-new worktree, not these dismissed ones.
  *
- * `main` workspaces are intentionally left alone: they surface via the gated
+ * Local workspaces are intentionally left alone: they surface via the gated
  * auto-include path (never re-pinned, never create a project record), so
  * deleting the project row already hides them and re-adding the project brings
- * the main back. Removing a project discards `defaultOpenInApp` (stored on the
+ * them back. Removing a project discards `defaultOpenInApp` (stored on the
  * project row and nowhere else); it resets to default on re-add.
  */
 export function removeProjectFromSidebarState(
@@ -144,9 +147,9 @@ export function removeProjectFromSidebarState(
 	machineId: string,
 	cleanupPaneRuntimes: CleanupPaneRuntimes,
 ): void {
-	const mainWorkspaceIds = new Set(
+	const localWorkspaceIds = new Set(
 		workspaces
-			.filter((ws) => ws.projectId === projectId && ws.type === "main")
+			.filter((ws) => ws.projectId === projectId && ws.type === "local")
 			.map((ws) => ws.id),
 	);
 
@@ -154,7 +157,7 @@ export function removeProjectFromSidebarState(
 	for (const row of collections.v2WorkspaceLocalState.state.values()) {
 		if (
 			row.sidebarState.projectId === projectId &&
-			!mainWorkspaceIds.has(row.workspaceId)
+			!localWorkspaceIds.has(row.workspaceId)
 		) {
 			worktreeIds.add(row.workspaceId);
 		}
@@ -178,7 +181,7 @@ export function removeProjectFromSidebarState(
 		);
 	}
 
-	// Main workspaces keep their rows (see the doc comment above), but any pin
+	// Local workspaces keep their rows (see the doc comment above), but any pin
 	// must be cleared: a pinned row is excluded from the project tree, and with
 	// the project row gone the pinned section drops it too — leaving it fully
 	// invisible with no context menu to unpin it from.

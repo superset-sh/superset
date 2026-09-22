@@ -1,8 +1,8 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { runMigrations } from "@superset/shared/sqlite-migrations";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import * as schema from "./schema.ts";
 
 export type HostDb = ReturnType<typeof createDb>;
@@ -43,8 +43,8 @@ export function createDb(dbPath: string, migrationsFolder: string) {
 	);
 
 	// Migrations run with foreign keys OFF. Drizzle's generated table
-	// rebuilds emit `PRAGMA foreign_keys=OFF`, but its migrator wraps every
-	// migration in one transaction where that pragma is a silent no-op — so
+	// rebuilds emit `PRAGMA foreign_keys=OFF`, but the runner wraps the whole
+	// batch in one transaction where that pragma is a silent no-op — so
 	// with FKs on, a rebuild's `DROP TABLE` fires ON DELETE actions into
 	// child tables (e.g. nulling terminal_sessions.origin_workspace_id).
 	// Disabling at the connection level (outside any transaction) makes the
@@ -56,8 +56,14 @@ export function createDb(dbPath: string, migrationsFolder: string) {
 	// enforcement). Failing startup on those bricks a DB that worked on the
 	// previous version — only violations a migration introduces are fatal.
 	const before = violationCountsByConstraint(sqlite);
+	// Not drizzle's own migrator: it gates on the highest `created_at` already
+	// recorded rather than the set of them, so a migration whose journal `when`
+	// sorts below that watermark is skipped silently and stays skipped for the
+	// life of the database. That is how machines ended up serving a host.db
+	// with no workspace_tags/workspace_tag_settings table (HOST-SERVICE-53/54)
+	// and, earlier, no cloud_synced_at/archived_at column.
 	// Let a failed migration throw — never serve a half-migrated DB.
-	migrate(db, { migrationsFolder });
+	runMigrations(db, migrationsFolder);
 	const after = violationCountsByConstraint(sqlite);
 	const introduced = [...after.entries()].filter(
 		([constraint, count]) => count > (before.get(constraint) ?? 0),

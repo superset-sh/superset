@@ -55,6 +55,7 @@ describe("applyLoginShellEnvToProcess", () => {
 		initTerminalBaseEnv({
 			PATH: "/usr/bin",
 			NODE_ENV: "development",
+			SUPERSET_HOST_INSTALL_SOURCE: "cli",
 			NODE_OPTIONS: "--inspect",
 			ELECTRON_RUN_AS_NODE: "1",
 			EDITOR: "vim",
@@ -64,6 +65,7 @@ describe("applyLoginShellEnvToProcess", () => {
 		await applyLoginShellEnvToProcess(target);
 
 		expect(target.NODE_ENV).toBeUndefined();
+		expect(target.SUPERSET_HOST_INSTALL_SOURCE).toBeUndefined();
 		expect(target.NODE_OPTIONS).toBeUndefined();
 		expect(target.ELECTRON_RUN_AS_NODE).toBeUndefined();
 		expect(target.EDITOR).toBe("vim");

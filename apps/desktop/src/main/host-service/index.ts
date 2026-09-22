@@ -9,6 +9,7 @@ import { serve } from "@hono/node-server";
 import {
 	captureFatalStartupError,
 	createApp,
+	detachFromLaunchDirectory,
 	initSentry,
 	installProcessSafetyNet,
 	installUpgradeSocketGuard,
@@ -42,6 +43,11 @@ type Server = ReturnType<typeof serve>;
 
 async function main(): Promise<void> {
 	initSentry({ organizationId: env.ORGANIZATION_ID });
+
+	// Whatever directory the app was launched from can be deleted while this
+	// host runs — a workspace worktree, most of all — and a process sitting in
+	// a deleted directory cannot start a worker thread (HOST-SERVICE-5D).
+	detachFromLaunchDirectory();
 
 	// Install the parent watchdog before any awaits so a crash during
 	// startup can still reap this child. `serverRef` / `disposeRef` are filled

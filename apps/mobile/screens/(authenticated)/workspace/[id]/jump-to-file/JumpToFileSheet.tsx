@@ -103,14 +103,16 @@ export function JumpToFileSheet() {
 								<Icon as={CheckCircle2} className="text-green-500 size-4" />
 							) : null}
 							<View className="items-end gap-1">
-								<View className="flex-row items-center gap-1">
-									<Text className="text-green-500 font-medium text-[12px]">
-										+{file.additions}
-									</Text>
-									<Text className="text-red-500 font-medium text-[12px]">
-										−{file.deletions}
-									</Text>
-								</View>
+								{file.additions !== null && file.deletions !== null ? (
+									<View className="flex-row items-center gap-1">
+										<Text className="text-green-500 font-medium text-[12px]">
+											+{file.additions}
+										</Text>
+										<Text className="text-red-500 font-medium text-[12px]">
+											−{file.deletions}
+										</Text>
+									</View>
+								) : null}
 								{commentCount > 0 ? (
 									<View className="flex-row items-center gap-1">
 										<Icon

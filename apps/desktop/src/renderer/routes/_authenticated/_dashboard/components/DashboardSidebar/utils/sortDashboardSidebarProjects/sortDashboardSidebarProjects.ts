@@ -4,7 +4,6 @@ import type {
 	DashboardSidebarProjectChild,
 	DashboardSidebarWorkspace,
 } from "../../types";
-import { getProjectChildrenWorkspaces } from "../projectChildren";
 
 // Timestamps are typed as Date but can arrive as ISO strings at runtime
 // (IndexedDB snapshots, persisted query caches). Sorting is cosmetic, so
@@ -43,21 +42,6 @@ export function getWorkspaceActivityTime(
 	const activity = workspace.lastActivityAt;
 	if (typeof activity === "number" && !Number.isNaN(activity)) return activity;
 	return toTime(workspace.updatedAt);
-}
-
-// A project's own updatedAt only moves on metadata patches (rename), so its
-// activity is that of its most recently active workspace.
-export function getProjectActivityTimestamp(
-	project: DashboardSidebarProject,
-): number {
-	const activity = newest(
-		getProjectChildrenWorkspaces(project.children).map(
-			getWorkspaceActivityTime,
-		),
-	);
-	if (!Number.isNaN(activity)) return activity;
-	const updatedAt = toTime(project.updatedAt);
-	return Number.isNaN(updatedAt) ? toTime(project.createdAt) : updatedAt;
 }
 
 function makeStableComparator<Item>(
@@ -99,14 +83,6 @@ function getChildTimestamp(
 	return Number.isNaN(activity) ? toTime(section.createdAt) : activity;
 }
 
-function isLocalMainChild(child: DashboardSidebarProjectChild): boolean {
-	return (
-		child.type === "workspace" &&
-		child.workspace.type === "main" &&
-		child.workspace.hostType === "local-device"
-	);
-}
-
 function haveSameItems<Item>(left: Item[], right: Item[]): boolean {
 	return (
 		left.length === right.length &&
@@ -117,8 +93,7 @@ function haveSameItems<Item>(left: Item[], right: Item[]): boolean {
 /**
  * Orders a project's children for a non-manual sort mode: workspaces inside
  * each section sort by the mode, sections reorder among the loose workspaces
- * by their own timestamp, and the local main workspace stays pinned first.
- * Returns the input array (and the input section objects) when nothing
+ * by their own timestamp. Returns the input array (and the input section objects) when nothing
  * moves, so memoized rows keep their identity.
  */
 export function sortDashboardSidebarProjectChildren(
@@ -148,18 +123,17 @@ export function sortDashboardSidebarProjectChildren(
 			: { ...child, section: { ...child.section, workspaces } };
 	});
 
-	const mains = sortedInside.filter(isLocalMainChild).sort(compareChildren);
-	const rest = sortedInside
-		.filter((child) => !isLocalMainChild(child))
-		.sort(compareChildren);
-	const sorted = [...mains, ...rest];
+	const sorted = [...sortedInside].sort(compareChildren);
 	return haveSameItems(sorted, children) ? children : sorted;
 }
 
 /**
- * Orders projects (and their children) for a sort mode. `manual` returns the
- * input untouched; the other modes never mutate it. A project whose children
- * are already in order keeps its identity.
+ * Sorts each project's children for a sort mode. The project list itself is
+ * always the manual (drag) order: projects are the stable landmarks people
+ * navigate by, and reshuffling them under the user because an agent touched
+ * a workspace loses the map. `manual` returns the input untouched; the other
+ * modes never mutate it, and a project whose children are already in order
+ * keeps its identity.
  */
 export function sortDashboardSidebarProjects(
 	projects: DashboardSidebarProject[],
@@ -167,21 +141,11 @@ export function sortDashboardSidebarProjects(
 ): DashboardSidebarProject[] {
 	if (mode === "manual") return projects;
 
-	const compareProjects = makeStableComparator<DashboardSidebarProject>(
-		mode === "created"
-			? (project) => toTime(project.createdAt)
-			: getProjectActivityTimestamp,
-		(project) => project.name,
-		(project) => project.id,
-	);
-
-	return projects
-		.map((project) => {
-			const children = sortDashboardSidebarProjectChildren(
-				project.children,
-				mode,
-			);
-			return children === project.children ? project : { ...project, children };
-		})
-		.sort(compareProjects);
+	return projects.map((project) => {
+		const children = sortDashboardSidebarProjectChildren(
+			project.children,
+			mode,
+		);
+		return children === project.children ? project : { ...project, children };
+	});
 }

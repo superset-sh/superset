@@ -55,10 +55,24 @@ function storeWith(pages: PagePaneData[] = []) {
 }
 
 describe("openPagePaneInStore", () => {
-	it("adds a tab when no page pane is open", () => {
+	it("splits the active pane when no page pane is open", () => {
 		const store = storeWith();
 
 		openPagePaneInStore(store, { slug: "report-a3f9k2" });
+
+		const state = store.getState();
+		expect(state.tabs).toHaveLength(1);
+		const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
+		const panes = Object.values(activeTab?.panes ?? {});
+		expect(panes).toHaveLength(2);
+		const opened = panes.find((pane) => pane.kind === "page");
+		expect(opened?.data).toEqual({ slug: "report-a3f9k2" } as PaneViewerData);
+	});
+
+	it('adds a new tab when placement is "tab"', () => {
+		const store = storeWith();
+
+		openPagePaneInStore(store, { slug: "report-a3f9k2" }, "tab");
 
 		const state = store.getState();
 		expect(state.tabs).toHaveLength(2);
@@ -111,22 +125,28 @@ describe("openPagePaneInStore", () => {
 		expect(state.activeTabId).toBe("page-tab-0");
 	});
 
-	it("adds a tab for a different page", () => {
+	it("splits the active tab for a different page", () => {
 		const store = storeWith([
 			{ pageId: "page-1", slug: "report-a3f9k2", title: "Report" },
 		]);
 
 		openPagePaneInStore(store, { slug: "other-b7c1z0" });
 
-		expect(store.getState().tabs).toHaveLength(3);
+		const state = store.getState();
+		expect(state.tabs).toHaveLength(2);
+		const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
+		expect(Object.values(activeTab?.panes ?? {})).toHaveLength(2);
 	});
 
-	it("ignores panes of other kinds", () => {
+	it("does not duplicate an already-open page pane", () => {
 		const store = storeWith();
 
 		openPagePaneInStore(store, { slug: "report-a3f9k2" });
 		openPagePaneInStore(store, { slug: "report-a3f9k2" });
 
-		expect(store.getState().tabs).toHaveLength(2);
+		const state = store.getState();
+		expect(state.tabs).toHaveLength(1);
+		const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
+		expect(Object.values(activeTab?.panes ?? {})).toHaveLength(2);
 	});
 });

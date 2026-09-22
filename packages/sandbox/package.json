@@ -1,0 +1,30 @@
+{
+	"name": "@superset/sandbox",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "bun run src/build.ts",
+		"image": "bun run src/image.ts",
+		"pin": "bun run src/pin.ts",
+		"assets": "bun run src/assets/produce.ts",
+		"release": "bun run src/environments/release.ts",
+		"seed": "bun run src/environments/seed.ts",
+		"test": "bun test",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@superset/db": "workspace:*",
+		"@superset/shared": "workspace:*",
+		"@superset/trpc": "workspace:*",
+		"@vercel/sandbox": "3.2.2",
+		"aws4fetch": "1.0.20",
+		"drizzle-orm": "0.45.2",
+		"zod": "4.4.3"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/bun": "1.3.14",
+		"typescript": "6.0.3"
+	}
+}

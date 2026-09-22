@@ -11,8 +11,10 @@ import type { SlashCommand } from "@superset/shared/slash-commands";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { errorCopy } from "@/lib/errors";
 import { posthog } from "@/lib/posthog";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
+import { useAttachmentUploads } from "@/screens/(authenticated)/hooks/useAttachmentUploads";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
 import { workspaceDraftKey } from "@/screens/(authenticated)/stores/composerDraftsStore";
@@ -60,6 +62,8 @@ interface TerminalComposerProps {
 	onSessionTabPress: (terminalId: string) => void;
 	/** Close was chosen. Nothing is dead yet — this is where the confirm goes. */
 	onSessionTabClose: (terminalId: string) => void;
+	/** Rename was chosen from the press-and-hold menu. */
+	onSessionTabRename: (terminalId: string) => void;
 	/** Copy id was chosen from the press-and-hold menu. */
 	onSessionTabCopyId: (terminalId: string) => void;
 	onNewSessionPress: () => void;
@@ -107,6 +111,7 @@ export const TerminalComposer = forwardRef<
 		sessionTabs,
 		onSessionTabPress,
 		onSessionTabClose,
+		onSessionTabRename,
 		onSessionTabCopyId,
 		onNewSessionPress,
 		onAllSessionsPress,
@@ -136,6 +141,7 @@ export const TerminalComposer = forwardRef<
 	const draft = useComposerDraft(draftKey);
 	const openAttachmentsSheet = useAttachmentsSheet(draftKey);
 	const addPasted = usePasteAttachments(draftKey);
+	const uploads = useAttachmentUploads(draftKey);
 
 	// What was typed here last time, pinned at mount: a starting value handed to
 	// the composer as it is set up, never a binding.
@@ -205,10 +211,7 @@ export const TerminalComposer = forwardRef<
 			if (allowAttachments) draft.clear();
 			else draft.setText("");
 		} catch (cause) {
-			Alert.alert(
-				t({ message: "Could not send" }),
-				cause instanceof Error ? cause.message : String(cause),
-			);
+			Alert.alert(t({ message: "Could not send" }), errorCopy(cause));
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -234,6 +237,9 @@ export const TerminalComposer = forwardRef<
 				sessionTabs={sessionTabs}
 				// Translated here because the composer has no catalog of its own.
 				sessionTabLabels={{
+					rename: t({
+						message: "Rename session",
+					}),
 					copyId: t({
 						message: "Copy session ID",
 					}),
@@ -252,6 +258,7 @@ export const TerminalComposer = forwardRef<
 				}}
 				onSessionTabPress={onSessionTabPress}
 				onSessionTabClose={onSessionTabClose}
+				onSessionTabRename={onSessionTabRename}
 				onSessionTabCopyId={onSessionTabCopyId}
 				onNewSessionPress={onNewSessionPress}
 				onAllSessionsPress={onAllSessionsPress}
@@ -282,6 +289,10 @@ export const TerminalComposer = forwardRef<
 										? ("image" as const)
 										: ("file" as const),
 								name: item.name,
+								progress: uploads[item.id]?.fileId
+									? undefined
+									: uploads[item.id]?.progress,
+								failed: uploads[item.id]?.error !== undefined,
 							}))
 						: []
 				}

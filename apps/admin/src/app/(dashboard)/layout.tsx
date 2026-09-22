@@ -39,7 +39,9 @@ export default async function DashboardLayout({
 				}}
 			/>
 			<SidebarInset>
-				<header className="bg-background sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b px-4">
+				{/* z-10: grid tiles are transformed, which makes them paint over a
+				    sticky header that has no stacking order of its own. */}
+				<header className="bg-background sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b px-4">
 					<SidebarTrigger className="-ml-1" />
 					<Separator orientation="vertical" className="mr-2 h-4" />
 					<PageBreadcrumb />

@@ -7,14 +7,7 @@ import {
 import { useMemo } from "react";
 import { Area, AreaChart, XAxis, YAxis } from "recharts";
 import type { ResourceSample } from "../../hooks/useResourceSampleBuffer";
-
-function formatTime(at: number): string {
-	return new Date(at).toLocaleTimeString(undefined, {
-		hour: "2-digit",
-		minute: "2-digit",
-		second: "2-digit",
-	});
-}
+import { formatResourceSampleTime } from "./utils/formatResourceSampleTime/formatResourceSampleTime";
 
 interface ResourceSparklineProps {
 	label: string;
@@ -66,7 +59,7 @@ export function ResourceSparkline({
 							cursor={{ strokeDasharray: "3 3" }}
 							content={
 								<ChartTooltipContent
-									labelFormatter={(value) => formatTime(Number(value))}
+									labelFormatter={formatResourceSampleTime}
 									formatter={(value) => (
 										<span className="ml-auto font-mono tabular-nums">
 											{formatValue(Number(value))}

@@ -186,6 +186,17 @@ port_base_is_safe() {
   return 0
 }
 
+# Two services on one offset surfaces much later, as EADDRINUSE from whichever
+# starts second.
+assert_unique_ports() {
+  local dupes
+  dupes=$(printf '%s\n' "$@" | sort | uniq -d)
+  if [ -n "$dupes" ]; then
+    error "Two services were assigned the same port: $(echo "$dupes" | tr '\n' ' ')"
+    return 1
+  fi
+}
+
 allocate_port_base() {
   local alloc_file="$HOME/.superset/port-allocations.json"
   local lock_dir="$HOME/.superset/port-allocations.lock"
@@ -306,7 +317,8 @@ step_write_env() {
     # Each workspace gets a range of 20 ports from its base.
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
     #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal,
-    #          +11 code inspector, +13 relay, +14 usercontent worker
+    #          +11 code inspector, +13 relay, +14 usercontent worker,
+    #          +18 realtime worker
     # (+9, +10, +12 were Electric/Caddy/wrangler; retired, kept unassigned so
     # the surviving offsets stay stable across existing allocations)
     local BASE=$SUPERSET_PORT_BASE
@@ -324,6 +336,8 @@ step_write_env() {
     local CODE_INSPECTOR_PORT=$((BASE + 11))
     local RELAY_PORT=$((BASE + 13))
     local USERCONTENT_DEV_PORT=$((BASE + 14))
+    local SANDBOX_GATE_DEV_PORT=$((BASE + 15))
+    local REALTIME_PORT=$((BASE + 18))
 
     echo ""
     echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -340,6 +354,8 @@ step_write_env() {
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
     write_env_var "RELAY_PORT" "$RELAY_PORT"
     write_env_var "USERCONTENT_DEV_PORT" "$USERCONTENT_DEV_PORT"
+    write_env_var "SANDBOX_GATE_DEV_PORT" "$SANDBOX_GATE_DEV_PORT"
+    write_env_var "REALTIME_PORT" "$REALTIME_PORT"
     echo ""
     echo "# Cross-app URLs (overrides from root .env)"
     write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
@@ -353,8 +369,11 @@ step_write_env() {
     write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
     write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "NEXT_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
+    write_env_var "REALTIME_URL" "http://localhost:$REALTIME_PORT"
+    write_env_var "REALTIME_NUDGE_SECRET" "fake-realtime-nudge-secret"
     write_env_var "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "USERCONTENT_URL" "http://frame.usercontent.localhost:$USERCONTENT_DEV_PORT"
+    write_env_var "SANDBOX_GATE_ORIGIN" "http://127.0.0.1:$SANDBOX_GATE_DEV_PORT"
     echo ""
     echo "# Streams URLs (overrides from root .env)"
     write_env_var "PORT" "$STREAMS_PORT"
@@ -370,6 +389,11 @@ step_write_env() {
   # Generate .superset/ports.json for static port name mapping in the desktop app
   local superset_dir
   superset_dir="${SUPERSET_SCRIPT_DIR:-$(dirname "$0")}"
+  assert_unique_ports "$WEB_PORT" "$API_PORT" "$MARKETING_PORT" "$ADMIN_PORT" \
+    "$DOCS_PORT" "$DESKTOP_VITE_PORT" "$DESKTOP_NOTIFICATIONS_PORT" "$STREAMS_PORT" \
+    "$STREAMS_INTERNAL_PORT" "$CODE_INSPECTOR_PORT" "$RELAY_PORT" "$USERCONTENT_DEV_PORT" \
+    "$SANDBOX_GATE_DEV_PORT" "$REALTIME_PORT" || return 1
+
   cat > "$superset_dir/ports.json" <<PORTSJSON
 {
   "ports": [
@@ -383,6 +407,7 @@ step_write_env() {
     { "port": $STREAMS_PORT, "label": "Streams" },
     { "port": $STREAMS_INTERNAL_PORT, "label": "Streams Internal" },
     { "port": $USERCONTENT_DEV_PORT, "label": "Usercontent Worker" },
+    { "port": $SANDBOX_GATE_DEV_PORT, "label": "Gate Worker" },
     { "port": $CODE_INSPECTOR_PORT, "label": "Code Inspector" }
   ]
 }
@@ -600,5 +625,35 @@ step_seed_local_db() {
   fi
 
   success "Local DB seeded from $source_db"
+  return 0
+}
+
+step_seed_env_placeholders() {
+  echo "🧩 Seeding placeholders for keys missing from .env..."
+  seed_missing_env_placeholders ".env.local.example" ".env"
+}
+
+# The API validates its env with zod at module load; a missing key turns every
+# /api/trpc response into Next's HTML 500 and the desktop renders blank. Catch
+# that here, where the zod issues name the keys, instead of at first boot.
+step_validate_env() {
+  echo "🔎 Validating .env against the API env schemas..."
+
+  if ! command -v bun &> /dev/null; then
+    error "bun not available"
+    return 1
+  fi
+  if [ ! -f .env ]; then
+    error ".env not found"
+    return 1
+  fi
+
+  if ! env -u SKIP_ENV_VALIDATION bun --env-file=.env -e \
+      'await import("./packages/trpc/src/env.ts"); await import("./apps/api/src/env.ts");'; then
+    error ".env is missing a key the API requires (issues above). Give it a fake value in .env.local.example and re-run setup, which seeds it."
+    return 1
+  fi
+
+  success ".env satisfies packages/trpc/src/env.ts and apps/api/src/env.ts"
   return 0
 }

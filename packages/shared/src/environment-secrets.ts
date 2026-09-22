@@ -9,7 +9,7 @@ const RESERVED_PREFIXES: Array<{ prefix: string; reason: string }> = [
 		reason: "carries the workspace's identity into the sandbox",
 	},
 	{ prefix: "HOST_SERVICE_", reason: "configures the sandbox's own server" },
-	{ prefix: "BLAXEL_", reason: "belongs to the sandbox provider" },
+	{ prefix: "VERCEL_", reason: "belongs to the sandbox provider" },
 ];
 
 const RESERVED_KEYS = new Set([

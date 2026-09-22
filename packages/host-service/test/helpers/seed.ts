@@ -58,7 +58,7 @@ export interface SeedWorkspaceOptions {
 	worktreePath: string;
 	branch: string;
 	name?: string;
-	type?: "main" | "worktree";
+	type?: "local" | "worktree";
 	headSha?: string | null;
 	upstreamOwner?: string | null;
 	upstreamRepo?: string | null;

@@ -190,6 +190,23 @@ read back `location.href`, the DOM via `eval`, or a screenshot after each
 meaningful step, and check the console for page errors before declaring
 success.
 
+When the evidence is the deliverable, a bug report or a before-and-after or a
+walkthrough someone else has to read, publish it rather than listing file
+paths nobody can open. Put the screenshots in a directory beside an
+`index.html` that lays them out, and publish the directory: the images ride
+along at their relative paths, so nothing needs inlining.
+
+```bash
+superset pages publish ./evidence/ --workspace <id> --title "Checkout flow: 3 blockers"
+```
+
+Read every screenshot before it goes up. This browser is signed into the user's
+accounts, so a capture can hold a session token, an email address, a customer
+name, or a dashboard that was never meant to leave the tab. New pages default
+to org-wide visibility. Crop or redact what does not belong in the report, pass
+`--visibility just_me` when the org does not need it, and confirm with the user
+before publishing.
+
 ## Safety
 
 - In-app panes share one browser profile, so `eval` and CDP reach whatever the

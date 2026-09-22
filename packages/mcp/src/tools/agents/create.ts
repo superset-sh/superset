@@ -1,19 +1,19 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { defineTool } from "../../define-tool";
-import { hostServiceCall } from "../../host-service-client";
+import {
+	workspaceLocationInput,
+	workspaceServiceCall,
+} from "../../workspace-service-target";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "agents_create",
 		annotations: { destructiveHint: false },
 		description:
-			"Create (launch) an agent session inside an existing workspace on its host: runs the named agent preset (or HostAgentConfig instance) with the given prompt in a fresh terminal session. Use hosts_list / workspaces_list to find the hostId. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead.",
+			"Create (launch) an agent session inside an existing workspace on its host: runs the named agent preset (or HostAgentConfig instance) with the given prompt in a fresh terminal session. Omit hostId for a cloud workspace; for a host workspace, use hosts_list / workspaces_list to find the hostId. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead.",
 		inputSchema: {
-			hostId: z
-				.string()
-				.min(1)
-				.describe("Host machineId the workspace lives on."),
+			...workspaceLocationInput,
 			workspaceId: z
 				.string()
 				.uuid()
@@ -59,29 +59,19 @@ export function register(server: McpServer): void {
 				),
 		},
 		handler: async (input, ctx) => {
-			return hostServiceCall<{
+			return workspaceServiceCall<{
 				kind: "terminal";
 				sessionId: string;
 				label: string;
-			}>(
-				{
-					relayUrl: ctx.relayUrl,
-					organizationId: ctx.organizationId,
-					hostId: input.hostId,
-					jwt: ctx.bearerToken,
-				},
-				"agents.run",
-				"mutation",
-				{
-					workspaceId: input.workspaceId,
-					agent: input.agent,
-					prompt: input.prompt,
-					model: input.model,
-					effort: input.effort,
-					resumeSessionId: input.resumeSessionId,
-					attachmentIds: input.attachmentIds,
-				},
-			);
+			}>(input, ctx, "agents.run", "mutation", {
+				workspaceId: input.workspaceId,
+				agent: input.agent,
+				prompt: input.prompt,
+				model: input.model,
+				effort: input.effort,
+				resumeSessionId: input.resumeSessionId,
+				attachmentIds: input.attachmentIds,
+			});
 		},
 	});
 }

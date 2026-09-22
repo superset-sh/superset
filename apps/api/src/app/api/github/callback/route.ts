@@ -105,16 +105,25 @@ export async function GET(request: Request) {
 			return Response.redirect(`${settingsUrl}?error=save_failed`);
 		}
 
-		// Queue initial sync job
+		// Queue initial sync job. In development the queue cannot reach
+		// localhost, so the job endpoint is called directly, as triggerSync does.
+		const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`;
+		const syncBody = {
+			installationDbId: savedInstallation.id,
+			organizationId,
+		};
 		try {
-			await qstash.publishJSON({
-				url: `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`,
-				body: {
-					installationDbId: savedInstallation.id,
-					organizationId,
-				},
-				retries: 3,
-			});
+			if (env.NODE_ENV === "development") {
+				fetch(syncUrl, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(syncBody),
+				}).catch((error) => {
+					console.error("[github/callback] Dev sync failed:", error);
+				});
+			} else {
+				await qstash.publishJSON({ url: syncUrl, body: syncBody, retries: 3 });
+			}
 		} catch (error) {
 			console.error(
 				"[github/callback] Failed to queue initial sync job:",

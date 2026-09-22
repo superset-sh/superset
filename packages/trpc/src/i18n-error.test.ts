@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { formatError, isI18nErrorCause, userError } from "./i18n-error";
+import { TRPCError } from "@trpc/server";
+import {
+	formatError,
+	isI18nErrorCause,
+	planRequiredError,
+	userError,
+} from "./i18n-error";
 
 // Round trip: userError() → errorFormatter → the client-visible shape.data.
 // TRPCError.cause is NOT serialized by tRPC, so this is the contract that
@@ -32,6 +38,31 @@ describe("i18n error contract", () => {
 			i18nKey: "serverError.workspace.notFound",
 			i18nParams: { name: "api" },
 		});
+	});
+
+	test("planRequiredError is FORBIDDEN and forwards requiredPlan", () => {
+		const error = planRequiredError({
+			message: "Automations require the Pro plan.",
+			i18nKey: "serverError.automation.automationsRequireThePro",
+			requiredPlan: "pro",
+		});
+		expect(error.code).toBe("FORBIDDEN");
+		const shape = formatError({ shape: { data: {} }, error });
+		expect(shape.data.requiredPlan).toBe("pro");
+		expect(shape.data.i18nKey).toBe(
+			"serverError.automation.automationsRequireThePro",
+		);
+	});
+
+	test("an unknown requiredPlan is rejected with the rest of the cause", () => {
+		const error = new TRPCError({
+			code: "FORBIDDEN",
+			message: "x",
+			cause: { i18nKey: "k", requiredPlan: "platinum" },
+		});
+		const shape = formatError({ shape: { data: {} }, error });
+		expect(shape.data.i18nKey).toBeNull();
+		expect(shape.data.requiredPlan).toBeNull();
 	});
 
 	test("malformed i18nParams are rejected, not forwarded to clients", () => {

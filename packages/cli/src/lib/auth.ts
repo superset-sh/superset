@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { CLIError } from "@superset/cli-framework";
 import { env } from "./env";
+import { canReachDesktop, openUrl } from "./open-url";
 
 const CLIENT_ID = "superset-cli";
 const PASTE_REDIRECT_PATH = "/cli/auth/code";
@@ -37,20 +38,6 @@ function generateState(): string {
 	return base64url(randomBytes(32));
 }
 
-async function openBrowser(url: string): Promise<void> {
-	const { exec } = await import("node:child_process");
-	switch (process.platform) {
-		case "darwin":
-			exec(`open "${url}"`);
-			break;
-		case "win32":
-			exec(`start "" "${url}"`);
-			break;
-		default:
-			exec(`xdg-open "${url}"`);
-	}
-}
-
 export function getWebUrl(): string {
 	return env.SUPERSET_WEB_URL;
 }
@@ -58,8 +45,7 @@ export function getWebUrl(): string {
 function shouldOpenBrowser(): boolean {
 	if (!process.stdout.isTTY) return false;
 	if (process.env.CI) return false;
-	if (process.env.SSH_CONNECTION || process.env.SSH_TTY) return false;
-	return true;
+	return canReachDesktop();
 }
 
 async function bindLoopbackServer(): Promise<{
@@ -317,7 +303,7 @@ export async function login(
 	callbacks.onAuthorizationUrl?.(pasteAuthorizeUrl);
 
 	if (shouldOpenBrowser()) {
-		void openBrowser(browserAuthorizeUrl);
+		void openUrl(browserAuthorizeUrl).catch(() => {});
 	}
 
 	if (signal.aborted) {

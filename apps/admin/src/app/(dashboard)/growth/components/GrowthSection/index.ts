@@ -1,1 +1,0 @@
-export { GrowthSection } from "./GrowthSection";

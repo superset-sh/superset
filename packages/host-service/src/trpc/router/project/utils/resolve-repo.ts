@@ -232,9 +232,9 @@ export async function resolveLocalRepo(
  * initialized between detection and this call, or it's nested under a parent
  * repo) we skip init and just resolve the existing root.
  *
- * Like `initEmptyRepo`, creates an `--allow-empty` initial commit so
- * `ensureMainWorkspaceStrict` has a real branch/HEAD to point at; a bare
- * `git init` leaves an unborn branch.
+ * Like `initEmptyRepo`, creates an `--allow-empty` initial commit so the
+ * checkout has a real branch/HEAD for `createLocalWorkspace` to record; a
+ * bare `git init` leaves an unborn branch.
  */
 export async function initLocalRepoInPlace(
 	repoPath: string,

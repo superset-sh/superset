@@ -1,7 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatDateTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { Stack, useRouter } from "expo-router";
 import { ArrowUpRight } from "lucide-react-native";
 import { Pressable, ScrollView, View } from "react-native";
@@ -56,6 +56,8 @@ export function CheckDetailSheet({
 	onFixWithAgent?: () => void;
 	onOpenInGitHub?: () => void;
 }) {
+	const { formatDateTime } = useFormat();
+
 	const { i18n, t } = useLingui();
 	const status = STATUS_LABEL[effectiveCheckStatus(check)];
 	const router = useRouter();

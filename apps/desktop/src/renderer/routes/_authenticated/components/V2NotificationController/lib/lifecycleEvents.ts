@@ -26,6 +26,7 @@ import {
 export function handleV2AgentLifecycleEvent({
 	workspaceId,
 	workspaceName,
+	projectName,
 	payload,
 	paneLayout,
 	volume,
@@ -33,6 +34,7 @@ export function handleV2AgentLifecycleEvent({
 }: {
 	workspaceId: string;
 	workspaceName: string;
+	projectName?: string;
 	payload: AgentLifecyclePayload;
 	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
 	volume: number;
@@ -68,6 +70,7 @@ export function handleV2AgentLifecycleEvent({
 		payload,
 		workspaceId,
 		workspaceName,
+		projectName,
 		target,
 	});
 }
@@ -153,21 +156,25 @@ function showNativeNotification({
 	payload,
 	workspaceId,
 	workspaceName,
+	projectName,
 	target,
 }: {
 	payload: AgentLifecyclePayload;
 	workspaceId: string;
 	workspaceName: string;
+	projectName?: string;
 	target: V2NotificationTarget;
 }): void {
-	const { title, body } = getV2NativeNotificationContent({
+	const { title, subtitle, body } = getV2NativeNotificationContent({
 		workspaceName,
+		projectName,
 		payload,
 	});
 
 	void electronTrpcClient.notifications.showNative
 		.mutate({
 			title,
+			subtitle,
 			body,
 			silent: true,
 			clickTarget: {

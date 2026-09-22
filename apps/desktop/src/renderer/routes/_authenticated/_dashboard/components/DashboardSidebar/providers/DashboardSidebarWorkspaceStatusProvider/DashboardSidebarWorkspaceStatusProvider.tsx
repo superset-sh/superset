@@ -217,6 +217,13 @@ export function DashboardSidebarWorkspaceStatusProvider({
 			// staleTime lets focus/remount refetches self-heal any staleness
 			// from events missed while the WS was down (host restart, sleep).
 			staleTime: 30_000,
+			// Subagent rows expire host-side on read (a lost stop hook); keep
+			// reading while any are shown so an expired child does not linger
+			// until an unrelated lifecycle event.
+			refetchInterval: (query: { state: { data?: TerminalAgentBinding[] } }) =>
+				query.state.data?.some((binding) => binding.subagents?.length)
+					? 60_000
+					: false,
 		})),
 		combine: (results) => results.map((result) => result.data),
 	});

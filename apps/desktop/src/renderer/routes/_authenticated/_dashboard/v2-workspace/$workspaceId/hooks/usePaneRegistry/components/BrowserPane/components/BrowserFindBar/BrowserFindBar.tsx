@@ -71,7 +71,7 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 	};
 
 	return (
-		<div className="absolute right-3 top-3 z-30 flex items-center gap-1 rounded-md border border-border bg-popover px-2 py-1 text-xs shadow-md">
+		<div className="pointer-events-auto absolute right-3 top-3 z-30 flex items-center gap-1 rounded-md border border-border bg-popover px-2 py-1 text-xs shadow-md">
 			<input
 				ref={inputRef}
 				value={query}

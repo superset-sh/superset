@@ -1,9 +1,11 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { COMPANY } from "@superset/shared/constants";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
 import type { ComponentType } from "react";
 import type { ProFeature } from "../../constants";
 import { PRO_FEATURES } from "../../constants";
+import { AutomationsDemo } from "./components/AutomationsDemo";
 import { DitheredBackground } from "./components/DitheredBackground";
 import { MobileAppDemo } from "./components/MobileAppDemo";
 import { RemoteAccessDemo } from "./components/RemoteAccessDemo";
@@ -12,6 +14,7 @@ import { TasksDemo } from "./components/TasksDemo";
 import { TeamCollaborationDemo } from "./components/TeamCollaborationDemo";
 
 const DEMO_COMPONENTS: Record<string, ComponentType> = {
+	automations: AutomationsDemo,
 	"team-collaboration": TeamCollaborationDemo,
 	tasks: TasksDemo,
 	"slack-integration": SlackIntegrationDemo,
@@ -69,6 +72,16 @@ export function FeaturePreview({ selectedFeature }: FeaturePreviewProps) {
 				<span className="text-center text-sm font-normal text-muted-foreground">
 					{i18n._(selectedFeature.description)}
 				</span>
+				{selectedFeature.id === "mobile-app" && (
+					<a
+						href={COMPANY.APP_STORE_URL}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="mt-3 text-sm text-foreground underline underline-offset-4 hover:text-foreground/80"
+					>
+						<Trans>Open App Store</Trans>
+					</a>
+				)}
 			</div>
 		</div>
 	);

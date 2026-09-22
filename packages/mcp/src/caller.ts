@@ -56,5 +56,6 @@ export function createMcpCaller(ctx: McpContext): McpCaller {
 		// request body, that an agent is calling. Procedures that attribute or
 		// gate on "is this an agent" read this.
 		agentCaller: { transport: "mcp", label: ctx.clientLabel },
+		sandboxCaller: null,
 	});
 }

@@ -69,9 +69,9 @@ const supportsHyperlinks = () =>
 	process.stdout.isTTY === true && process.env.TERM !== "dumb";
 
 /**
- * OSC 8 hyperlink. Terminals detect links from the text they can see, so a
- * truncated URL becomes a truncated link — this carries the whole target
- * while the cell stays narrow.
+ * OSC 8 hyperlink, for terminals that honour it. A terminal that does not
+ * falls back to detecting links in the text it can see, which is why a URL
+ * cell is never truncated: the visible text has to stand on its own.
  */
 function hyperlink(url: string, label: string): string {
 	if (!supportsHyperlinks()) return label;
@@ -103,17 +103,14 @@ export function table(
 			const val = getNestedValue(row, col);
 			const str = val === null || val === undefined ? "—" : String(val);
 			const cap = caps[i]!;
-			const text = str.length > cap ? `${str.slice(0, cap - 1)}…` : str;
-			return URL_CELL.test(str) ? { text, link: str } : { text };
+			if (URL_CELL.test(str)) return { text: str, link: str };
+			return { text: str.length > cap ? `${str.slice(0, cap - 1)}…` : str };
 		}),
 	);
 
-	// Calculate column widths (capped by terminal width heuristic)
+	// Cells are already capped; a URL is not, and its column widens to fit it.
 	const widths = hdrs.map((h, i) =>
-		Math.min(
-			caps[i]!,
-			Math.max(h.length, ...rows.map((r) => r[i]?.text.length ?? 0)),
-		),
+		Math.max(h.length, ...rows.map((r) => r[i]?.text.length ?? 0)),
 	);
 
 	// Render. Padding sits outside the escape sequence so the clickable region

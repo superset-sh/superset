@@ -5,6 +5,7 @@ import {
 	buildWrapperScript,
 	createWrapper,
 	getManagedNotifyHookCommand,
+	MANAGED_NOTIFY_RELATIVE_PATH,
 	removeOwnedFileIfMarked,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
@@ -49,9 +50,10 @@ export const GROK_BLOCKING_NOTIFICATION_TYPES = [
 
 const GROK_MANAGED_HOOK_COMMAND = getManagedNotifyHookCommand("grok");
 
-// Vendor hook configs Superset also manages. Grok replays them in compat mode
-// with their inlined SUPERSET_AGENT_ID (claude/cursor-agent), which would
-// misattribute grok sessions; disable replay and register native hooks instead.
+// Vendor hook configs Superset also manages. Grok replays them in compat mode;
+// their events carry Claude's or Cursor's harness id, so the notify script
+// drops them as foreign (and, without the wrapper, would misattribute grok
+// sessions). Disable replay and register native hooks instead.
 const GROK_COMPAT_HOOK_VENDORS = ["claude", "cursor"] as const;
 
 function getGrokHomeDir(): string {
@@ -156,9 +158,10 @@ export function getGrokConfigTomlContent(existing: string): string {
  * marker-owned compat block in config.toml. No-op when neither exists.
  */
 export function removeGrokManagedHooks(): void {
+	// The notify path is in every version of the file Superset has written.
 	removeOwnedFileIfMarked(
 		getGrokHooksJsonPath(),
-		"SUPERSET_AGENT_ID=grok",
+		MANAGED_NOTIFY_RELATIVE_PATH,
 		"Grok hooks json",
 	);
 	removeManagedTomlBlock(GROK_TOML_SPEC);

@@ -65,6 +65,33 @@ export function createApplicationMenu() {
 						BrowserWindow.getFocusedWindow()?.close();
 					},
 				},
+				// macOS keeps these in the application menu, which only it has.
+				...(process.platform === "darwin"
+					? []
+					: ([
+							{ type: "separator" },
+							{
+								label: i18n._(msg({ message: "Settings..." })),
+								accelerator: openSettingsAccelerator,
+								click: () => {
+									menuEmitter.emit("open-settings");
+								},
+							},
+							{
+								label: i18n._(msg({ message: "Check for Updates..." })),
+								click: () => {
+									checkForUpdatesInteractive();
+								},
+							},
+							{ type: "separator" },
+							{ role: "quit" },
+							{
+								label: i18n._(msg({ message: "Quit Superset Completely" })),
+								click: () => {
+									void confirmAndQuitCompletely();
+								},
+							},
+						] satisfies Electron.MenuItemConstructorOptions[])),
 			],
 		},
 		{

@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useParams } from "@tanstack/react-router";
@@ -70,6 +72,8 @@ function TabButton({
 }
 
 export function RightSidebar() {
+	const { _: translate } = useTranslation();
+
 	const { workspaceId } = useParams({ strict: false });
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
@@ -164,7 +168,7 @@ export function RightSidebar() {
 							isActive={rightSidebarTab === RightSidebarTab.Changes}
 							onClick={() => setRightSidebarTab(RightSidebarTab.Changes)}
 							icon={<LuGitCompareArrows className="size-3.5" />}
-							label="Changes"
+							label={translate(msg({ message: "Changes" }))}
 							compact={compactTabs}
 						/>
 					)}
@@ -172,7 +176,7 @@ export function RightSidebar() {
 						isActive={rightSidebarTab === RightSidebarTab.Files}
 						onClick={() => setRightSidebarTab(RightSidebarTab.Files)}
 						icon={<LuFile className="size-3.5" />}
-						label="Files"
+						label={translate(msg({ message: "Files" }))}
 						compact={compactTabs}
 					/>
 				</div>

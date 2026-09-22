@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
-import { CLIError, string } from "@superset/cli-framework";
+import { boolean, CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { resolveHostFilter } from "../../../lib/host-target";
 import { formatAutomationDate } from "../format";
 import { resolveAutomationTarget } from "../resolveAutomationTarget";
 
@@ -24,9 +25,13 @@ export default command({
 			"v2 project id for new-workspace-per-run mode. Omit (with no --workspace) to create a project-less session per run",
 		),
 		workspace: string().desc("existing v2 workspace id — reuses it every run"),
+		continueSession: boolean().desc(
+			"Deliver each run's prompt into the agent session the previous run left, instead of starting another. Requires --workspace",
+		),
 		host: string().desc(
 			"Host the target project/workspace lives on (default: this machine)",
 		),
+		local: boolean().desc("Run the automation on this machine (the default)"),
 		agent: string()
 			.default("claude")
 			.desc("Host agent instance id or presetId (claude, codex, ...)."),
@@ -54,7 +59,10 @@ export default command({
 			organizationId,
 			userJwt: ctx.bearer,
 			api: ctx.api,
-			hostId: options.host ?? undefined,
+			hostId: resolveHostFilter({
+				host: options.host ?? undefined,
+				local: options.local ?? undefined,
+			}),
 			workspaceId: options.workspace ?? undefined,
 			projectId: options.project ?? undefined,
 		});
@@ -66,6 +74,7 @@ export default command({
 			targetHostId: target.targetHostId,
 			v2ProjectId: target.v2ProjectId,
 			v2WorkspaceId: options.workspace ?? undefined,
+			continueAgentSession: options.continueSession ?? undefined,
 			rrule: options.rrule,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			timezone: options.timezone ?? DEFAULT_TIMEZONE,

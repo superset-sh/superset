@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"NSSpeechRecognitionUsageDescription": "Superset menggunakan pengenalan ucapan untuk mengubah suara Anda menjadi teks.",
+		"NSPhotoLibraryUsageDescription": "Superset memerlukan akses ke pustaka foto agar Anda dapat melampirkan gambar ke pesan obrolan.",
+		"NSCameraUsageDescription": "Superset menggunakan kamera agar Anda dapat melampirkan foto ke pesan obrolan.",
+		"NSMicrophoneUsageDescription": "Superset menggunakan mikrofon agar Anda dapat mendikte pesan obrolan."
+	}
+}

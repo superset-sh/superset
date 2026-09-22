@@ -13,7 +13,7 @@ export function useRelayUrl(): string {
 	const { data } = useQuery({
 		queryKey: ["relay-endpoint"],
 		queryFn: () => apiTrpcClient.host.relayEndpoint.query(),
-		staleTime: 5 * 60 * 1000,
+		staleTime: Number.POSITIVE_INFINITY,
 		retry: 3,
 	});
 	return data?.url ?? env.RELAY_URL;

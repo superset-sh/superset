@@ -41,7 +41,7 @@ interface CommentCacheEntry {
 }
 
 function placeholderHeight(file: ChangesetFile): number {
-	const lines = file.additions + file.deletions + 8;
+	const lines = (file.additions ?? 0) + (file.deletions ?? 0) + 8;
 	return Math.min(Math.max(lines * DIFF_LINE_HEIGHT, NOTE_ROW_HEIGHT), 2_400);
 }
 

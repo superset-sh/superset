@@ -2,6 +2,8 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
+import { rawErrorMessage } from "@superset/i18n/errors";
+import { COMPANY } from "@superset/shared/constants";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -13,7 +15,7 @@ import { Fragment, useState } from "react";
 import { HiArrowLeft, HiArrowUpRight, HiCheck } from "react-icons/hi2";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { env } from "renderer/env.renderer";
-import { resolveCurrentPlan } from "renderer/hooks/useCurrentPlan";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
@@ -59,6 +61,7 @@ type ComparisonValue = MessageDescriptor | boolean | null;
 
 type ComparisonRow = {
 	label: MessageDescriptor;
+	href?: string;
 	values: ComparisonValue[];
 	badge?: { label: MessageDescriptor; variant: "default" | "secondary" };
 };
@@ -195,39 +198,28 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			},
 			{
 				label: msg({
+					message: "GitHub integration",
+				}),
+				values: [true, true, true],
+			},
+			{
+				label: msg({
 					message: "Remote access",
 				}),
 				values: [null, true, true],
-				badge: {
-					label: msg({
-						message: "Beta",
-					}),
-					variant: "default",
-				},
 			},
 			{
 				label: msg({
 					message: "Automations",
 				}),
-				values: [true, true, true],
+				values: [null, true, true],
 			},
 			{
 				label: msg({
 					message: "Mobile app",
 				}),
 				values: [null, true, true],
-				badge: {
-					label: msg({
-						message: "Coming soon",
-					}),
-					variant: "secondary",
-				},
-			},
-			{
-				label: msg({
-					message: "GitHub integration",
-				}),
-				values: [true, true, true],
+				href: COMPANY.APP_STORE_URL,
 			},
 			{
 				label: msg({
@@ -344,7 +336,6 @@ function PlansPage() {
 	const [isUpgrading, setIsUpgrading] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
-	const { data: session } = authClient.useSession();
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const utils = cloudTrpc.useUtils();
 
@@ -352,17 +343,7 @@ function PlansPage() {
 	// a second window on another org would render the first window's org here.
 	const activeOrgId = useActiveOrganizationId();
 
-	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
-
-	// An unresolved query must not read as "free": that renders a live Upgrade
-	// action for an org that may already be paying. Session plan fills in
-	// until it arrives.
-	const planResolved = activePlan !== undefined;
-	const currentPlan: PlanTier = resolveCurrentPlan({
-		subscriptionPlan: activePlan?.plan,
-		sessionPlan: session?.session?.plan,
-		subscriptionsLoaded: planResolved,
-	});
+	const { plan: currentPlan, isReady: planResolved, activePlan } = useCurrentPlan();
 	const cancelAt = activePlan?.cancelAt;
 
 	const subscriptionIsYearly = activePlan
@@ -452,6 +433,19 @@ function PlansPage() {
 
 		if (memberCount === undefined) return;
 
+		// The actual intent-to-pay step — this is what mints the Stripe Checkout
+		// session. `paywall_upgrade_clicked` only navigates to this page.
+		// `previous_plan` separates a new conversion (`free`) from an existing
+		// subscriber changing billing interval (`pro`), which shares this action.
+		const checkoutProperties = {
+			plan: "pro",
+			annual: isYearly,
+			seats: memberCount,
+			previous_plan: currentPlan,
+			source: "billing_plans",
+		};
+		track("checkout_started", checkoutProperties);
+
 		setIsUpgrading(true);
 		try {
 			await authClient.subscription.upgrade(
@@ -468,8 +462,20 @@ function PlansPage() {
 				{
 					onSuccess: (ctx) => {
 						if (ctx.data?.url) {
+							// Last thing we can see client-side; everything after this
+							// happens on Stripe and comes back through the webhook.
+							track("checkout_redirected", checkoutProperties);
 							window.open(ctx.data.url, "_blank");
 						}
+					},
+					// Better Auth resolves rather than throws, so without this hook a
+					// failed checkout is invisible: the button just resets.
+					onError: (ctx) => {
+						track("checkout_failed", {
+							...checkoutProperties,
+							status: ctx.response?.status,
+							error: rawErrorMessage(ctx.error),
+						});
 					},
 				},
 			);
@@ -779,7 +785,18 @@ function PlansPage() {
 									return (
 										<Fragment key={row.label.id}>
 											<div className="flex items-center gap-1.5 px-2 py-2.5 text-xs text-muted-foreground">
-												{i18n._(row.label)}
+												{row.href ? (
+													<a
+														href={row.href}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="underline underline-offset-4 hover:text-foreground"
+													>
+														{i18n._(row.label)}
+													</a>
+												) : (
+													i18n._(row.label)
+												)}
 												{row.badge && (
 													<Badge
 														variant={row.badge.variant}

@@ -12,6 +12,7 @@ export interface FilterablePage {
 	slug: string;
 	visibility: string;
 	description?: string | null;
+	createdByUserId?: string | null;
 }
 
 export function matchesSearch(page: FilterablePage, query: string): boolean {
@@ -31,12 +32,20 @@ export function matchesScope(
 		case "pinned":
 			return pinnedPageIds.has(page.id);
 		case "team":
-			return page.visibility === "org";
+			return page.visibility !== "just_me";
 		case "mine":
 			return page.visibility === "just_me";
 		default:
 			return true;
 	}
+}
+
+export function matchesAuthor(
+	page: FilterablePage,
+	authorId: string | null,
+): boolean {
+	if (!authorId) return true;
+	return page.createdByUserId === authorId;
 }
 
 export function filterPages<T extends FilterablePage>(
@@ -45,15 +54,19 @@ export function filterPages<T extends FilterablePage>(
 		search,
 		scope,
 		pinnedPageIds,
+		authorId = null,
 	}: {
 		search: string;
 		scope: PageScope;
 		pinnedPageIds: ReadonlySet<string>;
+		authorId?: string | null;
 	},
 ): T[] {
 	return pages.filter(
 		(page) =>
-			matchesSearch(page, search) && matchesScope(page, scope, pinnedPageIds),
+			matchesSearch(page, search) &&
+			matchesScope(page, scope, pinnedPageIds) &&
+			matchesAuthor(page, authorId),
 	);
 }
 

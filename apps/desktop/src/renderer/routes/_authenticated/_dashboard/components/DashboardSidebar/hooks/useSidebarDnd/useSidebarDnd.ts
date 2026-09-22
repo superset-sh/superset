@@ -46,6 +46,7 @@ import type {
 	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import { DRAG_ACTIVATION_DISTANCE_PX } from "./constants";
 import {
 	buildTopLevelUnits,
 	closestUnitCenter,
@@ -334,6 +335,8 @@ export interface DashboardSidebarDndValue {
 	projectsById: Map<string, DashboardSidebarProject>;
 	groupInfo: Map<string, { sectionId: string; color: string | null }>;
 	collapsedSectionIds: Set<string>;
+	/** Rows and folders are a sorted view: their sortables are inert. */
+	isChildDragDisabled: boolean;
 }
 
 const DashboardSidebarDndContext =
@@ -391,13 +394,21 @@ interface UseSidebarDndOptions {
 	sessionChildren: DashboardSidebarProjectChild[];
 	onReorderProjects: (projectIds: string[]) => void;
 	/**
-	 * True while a non-manual sort or an active filter means the rendered
-	 * lists are a transformed view of the manual order. Committing a drop in
-	 * that state would rewrite tabOrder against the view and corrupt the real
-	 * order of hidden/reordered siblings, so every drag (projects, workspaces,
-	 * folders, pinned, sessions) is inert.
+	 * True while a filter hides projects: the rendered project list is a
+	 * subset of the manual order, so committing a drop would rewrite tabOrder
+	 * against the view. The sort modes never reorder projects, so they do not
+	 * set this — a project stays draggable while its workspaces are sorted.
 	 */
-	disabled?: boolean;
+	projectDragDisabled?: boolean;
+	/**
+	 * True while a non-manual sort or an active filter means every project's
+	 * child list is a transformed view of the manual order. Committing a drop
+	 * there would corrupt the real order of reordered/hidden siblings, so
+	 * every row drag (workspaces, folders, pinned, sessions) is inert —
+	 * including in the unsorted Pinned and Sessions lanes, whose drags can
+	 * land in a project.
+	 */
+	childDragDisabled?: boolean;
 }
 
 export function useSidebarDnd({
@@ -405,7 +416,8 @@ export function useSidebarDnd({
 	pinnedWorkspaces,
 	sessionChildren,
 	onReorderProjects,
-	disabled = false,
+	projectDragDisabled = false,
+	childDragDisabled = false,
 }: UseSidebarDndOptions) {
 	const {
 		reorderPinnedWorkspaces,
@@ -414,6 +426,7 @@ export function useSidebarDnd({
 		setWorkspacePinned,
 	} = useDashboardSidebarState();
 
+	const noDragsPossible = projectDragDisabled && childDragDisabled;
 	// useSensor memoizes on the options object's identity, and this hook
 	// re-renders on every hovered-row change mid-drag. Inline option literals
 	// therefore rebuilt the sensor list each time, which recomputed every
@@ -427,11 +440,20 @@ export function useSidebarDnd({
 			// already swallowed by dnd-kit (capture-phase document click
 			// listener installed at activation, detached one event loop after
 			// the drag ends).
-			mouse: { activationConstraint: { distance: 5 }, disabled },
-			touch: { activationConstraint: { delay: 200, tolerance: 5 }, disabled },
-			keyboard: { coordinateGetter: sortableKeyboardCoordinates, disabled },
+			mouse: {
+				activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE_PX },
+				disabled: noDragsPossible,
+			},
+			touch: {
+				activationConstraint: { delay: 200, tolerance: 5 },
+				disabled: noDragsPossible,
+			},
+			keyboard: {
+				coordinateGetter: sortableKeyboardCoordinates,
+				disabled: noDragsPossible,
+			},
 		}),
-		[disabled],
+		[noDragsPossible],
 	);
 	const sensors = useSensors(
 		useSensor(GatedMouseSensor, sensorOptions.mouse),
@@ -690,31 +712,6 @@ export function useSidebarDnd({
 			return verticalListSortingStrategy;
 		},
 		[items, activeType, activeContainer],
-	);
-
-	// The sidebar data builder always sorts local main workspaces first,
-	// so any drop that lands an item above one would silently revert on
-	// the next rebuild (e.g. when the sidebar collapses and remounts).
-	// Normalize drop results to match what actually persists.
-	const normalizeMainFirst = useCallback(
-		(list: UniqueIdentifier[]) => {
-			const mains: UniqueIdentifier[] = [];
-			const rest: UniqueIdentifier[] = [];
-			for (const id of list) {
-				const parsed = parseId(id);
-				const ws =
-					parsed?.type === "workspace"
-						? workspacesById.get(parsed.realId)
-						: null;
-				if (ws?.type === "main" && ws.hostType === "local-device") {
-					mains.push(id);
-				} else {
-					rest.push(id);
-				}
-			}
-			return mains.length > 0 ? [...mains, ...rest] : list;
-		},
-		[workspacesById],
 	);
 
 	// ── Collision detection ──────────────────────────────────────────
@@ -1013,10 +1010,7 @@ export function useSidebarDnd({
 					(unit) => unit.ids,
 				);
 
-				const newList =
-					container === SESSIONS_CONTAINER
-						? rebuilt
-						: normalizeMainFirst(rebuilt);
+				const newList = rebuilt;
 				commitDragItems(withContainerList(current, container, newList));
 				dropWriteIdsRef.current = workspaceIdsOf(newList);
 				commitContainerToDb(container, newList, current.membership);
@@ -1058,13 +1052,6 @@ export function useSidebarDnd({
 					if (oldIndex !== -1 && overIndex !== -1 && oldIndex !== overIndex) {
 						targetList = arrayMove(targetList, oldIndex, overIndex);
 					}
-				}
-
-				if (
-					targetContainer !== PINNED_CONTAINER &&
-					targetContainer !== SESSIONS_CONTAINER
-				) {
-					targetList = normalizeMainFirst(targetList);
 				}
 
 				// Skip the writes when the drop lands exactly where the drag
@@ -1125,7 +1112,6 @@ export function useSidebarDnd({
 			projects,
 			projectIds,
 			onReorderProjects,
-			normalizeMainFirst,
 			commitContainerToDb,
 			persistWorkspaceDrop,
 			commitDragItems,
@@ -1179,6 +1165,7 @@ export function useSidebarDnd({
 			projectsById,
 			groupInfo,
 			collapsedSectionIds,
+			isChildDragDisabled: childDragDisabled,
 		}),
 		[
 			items,
@@ -1193,6 +1180,7 @@ export function useSidebarDnd({
 			projectsById,
 			groupInfo,
 			collapsedSectionIds,
+			childDragDisabled,
 		],
 	);
 

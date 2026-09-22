@@ -1,7 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { COMPANY } from "@superset/shared/constants";
 import { useQuery } from "@tanstack/react-query";
 
@@ -13,6 +13,8 @@ import { StatStrip } from "../StatStrip";
 const STALE_TIME_MS = 30 * 60 * 1000;
 
 export function DiscordTile() {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const trpc = useTRPC();
 	const query = useQuery(

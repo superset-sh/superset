@@ -3,10 +3,10 @@ import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjects } from "renderer/react-query/projects";
 import { useWorkspaceSidebarStore } from "renderer/stores";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useSectionDropZone } from "../hooks";
 import type { SidebarSection, SidebarWorkspace } from "../types";
 import { WorkspaceListItem } from "../WorkspaceListItem";
@@ -69,7 +69,7 @@ export function ProjectSection({
 }: ProjectSectionProps) {
 	const { isProjectCollapsed, toggleProjectCollapsed } =
 		useWorkspaceSidebarStore();
-	const openModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 	const reorderProjects = useReorderProjects();
 	const utils = electronTrpc.useUtils();
 
@@ -152,7 +152,7 @@ export function ProjectSection({
 		);
 
 	const handleNewWorkspace = () => {
-		openModal(projectId);
+		openNewWorkspace(projectId);
 	};
 
 	const [{ isDragging }, drag] = useDrag(

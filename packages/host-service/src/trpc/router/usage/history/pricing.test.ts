@@ -9,6 +9,20 @@ describe("matchModelRate", () => {
 		expect(rate.outputPerM).toBe(10);
 	});
 
+	test("prices Muse Spark at the standard tier unless the id is a contributor variant", () => {
+		expect(matchModelRate("muse", "muse-spark-1.2")).toMatchObject({
+			inputPerM: 1.25,
+			outputPerM: 4.25,
+			cacheReadPerM: 0.15,
+			approximate: false,
+		});
+		expect(matchModelRate("muse", "muse-spark-1.2-contributor")).toMatchObject({
+			inputPerM: 0.1,
+			outputPerM: 0.2,
+			approximate: false,
+		});
+	});
+
 	test("unknown models fall back to the cheapest rate, marked approximate", () => {
 		const rate = matchModelRate("fx", "zai/glm-5.2");
 		expect(rate.approximate).toBe(true);
@@ -20,7 +34,7 @@ describe("matchModelRate", () => {
 		expect(rate.inputPerM).toBe(2);
 	});
 
-	test("prices GPT-6 Astra for codex and vendor-qualified harness ids", () => {
+	test("prices GPT-6 models for codex and vendor-qualified harness ids", () => {
 		expect(matchModelRate("codex", "gpt-6-astra")).toMatchObject({
 			inputPerM: 10,
 			outputPerM: 50,
@@ -29,6 +43,16 @@ describe("matchModelRate", () => {
 		expect(matchModelRate("omp", "openai-codex/gpt-6-astra")).toMatchObject({
 			inputPerM: 10,
 			outputPerM: 50,
+			approximate: false,
+		});
+		expect(matchModelRate("codex", "gpt-6-sol")).toMatchObject({
+			inputPerM: 2,
+			outputPerM: 10,
+			approximate: false,
+		});
+		expect(matchModelRate("omp", "openai-codex/gpt-6-luna")).toMatchObject({
+			inputPerM: 0.1,
+			outputPerM: 0.5,
 			approximate: false,
 		});
 	});
@@ -64,6 +88,28 @@ describe("matchModelRate", () => {
 		).toBeCloseTo(1);
 		expect(cacheSavingsUsd(fable51, cachedMillion)).toBeCloseTo(9.75);
 		expect(cacheSavingsUsd(fable5, cachedMillion)).toBeCloseTo(9);
+	});
+
+	test("prices Opus 5.5 including its reduced cache-read rate", () => {
+		const rate = matchModelRate("claude", "claude-opus-5-5");
+		expect(rate).toMatchObject({
+			inputPerM: 4,
+			outputPerM: 20,
+			cacheReadPerM: 0.2,
+			approximate: false,
+		});
+		expect(matchModelRate("omp", "anthropic/claude-opus-5-5")).toMatchObject(
+			rate,
+		);
+		expect(
+			costUsd(rate, {
+				uncachedInput: 1_000_000,
+				cachedInput: 1_000_000,
+				cacheWrite5m: 1_000_000,
+				cacheWrite1h: 1_000_000,
+				output: 1_000_000,
+			}),
+		).toBeCloseTo(37.2);
 	});
 
 	test("uses Gemini Pro long-context tiers above 200k prompt tokens", () => {

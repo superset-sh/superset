@@ -15,7 +15,9 @@ import { pageWatchRouter } from "./page-watch";
 import { portsRouter } from "./ports";
 import { projectRouter } from "./project";
 import { pullRequestsRouter } from "./pull-requests";
+import { sandboxRouter } from "./sandbox";
 import { settingsRouter } from "./settings";
+import { systemRouter } from "./system";
 import { tagFoldersRouter } from "./tag-folders";
 import { terminalRouter } from "./terminal";
 import { terminalAgentsRouter } from "./terminal-agents";
@@ -43,7 +45,9 @@ export const appRouter = router({
 	tagFolders: tagFoldersRouter,
 	pageWatch: pageWatchRouter,
 	ports: portsRouter,
+	sandbox: sandboxRouter,
 	settings: settingsRouter,
+	system: systemRouter,
 	terminal: terminalRouter,
 	terminalAgents: terminalAgentsRouter,
 	usage: usageRouter,

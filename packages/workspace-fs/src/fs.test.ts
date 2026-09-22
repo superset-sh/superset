@@ -107,6 +107,33 @@ describe("readFile", () => {
 		expect(result.exceededLimit).toEqual(false);
 	});
 
+	it("reads nothing from an empty file or an offset at the end", async () => {
+		const rootPath = await createTempRoot();
+		const emptyPath = path.join(rootPath, "empty.txt");
+		await fs.writeFile(emptyPath, "");
+		const shortPath = path.join(rootPath, "short.txt");
+		await fs.writeFile(shortPath, "abc");
+
+		const empty = await readFile({
+			rootPath,
+			absolutePath: emptyPath,
+			encoding: "utf-8",
+		});
+		const atEnd = await readFile({
+			rootPath,
+			absolutePath: shortPath,
+			offset: 3,
+		});
+
+		expect(empty.kind).toEqual("text");
+		expect(empty.content).toEqual("");
+		expect(empty.byteLength).toEqual(0);
+		expect(empty.exceededLimit).toEqual(false);
+		expect(atEnd.kind).toEqual("bytes");
+		expect(atEnd.byteLength).toEqual(0);
+		expect(atEnd.exceededLimit).toEqual(false);
+	});
+
 	it("reads files outside the workspace root", async () => {
 		const rootPath = await createTempRoot();
 		const outsideRoot = await createTempRoot();

@@ -1,8 +1,6 @@
 import {
-	CatchBoundary,
 	createFileRoute,
 	Outlet,
-	useLocation,
 	useMatchRoute,
 	useNavigate,
 } from "@tanstack/react-router";
@@ -10,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CommandPaletteHost } from "renderer/commandPalette";
 import { Redirect } from "renderer/components/Redirect";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { useQuickCreateWorkspace } from "renderer/hooks/useQuickCreateWorkspace";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -24,7 +23,6 @@ import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSide
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { usePortsDisplayMode } from "renderer/stores/inline-workspace-ports";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import { syncPersistedStoreAcrossWindows } from "renderer/stores/syncPersistedStoreAcrossWindows";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
@@ -34,9 +32,9 @@ import {
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
+import { ContentBoundary } from "../components/ContentBoundary";
 import { AddRepositoryModals } from "./components/AddRepositoryModals";
 import { CrossVersionMismatchState } from "./components/CrossVersionMismatchState";
-import { DashboardContentError } from "./components/DashboardContentError";
 import { RemotePortForwarder } from "./components/RemotePortForwarder";
 import { TopBar } from "./components/TopBar";
 
@@ -54,8 +52,8 @@ type DeleteTarget = {
 
 function DashboardLayout() {
 	const navigate = useNavigate();
-	const location = useLocation();
-	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
+
+	const openNewWorkspace = useOpenNewWorkspace();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const portsDisplayMode = usePortsDisplayMode();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
@@ -153,7 +151,7 @@ function DashboardLayout() {
 		}
 	});
 	useHotkey("NEW_WORKSPACE", () =>
-		openNewWorkspaceModal(
+		openNewWorkspace(
 			currentWorkspace?.projectId ?? currentV2Workspace?.projectId ?? undefined,
 		),
 	);
@@ -177,11 +175,7 @@ function DashboardLayout() {
 				return;
 			}
 
-			if (
-				currentV2WorkspaceId &&
-				currentV2Workspace &&
-				currentV2Workspace.type !== "main"
-			) {
+			if (currentV2WorkspaceId && currentV2Workspace) {
 				useDeleteWorkspaceIntent.getState().request({
 					workspaceId: currentV2WorkspaceId,
 					workspaceName: currentV2Workspace.name || currentV2Workspace.branch,
@@ -191,9 +185,7 @@ function DashboardLayout() {
 		{
 			enabled:
 				(!!currentWorkspaceId && !!currentWorkspace) ||
-				(!!currentV2WorkspaceId &&
-					!!currentV2Workspace &&
-					currentV2Workspace.type !== "main"),
+				(!!currentV2WorkspaceId && !!currentV2Workspace),
 		},
 	);
 
@@ -298,18 +290,9 @@ function DashboardLayout() {
 										<CrossVersionMismatchState />
 									)
 								) : (
-									// Contain content-route crashes to this pane: without a
-									// boundary they bubble to the root and unmount the whole
-									// app, which reads as Superset restarting itself
-									// (SUPER-1814). Resets on navigation.
-									<CatchBoundary
-										// Full href, not just pathname: a same-path search/hash
-										// change (filter, tab) must also clear a stuck error pane.
-										getResetKey={() => location.href}
-										errorComponent={DashboardContentError}
-									>
+									<ContentBoundary>
 										<Outlet />
-									</CatchBoundary>
+									</ContentBoundary>
 								)}
 							</div>
 						</div>

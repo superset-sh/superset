@@ -109,3 +109,5 @@ plans/local/
 # a string: compile emits one minified line per locale, and git cannot
 # three-way merge a single-line file.
 packages/i18n/locales/*/messages.ts
+
+.gstack/

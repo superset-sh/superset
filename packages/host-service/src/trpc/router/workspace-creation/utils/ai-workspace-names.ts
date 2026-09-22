@@ -82,6 +82,32 @@ export type GeneratedWorkspaceNames = z.infer<
 	ReturnType<typeof buildWorkspaceNamesSchema>
 >;
 
+/**
+ * Reapplies the project's resolved branch prefix onto an AI/derived branch
+ * candidate. The AI only ever names the task itself (see `buildInstructions`
+ * — no prefix in the naming prompt); the prefix is namespacing applied
+ * deterministically afterwards, so it can't be dropped or mangled by the
+ * model. Pulled out as a pure function so the reapplication behavior is
+ * unit-testable without mocking git/db.
+ */
+export function resolveGeneratedBranchName({
+	candidate,
+	branchPrefix,
+	oldBranchName,
+}: {
+	candidate: string;
+	branchPrefix?: string;
+	oldBranchName: string;
+}): { prefixedCandidate: string; changed: boolean } {
+	const prefixedCandidate = branchPrefix
+		? `${branchPrefix}/${candidate}`
+		: candidate;
+	return {
+		prefixedCandidate,
+		changed: candidate !== "" && prefixedCandidate !== oldBranchName,
+	};
+}
+
 function buildInstructions(namingInstructions?: string | null): string {
 	const custom = namingInstructions?.trim() ?? "";
 	const lines = [
@@ -342,6 +368,13 @@ interface ApplyGeneratedNamesArgs {
 	renameTitle: boolean;
 	/** Replace the git branch name with an AI-picked one. Skip when the user typed a branch. */
 	renameBranch: boolean;
+	/**
+	 * The project's resolved branch prefix (e.g. `kiet`), if any. The AI
+	 * only ever names the task itself; the prefix is namespacing the AI has
+	 * no business deciding, so it's applied here, deterministically, on top
+	 * of whatever name comes back — never folded into the naming prompt.
+	 */
+	branchPrefix?: string;
 }
 
 interface ApplyAiRenameArgs extends ApplyGeneratedNamesArgs {
@@ -378,6 +411,10 @@ export async function applyAiWorkspaceRename(
  * and commits next; the cloud mirror is pushed best-effort afterwards
  * (a failure leaves the row cloud-dirty for the reconciler).
  *
+ * `branchPrefix` (the project's already-resolved prefix, if any) is
+ * prepended to the AI's branch name before dedup and rename — the AI is
+ * never asked to include it, so it can't drop or mangle it.
+ *
  * `renameTitle` / `renameBranch` let callers preserve user-typed
  * values: skip replacing whichever side the user supplied directly.
  * The worktree directory keeps its creation-time name — renaming it
@@ -396,16 +433,20 @@ export async function applyGeneratedWorkspaceNames(
 		names: aiNames,
 		renameTitle,
 		renameBranch,
+		branchPrefix,
 	} = args;
 
 	if (!renameTitle && !renameBranch) return null;
 
+	const { prefixedCandidate, changed: candidateChanged } =
+		resolveGeneratedBranchName({
+			candidate: aiNames.branchName,
+			branchPrefix,
+			oldBranchName,
+		});
 	const titleChanged =
 		renameTitle && aiNames.title !== "" && aiNames.title !== oldWorkspaceName;
-	const branchChanged =
-		renameBranch &&
-		aiNames.branchName !== "" &&
-		aiNames.branchName !== oldBranchName;
+	const branchChanged = renameBranch && candidateChanged;
 	if (!titleChanged && !branchChanged) return null;
 
 	let deduped = oldBranchName;
@@ -413,7 +454,7 @@ export async function applyGeneratedWorkspaceNames(
 	if (branchChanged) {
 		const freshBranches = await listBranchNames(ctx, repoPath);
 		deduped = deduplicateBranchName(
-			aiNames.branchName,
+			prefixedCandidate,
 			freshBranches.filter((b) => b !== oldBranchName),
 		);
 		try {

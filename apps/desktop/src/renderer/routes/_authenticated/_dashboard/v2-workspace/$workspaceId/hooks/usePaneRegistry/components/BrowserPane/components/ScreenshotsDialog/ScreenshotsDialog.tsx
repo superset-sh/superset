@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import type { SelectScreenshot } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import {
@@ -24,6 +25,8 @@ export function ScreenshotsDialog({
 	open,
 	onOpenChange,
 }: ScreenshotsDialogProps) {
+	const { formatDateTime } = useFormat();
+
 	const { t } = useLingui();
 	const [rows, setRows] = useState<SelectScreenshot[]>([]);
 	const { copyToClipboard } = useCopyToClipboard();
@@ -110,8 +113,8 @@ export function ScreenshotsDialog({
 													{row.filename}
 												</div>
 												<div className="truncate text-xs text-muted-foreground">
-													{new Date(row.capturedAt).toLocaleString()} ·{" "}
-													{row.width}×{row.height}
+													{formatDateTime(new Date(row.capturedAt), undefined)}{" "}
+													· {row.width}×{row.height}
 												</div>
 											</div>
 										</div>

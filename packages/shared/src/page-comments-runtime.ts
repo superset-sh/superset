@@ -1,3 +1,8 @@
+import {
+	PAGE_PINCH_ZOOM_RUNTIME_SOURCE,
+	type PageViewportZoom,
+} from "./page-zoom";
+
 export interface CommentAnchor {
 	path: string;
 	tag: string;
@@ -22,15 +27,33 @@ export interface FrameRect {
 export const HOST_CHANNEL = "superset-comments/host";
 export const FRAME_CHANNEL = "superset-comments/frame";
 
+export const PENDING_ANCHOR_ID = "superset-pending-anchor";
+
+export interface PageLinkClick {
+	url: string;
+	metaKey: boolean;
+	ctrlKey: boolean;
+	shiftKey: boolean;
+}
+
 export type HostMessageBody =
-	| { type: "set-mode"; enabled: boolean }
+	| { type: "ready" }
+	| { type: "set-link-handling"; enabled: boolean }
+	| { type: "enable-pinch-zoom" }
+	| { type: "set-mode"; enabled: boolean; locked: boolean }
 	| { type: "track"; anchors: { id: string; anchor: CommentAnchor }[] }
 	| { type: "restore-scroll"; y: number };
 
 export type HostMessage = HostMessageBody & { channel: typeof HOST_CHANNEL };
 
 export type FrameMessage =
+	| ({ channel: typeof FRAME_CHANNEL; type: "link-click" } & PageLinkClick)
 	| { channel: typeof FRAME_CHANNEL; type: "ready" }
+	| {
+			channel: typeof FRAME_CHANNEL;
+			type: "viewport-zoom";
+			viewport: PageViewportZoom;
+	  }
 	| { channel: typeof FRAME_CHANNEL; type: "hover"; rect: FrameRect | null }
 	| { channel: typeof FRAME_CHANNEL; type: "pointer-down" }
 	| { channel: typeof FRAME_CHANNEL; type: "escape" }
@@ -58,12 +81,18 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	const FRAME = ${JSON.stringify(FRAME_CHANNEL)};
 
 	let enabled = false;
+	let handleLinks = false;
+	let locked = false;
+	let lockedAtPointerDown = false;
 	let tracked = [];
 	let lastHoverPath = null;
 	let frame = 0;
 	let lastScrollY = 0;
 	let restoreY = null;
 	let restoreDeadline = 0;
+	let lastScrollPost = 0;
+	let settleTimer = 0;
+	const SCROLL_POST_IDLE_MS = 150;
 
 	const post = (message) => {
 		parent.postMessage({ channel: FRAME, ...message }, "*");
@@ -137,15 +166,31 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		});
 	};
 
+	const postScroll = () => {
+		if (settleTimer) {
+			clearTimeout(settleTimer);
+			settleTimer = 0;
+		}
+		if (restoreY !== null || scrollY === lastScrollY) return;
+		lastScrollY = scrollY;
+		lastScrollPost = Date.now();
+		post({ type: "scroll", y: scrollY });
+	};
+
 	const schedule = () => {
 		if (frame) return;
 		frame = requestAnimationFrame(() => {
 			frame = 0;
-			syncRects();
+			const pinned = tracked.length > 0;
+			if (pinned) syncRects();
 			if (restoreY !== null && Date.now() > restoreDeadline) restoreY = null;
-			if (restoreY === null && scrollY !== lastScrollY) {
-				lastScrollY = scrollY;
-				post({ type: "scroll", y: scrollY });
+			if (restoreY !== null || scrollY === lastScrollY) return;
+			if (pinned || Date.now() - lastScrollPost >= SCROLL_POST_IDLE_MS) {
+				postScroll();
+				return;
+			}
+			if (!settleTimer) {
+				settleTimer = setTimeout(postScroll, SCROLL_POST_IDLE_MS);
 			}
 		});
 	};
@@ -153,7 +198,7 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	document.addEventListener(
 		"mousemove",
 		(event) => {
-			if (!enabled) return;
+			if (!enabled || locked) return;
 			const el = targetAt(event.clientX, event.clientY);
 			const path = el ? pathOf(el) : null;
 			if (path === lastHoverPath) return;
@@ -180,20 +225,55 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		true,
 	);
 
+	// The host dismisses whatever is open on pointer-down and unlocks the frame
+	// before this same gesture's click arrives, so the click has to remember
+	// that it began as a dismiss or it starts a new pick.
 	document.addEventListener(
 		"mousedown",
 		() => {
+			lockedAtPointerDown = locked;
 			post({ type: "pointer-down" });
 		},
 		true,
 	);
 
+	const forwardLink = (event) => {
+		if (!handleLinks || event.defaultPrevented || event.button > 1) return;
+		const anchor = event.target?.closest?.("a[href]");
+		if (!anchor || anchor.hasAttribute("download")) return;
+		const href = anchor.getAttribute("href")?.trim();
+		if (!href) return;
+		let url;
+		try { url = new URL(href, document.baseURI); } catch { return; }
+		if (!["http:", "https:", "mailto:", "tel:"].includes(url.protocol)) return;
+		const current = new URL(location.href);
+		if (url.href.includes("#") && url.origin === current.origin && url.pathname === current.pathname && url.search === current.search) return;
+		event.preventDefault();
+		event.stopPropagation();
+		post({
+			type: "link-click",
+			url: url.href,
+			metaKey: Boolean(event.metaKey),
+			ctrlKey: Boolean(event.ctrlKey),
+			shiftKey: Boolean(event.shiftKey),
+		});
+	};
+
+	document.addEventListener("auxclick", (event) => {
+		if (event.button !== 1) return;
+		if (enabled) { event.preventDefault(); return; }
+		forwardLink(event);
+	}, true);
+
 	document.addEventListener(
 		"click",
 		(event) => {
-			if (!enabled) return;
+			const dismissing = lockedAtPointerDown;
+			lockedAtPointerDown = false;
+			if (!enabled) { forwardLink(event); return; }
 			event.preventDefault();
 			event.stopPropagation();
+			if (locked || dismissing) return;
 			const el = targetAt(event.clientX, event.clientY);
 			if (!el) return;
 			const rect = rectOf(el);
@@ -213,7 +293,24 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 		true,
 	);
 
-	addEventListener("scroll", schedule, true);
+	const pinchZoom = (${PAGE_PINCH_ZOOM_RUNTIME_SOURCE})((viewport) => {
+		post({ type: "viewport-zoom", viewport });
+		lastHoverPath = null;
+		post({ type: "hover", rect: null });
+		schedule();
+	}, () => locked);
+
+	addEventListener(
+		"scroll",
+		() => {
+			if (enabled && lastHoverPath !== null) {
+				lastHoverPath = null;
+				post({ type: "hover", rect: null });
+			}
+			schedule();
+		},
+		true,
+	);
 	addEventListener("resize", schedule);
 	for (const type of ["wheel", "touchstart", "keydown"]) {
 		addEventListener(type, () => {
@@ -242,10 +339,15 @@ export const PAGE_COMMENTS_RUNTIME_SOURCE = `(() => {
 	addEventListener("message", (event) => {
 		const data = event.data;
 		if (!data || data.channel !== HOST) return;
+		if (data.type === "enable-pinch-zoom" && event.source === parent) pinchZoom.enable();
+		if (data.type === "set-link-handling" && event.source === parent) handleLinks = Boolean(data.enabled);
+		if (data.type === "ready") post({ type: "ready" });
 		if (data.type === "set-mode") {
 			enabled = Boolean(data.enabled);
-			document.documentElement.style.cursor = enabled ? "crosshair" : "";
-			if (!enabled) {
+			locked = Boolean(data.locked);
+			document.documentElement.style.cursor =
+				enabled && !locked ? "crosshair" : "";
+			if (!enabled || locked) {
 				lastHoverPath = null;
 				post({ type: "hover", rect: null });
 			}

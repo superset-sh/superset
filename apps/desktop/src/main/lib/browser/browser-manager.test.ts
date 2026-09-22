@@ -15,6 +15,7 @@ mock.module("main/lib/safe-url", () => ({
 }));
 
 const { browserManager } = await import("./browser-manager");
+const { PROTOCOL_SCHEME } = await import("shared/constants");
 
 interface FakeImage {
 	isEmpty: () => boolean;
@@ -32,14 +33,18 @@ type WindowOpenHandler = (
 	details: Electron.HandlerDetails,
 ) => Electron.WindowOpenHandlerResponse;
 
+type WcListener = (...args: unknown[]) => void;
+
 interface FakeWebContents {
 	throttlingCalls: boolean[];
 	isDestroyed: () => boolean;
+	isCrashed: () => boolean;
 	setBackgroundThrottling: (allowed: boolean) => void;
 	setWindowOpenHandler: (handler: WindowOpenHandler) => void;
 	windowOpen: WindowOpenHandler | null;
-	on: () => void;
-	off: () => void;
+	listeners: Map<string, WcListener[]>;
+	on: (event: string, listener: WcListener) => void;
+	off: (event: string, listener: WcListener) => void;
 	getURL: () => string;
 	getTitle: () => string;
 	isLoading: () => boolean;
@@ -60,6 +65,7 @@ function makeWc(): { wc: FakeWebContents; id: number } {
 	const wc: FakeWebContents = {
 		throttlingCalls,
 		isDestroyed: () => false,
+		isCrashed: () => false,
 		setBackgroundThrottling: (allowed: boolean) => {
 			throttlingCalls.push(allowed);
 		},
@@ -67,8 +73,16 @@ function makeWc(): { wc: FakeWebContents; id: number } {
 			wc.windowOpen = handler;
 		},
 		windowOpen: null,
-		on: () => {},
-		off: () => {},
+		listeners: new Map(),
+		on: (event, listener) => {
+			wc.listeners.set(event, [...(wc.listeners.get(event) ?? []), listener]);
+		},
+		off: (event, listener) => {
+			wc.listeners.set(
+				event,
+				(wc.listeners.get(event) ?? []).filter((l) => l !== listener),
+			);
+		},
 		getURL: () => "https://example.com",
 		getTitle: () => "Example",
 		isLoading: () => false,
@@ -374,6 +388,165 @@ describe("forced CDP detach", () => {
 	});
 });
 
+describe("CDP session on a crashed guest renderer", () => {
+	test("viewport resizes are refused instead of forwarded", () => {
+		const wc = register("pane-crashed");
+		wc.isCrashed = () => true;
+		const messages: Array<{ id?: number; error?: unknown }> = [];
+		const session = browserManager.attachCdp(
+			"pane-crashed",
+			"ws-1",
+			(payload) => messages.push(JSON.parse(payload)),
+			() => {},
+		);
+		const sendCommand = mock(async () => ({}));
+		wc.debugger.sendCommand = sendCommand;
+
+		session.send(
+			JSON.stringify({
+				id: 1,
+				method: "Emulation.setDeviceMetricsOverride",
+				params: {
+					width: 400,
+					height: 300,
+					deviceScaleFactor: 1,
+					mobile: false,
+				},
+			}),
+		);
+		session.send(
+			JSON.stringify({
+				id: 2,
+				method: "Emulation.setVisibleSize",
+				params: { width: 400, height: 300 },
+			}),
+		);
+		session.detach();
+
+		expect(sendCommand).not.toHaveBeenCalled();
+		expect(messages.map((m) => [m.id, m.error !== undefined])).toEqual([
+			[1, true],
+			[2, true],
+		]);
+	});
+
+	test("navigation is still forwarded, and a live guest still gets viewport resizes", () => {
+		const crashed = register("pane-crashed-navigate");
+		crashed.isCrashed = () => true;
+		const crashedSend = mock(async (_method: string) => ({}));
+		crashed.debugger.sendCommand = crashedSend;
+		const crashedSession = browserManager.attachCdp(
+			"pane-crashed-navigate",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		crashedSession.send(
+			JSON.stringify({
+				id: 1,
+				method: "Page.navigate",
+				params: { url: "https://example.com" },
+			}),
+		);
+
+		const live = register("pane-live-emulation");
+		const liveSend = mock(async () => ({}));
+		live.debugger.sendCommand = liveSend;
+		const liveSession = browserManager.attachCdp(
+			"pane-live-emulation",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		const metrics = {
+			width: 400,
+			height: 300,
+			deviceScaleFactor: 1,
+			mobile: false,
+		};
+		liveSession.send(
+			JSON.stringify({
+				id: 2,
+				method: "Emulation.setDeviceMetricsOverride",
+				params: metrics,
+			}),
+		);
+		crashedSession.detach();
+		liveSession.detach();
+
+		expect(crashedSend.mock.calls.map((call) => call[0])).toEqual([
+			"Page.navigate",
+		]);
+		expect(liveSend).toHaveBeenCalledWith(
+			"Emulation.setDeviceMetricsOverride",
+			metrics,
+			undefined,
+		);
+	});
+});
+
+describe("host window key forwarding", () => {
+	type BeforeInput = (
+		event: { preventDefault: () => void },
+		input: Record<string, unknown>,
+	) => void;
+
+	function makeHostWindow(focusedFrame: { parent: object | null } | null) {
+		let handler: BeforeInput | null = null;
+		const wc = {
+			id: 4242,
+			focusedFrame,
+			on: (event: string, listener: BeforeInput) => {
+				if (event === "before-input-event") handler = listener;
+			},
+		};
+		browserManager.registerHostWindow(wc as unknown as Electron.WebContents);
+		const press = (input: Record<string, unknown>) => {
+			const event = { preventDefault: mock(() => {}) };
+			handler?.(event, { type: "keyDown", ...input });
+			return event.preventDefault.mock.calls.length > 0;
+		};
+		return { wc, press };
+	}
+
+	const cmdW = {
+		key: "w",
+		code: "KeyW",
+		meta: true,
+		control: false,
+		alt: false,
+		shift: false,
+	};
+
+	test("suppresses and forwards a forwardable chord while a subframe has focus", () => {
+		browserManager.setForwardableChords(["meta+w"]);
+		const { wc, press } = makeHostWindow({ parent: {} });
+		const forwarded: unknown[] = [];
+		const listener = (key: unknown) => forwarded.push(key);
+		browserManager.on(`host-key-forward:${wc.id}`, listener);
+		try {
+			expect(press(cmdW)).toBe(true);
+			expect(forwarded).toEqual([cmdW]);
+			// Not a forwardable chord: the page keeps it.
+			expect(press({ ...cmdW, key: "c", code: "KeyC" })).toBe(false);
+			expect(forwarded).toHaveLength(1);
+		} finally {
+			browserManager.off(`host-key-forward:${wc.id}`, listener);
+			browserManager.setForwardableChords([]);
+		}
+	});
+
+	test("leaves keystrokes alone while the top frame (or nothing) has focus", () => {
+		browserManager.setForwardableChords(["meta+w"]);
+		try {
+			expect(makeHostWindow({ parent: null }).press(cmdW)).toBe(false);
+			expect(makeHostWindow(null).press(cmdW)).toBe(false);
+		} finally {
+			browserManager.setForwardableChords([]);
+		}
+	});
+});
+
 describe("window.open handling", () => {
 	function openDetails(
 		overrides: Partial<Electron.HandlerDetails>,
@@ -484,5 +657,77 @@ describe("window.open handling", () => {
 			)?.action,
 		).toBe("deny");
 		expect(emitted).toEqual([]);
+	});
+});
+
+describe("deep links from guest pages", () => {
+	function navigate(wc: FakeWebContents, url: string): boolean {
+		const event = {
+			defaultPrevented: false,
+			preventDefault() {
+				this.defaultPrevented = true;
+			},
+		};
+		for (const listener of wc.listeners.get("will-navigate") ?? []) {
+			listener(event, url);
+		}
+		return event.defaultPrevented;
+	}
+
+	function collectDeepLinks(): { urls: string[]; stop: () => void } {
+		const urls: string[] = [];
+		const listener = (url: string) => {
+			urls.push(url);
+		};
+		browserManager.on("deep-link", listener);
+		return { urls, stop: () => browserManager.off("deep-link", listener) };
+	}
+
+	test("a superset:// link click is cancelled in the guest and handed to the app", () => {
+		const wc = register("pane-deep-link");
+		const { urls, stop } = collectDeepLinks();
+		expect(navigate(wc, "superset://pages/my-page")).toBe(true);
+		expect(urls).toEqual(["superset://pages/my-page"]);
+		stop();
+	});
+
+	test("the instance's own registered scheme is handled the same way", () => {
+		const wc = register("pane-deep-link-own");
+		const { urls, stop } = collectDeepLinks();
+		const url = `${PROTOCOL_SCHEME}://tasks/my-task`;
+		expect(navigate(wc, url)).toBe(true);
+		expect(urls).toEqual([url]);
+		stop();
+	});
+
+	test("a target=_blank superset:// link is denied as a window and handed to the app", () => {
+		const wc = register("pane-deep-link-blank");
+		const { urls, stop } = collectDeepLinks();
+		const result = wc.windowOpen?.({
+			url: "superset://pages/my-page",
+			frameName: "_blank",
+			features: "",
+			disposition: "foreground-tab",
+			referrer: { url: "", policy: "default" },
+		} as Electron.HandlerDetails);
+		expect(result?.action).toBe("deny");
+		expect(urls).toEqual(["superset://pages/my-page"]);
+		stop();
+	});
+
+	test("other disallowed schemes are still cancelled without a deep link", () => {
+		const wc = register("pane-deep-link-file");
+		const { urls, stop } = collectDeepLinks();
+		expect(navigate(wc, "file:///etc/passwd")).toBe(true);
+		expect(urls).toEqual([]);
+		stop();
+	});
+
+	test("ordinary web navigation is untouched", () => {
+		const wc = register("pane-deep-link-http");
+		const { urls, stop } = collectDeepLinks();
+		expect(navigate(wc, "https://example.com/docs")).toBe(false);
+		expect(urls).toEqual([]);
+		stop();
 	});
 });

@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
-import { projects } from "../../src/db/schema";
+import { projects, workspaces } from "../../src/db/schema";
 import { createTestHost, type TestHost } from "../helpers/createTestHost";
 import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
 
@@ -149,7 +149,7 @@ describe("project.create empty mode is fully local", () => {
 		if (host) await host.dispose();
 	});
 
-	test("creates repo dir, named row, and main workspace with zero cloud calls", async () => {
+	test("creates repo dir and named row with zero workspaces and zero cloud calls", async () => {
 		host = await createTestHost();
 		const parentDir = mkdtempSync(join(tmpdir(), "empty-mode-parent-"));
 		// initEmptyRepo makes an initial commit; CI runners have no global
@@ -170,8 +170,8 @@ describe("project.create empty mode is fully local", () => {
 				mode: { kind: "empty", parentDir },
 			});
 			expect(created.repoPath.startsWith(parentDir)).toBe(true);
-			expect(created.mainWorkspaceId).toBeTruthy();
 			expect(existsSync(join(created.repoPath, ".git"))).toBe(true);
+			expect(host.db.select().from(workspaces).all()).toHaveLength(0);
 
 			const row = host.db
 				.select()

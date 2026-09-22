@@ -22,11 +22,12 @@ import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { after, before, describe, test } from "node:test";
+import { after, before, describe, mock, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import { createDb, type HostDb } from "../db/index.ts";
 import { projects, workspaces } from "../db/schema.ts";
+import { DaemonUnavailableError } from "./DaemonClient/index.ts";
 import {
 	disposeDaemonClient,
 	getDaemonClient,
@@ -117,6 +118,104 @@ after(async () => {
 });
 
 describe("writeFramedInputToSession / snapshotSession", () => {
+	for (const failure of [
+		new DaemonUnavailableError("Replay timed out"),
+		new DaemonUnavailableError("Disconnected during replay"),
+		new Error("Invalid replay checkpoint"),
+	]) {
+		test(`replay failure is typed and a retry preserves the PTY: ${failure.message}`, async () => {
+			const terminalId = `e2e-retry-${randomUUID().slice(0, 8)}`;
+			const daemon = await getDaemonClient();
+			const replay = Promise.withResolvers<void>();
+			const stub = mock.method(daemon, "waitForReplay", () => replay.promise);
+			try {
+				const session = await createTerminalSessionInternal({
+					terminalId,
+					workspaceId,
+					db,
+				});
+				assert.ok(!("error" in session));
+				if ("error" in session) return;
+				const pending = snapshotSession({ terminalId, workspaceId, db });
+				replay.reject(failure);
+				const result = await pending;
+				assert.deepEqual(result, {
+					kind:
+						failure instanceof DaemonUnavailableError
+							? "DAEMON_UNAVAILABLE"
+							: "TERMINAL_START_FAILED",
+					error: failure.message,
+					transient: failure instanceof DaemonUnavailableError,
+				});
+				stub.mock.restore();
+				const sentinelFile = path.join(TEST_HOME, `retry-${terminalId}`);
+				const retry = await writeFramedInputToSession({
+					terminalId,
+					workspaceId,
+					db,
+					text: `echo recovered > "${sentinelFile}"`,
+					submit: true,
+				});
+				assert.deepEqual(retry, { success: true });
+				await waitFor(() => fs.existsSync(sentinelFile), 5000);
+				assert.equal(
+					(await daemon.list()).find((entry) => entry.id === terminalId)?.pid,
+					session.pty.pid,
+				);
+			} finally {
+				stub.mock.restore();
+				await disposeSessionAndWait(terminalId, db);
+			}
+		});
+	}
+
+	test("concurrent adoption failure returns typed errors and retries with a fresh checkpoint", async () => {
+		const terminalId = `e2e-adopt-retry-${randomUUID().slice(0, 8)}`;
+		const daemon = await getDaemonClient();
+		const original = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+		});
+		assert.ok(!("error" in original));
+		if ("error" in original) return;
+		await original.adoptionReplaySettled;
+		__resetSessionsForTesting();
+		const replay = Promise.withResolvers<void>();
+		const stub = mock.method(daemon, "waitForReplay", () => replay.promise);
+		try {
+			const pending = Promise.all([
+				snapshotSession({ terminalId, workspaceId, db }),
+				writeFramedInputToSession({
+					terminalId,
+					workspaceId,
+					db,
+					text: "echo must-not-run",
+					submit: true,
+				}),
+			]);
+			await waitFor(() => stub.mock.callCount() === 1, 5000);
+			replay.reject(new DaemonUnavailableError("Replay timed out"));
+			for (const result of await pending) {
+				assert.deepEqual(result, {
+					kind: "DAEMON_UNAVAILABLE",
+					error: "Replay timed out",
+					transient: true,
+				});
+			}
+			stub.mock.restore();
+			const retry = await snapshotSession({ terminalId, workspaceId, db });
+			assert.ok(!("error" in retry), JSON.stringify(retry));
+			assert.equal(
+				(await daemon.list()).find((entry) => entry.id === terminalId)?.pid,
+				original.pty.pid,
+			);
+		} finally {
+			stub.mock.restore();
+			await disposeSessionAndWait(terminalId, db);
+		}
+	});
+
 	test("send delivers text + Enter into a live shell", async () => {
 		const terminalId = `e2e-send-${randomUUID().slice(0, 8)}`;
 		const sentinelFile = path.join(TEST_HOME, `send-${terminalId}`);
@@ -670,6 +769,44 @@ describe("terminal.send / terminal.snapshot tRPC procedures", () => {
 		} as unknown as Parameters<typeof appRouter.createCaller>[0]);
 	}
 
+	test("send preserves paste framing after startup output is evicted and the host restarts", async () => {
+		const caller = await makeCaller();
+		const terminalId = `e2e-evicted-mode-${randomUUID().slice(0, 8)}`;
+		const captureFile = path.join(TEST_HOME, `evicted-${terminalId}`);
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			initialCommand: `printf '\\033[?2004h'; yes padding | head -c 131072; printf '\\nREADY-FOR-PASTE\\n'; stty raw -echo; cat > "${captureFile}"`,
+		});
+		assert.ok(!("error" in session));
+		if ("error" in session) return;
+		await waitForSnapshotText(terminalId, "READY-FOR-PASTE", 5000);
+		await waitFor(() => fs.existsSync(captureFile), 5000);
+		assert.equal(session.modeTracker.isBracketedPasteActive(), true);
+		__resetSessionsForTesting();
+		await disposeDaemonClient();
+
+		const text = `Create a page.\n\n${"Source material — 日本語\n".repeat(80)}\nEnd of request.`;
+		const result = await caller.terminal.send({
+			terminalId,
+			workspaceId,
+			text,
+			submit: true,
+		});
+		assert.deepEqual(result, { terminalId, submitted: true });
+		await waitFor(
+			() => fs.readFileSync(captureFile, "utf8").endsWith("\r"),
+			5000,
+		);
+		assert.equal(
+			fs.readFileSync(captureFile, "utf8"),
+			`\x1b[200~${text}\x1b[201~\r`,
+		);
+		await disposeSessionAndWait(terminalId, db);
+	});
+
 	test("send defaults submit to true and snapshot round-trips", async () => {
 		const caller = await makeCaller();
 		const terminalId = `e2e-rpc-${randomUUID().slice(0, 8)}`;
@@ -742,7 +879,12 @@ describe("terminal.send / terminal.snapshot tRPC procedures", () => {
 		);
 
 		await assert.rejects(
-			caller.terminal.send({ terminalId, workspaceId, text: "" }),
+			caller.terminal.send({
+				terminalId,
+				workspaceId,
+				text: "",
+				submit: false,
+			}),
 			(err: { code?: string }) => err.code === "BAD_REQUEST",
 		);
 

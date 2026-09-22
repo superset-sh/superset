@@ -43,6 +43,9 @@ export type DestroyWorkspacePreview =
 			reason: null;
 			hasChanges: boolean;
 			hasUnpushedCommits: boolean;
+			/** Local workspace: only the record goes; files and branches stay.
+			 * Absent from hosts that predate local workspaces. */
+			sharesProjectCheckout?: boolean;
 	  }
 	| {
 			canDelete: false;
@@ -133,7 +136,7 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 	// it: a workspace still provisioning, or one whose sandbox stopped
 	// answering, is no less a cloud workspace — and deleting it anywhere but at
 	// the API would leave the sandbox running.
-	const { workspaces: cloudWorkspaces } = useCloudWorkspaces();
+	const { workspaces: cloudWorkspaces = [] } = useCloudWorkspaces();
 	const isSandbox = cloudWorkspaces.some((row) => row.id === workspaceId);
 	const utils = cloudTrpc.useUtils();
 

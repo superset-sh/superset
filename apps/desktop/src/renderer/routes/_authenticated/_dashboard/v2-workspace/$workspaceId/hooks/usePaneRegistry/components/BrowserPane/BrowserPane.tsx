@@ -3,6 +3,7 @@ import type { RendererContext, Tab } from "@superset/panes";
 import { useParams } from "@tanstack/react-router";
 import { GlobeIcon, SquareDashedMousePointer, XIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ImportHistoryDialog } from "renderer/components/ImportHistoryDialog";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
@@ -74,7 +75,10 @@ export function BrowserPane({
 	const { t } = useLingui();
 	const paneId = ctx.pane.id;
 	const state = useBrowserState(paneId);
-	const { placeholderRef, reload } = usePersistentWebview({ paneId, ctx });
+	const { placeholderRef, reload, overlayContainer } = usePersistentWebview({
+		paneId,
+		ctx,
+	});
 	const { workspaceId } = useParams({ strict: false });
 	const designMode = useDesignModeState(paneId);
 	const isFindBarOpen = useFindBarOpen(paneId);
@@ -99,6 +103,7 @@ export function BrowserPane({
 	// composer's own Esc handler covers its textarea. Scoped to keystrokes that
 	// belong to this pane (or to nothing — body): Esc aimed at a portal
 	// (dropdown, dialog, the composer's agent picker) must close that instead.
+	// The pane's overlay layer counts as the pane: the composer lives there.
 	useEffect(() => {
 		if (designMode.phase === "idle") return;
 		const phase = designMode.phase;
@@ -116,7 +121,10 @@ export function BrowserPane({
 			const root = rootRef.current;
 			const inScope =
 				target === document.body ||
-				(root != null && target != null && root.contains(target));
+				(root != null && target != null && root.contains(target)) ||
+				(overlayContainer != null &&
+					target != null &&
+					overlayContainer.contains(target));
 			if (!inScope) return;
 			e.preventDefault();
 			e.stopPropagation();
@@ -128,7 +136,7 @@ export function BrowserPane({
 		};
 		window.addEventListener("keydown", handleKeyDown, true);
 		return () => window.removeEventListener("keydown", handleKeyDown, true);
-	}, [designMode.phase, paneId]);
+	}, [designMode.phase, paneId, overlayContainer]);
 
 	// A full navigation replaces the document a capture described — drop the
 	// composer instead of staging a payload (selector, bounds, verify hints)
@@ -148,12 +156,12 @@ export function BrowserPane({
 		? { width: deviceForToolbar.height, height: deviceForToolbar.width }
 		: { width: deviceForToolbar.width, height: deviceForToolbar.height };
 
-	// Anchor the composer under the clicked element: the capture's viewport
-	// rect is in guest CSS pixels, which map 1:1 onto the placeholder's box
-	// (the webview mirrors the placeholder rect, and the pane root is the
-	// offset parent of both the placeholder and the popover). Computed in a
-	// layout effect (refs are unset during the first render of a remount) and
-	// re-clamped when the pane resizes so the card stays inside it.
+	// Anchor the composer under the clicked element. The composer renders in
+	// the pane's overlay layer, which mirrors the placeholder's box, so the
+	// capture's viewport rect (guest CSS pixels) is already in its coordinate
+	// space. Computed in a layout effect (refs are unset during the first
+	// render of a remount) and re-clamped when the page area resizes so the
+	// card stays inside it.
 	const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({
 		top: 12,
 		left: 12,
@@ -164,31 +172,27 @@ export function BrowserPane({
 			: undefined;
 	useLayoutEffect(() => {
 		if (!confirmingRect) return;
-		const root = rootRef.current;
-		if (!root) return;
+		const placeholder = placeholderRef.current;
+		if (!placeholder) return;
 		const compute = () => {
-			const placeholder = placeholderRef.current;
-			if (!placeholder) return;
-			const width = Math.min(420, root.clientWidth - 16);
+			const areaWidth = placeholder.clientWidth;
+			const areaHeight = placeholder.clientHeight;
+			const width = Math.min(420, areaWidth - 16);
 			const estimatedHeight = 170;
 			const left = Math.min(
-				Math.max(placeholder.offsetLeft + confirmingRect.x, 8),
-				Math.max(8, root.clientWidth - width - 8),
+				Math.max(confirmingRect.x, 8),
+				Math.max(8, areaWidth - width - 8),
 			);
-			const below =
-				placeholder.offsetTop + confirmingRect.y + confirmingRect.height + 4;
+			const below = confirmingRect.y + confirmingRect.height + 4;
 			const top =
-				below + estimatedHeight > root.clientHeight
-					? Math.max(
-							8,
-							placeholder.offsetTop + confirmingRect.y - estimatedHeight - 4,
-						)
+				below + estimatedHeight > areaHeight
+					? Math.max(8, confirmingRect.y - estimatedHeight - 4)
 					: below;
 			setPopoverStyle({ top, left, width });
 		};
 		compute();
 		const observer = new ResizeObserver(compute);
-		observer.observe(root);
+		observer.observe(placeholder);
 		return () => observer.disconnect();
 	}, [confirmingRect, placeholderRef]);
 
@@ -234,9 +238,7 @@ export function BrowserPane({
 		// follows the placeholder rect, painting over the neighbor pane.
 		<div ref={rootRef} className="relative flex h-full min-w-0 flex-1 flex-col">
 			{designMode.phase !== "idle" && (
-				// relative z-20: must stay clickable above the confirming-phase
-				// click-catcher (z-10) so the exit button keeps working.
-				<div className="relative z-20 flex shrink-0 items-center gap-2 border-b border-border/60 bg-[#0d99ff]/10 px-3 py-1.5 text-xs text-foreground/90">
+				<div className="flex shrink-0 items-center gap-2 border-b border-border/60 bg-[#0d99ff]/10 px-3 py-1.5 text-xs text-foreground/90">
 					<SquareDashedMousePointer className="size-3.5 shrink-0 text-[#0d99ff]" />
 					<span className="min-w-0 flex-1 truncate">
 						{designMode.phase === "selecting" ? (
@@ -308,59 +310,68 @@ export function BrowserPane({
 					}
 				/>
 			</div>
-			{isFindBarOpen && (
-				<BrowserFindBar
-					paneId={paneId}
-					onClose={() => findBarStore.close(paneId)}
-				/>
-			)}
-			{designMode.phase === "confirming" &&
-				designMode.payload &&
-				workspaceId && (
+			{/* Everything that must paint over the page goes through the registry's
+			    overlay layer: the webview is hoisted out of the pane tree, so no
+			    z-index in here can reach above it. */}
+			{overlayContainer &&
+				createPortal(
 					<>
-						{/* Click-catcher: the guest overlay froze pointer events on
-						    selection, so without this a stray page click would
-						    navigate out from under the open composer. */}
-						<button
-							type="button"
-							aria-label={t({
-								message: "Discard captured element",
-							})}
-							onClick={() => designModeStore.rearm(paneId)}
-							className="absolute inset-0 z-10 cursor-default"
-						/>
-						<DesignModePopover
-							workspaceId={workspaceId}
-							paneId={paneId}
-							payload={designMode.payload}
-							style={popoverStyle}
-							onDismiss={() => designModeStore.rearm(paneId)}
-							onSent={() => designModeStore.exit(paneId)}
-							onCreateNewAgentSession={onCreateNewAgentSession}
-							onFocusAgentTerminal={onFocusAgentTerminal}
-						/>
-					</>
+						{isFindBarOpen && (
+							<BrowserFindBar
+								paneId={paneId}
+								onClose={() => findBarStore.close(paneId)}
+							/>
+						)}
+						{designMode.phase === "confirming" &&
+							designMode.payload &&
+							workspaceId && (
+								<>
+									{/* Click-catcher: the guest overlay froze pointer events on
+									    selection, so without this a stray page click would
+									    navigate out from under the open composer. */}
+									<button
+										type="button"
+										aria-label={t({
+											message: "Discard captured element",
+										})}
+										onClick={() => designModeStore.rearm(paneId)}
+										className="pointer-events-auto absolute inset-0 z-10 cursor-default"
+									/>
+									<DesignModePopover
+										workspaceId={workspaceId}
+										paneId={paneId}
+										payload={designMode.payload}
+										style={popoverStyle}
+										onDismiss={() => designModeStore.rearm(paneId)}
+										onSent={() => designModeStore.exit(paneId)}
+										onCreateNewAgentSession={onCreateNewAgentSession}
+										onFocusAgentTerminal={onFocusAgentTerminal}
+									/>
+								</>
+							)}
+						{state.error && !state.isLoading && (
+							<BrowserErrorOverlay error={state.error} onRetry={reload} />
+						)}
+						{isBlankPage && !state.isLoading && !state.error && (
+							<div className="pointer-events-auto absolute inset-0 z-10 flex items-center justify-center bg-background">
+								<div className="flex w-full max-w-sm flex-col items-center gap-5 px-6">
+									<div className="flex size-14 items-center justify-center rounded-2xl bg-muted/50">
+										<GlobeIcon className="size-7 text-muted-foreground" />
+									</div>
+									<div className="text-center">
+										<p className="text-base font-medium text-foreground">
+											<Trans>Start browsing</Trans>
+										</p>
+										<p className="mt-1.5 text-sm text-muted-foreground">
+											<Trans>Enter a URL into the search bar above.</Trans>
+										</p>
+									</div>
+								</div>
+							</div>
+						)}
+					</>,
+					overlayContainer,
 				)}
-			{state.error && !state.isLoading && (
-				<BrowserErrorOverlay error={state.error} onRetry={reload} />
-			)}
-			{isBlankPage && !state.isLoading && !state.error && (
-				<div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
-					<div className="flex w-full max-w-sm flex-col items-center gap-5 px-6">
-						<div className="flex size-14 items-center justify-center rounded-2xl bg-muted/50">
-							<GlobeIcon className="size-7 text-muted-foreground" />
-						</div>
-						<div className="text-center">
-							<p className="text-base font-medium text-foreground">
-								<Trans>Start browsing</Trans>
-							</p>
-							<p className="mt-1.5 text-sm text-muted-foreground">
-								<Trans>Enter a URL into the search bar above.</Trans>
-							</p>
-						</div>
-					</div>
-				</div>
-			)}
 			<ImportHistoryDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
 		</div>
 	);

@@ -24,19 +24,13 @@ export interface HostWsEndpoint {
 	token: string;
 }
 
-export type ResolvedHostTarget =
-	| {
-			kind: "local";
-			hostId: string;
-			client: HostServiceClient;
-			ws: HostWsEndpoint;
-	  }
-	| {
-			kind: "remote";
-			hostId: string;
-			client: HostServiceClient;
-			ws: HostWsEndpoint;
-	  };
+export type ResolvedHostTarget = {
+	/** `cloud`: host-service inside a cloud workspace's sandbox, through the gate. */
+	kind: "local" | "remote" | "cloud";
+	hostId: string;
+	client: HostServiceClient;
+	ws: HostWsEndpoint;
+};
 
 export interface ResolveHostTargetOptions {
 	/**

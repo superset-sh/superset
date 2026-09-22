@@ -146,6 +146,17 @@ For isolated branches, ask each implementation worker to commit or otherwise pro
 
 Summarize each task's outcome, workspace/branch, files changed, checks, blockers, and integration order. Distinguish worker claims from checks the coordinator independently ran.
 
+A run across several workspaces is worth a page. One link carrying every outcome, branch, and
+check reads better than a long terminal block, it survives the session, and reviewers can pin
+a comment to the row they disagree with:
+
+```bash
+superset pages publish run-summary.html --workspace <id> --title "Parallel run: auth refactor"
+```
+
+Offer it and publish only once the user agrees. A page is persistent and
+org-visible by default, and a run summary quotes whatever the workers printed.
+
 Keep completed terminals available when the user may want to inspect or continue them. Close a terminal only when cleanup is requested or clearly part of the workflow:
 
 ```bash

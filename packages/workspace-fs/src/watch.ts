@@ -1,10 +1,11 @@
 import { realpath, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
-	type AsyncSubscription,
-	type Event as ParcelWatcherEvent,
-	subscribe as subscribeToFilesystem,
-} from "@parcel/watcher";
+	clearInterval,
+	clearTimeout,
+	setInterval,
+	setTimeout,
+} from "node:timers";
 import { toErrorMessage } from "./error-message";
 import { findNestedRepoRoots } from "./find-nested-repos";
 import { normalizeAbsolutePath } from "./paths";
@@ -17,6 +18,12 @@ import {
 } from "./search";
 import { ThrottledWorker } from "./throttled-worker";
 import type { FsWatchEvent } from "./types";
+import {
+	defaultWatchBackend,
+	type NativeWatchBackend,
+	type NativeWatchEvent,
+	type NativeWatchSubscription,
+} from "./watch-backend";
 import {
 	coalesceWatchEvents,
 	type InternalWatchEvent,
@@ -72,6 +79,17 @@ function escapeGlobMagic(input: string): string {
 const NESTED_REPO_SCAN_DEADLINE_MS = 3_000;
 
 /**
+ * Nested-repo scans allowed to run at once. Watcher attaches arrive in bursts —
+ * every non-archived workspace registers git interest at the same time — and a
+ * scan holds its whole breadth-first frontier until it returns. Running them
+ * all together stacks those frontiers without finishing any of them sooner:
+ * `readdir` is served by libuv's threadpool and a scan awaits one at a time, so
+ * one scan can only ever keep one thread busy. Unbounded, that is how
+ * host-service reached V8's heap limit and aborted (DESKTOP-H1).
+ */
+const NESTED_REPO_SCAN_CONCURRENCY = 4;
+
+/**
  * Whether a root-relative path falls under any pruned directory: a static
  * default (any path segment in DEFAULT_IGNORE_DIR_NAMES, plus the multi-
  * segment `.claude/worktrees` convention), or one of the per-root dynamic
@@ -80,14 +98,21 @@ const NESTED_REPO_SCAN_DEADLINE_MS = 3_000;
  * over-reporting a file there as watched only costs a missed targeted watch
  * on a file type nobody opens.
  */
+const WORKTREE_CONTAINER_NAMES = new Set([".worktrees", ".conductor"]);
+
 export function isRelPathUnderPrunedDirs(
 	relative: string,
 	prunedRelPrefixes: readonly string[],
+	useDefaultIgnores = true,
 ): boolean {
 	const segments = relative.split("/");
 	for (let i = 0; i < segments.length - 1; i += 1) {
 		const segment = segments[i] as string;
-		if (DEFAULT_IGNORE_DIR_NAMES.has(segment)) {
+		if (
+			segment === ".git" ||
+			WORKTREE_CONTAINER_NAMES.has(segment) ||
+			(useDefaultIgnores && DEFAULT_IGNORE_DIR_NAMES.has(segment))
+		) {
 			return true;
 		}
 		// `**/.claude/worktrees/**` is the one multi-segment static glob.
@@ -127,7 +152,7 @@ interface WatcherState {
 	realPathNormalized: string;
 	realPathDiffers: boolean;
 	/** Null while suspended (root deleted, polling for recreation). */
-	subscription: AsyncSubscription | null;
+	subscription: NativeWatchSubscription | null;
 	recoveryTimer: ReturnType<typeof setInterval> | null;
 	recovering: boolean;
 	/**
@@ -161,7 +186,7 @@ interface WatcherState {
 	prunedRelPrefixes: string[];
 	filePaths: Map<string, true>;
 	directoryPaths: Set<string>;
-	pendingEvents: ParcelWatcherEvent[];
+	pendingEvents: NativeWatchEvent[];
 	flushTimer: ReturnType<typeof setTimeout> | null;
 	/**
 	 * Per-state throttler. VS Code (parcelWatcher.ts:181-188) uses a single
@@ -176,7 +201,7 @@ interface WatcherState {
 // A dead FSEvents stream's unsubscribe can hang forever (observed after the
 // watch root is deleted out from under it); never let it block teardown.
 async function unsubscribeQuietly(
-	subscription: AsyncSubscription | null,
+	subscription: NativeWatchSubscription | null,
 ): Promise<void> {
 	if (!subscription) {
 		return;
@@ -220,6 +245,8 @@ function internalToSearchPatchEvent(
 export interface FsWatcherManagerOptions {
 	debounceMs?: number;
 	ignore?: string[];
+	/** Disable search exclusions; .git and sibling-worktree containers stay pruned. */
+	useDefaultIgnores?: boolean;
 	/**
 	 * Returns watch-root-relative directories that git ignores entirely
 	 * (fully-untracked subtrees like `.next` or `__pycache__`), so they can be
@@ -228,6 +255,8 @@ export interface FsWatcherManagerOptions {
 	 * `runRipgrep`. Best-effort: failures degrade to the static list.
 	 */
 	listGitIgnoredDirs?: (rootPath: string) => Promise<string[]>;
+	/** What actually watches the disk. Defaults per platform. */
+	backend?: NativeWatchBackend;
 	/** Per-watcher LRU cap on tracked file paths. Test-only override. */
 	filePathsMax?: number;
 	/** How often a suspended watcher polls for its deleted root to reappear. */
@@ -241,7 +270,9 @@ export interface FsWatcherManagerOptions {
 export class FsWatcherManager {
 	private readonly debounceMs: number;
 	private readonly ignore: string[];
+	private readonly useDefaultIgnores: boolean;
 	private readonly listGitIgnoredDirs?: (rootPath: string) => Promise<string[]>;
+	private readonly backend: NativeWatchBackend;
 	private readonly filePathsMax: number;
 	private readonly recoveryPollMs: number;
 	private readonly overflowRescanInitialMs: number;
@@ -257,13 +288,29 @@ export class FsWatcherManager {
 	 */
 	private enospcErrorLogged = false;
 
+	/** Slots held/queued for `computeNestedRepoRelDirs`. A finishing scan hands
+	 * its slot straight to the next waiter, so the count only moves when a slot
+	 * is created or released. */
+	private runningNestedRepoScans = 0;
+	private readonly waitingNestedRepoScans: (() => void)[] = [];
+
 	constructor(options: FsWatcherManagerOptions = {}) {
 		this.debounceMs = options.debounceMs ?? 75;
-		// Merged so a custom pattern can't silently drop node_modules/.git.
-		this.ignore = options.ignore
-			? [...new Set([...DEFAULT_IGNORE_PATTERNS, ...options.ignore])]
-			: DEFAULT_IGNORE_PATTERNS;
+		this.useDefaultIgnores = options.useDefaultIgnores !== false;
+		// Git status must observe tracked build/vendor files too. Gitignored
+		// directories are still pruned by the dynamic listing below.
+		const defaults =
+			options.useDefaultIgnores === false
+				? [
+						"**/.git/**",
+						"**/.worktrees/**",
+						"**/.claude/worktrees/**",
+						"**/.conductor/**",
+					]
+				: DEFAULT_IGNORE_PATTERNS;
+		this.ignore = [...new Set([...defaults, ...(options.ignore ?? [])])];
 		this.listGitIgnoredDirs = options.listGitIgnoredDirs;
+		this.backend = options.backend ?? defaultWatchBackend();
 		this.filePathsMax = options.filePathsMax ?? FILE_PATHS_MAX;
 		this.recoveryPollMs = options.recoveryPollMs ?? 2_000;
 		this.overflowRescanInitialMs =
@@ -376,7 +423,7 @@ export class FsWatcherManager {
 	 * workaround is omitted — desktop doesn't ship on Windows yet.
 	 */
 	private normalizeEvents(
-		events: ParcelWatcherEvent[],
+		events: NativeWatchEvent[],
 		state: WatcherState,
 	): void {
 		// VS Code (parcelWatcher.ts:534-537) slices by `realPathLength`
@@ -420,7 +467,10 @@ export class FsWatcherManager {
 	private onUnexpectedError(error: unknown, state: WatcherState): void {
 		const msg = toErrorMessage(error);
 
-		if (msg.indexOf("No space left on device") !== -1) {
+		if (
+			msg.indexOf("No space left on device") !== -1 ||
+			(error as NodeJS.ErrnoException | null)?.code === "ENOSPC"
+		) {
 			if (!this.enospcErrorLogged) {
 				console.error(
 					"[workspace-fs/watch] inotify watch limit reached (ENOSPC). " +
@@ -546,78 +596,70 @@ export class FsWatcherManager {
 			(relDir) => `${escapeGlobMagic(relDir)}/**`,
 		);
 
-		// parcel dedupes native backends by (dir, ignore-set); a wedged backend
-		// from the dead stream (its unsubscribe can hang) would be silently
-		// joined and never deliver. The pattern matches nothing real — it only
-		// forces a distinct backend identity.
-		const ignore = [
-			...this.ignore,
-			...(generation === 1
-				? []
-				: [`**/.superset-watch-generation-${generation}/**`]),
-			...prunedDirIgnores,
-		];
+		const ignore = [...this.ignore, ...prunedDirIgnores];
 
 		// Subscribe to the resolved real path so kernel paths come back in a
 		// consistent form; we map them back to `state.absolutePath` in
 		// `normalizeEvents`. Mirrors VS Code's parcelWatcher.ts:364.
-		state.subscription = await subscribeToFilesystem(
-			realPath,
-			(error, events) => {
-				if (state.generation !== generation) {
-					// Late callback from a superseded stream (suspended or
-					// replaced by recovery) — its events describe a dead tree.
-					return;
-				}
-				if (error) {
-					this.onUnexpectedError(error, state);
-					// Continue: process whatever events did arrive alongside
-					// the error. Mirrors VS Code's parcelWatcher.ts:373-378
-					// pattern (log error, then onParcelEvents anyway).
-				}
-
-				// Consume the liveness probe before it reaches listeners or the index.
-				const visibleEvents = events.filter((event) => {
-					if (path.basename(event.path).startsWith(PROBE_PREFIX)) {
-						state.probeSeen = true;
-						return false;
-					}
-					return true;
-				});
-
-				if (visibleEvents.length === 0) {
-					return;
-				}
-
-				if (process.env.SUPERSET_FS_EVENTS_DEBUG === "1") {
-					console.log("[fs:debug] parcel callback", {
-						path: state.absolutePath,
-						count: visibleEvents.length,
-						kinds: visibleEvents.map((e) => e.type),
-					});
-				}
-
-				this.normalizeEvents(visibleEvents, state);
-				state.pendingEvents.push(...visibleEvents);
-				if (state.flushTimer) {
-					return;
-				}
-
-				const flushTimer = setTimeout(() => {
-					state.flushTimer = null;
-					const pendingEvents = state.pendingEvents.splice(
-						0,
-						state.pendingEvents.length,
-					);
-					void this.flushPendingEvents(state, pendingEvents);
-				}, this.debounceMs);
-				state.flushTimer = flushTimer;
-				flushTimer.unref?.();
+		state.subscription = await this.backend.subscribe({
+			rootPath: realPath,
+			ignore,
+			generation,
+			// A late callback from a superseded stream (suspended or replaced by
+			// recovery) describes a dead tree.
+			onError: (error) => {
+				if (state.generation !== generation) return;
+				this.onUnexpectedError(error, state);
 			},
-			{
-				ignore,
+			onEvents: (events) => {
+				if (state.generation !== generation) return;
+				this.queueNativeEvents(state, events);
 			},
-		);
+		});
+	}
+
+	private queueNativeEvents(
+		state: WatcherState,
+		events: NativeWatchEvent[],
+	): void {
+		// Consume the liveness probe before it reaches listeners or the index.
+		const visibleEvents = events.filter((event) => {
+			if (path.basename(event.path).startsWith(PROBE_PREFIX)) {
+				state.probeSeen = true;
+				return false;
+			}
+			return true;
+		});
+
+		if (visibleEvents.length === 0) {
+			return;
+		}
+
+		if (process.env.SUPERSET_FS_EVENTS_DEBUG === "1") {
+			console.log("[fs:debug] native watch events", {
+				backend: this.backend.name,
+				path: state.absolutePath,
+				count: visibleEvents.length,
+				kinds: visibleEvents.map((e) => e.type),
+			});
+		}
+
+		this.normalizeEvents(visibleEvents, state);
+		for (const event of visibleEvents) state.pendingEvents.push(event);
+		if (state.flushTimer) {
+			return;
+		}
+
+		const flushTimer = setTimeout(() => {
+			state.flushTimer = null;
+			const pendingEvents = state.pendingEvents.splice(
+				0,
+				state.pendingEvents.length,
+			);
+			void this.flushPendingEvents(state, pendingEvents);
+		}, this.debounceMs);
+		state.flushTimer = flushTimer;
+		flushTimer.unref?.();
 	}
 
 	/**
@@ -627,6 +669,13 @@ export class FsWatcherManager {
 	 * pre-existing behavior, not a crash).
 	 */
 	private async computeNestedRepoRelDirs(realPath: string): Promise<string[]> {
+		if (this.runningNestedRepoScans >= NESTED_REPO_SCAN_CONCURRENCY) {
+			await new Promise<void>((resolve) =>
+				this.waitingNestedRepoScans.push(resolve),
+			);
+		} else {
+			this.runningNestedRepoScans += 1;
+		}
 		try {
 			const { roots, truncated } = await findNestedRepoRoots(realPath, {
 				pruneDirNames: DEFAULT_IGNORE_DIR_NAMES,
@@ -645,6 +694,10 @@ export class FsWatcherManager {
 				error: toErrorMessage(error),
 			});
 			return [];
+		} finally {
+			const next = this.waitingNestedRepoScans.shift();
+			if (next) next();
+			else this.runningNestedRepoScans -= 1;
 		}
 	}
 
@@ -775,7 +828,11 @@ export class FsWatcherManager {
 		if (relative === "" || relative.startsWith("..")) {
 			return true;
 		}
-		return isRelPathUnderPrunedDirs(relative, state.prunedRelPrefixes);
+		return isRelPathUnderPrunedDirs(
+			relative,
+			state.prunedRelPrefixes,
+			this.useDefaultIgnores,
+		);
 	}
 
 	/**
@@ -1077,7 +1134,7 @@ export class FsWatcherManager {
 
 	private async flushPendingEvents(
 		state: WatcherState,
-		events: ParcelWatcherEvent[],
+		events: NativeWatchEvent[],
 	): Promise<void> {
 		if (events.length === 0) {
 			return;
@@ -1123,7 +1180,7 @@ export class FsWatcherManager {
 
 	private async normalizeEvent(
 		state: WatcherState,
-		event: ParcelWatcherEvent,
+		event: NativeWatchEvent,
 	): Promise<InternalWatchEvent> {
 		const absolutePath = normalizeAbsolutePath(event.path);
 		let isDirectory: boolean | undefined =

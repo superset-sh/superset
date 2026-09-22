@@ -33,6 +33,82 @@ const IDLE_TIMEOUT_MS = 30_000;
 const CRASH_BUDGET = 3;
 const CRASH_WINDOW_MS = 60_000;
 
+/**
+ * A worker result at or above either of these is in the size range that can
+ * abort host-service outright while its tRPC response is serialized — the
+ * unattributed half of DESKTOP-H1, whose fatal runs no handler and leaves
+ * nothing behind but the log tail. Smaller results cannot be that crash, so
+ * they stay silent.
+ *
+ * Both numbers are reported because they behave differently: rows cost heap
+ * and serialize about 1:1, while off-heap bytes cost no heap at all and
+ * expand ~4x as JSON (a Buffer becomes `[104,101,…]`), so a result that looks
+ * small by every heap metric can still be the one that dies.
+ */
+const LARGE_RESULT_ROWS = 50_000;
+const LARGE_RESULT_BYTES = 4 * 1024 * 1024;
+
+/** Deepest a result keeps its bulk: `{ diffs: [ { oldFile: { contents } } ] }`
+ * puts a string four levels down, and the bytes have to be reachable there. */
+const MAX_PROBE_DEPTH = 4;
+
+/**
+ * Rows and bytes a result carries.
+ *
+ * The walk stops as soon as `bytes` passes the threshold, which is what makes
+ * descending into array elements affordable: a result past the threshold is
+ * one this is about to log anyway, so nothing further can change the decision,
+ * and a 200k-row result is never walked in full. Both counts are therefore
+ * floors rather than totals once the walk stops — enough to tell the shape
+ * apart, which is all they are for. Elements are walked at all because the
+ * shape this is hunting could well be an array whose *elements* carry the
+ * bytes — a length-only count reports that as `rows: 1, bytes: 0` and stays
+ * silent on exactly the candidate it exists to catch.
+ *
+ * String lengths are UTF-16 code units, deliberately — not UTF-8 bytes. The
+ * fatal being chased is bounded by V8's `String::kMaxLength` and by heap held
+ * as UTF-16, so this is the unit the thresholds were derived in; re-encoding
+ * would make the number less comparable and cost a full encode per string.
+ */
+function measureResultBulk(result: unknown): { rows: number; bytes: number } {
+	let rows = 0;
+	let bytes = 0;
+
+	const visit = (value: unknown, depth: number): void => {
+		if (bytes >= LARGE_RESULT_BYTES) return;
+		if (typeof value === "string") {
+			bytes += value.length;
+			return;
+		}
+		// `isView` covers typed arrays and DataView but not a raw ArrayBuffer.
+		if (ArrayBuffer.isView(value)) {
+			bytes += value.byteLength;
+			return;
+		}
+		if (value instanceof ArrayBuffer) {
+			bytes += value.byteLength;
+			return;
+		}
+		if (Array.isArray(value)) {
+			rows += value.length;
+			if (depth >= MAX_PROBE_DEPTH) return;
+			for (const element of value) visit(element, depth + 1);
+			return;
+		}
+		if (
+			depth >= MAX_PROBE_DEPTH ||
+			value === null ||
+			typeof value !== "object"
+		) {
+			return;
+		}
+		for (const child of Object.values(value)) visit(child, depth + 1);
+	};
+
+	visit(result, 0);
+	return { rows, bytes };
+}
+
 export function resolveHostWorkerScriptPath(): string | null {
 	const override = process.env.SUPERSET_HOST_WORKER_SCRIPT_PATH;
 	if (override) return existsSync(override) ? override : null;
@@ -118,6 +194,23 @@ export class HostWorkerPool {
 		input: TInput,
 		options?: WorkerTaskOptions,
 	): Promise<TResult> {
+		const result = await this.runWithFallback(def, input, options);
+		const { rows, bytes } = measureResultBulk(result);
+		if (rows >= LARGE_RESULT_ROWS || bytes >= LARGE_RESULT_BYTES) {
+			console.warn("[host-service:worker] large task result", {
+				taskType: def.type,
+				rows,
+				bytes,
+			});
+		}
+		return result;
+	}
+
+	private async runWithFallback<TInput, TResult>(
+		def: WorkerTaskDefinition<TInput, TResult>,
+		input: TInput,
+		options?: WorkerTaskOptions,
+	): Promise<TResult> {
 		const runner = this.getRunner();
 		if (!runner) return this.runInline(def, input, options);
 
@@ -160,7 +253,7 @@ export class HostWorkerPool {
 		input: TInput,
 		options?: WorkerTaskOptions,
 	): Promise<TResult> {
-		if (options?.signal?.aborted) throw new WorkerTaskAbortedError();
+		if (options?.signal?.aborted) throw new WorkerTaskAbortedError("cancelled");
 
 		return new Promise<TResult>((resolve, reject) => {
 			let settled = false;
@@ -172,7 +265,8 @@ export class HostWorkerPool {
 				cleanup();
 				fn();
 			};
-			const onAbort = () => settle(() => reject(new WorkerTaskAbortedError()));
+			const onAbort = () =>
+				settle(() => reject(new WorkerTaskAbortedError("cancelled")));
 			// Same default and zero-means-instant semantics as the worker path.
 			const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 			const timeoutHandle = setTimeout(

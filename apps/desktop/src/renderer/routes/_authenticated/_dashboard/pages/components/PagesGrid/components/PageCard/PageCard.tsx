@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatRelativeTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -11,6 +11,7 @@ import { DeletePageDialog } from "@superset/ui/page-comments";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import {
+	Building2,
 	Globe,
 	Link2,
 	Lock,
@@ -54,13 +55,19 @@ export function PageCard({
 	onTogglePin,
 	onDelete,
 }: PageCardProps) {
+	const { formatRelativeTime } = useFormat();
+
 	const { t } = useLingui();
 	const [deleteOpen, setDeleteOpen] = useState(false);
-	const isShared = page.visibility === "org";
 	const isOwner =
 		currentUserId !== undefined && currentUserId === page.createdByUserId;
 	const ownerName = isOwner ? null : page.ownerName;
-	const VisibilityIcon = isShared ? Globe : Lock;
+	const VisibilityIcon =
+		page.visibility === "everyone"
+			? Globe
+			: page.visibility === "org"
+				? Building2
+				: Lock;
 	const edited = new Date(page.updatedAt).getTime();
 	const created = new Date(page.createdAt).getTime();
 	const wasEdited = edited - created > 60_000;

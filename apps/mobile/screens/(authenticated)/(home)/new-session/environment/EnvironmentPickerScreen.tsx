@@ -7,10 +7,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { useCloudEnvironments } from "@/hooks/useCloudEnvironments";
 import { useTheme } from "@/hooks/useTheme";
 import { posthog } from "@/lib/posthog";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
+import { useCloudCreateSelection } from "@/screens/(authenticated)/(home)/hooks/useCloudCreateSelection";
 
 /**
  * Picks which environment the next cloud workspace is created in — the image
@@ -21,17 +21,13 @@ export function EnvironmentPickerScreen() {
 	const router = useRouter();
 	const theme = useTheme();
 	const insets = useSafeAreaInsets();
-	const environmentId = useNewSessionPreferencesStore(
-		(state) => state.environmentId,
-	);
 	const setEnvironmentId = useNewSessionPreferencesStore(
 		(state) => state.setEnvironmentId,
 	);
 
-	const environmentsQuery = useCloudEnvironments();
-	const environments = environmentsQuery.data ?? [];
-	// Create falls back to the first, so show that as the pick until one is made.
-	const selectedId = environmentId ?? environments[0]?.id ?? null;
+	const { environmentsQuery, environments, environment } =
+		useCloudCreateSelection();
+	const selectedId = environment?.id ?? null;
 
 	let notice: string | null = null;
 	let retry: (() => void) | null = null;

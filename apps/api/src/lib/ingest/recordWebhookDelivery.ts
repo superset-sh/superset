@@ -1,6 +1,7 @@
 import { db } from "@superset/db/client";
 import type { integrationProvider } from "@superset/db/schema";
 import { DrizzleQueryError, sql } from "drizzle-orm";
+import { databaseErrorMessage } from "@/lib/databaseErrorMessage";
 
 type Provider = (typeof integrationProvider.enumValues)[number];
 
@@ -12,22 +13,17 @@ export interface RecordedDelivery {
 }
 
 /**
- * Drizzle wraps a failed query in a DrizzleQueryError whose message, and own
- * `query`/`params` properties, are the statement text followed by every bind
- * parameter. One of ours is the entire webhook body, so reporting that error
- * unmodified publishes a third party's payload into the error tracker.
- *
- * Rethrow with the operation, the provider and the driver's own message, and
- * the driver error as the cause so its code and stack still reach the report:
- * a failure says what broke and why, without the body. Anything that is not
- * the wrapper carries no bind parameters and is left exactly as it was.
+ * Rethrow a failed write with the operation, the provider and the driver's own
+ * message, and the driver error as the cause so its code and stack still reach
+ * the report: a failure says what broke and why, without the bind parameters —
+ * one of ours is the entire webhook body. Anything that is not Drizzle's
+ * wrapper carries no bind parameters and is left exactly as it was.
  */
 function withoutBoundParameters(provider: Provider, error: unknown): unknown {
 	if (!(error instanceof DrizzleQueryError)) return error;
-	const cause = error.cause;
 	return new Error(
-		`recordWebhookDelivery failed for ${provider} writing ingest.webhook_events and ingest.webhook_payloads: ${cause?.message ?? "unknown database error"}`,
-		{ cause },
+		`recordWebhookDelivery failed for ${provider} writing ingest.webhook_events and ingest.webhook_payloads: ${databaseErrorMessage(error)}`,
+		{ cause: error.cause },
 	);
 }
 

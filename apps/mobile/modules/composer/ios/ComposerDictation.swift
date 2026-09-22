@@ -94,14 +94,14 @@ final class ComposerDictation {
     Task { @MainActor in
       guard await requestAuthorization() else {
         settle(with: nil)
-        onError?("Microphone access is not allowed")
+        onError?(composerLocalized("Microphone access is not allowed"))
         return
       }
       do {
         try beginRecording()
       } catch {
         settle(with: nil)
-        onError?("Could not start dictation")
+        onError?(composerLocalized("Could not start dictation"))
       }
     }
   }

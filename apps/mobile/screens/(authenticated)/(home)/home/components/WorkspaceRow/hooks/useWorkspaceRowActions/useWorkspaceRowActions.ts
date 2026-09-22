@@ -107,6 +107,7 @@ export function useWorkspaceRowActions(
 		remove({
 			id: workspace.id,
 			name: workspace.name,
+			type: workspace.type,
 			hostId: workspace.hostId,
 			hostUrl: cache.resolveHostUrl(workspace.hostId),
 			isCloud,

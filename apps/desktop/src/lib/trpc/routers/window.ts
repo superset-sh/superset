@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
-import { dialog } from "electron";
+import { dialog, Menu } from "electron";
 import { menuEmitter } from "main/lib/menu-events";
 import { getOrg, setOrg } from "main/lib/window-registry/window-registry";
 import { getImageMimeType } from "shared/file-types";
@@ -16,30 +16,26 @@ const MAX_ZOOM_LEVEL = Math.log(5) / Math.log(1.2);
 
 export const createWindowRouter = () => {
 	return router({
-		minimize: publicProcedure.mutation(({ ctx }) => {
+		// Windows and Linux hide the menu bar with the title bar, so the app
+		// menu opens from a button in the top strip instead.
+		popupApplicationMenu: publicProcedure.mutation(({ ctx }) => {
 			const window = ctx.senderWindow;
-			if (!window) return { success: false };
-			window.minimize();
+			const menu = Menu.getApplicationMenu();
+			if (!window || !menu) return { success: false };
+			menu.popup({ window });
 			return { success: true };
 		}),
 
-		maximize: publicProcedure.mutation(({ ctx }) => {
-			const window = ctx.senderWindow;
-			if (!window) return { success: false, isMaximized: false };
-			if (window.isMaximized()) {
-				window.unmaximize();
-			} else {
-				window.maximize();
-			}
-			return { success: true, isMaximized: window.isMaximized() };
-		}),
-
-		close: publicProcedure.mutation(({ ctx }) => {
-			const window = ctx.senderWindow;
-			if (!window) return { success: false };
-			window.close();
-			return { success: true };
-		}),
+		// Windows and Linux draw the window-controls overlay; its colours follow
+		// the app theme rather than the OS.
+		setTitleBarOverlay: publicProcedure
+			.input(z.object({ color: z.string(), symbolColor: z.string() }))
+			.mutation(({ ctx, input }) => {
+				const window = ctx.senderWindow;
+				if (!window || process.platform === "darwin") return { success: false };
+				window.setTitleBarOverlay(input);
+				return { success: true };
+			}),
 
 		isMaximized: publicProcedure.query(({ ctx }) => {
 			const window = ctx.senderWindow;

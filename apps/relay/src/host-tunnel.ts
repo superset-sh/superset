@@ -6,6 +6,12 @@ import {
 } from "@superset/shared/tunnel-protocol";
 import { type Connection, type ConnectionContext, Server } from "partyserver";
 import {
+	ALLOWED_TTL_MS,
+	type Caller,
+	DENIED_TTL_MS,
+	fetchHostAccess,
+} from "./access";
+import {
 	type HttpExchangeRequest,
 	type HttpExchangeResult,
 	HttpExchanges,
@@ -13,6 +19,11 @@ import {
 import type { RelayEnv } from "./types";
 
 const HOST_TAG = "host";
+
+interface AccessEntry {
+	allowed: boolean;
+	expiresAt: number;
+}
 // Frames a dial may deliver before the client's deferred upgrade completes.
 const MAX_EARLY_FRAMES = 256;
 // A dial that never pairs with a client (aborted upgrade, late arrival) is
@@ -35,7 +46,16 @@ export type PrepareStreamResult =
 	| "ready"
 	| "no-host"
 	| "timeout"
-	| "dial-failed";
+	| "dial-failed"
+	| "denied"
+	| "access-error";
+
+type AccessDecision = "allowed" | "denied" | "error";
+type Access<T> = ({ access: "allowed" } & T) | { access: "denied" | "error" };
+interface PresenceInfo {
+	online: boolean;
+	lastSeenAt: number | null;
+}
 
 // One Durable Object per hostId: the host's control channel plus every
 // spliced stream terminate here. Stream traffic is never parsed. The Worker
@@ -60,21 +80,29 @@ export class HostTunnel extends Server<RelayEnv> {
 	private readonly httpExchanges = new HttpExchanges();
 
 	// ── RPC (called by the Worker) ────────────────────────────────────
+	// Every client call says who is asking. This object is the one place
+	// every isolate and colo resolves to for its host, so the access decision
+	// is cached here and the API is asked once per (user, host) per TTL.
 
-	async isConnected(): Promise<boolean> {
+	async isConnected(caller: Caller): Promise<Access<{ connected: boolean }>> {
+		const access = await this.authorize(caller);
+		if (access !== "allowed") return { access };
 		// Arms the sweep for objects whose host predates it (or whose alarm
 		// was lost), so a zombie session is cleaned up as soon as any client
 		// comes looking.
 		await this.ensureLivenessAlarm();
-		return this.hostConn() !== null;
+		return { access, connected: this.hostConn() !== null };
 	}
 
-	async presenceInfo(): Promise<{
-		online: boolean;
-		lastSeenAt: number | null;
-	}> {
+	/** A null caller is a server-side read the API already authorized. */
+	async presenceInfo(caller: Caller | null): Promise<Access<PresenceInfo>> {
+		if (caller) {
+			const access = await this.authorize(caller);
+			if (access !== "allowed") return { access };
+		}
 		await this.ensureLivenessAlarm();
 		return {
+			access: "allowed",
 			online: this.hostConn() !== null,
 			lastSeenAt:
 				(await this.ctx.storage.get<number>("lastHostSeenAt")) ?? null,
@@ -82,10 +110,14 @@ export class HostTunnel extends Server<RelayEnv> {
 	}
 
 	async prepareStream(
+		caller: Caller,
 		ticket: string,
 		path: string,
 		query: string | undefined,
 	): Promise<PrepareStreamResult> {
+		const access = await this.authorize(caller);
+		if (access === "denied") return "denied";
+		if (access === "error") return "access-error";
 		const host = this.hostConn();
 		if (!host) return "no-host";
 		const arrived = new Promise<PrepareStreamResult>((resolve) => {
@@ -104,7 +136,17 @@ export class HostTunnel extends Server<RelayEnv> {
 		return arrived;
 	}
 
-	async proxyHttp(request: HttpExchangeRequest): Promise<HttpExchangeResult> {
+	async proxyHttp(
+		caller: Caller,
+		request: HttpExchangeRequest,
+	): Promise<HttpExchangeResult> {
+		const access = await this.authorize(caller);
+		if (access !== "allowed") {
+			return {
+				ok: false,
+				reason: access === "denied" ? "denied" : "access-error",
+			};
+		}
 		const host = this.hostConn();
 		if (!host) return { ok: false, reason: "timeout" };
 		const ticket = crypto.randomUUID();
@@ -116,6 +158,33 @@ export class HostTunnel extends Server<RelayEnv> {
 			path: request.pathWithQuery,
 		});
 		return result;
+	}
+
+	private async authorize(caller: Caller): Promise<AccessDecision> {
+		const key = `access:${caller.userId}`;
+		const cached = await this.ctx.storage.get<AccessEntry>(key);
+		if (cached && cached.expiresAt > Date.now()) {
+			return cached.allowed ? "allowed" : "denied";
+		}
+		const hostId = this.name.split("#")[0] ?? this.name;
+		let allowed: boolean;
+		try {
+			allowed = await fetchHostAccess(
+				caller.token,
+				hostId,
+				this.env.NEXT_PUBLIC_API_URL,
+			);
+		} catch {
+			return "error";
+		}
+		console.log(
+			`[relay] access check via api for ${hostId}: ${allowed ? "allowed" : "denied"}`,
+		);
+		await this.ctx.storage.put(key, {
+			allowed,
+			expiresAt: Date.now() + (allowed ? ALLOWED_TTL_MS : DENIED_TTL_MS),
+		} satisfies AccessEntry);
+		return allowed ? "allowed" : "denied";
 	}
 
 	// ── Connection lifecycle ──────────────────────────────────────────

@@ -58,6 +58,7 @@ export function mapEventType(
 		eventType === "post_tool_use" ||
 		eventType === "post_tool_use_failure" ||
 		eventType === "task_started" ||
+		eventType === "pre_tool" ||
 		eventType === "before_tool"
 	) {
 		return "Start";
@@ -89,6 +90,7 @@ export function mapEventType(
 		eventType === "agent-turn-complete" ||
 		eventType === "AfterAgent" ||
 		eventType === "task_complete" ||
+		eventType === "post_agent" ||
 		eventType === "post_agent_turn"
 	) {
 		return "Stop";

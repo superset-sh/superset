@@ -1,4 +1,8 @@
-import { DeletePageDialog, PageTitleMenu } from "@superset/ui/page-comments";
+import {
+	DeletePageDialog,
+	PageTitleMenu,
+	RenamePageDialog,
+} from "@superset/ui/page-comments";
 import { FileText } from "lucide-react";
 import { useState } from "react";
 import { usePageHeaderData } from "renderer/routes/_authenticated/_dashboard/hooks/usePageHeaderData";
@@ -13,11 +17,13 @@ interface PagePaneTitleProps {
 }
 
 export function PagePaneTitle({ data, paneId, onClose }: PagePaneTitleProps) {
-	const { page, versions, currentUserId, onSetSharedVersion, onDelete } =
-		usePageHeaderData(data);
-	const { setShareOpen } = usePagePaneUi(paneId);
+	const { setShareOpen, previewVersion, setPreviewVersion } =
+		usePagePaneUi(paneId);
+	const { page, versions, currentUserId, onRename, onRefresh, onDelete } =
+		usePageHeaderData({ ...data, version: previewVersion });
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [renameOpen, setRenameOpen] = useState(false);
 
 	if (!page) {
 		return (
@@ -29,11 +35,7 @@ export function PagePaneTitle({ data, paneId, onClose }: PagePaneTitleProps) {
 	}
 
 	return (
-		// biome-ignore lint/a11y/noStaticElementInteractions: keeps the pane drag from starting on the menu trigger
-		<span
-			className="flex min-w-0 items-center"
-			onMouseDown={(event) => event.stopPropagation()}
-		>
+		<span className="flex min-w-0 items-center">
 			<PageTitleMenu
 				page={page}
 				versions={versions}
@@ -54,10 +56,12 @@ export function PagePaneTitle({ data, paneId, onClose }: PagePaneTitleProps) {
 					setDeleteOpen(true);
 				}}
 				compact
-				onPickVersion={(version) => {
+				onRename={() => {
 					setMenuOpen(false);
-					void onSetSharedVersion(version);
+					setRenameOpen(true);
 				}}
+				onRefresh={onRefresh}
+				onPreviewVersion={setPreviewVersion}
 			/>
 			<DeletePageDialog
 				open={deleteOpen}
@@ -68,6 +72,12 @@ export function PagePaneTitle({ data, paneId, onClose }: PagePaneTitleProps) {
 					await onDelete();
 					onClose();
 				}}
+			/>
+			<RenamePageDialog
+				open={renameOpen}
+				onOpenChange={setRenameOpen}
+				title={page.title}
+				onRename={onRename}
 			/>
 		</span>
 	);

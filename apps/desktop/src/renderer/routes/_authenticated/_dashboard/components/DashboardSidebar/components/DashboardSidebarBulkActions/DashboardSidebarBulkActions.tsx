@@ -144,11 +144,6 @@ export function DashboardSidebarBulkActions({
 							</TooltipContent>
 						</Tooltip>
 						<DropdownMenuContent align="end" side="bottom" className="w-48">
-							<DropdownMenuItem onSelect={createGroupFromSelection}>
-								<LuFolderPlus className="size-4" />
-								<Trans>New group</Trans>
-							</DropdownMenuItem>
-							{sectionMenuState === "populated" && <DropdownMenuSeparator />}
 							{sections?.map((section) => (
 								<DropdownMenuItem
 									key={section.id}
@@ -174,6 +169,11 @@ export function DashboardSidebarBulkActions({
 									)}
 								</DropdownMenuItem>
 							)}
+							<DropdownMenuSeparator />
+							<DropdownMenuItem onSelect={createGroupFromSelection}>
+								<LuFolderPlus className="size-4" />
+								<Trans>Create new group</Trans>
+							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
 

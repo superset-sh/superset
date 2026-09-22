@@ -21,8 +21,8 @@ export interface BasicScenario {
 	host: TestHost;
 	repo: GitFixture;
 	projectId: string;
-	/** Workspace whose `worktreePath` points at the project root (i.e. the
-	 *  "main" workspace by `workspace.delete`'s path-equality rule). */
+	/** Workspace whose `worktreePath` points at the project root (i.e. a
+	 *  local workspace by `workspace.delete`'s path-equality rule). */
 	workspaceId: string;
 	dispose(): Promise<void>;
 }
@@ -65,7 +65,7 @@ export interface FeatureWorktreeScenario extends BasicScenario {
 	worktreePath: string;
 	branch: string;
 	/** Workspace id of the feature worktree (distinct from `workspaceId`,
-	 *  which is the main workspace at the repo root). */
+	 *  which is the local workspace at the repo root). */
 	featureWorkspaceId: string;
 }
 

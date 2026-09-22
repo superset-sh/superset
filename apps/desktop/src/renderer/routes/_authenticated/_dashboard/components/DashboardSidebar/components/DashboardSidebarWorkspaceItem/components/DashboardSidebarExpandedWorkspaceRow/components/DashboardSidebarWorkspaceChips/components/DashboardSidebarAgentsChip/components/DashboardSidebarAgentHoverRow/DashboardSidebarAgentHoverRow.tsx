@@ -1,10 +1,14 @@
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import {
+	buildSubagentSearch,
+	navigateToV2Workspace,
+} from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { getStatusTooltip } from "renderer/screens/main/components/StatusIndicator";
 import type {
 	DashboardSidebarRunningAgent,
+	DashboardSidebarRunningSubagent,
 	RunningAgentStatus,
 } from "../../../../hooks/useDashboardSidebarWorkspaceRunningAgents";
 import { DashboardSidebarAgentAvatar } from "../DashboardSidebarAgentAvatar";
@@ -38,26 +42,70 @@ export function DashboardSidebarAgentHoverRow({
 		});
 	};
 
+	/** Opens the child's live transcript as a pane in the workspace. */
+	const handleOpenSubagent = (subagent: DashboardSidebarRunningSubagent) => {
+		void navigateToV2Workspace(workspaceId, navigate, {
+			search: {
+				...buildSubagentSearch({
+					terminalId: agent.terminalId,
+					subagentId: subagent.id,
+					agentId: agent.agentId,
+					...(subagent.agentType ? { agentType: subagent.agentType } : {}),
+				}),
+				focusRequestId: crypto.randomUUID(),
+			},
+		});
+	};
+
 	const statusLabel =
 		agent.status === "idle"
 			? t({ message: "Idle" })
 			: getStatusTooltip(agent.status);
 
 	return (
-		<div className="flex items-center gap-1.5 rounded-sm px-2 py-1 hover:bg-muted">
-			<button
-				type="button"
-				onClick={handleOpen}
-				className="flex min-w-0 flex-1 items-center gap-1.5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-			>
-				<DashboardSidebarAgentAvatar agent={agent} />
-				<span className="min-w-0 truncate text-xs">{agent.label}</span>
-			</button>
-			<span
-				className={cn("shrink-0 text-[10px]", STATUS_TEXT_CLASS[agent.status])}
-			>
-				{statusLabel}
-			</span>
-		</div>
+		<>
+			<div className="flex items-center gap-1.5 rounded-sm px-2 py-1 hover:bg-muted">
+				<button
+					type="button"
+					onClick={handleOpen}
+					className="flex min-w-0 flex-1 items-center gap-1.5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+				>
+					<DashboardSidebarAgentAvatar agent={agent} />
+					<span className="min-w-0 truncate text-xs">{agent.label}</span>
+					{agent.subagents.length > 0 && (
+						<span className="shrink-0 text-[10px] text-muted-foreground">
+							+{agent.subagents.length}
+						</span>
+					)}
+				</button>
+				<span
+					className={cn(
+						"shrink-0 text-[10px]",
+						STATUS_TEXT_CLASS[agent.status],
+					)}
+				>
+					{statusLabel}
+				</span>
+			</div>
+			{agent.subagents.length > 0 && (
+				<div className="mb-1 ml-[15px] border-l border-border pl-2">
+					{agent.subagents.map((subagent) => (
+						<button
+							key={subagent.id}
+							type="button"
+							onClick={() => handleOpenSubagent(subagent)}
+							className="flex w-full items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-left text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+						>
+							<span className="min-w-0 flex-1 truncate text-xs">
+								{subagent.agentType ?? agent.label}
+							</span>
+							<span className="shrink-0 text-[10px]">
+								<Trans>Subagent</Trans>
+							</span>
+						</button>
+					))}
+				</div>
+			)}
+		</>
 	);
 }

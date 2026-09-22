@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import type { TriggerScope } from "@superset/shared/automation-triggers";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useState } from "react";
@@ -38,6 +40,8 @@ export function UserScopeChip({
 	disabled?: boolean;
 	className?: string;
 }) {
+	const { _: translate } = useTranslation();
+
 	const [open, setOpen] = useState(false);
 
 	const values = scope.mode === "list" ? scope.ids : [];
@@ -88,7 +92,7 @@ export function UserScopeChip({
 						stripLeadingAt
 						values={values}
 						onChange={(ids) => onChange({ mode: "list", ids })}
-						placeholder="GitHub username..."
+						placeholder={translate(msg({ message: "GitHub username..." }))}
 						valueLabel={valueLabel}
 						// A login has no spaces in it, so a space ends one.
 						separators={SEPARATORS_WITH_SPACE}

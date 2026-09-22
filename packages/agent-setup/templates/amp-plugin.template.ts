@@ -108,7 +108,7 @@ export default function supersetAmpLifecyclePlugin(amp: AmpApi) {
 			const child = spawn(notifyPath, [], {
 				stdio: ["pipe", "ignore", "ignore"],
 				detached: true,
-				env: { ...env, SUPERSET_AGENT_ID: "amp" },
+				env: { ...env, SUPERSET_HOOK_HARNESS: "amp" },
 			});
 			child.on("error", (error) => {
 				debugLog("spawn failed event=" + hookEventName + " error=" + error.message);

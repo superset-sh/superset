@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { connections } from "@superset/db/schema";
 import { googleConfigOf } from "@superset/trpc/integrations/google";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { syncCalendar } from "../../lib/syncCalendar";
@@ -28,13 +28,13 @@ export async function POST(request: Request) {
 	// calendar state holds this channel id.
 	const [connection] = await db
 		.select()
-		.from(integrationConnections)
+		.from(connections)
 		.where(
 			and(
-				eq(integrationConnections.provider, "google"),
-				isNull(integrationConnections.disconnectedAt),
+				eq(connections.connector, "google"),
+				isNull(connections.disconnectedAt),
 				sql`EXISTS (
-					SELECT 1 FROM jsonb_each(coalesce(${integrationConnections.config} -> 'calendars', '{}'::jsonb)) AS c
+					SELECT 1 FROM jsonb_each(coalesce(${connections.state} -> 'calendars', '{}'::jsonb)) AS c
 					WHERE c.value ->> 'channelId' = ${channelId}
 				)`,
 			),
@@ -46,11 +46,11 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Unknown channel" }, { status: 404 });
 	}
 
-	const calendars = googleConfigOf(connection.config).calendars ?? {};
+	const calendars = googleConfigOf(connection.state).calendars ?? {};
 	const entry = Object.entries(calendars).find(
 		([, s]) => s.channelId === channelId,
 	);
-	// Only the hash is stored (the config column reaches every member's
+	// Only the hash is stored (the state column reaches every member's
 	// client); the token Google echoes is hashed the same way and compared.
 	const expected = entry?.[1].channelTokenHash;
 	const presented = createHash("sha256").update(token).digest("hex");

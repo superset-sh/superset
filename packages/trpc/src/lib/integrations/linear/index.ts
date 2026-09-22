@@ -1,5 +1,6 @@
 export {
 	callLinear,
+	callLinearForConnection,
 	isLinearAuthError,
 	type LinearTokenResponse,
 	linearTokenResponseSchema,
@@ -7,6 +8,7 @@ export {
 } from "../../../router/integration/linear/refresh";
 export {
 	getLinearClient,
+	linearClientFor,
 	mapPriorityFromLinear,
 	mapPriorityToLinear,
 } from "../../../router/integration/linear/utils";

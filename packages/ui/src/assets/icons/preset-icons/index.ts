@@ -6,6 +6,8 @@ import codexWhiteIcon from "./codex-white.svg";
 import copilotIcon from "./copilot.svg";
 import copilotWhiteIcon from "./copilot-white.svg";
 import cursorAgentIcon from "./cursor.svg";
+import devinIcon from "./devin.svg";
+import devinWhiteIcon from "./devin-white.svg";
 import droidIcon from "./droid.svg";
 import droidWhiteIcon from "./droid-white.svg";
 import fxIcon from "./fx.svg";
@@ -20,6 +22,8 @@ import kimiWhiteIcon from "./kimi-white.svg";
 import kiroIcon from "./kiro.svg";
 import mastracodeIcon from "./mastracode.svg";
 import mastracodeWhiteIcon from "./mastracode-white.svg";
+import museIcon from "./muse.svg";
+import museWhiteIcon from "./muse-white.svg";
 import opencodeIcon from "./opencode.svg";
 import opencodeWhiteIcon from "./opencode-white.svg";
 import piIcon from "./pi.svg";
@@ -41,6 +45,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	claude: { light: claudeIcon, dark: claudeIcon },
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
+	devin: { light: devinIcon, dark: devinWhiteIcon },
 	fx: { light: fxIcon, dark: fxWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
 	grok: { light: grokIcon, dark: grokWhiteIcon },
@@ -55,6 +60,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	"cursor-composer": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	droid: { light: droidIcon, dark: droidWhiteIcon },
 	mastracode: { light: mastracodeIcon, dark: mastracodeWhiteIcon },
+	muse: { light: museIcon, dark: museWhiteIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
 	vibe: { light: vibeIcon, dark: vibeIcon },
 };
@@ -87,6 +93,8 @@ export {
 	copilotIcon,
 	copilotWhiteIcon,
 	cursorAgentIcon,
+	devinIcon,
+	devinWhiteIcon,
 	droidIcon,
 	droidWhiteIcon,
 	fxIcon,
@@ -101,6 +109,8 @@ export {
 	kiroIcon,
 	mastracodeIcon,
 	mastracodeWhiteIcon,
+	museIcon,
+	museWhiteIcon,
 	opencodeIcon,
 	opencodeWhiteIcon,
 	piIcon,

@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
 import { useProjectQueryTargets } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
-import { normalizeAuthorFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/normalizeAuthorFilter";
+import { normalizeAuthorFilters } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/normalizeAuthorFilter";
 import {
 	normalizePullRequestReviewFilter,
 	type PullRequestReviewFilter,
@@ -57,7 +57,7 @@ export function PullRequestsView({
 	const authorFilter =
 		initialAuthor === undefined
 			? storedAuthorFilter
-			: normalizeAuthorFilter(initialAuthor);
+			: normalizeAuthorFilters(initialAuthor);
 	const reviewFilter =
 		initialReview === undefined
 			? storedReviewFilter

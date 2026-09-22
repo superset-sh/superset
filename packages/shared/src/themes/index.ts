@@ -3,11 +3,14 @@
 // Built-in themes
 export {
 	builtInThemes,
+	catppuccinLatteTheme,
 	DEFAULT_THEME_ID,
 	darkTheme,
 	getBuiltInTheme,
 	lightTheme,
 	monokaiTheme,
+	solarizedLightTheme,
+	vellumTheme,
 } from "./built-in";
 export { getEditorTheme } from "./editor-theme";
 export { parseThemeConfigFile, type ThemeConfigParseResult } from "./import";

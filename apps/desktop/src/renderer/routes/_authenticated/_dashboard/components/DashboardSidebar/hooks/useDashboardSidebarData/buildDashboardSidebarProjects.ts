@@ -424,34 +424,13 @@ export function buildDashboardSidebarProjects({
 			...sidebarProject
 		} = resolvedProject;
 
-		const isLocalMainWorkspace = (workspace: DashboardSidebarWorkspace) =>
-			workspace.type === "main" && workspace.hostType === "local-device";
-
-		const compareByLocalMainThenTabOrder = (
-			left: { tabOrder: number; workspace: DashboardSidebarWorkspace },
-			right: { tabOrder: number; workspace: DashboardSidebarWorkspace },
-		) => {
-			const leftLocalMain = isLocalMainWorkspace(left.workspace);
-			const rightLocalMain = isLocalMainWorkspace(right.workspace);
-			if (leftLocalMain !== rightLocalMain) {
-				return leftLocalMain ? -1 : 1;
-			}
-			return left.tabOrder - right.tabOrder;
-		};
+		const compareByTabOrder = (
+			left: { tabOrder: number },
+			right: { tabOrder: number },
+		) => left.tabOrder - right.tabOrder;
 
 		const sortedChildren = childEntries
-			.sort((left, right) => {
-				const leftLocalMain =
-					left.child.type === "workspace" &&
-					isLocalMainWorkspace(left.child.workspace);
-				const rightLocalMain =
-					right.child.type === "workspace" &&
-					isLocalMainWorkspace(right.child.workspace);
-				if (leftLocalMain !== rightLocalMain) {
-					return leftLocalMain ? -1 : 1;
-				}
-				return left.tabOrder - right.tabOrder;
-			})
+			.sort(compareByTabOrder)
 			.map(({ child }) => child);
 
 		// Section membership is explicit (sectionId): an ungrouped workspace
@@ -469,12 +448,10 @@ export function buildDashboardSidebarProjects({
 			children.splice(
 				insertIndex,
 				0,
-				...orphanedWorkspaces
-					.sort(compareByLocalMainThenTabOrder)
-					.map(({ workspace }) => ({
-						type: "workspace" as const,
-						workspace,
-					})),
+				...orphanedWorkspaces.sort(compareByTabOrder).map(({ workspace }) => ({
+					type: "workspace" as const,
+					workspace,
+				})),
 			);
 		}
 

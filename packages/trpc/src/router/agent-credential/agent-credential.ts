@@ -1,0 +1,187 @@
+import { db, dbWs } from "@superset/db/client";
+import {
+	agentCredentialKindValues,
+	agentCredentials,
+} from "@superset/db/schema";
+import { agentCredentialToEnv } from "@superset/shared/agent-credentials";
+import type { TRPCRouterRecord } from "@trpc/server";
+import { and, asc, eq } from "drizzle-orm";
+import { z } from "zod";
+import { jwtProcedure, userError } from "../../trpc";
+import { decryptAgentCredential, encryptAgentCredential } from "./utils/crypto";
+import { checkPublicEndpoint } from "./utils/public-endpoint";
+import { GATEWAY_BASE_URL, validateAgentCredential } from "./utils/validate";
+
+const agentId = z.string().min(1).max(64);
+
+export const agentCredentialRouter = {
+	/** What settings shows: which agents are signed in, never the credential. */
+	list: jwtProcedure.query(async ({ ctx }) => {
+		const rows = await db
+			.select({
+				agent: agentCredentials.agent,
+				kind: agentCredentials.kind,
+				baseUrl: agentCredentials.baseUrl,
+				provider: agentCredentials.provider,
+				accountLabel: agentCredentials.accountLabel,
+				lastValidatedAt: agentCredentials.lastValidatedAt,
+				updatedAt: agentCredentials.updatedAt,
+			})
+			.from(agentCredentials)
+			.where(eq(agentCredentials.userId, ctx.userId))
+			.orderBy(asc(agentCredentials.agent));
+		return rows;
+	}),
+
+	set: jwtProcedure
+		.input(
+			z.object({
+				agent: agentId,
+				kind: z.enum(agentCredentialKindValues),
+				value: z.string().min(1).max(8192),
+				baseUrl: z.string().url().max(2048).optional(),
+				/** Which custom provider the value came from; picks the check to run. */
+				provider: z.enum(["gateway"]).optional(),
+				accountLabel: z.string().max(200).optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const value = input.value.trim();
+			if (!value) {
+				throw userError({
+					code: "BAD_REQUEST",
+					message: "Enter a value.",
+					i18nKey: "serverError.agentCredential.empty",
+				});
+			}
+			if (!Object.keys(agentCredentialToEnv({ ...input, value })).length) {
+				throw userError({
+					code: "BAD_REQUEST",
+					message: `${input.agent} cannot be signed in this way yet.`,
+					i18nKey: "serverError.agentCredential.unsupported",
+					params: { agent: input.agent },
+				});
+			}
+
+			const baseUrl =
+				input.baseUrl ??
+				(input.provider === "gateway" ? GATEWAY_BASE_URL : undefined);
+			if (baseUrl) {
+				const endpoint = await checkPublicEndpoint(baseUrl);
+				if (!endpoint.ok) {
+					const refusal = {
+						"not-https": {
+							message: "The endpoint must use https.",
+							i18nKey: "serverError.agentCredential.insecureEndpoint",
+						},
+						unresolvable: {
+							message: "That endpoint could not be resolved.",
+							i18nKey: "serverError.agentCredential.unresolvableEndpoint",
+						},
+						restricted: {
+							message: "That endpoint is not allowed.",
+							i18nKey: "serverError.agentCredential.restrictedEndpoint",
+						},
+					}[endpoint.reason];
+					throw userError({ code: "BAD_REQUEST", ...refusal });
+				}
+			}
+			if (input.provider === "gateway" && input.kind !== "api_key") {
+				throw userError({
+					code: "BAD_REQUEST",
+					message: "A gateway is signed in with an API key.",
+					i18nKey: "serverError.agentCredential.gatewayNeedsApiKey",
+				});
+			}
+
+			const check = await validateAgentCredential({
+				agent: input.agent,
+				kind: input.kind,
+				value,
+				baseUrl,
+				provider: input.provider,
+			});
+			if (!check.ok) {
+				throw userError({
+					code: "BAD_REQUEST",
+					message: check.message ?? "The provider refused it.",
+					i18nKey:
+						check.i18nKey ?? "serverError.agentCredential.providerUnreachable",
+					...(check.params ? { params: check.params } : {}),
+				});
+			}
+
+			const encryptedValue = encryptAgentCredential(value, {
+				userId: ctx.userId,
+				agent: input.agent,
+			});
+			const row = {
+				userId: ctx.userId,
+				agent: input.agent,
+				kind: input.kind,
+				encryptedValue,
+				baseUrl: baseUrl ?? null,
+				provider: input.provider ?? null,
+				accountLabel: input.accountLabel ?? null,
+				lastValidatedAt: new Date(),
+			};
+			await dbWs
+				.insert(agentCredentials)
+				.values(row)
+				.onConflictDoUpdate({
+					target: [agentCredentials.userId, agentCredentials.agent],
+					set: {
+						kind: row.kind,
+						encryptedValue: row.encryptedValue,
+						baseUrl: row.baseUrl,
+						provider: row.provider,
+						accountLabel: row.accountLabel,
+						lastValidatedAt: row.lastValidatedAt,
+					},
+				});
+			return { agent: input.agent, kind: input.kind };
+		}),
+
+	remove: jwtProcedure
+		.input(z.object({ agent: agentId }))
+		.mutation(async ({ ctx, input }) => {
+			await dbWs
+				.delete(agentCredentials)
+				.where(
+					and(
+						eq(agentCredentials.userId, ctx.userId),
+						eq(agentCredentials.agent, input.agent),
+					),
+				);
+			return { agent: input.agent };
+		}),
+} satisfies TRPCRouterRecord;
+
+/**
+ * The env every agent a person has signed in contributes to a cloud workspace
+ * they start — not only the one launched with it, since any of them can be
+ * started from a terminal later. Server-side only: the plaintext never leaves
+ * this process except on the sandbox it was fetched for.
+ */
+export async function resolveAgentCredentialEnv(args: {
+	userId: string;
+}): Promise<Record<string, string>> {
+	const rows = await db
+		.select()
+		.from(agentCredentials)
+		.where(eq(agentCredentials.userId, args.userId));
+	return Object.assign(
+		{},
+		...rows.map((row) =>
+			agentCredentialToEnv({
+				agent: row.agent,
+				kind: row.kind,
+				value: decryptAgentCredential(row.encryptedValue, {
+					userId: row.userId,
+					agent: row.agent,
+				}),
+				baseUrl: row.baseUrl,
+			}),
+		),
+	);
+}

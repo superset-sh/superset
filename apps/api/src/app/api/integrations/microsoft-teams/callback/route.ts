@@ -1,7 +1,12 @@
 import { randomBytes } from "node:crypto";
-import { db } from "@superset/db/client";
 import type { MicrosoftTeamsConfig } from "@superset/db/schema";
-import { integrationConnections } from "@superset/db/schema";
+import {
+	connectionConflict,
+	connectorMethod,
+	orgConnection,
+	requireConnector,
+	upsertConnection,
+} from "@superset/trpc/connectors";
 import {
 	acquireAppToken,
 	deleteTeamsSubscriptions,
@@ -9,15 +14,10 @@ import {
 	graphRequest,
 	microsoftCredentials,
 } from "@superset/trpc/integrations/microsoft-teams";
-import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
-import {
-	connectionConflict,
-	upsertConnection,
-} from "@/lib/integrations/upsertConnection";
 import { createSignedState } from "@/lib/oauth-state";
 import {
 	IDENTITY_REDIRECT_URI,
@@ -105,12 +105,8 @@ export async function GET(request: Request) {
 	// A reconnect replaces the clientState below, so whatever subscriptions the
 	// previous connection held would only ever be refused. Remove them from
 	// Graph while their ids are still on the row.
-	const previous = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.organizationId, organizationId),
-			eq(integrationConnections.provider, "microsoft_teams"),
-		),
-		columns: { id: true },
+	const previous = await orgConnection(organizationId, "microsoft_teams", {
+		includeDisconnected: true,
 	});
 	if (previous) await deleteTeamsSubscriptions(previous.id);
 
@@ -124,15 +120,28 @@ export async function GET(request: Request) {
 	};
 	const externalOrgName = await tenantDisplayName(token.accessToken, tenantId);
 
+	const connector = requireConnector("microsoft_teams");
 	const result = await upsertConnection({
+		connector,
+		slug: "microsoft_teams",
+		authMethod: connectorMethod(connector, "admin_consent").type,
 		organizationId,
 		userId,
-		provider: "microsoft_teams",
-		accessToken: token.accessToken,
-		tokenExpiresAt: token.expiresAt,
-		externalOrgId: tenantId,
-		externalOrgName,
-		config,
+		tokens: {
+			accessToken: token.accessToken,
+			refreshToken: null,
+			expiresAt: token.expiresAt,
+			scopes: null,
+			stored: {},
+			raw: {},
+		},
+		identity: {
+			// The tenant id, not Graph's directory object id: it is the path
+			// segment every client-credentials token acquisition needs.
+			account: { id: tenantId, label: externalOrgName },
+			user: null,
+		},
+		state: config,
 	});
 	if (result.conflict) {
 		return fail(

@@ -1,1 +1,0 @@
-export { RunwayTile } from "./RunwayTile";

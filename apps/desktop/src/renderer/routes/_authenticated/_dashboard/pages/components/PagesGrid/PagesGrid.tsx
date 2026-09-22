@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { Button } from "@superset/ui/button";
 import {
 	Empty,
 	EmptyDescription,
@@ -7,7 +8,7 @@ import {
 	EmptyTitle,
 } from "@superset/ui/empty";
 import { Skeleton } from "@superset/ui/skeleton";
-import { LuFileText, LuSearchX } from "react-icons/lu";
+import { LuFileText, LuPlus, LuSearchX } from "react-icons/lu";
 import { PageCard, type PageCardItem } from "./components/PageCard";
 import { THUMBNAIL_ASPECT_RATIO } from "./constants";
 
@@ -21,6 +22,8 @@ const SKELETON_KEYS = [
 ] as const;
 
 interface PagesGridProps {
+	onCreate: () => void;
+	isCreating: boolean;
 	pages: PageCardItem[];
 	pinnedPageIds: ReadonlySet<string>;
 	currentUserId: string | undefined;
@@ -33,6 +36,8 @@ interface PagesGridProps {
 }
 
 export function PagesGrid({
+	onCreate,
+	isCreating,
 	pages,
 	pinnedPageIds,
 	currentUserId,
@@ -71,8 +76,8 @@ export function PagesGrid({
 
 	if (pages.length === 0) {
 		return (
-			<Empty className="mt-10">
-				<EmptyHeader>
+			<Empty className="my-auto min-h-80 items-start border-0 px-0 py-20 text-left max-w-md mx-auto w-full md:px-0 md:py-20">
+				<EmptyHeader className="items-start text-left">
 					<EmptyMedia variant="icon">
 						{hasFilters ? (
 							<LuSearchX className="size-5" />
@@ -92,12 +97,17 @@ export function PagesGrid({
 							<Trans>Try a different search or filter.</Trans>
 						) : (
 							<Trans>
-								Publish a page from an agent or the CLI and it will show up
-								here.
+								Share designs and reports. Let your agent handle the feedback.
 							</Trans>
 						)}
 					</EmptyDescription>
 				</EmptyHeader>
+				{!hasFilters && (
+					<Button size="sm" onClick={onCreate} disabled={isCreating}>
+						<LuPlus className="size-3.5" />
+						<Trans>Create with AI</Trans>
+					</Button>
+				)}
 			</Empty>
 		);
 	}

@@ -9,6 +9,8 @@ export {
 } from "./agent-wrappers-amp";
 export {
 	buildCodexWrapperExecLine,
+	CLAUDE_ARTIFACT_GUARD_EVENT,
+	CLAUDE_ARTIFACT_GUARD_MATCHER,
 	cleanupGlobalOpenCodePlugin,
 	createClaudeSettingsJson,
 	createClaudeWrapper,
@@ -56,6 +58,13 @@ export {
 	getCursorHooksJsonContent,
 	removeCursorManagedHooks,
 } from "./agent-wrappers-cursor";
+export {
+	createDevinConfigJson,
+	createDevinWrapper,
+	getDevinConfigJsonContent,
+	getDevinConfigJsonPath,
+	removeDevinManagedHooks,
+} from "./agent-wrappers-devin";
 export {
 	createDroidSettingsJson,
 	createDroidWrapper,
@@ -106,6 +115,18 @@ export {
 	getMastraHooksJsonContent,
 	removeMastraManagedHooks,
 } from "./agent-wrappers-mastra";
+export {
+	createMuseManagedHooksFile,
+	createMuseSettingsJson,
+	createMuseWrapper,
+	getMuseManagedHooksContent,
+	getMuseManagedHooksPath,
+	getMuseSettingsJsonContent,
+	getMuseSettingsJsonPath,
+	getMuseSettingsJsonWithoutManagedHooks,
+	MUSE_HOOK_ENV_VARS,
+	removeMuseManagedHooks,
+} from "./agent-wrappers-muse";
 export {
 	createOmpExtension,
 	getOmpExtensionContent,

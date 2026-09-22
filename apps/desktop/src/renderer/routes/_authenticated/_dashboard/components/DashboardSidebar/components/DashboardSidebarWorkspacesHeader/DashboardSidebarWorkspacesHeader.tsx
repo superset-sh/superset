@@ -15,6 +15,7 @@ import {
 	VscLayout,
 	VscNewFolder,
 } from "react-icons/vsc";
+import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWorkspace";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import type { SidebarProjectSortMode } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import {
@@ -71,6 +72,7 @@ export function DashboardSidebarWorkspacesHeader({
 		wasSectionCollapsedRef.current = isSectionCollapsed;
 	}, [isSectionCollapsed, onFilterQueryChange, setIsFilterExpanded]);
 	const openEmptyProject = useOpenEmptyProjectModal();
+	const openNewWorkspace = useOpenNewWorkspaceForLocalProject();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
 	const navigate = useNavigate();
@@ -105,9 +107,10 @@ export function DashboardSidebarWorkspacesHeader({
 	const handleImportFolder = async () => {
 		const result = await folderImport.start();
 		if (result) {
+			openNewWorkspace(result.projectId);
 			toast.success(
 				t({
-					message: "Project ready — open it from the sidebar.",
+					message: "Project imported and selected.",
 				}),
 			);
 		}

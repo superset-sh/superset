@@ -2,7 +2,12 @@ import * as Sentry from "@sentry/nextjs";
 import { auth, type Session } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import * as authSchema from "@superset/db/schema/auth";
+import { SANDBOX_API_CREDENTIAL_HEADER } from "@superset/shared/sandbox-gate";
 import { createTRPCContext } from "@superset/trpc";
+import {
+	resolveSandboxCaller,
+	type SandboxCaller,
+} from "@superset/trpc/lib/sandbox";
 import { verifyAccessToken } from "better-auth/oauth2";
 import { eq } from "drizzle-orm";
 import { env } from "@/env";
@@ -72,6 +77,43 @@ async function sessionFromOAuthBearer(
 	} as unknown as Session;
 }
 
+/**
+ * A cloud workspace calling for itself. The credential arrives on the header
+ * the sandbox firewall adds, so nothing in the box ever held it; the session
+ * built here is the workspace creator's, and `sandboxCaller` is what narrows
+ * the procedures it can reach.
+ */
+async function sessionFromSandboxCredential(
+	headers: Headers,
+): Promise<{ session: Session; caller: SandboxCaller } | null> {
+	const caller = await resolveSandboxCaller(
+		headers.get(SANDBOX_API_CREDENTIAL_HEADER),
+	);
+	if (!caller) return null;
+	const user = await db.query.users.findFirst({
+		where: eq(authSchema.users.id, caller.userId),
+	});
+	if (!user) return null;
+	const now = new Date();
+	return {
+		caller,
+		session: {
+			user,
+			session: {
+				id: `sandbox:${caller.workspaceId}`,
+				userId: caller.userId,
+				activeOrganizationId: caller.organizationId,
+				expiresAt: new Date(now.getTime() + 60_000),
+				token: "",
+				ipAddress: null,
+				userAgent: null,
+				createdAt: now,
+				updatedAt: now,
+			},
+		} as unknown as Session,
+	};
+}
+
 export const createContext = async ({
 	req,
 }: {
@@ -86,10 +128,16 @@ export const createContext = async ({
 		session = await sessionFromOAuthBearer(req.headers);
 	}
 
+	const sandbox = session
+		? null
+		: await sessionFromSandboxCredential(req.headers);
+	if (sandbox) session = sandbox.session;
+
 	const context = createTRPCContext({
 		session,
 		auth,
 		headers: req.headers,
+		sandboxCaller: sandbox?.caller ?? null,
 	});
 
 	if (context.client) {

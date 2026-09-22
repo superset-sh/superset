@@ -12,8 +12,9 @@ export function emptySummary(): KindSummary {
 }
 
 /**
- * D4 flip gate. Deliberate skips (no worktree on disk, ambiguous/duplicate
- * repos, cloud unreachable) are "nothing to migrate here" classifications,
+ * D4 flip gate. Deliberate skips (no worktree on disk, repo path gone or no
+ * longer a git checkout, ambiguous/duplicate repos, cloud unreachable) are
+ * "nothing to migrate here" classifications,
  * not pending work — aged installs always have some, so they must not hold
  * the flip hostage. They stay non-terminal in the ledger and retry each
  * pass, so e.g. a restored worktree still adopts later. Only real failures

@@ -1,6 +1,13 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import { Blocks, Bot, Home, type LucideIcon, User } from "lucide-react";
+import {
+	Blocks,
+	Bot,
+	CreditCard,
+	Home,
+	type LucideIcon,
+	User,
+} from "lucide-react";
 
 export interface NavItem {
 	href: string;
@@ -20,5 +27,10 @@ export const NAV_ITEMS: NavItem[] = [
 		href: "/settings/account",
 		label: msg({ message: "Account" }),
 		icon: User,
+	},
+	{
+		href: "/settings/billing",
+		label: msg({ message: "Billing" }),
+		icon: CreditCard,
 	},
 ];

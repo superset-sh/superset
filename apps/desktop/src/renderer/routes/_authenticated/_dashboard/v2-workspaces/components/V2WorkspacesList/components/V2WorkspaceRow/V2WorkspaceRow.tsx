@@ -1,18 +1,22 @@
 import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { memo } from "react";
 import { CgLaptop } from "react-icons/cg";
 import { LuLaptop, LuMonitor } from "react-icons/lu";
 import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import { useFocusVisible } from "renderer/hooks/useFocusVisible";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { V2WorkspaceContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu";
 import { WorkspaceStateGlyph } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/WorkspaceStateGlyph";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { workspaceActivityAt } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/sortWorkspaces";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
+import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
 
 interface V2WorkspaceRowProps {
 	workspace: AccessibleV2Workspace;
@@ -33,8 +37,11 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 	workspace,
 	isCurrentRoute,
 }: V2WorkspaceRowProps) {
+	const { formatDateTime } = useFormat();
+
 	const { t } = useLingui();
-	const isMainWorkspace = workspace.type === "main";
+	const navigate = useNavigate();
+	const isLocalWorkspace = workspace.type === "local";
 	const DeviceIcon =
 		workspace.hostType === "local-device" ? LuLaptop : LuMonitor;
 	// The local device is the one running this app — it can't be offline from
@@ -58,7 +65,7 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 	const timeLabel = getRelativeTime(workspaceActivityAt(workspace), {
 		format: "compact",
 	});
-	const createdAtLabel = workspace.createdAt.toLocaleString();
+	const createdAtLabel = formatDateTime(workspace.createdAt, undefined);
 	const timeTitle = [
 		creatorLabel
 			? t({
@@ -69,7 +76,7 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 				}),
 		workspace.lastAgentEventAt
 			? t({
-					message: `Last agent activity ${new Date(workspace.lastAgentEventAt).toLocaleString()}`,
+					message: `Last agent activity ${formatDateTime(new Date(workspace.lastAgentEventAt), undefined)}`,
 				})
 			: null,
 	]
@@ -135,7 +142,7 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 				>
 					<WorkspaceStateGlyph workspace={workspace} />
 
-					{isMainWorkspace ? (
+					{isLocalWorkspace ? (
 						<Tooltip delayDuration={300}>
 							<TooltipTrigger asChild>
 								{/* The wrapping span (not the icon itself — react-icons
@@ -149,13 +156,13 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 									<CgLaptop
 										className="size-3.5 shrink-0 text-muted-foreground"
 										aria-label={t({
-											message: "Main workspace",
+											message: "Local workspace",
 										})}
 									/>
 								</span>
 							</TooltipTrigger>
 							<TooltipContent side="top">
-								<Trans>Main workspace</Trans>
+								<Trans>Local workspace</Trans>
 							</TooltipContent>
 						</Tooltip>
 					) : null}
@@ -173,19 +180,25 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 					/>
 
 					{workspace.pr ? (
-						<a
-							href={workspace.pr.url}
-							target="_blank"
-							rel="noreferrer"
-							onClick={(event) => event.stopPropagation()}
-							title=""
+						<button
+							type="button"
+							onClick={(event) => {
+								event.stopPropagation();
+								if (!workspace.pr) return;
+								// Opens the PR pane inside the workspace instead of GitHub.
+								usePullRequestPaneIntent.getState().request({
+									workspaceId: workspace.id,
+									prNumber: workspace.pr.prNumber,
+								});
+								void navigateToV2Workspace(workspace.id, navigate);
+							}}
 							aria-label={t({
 								message: `Pull request #${workspace.pr.prNumber}, ${workspace.pr.state}`,
 							})}
 							className="shrink-0"
 						>
 							<PRIcon state={workspace.pr.state} className="size-3.5" />
-						</a>
+						</button>
 					) : null}
 
 					{workspace.diffStats &&

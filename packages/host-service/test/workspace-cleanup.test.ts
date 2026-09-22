@@ -1,17 +1,20 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import {
+	chmodSync,
 	existsSync,
 	lstatSync,
 	mkdirSync,
 	mkdtempSync,
+	readdirSync,
 	rmSync,
+	statSync,
 	symlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cleanupGitOps } from "../src/trpc/router/workspace-cleanup/git-ops";
-import { isMainWorkspace } from "../src/trpc/router/workspace-cleanup/is-main-workspace";
+import { isLocalCheckoutWorkspace } from "../src/trpc/router/workspace-cleanup/is-local-checkout-workspace";
 import {
 	__testDestroysInFlight,
 	workspaceCleanupRouter,
@@ -24,11 +27,16 @@ type WorkspaceRow = {
 	projectId: string | null;
 	worktreePath: string;
 	branch: string;
-	type?: "main" | "worktree" | "session";
+	type?: "local" | "worktree" | "session";
 	pullRequestId?: string | null;
 	archivedAt?: number | null;
 };
-type ProjectRow = { id: string; repoPath: string; worktreeBaseDir?: string };
+type ProjectRow = {
+	id: string;
+	repoPath: string;
+	worktreeBaseDir?: string;
+	name?: string;
+};
 
 type WorktreeState = { hasChanges: boolean; hasUnpushedCommits: boolean };
 
@@ -78,6 +86,16 @@ Object.assign(cleanupGitOps, {
 		gitOpsSpec.deleteBranch ? gitOpsSpec.deleteBranch() : { deleted: true },
 } satisfies typeof realGitOps);
 
+/** Test teardown only: a directory whose write bit is cleared defeats
+ * `rmSync` exactly as it defeats the code under test, so the fixtures below
+ * hand their permissions back before deleting themselves. */
+function restoreOwnerAccess(root: string): void {
+	chmodSync(root, 0o700);
+	for (const entry of readdirSync(root, { withFileTypes: true })) {
+		if (entry.isDirectory()) restoreOwnerAccess(join(root, entry.name));
+	}
+}
+
 function makeCtx(spec: ContextSpec): HostServiceContext & {
 	__mocks: {
 		broadcastWorkspaceChanged: ReturnType<typeof mock>;
@@ -91,7 +109,8 @@ function makeCtx(spec: ContextSpec): HostServiceContext & {
 		sync: () => workspaceRow,
 	}));
 	const projectFindFirst = mock(() => ({
-		sync: () => spec.project,
+		// `projects.name` is NOT NULL DEFAULT '' in the real table.
+		sync: () => (spec.project ? { name: "", ...spec.project } : undefined),
 	}));
 
 	const dbDeleteRun = mock(() => {});
@@ -148,16 +167,16 @@ function makeCtx(spec: ContextSpec): HostServiceContext & {
 	});
 }
 
-describe("isMainWorkspace", () => {
-	test("returns isMain: false when no local workspace row", async () => {
+describe("isLocalCheckoutWorkspace", () => {
+	test("does not share the checkout when no local workspace row", async () => {
 		const ctx = makeCtx({});
-		const result = await isMainWorkspace(ctx, "ws-1");
-		expect(result.isMain).toBe(false);
-		expect(result.reason).toBe(null);
+		const result = await isLocalCheckoutWorkspace(ctx, "ws-1");
+		expect(result.sharesProjectCheckout).toBe(false);
+		expect(result.local).toBeUndefined();
 	});
 
-	test("returns isMain: true when worktreePath equals project repoPath", async () => {
-		const tmp = mkdtempSync(join(tmpdir(), "is-main-"));
+	test("shares the checkout when worktreePath equals project repoPath", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "is-local-"));
 		try {
 			const ctx = makeCtx({
 				workspace: {
@@ -168,16 +187,15 @@ describe("isMainWorkspace", () => {
 				},
 				project: { id: "p-1", repoPath: tmp },
 			});
-			const result = await isMainWorkspace(ctx, "ws-1");
-			expect(result.isMain).toBe(true);
-			expect(result.reason).toContain("Main workspaces cannot be deleted");
+			const result = await isLocalCheckoutWorkspace(ctx, "ws-1");
+			expect(result.sharesProjectCheckout).toBe(true);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
 		}
 	});
 
 	test("normalizes paths via realpath (symlinked worktree path equals repoPath)", async () => {
-		const tmp = mkdtempSync(join(tmpdir(), "is-main-"));
+		const tmp = mkdtempSync(join(tmpdir(), "is-local-"));
 		const realRepo = join(tmp, "real-repo");
 		const symRepo = join(tmp, "sym-repo");
 		mkdirSync(realRepo);
@@ -193,29 +211,29 @@ describe("isMainWorkspace", () => {
 				},
 				project: { id: "p-1", repoPath: realRepo },
 			});
-			const result = await isMainWorkspace(ctx, "ws-1");
-			expect(result.isMain).toBe(true);
+			const result = await isLocalCheckoutWorkspace(ctx, "ws-1");
+			expect(result.sharesProjectCheckout).toBe(true);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
 		}
 	});
 
-	test("returns isMain: true via local type even when paths differ", async () => {
+	test("shares the checkout via local type even when paths differ", async () => {
 		const ctx = makeCtx({
 			workspace: {
 				id: "ws-1",
 				projectId: "p-1",
 				worktreePath: "/some/branch/wt",
 				branch: "feature",
-				type: "main",
+				type: "local",
 			},
 			project: { id: "p-1", repoPath: "/some/repo" },
 		});
-		const result = await isMainWorkspace(ctx, "ws-1");
-		expect(result.isMain).toBe(true);
+		const result = await isLocalCheckoutWorkspace(ctx, "ws-1");
+		expect(result.sharesProjectCheckout).toBe(true);
 	});
 
-	test("returns isMain: false when neither path equality nor local type fires", async () => {
+	test("does not share the checkout when neither path equality nor local type fires", async () => {
 		const ctx = makeCtx({
 			workspace: {
 				id: "ws-1",
@@ -226,8 +244,8 @@ describe("isMainWorkspace", () => {
 			},
 			project: { id: "p-1", repoPath: "/repo" },
 		});
-		const result = await isMainWorkspace(ctx, "ws-1");
-		expect(result.isMain).toBe(false);
+		const result = await isLocalCheckoutWorkspace(ctx, "ws-1");
+		expect(result.sharesProjectCheckout).toBe(false);
 	});
 });
 
@@ -242,17 +260,23 @@ describe("workspaceCleanup.inspect", () => {
 		project: { id: "p-1", repoPath: "/repo" },
 	};
 
-	test("blocks main workspaces with a destructive reason", async () => {
+	test("a local workspace is deletable without reading the shared checkout's state", async () => {
 		const ctx = makeCtx({
 			...wsAndProject,
-			workspace: { ...wsAndProject.workspace, type: "main" },
+			workspace: { ...wsAndProject.workspace, type: "local" },
+			worktreeState: async () => {
+				throw new Error("must not read the checkout");
+			},
 		});
 		const caller = workspaceCleanupRouter.createCaller(ctx);
 		const result = await caller.inspect({ workspaceId: "ws-1" });
-		expect(result.canDelete).toBe(false);
-		expect(result.reason).toContain("Main workspaces cannot be deleted");
-		expect(result.hasChanges).toBe(false);
-		expect(result.hasUnpushedCommits).toBe(false);
+		expect(result).toEqual({
+			canDelete: true,
+			reason: null,
+			hasChanges: false,
+			hasUnpushedCommits: false,
+			sharesProjectCheckout: true,
+		});
 	});
 
 	test("returns canDelete: true with no warnings when no local row", async () => {
@@ -264,6 +288,7 @@ describe("workspaceCleanup.inspect", () => {
 			reason: null,
 			hasChanges: false,
 			hasUnpushedCommits: false,
+			sharesProjectCheckout: false,
 		});
 	});
 
@@ -301,6 +326,7 @@ describe("workspaceCleanup.inspect", () => {
 			reason: null,
 			hasChanges: false,
 			hasUnpushedCommits: false,
+			sharesProjectCheckout: false,
 		});
 	});
 
@@ -316,6 +342,7 @@ describe("workspaceCleanup.inspect", () => {
 			reason: null,
 			hasChanges: false,
 			hasUnpushedCommits: false,
+			sharesProjectCheckout: false,
 		});
 	});
 });
@@ -384,6 +411,55 @@ describe("workspaceCleanup.destroy in-flight guard", () => {
 
 describe("workspaceCleanup.destroy cleanup ordering", () => {
 	beforeEach(() => __testDestroysInFlight.clear());
+
+	test("a local workspace retires its record without touching git or disk", async () => {
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		writeFileSync(join(repo, "dirty.txt"), "uncommitted");
+		let gitTouched = false;
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: repo,
+					branch: "main",
+					type: "local",
+				},
+				project: { id: "p-1", repoPath: repo },
+				worktreeState: async () => {
+					gitTouched = true;
+					return { hasChanges: true, hasUnpushedCommits: true };
+				},
+				removeWorktree: async () => {
+					gitTouched = true;
+					return { stillRegistered: false };
+				},
+				deleteBranch: async () => {
+					gitTouched = true;
+					return { deleted: true };
+				},
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: true,
+				force: false,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(false);
+			expect(result.branchDeleted).toBe(false);
+			expect(gitTouched).toBe(false);
+			expect(existsSync(join(repo, "dirty.txt"))).toBe(true);
+			const events = ctx.__mocks.broadcastWorkspaceChanged.mock.calls.map(
+				(call) => (call[0] as { eventType: string }).eventType,
+			);
+			expect(events).toEqual(["deleted"]);
+		} finally {
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
 
 	test("worktree removal failure blocks local delete while the path still exists", async () => {
 		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
@@ -460,6 +536,100 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 			expect(result.worktreeRemoved).toBe(true);
 			expect(existsSync(worktree)).toBe(false);
 		} finally {
+			rmSync(base, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	test("git unregisters the worktree and a read-only directory blocks the delete: destroy restores write permission and removes it", async () => {
+		// Removing an entry is a write to the directory that holds it, so a
+		// single directory inside the worktree with its owner write bit
+		// cleared makes its whole subtree undeletable — by git's recursive
+		// delete and by the fallback rm alike, on every retry
+		// (HOST-SERVICE-5J). Both shapes below were seen in the wild: a
+		// tool's own output folder, and a Go module cache, which `go mod
+		// download` leaves read-only by design.
+		const base = mkdtempSync(join(tmpdir(), "worktrees-base-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		const worktree = join(base, "p-1", "wt-readonly");
+		const results = join(worktree, "evals", "results");
+		const goModule = join(worktree, "pkg", "mod", "gopkg.in", "yaml.v3");
+		mkdirSync(results, { recursive: true });
+		mkdirSync(goModule, { recursive: true });
+		writeFileSync(join(results, "run.json"), "{}");
+		writeFileSync(join(goModule, "README.md"), "read-only");
+		chmodSync(join(goModule, "README.md"), 0o444);
+		chmodSync(goModule, 0o555);
+		chmodSync(join(worktree, "evals"), 0o555);
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: worktree,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: repo, worktreeBaseDir: base },
+				removeWorktree: async () => ({
+					stillRegistered: false,
+					removeError:
+						"error: failed to delete 'wt-readonly': Permission denied",
+				}),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(true);
+			expect(existsSync(worktree)).toBe(false);
+		} finally {
+			restoreOwnerAccess(base);
+			rmSync(base, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	test("a permission denial above the worktree is not repaired: destroy reports it and leaves the folder", async () => {
+		// The recovery pass descends the worktree it was handed and stops
+		// there. A managed-root directory *containing* the worktree that
+		// denies writes is not ours to widen, so this stays exactly the
+		// failure it is today — reported, folder on disk, row retryable.
+		const base = mkdtempSync(join(tmpdir(), "worktrees-base-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		const projectRoot = join(base, "p-1");
+		const worktree = join(projectRoot, "wt-parent-readonly");
+		mkdirSync(worktree, { recursive: true });
+		writeFileSync(join(worktree, "tracked.txt"), "x");
+		chmodSync(projectRoot, 0o555);
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: worktree,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: repo, worktreeBaseDir: base },
+				removeWorktree: async () => ({ stillRegistered: false }),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			await expect(
+				caller.destroy({
+					workspaceId: "ws-1",
+					deleteBranch: false,
+					force: true,
+				}),
+			).rejects.toThrow(/could not be removed/i);
+			expect(existsSync(worktree)).toBe(true);
+			// The pass never climbed out of the worktree to get its way.
+			expect(statSync(projectRoot).mode & 0o777).toBe(0o555);
+		} finally {
+			restoreOwnerAccess(base);
 			rmSync(base, { recursive: true, force: true });
 			rmSync(repo, { recursive: true, force: true });
 		}

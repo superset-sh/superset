@@ -1,0 +1,1 @@
+export { CopyableTable } from "./CopyableTable";

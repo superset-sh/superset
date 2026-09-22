@@ -3,7 +3,11 @@
  * tree row decorations and PR list rows). Empty string when there is nothing
  * to show so callers can skip the decoration entirely.
  */
-export function formatDiffStats(additions: number, deletions: number): string {
+export function formatDiffStats(
+	additions: number | null,
+	deletions: number | null,
+): string {
+	if (additions === null || deletions === null) return "";
 	if (additions === 0 && deletions === 0) return "";
 	if (additions === 0) return `−${deletions}`;
 	if (deletions === 0) return `+${additions}`;

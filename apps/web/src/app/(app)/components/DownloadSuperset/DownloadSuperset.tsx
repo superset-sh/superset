@@ -3,10 +3,12 @@ import { COMPANY, DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { Download } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { ProductDemo } from "./components/ProductDemo";
 
-export function DownloadSuperset() {
+export async function DownloadSuperset() {
+	const i18n = await initServerI18n();
+
 	return (
 		<div className="flex flex-col gap-8">
 			<div className="flex flex-col items-center gap-6 text-center">

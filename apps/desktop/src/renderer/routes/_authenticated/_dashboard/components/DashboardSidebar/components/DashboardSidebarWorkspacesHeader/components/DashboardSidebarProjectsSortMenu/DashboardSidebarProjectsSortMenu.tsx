@@ -20,9 +20,10 @@ interface DashboardSidebarProjectsSortMenuProps {
 }
 
 /**
- * Sort-mode picker in the Projects header. Lives inside the header strip,
- * which toggles the section on click, so the trigger and the (portaled, but
- * React-bubbling) menu content both stop propagation.
+ * Sort-mode picker in the Projects header. Sorts the workspaces inside each
+ * project — the project list itself is always the manual drag order. Lives
+ * inside the header strip, which toggles the section on click, so the trigger
+ * and the (portaled, but React-bubbling) menu content both stop propagation.
  */
 export function DashboardSidebarProjectsSortMenu({
 	sortMode,
@@ -50,7 +51,7 @@ export function DashboardSidebarProjectsSortMenu({
 						<button
 							type="button"
 							aria-label={t({
-								message: "Sort projects",
+								message: "Sort workspaces",
 							})}
 							onClick={(event) => event.stopPropagation()}
 							onKeyDown={(event) => event.stopPropagation()}
@@ -68,7 +69,7 @@ export function DashboardSidebarProjectsSortMenu({
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
 					{t({
-						message: `Sort projects (${currentLabel})`,
+						message: `Sort workspaces (${currentLabel})`,
 					})}
 				</TooltipContent>
 			</Tooltip>
@@ -98,7 +99,7 @@ export function DashboardSidebarProjectsSortMenu({
 				{sortMode !== "manual" && (
 					<div className="px-2 pb-1 pt-1.5 text-[11px] text-muted-foreground/70">
 						{t({
-							message: "Drag to reorder in Manual order",
+							message: "Drag workspaces to reorder in Manual order",
 						})}
 					</div>
 				)}

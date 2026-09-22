@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuPlus } from "react-icons/lu";
-import { useOpenNewSessionModal } from "renderer/stores/new-workspace-modal";
+import { useOpenNewSession } from "renderer/hooks/useOpenNewWorkspace";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import {
 	dropZoneId,
@@ -46,7 +46,7 @@ export function DashboardSidebarSessionsSection({
 	onToggleSectionCollapse,
 }: DashboardSidebarSessionsSectionProps) {
 	const { t } = useLingui();
-	const openNewSessionModal = useOpenNewSessionModal();
+	const openNewSession = useOpenNewSession();
 	const { sessionItems, activeWorkspaceHome } = useDashboardSidebarDnd();
 	const isSectionCollapsed = useSidebarSectionsCollapseStore(
 		(s) => s.collapsed.sessions,
@@ -94,7 +94,7 @@ export function DashboardSidebarSessionsSection({
 							})}
 							onClick={(event) => {
 								event.stopPropagation();
-								openNewSessionModal();
+								openNewSession();
 							}}
 							onKeyDown={(event) => event.stopPropagation()}
 							className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"

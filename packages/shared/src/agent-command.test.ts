@@ -219,6 +219,59 @@ describe("hermes agent registration", () => {
 	});
 });
 
+describe("muse agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("muse");
+		expect(AGENT_LABELS.muse).toBe("Muse Code");
+	});
+
+	it("seeds prompt launches as the positional prompt of an interactive session", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "muse-1234",
+			agent: "muse",
+		});
+
+		expect(command).toStartWith("muse \"$(cat <<'SUPERSET_PROMPT_muse1234'");
+		expect(command).toEndWith('\n)"');
+	});
+
+	it("derives host preset resume args from the base command", () => {
+		const preset = getPresetById("muse");
+		expect(preset?.command).toBe("muse");
+		expect(preset?.args).toEqual([]);
+		expect(preset?.resumeArgs).toEqual(["resume"]);
+	});
+});
+
+describe("devin agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("devin");
+		expect(AGENT_LABELS.devin).toBe("Devin");
+	});
+
+	it("passes prompt launches after the -- separator of an interactive session", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "devin-1234",
+			agent: "devin",
+		});
+
+		expect(command).toStartWith(
+			"devin --permission-mode dangerous -- \"$(cat <<'SUPERSET_PROMPT_devin1234'",
+		);
+		expect(command).toEndWith('\n)"');
+	});
+
+	it("derives host preset prompt and resume args from the base command", () => {
+		const preset = getPresetById("devin");
+		expect(preset?.command).toBe("devin");
+		expect(preset?.args).toEqual(["--permission-mode", "dangerous"]);
+		expect(preset?.promptArgs).toEqual(["--"]);
+		expect(preset?.resumeArgs).toEqual(["--resume"]);
+	});
+});
+
 describe("grok agent registration", () => {
 	it("is a registered terminal agent with the right label", () => {
 		expect(AGENT_TYPES).toContain("grok");

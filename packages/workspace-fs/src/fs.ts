@@ -1,3 +1,4 @@
+import { constants as bufferConstants } from "node:buffer";
 import { createHash, randomUUID } from "node:crypto";
 import type { Dirent, Stats } from "node:fs";
 import fs from "node:fs/promises";
@@ -23,6 +24,11 @@ export class WorkspaceFsPathError extends Error {
 		this.name = "WorkspaceFsPathError";
 	}
 }
+
+// Text past V8's string ceiling can never be returned, and a single
+// FileHandle.read of 2 GiB or more fails a Node CHECK that aborts the whole
+// process instead of throwing.
+const MAX_READ_BYTES = bufferConstants.MAX_STRING_LENGTH;
 
 const PATH_LOCK_STALE_MS = 30_000;
 const PATH_LOCK_RETRY_MS = 50;
@@ -454,59 +460,34 @@ export async function readFile({
 		const fileSize = stats.size;
 		const startOffset = offset ?? 0;
 		const remaining = Math.max(0, fileSize - startOffset);
+		const limit = Math.min(maxBytes ?? MAX_READ_BYTES, MAX_READ_BYTES);
 
-		if (maxBytes !== undefined) {
-			const bytesToAttempt = Math.min(maxBytes + 1, remaining);
-			const buffer = Buffer.allocUnsafe(Math.max(bytesToAttempt, 0));
-			const { bytesRead } = await fileHandle.read(
-				buffer,
-				0,
-				bytesToAttempt,
-				startOffset,
-			);
-			const exceededLimit = bytesRead > maxBytes;
-			const actualBytes = Math.min(bytesRead, maxBytes);
-			const resultBuffer = buffer.subarray(0, actualBytes);
-
-			if (encoding) {
-				return {
-					kind: "text",
-					content: resultBuffer.toString(encoding as BufferEncoding),
-					byteLength: actualBytes,
-					exceededLimit,
-					revision,
-				};
-			}
-			return {
-				kind: "bytes",
-				content: new Uint8Array(resultBuffer),
-				byteLength: actualBytes,
-				exceededLimit,
-				revision,
-			};
-		}
-
-		const buffer = Buffer.allocUnsafe(remaining);
-		const { bytesRead } =
-			remaining > 0
-				? await fileHandle.read(buffer, 0, remaining, startOffset)
-				: { bytesRead: 0 };
-		const resultBuffer = buffer.subarray(0, bytesRead);
+		const bytesToAttempt = Math.min(limit + 1, remaining);
+		const buffer = Buffer.allocUnsafe(bytesToAttempt);
+		const { bytesRead } = await fileHandle.read(
+			buffer,
+			0,
+			bytesToAttempt,
+			startOffset,
+		);
+		const exceededLimit = bytesRead > limit;
+		const actualBytes = Math.min(bytesRead, limit);
+		const resultBuffer = buffer.subarray(0, actualBytes);
 
 		if (encoding) {
 			return {
 				kind: "text",
 				content: resultBuffer.toString(encoding as BufferEncoding),
-				byteLength: bytesRead,
-				exceededLimit: false,
+				byteLength: actualBytes,
+				exceededLimit,
 				revision,
 			};
 		}
 		return {
 			kind: "bytes",
 			content: new Uint8Array(resultBuffer),
-			byteLength: bytesRead,
-			exceededLimit: false,
+			byteLength: actualBytes,
+			exceededLimit,
 			revision,
 		};
 	} finally {

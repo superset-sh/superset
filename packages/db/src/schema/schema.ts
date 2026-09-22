@@ -19,7 +19,9 @@ import {
 } from "drizzle-orm/pg-core";
 import { organizations, users } from "./auth";
 import {
+	agentCredentialKindValues,
 	automationPromptSourceValues,
+	automationRunErrorCodeValues,
 	automationRunStatusValues,
 	automationSessionKindValues,
 	automationTriggerKindValues,
@@ -28,10 +30,12 @@ import {
 	desktopNoticeCtaActionValues,
 	desktopNoticeSeverityValues,
 	desktopNoticeTriggerValues,
+	environmentScopeValues,
 	environmentSourceKindValues,
 	integrationProviderValues,
 	pageCommentAnchorKindValues,
 	pageCommentAuthorKindValues,
+	pageCommentIntentValues,
 	pageVisibilityValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
@@ -56,6 +60,10 @@ export const integrationProvider = pgEnum(
 	integrationProviderValues,
 );
 export const commandStatus = pgEnum("command_status", commandStatusValues);
+export const agentCredentialKind = pgEnum(
+	"agent_credential_kind",
+	agentCredentialKindValues,
+);
 export const cloudWorkspaceStatus = pgEnum(
 	"cloud_workspace_status",
 	cloudWorkspaceStatusValues,
@@ -63,6 +71,10 @@ export const cloudWorkspaceStatus = pgEnum(
 export const environmentSourceKind = pgEnum(
 	"environment_source_kind",
 	environmentSourceKindValues,
+);
+export const environmentScope = pgEnum(
+	"environment_scope",
+	environmentScopeValues,
 );
 export const v2ClientType = pgEnum("v2_client_type", v2ClientTypeValues);
 export const v2UsersHostRole = pgEnum(
@@ -81,6 +93,11 @@ export const pageCommentAnchorKind = pgEnum(
 export const pageCommentAuthorKind = pgEnum(
 	"page_comment_author_kind",
 	pageCommentAuthorKindValues,
+);
+
+export const pageCommentIntent = pgEnum(
+	"page_comment_intent",
+	pageCommentIntentValues,
 );
 
 export const taskStatuses = pgTable(
@@ -279,6 +296,80 @@ export type InsertIntegrationConnection =
 	typeof integrationConnections.$inferInsert;
 export type SelectIntegrationConnection =
 	typeof integrationConnections.$inferSelect;
+
+export const connections = pgTable(
+	"connections",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		connectedByUserId: uuid("connected_by_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+
+		connector: text().notNull(),
+		ownerKind: text("owner_kind").notNull(),
+		authMethod: text("auth_method").notNull(),
+
+		accessToken: text("access_token").notNull(),
+		refreshToken: text("refresh_token"),
+		tokenExpiresAt: timestamp("token_expires_at"),
+		scopes: text().array(),
+
+		issuer: text(),
+		resource: text(),
+
+		externalAccountId: text("external_account_id").notNull(),
+		externalAccountLabel: text("external_account_label"),
+		externalUserId: text("external_user_id"),
+		externalUserLabel: text("external_user_label"),
+
+		config: jsonb().$type<Record<string, string | null>>(),
+		state: jsonb().$type<IntegrationConfig>(),
+
+		disconnectedAt: timestamp("disconnected_at"),
+		disconnectReason: text("disconnect_reason"),
+
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("connections_org_connector_unique")
+			.on(table.organizationId, table.connector)
+			.where(sql`${table.ownerKind} = 'org'`),
+		uniqueIndex("connections_user_connector_unique")
+			.on(
+				table.organizationId,
+				table.connector,
+				table.connectedByUserId,
+				table.externalAccountId,
+			)
+			.where(sql`${table.ownerKind} = 'user'`),
+		index("connections_org_idx").on(table.organizationId),
+		// Every plugin surface asks "what has this person connected" — the
+		// plugins list, the connections list, and the uninstall sweep — and the
+		// two unique indexes above lead with organization_id, so none of them
+		// can serve it. The table this replaced had plugin_connections_user_plugin_idx.
+		index("connections_user_connector_idx")
+			.on(table.connectedByUserId, table.connector)
+			.where(sql`${table.disconnectedAt} IS NULL`),
+		index("connections_external_account_idx").on(
+			table.connector,
+			table.externalAccountId,
+		),
+		check(
+			"connections_user_identity_present",
+			sql`owner_kind <> 'user' OR external_user_id IS NOT NULL`,
+		),
+	],
+);
+
+export type InsertConnection = typeof connections.$inferInsert;
+export type SelectConnection = typeof connections.$inferSelect;
 
 // Stripe subscriptions (org-based billing)
 export const subscriptions = pgTable(
@@ -551,9 +642,23 @@ export const environments = pgTable(
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		name: text().notNull(),
-		provider: text().notNull().default("blaxel"),
+		provider: text().notNull().default("vercel"),
 		sourceKind: environmentSourceKind("source_kind").notNull(),
 		sourceRef: text("source_ref").notNull(),
+		/** The sandbox bundle every workspace of this environment boots on; null keeps the image's own. */
+		bundleSha: text("bundle_sha"),
+		/**
+		 * Which of the environment's repositories carries the `.superset/config.json`
+		 * the box acts on; null means none does and only `hooks` applies.
+		 */
+		hooksRepositoryId: uuid("hooks_repository_id").references(
+			() => githubRepositories.id,
+			{ onDelete: "set null" },
+		),
+		scope: environmentScope().notNull().default("organization"),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
 		archivedAt: timestamp("archived_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
@@ -568,6 +673,33 @@ export const environments = pgTable(
 		unique("environments_organization_id_name_unique").on(
 			table.organizationId,
 			table.name,
+		),
+	],
+);
+
+/**
+ * The repositories an environment checks out, in order; the first is the
+ * primary. An environment with none (the shared image environment) takes
+ * its repositories at workspace create.
+ */
+export const environmentRepositories = pgTable(
+	"environment_repositories",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		environmentId: uuid("environment_id")
+			.notNull()
+			.references(() => environments.id, { onDelete: "cascade" }),
+		repositoryId: uuid("repository_id")
+			.notNull()
+			.references(() => githubRepositories.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		unique("environment_repositories_environment_id_repository_id_unique").on(
+			table.environmentId,
+			table.repositoryId,
+		),
+		index("environment_repositories_environment_id_idx").on(
+			table.environmentId,
 		),
 	],
 );
@@ -621,7 +753,7 @@ export const cloudWorkspaces = pgTable(
 		// behind.
 		name: text().notNull(),
 		branch: text().notNull(),
-		provider: text().notNull().default("blaxel"),
+		provider: text().notNull().default("vercel"),
 		providerSandboxId: text("provider_sandbox_id").notNull(),
 		sandboxUrl: text("sandbox_url"),
 		status: cloudWorkspaceStatus().notNull().default("provisioning"),
@@ -650,6 +782,34 @@ export const cloudWorkspaces = pgTable(
 	],
 );
 
+/**
+ * What a cloud workspace checked out, fixed at create: each repository on a
+ * branch at a path under the workspace root. The first is the primary, the
+ * one the workspace opens on.
+ */
+export const cloudWorkspaceRepositories = pgTable(
+	"cloud_workspace_repositories",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		cloudWorkspaceId: uuid("cloud_workspace_id")
+			.notNull()
+			.references(() => cloudWorkspaces.id, { onDelete: "cascade" }),
+		repositoryId: uuid("repository_id")
+			.notNull()
+			.references(() => githubRepositories.id, { onDelete: "cascade" }),
+		path: text().notNull(),
+	},
+	(table) => [
+		unique("cloud_workspace_repositories_workspace_repository_unique").on(
+			table.cloudWorkspaceId,
+			table.repositoryId,
+		),
+		index("cloud_workspace_repositories_cloud_workspace_id_idx").on(
+			table.cloudWorkspaceId,
+		),
+	],
+);
+
 export type InsertCloudWorkspace = typeof cloudWorkspaces.$inferInsert;
 export type SelectCloudWorkspace = typeof cloudWorkspaces.$inferSelect;
 
@@ -664,6 +824,12 @@ export const v2Hosts = pgTable(
 		// User-defined command run locally to wake/start this host (e.g. resume a
 		// cloud sandbox, start a VM). Null when the host has no wake command.
 		wakeCommand: text("wake_command"),
+		// Reported by the host-service at registration (`host.ensure`), which
+		// runs once per process, so these describe the build currently serving
+		// the host. Null for hosts that registered before they were reported.
+		version: text(),
+		platform: text(),
+		installSource: text("install_source"),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
@@ -868,6 +1034,11 @@ export const automationRunStatus = pgEnum(
 	automationRunStatusValues,
 );
 
+export const automationRunErrorCode = pgEnum(
+	"automation_run_error_code",
+	automationRunErrorCodeValues,
+);
+
 export const automationSessionKind = pgEnum(
 	"automation_session_kind",
 	automationSessionKindValues,
@@ -911,6 +1082,16 @@ export const automations = pgTable(
 		// ["automation"] so every automation groups its runs out of the box;
 		// clearing the set in the editor is the opt-out.
 		tags: jsonb().$type<string[]>().notNull().default(["automation"]),
+
+		// Deliver each run's prompt into the agent session the previous run
+		// left behind, rather than starting another beside it. Needs a pinned
+		// v2WorkspaceId — that is where the session lives. Off by default: a
+		// run that lands in a conversation already holding context behaves
+		// differently from one starting clean, and that is a choice to make
+		// per automation rather than a default to inherit.
+		continueAgentSession: boolean("continue_agent_session")
+			.notNull()
+			.default(false),
 
 		// The schedule lives in the automation's `schedule` trigger.
 		enabled: boolean().notNull().default(true),
@@ -1006,12 +1187,7 @@ export const automationEvents = pgTable(
 
 		// Text, not integration_provider: this must hold "webhook" and
 		// "superset", which have no connection behind them.
-		// Which connection produced this. Null for webhook and superset events.
-		// Not backfillable later: provider payloads do not always name it.
-		integrationConnectionId: uuid("integration_connection_id").references(
-			() => integrationConnections.id,
-			{ onDelete: "set null" },
-		),
+		integrationConnectionId: uuid("integration_connection_id"),
 
 		provider: text().notNull(),
 		eventType: text("event_type").notNull(),
@@ -1113,6 +1289,7 @@ export const automationRuns = pgTable(
 
 		status: automationRunStatus().notNull(),
 		error: text(),
+		errorCode: automationRunErrorCode("error_code"),
 		dispatchedAt: timestamp("dispatched_at", { withTimezone: true }),
 
 		createdAt: timestamp("created_at", { withTimezone: true })
@@ -1461,6 +1638,7 @@ export const pageCommentThreads = pgTable(
 			.notNull()
 			.references(() => pageVersions.id, { onDelete: "cascade" }),
 		anchorKind: pageCommentAnchorKind("anchor_kind").notNull(),
+		intent: pageCommentIntent("intent"),
 		anchor: jsonb(),
 		anchorText: text("anchor_text"),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
@@ -1535,3 +1713,85 @@ export const pageComments = pgTable(
 
 export type InsertPageComment = typeof pageComments.$inferInsert;
 export type SelectPageComment = typeof pageComments.$inferSelect;
+
+/**
+ * A person's own agent sign-in, used when they start a cloud workspace. The
+ * credential belongs to the person rather than an organization, so one row
+ * serves every organization they work in and it leaves with the account.
+ */
+export const agentCredentials = pgTable(
+	"agent_credentials",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		/** Agent preset id, e.g. "claude" or "codex". Text so a custom agent fits. */
+		agent: text().notNull(),
+		kind: agentCredentialKind().notNull(),
+		encryptedValue: text("encrypted_value").notNull(),
+		/** Set when the key is for a gateway or a compatible endpoint. */
+		baseUrl: text("base_url"),
+		/**
+		 * Which custom provider the value came from, e.g. "gateway". Null for a
+		 * plain provider key, including one pointed at a compatible endpoint —
+		 * a base URL alone does not make a credential a custom provider.
+		 */
+		provider: text(),
+		/** What to show in settings, e.g. the account email. Never the credential. */
+		accountLabel: text("account_label"),
+		lastValidatedAt: timestamp("last_validated_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		unique("agent_credentials_user_id_agent_unique").on(
+			table.userId,
+			table.agent,
+		),
+		index("agent_credentials_user_id_idx").on(table.userId),
+	],
+);
+
+export type InsertAgentCredential = typeof agentCredentials.$inferInsert;
+export type SelectAgentCredential = typeof agentCredentials.$inferSelect;
+
+/**
+ * A person's own GitHub account, authorized through the GitHub App, so their
+ * cloud workspaces commit, push and open pull requests as them. One per user:
+ * a GitHub account belongs to a person, not an organization.
+ */
+export const githubUserConnections = pgTable("github_user_connections", {
+	id: uuid().primaryKey().defaultRandom(),
+	userId: uuid("user_id")
+		.notNull()
+		.unique()
+		.references(() => users.id, { onDelete: "cascade" }),
+	githubUserId: text("github_user_id").notNull(),
+	login: text().notNull(),
+	name: text(),
+	encryptedAccessToken: text("encrypted_access_token").notNull(),
+	/** Null when the App issues tokens that do not expire. */
+	accessTokenExpiresAt: timestamp("access_token_expires_at", {
+		withTimezone: true,
+	}),
+	encryptedRefreshToken: text("encrypted_refresh_token"),
+	refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
+		withTimezone: true,
+	}),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.notNull()
+		.defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true })
+		.notNull()
+		.defaultNow()
+		.$onUpdate(() => new Date()),
+});
+
+export type SelectGithubUserConnection =
+	typeof githubUserConnections.$inferSelect;

@@ -7,6 +7,7 @@ import { TRPCError } from "@trpc/server";
 import simpleGit, { type SimpleGit } from "simple-git";
 import type { HostServiceContext } from "../../../types";
 import { gitRouter } from "./git";
+import { gitStatusStore } from "./utils/git-status-store";
 
 /**
  * Real repos on a real filesystem — only the db lookup and the git factory are
@@ -54,6 +55,45 @@ describe("gitRouter.discardChanges", () => {
 
 	afterEach(() => {
 		rmSync(root, { recursive: true, force: true });
+	});
+
+	test("forces the next status read to walk in full", async () => {
+		const workspaceId = "ws-discard-invalidates";
+		gitStatusStore.attach(workspaceId);
+		gitStatusStore.recordChange(workspaceId, []);
+		let fullWalks = 0;
+		const read = () =>
+			gitStatusStore.read({
+				workspaceId,
+				baseBranch: null,
+				computeFull: async () => {
+					fullWalks++;
+					return {
+						currentBranch: null as never,
+						defaultBranch: null as never,
+						againstBase: [],
+						staged: [],
+						unstaged: [],
+						ignoredPaths: [],
+					};
+				},
+				computePartial: async (paths) => ({ paths, unstaged: [] }),
+			});
+		try {
+			await read();
+			await read();
+			expect(fullWalks).toBe(1);
+
+			await writeFile(join(repo, "tracked.txt"), "edited\n");
+			await createCaller(repo).discardChanges({
+				workspaceId,
+				filePath: "tracked.txt",
+			});
+			await read();
+			expect(fullWalks).toBe(2);
+		} finally {
+			gitStatusStore.drop(workspaceId);
+		}
 	});
 
 	test("discards an untracked directory", async () => {

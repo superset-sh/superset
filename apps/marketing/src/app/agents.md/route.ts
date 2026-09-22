@@ -31,7 +31,7 @@ export async function GET() {
 		"- **Workspaces**: create a branch- or PR-scoped Git worktree on a registered host, list, rename, and delete workspaces.",
 		"- **Agents**: launch a coding-agent session with a prompt inside a workspace; list the agent presets installed on a host.",
 		"- **Terminals**: open a PTY in a workspace, optionally running a one-off command.",
-		"- **Automations**: schedule recurring agent runs (RFC 5545 RRULE), pause/resume/run them, and read run logs.",
+		"- **Automations**: schedule recurring agent runs (RFC 5545 RRULE), pause/resume/run them, and read run logs. Creating, running, and resuming need the Pro plan; listing, pausing, editing, and deleting do not.",
 		"- **Hosts and projects**: enumerate the machines and checked-out repositories available to the user.",
 		"",
 		"## Endpoints",

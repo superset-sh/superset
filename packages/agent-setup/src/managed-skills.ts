@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { cp, rm } from "node:fs/promises";
+import { copyFile, mkdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { writeFileIfChanged } from "./agent-wrappers-common";
@@ -321,18 +321,20 @@ function listSourceSkills(sourceDir: string): string[] | null {
 	}
 }
 
-/** Copies a bundled skill's extra files (anything besides SKILL.md) verbatim. */
+/**
+ * Copies a bundled skill's extra files (anything besides SKILL.md) verbatim.
+ * File by file rather than `fs.cp`: in a packaged app the source sits inside
+ * app.asar, whose fs shim has no `opendir`, and `cp` walks directories with it.
+ */
 async function copyBundledExtras(
 	sourceDir: string,
 	targetDir: string,
 ): Promise<void> {
-	for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
-		if (entry.name === "SKILL.md") continue;
-		await cp(
-			path.join(sourceDir, entry.name),
-			path.join(targetDir, entry.name),
-			{ recursive: true },
-		);
+	for (const file of listFilesRecursive(sourceDir)) {
+		if (file === "SKILL.md") continue;
+		const target = path.join(targetDir, file);
+		await mkdir(path.dirname(target), { recursive: true });
+		await copyFile(path.join(sourceDir, file), target);
 	}
 }
 

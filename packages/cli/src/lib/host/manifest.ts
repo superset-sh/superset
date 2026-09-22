@@ -38,6 +38,10 @@ export function ensureManifestDir(organizationId: string): string {
 	return dir;
 }
 
+export function hostServiceLogPath(organizationId: string): string {
+	return join(manifestDir(organizationId), "host-service.log");
+}
+
 export function writeManifest(manifest: HostServiceManifest): void {
 	ensureManifestDir(manifest.organizationId);
 	const path = manifestPath(manifest.organizationId);

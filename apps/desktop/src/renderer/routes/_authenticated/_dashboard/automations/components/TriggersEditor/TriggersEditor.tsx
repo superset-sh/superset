@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import {
 	type DraftTrigger,
 	enabledTriggerKinds,
@@ -13,11 +15,14 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
 import { Separator } from "@superset/ui/separator";
+import { useQueryClient } from "@tanstack/react-query";
 import { useFeatureFlagPayload } from "posthog-js/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { LuPlus } from "react-icons/lu";
+import { ConnectConnectorDialog } from "renderer/components/ConnectorSection";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
-import { providerFor, TRIGGER_PROVIDERS } from "../providers";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { connectorFor, providerFor, TRIGGER_PROVIDERS } from "../providers";
 import type { OptionGroupState, ProviderOptions } from "../providers/types";
 import { useProviderConnections } from "../providers/useProviderConnections";
 import { TriggerSentence } from "../TriggerSentence";
@@ -54,17 +59,30 @@ export function TriggersEditor({
 	readOnly,
 	children,
 }: TriggersEditorProps) {
+	const { _: translate } = useTranslation();
+
 	const add = (config: DraftTrigger["config"]) =>
 		onEdit([...drafts, { config }]);
 
 	const { plan } = useCurrentPlan();
-	const { connected, isPending: connectionsPending } =
-		useProviderConnections(organizationId);
+	const {
+		connected,
+		needsReauth,
+		isPending: connectionsPending,
+	} = useProviderConnections(organizationId);
+	const [connecting, setConnecting] = useState<string | null>(null);
+	const utils = cloudTrpc.useUtils();
+	const queryClient = useQueryClient();
 
 	const missingConnection = (config: DraftTrigger["config"]) => {
 		if (connectionsPending) return false;
-		const required = providerFor(config).connectionProvider;
-		return required !== undefined && !connected[required];
+		const required = connectorFor(providerFor(config));
+		return required !== null && !connected[required];
+	};
+
+	const expiredConnection = (config: DraftTrigger["config"]) => {
+		const required = connectorFor(providerFor(config));
+		return required !== null && Boolean(needsReauth[required]);
 	};
 
 	const runtimeWarnings = useMemo(
@@ -104,6 +122,7 @@ export function TriggersEditor({
 			<div className="rounded-[12px] bg-foreground/[0.04] p-1">
 				{drafts.map((trigger, index) => (
 					<TriggerSentence
+						onConnect={setConnecting}
 						key={trigger.id ?? `draft-${index}`}
 						trigger={trigger}
 						onChange={(next) =>
@@ -119,6 +138,7 @@ export function TriggersEditor({
 								: undefined
 						}
 						requiresConnection={missingConnection(trigger.config)}
+						needsReauth={expiredConnection(trigger.config)}
 						disabled={readOnly}
 					/>
 				))}
@@ -145,7 +165,7 @@ export function TriggersEditor({
 							<Input
 								autoFocus
 								value={query}
-								placeholder="Search triggers..."
+								placeholder={translate(msg({ message: "Search triggers..." }))}
 								onChange={(event) => setQuery(event.target.value)}
 								onKeyDown={(event) => {
 									if (event.key.length === 1 || event.key === "Backspace") {
@@ -202,6 +222,19 @@ export function TriggersEditor({
 			    them: these outlive any save, so they cannot live in the
 			    submit-gated banner. */}
 			<RuntimeWarnings warnings={runtimeWarnings} />
+
+			<ConnectConnectorDialog
+				slug={connecting}
+				organizationId={organizationId}
+				onOpenChange={(open) => {
+					if (open) return;
+					setConnecting(null);
+					void utils.integration.connectionStatus.invalidate();
+					void queryClient.invalidateQueries({
+						queryKey: ["integration.triggerOptions"],
+					});
+				}}
+			/>
 		</div>
 	);
 }

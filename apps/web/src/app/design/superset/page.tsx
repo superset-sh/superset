@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import type { Metadata } from "next";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { DesignPageHeader } from "../components/DesignPageHeader";
 import { ShowcaseNav, type ShowcaseNavItem } from "../components/ShowcaseNav";
 import { AiAgentSection } from "./components/AiAgentSection";
@@ -16,64 +16,65 @@ export const metadata: Metadata = {
 		"Superset's custom components: originals, AI elements, shared app components",
 };
 
-const NAV_ITEMS: ShowcaseNavItem[] = [
-	{
-		id: "superset",
-		index: "01",
-		title: i18n._(
-			msg({
-				message: "Originals",
-			}),
-		),
-	},
-	{
-		id: "ai-status",
-		index: "02",
-		title: i18n._(
-			msg({
-				message: "AI · Status",
-			}),
-		),
-	},
-	{
-		id: "ai-chat",
-		index: "03",
-		title: i18n._(
-			msg({
-				message: "AI · Conversation",
-			}),
-		),
-	},
-	{
-		id: "ai-agent",
-		index: "04",
-		title: i18n._(
-			msg({
-				message: "AI · Agent activity",
-			}),
-		),
-	},
-	{
-		id: "ai-content",
-		index: "05",
-		title: i18n._(
-			msg({
-				message: "AI · Content",
-			}),
-		),
-	},
-	{
-		id: "shared",
-		index: "06",
-		title: i18n._(
-			msg({
-				message: "Shared app components",
-			}),
-		),
-	},
-];
+export default async function DesignSupersetPage() {
+	const i18n = await initServerI18n();
+	const NAV_ITEMS: ShowcaseNavItem[] = [
+		{
+			id: "superset",
+			index: "01",
+			title: i18n._(
+				msg({
+					message: "Originals",
+				}),
+			),
+		},
+		{
+			id: "ai-status",
+			index: "02",
+			title: i18n._(
+				msg({
+					message: "AI · Status",
+				}),
+			),
+		},
+		{
+			id: "ai-chat",
+			index: "03",
+			title: i18n._(
+				msg({
+					message: "AI · Conversation",
+				}),
+			),
+		},
+		{
+			id: "ai-agent",
+			index: "04",
+			title: i18n._(
+				msg({
+					message: "AI · Agent activity",
+				}),
+			),
+		},
+		{
+			id: "ai-content",
+			index: "05",
+			title: i18n._(
+				msg({
+					message: "AI · Content",
+				}),
+			),
+		},
+		{
+			id: "shared",
+			index: "06",
+			title: i18n._(
+				msg({
+					message: "Shared app components",
+				}),
+			),
+		},
+	];
 
-export default function DesignSupersetPage() {
 	return (
 		<div className="min-h-screen bg-background">
 			<DesignPageHeader

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs/promises";
 import nodePath from "node:path";
 import type { ExternalApp } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
@@ -366,6 +367,26 @@ export function resolvePath(filePath: string, cwd?: string): string {
 	}
 
 	return resolved;
+}
+
+/**
+ * Whether `filePath` has no directory entry for an app to open.
+ *
+ * Only absence answers the question: ENOENT (nothing there) and ENOTDIR (a
+ * parent component is a file). Every other stat failure — EACCES on a parent
+ * directory, EIO on a stalled network mount, ENAMETOOLONG on a garbled path —
+ * leaves existence unknown, so we report it as present and let the app try,
+ * keeping its failure visible.
+ */
+export async function pathIsMissing(filePath: string): Promise<boolean> {
+	try {
+		// stat, not lstat: a symlink whose target is gone is equally unopenable.
+		await fs.stat(filePath);
+		return false;
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		return code === "ENOENT" || code === "ENOTDIR";
+	}
 }
 
 /**

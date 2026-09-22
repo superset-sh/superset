@@ -8,6 +8,8 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { parseSidebarFolderKey } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
+import { getBlockedDragProps } from "../../hooks/useBlockedDragNotice";
+import { useDashboardSidebarDnd } from "../../hooks/useSidebarDnd";
 import type {
 	DashboardSidebarSection,
 	DashboardSidebarWorkspaceIndentation,
@@ -36,6 +38,7 @@ export function SortableSectionHeader({
 	onRename,
 	onToggleCollapse,
 }: SortableSectionHeaderProps) {
+	const { isChildDragDisabled } = useDashboardSidebarDnd();
 	const { setSectionColor } = useDashboardSidebarState();
 	const { clearPendingSectionRename, pendingRenameSectionId } =
 		useDashboardSidebarSectionRename();
@@ -57,7 +60,7 @@ export function SortableSectionHeader({
 		transform,
 		transition,
 		isDragging,
-	} = useSortable({ id: sortableId });
+	} = useSortable({ id: sortableId, disabled: isChildDragDisabled });
 
 	const hasColor =
 		section.color != null && section.color !== PROJECT_COLOR_DEFAULT;
@@ -90,10 +93,11 @@ export function SortableSectionHeader({
 				transform: CSS.Translate.toString(transform),
 				transition,
 				opacity: isDragging ? 0.5 : undefined,
-				borderLeft: hasColor
-					? `2px solid ${section.color}`
-					: "2px solid var(--color-border)",
+				boxShadow: hasColor
+					? `inset 3px 0 ${section.color}`
+					: "inset 2px 0 var(--color-border)",
 			}}
+			{...getBlockedDragProps(isChildDragDisabled)}
 		>
 			<DashboardSidebarSectionContextMenu
 				color={section.color}
@@ -121,7 +125,7 @@ export function SortableSectionHeader({
 					}
 					isCollapsed={section.isCollapsed}
 					isEditing={isRenaming}
-					isDraggable
+					isDraggable={!isChildDragDisabled}
 					indentation={indentation}
 					onToggleCollapse={() => onToggleCollapse(section.id)}
 					actions={

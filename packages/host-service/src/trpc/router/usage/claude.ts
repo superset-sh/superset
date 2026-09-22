@@ -10,11 +10,20 @@
  * the CLI out.
  */
 
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { discoverClaudeProfiles, readKeychainSecrets } from "./profiles";
-import type { UsageAccount, UsageQuotaWindow } from "./types";
+import {
+	discoverClaudeProfiles,
+	keychainServicesForConfigDir,
+	readKeychainSecrets,
+} from "./profiles";
+import type {
+	UsageAccount,
+	UsageAccountStatus,
+	UsageQuotaWindow,
+} from "./types";
 
 const CLAUDE_KEYCHAIN_SERVICE = "Claude Code-credentials";
 const CLAUDE_USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
@@ -176,6 +185,65 @@ export async function readDefaultLoginEmail(): Promise<string | null> {
 	}
 }
 
+export async function readProfileCredential(
+	profile: Awaited<ReturnType<typeof discoverClaudeProfiles>>[number],
+): Promise<ClaudeOauthCredential | null> {
+	const fromFile = await readCredentialFile(
+		profile.credentialsPath,
+		profile.sourceLabel,
+		profile.configDir,
+	);
+	const candidates: Array<ClaudeOauthCredential | null> = [fromFile];
+	for (const service of profile.keychainServices) {
+		for (const secret of await readKeychainSecrets(service)) {
+			candidates.push(
+				parseCredential(
+					secret,
+					profile.configDir,
+					profile.sourceLabel,
+					profile.configDir,
+				),
+			);
+		}
+	}
+	const freshest = pickFreshest(candidates);
+	return freshest ? { ...freshest, email: profile.email } : null;
+}
+
+export async function readClaudeLoginFingerprint(
+	configDir: string | null,
+): Promise<string | null> {
+	const credential =
+		configDir === null
+			? pickFreshest(
+					await Promise.all([
+						readKeychainCredential(),
+						readCredentialFile(
+							join(homedir(), ".claude", ".credentials.json"),
+							"~/.claude",
+							null,
+						),
+						readCredentialFile(
+							join(homedir(), ".config", "claude", "credentials.json"),
+							"~/.config/claude",
+							null,
+						),
+					]),
+				)
+			: await readProfileCredential({
+					configDir,
+					sourceLabel: configDir,
+					email: null,
+					credentialKind: "subscription",
+					loginFingerprint: null,
+					credentialsPath: join(configDir, ".credentials.json"),
+					keychainServices: keychainServicesForConfigDir(configDir),
+				});
+	return credential && classifyLapsedToken(credential) === "live"
+		? createHash("sha256").update(credential.accessToken).digest("hex")
+		: null;
+}
+
 /**
  * Discovers Claude logins on this machine: the default config locations,
  * any CLAUDE_CONFIG_DIR entries (comma-list supported), auto-discovered
@@ -218,31 +286,6 @@ async function discoverClaudeCredentials(): Promise<{
 			configDir,
 		});
 	}
-
-	const readProfileCredential = async (
-		profile: Awaited<ReturnType<typeof discoverClaudeProfiles>>[number],
-	): Promise<ClaudeOauthCredential | null> => {
-		const fromFile = await readCredentialFile(
-			profile.credentialsPath,
-			profile.sourceLabel,
-			profile.configDir,
-		);
-		const candidates: Array<ClaudeOauthCredential | null> = [fromFile];
-		for (const service of profile.keychainServices) {
-			for (const secret of await readKeychainSecrets(service)) {
-				candidates.push(
-					parseCredential(
-						secret,
-						profile.configDir,
-						profile.sourceLabel,
-						profile.configDir,
-					),
-				);
-			}
-		}
-		const freshest = pickFreshest(candidates);
-		return freshest ? { ...freshest, email: profile.email } : null;
-	};
 
 	// API-billed profiles have no quota to fetch and their credentials stay
 	// unread; only subscription profiles go through the credential readers.
@@ -382,6 +425,95 @@ async function fetchClaudeProfileEmail(
 	}
 }
 
+/** What the usage endpoint says about one live access token. */
+export interface ClaudeSubscriptionQuota {
+	email: string | null;
+	status: UsageAccountStatus;
+	statusDetail: string | null;
+	windows: UsageQuotaWindow[];
+	extraUsage: UsageAccount["extraUsage"];
+}
+
+/**
+ * Reads the subscription quota behind a live Claude OAuth access token. The
+ * OpenCode reader shares this: its Anthropic login is the same OAuth client,
+ * so the same endpoint answers.
+ */
+export async function fetchClaudeSubscriptionQuota(
+	accessToken: string,
+): Promise<ClaudeSubscriptionQuota> {
+	try {
+		const [usageResponse, apiEmail] = await Promise.all([
+			fetch(CLAUDE_USAGE_URL, {
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					"anthropic-beta": CLAUDE_OAUTH_BETA_HEADER,
+				},
+				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+			}),
+			fetchClaudeProfileEmail(accessToken),
+		]);
+
+		if (usageResponse.status === 401 || usageResponse.status === 403) {
+			return {
+				email: apiEmail,
+				status: "token_expired",
+				statusDetail: EXPIRED_TOKEN_DETAIL,
+				windows: [],
+				extraUsage: null,
+			};
+		}
+		if (!usageResponse.ok) {
+			return {
+				email: apiEmail,
+				status: "unavailable",
+				statusDetail: `Usage endpoint returned ${usageResponse.status}.`,
+				windows: [],
+				extraUsage: null,
+			};
+		}
+
+		const usage = (await usageResponse.json()) as ClaudeUsageResponse;
+		const windows = mapWindows(usage);
+		const extraUsage =
+			typeof usage.extra_usage?.used_credits === "number" &&
+			typeof usage.extra_usage?.monthly_limit === "number"
+				? {
+						usedCents: usage.extra_usage.used_credits,
+						limitCents: usage.extra_usage.monthly_limit,
+					}
+				: null;
+
+		if (windows.length === 0) {
+			return {
+				email: apiEmail,
+				status: "unavailable",
+				statusDetail:
+					"No quota data returned (org-managed and education plans do not expose limits).",
+				windows: [],
+				extraUsage,
+			};
+		}
+
+		return {
+			email: apiEmail,
+			status: "ok",
+			statusDetail: null,
+			windows,
+			extraUsage,
+		};
+	} catch (error) {
+		return {
+			email: null,
+			status: "unavailable",
+			statusDetail:
+				error instanceof Error ? error.message : "Failed to fetch usage.",
+			windows: [],
+			extraUsage: null,
+		};
+	}
+}
+
 async function fetchClaudeAccount(
 	credential: ClaudeOauthCredential,
 ): Promise<UsageAccount> {
@@ -411,81 +543,8 @@ async function fetchClaudeAccount(
 		};
 	}
 
-	try {
-		const [usageResponse, apiEmail] = await Promise.all([
-			fetch(CLAUDE_USAGE_URL, {
-				headers: {
-					Authorization: `Bearer ${credential.accessToken}`,
-					"anthropic-beta": CLAUDE_OAUTH_BETA_HEADER,
-				},
-				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-			}),
-			fetchClaudeProfileEmail(credential.accessToken),
-		]);
-
-		if (usageResponse.status === 401 || usageResponse.status === 403) {
-			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "token_expired",
-				statusDetail: EXPIRED_TOKEN_DETAIL,
-				windows: [],
-				extraUsage: null,
-			};
-		}
-		if (!usageResponse.ok) {
-			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "unavailable",
-				statusDetail: `Usage endpoint returned ${usageResponse.status}.`,
-				windows: [],
-				extraUsage: null,
-			};
-		}
-
-		const usage = (await usageResponse.json()) as ClaudeUsageResponse;
-		const windows = mapWindows(usage);
-		const extraUsage =
-			typeof usage.extra_usage?.used_credits === "number" &&
-			typeof usage.extra_usage?.monthly_limit === "number"
-				? {
-						usedCents: usage.extra_usage.used_credits,
-						limitCents: usage.extra_usage.monthly_limit,
-					}
-				: null;
-
-		if (windows.length === 0) {
-			return {
-				...base,
-				email: apiEmail ?? credential.email ?? null,
-				status: "unavailable",
-				statusDetail:
-					"No quota data returned (org-managed and education plans do not expose limits).",
-				windows: [],
-				extraUsage,
-			};
-		}
-
-		return {
-			...base,
-			email: apiEmail ?? credential.email ?? null,
-			status: "ok",
-			statusDetail: null,
-			windows,
-			extraUsage,
-		};
-	} catch (error) {
-		return {
-			...base,
-			email: credential.email ?? null,
-			status: "unavailable",
-			statusDetail:
-				error instanceof Error ? error.message : "Failed to fetch usage.",
-			windows: [],
-			extraUsage: null,
-		};
-	}
+	const quota = await fetchClaudeSubscriptionQuota(credential.accessToken);
+	return { ...base, ...quota, email: quota.email ?? credential.email ?? null };
 }
 
 export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {

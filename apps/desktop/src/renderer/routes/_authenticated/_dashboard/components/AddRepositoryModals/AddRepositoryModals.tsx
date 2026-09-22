@@ -1,5 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWorkspace";
 import { EmptyProjectModal } from "renderer/routes/_authenticated/components/EmptyProjectModal";
 import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
 import {
@@ -14,6 +16,14 @@ export function AddRepositoryModals() {
 	const active = useAddRepositoryModalActive();
 	const close = useCloseAddRepositoryModal();
 	const resolveNewProject = useResolveNewProjectModal();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const openNewWorkspace = useOpenNewWorkspaceForLocalProject();
+
+	const handleProjectCreated = (result: { projectId: string }) => {
+		toast.success(t({ message: "Project created." }));
+		resolveNewProject(result);
+		if (isV2CloudEnabled) openNewWorkspace(result.projectId);
+	};
 
 	return (
 		<>
@@ -22,14 +32,7 @@ export function AddRepositoryModals() {
 				onOpenChange={(open) => {
 					if (!open) close();
 				}}
-				onSuccess={(result) => {
-					toast.success(
-						t({
-							message: "Project created.",
-						}),
-					);
-					resolveNewProject({ projectId: result.projectId });
-				}}
+				onSuccess={handleProjectCreated}
 				onError={(message) =>
 					toast.error(
 						t({
@@ -43,14 +46,7 @@ export function AddRepositoryModals() {
 				onOpenChange={(open) => {
 					if (!open) close();
 				}}
-				onSuccess={(result) => {
-					toast.success(
-						t({
-							message: "Project created.",
-						}),
-					);
-					resolveNewProject({ projectId: result.projectId });
-				}}
+				onSuccess={handleProjectCreated}
 				onError={(message) =>
 					toast.error(
 						t({
@@ -64,14 +60,7 @@ export function AddRepositoryModals() {
 				onOpenChange={(open) => {
 					if (!open) close();
 				}}
-				onCreated={(result) => {
-					toast.success(
-						t({
-							message: "Project created.",
-						}),
-					);
-					resolveNewProject({ projectId: result.projectId });
-				}}
+				onCreated={handleProjectCreated}
 				onError={(message) =>
 					toast.error(
 						t({

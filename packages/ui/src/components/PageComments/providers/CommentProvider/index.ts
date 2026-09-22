@@ -1,5 +1,6 @@
 export {
 	type CommentDraft,
+	type CommentIntent,
 	CommentProvider,
 	type CommentStore,
 	type CommentThread,

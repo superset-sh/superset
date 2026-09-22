@@ -21,5 +21,7 @@ Pod::Spec.new do |s|
     'DEFINES_MODULE' => 'YES'
   }
 
+  s.resource_bundles = { 'AttachmentsSheetResources' => ['Resources/**/*.strings'] }
+
   s.source_files = "**/*.{h,m,mm,swift,hpp,cpp}"
 end

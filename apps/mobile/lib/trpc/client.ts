@@ -4,11 +4,13 @@ import * as Application from "expo-application";
 import superjson from "superjson";
 import { authClient, getJwt } from "../auth/client";
 import { env } from "../env";
+import { transportRetryLink } from "../errors";
 
 const clientVersionHeader = `mobile/${Application.nativeApplicationVersion ?? "0.0.0"}`;
 
 export const apiClient = createTRPCProxyClient<AppRouter>({
 	links: [
+		transportRetryLink(),
 		httpBatchLink({
 			url: `${env.EXPO_PUBLIC_API_URL}/api/trpc`,
 			headers() {

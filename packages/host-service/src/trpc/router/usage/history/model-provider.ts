@@ -6,6 +6,7 @@ const DIRECT_PROVIDERS: Partial<Record<UsageAgent, ModelProvider>> = {
 	grok: "xai",
 	cursor: "cursor",
 	copilot: "github",
+	muse: "meta",
 };
 
 /** Best-effort model-backend attribution. Agent identity remains authoritative;
@@ -30,5 +31,6 @@ export function inferModelProvider(
 		return "google";
 	if (normalized.includes("grok") || normalized.startsWith("xai/"))
 		return "xai";
+	if (normalized.startsWith("swe-")) return "cognition";
 	return "other";
 }

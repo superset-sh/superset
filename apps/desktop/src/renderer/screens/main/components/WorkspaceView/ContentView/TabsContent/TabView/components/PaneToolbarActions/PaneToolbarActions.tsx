@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
@@ -17,6 +19,8 @@ export function PaneToolbarActions({
 	onClosePane,
 	leadingActions,
 }: PaneToolbarActionsProps) {
+	const { _: translate } = useTranslation();
+
 	const splitIcon =
 		splitOrientation === "vertical" ? (
 			<TbLayoutColumns className="size-3.5" />
@@ -38,7 +42,10 @@ export function PaneToolbarActions({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<HotkeyLabel label="Split pane" id="SPLIT_AUTO" />
+					<HotkeyLabel
+						label={translate(msg({ message: "Split pane" }))}
+						id="SPLIT_AUTO"
+					/>
 				</TooltipContent>
 			</Tooltip>
 			<button

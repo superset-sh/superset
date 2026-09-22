@@ -7,7 +7,20 @@ import { join, resolve } from "node:path";
 // classification). This scan enforces that repo-wide; use rawErrorMessage()
 // or the error object for those paths.
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
-const SCAN_DIRS = ["apps/desktop/src", "apps/web/src", "packages/ui/src"];
+// Source roots, never an app root: the scan globs everything under the
+// directory, and apps/mobile has its own node_modules.
+const SCAN_DIRS = [
+	"apps/desktop/src",
+	"apps/web/src",
+	"apps/mobile/app",
+	"apps/mobile/components",
+	"apps/mobile/hooks",
+	"apps/mobile/lib",
+	"apps/mobile/modules",
+	"apps/mobile/screens",
+	"apps/mobile/scripts",
+	"packages/ui/src",
+];
 
 const FORBIDDEN: { name: string; pattern: RegExp }[] = [
 	{

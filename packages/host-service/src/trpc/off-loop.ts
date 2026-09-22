@@ -12,6 +12,7 @@ import {
 	type HostWorkerPool,
 } from "../workers/host-worker-pool";
 import type { WorkerTaskOptions } from "../workers/WorkerTaskRunner";
+import { rethrowWorkerTaskAbort } from "./worker-abort";
 
 export interface OffLoopArgs<TInput> {
 	ctx: HostServiceContext;
@@ -37,10 +38,15 @@ export function createOffLoop(getPool: () => Pick<HostWorkerPool, "run">) {
 	): (args: OffLoopArgs<TInput>) => Promise<TResult> {
 		return async (args) => {
 			const taskInput = await spec.prepare(args);
-			return getPool().run(spec.task, taskInput, {
-				...spec.options?.(args),
-				signal: args.signal,
-			});
+			try {
+				return await getPool().run(spec.task, taskInput, {
+					...spec.options?.(args),
+					signal: args.signal,
+				});
+			} catch (error) {
+				rethrowWorkerTaskAbort(error);
+				throw error;
+			}
 		};
 	};
 }

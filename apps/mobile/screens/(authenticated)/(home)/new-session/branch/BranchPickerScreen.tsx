@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
 import {
@@ -19,6 +19,7 @@ import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 import { CLOUD_TARGET_ID } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
+import { useCloudCreateSelection } from "@/screens/(authenticated)/(home)/hooks/useCloudCreateSelection";
 
 function BranchRow({
 	name,
@@ -66,7 +67,7 @@ export function BranchPickerScreen() {
 	);
 
 	const isCloud = params.machineId === CLOUD_TARGET_ID;
-	const hostsQuery = useOrgHostsQuery();
+	const { query: hostsQuery } = useOrgHosts();
 	const host =
 		!isCloud && params.machineId
 			? (hostsQuery.data?.find(
@@ -79,6 +80,7 @@ export function BranchPickerScreen() {
 	const projectId = params.projectId || null;
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const cloudRepositoryId = useCloudCreateSelection().repository?.id ?? null;
 
 	const trimmedQuery = query.trim();
 	const { data, isLoading } = useQuery({
@@ -87,9 +89,12 @@ export function BranchPickerScreen() {
 			"branches",
 			hostUrl,
 			projectId,
+			cloudRepositoryId,
 			trimmedQuery,
 		],
-		enabled: projectId !== null && (isCloud ? !!organizationId : !!hostUrl),
+		enabled:
+			projectId !== null &&
+			(isCloud ? !!organizationId && !!cloudRepositoryId : !!hostUrl),
 		placeholderData: (previous) => previous,
 		networkMode: "always" as const,
 		queryFn: async (): Promise<{
@@ -100,9 +105,10 @@ export function BranchPickerScreen() {
 			// A cloud target has no host holding a checkout; branches come from
 			// the GitHub remote through the API's App installation instead.
 			if (isCloud) {
-				if (!organizationId) return null;
+				if (!organizationId || !cloudRepositoryId) return null;
 				return apiClient.cloudWorkspace.listBranches.query({
 					organizationId,
+					repositoryId: cloudRepositoryId,
 					query: trimmedQuery || undefined,
 				});
 			}

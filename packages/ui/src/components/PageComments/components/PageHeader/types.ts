@@ -1,4 +1,6 @@
-export type PageVisibility = "just_me" | "org";
+import type { PageVisibility } from "@superset/shared/usercontent";
+
+export type { PageVisibility } from "@superset/shared/usercontent";
 
 export interface PageHeaderOwner {
 	id: string;
@@ -11,6 +13,7 @@ export interface PageHeaderVersion {
 	version: number;
 	label: string | null;
 	createdAt: Date | string;
+	thumbnailUrl?: string | null;
 }
 
 export interface PageHeaderPage {
@@ -30,4 +33,8 @@ export interface PageHeaderActions {
 	onSetVisibility: (visibility: PageVisibility) => Promise<void>;
 	onSetSharedVersion: (version: number | null) => Promise<void>;
 	onDelete: () => Promise<void>;
+	onRename: (title: string) => Promise<void>;
+	onRefresh: () => void;
+	onPreviewVersion: (version: number | null) => void;
+	previewVersion?: number | null;
 }

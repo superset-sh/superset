@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { errorMessage } from "@superset/i18n/errors";
 import type { GitHubStatus, PullRequestComment } from "@superset/local-db";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
@@ -55,6 +57,8 @@ export function ReviewPanel({
 	workspaceId,
 	onCommentsChange,
 }: ReviewPanelProps) {
+	const { _: translate } = useTranslation();
+
 	const [checksOpen, setChecksOpen] = useState(true);
 	const [commentsOpen, setCommentsOpen] = useState(true);
 	const [resolvedCommentsGroupOpen, setResolvedCommentsGroupOpen] =
@@ -348,7 +352,9 @@ export function ReviewPanel({
 								target="_blank"
 								rel="noopener noreferrer"
 								className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-								aria-label="Open comment on GitHub"
+								aria-label={translate(
+									msg({ message: "Open comment on GitHub" }),
+								)}
 							>
 								<LuArrowUpRight className="size-3" />
 							</a>

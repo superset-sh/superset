@@ -1,0 +1,1 @@
+ALTER TABLE `terminal_agent_bindings` ADD `resumed_into_terminal_id` text;

@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { msg } from "@lingui/core/macro";
@@ -12,6 +13,7 @@ import { settings } from "@superset/local-db";
 import {
 	devAppProfileDirName,
 	isDevAppProfileDirName,
+	workspaceDevAppProfileDirName,
 } from "@superset/shared/dev-app-profile";
 import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
@@ -33,8 +35,10 @@ import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { startBrowserBridge } from "./lib/browser/browser-bridge";
+import { browserManager } from "./lib/browser/browser-manager";
 import { downloadManager } from "./lib/browser/download-manager";
 import { installBundledCliShim } from "./lib/bundled-cli";
+import { installDevRunnerExit } from "./lib/dev-runner-exit";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
@@ -78,17 +82,23 @@ void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
 });
 
-// Dev mode: label the app with the workspace name so multiple worktrees are
-// distinguishable. This also moves `app.getPath("userData")`, so the workspace
-// gets its own Chromium profile — see sweepDevAppProfiles for the reaping.
+// Keep the readable dock label separate from the stable storage identity.
 if (IS_DEV) {
+	const profilePath = path.join(
+		app.getPath("appData"),
+		workspaceDevAppProfileDirName({
+			workspaceId: process.env.SUPERSET_WORKSPACE_ID,
+			appPath: app.getAppPath(),
+		}),
+	);
+	mkdirSync(profilePath, { recursive: true });
+	app.setPath("userData", profilePath);
+	app.setPath("sessionData", profilePath);
 	const workspaceName = resolveDevWorkspaceName();
 	const profileName = workspaceName
 		? devAppProfileDirName(workspaceName)
 		: undefined;
-	// A name carrying a path separator would make Electron nest userData inside
-	// a directory neither the sweep nor teardown can ever reap. Keep the
-	// default profile instead — a shared dock label beats an unreclaimable one.
+	// Retain the existing validation for the display label.
 	if (profileName && isDevAppProfileDirName(profileName)) {
 		app.setName(profileName);
 	} else if (profileName) {
@@ -160,6 +170,10 @@ async function processDeepLink(url: string): Promise<void> {
 	target?.webContents.send("deep-link-navigate", path);
 }
 
+browserManager.on("deep-link", (url: string) => {
+	void processDeepLink(url);
+});
+
 function findDeepLinkInArgv(argv: string[]): string | undefined {
 	return argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 }
@@ -221,6 +235,10 @@ app.on("open-url", async (event, url) => {
 
 let isQuitting = false;
 let skipQuitConfirmation = false;
+// A second quit request while the confirmation is open would open a second
+// dialog on top of the first — the overlay close button on Linux makes that
+// easy to trigger.
+let quitConfirmationOpen = false;
 let forceFullCleanup = false;
 
 export function setSkipQuitConfirmation(): void {
@@ -262,12 +280,24 @@ function getConfirmOnQuitSetting(): boolean {
 	}
 }
 
+// macOS keeps running without windows (dock and tray reopen it); elsewhere a
+// windowless app is an invisible process nothing brings back.
+app.on("window-all-closed", () => {
+	if (process.platform === "darwin") return;
+	// The last window's close already asked; with no window left there is
+	// nothing a cancelled confirmation could keep.
+	skipQuitConfirmation = true;
+	app.quit();
+});
+
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
 	const isDev = process.env.NODE_ENV === "development";
 	if (!skipQuitConfirmation && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
+		if (quitConfirmationOpen) return;
+		quitConfirmationOpen = true;
 
 		try {
 			const { response } = await dialog.showMessageBox({
@@ -286,12 +316,14 @@ app.on("before-quit", async (event) => {
 				),
 			});
 
+			quitConfirmationOpen = false;
 			if (response === 1) {
 				return;
 			}
 		} catch (error) {
 			console.error("[main] Quit confirmation dialog failed:", error);
 		}
+		quitConfirmationOpen = false;
 	}
 
 	isQuitting = true;
@@ -340,41 +372,20 @@ process.on("unhandledRejection", (reason) => {
 	console.error("[main] Unhandled rejection:", reason);
 });
 
-// Without these handlers, Electron may not quit when electron-vite sends SIGTERM
 if (process.env.NODE_ENV === "development") {
-	let signalHandled = false;
-	const handleTerminationSignal = (signal: string) => {
-		if (signalHandled) return;
-		signalHandled = true;
-		console.log(`[main] Received ${signal}, quitting...`);
-		getHostServiceCoordinator().stopAll();
-		void Promise.allSettled([teardownTerminalHost()]).finally(() =>
-			app.exit(0),
-		);
-	};
-
-	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
-	process.on("SIGINT", () => handleTerminationSignal("SIGINT"));
-
-	// Fallback: electron-vite may exit without signaling the child Electron process
-	const parentPid = process.ppid;
-	const isParentAlive = (): boolean => {
-		try {
-			process.kill(parentPid, 0);
-			return true;
-		} catch {
-			return false;
-		}
-	};
-
-	const parentCheckInterval = setInterval(() => {
-		if (!isParentAlive()) {
-			console.log("[main] Parent process exited, quitting...");
-			clearInterval(parentCheckInterval);
-			handleTerminationSignal("parent-exit");
-		}
-	}, 1000);
-	parentCheckInterval.unref();
+	installDevRunnerExit({
+		parentPid: process.ppid,
+		stdio: [process.stdout, process.stderr],
+		subscribeSignal: (signal, handler) => {
+			process.on(signal, handler);
+		},
+		markQuitting: () => {
+			isQuitting = true;
+		},
+		stopHostServices: () => getHostServiceCoordinator().stopAll(),
+		teardownTerminalHost,
+		exit: (code) => app.exit(code),
+	});
 }
 
 // Chromium refuses to cache any single entry larger than about an eighth

@@ -2,25 +2,20 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	getSidebarWorkspaceIsHidden,
-	isAutoIncludedLocalMainWorkspace,
-} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { getSidebarWorkspaceIsHidden } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 /**
  * The set of workspace ids that actually appear in the user's v2 dashboard
  * sidebar. This is the per-user, per-org "my workspaces" view: explicitly
- * placed (and not hidden) workspaces plus auto-included local `main`
- * workspaces, both gated on the projects the user added to their sidebar.
+ * placed (and not hidden) workspaces, gated on the projects the user has in
+ * their sidebar.
  *
  * Notifications and ports filter against this so a user is never bothered by a
  * coworker's workspace that merely shares the org's Electric stream.
  */
 export function useVisibleSidebarWorkspaceIds(): Set<string> {
 	const collections = useCollections();
-	const { machineId } = useLocalHostService();
 
 	// Placement rows joined against live host-served projects (projects are
 	// fully local; the old inner join against the cloud collection is gone).
@@ -70,9 +65,6 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 		const sidebarProjectIds = new Set(
 			sidebarProjects.map((project) => project.projectId),
 		);
-		const localStateWorkspaceIds = new Set(
-			localStateWorkspaces.map((workspace) => workspace.id),
-		);
 		const visibleIds = new Set<string>();
 
 		for (const workspace of localStateWorkspaces) {
@@ -87,19 +79,6 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 			visibleIds.add(workspace.id);
 		}
 
-		for (const workspace of hostWorkspaces) {
-			if (workspace.type !== "main") continue;
-			if (
-				isAutoIncludedLocalMainWorkspace(workspace, {
-					localStateWorkspaceIds,
-					sidebarProjectIds,
-					machineId,
-				})
-			) {
-				visibleIds.add(workspace.id);
-			}
-		}
-
 		return visibleIds;
-	}, [sidebarProjects, localStateRows, hostWorkspaces, machineId]);
+	}, [sidebarProjects, localStateRows, hostWorkspaces]);
 }

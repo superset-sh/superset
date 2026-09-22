@@ -20,12 +20,12 @@ import {
 import {
 	createPageCommentThreadSchema,
 	deletePageCommentThreadSchema,
-	type ElementAnchor,
 	editPageCommentSchema,
 	listPageCommentsSchema,
 	replyPageCommentSchema,
 	resolvePageCommentThreadSchema,
 } from "./schema";
+import { shapeComment, shapeThread } from "./shape";
 
 async function loadReadablePage({
 	pageId,
@@ -143,23 +143,18 @@ export const pageCommentRouter = {
 				else byThread.set(row.comment.threadId, [row]);
 			}
 
-			return threadRows.map(({ thread, version }) => ({
-				id: thread.id,
-				anchorKind: thread.anchorKind,
-				anchor: thread.anchor as ElementAnchor | null,
-				anchorText: thread.anchorText,
-				resolved: thread.resolvedAt !== null,
-				createdAt: thread.createdAt,
-				version,
-				comments: (byThread.get(thread.id) ?? []).map((row) => ({
-					id: row.comment.id,
-					body: row.comment.body,
-					authorKind: row.comment.authorKind,
-					authorName: row.authorName ?? "Unknown",
-					authorImage: row.authorImage ?? null,
-					createdAt: row.comment.createdAt,
-				})),
-			}));
+			return threadRows.map(({ thread, version }) =>
+				shapeThread(
+					thread,
+					version,
+					(byThread.get(thread.id) ?? []).map((row) =>
+						shapeComment(row.comment, {
+							name: row.authorName,
+							image: row.authorImage,
+						}),
+					),
+				),
+			);
 		}),
 
 	create: protectedProcedure
@@ -194,6 +189,7 @@ export const pageCommentRouter = {
 						pageId: input.pageId,
 						pageVersionId: version.id,
 						anchorKind: input.anchorKind,
+						intent: input.intent ?? null,
 						anchor: input.anchor,
 						anchorText: input.anchorText,
 						createdByUserId: userId,
@@ -220,7 +216,20 @@ export const pageCommentRouter = {
 					})
 					.returning();
 
-				return { threadId: thread.id, commentId: comment?.id };
+				if (!comment) {
+					throw userError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create thread",
+						i18nKey: "serverError.pageComment.failedToCreateThread",
+					});
+				}
+
+				return shapeThread(thread, input.version, [
+					shapeComment(comment, {
+						name: ctx.session.user.name,
+						image: ctx.session.user.image ?? null,
+					}),
+				]);
 			});
 		}),
 
@@ -249,6 +258,14 @@ export const pageCommentRouter = {
 				})
 				.returning();
 
+			if (!comment) {
+				throw userError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to post reply",
+					i18nKey: "serverError.pageComment.failedToPostReply",
+				});
+			}
+
 			if (shouldActivateOnWrite(thread, agentSession)) {
 				await db
 					.update(pageCommentThreads)
@@ -256,7 +273,10 @@ export const pageCommentRouter = {
 					.where(eq(pageCommentThreads.id, input.threadId));
 			}
 
-			return { id: comment?.id };
+			return shapeComment(comment, {
+				name: ctx.session.user.name,
+				image: ctx.session.user.image ?? null,
+			});
 		}),
 
 	edit: protectedProcedure

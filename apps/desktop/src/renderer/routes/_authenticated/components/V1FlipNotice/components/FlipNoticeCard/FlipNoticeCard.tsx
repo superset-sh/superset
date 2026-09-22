@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { TriangleAlert, X } from "lucide-react";
 import { lazy, Suspense } from "react";
@@ -33,6 +35,8 @@ export function FlipNoticeCard({
 	ctaLabel,
 	onDismiss,
 }: FlipNoticeCardProps) {
+	const { _: translate } = useTranslation();
+
 	return (
 		<div className="fixed right-4 bottom-4 z-50 w-[380px] select-text overflow-hidden rounded-none border bg-background shadow-2xl">
 			<div className="relative h-20 bg-[#080a12]">
@@ -55,7 +59,7 @@ export function FlipNoticeCard({
 				</div>
 				<button
 					type="button"
-					aria-label="Dismiss"
+					aria-label={translate(msg({ message: "Dismiss" }))}
 					className="absolute top-3 right-3 rounded-none p-1 text-white/70 hover:text-white"
 					onClick={onDismiss}
 				>

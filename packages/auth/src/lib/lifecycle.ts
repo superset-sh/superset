@@ -1,17 +1,6 @@
-import { PostHog } from "posthog-node";
-
-import { env } from "../env";
+import { posthog } from "./analytics";
 
 export const ACTIVATION_CAMPAIGN_FLAG = "activation-email-campaign";
-
-const posthog = new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
-	host: env.NEXT_PUBLIC_POSTHOG_HOST,
-	flushAt: 1,
-	flushInterval: 0,
-	// This is awaited inside the signup hook, and the SDK default is 10s — long
-	// enough that a slow PostHog would stall signup rather than fail open.
-	requestTimeout: 3000,
-});
 
 /**
  * Arm for the activation-drip A/B. `getFeatureFlag` emits the

@@ -61,7 +61,17 @@ setup_main() {
     step_failed "Write .env file"
   fi
 
-  # Step 9: Setup local MCP in .mcp.json (opt-in)
+  # Step 9: Fill keys the root .env lacks with fakes from .env.local.example
+  if ! step_seed_env_placeholders; then
+    step_failed "Seed .env placeholders"
+  fi
+
+  # Step 10: Prove the API can load this .env
+  if ! step_validate_env; then
+    step_failed "Validate .env"
+  fi
+
+  # Step 11: Setup local MCP in .mcp.json (opt-in)
   if [ "$SETUP_LOCAL_MCP" = "1" ]; then
     if ! step_setup_local_mcp; then
       step_failed "Setup local MCP"

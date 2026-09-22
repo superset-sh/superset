@@ -1,15 +1,16 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
 import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
-import { ContactForm } from "./components/ContactForm";
+import { ContactForm } from "../components/ContactForm";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	return {
 		title: i18n._(
 			msg({
@@ -30,9 +31,9 @@ export default async function ContactPage() {
 	await initServerI18n();
 
 	// Named locals so the paragraph extracts with `{supportEmail}` /
-	// `{foundersEmail}` instead of positional `{0}` / `{1}`.
+	// `{teamEmail}` instead of positional `{0}` / `{1}`.
 	const supportEmail = `support${COMPANY.EMAIL_DOMAIN}`;
-	const foundersEmail = COMPANY.FOUNDERS_EMAIL;
+	const teamEmail = COMPANY.TEAM_EMAIL;
 
 	return (
 		<main className="relative min-h-screen">
@@ -83,13 +84,12 @@ export default async function ContactPage() {
 								{supportEmail}
 							</a>{" "}
 							and we&apos;ll get back to you within one business day. For
-							partnerships, press, enterprise, or anything for the founding
-							team, write to{" "}
+							partnerships, press, enterprise, or anything else, write to{" "}
 							<a
 								className="text-foreground underline"
-								href={COMPANY.FOUNDERS_MAIL_TO}
+								href={COMPANY.TEAM_MAIL_TO}
 							>
-								{foundersEmail}
+								{teamEmail}
 							</a>
 							.
 						</Trans>

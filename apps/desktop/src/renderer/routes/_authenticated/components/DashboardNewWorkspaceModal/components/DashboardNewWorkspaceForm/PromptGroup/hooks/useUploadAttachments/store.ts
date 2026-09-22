@@ -1,3 +1,4 @@
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -20,6 +21,38 @@ export const useAttachmentUploadsStore = create<UploadStoreState>(() => ({
 // Promises live outside the store — they aren't serializable and aren't
 // observed by React. Keyed identically to entries: outer fileId, inner hostUrl.
 const promiseMap = new Map<string, Map<string, Promise<UploadState>>>();
+
+/**
+ * The target of an upload when there is no host to send it to: a cloud
+ * workspace's sandbox does not exist until after the create. Bytes go to
+ * cloud storage instead, and the id a `ready` entry carries is a `files.id`
+ * the API resolves, not a host attachment id.
+ */
+export const CLOUD_UPLOAD_TARGET = "cloud";
+
+async function fetchBlob(url: string): Promise<Blob> {
+	return await (await fetch(url)).blob();
+}
+
+async function uploadToCloud(file: StartUploadInput): Promise<string> {
+	const blob = await fetchBlob(file.url);
+	const { fileId, upload } = await apiTrpcClient.attachment.createUpload.mutate(
+		{
+			name: file.filename ?? "attachment",
+			contentType: file.mediaType,
+			sizeBytes: blob.size,
+		},
+	);
+	const response = await fetch(upload.url, {
+		method: "PUT",
+		headers: upload.headers,
+		body: blob,
+	});
+	if (!response.ok) {
+		throw new Error(`Upload failed (${response.status})`);
+	}
+	return fileId;
+}
 
 async function fetchBase64(url: string): Promise<string> {
 	if (url.startsWith("data:")) {
@@ -71,17 +104,21 @@ export function startUpload(hostUrl: string, file: StartUploadInput): void {
 
 	const promise = (async (): Promise<UploadState> => {
 		try {
-			const data = await fetchBase64(file.url);
-			const result = await getHostServiceClientByUrl(
-				hostUrl,
-			).attachments.upload.mutate({
-				data: { kind: "base64", data },
-				mediaType: file.mediaType,
-				originalFilename: file.filename,
-			});
+			const attachmentId =
+				hostUrl === CLOUD_UPLOAD_TARGET
+					? await uploadToCloud(file)
+					: (
+							await getHostServiceClientByUrl(
+								hostUrl,
+							).attachments.upload.mutate({
+								data: { kind: "base64", data: await fetchBase64(file.url) },
+								mediaType: file.mediaType,
+								originalFilename: file.filename,
+							})
+						).attachmentId;
 			const next: UploadState = {
 				kind: "ready",
-				attachmentId: result.attachmentId,
+				attachmentId,
 			};
 			setEntry(file.id, hostUrl, next);
 			return next;

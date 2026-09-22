@@ -8,10 +8,7 @@ import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	getVisibleSidebarWorkspaces,
-	isAutoIncludedLocalMainWorkspace,
-} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
@@ -36,9 +33,8 @@ import {
 	getDashboardSidebarPullRequestQueryKey,
 	type PullRequestQueryTarget,
 } from "./derivePullRequestQueryTargets";
+import { pickGithubStatus } from "./pickGithubStatus";
 import { createPullRequestRefreshGate } from "./pullRequestRefreshCooldown";
-
-const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 
 // Module-level so remounting the sidebar doesn't reset the cool-down.
 const pullRequestRefreshGate = createPullRequestRefreshGate();
@@ -385,71 +381,11 @@ export function useDashboardSidebarData() {
 		[rawSidebarWorkspacesWithHostStatus],
 	);
 
-	const localStateWorkspaceIds = useMemo(
-		() => new Set(rawSidebarWorkspaces.map((workspace) => workspace.id)),
-		[rawSidebarWorkspaces],
-	);
-
-	const rawLocalMainWorkspaces = useMemo(
-		() =>
-			hostWorkspaces
-				.filter(
-					(
-						workspace,
-					): workspace is (typeof hostWorkspaces)[number] & {
-						projectId: string;
-					} => workspace.type === "main" && workspace.projectId !== null,
-				)
-				.map((workspace) => ({
-					id: workspace.id,
-					projectId: workspace.projectId,
-					hostId: workspace.hostId,
-					type: workspace.type,
-					name: workspace.name,
-					branch: workspace.branch,
-					taskId: workspace.taskId,
-					createdAt: workspace.createdAt,
-					updatedAt: workspace.updatedAt,
-					lastActivityAt: workspace.lastActivityAt,
-					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
-					sectionId: null as string | null,
-					tags: workspace.tags,
-					// Auto-included mains have no local-state row; pinning one
-					// creates a row first (see setWorkspacePinned).
-					pinnedAt: null as number | null,
-				})),
-		[hostWorkspaces],
-	);
-	const localMainWorkspaces = useMemo(
-		() =>
-			rawLocalMainWorkspaces.map((workspace) => ({
-				...workspace,
-				hostIsOnline: hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
-				pendingTransaction: workspaceTransactionsById[workspace.id] ?? null,
-			})),
-		[hostsByMachineId, rawLocalMainWorkspaces, workspaceTransactionsById],
-	);
-
-	const visibleSidebarWorkspaces = useMemo(() => {
-		const sidebarProjectIds = new Set(
-			sidebarProjects.map((project) => project.id),
-		);
-		const autoLocalMainWorkspaces = localMainWorkspaces.filter((workspace) =>
-			isAutoIncludedLocalMainWorkspace(workspace, {
-				localStateWorkspaceIds,
-				sidebarProjectIds,
-				machineId,
-			}),
-		);
-
-		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
-	}, [
-		localMainWorkspaces,
-		localStateWorkspaceIds,
-		machineId,
-		sidebarProjects,
-		sidebarWorkspaces,
-	]);
+	// Placement is the only way into the sidebar: local and worktree rows
+	// alike appear because a local-state row says so (the reconciler in
+	// usePlaceWorktreesInSidebar writes one for anything created outside
+	// this renderer), never because of the row's type.
+	const visibleSidebarWorkspaces = sidebarWorkspaces;
 
 	// From the placement rows, not the host-joined list: a hidden project
 	// whose host is offline has no host metadata yet still has cached
@@ -499,7 +435,7 @@ export function useDashboardSidebarData() {
 			// rendered through the outage; fetches resume when the URL returns.
 			enabled: target.hostUrl !== null,
 			queryFn: async () => {
-				if (!target.hostUrl) return { workspaces: [] };
+				if (!target.hostUrl) return { workspaces: [], github: null };
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				return client.pullRequests.getByWorkspaces.query({
 					workspaceIds: target.workspaceIds,
@@ -522,6 +458,20 @@ export function useDashboardSidebarData() {
 		}
 		return rows;
 	}, [pullRequestQueries]);
+
+	// One notice for the whole sidebar: the hold is per host credential, not
+	// per workspace, and the local machine's is the one the user can fix.
+	const githubStatus = useMemo(
+		() =>
+			pickGithubStatus(
+				pullRequestQueries.map((query, index) => ({
+					machineId: pullRequestQueryTargets[index]?.machineId ?? "",
+					status: query.data?.github,
+				})),
+				machineId,
+			),
+		[machineId, pullRequestQueries, pullRequestQueryTargets],
+	);
 
 	const refreshWorkspacePullRequest = useCallback(
 		async (workspaceId: string) => {
@@ -620,6 +570,7 @@ export function useDashboardSidebarData() {
 		pinnedWorkspaces,
 		sessionWorkspaces,
 		sessionChildren: sessions.children,
+		githubStatus,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	};

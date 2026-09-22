@@ -19,6 +19,7 @@ interface GitWatcherInternals {
 	handleGitDirEvent(workspaceId: string, filename: string | null): void;
 	addWorktreePaths(workspaceId: string, paths: Iterable<string>): void;
 	getOrCreateBatch(workspaceId: string): unknown;
+	markWorktreeBroad(workspaceId: string): void;
 	scheduleFlush(workspaceId: string): void;
 	getOrCreateIgnoredDirsState(workspaceId: string): {
 		dirs: ReadonlySet<string>;
@@ -127,6 +128,19 @@ describe("filterGitIgnoredEvents", () => {
 			"/repo/src/app.ts",
 			"/repo/distant/file.ts",
 		]);
+		expect(sawGitignoreChange).toBe(false);
+	});
+
+	test("a .gitignore inside an ignored dir is dropped and does not flag", () => {
+		const { events, sawGitignoreChange } = filterGitIgnoredEvents(
+			[
+				{ kind: "create", absolutePath: "/repo/dist/pkg/.gitignore" },
+				{ kind: "update", absolutePath: "/repo/dist/pkg/index.js" },
+			],
+			worktree,
+			ignored,
+		);
+		expect(events).toEqual([]);
 		expect(sawGitignoreChange).toBe(false);
 	});
 
@@ -300,6 +314,19 @@ describe("GitWatcher adaptive debounce", () => {
 		internals(watcher).addWorktreePaths("workspace-1", paths);
 		// Once broad, additional paths in the same window stay broad rather than
 		// rebuilding an unbounded Set.
+		internals(watcher).addWorktreePaths("workspace-1", ["src/later.ts"]);
+		jest.advanceTimersByTime(DEBOUNCE_MS);
+
+		expect(events).toEqual([{ workspaceId: "workspace-1" }]);
+	});
+
+	test("an ignore-rule change turns a scoped batch into a broad one", () => {
+		const watcher = createWatcher();
+		const events: GitChangedEvent[] = [];
+		watcher.onChanged((event) => events.push(event));
+
+		internals(watcher).addWorktreePaths("workspace-1", ["src/app.ts"]);
+		internals(watcher).markWorktreeBroad("workspace-1");
 		internals(watcher).addWorktreePaths("workspace-1", ["src/later.ts"]);
 		jest.advanceTimersByTime(DEBOUNCE_MS);
 

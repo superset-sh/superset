@@ -171,6 +171,45 @@ describe("getGitStatusSnapshot (integration)", () => {
 		expect(actual).toEqual(expected);
 	});
 
+	test("counts untracked lines below the stat limit", async () => {
+		await mkdir(join(repo, "newdir"), { recursive: true });
+		await writeFile(join(repo, "newdir", "a.txt"), "one\ntwo\n");
+
+		const { snapshot } = await getGitStatusSnapshot({
+			git,
+			worktreePath: repo,
+		});
+
+		const counted = snapshot.unstaged.find(
+			(file) => file.path === "newdir/a.txt",
+		);
+		expect(counted?.additions).toBe(2);
+		expect(counted?.deletions).toBe(0);
+	});
+
+	test("reports null counts above the stat limit but keeps every path", async () => {
+		const count = 5_001;
+		await mkdir(join(repo, "bulk"), { recursive: true });
+		await Promise.all(
+			Array.from({ length: count }, (_, index) =>
+				writeFile(join(repo, "bulk", `f${index}.txt`), "line\n"),
+			),
+		);
+
+		const { snapshot } = await getGitStatusSnapshot({
+			git,
+			worktreePath: repo,
+		});
+
+		const untracked = snapshot.unstaged.filter(
+			(file) => file.status === "untracked",
+		);
+
+		expect(untracked).toHaveLength(count);
+		expect(untracked.every((file) => file.additions === null)).toBe(true);
+		expect(untracked.every((file) => file.deletions === null)).toBe(true);
+	});
+
 	test("keeps tracked-file statuses alongside untracked expansion", async () => {
 		await writeFile(join(repo, "README.md"), "hello\nworld\n");
 		await mkdir(join(repo, "newdir"), { recursive: true });

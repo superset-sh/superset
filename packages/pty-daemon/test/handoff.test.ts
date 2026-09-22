@@ -108,6 +108,37 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 		);
 	}
 
+	const modeId = "handoff-modes";
+	c1.send({
+		type: "open",
+		id: modeId,
+		meta: {
+			shell: "/bin/sh",
+			argv: [
+				"-c",
+				"stty -echo; printf '\\033[?2004h\\033[>3u\\033[>7u'; head -c 131072 /dev/zero | tr '\\000' x; printf 'checkpoint-ready\\033[?200'; read ignored; printf '4l\\033[<ucompleted-mode-control'; sleep 30",
+			],
+			cols: 80,
+			rows: 24,
+		},
+	});
+	const modeOpened = await c1.waitFor(
+		(m) => m.type === "open-ok" && m.id === modeId,
+	);
+	if (modeOpened.type !== "open-ok")
+		throw new Error("mode session did not open");
+	originalPids.set(modeId, modeOpened.pid);
+	c1.send({ type: "subscribe", id: modeId, replay: true });
+	await c1.waitFor(
+		(m) =>
+			m.type === "output" &&
+			m.id === modeId &&
+			accumulatedOutputAsString(c1, modeId).endsWith(
+				"checkpoint-ready\x1b[?200",
+			),
+		5000,
+	);
+
 	// Trigger handoff.
 	c1.send({ type: "prepare-upgrade" });
 	const reply = await c1.waitFor((m) => m.type === "upgrade-prepared", 10_000);
@@ -161,6 +192,55 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 				`${id} shell pid should match across handoff`,
 			);
 		}
+
+		adoptedClient.send({
+			type: "subscribe",
+			id: modeId,
+			replay: true,
+			modeSnapshot: true,
+		});
+		const checkpoint = await adoptedClient.waitFor(
+			(m) => m.type === "replay-complete" && m.id === modeId,
+		);
+		assert.equal(checkpoint.type, "replay-complete");
+		if (checkpoint.type !== "replay-complete")
+			throw new Error("missing checkpoint");
+		assert.equal(checkpoint.modes.decModes.includes(2004), true);
+		assert.equal(checkpoint.modes.keyboard.flags, 7);
+		assert.equal(checkpoint.modes.parser.sequence, "?200");
+		assert.equal(
+			accumulatedOutputAsString(adoptedClient, modeId).includes("\x1b[?2004h"),
+			false,
+		);
+		adoptedClient.send({ type: "input", id: modeId }, Buffer.from("\n"));
+		await adoptedClient.waitFor(
+			(m) =>
+				m.type === "output" &&
+				m.id === modeId &&
+				accumulatedOutputAsString(adoptedClient, modeId).includes(
+					"completed-mode-control",
+				),
+			5000,
+		);
+		const completedCheckpoint = adoptedClient.waitForNext(
+			(m) => m.type === "replay-complete" && m.id === modeId,
+		);
+		adoptedClient.send({
+			type: "subscribe",
+			id: modeId,
+			replay: false,
+			modeSnapshot: true,
+		});
+		const completed = await completedCheckpoint;
+		if (completed.type !== "replay-complete")
+			throw new Error("missing checkpoint");
+		assert.equal(completed.modes.decModes.includes(2004), false);
+		assert.equal(completed.modes.keyboard.flags, 3);
+		adoptedClient.send({ type: "close", id: modeId, signal: "SIGKILL" });
+		await adoptedClient.waitFor(
+			(m) => m.type === "closed" && m.id === modeId,
+			5000,
+		);
 
 		// Adopted sessions must still accept input after the binary swap.
 		// Regression coverage for sessions that survived handoff but stopped

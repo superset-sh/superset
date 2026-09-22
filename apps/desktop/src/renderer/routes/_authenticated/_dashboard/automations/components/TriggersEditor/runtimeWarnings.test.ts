@@ -63,8 +63,8 @@ describe("a row nothing is wrong with", () => {
 		).toEqual([]);
 	});
 
-	test("a schedule needs no plan at all", () => {
-		expect(collectRuntimeWarnings([scheduleRow] as never, {}, "free")).toEqual(
+	test("a schedule on a paid plan", () => {
+		expect(collectRuntimeWarnings([scheduleRow] as never, {}, "pro")).toEqual(
 			[],
 		);
 	});
@@ -77,6 +77,13 @@ describe("a row the plan will not run", () => {
 		expect(
 			collectRuntimeWarnings([slackRow(["C1"])] as never, CHANNELS, "free"),
 		).toEqual(["Slack triggers require the Pro plan."]);
+	});
+
+	// Automations are Pro as a whole, so a downgraded org's schedules stop too.
+	test("names Pro for a schedule on a free plan", () => {
+		expect(collectRuntimeWarnings([scheduleRow] as never, {}, "free")).toEqual([
+			"Scheduled triggers require the Pro plan.",
+		]);
 	});
 
 	test("names Enterprise for a Teams trigger", () => {

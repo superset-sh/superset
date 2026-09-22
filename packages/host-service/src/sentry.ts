@@ -15,7 +15,6 @@ export function initSentry(options: { organizationId?: string }): void {
 		dsn,
 		release: process.env.HOST_SERVICE_SENTRY_RELEASE,
 		environment: process.env.HOST_SERVICE_SENTRY_ENVIRONMENT,
-		tracesSampleRate: 0,
 		// A host that fails once usually fails in a loop: git.getStatus alone
 		// sent 135k copies of one `spawn EBADF` from seven machines last month.
 		beforeSend: throttleRepeats,

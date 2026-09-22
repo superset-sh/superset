@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useMemo } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
-import { useHostsPresence } from "renderer/hooks/useHostsPresence";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
@@ -17,9 +17,11 @@ import type { CandidateRow } from "./components/AddMemberDropdown";
 import { AddMemberDropdown } from "./components/AddMemberDropdown";
 import { DeleteHostSection } from "./components/DeleteHostSection";
 import { HostHeader } from "./components/HostHeader";
+import { HostServiceSection } from "./components/HostServiceSection";
 import type { MemberRowData } from "./components/MembersTable";
 import { MembersTable } from "./components/MembersTable";
 import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
+import { useHostLastSeenAt } from "./hooks/useHostLastSeenAt";
 
 function notifyOnPersist(
 	tx: PersistableTransaction | null,
@@ -44,19 +46,20 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 	const { machineId } = useLocalHostService();
 	const hostUrl = useHostUrl(hostId);
 
-	const { data: hosts = [], isPending: hostsPending } =
-		cloudTrpc.v2Host.list.useQuery(undefined);
+	const { hosts, settled: hostsSettled } = useKnownHosts();
+	const hostsPending = !hostsSettled;
 	const host = useMemo(
 		() => hosts.find((row) => row.machineId === hostId),
 		[hosts, hostId],
 	);
-	const presence = useHostsPresence(hosts);
-	const hostIsOnline = host
-		? (presence?.get(host.machineId) ?? host.isOnline)
-		: false;
+	const hostIsOnline = host?.isOnline ?? false;
+	const lastSeenAt = useHostLastSeenAt(
+		host,
+		host !== undefined && !hostIsOnline,
+	);
 
 	const { data: allHostMembers = [] } =
-		cloudTrpc.v2Host.listMembers.useQuery(undefined);
+		cloudTrpc.host.listMembers.useQuery(undefined);
 	const hostUserRows = useMemo(
 		() => allHostMembers.filter((row) => row.hostId === hostId),
 		[allHostMembers, hostId],
@@ -169,6 +172,20 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 			/>
 
 			<div className="space-y-10">
+				<HostServiceSection
+					key={hostId}
+					hostUrl={hostUrl}
+					isLocalHost={hostId === machineId}
+					isOnline={hostIsOnline}
+					canUpdate={isOwner}
+					registered={{
+						version: host.version,
+						platform: host.platform,
+						installSource: host.installSource,
+					}}
+					lastSeenAt={lastSeenAt}
+				/>
+
 				<WorktreeLocationSection
 					hostUrl={hostUrl}
 					hostName={host.name}

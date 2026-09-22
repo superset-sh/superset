@@ -8,15 +8,15 @@ import {
 	runFileLinkAction,
 	runFolderLinkAction,
 	runUrlLinkAction,
-} from "../../components/TerminalPane/utils/runTerminalLinkAction";
+} from "../runTerminalLinkAction";
 
 // Destinations, not sentences: these read under an "Open in" submenu trigger.
 // They name the same three targets as Settings → Links, so the menu and the
 // modifier-click bindings describe one set of destinations.
 const URL_LABELS = [
-	msg({ message: "In-App Browser" }),
-	msg({ message: "New Browser Tab" }),
-	msg({ message: "Default Browser" }),
+	msg({ message: "Split Pane" }),
+	msg({ message: "New Tab" }),
+	msg({ message: "External Browser" }),
 ] as const;
 
 const FILE_LABELS = [

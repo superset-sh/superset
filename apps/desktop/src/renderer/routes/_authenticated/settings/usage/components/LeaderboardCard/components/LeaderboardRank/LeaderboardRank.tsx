@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { COMPANY } from "@superset/shared/constants";
 import { formatTokens } from "@superset/shared/format-tokens";
 import type { RouterOutputs } from "@superset/trpc";
@@ -26,9 +26,11 @@ export function LeaderboardRank({
 	onToggleCollapsed,
 	onManage,
 }: LeaderboardRankProps) {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const { handle, rank, total, tokens } = membership;
-	const ranked = tokens > 0;
+	const ranked = BigInt(tokens) > 0n;
 	const profileUrl = `${COMPANY.MARKETING_URL}/user/${handle}`;
 	// The tier only exists on the standings row, which can lag a fresh
 	// publish; no badge beats a stale one.

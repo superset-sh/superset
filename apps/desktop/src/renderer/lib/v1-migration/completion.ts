@@ -81,12 +81,17 @@ export function isV1MigrationCompleteAtBoot(
  */
 export const V1_MIGRATION_COMPLETED_EVENT = "v1-migration-completed";
 
-export function markV1MigrationComplete(organizationId: string): void {
+export function markV1MigrationComplete(
+	organizationId: string,
+	{ armFlipHandoff = true }: { armFlipHandoff?: boolean } = {},
+): void {
 	const first = !isV1MigrationComplete(organizationId);
 	localStorage.setItem(KEY_PREFIX + organizationId, new Date().toISOString());
 	if (first) {
-		localStorage.setItem(PENDING_CONTINUITY_PREFIX + organizationId, "1");
-		localStorage.setItem(WELCOME_PREFIX + organizationId, "1");
+		if (armFlipHandoff) {
+			localStorage.setItem(PENDING_CONTINUITY_PREFIX + organizationId, "1");
+			localStorage.setItem(WELCOME_PREFIX + organizationId, "1");
+		}
 		try {
 			window.dispatchEvent(
 				new CustomEvent(V1_MIGRATION_COMPLETED_EVENT, {

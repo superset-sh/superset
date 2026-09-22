@@ -1,7 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { MessageSquarePlus } from "lucide-react";
+import { SquareMousePointer } from "lucide-react";
 import { Toggle } from "../../../../../ui/toggle";
 
 interface CommentModeButtonProps {
@@ -32,7 +32,7 @@ export function CommentModeButton({
 				title={label}
 				className="h-6 min-w-6 gap-1 px-1 text-muted-foreground/60 hover:text-muted-foreground data-[state=on]:text-foreground"
 			>
-				<MessageSquarePlus className="size-3.5" />
+				<SquareMousePointer className="size-3.5" />
 				{openCount > 0 ? (
 					<span className="font-medium text-[11px] tabular-nums">
 						{openCount}
@@ -51,7 +51,7 @@ export function CommentModeButton({
 			title={label}
 			className="h-7 min-w-7 gap-1.5 px-2"
 		>
-			<MessageSquarePlus className="size-3.5" />
+			<SquareMousePointer className="size-3.5" />
 			{openCount > 0 ? (
 				<span className="font-medium text-xs tabular-nums">{openCount}</span>
 			) : null}

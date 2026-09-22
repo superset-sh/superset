@@ -1,3 +1,4 @@
+import { pageCommentIntentEnum } from "@superset/db/schema";
 import { z } from "zod";
 
 export const OFFERED_ANCHOR_KINDS = ["element", "page"] as const;
@@ -31,6 +32,7 @@ export const createPageCommentThreadSchema = z
 		anchor: elementAnchorSchema.nullable().default(null),
 		anchorText: z.string().max(500).nullable().default(null),
 		body: z.string().min(1).max(10_000),
+		intent: pageCommentIntentEnum.nullish(),
 	})
 	.refine(
 		(input) => (input.anchorKind === "page") === (input.anchor === null),

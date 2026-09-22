@@ -16,13 +16,26 @@ const execFileAsync = promisify(execFile);
 const SIMPLE_GIT_OPTIONS =
 	USER_GIT_ENV_SIMPLE_GIT_OPTIONS satisfies Partial<SimpleGitOptions>;
 
+// The git task worker sets this for the task it is running, so every git
+// process built on that thread meanwhile dies with the task when the runner
+// cancels it. The main thread never sets it.
+let taskAbortSignal: AbortSignal | undefined;
+
+export function setGitTaskAbortSignal(signal: AbortSignal | undefined): void {
+	taskAbortSignal = signal;
+}
+
 function createUserSimpleGit(
 	repoPath?: string,
 	overrides?: Partial<SimpleGitOptions>,
 ): SimpleGit {
-	const options = overrides
-		? { ...SIMPLE_GIT_OPTIONS, ...overrides }
-		: SIMPLE_GIT_OPTIONS;
+	const options: Partial<SimpleGitOptions> = {
+		...SIMPLE_GIT_OPTIONS,
+		...overrides,
+	};
+	if (taskAbortSignal && !options.abort) {
+		options.abort = taskAbortSignal;
+	}
 	try {
 		if (repoPath) {
 			return simpleGit(repoPath, options);
@@ -56,5 +69,6 @@ export async function execGitWithShellPath(
 		...options,
 		encoding: "utf8",
 		env,
+		signal: options?.signal ?? taskAbortSignal,
 	});
 }

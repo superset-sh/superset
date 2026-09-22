@@ -2,7 +2,7 @@ import type { WorkspaceStore } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useRef } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { PaneViewerData } from "../../types";
+import type { ConsumeSearch, PaneViewerData } from "../../types";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 
 interface UseConsumeAutomationRunLinkArgs {
@@ -10,19 +10,23 @@ interface UseConsumeAutomationRunLinkArgs {
 	workspaceId: string;
 	terminalId: string | undefined;
 	focusRequestId: string | undefined;
+	consumeSearch: ConsumeSearch;
 }
 
 /**
  * When the workspace is opened via a deep link from an automation run
  * (`?terminalId=...`), ensure the corresponding pane is present and focused.
  * The underlying session already exists on the host-service from the
- * dispatcher — we just re-adopt it in the pane store.
+ * dispatcher — we just re-adopt it in the pane store. A run whose agent was
+ * since relaunched into a fresh terminal (an account-switch restart) is
+ * followed to that terminal, so the link still lands on the conversation.
  */
 export function useConsumeAutomationRunLink({
 	store,
 	workspaceId,
 	terminalId,
 	focusRequestId,
+	consumeSearch,
 }: UseConsumeAutomationRunLinkArgs): void {
 	const consumedRef = useRef<Set<string>>(new Set());
 	const terminalSessionsQuery = workspaceTrpc.terminal.list.useQuery(
@@ -32,9 +36,34 @@ export function useConsumeAutomationRunLink({
 			refetchOnWindowFocus: false,
 		},
 	);
+	const linkedTerminalIsLive =
+		terminalId != null &&
+		terminalSessionsQuery.isSuccess &&
+		terminalSessionBelongsToWorkspace({
+			sessions: terminalSessionsQuery.data.sessions,
+			terminalId,
+			workspaceId,
+		});
+	// Only a dead link is worth a successor lookup — the live case is the
+	// common one and needs nothing more than the session list.
+	const successorQuery = workspaceTrpc.terminalAgents.resumedSuccessor.useQuery(
+		{ workspaceId, terminalId: terminalId ?? "" },
+		{
+			enabled:
+				terminalId != null &&
+				terminalSessionsQuery.isSuccess &&
+				!linkedTerminalIsLive,
+			refetchOnWindowFocus: false,
+		},
+	);
+	// undefined = still resolving; null = nothing to open.
+	const targetTerminalId = linkedTerminalIsLive
+		? terminalId
+		: successorQuery.isSuccess
+			? (successorQuery.data?.terminalId ?? null)
+			: undefined;
 	useEffect(() => {
-		if (!terminalId) return;
-		if (!terminalSessionsQuery.isSuccess) return;
+		if (!terminalId || targetTerminalId === undefined) return;
 		const key = getAutomationRunLinkConsumeKey({
 			type: "terminal",
 			id: terminalId,
@@ -42,27 +71,22 @@ export function useConsumeAutomationRunLink({
 		});
 		if (consumedRef.current.has(key)) return;
 		consumedRef.current.add(key);
-		if (
-			!terminalSessionBelongsToWorkspace({
-				sessions: terminalSessionsQuery.data.sessions,
-				terminalId,
-				workspaceId,
-			})
-		) {
+		consumeSearch(["terminalId"]);
+		if (targetTerminalId === null) {
 			console.warn(
-				"[automation-run-link] Ignoring terminal link for another workspace",
+				"[automation-run-link] Ignoring terminal link: not in this workspace and not resumed elsewhere",
 				{ terminalId, workspaceId },
 			);
 			return;
 		}
-		focusOrAddTerminalPane(store, terminalId);
+		focusOrAddTerminalPane(store, targetTerminalId);
 	}, [
 		store,
 		terminalId,
 		focusRequestId,
-		terminalSessionsQuery.isSuccess,
-		terminalSessionsQuery.data,
+		targetTerminalId,
 		workspaceId,
+		consumeSearch,
 	]);
 }
 

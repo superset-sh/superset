@@ -14,6 +14,7 @@ import {
 	isProfileLockHeld,
 	isStrandedDevAppProfile,
 	resolveAppDataDir,
+	workspaceDevAppProfileDirName,
 } from "./dev-app-profile";
 
 describe("devAppProfileDirName", () => {
@@ -234,5 +235,50 @@ describe("isProfileLockHeld", () => {
 		} finally {
 			p.cleanup();
 		}
+	});
+});
+
+describe("workspaceDevAppProfileDirName", () => {
+	test("uses the ID independently of the launch path", () => {
+		const profile = workspaceDevAppProfileDirName({
+			workspaceId: "ws-1",
+			appPath: "/old",
+		});
+		expect(profile).toBe(
+			workspaceDevAppProfileDirName({ workspaceId: "ws-1", appPath: "/new" }),
+		);
+		expect(profile).not.toBe(
+			workspaceDevAppProfileDirName({ workspaceId: "ws-2", appPath: "/old" }),
+		);
+		expect(isDevAppProfileDirName(profile)).toBe(true);
+	});
+
+	test("isolates standalone checkouts and keeps ID and path namespaces separate", () => {
+		const profile = workspaceDevAppProfileDirName({ appPath: "/checkout/a" });
+		expect(profile).toBe(
+			workspaceDevAppProfileDirName({
+				workspaceId: " ",
+				appPath: "/checkout/a",
+			}),
+		);
+		expect(profile).not.toBe(
+			workspaceDevAppProfileDirName({ appPath: "/checkout/b" }),
+		);
+		expect(profile).not.toBe(
+			workspaceDevAppProfileDirName({
+				workspaceId: "/checkout/a",
+				appPath: "/checkout/a",
+			}),
+		);
+	});
+
+	test("untrusted IDs cannot escape or collide with legacy names", () => {
+		const profile = workspaceDevAppProfileDirName({
+			workspaceId: "../../Superset",
+			appPath: "/",
+		});
+		expect(isDevAppProfileDirName(profile)).toBe(true);
+		expect(profile.includes("/")).toBe(false);
+		expect(profile.startsWith("Superset (")).toBe(false);
 	});
 });

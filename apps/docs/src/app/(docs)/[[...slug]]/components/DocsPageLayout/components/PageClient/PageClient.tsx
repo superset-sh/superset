@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { cva } from "class-variance-authority";
 import type { BreadcrumbOptions } from "fumadocs-core/breadcrumb";
 import { getBreadcrumbItemsFromPath } from "fumadocs-core/breadcrumb";
@@ -98,12 +99,14 @@ export function PageArticle(props: HTMLAttributes<HTMLElement>) {
 }
 
 export function LastUpdate(props: { date: Date }) {
+	const { formatDate } = useFormat();
+
 	const [date, setDate] = useState("");
 
 	useEffect(() => {
 		// to the timezone of client
-		setDate(props.date.toLocaleDateString());
-	}, [props.date]);
+		setDate(formatDate(props.date, undefined));
+	}, [props.date, formatDate]);
 
 	return (
 		<p className="text-sm text-fd-muted-foreground">

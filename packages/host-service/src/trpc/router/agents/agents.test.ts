@@ -15,6 +15,7 @@ import {
 	bindResumedSession,
 	buildAgentCommandString,
 	buildTerminalAgentLaunch,
+	continuationTarget,
 	validateAgentEffortSelection,
 	validateAgentForkSelection,
 	validateAgentModelSelection,
@@ -904,5 +905,134 @@ describe("bindResumedSession", () => {
 		expect(store.list()[0]?.agentSessionId).toBe(
 			"01a058a7-3990-7921-bb87-66c7370b999e",
 		);
+	});
+});
+
+describe("continuationTarget", () => {
+	const workspaceId = "11111111-1111-1111-1111-111111111111";
+	const terminalId = "22222222-2222-2222-2222-222222222222";
+
+	function seedClaude(db: HostDb) {
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000a",
+				presetId: "claude",
+				label: "Claude",
+				command: "claude",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				resumeArgsJson: "[]",
+				forkArgsJson: "[]",
+				envJson: "{}",
+				displayOrder: 0,
+			})
+			.run();
+	}
+
+	// Seeded too, so a codex binding resolves to a REAL config that differs
+	// from claude. Without it `bound` is null and the identity comparison is
+	// never the thing doing the rejecting.
+	function seedCodex(db: HostDb) {
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000b",
+				presetId: "codex",
+				label: "Codex",
+				command: "codex",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				resumeArgsJson: "[]",
+				forkArgsJson: "[]",
+				envJson: "{}",
+				displayOrder: 1,
+			})
+			.run();
+	}
+
+	function boundStore(agentId: "claude" | "codex" = "claude") {
+		const store = new TerminalAgentStore();
+		store.recordEvent({
+			terminalId,
+			workspaceId,
+			eventType: "Attached",
+			agentId,
+			occurredAt: Date.now(),
+		});
+		return store;
+	}
+
+	const run = {
+		workspaceId,
+		agent: "claude",
+		prompt: "go",
+		continueTerminalId: terminalId,
+	};
+
+	it("accepts the live session the caller named", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		expect(continuationTarget(db, boundStore(), run)).toEqual({
+			terminalId,
+			label: "Claude",
+		});
+	});
+
+	it("declines when the caller named no terminal", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		expect(
+			continuationTarget(db, boundStore(), {
+				...run,
+				continueTerminalId: undefined,
+			}),
+		).toBeNull();
+	});
+
+	it("declines an empty prompt, which only a launch can honour", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		expect(
+			continuationTarget(db, boundStore(), { ...run, prompt: "   " }),
+		).toBeNull();
+	});
+
+	// A running process cannot adopt a different model/effort/mode, so these
+	// have to launch rather than be silently dropped.
+	for (const option of ["model", "effort", "mode"] as const) {
+		it(`declines when ${option} is set, since it only applies at launch`, () => {
+			const db = createTestDb();
+			seedClaude(db);
+			expect(
+				continuationTarget(db, boundStore(), { ...run, [option]: "x" }),
+			).toBeNull();
+		});
+	}
+
+	it("declines a terminal with no live agent binding", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		expect(continuationTarget(db, new TerminalAgentStore(), run)).toBeNull();
+	});
+
+	// The guard that stops a prompt landing in whatever agent happens to hold
+	// the terminal now.
+	it("declines when a different agent is bound to that terminal", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		seedCodex(db);
+		expect(continuationTarget(db, boundStore("codex"), run)).toBeNull();
+	});
+
+	it("declines a binding that belongs to another workspace", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		expect(
+			continuationTarget(db, boundStore(), {
+				...run,
+				workspaceId: "33333333-3333-3333-3333-333333333333",
+			}),
+		).toBeNull();
 	});
 });

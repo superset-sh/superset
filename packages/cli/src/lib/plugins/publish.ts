@@ -1,12 +1,12 @@
 import { execFile } from "node:child_process";
-import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import { CLIError } from "@superset/cli-framework";
-import { buildPlugin, isBuildCurrent, SERVER_ENTRY } from "./build";
+import { CONNECTOR_SLUGS } from "@superset/shared/connectors";
+import { isSupersetHosted } from "@superset/shared/plugins";
+import { pluginManifestSchema } from "@superset/shared/plugins/manifest-schema";
 import {
-	CLIENT_ENV_PATTERN,
 	type MarketplaceContext,
 	type ResolvedPlugin,
 	releaseTag,
@@ -82,7 +82,6 @@ export interface PublishResult {
 	version: string;
 	tag: string;
 	files: number;
-	rebuilt: boolean;
 }
 
 export async function publishPlugin(
@@ -107,19 +106,6 @@ export async function publishPlugin(
 		);
 	}
 
-	const build = await buildPlugin(plugin, { force: options.force });
-	if (plugin.hasServerSource && !isBuildCurrent(plugin)) {
-		throw new CLIError(
-			`Build for "${name}" is stale after rebuilding; refusing to publish.`,
-		);
-	}
-	if (
-		plugin.hasServerSource &&
-		!fs.existsSync(path.join(plugin.dir, SERVER_ENTRY))
-	) {
-		throw new CLIError(`${name}@${version} is missing ${SERVER_ENTRY}.`);
-	}
-
 	entry.version = version;
 	writeJson(ctx.file, ctx.marketplace);
 	writeGeneratedManifests(ctx);
@@ -129,110 +115,30 @@ export async function publishPlugin(
 		version,
 		tag,
 		files: treeFiles(path.join(plugin.dir, "skills")).length + 1,
-		rebuilt: build.built,
 	};
 }
 
-function checkAuth(plugin: ResolvedPlugin): CheckIssue[] {
+function checkManifest(plugin: ResolvedPlugin): CheckIssue[] {
 	const name = plugin.manifest.name;
-	const methods = supersetExtension(plugin.manifest)?.auth;
-	if (!methods) return [];
-
-	const issues: CheckIssue[] = [];
-	if (!Array.isArray(methods)) {
-		issues.push({ name, problem: "auth must be a list of methods" });
-		return issues;
+	const parsed = pluginManifestSchema.safeParse(plugin.manifest);
+	if (!parsed.success) {
+		return parsed.error.issues.map((issue) => ({
+			name,
+			problem: `${issue.path.join(".") || "manifest"}: ${issue.message}`,
+		}));
 	}
 
-	const seen = new Set<string>();
-	for (const auth of methods) {
-		if (seen.has(auth.type)) {
-			issues.push({ name, problem: `auth declares ${auth.type} twice` });
-		}
-		seen.add(auth.type);
-
-		const inputs = new Set((auth.inputs ?? []).map((input) => input.name));
-
-		if (auth.type === "oauth2") {
-			if (!auth.authorization_url || !auth.token_url) {
-				issues.push({
-					name,
-					problem: "oauth2 auth needs both authorization_url and token_url",
-				});
-			}
-
-			const secrets = (auth.inputs ?? []).filter((input) => input.secret);
-			if (secrets.length) {
-				issues.push({
-					name,
-					problem: `oauth2 inputs cannot be secret (${secrets.map((i) => i.name).join(", ")}); they travel in the authorize URL`,
-				});
-			}
-
-			const declared = auth.requires_env ?? [];
-			const foreign = declared.filter(
-				(variable) => !CLIENT_ENV_PATTERN.test(variable),
-			);
-			if (foreign.length) {
-				issues.push({
-					name,
-					problem: `requires_env may only name PLUGIN_<SERVICE>_CLIENT_ID and PLUGIN_<SERVICE>_CLIENT_SECRET; found ${foreign.join(", ")}`,
-				});
-			}
-			if (!declared.some((variable) => variable.endsWith("_CLIENT_ID"))) {
-				issues.push({
-					name,
-					problem:
-						"oauth2 auth must name its client id in requires_env; it is what the host reads to start the flow",
-				});
-			}
-			if (!declared.some((variable) => variable.endsWith("_CLIENT_SECRET"))) {
-				issues.push({
-					name,
-					problem:
-						"oauth2 auth must name its client secret in requires_env; it is what the host reads to exchange the code",
-				});
-			}
-		} else if (auth.type === "api_key") {
-			const credential = auth.credential_input ?? "api_key";
-			if (!inputs.has(credential)) {
-				issues.push({
-					name,
-					problem: `api_key auth names credential_input "${credential}" but no input declares it`,
-				});
-			}
-		} else {
-			issues.push({ name, problem: `unknown auth type "${auth.type}"` });
-		}
-
-		for (const template of templatedStrings(auth)) {
-			for (const reference of template.matchAll(/\$\{inputs\.([\w.-]+)\}/g)) {
-				const key = reference[1];
-				if (key && !inputs.has(key)) {
-					issues.push({
-						name,
-						problem: `references \${inputs.${key}} but no input declares it`,
-					});
-				}
-			}
-		}
-
-		if (auth.identity && !auth.identity.url) {
-			issues.push({ name, problem: "identity needs a url" });
-		}
-		if (auth.identity && !auth.identity.id) {
-			issues.push({ name, problem: "identity needs an id path" });
-		}
-	}
-
-	return issues;
-}
-
-function templatedStrings(value: unknown): string[] {
-	if (typeof value === "string") return [value];
-	if (Array.isArray(value)) return value.flatMap(templatedStrings);
-	if (value && typeof value === "object") {
-		return Object.values(value).flatMap(templatedStrings);
+	const slug = supersetExtension(plugin.manifest)?.connector?.slug;
+	if (
+		slug &&
+		!CONNECTOR_SLUGS.includes(slug as (typeof CONNECTOR_SLUGS)[number])
+	) {
+		return [
+			{
+				name,
+				problem: `names connector "${slug}", which is not in the registry (${CONNECTOR_SLUGS.join(", ")})`,
+			},
+		];
 	}
 	return [];
 }
@@ -277,13 +183,6 @@ export async function checkPlugin(
 		});
 	}
 
-	if (plugin.hasServerSource && !isBuildCurrent(plugin)) {
-		issues.push({
-			name,
-			problem: `src/ has changed since ${SERVER_ENTRY} was built; run \`superset plugins build ${name}\``,
-		});
-	}
-
 	// A tag is immutable, so a release that exists and no longer matches the
 	// tree means the change was never published, not that the tag went stale.
 	const tag = releaseTag(name, version);
@@ -305,22 +204,11 @@ export async function checkPlugin(
 		}
 	}
 
-	if (!plugin.hasServerSource && !plugin.hasRemoteServer && !plugin.hasSkills) {
-		issues.push({
-			name,
-			problem: "plugin has no skills, mcp server, or server source",
-		});
+	if (!plugin.hasRemoteServer && !plugin.hasSkills && !isSupersetHosted(name)) {
+		issues.push({ name, problem: "plugin has no skills and no mcp server" });
 	}
 
-	if (plugin.hasServerSource && plugin.hasRemoteServer) {
-		issues.push({
-			name,
-			problem:
-				"plugin declares both an mcp url and src/index.ts; tools come from exactly one server",
-		});
-	}
-
-	issues.push(...checkAuth(plugin));
+	issues.push(...checkManifest(plugin));
 	return issues;
 }
 
@@ -348,33 +236,6 @@ function publishedSkills(
 		});
 	}
 	return skills;
-}
-
-/**
- * Where the host downloads a plugin's bundled server from, and what it must
- * hash to. `ref` is the release tag rather than the marketplace's branch, so
- * the bytes are pinned to the version that was published even after the branch
- * moves on. Stamped into the generated bundle, never into the hand-authored
- * plugin.json.
- */
-function serverStamp(
-	pluginDir: string,
-	source: string,
-	name: string,
-	version: string,
-): { path: string; integrity: string; ref: string } | null {
-	const bundle = path.join(pluginDir, SERVER_ENTRY);
-	if (!fs.existsSync(bundle)) return null;
-
-	const digest = createHash("sha256")
-		.update(fs.readFileSync(bundle))
-		.digest("base64");
-	const dir = source.replace(/^\.\//, "").replace(/\/$/, "");
-	return {
-		path: `${dir}/${SERVER_ENTRY}`,
-		integrity: `sha256-${digest}`,
-		ref: releaseTag(name, version),
-	};
 }
 
 const GENERATED_HEADER = `// Generated by \`superset plugins publish\`. Do not edit.
@@ -407,12 +268,6 @@ export function renderGeneratedManifests(
 		if (!fs.existsSync(manifestPath)) continue;
 		const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 		manifest.skills = publishedSkills(pluginDir);
-		const stamp = serverStamp(pluginDir, entry.source, entry.name, version);
-		if (stamp) {
-			manifest.extensions ??= {};
-			manifest.extensions.superset ??= {};
-			manifest.extensions.superset.server = stamp;
-		}
 		entries.push(
 			`\t${JSON.stringify(entry.name)}: ${JSON.stringify(manifest, null, "\t")
 				.split("\n")

@@ -47,6 +47,7 @@ const v2NotificationSourceSchema = z.discriminatedUnion("type", [
 
 const showNativeInputSchema = z.object({
 	title: z.string().min(1),
+	subtitle: z.string().optional(),
 	body: z.string(),
 	silent: z.boolean().default(true),
 	clickTarget: z
@@ -107,7 +108,11 @@ export const createNotificationsRouter = (
 
 				const notification = new Notification({
 					title: input.title,
-					body: input.body,
+					subtitle: process.platform === "darwin" ? input.subtitle : undefined,
+					body:
+						process.platform !== "darwin" && input.subtitle
+							? `${input.subtitle}\n${input.body}`
+							: input.body,
 					silent: input.silent,
 				});
 				const key = getNativeNotificationKey(input);

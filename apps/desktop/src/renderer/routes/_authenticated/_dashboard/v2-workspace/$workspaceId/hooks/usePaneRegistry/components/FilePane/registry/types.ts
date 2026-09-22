@@ -1,7 +1,9 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { i18n } from "@superset/i18n";
 import type { ComponentType } from "react";
+import type { LinkAction } from "renderer/lib/clickPolicy";
 import type { SharedFileDocument } from "../../../../../state/fileDocumentStore";
+import type { FilePosition } from "../../../../../types";
 
 export type FileMeta = {
 	size?: number;
@@ -35,6 +37,8 @@ export interface FileView {
 }
 
 export interface ViewProps {
+	pendingPosition?: FilePosition;
+	onPositionRevealed?: () => void;
 	document: SharedFileDocument;
 	filePath: string;
 	workspaceId: string;
@@ -56,6 +60,11 @@ export interface ViewProps {
 	 * gestures that would fight the host's scrolling. Defaults to false.
 	 */
 	embedded?: boolean;
+	/**
+	 * Opens a clicked link in the host's panes. Hosts without a pane store
+	 * omit it and links fall back to the system browser.
+	 */
+	onOpenUrl?: (url: string, action: LinkAction) => void;
 }
 
 export function resolveViewLabel(view: FileView, filePath: string): string {

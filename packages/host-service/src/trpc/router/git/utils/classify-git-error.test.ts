@@ -358,4 +358,241 @@ describe("rethrowEnvironmentalGitError", () => {
 			),
 		).toBeNull();
 	});
+
+	test("nested repository with a hollow .git → PRECONDITION_FAILED / GIT_REPO_DAMAGED", () => {
+		// Shape from the Sentry group, reproduced by replacing a gitlink's
+		// `.git` with an empty directory: git opens every gitlink before it
+		// reports status or a diff and dies at the first one it cannot read.
+		const message =
+			"fatal: 'packages/vendored-tool/.git' not recognized as a git repository\n";
+		const thrown = capture(new Error(message));
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_REPO_DAMAGED");
+		expect(thrown?.message).toBe(message);
+	});
+
+	test("keeps git's not-a-repository wording on the NOT_GIT_REPO branch", () => {
+		// A gitfile or GIT_DIR that points nowhere says "not a git repository:"
+		// with the path after the colon. Different condition, different fix;
+		// the nested-repository branch must not take it.
+		const thrown = capture(
+			new Error("fatal: not a git repository: 'packages/vendored-tool/.git'\n"),
+		);
+		expect(thrown?.code).toBe("BAD_REQUEST");
+		expect(causeKind(thrown)).toBe("NOT_GIT_REPO");
+	});
+
+	test("Xcode installed but its git shim cannot run → PRECONDITION_FAILED / GIT_ENVIRONMENT", () => {
+		// Verbatim from the Sentry group, library identifiers shortened. Xcode
+		// is present, but xcodebuild cannot load its own libraries, so the
+		// /usr/bin/git stub never reaches a git binary and ends every attempt
+		// with the same refusal sentence it prints when no tools exist.
+		const message =
+			"Error loading required libraries. If there is an ongoing installation please wait for it to complete. Otherwise reinstall. (dlopen(@rpath/libxcodebuildLoader.dylib, 0x0001): Symbol not found: _XPCTypeBool\n" +
+			"  Referenced from: <UUID> /Library/Developer/PrivateFrameworks/CoreDevice.framework/Versions/A/CoreDevice\n" +
+			"  Expected in:     <UUID> /Library/Apple/System/Library/PrivateFrameworks/Mercury.framework/Versions/A/Mercury)\n" +
+			"git: error: sh -c '/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -find git 2> /dev/null' failed with exit code 65280: (null) (errno=Invalid argument)\n" +
+			"xcode-select: Failed to locate 'git', requesting installation of command line developer tools.\n";
+		const thrown = capture(new Error(message));
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_ENVIRONMENT");
+		expect(thrown?.message).toBe(message);
+	});
+
+	test("does not claim the shim's refusal for a tool other than git", () => {
+		// A hook that runs some other tool through the same stub prints the
+		// same sentence naming that tool; git itself ran fine and the hook
+		// failure must keep reporting. The sentence without the stub's prefix
+		// at the start of a line is likewise the hook's, not git's.
+		expect(
+			capture(
+				new Error(
+					"xcode-select: Failed to locate 'swift', requesting installation of command line developer tools.\n" +
+						"fatal: cannot run .git/hooks/pre-commit: No such file or directory\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"pre-commit: Failed to locate 'git', requesting installation of command line developer tools.\n" +
+						"fatal: cannot run .git/hooks/pre-commit: No such file or directory\n",
+				),
+			),
+		).toBeNull();
+	});
+
+	test("Xcode license not accepted → PRECONDITION_FAILED / GIT_ENVIRONMENT", () => {
+		const message =
+			"You have not agreed to the Xcode license agreements. Please run 'sudo xcodebuild -license' from within a Terminal window to review and agree to the Xcode and Apple SDKs license.\n";
+		const thrown = capture(new Error(message));
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_ENVIRONMENT");
+		expect(thrown?.message).toBe(message);
+	});
+
+	test("does not claim the license refusal alongside a failure of git's own", () => {
+		expect(
+			capture(
+				new Error(
+					"You have not agreed to the Xcode license agreements. Please run 'sudo xcodebuild -license' from within a Terminal window to review and agree to the Xcode and Apple SDKs license.\n" +
+						"fatal: unable to access 'https://example.invalid/repo.git/': Could not resolve host: example.invalid\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"hint: The '.git/hooks/pre-commit' hook was ignored because it's not set as executable.\n" +
+						"You have not agreed to the Xcode license agreements. Please run 'sudo xcodebuild -license' from within a Terminal window to review and agree to the Xcode and Apple SDKs license.\n",
+				),
+			),
+		).toBeNull();
+	});
+
+	test("genuine failures naming a .git path, a conflict or the network keep reporting", () => {
+		expect(capture(new Error("fatal: bad object HEAD\n"))).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"CONFLICT (content): Merge conflict in src/index.ts\n" +
+						"Automatic merge failed; fix conflicts and then commit the result.\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"fatal: unable to access 'https://example.invalid/repo.git/': Could not resolve host: example.invalid\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"fatal: pathspec 'packages/vendored-tool/.git' did not match any files known to git\n",
+				),
+			),
+		).toBeNull();
+	});
+
+	test("push refused by a pre-push hook → PRECONDITION_FAILED / PUSH_REJECTED", () => {
+		const message =
+			"❯ verify-tools\n" +
+			"  verify-tools – 2 files –  – bun scripts/validators/tools.ts\n" +
+			"tracker: sync failed — history is local-only. Retry once the remote is reachable.\n" +
+			"error: failed to push some refs to 'git@example.invalid:team/repo.git'\n";
+		const thrown = capture(new Error(message));
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("PUSH_REJECTED");
+		expect(thrown?.message).toBe(message);
+	});
+
+	test("push refused as non-fast-forward or by the remote → PUSH_REJECTED", () => {
+		expect(
+			causeKind(
+				capture(
+					new Error(
+						"To example.invalid:team/repo.git\n" +
+							" ! [rejected]        HEAD -> feature (fetch first)\n" +
+							"error: failed to push some refs to 'git@example.invalid:team/repo.git'\n" +
+							"hint: Updates were rejected because the remote contains work that you do not\n" +
+							"hint: have locally.\n",
+					),
+				),
+			),
+		).toBe("PUSH_REJECTED");
+		expect(
+			causeKind(
+				capture(
+					new Error(
+						"remote: error: GH006: Protected branch update failed for refs/heads/main.\n" +
+							"To https://example.invalid/team/repo.git\n" +
+							" ! [remote rejected] HEAD -> main (protected branch hook declined)\n" +
+							"error: failed to push some refs to 'https://example.invalid/team/repo.git'\n",
+					),
+				),
+			),
+		).toBe("PUSH_REJECTED");
+	});
+
+	test("does not claim a push that never reached the remote", () => {
+		// Auth and network failures die before any ref is offered, so git never
+		// prints its refusal sentence; they stay unclassified here.
+		expect(
+			capture(
+				new Error(
+					"git@example.invalid: Permission denied (publickey).\n" +
+						"fatal: Could not read from remote repository.\n\n" +
+						"Please make sure you have the correct access rights\n" +
+						"and the repository exists.\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"ssh: Could not resolve hostname example.invalid: nodename nor servname provided, or not known\n" +
+						"fatal: Could not read from remote repository.\n",
+				),
+			),
+		).toBeNull();
+	});
+
+	test("keeps a push with a refspec of our own making that git cannot resolve as a 500", () => {
+		// The same refusal sentence follows git's complaint about the source
+		// refspec, but nothing refused the push: the arguments were wrong,
+		// which is ours to fix.
+		expect(
+			capture(
+				new Error(
+					"error: src refspec feature does not match any\n" +
+						"error: failed to push some refs to 'git@example.invalid:team/repo.git'\n",
+				),
+			),
+		).toBeNull();
+	});
+
+	test("index its storage cannot deliver → PRECONDITION_FAILED / GIT_ENVIRONMENT", () => {
+		const timedOut =
+			"fatal: .git/index: unable to map index file: Operation timed out\n";
+		const thrown = capture(new Error(timedOut));
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_ENVIRONMENT");
+		expect(thrown?.message).toBe(timedOut);
+		expect(
+			causeKind(
+				capture(
+					new Error(
+						"fatal: /repo/.git/worktrees/feature/index: unable to map index file: Operation canceled\n",
+					),
+				),
+			),
+		).toBe("GIT_ENVIRONMENT");
+	});
+
+	test("does not claim other index mapping failures or network timeouts", () => {
+		expect(
+			capture(
+				new Error(
+					"fatal: .git/index: unable to map index file: Cannot allocate memory\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"ssh: connect to host example.invalid port 22: Operation timed out\n" +
+						"fatal: Could not read from remote repository.\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"fatal: unable to access 'https://example.invalid/repo.git/': Failed to connect to example.invalid port 443 after 75002 ms: Operation timed out\n",
+				),
+			),
+		).toBeNull();
+	});
 });

@@ -9,7 +9,7 @@ import {
 	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
-import type { UsageAccount } from "../../../../hooks/useHostUsageQuota";
+import type { UsageAccount } from "renderer/hooks/host-service/useHostUsageQuota";
 
 interface RemoveAccountDialogProps {
 	/** The profile to remove; null keeps the dialog closed. */

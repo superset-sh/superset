@@ -1,7 +1,6 @@
 import type { SlackEvent } from "@slack/types";
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { accountConnection } from "@superset/trpc/connectors";
 
 import {
 	type IngestOutcome,
@@ -50,14 +49,7 @@ export function isAutomationEvent(envelope: {
 export async function processAutomationEvent(
 	envelope: SlackAutomationEnvelope,
 ): Promise<IngestOutcome> {
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.provider, "slack"),
-			eq(integrationConnections.externalOrgId, envelope.team_id),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		columns: { id: true, organizationId: true },
-	});
+	const connection = await accountConnection("slack", envelope.team_id);
 	if (!connection) return { status: "skipped", reason: "unknown workspace" };
 
 	return ingestAutomationEvent(

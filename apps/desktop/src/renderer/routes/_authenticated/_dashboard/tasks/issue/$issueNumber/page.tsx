@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import { WorkItemDetailHeader } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailHeader";
@@ -16,7 +17,6 @@ import {
 	type LinkedIssue,
 	useNewWorkspaceDraftStore,
 } from "renderer/stores/new-workspace-draft";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { Route as TasksLayoutRoute } from "../../layout";
 import { tasksSearchFromFilters } from "../../stores/tasks-filter-state";
 
@@ -44,7 +44,7 @@ function IssueDetailPage() {
 		(state) => state.selectProject,
 	);
 	const resetDraft = useNewWorkspaceDraftStore((state) => state.resetDraft);
-	const openModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 
 	// `project` identifies this issue's repo, not the list filter: falling back
 	// to it would rewrite an "all repositories" view to a single repo on back.
@@ -101,7 +101,7 @@ function IssueDetailPage() {
 		resetDraft();
 		selectProject(projectId);
 		updateDraft({ hostId, linkedIssues: [linkedIssue] });
-		openModal(projectId);
+		openNewWorkspace(projectId);
 	};
 
 	const isClosed = data?.state.toLowerCase() === "closed";

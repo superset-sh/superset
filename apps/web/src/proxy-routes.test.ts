@@ -19,6 +19,10 @@ describe("isPublicRoute", () => {
 		"/accept-invitation/invitation-123",
 		"/cli/auth/code",
 		"/cli/auth/code/success",
+		"/tasks/my-slug",
+		"/automations/automation-123",
+		"/page",
+		"/page/my-published-page",
 	])("allows the exact public route or its children: %s", (pathname: string) => {
 		expect(isPublicRoute(pathname)).toBe(true);
 	});
@@ -33,6 +37,9 @@ describe("isPublicRoute", () => {
 		"/api/auth/desktopish",
 		"/accept-invitation-list",
 		"/cli/auth/codegen",
+		"/tasksy",
+		"/automations-overview",
+		"/pages",
 	])("keeps sibling routes protected: %s", (pathname: string) => {
 		expect(isPublicRoute(pathname)).toBe(false);
 	});

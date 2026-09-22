@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { attachBrowserViewportZoom } from "renderer/lib/browser-viewport-zoom";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { requestPaneClose } from "renderer/stores/editor-state/editorCoordinator";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -206,6 +207,8 @@ export function usePersistentWebview({
 		} else {
 			// Create new webview
 			webview = document.createElement("webview") as Electron.WebviewTag;
+			const detachViewportZoom = attachBrowserViewportZoom(webview);
+			webview.addEventListener("destroyed", detachViewportZoom);
 			webview.setAttribute("partition", "persist:superset");
 			webview.setAttribute("allowpopups", "");
 			webview.style.display = "flex";

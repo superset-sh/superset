@@ -7,15 +7,19 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { TRPCClientError } from "@trpc/client";
 import { useMemo, useState } from "react";
+import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
-import { isHostOfflineError } from "../utils/hostOfflineError";
-import { isStaleAgentError, STALE_AGENT_HELP } from "../utils/staleAgentError";
+import { useCopyAutomationLink } from "../hooks/useCopyAutomationLink";
+import { dispatchErrorCode, runErrorHelp } from "../utils/runErrorHelp";
 import { AutomationBody } from "./components/AutomationBody";
+import { AutomationBreadcrumbBar } from "./components/AutomationBreadcrumbBar";
 import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
 import { VersionHistorySheet } from "./components/VersionHistorySheet";
+import { WrongOrganizationNotice } from "./components/WrongOrganizationNotice";
 
 type AutomationDetailSearch = {
 	history?: boolean;
@@ -32,6 +36,19 @@ export const Route = createFileRoute(
 	}),
 });
 
+/** Reads the organization the server named on a wrong-active-org FORBIDDEN. */
+function organizationFromError(params: unknown): { id: string | null } | null {
+	if (typeof params !== "object" || params === null) return null;
+	const { organizationName, organizationId } = params as Record<
+		string,
+		unknown
+	>;
+	// organizationName is what identifies this particular FORBIDDEN; the id is
+	// only there to offer the switch.
+	if (typeof organizationName !== "string" || !organizationName) return null;
+	return { id: typeof organizationId === "string" ? organizationId : null };
+}
+
 const RECENT_RUNS_LIMIT = 10;
 
 function AutomationDetailPage() {
@@ -43,15 +60,17 @@ function AutomationDetailPage() {
 	const currentUserId = session?.user?.id;
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 	const [hostOfflineOpen, setHostOfflineOpen] = useState(false);
+	const copyAutomationLink = useCopyAutomationLink();
+	const { switchOrganization } = useCollections();
 
 	// The prompt body rides its own procedure — `get` omits it.
 	const automationQuery = cloudTrpc.automation.get.useQuery(
 		{ id: automationId },
-		{ refetchInterval: 15_000, staleTime: 30_000 },
+		{ refetchInterval: 60_000, staleTime: 30_000 },
 	);
 	const promptQuery = cloudTrpc.automation.getPrompt.useQuery(
 		{ id: automationId },
-		{ refetchInterval: 15_000, staleTime: 30_000 },
+		{ refetchInterval: 60_000, staleTime: 30_000 },
 	);
 	const automation = useMemo(() => {
 		if (!automationQuery.data || !promptQuery.data) return undefined;
@@ -60,7 +79,7 @@ function AutomationDetailPage() {
 
 	const { data: recentRuns = [] } = cloudTrpc.automation.listRuns.useQuery(
 		{ automationId, limit: RECENT_RUNS_LIMIT },
-		{ refetchInterval: 5_000, staleTime: 30_000 },
+		{ refetchInterval: 15_000, staleTime: 30_000 },
 	);
 
 	const ownerUserId = automationQuery.data?.ownerUserId;
@@ -74,6 +93,9 @@ function AutomationDetailPage() {
 	const ownerName = owner?.name ?? owner?.email ?? null;
 
 	const utils = cloudTrpc.useUtils();
+	// Running and resuming are Pro (the server refuses them too); pausing,
+	// editing, and deleting stay open to a downgraded org.
+	const { gateFeature } = usePaywall();
 
 	const setEnabledMutation = useMutation({
 		mutationFn: (enabled: boolean) =>
@@ -103,17 +125,18 @@ function AutomationDetailPage() {
 				}),
 			),
 		onError: (error) => {
-			const message = error instanceof Error ? error.message : null;
-			if (isHostOfflineError(message)) {
+			const code = dispatchErrorCode(error);
+			if (code === "host_offline") {
 				setHostOfflineOpen(true);
 				return;
 			}
-			if (isStaleAgentError(message)) {
-				toast.error(i18n._(STALE_AGENT_HELP));
+			const help = runErrorHelp(code);
+			if (help) {
+				toast.error(i18n._(help));
 				return;
 			}
 			toast.error(
-				message ??
+				(error instanceof Error ? error.message : null) ??
 					t({
 						message: "Failed to trigger run",
 					}),
@@ -135,15 +158,37 @@ function AutomationDetailPage() {
 		// A deleted automation is a NOT_FOUND from the server; anything else is a
 		// failed read and must not be reported as a missing automation.
 		const loadError = automationQuery.error ?? promptQuery.error;
+		// A member looking at the wrong active organization, not a missing row —
+		// the server resolves that case to FORBIDDEN and names the organization.
+		const elsewhere =
+			loadError instanceof TRPCClientError &&
+			loadError.data?.code === "FORBIDDEN"
+				? organizationFromError(loadError.data?.i18nParams)
+				: null;
 		const isMissing =
 			loadError instanceof TRPCClientError &&
 			loadError.data?.code === "NOT_FOUND";
+		const switchTo = elsewhere?.id;
+		// Keep the breadcrumb: a deep link is how people land here, so without it
+		// there is no way back to the list.
 		return (
-			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground select-text cursor-text">
-				{loadError && !isMissing ? (
-					<Trans>Couldn't load automation: {loadError.message}</Trans>
+			<div className="flex h-full w-full flex-col overflow-hidden">
+				<AutomationBreadcrumbBar />
+				{elsewhere ? (
+					<WrongOrganizationNotice
+						description={errorMessage(loadError)}
+						onSwitch={
+							switchTo ? () => void switchOrganization(switchTo) : undefined
+						}
+					/>
 				) : (
-					<Trans>Automation not found.</Trans>
+					<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground select-text cursor-text">
+						{loadError && !isMissing ? (
+							<Trans>Couldn't load automation: {loadError.message}</Trans>
+						) : (
+							<Trans>Automation not found.</Trans>
+						)}
+					</div>
 				)}
 			</div>
 		);
@@ -160,6 +205,7 @@ function AutomationDetailPage() {
 			<div className="flex flex-1 flex-col overflow-hidden">
 				<AutomationDetailHeader
 					name={automation.name}
+					onCopyLink={() => copyAutomationLink(automation.id)}
 					onDelete={() => {
 						alert({
 							title: t({
@@ -201,7 +247,11 @@ function AutomationDetailPage() {
 							],
 						});
 					}}
-					onRunNow={() => runNowMutation.mutate()}
+					onRunNow={() =>
+						gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+							runNowMutation.mutate(),
+						)
+					}
 					onOpenHistory={() => setHistoryOpen(true)}
 					deleteDisabled={deleteMutation.isPending}
 					runNowDisabled={runNowMutation.isPending}
@@ -213,7 +263,15 @@ function AutomationDetailPage() {
 					automation={automation}
 					recentRuns={recentRuns}
 					ownerName={ownerName}
-					onToggleEnabled={(enabled) => setEnabledMutation.mutate(enabled)}
+					onToggleEnabled={(enabled) => {
+						if (!enabled) {
+							setEnabledMutation.mutate(false);
+							return;
+						}
+						gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+							setEnabledMutation.mutate(true),
+						);
+					}}
 					toggleDisabled={setEnabledMutation.isPending}
 					readOnly={readOnly}
 				/>

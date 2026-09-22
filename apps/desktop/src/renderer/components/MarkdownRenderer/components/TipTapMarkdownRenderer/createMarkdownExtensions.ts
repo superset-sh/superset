@@ -11,7 +11,6 @@ import { History } from "@tiptap/extension-history";
 import { HorizontalRule } from "@tiptap/extension-horizontal-rule";
 import Image from "@tiptap/extension-image";
 import { Italic } from "@tiptap/extension-italic";
-import Link from "@tiptap/extension-link";
 import { ListItem } from "@tiptap/extension-list-item";
 import { OrderedList } from "@tiptap/extension-ordered-list";
 import { Paragraph } from "@tiptap/extension-paragraph";
@@ -30,6 +29,10 @@ import type { EditorView } from "@tiptap/pm/view";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { common, createLowlight } from "lowlight";
 import type { MutableRefObject } from "react";
+import {
+	SafeLink,
+	verbatimStringAttributes,
+} from "renderer/lib/tiptap/markdown-attributes";
 import { Markdown } from "tiptap-markdown";
 import { EditableCodeBlockView } from "./components/EditableCodeBlockView";
 import { ReadOnlyCodeBlockView } from "./components/ReadOnlyCodeBlockView";
@@ -70,24 +73,10 @@ const TaskListTightness = Extension.create({
 });
 
 const SafeImage = Image.extend({
-	// @tiptap/core's default attribute parser coerces numeric/boolean-looking
-	// strings (fromString), so ![123](x.png) loads alt: 123 and the markdown
-	// serializer throws on .replace. Read these verbatim instead.
 	addAttributes() {
 		return {
 			...this.parent?.(),
-			src: {
-				default: null,
-				parseHTML: (element) => element.getAttribute("src"),
-			},
-			alt: {
-				default: null,
-				parseHTML: (element) => element.getAttribute("alt"),
-			},
-			title: {
-				default: null,
-				parseHTML: (element) => element.getAttribute("title"),
-			},
+			...verbatimStringAttributes("src", "alt", "title"),
 		};
 	},
 	addNodeView() {
@@ -241,8 +230,8 @@ export function createMarkdownExtensions({
 		HorizontalRule,
 		HardBreak,
 		History,
-		Link.configure({
-			openOnClick: !editable,
+		SafeLink.configure({
+			openOnClick: false,
 			HTMLAttributes: {
 				class:
 					"text-primary underline underline-offset-2 hover:text-primary/80",
@@ -250,7 +239,9 @@ export function createMarkdownExtensions({
 				rel: "noopener noreferrer",
 			},
 		}),
-		SafeImage,
+		// markdown-it already restricts data: sources to data:image/*; without
+		// this the image extension drops them and the paragraph renders empty.
+		SafeImage.configure({ allowBase64: true }),
 		// Individual table nodes (not TableKit) so a GFM markdown serializer can be
 		// attached to the `table` node's `storage.markdown`, replacing
 		// tiptap-markdown's built-in serializer that emits `[table]`. The

@@ -8,6 +8,7 @@ import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { organizations, settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
+import { HOST_INSTALL_SOURCE_ENV } from "@superset/shared/host-version";
 import { eq } from "drizzle-orm";
 import { app, dialog } from "electron";
 import log from "electron-log/main";
@@ -34,6 +35,7 @@ import {
 	MAX_HOST_LOG_BYTES,
 	openRotatingLogFd,
 	pollHealthCheck,
+	redactCrashTail,
 } from "./host-service-utils";
 import { localDb } from "./local-db";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
@@ -219,6 +221,48 @@ export function parseEtime(etime: string): number | null {
 			Number(seconds)) *
 		1000
 	);
+}
+
+/**
+ * macOS inherits the task's Mach exception ports across fork and exec, so a
+ * plain spawn hands host-service, and every git, hook, login shell and agent
+ * CLI it launches, the port Crashpad registered in this process: their crashes
+ * upload as Superset minidumps carrying an unrelated program's memory. node-pty's
+ * spawn-helper (patched, see patches/README.md) clears those ports before exec,
+ * and launching host-service through it detaches the whole subtree. host-service's
+ * own crashes are reported by handleChildExit with the exit signal and output
+ * tail; pty-daemon's are not reported at all after this. The helper is built
+ * by the native rebuild alongside pty.node, so it is resolved the way node-pty
+ * resolves it and the plain spawn is kept for a tree without the build.
+ *
+ * Two properties of the helper this relies on, both checked on macOS:
+ * - Before exec it runs `close(open(ttyname(STDIN_FILENO), O_RDWR))` to attach
+ *   a pty's controlling terminal. The spawn below gives it /dev/null as stdin,
+ *   for which ttyname() returns NULL (ENOTTY), and open(NULL) fails with
+ *   EFAULT instead of faulting, so the step is inert. It could only act if
+ *   stdin were a terminal, and even then this spawn creates no new session,
+ *   so the terminal would not be acquired.
+ * - A failed execvp exits 1, so a helper that cannot run electron surfaces
+ *   through handleChildExit as a nonzero exit rather than silently; the plain
+ *   spawn fallback only needs to cover the helper not being built.
+ */
+function crashPortClearingLauncher(): string | null {
+	if (process.platform !== "darwin") return null;
+	let helper: string;
+	try {
+		helper = path
+			.join(
+				path.dirname(require.resolve("node-pty")),
+				"..",
+				"build",
+				"Release",
+				"spawn-helper",
+			)
+			.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
+	} catch {
+		return null;
+	}
+	return fs.existsSync(helper) ? helper : null;
 }
 
 function isValidPort(port: number | null | undefined): port is number {
@@ -530,12 +574,23 @@ export class HostServiceCoordinator extends EventEmitter {
 			.map(([id]) => id);
 	}
 
-	async restartAll(config: SpawnConfig): Promise<void> {
-		await Promise.all(
-			this.getActiveOrganizationIds().map((orgId) =>
-				this.restart(orgId, config),
-			),
+	async restartAll(config: SpawnConfig): Promise<number> {
+		// Failed starts and crashed children may have no active instance. Keep
+		// them in a manual retry using the authenticated membership set, never
+		// host directories left on disk by a previous session.
+		const organizationIds = new Set([
+			...this.desiredOrganizationIds,
+			...this.getActiveOrganizationIds(),
+		]);
+		const results = await Promise.allSettled(
+			[...organizationIds].map((orgId) => this.restart(orgId, config)),
 		);
+		// Don't release the settings mutation while another org is still
+		// restarting: a second toggle could otherwise race that pending start.
+		for (const result of results) {
+			if (result.status === "rejected") throw result.reason;
+		}
+		return organizationIds.size;
 	}
 
 	/**
@@ -846,14 +901,33 @@ export class HostServiceCoordinator extends EventEmitter {
 		// lines must not.
 		logStream?.on("error", () => {});
 
+		const launcher = crashPortClearingLauncher();
+		if (process.platform === "darwin" && !launcher) {
+			log.warn(
+				`[host-service:${organizationId}] node-pty spawn-helper not built; the child will inherit this process's crash handler`,
+			);
+		}
+		// spawn-helper's first argument is a cwd to chdir into; empty keeps ours.
+		const [command, args] = launcher
+			? [launcher, ["", process.execPath, this.scriptPath]]
+			: [process.execPath, [this.scriptPath]];
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
-			child = childProcess.spawn(process.execPath, [this.scriptPath], {
+			child = childProcess.spawn(command, args, {
 				detached: false,
 				stdio: ["ignore", "pipe", "pipe"],
 				env: childEnv,
 				// Avoid a flashing CMD window on Windows.
 				windowsHide: true,
+			});
+			// ENOENT/EACCES arrive on the child asynchronously, even when the
+			// missing-pid check below has already rejected and cleaned up startup.
+			// Keep a listener attached so a failed launcher cannot crash Electron.
+			child.on("error", (error) => {
+				log.error(
+					`[host-service:${organizationId}] failed to launch host service`,
+					error,
+				);
 			});
 		} catch (error) {
 			logStream?.end();
@@ -952,6 +1026,10 @@ export class HostServiceCoordinator extends EventEmitter {
 			HOST_SERVICE_SECRET: secret,
 			HOST_SERVICE_PORT: String(port),
 			HOST_MANIFEST_DIR: organizationDir,
+			// This host-service lives inside the app bundle and only the app's
+			// auto-updater can replace it; the host-service reports that so a
+			// remote client never offers an in-place update for it.
+			[HOST_INSTALL_SOURCE_ENV]: "desktop",
 			HOST_DB_PATH: path.join(organizationDir, "host.db"),
 			HOST_MIGRATIONS_FOLDER: app.isPackaged
 				? path.join(process.resourcesPath, "resources/host-migrations")
@@ -1092,10 +1170,10 @@ export class HostServiceCoordinator extends EventEmitter {
 							pid: childPid,
 							version: app.getVersion(),
 							uptimeMs: Date.now() - current.spawnedAt,
-							outputTail: current.redactions.reduce(
-								(tail, secret) => tail.split(secret).join("[redacted]"),
-								current.outputTail,
-							),
+							outputTail: redactCrashTail(current.outputTail, {
+								secrets: current.redactions,
+								homeDir: os.homedir(),
+							}),
 						},
 					}),
 				)

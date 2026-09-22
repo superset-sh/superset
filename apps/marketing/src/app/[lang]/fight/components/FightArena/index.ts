@@ -1,0 +1,1 @@
+export { FightArena } from "./FightArena";

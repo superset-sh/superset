@@ -41,23 +41,23 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-	LuCircleHelp,
-	LuPlus,
 	LuRotateCw,
 	LuSearch,
 	LuSearchX,
-	LuSparkles,
 	LuTerminal,
 	LuTriangleAlert,
 	LuX,
 } from "react-icons/lu";
+import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
+import { useCreateAgentSession } from "renderer/hooks/useCreateAgentSession";
 import { useNow } from "renderer/hooks/useNow";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { DATA_TABLE_HEAD_CELL } from "renderer/routes/_authenticated/_dashboard/components/DataTableHeader";
+import { FeatureHeader } from "renderer/routes/_authenticated/_dashboard/components/FeatureHeader";
 import {
 	SortableHeader,
 	type SortDirection,
@@ -65,15 +65,13 @@ import {
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { AutomationRow } from "./components/AutomationRow";
 import { AutomationStatCards } from "./components/AutomationStatCards";
 import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
 import { HostOfflineRunDialog } from "./components/HostOfflineRunDialog";
 import type { AutomationTemplate } from "./templates";
 import { matchAgentChoice, portableAgentValue } from "./utils/agentIdentity";
-import { isHostOfflineError } from "./utils/hostOfflineError";
-import { isStaleAgentError, STALE_AGENT_HELP } from "./utils/staleAgentError";
+import { dispatchErrorCode, runErrorHelp } from "./utils/runErrorHelp";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 	{
@@ -100,6 +98,10 @@ function settledErrorMessage(result: PromiseSettledResult<unknown>) {
 	return result.status === "rejected" && result.reason instanceof Error
 		? result.reason.message
 		: null;
+}
+
+function settledErrorCode(result: PromiseSettledResult<unknown>) {
+	return result.status === "rejected" ? dispatchErrorCode(result.reason) : null;
 }
 
 function AutomationsPage() {
@@ -150,17 +152,18 @@ function AutomationsPage() {
 				}),
 			),
 		onError: (error, { targetHostId }) => {
-			const message = error instanceof Error ? error.message : null;
-			if (isHostOfflineError(message)) {
+			const code = dispatchErrorCode(error);
+			if (code === "host_offline") {
 				setHostOfflineRun({ hostId: targetHostId });
 				return;
 			}
-			if (isStaleAgentError(message)) {
-				toast.error(i18n._(STALE_AGENT_HELP));
+			const help = runErrorHelp(code);
+			if (help) {
+				toast.error(i18n._(help));
 				return;
 			}
 			toast.error(
-				message ??
+				(error instanceof Error ? error.message : null) ??
 					t({
 						message: "Failed to trigger run",
 					}),
@@ -197,28 +200,28 @@ function AutomationsPage() {
 				);
 			}
 			if (failed.length === 0) return;
-			const offline = failed.find((o) =>
-				isHostOfflineError(settledErrorMessage(o.result)),
+			const offline = failed.find(
+				(o) => settledErrorCode(o.result) === "host_offline",
 			);
 			if (offline) {
 				setHostOfflineRun({ hostId: offline.automation.targetHostId });
 			}
 			// The host-offline dialog explains those failures; only toast the rest.
 			const other = failed.filter(
-				(o) => !isHostOfflineError(settledErrorMessage(o.result)),
+				(o) => settledErrorCode(o.result) !== "host_offline",
 			);
 			if (other.length === 0) return;
-			const message = settledErrorMessage(other[0].result);
+			const help = runErrorHelp(settledErrorCode(other[0].result));
+			const single =
+				(help ? i18n._(help) : settledErrorMessage(other[0].result)) ??
+				t({
+					message: "Failed to retry automation",
+				});
 			const failedCount = other.length;
 			const totalCount = outcomes.length;
 			toast.error(
 				other.length === 1
-					? isStaleAgentError(message)
-						? i18n._(STALE_AGENT_HELP)
-						: (message ??
-							t({
-								message: "Failed to retry automation",
-							}))
+					? single
 					: t({
 							message: `Failed to retry ${failedCount} of ${totalCount} automations`,
 						}),
@@ -291,7 +294,7 @@ function AutomationsPage() {
 		error: automationsError,
 		refetch: refetchAutomations,
 	} = cloudTrpc.automation.list.useQuery(undefined, {
-		refetchInterval: 15_000,
+		refetchInterval: 60_000,
 	});
 
 	const { data: memberRows = [] } = cloudTrpc.organization.listMembers.useQuery(
@@ -458,7 +461,14 @@ function AutomationsPage() {
 	const navigate = useNavigate();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const { agents: agentChoices } = useV2AgentChoices(activeHostUrl);
-	const { submit: submitWorkspaceCreate } = useWorkspaceCreates();
+	const { createSession, isPending: creatingWithAgent } =
+		useCreateAgentSession();
+	// Automations are Pro. Creating, running, and resuming go through the
+	// paywall; the server refuses the same three, so this is the friendly
+	// front of one gate. Pausing, editing, and deleting stay open so a
+	// downgraded org keeps control of what it has.
+	const { gateFeature, hasAccess, isReady: planReady } = usePaywall();
+	const showProBadge = planReady && !hasAccess(GATED_FEATURES.AUTOMATIONS);
 
 	// Cursor-style creation: no dialog. "New automation" writes an untitled
 	// automation with no triggers and opens its detail page, which is the
@@ -515,51 +525,22 @@ function AutomationsPage() {
 
 	const handleSelectTemplate = (template: AutomationTemplate) => {
 		if (createMutation.isPending) return;
-		createMutation.mutate(template);
+		gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+			createMutation.mutate(template),
+		);
 	};
 
-	// Opens a project-less agent session seeded with automation-creation
-	// instructions. The in-app "superset" chat agent can't run the CLI, so
-	// pick the user's last terminal agent (composer behavior).
-	const [creatingWithAgent, setCreatingWithAgent] = useState(false);
+	const handleCreateManually = () => {
+		if (createMutation.isPending) return;
+		gateFeature(GATED_FEATURES.AUTOMATIONS, () => createMutation.mutate(null));
+	};
+
 	const handleCreateWithAgent = () => {
 		if (creatingWithAgent) return;
-		if (!machineId) {
-			toast.error(
-				t({
-					message: "Host service is not running",
-				}),
-			);
-			return;
-		}
-		const terminalAgents = agentChoices.filter((a) => a.id !== "superset");
-		const stored = window.localStorage.getItem(AGENT_STORAGE_KEY);
-		const agent =
-			terminalAgents.find((a) => a.id === stored)?.id ?? terminalAgents[0]?.id;
-		if (!agent) {
-			toast.error(
-				t({
-					message: "No terminal agent is configured on this device",
-				}),
-			);
-			return;
-		}
-		setCreatingWithAgent(true);
-		const { workspaceId, completed } = submitWorkspaceCreate({
-			hostId: machineId,
-			snapshot: {
-				id: crypto.randomUUID(),
-				projectId: null,
-				agents: [{ agent, prompt: AUTOMATION_AGENT_PROMPT }],
-			},
-		});
-		// The store shows creation failures on the optimistic sidebar row; this
-		// just re-arms the button if the user navigates back.
-		void completed.finally(() => setCreatingWithAgent(false));
-		navigate({
-			to: "/v2-workspace/$workspaceId",
-			params: { workspaceId },
-		}).catch(() => {});
+		gateFeature(
+			GATED_FEATURES.AUTOMATIONS,
+			() => void createSession(AUTOMATION_AGENT_PROMPT),
+		);
 	};
 
 	const scheduleWidth = scope === "team" ? "w-[16%]" : "w-[18%]";
@@ -595,19 +576,24 @@ function AutomationsPage() {
 			isOwner={automation.ownerUserId === currentUserId}
 			isRetrying={retryingIds.has(automation.id)}
 			onRunNow={(a) =>
-				runNowMutation.mutate({
-					id: a.id,
-					name: a.name,
-					targetHostId: a.targetHostId,
-				})
+				gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+					runNowMutation.mutate({
+						id: a.id,
+						name: a.name,
+						targetHostId: a.targetHostId,
+					}),
+				)
 			}
-			onToggleEnabled={(a) =>
-				setEnabledMutation.mutate({
-					id: a.id,
-					enabled: !a.enabled,
-					name: a.name,
-				})
-			}
+			onToggleEnabled={(a) => {
+				const toggle = () =>
+					setEnabledMutation.mutate({
+						id: a.id,
+						enabled: !a.enabled,
+						name: a.name,
+					});
+				if (a.enabled) toggle();
+				else gateFeature(GATED_FEATURES.AUTOMATIONS, toggle);
+			}}
 			onDelete={setPendingDelete}
 		/>
 	);
@@ -633,62 +619,21 @@ function AutomationsPage() {
 
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
-					<div className="flex items-center justify-between">
-						<h1 className="text-xl font-semibold tracking-tight">
-							<Trans>Automations</Trans>
-						</h1>
-						<div className="flex items-center gap-2">
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										asChild
-										variant="ghost"
-										size="icon-sm"
-										className="size-8 text-muted-foreground"
-									>
-										<a
-											href={`${COMPANY.DOCS_URL}/automations`}
-											target="_blank"
-											rel="noreferrer"
-											aria-label={t({
-												message: "Automations docs",
-											})}
-										>
-											<LuCircleHelp className="size-4" />
-										</a>
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent>
-									<Trans>Automations docs</Trans>
-								</TooltipContent>
-							</Tooltip>
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								className="h-8 gap-1.5 px-3"
-								disabled={creatingWithAgent}
-								onClick={handleCreateWithAgent}
-							>
-								<LuSparkles className="size-4" />
-								<span>
-									<Trans>Create with AI</Trans>
-								</span>
-							</Button>
-							<Button
-								type="button"
-								size="sm"
-								className="h-8 gap-1.5 px-3"
-								disabled={createMutation.isPending}
-								onClick={() => createMutation.mutate(null)}
-							>
-								<LuPlus className="size-4" />
-								<span>
-									<Trans>New automation</Trans>
-								</span>
-							</Button>
-						</div>
-					</div>
+					<FeatureHeader
+						title={<Trans>Automations</Trans>}
+						docsUrl={`${COMPANY.DOCS_URL}/automations`}
+						onCreate={handleCreateWithAgent}
+						isCreating={creatingWithAgent}
+						showCreate={!orgEmpty}
+						createMenuLabel={<Trans>New automation</Trans>}
+						createDescription={<Trans>Describe the work to your agent</Trans>}
+						secondaryAction={{
+							label: <Trans>Create manually</Trans>,
+							description: <Trans>Configure the automation yourself</Trans>,
+							onSelect: handleCreateManually,
+							disabled: createMutation.isPending,
+						}}
+					/>
 
 					{/* Zero-count stats and search are noise while a tab is empty;
 					    with nothing in the org at all the tabs go too. */}
@@ -752,7 +697,11 @@ function AutomationsPage() {
 													size="sm"
 													className="h-8 gap-1.5 px-3"
 													disabled={retryAllMutation.isPending}
-													onClick={() => retryAllMutation.mutate(failedMine)}
+													onClick={() =>
+														gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+															retryAllMutation.mutate(failedMine),
+														)
+													}
 												>
 													<LuRotateCw
 														className={cn(
@@ -839,6 +788,10 @@ function AutomationsPage() {
 								<AutomationsEmptyState
 									onSelectTemplate={handleSelectTemplate}
 									onCreateWithAgent={handleCreateWithAgent}
+									isCreating={creatingWithAgent}
+									onCreateManually={handleCreateManually}
+									isCreatingManually={createMutation.isPending}
+									showProBadge={showProBadge}
 								/>
 							</div>
 						) : showTeamEmptyState ? (

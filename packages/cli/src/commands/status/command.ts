@@ -3,49 +3,9 @@ import { getHostId } from "@superset/shared/host-info";
 import { formatDistanceToNowStrict } from "date-fns";
 import type { ApiClient } from "../../lib/api-client";
 import { command } from "../../lib/command";
+import { checkHostHealth } from "../../lib/host/health";
 import { isProcessAlive, readManifest } from "../../lib/host/manifest";
 import { resolveOrganizationFromContext } from "../../lib/resolve-org";
-
-type HealthResult = {
-	healthy: boolean;
-	/** undefined = host-service predates the field (pre-#6415). */
-	cloudRegistered?: boolean;
-	registrationError?: string | null;
-};
-
-async function checkHealth(
-	endpoint: string,
-	authToken: string,
-): Promise<HealthResult> {
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), 2_000);
-	try {
-		const res = await fetch(`${endpoint}/trpc/health.check`, {
-			signal: controller.signal,
-			headers: { Authorization: `Bearer ${authToken}` },
-		});
-		if (!res.ok) return { healthy: false };
-		const body = (await res.json()) as {
-			result?: { data?: { json?: Record<string, unknown> } };
-		};
-		const payload = body.result?.data?.json;
-		return {
-			healthy: true,
-			cloudRegistered:
-				typeof payload?.cloudRegistered === "boolean"
-					? payload.cloudRegistered
-					: undefined,
-			registrationError:
-				typeof payload?.registrationError === "string"
-					? payload.registrationError
-					: undefined,
-		};
-	} catch {
-		return { healthy: false };
-	} finally {
-		clearTimeout(timeout);
-	}
-}
 
 async function fetchHostName(
 	api: ApiClient,
@@ -103,7 +63,7 @@ export default command({
 		}
 
 		const [health, cloudHost] = await Promise.all([
-			checkHealth(manifest.endpoint, manifest.authToken),
+			checkHostHealth(manifest.endpoint, manifest.authToken),
 			fetchHostName(ctx.api, organization.id, localHostId),
 		]);
 		const uptime = formatDistanceToNowStrict(new Date(manifest.startedAt));
@@ -132,6 +92,7 @@ export default command({
 				organizationId: organization.id,
 				hostId: localHostId,
 				hostName: cloudHost.name,
+				...(health.version ? { hostServiceVersion: health.version } : {}),
 				...(cloudRegistered === undefined ? {} : { cloudRegistered }),
 				...(health.registrationError
 					? { registrationError: health.registrationError }

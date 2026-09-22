@@ -1,10 +1,9 @@
 import { db } from "@superset/db/client";
-import {
-	githubInstallations,
-	integrationConnections,
-} from "@superset/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { connections, githubInstallations } from "@superset/db/schema";
+import { getConnector } from "@superset/shared/connectors";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
+import { NEEDS_REAUTH } from "../../lib/connectors";
 import { protectedProcedure } from "../../trpc";
 import { verifyOrgMembership } from "./utils";
 
@@ -13,52 +12,67 @@ import { verifyOrgMembership } from "./utils";
  *
  * One procedure rather than the seven per-provider queries the settings pane
  * makes, because the trigger editor asks on every render of every row and
- * polls while the page is open. Three queries answer all of them: the
- * organization's live connections, the caller's own Google connection, and the
- * GitHub installation, which lives in its own table.
+ * polls while the page is open. Two queries answer all of them: the
+ * organization's live connections, and the GitHub installation, which lives in
+ * its own table.
  *
  * "Connected" means the same thing here as everywhere else — a row marked
- * disconnected is not connected — so this stays in step with
- * `activeConnection` and the per-provider `getConnection` procedures.
+ * disconnected is not connected — so this stays in step with the per-provider
+ * `getConnection` procedures. A connection whose refresh failed is reported
+ * with `needsReauth`, because a trigger built on one will not fire until the
+ * user reconnects, and "not connected" would send them to the wrong button.
  */
+export interface ProviderConnection {
+	connected: boolean;
+	needsReauth: boolean;
+}
+
 export const connectionStatusProcedure = protectedProcedure
 	.input(z.object({ organizationId: z.uuid() }))
-	.query(async ({ ctx, input }): Promise<Record<string, boolean>> => {
-		await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+	.query(
+		async ({ ctx, input }): Promise<Record<string, ProviderConnection>> => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 
-		const [orgConnections, googleConnection, installation] = await Promise.all([
-			db.query.integrationConnections.findMany({
-				where: and(
-					eq(integrationConnections.organizationId, input.organizationId),
-					isNull(integrationConnections.disconnectedAt),
-				),
-				columns: { provider: true },
-			}),
-			// Google is per member: another member's mailbox is not this caller's
-			// to trigger on, so their connection must not read as connected here.
-			db.query.integrationConnections.findFirst({
-				where: and(
-					eq(integrationConnections.organizationId, input.organizationId),
-					eq(integrationConnections.provider, "google"),
-					eq(integrationConnections.connectedByUserId, ctx.session.user.id),
-					isNull(integrationConnections.disconnectedAt),
-				),
-				columns: { id: true },
-			}),
-			db.query.githubInstallations.findFirst({
-				where: eq(githubInstallations.organizationId, input.organizationId),
-				columns: { suspended: true },
-			}),
-		]);
+			const [connectorRows, installation] = await Promise.all([
+				db.query.connections.findMany({
+					where: and(
+						eq(connections.organizationId, input.organizationId),
+						or(
+							isNull(connections.disconnectedAt),
+							eq(connections.disconnectReason, NEEDS_REAUTH),
+						),
+					),
+					columns: {
+						connector: true,
+						connectedByUserId: true,
+						disconnectedAt: true,
+					},
+				}),
+				db.query.githubInstallations.findFirst({
+					where: eq(githubInstallations.organizationId, input.organizationId),
+					columns: { suspended: true },
+				}),
+			]);
 
-		const connected: Record<string, boolean> = {};
-		for (const row of orgConnections) connected[row.provider] = true;
+			const connected: Record<string, ProviderConnection> = {};
+			for (const row of connectorRows) {
+				if (
+					getConnector(row.connector)?.scope === "user" &&
+					row.connectedByUserId !== ctx.session.user.id
+				)
+					continue;
+				const needsReauth = row.disconnectedAt !== null;
+				// A live row wins over an expired one for the same connector.
+				if (connected[row.connector]?.connected && needsReauth) continue;
+				connected[row.connector] = { connected: !needsReauth, needsReauth };
+			}
 
-		// Both overrides narrow rather than widen: the org-wide scan above would
-		// otherwise report someone else's Google account as this caller's.
-		connected.google = googleConnection !== undefined;
-		// A suspended installation still has a row, and delivers nothing.
-		connected.github = installation !== undefined && !installation.suspended;
+			// A suspended installation still has a row, and delivers nothing.
+			connected.github = {
+				connected: installation !== undefined && !installation.suspended,
+				needsReauth: false,
+			};
 
-		return connected;
-	});
+			return connected;
+		},
+	);

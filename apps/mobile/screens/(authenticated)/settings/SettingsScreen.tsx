@@ -15,6 +15,7 @@ import { useSignOut } from "@/hooks/useSignOut";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
 import { openUrl } from "@/lib/open-url";
+import { billingSettingsUrl } from "@/lib/web-links";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";
 import { OrganizationAvatar } from "@/screens/(authenticated)/components/OrganizationAvatar";
@@ -41,7 +42,7 @@ export function SettingsScreen() {
 	const theme = useTheme();
 	const insets = useSafeAreaInsets();
 	const { data: session } = useSession();
-	const { activeOrganization } = useOrganizations();
+	const { activeOrganization, activeOrganizationId } = useOrganizations();
 	const { signOut, isSigningOut } = useSignOut();
 	const { deleteAccount, isDeleting } = useDeleteAccount();
 
@@ -64,18 +65,24 @@ export function SettingsScreen() {
 		]);
 	};
 
-	// Informational only. Outside the US storefront, App Store guideline 3.1.1
-	// rejects in-app links to an external purchase page, so the plan row says
-	// where billing lives and stops there.
 	const handleManagePlan = () => {
 		Alert.alert(
 			t({
-				message: "Plan is managed on the web",
+				message: "Manage plan on the web",
 			}),
 			t({
-				message: `Your organization's plan is managed by its owner at ${COMPANY.DOMAIN}.`,
+				message: `You can't change this subscription in the app. Your organization's plan is managed by its owner at ${COMPANY.DOMAIN}.`,
 			}),
-			[{ text: t({ message: "OK" }) }],
+			[
+				{
+					style: "cancel",
+					text: t({ message: "Dismiss" }),
+				},
+				{
+					onPress: () => openUrl(billingSettingsUrl(activeOrganizationId)),
+					text: t({ message: `Manage on ${COMPANY.DOMAIN}` }),
+				},
+			],
 		);
 	};
 
@@ -180,6 +187,26 @@ export function SettingsScreen() {
 					}
 					onPress={() => router.push("/(authenticated)/settings/organization")}
 				/>
+				{plan ? (
+					<ListRow
+						icon={
+							<Ionicons
+								name="document-text-outline"
+								size={20}
+								color={theme.mutedForeground}
+							/>
+						}
+						label={t({ message: "Pages" })}
+						trailing={
+							<Ionicons
+								name="chevron-forward"
+								size={18}
+								color={theme.mutedForeground}
+							/>
+						}
+						onPress={() => router.push("/(authenticated)/pages")}
+					/>
+				) : null}
 				<ListRow
 					icon={
 						<Ionicons

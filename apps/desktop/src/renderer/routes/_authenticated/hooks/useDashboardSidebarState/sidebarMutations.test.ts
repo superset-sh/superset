@@ -171,6 +171,20 @@ describe("ensureSidebarProjectRecord", () => {
 		});
 	});
 
+	it("background placement preserves a hidden project's state", () => {
+		const collections = makeCollections();
+		const row = projectRow("proj-1", {
+			isHidden: true,
+			isCollapsed: true,
+			tabOrder: 7,
+		});
+		collections.v2SidebarProjects.insert(row);
+		ensureSidebarProjectRecord(asProjectArg(collections), "proj-1", {
+			reveal: false,
+		});
+		expect(collections.v2SidebarProjects.get("proj-1")).toEqual(row);
+	});
+
 	it("inserts a visible row ahead of existing projects when none exists", () => {
 		const collections = makeCollections();
 		collections.v2SidebarProjects.insert(projectRow("proj-1", { tabOrder: 1 }));

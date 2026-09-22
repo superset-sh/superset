@@ -101,15 +101,16 @@ if (process.platform === "darwin") {
  *
  * These failures report with no first-party frame — the captured stack is
  * entirely simple-git's executor — and nothing in the event says why the
- * spawn was refused. The count against the enforced ceiling separates the two
- * candidates: at the ceiling is exhaustion, and the leak is ours to find;
- * nowhere near it is a descriptor that went bad while we still held it.
- *
- * Read the errno before the count, because it already settles which question
- * to ask: running out of descriptors is EMFILE, so an EBADF is a descriptor
- * that went bad and no count will explain it. See HOST-SERVICE-4E and
- * HOST-SERVICE-1R, where a machine enters this state and every subsequent
- * poll fails the same way for hours.
+ * spawn was refused. The count is what says it: on macOS a table that has
+ * grown past 10,240 entries cannot spawn anything, whatever the rlimit
+ * reads. libuv spawns through posix_spawn and hands the child's pipe ends
+ * to posix_spawn_file_actions_adddup2/addclose, and Apple's libsyscall
+ * rejects any descriptor number at or above OPEN_MAX (10,240) with EBADF
+ * before the kernel is involved. Once the low numbers are all taken, every
+ * fresh pipe lands above that line, so exhaustion surfaces as `spawn
+ * EBADF`, not EMFILE, and every event of HOST-SERVICE-4E / HOST-SERVICE-1R
+ * carried a count just above 10,240. A count nowhere near it would be the
+ * other case: a descriptor that went bad while we still held it.
  *
  * No-op for anything else, and no-op on the error itself: the message,
  * classification and 500 are exactly what they were.

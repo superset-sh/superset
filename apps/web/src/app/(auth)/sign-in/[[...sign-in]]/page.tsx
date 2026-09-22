@@ -16,6 +16,7 @@ import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
 
 const LAST_USED_METHOD_KEY = "superset-last-auth-method";
+const ERROR_CODE = /^[A-Za-z0-9_-]{1,64}$/;
 
 type AuthMethod = "github" | "google" | "dev";
 
@@ -46,9 +47,27 @@ export default function SignInPage() {
 		? `${env.NEXT_PUBLIC_WEB_URL}${redirect}`
 		: env.NEXT_PUBLIC_WEB_URL;
 
+	const callbackErrorParam = searchParams.get("error");
+	const callbackError =
+		callbackErrorParam && ERROR_CODE.test(callbackErrorParam)
+			? callbackErrorParam
+			: null;
+
 	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(() => {
+		if (!callbackError) return null;
+		if (callbackError === "account_not_linked") {
+			return t({
+				message:
+					"This email is already registered with another sign-in method, and the provider did not confirm it as verified. Sign in with the method you used before.",
+			});
+		}
+		const reason = callbackError;
+		return t({
+			message: `Sign-in failed (${reason}). Please try again.`,
+		});
+	});
 	const [lastUsedMethod, setLastUsedMethod] = useState<AuthMethod | null>(null);
 
 	useEffect(() => {

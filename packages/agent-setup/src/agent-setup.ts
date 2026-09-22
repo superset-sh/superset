@@ -15,6 +15,8 @@ import {
 	createCursorAgentWrapper,
 	createCursorHookScript,
 	createCursorHooksJson,
+	createDevinConfigJson,
+	createDevinWrapper,
 	createDroidSettingsJson,
 	createDroidWrapper,
 	createGeminiHookScript,
@@ -27,6 +29,9 @@ import {
 	createKimiWrapper,
 	createMastraHooksJson,
 	createMastraWrapper,
+	createMuseManagedHooksFile,
+	createMuseSettingsJson,
+	createMuseWrapper,
 	createOmpExtension,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
@@ -37,25 +42,29 @@ import {
 	removeClaudeManagedHooks,
 	removeCodexManagedHooks,
 	removeCursorManagedHooks,
+	removeDevinManagedHooks,
 	removeDroidManagedHooks,
 	removeGeminiManagedHooks,
 	removeGrokManagedHooks,
 	removeKimiManagedHooks,
 	removeMastraManagedHooks,
+	removeMuseManagedHooks,
 	removeOmpExtension,
 	removePiExtension,
 	removeVibeManagedHooks,
 } from "./agent-wrappers";
+import { createArtifactGuardScript } from "./artifact-guard-hook";
 import { resolveDisabledSkillIds } from "./disabled-skills";
 import { createManagedSkills } from "./managed-skills";
 import { createNotifyScript } from "./notify-hook";
 
 type LabeledAction = readonly [label: string, action: () => void];
 
-/** Shared prerequisites: per-agent hooks reference the notify script. */
+/** Shared prerequisites: per-agent hooks reference these scripts. */
 const BOOTSTRAP_SETUP: readonly LabeledAction[] = [
 	["cleanup-global-opencode-plugin", cleanupGlobalOpenCodePlugin],
 	["notify-script", createNotifyScript],
+	["artifact-guard-script", createArtifactGuardScript],
 ];
 
 interface AgentSetupDefinition {
@@ -136,6 +145,18 @@ const AGENT_SETUP_DEFINITIONS: Record<
 	vibe: {
 		setup: [createVibeHooksToml, createVibeWrapper],
 		teardown: [removeVibeManagedHooks],
+	},
+	devin: {
+		setup: [createDevinConfigJson, createDevinWrapper],
+		teardown: [removeDevinManagedHooks],
+	},
+	muse: {
+		setup: [
+			createMuseManagedHooksFile,
+			createMuseSettingsJson,
+			createMuseWrapper,
+		],
+		teardown: [removeMuseManagedHooks],
 	},
 };
 

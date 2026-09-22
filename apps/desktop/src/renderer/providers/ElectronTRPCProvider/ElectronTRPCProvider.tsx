@@ -1,3 +1,7 @@
+import {
+	CLOUD_QUERY_KEY_ROOT,
+	CloudClientProvider,
+} from "@superset/cloud-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import {
 	defaultShouldDehydrateQuery,
@@ -59,6 +63,9 @@ const queryClient = new QueryClient({
 // Scoped per router root so electron IPC queries keep staleTime 0.
 for (const root of CLOUD_TRPC_ROUTER_ROOTS) {
 	queryClient.setQueryDefaults([[root]], { staleTime: 30_000 });
+	queryClient.setQueryDefaults([CLOUD_QUERY_KEY_ROOT, root], {
+		staleTime: 30_000,
+	});
 }
 
 // IndexedDB-backed persister. localStorage is too small (~5MB) for the
@@ -85,6 +92,9 @@ const PERSIST_KEY_PREFIXES = new Set([
 	"issue-detail",
 	"dashboard-sidebar", // sidebar per-workspace PR state (badges/checks)
 ]);
+// tRPC queries persisted by procedure path: the host roster, so the sidebar
+// fans out to remote hosts on a cold or offline boot before the cloud answers.
+const PERSIST_TRPC_PATHS = new Set(["host.roster"]);
 
 export function ElectronTRPCProvider({
 	children,
@@ -107,14 +117,19 @@ export function ElectronTRPCProvider({
 							shouldDehydrateQuery: (query) => {
 								if (!defaultShouldDehydrateQuery(query)) return false;
 								const head = query.queryKey[0];
+								if (typeof head === "string") {
+									return PERSIST_KEY_PREFIXES.has(head);
+								}
 								return (
-									typeof head === "string" && PERSIST_KEY_PREFIXES.has(head)
+									Array.isArray(head) && PERSIST_TRPC_PATHS.has(head.join("."))
 								);
 							},
 						},
 					}}
 				>
-					{children}
+					<CloudClientProvider client={cloudTrpcClient}>
+						{children}
+					</CloudClientProvider>
 				</PersistQueryClientProvider>
 			</cloudTrpc.Provider>
 		</electronTrpc.Provider>

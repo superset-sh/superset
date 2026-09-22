@@ -1,0 +1,184 @@
+name: Sandbox
+
+on:
+  pull_request:
+    paths:
+      - "packages/sandbox/**"
+      - "packages/host-service/**"
+      - "packages/pty-daemon/**"
+      - "packages/shared/src/sandbox-contract.ts"
+      - ".github/workflows/sandbox.yml"
+  push:
+    branches: [main]
+    paths:
+      - "packages/sandbox/bundle/**"
+      - "packages/shared/src/sandbox-contract.ts"
+  workflow_dispatch:
+    inputs:
+      run:
+        description: "real-sandbox: boot one sandbox and run the wake, gate and firewall checks. production-release (main only): push the image, rebuild the internal golden and repoint production's environment rows"
+        type: choice
+        options:
+          - real-sandbox
+          - production-release
+        default: real-sandbox
+
+jobs:
+  boot-twice:
+    name: Boot twice
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Manifest tests
+        working-directory: packages/sandbox
+        run: bun test
+
+      - name: Build the bundle
+        working-directory: packages/sandbox
+        run: bun run build
+
+      - name: Step versions that would re-run on the next wake
+        working-directory: packages/sandbox
+        env:
+          CDN_R2_ACCESS_KEY_ID: ${{ secrets.CDN_R2_ACCESS_KEY_ID }}
+          CDN_R2_SECRET_ACCESS_KEY: ${{ secrets.CDN_R2_SECRET_ACCESS_KEY }}
+          CDN_R2_ENDPOINT: ${{ secrets.CDN_R2_ENDPOINT }}
+          CDN_R2_BUCKET: ${{ secrets.CDN_R2_BUCKET }}
+          CDN_URL: ${{ secrets.CDN_URL }}
+        run: bun run build --dry
+
+      - name: Build the image locally
+        working-directory: packages/sandbox
+        run: bun run image --local
+
+      - name: Boot it twice
+        working-directory: packages/sandbox
+        run: bun run src/boot-twice.ts
+
+      - name: Check the runner against a synthetic bundle
+        working-directory: packages/sandbox
+        run: bun run src/runner-check.ts
+
+  publish-bundle:
+    name: Publish the bundle
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Publish
+        working-directory: packages/sandbox
+        env:
+          CDN_R2_ACCESS_KEY_ID: ${{ secrets.CDN_R2_ACCESS_KEY_ID }}
+          CDN_R2_SECRET_ACCESS_KEY: ${{ secrets.CDN_R2_SECRET_ACCESS_KEY }}
+          CDN_R2_ENDPOINT: ${{ secrets.CDN_R2_ENDPOINT }}
+          CDN_R2_BUCKET: ${{ secrets.CDN_R2_BUCKET }}
+          CDN_URL: ${{ secrets.CDN_URL }}
+        run: bun run build --publish
+
+  real-sandbox:
+    name: Real sandbox
+    if: github.event_name == 'workflow_dispatch' && inputs.run == 'real-sandbox'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Boot a dev sandbox and check it
+        working-directory: packages/sandbox
+        env:
+          VERCEL_SANDBOX_TOKEN: ${{ secrets.VERCEL_SANDBOX_TOKEN }}
+          VERCEL_SANDBOX_TEAM_ID: ${{ secrets.VERCEL_SANDBOX_TEAM_ID }}
+          VERCEL_SANDBOX_PROJECT_ID: ${{ secrets.VERCEL_SANDBOX_PROJECT_ID }}
+          SANDBOX_GATE_SECRET: ${{ secrets.SANDBOX_GATE_SECRET }}
+          SANDBOX_GATE_ORIGIN: ${{ secrets.SANDBOX_GATE_ORIGIN }}
+          CDN_R2_ACCESS_KEY_ID: ${{ secrets.CDN_R2_ACCESS_KEY_ID }}
+          CDN_R2_SECRET_ACCESS_KEY: ${{ secrets.CDN_R2_SECRET_ACCESS_KEY }}
+          CDN_R2_ENDPOINT: ${{ secrets.CDN_R2_ENDPOINT }}
+          CDN_R2_BUCKET: ${{ secrets.CDN_R2_BUCKET }}
+          CDN_URL: ${{ secrets.CDN_URL }}
+        run: bun run src/real-sandbox.ts
+
+  production-release:
+    name: Production release
+    if: github.event_name == 'workflow_dispatch' && inputs.run == 'production-release' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 120
+    concurrency:
+      group: sandbox-production-release
+      cancel-in-progress: false
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Release
+        working-directory: packages/sandbox
+        env:
+          SUPERSET_INTERNAL_ORGANIZATION_ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+          VERCEL_SANDBOX_REGION: sfo1
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          VERCEL_SANDBOX_TOKEN: ${{ secrets.VERCEL_SANDBOX_TOKEN }}
+          VERCEL_SANDBOX_TEAM_ID: ${{ secrets.VERCEL_SANDBOX_TEAM_ID }}
+          VERCEL_SANDBOX_PROJECT_ID: ${{ secrets.VERCEL_SANDBOX_PROJECT_ID }}
+          SANDBOX_GATE_SECRET: ${{ secrets.SANDBOX_GATE_SECRET }}
+          SANDBOX_GATE_ORIGIN: ${{ secrets.SANDBOX_GATE_ORIGIN }}
+          CDN_R2_ACCESS_KEY_ID: ${{ secrets.CDN_R2_ACCESS_KEY_ID }}
+          CDN_R2_SECRET_ACCESS_KEY: ${{ secrets.CDN_R2_SECRET_ACCESS_KEY }}
+          CDN_R2_ENDPOINT: ${{ secrets.CDN_R2_ENDPOINT }}
+          CDN_R2_BUCKET: ${{ secrets.CDN_R2_BUCKET }}
+          CDN_URL: ${{ secrets.CDN_URL }}
+        run: bun run release --production

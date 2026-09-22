@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { notFound } from "next/navigation";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { DownloadSuperset } from "../components/DownloadSuperset";
 import { PageContainer } from "../components/PageContainer";
 import { AgentPromptInput } from "./components/AgentPromptInput";
@@ -12,6 +12,8 @@ import {
 import { getAgentsUiAccess } from "./utils/getAgentsUiAccess";
 
 export default async function AgentsPage() {
+	const i18n = await initServerI18n();
+
 	const { hasAgentsUiAccess } = await getAgentsUiAccess();
 
 	if (hasAgentsUiAccess) {

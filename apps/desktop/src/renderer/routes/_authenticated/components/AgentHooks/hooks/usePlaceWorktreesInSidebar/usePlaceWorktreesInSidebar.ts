@@ -12,11 +12,11 @@ import {
 } from "./selectWorktreesToPlace";
 
 /**
- * Places deliberately-created worktrees and sessions into the sidebar exactly
- * once — from this device and from every online host in the org.
+ * Places deliberately-created workspaces into the sidebar exactly once — from
+ * this device and from every online host in the org.
  *
- * A `worktree` or `session` is always an explicit creation (renderer, CLI, or
- * automation), so it should surface even when created outside the renderer —
+ * Every workspace is an explicit creation (renderer, CLI, automation, or
+ * project setup), so it should surface even when created outside the renderer —
  * the CLI and automations go through the host service and can't write
  * renderer-local sidebar state. That includes work started on another machine
  * (a headless box running `superset start`, driven by an automation or the
@@ -24,11 +24,6 @@ import {
  * are here; what was missing was the placement (#7100). Offline hosts and
  * other people's workspaces are not placed — see `selectWorktreesToPlace` for
  * the host and creator gates.
- *
- * An ambient `main` workspace is excluded: the host creates one for every
- * project on the device, so placing those would drag every locally-known
- * project into the sidebar. Main workspaces surface only under a project
- * already in the sidebar (`isAutoIncludedLocalMainWorkspace`).
  *
  * "Placed once, then respected": a present `v2WorkspaceLocalState` row means
  * "already seen". Hiding a worktree keeps a hidden tombstone row, and removing
@@ -84,7 +79,11 @@ export function usePlaceWorktreesInSidebar(): void {
 			placedWorkspaceIds,
 			{ machineId, onlineHostIds, currentUserId },
 		)) {
-			ensureWorkspaceInSidebar(worktree.id, worktree.projectId);
+			// A hidden project stays hidden; the row is placed for when it is
+			// shown again.
+			ensureWorkspaceInSidebar(worktree.id, worktree.projectId, {
+				revealProject: false,
+			});
 		}
 	}, [
 		candidates,

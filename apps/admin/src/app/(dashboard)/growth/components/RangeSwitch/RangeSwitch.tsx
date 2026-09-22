@@ -1,7 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 
 import {
@@ -11,6 +11,8 @@ import {
 } from "../../providers/GrowthRangeProvider";
 
 export function RangeSwitch() {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const { weeks, setWeeks } = useGrowthRange();
 

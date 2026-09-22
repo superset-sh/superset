@@ -1,31 +1,18 @@
-import { spawn } from "node:child_process";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
+import type { ApiClient } from "../../../lib/api-client";
+import { resolveWorkspaceHost } from "../../../lib/cloud-workspaces";
 import { command } from "../../../lib/command";
-import { findWorkspaceOnHost } from "../../../lib/host-workspaces";
-
-function openUrl(url: string): Promise<void> {
-	const [bin, args]: [string, string[]] =
-		process.platform === "darwin"
-			? ["open", [url]]
-			: process.platform === "win32"
-				? ["cmd", ["/c", "start", "", url]]
-				: ["xdg-open", [url]];
-
-	return new Promise((resolve, reject) => {
-		const child = spawn(bin, args, { stdio: "ignore", detached: true });
-		child.once("error", reject);
-		child.once("spawn", () => {
-			child.unref();
-			resolve();
-		});
-	});
-}
+import { resolveWorkspaceTarget } from "../../../lib/host-workspaces";
+import { desktopWorkspaceLink, openUrl } from "../../../lib/open-url";
 
 export default command({
 	description: "Open a workspace in the Superset desktop app",
 	args: [positional("id").required().desc("Workspace ID")],
 	options: {
-		host: string().desc("Host the workspace lives on (default: this machine)"),
+		host: string().desc(
+			"Host the workspace lives on (default: the cloud if your account has cloud workspaces, else this machine)",
+		),
+		local: boolean().desc("The workspace is on this machine"),
 		print: boolean().desc(
 			"Print the deep link URL instead of opening the desktop app",
 		),
@@ -37,23 +24,28 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		const { hostId, workspace } = await findWorkspaceOnHost(
-			{
-				organizationId,
-				userJwt: ctx.bearer,
-				api: ctx.api,
-				hostId: options.host ?? undefined,
-			},
-			id,
+		// Opening only needs the id and name: a cloud workspace's come from the
+		// API, so the desktop, not this command, wakes its sandbox.
+		const hostId = await resolveWorkspaceHost(
+			{ host: options.host, local: options.local },
+			ctx.api,
+			organizationId,
 		);
-		if (!workspace) {
-			throw new CLIError(
-				`Workspace not found on host ${hostId}: ${id}`,
-				"Pass --host <id> if it lives on another machine. List with: superset workspaces list",
-			);
-		}
+		const workspace = hostId
+			? (
+					await resolveWorkspaceTarget(
+						{
+							organizationId,
+							userJwt: ctx.bearer,
+							api: ctx.api,
+							host: hostId,
+						},
+						id,
+					)
+				).workspace
+			: await cloudWorkspaceRow(ctx.api, organizationId, id);
 
-		const url = `superset://v2-workspace/${workspace.id}`;
+		const url = desktopWorkspaceLink(workspace.id);
 
 		if (!options.print) {
 			try {
@@ -74,3 +66,20 @@ export default command({
 		};
 	},
 });
+
+async function cloudWorkspaceRow(
+	api: ApiClient,
+	organizationId: string,
+	id: string,
+): Promise<{ id: string; name: string }> {
+	const row = (await api.cloudWorkspace.list.query({ organizationId })).find(
+		(candidate) => candidate.id === id,
+	);
+	if (!row) {
+		throw new CLIError(
+			`No cloud workspace ${id} in this organization`,
+			"Pass --local for a workspace on this machine, or --host <id> for another host",
+		);
+	}
+	return row;
+}

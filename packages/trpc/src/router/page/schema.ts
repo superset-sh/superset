@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const OFFERED_VISIBILITIES = ["just_me", "org"] as const;
+export const OFFERED_VISIBILITIES = ["just_me", "org", "everyone"] as const;
 
 /**
  * Field-level schemas shared by this router's inputs and by the MCP tool
@@ -58,22 +58,6 @@ export const WORKSPACE_LINK_MESSAGE = {
 };
 
 /**
- * A publish with no anchor mints a page no workspace lists and no later publish
- * can find — including the id needed to pass `pageId`.
- */
-export const isAnchoredPublish = (value: {
-	pageId?: string | undefined;
-	workspaceId?: string | undefined;
-	entryPath?: string | undefined;
-}) => Boolean(value.pageId) || Boolean(value.workspaceId && value.entryPath);
-
-export const ANCHOR_MESSAGE = {
-	message:
-		"A publish must name where it lives: pass workspaceId and entryPath, or pageId to add a version to an existing page",
-	path: ["workspaceId"],
-};
-
-/**
  * Strict on purpose. Zod strips unknown keys by default, so a newer client
  * against an older server has its extra fields silently discarded — a CLI
  * that uploaded assets and sent them here would get a successful publish
@@ -82,8 +66,7 @@ export const ANCHOR_MESSAGE = {
  */
 export const publishPageSchema = publishPageFieldsSchema
 	.strict()
-	.refine(hasCompleteWorkspaceLink, WORKSPACE_LINK_MESSAGE)
-	.refine(isAnchoredPublish, ANCHOR_MESSAGE);
+	.refine(hasCompleteWorkspaceLink, WORKSPACE_LINK_MESSAGE);
 
 export type PublishPageInput = z.infer<typeof publishPageSchema>;
 
@@ -140,7 +123,10 @@ export const setSharedVersionSchema = z.object({
 	version: pageFields.version.nullable(),
 });
 
-export const deletePageSchema = z.object({ id: pageFields.id });
+export const deletePageSchema = z.object({
+	id: pageFields.id,
+	onlyIfEmpty: z.boolean().optional(),
+});
 
 export const pullPageSchema = pageRefFieldsSchema
 	.extend({ version: pageFields.version.optional() })
@@ -152,3 +138,16 @@ export const setPageWatchSchema = z.object({
 });
 
 export const clearPageWatchSchema = z.object({ id: pageFields.id });
+
+export const publicPageSchema = z.object({ slug: pageFields.slug });
+
+export const updatePageSchema = z
+	.object({
+		id: pageFields.id,
+		title: pageFields.title.optional(),
+		description: pageFields.description.nullable().optional(),
+	})
+	.refine(
+		(value) => value.title !== undefined || value.description !== undefined,
+		{ message: "Provide a title or a description to change" },
+	);

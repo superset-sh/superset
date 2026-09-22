@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { useQueries } from "@tanstack/react-query";
 import { compareDesc } from "date-fns";
 import { useMemo } from "react";
@@ -16,7 +17,7 @@ export interface NewChatTarget {
 	key: string;
 	/** A machine's project, or a project a cloud sandbox can be created for. */
 	kind: "host" | "cloud";
-	projectId: string;
+	projectId: string | null;
 	projectName: string;
 	projectIconUrl: string | null;
 	/** `CLOUD_TARGET_ID` for cloud targets — a sentinel, not a machine. */
@@ -29,8 +30,8 @@ export interface NewChatTarget {
 /** Sentinel host id for "create this in a cloud sandbox" (desktop's CLOUD_HOST_ID). */
 export const CLOUD_TARGET_ID = "cloud";
 
-export function targetKeyFor(projectId: string, machineId: string) {
-	return `${projectId}:${machineId}`;
+export function targetKeyFor(projectId: string | null, machineId: string) {
+	return `${projectId ?? "none"}:${machineId}`;
 }
 
 /**
@@ -44,6 +45,7 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 	targets: NewChatTarget[];
 	defaultTarget: NewChatTarget | null;
 } {
+	const { t } = useLingui();
 	const scope = useWorkspaceScope();
 	const selectedHost = useSelectedHost();
 	const persistedTargetKey = useNewSessionPreferencesStore(
@@ -89,7 +91,19 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 	const targets = useMemo<NewChatTarget[]>(() => {
 		const result: NewChatTarget[] = [];
 		scopedHosts.forEach((host, index) => {
-			for (const row of projectListQueries[index]?.data ?? []) {
+			const rows = projectListQueries[index]?.data;
+			if (!rows) return;
+			result.push({
+				key: targetKeyFor(null, host.machineId),
+				kind: "host",
+				projectId: null,
+				projectName: t({ message: "No project" }),
+				projectIconUrl: null,
+				machineId: host.machineId,
+				hostName: host.name,
+				hostUrl: host.hostUrl,
+			});
+			for (const row of rows) {
 				const project = toHostProjectItem(row);
 				result.push({
 					key: targetKeyFor(project.id, host.machineId),
@@ -117,8 +131,12 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 				hostUrl: "",
 			});
 		}
-		return result.sort((a, b) => a.projectName.localeCompare(b.projectName));
-	}, [scope, scopedHosts, projectListQueries]);
+		return result.sort(
+			(a, b) =>
+				Number(b.projectId === null) - Number(a.projectId === null) ||
+				a.projectName.localeCompare(b.projectName),
+		);
+	}, [scope, scopedHosts, projectListQueries, t]);
 
 	const defaultTarget = useMemo<NewChatTarget | null>(() => {
 		if (targets.length === 0) return null;

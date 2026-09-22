@@ -71,7 +71,32 @@ describe("theme state", () => {
 			},
 		});
 		const ids = listThemeChoices(readThemeState()).map((choice) => choice.id);
-		expect(ids).toEqual(["system", "dark", "light", "monokai", "dracula"]);
+		expect(ids).toEqual([
+			"system",
+			"dark",
+			"light",
+			"monokai",
+			"catppuccin-latte",
+			"solarized-light",
+			"vellum",
+			"dracula",
+		]);
+	});
+
+	test("a custom theme that a built-in now owns is listed once", () => {
+		writeAppState({
+			themeState: {
+				activeThemeId: "dark",
+				customThemes: [
+					{ id: "vellum", name: "Vellum", type: "light" },
+					{ id: "dracula", name: "Dracula", type: "dark" },
+				],
+			},
+		});
+		const choices = listThemeChoices(readThemeState());
+		expect(choices.filter((choice) => choice.id === "vellum")).toEqual([
+			{ id: "vellum", name: "Vellum", type: "light", source: "built-in" },
+		]);
 	});
 
 	test("requireThemeId validates ids and gates the system pseudo-theme", () => {

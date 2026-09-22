@@ -11,7 +11,7 @@ import { getHooksDir } from "./paths";
 export const COPILOT_HOOK_SCRIPT_NAME = "copilot-hook.sh";
 
 const COPILOT_HOOK_SIGNATURE = "# Superset copilot hook";
-const COPILOT_HOOK_VERSION = "v5";
+const COPILOT_HOOK_VERSION = "v6";
 export const COPILOT_HOOK_MARKER = `${COPILOT_HOOK_SIGNATURE} ${COPILOT_HOOK_VERSION}`;
 
 export function getCopilotHookScriptPath(): string {

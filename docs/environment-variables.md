@@ -14,7 +14,9 @@ bucket name — one mechanism means one place to look when a value goes missing.
 Add `--env Production` / `--env Preview` only when the two need different
 values. Without it, both environments get the same one. Scoping works because
 every deploy job declares `environment: production` / `preview`; a job that
-does not will read an environment secret as empty.
+does not will read an environment secret as empty. It is also why a one-off
+script that needs a production secret has to run as a workflow; see
+`docs/deploy-workflows.md`.
 
 Give both environments the **same name** and different values. A separate
 `MY_VAR_DEV` variable is easy to reference in a workflow and forget to create,
@@ -39,14 +41,28 @@ pair `.optional()` with an `if (!env.X) throw`: that is required in disguise.
 - `.env.local.example` — fake working value (`fake-r2-access-key-id`,
   `superset-private-dev`). Local should boot with no real credentials.
 
+The fake value must satisfy the schema: a URL for `z.string().url()`, 32+
+characters for `.min(32)`. Setup copies it into any worktree `.env` that lacks
+the key (see 4), and then loads both schemas against the result, so a value
+that fails validation fails setup.
+
+Leave the value **empty** only for a key that should stay unset locally
+(`CLOUDFLARE_BROWSER_RENDERING_TOKEN`, the APNs keys). Setup never seeds an
+empty value.
+
 ## 4. The root `.env`
 
-`setup.local.sh` seeds `.env` from `.env.local.example` **only if `.env` does
-not exist**, and `setup.sh` copies the **root checkout's** `.env` into every new
-worktree. So the root `.env` (`~/code/superset/.env`) is the source of truth for
-local dev, and a template-only change reaches nobody already set up.
+`setup.local.sh` seeds `.env` from `.env.local.example` only if `.env` does not
+exist, and `setup.sh` copies the **root checkout's** `.env` into every new
+worktree. Either way, setup then appends every key that has a value in
+`.env.local.example` but none in the worktree's `.env`, right after it writes
+the port block, and re-running setup without `--force` fills the gaps in an
+existing worktree. Existing values are never overwritten; an empty `KEY=`
+counts as missing.
 
-Add the key there, and tell the team to do the same.
+So a worktree boots with the fake value until the root `.env`
+(`~/code/superset/.env`) carries a real one. Add the key there when the feature
+needs the real service locally, and tell the team to do the same.
 
 ## 5. Both deploy workflows
 
@@ -70,7 +86,15 @@ or the value arrives empty.
 
 - [ ] `gh secret set`
 - [ ] Schema, required unless it has a real fallback
-- [ ] `.env.example` empty, `.env.local.example` fake
-- [ ] Root `.env`, and the team told
+- [ ] `.env.example` empty, `.env.local.example` fake and schema-valid
+- [ ] Root `.env` when the feature needs the real value locally, and the team told
 - [ ] `deploy-production.yml`: `env:` block **and** `--env`
 - [ ] `deploy-preview.yml`: same two
+
+## Launcher-owned runtime values
+
+`SUPERSET_HOST_INSTALL_SOURCE` is set by the desktop coordinator (`desktop`) or standalone CLI spawner (`cli`) on the host child process. A checkout may set `dev`; absent/unrecognized values report `unknown`. This is install provenance, not an API deployment setting: do not put it in shared `.env` templates or deployment secrets. The host ignores login-shell values for this key. In-place updates additionally require a standalone entrypoint and a valid install layout.
+
+`SUPERSET_AGENT_LAUNCH_ID` is set by the outer agent wrapper to a process-and-start-time identifier. Hook children inherit it so a new launch in the same terminal cannot inherit the previous login attribution. It is runtime metadata, not a deployment secret or user setting; it does not belong in `.env` templates or deploy workflows.
+
+`SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN` is issued by the host for each new terminal and authorizes only that terminal’s login-attribution hook metadata. It is not the host authentication token. Tokens expire when the host process restarts; open a new terminal to restore verified login attribution. The host injects it at PTY creation, so it does not belong in deployment configuration.

@@ -18,7 +18,7 @@ export type HostShapedWorkspace = Omit<
 > & {
 	/** Null for project-less "session" workspaces. */
 	projectId: string | null;
-	type: "main" | "worktree" | "session";
+	type: "local" | "worktree" | "session";
 	/**
 	 * Normalized, sorted tag set. Optional because a row served by an older
 	 * host — or restored from a pre-tags IndexedDB snapshot — carries the
@@ -181,12 +181,27 @@ export async function loadHostWorkspacesSnapshot(
 ): Promise<HostWorkspaceRow[] | undefined> {
 	if (!organizationId) return undefined;
 	try {
-		return await idbGet<HostWorkspaceRow[]>(
+		const rows = await idbGet<HostWorkspaceRow[]>(
 			snapshotKey(organizationId, machineId),
 		);
+		return rows?.map(normalizeServedWorkspaceRow);
 	} catch {
 		return undefined;
 	}
+}
+
+/**
+ * Hosts before the local-workspace model served the checkout row as
+ * `type: "main"`; a snapshot saved from one, or a remote host still on that
+ * version, is read as the local workspace it always was.
+ */
+export function normalizeServedWorkspaceRow<
+	Row extends { type: HostShapedWorkspace["type"] | "main" },
+>(row: Row): Row & { type: HostShapedWorkspace["type"] } {
+	if (row.type !== "main") {
+		return row as Row & { type: HostShapedWorkspace["type"] };
+	}
+	return { ...row, type: "local" };
 }
 
 export function saveHostWorkspacesSnapshot(
@@ -248,7 +263,7 @@ export function applyWorkspaceChangedEvent(
 		hostId: host.machineId,
 		name: snapshot.name,
 		branch: snapshot.branch,
-		type: snapshot.type,
+		type: normalizeServedWorkspaceRow(snapshot).type,
 		createdByUserId: snapshot.createdByUserId,
 		taskId: snapshot.taskId,
 		// Runtime-optional despite the payload type: an older host's events

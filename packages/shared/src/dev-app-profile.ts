@@ -1,18 +1,12 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 /**
- * Dev builds of the desktop app rename themselves to `Superset (<workspace
- * name>)` so several worktrees are distinguishable in the dock. Renaming an
- * Electron app also moves `app.getPath("userData")`, so every workspace the
- * dev app is launched from mints its own Chromium profile directory under the
- * platform's application-data path — a few hundred MB to ~1.8GB each, and
- * nothing ever removed them.
- *
- * This module is the single definition of that directory name so the desktop
- * (which creates the profiles) and host-service (which reaps them on workspace
- * delete) cannot drift on the format.
+ * Dev app labels use workspace names, but storage uses workspace IDs.
+ * Legacy name-based profiles remain eligible for guarded cleanup; they are
+ * not automatically adopted because multiple workspaces may have shared one.
  */
 
 /** `productName` in apps/desktop/package.json — what Electron names the app. */
@@ -38,6 +32,23 @@ export function devAppProfileDirName(workspaceName: string): string {
 }
 
 /**
+ * A separate namespace avoids collisions with every legacy display name.
+ * Hash the identity so even untrusted IDs remain a single safe path segment.
+ * Standalone launches use the absolute app directory as their stable identity.
+ */
+export function workspaceDevAppProfileDirName({
+	workspaceId,
+	appPath,
+}: {
+	workspaceId?: string;
+	appPath: string;
+}): string {
+	const id = workspaceId?.trim();
+	const identity = id ? `id:${id}` : `path:${path.resolve(appPath)}`;
+	return `Superset Dev Workspace (${createHash("sha256").update(identity).digest("hex")})`;
+}
+
+/**
  * True for a directory that is a per-workspace dev profile and safe to remove.
  *
  * Deliberately a prefix test rather than a `Superset (…)` shape test: workspace
@@ -47,7 +58,11 @@ export function devAppProfileDirName(workspaceName: string): string {
  */
 export function isDevAppProfileDirName(name: string): boolean {
 	if (INSTALLED_APP_PROFILE_DIR_NAMES.has(name)) return false;
-	if (!name.startsWith(DEV_PROFILE_PREFIX)) return false;
+	if (
+		!name.startsWith(DEV_PROFILE_PREFIX) &&
+		!/^Superset Dev Workspace \([a-f0-9]{64}\)$/.test(name)
+	)
+		return false;
 	// Must stay one path segment: a workspace name carrying a separator (or a
 	// `..`) would otherwise let a derived path escape the profiles directory.
 	return (

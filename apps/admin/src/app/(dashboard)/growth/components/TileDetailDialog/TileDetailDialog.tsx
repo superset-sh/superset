@@ -1,7 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -22,7 +22,7 @@ import type { ReactNode } from "react";
 import { LuDatabase } from "react-icons/lu";
 
 import { formatDay } from "../../../utils/chartAxis";
-import { posthogQueryUrl } from "../../utils/posthogQueryUrl";
+import { posthogQueryUrl } from "../../../utils/posthogQueryUrl";
 import { type ChartSeries, WeeklySeriesChart } from "../WeeklySeriesChart";
 
 interface TileDetailDialogProps {
@@ -48,6 +48,8 @@ export function TileDetailDialog({
 	stacked,
 	query,
 }: TileDetailDialogProps) {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const totals = series.map((s) => s.values.reduce((sum, v) => sum + v, 0));
 

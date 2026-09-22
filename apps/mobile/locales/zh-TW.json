@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"NSSpeechRecognitionUsageDescription": "Superset 使用語音辨識將您的語音轉換為文字。",
+		"NSPhotoLibraryUsageDescription": "Superset 需要存取您的照片圖庫，以便在聊天訊息中附加圖片。",
+		"NSCameraUsageDescription": "Superset 使用相機，以便在聊天訊息中附加照片。",
+		"NSMicrophoneUsageDescription": "Superset 使用麥克風，以便您聽寫聊天訊息。"
+	}
+}

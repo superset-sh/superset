@@ -46,10 +46,26 @@ export const env = createEnv({
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		KV_REST_API_URL: z.string().url().optional(),
 		KV_REST_API_TOKEN: z.string().optional(),
-		// Blaxel (cloud workspace sandboxes).
-		BLAXEL_API_KEY: z.string().min(1),
-		BLAXEL_WORKSPACE: z.string().min(1),
-		BLAXEL_REGION: z.string().min(1),
+		// Shared with apps/marketing. Its server-side leaderboard reads present
+		// it to skip the per-IP anonymous limiter, which would otherwise count
+		// every marketing render as one visitor (Vercel shares egress IPs).
+		// Absent means every read is anonymous and rate-limited.
+		LEADERBOARD_INTERNAL_TOKEN: z.string().min(1).optional(),
+		// Vercel Sandbox (cloud workspace sandboxes). A token for the team's
+		// `sandboxes` project, not the deploy token.
+		VERCEL_SANDBOX_TOKEN: z.string().min(1),
+		VERCEL_SANDBOX_TEAM_ID: z.string().min(1),
+		VERCEL_SANDBOX_PROJECT_ID: z.string().min(1),
+		VERCEL_SANDBOX_REGION: z.string().min(1).default("iad1"),
+		// Shared with the gate Worker: signs the tickets clients present
+		// there and derives the secret each sandbox's host-service is booted with.
+		SANDBOX_GATE_SECRET: z.string().min(32),
+		// The gate with `*` where a workspace's `<id>-<port>` label goes, e.g.
+		// https://*.sandbox.supersetusercontent.com; a local wrangler dev has no `*`.
+		SANDBOX_GATE_ORIGIN: z
+			.string()
+			.url()
+			.or(z.string().regex(/^https?:\/\/\*\./)),
 		SENTRY_DSN_SANDBOX: z.string().optional(),
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
 			.enum(["development", "preview", "production"])
@@ -59,9 +75,15 @@ export const env = createEnv({
 		GH_APP_ID: z.string().min(1),
 		GH_APP_PRIVATE_KEY: z.string().min(1),
 		GH_WEBHOOK_SECRET: z.string().min(1),
+		// The same App's OAuth client, for a person's own GitHub connection;
+		// without them nobody can connect and workspaces use the App's token.
+		GH_APP_CLIENT_ID: z.string().min(1).optional(),
+		GH_APP_CLIENT_SECRET: z.string().min(1).optional(),
 		ANTHROPIC_API_KEY: z.string(),
 		OPENAI_API_KEY: z.string().min(1),
 		RELAY_URL: z.string().url().default("https://relay.superset.sh"),
+		REALTIME_URL: z.string().url().default("https://realtime.superset.sh"),
+		REALTIME_NUDGE_SECRET: z.string().min(1),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
 		GOOGLE_CLIENT_ID: z.string().min(1),
@@ -74,6 +96,11 @@ export const env = createEnv({
 		MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
 		STRIPE_SECRET_KEY: z.string().optional(),
 		MERCURY_API_TOKEN: z.string().optional(),
+		// Optional read-only PAT (no scopes needed), shared with apps/marketing.
+		// GitHub's stargazers endpoint requires authentication even for public
+		// repos; without it the star history tiles report "not available" and
+		// every other growth tile keeps working.
+		GITHUB_TOKEN: z.string().min(1).optional(),
 		// Optional: the admin Growth page's Search Console tiles report "not
 		// connected" wherever the service account is unset. The account must be
 		// added as a user of the property in Search Console.
@@ -82,6 +109,11 @@ export const env = createEnv({
 			.string()
 			.min(1)
 			.default("sc-domain:superset.sh"),
+		// Optional, falls back to NEXT_PUBLIC_API_URL: the origin an
+		// authorization server fetches a plugin's client id metadata document
+		// from. Only needs setting where NEXT_PUBLIC_API_URL is unreachable from
+		// the public internet, which in practice means local dev behind a tunnel.
+		PLUGIN_CLIENT_METADATA_BASE_URL: z.string().url().optional(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

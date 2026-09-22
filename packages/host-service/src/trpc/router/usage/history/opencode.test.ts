@@ -5,8 +5,9 @@ import { join } from "node:path";
 import { collectOpencodeEntries } from "./opencode";
 import type { UsageLogEntry } from "./parse";
 
-const storage = mkdtempSync(join(tmpdir(), "opencode-usage-"));
-afterAll(() => rmSync(storage, { recursive: true, force: true }));
+const dataDir = mkdtempSync(join(tmpdir(), "opencode-usage-"));
+const storage = join(dataDir, "storage");
+afterAll(() => rmSync(dataDir, { recursive: true, force: true }));
 
 const SESSION = "ses_test1";
 const NOW = Date.parse("2026-08-20T12:00:00.000Z");
@@ -17,7 +18,7 @@ function writeMessage(name: string, message: Record<string, unknown>) {
 	writeFileSync(join(dir, name), JSON.stringify(message));
 }
 
-describe("collectOpencodeEntries", () => {
+describe("collectOpencodeEntries (legacy JSON storage, no opencode.db)", () => {
 	test("maps assistant messages with their recorded cost", async () => {
 		writeMessage("msg_1.json", {
 			sessionID: SESSION,
@@ -48,7 +49,7 @@ describe("collectOpencodeEntries", () => {
 
 		const out: UsageLogEntry[] = [];
 		const labels = new Map<string, string>();
-		const scanned = await collectOpencodeEntries(0, out, labels, storage);
+		const scanned = await collectOpencodeEntries(0, out, labels, dataDir);
 		expect(scanned).toBe(2);
 		expect(out).toHaveLength(1);
 		expect(out[0]).toMatchObject({
@@ -68,7 +69,7 @@ describe("collectOpencodeEntries", () => {
 
 	test("drops messages before the cutoff", async () => {
 		const out: UsageLogEntry[] = [];
-		await collectOpencodeEntries(NOW + 1, out, undefined, storage);
+		await collectOpencodeEntries(NOW + 1, out, undefined, dataDir);
 		expect(out).toHaveLength(0);
 	});
 
@@ -78,7 +79,7 @@ describe("collectOpencodeEntries", () => {
 			0,
 			out,
 			undefined,
-			join(storage, "absent"),
+			join(dataDir, "absent"),
 		);
 		expect(scanned).toBe(0);
 		expect(out).toHaveLength(0);

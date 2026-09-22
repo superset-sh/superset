@@ -1,11 +1,15 @@
-import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { AppState } from "react-native";
 import type { CloudWorkspaceRow } from "@/hooks/useCloudWorkspaces";
-import { ensureSandboxAccess } from "@/lib/sandbox-access";
+import { wakeSandboxAccess } from "@/lib/sandbox-access";
 
-/** Re-mint with time to spare; the provider's token is short-lived. */
-const REFRESH_AT = 0.8;
+/**
+ * Each mint wakes, which is also what extends the sandbox's session: it stops
+ * after hours of not being asked, and the next wake brings it back. Same
+ * cadence as the desktop's open workspace.
+ */
+const KEEPALIVE_MS = 10 * 60 * 1000;
 const RETRY_MS = 30_000;
 
 const SANDBOX_ACCESS_QUERY_KEY = ["cloud", "sandbox-access"] as const;
@@ -18,64 +22,56 @@ export interface SandboxTarget {
 }
 
 export interface SandboxAccessValue {
-	targets: SandboxTarget[];
-	/** False until every ready cloud workspace has been addressed once. */
+	target: SandboxTarget | null;
+	/** False until the workspace has been addressed once. */
 	isReady: boolean;
+	/** True while the last attempt to address it failed; attempts continue. */
+	isError: boolean;
+	retry: () => void;
 }
 
 /**
- * Keeps a live address for every ready cloud workspace.
+ * Keeps the open cloud workspace addressed and awake.
  *
  * A sandbox has no host row and no stable URL — it is reachable only through
- * a token this brokers, and that token expires. Minting for all of them
- * (rather than only the open one) is what lets the rest of the app treat a
- * sandbox as just another host: workspace rows, terminals, diff stats are all
- * keyed by host id, so once a sandbox has an address they light up with no
- * cloud-specific code.
+ * a ticket this brokers. Only the workspace on screen is addressed: every
+ * mint wakes its sandbox, and waking the rest of a list would resume and bill
+ * sandboxes nobody is looking at.
  *
- * iOS freezes JS timers in the background, so an interval alone would come
- * back to an expired token after a long sleep; returning to the foreground
- * re-checks every grant, and the dial path re-mints on its own if stale.
+ * iOS freezes JS timers in the background, so the interval alone would come
+ * back to a stopped sandbox after a long sleep; returning to the foreground
+ * wakes it again.
  */
 export function useSandboxAccess(
-	cloudWorkspaces: CloudWorkspaceRow[],
+	cloud: CloudWorkspaceRow | null,
 ): SandboxAccessValue {
 	const queryClient = useQueryClient();
 
 	// Only a `ready` row has a sandbox to address: `access` refuses anything
-	// else, and a provisioning workspace asking for a token every few seconds
+	// else, and a provisioning workspace asking for a ticket every few seconds
 	// would be a retry loop against a guaranteed rejection.
-	const ready = useMemo(
-		() => cloudWorkspaces.filter((row) => row.status === "ready"),
-		[cloudWorkspaces],
-	);
+	const ready = cloud?.status === "ready" ? cloud : null;
 
-	const results = useQueries({
-		queries: ready.map((row) => ({
-			queryKey: [...SANDBOX_ACCESS_QUERY_KEY, row.id] as const,
-			networkMode: "always" as const,
-			queryFn: async () => {
-				const access = await ensureSandboxAccess(row.id);
-				return { url: access.url, expiresAt: access.expiresAt };
-			},
-			// No refetchIntervalInBackground: that flag is about browser window
-			// focus, which React Query never sees here — iOS freezes the timers
-			// wholesale, and the AppState listener below is the resume path.
-			refetchInterval: (query: {
-				state: { data?: { expiresAt: number } };
-			}): number => {
-				const expiresAt = query.state.data?.expiresAt;
-				if (!expiresAt) return RETRY_MS;
-				return Math.max(RETRY_MS, (expiresAt - Date.now()) * REFRESH_AT);
-			},
-		})),
+	const query = useQuery({
+		queryKey: [...SANDBOX_ACCESS_QUERY_KEY, ready?.id ?? null] as const,
+		enabled: ready !== null,
+		// Every sheet on the workspace mounts this; a mount is not a reason to wake.
+		staleTime: KEEPALIVE_MS,
+		networkMode: "always" as const,
+		queryFn: async () => {
+			const access = await wakeSandboxAccess((ready as CloudWorkspaceRow).id);
+			return { url: access.url };
+		},
+		// No refetchIntervalInBackground: that flag is about browser window
+		// focus, which React Query never sees here — iOS freezes the timers
+		// wholesale, and the AppState listener below is the resume path.
+		refetchInterval: (current) =>
+			current.state.data ? KEEPALIVE_MS : RETRY_MS,
 	});
 
 	useEffect(() => {
 		const subscription = AppState.addEventListener("change", (state) => {
 			if (state !== "active") return;
-			// ensureSandboxAccess is a no-op for a grant that is still fresh, so
-			// this only costs a mint for the ones that lapsed while asleep.
 			void queryClient.invalidateQueries({
 				queryKey: SANDBOX_ACCESS_QUERY_KEY,
 			});
@@ -83,20 +79,21 @@ export function useSandboxAccess(
 		return () => subscription.remove();
 	}, [queryClient]);
 
-	return useMemo<SandboxAccessValue>(() => {
-		const targets: SandboxTarget[] = [];
-		ready.forEach((row, index) => {
-			const url = results[index]?.data?.url;
-			if (!url) return;
-			targets.push({
-				workspaceId: row.id,
-				organizationId: row.organizationId,
-				url,
-			});
-		});
-		return {
-			targets,
-			isReady: results.every((result) => result.isFetched),
-		};
-	}, [ready, results]);
+	const url = query.data?.url ?? null;
+	return useMemo<SandboxAccessValue>(
+		() => ({
+			target:
+				ready && url
+					? {
+							workspaceId: ready.id,
+							organizationId: ready.organizationId,
+							url,
+						}
+					: null,
+			isReady: ready === null || query.isFetched,
+			isError: query.isError,
+			retry: () => void query.refetch(),
+		}),
+		[ready, url, query.isFetched, query.isError, query.refetch],
+	);
 }

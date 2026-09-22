@@ -1,0 +1,8 @@
+[net.launchpad.plank.dock.settings]
+theme="Superset"
+icon-size=48
+zoom-enabled=false
+position="bottom"
+alignment="center"
+hide-mode="none"
+dock-items=["01-chrome.dockitem","02-files.dockitem","03-terminal.dockitem"]

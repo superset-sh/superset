@@ -1,4 +1,17 @@
+import type { AgentIdentityId } from "@superset/shared/agent-catalog";
+export interface FilePosition {
+	line: number;
+	column?: number;
+}
+
+export type OpenFile = (
+	path: string,
+	openInNewTab?: boolean,
+	position?: FilePosition,
+) => void;
+
 export interface FilePaneData {
+	pendingPosition?: FilePosition;
 	filePath: string;
 	mode: "editor" | "diff" | "preview";
 	language?: string;
@@ -52,6 +65,11 @@ export interface CommentPaneData {
 	line?: number;
 }
 
+export interface PullRequestPaneData {
+	prNumber: number;
+	projectId?: string;
+}
+
 export interface PagePaneData {
 	slug: string;
 	pageId?: string;
@@ -66,6 +84,40 @@ export interface DesktopPaneData {
 	kind: "desktop";
 }
 
+/**
+ * Pointer to one subagent's transcript. The transcript itself is fetched
+ * from the host on every read; only this pointer is persisted.
+ */
+export const SUBAGENT_PANE_KIND = "subagent";
+
+export interface SubagentPaneData {
+	terminalId: string;
+	subagentId: string;
+	agentId: AgentIdentityId;
+	agentType?: string;
+}
+
+export type WorkspaceSearchKey =
+	| "terminalId"
+	| "focusRequestId"
+	| "subagentTerminalId"
+	| "subagentId"
+	| "subagentAgentId"
+	| "subagentType"
+	| "openUrl"
+	| "openUrlTarget"
+	| "openUrlRequestId"
+	| "pageId"
+	| "pageSlug";
+
+/**
+ * Drops the search params a deep link arrived with, once the hook that owns
+ * them has acted. Router history is persisted with its search params and
+ * replayed at boot, so a link left in the URL fires again on every relaunch
+ * and on every Back onto that entry.
+ */
+export type ConsumeSearch = (keys: WorkspaceSearchKey[]) => void;
+
 export type PaneViewerData =
 	| FilePaneData
 	| TerminalPaneData
@@ -74,5 +126,7 @@ export type PaneViewerData =
 	| DevtoolsPaneData
 	| DiffPaneData
 	| CommentPaneData
+	| PullRequestPaneData
 	| PagePaneData
-	| DesktopPaneData;
+	| DesktopPaneData
+	| SubagentPaneData;

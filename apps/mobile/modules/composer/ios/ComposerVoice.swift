@@ -46,7 +46,7 @@ struct ComposerVoicePill: View {
       .background(.white.opacity(0.12), in: .capsule)
     }
     .buttonStyle(.plain)
-    .accessibilityLabel("Stop dictation")
+    .accessibilityLabel(composerLocalized("Stop dictation"))
   }
 }
 

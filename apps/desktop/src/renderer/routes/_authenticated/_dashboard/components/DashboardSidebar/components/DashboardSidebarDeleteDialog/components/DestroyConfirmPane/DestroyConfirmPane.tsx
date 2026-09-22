@@ -1,16 +1,17 @@
 import { Trans } from "@lingui/react/macro";
 import {
 	AlertDialog,
-	AlertDialogContent,
+	AlertDialogAction,
+	AlertDialogCancel,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
+	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
-import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Label } from "@superset/ui/label";
-import { useEffect, useId, useRef } from "react";
+import { useId } from "react";
 import { shouldConfirmDeleteDialogKey } from "../../utils/shouldConfirmDeleteDialogKey";
 
 interface DestroyConfirmPaneProps {
@@ -19,6 +20,9 @@ interface DestroyConfirmPaneProps {
 	workspaceName: string;
 	/** Session workspaces delete a managed folder; no branch to offer. */
 	isSession?: boolean;
+	/** Local workspaces live on the project's checkout: only the workspace
+	 * record goes away, so there is no branch or folder to offer. */
+	sharesProjectCheckout?: boolean;
 	deleteBranch: boolean;
 	onDeleteBranchChange: (next: boolean) => void;
 	hasChanges: boolean;
@@ -34,6 +38,7 @@ export function DestroyConfirmPane({
 	onOpenChange,
 	workspaceName,
 	isSession = false,
+	sharesProjectCheckout = false,
 	deleteBranch,
 	onDeleteBranchChange,
 	hasChanges,
@@ -46,38 +51,9 @@ export function DestroyConfirmPane({
 	const checkboxId = useId();
 	const hasWarnings = hasChanges || hasUnpushedCommits;
 
-	// Read through a ref so a re-render while the dialog is open (checkbox
-	// toggle, warning banner) doesn't tear down and re-arm the listener.
-	const onConfirmRef = useRef(onConfirm);
-	useEffect(() => {
-		onConfirmRef.current = onConfirm;
-	}, [onConfirm]);
-
-	useEffect(() => {
-		if (!open || !canConfirm) return;
-
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (!shouldConfirmDeleteDialogKey(event)) return;
-			event.preventDefault();
-			onConfirmRef.current();
-		};
-
-		// Arm after the current task: the Enter that selected "Delete" in a
-		// context menu is still bubbling when this pane mounts, and a listener
-		// added now would confirm the delete on that same keystroke.
-		const timer = setTimeout(
-			() => window.addEventListener("keydown", handleKeyDown),
-			0,
-		);
-		return () => {
-			clearTimeout(timer);
-			window.removeEventListener("keydown", handleKeyDown);
-		};
-	}, [canConfirm, open]);
-
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+			<EnterEnabledAlertDialogContent className="max-w-[340px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
 						{isSession ? (
@@ -92,10 +68,14 @@ export function DestroyConfirmPane({
 								This deletes the session's folder and everything in it from
 								disk.
 							</Trans>
+						) : sharesProjectCheckout ? (
+							<Trans>
+								This closes the workspace and its terminals. The project's
+								files, branches and other workspaces stay as they are.
+							</Trans>
 						) : (
 							<Trans>
-								This removes the worktree from disk. The cloud workspace record
-								will also be removed.
+								This removes the worktree from disk and closes the workspace.
 							</Trans>
 						)}
 					</AlertDialogDescription>
@@ -129,7 +109,7 @@ export function DestroyConfirmPane({
 						</div>
 					</div>
 				)}
-				{!isSession && (
+				{!isSession && !sharesProjectCheckout && (
 					<div className="px-4 pb-2">
 						<div className="flex items-center gap-2">
 							<Checkbox
@@ -149,15 +129,19 @@ export function DestroyConfirmPane({
 					</div>
 				)}
 				<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-7 px-3 text-xs"
-						onClick={() => onOpenChange(false)}
-					>
+					<AlertDialogCancel className="h-7 border-0 bg-transparent px-3 text-xs shadow-none">
 						<Trans>Cancel</Trans>
-					</Button>
-					<Button
+					</AlertDialogCancel>
+					<AlertDialogAction
+						onKeyDown={(event) => {
+							// Let the button handle Enter natively, except held keys and IME.
+							if (
+								event.key === "Enter" &&
+								!shouldConfirmDeleteDialogKey(event.nativeEvent)
+							) {
+								event.preventDefault();
+							}
+						}}
 						variant="destructive"
 						size="sm"
 						className="h-7 px-3 text-xs"
@@ -165,9 +149,9 @@ export function DestroyConfirmPane({
 						disabled={!canConfirm}
 					>
 						{confirmLabel}
-					</Button>
+					</AlertDialogAction>
 				</AlertDialogFooter>
-			</AlertDialogContent>
+			</EnterEnabledAlertDialogContent>
 		</AlertDialog>
 	);
 }

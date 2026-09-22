@@ -1,11 +1,21 @@
 import type { Theme } from "../types";
+import { catppuccinLatteTheme } from "./catppuccin-latte";
 import { darkTheme } from "./ember";
 import { lightTheme } from "./light";
 import { monokaiTheme } from "./monokai";
+import { solarizedLightTheme } from "./solarized-light";
+import { vellumTheme } from "./vellum";
 /**
  * All built-in themes
  */
-export const builtInThemes: Theme[] = [darkTheme, lightTheme, monokaiTheme];
+export const builtInThemes: Theme[] = [
+	darkTheme,
+	lightTheme,
+	monokaiTheme,
+	catppuccinLatteTheme,
+	solarizedLightTheme,
+	vellumTheme,
+];
 
 /**
  * Default theme ID
@@ -20,4 +30,11 @@ export function getBuiltInTheme(id: string): Theme | undefined {
 }
 
 // Re-export individual themes
-export { darkTheme, lightTheme, monokaiTheme };
+export {
+	catppuccinLatteTheme,
+	darkTheme,
+	lightTheme,
+	monokaiTheme,
+	solarizedLightTheme,
+	vellumTheme,
+};

@@ -100,15 +100,48 @@ describe("getGitHubUsernameViaGh", () => {
 });
 
 describe("readGitIdentity", () => {
-	test("combines gh login with the process-env git author", async () => {
+	test("reads the author from home, not from the directory it runs in", async () => {
 		writeGhStub('echo "hubster"');
-		// The git read intentionally uses the process env (not shellEnv), so
-		// compare against the same read done directly.
-		const { createUserSimpleGit } = await import("./simple-git");
-		const expectedAuthor = await getGitAuthorName(createUserSimpleGit());
-		expect(await readGitIdentity(stubGhEnv())).toEqual({
-			githubUsername: "hubster",
-			authorName: expectedAuthor,
+		// Two identities that cannot be confused: one in the home git config
+		// the read is anchored to, one in the repository the process is
+		// standing in. The git read uses the process env (not shellEnv), so
+		// HOME is set here rather than passed in.
+		const home = path.join(tmpDir, "identity-home");
+		fs.mkdirSync(path.join(home, ".config"), { recursive: true });
+		fs.writeFileSync(
+			path.join(home, ".gitconfig"),
+			"[user]\n\tname = home-identity\n",
+		);
+		const cwdRepo = path.join(tmpDir, "identity-repo");
+		fs.mkdirSync(cwdRepo);
+		execFileSync("git", ["init"], { cwd: cwdRepo });
+		execFileSync("git", ["config", "user.name", "repo-identity"], {
+			cwd: cwdRepo,
 		});
+
+		const restore = {
+			home: process.env.HOME,
+			xdg: process.env.XDG_CONFIG_HOME,
+			cwd: process.cwd(),
+		};
+		try {
+			process.env.HOME = home;
+			process.env.XDG_CONFIG_HOME = path.join(home, ".config");
+			process.chdir(cwdRepo);
+
+			expect(await readGitIdentity(stubGhEnv())).toEqual({
+				githubUsername: "hubster",
+				authorName: "home-identity",
+			});
+		} finally {
+			process.chdir(restore.cwd);
+			setOrDelete("HOME", restore.home);
+			setOrDelete("XDG_CONFIG_HOME", restore.xdg);
+		}
 	});
 });
+
+function setOrDelete(key: string, value: string | undefined): void {
+	if (value === undefined) delete process.env[key];
+	else process.env[key] = value;
+}

@@ -10,50 +10,50 @@ import {
 import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { SiLinear } from "react-icons/si";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
 import { TeamSelector } from "./components/TeamSelector";
 
-const CALLBACK_MESSAGES = {
-	oauth_denied: i18n._(
-		msg({
-			message: "Authorization was denied. Please try again.",
-		}),
-	),
-	missing_params: i18n._(
-		msg({
-			message: "Invalid OAuth response. Please try again.",
-		}),
-	),
-	invalid_state: i18n._(
-		msg({
-			message: "Invalid state parameter. Please try again.",
-		}),
-	),
-	token_exchange_failed: i18n._(
-		msg({
-			message: "Failed to connect to Linear. Please try again.",
-		}),
-	),
-	unauthorized: i18n._(
-		msg({
-			message: "You are not authorized to perform this action.",
-		}),
-	),
-};
-
-const CALLBACK_WARNINGS = {
-	sync_queued_failed: i18n._(
-		msg({
-			message:
-				"Linear connected, but initial sync failed to start. Please try reconnecting.",
-		}),
-	),
-};
-
 export default async function LinearIntegrationPage() {
+	const i18n = await initServerI18n();
+	const CALLBACK_MESSAGES = {
+		oauth_denied: i18n._(
+			msg({
+				message: "Authorization was denied. Please try again.",
+			}),
+		),
+		missing_params: i18n._(
+			msg({
+				message: "Invalid OAuth response. Please try again.",
+			}),
+		),
+		invalid_state: i18n._(
+			msg({
+				message: "Invalid state parameter. Please try again.",
+			}),
+		),
+		token_exchange_failed: i18n._(
+			msg({
+				message: "Failed to connect to Linear. Please try again.",
+			}),
+		),
+		unauthorized: i18n._(
+			msg({
+				message: "You are not authorized to perform this action.",
+			}),
+		),
+	};
+	const CALLBACK_WARNINGS = {
+		sync_queued_failed: i18n._(
+			msg({
+				message:
+					"Linear connected, but initial sync failed to start. Please try reconnecting.",
+			}),
+		),
+	};
+
 	const trpc = await api();
 	const organization = await trpc.user.myOrganization.query();
 

@@ -8,6 +8,7 @@ import { Text } from "@/components/ui/text";
 import { useSignOut } from "@/hooks/useSignOut";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
+import { errorCopy } from "@/lib/errors";
 import { apiClient } from "@/lib/trpc/client";
 import { useDaysUntilPurge } from "./hooks/useDaysUntilPurge";
 
@@ -33,11 +34,7 @@ export function AccountPendingDeletionScreen() {
 				t({
 					message: "Could not reactivate",
 				}),
-				error instanceof Error
-					? error.message
-					: t({
-							message: "Something went wrong.",
-						}),
+				errorCopy(error),
 			);
 		} finally {
 			setIsReactivating(false);

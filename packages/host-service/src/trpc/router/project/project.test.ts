@@ -69,8 +69,8 @@ function seedProject(
 				worktreePath:
 					index === 0 ? `/repos/${projectId}` : `/worktrees/${workspaceId}`,
 				branch: index === 0 ? "main" : `feature-${index}`,
-				name: index === 0 ? "main" : `feature-${index}`,
-				type: index === 0 ? "main" : "worktree",
+				name: index === 0 ? "local" : `feature-${index}`,
+				type: index === 0 ? "local" : "worktree",
 				createdAt: 1,
 			})
 			.run();

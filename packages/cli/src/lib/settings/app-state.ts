@@ -136,12 +136,14 @@ export function listThemeChoices(themeState: ThemeState): ThemeChoice[] {
 			type: theme.type,
 			source: "built-in" as const,
 		})),
-		...themeState.customThemes.map((theme) => ({
-			id: theme.id,
-			name: theme.name ?? theme.id,
-			type: theme.type ?? "unknown",
-			source: "custom" as const,
-		})),
+		...themeState.customThemes
+			.filter((theme) => !builtInThemes.some((b) => b.id === theme.id))
+			.map((theme) => ({
+				id: theme.id,
+				name: theme.name ?? theme.id,
+				type: theme.type ?? "unknown",
+				source: "custom" as const,
+			})),
 	];
 }
 

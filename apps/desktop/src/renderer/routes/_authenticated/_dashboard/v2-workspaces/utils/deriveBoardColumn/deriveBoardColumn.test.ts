@@ -7,7 +7,7 @@ function make(overrides: {
 	archiveReason?: "merged" | "deleted" | null;
 	agentStatus?: PaneStatus;
 	prState?: "open" | "draft" | "merged" | "closed" | "queued" | null;
-	type?: "main" | "worktree" | "session";
+	type?: "local" | "worktree" | "session";
 }) {
 	return {
 		archivedAt: overrides.archivedAt ?? null,
@@ -69,9 +69,9 @@ describe("deriveBoardColumn", () => {
 		expect(deriveBoardColumn(make({ prState: "queued" }))).toBe("review");
 	});
 
-	test("a finished agent on a main or worktree checkout is review-worthy", () => {
+	test("a finished agent on a local or worktree checkout is review-worthy", () => {
 		expect(
-			deriveBoardColumn(make({ agentStatus: "review", type: "main" })),
+			deriveBoardColumn(make({ agentStatus: "review", type: "local" })),
 		).toBe("review");
 		expect(
 			deriveBoardColumn(make({ agentStatus: "review", type: "worktree" })),
@@ -84,13 +84,13 @@ describe("deriveBoardColumn", () => {
 		).toBe("idle");
 	});
 
-	test("an open PR means review even on session and main workspaces", () => {
+	test("an open PR means review even on session and local workspaces", () => {
 		expect(
 			deriveBoardColumn(
 				make({ agentStatus: "review", type: "session", prState: "open" }),
 			),
 		).toBe("review");
-		expect(deriveBoardColumn(make({ type: "main", prState: "open" }))).toBe(
+		expect(deriveBoardColumn(make({ type: "local", prState: "open" }))).toBe(
 			"review",
 		);
 	});

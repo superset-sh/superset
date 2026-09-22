@@ -2,15 +2,17 @@ import { describe, expect, test } from "bun:test";
 import type { TRPCError } from "@trpc/server";
 import type { GitCredentialProvider } from "../../../../runtime/git/types";
 import {
+	isGithubAuthError,
+	isGithubNotFoundError,
+	isGithubRateLimitError,
+} from "../../../../runtime/pull-requests/utils/github-errors";
+import {
 	buildSearchQuery,
 	chunkProjectRepos,
 	collectChunkResults,
 	GITHUB_SEARCH_QUERY_MAX_LENGTH,
 	githubRateLimitError,
 	githubRequestError,
-	isGithubAuthError,
-	isGithubNotFoundError,
-	isGithubRateLimitError,
 	mergeByUpdatedAtDesc,
 	type ProjectRepo,
 	projectIdForSearchItem,

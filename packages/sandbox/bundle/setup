@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+# The bundle's runner. Installed with the bundle at /opt/superset/bundle/<sha>/,
+# run by the image build once and by superset-boot on every start. Every
+# subcommand is idempotent and cheap when nothing changed: files and assets
+# are compared by hash sidecar, steps by version marker.
+#
+#   setup apply-rootfs               copy every tools.tsv row whose <dest>.hash differs
+#   setup sync-assets                fetch every assets.tsv row whose <dest>.hash differs
+#   setup run-steps                  run every steps.tsv row whose marker differs, fail-open
+#   setup run-step <name>            one step, no sentinel (build time, or by hand)
+#   setup status                     one line per step: name, version, marker, last outcome
+set -uo pipefail
+
+BUNDLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONTRACT="${BUNDLE_DIR}/rootfs/etc/superset/contract.sh"
+# shellcheck source=/dev/null
+. "$CONTRACT"
+
+STEPS_DIR="${SUPERSET_STEPS_DIR}"
+SENTINEL="${STEPS_DIR}/failure.env"
+SENTINEL_VERSION="1"
+MAX_CONSECUTIVE_FAILURES=3
+
+now_ms() { date +%s%3N; }
+log() { printf '%s setup %s\n' "$(now_ms)" "$*"; }
+b64d() { printf '%s' "$1" | base64 --decode; }
+read_trimmed() { [ -f "$1" ] && tr -d '\n\r' < "$1"; }
+
+# --- files shipped inside the bundle -------------------------------------
+apply_rootfs() {
+	local installed=0 skipped=0
+	while IFS=$'\t' read -r mode hash src_b64 dest_b64; do
+		[ -n "$mode" ] || continue
+		local src dest
+		src="${BUNDLE_DIR}/$(b64d "$src_b64")"
+		dest="$(b64d "$dest_b64")"
+		if [ "$(read_trimmed "${dest}.hash")" = "$hash" ] && [ -f "$dest" ]; then
+			skipped=$((skipped + 1))
+			continue
+		fi
+		install -D -m "$mode" "$src" "$dest"
+		printf '%s' "$hash" > "${dest}.hash"
+		installed=$((installed + 1))
+	done < "${BUNDLE_DIR}/tools.tsv"
+	log "apply-rootfs installed=${installed} skipped=${skipped}"
+}
+
+# A staged archive the manifest no longer names is an earlier build's; it
+# would otherwise sit beside the current one forever, and a step that
+# globs the directory could pick it.
+prune_media() {
+	local file hash
+	for file in "${SUPERSET_MEDIA_DIR}"/*; do
+		[ -f "$file" ] || continue
+		case "$file" in *.hash) continue ;; esac
+		[ -f "${file}.hash" ] || continue
+		hash="$(tr -d '\n\r' < "${file}.hash")"
+		if ! grep -qF "$hash" "${BUNDLE_DIR}/assets.tsv"; then
+			rm -f "$file" "${file}.hash"
+			log "pruned ${file}"
+		fi
+	done
+}
+
+# --- files fetched by hash from the bucket -------------------------------
+sync_assets() {
+	local tmp changed
+	tmp="$(mktemp -d)"
+	changed="${tmp}/changed"
+	mkdir -p "$changed"
+	export SUPERSET_ASSET_BASE_URL SUPERSET_ASSET_TMP="$tmp" SUPERSET_ASSET_CHANGED="$changed"
+	local started
+	started="$(now_ms)"
+	prune_media
+	if ! xargs -r -a "${BUNDLE_DIR}/assets.tsv" -d '\n' -P 16 -n 1 bash -c '
+set -euo pipefail
+line="$1"; tab=$'"'"'\t'"'"'
+mode="${line%%$tab*}"; rest="${line#*$tab}"
+hash="${rest%%$tab*}"; rest="${rest#*$tab}"
+suffix="${rest%%$tab*}"; dest_b64="${rest#*$tab}"
+dest="$(printf "%s" "$dest_b64" | base64 --decode)"
+current=""
+if [ -f "$dest" ]; then
+  if [ -f "${dest}.hash" ]; then current="$(tr -d "\n\r" < "${dest}.hash")"
+  else current="$(sha256sum "$dest" | cut -d" " -f1)"; printf "%s" "$current" > "${dest}.hash"; fi
+fi
+[ "$current" = "$hash" ] && exit 0
+url="${SUPERSET_ASSET_BASE_URL}/${hash}${suffix}"
+out="$(mktemp "${SUPERSET_ASSET_TMP}/asset-XXXXXX")"
+# A content-addressed URL never changes, so a 404 is a not-yet-published asset or an edge
+# that cached one before the upload landed; the retry after the plain fetch goes around it.
+curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "$out" "$url" \
+  || curl -fsSL --retry 2 --retry-delay 2 --retry-all-errors -o "$out" "${url}?fresh=$(date +%s)"
+got="$(sha256sum "$out" | cut -d" " -f1)"
+if [ "$got" != "$hash" ]; then echo "asset ${dest}: expected ${hash}, got ${got}" >&2; exit 1; fi
+install -D -m "$mode" "$out" "$dest"
+rm -f "$out"
+printf "%s" "$hash" > "${dest}.hash"
+case "$dest" in
+  /usr/share/icons/*|/usr/share/pixmaps/*) touch "${SUPERSET_ASSET_CHANGED}/icons" ;;
+  /usr/share/fonts/*) touch "${SUPERSET_ASSET_CHANGED}/fonts" ;;
+esac
+echo "fetched ${dest}"
+' _; then
+		rm -rf "$tmp"
+		return 1
+	fi
+	[ -e "${changed}/icons" ] && gtk-update-icon-cache -f -q /usr/share/icons/hicolor 2>/dev/null
+	[ -e "${changed}/fonts" ] && fc-cache -f >/dev/null 2>&1
+	rm -rf "$tmp"
+	log "sync-assets done in $(( $(now_ms) - started ))ms"
+}
+
+# --- versioned steps -----------------------------------------------------
+step_version() { awk -F'\t' -v n="$1" '$1 == n { print $2 }' "${BUNDLE_DIR}/steps.tsv"; }
+
+run_step() {
+	local name="$1" version marker
+	version="$(step_version "$name")"
+	[ -n "$version" ] || { echo "unknown step ${name}" >&2; return 1; }
+	marker="${STEPS_DIR}/${name}.version"
+	if [ "$(read_trimmed "$marker")" = "$version" ]; then
+		log "step ${name} at ${version:0:12}, skipping"
+		return 0
+	fi
+	local started
+	started="$(now_ms)"
+	log "step ${name} running (${version:0:12})"
+	if SUPERSET_BUNDLE_DIR="$BUNDLE_DIR" bash "${BUNDLE_DIR}/steps/${name}.sh"; then
+		mkdir -p "$STEPS_DIR"
+		printf '%s\n' "$version" > "$marker"
+		log "step ${name} done in $(( $(now_ms) - started ))ms"
+		return 0
+	fi
+	log "step ${name} FAILED after $(( $(now_ms) - started ))ms"
+	return 1
+}
+
+read_sentinel() {
+	consecutive=0; failed_index=-1; failed_name=""; failed_version=""; sentinel_version=""
+	[ -f "$SENTINEL" ] || return 0
+	while IFS='=' read -r key value; do
+		case "$key" in
+			sentinelVersion) sentinel_version="$value" ;;
+			consecutiveFailures) consecutive="$value" ;;
+			failedStepIndex) failed_index="$value" ;;
+			failedStepName) failed_name="$value" ;;
+			failedStepVersion) failed_version="$value" ;;
+		esac
+	done < "$SENTINEL"
+	# A sentinel from another schema, or about a version of the step this
+	# bundle no longer carries, says nothing about this bundle: start over.
+	if [ "$sentinel_version" != "$SENTINEL_VERSION" ] || [ "$(step_version "$failed_name")" != "$failed_version" ]; then
+		rm -f "$SENTINEL"; consecutive=0; failed_index=-1; failed_name=""; failed_version=""
+	fi
+}
+
+write_sentinel() {
+	mkdir -p "$STEPS_DIR"
+	{
+		printf 'sentinelVersion=%s\n' "$SENTINEL_VERSION"
+		printf 'consecutiveFailures=%s\n' "$1"
+		printf 'failedStepIndex=%s\n' "$2"
+		printf 'failedStepName=%s\n' "$3"
+		printf 'failedStepVersion=%s\n' "$(step_version "$3")"
+		printf 'lastFailureAtEpoch=%s\n' "$(date +%s)"
+	} > "$SENTINEL"
+}
+
+# Fail-open: a broken step never breaks the box. Three consecutive failures
+# disable the step until its version changes; steps after a failure are
+# skipped, steps before it still run; success at the failed step, or at the
+# last step, clears the sentinel. Always exits 0.
+run_steps() {
+	local -a names=()
+	while IFS=$'\t' read -r name _; do [ -n "$name" ] && names+=("$name"); done < "${BUNDLE_DIR}/steps.tsv"
+	local total="${#names[@]}" index=0
+	read_sentinel
+	for name in "${names[@]}"; do
+		if [ "$consecutive" -ge "$MAX_CONSECUTIVE_FAILURES" ] && [ "$index" -ge "$failed_index" ]; then
+			log "step ${name} skipped: ${failed_name} disabled after ${consecutive} failures"
+		elif [ "$failed_index" -ge 0 ] && [ "$index" -gt "$failed_index" ]; then
+			log "step ${name} skipped: downstream of failed ${failed_name}"
+		elif run_step "$name"; then
+			if [ "$failed_index" -eq "$index" ] || [ "$index" -eq $((total - 1)) ]; then
+				rm -f "$SENTINEL"; consecutive=0; failed_index=-1; failed_name=""
+			fi
+		else
+			consecutive=$((consecutive + 1)); failed_index="$index"; failed_name="$name"
+			write_sentinel "$consecutive" "$failed_index" "$failed_name"
+		fi
+		index=$((index + 1))
+	done
+	return 0
+}
+
+status() {
+	read_sentinel
+	printf '%-24s %-13s %-13s %s\n' STEP VERSION MARKER STATE
+	while IFS=$'\t' read -r name version _; do
+		[ -n "$name" ] || continue
+		local marker state
+		marker="$(read_trimmed "${STEPS_DIR}/${name}.version")"
+		if [ "$marker" = "$version" ]; then state="current"
+		elif [ "$failed_name" = "$name" ]; then state="failed x${consecutive}"
+		elif [ -z "$marker" ]; then state="never run"
+		else state="pending"; fi
+		printf '%-24s %-13s %-13s %s\n' "$name" "${version:0:12}" "${marker:0:12}" "$state"
+	done < "${BUNDLE_DIR}/steps.tsv"
+}
+
+case "${1:-}" in
+	apply-rootfs) apply_rootfs ;;
+	sync-assets) sync_assets ;;
+	run-steps) run_steps ;;
+	run-step) run_step "${2:?step name}" ;;
+	status) status ;;
+	*) echo "usage: setup apply-rootfs | sync-assets | run-steps | run-step <name> | status" >&2; exit 64 ;;
+esac

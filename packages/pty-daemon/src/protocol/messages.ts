@@ -1,3 +1,5 @@
+import type { TerminalModesSnapshot } from "../TerminalModes/index.ts";
+
 // Message schemas for the pty-daemon Unix socket protocol.
 //
 // Wire format (v2): see ./framing.ts. Each frame carries a JSON header
@@ -48,6 +50,7 @@ export interface HelloAckMessage {
 	 * its own healthy context. Absent from pre-probe daemon versions.
 	 */
 	trustdHealthy?: boolean;
+	supportsModeSnapshots?: boolean;
 }
 
 // ---------- Client -> Daemon ----------
@@ -86,6 +89,7 @@ export interface SubscribeMessage {
 	id: string;
 	/** if true, replay buffered output before live streaming */
 	replay: boolean;
+	modeSnapshot?: boolean;
 }
 
 export interface UnsubscribeMessage {
@@ -118,6 +122,12 @@ export interface OpenOkMessage {
 export interface OutputMessage {
 	type: "output";
 	id: string;
+}
+
+export interface ReplayCompleteMessage {
+	type: "replay-complete";
+	id: string;
+	modes: TerminalModesSnapshot;
 }
 
 export interface ExitMessage {
@@ -171,6 +181,7 @@ export type ServerMessage =
 	| HelloAckMessage
 	| OpenOkMessage
 	| OutputMessage
+	| ReplayCompleteMessage
 	| ExitMessage
 	| ClosedMessage
 	| ListReplyMessage

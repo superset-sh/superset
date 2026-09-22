@@ -10,6 +10,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { FRESH_SHELL_INPUT_MODE_RESET } from "@superset/shared/leaked-input-mode-reclaim";
 
 const mobileRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -19,6 +20,9 @@ const read = (relativePath: string) =>
 const xtermJs = read("node_modules/@xterm/xterm/lib/xterm.js");
 const xtermCss = read("node_modules/@xterm/xterm/css/xterm.css");
 const fitAddonJs = read("node_modules/@xterm/addon-fit/lib/addon-fit.js");
+const serializeAddonJs = read(
+	"node_modules/@xterm/addon-serialize/lib/addon-serialize.js",
+);
 const xtermVersion = (
 	JSON.parse(read("node_modules/@xterm/xterm/package.json")) as {
 		version: string;
@@ -33,14 +37,31 @@ const xtermVersion = (
  * never crosses the RN bridge; RN only signs dial URLs and relays UI intents.
  *
  * Bridge protocol (JSON over postMessage):
- *   page -> RN: {type:"ready"} | {type:"dial", id, replay} |
+ *   page -> RN: {type:"ready"} | {type:"dial", id, terminalId, seq} |
  *               {type:"state", state} | {type:"control", message} |
  *               {type:"openUrl", url} | {type:"copy", text} |
  *               {type:"select", active, hasSelection} |
- *               {type:"scroll", atBottom}
- *   RN -> page: {type:"dialUrl", id, url?, error?} | {type:"input", data} |
+ *               {type:"scroll", atBottom} |
+ *               {type:"snapshot", terminalId, data, epoch, seq}
+ *   RN -> page: {type:"attach", terminalId, restore} |
+ *               {type:"switch", terminalId, restore} |
+ *               {type:"dialUrl", id, url?, error?} | {type:"input", data} |
  *               {type:"resume"} | {type:"focus"} |
  *               {type:"copySelection"} | {type:"scrollToBottom"}
+ *
+ * Session pool: the page keeps the last few sessions live behind the one on
+ * screen — each a socket plus a headless xterm holding its own copy of the
+ * stream — so a `switch` back to one is a repaint from memory, not a dial.
+ * The display xterm is a view of the active session, fed from that buffer's
+ * write callbacks. Hidden sessions tell the host `visible:false`, so they
+ * never constrain the PTY size and stop receiving output once it resizes.
+ *
+ * Warm restore: RN keeps a small cache of serialized buffers keyed by
+ * terminal id (see warmTerminalCache). `attach`/`switch` hand one back for a
+ * session the pool does not hold, the page paints it before it has a socket,
+ * and `dial` carries the paired stream position so the host's `?seq=`
+ * catch-up sends only the bytes this buffer is missing. Same contract
+ * desktop's renderer uses (terminal-seq-anchor.ts).
  *
  * Touch: a tap on a link opens it, a long press enters select mode (native
  * iOS selection over a frozen snapshot of the buffer), and an overlay
@@ -52,6 +73,10 @@ const runtimeJs = /* js */ `
 	function post(message) {
 		if (RN) RN.postMessage(JSON.stringify(message));
 	}
+
+	// Interpolated from @superset/shared so the page and desktop's renderer
+	// disarm the same modes.
+	var FRESH_SHELL_INPUT_MODE_RESET = ${JSON.stringify(FRESH_SHELL_INPUT_MODE_RESET)};
 
 	var term = new Terminal({
 		allowTransparency: false,
@@ -71,6 +96,11 @@ const runtimeJs = /* js */ `
 	});
 	var fit = new FitAddon.FitAddon();
 	term.loadAddon(fit);
+	// Snapshots are handed to RN over the bridge and held in memory, so this
+	// is deliberately well under the 5000-line scrollback above.
+	var SNAPSHOT_SCROLLBACK = 1000;
+	var serializer = new SerializeAddon.SerializeAddon();
+	term.loadAddon(serializer);
 	term.open(document.getElementById("term"));
 	fit.fit();
 
@@ -78,28 +108,125 @@ const runtimeJs = /* js */ `
 	var MAX_RECONNECT_DELAY_MS = 10000;
 	var MAX_RECONNECT_ATTEMPTS = 12;
 	var DIAL_TIMEOUT_MS = 15000;
+	/**
+	 * Sessions kept live behind the one on screen. Each costs one output
+	 * stream and one buffer of memory, and the benefit stops once the tabs
+	 * someone actually cycles between all fit.
+	 */
+	var POOL_CAPACITY = 4;
 
-	var ws = null;
-	var attempts = 0;
-	var everAttached = false;
-	var hasReceivedBytes = false;
-	var terminated = false;
-	var reconnectTimer = null;
 	var dialSeq = 0;
 	var pendingDials = {};
 	var state = null;
 
-	function setState(next) {
-		if (state === next) return;
-		state = next;
-		post({ type: "state", state: next });
+	// Whether the terminal screen is actually on screen — RN owns this (screen
+	// focus AND app foreground) and pushes it in. The host sizes the PTY to the
+	// smallest visible client, so a phone that has been backgrounded must stop
+	// counting: otherwise it holds every desktop pane at phone width.
+	var isVisible = true;
+
+	/** How long output must stop before a snapshot is worth taking. */
+	var SNAPSHOT_QUIET_MS = 300;
+	/** Ceiling on snapshot rate while a session is producing steadily. */
+	var SNAPSHOT_MIN_INTERVAL_MS = 2000;
+
+	/** Sessions by terminal id; Map order is recency, oldest first. */
+	var sessions = new Map();
+	var active = null;
+	/** Bumped whenever the display changes session; stale repaints bail. */
+	var displayGeneration = 0;
+	/** Backstop for the "ready" -> "attach" handshake below. */
+	var startTimer = null;
+
+	/**
+	 * "buffer" is an xterm that is never opened: it parses everything the host
+	 * sends, on screen or not, and snapshots and repaints are read from it.
+	 * The display xterm is fed from its write callbacks, never from the socket
+	 * directly, so the two can never disagree about order.
+	 */
+	function createSession(id) {
+		var buffer = new Terminal({
+			scrollback: 5000,
+			cols: term.cols,
+			rows: term.rows,
+		});
+		var serializer = new SerializeAddon.SerializeAddon();
+		buffer.loadAddon(serializer);
+		return {
+			id: id,
+			buffer: buffer,
+			serializer: serializer,
+			ws: null,
+			// Bumped on dispose; async work (dial chains, socket handlers,
+			// reconnect timers) bails when its generation is behind.
+			generation: 0,
+			attempts: 0,
+			everAttached: false,
+			terminated: false,
+			reconnectTimer: null,
+			state: null,
+			/**
+			 * Where "buffer" sits in the host's PTY output stream: every byte
+			 * of the epoch up to seq has been parsed into it. A null epoch
+			 * means no trustworthy position. Counting is armed by the host's
+			 * synced frame and disarmed for each new socket, so the bytes the
+			 * host synthesizes ahead of an anchor are never counted.
+			 */
+			epoch: null,
+			seq: 0,
+			counting: false,
+			/** The buffer was painted from a snapshot rather than by the host. */
+			restored: false,
+			/**
+			 * A socket closed before it ever attached. Only then is a denial
+			 * worth probing for: the probe is a whole round trip, and paying
+			 * it on every dial was ~220ms of every cold open.
+			 */
+			suspectDenied: false,
+			/**
+			 * How parsed bytes reach the display: "off" while hidden, "pending"
+			 * from the moment a switch to this session begins until its repaint
+			 * has landed (bytes queue behind it), "on" once it is shown.
+			 */
+			mirror: "off",
+			pendingMirror: null,
+			snapshotTimer: null,
+			lastSnapshotAt: 0,
+		};
 	}
 
-	function requestDialUrl() {
+	function setSessionState(session, next) {
+		session.state = next;
+		reportState();
+	}
+
+	function reportState() {
+		if (!active || active.state === null || active.state === state) return;
+		state = active.state;
+		post({ type: "state", state: state });
+	}
+
+	/**
+	 * The "?seq=" attach mode for the next dial, in the host's vocabulary:
+	 * an "epoch:seq" anchor asks for exactly the missed bytes, "new" asks a
+	 * virgin buffer to be filled from the ring tail, and "none" says the
+	 * buffer holds content of unknown position — reanchor, never overwrite it.
+	 */
+	function seqParam(session) {
+		if (session.epoch !== null) return session.epoch + ":" + session.seq;
+		return session.restored ? "none" : "new";
+	}
+
+	function requestDialUrl(session) {
 		return new Promise(function (resolve, reject) {
 			var id = ++dialSeq;
 			pendingDials[id] = { resolve: resolve, reject: reject };
-			post({ type: "dial", id: id, replay: hasReceivedBytes ? "0" : "1" });
+			post({
+				type: "dial",
+				id: id,
+				terminalId: session.id,
+				seq: seqParam(session),
+			});
 			setTimeout(function () {
 				if (pendingDials[id]) {
 					delete pendingDials[id];
@@ -131,55 +258,65 @@ const runtimeJs = /* js */ `
 		}
 	}
 
-	// Bumped on every in-page session switch; stale async work (dial chains,
-	// socket handlers, reconnect timers) bails when its generation is behind.
-	var generation = 0;
-
-	// Whether the terminal screen is actually on screen — RN owns this (screen
-	// focus AND app foreground) and pushes it in. The host sizes the PTY to the
-	// smallest visible client, so a phone that has been backgrounded must stop
-	// counting: otherwise it holds every desktop pane at phone width.
-	var isVisible = true;
-
-	function connect() {
-		if (terminated) return;
-		var gen = generation;
-		setState(everAttached ? "reconnecting" : "connecting");
-		requestDialUrl()
+	function connect(session) {
+		if (session.terminated) return;
+		var gen = session.generation;
+		setSessionState(session, session.everAttached ? "reconnecting" : "connecting");
+		requestDialUrl(session)
 			.then(function (url) {
-				if (gen !== generation || terminated) return;
+				if (gen !== session.generation || session.terminated) return;
+				if (!session.suspectDenied) {
+					openSocket(session, url, gen);
+					return;
+				}
 				return probeHost(url).then(function (status) {
-					if (gen !== generation || terminated) return;
+					if (gen !== session.generation || session.terminated) return;
 					if (status === 403) {
-						terminated = true;
-						setState("denied");
+						session.terminated = true;
+						setSessionState(session, "denied");
 						return;
 					}
-					openSocket(url, gen);
+					openSocket(session, url, gen);
 				});
 			})
 			.catch(function () {
-				scheduleReconnect(gen);
+				scheduleReconnect(session, gen);
 			});
 	}
 
-	function openSocket(url, gen) {
-		if (terminated || gen !== generation) return;
+	function openSocket(session, url, gen) {
+		if (session.terminated || gen !== session.generation) return;
 		var socket;
 		try {
 			socket = new WebSocket(url);
 		} catch (error) {
-			scheduleReconnect(gen);
+			scheduleReconnect(session, gen);
 			return;
 		}
 		socket.binaryType = "arraybuffer";
-		ws = socket;
+		session.ws = socket;
+		// Per socket: the bytes the host synthesizes ahead of an anchor are
+		// not part of the stream and must not move "seq".
+		session.counting = false;
+		var attachedHere = false;
 
 		socket.onmessage = function (event) {
-			if (gen !== generation) return;
+			if (gen !== session.generation) return;
 			if (event.data instanceof ArrayBuffer) {
-				hasReceivedBytes = true;
-				term.write(new Uint8Array(event.data));
+				var bytes = new Uint8Array(event.data);
+				var counted = session.counting;
+				var length = bytes.byteLength;
+				// Counted in the write callback, not on arrival: "seq" has to
+				// describe what the buffer HOLDS, or a snapshot taken while
+				// writes are still queued would be paired with a position
+				// ahead of its own content and the next catch-up would skip
+				// the difference.
+				session.buffer.write(bytes, function () {
+					if (gen !== session.generation) return;
+					if (counted) session.seq += length;
+					mirror(session, bytes);
+					scheduleSnapshot(session);
+				});
 				return;
 			}
 			var message;
@@ -188,81 +325,315 @@ const runtimeJs = /* js */ `
 			} catch (error) {
 				return;
 			}
-			if (message.type === "attached") {
-				attempts = 0;
-				everAttached = true;
-				setState("open");
+			if (message.type === "ping") {
+				// Liveness: the host drops a client that answered before and then
+				// went silent, so a phone that vanished mid-session stops holding
+				// the PTY at phone width. Not RN's business.
+				if (socket.readyState === 1) {
+					socket.send(JSON.stringify({ type: "pong" }));
+				}
+				return;
+			}
+			if (message.type === "synced") {
+				session.epoch = message.epoch;
+				session.seq = message.seq;
+				session.counting = true;
+			} else if (message.type === "attached") {
+				session.attempts = 0;
+				session.everAttached = true;
+				attachedHere = true;
+				session.suspectDenied = false;
+				setSessionState(session, "open");
 				// Before the dims: the host's minimum should never briefly
 				// include a phone that is already backgrounded.
-				sendVisible();
-				sendResize();
+				sendVisible(session);
+				sendResize(session);
 			} else if (message.type === "exit" || message.type === "error") {
 				// Server closes after these; reconnecting would just repeat them.
-				terminated = true;
+				session.terminated = true;
 				try {
 					socket.close();
 				} catch (error) {}
 			}
-			post({ type: "control", message: message });
+			// A hidden session's end still matters to RN (its tab goes away);
+			// nothing else about a session that is not on screen does.
+			if (
+				session === active ||
+				message.type === "exit" ||
+				message.type === "error"
+			) {
+				post({ type: "control", message: message });
+			}
 		};
 
 		socket.onclose = function () {
-			if (ws === socket) ws = null;
-			if (gen !== generation) return;
-			if (terminated) {
-				setState("ended");
+			if (session.ws === socket) session.ws = null;
+			if (gen !== session.generation) return;
+			// Never attached: the relay may have refused this token, which is
+			// the one case worth spending a probe on.
+			if (!attachedHere) session.suspectDenied = true;
+			if (session.terminated) {
+				setSessionState(session, "ended");
 				return;
 			}
-			scheduleReconnect(gen);
+			scheduleReconnect(session, gen);
 		};
 	}
 
-	function scheduleReconnect(gen) {
-		if (terminated || gen !== generation) return;
-		attempts += 1;
-		if (attempts >= MAX_RECONNECT_ATTEMPTS) {
-			setState("error");
+	function scheduleReconnect(session, gen) {
+		if (session.terminated || gen !== session.generation) return;
+		session.attempts += 1;
+		if (session.attempts >= MAX_RECONNECT_ATTEMPTS) {
+			setSessionState(session, "error");
 			return;
 		}
-		setState(everAttached ? "reconnecting" : "connecting");
+		setSessionState(session, session.everAttached ? "reconnecting" : "connecting");
 		var delay = Math.min(
 			MAX_RECONNECT_DELAY_MS,
-			BASE_RECONNECT_DELAY_MS * Math.pow(2, attempts - 1)
+			BASE_RECONNECT_DELAY_MS * Math.pow(2, session.attempts - 1)
 		);
-		clearTimeout(reconnectTimer);
-		reconnectTimer = setTimeout(connect, delay);
+		clearTimeout(session.reconnectTimer);
+		session.reconnectTimer = setTimeout(function () {
+			connect(session);
+		}, delay);
 	}
 
 	// iOS wheel events from touch scrolling can carry undefined coordinates,
 	// making xterm emit mouse reports with literal "NaN" cells — malformed
-	// sequences the TUI's parser leaks into the input line as typed text.
+	// sequences that reach the shell as garbage input like "<NaN;NaNM".
 	var MALFORMED_MOUSE_REPORT = /\\u001b\\[<[0-9;]*NaN[0-9;aN]*[Mm]/g;
+
 	function sendInput(data) {
 		if (data.indexOf("NaN") !== -1) {
 			data = data.replace(MALFORMED_MOUSE_REPORT, "");
 			if (!data) return;
 		}
+		var ws = active ? active.ws : null;
 		if (ws && ws.readyState === 1) {
 			ws.send(JSON.stringify({ type: "input", data: data }));
 		}
 	}
 
-	function sendVisible() {
-		if (ws && ws.readyState === 1) {
-			ws.send(JSON.stringify({ type: "visible", visible: isVisible }));
+	function sendVisible(session) {
+		if (session.ws && session.ws.readyState === 1) {
+			session.ws.send(
+				JSON.stringify({
+					type: "visible",
+					visible: isVisible && session === active,
+				})
+			);
 		}
 	}
 
-	function sendResize() {
-		if (ws && ws.readyState === 1) {
-			ws.send(
+	function sendResize(session) {
+		if (session.ws && session.ws.readyState === 1) {
+			session.ws.send(
 				JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows })
 			);
 		}
 	}
 
+	function mirror(session, data) {
+		if (session.mirror === "on") term.write(data);
+		else if (session.mirror === "pending") session.pendingMirror.push(data);
+	}
+
+	/**
+	 * Hand RN a paintable copy of a session, paired with the stream position
+	 * it reflects. The next mount writes it before it has a socket, and dials
+	 * with that position so the host sends the difference instead of a replay.
+	 */
+	function exportSnapshot(session) {
+		if (session.snapshotTimer !== null) {
+			clearTimeout(session.snapshotTimer);
+			session.snapshotTimer = null;
+		}
+		if (session.id === null) return;
+		session.lastSnapshotAt = Date.now();
+		var data;
+		try {
+			data = session.serializer.serialize({ scrollback: SNAPSHOT_SCROLLBACK });
+		} catch (error) {
+			return;
+		}
+		post({
+			type: "snapshot",
+			terminalId: session.id,
+			data: data,
+			epoch: session.epoch,
+			seq: session.seq,
+		});
+	}
+
+	/**
+	 * Snapshot while a session is quiet rather than only on the way out. A
+	 * popped screen can take the WebView down in the same tick as the blur,
+	 * which leaves no room for a reply to cross the bridge — so the cache is
+	 * kept current in the background and the export on hide is only ever an
+	 * improvement on it. Falling behind by a couple of seconds costs nothing:
+	 * the position travels with the buffer, so whatever is missing arrives as
+	 * catch-up on the next attach.
+	 */
+	function scheduleSnapshot(session) {
+		clearTimeout(session.snapshotTimer);
+		var sinceLast = Date.now() - session.lastSnapshotAt;
+		var wait =
+			sinceLast < SNAPSHOT_MIN_INTERVAL_MS
+				? SNAPSHOT_MIN_INTERVAL_MS - sinceLast
+				: SNAPSHOT_QUIET_MS;
+		session.snapshotTimer = setTimeout(function () {
+			session.snapshotTimer = null;
+			exportSnapshot(session);
+		}, wait);
+	}
+
+	/** Paint a cached buffer and adopt the position it was captured at. */
+	function applyRestore(session, restore) {
+		if (!restore || !restore.data) return;
+		session.restored = true;
+		if (typeof restore.epoch === "string") {
+			session.epoch = restore.epoch;
+			session.seq = restore.seq;
+		}
+		// A serialized buffer bakes in whatever input modes were armed when it
+		// was captured (mouse tracking, bracketed paste, application cursor).
+		// Replaying them arms this fresh xterm for a program that may not even
+		// be running any more; the attach preamble re-asserts the real ones.
+		var data = restore.data + FRESH_SHELL_INPUT_MODE_RESET;
+		session.buffer.write(data, function () {
+			mirror(session, data);
+		});
+	}
+
+	/**
+	 * What the buffer holds right now is painted; anything it parses before
+	 * that paint has landed waits in "pendingMirror" and follows it, so the
+	 * display ends up byte-for-byte behind the buffer.
+	 */
+	function showSession(session) {
+		if (session === active) return;
+		var previous = active;
+		if (previous !== null) {
+			previous.mirror = "off";
+			previous.pendingMirror = null;
+		}
+		active = session;
+		sessions.delete(session.id);
+		sessions.set(session.id, session);
+		displayGeneration += 1;
+		var gen = displayGeneration;
+		session.mirror = "pending";
+		session.pendingMirror = [];
+		var painted;
+		try {
+			painted = session.serializer.serialize();
+		} catch (error) {
+			painted = "";
+		}
+		exitSelectMode();
+		// term.reset() clears the buffer synchronously but does NOT discard
+		// what is already queued in xterm's write buffer, so bytes from the
+		// session being left would be parsed into the one being entered —
+		// above its restored content. An empty write's callback runs once
+		// everything queued before it has been parsed, which is the barrier
+		// this needs.
+		term.write("", function () {
+			if (gen !== displayGeneration) return;
+			term.reset();
+			// reset() fires neither onScroll nor onWriteParsed, so the
+			// scrollbar and the at-bottom flag would still describe the
+			// session we left.
+			scheduleScrollbar();
+			term.write(painted);
+			var pending = session.pendingMirror;
+			session.pendingMirror = null;
+			session.mirror = "on";
+			for (var i = 0; i < pending.length; i++) term.write(pending[i]);
+		});
+		if (previous !== null) sendVisible(previous);
+		sendVisible(session);
+		sendResize(session);
+		reportState();
+	}
+
+	function disposeSession(session) {
+		exportSnapshot(session);
+		session.generation += 1;
+		clearTimeout(session.reconnectTimer);
+		if (session.ws) {
+			var socket = session.ws;
+			session.ws = null;
+			try {
+				socket.close();
+			} catch (error) {}
+		}
+		session.mirror = "off";
+		session.pendingMirror = null;
+		session.buffer.dispose();
+		sessions.delete(session.id);
+		if (active === session) active = null;
+	}
+
+	function startSession(id, restore) {
+		if (sessions.size >= POOL_CAPACITY) {
+			var oldest = sessions.values().next();
+			if (!oldest.done) disposeSession(oldest.value);
+		}
+		var session = createSession(id);
+		sessions.set(id, session);
+		showSession(session);
+		applyRestore(session, restore);
+		connect(session);
+	}
+
+	/** First attach of this page, from RN's answer to "ready". */
+	function beginSession(id, restore) {
+		if (startTimer !== null) {
+			clearTimeout(startTimer);
+			startTimer = null;
+		}
+		if (active !== null) {
+			// The backstop fired first. The session is already running, so
+			// don't repaint or redial — but a backstop start has no terminal
+			// id, and without one this page can never file a snapshot or
+			// name itself in a dial. Adopt it.
+			if (active.id === null && id !== null) {
+				sessions.delete(null);
+				active.id = id;
+				sessions.set(id, active);
+			}
+			return;
+		}
+		startSession(id, restore);
+	}
+
+	/**
+	 * A pooled session comes back as it is; the cache RN offers is ignored,
+	 * since the live buffer is fresher than any snapshot of it.
+	 */
+	function switchSession(id, restore) {
+		if (startTimer !== null) {
+			clearTimeout(startTimer);
+			startTimer = null;
+		}
+		var pooled = sessions.get(id);
+		if (pooled) {
+			showSession(pooled);
+			return;
+		}
+		// A backstop session was dialled for whatever id RN held at the time,
+		// which this switch has just changed; it cannot be trusted to be "id".
+		if (active !== null && active.id === null) disposeSession(active);
+		startSession(id, restore);
+	}
+
 	term.onData(sendInput);
-	term.onResize(sendResize);
+	term.onResize(function () {
+		sessions.forEach(function (session) {
+			session.buffer.resize(term.cols, term.rows);
+		});
+		if (active !== null) sendResize(active);
+	});
 	term.onTitleChange(function (title) {
 		post({ type: "control", message: { type: "title", title: title } });
 	});
@@ -286,43 +657,32 @@ const runtimeJs = /* js */ `
 		} else if (message.type === "input") {
 			sendInput(message.data);
 		} else if (message.type === "resume") {
-			// Mirrors web's handleResume: reset the budget and redial if closed —
-			// also the recovery path after the attempt budget gave up.
-			if (terminated) return;
-			attempts = 0;
-			clearTimeout(reconnectTimer);
-			if (!ws || ws.readyState === 3) connect();
+			// Mirrors web's handleResume: reset the budget and redial whatever
+			// is closed — also the recovery path after the attempt budget gave
+			// up. Every pooled session, not only the one on screen: a phone
+			// back from a pocket has lost all of them.
+			sessions.forEach(function (session) {
+				if (session.terminated) return;
+				session.attempts = 0;
+				clearTimeout(session.reconnectTimer);
+				if (!session.ws || session.ws.readyState === 3) connect(session);
+			});
 		} else if (message.type === "switch") {
-			// In-page session switch: the WebView (and its warm TLS pool) stays
-			// alive; only the socket and buffer turn over. The next dial request
-			// is signed RN-side with the new terminalId.
-			generation += 1;
-			terminated = false;
-			attempts = 0;
-			everAttached = false;
-			hasReceivedBytes = false;
-			clearTimeout(reconnectTimer);
-			if (ws) {
-				var oldSocket = ws;
-				ws = null;
-				try {
-					oldSocket.close();
-				} catch (error) {}
-			}
-			exitSelectMode();
-			term.reset();
-			// reset() fires neither onScroll nor onWriteParsed, so the scrollbar
-			// and the at-bottom flag would still describe the session we left.
-			scheduleScrollbar();
-			connect();
+			switchSession(message.terminalId, message.restore);
+		} else if (message.type === "attach") {
+			beginSession(message.terminalId, message.restore);
 		} else if (message.type === "copySelection") {
 			copySelection();
 		} else if (message.type === "scrollToBottom") {
-			term.scrollToBottom();
+			if (term.buffer.active.type === "normal") term.scrollToBottom();
+			else if (claudeJumpPillShowing()) sendInput(CLAUDE_SCROLL_TO_BOTTOM);
 		} else if (message.type === "visible") {
 			if (isVisible === message.visible) return;
 			isVisible = message.visible;
-			sendVisible();
+			sessions.forEach(sendVisible);
+			// Leaving the screen is the last reliable moment to capture these
+			// buffers: a popped screen takes the whole WebView with it.
+			if (!isVisible) sessions.forEach(exportSnapshot);
 		} else if (message.type === "focus") {
 			allowTextareaFocus = true;
 			term.focus();
@@ -752,17 +1112,44 @@ const runtimeJs = /* js */ `
 	var thumb = document.getElementById("scrollbar-thumb");
 	var scrollbarFrame = 0;
 	// RN draws the scroll-to-bottom button, so it needs this side's answer to
-	// the question the scrollbar already asks — the two appear together. The
-	// alternate buffer keeps no scrollback, so \`hidden\` is 0 there and neither
-	// shows: a TUI in full-screen mode owns its own scroll, and scrollToBottom
-	// would be a no-op.
+	// the question the scrollbar already asks — the two appear together.
 	var atBottom = true;
+
+	// The alternate buffer keeps no scrollback: a full-screen TUI owns its own
+	// scroll. Claude Code's fullscreen mode reports its position nowhere but
+	// the pill it centers above the prompt while scrolled up, and scrolls back
+	// down on its scroll:bottom binding, ctrl+End.
+	var CLAUDE_JUMP_PILL =
+		/(?:Jump to bottom|\\d+ new messages?)(?:(?: \\([^)]*\\))? ↓|: \\S+ to scroll)?/;
+	var CLAUDE_SCROLL_TO_BOTTOM = "\\x1b[1;5F";
+
+	function claudeJumpPillShowing() {
+		var buffer = term.buffer.active;
+		if (buffer.type !== "alternate") return false;
+		for (var y = 1; y <= term.rows; y++) {
+			var line = buffer.getLine(y - 1);
+			if (!line || !CLAUDE_JUMP_PILL.test(line.translateToString(true))) continue;
+			var logical = readLogicalLine(y);
+			var match = CLAUDE_JUMP_PILL.exec(logical.text);
+			if (!match) continue;
+			var first = logical.cells[match.index];
+			var last = logical.cells[match.index + match[0].length - 1];
+			if (first.y !== y || last.y !== y) continue;
+			var leftGap = first.x - 2;
+			var rightGap = term.cols - (last.x + 1);
+			if (Math.abs(leftGap - rightGap) <= 1) return true;
+		}
+		return false;
+	}
 
 	function updateScrollbar() {
 		scrollbarFrame = 0;
 		var buffer = term.buffer.active;
 		var hidden = buffer.length - term.rows;
-		var nowAtBottom = hidden <= 0 || buffer.viewportY >= hidden;
+		var nowAtBottom =
+			buffer.type === "alternate"
+				? !claudeJumpPillShowing()
+				: hidden <= 0 || buffer.viewportY >= hidden;
 		if (nowAtBottom !== atBottom) {
 			atBottom = nowAtBottom;
 			post({ type: "scroll", atBottom: atBottom });
@@ -827,7 +1214,15 @@ const runtimeJs = /* js */ `
 	// so a remounted page starting at the live edge would otherwise leave RN
 	// holding whatever the previous terminal reported.
 	post({ type: "scroll", atBottom: atBottom });
-	connect();
+	// RN answers "ready" with the cached buffer for this session, if it has
+	// one. Dialling before that lands would attach with an empty buffer and
+	// pull the whole ring tail back down over content we already had. The
+	// timer is a backstop only: a lost answer must never leave the terminal
+	// sitting unattached.
+	startTimer = setTimeout(function () {
+		startTimer = null;
+		beginSession(null, null);
+	}, 1000);
 })();
 `;
 
@@ -912,6 +1307,7 @@ html, body {
 </div>
 <script>${xtermJs}</script>
 <script>${fitAddonJs}</script>
+<script>${serializeAddonJs}</script>
 <script>${runtimeJs}</script>
 </body>
 </html>

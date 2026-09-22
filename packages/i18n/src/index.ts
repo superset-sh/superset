@@ -39,6 +39,7 @@ const CATALOGS: Record<string, () => Promise<{ messages: typeof enMessages }>> =
 	};
 
 const loaded = new Set<string>([DEFAULT_LOCALE]);
+let activationRequest = 0;
 
 function ensureEnglish(): void {
 	if (!i18n.messages || Object.keys(i18n.messages).length === 0) {
@@ -85,27 +86,32 @@ export function inferLocaleWithSource(): {
 	return { locale: DEFAULT_LOCALE, source: "system" };
 }
 
+/** Returns a request's catalog without changing the active global locale. */
+export async function getLocaleMessages(locale: SupportedLocale) {
+	const load = CATALOGS[locale];
+	return load ? (await load()).messages : enMessages;
+}
+
 /** Loads a catalog without activating it. Resolves immediately if cached. */
 export async function loadLocale(locale: SupportedLocale): Promise<void> {
 	if (loaded.has(locale)) return;
-	const load = CATALOGS[locale];
-	if (!load) return;
-	const { messages } = await load();
+	const messages = await getLocaleMessages(locale);
 	i18n.load(locale, messages);
 	loaded.add(locale);
 }
 
 /**
  * Activates a locale, awaiting its catalog. Prefer this wherever you can await
- * — the Electron main process at boot, an RSC entry point, a language switch.
+ * — the Electron main process at boot or a client language switch.
+ * RSC callers must use @superset/i18n/server to avoid global locale races.
  */
 export async function initI18nAsync(
 	locale: SupportedLocale = DEFAULT_LOCALE,
 ): Promise<void> {
-	i18n.load(DEFAULT_LOCALE, enMessages);
-	loaded.add(DEFAULT_LOCALE);
+	const request = ++activationRequest;
+	ensureEnglish();
 	await loadLocale(locale);
-	i18n.activate(locale);
+	if (request === activationRequest) i18n.activate(locale);
 }
 
 /**
@@ -117,6 +123,7 @@ export async function initI18nAsync(
  * activation, which `I18nProvider` already subscribes to, so the UI re-renders.
  */
 export function initI18n(locale: SupportedLocale = DEFAULT_LOCALE): void {
+	const request = ++activationRequest;
 	ensureEnglish();
 	loaded.add(DEFAULT_LOCALE);
 	if (loaded.has(locale)) {
@@ -126,7 +133,7 @@ export function initI18n(locale: SupportedLocale = DEFAULT_LOCALE): void {
 	i18n.activate(DEFAULT_LOCALE);
 	loadLocale(locale)
 		.then(() => {
-			i18n.activate(locale);
+			if (request === activationRequest) i18n.activate(locale);
 		})
 		.catch((error: unknown) => {
 			// English is already active, so a failed catalog import degrades to

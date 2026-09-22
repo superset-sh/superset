@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { unlink } from "node:fs/promises";
+import { promisify } from "node:util";
 import type {
 	CredentialProblem,
 	GitCredentialProvider,
@@ -9,6 +10,8 @@ import { writeTempAskpass } from "../askpass";
 import { localCredentialRemedy, type TokenSource } from "./credential-remedy";
 
 const TOKEN_CACHE_TTL_MS = 5 * 60 * 1000;
+
+const execFileAsync = promisify(execFile);
 
 interface ResolvedToken {
 	token: string;
@@ -119,7 +122,9 @@ export class LocalGitCredentialProvider implements GitCredentialProvider {
 	private async fetchTokenViaGitCredential(
 		host: string,
 	): Promise<string | null> {
-		const env = await this.envResolver();
+		// Launched from a terminal with no credential helper, git would prompt
+		// on the tty and sit there until the timeout.
+		const env = { ...(await this.envResolver()), GIT_TERMINAL_PROMPT: "0" };
 		return new Promise((resolve) => {
 			const child = execFile(
 				"git",
@@ -141,16 +146,15 @@ export class LocalGitCredentialProvider implements GitCredentialProvider {
 
 	private async fetchTokenViaGhCli(): Promise<string | null> {
 		const env = await this.envResolver();
-		return new Promise((resolve) => {
-			execFile(
-				"gh",
-				["auth", "token"],
-				{ timeout: 10_000, env },
-				(error, stdout) => {
-					resolve(error ? null : stdout.trim() || null);
-				},
-			);
-		});
+		try {
+			const { stdout } = await execFileAsync("gh", ["auth", "token"], {
+				timeout: 10_000,
+				env,
+			});
+			return stdout.trim() || null;
+		} catch {
+			return null;
+		}
 	}
 }
 

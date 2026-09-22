@@ -1,9 +1,10 @@
-import type {
-	HttpDialFrame,
-	HttpResponseHeader,
+import {
+	DIAL_TIMEOUT_MS,
+	type HttpDialFrame,
+	type HttpResponseHeader,
 } from "@superset/shared/tunnel-protocol";
 
-const EXCHANGE_TIMEOUT_MS = 30_000;
+const EXCHANGE_TIMEOUT_MS = DIAL_TIMEOUT_MS + 30_000;
 // Chunked below the Durable Object's per-message ceiling.
 const BODY_CHUNK_BYTES = 256 * 1024;
 
@@ -21,7 +22,10 @@ export type HttpExchangeResult =
 			headers: Record<string, string>;
 			body: Uint8Array<ArrayBuffer>;
 	  }
-	| { ok: false; reason: "timeout" | "dial-failed" };
+	| {
+			ok: false;
+			reason: "timeout" | "dial-failed" | "denied" | "access-error";
+	  };
 
 interface Exchange {
 	request: HttpExchangeRequest;

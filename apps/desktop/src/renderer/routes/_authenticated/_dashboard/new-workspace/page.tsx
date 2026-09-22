@@ -9,20 +9,21 @@ export const Route = createFileRoute(
 )({
 	validateSearch: (
 		search: Record<string, unknown>,
-	): { projectId?: string; session?: boolean } => ({
+	): { projectId?: string; session?: boolean; host?: string } => ({
 		projectId:
 			typeof search.projectId === "string" ? search.projectId : undefined,
 		session: search.session === true ? true : undefined,
+		host: typeof search.host === "string" ? search.host : undefined,
 	}),
 	component: NewWorkspacePage,
 });
 
 /**
- * Experiment test arm (new-workspace-screen): the create surface as a real
- * route. Store opens are redirected here by DashboardNewWorkspaceModal.
+ * The v2 create surface. It is a real route, not a dialog — every "new
+ * workspace" entry point navigates here via `useOpenNewWorkspace`.
  */
 function NewWorkspacePage() {
-	const { projectId, session } = Route.useSearch();
+	const { projectId, session, host } = Route.useSearch();
 	return (
 		<DashboardNewWorkspaceDraftProvider onClose={() => {}}>
 			<PromptInputProvider attachmentsStore={newWorkspaceAttachmentsStore}>
@@ -30,6 +31,7 @@ function NewWorkspacePage() {
 					isOpen
 					preSelectedProjectId={projectId ?? null}
 					preSelectedSession={session === true}
+					preSelectedHostId={host ?? null}
 				/>
 				{/* Window-drag surface replacing the hidden TopBar's drag region.
 				    Stops short of the top-right corner so the screen's naming

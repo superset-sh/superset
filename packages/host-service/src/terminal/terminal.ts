@@ -41,6 +41,7 @@ import {
 } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
+import { issueAttributionToken } from "../terminal-agents/attribution-token.ts";
 import { sweepAgentBindingsAfterDaemonLoss } from "../terminal-agents/daemon-loss-sweep.ts";
 import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
 import {
@@ -65,6 +66,10 @@ import {
 	waitForTerminalBaseEnv,
 } from "./env.ts";
 import { readHarnessTranscript } from "./harness-transcript.ts";
+import {
+	TerminalLifecycleOperations,
+	terminalLifecycleState,
+} from "./lifecycle/lifecycle.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
 	getShellReadyMarkerEvidence,
@@ -199,9 +204,17 @@ type TerminalClientMessage =
 	// Whether this client is actually showing the terminal right now — its pane
 	// is on screen and its app is foregrounded. Distinct from keyboard focus: a
 	// visible unfocused pane still has to render at the right size. Only visible
-	// clients constrain the PTY size. A client that never sends this counts as
-	// visible, so builds predating the message keep their existing sizing.
+	// clients constrain the PTY size. A hidden client keeps receiving output
+	// until the PTY changes size; from then on the bytes are laid out for a
+	// width it does not have, so they are withheld and it is repainted when it
+	// comes back. A client that never sends this counts as visible, so builds
+	// predating the message keep their existing behaviour.
 	| { type: "visible"; visible: boolean }
+	// Answer to the host's `ping`. A client that has answered once and then
+	// goes silent is dropped, which is the only way a half-open socket (a phone
+	// suspended in a pocket, a Wi-Fi drop the relay never sees) stops
+	// constraining the PTY size. Clients that never answer are never dropped.
+	| { type: "pong" }
 	| { type: "dispose" };
 
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
@@ -238,7 +251,10 @@ type TerminalServerMessage =
 	//               content bytes are sent — the client's screen is presumed
 	//               better than anything we could synthesize (see #6290) — and
 	//               a repaint nudge asks the running program to redraw itself.
-	| { type: "synced"; epoch: string; seq: number; mode: SyncedMode };
+	| { type: "synced"; epoch: string; seq: number; mode: SyncedMode }
+	// Liveness probe; the client answers with `pong`. Sent once on attach and
+	// then every CLIENT_PING_INTERVAL_MS while the socket is attached.
+	| { type: "ping" };
 
 type SyncedMode = "exact" | "tail" | "reanchor";
 
@@ -310,6 +326,20 @@ const SESSION_RESTORED_NOTICE = new TextEncoder().encode(
 // PTY is never paused, so a stalled renderer can't wedge the shell. Matches the
 // daemon's own 8 MB outbound socket cap.
 const WS_SEND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
+// A client attached through the relay can vanish without the host ever
+// seeing a close: the relay pairs the phone's stream with a local socket
+// here and tears one down when the other closes, but a phone suspended
+// mid-session or dropped off Wi-Fi sends no FIN, so Cloudflare keeps its
+// end open and the local socket stays attached — still holding its dims in
+// the size minimum, which pins every other client at phone width. TCP
+// keepalive would take hours. So the host pings each client at the
+// application level and drops one that answered before but has now missed
+// CLIENT_PONG_MISS_LIMIT pings in a row (30–45s of silence). A client that
+// said it is off screen is exempt: a backgrounded phone's page is suspended,
+// so its silence is expected, and it already sits outside the size minimum,
+// so dropping it would only force a redial when it comes back.
+const CLIENT_PING_INTERVAL_MS = 15_000;
+const CLIENT_PONG_MISS_LIMIT = 2;
 const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
@@ -320,13 +350,30 @@ const MIN_TERMINAL_ROWS = 5;
 
 // `<ArrayBuffer>` narrowing matches hono/ws's WSContext.send signature.
 // `raw` is the underlying `ws` WebSocket (present for node-ws); we read
-// `bufferedAmount` off it to bound a slow renderer's send queue.
+// `bufferedAmount` off it to bound a slow renderer's send queue and call
+// `terminate` to drop a half-open peer that would never finish a close
+// handshake.
 type TerminalSocket = {
 	send: (data: string | Uint8Array<ArrayBuffer>) => void;
 	close: (code?: number, reason?: string) => void;
 	readyState: number;
-	raw?: { readonly bufferedAmount?: number };
+	raw?: { readonly bufferedAmount?: number; terminate?: () => void };
 };
+
+/**
+ * Per-socket ping bookkeeping. `answered` marks a client that speaks pong;
+ * only those are ever dropped for silence, so builds predating the message
+ * keep the old (never reaped) behaviour. Keyed weakly: a socket that leaves
+ * by any path takes its entry with it.
+ */
+const socketLiveness = new WeakMap<
+	TerminalSocket,
+	{ answered: boolean; unansweredPings: number }
+>();
+/** Sockets that dialed with `?seq=`; only these can be told their position. */
+const seqSockets = new WeakSet<TerminalSocket>();
+let clientPingIntervalMs = CLIENT_PING_INTERVAL_MS;
+let clientLivenessSweep: ReturnType<typeof setInterval> | null = null;
 
 // ---------------------------------------------------------------------------
 // OSC 133 shell readiness detection (FinalTerm semantic prompt standard).
@@ -498,7 +545,14 @@ interface TerminalSession {
 	exitCode: number;
 	exitSignal: number;
 	listed: boolean;
+	/** Last title the shell reported over OSC. Lives and dies with the process. */
 	title: string | null;
+	/**
+	 * The name the user gave this session, mirrored from `custom_title`. It
+	 * outranks `title` everywhere a session is named, so a session keeps its
+	 * name while the shell retitles itself underneath.
+	 */
+	customTitle: string | null;
 	titleScanState: TerminalTitleScanState;
 	/**
 	 * Bus for lifecycle broadcasts. Kept on the session so dispose (which
@@ -558,13 +612,7 @@ interface TerminalSession {
 	 */
 	modeTracker: ModeTracker;
 
-	/**
-	 * Resolves once the daemon's post-adoption ring-buffer replay has
-	 * quiesced (immediately for non-adopted sessions). Attach paths await it
-	 * before delivering to a socket, so the mode preamble is built from a
-	 * tracker that has actually seen the program's mode bytes and replayed
-	 * bytes never broadcast to a just-attached client.
-	 */
+	/** Replay and its mode checkpoint must finish before attach or text input. */
 	adoptionReplaySettled: Promise<void>;
 
 	/**
@@ -595,6 +643,15 @@ interface TerminalSession {
 	/** Bumped on every client resize; guards the nudge's delayed restore. */
 	resizeGeneration: number;
 	/**
+	 * Stream position of the last PTY resize. A resize is a sync boundary:
+	 * bytes before and after it were laid out for different widths, so a
+	 * client anchored at or before it cannot be caught up exactly — it
+	 * reanchors and the program repaints. Clients attached and on screen at
+	 * the time saw the resize in-band and are unaffected. -1 until the first
+	 * resize.
+	 */
+	lastResizeSeq: number;
+	/**
 	 * Sockets whose client currently holds keyboard focus. The PTY receives
 	 * the AGGREGATE (any focused socket) — so an unfocused duplicate pane
 	 * attaching can't tell the program the focused pane lost focus (tmux's
@@ -612,10 +669,13 @@ interface TerminalSession {
 	/**
 	 * Sockets whose client said it is off screen. Absence means visible, so a
 	 * client that never sends the message keeps constraining the size as it
-	 * always has. Hidden clients are excluded from the minimum: a backgrounded
-	 * phone must not hold the PTY narrow for whoever is actually looking.
+	 * always has. Hidden clients are excluded from the minimum — a backgrounded
+	 * phone must not hold the PTY narrow for whoever is actually looking. They
+	 * keep receiving output (null) until the PTY changes size, which records
+	 * the stream position where their copy diverged; from there they are
+	 * withheld and get a reanchor on return.
 	 */
-	hiddenSockets: Set<TerminalSocket>;
+	hiddenSockets: Map<TerminalSocket, number | null>;
 
 	/**
 	 * Tail of the in-flight follow-up send (writeFramedInputToSession).
@@ -758,7 +818,7 @@ function pruneAndCountOpenSockets(session: TerminalSession): number {
 			socket.readyState === SOCKET_CLOSING ||
 			socket.readyState === SOCKET_CLOSED
 		) {
-			session.sockets.delete(socket);
+			detachSocket(session, socket);
 		}
 	}
 	return openSockets;
@@ -771,7 +831,10 @@ export interface TerminalSessionSummary {
 	exited: boolean;
 	exitCode: number;
 	attached: boolean;
+	/** What to show: the user's name if set, else the shell's OSC title. */
 	title: string | null;
+	/** The user's name on its own — null when the session has never been named. */
+	customTitle: string | null;
 }
 
 /**
@@ -837,7 +900,8 @@ export function listTerminalSessions(
 			exited: session.exited,
 			exitCode: session.exitCode,
 			attached: pruneAndCountOpenSockets(session) > 0,
-			title: session.title,
+			title: sessionDisplayTitle(session),
+			customTitle: session.customTitle,
 		}));
 }
 
@@ -856,7 +920,7 @@ export function listTerminalSessions(
  * daemon session joined to an active workspace-owned row. Dispose-stamped
  * rows are scheduled kills awaiting the reaper — never resurfaced. A session
  * only the daemon knows has never been attached in this process's lifetime,
- * hence `attached: false, title: null`.
+ * hence `attached: false` and no OSC title — only the name it was given.
  */
 export async function listLiveTerminalSessions(
 	db: HostDb,
@@ -897,6 +961,7 @@ export async function listLiveTerminalSessions(
 			originWorkspaceId: terminalSessions.originWorkspaceId,
 			status: terminalSessions.status,
 			createdAt: terminalSessions.createdAt,
+			customTitle: terminalSessions.customTitle,
 			disposeRequestedAt: terminalSessions.disposeRequestedAt,
 		})
 		.from(terminalSessions)
@@ -911,8 +976,7 @@ export async function listLiveTerminalSessions(
 		if (workspaceId !== undefined && row.originWorkspaceId !== workspaceId) {
 			continue;
 		}
-		if (row.status !== "active") continue;
-		if (row.disposeRequestedAt != null) continue;
+		if (terminalLifecycleState(row) !== "active") continue;
 		merged.push({
 			terminalId: row.id,
 			workspaceId: row.originWorkspaceId,
@@ -920,7 +984,10 @@ export async function listLiveTerminalSessions(
 			exited: false,
 			exitCode: 0,
 			attached: false,
-			title: null,
+			// No OSC title to fall back on — this process has never watched
+			// this session's output — but the name it was given is durable.
+			title: row.customTitle,
+			customTitle: row.customTitle,
 		});
 	}
 	return merged;
@@ -953,11 +1020,7 @@ export function writeInputToSession({
 	return { success: true };
 }
 
-// Ring-buffer replay after adoption arrives asynchronously over the daemon
-// socket, and it is what rebuilds the mode tracker (bracketed paste, screen
-// content). Protocol v2 has no replay-complete signal, so watch the replayed
-// bytes accumulate — they land in session.buffer, since no renderer is
-// attached right after adoption — and return once they quiesce.
+// Compatibility with daemons predating the replay-complete checkpoint.
 const ADOPTION_REPLAY_WAIT_MS = 500;
 
 async function waitForAdoptionReplay(session: TerminalSession): Promise<void> {
@@ -978,6 +1041,36 @@ async function waitForAdoptionReplay(session: TerminalSession): Promise<void> {
  * attempt keeps session identity unique per terminal.
  */
 const adoptionsInFlight = new Map<string, Promise<unknown>>();
+
+async function waitForSessionReplay(
+	session: TerminalSession,
+): Promise<TerminalSession | TerminalSessionError> {
+	try {
+		await session.adoptionReplaySettled;
+		return session;
+	} catch (error) {
+		if (sessions.get(session.terminalId) === session) {
+			sessions.delete(session.terminalId);
+			cancelShellReady(session);
+			try {
+				session.unsubscribeDaemon?.();
+			} catch (unsubscribeError) {
+				console.warn(
+					"[terminal] failed to unsubscribe after replay failure",
+					unsubscribeError,
+				);
+			}
+			session.unsubscribeDaemon = null;
+			session.modeTracker.dispose();
+		}
+		const transient = error instanceof DaemonUnavailableError;
+		return {
+			kind: transient ? "DAEMON_UNAVAILABLE" : "TERMINAL_START_FAILED",
+			error: error instanceof Error ? error.message : "Terminal replay failed",
+			transient,
+		};
+	}
+}
 
 /**
  * Resolve a session for headless IO. The in-memory map empties on every
@@ -1004,7 +1097,7 @@ async function getOrAdoptSession({
 					error: "Terminal session does not belong to this workspace",
 				};
 			}
-			return existing;
+			return waitForSessionReplay(existing);
 		}
 
 		// Another caller is mid-adoption: wait it out, then re-resolve so
@@ -1026,8 +1119,7 @@ async function getOrAdoptSession({
 			});
 			if ("error" in adopted) return adopted;
 
-			await adopted.adoptionReplaySettled;
-			return adopted;
+			return waitForSessionReplay(adopted);
 		})();
 		adoptionsInFlight.set(terminalId, attempt);
 		try {
@@ -1301,7 +1393,7 @@ function broadcastMessage(
 				socket.readyState === SOCKET_CLOSING ||
 				socket.readyState === SOCKET_CLOSED
 			) {
-				session.sockets.delete(socket);
+				detachSocket(session, socket);
 			}
 			continue;
 		}
@@ -1311,10 +1403,61 @@ function broadcastMessage(
 	return sent;
 }
 
+/**
+ * What this session is called: the user's name if it has one, else whatever
+ * the shell last reported. The single place that precedence is decided —
+ * clients are handed the answer, never the two inputs.
+ */
+function sessionDisplayTitle(session: TerminalSession): string | null {
+	return session.customTitle ?? session.title;
+}
+
+/**
+ * Announce the display title if what just changed actually changed it. A
+ * named session swallows the shell's retitles this way: it still tracks them
+ * (clearing the name falls back to the latest one) but nothing is announced.
+ */
+function broadcastDisplayTitle(
+	session: TerminalSession,
+	before: string | null,
+) {
+	const after = sessionDisplayTitle(session);
+	if (before === after) return;
+	broadcastMessage(session, { type: "title", title: after });
+}
+
 function setSessionTitle(session: TerminalSession, title: string | null) {
 	if (session.title === title) return;
+	const before = sessionDisplayTitle(session);
 	session.title = title;
-	broadcastMessage(session, { type: "title", title });
+	broadcastDisplayTitle(session, before);
+}
+
+/**
+ * Give a session a name, or clear it with null. The db row is the truth —
+ * a session with no pane, or none in this process's memory at all, is named
+ * just the same — and any live session is caught up so attached clients
+ * (this desktop, a phone) see it without waiting for their next poll.
+ */
+export function renameTerminalSession({
+	terminalId,
+	customTitle,
+	db,
+}: {
+	terminalId: string;
+	customTitle: string | null;
+	db: HostDb;
+}): void {
+	db.update(terminalSessions)
+		.set({ customTitle })
+		.where(eq(terminalSessions.id, terminalId))
+		.run();
+
+	const session = sessions.get(terminalId);
+	if (!session || session.customTitle === customTitle) return;
+	const before = sessionDisplayTitle(session);
+	session.customTitle = customTitle;
+	broadcastDisplayTitle(session, before);
 }
 
 function bufferOutput(session: TerminalSession, data: Uint8Array) {
@@ -1434,7 +1577,10 @@ function answerDsrCursorQueries(session: TerminalSession, count: number) {
 function deliverOutput(session: TerminalSession, bytes: Uint8Array) {
 	session.modeTracker.feed(bytes);
 	retainOutput(session, bytes);
-	if (broadcastBytes(session, bytes) === 0) {
+	// The legacy FIFO stands in for a client that has nobody attached, not
+	// for one withheld from hidden clients: the sweep may also have detached
+	// closed sockets, so check what remains rather than what was sent.
+	if (broadcastBytes(session, bytes) === 0 && session.sockets.size === 0) {
 		bufferOutput(session, bytes);
 	}
 }
@@ -1516,6 +1662,16 @@ function applyEffectiveDims(
 	if (!next) return;
 	const changed = next.cols !== session.cols || next.rows !== session.rows;
 	if (!changed && !options.force) return;
+	if (changed) {
+		session.lastResizeSeq = session.outputSeq;
+		// Whatever follows is laid out for the new size; hidden clients still
+		// in step stop being so here.
+		for (const [socket, divergedAt] of session.hiddenSockets) {
+			if (divergedAt === null) {
+				session.hiddenSockets.set(socket, session.outputSeq);
+			}
+		}
+	}
 	session.resizeGeneration += 1;
 	session.pty.resize(next.cols, next.rows);
 	session.modeTracker.resize(next.cols, next.rows);
@@ -1533,6 +1689,109 @@ function releaseSocketDims(session: TerminalSession, ws: TerminalSocket) {
 	const wasHidden = session.hiddenSockets.delete(ws);
 	// A hidden client was already outside the minimum, so nothing moved.
 	if (hadDims && !wasHidden) applyEffectiveDims(session);
+}
+
+/**
+ * A client back on screen after its output was withheld: the PTY changed
+ * size while it was away, so what it missed was laid out for a width it does
+ * not have. It is told its new position and nothing else, and the program
+ * repaints — the resize its return causes delivers the SIGWINCH, or a nudge
+ * does when the size does not move. A legacy client cannot be told where it
+ * is; the repaint is all it can use anyway.
+ */
+function resumeHiddenSocket(session: TerminalSession, ws: TerminalSocket) {
+	if (seqSockets.has(ws)) {
+		sendMessage(ws, {
+			type: "synced",
+			epoch: session.epoch,
+			seq: session.outputSeq,
+			mode: "reanchor",
+		});
+	}
+	const next = effectiveDims(session);
+	const dimsUnchanged =
+		next === null || (next.cols === session.cols && next.rows === session.rows);
+	applyEffectiveDims(session);
+	if (dimsUnchanged) nudgeRepaint(session);
+}
+
+/**
+ * Forget a socket entirely: it stops receiving output, hands focus-out to the
+ * program if it was the last focused client, and releases its size
+ * constraint. Idempotent, so the socket's own close event can follow a
+ * liveness drop without double-applying anything.
+ *
+ * The only way out of `session.sockets`, so a socket can never leave the
+ * broadcast set while still holding the PTY size down.
+ */
+function detachSocket(session: TerminalSession, ws: TerminalSocket) {
+	session.sockets.delete(ws);
+	if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
+	releaseSocketDims(session, ws);
+}
+
+function pingSocket(ws: TerminalSocket) {
+	const liveness = socketLiveness.get(ws);
+	if (!liveness) return;
+	liveness.unansweredPings += 1;
+	sendMessage(ws, { type: "ping" });
+}
+
+/**
+ * Drop every attached on-screen client that answered a ping before and has
+ * now missed CLIENT_PONG_MISS_LIMIT in a row, then ping the rest. Detaching
+ * first means the PTY grows back immediately; the socket is destroyed rather
+ * than closed because a half-open peer never completes the close handshake.
+ */
+function sweepClientLiveness() {
+	for (const session of sessions.values()) {
+		for (const ws of session.sockets) {
+			if (ws.readyState !== SOCKET_OPEN) continue;
+			const liveness = socketLiveness.get(ws);
+			if (!liveness) continue;
+			if (session.hiddenSockets.has(ws)) {
+				// Expected silence; count from zero when it is back on screen.
+				liveness.unansweredPings = 0;
+				continue;
+			}
+			if (
+				liveness.answered &&
+				liveness.unansweredPings >= CLIENT_PONG_MISS_LIMIT
+			) {
+				console.warn(
+					`[terminal] dropping unresponsive client on ${session.terminalId}: ${liveness.unansweredPings} pings unanswered`,
+				);
+				detachSocket(session, ws);
+				socketLiveness.delete(ws);
+				try {
+					if (ws.raw?.terminate) ws.raw.terminate();
+					else ws.close(1001, "No pong from client");
+				} catch {
+					// best-effort; the peer may already be gone
+				}
+				continue;
+			}
+			pingSocket(ws);
+		}
+	}
+}
+
+function ensureClientLivenessSweep() {
+	if (clientLivenessSweep) return;
+	clientLivenessSweep = setInterval(sweepClientLiveness, clientPingIntervalMs);
+	clientLivenessSweep.unref();
+}
+
+/**
+ * Shrink the ping cadence so a test can watch a silent client get dropped
+ * without waiting the production 30–45s. NEVER call from production paths.
+ */
+export function __setClientPingIntervalForTesting(ms: number): void {
+	clientPingIntervalMs = ms;
+	if (clientLivenessSweep) {
+		clearInterval(clientLivenessSweep);
+		clientLivenessSweep = null;
+	}
 }
 
 /**
@@ -1589,16 +1848,22 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 				socket.readyState === SOCKET_CLOSING ||
 				socket.readyState === SOCKET_CLOSED
 			) {
-				session.sockets.delete(socket);
+				detachSocket(session, socket);
 			}
 			continue;
 		}
+		// A hidden client whose copy diverged at a resize: these bytes are laid
+		// out for a width it does not have. `visible` reanchors it.
+		if (typeof session.hiddenSockets.get(socket) === "number") continue;
 		// A renderer that can't keep up lets its send buffer grow without bound.
 		// Drop it past the cap rather than buffer forever; it reconnects and
 		// replays the tail. Returning this chunk as "not sent" routes it to the
 		// bounded replay buffer via the caller's broadcast-or-buffer check.
 		if (socketBufferedAmount(socket) > WS_SEND_BUFFER_CAP_BYTES) {
-			session.sockets.delete(socket);
+			// Detach rather than just drop from the broadcast set: a renderer
+			// that stopped draining is exactly the one whose close handshake
+			// may never complete, and its dims would hold the PTY hostage.
+			detachSocket(session, socket);
 			try {
 				socket.close(1013, "terminal output back-pressure");
 			} catch {
@@ -1677,6 +1942,7 @@ function sendSeqAttach(
 		request.kind === "anchor" &&
 		request.epoch === session.epoch &&
 		request.seq >= session.retainedStartSeq &&
+		request.seq > session.lastResizeSeq &&
 		request.seq <= session.outputSeq;
 
 	if (exact) {
@@ -1707,9 +1973,10 @@ function sendSeqAttach(
 	}
 
 	// Unknown/unrecoverable position ("none", epoch mismatch, gap beyond the
-	// ring). The client's existing screen beats anything we could synthesize —
-	// never overwrite it (#6290). Re-anchor at the live head and ask the
-	// program to repaint itself.
+	// ring, or an anchor from before the PTY last resized — those bytes were
+	// laid out for another width). The client's existing screen beats
+	// anything we could synthesize — never overwrite it (#6290). Re-anchor at
+	// the live head and ask the program to repaint itself.
 	sendMessage(socket, {
 		type: "synced",
 		epoch: session.epoch,
@@ -2362,6 +2629,7 @@ async function closeDaemonSessionById(
  * transient teardown session.
  */
 export function disposeSession(terminalId: string, db: HostDb) {
+	markTerminalAgentBindingEnded(db, terminalId, "disposed");
 	void disposeSessionAndWait(terminalId, db)
 		.then((result) => {
 			if (!result.daemonCloseSucceeded) {
@@ -2375,23 +2643,35 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		});
 }
 
+const lifecycleOperations = new TerminalLifecycleOperations();
+
 export async function disposeSessionAndWait(
 	terminalId: string,
 	db: HostDb,
 ): Promise<DisposeSessionResult> {
-	// Durable intent-to-kill: if this attempt fails (daemon hiccup, host
-	// restart mid-kill), the reaper retries any stamped row — a one-shot
-	// renderer broadcast must not be the only chance to kill a session.
-	// First request time wins so retries don't look like fresh requests.
-	db.update(terminalSessions)
-		.set({ disposeRequestedAt: Date.now() })
-		.where(
-			and(
-				eq(terminalSessions.id, terminalId),
-				isNull(terminalSessions.disposeRequestedAt),
-			),
-		)
+	const now = Date.now();
+	db.insert(terminalSessions)
+		.values({
+			id: terminalId,
+			status: "disposed",
+			createdAt: now,
+			disposeRequestedAt: now,
+		})
+		.onConflictDoUpdate({
+			target: terminalSessions.id,
+			set: { disposeRequestedAt: now },
+			setWhere: isNull(terminalSessions.disposeRequestedAt),
+		})
 		.run();
+	return lifecycleOperations.run(terminalId, () =>
+		disposeSessionUnlocked(terminalId, db),
+	);
+}
+
+async function disposeSessionUnlocked(
+	terminalId: string,
+	db: HostDb,
+): Promise<DisposeSessionResult> {
 	const session = sessions.get(terminalId);
 	let closePromise: Promise<DaemonCloseResult> | null = null;
 
@@ -2605,7 +2885,38 @@ function getTerminalWorkspaceMismatchError({
 
 type CreateSessionError = TerminalSessionError;
 
-export async function createTerminalSessionInternal({
+export function getPendingTerminalWorkspaceId(
+	terminalId: string,
+): string | undefined {
+	return lifecycleOperations.getWorkspaceId(terminalId);
+}
+
+export function createTerminalSessionInternal(
+	options: CreateTerminalSessionOptions,
+): Promise<TerminalSession | CreateSessionError> {
+	const record = options.db.query.terminalSessions
+		.findFirst({ where: eq(terminalSessions.id, options.terminalId) })
+		.sync();
+	const mismatchError = getTerminalWorkspaceMismatchError({
+		terminalId: options.terminalId,
+		ownerWorkspaceId:
+			record?.originWorkspaceId ??
+			getPendingTerminalWorkspaceId(options.terminalId),
+		requestedWorkspaceId: options.workspaceId,
+	});
+	if (mismatchError)
+		return Promise.resolve({
+			kind: "SESSION_WRONG_WORKSPACE",
+			error: mismatchError,
+		});
+	return lifecycleOperations.run(
+		options.terminalId,
+		() => createTerminalSessionUnlocked(options),
+		record ? undefined : options.workspaceId,
+	);
+}
+
+async function createTerminalSessionUnlocked({
 	terminalId,
 	workspaceId,
 	themeType,
@@ -2621,6 +2932,16 @@ export async function createTerminalSessionInternal({
 }: CreateTerminalSessionOptions): Promise<
 	TerminalSession | CreateSessionError
 > {
+	const record = db.query.terminalSessions
+		.findFirst({ where: eq(terminalSessions.id, terminalId) })
+		.sync();
+	const lifecycle = terminalLifecycleState(record);
+	if (lifecycle === "disposed" || lifecycle === "exited") {
+		return {
+			kind: "SESSION_EXITED",
+			error: `Terminal session "${terminalId}" has ended; create a new terminal id.`,
+		};
+	}
 	const existing = sessions.get(terminalId);
 	if (existing) {
 		const mismatchError = getTerminalWorkspaceMismatchError({
@@ -2636,12 +2957,9 @@ export async function createTerminalSessionInternal({
 		return existing;
 	}
 
-	const existingRecord = db.query.terminalSessions
-		.findFirst({ where: eq(terminalSessions.id, terminalId) })
-		.sync();
 	const recordMismatchError = getTerminalWorkspaceMismatchError({
 		terminalId,
-		ownerWorkspaceId: existingRecord?.originWorkspaceId,
+		ownerWorkspaceId: record?.originWorkspaceId,
 		requestedWorkspaceId: workspaceId,
 	});
 	if (recordMismatchError)
@@ -2721,6 +3039,7 @@ export async function createTerminalSessionInternal({
 		// this terminal run on the selected login. Baked at spawn as the fast
 		// path; the agent wrappers re-resolve later switches at launch time.
 		...resolveDefaultAccountTerminalEnv(db),
+		SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN: issueAttributionToken(terminalId),
 	};
 
 	let daemon: DaemonClient;
@@ -2810,6 +3129,19 @@ export async function createTerminalSessionInternal({
 			transient: unreachable,
 		};
 	}
+	const currentRecord = db.query.terminalSessions
+		.findFirst({ where: eq(terminalSessions.id, terminalId) })
+		.sync();
+	if (
+		terminalLifecycleState(currentRecord) === "disposed" ||
+		terminalLifecycleState(currentRecord) === "exited"
+	) {
+		await daemon.close(terminalId, "SIGHUP").catch(() => {});
+		return {
+			kind: "SESSION_EXITED",
+			error: `Terminal session "${terminalId}" ended during creation.`,
+		};
+	}
 	const pty: DaemonPty = makeDaemonPty(daemon, terminalId, openResult.pid);
 
 	const createdAt = Date.now();
@@ -2832,6 +3164,16 @@ export async function createTerminalSessionInternal({
 		})
 		.run();
 
+	// Read back rather than default to null: relaunching into the same
+	// terminal id (adoption, an agent resume) must keep the name it was given,
+	// and the conflict update above deliberately leaves the column alone.
+	const customTitle =
+		db
+			.select({ customTitle: terminalSessions.customTitle })
+			.from(terminalSessions)
+			.where(eq(terminalSessions.id, terminalId))
+			.get()?.customTitle ?? null;
+
 	// Determine shell readiness support. Adopted sessions are already past
 	// shell startup, so treat them as immediately ready — the OSC 133;A
 	// marker has already flown by and we don't want to gate writes on it.
@@ -2849,15 +3191,19 @@ export async function createTerminalSessionInternal({
 	// bytes, but the session literal below needs the tracker — close over a
 	// ref assigned right after construction.
 	let reclaimSession: TerminalSession | null = null;
-	const modeTracker = createModeTracker(cols, rows, {
-		onLeakedInputModeDisarm(bytes) {
-			const s = reclaimSession;
-			if (!s || !isCurrentLiveSession(s)) return;
-			// deliverOutput feeds the tracker too, so its modes (and the next
-			// attach preamble) converge with what clients were just told.
-			deliverOutput(s, bytes);
-		},
-	});
+	const modeTracker = createModeTracker(
+		cols,
+		rows,
+		daemon.supportsModeSnapshots
+			? {}
+			: {
+					onLeakedInputModeDisarm(bytes) {
+						const s = reclaimSession;
+						if (!s || !isCurrentLiveSession(s)) return;
+						deliverOutput(s, bytes);
+					},
+				},
+	);
 
 	const session: TerminalSession = {
 		terminalId,
@@ -2878,6 +3224,7 @@ export async function createTerminalSessionInternal({
 		exitSignal: 0,
 		listed,
 		title: null,
+		customTitle,
 		titleScanState: createTerminalTitleScanState(),
 		eventBus,
 		shellReadyState: shellSupportsReady
@@ -2907,9 +3254,10 @@ export async function createTerminalSessionInternal({
 		retainedStartSeq: 0,
 		pendingRepaintNudge: null,
 		resizeGeneration: 0,
+		lastResizeSeq: -1,
 		focusedSockets: new Set(),
 		clientDims: new Map(),
-		hiddenSockets: new Set(),
+		hiddenSockets: new Map(),
 	};
 	reclaimSession = session;
 	sessions.set(terminalId, session);
@@ -2931,18 +3279,15 @@ export async function createTerminalSessionInternal({
 		);
 	}
 
-	// Always request the daemon's ring on subscribe: it is the only way to
-	// rebuild the mode tracker after adoption (a tracker that never sees the
-	// program's `?25l`/`?1004h`/kitty bytes builds wrong preambles and
-	// disables host-side focus forwarding). Whether the replayed BYTES reach
-	// any client is decided per-attach: seq clients are protected by
-	// reanchor/anchor accounting, legacy `?replay=0` clients get the FIFO
-	// dropped at attach. Fresh (non-adopted) sessions have an empty ring, so
-	// replay is a no-op there.
+	// Replay carries screen contents; the following checkpoint restores modes
+	// even when the program set them before the retained output begins.
 	session.unsubscribeDaemon = daemon.subscribe(
 		terminalId,
 		{ replay: true },
 		{
+			onReplayComplete(modes) {
+				session.modeTracker.restoreModes(modes);
+			},
 			onOutput(chunk) {
 				// Bytes flow daemon → host → xterm without UTF-8 decoding;
 				// per-chunk `.toString("utf8")` here would mangle codepoints
@@ -3003,6 +3348,7 @@ export async function createTerminalSessionInternal({
 				answerDsrCursorQueries(session, dsrQueries);
 			},
 			onExit({ code, signal }) {
+				if (sessions.get(terminalId) !== session) return;
 				session.exited = true;
 				cancelShellReady(session);
 				session.exitCode = code ?? 0;
@@ -3013,7 +3359,13 @@ export async function createTerminalSessionInternal({
 
 				db.update(terminalSessions)
 					.set({ status: "exited", endedAt: occurredAt })
-					.where(eq(terminalSessions.id, terminalId))
+					.where(
+						and(
+							eq(terminalSessions.id, terminalId),
+							eq(terminalSessions.status, "active"),
+							isNull(terminalSessions.disposeRequestedAt),
+						),
+					)
 					.run();
 
 				// The agent died with the pty; unless its SessionEnd hook already
@@ -3052,9 +3404,11 @@ export async function createTerminalSessionInternal({
 
 	// The ring replay lands asynchronously after subscribe; attach paths
 	// await this so the first preamble reflects the rebuilt tracker.
-	if (isAdopted) {
-		session.adoptionReplaySettled = waitForAdoptionReplay(session);
-	}
+	session.adoptionReplaySettled = daemon.supportsModeSnapshots
+		? daemon.waitForReplay(terminalId)
+		: isAdopted
+			? waitForAdoptionReplay(session)
+			: Promise.resolve();
 
 	if (initialCommand) {
 		queueInitialCommand(session, initialCommand);
@@ -3062,13 +3416,6 @@ export async function createTerminalSessionInternal({
 
 	return session;
 }
-
-// Concurrent create-on-attach dials for the same brand-new terminalId must
-// share one spawn instead of racing createTerminalSessionInternal.
-const inflightCreates = new Map<
-	string,
-	Promise<TerminalSession | CreateSessionError>
->();
 
 export function registerWorkspaceTerminalRoute({
 	app,
@@ -3175,13 +3522,19 @@ export function registerWorkspaceTerminalRoute({
 				if (session.sockets.has(ws)) return false;
 				session.sockets.add(ws);
 				sendMessage(ws, { type: "attached", terminalId });
+				// Ping straight away so a client that speaks pong declares itself
+				// within a round trip, not after the first sweep interval — a
+				// phone can go half-open inside that window.
+				socketLiveness.set(ws, { answered: false, unansweredPings: 0 });
+				pingSocket(ws);
+				ensureClientLivenessSweep();
 
 				db.update(terminalSessions)
 					.set({ lastAttachedAt: Date.now() })
 					.where(eq(terminalSessions.id, terminalId))
 					.run();
 
-				sendMessage(ws, { type: "title", title: session.title });
+				sendMessage(ws, { type: "title", title: sessionDisplayTitle(session) });
 				if (seqRequest.kind === "legacy") {
 					// Pre-seq contract: `?replay=0` means "my xterm already has
 					// the scrollback". Adoption now always pulls the daemon ring
@@ -3193,6 +3546,7 @@ export function registerWorkspaceTerminalRoute({
 					}
 					replayBuffer(session, ws);
 				} else {
+					seqSockets.add(ws);
 					sendSeqAttach(session, ws, seqRequest);
 				}
 				if (session.exited) {
@@ -3208,6 +3562,15 @@ export function registerWorkspaceTerminalRoute({
 				| TerminalSession
 				| { error: string; code?: "session-gone"; transient?: boolean }
 			> => {
+				const lifecycleRecord = db.query.terminalSessions
+					.findFirst({ where: eq(terminalSessions.id, terminalId) })
+					.sync();
+				if (terminalLifecycleState(lifecycleRecord) === "disposed") {
+					return {
+						error: `Terminal session "${terminalId}" is disposed.`,
+						code: "session-gone",
+					};
+				}
 				const existing = sessions.get(terminalId);
 				if (existing) {
 					if (requestedWorkspaceId) {
@@ -3221,53 +3584,31 @@ export function registerWorkspaceTerminalRoute({
 					return existing;
 				}
 
-				const record = db.query.terminalSessions
-					.findFirst({ where: eq(terminalSessions.id, terminalId) })
-					.sync();
+				const record = lifecycleRecord;
 				if (!record) {
 					// Only ids with no session row at all qualify for create-on-attach
 					// — exited/disposed records below keep their session-gone answer.
 					if (createRequested && requestedWorkspaceId) {
-						const inflight = inflightCreates.get(terminalId);
-						if (inflight) {
-							const shared = await inflight;
-							if ("error" in shared) return shared;
-							// The shared spawn was created for the FIRST dial's workspace —
-							// validate ownership like every other attach path.
-							const mismatchError = getTerminalWorkspaceMismatchError({
-								terminalId,
-								ownerWorkspaceId: shared.workspaceId,
-								requestedWorkspaceId,
-							});
-							if (mismatchError) return { error: mismatchError };
-							return shared;
-						}
-						const createPromise = createTerminalSessionInternal({
+						return createTerminalSessionInternal({
 							terminalId,
 							workspaceId: requestedWorkspaceId,
 							themeType: requestedThemeType,
 							db,
 							eventBus,
 						});
-						inflightCreates.set(terminalId, createPromise);
-						try {
-							return await createPromise;
-						} finally {
-							inflightCreates.delete(terminalId);
-						}
 					}
 					return {
 						error: `Terminal session "${terminalId}" not found; create it before connecting.`,
 						code: "session-gone",
 					};
 				}
-				if (record.status === "disposed") {
+				if (terminalLifecycleState(record) === "disposed") {
 					return {
 						error: `Terminal session "${terminalId}" is disposed.`,
 						code: "session-gone",
 					};
 				}
-				if (record.status === "exited") {
+				if (terminalLifecycleState(record) === "exited") {
 					return {
 						error: `Terminal session "${terminalId}" has exited.`,
 						code: "session-gone",
@@ -3301,7 +3642,7 @@ export function registerWorkspaceTerminalRoute({
 				// Daemon unreachable ≠ PTY lost: the shell may still be alive behind
 				// the stall, so don't end agent bindings or respawn — let the
 				// renderer retry until the daemon answers.
-				if (adopted.transient) return adopted;
+				if (adopted.kind !== "SESSION_NOT_ACTIVE") return adopted;
 
 				// Active row but daemon no longer owns the PTY (laptop sleep,
 				// daemon restart, machine reboot). Respawn rather than dead-end
@@ -3335,26 +3676,25 @@ export function registerWorkspaceTerminalRoute({
 					}
 
 					void (async () => {
-						const session = await resolveSessionForAttach();
+						const resolved = await resolveSessionForAttach();
+						const session =
+							"error" in resolved
+								? resolved
+								: await waitForSessionReplay(resolved);
 						if ("error" in session) {
-							const transient = !session.code && session.transient;
+							const code = "code" in session ? session.code : undefined;
+							const transient = !code && session.transient;
 							sendMessage(ws, {
 								type: "error",
 								message: session.error,
-								code:
-									session.code ?? (transient ? "attach-retryable" : undefined),
+								code: code ?? (transient ? "attach-retryable" : undefined),
 							});
 							// 1013 "try again later" for transient failures; the renderer
 							// keys off the JSON code, the close code is for log readers.
 							ws.close(transient ? 1013 : 1011, toWsCloseReason(session.error));
 							return;
 						}
-						// A just-adopted session may still be receiving the daemon's
-						// ring replay: wait for it to quiesce so the mode preamble
-						// reflects the program's real state and the replayed bytes
-						// don't broadcast to this socket. Resolved immediately in
-						// every other case.
-						await session.adoptionReplaySettled;
+
 						if (ws.readyState !== SOCKET_OPEN) return;
 						attachSocketToSession(session, ws);
 					})().catch((error) => {
@@ -3383,6 +3723,15 @@ export function registerWorkspaceTerminalRoute({
 					const session = sessions.get(terminalId ?? "");
 					if (!session || !session.sockets.has(ws)) return;
 
+					// Anything inbound proves the client is alive; only a pong
+					// proves it speaks the protocol and can be held to it.
+					const liveness = socketLiveness.get(ws);
+					if (liveness) liveness.unansweredPings = 0;
+					if (message.type === "pong") {
+						if (liveness) liveness.answered = true;
+						return;
+					}
+
 					if (message.type === "dispose") {
 						disposeSession(terminalId ?? "", db);
 						return;
@@ -3407,9 +3756,14 @@ export function registerWorkspaceTerminalRoute({
 
 					if (message.type === "visible") {
 						if (message.visible) {
+							const divergedAt = session.hiddenSockets.get(ws);
 							session.hiddenSockets.delete(ws);
-						} else {
-							session.hiddenSockets.add(ws);
+							if (typeof divergedAt === "number") {
+								resumeHiddenSocket(session, ws);
+								return;
+							}
+						} else if (!session.hiddenSockets.has(ws)) {
+							session.hiddenSockets.set(ws, null);
 						}
 						// Going hidden releases this client's size constraint;
 						// coming back re-imposes it.
@@ -3449,19 +3803,13 @@ export function registerWorkspaceTerminalRoute({
 				onClose: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
 					if (!session) return;
-					session.sockets.delete(ws);
-					// A departing focused client may hand focus-out to the program
-					// (unless another attached client still holds focus).
-					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
-					releaseSocketDims(session, ws);
+					detachSocket(session, ws);
 				},
 
 				onError: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
 					if (!session) return;
-					session.sockets.delete(ws);
-					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
-					releaseSocketDims(session, ws);
+					detachSocket(session, ws);
 				},
 			};
 		}),

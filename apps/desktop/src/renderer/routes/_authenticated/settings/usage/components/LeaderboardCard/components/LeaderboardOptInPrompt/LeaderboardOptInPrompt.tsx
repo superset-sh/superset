@@ -1,5 +1,5 @@
 import { Trans } from "@lingui/react/macro";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { formatTokens } from "@superset/shared/format-tokens";
 import { Button } from "@superset/ui/button";
 import { useState } from "react";
@@ -29,6 +29,8 @@ export function LeaderboardOptInPrompt({
 	collapsed,
 	onToggleCollapsed,
 }: LeaderboardOptInPromptProps) {
+	const { formatNumber } = useFormat();
+
 	const {
 		preview,
 		suggestedHandle,

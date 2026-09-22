@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatPrice } from "@superset/i18n/format";
+import { rawErrorMessage } from "@superset/i18n/errors";
+import { useFormat } from "@superset/i18n/react";
 import { isPaymentFailingStatus } from "@superset/shared/billing";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -8,7 +9,8 @@ import { useState } from "react";
 import { HiArrowRight } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
-import { resolveCurrentPlan } from "renderer/hooks/useCurrentPlan";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
+import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -19,7 +21,6 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import type { PlanTier } from "../../constants";
 import { BillingDetails } from "./components/BillingDetails";
 import { CurrentPlanCard } from "./components/CurrentPlanCard";
 import { PaymentFailedBanner } from "./components/PaymentFailedBanner";
@@ -31,6 +32,8 @@ interface BillingOverviewProps {
 }
 
 export function BillingOverview({ visibleItems }: BillingOverviewProps) {
+	const { formatPrice } = useFormat();
+
 	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const utils = cloudTrpc.useUtils();
@@ -55,16 +58,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const currentMember = members?.find((m) => m.userId === currentUserId);
 	const isOwner = currentMember?.role === "owner";
 
-	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
-
-	// The subscription row wins over the session (which can lag a checkout), but
-	// an unresolved query must not read as "free" — fall back to the session plan
-	// until it arrives.
-	const plan: PlanTier = resolveCurrentPlan({
-		subscriptionPlan: activePlan?.plan,
-		sessionPlan: session?.session?.plan,
-		subscriptionsLoaded: activePlan !== undefined,
-	});
+	const { plan, activePlan } = useCurrentPlan();
 
 	// Seats are billed from this — never derive it from an unresolved query.
 	// undefined (not 0) keeps the upgrade action disabled until it loads. It is
@@ -91,6 +85,19 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const handleUpgrade = async (annual = false) => {
 		if (!activeOrgId || memberCount === undefined) return;
 
+		// Second route into Stripe Checkout, alongside the plans page. `source`
+		// is what lets the funnel tell them apart.
+		const checkoutProperties = {
+			plan: "pro",
+			annual,
+			seats: memberCount,
+			// `plan` here is the tier they are on now — same shape as the plans
+			// page, so both sources group together.
+			previous_plan: plan,
+			source: "billing_overview",
+		};
+		track("checkout_started", checkoutProperties);
+
 		setIsUpgrading(true);
 		try {
 			await authClient.subscription.upgrade(
@@ -106,8 +113,18 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 				{
 					onSuccess: (ctx) => {
 						if (ctx.data?.url) {
+							track("checkout_redirected", checkoutProperties);
 							window.open(ctx.data.url, "_blank");
 						}
+					},
+					// Better Auth resolves rather than throws, so without this hook a
+					// failed checkout is invisible: the button just resets.
+					onError: (ctx) => {
+						track("checkout_failed", {
+							...checkoutProperties,
+							status: ctx.response?.status,
+							error: rawErrorMessage(ctx.error),
+						});
 					},
 				},
 			);

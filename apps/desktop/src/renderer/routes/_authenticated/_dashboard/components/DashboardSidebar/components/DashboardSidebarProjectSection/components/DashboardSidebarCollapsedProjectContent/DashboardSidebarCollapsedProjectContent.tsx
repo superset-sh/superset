@@ -121,10 +121,6 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 												shortcutLabel={workspaceShortcutLabels.get(
 													parsed.realId,
 												)}
-												disabled={
-													workspace.type === "main" &&
-													workspace.hostType === "local-device"
-												}
 											/>
 										);
 									})}

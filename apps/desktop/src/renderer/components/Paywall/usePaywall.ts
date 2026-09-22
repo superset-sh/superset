@@ -1,59 +1,29 @@
+import { useLingui } from "@lingui/react/macro";
+import { isPaidPlanTier, type PlanTier } from "@superset/shared/billing";
+import { toast } from "@superset/ui/sonner";
+import { useRef } from "react";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
-import {
-	isPaidPlanTier,
-	resolveCurrentPlan,
-} from "renderer/hooks/useCurrentPlan";
-import { authClient } from "renderer/lib/auth-client";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import type { GatedFeature } from "./constants";
 import { paywall } from "./Paywall";
 
 export function usePaywall() {
-	const { data: session } = authClient.useSession();
-	const sessionPlan = session?.session?.plan;
-	const utils = cloudTrpc.useUtils();
-
-	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
-	const isReady = activePlan !== undefined;
+	const { t } = useLingui();
+	const { plan: userPlan, isReady, resolvePlanWhenKnown } = useCurrentPlan();
 	// Read at the top level, not inside gateFeature: hooks may not be called
 	// from a callback, and the paywall must be attributed to the org THIS
 	// window is showing.
 	const organizationId = useActiveOrganizationId();
-
-	const userPlan = resolveCurrentPlan({
-		subscriptionPlan: activePlan?.plan,
-		sessionPlan,
-		subscriptionsLoaded: isReady,
-	});
+	// Features whose gate is still resolving the plan. A second click during
+	// that window is dropped rather than queued: the caller's own pending
+	// state only flips once its callback has started, so without this a
+	// double-click on a cold start could create two automations or dispatch
+	// two runs.
+	const resolving = useRef(new Set<GatedFeature>());
 
 	function hasAccess(feature: GatedFeature): boolean {
 		void feature;
 		return isPaidPlanTier(userPlan);
-	}
-
-	// The gate must never resolve on an unknown answer: fail-open leaks every
-	// gated action to free users during the cold-start window, fail-closed
-	// paywalls entitled trial orgs. Defer instead — ensureData awaits the
-	// already-in-flight activePlan fetch, so a click during the window
-	// resolves correctly a beat later. On fetch failure (offline cold start)
-	// fall back to the session plan, which covers paying orgs.
-	async function resolvePlanWhenKnown(): Promise<string> {
-		if (isReady) return userPlan;
-		try {
-			const fetched = await utils.billing.activePlan.ensureData();
-			return resolveCurrentPlan({
-				subscriptionPlan: fetched?.plan,
-				sessionPlan,
-				subscriptionsLoaded: true,
-			});
-		} catch (error) {
-			console.warn("[paywall] Failed to fetch active plan:", error);
-			return resolveCurrentPlan({
-				subscriptionPlan: undefined,
-				sessionPlan,
-				subscriptionsLoaded: false,
-			});
-		}
 	}
 
 	function gateFeature(
@@ -61,21 +31,42 @@ export function usePaywall() {
 		callback: () => void | Promise<void>,
 		context?: Record<string, unknown>,
 	): void {
+		if (resolving.current.has(feature)) return;
+		resolving.current.add(feature);
 		void (async () => {
-			const plan = await resolvePlanWhenKnown();
-			if (isPaidPlanTier(plan)) {
+			try {
+				let plan: PlanTier;
 				try {
-					await callback();
+					plan = await resolvePlanWhenKnown();
 				} catch (error) {
-					console.error(`[paywall] Callback error for ${feature}:`, error);
+					console.warn(
+						`[paywall] Could not resolve the plan for ${feature}:`,
+						error,
+					);
+					toast.error(
+						t({
+							message:
+								"Could not check your plan. Check your connection and try again.",
+						}),
+					);
+					return;
 				}
-				return;
+				if (isPaidPlanTier(plan)) {
+					try {
+						await callback();
+					} catch (error) {
+						console.error(`[paywall] Callback error for ${feature}:`, error);
+					}
+					return;
+				}
+				paywall(feature, {
+					organizationId,
+					userPlan: plan,
+					...context,
+				});
+			} finally {
+				resolving.current.delete(feature);
 			}
-			paywall(feature, {
-				organizationId,
-				userPlan: plan,
-				...context,
-			});
 		})();
 	}
 

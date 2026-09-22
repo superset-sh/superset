@@ -5,7 +5,11 @@ export {
 	fileResponsePolicy,
 	pageAssetResponsePolicy,
 } from "./file-policy";
-export { injectScriptTag, RUNTIME_SCRIPT_PATH } from "./inject";
+export {
+	injectScriptTag,
+	injectStyleTag,
+	RUNTIME_SCRIPT_PATH,
+} from "./inject";
 export {
 	fileOriginalKey,
 	pageManifestKey,
@@ -18,8 +22,10 @@ export {
 	type PageManifestVersion,
 	type PageVisibility,
 	parsePageManifest,
+	publiclyReadable,
 	servedVersionOf,
 } from "./manifest";
+export { PAGE_THEME_CSS } from "./theme";
 export {
 	type FileTicketClaims,
 	type PageTicketClaims,

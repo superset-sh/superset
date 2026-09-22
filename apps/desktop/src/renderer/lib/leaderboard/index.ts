@@ -1,5 +1,5 @@
-export { markLeaderboardAsked, readLeaderboardAsked } from "./askedState";
 export type {
+	Awarded,
 	LeaderboardFactoryDay,
 	LeaderboardPayload,
 	LeaderboardPayloadDay,

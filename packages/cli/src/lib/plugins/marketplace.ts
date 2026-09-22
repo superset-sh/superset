@@ -38,50 +38,6 @@ export interface Marketplace {
 	renames?: Record<string, string>;
 }
 
-export interface AuthInput {
-	name: string;
-	label?: string;
-	placeholder?: string;
-	description?: string;
-	required?: boolean;
-	secret?: boolean;
-}
-
-export interface AuthIdentity {
-	url: string;
-	method?: "GET" | "POST";
-	headers?: Record<string, string>;
-	body?: unknown;
-	id: string;
-	label?: string;
-}
-
-export interface PluginAuthMethod {
-	type: "oauth2" | "api_key";
-	label?: string;
-	provider?: string;
-	inputs?: AuthInput[];
-	credential_input?: string;
-	authorization_url?: string;
-	token_url?: string;
-	scopes?: string[];
-	scope_separator?: string;
-	token_request_auth_method?: string;
-	token_expiration_buffer?: number;
-	requires_env?: string[];
-	identity?: AuthIdentity;
-	bind?: PluginBind;
-}
-
-export type PluginAuth = PluginAuthMethod[];
-
-export function suggestedEnvFor(name: string): string[] {
-	const slug = name.toUpperCase().replace(/[.-]/g, "_");
-	return [`PLUGIN_${slug}_CLIENT_ID`, `PLUGIN_${slug}_CLIENT_SECRET`];
-}
-
-export const CLIENT_ENV_PATTERN = /^PLUGIN_[A-Z0-9_]+_CLIENT_(ID|SECRET)$/;
-
 export interface PluginMcp {
 	type: "streamable-http";
 	url: string;
@@ -93,9 +49,13 @@ export interface PluginBind {
 	env?: Record<string, string>;
 }
 
+export interface PluginConnectorRef {
+	slug: string;
+}
+
 export interface SupersetExtension {
 	interface?: { displayName: string; category?: string; icon?: string };
-	auth?: PluginAuth;
+	connector?: PluginConnectorRef;
 	bind?: PluginBind;
 	mcp?: PluginMcp;
 }
@@ -113,11 +73,14 @@ export function supersetExtension(
 	return manifest.extensions?.[SUPERSET_EXTENSION];
 }
 
+export function pluginConnector(manifest: PluginManifest): string | undefined {
+	return supersetExtension(manifest)?.connector?.slug;
+}
+
 export interface ResolvedPlugin {
 	entry: MarketplaceEntry;
 	dir: string;
 	manifest: PluginManifest;
-	hasServerSource: boolean;
 	hasSkills: boolean;
 	hasRemoteServer: boolean;
 }
@@ -203,7 +166,6 @@ export function resolvePlugin(
 		entry,
 		dir,
 		manifest,
-		hasServerSource: fs.existsSync(path.join(dir, "src", "index.ts")),
 		hasSkills: fs.existsSync(path.join(dir, "skills")),
 		hasRemoteServer: Boolean(supersetExtension(manifest)?.mcp),
 	};

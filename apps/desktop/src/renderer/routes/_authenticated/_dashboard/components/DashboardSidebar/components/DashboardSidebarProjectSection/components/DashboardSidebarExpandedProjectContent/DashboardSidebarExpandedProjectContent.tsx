@@ -18,9 +18,8 @@ import { SidebarDropZone } from "../../../SidebarDropZone";
 import { SortableSectionHeader } from "../../../SortableSectionHeader";
 import { SortableWorkspaceItem } from "../../../SortableWorkspaceItem";
 
-/** Main rows are never bulk-selected; sessions and worktrees are. */
 const isBulkSelectable = (workspace: DashboardSidebarWorkspace) =>
-	workspace.type !== "main" && workspace.pendingTransaction?.type !== "insert";
+	workspace.pendingTransaction?.type !== "insert";
 
 interface DashboardSidebarExpandedProjectContentProps {
 	/** DnD container: a project id, or SESSIONS_CONTAINER for the Sessions lane. */
@@ -185,11 +184,7 @@ export function DashboardSidebarExpandedProjectContent({
 											}
 											collapsed={isInCollapsedSection}
 											isDragPlaceholder={inDraggedSection}
-											disabled={
-												isInCollapsedSection ||
-												(workspace.type === "main" &&
-													workspace.hostType === "local-device")
-											}
+											disabled={isInCollapsedSection}
 										/>
 									);
 								})}

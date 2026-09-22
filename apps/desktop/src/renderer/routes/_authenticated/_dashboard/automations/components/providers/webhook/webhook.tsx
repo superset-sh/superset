@@ -8,6 +8,7 @@ type WebhookConfig = Extract<TriggerConfigInput, { kind: "webhook" }>;
 
 export const webhookProvider: TriggerProvider<WebhookConfig> = {
 	kind: "webhook",
+	connectionProvider: null,
 	label: msg({
 		message: "Webhook triggered",
 	}),

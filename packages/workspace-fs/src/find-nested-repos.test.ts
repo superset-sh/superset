@@ -100,16 +100,17 @@ describe("findNestedRepoRoots", () => {
 		expect(roots.length).toBe(2);
 	});
 
-	it("reports truncation when the directory cap is hit", async () => {
+	it("reports truncation when the queued-directory cap is hit", async () => {
 		const root = await createTempRoot();
-		// A wide, repo-free tree so the scan is bounded by maxDirs, not maxRoots.
+		// A wide, repo-free tree so the scan is bounded by the queue cap, not
+		// maxRoots.
 		for (let i = 0; i < 10; i++) {
 			await mkdirp(root, `d-${i}`, "child");
 		}
 
 		const { truncated } = await findNestedRepoRoots(root, {
 			pruneDirNames: DEFAULT_IGNORE_DIR_NAMES,
-			maxDirs: 3,
+			maxQueuedDirs: 3,
 		});
 
 		expect(truncated).toBe(true);

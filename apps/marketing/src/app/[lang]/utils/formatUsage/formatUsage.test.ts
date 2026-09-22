@@ -54,10 +54,6 @@ describe("formatDayRange", () => {
 			"Aug 1 – Aug 25",
 		);
 	});
-
-	it("falls back to all time without a range", () => {
-		expect(formatDayRange(null)).toBe("All time");
-	});
 });
 
 describe("dayCount", () => {

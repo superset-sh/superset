@@ -1,12 +1,16 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import type { WorkspaceStore } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { Eye, EyeOff, MessageSquare, MessageSquareOff } from "lucide-react";
 import { useSettings } from "renderer/stores/settings";
+import type { StoreApi } from "zustand/vanilla";
+import type { PaneViewerData } from "../../../../../../types";
 import { DiffPanePRLink } from "./components/DiffPanePRLink";
 
 interface DiffPaneHeaderExtrasProps {
 	workspaceId: string;
+	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 }
 
 // Unified/split moved into the in-pane DiffViewToolbar (shared with the PR
@@ -14,6 +18,7 @@ interface DiffPaneHeaderExtrasProps {
 // toggles that change what the diff shows rather than how it's laid out.
 export function DiffPaneHeaderExtras({
 	workspaceId,
+	store,
 }: DiffPaneHeaderExtrasProps) {
 	const { t } = useLingui();
 	const showDiffComments = useSettings((s) => s.showDiffComments);
@@ -22,15 +27,15 @@ export function DiffPaneHeaderExtras({
 
 	const buttonClass = (active: boolean) =>
 		cn(
-			"flex size-5 items-center justify-center transition-colors",
+			"flex size-5 shrink-0 items-center justify-center transition-colors",
 			active
 				? "bg-secondary text-foreground"
 				: "text-muted-foreground hover:text-foreground",
 		);
 
 	return (
-		<div className="flex items-center">
-			<DiffPanePRLink workspaceId={workspaceId} />
+		<div className="flex shrink-0 items-center gap-1">
+			<DiffPanePRLink workspaceId={workspaceId} store={store} />
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<button
@@ -96,7 +101,7 @@ export function DiffPaneHeaderExtras({
 				</TooltipContent>
 			</Tooltip>
 			<div
-				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
+				className="mx-1 h-3.5 w-px shrink-0 bg-muted-foreground/30"
 				aria-hidden="true"
 			/>
 		</div>

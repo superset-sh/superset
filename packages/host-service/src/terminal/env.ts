@@ -24,6 +24,7 @@ import {
 	TERMINAL_TERM_PROGRAM,
 	TERMINAL_TERM_PROGRAM_VERSION,
 } from "@superset/shared/constants";
+import { getManagedEnv } from "../runtime/sandbox-managed-env/sandbox-managed-env.ts";
 import {
 	augmentPathForMacOS,
 	clearStrictShellEnvCache,
@@ -36,19 +37,24 @@ const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedMacosSystemCertAvailable: boolean | null = null;
 
 /**
- * Agent credentials, forwarded to terminals in sandbox mode only.
- *
- * The rule everywhere else is that PTY env comes from a login-shell snapshot
- * and never from this process — a local machine's host-service env is
- * Electron's, and leaking it into every terminal would hand agents things
- * they have no business reading. A sandbox has no user, no rc files and no
- * login shell, so the process env is the *only* way a credential can arrive,
- * and these keys are exactly what was provisioned for the agents to use.
- *
- * Read from `process.env` rather than the validated `env` so that importing
- * this module doesn't require a fully-populated host environment.
+ * The sandbox firewall terminates TLS for the domains it injects credentials
+ * into, presenting a per-sandbox CA that the platform trusts through these
+ * variables. Node ignores the system store without them, so an agent in a
+ * terminal that lost them fails every model call with a certificate error.
  */
-const SANDBOX_AGENT_CREDENTIAL_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"];
+const SANDBOX_FIREWALL_CA_KEYS = [
+	"NODE_EXTRA_CA_CERTS",
+	"NODE_USE_SYSTEM_CA",
+	"SSL_CERT_FILE",
+	"CURL_CA_BUNDLE",
+	"REQUESTS_CA_BUNDLE",
+	"AWS_CA_BUNDLE",
+	"GIT_SSL_CAINFO",
+	"NPM_CONFIG_CAFILE",
+	"PIP_CERT",
+	"CARGO_HTTP_CAINFO",
+	"GRPC_DEFAULT_SSL_ROOTS_FILE_PATH",
+];
 
 function hasMacosSystemCertBundle(): boolean {
 	if (cachedMacosSystemCertAvailable !== null) {
@@ -257,6 +263,15 @@ export function buildV2TerminalEnv(
 		env.SUPERSET_ORGANIZATION_ID = organizationId;
 	}
 	env.SUPERSET_WORKSPACE_ID = workspaceId;
+	// In a cloud workspace, say so and say which: `superset` here authenticates
+	// as the workspace rather than a person, and an agent asked to reach its
+	// own box needs the id it was provisioned for.
+	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
+		const sandboxWorkspaceId = process.env.SUPERSET_SANDBOX_WORKSPACE_ID;
+		if (sandboxWorkspaceId) {
+			env.SUPERSET_SANDBOX_WORKSPACE_ID = sandboxWorkspaceId;
+		}
+	}
 	env.SUPERSET_WORKSPACE_PATH = workspacePath;
 	env.SUPERSET_ROOT_PATH = rootPath;
 	env.SUPERSET_ENV = supersetEnv;
@@ -276,14 +291,16 @@ export function buildV2TerminalEnv(
 	}
 
 	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
-		for (const key of SANDBOX_AGENT_CREDENTIAL_KEYS) {
+		// The environment's variables and the credential placeholders arrive
+		// from the control plane after boot and live only in memory; a terminal
+		// opened before the first push gets none, and the next one gets them.
+		Object.assign(env, getManagedEnv());
+		for (const key of SANDBOX_FIREWALL_CA_KEYS) {
 			const value = process.env[key];
 			if (value) env[key] = value;
 		}
-		// The sandbox runs as root, and Claude refuses
-		// `--dangerously-skip-permissions` under root unless told it is inside a
-		// sandbox — which is exactly what this is. Without it the builtin Claude
-		// agent exits on launch with "cannot be used with root/sudo privileges".
+		// Claude refuses `--dangerously-skip-permissions` unless told it is
+		// inside a sandbox, which is exactly what this is.
 		env.IS_SANDBOX = "1";
 	}
 

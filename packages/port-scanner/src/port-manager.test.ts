@@ -12,8 +12,10 @@ import type { DetectedPort } from "./types";
 // mock.module leaks across test files in the same bun process — hold the real
 // module and restore it after this file so scanner.test.ts tests the real one.
 const realScanner = { ...(await import("./scanner.ts")) };
+const realTerminalEnv = { ...(await import("./terminal-env.ts")) };
 afterAll(() => {
 	mock.module("./scanner", () => realScanner);
+	mock.module("./terminal-env", () => realTerminalEnv);
 });
 
 /**
@@ -34,6 +36,9 @@ afterAll(() => {
 interface ScannerSpy {
 	getProcessTrees: number;
 	lastTreeRootPids: number[];
+	lastListeningPids: number[];
+	envReads: number;
+	lastEnvReadPids: number[];
 	getListeningPortsForPids: number;
 	inFlight: number;
 	maxInFlight: number;
@@ -51,6 +56,9 @@ interface MockPortInfo {
 const spy: ScannerSpy = {
 	getProcessTrees: 0,
 	lastTreeRootPids: [],
+	lastListeningPids: [],
+	envReads: 0,
+	lastEnvReadPids: [],
 	getListeningPortsForPids: 0,
 	inFlight: 0,
 	maxInFlight: 0,
@@ -60,18 +68,35 @@ const spy: ScannerSpy = {
 
 let lsofDelayMs = 0;
 let listeningPorts: MockPortInfo[] = [];
-/** When set, the tree mock blocks until the test resolves this promise. */
+/** When set, the table-read mock blocks until the test resolves this promise. */
 let treeGate: Promise<void> | null = null;
+let envGate: Promise<void> | null = null;
+let envError: Error | null = null;
+/**
+ * Process table seen by the detached-process pass. Session trees are mocked
+ * separately (root → [root, root+1]), so this only needs the extra rows a
+ * test cares about.
+ */
+let processTable: { pid: number; ppid: number }[] = [];
+/** pid → terminal id the mocked environment reader reports. */
+let terminalIdEnv = new Map<number, string | null>();
 
 mock.module("./scanner", () => ({
-	getProcessTreesForPids: async (rootPids: number[]) => {
+	readProcessTable: async () => {
 		spy.getProcessTrees++;
-		spy.lastTreeRootPids = rootPids;
 		if (treeGate) await treeGate;
+		return processTable;
+	},
+	buildProcessTrees: (
+		_table: { pid: number; ppid: number }[],
+		rootPids: number[],
+	) => {
+		spy.lastTreeRootPids = rootPids;
 		return new Map(rootPids.map((pid) => [pid, [pid, pid + 1]]));
 	},
-	getListeningPortsForPids: async (_pids: number[], signal?: AbortSignal) => {
+	getListeningPortsForPids: async (pids: number[], signal?: AbortSignal) => {
 		spy.getListeningPortsForPids++;
+		spy.lastListeningPids = pids;
 		spy.inFlight++;
 		spy.maxInFlight = Math.max(spy.maxInFlight, spy.inFlight);
 		spy.lastSignal = signal;
@@ -92,6 +117,16 @@ mock.module("./scanner", () => ({
 		} finally {
 			spy.inFlight--;
 		}
+	},
+}));
+
+mock.module("./terminal-env", () => ({
+	readTerminalIdsFromEnv: async (pids: number[]) => {
+		spy.envReads++;
+		spy.lastEnvReadPids = pids;
+		if (envGate) await envGate;
+		if (envError) throw envError;
+		return new Map(pids.map((pid) => [pid, terminalIdEnv.get(pid) ?? null]));
 	},
 }));
 
@@ -126,7 +161,12 @@ const pmInternals = () =>
 function resetSpy(): void {
 	spy.getProcessTrees = 0;
 	spy.lastTreeRootPids = [];
+	spy.lastListeningPids = [];
+	spy.envReads = 0;
+	spy.lastEnvReadPids = [];
 	spy.getListeningPortsForPids = 0;
+	processTable = [];
+	terminalIdEnv = new Map();
 	spy.inFlight = 0;
 	spy.maxInFlight = 0;
 	spy.lastSignal = undefined;
@@ -134,6 +174,8 @@ function resetSpy(): void {
 	lsofDelayMs = 0;
 	listeningPorts = [];
 	treeGate = null;
+	envGate = null;
+	envError = null;
 }
 
 beforeEach(() => {
@@ -340,6 +382,10 @@ describe("PortManager — killPort", () => {
 		});
 
 		killManager.upsertSession("p1", "ws1", 1000);
+		processTable = [
+			{ pid: 1000, ppid: 500 },
+			{ pid: 1001, ppid: 1000 },
+		];
 		listeningPorts = [
 			{ port: 3000, pid: 1001, address: "127.0.0.1", processName: "node" },
 		];
@@ -654,5 +700,333 @@ describe("PortManager — idle decay (sessions without output scan rarely)", () 
 
 		expect(manager.getAllPorts()).toHaveLength(0);
 		expect(session("p1").lastScannedAt).toBe(0);
+	});
+});
+
+describe("PortManager — detached servers (agent background processes)", () => {
+	const TERMINAL = "term-a";
+
+	/**
+	 * Shell 1000 → tree [1000, 1001]. An agent's background `bun dev` (5000)
+	 * was setsid'd and reparented to PID 1 once its wrapper shell exited; the
+	 * actual listener (5001) is its child and, having set a process title, has
+	 * an unreadable environment on macOS.
+	 */
+	function detachedServerTable(): void {
+		processTable = [
+			{ pid: 1000, ppid: 500 },
+			{ pid: 1001, ppid: 1000 },
+			{ pid: 5000, ppid: 1 },
+			{ pid: 5001, ppid: 5000 },
+			{ pid: 7000, ppid: 1 },
+		];
+		terminalIdEnv = new Map([
+			[5000, TERMINAL],
+			[5001, null],
+			[7000, "some-other-terminal"],
+		]);
+	}
+
+	it("treats a sibling port as already closed when an earlier kill stopped the shared process", async () => {
+		detachedServerTable();
+		const killed: number[] = [];
+		manager = new PortManager({
+			killFn: async ({ pid }) => {
+				killed.push(pid);
+				processTable = processTable.filter((row) => row.pid !== pid);
+				listeningPorts = [];
+				return { success: true };
+			},
+		});
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [3000, 3001].map((port) => ({
+			port,
+			pid: 5000,
+			address: "127.0.0.1",
+			processName: "node",
+		}));
+		await manager.forceScan();
+		for (const port of [3000, 3001]) {
+			expect(
+				(
+					await manager.killPort({
+						terminalId: TERMINAL,
+						workspaceId: "ws1",
+						port,
+					})
+				).success,
+			).toBe(true);
+		}
+		expect(killed).toEqual([5000]);
+	});
+
+	it("does not kill a detached PID whose owner changed since the last scan", async () => {
+		detachedServerTable();
+		const killed: number[] = [];
+		manager = new PortManager({
+			killFn: async ({ pid }) => {
+				killed.push(pid);
+				return { success: true };
+			},
+		});
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 5000, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+		terminalIdEnv.set(5000, "some-other-terminal");
+		// Deliberately do not rescan before clicking the stale control.
+		expect(
+			(
+				await manager.killPort({
+					terminalId: TERMINAL,
+					workspaceId: "ws1",
+					port: 3000,
+				})
+			).success,
+		).toBe(false);
+		expect(killed).toEqual([]);
+	});
+
+	it("does not kill a PID that stopped listening, even if ownership still matches", async () => {
+		detachedServerTable();
+		const killed: number[] = [];
+		manager = new PortManager({
+			killFn: async ({ pid }) => {
+				killed.push(pid);
+				return { success: true };
+			},
+		});
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 5000, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+		listeningPorts = [];
+		expect(
+			(
+				await manager.killPort({
+					terminalId: TERMINAL,
+					workspaceId: "ws1",
+					port: 3000,
+				})
+			).success,
+		).toBe(false);
+		expect(killed).toEqual([]);
+	});
+
+	it("does not authorize a kill when environment inspection fails", async () => {
+		detachedServerTable();
+		const killed: number[] = [];
+		manager = new PortManager({
+			killFn: async ({ pid }) => {
+				killed.push(pid);
+				return { success: true };
+			},
+		});
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 5000, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+		envError = new Error("ps timed out");
+		expect(
+			(
+				await manager.killPort({
+					terminalId: TERMINAL,
+					workspaceId: "ws1",
+					port: 3000,
+				})
+			).success,
+		).toBe(false);
+		expect(killed).toEqual([]);
+	});
+
+	it("preserves ports and retries after a failed environment snapshot", async () => {
+		detachedServerTable();
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 5000, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+		const session = pmInternals().sessions.get(TERMINAL);
+		if (!session) throw new Error("missing session");
+		session.lastScannedAt = 1;
+		envError = new Error("ps timed out");
+		await expect(manager.forceScan()).rejects.toThrow("ps timed out");
+		expect(manager.getAllPorts()).toHaveLength(1);
+		expect(session.lastScannedAt).toBe(1);
+		envError = null;
+		await manager.forceScan();
+		expect(manager.getAllPorts()).toHaveLength(1);
+		expect(session.lastScannedAt).toBeGreaterThan(1);
+	});
+
+	it("discards results when a terminal is replaced during environment inspection", async () => {
+		detachedServerTable();
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 5000, address: "127.0.0.1", processName: "node" },
+		];
+		let release!: () => void;
+		envGate = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const scanning = manager.forceScan();
+		await sleep(0);
+		expect(spy.envReads).toBe(1);
+		manager.upsertSession(TERMINAL, "ws1", 2000);
+		release();
+		await scanning;
+		expect(manager.getAllPorts()).toHaveLength(0);
+		expect(pmInternals().sessions.get(TERMINAL)?.lastScannedAt).toBe(0);
+	});
+
+	it("does not kill if the terminal is replaced while validating the request", async () => {
+		detachedServerTable();
+		const killed: number[] = [];
+		manager = new PortManager({
+			killFn: async ({ pid }) => {
+				killed.push(pid);
+				return { success: true };
+			},
+		});
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 5000, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+		let release!: () => void;
+		envGate = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const killing = manager.killPort({
+			terminalId: TERMINAL,
+			workspaceId: "ws1",
+			port: 3000,
+		});
+		await sleep(0);
+		manager.upsertSession(TERMINAL, "ws1", 2000);
+		release();
+		expect((await killing).success).toBe(false);
+		expect(killed).toEqual([]);
+	});
+
+	it("attributes a reparented server to the terminal in its environment", async () => {
+		detachedServerTable();
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 5001, address: "127.0.0.1", processName: "node" },
+		];
+
+		await manager.forceScan();
+
+		// Tree pids are never read from the environment; everything else is.
+		expect(spy.lastEnvReadPids).toEqual([5000, 5001, 7000]);
+		expect(spy.lastListeningPids).toEqual([1000, 1001, 5000, 5001]);
+		const ports = manager.getAllPorts();
+		expect(ports).toHaveLength(1);
+		expect(ports[0]).toMatchObject({
+			port: 3000,
+			pid: 5001,
+			terminalId: TERMINAL,
+			workspaceId: "ws1",
+		});
+	});
+
+	it("ignores processes owned by a terminal that is not registered", async () => {
+		detachedServerTable();
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [
+			{ port: 4000, pid: 7000, address: "127.0.0.1", processName: "node" },
+		];
+
+		await manager.forceScan();
+		expect(spy.lastListeningPids).not.toContain(7000);
+		expect(manager.getAllPorts()).toHaveLength(0);
+	});
+
+	it("does not attach detached pids to a session that is not due this scan", async () => {
+		detachedServerTable();
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		const entry = pmInternals().sessions.get(TERMINAL);
+		if (!entry) throw new Error("missing session");
+		entry.lastActivityAt = Date.now() - IDLE_AFTER_MS - 1;
+		entry.lastScannedAt = Date.now();
+
+		await pmInternals().scanAllSessions();
+		expect(spy.envReads).toBe(0);
+		expect(spy.getListeningPortsForPids).toBe(0);
+	});
+
+	it("refreshes detached environments each scan, including newcomers", async () => {
+		detachedServerTable();
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+
+		await manager.forceScan();
+		expect(spy.envReads).toBe(1);
+
+		await manager.forceScan();
+		expect(spy.envReads).toBe(2);
+
+		processTable.push({ pid: 5002, ppid: 5000 });
+		await manager.forceScan();
+		expect(spy.envReads).toBe(3);
+		expect(spy.lastEnvReadPids).toEqual([5000, 5001, 7000, 5002]);
+		// The newcomer inherits its parent's terminal even with no env of its own.
+		expect(spy.lastListeningPids).toContain(5002);
+	});
+
+	it("removes a reused PID from the old terminal's ports and kill controls", async () => {
+		detachedServerTable();
+		const killed: number[] = [];
+		manager = new PortManager({
+			killFn: async ({ pid }) => {
+				killed.push(pid);
+				return { success: true };
+			},
+		});
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 5000, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+		expect(manager.getAllPorts()).toHaveLength(1);
+
+		// A new listener reuses both PID and parent between process snapshots.
+		terminalIdEnv.set(5000, null);
+		await manager.forceScan();
+		expect(manager.getAllPorts()).toHaveLength(0);
+		expect(spy.lastListeningPids).not.toContain(5000);
+		await manager.killPort({
+			terminalId: TERMINAL,
+			workspaceId: "ws1",
+			port: 3000,
+		});
+		expect(killed).toEqual([]);
+	});
+
+	it("kills a detached server through the port's own pid", async () => {
+		detachedServerTable();
+		const killed: number[] = [];
+		manager = new PortManager({
+			killFn: async ({ pid }) => {
+				killed.push(pid);
+				return { success: true };
+			},
+		});
+		manager.upsertSession(TERMINAL, "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 5001, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+
+		const result = await manager.killPort({
+			terminalId: TERMINAL,
+			workspaceId: "ws1",
+			port: 3000,
+		});
+		expect(result.success).toBe(true);
+		expect(killed).toEqual([5001]);
 	});
 });

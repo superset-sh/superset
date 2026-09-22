@@ -184,9 +184,8 @@ export function deriveTagFolders(
 		if (tag == null) continue;
 		settingsByKey.set(`${setting.projectId}\u0000${tag}`, setting);
 	}
-	// Host settings win over the local row for what they define — they are
-	// the cross-device authority; the local row keeps only what the host
-	// doesn't know (isCollapsed, and legacy fields until customised).
+	// Order interleaves with device-local workspace positions. Host order is
+	// only the default until this device materializes a presentation row.
 	const applySettings = (folder: TagFolderSection): TagFolderSection => {
 		if (folder.tag == null) return folder;
 		const setting = settingsByKey.get(`${folder.projectId}\u0000${folder.tag}`);
@@ -195,7 +194,9 @@ export function deriveTagFolders(
 			...folder,
 			name: setting.displayName ?? folder.name,
 			color: setting.color ?? folder.color,
-			tabOrder: setting.tabOrder ?? folder.tabOrder,
+			tabOrder: folder.isDerived
+				? (setting.tabOrder ?? folder.tabOrder)
+				: folder.tabOrder,
 		};
 	};
 	const isHidden = (folder: TagFolderSection): boolean =>

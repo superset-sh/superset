@@ -1,6 +1,6 @@
 import { db } from "@superset/db/client";
 import {
-	pluginConnections,
+	connections,
 	pluginInstalls,
 	pluginMarketplaces,
 } from "@superset/db/schema";
@@ -9,56 +9,25 @@ import {
 	firstPartyManifest,
 } from "@superset/shared/plugins";
 import type { TRPCError, TRPCRouterRecord } from "@trpc/server";
-import { and, asc, eq, isNull, or } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { userError } from "../../i18n-error";
+import { AmbiguousConnectionError } from "../../lib/connectors/lookup";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import {
 	AmbiguousPluginError,
-	bundledSource,
-	disconnect,
-	getConnection,
 	installedPlugin,
-	installForConnection,
 	installRecord,
-	listConnections,
-	manifestAuth,
-	templateScope,
-	upsertConnection,
 } from "./connections";
-import { callTool, listTools, PluginDispatchError } from "./dispatch";
 import {
-	authMethod,
-	DEFAULT_CREDENTIAL_INPUT,
 	type PluginManifest,
+	pluginConnector,
+	pluginNeedsConnection,
 	supersetExtension,
-	trustedManifest,
 } from "./manifest";
-import { resolveIdentity } from "./oauth";
+import { forgetUpstreamTools } from "./proxy";
 
 const FIRST_PARTY = "superset";
-
-function dispatchError(error: unknown): never {
-	if (error instanceof PluginDispatchError) {
-		const code =
-			error.status === 401
-				? "UNAUTHORIZED"
-				: error.status === 404
-					? "NOT_FOUND"
-					: error.status === 501
-						? "NOT_IMPLEMENTED"
-						: error.status === 400
-							? "BAD_REQUEST"
-							: "BAD_GATEWAY";
-		throw userError({
-			code,
-			message: error.message,
-			i18nKey: "serverError.plugins.dispatchFailed",
-			params: { reason: error.message },
-		});
-	}
-	throw error;
-}
 
 function ambiguous(error: unknown): never {
 	if (error instanceof AmbiguousPluginError) {
@@ -67,6 +36,14 @@ function ambiguous(error: unknown): never {
 			message: error.message,
 			i18nKey: "serverError.plugins.ambiguousPlugin",
 			params: { reason: error.message },
+		});
+	}
+	if (error instanceof AmbiguousConnectionError) {
+		throw userError({
+			code: "CONFLICT",
+			message: error.message,
+			i18nKey: "serverError.plugins.ambiguousConnection",
+			params: { connector: error.connector },
 		});
 	}
 	throw error;
@@ -79,28 +56,6 @@ function notInstalled(name: string): TRPCError {
 		i18nKey: "serverError.plugins.notInstalled",
 		params: { plugin: name },
 	});
-}
-
-async function connectionContext(userId: string, connectionId: string) {
-	const connection = await getConnection(userId, connectionId);
-	if (!connection) {
-		throw userError({
-			code: "NOT_FOUND",
-			message: "Connection not found",
-			i18nKey: "serverError.plugins.connectionNotFound",
-		});
-	}
-
-	const install = await installForConnection(userId, connection).catch(
-		ambiguous,
-	);
-	if (!install) throw notInstalled(connection.pluginName);
-
-	return {
-		connection,
-		install,
-		source: await bundledSource(userId, install.marketplace),
-	};
 }
 
 function describe(
@@ -118,11 +73,7 @@ function describe(
 		displayName: extension?.interface?.displayName ?? manifest.name,
 		category: extension?.interface?.category ?? "Developer tools",
 		icon: extension?.interface?.icon,
-		authMethods: (extension?.auth ?? []).map((method) => ({
-			type: method.type,
-			label: method.label ?? null,
-			inputs: method.inputs ?? [],
-		})),
+		connector: pluginConnector(manifest) ?? null,
 		mcpUrl: extension?.mcp?.url ?? null,
 		skills: manifest.skills ?? [],
 		homepage: (manifest as { homepage?: string }).homepage ?? null,
@@ -276,85 +227,72 @@ const connectionsRouter = {
 	list: protectedProcedure
 		.input(z.object({ plugin: z.string().min(1).optional() }).optional())
 		.query(async ({ ctx, input }) => {
-			const rows = await listConnections(ctx.session.user.id, input?.plugin);
-			return rows.map((connection) => ({
-				id: connection.id,
-				plugin: connection.pluginName,
-				account: connection.externalAccountLabel,
-				accountId: connection.externalAccountId,
-				scopes: connection.scopes,
-				createdAt: connection.createdAt,
+			const install = input?.plugin
+				? await installedPlugin(ctx.session.user.id, input.plugin).catch(
+						() => null,
+					)
+				: null;
+			const wanted = install ? pluginConnector(install.manifest) : undefined;
+
+			const rows = await db
+				.select({
+					id: connections.id,
+					connector: connections.connector,
+					account: connections.externalAccountLabel,
+					accountId: connections.externalAccountId,
+					user: connections.externalUserLabel,
+					scopes: connections.scopes,
+					createdAt: connections.createdAt,
+				})
+				.from(connections)
+				.where(
+					and(
+						eq(connections.connectedByUserId, ctx.session.user.id),
+						isNull(connections.disconnectedAt),
+						wanted ? eq(connections.connector, wanted) : undefined,
+					),
+				);
+
+			return rows.map((row) => ({
+				id: row.id,
+				plugin: row.connector,
+				account: row.user ?? row.account,
+				accountId: row.accountId,
+				scopes: row.scopes,
+				createdAt: row.createdAt,
 			}));
 		}),
 
 	disconnect: protectedProcedure
 		.input(z.object({ connectionId: z.uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const removed = await disconnect(ctx.session.user.id, input.connectionId);
-			if (!removed) {
+			const [row] = await db
+				.update(connections)
+				.set({ disconnectedAt: new Date(), disconnectReason: "user" })
+				.where(
+					and(
+						eq(connections.id, input.connectionId),
+						eq(connections.connectedByUserId, ctx.session.user.id),
+						isNull(connections.disconnectedAt),
+					),
+				)
+				.returning({ id: connections.id });
+
+			if (!row) {
 				throw userError({
 					code: "NOT_FOUND",
 					message: "Connection not found",
 					i18nKey: "serverError.plugins.connectionNotFound",
 				});
 			}
+			forgetUpstreamTools(row.id);
 			return { disconnected: input.connectionId };
-		}),
-} satisfies TRPCRouterRecord;
-
-const toolsRouter = {
-	list: protectedProcedure
-		.input(z.object({ connectionId: z.uuid() }))
-		.query(async ({ ctx, input }) => {
-			const { connection, install, source } = await connectionContext(
-				ctx.session.user.id,
-				input.connectionId,
-			);
-			try {
-				const tools = await listTools(
-					install.manifest,
-					await templateScope(connection),
-					connection.authMethod,
-					source,
-				);
-				return { plugin: connection.pluginName, tools };
-			} catch (error) {
-				dispatchError(error);
-			}
-		}),
-
-	call: protectedProcedure
-		.input(
-			z.object({
-				connectionId: z.uuid(),
-				tool: z.string().min(1),
-				arguments: z.record(z.string(), z.unknown()).default({}),
-			}),
-		)
-		.mutation(async ({ ctx, input }) => {
-			const { connection, install, source } = await connectionContext(
-				ctx.session.user.id,
-				input.connectionId,
-			);
-			try {
-				const result = await callTool(
-					install.manifest,
-					await templateScope(connection),
-					input.tool,
-					input.arguments,
-					connection.authMethod,
-					source,
-				);
-				return { result };
-			} catch (error) {
-				dispatchError(error);
-			}
 		}),
 } satisfies TRPCRouterRecord;
 
 export const pluginsRouter = createTRPCRouter({
 	list: protectedProcedure.query(async ({ ctx }) => {
-		const [installs, connections] = await Promise.all([
+		const [installs, live] = await Promise.all([
 			db
 				.select()
 				.from(pluginInstalls)
@@ -362,28 +300,33 @@ export const pluginsRouter = createTRPCRouter({
 				.orderBy(asc(pluginInstalls.pluginName)),
 			db
 				.select({
-					id: pluginConnections.id,
-					pluginName: pluginConnections.pluginName,
-					account: pluginConnections.externalAccountLabel,
+					id: connections.id,
+					connector: connections.connector,
+					account: connections.externalAccountLabel,
+					user: connections.externalUserLabel,
 				})
-				.from(pluginConnections)
+				.from(connections)
 				.where(
 					and(
-						eq(pluginConnections.userId, ctx.session.user.id),
-						isNull(pluginConnections.disconnectedAt),
+						eq(connections.connectedByUserId, ctx.session.user.id),
+						isNull(connections.disconnectedAt),
 					),
 				),
 		]);
 
-		const held = new Map<string, { id: string; account: string | null }[]>();
-		for (const row of connections) {
-			const list = held.get(row.pluginName) ?? [];
-			list.push({ id: row.id, account: row.account });
-			held.set(row.pluginName, list);
+		const held = new Map<
+			string,
+			{ id: string; account: string | null; user: string | null }[]
+		>();
+		for (const row of live) {
+			const list = held.get(row.connector) ?? [];
+			list.push({ id: row.id, account: row.account, user: row.user });
+			held.set(row.connector, list);
 		}
 
 		const installed = installs.map((row) => {
-			const held_ = held.get(row.pluginName) ?? [];
+			const slug = pluginConnector(row.manifest as PluginManifest);
+			const held_ = slug ? (held.get(slug) ?? []) : [];
 			const published =
 				row.marketplace === FIRST_PARTY
 					? firstPartyManifest(row.pluginName)?.version
@@ -396,7 +339,7 @@ export const pluginsRouter = createTRPCRouter({
 				latestVersion: published ?? null,
 				connections: held_,
 				accounts: held_
-					.map((connection) => connection.account)
+					.map((connection) => connection.user ?? connection.account)
 					.filter((account): account is string => account !== null),
 			};
 		});
@@ -404,6 +347,38 @@ export const pluginsRouter = createTRPCRouter({
 		const installedKeys = new Set(
 			installs.map((row) => `${row.marketplace}/${row.pluginName}`),
 		);
+
+		const claimed = new Set(
+			installs
+				.map((row) => pluginConnector(row.manifest as PluginManifest))
+				.filter((slug): slug is string => slug !== undefined),
+		);
+
+		const orphaned = [...held.entries()]
+			.filter(([slug]) => !claimed.has(slug))
+			.map(([slug, rows]) => ({
+				name: slug,
+				version: "",
+				description: "",
+				marketplace: FIRST_PARTY,
+				displayName: slug,
+				category: "Developer tools",
+				icon: undefined,
+				connector: slug,
+				mcpUrl: null,
+				skills: [] as { name: string; description: string }[],
+				homepage: null,
+				author: null,
+				license: null,
+				installed: false,
+				enabled: false,
+				installedAt: null as Date | null,
+				latestVersion: null,
+				connections: rows,
+				accounts: rows
+					.map((connection) => connection.user ?? connection.account)
+					.filter((account): account is string => account !== null),
+			}));
 
 		const available = Object.values(FIRST_PARTY_MANIFESTS)
 			.filter(
@@ -419,7 +394,7 @@ export const pluginsRouter = createTRPCRouter({
 				accounts: [] as string[],
 			}));
 
-		return [...installed, ...available];
+		return [...installed, ...orphaned, ...available];
 	}),
 
 	install: protectedProcedure
@@ -478,7 +453,8 @@ export const pluginsRouter = createTRPCRouter({
 				plugin: input.name,
 				version: manifest.version,
 				marketplace: FIRST_PARTY,
-				needsConnection: Boolean(manifest.extensions?.superset?.auth),
+				connector: pluginConnector(manifest) ?? null,
+				needsConnection: pluginNeedsConnection(manifest),
 			};
 		}),
 
@@ -527,132 +503,60 @@ export const pluginsRouter = createTRPCRouter({
 			).catch(ambiguous);
 			if (!install) throw notInstalled(input.name);
 
-			const { id, marketplace, siblings } = install;
+			const { id, marketplace } = install;
 
-			await db
-				.update(pluginConnections)
-				.set({
-					disconnectedAt: new Date(),
-					disconnectReason: "plugin_uninstalled",
-					accessToken: "",
-					refreshToken: null,
-					config: null,
-				})
-				.where(
-					and(
-						eq(pluginConnections.userId, ctx.session.user.id),
-						isNull(pluginConnections.disconnectedAt),
-						siblings === 1
-							? or(
-									eq(pluginConnections.installId, id),
-									and(
-										isNull(pluginConnections.installId),
-										eq(pluginConnections.pluginName, input.name),
-									),
-								)
-							: eq(pluginConnections.installId, id),
-					),
-				);
+			const [uninstalled] = await db
+				.select({ manifest: pluginInstalls.manifest })
+				.from(pluginInstalls)
+				.where(eq(pluginInstalls.id, id))
+				.limit(1);
 
 			await db.delete(pluginInstalls).where(eq(pluginInstalls.id, id));
 
-			return { uninstalled: input.name, marketplace };
-		}),
+			const connector = uninstalled
+				? pluginConnector(uninstalled.manifest as PluginManifest)
+				: null;
 
-	connectApiKey: protectedProcedure
-		.input(
-			z.object({
-				name: z.string().min(1),
-				inputs: z.record(z.string(), z.string()),
-			}),
-		)
-		.mutation(async ({ ctx, input }) => {
-			const install = await installedPlugin(
-				ctx.session.user.id,
-				input.name,
-			).catch(ambiguous);
-			if (!install) throw notInstalled(input.name);
-
-			const authSpec = authMethod(manifestAuth(install.manifest), "api_key");
-			if (!authSpec) {
-				throw userError({
-					code: "BAD_REQUEST",
-					message: `Plugin "${input.name}" does not use api_key auth`,
-					i18nKey: "serverError.plugins.noApiKeyAuth",
-					params: { plugin: input.name },
-				});
-			}
-
-			const inputs: Record<string, string> = {};
-			for (const spec of authSpec.inputs ?? []) {
-				const value = input.inputs[spec.name];
-				if (value) inputs[spec.name] = value;
-				else if (spec.required) {
-					throw userError({
-						code: "BAD_REQUEST",
-						message: `Missing required input "${spec.name}"`,
-						i18nKey: "serverError.plugins.missingInput",
-						params: { input: spec.name },
-					});
-				}
-			}
-
-			const credentialName =
-				authSpec.credential_input ?? DEFAULT_CREDENTIAL_INPUT;
-			const credential = inputs[credentialName];
-			if (!credential) {
-				throw userError({
-					code: "BAD_REQUEST",
-					message: `Missing "${credentialName}"`,
-					i18nKey: "serverError.plugins.missingInput",
-					params: { input: credentialName },
-				});
-			}
-
-			let identity: { id: string; label: string | null };
-			try {
-				identity = await resolveIdentity(
-					trustedManifest(install.marketplace) ? authSpec.identity : undefined,
-					{ config: { access_token: credential }, inputs },
-					authSpec.type,
-					authSpec,
+			const stillShared =
+				connector &&
+				(
+					await db
+						.select({ manifest: pluginInstalls.manifest })
+						.from(pluginInstalls)
+						.where(eq(pluginInstalls.userId, ctx.session.user.id))
+				).some(
+					(entry) =>
+						pluginConnector(entry.manifest as PluginManifest) === connector,
 				);
-			} catch (error) {
-				const reason = error instanceof Error ? error.message : String(error);
-				throw userError({
-					code: "BAD_REQUEST",
-					message: `Could not verify the credential: ${reason}`,
-					i18nKey: "serverError.plugins.credentialUnverified",
-					params: { reason },
-				});
-			}
 
-			const connection = await upsertConnection({
-				userId: ctx.session.user.id,
-				organizationId: null,
-				pluginName: input.name,
-				installId: install.id,
-				authMethod: authSpec.type,
-				accessToken: credential,
-				inputs,
-				secretInputs: [
-					credentialName,
-					...(authSpec.inputs ?? [])
-						.filter((spec) => spec.secret && spec.name !== credentialName)
-						.map((spec) => spec.name),
-				],
-				externalAccountId: identity.id,
-				externalAccountLabel: identity.label,
-			});
+			const disconnected =
+				connector && !stillShared
+					? await db
+							.update(connections)
+							.set({
+								disconnectedAt: new Date(),
+								disconnectReason: "plugin_uninstalled",
+							})
+							.where(
+								and(
+									eq(connections.connector, connector),
+									eq(connections.ownerKind, "user"),
+									eq(connections.connectedByUserId, ctx.session.user.id),
+									isNull(connections.disconnectedAt),
+								),
+							)
+							.returning({ id: connections.id })
+					: [];
+
+			for (const row of disconnected) forgetUpstreamTools(row.id);
 
 			return {
-				connectionId: connection.id,
-				plugin: input.name,
-				account: connection.externalAccountLabel,
+				uninstalled: input.name,
+				marketplace,
+				disconnected: disconnected.length,
 			};
 		}),
 
 	marketplaces: marketplacesRouter,
 	connections: connectionsRouter,
-	tools: toolsRouter,
 });

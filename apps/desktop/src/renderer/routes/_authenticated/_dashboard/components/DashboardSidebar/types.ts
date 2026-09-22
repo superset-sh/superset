@@ -5,7 +5,7 @@ export type DashboardSidebarWorkspaceHostType =
 	| "remote-device"
 	| "cloud";
 
-export type DashboardSidebarWorkspaceType = "main" | "worktree" | "session";
+export type DashboardSidebarWorkspaceType = "local" | "worktree" | "session";
 
 export type DashboardSidebarWorkspaceIndentation =
 	| "top-level"
@@ -122,4 +122,19 @@ export interface DashboardSidebarProject {
 	updatedAt: Date;
 	isCollapsed: boolean;
 	children: DashboardSidebarProjectChild[];
+}
+
+export type DashboardSidebarGithubHoldReason =
+	| "unreachable"
+	| "rate-limited"
+	| "auth";
+
+/**
+ * Why a host's PR sweep is paused. Mirrors the host-service gate status:
+ * existing PR chips stay, new pull requests cannot be detected until `until`.
+ */
+export interface DashboardSidebarGithubStatus {
+	reason: DashboardSidebarGithubHoldReason;
+	since: number;
+	until: number;
 }

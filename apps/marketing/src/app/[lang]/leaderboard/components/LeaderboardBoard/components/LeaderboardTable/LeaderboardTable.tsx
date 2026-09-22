@@ -1,21 +1,18 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import Link from "next/link";
-import { TierBadge } from "@/app/[lang]/components/TierBadge";
 import type {
 	LeaderboardMetric,
 	StandingRow,
 } from "@/app/[lang]/utils/fetchLeaderboard";
-import {
-	formatCount,
-	formatTokens,
-	formatUsd,
-} from "@/app/[lang]/utils/formatUsage";
-import { DeveloperAvatar } from "./components/DeveloperAvatar";
+import { LeaderboardRow } from "./components/LeaderboardRow";
 
 interface LeaderboardTableProps {
 	rows: StandingRow[];
 	metric: LeaderboardMetric;
 	isLoading?: boolean;
+	emptyReason?: "board" | "search";
+	viewerHandle?: string | null;
+	pinnedRow?: StandingRow | null;
 
 	pixelClassName?: string;
 }
@@ -24,10 +21,11 @@ export function LeaderboardTable({
 	rows,
 	metric,
 	isLoading,
+	emptyReason = "board",
+	viewerHandle = null,
+	pinnedRow = null,
 	pixelClassName = "",
 }: LeaderboardTableProps) {
-	const { t } = useLingui();
-
 	if (isLoading) {
 		return (
 			<div className="border border-border">
@@ -41,15 +39,29 @@ export function LeaderboardTable({
 		);
 	}
 
-	if (rows.length === 0) {
+	if (rows.length === 0 && !pinnedRow) {
 		return (
 			<div className="border border-border p-12 text-center">
 				<p className="text-sm text-muted-foreground">
-					<Trans>Nobody has joined the board yet.</Trans>
+					{emptyReason === "search" ? (
+						<Trans>Nobody here by that name.</Trans>
+					) : (
+						<Trans>Nobody has joined the board yet.</Trans>
+					)}
 				</p>
 				<p className="text-xs text-muted-foreground mt-2">
-					<Trans>Opt in from Superset under Settings → Account.</Trans>
+					{emptyReason === "search" ? (
+						<Trans>Only people who opted in appear here.</Trans>
+					) : (
+						<Trans>Opt in from Superset under Settings → Account.</Trans>
+					)}
 				</p>
+				<Link
+					href="/download"
+					className="inline-block mt-5 border border-border px-4 py-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-brand hover:border-brand/50 transition-colors"
+				>
+					<Trans>Download Superset and publish yours</Trans>
+				</Link>
 			</div>
 		);
 	}
@@ -78,64 +90,23 @@ export function LeaderboardTable({
 				</thead>
 				<tbody>
 					{rows.map((row) => (
-						<tr
+						<LeaderboardRow
 							key={row.handle}
-							className="border-b border-border/50 last:border-b-0 hover:bg-foreground/[0.02] transition-colors"
-						>
-							<td
-								className={`px-4 py-3 text-sm text-muted-foreground ${pixelClassName}`}
-							>
-								{row.rank}
-							</td>
-							<td className="px-4 py-3">
-								<Link
-									href={`/user/${row.handle}`}
-									className="flex items-center gap-3 min-w-0 group/row"
-								>
-									<DeveloperAvatar handle={row.handle} />
-									<div className="min-w-0">
-										{row.name ? (
-											<>
-												<div className="text-sm text-foreground truncate group-hover/row:text-brand transition-colors">
-													{row.name}
-												</div>
-												<div className="font-mono text-[0.7rem] text-muted-foreground truncate">
-													@{row.handle}
-												</div>
-											</>
-										) : (
-											<div className="font-mono text-sm text-foreground truncate group-hover/row:text-brand transition-colors">
-												@{row.handle}
-											</div>
-										)}
-									</div>
-								</Link>
-							</td>
-							<td className="px-4 py-3 hidden md:table-cell">
-								<TierBadge tier={row.tier ?? 0} />
-							</td>
-							<td className="px-4 py-3 text-right font-mono text-xs text-muted-foreground hidden sm:table-cell">
-								{formatCount(row.sessions)}
-							</td>
-							<td
-								className={`px-4 py-3 text-right text-sm text-foreground ${pixelClassName}`}
-							>
-								{metric === "cost"
-									? formatUsd(row.usd)
-									: formatTokens(row.tokens)}
-								{row.approximate && (
-									<span
-										className="text-muted-foreground ml-1"
-										title={t({
-											message: "Some models were priced with a fallback rate",
-										})}
-									>
-										*
-									</span>
-								)}
-							</td>
-						</tr>
+							row={row}
+							metric={metric}
+							isViewer={row.handle === viewerHandle}
+							pixelClassName={pixelClassName}
+						/>
 					))}
+					{pinnedRow && (
+						<LeaderboardRow
+							row={pinnedRow}
+							metric={metric}
+							isViewer
+							pinned
+							pixelClassName={pixelClassName}
+						/>
+					)}
 				</tbody>
 			</table>
 		</div>

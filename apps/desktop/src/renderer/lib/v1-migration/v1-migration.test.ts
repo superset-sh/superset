@@ -70,7 +70,6 @@ describe("importV1Project appearance carry", () => {
 				create: {
 					mutate: async () => ({
 						projectId: "p-new",
-						mainWorkspaceId: "w-1",
 						repoPath: "/tmp/proj",
 						created,
 					}),
@@ -183,6 +182,39 @@ describe("planWorkspaceAdoptions", () => {
 		});
 		expect(plan.missingWorktree).toHaveLength(1);
 		expect(plan.toAdopt).toHaveLength(0);
+	});
+
+	test("a workspace on the checkout's own branch becomes a local workspace", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			mainBranchByV2ProjectId: new Map([["v2-proj", "main"]]),
+			v1Workspaces: [ws({ id: "v1-main", name: "Main", branch: "main" })],
+		});
+		expect(plan.toAdopt).toHaveLength(0);
+		expect(plan.toCreateLocal).toEqual([
+			{
+				v1WorkspaceId: "v1-main",
+				v1ProjectId: "v1-proj",
+				v2ProjectId: "v2-proj",
+				name: "Main",
+			},
+		]);
+	});
+
+	test("links to an existing local workspace instead of creating a second", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			hostWorkspaces: [
+				...base.hostWorkspaces,
+				{ id: "v2-local", projectId: "v2-proj", branch: "main", type: "local" },
+			],
+			mainBranchByV2ProjectId: new Map([["v2-proj", "main"]]),
+			v1Workspaces: [ws({ id: "v1-main", branch: "main" })],
+		});
+		expect(plan.toCreateLocal).toHaveLength(0);
+		expect(plan.alreadyAdopted.map((e) => e.v2WorkspaceId)).toEqual([
+			"v2-local",
+		]);
 	});
 
 	test("unknown on-disk state stays adoptable (adopt decides)", () => {

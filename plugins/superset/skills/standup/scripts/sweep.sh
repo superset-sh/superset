@@ -43,7 +43,7 @@ run_json() {
 }
 
 echo "sweeping workspaces and tasks..." >&2
-WORKSPACES=$(run_json workspaces list "${HOST_ARGS[@]}")
+WORKSPACES=$(run_json workspaces list "${HOST_ARGS[@]:---local}")
 TASKS=$(run_json tasks list)
 
 TERMINALS='[]'

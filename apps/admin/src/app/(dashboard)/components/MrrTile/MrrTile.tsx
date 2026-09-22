@@ -1,7 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { formatDateTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -15,27 +15,18 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { cn } from "@superset/ui/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Area, AreaChart, XAxis, YAxis } from "recharts";
 
 import { useTRPC } from "@/trpc/react";
 
+import { useSigmaMetric } from "../../hooks/useSigmaMetric";
 import { makeDateAxis } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 import { type MrrDatum, MrrTooltip } from "./MrrTooltip";
 
 const RANGE_DAYS = { "7d": 7, "35d": 35, "180d": 180 } as const;
 type RangeKey = keyof typeof RANGE_DAYS;
-
-/** Matches the server's reason for "a Sigma run is in flight". */
-const COMPUTING_REASON = "computing";
-
-interface MrrSeries {
-	points: { date: string; mrrUsd: number }[];
-	dataLoadTime: string | null;
-	dataThrough: string | null;
-}
 
 // Matches the timestamp InsightTileFrame renders in the header, so the two
 // read as the same kind of fact.
@@ -67,6 +58,8 @@ function bucketPoints(all: MrrDatum[], range: RangeKey): MrrDatum[] {
 }
 
 export function MrrTile() {
+	const { formatDateTime, formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const trpc = useTRPC();
 	const chartConfig = {
@@ -76,40 +69,18 @@ export function MrrTile() {
 		},
 	} satisfies ChartConfig;
 	const [range, setRange] = useState<RangeKey>("7d");
-	const queryClient = useQueryClient();
-	const query = useQuery(
-		trpc.business.getMrr.queryOptions(undefined, {
-			refetchInterval: (q) =>
-				q.state.data && !q.state.data.available ? 10_000 : false,
-		}),
-	);
-	const refresh = useMutation(
-		trpc.business.refreshMrr.mutationOptions({
-			// Settled rather than success: the mutation reports the run it
-			// kicked, and the poll below is what lands it either way.
-			onSettled: () =>
-				queryClient.invalidateQueries({
-					queryKey: trpc.business.getMrr.queryKey(),
-				}),
-		}),
-	);
-
-	const unavailableReason =
-		query.data && !query.data.available ? query.data.reason : null;
-	const isComputing = unavailableReason === COMPUTING_REASON;
-	// Refreshing drops the cached figure, so the server answers "computing"
-	// for the ~minute Sigma takes. Hold the series already on screen through
-	// that rather than blanking the tile the moment someone asks to refresh
-	// it. Only across "computing" — a real failure should still surface.
-	const [lastSeries, setLastSeries] = useState<MrrSeries | null>(null);
-	if (query.data?.available && query.data.points !== lastSeries?.points) {
-		setLastSeries({
-			points: query.data.points,
-			dataLoadTime: query.data.dataLoadTime,
-			dataThrough: query.data.dataThrough,
-		});
-	}
-	const series = query.data?.available || isComputing ? lastSeries : null;
+	const {
+		data: series,
+		isLoading,
+		error,
+		unavailableReason,
+		isComputing,
+		refresh,
+		isRefreshing,
+	} = useSigmaMetric({
+		query: trpc.business.getMrr.queryOptions(),
+		refresh: trpc.business.refreshMrr.mutationOptions(),
+	});
 
 	// Server returns 180 daily points; range switches filter client-side.
 	const days = RANGE_DAYS[range];
@@ -140,10 +111,11 @@ export function MrrTile() {
 					"Stripe's own Sigma MRR report, computed on demand via the Query Run API",
 			})}
 			lastRefresh={series?.dataLoadTime ?? null}
-			isLoading={query.isLoading}
-			onRefresh={() => refresh.mutate()}
-			isRefreshing={refresh.isPending || isComputing}
-			error={query.error}
+			fill
+			isLoading={isLoading}
+			onRefresh={refresh}
+			isRefreshing={isRefreshing}
+			error={error}
 			empty={points.length === 0}
 			emptyLabel={
 				isComputing
@@ -171,12 +143,15 @@ export function MrrTile() {
 				</Select>
 			}
 		>
-			<div className="space-y-4">
+			{/* A column with a definite height: the chart's h-full has nothing to
+			    resolve against inside an auto-height wrapper, and recharts renders
+			    no svg at all when it measures zero. */}
+			<div className="flex h-full flex-col gap-4">
 				{latest ? (
-					<div>
+					<div className="shrink-0">
 						<div className="flex items-baseline gap-2">
 							<span className="text-3xl font-bold">
-								${latest.mrrUsd.toLocaleString()}
+								${formatNumber(latest.mrrUsd, undefined)}
 							</span>
 							{changePct !== null ? (
 								<span
@@ -193,7 +168,7 @@ export function MrrTile() {
 						{latest?.prevUsd !== null && latest?.prevUsd !== undefined ? (
 							<p className="text-muted-foreground text-sm">
 								{t({
-									message: `$${latest.prevUsd.toLocaleString()} previous period (${latest.prevDate})`,
+									message: `$${formatNumber(latest.prevUsd, undefined)} previous period (${latest.prevDate})`,
 								})}
 							</p>
 						) : null}
@@ -209,7 +184,10 @@ export function MrrTile() {
 						) : null}
 					</div>
 				) : null}
-				<ChartContainer config={chartConfig} className="h-[200px] w-full">
+				<ChartContainer
+					config={chartConfig}
+					className="aspect-auto w-full flex-1 min-h-[160px]"
+				>
 					<AreaChart data={points}>
 						<XAxis
 							dataKey="date"
@@ -224,7 +202,7 @@ export function MrrTile() {
 							axisLine={false}
 							width={56}
 							domain={["auto", "auto"]}
-							tickFormatter={(v: number) => `$${v.toLocaleString()}`}
+							tickFormatter={(v: number) => `$${formatNumber(v, undefined)}`}
 						/>
 						<ChartTooltip content={<MrrTooltip />} />
 						<Area

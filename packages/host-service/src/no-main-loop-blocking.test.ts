@@ -71,7 +71,7 @@ const RULES: Rule[] = [
 			// (see workspace-cleanup/git-ops.ts for the pattern).
 			"trpc/router/git/git.ts": 12,
 			"trpc/router/project/project.ts": 1,
-			"trpc/router/project/utils/ensure-main-workspace.ts": 1,
+			"trpc/router/project/utils/create-local-workspace.ts": 1,
 			"trpc/router/workspace-creation/procedures/adopt.ts": 1,
 			"trpc/router/workspace-creation/procedures/list-project-worktrees.ts": 1,
 			"trpc/router/workspace-creation/procedures/search-branches.ts": 1,

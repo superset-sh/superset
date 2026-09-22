@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import Link from "next/link";
 import { MDXRemote } from "next-mdx-remote/rsc";
@@ -19,11 +19,13 @@ interface CategoryArticleProps {
 }
 
 export function CategoryArticle({ page }: CategoryArticleProps) {
+	const { i18n } = useLingui();
 	const url = `${COMPANY.MARKETING_URL}${page.url}`;
 	const faqItems = extractComparisonFaqItems(page.content);
 	const formattedDate = formatContentDate(
 		page.lastUpdated ?? page.date,
 		"short",
+		i18n.locale,
 	);
 
 	return (

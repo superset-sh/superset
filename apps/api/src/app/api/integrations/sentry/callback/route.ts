@@ -1,5 +1,10 @@
 import type { SentryConfig } from "@superset/db/schema";
 import {
+	connectorMethod,
+	requireConnector,
+	upsertConnection,
+} from "@superset/trpc/connectors";
+import {
 	exchangeSentryCode,
 	fetchSentryOrganization,
 	verifySentryInstall,
@@ -7,7 +12,6 @@ import {
 
 import { env } from "@/env";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
-import { upsertConnection } from "@/lib/integrations/upsertConnection";
 import { SENTRY_STATE_COOKIE } from "../connect/route";
 
 /**
@@ -66,16 +70,26 @@ export async function GET(request: Request) {
 		regionUrl: organization.regionUrl,
 	};
 
+	const connector = requireConnector("sentry");
 	const result = await upsertConnection({
+		connector,
+		slug: "sentry",
+		authMethod: connectorMethod(connector, "app_install").type,
 		organizationId,
 		userId,
-		provider: "sentry",
-		accessToken: token.token,
-		refreshToken: token.refreshToken,
-		tokenExpiresAt: new Date(token.expiresAt),
-		externalOrgId: organization.slug,
-		externalOrgName: organization.name,
-		config,
+		tokens: {
+			accessToken: token.token,
+			refreshToken: token.refreshToken,
+			expiresAt: new Date(token.expiresAt),
+			scopes: null,
+			stored: {},
+			raw: token as unknown as Record<string, unknown>,
+		},
+		identity: {
+			account: { id: organization.slug, label: organization.name },
+			user: null,
+		},
+		state: config,
 	});
 	if (result.conflict) {
 		// Who holds it, so the message can name someone to ask — the blocked org

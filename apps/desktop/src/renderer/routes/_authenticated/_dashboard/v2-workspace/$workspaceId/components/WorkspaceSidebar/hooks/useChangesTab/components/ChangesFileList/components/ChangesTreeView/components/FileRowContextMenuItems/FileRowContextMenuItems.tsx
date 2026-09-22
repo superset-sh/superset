@@ -8,6 +8,8 @@ import {
 	ExternalLink,
 	FileText,
 	GitCompare,
+	Minus,
+	Plus,
 	SquarePlus,
 	Trash2,
 	Undo2,
@@ -41,6 +43,8 @@ interface FileRowContextMenuItemsProps {
 	 * inside it before the user could confirm.
 	 */
 	onRequestDiscard?: (file: ChangesetFile) => void;
+	onStageFile?: (file: ChangesetFile) => void;
+	onUnstageFile?: (file: ChangesetFile) => void;
 }
 
 /**
@@ -56,12 +60,16 @@ export function FileRowContextMenuItems({
 	onOpenFile,
 	onOpenInEditor,
 	onRequestDiscard,
+	onStageFile,
+	onUnstageFile,
 }: FileRowContextMenuItemsProps) {
 	const { t } = useLingui();
 	const absolutePath = worktreePath
 		? toAbsoluteWorkspacePath(worktreePath, file.path)
 		: undefined;
-	const canDiscard = sectionKind === "unstaged";
+	const canDiscard = sectionKind === "unstaged" && onRequestDiscard;
+	const canStage = sectionKind === "unstaged" && onStageFile;
+	const canUnstage = sectionKind === "staged" && onUnstageFile;
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
 	const changeKey = getChangesetFileKey(file);
 
@@ -128,23 +136,33 @@ export function FileRowContextMenuItems({
 					/>
 				</>
 			)}
-			{canDiscard && onRequestDiscard && (
-				<>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						variant="destructive"
-						onSelect={() => onRequestDiscard(file)}
-					>
-						{isDeleteAction ? <Trash2 /> : <Undo2 />}
-						{isDeleteAction
-							? t({
-									message: "Delete",
-								})
-							: t({
-									message: "Discard changes",
-								})}
-					</DropdownMenuItem>
-				</>
+			{(canStage || canUnstage || canDiscard) && <DropdownMenuSeparator />}
+			{canStage && (
+				<DropdownMenuItem onSelect={() => onStageFile(file)}>
+					<Plus />
+					<Trans>Stage file</Trans>
+				</DropdownMenuItem>
+			)}
+			{canUnstage && (
+				<DropdownMenuItem onSelect={() => onUnstageFile(file)}>
+					<Minus />
+					<Trans>Unstage file</Trans>
+				</DropdownMenuItem>
+			)}
+			{canDiscard && (
+				<DropdownMenuItem
+					variant="destructive"
+					onSelect={() => onRequestDiscard(file)}
+				>
+					{isDeleteAction ? <Trash2 /> : <Undo2 />}
+					{isDeleteAction
+						? t({
+								message: "Delete",
+							})
+						: t({
+								message: "Discard changes",
+							})}
+				</DropdownMenuItem>
 			)}
 		</>
 	);

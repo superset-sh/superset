@@ -16,6 +16,7 @@ export function PageDetailView({ slug }: PageDetailViewProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
 	const [commentsEnabled, setCommentsEnabled] = useState(false);
+	const [previewVersion, setPreviewVersion] = useState<number | null>(null);
 	const {
 		page,
 		versions,
@@ -23,8 +24,10 @@ export function PageDetailView({ slug }: PageDetailViewProps) {
 		currentUserId,
 		onSetVisibility,
 		onSetSharedVersion,
+		onRename,
+		onRefresh,
 		onDelete,
-	} = usePageHeaderData({ slug });
+	} = usePageHeaderData({ slug, version: previewVersion });
 
 	const goBack = () => navigate({ to: "/pages" });
 
@@ -61,6 +64,12 @@ export function PageDetailView({ slug }: PageDetailViewProps) {
 					}
 					onSetVisibility={onSetVisibility}
 					onSetSharedVersion={onSetSharedVersion}
+					onRename={onRename}
+					onRefresh={onRefresh}
+					onPreviewVersion={setPreviewVersion}
+					previewVersion={
+						previewVersion === page.servedVersion ? null : previewVersion
+					}
 					onDelete={async () => {
 						await onDelete();
 						goBack();
@@ -76,6 +85,7 @@ export function PageDetailView({ slug }: PageDetailViewProps) {
 				<PageViewer
 					key={slug}
 					slug={slug}
+					version={previewVersion}
 					commentsEnabled={commentsEnabled}
 					onCommentsEnabledChange={setCommentsEnabled}
 				/>

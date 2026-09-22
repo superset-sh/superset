@@ -3,8 +3,12 @@ import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { sessions } from "@superset/db/schema/auth";
 import { headers } from "next/headers";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { DesktopRedirect } from "./components/DesktopRedirect";
+import {
+	isDesktopProtocol,
+	parseLoopbackCallback,
+} from "./utils/desktopCallbackTarget";
 
 export default async function DesktopSuccessPage({
 	searchParams,
@@ -15,6 +19,8 @@ export default async function DesktopSuccessPage({
 		desktop_local_callback?: string;
 	}>;
 }) {
+	const i18n = await initServerI18n();
+
 	const {
 		desktop_state: state,
 		desktop_protocol = "superset",
@@ -88,6 +94,35 @@ export default async function DesktopSuccessPage({
 		);
 	}
 
+	// The token below goes wherever these point, so refuse anything that is
+	// not the desktop app before minting it.
+	const localCallback = localCallbackBase
+		? parseLoopbackCallback(localCallbackBase)
+		: undefined;
+	if (
+		!isDesktopProtocol(desktop_protocol) ||
+		(localCallbackBase && !localCallback)
+	) {
+		return (
+			<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+				<p className="text-xl text-muted-foreground">
+					{i18n._(
+						msg({
+							message: "Authentication failed",
+						}),
+					)}
+				</p>
+				<p className="text-muted-foreground/70">
+					{i18n._(
+						msg({
+							message: "Please try signing in again from the desktop app.",
+						}),
+					)}
+				</p>
+			</div>
+		);
+	}
+
 	// Desktop and web need independent sessions with separate activeOrganizationId
 	const headersObj = await headers();
 	const userAgent = headersObj.get("user-agent") || "Superset Desktop App";
@@ -111,9 +146,13 @@ export default async function DesktopSuccessPage({
 		updatedAt: now,
 	});
 	const desktopUrl = `${desktop_protocol}://auth/callback?token=${encodeURIComponent(token)}&expiresAt=${encodeURIComponent(expiresAt.toISOString())}&state=${encodeURIComponent(state)}`;
-	const localCallbackUrl = localCallbackBase
-		? `${localCallbackBase}?token=${encodeURIComponent(token)}&expiresAt=${encodeURIComponent(expiresAt.toISOString())}&state=${encodeURIComponent(state)}`
-		: undefined;
+	let localCallbackUrl: string | undefined;
+	if (localCallback) {
+		localCallback.searchParams.set("token", token);
+		localCallback.searchParams.set("expiresAt", expiresAt.toISOString());
+		localCallback.searchParams.set("state", state);
+		localCallbackUrl = localCallback.toString();
+	}
 
 	return (
 		<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">

@@ -51,6 +51,22 @@ Wait less, ship more.
 <tr>
 <td width="50%" valign="middle">
 
+### Superset for iPhone
+
+Remotely control Claude Code, Codex, and other terminal agents running on your connected computer. Pick up the same workspaces and terminal sessions, send follow-up prompts, review diffs, and merge PRs from your iPhone.
+
+Requires **Superset Pro**, **iOS 26 or later**, and a connected computer with **Remote Access enabled**.
+
+[**Download on the App Store**](https://apps.apple.com/us/app/id6788926383) &nbsp;&bull;&nbsp; [Learn more →](https://superset.sh/mobile)
+
+</td>
+<td width="50%" align="center">
+  <a href="https://superset.sh/mobile"><img src="apps/marketing/public/images/readme/mobile-desktop.png" alt="Superset desktop with an iPhone terminal session overlaid on the right" width="100%" /></a>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+
 ### Parallel Workspaces
 
 Run 100+ coding agents at once, each in its own git worktree with its own branch, terminal, and environment. Compare the results and merge the winner.
@@ -206,6 +222,8 @@ Superset works with any CLI-based coding agent, including:
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/copilot-white.svg" /><img height="16" align="top" alt="GitHub Copilot" src="packages/ui/src/assets/icons/preset-icons/copilot.svg" /></picture> &nbsp;[GitHub Copilot](https://github.com/features/copilot) | Fully supported |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/grok-white.svg" /><img height="16" align="top" alt="Grok" src="packages/ui/src/assets/icons/preset-icons/grok.svg" /></picture> &nbsp;[Grok](https://x.ai/) | Fully supported |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/hermes-white.svg" /><img height="16" align="top" alt="Hermes" src="packages/ui/src/assets/icons/preset-icons/hermes.svg" /></picture> &nbsp;[Hermes](https://github.com/NousResearch/hermes-agent) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/muse-white.svg" /><img height="16" align="top" alt="Muse Code" src="packages/ui/src/assets/icons/preset-icons/muse.svg" /></picture> &nbsp;[Muse Code](https://developer.meta.com/ai/products/muse-code/) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/devin-white.svg" /><img height="16" align="top" alt="Devin" src="packages/ui/src/assets/icons/preset-icons/devin.svg" /></picture> &nbsp;[Devin](https://devin.ai/cli) | Fully supported |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/kimi-white.svg" /><img height="16" align="top" alt="Kimi Code" src="packages/ui/src/assets/icons/preset-icons/kimi.svg" /></picture> &nbsp;[Kimi Code](https://www.kimi.com/) | Fully supported |
 | <img height="16" align="top" alt="Kiro" src="packages/ui/src/assets/icons/preset-icons/kiro.svg" /> &nbsp;[Kiro](https://kiro.dev/cli/) | Fully supported |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/mastracode-white.svg" /><img height="16" align="top" alt="Mastra Code" src="packages/ui/src/assets/icons/preset-icons/mastracode.svg" /></picture> &nbsp;[Mastra Code](https://mastra.ai/) | Fully supported |
@@ -245,7 +263,7 @@ curl -fsSL https://superset.sh/cli/install.sh | sh
 brew install superset-sh/tap/superset
 ```
 
-An iOS app is coming soon so you can check on your agents from your phone.
+[Download Superset for iPhone on the App Store](https://apps.apple.com/app/id6788926383) to check on your agents from your phone.
 
 ## Install
 

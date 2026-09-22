@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"NSSpeechRecognitionUsageDescription": "Superset uses speech recognition to turn your voice into text.",
+		"NSPhotoLibraryUsageDescription": "Superset needs access to your photo library so you can attach images to chat messages.",
+		"NSCameraUsageDescription": "Superset uses the camera so you can attach photos to chat messages.",
+		"NSMicrophoneUsageDescription": "Superset uses the microphone so you can dictate chat messages."
+	}
+}

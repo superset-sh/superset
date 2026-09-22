@@ -4,6 +4,7 @@ import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
+import type { OpenFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import "@xterm/xterm/css/xterm.css";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
@@ -14,16 +15,21 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
+import { env } from "renderer/env.renderer";
+import { useTerminalAppearance } from "renderer/hooks/useTerminalAppearance";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
 import {
 	actionLabel,
 	type FolderClickPolicy,
 	folderIntentLabel,
+	type LinkAction,
 	LinkHoverHint,
 	useTerminalFilePolicy,
 	useTerminalFolderPolicy,
 	useTerminalUrlPolicy,
 } from "renderer/lib/clickPolicy";
+import { parseSupersetPageUrl } from "renderer/lib/parseSupersetPageUrl";
 import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
@@ -42,14 +48,19 @@ import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/C
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { isWithinWorkspacePath } from "shared/absolute-paths";
+import { useLinkClickHint } from "../../hooks/useLinkClickHint";
+import {
+	runFileLinkAction,
+	runFolderLinkAction,
+	runUrlLinkAction,
+	type TerminalLinkActionDeps,
+} from "../../utils/runTerminalLinkAction";
 import { TerminalAgentAutoResume } from "./components/TerminalAgentAutoResume";
 import { TerminalCopiedIndicator } from "./components/TerminalCopiedIndicator";
 import { TerminalRichInput } from "./components/TerminalRichInput";
 import { terminalContextMenuLinkStore } from "./contextMenuLinkStore";
 import { useCopyOnSelect } from "./hooks/useCopyOnSelect";
-import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
-import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
 import { useTerminalInterruptClear } from "./hooks/useTerminalInterruptClear";
 import {
 	terminalRichInputOpenStore,
@@ -57,17 +68,11 @@ import {
 } from "./richInputOpenStore";
 import { PasteUploadLimitError, uploadPastedFiles } from "./uploadPastedFiles";
 import { shellEscapePaths } from "./utils";
-import {
-	runFileLinkAction,
-	runFolderLinkAction,
-	runUrlLinkAction,
-	type TerminalLinkActionDeps,
-} from "./utils/runTerminalLinkAction";
 
 interface TerminalPaneProps {
 	ctx: RendererContext<PaneViewerData>;
 	workspaceId: string;
-	onOpenFile: (path: string, openInNewTab?: boolean) => void;
+	onOpenFile: OpenFile;
 	onRevealPath: (path: string, options?: { isDirectory?: boolean }) => void;
 }
 
@@ -82,6 +87,7 @@ export function TerminalPane({
 	const urlPolicy = useTerminalUrlPolicy();
 	const folderPolicy = useTerminalFolderPolicy();
 	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
+	const { preferences } = useV2UserPreferences();
 	const {
 		hoveredLink,
 		liveHoveredLinkRef,
@@ -339,6 +345,18 @@ export function TerminalPane({
 					);
 				},
 				onUrlClick: (event, url) => {
+					const pageSlug = isPagesEnabled
+						? parseSupersetPageUrl(url, env.NEXT_PUBLIC_WEB_URL)
+						: null;
+					if (pageSlug) {
+						event.preventDefault();
+						runUrlLinkAction(
+							linkActionDepsRef.current,
+							url,
+							preferences.pageOpenAction,
+						);
+						return;
+					}
 					const action = urlPolicy.getAction(event);
 					if (action === null) {
 						showHint(event.clientX, event.clientY);
@@ -362,6 +380,8 @@ export function TerminalPane({
 		filePolicy,
 		urlPolicy,
 		folderPolicy,
+		isPagesEnabled,
+		preferences.pageOpenAction,
 	]);
 
 	// Publish what a right-click landed on so the pane context menu (built in
@@ -653,6 +673,8 @@ export function TerminalPane({
 					urlPolicy,
 					folderPolicy,
 					worktreePath,
+					isPagesEnabled,
+					preferences.pageOpenAction,
 				)}
 				hoverPosition={hoveredLink}
 				clickHint={hint}
@@ -672,6 +694,8 @@ function resolveHoverLabel(
 	urlPolicy: ReturnType<typeof useTerminalUrlPolicy>,
 	folderPolicy: FolderClickPolicy,
 	worktreePath: string | undefined,
+	isPagesEnabled: boolean,
+	pageOpenAction: LinkAction,
 ): string | null {
 	if (!hovered) return null;
 	const event = {
@@ -680,7 +704,10 @@ function resolveHoverLabel(
 		shiftKey: hovered.shift,
 	};
 	if (hovered.info.kind === "url") {
-		const action = urlPolicy.getAction(event);
+		const pageSlug = isPagesEnabled
+			? parseSupersetPageUrl(hovered.info.url, env.NEXT_PUBLIC_WEB_URL)
+			: null;
+		const action = pageSlug ? pageOpenAction : urlPolicy.getAction(event);
 		return action ? actionLabel(action, "url") : null;
 	}
 	if (hovered.info.isDirectory) {

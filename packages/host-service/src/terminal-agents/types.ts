@@ -29,7 +29,27 @@ export type TerminalAgentEndReason =
  * and disappears from live reads; it is deleted when its terminal row is
  * deleted or a new agent session starts in the same terminal (upsert).
  */
+/**
+ * A subagent the bound agent spawned (Claude Task tool, Codex spawn_agent),
+ * keyed by the harness-assigned `agent_id` its hooks carry. Held in memory
+ * only: it lives and dies with the parent's session, so it is never a resume
+ * concern and needs no row.
+ */
+export interface TerminalSubagent {
+	id: string;
+	/** Harness agent type (`Explore`, `general-purpose`, a Codex role), if reported. */
+	agentType?: string;
+	startedAt: number;
+	lastEventAt: number;
+	/** The child's own transcript on disk, once a hook event revealed it. */
+	transcriptPath?: string;
+	/** Set once the child reported its stop; such entries leave `subagents`. */
+	endedAt?: number;
+}
+
 export interface TerminalAgentBinding {
+	launchId?: string;
+	account?: import("../trpc/router/usage/session-account/session-account").SessionAccount;
 	terminalId: string;
 	workspaceId: string;
 	agentId: TerminalAgentId;
@@ -40,4 +60,6 @@ export interface TerminalAgentBinding {
 	lastEventType: string;
 	endedAt?: number;
 	endReason?: TerminalAgentEndReason;
+	/** Live subagents under this agent, oldest first. Absent when none. */
+	subagents?: TerminalSubagent[];
 }

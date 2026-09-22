@@ -5,12 +5,12 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Calendar } from "@superset/ui/calendar";
+import { formatRangeLabel } from "@superset/ui/lib/format-range-label";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { PillTabs } from "@/app/[lang]/components/PillTabs";
 import type { LeaderboardPeriod } from "@/app/[lang]/utils/fetchLeaderboard";
-import { formatRangeLabel } from "@/app/[lang]/utils/formatRangeLabel";
 
 const PRESETS: Array<{ id: LeaderboardPeriod; label: MessageDescriptor }> = [
 	{

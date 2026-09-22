@@ -86,7 +86,7 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 							add={workspace.add}
 							del={workspace.del}
 							pr={workspace.pr}
-							isActive={isRemote ? false : workspace.isActive}
+							isActive={!isOrchestrate && !isRemote && workspace.isActive}
 							status={workspace.status}
 							icon={workspace.icon}
 						/>

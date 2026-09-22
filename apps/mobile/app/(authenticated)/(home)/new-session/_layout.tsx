@@ -24,6 +24,13 @@ export default function NewSessionLayout() {
 				}}
 			/>
 			<Stack.Screen
+				name="model"
+				options={{
+					title: t({ message: "Model" }),
+				}}
+			/>
+			<Stack.Screen name="model-group" />
+			<Stack.Screen
 				name="project"
 				options={{
 					title: t({ message: "Project" }),

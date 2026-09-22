@@ -13,6 +13,9 @@ jobs:
     name: Deploy Database Migrations
     runs-on: ubuntu-latest
     environment: production
+    concurrency:
+      group: production-database-migrations
+      cancel-in-progress: false
 
     steps:
       - name: Checkout repository
@@ -38,7 +41,28 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
-        run: bun drizzle-kit migrate
+          # drizzle applies every pending migration in one transaction, so a
+          # migration that queues for a lock blocks all traffic behind it.
+          PGOPTIONS: -c lock_timeout=5s -c statement_timeout=60s
+        # Losing a lock race rolls back cleanly, so only that is retried.
+        run: |
+          # GitHub's default shell is `bash -e` without pipefail, so without this
+          # the `| tee` below reports a failed migration as a success.
+          set -o pipefail
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if bun drizzle-kit migrate 2>&1 | tee migrate.log; then exit 0; fi
+            grep -qE "deadlock detected|lock timeout" migrate.log || exit 1
+            echo "::warning::Migration lost a lock race (attempt $attempt), retrying"
+            sleep $((attempt * 5))
+          done
+          exit 1
+
+      - name: Verify migrations applied
+        working-directory: packages/db
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: bun run src/verify-migrations-applied.ts
 
   deploy-api:
     name: Deploy API to Vercel
@@ -107,6 +131,7 @@ jobs:
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          LEADERBOARD_INTERNAL_TOKEN: ${{ secrets.LEADERBOARD_INTERNAL_TOKEN }}
           KV_URL: ${{ secrets.KV_URL }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           LINEAR_CLIENT_ID: ${{ secrets.LINEAR_CLIENT_ID }}
@@ -127,6 +152,8 @@ jobs:
           GH_APP_ID: ${{ secrets.GH_APP_ID }}
           GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
           GH_WEBHOOK_SECRET: ${{ secrets.GH_WEBHOOK_SECRET }}
+          GH_APP_CLIENT_ID: ${{ secrets.GH_APP_CLIENT_ID }}
+          GH_APP_CLIENT_SECRET: ${{ secrets.GH_APP_CLIENT_SECRET }}
           HOOKDECK_SIGNING_SECRET: ${{ secrets.HOOKDECK_SIGNING_SECRET }}
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
           QSTASH_URL: ${{ secrets.QSTASH_URL }}
@@ -135,6 +162,9 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           MERCURY_API_TOKEN: ${{ secrets.MERCURY_API_TOKEN }}
           GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT }}
+          PLUGIN_CLIENT_METADATA_BASE_URL: ${{ secrets.PLUGIN_CLIENT_METADATA_BASE_URL }}
+          PLUGIN_GITHUB_CLIENT_ID: ${{ secrets.PLUGIN_GITHUB_CLIENT_ID }}
+          PLUGIN_GITHUB_CLIENT_SECRET: ${{ secrets.PLUGIN_GITHUB_CLIENT_SECRET }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
           STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
@@ -142,9 +172,14 @@ jobs:
           SLACK_BILLING_WEBHOOK_URL: ${{ secrets.SLACK_BILLING_WEBHOOK_URL }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
           RELAY_URL: ${{ secrets.RELAY_URL }}
-          BLAXEL_API_KEY: ${{ secrets.BLAXEL_API_KEY }}
-          BLAXEL_WORKSPACE: ${{ secrets.BLAXEL_WORKSPACE }}
-          BLAXEL_REGION: ${{ secrets.BLAXEL_REGION }}
+          REALTIME_URL: ${{ secrets.REALTIME_URL }}
+          REALTIME_NUDGE_SECRET: ${{ secrets.REALTIME_NUDGE_SECRET }}
+          VERCEL_SANDBOX_TOKEN: ${{ secrets.VERCEL_SANDBOX_TOKEN }}
+          VERCEL_SANDBOX_TEAM_ID: ${{ secrets.VERCEL_SANDBOX_TEAM_ID }}
+          VERCEL_SANDBOX_PROJECT_ID: ${{ secrets.VERCEL_SANDBOX_PROJECT_ID }}
+          VERCEL_SANDBOX_REGION: sfo1
+          SANDBOX_GATE_SECRET: ${{ secrets.SANDBOX_GATE_SECRET }}
+          SANDBOX_GATE_ORIGIN: ${{ secrets.SANDBOX_GATE_ORIGIN }}
           SENTRY_DSN_SANDBOX: ${{ secrets.SENTRY_DSN_SANDBOX }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GH_APP_SLUG: ${{ secrets.GH_APP_SLUG }}
@@ -185,6 +220,7 @@ jobs:
             --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env LEADERBOARD_INTERNAL_TOKEN=$LEADERBOARD_INTERNAL_TOKEN \
             --env KV_URL=$KV_URL \
             --env RESEND_API_KEY=$RESEND_API_KEY \
             --env LINEAR_CLIENT_ID=$LINEAR_CLIENT_ID \
@@ -205,6 +241,8 @@ jobs:
             --env GH_APP_ID="$GH_APP_ID" \
             --env GH_APP_PRIVATE_KEY="$GH_APP_PRIVATE_KEY" \
             --env GH_WEBHOOK_SECRET="$GH_WEBHOOK_SECRET" \
+            --env GH_APP_CLIENT_ID="$GH_APP_CLIENT_ID" \
+            --env GH_APP_CLIENT_SECRET="$GH_APP_CLIENT_SECRET" \
             --env HOOKDECK_SIGNING_SECRET="$HOOKDECK_SIGNING_SECRET" \
             --env QSTASH_TOKEN=$QSTASH_TOKEN \
             --env QSTASH_URL=$QSTASH_URL \
@@ -213,6 +251,9 @@ jobs:
             --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
             --env MERCURY_API_TOKEN=$MERCURY_API_TOKEN \
             --env GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT="$GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT" \
+            --env PLUGIN_CLIENT_METADATA_BASE_URL="$PLUGIN_CLIENT_METADATA_BASE_URL" \
+            --env PLUGIN_GITHUB_CLIENT_ID="$PLUGIN_GITHUB_CLIENT_ID" \
+            --env PLUGIN_GITHUB_CLIENT_SECRET="$PLUGIN_GITHUB_CLIENT_SECRET" \
             --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
             --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
             --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID \
@@ -220,9 +261,14 @@ jobs:
             --env SLACK_BILLING_WEBHOOK_URL=$SLACK_BILLING_WEBHOOK_URL \
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
             --env RELAY_URL=$RELAY_URL \
-            --env BLAXEL_API_KEY=$BLAXEL_API_KEY \
-            --env BLAXEL_WORKSPACE=$BLAXEL_WORKSPACE \
-            --env BLAXEL_REGION=$BLAXEL_REGION \
+            --env REALTIME_URL=$REALTIME_URL \
+            --env REALTIME_NUDGE_SECRET=$REALTIME_NUDGE_SECRET \
+            --env VERCEL_SANDBOX_TOKEN=$VERCEL_SANDBOX_TOKEN \
+            --env VERCEL_SANDBOX_TEAM_ID=$VERCEL_SANDBOX_TEAM_ID \
+            --env VERCEL_SANDBOX_PROJECT_ID=$VERCEL_SANDBOX_PROJECT_ID \
+            --env VERCEL_SANDBOX_REGION=$VERCEL_SANDBOX_REGION \
+            --env SANDBOX_GATE_SECRET=$SANDBOX_GATE_SECRET \
+            --env SANDBOX_GATE_ORIGIN=$SANDBOX_GATE_ORIGIN \
             --env SENTRY_DSN_SANDBOX=$SENTRY_DSN_SANDBOX \
             --env OPENAI_API_KEY=$OPENAI_API_KEY \
             --env GH_APP_SLUG=$GH_APP_SLUG
@@ -371,6 +417,7 @@ jobs:
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          LEADERBOARD_INTERNAL_TOKEN: ${{ secrets.LEADERBOARD_INTERNAL_TOKEN }}
           KV_URL: ${{ secrets.KV_URL }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
@@ -399,6 +446,7 @@ jobs:
             --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env LEADERBOARD_INTERNAL_TOKEN=$LEADERBOARD_INTERNAL_TOKEN \
             --env KV_URL=$KV_URL \
             --env RESEND_API_KEY=$RESEND_API_KEY \
             --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
@@ -505,10 +553,44 @@ jobs:
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
             --env ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
 
+  # Every relay deploy restarts every Durable Object, which drops the control
+  # socket of every connected host at once. Only deploy when the push touches
+  # something the relay bundle is built from.
+  relay-changes:
+    name: Detect Relay Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      relay: ${{ steps.filter.outputs.relay }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            relay:
+              - 'apps/relay/**'
+              - 'packages/shared/src/tunnel-protocol.ts'
+              - 'packages/shared/src/host-routing.ts'
+              - 'patches/**'
+              - '.github/workflows/deploy-production.yml'
+
   deploy-relay:
     name: Deploy Relay to Cloudflare
     runs-on: ubuntu-latest
     environment: production
+    needs: relay-changes
+    # Fail open: a broken detector must not leave a stale relay in production.
+    if: >-
+      !cancelled() && (
+        github.event_name == 'workflow_dispatch'
+        || needs.relay-changes.result != 'success'
+        || needs.relay-changes.outputs.relay == 'true'
+      )
 
     steps:
       - name: Checkout repository
@@ -531,6 +613,66 @@ jobs:
 
       - name: Deploy Worker
         working-directory: apps/relay
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler deploy
+
+  realtime-changes:
+    name: Detect Realtime Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      realtime: ${{ steps.filter.outputs.realtime }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            realtime:
+              - 'apps/realtime/**'
+              - 'packages/shared/src/realtime.ts'
+              - 'patches/**'
+              - '.github/workflows/deploy-production.yml'
+
+  deploy-realtime:
+    name: Deploy Realtime Worker to Cloudflare
+    runs-on: ubuntu-latest
+    environment: production
+    needs: realtime-changes
+    if: >-
+      !cancelled() && (
+        github.event_name == 'workflow_dispatch'
+        || needs.realtime-changes.result != 'success'
+        || needs.realtime-changes.outputs.realtime == 'true'
+      )
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Deploy Worker
+        working-directory: apps/realtime
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -562,6 +704,37 @@ jobs:
 
       - name: Deploy Worker
         working-directory: apps/usercontent
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler deploy
+
+  deploy-sandbox-gate:
+    name: Deploy Gate Worker to Cloudflare
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Deploy Worker
+        working-directory: apps/gate
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

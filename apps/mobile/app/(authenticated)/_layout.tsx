@@ -4,10 +4,14 @@ import { Redirect, Stack, usePathname } from "expo-router";
 import { usePrimeRelayUrl } from "@/hooks/usePrimeRelayUrl";
 import { useSession } from "@/lib/auth/client";
 
-const settingsScreenOptions = (title: string) => ({
+const pageScreenOptions = {
 	headerShown: true,
 	headerBackButtonDisplayMode: "minimal" as const,
 	headerShadowVisible: false,
+};
+
+const settingsScreenOptions = (title: string) => ({
+	...pageScreenOptions,
 	title,
 });
 
@@ -30,18 +34,13 @@ export default function AuthenticatedLayout() {
 	const { data: session } = useSession();
 	const pathname = usePathname();
 
-	// Unpaid sessions may only see home (which renders the paywall), the
-	// organizations sheet, and settings — App Review requires sign-out, org
-	// switching, and account deletion to stay reachable behind a gate, and that
-	// sheet is the only route to all three. Leaving it out sealed unpaid
-	// accounts in: it mounted and was redirected away in the same frame.
+	// Unpaid sessions may only see home (which renders the paywall) and
+	// settings — App Review requires sign-out, org switching, and account
+	// deletion to stay reachable behind a gate, and settings is the only route
+	// to all three. Leaving it out sealed unpaid accounts in: it mounted and
+	// was redirected away in the same frame.
 	const unpaid = !!session && !session.session.plan;
-	if (
-		unpaid &&
-		pathname !== "/" &&
-		pathname !== "/organizations" &&
-		!pathname.startsWith("/settings")
-	) {
+	if (unpaid && pathname !== "/" && !pathname.startsWith("/settings")) {
 		return <Redirect href="/(authenticated)/(home)" />;
 	}
 
@@ -51,6 +50,67 @@ export default function AuthenticatedLayout() {
 			    back-button long-press menus (otherwise raw route names leak,
 			    e.g. "(home)"). */}
 			<Stack.Screen name="(home)" options={{ title: t({ message: "Home" }) }} />
+			<Stack.Screen
+				name="pages/index"
+				options={{ ...pageScreenOptions, title: t({ message: "Pages" }) }}
+			/>
+			<Stack.Screen
+				name="pages/filter"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Filter" }),
+					sheetAllowedDetents: [0.4],
+					sheetGrabberVisible: true,
+					...glassHeaderOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/index"
+				options={{
+					...pageScreenOptions,
+					title: "",
+					headerBackTitle: t({ message: "Pages" }),
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/preview"
+				options={{
+					presentation: "formSheet",
+					title: "",
+					sheetAllowedDetents: [0.6, 1.0],
+					sheetGrabberVisible: true,
+					...glassHeaderOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/quick"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Quick feedback" }),
+					sheetAllowedDetents: [0.6],
+					sheetGrabberVisible: true,
+					...glassHeaderOptions,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/comments"
+				options={{
+					presentation: "formSheet",
+					headerShown: false,
+					sheetAllowedDetents: [1.0],
+					sheetGrabberVisible: true,
+				}}
+			/>
+			<Stack.Screen
+				name="pages/[slug]/share"
+				options={{
+					presentation: "formSheet",
+					title: t({ message: "Share page" }),
+					sheetAllowedDetents: [0.75],
+					sheetGrabberVisible: true,
+					...glassHeaderOptions,
+				}}
+			/>
 			<Stack.Screen
 				name="settings/index"
 				options={settingsScreenOptions(t({ message: "Settings" }))}
@@ -132,7 +192,9 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/actions"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.65],
+					// Half height is the whole sheet when there is nothing but Info;
+					// the full detent is what the pages grid needs to be scrollable.
+					sheetAllowedDetents: [0.65, 1.0],
 					sheetGrabberVisible: true,
 					// The workspace name is the sheet's own centred headline, so
 					// the bar carries no title — only the native close button.

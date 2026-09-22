@@ -80,7 +80,7 @@ export function DashboardSidebarWorkspaceIcon({
 		}
 
 		if (hostType === "local-device") {
-			if (workspaceType === "main") {
+			if (workspaceType === "local") {
 				return (
 					<CgLaptop className={cn("size-4 transition-colors", iconColor)} />
 				);

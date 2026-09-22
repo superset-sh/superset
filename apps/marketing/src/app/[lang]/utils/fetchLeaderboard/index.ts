@@ -10,6 +10,10 @@ export type {
 } from "./fetchLeaderboard";
 export {
 	fetchParticipant,
+	fetchPublicHandles,
+	fetchSearch,
+	fetchStanding,
 	fetchStandings,
 	fetchStats,
+	isRateLimited,
 } from "./fetchLeaderboard";

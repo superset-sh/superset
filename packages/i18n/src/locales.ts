@@ -114,3 +114,30 @@ export function resolveLocale(preferences: readonly string[]): SupportedLocale {
 	}
 	return DEFAULT_LOCALE;
 }
+
+/** Explicit preference wins; otherwise honor the browser's weighted language list. */
+export function resolveRequestLocale(
+	chosen: string | undefined,
+	acceptLanguage: string | null,
+): SupportedLocale {
+	if (chosen && isSupportedLocale(chosen)) return chosen;
+	const preferences = (acceptLanguage ?? "")
+		.split(",")
+		.map((entry) => {
+			const [tag = "", ...parameters] = entry.trim().split(";");
+			const qualityParameter = parameters.find((value) =>
+				/^\s*q\s*=/i.test(value),
+			);
+			const quality =
+				qualityParameter === undefined
+					? 1
+					: Number(qualityParameter.split("=")[1]?.trim());
+			return { tag: tag.trim(), quality };
+		})
+		.filter(
+			({ quality }) => Number.isFinite(quality) && quality > 0 && quality <= 1,
+		)
+		.sort((a, b) => b.quality - a.quality)
+		.map(({ tag }) => tag);
+	return resolveLocale(preferences);
+}

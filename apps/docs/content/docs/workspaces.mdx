@@ -39,10 +39,11 @@ A **session** is a workspace without a project. Pick **No project** in the new-w
 
 Sessions created outside the app (by the CLI or a session-mode automation) appear in the sidebar's **Sessions** section automatically. Placement happens once: if you later remove one from the sidebar, it stays removed.
 
-From the CLI, omit `--project`:
+From the CLI, pass `--session` explicitly. Creating a host workspace requires
+either `--project <id>` or `--session`; omitting both is an error:
 
 ```bash
-superset workspaces create --local --agent claude --prompt "…"
+superset workspaces create --session --local --agent claude --prompt "…"
 ```
 
 Automations can run in session mode too; see [Automations](/automations).

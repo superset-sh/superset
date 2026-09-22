@@ -1,4 +1,5 @@
 import { TERMINAL_HANDOFF_MAX_CHARS } from "@superset/shared/terminal-session-handoff";
+import { normalizeTerminalTitle } from "@superset/shared/terminal-title-scanner";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -9,8 +10,10 @@ import {
 	disposeSessionAndWait,
 	disposeSessionsByWorkspaceId,
 	disposeSessionsByWorktreePath,
+	getPendingTerminalWorkspaceId,
 	listLiveTerminalSessions,
 	parseThemeType,
+	renameTerminalSession,
 	sessionHasRunningProcess,
 	snapshotSession,
 	transcriptSession,
@@ -250,6 +253,47 @@ export const terminalRouter = router({
 			return { terminalId: input.terminalId, ...transcript };
 		}),
 
+	// Name a session, or clear the name with an empty string. The name is the
+	// session's, not the pane's or the tab's: it is stored on the host and
+	// every client that lists the session — this desktop, another one, a
+	// phone — sees it.
+	rename: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				// Same normalization the shell's own titles get: controls
+				// stripped, trimmed, capped — and nothing left means no name.
+				title: z.string().max(1_000).transform(normalizeTerminalTitle),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const session = ctx.db.query.terminalSessions
+				.findFirst({ where: eq(terminalSessions.id, input.terminalId) })
+				.sync();
+
+			if (!session) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Terminal session not found",
+				});
+			}
+
+			if (session.originWorkspaceId !== input.workspaceId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Terminal session does not belong to this workspace",
+				});
+			}
+
+			renameTerminalSession({
+				terminalId: input.terminalId,
+				customTitle: input.title,
+				db: ctx.db,
+			});
+			return { terminalId: input.terminalId, title: input.title };
+		}),
+
 	killSession: protectedProcedure
 		.input(
 			z.object({
@@ -268,6 +312,29 @@ export const terminalRouter = router({
 					message: "Workspace not found",
 				});
 			}
+
+			const pendingWorkspaceId = getPendingTerminalWorkspaceId(
+				input.terminalId,
+			);
+			if (pendingWorkspaceId && pendingWorkspaceId !== input.workspaceId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Terminal session does not belong to this workspace",
+				});
+			}
+
+			const now = Date.now();
+			ctx.db
+				.insert(terminalSessions)
+				.values({
+					id: input.terminalId,
+					originWorkspaceId: input.workspaceId,
+					status: "disposed",
+					createdAt: now,
+					disposeRequestedAt: now,
+				})
+				.onConflictDoNothing()
+				.run();
 
 			const session = ctx.db.query.terminalSessions
 				.findFirst({ where: eq(terminalSessions.id, input.terminalId) })

@@ -29,13 +29,18 @@ export interface DraftAttachment {
 	error?: string;
 }
 
+/** Worktree: its own checkout and branch. Local: the project's checkout as is. */
+export type WorkspaceCheckout = "worktree" | "local";
+
 export interface NewWorkspaceDraft {
 	selectedProjectId: string | null;
 	/** Explicit "No project" (session) choice — distinct from not-yet-selected. */
 	isSession: boolean;
 	hostId: string | null;
+	checkout: WorkspaceCheckout;
 	/** Cloud only. Null until picked; submit falls back to the first. */
 	environmentId: string | null;
+	/** Cloud only, for an environment without repositories of its own: primary first. */
 	prompt: string;
 	baseBranch: string | null;
 	baseBranchSource: BaseBranchSource | null;
@@ -71,6 +76,7 @@ function buildInitialDraft(): NewWorkspaceDraft {
 		selectedProjectId: null,
 		isSession: false,
 		hostId: null,
+		checkout: "worktree",
 		environmentId: null,
 		prompt: "",
 		baseBranch: null,
@@ -136,6 +142,7 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 			set((state) => ({
 				...buildInitialDraft(),
 				hostId: state.hostId,
+				checkout: state.checkout,
 				environmentId: state.environmentId,
 				resetKey: state.resetKey + 1,
 			})),

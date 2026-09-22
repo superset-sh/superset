@@ -8,12 +8,10 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 type CatalogRow = RouterOutputs["plugins"]["list"][number];
 
-export type AuthMethod = CatalogRow["authMethods"][number];
-export type AuthInput = AuthMethod["inputs"][number];
 export type PluginSkill = CatalogRow["skills"][number];
 
 export interface CatalogPlugin extends Omit<PluginCatalogEntry, "auth"> {
-	auth?: readonly AuthMethod[];
+	connector: string | null;
 	marketplace: string;
 	installed: boolean;
 	latestVersion: string | null;
@@ -39,7 +37,7 @@ function toCatalogPlugin(plugin: CatalogRow): CatalogPlugin {
 		mcpServers: plugin.mcpUrl
 			? { [plugin.name]: { type: "http" as const, url: plugin.mcpUrl } }
 			: {},
-		auth: plugin.authMethods.length ? plugin.authMethods : undefined,
+		connector: plugin.connector,
 		skills: plugin.skills.map((skill) => skill.name),
 		marketplace: plugin.marketplace,
 		installed: plugin.installed,

@@ -57,6 +57,7 @@ export function useDashboardNewWorkspaceDraft() {
 			selectedProjectId: store.selectedProjectId,
 			isSession: store.isSession,
 			hostId: store.hostId,
+			checkout: store.checkout,
 			environmentId: store.environmentId,
 			prompt: store.prompt,
 			baseBranch: store.baseBranch,

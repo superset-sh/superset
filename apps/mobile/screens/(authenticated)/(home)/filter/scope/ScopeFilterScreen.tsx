@@ -25,7 +25,7 @@ import { ListRowCheck } from "@/screens/(authenticated)/components/ListRowCheck"
 export function ScopeFilterScreen() {
 	const { t } = useLingui();
 	const router = useRouter();
-	const hosts = useOrgHosts();
+	const { hosts } = useOrgHosts();
 	const selectedHost = useSelectedHost();
 	const scope = useWorkspaceScope();
 	const cloudEnabled = useCloudScopeEnabled();
@@ -36,14 +36,14 @@ export function ScopeFilterScreen() {
 		(store) => store.setScopeCloud,
 	);
 
-	const presence = useHostsPresence(hosts);
+	const { presence } = useHostsPresence(hosts);
 
 	const sortedHosts = useMemo(
 		() =>
 			hosts
 				.map((host) => ({
 					...host,
-					isOnline: presence?.get(host.machineId) ?? host.isOnline,
+					isOnline: presence?.get(host.machineId)?.online ?? host.isOnline,
 				}))
 				.sort((a, b) => a.name.localeCompare(b.name)),
 		[hosts, presence],

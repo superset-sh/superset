@@ -7,6 +7,7 @@ import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { BaseBranchSource } from "../../../../../DashboardNewWorkspaceDraftContext";
 import {
 	type BranchFilter,
+	type CloudRepository,
 	useBranchContext,
 } from "../../../hooks/useBranchContext";
 import type {
@@ -19,6 +20,8 @@ type PickerProps = React.ComponentProps<typeof CompareBaseBranchPicker>;
 export interface UseBranchPickerControllerArgs {
 	projectId: string | null;
 	hostId: string | null;
+	/** Cloud only: the primary repository whose branches are offered. */
+	cloudRepository?: CloudRepository | null;
 	baseBranch: string | null;
 	/** When set, used as the workspace name for picker actions; falls back to the branch name. */
 	typedWorkspaceName: string;
@@ -34,6 +37,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const {
 		projectId,
 		hostId,
+		cloudRepository = null,
 		baseBranch,
 		typedWorkspaceName,
 		onBaseBranchChange,
@@ -60,7 +64,13 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		isFetchingNextPage,
 		hasNextPage,
 		fetchNextPage,
-	} = useBranchContext(projectId, hostId, branchSearch, branchFilter);
+	} = useBranchContext(
+		projectId,
+		hostId,
+		branchSearch,
+		branchFilter,
+		cloudRepository,
+	);
 
 	const effectiveCompareBaseBranch = baseBranch || defaultBranch || null;
 

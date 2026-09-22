@@ -120,8 +120,8 @@ export interface ChangedFile {
 	path: string;
 	oldPath?: string;
 	status: FileStatus;
-	additions: number;
-	deletions: number;
+	additions: number | null;
+	deletions: number | null;
 	isBinary?: boolean;
 }
 

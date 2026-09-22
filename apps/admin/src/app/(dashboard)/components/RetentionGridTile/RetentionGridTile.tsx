@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import {
 	ADMIN_INSIGHTS,
@@ -34,7 +35,7 @@ function cellState(
 }
 
 export function RetentionGridTile() {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const query = useInsightResults("cohortRetention");
 
 	const cohorts = Array.isArray(query.data?.result)
@@ -116,7 +117,11 @@ export function RetentionGridTile() {
 		>
 			<CohortGrid
 				columnLabels={Array.from({ length: intervalCount }, (_, week) =>
-					t({ message: `Week ${week}` }),
+					// A template literal here reads as its hash id ("pKiaRn") in every
+					// column: the React Compiler hoists it out before the Lingui plugin
+					// runs, so the macro never sees the message. A plain string does
+					// survive that ordering.
+					i18n._({ ...msg({ message: "Week {week}" }), values: { week } }),
 				)}
 				rows={rows}
 			/>

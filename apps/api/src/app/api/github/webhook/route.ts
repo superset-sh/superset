@@ -1,7 +1,9 @@
 import { db } from "@superset/db/client";
 import { githubInstallations, webhookEvents } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
+import type { IngestOutcome } from "@/lib/automations/ingestAutomationEvent";
 import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
+import { databaseErrorMessage } from "@/lib/databaseErrorMessage";
 import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
 import { stripNullChars } from "@/lib/strip-null-chars";
 import {
@@ -66,7 +68,11 @@ export async function POST(request: Request) {
 		return Response.json({ success: true, message: "Event not ready" });
 	}
 
-	// Process the verified event
+	// Process the verified event. The catch covers the work and nothing else:
+	// recording the outcome below is bookkeeping, and a failure to record it is
+	// not a failure of the work that already happened.
+	let outcome: IngestOutcome | null = null;
+	let failure: string | null = null;
 	try {
 		await webhooks.receive({
 			id: deliveryId ?? "",
@@ -89,7 +95,7 @@ export async function POST(request: Request) {
 						),
 						columns: { organizationId: true },
 					});
-		const outcome = installation
+		outcome = installation
 			? await ingestAutomationEvent(
 					db,
 					normalizeGithubDelivery({
@@ -101,28 +107,34 @@ export async function POST(request: Request) {
 					}),
 				)
 			: null;
-
-		await db
-			.update(webhookEvents)
-			.set({ status: "processed", processedAt: new Date() })
-			.where(eq(webhookEvents.id, webhookEvent.id));
-
-		return Response.json({ success: true, outcome });
 	} catch (error) {
-		console.error("[github/webhook] Webhook processing error:", error);
-
-		await db
-			.update(webhookEvents)
-			.set({
-				status: "failed",
-				error: error instanceof Error ? error.message : "Unknown error",
-				retryCount: webhookEvent.retryCount + 1,
-			})
-			.where(eq(webhookEvents.id, webhookEvent.id));
-
-		return Response.json(
-			{ error: "Webhook processing failed" },
-			{ status: 500 },
-		);
+		// The driver's message, not Drizzle's: this one is stored on the row and
+		// logged, and Drizzle's carries every bind parameter — the whole webhook
+		// body among them, since recordAutomationEvent binds it.
+		failure = databaseErrorMessage(error);
+		console.error("[github/webhook] Webhook processing error:", failure);
 	}
+
+	// One write for either outcome, and it is deliberately outside the catch
+	// above. When the database is what failed, a second write to it cannot
+	// report that: it throws in turn and replaces the original error with its
+	// own. Letting this one throw reports what actually broke and leaves the
+	// delivery `pending` for a redelivery, rather than marking work that
+	// succeeded as `failed` and inviting it to be done twice.
+	await db
+		.update(webhookEvents)
+		.set(
+			failure === null
+				? { status: "processed", processedAt: new Date() }
+				: {
+						status: "failed",
+						error: failure,
+						retryCount: webhookEvent.retryCount + 1,
+					},
+		)
+		.where(eq(webhookEvents.id, webhookEvent.id));
+
+	return failure === null
+		? Response.json({ success: true, outcome })
+		: Response.json({ error: "Webhook processing failed" }, { status: 500 });
 }

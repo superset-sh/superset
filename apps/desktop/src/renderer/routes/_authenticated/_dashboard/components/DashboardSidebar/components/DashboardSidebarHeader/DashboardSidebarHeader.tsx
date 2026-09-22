@@ -17,6 +17,7 @@ import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import {
 	LuClock,
 	LuFileText,
+	LuGauge,
 	LuLayers,
 	LuPlus,
 	LuPuzzle,
@@ -33,10 +34,15 @@ import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { SidebarKbdHint } from "renderer/components/SidebarKbdHint";
 import { ZoomStable } from "renderer/components/ZoomStable";
 import { env } from "renderer/env.renderer";
+import {
+	useOpenNewWorkspace,
+	useOpenNewWorkspaceForLocalProject,
+} from "renderer/hooks/useOpenNewWorkspace";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
+import { AppMenuButton } from "renderer/routes/_authenticated/_dashboard/components/AppMenuButton";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { TopBarPortsDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/TopBarPortsDropdown";
@@ -50,13 +56,16 @@ import {
 	useTasksFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import {
+	getUsageLastSection,
+	usageSectionPath,
+} from "renderer/routes/_authenticated/settings/usage/utils/usageLastSection";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import {
 	useOpenEmptyProjectModal,
 	useOpenNewProjectModal,
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
@@ -66,7 +75,8 @@ export function DashboardSidebarHeader({
 	isCollapsed = false,
 }: DashboardSidebarHeaderProps) {
 	const { t } = useLingui();
-	const openModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
+	const openProjectWorkspace = useOpenNewWorkspaceForLocalProject();
 	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
@@ -102,9 +112,10 @@ export function DashboardSidebarHeader({
 	const handleImportFolder = async () => {
 		const result = await folderImport.start();
 		if (result) {
+			openProjectWorkspace(result.projectId);
 			toast.success(
 				t({
-					message: "Project ready — open it from the sidebar.",
+					message: "Project imported and selected.",
 				}),
 			);
 		}
@@ -158,7 +169,8 @@ export function DashboardSidebarHeader({
 	const isPluginsEnabled =
 		(useFeatureFlagEnabled(FEATURE_FLAGS.PLUGINS) ?? false) ||
 		env.NODE_ENV === "development";
-	const { myFailedCount } = useFailedAutomations();
+	const { myFailedCount, hasAutomations, automationsPending } =
+		useFailedAutomations();
 
 	const {
 		tab: lastTab,
@@ -182,8 +194,20 @@ export function DashboardSidebarHeader({
 		navigate({ to: "/v2-workspaces" });
 	};
 
+	// Automations are Pro, but an org that already has some (a downgrade) can
+	// still reach the list to pause, edit, or delete them; the page gates the
+	// actions that need the plan. A Free org with none meets the paywall here.
+	// While the list is still loading the answer is unknown, so let the click
+	// through: an empty list page gates every action itself, and a wrong
+	// paywall on a downgraded org would be the worse mistake.
 	const handleAutomationsClick = () => {
-		navigate({ to: "/automations" });
+		if (hasAutomations || automationsPending) {
+			navigate({ to: "/automations" });
+			return;
+		}
+		gateFeature(GATED_FEATURES.AUTOMATIONS, () => {
+			navigate({ to: "/automations" });
+		});
 	};
 
 	const handleTasksClick = () => {
@@ -204,6 +228,8 @@ export function DashboardSidebarHeader({
 	};
 
 	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
+	const { data: isUsageInSidebarEnabled } =
+		electronTrpc.settings.getShowUsageInSidebar.useQuery();
 
 	const handlePagesClick = () => {
 		navigate({ to: "/pages" });
@@ -225,6 +251,12 @@ export function DashboardSidebarHeader({
 				mergedOnly: lastPullRequestsMergedOnly,
 			}),
 		});
+	};
+
+	const handleUsageClick = () => {
+		// Reopen whichever Usage section (token / machine resources) was
+		// visited last.
+		navigate({ to: usageSectionPath(getUsageLastSection()) });
 	};
 
 	if (isCollapsed) {
@@ -250,7 +282,7 @@ export function DashboardSidebarHeader({
 						<TooltipTrigger asChild>
 							<button
 								type="button"
-								onClick={() => openModal(activeProjectId)}
+								onClick={() => openNewWorkspace(activeProjectId)}
 								className="flex size-7 items-center justify-center rounded-md bg-fill-hover/60 [.light_&]:bg-fill-hover text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected"
 							>
 								<div className="flex size-5 items-center justify-center rounded bg-fill-selected">
@@ -392,6 +424,26 @@ export function DashboardSidebarHeader({
 						</TooltipContent>
 					</Tooltip>
 
+					{isUsageInSidebarEnabled && (
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={handleUsageClick}
+									aria-label={t({
+										message: "Usage",
+									})}
+									className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover"
+								>
+									<LuGauge className="size-3.5" strokeWidth={1.5} />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="right">
+								<Trans>Usage</Trans>
+							</TooltipContent>
+						</Tooltip>
+					)}
+
 					{isPagesEnabled && (
 						<Tooltip delayDuration={300}>
 							<TooltipTrigger asChild>
@@ -518,6 +570,7 @@ export function DashboardSidebarHeader({
 					style={{ width: isMac ? `${80 / zoomFactor}px` : "8px" }}
 				/>
 				<ZoomStable enabled={isMac} className="flex items-center gap-1">
+					{!isMac && <AppMenuButton />}
 					<SidebarToggle />
 					<NavigationControls />
 					{/* Lives here (persistent chrome) rather than the workspace tab
@@ -529,7 +582,7 @@ export function DashboardSidebarHeader({
 
 			<button
 				type="button"
-				onClick={() => openModal(activeProjectId)}
+				onClick={() => openNewWorkspace(activeProjectId)}
 				className="group flex h-7 w-full items-center gap-2 rounded-md bg-fill-hover/60 [.light_&]:bg-fill-hover px-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected hover:text-foreground"
 			>
 				<div className="flex size-5 shrink-0 items-center justify-center rounded bg-fill-selected">
@@ -646,6 +699,25 @@ export function DashboardSidebarHeader({
 					<Trans>Pull requests</Trans>
 				</span>
 			</button>
+
+			{isUsageInSidebarEnabled && (
+				<button
+					type="button"
+					onClick={handleUsageClick}
+					aria-label={t({
+						message: "Usage",
+					})}
+					className="flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+				>
+					<LuGauge
+						className="size-4 shrink-0 text-muted-foreground"
+						strokeWidth={1.5}
+					/>
+					<span className="flex-1 text-left">
+						<Trans>Usage</Trans>
+					</span>
+				</button>
+			)}
 
 			{isPagesEnabled && (
 				<button

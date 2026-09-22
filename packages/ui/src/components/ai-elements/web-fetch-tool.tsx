@@ -1,4 +1,6 @@
 "use client";
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 
 import { GlobeIcon } from "lucide-react";
 import { Loader } from "./loader";
@@ -41,6 +43,8 @@ export const WebFetchTool = ({
 	state,
 	className,
 }: WebFetchToolProps) => {
+	const { _: translate } = useTranslation();
+
 	const isPending = state === "input-streaming" || state === "input-available";
 	const isError = state === "output-error";
 	const isSuccess = statusCode === 200;
@@ -67,7 +71,7 @@ export const WebFetchTool = ({
 			isError={isError}
 			isPending={isPending}
 			statusNode={statusNode}
-			title="Web Fetch"
+			title={translate(msg({ message: "Web Fetch" }))}
 		>
 			{hasContent ? (
 				<div className="max-h-[300px] overflow-y-auto">

@@ -1,1 +1,0 @@
-export { EdgeGuardedHostAuthProvider } from "./EdgeGuardedHostAuthProvider";

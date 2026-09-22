@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { isPaidPlanTier } from "@superset/shared/billing";
 import { COMPANY } from "@superset/shared/constants";
 import {
 	DropdownMenuItem,
@@ -17,8 +18,11 @@ import {
 } from "react-icons/hi2";
 import { IoBugOutline } from "react-icons/io5";
 import { LuKeyboard, LuMegaphone } from "react-icons/lu";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+
+import { useGettingStartedStore } from "renderer/stores/getting-started";
 
 interface HelpSubMenuProps {
 	onSubmitPrompt: () => void;
@@ -26,6 +30,7 @@ interface HelpSubMenuProps {
 
 export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 	const navigate = useNavigate();
+	const { plan, isReady } = useCurrentPlan();
 	const shortcutsHotkey = useHotkeyDisplay("SHOW_HOTKEYS").text;
 	const openUrlMutation = electronTrpc.external.openUrl.useMutation();
 
@@ -42,6 +47,14 @@ export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 				</span>
 			</DropdownMenuSubTrigger>
 			<DropdownMenuSubContent className="w-56">
+				{isReady && isPaidPlanTier(plan) && (
+					<DropdownMenuItem
+						onSelect={() => useGettingStartedStore.getState().show()}
+					>
+						<HiOutlineBookOpen className="h-4 w-4" />
+						<Trans>Get the best out of Pro</Trans>
+					</DropdownMenuItem>
+				)}
 				<DropdownMenuItem onSelect={onSubmitPrompt}>
 					<LuMegaphone className="h-4 w-4" />
 					<Trans>Submit a prompt</Trans>

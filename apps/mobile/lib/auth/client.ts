@@ -8,6 +8,7 @@ import {
 import { createAuthClient } from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
 import { env } from "../env";
+import { transportFetch } from "../errors";
 
 let jwt: string | null = null;
 
@@ -41,6 +42,9 @@ export const authClient = createAuthClient({
 		jwtClient(),
 	],
 	fetchOptions: {
+		// So a dropped connection during sign-in is classifiable rather than
+		// an opaque Expo exception string on the screen.
+		customFetchImpl: transportFetch,
 		onResponse: (context) => {
 			const token = context.response.headers.get("set-auth-jwt");
 			if (token) {

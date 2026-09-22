@@ -11,15 +11,34 @@ export function localeUrl(lang: SupportedLocale, path: string): string {
 		: `${COMPANY.MARKETING_URL}/${lang}${suffix}`;
 }
 
+/** The MDX bodies and production-run essay currently exist only in English. */
+export function hasLocalizedContent(path: string): boolean {
+	return !(
+		/^\/(blog|changelog|compare)\/[^/]+$/.test(path) ||
+		[
+			"/agent-orchestration",
+			"/parallel-coding-agents",
+			"/privacy",
+			"/security",
+			"/subprocessors",
+			"/terms",
+			"/the-production-run",
+		].includes(path)
+	);
+}
+
 /**
- * Canonical + hreflang alternates for one page. Every locale URL names all
- * of its siblings, and x-default points at the bare English URL, which is
- * what tells search engines the set are translations of one page.
+ * Translated pages name their locale siblings. An English-only article keeps
+ * its English canonical even when rendered inside translated navigation.
  */
 export function localizedAlternates(
 	lang: SupportedLocale,
 	path: string,
 ): NonNullable<Metadata["alternates"]> {
+	if (!hasLocalizedContent(path)) {
+		return { canonical: localeUrl("en", path) };
+	}
+
 	const languages: Record<string, string> = {
 		"x-default": localeUrl("en", path),
 	};

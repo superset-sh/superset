@@ -6,12 +6,20 @@ interface UrlSuggestionsProps {
 	suggestions: HistorySuggestion[];
 	highlightedIndex: number;
 	onSelect: (url: string) => void;
+	/**
+	 * Set when the list is portalled into the pane's overlay layer (the host
+	 * layer above the hoisted webview): explicit placement relative to that
+	 * layer, since the input it belongs under is outside it. Absent, the list
+	 * hangs directly under the input — which the page paints over.
+	 */
+	portalStyle?: { top: number; left: number; width: number };
 }
 
 export function UrlSuggestions({
 	suggestions,
 	highlightedIndex,
 	onSelect,
+	portalStyle,
 }: UrlSuggestionsProps) {
 	const listRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +35,14 @@ export function UrlSuggestions({
 	return (
 		<div
 			ref={listRef}
-			className="absolute top-full left-0 right-0 mt-1 z-50 max-h-[320px] overflow-y-auto rounded-md border border-border bg-popover shadow-md"
+			data-url-suggestions=""
+			className={
+				portalStyle
+					? // The overlay layer is click-through by default; opt back in.
+						"pointer-events-auto absolute z-40 max-h-[320px] overflow-y-auto rounded-md border border-border bg-popover shadow-md"
+					: "absolute top-full left-0 right-0 mt-1 z-50 max-h-[320px] overflow-y-auto rounded-md border border-border bg-popover shadow-md"
+			}
+			style={portalStyle}
 		>
 			{suggestions.map((item, index) => (
 				<button

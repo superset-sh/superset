@@ -1,6 +1,6 @@
 {
 	"name": "@superset/pty-daemon",
-	"version": "0.3.3",
+	"version": "0.3.4",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -20,7 +20,11 @@
 			"types": "./dist-types/trustd-probe.d.ts",
 			"default": "./src/trustd-probe.ts"
 		},
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./terminal-modes": {
+			"types": "./dist-types/TerminalModes/index.d.ts",
+			"default": "./src/TerminalModes/index.ts"
+		}
 	},
 	"bin": {
 		"pty-daemon": "./src/main.ts"
@@ -33,16 +37,18 @@
 		"start": "node --experimental-strip-types src/main.ts",
 		"build:daemon": "bun run build.ts",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test src/protocol src/SessionStore src/handlers src/Pty/Pty.test.ts src/trustd-probe.test.ts src/process-tree.test.ts src/no-daemon-loop-blocking.test.ts test/server-fd-lifecycle.test.ts test/no-encoding-hops.test.ts",
+		"test": "bun test src/TerminalModes src/protocol src/SessionStore src/handlers src/Pty/Pty.test.ts src/trustd-probe.test.ts src/process-tree.test.ts src/no-daemon-loop-blocking.test.ts test/server-fd-lifecycle.test.ts test/no-encoding-hops.test.ts",
 		"test:integration": "node --experimental-strip-types --test test/integration.test.ts test/control-plane.test.ts test/signal-recovery.test.ts test/byte-fidelity.test.ts test/handoff.test.ts test/foreground-process.test.ts test/flow-control.test.ts test/kill-tree.test.ts test/fd-lifecycle.test.ts",
 		"build:types": "tsc -p tsconfig.types.json"
 	},
 	"dependencies": {
+		"@superset/shared": "workspace:*",
 		"node-pty": "1.2.0-beta.14"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/node": "24.12.0",
+		"@xterm/headless": "6.1.0-beta.302",
 		"bun-types": "1.3.14",
 		"typescript": "6.0.3"
 	}

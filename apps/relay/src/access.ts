@@ -1,23 +1,26 @@
 import { parseHostRoutingKey } from "@superset/shared/host-routing";
-import { LRUCache } from "lru-cache";
+import type { AuthContext } from "@superset/shared/verify-jwt";
 import { createApiClient } from "./api-client";
-import type { AuthContext } from "./auth";
 
-const ALLOWED_TTL_MS = 15 * 60 * 1000;
-const DENIED_TTL_MS = 30 * 1000;
+export const ALLOWED_TTL_MS = 15 * 60 * 1000;
+export const DENIED_TTL_MS = 30 * 1000;
 
-// Cache by (userId, hostId), not (token, hostId). Tokens rotate on every JWT
-// refresh while the underlying user→host authorization is stable. Caches are
-// per-isolate on Workers, so hit rates are lower than a single server's — the
-// short TTLs bound the staleness either way.
-const allowedCache = new LRUCache<string, true>({
-	max: 50_000,
-	ttl: ALLOWED_TTL_MS,
-});
-const deniedCache = new LRUCache<string, true>({
-	max: 10_000,
-	ttl: DENIED_TTL_MS,
-});
+// The API mints this for its own presence reads and has already authorized
+// the caller against the host membership table, so re-asking it per host
+// would be the API checking itself.
+export function isServerPresenceScope(scope: string | undefined): boolean {
+	return scope === "automation-presence";
+}
+
+/** Who is asking, as the host's object needs it to authorize a call. */
+export interface Caller {
+	userId: string;
+	token: string;
+}
+
+export function callerOf(auth: AuthContext, token: string): Caller {
+	return { userId: auth.sub, token };
+}
 
 export type AccessDenial =
 	| "invalid_host"
@@ -41,31 +44,45 @@ export function accessDenialMessage(reason: AccessDenial): string {
 	}
 }
 
-export async function checkHostAccess(
+/** What the Worker can decide from the token alone: a well-formed host id in one of the caller's organizations. */
+export function checkOrgAccess(
 	auth: AuthContext,
-	token: string,
 	hostId: string,
-	apiUrl: string,
-): Promise<AccessResult> {
+): AccessResult {
 	const parsed = parseHostRoutingKey(hostId);
 	if (!parsed) return { ok: false, reason: "invalid_host" };
 	if (!auth.organizationIds.includes(parsed.organizationId)) {
 		return { ok: false, reason: "not_in_org" };
 	}
+	return { ok: true };
+}
 
-	const key = `${auth.sub}:${hostId}`;
-	if (allowedCache.has(key)) return { ok: true };
-	if (deniedCache.has(key)) return { ok: false, reason: "not_registered" };
+export async function fetchHostAccess(
+	token: string,
+	hostId: string,
+	apiUrl: string,
+): Promise<boolean> {
+	const client = createApiClient(token, apiUrl);
+	const result = await client.host.checkAccess.query({ hostId });
+	return result.allowed;
+}
 
+/**
+ * The host's own connect. Its object may not exist yet, and a host must not
+ * be able to create its placement on the strength of a cache, so this asks
+ * the API every time; a control connect is rare next to client traffic.
+ */
+export async function checkHostAccessForRegister(
+	auth: AuthContext,
+	token: string,
+	hostId: string,
+	apiUrl: string,
+): Promise<AccessResult> {
+	const org = checkOrgAccess(auth, hostId);
+	if (!org.ok) return org;
 	try {
-		const client = createApiClient(token, apiUrl);
-		const result = await client.host.checkAccess.query({ hostId });
-		if (result.allowed) {
-			allowedCache.set(key, true);
-			return { ok: true };
-		}
-		deniedCache.set(key, true);
-		return { ok: false, reason: "not_registered" };
+		const allowed = await fetchHostAccess(token, hostId, apiUrl);
+		return allowed ? { ok: true } : { ok: false, reason: "not_registered" };
 	} catch {
 		return { ok: false, reason: "error" };
 	}

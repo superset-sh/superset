@@ -2,6 +2,7 @@ import { auth } from "@superset/auth/server";
 import { NextResponse } from "next/server";
 
 import { env } from "@/env";
+import { isDesktopProtocol } from "./desktopProtocol";
 
 export async function GET(request: Request) {
 	const url = new URL(request.url);
@@ -16,6 +17,10 @@ export async function GET(request: Request) {
 
 	if (provider !== "google" && provider !== "github") {
 		return new Response("Invalid provider", { status: 400 });
+	}
+
+	if (protocol && !isDesktopProtocol(protocol)) {
+		return new Response("Invalid protocol", { status: 400 });
 	}
 
 	const successUrl = new URL(`${env.NEXT_PUBLIC_WEB_URL}/auth/desktop/success`);

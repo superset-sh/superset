@@ -1,5 +1,9 @@
 import type { Octokit } from "@octokit/rest";
 import { z } from "zod";
+import {
+	isGithubNotFoundError,
+	isGithubRateLimitError,
+} from "../../../../runtime/pull-requests/utils/github-errors";
 import { protectedProcedure } from "../../../index";
 import { normalizeGitHubQuery } from "../normalize-github-query";
 import { githubSearchInputSchema } from "../schemas";
@@ -9,8 +13,6 @@ import {
 	formatRepoList,
 	githubRateLimitError,
 	githubRequestError,
-	isGithubNotFoundError,
-	isGithubRateLimitError,
 	mergeByUpdatedAtDesc,
 	type ProjectRepo,
 	projectIdForSearchItem,

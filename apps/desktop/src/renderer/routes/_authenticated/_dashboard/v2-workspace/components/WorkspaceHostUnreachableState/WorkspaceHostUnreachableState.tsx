@@ -53,14 +53,10 @@ export function WorkspaceHostUnreachableState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						<Trans>Host unreachable</Trans>
+						<Trans>Can't connect right now</Trans>
 					</h1>
 					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground">
-						<Trans>
-							This workspace lives on a device Superset can't reach right now.
-							Terminals, files, and agents stay put — they come back as soon as
-							the connection does.
-						</Trans>
+						<Trans>We'll bring you back as soon as we reconnect.</Trans>
 					</p>
 					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground/80">
 						{detail}

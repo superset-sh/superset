@@ -18,7 +18,8 @@ export function mapEventType(
 		eventType === "user_prompt_submit" ||
 		eventType === "postToolUse" ||
 		eventType === "post_tool_use" ||
-		eventType === "task_started"
+		eventType === "task_started" ||
+		eventType === "pre_tool"
 	) {
 		return "Start";
 	}
@@ -41,7 +42,8 @@ export function mapEventType(
 		eventType === "AfterAgent" ||
 		eventType === "sessionEnd" ||
 		eventType === "session_end" ||
-		eventType === "task_complete"
+		eventType === "task_complete" ||
+		eventType === "post_agent"
 	) {
 		return "Stop";
 	}

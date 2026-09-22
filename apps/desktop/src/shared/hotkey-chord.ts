@@ -127,6 +127,15 @@ export interface KeyChordInput {
 }
 
 /**
+ * A keystroke an embedded document (a guest webview, a host iframe) had focus
+ * for. The main process suppresses it there and hands it to the renderer,
+ * which replays it onto the host document as a synthetic KeyboardEvent.
+ */
+export interface ForwardedKey extends KeyChordInput {
+	key: string;
+}
+
+/**
  * Electron key input → canonical chord for the main process. Shares
  * {@link assembleChord} with {@link eventToChord}, so a given key produces the
  * same chord in both processes. The DOM-only AltGr/IME guards are absent here

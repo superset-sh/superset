@@ -10,60 +10,61 @@ import {
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { FaSlack } from "react-icons/fa";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
 
-const CALLBACK_MESSAGES = {
-	oauth_denied: i18n._(
-		msg({
-			message: "Authorization was denied. Please try again.",
-		}),
-	),
-	missing_params: i18n._(
-		msg({
-			message: "Invalid OAuth response. Please try again.",
-		}),
-	),
-	invalid_state: i18n._(
-		msg({
-			message: "Invalid state parameter. Please try again.",
-		}),
-	),
-	token_exchange_failed: i18n._(
-		msg({
-			message: "Failed to connect to Slack. Please try again.",
-		}),
-	),
-	slack_api_error: i18n._(
-		msg({
-			message: "Slack API error occurred. Please try again.",
-		}),
-	),
-	unauthorized: i18n._(
-		msg({
-			message: "You are not authorized to perform this action.",
-		}),
-	),
-	workspace_already_linked: {
-		param: "owner",
-		withParam: i18n._(
-			msg({
-				message:
-					"This Slack workspace is already connected by {owner}. Ask them to disconnect first.",
-			}),
-		),
-		withoutParam: i18n._(
-			msg({
-				message:
-					"This Slack workspace is already connected by another Superset organization.",
-			}),
-		),
-	},
-};
-
 export default async function SlackIntegrationPage() {
+	const i18n = await initServerI18n();
+	const CALLBACK_MESSAGES = {
+		oauth_denied: i18n._(
+			msg({
+				message: "Authorization was denied. Please try again.",
+			}),
+		),
+		missing_params: i18n._(
+			msg({
+				message: "Invalid OAuth response. Please try again.",
+			}),
+		),
+		invalid_state: i18n._(
+			msg({
+				message: "Invalid state parameter. Please try again.",
+			}),
+		),
+		token_exchange_failed: i18n._(
+			msg({
+				message: "Failed to connect to Slack. Please try again.",
+			}),
+		),
+		slack_api_error: i18n._(
+			msg({
+				message: "Slack API error occurred. Please try again.",
+			}),
+		),
+		unauthorized: i18n._(
+			msg({
+				message: "You are not authorized to perform this action.",
+			}),
+		),
+		workspace_already_linked: {
+			param: "owner",
+			withParam: i18n._(
+				msg({
+					message:
+						"This Slack workspace is already connected by {owner}. Ask them to disconnect first.",
+				}),
+			),
+			withoutParam: i18n._(
+				msg({
+					message:
+						"This Slack workspace is already connected by another Superset organization.",
+				}),
+			),
+		},
+	};
+
 	const trpc = await api();
 	const organization = await trpc.user.myOrganization.query();
 

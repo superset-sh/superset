@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
+import { getI18nInstance } from "@superset/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -12,6 +12,7 @@ import { formatCompareDate } from "@/lib/compare-utils";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const lang = await initServerI18n();
+	const i18n = getI18nInstance(lang);
 	const title = i18n._(
 		msg({
 			message: "Compare Superset | AI Coding Comparisons and Guides",
@@ -34,13 +35,13 @@ export async function generateMetadata(): Promise<Metadata> {
 			title: `${title} | Superset`,
 			description: description,
 			url: localeUrl(lang, "/compare"),
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 		twitter: {
 			card: "summary_large_image",
 			title: `${title} | Superset`,
 			description: description,
-			images: ["/opengraph-image"],
+			images: ["/og-image.png"],
 		},
 	};
 }

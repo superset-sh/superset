@@ -3,6 +3,7 @@
 // it is fully converted. This list only grows; removing an entry is a
 // regression, the same ratchet contract as the no-*-blocking tests.
 export const ENFORCED_DIRS: readonly string[] = [
+	"packages/panes/src/react/components/Workspace/components/TabBar/components/TabItem",
 	"packages/i18n/src",
 	"apps/web/src/app/account-pending-deletion",
 	// automations is temporarily un-enforced: the trigger-fidelity work

@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { buildTerminalSessionHandoffPrompt } from "@superset/shared/terminal-session-handoff";
 import { Button } from "@superset/ui/button";
 import {
@@ -55,6 +55,8 @@ export function TerminalSessionHandoffMenu({
 	terminalId,
 	onCreateNewAgentSession,
 }: TerminalSessionHandoffMenuProps) {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const binding = useTerminalAgentBinding(workspaceId, terminalId);
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
@@ -183,7 +185,7 @@ export function TerminalSessionHandoffMenu({
 								aria-label={t({
 									message: "Continue or fork session",
 								})}
-								className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+								className="hidden rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground @min-[200px]/pane-header:block"
 							>
 								<GitFork className="size-3.5" />
 							</button>

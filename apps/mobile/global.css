@@ -3,6 +3,7 @@
 
 @theme {
 	--radius: 0.625rem;
+	--font-mono: Menlo;
 }
 
 @layer theme {

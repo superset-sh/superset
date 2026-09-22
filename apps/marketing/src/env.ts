@@ -25,6 +25,10 @@ export const env = createEnv({
 		// /starchart. GitHub's stargazers endpoint requires authentication even for
 		// public repos; without this the page falls back to a live total only.
 		GITHUB_TOKEN: z.string().optional(),
+		// Same value as the API's. Sent on server-side leaderboard reads so the
+		// API's per-IP anonymous limiter does not count every render as one
+		// visitor. Absent means those reads are anonymous, as they always were.
+		LEADERBOARD_INTERNAL_TOKEN: z.string().min(1).optional(),
 	},
 	client: {
 		NEXT_PUBLIC_API_URL: z.string().url(),

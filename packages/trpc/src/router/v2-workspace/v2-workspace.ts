@@ -16,9 +16,9 @@ const ACTIVATION_EVENT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Emits `user.activated`, the exit condition of the Resend activation email
 // automation — a user who created a real workspace stops receiving nudges.
-async function exitActivationEmailCampaign(userId: string, email: string) {
+async function exitActivationEmailCampaign(userId: string) {
 	const user = await db.query.users.findFirst({
-		columns: { createdAt: true },
+		columns: { createdAt: true, email: true },
 		where: eq(users.id, userId),
 	});
 	const isRecentSignup =
@@ -27,7 +27,7 @@ async function exitActivationEmailCampaign(userId: string, email: string) {
 
 	const { error } = await resend.events.send({
 		event: "user.activated",
-		email,
+		email: user.email,
 		payload: { userId },
 	});
 	if (error) {
@@ -123,8 +123,8 @@ export const v2WorkspaceRouter = {
 				});
 			}
 
-			if (input.type !== "main" && ctx.email) {
-				await exitActivationEmailCampaign(ctx.userId, ctx.email);
+			if (input.type !== "main") {
+				await exitActivationEmailCampaign(ctx.userId);
 			}
 
 			return { ok: true };

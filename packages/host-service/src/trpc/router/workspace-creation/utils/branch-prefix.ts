@@ -2,9 +2,7 @@ import {
 	type BranchPrefixMode,
 	resolveBranchPrefix,
 } from "@superset/shared/workspace-launch";
-import type { SimpleGit } from "simple-git";
 import { hostSettings } from "../../../../db/schema";
-import { getGitAuthorName } from "../../../../runtime/git/identity";
 import type { HostServiceContext } from "../../../../types";
 import type { LocalProject } from "../shared/local-project";
 import type { ExecGh } from "./exec-gh";
@@ -35,12 +33,21 @@ export async function getGitHubUsername(
 export async function resolveProjectBranchPrefix({
 	ctx,
 	project,
-	git,
+	getAuthorName,
 	existingBranches,
 }: {
 	ctx: HostServiceContext;
 	project: LocalProject;
-	git: SimpleGit;
+	/**
+	 * Lazily resolves `git config user.name` for the "author" prefix mode,
+	 * only invoked when a mode actually needs it. Callers that already hold
+	 * an on-loop git client for other work (e.g. workspace creation) can
+	 * wrap it directly; a caller with no other git need should resolve it
+	 * off-loop instead (see workers/tasks/git.ts's `gitIdentityTask`) —
+	 * this factory must never gain a `ctx.git()` call site of its own (see
+	 * the no-main-loop-blocking ratchet).
+	 */
+	getAuthorName: () => Promise<string | null>;
 	existingBranches: string[];
 }): Promise<string | undefined> {
 	const global = ctx.db.select().from(hostSettings).get();
@@ -54,11 +61,11 @@ export async function resolveProjectBranchPrefix({
 	let authorName: string | null = null;
 	let githubUsername: string | null = null;
 	if (mode === "author") {
-		authorName = await getGitAuthorName(git);
+		authorName = await getAuthorName();
 	} else if (mode === "github") {
 		[githubUsername, authorName] = await Promise.all([
 			getGitHubUsername(ctx.execGh),
-			getGitAuthorName(git),
+			getAuthorName(),
 		]);
 	}
 

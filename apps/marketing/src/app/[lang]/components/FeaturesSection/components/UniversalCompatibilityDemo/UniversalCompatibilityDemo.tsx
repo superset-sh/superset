@@ -1,6 +1,6 @@
 "use client";
 
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { m, useInView } from "framer-motion";
 import Image from "next/image";
 import { useRef } from "react";
@@ -17,6 +17,8 @@ const AGENTS = [
 	{ name: "Kimi Code", icon: "/app-icons/kimi.svg", size: 18 },
 	{ name: "Grok CLI", icon: "/app-icons/grok.svg", size: 18 },
 	{ name: "Hermes", icon: "/app-icons/hermes.svg", size: 18 },
+	{ name: "Muse Code", icon: "/app-icons/muse.svg", size: 18 },
+	{ name: "Devin", icon: "/app-icons/devin.svg", size: 18 },
 	{ name: "fx", icon: "/app-icons/fx.svg", size: 18 },
 	{ name: "Antigravity", icon: "/app-icons/agy.svg", size: 18 },
 	{ name: "Kiro", icon: "/app-icons/kiro.svg", size: 18 },
@@ -26,19 +28,20 @@ const TERMINAL_COUNT = 3;
 
 export function UniversalCompatibilityDemo() {
 	const ref = useRef<HTMLDivElement>(null);
+	const { t } = useLingui();
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 
 	return (
 		<m.div
 			ref={ref}
-			className="relative w-full max-w-xs overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
+			className="relative flex h-[min(400px,65svh)] w-full max-w-xs flex-col overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 			initial={{ opacity: 0, y: 20 }}
 			animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 			transition={{ duration: 0.5 }}
 		>
 			<div className="pointer-events-none absolute inset-0 z-10 rounded-lg ring-1 ring-inset ring-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" />
 
-			<div className="relative flex h-8 items-center border-b border-border/60 bg-card px-3">
+			<div className="relative flex h-8 shrink-0 items-center border-b border-border/60 bg-card px-3">
 				<div className="flex items-center gap-1.5">
 					<div className="size-2 rounded-full bg-[#ff5f57]/85" />
 					<div className="size-2 rounded-full bg-[#febc2e]/85" />
@@ -49,7 +52,7 @@ export function UniversalCompatibilityDemo() {
 				</span>
 			</div>
 
-			<div className="border-b border-border/60 px-2 py-1.5">
+			<div className="shrink-0 border-b border-border/60 px-2 py-1.5">
 				<div className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground/90">
 					<HiPlus className="size-3.5" />
 					<span>
@@ -59,7 +62,12 @@ export function UniversalCompatibilityDemo() {
 				</div>
 			</div>
 
-			<div className="py-1.5">
+			<section
+				aria-label={t({ message: "Agents" })}
+				// biome-ignore lint/a11y/noNoninteractiveTabindex: The scrollable region must be reachable for keyboard scrolling.
+				tabIndex={0}
+				className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1.5 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-brand"
+			>
 				{AGENTS.map((agent, index) => (
 					<m.div
 						key={agent.name}
@@ -80,9 +88,9 @@ export function UniversalCompatibilityDemo() {
 						<span>{agent.name}</span>
 					</m.div>
 				))}
-			</div>
+			</section>
 
-			<div className="border-t border-border/60 px-4 py-3">
+			<div className="shrink-0 border-t border-border/60 px-4 py-3">
 				<div className="flex items-center gap-2 text-muted-foreground/55">
 					<HiOutlineTerminal className="size-3.5" />
 					<span className="text-[11px]">

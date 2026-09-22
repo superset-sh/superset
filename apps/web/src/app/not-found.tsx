@@ -4,14 +4,16 @@ import { Pixel404 } from "@superset/ui/pixel-404";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MessageScreen } from "@/components/MessageScreen";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 
 export const metadata: Metadata = {
 	title: "Page not found",
 	robots: { index: false },
 };
 
-export default function NotFound() {
+export default async function NotFound() {
+	const i18n = await initServerI18n();
+
 	return (
 		<MessageScreen
 			graphic={<Pixel404 className="max-w-[260px] text-foreground" />}

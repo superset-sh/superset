@@ -56,7 +56,11 @@ type TerminalServerMessage =
 			epoch: string;
 			seq: number;
 			mode: "exact" | "tail" | "reanchor";
-	  };
+	  }
+	// Liveness probe. The host drops a client that answered before and then
+	// went silent, so a half-open socket can't keep its dims in the PTY size
+	// minimum for everyone else.
+	| { type: "ping" };
 
 export interface TerminalTransport {
 	connectionState: ConnectionState;
@@ -706,6 +710,11 @@ function attachSocketListeners(
 			return;
 		}
 
+		if (message.type === "ping") {
+			socket.send(JSON.stringify({ type: "pong" }));
+			return;
+		}
+
 		if (message.type === "title") {
 			setTerminalTitle(transport, message.title);
 			return;
@@ -1065,13 +1074,6 @@ export function sendResize(
 	if (!socket || socket.readyState !== WebSocket.OPEN) return;
 	if (transport.connectionState !== "open") return;
 	socket.send(JSON.stringify({ type: "resize", cols, rows }));
-}
-
-export function sendInput(transport: TerminalTransport, data: string) {
-	const socket = transport._socket;
-	if (!socket || socket.readyState !== WebSocket.OPEN) return;
-	if (transport.connectionState !== "open") return;
-	socket.send(JSON.stringify({ type: "input", data }));
 }
 
 export function sendDispose(transport: TerminalTransport) {

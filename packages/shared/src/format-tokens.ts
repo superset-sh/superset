@@ -1,3 +1,8 @@
+import {
+	formatCompactNumber,
+	formatNumber,
+	getActiveLocale,
+} from "@superset/i18n/format";
 import { formatScaled, type ScaleUnit } from "./format-scaled";
 
 const UNITS: readonly ScaleUnit[] = [
@@ -8,8 +13,14 @@ const UNITS: readonly ScaleUnit[] = [
 ];
 
 /** "1.24T", "13.9B", "4.2M", "850K", "312" */
-export function formatTokens(tokens: number): string {
-	return formatScaled(tokens, UNITS, (value) =>
-		Math.round(value).toLocaleString("en-US"),
+export function formatTokens(
+	tokens: number | bigint | string,
+	locale = getActiveLocale(),
+): string {
+	const value = Number(tokens);
+	if (!locale.startsWith("en"))
+		return formatCompactNumber(value, { maximumFractionDigits: 2 }, locale);
+	return formatScaled(value, UNITS, (value) =>
+		formatNumber(Math.round(value), undefined, locale),
 	);
 }

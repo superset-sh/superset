@@ -178,6 +178,10 @@ export function ptyDaemonSocketPath(
 	env: NodeJS.ProcessEnv = process.env,
 ): string {
 	assertIsolatedDaemonNamespaceInTests(env);
+	// A cloud workspace sandbox keeps every per-boot file under one directory
+	// the boot runner clears, so a socket from the previous session never
+	// looks live on a restored disk.
+	if (env.SUPERSET_RUN_DIR) return path.join(env.SUPERSET_RUN_DIR, "ptyd.sock");
 	const home = env.SUPERSET_HOME_DIR;
 	const defaultHome = path.join(os.homedir(), ".superset");
 	const isDefaultHome =

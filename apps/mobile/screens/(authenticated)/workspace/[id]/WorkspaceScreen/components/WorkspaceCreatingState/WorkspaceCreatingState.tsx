@@ -11,8 +11,8 @@ import { AsciiSpinner } from "@/screens/(authenticated)/components/AsciiSpinner"
 // Synthetic timings, desktop's WorkspaceCreatingState trick: the create
 // streams no progress, so the first steps advance on a clock and the
 // worktree step holds until the row actually lands.
-const STEP_DONE_AT_S = [2, 12];
-const TYPICAL_SECONDS = 25;
+const WORKTREE_TIMING = { stepDoneAtS: [2, 12], typicalSeconds: 25 };
+const SESSION_TIMING = { stepDoneAtS: [], typicalSeconds: 10 };
 const SLOW_HINT_AT_S = 60;
 
 type StepState = "done" | "active" | "todo";
@@ -22,6 +22,7 @@ export function WorkspaceCreatingState({
 	agentLabel,
 	startedAt,
 	workspaceResolved,
+	isSession,
 	onBackHome,
 }: {
 	/** `projectName · branchLabel` — the two things the user chose. */
@@ -30,24 +31,39 @@ export function WorkspaceCreatingState({
 	startedAt: number;
 	/** The host registered the row; only the agent launch remains. */
 	workspaceResolved: boolean;
+	isSession: boolean;
 	onBackHome: () => void;
 }) {
 	const { t } = useLingui();
 	const elapsedSeconds = useElapsedSeconds(startedAt);
+	const { stepDoneAtS, typicalSeconds: totalSeconds } = isSession
+		? SESSION_TIMING
+		: WORKTREE_TIMING;
+	const setupLabels = isSession
+		? [t({ message: "Preparing" })]
+		: [
+				t({ message: "Preparing" }),
+				t({
+					message: "Fetching latest changes",
+				}),
+				t({
+					message: "Creating worktree",
+				}),
+			];
 	const steps: Array<{ label: string; state: StepState }> = [
-		t({ message: "Preparing" }),
-		t({
-			message: "Fetching latest changes",
-		}),
-		t({
-			message: "Creating worktree",
-		}),
+		...setupLabels,
 		t({
 			message: `Starting ${agentLabel}`,
 		}),
 	].map((label, index) => ({
 		label,
-		state: stepState(index, elapsedSeconds, workspaceResolved),
+		state: stepState(
+			index,
+			setupLabels.length,
+			stepDoneAtS,
+			elapsedSeconds,
+			workspaceResolved,
+		),
 	}));
 
 	return (
@@ -70,7 +86,7 @@ export function WorkspaceCreatingState({
 				</Text>
 				<Text className="text-muted-foreground font-mono text-[11px]">
 					{t({
-						message: `~${TYPICAL_SECONDS}s typical`,
+						message: `~${totalSeconds}s typical`,
 					})}
 				</Text>
 			</View>
@@ -100,17 +116,19 @@ export function WorkspaceCreatingState({
 
 function stepState(
 	index: number,
+	setupStepCount: number,
+	stepDoneAtS: number[],
 	elapsedSeconds: number,
 	workspaceResolved: boolean,
 ): StepState {
 	// Row landed: everything up to the agent launch is genuinely done.
-	if (workspaceResolved) return index < 3 ? "done" : "active";
-	const activeIndex = STEP_DONE_AT_S.findIndex(
+	if (workspaceResolved) return index < setupStepCount ? "done" : "active";
+	const activeIndex = stepDoneAtS.findIndex(
 		(doneAt) => elapsedSeconds < doneAt,
 	);
 	// Past the synthetic budget the worktree step holds until the row lands —
 	// never claim the agent is starting before the workspace exists.
-	const active = activeIndex === -1 ? 2 : activeIndex;
+	const active = activeIndex === -1 ? setupStepCount - 1 : activeIndex;
 	if (index < active) return "done";
 	return index === active ? "active" : "todo";
 }

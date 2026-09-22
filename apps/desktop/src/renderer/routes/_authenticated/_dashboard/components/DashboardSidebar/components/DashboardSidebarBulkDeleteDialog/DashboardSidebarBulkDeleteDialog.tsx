@@ -43,8 +43,15 @@ export function DashboardSidebarBulkDeleteDialog({
 		run,
 		setDeleteBranch,
 	} = useBulkWorkspaceDelete({ requestId, workspaces, onDeleted });
-	const { canConfirm, changedCount, items, uncheckedCount, unpushedCount } =
-		inspectionSummary;
+	const {
+		canConfirm,
+		changedCount,
+		items,
+		uncheckedCount,
+		unpushedCount,
+		worktreeCount,
+	} = inspectionSummary;
+	const onlySharedCheckout = worktreeCount === 0;
 	const hasWarnings = changedCount > 0 || unpushedCount > 0;
 
 	if (phase === "failed") {
@@ -69,10 +76,22 @@ export function DashboardSidebarBulkDeleteDialog({
 						/>
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						<Trans>
-							This removes every selected worktree from disk and deletes its
-							workspace record.
-						</Trans>
+						{onlySharedCheckout ? (
+							<Trans>
+								This closes the selected workspaces and their terminals. The
+								project's files and branches stay as they are.
+							</Trans>
+						) : worktreeCount < items.length ? (
+							<Trans>
+								Worktrees are removed from disk; workspaces on the project's
+								checkout only close. Files in the checkout stay as they are.
+							</Trans>
+						) : (
+							<Trans>
+								This removes every selected worktree from disk and deletes its
+								workspace record.
+							</Trans>
+						)}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 
@@ -116,21 +135,23 @@ export function DashboardSidebarBulkDeleteDialog({
 					</ul>
 				</div>
 
-				<div className="px-4 pb-2">
-					<div className="flex items-center gap-2">
-						<Checkbox
-							id={checkboxId}
-							checked={deleteBranch}
-							onCheckedChange={(checked) => setDeleteBranch(checked === true)}
-						/>
-						<Label
-							htmlFor={checkboxId}
-							className="cursor-pointer select-none text-xs text-muted-foreground"
-						>
-							<Trans>Also delete local branches</Trans>
-						</Label>
+				{!onlySharedCheckout && (
+					<div className="px-4 pb-2">
+						<div className="flex items-center gap-2">
+							<Checkbox
+								id={checkboxId}
+								checked={deleteBranch}
+								onCheckedChange={(checked) => setDeleteBranch(checked === true)}
+							/>
+							<Label
+								htmlFor={checkboxId}
+								className="cursor-pointer select-none text-xs text-muted-foreground"
+							>
+								<Trans>Also delete local branches</Trans>
+							</Label>
+						</div>
 					</div>
-				</div>
+				)}
 
 				<AlertDialogFooter className="flex-row justify-end gap-2 px-4 pb-4 pt-2">
 					<Button

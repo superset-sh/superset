@@ -1,7 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { defineTool } from "../../define-tool";
-import { hostServiceCall } from "../../host-service-client";
+import {
+	workspaceLocationInput,
+	workspaceServiceCall,
+} from "../../workspace-service-target";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
@@ -10,10 +13,7 @@ export function register(server: McpServer): void {
 		description:
 			"Send text to a terminal ALREADY running in a workspace — e.g. a follow-up prompt to a claude/codex agent — instead of spawning a new session. Targets the terminal by id (the value agents_create returned as `sessionId`, or terminals_create returned as `terminalId`). Use agents_create only to START an agent; use this for every message after. Multi-line text is delivered as a single paste, not separate submits.",
 		inputSchema: {
-			hostId: z
-				.string()
-				.min(1)
-				.describe("Host machineId the workspace lives on."),
+			...workspaceLocationInput,
 			workspaceId: z
 				.string()
 				.uuid()
@@ -30,13 +30,9 @@ export function register(server: McpServer): void {
 				.describe("Press Enter after the text. Default true."),
 		},
 		handler: async (input, ctx) => {
-			return hostServiceCall<{ terminalId: string; submitted: boolean }>(
-				{
-					relayUrl: ctx.relayUrl,
-					organizationId: ctx.organizationId,
-					hostId: input.hostId,
-					jwt: ctx.bearerToken,
-				},
+			return workspaceServiceCall<{ terminalId: string; submitted: boolean }>(
+				input,
+				ctx,
 				"terminal.send",
 				"mutation",
 				{

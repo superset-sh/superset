@@ -2,10 +2,11 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
-	Check,
 	ChevronDown,
 	FileText,
 	History,
+	Pencil,
+	RotateCw,
 	Share2,
 	Trash2,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import {
 import { useFramePointerDown } from "../../../../hooks/useFramePointerDown";
 import { relativeTime } from "../../../../utils/relativeTime";
 import type { PageHeaderPage, PageHeaderVersion } from "../../types";
+import { VersionThumbnail } from "./components/VersionThumbnail";
 
 interface PageTitleMenuProps {
 	page: PageHeaderPage;
@@ -36,7 +38,9 @@ interface PageTitleMenuProps {
 	onOpenChange: (open: boolean) => void;
 	onShare: () => void;
 	onDelete: () => void;
-	onPickVersion: (version: number) => void;
+	onRename: () => void;
+	onRefresh: () => void;
+	onPreviewVersion: (version: number) => void;
 	compact?: boolean;
 }
 
@@ -49,7 +53,9 @@ export function PageTitleMenu({
 	onOpenChange,
 	onShare,
 	onDelete,
-	onPickVersion,
+	onRename,
+	onRefresh,
+	onPreviewVersion,
 	compact = false,
 }: PageTitleMenuProps) {
 	const { t } = useLingui();
@@ -59,6 +65,12 @@ export function PageTitleMenu({
 	const updatedAgo = relativeTime(page.updatedAt);
 	const itemClass = compact ? "text-xs" : undefined;
 	const iconClass = compact ? "size-3.5" : undefined;
+
+	const run = (action: () => void) => (event: Event) => {
+		event.preventDefault();
+		onOpenChange(false);
+		action();
+	};
 
 	return (
 		<DropdownMenu open={open} onOpenChange={onOpenChange}>
@@ -101,13 +113,14 @@ export function PageTitleMenu({
 
 				<DropdownMenuSeparator />
 
-				<DropdownMenuItem
-					className={itemClass}
-					onSelect={(event) => {
-						event.preventDefault();
-						onShare();
-					}}
-				>
+				{editable ? (
+					<DropdownMenuItem className={itemClass} onSelect={run(onRename)}>
+						<Pencil className={iconClass} />
+						<Trans>Rename</Trans>
+					</DropdownMenuItem>
+				) : null}
+
+				<DropdownMenuItem className={itemClass} onSelect={run(onShare)}>
 					<Share2 className={iconClass} />
 					<Trans>Share</Trans>
 				</DropdownMenuItem>
@@ -116,11 +129,11 @@ export function PageTitleMenu({
 					<DropdownMenuSubTrigger className={itemClass}>
 						<History className={iconClass} />
 						<Trans>Version history</Trans>
-						<span className="text-muted-foreground tabular-nums">
+						<span className="ml-auto text-muted-foreground tabular-nums">
 							{versions.length}
 						</span>
 					</DropdownMenuSubTrigger>
-					<DropdownMenuSubContent className="w-56">
+					<DropdownMenuSubContent className="w-72 p-1">
 						{versions.length === 0 ? (
 							<DropdownMenuItem disabled className={itemClass}>
 								<Trans>No versions yet</Trans>
@@ -129,27 +142,38 @@ export function PageTitleMenu({
 							versions.map((entry) => (
 								<DropdownMenuItem
 									key={entry.version}
-									disabled={!editable}
-									className={cn(itemClass, "justify-between")}
-									onSelect={() => onPickVersion(entry.version)}
+									className="gap-2.5 p-1.5"
+									onSelect={run(() => onPreviewVersion(entry.version))}
 								>
-									<span className="truncate">
-										{entry.label ??
-											t({
-												message: `Version ${entry.version}`,
-											})}
-										<span className="ml-1 text-muted-foreground">
+									<VersionThumbnail src={entry.thumbnailUrl} />
+									<span className="flex min-w-0 flex-col">
+										<span className="truncate text-sm">
+											{entry.label ?? page.title}
+										</span>
+										<span className="truncate text-muted-foreground text-xs">
+											<Trans>Version {entry.version}</Trans>
+											{" · "}
 											{relativeTime(entry.createdAt)}
+											{entry.version === served ? (
+												<>
+													{" · "}
+													<span className="text-primary">
+														<Trans>Current</Trans>
+													</span>
+												</>
+											) : null}
 										</span>
 									</span>
-									{entry.version === served ? (
-										<Check className="size-3.5 shrink-0 text-primary" />
-									) : null}
 								</DropdownMenuItem>
 							))
 						)}
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
+
+				<DropdownMenuItem className={itemClass} onSelect={run(onRefresh)}>
+					<RotateCw className={iconClass} />
+					<Trans>Refresh</Trans>
+				</DropdownMenuItem>
 
 				{editable ? (
 					<>
@@ -157,10 +181,7 @@ export function PageTitleMenu({
 						<DropdownMenuItem
 							variant="destructive"
 							className={itemClass}
-							onSelect={(event) => {
-								event.preventDefault();
-								onDelete();
-							}}
+							onSelect={run(onDelete)}
 						>
 							<Trash2 className={compact ? "size-3.5" : undefined} />
 							<Trans>Delete page</Trans>

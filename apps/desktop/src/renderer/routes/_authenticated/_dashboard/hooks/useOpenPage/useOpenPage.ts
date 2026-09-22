@@ -1,5 +1,6 @@
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLastActiveV2Workspace } from "renderer/stores/last-active-v2-workspace";
 import { usePagePaneIntent } from "renderer/stores/page-pane-intent";
@@ -30,6 +31,7 @@ export function useOpenPage(): OpenPage {
 	const matchRoute = useMatchRoute();
 	const { workspaces } = useHostWorkspaces();
 	const lastActiveWorkspaceId = useLastActiveV2Workspace((s) => s.workspaceId);
+	const { preferences } = useV2UserPreferences();
 
 	const routeMatch = matchRoute({
 		to: "/v2-workspace/$workspaceId",
@@ -40,7 +42,8 @@ export function useOpenPage(): OpenPage {
 
 	return useCallback(
 		(page, options) => {
-			if (options?.inPane) {
+			const inPane = options?.inPane ?? preferences.pageOpenAction === "pane";
+			if (inPane) {
 				const candidate = activeWorkspaceId ?? lastActiveWorkspaceId;
 				const targetWorkspaceId =
 					candidate && workspaces.some((w) => w.id === candidate)
@@ -62,6 +65,12 @@ export function useOpenPage(): OpenPage {
 			}
 			navigate({ to: "/pages/$slug", params: { slug: page.slug } });
 		},
-		[navigate, activeWorkspaceId, lastActiveWorkspaceId, workspaces],
+		[
+			navigate,
+			activeWorkspaceId,
+			lastActiveWorkspaceId,
+			workspaces,
+			preferences.pageOpenAction,
+		],
 	);
 }

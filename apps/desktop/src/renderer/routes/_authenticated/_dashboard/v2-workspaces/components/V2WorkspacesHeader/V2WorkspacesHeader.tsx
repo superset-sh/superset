@@ -36,6 +36,8 @@ import {
 	LuTerminal,
 	LuUsers,
 } from "react-icons/lu";
+import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
 import { BoardColumnIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/BoardColumnIcon";
 import type {
@@ -64,7 +66,6 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { BOARD_COLUMN_LABELS } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
 import { DeviceOptionLabel } from "./components/DeviceOptionLabel";
 
@@ -178,7 +179,7 @@ export function V2WorkspacesHeader({
 	);
 	const hiddenLanes = useV2WorkspacesFilterStore((state) => state.hiddenLanes);
 	const toggleLane = useV2WorkspacesFilterStore((state) => state.toggleLane);
-	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
+	const openNewWorkspace = useOpenNewWorkspace();
 
 	const remoteHosts = hostOptions.filter((host) => !host.isLocal);
 	const localHostName = hostOptions.find((host) => host.isLocal)?.hostName;
@@ -288,7 +289,7 @@ export function V2WorkspacesHeader({
 			className="@container shrink-0 border-b border-border px-6 pb-2 pt-3"
 		>
 			{/* Title row — also the window-drag surface now that it spans the top. */}
-			<div className="drag flex items-center justify-between gap-3 pb-3">
+			<div className="drag flex items-center gap-3 pb-3">
 				<DropdownMenu modal={false}>
 					<DropdownMenuTrigger asChild>
 						<Button
@@ -356,11 +357,12 @@ export function V2WorkspacesHeader({
 
 				<Button
 					size="sm"
-					className="no-drag h-8 shrink-0"
-					onClick={() => openNewWorkspaceModal()}
+					className="no-drag ml-auto h-8 shrink-0"
+					onClick={() => openNewWorkspace()}
 				>
 					<Trans>Create workspace</Trans>
 				</Button>
+				<WindowControlsInset />
 			</div>
 
 			<div className="flex flex-wrap items-center justify-between gap-2">

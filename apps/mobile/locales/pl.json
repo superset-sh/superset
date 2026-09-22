@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"NSSpeechRecognitionUsageDescription": "Superset używa rozpoznawania mowy do zamiany głosu na tekst.",
+		"NSPhotoLibraryUsageDescription": "Superset potrzebuje dostępu do biblioteki zdjęć, aby dołączać obrazy do wiadomości.",
+		"NSCameraUsageDescription": "Superset używa aparatu, aby dołączać zdjęcia do wiadomości.",
+		"NSMicrophoneUsageDescription": "Superset używa mikrofonu, aby umożliwić dyktowanie wiadomości."
+	}
+}

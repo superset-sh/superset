@@ -64,12 +64,14 @@ export function createApiClient(opts: {
 					// better-auth's apiKey plugin reads `sk_live_…` from the
 					// x-api-key header. The Authorization: Bearer header is
 					// for OAuth/JWT tokens only — sending an api key there
-					// gets rejected as an invalid bearer.
-					const headers: Record<string, string> = opts.bearer.startsWith(
-						"sk_live_",
-					)
-						? { "x-api-key": opts.bearer }
-						: { Authorization: `Bearer ${opts.bearer}` };
+					// gets rejected as an invalid bearer. Empty in a cloud
+					// workspace, which sends no credential of its own: the
+					// firewall adds one naming the workspace.
+					const headers: Record<string, string> = !opts.bearer
+						? {}
+						: opts.bearer.startsWith("sk_live_")
+							? { "x-api-key": opts.bearer }
+							: { Authorization: `Bearer ${opts.bearer}` };
 					if (opts.organizationId) {
 						headers[ORGANIZATION_HEADER] = opts.organizationId;
 					}

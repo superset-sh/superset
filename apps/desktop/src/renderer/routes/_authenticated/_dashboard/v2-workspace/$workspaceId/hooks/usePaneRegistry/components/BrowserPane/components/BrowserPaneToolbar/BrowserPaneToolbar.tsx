@@ -4,8 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { SquareDashedMousePointer } from "lucide-react";
 import { useCallback } from "react";
-import { TbDeviceDesktop } from "react-icons/tb";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { OpenBrowserPageInAppButton } from "renderer/components/OpenBrowserPageInAppButton";
 import type { PaneViewerData } from "../../../../../../types";
 import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { designModeStore, useDesignModeState } from "../../designModeStore";
@@ -17,6 +16,7 @@ import { findBarStore } from "../../findBarStore";
 import { useBrowserState } from "../../hooks/useBrowserState";
 import { BrowserOverflowMenu } from "../BrowserOverflowMenu";
 import { BrowserToolbar } from "../BrowserToolbar";
+import { replaceBrowserPane } from "./utils/replaceBrowserPane";
 
 interface BrowserPaneToolbarProps {
 	ctx: RendererContext<PaneViewerData>;
@@ -30,10 +30,6 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 
 	const handleToggleDesignMode = useCallback(() => {
 		designModeStore.toggle(paneId);
-	}, [paneId]);
-
-	const handleOpenDevTools = useCallback(() => {
-		electronTrpcClient.browser.openDevTools.mutate({ paneId }).catch(() => {});
 	}, [paneId]);
 
 	const handleGoBack = useCallback(() => {
@@ -56,11 +52,11 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 	);
 
 	const isBlankPage = !state.currentUrl || state.currentUrl === "about:blank";
-	const PaneHeaderActions = ctx.components.PaneHeaderActions;
 
 	return (
-		<div className="flex h-full w-full min-w-0 items-center justify-between">
+		<div className="@container/browser-toolbar flex h-full w-full min-w-0 items-center justify-between">
 			<BrowserToolbar
+				paneId={paneId}
 				currentUrl={state.currentUrl}
 				faviconUrl={state.faviconUrl}
 				isLoading={state.isLoading}
@@ -71,7 +67,13 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 				onReload={handleReload}
 				onNavigate={handleNavigate}
 			/>
-			<div className="flex shrink-0 items-center gap-0.5 pr-1.5">
+			<div className="flex shrink-0 items-center gap-1 pr-1.5">
+				<OpenBrowserPageInAppButton
+					currentUrl={state.currentUrl}
+					onOpenInPane={(newPane) =>
+						replaceBrowserPane(ctx.store, ctx.tab.id, paneId, newPane)
+					}
+				/>
 				<Tooltip disableHoverableContent>
 					<TooltipTrigger asChild>
 						<button
@@ -89,7 +91,10 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 							)}
 						>
 							<SquareDashedMousePointer className="size-3" />
-							<Trans>Design</Trans>
+							{/* Icon-only in a narrow pane; the label comes back with room. */}
+							<span className="hidden @min-[360px]/pane-header:inline">
+								<Trans>Design</Trans>
+							</span>
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
@@ -103,20 +108,6 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 						)}
 					</TooltipContent>
 				</Tooltip>
-				<Tooltip disableHoverableContent>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleOpenDevTools}
-							className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground"
-						>
-							<TbDeviceDesktop className="size-3.5" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom">
-						<Trans>Open DevTools</Trans>
-					</TooltipContent>
-				</Tooltip>
 				<BrowserOverflowMenu
 					paneId={paneId}
 					currentUrl={state.currentUrl}
@@ -127,7 +118,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 					onOpenFindBar={() => findBarStore.open(paneId)}
 					onNavigateToUrl={handleNavigate}
 				/>
-				<PaneHeaderActions />
+				{ctx.headerActions}
 			</div>
 		</div>
 	);

@@ -1,3 +1,4 @@
+import { EventEmitter } from "node:events";
 import {
 	initI18nAsync,
 	resolveLocale,
@@ -6,6 +7,9 @@ import {
 import { app } from "electron";
 import { createApplicationMenu } from "main/lib/menu";
 import { refreshTrayMenu } from "main/lib/tray";
+
+export const languageEvents = new EventEmitter();
+let languageRequest = 0;
 
 /** Persisted setting wins; otherwise infer from the OS preference list. */
 export function resolveAppLocale(stored: string | null): SupportedLocale {
@@ -24,7 +28,10 @@ export async function applyAppLanguage(stored: string | null): Promise<void> {
 	// Await the catalog: non-English catalogs load on demand, and the menus
 	// below resolve their labels once, at build time. Rebuilding before the
 	// load resolves would render them in English.
+	const request = ++languageRequest;
 	await initI18nAsync(resolveAppLocale(stored));
+	if (request !== languageRequest) return;
 	createApplicationMenu();
 	refreshTrayMenu();
+	languageEvents.emit("change", stored);
 }

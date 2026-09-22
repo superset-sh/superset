@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { useLingui } from "@lingui/react/macro";
 import { TIER_NAMES, TIER_RGB } from "@/app/[lang]/components/TierBadge";
 import { MEASURED_TODAY, TRAJECTORY } from "../../constants";
@@ -29,6 +31,8 @@ function bandPath(index: number): string {
 }
 
 export function TrajectoryChart() {
+	const { _: translate } = useTranslation();
+
 	const { t } = useLingui();
 
 	return (
@@ -38,7 +42,12 @@ export function TrajectoryChart() {
 					viewBox={`0 0 ${W} ${H}`}
 					className="w-full h-auto"
 					role="img"
-					aria-label="Forecast share of developers at each tier from August 2026 to August 2028"
+					aria-label={translate(
+						msg({
+							message:
+								"Forecast share of developers at each tier from August 2026 to August 2028",
+						}),
+					)}
 				>
 					<title>Forecast tier distribution, August 2026 to August 2028</title>
 

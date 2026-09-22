@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { HOST_USAGE_QUOTA_QUERY_KEY } from "renderer/hooks/host-service/useHostUsageQuota";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { HOST_USAGE_QUOTA_QUERY_KEY } from "../useHostUsageQuota";
 
 /**
  * Points new agent launches at one of the discovered agent logins

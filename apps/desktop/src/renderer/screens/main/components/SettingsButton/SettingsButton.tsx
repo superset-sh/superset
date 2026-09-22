@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -19,6 +21,8 @@ export function SettingsButton({
 	iconClassName,
 	iconStrokeWidth = 2,
 }: SettingsButtonProps) {
+	const { _: translate } = useTranslation();
+
 	const navigate = useNavigate();
 
 	return (
@@ -28,7 +32,7 @@ export function SettingsButton({
 					variant="ghost"
 					size="icon"
 					onClick={() => navigate({ to: "/settings/account" })}
-					aria-label="Open settings"
+					aria-label={translate(msg({ message: "Open settings" }))}
 					className={cn("no-drag", className)}
 				>
 					<LuSettings

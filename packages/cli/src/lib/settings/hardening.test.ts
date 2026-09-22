@@ -4,7 +4,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { readThemeState } from "./app-state";
 import { readHostGitSettings, writeHostGitSetting } from "./host-settings";
-import { readSettingsRow } from "./local-settings";
+import { readSettingsRow, writeSetting } from "./local-settings";
 import { createLocalSettingsDb, withTempSupersetHome } from "./test-helpers";
 
 const home = withTempSupersetHome("superset-cli-hardening-");
@@ -15,6 +15,21 @@ describe("state-dependent failure hardening", () => {
 	test("reads a legacy settings row with a non-1 id (desktop parity)", () => {
 		createLocalDb(7);
 		expect(readSettingsRow()?.confirmOnQuit).toBe(true);
+	});
+
+	test("updates the legacy row without splitting settings when writing Usage visibility", () => {
+		createLocalDb(7);
+		writeSetting("showUsageInSidebar", true);
+		expect(readSettingsRow()?.showUsageInSidebar).toBe(true);
+		expect(readSettingsRow()?.confirmOnQuit).toBe(true);
+		const sqlite = new Database(join(home.dir, "local.db"));
+		try {
+			expect(sqlite.query("SELECT id FROM settings").all()).toEqual([
+				{ id: 7 },
+			]);
+		} finally {
+			sqlite.close();
+		}
 	});
 
 	test("reads a WAL-mode database whose sidecars were checkpointed away", () => {

@@ -1,15 +1,8 @@
-import {
-	normalizeWorkspaceTags,
-	SESSIONS_TAG_SCOPE,
-} from "@superset/shared/workspace-tags";
+import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
-import {
-	applyFolderTagChange,
-	buildSidebarFolderKey,
-	mintFolderTag,
-} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import { applyFolderTagChange } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useDashboardSidebarSectionRename } from "../../components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarSelection } from "../../providers/DashboardSidebarSelectionProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
@@ -90,15 +83,8 @@ export function useBulkWorkspaceMoveActions({
 	};
 
 	const createGroupFromSelection = () => {
-		if (projectId === null) {
-			const tag = mintFolderTag("New group", sessionTags);
-			for (const workspaceId of selectedIds)
-				updateSessionWorkspaceGroup(workspaceId, tag);
-			clearSelection();
-			requestSectionRename(buildSidebarFolderKey(SESSIONS_TAG_SCOPE, tag));
-			return;
-		}
-		const sectionId = createSection(projectId);
+		if (selectedIds.length === 0) return;
+		const sectionId = createSection(projectId, { workspaceIds: selectedIds });
 		for (const workspaceId of selectedIds) {
 			moveWorkspaceToSection(workspaceId, projectId, sectionId);
 		}

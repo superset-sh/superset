@@ -86,8 +86,8 @@ export function useWorkspaceChangeset(
 		let added = 0;
 		let deleted = 0;
 		for (const file of rows) {
-			added += file.additions;
-			deleted += file.deletions;
+			added += file.additions ?? 0;
+			deleted += file.deletions ?? 0;
 		}
 		return { files: rows, additions: added, deletions: deleted };
 	}, [query.data]);

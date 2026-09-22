@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import {
@@ -65,6 +67,8 @@ export function EnvironmentVariablesList({
 	onAdd,
 	onEdit,
 }: EnvironmentVariablesListProps) {
+	const { _: translate } = useTranslation();
+
 	const [secrets, setSecrets] = useState<Secret[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -113,7 +117,7 @@ export function EnvironmentVariablesList({
 					<div className="relative flex-1">
 						<HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 						<Input
-							placeholder="Search by key name..."
+							placeholder={translate(msg({ message: "Search by key name..." }))}
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 							className="pl-9"

@@ -1,0 +1,1 @@
+export { useFirstPaint } from "./useFirstPaint";

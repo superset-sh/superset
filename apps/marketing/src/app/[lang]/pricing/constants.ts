@@ -147,6 +147,12 @@ export const PRICING_TIERS: PricingTier[] = [
 				}),
 			},
 			{
+				id: "automations",
+				label: msg({
+					message: "Automations",
+				}),
+			},
+			{
 				id: "linearIntegration",
 				label: msg({
 					message: "Linear integration",
@@ -161,7 +167,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			{
 				id: "mobile",
 				label: msg({
-					message: "Mobile (coming soon)",
+					message: "Mobile",
 				}),
 			},
 		],
@@ -323,24 +329,25 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
 				values: [true, true, true],
 			},
 			{
+				id: "githubIntegration",
+				label: msg({
+					message: "GitHub integration",
+				}),
+				values: [true, true, true],
+			},
+			{
 				id: "remoteAccess",
 				label: msg({
 					message: "Remote access",
 				}),
 				values: [null, true, true],
-				badge: {
-					label: msg({
-						message: "Beta",
-					}),
-					variant: "default",
-				},
 			},
 			{
 				id: "automations",
 				label: msg({
 					message: "Automations",
 				}),
-				values: [true, true, true],
+				values: [null, true, true],
 			},
 			{
 				id: "mobileApp",
@@ -348,19 +355,6 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
 					message: "Mobile app",
 				}),
 				values: [null, true, true],
-				badge: {
-					label: msg({
-						message: "Coming soon",
-					}),
-					variant: "secondary",
-				},
-			},
-			{
-				id: "githubIntegration",
-				label: msg({
-					message: "GitHub integration",
-				}),
-				values: [true, true, true],
 			},
 			{
 				id: "linearIntegration",

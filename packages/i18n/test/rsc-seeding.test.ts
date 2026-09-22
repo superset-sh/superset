@@ -68,3 +68,29 @@ describe("RSC route entries seed i18n", () => {
 		});
 	}
 });
+
+// A request-local cache cannot isolate a mutable singleton stored inside it.
+// Imperative translations must use the same fixed instance as Trans/useLingui.
+test("marketing does not import the global translation instance", async () => {
+	const srcDir = join(REPO_ROOT, "apps/marketing/src");
+	const offenders: string[] = [];
+	for await (const file of new Bun.Glob("**/*.{ts,tsx}").scan({
+		cwd: srcDir,
+	})) {
+		if (
+			file.includes(".test.") ||
+			file.includes("/test-utils/") ||
+			file.includes("/_test-utils/")
+		)
+			continue;
+		const source = await Bun.file(join(srcDir, file)).text();
+		if (
+			/import\s*\{[^}]*\bi18n\b[^}]*\}\s*from\s*["'](?:@superset\/i18n|@lingui\/core)["']/.test(
+				source,
+			)
+		) {
+			offenders.push(file);
+		}
+	}
+	expect(offenders).toEqual([]);
+});

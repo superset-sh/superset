@@ -3,9 +3,11 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import { mapEventType } from "../../../events";
+import { verifyAttributionToken } from "../../../terminal-agents/attribution-token";
 import type { HostServiceContext } from "../../../types";
 import { touchLocalWorkspaceActivity } from "../../../workspaces/local-workspace-store";
 import { publicProcedure, router } from "../../index";
+import { captureSessionAccount } from "../usage/session-account/session-account";
 
 // Hook scripts emit "" for unset env vars; we coerce to undefined so the
 // AgentIdentity broadcast carries only meaningful fields.
@@ -17,10 +19,32 @@ const agentIdentityInput = z
 	})
 	.optional();
 
+// Set when the hook fired inside a subagent (Claude Task tool, Codex
+// spawn_agent). Such events feed the terminal's subagent roster only.
+const subagentInput = z
+	.object({
+		id: z.string(),
+		type: z.string().optional(),
+		/** The child's hook session id — a Codex child's own thread id. */
+		sessionId: z.string().optional(),
+		transcriptPath: z.string().optional(),
+		agentTranscriptPath: z.string().optional(),
+	})
+	.optional();
+
 const hookInput = z.object({
 	terminalId: z.string().optional(),
 	eventType: z.string().optional(),
 	agent: agentIdentityInput,
+	preview: z
+		.string()
+		.transform((value) => value.slice(0, 4000))
+		.optional(),
+	subagent: subagentInput,
+	launchId: z.string().max(128).optional(),
+	accountProfile: z.string().max(4096).optional(),
+	apiKey: z.boolean().optional(),
+	attributionToken: z.string().max(128).optional(),
 });
 
 function trimOrUndefined(value: string | undefined): string | undefined {
@@ -85,8 +109,9 @@ export const notificationsRouter = router({
 	 * would leak it into every agent shell's env for zero practical gain.
 	 */
 	hook: publicProcedure.input(hookInput).mutation(async ({ ctx, input }) => {
-		const eventType = mapEventType(input.eventType);
-		if (!eventType) {
+		const subagentId = trimOrUndefined(input.subagent?.id);
+		const eventType = subagentId ? undefined : mapEventType(input.eventType);
+		if (!subagentId && !eventType) {
 			return { success: true, ignored: true as const };
 		}
 
@@ -104,18 +129,74 @@ export const notificationsRouter = router({
 			return { success: true, ignored: true as const };
 		}
 
-		const agent = normalizeAgentIdentity(input.agent);
 		const occurredAt = Date.now();
+
+		// Subagent activity is not the terminal's lifecycle: no chime, no
+		// status change, no session id capture. The roster change is fanned
+		// out as an invalidation so the sidebar refetches bindings.
+		if (subagentId) {
+			const agentType = trimOrUndefined(input.subagent?.type);
+			const recorded = ctx.terminalAgentStore.recordSubagentHook({
+				terminalId: input.terminalId,
+				workspaceId: terminalSession.originWorkspaceId,
+				eventType: input.eventType ?? "",
+				subagentId,
+				...(agentType ? { agentType } : {}),
+				hint: {
+					subagentId,
+					sessionId: trimOrUndefined(input.subagent?.sessionId),
+					transcriptPath: trimOrUndefined(input.subagent?.transcriptPath),
+					agentTranscriptPath: trimOrUndefined(
+						input.subagent?.agentTranscriptPath,
+					),
+				},
+				occurredAt,
+			});
+			if (!recorded) {
+				return { success: true, ignored: true as const };
+			}
+			ctx.eventBus.broadcastAgentBindingsChanged({
+				workspaceId: terminalSession.originWorkspaceId,
+				occurredAt,
+			});
+			return { success: true, ignored: false as const };
+		}
+		if (!eventType) {
+			return { success: true, ignored: true as const };
+		}
+
+		const agent = normalizeAgentIdentity(input.agent);
+		const preview = trimOrUndefined(input.preview);
 
 		ctx.eventBus.broadcastAgentLifecycle({
 			workspaceId: terminalSession.originWorkspaceId,
 			eventType,
 			terminalId: input.terminalId,
 			...(agent ? { agent } : {}),
+			...(preview ? { preview } : {}),
 			occurredAt,
 		});
 
+		const prior = ctx.terminalAgentStore.get(input.terminalId);
+		const account =
+			verifyAttributionToken(input.terminalId, input.attributionToken) &&
+			eventType === "Attached" &&
+			input.accountProfile !== undefined &&
+			(!prior?.account ||
+				prior.agentId !== agent?.agentId ||
+				(input.launchId && input.launchId !== prior.launchId) ||
+				(agent?.sessionId &&
+					prior.agentSessionId &&
+					agent.sessionId !== prior.agentSessionId))
+				? await captureSessionAccount(
+						agent?.agentId,
+						input.accountProfile,
+						input.apiKey ?? false,
+					).catch(() => undefined)
+				: undefined;
 		ctx.terminalAgentStore.recordEvent({
+			account,
+			launchId: trimOrUndefined(input.launchId),
 			terminalId: input.terminalId,
 			workspaceId: terminalSession.originWorkspaceId,
 			eventType,

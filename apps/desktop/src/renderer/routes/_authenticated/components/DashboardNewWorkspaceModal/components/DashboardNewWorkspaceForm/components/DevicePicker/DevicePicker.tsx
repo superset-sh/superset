@@ -178,6 +178,24 @@ export function DevicePicker({
 										>
 											<HiOutlineServer className="size-4" />
 											<span className="min-w-0 truncate">{host.name}</span>
+											{host.isOnline && host.version && (
+												<span
+													className={cn(
+														"ml-auto shrink-0 font-mono text-[10px] tabular-nums",
+														host.versionState === "incompatible"
+															? "text-destructive"
+															: host.versionState === "behind"
+																? "text-amber-600 dark:text-amber-400"
+																: "text-muted-foreground/60",
+													)}
+												>
+													{host.versionState === "incompatible"
+														? t({ message: "needs update" })
+														: host.versionState === "behind"
+															? t({ message: `${host.version} · behind` })
+															: host.version}
+												</span>
+											)}
 											<OnlineDot online={host.isOnline} />
 											{isSelected && (
 												<HiCheck className="ml-auto size-4 shrink-0" />

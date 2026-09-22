@@ -1,6 +1,5 @@
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../../index";
-import { ensureMainWorkspace } from "../../project/utils/ensure-main-workspace";
 import { adoptInputSchema } from "../schemas";
 import { adoptExistingWorktree } from "../shared/adopt-existing-worktree";
 import {
@@ -25,7 +24,6 @@ export const adopt = protectedProcedure
 	.mutation(async ({ ctx, input }) => {
 		const localProject = requireLocalProject(ctx, input.projectId);
 		const repoPath = requireProjectRepoPath(localProject);
-		await ensureMainWorkspace(ctx, input.projectId, repoPath);
 
 		let branch = input.branch.trim();
 		if (!branch) {

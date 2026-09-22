@@ -13,8 +13,7 @@ export const LOCAL_HOST_SERVICE_DETAIL: Record<
 	MessageDescriptor
 > = {
 	starting: msg({
-		message:
-			"The local host service is still starting up. It should be ready in a few seconds.",
+		message: "Starting up. This should only take a moment.",
 	}),
 	stopped: msg({
 		message:

@@ -67,6 +67,7 @@ const contentSecurityPolicy = [
 		"https://us.i.posthog.com",
 		"https://us-assets.i.posthog.com",
 		"https://us.posthog.com",
+		"https://cloudflareinsights.com",
 		!isProduction && "ws:",
 		!isProduction && "wss:",
 	]
@@ -82,6 +83,7 @@ const contentSecurityPolicy = [
 		// wasm-unsafe-eval: WebAssembly.instantiate only — NOT eval()/Function.
 		// Without it Chrome blocks wasm under script-src (WEB-2K, /oauth/consent).
 		"script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+		"https://static.cloudflareinsights.com",
 		!isProduction && "'unsafe-eval'",
 	]
 		.filter(Boolean)

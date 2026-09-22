@@ -28,6 +28,7 @@ These are literal identifiers, not vocabulary:
 | pull request / PR | Follow the locale's developer convention (ja and zh commonly keep "PR"/"プルリクエスト"). |
 | terminal | The locale's standard term for a terminal emulator. |
 | host / host service | Translate "host" only where it reads as a common noun; "host-service" as a component name stays English. |
+| paywall | Use the locale's established term for a subscription gate: the loanword where that is what the market says (ja: ペイウォール, ko: 페이월, fr/de/it/nl/pl/cs/pt-BR/id/vi: paywall), a native rendering where one is standard (zh-CN: 付费墙, zh-TW: 付費牆, es: muro de pago, tr: ödeme duvarı, ru: пейволл). |
 
 Add a row whenever a translation review settles a disputed term; this file
 rides along in the LLM translation prompt, so rows here are enforcement, not

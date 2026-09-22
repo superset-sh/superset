@@ -25,6 +25,7 @@ import {
 interface TerminalConnectionIndicatorProps {
 	terminalId: string;
 	terminalInstanceId: string;
+	onNewShell: () => Promise<void>;
 }
 
 /** How often to re-ask the host whether the daemon is answering. */
@@ -72,6 +73,7 @@ function formatLogsForClipboard(logs: readonly TerminalLogEntry[]): string {
 export function TerminalConnectionIndicator({
 	terminalId,
 	terminalInstanceId,
+	onNewShell,
 }: TerminalConnectionIndicatorProps) {
 	const { t } = useLingui();
 	const subscribe = useCallback(
@@ -111,6 +113,23 @@ export function TerminalConnectionIndicator({
 			terminalInstanceId,
 		),
 	);
+	const sessionEnded = useSyncExternalStore(subscribe, () =>
+		terminalRuntimeRegistry.isSessionEnded(terminalId, terminalInstanceId),
+	);
+	const [creatingShell, setCreatingShell] = useState(false);
+	const newShell = async () => {
+		if (creatingShell) return;
+		setCreatingShell(true);
+		try {
+			await onNewShell();
+		} catch (error) {
+			toast.error(t({ message: "Failed to create terminal" }), {
+				description: errorMessage(error),
+			});
+		} finally {
+			setCreatingShell(false);
+		}
+	};
 	const [confirmRestartOpen, setConfirmRestartOpen] = useState(false);
 	const [showLog, setShowLog] = useState(false);
 
@@ -160,7 +179,7 @@ export function TerminalConnectionIndicator({
 		!health.reachable &&
 		health.unreachableForMs >= DAEMON_UNREACHABLE_WARN_MS;
 
-	if (connectionHealthy && !daemonUnreachable) {
+	if (connectionHealthy && !daemonUnreachable && !sessionEnded) {
 		return null;
 	}
 	// First connect hasn't had trouble yet — don't flash a status.
@@ -173,36 +192,37 @@ export function TerminalConnectionIndicator({
 		return null;
 	}
 
-	// Three failure modes so copy + colour name the fix that applies. Amber =
-	// still working itself out (auto-retry, or a stall that usually self-heals);
-	// red = we've stopped trying and need the user. A surfaced diagnosis alone
-	// isn't red: the transport keeps auto-retrying through long outages (wedged
-	// daemon, offline host) and self-heals — red is reserved for terminated.
 	const gaveUp =
 		diagnosis !== null && connectionState === "closed" && terminated;
-	const mode = daemonUnreachable
-		? "unresponsive"
-		: gaveUp
-			? "disconnected"
-			: "reconnecting";
+	const mode = sessionEnded
+		? "ended"
+		: daemonUnreachable
+			? "unresponsive"
+			: gaveUp
+				? "disconnected"
+				: "reconnecting";
 	const reconnecting = connectionState === "connecting";
 	const label =
-		mode === "unresponsive"
-			? t({
-					message: "Terminals aren't responding",
-				})
-			: mode === "disconnected"
+		mode === "ended"
+			? t({ message: "Session ended" })
+			: mode === "unresponsive"
 				? t({
-						message: "Disconnected",
+						message: "Terminals aren't responding",
 					})
-				: t({
-						message: "Reconnecting…",
-					});
+				: mode === "disconnected"
+					? t({
+							message: "Disconnected",
+						})
+					: t({
+							message: "Reconnecting…",
+						});
 	const StatusIcon = mode === "reconnecting" ? Loader2 : TriangleAlert;
 	const accentClass =
-		mode === "disconnected" ? "text-destructive" : "text-yellow-500";
+		mode === "disconnected" || mode === "ended"
+			? "text-destructive"
+			: "text-yellow-500";
 	const dotClass =
-		mode === "disconnected"
+		mode === "disconnected" || mode === "ended"
 			? "bg-destructive"
 			: mode === "unresponsive"
 				? "bg-yellow-500"
@@ -219,7 +239,10 @@ export function TerminalConnectionIndicator({
 					className="flex h-5 items-center gap-1.5 rounded px-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
 				>
 					<span className={cn("size-1.5 rounded-full", dotClass)} />
-					<span>{label}</span>
+					{/* The dot always fits; the word only when the header has room. */}
+					<span className="hidden @min-[360px]/pane-header:inline">
+						{label}
+					</span>
 				</button>
 			</PopoverTrigger>
 			<PopoverContent
@@ -237,14 +260,19 @@ export function TerminalConnectionIndicator({
 						/>
 						<p className="font-medium text-foreground">{label}</p>
 					</div>
-					{/* Reconnect (solid) leads as the safe primary; Restart (outline)
-					    is distinct but quieter, red only on hover so the destructive path
-					    never looks like the obvious one. Both can apply at once (a wedged
-					    daemon doesn't close the socket, but after sleep/wake the transport
-					    may have given up too), so we never leave restart as the only offer.
-					    A lone button flexes to full width. */}
+
 					<div className="flex gap-2">
-						{!connectionHealthy && (
+						{sessionEnded && (
+							<Button
+								className="flex-1 gap-2"
+								disabled={creatingShell}
+								onClick={() => void newShell()}
+							>
+								<RotateCw />
+								<Trans>New shell</Trans>
+							</Button>
+						)}
+						{!connectionHealthy && !sessionEnded && (
 							<Button
 								className="flex-1 gap-2"
 								disabled={reconnecting}

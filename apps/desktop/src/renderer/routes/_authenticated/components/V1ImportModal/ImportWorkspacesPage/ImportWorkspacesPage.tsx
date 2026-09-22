@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -34,6 +36,8 @@ export function ImportWorkspacesPage({
 	organizationId,
 	activeHostUrl,
 }: ImportWorkspacesPageProps) {
+	const { _: translate } = useTranslation();
+
 	const queryClient = useQueryClient();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const projectsQuery = electronTrpc.migration.readV1Projects.useQuery();
@@ -322,8 +326,12 @@ export function ImportWorkspacesPage({
 
 	return (
 		<ImportPageShell
-			title="Bring over your workspaces"
-			description="Adopt v1 workspaces under their imported v2 project."
+			title={translate(msg({ message: "Bring over your workspaces" }))}
+			description={translate(
+				msg({
+					message: "Adopt v1 workspaces under their imported v2 project.",
+				}),
+			)}
 			isLoading={isLoading}
 			itemCount={visibleWorkspaces.length}
 			emptyMessage={

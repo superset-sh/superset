@@ -4,10 +4,9 @@ import { Lang, parse } from "@ast-grep/napi";
 import { ENFORCED_DIRS } from "./enforced-dirs";
 
 // Ratchet: directories in ENFORCED_DIRS must not render hardcoded JSX text.
-// Words inside <Trans> are fine — that's Lingui's own element. The check is
-// deliberately narrow (JSX text nodes with real words); translatable string
-// props (label=, placeholder=, ...) get added once the bulk migration
-// stabilizes their shape.
+// Words inside <Trans> are fine — that's Lingui's own element. The check
+// also covers visible string props. Brands, literal command examples and
+// technical identifiers are deliberately excluded from translation.
 
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
 
@@ -41,6 +40,30 @@ function isInsideTrans(node: import("@ast-grep/napi").SgNode): boolean {
 	return false;
 }
 
+const LITERAL_IDENTIFIERS = new Set([
+	"Superset",
+	"Claude",
+	"Cursor",
+	"Linear",
+	"Link",
+	"Bash",
+	"desktop",
+	"cloud",
+	"gpu-box",
+	"mobile",
+	"cli",
+	"you@company.com",
+	"you@example.com",
+	"acme-inc",
+	"my-project",
+	"yourhandle",
+	"about:blank",
+	"work",
+	"CLIENT_KEY...",
+]);
+const VISIBLE_PROP =
+	/^(title|label|placeholder|aria-label|accessibilityLabel|description|alt|emptyMessage|message)=["']([\s\S]*)["']$/;
+
 async function findHardcodedText(dir: string): Promise<string[]> {
 	const offenders: string[] = [];
 	const glob = new Bun.Glob("**/*.tsx");
@@ -49,6 +72,38 @@ async function findHardcodedText(dir: string): Promise<string[]> {
 		const path = join(REPO_ROOT, dir, file);
 		const source = await Bun.file(path).text();
 		const root = parse(Lang.Tsx, source).root();
+		for (const node of root.findAll({ rule: { kind: "jsx_attribute" } })) {
+			const match = node.text().match(VISIBLE_PROP);
+			const value = match?.[2];
+			if (
+				!value ||
+				!WORD.test(value) ||
+				LITERAL_IDENTIFIERS.has(value) ||
+				/^(https?:|\.\/|--|FREQ=|bun |docker |claude |:)/.test(value) ||
+				isInsideTrans(node)
+			)
+				continue;
+			offenders.push(
+				`${dir}/${file}:${node.range().start.line + 1} ${node.text()}`,
+			);
+		}
+		for (const node of root.findAll({ rule: { kind: "call_expression" } })) {
+			const callee = node.field("function")?.text();
+			if (
+				!callee ||
+				!/^(toast\.(success|error|warning|info|loading)|Alert\.alert)$/.test(
+					callee,
+				)
+			)
+				continue;
+			for (const argument of node.field("arguments")?.children() ?? []) {
+				if (argument.kind() !== "string" || !WORD.test(argument.text()))
+					continue;
+				offenders.push(
+					`${dir}/${file}:${argument.range().start.line + 1} ${callee}(${argument.text()})`,
+				);
+			}
+		}
 		for (const node of root.findAll({ rule: { kind: "jsx_text" } })) {
 			const text = node.text().trim();
 			if (!WORD.test(text)) continue;

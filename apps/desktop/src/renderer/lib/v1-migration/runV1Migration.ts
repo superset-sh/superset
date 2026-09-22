@@ -1,5 +1,6 @@
 import type { HostServiceClient } from "renderer/lib/host-service-client";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { migrateV1Groups, type V1GroupTarget } from "./groups";
 import type { V1MigrationIpc } from "./ipc";
 import {
 	isTerminalStatus,
@@ -16,6 +17,7 @@ import {
 	type V2PresetLike,
 } from "./presets";
 import {
+	classifyUnmigratableRepoError,
 	decideProjectImport,
 	findProjectByPath,
 	importV1Project,
@@ -45,8 +47,15 @@ export interface V1MigrationSummary {
 }
 
 export interface RunV1MigrationDeps {
+	groupTarget?: V1GroupTarget;
 	organizationId: string;
 	hostClient: HostServiceClient;
+	/**
+	 * Redo done ledger rows whose v2 project/workspace no longer exists on
+	 * this host (host.db wiped or rebuilt). Only safe before the flip: on v2
+	 * a missing row is the user's own deletion and must stay deleted.
+	 */
+	reconcileWithHost?: boolean;
 	/** Electron-main reads/writes; inject fakes in tests. */
 	ipc: V1MigrationIpc;
 	/**
@@ -61,7 +70,6 @@ export interface RunV1MigrationDeps {
 	};
 	onProjectImported?: (result: {
 		v2ProjectId: string;
-		mainWorkspaceId: string | null;
 		repoPath: string;
 	}) => void;
 	onWorkspaceAdopted?: (v2WorkspaceId: string, v2ProjectId: string) => void;
@@ -117,8 +125,12 @@ export async function runV1Migration(
 		await flush();
 		workspaces = await migrateWorkspaces(deps, ledger, outcomes);
 		await flush();
+		const groups = await migrateV1Groups(deps);
 		settings = await migrateSettings(deps, ledger, outcomes);
 		await flush();
+		for (const key of Object.keys(settings) as (keyof KindSummary)[]) {
+			settings[key] += groups[key];
+		}
 		terminals = await migrateTerminals(deps, ledger, outcomes);
 		await flush();
 		presets = await migratePresets(deps, ledger, outcomes);
@@ -144,11 +156,20 @@ async function migrateProjects(
 	outcomes: V1LedgerOutcome[],
 ): Promise<KindSummary> {
 	const summary = emptySummary();
-	const v1Projects = await deps.ipc.readV1Projects();
+	const [v1Projects, hostProjects] = await Promise.all([
+		deps.ipc.readV1Projects(),
+		deps.reconcileWithHost ? deps.hostClient.project.list.query() : [],
+	]);
+	const hostProjectIds = new Set(hostProjects.map((p) => p.id));
 
 	for (const project of v1Projects) {
 		const existing = ledger.get(ledgerKey("project", project.id));
-		if (existing && isTerminalStatus(existing.status)) continue;
+		const done = !!existing && isTerminalStatus(existing.status);
+		const goneFromHost =
+			deps.reconcileWithHost &&
+			existing?.v2Id != null &&
+			!hostProjectIds.has(existing.v2Id);
+		if (done && !goneFromHost) continue;
 
 		try {
 			const findByPathResult = await findProjectByPath(deps.hostClient, {
@@ -217,6 +238,17 @@ async function migrateProjects(
 				});
 			}
 		} catch (err) {
+			const unmigratable = classifyUnmigratableRepoError(err);
+			if (unmigratable) {
+				summary.skipped++;
+				pushOutcome(ledger, outcomes, {
+					v1Id: project.id,
+					kind: "project",
+					status: "skipped",
+					reason: unmigratable,
+				});
+				continue;
+			}
 			summary.failed++;
 			pushOutcome(ledger, outcomes, {
 				v1Id: project.id,
@@ -261,9 +293,15 @@ async function migrateWorkspaces(
 		if (v2Id) v2ProjectIdByV1ProjectId.set(v1.id, v2Id);
 	}
 
+	const hostWorkspaceIds = new Set(hostWorkspaces.map((w) => w.id));
 	const pendingWorkspaces = v1Workspaces.filter((w) => {
 		const existing = ledger.get(ledgerKey("workspace", w.id));
-		return !existing || !isTerminalStatus(existing.status);
+		if (!existing || !isTerminalStatus(existing.status)) return true;
+		return (
+			!!deps.reconcileWithHost &&
+			existing.v2Id !== null &&
+			!hostWorkspaceIds.has(existing.v2Id)
+		);
 	});
 
 	const mappedV2ProjectIds = new Set(
@@ -272,6 +310,7 @@ async function migrateWorkspaces(
 			.filter((id): id is string => !!id),
 	);
 	const onDiskBranchesByV2ProjectId = new Map<string, Set<string>>();
+	const mainBranchByV2ProjectId = new Map<string, string>();
 	await Promise.all(
 		Array.from(mappedV2ProjectIds, async (v2ProjectId) => {
 			try {
@@ -283,6 +322,8 @@ async function migrateWorkspaces(
 					v2ProjectId,
 					new Set(result.worktrees.map((w) => w.branch)),
 				);
+				const main = result.worktrees.find((w) => w.isMainWorktree);
+				if (main) mainBranchByV2ProjectId.set(v2ProjectId, main.branch);
 			} catch {
 				// Leave unset: planWorkspaceAdoptions treats unknown as adoptable
 				// and lets adopt() decide.
@@ -299,6 +340,7 @@ async function migrateWorkspaces(
 		v2ProjectIdByV1ProjectId,
 		hostWorkspaces,
 		onDiskBranchesByV2ProjectId,
+		mainBranchByV2ProjectId,
 	});
 
 	// A workspace is unmapped exactly when its project's import failed or was
@@ -327,6 +369,39 @@ async function migrateWorkspaces(
 		});
 	}
 
+	for (const entry of plan.toCreateLocal) {
+		try {
+			const result = await deps.hostClient.workspaces.createLocal.mutate({
+				projectId: entry.v2ProjectId,
+				checkout: "local",
+				name: entry.name,
+			});
+			summary.migrated++;
+			pushOutcome(ledger, outcomes, {
+				v1Id: entry.v1WorkspaceId,
+				kind: "workspace",
+				status: "success",
+				v2Id: result.workspace.id,
+			});
+			try {
+				deps.onWorkspaceAdopted?.(result.workspace.id, entry.v2ProjectId);
+			} catch (err) {
+				console.error("[v1-migration] onWorkspaceAdopted callback failed", {
+					v1WorkspaceId: entry.v1WorkspaceId,
+					err,
+				});
+			}
+		} catch (err) {
+			summary.failed++;
+			pushOutcome(ledger, outcomes, {
+				v1Id: entry.v1WorkspaceId,
+				kind: "workspace",
+				status: "error",
+				reason: errorMessage(err),
+			});
+		}
+	}
+
 	for (const entry of plan.toAdopt) {
 		try {
 			const result = await adoptV1Workspace(deps.hostClient, entry);
@@ -346,6 +421,17 @@ async function migrateWorkspaces(
 				});
 			}
 		} catch (err) {
+			const unmigratable = classifyUnmigratableRepoError(err);
+			if (unmigratable) {
+				summary.skipped++;
+				pushOutcome(ledger, outcomes, {
+					v1Id: entry.v1WorkspaceId,
+					kind: "workspace",
+					status: "skipped",
+					reason: unmigratable,
+				});
+				continue;
+			}
 			summary.failed++;
 			pushOutcome(ledger, outcomes, {
 				v1Id: entry.v1WorkspaceId,
@@ -422,13 +508,17 @@ async function migrateSettings(
 	const v1Projects = await deps.ipc.readV1Projects();
 	for (const v1 of v1Projects) {
 		const ledgerId = `project-prefs:${v1.id}`;
-		const done = ledger.get(ledgerKey("settings", ledgerId));
-		if (done && isTerminalStatus(done.status)) continue;
-
 		const mapped = ledger.get(ledgerKey("project", v1.id));
 		const v2ProjectId =
 			mapped && isTerminalStatus(mapped.status) ? mapped.v2Id : null;
 		if (!v2ProjectId) continue; // retried after the project migrates
+
+		// A done row that points at a previous v2 project (the project was
+		// re-imported after the host lost it) is redone for the replacement.
+		const done = ledger.get(ledgerKey("settings", ledgerId));
+		if (done && isTerminalStatus(done.status) && done.v2Id === v2ProjectId) {
+			continue;
+		}
 
 		try {
 			const v2Project = await deps.hostClient.project.get.query({

@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
-import { i18n } from "@superset/i18n";
 import { Check, Key, Link, X } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { initServerI18n } from "@/lib/i18n-server";
 
 interface DatabaseField {
 	name: string;
@@ -24,11 +24,13 @@ interface DatabaseTableProps {
 	tableName?: string;
 }
 
-export function DatabaseTable({
+export async function DatabaseTable({
 	fields,
 	className,
 	tableName,
 }: DatabaseTableProps) {
+	const i18n = await initServerI18n();
+
 	return (
 		<div className={cn("my-6 overflow-hidden rounded-lg border", className)}>
 			{tableName && (

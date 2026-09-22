@@ -1,4 +1,4 @@
-import type { SelectIntegrationConnection } from "@superset/db/schema";
+import type { SelectConnection } from "@superset/db/schema";
 import type { GoogleCalendarMatchableEvent } from "@superset/shared/automation-matching";
 import type { GoogleCalendarTriggerEvent } from "@superset/shared/automation-triggers";
 import {
@@ -8,11 +8,11 @@ import {
 
 /** The domain of the connected account: what "external" is measured against. */
 export function accountDomain(
-	connection: Pick<SelectIntegrationConnection, "externalOrgId">,
+	connection: Pick<SelectConnection, "externalAccountId">,
 ): string | null {
-	const at = connection.externalOrgId?.lastIndexOf("@") ?? -1;
+	const at = connection.externalAccountId?.lastIndexOf("@") ?? -1;
 	if (at < 0) return null;
-	return connection.externalOrgId?.slice(at + 1).toLowerCase() ?? null;
+	return connection.externalAccountId?.slice(at + 1).toLowerCase() ?? null;
 }
 
 export function resourceKeyFor(

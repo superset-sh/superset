@@ -3,7 +3,6 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import reactPlugin from "@vitejs/plugin-react";
-import { codeInspectorPlugin } from "code-inspector-plugin";
 import { config } from "dotenv";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
@@ -101,6 +100,7 @@ export default defineConfig({
 				process.env.SENTRY_DSN_HOST_SERVICE,
 			),
 			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
+			"process.env.REALTIME_URL": defineEnv(process.env.REALTIME_URL),
 			// Must match renderer for analytics in main process
 			"process.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_KEY,
@@ -227,6 +227,7 @@ export default defineConfig({
 				process.env.SENTRY_DSN_DESKTOP,
 			),
 			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
+			"process.env.REALTIME_URL": defineEnv(process.env.REALTIME_URL),
 			"process.env.STREAMS_URL": defineEnv(
 				process.env.STREAMS_URL,
 				"https://superset-stream.fly.dev",
@@ -258,12 +259,6 @@ export default defineConfig({
 			}),
 			tsconfigPaths,
 			tailwindcss(),
-			codeInspectorPlugin({
-				bundler: "vite",
-				hotKeys: ["altKey"],
-				hideConsole: true,
-				port: Number(process.env.CODE_INSPECTOR_PORT) || undefined,
-			}),
 			reactPlugin({
 				// Compiles @lingui/react/macro (Trans, useLingui) at build time.
 				babel: { plugins: ["@lingui/babel-plugin-lingui-macro"] },

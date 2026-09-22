@@ -67,6 +67,10 @@ export function CompareBaseBranchPicker({
 	// Mirror cmdk's selected row so Mod+Enter can resolve it without DOM lookup.
 	const [selectedValue, setSelectedValue] = useState("");
 	const sentinelRef = useRef<HTMLDivElement | null>(null);
+	const handleOpenChange = (nextOpen: boolean) => {
+		setOpen(nextOpen);
+		if (!nextOpen) onBranchSearchChange("");
+	};
 
 	useEffect(() => {
 		if (!open || !hasNextPage || isFetchingNextPage) return;
@@ -101,13 +105,7 @@ export function CompareBaseBranchPicker({
 	}
 
 	return (
-		<Popover
-			open={open}
-			onOpenChange={(v) => {
-				setOpen(v);
-				if (!v) onBranchSearchChange("");
-			}}
-		>
+		<Popover open={open} onOpenChange={handleOpenChange}>
 			<PopoverTrigger asChild>
 				<FormPickerTrigger
 					disabled={isBranchesLoading && branches.length === 0}
@@ -148,7 +146,7 @@ export function CompareBaseBranchPicker({
 							e.preventDefault();
 							e.stopPropagation();
 							onOpenWorkspace(toOpenWorkspaceTarget(selectedBranch));
-							setOpen(false);
+							handleOpenChange(false);
 						}
 					}}
 				>
@@ -193,7 +191,7 @@ export function CompareBaseBranchPicker({
 											branch.name,
 											branch.isLocal ? "local" : "remote-tracking",
 										);
-										setOpen(false);
+										handleOpenChange(false);
 									}}
 									className="group items-start gap-3 rounded-md px-2.5 py-2"
 								>
@@ -247,7 +245,7 @@ export function CompareBaseBranchPicker({
 											onClick={(e) => {
 												e.stopPropagation();
 												onOpenWorkspace(toOpenWorkspaceTarget(branch));
-												setOpen(false);
+												handleOpenChange(false);
 											}}
 										>
 											<Trans>Open workspace</Trans>

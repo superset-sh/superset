@@ -1,6 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
-import { formatDate as formatLocaleDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -49,6 +49,8 @@ interface TeamMemberRow {
 type OpenDialog = "delete" | "leaveTeam" | null;
 
 export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
+	const { formatDate: formatLocaleDate } = useFormat();
+
 	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();

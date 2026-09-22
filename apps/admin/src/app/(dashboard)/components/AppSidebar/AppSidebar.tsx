@@ -2,7 +2,7 @@
 
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import { i18n } from "@superset/i18n";
+import { useLingui } from "@lingui/react";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -51,6 +51,7 @@ export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
+	const { i18n } = useLingui();
 	const pathname = usePathname();
 
 	const isActive = (url: string) => {

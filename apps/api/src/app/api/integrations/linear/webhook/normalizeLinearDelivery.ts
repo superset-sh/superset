@@ -88,7 +88,11 @@ export function normalizeLinearDelivery(params: {
 	event: LinearMatchableEvent;
 	/** Linear's delivery id when the header carried one; a redelivery reuses it. */
 	deliveryId: string;
-	connection: { id: string; organizationId: string };
+	connection: {
+		id: string;
+		organizationId: string;
+		connectedByUserId: string;
+	};
 	webhookEventId: string;
 }): NormalizedDelivery {
 	const { delivery, event, connection } = params;
@@ -106,6 +110,6 @@ export function normalizeLinearDelivery(params: {
 			payload: delivery,
 			webhookEventId: params.webhookEventId,
 		},
-		dispatch: { event },
+		dispatch: { event, ownerUserId: connection.connectedByUserId },
 	};
 }

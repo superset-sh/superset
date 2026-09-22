@@ -56,7 +56,6 @@ export function V2WorkspaceContextMenu({
 	const { ensureWorkspaceInSidebar, hideWorkspaceInSidebar } =
 		useDashboardSidebarState();
 	const { copyToClipboard } = useCopyToClipboard();
-	const isMainWorkspace = workspace.type === "main";
 
 	const open = useCallback(() => {
 		const go = () => navigateToV2Workspace(workspace.id, navigate);
@@ -168,18 +167,14 @@ export function V2WorkspaceContextMenu({
 						<Trans>Show on Sidebar</Trans>
 					</ContextMenuItem>
 				)}
-				{!isMainWorkspace ? (
-					<>
-						<ContextMenuSeparator />
-						<ContextMenuItem
-							onSelect={openDeleteDialog}
-							className="text-destructive focus:text-destructive"
-						>
-							<LuTrash2 className="size-4 text-destructive" />
-							<Trans>Delete</Trans>
-						</ContextMenuItem>
-					</>
-				) : null}
+				<ContextMenuSeparator />
+				<ContextMenuItem
+					onSelect={openDeleteDialog}
+					className="text-destructive focus:text-destructive"
+				>
+					<LuTrash2 className="size-4 text-destructive" />
+					<Trans>Delete</Trans>
+				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>
 	);

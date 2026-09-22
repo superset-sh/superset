@@ -2,7 +2,7 @@ import type { AppRouter } from "@superset/trpc";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
 import superjson from "superjson";
-import { getAuthToken } from "./auth-client";
+import { getCloudRequestHeaders } from "./cloudRequestContext";
 
 /**
  * Imperative tRPC client for the API server (bearer-token auth). For
@@ -13,15 +13,7 @@ export const apiTrpcClient = createTRPCProxyClient<AppRouter>({
 		httpBatchLink({
 			url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
 			transformer: superjson,
-			headers: () => {
-				const token = getAuthToken();
-				return {
-					...(token ? { Authorization: `Bearer ${token}` } : {}),
-					...(window.App?.appVersion
-						? { "x-superset-client": `desktop/${window.App.appVersion}` }
-						: {}),
-				};
-			},
+			headers: getCloudRequestHeaders,
 		}),
 	],
 });

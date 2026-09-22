@@ -19,6 +19,7 @@ import { ProjectAvatar } from "@/screens/(authenticated)/(home)/filter/component
 import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinnedWorkspacesStore";
 import { useWorkspaceChangeset } from "../hooks/useWorkspaceChangeset";
 import { useWorkspaceHeaderActions } from "../hooks/useWorkspaceHeaderActions";
+import { WorkspacePages } from "./components/WorkspacePages";
 
 function CircleAction({
 	icon,
@@ -91,10 +92,10 @@ export function WorkspaceActionsSheet() {
 	);
 	const togglePin = usePinnedWorkspacesStore((state) => state.togglePin);
 
-	// A cloud workspace is served as `main` because its checkout is the repo,
-	// but deleting it deletes the sandbox, not somebody's base checkout.
 	const isCloud = host !== null && isSandboxHost(host.machineId);
-	const canDelete = workspace ? workspace.type !== "main" || isCloud : false;
+	// Deleting a local workspace retires the record and leaves the checkout
+	// alone; deleting a cloud one deletes the sandbox. Either way it is allowed.
+	const canDelete = workspace !== null && workspace !== undefined;
 	const project = workspace?.projectId
 		? projects.find((candidate) => candidate.id === workspace.projectId)
 		: undefined;
@@ -207,6 +208,8 @@ export function WorkspaceActionsSheet() {
 						isLast
 					/>
 				) : null}
+
+				<WorkspacePages workspaceId={id ?? null} />
 
 				{canDelete ? (
 					<Pressable

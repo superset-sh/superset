@@ -1,6 +1,6 @@
 interface DiffStatTextProps {
-	additions: number;
-	deletions: number;
+	additions: number | null;
+	deletions: number | null;
 }
 
 /**
@@ -9,6 +9,7 @@ interface DiffStatTextProps {
  * can't drift between the two surfaces. Renders nothing at 0/0.
  */
 export function DiffStatText({ additions, deletions }: DiffStatTextProps) {
+	if (additions === null || deletions === null) return null;
 	if (additions <= 0 && deletions <= 0) return null;
 	return (
 		<>

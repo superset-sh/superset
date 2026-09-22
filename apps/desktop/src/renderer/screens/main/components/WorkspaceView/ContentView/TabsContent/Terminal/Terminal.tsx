@@ -338,6 +338,7 @@ export const Terminal = memo(function Terminal({
 		pendingInitialStateRef,
 		maybeApplyInitialState,
 		flushPendingEvents,
+		pendingEventsRef,
 		resetModes,
 		isAlternateScreenRef,
 		setPaneNameRef,

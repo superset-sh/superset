@@ -34,6 +34,7 @@ import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
+import { captureBillingEvent } from "./lib/billing-analytics";
 import { jwksAdapter } from "./lib/cached-jwks";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { getActivationVariant } from "./lib/lifecycle";
@@ -135,6 +136,10 @@ function serializeCancellationDetails(
 export const auth = betterAuth({
 	baseURL: env.NEXT_PUBLIC_API_URL,
 	secret: env.BETTER_AUTH_SECRET,
+	onAPIError: {
+		// Without this, production better-auth sends OAuth failures to the API root, a 404.
+		errorURL: `${env.NEXT_PUBLIC_WEB_URL}/sign-in`,
+	},
 	disabledPaths: [],
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -250,6 +255,7 @@ export const auth = betterAuth({
 		google: {
 			clientId: env.GOOGLE_CLIENT_ID,
 			clientSecret: env.GOOGLE_CLIENT_SECRET,
+			prompt: "select_account",
 		},
 		apple: {
 			clientId: env.APPLE_CLIENT_ID,
@@ -324,7 +330,7 @@ export const auth = betterAuth({
 					try {
 						const { error } = await resend.emails.send({
 							from: "Superset <noreply@superset.sh>",
-							replyTo: "founders@superset.sh",
+							replyTo: "support@superset.sh",
 							to: user.email,
 							subject: "Welcome to Superset",
 							react: WelcomeEmail({
@@ -396,7 +402,7 @@ export const auth = betterAuth({
 				definePayload: async ({
 					user,
 				}: {
-					user: { id: string; email: string };
+					user: { id: string };
 					session: Record<string, unknown>;
 				}) => {
 					const userMemberships = await db.query.members.findMany({
@@ -406,7 +412,7 @@ export const auth = betterAuth({
 					const organizationIds = [
 						...new Set(userMemberships.map((m) => m.organizationId)),
 					];
-					return { sub: user.id, email: user.email, organizationIds };
+					return { sub: user.id, organizationIds };
 				},
 			},
 		}),
@@ -1214,6 +1220,33 @@ export const auth = betterAuth({
 							error,
 						);
 					}
+
+					// The paid conversion. Emitted here rather than from an
+					// `onEvent` case for `checkout.session.completed` because Better
+					// Auth calls both for that one webhook, and this hook is the side
+					// that already knows the plan, seat count and interval.
+					await captureBillingEvent({
+						event: "subscription_started",
+						organizationId: subscription.referenceId,
+						initiatedByUserId: stripeSubscription.metadata?.userId,
+						// This hook is handed the subscription, not the webhook event, so
+						// the subscription id is the stable key. One `subscription_started`
+						// per subscription is the intended meaning anyway.
+						idempotencyKey: stripeSubscription.id,
+						occurredAt: new Date(stripeSubscription.created * 1000),
+						properties: {
+							plan: plan.name,
+							billing_interval: billingInterval,
+							seats: subscription.seats ?? 1,
+							// Deliberately not `revenue`: that property is what PostHog
+							// revenue analytics sums, and `payment_succeeded` below is the
+							// one event where money actually moved. Naming it here too
+							// would double-count every subscription.
+							subscription_value: pricePerSeat * (subscription.seats ?? 1),
+							currency,
+							stripe_subscription_id: stripeSubscription.id,
+						},
+					});
 				},
 
 				onSubscriptionCancel: async ({
@@ -1238,6 +1271,30 @@ export const auth = betterAuth({
 					const dueToPaymentFailure =
 						(cancellationDetails ?? stripeSubscription.cancellation_details)
 							?.reason === "payment_failed";
+
+					if (
+						subscription.plan === "pro" &&
+						!dueToPaymentFailure &&
+						stripeSubscription.canceled_at
+					) {
+						try {
+							await qstash.publishJSON({
+								url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/jobs/cancellation-feedback`,
+								body: {
+									stripeSubscriptionId: stripeSubscription.id,
+									canceledAt: stripeSubscription.canceled_at,
+								},
+								delay: 2700,
+								retries: 3,
+								deduplicationId: `pro-cancellation-feedback-${stripeSubscription.id}-${stripeSubscription.canceled_at}`,
+							});
+						} catch (error) {
+							console.error(
+								"[stripe/cancellation-feedback] Failed to queue feedback:",
+								error,
+							);
+						}
+					}
 
 					await resend.batch.send(
 						recipients.map((recipient) => ({
@@ -1373,6 +1430,24 @@ export const auth = betterAuth({
 								);
 							}
 						}
+
+						await captureBillingEvent({
+							event: "payment_failed",
+							organizationId: org.id,
+							initiatedByUserId:
+								invoice.parent?.subscription_details?.metadata?.userId,
+							idempotencyKey: event.id,
+							occurredAt: new Date(event.created * 1000),
+							properties: {
+								// No money moved, so this must not be `revenue`.
+								amount_due: invoice.amount_due,
+								currency: invoice.currency,
+								attempt_count: invoice.attempt_count ?? 0,
+								is_final_attempt: isFinalAttempt,
+								already_cancelled: alreadyCancelled,
+								stripe_subscription_id: stripeSubId ?? null,
+							},
+						});
 					}
 
 					if (event.type === "invoice.upcoming") {
@@ -1440,8 +1515,11 @@ export const auth = betterAuth({
 					if (event.type === "invoice.paid") {
 						const invoice = event.data.object as Stripe.Invoice;
 
-						const stripeSubId = invoice.parent?.subscription_details
-							?.subscription as string | undefined;
+						const subscriptionDetails =
+							invoice.parent?.subscription_details ?? undefined;
+						const stripeSubId = subscriptionDetails?.subscription as
+							| string
+							| undefined;
 
 						if (stripeSubId) {
 							try {
@@ -1463,6 +1541,54 @@ export const auth = betterAuth({
 									error,
 								);
 							}
+						}
+
+						// `referenceId` is the organization id — Better Auth writes it
+						// onto the subscription, and Stripe copies subscription metadata
+						// onto every invoice it raises, so this needs no lookup.
+						const organizationId = subscriptionDetails?.metadata?.referenceId;
+
+						if (organizationId) {
+							await captureBillingEvent({
+								event: "payment_succeeded",
+								organizationId,
+								initiatedByUserId: subscriptionDetails?.metadata?.userId,
+								idempotencyKey: event.id,
+								occurredAt: new Date(event.created * 1000),
+								properties: {
+									revenue: invoice.amount_paid,
+									currency: invoice.currency,
+									// `subscription_create` is the first payment, everything
+									// else is a renewal or a seat change.
+									billing_reason: invoice.billing_reason,
+									stripe_subscription_id: stripeSubId ?? null,
+								},
+							});
+						}
+					}
+
+					// Stripe expires an unpaid Checkout session ~24h after it opens, so
+					// this arrives late by design. It is the only signal that someone
+					// reached the payment page and did not pay — the paid side comes
+					// through `onSubscriptionComplete` instead.
+					if (event.type === "checkout.session.expired") {
+						const session = event.data.object as Stripe.Checkout.Session;
+						const organizationId = session.metadata?.organizationId;
+
+						if (organizationId) {
+							await captureBillingEvent({
+								event: "checkout_abandoned",
+								organizationId,
+								initiatedByUserId: session.metadata?.userId,
+								idempotencyKey: event.id,
+								occurredAt: new Date(event.created * 1000),
+								properties: {
+									// No money moved, so this must not be `revenue`.
+									abandoned_value: session.amount_total ?? 0,
+									currency: session.currency ?? "usd",
+									stripe_session_id: session.id,
+								},
+							});
 						}
 					}
 
@@ -1523,7 +1649,6 @@ export type User = typeof auth.$Infer.Session.user;
  */
 export async function mintUserJwt(args: {
 	userId: string;
-	email?: string;
 	organizationIds: string[];
 	scope?: string;
 	runId?: string;
@@ -1536,7 +1661,6 @@ export async function mintUserJwt(args: {
 		body: {
 			payload: {
 				sub: args.userId,
-				email: args.email,
 				organizationIds: args.organizationIds,
 				scope: args.scope,
 				runId: args.runId,

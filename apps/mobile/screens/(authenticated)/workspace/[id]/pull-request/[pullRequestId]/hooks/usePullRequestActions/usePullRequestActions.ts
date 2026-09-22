@@ -1,10 +1,11 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import { useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { useMutation } from "@tanstack/react-query";
 import { useRef } from "react";
 import { Alert } from "react-native";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -45,7 +46,6 @@ export function usePullRequestActions({
 	pullNumber: number | null;
 	onDone: () => void;
 }) {
-	const { i18n } = useLingui();
 	const { host } = useWorkspaceHost(workspaceId);
 	const hostUrl =
 		host?.isOnline === true
@@ -73,7 +73,7 @@ export function usePullRequestActions({
 		},
 		onSuccess: onDone,
 		onError: (error: Error, action) => {
-			Alert.alert(i18n._(REFUSED_TITLE[action]), error.message);
+			Alert.alert(i18n._(REFUSED_TITLE[action]), errorCopy(error));
 		},
 	});
 

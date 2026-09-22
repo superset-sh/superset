@@ -43,9 +43,14 @@ import {
 } from "shared/absolute-paths";
 import type { FoldSignal } from "../../ChangesFileList";
 import { setFileDragData } from "../../hooks/useFileDrag";
+import { useStagingMutations } from "../../hooks/useStagingMutations";
+import { StageToggleButton } from "../StageToggleButton";
 import { FileRowContextMenuItems } from "./components/FileRowContextMenuItems";
 import { FolderContextMenuItems } from "./components/FolderContextMenuItems";
-import { ShadowRowHoverActions } from "./components/ShadowRowHoverActions";
+import {
+	HOVER_ACTIONS_ROW_CSS,
+	ShadowRowHoverActions,
+} from "./components/ShadowRowHoverActions";
 import { useMeasuredTreeHeight } from "./hooks/useMeasuredTreeHeight";
 import { buildTreeShape } from "./utils/buildTreeShape";
 
@@ -92,7 +97,8 @@ interface ChangesTreeViewProps {
  *  - `renderRowDecoration`: `+N/−N` on files, file count on directories
  *  - `renderContextMenu`: file-row actions matching `FileRow`; folder-row
  *    actions (open in editor, copy path)
- *  - hover actions overlay (Discard on unstaged + more-actions ⌄ dropdown)
+ *  - hover actions overlay (Discard + Stage on unstaged, Unstage on staged,
+ *    plus the more-actions ⌄ dropdown)
  *  - `useChangesSidebarFilePolicy` for settings-driven click routing
  *  - selection echo: when the diff pane's file is in this section, focus it
  *
@@ -152,7 +158,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		paths: treePaths,
 		initialExpansion: "open",
 		search: false,
-		unsafeCSS: PIERRE_TREE_UNSAFE_CSS,
+		unsafeCSS: PIERRE_TREE_UNSAFE_CSS + HOVER_ACTIONS_ROW_CSS,
 		gitStatus: initialGitStatusEntriesRef.current,
 		icons: { set: "complete", colored: true },
 		itemHeight: ITEM_HEIGHT,
@@ -351,6 +357,8 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		},
 	});
 
+	const { stageFile, unstageFile } = useStagingMutations(workspaceId);
+
 	const fileMenuItems = (file: ChangesetFile) => (
 		<FileRowContextMenuItems
 			file={file}
@@ -360,6 +368,8 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			onOpenFile={onOpenFile}
 			onOpenInEditor={onOpenInEditor}
 			onRequestDiscard={setDiscardTarget}
+			onStageFile={stageFile}
+			onUnstageFile={unstageFile}
 		/>
 	);
 
@@ -393,30 +403,38 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	};
 
 	const renderHoverInlineActions = (treePath: string) => {
-		if (sectionKind !== "unstaged") return null;
 		const file = fileByTreePath.get(treePath);
 		if (!file) return null;
+		if (sectionKind === "staged") {
+			return (
+				<StageToggleButton action="unstage" onClick={() => unstageFile(file)} />
+			);
+		}
+		if (sectionKind !== "unstaged") return null;
 		return (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						aria-label={t({
-							message: "Discard changes",
-						})}
-						className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
-						onClick={(e) => {
-							e.stopPropagation();
-							setDiscardTarget(file);
-						}}
-					>
-						<Undo2 className="size-3.5" />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="top">
-					<Trans>Discard changes</Trans>
-				</TooltipContent>
-			</Tooltip>
+			<>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							aria-label={t({
+								message: "Discard changes",
+							})}
+							className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
+							onClick={(e) => {
+								e.stopPropagation();
+								setDiscardTarget(file);
+							}}
+						>
+							<Undo2 className="size-3.5" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="top">
+						<Trans>Discard changes</Trans>
+					</TooltipContent>
+				</Tooltip>
+				<StageToggleButton action="stage" onClick={() => stageFile(file)} />
+			</>
 		);
 	};
 

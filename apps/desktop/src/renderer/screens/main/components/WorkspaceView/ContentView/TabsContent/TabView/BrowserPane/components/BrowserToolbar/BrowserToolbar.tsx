@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	TbArrowLeft,
@@ -5,6 +7,7 @@ import {
 	TbLoader2,
 	TbRefresh,
 } from "react-icons/tb";
+import { OpenBrowserPageInAppButton } from "renderer/components/OpenBrowserPageInAppButton";
 import { suspendAncestorDragForTextSelection } from "renderer/lib/dnd";
 import { UrlSuggestions } from "./components/UrlSuggestions";
 import { useUrlAutocomplete } from "./hooks/useUrlAutocomplete";
@@ -38,6 +41,8 @@ export function BrowserToolbar({
 	onReload,
 	onNavigate,
 }: BrowserToolbarProps) {
+	const { _: translate } = useTranslation();
+
 	const [isEditing, setIsEditing] = useState(false);
 	const [urlInputValue, setUrlInputValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -112,7 +117,7 @@ export function BrowserToolbar({
 	);
 
 	return (
-		<div className="flex h-full flex-1 min-w-0 items-center px-2">
+		<div className="@container/browser-toolbar flex h-full flex-1 min-w-0 items-center px-2">
 			<div className="flex items-center gap-0.5 shrink-0">
 				<button
 					type="button"
@@ -156,7 +161,9 @@ export function BrowserToolbar({
 							onChange={handleInputChange}
 							onBlur={exitEditMode}
 							onKeyDown={handleKeyDown}
-							placeholder="Enter URL or search..."
+							placeholder={translate(
+								msg({ message: "Enter URL or search..." }),
+							)}
 							className="h-[22px] w-full rounded-sm border border-ring bg-transparent px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
 							spellCheck={false}
 							autoComplete="off"
@@ -195,6 +202,7 @@ export function BrowserToolbar({
 					/>
 				)}
 			</div>
+			<OpenBrowserPageInAppButton currentUrl={currentUrl} />
 		</div>
 	);
 }

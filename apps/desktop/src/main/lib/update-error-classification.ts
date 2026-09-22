@@ -1,5 +1,6 @@
 const ENVIRONMENT_ERRNO_CODES = [
 	"ENOENT",
+	"ENOTDIR",
 	"EACCES",
 	"EPERM",
 	"EBUSY",
@@ -29,6 +30,35 @@ const UPDATER_DEFECT_PATTERNS = [
 	"no files provided",
 ];
 
+// Replacing a bundle the user cannot write to needs an admin authorization,
+// and Squirrel.Mac reports the prompt being cancelled (-60006) or refused
+// (-60005) as an NSOSStatusErrorDomain error. Foundation localises the prose
+// around it, so match the domain's name and the number, never the words. Any
+// other OSStatus keeps reporting: a signing failure wears the same sentence.
+const AUTHORIZATION_OSSTATUS = /OSStatus\D*-6000[56](?!\d)/;
+
+// A server error from the release-artifact download is the CDN, not the
+// artifact. A 4xx stays reported: an asset that is not there is ours to
+// publish. Only the packaged app counts; electron-updater reports a failed
+// feed (latest-mac.yml) fetch as an HttpError instead, which
+// isUpstreamServerError classifies from its status code.
+const DOWNLOAD_SERVER_ERROR =
+	/^Cannot download ".*\.(?:zip|dmg|exe|AppImage|deb|rpm)", status 5\d\d(?!\d)/;
+
+// The feed fetch fails upstream in two shapes, both retried by the next
+// scheduled check: GitHub's edge answers 5xx during an incident, and its asset
+// CDN answers 618 "jwt:expired" when the client follows the signed redirect
+// after the token's five-minute window, which is a machine that slept
+// mid-check. Everything from 500 up is the server's; a 4xx stays reported
+// because a feed that is not there is ours to publish.
+export function isUpstreamServerError(error: unknown): boolean {
+	if (!(error instanceof Error) || error.name !== "HttpError") {
+		return false;
+	}
+	const { statusCode } = error as Error & { statusCode?: unknown };
+	return typeof statusCode === "number" && statusCode >= 500;
+}
+
 // Update failures owned by the user's machine, not by us. A full volume is the
 // common one, and neither staging tool gives us a code to match: `ditto` prints
 // an errno-free line and Squirrel forwards NSError text localised to the user's
@@ -54,7 +84,9 @@ export function isEnvironmentUpdateError(
 	}
 	if (
 		lowerMessage.includes("read-only volume") ||
-		lowerMessage.includes("the request timed out")
+		lowerMessage.includes("the request timed out") ||
+		AUTHORIZATION_OSSTATUS.test(message) ||
+		DOWNLOAD_SERVER_ERROR.test(message)
 	) {
 		return true;
 	}

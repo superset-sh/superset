@@ -98,6 +98,18 @@ export function getPathBaseName(path: string): string {
 	return segments[segments.length - 1] || path;
 }
 
+export function getPathDirectory(path: string): string {
+	const normalizedPath = path.replace(/[\\/]+$/, "");
+	const index = Math.max(
+		normalizedPath.lastIndexOf("/"),
+		normalizedPath.lastIndexOf("\\"),
+	);
+	if (index === -1) return "";
+	return index === 0
+		? normalizedPath.slice(0, 1)
+		: normalizedPath.slice(0, index);
+}
+
 export function normalizeComparablePath(path: string): string {
 	return path
 		.replace(/[\\/]+/g, "/")

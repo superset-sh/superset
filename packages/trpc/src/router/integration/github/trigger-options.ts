@@ -2,7 +2,7 @@ import { db } from "@superset/db/client";
 import { githubInstallations, githubRepositories } from "@superset/db/schema";
 import { findProviderIdentity } from "@superset/db/utils";
 import { desc, eq } from "drizzle-orm";
-import { installationOctokit } from "../../../lib/blaxel/clone-token";
+import { installationOctokit } from "../../../lib/sandbox/clone-token";
 import type { TriggerOptionSource } from "../trigger-options";
 
 /** The synced repositories of the organization's installation, newest first. */

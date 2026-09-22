@@ -83,6 +83,11 @@ bun scripts/dev-cli.ts browser list --workspace <id> --json
 bun run cli:dev -- browser open --workspace <id> --url http://localhost:3000
 ```
 
+`browser open` creates a live browser pane in the background and leaves the user
+in their current workspace. Pass `--show` only when you intend to bring the browser
+to the user’s attention by switching to its workspace. `--target new-tab` controls
+where the pane is created; it does not imply `--show`.
+
 To test in-development *skills* in Claude Code, run `bun run dev:skills`: it
 mirrors this worktree's `plugins/superset` into `~/.claude/skills/superset-dev`
 (a renamed copy so it doesn't collide with the installed prod `superset` plugin),

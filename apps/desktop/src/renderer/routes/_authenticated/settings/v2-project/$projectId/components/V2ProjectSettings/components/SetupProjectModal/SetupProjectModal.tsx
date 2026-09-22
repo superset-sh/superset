@@ -47,8 +47,7 @@ export function SetupProjectModal({
 }: SetupProjectModalProps) {
 	const { t } = useLingui();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
-	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
-		useDashboardSidebarState();
+	const { ensureProjectInSidebar } = useDashboardSidebarState();
 
 	const [mode, setMode] = useState<SetupMode>(
 		repoCloneUrl ? "clone" : "import",
@@ -128,11 +127,7 @@ export function SetupProjectModal({
 					message: `Cloned to ${result.repoPath}`,
 				}),
 			);
-			if (result.mainWorkspaceId) {
-				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
-			} else {
-				ensureProjectInSidebar(projectId);
-			}
+			ensureProjectInSidebar(projectId);
 			onChanged?.();
 			reset();
 			onOpenChange(false);
@@ -178,11 +173,7 @@ export function SetupProjectModal({
 					message: `Project set up at ${result.repoPath}`,
 				}),
 			);
-			if (result.mainWorkspaceId) {
-				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
-			} else {
-				ensureProjectInSidebar(projectId);
-			}
+			ensureProjectInSidebar(projectId);
 			onChanged?.();
 			reset();
 			onOpenChange(false);

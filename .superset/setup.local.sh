@@ -40,7 +40,7 @@ local_ensure_env() {
     cp .env.local.example .env
     success "Created .env from .env.local.example"
   else
-    success ".env already exists — leaving as-is"
+    success ".env already exists — keeping its values; keys it lacks are seeded below"
   fi
   return 0
 }
@@ -69,8 +69,10 @@ local_allocate_ports() {
   local base="$SUPERSET_PORT_BASE"
   # DB stack host ports live in the free tail of the 20-port window
   # (app ports use +0..+13).
-  LOCAL_PG_PORT=$((base + 14))
-  LOCAL_NEON_PROXY_PORT=$((base + 15))
+  # +9 and +10 are retired app slots; +14 and +15 belong to the usercontent
+  # and gate workers.
+  LOCAL_PG_PORT=$((base + 9))
+  LOCAL_NEON_PROXY_PORT=$((base + 10))
   LOCAL_REDIS_PORT=$((base + 16))
   LOCAL_SRH_PORT=$((base + 17))
   export LOCAL_PG_PORT LOCAL_NEON_PROXY_PORT
@@ -194,6 +196,8 @@ local_write_env() {
   local CODE_INSPECTOR_PORT=$((BASE + 11))
   local RELAY_PORT=$((BASE + 13))
   local USERCONTENT_DEV_PORT=$((BASE + 14))
+  local SANDBOX_GATE_DEV_PORT=$((BASE + 15))
+  local REALTIME_PORT=$((BASE + 18))
 
   {
     echo ""
@@ -228,6 +232,8 @@ local_write_env() {
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
     write_env_var "RELAY_PORT" "$RELAY_PORT"
     write_env_var "USERCONTENT_DEV_PORT" "$USERCONTENT_DEV_PORT"
+    write_env_var "SANDBOX_GATE_DEV_PORT" "$SANDBOX_GATE_DEV_PORT"
+    write_env_var "REALTIME_PORT" "$REALTIME_PORT"
     echo ""
     echo "# Cross-app URLs (allocated ports)"
     write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
@@ -238,8 +244,14 @@ local_write_env() {
     write_env_var "NEXT_PUBLIC_DESKTOP_URL" "http://localhost:$DESKTOP_VITE_PORT"
     write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "NEXT_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
+    write_env_var "REALTIME_URL" "http://localhost:$REALTIME_PORT"
+    write_env_var "REALTIME_NUDGE_SECRET" "fake-realtime-nudge-secret"
     write_env_var "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "USERCONTENT_URL" "http://frame.usercontent.localhost:$USERCONTENT_DEV_PORT"
+    # A subdomain per workspace and port, as in production: with one shared
+    # origin the desktop's per-URL tickets for a workspace's two ports would
+    # overwrite each other. Chromium resolves *.localhost to loopback itself.
+    write_env_var "SANDBOX_GATE_ORIGIN" "http://*.localhost:$SANDBOX_GATE_DEV_PORT"
     echo ""
     echo "# Streams URLs"
     write_env_var "PORT" "$STREAMS_PORT"
@@ -251,6 +263,12 @@ local_write_env() {
     write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
     write_env_var "EXPO_PUBLIC_POSTHOG_KEY" "phc_local_dev_disabled"
   } >> .env
+
+  assert_unique_ports "$WEB_PORT" "$API_PORT" "$MARKETING_PORT" "$ADMIN_PORT" \
+    "$DOCS_PORT" "$DESKTOP_VITE_PORT" "$DESKTOP_NOTIFICATIONS_PORT" "$STREAMS_PORT" \
+    "$STREAMS_INTERNAL_PORT" "$CODE_INSPECTOR_PORT" "$RELAY_PORT" "$USERCONTENT_DEV_PORT" \
+    "$SANDBOX_GATE_DEV_PORT" "$REALTIME_PORT" "$LOCAL_PG_PORT" "$LOCAL_NEON_PROXY_PORT" \
+    "$LOCAL_REDIS_PORT" "$LOCAL_SRH_PORT" || return 1
 
   cat > "$SUPERSET_SCRIPT_DIR/ports.json" <<PORTSJSON
 {
@@ -264,6 +282,7 @@ local_write_env() {
     { "port": $DESKTOP_NOTIFICATIONS_PORT, "label": "Notifications" },
     { "port": $STREAMS_PORT, "label": "Streams" },
     { "port": $USERCONTENT_DEV_PORT, "label": "Usercontent Worker" },
+    { "port": $SANDBOX_GATE_DEV_PORT, "label": "Gate Worker" },
     { "port": $LOCAL_PG_PORT, "label": "Postgres" },
     { "port": $LOCAL_NEON_PROXY_PORT, "label": "Neon Proxy" },
     { "port": $LOCAL_REDIS_PORT, "label": "Redis" },
@@ -300,6 +319,8 @@ local_setup_main() {
   step_install_dependencies || step_failed "Install dependencies"
   local_allocate_ports || step_failed "Allocate ports"
   local_write_env || step_failed "Write workspace .env"
+  step_seed_env_placeholders || step_failed "Seed .env placeholders"
+  step_validate_env || step_failed "Validate .env"
   local_db_up || step_failed "Start local DB stack"
   local_migrate || step_failed "Apply migrations"
   local_seed_dev_account || step_failed "Seed dev account"

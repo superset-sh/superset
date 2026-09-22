@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import type { GitHubStatus } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import {
@@ -48,6 +50,8 @@ interface ChangesHeaderProps {
 }
 
 function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
+	const { _: translate } = useTranslation();
+
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const utils = electronTrpc.useUtils();
@@ -119,7 +123,7 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 			<PopoverContent align="start" className="w-56 p-0">
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search branches..."
+						placeholder={translate(msg({ message: "Search branches..." }))}
 						value={search}
 						onValueChange={setSearch}
 					/>

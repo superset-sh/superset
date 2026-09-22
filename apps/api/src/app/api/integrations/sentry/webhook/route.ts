@@ -1,5 +1,5 @@
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { connections } from "@superset/db/schema";
 import { disconnectSentry } from "@superset/trpc/integrations/sentry";
 import { and, eq, sql } from "drizzle-orm";
 
@@ -33,13 +33,21 @@ const TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000;
 
 /** The connection an installation uuid belongs to, active or not. */
 async function connectionByInstallation(installationUuid: string) {
-	return db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.provider, "sentry"),
-			sql`${integrationConnections.config}->>'installationUuid' = ${installationUuid}`,
-		),
-		columns: { id: true, organizationId: true, disconnectedAt: true },
-	});
+	const [row] = await db
+		.select({
+			id: connections.id,
+			organizationId: connections.organizationId,
+			disconnectedAt: connections.disconnectedAt,
+		})
+		.from(connections)
+		.where(
+			and(
+				eq(connections.connector, "sentry"),
+				sql`${connections.state}->>'installationUuid' = ${installationUuid}`,
+			),
+		)
+		.limit(1);
+	return row;
 }
 
 export async function POST(request: Request) {

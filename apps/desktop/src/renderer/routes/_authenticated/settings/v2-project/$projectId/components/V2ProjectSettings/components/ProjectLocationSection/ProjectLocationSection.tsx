@@ -45,8 +45,7 @@ export function ProjectLocationSection({
 }: ProjectLocationSectionProps) {
 	const { t } = useLingui();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
-	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
-		useDashboardSidebarState();
+	const { ensureProjectInSidebar } = useDashboardSidebarState();
 
 	const [pendingPath, setPendingPath] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,11 +130,7 @@ export function ProjectLocationSection({
 					message: `Project relocated to ${result.repoPath}`,
 				}),
 			);
-			if (result.mainWorkspaceId) {
-				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
-			} else {
-				ensureProjectInSidebar(projectId);
-			}
+			ensureProjectInSidebar(projectId);
 			onChanged?.();
 			setPendingPath(null);
 		} catch (err) {

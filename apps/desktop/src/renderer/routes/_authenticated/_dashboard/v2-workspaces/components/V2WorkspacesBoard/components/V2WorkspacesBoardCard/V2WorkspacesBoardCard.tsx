@@ -59,7 +59,7 @@ function BoardCardBody({
 	const { t } = useLingui();
 	const isArchived = workspace.archivedAt != null;
 	const isDone = isArchived || workspace.pr?.state === "merged";
-	const isMainWorkspace = workspace.type === "main";
+	const isLocalWorkspace = workspace.type === "local";
 	// Same rule as the list row: the branch line only earns its slot when it
 	// says something the title doesn't.
 	const showBranch =
@@ -101,20 +101,20 @@ function BoardCardBody({
 				<span className="min-w-0 truncate">
 					{workspace.projectName ?? <Trans>Session</Trans>}
 				</span>
-				{isMainWorkspace ? (
+				{isLocalWorkspace ? (
 					<Tooltip delayDuration={300}>
 						<TooltipTrigger asChild>
 							<span className="flex shrink-0 items-center">
 								<CgLaptop
 									className="size-3.5"
 									aria-label={t({
-										message: "Main workspace",
+										message: "Local workspace",
 									})}
 								/>
 							</span>
 						</TooltipTrigger>
 						<TooltipContent side="top">
-							<Trans>Main workspace</Trans>
+							<Trans>Local workspace</Trans>
 						</TooltipContent>
 					</Tooltip>
 				) : null}

@@ -1,4 +1,5 @@
 import { createServer } from "node:net";
+import path from "node:path";
 
 export {
 	MAX_HOST_LOG_BYTES,
@@ -94,4 +95,61 @@ export async function pollHealthCheck(
 		await new Promise((r) => setTimeout(r, HEALTH_POLL_INTERVAL_MS));
 	}
 	return false;
+}
+
+/**
+ * Lookahead asserting the home directory ended a path segment: end of input, or
+ * a separator. Both separators are accepted — `os.homedir()` is `C:\Users\...`
+ * on Windows and paths under it get logged with either — and widening the
+ * lookahead can only ever refuse more matches, never admit one.
+ */
+const PATH_SEGMENT_END = "(?=$|[/\\\\])";
+
+/** So a HOME containing regex metacharacters cannot change what matches. */
+function escapeRegExp(literal: string): string {
+	return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Strip secrets and the user's home directory out of a child's output tail
+ * before it is attached to a crash report.
+ *
+ * The home directory is replaced rather than dropped: a macOS account name is
+ * usually a person's real name, and a host-service tail is mostly worktree
+ * paths beneath it, so one crash report can carry the name hundreds of times.
+ * `~` keeps the path readable — which worktree the child died under is part of
+ * the diagnosis.
+ *
+ * Both substitutions are exact strings we already know, never patterns. The
+ * tail is the only evidence a hard kill (SIGSEGV, OOM) leaves behind, so a
+ * matcher that reached past what it named would redact the diagnosis along
+ * with the name.
+ *
+ * The home directory matches only at a path-segment boundary. `/Users/ada` is a
+ * literal substring of `/Users/adam/project` — a *different* account's path,
+ * outside this home — and rewriting that to `~m/project` would corrupt exactly
+ * what this is here to protect. `/Users/ada-old` left by a migration and a
+ * second account on the machine both produce it.
+ */
+export function redactCrashTail(
+	tail: string,
+	options: { secrets?: readonly string[]; homeDir?: string } = {},
+): string {
+	let redacted = tail;
+	for (const secret of options.secrets ?? []) {
+		// `"".split("")` splits between every character: an empty secret would
+		// leave nothing but separators.
+		if (!secret) continue;
+		redacted = redacted.split(secret).join("[redacted]");
+	}
+	const { homeDir } = options;
+	// A root is its own parent. It also prefixes nearly every absolute path in
+	// the tail, so substituting one would erase the report.
+	if (homeDir && path.dirname(homeDir) !== homeDir) {
+		redacted = redacted.replace(
+			new RegExp(`${escapeRegExp(homeDir)}${PATH_SEGMENT_END}`, "g"),
+			"~",
+		);
+	}
+	return redacted;
 }

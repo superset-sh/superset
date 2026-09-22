@@ -1,5 +1,6 @@
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { resolveHostFilter } from "../../../lib/host-target";
 import { resolveAutomationTarget } from "../resolveAutomationTarget";
 
 export default command({
@@ -14,8 +15,12 @@ export default command({
 			"New host agent instance id or presetId (e.g. claude, codex, superset).",
 		),
 		host: string().desc("New target host id"),
+		local: boolean().desc("Retarget the automation to this machine"),
 		project: string().desc("New v2 project id"),
 		workspace: string().desc("New v2 workspace id"),
+		continueSession: boolean().desc(
+			"Continue the agent session the previous run left (--continue-session) or start a new one each run (--no-continue-session). Requires a pinned workspace",
+		),
 		session: boolean().desc(
 			"Switch to session mode: no project, each run creates a project-less session workspace",
 		),
@@ -44,6 +49,20 @@ export default command({
 			);
 		}
 
+		// Ahead of every mutation: `setEnabled` runs before the update, and a
+		// combination the server will refuse must not flip `enabled` first.
+		if (options.session && options.continueSession) {
+			throw new CLIError(
+				"--continue-session requires a pinned workspace",
+				"Session mode has none; drop --session or pass --no-continue-session",
+			);
+		}
+
+		const targetHostId = resolveHostFilter({
+			host: options.host ?? undefined,
+			local: options.local ?? undefined,
+		});
+
 		if (options.enabled !== undefined) {
 			await ctx.api.automation.setEnabled.mutate({
 				id,
@@ -68,7 +87,7 @@ export default command({
 				organizationId,
 				userJwt: ctx.bearer,
 				api: ctx.api,
-				hostId: options.host ?? undefined,
+				hostId: targetHostId,
 				workspaceId: options.workspace ?? undefined,
 				projectId: options.project ?? undefined,
 			});
@@ -81,7 +100,7 @@ export default command({
 			timezone: options.timezone,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			agent: options.agent,
-			...(options.host !== undefined ? { targetHostId: options.host } : {}),
+			...(targetHostId !== undefined ? { targetHostId } : {}),
 			...(options.project !== undefined
 				? { v2ProjectId: options.project }
 				: {}),
@@ -90,6 +109,9 @@ export default command({
 				: {}),
 			// Session mode clears both the project and any workspace pin.
 			...(options.session ? { v2ProjectId: null, v2WorkspaceId: null } : {}),
+			...(options.continueSession === undefined
+				? {}
+				: { continueAgentSession: options.continueSession }),
 			// --tag replaces the whole set; --clear-tags empties it.
 			...(options.clearTags
 				? { tags: [] }

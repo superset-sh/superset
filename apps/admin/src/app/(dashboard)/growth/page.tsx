@@ -6,9 +6,13 @@ import { ChurnHeatmapTile } from "../components/ChurnHeatmapTile";
 import { HogQLLineTile } from "../components/HogQLLineTile";
 import { LogoRetentionTile } from "../components/LogoRetentionTile";
 import { MrrTile } from "../components/MrrTile";
+import { PaywallFunnelTile } from "../components/PaywallFunnelTile";
 import { PostHogFunnelTile } from "../components/PostHogFunnelTile";
+import { ResetLayoutButton } from "../components/ResetLayoutButton";
 import { SignupToPaidTile } from "../components/SignupToPaidTile";
+import { TileSection } from "../components/TileSection";
 import { TrendSeriesTile } from "../components/TrendSeriesTile";
+import { TileLayoutProvider } from "../providers/TileLayoutProvider";
 import { AiAgentsTile } from "./components/AiAgentsTile";
 import { AiReferralsTile } from "./components/AiReferralsTile";
 import { ChannelMixTile } from "./components/ChannelMixTile";
@@ -16,15 +20,12 @@ import { ContentInventoryTile } from "./components/ContentInventoryTile";
 import { ConversionsTile } from "./components/ConversionsTile";
 import { DiscordTile } from "./components/DiscordTile";
 import { GithubTile } from "./components/GithubTile";
-import { GrowthSection } from "./components/GrowthSection";
 import { LandingSectionsTile } from "./components/LandingSectionsTile";
 import { RangeSwitch } from "./components/RangeSwitch";
-import { ResetLayoutButton } from "./components/ResetLayoutButton";
 import { SearchConsoleTile } from "./components/SearchConsoleTile";
 import { SearchEnginesTile } from "./components/SearchEnginesTile";
 import { TopLandingPagesTile } from "./components/TopLandingPagesTile";
 import { TopReferrersTile } from "./components/TopReferrersTile";
-import { GrowthLayoutProvider } from "./providers/GrowthLayoutProvider";
 import { GrowthRangeProvider } from "./providers/GrowthRangeProvider";
 
 // Every growth signal in one place, ordered the way a visitor moves through
@@ -33,9 +34,12 @@ import { GrowthRangeProvider } from "./providers/GrowthRangeProvider";
 // Discord, Google) that feed the top of that path. Tiles can be dragged and
 // resized within their section; the arrangement is remembered per browser.
 
-const CHART_H = 13;
-const TABLE_H = 18;
-const FUNNEL_H = 16;
+// Sizes are in twelfths of the row width, height included; see the
+// dashboard page for how the heights were chosen.
+const CHART_H = 4;
+const TALL_CHART_H = 5;
+const TABLE_H = 6;
+const FUNNEL_H = 4;
 const FULL_W = 12;
 
 function GrowthPageContent() {
@@ -90,7 +94,7 @@ function GrowthPageContent() {
 				</div>
 			</div>
 
-			<GrowthSection
+			<TileSection
 				section="acquisition"
 				title={<Trans>Acquisition</Trans>}
 				description={
@@ -120,7 +124,7 @@ function GrowthPageContent() {
 				]}
 			/>
 
-			<GrowthSection
+			<TileSection
 				section="content"
 				title={<Trans>Content</Trans>}
 				description={
@@ -144,12 +148,12 @@ function GrowthPageContent() {
 						key: "content-inventory",
 						node: <ContentInventoryTile />,
 						w: FULL_W,
-						h: CHART_H + 3,
+						h: TALL_CHART_H,
 					},
 				]}
 			/>
 
-			<GrowthSection
+			<TileSection
 				section="conversion"
 				title={<Trans>Conversion</Trans>}
 				description={
@@ -162,7 +166,7 @@ function GrowthPageContent() {
 						key: "conversions",
 						node: <ConversionsTile />,
 						w: FULL_W,
-						h: CHART_H + 3,
+						h: TALL_CHART_H,
 					},
 					{
 						key: "activation-funnel",
@@ -187,21 +191,27 @@ function GrowthPageContent() {
 					},
 					{ key: "activated-rate", node: activatedRate, h: CHART_H },
 					{ key: "signup-to-paid", node: <SignupToPaidTile />, h: CHART_H },
+					{
+						key: "paywall-funnel",
+						node: <PaywallFunnelTile />,
+						w: FULL_W,
+						h: FUNNEL_H,
+					},
 				]}
 			/>
 
-			<GrowthSection
+			<TileSection
 				section="retention"
 				title={<Trans>Retention and revenue</Trans>}
 				description={
 					<Trans>Whether the people acquired stay and what they pay.</Trans>
 				}
 				tiles={[
-					{ key: "mrr", node: <MrrTile />, h: CHART_H + 2 },
+					{ key: "mrr", node: <MrrTile />, h: TALL_CHART_H },
 					{
 						key: "logo-retention",
 						node: <LogoRetentionTile />,
-						h: CHART_H + 2,
+						h: TALL_CHART_H,
 					},
 					{
 						key: "churn-heatmap",
@@ -212,7 +222,7 @@ function GrowthPageContent() {
 				]}
 			/>
 
-			<GrowthSection
+			<TileSection
 				section="distribution"
 				title={<Trans>Distribution and community</Trans>}
 				description={
@@ -222,12 +232,12 @@ function GrowthPageContent() {
 					</Trans>
 				}
 				tiles={[
-					{ key: "github", node: <GithubTile />, w: 8, h: TABLE_H + 2 },
-					{ key: "discord", node: <DiscordTile />, w: 4, h: 8 },
+					{ key: "github", node: <GithubTile />, w: 8, h: TABLE_H },
+					{ key: "discord", node: <DiscordTile />, w: 4, h: 3 },
 				]}
 			/>
 
-			<GrowthSection
+			<TileSection
 				section="search"
 				title={<Trans>Search</Trans>}
 				description={
@@ -240,7 +250,7 @@ function GrowthPageContent() {
 						key: "search-console",
 						node: <SearchConsoleTile />,
 						w: FULL_W,
-						h: TABLE_H + 8,
+						h: TABLE_H + 2,
 					},
 				]}
 			/>
@@ -251,9 +261,9 @@ function GrowthPageContent() {
 export default function GrowthPage() {
 	return (
 		<GrowthRangeProvider>
-			<GrowthLayoutProvider>
+			<TileLayoutProvider>
 				<GrowthPageContent />
-			</GrowthLayoutProvider>
+			</TileLayoutProvider>
 		</GrowthRangeProvider>
 	);
 }

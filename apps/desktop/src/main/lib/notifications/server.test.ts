@@ -42,6 +42,11 @@ describe("notifications/server", () => {
 			expect(mapEventType("task_complete")).toBe("Stop");
 		});
 
+		it("should map Vibe hook events", () => {
+			expect(mapEventType("pre_tool")).toBe("Start");
+			expect(mapEventType("post_agent")).toBe("Stop");
+		});
+
 		it("should map 'PostToolUse' to 'Start'", () => {
 			expect(mapEventType("PostToolUse")).toBe("Start");
 		});

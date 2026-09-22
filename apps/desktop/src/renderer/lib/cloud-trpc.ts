@@ -1,11 +1,12 @@
-import { ORGANIZATION_HEADER } from "@superset/shared/constants";
 import type { AppRouter } from "@superset/trpc";
 import { httpBatchStreamLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import { createContext } from "react";
 import { env } from "renderer/env.renderer";
 import superjson from "superjson";
-import { getAuthToken } from "./auth-client";
+import { getCloudRequestHeaders } from "./cloudRequestContext";
+
+export { setCloudOrganizationId } from "./cloudRequestContext";
 
 // Dedicated context — the library default is shared across all
 // createTRPCReact clients; without this, cloudTrpc.Provider shadows
@@ -32,11 +33,13 @@ export const cloudTrpc = createTRPCReact<AppRouter>({
  */
 export const CLOUD_TRPC_ROUTER_ROOTS = [
 	"admin",
+	"agentCredential",
 	"apiKey",
 	"automation",
 	"billing",
 	"chat",
 	"environment",
+	"githubUser",
 	"host",
 	"integration",
 	"organization",
@@ -47,44 +50,15 @@ export const CLOUD_TRPC_ROUTER_ROOTS = [
 	"task",
 	"team",
 	"user",
-	"v2Host",
 	"v2Project",
 ] as const;
-
-/**
- * The organization this window's cloud reads are scoped to.
- *
- * Module state is per-renderer, and every window is its own renderer, so this
- * is per-window by construction — two windows cannot see each other's value.
- * Without it the API falls back to the login session's active organization,
- * which is shared by every window: a window switched to another org would read
- * the first window's data.
- *
- * Null until CollectionsProvider resolves the window's org, which is also the
- * pre-sign-in state; the API then applies its session default as before.
- */
-let cloudOrganizationId: string | null = null;
-
-export function setCloudOrganizationId(organizationId: string | null): void {
-	cloudOrganizationId = organizationId;
-}
 
 export const cloudTrpcClient = cloudTrpc.createClient({
 	links: [
 		httpBatchStreamLink({
 			url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
 			transformer: superjson,
-			// Read per request, never captured: the window's org changes while
-			// this client lives, and a stale capture would pin every later read
-			// to the org the window started on.
-			headers: () => ({
-				...(getAuthToken()
-					? { Authorization: `Bearer ${getAuthToken()}` }
-					: {}),
-				...(cloudOrganizationId
-					? { [ORGANIZATION_HEADER]: cloudOrganizationId }
-					: {}),
-			}),
+			headers: getCloudRequestHeaders,
 		}),
 	],
 });

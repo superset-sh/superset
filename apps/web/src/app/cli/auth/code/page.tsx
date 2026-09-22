@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import Image from "next/image";
 import { env } from "@/env";
-import { i18n } from "@/lib/i18n-server";
+import { initServerI18n } from "@/lib/i18n-server";
 import { CliAuthCodeDisplay } from "./components/CliAuthCodeDisplay";
 
 interface CliAuthCodePageProps {
@@ -11,6 +11,8 @@ interface CliAuthCodePageProps {
 export default async function CliAuthCodePage({
 	searchParams,
 }: CliAuthCodePageProps) {
+	const i18n = await initServerI18n();
+
 	const params = await searchParams;
 	const code = params.code;
 	const state = params.state;

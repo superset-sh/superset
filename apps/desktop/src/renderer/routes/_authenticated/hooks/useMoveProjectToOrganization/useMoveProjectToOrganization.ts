@@ -61,7 +61,8 @@ export interface MoveProjectToOrganizationResult {
  *
  * Order is load-bearing:
  *  1. start the destination host first, so it exists to receive the project;
- *  2. register the project and adopt its worktrees there, keeping every id;
+ *  2. register the project there and carry over its local workspaces and
+ *     worktrees, keeping every id so pane layouts and pins still match;
  *  3. copy the sidebar placement into the destination org;
  *  4. detach from the source host LAST, and only via `project.detach`, which
  *     drops rows without running `git worktree remove` — the ordinary remove
@@ -258,21 +259,23 @@ export function useMoveProjectToOrganization() {
 				// `origin` supplies the repo coordinates directly, so the host
 				// never asks the cloud who owns this project — which org holds it
 				// is decided by which host database has the row.
-				// `mainWorkspaceId` keeps the repo's own checkout on the id it
-				// already had — without it setup mints a new one and every piece
-				// of local state keyed to the old id (pane layout, pins) is
-				// stranded, along with its cloud row.
-				const mainWorkspaceId = projectWorkspaces.find(
-					(workspace) => workspace.type === "main",
-				)?.id;
 				try {
 					await targetClient.project.setup.mutate({
 						projectId,
-						...(mainWorkspaceId ? { mainWorkspaceId } : {}),
 						origin: { repoCloneUrl: project.repoUrl, name: project.name },
 						mode: { kind: "import", repoPath: project.repoPath },
 					});
 					targetSetupSucceeded = true;
+
+					for (const workspace of projectWorkspaces) {
+						if (workspace.type !== "local") continue;
+						await targetClient.workspaces.createLocal.mutate({
+							projectId,
+							id: workspace.id,
+							name: workspace.name,
+							tags: workspace.tags,
+						});
+					}
 
 					// Per-project settings `project.setup` doesn't carry over.
 					if (project.worktreeBaseDir) {
@@ -317,7 +320,7 @@ export function useMoveProjectToOrganization() {
 				}
 
 				// Past this point the project is live in the destination — host
-				// registered, worktrees adopted. What is left is
+				// registered, workspaces carried over. What is left is
 				// tidying the source, so a failure here is not worth unwinding a
 				// good move; it leaves the project listed in both orgs, and the
 				// error has to say that rather than read like the move failed.

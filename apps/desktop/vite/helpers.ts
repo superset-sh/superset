@@ -103,23 +103,29 @@ export function linguiMacroPlugin(): Plugin {
 	};
 }
 
+/**
+ * Every origin the renderer talks to, as both its http(s) and ws(s) form: a
+ * CSP host source with an http scheme does not admit a WebSocket to the
+ * same host, and a bare `ws:` would admit one to any host.
+ */
+function connectSrcOrigins(): string {
+	const origins = [
+		process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
+		process.env.RELAY_URL || "https://relay.superset.sh",
+		process.env.REALTIME_URL || "https://realtime.superset.sh",
+		process.env.SANDBOX_GATE_ORIGIN ||
+			"https://*.sandbox.supersetusercontent.com",
+	];
+	return [
+		...new Set(origins.flatMap((url) => [url, url.replace(/^http/, "ws")])),
+	].join(" ");
+}
+
 export function htmlEnvTransformPlugin(): Plugin {
 	return {
 		name: "html-env-transform",
 		transformIndexHtml(html) {
-			return html
-				.replace(
-					/%NEXT_PUBLIC_API_URL%/g,
-					process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
-				)
-				.replace(
-					/%NEXT_PUBLIC_STREAMS_URL%/g,
-					process.env.NEXT_PUBLIC_STREAMS_URL || "https://streams.superset.sh",
-				)
-				.replace(
-					/%RELAY_URL%/g,
-					process.env.RELAY_URL || "https://relay.superset.sh",
-				);
+			return html.replace(/%CONNECT_SRC_ORIGINS%/g, connectSrcOrigins());
 		},
 	};
 }

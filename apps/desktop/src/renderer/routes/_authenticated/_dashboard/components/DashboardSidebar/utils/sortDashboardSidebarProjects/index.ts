@@ -1,5 +1,4 @@
 export {
-	getProjectActivityTimestamp,
 	getWorkspaceActivityTime,
 	sortDashboardSidebarProjectChildren,
 	sortDashboardSidebarProjects,

@@ -1,16 +1,23 @@
 import { useLingui } from "@lingui/react/macro";
+import { usePageComments } from "@superset/cloud-client";
+import { errorMessage } from "@superset/i18n/errors";
+import { pageCommentUser } from "@superset/shared/page-comments";
+import type { PageLinkClick } from "@superset/shared/page-comments-runtime";
 import {
+	AllCommentsButton,
 	CommentProvider,
-	CommentsSidebar,
+	CommentsPanel,
 	PageCommentsView,
+	PageVersionBanner,
 } from "@superset/ui/page-comments";
+import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
 import { TRPCClientError } from "@trpc/client";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { PageViewerMessage } from "./components/PageViewerMessage";
-import { usePageCommentStore } from "./hooks/usePageCommentStore";
 
 const scrollPositions = new Map<string, number>();
 
@@ -27,6 +34,10 @@ interface PageViewerProps {
 	commentsEnabled: boolean;
 	onCommentsEnabledChange: (enabled: boolean) => void;
 	onResolved?: (page: ResolvedPage) => void;
+	onFramePointerDown?: () => void;
+	onLinkClick?: (click: PageLinkClick) => void;
+	version?: number | null;
+	onExitPreview?: () => void;
 }
 
 export function PageViewer({
@@ -36,15 +47,32 @@ export function PageViewer({
 	commentsEnabled,
 	onCommentsEnabledChange,
 	onResolved,
+	onFramePointerDown,
+	onLinkClick = (click) => {
+		void electronTrpcClient.external.openUrl
+			.mutate(click.url)
+			.catch(console.error);
+	},
+	version,
+	onExitPreview,
 }: PageViewerProps) {
 	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
-	const pull = cloudTrpc.page.pull.useQuery(pageId ? { id: pageId } : { slug });
+	const pull = cloudTrpc.page.pull.useQuery({
+		...(pageId ? { id: pageId } : { slug }),
+		...(version ? { version } : {}),
+	});
 	const resolvedPageId = pageId ?? pull.data?.id;
 	const resolvedTitle = title ?? pull.data?.title ?? slug;
-	const store = usePageCommentStore({
+	const user = useMemo(
+		() => pageCommentUser(session, t({ message: "You" })),
+		[session, t],
+	);
+	const store = usePageComments({
 		pageId: resolvedPageId ?? "",
 		version: pull.data?.version ?? 0,
+		user,
+		onError: (error) => toast.error(errorMessage(error)),
 	});
 	const scrollKey = `${resolvedPageId ?? slug}:${pull.data?.version ?? 0}`;
 
@@ -95,29 +123,41 @@ export function PageViewer({
 		);
 	}
 
+	const previewing =
+		pull.data.servedVersion !== null &&
+		pull.data.version !== pull.data.servedVersion;
+
 	return (
 		<CommentProvider
+			key={resolvedPageId}
 			store={store}
-			enabled={commentsEnabled}
+			enabled={commentsEnabled && !previewing}
 			onEnabledChange={onCommentsEnabledChange}
-			user={{
-				id: session?.user.id ?? "",
-				name: session?.user.name ?? t({ message: "You" }),
-				image: session?.user.image ?? null,
-			}}
+			user={user}
+			pageOwnerId={pull.data?.createdByUserId}
 		>
-			<div className="flex h-full w-full">
-				<div className="min-h-0 min-w-0 flex-1">
-					<PageCommentsView
-						src={pull.data.viewUrl}
-						title={resolvedTitle}
-						initialScrollY={scrollPositions.get(scrollKey) ?? 0}
-						onScrollYChange={(y) => scrollPositions.set(scrollKey, y)}
+			<div className="flex h-full w-full flex-col">
+				{previewing && onExitPreview ? (
+					<PageVersionBanner
+						version={pull.data.version}
+						onExit={onExitPreview}
 					/>
-				</div>
-				{commentsEnabled ? (
-					<CommentsSidebar servedVersion={pull.data?.version ?? null} />
 				) : null}
+				<div className="relative flex min-h-0 w-full flex-1">
+					<div className="min-h-0 min-w-0 flex-1">
+						<PageCommentsView
+							pinchZoomEnabled
+							src={pull.data.viewUrl}
+							title={resolvedTitle}
+							initialScrollY={scrollPositions.get(scrollKey) ?? 0}
+							onScrollYChange={(y) => scrollPositions.set(scrollKey, y)}
+							onFramePointerDown={onFramePointerDown}
+							onLinkClick={onLinkClick}
+						/>
+					</div>
+					<AllCommentsButton />
+					<CommentsPanel servedVersion={pull.data?.version ?? null} />
+				</div>
 			</div>
 		</CommentProvider>
 	);

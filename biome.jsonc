@@ -107,7 +107,10 @@
 			}
 		},
 		{
-			"includes": ["apps/desktop/src/renderer/**"],
+			"includes": [
+				"apps/desktop/src/renderer/**",
+				"!apps/desktop/src/renderer/components/RendererLayout/renderer-safety.test.ts"
+			],
 			"linter": {
 				"rules": {
 					"style": {

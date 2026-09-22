@@ -20,18 +20,46 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { and, count, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 
+import { deletePostHogPerson } from "../../lib/posthog-persons";
 import { adminProcedure } from "../../trpc";
+
+async function deleteCustomerIfNeverCharged(customerId: string) {
+	for await (const charge of stripeClient.charges.list({
+		customer: customerId,
+		limit: 100,
+	})) {
+		if (charge.status === "succeeded") return;
+	}
+	try {
+		await stripeClient.customers.del(customerId);
+	} catch (error) {
+		const alreadyDeleted =
+			error instanceof Error &&
+			"code" in error &&
+			error.code === "resource_missing";
+		if (!alreadyDeleted) throw error;
+	}
+}
 
 export const adminRouter = {
 	/** Hard purge — the terminal step of account deletion (grace period is
-	 * user-facing, see user.deleteAccount). Sole-member orgs go too, with
-	 * their Stripe subscriptions cancelled first since raw org deletes bypass
-	 * beforeDeleteOrganization. Shared orgs get their seat quantity
-	 * decremented here because the member-row FK cascade never fires
-	 * afterRemoveMember. Deliberately silent — no removal or billing emails. */
+	 * user-facing, see user.deleteAccount). The PostHog person (distinct_id =
+	 * user id) is deleted along with their events. Sole-member orgs go too,
+	 * with their Stripe subscriptions cancelled first since raw org deletes
+	 * bypass beforeDeleteOrganization, and their Stripe customer deleted
+	 * unless it was ever successfully charged (refunded charges count): a paid
+	 * customer and all its billing history are kept. Shared orgs keep their
+	 * customer and get their seat quantity decremented here because the
+	 * member-row FK cascade never fires afterRemoveMember. All external
+	 * deletions run before the tombstone transaction and treat an
+	 * already-deleted person or customer as done, so a purge that fails
+	 * partway is safe to re-run. Deliberately silent — no removal or billing
+	 * emails. */
 	deleteUser: adminProcedure
 		.input(z.object({ userId: z.string() }))
 		.mutation(async ({ input }) => {
+			await deletePostHogPerson(input.userId);
+
 			const memberships = await db.query.members.findMany({
 				where: eq(members.userId, input.userId),
 			});
@@ -87,6 +115,7 @@ export const adminRouter = {
 					for (const subscription of activeSubscriptions.data) {
 						await stripeClient.subscriptions.cancel(subscription.id);
 					}
+					await deleteCustomerIfNeverCharged(organization.stripeCustomerId);
 				}
 				await db
 					.delete(organizations)

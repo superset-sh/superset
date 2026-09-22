@@ -34,6 +34,13 @@ describe("healV2UserPreferences", () => {
 		expect(healed.fileLinks).toEqual(DEFAULT_V2_USER_PREFERENCES.fileLinks);
 	});
 
+	it("keeps the user's changes view mode and defaults rows written before it existed", () => {
+		expect(
+			healV2UserPreferences({ changesViewMode: "tree" }).changesViewMode,
+		).toBe("tree");
+		expect(healV2UserPreferences({}).changesViewMode).toBe("folders");
+	});
+
 	it("preserves the terminal presets initialization sentinel", () => {
 		const healed = healV2UserPreferences({
 			terminalPresetsInitialized: true,

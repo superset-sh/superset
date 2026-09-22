@@ -3,7 +3,6 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
 import {
 	ADMIN_INSIGHTS,
 	POSTHOG_PROJECT_URL,
@@ -33,7 +32,7 @@ const STEP_NAME_OVERRIDES: Record<number, MessageDescriptor> = {
 };
 
 export function PostHogFunnelTile() {
-	const { t } = useLingui();
+	const { i18n, t } = useLingui();
 	const insight = useInsightResults("activationFunnel");
 
 	const steps = Array.isArray(insight.data?.result)

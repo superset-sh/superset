@@ -42,6 +42,7 @@ export default defineConfig({
 				"<rootDir>/../../apps/mobile/hooks",
 				"<rootDir>/../../apps/mobile/lib",
 				"<rootDir>/../../packages/ui/src",
+				"<rootDir>/../../packages/panes/src",
 				"<rootDir>/../../packages/chat-ui/src",
 				"<rootDir>/../../packages/shared/src",
 				"<rootDir>/src",

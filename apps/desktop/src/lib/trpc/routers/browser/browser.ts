@@ -3,9 +3,9 @@ import { session } from "electron";
 import {
 	type BrowserOpenRequest,
 	browserManager,
-	type ForwardedKey,
 } from "main/lib/browser/browser-manager";
 import { screenshotManager } from "main/lib/browser/screenshot-manager";
+import type { ForwardedKey } from "shared/hotkey-chord";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -223,6 +223,25 @@ export const createBrowserRouter = () => {
 				});
 			}),
 
+		// The guest WebContents gained focus — Electron's signal for focus
+		// moving between WebContents in the same window, which is what a click
+		// into the page does. Clicking anywhere else in a pane activates it via
+		// a host mousedown handler; this is that same activation for a click
+		// the webview swallowed before it ever reached the host DOM.
+		onPaneFocus: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<void>((emit) => {
+					const handler = () => {
+						emit.next();
+					};
+					browserManager.on(`pane-focus:${input.paneId}`, handler);
+					return () => {
+						browserManager.off(`pane-focus:${input.paneId}`, handler);
+					};
+				});
+			}),
+
 		// Renderer-registered canonical chords the main process should suppress in
 		// the focused guest and forward for replay (override/layout-aware).
 		setForwardableChords: publicProcedure
@@ -248,9 +267,27 @@ export const createBrowserRouter = () => {
 				});
 			}),
 
+		// Keystrokes intercepted while one of the calling window's own iframes
+		// had focus (a page pane, the PDF viewer). Scoped to that window: a
+		// replay must land in the renderer whose frame swallowed the key.
+		onHostKeyForward: publicProcedure.subscription(({ ctx }) => {
+			return observable<ForwardedKey>((emit) => {
+				const wc = ctx.senderWindow?.webContents;
+				if (!wc) return () => {};
+				const channel = `host-key-forward:${wc.id}`;
+				const handler = (key: ForwardedKey) => {
+					emit.next(key);
+				};
+				browserManager.on(channel, handler);
+				return () => {
+					browserManager.off(channel, handler);
+				};
+			});
+		}),
+
 		// External open requests (CLI/agents via the browser bridge). A global
-		// renderer hook consumes these and routes them through the same
-		// openUrl search-param flow the ports sidebar uses.
+		// renderer hook opens them in the background, navigating only when
+		// the caller explicitly requests that the browser be shown.
 		onOpenRequest: publicProcedure.subscription(() => {
 			return observable<BrowserOpenRequest>((emit) => {
 				const handler = (request: BrowserOpenRequest) => {

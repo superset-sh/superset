@@ -1,6 +1,6 @@
 {
 	"name": "@superset/cli",
-	"version": "1.26.0",
+	"version": "1.30.2",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -16,6 +16,7 @@
 	},
 	"dependencies": {
 		"@clack/prompts": "0.10.1",
+		"@modelcontextprotocol/sdk": "1.30.0",
 		"@superset/agent-setup": "workspace:*",
 		"@superset/cli-framework": "workspace:*",
 		"@superset/host-service": "workspace:*",
@@ -29,7 +30,8 @@
 		"ink": "7.0.1",
 		"mime-types": "3.0.2",
 		"react": "19.2.3",
-		"superjson": "2.2.6"
+		"superjson": "2.2.6",
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

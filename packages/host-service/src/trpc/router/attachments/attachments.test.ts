@@ -4,7 +4,7 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostServiceContext } from "../../../types";
 import { attachmentsRouter } from "./attachments";
-import { MAX_ATTACHMENT_BYTES } from "./constants";
+import { MAX_INLINE_ATTACHMENT_BYTES } from "./constants";
 import {
 	getAttachmentDir,
 	getAttachmentFilePath,
@@ -149,7 +149,7 @@ describe("attachmentsRouter.upload", () => {
 		// allocate the decoded buffer. Use a fake oversized base64 string
 		// composed only of valid characters; we only care that it's rejected.
 		const oversizedBase64 = "A".repeat(
-			Math.ceil((MAX_ATTACHMENT_BYTES + 1) * (4 / 3)) + 4,
+			Math.ceil((MAX_INLINE_ATTACHMENT_BYTES + 1) * (4 / 3)) + 4,
 		);
 		await expect(
 			caller.upload({

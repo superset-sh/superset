@@ -1,0 +1,1 @@
+export { useConsumePageOpenLink } from "./useConsumePageOpenLink";

@@ -1,6 +1,6 @@
 import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatRelativeTime } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { cn } from "@superset/ui/utils";
 import {
 	LuArrowUpRight,
@@ -26,6 +26,8 @@ interface PRDetailCardProps {
  * reasonable PR title on two lines.
  */
 export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
+	const { formatRelativeTime } = useFormat();
+
 	const { t } = useLingui();
 	const stateLabel = pr.isDraft
 		? t({ message: "Draft" })

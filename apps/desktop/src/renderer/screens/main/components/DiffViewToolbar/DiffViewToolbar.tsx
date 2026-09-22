@@ -73,8 +73,8 @@ export function DiffViewToolbar({
 		);
 
 	return (
-		<div className="flex shrink-0 items-center justify-between gap-1 border-b border-border/20 px-2 py-1.5">
-			<div className="flex items-center gap-1">
+		<div className="flex shrink-0 flex-wrap items-center justify-between gap-1 border-b border-border/20 px-2 py-1.5">
+			<div className="flex shrink-0 items-center gap-1 whitespace-nowrap">
 				{tree != null && (
 					<button
 						type="button"
@@ -150,7 +150,7 @@ export function DiffViewToolbar({
 					</>
 				)}
 			</div>
-			<div className="flex items-center gap-1">
+			<div className="flex shrink-0 items-center gap-1 whitespace-nowrap">
 				{commentNav != null && commentNav.total > 0 && (
 					<>
 						<div className="flex items-center gap-0.5 rounded-md bg-muted/50 px-1.5 py-0.5">

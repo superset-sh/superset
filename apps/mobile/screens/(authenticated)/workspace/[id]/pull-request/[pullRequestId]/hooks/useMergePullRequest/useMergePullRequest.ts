@@ -4,6 +4,7 @@ import { useLingui } from "@lingui/react/macro";
 import { useMutation } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
@@ -70,7 +71,7 @@ export function useMergePullRequest({
 				t({
 					message: "GitHub refused the merge",
 				}),
-				error.message,
+				errorCopy(error),
 			);
 		},
 	});

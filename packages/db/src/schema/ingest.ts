@@ -35,7 +35,7 @@ export const webhookEvents = ingestSchema.table(
 		eventType: text("event_type"),
 
 		// Processing state
-		status: text().notNull().default("pending"), // pending | processed | failed | skipped
+		status: text().notNull().default("pending"), // pending | processed | failed | skipped | abandoned
 		processedAt: timestamp("processed_at"),
 		error: text(),
 		retryCount: integer("retry_count").notNull().default(0),

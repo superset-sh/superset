@@ -3,13 +3,10 @@ import { cn } from "@superset/ui/utils";
 const SIDEBAR_HEADER_TAB_ACTIVE_CLASS_NAME = "text-foreground bg-border/30";
 const SIDEBAR_HEADER_TAB_INACTIVE_CLASS_NAME =
 	"text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20";
-// Inverted scheme: the shaded block marks the inactive tabs while the active
-// tab blends into the panel below it. Every state keeps a 1px border on all
-// sides (transparent where hidden) so tabs don't shift when switching.
 const SIDEBAR_HEADER_TAB_ACTIVE_INVERTED_CLASS_NAME =
-	"text-foreground border border-border border-b-transparent";
+	"rounded-t-md bg-background text-foreground border border-border/70 border-b-transparent";
 const SIDEBAR_HEADER_TAB_INACTIVE_INVERTED_CLASS_NAME =
-	"bg-border/30 text-muted-foreground/70 hover:text-muted-foreground hover:bg-border/20 border border-transparent border-b-border";
+	"rounded-t-md text-muted-foreground/70 hover:text-muted-foreground hover:bg-muted/40 border border-transparent border-b-border";
 
 export function getSidebarHeaderTabButtonClassName({
 	isActive,

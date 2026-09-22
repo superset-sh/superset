@@ -1,6 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -19,6 +20,8 @@ import { InsightTileFrame } from "../InsightTileFrame";
 // sweeps excluded). Net flow lives on the cash card — tranche wires would
 // dwarf burn on this scale. Current month is partial and rendered muted.
 export function NetBurnTile() {
+	const { formatNumber } = useFormat();
+
 	const { t } = useLingui();
 	const trpc = useTRPC();
 	const chartConfig = {
@@ -53,6 +56,7 @@ export function NetBurnTile() {
 					"Outflows less Stripe payouts per month (treasury sweeps excluded); current month partial",
 			})}
 			lastRefresh={query.data?.available ? query.data.asOf : null}
+			fill
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={months.length === 0}
@@ -64,7 +68,10 @@ export function NetBurnTile() {
 					: undefined
 			}
 		>
-			<ChartContainer config={chartConfig} className="h-[240px] w-full">
+			<ChartContainer
+				config={chartConfig}
+				className="aspect-auto h-full min-h-[220px] w-full"
+			>
 				<BarChart data={months}>
 					<XAxis
 						dataKey="month"
@@ -80,7 +87,7 @@ export function NetBurnTile() {
 						// Clamp at zero: a cash-flow-positive month is a rounding
 						// artifact of the partial current month, not a scale we need.
 						domain={[0, "auto"]}
-						tickFormatter={(v: number) => `$${v.toLocaleString()}`}
+						tickFormatter={(v: number) => `$${formatNumber(v, undefined)}`}
 					/>
 					<ChartTooltip content={<ChartTooltipContent />} />
 					<Bar dataKey="netBurnUsd" radius={3}>

@@ -1,18 +1,50 @@
 import { EventEmitter } from "node:events";
 import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
+import {
+	getSubagentHarness,
+	isTrustedTranscriptPath,
+	readSubagentTranscript,
+	type SubagentTranscriptHint,
+} from "./subagent-harnesses";
+import type { SubagentTranscript } from "./subagent-transcript";
 import type {
 	TerminalAgentBinding,
 	TerminalAgentEndReason,
 	TerminalAgentId,
+	TerminalSubagent,
 } from "./types";
 
 interface RecordEventInput {
+	launchId?: string;
+	account?: TerminalAgentBinding["account"];
 	terminalId: string;
 	workspaceId: string;
 	eventType: string;
 	agentId?: TerminalAgentId;
 	agentSessionId?: string;
 	definitionId?: AgentDefinitionId;
+	occurredAt: number;
+}
+
+interface RecordSubagentEventInput {
+	terminalId: string;
+	workspaceId: string;
+	/** Raw hook event name (`SubagentStart`, `PostToolUse`, `SubagentStop`, …). */
+	eventType: string;
+	subagentId: string;
+	agentType?: string;
+	transcriptPath?: string;
+	occurredAt: number;
+}
+
+interface RecordSubagentHookInput {
+	terminalId: string;
+	workspaceId: string;
+	/** Raw hook event name from the child. */
+	eventType: string;
+	subagentId: string;
+	agentType?: string;
+	hint: SubagentTranscriptHint;
 	occurredAt: number;
 }
 
@@ -36,6 +68,25 @@ const END_EVENT_REASONS = new Map<string, TerminalAgentEndReason>([
  * upsert would erase `endedAt`/`endReason` and destroy the resume candidate.
  */
 const END_STRAGGLER_WINDOW_MS = 30_000;
+
+/**
+ * A subagent whose SubagentStop never arrived (parent interrupted, hook
+ * dropped) must not sit in the roster forever. Live children re-assert on
+ * every tool call, so anything quiet this long is gone.
+ */
+const SUBAGENT_STALE_MS = 10 * 60_000;
+
+/**
+ * Finished children stay addressable (their transcript pane may still be
+ * open) for this long after their stop, then drop out of memory.
+ */
+const SUBAGENT_ENDED_RETENTION_MS = 60 * 60_000;
+
+/**
+ * The hook endpoint is unauthenticated, so bound what one terminal's roster
+ * can hold; the oldest entry makes room for a new child.
+ */
+const MAX_SUBAGENTS_PER_TERMINAL = 64;
 
 export interface TerminalAgentBindingPersistence {
 	load(): TerminalAgentBinding[];
@@ -82,6 +133,10 @@ export interface TerminalAgentBindingPersistence {
  */
 export class TerminalAgentStore extends EventEmitter {
 	private readonly byTerminal = new Map<string, TerminalAgentBinding>();
+	private readonly subagentsByTerminal = new Map<
+		string,
+		Map<string, TerminalSubagent>
+	>();
 	private readonly persistence: TerminalAgentBindingPersistence | undefined;
 
 	constructor(persistence?: TerminalAgentBindingPersistence) {
@@ -137,7 +192,11 @@ export class TerminalAgentStore extends EventEmitter {
 		// a swap event that omits agentSessionId/definitionId would inherit the
 		// prior agent's values and corrupt definitionId-filtered reads.
 		const prior =
-			existing !== undefined && existing.agentId === nextAgentId
+			existing !== undefined &&
+			existing.agentId === nextAgentId &&
+			(!input.launchId ||
+				!existing.launchId ||
+				input.launchId === existing.launchId)
 				? existing
 				: undefined;
 
@@ -145,6 +204,11 @@ export class TerminalAgentStore extends EventEmitter {
 			prior !== undefined &&
 			agentSessionId !== undefined &&
 			prior.agentSessionId !== agentSessionId;
+
+		// A new agent or session in the terminal orphans the old roster.
+		if (prior === undefined || sessionChanged) {
+			this.subagentsByTerminal.delete(terminalId);
+		}
 
 		// "Attached" is a session-liveness signal, not lifecycle progress. The
 		// wrapper's launch report is delayed and can land after the session
@@ -162,6 +226,12 @@ export class TerminalAgentStore extends EventEmitter {
 			agentId: nextAgentId,
 			agentSessionId: agentSessionId ?? prior?.agentSessionId,
 			definitionId: definitionId ?? prior?.definitionId,
+			launchId: input.launchId ?? prior?.launchId,
+			account:
+				input.account ??
+				(prior && (!sessionChanged || prior.agentSessionId === undefined)
+					? prior.account
+					: undefined),
 			startedAt:
 				prior !== undefined && !sessionChanged ? prior.startedAt : occurredAt,
 			lastEventAt: occurredAt,
@@ -171,6 +241,140 @@ export class TerminalAgentStore extends EventEmitter {
 		this.byTerminal.set(terminalId, next);
 		this.persistence?.upsert(next);
 		this.emit("change", workspaceId);
+	}
+
+	/**
+	 * A hook fired inside a subagent of the terminal's agent. Any event keeps
+	 * the child live (lost SubagentStarts self-heal on its next tool call);
+	 * a stop drops it. Never touches the parent binding's lifecycle state.
+	 */
+	recordSubagentEvent(input: RecordSubagentEventInput): void {
+		const {
+			terminalId,
+			workspaceId,
+			eventType,
+			subagentId,
+			agentType,
+			transcriptPath,
+		} = input;
+		const occurredAt = input.occurredAt;
+		const roster = this.subagentsByTerminal.get(terminalId);
+		const existing = roster?.get(subagentId);
+
+		const harness = getSubagentHarness(
+			this.byTerminal.get(terminalId)?.agentId,
+		);
+		if (harness.isStopEvent(eventType)) {
+			if (!existing || existing.endedAt !== undefined) return;
+			roster?.set(subagentId, {
+				...existing,
+				...(transcriptPath ? { transcriptPath } : {}),
+				lastEventAt: occurredAt,
+				endedAt: occurredAt,
+			});
+			this.emit("change", workspaceId);
+			return;
+		}
+
+		// A child can only run under a live parent; a straggler after the
+		// terminal ended must not recreate a roster for it.
+		if (!this.byTerminal.has(terminalId)) return;
+
+		const nextType = agentType ?? existing?.agentType;
+		const nextPath = transcriptPath ?? existing?.transcriptPath;
+		const next: TerminalSubagent = {
+			id: subagentId,
+			...(nextType ? { agentType: nextType } : {}),
+			...(nextPath ? { transcriptPath: nextPath } : {}),
+			// A stopped child that speaks again (Codex send_input) is live again.
+			startedAt:
+				existing && existing.endedAt === undefined
+					? existing.startedAt
+					: occurredAt,
+			lastEventAt: occurredAt,
+		};
+		if (roster) {
+			roster.set(subagentId, next);
+			while (roster.size > MAX_SUBAGENTS_PER_TERMINAL) {
+				const oldest = roster.keys().next().value;
+				if (oldest === undefined) break;
+				roster.delete(oldest);
+			}
+		} else {
+			this.subagentsByTerminal.set(terminalId, new Map([[subagentId, next]]));
+		}
+		this.emit("change", workspaceId);
+	}
+
+	/**
+	 * A hook event that fired inside a subagent, straight from the hook
+	 * endpoint. The parent binding's harness decides whether the event
+	 * belongs to the current session and where the child's transcript
+	 * lives; the path is kept only when it passes the trust check, since the
+	 * endpoint is unauthenticated. Returns false when the event was dropped.
+	 */
+	recordSubagentHook(input: RecordSubagentHookInput): boolean {
+		const parent = this.byTerminal.get(input.terminalId);
+		const harness = getSubagentHarness(parent?.agentId);
+		if (
+			parent?.agentSessionId &&
+			!harness.belongsToParentSession(input.hint, parent.agentSessionId)
+		) {
+			return false;
+		}
+		const resolvedPath = harness.resolveTranscriptPath(input.hint);
+		const transcriptPath =
+			resolvedPath && isTrustedTranscriptPath(resolvedPath)
+				? resolvedPath
+				: undefined;
+		this.recordSubagentEvent({
+			terminalId: input.terminalId,
+			workspaceId: input.workspaceId,
+			eventType: input.eventType,
+			subagentId: input.subagentId,
+			...(input.agentType ? { agentType: input.agentType } : {}),
+			...(transcriptPath ? { transcriptPath } : {}),
+			occurredAt: input.occurredAt,
+		});
+		return true;
+	}
+
+	/**
+	 * A child's transcript for the pane: the roster entry plus its parsed
+	 * transcript, or null when the child is unknown. `transcript` is null
+	 * while the child has not flushed its first record.
+	 */
+	getSubagentTranscript(
+		terminalId: string,
+		subagentId: string,
+	): {
+		subagent: TerminalSubagent;
+		transcript: SubagentTranscript | null;
+	} | null {
+		const subagent = this.getSubagent(terminalId, subagentId);
+		if (!subagent) return null;
+		const harness = getSubagentHarness(
+			this.byTerminal.get(terminalId)?.agentId,
+		);
+		return {
+			subagent,
+			transcript: subagent.transcriptPath
+				? readSubagentTranscript(harness, subagent.transcriptPath)
+				: null,
+		};
+	}
+
+	/**
+	 * A child by id, live or recently ended, for the subagent transcript pane.
+	 * Only paths the roster recorded are ever read, so the renderer cannot
+	 * point the host at an arbitrary file.
+	 */
+	getSubagent(
+		terminalId: string,
+		subagentId: string,
+	): TerminalSubagent | undefined {
+		this.pruneSubagents(terminalId);
+		return this.subagentsByTerminal.get(terminalId)?.get(subagentId);
 	}
 
 	markTerminalExited(terminalId: string): void {
@@ -210,7 +414,8 @@ export class TerminalAgentStore extends EventEmitter {
 	}
 
 	get(terminalId: string): TerminalAgentBinding | undefined {
-		return this.byTerminal.get(terminalId);
+		const binding = this.byTerminal.get(terminalId);
+		return binding && this.withRuntimeState(binding);
 	}
 
 	listByWorkspace(
@@ -218,7 +423,9 @@ export class TerminalAgentStore extends EventEmitter {
 		filter?: TerminalAgentBindingListFilter,
 	): TerminalAgentBinding[] {
 		if (this.persistence?.listLiveByWorkspace) {
-			return this.persistence.listLiveByWorkspace(workspaceId, filter);
+			return this.persistence
+				.listLiveByWorkspace(workspaceId, filter)
+				.map((binding) => this.withRuntimeState(binding));
 		}
 		const out: TerminalAgentBinding[] = [];
 		for (const binding of this.byTerminal.values()) {
@@ -226,16 +433,71 @@ export class TerminalAgentStore extends EventEmitter {
 			if (filter?.agentId && binding.agentId !== filter.agentId) continue;
 			if (filter?.definitionId && binding.definitionId !== filter.definitionId)
 				continue;
-			out.push(binding);
+			out.push(this.withRuntimeState(binding));
 		}
 		return out;
 	}
 
 	list(): TerminalAgentBinding[] {
 		if (this.persistence?.listLive) {
-			return this.persistence.listLive();
+			return this.persistence
+				.listLive()
+				.map((binding) => this.withRuntimeState(binding));
 		}
-		return [...this.byTerminal.values()];
+		return [...this.byTerminal.values()].map((binding) =>
+			this.withRuntimeState(binding),
+		);
+	}
+
+	/**
+	 * Attach the terminal's live subagents to a binding read. Stale entries
+	 * are dropped here rather than on a timer so the store stays passive.
+	 */
+	private withRuntimeState(
+		binding: TerminalAgentBinding,
+	): TerminalAgentBinding {
+		const memory = this.byTerminal.get(binding.terminalId);
+		if (
+			memory?.agentId === binding.agentId &&
+			memory.agentSessionId === binding.agentSessionId
+		) {
+			binding = {
+				...binding,
+				account: memory.account,
+				launchId: memory.launchId,
+			};
+		}
+		const roster = this.pruneSubagents(binding.terminalId);
+		if (!roster) return binding;
+		const live = [...roster.values()]
+			.filter((subagent) => subagent.endedAt === undefined)
+			.sort((a, b) => a.startedAt - b.startedAt);
+		return live.length > 0 ? { ...binding, subagents: live } : binding;
+	}
+
+	/**
+	 * Drop children that went quiet without a stop, and ended children past
+	 * their retention. Runs on read rather than on a timer so the store stays
+	 * passive.
+	 */
+	private pruneSubagents(
+		terminalId: string,
+	): Map<string, TerminalSubagent> | undefined {
+		const roster = this.subagentsByTerminal.get(terminalId);
+		if (!roster) return undefined;
+		const now = Date.now();
+		for (const [id, subagent] of roster) {
+			const expired =
+				subagent.endedAt === undefined
+					? subagent.lastEventAt < now - SUBAGENT_STALE_MS
+					: subagent.endedAt < now - SUBAGENT_ENDED_RETENTION_MS;
+			if (expired) roster.delete(id);
+		}
+		if (roster.size === 0) {
+			this.subagentsByTerminal.delete(terminalId);
+			return undefined;
+		}
+		return roster;
 	}
 
 	findActive(
@@ -275,6 +537,7 @@ export class TerminalAgentStore extends EventEmitter {
 	): void {
 		const existing = this.byTerminal.get(terminalId);
 		this.byTerminal.delete(terminalId);
+		this.subagentsByTerminal.delete(terminalId);
 
 		let marked: { workspaceId: string } | undefined;
 		if (this.persistence?.markEnded) {

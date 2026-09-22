@@ -12,6 +12,7 @@ import {
 	markTerminalSessionReady,
 	rejectTerminalSessionReady,
 } from "renderer/lib/terminal/session-readiness";
+import { installTerminalCopyHandler } from "renderer/lib/terminal/terminal-copy";
 import { installTerminalKeyEventHandler } from "renderer/lib/terminal/terminal-key-event-handler";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -20,12 +21,9 @@ import { isTerminalAttachCanceledMessage } from "../attach-cancel";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { isCommandEchoed, sanitizeForTitle } from "../commandBuffer";
 import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
-import {
-	setupClickToMoveCursor,
-	setupCopyHandler,
-	setupFocusListener,
-} from "../helpers";
+import { setupClickToMoveCursor, setupFocusListener } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
+import { getShellExitedFailure } from "../shell-exited-failure";
 import { coldRestoreState, pendingDetaches } from "../state";
 import type {
 	CreateOrAttachMutate,
@@ -33,6 +31,7 @@ import type {
 	TerminalCancelCreateOrAttachMutate,
 	TerminalClearScrollbackMutate,
 	TerminalResizeMutate,
+	TerminalStreamEvent,
 	TerminalWriteMutate,
 } from "../types";
 import { scrollToBottom } from "../utils";
@@ -92,6 +91,23 @@ function waitForAttachClear(paneId: string, waiter: () => void): () => void {
 		}
 	};
 }
+
+/**
+ * A createOrAttach succeeded, so the pane has a backend session: start the
+ * cache-owned stream subscription and open the gate so events reach the
+ * component's registered handler.
+ *
+ * The first attach that succeeds owns this, whether that is the initial attach
+ * or a restart after the initial shell exited before it was ready — a restarted
+ * shell whose stream never started writes into nothing. Every step is
+ * idempotent, so the attaches after it re-run this for free.
+ */
+function openPaneStream(paneId: string): void {
+	v1TerminalCache.startStream(paneId);
+	v1TerminalCache.setStreamReady(paneId);
+	markTerminalSessionReady(paneId);
+}
+
 export interface UseTerminalLifecycleOptions {
 	paneId: string;
 	tabIdRef: MutableRefObject<string>;
@@ -127,6 +143,7 @@ export interface UseTerminalLifecycleOptions {
 	pendingInitialStateRef: MutableRefObject<CreateOrAttachResult | null>;
 	maybeApplyInitialState: () => void;
 	flushPendingEvents: () => void;
+	pendingEventsRef: MutableRefObject<TerminalStreamEvent[]>;
 	resetModes: () => void;
 	isAlternateScreenRef: MutableRefObject<boolean>;
 	setPaneNameRef: MutableRefObject<(paneId: string, name: string) => void>;
@@ -188,6 +205,7 @@ export function useTerminalLifecycle({
 	pendingInitialStateRef,
 	maybeApplyInitialState,
 	flushPendingEvents,
+	pendingEventsRef,
 	resetModes,
 	isAlternateScreenRef,
 	setPaneNameRef,
@@ -203,6 +221,23 @@ export function useTerminalLifecycle({
 	unregisterPasteCallbackRef,
 	defaultRestartCommandRef,
 }: UseTerminalLifecycleOptions): UseTerminalLifecycleReturn {
+	// The shell ran and died before it was ready. Show it exactly like a
+	// process that exits a moment after attaching: its output, then the exit
+	// line and restart prompt. Not a connection error, so no reconnect loop.
+	const showShellExitedFailure = (
+		failure: NonNullable<ReturnType<typeof getShellExitedFailure>>,
+	) => {
+		pendingEventsRef.current.push(
+			{
+				type: "data",
+				data: `${failure.outputHead}\r\n\x1b[90m[Terminal] ${failure.message}\x1b[0m`,
+			},
+			{ type: "exit", exitCode: failure.exitCode, signal: failure.signal },
+		);
+		isStreamReadyRef.current = true;
+		flushPendingEvents();
+	};
+
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<
 		(options?: { command?: string; forceRestart?: boolean }) => Promise<void>
@@ -392,6 +427,7 @@ export function useTerminalLifecycle({
 									return;
 								}
 								setConnectionError(null);
+								openPaneStream(paneId);
 								syncBackendDimensions();
 								pendingInitialStateRef.current = result;
 								maybeApplyInitialState();
@@ -425,6 +461,12 @@ export function useTerminalLifecycle({
 									return;
 								}
 								if (isTerminalAttachCanceledMessage(error.message)) {
+									resolve();
+									return;
+								}
+								const shellExited = getShellExitedFailure(error);
+								if (shellExited) {
+									showShellExitedFailure(shellExited);
 									resolve();
 									return;
 								}
@@ -599,12 +641,7 @@ export function useTerminalLifecycle({
 									setConnectionError(null);
 									clearPaneInitialDataRef.current(paneId);
 
-									// Start the cache-owned stream subscription now that the
-									// backend session exists, and mark it ready so events
-									// flow through the component's registered handler.
-									v1TerminalCache.startStream(paneId);
-									v1TerminalCache.setStreamReady(paneId);
-									markTerminalSessionReady(paneId);
+									openPaneStream(paneId);
 									syncBackendDimensions();
 
 									const storedColdRestore = coldRestoreState.get(paneId);
@@ -684,6 +721,15 @@ export function useTerminalLifecycle({
 										isStreamReadyRef.current = false;
 										setExitStatus("killed");
 										setConnectionError(null);
+										return;
+									}
+									const shellExited = getShellExitedFailure(error);
+									if (shellExited) {
+										rejectTerminalSessionReady(
+											paneId,
+											new Error(shellExited.message),
+										);
+										showShellExitedFailure(shellExited);
 										return;
 									}
 									console.error("[Terminal] Failed to create/attach:", error);
@@ -783,7 +829,7 @@ export function useTerminalLifecycle({
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
 		);
-		const cleanupCopy = setupCopyHandler(xterm);
+		const cleanupCopy = installTerminalCopyHandler(xterm);
 
 		const isPaneDestroyedInStore = () =>
 			isPaneDestroyed(useTabsStore.getState().panes, paneId);

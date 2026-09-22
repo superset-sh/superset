@@ -34,8 +34,16 @@ export function DashboardSidebarWorkspaceChips({
 	const portGroup = useDashboardSidebarWorkspacePorts(workspaceId);
 	const ports = inlineWorkspacePortsEnabled ? (portGroup?.ports ?? []) : [];
 	const runningAgents = useDashboardSidebarWorkspaceRunningAgents(workspaceId);
+	// One agent alone is what the pane already shows; the chip earns its
+	// place once there is more than one, or once the one has subagents
+	// running underneath it that the sidebar would otherwise never surface.
+	const hasSubagents = runningAgents.some(
+		(agent) => agent.subagents.length > 0,
+	);
 	const agents =
-		workspaceAgentsRowEnabled && runningAgents.length > 1 ? runningAgents : [];
+		workspaceAgentsRowEnabled && (runningAgents.length > 1 || hasSubagents)
+			? runningAgents
+			: [];
 
 	if (ports.length === 0 && agents.length === 0) {
 		return null;

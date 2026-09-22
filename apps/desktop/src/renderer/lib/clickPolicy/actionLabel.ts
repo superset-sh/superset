@@ -10,13 +10,9 @@ const FILE_LABELS: Record<LinkAction, MessageDescriptor> = {
 };
 
 const URL_LABELS: Record<LinkAction, MessageDescriptor> = {
-	pane: msg({ message: "Open in in-app browser" }),
-	newTab: msg({
-		message: "Open in new browser tab",
-	}),
-	external: msg({
-		message: "Open in default browser",
-	}),
+	pane: msg({ message: "Open in split pane" }),
+	newTab: msg({ message: "Open in new tab" }),
+	external: msg({ message: "Open in external browser" }),
 };
 
 export function actionLabel(action: LinkAction, surface: Surface): string {
@@ -40,11 +36,9 @@ const SHORT_FILE_LABELS: Record<LinkAction, MessageDescriptor> = {
 };
 
 const SHORT_URL_LABELS: Record<LinkAction, MessageDescriptor> = {
-	pane: msg({ message: "in-app browser" }),
+	pane: msg({ message: "split pane" }),
 	newTab: msg({ message: "new tab" }),
-	external: msg({
-		message: "default browser",
-	}),
+	external: msg({ message: "external browser" }),
 };
 
 export function shortActionLabel(action: LinkAction, surface: Surface): string {

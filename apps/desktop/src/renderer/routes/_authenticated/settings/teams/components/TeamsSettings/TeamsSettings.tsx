@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatDate as formatLocaleDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { Skeleton } from "@superset/ui/skeleton";
 import {
 	Table,
@@ -18,6 +18,8 @@ import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { CreateTeamButton } from "./components/CreateTeamButton";
 
 export function TeamsSettings() {
+	const { formatDate: formatLocaleDate } = useFormat();
+
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const navigate = useNavigate();

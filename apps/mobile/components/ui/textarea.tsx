@@ -1,4 +1,5 @@
 import { Platform, TextInput } from "react-native";
+import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
 function Textarea({
@@ -8,6 +9,9 @@ function Textarea({
 	placeholderTextColorClassName,
 	...props
 }: React.ComponentProps<typeof TextInput> & React.RefAttributes<TextInput>) {
+	// The caret and selection would otherwise take the app's accent, which is
+	// dark for the system surfaces we present and would vanish in here.
+	const theme = useTheme();
 	return (
 		<TextInput
 			className={cn(
@@ -25,6 +29,7 @@ function Textarea({
 			multiline={multiline}
 			numberOfLines={numberOfLines}
 			textAlignVertical="top"
+			selectionColor={theme.foreground}
 			{...props}
 		/>
 	);

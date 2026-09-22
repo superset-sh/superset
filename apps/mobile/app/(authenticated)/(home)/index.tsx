@@ -1,4 +1,4 @@
-import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useSession } from "@/lib/auth/client";
 import { HomeScreen } from "@/screens/(authenticated)/(home)/home";
 import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
@@ -8,7 +8,7 @@ import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWor
 
 export default function HomeIndex() {
 	const { data: session } = useSession();
-	const hosts = useOrgHostsQuery();
+	const { query: hosts } = useOrgHosts();
 	const scope = useWorkspaceScope();
 	const hasHydrated = useWorkspacesFilterStore((store) => store.hasHydrated);
 

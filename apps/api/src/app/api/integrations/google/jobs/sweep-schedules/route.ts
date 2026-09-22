@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 			const window = sweepWindow(plan, now);
 			let scheduled = 0;
 			for (const calendarId of Object.keys(
-				googleConfigOf(connection.config).calendars ?? {},
+				googleConfigOf(connection.state).calendars ?? {},
 			)) {
 				if (!plan.allows(calendarId)) continue;
 				const instances = await listUpcomingInstances(

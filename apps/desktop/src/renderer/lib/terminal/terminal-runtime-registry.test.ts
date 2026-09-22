@@ -485,3 +485,100 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 		}
 	});
 });
+
+describe("terminal replacement history", () => {
+	test("distinguishes session death from transport termination and bounds restored history", () => {
+		const serialize = mock(() => "previous output");
+		const previous = {
+			transport: { sessionEnded: false, _terminated: true },
+			runtime: { serializeAddon: { serialize } },
+		};
+		const replacement: { initialBuffer?: string } = {};
+		const internals = terminalRuntimeRegistry as unknown as {
+			getEntry: () => typeof previous;
+			getOrCreateEntry: () => typeof replacement;
+		};
+		const getEntry = spyOn(internals, "getEntry").mockReturnValue(previous);
+		const getOrCreate = spyOn(internals, "getOrCreateEntry").mockReturnValue(
+			replacement,
+		);
+		try {
+			expect(terminalRuntimeRegistry.isSessionEnded("old", "pane")).toBe(false);
+			terminalRuntimeRegistry.prepareReplacement(
+				"old",
+				"pane",
+				"New shell",
+			)("new");
+			expect(getOrCreate).not.toHaveBeenCalled();
+			previous.transport.sessionEnded = true;
+			expect(terminalRuntimeRegistry.isSessionEnded("old", "pane")).toBe(true);
+			const apply = terminalRuntimeRegistry.prepareReplacement(
+				"old",
+				"pane",
+				"New shell",
+			);
+			expect(getOrCreate).not.toHaveBeenCalled();
+			getEntry.mockReturnValue(undefined as unknown as typeof previous);
+			apply("new");
+			expect(serialize).toHaveBeenCalledWith({
+				scrollback: 1000,
+				excludeAltBuffer: true,
+				excludeModes: true,
+			});
+			expect(getOrCreate).toHaveBeenCalledWith("new", "pane");
+			expect(replacement.initialBuffer).toBe(
+				"previous output\r\n\x1b[0mNew shell\r\n",
+			);
+		} finally {
+			getEntry.mockRestore();
+			getOrCreate.mockRestore();
+		}
+	});
+});
+
+describe("terminalRuntimeRegistry copy selection", () => {
+	test("uses the same copy policy without treating selected spaces as no selection", () => {
+		const entries = (
+			terminalRuntimeRegistry as unknown as { entries: Map<string, unknown> }
+		).entries;
+		const terminalId = "copy-policy-test";
+		const key = `${terminalId}\u0000${terminalId}`;
+		let selection = "foo   \r\nbar\u3000  ";
+		entries.set(key, {
+			terminalId,
+			instanceId: terminalId,
+			runtime: {
+				terminal: {
+					getSelection: () => selection,
+					getSelectionPosition: () => ({
+						start: { x: 0, y: 0 },
+						end: { x: 9, y: 1 },
+					}),
+					_core: { _selectionService: { _activeSelectionMode: 0 } },
+					buffer: {
+						active: {
+							getLine: () => ({
+								translateToString: () => "",
+								isWrapped: false,
+							}),
+						},
+					},
+				},
+			},
+		});
+		try {
+			expect(terminalRuntimeRegistry.getSelection(terminalId, terminalId)).toBe(
+				"foo\r\nbar\u3000",
+			);
+			selection = "   ";
+			expect(terminalRuntimeRegistry.getSelection(terminalId, terminalId)).toBe(
+				"   ",
+			);
+		} finally {
+			entries.delete(key);
+		}
+		expect(terminalRuntimeRegistry.getSelection(terminalId, terminalId)).toBe(
+			"",
+		);
+	});
+});

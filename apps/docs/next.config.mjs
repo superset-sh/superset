@@ -37,6 +37,11 @@ const config = {
 			},
 			// Old top-level entry points from the previous docs structure (were 404ing).
 			{
+				source: "/guides/workspace-management",
+				destination: "/workspaces",
+				permanent: true,
+			},
+			{
 				source: "/getting-started",
 				destination: "/overview",
 				permanent: true,

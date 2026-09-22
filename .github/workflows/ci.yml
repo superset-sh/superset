@@ -147,6 +147,7 @@ jobs:
       - name: Test
         env:
           RELAY_URL: ${{ secrets.RELAY_URL }}
+          REALTIME_URL: ${{ secrets.REALTIME_URL }}
         run: bun run test
 
       # The terminal launch-protection suites (src/terminal/*.node-test.ts)
@@ -227,6 +228,7 @@ jobs:
       - name: Build Desktop
         env:
           RELAY_URL: ${{ secrets.RELAY_URL }}
+          REALTIME_URL: ${{ secrets.REALTIME_URL }}
         run: bun turbo run build --filter=@superset/desktop
 
   build-cli:

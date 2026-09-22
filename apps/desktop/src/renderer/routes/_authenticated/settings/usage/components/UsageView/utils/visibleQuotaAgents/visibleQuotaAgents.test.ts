@@ -34,13 +34,22 @@ describe("visibleQuotaAgents", () => {
 		);
 	});
 
+	it("shows OpenCode once one of its provider logins exists", () => {
+		expect(visibleQuotaAgents([{ agent: "opencode" }])).toEqual([
+			"claude",
+			"codex",
+			"opencode",
+		]);
+	});
+
 	it("orders every section by display order, not by account order", () => {
 		expect(
 			visibleQuotaAgents([
+				{ agent: "opencode" },
 				{ agent: "agy" },
 				{ agent: "grok" },
 				{ agent: "codex" },
 			]),
-		).toEqual(["claude", "codex", "grok", "agy"]);
+		).toEqual(["claude", "codex", "grok", "agy", "opencode"]);
 	});
 });

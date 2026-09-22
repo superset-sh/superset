@@ -4,6 +4,9 @@ import type { PgTransaction } from "drizzle-orm/pg-core";
 
 export type SingleFlightResult<T> = { ran: true; result: T } | { ran: false };
 
+// biome-ignore lint/suspicious/noExplicitAny: Transaction type varies by client (Neon, PostgresJs, etc)
+export type SingleFlightTx = PgTransaction<any, any, any>;
+
 /**
  * Runs `fn` under a job-scoped advisory lock, or reports `ran: false` without
  * running it when another invocation already holds the lock.
@@ -19,6 +22,14 @@ export type SingleFlightResult<T> = { ran: true; result: T } | { ran: false };
  * should run on the transaction handed to `fn`, which keeps the lock and the
  * statement on one connection.
  *
+ * That cuts both ways: because the lock lives in this transaction, `fn` must
+ * not leave the connection idle for long. Postgres closes a connection sitting
+ * `idle in transaction` for five minutes, and it takes the lock with it while
+ * `fn` is still running — so the guard fails open on exactly the slow run it
+ * exists to bound, and the commit that follows fails on a dead socket. Work
+ * `fn` does off this connection, above all a network call per row, has to be
+ * bounded by something well under that.
+ *
  * Batch jobs take the lock per batch rather than around their whole loop.
  * That keeps each batch transaction short, which is what their batch sizes
  * were chosen for, and still bounds the job to one batch in flight: a
@@ -28,8 +39,7 @@ export type SingleFlightResult<T> = { ran: true; result: T } | { ran: false };
  */
 export async function singleFlight<T>(
 	job: string,
-	// biome-ignore lint/suspicious/noExplicitAny: Transaction type varies by client (Neon, PostgresJs, etc)
-	fn: (tx: PgTransaction<any, any, any>) => Promise<T>,
+	fn: (tx: SingleFlightTx) => Promise<T>,
 ): Promise<SingleFlightResult<T>> {
 	return dbWs.transaction(async (tx) => {
 		const { rows } = await tx.execute<{ locked: boolean }>(

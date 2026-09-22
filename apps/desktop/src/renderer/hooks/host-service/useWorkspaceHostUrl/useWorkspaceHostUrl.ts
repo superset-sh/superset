@@ -1,13 +1,9 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
+import { useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { setSandboxCredentials } from "renderer/lib/host-service-auth";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-
-const ACCESS_RETRY_MS = 15_000;
+import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 
 export type WorkspaceHostTarget =
 	| { status: "loading" }
@@ -15,115 +11,63 @@ export type WorkspaceHostTarget =
 	| { status: "local-starting"; hostId: string }
 	| {
 			status: "ready";
-			kind: "local" | "remote" | "sandbox";
+			kind: "local" | "remote";
 			hostId: string;
 			url: string;
+	  }
+	| {
+			status: "ready";
+			kind: "sandbox";
+			hostId: string;
+			url: string;
+			/** The desktop stream's gate address; the pane connects here, not to host-service. */
+			desktopUrl: string;
 	  };
 
 /**
- * Resolves a workspace ID to its owning host-service target.
- *
- * The status union lets callers distinguish "still loading the collection"
- * from "local host hasn't booted yet" from "workspace doesn't exist on this
- * client" — three states the previous `string | null` API collapsed into one.
+ * Resolves a workspace ID to its owning host-service target: a cloud
+ * workspace's sandbox gate address once its sandbox is awake, this machine's
+ * host-service, or another host through the relay.
  */
 export function useWorkspaceHostTarget(
 	workspaceId: string | null,
 ): WorkspaceHostTarget {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
-
 	const { workspaces, isReady } = useHostWorkspaces();
-	const match = workspaceId
-		? (workspaces.find((w) => w.id === workspaceId) ?? null)
-		: null;
+	const { targets: sandboxes, isReady: sandboxesReady } = useSandboxAccess();
 
-	// A cloud workspace has no host row, so it never appears above. Its
-	// address and the two credentials it needs are brokered per access,
-	// because the provider token expires.
-	const organizationId = useActiveOrganizationId();
-	const cloudQuery = cloudTrpc.cloudWorkspace.list.useQuery(
-		{ organizationId: organizationId ?? "" },
-		{ enabled: !!organizationId && !match },
-	);
-	const cloudWorkspaces = cloudQuery.data ?? [];
-	const cloudPending =
-		Boolean(organizationId) && !match && !cloudQuery.isFetched;
-	// Only a `ready` row has an address to broker: the list carries workspaces
-	// that are still provisioning, and `access` refuses those.
-	const cloudMatch = workspaceId
-		? (cloudWorkspaces.find(
-				(w) => w.id === workspaceId && w.status === "ready",
-			) ?? null)
-		: null;
-	const access = cloudTrpc.cloudWorkspace.access.useMutation();
-	// Keyed by workspace: a switch leaves the previous grant in state until the
-	// new one lands, and an unkeyed URL would report the new workspace ready
-	// at the old workspace's sandbox.
-	const [grant, setGrant] = useState<{
-		workspaceId: string;
-		url: string;
-	} | null>(null);
-	// The mutation object is a new identity on every render; the effect below
-	// must key on the workspace alone or it re-mints on each one.
-	const requestAccess = useRef(access.mutateAsync);
-	requestAccess.current = access.mutateAsync;
-	const cloudWorkspaceId = cloudMatch?.id ?? null;
-
-	useEffect(() => {
-		if (!cloudWorkspaceId) return;
-		let cancelled = false;
-		let timer: ReturnType<typeof setTimeout> | undefined;
-
-		const requestGrant = async () => {
-			try {
-				const granted = await requestAccess.current({ id: cloudWorkspaceId });
-				if (cancelled) return;
-				setSandboxCredentials(granted.url, {
-					previewToken: granted.token,
-				});
-				setGrant({ workspaceId: cloudWorkspaceId, url: granted.url });
-				// The provider's token outlives neither an open workspace nor its
-				// socket, so re-mint ahead of expiry rather than on failure.
-				const remaining = new Date(granted.expiresAt).getTime() - Date.now();
-				timer = setTimeout(requestGrant, Math.max(30_000, remaining * 0.8));
-			} catch {
-				if (!cancelled) timer = setTimeout(requestGrant, ACCESS_RETRY_MS);
-			}
-		};
-		void requestGrant();
-
-		return () => {
-			cancelled = true;
-			if (timer) clearTimeout(timer);
-		};
-	}, [cloudWorkspaceId]);
+	const match = workspaces.find((w) => w.id === workspaceId) ?? null;
+	const sandbox =
+		sandboxes.find((target) => target.workspaceId === workspaceId) ?? null;
 
 	return useMemo(() => {
-		if (cloudMatch) {
-			if (grant?.workspaceId !== cloudMatch.id) return { status: "loading" };
-			return {
-				status: "ready",
-				kind: "sandbox",
-				hostId: cloudMatch.id,
-				url: grant.url,
-			};
+		if (!workspaceId) return { status: "loading" };
+		if (sandbox) {
+			return sandbox.running
+				? {
+						status: "ready",
+						kind: "sandbox",
+						hostId: workspaceId,
+						url: sandbox.url,
+						desktopUrl: sandbox.desktopUrl,
+					}
+				: { status: "loading" };
 		}
-		if (!workspaceId || (!isReady && !match)) return { status: "loading" };
-		// The cloud list decides "not-found" as much as the host fan-out does;
-		// answering before it lands flashes a not-found on every cloud open.
-		if (!match && cloudPending) return { status: "loading" };
-		if (!match) return { status: "not-found" };
+		if (!match) {
+			return isReady && sandboxesReady
+				? { status: "not-found" }
+				: { status: "loading" };
+		}
 		if (machineId && match.hostId === machineId) {
-			if (activeHostUrl) {
-				return {
-					status: "ready",
-					kind: "local",
-					hostId: match.hostId,
-					url: activeHostUrl,
-				};
-			}
-			return { status: "local-starting", hostId: match.hostId };
+			return activeHostUrl
+				? {
+						status: "ready",
+						kind: "local",
+						hostId: match.hostId,
+						url: activeHostUrl,
+					}
+				: { status: "local-starting", hostId: match.hostId };
 		}
 		const routingKey = buildHostRoutingKey(match.organizationId, match.hostId);
 		return {
@@ -134,21 +78,17 @@ export function useWorkspaceHostTarget(
 		};
 	}, [
 		workspaceId,
-		isReady,
+		sandbox,
 		match,
+		isReady,
+		sandboxesReady,
 		machineId,
 		activeHostUrl,
 		relayUrl,
-		cloudMatch,
-		cloudPending,
-		grant,
 	]);
 }
 
-/**
- * Backwards-compatible URL-only form for existing callers. Returns null
- * for any non-`ready` status (loading, local-starting, not-found).
- */
+/** URL-only form: null for any non-`ready` status. */
 export function useWorkspaceHostUrl(workspaceId: string | null): string | null {
 	const target = useWorkspaceHostTarget(workspaceId);
 	return target.status === "ready" ? target.url : null;

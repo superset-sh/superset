@@ -1,17 +1,15 @@
 import { useLingui } from "@lingui/react/macro";
-import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { LuFile } from "react-icons/lu";
-import { getChangesetFileKey } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	WORKSPACE_SIDEBAR_TABS,
 	type WorkspaceSidebarTab,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
-import { useSettings } from "renderer/stores/settings";
+import { useReviewCommentNavigation } from "../../hooks/useReviewCommentNavigation";
 import { useRowlessSidebarTabStore } from "../../state/rowlessSidebarTabStore";
 import type { CommentPaneData, DiffFocusSide } from "../../types";
 import {
@@ -49,6 +47,8 @@ interface WorkspaceSidebarProps {
 		changeKey?: string,
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	/** Opens the linked PR's summary pane; the Review tab's title falls back to GitHub without it. */
+	onOpenPullRequest?: (prNumber: number) => void;
 	onSearch?: () => void;
 	selectedFilePath?: string;
 	/** The diff pane's current file, highlighted in the Changes tab. */
@@ -57,18 +57,22 @@ interface WorkspaceSidebarProps {
 	workspaceId: string;
 	/** Run button rendered by the page, hosted in the sidebar's top strip. */
 	runButton: ReactNode;
+	/** Rendered by the page, which owns the pane store agents launch into. */
+	pagesMenu: ReactNode;
 }
 
 export function WorkspaceSidebar({
 	onSelectFile,
 	onSelectDiffFile,
 	onOpenComment,
+	onOpenPullRequest,
 	onSearch,
 	selectedFilePath,
 	selectedDiffTarget,
 	pendingReveal,
 	workspaceId,
 	runButton,
+	pagesMenu,
 }: WorkspaceSidebarProps) {
 	const { t } = useLingui();
 	const gitStatus = useWorkspaceGitStatus();
@@ -120,43 +124,15 @@ export function WorkspaceSidebar({
 		onOpenFile: onSelectFile,
 	});
 
-	// PR review comments are always relative to the base branch, so they map
-	// onto the "against-base" source group — matching the same query (and
-	// changeKey format) the Changes pane uses for that group lets us disambiguate
-	// a path that also has staged/unstaged edits, instead of falling back to
-	// "first item whose path matches" and landing on the wrong group.
-	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
-		{ workspaceId },
-		{ staleTime: Number.POSITIVE_INFINITY },
+	const onOpenInDiff = useReviewCommentNavigation(
+		workspaceId,
+		onSelectDiffFile,
 	);
-
 	const reviewTab = useReviewTab({
 		workspaceId,
 		onOpenComment,
-		onOpenInDiff: onSelectDiffFile
-			? (path, line, openInNewTab, side) => {
-					// Force annotations on so the user lands on the comment, not an empty line.
-					useSettings.getState().update("showDiffComments", true);
-					// Only disambiguate once the real base branch is known — while
-					// baseBranchQuery is still loading, omit changeKey so this falls
-					// back to the old (safe) "first item whose path matches" behavior
-					// instead of building a changeKey with a guessed-empty base branch
-					// that won't match the real item once it resolves.
-					const changeKey = baseBranchQuery.isSuccess
-						? getChangesetFileKey({
-								path,
-								status: "modified",
-								additions: 0,
-								deletions: 0,
-								source: {
-									kind: "against-base",
-									baseBranch: baseBranchQuery.data.baseBranch,
-								},
-							})
-						: undefined;
-					onSelectDiffFile(path, openInNewTab ?? false, line, side, changeKey);
-				}
-			: undefined,
+		onOpenPullRequest,
+		onOpenInDiff,
 	});
 
 	const filesTab: SidebarTabDefinition = {
@@ -199,7 +175,7 @@ export function WorkspaceSidebar({
 			ref={containerRef}
 			className="isolate flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
 		>
-			<PRActionHeader runButton={runButton} />
+			<PRActionHeader runButton={runButton} pagesMenu={pagesMenu} />
 			<SidebarHeader
 				tabs={tabs}
 				activeTab={activeTabDef?.id ?? activeTab}

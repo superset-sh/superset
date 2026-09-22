@@ -66,10 +66,10 @@ interface UpdatesPillProps {
 
 /**
  * Compact auto-update indicator that lives in the sidebar's bottom
- * settings cluster: a progress ring while downloading, a green
- * "↑ update" pill when ready (click to install), a micro ASCII loader
- * while installing, and a red "↻ retry" pill on failure. Renders
- * nothing while the app is up to date.
+ * settings cluster: a progress ring while downloading, a quiet
+ * "↑ update" pill with a green ready dot (click to install), a micro
+ * ASCII loader while installing, and a red "↻ retry" pill on failure.
+ * Renders nothing while the app is up to date.
  */
 export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 	const event = useAutoUpdateStatus();
@@ -198,15 +198,18 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 							className="size-4 text-emerald-600 dark:text-emerald-400"
 						/>
 					) : (
-						<LuCircleArrowUp
-							strokeWidth={STROKE_WIDTH}
-							className={cn(
-								"size-4",
-								isError
-									? "text-destructive"
-									: "text-emerald-600 dark:text-emerald-400",
+						<>
+							<LuCircleArrowUp
+								strokeWidth={STROKE_WIDTH}
+								className={cn(
+									"size-4",
+									isError ? "text-destructive" : "text-muted-foreground",
+								)}
+							/>
+							{isReady && (
+								<span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-emerald-500 ring-2 ring-sidebar" />
 							)}
-						/>
+						</>
 					)}
 				</button>
 			</TooltipTrigger>
@@ -224,13 +227,13 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 						"font-mono text-[10px] tabular-nums leading-none",
 						"ring-1 ring-inset animate-in fade-in slide-in-from-bottom-1 duration-300",
 						isBusy && "cursor-default",
-						(isDownloading || isInstalling || isUpdated) &&
+						(isDownloading || isInstalling || isUpdated || isReady) &&
 							"bg-foreground/[0.045] ring-foreground/[0.06]",
 						(isDownloading || isUpdated) && "text-muted-foreground",
 						isInstalling && "text-orange-600 dark:text-orange-300",
 						isReady &&
 							!isInstalling &&
-							"bg-emerald-500/15 ring-emerald-500/25 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300",
+							"text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground",
 						isError &&
 							"bg-destructive/10 ring-destructive/25 text-destructive hover:bg-destructive/20",
 					)}
@@ -286,7 +289,7 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 						</>
 					) : isReady ? (
 						<>
-							<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 animate-pulse" />
+							<span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
 							<span>
 								<Trans>↑ update</Trans>
 							</span>

@@ -1,3 +1,5 @@
+import "server-only";
+
 import { isSupportedLocale, type SupportedLocale } from "@superset/i18n";
 import {
 	initServerI18n as activateServerI18n,
@@ -7,8 +9,8 @@ import { notFound } from "next/navigation";
 import { lang } from "next/root-params";
 
 /**
- * Activates i18n for a React Server Components render, in the language the
- * URL names.
+ * Binds a fixed locale instance to a React Server Components render in the
+ * language the URL names.
  *
  * The locale is structural: every route lives under app/[lang], src/proxy.ts
  * rewrites bare (English) URLs to /en internally, and this helper reads the

@@ -8,7 +8,20 @@ import { Alert, Linking } from "react-native";
  * leaving an unhandled rejection and a tap that looks dead.
  */
 export function openUrl(url: string) {
+	if (!isWebUrl(url)) {
+		Alert.alert(i18n._(msg({ message: "Could not open link" })), url);
+		return;
+	}
 	Linking.openURL(url).catch(() => {
 		Alert.alert(i18n._(msg({ message: "Could not open link" })), url);
 	});
+}
+
+function isWebUrl(url: string): boolean {
+	try {
+		const { protocol } = new URL(url);
+		return protocol === "http:" || protocol === "https:";
+	} catch {
+		return false;
+	}
 }

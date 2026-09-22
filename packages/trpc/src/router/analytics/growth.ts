@@ -7,7 +7,11 @@ import { z } from "zod";
 
 import { cachedGrowthMetric } from "../../lib/growth/cache";
 import { fetchDiscordStats } from "../../lib/growth/discord";
-import { fetchGithubStats } from "../../lib/growth/github";
+import {
+	fetchGithubStats,
+	fetchStarHistoryCached,
+} from "../../lib/growth/github";
+import { fetchPaywallFunnel } from "../../lib/growth/paywall-funnel";
 import { fetchSearchConsoleStats } from "../../lib/growth/search-console";
 import { fetchContentInventory } from "../../lib/growth/sitemap";
 import {
@@ -27,10 +31,12 @@ import {
 } from "../../lib/growth/weeks";
 import { adminProcedure } from "../../trpc";
 
-// Growth data for the admin Growth page: acquisition and content from PostHog
+// Growth data for the admin dashboard: acquisition and content from PostHog
 // sessions, conversion from PostHog events plus Neon, distribution from GitHub
 // and Discord, content velocity from the public sitemap, and search from
-// Search Console. Every source reads through the shared metric cache.
+// Search Console. Every source reads through the shared metric cache. Queries
+// live here rather than in saved PostHog insights so they are reviewed and
+// versioned alongside the tiles that render them.
 
 const WEEKS = 12;
 const TOP_DAYS = 30;
@@ -176,6 +182,19 @@ export const growthRouter = {
 	),
 
 	github: adminProcedure.query(() => fetchGithubStats()),
+
+	// GitHub star growth, the same daily series /starchart renders.
+	starHistory: adminProcedure.query(() => fetchStarHistoryCached()),
+
+	// Paywall view -> upgrade click -> checkout -> paid, by weekly cohort of
+	// first paywall view. Cached like the other HogQL tiles.
+	paywallFunnel: adminProcedure
+		.input(weekCountInput)
+		.query(({ input }) =>
+			cachedHogQL(`paywall-funnel:${input.weeks}`, () =>
+				fetchPaywallFunnel(input.weeks),
+			),
+		),
 
 	discord: adminProcedure.query(() => fetchDiscordStats()),
 

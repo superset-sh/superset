@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
@@ -54,6 +56,8 @@ function ScriptTextarea({
 	onChange,
 	onBlur,
 }: ScriptTextareaProps) {
+	const { _: translate } = useTranslation();
+
 	const [isDragOver, setIsDragOver] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -116,7 +120,9 @@ function ScriptTextarea({
 			{/* biome-ignore lint/a11y/useSemanticElements: Drop zone wrapper for drag-and-drop functionality */}
 			<div
 				role="region"
-				aria-label="Script editor with file drop support"
+				aria-label={translate(
+					msg({ message: "Script editor with file drop support" }),
+				)}
 				className={cn(
 					"relative rounded-lg border transition-colors",
 					isDragOver
@@ -168,6 +174,8 @@ function ScriptTextarea({
 type SaveStatus = "idle" | "saving" | "saved";
 
 export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
+	const { _: translate } = useTranslation();
+
 	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 
@@ -390,8 +398,12 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				</TabsList>
 				<TabsContent value="setup">
 					<ScriptTextarea
-						description="Runs when a new workspace is created."
-						placeholder="e.g. bun install && bun run dev"
+						description={translate(
+							msg({ message: "Runs when a new workspace is created." }),
+						)}
+						placeholder={translate(
+							msg({ message: "e.g. bun install && bun run dev" }),
+						)}
 						value={setupContent}
 						onChange={handleSetupChange}
 						onBlur={handleBlurSave}
@@ -399,8 +411,12 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				</TabsContent>
 				<TabsContent value="teardown">
 					<ScriptTextarea
-						description="Runs when a workspace is deleted."
-						placeholder="e.g. docker compose down"
+						description={translate(
+							msg({ message: "Runs when a workspace is deleted." }),
+						)}
+						placeholder={translate(
+							msg({ message: "e.g. docker compose down" }),
+						)}
 						value={teardownContent}
 						onChange={handleTeardownChange}
 						onBlur={handleBlurSave}
@@ -408,8 +424,13 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 				</TabsContent>
 				<TabsContent value="run">
 					<ScriptTextarea
-						description="Command to start your dev server, triggered via keyboard shortcut."
-						placeholder="e.g. bun run dev"
+						description={translate(
+							msg({
+								message:
+									"Command to start your dev server, triggered via keyboard shortcut.",
+							}),
+						)}
+						placeholder={translate(msg({ message: "e.g. bun run dev" }))}
 						value={runContent}
 						onChange={handleRunChange}
 						onBlur={handleBlurSave}

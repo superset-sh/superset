@@ -1,17 +1,19 @@
+import { usePageCommentThreads } from "@superset/cloud-client";
 import type {
 	CommentThread,
 	PageHeaderPage,
 	PageHeaderVersion,
+	PageVisibility,
 } from "@superset/ui/page-comments";
 import { useCallback } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { toThreads } from "renderer/routes/_authenticated/_dashboard/utils/toThreads";
 
 export interface PageHeaderTarget {
 	slug: string;
 	pageId?: string;
 	title?: string;
+	version?: number | null;
 }
 
 interface PageHeaderData {
@@ -19,8 +21,10 @@ interface PageHeaderData {
 	versions: PageHeaderVersion[];
 	threads: CommentThread[];
 	currentUserId: string | undefined;
-	onSetVisibility: (visibility: "just_me" | "org") => Promise<void>;
+	onSetVisibility: (visibility: PageVisibility) => Promise<void>;
 	onSetSharedVersion: (version: number | null) => Promise<void>;
+	onRename: (title: string) => Promise<void>;
+	onRefresh: () => void;
 	onDelete: () => Promise<void>;
 }
 
@@ -35,18 +39,17 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 	const versions = cloudTrpc.page.versions.useQuery(ref, { enabled });
 	const access = cloudTrpc.page.access.useQuery(ref, { enabled });
 
-	const version = pull.data?.version ?? 0;
-	const comments = cloudTrpc.pageComment.list.useQuery(
-		{ pageId: pageId ?? "" },
-		{ enabled: Boolean(pageId) && version > 0 },
-	);
+	const version = data.version ?? pull.data?.version ?? 0;
+	const { threads } = usePageCommentThreads({
+		pageId: pageId ?? "",
+		version,
+	});
 
 	const utils = cloudTrpc.useUtils();
 	const setVisibility = cloudTrpc.page.setVisibility.useMutation();
 	const setSharedVersion = cloudTrpc.page.setSharedVersion.useMutation();
+	const updatePage = cloudTrpc.page.update.useMutation();
 	const deletePage = cloudTrpc.page.delete.useMutation();
-
-	const threads = toThreads(comments.data ?? []);
 
 	const refresh = useCallback(async () => {
 		await Promise.all([pull.refetch(), versions.refetch()]);
@@ -57,9 +60,9 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 		resolved && pageId
 			? {
 					id: pageId,
-					title: data.title ?? resolved.title ?? data.slug,
+					title: resolved.title ?? data.title ?? data.slug,
 					url: resolved.url,
-					visibility: resolved.visibility === "just_me" ? "just_me" : "org",
+					visibility: resolved.visibility,
 					createdByUserId: resolved.createdByUserId,
 					owner: access.data?.owner ?? null,
 					updatedAt: resolved.updatedAt,
@@ -88,6 +91,20 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 			if (!pageId) return;
 			await setSharedVersion.mutateAsync({ id: pageId, version });
 			await refresh();
+		},
+		onRename: async (title) => {
+			if (!pageId) return;
+			const updated = await updatePage.mutateAsync({ id: pageId, title });
+			utils.page.pull.setData(ref, (prev) =>
+				prev ? { ...prev, title: updated.title } : prev,
+			);
+			await Promise.all([
+				utils.page.pull.invalidate(),
+				utils.page.list.invalidate(),
+			]);
+		},
+		onRefresh: () => {
+			void refresh();
 		},
 		onDelete: async () => {
 			if (!pageId) return;

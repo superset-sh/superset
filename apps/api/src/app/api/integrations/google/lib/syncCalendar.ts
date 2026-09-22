@@ -1,8 +1,5 @@
 import { db } from "@superset/db/client";
-import {
-	automationEvents,
-	type SelectIntegrationConnection,
-} from "@superset/db/schema";
+import { automationEvents, type SelectConnection } from "@superset/db/schema";
 import type { GoogleCalendarTriggerEvent } from "@superset/shared/automation-triggers";
 import {
 	eventStart,
@@ -51,10 +48,10 @@ export type CalendarSyncResult = {
  * on it at once.
  */
 export async function syncCalendar(
-	connection: SelectIntegrationConnection,
+	connection: SelectConnection,
 	calendarId: string,
 ): Promise<CalendarSyncResult> {
-	const state = googleConfigOf(connection.config).calendars?.[calendarId];
+	const state = googleConfigOf(connection.state).calendars?.[calendarId];
 	const result = await listEventChanges(
 		connection.id,
 		calendarId,
@@ -116,7 +113,7 @@ export async function syncCalendar(
  * them. Separate from the listing so the same path runs over a captured page.
  */
 export async function applyCalendarChanges(
-	connection: SelectIntegrationConnection,
+	connection: SelectConnection,
 	calendarId: string,
 	items: GoogleCalendarEvent[],
 	options: { watchedSince: Date; now?: Date },
@@ -184,7 +181,7 @@ export async function applyCalendarChanges(
  * applied in order: a later change's kind depends on this one being recorded.
  */
 async function recordChange(params: {
-	connection: SelectIntegrationConnection;
+	connection: SelectConnection;
 	calendarId: string;
 	item: GoogleCalendarEvent;
 	watchedSince: Date;
@@ -225,7 +222,7 @@ async function recordChange(params: {
  * creation; without the first, every later edit of a new event would.
  */
 function normalizeChange(params: {
-	connection: SelectIntegrationConnection;
+	connection: SelectConnection;
 	calendarId: string;
 	item: GoogleCalendarEvent;
 	watchedSince: Date;

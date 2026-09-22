@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { formatDate as formatLocaleDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import type { OrganizationRole } from "@superset/shared/auth";
 import { Badge } from "@superset/ui/badge";
 import { Skeleton } from "@superset/ui/skeleton";
@@ -35,6 +35,8 @@ export function PendingInvitations({
 	organizationId,
 	organizationName,
 }: PendingInvitationsProps) {
+	const { formatDate: formatLocaleDate } = useFormat();
+
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 

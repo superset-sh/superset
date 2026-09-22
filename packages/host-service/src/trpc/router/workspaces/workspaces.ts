@@ -11,13 +11,18 @@ import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
+import { getGitAuthorName } from "../../../runtime/git/identity";
 import { type ResolvedRef, resolveRef } from "../../../runtime/git/refs";
 import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
-import { gitFetchBaseRefTask } from "../../../workers/tasks/git";
+import {
+	gitAuthorNameTask,
+	gitFetchBaseRefTask,
+} from "../../../workers/tasks/git";
 import {
 	type CloudShapedWorkspace,
 	getLocalWorkspace,
+	type HostWorkspaceRow,
 	insertLocalWorkspace,
 	toCloudShape,
 } from "../../../workspaces/local-workspace-store";
@@ -31,7 +36,11 @@ import {
 	buildTerminalAgentLaunch,
 	validateAgentLaunchOptions,
 } from "../agents";
-import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
+import {
+	createLocalWorkspace,
+	DEFAULT_LOCAL_WORKSPACE_NAME,
+	listLiveLocalWorkspaces,
+} from "../project/utils/create-local-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { createSession } from "../workspace-creation/procedures/create-session";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
@@ -48,15 +57,18 @@ import {
 } from "../workspace-creation/shared/dispatch-agents";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
 import {
+	getProjectWorktreesFolder,
 	requireLocalProject,
 	requireProjectRepoPath,
 } from "../workspace-creation/shared/local-project";
+import { requireIndependentWorktree } from "../workspace-creation/shared/require-independent-worktree";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import {
 	addWorktreeWithSparseCheckout,
 	parseSparseCheckoutPaths,
 } from "../workspace-creation/shared/sparse-checkout";
 import type { GitClient } from "../workspace-creation/shared/types";
+import { normalizeWorktreePath } from "../workspace-creation/shared/worktree-list";
 import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-paths";
 import {
 	applyAiWorkspaceRename,
@@ -85,6 +97,12 @@ import { deduplicateBranchName } from "../workspace-creation/utils/sanitize-bran
 const createInputSchema = z
 	.object({
 		projectId: z.string(),
+		// "worktree" (default) checks out `branch` in its own worktree.
+		// "local" registers a new workspace on the project's primary checkout
+		// — no clone, no worktree, no branch switch; files, the git index and
+		// the checked-out branch are shared with every other local workspace
+		// of the project, so the branch/PR/worktree inputs do not apply.
+		checkout: z.enum(["worktree", "local"]).optional(),
 		// Both `name` and `branch` are optional. A typed `name` also seeds
 		// the branch when `branch` is omitted. When both are omitted with a
 		// non-empty agent prompt, creation proceeds with a friendly-random
@@ -124,7 +142,35 @@ const createInputSchema = z
 	})
 	.refine((value) => !(value.worktreePath && value.pr), {
 		message: "`worktreePath` and `pr` cannot both be set",
-	});
+	})
+	.refine(
+		(value) =>
+			value.checkout !== "local" ||
+			(value.branch === undefined &&
+				value.pr === undefined &&
+				value.baseBranch === undefined &&
+				value.worktreePath === undefined),
+		{
+			message:
+				"A local workspace uses the project's checkout: `branch`, `pr`, `baseBranch` and `worktreePath` cannot be set",
+		},
+	);
+
+/** "local", then "local 2", "local 3", … among the project's live local rows. */
+function nextLocalWorkspaceName(
+	ctx: HostServiceContext,
+	projectId: string,
+): string {
+	const taken = new Set(
+		listLiveLocalWorkspaces(ctx, projectId).map((row) => row.name),
+	);
+	if (!taken.has(DEFAULT_LOCAL_WORKSPACE_NAME)) {
+		return DEFAULT_LOCAL_WORKSPACE_NAME;
+	}
+	let n = 2;
+	while (taken.has(`${DEFAULT_LOCAL_WORKSPACE_NAME} ${n}`)) n += 1;
+	return `${DEFAULT_LOCAL_WORKSPACE_NAME} ${n}`;
+}
 
 const workspaceCreateLocks = new Map<string, Promise<void>>();
 
@@ -153,6 +199,14 @@ async function acquireWorkspaceCreateLock(key: string): Promise<() => void> {
 // cloud-compatible row shape is the response type.
 type CloudWorkspace = CloudShapedWorkspace;
 
+type WorkspaceCreateResult = {
+	workspace: CloudWorkspace;
+	terminals: Array<{ terminalId: string; label?: string }>;
+	agents: AgentLaunchResult[];
+	alreadyExists: boolean;
+	txid: number | null;
+};
+
 function extractCreateTxid(row: CloudWorkspace): number | null {
 	const txid = (row as { txid?: unknown }).txid;
 	return typeof txid === "number" ? txid : null;
@@ -172,6 +226,7 @@ function findExistingWorkspaceByBranch(
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.branch, branch),
+				eq(workspaces.type, "worktree"),
 				// Deletes tombstone the row instead of removing it, so a
 				// tombstone must not satisfy idempotency: matching one returns
 				// the archived row with `alreadyExists: true` and silently
@@ -183,6 +238,12 @@ function findExistingWorkspaceByBranch(
 			),
 		})
 		.sync();
+	if (
+		local &&
+		normalizeWorktreePath(local.worktreePath) ===
+			normalizeWorktreePath(requireLocalProject(ctx, projectId).repoPath)
+	)
+		return null;
 	return local ? toCloudShape(local, ctx.organizationId) : null;
 }
 
@@ -289,6 +350,23 @@ function createWorkerBaseRefFetcher(
 			},
 		);
 	};
+}
+
+/**
+ * `resolveProjectBranchPrefix`'s `getAuthorName` for callers with no other
+ * git need (unlike `create`, which already holds an on-loop client bound to
+ * `repoPath` from building the worktree). Reads the *same repo's*
+ * `user.name` off-loop in the worker pool instead of constructing a new
+ * `ctx.git()` client on this loop (see the no-main-loop-blocking ratchet) —
+ * repo-scoped, not the home-directory identity `gitIdentityTask` reads for
+ * the global settings preview, so a repo-local `user.name` override still
+ * agrees with what `create` used for this same branch.
+ */
+function createOffLoopAuthorNameGetter(
+	repoPath: string,
+): () => Promise<string | null> {
+	return () =>
+		getHostWorkerPool().run(gitAuthorNameTask, { worktreePath: repoPath });
 }
 
 async function planBranchSource(
@@ -570,34 +648,98 @@ export const workspacesRouter = router({
 			// branch — the one case where the deferred AI rename may also
 			// rename the git branch.
 			let aiCanRenameBranch = false;
-
-			await ensureMainWorkspace(ctx, input.projectId, repoPath);
+			// The prefix applied to that auto-generated branch, so the
+			// deferred AI rename below can reapply the same prefix instead
+			// of re-resolving it (and instead of losing it).
+			let resolvedBranchPrefix: string | undefined;
 
 			const git = await ctx.git(repoPath);
 			const fetchBaseRefOffLoop = createWorkerBaseRefFetcher(ctx, repoPath);
 			const worktreeBaseDir =
 				localProject.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
+			const worktreesFolder = getProjectWorktreesFolder(ctx, localProject);
 			// Empty means a full checkout. Only applies to worktrees we create —
 			// adopted ones keep whatever checkout they already have.
 			const sparsePaths = parseSparseCheckoutPaths(
 				localProject.sparseCheckoutPaths,
 			);
 
-			// Free branches still claimed by registrations whose dirs are
-			// gone — without this, `git worktree add` later fails with
-			// "branch is already used by worktree at <missing-path>".
-			await git
-				.raw(["worktree", "prune"])
-				.catch((err) =>
-					console.warn("[workspaces.create] worktree prune failed:", err),
-				);
+			if (input.checkout !== "local") {
+				// Free branches still claimed by registrations whose dirs are
+				// gone — without this, `git worktree add` later fails with
+				// "branch is already used by worktree at <missing-path>".
+				await git
+					.raw(["worktree", "prune"])
+					.catch((err) =>
+						console.warn("[workspaces.create] worktree prune failed:", err),
+					);
+			}
 
 			let resolvedBranch: string;
 			let worktreePath: string | undefined;
 			let alreadyExists = false;
 			let workspaceRow: CloudWorkspace;
 
-			if (input.pr !== undefined) {
+			if (input.checkout === "local") {
+				const releaseCreateLock = await acquireWorkspaceCreateLock(
+					`local:${input.projectId}`,
+				);
+				let row: HostWorkspaceRow;
+				try {
+					const existing = input.id
+						? getLocalWorkspace(ctx.db, input.id)
+						: undefined;
+					if (
+						existing &&
+						(existing.projectId !== input.projectId ||
+							existing.type !== "local" ||
+							existing.archivedAt != null)
+					) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message:
+								"Workspace id is already in use by another or deleted workspace.",
+						});
+					}
+					if (existing) {
+						row = existing;
+						alreadyExists = true;
+					} else {
+						row = await createLocalWorkspace(ctx, {
+							id: input.id,
+							projectId: input.projectId,
+							repoPath,
+							name: input.name ?? nextLocalWorkspaceName(ctx, input.projectId),
+							taskId: input.taskId,
+							tags: input.tags,
+							createdByUserId: ctx.userId ?? null,
+						});
+					}
+				} finally {
+					releaseCreateLock();
+				}
+				resolvedBranch = row.branch;
+				worktreePath = repoPath;
+				workspaceRow = toCloudShape(row, ctx.organizationId);
+				if (!alreadyExists)
+					void ctx.api.v2Workspace.trackCreated
+						.mutate({
+							workspaceId: row.id,
+							organizationId: ctx.organizationId,
+							projectId: input.projectId,
+							branch: row.branch,
+							// The cloud's activation event predates local workspaces;
+							// "main" is its name for a workspace on the checkout.
+							type: "main",
+							hostId: ctx.clientMachineId,
+						})
+						.catch((err) => {
+							console.warn(
+								`[workspaces.create] failed to report workspace creation for ${row.id}:`,
+								err,
+							);
+						});
+			} else if (input.pr !== undefined) {
 				const releaseCreateLock = await acquireWorkspaceCreateLock(
 					`pr:${input.projectId}:${input.pr}`,
 				);
@@ -630,6 +772,8 @@ export const workspacesRouter = router({
 						const existingWorktreePath = (
 							await listWorktreeBranches(git)
 						).worktreeMap.get(resolvedBranch);
+						if (existingWorktreePath)
+							requireIndependentWorktree(repoPath, existingWorktreePath);
 						const recordMaterializedWarning = (
 							materialized: MaterializePrBranchResult,
 						) => {
@@ -690,7 +834,7 @@ export const workspacesRouter = router({
 							alreadyExists = result.alreadyExists;
 						} else {
 							worktreePath = safeResolveWorktreePath(
-								localProject.id,
+								worktreesFolder,
 								resolvedBranch,
 								worktreeBaseDir,
 							);
@@ -882,7 +1026,7 @@ export const workspacesRouter = router({
 						const prefix = await resolveProjectBranchPrefix({
 							ctx,
 							project: localProject,
-							git,
+							getAuthorName: () => getGitAuthorName(git),
 							existingBranches: existing,
 						});
 						if (prefix) {
@@ -909,9 +1053,10 @@ export const workspacesRouter = router({
 					const prefix = await resolveProjectBranchPrefix({
 						ctx,
 						project: localProject,
-						git,
+						getAuthorName: () => getGitAuthorName(git),
 						existingBranches: existing,
 					});
+					resolvedBranchPrefix = prefix;
 					const typedNameSlug = input.name
 						? sanitizeBranchCandidate(input.name)
 						: "";
@@ -963,7 +1108,7 @@ export const workspacesRouter = router({
 						alreadyExists = result.alreadyExists;
 					} else {
 						worktreePath = safeResolveWorktreePath(
-							localProject.id,
+							worktreesFolder,
 							resolvedBranch,
 							worktreeBaseDir,
 						);
@@ -1102,6 +1247,7 @@ export const workspacesRouter = router({
 							names,
 							renameTitle: true,
 							renameBranch: aiCanRenameBranch,
+							branchPrefix: resolvedBranchPrefix,
 						});
 						if (applied) {
 							// Keep the original row object: it carries the create txid.
@@ -1119,7 +1265,8 @@ export const workspacesRouter = router({
 			}
 
 			const terminalsResult: Array<{ terminalId: string; label?: string }> = [];
-			const sugarLaunches = input.agents ?? [];
+			const replayedLocalCreate = input.checkout === "local" && alreadyExists;
+			const sugarLaunches = replayedLocalCreate ? [] : (input.agents ?? []);
 
 			// Wait-for-setup gate: chain a single terminal agent behind the setup
 			// commands in the setup terminal, so the agent starts only after setup
@@ -1160,7 +1307,10 @@ export const workspacesRouter = router({
 					: null;
 
 			let chainedAgentResult: AgentLaunchResult | null = null;
-			if (!alreadyExists && input.runSetup !== false) {
+			// The project's checkout is already set up; a local workspace only
+			// adds a new identity over it.
+			const runSetup = input.runSetup !== false && input.checkout !== "local";
+			if (!alreadyExists && runSetup) {
 				const { terminal, warning, chained } =
 					await startSetupTerminalIfPresent({
 						ctx,
@@ -1193,7 +1343,7 @@ export const workspacesRouter = router({
 						workspaceRow.id,
 						chainedAgentResult ? [] : sugarLaunches,
 					),
-				input.command
+				input.command && !replayedLocalCreate
 					? startCommandTerminal({
 							ctx,
 							workspaceId: workspaceRow.id,
@@ -1302,6 +1452,21 @@ export const workspacesRouter = router({
 			return { workspaceId };
 		}),
 
+	createLocal: protectedProcedure
+		.input(createInputSchema)
+		.mutation(
+			({ ctx, input }): Promise<WorkspaceCreateResult> =>
+				createWorkspacesCaller(ctx).create({ ...input, checkout: "local" }),
+		),
+
+	createLocalEnqueued: protectedProcedure.input(createInputSchema).mutation(
+		({ ctx, input }): Promise<{ workspaceId: string }> =>
+			createWorkspacesCaller(ctx).createEnqueued({
+				...input,
+				checkout: "local",
+			}),
+	),
+
 	aiRename: protectedProcedure
 		.input(
 			z.object({
@@ -1330,10 +1495,25 @@ export const workspacesRouter = router({
 					message: "Local project not found for workspace",
 				});
 			}
+			const repoPath = project.repoPath ?? "";
+			const branchPrefix = repoPath
+				? await resolveProjectBranchPrefix({
+						ctx,
+						project,
+						getAuthorName: createOffLoopAuthorNameGetter(repoPath),
+						existingBranches: await listBranchNames(ctx, repoPath),
+					}).catch((err) => {
+						console.warn(
+							"[workspaces.aiRename] branch prefix resolution failed",
+							err,
+						);
+						return undefined;
+					})
+				: undefined;
 			void applyAiWorkspaceRename({
 				ctx,
 				workspaceId: input.workspaceId,
-				repoPath: project.repoPath ?? "",
+				repoPath,
 				worktreePath: local.worktreePath,
 				oldBranchName: local.branch,
 				oldWorkspaceName: local.name || local.branch,
@@ -1341,6 +1521,7 @@ export const workspacesRouter = router({
 				namingInstructions: project.namingInstructions,
 				renameTitle: true,
 				renameBranch: true,
+				branchPrefix,
 			}).catch((err) => {
 				console.warn("[workspaces.aiRename] failed", err);
 			});
@@ -1361,11 +1542,17 @@ export const workspacesRouter = router({
 				localProject.repoPath,
 			);
 			const derived = deriveWorkspaceBranchFromPrompt(input.prompt);
-			return {
-				branchName: derived
-					? deduplicateBranchName(derived, existingBranches)
-					: null,
-			};
+			if (!derived) return { branchName: null };
+			// Preview must match what create will actually produce, so it
+			// carries the same prefix resolution the real auto-gen path uses.
+			const prefix = await resolveProjectBranchPrefix({
+				ctx,
+				project: localProject,
+				getAuthorName: createOffLoopAuthorNameGetter(localProject.repoPath),
+				existingBranches,
+			});
+			const candidate = prefix ? `${prefix}/${derived}` : derived;
+			return { branchName: deduplicateBranchName(candidate, existingBranches) };
 		}),
 });
 

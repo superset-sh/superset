@@ -1,5 +1,6 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 
@@ -13,7 +14,7 @@ import { InsightTileFrame } from "../InsightTileFrame";
 // are months since subscribing, cells are % still subscribed. Shares the
 // cohort-triangle rendering with weekly retention.
 export function ChurnHeatmapTile() {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const trpc = useTRPC();
 	const query = useQuery(
 		trpc.business.getChurnCohorts.queryOptions({ months: 7 }),
@@ -55,9 +56,10 @@ export function ChurnHeatmapTile() {
 		>
 			<CohortGrid
 				columnLabels={offsets.map((offset) =>
-					t({
-						message: `Month ${offset}`,
-					}),
+					// Not a template literal: the React Compiler hoists one out
+					// before the Lingui plugin runs, and every column then reads as
+					// the message's hash id.
+					i18n._({ ...msg({ message: "Month {offset}" }), values: { offset } }),
 				)}
 				rows={rows}
 				labelHeader={t({
