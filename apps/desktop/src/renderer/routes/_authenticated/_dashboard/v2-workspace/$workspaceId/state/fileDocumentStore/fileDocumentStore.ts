@@ -35,6 +35,22 @@ const DEFAULT_MAX_BYTES = 10 * 1024 * 1024;
 const BINARY_CHECK_SIZE = 8192;
 
 const entries = new Map<string, DocumentEntry>();
+const documentListeners = new Set<() => void>();
+
+export function subscribeDocuments(listener: () => void): () => void {
+	documentListeners.add(listener);
+	return () => {
+		documentListeners.delete(listener);
+	};
+}
+
+export function getDocuments(): SharedFileDocument[] {
+	return Array.from(entries.values(), createHandle);
+}
+
+function notifyDocuments(): void {
+	for (const listener of documentListeners) listener();
+}
 
 function key(workspaceId: string, absolutePath: string): string {
 	return `${workspaceId}:${absolutePath}`;
@@ -45,6 +61,16 @@ function notify(entry: DocumentEntry): void {
 	for (const listener of entry.subscribers) {
 		listener();
 	}
+	if (
+		entry.refCount <= 0 &&
+		!computeDirty(entry) &&
+		!entry.orphaned &&
+		!entry.pendingSave &&
+		entries.get(key(entry.workspaceId, entry.absolutePath)) === entry
+	) {
+		entries.delete(key(entry.workspaceId, entry.absolutePath));
+	}
+	notifyDocuments();
 }
 
 function computeDirty(entry: DocumentEntry): boolean {
@@ -370,6 +396,7 @@ export function acquireDocument(
 		void loadEntry(entry);
 	}
 	entry.refCount += 1;
+	notifyDocuments();
 	return createHandle(entry);
 }
 
@@ -381,8 +408,15 @@ export function releaseDocument(
 	const entry = entries.get(k);
 	if (!entry) return;
 	entry.refCount -= 1;
-	if (entry.refCount <= 0 && !computeDirty(entry) && !entry.orphaned) {
+	if (
+		entry.refCount <= 0 &&
+		!computeDirty(entry) &&
+		!entry.orphaned &&
+		!entry.pendingSave &&
+		entries.get(k) === entry
+	) {
 		entries.delete(k);
+		notifyDocuments();
 	}
 }
 

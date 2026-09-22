@@ -1,4 +1,3 @@
-import type { FileAutoSaveMode } from "@superset/local-db";
 import type { RendererContext } from "@superset/panes";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
@@ -7,14 +6,13 @@ import { useCallback, useEffect } from "react";
 import { FileSaveConflictDialog } from "renderer/components/FileSaveConflictDialog";
 import { MarkdownResourceProvider } from "renderer/components/MarkdownRenderer/providers/MarkdownResourceProvider";
 import type { LinkAction } from "renderer/lib/clickPolicy";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getPathDirectory } from "shared/absolute-paths";
 import { useStore } from "zustand";
-import type { SharedFileDocument } from "../../../../state/fileDocumentStore";
 import {
 	decodeBase64,
 	useSharedFileDocument,
 } from "../../../../state/fileDocumentStore";
+import { fileAutoSave } from "../../../../state/fileDocumentStore/fileAutoSave";
 import type { FilePaneData, PaneViewerData } from "../../../../types";
 import { runUrlLinkAction } from "../../utils/runTerminalLinkAction";
 import { ErrorState } from "./components/ErrorState";
@@ -27,28 +25,6 @@ import { resolveActivePaneView } from "./registry";
 interface FilePaneProps {
 	context: RendererContext<PaneViewerData>;
 	workspaceId: string;
-}
-
-export function useDelayedFileAutoSave(
-	document: SharedFileDocument,
-	fileAutoSave: FileAutoSaveMode,
-) {
-	const currentContent =
-		document.content.kind === "text" ? document.content.value : null;
-
-	useEffect(() => {
-		if (
-			fileAutoSave !== "afterDelay" ||
-			currentContent === null ||
-			!document.dirty ||
-			document.pendingSave
-		) {
-			return;
-		}
-
-		const timeout = window.setTimeout(() => void document.save(), 3000);
-		return () => window.clearTimeout(timeout);
-	}, [currentContent, document, document.pendingSave, fileAutoSave]);
 }
 
 export function FilePane({ context, workspaceId }: FilePaneProps) {
@@ -64,19 +40,6 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 		workspaceId,
 		absolutePath: filePath,
 	});
-	const { data: fileAutoSave = "off" } =
-		electronTrpc.settings.getFileAutoSave.useQuery();
-	useDelayedFileAutoSave(document, fileAutoSave);
-
-	useEffect(() => {
-		if (fileAutoSave !== "onWindowChange") return;
-
-		const save = () => {
-			if (document.dirty && !document.pendingSave) void document.save();
-		};
-		window.addEventListener("blur", save);
-		return () => window.removeEventListener("blur", save);
-	}, [document, fileAutoSave]);
 
 	// Images a markdown file points at load through the workspace
 	// filesystem, so they work for cloud sandboxes and never put a raw path
@@ -188,21 +151,16 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 
 	const ViewRenderer = activeView.Renderer;
 
-  return (
-    <div
-      className="flex h-full w-full flex-col"
-      onBlurCapture={(event) => {
-        if (
-          fileAutoSave === "onFocusChange" &&
-          !event.currentTarget.contains(event.relatedTarget as Node) &&
-          document.dirty &&
-          !document.pendingSave
-        ) {
-          void document.save();
-        }
-      }}
-    >
-      <FileSaveConflictDialog
+	return (
+		<div
+			className="flex h-full w-full flex-col"
+			onBlurCapture={(event) => {
+				if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+					fileAutoSave.onFocusChange(document);
+				}
+			}}
+		>
+			<FileSaveConflictDialog
 				open={document.conflict !== null && context.isActive && isActiveTab}
 				filePath={filePath}
 				localContent={
@@ -217,11 +175,11 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 				onReloadFromDisk={() => void document.resolveConflict("reload")}
 				onOverwrite={() => void document.resolveConflict("overwrite")}
 			/>
-      {document.hasExternalChange && !document.orphaned && (
-        <ExternalChangeBanner
-          onCompare={() => void document.compareWithDisk()}
-        />
-      )}
+			{document.hasExternalChange && !document.orphaned && (
+				<ExternalChangeBanner
+					onCompare={() => void document.compareWithDisk()}
+				/>
+			)}
 			{document.orphaned && (
 				<OrphanedBanner
 					dirty={document.dirty}
