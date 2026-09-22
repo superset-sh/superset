@@ -5377,6 +5377,9 @@ msgstr "Discord、GitHub、オフィスアワー。"
 msgid "Discover and connect to development servers on your network."
 msgstr "ネットワーク上の開発サーバーを検出して接続します。"
 
+msgid "Disk version"
+msgstr "ディスク上のバージョン"
+
 msgid "Dismiss"
 msgstr "閉じる"
 
@@ -6561,6 +6564,9 @@ msgstr "チケットを起票すれば、検証済みでマージ可能なPRが�
 
 msgid "File actions"
 msgstr "ファイルの操作"
+
+msgid "File changed on disk"
+msgstr "ディスク上のファイルが変更されました"
 
 msgid "File is too large to preview"
 msgstr "ファイルが大きすぎてプレビューできません"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "ドキュメントを最新に保つ"
+
+msgid "Keep editing"
+msgstr "編集を続ける"
 
 msgid "Keep waiting"
 msgstr "待ち続ける"
@@ -10823,6 +10832,9 @@ msgstr "夜間や週末の実行が無人で完了し、朝にはマージでき
 msgid "Overview"
 msgstr "概要"
 
+msgid "Overwrite file"
+msgstr "ファイルを上書き"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "{0} が所有 — このオートメーションを編集できるのは所有者のみです。"
@@ -11945,11 +11957,17 @@ msgstr "再読み込み"
 msgid "Reload app"
 msgstr "アプリを再読み込み"
 
+msgid "Reload from disk"
+msgstr "ディスクから再読み込み"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Supersetを再読み込みしてワークスペース一覧を更新してください。"
 
 msgid "Reload window"
 msgstr "ウィンドウを再読み込み"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "再読み込みすると編集内容が破棄されます。上書きするとディスク上のファイルが置き換えられます。"
 
 msgid "Relocate"
 msgstr "移動"
@@ -17146,6 +17164,9 @@ msgstr "エージェントもアカウントも、あなたのもの"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "お使いのブラウザはチップの種類を報告しないため、これはApple Silicon版です。IntelのMacをお使いの場合は、代わりに<0>Intel版を入手</0>してください。"
+
+msgid "Your changes"
+msgstr "編集中の内容"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "保存しないと変更は失われます。"

@@ -5377,6 +5377,9 @@ msgstr "Discord, GitHub und Office Hours."
 msgid "Discover and connect to development servers on your network."
 msgstr "Entwicklungsserver in deinem Netzwerk finden und dich mit ihnen verbinden."
 
+msgid "Disk version"
+msgstr "Version auf dem Datenträger"
+
 msgid "Dismiss"
 msgstr "Schließen"
 
@@ -6561,6 +6564,9 @@ msgstr "Ticket einreichen, verifizierten, merge-fertigen PR zurückbekommen — 
 
 msgid "File actions"
 msgstr "Dateiaktionen"
+
+msgid "File changed on disk"
+msgstr "Datei auf dem Datenträger wurde geändert"
 
 msgid "File is too large to preview"
 msgstr "Die Datei ist zu groß für eine Vorschau"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Doku aktuell halten"
+
+msgid "Keep editing"
+msgstr "Weiter bearbeiten"
 
 msgid "Keep waiting"
 msgstr "Weiter warten"
@@ -10823,6 +10832,9 @@ msgstr "Läufe über Nacht und am Wochenende laufen unbeaufsichtigt durch und si
 msgid "Overview"
 msgstr "Überblick"
 
+msgid "Overwrite file"
+msgstr "Datei überschreiben"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Gehört {0} — nur diese Person kann diese Automatisierung bearbeiten."
@@ -11945,11 +11957,17 @@ msgstr "Neu laden"
 msgid "Reload app"
 msgstr "App neu laden"
 
+msgid "Reload from disk"
+msgstr "Vom Datenträger neu laden"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Lade Superset neu, um die Liste der Arbeitsbereiche zu aktualisieren."
 
 msgid "Reload window"
 msgstr "Fenster neu laden"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Beim Neuladen werden deine Änderungen verworfen. Beim Überschreiben wird die Datei auf dem Datenträger ersetzt."
 
 msgid "Relocate"
 msgstr "Verschieben"
@@ -17146,6 +17164,9 @@ msgstr "Deine Agenten, deine Konten"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Dein Browser meldet nicht, welchen Chip du hast, daher ist dies der Apple-Silicon-Build. Auf einem Intel-Mac solltest du stattdessen <0>den Intel-Build laden</0>."
+
+msgid "Your changes"
+msgstr "Deine Änderungen"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Deine Änderungen gehen verloren, wenn du sie nicht speicherst."

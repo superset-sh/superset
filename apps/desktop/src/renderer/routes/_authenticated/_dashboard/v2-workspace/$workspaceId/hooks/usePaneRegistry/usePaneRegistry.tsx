@@ -260,6 +260,7 @@ export function usePaneRegistry({
 					const name = getFileName(data.filePath);
 					return new Promise<boolean>((resolve) => {
 						alert({
+							onDismiss: () => resolve(false),
 							title: t({
 								message: `Do you want to save the changes you made to ${name}?`,
 							}),
@@ -278,6 +279,14 @@ export function usePaneRegistry({
 											return;
 										}
 										const result = await doc.save();
+										if (result.status !== "saved") {
+											const target = store.getState().getPane(pane.id);
+											if (target)
+												store.getState().setActivePane({
+													tabId: target.tabId,
+													paneId: pane.id,
+												});
+										}
 										// Only proceed to close if the save succeeded; otherwise
 										// leave the pane open so the user can see the conflict /
 										// error state and retry.

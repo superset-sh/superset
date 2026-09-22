@@ -5377,6 +5377,9 @@ msgstr "Discord, GitHub và giờ trao đổi."
 msgid "Discover and connect to development servers on your network."
 msgstr "Phát hiện và kết nối tới các server phát triển trong mạng của bạn."
 
+msgid "Disk version"
+msgstr "Phiên bản trên đĩa"
+
 msgid "Dismiss"
 msgstr "Bỏ qua"
 
@@ -6561,6 +6564,9 @@ msgstr "Tạo một ticket, nhận lại một PR đã kiểm chứng và sẵn 
 
 msgid "File actions"
 msgstr "Hành động tệp"
+
+msgid "File changed on disk"
+msgstr "Tệp trên đĩa đã thay đổi"
 
 msgid "File is too large to preview"
 msgstr "Tệp quá lớn để xem trước"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Giữ tài liệu luôn mới"
+
+msgid "Keep editing"
+msgstr "Tiếp tục chỉnh sửa"
 
 msgid "Keep waiting"
 msgstr "Tiếp tục chờ"
@@ -10823,6 +10832,9 @@ msgstr "Các lần chạy qua đêm và cuối tuần hoàn tất không cần g
 msgid "Overview"
 msgstr "Tổng quan"
 
+msgid "Overwrite file"
+msgstr "Ghi đè tệp"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Thuộc sở hữu của {0} — chỉ họ mới sửa được tự động hóa này."
@@ -11945,11 +11957,17 @@ msgstr "Tải lại"
 msgid "Reload app"
 msgstr "Tải lại ứng dụng"
 
+msgid "Reload from disk"
+msgstr "Tải lại từ đĩa"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Tải lại Superset để làm mới danh sách workspace."
 
 msgid "Reload window"
 msgstr "Tải lại cửa sổ"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Tải lại sẽ loại bỏ các chỉnh sửa của bạn. Ghi đè sẽ thay thế tệp trên đĩa."
 
 msgid "Relocate"
 msgstr "Chuyển vị trí"
@@ -17146,6 +17164,9 @@ msgstr "Agent của bạn, tài khoản của bạn"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Trình duyệt của bạn không cho biết bạn đang dùng chip nào, nên đây là bản build Apple Silicon. Nếu dùng máy Mac Intel, hãy <0>tải bản build Intel</0> thay thế."
+
+msgid "Your changes"
+msgstr "Các thay đổi của bạn"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Thay đổi của bạn sẽ mất nếu không lưu."

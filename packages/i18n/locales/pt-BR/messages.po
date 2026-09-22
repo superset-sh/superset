@@ -5377,6 +5377,9 @@ msgstr "Discord, GitHub e horários de plantão."
 msgid "Discover and connect to development servers on your network."
 msgstr "Descobrir e conectar a servidores de desenvolvimento na sua rede."
 
+msgid "Disk version"
+msgstr "Versão no disco"
+
 msgid "Dismiss"
 msgstr "Dispensar"
 
@@ -6561,6 +6564,9 @@ msgstr "Abra um ticket e receba de volta um PR verificado e pronto para merge, c
 
 msgid "File actions"
 msgstr "Ações do arquivo"
+
+msgid "File changed on disk"
+msgstr "O arquivo foi alterado no disco"
 
 msgid "File is too large to preview"
 msgstr "O arquivo é grande demais para pré-visualizar"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Manter a documentação em dia"
+
+msgid "Keep editing"
+msgstr "Continuar editando"
 
 msgid "Keep waiting"
 msgstr "Continuar esperando"
@@ -10823,6 +10832,9 @@ msgstr "Execuções noturnas e de fim de semana terminam sem supervisão e ficam
 msgid "Overview"
 msgstr "Visão geral"
 
+msgid "Overwrite file"
+msgstr "Sobrescrever arquivo"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Pertence a {0} — só essa pessoa pode editar esta automação."
@@ -11945,11 +11957,17 @@ msgstr "Recarregar"
 msgid "Reload app"
 msgstr "Recarregar o app"
 
+msgid "Reload from disk"
+msgstr "Recarregar do disco"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Recarregue o Superset para atualizar a lista de áreas de trabalho."
 
 msgid "Reload window"
 msgstr "Recarregar a janela"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Recarregar descarta suas edições. Sobrescrever substitui o arquivo no disco."
 
 msgid "Relocate"
 msgstr "Mover"
@@ -17146,6 +17164,9 @@ msgstr "Seus agentes, suas contas"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Seu navegador não informa qual chip você tem, então esta é a build para Apple Silicon. Em um Mac com Intel, prefira <0>baixar a build para Intel</0>."
+
+msgid "Your changes"
+msgstr "Suas alterações"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Suas alterações serão perdidas se você não salvar."

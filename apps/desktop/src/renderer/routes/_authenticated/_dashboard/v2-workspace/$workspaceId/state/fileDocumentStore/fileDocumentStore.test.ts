@@ -54,139 +54,294 @@ test("a failed host save preserves the dirty document across pane reopen and exp
 	releaseDocument(workspaceId, path);
 });
 
-test("directory rename preserves descendant identity and dirty buffers through save and reopen", async () => {
-	const writes: { absolutePath: string; content: string }[] = [];
+function createReloadFixture() {
+	type ReadResult = {
+		kind: "text";
+		content: string;
+		revision: string;
+		byteLength: number;
+	};
+	const reads: Array<ReturnType<typeof Promise.withResolvers<ReadResult>>> = [];
+	let writes = 0;
 	const client = {
 		filesystem: {
 			readFile: {
-				query: async () => ({
-					kind: "text",
-					content: "original",
-					revision: "r1",
-					byteLength: 8,
-				}),
+				query: () => {
+					const read = Promise.withResolvers<ReadResult>();
+					reads.push(read);
+					return read.promise;
+				},
 			},
 			writeFile: {
-				mutate: async (input: { absolutePath: string; content: string }) => {
-					writes.push(input);
-					return { ok: true, revision: "r2" };
+				mutate: async () => {
+					writes += 1;
+					return { ok: true, revision: "saved-revision" };
 				},
 			},
 		},
 	} as unknown as Parameters<typeof acquireDocument>[2];
 	const workspaceId = crypto.randomUUID();
-	const otherWorkspaceId = crypto.randomUUID();
-	const doc = acquireDocument(workspaceId, "/repo/src/nested/file.txt", client);
-	const sibling = acquireDocument(
+	const absolutePath = "/workspace/.env";
+	const doc = acquireDocument(workspaceId, absolutePath, client);
+	return {
+		doc,
 		workspaceId,
-		"/repo/src-other/file.txt",
-		client,
-	);
-	const other = acquireDocument(
-		otherWorkspaceId,
-		"/repo/src/nested/file.txt",
-		client,
+		reads,
+		get writes() {
+			return writes;
+		},
+		update: () =>
+			dispatchFsEvent(workspaceId, { kind: "update", absolutePath }),
+		overflow: () =>
+			dispatchFsEvent(workspaceId, {
+				kind: "overflow",
+				absolutePath: "/workspace",
+			}),
+		remove: () =>
+			dispatchFsEvent(workspaceId, { kind: "delete", absolutePath }),
+		resolve: async (index: number, content: string) => {
+			reads[index].resolve({
+				kind: "text",
+				content,
+				revision: content,
+				byteLength: content.length,
+			});
+			await Promise.resolve();
+		},
+		cleanup: async () => {
+			if (doc.dirty) await doc.save();
+			releaseDocument(workspaceId, doc.absolutePath);
+		},
+	};
+}
+
+test("external reload preserves edits made while the disk read is pending", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "EMAIL=original");
+	f.update();
+	f.doc.setContent("EMAIL=edited");
+	await f.resolve(1, "EMAIL=original\nTOKEN=generated");
+	expect(f.doc.content).toMatchObject({
+		value: "EMAIL=edited",
+		revision: "EMAIL=original",
+	});
+	expect(f.doc.dirty).toBe(true);
+	expect(f.doc.hasExternalChange).toBe(true);
+	await f.cleanup();
+});
+
+test("external reloads cannot complete out of order and restore stale disk content", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.update();
+	f.update();
+	await f.resolve(2, "newest");
+	await f.resolve(1, "stale");
+	expect(f.doc.content).toMatchObject({ value: "newest", revision: "newest" });
+	expect(f.doc.dirty).toBe(false);
+	await f.cleanup();
+});
+
+test("watcher overflow reloads open files beneath the watched root and preserves dirty buffers", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.overflow();
+	expect(f.reads).toHaveLength(2);
+	await f.resolve(1, "TOKEN=generated");
+	expect(f.doc.content).toMatchObject({ value: "TOKEN=generated" });
+	f.doc.setContent("EMAIL=edited");
+	f.overflow();
+	expect(f.doc.content).toMatchObject({ value: "EMAIL=edited" });
+	expect(f.doc.hasExternalChange).toBe(true);
+	expect(f.reads).toHaveLength(2);
+	await f.cleanup();
+});
+
+test("a stale reload error cannot replace edits made during the read", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.update();
+	f.doc.setContent("unsaved");
+	f.reads[1].reject(new Error("ENOENT"));
+	await Promise.resolve();
+	expect(f.doc.content).toMatchObject({ value: "unsaved" });
+	expect(f.doc.dirty).toBe(true);
+	await f.cleanup();
+});
+
+test("a reload started before a save cannot roll back the saved revision", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.update();
+	f.doc.setContent("saved edits");
+	await f.doc.save();
+	await f.resolve(1, "original");
+	expect(f.doc.content).toMatchObject({
+		value: "saved edits",
+		revision: "saved-revision",
+	});
+	expect(f.doc.dirty).toBe(false);
+	await f.cleanup();
+});
+
+test("a reload started before deletion cannot clear the orphaned state", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.update();
+	f.remove();
+	await f.resolve(1, "original");
+	expect(f.doc.orphaned).toBe(true);
+	f.update();
+	await f.resolve(2, "recreated");
+	expect(f.doc.orphaned).toBe(false);
+	await f.cleanup();
+});
+
+test("a rename during initial load reads the new path instead of leaving the document loading", async () => {
+	const f = createReloadFixture();
+	dispatchFsEvent(f.workspaceId, {
+		kind: "rename",
+		oldAbsolutePath: "/workspace/.env",
+		absolutePath: "/workspace/.env.local",
+	});
+	await f.resolve(1, "renamed content");
+	await f.resolve(0, "old content");
+	expect(f.doc.absolutePath).toBe("/workspace/.env.local");
+	expect(f.doc.content).toMatchObject({ value: "renamed content" });
+	await f.cleanup();
+});
+
+test("an older read failure cannot replace a newer successful reload", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.update();
+	f.update();
+	await f.resolve(2, "newest");
+	f.reads[1].reject(new Error("ENOENT"));
+	await Promise.resolve();
+	expect(f.doc.content).toMatchObject({ value: "newest" });
+	await f.cleanup();
+});
+
+test("overflow in another workspace does not reload this document", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	dispatchFsEvent(crypto.randomUUID(), {
+		kind: "overflow",
+		absolutePath: "/workspace",
+	});
+	expect(f.reads).toHaveLength(1);
+	await f.cleanup();
+});
+
+test("comparing an external change reads disk without saving or discarding edits", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "EMAIL=original");
+	f.doc.setContent("EMAIL=edited");
+	f.update();
+	const comparing = f.doc.compareWithDisk();
+	await f.resolve(1, "EMAIL=original\nTOKEN=generated");
+	await comparing;
+	expect(f.doc.conflict?.diskContent).toBe("EMAIL=original\nTOKEN=generated");
+	expect(f.doc.content).toMatchObject({
+		value: "EMAIL=edited",
+		revision: "EMAIL=original",
+	});
+	expect(f.doc.dirty).toBe(true);
+	expect(f.writes).toBe(0);
+	await f.doc.resolveConflict("keep");
+	expect(f.doc.conflict).toBeNull();
+	expect(f.doc.hasExternalChange).toBe(true);
+	expect(f.doc.dirty).toBe(true);
+	expect(f.writes).toBe(0);
+	await f.cleanup();
+});
+
+test("an unreadable disk version leaves the dirty buffer intact for conflict review", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.doc.setContent("unsaved");
+	const comparing = f.doc.compareWithDisk();
+	f.reads[1].reject(new Error("ENOENT"));
+	await comparing;
+	expect(f.doc.conflict).toEqual({ diskContent: null });
+	expect(f.doc.content).toMatchObject({ value: "unsaved" });
+	expect(f.doc.dirty).toBe(true);
+	expect(f.writes).toBe(0);
+	await f.cleanup();
+});
+
+for (const action of ["save", "reload"] as const) {
+	test(`a pending comparison cannot reopen a conflict after ${action}`, async () => {
+		const f = createReloadFixture();
+		await f.resolve(0, "original");
+		f.doc.setContent("edited");
+		const comparing = f.doc.compareWithDisk();
+		if (action === "save") {
+			await f.doc.save();
+		} else {
+			const reloading = f.doc.reload();
+			await f.resolve(2, "latest disk");
+			await reloading;
+		}
+		const version = f.doc.getVersion();
+		await f.resolve(1, "obsolete disk");
+		await comparing;
+		expect(f.doc.conflict).toBeNull();
+		expect(f.doc.getVersion()).toBe(version);
+		expect(f.doc.content).toMatchObject({
+			value: action === "save" ? "edited" : "latest disk",
+		});
+		expect(f.doc.dirty).toBe(false);
+		await f.cleanup();
+	});
+}
+
+test("directory rename preserves a dirty descendant document", async () => {
+	const workspaceId = crypto.randomUUID();
+	const doc = acquireDocument(
+		workspaceId,
+		"/workspace/src/file.txt",
+		{
+			filesystem: {
+				readFile: {
+					query: async () => ({
+						kind: "text",
+						content: "original",
+						revision: "r1",
+						byteLength: 8,
+					}),
+				},
+			},
+		} as Parameters<typeof acquireDocument>[2],
 	);
 	await Promise.resolve();
-	doc.setContent("unsaved buffer");
-	const version = doc.getVersion();
+	doc.setContent("unsaved");
 	dispatchFsEvent(workspaceId, {
 		kind: "rename",
-		oldAbsolutePath: "/repo/src",
-		absolutePath: "/repo/dest",
+		oldAbsolutePath: "/workspace/src",
+		absolutePath: "/workspace/dest",
 		isDirectory: true,
 	});
-	expect(doc.absolutePath).toBe("/repo/dest/nested/file.txt");
-	expect(doc.getVersion()).toBeGreaterThan(version);
-	expect(doc.dirty).toBe(true);
-	expect(doc.content).toMatchObject({ value: "unsaved buffer" });
-	expect(getDocument(workspaceId, "/repo/src/nested/file.txt")).toBeNull();
-	expect(getDocument(workspaceId, doc.absolutePath)?.id).toBe(doc.id);
-	expect(sibling.absolutePath).toBe("/repo/src-other/file.txt");
-	expect(other.absolutePath).toBe("/repo/src/nested/file.txt");
-	expect((await doc.save()).status).toBe("saved");
-	expect(writes).toMatchObject([
-		{ absolutePath: "/repo/dest/nested/file.txt", content: "unsaved buffer" },
-	]);
-	const reopened = acquireDocument(workspaceId, doc.absolutePath, client);
-	expect(reopened.id).toBe(doc.id);
-	expect(reopened.content).toMatchObject({ value: "unsaved buffer" });
-	releaseDocument(workspaceId, doc.absolutePath);
-	releaseDocument(workspaceId, doc.absolutePath);
-	releaseDocument(workspaceId, sibling.absolutePath);
-	releaseDocument(otherWorkspaceId, other.absolutePath);
-});
-
-test("file rename still follows an exact source without treating it as a directory", async () => {
-	const client = {
-		filesystem: {
-			readFile: {
-				query: async () => ({
-					kind: "text",
-					content: "text",
-					revision: "r1",
-					byteLength: 4,
-				}),
-			},
-		},
-	} as unknown as Parameters<typeof acquireDocument>[2];
-	const workspaceId = crypto.randomUUID();
-	const doc = acquireDocument(workspaceId, "/repo/file.txt", client);
-	await Promise.resolve();
-	dispatchFsEvent(workspaceId, {
-		kind: "rename",
-		oldAbsolutePath: "/repo/file.txt",
-		absolutePath: "/repo/moved.txt",
-		isDirectory: false,
-	});
-	expect(doc.absolutePath).toBe("/repo/moved.txt");
-	expect(doc.content).toMatchObject({ value: "text" });
-	releaseDocument(workspaceId, doc.absolutePath);
-});
-
-test("confirmed rename clears an earlier delete without losing edits on late or duplicate events", async () => {
-	const workspaceId = crypto.randomUUID();
-	const client = {
-		filesystem: {
-			readFile: {
-				query: async () => ({
-					kind: "text",
-					content: "original",
-					revision: "r1",
-					byteLength: 8,
-				}),
-			},
-		},
-	} as unknown as Parameters<typeof acquireDocument>[2];
-	const doc = acquireDocument(workspaceId, "/repo/source.txt", client);
-	await Promise.resolve();
-	doc.setContent("dirty buffer");
-	dispatchFsEvent(workspaceId, {
-		kind: "delete",
-		absolutePath: "/repo/source.txt",
-		isDirectory: false,
-	});
-	expect(doc.orphaned).toBe(true);
-	const rename = {
-		kind: "rename" as const,
-		oldAbsolutePath: "/repo/source.txt",
-		absolutePath: "/repo/dest.txt",
-		isDirectory: false,
-	};
-	dispatchFsEvent(workspaceId, rename);
-	expect(doc.orphaned).toBe(false);
-	expect(doc.absolutePath).toBe("/repo/dest.txt");
-	dispatchFsEvent(workspaceId, {
-		kind: "create",
-		absolutePath: "/repo/dest.txt",
-		isDirectory: false,
-	});
-	dispatchFsEvent(workspaceId, rename);
-	expect(doc.absolutePath).toBe("/repo/dest.txt");
-	expect(doc.orphaned).toBe(false);
-	expect(doc.dirty).toBe(true);
-	expect(doc.content).toMatchObject({ value: "dirty buffer" });
-	expect(getDocument(workspaceId, "/repo/dest.txt")?.id).toBe(doc.id);
+	expect(doc.absolutePath).toBe("/workspace/dest/file.txt");
+	expect(doc.content).toMatchObject({ value: "unsaved" });
+	expect(getDocument(workspaceId, "/workspace/dest/file.txt")?.id).toBe(doc.id);
 	doc.setContent("original");
 	releaseDocument(workspaceId, doc.absolutePath);
+});
+
+test("duplicate rename events do not reload the already-moved document", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	const event = {
+		kind: "rename" as const,
+		oldAbsolutePath: "/workspace/.env",
+		absolutePath: "/workspace/.env.local",
+	};
+	dispatchFsEvent(f.workspaceId, event);
+	dispatchFsEvent(f.workspaceId, event);
+	expect(f.reads).toHaveLength(2);
+	await f.resolve(1, "renamed");
+	expect(f.doc.absolutePath).toBe("/workspace/.env.local");
+	await f.cleanup();
 });

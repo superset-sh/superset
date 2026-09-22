@@ -5377,6 +5377,9 @@ msgstr "Discord, GitHub en spreekuren."
 msgid "Discover and connect to development servers on your network."
 msgstr "Ontwikkelservers op je netwerk vinden en ermee verbinden."
 
+msgid "Disk version"
+msgstr "Versie op schijf"
+
 msgid "Dismiss"
 msgstr "Sluiten"
 
@@ -6561,6 +6564,9 @@ msgstr "Dien een ticket in en krijg een geverifieerde, merge-klare PR terug, met
 
 msgid "File actions"
 msgstr "Bestandsacties"
+
+msgid "File changed on disk"
+msgstr "Bestand op schijf is gewijzigd"
 
 msgid "File is too large to preview"
 msgstr "Bestand is te groot voor een voorbeeld"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Docs actueel houden"
+
+msgid "Keep editing"
+msgstr "Verder bewerken"
 
 msgid "Keep waiting"
 msgstr "Blijven wachten"
@@ -10823,6 +10832,9 @@ msgstr "Runs 's nachts en in het weekend voltooien onbewaakt en zijn 's ochtends
 msgid "Overview"
 msgstr "Overzicht"
 
+msgid "Overwrite file"
+msgstr "Bestand overschrijven"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Eigendom van {0} — alleen die persoon kan deze automatisering bewerken."
@@ -11945,11 +11957,17 @@ msgstr "Herladen"
 msgid "Reload app"
 msgstr "App herladen"
 
+msgid "Reload from disk"
+msgstr "Opnieuw laden vanaf schijf"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Herlaad Superset om de lijst met werkruimtes te verversen."
 
 msgid "Reload window"
 msgstr "Venster herladen"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Opnieuw laden verwerpt je bewerkingen. Overschrijven vervangt het bestand op schijf."
 
 msgid "Relocate"
 msgstr "Verplaatsen"
@@ -17146,6 +17164,9 @@ msgstr "Jouw agents, jouw accounts"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Je browser geeft niet door welke chip je hebt, dus dit is de Apple Silicon-build. Heb je een Intel-Mac, <0>download dan de Intel-build</0>."
+
+msgid "Your changes"
+msgstr "Jouw wijzigingen"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Je wijzigingen gaan verloren als je ze niet opslaat."

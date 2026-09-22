@@ -5377,6 +5377,9 @@ msgstr "Discord, GitHub i dyżury."
 msgid "Discover and connect to development servers on your network."
 msgstr "Wykrywanie serwerów deweloperskich w sieci i łączenie się z nimi."
 
+msgid "Disk version"
+msgstr "Wersja na dysku"
+
 msgid "Dismiss"
 msgstr "Zamknij"
 
@@ -6561,6 +6564,9 @@ msgstr "Zgłoś ticket, odbierz zweryfikowany PR gotowy do scalenia, ze zrzutami
 
 msgid "File actions"
 msgstr "Akcje pliku"
+
+msgid "File changed on disk"
+msgstr "Plik na dysku został zmieniony"
 
 msgid "File is too large to preview"
 msgstr "Plik jest za duży, aby go podejrzeć"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Utrzymuj dokumentację aktualną"
+
+msgid "Keep editing"
+msgstr "Kontynuuj edycję"
 
 msgid "Keep waiting"
 msgstr "Czekaj dalej"
@@ -10823,6 +10832,9 @@ msgstr "Uruchomienia nocne i weekendowe kończą się bez nadzoru i rano nadają
 msgid "Overview"
 msgstr "Przegląd"
 
+msgid "Overwrite file"
+msgstr "Nadpisz plik"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Właściciel: {0} — tylko ta osoba może edytować tę automatyzację."
@@ -11945,11 +11957,17 @@ msgstr "Odśwież"
 msgid "Reload app"
 msgstr "Przeładuj aplikację"
 
+msgid "Reload from disk"
+msgstr "Wczytaj ponownie z dysku"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Przeładuj Superset, aby odświeżyć listę obszarów roboczych."
 
 msgid "Reload window"
 msgstr "Przeładuj okno"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Ponowne wczytanie odrzuca Twoje zmiany. Nadpisanie zastępuje plik na dysku."
 
 msgid "Relocate"
 msgstr "Przenieś"
@@ -17146,6 +17164,9 @@ msgstr "Twoi agenci, Twoje konta"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Twoja przeglądarka nie zgłasza, jaki masz procesor, więc to jest kompilacja dla Apple Silicon. Na Macu z procesorem Intel <0>pobierz kompilację dla Intela</0>."
+
+msgid "Your changes"
+msgstr "Twoje zmiany"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Twoje zmiany zostaną utracone, jeśli ich nie zapiszesz."

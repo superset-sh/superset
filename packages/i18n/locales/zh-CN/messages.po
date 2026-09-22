@@ -5377,6 +5377,9 @@ msgstr "Discord、GitHub和线上答疑。"
 msgid "Discover and connect to development servers on your network."
 msgstr "发现并连接你网络中的开发服务器。"
 
+msgid "Disk version"
+msgstr "磁盘版本"
+
 msgid "Dismiss"
 msgstr "忽略"
 
@@ -6561,6 +6564,9 @@ msgstr "提一个工单，拿回一个已验证、可直接合并的PR，并附�
 
 msgid "File actions"
 msgstr "文件操作"
+
+msgid "File changed on disk"
+msgstr "磁盘上的文件已更改"
 
 msgid "File is too large to preview"
 msgstr "文件过大，无法预览"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "让文档保持最新"
+
+msgid "Keep editing"
+msgstr "继续编辑"
 
 msgid "Keep waiting"
 msgstr "继续等待"
@@ -10823,6 +10832,9 @@ msgstr "通宵和周末的运行无人值守也能完成，早上即可合并。
 msgid "Overview"
 msgstr "概览"
 
+msgid "Overwrite file"
+msgstr "覆盖文件"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "归{0}所有，只有本人能编辑这个自动化。"
@@ -11945,11 +11957,17 @@ msgstr "重新加载"
 msgid "Reload app"
 msgstr "重新加载应用"
 
+msgid "Reload from disk"
+msgstr "从磁盘重新加载"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "重新加载Superset以刷新工作区列表。"
 
 msgid "Reload window"
 msgstr "重新加载窗口"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "重新加载将丢弃你的编辑。覆盖将替换磁盘上的文件。"
 
 msgid "Relocate"
 msgstr "迁移"
@@ -17146,6 +17164,9 @@ msgstr "你的智能体，你的账号"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "你的浏览器未报告芯片类型，因此这是 Apple Silicon 版本。如果你使用 Intel Mac，请改为<0>获取 Intel 版本</0>。"
+
+msgid "Your changes"
+msgstr "你的更改"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "如果不保存，你的更改将会丢失。"

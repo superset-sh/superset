@@ -5377,6 +5377,9 @@ msgstr "Discord, GitHub, dan office hours."
 msgid "Discover and connect to development servers on your network."
 msgstr "Menemukan dan terhubung ke server pengembangan di jaringan Anda."
 
+msgid "Disk version"
+msgstr "Versi di disk"
+
 msgid "Dismiss"
 msgstr "Tutup"
 
@@ -6561,6 +6564,9 @@ msgstr "Buat tiket, dapatkan PR terverifikasi yang siap di-merge, lengkap dengan
 
 msgid "File actions"
 msgstr "Aksi file"
+
+msgid "File changed on disk"
+msgstr "File di disk telah berubah"
 
 msgid "File is too large to preview"
 msgstr "File terlalu besar untuk dipratinjau"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Jaga dokumentasi tetap segar"
+
+msgid "Keep editing"
+msgstr "Lanjutkan mengedit"
 
 msgid "Keep waiting"
 msgstr "Tunggu saja"
@@ -10823,6 +10832,9 @@ msgstr "Run semalaman dan akhir pekan selesai tanpa pengawasan dan siap di-merge
 msgid "Overview"
 msgstr "Ikhtisar"
 
+msgid "Overwrite file"
+msgstr "Timpa file"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Dimiliki oleh {0} — hanya dia yang bisa mengedit otomatisasi ini."
@@ -11945,11 +11957,17 @@ msgstr "Muat ulang"
 msgid "Reload app"
 msgstr "Muat ulang aplikasi"
 
+msgid "Reload from disk"
+msgstr "Muat ulang dari disk"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Muat ulang Superset untuk menyegarkan daftar workspace."
 
 msgid "Reload window"
 msgstr "Muat ulang jendela"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Memuat ulang akan membuang editan Anda. Menimpa akan mengganti file di disk."
 
 msgid "Relocate"
 msgstr "Pindahkan"
@@ -17146,6 +17164,9 @@ msgstr "Agen Anda, Akun Anda"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Browser Anda tidak melaporkan chip yang Anda gunakan, jadi ini adalah build Apple Silicon. Pada Mac dengan Intel, <0>ambil build Intel</0> sebagai gantinya."
+
+msgid "Your changes"
+msgstr "Perubahan Anda"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Perubahan Anda akan hilang kalau tidak disimpan."

@@ -5377,6 +5377,9 @@ msgstr "Discord, GitHub et permanences."
 msgid "Discover and connect to development servers on your network."
 msgstr "Découvrir les serveurs de développement de votre réseau et s'y connecter."
 
+msgid "Disk version"
+msgstr "Version sur le disque"
+
 msgid "Dismiss"
 msgstr "Ignorer"
 
@@ -6561,6 +6564,9 @@ msgstr "Déposez un ticket, recevez une pull request vérifiée et prête à fus
 
 msgid "File actions"
 msgstr "Actions sur le fichier"
+
+msgid "File changed on disk"
+msgstr "Le fichier a changé sur le disque"
 
 msgid "File is too large to preview"
 msgstr "Le fichier est trop volumineux pour être prévisualisé"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Garder la documentation à jour"
+
+msgid "Keep editing"
+msgstr "Continuer à modifier"
 
 msgid "Keep waiting"
 msgstr "Continuer à attendre"
@@ -10823,6 +10832,9 @@ msgstr "Les exécutions de nuit et de week-end se terminent sans surveillance et
 msgid "Overview"
 msgstr "Vue d'ensemble"
 
+msgid "Overwrite file"
+msgstr "Écraser le fichier"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Détenue par {0} — seul lui peut modifier cette automatisation."
@@ -11945,11 +11957,17 @@ msgstr "Recharger"
 msgid "Reload app"
 msgstr "Recharger l'application"
 
+msgid "Reload from disk"
+msgstr "Recharger depuis le disque"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Rechargez Superset pour actualiser la liste des espaces de travail."
 
 msgid "Reload window"
 msgstr "Recharger la fenêtre"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Le rechargement abandonne vos modifications. L’écrasement remplace le fichier sur le disque."
 
 msgid "Relocate"
 msgstr "Déplacer"
@@ -17146,6 +17164,9 @@ msgstr "Vos agents, vos comptes"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Votre navigateur n'indique pas quelle puce vous avez : il s'agit donc de la version Apple Silicon. Sur un Mac Intel, préférez <0>la version Intel</0>."
+
+msgid "Your changes"
+msgstr "Vos modifications"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Vos modifications seront perdues si vous ne les enregistrez pas."

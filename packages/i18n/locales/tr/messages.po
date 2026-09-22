@@ -5377,6 +5377,9 @@ msgstr "Discord, GitHub ve ofis saatleri."
 msgid "Discover and connect to development servers on your network."
 msgstr "Ağınızdaki geliştirme sunucularını bulun ve bağlanın."
 
+msgid "Disk version"
+msgstr "Diskteki sürüm"
+
 msgid "Dismiss"
 msgstr "Kapat"
 
@@ -6561,6 +6564,9 @@ msgstr "Bir bilet açın, değişikliğin çalıştığının kanıtı olarak ek
 
 msgid "File actions"
 msgstr "Dosya eylemleri"
+
+msgid "File changed on disk"
+msgstr "Diskteki dosya değişti"
 
 msgid "File is too large to preview"
 msgstr "Dosya önizlenemeyecek kadar büyük"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Belgeleri güncel tut"
+
+msgid "Keep editing"
+msgstr "Düzenlemeye devam et"
 
 msgid "Keep waiting"
 msgstr "Beklemeye devam et"
@@ -10823,6 +10832,9 @@ msgstr "Gece ve hafta sonu çalıştırmaları gözetimsiz tamamlanır ve sabaha
 msgid "Overview"
 msgstr "Genel bakış"
 
+msgid "Overwrite file"
+msgstr "Dosyanın üzerine yaz"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Sahibi: {0} — bu otomasyonu yalnızca o düzenleyebilir."
@@ -11945,11 +11957,17 @@ msgstr "Yeniden yükle"
 msgid "Reload app"
 msgstr "Uygulamayı yeniden yükle"
 
+msgid "Reload from disk"
+msgstr "Diskten yeniden yükle"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Çalışma alanı listesini yenilemek için Superset'i yeniden yükleyin."
 
 msgid "Reload window"
 msgstr "Pencereyi yeniden yükle"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Yeniden yükleme düzenlemelerinizi siler. Üzerine yazma diskteki dosyayı değiştirir."
 
 msgid "Relocate"
 msgstr "Taşı"
@@ -17146,6 +17164,9 @@ msgstr "Sizin ajanlarınız, sizin hesaplarınız"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Tarayıcınız hangi yongaya sahip olduğunuzu bildirmediğinden bu, Apple Silicon derlemesidir. Intel Mac kullanıyorsanız bunun yerine <0>Intel derlemesini indirin</0>."
+
+msgid "Your changes"
+msgstr "Değişiklikleriniz"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Kaydetmezseniz değişiklikleriniz kaybolur."

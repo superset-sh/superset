@@ -5377,6 +5377,9 @@ msgstr "Discord, GitHub, 오피스 아워."
 msgid "Discover and connect to development servers on your network."
 msgstr "네트워크에 있는 개발 서버를 찾아 연결합니다."
 
+msgid "Disk version"
+msgstr "디스크 버전"
+
 msgid "Dismiss"
 msgstr "닫기"
 
@@ -6561,6 +6564,9 @@ msgstr "티켓을 등록하면 검증된 머지 가능한 PR이 돌아옵니다.
 
 msgid "File actions"
 msgstr "파일 작업"
+
+msgid "File changed on disk"
+msgstr "디스크의 파일이 변경되었습니다"
 
 msgid "File is too large to preview"
 msgstr "파일이 너무 커서 미리 볼 수 없습니다"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "문서 최신 상태 유지"
+
+msgid "Keep editing"
+msgstr "계속 편집"
 
 msgid "Keep waiting"
 msgstr "계속 기다리기"
@@ -10823,6 +10832,9 @@ msgstr "야간과 주말 실행이 무인으로 완료되고 아침에 머지할
 msgid "Overview"
 msgstr "개요"
 
+msgid "Overwrite file"
+msgstr "파일 덮어쓰기"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "{0} 소유 — 소유자만 이 자동화를 편집할 수 있습니다."
@@ -11945,11 +11957,17 @@ msgstr "다시 로드"
 msgid "Reload app"
 msgstr "앱 다시 로드"
 
+msgid "Reload from disk"
+msgstr "디스크에서 다시 불러오기"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "워크스페이스 목록을 새로 고치려면 Superset을 다시 불러오세요."
 
 msgid "Reload window"
 msgstr "창 다시 로드"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "다시 불러오면 편집 내용이 삭제됩니다. 덮어쓰면 디스크의 파일이 바뀝니다."
 
 msgid "Relocate"
 msgstr "이동"
@@ -17146,6 +17164,9 @@ msgstr "당신의 에이전트, 당신의 계정"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "브라우저가 사용 중인 칩 정보를 제공하지 않아 Apple Silicon 빌드로 표시됩니다. Intel Mac이라면 대신 <0>Intel 빌드를 받으세요</0>."
+
+msgid "Your changes"
+msgstr "내 변경 내용"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "저장하지 않으면 변경 사항이 사라집니다."

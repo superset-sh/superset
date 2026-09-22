@@ -5377,6 +5377,9 @@ msgstr "Discord, GitHub y horario de consultas."
 msgid "Discover and connect to development servers on your network."
 msgstr "Descubrir servidores de desarrollo de tu red y conectarte a ellos."
 
+msgid "Disk version"
+msgstr "Versión en disco"
+
 msgid "Dismiss"
 msgstr "Descartar"
 
@@ -6561,6 +6564,9 @@ msgstr "Abre un ticket y recibe una PR verificada y lista para fusionar, con cap
 
 msgid "File actions"
 msgstr "Acciones de archivo"
+
+msgid "File changed on disk"
+msgstr "El archivo ha cambiado en disco"
 
 msgid "File is too large to preview"
 msgstr "El archivo es demasiado grande para previsualizarlo"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Mantener la documentación al día"
+
+msgid "Keep editing"
+msgstr "Seguir editando"
 
 msgid "Keep waiting"
 msgstr "Seguir esperando"
@@ -10823,6 +10832,9 @@ msgstr "Las ejecuciones nocturnas y de fin de semana terminan desatendidas y se 
 msgid "Overview"
 msgstr "Resumen"
 
+msgid "Overwrite file"
+msgstr "Sobrescribir archivo"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Pertenece a {0}: solo esa persona puede editar esta automatización."
@@ -11945,11 +11957,17 @@ msgstr "Recargar"
 msgid "Reload app"
 msgstr "Recargar la aplicación"
 
+msgid "Reload from disk"
+msgstr "Recargar desde el disco"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Recarga Superset para actualizar la lista de espacios de trabajo."
 
 msgid "Reload window"
 msgstr "Recargar la ventana"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Al recargar se descartan tus cambios. Al sobrescribir se reemplaza el archivo en disco."
 
 msgid "Relocate"
 msgstr "Mover"
@@ -17146,6 +17164,9 @@ msgstr "Tus agentes, tus cuentas"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Tu navegador no indica qué chip tienes, así que esta es la versión para Apple Silicon. Si tienes un Mac con Intel, <0>descarga la versión para Intel</0> en su lugar."
+
+msgid "Your changes"
+msgstr "Tus cambios"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Perderás los cambios si no los guardas."

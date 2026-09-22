@@ -5377,6 +5377,9 @@ msgstr "Discord, GitHub a konzultační hodiny."
 msgid "Discover and connect to development servers on your network."
 msgstr "Najít vývojové servery ve vaší síti a připojit se k nim."
 
+msgid "Disk version"
+msgstr "Verze na disku"
+
 msgid "Dismiss"
 msgstr "Zavřít"
 
@@ -6561,6 +6564,9 @@ msgstr "Založte ticket a dostanete zpět ověřený PR připravený ke sloučen
 
 msgid "File actions"
 msgstr "Akce souboru"
+
+msgid "File changed on disk"
+msgstr "Soubor na disku byl změněn"
 
 msgid "File is too large to preview"
 msgstr "Soubor je pro náhled příliš velký"
@@ -8019,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Udržovat dokumentaci aktuální"
+
+msgid "Keep editing"
+msgstr "Pokračovat v úpravách"
 
 msgid "Keep waiting"
 msgstr "Počkat dál"
@@ -10823,6 +10832,9 @@ msgstr "Noční a víkendové běhy doběhnou bez dozoru a ráno jsou připraven
 msgid "Overview"
 msgstr "Přehled"
 
+msgid "Overwrite file"
+msgstr "Přepsat soubor"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Vlastník: {0} — upravovat tuto automatizaci může jen vlastník."
@@ -11945,11 +11957,17 @@ msgstr "Načíst znovu"
 msgid "Reload app"
 msgstr "Načíst aplikaci znovu"
 
+msgid "Reload from disk"
+msgstr "Znovu načíst z disku"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Načtěte Superset znovu, aby se seznam pracovních prostorů obnovil."
 
 msgid "Reload window"
 msgstr "Načíst okno znovu"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Opětovné načtení zahodí vaše úpravy. Přepsání nahradí soubor na disku."
 
 msgid "Relocate"
 msgstr "Přesunout"
@@ -17146,6 +17164,9 @@ msgstr "Vaši agenti, vaše účty"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Váš prohlížeč neuvádí, jaký máte čip, takže toto je build pro Apple Silicon. Na Macu s procesorem Intel si místo toho <0>stáhněte build pro Intel</0>."
+
+msgid "Your changes"
+msgstr "Vaše změny"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Pokud změny neuložíte, budou ztraceny."
