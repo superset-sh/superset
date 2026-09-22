@@ -23,11 +23,14 @@ for (const exitCode of [0, 1])
 		);
 		const command = apiBillingLoginCommand("codex", `'${dir}'`);
 		const result = Bun.spawn(["/bin/bash", "-c", command], {
-			env: { ...process.env, PATH: `${dir}:${process.env.PATH}` },
-			stdin: new Blob(["fake-test-key\n"]),
+			env: { HOME: dir, PATH: `${dir}:/usr/bin:/bin` },
+			stdin: "pipe",
 			stdout: "pipe",
 			stderr: "pipe",
 		});
+		result.stdin.write("fake-test-key\n");
+		result.stdin.end();
+		expect(await new Response(result.stderr).text()).toBe("");
 		expect(await result.exited).toBe(exitCode);
 		expect(await new Response(result.stdout).text()).not.toContain(
 			"fake-test-key",
