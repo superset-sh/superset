@@ -4405,6 +4405,9 @@ msgstr "Nie udało się zaktualizować gałęzi"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Nie udało się zweryfikować poświadczeń: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Nie udało się zweryfikować sesji źródłowej. Otwórz ją ponownie i spróbuj jeszcze raz."
+
 msgid "Could not watch this page"
 msgstr "Nie udało się obserwować tej strony"
 
@@ -13362,6 +13365,9 @@ msgstr "Szczegóły sesji"
 msgid "Session ended"
 msgstr "Sesja zakończona"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "Identyfikator sesji jest niedostępny. Wyślij wiadomość do agenta i spróbuj ponownie."
+
 msgid "Session name"
 msgstr "Nazwa sesji"
 
@@ -15295,6 +15301,9 @@ msgstr "To konto {plugin} jest już połączone z inną organizacją Superset."
 
 msgid "This action is irreversible."
 msgstr "Tej operacji nie można cofnąć."
+
+msgid "This agent configuration does not support forking."
+msgstr "Ta konfiguracja agenta nie obsługuje forkowania sesji."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Ten agent już nie istnieje na wybranym urządzeniu (jego agenci mogli zostać zresetowani). Uruchomienia będą kończyć się błędem, dopóki nie wybierzesz nowego."

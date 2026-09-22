@@ -4405,6 +4405,9 @@ msgstr "Nepodařilo se aktualizovat větev"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Přihlašovací údaje se nepodařilo ověřit: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Zdrojovou relaci se nepodařilo ověřit. Znovu ji otevřete a zkuste to znovu."
+
 msgid "Could not watch this page"
 msgstr "Tuto stránku se nepodařilo sledovat"
 
@@ -13362,6 +13365,9 @@ msgstr "Podrobnosti relace"
 msgid "Session ended"
 msgstr "Relace skončila"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "ID relace není k dispozici. Pošlete agentovi zprávu a zkuste to znovu."
+
 msgid "Session name"
 msgstr "Název relace"
 
@@ -15295,6 +15301,9 @@ msgstr "Tento účet {plugin} už je připojený k jiné organizaci Supersetu."
 
 msgid "This action is irreversible."
 msgstr "Tuto akci nelze vrátit zpět."
+
+msgid "This agent configuration does not support forking."
+msgstr "Tato konfigurace agenta nepodporuje forkování relací."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Tento agent už na vybraném zařízení neexistuje (jeho agenti mohli být resetováni). Běhy budou selhávat, dokud nevyberete jiného."

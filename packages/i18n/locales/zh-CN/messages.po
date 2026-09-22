@@ -4405,6 +4405,9 @@ msgstr "无法更新分支"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "无法验证凭据：{reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "无法验证源会话。请重新打开后再试。"
+
 msgid "Could not watch this page"
 msgstr "无法关注此页面"
 
@@ -13362,6 +13365,9 @@ msgstr "会话详情"
 msgid "Session ended"
 msgstr "会话已结束"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "无法获取会话 ID。请向智能体发送一条消息，然后重试。"
+
 msgid "Session name"
 msgstr "会话名称"
 
@@ -15295,6 +15301,9 @@ msgstr "该 {plugin} 账户已被另一个 Superset 组织连接。"
 
 msgid "This action is irreversible."
 msgstr "此操作不可逆。"
+
+msgid "This agent configuration does not support forking."
+msgstr "此智能体配置不支持分叉会话。"
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "所选设备上已不存在这个智能体（它的智能体可能被重置过）。在你选择新的智能体之前，运行都会失败。"

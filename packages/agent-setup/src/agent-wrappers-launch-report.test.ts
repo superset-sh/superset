@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { getTemplatePath } from "./config";
 import { writeFileIfChanged } from "./write-file-if-changed";
 
 // No mock.module here on purpose: buildWrapperScript is pure string
@@ -26,7 +27,7 @@ interface Scenario {
  * Builds an isolated scenario: a fake agent binary on PATH, a fake
  * notify.sh that records its payload, and a generated wrapper for it.
  */
-function setupScenario(binaryBody: string): Scenario {
+function setupScenario(binaryBody: string, agentId = "testagent"): Scenario {
 	const root = mkdtempSync(path.join(tmpdir(), "wrapper-launch-report-"));
 	const binDir = path.join(root, "bin");
 	const supersetHome = path.join(root, "superset-home");
@@ -50,7 +51,7 @@ function setupScenario(binaryBody: string): Scenario {
 	writeFileIfChanged(
 		wrapperPath,
 		buildWrapperScript("testagent", `exec "$REAL_BIN" "$@"`, {
-			agentId: "testagent",
+			agentId,
 		}),
 		0o755,
 	);
@@ -155,4 +156,67 @@ describe("wrapper launch report", () => {
 		).toBeLessThan(withAgent.indexOf('exec "$REAL_BIN"'));
 		expect(withoutAgent).not.toContain("SessionStart");
 	});
+});
+
+describe("Codex resume launch report", () => {
+	it("binds only explicit resume UUIDs without interpreting prompts or fork sources as sessions", async () => {
+		const id = "01a0bfde-622a-7103-8cc3-ddb312e39832";
+		const cases: { args: string[]; sessionId?: string }[] = [
+			{ args: ["resume", id], sessionId: id },
+			{
+				args: ["-c", "check_for_update_on_startup=false", "resume", id],
+				sessionId: id,
+			},
+			{ args: ["--disable", "hooks", "resume", "--all", id], sessionId: id },
+			{ args: ["resume", "--model=gpt-6-astra", id, "hello"], sessionId: id },
+			{ args: ["fork", id] },
+			{ args: ["exec", "resume", id] },
+			{ args: ["resume", "--last"] },
+			{ args: ["resume", id, "--disable", "--unknown-option"] },
+			{ args: ["--model", "--disable", "resume", id] },
+			{ args: ["resume", "--last", id] },
+			{ args: ["resume", id, "hello", "--last"] },
+			{ args: ["resume"] },
+			{ args: ["resume", "named-session"] },
+			{ args: ["--", "resume", id] },
+			{ args: ["resume", "--", id] },
+			{ args: ["resume", "--unknown-option", id] },
+			{ args: ["--config", "resume", id] },
+			{ args: ["--remote=ws://localhost:1234", "resume", id] },
+			{ args: ["resume", 'bad"id'] },
+		];
+		const template = readFileSync(
+			getTemplatePath("codex-resume-session.template.sh"),
+			"utf-8",
+		);
+		for (const { args, sessionId } of cases) {
+			const result = Bun.spawnSync([
+				"bash",
+				"-c",
+				`_superset_launch_payload='{"hook_event_name":"SessionStart"}'\n${template}\nprintf '%s' "$_superset_launch_payload"`,
+				"codex",
+				...args,
+			]);
+			expect(result.exitCode).toBe(0);
+			expect(
+				JSON.parse(result.stdout.toString()),
+				JSON.stringify(args),
+			).toEqual({
+				hook_event_name: "SessionStart",
+				...(sessionId ? { session_id: sessionId } : {}),
+			});
+		}
+	});
+
+	it("includes the resume UUID in the generated wrapper's launch notification", async () => {
+		const id = "01a0bfde-622a-7103-8cc3-ddb312e39832";
+		const scenario = setupScenario(
+			`sleep ${(REPORT_DELAY_MS + 1200) / 1000}`,
+			"codex",
+		);
+		await runWrapper(scenario, ["resume", id]);
+		expect(readNotifyLog(scenario)).toBe(
+			`codex|{"hook_event_name":"SessionStart","session_id":"${id}"}\n`,
+		);
+	}, 15000);
 });

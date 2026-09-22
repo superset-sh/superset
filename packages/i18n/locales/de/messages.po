@@ -4405,6 +4405,9 @@ msgstr "Branch konnte nicht aktualisiert werden"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Die Zugangsdaten konnten nicht überprüft werden: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Die Ursprungssitzung konnte nicht überprüft werden. Öffne sie erneut und versuche es noch einmal."
+
 msgid "Could not watch this page"
 msgstr "Seite ließ sich nicht beobachten"
 
@@ -13362,6 +13365,9 @@ msgstr "Sitzungsdetails"
 msgid "Session ended"
 msgstr "Sitzung beendet"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "Sitzungs-ID nicht verfügbar. Sende dem Agenten eine Nachricht und versuche es erneut."
+
 msgid "Session name"
 msgstr "Sitzungsname"
 
@@ -15295,6 +15301,9 @@ msgstr "Dieses {plugin}-Konto ist bereits mit einer anderen Superset-Organisatio
 
 msgid "This action is irreversible."
 msgstr "Diese Aktion ist nicht umkehrbar."
+
+msgid "This agent configuration does not support forking."
+msgstr "Diese Agentenkonfiguration unterstützt das Forken von Sitzungen nicht."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Diesen Agenten gibt es auf dem gewählten Gerät nicht mehr (seine Agenten wurden möglicherweise zurückgesetzt). Läufe schlagen fehl, bis du einen neuen auswählst."

@@ -261,7 +261,10 @@ function hasCodexRollout(sessionId: string, home: string): boolean | null {
 		for (const entry of readdirSync(dir, { withFileTypes: true })) {
 			if (entry.isDirectory()) {
 				stack.push(join(dir, entry.name));
-			} else if (entry.name.endsWith(suffix)) {
+			} else if (
+				entry.name.endsWith(suffix) ||
+				entry.name.endsWith(`${suffix}.zst`)
+			) {
 				return true;
 			}
 		}

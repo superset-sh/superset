@@ -4405,6 +4405,9 @@ msgstr "Não foi possível atualizar a branch"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Não foi possível verificar a credencial: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Não foi possível verificar a sessão de origem. Abra-a novamente e tente de novo."
+
 msgid "Could not watch this page"
 msgstr "Não foi possível observar esta página"
 
@@ -13362,6 +13365,9 @@ msgstr "Detalhes da sessão"
 msgid "Session ended"
 msgstr "Sessão encerrada"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "ID da sessão indisponível. Envie uma mensagem ao agente e tente novamente."
+
 msgid "Session name"
 msgstr "Nome da sessão"
 
@@ -15295,6 +15301,9 @@ msgstr "Esta conta do {plugin} já está conectada por outra organização do Su
 
 msgid "This action is irreversible."
 msgstr "Não dá para desfazer."
+
+msgid "This agent configuration does not support forking."
+msgstr "Esta configuração de agente não permite bifurcar sessões."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Este agente não existe mais no dispositivo selecionado (os agentes podem ter sido redefinidos). As execuções vão falhar até você escolher outro."

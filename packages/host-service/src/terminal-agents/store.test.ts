@@ -14,6 +14,26 @@ describe("TerminalAgentStore", () => {
 		store = new TerminalAgentStore();
 	});
 
+	it("preserves source home within a launch and drops it on terminal reuse", () => {
+		const event = {
+			terminalId: "t-home",
+			workspaceId: WORKSPACE,
+			agentId: "codex" as const,
+			eventType: "Attached",
+			occurredAt: Date.now(),
+			launchId: "first",
+		};
+		store.recordEvent({ ...event, sessionHome: "/original/home" });
+		store.recordEvent({
+			...event,
+			eventType: "Start",
+			agentSessionId: "session-one",
+		});
+		expect(store.get("t-home")?.sessionHome).toBe("/original/home");
+		store.recordEvent({ ...event, launchId: "second" });
+		expect(store.get("t-home")?.sessionHome).toBeUndefined();
+	});
+
 	describe("subagent roster", () => {
 		// Roster staleness is measured against the wall clock.
 		const NOW = Date.now();

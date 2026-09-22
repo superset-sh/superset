@@ -58,6 +58,44 @@ function seedSession(
 }
 
 describe("SqliteTerminalAgentBindingPersistence live reads", () => {
+	it("retains launch homes across store reloads and clears them on terminal reuse", () => {
+		const db = createTestDb();
+		seedSession(db, { id: "t-home", status: "active", workspaceId: "ws-1" });
+		const reload = () =>
+			new TerminalAgentStore(new SqliteTerminalAgentBindingPersistence(db));
+		const store = reload();
+		expect(store.get("t-home")?.sessionHome).toBeUndefined();
+		store.recordEvent({
+			terminalId: "t-home",
+			workspaceId: "ws-1",
+			agentId: "codex",
+			eventType: "Attached",
+			occurredAt: 3,
+			sessionHome: "/profiles/codex-a",
+		});
+		expect(reload().get("t-home")?.sessionHome).toBe("/profiles/codex-a");
+		expect(reload().listByWorkspace("ws-1")[0]?.sessionHome).toBe(
+			"/profiles/codex-a",
+		);
+		store.recordEvent({
+			terminalId: "t-home",
+			workspaceId: "ws-1",
+			agentId: "codex",
+			eventType: "Attached",
+			occurredAt: 4,
+			sessionHome: "/profiles/codex-b",
+		});
+		expect(reload().get("t-home")?.sessionHome).toBe("/profiles/codex-b");
+		store.recordEvent({
+			terminalId: "t-home",
+			workspaceId: "ws-1",
+			agentId: "claude",
+			eventType: "Attached",
+			occurredAt: 5,
+		});
+		expect(reload().get("t-home")?.sessionHome).toBeUndefined();
+	});
+
 	it("hides bindings whose session is not active or workspace-less", () => {
 		const db = createTestDb();
 		// The workspaces FK on originWorkspaceId is nullable and unenforced in

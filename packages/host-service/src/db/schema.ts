@@ -59,6 +59,7 @@ export const terminalAgentBindings = sqliteTable(
 		workspaceId: text("workspace_id").notNull(),
 		agentId: text("agent_id").notNull().$type<AgentIdentityId>(),
 		agentSessionId: text("agent_session_id"),
+		sessionHome: text("session_home"),
 		definitionId: text("definition_id").$type<AgentDefinitionId>(),
 		startedAt: integer("started_at").notNull(),
 		lastEventAt: integer("last_event_at").notNull(),

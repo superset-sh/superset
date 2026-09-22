@@ -8,6 +8,7 @@ import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { workspaces } from "../../../db/schema";
 import type { EventBus } from "../../../events";
+import { discoverCodexForkSource } from "../../../terminal/codex-fork-source";
 import {
 	hasHarnessSession,
 	readHarnessTranscript,
@@ -16,6 +17,7 @@ import { reconcileMissingTerminalSessions } from "../../../terminal/reaper/reape
 import {
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
+	getTerminalProcessId,
 } from "../../../terminal/terminal";
 import type {
 	TerminalAgentBinding,
@@ -394,6 +396,20 @@ const agentDefinitionIdSchema = z.union([
 const GET_OR_CREATE_TIMEOUT_MS = 10_000;
 
 export const terminalAgentsRouter = router({
+	codexForkSource: protectedProcedure
+		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const binding = ctx.terminalAgentStore.get(input.terminalId);
+			if (
+				binding?.agentId !== "codex" ||
+				binding.workspaceId !== input.workspaceId
+			)
+				return null;
+			const pid = getTerminalProcessId(input.terminalId, input.workspaceId);
+			if (!pid) return null;
+			const source = await discoverCodexForkSource(pid);
+			return source ? { sessionId: source.sessionId } : null;
+		}),
 	list: protectedProcedure.query(({ ctx }) => {
 		return ctx.terminalAgentStore.list();
 	}),

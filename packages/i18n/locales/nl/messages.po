@@ -4405,6 +4405,9 @@ msgstr "Kan de branch niet bijwerken"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Kon de inloggegevens niet verifiëren: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "De bronsessie kon niet worden geverifieerd. Open deze opnieuw en probeer het nogmaals."
+
 msgid "Could not watch this page"
 msgstr "Kon deze pagina niet volgen"
 
@@ -13362,6 +13365,9 @@ msgstr "Sessiedetails"
 msgid "Session ended"
 msgstr "Sessie beëindigd"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "Sessie-ID niet beschikbaar. Stuur een bericht naar de agent en probeer het opnieuw."
+
 msgid "Session name"
 msgstr "Sessienaam"
 
@@ -15295,6 +15301,9 @@ msgstr "Dit {plugin}-account is al verbonden door een andere Superset-organisati
 
 msgid "This action is irreversible."
 msgstr "Deze actie kan niet worden teruggedraaid."
+
+msgid "This agent configuration does not support forking."
+msgstr "Deze agentconfiguratie ondersteunt het forken van sessies niet."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Deze agent bestaat niet meer op het gekozen apparaat (de agents zijn mogelijk gereset). Runs mislukken totdat je een nieuwe kiest."

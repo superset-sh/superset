@@ -4405,6 +4405,9 @@ msgstr "Dal güncellenemedi"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Kimlik bilgisi doğrulanamadı: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Kaynak oturum doğrulanamadı. Yeniden açıp tekrar deneyin."
+
 msgid "Could not watch this page"
 msgstr "Bu sayfa izlenemedi"
 
@@ -13362,6 +13365,9 @@ msgstr "Oturum ayrıntıları"
 msgid "Session ended"
 msgstr "Oturum sona erdi"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "Oturum kimliği kullanılamıyor. Ajana bir mesaj gönderip tekrar deneyin."
+
 msgid "Session name"
 msgstr "Oturum adı"
 
@@ -15295,6 +15301,9 @@ msgstr "Bu {plugin} hesabı zaten başka bir Superset kuruluşuna bağlı."
 
 msgid "This action is irreversible."
 msgstr "Bu işlem geri alınamaz."
+
+msgid "This agent configuration does not support forking."
+msgstr "Bu ajan yapılandırması oturum çatallamayı desteklemiyor."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Bu ajan seçili cihazda artık yok (ajanları sıfırlanmış olabilir). Yeni bir tane seçene kadar çalıştırmalar başarısız olacak."

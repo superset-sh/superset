@@ -4405,6 +4405,9 @@ msgstr "Не удалось обновить ветку"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Не удалось проверить учётные данные: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Не удалось проверить исходную сессию. Откройте её заново и повторите попытку."
+
 msgid "Could not watch this page"
 msgstr "Не удалось начать отслеживание этой страницы"
 
@@ -13362,6 +13365,9 @@ msgstr "Детали сессии"
 msgid "Session ended"
 msgstr "Сеанс завершён"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "Идентификатор сессии недоступен. Отправьте сообщение агенту и повторите попытку."
+
 msgid "Session name"
 msgstr "Имя сессии"
 
@@ -15295,6 +15301,9 @@ msgstr "Этот аккаунт {plugin} уже подключён другой 
 
 msgid "This action is irreversible."
 msgstr "Это действие необратимо."
+
+msgid "This agent configuration does not support forking."
+msgstr "Эта конфигурация агента не поддерживает создание ответвлений сессии."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Этого агента больше нет на выбранном устройстве (возможно, его агенты были сброшены). Запуски будут падать, пока не выберете нового."

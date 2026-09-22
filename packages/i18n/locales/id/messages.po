@@ -4405,6 +4405,9 @@ msgstr "Tidak bisa memperbarui branch"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Tidak dapat memverifikasi kredensial: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Sesi sumber tidak dapat diverifikasi. Buka kembali dan coba lagi."
+
 msgid "Could not watch this page"
 msgstr "Tidak bisa memantau halaman ini"
 
@@ -13362,6 +13365,9 @@ msgstr "Detail sesi"
 msgid "Session ended"
 msgstr "Sesi berakhir"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "ID sesi tidak tersedia. Kirim pesan ke agen, lalu coba lagi."
+
 msgid "Session name"
 msgstr "Nama sesi"
 
@@ -15295,6 +15301,9 @@ msgstr "Akun {plugin} ini sudah dihubungkan oleh organisasi Superset lain."
 
 msgid "This action is irreversible."
 msgstr "Tindakan ini tidak bisa dibatalkan."
+
+msgid "This agent configuration does not support forking."
+msgstr "Konfigurasi agen ini tidak mendukung percabangan sesi."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Agen ini sudah tidak ada di perangkat yang dipilih (agennya mungkin telah direset). Run akan gagal sampai Anda memilih yang baru."

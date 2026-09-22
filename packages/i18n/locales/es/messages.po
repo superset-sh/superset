@@ -4405,6 +4405,9 @@ msgstr "No se pudo actualizar la rama"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "No se pudo verificar la credencial: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "No se pudo verificar la sesión de origen. Vuelve a abrirla e inténtalo de nuevo."
+
 msgid "Could not watch this page"
 msgstr "No se pudo observar esta página"
 
@@ -13362,6 +13365,9 @@ msgstr "Detalles de la sesión"
 msgid "Session ended"
 msgstr "Sesión finalizada"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "ID de sesión no disponible. Envía un mensaje al agente y vuelve a intentarlo."
+
 msgid "Session name"
 msgstr "Nombre de la sesión"
 
@@ -15295,6 +15301,9 @@ msgstr "Esta cuenta de {plugin} ya está conectada por otra organización de Sup
 
 msgid "This action is irreversible."
 msgstr "Esta acción es irreversible."
+
+msgid "This agent configuration does not support forking."
+msgstr "Esta configuración del agente no permite bifurcar sesiones."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Este agente ya no existe en el dispositivo seleccionado (puede que sus agentes se hayan restablecido). Las ejecuciones fallarán hasta que elijas uno nuevo."

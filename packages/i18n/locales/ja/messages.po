@@ -4405,6 +4405,9 @@ msgstr "ブランチを更新できませんでした"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "認証情報を確認できませんでした: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "元のセッションを確認できませんでした。開き直して、もう一度お試しください。"
+
 msgid "Could not watch this page"
 msgstr "このページを監視できませんでした"
 
@@ -13362,6 +13365,9 @@ msgstr "セッションの詳細"
 msgid "Session ended"
 msgstr "セッション終了"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "セッションIDを取得できません。エージェントにメッセージを送信してから、もう一度お試しください。"
+
 msgid "Session name"
 msgstr "セッション名"
 
@@ -15295,6 +15301,9 @@ msgstr "この {plugin} アカウントはすでに別の Superset 組織が接�
 
 msgid "This action is irreversible."
 msgstr "この操作は元に戻せません。"
+
+msgid "This agent configuration does not support forking."
+msgstr "このエージェント設定はセッションの分岐に対応していません。"
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "選択したデバイスにこのエージェントは存在しません(エージェントがリセットされた可能性があります)。新しいエージェントを選ぶまで実行は失敗します。"

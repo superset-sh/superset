@@ -4405,6 +4405,9 @@ msgstr "Không thể cập nhật nhánh"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Không xác minh được thông tin đăng nhập: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Không thể xác minh phiên nguồn. Hãy mở lại và thử lại."
+
 msgid "Could not watch this page"
 msgstr "Không thể theo dõi trang này"
 
@@ -13362,6 +13365,9 @@ msgstr "Chi tiết phiên"
 msgid "Session ended"
 msgstr "Phiên đã kết thúc"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "Không có ID phiên. Hãy gửi tin nhắn cho tác nhân rồi thử lại."
+
 msgid "Session name"
 msgstr "Tên phiên"
 
@@ -15295,6 +15301,9 @@ msgstr "Tài khoản {plugin} này đã được một tổ chức Superset khá
 
 msgid "This action is irreversible."
 msgstr "Không thể hoàn tác thao tác này."
+
+msgid "This agent configuration does not support forking."
+msgstr "Cấu hình tác nhân này không hỗ trợ phân nhánh phiên."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Agent này không còn tồn tại trên thiết bị đã chọn (agent trên đó có thể đã bị đặt lại). Các lần chạy sẽ thất bại cho đến khi bạn chọn agent khác."

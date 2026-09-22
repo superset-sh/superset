@@ -247,6 +247,34 @@ describe("readHarnessTranscript", () => {
 });
 
 describe("hasHarnessSession", () => {
+	test("finds compressed Codex rollouts in the selected home", () => {
+		const home = mkdtempSync(join(tmpdir(), "compressed-codex-"));
+		created.push(home);
+		const dir = join(home, "sessions/2026/09/21");
+		mkdirSync(dir, { recursive: true });
+		const sessionId = "01a0bfde-622a-7103-8cc3-ddb312e39832";
+		writeFileSync(
+			join(dir, `rollout-2026-09-21T00-00-00-${sessionId}.jsonl.zst`),
+			"",
+		);
+		expect(
+			hasHarnessSession({
+				agentId: "codex",
+				sessionId,
+				env: { CODEX_HOME: home },
+				worktreePath: undefined,
+			}),
+		).toBe(true);
+		expect(
+			hasHarnessSession({
+				agentId: "codex",
+				sessionId: "missing",
+				env: { CODEX_HOME: home },
+				worktreePath: undefined,
+			}),
+		).toBe(false);
+	});
+
 	test("finds a Claude session and misses one that never existed", () => {
 		const { worktreePath, sessionId } = seedClaudeSession([
 			JSON.stringify({

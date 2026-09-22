@@ -16,6 +16,7 @@ import type {
 
 interface RecordEventInput {
 	launchId?: string;
+	sessionHome?: string;
 	account?: TerminalAgentBinding["account"];
 	terminalId: string;
 	workspaceId: string;
@@ -227,6 +228,7 @@ export class TerminalAgentStore extends EventEmitter {
 			agentSessionId: agentSessionId ?? prior?.agentSessionId,
 			definitionId: definitionId ?? prior?.definitionId,
 			launchId: input.launchId ?? prior?.launchId,
+			sessionHome: input.sessionHome ?? prior?.sessionHome,
 			account:
 				input.account ??
 				(prior && (!sessionChanged || prior.agentSessionId === undefined)
@@ -465,6 +467,7 @@ export class TerminalAgentStore extends EventEmitter {
 				...binding,
 				account: memory.account,
 				launchId: memory.launchId,
+				sessionHome: memory.sessionHome,
 			};
 		}
 		const roster = this.pruneSubagents(binding.terminalId);

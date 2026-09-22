@@ -4405,6 +4405,9 @@ msgstr "브랜치를 업데이트할 수 없습니다"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "자격 증명을 확인하지 못했습니다: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "원본 세션을 확인할 수 없습니다. 다시 열고 재시도하세요."
+
 msgid "Could not watch this page"
 msgstr "이 페이지를 감시할 수 없습니다"
 
@@ -13362,6 +13365,9 @@ msgstr "세션 상세"
 msgid "Session ended"
 msgstr "세션 종료"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "세션 ID를 사용할 수 없습니다. 에이전트에 메시지를 보낸 후 다시 시도하세요."
+
 msgid "Session name"
 msgstr "세션 이름"
 
@@ -15295,6 +15301,9 @@ msgstr "이 {plugin} 계정은 이미 다른 Superset 조직에 연결되어 있
 
 msgid "This action is irreversible."
 msgstr "이 동작은 되돌릴 수 없습니다."
+
+msgid "This agent configuration does not support forking."
+msgstr "이 에이전트 구성은 세션 분기를 지원하지 않습니다."
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "이 에이전트는 선택한 기기에 더 이상 존재하지 않습니다 (에이전트가 초기화되었을 수 있습니다). 새 에이전트를 선택할 때까지 실행이 실패합니다."

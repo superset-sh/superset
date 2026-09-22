@@ -788,6 +788,16 @@ export function __resetSessionsForTesting(): void {
  * them alone. Returns false for sessions the daemon still owns but that this
  * process hasn't re-created since its last restart.
  */
+export function getTerminalProcessId(
+	terminalId: string,
+	workspaceId: string,
+): number | undefined {
+	const session = sessions.get(terminalId);
+	return session && !session.exited && session.workspaceId === workspaceId
+		? session.pty.pid
+		: undefined;
+}
+
 export function isLiveTerminalSession(terminalId: string): boolean {
 	const session = sessions.get(terminalId);
 	return session !== undefined && !session.exited;

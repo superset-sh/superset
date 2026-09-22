@@ -1,3 +1,5 @@
+import { homedir } from "node:os";
+import { isAbsolute, join } from "node:path";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -195,6 +197,14 @@ export const notificationsRouter = router({
 					).catch(() => undefined)
 				: undefined;
 		ctx.terminalAgentStore.recordEvent({
+			sessionHome:
+				agent?.agentId === "codex" &&
+				eventType === "Attached" &&
+				verifyAttributionToken(input.terminalId, input.attributionToken) &&
+				input.accountProfile !== undefined &&
+				(input.accountProfile === "" || isAbsolute(input.accountProfile))
+					? input.accountProfile || join(homedir(), ".codex")
+					: undefined,
 			account,
 			launchId: trimOrUndefined(input.launchId),
 			terminalId: input.terminalId,

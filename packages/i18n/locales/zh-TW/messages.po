@@ -4405,6 +4405,9 @@ msgstr "無法更新分支"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "無法驗證憑證：{reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "無法驗證來源工作階段。請重新開啟後再試。"
+
 msgid "Could not watch this page"
 msgstr "無法關注此頁面"
 
@@ -13362,6 +13365,9 @@ msgstr "會話詳情"
 msgid "Session ended"
 msgstr "工作階段已結束"
 
+msgid "Session ID unavailable. Send a message to the agent, then try again."
+msgstr "無法取得工作階段 ID。請傳送訊息給代理程式，然後再試一次。"
+
 msgid "Session name"
 msgstr "會話名稱"
 
@@ -15295,6 +15301,9 @@ msgstr "這個 {plugin} 帳戶已由另一個 Superset 組織連接。"
 
 msgid "This action is irreversible."
 msgstr "此操作不可逆。"
+
+msgid "This agent configuration does not support forking."
+msgstr "此代理程式設定不支援分支工作階段。"
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "所選裝置上已不存在這個代理程式（它的代理程式可能被重置過）。在你選擇新的代理程式之前，執行都會失敗。"

@@ -23,9 +23,14 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs, workspaces } from "../../../db/schema";
+import {
+	discoverCodexForkSource,
+	verifiedCodexForkHome,
+} from "../../../terminal/codex-fork-source";
 import { hasHarnessSession } from "../../../terminal/harness-transcript";
 import {
 	createTerminalSessionInternal,
+	getTerminalProcessId,
 	writeFramedInputToSession,
 } from "../../../terminal/terminal";
 import type { TerminalAgentStore } from "../../../terminal-agents";
@@ -34,6 +39,7 @@ import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
 import { toTerminalSessionError } from "../terminal/errors";
 import { resolveDefaultAccountEnv } from "../usage/default-account";
+import { validateSessionAccount } from "../usage/session-account/session-account";
 import { seedAgentFolderTrust } from "../workspace-creation/shared/seed-agent-trust";
 
 interface ResolvedHostAgentConfig {
@@ -221,6 +227,7 @@ export interface AgentRunInput {
 	resumeSessionId?: string;
 	/** Session id to clone into a new provider-owned session. */
 	forkSessionId?: string;
+	forkSourceTerminalId?: string;
 	/**
 	 * A terminal an earlier call from this same caller left behind. When it is
 	 * still running this agent, the prompt is delivered into that session
@@ -465,6 +472,7 @@ export function validateAgentLaunchOptions(
 export function buildTerminalAgentLaunch(
 	db: HostDb,
 	input: AgentRunInput,
+	forkEnv: Record<string, string> = {},
 ): { fullCommand: string; label: string } {
 	const config = resolveHostAgentConfig(db, input.agent);
 	if (!config) {
@@ -498,7 +506,11 @@ export function buildTerminalAgentLaunch(
 	}
 	validateAgentResumeSelection(config, input.resumeSessionId);
 	validateAgentForkSelection(config, input.forkSessionId);
-	validateForkSessionIsResolvable(db, config, input);
+	validateForkSessionIsResolvable(
+		db,
+		{ ...config, env: { ...config.env, ...forkEnv } },
+		input,
+	);
 
 	const resolvedAttachments: Array<{ attachmentId: string; path: string }> = [];
 	for (const attachmentId of input.attachmentIds ?? []) {
@@ -538,7 +550,7 @@ export function buildTerminalAgentLaunch(
 	// so a "Claude (work)" agent with its own CLAUDE_CONFIG_DIR stays pinned.
 	const accountEnv = resolveDefaultAccountEnv(db, config.presetId);
 	return {
-		fullCommand: `${envOverlayPrefix({ ...accountEnv, ...config.env, ...modelEnv })}${command}`,
+		fullCommand: `${envOverlayPrefix({ ...accountEnv, ...config.env, ...modelEnv, ...forkEnv })}${command}`,
 		label: config.label,
 	};
 }
@@ -576,7 +588,64 @@ async function runTerminalAgent(
 	ctx: Pick<HostServiceContext, "db" | "eventBus" | "terminalAgentStore">,
 	input: AgentRunInput,
 ): Promise<AgentRunResult> {
-	const { fullCommand, label } = buildTerminalAgentLaunch(ctx.db, input);
+	let forkEnv: Record<string, string> = {};
+	if (input.forkSourceTerminalId) {
+		const binding = ctx.terminalAgentStore.get(input.forkSourceTerminalId);
+		const config = resolveHostAgentConfig(ctx.db, input.agent);
+		const sourceConfig =
+			binding &&
+			resolveHostAgentConfig(ctx.db, binding.definitionId ?? binding.agentId);
+		if (
+			!input.forkSessionId ||
+			binding?.workspaceId !== input.workspaceId ||
+			sourceConfig?.id !== config?.id ||
+			(binding?.agentId !== "codex" &&
+				binding?.agentSessionId !== input.forkSessionId)
+		) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message:
+					"Could not verify the source session. Reopen it and try again.",
+			});
+		}
+		if (binding.agentId === "codex") {
+			const pid = getTerminalProcessId(
+				input.forkSourceTerminalId,
+				input.workspaceId,
+			);
+			const discovered = pid ? await discoverCodexForkSource(pid) : null;
+			const home = binding.sessionHome ?? binding.account?.directory;
+			const sourceHome = verifiedCodexForkHome({
+				requestedSessionId: input.forkSessionId,
+				boundSessionId: binding.agentSessionId,
+				sessionHome: home,
+				discovered,
+			});
+			if (!sourceHome) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"Could not verify the source session. Reopen it and try again.",
+				});
+			}
+			if (binding.account && !(await validateSessionAccount(binding.account))) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"Could not verify the source session. Reopen it and try again.",
+				});
+			}
+			forkEnv = {
+				CODEX_HOME: sourceHome,
+				SUPERSET_DEFAULT_CODEX_HOME: "",
+			};
+		}
+	}
+	const { fullCommand, label } = buildTerminalAgentLaunch(
+		ctx.db,
+		input,
+		forkEnv,
+	);
 
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({
@@ -753,6 +822,7 @@ export const agentsRouter = router({
 				mode: z.string().min(1).optional(),
 				resumeSessionId: z.string().min(1).optional(),
 				forkSessionId: z.string().min(1).optional(),
+				forkSourceTerminalId: z.string().min(1).optional(),
 				continueTerminalId: z.string().min(1).optional(),
 			}),
 		)
