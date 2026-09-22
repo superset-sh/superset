@@ -25,9 +25,10 @@ mock.module("@superset/trpc/connectors", () => ({
 	connectionBotToken: mock(async () => "bot-token"),
 }));
 
+let linearClient: unknown = null;
 mock.module("@superset/trpc/integrations/linear", () => ({
-	getLinearClient: mock(async () => null),
-	linearClientFor: mock(async () => null),
+	getLinearClient: mock(async () => linearClient),
+	linearClientFor: mock(async () => linearClient),
 	isLinearAuthError: () => false,
 	mapPriorityFromLinear: () => null,
 }));
@@ -67,8 +68,39 @@ mock.module("@/lib/automations/ingestAutomationEvent", () => ({
 	}),
 }));
 
+const DONE_STATE = { id: "status-done", externalId: "linear-state-done" };
+let syncedStates: Array<typeof DONE_STATE> = [];
+const upsertedStatusIds: string[] = [];
 mock.module("@superset/db/client", () => ({
-	db: { update: () => ({ set: () => ({ where: async () => undefined }) }) },
+	db: {
+		update: () => ({ set: () => ({ where: async () => undefined }) }),
+		query: {
+			taskStatuses: { findFirst: async () => syncedStates[0] },
+			tasks: { findFirst: async () => undefined },
+		},
+		insert: () => ({
+			values: (row: { statusId: string }) => ({
+				onConflictDoUpdate: async () => {
+					upsertedStatusIds.push(row.statusId);
+				},
+			}),
+		}),
+	},
+}));
+
+const workflowStateSyncs: Array<{ organizationId: string; teamId?: string }> =
+	[];
+let linearHasState = true;
+mock.module("../jobs/initial-sync/syncWorkflowStates", () => ({
+	syncWorkflowStates: mock(
+		async (input: { organizationId: string; teamId?: string }) => {
+			workflowStateSyncs.push({
+				organizationId: input.organizationId,
+				teamId: input.teamId,
+			});
+			if (linearHasState) syncedStates = [DONE_STATE];
+		},
+	),
 }));
 
 const { processDelivery } = await import("./processDelivery");
@@ -109,5 +141,70 @@ describe("one Linear delivery, two connections in the same organization", () => 
 	test("narrows each dispatch to the member who owns that connection", async () => {
 		await processDelivery({ payload: DELIVERY, deliveryId: "delivery-1" });
 		expect(ingestCalls.map((c) => c.ownerUserId)).toEqual(["user-a", "user-b"]);
+	});
+});
+
+describe("an issue moved into a Linear state the organization has not synced", () => {
+	const MOVED_TO_DONE = {
+		organizationId: WORKSPACE,
+		type: "Issue",
+		action: "update",
+		webhookTimestamp: 1_700_000_000,
+		data: {
+			id: "issue-2",
+			identifier: "ENG-1",
+			title: "Moved to Done",
+			description: null,
+			priority: 0,
+			estimate: null,
+			dueDate: null,
+			createdAt: "2026-09-17T08:00:00.000Z",
+			updatedAt: "2026-09-18T08:00:00.000Z",
+			startedAt: "2026-09-17T09:00:00.000Z",
+			completedAt: "2026-09-18T08:00:00.000Z",
+			url: "https://linear.app/example/issue/ENG-1",
+			teamId: "team-1",
+			assignee: null,
+			assigneeId: null,
+			labels: [],
+			state: { id: DONE_STATE.externalId, name: "Done", type: "completed" },
+		},
+		updatedFrom: { stateId: "linear-state-in-progress" },
+	} as never;
+
+	beforeEach(() => {
+		subscribers = [connection("conn-a", "user-a")];
+		syncedStates = [];
+		upsertedStatusIds.length = 0;
+		workflowStateSyncs.length = 0;
+		linearHasState = true;
+		linearClient = {
+			client: { request: async () => ({ issue: { branchName: "eng-1" } }) },
+		};
+	});
+
+	test("resyncs the team's workflow states and applies the new status", async () => {
+		const result = await processDelivery({
+			payload: MOVED_TO_DONE,
+			deliveryId: "delivery-2",
+		});
+
+		expect(workflowStateSyncs).toEqual([
+			{ organizationId: ORG, teamId: "team-1" },
+		]);
+		expect(upsertedStatusIds).toEqual([DONE_STATE.id]);
+		expect(result.results.map((r) => r.outcome)).toEqual(["processed"]);
+	});
+
+	test("still skips when the state is missing after the resync", async () => {
+		linearHasState = false;
+		const result = await processDelivery({
+			payload: MOVED_TO_DONE,
+			deliveryId: "delivery-3",
+		});
+
+		expect(workflowStateSyncs).toHaveLength(1);
+		expect(upsertedStatusIds).toEqual([]);
+		expect(result.results.map((r) => r.outcome)).toEqual(["skipped"]);
 	});
 });
