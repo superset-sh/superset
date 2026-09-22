@@ -20,6 +20,8 @@ export interface SandboxTarget {
 	workspaceId: string;
 	organizationId: string;
 	url: string;
+	/** The gate address of the workspace's desktop stream, ticketed separately. */
+	desktopUrl: string;
 	/**
 	 * Whether the sandbox has a running session. A stopped one answers
 	 * nothing until the open workspace wakes it, so nothing should fan
@@ -75,8 +77,10 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 						wake,
 					});
 					setHostServiceSecret(granted.url, granted.token);
+					setHostServiceSecret(granted.desktop.url, granted.desktop.token);
 					return {
 						url: granted.url,
+						desktopUrl: granted.desktop.url,
 						running: wake || granted.running,
 						expiresAt: new Date(granted.expiresAt).getTime(),
 					};
@@ -110,6 +114,7 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 				workspaceId: workspace.id,
 				organizationId,
 				url: data.url,
+				desktopUrl: data.desktopUrl,
 				running: data.running,
 			});
 		}

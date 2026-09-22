@@ -3,10 +3,10 @@ import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import { buildPageAgentPrompt } from "renderer/routes/_authenticated/_dashboard/utils/pageAgentPrompt";
 import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
-import { PAGE_AGENT_PROMPT } from "./constants";
 
 export function useCreatePageWithAgent() {
 	const { t } = useLingui();
@@ -46,7 +46,7 @@ export function useCreatePageWithAgent() {
 			snapshot: {
 				id: crypto.randomUUID(),
 				projectId: null,
-				agents: [{ agent, prompt: PAGE_AGENT_PROMPT }],
+				agents: [{ agent, prompt: buildPageAgentPrompt() }],
 			},
 		});
 		// The store shows creation failures on the optimistic sidebar row; this

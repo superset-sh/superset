@@ -1,1 +1,1 @@
-export { CommentComposer } from "./CommentComposer";
+export { CommentComposer, type CommentComposerHandle } from "./CommentComposer";

@@ -1,0 +1,26 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "slack",
+	"version": "1.2.3",
+	"description": "Search, read, and post across your Slack workspace: channels, DMs, and threads.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["slack", "chat", "messages", "communication", "search"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "Slack",
+				"category": "Communication",
+				"icon": "slack"
+			},
+			"connector": {
+				"slug": "slack"
+			}
+		}
+	}
+}

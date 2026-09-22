@@ -2,7 +2,7 @@ import type { Client } from "@microsoft/microsoft-graph-client";
 import type { Subscription } from "@microsoft/microsoft-graph-types";
 import { db } from "@superset/db/client";
 import {
-	integrationConnections,
+	connections,
 	type MicrosoftTeamsConfig,
 	type MicrosoftTeamsSubscription,
 } from "@superset/db/schema";
@@ -119,12 +119,12 @@ export async function ensureTeamsSubscriptions(
 	const graph = graphClient(accessToken);
 
 	return withConnectionLock(connectionId, async (tx) => {
-		const [connection] = await tx
-			.select({ config: integrationConnections.config })
-			.from(integrationConnections)
-			.where(eq(integrationConnections.id, connectionId))
+		const [row] = await tx
+			.select({ state: connections.state })
+			.from(connections)
+			.where(eq(connections.id, connectionId))
 			.limit(1);
-		const config = connection?.config;
+		const config = row?.state;
 		if (!config || config.provider !== "microsoft_teams") return null;
 
 		const subscriptions = { ...config.subscriptions };
@@ -166,9 +166,9 @@ export async function ensureTeamsSubscriptions(
 
 		const next: MicrosoftTeamsConfig = { ...config, subscriptions };
 		await tx
-			.update(integrationConnections)
-			.set({ config: next, updatedAt: new Date() })
-			.where(eq(integrationConnections.id, connectionId));
+			.update(connections)
+			.set({ state: next, updatedAt: new Date() })
+			.where(eq(connections.id, connectionId));
 
 		return { connectionId, subscriptions, failures };
 	});
@@ -180,12 +180,12 @@ export async function ensureTeamsSubscriptions(
 export async function deleteTeamsSubscriptions(
 	connectionId: string,
 ): Promise<void> {
-	const [connection] = await db
-		.select({ config: integrationConnections.config })
-		.from(integrationConnections)
-		.where(eq(integrationConnections.id, connectionId))
+	const [row] = await db
+		.select({ state: connections.state })
+		.from(connections)
+		.where(eq(connections.id, connectionId))
 		.limit(1);
-	const config = connection?.config;
+	const config = row?.state;
 	if (!config || config.provider !== "microsoft_teams") return;
 
 	let accessToken: string | null = null;

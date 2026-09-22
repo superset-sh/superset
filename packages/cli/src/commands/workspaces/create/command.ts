@@ -1,27 +1,24 @@
 import { boolean, CLIError, number, string } from "@superset/cli-framework";
+import { resolveWorkspaceHost } from "../../../lib/cloud-workspaces";
 import { command } from "../../../lib/command";
-import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
+import { resolveHostTarget } from "../../../lib/host-target";
 import { uploadAttachments } from "../../../lib/upload-attachments";
 import { createCloudWorkspace } from "./createCloudWorkspace";
 
 export default command({
-	description: "Create a workspace on a host, or a cloud sandbox with --cloud",
+	description:
+		"Create a workspace: in the cloud by default if your account has cloud workspaces, else on this machine; --local or --host picks a host",
 	options: {
-		host: string().desc(
-			"Target host machineId (required unless --local or --cloud)",
-		),
-		local: boolean().desc(
-			"Target this machine (required unless --host or --cloud)",
-		),
-		cloud: boolean().desc(
-			"Provision a cloud sandbox instead of using one of your machines",
-		),
+		host: string().desc("Create on this host (machineId)"),
+		local: boolean().desc("Create on this machine"),
 		environment: string().desc(
-			"Environment the cloud sandbox boots from (id or name; defaults to the first). Requires --cloud",
+			"Environment a cloud workspace starts from (id or name; defaults to the first with repositories)",
 		),
-		project: string().desc("Project ID. Required unless --session or --cloud"),
+		project: string().desc(
+			"Project ID, for a workspace on a host. Required with --local or --host unless --session",
+		),
 		session: boolean().desc(
-			"Create a project-less session (a managed scratch folder). Cannot be combined with --project or --cloud",
+			"Create a project-less session (a managed scratch folder) on a host. Cannot be combined with --project",
 		),
 		name: string().desc("Workspace name"),
 		checkout: string().desc(
@@ -72,7 +69,12 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		if (options.cloud) {
+		const defaultHostId = await resolveWorkspaceHost(
+			{ host: options.host, local: options.local },
+			ctx.api,
+			organizationId,
+		);
+		if (!defaultHostId) {
 			return await createCloudWorkspace({
 				api: ctx.api,
 				organizationId,
@@ -81,8 +83,8 @@ export default command({
 		}
 		if (options.environment) {
 			throw new CLIError(
-				"--environment requires --cloud",
-				"Environments belong to cloud sandboxes; a workspace on your own machine has none",
+				"--environment applies to cloud workspaces",
+				"Drop --local/--host to create in the cloud, or drop --environment for a workspace on a host",
 			);
 		}
 
@@ -186,10 +188,7 @@ export default command({
 			);
 		}
 
-		const hostId = requireHostTarget({
-			host: options.host ?? undefined,
-			local: options.local ?? undefined,
-		});
+		const hostId = defaultHostId;
 
 		const target = await resolveHostTarget({
 			requestedHostId: hostId,

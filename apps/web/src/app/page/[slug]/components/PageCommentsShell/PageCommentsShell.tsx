@@ -12,6 +12,7 @@ interface PageCommentsShellProps {
 	version: number;
 	user: PageCommentUser;
 	pageOwnerId?: string | null;
+	readOnly?: boolean;
 	children: ReactNode;
 }
 
@@ -20,6 +21,7 @@ export function PageCommentsShell({
 	version,
 	user,
 	pageOwnerId,
+	readOnly,
 	children,
 }: PageCommentsShellProps) {
 	const store = usePageComments({
@@ -30,7 +32,12 @@ export function PageCommentsShell({
 	});
 
 	return (
-		<CommentProvider user={user} store={store} pageOwnerId={pageOwnerId}>
+		<CommentProvider
+			user={user}
+			store={store}
+			pageOwnerId={pageOwnerId}
+			{...(readOnly ? { enabled: false } : {})}
+		>
 			{children}
 		</CommentProvider>
 	);

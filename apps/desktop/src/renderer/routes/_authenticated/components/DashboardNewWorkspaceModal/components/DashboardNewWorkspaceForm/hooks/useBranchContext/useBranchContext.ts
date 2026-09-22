@@ -3,8 +3,6 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
-import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { CLOUD_HOST_ID } from "../../components/DevicePicker/DevicePicker";
 
@@ -24,23 +22,24 @@ const PAGE_SIZE = 50;
  * (projectId, host, query, filter) tuple asks to refresh remote refs;
  * the host-service enforces a TTL so rapid typing doesn't thrash `git fetch`.
  */
+/** The repository a cloud workspace's branches are read from: its primary. */
+export interface CloudRepository {
+	owner: string;
+	name: string;
+	defaultBranch: string;
+}
+
 export function useBranchContext(
 	projectId: string | null,
 	hostId: string | null,
 	query: string,
 	filter: BranchFilter = "all",
+	cloudRepository: CloudRepository | null = null,
 ) {
 	// A cloud workspace has no host to search — the sandbox doesn't exist until
 	// create — so its branches come from the GitHub remote instead.
 	const isCloud = hostId === CLOUD_HOST_ID;
 	const hostUrl = useHostUrl(isCloud ? null : hostId);
-	const organizationId = useActiveOrganizationId();
-	// Branches are read from GitHub by owner/name: a cloud workspace has no
-	// checkout to enumerate, and no project to resolve one from.
-	const cloudRepo = cloudTrpc.cloudWorkspace.repo.useQuery(
-		{ organizationId: organizationId ?? "" },
-		{ enabled: isCloud && !!organizationId },
-	);
 	// Read through the local host's `gh` — the same path issue and PR lookups
 	// take — so it uses the user's own auth rather than an App installation.
 	const localHostUrl = useHostUrl(null);
@@ -48,20 +47,16 @@ export function useBranchContext(
 		queryKey: [
 			"cloudBranches",
 			localHostUrl,
-			cloudRepo.data?.owner,
-			cloudRepo.data?.name,
+			cloudRepository?.owner,
+			cloudRepository?.name,
 			query,
 		],
-		enabled:
-			isCloud &&
-			!!localHostUrl &&
-			!!cloudRepo.data?.owner &&
-			!!cloudRepo.data?.name,
+		enabled: isCloud && !!localHostUrl && !!cloudRepository,
 		queryFn: async () => {
 			const client = getHostServiceClientByUrl(localHostUrl as string);
 			return client.workspaceCreation.searchRemoteBranches.query({
-				owner: cloudRepo.data?.owner as string,
-				repo: cloudRepo.data?.name as string,
+				owner: cloudRepository?.owner as string,
+				repo: cloudRepository?.name as string,
 				query: query || undefined,
 			});
 		},
@@ -121,7 +116,7 @@ export function useBranchContext(
 	if (isCloud) {
 		return {
 			branches: cloudRows,
-			defaultBranch: cloudRepo.data?.defaultBranch ?? null,
+			defaultBranch: cloudRepository?.defaultBranch ?? null,
 			isLoading: cloudBranches.isLoading,
 			isError: cloudBranches.isError,
 			isFetchingNextPage: false,

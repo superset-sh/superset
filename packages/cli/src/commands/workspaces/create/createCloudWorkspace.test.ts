@@ -19,6 +19,6 @@ test.each([
 	) as ApiClient;
 	await expect(
 		createCloudWorkspace({ api, organizationId: "org", options: { checkout } }),
-	).rejects.toThrow("--checkout does not apply to --cloud");
+	).rejects.toThrow("--checkout does not apply to a cloud workspace");
 	expect(contacted).toBe(false);
 });

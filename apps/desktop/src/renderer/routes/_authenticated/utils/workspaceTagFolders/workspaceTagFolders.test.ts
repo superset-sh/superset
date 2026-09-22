@@ -505,6 +505,21 @@ describe("deriveTagFolders with host settings and hidden folders", () => {
 		});
 	});
 
+	it("keeps a saved drag order across host refreshes and reloads", () => {
+		const stored = makeSection({
+			sectionId: buildSidebarFolderKey(PROJECT_A, "perf"),
+			tag: "perf",
+			tabOrder: 1,
+		});
+		const context = {
+			tagSettings: [{ projectId: PROJECT_A, tag: "perf", tabOrder: 6 }],
+			hiddenTagsByProject: new Map<string, ReadonlySet<string>>(),
+		};
+		for (const row of [stored, JSON.parse(JSON.stringify(stored))]) {
+			expect(deriveTagFolders([row], [], context)[0].tabOrder).toBe(1);
+		}
+	});
+
 	it("settings with absent optional fields change nothing they don't define", () => {
 		const folders = deriveTagFolders(
 			[],

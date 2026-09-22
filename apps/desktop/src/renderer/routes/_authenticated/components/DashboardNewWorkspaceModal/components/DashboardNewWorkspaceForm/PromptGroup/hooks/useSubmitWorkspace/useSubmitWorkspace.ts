@@ -1,7 +1,8 @@
 import { useLingui } from "@lingui/react/macro";
+import { startableCloudEnvironments } from "@superset/shared/cloud-environments";
 import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { cloudTrpc, cloudTrpcClient } from "renderer/lib/cloud-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -41,7 +42,16 @@ export function useSubmitWorkspace(
 
 	const isSession = draft.isSession;
 
-	const submitWorkspace = useCallback(async () => {
+	// Submit is reachable from Cmd+Enter, the editor's Enter handler, and the
+	// create button, and it awaits uploads / environment lookup / prompt
+	// context before anything observable changes — `createCloudWorkspace.isPending`
+	// is still false in that window, so without this latch a quick second
+	// Cmd+Enter created a second workspace. Released in `finally` so a submit
+	// that failed validation or errored can be retried.
+	const inFlightRef = useRef(false);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	const submitWorkspaceInner = useCallback(async () => {
 		const hostId = draft.hostId ?? machineId;
 		const isCloud = hostId === CLOUD_HOST_ID;
 		// A cloud workspace clones the one cloud repo, so it has no use for a
@@ -105,9 +115,9 @@ export function useSubmitWorkspace(
 			const environments = await cloudTrpcClient.environment.list.query({
 				organizationId: activeOrganizationId,
 			});
+			const startable = startableCloudEnvironments(environments);
 			const environment =
-				environments.find((row) => row.id === draft.environmentId) ??
-				environments[0];
+				startable.find((row) => row.id === draft.environmentId) ?? startable[0];
 			if (!environment) {
 				toast.error(
 					t({
@@ -123,8 +133,9 @@ export function useSubmitWorkspace(
 				// Returns as soon as the row exists — the sandbox is still being
 				// provisioned behind it, which the workspace screen renders.
 				// Same rule as a local create: an agent launches only when there
-				// is something to say to it. Attachments stay behind — they are
-				// written to a host, and this workspace's host doesn't exist yet.
+				// is something to say to it. Attachments were uploaded to cloud
+				// storage rather than a host, so the ids here are `files.id`s the
+				// sandbox resolves and pulls once it is up.
 				const wantCloudAgent =
 					selectedAgent !== "none" &&
 					(!!draft.prompt.trim() ||
@@ -146,13 +157,16 @@ export function useSubmitWorkspace(
 					// 20,000-character cap.
 					prompt:
 						(cloudPrompt ?? draft.prompt).trim().slice(0, 20_000) || undefined,
-					branch: branchName ?? "main",
+					branch: draft.baseBranch ?? branchName ?? undefined,
 					...(wantCloudAgent
 						? {
 								agent: selectedAgent,
 								model: selectedModel ?? undefined,
 								effort: selectedEffort ?? undefined,
 								mode: selectedMode ?? undefined,
+								...(attachmentIds.length > 0
+									? { attachmentFileIds: attachmentIds }
+									: {}),
 							}
 						: {}),
 				});
@@ -343,9 +357,20 @@ export function useSubmitWorkspace(
 		utils,
 	]);
 
-	// Cloud creation is the one path the user waits on, now only for as long as
-	// it takes to record the workspace — the sandbox comes up behind the
-	// workspace screen. Returned so the submit control can carry its own
-	// pending state for that moment rather than looking inert.
-	return { submitWorkspace, isCreating: createCloudWorkspace.isPending };
+	const submitWorkspace = useCallback(async () => {
+		if (inFlightRef.current) return;
+		inFlightRef.current = true;
+		setIsSubmitting(true);
+		try {
+			await submitWorkspaceInner();
+		} finally {
+			inFlightRef.current = false;
+			setIsSubmitting(false);
+		}
+	}, [submitWorkspaceInner]);
+
+	// Spans the whole submit — pending uploads, the cloud environment lookup,
+	// and the create itself — so the submit control reads busy for exactly the
+	// window in which a second activation would be dropped.
+	return { submitWorkspace, isCreating: isSubmitting };
 }

@@ -289,7 +289,7 @@ export function V2WorkspacesHeader({
 			className="@container shrink-0 border-b border-border px-6 pb-2 pt-3"
 		>
 			{/* Title row — also the window-drag surface now that it spans the top. */}
-			<div className="drag flex items-center justify-between gap-3 pb-3">
+			<div className="drag flex items-center gap-3 pb-3">
 				<DropdownMenu modal={false}>
 					<DropdownMenuTrigger asChild>
 						<Button
@@ -357,7 +357,7 @@ export function V2WorkspacesHeader({
 
 				<Button
 					size="sm"
-					className="no-drag h-8 shrink-0"
+					className="no-drag ml-auto h-8 shrink-0"
 					onClick={() => openNewWorkspace()}
 				>
 					<Trans>Create workspace</Trans>

@@ -9,13 +9,14 @@ import { useTerminalTheme } from "renderer/stores/theme";
 type Status = "connecting" | "connected" | "unavailable" | "error";
 
 interface DesktopPaneProps {
-	hostUrl: string | null;
+	/** The gate address of the sandbox's host-service, which serves the display. */
+	desktopUrl: string | null;
 }
 
-function buildSocketUrl(hostUrl: string): string {
-	const url = new URL("/desktop/vnc", hostUrl);
+function buildSocketUrl(desktopUrl: string): string {
+	const url = new URL("/desktop/websockify", desktopUrl);
 	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-	const token = getHostServiceWsToken(hostUrl);
+	const token = getHostServiceWsToken(desktopUrl);
 	if (token) url.searchParams.set("token", token);
 	return url.toString();
 }
@@ -26,7 +27,7 @@ function buildSocketUrl(hostUrl: string): string {
  * merely has focus would land in its browser, so input is opt-in and
  * released explicitly.
  */
-export function DesktopPane({ hostUrl }: DesktopPaneProps) {
+export function DesktopPane({ desktopUrl }: DesktopPaneProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const rfbRef = useRef<RFB | null>(null);
 	const [status, setStatus] = useState<Status>("connecting");
@@ -38,7 +39,7 @@ export function DesktopPane({ hostUrl }: DesktopPaneProps) {
 
 	useEffect(() => {
 		const container = containerRef.current;
-		if (!container || !hostUrl) return;
+		if (!container || !desktopUrl) return;
 
 		setStatus("connecting");
 		setDetail(null);
@@ -46,7 +47,7 @@ export function DesktopPane({ hostUrl }: DesktopPaneProps) {
 
 		let rfb: RFB | null = null;
 		try {
-			rfb = new RFB(container, buildSocketUrl(hostUrl));
+			rfb = new RFB(container, buildSocketUrl(desktopUrl));
 		} catch (error) {
 			setStatus("error");
 			setDetail(error instanceof Error ? error.message : String(error));
@@ -65,8 +66,9 @@ export function DesktopPane({ hostUrl }: DesktopPaneProps) {
 
 		const onConnect = () => setStatus("connected");
 		const onDisconnect = (event: CustomEvent<{ clean: boolean }>) => {
-			// 1011 with this reason is the route saying nothing is listening on the
-			// display, which is the ordinary case on a sandbox without one.
+			// A clean close means websockify answered and the VNC server behind it
+			// was not there: the ordinary case on a box whose desktop is still
+			// coming up or never did.
 			setStatus(event.detail.clean ? "unavailable" : "error");
 		};
 		rfb.addEventListener("connect", onConnect);
@@ -80,7 +82,7 @@ export function DesktopPane({ hostUrl }: DesktopPaneProps) {
 				rfb?.disconnect();
 			} catch {}
 		};
-	}, [hostUrl, background]);
+	}, [desktopUrl, background]);
 
 	const setControl = (next: boolean) => {
 		const rfb = rfbRef.current;

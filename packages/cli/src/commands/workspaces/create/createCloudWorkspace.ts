@@ -1,4 +1,5 @@
 import { CLIError } from "@superset/cli-framework";
+import { TRPCClientError } from "@trpc/client";
 import type { ApiClient } from "../../../lib/api-client";
 import { resolveCloudEnvironment } from "../../../lib/cloud-workspaces";
 
@@ -12,8 +13,6 @@ export interface CloudCreateOptions {
 	model?: string;
 	effort?: string;
 	environment?: string;
-	host?: string;
-	local?: boolean;
 	project?: string;
 	session?: boolean;
 	pr?: number;
@@ -36,11 +35,10 @@ export async function createCloudWorkspace(args: {
 }): Promise<{ data: unknown; message: string }> {
 	const { api, organizationId, options } = args;
 
-	// A sandbox's checkout is its workspace: no project, worktree or host.
+	// A cloud workspace's checkout is its environment's: no project, worktree
+	// or host. Those flags mean the caller wanted a host, so say how.
 	for (const [flag, value] of [
 		["--checkout", options.checkout],
-		["--host", options.host],
-		["--local", options.local || undefined],
 		["--project", options.project],
 		["--session", options.session || undefined],
 		["--pr", options.pr],
@@ -56,8 +54,8 @@ export async function createCloudWorkspace(args: {
 	] as const) {
 		if (value !== undefined) {
 			throw new CLIError(
-				`${flag} does not apply to --cloud`,
-				"A cloud sandbox clones the repository itself — it has no project, worktree or host to target",
+				`${flag} does not apply to a cloud workspace`,
+				"Your account creates workspaces in the cloud by default. Pass --local to create on this machine, or --host <id> for another host",
 			);
 		}
 	}
@@ -82,25 +80,40 @@ export async function createCloudWorkspace(args: {
 		);
 	}
 
-	const environments = await api.environment.list.query({ organizationId });
+	const environments = await api.environment.list
+		.query({ organizationId })
+		.catch(rethrowWithLocationHint);
 	const environment = resolveCloudEnvironment(
 		environments,
 		options.environment,
 	);
 
-	const row = await api.cloudWorkspace.create.mutate({
-		organizationId,
-		environmentId: environment.id,
-		...(options.name ? { name: options.name } : {}),
-		...(options.branch ? { branch: options.branch } : {}),
-		...(options.agent ? { agent: options.agent } : {}),
-		...(options.prompt ? { prompt: options.prompt } : {}),
-		...(options.model ? { model: options.model } : {}),
-		...(options.effort ? { effort: options.effort } : {}),
-	});
+	const row = await api.cloudWorkspace.create
+		.mutate({
+			organizationId,
+			environmentId: environment.id,
+			...(options.name ? { name: options.name } : {}),
+			...(options.branch ? { branch: options.branch } : {}),
+			...(options.agent ? { agent: options.agent } : {}),
+			...(options.prompt ? { prompt: options.prompt } : {}),
+			...(options.model ? { model: options.model } : {}),
+			...(options.effort ? { effort: options.effort } : {}),
+		})
+		.catch(rethrowWithLocationHint);
 
 	return {
 		data: row,
 		message: `Provisioning cloud workspace ${row.id} on branch ${row.branch} (environment: ${environment.name})`,
 	};
+}
+
+/** Without cloud access the default location is refused; point at the others. */
+function rethrowWithLocationHint(error: unknown): never {
+	if (error instanceof TRPCClientError && error.data?.code === "FORBIDDEN") {
+		throw new CLIError(
+			error.message,
+			"Pass --local to create on this machine, or --host <id> for another host",
+		);
+	}
+	throw error;
 }

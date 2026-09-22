@@ -507,7 +507,7 @@ async function runDestroyPhases(
 			if (
 				!isInsideProjectWorktreesRoot(
 					local.worktreePath,
-					project.id,
+					project,
 					worktreeBaseDir,
 				)
 			) {
@@ -587,7 +587,7 @@ async function runDestroyPhases(
 				if (
 					!isInsideProjectWorktreesRoot(
 						local.worktreePath,
-						project.id,
+						project,
 						worktreeBaseDir,
 					)
 				) {

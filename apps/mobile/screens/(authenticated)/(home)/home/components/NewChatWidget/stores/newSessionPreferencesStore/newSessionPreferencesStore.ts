@@ -57,7 +57,9 @@ export const useNewSessionPreferencesStore =
 				setAgentId: (agentId) => set({ agentId }),
 				setTargetKey: (targetKey) => set({ targetKey, baseBranch: null }),
 				setBaseBranch: (baseBranch) => set({ baseBranch }),
-				setEnvironmentId: (environmentId) => set({ environmentId }),
+				// A picked branch belongs to the repository it was listed from.
+				setEnvironmentId: (environmentId) =>
+					set({ environmentId, baseBranch: null }),
 				setModel: (presetId, model) =>
 					set((state) => ({
 						modelByAgent: withPick(state.modelByAgent, presetId, model),

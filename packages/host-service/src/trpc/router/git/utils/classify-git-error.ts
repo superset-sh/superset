@@ -7,6 +7,15 @@ const CWD_GONE_PATTERN =
 	/unable to read current working directory: no such file or directory/i;
 const CWD_UNREADABLE_PATTERN = /unable to read current working directory/i;
 const NOT_GIT_REPO_PATTERN = /not a git repository/i;
+// Git's text (do_read_index, read-cache.c) when mmap(2) of the index fails,
+// with the errno macOS returns when the file's storage cannot deliver it: a
+// cloud-synced folder whose sync client evicted the index and cannot fetch it
+// back in time or cancels the fetch, or a network volume that stops
+// answering. Every command that reads the index fails until the storage
+// recovers or the repository is moved off it. Other errnos on the same line,
+// such as running out of memory, stay unclassified.
+const INDEX_STORAGE_UNAVAILABLE_PATTERN =
+	/unable to map index file: Operation (?:timed out|canceled)$/m;
 // Git's text when the directory resolves to a repository but has no work tree
 // attached: the repo is bare, or the linked worktree's admin data was removed
 // or pruned. Distinct from CWD_GONE_PATTERN, where the directory itself is
@@ -38,6 +47,13 @@ const XCODE_SELECT_NO_TOOLS_PATTERN =
 // off a hook that reaches some other tool through the same stub.
 const XCODE_SELECT_GIT_NOT_LOCATED_PATTERN =
 	/^xcode-select: Failed to locate 'git', requesting installation of command line developer tools\.$/im;
+// The same stub after an Xcode update whose license nobody has accepted yet:
+// it refuses to run git with this sentence and nothing else, and every git
+// command fails the same way until the license is agreed to. The sentence
+// names no tool, so a hook reaching any shimmed tool prints the same line;
+// anchoring the whole message keeps this to the case where git never ran.
+const XCODE_LICENSE_NOT_ACCEPTED_PATTERN =
+	/^You have not agreed to the Xcode license agreements\. Please run 'sudo xcodebuild -license' from within a Terminal window to review and agree to the Xcode and Apple SDKs license\.\n?$/;
 // A content filter's helper program is not installed on this machine. Git runs
 // `filter.<name>.process`/`.clean` through the shell with the configured
 // command as the shell's $0, so an absent helper fails as
@@ -125,7 +141,10 @@ export function rethrowEnvironmentalGitError(error: unknown): void {
 			cause: { kind: "WORKTREE_MISSING" },
 		});
 	}
-	if (CWD_UNREADABLE_PATTERN.test(error.message)) {
+	if (
+		CWD_UNREADABLE_PATTERN.test(error.message) ||
+		INDEX_STORAGE_UNAVAILABLE_PATTERN.test(error.message)
+	) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
 			message: error.message,
@@ -134,7 +153,8 @@ export function rethrowEnvironmentalGitError(error: unknown): void {
 	}
 	if (
 		XCODE_SELECT_NO_TOOLS_PATTERN.test(error.message) ||
-		XCODE_SELECT_GIT_NOT_LOCATED_PATTERN.test(error.message)
+		XCODE_SELECT_GIT_NOT_LOCATED_PATTERN.test(error.message) ||
+		XCODE_LICENSE_NOT_ACCEPTED_PATTERN.test(error.message)
 	) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",

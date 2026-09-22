@@ -25,6 +25,7 @@ import {
 import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
 import { type MutableRefObject, useEffect, useRef } from "react";
+import { replaceEditorDocument } from "renderer/lib/replaceEditorDocument";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { getCodeSyntaxHighlighting } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
@@ -54,13 +55,7 @@ function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
 			return view.state.doc.toString();
 		},
 		setValue(value) {
-			view.dispatch({
-				changes: {
-					from: 0,
-					to: view.state.doc.length,
-					insert: value,
-				},
-			});
+			view.dispatch(replaceEditorDocument(view.state, value));
 		},
 		revealPosition(line, column = 1) {
 			const safeLine = Math.max(1, Math.min(line, view.state.doc.lines));
@@ -288,13 +283,7 @@ export function CodeEditor({
 		// Guarantee flag reset regardless of whether dispatch throws (e.g. view destroyed between null-check and dispatch).
 		isExternalUpdateRef.current = true;
 		try {
-			view.dispatch({
-				changes: {
-					from: 0,
-					to: view.state.doc.length,
-					insert: value,
-				},
-			});
+			view.dispatch(replaceEditorDocument(view.state, value));
 		} finally {
 			isExternalUpdateRef.current = false;
 		}

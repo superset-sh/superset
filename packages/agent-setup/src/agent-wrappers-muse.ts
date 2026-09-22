@@ -167,6 +167,7 @@ export function getMuseSettingsJsonWithoutManagedHooks(
 
 export function createMuseSettingsJson(): void {
 	const settingsPath = getMuseSettingsJsonPath();
+	fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
 	let raw: string | null = null;
 	try {
 		raw = fs.readFileSync(settingsPath, "utf-8");

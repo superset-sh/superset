@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
+import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback } from "react";
 import { LuCheck, LuCopy } from "react-icons/lu";
@@ -57,6 +58,21 @@ export function FilePaneHeaderExtras({
 
 	return (
 		<div className="flex min-w-0 items-center gap-1">
+			{document.content.kind === "text" && (
+				<Button
+					size="sm"
+					variant="ghost"
+					className="h-6 px-2 text-xs"
+					disabled={!document.dirty || document.pendingSave}
+					onClick={() => void document.save()}
+				>
+					{document.pendingSave ? (
+						<Trans>Saving...</Trans>
+					) : (
+						<Trans>Save</Trans>
+					)}
+				</Button>
+			)}
 			{shouldShowToggle && activeView && (
 				<FileViewToggle
 					views={orderForToggle(views)}

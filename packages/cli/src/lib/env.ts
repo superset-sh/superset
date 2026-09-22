@@ -1,7 +1,9 @@
 /**
- * Build-time constants baked into the CLI binary via `Bun.build({ define })`
- * (see `cli.config.ts`). In dev mode, falls back to actual process.env so
- * local dev can override these.
+ * Where this CLI points. Production is the default; a dev build is pointed
+ * elsewhere by setting these when it runs, never by baking them in — a binary
+ * that ignored the variable is what made a production key look invalid when
+ * the desktop's bundled CLI checked it against a local stack. `SUPERSET_VERSION`
+ * stays baked: it is this build's identity, not an address.
  */
 
 export const env = {

@@ -41,4 +41,4 @@ Show the user the proposed files and get explicit approval before writing.
 
 ## 3. Verify for real
 
-Create a throwaway workspace with `superset workspaces create --project <id> --name "setup-test"` and watch the "Workspace Setup" terminal output. Fix and repeat until it completes cleanly, then delete the test workspace. Setup is not done until a real workspace boots green.
+Create a throwaway workspace with `superset workspaces create --local --project <id> --name "setup-test"` and watch the "Workspace Setup" terminal output. Fix and repeat until it completes cleanly, then delete the test workspace. Setup is not done until a real workspace boots green.

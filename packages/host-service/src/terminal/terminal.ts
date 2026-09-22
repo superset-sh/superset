@@ -66,6 +66,10 @@ import {
 	waitForTerminalBaseEnv,
 } from "./env.ts";
 import { readHarnessTranscript } from "./harness-transcript.ts";
+import {
+	TerminalLifecycleOperations,
+	terminalLifecycleState,
+} from "./lifecycle/lifecycle.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
 	getShellReadyMarkerEvidence,
@@ -608,13 +612,7 @@ interface TerminalSession {
 	 */
 	modeTracker: ModeTracker;
 
-	/**
-	 * Resolves once the daemon's post-adoption ring-buffer replay has
-	 * quiesced (immediately for non-adopted sessions). Attach paths await it
-	 * before delivering to a socket, so the mode preamble is built from a
-	 * tracker that has actually seen the program's mode bytes and replayed
-	 * bytes never broadcast to a just-attached client.
-	 */
+	/** Replay and its mode checkpoint must finish before attach or text input. */
 	adoptionReplaySettled: Promise<void>;
 
 	/**
@@ -978,8 +976,7 @@ export async function listLiveTerminalSessions(
 		if (workspaceId !== undefined && row.originWorkspaceId !== workspaceId) {
 			continue;
 		}
-		if (row.status !== "active") continue;
-		if (row.disposeRequestedAt != null) continue;
+		if (terminalLifecycleState(row) !== "active") continue;
 		merged.push({
 			terminalId: row.id,
 			workspaceId: row.originWorkspaceId,
@@ -1023,11 +1020,7 @@ export function writeInputToSession({
 	return { success: true };
 }
 
-// Ring-buffer replay after adoption arrives asynchronously over the daemon
-// socket, and it is what rebuilds the mode tracker (bracketed paste, screen
-// content). Protocol v2 has no replay-complete signal, so watch the replayed
-// bytes accumulate — they land in session.buffer, since no renderer is
-// attached right after adoption — and return once they quiesce.
+// Compatibility with daemons predating the replay-complete checkpoint.
 const ADOPTION_REPLAY_WAIT_MS = 500;
 
 async function waitForAdoptionReplay(session: TerminalSession): Promise<void> {
@@ -1048,6 +1041,36 @@ async function waitForAdoptionReplay(session: TerminalSession): Promise<void> {
  * attempt keeps session identity unique per terminal.
  */
 const adoptionsInFlight = new Map<string, Promise<unknown>>();
+
+async function waitForSessionReplay(
+	session: TerminalSession,
+): Promise<TerminalSession | TerminalSessionError> {
+	try {
+		await session.adoptionReplaySettled;
+		return session;
+	} catch (error) {
+		if (sessions.get(session.terminalId) === session) {
+			sessions.delete(session.terminalId);
+			cancelShellReady(session);
+			try {
+				session.unsubscribeDaemon?.();
+			} catch (unsubscribeError) {
+				console.warn(
+					"[terminal] failed to unsubscribe after replay failure",
+					unsubscribeError,
+				);
+			}
+			session.unsubscribeDaemon = null;
+			session.modeTracker.dispose();
+		}
+		const transient = error instanceof DaemonUnavailableError;
+		return {
+			kind: transient ? "DAEMON_UNAVAILABLE" : "TERMINAL_START_FAILED",
+			error: error instanceof Error ? error.message : "Terminal replay failed",
+			transient,
+		};
+	}
+}
 
 /**
  * Resolve a session for headless IO. The in-memory map empties on every
@@ -1074,7 +1097,7 @@ async function getOrAdoptSession({
 					error: "Terminal session does not belong to this workspace",
 				};
 			}
-			return existing;
+			return waitForSessionReplay(existing);
 		}
 
 		// Another caller is mid-adoption: wait it out, then re-resolve so
@@ -1096,8 +1119,7 @@ async function getOrAdoptSession({
 			});
 			if ("error" in adopted) return adopted;
 
-			await adopted.adoptionReplaySettled;
-			return adopted;
+			return waitForSessionReplay(adopted);
 		})();
 		adoptionsInFlight.set(terminalId, attempt);
 		try {
@@ -2607,6 +2629,7 @@ async function closeDaemonSessionById(
  * transient teardown session.
  */
 export function disposeSession(terminalId: string, db: HostDb) {
+	markTerminalAgentBindingEnded(db, terminalId, "disposed");
 	void disposeSessionAndWait(terminalId, db)
 		.then((result) => {
 			if (!result.daemonCloseSucceeded) {
@@ -2620,23 +2643,35 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		});
 }
 
+const lifecycleOperations = new TerminalLifecycleOperations();
+
 export async function disposeSessionAndWait(
 	terminalId: string,
 	db: HostDb,
 ): Promise<DisposeSessionResult> {
-	// Durable intent-to-kill: if this attempt fails (daemon hiccup, host
-	// restart mid-kill), the reaper retries any stamped row — a one-shot
-	// renderer broadcast must not be the only chance to kill a session.
-	// First request time wins so retries don't look like fresh requests.
-	db.update(terminalSessions)
-		.set({ disposeRequestedAt: Date.now() })
-		.where(
-			and(
-				eq(terminalSessions.id, terminalId),
-				isNull(terminalSessions.disposeRequestedAt),
-			),
-		)
+	const now = Date.now();
+	db.insert(terminalSessions)
+		.values({
+			id: terminalId,
+			status: "disposed",
+			createdAt: now,
+			disposeRequestedAt: now,
+		})
+		.onConflictDoUpdate({
+			target: terminalSessions.id,
+			set: { disposeRequestedAt: now },
+			setWhere: isNull(terminalSessions.disposeRequestedAt),
+		})
 		.run();
+	return lifecycleOperations.run(terminalId, () =>
+		disposeSessionUnlocked(terminalId, db),
+	);
+}
+
+async function disposeSessionUnlocked(
+	terminalId: string,
+	db: HostDb,
+): Promise<DisposeSessionResult> {
 	const session = sessions.get(terminalId);
 	let closePromise: Promise<DaemonCloseResult> | null = null;
 
@@ -2850,7 +2885,38 @@ function getTerminalWorkspaceMismatchError({
 
 type CreateSessionError = TerminalSessionError;
 
-export async function createTerminalSessionInternal({
+export function getPendingTerminalWorkspaceId(
+	terminalId: string,
+): string | undefined {
+	return lifecycleOperations.getWorkspaceId(terminalId);
+}
+
+export function createTerminalSessionInternal(
+	options: CreateTerminalSessionOptions,
+): Promise<TerminalSession | CreateSessionError> {
+	const record = options.db.query.terminalSessions
+		.findFirst({ where: eq(terminalSessions.id, options.terminalId) })
+		.sync();
+	const mismatchError = getTerminalWorkspaceMismatchError({
+		terminalId: options.terminalId,
+		ownerWorkspaceId:
+			record?.originWorkspaceId ??
+			getPendingTerminalWorkspaceId(options.terminalId),
+		requestedWorkspaceId: options.workspaceId,
+	});
+	if (mismatchError)
+		return Promise.resolve({
+			kind: "SESSION_WRONG_WORKSPACE",
+			error: mismatchError,
+		});
+	return lifecycleOperations.run(
+		options.terminalId,
+		() => createTerminalSessionUnlocked(options),
+		record ? undefined : options.workspaceId,
+	);
+}
+
+async function createTerminalSessionUnlocked({
 	terminalId,
 	workspaceId,
 	themeType,
@@ -2866,6 +2932,16 @@ export async function createTerminalSessionInternal({
 }: CreateTerminalSessionOptions): Promise<
 	TerminalSession | CreateSessionError
 > {
+	const record = db.query.terminalSessions
+		.findFirst({ where: eq(terminalSessions.id, terminalId) })
+		.sync();
+	const lifecycle = terminalLifecycleState(record);
+	if (lifecycle === "disposed" || lifecycle === "exited") {
+		return {
+			kind: "SESSION_EXITED",
+			error: `Terminal session "${terminalId}" has ended; create a new terminal id.`,
+		};
+	}
 	const existing = sessions.get(terminalId);
 	if (existing) {
 		const mismatchError = getTerminalWorkspaceMismatchError({
@@ -2881,12 +2957,9 @@ export async function createTerminalSessionInternal({
 		return existing;
 	}
 
-	const existingRecord = db.query.terminalSessions
-		.findFirst({ where: eq(terminalSessions.id, terminalId) })
-		.sync();
 	const recordMismatchError = getTerminalWorkspaceMismatchError({
 		terminalId,
-		ownerWorkspaceId: existingRecord?.originWorkspaceId,
+		ownerWorkspaceId: record?.originWorkspaceId,
 		requestedWorkspaceId: workspaceId,
 	});
 	if (recordMismatchError)
@@ -3056,6 +3129,19 @@ export async function createTerminalSessionInternal({
 			transient: unreachable,
 		};
 	}
+	const currentRecord = db.query.terminalSessions
+		.findFirst({ where: eq(terminalSessions.id, terminalId) })
+		.sync();
+	if (
+		terminalLifecycleState(currentRecord) === "disposed" ||
+		terminalLifecycleState(currentRecord) === "exited"
+	) {
+		await daemon.close(terminalId, "SIGHUP").catch(() => {});
+		return {
+			kind: "SESSION_EXITED",
+			error: `Terminal session "${terminalId}" ended during creation.`,
+		};
+	}
 	const pty: DaemonPty = makeDaemonPty(daemon, terminalId, openResult.pid);
 
 	const createdAt = Date.now();
@@ -3105,15 +3191,19 @@ export async function createTerminalSessionInternal({
 	// bytes, but the session literal below needs the tracker — close over a
 	// ref assigned right after construction.
 	let reclaimSession: TerminalSession | null = null;
-	const modeTracker = createModeTracker(cols, rows, {
-		onLeakedInputModeDisarm(bytes) {
-			const s = reclaimSession;
-			if (!s || !isCurrentLiveSession(s)) return;
-			// deliverOutput feeds the tracker too, so its modes (and the next
-			// attach preamble) converge with what clients were just told.
-			deliverOutput(s, bytes);
-		},
-	});
+	const modeTracker = createModeTracker(
+		cols,
+		rows,
+		daemon.supportsModeSnapshots
+			? {}
+			: {
+					onLeakedInputModeDisarm(bytes) {
+						const s = reclaimSession;
+						if (!s || !isCurrentLiveSession(s)) return;
+						deliverOutput(s, bytes);
+					},
+				},
+	);
 
 	const session: TerminalSession = {
 		terminalId,
@@ -3189,18 +3279,15 @@ export async function createTerminalSessionInternal({
 		);
 	}
 
-	// Always request the daemon's ring on subscribe: it is the only way to
-	// rebuild the mode tracker after adoption (a tracker that never sees the
-	// program's `?25l`/`?1004h`/kitty bytes builds wrong preambles and
-	// disables host-side focus forwarding). Whether the replayed BYTES reach
-	// any client is decided per-attach: seq clients are protected by
-	// reanchor/anchor accounting, legacy `?replay=0` clients get the FIFO
-	// dropped at attach. Fresh (non-adopted) sessions have an empty ring, so
-	// replay is a no-op there.
+	// Replay carries screen contents; the following checkpoint restores modes
+	// even when the program set them before the retained output begins.
 	session.unsubscribeDaemon = daemon.subscribe(
 		terminalId,
 		{ replay: true },
 		{
+			onReplayComplete(modes) {
+				session.modeTracker.restoreModes(modes);
+			},
 			onOutput(chunk) {
 				// Bytes flow daemon → host → xterm without UTF-8 decoding;
 				// per-chunk `.toString("utf8")` here would mangle codepoints
@@ -3261,6 +3348,7 @@ export async function createTerminalSessionInternal({
 				answerDsrCursorQueries(session, dsrQueries);
 			},
 			onExit({ code, signal }) {
+				if (sessions.get(terminalId) !== session) return;
 				session.exited = true;
 				cancelShellReady(session);
 				session.exitCode = code ?? 0;
@@ -3271,7 +3359,13 @@ export async function createTerminalSessionInternal({
 
 				db.update(terminalSessions)
 					.set({ status: "exited", endedAt: occurredAt })
-					.where(eq(terminalSessions.id, terminalId))
+					.where(
+						and(
+							eq(terminalSessions.id, terminalId),
+							eq(terminalSessions.status, "active"),
+							isNull(terminalSessions.disposeRequestedAt),
+						),
+					)
 					.run();
 
 				// The agent died with the pty; unless its SessionEnd hook already
@@ -3310,9 +3404,11 @@ export async function createTerminalSessionInternal({
 
 	// The ring replay lands asynchronously after subscribe; attach paths
 	// await this so the first preamble reflects the rebuilt tracker.
-	if (isAdopted) {
-		session.adoptionReplaySettled = waitForAdoptionReplay(session);
-	}
+	session.adoptionReplaySettled = daemon.supportsModeSnapshots
+		? daemon.waitForReplay(terminalId)
+		: isAdopted
+			? waitForAdoptionReplay(session)
+			: Promise.resolve();
 
 	if (initialCommand) {
 		queueInitialCommand(session, initialCommand);
@@ -3320,13 +3416,6 @@ export async function createTerminalSessionInternal({
 
 	return session;
 }
-
-// Concurrent create-on-attach dials for the same brand-new terminalId must
-// share one spawn instead of racing createTerminalSessionInternal.
-const inflightCreates = new Map<
-	string,
-	Promise<TerminalSession | CreateSessionError>
->();
 
 export function registerWorkspaceTerminalRoute({
 	app,
@@ -3473,6 +3562,15 @@ export function registerWorkspaceTerminalRoute({
 				| TerminalSession
 				| { error: string; code?: "session-gone"; transient?: boolean }
 			> => {
+				const lifecycleRecord = db.query.terminalSessions
+					.findFirst({ where: eq(terminalSessions.id, terminalId) })
+					.sync();
+				if (terminalLifecycleState(lifecycleRecord) === "disposed") {
+					return {
+						error: `Terminal session "${terminalId}" is disposed.`,
+						code: "session-gone",
+					};
+				}
 				const existing = sessions.get(terminalId);
 				if (existing) {
 					if (requestedWorkspaceId) {
@@ -3486,53 +3584,31 @@ export function registerWorkspaceTerminalRoute({
 					return existing;
 				}
 
-				const record = db.query.terminalSessions
-					.findFirst({ where: eq(terminalSessions.id, terminalId) })
-					.sync();
+				const record = lifecycleRecord;
 				if (!record) {
 					// Only ids with no session row at all qualify for create-on-attach
 					// — exited/disposed records below keep their session-gone answer.
 					if (createRequested && requestedWorkspaceId) {
-						const inflight = inflightCreates.get(terminalId);
-						if (inflight) {
-							const shared = await inflight;
-							if ("error" in shared) return shared;
-							// The shared spawn was created for the FIRST dial's workspace —
-							// validate ownership like every other attach path.
-							const mismatchError = getTerminalWorkspaceMismatchError({
-								terminalId,
-								ownerWorkspaceId: shared.workspaceId,
-								requestedWorkspaceId,
-							});
-							if (mismatchError) return { error: mismatchError };
-							return shared;
-						}
-						const createPromise = createTerminalSessionInternal({
+						return createTerminalSessionInternal({
 							terminalId,
 							workspaceId: requestedWorkspaceId,
 							themeType: requestedThemeType,
 							db,
 							eventBus,
 						});
-						inflightCreates.set(terminalId, createPromise);
-						try {
-							return await createPromise;
-						} finally {
-							inflightCreates.delete(terminalId);
-						}
 					}
 					return {
 						error: `Terminal session "${terminalId}" not found; create it before connecting.`,
 						code: "session-gone",
 					};
 				}
-				if (record.status === "disposed") {
+				if (terminalLifecycleState(record) === "disposed") {
 					return {
 						error: `Terminal session "${terminalId}" is disposed.`,
 						code: "session-gone",
 					};
 				}
-				if (record.status === "exited") {
+				if (terminalLifecycleState(record) === "exited") {
 					return {
 						error: `Terminal session "${terminalId}" has exited.`,
 						code: "session-gone",
@@ -3566,7 +3642,7 @@ export function registerWorkspaceTerminalRoute({
 				// Daemon unreachable ≠ PTY lost: the shell may still be alive behind
 				// the stall, so don't end agent bindings or respawn — let the
 				// renderer retry until the daemon answers.
-				if (adopted.transient) return adopted;
+				if (adopted.kind !== "SESSION_NOT_ACTIVE") return adopted;
 
 				// Active row but daemon no longer owns the PTY (laptop sleep,
 				// daemon restart, machine reboot). Respawn rather than dead-end
@@ -3600,26 +3676,25 @@ export function registerWorkspaceTerminalRoute({
 					}
 
 					void (async () => {
-						const session = await resolveSessionForAttach();
+						const resolved = await resolveSessionForAttach();
+						const session =
+							"error" in resolved
+								? resolved
+								: await waitForSessionReplay(resolved);
 						if ("error" in session) {
-							const transient = !session.code && session.transient;
+							const code = "code" in session ? session.code : undefined;
+							const transient = !code && session.transient;
 							sendMessage(ws, {
 								type: "error",
 								message: session.error,
-								code:
-									session.code ?? (transient ? "attach-retryable" : undefined),
+								code: code ?? (transient ? "attach-retryable" : undefined),
 							});
 							// 1013 "try again later" for transient failures; the renderer
 							// keys off the JSON code, the close code is for log readers.
 							ws.close(transient ? 1013 : 1011, toWsCloseReason(session.error));
 							return;
 						}
-						// A just-adopted session may still be receiving the daemon's
-						// ring replay: wait for it to quiesce so the mode preamble
-						// reflects the program's real state and the replayed bytes
-						// don't broadcast to this socket. Resolved immediately in
-						// every other case.
-						await session.adoptionReplaySettled;
+
 						if (ws.readyState !== SOCKET_OPEN) return;
 						attachSocketToSession(session, ws);
 					})().catch((error) => {

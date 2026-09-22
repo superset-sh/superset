@@ -74,19 +74,25 @@ export function DashboardSidebarCloudSection({
 		[collections],
 	);
 
-	// Every cloud workspace clones the one cloud repository.
+	// Each cloud workspace's pull requests live in its primary repository.
 	const organizationId = useActiveOrganizationId();
-	const { data: cloudRepo } = cloudTrpc.cloudWorkspace.repo.useQuery(
-		{ organizationId: organizationId ?? "" },
-		{
-			enabled: organizationId !== null && cloudWorkspaces.length > 0,
-			// Finite so an App installed mid-session is picked up.
-			staleTime: 5 * 60_000,
-		},
+	const { data: cloudRepositories } =
+		cloudTrpc.cloudWorkspace.repositories.useQuery(
+			{ organizationId: organizationId ?? "" },
+			{
+				enabled: organizationId !== null && cloudWorkspaces.length > 0,
+				staleTime: 5 * 60_000,
+			},
+		);
+	const repoFullNameById = useMemo(
+		() =>
+			new Map(
+				(cloudRepositories ?? [])
+					.filter((row) => row.primary)
+					.map((row) => [row.cloudWorkspaceId, row.fullName] as const),
+			),
+		[cloudRepositories],
 	);
-	const cloudRepoFullName = cloudRepo
-		? `${cloudRepo.owner}/${cloudRepo.name}`
-		: null;
 
 	// Only the open workspace's sandbox is in the fan-out, so this holds at
 	// most one row.
@@ -97,13 +103,18 @@ export function DashboardSidebarCloudSection({
 
 	const pullRequestRefs = useMemo<CloudPullRequestRef[]>(
 		() =>
-			cloudRepoFullName
-				? cloudWorkspaces.map((cloud) => ({
-						repoFullName: cloudRepoFullName,
-						headBranch: servedById.get(cloud.id)?.branch ?? cloud.branch,
-					}))
-				: [],
-		[servedById, cloudRepoFullName, cloudWorkspaces],
+			cloudWorkspaces.flatMap((cloud) => {
+				const repoFullName = repoFullNameById.get(cloud.id);
+				return repoFullName
+					? [
+							{
+								repoFullName,
+								headBranch: servedById.get(cloud.id)?.branch ?? cloud.branch,
+							},
+						]
+					: [];
+			}),
+		[servedById, repoFullNameById, cloudWorkspaces],
 	);
 	const cloudPullRequests = useSidebarCloudPullRequests(pullRequestRefs);
 
@@ -127,12 +138,10 @@ export function DashboardSidebarCloudSection({
 			.map((cloud) => {
 				const served = servedById.get(cloud.id);
 				const branch = served?.branch ?? cloud.branch;
-				const pullRequest = cloudRepoFullName
+				const repoFullName = repoFullNameById.get(cloud.id);
+				const pullRequest = repoFullName
 					? (cloudPullRequests.byRef.get(
-							cloudPullRequestRefKey({
-								repoFullName: cloudRepoFullName,
-								headBranch: branch,
-							}),
+							cloudPullRequestRefKey({ repoFullName, headBranch: branch }),
 						) ?? null)
 					: null;
 				const suppressedUrl = localById.get(cloud.id)?.suppressedPullRequestUrl;
@@ -185,7 +194,7 @@ export function DashboardSidebarCloudSection({
 	}, [
 		servedById,
 		cloudPullRequests.byRef,
-		cloudRepoFullName,
+		repoFullNameById,
 		cloudWorkspaces,
 		localStateRows,
 	]);

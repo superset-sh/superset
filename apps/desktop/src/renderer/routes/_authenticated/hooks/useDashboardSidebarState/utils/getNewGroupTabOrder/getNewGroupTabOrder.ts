@@ -3,10 +3,14 @@ interface GroupSourcePosition {
 	isGrouped: boolean;
 }
 
-/** Replace an ungrouped row's slot, or insert just after its existing group. */
+/**
+ * Replace an ungrouped row's slot, or take the one right after its existing
+ * group. Every lane order is an integer — the schema rejects anything else —
+ * so the new group shares a slot with whatever holds it until the next
+ * reorder renumbers the lane.
+ */
 export function getNewGroupTabOrder(
 	sources: GroupSourcePosition[],
-	topLevelOrders: number[],
 	fallback: number,
 ): number {
 	const first = sources.reduce<GroupSourcePosition | undefined>(
@@ -15,11 +19,5 @@ export function getNewGroupTabOrder(
 		undefined,
 	);
 	if (!first) return fallback;
-	if (!first.isGrouped) return first.tabOrder;
-	const next = Math.min(
-		...topLevelOrders.filter((order) => order > first.tabOrder),
-	);
-	return Number.isFinite(next)
-		? first.tabOrder + (next - first.tabOrder) / 2
-		: first.tabOrder + 1;
+	return first.isGrouped ? first.tabOrder + 1 : first.tabOrder;
 }

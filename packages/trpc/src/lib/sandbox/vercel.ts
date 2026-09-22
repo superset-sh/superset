@@ -3,13 +3,20 @@
  * provider, so an interface would be a second thing to keep in sync with no
  * second implementation to justify it.
  *
- * A sandbox's exposed port is a public URL with nothing in front of it, so
- * the provider's part is compute, filesystem and the egress firewall only.
- * Access control is ours: host-service checks a token this API signs
- * (`access.ts`). Clients connect directly, no relay hop, so websockets work.
+ * The provider's part is compute, filesystem, the published ports and the
+ * egress firewall. Ours is the box itself: identity written to a file, boot
+ * started through the sandbox API with the host secret in its env, the
+ * managed environment pushed into host-service once it answers, and a
+ * ticket-checking gate in front of every port (`access.ts`).
  */
 
-import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
+import {
+	renderSandboxConf,
+	SANDBOX_PATHS,
+	SANDBOX_PORTS,
+	SANDBOX_PUBLISHED_PORTS,
+	type SandboxIdentity,
+} from "@superset/shared/sandbox-contract";
 import {
 	APIError,
 	type NetworkPolicy,
@@ -18,11 +25,11 @@ import {
 } from "@vercel/sandbox";
 import { env } from "../../env";
 
-export const HOST_SERVICE_PORT = 4879;
+export const HOST_SERVICE_PORT = SANDBOX_PORTS.hostService;
 /**
  * A session ends after this long; the workspace's files survive and the next
  * open resumes it. A workspace someone has open is extended before it gets
- * there (`resolveSandboxAddress`), so this is really the idle stop — and how long an
+ * there (`wakeSandbox`), so this is really the idle stop, and how long an
  * unattended agent run can last.
  */
 const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000;
@@ -32,31 +39,8 @@ const WORKSPACE_SNAPSHOT_EXPIRATION_MS = 30 * 24 * 60 * 60 * 1000;
 /** 2 GB of memory per vCPU; disk is 64 GB regardless. */
 const IMAGE_SANDBOX_VCPUS = 8;
 const GOLDEN_SESSION_TIMEOUT_MS = 30 * 60 * 1000;
-/**
- * The platform caps a sandbox's config env at 4 KB, which the identity and
- * credentials fit in and an environment's variables do not. Those travel as
- * this file instead: written root-only right after create, sourced by
- * /app/start.sh on every boot, and removed from a golden at promote.
- */
-const ENVIRONMENT_FILE = "/data/environment.env";
-const CONFIG_ENV_LIMIT_BYTES = 4096;
-
-/** `KEY='value'` lines a POSIX shell sources; a quote inside becomes `'\''`. */
-function shellEnvFile(envs: Record<string, string>): string {
-	return Object.entries(envs)
-		.map(([key, value]) => `${key}='${value.replaceAll("'", "'\\''")}'`)
-		.join("\n")
-		.concat("\n");
-}
-
-async function writeEnvironmentFile(
-	sandbox: Sandbox,
-	envs: Record<string, string>,
-): Promise<void> {
-	await sandbox.writeFiles([
-		{ path: ENVIRONMENT_FILE, content: shellEnvFile(envs), mode: 0o600 },
-	]);
-}
+const BOOT_COMMAND = "/usr/local/bin/superset-boot";
+const HOST_PROBE_TIMEOUT_MS = 1_500;
 
 function credentials() {
 	return {
@@ -100,133 +84,102 @@ async function getSandbox(name: string): Promise<Sandbox | null> {
 	}
 }
 
-interface BrokeredProvider {
-	/** Any of these in the workspace env means the workspace brings its own. */
-	provided: string[];
-	placeholder: string;
-	domain: string;
-	headers: Record<string, string>;
-}
-
-/**
- * The organization's model keys, injected into egress at the firewall so they
- * never enter the sandbox: the agent sends a placeholder, the firewall swaps
- * the header. A workspace that carries its own credential for a provider — an
- * environment variable or the person's own sign-in — gets no rule for it, so
- * that credential is what reaches the provider untouched.
- */
-function agentCredentialPolicy(workspaceEnv: Record<string, string>): {
-	envs: Record<string, string>;
-	networkPolicy: NetworkPolicy;
-} {
-	const providers: BrokeredProvider[] = [
-		{
-			provided: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
-			placeholder: "ANTHROPIC_API_KEY",
-			domain: "api.anthropic.com",
-			headers: { "x-api-key": env.ANTHROPIC_API_KEY },
-		},
-		{
-			provided: ["OPENAI_API_KEY"],
-			placeholder: "OPENAI_API_KEY",
-			domain: "api.openai.com",
-			headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
-		},
-	];
-	const envs: Record<string, string> = {};
-	const allow: Record<
-		string,
-		Array<{ transform: Array<{ headers: Record<string, string> }> }>
-	> = {};
-	for (const provider of providers) {
-		if (provider.provided.some((name) => workspaceEnv[name])) continue;
-		if (!Object.values(provider.headers).every(Boolean)) continue;
-		// Unset reads as "not logged in" and produces no request to rewrite.
-		envs[provider.placeholder] = SANDBOX_CREDENTIAL_PLACEHOLDER;
-		allow[provider.domain] = [{ transform: [{ headers: provider.headers }] }];
-	}
-	if (Object.keys(allow).length === 0) {
-		return { envs, networkPolicy: "allow-all" };
-	}
-	// The catch-all keeps the rest of the internet reachable; without it a
-	// custom policy denies everything it does not list.
-	return { envs, networkPolicy: { allow: { ...allow, "*": [] } } };
-}
-
-export interface ProvisionedSandbox {
-	providerSandboxId: string;
-	sandboxUrl: string;
-}
-
 export interface SandboxEnvironment {
 	sourceKind: "image" | "fork";
 	sourceRef: string;
 }
 
+/** Everything the box needs to become one workspace; nothing of it is a create-time env. */
+export interface SandboxClaim {
+	identity: SandboxIdentity;
+	/** What the gate presents; travels only in the boot command's env. */
+	hostSecret: string;
+	managedEnv: Record<string, string>;
+	networkPolicy: NetworkPolicy;
+	/** Ports the workspace's repository asks to publish, beside the platform's. */
+	ports?: readonly number[];
+}
+
+function publishedPorts(extra: readonly number[] = []): number[] {
+	return [...new Set([...SANDBOX_PUBLISHED_PORTS, ...extra])];
+}
+
 /**
- * Starts host-service unless something already answers on its port — a wake
- * that races another wake, or a re-delivered provision, must not stack a
- * second server that dies on bind. Not awaited: `waitForHostService` is how
- * a caller learns it is up.
+ * The identity file, written before boot on every create and wake: what a
+ * person can read on the box to see which workspace it is. A file rather
+ * than a variable on the boot command, so it can hold whatever the box needs
+ * without a size limit and so the runner's inputs never change shape.
  */
-async function startHostService(sandbox: Sandbox): Promise<void> {
+async function writeIdentity(
+	sandbox: Sandbox,
+	identity: SandboxIdentity,
+): Promise<void> {
+	await sandbox.writeFiles([
+		{
+			path: SANDBOX_PATHS.conf,
+			content: renderSandboxConf(identity),
+			mode: 0o644,
+		},
+	]);
+}
+
+/**
+ * Starts boot: root, detached, with the host secret in the command's env and
+ * nowhere else. The platform's own `sudo: true` resets the env; the image's
+ * sudoers grants SETENV, so the secret crosses into root without touching
+ * argv. The runner refuses to stack a second host-service on a live one, so
+ * a wake that races a wake is harmless.
+ */
+async function runBoot(sandbox: Sandbox, hostSecret: string): Promise<void> {
 	await sandbox.runCommand({
-		cmd: "sh",
-		args: [
-			"-c",
-			`nc -z 127.0.0.1 ${HOST_SERVICE_PORT} 2>/dev/null || exec /app/start.sh`,
-		],
+		cmd: "sudo",
+		args: ["--preserve-env=HOST_SERVICE_SECRET", BOOT_COMMAND],
 		detached: true,
+		env: { HOST_SERVICE_SECRET: hostSecret },
 	});
 }
 
 /**
- * Creates the sandbox and returns once its URL exists — not once anything is
- * listening on it, which is the caller's job. Idempotent on the name: a
- * re-delivered provision finds the sandbox it already made.
+ * When the provider call that makes the sandbox started and returned, and
+ * when boot was fired into it. Job-side clock; the boot runner's own phases
+ * are stamped inside the sandbox and read off health.check.
+ */
+/**
+ * Creates the sandbox, writes its identity and starts boot. Returns once the
+ * sandbox's address exists, not once anything listens on it; `settleSandbox`
+ * is how a caller waits for that. Idempotent on the name: a re-delivered
+ * provision finds the sandbox it already made.
  */
 export async function provisionSandbox(args: {
 	name: string;
 	environment: SandboxEnvironment;
-	/**
-	 * The workspace's identity and credentials — what the sandbox reads on
-	 * boot to seed its own project and workspace rows, which is why
-	 * provisioning has nothing to run inside it afterwards. Small by
-	 * construction; it rides in the sandbox's config env.
-	 */
-	workspaceEnv: Record<string, string>;
-	/** The environment's variables, delivered as a file (see ENVIRONMENT_FILE). */
-	environmentEnv: Record<string, string>;
-}): Promise<ProvisionedSandbox> {
-	const { envs: credentialEnvs, networkPolicy } = agentCredentialPolicy({
-		...args.environmentEnv,
-		...args.workspaceEnv,
-	});
-	const configEnv = { ...credentialEnvs, ...args.workspaceEnv };
-	const configEnvBytes = Buffer.byteLength(JSON.stringify(configEnv));
-	if (configEnvBytes > CONFIG_ENV_LIMIT_BYTES) {
-		throw new Error(
-			`Sandbox identity env is ${configEnvBytes} bytes; the platform allows ${CONFIG_ENV_LIMIT_BYTES}`,
-		);
-	}
+	claim: SandboxClaim;
+	/** A golden under construction keeps its snapshots until its row goes. */
+	kind?: "workspace" | "environment";
+}): Promise<{
+	providerSandboxId: string;
+	sandboxUrl: string;
+	hostTarget: string;
+}> {
+	const kind = args.kind ?? "workspace";
 	const config = {
 		...credentials(),
 		name: args.name,
-		ports: [HOST_SERVICE_PORT],
+		ports: publishedPorts(args.claim.ports),
 		timeout: SESSION_TIMEOUT_MS,
-		env: configEnv,
-		networkPolicy,
+		env: {},
+		networkPolicy: args.claim.networkPolicy,
 		persistent: true,
-		snapshotExpiration: WORKSPACE_SNAPSHOT_EXPIRATION_MS,
+		snapshotExpiration:
+			kind === "environment" ? 0 : WORKSPACE_SNAPSHOT_EXPIRATION_MS,
 		keepLastSnapshots: { count: 1 },
-		tags: { kind: "workspace" },
+		tags: { kind },
 	};
-
 	const sandbox =
 		(await getSandbox(args.name)) ??
 		(args.environment.sourceKind === "fork"
-			? // A fork copies the golden's resources and its region — a snapshot
-				// only exists where it was taken; only its env is ours.
+			? // A fork copies the golden's resources and its region; a snapshot
+				// only exists where it was taken.
 				await Sandbox.fork({
 					...config,
 					sourceSandbox: args.environment.sourceRef,
@@ -237,24 +190,17 @@ export async function provisionSandbox(args: {
 					region: env.VERCEL_SANDBOX_REGION as SandboxRegion,
 					resources: { vcpus: IMAGE_SANDBOX_VCPUS },
 				}));
-
-	const sandboxUrl = sandbox.domain(HOST_SERVICE_PORT);
-	// Before the boot script, which sources it; a re-delivered provision
-	// rewrites the same content.
-	// The boot script sources the file on top of the config env, so a key in
-	// both would let the shared environment override the workspace's own.
-	const environmentEnvBehindWorkspace = Object.fromEntries(
-		Object.entries(args.environmentEnv).filter(
-			([key]) => !(key in args.workspaceEnv),
-		),
-	);
-	await writeEnvironmentFile(sandbox, environmentEnvBehindWorkspace);
-	await startHostService(sandbox);
-	return { providerSandboxId: args.name, sandboxUrl };
+	await writeIdentity(sandbox, args.claim.identity);
+	await runBoot(sandbox, args.claim.hostSecret);
+	return {
+		providerSandboxId: args.name,
+		sandboxUrl: sandbox.domain(HOST_SERVICE_PORT),
+		hostTarget: sandbox.domain(HOST_SERVICE_PORT),
+	};
 }
 
 const HOST_READY_TIMEOUT_MS = 60_000;
-const HOST_READY_POLL_MS = 1_000;
+const HOST_READY_POLL_MS = 100;
 
 export class SandboxNotReadyError extends Error {
 	constructor(providerSandboxId: string) {
@@ -263,21 +209,14 @@ export class SandboxNotReadyError extends Error {
 	}
 }
 
-/**
- * A woken session boots from the filesystem snapshot and starts host-service
- * fresh, which takes a few seconds; an address handed out before it listens
- * would send every pane into a failed connect.
- */
 async function waitForHostService(
 	target: string,
-	hostSecret: string,
 	providerSandboxId: string,
 ): Promise<void> {
 	const deadline = Date.now() + HOST_READY_TIMEOUT_MS;
 	while (Date.now() < deadline) {
 		const ok = await fetch(`${target}/trpc/health.check`, {
-			headers: { Authorization: `Bearer ${hostSecret}` },
-			signal: AbortSignal.timeout(HOST_READY_POLL_MS * 5),
+			signal: AbortSignal.timeout(HOST_READY_POLL_MS * 6),
 		})
 			.then((response) => response.ok)
 			.catch(() => false);
@@ -288,27 +227,118 @@ async function waitForHostService(
 }
 
 /**
- * The sandbox's address, and — when asked — a running host-service behind it.
- *
- * Addressing is a control-plane read that wakes nothing, so a client may hold
- * a live address for every workspace it lists. Waking is deliberate: a
- * stopped session is resumed and host-service started again (a new session
- * boots from the filesystem snapshot with no processes), and a running one is
- * extended so an open workspace never hits the idle stop. A wake returns
- * once host-service answers, so the address it returns can be used at once.
+ * The half of a wake after boot is fired: wait for host-service to answer,
+ * then push the managed environment. What a create runs once its box is
+ * booted, so it never re-runs the wake's own calls on a box it just made.
  */
-export async function resolveSandboxAddress(args: {
+export async function settleSandbox(args: {
 	providerSandboxId: string;
-	wake: { hostSecret: string } | false;
-}): Promise<{
-	/** The sandbox's own origin for host-service's port; the gate forwards here. */
-	target: string;
-	/**
-	 * Whether a session was running before this call. A stopped sandbox's
-	 * address answers nothing until it is woken, so a client that fans
-	 * requests out to every sandbox it lists must skip the ones that are not.
-	 */
+	hostTarget: string;
+	claim: SandboxClaim;
+}): Promise<void> {
+	await waitForHostService(args.hostTarget, args.providerSandboxId);
+	await pushManagedEnv(
+		args.hostTarget,
+		args.claim.hostSecret,
+		args.claim.managedEnv,
+	);
+}
+
+/**
+ * Replaces host-service's managed environment. Direct to the box with the
+ * host secret, the way the gate would; superjson is host-service's wire
+ * format, so the input is wrapped the way its client would wrap it.
+ */
+export async function pushManagedEnv(
+	target: string,
+	hostSecret: string,
+	variables: Record<string, string>,
+): Promise<void> {
+	const response = await fetch(`${target}/trpc/sandbox.setEnvironment`, {
+		method: "POST",
+		headers: {
+			authorization: `Bearer ${hostSecret}`,
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({ json: { variables } }),
+		signal: AbortSignal.timeout(10_000),
+	});
+	if (!response.ok) {
+		throw new Error(`sandbox.setEnvironment answered ${response.status}`);
+	}
+}
+
+/**
+ * Re-applies the credential rules to a running box: the GitHub token in them
+ * lasts an hour (a user token eight), so a box nobody reopens asks for this
+ * before it expires. Wakes nothing; a stopped box gets fresh rules on wake.
+ */
+export async function applySandboxPolicy(args: {
+	providerSandboxId: string;
+	networkPolicy: NetworkPolicy;
+}): Promise<"applied" | "not-running"> {
+	const sandbox = await Sandbox.get({
+		...credentials(),
+		name: args.providerSandboxId,
+		resume: false,
+	}).catch((error: unknown) => {
+		if (isNotFound(error)) return null;
+		throw error;
+	});
+	if (!sandbox || sandbox.status !== "running") return "not-running";
+	await sandbox.update({ networkPolicy: args.networkPolicy });
+	return "applied";
+}
+
+/** The sandbox's addresses and whether a session is running, waking nothing. */
+export async function describeSandbox(providerSandboxId: string): Promise<{
+	hostTarget: string;
 	running: boolean;
+}> {
+	try {
+		const sandbox = await Sandbox.get({
+			...credentials(),
+			name: providerSandboxId,
+			resume: false,
+		});
+		return {
+			hostTarget: sandbox.domain(HOST_SERVICE_PORT),
+			running: sandbox.status === "running",
+		};
+	} catch (error) {
+		if (isUnavailable(error))
+			throw new SandboxUnavailableError(providerSandboxId, error);
+		throw error;
+	}
+}
+
+/** Whether host-service is already serving, so a wake can skip the boot. */
+async function hostServiceAnswers(hostTarget: string): Promise<boolean> {
+	try {
+		const response = await fetch(`${hostTarget}/trpc/health.check`, {
+			signal: AbortSignal.timeout(HOST_PROBE_TIMEOUT_MS),
+		});
+		return response.ok;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Brings a workspace's box to serving and returns once host-service answers.
+ *
+ * A stopped session is resumed by the boot command itself (runCommand resumes
+ * before it runs); a running one is extended so an open workspace never hits
+ * the idle stop. Either way the identity is rewritten (a bundle pin may have
+ * moved), the credential rules are re-applied (a token may have aged), and
+ * the managed environment is pushed again (a fresh session holds none).
+ */
+export async function wakeSandbox(args: {
+	providerSandboxId: string;
+	claim: SandboxClaim;
+}): Promise<{
+	hostTarget: string;
+	wasRunning: boolean;
 }> {
 	try {
 		const sandbox = await Sandbox.get({
@@ -316,32 +346,40 @@ export async function resolveSandboxAddress(args: {
 			name: args.providerSandboxId,
 			resume: false,
 		});
-		const target = sandbox.domain(HOST_SERVICE_PORT);
-		const running = sandbox.status === "running";
-		if (!args.wake) return { target, running };
-
-		if (running) {
+		const hostTarget = sandbox.domain(HOST_SERVICE_PORT);
+		const wasRunning = sandbox.status === "running";
+		if (wasRunning) {
 			const remaining = (sandbox.expiresAt?.getTime() ?? 0) - Date.now();
 			if (remaining < EXTEND_BELOW_MS) {
 				// Past the plan's per-session cap the extension is refused; the
-				// session then ends and the next open resumes it, which is the
-				// documented shape, not a failure worth surfacing here.
+				// session then ends and the next open resumes it.
 				await sandbox.extendTimeout(SESSION_TIMEOUT_MS).catch(() => {});
 			}
-		} else {
-			// runCommand resumes a stopped session before it runs.
-			await startHostService(sandbox);
 		}
-		await waitForHostService(
-			target,
-			args.wake.hostSecret,
-			args.providerSandboxId,
-		);
-		return { target, running };
+		// A box that is already serving needs neither a fresh identity file nor
+		// another boot. The policy still goes out: a credential may have aged.
+		const serving = wasRunning && (await hostServiceAnswers(hostTarget));
+		await Promise.all([
+			sandbox
+				.update({ networkPolicy: args.claim.networkPolicy })
+				.catch((error) =>
+					console.warn(
+						`[sandbox] policy update failed for ${args.providerSandboxId}`,
+						error,
+					),
+				),
+			serving ? null : writeIdentity(sandbox, args.claim.identity),
+		]);
+		if (!serving) await runBoot(sandbox, args.claim.hostSecret);
+		await settleSandbox({
+			providerSandboxId: args.providerSandboxId,
+			hostTarget,
+			claim: args.claim,
+		});
+		return { hostTarget, wasRunning };
 	} catch (error) {
-		if (isUnavailable(error)) {
+		if (isUnavailable(error))
 			throw new SandboxUnavailableError(args.providerSandboxId, error);
-		}
 		throw error;
 	}
 }
@@ -351,33 +389,52 @@ export async function resolveSandboxAddress(args: {
  * it, or every fork would come up as the promoted workspace.
  */
 const INHERITED_IDENTITY = [
-	ENVIRONMENT_FILE,
-	"/data/host.db",
-	"/data/host.db-wal",
-	"/data/host.db-shm",
-	"/data/.workspace-bootstrapped",
-	"/data/.sandbox-agent-launched",
-	"/data/.superset-db-branch",
-	"/root/.superset/host",
-	"/root/.gitconfig",
+	SANDBOX_PATHS.conf,
+	// A fork's logs start with its own boot, not the golden's.
+	SANDBOX_PATHS.logs,
+	SANDBOX_PATHS.hostDb,
+	`${SANDBOX_PATHS.hostDb}-wal`,
+	`${SANDBOX_PATHS.hostDb}-shm`,
+	SANDBOX_PATHS.checkouts,
+	`${SANDBOX_PATHS.state}/agent-launched`,
+	`${SANDBOX_PATHS.state}/db-branch`,
+	`${SANDBOX_PATHS.home}/.superset/host`,
+	`${SANDBOX_PATHS.home}/.gitconfig`,
+	`${SANDBOX_PATHS.workspace}/.env`,
 ];
+
+/** Removes what a box wrote for the workspace it was, so a fork starts clean. */
+export async function stripWorkspaceIdentity(sandbox: Sandbox): Promise<void> {
+	await sandbox.runCommand({
+		cmd: "rm",
+		args: ["-rf", ...INHERITED_IDENTITY],
+		sudo: true,
+	});
+}
+
+/**
+ * Stops a sandbox and returns once the snapshot forks would start from is
+ * current. What a release does to a golden it has finished building.
+ */
+export async function stopAndSnapshot(name: string): Promise<void> {
+	const sandbox = await Sandbox.get({ ...credentials(), name, resume: false });
+	const before = sandbox.currentSnapshotId;
+	await sandbox.stop();
+	await waitForStopSnapshot(name, before);
+}
 
 /**
  * A golden is a stopped sandbox whose current snapshot is what forks start
- * from. It is built from a snapshot of the source taken now — a fork alone
- * would start from the source's last *stop*, not its live filesystem — and
- * created with an empty env: the source's identity, git token and agent
- * credentials are configuration, not files, so leaving them out is all it
- * takes to not inherit them.
- *
- * Taking that snapshot ends the source's session (measured: the workspace is
- * `stopped` afterwards), so a workspace that was running is started again
- * before this returns; whoever has it open sees a reconnect, not a dead
- * workspace.
+ * from. It is built from a snapshot of the source taken now (a fork alone
+ * would start from the source's last stop) and created with an empty env.
+ * Taking that snapshot ends the source's session, so a running source is
+ * started again before this returns.
  */
 export async function promoteSandboxToEnvironment(args: {
 	sourceSandbox: string;
 	goldenName: string;
+	/** What restarts the source: it boots the same way a wake does. */
+	claim: SandboxClaim;
 }): Promise<string> {
 	const source = await Sandbox.get({
 		...credentials(),
@@ -385,40 +442,35 @@ export async function promoteSandboxToEnvironment(args: {
 		resume: false,
 	});
 	const wasRunning = source.status === "running";
-	// Ends the source's session; see below for why it is kept.
 	const snapshot = await source.snapshot();
 	const golden = await Sandbox.create({
 		...credentials(),
 		name: args.goldenName,
 		source: { type: "snapshot", snapshotId: snapshot.snapshotId },
-		ports: [HOST_SERVICE_PORT],
+		ports: publishedPorts(),
 		timeout: GOLDEN_SESSION_TIMEOUT_MS,
 		region: source.region as SandboxRegion,
 		...(source.vcpus ? { resources: { vcpus: source.vcpus } } : {}),
 		env: {},
 		persistent: true,
-		// Goldens are kept until the environment that points at them goes.
 		snapshotExpiration: 0,
 		keepLastSnapshots: { count: 1 },
 		tags: { kind: "environment" },
 	});
-	await golden.runCommand("rm", ["-rf", ...INHERITED_IDENTITY]);
-	// The stop is the snapshot forks will start from.
+	await stripWorkspaceIdentity(golden);
 	const created = golden.currentSnapshotId;
 	await golden.stop();
 	await waitForStopSnapshot(args.goldenName, created);
-	// The live snapshot is now the source's own current snapshot — what its
-	// next resume boots from — so it stays; deleting it strands the workspace
-	// (measured: `410 no snapshot available`). Retention evicts it on the
-	// source's next stop.
-	if (wasRunning) await startHostService(source);
+	if (wasRunning) {
+		await writeIdentity(source, args.claim.identity);
+		await runBoot(source, args.claim.hostSecret);
+	}
 	return args.goldenName;
 }
 
 /**
  * stop() returns while the sandbox is still `stopping`; a fork taken before
- * the stop's snapshot is current boots from whatever was current before —
- * for a sandbox that has never stopped, nothing but the image.
+ * the stop's snapshot is current boots from whatever was current before.
  */
 export async function waitForStopSnapshot(
 	name: string,
@@ -432,12 +484,21 @@ export async function waitForStopSnapshot(
 			resume: false,
 		});
 		const current = sandbox.currentSnapshotId;
-		if (sandbox.status === "stopped" && current && current !== previous) {
-			return;
-		}
+		if (sandbox.status === "stopped" && current && current !== previous) return;
 		await new Promise((resolve) => setTimeout(resolve, 2000));
 	}
 	throw new Error(`${name} did not snapshot in time`);
+}
+
+/**
+ * Ends the session without waiting for its snapshot: what a failed create
+ * does to the box it keeps, so it costs storage rather than compute until
+ * someone resumes it to look or deletes it.
+ */
+export async function stopSandbox(providerSandboxId: string): Promise<void> {
+	const sandbox = await getSandbox(providerSandboxId);
+	if (!sandbox || sandbox.status !== "running") return;
+	await sandbox.stop();
 }
 
 /** Best-effort: a sandbox already gone is the state we wanted. */

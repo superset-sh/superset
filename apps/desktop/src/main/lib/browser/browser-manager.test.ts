@@ -38,6 +38,7 @@ type WcListener = (...args: unknown[]) => void;
 interface FakeWebContents {
 	throttlingCalls: boolean[];
 	isDestroyed: () => boolean;
+	isCrashed: () => boolean;
 	setBackgroundThrottling: (allowed: boolean) => void;
 	setWindowOpenHandler: (handler: WindowOpenHandler) => void;
 	windowOpen: WindowOpenHandler | null;
@@ -64,6 +65,7 @@ function makeWc(): { wc: FakeWebContents; id: number } {
 	const wc: FakeWebContents = {
 		throttlingCalls,
 		isDestroyed: () => false,
+		isCrashed: () => false,
 		setBackgroundThrottling: (allowed: boolean) => {
 			throttlingCalls.push(allowed);
 		},
@@ -383,6 +385,103 @@ describe("forced CDP detach", () => {
 		session.detach();
 		browserManager.off("agent-active", handler);
 		expect(states).toEqual([["pane-state"], []]);
+	});
+});
+
+describe("CDP session on a crashed guest renderer", () => {
+	test("viewport resizes are refused instead of forwarded", () => {
+		const wc = register("pane-crashed");
+		wc.isCrashed = () => true;
+		const messages: Array<{ id?: number; error?: unknown }> = [];
+		const session = browserManager.attachCdp(
+			"pane-crashed",
+			"ws-1",
+			(payload) => messages.push(JSON.parse(payload)),
+			() => {},
+		);
+		const sendCommand = mock(async () => ({}));
+		wc.debugger.sendCommand = sendCommand;
+
+		session.send(
+			JSON.stringify({
+				id: 1,
+				method: "Emulation.setDeviceMetricsOverride",
+				params: {
+					width: 400,
+					height: 300,
+					deviceScaleFactor: 1,
+					mobile: false,
+				},
+			}),
+		);
+		session.send(
+			JSON.stringify({
+				id: 2,
+				method: "Emulation.setVisibleSize",
+				params: { width: 400, height: 300 },
+			}),
+		);
+		session.detach();
+
+		expect(sendCommand).not.toHaveBeenCalled();
+		expect(messages.map((m) => [m.id, m.error !== undefined])).toEqual([
+			[1, true],
+			[2, true],
+		]);
+	});
+
+	test("navigation is still forwarded, and a live guest still gets viewport resizes", () => {
+		const crashed = register("pane-crashed-navigate");
+		crashed.isCrashed = () => true;
+		const crashedSend = mock(async (_method: string) => ({}));
+		crashed.debugger.sendCommand = crashedSend;
+		const crashedSession = browserManager.attachCdp(
+			"pane-crashed-navigate",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		crashedSession.send(
+			JSON.stringify({
+				id: 1,
+				method: "Page.navigate",
+				params: { url: "https://example.com" },
+			}),
+		);
+
+		const live = register("pane-live-emulation");
+		const liveSend = mock(async () => ({}));
+		live.debugger.sendCommand = liveSend;
+		const liveSession = browserManager.attachCdp(
+			"pane-live-emulation",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+		const metrics = {
+			width: 400,
+			height: 300,
+			deviceScaleFactor: 1,
+			mobile: false,
+		};
+		liveSession.send(
+			JSON.stringify({
+				id: 2,
+				method: "Emulation.setDeviceMetricsOverride",
+				params: metrics,
+			}),
+		);
+		crashedSession.detach();
+		liveSession.detach();
+
+		expect(crashedSend.mock.calls.map((call) => call[0])).toEqual([
+			"Page.navigate",
+		]);
+		expect(liveSend).toHaveBeenCalledWith(
+			"Emulation.setDeviceMetricsOverride",
+			metrics,
+			undefined,
+		);
 	});
 });
 

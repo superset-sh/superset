@@ -1,5 +1,5 @@
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { connections } from "@superset/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
@@ -36,21 +36,21 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
 	}
 
-	const connections = await db
-		.select({ id: integrationConnections.id })
-		.from(integrationConnections)
+	const rows = await db
+		.select({ id: connections.id })
+		.from(connections)
 		.where(
 			and(
-				eq(integrationConnections.provider, "google"),
-				isNull(integrationConnections.disconnectedAt),
+				eq(connections.connector, "google"),
+				isNull(connections.disconnectedAt),
 				...(parsed.data.connectionId
-					? [eq(integrationConnections.id, parsed.data.connectionId)]
+					? [eq(connections.id, parsed.data.connectionId)]
 					: []),
 			),
 		);
 
 	const results = [];
-	for (const connection of connections) {
+	for (const connection of rows) {
 		try {
 			const result = await reconcileWatches(connection.id);
 			if (result.errors.length > 0) {
@@ -68,5 +68,5 @@ export async function POST(request: Request) {
 			});
 		}
 	}
-	return Response.json({ connections: connections.length, results });
+	return Response.json({ connections: rows.length, results });
 }

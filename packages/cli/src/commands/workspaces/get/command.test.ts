@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 
-// Control what `findWorkspaceOnHost` resolves per test. The command imports
+// Control what `resolveWorkspaceTarget` resolves per test. The command imports
 // it from the lib barrel, so mock that module before importing the SUT.
 type FindResult = {
 	hostId: string;
@@ -8,7 +8,12 @@ type FindResult = {
 };
 let findResult: FindResult = { hostId: "host-1", workspace: undefined };
 mock.module("../../../lib/host-workspaces", () => ({
-	findWorkspaceOnHost: async () => findResult,
+	resolveWorkspaceTarget: async () => {
+		if (!findResult.workspace) {
+			throw new Error(`Workspace not found on host ${findResult.hostId}`);
+		}
+		return { ...findResult, target: {} };
+	},
 }));
 
 const { default: getCommand } = await import("./command");
@@ -54,7 +59,7 @@ function invoke(args: { id?: string }, options: { field?: string } = {}) {
 	return getCommand.run({
 		ctx: makeCtx(),
 		args: args as never,
-		options: options as never,
+		options: { local: true, ...options } as never,
 		signal: new AbortController().signal,
 	});
 }
@@ -151,7 +156,7 @@ describe("workspaces get", () => {
 				authSource: "oauth",
 			} as never,
 			args: { id: WORKSPACE.id } as never,
-			options: {} as never,
+			options: { local: true } as never,
 			signal: new AbortController().signal,
 		})) as { data: Record<string, unknown> };
 		expect(result.data.projectName).toBe("proj-1");

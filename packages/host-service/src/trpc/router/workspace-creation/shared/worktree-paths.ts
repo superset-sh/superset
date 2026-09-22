@@ -40,11 +40,70 @@ export function normalizeWorktreeBaseDir(
 	return resolve(trimmed);
 }
 
+export type WorktreeFolderProject = { id: string; name: string };
+
+const MAX_FOLDER_NAME_LENGTH = 80;
+const RESERVED_FOLDER_CHARACTERS = new Set('<>:"/\\|?*');
+// Windows refuses these as a file or folder name, with or without an extension.
+const WINDOWS_DEVICE_NAME = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
+
+function toFolderName(projectName: string): string {
+	const replaced = Array.from(projectName.normalize("NFC"), (character) =>
+		RESERVED_FOLDER_CHARACTERS.has(character) ||
+		(character.codePointAt(0) ?? 0) < 0x20
+			? "-"
+			: character,
+	).join("");
+	const folderName = replaced
+		.replace(/\s+/g, " ")
+		.slice(0, MAX_FOLDER_NAME_LENGTH)
+		.replace(/^[. ]+|[. ]+$/g, "");
+	return WINDOWS_DEVICE_NAME.test(folderName) ? `_${folderName}` : folderName;
+}
+
+function disambiguatedFolderName(folderName: string, projectId: string) {
+	return `${folderName}-${projectId.slice(0, 8)}`;
+}
+
+/**
+ * The folder under the worktrees base that holds a project's worktrees: the
+ * project's name, so the path reads `<base>/<project name>/<branch>`. Two
+ * projects sharing a name on one host (two clones of a repo) would otherwise
+ * share a folder and collide on branch names, so each of them takes a short
+ * id suffix; a project with no usable name falls back to its id.
+ */
+export function resolveProjectWorktreesFolder(
+	project: WorktreeFolderProject,
+	otherProjectNames: readonly string[],
+): string {
+	const folderName = toFolderName(project.name);
+	if (!folderName) return project.id;
+	const taken = otherProjectNames.some(
+		(name) => toFolderName(name).toLowerCase() === folderName.toLowerCase(),
+	);
+	return taken ? disambiguatedFolderName(folderName, project.id) : folderName;
+}
+
+/**
+ * Every folder a project's worktrees may live under: its current name-based
+ * folder, the suffixed form, and the bare project id older releases used.
+ * Worktrees keep the absolute path they were created with, so the
+ * removal guard has to keep recognising all of them.
+ */
+function projectWorktreesFolderCandidates(
+	project: WorktreeFolderProject,
+): string[] {
+	const folderName = toFolderName(project.name);
+	return folderName
+		? [folderName, disambiguatedFolderName(folderName, project.id), project.id]
+		: [project.id];
+}
+
 export function projectWorktreesRoot(
-	projectId: string,
+	folder: string,
 	worktreeBaseDir?: string | null,
 ): string {
-	return resolve(worktreeBaseDir ?? defaultWorktreesRoot(), projectId);
+	return resolve(worktreeBaseDir ?? defaultWorktreesRoot(), folder);
 }
 
 /**
@@ -56,20 +115,22 @@ export function projectWorktreesRoot(
  */
 export function isInsideProjectWorktreesRoot(
 	path: string,
-	projectId: string,
+	project: WorktreeFolderProject,
 	worktreeBaseDir?: string | null,
 ): boolean {
-	// Both prefixes are canonicalised: a `<base>/<projectId>` entry that is a
+	// Both prefixes are canonicalised: a `<base>/<folder>` entry that is a
 	// symlink out of the base would otherwise let a path beneath it pass.
 	const base = normalizePath(worktreeBaseDir ?? defaultWorktreesRoot());
-	const root = normalizePath(projectWorktreesRoot(projectId, worktreeBaseDir));
 	const resolved = normalizePath(path);
-	return (
-		root !== base &&
-		root.startsWith(base + sep) &&
-		resolved !== root &&
-		resolved.startsWith(root + sep)
-	);
+	return projectWorktreesFolderCandidates(project).some((folder) => {
+		const root = normalizePath(projectWorktreesRoot(folder, worktreeBaseDir));
+		return (
+			root !== base &&
+			root.startsWith(base + sep) &&
+			resolved !== root &&
+			resolved.startsWith(root + sep)
+		);
+	});
 }
 
 function normalizePath(p: string): string {
@@ -89,11 +150,11 @@ function normalizePath(p: string): string {
 }
 
 export function safeResolveWorktreePath(
-	projectId: string,
+	folder: string,
 	branchName: string,
 	worktreeBaseDir?: string | null,
 ): string {
-	const projectRoot = projectWorktreesRoot(projectId, worktreeBaseDir);
+	const projectRoot = projectWorktreesRoot(folder, worktreeBaseDir);
 	const worktreePath = resolve(projectRoot, branchName);
 	if (
 		worktreePath !== projectRoot &&

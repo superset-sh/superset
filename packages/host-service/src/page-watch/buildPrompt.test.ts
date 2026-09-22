@@ -6,6 +6,7 @@ import type { WatchedThread } from "./types.ts";
 // prompt is written inside a bracketed paste, so a control sequence in any of
 // these fields would end the paste early and land the rest as keystrokes.
 const PASTE_END = "\x1b[201~";
+const PAGE_ID = "1f3c9d02-5f9a-4c1e-9a77-2b6f0c1d8e44";
 
 function thread(over: Partial<WatchedThread> = {}): WatchedThread {
 	return {
@@ -33,6 +34,7 @@ describe("buildWatchPrompt", () => {
 		const prompt = buildWatchPrompt({
 			title: "Report",
 			slug: "report",
+			pageId: PAGE_ID,
 			threads: [
 				thread({
 					comments: [
@@ -56,6 +58,7 @@ describe("buildWatchPrompt", () => {
 		const prompt = buildWatchPrompt({
 			title: `Report${PASTE_END}\n`,
 			slug: "report",
+			pageId: PAGE_ID,
 			threads: [
 				thread({
 					anchor: { path: `div${PASTE_END}\n> p`, tag: "p\x07" },
@@ -72,6 +75,7 @@ describe("buildWatchPrompt", () => {
 		const prompt = buildWatchPrompt({
 			title: "Report",
 			slug: "report",
+			pageId: PAGE_ID,
 			threads: [
 				thread({
 					comments: [
@@ -87,5 +91,28 @@ describe("buildWatchPrompt", () => {
 			],
 		});
 		expect(prompt).toContain('"claude (agent)": "done"');
+	});
+	it("names the page id to republish onto, so a republish versions instead of forking", () => {
+		const prompt = buildWatchPrompt({
+			title: "Report",
+			slug: "report",
+			pageId: PAGE_ID,
+			threads: [thread()],
+		});
+		expect(prompt).toContain(`superset pages publish <file> --page ${PAGE_ID}`);
+		expect(prompt).toContain("creates a second page");
+	});
+	// `--threadId` parses as nothing: reply exits silently having posted no
+	// reply, and the agent reports work it did not do.
+	it("spells the thread flag the way the CLI accepts it", () => {
+		const prompt = buildWatchPrompt({
+			title: "Report",
+			slug: "report",
+			pageId: PAGE_ID,
+			threads: [thread()],
+		});
+		expect(prompt).toContain('comments reply --thread <id> "…"');
+		expect(prompt).toContain("comments resolve --thread <id>");
+		expect(prompt).not.toContain("--threadId");
 	});
 });

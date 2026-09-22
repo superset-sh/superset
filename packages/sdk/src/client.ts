@@ -52,25 +52,8 @@ import { isEmptyObj } from "./internal/utils/values";
 import {
 	AgentCreateParams,
 	AgentCreateResult,
-	AgentListParams,
-	AgentListResponse,
 	Agents,
-	HostAgentConfig,
-	PromptTransport,
 } from "./resources/agents";
-import {
-	Automation,
-	AutomationCreateParams,
-	AutomationListResponse,
-	AutomationLogsParams,
-	AutomationLogsResponse,
-	AutomationRun,
-	AutomationRunDispatched,
-	Automations,
-	AutomationSummary,
-	AutomationUpdateParams,
-} from "./resources/automations";
-import { Host, HostListResponse, Hosts } from "./resources/hosts";
 import * as API from "./resources/index";
 import {
 	Member,
@@ -80,7 +63,6 @@ import {
 	Organization,
 	OrganizationRole,
 } from "./resources/organization";
-import { Project, ProjectListResponse, Projects } from "./resources/projects";
 import {
 	Task,
 	TaskCreateParams,
@@ -108,18 +90,14 @@ import {
 	TerminalSummary,
 } from "./resources/terminals";
 import {
-	HostWorkspace,
-	Workspace,
-	WorkspaceAgentLaunch,
-	WorkspaceCreateAgentResult,
+	CloudWorkspace,
+	CloudWorkspaceStatus,
 	WorkspaceCreateParams,
-	WorkspaceCreateResult,
-	WorkspaceCreateSessionParams,
-	WorkspaceCreateSessionResult,
 	WorkspaceDeleteResult,
 	WorkspaceListParams,
 	WorkspaceListResponse,
 	Workspaces,
+	WorkspaceUpdateParams,
 } from "./resources/workspaces";
 import {
 	buildMethodCalledEvent,
@@ -141,7 +119,7 @@ export interface ClientOptions {
 	 * process.env['SUPERSET_ORGANIZATION_ID'].
 	 *
 	 * Required for any procedure that calls `requireActiveOrgMembership` —
-	 * which is most resources (tasks, workspaces, projects, hosts, …).
+	 * which is most resources (tasks, workspaces, organization, …).
 	 */
 	organizationId?: string | undefined;
 
@@ -151,18 +129,6 @@ export interface ClientOptions {
 	 * Defaults to process.env['SUPERSET_BASE_URL'].
 	 */
 	baseURL?: string | null | undefined;
-
-	/**
-	 * Relay base URL for host-routed operations (e.g. workspace create/delete,
-	 * which physically run on the developer's machine via the relay tunnel).
-	 *
-	 * When set (or via process.env['SUPERSET_RELAY_URL']) it is used as-is.
-	 * When omitted, the client asks the API which relay this account's hosts
-	 * are on before each host-routed call (cached briefly), falling back to
-	 * `https://relay.superset.sh` if the API is unreachable — a hardcoded
-	 * default silently misses hosts after a server-side relay move.
-	 */
-	relayURL?: string | null | undefined;
 
 	/**
 	 * The maximum amount of time (in milliseconds) that the client should wait for a response
@@ -235,13 +201,28 @@ type TRPCEnvelope<T> = {
 	result: { data: { json: T; meta?: unknown } };
 };
 
+/** A ticket for one cloud workspace's sandbox gate; re-minted at `staleAt` (epoch ms). */
+interface WorkspaceAccess {
+	url: string;
+	token: string;
+	staleAt: number;
+}
+
+/** Re-mint this long before the ticket expires. */
+const ACCESS_EXPIRY_MARGIN_MS = 60_000;
+/**
+ * A ticket names the sandbox's address, which can change when a stopped
+ * session resumes; asking again this often keeps a long-running script
+ * pointed at the session that answers.
+ */
+const ACCESS_REFRESH_MS = 10 * 60_000;
+
 /**
  * API Client for interfacing with the Superset API.
  */
 export class Superset {
 	apiKey: string;
 	organizationId: string | null;
-	relayURL: string;
 
 	baseURL: string;
 	maxRetries: number;
@@ -254,11 +235,12 @@ export class Superset {
 	#encoder: Opts.RequestEncoder;
 	protected idempotencyHeader?: string;
 	private _options: ClientOptions;
-	private _jwtCache: { token: string; expiresAt: number } | null = null;
-	private _jwtInflight: Promise<string> | null = null;
-	private _relayUrlExplicit = false;
-	private _relayUrlCache: { url: string; expiresAt: number } | null = null;
-	private _relayUrlInflight: Promise<string> | null = null;
+	private _workspaceAccess = new Map<string, WorkspaceAccess>();
+	private _wakeNext = new Set<string>();
+	private _workspaceAccessInflight = new Map<
+		string,
+		Promise<WorkspaceAccess>
+	>();
 	private _telemetryEnabled = isTelemetryEnabled();
 
 	/**
@@ -277,7 +259,6 @@ export class Superset {
 		baseURL = readEnv("SUPERSET_BASE_URL"),
 		apiKey = readEnv("SUPERSET_API_KEY"),
 		organizationId = readEnv("SUPERSET_ORGANIZATION_ID"),
-		relayURL = readEnv("SUPERSET_RELAY_URL"),
 		...opts
 	}: ClientOptions = {}) {
 		if (apiKey === undefined) {
@@ -330,8 +311,6 @@ export class Superset {
 
 		this.apiKey = apiKey;
 		this.organizationId = organizationId ?? null;
-		this._relayUrlExplicit = Boolean(relayURL);
-		this.relayURL = relayURL || "https://relay.superset.sh";
 	}
 
 	/**
@@ -353,7 +332,6 @@ export class Superset {
 			fetchOptions: this.fetchOptions,
 			apiKey: this.apiKey,
 			organizationId: this.organizationId ?? undefined,
-			relayURL: this.relayURL,
 			...options,
 		});
 		return client;
@@ -530,76 +508,85 @@ export class Superset {
 	}
 
 	/**
-	 * Invoke a host-service tRPC mutation, routed through the relay tunnel to
-	 * the developer's machine identified by `hostId`. Used for operations that
-	 * physically touch the host's filesystem (workspace create/delete, etc).
-	 *
-	 * The relay only accepts JWT auth — this method lazily exchanges the SDK's
-	 * API key for a short-lived JWT and caches it.
+	 * Invoke a host-service tRPC mutation inside a cloud workspace's sandbox.
+	 * The call goes to the workspace's sandbox gate with a ticket minted by
+	 * `cloudWorkspace.access`; the API key never leaves for the gate, which
+	 * forwards request headers into the sandbox.
 	 */
-	hostMutation<Rsp>(
-		hostId: string,
+	workspaceMutation<Rsp>(
+		workspaceId: string,
 		call: TRPCCall,
 		input?: unknown,
 		options?: RequestOptions,
 	): APIPromise<Rsp> {
-		if (!this.organizationId) {
-			throw new Errors.SupersetError(
-				"organizationId is required for host-routed calls. Set SUPERSET_ORGANIZATION_ID or pass `organizationId` to the constructor.",
-			);
-		}
-		const routingKey = `${this.organizationId}:${hostId}`;
-		const optsPromise = Promise.all([this._getJwt(), this._getRelayUrl()]).then(
-			([jwt, relayUrl]) => ({
+		const optsPromise = this._getWorkspaceAccess(workspaceId).then(
+			(access) => ({
 				// Caller options first (timeout, retries, signal, etc.) — body and
 				// auth headers are then forced so per-call options can't strip the
-				// JWT or replace the tRPC envelope.
+				// ticket or replace the tRPC envelope.
 				...options,
 				method: "post" as const,
-				path: `${relayUrl}/hosts/${routingKey}/trpc/${call.procedure}`,
+				path: `${access.url}/trpc/${call.procedure}`,
 				body: { json: input ?? null },
-				headers: buildHeaders([
-					options?.headers,
-					// Drop API-key auth (relay only verifies JWTs) and assert the JWT.
-					{ "x-api-key": null, Authorization: `Bearer ${jwt}` },
-				]),
+				headers: this._gateHeaders(access, options),
 			}),
 		);
-		return this._trackedRequest<Rsp>(call, "host", optsPromise);
+		return this._forgetAccessOnFailure(
+			workspaceId,
+			this._trackedRequest<Rsp>(call, "host", optsPromise),
+		);
 	}
 
 	/**
-	 * Host-service tRPC query (counterpart to `hostMutation`).
+	 * Host-service tRPC query inside a cloud workspace's sandbox (counterpart
+	 * to `workspaceMutation`).
 	 */
-	hostQuery<Rsp>(
-		hostId: string,
+	workspaceQuery<Rsp>(
+		workspaceId: string,
 		call: TRPCCall,
 		input?: unknown,
 		options?: RequestOptions,
 	): APIPromise<Rsp> {
-		if (!this.organizationId) {
-			throw new Errors.SupersetError(
-				"organizationId is required for host-routed calls. Set SUPERSET_ORGANIZATION_ID or pass `organizationId` to the constructor.",
-			);
-		}
-		const routingKey = `${this.organizationId}:${hostId}`;
 		const queryParams: Record<string, string> = {};
 		if (input !== undefined) {
 			queryParams.input = JSON.stringify({ json: input });
 		}
-		const optsPromise = Promise.all([this._getJwt(), this._getRelayUrl()]).then(
-			([jwt, relayUrl]) => ({
+		const optsPromise = this._getWorkspaceAccess(workspaceId).then(
+			(access) => ({
 				...options,
 				method: "get" as const,
-				path: `${relayUrl}/hosts/${routingKey}/trpc/${call.procedure}`,
+				path: `${access.url}/trpc/${call.procedure}`,
 				query: queryParams,
-				headers: buildHeaders([
-					options?.headers,
-					{ "x-api-key": null, Authorization: `Bearer ${jwt}` },
-				]),
+				headers: this._gateHeaders(access, options),
 			}),
 		);
-		return this._trackedRequest<Rsp>(call, "host", optsPromise);
+		return this._forgetAccessOnFailure(
+			workspaceId,
+			this._trackedRequest<Rsp>(call, "host", optsPromise),
+		);
+	}
+
+	/** A failed gate call may mean a stopped or moved sandbox: the next call wakes it. */
+	private _forgetAccessOnFailure<Rsp>(
+		workspaceId: string,
+		promise: APIPromise<Rsp>,
+	): APIPromise<Rsp> {
+		promise.then(undefined, () => {
+			this._workspaceAccess.delete(workspaceId);
+			this._wakeNext.add(workspaceId);
+		});
+		return promise;
+	}
+
+	private _gateHeaders(access: WorkspaceAccess, options?: RequestOptions) {
+		return buildHeaders([
+			options?.headers,
+			{
+				"x-api-key": null,
+				"x-superset-organization-id": null,
+				Authorization: `Bearer ${access.token}`,
+			},
+		]);
 	}
 
 	/**
@@ -668,98 +655,56 @@ export class Superset {
 	}
 
 	/**
-	 * Exchange the API key for a short-lived JWT (1h TTL on the server) and
-	 * cache it in memory. Refreshed 5 minutes before expiry to handle clock
-	 * skew. Concurrent host calls share a single in-flight exchange so we
-	 * don't fan out N token requests on a cold cache.
+	 * The gate ticket for a cloud workspace, cached per workspace. Concurrent
+	 * calls share one mint. Every mint wakes the sandbox: a stopped session
+	 * resumes and a running one is extended. The mint itself is not a public
+	 * method, so it goes through `post` and is not reported.
 	 */
-	/**
-	 * The relay this account's hosts are actually on, asked of the API and
-	 * cached for a minute. Hosts resolve their relay through the API, so a
-	 * client that hardcodes one diverges after any server-side relay move —
-	 * the workspace tools then ping a relay the host left. An explicitly
-	 * configured relayURL (option or env) always wins; the API answer only
-	 * replaces the built-in default. Falls back to the last configured URL
-	 * when the API can't answer.
-	 */
-	private async _getRelayUrl(): Promise<string> {
-		if (this._relayUrlExplicit) return this.relayURL;
-		const now = Date.now();
-		if (this._relayUrlCache && this._relayUrlCache.expiresAt > now) {
-			return this._relayUrlCache.url;
-		}
-		if (this._relayUrlInflight) return this._relayUrlInflight;
-		this._relayUrlInflight = (async () => {
-			try {
-				const jwt = await this._getJwt();
-				const envelope = await this.get<TRPCEnvelope<{ url?: string }>>(
-					"/api/trpc/host.relayEndpoint",
-					{
-						timeout: 10_000,
-						headers: buildHeaders([
-							{ "x-api-key": null, Authorization: `Bearer ${jwt}` },
-						]),
-					},
-				);
-				const url = envelope.result.data.json?.url;
-				if (url) {
-					this._relayUrlCache = { url, expiresAt: Date.now() + 60_000 };
-					return url;
-				}
-			} catch {
-				// fall through to the configured URL
-			}
-			this._relayUrlCache = {
-				url: this.relayURL,
-				expiresAt: Date.now() + 60_000,
-			};
-			return this.relayURL;
-		})().finally(() => {
-			this._relayUrlInflight = null;
+	private async _getWorkspaceAccess(
+		workspaceId: string,
+	): Promise<WorkspaceAccess> {
+		const cached = this._workspaceAccess.get(workspaceId);
+		if (cached && cached.staleAt > Date.now()) return cached;
+		const inflight = this._workspaceAccessInflight.get(workspaceId);
+		if (inflight) return inflight;
+		const mint = this._mintWorkspaceAccess(workspaceId).finally(() => {
+			this._workspaceAccessInflight.delete(workspaceId);
 		});
-		return this._relayUrlInflight;
+		this._workspaceAccessInflight.set(workspaceId, mint);
+		return mint;
 	}
 
-	private async _getJwt(): Promise<string> {
-		const now = Date.now();
-		if (this._jwtCache && this._jwtCache.expiresAt - 5 * 60_000 > now) {
-			return this._jwtCache.token;
-		}
-		if (this._jwtInflight) return this._jwtInflight;
-		this._jwtInflight = this._fetchJwt().finally(() => {
-			this._jwtInflight = null;
-		});
-		return this._jwtInflight;
-	}
-
-	private async _fetchJwt(): Promise<string> {
-		const headers: Record<string, string> =
-			this.apiKey.startsWith("sk_live_") || this.apiKey.startsWith("sk_test_")
-				? { "x-api-key": this.apiKey }
-				: { Authorization: `Bearer ${this.apiKey}` };
-		const res = await this.fetch.call(
-			undefined,
-			`${this.baseURL}/api/auth/token`,
+	private async _mintWorkspaceAccess(
+		workspaceId: string,
+	): Promise<WorkspaceAccess> {
+		const mintedAt = Date.now();
+		// A ticket for the sandbox's last known address asks the provider
+		// nothing; the full wake runs only after a call through that ticket
+		// failed, since the sandbox may have stopped or moved.
+		const wake = this._wakeNext.delete(workspaceId);
+		const envelope = await this.post<
+			TRPCEnvelope<{ url: string; token: string; expiresAt: string }>
+		>(
+			wake
+				? "/api/trpc/cloudWorkspace.access"
+				: "/api/trpc/cloudWorkspace.hostTicket",
 			{
-				method: "GET",
-				headers,
+				body: {
+					json: wake ? { id: workspaceId, wake: true } : { id: workspaceId },
+				},
 			},
 		);
-		if (!res.ok) {
-			throw new Errors.SupersetError(
-				`Failed to exchange API key for JWT (HTTP ${res.status}). The API key may be invalid or revoked.`,
-			);
-		}
-		const body = (await res.json()) as { token?: string };
-		if (!body.token) {
-			throw new Errors.SupersetError("Auth token endpoint returned no token");
-		}
-		// Server issues 1h JWTs; cache for 55 minutes to be safe.
-		this._jwtCache = {
-			token: body.token,
-			expiresAt: Date.now() + 55 * 60_000,
+		const { url, token, expiresAt } = envelope.result.data.json;
+		const access: WorkspaceAccess = {
+			url,
+			token,
+			staleAt: Math.min(
+				new Date(expiresAt).getTime() - ACCESS_EXPIRY_MARGIN_MS,
+				mintedAt + ACCESS_REFRESH_MS,
+			),
 		};
-		return body.token;
+		this._workspaceAccess.set(workspaceId, access);
+		return access;
 	}
 
 	private methodRequest<Rsp>(
@@ -1261,17 +1206,11 @@ export class Superset {
 
 	/** Tasks: create, list (with filters), retrieve, update, delete; nested `tasks.statuses.list`. */
 	tasks: API.Tasks = new API.Tasks(this);
-	/** Workspaces (cloud records): list, delete. */
+	/** Cloud workspaces: list, retrieve, create, update, delete. */
 	workspaces: API.Workspaces = new API.Workspaces(this);
-	/** Projects: list. */
-	projects: API.Projects = new API.Projects(this);
-	/** Hosts (developer machines): list. */
-	hosts: API.Hosts = new API.Hosts(this);
-	/** Recurring automations: full CRUD plus run/pause/resume/logs/prompt. */
-	automations: API.Automations = new API.Automations(this);
-	/** Agents (per-host terminal-agent rows): list, create. */
+	/** Agents launched inside a cloud workspace: create. */
 	agents: API.Agents = new API.Agents(this);
-	/** Terminals (per-host PTY sessions): create, list, send (follow-up), read, close. */
+	/** Terminals (PTY sessions inside a cloud workspace): create, list, send (follow-up), read, close. */
 	terminals: API.Terminals = new API.Terminals(this);
 	/** Active-organization config: nested `organization.members.list`. */
 	organization: API.Organization = new API.Organization(this);
@@ -1279,9 +1218,6 @@ export class Superset {
 
 Superset.Tasks = Tasks;
 Superset.Workspaces = Workspaces;
-Superset.Projects = Projects;
-Superset.Hosts = Hosts;
-Superset.Automations = Automations;
 Superset.Agents = Agents;
 Superset.Terminals = Terminals;
 Superset.Organization = Organization;
@@ -1313,45 +1249,16 @@ export declare namespace Superset {
 
 	export {
 		Workspaces,
-		Workspace,
-		HostWorkspace,
-		WorkspaceAgentLaunch,
-		WorkspaceCreateAgentResult,
-		WorkspaceCreateResult,
-		WorkspaceCreateSessionParams,
-		WorkspaceCreateSessionResult,
+		CloudWorkspace,
+		CloudWorkspaceStatus,
 		WorkspaceListResponse,
 		WorkspaceListParams,
 		WorkspaceCreateParams,
+		WorkspaceUpdateParams,
 		WorkspaceDeleteResult,
 	};
 
-	export { Projects, Project, ProjectListResponse };
-
-	export { Hosts, Host, HostListResponse };
-
-	export {
-		Automations,
-		Automation,
-		AutomationSummary,
-		AutomationListResponse,
-		AutomationCreateParams,
-		AutomationUpdateParams,
-		AutomationRun,
-		AutomationRunDispatched,
-		AutomationLogsParams,
-		AutomationLogsResponse,
-	};
-
-	export {
-		Agents,
-		HostAgentConfig,
-		AgentListResponse,
-		AgentListParams,
-		AgentCreateParams,
-		AgentCreateResult,
-		PromptTransport,
-	};
+	export { Agents, AgentCreateParams, AgentCreateResult };
 
 	export {
 		Terminals,

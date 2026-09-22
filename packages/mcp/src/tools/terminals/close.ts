@@ -1,7 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { defineTool } from "../../define-tool";
-import { hostServiceCall } from "../../host-service-client";
+import {
+	workspaceLocationInput,
+	workspaceServiceCall,
+} from "../../workspace-service-target";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
@@ -10,10 +13,7 @@ export function register(server: McpServer): void {
 		description:
 			"Close (dispose) a terminal by id — kills the PTY and the agent running in it. Use to shut down an agent session you started; targets the terminal by id (the value agents_create returned as `sessionId`).",
 		inputSchema: {
-			hostId: z
-				.string()
-				.min(1)
-				.describe("Host machineId the workspace lives on."),
+			...workspaceLocationInput,
 			workspaceId: z
 				.string()
 				.uuid()
@@ -25,13 +25,9 @@ export function register(server: McpServer): void {
 				),
 		},
 		handler: async (input, ctx) => {
-			return hostServiceCall<{ terminalId: string; status: string }>(
-				{
-					relayUrl: ctx.relayUrl,
-					organizationId: ctx.organizationId,
-					hostId: input.hostId,
-					jwt: ctx.bearerToken,
-				},
+			return workspaceServiceCall<{ terminalId: string; status: string }>(
+				input,
+				ctx,
 				"terminal.killSession",
 				"mutation",
 				{ terminalId: input.terminalId, workspaceId: input.workspaceId },

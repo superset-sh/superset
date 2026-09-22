@@ -21,6 +21,8 @@ describe("isPublicRoute", () => {
 		"/cli/auth/code/success",
 		"/tasks/my-slug",
 		"/automations/automation-123",
+		"/page",
+		"/page/my-published-page",
 	])("allows the exact public route or its children: %s", (pathname: string) => {
 		expect(isPublicRoute(pathname)).toBe(true);
 	});
@@ -37,6 +39,7 @@ describe("isPublicRoute", () => {
 		"/cli/auth/codegen",
 		"/tasksy",
 		"/automations-overview",
+		"/pages",
 	])("keeps sibling routes protected: %s", (pathname: string) => {
 		expect(isPublicRoute(pathname)).toBe(false);
 	});

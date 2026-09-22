@@ -9,6 +9,8 @@ export async function runDev(argv: string[]): Promise<void> {
 	const { config, root } = await loadConfig(process.cwd());
 	const commandsDir = resolve(root, config.commandsDir);
 
+	for (const plugin of config.plugins ?? []) Bun.plugin(plugin);
+
 	const commandFiles = Array.from(
 		new Glob("**/command.ts").scanSync({
 			cwd: commandsDir,

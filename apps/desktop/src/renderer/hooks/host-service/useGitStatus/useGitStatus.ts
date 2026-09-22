@@ -79,6 +79,9 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 				// branch.<name>.base is per-branch — drop the cache so the next read
 				// picks up the new branch's base.
 				void utils.git.getBaseBranch.invalidate({ workspaceId });
+				// A metadata-only change can move HEAD (for example, an agent
+				// committing outside the app), so refresh cached commit lists too.
+				void utils.git.listCommits.invalidate({ workspaceId });
 			}
 		},
 		[refreshScheduler, utils, workspaceId],

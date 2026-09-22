@@ -1,10 +1,14 @@
 import { AuthError, ConfidentialClientApplication } from "@azure/msal-node";
 import { Client, GraphError } from "@microsoft/microsoft-graph-client";
-import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { connections, type SelectConnection } from "@superset/db/schema";
 import { withConnectionLock } from "@superset/db/utils";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { env } from "../../../env";
+import {
+	decryptSecret,
+	encryptSecret,
+	orgConnection,
+} from "../../../lib/connectors";
 
 /**
  * Microsoft Graph, app-only.
@@ -91,47 +95,47 @@ export async function getGraphAccessToken(
 	connectionId: string,
 ): Promise<string | null> {
 	return withConnectionLock(connectionId, async (tx) => {
-		const [connection] = await tx
+		const [row] = await tx
 			.select({
-				accessToken: integrationConnections.accessToken,
-				tokenExpiresAt: integrationConnections.tokenExpiresAt,
-				externalOrgId: integrationConnections.externalOrgId,
-				disconnectedAt: integrationConnections.disconnectedAt,
+				accessToken: connections.accessToken,
+				tokenExpiresAt: connections.tokenExpiresAt,
+				externalAccountId: connections.externalAccountId,
+				disconnectedAt: connections.disconnectedAt,
 			})
-			.from(integrationConnections)
-			.where(eq(integrationConnections.id, connectionId))
+			.from(connections)
+			.where(eq(connections.id, connectionId))
 			.limit(1);
-		if (!connection || connection.disconnectedAt || !connection.externalOrgId) {
+		if (!row || row.disconnectedAt || !row.externalAccountId) {
 			return null;
 		}
 		if (
-			connection.tokenExpiresAt &&
-			connection.tokenExpiresAt.getTime() > Date.now() + TOKEN_REFRESH_BUFFER_MS
+			row.tokenExpiresAt &&
+			row.tokenExpiresAt.getTime() > Date.now() + TOKEN_REFRESH_BUFFER_MS
 		) {
-			return connection.accessToken;
+			return decryptSecret(row.accessToken);
 		}
 
 		try {
-			const token = await acquireAppToken(connection.externalOrgId);
+			const token = await acquireAppToken(row.externalAccountId);
 			await tx
-				.update(integrationConnections)
+				.update(connections)
 				.set({
-					accessToken: token.accessToken,
+					accessToken: await encryptSecret(token.accessToken),
 					tokenExpiresAt: token.expiresAt,
 					updatedAt: new Date(),
 				})
-				.where(eq(integrationConnections.id, connectionId));
+				.where(eq(connections.id, connectionId));
 			return token.accessToken;
 		} catch (error) {
 			if (isTenantRevokedError(error)) {
 				await tx
-					.update(integrationConnections)
+					.update(connections)
 					.set({
 						disconnectedAt: new Date(),
 						disconnectReason: error.errorCode,
 						updatedAt: new Date(),
 					})
-					.where(eq(integrationConnections.id, connectionId));
+					.where(eq(connections.id, connectionId));
 				return null;
 			}
 			throw error;
@@ -140,15 +144,10 @@ export async function getGraphAccessToken(
 }
 
 /** The active Teams connection for an organization, or null. */
-export async function findTeamsConnection(organizationId: string) {
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.organizationId, organizationId),
-			eq(integrationConnections.provider, "microsoft_teams"),
-		),
-	});
-	if (!connection || connection.disconnectedAt) return null;
-	return connection;
+export async function findTeamsConnection(
+	organizationId: string,
+): Promise<SelectConnection | null> {
+	return orgConnection(organizationId, "microsoft_teams");
 }
 
 /**

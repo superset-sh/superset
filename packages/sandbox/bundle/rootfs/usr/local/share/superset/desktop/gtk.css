@@ -1,0 +1,6 @@
+.xfce4-panel,
+.xfce4-panel button,
+.xfce4-panel label,
+#clock-button label {
+	color: #000000;
+}

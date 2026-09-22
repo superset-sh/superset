@@ -53,3 +53,9 @@ export function providerFor(config: TriggerConfigInput): TriggerProvider {
 	}
 	return provider;
 }
+
+export function connectorFor(provider: TriggerProvider): string | null {
+	return provider.connectionProvider === undefined
+		? provider.kind
+		: provider.connectionProvider;
+}

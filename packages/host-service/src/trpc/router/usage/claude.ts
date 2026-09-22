@@ -10,10 +10,15 @@
  * the CLI out.
  */
 
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { discoverClaudeProfiles, readKeychainSecrets } from "./profiles";
+import {
+	discoverClaudeProfiles,
+	keychainServicesForConfigDir,
+	readKeychainSecrets,
+} from "./profiles";
 import type {
 	UsageAccount,
 	UsageAccountStatus,
@@ -180,6 +185,65 @@ export async function readDefaultLoginEmail(): Promise<string | null> {
 	}
 }
 
+export async function readProfileCredential(
+	profile: Awaited<ReturnType<typeof discoverClaudeProfiles>>[number],
+): Promise<ClaudeOauthCredential | null> {
+	const fromFile = await readCredentialFile(
+		profile.credentialsPath,
+		profile.sourceLabel,
+		profile.configDir,
+	);
+	const candidates: Array<ClaudeOauthCredential | null> = [fromFile];
+	for (const service of profile.keychainServices) {
+		for (const secret of await readKeychainSecrets(service)) {
+			candidates.push(
+				parseCredential(
+					secret,
+					profile.configDir,
+					profile.sourceLabel,
+					profile.configDir,
+				),
+			);
+		}
+	}
+	const freshest = pickFreshest(candidates);
+	return freshest ? { ...freshest, email: profile.email } : null;
+}
+
+export async function readClaudeLoginFingerprint(
+	configDir: string | null,
+): Promise<string | null> {
+	const credential =
+		configDir === null
+			? pickFreshest(
+					await Promise.all([
+						readKeychainCredential(),
+						readCredentialFile(
+							join(homedir(), ".claude", ".credentials.json"),
+							"~/.claude",
+							null,
+						),
+						readCredentialFile(
+							join(homedir(), ".config", "claude", "credentials.json"),
+							"~/.config/claude",
+							null,
+						),
+					]),
+				)
+			: await readProfileCredential({
+					configDir,
+					sourceLabel: configDir,
+					email: null,
+					credentialKind: "subscription",
+					loginFingerprint: null,
+					credentialsPath: join(configDir, ".credentials.json"),
+					keychainServices: keychainServicesForConfigDir(configDir),
+				});
+	return credential && classifyLapsedToken(credential) === "live"
+		? createHash("sha256").update(credential.accessToken).digest("hex")
+		: null;
+}
+
 /**
  * Discovers Claude logins on this machine: the default config locations,
  * any CLAUDE_CONFIG_DIR entries (comma-list supported), auto-discovered
@@ -222,31 +286,6 @@ async function discoverClaudeCredentials(): Promise<{
 			configDir,
 		});
 	}
-
-	const readProfileCredential = async (
-		profile: Awaited<ReturnType<typeof discoverClaudeProfiles>>[number],
-	): Promise<ClaudeOauthCredential | null> => {
-		const fromFile = await readCredentialFile(
-			profile.credentialsPath,
-			profile.sourceLabel,
-			profile.configDir,
-		);
-		const candidates: Array<ClaudeOauthCredential | null> = [fromFile];
-		for (const service of profile.keychainServices) {
-			for (const secret of await readKeychainSecrets(service)) {
-				candidates.push(
-					parseCredential(
-						secret,
-						profile.configDir,
-						profile.sourceLabel,
-						profile.configDir,
-					),
-				);
-			}
-		}
-		const freshest = pickFreshest(candidates);
-		return freshest ? { ...freshest, email: profile.email } : null;
-	};
 
 	// API-billed profiles have no quota to fetch and their credentials stay
 	// unread; only subscription profiles go through the credential readers.

@@ -8,8 +8,10 @@ import {
 	isAutomationEvent,
 	processAutomationEvent,
 } from "./process-automation-event";
+import { ownBotUserIds } from "./process-automation-event/normalizeSlackDelivery";
 import { processEntityDetails } from "./process-entity-details";
 import { processLinkShared } from "./process-link-shared";
+import { threadFollowUpTarget } from "./utils/thread-sessions";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
@@ -29,6 +31,9 @@ type SlackMessageEvent = {
 	bot_id?: string;
 	subtype?: string;
 	user?: string;
+	text?: string;
+	channel?: string;
+	thread_ts?: string;
 };
 
 type EntityDetailsRequestedEvent = Extract<
@@ -118,42 +123,99 @@ export async function POST(request: Request) {
 						teamId: team_id,
 						eventId: event_id,
 					},
+					deduplicationId: event_id,
 					retries: 3,
 				});
 			} catch (error) {
 				console.error("[slack/events] Failed to queue mention job:", error);
+				return Response.json(
+					{ error: "Failed to queue event" },
+					{ status: 503 },
+				);
 			}
 		}
 
 		if (event.type === "message") {
 			const messageEvent = event as SlackMessageEvent;
-			if (messageEvent.channel_type !== "im") {
+			// Bot posts, edits, deletes and joins never launch the agent. A file
+			// share and a reply also sent to the channel are still messages.
+			const humanPost =
+				!messageEvent.bot_id &&
+				(!messageEvent.subtype ||
+					messageEvent.subtype === "file_share" ||
+					messageEvent.subtype === "thread_broadcast") &&
+				!!messageEvent.user;
+			if (!humanPost) {
 				return new Response("ok", { status: 200 });
 			}
 
-			// Skip bot messages to prevent infinite loops
-			if (
-				messageEvent.bot_id ||
-				messageEvent.subtype === "bot_message" ||
-				!messageEvent.user
-			) {
+			if (messageEvent.channel_type === "im") {
+				try {
+					await qstash.publishJSON({
+						url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-assistant-message`,
+						body: {
+							event: messageEvent,
+							teamId: team_id,
+							eventId: event_id,
+						},
+						deduplicationId: event_id,
+						retries: 3,
+					});
+				} catch (error) {
+					console.error(
+						"[slack/events] Failed to queue assistant message job:",
+						error,
+					);
+					return Response.json(
+						{ error: "Failed to queue event" },
+						{ status: 503 },
+					);
+				}
 				return new Response("ok", { status: 200 });
 			}
 
+			// A reply in a channel thread the agent has already joined reaches it
+			// without a mention. A reply that does mention it arrives as
+			// app_mention too, so leave that path to handle it.
+			const mentionsBot = ownBotUserIds(envelope).some((id) =>
+				(messageEvent.text ?? "").includes(`<@${id}>`),
+			);
+			if (!messageEvent.thread_ts || !messageEvent.channel || mentionsBot) {
+				return new Response("ok", { status: 200 });
+			}
+			let followUp = false;
+			try {
+				followUp =
+					(await threadFollowUpTarget({
+						teamId: team_id,
+						channelId: messageEvent.channel,
+						threadTs: messageEvent.thread_ts,
+					})) !== null;
+			} catch (error) {
+				console.error("[slack/events] thread session lookup failed:", error);
+			}
+			if (!followUp) {
+				return new Response("ok", { status: 200 });
+			}
 			try {
 				await qstash.publishJSON({
-					url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-assistant-message`,
+					url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-mention`,
 					body: {
 						event: messageEvent,
 						teamId: team_id,
 						eventId: event_id,
 					},
+					deduplicationId: event_id,
 					retries: 3,
 				});
 			} catch (error) {
 				console.error(
-					"[slack/events] Failed to queue assistant message job:",
+					"[slack/events] Failed to queue thread reply job:",
 					error,
+				);
+				return Response.json(
+					{ error: "Failed to queue event" },
+					{ status: 503 },
 				);
 			}
 		}

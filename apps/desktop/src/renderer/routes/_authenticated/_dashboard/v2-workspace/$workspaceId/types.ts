@@ -1,5 +1,17 @@
 import type { AgentIdentityId } from "@superset/shared/agent-catalog";
+export interface FilePosition {
+	line: number;
+	column?: number;
+}
+
+export type OpenFile = (
+	path: string,
+	openInNewTab?: boolean,
+	position?: FilePosition,
+) => void;
+
 export interface FilePaneData {
+	pendingPosition?: FilePosition;
 	filePath: string;
 	mode: "editor" | "diff" | "preview";
 	language?: string;
@@ -84,6 +96,27 @@ export interface SubagentPaneData {
 	agentId: AgentIdentityId;
 	agentType?: string;
 }
+
+export type WorkspaceSearchKey =
+	| "terminalId"
+	| "focusRequestId"
+	| "subagentTerminalId"
+	| "subagentId"
+	| "subagentAgentId"
+	| "subagentType"
+	| "openUrl"
+	| "openUrlTarget"
+	| "openUrlRequestId"
+	| "pageId"
+	| "pageSlug";
+
+/**
+ * Drops the search params a deep link arrived with, once the hook that owns
+ * them has acted. Router history is persisted with its search params and
+ * replayed at boot, so a link left in the URL fires again on every relaunch
+ * and on every Back onto that entry.
+ */
+export type ConsumeSearch = (keys: WorkspaceSearchKey[]) => void;
 
 export type PaneViewerData =
 	| FilePaneData

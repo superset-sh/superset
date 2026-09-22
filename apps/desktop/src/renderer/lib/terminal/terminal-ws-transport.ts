@@ -1076,13 +1076,6 @@ export function sendResize(
 	socket.send(JSON.stringify({ type: "resize", cols, rows }));
 }
 
-export function sendInput(transport: TerminalTransport, data: string) {
-	const socket = transport._socket;
-	if (!socket || socket.readyState !== WebSocket.OPEN) return;
-	if (transport.connectionState !== "open") return;
-	socket.send(JSON.stringify({ type: "input", data }));
-}
-
 export function sendDispose(transport: TerminalTransport) {
 	if (transport._socket?.readyState === WebSocket.OPEN) {
 		transport._socket.send(JSON.stringify({ type: "dispose" }));

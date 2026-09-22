@@ -8,6 +8,7 @@ describe("commentAuthor", () => {
 				authorKind: "human",
 				authorName: "Sarah",
 				authorImage: "https://example.test/sarah.png",
+				agentLabel: null,
 			}),
 		).toEqual({
 			name: "Sarah",
@@ -22,6 +23,7 @@ describe("commentAuthor", () => {
 				authorKind: "agent",
 				authorName: "Harshith",
 				authorImage: "https://example.test/harshith.png",
+				agentLabel: null,
 			}),
 		).toEqual({ name: AGENT_DISPLAY_NAME, image: null, isAgent: true });
 	});
@@ -32,7 +34,19 @@ describe("commentAuthor", () => {
 				authorKind: "agent",
 				authorName: "Harshith",
 				authorImage: "https://example.test/harshith.png",
+				agentLabel: null,
 			}).image,
 		).toBeNull();
+	});
+
+	it("names the agent when the write recorded which one it was", () => {
+		expect(
+			commentAuthor({
+				authorKind: "agent",
+				authorName: "Harshith",
+				authorImage: "https://example.test/harshith.png",
+				agentLabel: "Claude",
+			}),
+		).toEqual({ name: "Claude", image: null, isAgent: true });
 	});
 });

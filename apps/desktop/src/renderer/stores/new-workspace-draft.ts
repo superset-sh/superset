@@ -40,6 +40,7 @@ export interface NewWorkspaceDraft {
 	checkout: WorkspaceCheckout;
 	/** Cloud only. Null until picked; submit falls back to the first. */
 	environmentId: string | null;
+	/** Cloud only, for an environment without repositories of its own: primary first. */
 	prompt: string;
 	baseBranch: string | null;
 	baseBranchSource: BaseBranchSource | null;

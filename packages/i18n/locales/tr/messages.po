@@ -274,6 +274,10 @@ msgstr "{0, plural, one {# satır daha göster} other {# satır daha göster}}"
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Bu işlem, mevcut # worktree'yi Superset'e çalışma alanı olarak aktarır. Diskteki her worktree izlenir ve kenar çubuğunuzda görünür. Hiçbir dosya değiştirilmez.} other {Bu işlem, mevcut # worktree'yi Superset'e çalışma alanı olarak aktarır. Diskteki her worktree izlenir ve kenar çubuğunuzda görünür. Hiçbir dosya değiştirilmez.}}"
 
+#. placeholder {0}: resolved.length
+msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
+msgstr "{0, plural, one {# çözülen yorumu göster} other {# çözülen yorumu göster}}"
+
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 msgstr "{0, plural, one {Yorumlar için # sayfa izleniyor} other {Yorumlar için # sayfa izleniyor}}"
@@ -292,6 +296,7 @@ msgid "{0} · behind"
 msgstr "{0} · eski"
 
 #. placeholder {0}: creator.name
+#. placeholder {0}: option.name
 msgid "{0} (you)"
 msgstr "{0} (siz)"
 
@@ -563,6 +568,9 @@ msgstr "{closedCount} kapalı"
 msgid "{completed} of {0} checks complete"
 msgstr "{0} kontrolden {completed} tanesi tamamlandı"
 
+msgid "{completed} of {total} completed"
+msgstr "{total} adımdan {completed} tanesi tamamlandı"
+
 msgid "{configTitle} font size"
 msgstr "{configTitle} yazı tipi boyutu"
 
@@ -658,6 +666,10 @@ msgstr "{distance} önce"
 
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {# saniye düşündü} other {# saniye düşündü}}"
+
+#. js-lingui-explicit-id
+msgid "serverError.page.entryPathHeldByAnotherOrganization"
+msgstr "Bu çalışma alanındaki {entryPath} başka bir organizasyonda zaten sayfa olarak yayımlanmış. Dosyayı taşı ya da o sayfanın kimliğiyle yayımla."
 
 msgid "{failed, plural, one {# failed} other {# failed}}"
 msgstr "{failed, plural, one {# başarısız} other {# başarısız}}"
@@ -825,6 +837,12 @@ msgstr "{planLabel} · Katılım {joined}"
 msgid "{planLabel} plan"
 msgstr "{planLabel} planı"
 
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} için bu dağıtımda henüz bir OAuth istemcisi yapılandırılmadı."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} artık yüklü değil."
+
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} varsayılanlara sıfırlandı"
 
@@ -950,6 +968,10 @@ msgstr "{worktreeCount, plural, one {Bu, projeyi ve # çalışma alanını eriş
 msgid "{years}y ago"
 msgstr "{years}y önce"
 
+#. placeholder {0}: connection.login
+msgid "@{0} · cloud workspaces commit, push and open pull requests as you"
+msgstr "@{0} · bulut çalışma alanları senin adına commit, push yapar ve pull request açar"
+
 msgid "@superset"
 msgstr "@superset"
 
@@ -1028,6 +1050,12 @@ msgstr "<0>{primaryFont}</0> bu sistemde kurulu değil. Sıradaki kullanılabili
 msgid "<0>#{0}</0> <1>of {1} on the leaderboard</1>"
 msgstr "<0>#{0}</0> <1>— liderlik tablosundaki {1} kişi arasında</1>"
 
+msgid "<0>Coming soon to</0><1>Google Play</1>"
+msgstr "<1>Google Play</1><0>'de yakında</0>"
+
+msgid "<0>Download on the</0><1>App Store</1>"
+msgstr "<1>App Store</1><0>'dan indirin</0>"
+
 msgid "<0>F3</0> · you are here"
 msgstr "<0>F3</0> · buradasınız"
 
@@ -1042,9 +1070,6 @@ msgstr "bu hafta için ~{stars} öngörülüyor"
 
 msgid "~{totalSeconds}s typical"
 msgstr "tipik ~{totalSeconds} sn"
-
-msgid "~{TYPICAL_SECONDS}s typical"
-msgstr "tipik ~{TYPICAL_SECONDS} sn"
 
 msgid "~/agent $"
 msgstr "~/agent $"
@@ -1197,6 +1222,10 @@ msgstr "Daha iyi bir uygulama içi tarayıcı: değişikliklerinizi önizleyin v
 msgid "A better Superset is ready"
 msgstr "Daha iyi bir Superset hazır"
 
+#. js-lingui-explicit-id
+msgid "serverError.common.cloudWorkspaceCannotCallThis"
+msgstr "Bulut çalışma alanı {path} çağıramaz. Bunu oturum açtığın bir istemciden yap."
+
 msgid "A delete is already in progress for {workspaceName}."
 msgstr "{workspaceName} için zaten bir silme işlemi sürüyor."
 
@@ -1220,6 +1249,9 @@ msgstr "Baştan sona yeni bir stil: daha yoğun satırlar, her çalışma alanı
 
 msgid "A gateway is signed in with an API key."
 msgstr "Ağ geçidi API anahtarıyla oturum açmış durumda."
+
+msgid "A guilty habit I have is waking up with an idea in the middle of the night and opening the app. By morning it's ready for review."
+msgstr "Gece yarısı bir fikirle uyanıp uygulamayı açmak gibi suçlu hissettiren bir alışkanlığım var. Sabaha incelemeye hazır oluyor."
 
 msgid "A host must have at least one owner."
 msgstr "Bir host'un en az bir sahibi olmalıdır."
@@ -1247,6 +1279,9 @@ msgstr "Bir pull request her zaman kendi worktree'sini alır"
 
 msgid "A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything."
 msgstr "Ajanları yönetmek için yeniden yapılmış bir sohbet yüzeyi: daha zengin araç çıktısı, daha akıcı yönlendirme, her şey daha hızlı."
+
+msgid "A repository is not connected to this organization, or the repositories come from different GitHub installations"
+msgstr "Bir depo bu organizasyona bağlı değil veya depolar farklı GitHub kurulumlarından geliyor"
 
 msgid "A run for this automation is already in progress."
 msgstr "Bu otomasyon için bir çalıştırma zaten sürüyor."
@@ -1388,6 +1423,9 @@ msgstr "Ekle"
 msgid "Add {0} account"
 msgstr "{0} hesabı ekle"
 
+msgid "Add a comment…"
+msgstr "Yorum ekle…"
+
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Proje Ayarları'nda bir yaşam döngüsü çalıştırma betiği ekleyin veya bir terminal betiğini çalışma alanı çalıştırması olarak işaretleyin."
 
@@ -1463,9 +1501,6 @@ msgstr "Başlamak için kenar çubuğundaki menüden bir tane ekleyin."
 
 msgid "Add photos or files"
 msgstr "Fotoğraf veya dosya ekle"
-
-msgid "Add plugin"
-msgstr "Eklenti ekle"
 
 msgid "Add project"
 msgstr "Proje ekle"
@@ -1764,6 +1799,9 @@ msgstr "Tüm verileriniz {ACCOUNT_DELETION_GRACE_DAYS} gün sonra kalıcı olara
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Açık tüm terminal oturumları sonlandırılacak ve çalışan host hizmetleri durdurulacak. Hizmetlerin sonraki açılış için çalışmaya devam etmesini istiyorsanız “Superset'i kapat” seçeneğini kullanın."
 
+msgid "All pages"
+msgstr "Tüm sayfalar"
+
 msgid "All plans"
 msgstr "Tüm planlar"
 
@@ -1896,6 +1934,9 @@ msgstr "Yüklenmeye hazır bir güncelleme var."
 msgid "Analytics, Ops, and more"
 msgstr "Analiz, operasyonlar ve daha fazlası"
 
+msgid "Android is on the way. Be first to know when it ships."
+msgstr "Android yolda. Çıktığında ilk siz haberdar olun."
+
 msgid "Animate the active terminal cursor."
 msgstr "Etkin terminal imlecini canlandır."
 
@@ -1995,6 +2036,9 @@ msgstr "Herkes"
 msgid "Anyone in your organization"
 msgstr "Kuruluşunuzdaki herkes"
 
+msgid "Anyone with the link"
+msgstr "Bağlantıya sahip herkes"
+
 msgid "anything"
 msgstr "herhangi bir şey"
 
@@ -2088,6 +2132,9 @@ msgstr "apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx"
 
 msgid "Archive"
 msgstr "Arşivle"
+
+msgid "Archive environment"
+msgstr "Ortamı arşivle"
 
 msgid "Archived"
 msgstr "Arşivlenmiş"
@@ -2230,9 +2277,6 @@ msgstr "Denetim günlükleri"
 msgid "Aug 2026"
 msgstr "Ağu 2026"
 
-msgid "Authenticate your {displayName} account"
-msgstr "{displayName} hesabınızın kimliğini doğrulayın"
-
 msgid "Authentication"
 msgstr "Kimlik doğrulama"
 
@@ -2259,6 +2303,12 @@ msgstr "Yetkilendir"
 
 msgid "Authorize {displayName}"
 msgstr "{displayName} uygulamasını yetkilendir"
+
+msgid "Authorize Superset so your plugins, automations and triggers can act on your behalf."
+msgstr "Eklentilerinizin, otomasyonlarınızın ve tetikleyicilerinizin sizin adınıza işlem yapabilmesi için Superset'e yetki verin."
+
+msgid "Authorize Superset to act on your behalf."
+msgstr "Superset'in sizin adınıza işlem yapmasına izin verin."
 
 msgid "Authorizing..."
 msgstr "Yetkilendiriliyor..."
@@ -2398,6 +2448,9 @@ msgstr "Değişiklik günlüğüne dön"
 
 msgid "Back to checklist"
 msgstr "Kontrol listesine dön"
+
+msgid "Back to current"
+msgstr "Güncel sürüme dön"
 
 msgid "Back to GitHub issues"
 msgstr "GitHub issue'larına dön"
@@ -2813,6 +2866,9 @@ msgstr "Kendi API anahtarlarımı kullanabilir miyim?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Uygulama genelindeki tooltip'leri standartlaştırabilir misin?"
 
+msgid "Can’t check {hostName}"
+msgstr "{hostName} kontrol edilemiyor"
+
 msgid "Can't connect right now"
 msgstr "Şu anda bağlanamıyoruz"
 
@@ -2833,6 +2889,9 @@ msgstr "Düzenlemeleri iptal et"
 
 msgid "Cancel plan"
 msgstr "Planı iptal et"
+
+msgid "Cancel reply"
+msgstr "Yanıtı iptal et"
 
 msgid "Canceled"
 msgstr "İptal edildi"
@@ -3182,6 +3241,9 @@ msgstr "Terminal geçmişini temizle"
 msgid "Clear terminal history?"
 msgstr "Terminal geçmişi temizlensin mi?"
 
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "Kenar çubuğunu yeniden düzenlemek için filtreyi temizleyin"
+
 msgid "Clear workspace selection"
 msgstr "Çalışma alanı seçimini temizle"
 
@@ -3443,6 +3505,9 @@ msgstr "Bulut sandbox'ları {account} için etkin değil. Erişim için Superset
 msgid "Cloud workspace"
 msgstr "Bulut çalışma alanı"
 
+msgid "Co-founder & CTO, TrainLoop (YC W25)"
+msgstr "Kurucu ortak ve CTO, TrainLoop (YC W25)"
+
 msgid "Code"
 msgstr "Kod"
 
@@ -3570,6 +3635,9 @@ msgstr "Yorum yapıldı"
 msgid "Comments"
 msgstr "Yorumlar"
 
+msgid "Comments could not be loaded"
+msgstr "Yorumlar yüklenemedi"
+
 msgid "Comments go to this agent"
 msgstr "Yorumlar bu ajana gider"
 
@@ -3646,6 +3714,9 @@ msgstr "Birleştirilebilir form düzeni — react-hook-form için @superset/ui/f
 msgid "Computing in Stripe — up to a minute on first load"
 msgstr "Stripe üzerinde hesaplanıyor — ilk yüklemede bir dakikayı bulabilir"
 
+msgid "Config location"
+msgstr "Yapılandırma konumu"
+
 msgid "Configure"
 msgstr "Yapılandır"
 
@@ -3684,6 +3755,12 @@ msgstr "Çıkmadan önce onay iste"
 
 msgid "Connect"
 msgstr "Bağla"
+
+msgid "Connect {displayName}"
+msgstr "{displayName} bağla"
+
+msgid "Connect {name}"
+msgstr "{name} bağla"
 
 msgid "Connect a device"
 msgstr "Cihaz bağla"
@@ -3736,6 +3813,9 @@ msgstr "Slack'i bağla"
 msgid "Connect Slack to manage tasks from conversations. Mention the bot in any channel or send it a direct message to create and update tasks."
 msgstr "Görevleri konuşmalardan yönetmek için Slack'i bağlayın. Görev oluşturmak ve güncellemek için herhangi bir kanalda bottan bahsedin veya ona doğrudan mesaj gönderin."
 
+msgid "Connect this computer"
+msgstr "Bu bilgisayarı bağlayın"
+
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "GitHub depolarınızı bağlayın ve pull request'leri eşitleyin. CI durumunu ve incelemeleri takımınız genelinde izleyin."
 
@@ -3757,9 +3837,8 @@ msgstr "Görevleri konuşmalardan yönetmek için Slack çalışma alanınızı 
 msgid "Connected"
 msgstr "Bağlı"
 
-#. placeholder {0}: formatDate(new Date(connection.createdAt))
-msgid "connected {0}"
-msgstr "bağlandı {0}"
+msgid "Connected {label}"
+msgstr "{label} bağlandı"
 
 msgid "Connected as"
 msgstr "Şu hesapla bağlı"
@@ -3787,6 +3866,12 @@ msgstr "Bağlandı. Oturum açma iptal edildiği için \"Ben\" tetikleyicileri, 
 
 msgid "Connecting"
 msgstr "Bağlanılıyor"
+
+msgid "Connecting GitHub is not configured on this server"
+msgstr "Bu sunucuda GitHub bağlantısı yapılandırılmamış"
+
+msgid "Connecting lets your agents read and act in {name} on your behalf. Review what you are granting before you continue."
+msgstr "Bağlanmak, aracılarınızın {name} içinde sizin adınıza okuma ve işlem yapmasına izin verir. Devam etmeden önce neyi verdiğinizi gözden geçirin."
 
 msgid "Connecting to the desktop…"
 msgstr "Masaüstüne bağlanılıyor…"
@@ -3818,6 +3903,18 @@ msgstr "Bağlantı zaman aşımına uğradı"
 
 msgid "Connections"
 msgstr "Bağlantılar"
+
+msgid "Connector"
+msgstr "Bağlayıcı"
+
+msgid "Connectors carry risk"
+msgstr "Bağlayıcılar risk taşır"
+
+msgid "Connects for your whole team."
+msgstr "Tüm ekibiniz için bağlanır."
+
+msgid "Connects your account. Teammates connect their own."
+msgstr "Hesabınızı bağlar. Takım arkadaşlarınız kendi hesaplarını bağlar."
 
 msgid "consecutive active days"
 msgstr "art arda aktif gün"
@@ -3875,6 +3972,10 @@ msgstr "Oturumu sürdür veya forkla"
 
 msgid "Continue the session the last run left"
 msgstr "Son çalıştırmanın bıraktığı oturumu sürdür"
+
+#. placeholder {0}: connector.displayName
+msgid "Continue to {0}"
+msgstr "{0} adresine devam et"
 
 msgid "Continue update"
 msgstr "Güncellemeye devam et"
@@ -4113,6 +4214,9 @@ msgstr "Paylaşılan sürüm değiştirilemedi"
 msgid "Could not change who can see this page"
 msgstr "Bu sayfayı kimlerin görebileceği değiştirilemedi"
 
+msgid "Could not check your plan. Check your connection and try again."
+msgstr "Planınız kontrol edilemedi. Bağlantınızı kontrol edip tekrar deneyin."
+
 msgid "Could not clear browsing data"
 msgstr "Tarama verileri temizlenemedi"
 
@@ -4121,6 +4225,9 @@ msgstr "Oturum kapatılamadı"
 
 msgid "Could not close the session"
 msgstr "Oturum kapatılamadı"
+
+msgid "Could not connect {plugin}. Try again."
+msgstr "{plugin} bağlanamadı. Yeniden deneyin."
 
 msgid "Could not copy the link"
 msgstr "Bağlantı kopyalanamadı"
@@ -4231,8 +4338,14 @@ msgstr "Google hesabı okunamadı. Lütfen yeniden deneyin."
 msgid "Could not record cloud workspace"
 msgstr "Bulut çalışma alanı kaydedilemedi"
 
+msgid "Could not record environment"
+msgstr "Ortam kaydedilemedi"
+
 msgid "Could not rename the session"
 msgstr "Oturum yeniden adlandırılamadı"
+
+msgid "Could not rename this page"
+msgstr "Bu sayfa yeniden adlandırılamadı"
 
 msgid "Could not reopen"
 msgstr "Yeniden açılamadı"
@@ -4364,6 +4477,9 @@ msgstr "Yanıt gönderilemedi"
 #. placeholder {1}: first.message
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "{0} için buluta erişilemedi: {1}"
+
+msgid "Couldn't reach workspace"
+msgstr "Çalışma alanına ulaşılamadı"
 
 msgid "Couldn't read this terminal's context."
 msgstr "Bu terminalin bağlamı okunamadı."
@@ -4637,6 +4753,12 @@ msgstr "Worktree oluşturuluyor"
 
 msgid "Creating..."
 msgstr "Oluşturuluyor..."
+
+msgid "Creative Manager, Valid"
+msgstr "Kreatif Yönetici, Valid"
+
+msgid "Credentials stay on the server"
+msgstr "Kimlik bilgileri sunucuda kalır"
 
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "packages/ui dışında yaşayan, özellikler arası bileşenler — yenisini geliştirmeden önce buraya bakın"
@@ -5095,6 +5217,9 @@ msgstr "Dev oturum açma"
 msgid "Dev sign-in failed"
 msgstr "Dev oturum açma başarısız"
 
+msgid "Developed by {author}"
+msgstr "Geliştiren: {author}"
+
 msgid "Developer"
 msgstr "Geliştirici"
 
@@ -5139,6 +5264,9 @@ msgstr "yeni sekmede fark"
 
 msgid "Diff size"
 msgstr "Fark boyutu"
+
+msgid "Digital Product Designer"
+msgstr "Dijital Ürün Tasarımcısı"
 
 msgid "Direct"
 msgstr "Doğrudan"
@@ -5213,10 +5341,6 @@ msgstr "Atıldı — bir daha sorulmayacak"
 msgid "Disconnect"
 msgstr "Bağlantıyı kes"
 
-#. placeholder {0}: connection.account ?? displayName
-msgid "Disconnect {0}"
-msgstr "{0} bağlantısını kes"
-
 msgid "Disconnect GitHub?"
 msgstr "GitHub bağlantısı kesilsin mi?"
 
@@ -5252,6 +5376,9 @@ msgstr "Discord, GitHub ve ofis saatleri."
 
 msgid "Discover and connect to development servers on your network."
 msgstr "Ağınızdaki geliştirme sunucularını bulun ve bağlanın."
+
+msgid "Disk version"
+msgstr "Diskteki sürüm"
 
 msgid "Dismiss"
 msgstr "Kapat"
@@ -5541,6 +5668,9 @@ msgstr "Yorumu düzenle"
 msgid "Edit description"
 msgstr "Açıklamayı düzenle"
 
+msgid "Edit environment"
+msgstr "Ortamı düzenle"
+
 msgid "Edit name"
 msgstr "Adı düzenle"
 
@@ -5639,6 +5769,12 @@ msgstr "Otomatik birleştirmeyi etkinleştir"
 msgid "Enable relay access…"
 msgstr "Röle erişimini etkinleştir…"
 
+msgid "Enable remote access"
+msgstr "Uzaktan erişimi etkinleştirin"
+
+msgid "Enable Remote Access and keep this computer awake with Superset running."
+msgstr "Uzaktan erişimi etkinleştirin ve Superset çalışırken bu bilgisayarı uyanık tutun."
+
 msgid "Enable skill"
 msgstr "Beceriyi etkinleştir"
 
@@ -5689,6 +5825,9 @@ msgstr "Ortam"
 
 msgid "Environment created"
 msgstr "Ortam oluşturuldu"
+
+msgid "Environment saved"
+msgstr "Ortam kaydedildi"
 
 msgid "Environment setup, flaky tests, and credential plumbing, the boring failure modes that killed unattended runs in 2025, are mostly engineered away rather than modeled away."
 msgstr "Ortam kurulumu, kararsız testler ve kimlik bilgisi tesisatı, yani 2025'te gözetimsiz çalıştırmaları öldüren sıkıcı hata biçimleri, modelleyerek değil mühendislikle büyük ölçüde ortadan kaldırılır."
@@ -6032,6 +6171,9 @@ msgstr "Görev oluşturulamadı"
 
 msgid "Failed to create team"
 msgstr "Takım oluşturulamadı"
+
+msgid "Failed to create terminal"
+msgstr "Terminal oluşturulamadı"
 
 msgid "Failed to create thread"
 msgstr "Konu oluşturulamadı"
@@ -6423,6 +6565,9 @@ msgstr "Bir bilet açın, değişikliğin çalıştığının kanıtı olarak ek
 msgid "File actions"
 msgstr "Dosya eylemleri"
 
+msgid "File changed on disk"
+msgstr "Diskteki dosya değişti"
+
 msgid "File is too large to preview"
 msgstr "Dosya önizlenemeyecek kadar büyük"
 
@@ -6473,6 +6618,9 @@ msgstr "Ajanları filtrele..."
 
 msgid "Filter by @{normalizedSearch}"
 msgstr "@{normalizedSearch} ile filtrele"
+
+msgid "Filter by author: {label}"
+msgstr "Yazara göre filtrele: {label}"
 
 msgid "Filter by device"
 msgstr "Cihaza göre filtrele"
@@ -6753,14 +6901,20 @@ msgstr "İleri"
 msgid "Found 12 tooltip call sites"
 msgstr "12 tooltip çağrı noktası bulundu"
 
+msgid "Founder & CEO, WowMakers"
+msgstr "Kurucu ve CEO, WowMakers"
+
+msgid "Founding Engineer"
+msgstr "Kurucu Mühendis"
+
 msgid "Free"
 msgstr "Ücretsiz"
 
 msgid "Free for everyone"
 msgstr "Herkes için ücretsiz"
 
-msgid "Free plan available · No credit card required"
-msgstr "Ücretsiz plan mevcut · Kredi kartı gerekmez"
+msgid "Free to start · No credit card required"
+msgstr "Ücretsiz başlayın · Kredi kartı gerekmez"
 
 msgid "Frequently<0/>asked questions"
 msgstr "Sık sorulan<0/>sorular"
@@ -6864,6 +7018,12 @@ msgstr "Superset'i Mac'inize alın"
 msgid "Get Superset Pro"
 msgstr "Superset Pro'yu edinin"
 
+msgid "Get the best out of Pro"
+msgstr "Pro’dan en iyi şekilde yararlanın"
+
+msgid "Get the iPhone app"
+msgstr "iPhone uygulamasını edinin"
+
 msgid "Ghost"
 msgstr "Hayalet"
 
@@ -6893,6 +7053,9 @@ msgstr "GitHub App başarıyla kuruldu!"
 
 msgid "GitHub connected, but initial sync failed to start. Please try reconnecting."
 msgstr "GitHub bağlandı, ancak ilk eşitleme başlatılamadı. Lütfen yeniden bağlanmayı deneyin."
+
+msgid "GitHub disconnected"
+msgstr "GitHub bağlantısı kesildi"
 
 msgid "GitHub installation not found"
 msgstr "GitHub kurulumu bulunamadı"
@@ -6966,6 +7129,9 @@ msgstr "Sonraki sayfaya git"
 msgid "Go to previous page"
 msgstr "Önceki sayfaya git"
 
+msgid "Go to Settings, then Remote Access"
+msgstr "Ayarlar'a, ardından Uzaktan erişim'e gidin"
+
 msgid "Go to Slack integration settings"
 msgstr "Slack entegrasyon ayarlarına git"
 
@@ -7004,6 +7170,9 @@ msgstr "Yeni dalları bir klasör altında toplayın."
 
 msgid "Growth"
 msgstr "Büyüme"
+
+msgid "GTM & AI Automation Architect, Mistral AI"
+msgstr "GTM ve Yapay Zekâ Otomasyon Mimarı, Mistral AI"
 
 msgid "Guide"
 msgstr "Rehber"
@@ -7122,6 +7291,9 @@ msgstr "Pull request önizlemesini gizle"
 
 msgid "Hide resolved ({resolvedCount})"
 msgstr "Çözülenleri gizle ({resolvedCount})"
+
+msgid "Hide resolved comments"
+msgstr "Çözülen yorumları gizle"
 
 msgid "Hide review comments"
 msgstr "İnceleme yorumlarını gizle"
@@ -7307,6 +7479,15 @@ msgstr "Her satırı insanlar yazar. Araçlar derler, denetler ve şikâyet eder
 
 msgid "I already use an IDE like Cursor, is this for me?"
 msgstr "Zaten Cursor gibi bir IDE kullanıyorum, bu bana göre mi?"
+
+msgid "I also love being able to spin up a local worktree environment on my Mac directly from my phone."
+msgstr "Doğrudan telefonumdan Mac’imde yerel bir çalışma ağacı ortamı başlatabilmeyi de çok seviyorum."
+
+msgid "I can be in a café with my coffee while the work keeps moving forward."
+msgstr "Ben kafede kahvemi içerken iş ilerlemeye devam edebiliyor."
+
+msgid "I start my morning walks with an idea, and end with a pull request."
+msgstr "Sabah yürüyüşlerime bir fikirle başlıyor, bir pull request ile bitiriyorum."
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "{tokens} token ajan kullanımıyla {company} lider tablosunda #{rank} sıradayım."
@@ -7544,6 +7725,9 @@ msgstr "Superset ekibinden paralel kodlama ajanları ve geliştirici verimliliğ
 msgid "Inspecting {0}"
 msgstr "{0} inceleniyor"
 
+msgid "Install"
+msgstr "Kur"
+
 msgid "Install & restart"
 msgstr "Kur ve yeniden başlat"
 
@@ -7556,11 +7740,20 @@ msgstr "Kurulum başarısız"
 msgid "Install GitHub App"
 msgstr "GitHub App'i kur"
 
+msgid "Install on your iPhone"
+msgstr "iPhone’unuza yükleyin"
+
+msgid "Install plugin"
+msgstr "Eklenti kur"
+
 msgid "Install Superset MCP in your client"
 msgstr "Superset MCP'yi istemcinize kurun"
 
 msgid "Install the desktop app"
 msgstr "Masaüstü uygulamasını kurun"
+
+msgid "Install the plugin to connect"
+msgstr "Bağlanmak için eklentiyi kurun"
 
 msgid "Install the Superset GitHub App to connect your repositories."
 msgstr "Depolarınızı bağlamak için Superset GitHub App'i kurun."
@@ -7737,6 +7930,9 @@ msgstr "Issue URL'si {repoMismatch} ile eşleşmeli."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "Uykuda olabilir"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Silinmiş olabilir veya başka bir kuruluşa ait olabilir."
 
@@ -7757,9 +7953,6 @@ msgstr "Kendi dalı ve dosyaların kendi kopyası"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Yeniden başlayana kadar çalışma alanları ve terminalleri kullanılamaz — Superset tepsi menüsünde Host hizmeti > Yeniden başlat yolunu kullanın."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "Yeniden bağlandığında çalışma alanları görünecek."
 
 msgid "Jane Doe"
 msgstr "Ayşe Yılmaz"
@@ -7832,6 +8025,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Belgeleri güncel tut"
+
+msgid "Keep editing"
+msgstr "Düzenlemeye devam et"
 
 msgid "Keep waiting"
 msgstr "Beklemeye devam et"
@@ -7954,6 +8150,9 @@ msgstr "Son çalıştırma"
 msgid "Last seen"
 msgstr "Son görülme"
 
+msgid "Last seen {lastSeen}"
+msgstr "Son görülme: {lastSeen}"
+
 msgid "Last updated"
 msgstr "Son güncelleme"
 
@@ -8046,6 +8245,9 @@ msgstr "Takımdan ayrıl"
 
 msgid "Leave the leaderboard?"
 msgstr "Lider tablosundan ayrılınsın mı?"
+
+msgid "Leave your desk.<0/>Keep building."
+msgstr "Masanızdan kalkın.<0/>Geliştirmeye devam edin."
 
 msgid "Leaving organization..."
 msgstr "Kuruluştan ayrılınıyor..."
@@ -8725,9 +8927,6 @@ msgstr "Zorunlu girdi {input} eksik"
 msgid "Mobile"
 msgstr "Mobil"
 
-msgid "Mobile (coming soon)"
-msgstr "Mobil (yakında)"
-
 msgid "Mobile app"
 msgstr "Mobil uygulama"
 
@@ -8776,8 +8975,8 @@ msgstr "Ajanlarınızı telefonunuzdan izleyin, yönlendirin ve engellerini kald
 msgid "Monitoring"
 msgstr "İzleme"
 
-msgid "monorepo-warm"
-msgstr "monorepo-warm"
+msgid "monorepo"
+msgstr "monorepo"
 
 msgid "Monospace"
 msgstr "Eş aralıklı"
@@ -8832,6 +9031,10 @@ msgstr "Daha fazla sayfa"
 
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "Birleştirilen değişikliklerin yarısından fazlası, hiç insan düzenlemesi olmadan ajanlar tarafından yazılır."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.ambiguousConnection"
+msgstr "Birden fazla {connector} bağlantısı eşleşiyor; istemediğinizi kaldırın."
 
 msgid "most developers"
 msgstr "çoğu geliştirici"
@@ -8977,6 +9180,10 @@ msgstr "Ağ değişti"
 msgid "Never"
 msgstr "Hiç"
 
+msgctxt "badge on a page published since the menu was last opened"
+msgid "New"
+msgstr "Yeni"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Yeni {providerLabel} ajanları {accountLabel} hesabını kullanacak."
 
@@ -9031,6 +9238,9 @@ msgstr "Çalışma alanından yeni grup"
 msgid "New issue"
 msgstr "Yeni issue"
 
+msgid "New page"
+msgstr "Yeni sayfa"
+
 msgid "New password (min 8 characters)"
 msgstr "Yeni parola (en az 8 karakter)"
 
@@ -9045,6 +9255,9 @@ msgstr "Yeni sürümler ve ürün güncellemeleri."
 
 msgid "New session"
 msgstr "Yeni oturum"
+
+msgid "New shell"
+msgstr "Yeni kabuk"
 
 msgid "New stars"
 msgstr "Yeni yıldızlar"
@@ -9533,6 +9746,9 @@ msgstr "Pull request bulunamadı."
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Depo bulunamadı. GitHub App'inizin depolara erişimi olduğundan emin olun."
 
+msgid "No repositories. Connect GitHub in Integrations, then refresh."
+msgstr "Depo yok. Entegrasyonlar'dan GitHub'ı bağlayın, sonra yenileyin."
+
 msgid "No results"
 msgstr "Sonuç yok"
 
@@ -9698,6 +9914,9 @@ msgstr "marka dışı"
 msgid "Non-brand clicks"
 msgstr "Marka dışı tıklamalar"
 
+msgid "None"
+msgstr "Yok"
+
 msgid "none (session)"
 msgstr "yok (oturum)"
 
@@ -9716,6 +9935,9 @@ msgstr "Kimlik doğrulanmadı. Lütfen oturum açın."
 msgid "Not authenticated. Provide a bearer JWT, x-api-key, or session."
 msgstr "Kimlik doğrulanmadı. Bir bearer JWT, x-api-key veya oturum sağlayın."
 
+msgid "Not available on this server"
+msgstr "Bu sunucuda kullanılamıyor"
+
 msgid "Not bound · configure in Settings → Links"
 msgstr "Atanmadı · Ayarlar → Bağlantılar bölümünden yapılandırın"
 
@@ -9727,6 +9949,9 @@ msgstr "Bağlı değil"
 
 msgid "Not Connected"
 msgstr "Bağlı değil"
+
+msgid "Not connected · cloud workspaces push as your organization's GitHub App"
+msgstr "Bağlı değil · bulut çalışma alanları organizasyonunun GitHub App'i olarak push yapar"
 
 msgid "Not connected: {unavailableReason}. Add a Google service account to the Search Console property and set GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT."
 msgstr "Bağlı değil: {unavailableReason}. Search Console mülküne bir Google hizmet hesabı ekleyin ve GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT değerini ayarlayın."
@@ -9824,6 +10049,9 @@ msgstr "şimdi"
 
 msgid "Now"
 msgstr "Şimdi"
+
+msgid "Now I open the workspace on my phone, type the one line it's waiting for, and it carries on."
+msgstr "Artık telefonumda çalışma alanını açıyorum, beklediği o tek satırı yazıyorum ve çalışmaya devam ediyor."
 
 #. placeholder {0}: versions.expected
 #. placeholder {1}: versions.running
@@ -9934,6 +10162,9 @@ msgstr "Tablodaki ilk yüz kişiden biri"
 msgid "one of the selected repositories"
 msgstr "seçili depolardan biri"
 
+msgid "One step left"
+msgstr "Bir adım kaldı"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Claude Code, Codex ve her kodlama ajanı için tek bir çalışma alanı."
 
@@ -10009,6 +10240,9 @@ msgstr "Konuyu yalnızca yazarı veya sayfanın sahibi silebilir"
 msgid "Only you"
 msgstr "Yalnızca siz"
 
+msgid "Only you can see this page"
+msgstr "Bu sayfayı yalnızca siz görebilirsiniz"
+
 msgid "open"
 msgstr "aç"
 
@@ -10056,6 +10290,9 @@ msgstr "Yine de aç"
 
 msgid "Open Anywhere"
 msgstr "Her yerde aç"
+
+msgid "Open App Store"
+msgstr "App Store’u aç"
 
 msgid "Open as comment pane"
 msgstr "Yorum bölmesi olarak aç"
@@ -10342,6 +10579,9 @@ msgstr "Gönderim seçeneklerini aç"
 msgid "Open Superset"
 msgstr "Superset'i aç"
 
+msgid "Open Superset on that computer"
+msgstr "O bilgisayarda Superset'i açın"
+
 msgid "Open System Settings"
 msgstr "Sistem Ayarları'nı aç"
 
@@ -10420,11 +10660,11 @@ msgstr "Mevcut çalışma alanı açıldı"
 msgid "opened PR #841 for review"
 msgstr "inceleme için PR #841 açtı"
 
-msgid "Opening TestFlight…"
-msgstr "TestFlight açılıyor…"
-
 msgid "Opening worktree..."
 msgstr "Worktree açılıyor..."
+
+msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
+msgstr "Bir ajanın projenin ihtiyaç duyduklarını kurup .superset/config.json dosyasını yazdığı bir bulut çalışma alanı açar"
 
 msgid "Operator"
 msgstr "Operatör"
@@ -10523,9 +10763,6 @@ msgstr "Kuruluş URL'si güncellendi!"
 msgid "Organization: <0>{0}</0>"
 msgstr "Kuruluş: <0>{0}</0>"
 
-msgid "Organizations"
-msgstr "Kuruluşlar"
-
 msgid "Organizations with a second member vs single-member accounts; the line is teams per 1,000."
 msgstr "İkinci üyesi olan organizasyonlara karşı tek üyeli hesaplar; çizgi 1.000 başına ekip sayısıdır."
 
@@ -10595,6 +10832,9 @@ msgstr "Gece ve hafta sonu çalıştırmaları gözetimsiz tamamlanır ve sabaha
 msgid "Overview"
 msgstr "Genel bakış"
 
+msgid "Overwrite file"
+msgstr "Dosyanın üzerine yaz"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Sahibi: {0} — bu otomasyonu yalnızca o düzenleyebilir."
@@ -10637,6 +10877,9 @@ msgstr "Sayfa bulunamadı"
 
 msgid "Page Not Found"
 msgstr "Sayfa bulunamadı"
+
+msgid "Page title"
+msgstr "Sayfa başlığı"
 
 msgid "Page views"
 msgstr "Sayfa görüntülemeleri"
@@ -10712,6 +10955,9 @@ msgstr "Bir kısmı kayıt, bir kısmı bahis. İlk iki madde zaten gerçekleşi
 
 msgid "Partial"
 msgstr "Kısmi"
+
+msgid "Partner, Transpose Platform"
+msgstr "Ortak, Transpose Platform"
 
 msgid "Passed"
 msgstr "Geçti"
@@ -11669,6 +11915,9 @@ msgstr "Metrikleri yenile"
 msgid "Refresh pull requests"
 msgstr "Pull request'leri yenile"
 
+msgid "Refresh repositories"
+msgstr "Depoları yenile"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Claude Code bir sonraki çalıştığında yenilenir."
 
@@ -11708,11 +11957,17 @@ msgstr "Yeniden yükle"
 msgid "Reload app"
 msgstr "Uygulamayı yeniden yükle"
 
+msgid "Reload from disk"
+msgstr "Diskten yeniden yükle"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Çalışma alanı listesini yenilemek için Superset'i yeniden yükleyin."
 
 msgid "Reload window"
 msgstr "Pencereyi yeniden yükle"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Yeniden yükleme düzenlemelerinizi siler. Üzerine yazma diskteki dosyayı değiştirir."
 
 msgid "Relocate"
 msgstr "Taşı"
@@ -11737,6 +11992,9 @@ msgstr "Uzak erişim"
 
 msgid "Remote Access"
 msgstr "Uzaktan erişim"
+
+msgid "Remote Access may be off"
+msgstr "Uzaktan erişim kapalı olabilir"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Uzak MCP sunucusu — HTTP üzerinden bağlanır"
@@ -11857,6 +12115,9 @@ msgstr "Grubu yeniden adlandır"
 msgid "Rename host"
 msgstr "Host'u yeniden adlandır"
 
+msgid "Rename page"
+msgstr "Sayfayı yeniden adlandır"
+
 msgid "Rename session"
 msgstr "Oturumu yeniden adlandır"
 
@@ -11934,6 +12195,9 @@ msgstr "Yanıtla"
 msgid "Reply to thread…"
 msgstr "Konuya yanıt verin…"
 
+msgid "Replying to {replyingTo}"
+msgstr "{replyingTo} kullanıcısına yanıt veriliyor"
+
 msgid "repo"
 msgstr "depo"
 
@@ -11951,6 +12215,9 @@ msgstr "Depolar"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "GitHub App kurulumu üzerinden erişilebilen depolar."
+
+msgid "Repositories refreshed"
+msgstr "Depolar yenilendi"
 
 msgid "Repositories will be updated shortly."
 msgstr "Depolar kısa süre içinde güncellenecek."
@@ -11984,6 +12251,9 @@ msgstr "Gerekli"
 
 msgid "Required version: {minimumVersion}+"
 msgstr "Gerekli sürüm: {minimumVersion}+"
+
+msgid "Requires iOS 26 or later. Included with Superset Pro."
+msgstr "iOS 26 veya sonrası gerekir. Superset Pro'ya dahildir."
 
 msgid "Reserved by OS"
 msgstr "İşletim sistemi tarafından ayrılmış"
@@ -12448,6 +12718,9 @@ msgstr "Çalışma alanlarını her yerde çalıştırın"
 msgid "Run your agents from the desktop, any terminal, or your phone."
 msgstr "Ajanlarınızı masaüstünden, herhangi bir terminalden veya telefonunuzdan çalıştırın."
 
+msgid "Run your agents from your phone."
+msgstr "Ajanlarınızı telefonunuzdan çalıştırın."
+
 msgid "running"
 msgstr "çalışıyor"
 
@@ -12563,8 +12836,14 @@ msgstr "Kaydediliyor…"
 msgid "Saw the paywall"
 msgstr "Ödeme duvarını gördü"
 
-msgid "Scale from two agents to 100+"
-msgstr "İki ajandan 100+ ajana ölçeklenin"
+msgid "Scale to 100+ agents"
+msgstr "100’den fazla ajana ölçekleyin"
+
+msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
+msgstr "QR kodunu tarayın, ardından aynı Superset hesabıyla oturum açıp bu kuruluşu seçin."
+
+msgid "Scan to download Superset for iPhone"
+msgstr "iPhone için Superset’i indirmek üzere tarayın"
 
 msgid "Scanning transcript logs…"
 msgstr "Kayıt günlükleri taranıyor…"
@@ -12729,6 +13008,9 @@ msgstr "Pull request ara..."
 
 msgid "Search pull requests…"
 msgstr "Pull request ara…"
+
+msgid "Search repositories..."
+msgstr "Depolarda ara..."
 
 msgid "Search sessions"
 msgstr "Oturumlarda ara"
@@ -12955,6 +13237,9 @@ msgstr "Proje worktree konumunu seçin"
 msgid "Select range..."
 msgstr "Aralık seçin..."
 
+msgid "Select repositories"
+msgstr "Depoları seç"
+
 msgid "Select repository"
 msgstr "Depo seçin"
 
@@ -13074,6 +13359,9 @@ msgstr "Web'de oturum oluşturma yakında geliyor"
 msgid "Session details"
 msgstr "Oturum ayrıntıları"
 
+msgid "Session ended"
+msgstr "Oturum sona erdi"
+
 msgid "Session name"
 msgstr "Oturum adı"
 
@@ -13121,6 +13409,13 @@ msgstr "Çalıştırmayı ayarla"
 
 msgid "Set up"
 msgstr "Kur"
+
+#. placeholder {0}: name.trim()
+msgid "Set up {0}"
+msgstr "{0} kurulumu"
+
+msgid "Set up an automation"
+msgstr "Bir otomasyon kur"
 
 msgid "Set up project on {hostName}"
 msgstr "{hostName} üzerinde projeyi kur"
@@ -13180,6 +13475,9 @@ msgstr "Tasarımları ve raporları paylaşın. Geri bildirimleri ajanınız ele
 msgid "Share page"
 msgstr "Sayfayı paylaş"
 
+msgid "Share settings"
+msgstr "Paylaşım ayarları"
+
 msgid "Share this page"
 msgstr "Bu sayfayı paylaş"
 
@@ -13200,6 +13498,9 @@ msgstr "Superset'e içe aktarabileceğiniz paylaşılan tema JSON dosyaları."
 
 msgid "Shared version"
 msgstr "Paylaşılan sürüm"
+
+msgid "Shared with everyone"
+msgstr "Herkesle paylaşıldı"
 
 msgid "Shares the project's checkout — files, git index and branch — with its other local workspaces"
 msgstr "Projenin checkout'unu (dosyalar, git indeksi ve dal) diğer yerel çalışma alanlarıyla paylaşır"
@@ -13409,6 +13710,9 @@ msgstr "Superset'e devam etmek için oturum açın"
 msgid "Sign in to get started"
 msgstr "Başlamak için oturum açın"
 
+msgid "Sign in to view this page"
+msgstr "Bu sayfayı görmek için oturum açın"
+
 msgid "Sign in with email"
 msgstr "E-posta ile oturum aç"
 
@@ -13458,6 +13762,9 @@ msgstr "Oturum süresi doldu — bu host'ta bir terminalde"
 
 msgid "Sign-in failed"
 msgstr "Oturum açılamadı"
+
+msgid "Sign-in failed ({reason}). Please try again."
+msgstr "Oturum açılamadı ({reason}). Lütfen tekrar deneyin."
 
 msgid "Signed in as {accountLabel}"
 msgstr "{accountLabel} olarak oturum açıldı"
@@ -13549,6 +13856,9 @@ msgstr "Beceriler Superset eklentisiyle gelir ve kullandığınız her ajanda ot
 msgid "Skip"
 msgstr "Atla"
 
+msgid "Skip & save"
+msgstr "Atla ve kaydet"
+
 msgid "Skip All"
 msgstr "Tümünü atla"
 
@@ -13630,6 +13940,10 @@ msgstr "Bazı temalar atlandı"
 
 msgid "Some triggers need additional configuration"
 msgstr "Bazı tetikleyiciler ek yapılandırma gerektiriyor"
+
+#. js-lingui-explicit-id
+msgid "serverError.page.entryPathHeldByColleague"
+msgstr "Bu çalışma alanından {entryPath} dosyasını başkası zaten yayımlamış. Onun sayfasına sürüm eklemek için açık bir sayfa kimliğiyle yayımla ya da dosyayı taşı."
 
 msgid "someone external"
 msgstr "dışarıdan biri"
@@ -13766,6 +14080,9 @@ msgstr "Kararlılık iyileştirmeleri"
 msgid "Stacked"
 msgstr "Üst üste"
 
+msgid "Staff Software Engineer, Vori"
+msgstr "Staff Yazılım Mühendisi, Vori"
+
 msgid "Stage all"
 msgstr "Tümünü hazırla"
 
@@ -13841,11 +14158,20 @@ msgstr "Bir oturum başlat"
 msgid "Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR."
 msgstr "Doğrudan bir Linear biletinden çalışma alanı başlatın. Ajan işi devralır ve bir PR ile geri döner."
 
+msgid "Start agent"
+msgstr "Ajanı başlat"
+
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Telefonunuzdan ajanları başlatın, canlı takip edin ve diff'i inceleyin. Kodunuz makinelerinizde kalır."
+
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Bu çalışma alanında çalışmaya başlamak için bir ajan veya terminal başlatın."
 
 msgid "Start browsing"
 msgstr "Taramaya başlayın"
+
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Telefonunuzdan kodlama ajanlarını başlatın, canlı takip edin ve diff'i inceleyin. App Store'da mevcut; Android yakında geliyor."
 
 msgid "Start free. Upgrade when your team outgrows it. Enterprise plans for organizations with advanced security and compliance needs."
 msgstr "Ücretsiz başlayın. Takımınız büyüdüğünde yükseltin. Gelişmiş güvenlik ve uyumluluk ihtiyaçları olan kuruluşlar için Enterprise planları."
@@ -13868,6 +14194,9 @@ msgstr "Çalışma alanı çalıştırma komutunu başlat veya durdur"
 
 msgid "Start with the work."
 msgstr "İşle başlayın."
+
+msgid "Start work from anywhere"
+msgstr "Her yerden işe başlayın"
 
 msgid "Start Workspace"
 msgstr "Çalışma alanı başlat"
@@ -13936,6 +14265,9 @@ msgstr "Adım {step}: {name}"
 
 msgid "Still can't reach the host."
 msgstr "Host'a hâlâ ulaşılamıyor."
+
+msgid "Still trying. If it keeps failing, remove it and create a new one."
+msgstr "Hâlâ deneniyor. Başarısız olmaya devam ederse bunu kaldırıp yeni bir tane oluşturun."
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Hâlâ çalışıyor — büyük depolar birkaç dakika sürebilir. Ayrılabilirsiniz; çalışma alanı hazır olduğunda Ana sayfada görünecek."
@@ -14048,6 +14380,9 @@ msgstr "paketi ve paylaşılan uygulama bileşenleri. Kopyalamak için herhangi 
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Superset ve izlenen terminal süreç ağaçlarının kullandığı CPU toplamı. %100'ün üzeri, birden fazla CPU çekirdeğinin meşgul olduğu anlamına gelir. Sürekli yüksek değerler genellikle arayüzde yavaşlığa ve daha hızlı pil tüketimine yol açar."
 
+msgid "Summarize the changes in this workspace"
+msgstr "Bu çalışma alanındaki değişiklikleri özetle"
+
 msgid "Summary"
 msgstr "Özet"
 
@@ -14105,8 +14440,8 @@ msgstr "Superset Tasarım Sistemi"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise, takımlar için Superset'tir. Nelerin dahil olduğunu ve kuruluşunuzda nasıl işleyebileceğini öğrenmek için bize ulaşın."
 
-msgid "Superset failed to start"
-msgstr "Superset başlatılamadı"
+msgid "Superset for iPhone"
+msgstr "iPhone için Superset"
 
 msgid "Superset for your team"
 msgstr "Takımınız için Superset"
@@ -14129,8 +14464,8 @@ msgstr "Superset, kendini geliştiren yazılım üretiyor. Bu, mühendislere zam
 msgid "Superset is building self-improving software. It starts with giving engineers the best tools that adapt to their needs over time. We're 3 ex-YC CTOs building a tool that we love."
 msgstr "Superset, kendini geliştiren yazılım üretiyor. Bu, mühendislere zamanla ihtiyaçlarına uyum sağlayan en iyi araçları vermekle başlıyor. Sevdiğimiz bir araç geliştiren 3 eski YC CTO'suyuz."
 
-msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything for the founding team, write to <1>{foundersEmail}</1>."
-msgstr "Superset, San Francisco, Kaliforniya merkezli bir ekip tarafından geliştirilir. Ürün desteği veya hesap soruları için <0>{supportEmail}</0> adresine e-posta gönderin; bir iş günü içinde size dönelim. İş birliği, basın, kurumsal veya kurucu ekibe iletilecek her konu için <1>{foundersEmail}</1> adresine yazın."
+msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything else, write to <1>{teamEmail}</1>."
+msgstr "Superset, San Francisco, Kaliforniya merkezli bir ekip tarafından geliştirilir. Ürün desteği veya hesap soruları için <0>{supportEmail}</0> adresine e-posta gönderin; bir iş günü içinde size dönelim. İş birliği, basın, kurumsal veya diğer tüm konular için <1>{teamEmail}</1> adresine yazın."
 
 msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
 msgstr "Superset, Superset içinde geliştiriliyor; yani en büyük kullanıcımız biziz. Kendi hayatınızı kolaylaştırmak için para kazanıyorsunuz. Severek kullandığınız bir ürün geliştirmek istediyseniz, gelin birlikte geliştirelim."
@@ -14150,6 +14485,9 @@ msgstr "Superset, F3'ten F4'e geçişin tezgâhıdır: yalıtılmış çalışma
 msgid "Superset isn't on Windows yet"
 msgstr "Superset şimdilik yalnızca Mac'te"
 
+msgid "Superset may be closed"
+msgstr "Superset kapalı olabilir"
+
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset yeniden başlattıktan sonra sizi tekrar oturuma alabilir. Lütfen yeniden oturum kapatmayı deneyin."
 
@@ -14158,6 +14496,12 @@ msgstr "Superset belleği"
 
 msgid "Superset memory · last 5 min"
 msgstr "Superset belleği · son 5 dk"
+
+msgid "Superset mobile gives me the power of my desktop anywhere I go."
+msgstr "Superset mobil, nereye gidersem gideyim masaüstümün gücünü bana sunuyor."
+
+msgid "Superset Mobile is here"
+msgstr "Superset Mobile burada"
 
 msgid "Superset Mobile is part of Pro"
 msgstr "Superset Mobile, Pro'nun bir parçasıdır"
@@ -14170,6 +14514,9 @@ msgstr "Superset Mobile, bulut çalışma alanları, otomasyonlar ve öncelikli 
 
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset'in başka bir tarayıcının verilerini okuyabilmesi için Tam Disk Erişimi gerekir. Sistem Ayarları'ndan verin, sonra yeniden denetleyin."
+
+msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
+msgstr "Superset yalnızca bu bağlayıcının istediği izinleri alır. İzinleri geri almak için istediğiniz zaman bağlantıyı kesin."
 
 msgid "Superset originals"
 msgstr "Superset özgünleri"
@@ -14195,6 +14542,9 @@ msgstr "Superset, Claude Code, OpenCode, OpenAI Codex ve daha fazlası dahil olm
 
 msgid "superset.sh"
 msgstr "superset.sh"
+
+msgid "Superset's mobile app lets me keep my agents moving and unblock them from anywhere, even when I'm nowhere near my computer."
+msgstr "Superset'in mobil uygulaması, bilgisayarımdan çok uzakta olsam bile ajanlarımı her yerden çalışır durumda tutmamı ve önlerindeki engelleri kaldırmamı sağlıyor."
 
 msgid "Supervised"
 msgstr "Gözetimli"
@@ -14234,6 +14584,9 @@ msgstr "Oturumu değiştir"
 
 msgid "Switch sign-in…"
 msgstr "Oturumu değiştir…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "Kenar çubuğunu yeniden düzenlemek için manuel sıralamaya geçin"
 
 msgid "Switch to Tab 1"
 msgstr "1. sekmeye geç"
@@ -14372,9 +14725,6 @@ msgstr "Superset ile konuşun"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "Yorum yapmak için sayfadaki herhangi bir yere dokun"
-
-msgid "Tap the focus button to comment on a block."
-msgstr "Bir bloğa yorum yapmak için odak düğmesine dokun."
 
 msgid "Target agent"
 msgstr "Hedef ajan"
@@ -14577,6 +14927,9 @@ msgstr "Metin alanı"
 msgid "Thanks for reaching out"
 msgstr "Bize ulaştığınız için teşekkürler"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Bu {plugin} oturum açma bağlantısının süresi doldu. Yeniden bağlanmayı deneyin."
+
 msgid "That endpoint could not be resolved."
 msgstr "Bu uç nokta çözümlenemedi."
 
@@ -14619,8 +14972,8 @@ msgstr "İlgili cihaza şu anda erişilemiyor"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "En iyi ajan değişecek.<0/>İş akışınız değişmemeli."
 
-msgid "The Codex sign-in"
-msgstr "Codex oturumu"
+msgid "The config repository must be one of the environment's repositories"
+msgstr "Yapılandırma deposu, ortamın depolarından biri olmalıdır"
 
 msgid "The connection timed out"
 msgstr "Bağlantı zaman aşımına uğradı"
@@ -14810,8 +15163,8 @@ msgstr "Kurtarma süresi sona erdi. support@superset.sh adresine yazın."
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "Uzak dal ayrıştı. Devam etmeden önce pull yapın."
 
-msgid "The renderer crashed during startup. Please check logs for details."
-msgstr "Başlangıç sırasında renderer çöktü. Ayrıntılar için günlükleri kontrol edin."
+msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The workspace opens on the config location, or on the first repository by name."
+msgstr "Bir bulut çalışma alanının çektiği depolar ve hangisinin .superset/config.json dosyasını uyguladığı. Çalışma alanı yapılandırma konumunda, yoksa ada göre ilk depoda açılır."
 
 msgid "The repository folder itself is kept."
 msgstr "Depo klasörünün kendisi korunur."
@@ -14877,6 +15230,9 @@ msgstr "hedef host"
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "Takım daveti ya süresi dolmuş ya da mevcut değil. Takım sahibinden yeni bir bağlantı isteyin veya URL'nin doğru girildiğini kontrol edin."
 
+msgid "The title shows everywhere this page is listed and in its link preview."
+msgstr "Başlık, bu sayfanın listelendiği her yerde ve bağlantı önizlemesinde görünür."
+
 msgid "The web agents UI is a read-only preview for now."
 msgstr "Web ajan arayüzü şimdilik salt okunur bir önizlemedir."
 
@@ -14928,6 +15284,12 @@ msgstr "Düşünülüyor..."
 msgid "Thirty"
 msgstr "Otuz"
 
+msgid "This {plugin} account is already connected by {owner}. Ask them to disconnect first."
+msgstr "Bu {plugin} hesabını zaten {owner} bağlamış. Önce bağlantıyı kesmesini isteyin."
+
+msgid "This {plugin} account is already connected by another Superset organization."
+msgstr "Bu {plugin} hesabı zaten başka bir Superset kuruluşuna bağlı."
+
 msgid "This action is irreversible."
 msgstr "Bu işlem geri alınamaz."
 
@@ -14965,9 +15327,6 @@ msgstr "Bu, seçili çalışma alanlarını ve terminallerini kapatır. Projenin
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Bu, çalışma alanını ve terminallerini kapatır. Projenin dosyaları, dalları ve diğer çalışma alanları olduğu gibi kalır."
 
-msgid "This comment is no longer here"
-msgstr "Bu yorum artık burada değil"
-
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Bu işlem, yeniden başlatma/çökme kurtarma için saklanan kaydırma geçmişini siler."
 
@@ -14988,6 +15347,18 @@ msgstr "Bu cihaz Superset rölesine bağlı değil, bu yüzden otomasyon çalı�
 
 msgid "This directory does not exist. The terminal script will fall back to the workspace root."
 msgstr "Bu dizin mevcut değil. Terminal betiği çalışma alanı köküne geri dönecek."
+
+msgid "This email is already registered with another sign-in method, and the provider did not confirm it as verified. Sign in with the method you used before."
+msgstr "Bu e-posta zaten başka bir oturum açma yöntemiyle kayıtlı ve sağlayıcı bunu doğrulanmış olarak onaylamadı. Daha önce kullandığınız yöntemle oturum açın."
+
+msgid "This environment has no repositories. Create an environment with repositories in Settings, then start the workspace from it"
+msgstr "Bu ortamda depo yok. Ayarlar'da depoları olan bir ortam oluşturun, ardından çalışma alanını o ortamdan başlatın"
+
+msgid "This environment was promoted from a workspace, so its repositories are fixed. Promote a workspace again to change them."
+msgstr "Bu ortam bir çalışma alanından yükseltildiği için depoları sabittir. Değiştirmek için bir çalışma alanını yeniden yükseltin."
+
+msgid "This environment's repositories are fixed; promote a workspace again to change them"
+msgstr "Bu ortamın depoları sabittir; değiştirmek için bir çalışma alanını yeniden yükseltin"
 
 msgid "this file"
 msgstr "bu dosya"
@@ -15064,6 +15435,10 @@ msgstr "Bu sayfa başka bir yerden yayımlanıyor — yeniden deneyin"
 msgid "This page is in another organization"
 msgstr "Bu sayfa başka bir kuruluşta"
 
+#. placeholder {0}: url.replace(/^https?:\/\//, "")
+msgid "This page is live at <0>{0}</0>"
+msgstr "Bu sayfa <0>{0}</0> adresinde yayında"
+
 msgid "This page isn't here"
 msgstr "Bu sayfa burada değil"
 
@@ -15075,9 +15450,6 @@ msgstr "Bu yol mevcut, ancak bir dizin değil."
 
 msgid "This path is a directory"
 msgstr "Bu yol bir dizin"
-
-msgid "This plugin needs no account — its skills are ready to use."
-msgstr "Bu eklenti hesap gerektirmez — Becerileri kullanıma hazır."
 
 msgid "This port is still in use"
 msgstr "Bu port hâlâ kullanımda"
@@ -15203,6 +15575,9 @@ msgstr "Bu işlem, hazırlanmış tüm değişiklikleri hazırlıktan çıkarır
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Bu işlem, hazırlanmış tüm değişiklikleri hazırlıktan çıkarır ve geri alır. Hazırlanmış yeni dosyalar silinir. Bu geri alınamaz."
 
+msgid "This workspace"
+msgstr "Bu çalışma alanı"
+
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Bu çalışma alanı kaldırılmış olabilir ya da artık erişiminiz olmayabilir."
 
@@ -15316,6 +15691,9 @@ msgstr "Token kullanımı"
 
 msgid "Tokens"
 msgstr "Token"
+
+msgid "Tokens are held by Superset and attached to requests there. They are never written into your local agent config."
+msgstr "Anahtarlar Superset tarafından tutulur ve isteklere orada eklenir. Yerel aracı yapılandırmanıza asla yazılmaz."
 
 msgid "Tokens per session"
 msgstr "Oturum başına token"
@@ -15483,6 +15861,9 @@ msgstr "Rutin işleri zamanlanmış ajanlara dönüştürün: issue sınıfland�
 msgid "Turn failed{0}"
 msgstr "Tur başarısız{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "“Bu cihaza röle üzerinden uzaktan erişime izin ver” seçeneğini açın"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Slack konuşmalarını göreve dönüştürün, çalışma alanınızdan ajan çalıştırın ve takım arkadaşlarınızı işin başladığı yerde haberdar edin."
 
@@ -15634,6 +16015,9 @@ msgstr "Bilinmiyor"
 msgctxt "person"
 msgid "Unknown"
 msgstr "Bilinmiyor"
+
+msgid "Unknown author"
+msgstr "Bilinmeyen yazar"
 
 msgid "Unknown device"
 msgstr "Bilinmeyen cihaz"
@@ -15900,6 +16284,12 @@ msgstr "Yeni ajanlar için kullan"
 msgid "Use global default"
 msgstr "Genel varsayılanı kullan"
 
+msgid "Use Superset on mobile"
+msgstr "Superset’i mobilde kullanın"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Pro ile Superset’i telefonunuzda kullanın."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Paralel kodlama ajanları çalıştırmaya başlamak için masaüstü uygulamasını kullanın."
 
@@ -16118,6 +16508,9 @@ msgstr "{0} ve {1} bekleniyor…"
 msgid "Waiting for Checks"
 msgstr "Kontroller bekleniyor"
 
+msgid "Waiting for it to connect…"
+msgstr "Bağlanması bekleniyor…"
+
 msgid "Waiting for Review"
 msgstr "İnceleme bekleniyor"
 
@@ -16160,11 +16553,17 @@ msgstr "Ödeme yönteminizden tahsilat yapamadık. Bu planı sürdürmek için g
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Bir paket yöneticisi veya ortam yapılandırması bulamadık."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "Çevrimiçi olup olmadığını görmek için Superset'e ulaşamadık. Bağlantınızı kontrol edip tekrar deneyin."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "Cihaza ulaşamadık. Lütfen birazdan tekrar deneyin."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "2026 veya 2027'de tam otonomi öngörmüyoruz. Dürüst bilinmezler şunlar: ajan incelemesinin düşmanca karmaşıklık karşısında dayanıp dayanmayacağı, spesifikasyonun ölçekte kod okumanın yerini güven çıpası olarak alıp alamayacağı ve işlem ekonomisinin gece vardiyasını desteklediği insanlardan ucuz tutup tutmayacağı. F5, gördüğümüzde tanıyabilelim diye bir değerlendirme maddesidir, bir vaat değil."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "{hostName} bulundu. Tamamlamak için orada uzaktan erişimi açın."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "Deneyiminizi iyileştirebilmek için yalnızca analiz çerezleri topluyoruz."
@@ -16177,6 +16576,9 @@ msgstr "Kısa süre içinde sizinle iletişime geçeceğiz."
 
 msgid "We'll bring you back as soon as we reconnect."
 msgstr "Bağlantı yeniden kurulur kurulmaz kaldığınız yere döneceksiniz."
+
+msgid "We'll email you when Superset for Android is ready."
+msgstr "Android için Superset hazır olduğunda size e-posta göndereceğiz."
 
 msgid "We'll get back to you shortly."
 msgstr "Kısa süre içinde size döneceğiz."
@@ -16290,6 +16692,9 @@ msgstr "Geliştiriciler Superset hakkında ne diyor"
 msgid "What do you want to do?"
 msgstr "Ne yapmak istiyorsunuz?"
 
+msgid "What early users say"
+msgstr "İlk kullanıcılar ne diyor"
+
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google bizi hangi aramalarda gösteriyor ve bunun ne kadarı kendi adımız değil."
 
@@ -16310,6 +16715,9 @@ msgstr "Hangi sorunu çözmeye çalışıyorsunuz?"
 
 msgid "What should run on a schedule?"
 msgstr "Zamanlanmış olarak ne çalışsın?"
+
+msgid "What should the page show?"
+msgstr "Sayfa ne göstermeli?"
 
 msgid "What should we build next?"
 msgstr "Sırada ne geliştirelim?"
@@ -16425,6 +16833,9 @@ msgstr "Etiketli"
 msgid "with or without attachments"
 msgstr "ekli veya eksiz"
 
+msgid "With the Superset mobile app, I can address production issues from anywhere."
+msgstr "Superset mobil uygulamasıyla üretim ortamındaki sorunlara her yerden müdahale edebiliyorum."
+
 msgid "Work email"
 msgstr "İş e-postası"
 
@@ -16473,6 +16884,9 @@ msgstr "Çalışma alanı oluşturuldu"
 
 msgid "Workspace created from PR"
 msgstr "PR'dan çalışma alanı oluşturuldu"
+
+msgid "Workspace details"
+msgstr "Çalışma alanı ayrıntıları"
 
 msgid "Workspace ID copied"
 msgstr "Çalışma alanı kimliği kopyalandı"
@@ -16664,6 +17078,9 @@ msgstr "Başka üyeleri olan bir kuruluşun tek sahibisiniz. Önce sahipliği de
 msgid "You are unranked until {0} days carry usage. Scoring starts once the board can see a full picture."
 msgstr "{0} gün kullanım birikene kadar sıralama dışısın. Tablo bütün resmi gördüğünde puanlama başlar."
 
+msgid "You are viewing version {version}, read-only"
+msgstr "Sürüm {version} görüntüleniyor, salt okunur"
+
 msgid "You can attach up to {MAX_ATTACHMENTS} files"
 msgstr "En fazla {MAX_ATTACHMENTS} dosya ekleyebilirsiniz"
 
@@ -16674,6 +17091,12 @@ msgstr "Bu aboneliği uygulamada değiştiremezsiniz. Kuruluşunuzun planı, {0}
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Bu işlemi geri alamazsınız. Terminal bölmelerinde \"Process exited\" görünür ve yeniden başlatılabilirler."
 
+msgid "You control the access"
+msgstr "Erişimi siz kontrol edersiniz"
+
+msgid "You declined the {plugin} authorization request."
+msgstr "{plugin} yetkilendirme isteğini reddettiniz."
+
 msgid "You don't have access to this host"
 msgstr "Bu host'a erişiminiz yok"
 
@@ -16682,6 +17105,9 @@ msgstr "Bu terminale erişiminiz yok."
 
 msgid "You don't have permission to remove this member"
 msgstr "Bu üyeyi kaldırma izniniz yok"
+
+msgid "You need to be part of an organization to connect accounts."
+msgstr "Hesap bağlamak için bir organizasyona üye olmanız gerekir."
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "Entegrasyonları kullanmak için bir kuruluşun parçası olmanız gerekir."
@@ -16736,6 +17162,9 @@ msgstr "Sizin ajanlarınız, sizin hesaplarınız"
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Tarayıcınız hangi yongaya sahip olduğunuzu bildirmediğinden bu, Apple Silicon derlemesidir. Intel Mac kullanıyorsanız bunun yerine <0>Intel derlemesini indirin</0>."
 
+msgid "Your changes"
+msgstr "Değişiklikleriniz"
+
 msgid "Your changes will be lost if you don't save them."
 msgstr "Kaydetmezseniz değişiklikleriniz kaybolur."
 
@@ -16744,6 +17173,9 @@ msgstr "Kodunuz varsayılan olarak yerelde kalır; bağlı hizmetler üzerinde a
 
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "İndirme otomatik olarak başlıyor. Başlamadıysa buradan indirin."
+
+msgid "Your GitHub account cannot reach a repository in this environment"
+msgstr "GitHub hesabın bu ortamdaki bir depoya erişemiyor"
 
 msgid "Your GitHub link comes from the account you signed in with, so it shows as verified and cannot be edited here."
 msgstr "GitHub bağlantın oturum açtığın hesaptan gelir, bu yüzden doğrulanmış görünür ve burada düzenlenemez."
@@ -16756,6 +17188,9 @@ msgstr "Adınız"
 
 msgid "Your name <0>(if we use your prompt, we'll credit you in the changelog)</0>"
 msgstr "Adınız <0>(isteminizi kullanırsak değişiklik günlüğünde size teşekkür ederiz)</0>"
+
+msgid "Your own accounts. Your organization's integrations let Superset reach its tools; connecting yours makes the work Superset does for you show up as you."
+msgstr "Kendi hesapların. Organizasyonunun entegrasyonları Superset'in araçlarına erişmesini sağlar; kendi hesaplarını bağladığında Superset'in senin için yaptığı işler senin adınla görünür."
 
 msgid "Your rank"
 msgstr "Sıralamanız"

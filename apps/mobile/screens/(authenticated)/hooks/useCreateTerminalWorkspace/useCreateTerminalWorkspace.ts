@@ -85,32 +85,17 @@ export function useCreateTerminalWorkspace() {
 					input.attachmentFileIds,
 				);
 
-				const createInput = {
-					id: workspaceId,
-					projectId: target.projectId,
-					baseBranch: baseBranch ?? undefined,
-					agents: [
-						{
-							agent: agentId,
-							prompt: message.text.trim(),
-							attachmentIds:
-								attachmentIds.length > 0 ? attachmentIds : undefined,
-							model: model ?? undefined,
-							effort: effort ?? undefined,
-						},
-					],
-				};
+				const agents = [
+					{
+						agent: agentId,
+						prompt: message.text.trim(),
+						attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
+						model: model ?? undefined,
+						effort: effort ?? undefined,
+					},
+				];
 
-				try {
-					createRequested = true;
-					await client.workspaces.createEnqueued.mutate(createInput);
-				} catch (error) {
-					if (!isMissingProcedureError(error)) throw error;
-					// Legacy host: the long-held synchronous create — it can still
-					// die at the relay's 30s cap, same as before this hook went
-					// optimistic. On success the row and session already exist;
-					// refetch so the screen resolves without waiting for a poll.
-					await client.workspaces.create.mutate(createInput);
+				const refetchCreated = () => {
 					void queryClient.invalidateQueries({
 						queryKey: getHostWorkspacesQueryKey(
 							target.machineId,
@@ -120,6 +105,34 @@ export function useCreateTerminalWorkspace() {
 					void queryClient.invalidateQueries({
 						queryKey: getHostTerminalsQueryKey(target.machineId),
 					});
+				};
+
+				if (target.projectId === null) {
+					createRequested = true;
+					await client.workspaces.createSession.mutate({
+						id: workspaceId,
+						agents,
+					});
+					refetchCreated();
+				} else {
+					const createInput = {
+						id: workspaceId,
+						projectId: target.projectId,
+						baseBranch: baseBranch ?? undefined,
+						agents,
+					};
+					try {
+						createRequested = true;
+						await client.workspaces.createEnqueued.mutate(createInput);
+					} catch (error) {
+						if (!isMissingProcedureError(error)) throw error;
+						// Legacy host: the long-held synchronous create — it can still
+						// die at the relay's 30s cap, same as before this hook went
+						// optimistic. On success the row and session already exist;
+						// refetch so the screen resolves without waiting for a poll.
+						await client.workspaces.create.mutate(createInput);
+						refetchCreated();
+					}
 				}
 				// The host emits `workspace_created` itself when the row lands; this
 				// is only the client asking, and counting both would double.

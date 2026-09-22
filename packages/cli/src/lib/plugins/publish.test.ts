@@ -67,7 +67,6 @@ function plugin(
 			entry: entry as never,
 			dir,
 			manifest: manifest as never,
-			hasServerSource: false,
 			hasSkills: true,
 			hasRemoteServer: true,
 		},
@@ -143,16 +142,8 @@ describe("checkPlugin", () => {
 		p.hasRemoteServer = false;
 
 		expect((await checkPlugin(ctx, p))[0]?.problem).toContain(
-			"no skills, mcp server, or server source",
+			"no skills and no mcp server",
 		);
-	});
-
-	test("catches a plugin declaring two servers", async () => {
-		const { ctx, plugin: p } = plugin("linear", "1.3.0");
-		p.hasServerSource = true;
-
-		const problems = (await checkPlugin(ctx, p)).map((i) => i.problem);
-		expect(problems.some((p) => p.includes("exactly one server"))).toBe(true);
 	});
 });
 

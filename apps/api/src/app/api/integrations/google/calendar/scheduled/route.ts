@@ -1,5 +1,5 @@
 import { db } from "@superset/db/client";
-import type { SelectIntegrationConnection } from "@superset/db/schema";
+import type { SelectConnection } from "@superset/db/schema";
 import {
 	eventEnd,
 	eventStart,
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
 }
 
 function normalizeFire(
-	connection: SelectIntegrationConnection,
+	connection: SelectConnection,
 	fire: z.infer<typeof fireSchema>,
 	event: GoogleCalendarEvent,
 ): NormalizedDelivery {

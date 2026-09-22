@@ -7,5 +7,6 @@ export * from "./plugins";
 export * from "./profiles";
 export * from "./relations";
 export * from "./schema";
+export * from "./slack";
 export * from "./types";
 export * from "./zod";

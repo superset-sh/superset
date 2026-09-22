@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { boolean, CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { resolveHostFilter } from "../../../lib/host-target";
 import { formatAutomationDate } from "../format";
 import { resolveAutomationTarget } from "../resolveAutomationTarget";
 
@@ -30,6 +31,7 @@ export default command({
 		host: string().desc(
 			"Host the target project/workspace lives on (default: this machine)",
 		),
+		local: boolean().desc("Run the automation on this machine (the default)"),
 		agent: string()
 			.default("claude")
 			.desc("Host agent instance id or presetId (claude, codex, ...)."),
@@ -57,7 +59,10 @@ export default command({
 			organizationId,
 			userJwt: ctx.bearer,
 			api: ctx.api,
-			hostId: options.host ?? undefined,
+			hostId: resolveHostFilter({
+				host: options.host ?? undefined,
+				local: options.local ?? undefined,
+			}),
 			workspaceId: options.workspace ?? undefined,
 			projectId: options.project ?? undefined,
 		});

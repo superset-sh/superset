@@ -21,8 +21,8 @@ export async function resolvePageId({
 	explicitPageId: string | undefined;
 	link: WorkspaceLink | undefined;
 	title: string | undefined;
-}): Promise<string> {
-	if (explicitPageId) return explicitPageId;
+}): Promise<{ id: string; created: boolean }> {
+	if (explicitPageId) return { id: explicitPageId, created: false };
 
 	if (link) {
 		// Best effort: a lookup failure just means this publish creates a page,
@@ -30,12 +30,12 @@ export async function resolvePageId({
 		const resolved = await api.page.resolveByEntryPath
 			.query(link)
 			.catch(() => null);
-		if (resolved) return resolved.id;
+		if (resolved) return { id: resolved.id, created: false };
 	}
 
 	const created = await api.page.create.mutate({
 		...(link ?? {}),
 		...(title ? { title } : {}),
 	});
-	return created.id;
+	return { id: created.id, created: true };
 }

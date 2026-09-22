@@ -1,21 +1,13 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@superset/ui/dialog";
-import { Input } from "@superset/ui/input";
-import { Label } from "@superset/ui/label";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
 import {
 	HiOutlineArchiveBox,
 	HiOutlineCube,
+	HiOutlinePencil,
 	HiOutlinePlus,
 } from "react-icons/hi2";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
@@ -25,6 +17,10 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import {
+	EnvironmentEditorDialog,
+	type EnvironmentEditorSeed,
+} from "./components/EnvironmentEditorDialog";
 import { EnvironmentSecrets } from "./components/EnvironmentSecrets";
 
 interface EnvironmentsSettingsProps {
@@ -37,8 +33,11 @@ export function EnvironmentsSettings({
 	const { t } = useLingui();
 	const organizationId = useActiveOrganizationId();
 	const utils = cloudTrpc.useUtils();
-	const [showCreate, setShowCreate] = useState(false);
-	const [name, setName] = useState("");
+	const [editor, setEditor] = useState<
+		| { mode: "closed" }
+		| { mode: "create" }
+		| { mode: "edit"; seed: EnvironmentEditorSeed }
+	>({ mode: "closed" });
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const showList = isItemVisible(
 		SETTING_ITEM_ID.ENVIRONMENTS_LIST,
@@ -58,20 +57,6 @@ export function EnvironmentsSettings({
 		{ organizationId: organizationId ?? "" },
 		{ enabled: Boolean(organizationId) },
 	);
-
-	const create = cloudTrpc.environment.create.useMutation({
-		onSuccess: async () => {
-			await utils.environment.list.invalidate();
-			setShowCreate(false);
-			setName("");
-			toast.success(
-				t({
-					message: "Environment created",
-				}),
-			);
-		},
-		onError: (error) => toast.error(errorMessage(error)),
-	});
 
 	const archive = cloudTrpc.environment.archive.useMutation({
 		onSuccess: async () => {
@@ -106,7 +91,7 @@ export function EnvironmentsSettings({
 						</Trans>
 					</p>
 				</div>
-				<Button onClick={() => setShowCreate(true)} size="sm">
+				<Button onClick={() => setEditor({ mode: "create" })} size="sm">
 					<HiOutlinePlus className="h-4 w-4" />
 					<Trans>New environment</Trans>
 				</Button>
@@ -144,20 +129,55 @@ export function EnvironmentsSettings({
 								<div className="min-w-0">
 									<div className="text-sm font-medium truncate">
 										{environment.name}
+										{environment.scope === "personal" && (
+											<span className="ml-2 text-xs font-normal text-muted-foreground">
+												<Trans>Personal</Trans>
+											</span>
+										)}
 									</div>
 									<div className="text-xs text-muted-foreground mt-0.5 font-mono truncate">
-										{environment.sourceRef}
+										{(environment.repositories ?? []).length > 0
+											? (environment.repositories ?? [])
+													.map((repo) => repo.fullName)
+													.join(", ")
+											: environment.sourceRef}
 									</div>
 								</div>
 							</button>
-							<Button
-								className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-								onClick={() => archive.mutate({ id: environment.id })}
-								size="icon"
-								variant="ghost"
-							>
-								<HiOutlineArchiveBox className="h-4 w-4" />
-							</Button>
+							<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+								<Button
+									aria-label={t({ message: "Edit environment" })}
+									className="h-8 w-8 text-muted-foreground"
+									onClick={() =>
+										setEditor({
+											mode: "edit",
+											seed: {
+												id: environment.id,
+												name: environment.name,
+												scope: environment.scope,
+												repositoryIds: (environment.repositories ?? []).map(
+													(repo) => repo.id,
+												),
+												hooksRepositoryId: environment.hooksRepositoryId,
+												repositoriesFrozen: environment.sourceKind !== "image",
+											},
+										})
+									}
+									size="icon"
+									variant="ghost"
+								>
+									<HiOutlinePencil className="h-4 w-4" />
+								</Button>
+								<Button
+									aria-label={t({ message: "Archive environment" })}
+									className="h-8 w-8 text-muted-foreground hover:text-destructive"
+									onClick={() => archive.mutate({ id: environment.id })}
+									size="icon"
+									variant="ghost"
+								>
+									<HiOutlineArchiveBox className="h-4 w-4" />
+								</Button>
+							</div>
 						</div>
 					))}
 				</div>
@@ -170,44 +190,17 @@ export function EnvironmentsSettings({
 				</div>
 			)}
 
-			<Dialog onOpenChange={setShowCreate} open={showCreate}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>
-							<Trans>New environment</Trans>
-						</DialogTitle>
-					</DialogHeader>
-					<div className="flex flex-col gap-4">
-						<div className="flex flex-col gap-2">
-							<Label htmlFor="environment-name">
-								<Trans>Name</Trans>
-							</Label>
-							<Input
-								id="environment-name"
-								onChange={(event) => setName(event.target.value)}
-								placeholder={t({
-									message: "monorepo-warm",
-								})}
-								value={name}
-							/>
-						</div>
-					</div>
-					<DialogFooter>
-						<Button onClick={() => setShowCreate(false)} variant="outline">
-							<Trans>Cancel</Trans>
-						</Button>
-						<Button
-							disabled={!name.trim() || !organizationId}
-							onClick={() => {
-								if (!organizationId) return;
-								create.mutate({ organizationId, name: name.trim() });
-							}}
-						>
-							<Trans>Create</Trans>
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			{organizationId && editor.mode !== "closed" && (
+				<EnvironmentEditorDialog
+					environment={editor.mode === "edit" ? editor.seed : undefined}
+					key={editor.mode === "edit" ? editor.seed.id : "create"}
+					onOpenChange={(open) => {
+						if (!open) setEditor({ mode: "closed" });
+					}}
+					open
+					organizationId={organizationId}
+				/>
+			)}
 		</div>
 	);
 }

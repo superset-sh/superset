@@ -56,6 +56,15 @@ export function ensureSandboxAccess(
 ): Promise<SandboxAccess> {
 	const cached = accessByWorkspaceId.get(workspaceId);
 	if (cached && isFresh(cached)) return Promise.resolve(cached);
+	return wakeSandboxAccess(workspaceId);
+}
+
+/**
+ * A new grant whether or not the current one is fresh. The ticket outlives
+ * the sandbox's session by hours, so this — not expiry — is what keeps the
+ * open workspace's session going and resumes it once it has stopped.
+ */
+export function wakeSandboxAccess(workspaceId: string): Promise<SandboxAccess> {
 	const pending = inflight.get(workspaceId);
 	if (pending) return pending;
 

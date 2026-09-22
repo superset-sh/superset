@@ -1,86 +1,70 @@
 import { db } from "@superset/db/client";
-import {
-	type IntegrationProvider,
-	integrationConnections,
-	type SelectIntegrationConnection,
-} from "@superset/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { connections, type SelectConnection } from "@superset/db/schema";
+import { getConnector } from "@superset/shared/connectors";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { orgConnection, userConnection } from "../../lib/connectors";
 import { protectedProcedure } from "../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "./utils";
 
-type ConnectionColumns = Partial<
-	Record<keyof SelectIntegrationConnection, true>
->;
-
-type Selected<C extends ConnectionColumns> = Pick<
-	SelectIntegrationConnection,
-	Extract<keyof C, keyof SelectIntegrationConnection>
->;
-
-/**
- * The organization's live connection for a provider. "Is it connected" has one
- * answer everywhere: a row marked disconnected is not.
- */
-export async function activeConnection<C extends ConnectionColumns>(
-	organizationId: string,
-	provider: IntegrationProvider,
-	columns: C,
-): Promise<Selected<C> | undefined> {
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.organizationId, organizationId),
-			eq(integrationConnections.provider, provider),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		columns,
-	});
-	return connection as Selected<C> | undefined;
-}
-
-export function getConnectionProcedure<C extends ConnectionColumns, R>(
-	provider: IntegrationProvider,
-	columns: C,
-	present: (connection: Selected<C>) => R,
+export function getConnectionProcedure<R>(
+	connector: string,
+	present: (connection: SelectConnection) => R,
 ) {
 	return protectedProcedure
 		.input(z.object({ organizationId: z.uuid() }))
 		.query(async ({ ctx, input }): Promise<R | null> => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
-			const connection = await activeConnection(
-				input.organizationId,
-				provider,
-				columns,
-			);
+			const connection =
+				getConnector(connector)?.scope === "user"
+					? await userConnection(
+							input.organizationId,
+							connector,
+							ctx.session.user.id,
+						)
+					: await orgConnection(input.organizationId, connector);
 			return connection ? present(connection) : null;
 		});
 }
 
 export function disconnectProcedure(
-	provider: IntegrationProvider,
+	connector: string,
 	before?: (connectionId: string, organizationId: string) => Promise<void>,
+	beforeAll?: (organizationId: string) => Promise<void>,
 ) {
 	return protectedProcedure
 		.input(z.object({ organizationId: z.uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
 
-			// Not activeConnection: a needs-reconnect row must still be removable.
-			const connection = await db.query.integrationConnections.findFirst({
-				where: and(
-					eq(integrationConnections.organizationId, input.organizationId),
-					eq(integrationConnections.provider, provider),
-				),
-				columns: { id: true },
-			});
-			if (!connection) {
+			// Every row, disconnected ones included: a needs-reconnect row must
+			// still be removable, and a user-scoped connector can hold one per
+			// member.
+			const rows = await db
+				.select({ id: connections.id })
+				.from(connections)
+				.where(
+					and(
+						eq(connections.organizationId, input.organizationId),
+						eq(connections.connector, connector),
+					),
+				);
+			if (rows.length === 0) {
 				return { success: false, error: "No connection found" };
 			}
 
-			if (before) await before(connection.id, input.organizationId);
+			if (before) {
+				for (const row of rows) await before(row.id, input.organizationId);
+			}
+			if (beforeAll) await beforeAll(input.organizationId);
 			await db
-				.delete(integrationConnections)
-				.where(eq(integrationConnections.id, connection.id));
+				.delete(connections)
+				.where(
+					and(
+						eq(connections.organizationId, input.organizationId),
+						eq(connections.connector, connector),
+					),
+				);
 
 			return { success: true };
 		});

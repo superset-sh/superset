@@ -3,7 +3,7 @@ import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { rawErrorMessage } from "@superset/i18n/errors";
-import { resolveCurrentPlan } from "@superset/shared/billing";
+import { COMPANY } from "@superset/shared/constants";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -15,6 +15,7 @@ import { Fragment, useState } from "react";
 import { HiArrowLeft, HiArrowUpRight, HiCheck } from "react-icons/hi2";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { env } from "renderer/env.renderer";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
@@ -60,6 +61,7 @@ type ComparisonValue = MessageDescriptor | boolean | null;
 
 type ComparisonRow = {
 	label: MessageDescriptor;
+	href?: string;
 	values: ComparisonValue[];
 	badge?: { label: MessageDescriptor; variant: "default" | "secondary" };
 };
@@ -217,12 +219,7 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 					message: "Mobile app",
 				}),
 				values: [null, true, true],
-				badge: {
-					label: msg({
-						message: "Coming soon",
-					}),
-					variant: "secondary",
-				},
+				href: COMPANY.APP_STORE_URL,
 			},
 			{
 				label: msg({
@@ -339,7 +336,6 @@ function PlansPage() {
 	const [isUpgrading, setIsUpgrading] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
-	const { data: session } = authClient.useSession();
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const utils = cloudTrpc.useUtils();
 
@@ -347,17 +343,7 @@ function PlansPage() {
 	// a second window on another org would render the first window's org here.
 	const activeOrgId = useActiveOrganizationId();
 
-	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
-
-	// An unresolved query must not read as "free": that renders a live Upgrade
-	// action for an org that may already be paying. Session plan fills in
-	// until it arrives.
-	const planResolved = activePlan !== undefined;
-	const currentPlan: PlanTier = resolveCurrentPlan({
-		subscriptionPlan: activePlan?.plan,
-		sessionPlan: session?.session?.plan,
-		subscriptionsLoaded: planResolved,
-	});
+	const { plan: currentPlan, isReady: planResolved, activePlan } = useCurrentPlan();
 	const cancelAt = activePlan?.cancelAt;
 
 	const subscriptionIsYearly = activePlan
@@ -799,7 +785,18 @@ function PlansPage() {
 									return (
 										<Fragment key={row.label.id}>
 											<div className="flex items-center gap-1.5 px-2 py-2.5 text-xs text-muted-foreground">
-												{i18n._(row.label)}
+												{row.href ? (
+													<a
+														href={row.href}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="underline underline-offset-4 hover:text-foreground"
+													>
+														{i18n._(row.label)}
+													</a>
+												) : (
+													i18n._(row.label)
+												)}
 												{row.badge && (
 													<Badge
 														variant={row.badge.variant}

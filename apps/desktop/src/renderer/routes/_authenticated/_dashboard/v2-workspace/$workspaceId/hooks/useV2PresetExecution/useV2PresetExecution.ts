@@ -6,10 +6,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { resolvePresetLaunchCommands } from "renderer/lib/agent-launch-command";
-import {
-	buildTerminalCommand,
-	normalizeTerminalCommand,
-} from "renderer/lib/terminal/launch-command";
+import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -100,7 +97,7 @@ export function useV2PresetExecution({
 			refetchOnWindowFocus: false,
 		},
 	);
-	const writeInput = workspaceTrpc.terminal.writeInput.useMutation();
+	const sendToTerminal = workspaceTrpc.terminal.send.useMutation();
 
 	const { data: allPresets = [] } = useLiveQuery(
 		(query) =>
@@ -182,16 +179,15 @@ export function useV2PresetExecution({
 					case "active-terminal": {
 						const command = launchCommands[0];
 						if (!activeTerminal || !command) break;
-						await writeInput.mutateAsync({
+						await sendToTerminal.mutateAsync({
 							terminalId: activeTerminal.terminalId,
 							workspaceId,
-							data: normalizeTerminalCommand(
-								buildFocusedTerminalCommand({
-									command,
-									cwd,
-									worktreePath: workspaceQuery.data?.worktreePath,
-								}),
-							),
+							text: buildFocusedTerminalCommand({
+								command,
+								cwd,
+								worktreePath: workspaceQuery.data?.worktreePath,
+							}),
+							submit: true,
 						});
 						if (title && !activeTerminal.titleOverride?.trim()) {
 							// Reused terminals keep their existing pane, so apply the
@@ -295,7 +291,7 @@ export function useV2PresetExecution({
 			t,
 			workspaceId,
 			workspaceQuery.data?.worktreePath,
-			writeInput,
+			sendToTerminal,
 		],
 	);
 

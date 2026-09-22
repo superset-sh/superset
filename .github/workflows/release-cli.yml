@@ -43,7 +43,22 @@ jobs:
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_TAG: ${{ github.ref_name }}
         run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="$VERSION_TAG" --jq .body > release-notes.md
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("release-notes.md")
+          notes = path.read_text()
+          limit = 120_000
+          if len(notes.encode("utf-8")) > limit:
+              suffix = "\n\nRelease notes truncated. See the repository commit history for all changes.\n"
+              notes = notes.encode("utf-8")[:limit - len(suffix.encode("utf-8"))].decode("utf-8", errors="ignore") + suffix
+          path.write_text(notes)
+          PY
           # --prerelease is a workaround: GitHub's /releases/latest endpoint
           # doesn't filter by tag prefix, so a published non-prerelease cli-v*
           # release would shadow desktop's auto-updater (which currently reads
@@ -53,7 +68,7 @@ jobs:
           gh release create "${{ github.ref_name }}" \
             release-artifacts/*.tar.gz \
             --title "Superset CLI ${{ github.ref_name }}" \
-            --generate-notes \
+            --notes-file release-notes.md \
             --prerelease
 
       - name: Publish version manifest

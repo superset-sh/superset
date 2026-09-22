@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	filterPages,
 	isPageScope,
+	matchesAuthor,
 	matchesScope,
 	matchesSearch,
 	sortPinnedFirst,
@@ -12,17 +13,20 @@ const page = (
 	title: string,
 	visibility: string,
 	description: string | null = null,
+	createdByUserId: string | null = null,
 ) => ({
 	id,
 	title,
 	slug: title.toLowerCase().replace(/ /g, "-"),
 	visibility,
 	description,
+	createdByUserId,
 });
 
-const team = page("1", "Q3 Metrics", "org");
-const mine = page("2", "Ingest Runbook", "just_me", "hookdeck notes");
+const team = page("1", "Q3 Metrics", "org", null, "user-a");
+const mine = page("2", "Ingest Runbook", "just_me", "hookdeck notes", "user-b");
 const other = page("3", "Warning Tokens", "org");
+const published = page("4", "Launch Notes", "everyone", null, "user-a");
 
 describe("isPageScope", () => {
 	it("accepts known scopes and rejects anything else", () => {
@@ -57,6 +61,11 @@ describe("matchesScope", () => {
 		expect(matchesScope(team, "mine", pinned)).toBe(false);
 	});
 
+	it("keeps a page shared with everyone in the team scope", () => {
+		expect(matchesScope(published, "team", pinned)).toBe(true);
+		expect(matchesScope(published, "mine", pinned)).toBe(false);
+	});
+
 	it("uses the pinned set rather than visibility for the pinned scope", () => {
 		expect(matchesScope(mine, "pinned", pinned)).toBe(true);
 		expect(matchesScope(team, "pinned", pinned)).toBe(false);
@@ -65,6 +74,22 @@ describe("matchesScope", () => {
 	it("passes everything through for all", () => {
 		expect(matchesScope(team, "all", pinned)).toBe(true);
 		expect(matchesScope(mine, "all", new Set())).toBe(true);
+	});
+});
+
+describe("matchesAuthor", () => {
+	it("passes everything through when no author is selected", () => {
+		expect(matchesAuthor(team, null)).toBe(true);
+		expect(matchesAuthor(other, null)).toBe(true);
+	});
+
+	it("matches only the selected author's pages", () => {
+		expect(matchesAuthor(team, "user-a")).toBe(true);
+		expect(matchesAuthor(mine, "user-a")).toBe(false);
+	});
+
+	it("excludes pages without a creator when an author is selected", () => {
+		expect(matchesAuthor(other, "user-a")).toBe(false);
 	});
 });
 
@@ -86,6 +111,16 @@ describe("filterPages", () => {
 				pinnedPageIds: new Set(),
 			}),
 		).toEqual([]);
+	});
+
+	it("applies the author filter alongside search and scope", () => {
+		const result = filterPages([team, mine, other], {
+			search: "",
+			scope: "all",
+			pinnedPageIds: new Set(),
+			authorId: "user-a",
+		});
+		expect(result.map((p) => p.id)).toEqual(["1"]);
 	});
 });
 

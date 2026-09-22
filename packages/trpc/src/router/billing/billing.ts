@@ -126,7 +126,7 @@ async function isBillingOwner(userId: string, organizationId: string) {
 export const billingRouter = {
 	activePlan: protectedProcedure.query(async ({ ctx }) => {
 		const activeOrgId = ctx.activeOrganizationId;
-		if (!activeOrgId) return EMPTY_ACTIVE_PLAN;
+		if (!activeOrgId) return { ...EMPTY_ACTIVE_PLAN, organizationId: null };
 
 		const subscription = await db.query.subscriptions.findFirst({
 			where: and(
@@ -149,12 +149,14 @@ export const billingRouter = {
 			// `incomplete` is excluded on purpose — that subscription never began.
 			return {
 				...EMPTY_ACTIVE_PLAN,
+				organizationId: activeOrgId,
 				lapsed:
 					previous?.status === "canceled" || previous?.status === "unpaid",
 			};
 		}
 
 		return {
+			organizationId: activeOrgId,
 			plan: subscription.plan,
 			status: subscription.status,
 			cancelAt: subscription.cancelAt,

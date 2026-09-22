@@ -1,0 +1,67 @@
+---
+title: Clearer workspaces and Pages beside your code
+date: 2026-09-20
+image: /changelog/2026-09-20-workspace-pages-hero.png
+---
+
+## Pages Beside Your Code <PRBadge url="https://github.com/superset-sh/superset/pull/7658" />
+
+Open this workspace's pages and your pinned pages without leaving your code, or ask an agent to make one from **Pages → New page**, beside the Run button.
+
+- Pages appear newest first, with a New badge when an agent publishes one
+- New page lets you describe what you need and choose an agent
+
+![New page composer with a request and an agent picker](/changelog/2026-09-20-new-page.png)
+
+## Share Pages With Anyone <PRBadge url="https://github.com/superset-sh/superset/pull/7570" />
+
+Share a report or design with someone outside your team without asking them to sign in: open a page and choose **Share → Anyone with the link**.
+
+- Visitors can read the shared version; comments and the rest of the version history stay private to authorized readers
+- Shared links show a preview of the page, and the title menu lets you preview older versions without changing the shared version
+
+{/* TODO: Capture the Share menu with Anyone with the link visible. */}
+
+Docs: [Pages](https://docs.superset.sh/docs/pages).
+
+## Faster Sessions on iOS <PRBadge url="https://github.com/superset-sh/superset/pull/7552" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7604" />
+
+Switch between your four most recent terminal sessions in a workspace without reconnecting, or start an agent without a repository from **Composer → Project picker → No project**.
+
+## Clearer Workspace Names <PRBadge url="https://github.com/superset-sh/superset/pull/7575" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7650" />
+
+Tell pinned workspaces apart by their project name, and find new worktrees in folders named after the project.
+
+- Pinned rows show the project before the workspace name, contributed by [@pdolega](https://github.com/pdolega)
+- Drag a row in a sorted or filtered sidebar to see how to switch to manual ordering
+
+![Pinned workspace rows show the project name before the workspace name](/changelog/2026-09-20-pinned-workspaces.png)
+
+## Improvements
+
+- **Find a teammate's pages** - filter by author beside the search box on the Pages screen <PRBadge url="https://github.com/superset-sh/superset/pull/7547" />
+- **New pages open when ready** - a first publish opens the page using **Settings → Links → Pages**; publishing another version leaves your focus alone <PRBadge url="https://github.com/superset-sh/superset/pull/7472" />
+- **Publish without a workspace** - publish a standalone HTML file from the CLI, then keep the returned page ID to update it <PRBadge url="https://github.com/superset-sh/superset/pull/7573" />
+
+```bash
+superset pages publish report.html --title "Weekly report"
+superset pages publish report.html --page <page-id>
+```
+
+- **Pro setup checklist** - set up remote access and automations from the sidebar checklist; reopen it from Help after dismissing it <PRBadge url="https://github.com/superset-sh/superset/pull/7494" />
+
+---
+
+**Bug fixes**
+
+- Fixed long prompts sent to an existing agent getting cut up or left unsubmitted <PRBadge url="https://github.com/superset-sh/superset/pull/7670" />
+- Restored Codex's working indicator after tool calls, contributed by [@flcrom](https://github.com/flcrom) <PRBadge url="https://github.com/superset-sh/superset/pull/7647" />
+- Kept follow-up instructions Claude received while busy in session handoffs, contributed by [@owieschon](https://github.com/owieschon) <PRBadge url="https://github.com/superset-sh/superset/pull/7255" />
+- Fixed staged and unstaged diffs failing with custom Git diff prefixes, contributed by [@aponcedeleonch](https://github.com/aponcedeleonch) <PRBadge url="https://github.com/superset-sh/superset/pull/7597" />
+- Recovered missing terminals more reliably; ended panes now offer New shell instead of reconnecting to a dead session <PRBadge url="https://github.com/superset-sh/superset/pull/7618" />
+- Restored pre-account v1 workspaces on the next launch after upgrading to v2 <PRBadge url="https://github.com/superset-sh/superset/pull/7649" />
+- Fixed pasted links and images blocking markdown saves, and kept the selection valid when external edits replace the document <PRBadge url="https://github.com/superset-sh/superset/pull/7678" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7639" />
+- Fixed a crash when hovering the machine resources chart and improved recovery from screen errors <PRBadge url="https://github.com/superset-sh/superset/pull/7641" />
+- Fixed Linux file watching taking down a host and large file reads crashing the app <PRBadge url="https://github.com/superset-sh/superset/pull/7659" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7525" />
+- Fixed page comments failing to send on iOS; replies now stay in the comments sheet <PRBadge url="https://github.com/superset-sh/superset/pull/7532" />
+- Refreshed the commit list after changes made outside the app and prevented duplicate workspace creation submits <PRBadge url="https://github.com/superset-sh/superset/pull/7644" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7605" />

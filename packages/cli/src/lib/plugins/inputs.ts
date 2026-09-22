@@ -2,7 +2,7 @@ import { CLIError } from "@superset/cli-framework";
 import type { RouterOutputs } from "@superset/trpc";
 
 export type AuthInputSpec =
-	RouterOutputs["plugins"]["list"][number]["authMethods"][number]["inputs"][number];
+	RouterOutputs["connectors"]["get"]["methods"][number]["inputs"][number];
 
 export function missingInputsError(
 	pluginName: string,

@@ -1,10 +1,14 @@
 import { LinearClient } from "@linear/sdk";
+import {
+	connectorMethod,
+	requireConnector,
+	upsertConnection,
+} from "@superset/trpc/connectors";
 import { linearTokenResponseSchema } from "@superset/trpc/integrations/linear";
 import { Client } from "@upstash/qstash";
 
 import { env } from "@/env";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
-import { upsertConnection } from "@/lib/integrations/upsertConnection";
 import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
@@ -43,15 +47,25 @@ export async function GET(request: Request) {
 	const viewer = await linearClient.viewer;
 	const linearOrg = await viewer.organization;
 
+	const connector = requireConnector("linear");
 	const result = await upsertConnection({
+		connector,
+		slug: "linear",
+		authMethod: connectorMethod(connector, "oauth2").type,
 		organizationId,
 		userId,
-		provider: "linear",
-		accessToken: tokenData.access_token,
-		refreshToken: tokenData.refresh_token,
-		tokenExpiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
-		externalOrgId: linearOrg.id,
-		externalOrgName: linearOrg.name,
+		tokens: {
+			accessToken: tokenData.access_token,
+			refreshToken: tokenData.refresh_token,
+			expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
+			scopes: tokenData.scope ? tokenData.scope.split(",") : null,
+			stored: {},
+			raw: tokenData as unknown as Record<string, unknown>,
+		},
+		identity: {
+			account: { id: linearOrg.id, label: linearOrg.name },
+			user: { id: viewer.id, label: viewer.displayName },
+		},
 	});
 	if (result.conflict) {
 		return Response.redirect(`${settingsUrl}?error=workspace_already_linked`);

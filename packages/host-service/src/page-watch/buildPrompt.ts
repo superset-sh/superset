@@ -20,10 +20,12 @@ function describeAnchor(thread: WatchedThread): string {
 export function buildWatchPrompt({
 	title,
 	slug,
+	pageId,
 	threads,
 }: {
 	title: string;
 	slug: string;
+	pageId: string;
 	threads: WatchedThread[];
 }): string {
 	const lines: string[] = [];
@@ -52,9 +54,11 @@ export function buildWatchPrompt({
 
 	lines.push(
 		`If you do not already have the source, run: superset pages pull ${slug} > page.html`,
-		"Fix the source, republish it, then reply on each thread you addressed:",
-		'  superset pages comments reply --threadId <id> "…"',
-		"  superset pages comments resolve --threadId <id>",
+		"Fix the source, republish it onto this page, then reply on each thread you addressed:",
+		`  superset pages publish <file> --page ${pageId}`,
+		'  superset pages comments reply --thread <id> "…"',
+		"  superset pages comments resolve --thread <id>",
+		`Republish with --page ${pageId}. Publishing without it creates a second page, and the link the reader already has keeps showing this one.`,
 		"Not every comment needs an answer. Leave anything that does not ask for one, and do not resolve what you did not fix.",
 	);
 

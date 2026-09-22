@@ -12,6 +12,7 @@ import {
 	isPaneModifier,
 	useOpenPage,
 } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
+import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
 import {
 	filterPages,
 	matchesScope,
@@ -19,8 +20,8 @@ import {
 	sortPinnedFirst,
 } from "../../utils/filterPages";
 import { PagesGrid } from "../PagesGrid";
+import { AuthorFilter, type PageAuthorOption } from "./components/AuthorFilter";
 import { useCreatePageWithAgent } from "./hooks/useCreatePageWithAgent";
-import { usePageFavorites } from "./hooks/usePageFavorites";
 
 const TABS: Array<{ value: PageScope }> = [
 	{ value: "all" },
@@ -32,15 +33,19 @@ const TABS: Array<{ value: PageScope }> = [
 interface PagesViewProps {
 	search: string;
 	scope: PageScope;
+	authorId: string | null;
 	onSearchChange: (search: string) => void;
 	onScopeChange: (scope: PageScope) => void;
+	onAuthorChange: (authorId: string | null) => void;
 }
 
 export function PagesView({
 	search,
 	scope,
+	authorId,
 	onSearchChange,
 	onScopeChange,
+	onAuthorChange,
 }: PagesViewProps) {
 	const { t } = useLingui();
 	const { creatingWithAgent, handleCreateWithAgent } = useCreatePageWithAgent();
@@ -75,6 +80,30 @@ export function PagesView({
 
 	const all = useMemo(() => pages.data ?? [], [pages.data]);
 
+	const currentUserId = session?.user.id;
+	const authorOptions = useMemo<PageAuthorOption[]>(() => {
+		const byAuthor = new Map<string, PageAuthorOption>();
+		for (const page of all) {
+			if (!page.createdByUserId || byAuthor.has(page.createdByUserId)) {
+				continue;
+			}
+			byAuthor.set(page.createdByUserId, {
+				userId: page.createdByUserId,
+				name:
+					page.ownerName ||
+					t({
+						message: "Unknown",
+					}),
+				image: page.ownerImage,
+				isCurrentUser: page.createdByUserId === currentUserId,
+			});
+		}
+		return Array.from(byAuthor.values()).sort((a, b) => {
+			if (a.isCurrentUser !== b.isCurrentUser) return a.isCurrentUser ? -1 : 1;
+			return a.name.localeCompare(b.name);
+		});
+	}, [all, currentUserId, t]);
+
 	const counts = useMemo(
 		() => ({
 			all: all.length,
@@ -106,10 +135,11 @@ export function PagesView({
 					search,
 					scope: activeScope,
 					pinnedPageIds: favoritePageIdSet,
+					authorId,
 				}),
 				favoritePageIdSet,
 			),
-		[all, search, activeScope, favoritePageIdSet],
+		[all, search, activeScope, favoritePageIdSet, authorId],
 	);
 
 	const orgEmpty = !pages.isPending && !pages.error && all.length === 0;
@@ -150,16 +180,25 @@ export function PagesView({
 								</TabsList>
 							</Tabs>
 
-							<div className="relative w-56">
-								<LuSearch className="-translate-y-1/2 absolute top-1/2 left-2 size-3.5 text-muted-foreground" />
-								<Input
-									value={search}
-									onChange={(event) => onSearchChange(event.target.value)}
-									placeholder={t({
-										message: "Search pages",
-									})}
-									className="h-8 pl-7 text-sm"
-								/>
+							<div className="flex items-center gap-2">
+								{(authorOptions.length > 1 || authorId !== null) && (
+									<AuthorFilter
+										value={authorId}
+										options={authorOptions}
+										onChange={onAuthorChange}
+									/>
+								)}
+								<div className="relative w-56">
+									<LuSearch className="-translate-y-1/2 absolute top-1/2 left-2 size-3.5 text-muted-foreground" />
+									<Input
+										value={search}
+										onChange={(event) => onSearchChange(event.target.value)}
+										placeholder={t({
+											message: "Search pages",
+										})}
+										className="h-8 pl-7 text-sm"
+									/>
+								</div>
 							</div>
 						</div>
 					)}
@@ -173,7 +212,10 @@ export function PagesView({
 						isPending={pages.isPending}
 						error={pages.error?.message}
 						hasFilters={
-							!orgEmpty && (Boolean(search.trim()) || activeScope !== "all")
+							!orgEmpty &&
+							(Boolean(search.trim()) ||
+								activeScope !== "all" ||
+								authorId !== null)
 						}
 						onOpen={(page, event) =>
 							openPage(

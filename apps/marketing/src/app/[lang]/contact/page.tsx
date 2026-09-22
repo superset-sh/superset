@@ -31,9 +31,9 @@ export default async function ContactPage() {
 	await initServerI18n();
 
 	// Named locals so the paragraph extracts with `{supportEmail}` /
-	// `{foundersEmail}` instead of positional `{0}` / `{1}`.
+	// `{teamEmail}` instead of positional `{0}` / `{1}`.
 	const supportEmail = `support${COMPANY.EMAIL_DOMAIN}`;
-	const foundersEmail = COMPANY.FOUNDERS_EMAIL;
+	const teamEmail = COMPANY.TEAM_EMAIL;
 
 	return (
 		<main className="relative min-h-screen">
@@ -84,13 +84,12 @@ export default async function ContactPage() {
 								{supportEmail}
 							</a>{" "}
 							and we&apos;ll get back to you within one business day. For
-							partnerships, press, enterprise, or anything for the founding
-							team, write to{" "}
+							partnerships, press, enterprise, or anything else, write to{" "}
 							<a
 								className="text-foreground underline"
-								href={COMPANY.FOUNDERS_MAIL_TO}
+								href={COMPANY.TEAM_MAIL_TO}
 							>
-								{foundersEmail}
+								{teamEmail}
 							</a>
 							.
 						</Trans>

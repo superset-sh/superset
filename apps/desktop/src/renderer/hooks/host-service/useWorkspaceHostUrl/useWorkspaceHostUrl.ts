@@ -11,9 +11,17 @@ export type WorkspaceHostTarget =
 	| { status: "local-starting"; hostId: string }
 	| {
 			status: "ready";
-			kind: "local" | "remote" | "sandbox";
+			kind: "local" | "remote";
 			hostId: string;
 			url: string;
+	  }
+	| {
+			status: "ready";
+			kind: "sandbox";
+			hostId: string;
+			url: string;
+			/** The desktop stream's gate address; the pane connects here, not to host-service. */
+			desktopUrl: string;
 	  };
 
 /**
@@ -42,6 +50,7 @@ export function useWorkspaceHostTarget(
 						kind: "sandbox",
 						hostId: workspaceId,
 						url: sandbox.url,
+						desktopUrl: sandbox.desktopUrl,
 					}
 				: { status: "loading" };
 		}

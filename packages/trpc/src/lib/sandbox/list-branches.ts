@@ -5,10 +5,10 @@
  * only source that works with zero machines online.
  */
 import { db } from "@superset/db/client";
-import { githubInstallations, githubRepositories } from "@superset/db/schema";
+import { githubInstallations } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
 import { installationOctokit } from "./clone-token";
-import type { CloudRepo } from "./cloud-repo";
+import type { RepositoryRow } from "./repositories";
 
 export interface RemoteBranch {
 	name: string;
@@ -25,23 +25,14 @@ const PER_PAGE = 100;
 const MAX_PAGES = 10;
 
 export async function listRemoteBranches(
-	repo: CloudRepo,
+	repo: RepositoryRow,
 	query?: string,
 ): Promise<RemoteBranchPage> {
+	const installation = await db.query.githubInstallations.findFirst({
+		where: eq(githubInstallations.id, repo.installationId),
+	});
 	// No installation to authenticate with — the default branch alone still
 	// lets a picker offer something create will accept.
-	if (!repo.repositoryId) {
-		return { defaultBranch: repo.defaultBranch, items: [] };
-	}
-
-	const row = await db.query.githubRepositories.findFirst({
-		where: eq(githubRepositories.id, repo.repositoryId),
-	});
-	const installation = row
-		? await db.query.githubInstallations.findFirst({
-				where: eq(githubInstallations.id, row.installationId),
-			})
-		: undefined;
 	if (!installation) {
 		return { defaultBranch: repo.defaultBranch, items: [] };
 	}

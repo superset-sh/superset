@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { isEnvironmentUpdateError } from "./update-error-classification";
+import {
+	isEnvironmentUpdateError,
+	isUpstreamServerError,
+} from "./update-error-classification";
 
 const GIGABYTE = 1024 * 1024 * 1024;
 const FULL_VOLUME = 40 * 1024 * 1024;
@@ -226,5 +229,54 @@ describe("isEnvironmentUpdateError", () => {
 		expect(
 			isEnvironmentUpdateError(DITTO_STAGING_FILE_MISSING, FULL_VOLUME),
 		).toBe(true);
+	});
+});
+
+// electron-updater rejects a failed feed or asset request with its own
+// HttpError, carrying the status as a property. Shapes captured from
+// production: GitHub's edge timing out on the feed, and its asset CDN refusing
+// a signed redirect the client followed after the token had expired.
+function httpError(statusCode: number, statusMessage: string, url: string) {
+	const error = new Error(
+		`${statusCode} ${statusMessage}\n"method: GET url: ${url}\n\n          Data:\n          <html><body><h1>${statusCode}</h1></body></html>\n          "`,
+	);
+	error.name = "HttpError";
+	return Object.assign(error, { statusCode });
+}
+const FEED_URL =
+	"https://github.com/superset-sh/superset/releases/download/desktop-v1.29.0/latest-mac.yml";
+const ASSET_CDN_URL =
+	"https://release-assets.githubusercontent.com/github-production-release-asset/1/2?jwt=eyJ&response-content-disposition=attachment%3B%20filename%3Dlatest-mac.yml";
+
+describe("isUpstreamServerError", () => {
+	test("classifies a server error from the feed host or its asset CDN", () => {
+		expect(isUpstreamServerError(httpError(504, "", FEED_URL))).toBe(true);
+		expect(isUpstreamServerError(httpError(502, "Bad Gateway", FEED_URL))).toBe(
+			true,
+		);
+		expect(
+			isUpstreamServerError(httpError(618, "jwt:expired", ASSET_CDN_URL)),
+		).toBe(true);
+	});
+
+	test("keeps reporting a client error: an asset that is not there is ours", () => {
+		expect(isUpstreamServerError(httpError(404, "Not Found", FEED_URL))).toBe(
+			false,
+		);
+		expect(isUpstreamServerError(httpError(403, "", FEED_URL))).toBe(false);
+	});
+
+	test("does not match on the status text of an error electron-updater built itself", () => {
+		expect(isUpstreamServerError(new Error(DOWNLOAD_GATEWAY_TIMEOUT))).toBe(
+			false,
+		);
+		expect(isUpstreamServerError(new Error("HttpError: 504 "))).toBe(false);
+		const nameless = Object.assign(new Error("504 "), { statusCode: 504 });
+		expect(isUpstreamServerError(nameless)).toBe(false);
+	});
+
+	test("ignores values that are not errors", () => {
+		expect(isUpstreamServerError("504 Gateway Time-out")).toBe(false);
+		expect(isUpstreamServerError(null)).toBe(false);
 	});
 });

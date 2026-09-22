@@ -8,7 +8,7 @@ import {
 	writeConfig,
 } from "./config";
 
-export type AuthSource = "override" | "config" | "oauth";
+export type AuthSource = "override" | "config" | "oauth" | "sandbox";
 
 export type ResolvedAuth = {
 	config: SupersetConfig;
@@ -62,6 +62,12 @@ export async function resolveAuth(
 			bearer = auth.accessToken;
 		}
 		authSource = "oauth";
+	} else if (process.env.SUPERSET_SANDBOX_WORKSPACE_ID) {
+		// A cloud workspace holds no credential: the firewall adds one to
+		// requests for the API, and it names the workspace rather than a
+		// person. Nothing to send from here, and nothing to refresh.
+		bearer = "";
+		authSource = "sandbox";
 	} else {
 		throw new CLIError(
 			"Not logged in",

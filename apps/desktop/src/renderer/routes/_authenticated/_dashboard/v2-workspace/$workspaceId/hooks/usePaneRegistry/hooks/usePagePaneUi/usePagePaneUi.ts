@@ -3,9 +3,14 @@ import { useCallback, useSyncExternalStore } from "react";
 interface PagePaneUiState {
 	commentsEnabled: boolean;
 	shareOpen: boolean;
+	previewVersion: number | null;
 }
 
-const EMPTY: PagePaneUiState = { commentsEnabled: false, shareOpen: false };
+const EMPTY: PagePaneUiState = {
+	commentsEnabled: false,
+	shareOpen: false,
+	previewVersion: null,
+};
 
 const states = new Map<string, PagePaneUiState>();
 const listeners = new Map<string, Set<() => void>>();
@@ -41,12 +46,17 @@ export function usePagePaneUi(paneId: string) {
 	return {
 		commentsEnabled: state.commentsEnabled,
 		shareOpen: state.shareOpen,
+		previewVersion: state.previewVersion,
 		setCommentsEnabled: useCallback(
 			(commentsEnabled: boolean) => patch(paneId, { commentsEnabled }),
 			[paneId],
 		),
 		setShareOpen: useCallback(
 			(shareOpen: boolean) => patch(paneId, { shareOpen }),
+			[paneId],
+		),
+		setPreviewVersion: useCallback(
+			(previewVersion: number | null) => patch(paneId, { previewVersion }),
 			[paneId],
 		),
 	};

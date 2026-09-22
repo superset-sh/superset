@@ -167,7 +167,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			{
 				id: "mobile",
 				label: msg({
-					message: "Mobile (coming soon)",
+					message: "Mobile",
 				}),
 			},
 		],
@@ -355,12 +355,6 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
 					message: "Mobile app",
 				}),
 				values: [null, true, true],
-				badge: {
-					label: msg({
-						message: "Coming soon",
-					}),
-					variant: "secondary",
-				},
 			},
 			{
 				id: "linearIntegration",

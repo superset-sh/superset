@@ -1,9 +1,7 @@
-import { CLIError, number, string } from "@superset/cli-framework";
-import { getHostId } from "@superset/shared/host-info";
+import { boolean, CLIError, number, string } from "@superset/cli-framework";
 import { TERMINAL_HANDOFF_MAX_CHARS } from "@superset/shared/terminal-session-handoff";
 import { command } from "../../../lib/command";
-import { resolveHostTarget } from "../../../lib/host-target";
-import { findWorkspaceOnHost } from "../../../lib/host-workspaces";
+import { resolveWorkspaceTarget } from "../../../lib/host-workspaces";
 import { buildHandoffPromptFromTerminal } from "../../../lib/terminal-handoff";
 import { uploadAttachments } from "../../../lib/upload-attachments";
 
@@ -11,7 +9,10 @@ export default command({
 	description: "Create an agent session in an existing workspace",
 	options: {
 		workspace: string().required().desc("Workspace ID"),
-		host: string().desc("Host the workspace lives on (default: this machine)"),
+		host: string().desc(
+			"Host the workspace lives on (default: the cloud if your account has cloud workspaces, else this machine)",
+		),
+		local: boolean().desc("The workspace is on this machine"),
 		agent: string()
 			.required()
 			.desc(
@@ -88,24 +89,16 @@ export default command({
 			);
 		}
 
-		const hostId = options.host ?? getHostId();
-		const { workspace } = await findWorkspaceOnHost(
-			{ organizationId, userJwt: ctx.bearer, api: ctx.api, hostId },
+		const { target } = await resolveWorkspaceTarget(
+			{
+				organizationId,
+				userJwt: ctx.bearer,
+				api: ctx.api,
+				host: options.host ?? undefined,
+				local: options.local ?? undefined,
+			},
 			options.workspace,
 		);
-		if (!workspace) {
-			throw new CLIError(
-				`Workspace not found on host ${hostId}: ${options.workspace}`,
-				"Pass --host <id> if it lives on another machine",
-			);
-		}
-
-		const target = await resolveHostTarget({
-			requestedHostId: hostId,
-			organizationId,
-			userJwt: ctx.bearer,
-			api: ctx.api,
-		});
 
 		const prompt = options.fromTerminal
 			? await buildHandoffPromptFromTerminal(target.client, {

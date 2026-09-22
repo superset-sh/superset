@@ -95,3 +95,12 @@ export function parsePageManifest(text: string): PageManifest | null {
 export function servedVersionOf(manifest: PageManifest): number | null {
 	return manifest.sharedVersion ?? manifest.latestVersion;
 }
+
+export function publiclyReadable(
+	manifest: PageManifest,
+	version: number,
+): boolean {
+	return (
+		manifest.visibility === "everyone" && version === servedVersionOf(manifest)
+	);
+}

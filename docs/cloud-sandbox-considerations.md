@@ -45,16 +45,29 @@ sign-in (Settings › Cloud › Agents, per user, `agent_credentials`) runs on t
 org's Anthropic and OpenAI keys, brokered at the firewall, so agent usage lands
 on our bill with no per-org attribution or cap. Fine while only we can create
 sandboxes; unshippable after. Rotation no longer needs a recreate: the
-firewall policy is live-updatable, though nothing sweeps existing sandboxes to
-re-apply it yet.
+firewall policy is live-updatable and every wake and `access` keepalive
+re-derives and re-applies it, so a rotated key reaches a running box within
+one keepalive.
 
-**The GitHub token outlives the clone.** `git clone` with the token in the URL
-writes it into `.git/config`, so a repo-scoped installation token sits in the
-working tree for anything in the sandbox to read — including an agent that
-followed a prompt injection. This is the same exposure we removed for model
-keys by using the egress proxy, left open for a credential that can write to the
-repo. Either strip the remote after cloning and supply credentials per
-operation, or route git through the proxy the same way.
+**The GitHub token outlives the clone. Fixed (v2 layout, 2026-09-13).**
+`git clone` with the token in the URL wrote it into `.git/config`, so a
+repo-scoped installation token sat in the working tree for anything in the
+sandbox to read — including an agent that followed a prompt injection. The
+token is now a firewall header rule like the model keys (`Basic` for
+`github.com`, `Bearer` for `api.github.com` and `uploads.github.com`), the
+clone URL carries nothing, and the box holds only a `GH_TOKEN` placeholder so
+`gh` is willing to call. The rule is re-minted on every wake and every
+`access` keepalive, so a rule's token is never older than one keepalive.
+
+**A visitor acts on GitHub as the workspace's creator. Accepted (multiplayer).**
+Any member of the organization can open any cloud workspace; that is the
+default on purpose. The GitHub rule carries the creator's own connection
+(Settings › Connections) when they have one, so a member who opens someone
+else's workspace commits, pushes and opens pull requests as that person, and
+reaches every repository the creator can reach through the App, including ones
+the visitor cannot. Before cloud workspaces leave the team this needs an
+answer: per-member identity inside a shared box, or a workspace falling back
+to the installation token while someone other than its creator holds a ticket.
 
 **A sandbox has exactly one gate, and it is ours.** A sandbox's own port is
 a public URL that clients never see; they reach a workspace through the

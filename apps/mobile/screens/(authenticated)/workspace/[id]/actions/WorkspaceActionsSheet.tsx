@@ -19,6 +19,7 @@ import { ProjectAvatar } from "@/screens/(authenticated)/(home)/filter/component
 import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinnedWorkspacesStore";
 import { useWorkspaceChangeset } from "../hooks/useWorkspaceChangeset";
 import { useWorkspaceHeaderActions } from "../hooks/useWorkspaceHeaderActions";
+import { WorkspacePages } from "./components/WorkspacePages";
 
 function CircleAction({
 	icon,
@@ -207,6 +208,8 @@ export function WorkspaceActionsSheet() {
 						isLast
 					/>
 				) : null}
+
+				<WorkspacePages workspaceId={id ?? null} />
 
 				{canDelete ? (
 					<Pressable

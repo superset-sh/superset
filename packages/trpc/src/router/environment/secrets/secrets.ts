@@ -18,10 +18,7 @@ export const secretsRouter = {
 		.input(z.object({ environmentId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
-			const environment = await loadEnvironment(
-				input.environmentId,
-				ctx.organizationIds,
-			);
+			const environment = await loadEnvironment(input.environmentId, ctx);
 			const organizationId = secretOwnerOrganizationId(
 				environment,
 				ctx.activeOrganizationId,
@@ -48,10 +45,7 @@ export const secretsRouter = {
 		.input(z.object({ environmentId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
-			const environment = await loadEnvironment(
-				input.environmentId,
-				ctx.organizationIds,
-			);
+			const environment = await loadEnvironment(input.environmentId, ctx);
 			const organizationId = secretOwnerOrganizationId(
 				environment,
 				ctx.activeOrganizationId,
@@ -111,10 +105,7 @@ export const secretsRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
-			const environment = await loadEnvironment(
-				input.environmentId,
-				ctx.organizationIds,
-			);
+			const environment = await loadEnvironment(input.environmentId, ctx);
 
 			const keyCheck = validateSecretKey(input.key);
 			if (!keyCheck.valid) {
@@ -197,10 +188,7 @@ export const secretsRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
-			const environment = await loadEnvironment(
-				input.environmentId,
-				ctx.organizationIds,
-			);
+			const environment = await loadEnvironment(input.environmentId, ctx);
 			const organizationId = secretOwnerOrganizationId(
 				environment,
 				ctx.activeOrganizationId,

@@ -1,7 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { accountConnections } from "@superset/trpc/connectors";
 import { z } from "zod";
 import { env } from "@/env";
 import { syncMailbox } from "../../lib/syncMailbox";
@@ -59,20 +57,11 @@ export async function POST(request: Request) {
 		return Response.json({ ok: true, skipped: "malformed" });
 	}
 
-	const connections = await db
-		.select()
-		.from(integrationConnections)
-		.where(
-			and(
-				eq(integrationConnections.provider, "google"),
-				eq(
-					integrationConnections.externalOrgId,
-					notification.emailAddress.toLowerCase(),
-				),
-				isNull(integrationConnections.disconnectedAt),
-			),
-		);
-	if (connections.length === 0) {
+	const mailboxes = await accountConnections(
+		"google",
+		notification.emailAddress.toLowerCase(),
+	);
+	if (mailboxes.length === 0) {
 		return Response.json({ ok: true, skipped: "no connection" });
 	}
 
@@ -81,7 +70,7 @@ export async function POST(request: Request) {
 	// non-2xx, which is what asks for the redelivery.
 	const results = [];
 	let failed = 0;
-	for (const connection of connections) {
+	for (const connection of mailboxes) {
 		try {
 			const result = await syncMailbox(connection);
 			if (result.recorded > 0) {

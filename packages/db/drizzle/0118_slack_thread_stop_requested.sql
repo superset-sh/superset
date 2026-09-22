@@ -1,0 +1,1 @@
+ALTER TABLE "slack_thread_sessions" ADD COLUMN "stop_requested_at" timestamp with time zone;

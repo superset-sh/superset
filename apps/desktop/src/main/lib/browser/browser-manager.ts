@@ -696,6 +696,26 @@ class BrowserManager extends EventEmitter {
 						return;
 					}
 				}
+				// Chromium resizes the guest's view for these without checking it
+				// still has one, and a crashed renderer's view is gone: forwarding
+				// either segfaults the main process (DESKTOP-195).
+				if (
+					(method === "Emulation.setDeviceMetricsOverride" ||
+						method === "Emulation.setVisibleSize") &&
+					wc.isCrashed()
+				) {
+					onMessage(
+						JSON.stringify({
+							id,
+							error: {
+								code: -32000,
+								message: `${method} is unavailable while the page is crashed; navigate it to recover`,
+							},
+							...(sessionId ? { sessionId } : {}),
+						}),
+					);
+					return;
+				}
 				// The synthetic flatten session maps to the debugger's root
 				// channel, so strip it before forwarding; the response still
 				// echoes the client's original sessionId above.
@@ -901,7 +921,9 @@ class BrowserManager extends EventEmitter {
 		params: { width: number; height: number } | null,
 	): void {
 		const wc = this.getWebContents(paneId);
-		if (!wc) return;
+		// Electron's emulation calls dereference the renderer's view, which a
+		// crashed guest no longer has.
+		if (!wc || wc.isCrashed()) return;
 		if (!params) {
 			wc.disableDeviceEmulation();
 			return;

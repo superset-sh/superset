@@ -15,11 +15,15 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
  */
 const STUCK_AFTER_SECONDS = 45;
 
+/** Younger than this, a ready workspace on this screen is still being created. */
+const RECENTLY_CREATED_MS = 10 * 60_000;
+
 interface CloudWorkspaceProvisioningStateProps {
 	workspaceId: string;
 	name: string;
 	branch: string;
 	status: CloudWorkspaceRow["status"];
+	createdAt: Date;
 }
 
 /**
@@ -35,9 +39,10 @@ export function CloudWorkspaceProvisioningState({
 	name,
 	branch,
 	status,
+	createdAt,
 }: CloudWorkspaceProvisioningStateProps) {
 	const { t } = useLingui();
-	const elapsed = useElapsedSeconds();
+	const elapsed = useElapsedSeconds({ status, createdAt });
 
 	if (status === "failed") {
 		return (
@@ -274,19 +279,33 @@ function formatElapsed(seconds: number): string {
 }
 
 /**
- * Counts from when this screen appeared, not from the row's `createdAt`: an
- * hours-old cloud workspace renders this too while its sleeping sandbox wakes,
- * and "1:47:12" would be describing the workspace's age, not the wait.
+ * A workspace being created counts from its `createdAt`, so leaving and coming
+ * back does not restart the wait, and the count carries on into "Connecting".
+ * An older workspace shows this screen while its sleeping sandbox wakes; that
+ * wait counts from when the screen appeared. Decided once per mount, so the
+ * status turning ready mid-wait does not move the start.
  */
-function useElapsedSeconds(): number {
-	const [elapsed, setElapsed] = useState(0);
+function useElapsedSeconds({
+	status,
+	createdAt,
+}: {
+	status: CloudWorkspaceRow["status"];
+	createdAt: Date;
+}): number {
+	const [startedAt] = useState(() => {
+		const now = Date.now();
+		const created = createdAt.getTime();
+		return status === "provisioning" || now - created < RECENTLY_CREATED_MS
+			? created
+			: now;
+	});
+	const [elapsed, setElapsed] = useState(() => (Date.now() - startedAt) / 1000);
 	useEffect(() => {
-		const startedAt = Date.now();
 		const id = window.setInterval(
 			() => setElapsed((Date.now() - startedAt) / 1000),
 			250,
 		);
 		return () => window.clearInterval(id);
-	}, []);
+	}, [startedAt]);
 	return elapsed;
 }

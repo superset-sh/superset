@@ -9,13 +9,13 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import { useCloudEnvironments } from "@/hooks/useCloudEnvironments";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { awaitAttachmentUploads } from "@/lib/attachments/upload";
 import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
+import { useCloudCreateSelection } from "@/screens/(authenticated)/(home)/hooks/useCloudCreateSelection";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import {
 	agentLaunchPresetId,
@@ -81,14 +81,10 @@ export function NewChatWidget({
 	const selectedTarget =
 		targets.find((target) => target.key === targetKey) ?? defaultTarget;
 	const isCloudTarget = selectedTarget?.kind === "cloud";
+	const isSessionTarget = selectedTarget?.projectId === null;
 	const cloudScope = useWorkspaceScope() === "cloud";
-	const environmentId = useNewSessionPreferencesStore(
-		(state) => state.environmentId,
-	);
-	const environmentsQuery = useCloudEnvironments();
-	const environments = environmentsQuery.data ?? [];
-	const selectedEnvironment =
-		environments.find((row) => row.id === environmentId) ?? environments[0];
+	const { environment: selectedEnvironment, repository: cloudRepository } =
+		useCloudCreateSelection();
 
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
@@ -98,16 +94,21 @@ export function NewChatWidget({
 			"branches",
 			selectedTarget?.hostUrl ?? null,
 			selectedTarget?.projectId ?? null,
+			cloudRepository?.id ?? null,
 			"",
 		],
-		enabled: selectedTarget !== null && (!isCloudTarget || !!organizationId),
+		enabled:
+			selectedTarget !== null &&
+			!isSessionTarget &&
+			(!isCloudTarget || !!organizationId),
 		networkMode: "always" as const,
 		queryFn: async () => {
-			if (!selectedTarget) return null;
+			if (!selectedTarget?.projectId) return null;
 			if (selectedTarget.kind === "cloud") {
-				if (!organizationId) return null;
+				if (!organizationId || !cloudRepository) return null;
 				return apiClient.cloudWorkspace.listBranches.query({
 					organizationId,
+					repositoryId: cloudRepository.id,
 				});
 			}
 			return getHostServiceClientByUrl(
@@ -163,7 +164,9 @@ export function NewChatWidget({
 		: [];
 	// Null until the branch list resolves. The previous fallback was the literal
 	// string "default", which reads as a branch name and is not one.
-	const branchLabel = baseBranch ?? branchData?.defaultBranch ?? null;
+	const branchLabel = isSessionTarget
+		? null
+		: (baseBranch ?? branchData?.defaultBranch ?? null);
 
 	// Only a request made after mount counts: the store keeps the last nonce,
 	// and a remount that read it as "positive" would focus without anyone
@@ -227,23 +230,6 @@ export function NewChatWidget({
 			);
 			return;
 		}
-		if (selectedTarget.kind === "cloud") {
-			await createCloudWorkspace
-				.mutateAsync({
-					branch: baseBranch ?? branchData?.defaultBranch ?? null,
-					environmentId: selectedEnvironment?.id ?? null,
-					agent: effectiveAgentId,
-					model,
-					effort,
-					message,
-				})
-				.then(() => {
-					setBaseBranch(null);
-					clearComposer();
-				})
-				.catch(() => {});
-			return;
-		}
 		// Before the create is recorded, so the failed screen's retry replays
 		// ids rather than URIs the cleared draft no longer has. Usually
 		// instant: the upload started when the file was attached, and the ring
@@ -260,6 +246,24 @@ export function NewChatWidget({
 				t({ message: "Could not attach files" }),
 				errorMessage(error),
 			);
+			return;
+		}
+		if (selectedTarget.kind === "cloud") {
+			await createCloudWorkspace
+				.mutateAsync({
+					branch: baseBranch ?? branchData?.defaultBranch ?? null,
+					environmentId: selectedEnvironment?.id ?? null,
+					agent: effectiveAgentId,
+					model,
+					effort,
+					message,
+					attachmentFileIds,
+				})
+				.then(() => {
+					setBaseBranch(null);
+					clearComposer();
+				})
+				.catch(() => {});
 			return;
 		}
 		await createTerminalWorkspace
@@ -282,8 +286,8 @@ export function NewChatWidget({
 	};
 
 	// Under Cloud there is no project to show: a sandbox has no real project
-	// structure yet, so the chip is the place itself and the repo it clones is
-	// resolved without asking.
+	// structure yet, so the chip is the place itself. The repo it clones comes
+	// from the environment.
 	const headerChips = [
 		cloudScope
 			? {
@@ -293,7 +297,7 @@ export function NewChatWidget({
 			: {
 					id: "project",
 					label: selectedTarget?.projectName ?? t({ message: "No project" }),
-					avatar: true,
+					avatar: !isSessionTarget,
 					iconUri: selectedTarget?.projectIconUrl ?? undefined,
 				},
 		...(cloudScope
@@ -395,7 +399,7 @@ export function NewChatWidget({
 							params: { selectedKey: selectedTarget?.key ?? "" },
 						});
 					}
-				} else if (selectedTarget) {
+				} else if (selectedTarget?.projectId) {
 					router.push({
 						pathname: "/(authenticated)/(home)/new-session/branch",
 						params: {

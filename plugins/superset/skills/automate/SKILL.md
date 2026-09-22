@@ -25,7 +25,7 @@ A page is identified by its workspace plus its path, so **which target you picke
 ## 2. Pick the target
 
 - `superset projects list`: a project target creates a fresh workspace per run (most tasks)
-- `superset workspaces list`: a workspace target reuses the same workspace every run (stateful tasks)
+- `superset workspaces list --local`: a workspace target reuses the same workspace every run (stateful tasks)
 
 ## 3. Confirm before creating
 

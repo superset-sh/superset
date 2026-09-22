@@ -1,0 +1,1 @@
+export { VersionThumbnail } from "./VersionThumbnail";

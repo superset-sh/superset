@@ -35,8 +35,8 @@ export const COMPANY = {
 	LINKEDIN_URL: "https://www.linkedin.com/company/superset-sh",
 	YOUTUBE_URL: "https://www.youtube.com/@superset-sh",
 	MAIL_TO: `mailto:support@${ROOT_DOMAIN}`,
-	FOUNDERS_EMAIL: `founders@${ROOT_DOMAIN}`,
-	FOUNDERS_MAIL_TO: `mailto:founders@${ROOT_DOMAIN}`,
+	TEAM_EMAIL: `team@${ROOT_DOMAIN}`,
+	TEAM_MAIL_TO: `mailto:team@${ROOT_DOMAIN}`,
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
 	APP_STORE_URL: "https://apps.apple.com/app/id6788926383",
@@ -103,6 +103,14 @@ export const V2_NEW_USER_V1_EXPERIMENT_START = "2026-06-08T06:59:00.000Z";
 export const V2_NEW_USER_V2_DEFAULT_START = "2026-07-09T17:00:00.000Z";
 
 export const FEATURE_FLAGS = {
+	/**
+	 * The public Superset Mobile launch. Off, unloaded, or unreachable all mean
+	 * "not launched": the marketing site hides /mobile from navigation and the
+	 * sitemap and disables indexing. Evaluated per site, not per
+	 * visitor, so keep it a plain on/off flag — a percentage rollout would
+	 * hash the site's single distinct id to one side.
+	 */
+	MOBILE_LAUNCH: "mobile-launch",
 	/** Gates access to the experimental mobile-first agents UI on web. */
 	WEB_AGENTS_UI_ACCESS: "web-agents-ui-access",
 	/** Gates access to Cloud features (environment variables, sandboxes). */
@@ -180,6 +188,12 @@ export const FEATURE_FLAGS = {
 	 */
 	CLOUD_WORKSPACES: "cloud-workspaces",
 	/**
+	 * Lets the Slack agent answer replies in a thread it has already replied
+	 * in without an @-mention. Evaluated per Slack team; off, unloaded or
+	 * offline all mean mention-only.
+	 */
+	SLACK_THREAD_FOLLOW_UPS: "slack-thread-follow-ups",
+	/**
 	 * Shows the Plugins page in the v2 dashboard sidebar. Audience is a
 	 * release condition on the flag (email contains @superset.sh, plus an
 	 * override for the local dev account, which is not on that domain) so
@@ -188,6 +202,12 @@ export const FEATURE_FLAGS = {
 	 */
 	PLUGINS: "plugins",
 	PAGES: "pages",
+	/**
+	 * Lock Screen / Dynamic Island agent card on iOS. Off by default while the
+	 * card is still being worked on; the flag's release conditions decide who
+	 * sees it, so a new build ships with it dark and no release widens it.
+	 */
+	MOBILE_LIVE_ACTIVITY: "mobile-live-activity",
 } as const;
 
 /**
@@ -227,28 +247,16 @@ export const SANDBOX_CREDENTIAL_PLACEHOLDER =
  */
 export const SANDBOX_WORKSPACE_PATH = "/workspace";
 
-/**
- * host.db inside a sandbox. Separate from the checkout so a persistent volume
- * can mount over it without touching the workspace, and so the image can ship
- * a pre-migrated template alongside it.
- */
-export const SANDBOX_HOST_DB_PATH = "/data/host.db";
-
 export const SANDBOX_IMAGE_NAME = "superset-hostsvc";
+
+/** The one transaction the API traces: the cloud workspace provision job. */
+export const CLOUD_WORKSPACE_PROVISION_TRANSACTION =
+	"cloud-workspace.provision";
 
 export const SHARED_ENVIRONMENT_ORGANIZATION_ID =
 	"00000000-0000-0000-0000-000000000000";
 
 export const SHARED_ENVIRONMENT_NAME = "Default";
-
-/**
- * Every cloud workspace clones this. Environments cannot carry repositories yet,
- * so there is nothing per-workspace to resolve and no project to pick.
- */
-export const CLOUD_WORKSPACE_REPO = {
-	owner: "superset-sh",
-	name: "superset",
-} as const;
 
 // Terminal identity presented to shell programs via TERM_PROGRAM. kitty:
 // agent TUIs (claude-code especially) tune wheel-scroll compensation per

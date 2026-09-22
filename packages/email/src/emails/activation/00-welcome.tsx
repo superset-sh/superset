@@ -55,7 +55,7 @@ export function WelcomeEmail({ userEmail }: WelcomeEmailProps = {}) {
 			</Section>
 
 			<Text className="text-[13px] leading-5 text-muted m-0">
-				Questions? Just reply. A founder reads every message.
+				Questions? Just reply. We read every message.
 			</Text>
 		</EmailLayout>
 	);

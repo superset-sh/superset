@@ -22,10 +22,17 @@ export const pluginStateSchema = z.object({
 	pluginName: z.string().min(1),
 	authMethod: z.string().min(1).default("oauth2"),
 	inputs: z.record(z.string(), z.string()).default({}),
+	codeVerifier: z.string().optional(),
 	timestamp: z.number(),
 });
 
 export type PluginState = z.infer<typeof pluginStateSchema>;
+
+export const connectorStateSchema = basePayloadSchema.extend({
+	codeVerifier: z.string().optional(),
+});
+
+export type ConnectorState = z.infer<typeof connectorStateSchema>;
 
 function sign(body: string): string {
 	return createHmac("sha256", env.BETTER_AUTH_SECRET)

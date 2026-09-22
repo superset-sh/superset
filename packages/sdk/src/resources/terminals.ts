@@ -1,48 +1,56 @@
-import { SupersetError } from "../core/error";
+import type { APIPromise } from "../core/api-promise";
 import { APIResource } from "../core/resource";
+import type { RequestOptions } from "../internal/request-options";
 
 /**
- * Terminals are PTY sessions that live on a developer's host service, scoped
- * to a workspace. Every operation is routed to the workspace's host through
- * the relay tunnel.
+ * Terminals are PTY sessions inside a cloud workspace's sandbox. The
+ * workspace must be `ready` (see `workspaces.retrieve`).
  */
 export class Terminals extends APIResource {
 	/**
-	 * Create a terminal session in an existing workspace on its host,
-	 * optionally running `command`.
+	 * Create a terminal session in a cloud workspace, optionally running
+	 * `command`.
 	 */
-	async create(params: TerminalCreateParams): Promise<TerminalCreateResult> {
-		this._requireOrgId();
-		return this._client.hostMutation<TerminalCreateResult>(
-			params.hostId,
+	create(
+		params: TerminalCreateParams,
+		options?: RequestOptions,
+	): APIPromise<TerminalCreateResult> {
+		return this._client.workspaceMutation<TerminalCreateResult>(
+			params.workspaceId,
 			{ method: "terminals.create", procedure: "terminal.createSession" },
 			{
 				workspaceId: params.workspaceId,
 				initialCommand: params.command,
 				cwd: params.cwd,
 			},
+			options,
 		);
 	}
 
-	/** List the live terminal sessions in a workspace. */
-	async list(params: TerminalListParams): Promise<TerminalListResult> {
-		this._requireOrgId();
-		return this._client.hostQuery<TerminalListResult>(
-			params.hostId,
+	/** List the live terminal sessions in a cloud workspace. */
+	list(
+		params: TerminalListParams,
+		options?: RequestOptions,
+	): APIPromise<TerminalListResult> {
+		return this._client.workspaceQuery<TerminalListResult>(
+			params.workspaceId,
 			{ method: "terminals.list", procedure: "terminal.list" },
 			{ workspaceId: params.workspaceId },
+			options,
 		);
 	}
 
 	/**
 	 * Send a follow-up message into an already-running terminal (e.g. a
-	 * claude/codex agent) instead of spawning a new session. The host frames
-	 * multi-line text as a bracketed paste so it lands as one prompt.
+	 * claude/codex agent) instead of spawning a new session. Multi-line text
+	 * is framed as a bracketed paste so it lands as one prompt.
 	 */
-	async send(params: TerminalSendParams): Promise<TerminalSendResult> {
-		this._requireOrgId();
-		return this._client.hostMutation<TerminalSendResult>(
-			params.hostId,
+	send(
+		params: TerminalSendParams,
+		options?: RequestOptions,
+	): APIPromise<TerminalSendResult> {
+		return this._client.workspaceMutation<TerminalSendResult>(
+			params.workspaceId,
 			{ method: "terminals.send", procedure: "terminal.send" },
 			{
 				terminalId: params.terminalId,
@@ -50,6 +58,7 @@ export class Terminals extends APIResource {
 				text: params.text,
 				submit: params.submit ?? true,
 			},
+			options,
 		);
 	}
 
@@ -57,47 +66,42 @@ export class Terminals extends APIResource {
 	 * Read a terminal's current screen (and recent scrollback) back as plain
 	 * text — for a TUI agent this is the agent's rendered output.
 	 */
-	async read(params: TerminalReadParams): Promise<TerminalReadResult> {
-		this._requireOrgId();
-		return this._client.hostQuery<TerminalReadResult>(
-			params.hostId,
+	read(
+		params: TerminalReadParams,
+		options?: RequestOptions,
+	): APIPromise<TerminalReadResult> {
+		return this._client.workspaceQuery<TerminalReadResult>(
+			params.workspaceId,
 			{ method: "terminals.read", procedure: "terminal.snapshot" },
 			{
 				terminalId: params.terminalId,
 				workspaceId: params.workspaceId,
 				maxLines: params.maxLines,
 			},
+			options,
 		);
 	}
 
 	/** Close (dispose) a terminal — kills the PTY and the agent running in it. */
-	async close(params: TerminalCloseParams): Promise<TerminalCloseResult> {
-		this._requireOrgId();
-		return this._client.hostMutation<TerminalCloseResult>(
-			params.hostId,
+	close(
+		params: TerminalCloseParams,
+		options?: RequestOptions,
+	): APIPromise<TerminalCloseResult> {
+		return this._client.workspaceMutation<TerminalCloseResult>(
+			params.workspaceId,
 			{ method: "terminals.close", procedure: "terminal.killSession" },
 			{ terminalId: params.terminalId, workspaceId: params.workspaceId },
+			options,
 		);
-	}
-
-	private _requireOrgId(): string {
-		if (!this._client.organizationId) {
-			throw new SupersetError(
-				"organizationId is required. Set SUPERSET_ORGANIZATION_ID, or pass `organizationId` to the Superset constructor.",
-			);
-		}
-		return this._client.organizationId;
 	}
 }
 
 export interface TerminalCreateParams {
-	/** The host machineId the workspace lives on (see `hosts.list()`). */
-	hostId: string;
-	/** Workspace UUID to create the terminal in. */
+	/** Cloud workspace id to create the terminal in. */
 	workspaceId: string;
 	/** Shell command to run. Omit to open an interactive shell. */
 	command?: string;
-	/** Working directory for the terminal (defaults to the worktree). */
+	/** Working directory for the terminal (defaults to the workspace checkout). */
 	cwd?: string;
 }
 
@@ -107,9 +111,7 @@ export interface TerminalCreateResult {
 }
 
 export interface TerminalListParams {
-	/** The host machineId the workspace lives on (see `hosts.list()`). */
-	hostId: string;
-	/** Workspace UUID whose terminals to list. */
+	/** Cloud workspace id whose terminals to list. */
 	workspaceId: string;
 }
 
@@ -128,9 +130,7 @@ export interface TerminalListResult {
 }
 
 export interface TerminalSendParams {
-	/** The host machineId the workspace lives on (see `hosts.list()`). */
-	hostId: string;
-	/** Workspace UUID the terminal runs in. */
+	/** Cloud workspace id the terminal runs in. */
 	workspaceId: string;
 	/** Terminal id (the `sessionId` `agents.create()` returned). */
 	terminalId: string;
@@ -146,9 +146,7 @@ export interface TerminalSendResult {
 }
 
 export interface TerminalReadParams {
-	/** The host machineId the workspace lives on (see `hosts.list()`). */
-	hostId: string;
-	/** Workspace UUID the terminal runs in. */
+	/** Cloud workspace id the terminal runs in. */
 	workspaceId: string;
 	/** Terminal id (the `sessionId` `agents.create()` returned). */
 	terminalId: string;
@@ -165,9 +163,7 @@ export interface TerminalReadResult {
 }
 
 export interface TerminalCloseParams {
-	/** The host machineId the workspace lives on (see `hosts.list()`). */
-	hostId: string;
-	/** Workspace UUID the terminal runs in. */
+	/** Cloud workspace id the terminal runs in. */
 	workspaceId: string;
 	/** Terminal id to close. */
 	terminalId: string;

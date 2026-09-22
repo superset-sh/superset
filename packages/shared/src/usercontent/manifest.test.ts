@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { parsePageManifest } from "./manifest";
+import {
+	type PageManifest,
+	type PageVisibility,
+	parsePageManifest,
+	publiclyReadable,
+} from "./manifest";
 
 const base = {
 	v: 1,
@@ -51,5 +56,50 @@ describe("parsePageManifest", () => {
 				),
 			).toBeNull();
 		}
+	});
+});
+
+describe("publiclyReadable", () => {
+	const manifest = (
+		visibility: PageVisibility,
+		sharedVersion: number | null,
+		latestVersion: number | null = 3,
+	): PageManifest => ({
+		v: 1,
+		pageId: base.pageId,
+		slug: base.slug,
+		visibility,
+		sharedVersion,
+		latestVersion,
+		versions: {
+			"1": { key: "k1", contentType: "text/html" },
+			"2": { key: "k2", contentType: "text/html" },
+			"3": { key: "k3", contentType: "text/html" },
+		},
+	});
+
+	test("opens only the pinned version a public page serves", () => {
+		const pinned = manifest("everyone", 2);
+		expect(publiclyReadable(pinned, 2)).toBe(true);
+		expect(publiclyReadable(pinned, 1)).toBe(false);
+		expect(publiclyReadable(pinned, 3)).toBe(false);
+	});
+
+	test("follows the latest version when a public page pins none", () => {
+		const unpinned = manifest("everyone", null);
+		expect(publiclyReadable(unpinned, 3)).toBe(true);
+		expect(publiclyReadable(unpinned, 2)).toBe(false);
+	});
+
+	test("keeps narrower visibilities closed at every version", () => {
+		for (const visibility of ["just_me", "org"] as const) {
+			for (const version of [1, 2, 3]) {
+				expect(publiclyReadable(manifest(visibility, 2), version)).toBe(false);
+			}
+		}
+	});
+
+	test("stays closed when a public page serves nothing", () => {
+		expect(publiclyReadable(manifest("everyone", null, null), 1)).toBe(false);
 	});
 });

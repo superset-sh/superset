@@ -1,7 +1,5 @@
-import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { connectorConnections } from "@superset/trpc/connectors";
 import { ensureTeamsSubscriptions } from "@superset/trpc/integrations/microsoft-teams";
-import { and, eq, isNull } from "drizzle-orm";
 
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 
@@ -26,22 +24,14 @@ export async function POST(request: Request): Promise<Response> {
 	);
 	if (rejected) return rejected;
 
-	const connections = await db
-		.select({ id: integrationConnections.id })
-		.from(integrationConnections)
-		.where(
-			and(
-				eq(integrationConnections.provider, "microsoft_teams"),
-				isNull(integrationConnections.disconnectedAt),
-			),
-		);
+	const rows = await connectorConnections("microsoft_teams");
 
 	const results = await Promise.allSettled(
-		connections.map((connection) => ensureTeamsSubscriptions(connection.id)),
+		rows.map((connection) => ensureTeamsSubscriptions(connection.id)),
 	);
 
 	const failures = results.flatMap((result, index) => {
-		const connectionId = connections[index]?.id;
+		const connectionId = rows[index]?.id;
 		if (result.status === "rejected") {
 			return [{ connectionId, reason: String(result.reason) }];
 		}
@@ -58,7 +48,7 @@ export async function POST(request: Request): Promise<Response> {
 	}
 
 	return Response.json({
-		connections: connections.length,
+		connections: rows.length,
 		failed: failures.length,
 	});
 }

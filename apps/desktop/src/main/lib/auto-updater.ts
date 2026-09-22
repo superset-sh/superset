@@ -9,7 +9,10 @@ import { autoUpdater, type UpdateCheckResult } from "electron-updater";
 import { env } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
 import { appState } from "main/lib/app-state";
-import { isEnvironmentUpdateError } from "main/lib/update-error-classification";
+import {
+	isEnvironmentUpdateError,
+	isUpstreamServerError,
+} from "main/lib/update-error-classification";
 import { redactUpdateError } from "main/lib/update-error-redaction";
 import { gte, prerelease } from "semver";
 import {
@@ -87,6 +90,13 @@ function isNetworkError(error: Error | string): boolean {
 	const message = typeof error === "string" ? error : error.message;
 	if (message.includes("net::ERR_CERT_")) return false;
 	return SILENT_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
+// What a scheduled check lets pass in silence: the transport failed, or the
+// feed host answered that it had. The interactive check keeps telling the user
+// about the second, since they asked.
+function isTransientError(error: Error): boolean {
+	return isNetworkError(error) || isUpstreamServerError(error);
 }
 
 // Free bytes on the volume backing the updater caches, which sit beside our app
@@ -231,8 +241,11 @@ export function checkForUpdates(): void {
 		.checkForUpdates()
 		.then(releaseDownloadPromise)
 		.catch((error) => {
-			if (isNetworkError(error)) {
-				log.info("[auto-updater] Network unavailable, will retry later");
+			if (isTransientError(error)) {
+				log.info(
+					"[auto-updater] Update server unreachable, will retry later:",
+					error?.message,
+				);
 				emitStatus(AUTO_UPDATE_STATUS.IDLE);
 				return;
 			}
@@ -457,8 +470,11 @@ export function setupAutoUpdater(): void {
 	autoUpdater.on("error", (error) => {
 		// Allow retry if Squirrel surfaces an error instead of actually quitting.
 		isInstalling = false;
-		if (isNetworkError(error)) {
-			log.info("[auto-updater] Network unavailable, will retry later");
+		if (isTransientError(error)) {
+			log.info(
+				"[auto-updater] Update server unreachable, will retry later:",
+				error?.message,
+			);
 			emitStatus(AUTO_UPDATE_STATUS.IDLE);
 			return;
 		}

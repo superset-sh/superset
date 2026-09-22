@@ -4,8 +4,8 @@ import { z } from "zod";
 
 type Input = {
 	projectId?: string;
-	hostId: string;
-	name: string;
+	hostId?: string;
+	name?: string;
 	checkout?: "local" | "worktree";
 	branch?: string;
 	pr?: number;
@@ -22,6 +22,7 @@ mock.module("../../define-tool", () => ({
 	},
 }));
 mock.module("../../host-service-client", () => ({
+	HostServiceUnreachableError: class extends Error {},
 	hostServiceCall: async (
 		_ctx: unknown,
 		procedure: string,
@@ -30,6 +31,11 @@ mock.module("../../host-service-client", () => ({
 	) => {
 		request = { procedure, input };
 		return {};
+	},
+}));
+mock.module("../../caller", () => ({
+	createMcpCaller: () => {
+		throw new Error("Unexpected cloud request");
 	},
 }));
 const { register } = await import("./create");

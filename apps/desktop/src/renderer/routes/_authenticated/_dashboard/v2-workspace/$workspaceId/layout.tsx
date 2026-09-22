@@ -69,9 +69,10 @@ function V2WorkspaceLayout() {
 	// cloud workspace is found the same way as any other — but it has no
 	// v2_hosts row for the remote version gate to check.
 	const { targets: sandboxes } = useSandboxAccess();
-	const isCloud = sandboxes.some(
-		(sandbox) => sandbox.workspaceId === workspaceId,
-	);
+	const sandbox =
+		sandboxes.find((candidate) => candidate.workspaceId === workspaceId) ??
+		null;
+	const isCloud = sandbox !== null;
 	// The cloud row exists from the moment the workspace is created, which is
 	// well before there is a sandbox to serve it.
 	const { workspaces: cloudWorkspaces = [] } = useCloudWorkspaces();
@@ -128,6 +129,7 @@ function V2WorkspaceLayout() {
 					name={cloudWorkspace.name}
 					branch={cloudWorkspace.branch}
 					status={cloudWorkspace.status}
+					createdAt={cloudWorkspace.createdAt}
 				/>
 			</StateScreenShell>
 		);

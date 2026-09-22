@@ -1,9 +1,10 @@
+import type { PageVisibility } from "@superset/shared/usercontent";
 import type { RouterOutputs } from "@superset/trpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { apiClient } from "@/lib/trpc/client";
 
-export type PageVisibility = "just_me" | "org";
+export type { PageVisibility } from "@superset/shared/usercontent";
 export type PageVersion = RouterOutputs["page"]["versions"][number];
 
 export function usePageAccessQuery(slug: string | undefined) {

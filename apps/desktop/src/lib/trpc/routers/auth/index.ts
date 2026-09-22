@@ -17,6 +17,7 @@ import {
 	saveToken,
 	stateStore,
 } from "./utils/auth-functions";
+import { writeAuth } from "./utils/write-auth";
 
 export const createAuthRouter = () => {
 	return router({
@@ -35,7 +36,7 @@ export const createAuthRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				await saveToken(input);
+				await writeAuth(() => saveToken(input));
 				return { success: true };
 			}),
 
@@ -48,7 +49,7 @@ export const createAuthRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				return await saveOrganizationIds(input);
+				return await writeAuth(() => saveOrganizationIds(input));
 			}),
 
 		/**
@@ -122,7 +123,7 @@ export const createAuthRouter = () => {
 
 		signOut: publicProcedure.mutation(async () => {
 			getHostServiceCoordinator().stopAll();
-			await clearToken();
+			await writeAuth(() => clearToken());
 			return { success: true };
 		}),
 	});

@@ -165,7 +165,7 @@ function teamPage(): MarkdownPage {
 			]),
 			"## Contact",
 			"",
-			`- Founders: ${COMPANY.FOUNDERS_EMAIL}`,
+			`- Team: ${COMPANY.TEAM_EMAIL}`,
 			`- [Join us](${COMPANY.JOIN_US_URL})`,
 		].join("\n"),
 	};
@@ -193,7 +193,7 @@ function enterprisePage(i18n: I18n): MarkdownPage {
 			"",
 			`- Contact sales: ${baseUrl}/enterprise`,
 			`- Security and compliance: ${COMPANY.TRUST_URL}`,
-			`- Email: ${COMPANY.FOUNDERS_EMAIL}`,
+			`- Email: sales${COMPANY.EMAIL_DOMAIN}`,
 		].join("\n"),
 	};
 }

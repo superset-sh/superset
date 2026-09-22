@@ -1,0 +1,38 @@
+# The desktop, installed WITH recommends: the xfce4 metapackage and the
+# companions of a VNC desktop. Nothing is trimmed to save space; the SVG
+# pixbuf loader every icon theme needs only arrives as a recommend, and each
+# missing package has cost a rebuild to find. websockify and novnc are
+# Debian packages here; the desktop stream is served on its own port.
+xfce4
+xfce4-terminal
+xfce4-settings
+thunar
+tigervnc-standalone-server
+tigervnc-common
+tigervnc-tools
+websockify
+novnc
+x11-utils
+x11-xserver-utils
+xdg-utils
+xdotool
+xclip
+dbus-x11
+at-spi2-core
+mousepad
+seahorse
+gnome-keyring
+ffmpeg
+imagemagick
+adwaita-icon-theme
+gnome-themes-extra
+librsvg2-common
+plank
+fonts-dejavu-core
+fonts-inter
+fonts-jetbrains-mono
+libglib2.0-bin
+libgtk-3-bin
+libxml2-utils
+dconf-cli
+xz-utils

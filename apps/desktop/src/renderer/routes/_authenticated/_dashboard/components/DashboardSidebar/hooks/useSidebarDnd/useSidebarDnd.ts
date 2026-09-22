@@ -46,6 +46,7 @@ import type {
 	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import { DRAG_ACTIVATION_DISTANCE_PX } from "./constants";
 import {
 	buildTopLevelUnits,
 	closestUnitCenter,
@@ -440,7 +441,7 @@ export function useSidebarDnd({
 			// listener installed at activation, detached one event loop after
 			// the drag ends).
 			mouse: {
-				activationConstraint: { distance: 5 },
+				activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE_PX },
 				disabled: noDragsPossible,
 			},
 			touch: {

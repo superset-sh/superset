@@ -56,7 +56,7 @@ export function FeaturesSection() {
 
 								{/* Demo */}
 								<div className={`${isReversed ? "lg:order-1" : "lg:order-2"}`}>
-									<FeatureDemo>
+									<FeatureDemo fitContent={feature.id === "agent-independence"}>
 										{DemoComponent && <DemoComponent />}
 									</FeatureDemo>
 								</div>

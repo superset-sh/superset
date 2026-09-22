@@ -1,6 +1,7 @@
 import {
 	describeRelayClose,
 	type HttpDialFrame,
+	RELAY_CONNECT_TIMEOUT_MS,
 	type StreamDial,
 	type StreamDialFailed,
 } from "@superset/shared/tunnel-protocol";
@@ -12,7 +13,7 @@ const PING_INTERVAL_MS = 30_000;
 const INBOUND_SILENCE_TIMEOUT_MS = 75_000;
 const WATCHDOG_INTERVAL_MS = 10_000;
 // How long the control socket may sit outside OPEN before the watchdog kicks
-// partysocket. Generous: covers its 5s max backoff plus 20s connect timeout.
+// partysocket. Generous: covers its 5s max backoff plus 30s connect timeout.
 // Partysocket owns retries, but a rejected url provider or a close handshake
 // that never lands can kill its cycle with nothing left to revive it.
 const STUCK_CONTROL_GRACE_MS = 60_000;
@@ -33,11 +34,6 @@ function withTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
 		}),
 	]);
 }
-// Each dial-back gets its own connect budget, kept inside the relay's
-// DIAL_TIMEOUT_MS: two 3s attempts leave the relay time to hear the failure
-// report and answer the client at once instead of after the 10s stream or 30s
-// exchange window. A lost SYN or a slow resolver used to cost the whole window.
-const DIAL_CONNECT_TIMEOUT_MS = 3_000;
 const DIAL_ATTEMPTS = 2;
 const MAX_BUFFERED_FRAMES = 256;
 // Bodies are chunked below the Durable Object's per-message ceiling; large
@@ -127,7 +123,7 @@ export class TunnelClient {
 			WebSocket: globalThis.WebSocket,
 			maxReconnectionDelay: 5_000,
 			minReconnectionDelay: 1_000,
-			connectionTimeout: 20_000,
+			connectionTimeout: RELAY_CONNECT_TIMEOUT_MS,
 		});
 		this.control = control;
 
@@ -241,7 +237,13 @@ export class TunnelClient {
 		ticket: string,
 		attach: (relayWs: WebSocket) => void,
 	): void {
+		const deadline = performance.now() + RELAY_CONNECT_TIMEOUT_MS;
 		const attempt = (n: number) => {
+			const remaining = deadline - performance.now();
+			if (remaining <= 0) {
+				this.reportDialFailed(ticket);
+				return;
+			}
 			const ws = new WebSocket(this.dialUrl(ticket));
 			ws.binaryType = "arraybuffer";
 			const listeners = new AbortController();
@@ -252,8 +254,8 @@ export class TunnelClient {
 			const timer = setTimeout(() => {
 				listeners.abort();
 				closeQuietly(ws, 1000, "Dial connect timed out");
-				retry();
-			}, DIAL_CONNECT_TIMEOUT_MS);
+				this.reportDialFailed(ticket);
+			}, remaining);
 			ws.addEventListener(
 				"open",
 				() => {
@@ -279,7 +281,7 @@ export class TunnelClient {
 
 	private reportDialFailed(ticket: string): void {
 		console.warn(
-			`[host-service:tunnel] dial-back failed after ${DIAL_ATTEMPTS} attempts; reporting to relay`,
+			"[host-service:tunnel] dial-back failed or timed out; reporting to relay",
 		);
 		if (this.control?.readyState !== WebSocket.OPEN) return;
 		this.control.send(

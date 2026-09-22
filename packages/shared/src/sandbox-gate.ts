@@ -99,6 +99,35 @@ export async function sandboxHostSecret(
 		.replace(/=+$/, "");
 }
 
+/** Carries `<workspaceId>.<credential>` from a box to the API. */
+export const SANDBOX_API_CREDENTIAL_HEADER = "x-superset-sandbox-credential";
+
+/**
+ * What a box presents to the API to act for its workspace. Derived, never
+ * stored, and distinct from the host secret so neither can be used where the
+ * other is expected. The box never holds it: the firewall adds it on the way
+ * out, the way the model and GitHub credentials are added.
+ */
+export async function sandboxApiCredential(
+	secret: string,
+	workspaceId: string,
+): Promise<string> {
+	const key = await crypto.subtle.importKey(
+		"raw",
+		encoder.encode(secret),
+		{ name: "HMAC", hash: "SHA-256" },
+		false,
+		["sign"],
+	);
+	const signature = new Uint8Array(
+		await crypto.subtle.sign("HMAC", key, encoder.encode(`api:${workspaceId}`)),
+	);
+	return btoa(String.fromCharCode(...signature))
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=+$/, "");
+}
+
 export function sandboxGateHostLabel(
 	workspaceId: string,
 	port: number,

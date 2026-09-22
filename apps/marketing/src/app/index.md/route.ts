@@ -70,7 +70,7 @@ export async function GET() {
 		`## Contact`,
 		"",
 		`- Support: support${COMPANY.EMAIL_DOMAIN}`,
-		`- Founders: ${COMPANY.FOUNDERS_EMAIL}`,
+		`- Team: ${COMPANY.TEAM_EMAIL}`,
 		`- [Discord](${COMPANY.DISCORD_URL})`,
 		`- [X](${COMPANY.X_URL})`,
 		`- [Status](${COMPANY.STATUS_URL})`,

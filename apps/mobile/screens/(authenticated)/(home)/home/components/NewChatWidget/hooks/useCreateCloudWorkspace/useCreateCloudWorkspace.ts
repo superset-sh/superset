@@ -22,6 +22,8 @@ interface CreateCloudWorkspaceArgs {
 	model: string | null;
 	effort: string | null;
 	message: PromptInputMessage;
+	/** Already-uploaded cloud ids; the sandbox pulls the bytes once it is up. */
+	attachmentFileIds: string[];
 }
 
 /**
@@ -44,18 +46,12 @@ export function useCreateCloudWorkspace() {
 			model,
 			effort,
 			message,
+			attachmentFileIds,
 		}: CreateCloudWorkspaceArgs) => {
 			if (!organizationId) throw new Error("No active organization");
 			if (!environmentId) {
 				throw new Error(
 					"Add an environment in Settings before creating a cloud workspace",
-				);
-			}
-			if (message.attachments.length > 0) {
-				// Attachments today are written to a host, and this workspace's
-				// host doesn't exist yet — blob-backed attachments are the fix.
-				throw new Error(
-					"Attachments are not supported for cloud workspaces yet",
 				);
 			}
 			// Only with something to say: an empty prompt leaves it idle.
@@ -70,6 +66,10 @@ export function useCreateCloudWorkspace() {
 				agent: launchAgent,
 				model: launchAgent ? (model ?? undefined) : undefined,
 				effort: launchAgent ? (effort ?? undefined) : undefined,
+				// Only with an agent to hand them to.
+				...(launchAgent && attachmentFileIds.length > 0
+					? { attachmentFileIds }
+					: {}),
 			});
 		},
 		onSuccess: (

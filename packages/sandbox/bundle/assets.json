@@ -1,0 +1,233 @@
+{
+	"chrome": {
+		"sha256": "9bb44e33031c2f2857cf36b4343051a12f93058e4b781e3c76313df87f6c8d32",
+		"suffix": ".deb",
+		"dest": "/usr/local/share/superset/media/google-chrome-153.0.8010.36.deb",
+		"mode": "0644",
+		"source": "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb",
+		"version": "153.0.8010.36"
+	},
+	"cli": {
+		"sha256": "66be5ff609582623dc943c2a6405553268c9b57d8ad215d2056cde9f746186ab",
+		"suffix": "",
+		"dest": "/usr/local/share/superset/media/superset-1.29.0",
+		"mode": "0755",
+		"version": "1.29.0"
+	},
+	"font-bold": {
+		"sha256": "e490660ad75e0b152c93b1604c2ea1a4ea675f1b8a3fe0d005b1998568f99f1f",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-Bold.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-bolditalic": {
+		"sha256": "19a2e3af8ccf99954941ea07e0a29df27574500f12016d86d6c4c059b825ffe1",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-BoldItalic.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-extrabold": {
+		"sha256": "8af99acce860533a64926ebff131aa9f37806ffef9636798f36c3a4a526f9e32",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-ExtraBold.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-extrabolditalic": {
+		"sha256": "75971b5b5eebb295298c4d1872e2a8906c3023cb98480c42ed4a9496ad16fd79",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-ExtraBoldItalic.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-extralight": {
+		"sha256": "e5a2b97faa48e7597022f61da03d754f1f8be0cac290942781b27a4525307d75",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-ExtraLight.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-extralightitalic": {
+		"sha256": "2789601fa34509d4d5991a3c8ae5afc8e28ac09147e8769d9578662a39dcf20f",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-ExtraLightItalic.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-italic": {
+		"sha256": "71d5466cc3ab31bee38b4e2c5cc99c2b41a749c4973ed4579b814ec992b0738e",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-Italic.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-light": {
+		"sha256": "c9f9fc2d79825d3cee9817e29b1a79ddcb30bfef5d8061120ee024d1f4a96228",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-Light.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-lightitalic": {
+		"sha256": "96d97618018ed4d7b27321904c0bed37c2df7b746c772a2a0515124c582e39c6",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-LightItalic.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-medium": {
+		"sha256": "c9405e11b36d071176e318263e7251e96e60f3804dfc5ac8b2806f1f8085b066",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-Medium.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-mediumitalic": {
+		"sha256": "27693c0aa1c56ea46a8978d042772a81da184d3aae7fe7b6a2394b5dc51cd296",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-MediumItalic.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-regular": {
+		"sha256": "1c680e8cde9fcf8b88a5605ce8d1fb94dd3fb15841f7ca7bf4c55664855e5611",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-Regular.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-semibold": {
+		"sha256": "d987f2994fa3000512ea6442e4b3fa8c96e0724262e2c5c9646f1ee02cae675e",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-SemiBold.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-semibolditalic": {
+		"sha256": "60571c34def77959bff1b8661e1cbce1bc0dee8e006ea78358b2af9990fd8587",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-SemiBoldItalic.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-thin": {
+		"sha256": "87a846220f9470d78b66d3fdf2e108156c68ac89a2fa5f058a90ef5be9f0e322",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-Thin.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"font-thinitalic": {
+		"sha256": "5c5935377631c86646e6fef3b0a739d4ff3771f632dc48f6963a727ad1b21063",
+		"suffix": ".ttf",
+		"dest": "/usr/share/fonts/truetype/jetbrains-mono-nerd/JetBrainsMonoNerdFont-ThinItalic.ttf",
+		"mode": "0644",
+		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
+		"version": "3.5.1"
+	},
+	"host-service": {
+		"sha256": "d89d8778309b41169ea64fdf8fbe919d0d373a3c335001c7185b4686b319805a",
+		"suffix": ".tar.gz",
+		"dest": "/usr/local/share/superset/media/host-service-1.29.0+bfc1ec72a.tar.gz",
+		"mode": "0644",
+		"version": "1.29.0+bfc1ec72a",
+		"node": 24
+	},
+	"wallpaper-0": {
+		"sha256": "497a4edb230a58ea385c8b63fe8135e47554cb4a5169de3f6bbae293a1f5435a",
+		"suffix": ".jpg",
+		"dest": "/usr/share/backgrounds/superset/0.jpg",
+		"mode": "0644",
+		"source": "https://raw.githubusercontent.com/elementary/wallpapers/b198df190adeffe8562e67d28370c91442f7dd77/backgrounds/Tj%20Holowaychuk.jpg"
+	},
+	"wallpaper-1": {
+		"sha256": "829c6ac1974f75ad3a3b89e855ba1b58015df971893f34dc5baec67e073df520",
+		"suffix": ".jpg",
+		"dest": "/usr/share/backgrounds/superset/1.jpg",
+		"mode": "0644",
+		"source": "https://raw.githubusercontent.com/elementary/wallpapers/b198df190adeffe8562e67d28370c91442f7dd77/backgrounds/Martin%20Adams.jpg"
+	},
+	"wallpaper-2": {
+		"sha256": "755ee3ab15f0974f74a5f2364510ceacc9fb0443bda3a14e38bd9919476ea585",
+		"suffix": ".jpg",
+		"dest": "/usr/share/backgrounds/superset/2.jpg",
+		"mode": "0644",
+		"source": "https://raw.githubusercontent.com/elementary/wallpapers/b198df190adeffe8562e67d28370c91442f7dd77/backgrounds/Morskie%20Oko.jpg"
+	},
+	"wallpaper-3": {
+		"sha256": "d852325538f48c27c80fe703d113d11f8d5bfbeb77aa3d70a167b174474547e5",
+		"suffix": ".jpg",
+		"dest": "/usr/share/backgrounds/superset/3.jpg",
+		"mode": "0644",
+		"source": "https://raw.githubusercontent.com/elementary/wallpapers/b198df190adeffe8562e67d28370c91442f7dd77/backgrounds/Sunset%20by%20the%20Pier.jpg"
+	},
+	"wallpaper-4": {
+		"sha256": "e8834c5e8544c6670e4301fc1c30d61617c858d8ce5b7e3c3e9517d6d59d01b4",
+		"suffix": ".jpg",
+		"dest": "/usr/share/backgrounds/superset/4.jpg",
+		"mode": "0644",
+		"source": "https://raw.githubusercontent.com/elementary/wallpapers/b198df190adeffe8562e67d28370c91442f7dd77/backgrounds/Photo%20by%20SpaceX.jpg"
+	},
+	"wallpaper-5": {
+		"sha256": "71505c03dda194d23f8e0aff5f00d8c3683912df1ff42da07d8b446921d49d55",
+		"suffix": ".jpg",
+		"dest": "/usr/share/backgrounds/superset/5.jpg",
+		"mode": "0644",
+		"source": "https://raw.githubusercontent.com/elementary/wallpapers/b198df190adeffe8562e67d28370c91442f7dd77/backgrounds/Ashim%20DSilva.jpg"
+	},
+	"wallpaper-6": {
+		"sha256": "3811b23cfdd57400a59222be6e4b9dc0644c0b4300b643cd8670b9100e925952",
+		"suffix": ".jpg",
+		"dest": "/usr/share/backgrounds/superset/6.jpg",
+		"mode": "0644",
+		"source": "https://raw.githubusercontent.com/elementary/wallpapers/b198df190adeffe8562e67d28370c91442f7dd77/backgrounds/Viktor%20Forgacs.jpg"
+	},
+	"wallpaper-7": {
+		"sha256": "a608225ae64197324789bffea212baf43bf3697e9002c585fd7b59a805377747",
+		"suffix": ".jpg",
+		"dest": "/usr/share/backgrounds/superset/7.jpg",
+		"mode": "0644",
+		"source": "https://raw.githubusercontent.com/elementary/wallpapers/b198df190adeffe8562e67d28370c91442f7dd77/backgrounds/Snow-Capped%20Mountain.jpg"
+	},
+	"whitesur-cursors": {
+		"sha256": "2a5f46eca3916b3760cdbfb89fb617c2cadbf8d7dc3e46374ed61191feda668d",
+		"suffix": ".tar.gz",
+		"dest": "/usr/local/share/superset/media/whitesur-cursors.tar.gz",
+		"mode": "0644",
+		"source": "https://github.com/vinceliuice/WhiteSur-cursors/commit/e190baf618ed95ee217d2fd45589bd309b37672b",
+		"version": "e190baf618ed"
+	},
+	"whitesur-gtk": {
+		"sha256": "85beb9f0764e8b12c439ab092334639c9c0e13b0228182fdd6d84a15ea107884",
+		"suffix": ".tar.gz",
+		"dest": "/usr/local/share/superset/media/whitesur-gtk.tar.gz",
+		"mode": "0644",
+		"source": "https://github.com/vinceliuice/WhiteSur-gtk-theme/commit/99247ecd219bdc1c7409baff062b4aafcf1102a7",
+		"version": "99247ecd219b"
+	},
+	"whitesur-icons": {
+		"sha256": "fe087481179167cb3b07c6240621c6a856a268726ebdd89a49787adb0b49f0f9",
+		"suffix": ".tar.gz",
+		"dest": "/usr/local/share/superset/media/whitesur-icons.tar.gz",
+		"mode": "0644",
+		"source": "https://github.com/vinceliuice/WhiteSur-icon-theme/commit/73d8040da51a9ed74e47c7366e7e9ff437601a5c",
+		"version": "73d8040da51a"
+	}
+}

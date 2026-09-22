@@ -2,6 +2,7 @@ import { selectAll } from "@codemirror/commands";
 import { openSearchPanel } from "@codemirror/search";
 import { EditorSelection } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
+import { replaceEditorDocument } from "renderer/lib/replaceEditorDocument";
 
 export interface EditorSelectionLines {
 	startLine: number;
@@ -33,13 +34,7 @@ export function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
 			return view.state.doc.toString();
 		},
 		setValue(value) {
-			view.dispatch({
-				changes: {
-					from: 0,
-					to: view.state.doc.length,
-					insert: value,
-				},
-			});
+			view.dispatch(replaceEditorDocument(view.state, value));
 		},
 		revealPosition(line, column = 1) {
 			const safeLine = Math.max(1, Math.min(line, view.state.doc.lines));

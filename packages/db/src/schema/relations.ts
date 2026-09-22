@@ -16,6 +16,7 @@ import {
 import {
 	agentCommands,
 	chatSessions,
+	connections,
 	integrationConnections,
 	pageComments,
 	pageCommentThreads,
@@ -41,7 +42,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	invitations: many(invitations),
 	createdTasks: many(tasks, { relationName: "creator" }),
 	assignedTasks: many(tasks, { relationName: "assignee" }),
-	connectedIntegrations: many(integrationConnections),
+	connectedIntegrations: many(connections),
 	githubInstallations: many(githubInstallations),
 	v2Hosts: many(v2Hosts),
 	v2Clients: many(v2Clients),
@@ -76,7 +77,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	workspaces: many(workspaces),
 	tasks: many(tasks),
 	taskStatuses: many(taskStatuses),
-	integrations: many(integrationConnections),
+	integrations: many(connections),
 	githubInstallations: many(githubInstallations),
 	githubRepositories: many(githubRepositories),
 	githubPullRequests: many(githubPullRequests),
@@ -144,6 +145,17 @@ export const taskStatusesRelations = relations(
 		tasks: many(tasks),
 	}),
 );
+
+export const connectionsRelations = relations(connections, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [connections.organizationId],
+		references: [organizations.id],
+	}),
+	connectedBy: one(users, {
+		fields: [connections.connectedByUserId],
+		references: [users.id],
+	}),
+}));
 
 export const integrationConnectionsRelations = relations(
 	integrationConnections,

@@ -1,5 +1,3 @@
-// Code-drawn phone for the "coming soon" card. The app is not on the App Store
-// yet, so a real capture would be a screenshot of something nobody can install.
 const SESSIONS: readonly { title: string; meta: string; age: string }[] = [
 	{ title: "Add user authentication flow", meta: "Claude · +340", age: "10h" },
 	{ title: "Fix onboarding crash", meta: "Codex · +46 −1", age: "1d" },

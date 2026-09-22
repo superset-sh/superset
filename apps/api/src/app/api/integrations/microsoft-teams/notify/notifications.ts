@@ -1,7 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { accountConnection, connectionById } from "@superset/trpc/connectors";
 import { z } from "zod";
 
 /**
@@ -78,32 +76,22 @@ export type AuthenticatedConnection = {
 export async function loadConnection(
 	connectionId: string,
 ): Promise<AuthenticatedConnection | null> {
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.id, connectionId),
-			eq(integrationConnections.provider, "microsoft_teams"),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		columns: {
-			id: true,
-			organizationId: true,
-			externalOrgId: true,
-			config: true,
-		},
+	const connection = await connectionById(connectionId, {
+		connector: "microsoft_teams",
 	});
 	if (
 		!connection ||
-		!connection.externalOrgId ||
-		connection.config?.provider !== "microsoft_teams"
+		!connection.externalAccountId ||
+		connection.state?.provider !== "microsoft_teams"
 	) {
 		return null;
 	}
 	return {
 		id: connection.id,
 		organizationId: connection.organizationId,
-		tenantId: connection.externalOrgId,
-		clientState: connection.config.clientState,
-		subscriptions: connection.config.subscriptions,
+		tenantId: connection.externalAccountId,
+		clientState: connection.state.clientState,
+		subscriptions: connection.state.subscriptions,
 	};
 }
 
@@ -119,24 +107,15 @@ export async function authenticateNotification(notification: {
 	| { ok: true; connection: AuthenticatedConnection }
 	| { ok: false; reason: string }
 > {
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.provider, "microsoft_teams"),
-			eq(integrationConnections.externalOrgId, notification.tenantId),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		columns: {
-			id: true,
-			organizationId: true,
-			externalOrgId: true,
-			config: true,
-		},
-	});
-	if (!connection || connection.config?.provider !== "microsoft_teams") {
+	const connection = await accountConnection(
+		"microsoft_teams",
+		notification.tenantId,
+	);
+	if (!connection || connection.state?.provider !== "microsoft_teams") {
 		return { ok: false, reason: "unknown tenant" };
 	}
 	if (
-		!equalClientState(connection.config.clientState, notification.clientState)
+		!equalClientState(connection.state.clientState, notification.clientState)
 	) {
 		return { ok: false, reason: "clientState mismatch" };
 	}
@@ -146,8 +125,8 @@ export async function authenticateNotification(notification: {
 			id: connection.id,
 			organizationId: connection.organizationId,
 			tenantId: notification.tenantId,
-			clientState: connection.config.clientState,
-			subscriptions: connection.config.subscriptions,
+			clientState: connection.state.clientState,
+			subscriptions: connection.state.subscriptions,
 		},
 	};
 }

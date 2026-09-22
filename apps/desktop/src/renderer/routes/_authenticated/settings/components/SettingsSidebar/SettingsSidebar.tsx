@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { COMPANY } from "@superset/shared/constants";
+import { COMPANY, FEATURE_FLAGS } from "@superset/shared/constants";
 import { Link } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	HiArrowLeft,
 	HiArrowTopRightOnSquare,
@@ -22,9 +23,18 @@ export function SettingsSidebar() {
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const mobileEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.MOBILE_LAUNCH) === true;
+	const cloudWorkspacesEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
 	const normalizedSearchQuery = searchQuery.trim();
 	const matchCounts = normalizedSearchQuery
-		? getVisibleMatchCountBySection(normalizedSearchQuery, isV2CloudEnabled)
+		? getVisibleMatchCountBySection(
+				normalizedSearchQuery,
+				isV2CloudEnabled,
+				cloudWorkspacesEnabled,
+				mobileEnabled,
+			)
 		: null;
 
 	return (

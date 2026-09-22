@@ -10,12 +10,12 @@ import type { TRPCClient } from "@trpc/client";
 import type { ReactNode } from "react";
 import { pageCommentKeys } from "../../lib/pageCommentKeys";
 import { CloudClientProvider } from "../../providers/CloudClientProvider";
-import type { ServerThread } from "../../types";
+import type { CreateThreadArgs, ServerThread } from "../../types";
 import { usePageComments } from "./usePageComments";
 
 interface PageCommentFns {
 	list: () => Promise<ServerThread[]>;
-	create: () => Promise<ServerThread>;
+	create: (input: CreateThreadArgs) => Promise<ServerThread>;
 	reply: () => Promise<{
 		id: string;
 		body: string;
@@ -144,6 +144,53 @@ describe("usePageComments", () => {
 		await waitFor(() => {
 			expect(rows(queryClient)?.[0]?.id).toBe("server-1");
 		});
+	});
+
+	test("sends a page-kind thread with a null anchor when none is given", async () => {
+		const sent: CreateThreadArgs[] = [];
+		const client = makeClient({
+			create: async (input) => {
+				sent.push(input);
+				return serverThread("server-1", "server-c1");
+			},
+		});
+		const { result } = setup(client, []);
+
+		await act(async () => {
+			await result.current.store.createThread({ body: "hello" });
+		});
+
+		expect(sent[0]?.anchorKind).toBe("page");
+		expect(sent[0]?.anchor).toBeNull();
+		expect(sent[0]?.anchorText).toBeNull();
+	});
+
+	test("sends an element-kind thread when an anchor is given", async () => {
+		const sent: CreateThreadArgs[] = [];
+		const client = makeClient({
+			create: async (input) => {
+				sent.push(input);
+				return serverThread("server-1", "server-c1");
+			},
+		});
+		const { result } = setup(client, []);
+
+		await act(async () => {
+			await result.current.store.createThread({
+				anchor: { path: "p", tag: "p", text: "p", offsetX: 0, offsetY: 0.5 },
+				anchorText: "quoted",
+				body: "hello",
+			});
+		});
+
+		expect(sent[0]?.anchorKind).toBe("element");
+		expect(sent[0]?.anchor).toEqual({
+			path: "p",
+			tag: "p",
+			offsetX: 0,
+			offsetY: 0.5,
+		});
+		expect(sent[0]?.anchorText).toBe("quoted");
 	});
 
 	test("restores the previous rows when a mutation fails", async () => {

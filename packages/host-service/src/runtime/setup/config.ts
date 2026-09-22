@@ -12,6 +12,8 @@ export interface SetupConfig {
 	setup?: string[];
 	teardown?: string[];
 	run?: string[];
+	/** Services a cloud workspace needs on every boot; runs once host-service is up. */
+	start?: string[];
 	cwd?: string;
 }
 
@@ -24,9 +26,10 @@ interface LocalSetupConfig {
 	setup?: string[] | LocalScriptMerge;
 	teardown?: string[] | LocalScriptMerge;
 	run?: string[] | LocalScriptMerge;
+	start?: string[] | LocalScriptMerge;
 }
 
-const SCRIPT_KEYS = ["setup", "teardown", "run"] as const;
+const SCRIPT_KEYS = ["setup", "teardown", "run", "start"] as const;
 export type ScriptKey = (typeof SCRIPT_KEYS)[number];
 
 function isStringArray(value: unknown): value is string[] {
@@ -138,6 +141,7 @@ function mergeBaseConfigs(
 		setup: override.setup ?? base.setup,
 		teardown: override.teardown ?? base.teardown,
 		run: override.run ?? base.run,
+		start: override.start ?? base.start,
 		cwd: override.cwd ?? base.cwd,
 	};
 }

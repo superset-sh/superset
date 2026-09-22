@@ -8,6 +8,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
 	Building2,
 	Check,
+	Globe,
 	Link2,
 	Lock,
 	type LucideIcon,
@@ -155,6 +156,13 @@ export function PageShareSheet() {
 					selected={visibility === "org"}
 					disabled={locked}
 					onPress={() => setVisibility.mutate("org")}
+				/>
+				<ChoiceRow
+					icon={Globe}
+					label={t({ message: "Anyone with the link" })}
+					selected={visibility === "everyone"}
+					disabled={locked}
+					onPress={() => setVisibility.mutate("everyone")}
 				/>
 
 				<View className="h-5" />

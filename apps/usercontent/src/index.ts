@@ -15,6 +15,7 @@ import {
 	pageManifestKey,
 	pageThumbnailKey,
 	parsePageManifest,
+	publiclyReadable,
 	RUNTIME_SCRIPT_PATH,
 	servedVersionOf,
 	THUMBNAIL_FILENAME,
@@ -29,7 +30,7 @@ type AppContext = { Bindings: UsercontentEnv };
 
 const app = new Hono<AppContext>();
 
-const IMMUTABLE = "public, max-age=31536000, immutable";
+const PUBLIC_REVOCABLE = "public, max-age=300";
 
 /**
  * How long a reader may keep what a ticket fetched: never past the ticket
@@ -130,15 +131,17 @@ function requestedVersion(c: Context<AppContext>): number | null | undefined {
 }
 
 /**
- * A public page is open. Anything narrower needs the ticket the API minted
- * for it — for this page, and if the ticket names a version, for this one.
+ * A public page is open at the version its link resolves to. Anything
+ * narrower — including the other versions of that same public page — needs
+ * the ticket the API minted for it, for this page, and if the ticket names a
+ * version, for this one.
  */
 async function authorized(
 	c: Context<AppContext>,
 	manifest: PageManifest,
 	version: number,
 ): Promise<PageTicketClaims | "public" | null> {
-	if (manifest.visibility === "everyone") return "public";
+	if (publiclyReadable(manifest, version)) return "public";
 	const ticket = requestTicket(c);
 	if (!ticket) return null;
 	const claims = await verifyPageTicket(
@@ -178,15 +181,15 @@ async function servePage(c: Context<AppContext>): Promise<Response> {
 	const auth = await authorized(c, manifest, version);
 	if (!auth) return signInRedirect(c, manifest.slug);
 
-	// A pinned version is an immutable snapshot, so it caches like the assets
-	// beside it. The served alias moves when a new version is published, so it
-	// has to revalidate — the ETag is what makes that cost a set of headers
-	// rather than the whole document again.
+	// A pinned ticketed version is an immutable snapshot, so it caches like the
+	// assets beside it. The served alias moves when a new version is published,
+	// so it has to revalidate — the ETag is what makes that cost a set of
+	// headers rather than the whole document again.
 	const pinned = requested !== null;
 	const cacheControl =
 		auth === "public"
 			? pinned
-				? IMMUTABLE
+				? PUBLIC_REVOCABLE
 				: "no-cache"
 			: pinned
 				? `private, max-age=${ticketSeconds(auth)}, immutable`
@@ -286,7 +289,7 @@ async function serveThumbnail(c: Context<AppContext>): Promise<Response> {
 			"Superset-Storage-Key": key,
 			"X-Content-Type-Options": "nosniff",
 			"Cache-Control":
-				remaining === null ? IMMUTABLE : `private, max-age=${remaining}`,
+				remaining === null ? PUBLIC_REVOCABLE : `private, max-age=${remaining}`,
 		},
 	});
 }
@@ -431,11 +434,11 @@ async function serveAsset(c: Context<AppContext>): Promise<Response> {
 	const auth = await authorized(c, manifest, version);
 	if (!auth) return signInRedirect(c, manifest.slug);
 
-	// Assets cache like the document's thumbnail: public versions immutably,
+	// Assets cache like the document's thumbnail: public versions briefly,
 	// ticketed ones only until the ticket that fetched them expires.
 	const cacheControl =
 		auth === "public"
-			? IMMUTABLE
+			? PUBLIC_REVOCABLE
 			: `private, max-age=${ticketSeconds(auth)}, immutable`;
 	const isHtml = asset.contentType.startsWith("text/html");
 	// Everything that is not the page's own document gets a policy of its own:

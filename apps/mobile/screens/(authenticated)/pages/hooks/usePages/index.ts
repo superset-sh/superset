@@ -4,4 +4,5 @@ export {
 	type PulledPage,
 	usePageQuery,
 	usePagesQuery,
+	useWorkspacePagesQuery,
 } from "./usePages";

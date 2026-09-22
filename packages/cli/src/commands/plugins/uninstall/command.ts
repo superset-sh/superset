@@ -23,8 +23,13 @@ export default command({
 		);
 
 		let accountError: string | null = null;
+		let disconnected = 0;
 		try {
-			await ctx.api.plugins.uninstall.mutate({ name, marketplace });
+			const result = await ctx.api.plugins.uninstall.mutate({
+				name,
+				marketplace,
+			});
+			disconnected = result.disconnected;
 		} catch (error) {
 			const code =
 				error && typeof error === "object" && "data" in error
@@ -37,11 +42,19 @@ export default command({
 
 		const removed = await removePlugin(name, marketplace);
 
+		const alsoDisconnected = disconnected
+			? ` Disconnected ${disconnected} account${disconnected === 1 ? "" : "s"}.`
+			: "";
+
 		return {
-			data: { name: removed.name, marketplace: removed.marketplace },
+			data: {
+				name: removed.name,
+				marketplace: removed.marketplace,
+				disconnected,
+			},
 			message: accountError
 				? `Removed ${removed.name}@${removed.version} (${removed.marketplace}) from this machine, but the account removal could not be confirmed: ${accountError}`
-				: `Removed ${removed.name}@${removed.version} (${removed.marketplace}).`,
+				: `Removed ${removed.name}@${removed.version} (${removed.marketplace}).${alsoDisconnected}`,
 		};
 	},
 });

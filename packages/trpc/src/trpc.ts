@@ -7,6 +7,10 @@ import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
 import { formatError, userError } from "./i18n-error";
 import { posthog } from "./lib/analytics";
+import {
+	SANDBOX_ALLOWED_PROCEDURES,
+	type SandboxCaller,
+} from "./lib/sandbox/api-credential";
 
 export type { I18nErrorCause, RequiredPlan } from "./i18n-error";
 export { isI18nErrorCause, planRequiredError, userError } from "./i18n-error";
@@ -54,16 +58,24 @@ export type TRPCContext = {
 	headers: Headers;
 	client: ApiClientInfo | null;
 	agentCaller: AgentCaller | null;
+	/**
+	 * Set when a cloud workspace is acting for itself, with the credential the
+	 * firewall adds on its way out. It carries the creator's identity, so the
+	 * procedures it may reach are an allowlist, not everything they can do.
+	 */
+	sandboxCaller: SandboxCaller | null;
 };
 
 export const createTRPCContext = (
-	opts: Omit<TRPCContext, "client" | "agentCaller"> & {
+	opts: Omit<TRPCContext, "client" | "agentCaller" | "sandboxCaller"> & {
 		agentCaller?: AgentCaller | null;
+		sandboxCaller?: SandboxCaller | null;
 	},
 ): TRPCContext => ({
 	...opts,
 	client: parseClientHeader(opts.headers),
 	agentCaller: opts.agentCaller ?? null,
+	sandboxCaller: opts.sandboxCaller ?? null,
 });
 
 const t = initTRPC.context<TRPCContext>().create({
@@ -71,6 +83,23 @@ const t = initTRPC.context<TRPCContext>().create({
 	errorFormatter({ shape, error }) {
 		return formatError({ shape, error });
 	},
+});
+
+/**
+ * A box may only reach what `superset` inside it needs. Everything else is a
+ * person's call, made from a client they signed into — the credential is
+ * unstealable, but every process in the box can use it.
+ */
+const sandboxScope = t.middleware(async ({ ctx, path, next }) => {
+	if (ctx.sandboxCaller && !SANDBOX_ALLOWED_PROCEDURES.has(path)) {
+		throw userError({
+			code: "FORBIDDEN",
+			message: `A cloud workspace cannot call ${path}. Run this from a client you are signed into.`,
+			i18nKey: "serverError.common.cloudWorkspaceCannotCallThis",
+			params: { path },
+		});
+	}
+	return next();
 });
 
 export const createTRPCRouter = t.router;
@@ -117,6 +146,7 @@ const PENDING_DELETION_ALLOWED_PROCEDURES = new Set([
 ]);
 
 export const protectedProcedure = t.procedure
+	.use(sandboxScope)
 	.use(clientTelemetry)
 	.use(async ({ ctx, next }) => {
 		if (!ctx.session) {
@@ -154,17 +184,25 @@ export const protectedProcedure = t.procedure
 					eq(members.organizationId, headerOrgId),
 				),
 			});
-			if (!membership) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: `Not a member of organization ${headerOrgId}`,
-				});
-			}
+			if (!membership) throw notAMemberOfOrganization(headerOrgId);
 			activeOrganizationId = headerOrgId;
 		}
 
 		return next({ ctx: { ...ctx, activeOrganizationId } });
 	});
+
+/**
+ * Callers pass the organization in a header (the CLI sends
+ * SUPERSET_ORGANIZATION_ID, or the organization it last logged into), so the
+ * id in this error is usually one the caller never typed. Saying where it
+ * came from is what turns "not a member" into something actionable.
+ */
+function notAMemberOfOrganization(organizationId: string): TRPCError {
+	return new TRPCError({
+		code: "FORBIDDEN",
+		message: `Not a member of organization ${organizationId}, which was asked for in the x-superset-organization-id header`,
+	});
+}
 
 function resolveActiveOrganizationId(
 	organizationIds: string[],
@@ -175,16 +213,14 @@ function resolveActiveOrganizationId(
 	}
 
 	if (!organizationIds.includes(requestedOrganizationId)) {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: `Not a member of organization ${requestedOrganizationId}`,
-		});
+		throw notAMemberOfOrganization(requestedOrganizationId);
 	}
 
 	return requestedOrganizationId;
 }
 
 export const jwtProcedure = t.procedure
+	.use(sandboxScope)
 	.use(async ({ ctx, next }) => {
 		const authHeader = ctx.headers.get("authorization");
 		const bearer = authHeader?.startsWith("Bearer ")

@@ -5,6 +5,11 @@ for the Blaxel → Vercel port and kept because every one of these is a place
 the stack broke before. Each entry names the thing under test, how to run it,
 and what "pass" looks like. Mark results inline while running.
 
+Section 11 is the v2 layout (2026-09-13: `packages/sandbox`, the bundle, the
+`ubuntu` user, the boot runner, the env push, header rules for every
+credential, websockify on its own port). Where an earlier entry names a path
+or mechanism v2 replaced, section 11 says what the check is now.
+
 Status legend: `[ ]` not run · `[x]` pass · `[!]` fail (note why).
 
 ## 1. Provider primitives (SDK, no Superset code)
@@ -29,7 +34,7 @@ Run from a throwaway script against the `sandboxes` project in the
 
 ## 2. Image
 
-- [x] **2.1 Image builds and pushes to VCR** — `bun run scripts/sandbox/image.ts`
+- [x] **2.1 Image builds and pushes to VCR** — `bun run --cwd packages/sandbox image`
   builds `linux/amd64` and pushes `superset-hostsvc:<tag>`; VCR reports `Ready`. (~10 min incl. VCR Preparing)
 - [x] **2.2 Natives load** — in a sandbox from the image: `node -e
   'require("/app/node_modules/better-sqlite3"); require("/app/node_modules/node-pty")'`
@@ -180,3 +185,53 @@ Dev API (`bun dev`), Neon dev branch, real Vercel project.
   fixed or replaced, new Vercel entries added.
 - [x] **10.6** No `blaxel` left in code: `git grep -il blaxel` matches only
   `packages/db/drizzle/` and the docs and plans that record the migration.
+
+## 11. The v2 layout (2026-09-13)
+
+Automated, on every PR that touches the sandbox (`.github/workflows/sandbox.yml`):
+
+- [x] **11.1 Boot twice** — `bun run --cwd packages/sandbox image --local`
+  then `bun run src/boot-twice.ts`: the image boots as a box would (stub
+  `sandbox.conf`, `superset-boot` with the secret in its env), host-service
+  answers on 4879 as `ubuntu` with pid, ready flags and `ptyd.sock` in
+  `/run/superset`, refuses `/events` without the secret, the display comes up
+  (X, websockify on 6080, window manager), no secret is on disk, every step
+  reports current; the second boot clears the run dir, installs nothing,
+  fetches nothing, skips every step, keeps the checkout. (2026-09-14: 20/20,
+  host-service ready in 4.4 s on both boots)
+- [x] **11.2 Manifest math** — `bun test` in `packages/sandbox`: step versions
+  move when and only when the script, a declared asset, an upstream step or
+  the salt changes; the tarball is deterministic. (9 pass)
+- [x] **11.3 Publish guard** — `bun run build --publish` refuses a bundle
+  whose assets the bucket lacks; a second run uploads nothing. (bucket
+  `superset-cdn`, `cdn.superset.sh/sandbox/<sha><suffix>`)
+
+On demand (`workflow_dispatch` → `bun run src/real-sandbox.ts`, or the
+release's probe):
+
+- [x] **11.4 A real box** — provisioned from the registry image on this
+  checkout's bundle, woken through `wakeSandbox`: health 200, `/events` 401,
+  boot.log on the pinned bundle with no failed step, host-service as `ubuntu`
+  with no brokered credential in its `/proc/<pid>/environ`, checkout on the
+  branch, Xvnc + xfce4-session + plank up, an `RFB` handshake over
+  `wss://<domain 6080>/websockify`, the gate admitting a ticket and refusing
+  a forged one; then stop + wake: run dir cleared, nothing installed or
+  fetched, every step skipped, checkout kept. (2026-09-14 on the dev project: all checks, wake in 11.9 s)
+- [x] **11.5 Desktop pane through the gate** — the pane connects to the
+  desktop port's gate address with its own ticket (`access` returns
+  `desktop.url` + `desktop.token`); a screenshot of the Xfce session in the
+  pane. (2026-09-14 in the dev app through the local gate: Xfce + dock, take control both ways, terminal from the dock, a 3.2 s window drag repainted 121 frames with an 18 ms median gap)
+- [ ] **11.6 Release** — `bun run sandbox:release` against dev: runtime asset
+  rewritten, bundle published, golden built with the internal `setup` hook,
+  probe fork passes 11.4 plus the dev stack from the `start` hook, rows
+  written only after; a failed probe leaves the previous rows intact.
+- [ ] **11.7 Rollback** — point `environments.bundle_sha` at the previous sha
+  (`environment.update`); the next wake flips `current` with no download.
+
+Superseded by v2 (kept for the shape of the trap): 2.2–2.5 (`/app`, root,
+`start.sh` → the bundle's runtime under `/opt/superset/host`, `ubuntu`,
+`superset-boot`), 3.5 (`/desktop/vnc` → `/websockify` on the desktop port),
+6.1 and 6.3 (`/data/*` and `/data/environment.env` → `/etc/superset`,
+`/var/lib/superset` and the env push), 7.3 (`start.sh` → `superset-boot`),
+8.4 (the askpass path → a header rule; no token in the box).
+

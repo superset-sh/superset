@@ -39,4 +39,5 @@ jq -n \
   --argjson agents "$(run_json agents list --local)" \
   --argjson hosts "$(run_json hosts list)" \
   --argjson tasks "$(run_json tasks list)" \
-  '{whoami: $whoami, automations: $automations, workspaces: $workspaces, agents: $agents, hosts: $hosts, tasks: $tasks}'
+  --argjson pages "$(unset SUPERSET_WORKSPACE_ID; run_json pages list)" \
+  '{whoami: $whoami, automations: $automations, workspaces: $workspaces, agents: $agents, hosts: $hosts, tasks: $tasks, pages: $pages}'

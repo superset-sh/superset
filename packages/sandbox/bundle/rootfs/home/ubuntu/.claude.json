@@ -1,0 +1,15 @@
+{
+	"hasCompletedOnboarding": true,
+	"bypassPermissionsModeAccepted": true,
+	"theme": "dark",
+	"customApiKeyResponses": {
+		"approved": ["-see-network-routing"],
+		"rejected": []
+	},
+	"projects": {
+		"/workspace": {
+			"hasTrustDialogAccepted": true,
+			"projectOnboardingSeenCount": 1
+		}
+	}
+}

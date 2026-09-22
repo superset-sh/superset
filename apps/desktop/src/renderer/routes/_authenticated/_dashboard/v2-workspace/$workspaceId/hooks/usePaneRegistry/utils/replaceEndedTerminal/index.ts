@@ -1,0 +1,1 @@
+export { replaceEndedTerminal } from "./replaceEndedTerminal";

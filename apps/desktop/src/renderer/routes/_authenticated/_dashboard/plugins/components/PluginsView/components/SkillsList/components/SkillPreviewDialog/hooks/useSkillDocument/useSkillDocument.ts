@@ -119,6 +119,7 @@ export function useSkillDocument({ name }: UseSkillDocumentParams) {
 			setLocal({ name, draft: null, saveError: null });
 			await utils.plugins.getSkillContent.invalidate({ name });
 		},
+		compareWithDisk: async () => {},
 		loadUnlimited: async () => {},
 		resolveConflict: async () => {},
 		clearSaveError,

@@ -8,6 +8,7 @@ import { Tab } from "./components/Tab";
 import { TabBar } from "./components/TabBar";
 import { TAB_DRAG_TYPE } from "./components/TabBar/components/TabItem";
 import { useWorkspaceInteractionState } from "./hooks/useWorkspaceInteractionState";
+import { notifyClosedPanes } from "./utils/notifyClosedPanes";
 
 export function Workspace<TData>({
 	store,
@@ -55,6 +56,14 @@ export function Workspace<TData>({
 		return activeTab;
 	}, [draggedTabId, activeTabId, tabs, activeTab]);
 
+	useEffect(
+		() =>
+			store.getState().subscribePaneClose((panes) => {
+				notifyClosedPanes(panes, registry);
+			}),
+		[store, registry],
+	);
+
 	const previousPanesRef = useRef<Map<string, Pane<TData>>>(new Map());
 	useEffect(() => {
 		const current = new Map<string, Pane<TData>>();
@@ -65,7 +74,7 @@ export function Workspace<TData>({
 		}
 		for (const [prevId, prevPane] of previousPanesRef.current) {
 			if (!current.has(prevId)) {
-				registry[prevPane.kind]?.onAfterClose?.(prevPane);
+				registry[prevPane.kind]?.onAfterRemove?.(prevPane);
 			}
 		}
 		previousPanesRef.current = current;

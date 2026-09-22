@@ -186,6 +186,17 @@ port_base_is_safe() {
   return 0
 }
 
+# Two services on one offset surfaces much later, as EADDRINUSE from whichever
+# starts second.
+assert_unique_ports() {
+  local dupes
+  dupes=$(printf '%s\n' "$@" | sort | uniq -d)
+  if [ -n "$dupes" ]; then
+    error "Two services were assigned the same port: $(echo "$dupes" | tr '\n' ' ')"
+    return 1
+  fi
+}
+
 allocate_port_base() {
   local alloc_file="$HOME/.superset/port-allocations.json"
   local lock_dir="$HOME/.superset/port-allocations.lock"
@@ -378,6 +389,11 @@ step_write_env() {
   # Generate .superset/ports.json for static port name mapping in the desktop app
   local superset_dir
   superset_dir="${SUPERSET_SCRIPT_DIR:-$(dirname "$0")}"
+  assert_unique_ports "$WEB_PORT" "$API_PORT" "$MARKETING_PORT" "$ADMIN_PORT" \
+    "$DOCS_PORT" "$DESKTOP_VITE_PORT" "$DESKTOP_NOTIFICATIONS_PORT" "$STREAMS_PORT" \
+    "$STREAMS_INTERNAL_PORT" "$CODE_INSPECTOR_PORT" "$RELAY_PORT" "$USERCONTENT_DEV_PORT" \
+    "$SANDBOX_GATE_DEV_PORT" "$REALTIME_PORT" || return 1
+
   cat > "$superset_dir/ports.json" <<PORTSJSON
 {
   "ports": [

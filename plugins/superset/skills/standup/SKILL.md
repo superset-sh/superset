@@ -13,7 +13,7 @@ Answer "what happened while I was away?" from real state, not guesses. Entirely 
 
 Run `bash scripts/sweep.sh` from this skill's directory (`bash ${CLAUDE_SKILL_DIR}/scripts/sweep.sh` in Claude Code). It lists workspaces and tasks, then for each workspace lists its terminals and reads the last screen of every agent terminal, tolerating individual failures. Pass `--host <id>` to sweep a remote host, `--max-lines <n>` to change the per-terminal tail (default 60).
 
-If the script can't run (no bash, no `jq`), do the same by hand: `superset workspaces list --json`, `superset tasks list --json`, then per workspace `superset terminals list --workspace <id> --json` and `superset terminals read --workspace <id> --terminal <terminalId> --max-lines 60`.
+If the script can't run (no bash, no `jq`), do the same by hand: `superset workspaces list --local --json`, `superset tasks list --json`, then per workspace `superset terminals list --workspace <id> --json` and `superset terminals read --workspace <id> --terminal <terminalId> --max-lines 60`.
 
 The last screen of a terminal shows whether the agent finished, asked a question, or errored.
 

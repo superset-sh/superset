@@ -69,7 +69,16 @@ export const LEAKED_MODE_DISARM: Record<LeakableInputMode, string> = {
 	focus: `${ESC}[?1004l`,
 };
 
+export interface LeakedInputModeReclaimerSnapshot {
+	sawMarker: boolean;
+	modes: [
+		LeakableInputMode,
+		{ armed: boolean; shellOwned: boolean; pending: boolean },
+	][];
+}
+
 export interface LeakedInputModeReclaimer {
+	snapshot(): LeakedInputModeReclaimerSnapshot;
 	/** Record a mode arming (true) or restore (false) seen in the stream. */
 	noteArm(mode: LeakableInputMode, armed: boolean): void;
 	/**
@@ -90,20 +99,27 @@ export interface LeakedInputModeReclaimer {
  * Create a transport-agnostic reclaimer. Feed it arm/marker events from any
  * source and write whatever `collectDisarm` returns back to the terminal.
  */
-export function createLeakedInputModeReclaimer(): LeakedInputModeReclaimer {
+export function createLeakedInputModeReclaimer(
+	snapshot?: LeakedInputModeReclaimerSnapshot,
+): LeakedInputModeReclaimer {
 	const modeNames: LeakableInputMode[] = ["kitty", "mouse", "focus"];
 	const state = new Map<
 		LeakableInputMode,
 		{ armed: boolean; shellOwned: boolean; pending: boolean }
 	>(
-		modeNames.map((m) => [
-			m,
-			{ armed: false, shellOwned: false, pending: false },
-		]),
+		snapshot
+			? structuredClone(snapshot.modes)
+			: modeNames.map((m) => [
+					m,
+					{ armed: false, shellOwned: false, pending: false },
+				]),
 	);
-	let sawMarker = false;
+	let sawMarker = snapshot?.sawMarker ?? false;
 
 	return {
+		snapshot() {
+			return { sawMarker, modes: structuredClone([...state]) };
+		},
 		noteArm(mode, armed) {
 			const s = state.get(mode);
 			if (!s) return;

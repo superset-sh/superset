@@ -2,9 +2,9 @@ import { initSentry } from "./lib/sentry";
 
 initSentry();
 
-import { createRouter, RouterProvider } from "@tanstack/react-router";
+import { createRouter } from "@tanstack/react-router";
 import ReactDom from "react-dom/client";
-import { BootErrorBoundary } from "./components/BootErrorBoundary";
+import { RendererRouter } from "./components/RendererRouter";
 import {
 	cleanupBootErrorHandling,
 	initBootErrorHandling,
@@ -80,12 +80,6 @@ declare module "@tanstack/react-router" {
 if (!rootElement) {
 	reportBootError("Missing <app> root element");
 } else if (!isBootErrorReported()) {
-	ReactDom.createRoot(rootElement).render(
-		<BootErrorBoundary
-			onError={(error) => reportBootError("Render failed", error)}
-		>
-			<RouterProvider router={router} />
-		</BootErrorBoundary>,
-	);
+	ReactDom.createRoot(rootElement).render(<RendererRouter router={router} />);
 	markBootMounted();
 }

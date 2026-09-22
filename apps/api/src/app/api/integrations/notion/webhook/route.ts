@@ -1,8 +1,12 @@
 import { createHash } from "node:crypto";
 import { db } from "@superset/db/client";
-import type { SelectIntegrationConnection } from "@superset/db/schema";
-import { integrationConnections, webhookEvents } from "@superset/db/schema";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import type { SelectConnection } from "@superset/db/schema";
+import { webhookEvents } from "@superset/db/schema";
+import {
+	accountConnections,
+	connectionAccessToken,
+} from "@superset/trpc/connectors";
+import { eq } from "drizzle-orm";
 
 import { env } from "@/env";
 import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
@@ -95,16 +99,9 @@ export async function POST(request: Request) {
 		return Response.json({ success: true, status: "ignored" });
 	}
 
-	const connections = await db.query.integrationConnections.findMany({
-		where: and(
-			eq(integrationConnections.provider, "notion"),
-			eq(integrationConnections.externalOrgId, event.workspace_id),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		orderBy: [asc(integrationConnections.id)],
-	});
+	const subscribers = await accountConnections("notion", event.workspace_id);
 
-	if (connections.length === 0) {
+	if (subscribers.length === 0) {
 		console.log(
 			"[notion/webhook] No active connections for workspace:",
 			event.workspace_id,
@@ -113,7 +110,7 @@ export async function POST(request: Request) {
 	}
 
 	const results = await Promise.all(
-		connections.map((connection) =>
+		subscribers.map((connection) =>
 			processForConnection(event, connection).catch((error) => ({
 				connectionId: connection.id,
 				outcome: "failed" as const,
@@ -142,7 +139,7 @@ export async function POST(request: Request) {
 
 async function processForConnection(
 	event: NotionWebhookEvent,
-	connection: SelectIntegrationConnection,
+	connection: SelectConnection,
 ): Promise<{
 	connectionId: string;
 	outcome: "processed" | "skipped" | "failed";
@@ -179,7 +176,7 @@ async function processForConnection(
 			await normalizeNotionDelivery({
 				organizationId: connection.organizationId,
 				connectionId: connection.id,
-				accessToken: connection.accessToken,
+				accessToken: await connectionAccessToken(connection),
 				event,
 				webhookEventId: webhookEvent.id,
 			}),

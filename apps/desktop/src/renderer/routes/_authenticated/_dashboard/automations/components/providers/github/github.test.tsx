@@ -197,7 +197,10 @@ describe("a GitHub row filtering by person", () => {
  */
 describe("a GitHub row whose integration is not connected", () => {
 	const disconnected = () =>
-		row(config("pull_request.opened"), { requiresConnection: true });
+		row(config("pull_request.opened"), {
+			requiresConnection: true,
+			onConnect: () => {},
+		});
 
 	// With no connection there is nothing to populate the pickers, so a
 	// sentence full of empty ones would only ask for choices nobody can make.

@@ -15,6 +15,7 @@ interface PageCommentThreads {
 	rows: ServerThread[];
 	threads: CommentThread[];
 	isLoading: boolean;
+	error: unknown;
 	refetch: () => void;
 }
 
@@ -37,5 +38,11 @@ export function usePageCommentThreads({
 		void refetch();
 	}, [refetch]);
 
-	return { rows, threads, isLoading: list.isPending, refetch: refresh };
+	return {
+		rows,
+		threads,
+		isLoading: list.isPending,
+		error: list.error,
+		refetch: refresh,
+	};
 }

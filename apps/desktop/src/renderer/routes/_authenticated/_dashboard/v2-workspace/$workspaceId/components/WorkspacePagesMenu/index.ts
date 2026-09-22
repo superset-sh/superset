@@ -1,0 +1,1 @@
+export { WorkspacePagesMenu } from "./WorkspacePagesMenu";

@@ -1,7 +1,14 @@
+import { randomUUID } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
+import { OFFERED_VISIBILITIES } from "@superset/trpc/page-schema";
 import { command } from "../../../lib/command";
+import {
+	canReachDesktop,
+	desktopWorkspaceLink,
+	openUrl,
+} from "../../../lib/open-url";
 import { resolveWorkspaceId } from "../workspaceRef";
 import {
 	collectDirectoryPublish,
@@ -16,8 +23,6 @@ import {
 } from "./utils/resolveEntryPath";
 import { resolvePageId } from "./utils/resolvePageId";
 import { uploadAssets, uploadDocument } from "./utils/upload";
-
-const VISIBILITIES = ["just_me", "org"] as const;
 
 export default command({
 	description: "Publish an HTML file, or a directory of files, as a page",
@@ -35,13 +40,13 @@ export default command({
 			.alias("l")
 			.desc("What changed in this version, shown in the version history"),
 		visibility: string().desc(
-			`One of: ${VISIBILITIES.join(", ")} (new pages default to org)`,
+			`One of: ${OFFERED_VISIBILITIES.join(", ")} (new pages default to org)`,
 		),
 		page: string().desc(
 			"Publish a new version of this page id, instead of resolving by workspace",
 		),
 		workspace: string().desc(
-			"Workspace to publish into, by name or id (defaults to $SUPERSET_WORKSPACE_ID)",
+			"Workspace to publish into, by name or id (defaults to $SUPERSET_WORKSPACE_ID). Without one the page is still published, but only --page can version it later",
 		),
 		noWatch: boolean().desc(
 			"Do not watch this page for new comments from this session",
@@ -79,11 +84,11 @@ export default command({
 		}
 		if (
 			options.visibility &&
-			!VISIBILITIES.includes(options.visibility as never)
+			!OFFERED_VISIBILITIES.includes(options.visibility as never)
 		) {
 			throw new CLIError(
 				`Invalid visibility: ${options.visibility}`,
-				`Use one of: ${VISIBILITIES.join(", ")}`,
+				`Use one of: ${OFFERED_VISIBILITIES.join(", ")}`,
 			);
 		}
 
@@ -100,12 +105,6 @@ export default command({
 				: externalEntryPath(entryFilePath));
 
 		const workspaceRef = options.workspace ?? process.env.SUPERSET_WORKSPACE_ID;
-		if (!workspaceRef && !options.page) {
-			throw new CLIError(
-				"No workspace to publish into",
-				"Run this inside a Superset workspace, pass --workspace <name|id>, or pass --page <id> to add a version to an existing page",
-			);
-		}
 		const workspaceId = workspaceRef
 			? await resolveWorkspaceId({
 					value: workspaceRef,
@@ -132,7 +131,7 @@ export default command({
 
 		// Assets stage against a page, so a directory publish resolves or creates
 		// one before uploading. A single-file publish still lets `publish` mint it.
-		const pageId =
+		const target =
 			assets.length > 0
 				? await resolvePageId({
 						api: ctx.api,
@@ -140,29 +139,48 @@ export default command({
 						link,
 						title,
 					})
-				: options.page;
+				: null;
+		const pageId = target?.id ?? options.page;
 
-		const uploaded =
-			assets.length > 0 && pageId
-				? await uploadAssets({ api: ctx.api, assets, pageId })
-				: { uploaded: 0, reused: 0, warnings: [] };
-
-		const page = await ctx.api.page.publish.mutate({
-			fileId,
-			filename,
-			...(pageId ? { pageId } : (link ?? {})),
-			...(title ? { title } : {}),
-			...(options.description ? { description: options.description } : {}),
-			...(options.label ? { label: options.label } : {}),
-			...(options.visibility
-				? { visibility: options.visibility as (typeof VISIBILITIES)[number] }
-				: {}),
-		});
+		let uploaded = { uploaded: 0, reused: 0, warnings: [] as string[] };
+		let page: Awaited<ReturnType<typeof ctx.api.page.publish.mutate>>;
+		try {
+			if (target) {
+				uploaded = await uploadAssets({
+					api: ctx.api,
+					assets,
+					pageId: target.id,
+				});
+			}
+			page = await ctx.api.page.publish.mutate({
+				fileId,
+				filename,
+				...(pageId ? { pageId } : (link ?? {})),
+				...(title ? { title } : {}),
+				...(options.description ? { description: options.description } : {}),
+				...(options.label ? { label: options.label } : {}),
+				...(options.visibility
+					? {
+							visibility:
+								options.visibility as (typeof OFFERED_VISIBILITIES)[number],
+						}
+					: {}),
+			});
+		} catch (error) {
+			if (target?.created && !link) {
+				await ctx.api.page.delete
+					.mutate({ id: target.id, onlyIfEmpty: true })
+					.catch(() => {});
+			}
+			throw error;
+		}
 
 		const externalPath =
 			link && entryPath.startsWith(EXTERNAL_ENTRY_PREFIX) && !options.page
 				? entryPath
 				: null;
+
+		const unanchored = !page.linked && !options.page;
 
 		const terminalId = watchTerminalId();
 		const organizationId = ctx.config.organizationId;
@@ -195,12 +213,36 @@ export default command({
 			}
 		}
 
+		let openNote: string | null = null;
+		if (page.version === 1 && workspaceId) {
+			if (canReachDesktop()) {
+				try {
+					await openUrl(
+						desktopWorkspaceLink(workspaceId, {
+							pageId: page.id,
+							pageSlug: page.slug,
+							focusRequestId: randomUUID(),
+						}),
+					);
+				} catch (error) {
+					openNote = `Could not open the page: ${
+						error instanceof Error ? error.message : String(error)
+					}`;
+				}
+			} else {
+				openNote = "Not opening the page: no desktop reachable from here";
+			}
+		}
+
 		return publishResult({
 			page,
+			path: args.path as string,
 			assets: uploaded,
 			externalPath,
+			unanchored,
 			watching,
 			watchNote,
+			openNote,
 		});
 	},
 });

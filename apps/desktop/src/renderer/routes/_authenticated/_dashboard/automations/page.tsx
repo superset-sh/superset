@@ -50,6 +50,7 @@ import {
 } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
+import { useCreateAgentSession } from "renderer/hooks/useCreateAgentSession";
 import { useNow } from "renderer/hooks/useNow";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -64,7 +65,6 @@ import {
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { AutomationRow } from "./components/AutomationRow";
 import { AutomationStatCards } from "./components/AutomationStatCards";
 import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
@@ -461,7 +461,8 @@ function AutomationsPage() {
 	const navigate = useNavigate();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const { agents: agentChoices } = useV2AgentChoices(activeHostUrl);
-	const { submit: submitWorkspaceCreate } = useWorkspaceCreates();
+	const { createSession, isPending: creatingWithAgent } =
+		useCreateAgentSession();
 	// Automations are Pro. Creating, running, and resuming go through the
 	// paywall; the server refuses the same three, so this is the friendly
 	// front of one gate. Pausing, editing, and deleting stay open so a
@@ -534,51 +535,12 @@ function AutomationsPage() {
 		gateFeature(GATED_FEATURES.AUTOMATIONS, () => createMutation.mutate(null));
 	};
 
-	// Opens a project-less agent session seeded with automation-creation
-	// instructions. The in-app "superset" chat agent can't run the CLI, so
-	// pick the user's last terminal agent (composer behavior).
-	const [creatingWithAgent, setCreatingWithAgent] = useState(false);
 	const handleCreateWithAgent = () => {
 		if (creatingWithAgent) return;
-		gateFeature(GATED_FEATURES.AUTOMATIONS, startCreateWithAgent);
-	};
-	const startCreateWithAgent = () => {
-		if (!machineId) {
-			toast.error(
-				t({
-					message: "Host service is not running",
-				}),
-			);
-			return;
-		}
-		const terminalAgents = agentChoices.filter((a) => a.id !== "superset");
-		const stored = window.localStorage.getItem(AGENT_STORAGE_KEY);
-		const agent =
-			terminalAgents.find((a) => a.id === stored)?.id ?? terminalAgents[0]?.id;
-		if (!agent) {
-			toast.error(
-				t({
-					message: "No terminal agent is configured on this device",
-				}),
-			);
-			return;
-		}
-		setCreatingWithAgent(true);
-		const { workspaceId, completed } = submitWorkspaceCreate({
-			hostId: machineId,
-			snapshot: {
-				id: crypto.randomUUID(),
-				projectId: null,
-				agents: [{ agent, prompt: AUTOMATION_AGENT_PROMPT }],
-			},
-		});
-		// The store shows creation failures on the optimistic sidebar row; this
-		// just re-arms the button if the user navigates back.
-		void completed.finally(() => setCreatingWithAgent(false));
-		navigate({
-			to: "/v2-workspace/$workspaceId",
-			params: { workspaceId },
-		}).catch(() => {});
+		gateFeature(
+			GATED_FEATURES.AUTOMATIONS,
+			() => void createSession(AUTOMATION_AGENT_PROMPT),
+		);
 	};
 
 	const scheduleWidth = scope === "team" ? "w-[16%]" : "w-[18%]";
