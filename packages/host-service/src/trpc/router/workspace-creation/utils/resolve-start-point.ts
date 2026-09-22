@@ -52,21 +52,32 @@ export async function resolveStartPoint(
 		return { kind: "local", fullRef: localRef, shortName: branch };
 	}
 
-	const remoteRef = asRemoteRef(remote, branch);
+	// Accept both a bare name (`main`) and the natural remote-qualified
+	// short form (`origin/main`) for the remote-tracking probe. Strip a
+	// leading `<remote>/` only when present — without this, `origin/main`
+	// looks up `refs/remotes/origin/origin/main` and misses, rejecting a
+	// perfectly valid base as BAD_REQUEST (mirrors the stripping `resolveRef`
+	// already does in `refs.ts`).
+	const remotePrefix = `${remote}/`;
+	const remoteShortName = branch.startsWith(remotePrefix)
+		? branch.slice(remotePrefix.length)
+		: branch;
+
+	const remoteRef = asRemoteRef(remote, remoteShortName);
 	if (await refExists(git, remoteRef)) {
 		return {
 			kind: "remote-tracking",
 			fullRef: remoteRef,
-			shortName: branch,
+			shortName: remoteShortName,
 			remote,
-			remoteShortName: `${remote}/${branch}`,
+			remoteShortName: `${remote}/${remoteShortName}`,
 		};
 	}
 
 	if (explicit) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Base branch "${explicit}" does not exist as a local branch or as ${remote}/${explicit}`,
+			message: `Base branch "${explicit}" does not exist as a local branch or as ${remote}/${remoteShortName}`,
 		});
 	}
 

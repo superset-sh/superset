@@ -95,8 +95,20 @@ describe("resolveStartPoint", () => {
 		});
 	});
 
-	test("throws for a remote-qualified base that matches no local branch", async () => {
+	test("resolves a remote-qualified base against the remote-tracking ref, no double-prefixing", async () => {
 		const git = createMockGit(new Set(["refs/remotes/origin/main"]));
+		const result = await resolveStartPoint(git, "origin/main");
+
+		expect(result.kind).toBe("remote-tracking");
+		if (result.kind === "remote-tracking") {
+			expect(result.shortName).toBe("main");
+			expect(result.remoteShortName).toBe("origin/main");
+			expect(result.fullRef).toBe("refs/remotes/origin/main");
+		}
+	});
+
+	test("throws for a remote-qualified base that matches no ref at all", async () => {
+		const git = createMockGit(new Set());
 
 		await expect(resolveStartPoint(git, "origin/main")).rejects.toMatchObject({
 			code: "BAD_REQUEST",

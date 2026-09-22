@@ -30,12 +30,19 @@ async function createStaleClone(): Promise<CloneFixture> {
 	return { origin, clonePath, git, dispose };
 }
 
-test("explicit remote-qualified base (origin/main) fails instead of falling back to stale HEAD", async () => {
+test("explicit remote-qualified base (origin/main) resolves and fetches instead of double-prefixing and missing", async () => {
 	const s = await createStaleClone();
 	try {
-		await expect(resolveStartPoint(s.git, "origin/main")).rejects.toThrow(
-			"origin/main",
-		);
+		const result = await resolveNewBranchStartPoint(s.git, "origin/main");
+		expect(result.kind).toBe("remote-tracking");
+		if (result.kind === "remote-tracking") {
+			expect(result.remoteShortName).toBe("origin/main");
+		}
+		const tip = (await s.origin.git.revparse(["main"])).trim();
+		const tracking = (
+			await s.git.revparse(["refs/remotes/origin/main"])
+		).trim();
+		expect(tracking).toBe(tip);
 	} finally {
 		s.dispose();
 	}
