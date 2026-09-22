@@ -2,13 +2,13 @@ import "@xterm/xterm/css/xterm.css";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useRef } from "react";
+import { useTerminalAppearance } from "renderer/hooks/useTerminalAppearance";
 import {
 	attachToContainer,
 	createRuntime,
 	disposeRuntime,
 } from "renderer/lib/terminal/terminal-runtime";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { useTerminalAppearance } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/hooks/useTerminalAppearance";
 import { installCommandTerminalLinks } from "./utils/installCommandTerminalLinks";
 
 interface CommandTerminalProps {

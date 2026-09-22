@@ -1,5 +1,5 @@
 import type { Terminal } from "@xterm/xterm";
-import { UrlLinkProvider } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/link-providers/url-link-provider";
+import { UrlLinkProvider } from "renderer/lib/terminal/links/url-link-provider";
 
 export function installCommandTerminalLinks(
 	terminal: Terminal,

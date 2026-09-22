@@ -16,6 +16,7 @@ import {
 	useSyncExternalStore,
 } from "react";
 import { env } from "renderer/env.renderer";
+import { useTerminalAppearance } from "renderer/hooks/useTerminalAppearance";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
 import {
@@ -60,7 +61,6 @@ import { TerminalRichInput } from "./components/TerminalRichInput";
 import { terminalContextMenuLinkStore } from "./contextMenuLinkStore";
 import { useCopyOnSelect } from "./hooks/useCopyOnSelect";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
-import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
 import { useTerminalInterruptClear } from "./hooks/useTerminalInterruptClear";
 import {
 	terminalRichInputOpenStore,
