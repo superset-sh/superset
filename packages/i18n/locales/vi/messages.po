@@ -590,7 +590,7 @@ msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# tệp} other {# tệp}}"
 
 msgid "{count, plural, one {# page comment is waiting on an agent here} other {# page comments are waiting on an agent here}}"
-msgstr "{count, plural, one {# bình luận trang đang chờ agent ở đây} other {# bình luận trang đang chờ agent ở đây}}"
+msgstr "{count, plural, one {# bình luận trên trang đang chờ agent ở đây} other {# bình luận trên trang đang chờ agent ở đây}}"
 
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# lượt tìm} other {# lượt tìm}}"

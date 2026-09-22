@@ -375,27 +375,23 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							</>
 						)}
 
-						<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center justify-items-end [&>*]:col-start-1 [&>*]:row-start-1">
-							<div className="flex h-5 items-center gap-1.5 group-hover:hidden group-focus-within:hidden">
-								{creationStatusText ? (
-									<span className="text-[11px] text-muted-foreground">
-										{creationStatusText}
-									</span>
-								) : (
-									isActive &&
-									diffStats &&
-									(diffStats.additions > 0 || diffStats.deletions > 0) && (
-										<DashboardSidebarWorkspaceDiffStats
-											additions={diffStats.additions}
-											deletions={diffStats.deletions}
-											isActive={isActive}
-										/>
-									)
-								)}
-								<DashboardSidebarPageCommentsBadge
-									count={pageCommentsWaiting}
-								/>
-							</div>
+						<div className="col-start-2 row-start-1 flex h-5 shrink-0 items-center justify-end gap-1.5">
+							{creationStatusText ? (
+								<span className="text-[11px] text-muted-foreground">
+									{creationStatusText}
+								</span>
+							) : (
+								isActive &&
+								diffStats &&
+								(diffStats.additions > 0 || diffStats.deletions > 0) && (
+									<DashboardSidebarWorkspaceDiffStats
+										additions={diffStats.additions}
+										deletions={diffStats.deletions}
+										isActive={isActive}
+									/>
+								)
+							)}
+							<DashboardSidebarPageCommentsBadge count={pageCommentsWaiting} />
 							{!isPending && !isSelected && (
 								<div className="hidden items-center justify-end gap-1.5 group-hover:flex group-focus-within:flex">
 									{shortcutLabel && (

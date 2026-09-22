@@ -1,4 +1,3 @@
-import { CLOUD_QUERY_KEY_ROOT } from "@superset/cloud-client";
 import {
 	createContext,
 	type ReactNode,
@@ -11,11 +10,7 @@ import {
 } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
-import {
-	CLOUD_TRPC_ROUTER_ROOTS,
-	cloudTrpc,
-	setCloudOrganizationId,
-} from "renderer/lib/cloud-trpc";
+import { cloudTrpc, setCloudOrganizationId } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider/ElectronTRPCProvider";
@@ -25,29 +20,7 @@ import {
 	getCollections,
 	preloadCollections,
 } from "./collections";
-
-// Cloud query procedures take no organizationId input (the server scopes by
-// active org), so their React Query keys don't encode the org — on org switch
-// the previous org's rows must be dropped, not just marked stale.
-const ORG_SCOPED_CLOUD_ROUTERS = new Set<string>(CLOUD_TRPC_ROUTER_ROOTS);
-
-function dropCloudQueriesForOrgSwitch(): void {
-	electronQueryClient.removeQueries({
-		predicate: (query) => {
-			const [head, second] = query.queryKey;
-			if (Array.isArray(head)) {
-				return (
-					typeof head[0] === "string" && ORG_SCOPED_CLOUD_ROUTERS.has(head[0])
-				);
-			}
-			return (
-				head === CLOUD_QUERY_KEY_ROOT &&
-				typeof second === "string" &&
-				ORG_SCOPED_CLOUD_ROUTERS.has(second)
-			);
-		},
-	});
-}
+import { dropCloudQueriesForOrgSwitch } from "./dropCloudQueriesForOrgSwitch";
 
 type CollectionsContextType = ReturnType<typeof getCollections> & {
 	activeOrganizationId: string;
@@ -215,7 +188,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 				previousOrganizationIdRef.current &&
 				previousOrganizationIdRef.current !== activeOrganizationId
 			) {
-				dropCloudQueriesForOrgSwitch();
+				dropCloudQueriesForOrgSwitch(electronQueryClient);
 			}
 			previousOrganizationIdRef.current = activeOrganizationId;
 		}

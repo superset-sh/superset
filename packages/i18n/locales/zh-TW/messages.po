@@ -590,7 +590,7 @@ msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {#個檔案} other {#個檔案}}"
 
 msgid "{count, plural, one {# page comment is waiting on an agent here} other {# page comments are waiting on an agent here}}"
-msgstr "{count, plural, one {#則頁面留言正在這裡等待代理程式} other {#則頁面留言正在這裡等待代理程式}}"
+msgstr "{count, plural, one {#則頁面留言正在這裡等待代理程式處理} other {#則頁面留言正在這裡等待代理程式處理}}"
 
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {#次搜尋} other {#次搜尋}}"

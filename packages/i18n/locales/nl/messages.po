@@ -590,7 +590,7 @@ msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# bestand} other {# bestanden}}"
 
 msgid "{count, plural, one {# page comment is waiting on an agent here} other {# page comments are waiting on an agent here}}"
-msgstr "{count, plural, one {# paginaopmerking wacht hier op een agent} other {# paginaopmerkingen wachten hier op een agent}}"
+msgstr "{count, plural, one {# paginareactie wacht hier op een agent} other {# paginareacties wachten hier op een agent}}"
 
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# zoekopdracht} other {# zoekopdrachten}}"
@@ -3287,10 +3287,10 @@ msgid "Click a terminal script to edit its details."
 msgstr "Klik op een terminalscript om de details te bewerken."
 
 msgid "Click anything on this page to comment on it. An agent is watching, and will pick your comment up and republish the page."
-msgstr "Klik op een willekeurig element op deze pagina om erop te reageren. Een agent kijkt mee, pakt je opmerking op en publiceert de pagina opnieuw."
+msgstr "Klik op iets op deze pagina om erop te reageren. Een agent kijkt mee, pakt je reactie op en publiceert de pagina opnieuw."
 
 msgid "Click anything on this page to comment on it. No agent is watching right now, so your comment is saved on the page."
-msgstr "Klik op een willekeurig element op deze pagina om erop te reageren. Er kijkt nu geen agent mee, dus je opmerking wordt op de pagina opgeslagen."
+msgstr "Klik op iets op deze pagina om erop te reageren. Er kijkt nu geen agent mee, dus je reactie wordt op de pagina opgeslagen."
 
 msgid "Click here if not redirected"
 msgstr "Klik hier als je niet wordt doorgestuurd"
