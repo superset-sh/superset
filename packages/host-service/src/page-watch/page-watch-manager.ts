@@ -1,4 +1,5 @@
 import type { EventBus } from "../events/event-bus.ts";
+import type { TerminalAgentBinding } from "../terminal-agents/types.ts";
 import { buildWatchPrompt } from "./buildPrompt.ts";
 import { selectThreadsToDeliver } from "./trigger.ts";
 import type {
@@ -28,13 +29,13 @@ export interface PageWatchDeps {
 	sendToTerminal(input: {
 		workspaceId: string;
 		terminalId: string;
-		agentId: string | null;
+		expectedAgent: TerminalAgentBinding;
 		text: string;
 		signal: AbortSignal;
 	}): Promise<void>;
 	isTerminalAlive(terminalId: string): boolean;
 	isAgentBusy(terminalId: string): boolean;
-	hasAgent(terminalId: string): boolean;
+	getAgent(terminalId: string): TerminalAgentBinding | undefined;
 	now?: () => number;
 	setIntervalFn?: typeof setInterval;
 	clearIntervalFn?: typeof clearInterval;
@@ -42,7 +43,8 @@ export interface PageWatchDeps {
 
 export class PageWatchManager {
 	private readonly entries = new Map<string, PageWatchEntry>();
-	private readonly assignments = new Map<string, { terminalId: string }>();
+	private readonly assignments = new Map<string, PageWatchAssignment>();
+	private readonly cloudWrites = new Map<string, Promise<void>>();
 	private stopped = false;
 	private readonly deps: PageWatchDeps;
 	private readonly now: () => number;
@@ -71,7 +73,8 @@ export class PageWatchManager {
 
 	async assign(assignment: PageWatchAssignment): Promise<void> {
 		if (this.stopped) throw new Error("Page watcher has stopped");
-		if (!this.deps.hasAgent(assignment.terminalId)) {
+		const agentBinding = this.deps.getAgent(assignment.terminalId);
+		if (!agentBinding) {
 			throw new Error(
 				"No agent is running in that terminal. A page is watched by an agent, not by a shell.",
 			);
@@ -89,10 +92,13 @@ export class PageWatchManager {
 			);
 		}
 
-		const pending = { terminalId: assignment.terminalId };
+		const pending = { ...assignment };
 		this.assignments.set(assignment.pageId, pending);
 		try {
-			await this.deps.api.setWatch(assignment.pageId, assignment.agentId);
+			await this.writeCloud(assignment.pageId, async () => {
+				if (this.assignments.get(assignment.pageId) !== pending) return;
+				await this.deps.api.setWatch(assignment.pageId, assignment.agentId);
+			});
 			if (this.assignments.get(assignment.pageId) !== pending) return;
 		} finally {
 			if (this.assignments.get(assignment.pageId) === pending) {
@@ -106,6 +112,7 @@ export class PageWatchManager {
 		this.entries.set(assignment.pageId, {
 			...assignment,
 			abortController: new AbortController(),
+			agentBinding,
 			assignedAt: existing?.assignedAt ?? at,
 			cursor: existing?.cursor ?? at,
 			lastHumanCommentAt: at,
@@ -120,9 +127,13 @@ export class PageWatchManager {
 	}
 
 	async unwatch(pageId: string): Promise<void> {
+		const pending = this.assignments.get(pageId);
 		this.assignments.delete(pageId);
 		const entry = this.entries.get(pageId);
-		if (!entry) return;
+		if (!entry) {
+			if (pending) await this.clearWatch(pending);
+			return;
+		}
 		entry.abortController.abort();
 		this.entries.delete(pageId);
 		this.stopTickingIfEmpty();
@@ -130,15 +141,39 @@ export class PageWatchManager {
 		await this.clearWatch(entry);
 	}
 
-	private async clearWatch(entry: PageWatchEntry): Promise<void> {
+	private async clearWatch(
+		entry: Pick<PageWatchAssignment, "pageId" | "slug">,
+	): Promise<void> {
 		try {
-			await this.deps.api.clearWatch(entry.pageId);
+			await this.writeCloud(entry.pageId, async () => {
+				if (
+					this.entries.has(entry.pageId) ||
+					this.assignments.has(entry.pageId)
+				)
+					return;
+				await this.deps.api.clearWatch(entry.pageId);
+			});
 		} catch (error) {
 			console.warn(
 				`[page-watch] could not clear the watch flag on ${entry.slug}`,
 				error,
 			);
 		}
+	}
+
+	private writeCloud(
+		pageId: string,
+		write: () => Promise<void>,
+	): Promise<void> {
+		const previous = this.cloudWrites.get(pageId) ?? Promise.resolve();
+		const task = previous.catch(() => {}).then(write);
+		this.cloudWrites.set(pageId, task);
+		const cleanup = () => {
+			if (this.cloudWrites.get(pageId) === task)
+				this.cloudWrites.delete(pageId);
+		};
+		void task.then(cleanup, cleanup);
+		return task;
 	}
 
 	list(workspaceId?: string): PageWatchStatus[] {
@@ -162,18 +197,23 @@ export class PageWatchManager {
 
 	stop(): void {
 		this.stopped = true;
+		const clearing = new Map([...this.entries, ...this.assignments]);
 		this.assignments.clear();
 		this.removeTerminalListener?.();
 		this.removeTerminalListener = null;
 		this.stopTicking();
 		for (const entry of this.entries.values()) entry.abortController.abort();
 		this.entries.clear();
+		for (const assignment of clearing.values())
+			void this.clearWatch(assignment);
 		this.eventBus = null;
 	}
 
 	private async dropTerminal(terminalId: string): Promise<void> {
 		for (const [pageId, assignment] of this.assignments) {
-			if (assignment.terminalId === terminalId) this.assignments.delete(pageId);
+			if (assignment.terminalId !== terminalId) continue;
+			this.assignments.delete(pageId);
+			void this.clearWatch(assignment);
 		}
 		const dropped: PageWatchEntry[] = [];
 		for (const [pageId, entry] of this.entries) {
@@ -241,7 +281,7 @@ export class PageWatchManager {
 
 		if (
 			!this.deps.isTerminalAlive(entry.terminalId) ||
-			!this.deps.hasAgent(entry.terminalId)
+			!this.deps.getAgent(entry.terminalId)
 		) {
 			await this.dropTerminal(entry.terminalId);
 			return;
@@ -287,7 +327,7 @@ export class PageWatchManager {
 				await this.deps.sendToTerminal({
 					workspaceId: entry.workspaceId,
 					terminalId: entry.terminalId,
-					agentId: entry.agentId,
+					expectedAgent: entry.agentBinding,
 					signal: entry.abortController.signal,
 					text: buildWatchPrompt({
 						title: entry.title,
@@ -346,7 +386,11 @@ export class PageWatchManager {
 		if (at - entry.lastHeartbeatAt < HEARTBEAT_INTERVAL_MS) return;
 		entry.lastHeartbeatAt = at;
 		try {
-			await this.deps.api.setWatch(entry.pageId, entry.agentId);
+			await this.writeCloud(entry.pageId, async () => {
+				if (!this.isCurrent(entry) || this.assignments.has(entry.pageId))
+					return;
+				await this.deps.api.setWatch(entry.pageId, entry.agentId);
+			});
 		} catch (error) {
 			await this.recordFailure(entry, error, "heartbeat");
 		}

@@ -42,6 +42,7 @@ function harness(
 		agents?: Set<string>;
 		sendToTerminal?: PageWatchDeps["sendToTerminal"];
 		setWatch?: PageWatchDeps["api"]["setWatch"];
+		clearWatch?: PageWatchDeps["api"]["clearWatch"];
 	} = {},
 ) {
 	const sent: { terminalId: string; text: string }[] = [];
@@ -68,13 +69,14 @@ function harness(
 			},
 			clearWatch: async (pageId) => {
 				clearWatchCalls.push(pageId);
+				await options.clearWatch?.(pageId);
 			},
 		},
-		sendToTerminal: async ({ terminalId, agentId, text, signal }) => {
+		sendToTerminal: async ({ terminalId, expectedAgent, text, signal }) => {
 			if (sendFails) throw new Error("terminal gone");
 			await options.sendToTerminal?.({
 				workspaceId: "ws-1",
-				agentId,
+				expectedAgent,
 				terminalId,
 				text,
 				signal,
@@ -84,7 +86,17 @@ function harness(
 		},
 		isTerminalAlive: (terminalId) => alive.has(terminalId),
 		isAgentBusy: (terminalId) => busy.has(terminalId),
-		hasAgent: (terminalId) => agents.has(terminalId),
+		getAgent: (terminalId) =>
+			agents.has(terminalId)
+				? {
+						terminalId,
+						workspaceId: "ws-1",
+						agentId: "claude",
+						startedAt: T0,
+						lastEventAt: T0,
+						lastEventType: "Attached",
+					}
+				: undefined,
 		now: () => clock,
 		setIntervalFn: (() => {
 			const handle = { unref() {} };
@@ -93,14 +105,20 @@ function harness(
 		clearIntervalFn: (() => {}) as unknown as typeof clearInterval,
 	});
 
-	const assign = (over: Partial<{ pageId: string; terminalId: string }> = {}) =>
+	const assign = (
+		over: Partial<{
+			pageId: string;
+			terminalId: string;
+			agentId: string | null;
+		}> = {},
+	) =>
 		manager.assign({
 			pageId: over.pageId ?? "page-1",
 			slug: "report-a1b2c3",
 			title: "Report",
 			workspaceId: "ws-1",
 			terminalId: over.terminalId ?? "term-1",
-			agentId: "claude",
+			agentId: over.agentId === undefined ? "claude" : over.agentId,
 		});
 
 	return {
@@ -126,33 +144,103 @@ function harness(
 }
 
 describe("PageWatchManager", () => {
-	it("keeps the latest assignment when cloud writes finish out of order", async () => {
+	for (const agentId of [null, "custom:reviewer"]) {
+		it(`uses the captured binding independently of the display label ${agentId}`, async () => {
+			const targets: string[] = [];
+			const h = harness({
+				threads: [humanThread("identity", T0 + 5000)],
+				sendToTerminal: async ({ expectedAgent }) => {
+					targets.push(expectedAgent.agentId);
+				},
+			});
+			await h.assign({ agentId });
+			h.advance(5000);
+			await h.manager.tick();
+			expect(targets).toEqual(["claude"]);
+			expect(h.sent).toHaveLength(1);
+		});
+	}
+
+	it("serializes cloud assignments and leaves the latest recipient persisted", async () => {
 		const first = Promise.withResolvers<void>();
+		const started = Promise.withResolvers<void>();
+		const cloud: { agentId: string | null } = { agentId: null };
 		let calls = 0;
 		const h = harness({
-			setWatch: async () => {
-				if (++calls === 1) await first.promise;
+			setWatch: async (_, agentId) => {
+				if (++calls === 1) {
+					started.resolve();
+					await first.promise;
+				}
+				cloud.agentId = agentId;
 			},
 		});
-		const pending = h.assign();
-		await h.assign({ terminalId: "term-2" });
+		const pending = h.assign({ agentId: "first" });
+		await started.promise;
+		const latest = h.assign({ terminalId: "term-2", agentId: "latest" });
+		expect(calls).toBe(1);
 		first.resolve();
-		await pending;
+		await Promise.all([pending, latest]);
 		expect(h.manager.list()[0]?.terminalId).toBe("term-2");
+		expect(cloud.agentId).toBe("latest");
 	});
 
 	for (const action of ["stop", "unwatch"] as const) {
-		it(`does not revive a pending assignment after ${action}`, async () => {
+		it(`clears a pending cloud assignment after ${action}`, async () => {
 			const gate = Promise.withResolvers<void>();
-			const h = harness({ setWatch: () => gate.promise });
+			const started = Promise.withResolvers<void>();
+			const cleared = Promise.withResolvers<void>();
+			let cloud = false;
+			const h = harness({
+				setWatch: async () => {
+					started.resolve();
+					await gate.promise;
+					cloud = true;
+				},
+				clearWatch: async () => {
+					cloud = false;
+					cleared.resolve();
+				},
+			});
 			const pending = h.assign();
-			if (action === "stop") h.manager.stop();
-			else await h.manager.unwatch("page-1");
+			await started.promise;
+			const stopping =
+				action === "stop" ? h.manager.stop() : h.manager.unwatch("page-1");
 			gate.resolve();
-			await pending;
+			await Promise.all([pending, stopping, cleared.promise]);
 			expect(h.manager.list()).toEqual([]);
+			expect(cloud).toBe(false);
 		});
 	}
+
+	it("does not let an old heartbeat overwrite reassignment or unwatch", async () => {
+		const gate = Promise.withResolvers<void>();
+		const started = Promise.withResolvers<void>();
+		let calls = 0;
+		const cloud: { agentId: string | null } = { agentId: null };
+		const h = harness({
+			setWatch: async (_, agentId) => {
+				if (++calls === 2) {
+					started.resolve();
+					await gate.promise;
+				}
+				cloud.agentId = agentId;
+			},
+			clearWatch: async () => {
+				cloud.agentId = null;
+			},
+		});
+		await h.assign({ agentId: "old" });
+		h.advance(HEARTBEAT_INTERVAL_MS);
+		const tick = h.manager.tick();
+		await started.promise;
+		const assignment = h.assign({ terminalId: "term-2", agentId: "new" });
+		gate.resolve();
+		await Promise.all([tick, assignment]);
+		expect(cloud.agentId).toBe("new");
+		await h.manager.unwatch("page-1");
+		expect(cloud.agentId).toBeNull();
+	});
 
 	it("counts pending assignments toward the watcher cap", async () => {
 		const gate = Promise.withResolvers<void>();

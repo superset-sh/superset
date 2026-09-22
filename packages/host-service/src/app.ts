@@ -241,7 +241,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		sendToTerminal: async ({
 			workspaceId,
 			terminalId,
-			agentId,
+			expectedAgent,
 			text,
 			signal,
 		}) => {
@@ -250,7 +250,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				workspaceId,
 				text,
 				submit: true,
-				expectedAgentId: agentId,
+				expectedAgent,
 				signal,
 				terminalAgentStore,
 				db,
@@ -261,9 +261,9 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		isTerminalAlive: isLiveTerminalSession,
 		isAgentBusy: (terminalId) =>
 			agentIsBusy(terminalAgentStore.get(terminalId)?.lastEventType),
-		hasAgent: (terminalId) => {
+		getAgent: (terminalId) => {
 			const binding = terminalAgentStore.get(terminalId);
-			return binding !== undefined && binding.endedAt === undefined;
+			return binding?.endedAt === undefined ? binding : undefined;
 		},
 	});
 	pageWatch.subscribeToTerminalEvents(eventBus);

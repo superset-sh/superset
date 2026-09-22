@@ -1154,17 +1154,18 @@ export function writeFramedInputToSession(input: SessionMessageInput) {
 
 export async function sendAgentMessage({
 	terminalAgentStore,
-	expectedAgentId,
+	expectedAgent,
 	...input
 }: SessionMessageInput & {
 	terminalAgentStore: Pick<TerminalAgentStore, "get">;
-	expectedAgentId?: string | null;
+	expectedAgent?: TerminalAgentBinding;
 }): Promise<{ success: true } | TerminalSessionError> {
-	const binding = terminalAgentStore.get(input.terminalId);
+	const binding = expectedAgent ?? terminalAgentStore.get(input.terminalId);
 	if (
 		!binding ||
 		binding.endedAt !== undefined ||
-		(expectedAgentId !== undefined && binding.agentId !== expectedAgentId)
+		binding.terminalId !== input.terminalId ||
+		!isCurrentAgent({ store: terminalAgentStore, binding })
 	) {
 		return {
 			kind: "SESSION_NOT_ACTIVE",

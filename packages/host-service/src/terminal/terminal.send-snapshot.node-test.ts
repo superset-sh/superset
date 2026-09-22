@@ -28,6 +28,10 @@ import { Server } from "@superset/pty-daemon";
 import { createDb, type HostDb } from "../db/index.ts";
 import { projects, workspaces } from "../db/schema.ts";
 import { buildWatchPrompt } from "../page-watch/buildPrompt.ts";
+import {
+	markTerminalAgentBindingEnded,
+	SqliteTerminalAgentBindingPersistence,
+} from "../terminal-agents/persistence.ts";
 import { TerminalAgentStore } from "../terminal-agents/store.ts";
 import { DaemonUnavailableError } from "./DaemonClient/index.ts";
 import {
@@ -59,6 +63,49 @@ let otherWorkspaceId: string;
 let worktreePath: string;
 let otherWorktreePath: string;
 const terminalAgentStore = new TerminalAgentStore();
+
+test("agent sends reject persisted terminal death even while the memory binding survives", async () => {
+	const terminalId = `e2e-stale-${randomUUID().slice(0, 8)}`;
+	const session = await createTerminalSessionInternal({
+		terminalId,
+		workspaceId,
+		db,
+	});
+	assert.ok(!("error" in session));
+	const store = new TerminalAgentStore(
+		new SqliteTerminalAgentBindingPersistence(db),
+	);
+	store.recordEvent({
+		terminalId,
+		workspaceId,
+		agentId: "codex",
+		eventType: "Attached",
+		occurredAt: Date.now(),
+	});
+	assert.ok(store.get(terminalId));
+	markTerminalAgentBindingEnded(db, terminalId, "terminal-exited");
+	assert.equal(store.get(terminalId), undefined);
+	const result = await sendAgentMessage({
+		terminalId,
+		workspaceId,
+		text: "must not enter a replacement shell",
+		submit: true,
+		terminalAgentStore: store,
+		db,
+	});
+	assert.ok("kind" in result);
+	assert.equal(result.kind, "SESSION_NOT_ACTIVE");
+	store.recordEvent({
+		terminalId,
+		workspaceId,
+		agentId: "codex",
+		eventType: "Attached",
+		launchId: "replacement",
+		occurredAt: Date.now(),
+	});
+	assert.equal(store.get(terminalId)?.launchId, "replacement");
+	await disposeSessionAndWait(terminalId, db);
+});
 
 function bindAgent(terminalId: string) {
 	terminalAgentStore.recordEvent({
@@ -630,15 +677,17 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 		});
 	}
 
-	test("agent delivery rejects a different agent before adopting the terminal", async () => {
+	test("agent delivery rejects a replaced launch captured before polling", async () => {
 		const terminalId = `e2e-wrongagent-${randomUUID().slice(0, 8)}`;
+		bindAgent(terminalId);
+		const expectedAgent = terminalAgentStore.get(terminalId);
 		bindAgent(terminalId);
 		const result = await sendAgentMessage({
 			terminalId,
 			workspaceId,
 			db,
 			terminalAgentStore,
-			expectedAgentId: "codex",
+			expectedAgent,
 			text: "feedback",
 			submit: true,
 		});

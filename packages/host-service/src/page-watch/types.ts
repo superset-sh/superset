@@ -1,3 +1,5 @@
+import type { TerminalAgentBinding } from "../terminal-agents/types.ts";
+
 export interface PageWatchAssignment {
 	pageId: string;
 	slug: string;
@@ -9,6 +11,7 @@ export interface PageWatchAssignment {
 
 export interface PageWatchEntry extends PageWatchAssignment {
 	abortController: AbortController;
+	agentBinding: TerminalAgentBinding;
 	assignedAt: number;
 	cursor: number;
 	lastHumanCommentAt: number;

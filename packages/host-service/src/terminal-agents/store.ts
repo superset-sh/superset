@@ -414,6 +414,7 @@ export class TerminalAgentStore extends EventEmitter {
 	}
 
 	get(terminalId: string): TerminalAgentBinding | undefined {
+		if (this.persistence?.getEnded?.(terminalId)) return undefined;
 		const binding = this.byTerminal.get(terminalId);
 		return binding && this.withRuntimeState(binding);
 	}
