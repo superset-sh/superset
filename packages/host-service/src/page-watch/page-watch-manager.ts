@@ -28,6 +28,7 @@ export interface PageWatchDeps {
 	sendToTerminal(input: {
 		workspaceId: string;
 		terminalId: string;
+		agentId: string | null;
 		text: string;
 		signal: AbortSignal;
 	}): Promise<void>;
@@ -41,6 +42,8 @@ export interface PageWatchDeps {
 
 export class PageWatchManager {
 	private readonly entries = new Map<string, PageWatchEntry>();
+	private readonly assignments = new Map<string, { terminalId: string }>();
+	private stopped = false;
 	private readonly deps: PageWatchDeps;
 	private readonly now: () => number;
 	private readonly setIntervalFn: typeof setInterval;
@@ -67,6 +70,7 @@ export class PageWatchManager {
 	}
 
 	async assign(assignment: PageWatchAssignment): Promise<void> {
+		if (this.stopped) throw new Error("Page watcher has stopped");
 		if (!this.deps.hasAgent(assignment.terminalId)) {
 			throw new Error(
 				"No agent is running in that terminal. A page is watched by an agent, not by a shell.",
@@ -74,13 +78,27 @@ export class PageWatchManager {
 		}
 
 		let existing = this.entries.get(assignment.pageId);
-		if (!existing && this.entries.size >= MAX_WATCHERS) {
+		if (
+			!existing &&
+			!this.assignments.has(assignment.pageId) &&
+			new Set([...this.entries.keys(), ...this.assignments.keys()]).size >=
+				MAX_WATCHERS
+		) {
 			throw new Error(
 				`This host is already watching ${MAX_WATCHERS} pages. Stop one before starting another.`,
 			);
 		}
 
-		await this.deps.api.setWatch(assignment.pageId, assignment.agentId);
+		const pending = { terminalId: assignment.terminalId };
+		this.assignments.set(assignment.pageId, pending);
+		try {
+			await this.deps.api.setWatch(assignment.pageId, assignment.agentId);
+			if (this.assignments.get(assignment.pageId) !== pending) return;
+		} finally {
+			if (this.assignments.get(assignment.pageId) === pending) {
+				this.assignments.delete(assignment.pageId);
+			}
+		}
 
 		existing = this.entries.get(assignment.pageId);
 		existing?.abortController.abort();
@@ -102,6 +120,7 @@ export class PageWatchManager {
 	}
 
 	async unwatch(pageId: string): Promise<void> {
+		this.assignments.delete(pageId);
 		const entry = this.entries.get(pageId);
 		if (!entry) return;
 		entry.abortController.abort();
@@ -142,6 +161,8 @@ export class PageWatchManager {
 	}
 
 	stop(): void {
+		this.stopped = true;
+		this.assignments.clear();
 		this.removeTerminalListener?.();
 		this.removeTerminalListener = null;
 		this.stopTicking();
@@ -151,6 +172,9 @@ export class PageWatchManager {
 	}
 
 	private async dropTerminal(terminalId: string): Promise<void> {
+		for (const [pageId, assignment] of this.assignments) {
+			if (assignment.terminalId === terminalId) this.assignments.delete(pageId);
+		}
 		const dropped: PageWatchEntry[] = [];
 		for (const [pageId, entry] of this.entries) {
 			if (entry.terminalId !== terminalId) continue;
@@ -263,6 +287,7 @@ export class PageWatchManager {
 				await this.deps.sendToTerminal({
 					workspaceId: entry.workspaceId,
 					terminalId: entry.terminalId,
+					agentId: entry.agentId,
 					signal: entry.abortController.signal,
 					text: buildWatchPrompt({
 						title: entry.title,

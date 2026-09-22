@@ -593,6 +593,59 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 		});
 	}
 
+	for (const change of ["cancel", "replace"] as const) {
+		test(`agent delivery revalidates ${change} after the paste and before Enter`, async () => {
+			const terminalId = `e2e-submitguard-${randomUUID().slice(0, 8)}`;
+			const session = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+			});
+			assert.ok(!("error" in session));
+			if ("error" in session) return;
+			bindAgent(terminalId);
+			const controller = new AbortController();
+			const writes: string[] = [];
+			const write = mock.method(session.pty, "write", (data: string) => {
+				writes.push(data);
+				if (change === "cancel") controller.abort();
+				else bindAgent(terminalId);
+			});
+			try {
+				const result = await sendAgentMessage({
+					terminalId,
+					workspaceId,
+					db,
+					terminalAgentStore,
+					text: "feedback",
+					submit: true,
+					signal: controller.signal,
+				});
+				assert.ok("error" in result);
+				assert.deepEqual(writes, ["\x1b[200~feedback\x1b[201~"]);
+			} finally {
+				write.mock.restore();
+				await disposeSessionAndWait(terminalId, db);
+			}
+		});
+	}
+
+	test("agent delivery rejects a different agent before adopting the terminal", async () => {
+		const terminalId = `e2e-wrongagent-${randomUUID().slice(0, 8)}`;
+		bindAgent(terminalId);
+		const result = await sendAgentMessage({
+			terminalId,
+			workspaceId,
+			db,
+			terminalAgentStore,
+			expectedAgentId: "codex",
+			text: "feedback",
+			submit: true,
+		});
+		assert.ok("kind" in result);
+		assert.equal(result.kind, "SESSION_NOT_ACTIVE");
+	});
+
 	test("submit Enter is a separate write, delayed past the paste burst", async () => {
 		const terminalId = `e2e-enterdelay-${randomUUID().slice(0, 8)}`;
 		const id = randomUUID().slice(0, 6);

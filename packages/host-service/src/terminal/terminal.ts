@@ -1154,12 +1154,18 @@ export function writeFramedInputToSession(input: SessionMessageInput) {
 
 export async function sendAgentMessage({
 	terminalAgentStore,
+	expectedAgentId,
 	...input
 }: SessionMessageInput & {
 	terminalAgentStore: Pick<TerminalAgentStore, "get">;
+	expectedAgentId?: string | null;
 }): Promise<{ success: true } | TerminalSessionError> {
 	const binding = terminalAgentStore.get(input.terminalId);
-	if (!binding || binding.endedAt !== undefined) {
+	if (
+		!binding ||
+		binding.endedAt !== undefined ||
+		(expectedAgentId !== undefined && binding.agentId !== expectedAgentId)
+	) {
 		return {
 			kind: "SESSION_NOT_ACTIVE",
 			error: "No agent is running in this terminal",
@@ -1245,6 +1251,12 @@ async function writeSessionMessage(
 						error: "Terminal session has exited",
 					};
 				}
+			}
+			if (signal?.aborted || (agent && !isCurrentAgent(agent))) {
+				return {
+					kind: "SESSION_NOT_ACTIVE",
+					error: "Terminal input target is no longer current",
+				};
 			}
 			session.pty.write("\r");
 			return { success: true };

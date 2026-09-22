@@ -41,6 +41,7 @@ function harness(
 		busy?: Set<string>;
 		agents?: Set<string>;
 		sendToTerminal?: PageWatchDeps["sendToTerminal"];
+		setWatch?: PageWatchDeps["api"]["setWatch"];
 	} = {},
 ) {
 	const sent: { terminalId: string; text: string }[] = [];
@@ -63,15 +64,17 @@ function harness(
 					);
 				}
 				setWatchCalls.push({ pageId, agentId });
+				await options.setWatch?.(pageId, agentId);
 			},
 			clearWatch: async (pageId) => {
 				clearWatchCalls.push(pageId);
 			},
 		},
-		sendToTerminal: async ({ terminalId, text, signal }) => {
+		sendToTerminal: async ({ terminalId, agentId, text, signal }) => {
 			if (sendFails) throw new Error("terminal gone");
 			await options.sendToTerminal?.({
 				workspaceId: "ws-1",
+				agentId,
 				terminalId,
 				text,
 				signal,
@@ -123,6 +126,50 @@ function harness(
 }
 
 describe("PageWatchManager", () => {
+	it("keeps the latest assignment when cloud writes finish out of order", async () => {
+		const first = Promise.withResolvers<void>();
+		let calls = 0;
+		const h = harness({
+			setWatch: async () => {
+				if (++calls === 1) await first.promise;
+			},
+		});
+		const pending = h.assign();
+		await h.assign({ terminalId: "term-2" });
+		first.resolve();
+		await pending;
+		expect(h.manager.list()[0]?.terminalId).toBe("term-2");
+	});
+
+	for (const action of ["stop", "unwatch"] as const) {
+		it(`does not revive a pending assignment after ${action}`, async () => {
+			const gate = Promise.withResolvers<void>();
+			const h = harness({ setWatch: () => gate.promise });
+			const pending = h.assign();
+			if (action === "stop") h.manager.stop();
+			else await h.manager.unwatch("page-1");
+			gate.resolve();
+			await pending;
+			expect(h.manager.list()).toEqual([]);
+		});
+	}
+
+	it("counts pending assignments toward the watcher cap", async () => {
+		const gate = Promise.withResolvers<void>();
+		const h = harness({ setWatch: () => gate.promise });
+		const pending = Array.from({ length: MAX_WATCHERS }, (_, index) =>
+			h.assign({ pageId: `page-${index}` }),
+		);
+		try {
+			await expect(h.assign({ pageId: "over-cap" })).rejects.toThrow(
+				"already watching",
+			);
+		} finally {
+			gate.resolve();
+			await Promise.all(pending);
+		}
+	});
+
 	it("delivers a new human comment to the assigned terminal", async () => {
 		const h = harness({ threads: [humanThread("t1", T0 + 5_000)] });
 		await h.assign();
@@ -202,15 +249,16 @@ describe("PageWatchManager", () => {
 		await h.assign({ pageId: "page-2", terminalId: "term-2" });
 		h.advance(5000);
 		const polling = h.manager.tick();
+		let timeout: ReturnType<typeof setTimeout> | undefined;
 		try {
 			await Promise.race([
 				delivered.promise,
-				new Promise((_, reject) =>
-					setTimeout(
+				new Promise((_, reject) => {
+					timeout = setTimeout(
 						() => reject(new Error("unrelated agent blocked by stalled page")),
-						100,
-					),
-				),
+						2000,
+					);
+				}),
 			]);
 			commentAt += 5000;
 			h.advance(5000);
@@ -221,6 +269,7 @@ describe("PageWatchManager", () => {
 				"term-2",
 			]);
 		} finally {
+			clearTimeout(timeout);
 			gate.resolve([]);
 			await polling;
 		}

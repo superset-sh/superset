@@ -238,12 +238,19 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				await api.page.clearWatch.mutate({ id: pageId });
 			},
 		},
-		sendToTerminal: async ({ workspaceId, terminalId, text, signal }) => {
+		sendToTerminal: async ({
+			workspaceId,
+			terminalId,
+			agentId,
+			text,
+			signal,
+		}) => {
 			const result = await sendAgentMessage({
 				terminalId,
 				workspaceId,
 				text,
 				submit: true,
+				expectedAgentId: agentId,
 				signal,
 				terminalAgentStore,
 				db,
