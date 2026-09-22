@@ -8,6 +8,19 @@ import {
 	test,
 } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import * as authClientModule from "renderer/lib/auth-client";
+import * as electronTrpcModule from "renderer/lib/electron-trpc";
+import * as posthogModule from "renderer/lib/posthog";
+
+// mock.module rewrites live bindings process-wide and bun runs every suite in
+// one process, so these stubs outlive this file unless they are put back.
+// Which suite that breaks depends on bun's file order, which shifts whenever a
+// test file is added anywhere in the app.
+const realModules = {
+	"renderer/lib/auth-client": { ...authClientModule },
+	"renderer/lib/electron-trpc": { ...electronTrpcModule },
+	"renderer/lib/posthog": { ...posthogModule },
+};
 
 // happy-dom is process-wide; unregister in afterAll so the shared mock
 // document is restored for the other renderer suites.
@@ -91,6 +104,9 @@ afterEach(() => {
 	}
 });
 afterAll(async () => {
+	for (const [specifier, exports] of Object.entries(realModules)) {
+		mock.module(specifier, () => exports);
+	}
 	if (!alreadyRegistered) await GlobalRegistrator.unregister();
 });
 
