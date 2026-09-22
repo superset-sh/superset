@@ -14,12 +14,12 @@ export function register(server: McpServer): void {
 		name: "pages_pull",
 		annotations: { readOnlyHint: true },
 		description:
-			"Get a download URL for a published page's HTML, plus that version's metadata. Fetch the returned `downloadUrl` to read the bytes — this tool does not return the document itself. The URL is signed and expires after an hour, so fetch it promptly and never store it. Use this when you need to see what a page currently says before editing the source it was published from. Address the page by id or by slug; exactly one is required.",
+			"Get a download URL for a published page's HTML, plus that version's metadata. Fetch the returned `downloadUrl` to read the bytes — this tool does not return the document itself. The URL is signed and expires after an hour, so fetch it promptly and never store it. Use this when you need to see what a page currently says before editing the source it was published from. Address the page by id or by slug; exactly one is required. Find either with pages_list when the user refers to the page by name.",
 		inputSchema: z
 			.object({
 				id: optionalish(pageFields.id).describe("Page UUID."),
 				slug: optionalish(pageFields.slug).describe(
-					"Page slug, the last path segment of its public URL.",
+					"Page slug, the last path segment of its public URL. Take it from pages_list or a URL the user gave you — slugs end in a random suffix and cannot be guessed from a title.",
 				),
 				version: optionalish(pageFields.version).describe(
 					"A specific version number. Omit for whichever version is currently served.",
