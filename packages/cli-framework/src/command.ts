@@ -1,5 +1,7 @@
 import type { GenericBuilderInternals, TypeOf } from "./option";
 
+export type Audience = "internal" | "public";
+
 export type CommandResult =
 	| { data?: unknown; message?: string }
 	| unknown[]
@@ -19,6 +21,7 @@ export type CommandConfig<
 > = {
 	description: string;
 	aliases?: string[];
+	audience?: Audience;
 	skipMiddleware?: TSkip;
 	options?: TOpts;
 	args?: TArgs;

@@ -1,5 +1,6 @@
 import { dirname, resolve } from "node:path";
 import type { BunPlugin } from "bun";
+import type { Audience } from "./command";
 import type { HelpBranding } from "./help";
 import type { GenericBuilderInternals } from "./option";
 
@@ -18,6 +19,8 @@ export interface CliConfig {
 	globals?: Record<string, GenericBuilderInternals>;
 	/** Branding/curation for the root help screen and interactive browser. */
 	help?: HelpBranding;
+	/** Audiences whose commands exist for this run. Defaults to `["public"]`. */
+	audiences?: () => Audience[];
 }
 
 export function defineConfig(config: CliConfig): CliConfig {

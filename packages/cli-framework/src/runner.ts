@@ -1,4 +1,4 @@
-import type { CommandConfig } from "./command";
+import type { Audience, CommandConfig } from "./command";
 import { CLIError } from "./errors";
 import {
 	generateCommandHelp,
@@ -15,6 +15,7 @@ import {
 	buildTree,
 	type CliCommand,
 	type CliGroup,
+	filterByAudience,
 	routeCommand,
 } from "./router";
 
@@ -30,6 +31,7 @@ export interface RunOptions {
 	tree: CommandTree;
 	globals?: Record<string, GenericBuilderInternals>;
 	help?: HelpBranding;
+	audiences?: Audience[];
 }
 
 export async function run(opts: RunOptions): Promise<void> {
@@ -241,7 +243,12 @@ async function execute(
 	const { name, version } = opts;
 	const { middleware } = loaded;
 	const globalConfigs = processGlobals(opts.globals);
-	const { root, commandMap } = buildTree(loaded.groups, loaded.commands);
+	const visible = filterByAudience(
+		loaded.groups,
+		loaded.commands,
+		opts.audiences ?? ["public"],
+	);
+	const { root, commandMap } = buildTree(visible.groups, visible.commands);
 
 	// EXPERIMENT: bare invocation on a TTY opens the interactive help browser
 	// instead of dumping static help. Agents/CI keep the static output.

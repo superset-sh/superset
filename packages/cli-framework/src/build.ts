@@ -32,6 +32,7 @@ await run({
 	tree: { commands, groups, middleware },
 	globals: config.globals,
 	help: config.help,
+	audiences: config.audiences?.(),
 });
 `,
 	);
