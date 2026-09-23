@@ -196,6 +196,46 @@ function harness(shared = cloud(), overrides: Partial<PageWatchDeps> = {}) {
 }
 
 describe("PageWatchManager", () => {
+	for (const clockStep of [10_001, -1])
+		it(`rejects wall-clock step ${clockStep} with a frozen monotonic clock`, async () => {
+			const h = harness(undefined, { monotonicNow: () => 0 });
+			await h.assign();
+			const reserve = h.shared.api.reserveWatchDelivery;
+			h.shared.api.reserveWatchDelivery = async (input) => {
+				const reservation = await reserve(input);
+				h.advance(clockStep);
+				return reservation;
+			};
+			h.shared.threads.set("page", [thread("clock-step")]);
+			await h.manager.tick();
+			expect(h.sent).toEqual([]);
+			expect(h.shared.owners.get("page")?.seenCommentIds.size).toBe(0);
+			expect(h.shared.owners.get("page")?.reservation).toBeUndefined();
+		});
+
+	it("keeps reassignment to a live agent when the previous agent exits", async () => {
+		const h = harness();
+		await h.assign();
+		const claim = h.shared.api.claimWatch;
+		const entered = Promise.withResolvers<void>();
+		const gate = Promise.withResolvers<void>();
+		h.shared.api.claimWatch = async (input) => {
+			entered.resolve();
+			await gate.promise;
+			return claim(input);
+		};
+		const assigning = h.assign({ terminalId: "b", workspaceId: "ws-b" });
+		await entered.promise;
+		h.alive.delete("a");
+		h.exit("a");
+		h.shared.threads.set("page", [thread("during-reassignment")]);
+		gate.resolve();
+		await assigning;
+		expect(h.manager.list()[0]?.terminalId).toBe("b");
+		await h.manager.tick();
+		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual(["b"]);
+	});
+
 	it("keeps the newest intent when initial target validations finish out of order", async () => {
 		const gate = Promise.withResolvers<boolean>();
 		const h = harness(undefined, {

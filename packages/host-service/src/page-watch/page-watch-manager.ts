@@ -237,6 +237,7 @@ export class PageWatchManager {
 		this.cleaning.add(entry);
 		try {
 			await this.finishPending(entry);
+			if (this.assignments.has(entry.pageId)) return;
 			await this.deps.api.releaseWatch({
 				id: entry.pageId,
 				token: entry.token,
@@ -302,7 +303,10 @@ export class PageWatchManager {
 		await Promise.all(
 			[...this.entries.values()]
 				.filter((entry) => entry.terminalId === terminalId)
-				.map((entry) => this.unwatch(entry.pageId)),
+				.map(async (entry) => {
+					this.retire(entry);
+					await this.cleanupEntry(entry);
+				}),
 		);
 	}
 	private ensureTicking(): void {
@@ -412,6 +416,7 @@ export class PageWatchManager {
 			)
 				return null;
 			const started = this.monotonicNow();
+			const startedAt = this.now();
 			const reservation = await this.deps.api.reserveWatchDelivery({
 				id: entry.pageId,
 				token: entry.token,
@@ -429,12 +434,20 @@ export class PageWatchManager {
 				delivered: false,
 			};
 			return {
-				isValid: () =>
-					this.isCurrent(entry) &&
-					!this.assignments.has(entry.pageId) &&
-					!entry.abortController.signal.aborted &&
-					this.monotonicNow() < started + reservation.leaseMs &&
-					!this.deps.isAgentBusy(entry.terminalId),
+				isValid: () => {
+					const elapsed = this.monotonicNow() - started;
+					const wallElapsed = this.now() - startedAt;
+					return (
+						this.isCurrent(entry) &&
+						!this.assignments.has(entry.pageId) &&
+						!entry.abortController.signal.aborted &&
+						elapsed >= 0 &&
+						elapsed < reservation.leaseMs &&
+						wallElapsed >= 0 &&
+						wallElapsed < reservation.leaseMs &&
+						!this.deps.isAgentBusy(entry.terminalId)
+					);
+				},
 			};
 		};
 		try {
