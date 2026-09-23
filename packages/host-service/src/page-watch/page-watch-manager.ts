@@ -404,7 +404,7 @@ export class PageWatchManager {
 			return;
 		}
 		entry.pendingSince ??= at;
-		if (result.fired.length > 0 && this.deps.isAgentBusy(entry.terminalId)) {
+		if (this.deps.isAgentBusy(entry.terminalId)) {
 			entry.failures = 0;
 			return;
 		}

@@ -103,6 +103,7 @@ interface PtyDataDisposer {
 
 interface DaemonPty {
 	pid: number;
+	writeOrThrow(data: string): void;
 	write(data: string): void;
 	resize(cols: number, rows: number): void;
 	kill(signal?: NodeJS.Signals): Promise<void>;
@@ -117,11 +118,14 @@ function makeDaemonPty(
 	sessionId: string,
 	pid: number,
 ): DaemonPty {
+	const writeOrThrow = (data: string) =>
+		daemon.input(sessionId, Buffer.from(data, "utf8"));
 	return {
 		pid,
+		writeOrThrow,
 		write(data) {
 			try {
-				daemon.input(sessionId, Buffer.from(data, "utf8"));
+				writeOrThrow(data);
 			} catch {
 				// Daemon socket died before the disconnect sweep ran; a throw
 				// here would escape the WS input handler uncaught.
@@ -1258,16 +1262,18 @@ async function writeSessionMessage(
 				agent || session.modeTracker.isBracketedPasteActive()
 					? `\x1b[200~${message}\x1b[201~`
 					: message;
+			const write = (data: string) =>
+				agent ? session.pty.writeOrThrow(data) : session.pty.write(data);
 			let inputStaged: true | undefined;
 			try {
 				if (!submit) {
 					inputStaged = true;
-					session.pty.write(framed);
+					write(framed);
 					return { success: true };
 				}
 				if (text.length > 0) {
 					inputStaged = true;
-					session.pty.write(framed);
+					write(framed);
 					await new Promise((r) => setTimeout(r, FOLLOW_UP_ENTER_DELAY_MS));
 					if (session.exited) {
 						return {
@@ -1284,7 +1290,7 @@ async function writeSessionMessage(
 						inputStaged,
 					};
 				}
-				session.pty.write("\r");
+				write("\r");
 				return { success: true };
 			} catch (error) {
 				return {

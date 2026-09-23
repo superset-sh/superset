@@ -1,5 +1,5 @@
 import { type QueryKey, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useEffectEvent } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef } from "react";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
 
@@ -16,12 +16,20 @@ export function useWorkspaceConnectionRefresh(
 			.then(() => queryClient.invalidateQueries({ queryKey }));
 	}, [queryClient, queryKey]);
 	const onRefresh = useEffectEvent(refresh);
+	const previousTarget = useRef<{
+		workspaceId: string;
+		hostUrl: string;
+	} | null>(null);
 
 	useEffect(() => {
 		if (!enabled || !hostUrl || !workspaceId) return;
+		const previous = previousTarget.current;
+		const targetChanged =
+			previous?.workspaceId === workspaceId && previous.hostUrl !== hostUrl;
+		previousTarget.current = { workspaceId, hostUrl };
 		const bus = getHostEventBus(hostUrl);
 		let state = bus.getConnectionStatus().state;
-		if (state === "open") onRefresh();
+		if (state === "open" && targetChanged) onRefresh();
 		const unsubscribe = bus.subscribeConnectionStatus((status) => {
 			const opened = status.state === "open" && state !== "open";
 			state = status.state;

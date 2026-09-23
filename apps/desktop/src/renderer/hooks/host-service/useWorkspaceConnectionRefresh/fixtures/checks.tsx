@@ -207,3 +207,31 @@ test("host switch cancels a pending initial response before it can populate work
 		]),
 	).toEqual(current.bindings);
 });
+
+test("mounting additional consumers and remounting preserves a fresh workspace cache", async () => {
+	const host = makeHost();
+	host.watchers = [{ pageId: "cached-page" }];
+	host.bindings = [{ terminalId: "cached-agent" }];
+	hosts.set(hostUrl, host);
+	const queryClient = client();
+	const first = render(windowTree(queryClient));
+	await waitFor(() =>
+		expect(first.container.textContent).toBe("cached-page,cached-agent"),
+	);
+	expect(host.reads).toBe(2);
+	const second = render(windowTree(queryClient));
+	await act(async () => {});
+	expect(second.container.textContent).toBe("cached-page,cached-agent");
+	expect(host.reads).toBe(2);
+	first.unmount();
+	second.unmount();
+	const remounted = render(windowTree(queryClient));
+	await act(async () => {});
+	expect(remounted.container.textContent).toBe("cached-page,cached-agent");
+	expect(host.reads).toBe(2);
+	await act(async () => {
+		host.emit("reconnecting");
+		host.emit("open");
+	});
+	await waitFor(() => expect(host.reads).toBe(4));
+});

@@ -730,6 +730,38 @@ describe("PageWatchManager", () => {
 		await h.manager.tick();
 		expect(h.manager.list()).toEqual([]);
 	});
+	it("holds capped-only feedback while busy without retiring the watch", async () => {
+		const h = harness();
+		await h.assign();
+		for (let i = 0; i < 5; i++) {
+			const item = thread("same");
+			for (const comment of item.comments) comment.id = `comment-${i}`;
+			h.shared.threads.set("page", [item]);
+			await h.manager.tick();
+		}
+		h.busy.add("a");
+		const capped = thread("same");
+		for (const comment of capped.comments) comment.id = "capped-while-busy";
+		h.shared.threads.set("page", [capped]);
+		const reservations = h.shared.calls.reserve;
+		for (let i = 0; i < MAX_CONSECUTIVE_FAILURES + 2; i++) {
+			h.advance(5_000);
+			await h.manager.tick();
+		}
+		expect(h.manager.list()).toHaveLength(1);
+		expect(h.shared.calls.reserve).toBe(reservations);
+		expect(
+			h.shared.owners.get("page")?.seenCommentIds.has("capped-while-busy"),
+		).toBe(false);
+		h.busy.clear();
+		await h.manager.tick();
+		expect(h.manager.list()).toHaveLength(1);
+		expect(
+			h.shared.owners.get("page")?.seenCommentIds.has("capped-while-busy"),
+		).toBe(true);
+		expect(h.sent).toHaveLength(5);
+	});
+
 	it("acknowledges capped feedback without sending or wedging future polls", async () => {
 		const h = harness();
 		await h.assign();

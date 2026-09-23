@@ -576,6 +576,41 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 		}
 	});
 
+	test("daemon write failures reject agent delivery while websocket input stays contained", async () => {
+		const terminalId = `e2e-daemon-failure-${randomUUID().slice(0, 8)}`;
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+		});
+		assert.ok(!("error" in session));
+		if ("error" in session) return;
+		bindAgent(terminalId);
+		const daemon = await getDaemonClient();
+		const input = mock.method(daemon, "input", () => {
+			throw new Error("daemon socket disconnected");
+		});
+		try {
+			assert.doesNotThrow(() => session.pty.write("websocket input"));
+			const result = await sendAgentMessage({
+				terminalId,
+				workspaceId,
+				db,
+				terminalAgentStore,
+				text: "feedback",
+				submit: true,
+			});
+			assert.ok("error" in result);
+			if ("error" in result) {
+				assert.equal(result.error, "daemon socket disconnected");
+				assert.equal(result.inputStaged, true);
+			}
+		} finally {
+			input.mock.restore();
+			await disposeSessionAndWait(terminalId, db);
+		}
+	});
+
 	for (const change of [
 		"denied",
 		"expired",
@@ -599,14 +634,20 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 			let valid = true;
 			let failed = false;
 			const writes: string[] = [];
-			const write = mock.method(session.pty, "write", (data: string) => {
-				if (change === "write-failed" && data === "\r" && !failed) {
-					failed = true;
-					throw new Error("disconnected during submit");
-				}
-				writes.push(data);
-				if (change === "expired") valid = false;
-			});
+			const daemon = await getDaemonClient();
+			const write = mock.method(
+				daemon,
+				"input",
+				(_id: string, bytes: Buffer) => {
+					const data = bytes.toString("utf8");
+					if (change === "write-failed" && data === "\r" && !failed) {
+						failed = true;
+						throw new Error("disconnected during submit");
+					}
+					writes.push(data);
+					if (change === "expired") valid = false;
+				},
+			);
 			try {
 				const sending = sendAgentMessage({
 					terminalId,
@@ -745,11 +786,17 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 			bindAgent(terminalId);
 			const controller = new AbortController();
 			const writes: string[] = [];
-			const write = mock.method(session.pty, "write", (data: string) => {
-				writes.push(data);
-				if (change === "cancel") controller.abort();
-				else bindAgent(terminalId);
-			});
+			const daemon = await getDaemonClient();
+			const write = mock.method(
+				daemon,
+				"input",
+				(_id: string, bytes: Buffer) => {
+					const data = bytes.toString("utf8");
+					writes.push(data);
+					if (change === "cancel") controller.abort();
+					else bindAgent(terminalId);
+				},
+			);
 			try {
 				const result = await sendAgentMessage({
 					terminalId,

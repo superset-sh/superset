@@ -67,7 +67,10 @@ export async function claimPageWatch(input: {
 			page.watchState &&
 			owns(page.watchState, input.token, page.watchHeartbeatAt, now)
 		) {
-			await save(tx, input.id, page.watchState, now);
+			await tx
+				.update(pages)
+				.set({ watchHeartbeatAt: new Date(now) })
+				.where(eq(pages.id, input.id));
 			return {
 				token: input.token,
 				seenCommentIds: page.watchState.seenCommentIds,
@@ -123,7 +126,10 @@ export async function renewPageWatch(input: { id: string; token: string }) {
 			!owns(page.watchState, input.token, page.watchHeartbeatAt, now)
 		)
 			return { current: false };
-		await save(tx, input.id, page.watchState, now);
+		await tx
+			.update(pages)
+			.set({ watchHeartbeatAt: new Date(now) })
+			.where(eq(pages.id, input.id));
 		return { current: true };
 	});
 }
