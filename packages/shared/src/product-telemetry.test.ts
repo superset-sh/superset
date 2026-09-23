@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import {
 	captureTelemetryEvent,
 	readTokenIdentity,
@@ -53,7 +53,7 @@ describe("captureTelemetryEvent", () => {
 		await captureTelemetryEvent({
 			key: "phc_test",
 			event: "cli_command_invoked",
-			identity: { distinctId: "host-1", organizationId: "o1" },
+			identify: () => ({ distinctId: "host-1", organizationId: "o1" }),
 			properties: { command: "status" },
 		});
 
@@ -64,6 +64,38 @@ describe("captureTelemetryEvent", () => {
 		});
 	});
 
+	test("a sampled-out call neither identifies nor sends; a kept one is stamped", async () => {
+		const sent: Array<{ properties: Record<string, unknown> }> = [];
+		globalThis.fetch = (async (_url: string, init: RequestInit) => {
+			sent.push(JSON.parse(String(init.body)));
+			return new Response(null);
+		}) as unknown as typeof fetch;
+		let identified = 0;
+		const call = () =>
+			captureTelemetryEvent({
+				key: "phc_test",
+				event: "cli_command_invoked",
+				identify: () => {
+					identified++;
+					return { distinctId: "u1", organizationId: null };
+				},
+				properties: {},
+				sampleRate: 100,
+			});
+		const random = spyOn(Math, "random");
+
+		random.mockReturnValue(0.5);
+		await call();
+		expect(identified).toBe(0);
+		expect(sent).toHaveLength(0);
+
+		random.mockReturnValue(0.001);
+		await call();
+		expect(identified).toBe(1);
+		expect(sent[0]?.properties.sample_rate).toBe(100);
+		random.mockRestore();
+	});
+
 	test("never throws when delivery fails", async () => {
 		globalThis.fetch = (async () => {
 			throw new Error("offline");
@@ -71,7 +103,7 @@ describe("captureTelemetryEvent", () => {
 		await captureTelemetryEvent({
 			key: "phc_test",
 			event: "e",
-			identity: { distinctId: "u1", organizationId: null },
+			identify: () => ({ distinctId: "u1", organizationId: null }),
 			properties: {},
 		});
 	});

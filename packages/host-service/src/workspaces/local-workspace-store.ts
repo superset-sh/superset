@@ -64,10 +64,10 @@ function trackWorkspaceEvent(
 	void captureTelemetryEvent({
 		key,
 		event,
-		identity: {
+		identify: () => ({
 			distinctId: ctx.userId ?? getHostId(),
 			organizationId: ctx.organizationId ?? null,
-		},
+		}),
 		properties: {
 			source: "host_service",
 			workspace_id: row.id,

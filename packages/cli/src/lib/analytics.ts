@@ -8,11 +8,7 @@ import {
 import { env } from "./env";
 import type { AuthSource } from "./resolve-auth";
 
-/**
- * Agents poll these in tight loops (millions of runs a week), so one run in
- * `POLLING_SAMPLE_RATE` is reported, carrying `sample_rate` for insights to
- * scale counts back up.
- */
+/** Agents run these in tight loops, millions of times a week. */
 const POLLING_COMMANDS = new Set([
 	"terminals list",
 	"terminals read",
@@ -49,20 +45,17 @@ export function trackCommandInvoked(input: {
 	const key = resolveTelemetryKey(env.SUPERSET_API_URL);
 	if (!key) return;
 	const command = input.commandPath.join(" ");
-	const sampleRate = POLLING_COMMANDS.has(command) ? POLLING_SAMPLE_RATE : 1;
-	if (Math.random() * sampleRate >= 1) return;
-
 	void captureTelemetryEvent({
 		key,
 		event: "cli_command_invoked",
-		identity: identify(input),
+		identify: () => identify(input),
+		sampleRate: POLLING_COMMANDS.has(command) ? POLLING_SAMPLE_RATE : 1,
 		properties: {
 			source: "cli",
 			command,
 			flags: input.flags,
 			cli_version: env.VERSION,
 			auth_source: input.authSource,
-			sample_rate: sampleRate,
 		},
 	});
 }

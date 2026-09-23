@@ -51,15 +51,22 @@ export function readTokenIdentity(
 	}
 }
 
-/** Best-effort: never throws, and a failed delivery is dropped. */
+/**
+ * Best-effort: never throws, and a failed delivery is dropped. With
+ * `sampleRate` n, one call in n is sent, stamped `sample_rate: n` so insights
+ * can scale counts back up; `identify` only runs for calls that are sent.
+ */
 export async function captureTelemetryEvent(input: {
 	key: string;
 	event: string;
-	identity: TelemetryIdentity;
+	identify: () => TelemetryIdentity;
 	properties: Record<string, unknown>;
+	sampleRate?: number;
 }): Promise<void> {
-	const { identity } = input;
+	const sampleRate = input.sampleRate ?? 1;
+	if (Math.random() * sampleRate >= 1) return;
 	try {
+		const identity = input.identify();
 		await fetch(POSTHOG_CAPTURE_URL, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -69,6 +76,7 @@ export async function captureTelemetryEvent(input: {
 				distinct_id: identity.distinctId,
 				properties: {
 					...input.properties,
+					sample_rate: sampleRate,
 					...(identity.organizationId
 						? {
 								active_organization_id: identity.organizationId,
