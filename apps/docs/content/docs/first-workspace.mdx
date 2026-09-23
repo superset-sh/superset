@@ -3,7 +3,7 @@ title: Your First Parallel Session
 description: Go from install to three agents working in parallel, then ship the best result
 ---
 
-This is the most important page in the docs. In about ten minutes you'll add a repo, put three agents to work on isolated branches, and merge the winner.
+In about ten minutes you'll add a repo, put three agents to work on isolated branches, and merge the winner.
 
 ## 1. Add a Repository
 
@@ -13,9 +13,9 @@ Add your repo from a local folder or clone a remote repository. In the clone dia
 
 ## 2. Create a Workspace with a Prompt
 
-Press **⌘N**. Each workspace is an isolated git worktree on its own branch: no stashing, no `git checkout` whiplash, and nothing an agent does here touches your other work.
+Press **⌘N** to create an isolated git worktree on its own branch.
 
-In the prompt-first flow, describe the task, pick an agent, and create. The agent starts working on your prompt immediately. (The **Auto-run command** toggle lives on the tasks surfaces; see [Agent Integration](/agent-integration).)
+In the prompt-first flow, describe the task, pick an agent, and create. The agent starts working on your prompt immediately.
 
 A good first prompt if your repo needs dependencies or env files:
 
@@ -30,14 +30,12 @@ Future workspaces will then install dependencies and copy env files automaticall
 
 ## 3. Fan Out to Three Agents
 
-Now the part worktrees make possible. Press **⌘N** twice more and give each workspace the same prompt with a different agent, say Claude Code, Codex, and Amp:
+Press **⌘N** twice more and give each workspace the same prompt with a different agent, say Claude Code, Codex, and Amp:
 
 ```text
 Find a small bug in this repo and fix it. Explain the bug and the fix
 in your final message.
 ```
-
-Each agent works on its own branch, in its own directory, with its own terminal. They can't step on each other, and none of them touch `main`.
 
 ## 4. Watch Them Work
 
@@ -63,13 +61,11 @@ If a losing attempt had one good idea, select those lines in its diff and copy t
 
 ## 7. Clean Up
 
-Delete the other workspaces. [Lifecycle teardown scripts](/setup-teardown-scripts) run automatically, and the worktrees are removed. Deleting a workspace after merging is the normal rhythm, not an edge case.
+Delete the other workspaces. [Lifecycle teardown scripts](/setup-teardown-scripts) run automatically, and the worktrees are removed.
 
 ## You Now Know the Core Loop
 
-Delegate in workspaces, review in diffs, integrate through branches and PRs. Everything else in Superset builds on this loop.
-
-Named workflows to try next:
+Try these workflows next:
 
 <Cards>
 	<Card icon={<Split />} title="Race Agents on One Task" href="/recipes/race-agents">
