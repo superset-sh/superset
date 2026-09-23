@@ -2,7 +2,7 @@
 title: "How to Run Multiple Claude Code Agents in Parallel"
 description: "Learn the safest way to run multiple Claude Code sessions at once. Compare terminal tabs, tmux, manual Git worktrees, and Superset's orchestration workflow."
 date: 2026-03-20
-lastUpdated: 2026-03-20
+lastUpdated: 2026-09-22
 type: "tutorial"
 competitors:
   - claude-code
@@ -30,6 +30,8 @@ If two sessions share one working directory, they can both edit the same files, 
 
 That is why "multiple agents" is really an isolation problem first and an interface problem second.
 
+For a complete exercise with three scoped prompts, a deliberate approval pause, separate previews, and an integration check, follow the [three-task walkthrough](/blog/parallel-coding-agents-guide).
+
 ## The Three Common Approaches
 
 ### 1. Multiple Terminal Tabs or tmux Panes
@@ -54,7 +56,7 @@ git worktree add ../repo-refactor -b ai/refactor
 
 Then you `cd` into each directory and launch Claude Code there.
 
-This is safe and effective. It is also repetitive. You still have to create branches, name directories, track which session maps to which task, and review each diff manually in your editor or Git UI.
+This separates working files, but does not sandbox the agent or prevent merge conflicts. It is also repetitive. You still have to create branches, name directories, track which session maps to which task, and review each diff manually in your editor or Git UI.
 
 ### 3. Superset + Claude Code
 
