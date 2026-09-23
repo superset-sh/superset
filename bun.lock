@@ -188,8 +188,6 @@
         "@superset/workspace-fs": "workspace:*",
         "@t3-oss/env-core": "0.13.11",
         "@tanstack/db": "0.6.17",
-        "@tanstack/electron-db-sqlite-persistence": "0.1.21",
-        "@tanstack/node-db-sqlite-persistence": "0.2.9",
         "@tanstack/query-async-storage-persister": "5.101.4",
         "@tanstack/react-db": "0.1.95",
         "@tanstack/react-query": "5.101.4",
@@ -3281,13 +3279,7 @@
 
     "@tanstack/db-ivm": ["@tanstack/db-ivm@0.1.18", "", { "dependencies": { "fractional-indexing": "^3.2.0", "sorted-btree": "^1.8.1" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-+pZJiRKdoKRM5Epq9T7otD9ZJl82pRFauo7LKuJGrarjVKQ7r+QQlPe3kGdN9LEKSnuNGIWjX9OOY4M8kH4eLw=="],
 
-    "@tanstack/db-sqlite-persistence-core": ["@tanstack/db-sqlite-persistence-core@0.2.9", "", { "dependencies": { "@standard-schema/spec": "^1.1.0", "@tanstack/db": "0.6.17" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-yp0dpWAf5lK5RgnoKL9Bv5+e+TGzHnlHjkNt6YqhITPlymWgjcibjlj8pqx/iAowPY7kQZoMuiBFhxbPGmf3Zg=="],
-
-    "@tanstack/electron-db-sqlite-persistence": ["@tanstack/electron-db-sqlite-persistence@0.1.21", "", { "dependencies": { "@tanstack/db-sqlite-persistence-core": "0.2.9" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-99U/BAgRnrqt6iu1qBX9joZORfqf1yDGECYfHB3Fwcagf1UG6t9RQrqSSn8E9HZJYz6GiccbRilDUhPhR8ZFzw=="],
-
     "@tanstack/history": ["@tanstack/history@1.162.0", "", {}, "sha512-79pf/RkhteYZTRgcR4F9kbk84P2N8rugQJswxfIqovlbRiT3yI7eBE+5QorIrZaOKktsgzRlXh1l/du/xpl4iA=="],
-
-    "@tanstack/node-db-sqlite-persistence": ["@tanstack/node-db-sqlite-persistence@0.2.9", "", { "dependencies": { "@tanstack/db-sqlite-persistence-core": "0.2.9", "better-sqlite3": "^12.6.2" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-1dsst2F0EQ46bTyxxL7O8oVVOSbQ0yRIkswFY6Z1LYUg2wy5cR6/4KXKN0Gfio1yVPzHSM+JZVuvtFMhYck0Mw=="],
 
     "@tanstack/pacer-lite": ["@tanstack/pacer-lite@0.2.2", "", {}, "sha512-eQ1MyLKCHyXiH7NbdmB80W77OhiMgGBUb+qDx/8WMGbwg5Lf/NlfD0TfNYAqY77i8V3AxoDoYdICrQE5ADw4Yw=="],
 

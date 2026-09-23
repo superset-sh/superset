@@ -47,10 +47,6 @@ import { resolveAppLocale } from "./lib/language";
 import { localDb } from "./lib/local-db";
 import { requestLocalNetworkAccess } from "./lib/local-network-permission";
 import { menuEmitter } from "./lib/menu-events";
-import {
-	initTanstackDbPersistence,
-	shutdownTanstackDbPersistence,
-} from "./lib/persistence/persistence";
 import { syncInstalledPluginMcpServers } from "./lib/plugin-installs";
 import { portForwardManager } from "./lib/port-forward";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
@@ -342,7 +338,6 @@ app.on("before-quit", async (event) => {
 		stopHostServices: () => getHostServiceCoordinator().stopAll(),
 		teardownTerminalHost,
 		disposeTerminalHostClient,
-		shutdownPersistence: shutdownTanstackDbPersistence,
 		disposeTray,
 		forceExit: (code) => app.exit(code),
 	});
@@ -509,7 +504,6 @@ if (!gotTheLock) {
 		setWorkspaceDockIcon();
 		initSentry();
 		await initAppState();
-		initTanstackDbPersistence();
 
 		sweepNetworkLogs();
 		sweepDevAppProfiles();

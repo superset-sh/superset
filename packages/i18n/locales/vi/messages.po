@@ -5931,8 +5931,8 @@ msgstr "Mọi thứ đều viết script được. Tạo workspace và agent t�
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Mọi thứ chúng tôi dựng trên nền các primitive — thành phần riêng của Superset, bộ"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Mọi thứ bạn đã đăng sẽ bị xóa, không phải ẩn đi. Bạn có thể tham gia lại sau và dữ liệu sẽ được dựng lại từ các transcript còn trên máy này — chỉ mất thứ hạng cũ."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Mọi thứ bạn đã đăng sẽ bị xóa, không phải ẩn đi. Bạn có thể tham gia lại sau và dữ liệu sẽ được dựng lại từ các transcript còn trên máy này."
 
 msgid "Existing repo path"
 msgstr "Đường dẫn repo có sẵn"
@@ -6630,6 +6630,9 @@ msgstr "Lọc theo review"
 
 msgid "Filter by state"
 msgstr "Lọc theo trạng thái"
+
+msgid "Filter by workspace: {label}"
+msgstr "Lọc theo workspace: {label}"
 
 msgid "Filter hosts"
 msgstr "Lọc host"
@@ -16049,6 +16052,9 @@ msgstr "Biến không xác định: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Thợ hàn vô danh"
+
+msgid "Unknown workspace"
+msgstr "Workspace không xác định"
 
 msgid "Unlimited"
 msgstr "Không giới hạn"

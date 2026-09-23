@@ -5931,8 +5931,8 @@ msgstr "すべてスクリプトから操作できます。CLIでワークスペ
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "プリミティブの上に作ったもの一式 — Superset独自のコンポーネント、エージェントUI向けの"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "公開したものはすべて削除され、非表示になるわけではありません。後で再参加すれば、このマシンに残っているトランスクリプトから再構築されます — 失われるのは過去のランキングのみです。"
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "公開したものはすべて削除され、非表示になるわけではありません。後で再参加すれば、このマシンに残っているトランスクリプトから再構築されます。"
 
 msgid "Existing repo path"
 msgstr "既存リポジトリのパス"
@@ -6630,6 +6630,9 @@ msgstr "レビューで絞り込む"
 
 msgid "Filter by state"
 msgstr "状態で絞り込む"
+
+msgid "Filter by workspace: {label}"
+msgstr "ワークスペースで絞り込み: {label}"
 
 msgid "Filter hosts"
 msgstr "ホストを絞り込み"
@@ -16049,6 +16052,9 @@ msgstr "不明な変数: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "正体不明の溶接工"
+
+msgid "Unknown workspace"
+msgstr "不明なワークスペース"
 
 msgid "Unlimited"
 msgstr "無制限"

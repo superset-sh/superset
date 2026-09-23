@@ -5931,8 +5931,8 @@ msgstr "Всё скриптуется. Поднимайте рабочие об�
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Всё, что мы построили поверх примитивов, — оригиналы Superset, набор"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Всё опубликованное удаляется, а не скрывается. Вы можете вернуться позже, и данные соберутся заново из расшифровок, оставшихся на этой машине — потеряется только прошлое место в рейтинге."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Всё опубликованное удаляется, а не скрывается. Вы можете вернуться позже, и данные соберутся заново из расшифровок, оставшихся на этой машине."
 
 msgid "Existing repo path"
 msgstr "Путь к существующему репозиторию"
@@ -6630,6 +6630,9 @@ msgstr "Фильтр по ревью"
 
 msgid "Filter by state"
 msgstr "Фильтр по состоянию"
+
+msgid "Filter by workspace: {label}"
+msgstr "Фильтр по рабочей области: {label}"
 
 msgid "Filter hosts"
 msgstr "Фильтр хостов"
@@ -16049,6 +16052,9 @@ msgstr "Неизвестные переменные: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Неизвестный сварщик"
+
+msgid "Unknown workspace"
+msgstr "Неизвестная рабочая область"
 
 msgid "Unlimited"
 msgstr "Без ограничений"

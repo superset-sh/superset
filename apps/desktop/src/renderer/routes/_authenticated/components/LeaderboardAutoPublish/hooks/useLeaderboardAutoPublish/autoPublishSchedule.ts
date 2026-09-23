@@ -1,3 +1,5 @@
+import { launchBackfillDays } from "renderer/lib/leaderboard";
+
 export const PUBLISH_INTERVAL_MS = 2 * 60 * 60 * 1000;
 export const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -9,12 +11,14 @@ export interface AutoPublishState {
 	handle: string | null;
 	lastPublishedAt: number;
 	lastPayloadHash: string | null;
+	pendingBackfill: boolean;
 }
 
 export const INITIAL_AUTO_PUBLISH_STATE: AutoPublishState = {
 	handle: null,
 	lastPublishedAt: 0,
 	lastPayloadHash: null,
+	pendingBackfill: false,
 };
 
 export function isPublishDue(state: AutoPublishState, now: number): boolean {
@@ -26,6 +30,7 @@ export function publishWindowDays(
 	state: AutoPublishState,
 	now: number,
 ): number {
+	if (state.pendingBackfill) return launchBackfillDays(new Date(now));
 	if (state.lastPublishedAt <= 0) return MAX_WINDOW_DAYS;
 	const elapsedDays = Math.ceil(
 		Math.max(0, now - state.lastPublishedAt) / DAY_MS,

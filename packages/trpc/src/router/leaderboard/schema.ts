@@ -95,10 +95,6 @@ export type PublishFactoryDay = z.infer<typeof publishFactoryDaySchema>;
 // under Postgres's 65,535 bind parameters at 15 columns per row.
 export const PUBLISH_MAX_DAYS = 2_000;
 
-// The widest a client legitimately reaches back is the 30-day join backfill;
-// the extra days absorb host/server clock skew around a UTC midnight.
-export const PUBLISH_WINDOW_DAYS = 35;
-
 // hostId is a free-form client string and part of the upsert key, so without a
 // bound the per-row caps above can be multiplied by inventing hosts.
 export const MAX_HOSTS_PER_USER = 10;

@@ -5931,8 +5931,8 @@ msgstr "Tout est scriptable. Créez des espaces de travail et des agents depuis 
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Tout ce que nous avons construit par-dessus les primitives — les originaux Superset, la"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Tout ce que vous avez publié est supprimé, pas masqué. Vous pourrez revenir plus tard et tout sera reconstruit à partir des transcriptions encore présentes sur cette machine — seul votre classement passé est perdu."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Tout ce que vous avez publié est supprimé, pas masqué. Vous pourrez revenir plus tard et tout sera reconstruit à partir des transcriptions encore présentes sur cette machine."
 
 msgid "Existing repo path"
 msgstr "Chemin du dépôt existant"
@@ -6630,6 +6630,9 @@ msgstr "Filtrer par revues"
 
 msgid "Filter by state"
 msgstr "Filtrer par état"
+
+msgid "Filter by workspace: {label}"
+msgstr "Filtrer par espace de travail : {label}"
 
 msgid "Filter hosts"
 msgstr "Filtrer les hôtes"
@@ -16049,6 +16052,9 @@ msgstr "Variables inconnues : {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Soudeur inconnu"
+
+msgid "Unknown workspace"
+msgstr "Espace de travail inconnu"
 
 msgid "Unlimited"
 msgstr "Illimité"

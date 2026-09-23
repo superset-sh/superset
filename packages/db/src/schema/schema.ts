@@ -1479,9 +1479,10 @@ export const pages = pgTable(
 	},
 	(table) => [
 		uniqueIndex("pages_slug_unique").on(table.slug),
-		index("pages_organization_id_updated_at_idx").on(
+		index("pages_organization_id_created_at_id_idx").on(
 			table.organizationId,
-			desc(table.updatedAt),
+			desc(table.createdAt),
+			desc(table.id),
 		),
 		index("pages_created_by_user_id_idx").on(table.createdByUserId),
 	],

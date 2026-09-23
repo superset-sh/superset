@@ -15,6 +15,7 @@ import {
 import { QueryBuilder } from "drizzle-orm/pg-core";
 import { taskStatuses, tasks } from "./schema";
 import { type TaskPriority, taskPriorityValues } from "./schema/enums";
+import { escapeLikePattern } from "./utils/like";
 
 export const taskStatusTypeValues = [
 	"backlog",
@@ -51,10 +52,6 @@ export interface TaskListFilters {
 	externalCycleId?: string;
 	dueDateFrom?: Date;
 	dueDateTo?: Date;
-}
-
-function escapeLikePattern(value: string): string {
-	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
 }
 
 export function buildTaskListConditions(

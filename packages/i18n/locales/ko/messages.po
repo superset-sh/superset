@@ -5931,8 +5931,8 @@ msgstr "모든 것이 스크립트로 가능합니다. CLI에서 워크스페이
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "프리미티브 위에 우리가 만든 모든 것 — Superset 오리지널, 에이전트 UI용"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "게시한 모든 내용이 숨겨지는 것이 아니라 삭제됩니다. 나중에 다시 참여하면 이 컴퓨터에 남아 있는 기록에서 다시 만들어지며, 지난 순위만 사라집니다."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "게시한 모든 내용이 숨겨지는 것이 아니라 삭제됩니다. 나중에 다시 참여하면 이 컴퓨터에 남아 있는 기록에서 다시 만들어집니다."
 
 msgid "Existing repo path"
 msgstr "기존 리포지토리 경로"
@@ -6630,6 +6630,9 @@ msgstr "리뷰로 필터링"
 
 msgid "Filter by state"
 msgstr "상태로 필터링"
+
+msgid "Filter by workspace: {label}"
+msgstr "워크스페이스별 필터: {label}"
 
 msgid "Filter hosts"
 msgstr "호스트 필터"
@@ -16049,6 +16052,9 @@ msgstr "알 수 없는 변수: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "미지의 용접공"
+
+msgid "Unknown workspace"
+msgstr "알 수 없는 워크스페이스"
 
 msgid "Unlimited"
 msgstr "무제한"

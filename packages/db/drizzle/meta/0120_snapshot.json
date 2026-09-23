@@ -1,5 +1,5 @@
 {
-  "id": "5cd7984d-3124-4e30-a4b1-7ff8306da8c8",
+  "id": "fa374306-8070-4c3f-aec6-d4431f1bd163",
   "prevId": "e2dbc465-8d48-4ac6-957e-cf51815f7afe",
   "version": "7",
   "dialect": "postgresql",
@@ -8285,12 +8285,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "watch_state": {
-          "name": "watch_state",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "watch_heartbeat_at": {
           "name": "watch_heartbeat_at",
           "type": "timestamp with time zone",
@@ -8328,8 +8322,8 @@
           "method": "btree",
           "with": {}
         },
-        "pages_organization_id_updated_at_idx": {
-          "name": "pages_organization_id_updated_at_idx",
+        "pages_organization_id_created_at_id_idx": {
+          "name": "pages_organization_id_created_at_id_idx",
           "columns": [
             {
               "expression": "organization_id",
@@ -8338,7 +8332,13 @@
               "nulls": "last"
             },
             {
-              "expression": "\"updated_at\" desc",
+              "expression": "\"created_at\" desc",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "\"id\" desc",
               "asc": true,
               "isExpression": true,
               "nulls": "last"

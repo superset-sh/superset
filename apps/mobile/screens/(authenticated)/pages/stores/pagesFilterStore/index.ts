@@ -1,5 +1,4 @@
 export {
-	matchesScope,
 	PAGE_SCOPES,
 	type PageScope,
 	usePagesFilterStore,

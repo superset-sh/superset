@@ -10,6 +10,7 @@ import {
 	users,
 	workspacePages,
 } from "@superset/db/schema";
+import { escapeLikePattern } from "@superset/db/utils";
 import { mintPageSlug } from "@superset/shared/page-slug";
 import {
 	fileOriginalKey,
@@ -23,7 +24,10 @@ import {
 	and,
 	desc,
 	eq,
+	ilike,
 	inArray,
+	isNotNull,
+	lt,
 	notExists,
 	or,
 	type SQL,
@@ -36,6 +40,7 @@ import { protectedProcedure, publicProcedure, userError } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { assertPageReadable, assertPageWritable } from "./access";
 import { pageAssetRouter } from "./assets";
+import { decodePageCursor, encodePageCursor } from "./cursor";
 import { pageUrl } from "./page-url";
 import { publishPage } from "./publish";
 import { isEntryPathConflict } from "./publish-rules";
@@ -43,7 +48,13 @@ import {
 	clearPageWatchSchema,
 	createPageSchema,
 	deletePageSchema,
+	type ListPagesInput,
+	legacyListPagesSchema,
 	listPagesSchema,
+	PAGE_LIST_DEFAULT_LIMIT,
+	PAGE_LIST_MAX_LIMIT,
+	type PageListScope,
+	pageCountsSchema,
 	pageFields,
 	pageRefSchema,
 	publicPageSchema,
@@ -77,6 +88,49 @@ function visibilityFilter(userId: string) {
 		eq(pages.visibility, "everyone"),
 		and(eq(pages.visibility, "just_me"), eq(pages.createdByUserId, userId)),
 	);
+}
+
+function scopeFilter(scope: PageListScope): SQL | undefined {
+	switch (scope) {
+		case "team":
+			return sql`${pages.visibility} <> 'just_me'`;
+		case "mine":
+			return eq(pages.visibility, "just_me");
+		default:
+			return undefined;
+	}
+}
+
+/**
+ * Shared by `list` and `counts` so a tab's count and its contents can't be
+ * answered by two different WHERE clauses.
+ */
+function pageFilters(input: {
+	search?: string | undefined;
+	scope?: PageListScope | undefined;
+	authorId?: string | undefined;
+	ids?: string[] | undefined;
+}): (SQL | undefined)[] {
+	const filters: (SQL | undefined)[] = [];
+
+	if (input.search) {
+		const term = `%${escapeLikePattern(input.search)}%`;
+		filters.push(
+			or(
+				ilike(pages.title, term),
+				ilike(pages.slug, term),
+				ilike(pages.description, term),
+			),
+		);
+	}
+
+	if (input.scope) filters.push(scopeFilter(input.scope));
+	if (input.authorId) filters.push(eq(pages.createdByUserId, input.authorId));
+	// An empty array is "no pins", which must return nothing rather than
+	// degrade to the unfiltered list.
+	if (input.ids) filters.push(inArray(pages.id, input.ids));
+
+	return filters;
 }
 
 async function pageNotFound(identity: SQL, userId: string): Promise<TRPCError> {
@@ -165,6 +219,168 @@ async function latestVersionNumber(pageId: string): Promise<number | null> {
 	return row?.version ?? null;
 }
 
+async function listPageBatch({
+	organizationId,
+	userId,
+	input,
+}: {
+	organizationId: string;
+	userId: string;
+	input: ListPagesInput;
+}) {
+	const limit = input?.limit ?? PAGE_LIST_DEFAULT_LIMIT;
+
+	if (input?.workspaceId) {
+		await assertWorkspaceAccess({
+			executor: db,
+			workspaceId: input.workspaceId,
+			organizationId,
+		});
+	}
+
+	const latest = db
+		.select({
+			version: pageVersions.version,
+			contentType: pageVersions.contentType,
+			sizeBytes: pageVersions.sizeBytes,
+			publishedAt: pageVersions.createdAt,
+		})
+		.from(pageVersions)
+		.where(eq(pageVersions.pageId, pages.id))
+		.orderBy(desc(pageVersions.version))
+		.limit(1)
+		.as("latest");
+
+	const base = db
+		.select({
+			id: pages.id,
+			slug: pages.slug,
+			title: pages.title,
+			description: pages.description,
+			visibility: pages.visibility,
+			sharedVersion: pages.sharedVersion,
+			createdAt: pages.createdAt,
+			updatedAt: pages.updatedAt,
+			// `::text` keeps the microseconds a JS Date would truncate, which
+			// the keyset comparison needs to be exact.
+			createdAtCursor: sql<string>`${pages.createdAt}::text`,
+			createdByUserId: pages.createdByUserId,
+			ownerName: users.name,
+			ownerImage: users.image,
+			latestVersion: latest.version,
+			contentType: latest.contentType,
+			sizeBytes: latest.sizeBytes,
+			publishedAt: latest.publishedAt,
+		})
+		.from(pages)
+		.leftJoin(users, eq(users.id, pages.createdByUserId))
+		.leftJoinLateral(latest, sql`true`);
+
+	const filters: (SQL | undefined)[] = [
+		eq(pages.organizationId, organizationId),
+		visibilityFilter(userId),
+		...pageFilters(input ?? {}),
+	];
+
+	if (input?.cursor) {
+		const keyset = decodePageCursor(input.cursor);
+		if (!keyset) {
+			throw userError({
+				code: "BAD_REQUEST",
+				message:
+					"That cursor could not be read. Drop it to start from the first page.",
+				i18nKey: "serverError.page.cursorCouldNotBeRead",
+			});
+		}
+		const at = sql`${keyset.createdAt}::timestamptz`;
+		filters.push(
+			or(
+				lt(pages.createdAt, at),
+				and(eq(pages.createdAt, at), lt(pages.id, keyset.id)),
+			),
+		);
+	}
+
+	const scoped = input?.workspaceId
+		? base
+				.innerJoin(workspacePages, eq(workspacePages.pageId, pages.id))
+				.where(
+					and(...filters, eq(workspacePages.workspaceId, input.workspaceId)),
+				)
+		: base.where(and(...filters));
+
+	const rows = await scoped
+		.orderBy(desc(pages.createdAt), desc(pages.id))
+		.limit(limit + 1);
+
+	const pageRows = rows.slice(0, limit);
+	const last = pageRows.at(-1);
+	const nextCursor =
+		rows.length > limit && last
+			? encodePageCursor({ createdAt: last.createdAtCursor, id: last.id })
+			: null;
+
+	const links = pageRows.length
+		? await db
+				.select({
+					pageId: workspacePages.pageId,
+					workspaceId: workspacePages.workspaceId,
+					entryPath: workspacePages.entryPath,
+				})
+				.from(workspacePages)
+				.where(
+					inArray(
+						workspacePages.pageId,
+						pageRows.map((row) => row.id),
+					),
+				)
+				.orderBy(workspacePages.workspaceId)
+		: [];
+
+	const linksByPage = new Map<
+		string,
+		{ workspaceId: string; entryPath: string }[]
+	>();
+	for (const link of links) {
+		const list = linksByPage.get(link.pageId) ?? [];
+		list.push({ workspaceId: link.workspaceId, entryPath: link.entryPath });
+		linksByPage.set(link.pageId, list);
+	}
+
+	const baseUrl = env.USERCONTENT_URL;
+	const items = await Promise.all(
+		pageRows.map(async ({ createdAtCursor: _cursor, ...row }) => {
+			const served = servedVersion(row.sharedVersion, row.latestVersion);
+			const ticket = await mintPageTicket(row);
+			// Version-bound, so it turns daily instead of hourly — the capture
+			// is immutable and the stable URL is what lets it cache.
+			const thumbnailTicket =
+				served === null
+					? undefined
+					: await mintPageTicket(row, { version: served });
+			return {
+				...row,
+				workspaceLinks: linksByPage.get(row.id) ?? [],
+				url: pageUrl(row.slug),
+				viewUrl: pageViewUrl({ baseUrl, pageId: row.id, ticket }),
+				thumbnailUrl:
+					served === null
+						? null
+						: pageThumbnailUrl({
+								baseUrl,
+								pageId: row.id,
+								version: served,
+								ticket: thumbnailTicket,
+							}),
+				thumbnailStorageKey:
+					served === null ? null : pageThumbnailKey(row.id, served),
+			};
+		}),
+	);
+
+	return { items, nextCursor };
+}
+
 export const pageRouter = {
 	assets: pageAssetRouter,
 
@@ -250,7 +466,41 @@ export const pageRouter = {
 		}),
 
 	list: protectedProcedure
+		.input(legacyListPagesSchema)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const userId = ctx.session.user.id;
+			const all = [];
+			let cursor: string | undefined;
+			do {
+				const batch = await listPageBatch({
+					organizationId,
+					userId,
+					input: {
+						workspaceId: input?.workspaceId,
+						scope: "all",
+						limit: PAGE_LIST_MAX_LIMIT,
+						cursor,
+					},
+				});
+				all.push(...batch.items);
+				cursor = batch.nextCursor ?? undefined;
+			} while (cursor);
+			return all;
+		}),
+
+	listPaginated: protectedProcedure
 		.input(listPagesSchema)
+		.query(async ({ ctx, input }) =>
+			listPageBatch({
+				organizationId: await requireActiveOrgMembership(ctx),
+				userId: ctx.session.user.id,
+				input,
+			}),
+		),
+
+	counts: protectedProcedure
+		.input(pageCountsSchema)
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const userId = ctx.session.user.id;
@@ -263,88 +513,91 @@ export const pageRouter = {
 				});
 			}
 
-			const latest = db
-				.select({
-					version: pageVersions.version,
-					contentType: pageVersions.contentType,
-					sizeBytes: pageVersions.sizeBytes,
-					publishedAt: pageVersions.createdAt,
-				})
-				.from(pageVersions)
-				.where(eq(pageVersions.pageId, pages.id))
-				.orderBy(desc(pageVersions.version))
-				.limit(1)
-				.as("latest");
+			const filters: (SQL | undefined)[] = [
+				eq(pages.organizationId, organizationId),
+				visibilityFilter(userId),
+				...pageFilters({
+					search: input?.search,
+					authorId: input?.authorId,
+				}),
+			];
 
-			const base = db
-				.select({
-					id: pages.id,
-					slug: pages.slug,
-					title: pages.title,
-					description: pages.description,
-					visibility: pages.visibility,
-					sharedVersion: pages.sharedVersion,
-					createdAt: pages.createdAt,
-					updatedAt: pages.updatedAt,
-					createdByUserId: pages.createdByUserId,
-					ownerName: users.name,
-					ownerImage: users.image,
-					latestVersion: latest.version,
-					contentType: latest.contentType,
-					sizeBytes: latest.sizeBytes,
-					publishedAt: latest.publishedAt,
-				})
-				.from(pages)
-				.leftJoin(users, eq(users.id, pages.createdByUserId))
-				.leftJoinLateral(latest, sql`true`);
+			const pinned = input?.pinnedIds ?? [];
+			const selection = {
+				all: sql<number>`count(*)::int`,
+				team: sql<number>`count(*) filter (where ${pages.visibility} <> 'just_me')::int`,
+				mine: sql<number>`count(*) filter (where ${pages.visibility} = 'just_me')::int`,
+				pinned: pinned.length
+					? sql<number>`count(*) filter (where ${inArray(pages.id, pinned)})::int`
+					: sql<number>`0::int`,
+			};
 
-			const scoped = input?.workspaceId
-				? base
+			const query = db.select(selection).from(pages);
+			const [row] = await (input?.workspaceId
+				? query
 						.innerJoin(workspacePages, eq(workspacePages.pageId, pages.id))
 						.where(
 							and(
-								eq(pages.organizationId, organizationId),
+								...filters,
 								eq(workspacePages.workspaceId, input.workspaceId),
-								visibilityFilter(userId),
 							),
 						)
-				: base.where(
-						and(
-							eq(pages.organizationId, organizationId),
-							visibilityFilter(userId),
-						),
-					);
+				: query.where(and(...filters)));
 
-			const rows = await scoped.orderBy(desc(pages.updatedAt));
-			const baseUrl = env.USERCONTENT_URL;
-			return await Promise.all(
-				rows.map(async (row) => {
-					const served = servedVersion(row.sharedVersion, row.latestVersion);
-					const ticket = await mintPageTicket(row);
-					// Version-bound, so it turns daily instead of hourly — the capture
-					// is immutable and the stable URL is what lets it cache.
-					const thumbnailTicket =
-						served === null
-							? undefined
-							: await mintPageTicket(row, { version: served });
-					return {
-						...row,
-						url: pageUrl(row.slug),
-						viewUrl: pageViewUrl({ baseUrl, pageId: row.id, ticket }),
-						thumbnailUrl:
-							served === null
-								? null
-								: pageThumbnailUrl({
-										baseUrl,
-										pageId: row.id,
-										version: served,
-										ticket: thumbnailTicket,
-									}),
-						thumbnailStorageKey:
-							served === null ? null : pageThumbnailKey(row.id, served),
-					};
-				}),
-			);
+			// Each picker's own counts, so choosing an option does not depend on
+			// having downloaded every page to count them. A breakdown is never
+			// narrowed by the dimension it offers — that is the choice being made,
+			// and narrowing by it collapses the list to whatever is already
+			// selected — but it is narrowed by every other active filter, or it
+			// offers options that lead to an empty list.
+			const workspaces = await db
+				.select({
+					workspaceId: workspacePages.workspaceId,
+					count: sql<number>`count(*)::int`,
+				})
+				.from(workspacePages)
+				.innerJoin(pages, eq(pages.id, workspacePages.pageId))
+				.where(and(...filters))
+				.groupBy(workspacePages.workspaceId);
+
+			let authorsBase = db
+				.select({
+					userId: pages.createdByUserId,
+					name: users.name,
+					image: users.image,
+					count: sql<number>`count(*)::int`,
+				})
+				.from(pages)
+				.leftJoin(users, eq(users.id, pages.createdByUserId))
+				.$dynamic();
+
+			if (input?.workspaceId) {
+				authorsBase = authorsBase.innerJoin(
+					workspacePages,
+					and(
+						eq(workspacePages.pageId, pages.id),
+						eq(workspacePages.workspaceId, input.workspaceId),
+					),
+				);
+			}
+
+			const authors = await authorsBase
+				.where(
+					and(
+						eq(pages.organizationId, organizationId),
+						visibilityFilter(userId),
+						// `authorId` deliberately absent; `search` still applies.
+						...pageFilters({ search: input?.search }),
+						isNotNull(pages.createdByUserId),
+					),
+				)
+				.groupBy(pages.createdByUserId, users.name, users.image);
+
+			return {
+				...(row ?? { all: 0, team: 0, mine: 0, pinned: 0 }),
+				workspaces,
+				authors,
+			};
 		}),
 
 	get: protectedProcedure.input(pageRefSchema).query(async ({ ctx, input }) => {

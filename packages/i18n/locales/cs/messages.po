@@ -5931,8 +5931,8 @@ msgstr "Všechno jde skriptovat. Vytvářejte pracovní prostory a agenty z CLI,
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Vše, co jsme postavili nad primitivy — originály Superset, sada"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Všechno, co jste zveřejnili, se smaže, ne jen skryje. Můžete se později vrátit a znovu se to sestaví z přepisů, které na tomto počítači zůstaly — přijdete jen o dosavadní umístění."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Všechno, co jste zveřejnili, se smaže, ne jen skryje. Můžete se později vrátit a znovu se to sestaví z přepisů, které na tomto počítači zůstaly."
 
 msgid "Existing repo path"
 msgstr "Cesta k existujícímu repozitáři"
@@ -6630,6 +6630,9 @@ msgstr "Filtrovat podle revizí"
 
 msgid "Filter by state"
 msgstr "Filtrovat podle stavu"
+
+msgid "Filter by workspace: {label}"
+msgstr "Filtrovat podle pracovního prostoru: {label}"
 
 msgid "Filter hosts"
 msgstr "Filtrovat hosty"
@@ -16049,6 +16052,9 @@ msgstr "Neznámé proměnné: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Neznámý svářeč"
+
+msgid "Unknown workspace"
+msgstr "Neznámý pracovní prostor"
 
 msgid "Unlimited"
 msgstr "Neomezeně"

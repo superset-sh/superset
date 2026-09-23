@@ -17,6 +17,7 @@ import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachme
 import { useAttachmentUploads } from "@/screens/(authenticated)/hooks/useAttachmentUploads";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
+import { useAppReviewStore } from "@/screens/(authenticated)/stores/appReviewStore";
 import { workspaceDraftKey } from "@/screens/(authenticated)/stores/composerDraftsStore";
 import { QUICK_KEYS, type TerminalQuickKey } from "./constants";
 import {
@@ -202,6 +203,7 @@ export const TerminalComposer = forwardRef<
 				has_attachments: allowAttachments && files.length > 0,
 				attachment_count: allowAttachments ? files.length : 0,
 			});
+			useAppReviewStore.getState().recordMessageSent();
 			// Clear what actually went out, and only that. The text always did.
 			// The tray only did if this session could carry it — a plain shell
 			// submits without attachments, and the draft belongs to the workspace
