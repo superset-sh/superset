@@ -64,7 +64,7 @@ function invoke(
 		prompt?: string;
 		effort?: string;
 		tag?: string[];
-		project?: string | undefined;
+		project?: string[] | undefined;
 		session?: boolean;
 		local?: boolean;
 		branch?: string | undefined;
@@ -81,7 +81,7 @@ function invoke(
 		args: {} as never,
 		options: {
 			local: true,
-			project: "project-1",
+			project: ["project-1"],
 			name: "agent-effort",
 			branch: "agent/effort",
 			...overrides,

@@ -2,6 +2,7 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
 import type { FileStatus } from "../../components/StatusIndicator";
 import { useWorkspaceGitStatus } from "../../providers/WorkspaceGitStatusProvider";
+import { useWorkspaceRepos } from "../useWorkspaceRepos";
 import { buildChangesetFiles } from "./buildChangesetFiles";
 import type { ChangesetFile, DiffRef } from "./types";
 
@@ -22,14 +23,16 @@ export function useChangeset({
 	ref,
 }: UseChangesetArgs): UseChangesetResult {
 	const gitStatus = useWorkspaceGitStatus();
+	const { repoArg } = useWorkspaceRepos(workspaceId);
 	const commitQuery = workspaceTrpc.git.getCommitFiles.useQuery(
 		ref.kind === "commit"
 			? {
 					workspaceId,
+					...repoArg,
 					commitHash: ref.commitHash,
 					fromHash: ref.fromHash,
 				}
-			: { workspaceId, commitHash: "" },
+			: { workspaceId, ...repoArg, commitHash: "" },
 		{
 			enabled: ref.kind === "commit",
 			staleTime: Number.POSITIVE_INFINITY,

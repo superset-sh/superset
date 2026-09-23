@@ -38,6 +38,11 @@ msgstr ".sh"
 msgid "· updated {updatedAgo}"
 msgstr "· aktualisiert {updatedAgo}"
 
+#. placeholder {0}: result.folder.name
+#. placeholder {1}: errorMessage(result.error)
+msgid "\"{0}\" could not be added: {1}. The source folders added before it were kept — remove it or fix it and create again."
+msgstr "„{0}“ konnte nicht hinzugefügt werden: {1}. Die zuvor hinzugefügten Quellordner bleiben erhalten — entfernen Sie den Ordner oder beheben Sie das Problem und erstellen Sie das Projekt erneut."
+
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "\"{0}\" gelöscht"
@@ -809,6 +814,9 @@ msgstr "{offlineHostCount, plural, one {# Gerät ist offline und behält seine K
 msgid "{openCount} open"
 msgstr "{openCount} offen"
 
+msgid "{otherFolderChanges} changed files in other folders"
+msgstr "{otherFolderChanges} geänderte Dateien in anderen Ordnern"
+
 msgid "{partialCount} partial"
 msgstr "{partialCount} teilweise"
 
@@ -866,6 +874,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} von {total}"
+
+msgid "{repoCount, plural, one {# source folder} other {# source folders}}"
+msgstr "{repoCount, plural, one {# Quellordner} other {# Quellordner}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {# Automatisierung wird erneut versucht} other {# Automatisierungen werden erneut versucht}}"
@@ -1378,6 +1389,7 @@ msgstr "Aktion"
 msgid "Actions"
 msgstr "Aktionen"
 
+#. placeholder {0}: folder.folder
 #. placeholder {0}: page.title
 msgid "Actions for {0}"
 msgstr "Aktionen für {0}"
@@ -1435,6 +1447,9 @@ msgstr "Füge ein Projekt hinzu, um GitHub-Issues zu sehen."
 msgid "Add a project to see pull requests."
 msgstr "Füge ein Projekt hinzu, um Pull Requests zu sehen."
 
+msgid "Add a repository folder"
+msgstr "Repository-Ordner hinzufügen"
+
 msgid "Add account"
 msgstr "Konto hinzufügen"
 
@@ -1489,6 +1504,9 @@ msgstr "Dateien, Apps und mehr hinzufügen"
 msgid "Add files, apps, and more (@)"
 msgstr "Dateien, Apps und mehr hinzufügen (@)"
 
+msgid "Add folder"
+msgstr "Ordner hinzufügen"
+
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
 msgstr "Issue #{0} zum Arbeitsbereich hinzufügen"
@@ -1532,6 +1550,12 @@ msgstr "Tests für den riskantesten ungetesteten Code schreiben…"
 msgid "Add tests where they're missing"
 msgstr "Tests ergänzen, wo sie fehlen"
 
+msgid "Add the repositories this project works across as source folders. Every workspace checks out all of them."
+msgstr "Fügen Sie die Repositorys, mit denen dieses Projekt arbeitet, als Quellordner hinzu. Jeder Arbeitsbereich checkt sie alle aus."
+
+msgid "Add the repositories this project works across. The first one is the primary."
+msgstr "Fügen Sie die Repositorys hinzu, mit denen dieses Projekt arbeitet. Das erste ist das primäre."
+
 msgid "Add to Dictionary"
 msgstr "Zum Wörterbuch hinzufügen"
 
@@ -1543,6 +1567,10 @@ msgstr "Zum Arbeitsbereich hinzufügen"
 
 msgid "Add your own terminal agent to this device."
 msgstr "Füge diesem Gerät einen eigenen Terminal-Agenten hinzu."
+
+#. placeholder {0}: result.folder
+msgid "Added {0} to this project"
+msgstr "{0} wurde diesem Projekt hinzugefügt"
 
 msgid "Added {added} files to {where}"
 msgstr "{added} Dateien zu {where} hinzugefügt"
@@ -1969,6 +1997,9 @@ msgstr "Anonymer Monteur"
 
 msgid "another device"
 msgstr "ein anderes Gerät"
+
+msgid "Another folder in this project already has that name."
+msgstr "Ein anderer Ordner in diesem Projekt heißt bereits so."
 
 msgid "Answered"
 msgstr "Beantwortet"
@@ -2961,6 +2992,9 @@ msgstr "Gedankenkette"
 msgid "Change avatar"
 msgstr "Avatar ändern"
 
+msgid "Change folder"
+msgstr "Ordner wechseln"
+
 msgid "Change location"
 msgstr "Speicherort ändern"
 
@@ -2994,6 +3028,9 @@ msgstr "Worktree-Speicherort ändern"
 
 msgid "Change-failure rate at or below the human-era baseline for two consecutive quarters."
 msgstr "Change-Failure-Rate auf oder unter dem Niveau der Menschen-Ära über zwei Quartale in Folge."
+
+msgid "Changed files"
+msgstr "Geänderte Dateien"
 
 msgid "Changelog"
 msgstr "Changelog"
@@ -3330,6 +3367,9 @@ msgstr "Klone das Repository oder importiere einen vorhandenen Ordner auf dem Ho
 
 msgid "Clone, push, and create PRs."
 msgstr "Klonen, pushen und PRs erstellen."
+
+msgid "Cloned into each new workspace"
+msgstr "Wird in jeden neuen Arbeitsbereich geklont"
 
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
@@ -4241,6 +4281,10 @@ msgstr "Projekt konnte nicht erstellt werden"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Projekt konnte nicht erstellt werden. Versuche einen anderen Namen oder sieh in den Logs nach."
 
+#. placeholder {0}: errorMessage(result.error)
+msgid "Could not create the project: {0}"
+msgstr "Projekt konnte nicht erstellt werden: {0}"
+
 msgid "Could not delete account"
 msgstr "Konto konnte nicht gelöscht werden"
 
@@ -4635,6 +4679,12 @@ msgstr "PR erstellen"
 msgid "Create PR failed: {0}"
 msgstr "PR-Erstellung fehlgeschlagen: {0}"
 
+msgid "Create project"
+msgstr "Projekt erstellen"
+
+msgid "Create project with multiple folders"
+msgstr "Projekt mit mehreren Ordnern erstellen"
+
 msgid "Create pull request"
 msgstr "Pull Request erstellen"
 
@@ -4753,6 +4803,9 @@ msgstr "Worktree wird erstellt"
 
 msgid "Creating..."
 msgstr "Wird erstellt..."
+
+msgid "Creating…"
+msgstr "Wird erstellt…"
 
 msgid "Creative Manager, Valid"
 msgstr "Kreativmanager, Valid"
@@ -4983,6 +5036,9 @@ msgstr "“{title}” löschen?"
 #. placeholder {0}: organization.name
 msgid "Delete {0}?"
 msgstr "{0} löschen?"
+
+msgid "Delete {groupName}?"
+msgstr "{groupName} löschen?"
 
 msgid "Delete {name}?"
 msgstr "{name} löschen?"
@@ -5621,6 +5677,9 @@ msgstr "Jeder Agent läuft in seinem eigenen isolierten Git-Worktree. Keine Merg
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "Jeder Anhang darf höchstens {0} MB groß sein."
+
+msgid "Each folder runs its own setup, teardown and run commands, in this order."
+msgstr "Jeder Ordner führt seine eigenen Setup-, Teardown- und Ausführungsbefehle in dieser Reihenfolge aus."
 
 msgid "Each in its own new tab"
 msgstr "Jeder in einem eigenen neuen Tab"
@@ -6786,6 +6845,9 @@ msgstr "Ordner"
 
 msgid "Folder links"
 msgstr "Ordner-Links"
+
+msgid "Folder name"
+msgstr "Ordnername"
 
 msgid "Folder view"
 msgstr "Ordneransicht"
@@ -7954,6 +8016,9 @@ msgstr "Eintrag"
 msgid "Its own branch and copy of the files"
 msgstr "Eigener Branch und eigene Kopie der Dateien"
 
+msgid "Its source folders stay on this device as projects of their own."
+msgstr "Seine Quellordner bleiben als eigenständige Projekte auf diesem Gerät."
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Seine Arbeitsbereiche und Terminals sind nicht verfügbar, bis er neu startet — nutze das Superset-Menü in der Menüleiste > Host Service > Restart."
 
@@ -8474,6 +8539,9 @@ msgstr "Diff wird geladen…"
 msgid "Loading files..."
 msgstr "Dateien werden geladen..."
 
+msgid "Loading folders…"
+msgstr "Ordner werden geladen…"
+
 msgid "Loading fonts..."
 msgstr "Schriften werden geladen..."
 
@@ -8629,6 +8697,9 @@ msgstr "Als Standard festlegen"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Als Standard festlegen — neue Terminals und Agenten mit diesem Konto starten."
+
+msgid "Make primary"
+msgstr "Als primär festlegen"
 
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Stelle sicher, dass das Gerät wach und online ist und Superset darauf läuft."
@@ -9083,6 +9154,9 @@ msgstr "Mein Agent"
 msgid "My Tasks"
 msgstr "Meine Aufgaben"
 
+msgid "my-project"
+msgstr "my-project"
+
 msgid "Mystery Machinist"
 msgstr "Mysteriöser Maschinist"
 
@@ -9309,6 +9383,12 @@ msgstr "neue Arbeitsbereich-Ersteller"
 
 msgid "New workspace in {name}"
 msgstr "Neuer Arbeitsbereich in {name}"
+
+msgid "New workspaces will no longer check its folders out together. Existing workspaces keep their checkouts, and no repository is deleted from disk."
+msgstr "Neue Arbeitsbereiche checken seine Ordner nicht mehr gemeinsam aus. Bestehende Arbeitsbereiche behalten ihre Checkouts, und es wird kein Repository von der Festplatte gelöscht."
+
+msgid "New workspaces will stop checking this repository out. Existing workspaces keep it, and nothing is deleted from disk."
+msgstr "Neue Arbeitsbereiche checken dieses Repository nicht mehr aus. Bestehende Arbeitsbereiche behalten es, und auf der Festplatte wird nichts gelöscht."
 
 msgid "New-user activation"
 msgstr "Aktivierung neuer Nutzer"
@@ -11095,6 +11175,9 @@ msgstr "Wähle ein übergeordnetes Verzeichnis"
 msgid "Pick a project location"
 msgstr "Wähle einen Projekt-Speicherort"
 
+msgid "Pick a repository on {hostName} to add to this project."
+msgstr "Wählen Sie auf {hostName} ein Repository aus, das diesem Projekt hinzugefügt werden soll."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Wähle einen Ton oder füge einen eigenen hinzu. Eigenes Audio unterstützt .mp3, .wav und .ogg."
 
@@ -11389,6 +11472,10 @@ msgstr "Preise"
 msgid "Pricing depends on your team and use case. Get in touch and we'll put together a plan that works for you."
 msgstr "Der Preis hängt von deinem Team und deinem Anwendungsfall ab. Melde dich, und wir stellen ein passendes Paket zusammen."
 
+msgid "Primary"
+msgstr "Primär"
+
+msgctxt "badge on a project's primary source folder"
 msgid "Primary"
 msgstr "Primär"
 
@@ -12011,15 +12098,23 @@ msgstr "Remote-Arbeitsbereich — Gerät offline"
 msgid "Remove"
 msgstr "Entfernen"
 
+#. placeholder {0}: folder.name
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "{0} entfernen"
+
+#. placeholder {0}: folder?.folder
+msgid "Remove {0} from this project?"
+msgstr "{0} aus diesem Projekt entfernen?"
 
 msgid "Remove {label}?"
 msgstr "{label} entfernen?"
 
 msgid "Remove attachment"
 msgstr "Anhang entfernen"
+
+msgid "Remove folder"
+msgstr "Ordner entfernen"
 
 msgid "Remove from Queue"
 msgstr "Aus Warteschlange entfernen"
@@ -12111,6 +12206,9 @@ msgstr "Umbenennen fehlgeschlagen"
 #. placeholder {0}: errorMessage(err)
 msgid "Rename failed: {0}"
 msgstr "Umbenennen fehlgeschlagen: {0}"
+
+msgid "Rename folder"
+msgstr "Ordner umbenennen"
 
 msgid "Rename group"
 msgstr "Gruppe umbenennen"
@@ -12218,6 +12316,9 @@ msgstr "Repositories"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "Repositories, die über die Installation der GitHub-App erreichbar sind."
+
+msgid "Repositories checked out into every workspace for this project. The primary is the one single-repository tools use."
+msgstr "Repositorys, die in jeden Arbeitsbereich dieses Projekts ausgecheckt werden. Das primäre ist dasjenige, das Werkzeuge für einzelne Repositorys verwenden."
 
 msgid "Repositories refreshed"
 msgstr "Repositories aktualisiert"
@@ -13144,6 +13245,12 @@ msgstr "Wähle ein Projekt, um Pull Requests zu sehen."
 msgid "Select a pull request to preview it here."
 msgstr "Wähle einen Pull Request, um ihn hier in der Vorschau zu sehen."
 
+msgid "Select a repository to add"
+msgstr "Hinzuzufügendes Repository auswählen"
+
+msgid "Select a source folder"
+msgstr "Quellordner auswählen"
+
 msgid "Select a team"
 msgstr "Team auswählen"
 
@@ -13992,6 +14099,13 @@ msgstr "Quelle"
 
 msgid "Source Available"
 msgstr "Source Available"
+
+#. placeholder {0}: parentProject.name
+msgid "Source folder of {0}"
+msgstr "Quellordner von {0}"
+
+msgid "Source folders"
+msgstr "Quellordner"
 
 msgid "Source path (not an import)"
 msgstr "Quellpfad (kein Import)"
@@ -14939,6 +15053,9 @@ msgstr "Dieser Endpunkt konnte nicht aufgelöst werden."
 msgid "That endpoint is not allowed."
 msgstr "Dieser Endpunkt ist nicht zulässig."
 
+msgid "That folder is already in the list"
+msgstr "Dieser Ordner ist bereits in der Liste"
+
 msgid "That handle is taken."
 msgstr "Dieses Handle ist bereits vergeben."
 
@@ -15149,6 +15266,9 @@ msgstr "Die gesuchte Seite gibt es nicht."
 
 msgid "The people behind Superset."
 msgstr "Die Menschen hinter Superset."
+
+msgid "The primary folder can't be removed. Make another folder primary first."
+msgstr "Der primäre Ordner kann nicht entfernt werden. Legen Sie zuerst einen anderen Ordner als primär fest."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Der Checkout des Projekts, wie er ist: Dateien und Branch werden geteilt"
@@ -15399,6 +15519,9 @@ msgstr "Das dauert länger als sonst. Die Sitzung ist womöglich schon bereit �
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "Das dauert länger als sonst. Der Arbeitsbereich ist womöglich schon bereit — ein Neuladen kann ihn aufgreifen."
 
+msgid "This is the directory the repository is checked out into inside each workspace."
+msgstr "Dies ist das Verzeichnis, in das das Repository innerhalb jedes Arbeitsbereichs ausgecheckt wird."
+
 msgid "This issue link is invalid."
 msgstr "Dieser Issue-Link ist ungültig."
 
@@ -15455,6 +15578,9 @@ msgstr "Dieser Port ist noch in Benutzung"
 
 msgid "This profile is busy right now"
 msgstr "Dieses Profil ist gerade stark ausgelastet"
+
+msgid "This project has no folders on {hostName} yet."
+msgstr "Dieses Projekt hat auf {hostName} noch keine Ordner."
 
 msgid "This project is no longer available on your devices."
 msgstr "Dieses Projekt ist auf deinen Geräten nicht mehr verfügbar."
@@ -16286,6 +16412,9 @@ msgstr "Für neue Agenten verwenden"
 msgid "Use global default"
 msgstr "Globalen Standard verwenden"
 
+msgid "Use letters, digits, dots, dashes or underscores, starting with a letter or digit."
+msgstr "Verwenden Sie Buchstaben, Ziffern, Punkte, Bindestriche oder Unterstriche, beginnend mit einem Buchstaben oder einer Ziffer."
+
 msgid "Use Superset on mobile"
 msgstr "Superset auf dem Handy nutzen"
 
@@ -16774,6 +16903,9 @@ msgstr "Wo ernsthafte Teams stehen"
 
 msgid "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
 msgstr "Wo Sitzungen beginnen: die Startseite, eine Vergleichsseite, die Doku, ein Beitrag oder ein Changelog-Eintrag. Inhalte, die ranken, tauchen hier auf, bevor sie in den Registrierungen auftauchen."
+
+msgid "Where the container holding this project's checkouts is created."
+msgstr "Wo der Container angelegt wird, der die Checkouts dieses Projekts enthält."
 
 msgid "Where the industry is, honestly"
 msgstr "Wo die Branche wirklich steht"

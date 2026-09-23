@@ -6,11 +6,15 @@ import {
 } from "../git-status-partial";
 
 /**
- * One cached snapshot per (workspace, baseBranch). Readers on the same
+ * One cached snapshot per (workspace, repo, baseBranch). Readers on the same
  * workspace routinely differ in base branch — the sidebar stats read with
  * none, the Changes tab with the configured one — and only the against-base
  * fields depend on it, so every variant is patched from the same change
  * stream instead of the variants evicting each other.
+ *
+ * The repo is part of the key because a multi-repo workspace's checkouts
+ * routinely share a base branch name (several on `main`): keyed on the base
+ * alone, one repo's diff would be served under another's name.
  */
 interface Variant {
 	cached: GitStatusSnapshot | null;
@@ -22,9 +26,17 @@ interface Variant {
 
 interface ReadInput {
 	workspaceId: string;
+	repoKey?: string;
 	baseBranch: string | null;
 	computeFull: () => Promise<GitStatusSnapshot>;
 	computePartial: (paths: string[]) => Promise<GitStatusPartial>;
+}
+
+export function variantKey(
+	repoKey: string | undefined,
+	baseBranch: string | null,
+): string {
+	return `${repoKey ?? ""}\u0000${baseBranch ?? ""}`;
 }
 
 export class GitStatusStore {
@@ -56,7 +68,7 @@ export class GitStatusStore {
 		const variants = this.workspaces.get(input.workspaceId);
 		if (!variants) return input.computeFull();
 
-		const key = input.baseBranch ?? "";
+		const key = variantKey(input.repoKey, input.baseBranch);
 		let variant = variants.get(key);
 		if (!variant) {
 			variant = { cached: null, pending: null, queue: Promise.resolve() };

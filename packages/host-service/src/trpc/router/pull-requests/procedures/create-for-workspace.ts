@@ -5,6 +5,7 @@ import { workspaces } from "../../../../db/schema";
 import { createGitEnvResolver } from "../../../../runtime/git";
 import { getHostWorkerPool } from "../../../../workers/host-worker-pool";
 import { gitPrHeadBaseTask } from "../../../../workers/tasks/git";
+import { findWorkspaceRepo } from "../../../../workspaces/workspace-repos";
 import { protectedProcedure } from "../../../index";
 import { resolveWorktreePath } from "../../git/utils/resolve-worktree";
 import { actionRejectionError } from "../../github/github";
@@ -12,6 +13,7 @@ import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpe
 
 const createInputSchema = z.object({
 	workspaceId: z.string(),
+	repo: z.string().optional(),
 	title: z.string().trim().min(1),
 	body: z.string().optional(),
 	draft: z.boolean().default(false),
@@ -37,7 +39,17 @@ export const createForWorkspace = protectedProcedure
 					"Workspace has no linked project, so there is no repository to open a pull request on",
 			});
 		}
-		const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+		// A secondary checkout belongs to its own project with its own remote,
+		// so the head branch and the GitHub coordinates must both come from the
+		// repo the caller selected — reading either from the workspace's own
+		// project would file the PR against the primary instead.
+		const target = findWorkspaceRepo(ctx.db, input.workspaceId, input.repo);
+		const prProjectId = target?.projectId ?? workspace.projectId;
+		const worktreePath = resolveWorktreePath(
+			ctx,
+			input.workspaceId,
+			input.repo,
+		);
 		const gitEnv = await createGitEnvResolver(ctx.credentials)(worktreePath);
 		const refs = await getHostWorkerPool().run(
 			gitPrHeadBaseTask,
@@ -68,7 +80,7 @@ export const createForWorkspace = protectedProcedure
 			});
 		}
 
-		const repo = await resolveGithubRepo(ctx, workspace.projectId);
+		const repo = await resolveGithubRepo(ctx, prProjectId);
 		const octokit = await ctx.github();
 		let created: { number: number; html_url: string };
 		try {

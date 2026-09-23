@@ -13,7 +13,7 @@ export interface CloudCreateOptions {
 	model?: string;
 	effort?: string;
 	environment?: string;
-	project?: string;
+	project?: string[];
 	session?: boolean;
 	pr?: number;
 	task?: string;
@@ -39,7 +39,7 @@ export async function createCloudWorkspace(args: {
 	// or host. Those flags mean the caller wanted a host, so say how.
 	for (const [flag, value] of [
 		["--checkout", options.checkout],
-		["--project", options.project],
+		["--project", options.project?.length ? options.project : undefined],
 		["--session", options.session || undefined],
 		["--pr", options.pr],
 		["--task", options.task],

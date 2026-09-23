@@ -38,6 +38,11 @@ msgstr ".sh"
 msgid "· updated {updatedAgo}"
 msgstr "· cập nhật {updatedAgo}"
 
+#. placeholder {0}: result.folder.name
+#. placeholder {1}: errorMessage(result.error)
+msgid "\"{0}\" could not be added: {1}. The source folders added before it were kept — remove it or fix it and create again."
+msgstr "Không thể thêm “{0}”: {1}. Các thư mục nguồn thêm trước đó vẫn được giữ — hãy xóa thư mục này hoặc khắc phục rồi tạo lại."
+
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "Đã xóa \"{0}\""
@@ -809,6 +814,9 @@ msgstr "{offlineHostCount, plural, one {# thiết bị đang ngoại tuyến và
 msgid "{openCount} open"
 msgstr "{openCount} còn mở"
 
+msgid "{otherFolderChanges} changed files in other folders"
+msgstr "{otherFolderChanges} tệp đã thay đổi ở các thư mục khác"
+
 msgid "{partialCount} partial"
 msgstr "{partialCount} một phần"
 
@@ -866,6 +874,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} trên {total}"
+
+msgid "{repoCount, plural, one {# source folder} other {# source folders}}"
+msgstr "{repoCount, plural, one {# thư mục nguồn} other {# thư mục nguồn}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Đang thử lại # tự động hóa} other {Đang thử lại # tự động hóa}}"
@@ -1378,6 +1389,7 @@ msgstr "Hành động"
 msgid "Actions"
 msgstr "Hành động"
 
+#. placeholder {0}: folder.folder
 #. placeholder {0}: page.title
 msgid "Actions for {0}"
 msgstr "Hành động cho {0}"
@@ -1435,6 +1447,9 @@ msgstr "Thêm một dự án để xem issue GitHub."
 msgid "Add a project to see pull requests."
 msgstr "Thêm một dự án để xem pull request."
 
+msgid "Add a repository folder"
+msgstr "Thêm thư mục repository"
+
 msgid "Add account"
 msgstr "Thêm tài khoản"
 
@@ -1489,6 +1504,9 @@ msgstr "Thêm tệp, ứng dụng và hơn thế"
 msgid "Add files, apps, and more (@)"
 msgstr "Thêm tệp, ứng dụng và hơn thế (@)"
 
+msgid "Add folder"
+msgstr "Thêm thư mục"
+
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
 msgstr "Thêm issue #{0} vào workspace"
@@ -1532,6 +1550,12 @@ msgstr "Thêm test cho phần code rủi ro nhất chưa được test…"
 msgid "Add tests where they're missing"
 msgstr "Thêm test ở những chỗ còn thiếu"
 
+msgid "Add the repositories this project works across as source folders. Every workspace checks out all of them."
+msgstr "Thêm các repository mà dự án này làm việc cùng làm thư mục nguồn. Mọi workspace đều checkout tất cả chúng."
+
+msgid "Add the repositories this project works across. The first one is the primary."
+msgstr "Thêm các repository mà dự án này làm việc cùng. Repository đầu tiên là repository chính."
+
 msgid "Add to Dictionary"
 msgstr "Thêm vào từ điển"
 
@@ -1543,6 +1567,10 @@ msgstr "Thêm vào workspace"
 
 msgid "Add your own terminal agent to this device."
 msgstr "Thêm agent terminal của riêng bạn vào thiết bị này."
+
+#. placeholder {0}: result.folder
+msgid "Added {0} to this project"
+msgstr "Đã thêm {0} vào dự án này"
 
 msgid "Added {added} files to {where}"
 msgstr "Đã thêm {added} tệp vào {where}"
@@ -1969,6 +1997,9 @@ msgstr "Thợ lắp ráp ẩn danh"
 
 msgid "another device"
 msgstr "thiết bị khác"
+
+msgid "Another folder in this project already has that name."
+msgstr "Một thư mục khác trong dự án này đã dùng tên đó."
 
 msgid "Answered"
 msgstr "Đã trả lời"
@@ -2961,6 +2992,9 @@ msgstr "Chuỗi suy luận"
 msgid "Change avatar"
 msgstr "Đổi ảnh đại diện"
 
+msgid "Change folder"
+msgstr "Đổi thư mục"
+
 msgid "Change location"
 msgstr "Đổi vị trí"
 
@@ -2994,6 +3028,9 @@ msgstr "Đổi vị trí worktree"
 
 msgid "Change-failure rate at or below the human-era baseline for two consecutive quarters."
 msgstr "Tỷ lệ thay đổi gây lỗi bằng hoặc thấp hơn mức nền của thời con người trong hai quý liên tiếp."
+
+msgid "Changed files"
+msgstr "Tệp đã thay đổi"
 
 msgid "Changelog"
 msgstr "Changelog"
@@ -3330,6 +3367,9 @@ msgstr "Clone repository, hoặc nhập một thư mục có sẵn trên host."
 
 msgid "Clone, push, and create PRs."
 msgstr "Sao chép, đẩy và tạo PR."
+
+msgid "Cloned into each new workspace"
+msgstr "Được clone vào mỗi workspace mới"
 
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
@@ -4241,6 +4281,10 @@ msgstr "Không thể tạo dự án"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Không thể tạo dự án. Hãy thử tên khác hoặc xem log."
 
+#. placeholder {0}: errorMessage(result.error)
+msgid "Could not create the project: {0}"
+msgstr "Không thể tạo dự án: {0}"
+
 msgid "Could not delete account"
 msgstr "Không thể xóa tài khoản"
 
@@ -4635,6 +4679,12 @@ msgstr "Tạo PR"
 msgid "Create PR failed: {0}"
 msgstr "Tạo PR thất bại: {0}"
 
+msgid "Create project"
+msgstr "Tạo dự án"
+
+msgid "Create project with multiple folders"
+msgstr "Tạo dự án với nhiều thư mục"
+
 msgid "Create pull request"
 msgstr "Tạo pull request"
 
@@ -4753,6 +4803,9 @@ msgstr "Đang tạo worktree"
 
 msgid "Creating..."
 msgstr "Đang tạo..."
+
+msgid "Creating…"
+msgstr "Đang tạo…"
 
 msgid "Creative Manager, Valid"
 msgstr "Quản lý sáng tạo, Valid"
@@ -4983,6 +5036,9 @@ msgstr "Xóa “{title}”?"
 #. placeholder {0}: organization.name
 msgid "Delete {0}?"
 msgstr "Xóa {0}?"
+
+msgid "Delete {groupName}?"
+msgstr "Xóa {groupName}?"
 
 msgid "Delete {name}?"
 msgstr "Xóa {name}?"
@@ -5621,6 +5677,9 @@ msgstr "Mỗi agent chạy trong git worktree tách biệt của riêng nó. Kh�
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "Mỗi tệp đính kèm tối đa {0} MB."
+
+msgid "Each folder runs its own setup, teardown and run commands, in this order."
+msgstr "Mỗi thư mục chạy các lệnh thiết lập, dọn dẹp và chạy của riêng nó, theo thứ tự này."
 
 msgid "Each in its own new tab"
 msgstr "Mỗi lệnh một tab mới"
@@ -6786,6 +6845,9 @@ msgstr "Thư mục"
 
 msgid "Folder links"
 msgstr "Liên kết thư mục"
+
+msgid "Folder name"
+msgstr "Tên thư mục"
 
 msgid "Folder view"
 msgstr "Xem theo thư mục"
@@ -7954,6 +8016,9 @@ msgstr "Item"
 msgid "Its own branch and copy of the files"
 msgstr "Nhánh riêng và bản sao tệp riêng"
 
+msgid "Its source folders stay on this device as projects of their own."
+msgstr "Các thư mục nguồn của nó vẫn ở trên thiết bị này như những dự án riêng."
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Các workspace và terminal của nó không khả dụng cho đến khi khởi động lại — dùng menu khay Superset > Host Service > Restart."
 
@@ -8474,6 +8539,9 @@ msgstr "Đang tải diff…"
 msgid "Loading files..."
 msgstr "Đang tải tệp..."
 
+msgid "Loading folders…"
+msgstr "Đang tải thư mục…"
+
 msgid "Loading fonts..."
 msgstr "Đang tải font..."
 
@@ -8629,6 +8697,9 @@ msgstr "Đặt làm mặc định"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Đặt làm mặc định — mở terminal và agent mới trên tài khoản này."
+
+msgid "Make primary"
+msgstr "Đặt làm chính"
 
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Đảm bảo thiết bị không ở chế độ ngủ, có kết nối mạng và đang chạy Superset."
@@ -9083,6 +9154,9 @@ msgstr "Agent của tôi"
 msgid "My Tasks"
 msgstr "Tác vụ của tôi"
 
+msgid "my-project"
+msgstr "my-project"
+
 msgid "Mystery Machinist"
 msgstr "Thợ máy bí ẩn"
 
@@ -9309,6 +9383,12 @@ msgstr "người tạo workspace mới"
 
 msgid "New workspace in {name}"
 msgstr "Workspace mới trong {name}"
+
+msgid "New workspaces will no longer check its folders out together. Existing workspaces keep their checkouts, and no repository is deleted from disk."
+msgstr "Các workspace mới sẽ không còn checkout các thư mục của nó cùng nhau. Các workspace hiện có vẫn giữ bản checkout của mình và không có repository nào bị xóa khỏi ổ đĩa."
+
+msgid "New workspaces will stop checking this repository out. Existing workspaces keep it, and nothing is deleted from disk."
+msgstr "Các workspace mới sẽ không còn checkout repository này. Các workspace hiện có vẫn giữ nó và không có gì bị xóa khỏi ổ đĩa."
 
 msgid "New-user activation"
 msgstr "Kích hoạt người dùng mới"
@@ -11095,6 +11175,9 @@ msgstr "Hãy chọn một thư mục cha"
 msgid "Pick a project location"
 msgstr "Hãy chọn vị trí dự án"
 
+msgid "Pick a repository on {hostName} to add to this project."
+msgstr "Chọn một repository trên {hostName} để thêm vào dự án này."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Chọn một âm thanh hoặc thêm âm thanh riêng. Âm thanh riêng hỗ trợ .mp3, .wav và .ogg."
 
@@ -11389,6 +11472,10 @@ msgstr "Bảng giá"
 msgid "Pricing depends on your team and use case. Get in touch and we'll put together a plan that works for you."
 msgstr "Giá phụ thuộc vào đội ngũ và nhu cầu của bạn. Hãy liên hệ và chúng tôi sẽ đưa ra gói phù hợp."
 
+msgid "Primary"
+msgstr "Chính"
+
+msgctxt "badge on a project's primary source folder"
 msgid "Primary"
 msgstr "Chính"
 
@@ -12011,15 +12098,23 @@ msgstr "Workspace từ xa — thiết bị ngoại tuyến"
 msgid "Remove"
 msgstr "Gỡ"
 
+#. placeholder {0}: folder.name
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "Gỡ {0}"
+
+#. placeholder {0}: folder?.folder
+msgid "Remove {0} from this project?"
+msgstr "Gỡ {0} khỏi dự án này?"
 
 msgid "Remove {label}?"
 msgstr "Gỡ {label}?"
 
 msgid "Remove attachment"
 msgstr "Xóa tệp đính kèm"
+
+msgid "Remove folder"
+msgstr "Gỡ thư mục"
 
 msgid "Remove from Queue"
 msgstr "Bỏ khỏi hàng đợi"
@@ -12111,6 +12206,9 @@ msgstr "Đổi tên thất bại"
 #. placeholder {0}: errorMessage(err)
 msgid "Rename failed: {0}"
 msgstr "Đổi tên thất bại: {0}"
+
+msgid "Rename folder"
+msgstr "Đổi tên thư mục"
 
 msgid "Rename group"
 msgstr "Đổi tên nhóm"
@@ -12218,6 +12316,9 @@ msgstr "Repository"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "Các repository truy cập được qua bản cài đặt GitHub App."
+
+msgid "Repositories checked out into every workspace for this project. The primary is the one single-repository tools use."
+msgstr "Các repository được checkout vào mọi workspace của dự án này. Repository chính là repository mà các công cụ một-repository sử dụng."
 
 msgid "Repositories refreshed"
 msgstr "Đã làm mới repository"
@@ -13144,6 +13245,12 @@ msgstr "Chọn một dự án để xem pull request."
 msgid "Select a pull request to preview it here."
 msgstr "Chọn một pull request để xem trước ở đây."
 
+msgid "Select a repository to add"
+msgstr "Chọn repository để thêm"
+
+msgid "Select a source folder"
+msgstr "Chọn thư mục nguồn"
+
 msgid "Select a team"
 msgstr "Chọn một nhóm"
 
@@ -13992,6 +14099,13 @@ msgstr "Nguồn"
 
 msgid "Source Available"
 msgstr "Mã nguồn công khai"
+
+#. placeholder {0}: parentProject.name
+msgid "Source folder of {0}"
+msgstr "Thư mục nguồn của {0}"
+
+msgid "Source folders"
+msgstr "Thư mục nguồn"
 
 msgid "Source path (not an import)"
 msgstr "Đường dẫn nguồn (không phải import)"
@@ -14939,6 +15053,9 @@ msgstr "Không thể phân giải endpoint đó."
 msgid "That endpoint is not allowed."
 msgstr "Endpoint đó không được phép."
 
+msgid "That folder is already in the list"
+msgstr "Thư mục đó đã có trong danh sách"
+
 msgid "That handle is taken."
 msgstr "Tên định danh đó đã có người dùng."
 
@@ -15149,6 +15266,9 @@ msgstr "Trang bạn tìm không tồn tại."
 
 msgid "The people behind Superset."
 msgstr "Những người đứng sau Superset."
+
+msgid "The primary folder can't be removed. Make another folder primary first."
+msgstr "Không thể gỡ thư mục chính. Hãy đặt một thư mục khác làm chính trước."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout của dự án như hiện có: tệp và nhánh được dùng chung"
@@ -15399,6 +15519,9 @@ msgstr "Việc này lâu hơn bình thường. Phiên có thể đã sẵn sàng
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "Việc này lâu hơn bình thường. Workspace có thể đã sẵn sàng — tải lại có thể nhận được nó."
 
+msgid "This is the directory the repository is checked out into inside each workspace."
+msgstr "Đây là thư mục mà repository được checkout vào bên trong mỗi workspace."
+
 msgid "This issue link is invalid."
 msgstr "Liên kết issue này không hợp lệ."
 
@@ -15455,6 +15578,9 @@ msgstr "Cổng này vẫn đang được dùng"
 
 msgid "This profile is busy right now"
 msgstr "Hồ sơ này hiện đang quá tải"
+
+msgid "This project has no folders on {hostName} yet."
+msgstr "Dự án này chưa có thư mục nào trên {hostName}."
 
 msgid "This project is no longer available on your devices."
 msgstr "Dự án này không còn khả dụng trên các thiết bị của bạn."
@@ -16286,6 +16412,9 @@ msgstr "Dùng cho agent mới"
 msgid "Use global default"
 msgstr "Dùng mặc định toàn cục"
 
+msgid "Use letters, digits, dots, dashes or underscores, starting with a letter or digit."
+msgstr "Hãy dùng chữ cái, chữ số, dấu chấm, gạch ngang hoặc gạch dưới, bắt đầu bằng chữ cái hoặc chữ số."
+
 msgid "Use Superset on mobile"
 msgstr "Dùng Superset trên điện thoại"
 
@@ -16774,6 +16903,9 @@ msgstr "Nơi các đội nghiêm túc đang đứng"
 
 msgid "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
 msgstr "Nơi phiên bắt đầu: trang chủ, trang so sánh, tài liệu, bài viết hoặc mục changelog. Nội dung có thứ hạng xuất hiện ở đây trước khi xuất hiện trong đăng ký."
+
+msgid "Where the container holding this project's checkouts is created."
+msgstr "Nơi tạo container chứa các bản checkout của dự án này."
 
 msgid "Where the industry is, honestly"
 msgstr "Ngành đang ở đâu, nói thật"

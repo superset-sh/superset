@@ -37,6 +37,10 @@ import { GitHubStarPill } from "renderer/components/GitHubStarPill";
 import { IssueLinkCommand } from "renderer/components/IssueLinkCommand";
 import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
+import {
+	useGroupedProjectId,
+	useGroupedProjects,
+} from "renderer/hooks/host-projects/useGroupedProjects";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
@@ -254,7 +258,7 @@ export function NewWorkspaceScreen({
 	const { projects: hostProjects, isReady: areProjectsReady } =
 		useHostProjects();
 	const setUpProjectIds = useSelectedHostProjectIds(draft.hostId);
-	const projects = useMemo(
+	const repositoryProjects = useMemo(
 		() =>
 			hostProjects
 				.filter((project) => Boolean(project.projectKey))
@@ -273,12 +277,15 @@ export function NewWorkspaceScreen({
 				})),
 		[hostProjects, setUpProjectIds],
 	);
+	const projects = useGroupedProjects(repositoryProjects);
+	// A preselection naming a source folder has no row of its own to match.
+	const groupedPreSelectedProjectId = useGroupedProjectId(preSelectedProjectId);
 
 	const isProjectPreselectionPending = useProjectPreselection({
 		isOpen,
 		areProjectsReady,
 		projects,
-		preSelectedProjectId,
+		preSelectedProjectId: groupedPreSelectedProjectId,
 		preSelectedSession,
 		selectedProjectId: draft.selectedProjectId,
 		isSession: draft.isSession,

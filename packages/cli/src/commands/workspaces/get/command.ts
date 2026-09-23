@@ -53,13 +53,26 @@ export default command({
 			const value = (detail as Record<string, unknown>)[options.field];
 			return {
 				data: detail,
-				message: value === null || value === undefined ? "" : String(value),
+				message:
+					value === null || value === undefined
+						? ""
+						: Array.isArray(value)
+							? JSON.stringify(value)
+							: String(value),
 			};
 		}
 
 		const width = Math.max(...Object.keys(detail).map((key) => key.length));
 		const message = Object.entries(detail)
 			.map(([key, value]) => {
+				if (key === "repos") {
+					const repos = value as HostDetail["repos"];
+					const lines = repos.map(
+						(repo) =>
+							`${" ".repeat(width + 2)}${repo.folder}  ${repo.repository ?? "—"}  ${repo.branch}  (base ${repo.base ?? "—"})  ${repo.path}`,
+					);
+					return [`${key.padEnd(width)}  ${repos.length}`, ...lines].join("\n");
+				}
 				const shown = value === null || value === undefined ? "—" : value;
 				return `${key.padEnd(width)}  ${shown}`;
 			})
@@ -70,6 +83,7 @@ export default command({
 });
 
 type Ctx = Parameters<Parameters<typeof command>[0]["run"]>[0]["ctx"];
+type HostDetail = Awaited<ReturnType<typeof hostDetail>>;
 
 /** A cloud workspace's details are the API's row; reading them never wakes its sandbox. */
 async function cloudDetail(ctx: Ctx, organizationId: string, id: string) {
@@ -127,6 +141,7 @@ async function hostDetail(
 		taskId: workspace.taskId,
 		worktreePath: workspace.worktreePath,
 		worktreeExists: workspace.worktreeExists,
+		repos: workspace.repos ?? [],
 		createdAt: workspace.createdAt,
 	};
 }

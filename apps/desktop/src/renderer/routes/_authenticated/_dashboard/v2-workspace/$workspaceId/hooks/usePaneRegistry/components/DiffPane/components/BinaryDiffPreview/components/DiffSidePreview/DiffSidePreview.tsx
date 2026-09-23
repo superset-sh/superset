@@ -2,6 +2,7 @@ import { Trans } from "@lingui/react/macro";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { type ReactNode, useMemo } from "react";
 import { LuLoader } from "react-icons/lu";
+import { useWorkspaceRepos } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useWorkspaceRepos";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import {
 	type ContentState,
@@ -68,8 +69,9 @@ function GitObjectSide({
 	worktreePath,
 }: DiffSidePreviewProps) {
 	const path = side === "old" ? (file.oldPath ?? file.path) : file.path;
+	const { repoArg } = useWorkspaceRepos(workspaceId);
 	const query = workspaceTrpc.git.readDiffSideFile.useQuery(
-		{ ...createGetDiffInput(workspaceId, file), path, side },
+		{ ...createGetDiffInput(workspaceId, file, repoArg), path, side },
 		{ retry: false, staleTime: 30_000 },
 	);
 	const absolutePath = toAbsoluteWorkspacePath(worktreePath, path);

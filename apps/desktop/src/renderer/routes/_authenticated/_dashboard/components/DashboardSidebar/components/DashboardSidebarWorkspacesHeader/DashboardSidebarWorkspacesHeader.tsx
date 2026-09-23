@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -8,8 +9,10 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useRef } from "react";
 import {
+	VscFolderLibrary,
 	VscFolderOpened,
 	VscGithubAlt,
 	VscLayout,
@@ -20,6 +23,7 @@ import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/
 import type { SidebarProjectSortMode } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import {
 	useOpenEmptyProjectModal,
+	useOpenMultiRepoProjectModal,
 	useOpenNewProjectModal,
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
@@ -72,6 +76,10 @@ export function DashboardSidebarWorkspacesHeader({
 		wasSectionCollapsedRef.current = isSectionCollapsed;
 	}, [isSectionCollapsed, onFilterQueryChange, setIsFilterExpanded]);
 	const openEmptyProject = useOpenEmptyProjectModal();
+	const openMultiRepoProject = useOpenMultiRepoProjectModal();
+	const isMultiRepoEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.MULTI_REPO_PROJECTS) ??
+		import.meta.env.DEV;
 	const openNewWorkspace = useOpenNewWorkspaceForLocalProject();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
@@ -177,6 +185,12 @@ export function DashboardSidebarWorkspacesHeader({
 						<VscNewFolder className="size-4" />
 						<Trans>Create new project</Trans>
 					</DropdownMenuItem>
+					{isMultiRepoEnabled && (
+						<DropdownMenuItem onSelect={() => openMultiRepoProject()}>
+							<VscFolderLibrary className="size-4" />
+							<Trans>Create project with multiple folders</Trans>
+						</DropdownMenuItem>
+					)}
 					<DropdownMenuItem onSelect={() => openTemplateGallery()}>
 						<VscLayout className="size-4" />
 						<Trans>Start from a template</Trans>

@@ -43,6 +43,7 @@ import {
 	type ChangesetFile,
 	getChangesetFileKey,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
+import { useWorkspaceRepos } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useWorkspaceRepos";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import { useFileDrag } from "../../hooks/useFileDrag";
 import { useStagingMutations } from "../../hooks/useStagingMutations";
@@ -99,10 +100,11 @@ export const FileRow = memo(function FileRow({
 	const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
 	const utils = workspaceTrpc.useUtils();
+	const { repoArg } = useWorkspaceRepos(workspaceId);
 	const discardMutation = workspaceTrpc.git.discardChanges.useMutation({
 		onSuccess: () => {
-			void utils.git.getStatus.invalidate({ workspaceId });
-			void utils.git.getDiff.invalidate({ workspaceId });
+			void utils.git.getStatus.invalidate({ workspaceId, ...repoArg });
+			void utils.git.getDiff.invalidate({ workspaceId, ...repoArg });
 		},
 		onError: (err) => {
 			toast.error(
@@ -117,7 +119,7 @@ export const FileRow = memo(function FileRow({
 	});
 	const confirmDiscard = () => {
 		setShowDiscardConfirm(false);
-		discardMutation.mutate({ workspaceId, filePath: file.path });
+		discardMutation.mutate({ workspaceId, ...repoArg, filePath: file.path });
 	};
 	const { stageFile, unstageFile } = useStagingMutations(workspaceId);
 

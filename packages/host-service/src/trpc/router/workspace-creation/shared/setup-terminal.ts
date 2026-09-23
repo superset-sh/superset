@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { projects, workspaces } from "../../../../db/schema";
+import { listWorkspaceCheckouts } from "../../../../projects/workspace-checkouts";
 import {
 	resolveScript,
 	shellSingleQuote,
@@ -17,6 +18,11 @@ interface StartSetupTerminalArgs {
 	 * resolves — the caller must then dispatch it separately.
 	 */
 	chainCommand?: string;
+	/**
+	 * Lines echoed before the setup command runs. Dropped when no setup
+	 * command resolves — there is then no terminal to put them in.
+	 */
+	preamble?: string[];
 }
 
 interface StartSetupTerminalResult {
@@ -58,18 +64,49 @@ export async function startSetupTerminalIfPresent(
 		return { terminal: null, warning: null, chained: false };
 	}
 
-	const resolved = resolveInitialCommand({
-		repoPath: row.repoPath,
+	const checkouts = listWorkspaceCheckouts(args.ctx.db, args.workspaceId, {
 		projectId: row.projectId,
+		repoPath: row.repoPath,
 		worktreePath: row.worktreePath,
 	});
-	if (!resolved) {
+	const resolved = checkouts.flatMap((checkout) => {
+		const script = resolveInitialCommand({
+			repoPath: checkout.repoPath,
+			projectId: checkout.projectId,
+			worktreePath: checkout.worktreePath,
+		});
+		return script ? [{ ...checkout, ...script }] : [];
+	});
+	const primaryOnly =
+		resolved.length === 1 && resolved[0]?.worktreePath === row.worktreePath;
+	const command = primaryOnly
+		? resolved[0]?.initialCommand
+		: resolved
+				.map((script) => {
+					const enter = [`cd ${shellSingleQuote(script.worktreePath)}`];
+					if (script.cwd) enter.push(`cd ${shellSingleQuote(script.cwd)}`);
+					return [...enter, script.initialCommand].join(" && ");
+				})
+				.join(" && ");
+	if (!command) {
 		return { terminal: null, warning: null, chained: false };
 	}
 
-	const initialCommand = args.chainCommand
-		? `${resolved.initialCommand} && ${args.chainCommand}`
-		: resolved.initialCommand;
+	// The chain ends in whichever folder ran last, so the agent is sent back
+	// to the primary checkout it would have started in.
+	const chainCommand =
+		args.chainCommand && !primaryOnly
+			? `cd ${shellSingleQuote(row.worktreePath)} && ${args.chainCommand}`
+			: args.chainCommand;
+	const setupCommand = chainCommand ? `${command} && ${chainCommand}` : command;
+	// `\\n`, not `\n`: the initial command is typed into the PTY, so a real
+	// newline here would submit the line mid-quote instead of reaching printf.
+	const preamble = (args.preamble ?? [])
+		.map((line) => `printf '%s\\n' ${shellSingleQuote(line)}`)
+		.join("; ");
+	const initialCommand = preamble
+		? `${preamble}; ${setupCommand}`
+		: setupCommand;
 
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({
@@ -78,7 +115,7 @@ export async function startSetupTerminalIfPresent(
 		db: args.ctx.db,
 		eventBus: args.ctx.eventBus,
 		initialCommand,
-		...(resolved.cwd && { cwd: resolved.cwd }),
+		...(primaryOnly && resolved[0]?.cwd && { cwd: resolved[0].cwd }),
 	});
 	if ("error" in result) {
 		return {

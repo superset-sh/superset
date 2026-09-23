@@ -56,7 +56,7 @@ const WS = "ws-overflow";
 
 function createWatcher(stream: FakeStream): GitWatcher {
 	const filesystem = {
-		getServiceForWorkspace: () => ({
+		getServiceForPrimaryWorktree: () => ({
 			watchPath: () => stream,
 		}),
 	};

@@ -26,6 +26,10 @@ const ALLOWLIST = new Set([
 	// (avatar/GitHub link), never for query routing.
 	"projects/local-project-store.ts",
 
+	// Snapshot consumer: labels each of a workspace's checkouts for display
+	// ("owner/name" in `ws get`), never for query routing.
+	"workspaces/workspace-repos.ts",
+
 	// Resolver itself: mentions field names in JSDoc, no member reads.
 	"trpc/router/workspace-creation/shared/project-helpers.ts",
 

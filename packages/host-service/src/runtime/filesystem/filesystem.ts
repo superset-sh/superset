@@ -49,7 +49,25 @@ export class WorkspaceFilesystemManager {
 			throw new WorkspaceNotFoundError(`Workspace not found: ${workspaceId}`);
 		}
 
+		return workspace.rootPath ?? workspace.worktreePath;
+	}
+
+	resolveWorkspacePrimaryWorktree(workspaceId: string): string {
+		const workspace = this.db.query.workspaces
+			.findFirst({ where: eq(workspaces.id, workspaceId) })
+			.sync();
+
+		if (!workspace) {
+			throw new WorkspaceNotFoundError(`Workspace not found: ${workspaceId}`);
+		}
+
 		return workspace.worktreePath;
+	}
+
+	getServiceForPrimaryWorktree(workspaceId: string): FsHostService {
+		return this.getServiceForRootPath(
+			this.resolveWorkspacePrimaryWorktree(workspaceId),
+		);
 	}
 
 	resolveProjectRoot(projectId: string): string {
@@ -98,6 +116,19 @@ export class WorkspaceFilesystemManager {
 		return await this.watcherManager.refreshIgnores(
 			this.resolveWorkspaceRoot(workspaceId),
 		);
+	}
+
+	/**
+	 * The two above, addressed by checkout rather than by workspace: a
+	 * multi-repo workspace watches each of its checkouts, and `watchPath`
+	 * takes only a service's own root.
+	 */
+	getServiceForCheckout(worktreePath: string): FsHostService {
+		return this.getServiceForRootPath(worktreePath);
+	}
+
+	async refreshCheckoutWatcherIgnores(worktreePath: string): Promise<boolean> {
+		return await this.watcherManager.refreshIgnores(worktreePath);
 	}
 
 	private getServiceForRootPath(rootPath: string): FsHostService {

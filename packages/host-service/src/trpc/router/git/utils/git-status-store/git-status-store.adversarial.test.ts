@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { Branch, ChangedFile } from "../../types";
 import type { GitStatusSnapshot } from "../git-status";
 import type { GitStatusPartial } from "../git-status-partial";
-import { GitStatusStore } from "./git-status-store";
+import { GitStatusStore, variantKey } from "./git-status-store";
 
 const BRANCH: Branch = {
 	name: "main",
@@ -522,8 +522,8 @@ describe("GitStatusStore keys and growth", () => {
 		}
 		const after = process.memoryUsage().heapUsed;
 		// ...but the Changes-tab variant was never read again.
-		const main = variantsOf(store, "w").get("main");
-		const sidebar = variantsOf(store, "w").get("");
+		const main = variantsOf(store, "w").get(variantKey(undefined, "main"));
+		const sidebar = variantsOf(store, "w").get(variantKey(undefined, null));
 		expect(sidebar?.pending?.size).toBe(0);
 		expect(main?.pending?.size).toBe(batches * perBatch);
 		console.info(

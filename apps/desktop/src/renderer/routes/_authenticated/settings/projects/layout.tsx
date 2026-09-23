@@ -7,11 +7,19 @@ export const Route = createFileRoute("/_authenticated/settings/projects")({
 });
 
 function ProjectsSettingsLayout() {
-	const params = useParams({ strict: false }) as { projectId?: string };
-	const contentRef = useScrollReset<HTMLDivElement>(params.projectId);
+	const params = useParams({ strict: false }) as {
+		projectId?: string;
+		groupId?: string;
+	};
+	const contentRef = useScrollReset<HTMLDivElement>(
+		params.groupId ?? params.projectId,
+	);
 	return (
 		<div className="flex h-full w-full">
-			<ProjectsSettingsSidebar selectedProjectId={params.projectId ?? null} />
+			<ProjectsSettingsSidebar
+				selectedProjectId={params.projectId ?? null}
+				selectedGroupId={params.groupId ?? null}
+			/>
 			<div ref={contentRef} className="flex-1 overflow-y-auto">
 				<Outlet />
 			</div>

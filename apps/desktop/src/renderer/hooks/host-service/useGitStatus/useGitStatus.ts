@@ -11,6 +11,10 @@ const GIT_STATUS_STALE_TIME_MS = 5_000;
 // retaining large inactive workspaces for the global 30-minute default.
 export const GIT_STATUS_GC_TIME_MS = 10 * 60_000;
 
+// Stable identity: an inline default would be a fresh object every render,
+// re-creating the `git:changed` handler and churning its subscription.
+const PRIMARY_REPO_ARG: { repo?: string } = {};
+
 /**
  * Fetches workspace git status and keeps it live against server events.
  *
@@ -21,11 +25,15 @@ export const GIT_STATUS_GC_TIME_MS = 10 * 60_000;
  * `git:changed` is already debounced server-side in `GitWatcher` and covers
  * both `.git/` metadata writes and worktree file edits.
  */
-export function useGitStatus(workspaceId: string, enabled = true) {
+export function useGitStatus(
+	workspaceId: string,
+	enabled = true,
+	repoArg: { repo?: string } = PRIMARY_REPO_ARG,
+) {
 	const utils = workspaceTrpc.useUtils();
 
 	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
-		{ workspaceId },
+		{ workspaceId, ...repoArg },
 		{
 			staleTime: Number.POSITIVE_INFINITY,
 			enabled: enabled && Boolean(workspaceId),
@@ -36,6 +44,7 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 	const query = workspaceTrpc.git.getStatus.useQuery(
 		{
 			workspaceId,
+			...repoArg,
 			baseBranch: baseBranch ?? undefined,
 			priority: "foreground",
 		},
@@ -68,23 +77,23 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 			// Patch query keys carry the changed-file list, not the working
 			// tree, so an edit to an already-changed file leaves the cached
 			// hunks stale while `loadDiffFiles` reads the file as it is now.
-			void utils.git.getDiffPatch.invalidate({ workspaceId });
+			void utils.git.getDiffPatch.invalidate({ workspaceId, ...repoArg });
 			if (payload?.paths && payload.paths.length > 0) {
 				for (const path of payload.paths) {
-					void utils.git.getDiff.invalidate({ workspaceId, path });
+					void utils.git.getDiff.invalidate({ workspaceId, ...repoArg, path });
 				}
 			} else {
-				void utils.git.getDiff.invalidate({ workspaceId });
+				void utils.git.getDiff.invalidate({ workspaceId, ...repoArg });
 				// Current branch may have changed (external checkout), and
 				// branch.<name>.base is per-branch — drop the cache so the next read
 				// picks up the new branch's base.
-				void utils.git.getBaseBranch.invalidate({ workspaceId });
+				void utils.git.getBaseBranch.invalidate({ workspaceId, ...repoArg });
 				// A metadata-only change can move HEAD (for example, an agent
 				// committing outside the app), so refresh cached commit lists too.
-				void utils.git.listCommits.invalidate({ workspaceId });
+				void utils.git.listCommits.invalidate({ workspaceId, ...repoArg });
 			}
 		},
-		[refreshScheduler, utils, workspaceId],
+		[refreshScheduler, utils, workspaceId, repoArg],
 	);
 
 	useWorkspaceEvent("git:changed", workspaceId, invalidate, enabled);

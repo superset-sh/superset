@@ -37,6 +37,7 @@ import {
 	type ChangesetFile,
 	getChangesetFileKey,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
+import { useWorkspaceRepos } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useWorkspaceRepos";
 import {
 	toAbsoluteWorkspacePath,
 	toRelativeWorkspacePath,
@@ -340,10 +341,11 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		null,
 	);
 	const utils = workspaceTrpc.useUtils();
+	const { repoArg } = useWorkspaceRepos(workspaceId);
 	const discardMutation = workspaceTrpc.git.discardChanges.useMutation({
 		onSuccess: () => {
-			void utils.git.getStatus.invalidate({ workspaceId });
-			void utils.git.getDiff.invalidate({ workspaceId });
+			void utils.git.getStatus.invalidate({ workspaceId, ...repoArg });
+			void utils.git.getDiff.invalidate({ workspaceId, ...repoArg });
 		},
 		onError: (err) => {
 			toast.error(
@@ -508,6 +510,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 						setDiscardTarget(null);
 						discardMutation.mutate({
 							workspaceId,
+							...repoArg,
 							filePath: target.path,
 						});
 					}}

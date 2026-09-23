@@ -301,9 +301,10 @@ export const filesystemRouter = router({
 				resolvedPath: string;
 				isDirectory: boolean;
 			} | null> => {
-				const resolvedRoot = ctx.runtime.filesystem.resolveWorkspaceRoot(
-					input.workspaceId,
-				);
+				const resolvedRoot =
+					ctx.runtime.filesystem.resolveWorkspacePrimaryWorktree(
+						input.workspaceId,
+					);
 
 				let targetPath: string;
 				if (input.path.startsWith("~")) {

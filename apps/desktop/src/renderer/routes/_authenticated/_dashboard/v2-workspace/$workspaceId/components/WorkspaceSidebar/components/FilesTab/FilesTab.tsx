@@ -11,7 +11,6 @@ import {
 	useFileTree as usePierreFileTree,
 } from "@pierre/trees/react";
 import type { AppRouter } from "@superset/host-service";
-import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import {
 	FilePlus,
@@ -35,6 +34,7 @@ import {
 } from "renderer/lib/pierreTree";
 import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/PierreRowContextMenu";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
+import { useWorkspaceRepos } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useWorkspaceRepos";
 import { FileMenuItems } from "./components/FileMenuItems";
 import { FilesTabDropOverlay } from "./components/FilesTabDropOverlay";
 import { FilesTabHeaderButton } from "./components/FilesTabHeaderButton";
@@ -85,11 +85,8 @@ export function FilesTab({
 	// data from React Query (the parent route resolves it first). staleTime
 	// is set high enough that intra-session switches to a previously-visited
 	// workspace render instantly without a refetch.
-	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
-		{ id: workspaceId },
-		{ staleTime: 30_000 },
-	);
-	const rootPath = workspaceQuery.data?.worktreePath ?? "";
+	const { rootPath, isLoading: isWorkspaceLoading } =
+		useWorkspaceRepos(workspaceId);
 
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const filePolicy = useSidebarFilePolicy();
@@ -310,7 +307,7 @@ export function FilesTab({
 	if (!rootPath) {
 		return (
 			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
-				{workspaceQuery.isLoading ? (
+				{isWorkspaceLoading ? (
 					<>
 						<Loader2 className="size-3.5 animate-spin" />
 						<span>

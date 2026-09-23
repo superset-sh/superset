@@ -21,6 +21,7 @@ import { toast } from "@superset/ui/sonner";
 import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
+import { useWorkspaceRepos } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useWorkspaceRepos";
 import {
 	createPaneScrollStateKey,
 	getPaneScrollState,
@@ -126,6 +127,7 @@ export function DiffPane({
 	const worktreePath = workspaceQuery.data?.worktreePath;
 	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
 	const utils = workspaceTrpc.useUtils();
+	const { repoArg } = useWorkspaceRepos(workspaceId);
 	const { trpcClient } = useWorkspaceClient();
 	// Binary previews of the index or HEAD side don't change their query key
 	// when git state moves, so refetch them on git events. Scope to the
@@ -137,11 +139,15 @@ export function DiffPane({
 		workspaceId,
 		({ paths }) => {
 			if (!paths) {
-				void utils.git.readDiffSideFile.invalidate({ workspaceId });
+				void utils.git.readDiffSideFile.invalidate({ workspaceId, ...repoArg });
 				return;
 			}
 			for (const path of paths) {
-				void utils.git.readDiffSideFile.invalidate({ workspaceId, path });
+				void utils.git.readDiffSideFile.invalidate({
+					workspaceId,
+					...repoArg,
+					path,
+				});
 			}
 		},
 		!!worktreePath,
@@ -286,8 +292,8 @@ export function DiffPane({
 					next.delete(itemId);
 					return next;
 				});
-				void utils.git.getStatus.invalidate({ workspaceId });
-				void utils.git.getDiff.invalidate({ workspaceId });
+				void utils.git.getStatus.invalidate({ workspaceId, ...repoArg });
+				void utils.git.getDiff.invalidate({ workspaceId, ...repoArg });
 				return true;
 			} catch (error) {
 				toast.error(
@@ -308,6 +314,7 @@ export function DiffPane({
 			workspaceId,
 			utils,
 			t,
+			repoArg,
 		],
 	);
 
@@ -462,7 +469,7 @@ export function DiffPane({
 				files.find((candidate) => candidate.path === fileDiff.prevName);
 			if (!file) throw new Error(`no changeset file for ${fileDiff.name}`);
 			const { oldFile, newFile } = await trpcClient.git.getDiff.query(
-				createGetDiffInput(workspaceId, file),
+				createGetDiffInput(workspaceId, file, repoArg),
 			);
 			if (isDiffContentTooLarge(oldFile.contents, newFile.contents)) {
 				// Parsing this much text on the main thread is the freeze the
@@ -485,7 +492,7 @@ export function DiffPane({
 			}
 			return loaded;
 		},
-		[files, trpcClient, workspaceId],
+		[files, trpcClient, workspaceId, repoArg],
 	);
 
 	const codeViewOptions = useMemo(

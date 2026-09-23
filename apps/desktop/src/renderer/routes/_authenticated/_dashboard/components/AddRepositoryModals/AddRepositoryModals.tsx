@@ -3,6 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWorkspace";
 import { EmptyProjectModal } from "renderer/routes/_authenticated/components/EmptyProjectModal";
+import { MultiRepoProjectModal } from "renderer/routes/_authenticated/components/MultiRepoProjectModal";
 import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
 import {
 	useAddRepositoryModalActive,
@@ -54,6 +55,13 @@ export function AddRepositoryModals() {
 						}),
 					)
 				}
+			/>
+			<MultiRepoProjectModal
+				open={active.kind === "multi-repo-project"}
+				onOpenChange={(open) => {
+					if (!open) close();
+				}}
+				onSuccess={handleProjectCreated}
 			/>
 			<TemplateGalleryModal
 				open={active.kind === "template-gallery"}

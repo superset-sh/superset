@@ -13,6 +13,7 @@ import { getQueryKey } from "@trpc/react-query";
 import type { inferRouterInputs } from "@trpc/server";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isMissingProcedureError } from "renderer/lib/isMissingProcedureError";
+import { useWorkspaceRepos } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useWorkspaceRepos";
 import {
 	type ChangesetFile,
 	getChangesetFileKey,
@@ -79,6 +80,7 @@ const FALLBACK_CONCURRENCY = 6;
 
 function groupKeyFor(input: GetDiffPatchInput): string {
 	return [
+		input.repo ?? "",
 		input.category,
 		input.baseBranch ?? "",
 		input.commitHash ?? "",
@@ -96,6 +98,7 @@ export function useDiffCodeViewItems({
 	extraAnnotationsByItemId,
 }: UseDiffCodeViewItemsOptions): UseDiffCodeViewItemsResult {
 	const { trpcClient } = useWorkspaceClient();
+	const { repoArg } = useWorkspaceRepos(workspaceId);
 	// Generated artifacts (lockfiles, compiled catalogs) stay collapsed behind
 	// a button: their patches are tens of thousands of hunk lines of noise,
 	// and the compiled ones are single multi-megabyte lines, which
@@ -152,7 +155,7 @@ export function useDiffCodeViewItems({
 			if (isGeneratedDiffFile(file.path) && !requestedItemIds.has(itemId)) {
 				continue;
 			}
-			const input = createGetDiffPatchInput(workspaceId, file);
+			const input = createGetDiffPatchInput(workspaceId, file, repoArg);
 			const key = groupKeyFor(input);
 			let group = groups.get(key);
 			if (!group) {
@@ -173,7 +176,7 @@ export function useDiffCodeViewItems({
 			group.members.push({ file, itemId });
 		}
 		return [...groups.values()];
-	}, [files, requestedItemIds, workspaceId]);
+	}, [files, requestedItemIds, workspaceId, repoArg]);
 
 	const patchQueries = useQueries({
 		queries: patchGroups.map((group) => ({
@@ -203,7 +206,7 @@ export function useDiffCodeViewItems({
 								const member = members.shift();
 								if (!member) return;
 								const { oldFile, newFile } = await trpcClient.git.getDiff.query(
-									createGetDiffInput(workspaceId, member.file),
+									createGetDiffInput(workspaceId, member.file, repoArg),
 								);
 								files.push({
 									path: member.file.path,
@@ -449,11 +452,13 @@ function buildPlaceholderItem(
 function createGetDiffPatchInput(
 	workspaceId: string,
 	file: ChangesetFile,
+	repoArg: { repo?: string },
 ): GetDiffPatchInput {
 	const { source } = file;
 	if (source.kind === "against-base") {
 		return {
 			workspaceId,
+			...repoArg,
 			category: "against-base",
 			baseBranch: source.baseBranch ?? undefined,
 		};
@@ -461,12 +466,13 @@ function createGetDiffPatchInput(
 	if (source.kind === "commit") {
 		return {
 			workspaceId,
+			...repoArg,
 			category: "commit",
 			commitHash: source.commitHash,
 			fromHash: source.fromHash,
 		};
 	}
-	return { workspaceId, category: source.kind };
+	return { workspaceId, ...repoArg, category: source.kind };
 }
 
 function getDiffItemId(file: ChangesetFile): string {

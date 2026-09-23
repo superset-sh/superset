@@ -18,6 +18,7 @@ import {
 } from "../../utils/setWorkspaceSidebarTab";
 import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
+import { RepoFolderPicker } from "./components/RepoFolderPicker";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { type SelectedDiffTarget, useChangesTab } from "./hooks/useChangesTab";
 import { useReviewTab } from "./hooks/useReviewTab";
@@ -176,6 +177,7 @@ export function WorkspaceSidebar({
 			className="isolate flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
 		>
 			<PRActionHeader runButton={runButton} pagesMenu={pagesMenu} />
+			<RepoFolderPicker workspaceId={workspaceId} />
 			<SidebarHeader
 				tabs={tabs}
 				activeTab={activeTabDef?.id ?? activeTab}

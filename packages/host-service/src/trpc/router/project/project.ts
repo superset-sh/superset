@@ -6,9 +6,14 @@ import {
 } from "@superset/shared/github-remote";
 import { BRANCH_PREFIX_MODES } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
-import { projects, tagFolderSettings, workspaces } from "../../../db/schema";
+import {
+	projects,
+	tagFolderSettings,
+	workspaceRepos,
+	workspaces,
+} from "../../../db/schema";
 import type { TagSettingSnapshot } from "../../../events/types";
 import {
 	emitProjectChanged,
@@ -33,6 +38,7 @@ import {
 	serializeSparseCheckoutPaths,
 } from "../workspace-creation/shared/sparse-checkout";
 import { normalizeWorktreeBaseDir } from "../workspace-creation/shared/worktree-paths";
+import { projectFoldersRouter } from "./folders";
 import {
 	createFromClone,
 	createFromEmpty,
@@ -76,6 +82,7 @@ export const projectRouter = router({
 	listGitHubRepositories: machineOnlyProcedure.query(() =>
 		listGitHubRepositories(),
 	),
+	folders: projectFoldersRouter,
 
 	list: protectedProcedure.query(({ ctx }) => {
 		const tagSettingsByProject = new Map<string, TagSettingSnapshot[]>();
@@ -848,6 +855,29 @@ export const projectRouter = router({
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();
 			if (!localProject) return { success: true, repoPath: null };
+
+			const memberOf = ctx.db
+				.select({ id: workspaces.id, name: workspaces.name })
+				.from(workspaceRepos)
+				.innerJoin(workspaces, eq(workspaceRepos.workspaceId, workspaces.id))
+				.where(
+					and(
+						eq(workspaceRepos.projectId, input.projectId),
+						ne(workspaces.projectId, input.projectId),
+						isNull(workspaces.archivedAt),
+					),
+				)
+				.all();
+			if (memberOf.length > 0) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: `This repository is checked out by ${memberOf.length} workspace(s) of another project: ${memberOf
+						.map((ws) => ws.name || ws.id)
+						.join(
+							", ",
+						)}. Delete those workspaces first, or remove this folder from their project.`,
+				});
+			}
 
 			// The project-row delete below cascades tombstones away — removing a
 			// project intentionally drops its workspace history. Sweep worktrees

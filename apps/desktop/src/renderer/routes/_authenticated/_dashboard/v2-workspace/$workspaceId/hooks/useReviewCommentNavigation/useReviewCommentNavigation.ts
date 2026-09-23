@@ -2,6 +2,7 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { useSettings } from "renderer/stores/settings";
 import type { DiffFocusSide } from "../../types";
 import { getChangesetFileKey } from "../useChangeset";
+import { useWorkspaceRepos } from "../useWorkspaceRepos";
 
 export type OpenReviewDiff = (
 	path: string,
@@ -15,8 +16,9 @@ export function useReviewCommentNavigation(
 	workspaceId: string,
 	onSelectDiffFile?: OpenReviewDiff,
 ) {
+	const { repoArg } = useWorkspaceRepos(workspaceId);
 	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
-		{ workspaceId },
+		{ workspaceId, ...repoArg },
 		{ staleTime: Number.POSITIVE_INFINITY },
 	);
 	return onSelectDiffFile

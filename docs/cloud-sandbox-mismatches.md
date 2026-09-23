@@ -45,6 +45,36 @@ hosts table, so anything that resolves a host through it degrades: the remote
 version gate has nothing to check (skipped for cloud), and the unreachable
 overlay renders "Unknown host".
 
+**A project over several source folders has no cloud counterpart, and the
+box models multi-repo differently.** Locally a Project is `project_groups` +
+`project_group_members` in `host.db`, and a workspace built from one is a
+single `workspaces` row with a `workspace_repos` row per checkout under one
+container — that is what the repo picker, per-folder git status, the Run
+button and the chained lifecycle scripts all read. On cloud the repository
+list comes from the *environment* (`environment_repositories`, fixed at
+create into `cloud_workspace_repositories`), not from a Project. The seeding
+half is **fixed**: `runSandboxSelfSeed` writes one `workspaces` row (its
+`root_path` the container when there is more than one repository) over one
+`workspace_repos` row per checkout, one project per repository, so the repo
+picker, per-folder git status, the `repo` argument on `git.*` and per-checkout
+watching read a box through the same path they read a laptop. It used to seed
+one project and one workspace row per repository, under ids derived by
+`sandboxRepositoryWorkspaceId`; boxes seeded that way converge on their next
+boot — the seed materializes the repo rows against the projects that already
+exist and deletes the derived workspace rows. A single-repository box is
+untouched by all of this: one row, null `root_path`, no repo rows.
+
+Still open: a local Project's folder list does not travel to a cloud
+workspace, because cloud repositories must be connected GitHub repos in a
+single installation (`loadRepositories` rejects a mixed set) — a source folder
+with no remote can exist locally and cannot exist on cloud, so what a Project
+means on cloud is a product decision, not a mapping. And lifecycle scripts on
+the box still come from the single hooks checkout (`hooksRepositoryId` →
+`hooksPath`) rather than per folder the way `startSetupTerminalIfPresent` and
+`resolveWorkspaceTeardown` chain them locally; the box runs `start` from
+`runSandboxStartHook` against one directory, and per-folder hooks would mean
+teaching that one call site the checkout list.
+
 ## Addressing and auth
 
 **The address is brokered and expires.** A sandbox has no stable URL the

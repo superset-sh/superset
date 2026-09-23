@@ -134,7 +134,18 @@ export function ProjectPickerPill({
 				className="w-60 p-0"
 				onWheel={(event) => event.stopPropagation()}
 			>
-				<Command>
+				<Command
+					// Items are keyed by project id so same-named projects stay
+					// individually selectable; ids must never be searched, or a hex
+					// query would subsequence-match every UUID.
+					filter={(_value, search, keywords) =>
+						keywords?.some((keyword) =>
+							keyword.toLowerCase().includes(search.toLowerCase()),
+						)
+							? 1
+							: 0
+					}
+				>
 					<CommandInput
 						placeholder={t({
 							message: "Search projects...",
@@ -147,6 +158,7 @@ export function ProjectPickerPill({
 						<CommandGroup>
 							<CommandItem
 								value="no-project-session"
+								keywords={[t({ message: "No project" })]}
 								onSelect={() => {
 									onSelectProject(null);
 									setOpen(false);
@@ -164,7 +176,8 @@ export function ProjectPickerPill({
 							{projects.map((project) => (
 								<CommandItem
 									key={project.id}
-									value={project.name}
+									value={project.id}
+									keywords={[project.name]}
 									onSelect={() => {
 										onSelectProject(project.id);
 										setOpen(false);

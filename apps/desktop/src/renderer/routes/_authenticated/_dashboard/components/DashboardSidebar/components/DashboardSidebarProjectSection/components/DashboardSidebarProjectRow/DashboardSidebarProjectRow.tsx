@@ -1,3 +1,4 @@
+import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -11,6 +12,7 @@ interface DashboardSidebarProjectRowProps
 	projectName: string;
 	iconUrl: string | null;
 	projectColor: string | null;
+	repoCount?: number;
 	isCollapsed: boolean;
 	isRenaming: boolean;
 	renameValue: string;
@@ -31,6 +33,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 			projectName,
 			iconUrl,
 			projectColor,
+			repoCount,
 			isCollapsed,
 			isRenaming,
 			renameValue,
@@ -96,6 +99,33 @@ export const DashboardSidebarProjectRow = forwardRef<
 						/>
 					) : (
 						<span className="truncate">{projectName}</span>
+					)}
+					{!isRenaming && repoCount !== undefined && repoCount > 1 && (
+						<Tooltip delayDuration={500}>
+							<TooltipTrigger asChild>
+								<span
+									data-testid="project-repo-count"
+									role="img"
+									aria-label={t({
+										message: plural(repoCount, {
+											one: "# source folder",
+											other: "# source folders",
+										}),
+									})}
+									className="shrink-0 rounded bg-fill-hover px-1 text-[10px] font-medium tabular-nums text-muted-foreground"
+								>
+									{repoCount}
+								</span>
+							</TooltipTrigger>
+							<TooltipContent side="bottom">
+								{t({
+									message: plural(repoCount, {
+										one: "# source folder",
+										other: "# source folders",
+									}),
+								})}
+							</TooltipContent>
+						</Tooltip>
 					)}
 				</div>
 

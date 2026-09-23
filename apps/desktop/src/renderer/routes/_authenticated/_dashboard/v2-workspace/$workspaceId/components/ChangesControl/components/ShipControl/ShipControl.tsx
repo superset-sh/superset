@@ -24,6 +24,7 @@ import {
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
+import { useWorkspaceRepos } from "../../../../hooks/useWorkspaceRepos";
 import { useWorkspaceGitStatus } from "../../../../providers/WorkspaceGitStatusProvider";
 import type { BranchSyncStatus } from "../../utils/getPRFlowState";
 
@@ -58,6 +59,7 @@ export function ShipControl({
 	const navigate = useNavigate();
 	const { workspace } = useWorkspace();
 	const status = useWorkspaceGitStatus();
+	const { repoArg } = useWorkspaceRepos(workspaceId);
 	const projectId = workspace.projectId;
 	const canCreatePr = projectId != null;
 
@@ -90,12 +92,13 @@ export function ShipControl({
 	// committing (here or in a terminal) enables it promptly; both queries
 	// dedupe with the sidebar Changes tab's identical ones.
 	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
-		{ workspaceId },
+		{ workspaceId, ...repoArg },
 		{ enabled: canCreatePr, staleTime: Number.POSITIVE_INFINITY },
 	);
 	const commitsQuery = workspaceTrpc.git.listCommits.useQuery(
 		{
 			workspaceId,
+			...repoArg,
 			baseBranch: baseBranchQuery.data?.baseBranch ?? undefined,
 		},
 		{
@@ -197,7 +200,7 @@ export function ShipControl({
 
 	const handleCommit = () => {
 		const message = commitMessage.trim() || defaultCommitMessage;
-		commitMutation.mutate({ workspaceId, message });
+		commitMutation.mutate({ workspaceId, ...repoArg, message });
 	};
 
 	const handleCreatePr = async () => {
@@ -209,7 +212,7 @@ export function ShipControl({
 		// the push then would open the PR at the old remote tip. Pushing an
 		// already-synced branch is a cheap no-op.
 		try {
-			await flowPushMutation.mutateAsync({ workspaceId });
+			await flowPushMutation.mutateAsync({ workspaceId, ...repoArg });
 		} catch (error) {
 			toast.error(
 				t({
@@ -228,6 +231,7 @@ export function ShipControl({
 		try {
 			const created = await createPrMutation.mutateAsync({
 				workspaceId,
+				...repoArg,
 				title,
 				body: prBody.trim() || undefined,
 				draft: prDraft,
@@ -353,7 +357,9 @@ export function ShipControl({
 									<DropdownMenuItem
 										className="text-xs"
 										disabled={pushMutation.isPending}
-										onClick={() => pushMutation.mutate({ workspaceId })}
+										onClick={() =>
+											pushMutation.mutate({ workspaceId, ...repoArg })
+										}
 									>
 										<VscRepoPush className="size-3.5" />
 										<Trans>Push</Trans>
@@ -420,7 +426,9 @@ export function ShipControl({
 									type="button"
 									className={mainButtonClass}
 									disabled={pushMutation.isPending}
-									onClick={() => pushMutation.mutate({ workspaceId })}
+									onClick={() =>
+										pushMutation.mutate({ workspaceId, ...repoArg })
+									}
 								>
 									{pushMutation.isPending ? (
 										<VscLoading className="size-3.5 animate-spin" />
@@ -441,7 +449,9 @@ export function ShipControl({
 											<DropdownMenuItem
 												className="text-xs"
 												disabled={pushMutation.isPending}
-												onClick={() => pushMutation.mutate({ workspaceId })}
+												onClick={() =>
+													pushMutation.mutate({ workspaceId, ...repoArg })
+												}
 											>
 												<VscRepoPush className="size-3.5" />
 												<Trans>Push</Trans>

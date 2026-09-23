@@ -118,10 +118,11 @@ export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
 /**
  * For procedures that only make sense on a machine someone owns.
  *
- * A cloud workspace's sandbox is one repo, one project, one workspace, fixed
- * at provision: the checkout *is* the workspace and there is no base repo to
- * branch from. Adding a project, removing the only one, or cutting a worktree
- * inside it produces state the cloud side can neither see nor clean up. The
+ * A cloud workspace's sandbox is one workspace over the repositories it was
+ * provisioned with, a project each: every checkout *is* its repo and there is
+ * no base repo to branch from. Adding a project, removing one, or cutting a
+ * worktree inside it produces state the cloud side can neither see nor clean
+ * up. The
  * check lives here rather than in each caller because the callers are
  * whatever runs in the sandbox — an agent, the CLI, a shell — not just our
  * own UI.
@@ -135,7 +136,7 @@ export const machineOnlyProcedure = protectedProcedure.use(
 		if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
 			throw new TRPCError({
 				code: "PRECONDITION_FAILED",
-				message: `${path} is not available in a cloud workspace: its sandbox holds exactly one project and one workspace.`,
+				message: `${path} is not available in a cloud workspace: its sandbox holds exactly one workspace, over the repositories it was provisioned with.`,
 			});
 		}
 		return next({ ctx });

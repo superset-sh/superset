@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { TEARDOWN_TIMEOUT_MS } from "@superset/shared/constants";
 import type { HostDb } from "../../db";
+import { listWorkspaceCheckouts } from "../../projects/workspace-checkouts";
 import {
 	createTerminalSessionInternal,
 	disposeSession,
@@ -60,7 +61,9 @@ export async function runTeardown({
 	timeoutMs = TEARDOWN_TIMEOUT_MS,
 	homeDir,
 }: RunTeardownOptions): Promise<TeardownResult> {
-	const resolved = resolveTeardownCommand({
+	const resolved = resolveWorkspaceTeardown({
+		db,
+		workspaceId,
 		repoPath,
 		projectId,
 		worktreePath,
@@ -181,6 +184,64 @@ export function resolveTeardownCommand(args: {
 			? buildTeardownCommandFromShell(resolved.commands.join(" && "))
 			: buildTeardownInitialCommand(resolved.scriptPath);
 	return { initialCommand, ...(resolved.cwd && { cwd: resolved.cwd }) };
+}
+
+/**
+ * The workspace's teardown across every checkout it holds: each folder's own
+ * command, in folder order, in one shell. A single-repo workspace resolves to
+ * exactly what {@link resolveTeardownCommand} returned before.
+ */
+export function resolveWorkspaceTeardown(args: {
+	db: HostDb;
+	workspaceId: string;
+	repoPath: string;
+	projectId: string;
+	worktreePath: string;
+	homeDir?: string;
+}): { initialCommand: string; cwd?: string } | null {
+	const checkouts = listWorkspaceCheckouts(args.db, args.workspaceId, {
+		projectId: args.projectId,
+		repoPath: args.repoPath,
+		worktreePath: args.worktreePath,
+	});
+	const resolved = checkouts.flatMap((checkout) => {
+		const script = resolveScript("teardown", {
+			repoPath: checkout.repoPath,
+			projectId: checkout.projectId,
+			worktreePath: checkout.worktreePath,
+			...(args.homeDir && { homeDir: args.homeDir }),
+		});
+		return script ? [{ ...checkout, ...script }] : [];
+	});
+	if (resolved.length === 0) return null;
+
+	const first = resolved[0];
+	if (
+		resolved.length === 1 &&
+		first &&
+		first.worktreePath === args.worktreePath
+	) {
+		return {
+			initialCommand:
+				first.kind === "commands"
+					? buildTeardownCommandFromShell(first.commands.join(" && "))
+					: buildTeardownInitialCommand(first.scriptPath),
+			...(first.cwd && { cwd: first.cwd }),
+		};
+	}
+
+	const shellCommand = resolved
+		.map((script) => {
+			const enter = [`cd ${shellSingleQuote(script.worktreePath)}`];
+			if (script.cwd) enter.push(`cd ${shellSingleQuote(script.cwd)}`);
+			const command =
+				script.kind === "commands"
+					? script.commands.join(" && ")
+					: `bash ${shellSingleQuote(script.scriptPath)}`;
+			return [...enter, command].join(" && ");
+		})
+		.join(" && ");
+	return { initialCommand: buildTeardownCommandFromShell(shellCommand) };
 }
 
 export function buildTeardownInitialCommand(scriptPath: string): string {

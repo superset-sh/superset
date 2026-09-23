@@ -4,6 +4,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { DiffRef } from "../useChangeset/types";
+import { useWorkspaceRepos } from "../useWorkspaceRepos";
 
 export function useSidebarDiffRef(workspaceId: string): DiffRef {
 	const collections = useCollections();
@@ -17,8 +18,9 @@ export function useSidebarDiffRef(workspaceId: string): DiffRef {
 	const sidebarState = rows[0]?.sidebarState;
 	const filter = sidebarState?.changesFilter ?? { kind: "all" };
 
+	const { repoArg } = useWorkspaceRepos(workspaceId);
 	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
-		{ workspaceId },
+		{ workspaceId, ...repoArg },
 		{ staleTime: Number.POSITIVE_INFINITY },
 	);
 	const baseBranch = baseBranchQuery.data?.baseBranch ?? null;

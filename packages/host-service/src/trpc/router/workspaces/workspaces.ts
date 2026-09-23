@@ -10,15 +10,11 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
-import { createGitEnvResolver } from "../../../runtime/git";
 import { getGitAuthorName } from "../../../runtime/git/identity";
-import { type ResolvedRef, resolveRef } from "../../../runtime/git/refs";
+import { resolveRef } from "../../../runtime/git/refs";
 import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
-import {
-	gitAuthorNameTask,
-	gitFetchBaseRefTask,
-} from "../../../workers/tasks/git";
+import { gitAuthorNameTask } from "../../../workers/tasks/git";
 import {
 	type CloudShapedWorkspace,
 	getLocalWorkspace,
@@ -44,11 +40,16 @@ import {
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { createSession } from "../workspace-creation/procedures/create-session";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
+import { createWorkerBaseRefFetcher } from "../workspace-creation/shared/base-ref-fetcher";
 import {
-	findWorktreeAtPath,
 	getWorktreeBranchAtPath,
 	listWorktreeBranches,
 } from "../workspace-creation/shared/branch-search";
+import {
+	addBranchWorktree,
+	type BranchSourcePlan,
+	isBranchInUseByWorktreeError,
+} from "../workspace-creation/shared/branch-worktree";
 import { startCommandTerminal } from "../workspace-creation/shared/command-terminal";
 import {
 	type AgentLaunchResult,
@@ -61,6 +62,13 @@ import {
 	requireLocalProject,
 	requireProjectRepoPath,
 } from "../workspace-creation/shared/local-project";
+import {
+	type CreatedWorkspaceRepo,
+	createMultiRepoWorktrees,
+	effectiveProjectFolders,
+	resolveFolderProjects,
+	rollbackMultiRepoWorktrees,
+} from "../workspace-creation/shared/multi-repo";
 import { requireIndependentWorktree } from "../workspace-creation/shared/require-independent-worktree";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import {
@@ -97,6 +105,11 @@ import { deduplicateBranchName } from "../workspace-creation/utils/sanitize-bran
 const createInputSchema = z
 	.object({
 		projectId: z.string(),
+		/**
+		 * Extra folders of THIS workspace only — the project's own folder list
+		 * is not modified.
+		 */
+		extraProjectIds: z.array(z.string()).optional(),
 		// "worktree" (default) checks out `branch` in its own worktree.
 		// "local" registers a new workspace on the project's primary checkout
 		// — no clone, no worktree, no branch switch; files, the git index and
@@ -325,33 +338,6 @@ async function getLocalBranchHead(
 	}
 }
 
-export interface BranchSourcePlan {
-	branch: string;
-	startPoint: ResolvedRef;
-	usedExistingBranch: boolean;
-}
-
-/** Base-ref fetch for workspace creation, executed in the worker pool so the
- * network fetch's spawn + stdout drain stay off the host-service event loop.
- * Concurrent creates on the same base coalesce into one fetch. */
-function createWorkerBaseRefFetcher(
-	ctx: Pick<HostServiceContext, "credentials">,
-	repoPath: string,
-): BaseRefFetcher {
-	return async (target) => {
-		const gitEnv = await createGitEnvResolver(ctx.credentials)(repoPath);
-		return getHostWorkerPool().run(
-			gitFetchBaseRefTask,
-			{ worktreePath: repoPath, target, gitEnv },
-			{
-				timeoutMs: 30_000,
-				strategy: "coalesce",
-				dedupeKey: `${repoPath}:base-ref:${target.remote}/${target.branch}`,
-			},
-		);
-	};
-}
-
 /**
  * `resolveProjectBranchPrefix`'s `getAuthorName` for callers with no other
  * git need (unlike `create`, which already holds an on-loop client bound to
@@ -404,103 +390,6 @@ async function planBranchSource(
 		fetchRemoteRef,
 	);
 	return { branch, startPoint, usedExistingBranch: false };
-}
-
-// Adopt any worktree git knows about, no matter where it lives —
-// tools other than Superset can also `git worktree add`, and their
-// worktrees are valid adoption targets.
-function isBranchInUseByWorktreeError(err: unknown): boolean {
-	const message = err instanceof Error ? err.message : String(err ?? "");
-	const lower = message.toLowerCase();
-	return (
-		lower.includes("is already used by worktree") ||
-		lower.includes("already checked out")
-	);
-}
-
-export async function addBranchWorktree(args: {
-	git: GitClient;
-	plan: BranchSourcePlan;
-	worktreePath: string;
-	sparsePaths: string[];
-}): Promise<void> {
-	const { git, plan, worktreePath, sparsePaths } = args;
-
-	// Post-checkout hooks run after the checkout itself, so a hook that exits
-	// non-zero fails the operation with the worktree fully in place. Every
-	// branch case below checks out `plan.branch`, so registered-at-path with
-	// that branch is the ground truth. Handed to addWorktreeWithSparseCheckout
-	// so it applies to whichever command actually performs the checkout —
-	// the plain add below, or the sparse path's explicit `checkout` step.
-	const hookTolerance = {
-		context: `Worktree created at ${worktreePath}`,
-		didSucceed: async () => {
-			if (!(await findWorktreeAtPath(git, worktreePath, plan.branch))) {
-				return false;
-			}
-			try {
-				// The worktree list can report a branch for a half-created
-				// worktree; require a resolvable HEAD in the worktree itself.
-				await git.raw(["-C", worktreePath, "rev-parse", "--verify", "HEAD"]);
-				return true;
-			} catch {
-				return false;
-			}
-		},
-	};
-
-	if (plan.usedExistingBranch) {
-		// Existing branch — check it out into a fresh worktree. Remote-tracking
-		// refs need explicit --track + -b so the worktree gets a real local
-		// branch, not detached HEAD.
-		await addWorktreeWithSparseCheckout({
-			git,
-			worktreeArgs:
-				plan.startPoint.kind === "remote-tracking"
-					? [
-							"--track",
-							"-b",
-							plan.branch,
-							worktreePath,
-							plan.startPoint.remoteShortName,
-						]
-					: [
-							worktreePath,
-							plan.startPoint.kind === "head"
-								? "HEAD"
-								: plan.startPoint.shortName,
-						],
-			worktreePath,
-			sparsePaths,
-			logPrefix: "[workspaces.create]",
-			hookTolerance,
-		});
-		return;
-	}
-
-	// New branch from start point. --no-track keeps `git pull` and
-	// ahead/behind counts pointing at the branch's own upstream once
-	// push.autoSetupRemote sets it on first push.
-	const startPointArg =
-		plan.startPoint.kind === "head"
-			? "HEAD"
-			: plan.startPoint.kind === "remote-tracking"
-				? plan.startPoint.remoteShortName
-				: plan.startPoint.shortName;
-	await addWorktreeWithSparseCheckout({
-		git,
-		worktreeArgs: [
-			"--no-track",
-			"-b",
-			plan.branch,
-			worktreePath,
-			startPointArg,
-		],
-		worktreePath,
-		sparsePaths,
-		logPrefix: "[workspaces.create]",
-		hookTolerance,
-	});
 }
 
 async function recordBaseBranchConfig(args: {
@@ -558,6 +447,8 @@ async function registerLocalWorkspace(args: {
 	name: string;
 	branch: string;
 	worktreePath: string;
+	rootPath?: string | null;
+	repos?: CreatedWorkspaceRepo[];
 	taskId: string | undefined;
 	tags: string[] | undefined;
 	rollbackWorktree: () => Promise<void>;
@@ -570,8 +461,17 @@ async function registerLocalWorkspace(args: {
 			id: args.id,
 			projectId: args.projectId,
 			worktreePath: args.worktreePath,
+			rootPath: args.rootPath ?? null,
 			branch: args.branch,
 			name: args.name,
+			repos: args.repos?.map((repo) => ({
+				position: repo.position,
+				projectId: repo.projectId,
+				folder: repo.folder,
+				worktreePath: repo.worktreePath,
+				branch: repo.branch,
+				baseBranch: repo.baseBranch,
+			})),
 			taskId: args.taskId ?? null,
 			createdByUserId: ctx.userId ?? null,
 			tags: args.tags,
@@ -614,6 +514,39 @@ export const workspacesRouter = router({
 
 			const localProject = requireLocalProject(ctx, input.projectId);
 			const repoPath = requireProjectRepoPath(localProject);
+
+			const projectFolderList = effectiveProjectFolders(
+				ctx,
+				input.projectId,
+				input.extraProjectIds,
+			);
+			const isMultiRepo = projectFolderList.length > 1;
+			if (isMultiRepo && input.pr !== undefined) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"A pull request checks out one repository; this project has several folders",
+				});
+			}
+			if (isMultiRepo && input.worktreePath) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Adopting an existing worktree covers one repository; this project has several folders",
+				});
+			}
+			if (isMultiRepo && input.checkout === "local") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"A local workspace shares the project's own checkout, which is a single repository",
+				});
+			}
+			const progressLines: string[] = [];
+			const reportProgress = (line: string) => {
+				progressLines.push(line);
+				console.log(`[workspaces.create] ${line}`);
+			};
 
 			// Kick off AI naming when the user supplied a prompt but no
 			// workspace name. The worktree add and registration run with an
@@ -1078,6 +1011,55 @@ export const workspacesRouter = router({
 				if (existing) {
 					workspaceRow = existing;
 					alreadyExists = true;
+				} else if (isMultiRepo) {
+					const containerPath = safeResolveWorktreePath(
+						localProject.id,
+						resolvedBranch,
+						worktreeBaseDir,
+					);
+					mkdirSync(dirname(containerPath), { recursive: true });
+
+					const resolvedFolders = await resolveFolderProjects({
+						ctx,
+						folders: projectFolderList,
+						onProgress: reportProgress,
+					});
+					const repos = await createMultiRepoWorktrees({
+						ctx,
+						containerPath,
+						folders: resolvedFolders,
+						primaryPlan: plan,
+						baseBranch: input.baseBranch,
+						onProgress: reportProgress,
+					});
+					const primaryRepo = repos[0];
+					if (!primaryRepo) {
+						await rollbackMultiRepoWorktrees(ctx, repos, containerPath);
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Multi-repo workspace produced no primary checkout",
+						});
+					}
+					worktreePath = primaryRepo.worktreePath;
+					resolvedBranch = primaryRepo.branch;
+
+					workspaceRow = await registerLocalWorkspace({
+						ctx,
+						id: input.id,
+						projectId: input.projectId,
+						name: input.name ?? resolvedBranch,
+						branch: resolvedBranch,
+						worktreePath,
+						rootPath: containerPath,
+						repos,
+						taskId: input.taskId,
+						tags: input.tags,
+						rollbackWorktree: () =>
+							rollbackMultiRepoWorktrees(ctx, repos, containerPath),
+					});
+					// Renaming the branch would only rename the primary's, leaving
+					// the other checkouts on the old name.
+					aiCanRenameBranch = false;
 				} else {
 					// Adopt at any path git already knows for this branch — git
 					// refuses a second checkout of the same branch, so falling
@@ -1316,6 +1298,7 @@ export const workspacesRouter = router({
 						ctx,
 						workspaceId: workspaceRow.id,
 						...(chainAgent ? { chainCommand: chainAgent.fullCommand } : {}),
+						...(progressLines.length > 0 ? { preamble: progressLines } : {}),
 					});
 				if (warning) {
 					console.warn(`[workspaces.create] setup warning: ${warning}`);
@@ -1562,3 +1545,4 @@ export const workspacesRouter = router({
 const createWorkspacesCaller = createCallerFactory(workspacesRouter);
 
 export { generateWorkspaceNamesFromPrompt as _aiNamesGenerator };
+export { addBranchWorktree, type BranchSourcePlan };

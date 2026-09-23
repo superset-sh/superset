@@ -208,6 +208,11 @@ export const FEATURE_FLAGS = {
 	 * sees it, so a new build ships with it dark and no release widens it.
 	 */
 	MOBILE_LIVE_ACTIVITY: "mobile-live-activity",
+	/**
+	 * Gates the UI for giving a project more than one repository. The host
+	 * serves `project.folders.*` either way.
+	 */
+	MULTI_REPO_PROJECTS: "multi-repo-projects",
 } as const;
 
 /**

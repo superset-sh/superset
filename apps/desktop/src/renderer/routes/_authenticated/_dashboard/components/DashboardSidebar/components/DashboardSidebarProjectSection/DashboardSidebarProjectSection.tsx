@@ -143,6 +143,7 @@ export function DashboardSidebarProjectSection({
 					projectName={project.name}
 					iconUrl={project.iconUrl}
 					projectColor={project.color}
+					repoCount={project.repoCount}
 					isCollapsed={project.isCollapsed}
 					isRenaming={isRenaming}
 					renameValue={renameValue}

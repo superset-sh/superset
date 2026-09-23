@@ -53,7 +53,10 @@ import {
 	REVIEW_THREADS_QUERY,
 } from "./utils/graphql";
 import { replyToReviewComment } from "./utils/reply-to-review-comment";
-import { resolveWorktreePath } from "./utils/resolve-worktree";
+import {
+	resolveWorktreePath,
+	resolveWorktreeTarget,
+} from "./utils/resolve-worktree";
 import { attachSpawnFailureDiagnostics } from "./utils/spawn-failure-diagnostics";
 
 // Front-door cap for commit-file diffs. Statuses are admitted by
@@ -133,17 +136,23 @@ function runStatusSnapshot(
 		Pick<HostServiceContext, "credentials">,
 	input: {
 		workspaceId: string;
+		repo?: string;
 		baseBranch?: string;
 		priority?: "foreground" | "background";
 	},
 ) {
+	const { worktreePath, repoKey } = resolveWorktreeTarget(
+		ctx,
+		input.workspaceId,
+		input.repo,
+	);
 	const requestKey = JSON.stringify({ baseBranch: input.baseBranch ?? null });
 	return gitStatusRefreshLimiter.run({
 		workspaceId: input.workspaceId,
+		repoKey,
 		requestKey,
 		priority: input.priority,
 		run: async () => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
 			const workerPool = getHostWorkerPool();
 
@@ -176,6 +185,7 @@ function runStatusSnapshot(
 
 			return gitStatusStore.read({
 				workspaceId: input.workspaceId,
+				repoKey,
 				baseBranch: input.baseBranch ?? null,
 				computeFull,
 				computePartial: (paths) =>
@@ -209,8 +219,12 @@ function sumSnapshotDiffStats(snapshot: {
 	return { additions, deletions, fileCount: byPath.size };
 }
 
-const getDiffInputShape = z.object({
+const workspaceRepoInput = z.object({
 	workspaceId: z.string(),
+	repo: z.string().optional(),
+});
+
+const getDiffInputShape = workspaceRepoInput.extend({
 	path: z.string(),
 	category: z.enum(["against-base", "staged", "unstaged", "commit"]),
 	baseBranch: z.string().optional(),
@@ -226,8 +240,7 @@ const DIFF_SIDE_FILE_MAX_BYTES = 10 * 1024 * 1024;
 
 // A rename is two index entries (delete of `oldPath`, add of `filePath`);
 // staging or unstaging only one end would split it into a delete plus an add.
-const stagingTargetInput = z.object({
-	workspaceId: z.string(),
+const stagingTargetInput = workspaceRepoInput.extend({
 	filePath: z.string(),
 	oldPath: z.string().optional(),
 });
@@ -245,9 +258,13 @@ function resolveStagingTargetPaths(
 
 export const gitRouter = router({
 	listBranches: queryProcedure
-		.input(z.object({ workspaceId: z.string() }))
+		.input(workspaceRepoInput)
 		.query(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 
 			// `%(HEAD)` emits "*" for the checked-out branch, " " otherwise.
@@ -282,8 +299,7 @@ export const gitRouter = router({
 	getStatus: queryProcedure
 		.meta({ timeoutMs: 15_000 })
 		.input(
-			z.object({
-				workspaceId: z.string(),
+			workspaceRepoInput.extend({
 				baseBranch: z.string().optional(),
 				priority: z.enum(["foreground", "background"]).optional(),
 			}),
@@ -359,13 +375,16 @@ export const gitRouter = router({
 	listCommits: queryProcedure
 		.meta({ timeoutMs: 30_000 })
 		.input(
-			z.object({
-				workspaceId: z.string(),
+			workspaceRepoInput.extend({
 				baseBranch: z.string().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 
 			const base = await resolveBaseComparison(git, input.baseBranch);
@@ -399,14 +418,17 @@ export const gitRouter = router({
 	getCommitFiles: queryProcedure
 		.meta({ timeoutMs: 15_000 })
 		.input(
-			z.object({
-				workspaceId: z.string(),
+			workspaceRepoInput.extend({
 				commitHash: z.string(),
 				fromHash: z.string().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
 			const dedupeKey = `${input.workspaceId}:commit-files:${input.fromHash ?? ""}:${input.commitHash}`;
 			const files = await runCommitFilesDeduped(dedupeKey, () =>
@@ -430,9 +452,13 @@ export const gitRouter = router({
 		}),
 
 	getBaseBranch: queryProcedure
-		.input(z.object({ workspaceId: z.string() }))
+		.input(workspaceRepoInput)
 		.query(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 			const currentBranch = (
 				await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
@@ -450,13 +476,16 @@ export const gitRouter = router({
 
 	setBaseBranch: protectedProcedure
 		.input(
-			z.object({
-				workspaceId: z.string(),
+			workspaceRepoInput.extend({
 				baseBranch: z.string().nullable(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 			const currentBranch = (
 				await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
@@ -485,14 +514,17 @@ export const gitRouter = router({
 
 	renameBranch: protectedProcedure
 		.input(
-			z.object({
-				workspaceId: z.string(),
+			workspaceRepoInput.extend({
 				oldName: z.string(),
 				newName: z.string(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 
 			// Check if branch has been pushed to remote
@@ -521,14 +553,17 @@ export const gitRouter = router({
 
 	discardChanges: protectedProcedure
 		.input(
-			z.object({
-				workspaceId: z.string(),
+			workspaceRepoInput.extend({
 				filePath: z.string(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			assertSafeRelativePath(input.filePath);
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 			const status = await git.status();
 			const isUntracked = status.not_added.includes(input.filePath);
@@ -542,9 +577,13 @@ export const gitRouter = router({
 		}),
 
 	discardAllUnstaged: protectedProcedure
-		.input(z.object({ workspaceId: z.string() }))
+		.input(workspaceRepoInput)
 		.mutation(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 			await git.raw(["checkout", "--", "."]);
 			await git.raw(["clean", "-fd"]);
@@ -553,9 +592,13 @@ export const gitRouter = router({
 		}),
 
 	discardAllStaged: protectedProcedure
-		.input(z.object({ workspaceId: z.string() }))
+		.input(workspaceRepoInput)
 		.mutation(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 			const status = await git.status();
 
@@ -609,7 +652,11 @@ export const gitRouter = router({
 		.input(stagingTargetInput)
 		.mutation(async ({ ctx, input }) => {
 			const paths = resolveStagingTargetPaths(input);
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
 			const result = await getHostWorkerPool().run(gitStagePathsTask, {
 				worktreePath,
@@ -625,7 +672,11 @@ export const gitRouter = router({
 		.input(stagingTargetInput)
 		.mutation(async ({ ctx, input }) => {
 			const paths = resolveStagingTargetPaths(input);
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
 			const result = await getHostWorkerPool().run(gitStagePathsTask, {
 				worktreePath,
@@ -638,9 +689,13 @@ export const gitRouter = router({
 		}),
 
 	stageAll: protectedProcedure
-		.input(z.object({ workspaceId: z.string() }))
+		.input(workspaceRepoInput)
 		.mutation(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 			await git.raw(["add", "-A"]);
 			invalidateStatus(input.workspaceId);
@@ -648,9 +703,13 @@ export const gitRouter = router({
 		}),
 
 	unstageAll: protectedProcedure
-		.input(z.object({ workspaceId: z.string() }))
+		.input(workspaceRepoInput)
 		.mutation(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 			await git.raw(["reset", "HEAD"]);
 			invalidateStatus(input.workspaceId);
@@ -661,14 +720,17 @@ export const gitRouter = router({
 		// Commit hooks (lint-staged etc.) run here and can be slow.
 		.meta({ timeoutMs: 60_000 })
 		.input(
-			z.object({
-				workspaceId: z.string(),
+			workspaceRepoInput.extend({
 				message: z.string().trim().min(1),
 				stageAll: z.boolean().default(true),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
 			const result = await getHostWorkerPool().run(
 				gitCommitTask,
@@ -692,9 +754,13 @@ export const gitRouter = router({
 
 	push: protectedProcedure
 		.meta({ timeoutMs: 120_000 })
-		.input(z.object({ workspaceId: z.string() }))
+		.input(workspaceRepoInput)
 		.mutation(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			// The linked PR lookup stays on-loop (sync db reads); the git work
 			// itself — upstream resolution and the push — runs in the pool.
 			const workspace = ctx.db.query.workspaces
@@ -742,7 +808,11 @@ export const gitRouter = router({
 		.input(getDiffInputShape)
 		.query(async ({ ctx, input }) => {
 			assertSafeRelativePath(input.path);
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 			const refs = await resolveDiffCategoryRefs(git, input.category, input);
 			return loadFileDiffContent(
@@ -781,7 +851,11 @@ export const gitRouter = router({
 						"The unstaged new side is the working tree, not a git object",
 				});
 			}
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
 			return getHostWorkerPool().run(
 				gitDiffSideBlobTask,
@@ -809,8 +883,7 @@ export const gitRouter = router({
 	getDiffBulk: queryProcedure
 		.meta({ timeoutMs: 60_000 })
 		.input(
-			z.object({
-				workspaceId: z.string(),
+			workspaceRepoInput.extend({
 				paths: z.array(z.string()).min(1).max(MAX_DIFF_BULK_PATHS),
 				category: z.enum(["against-base", "staged", "unstaged", "commit"]),
 				baseBranch: z.string().optional(),
@@ -820,7 +893,11 @@ export const gitRouter = router({
 		)
 		.query(async ({ ctx, input }) => {
 			for (const path of input.paths) assertSafeRelativePath(path);
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
 			// Ref resolution and every file's `git show` pair run inside the
 			// worker task, off the host-service event loop — see
@@ -847,8 +924,7 @@ export const gitRouter = router({
 	getDiffPatch: queryProcedure
 		.meta({ timeoutMs: 60_000 })
 		.input(
-			z.object({
-				workspaceId: z.string(),
+			workspaceRepoInput.extend({
 				category: z.enum(["against-base", "staged", "unstaged", "commit"]),
 				paths: z.array(z.string()).max(MAX_DIFF_BULK_PATHS).optional(),
 				untrackedPaths: z.array(z.string()).max(MAX_DIFF_BULK_PATHS).optional(),
@@ -861,7 +937,11 @@ export const gitRouter = router({
 			for (const path of input.paths ?? []) assertSafeRelativePath(path);
 			for (const path of input.untrackedPaths ?? [])
 				assertSafeRelativePath(path);
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
 			return getHostWorkerPool()
 				.run(
@@ -886,9 +966,13 @@ export const gitRouter = router({
 
 	getBranchSyncStatus: queryProcedure
 		.meta({ timeoutMs: 30_000 })
-		.input(z.object({ workspaceId: z.string() }))
+		.input(workspaceRepoInput)
 		.query(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const worktreePath = resolveWorktreePath(
+				ctx,
+				input.workspaceId,
+				input.repo,
+			);
 			const git = await ctx.git(worktreePath);
 
 			const currentBranch = (

@@ -2,6 +2,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
+import { useGroupedProjects } from "renderer/hooks/host-projects/useGroupedProjects";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
@@ -212,7 +213,7 @@ export function useDashboardSidebarData() {
 		() => new Map(hostProjects.map((project) => [project.projectKey, project])),
 		[hostProjects],
 	);
-	const sidebarProjects = useMemo(
+	const repositorySidebarProjects = useMemo(
 		() =>
 			orderedSidebarProjectRows.flatMap((row) => {
 				// A hidden project keeps its placement rows but renders nowhere;
@@ -238,6 +239,7 @@ export function useDashboardSidebarData() {
 			}),
 		[orderedSidebarProjectRows, hostProjectsByKey],
 	);
+	const sidebarProjects = useGroupedProjects(repositorySidebarProjects);
 	const hiddenProjects = useMemo<DashboardSidebarHiddenProject[]>(
 		() =>
 			orderedSidebarProjectRows.flatMap((row) => {

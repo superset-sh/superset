@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { dirname } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -39,7 +40,11 @@ export async function listGitIgnoredDirs(rootPath: string): Promise<string[]> {
 				"--directory",
 				"-z",
 			],
-			{ timeout: TIMEOUT_MS, maxBuffer: MAX_BUFFER_BYTES },
+			{
+				timeout: TIMEOUT_MS,
+				maxBuffer: MAX_BUFFER_BYTES,
+				env: { ...process.env, GIT_CEILING_DIRECTORIES: dirname(rootPath) },
+			},
 		);
 		const dirs: string[] = [];
 		for (const entry of stdout.split("\0")) {

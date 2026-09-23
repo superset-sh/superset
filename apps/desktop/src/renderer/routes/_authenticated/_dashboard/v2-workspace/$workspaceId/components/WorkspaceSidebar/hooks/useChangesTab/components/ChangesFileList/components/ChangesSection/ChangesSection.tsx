@@ -13,6 +13,7 @@ import { ChevronRight, Minus, Plus } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { LuUndo2 } from "react-icons/lu";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
+import { useWorkspaceRepos } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useWorkspaceRepos";
 import {
 	useV2ChangesSectionsStore,
 	type V2ChangesSectionKey,
@@ -49,14 +50,17 @@ export function ChangesSection({
 	const open = !collapsed;
 	const [showConfirm, setShowConfirm] = useState(false);
 	const utils = workspaceTrpc.useUtils();
+	const { repoArg } = useWorkspaceRepos(stagingActions?.workspaceId ?? "");
 
 	const invalidate = () => {
 		if (!stagingActions) return;
 		void utils.git.getStatus.invalidate({
 			workspaceId: stagingActions.workspaceId,
+			...repoArg,
 		});
 		void utils.git.getDiff.invalidate({
 			workspaceId: stagingActions.workspaceId,
+			...repoArg,
 		});
 	};
 
@@ -117,9 +121,9 @@ export function ChangesSection({
 		if (!stagingActions) return;
 		const { kind, workspaceId } = stagingActions;
 		if (kind === "unstaged") {
-			discardAllUnstaged.mutate({ workspaceId });
+			discardAllUnstaged.mutate({ workspaceId, ...repoArg });
 		} else {
-			discardAllStaged.mutate({ workspaceId });
+			discardAllStaged.mutate({ workspaceId, ...repoArg });
 		}
 	};
 
@@ -127,9 +131,9 @@ export function ChangesSection({
 		if (!stagingActions) return;
 		const { kind, workspaceId } = stagingActions;
 		if (kind === "unstaged") {
-			stageAll.mutate({ workspaceId });
+			stageAll.mutate({ workspaceId, ...repoArg });
 		} else {
-			unstageAll.mutate({ workspaceId });
+			unstageAll.mutate({ workspaceId, ...repoArg });
 		}
 	};
 

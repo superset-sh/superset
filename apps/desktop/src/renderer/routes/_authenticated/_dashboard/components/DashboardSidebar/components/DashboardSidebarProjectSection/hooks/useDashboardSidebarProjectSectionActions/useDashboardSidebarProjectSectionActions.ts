@@ -2,8 +2,10 @@ import { plural } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
+import { HOST_PROJECT_GROUPS_QUERY_PREFIX } from "renderer/hooks/host-projects/useHostProjectGroups";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
@@ -28,6 +30,7 @@ export function useDashboardSidebarProjectSectionActions({
 	const { t } = useLingui();
 	const openNewWorkspace = useOpenNewWorkspace();
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	// Renames commit on a host serving the project — host.db owns the name.
 	// Prefer the local host when it serves the project (always reachable);
 	// hostIds order is arbitrary and may lead with an offline remote.
@@ -108,15 +111,24 @@ export function useDashboardSidebarProjectSectionActions({
 			);
 			return;
 		}
-		void getHostServiceClientByUrl(servingHostUrl)
-			.project.update.mutate({ projectId: project.id, name: trimmed })
-			.catch((err) => {
-				toast.error(
-					t({
-						message: `Rename failed: ${errorMessage(err)}`,
-					}),
-				);
-			});
+		const host = getHostServiceClientByUrl(servingHostUrl);
+		void (
+			project.groupId
+				? host.projectGroups.rename
+						.mutate({ groupId: project.groupId, name: trimmed })
+						.then(() =>
+							queryClient.invalidateQueries({
+								queryKey: HOST_PROJECT_GROUPS_QUERY_PREFIX,
+							}),
+						)
+				: host.project.update.mutate({ projectId: project.id, name: trimmed })
+		).catch((err) => {
+			toast.error(
+				t({
+					message: `Rename failed: ${errorMessage(err)}`,
+				}),
+			);
+		});
 	};
 
 	const handleOpenInFinder = async () => {

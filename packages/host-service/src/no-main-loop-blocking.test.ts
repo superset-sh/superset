@@ -77,6 +77,7 @@ const RULES: Rule[] = [
 			"trpc/router/workspace-creation/procedures/search-branches.ts": 1,
 			"trpc/router/workspace-creation/utils/ai-workspace-names.ts": 1,
 			"trpc/router/workspace-creation/utils/list-branch-names.ts": 1,
+			"trpc/router/workspace-creation/shared/multi-repo/create-worktrees.ts": 2,
 			"trpc/router/workspace/workspace.ts": 1,
 			"trpc/router/workspaces/workspaces.ts": 1,
 		},

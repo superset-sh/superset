@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
+import { useGroupedProjects } from "renderer/hooks/host-projects/useGroupedProjects";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import type { ProjectOption } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 
@@ -8,7 +9,7 @@ export function useRecentProjects(): ProjectOption[] {
 	// includes local-first projects (the frozen cloud collection never will).
 	const { projects: hostProjects } = useHostProjects();
 
-	return useMemo(
+	const repositoryProjects = useMemo(
 		() =>
 			hostProjects.map((project) => ({
 				id: project.projectKey,
@@ -20,4 +21,6 @@ export function useRecentProjects(): ProjectOption[] {
 			})),
 		[hostProjects],
 	);
+
+	return useGroupedProjects(repositoryProjects);
 }

@@ -11,6 +11,7 @@ import {
 	toCloudShape,
 	updateLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
+import { describeWorkspaceReposByWorkspaceId } from "../../../workspaces/workspace-repos";
 import { protectedProcedure, router } from "../../index";
 import { resolveWorktreePath } from "../git/utils/resolve-worktree";
 import { destroyWorkspace } from "../workspace-cleanup";
@@ -33,6 +34,10 @@ export const workspaceRouter = router({
 			return {
 				...localWorkspace,
 				worktreeExists: existsSync(localWorkspace.worktreePath),
+				repos:
+					describeWorkspaceReposByWorkspaceId(ctx.db, [localWorkspace]).get(
+						localWorkspace.id,
+					) ?? [],
 			};
 		}),
 
@@ -74,10 +79,16 @@ export const workspaceRouter = router({
 				rows.map((row) => row.id),
 				ctx.userId,
 			);
+			const reposByWorkspaceId = describeWorkspaceReposByWorkspaceId(
+				ctx.db,
+				rows,
+			);
 			return rows.map((row) => ({
 				...toCloudShape(row, ctx.organizationId),
 				tags: tagsByWorkspaceId.get(row.id) ?? [],
 				worktreePath: row.worktreePath,
+				rootPath: row.rootPath,
+				repos: reposByWorkspaceId.get(row.id) ?? [],
 				// Tombstones' worktrees are gone by definition; stat-checking an
 				// unbounded, forever-growing archive on every poll adds up.
 				worktreeExists:

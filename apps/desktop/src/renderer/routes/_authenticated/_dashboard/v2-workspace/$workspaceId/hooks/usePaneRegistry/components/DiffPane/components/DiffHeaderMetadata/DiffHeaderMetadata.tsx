@@ -9,6 +9,7 @@ import { LuCheck, LuCopy, LuExternalLink, LuUndo2, LuX } from "react-icons/lu";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useSidebarFilePolicy } from "renderer/lib/clickPolicy";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
+import { useWorkspaceRepos } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useWorkspaceRepos";
 import type { ChangesetFile } from "../../../../../useChangeset";
 import { useDiffHeaderHover } from "../../hooks/useDiffHeaderHover";
 
@@ -88,10 +89,11 @@ export function DiffHeaderMetadata({
 	);
 
 	const utils = workspaceTrpc.useUtils();
+	const { repoArg } = useWorkspaceRepos(workspaceId);
 	const discardMutation = workspaceTrpc.git.discardChanges.useMutation({
 		onSuccess: () => {
-			void utils.git.getStatus.invalidate({ workspaceId });
-			void utils.git.getDiff.invalidate({ workspaceId });
+			void utils.git.getStatus.invalidate({ workspaceId, ...repoArg });
+			void utils.git.getDiff.invalidate({ workspaceId, ...repoArg });
 		},
 		onError: (err) => {
 			toast.error(
@@ -112,8 +114,8 @@ export function DiffHeaderMetadata({
 	}, [canDiscard]);
 	const confirmDiscard = useCallback(() => {
 		setShowDiscardConfirm(false);
-		discardMutation.mutate({ workspaceId, filePath: file.path });
-	}, [discardMutation, workspaceId, file.path]);
+		discardMutation.mutate({ workspaceId, ...repoArg, filePath: file.path });
+	}, [discardMutation, workspaceId, file.path, repoArg]);
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
 	const basename = file.path.split("/").pop() ?? file.path;
 

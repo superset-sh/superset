@@ -367,7 +367,7 @@ describe("GitWatcher lazy registration (regression coverage for #6729)", () => {
 		// watcher's ignore set) lands on the swap path exactly when interest is
 		// released. Before the guard, the continuation scheduled a git:changed
 		// for a workspace nothing watched any more.
-		scenario.filesystem.refreshWatcherIgnores = async () => {
+		scenario.filesystem.refreshCheckoutWatcherIgnores = async () => {
 			scenario.gitWatcher.unwatchWorkspace(id);
 			return true;
 		};

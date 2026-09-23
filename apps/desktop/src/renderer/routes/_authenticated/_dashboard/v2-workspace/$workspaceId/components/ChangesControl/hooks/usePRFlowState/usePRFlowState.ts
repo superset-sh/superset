@@ -1,5 +1,6 @@
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
+import { useWorkspaceRepos } from "../../../../hooks/useWorkspaceRepos";
 import {
 	type PullRequest as FlowPullRequest,
 	getPRFlowState,
@@ -12,6 +13,7 @@ interface UsePRFlowStateResult {
 }
 
 export function usePRFlowState(workspaceId: string): UsePRFlowStateResult {
+	const { repoArg } = useWorkspaceRepos(workspaceId);
 	const prQuery = workspaceTrpc.git.getPullRequest.useQuery(
 		{ workspaceId },
 		{
@@ -23,7 +25,7 @@ export function usePRFlowState(workspaceId: string): UsePRFlowStateResult {
 	);
 
 	const syncQuery = workspaceTrpc.git.getBranchSyncStatus.useQuery(
-		{ workspaceId },
+		{ workspaceId, ...repoArg },
 		{
 			enabled: !!workspaceId,
 			refetchInterval: 10_000,

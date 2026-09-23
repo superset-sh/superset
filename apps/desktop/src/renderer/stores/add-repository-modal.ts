@@ -9,6 +9,7 @@ type ActiveModal =
 	| { kind: "none" }
 	| { kind: "new-project" }
 	| { kind: "empty-project" }
+	| { kind: "multi-repo-project" }
 	| { kind: "template-gallery" };
 
 interface AddRepositoryModalState {
@@ -22,6 +23,7 @@ interface AddRepositoryModalState {
 	 */
 	openNewProject: () => Promise<NewProjectResult | null>;
 	openEmptyProject: () => Promise<NewProjectResult | null>;
+	openMultiRepoProject: () => Promise<NewProjectResult | null>;
 	openTemplateGallery: () => Promise<NewProjectResult | null>;
 	resolveNewProject: (result: NewProjectResult | null) => void;
 	close: () => void;
@@ -48,6 +50,13 @@ export const useAddRepositoryModalStore = create<AddRepositoryModalState>()(
 				return new Promise<NewProjectResult | null>((resolve) => {
 					pendingResolve = resolve;
 					set({ active: { kind: "empty-project" } });
+				});
+			},
+			openMultiRepoProject: () => {
+				pendingResolve?.(null);
+				return new Promise<NewProjectResult | null>((resolve) => {
+					pendingResolve = resolve;
+					set({ active: { kind: "multi-repo-project" } });
 				});
 			},
 			openTemplateGallery: () => {
@@ -80,6 +89,8 @@ export const useOpenNewProjectModal = () =>
 	useAddRepositoryModalStore((state) => state.openNewProject);
 export const useOpenEmptyProjectModal = () =>
 	useAddRepositoryModalStore((state) => state.openEmptyProject);
+export const useOpenMultiRepoProjectModal = () =>
+	useAddRepositoryModalStore((state) => state.openMultiRepoProject);
 export const useOpenTemplateGalleryModal = () =>
 	useAddRepositoryModalStore((state) => state.openTemplateGallery);
 export const useResolveNewProjectModal = () =>

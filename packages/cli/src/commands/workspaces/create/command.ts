@@ -14,9 +14,11 @@ export default command({
 		environment: string().desc(
 			"Environment a cloud workspace starts from (id or name; defaults to the first with repositories)",
 		),
-		project: string().desc(
-			"Project ID, for a workspace on a host. Required with --local or --host unless --session",
-		),
+		project: string()
+			.variadic()
+			.desc(
+				"Project ID, for a workspace on a host. Required with --local or --host unless --session. Repeatable: the first is the workspace's primary repository and each further one is checked out beside it in the same workspace folder",
+			),
 		session: boolean().desc(
 			"Create a project-less session (a managed scratch folder) on a host. Cannot be combined with --project",
 		),
@@ -88,7 +90,7 @@ export default command({
 			);
 		}
 
-		const projectId = options.project;
+		const [projectId, ...extraProjectIds] = options.project ?? [];
 		if (options.session && projectId !== undefined) {
 			throw new CLIError("--session cannot be combined with --project");
 		}
@@ -104,6 +106,12 @@ export default command({
 			throw new CLIError(
 				`Unknown checkout "${checkout}"`,
 				"Use --checkout worktree or --checkout local",
+			);
+		}
+		if (extraProjectIds.length > 0 && checkout === "local") {
+			throw new CLIError(
+				"--checkout local takes a single --project",
+				"A local workspace shares the project's own checkout, which is one repository",
 			);
 		}
 		if (isSession && options.checkout !== undefined) {
@@ -239,6 +247,7 @@ export default command({
 				: target.client.workspaces.create;
 		const result = await create.mutate({
 			projectId,
+			...(extraProjectIds.length > 0 ? { extraProjectIds } : {}),
 			name: options.name,
 			...(checkout === "local" ? { checkout } : {}),
 			branch: options.branch,

@@ -38,6 +38,11 @@ msgstr ".sh"
 msgid "· updated {updatedAgo}"
 msgstr "· обновлено {updatedAgo}"
 
+#. placeholder {0}: result.folder.name
+#. placeholder {1}: errorMessage(result.error)
+msgid "\"{0}\" could not be added: {1}. The source folders added before it were kept — remove it or fix it and create again."
+msgstr "Не удалось добавить «{0}»: {1}. Добавленные ранее исходные папки сохранены — удалите эту папку или устраните проблему и создайте проект снова."
+
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "«{0}» удалена"
@@ -809,6 +814,9 @@ msgstr "{offlineHostCount, plural, one {# устройство офлайн и �
 msgid "{openCount} open"
 msgstr "{openCount} открыто"
 
+msgid "{otherFolderChanges} changed files in other folders"
+msgstr "Изменённых файлов в других папках: {otherFolderChanges}"
+
 msgid "{partialCount} partial"
 msgstr "{partialCount} частично"
 
@@ -866,6 +874,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} из {total}"
+
+msgid "{repoCount, plural, one {# source folder} other {# source folders}}"
+msgstr "{repoCount, plural, one {# исходная папка} few {# исходные папки} many {# исходных папок} other {# исходной папки}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Повторяем # автоматизацию} few {Повторяем # автоматизации} many {Повторяем # автоматизаций} other {Повторяем # автоматизации}}"
@@ -1378,6 +1389,7 @@ msgstr "Действие"
 msgid "Actions"
 msgstr "Действия"
 
+#. placeholder {0}: folder.folder
 #. placeholder {0}: page.title
 msgid "Actions for {0}"
 msgstr "Действия для {0}"
@@ -1435,6 +1447,9 @@ msgstr "Добавьте проект, чтобы видеть задачи GitH
 msgid "Add a project to see pull requests."
 msgstr "Добавьте проект, чтобы видеть пул-реквесты."
 
+msgid "Add a repository folder"
+msgstr "Добавить папку репозитория"
+
 msgid "Add account"
 msgstr "Добавить аккаунт"
 
@@ -1489,6 +1504,9 @@ msgstr "Добавить файлы, приложения и другое"
 msgid "Add files, apps, and more (@)"
 msgstr "Добавить файлы, приложения и другое (@)"
 
+msgid "Add folder"
+msgstr "Добавить папку"
+
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
 msgstr "Добавить задачу #{0} в рабочую область"
@@ -1532,6 +1550,12 @@ msgstr "Добавь тесты для самого рискованного н�
 msgid "Add tests where they're missing"
 msgstr "Добавить тесты там, где их нет"
 
+msgid "Add the repositories this project works across as source folders. Every workspace checks out all of them."
+msgstr "Добавьте репозитории, с которыми работает этот проект, как исходные папки. В каждую рабочую область извлекаются все они."
+
+msgid "Add the repositories this project works across. The first one is the primary."
+msgstr "Добавьте репозитории, с которыми работает этот проект. Первый из них будет основным."
+
 msgid "Add to Dictionary"
 msgstr "Добавить в словарь"
 
@@ -1543,6 +1567,10 @@ msgstr "Добавить в рабочую область"
 
 msgid "Add your own terminal agent to this device."
 msgstr "Добавьте своего терминального агента на это устройство."
+
+#. placeholder {0}: result.folder
+msgid "Added {0} to this project"
+msgstr "{0} добавлен в этот проект"
 
 msgid "Added {added} files to {where}"
 msgstr "В {where} добавлено файлов: {added}"
@@ -1969,6 +1997,9 @@ msgstr "Анонимный сборщик"
 
 msgid "another device"
 msgstr "другое устройство"
+
+msgid "Another folder in this project already has that name."
+msgstr "В этом проекте уже есть папка с таким именем."
 
 msgid "Answered"
 msgstr "Отвечено"
@@ -2961,6 +2992,9 @@ msgstr "Цепочка рассуждений"
 msgid "Change avatar"
 msgstr "Сменить аватар"
 
+msgid "Change folder"
+msgstr "Сменить папку"
+
 msgid "Change location"
 msgstr "Изменить расположение"
 
@@ -2994,6 +3028,9 @@ msgstr "Изменить расположение worktree"
 
 msgid "Change-failure rate at or below the human-era baseline for two consecutive quarters."
 msgstr "Доля неудачных изменений на уровне человеческой эпохи или ниже два квартала подряд."
+
+msgid "Changed files"
+msgstr "Изменённые файлы"
 
 msgid "Changelog"
 msgstr "Changelog"
@@ -3330,6 +3367,9 @@ msgstr "Клонируйте репозиторий или импортируй�
 
 msgid "Clone, push, and create PRs."
 msgstr "Клонируйте, отправляйте изменения и создавайте PR."
+
+msgid "Cloned into each new workspace"
+msgstr "Клонируется в каждую новую рабочую область"
 
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
@@ -4241,6 +4281,10 @@ msgstr "Не удалось создать проект"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Не удалось создать проект. Попробуйте другое название или посмотрите логи."
 
+#. placeholder {0}: errorMessage(result.error)
+msgid "Could not create the project: {0}"
+msgstr "Не удалось создать проект: {0}"
+
 msgid "Could not delete account"
 msgstr "Не удалось удалить аккаунт"
 
@@ -4635,6 +4679,12 @@ msgstr "Создать PR"
 msgid "Create PR failed: {0}"
 msgstr "Не удалось создать PR: {0}"
 
+msgid "Create project"
+msgstr "Создать проект"
+
+msgid "Create project with multiple folders"
+msgstr "Создать проект с несколькими папками"
+
 msgid "Create pull request"
 msgstr "Создать пул-реквест"
 
@@ -4753,6 +4803,9 @@ msgstr "Создание worktree"
 
 msgid "Creating..."
 msgstr "Создание..."
+
+msgid "Creating…"
+msgstr "Создание…"
 
 msgid "Creative Manager, Valid"
 msgstr "Креативный менеджер, Valid"
@@ -4983,6 +5036,9 @@ msgstr "Удалить «{title}»?"
 #. placeholder {0}: organization.name
 msgid "Delete {0}?"
 msgstr "Удалить {0}?"
+
+msgid "Delete {groupName}?"
+msgstr "Удалить {groupName}?"
 
 msgid "Delete {name}?"
 msgstr "Удалить {name}?"
@@ -5621,6 +5677,9 @@ msgstr "Каждый агент работает в собственном из�
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "Каждое вложение — не более {0} МБ."
+
+msgid "Each folder runs its own setup, teardown and run commands, in this order."
+msgstr "Каждая папка выполняет свои команды настройки, очистки и запуска в этом порядке."
 
 msgid "Each in its own new tab"
 msgstr "Каждая в своей новой вкладке"
@@ -6786,6 +6845,9 @@ msgstr "Папка"
 
 msgid "Folder links"
 msgstr "Ссылки на папки"
+
+msgid "Folder name"
+msgstr "Имя папки"
 
 msgid "Folder view"
 msgstr "Вид папок"
@@ -7954,6 +8016,9 @@ msgstr "Элемент"
 msgid "Its own branch and copy of the files"
 msgstr "Собственная ветка и собственная копия файлов"
 
+msgid "Its source folders stay on this device as projects of their own."
+msgstr "Его исходные папки остаются на этом устройстве как самостоятельные проекты."
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Её рабочие области и терминалы недоступны до перезапуска — откройте меню Superset в трее > Host Service > Restart."
 
@@ -8474,6 +8539,9 @@ msgstr "Загрузка diff…"
 msgid "Loading files..."
 msgstr "Загрузка файлов..."
 
+msgid "Loading folders…"
+msgstr "Загрузка папок…"
+
 msgid "Loading fonts..."
 msgstr "Загрузка шрифтов..."
 
@@ -8629,6 +8697,9 @@ msgstr "Сделать основным"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Сделать основным — запускать новые терминалы и агентов на этом аккаунте."
+
+msgid "Make primary"
+msgstr "Сделать основной"
 
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Убедитесь, что устройство не в спящем режиме, подключено к интернету и на нём запущен Superset."
@@ -9083,6 +9154,9 @@ msgstr "Мой агент"
 msgid "My Tasks"
 msgstr "Мои задачи"
 
+msgid "my-project"
+msgstr "my-project"
+
 msgid "Mystery Machinist"
 msgstr "Загадочный станочник"
 
@@ -9309,6 +9383,12 @@ msgstr "новые создатели рабочих областей"
 
 msgid "New workspace in {name}"
 msgstr "Новая рабочая область в {name}"
+
+msgid "New workspaces will no longer check its folders out together. Existing workspaces keep their checkouts, and no repository is deleted from disk."
+msgstr "Новые рабочие области больше не будут извлекать его папки вместе. Существующие рабочие области сохранят свои копии, и ни один репозиторий не будет удалён с диска."
+
+msgid "New workspaces will stop checking this repository out. Existing workspaces keep it, and nothing is deleted from disk."
+msgstr "Новые рабочие области перестанут извлекать этот репозиторий. Существующие рабочие области сохранят его, и с диска ничего не удаляется."
 
 msgid "New-user activation"
 msgstr "Активация новых пользователей"
@@ -11095,6 +11175,9 @@ msgstr "Выберите родительскую папку"
 msgid "Pick a project location"
 msgstr "Выберите расположение проекта"
 
+msgid "Pick a repository on {hostName} to add to this project."
+msgstr "Выберите репозиторий на {hostName}, чтобы добавить его в этот проект."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Выберите звук или добавьте свой. Поддерживаются .mp3, .wav и .ogg."
 
@@ -11391,6 +11474,10 @@ msgstr "Цена зависит от команды и сценария испо
 
 msgid "Primary"
 msgstr "Основной"
+
+msgctxt "badge on a project's primary source folder"
+msgid "Primary"
+msgstr "Основная"
 
 msgid "Primary Key"
 msgstr "Первичный ключ"
@@ -12011,15 +12098,23 @@ msgstr "Удалённая рабочая область — устройств�
 msgid "Remove"
 msgstr "Удалить"
 
+#. placeholder {0}: folder.name
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "Удалить {0}"
+
+#. placeholder {0}: folder?.folder
+msgid "Remove {0} from this project?"
+msgstr "Удалить {0} из этого проекта?"
 
 msgid "Remove {label}?"
 msgstr "Удалить {label}?"
 
 msgid "Remove attachment"
 msgstr "Удалить вложение"
+
+msgid "Remove folder"
+msgstr "Удалить папку"
 
 msgid "Remove from Queue"
 msgstr "Убрать из очереди"
@@ -12111,6 +12206,9 @@ msgstr "Не удалось переименовать"
 #. placeholder {0}: errorMessage(err)
 msgid "Rename failed: {0}"
 msgstr "Не удалось переименовать: {0}"
+
+msgid "Rename folder"
+msgstr "Переименовать папку"
 
 msgid "Rename group"
 msgstr "Переименовать группу"
@@ -12218,6 +12316,9 @@ msgstr "Репозитории"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "Репозитории, доступные через установку GitHub App."
+
+msgid "Repositories checked out into every workspace for this project. The primary is the one single-repository tools use."
+msgstr "Репозитории, извлекаемые в каждую рабочую область этого проекта. Основной — тот, который используют инструменты для одного репозитория."
 
 msgid "Repositories refreshed"
 msgstr "Репозитории обновлены"
@@ -13144,6 +13245,12 @@ msgstr "Выберите проект, чтобы видеть пул-рекве
 msgid "Select a pull request to preview it here."
 msgstr "Выберите пул-реквест, чтобы посмотреть его здесь."
 
+msgid "Select a repository to add"
+msgstr "Выберите репозиторий для добавления"
+
+msgid "Select a source folder"
+msgstr "Выберите исходную папку"
+
 msgid "Select a team"
 msgstr "Выберите команду"
 
@@ -13992,6 +14099,13 @@ msgstr "Источник"
 
 msgid "Source Available"
 msgstr "Исходный код доступен"
+
+#. placeholder {0}: parentProject.name
+msgid "Source folder of {0}"
+msgstr "Исходная папка проекта {0}"
+
+msgid "Source folders"
+msgstr "Исходные папки"
 
 msgid "Source path (not an import)"
 msgstr "Путь к исходнику (не импорт)"
@@ -14939,6 +15053,9 @@ msgstr "Не удалось разрешить эту конечную точк�
 msgid "That endpoint is not allowed."
 msgstr "Эта конечная точка не разрешена."
 
+msgid "That folder is already in the list"
+msgstr "Эта папка уже есть в списке"
+
 msgid "That handle is taken."
 msgstr "Этот ник занят."
 
@@ -15149,6 +15266,9 @@ msgstr "Такой страницы не существует."
 
 msgid "The people behind Superset."
 msgstr "Люди, которые делают Superset."
+
+msgid "The primary folder can't be removed. Make another folder primary first."
+msgstr "Основную папку нельзя удалить. Сначала сделайте основной другую папку."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout проекта как есть: файлы и ветка общие"
@@ -15399,6 +15519,9 @@ msgstr "Это занимает больше времени, чем обычно
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "Это занимает больше времени, чем обычно. Возможно, рабочая область уже готова — перезагрузка может её подхватить."
 
+msgid "This is the directory the repository is checked out into inside each workspace."
+msgstr "Это каталог, в который репозиторий извлекается внутри каждой рабочей области."
+
 msgid "This issue link is invalid."
 msgstr "Эта ссылка на задачу недействительна."
 
@@ -15455,6 +15578,9 @@ msgstr "Этот порт ещё используется"
 
 msgid "This profile is busy right now"
 msgstr "Этот профиль сейчас перегружен"
+
+msgid "This project has no folders on {hostName} yet."
+msgstr "В этом проекте пока нет папок на {hostName}."
 
 msgid "This project is no longer available on your devices."
 msgstr "Этот проект больше недоступен на ваших устройствах."
@@ -16286,6 +16412,9 @@ msgstr "Использовать для новых агентов"
 msgid "Use global default"
 msgstr "Использовать общий по умолчанию"
 
+msgid "Use letters, digits, dots, dashes or underscores, starting with a letter or digit."
+msgstr "Используйте буквы, цифры, точки, дефисы или подчёркивания, начиная с буквы или цифры."
+
 msgid "Use Superset on mobile"
 msgstr "Используйте Superset на телефоне"
 
@@ -16774,6 +16903,9 @@ msgstr "Где сейчас серьёзные команды"
 
 msgid "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
 msgstr "Где начинаются сессии: главная, страница сравнения, документация, запись или пункт changelog. Контент, который ранжируется, появляется здесь раньше, чем в регистрациях."
+
+msgid "Where the container holding this project's checkouts is created."
+msgstr "Где создаётся контейнер, в котором лежат копии этого проекта."
 
 msgid "Where the industry is, honestly"
 msgstr "Где отрасль на самом деле"

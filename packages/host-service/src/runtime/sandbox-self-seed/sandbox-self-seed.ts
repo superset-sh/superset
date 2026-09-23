@@ -3,20 +3,21 @@ import { createHash } from "node:crypto";
 import { existsSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import {
 	type CloudAgentLaunch,
 	readCloudAgentLaunch,
 } from "@superset/shared/cloud-agent-launch";
 import {
 	SANDBOX_PATHS,
+	SANDBOX_ROOT_CHECKOUT,
 	type SandboxRepository,
 	sandboxCheckoutDir,
 	sandboxRepositoriesSchema,
 } from "@superset/shared/sandbox-contract";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../../db";
-import { projects, workspaces } from "../../db/schema";
+import { projects, workspaceRepos, workspaces } from "../../db/schema";
 import { runAgentInWorkspace } from "../../trpc/router/agents/agents";
 import { importCloudAttachments } from "../../trpc/router/attachments/attachments";
 import { seedDefaultsIfEmpty } from "../../trpc/router/settings/agent-configs";
@@ -31,8 +32,8 @@ import { resolveScript, shellSingleQuote } from "../setup/config";
  * Makes a sandbox describe its own workspace, instead of being described from
  * outside.
  *
- * A cloud workspace's sandbox holds exactly one project and one workspace, and
- * both are known before it boots: they are what it was provisioned for. The
+ * A cloud workspace's sandbox holds one workspace over the repositories it was
+ * provisioned with, and all of it is known before it boots. The
  * first version of this reached into the sandbox from the API afterwards —
  * write a seed script, run it against host.db with better-sqlite3, hope the
  * shapes still match. That put the schema in two places and made provisioning
@@ -359,9 +360,9 @@ async function waitForFlag(path: string, timeoutMs: number): Promise<boolean> {
 }
 
 /**
- * A cloud workspace's id names its primary checkout's row, which is what the
- * app opens; every other repository gets a row of its own with an id derived
- * from the workspace's, so a restart seeds the same ids.
+ * The id a build that gave every repository past the first a workspace row of
+ * its own derived for it. Boxes seeded that way are still in the wild, and
+ * this is how the seed recognizes those rows to retire them.
  */
 export function sandboxRepositoryWorkspaceId(
 	workspaceId: string,
@@ -373,47 +374,194 @@ export function sandboxRepositoryWorkspaceId(
 	return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
 }
 
+interface SandboxCheckout {
+	position: number;
+	folder: string;
+	worktreePath: string;
+	branch: string;
+	baseBranch: string | null;
+	/** The row a build before this one gave this repository; null for the primary. */
+	retiredWorkspaceId: string | null;
+}
+
+function sandboxCheckouts(identity: SandboxIdentity): SandboxCheckout[] {
+	return identity.repositories.map((repo, position) => ({
+		position,
+		folder:
+			repo.path === SANDBOX_ROOT_CHECKOUT
+				? basename(identity.workspaceRoot)
+				: repo.path,
+		worktreePath: sandboxCheckoutDir(identity.workspaceRoot, repo.path),
+		branch: repo.branch,
+		baseBranch: repo.baseBranch ?? null,
+		retiredWorkspaceId:
+			position === 0
+				? null
+				: sandboxRepositoryWorkspaceId(identity.workspaceId, repo.path),
+	}));
+}
+
+interface DesiredWorkspaceRepo {
+	position: number;
+	projectId: string;
+	folder: string;
+	worktreePath: string;
+	branch: string;
+	baseBranch: string | null;
+}
+
+function workspaceReposMatch(
+	stored: Array<typeof workspaceRepos.$inferSelect>,
+	desired: DesiredWorkspaceRepo[],
+): boolean {
+	if (stored.length !== desired.length) return false;
+	const byPosition = new Map(stored.map((row) => [row.position, row]));
+	return desired.every((want) => {
+		const row = byPosition.get(want.position);
+		return (
+			row?.projectId === want.projectId &&
+			row.folder === want.folder &&
+			row.worktreePath === want.worktreePath &&
+			row.branch === want.branch &&
+			row.baseBranch === want.baseBranch
+		);
+	});
+}
+
+/**
+ * Seeds the box the way a local multi-repo workspace is stored: one workspace
+ * row over one `workspace_repos` row per checkout, so `workspace.get`, the
+ * `repo` argument on `git.*`, the watcher and the picker all read a cloud box
+ * through the same path they read a laptop.
+ *
+ * A single-repository box keeps exactly the rows it always had — one workspace
+ * with a null `root_path` and no repo rows, which `listWorkspaceRepos`
+ * synthesizes the primary from.
+ */
 export function runSandboxSelfSeed(
 	db: HostDb,
 	identity: SandboxIdentity,
 ): void {
-	const root = identity.workspaceRoot;
+	const checkouts = sandboxCheckouts(identity);
+	const primary = checkouts[0];
+	if (!primary) return;
 	const now = Date.now();
-	identity.repositories.forEach((repo, index) => {
-		const id =
-			index === 0
-				? identity.workspaceId
-				: sandboxRepositoryWorkspaceId(identity.workspaceId, repo.path);
-		const existing = db
-			.select({ id: workspaces.id })
+	const rootPath = checkouts.length > 1 ? identity.workspaceRoot : null;
+
+	db.transaction((tx) => {
+		const projectIdByRepoPath = new Map(
+			tx
+				.select({ id: projects.id, repoPath: projects.repoPath })
+				.from(projects)
+				.all()
+				.map((row) => [row.repoPath, row.id] as const),
+		);
+		const projectIdFor = (checkout: SandboxCheckout): string => {
+			const existing = projectIdByRepoPath.get(checkout.worktreePath);
+			if (existing) return existing;
+			const id = crypto.randomUUID();
+			tx.insert(projects)
+				.values({
+					id,
+					repoPath: checkout.worktreePath,
+					name:
+						checkout.position === 0 ? identity.projectName : checkout.folder,
+					createdAt: now,
+					updatedAt: now,
+				})
+				.run();
+			projectIdByRepoPath.set(checkout.worktreePath, id);
+			return id;
+		};
+
+		const existing = tx
+			.select({
+				projectId: workspaces.projectId,
+				worktreePath: workspaces.worktreePath,
+				rootPath: workspaces.rootPath,
+			})
 			.from(workspaces)
-			.where(eq(workspaces.id, id))
+			.where(eq(workspaces.id, identity.workspaceId))
 			.get();
-		if (existing) return;
-		const projectId = crypto.randomUUID();
-		const worktreePath = sandboxCheckoutDir(root, repo.path);
-		db.insert(projects)
-			.values({
-				id: projectId,
-				repoPath: worktreePath,
-				name: index === 0 ? identity.projectName : repo.path,
-				createdAt: now,
-				updatedAt: now,
-			})
-			.run();
-		// type='local' because the checkout *is* the repo here — there is no
-		// base repo it was branched from.
-		db.insert(workspaces)
-			.values({
-				id,
-				projectId,
-				worktreePath,
-				branch: repo.branch,
-				name: index === 0 ? identity.workspaceName : repo.path,
-				type: "local",
-				createdAt: now,
-				updatedAt: now,
-			})
-			.run();
+		if (!existing) {
+			// type='local' because the checkout *is* the repo here — there is no
+			// base repo it was branched from.
+			tx.insert(workspaces)
+				.values({
+					id: identity.workspaceId,
+					projectId: projectIdFor(primary),
+					worktreePath: primary.worktreePath,
+					rootPath,
+					branch: primary.branch,
+					name: identity.workspaceName,
+					type: "local",
+					createdAt: now,
+					updatedAt: now,
+				})
+				.run();
+		} else {
+			// `workspace_repos` position 0 is the workspace's own checkout, and
+			// half the app reads the column rather than the row. A box seeded
+			// before the container existed has no `root_path`; one whose
+			// environment renamed its hooks repository has a new primary.
+			const primaryProjectId = projectIdFor(primary);
+			if (
+				existing.rootPath !== rootPath ||
+				existing.worktreePath !== primary.worktreePath ||
+				existing.projectId !== primaryProjectId
+			) {
+				tx.update(workspaces)
+					.set({
+						rootPath,
+						worktreePath: primary.worktreePath,
+						projectId: primaryProjectId,
+						updatedAt: now,
+					})
+					.where(eq(workspaces.id, identity.workspaceId))
+					.run();
+			}
+		}
+
+		if (checkouts.length > 1) {
+			const desired = checkouts.map((checkout) => ({
+				position: checkout.position,
+				projectId: projectIdFor(checkout),
+				folder: checkout.folder,
+				worktreePath: checkout.worktreePath,
+				branch: checkout.branch,
+				baseBranch: checkout.baseBranch,
+			}));
+			const stored = tx
+				.select()
+				.from(workspaceRepos)
+				.where(eq(workspaceRepos.workspaceId, identity.workspaceId))
+				.all();
+			// Replaced whole rather than merged: the environment's list is the
+			// truth, and a repository that moved position would otherwise trip
+			// the unique index row by row. Only when it actually differs, so a
+			// restart leaves every id alone.
+			if (!workspaceReposMatch(stored, desired)) {
+				tx.delete(workspaceRepos)
+					.where(eq(workspaceRepos.workspaceId, identity.workspaceId))
+					.run();
+				tx.insert(workspaceRepos)
+					.values(
+						desired.map((repo) => ({
+							id: crypto.randomUUID(),
+							workspaceId: identity.workspaceId,
+							createdAt: now,
+							...repo,
+						})),
+					)
+					.run();
+			}
+		}
+
+		const retired = checkouts.flatMap(
+			(checkout) => checkout.retiredWorkspaceId ?? [],
+		);
+		if (retired.length > 0) {
+			tx.delete(workspaces).where(inArray(workspaces.id, retired)).run();
+		}
 	});
 }

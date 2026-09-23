@@ -38,6 +38,11 @@ msgstr ".sh"
 msgid "· updated {updatedAgo}"
 msgstr "· {updatedAgo}에 업데이트"
 
+#. placeholder {0}: result.folder.name
+#. placeholder {1}: errorMessage(result.error)
+msgid "\"{0}\" could not be added: {1}. The source folders added before it were kept — remove it or fix it and create again."
+msgstr "“{0}”을(를) 추가하지 못했습니다: {1}. 그 전에 추가된 소스 폴더는 유지되었습니다 — 해당 폴더를 제거하거나 문제를 해결한 뒤 다시 만드세요."
+
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "\"{0}\"을(를) 삭제했습니다"
@@ -809,6 +814,9 @@ msgstr "{offlineHostCount, plural, one {기기 #대가 오프라인 상태이며
 msgid "{openCount} open"
 msgstr "{openCount}개 열림"
 
+msgid "{otherFolderChanges} changed files in other folders"
+msgstr "다른 폴더에서 {otherFolderChanges}개 파일이 변경됨"
+
 msgid "{partialCount} partial"
 msgstr "{partialCount}개 부분 달성"
 
@@ -866,6 +874,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{total} 중 {received}"
+
+msgid "{repoCount, plural, one {# source folder} other {# source folders}}"
+msgstr "{repoCount, plural, one {소스 폴더 #개} other {소스 폴더 #개}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {자동화 #개를 다시 시도하는 중} other {자동화 #개를 다시 시도하는 중}}"
@@ -1378,6 +1389,7 @@ msgstr "동작"
 msgid "Actions"
 msgstr "동작"
 
+#. placeholder {0}: folder.folder
 #. placeholder {0}: page.title
 msgid "Actions for {0}"
 msgstr "{0} 작업"
@@ -1435,6 +1447,9 @@ msgstr "GitHub 이슈를 보려면 프로젝트를 추가하세요."
 msgid "Add a project to see pull requests."
 msgstr "풀 리퀘스트를 보려면 프로젝트를 추가하세요."
 
+msgid "Add a repository folder"
+msgstr "리포지토리 폴더 추가"
+
 msgid "Add account"
 msgstr "계정 추가"
 
@@ -1489,6 +1504,9 @@ msgstr "파일, 앱 등 추가"
 msgid "Add files, apps, and more (@)"
 msgstr "파일, 앱 등 추가 (@)"
 
+msgid "Add folder"
+msgstr "폴더 추가"
+
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
 msgstr "이슈 #{0}을(를) 워크스페이스에 추가"
@@ -1532,6 +1550,12 @@ msgstr "테스트가 없는 가장 위험한 코드에 테스트 추가…"
 msgid "Add tests where they're missing"
 msgstr "빠진 테스트 추가하기"
 
+msgid "Add the repositories this project works across as source folders. Every workspace checks out all of them."
+msgstr "이 프로젝트가 함께 사용하는 리포지토리를 소스 폴더로 추가하세요. 모든 워크스페이스에 전부 체크아웃됩니다."
+
+msgid "Add the repositories this project works across. The first one is the primary."
+msgstr "이 프로젝트가 함께 사용하는 리포지토리를 추가하세요. 첫 번째가 기본 폴더입니다."
+
 msgid "Add to Dictionary"
 msgstr "사전에 추가"
 
@@ -1543,6 +1567,10 @@ msgstr "워크스페이스에 추가"
 
 msgid "Add your own terminal agent to this device."
 msgstr "이 기기에 직접 만든 터미널 에이전트를 추가합니다."
+
+#. placeholder {0}: result.folder
+msgid "Added {0} to this project"
+msgstr "{0}을(를) 이 프로젝트에 추가했습니다"
 
 msgid "Added {added} files to {where}"
 msgstr "{where}에 파일 {added}개를 추가했습니다"
@@ -1969,6 +1997,9 @@ msgstr "익명의 조립공"
 
 msgid "another device"
 msgstr "다른 기기"
+
+msgid "Another folder in this project already has that name."
+msgstr "이 프로젝트에 같은 이름의 폴더가 이미 있습니다."
 
 msgid "Answered"
 msgstr "응답함"
@@ -2961,6 +2992,9 @@ msgstr "생각의 흐름"
 msgid "Change avatar"
 msgstr "아바타 변경"
 
+msgid "Change folder"
+msgstr "폴더 변경"
+
 msgid "Change location"
 msgstr "위치 변경"
 
@@ -2994,6 +3028,9 @@ msgstr "worktree 위치 변경"
 
 msgid "Change-failure rate at or below the human-era baseline for two consecutive quarters."
 msgstr "변경 실패율이 두 분기 연속으로 사람이 하던 시절의 기준치 이하를 유지합니다."
+
+msgid "Changed files"
+msgstr "변경된 파일"
 
 msgid "Changelog"
 msgstr "변경 로그"
@@ -3330,6 +3367,9 @@ msgstr "리포지토리를 클론하거나 호스트에 있는 기존 폴더를 
 
 msgid "Clone, push, and create PRs."
 msgstr "복제, 푸시 및 PR 생성."
+
+msgid "Cloned into each new workspace"
+msgstr "새 워크스페이스마다 클론됩니다"
 
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
@@ -4241,6 +4281,10 @@ msgstr "프로젝트를 만들 수 없습니다"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "프로젝트를 만들 수 없습니다. 다른 이름을 사용하거나 로그를 확인해 주세요."
 
+#. placeholder {0}: errorMessage(result.error)
+msgid "Could not create the project: {0}"
+msgstr "프로젝트를 만들지 못했습니다: {0}"
+
 msgid "Could not delete account"
 msgstr "계정을 삭제할 수 없습니다"
 
@@ -4635,6 +4679,12 @@ msgstr "PR 만들기"
 msgid "Create PR failed: {0}"
 msgstr "PR 생성 실패: {0}"
 
+msgid "Create project"
+msgstr "프로젝트 만들기"
+
+msgid "Create project with multiple folders"
+msgstr "여러 폴더로 프로젝트 만들기"
+
 msgid "Create pull request"
 msgstr "풀 리퀘스트 만들기"
 
@@ -4753,6 +4803,9 @@ msgstr "worktree 만드는 중"
 
 msgid "Creating..."
 msgstr "만드는 중..."
+
+msgid "Creating…"
+msgstr "만드는 중…"
 
 msgid "Creative Manager, Valid"
 msgstr "크리에이티브 매니저, Valid"
@@ -4983,6 +5036,9 @@ msgstr "“{title}”을(를) 삭제할까요?"
 #. placeholder {0}: organization.name
 msgid "Delete {0}?"
 msgstr "{0}을(를) 삭제할까요?"
+
+msgid "Delete {groupName}?"
+msgstr "{groupName}을(를) 삭제할까요?"
 
 msgid "Delete {name}?"
 msgstr "{name}을(를) 삭제할까요?"
@@ -5621,6 +5677,9 @@ msgstr "각 에이전트가 격리된 자체 Git worktree에서 실행됩니다.
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "첨부 파일은 각각 최대 {0} MB입니다."
+
+msgid "Each folder runs its own setup, teardown and run commands, in this order."
+msgstr "각 폴더는 이 순서대로 자체 설정, 정리, 실행 명령을 실행합니다."
 
 msgid "Each in its own new tab"
 msgstr "각각 새 탭에서"
@@ -6786,6 +6845,9 @@ msgstr "폴더"
 
 msgid "Folder links"
 msgstr "폴더 링크"
+
+msgid "Folder name"
+msgstr "폴더 이름"
 
 msgid "Folder view"
 msgstr "폴더 보기"
@@ -7954,6 +8016,9 @@ msgstr "항목"
 msgid "Its own branch and copy of the files"
 msgstr "독립된 브랜치와 파일 사본"
 
+msgid "Its source folders stay on this device as projects of their own."
+msgstr "소스 폴더는 각각 독립된 프로젝트로 이 기기에 남습니다."
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "다시 시작할 때까지 해당 워크스페이스와 터미널을 사용할 수 없습니다. Superset 트레이 메뉴 > 호스트 서비스 > 다시 시작을 사용하세요."
 
@@ -8474,6 +8539,9 @@ msgstr "차이 불러오는 중…"
 msgid "Loading files..."
 msgstr "파일을 불러오는 중..."
 
+msgid "Loading folders…"
+msgstr "폴더를 불러오는 중…"
+
 msgid "Loading fonts..."
 msgstr "글꼴 불러오는 중..."
 
@@ -8629,6 +8697,9 @@ msgstr "기본값으로 설정"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "기본값으로 설정 — 새 터미널과 에이전트를 이 계정으로 실행합니다."
+
+msgid "Make primary"
+msgstr "기본으로 설정"
 
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "기기가 절전 모드가 아니고 온라인 상태이며 Superset이 실행 중인지 확인해 주세요."
@@ -9083,6 +9154,9 @@ msgstr "내 에이전트"
 msgid "My Tasks"
 msgstr "내 작업"
 
+msgid "my-project"
+msgstr "my-project"
+
 msgid "Mystery Machinist"
 msgstr "수수께끼의 기계공"
 
@@ -9309,6 +9383,12 @@ msgstr "신규 워크스페이스 생성자"
 
 msgid "New workspace in {name}"
 msgstr "{name}에 새 워크스페이스"
+
+msgid "New workspaces will no longer check its folders out together. Existing workspaces keep their checkouts, and no repository is deleted from disk."
+msgstr "새 워크스페이스에서는 폴더를 함께 체크아웃하지 않습니다. 기존 워크스페이스의 체크아웃은 그대로 유지되며 디스크에서 삭제되는 리포지토리는 없습니다."
+
+msgid "New workspaces will stop checking this repository out. Existing workspaces keep it, and nothing is deleted from disk."
+msgstr "새 워크스페이스에서는 이 리포지토리를 체크아웃하지 않습니다. 기존 워크스페이스는 그대로 유지되며 디스크에서 삭제되는 것은 없습니다."
 
 msgid "New-user activation"
 msgstr "신규 사용자 활성화"
@@ -11095,6 +11175,9 @@ msgstr "상위 디렉터리를 선택하세요"
 msgid "Pick a project location"
 msgstr "프로젝트 위치를 선택하세요"
 
+msgid "Pick a repository on {hostName} to add to this project."
+msgstr "이 프로젝트에 추가할 리포지토리를 {hostName}에서 선택하세요."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "소리를 고르거나 직접 추가하세요. 사용자 지정 오디오는 .mp3, .wav, .ogg를 지원합니다."
 
@@ -11389,6 +11472,10 @@ msgstr "가격"
 msgid "Pricing depends on your team and use case. Get in touch and we'll put together a plan that works for you."
 msgstr "가격은 팀 규모와 사용 사례에 따라 다릅니다. 문의해 주시면 적합한 플랜을 구성해 드립니다."
 
+msgid "Primary"
+msgstr "기본"
+
+msgctxt "badge on a project's primary source folder"
 msgid "Primary"
 msgstr "기본"
 
@@ -12011,15 +12098,23 @@ msgstr "원격 워크스페이스 — 기기 오프라인"
 msgid "Remove"
 msgstr "제거"
 
+#. placeholder {0}: folder.name
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "{0} 제거"
+
+#. placeholder {0}: folder?.folder
+msgid "Remove {0} from this project?"
+msgstr "{0}을(를) 이 프로젝트에서 제거할까요?"
 
 msgid "Remove {label}?"
 msgstr "{label}을(를) 제거할까요?"
 
 msgid "Remove attachment"
 msgstr "첨부 파일 제거"
+
+msgid "Remove folder"
+msgstr "폴더 제거"
 
 msgid "Remove from Queue"
 msgstr "대기열에서 제거"
@@ -12111,6 +12206,9 @@ msgstr "이름 변경 실패"
 #. placeholder {0}: errorMessage(err)
 msgid "Rename failed: {0}"
 msgstr "이름 변경 실패: {0}"
+
+msgid "Rename folder"
+msgstr "폴더 이름 변경"
 
 msgid "Rename group"
 msgstr "그룹 이름 변경"
@@ -12218,6 +12316,9 @@ msgstr "리포지토리"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "GitHub App 설치를 통해 접근할 수 있는 리포지토리입니다."
+
+msgid "Repositories checked out into every workspace for this project. The primary is the one single-repository tools use."
+msgstr "이 프로젝트의 모든 워크스페이스에 체크아웃되는 리포지토리입니다. 기본 폴더는 단일 리포지토리 도구가 사용하는 폴더입니다."
 
 msgid "Repositories refreshed"
 msgstr "리포지토리를 새로 고쳤습니다"
@@ -13144,6 +13245,12 @@ msgstr "풀 리퀘스트를 보려면 프로젝트를 선택하세요."
 msgid "Select a pull request to preview it here."
 msgstr "풀 리퀘스트를 선택하면 여기에서 미리 볼 수 있습니다."
 
+msgid "Select a repository to add"
+msgstr "추가할 리포지토리 선택"
+
+msgid "Select a source folder"
+msgstr "소스 폴더 선택"
+
 msgid "Select a team"
 msgstr "팀 선택"
 
@@ -13992,6 +14099,13 @@ msgstr "출처"
 
 msgid "Source Available"
 msgstr "소스 공개"
+
+#. placeholder {0}: parentProject.name
+msgid "Source folder of {0}"
+msgstr "{0}의 소스 폴더"
+
+msgid "Source folders"
+msgstr "소스 폴더"
 
 msgid "Source path (not an import)"
 msgstr "소스 경로 (임포트 아님)"
@@ -14939,6 +15053,9 @@ msgstr "해당 엔드포인트를 확인할 수 없습니다."
 msgid "That endpoint is not allowed."
 msgstr "해당 엔드포인트는 허용되지 않습니다."
 
+msgid "That folder is already in the list"
+msgstr "이미 목록에 있는 폴더입니다"
+
 msgid "That handle is taken."
 msgstr "이미 사용 중인 핸들입니다."
 
@@ -15149,6 +15266,9 @@ msgstr "찾으시는 페이지가 존재하지 않습니다."
 
 msgid "The people behind Superset."
 msgstr "Superset을 만드는 사람들."
+
+msgid "The primary folder can't be removed. Make another folder primary first."
+msgstr "기본 폴더는 제거할 수 없습니다. 먼저 다른 폴더를 기본으로 설정하세요."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "프로젝트의 체크아웃을 그대로 사용: 파일과 브랜치가 공유됩니다"
@@ -15399,6 +15519,9 @@ msgstr "평소보다 오래 걸리고 있습니다. 세션이 이미 준비되�
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "평소보다 오래 걸리고 있습니다. 워크스페이스가 이미 준비되었을 수 있으니 다시 로드하면 반영될 수 있습니다."
 
+msgid "This is the directory the repository is checked out into inside each workspace."
+msgstr "각 워크스페이스에서 리포지토리가 체크아웃되는 디렉터리입니다."
+
 msgid "This issue link is invalid."
 msgstr "이 이슈 링크가 올바르지 않습니다."
 
@@ -15455,6 +15578,9 @@ msgstr "이 포트는 아직 사용 중입니다"
 
 msgid "This profile is busy right now"
 msgstr "이 프로필은 지금 이용자가 많습니다"
+
+msgid "This project has no folders on {hostName} yet."
+msgstr "이 프로젝트에는 {hostName}에 아직 폴더가 없습니다."
 
 msgid "This project is no longer available on your devices."
 msgstr "이 프로젝트는 더 이상 내 기기에서 사용할 수 없습니다."
@@ -16286,6 +16412,9 @@ msgstr "새 에이전트에 사용"
 msgid "Use global default"
 msgstr "전역 기본값 사용"
 
+msgid "Use letters, digits, dots, dashes or underscores, starting with a letter or digit."
+msgstr "문자, 숫자, 점, 하이픈, 밑줄을 사용하고 문자나 숫자로 시작하세요."
+
 msgid "Use Superset on mobile"
 msgstr "모바일에서 Superset 사용하기"
 
@@ -16774,6 +16903,9 @@ msgstr "진지한 팀들이 있는 곳"
 
 msgid "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
 msgstr "세션이 시작되는 곳: 홈, 비교 페이지, 문서, 글, 변경 로그. 순위에 오른 콘텐츠는 가입에 나타나기 전에 여기에 먼저 나타납니다."
+
+msgid "Where the container holding this project's checkouts is created."
+msgstr "이 프로젝트의 체크아웃을 담는 컨테이너가 생성되는 위치입니다."
 
 msgid "Where the industry is, honestly"
 msgstr "업계의 현재 위치, 솔직하게"

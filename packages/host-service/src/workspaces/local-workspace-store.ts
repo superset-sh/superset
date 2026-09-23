@@ -11,7 +11,7 @@ import {
 } from "@superset/shared/workspace-tags";
 import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../db";
-import { workspaces, workspaceTags } from "../db/schema";
+import { workspaceRepos, workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
 import type { ApiClient } from "../types";
@@ -113,6 +113,7 @@ export function toWorkspaceSnapshot(
 		branch: row.branch,
 		type: row.type,
 		worktreePath: row.worktreePath,
+		rootPath: row.rootPath,
 		taskId: row.taskId,
 		createdByUserId: row.createdByUserId,
 		createdAt: row.createdAt,
@@ -228,17 +229,34 @@ export function getLocalWorkspace(
 	return db.query.workspaces.findFirst({ where: eq(workspaces.id, id) }).sync();
 }
 
+export interface InsertLocalWorkspaceRepo {
+	position: number;
+	projectId: string;
+	folder: string;
+	worktreePath: string;
+	branch: string;
+	baseBranch?: string | null;
+}
+
 export interface InsertLocalWorkspaceValues {
 	id?: string;
 	/** Null for project-less "session" workspaces. */
 	projectId: string | null;
+	/** Always the primary checkout. */
 	worktreePath: string;
+	/** The multi-repo container; null or omitted otherwise. */
+	rootPath?: string | null;
 	branch: string;
 	name: string;
 	type?: "local" | "worktree" | "session";
 	taskId?: string | null;
 	createdByUserId?: string | null;
 	tags?: string[];
+	/**
+	 * Omitted for single-repo workspaces — the backfill materializes their
+	 * position-0 row.
+	 */
+	repos?: InsertLocalWorkspaceRepo[];
 }
 
 /**
@@ -258,6 +276,7 @@ export function insertLocalWorkspace(
 				id,
 				projectId: values.projectId,
 				worktreePath: values.worktreePath,
+				rootPath: values.rootPath ?? null,
 				branch: values.branch,
 				name: values.name,
 				type: values.type ?? "worktree",
@@ -267,6 +286,23 @@ export function insertLocalWorkspace(
 				updatedAt: now,
 			})
 			.run();
+		if (values.repos?.length) {
+			tx.insert(workspaceRepos)
+				.values(
+					values.repos.map((repo) => ({
+						id: randomUUID(),
+						workspaceId: id,
+						position: repo.position,
+						projectId: repo.projectId,
+						folder: repo.folder,
+						worktreePath: repo.worktreePath,
+						branch: repo.branch,
+						baseBranch: repo.baseBranch ?? null,
+						createdAt: now,
+					})),
+				)
+				.run();
+		}
 		if (tags.length > 0) {
 			// Adoption paths don't stamp the row's creator, but the tags are
 			// still the acting user's — never let them fall through as public.

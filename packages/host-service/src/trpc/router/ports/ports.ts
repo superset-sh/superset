@@ -23,7 +23,9 @@ export const portsRouter = router({
 			const requestedWorkspaceIds = new Set(input.workspaceIds);
 			const resolve = (workspaceId: string): string | null => {
 				try {
-					return ctx.runtime.filesystem.resolveWorkspaceRoot(workspaceId);
+					return ctx.runtime.filesystem.resolveWorkspacePrimaryWorktree(
+						workspaceId,
+					);
 				} catch {
 					// Workspace deleted or unknown — no labels for this row.
 					return null;

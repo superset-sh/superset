@@ -10,7 +10,7 @@ interface ActiveTask {
 }
 
 interface QueuedTask {
-	workspaceId: string;
+	queueKey: string;
 	requestKey: string;
 	run: () => Promise<unknown>;
 	promise: Promise<unknown>;
@@ -21,14 +21,21 @@ interface QueuedTask {
 	generation: number;
 }
 
-interface WorkspaceQueue {
+interface CheckoutQueue {
 	active: ActiveTask | null;
 	queued: QueuedTask[];
 }
 
+// Per checkout, not per workspace: two repos of one workspace routinely share
+// a base branch name, and keyed on the workspace alone their refreshes would
+// coalesce into one whose result answers for both.
+function queueKeyFor(workspaceId: string, repoKey: string | undefined): string {
+	return `${workspaceId}\u0000${repoKey ?? ""}`;
+}
+
 export class GitStatusRefreshLimiter {
 	private readonly concurrency: number;
-	private readonly workspaces = new Map<string, WorkspaceQueue>();
+	private readonly queues = new Map<string, CheckoutQueue>();
 	private readonly readyQueue: QueuedTask[] = [];
 	private activeCount = 0;
 	private sequence = 0;
@@ -40,31 +47,32 @@ export class GitStatusRefreshLimiter {
 
 	run<T>({
 		workspaceId,
+		repoKey,
 		requestKey,
 		run,
 		priority = "foreground",
 	}: {
 		workspaceId: string;
+		repoKey?: string;
 		requestKey: string;
 		run: () => Promise<T>;
 		priority?: GitStatusRefreshPriority;
 	}): Promise<T> {
-		const workspace = this.getWorkspaceQueue(workspaceId);
+		const queueKey = queueKeyFor(workspaceId, repoKey);
+		const queue = this.getQueue(queueKey);
 
 		// Collapse repeated invalidations while a workspace refresh is active into
 		// one trailing refresh per request key. That keeps the final snapshot fresh
 		// without letting fs-event churn enqueue unbounded git subprocess work.
-		const queued = workspace.queued.find(
-			(task) => task.requestKey === requestKey,
-		);
+		const queued = queue.queued.find((task) => task.requestKey === requestKey);
 		if (queued) {
 			this.promoteQueuedTask(queued, priority);
 			return queued.promise as Promise<T>;
 		}
 
-		const task = this.createTask(workspaceId, requestKey, run, priority);
-		workspace.queued.push(task);
-		if (!workspace.active && workspace.queued[0] === task) {
+		const task = this.createTask(queueKey, requestKey, run, priority);
+		queue.queued.push(task);
+		if (!queue.active && queue.queued[0] === task) {
 			this.readyQueue.push(task);
 			this.pump();
 		}
@@ -74,12 +82,12 @@ export class GitStatusRefreshLimiter {
 	clear(): void {
 		this.generation++;
 		const queuedTasks = new Set<QueuedTask>();
-		for (const workspace of this.workspaces.values()) {
-			for (const task of workspace.queued) {
+		for (const queue of this.queues.values()) {
+			for (const task of queue.queued) {
 				queuedTasks.add(task);
 			}
 		}
-		this.workspaces.clear();
+		this.queues.clear();
 		this.readyQueue.length = 0;
 		this.activeCount = 0;
 		for (const task of queuedTasks) {
@@ -87,17 +95,17 @@ export class GitStatusRefreshLimiter {
 		}
 	}
 
-	private getWorkspaceQueue(workspaceId: string): WorkspaceQueue {
-		let workspace = this.workspaces.get(workspaceId);
-		if (!workspace) {
-			workspace = { active: null, queued: [] };
-			this.workspaces.set(workspaceId, workspace);
+	private getQueue(queueKey: string): CheckoutQueue {
+		let queue = this.queues.get(queueKey);
+		if (!queue) {
+			queue = { active: null, queued: [] };
+			this.queues.set(queueKey, queue);
 		}
-		return workspace;
+		return queue;
 	}
 
 	private createTask<T>(
-		workspaceId: string,
+		queueKey: string,
 		requestKey: string,
 		run: () => Promise<T>,
 		priority: GitStatusRefreshPriority,
@@ -109,7 +117,7 @@ export class GitStatusRefreshLimiter {
 			reject = rej;
 		});
 		return {
-			workspaceId,
+			queueKey,
 			requestKey,
 			run,
 			promise,
@@ -137,12 +145,12 @@ export class GitStatusRefreshLimiter {
 			if (!task) return;
 			if (task.generation !== this.generation) continue;
 
-			const workspace = this.workspaces.get(task.workspaceId);
-			if (!workspace || workspace.active || workspace.queued[0] !== task) {
+			const queue = this.queues.get(task.queueKey);
+			if (!queue || queue.active || queue.queued[0] !== task) {
 				continue;
 			}
 
-			this.startTask(workspace, task);
+			this.startTask(queue, task);
 		}
 	}
 
@@ -164,9 +172,9 @@ export class GitStatusRefreshLimiter {
 		return bestTask;
 	}
 
-	private startTask(workspace: WorkspaceQueue, task: QueuedTask): void {
-		workspace.queued.shift();
-		workspace.active = {
+	private startTask(queue: CheckoutQueue, task: QueuedTask): void {
+		queue.queued.shift();
+		queue.active = {
 			requestKey: task.requestKey,
 			promise: task.promise,
 		};
@@ -178,15 +186,15 @@ export class GitStatusRefreshLimiter {
 			.finally(() => {
 				if (task.generation !== this.generation) return;
 				this.activeCount--;
-				if (workspace.active?.promise === task.promise) {
-					workspace.active = null;
+				if (queue.active?.promise === task.promise) {
+					queue.active = null;
 				}
 
-				if (workspace.queued.length > 0) {
-					const next = workspace.queued[0];
+				if (queue.queued.length > 0) {
+					const next = queue.queued[0];
 					if (next) this.readyQueue.push(next);
-				} else if (!workspace.active) {
-					this.workspaces.delete(task.workspaceId);
+				} else if (!queue.active) {
+					this.queues.delete(task.queueKey);
 				}
 
 				this.pump();

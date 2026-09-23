@@ -24,6 +24,7 @@ import {
 	LuSearch,
 } from "react-icons/lu";
 import {
+	VscFolderLibrary,
 	VscFolderOpened,
 	VscGithubAlt,
 	VscLayout,
@@ -63,6 +64,7 @@ import {
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import {
 	useOpenEmptyProjectModal,
+	useOpenMultiRepoProjectModal,
 	useOpenNewProjectModal,
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
@@ -78,6 +80,7 @@ export function DashboardSidebarHeader({
 	const openNewWorkspace = useOpenNewWorkspace();
 	const openProjectWorkspace = useOpenNewWorkspaceForLocalProject();
 	const openEmptyProject = useOpenEmptyProjectModal();
+	const openMultiRepoProject = useOpenMultiRepoProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
 	const navigate = useNavigate();
@@ -169,6 +172,9 @@ export function DashboardSidebarHeader({
 	const isPluginsEnabled =
 		(useFeatureFlagEnabled(FEATURE_FLAGS.PLUGINS) ?? false) ||
 		env.NODE_ENV === "development";
+	const isMultiRepoEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.MULTI_REPO_PROJECTS) ??
+		import.meta.env.DEV;
 	const { myFailedCount, hasAutomations, automationsPending } =
 		useFailedAutomations();
 
@@ -532,6 +538,12 @@ export function DashboardSidebarHeader({
 								<VscNewFolder className="size-4" />
 								<Trans>Create new project</Trans>
 							</DropdownMenuItem>
+							{isMultiRepoEnabled && (
+								<DropdownMenuItem onSelect={() => openMultiRepoProject()}>
+									<VscFolderLibrary className="size-4" />
+									<Trans>Create project with multiple folders</Trans>
+								</DropdownMenuItem>
+							)}
 							<DropdownMenuItem onSelect={() => openTemplateGallery()}>
 								<VscLayout className="size-4" />
 								<Trans>Start from a template</Trans>

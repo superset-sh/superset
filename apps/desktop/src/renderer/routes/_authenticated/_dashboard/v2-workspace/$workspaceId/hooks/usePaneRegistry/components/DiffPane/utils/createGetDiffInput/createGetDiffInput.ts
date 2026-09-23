@@ -10,11 +10,13 @@ type GetDiffInput = inferRouterInputs<AppRouter>["git"]["getDiff"];
 export function createGetDiffInput(
 	workspaceId: string,
 	file: ChangesetFile,
+	repoArg: { repo?: string } = {},
 ): GetDiffInput {
 	const { source } = file;
 	if (source.kind === "against-base") {
 		return {
 			workspaceId,
+			...repoArg,
 			path: file.path,
 			category: "against-base",
 			baseBranch: source.baseBranch ?? undefined,
@@ -23,6 +25,7 @@ export function createGetDiffInput(
 	if (source.kind === "commit") {
 		return {
 			workspaceId,
+			...repoArg,
 			path: file.path,
 			category: "commit",
 			commitHash: source.commitHash,
@@ -31,6 +34,7 @@ export function createGetDiffInput(
 	}
 	return {
 		workspaceId,
+		...repoArg,
 		path: file.path,
 		category: source.kind,
 	};

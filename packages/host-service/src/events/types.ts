@@ -98,7 +98,10 @@ export interface WorkspaceSnapshot {
 	name: string;
 	branch: string;
 	type: "local" | "worktree" | "session";
+	/** Always the primary checkout, whether or not the workspace has more. */
 	worktreePath: string;
+	/** The multi-repo container, null otherwise. Never a git checkout. */
+	rootPath: string | null;
 	taskId: string | null;
 	createdByUserId: string | null;
 	createdAt: number;

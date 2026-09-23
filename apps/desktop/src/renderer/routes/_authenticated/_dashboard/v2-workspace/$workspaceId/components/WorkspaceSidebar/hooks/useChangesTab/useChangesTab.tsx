@@ -8,6 +8,7 @@ import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useChangeset } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { useSidebarDiffRef } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useSidebarDiffRef";
+import { useWorkspaceRepos } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useWorkspaceRepos";
 import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
@@ -63,8 +64,10 @@ export function useChangesTab({
 		useV2UserPreferences();
 	const viewMode = preferences.changesViewMode;
 
+	const { repoArg, rootPath: worktreePath } = useWorkspaceRepos(workspaceId);
+
 	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
-		{ workspaceId },
+		{ workspaceId, ...repoArg },
 		{ staleTime: Number.POSITIVE_INFINITY },
 	);
 	const baseBranch = baseBranchQuery.data?.baseBranch ?? null;
@@ -75,10 +78,6 @@ export function useChangesTab({
 		ref,
 	});
 
-	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
-		id: workspaceId,
-	});
-	const worktreePath = workspaceQuery.data?.worktreePath;
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 
 	const handleOpenInEditor = useCallback(
@@ -101,10 +100,10 @@ export function useChangesTab({
 
 	const setBaseBranchMutation = workspaceTrpc.git.setBaseBranch.useMutation({
 		onSuccess: () => {
-			void utils.git.getBaseBranch.invalidate({ workspaceId });
-			void utils.git.getStatus.invalidate({ workspaceId });
-			void utils.git.listCommits.invalidate({ workspaceId });
-			void utils.git.getDiff.invalidate({ workspaceId });
+			void utils.git.getBaseBranch.invalidate({ workspaceId, ...repoArg });
+			void utils.git.getStatus.invalidate({ workspaceId, ...repoArg });
+			void utils.git.listCommits.invalidate({ workspaceId, ...repoArg });
+			void utils.git.getDiff.invalidate({ workspaceId, ...repoArg });
 		},
 		// The picker re-renders from getBaseBranch, so a rejected change
 		// silently snaps back without this.
@@ -119,18 +118,22 @@ export function useChangesTab({
 
 	const setBaseBranch = useCallback(
 		(branchName: string | null) => {
-			setBaseBranchMutation.mutate({ workspaceId, baseBranch: branchName });
+			setBaseBranchMutation.mutate({
+				workspaceId,
+				...repoArg,
+				baseBranch: branchName,
+			});
 		},
-		[setBaseBranchMutation, workspaceId],
+		[setBaseBranchMutation, workspaceId, repoArg],
 	);
 
 	const commits = workspaceTrpc.git.listCommits.useQuery(
-		{ workspaceId, baseBranch: baseBranch ?? undefined },
+		{ workspaceId, ...repoArg, baseBranch: baseBranch ?? undefined },
 		{ refetchOnWindowFocus: true },
 	);
 
 	const branches = workspaceTrpc.git.listBranches.useQuery(
-		{ workspaceId },
+		{ workspaceId, ...repoArg },
 		{ refetchInterval: 30_000, refetchOnWindowFocus: true },
 	);
 
@@ -143,6 +146,7 @@ export function useChangesTab({
 			toast.promise(
 				renameBranchMutation.mutateAsync({
 					workspaceId,
+					...repoArg,
 					oldName: currentName,
 					newName,
 				}),
@@ -163,7 +167,13 @@ export function useChangesTab({
 				},
 			);
 		},
-		[workspaceId, status.data?.currentBranch.name, renameBranchMutation, t],
+		[
+			workspaceId,
+			repoArg,
+			status.data?.currentBranch.name,
+			renameBranchMutation,
+			t,
+		],
 	);
 
 	const canRenameBranch = !status.data?.currentBranch.upstream;

@@ -38,6 +38,11 @@ msgstr ".sh"
 msgid "· updated {updatedAgo}"
 msgstr "· diperbarui {updatedAgo}"
 
+#. placeholder {0}: result.folder.name
+#. placeholder {1}: errorMessage(result.error)
+msgid "\"{0}\" could not be added: {1}. The source folders added before it were kept — remove it or fix it and create again."
+msgstr "“{0}” tidak dapat ditambahkan: {1}. Folder sumber yang ditambahkan sebelumnya tetap ada — hapus folder itu atau perbaiki, lalu buat lagi."
+
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "\"{0}\" dihapus"
@@ -809,6 +814,9 @@ msgstr "{offlineHostCount, plural, one {# perangkat sedang offline dan tetap men
 msgid "{openCount} open"
 msgstr "{openCount} terbuka"
 
+msgid "{otherFolderChanges} changed files in other folders"
+msgstr "{otherFolderChanges} berkas berubah di folder lain"
+
 msgid "{partialCount} partial"
 msgstr "{partialCount} sebagian"
 
@@ -866,6 +874,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received} dari {total}"
+
+msgid "{repoCount, plural, one {# source folder} other {# source folders}}"
+msgstr "{repoCount, plural, one {# folder sumber} other {# folder sumber}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {Mencoba ulang # otomatisasi} other {Mencoba ulang # otomatisasi}}"
@@ -1378,6 +1389,7 @@ msgstr "Aksi"
 msgid "Actions"
 msgstr "Aksi"
 
+#. placeholder {0}: folder.folder
 #. placeholder {0}: page.title
 msgid "Actions for {0}"
 msgstr "Aksi untuk {0}"
@@ -1435,6 +1447,9 @@ msgstr "Tambahkan proyek untuk melihat issue GitHub."
 msgid "Add a project to see pull requests."
 msgstr "Tambahkan proyek untuk melihat pull request."
 
+msgid "Add a repository folder"
+msgstr "Tambahkan folder repositori"
+
 msgid "Add account"
 msgstr "Tambah akun"
 
@@ -1489,6 +1504,9 @@ msgstr "Tambah file, aplikasi, dan lainnya"
 msgid "Add files, apps, and more (@)"
 msgstr "Tambah file, aplikasi, dan lainnya (@)"
 
+msgid "Add folder"
+msgstr "Tambah folder"
+
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
 msgstr "Tambahkan issue #{0} ke workspace"
@@ -1532,6 +1550,12 @@ msgstr "Tambahkan tes untuk kode paling berisiko yang belum diuji…"
 msgid "Add tests where they're missing"
 msgstr "Tambahkan tes yang belum ada"
 
+msgid "Add the repositories this project works across as source folders. Every workspace checks out all of them."
+msgstr "Tambahkan repositori yang dipakai proyek ini sebagai folder sumber. Setiap workspace melakukan checkout semuanya."
+
+msgid "Add the repositories this project works across. The first one is the primary."
+msgstr "Tambahkan repositori yang dipakai proyek ini. Yang pertama menjadi yang utama."
+
 msgid "Add to Dictionary"
 msgstr "Tambahkan ke Kamus"
 
@@ -1543,6 +1567,10 @@ msgstr "Tambahkan ke workspace"
 
 msgid "Add your own terminal agent to this device."
 msgstr "Tambahkan agen terminal Anda sendiri ke perangkat ini."
+
+#. placeholder {0}: result.folder
+msgid "Added {0} to this project"
+msgstr "{0} ditambahkan ke proyek ini"
 
 msgid "Added {added} files to {where}"
 msgstr "Menambahkan {added} file ke {where}"
@@ -1969,6 +1997,9 @@ msgstr "Perakit Anonim"
 
 msgid "another device"
 msgstr "perangkat lain"
+
+msgid "Another folder in this project already has that name."
+msgstr "Folder lain di proyek ini sudah memakai nama itu."
 
 msgid "Answered"
 msgstr "Dijawab"
@@ -2961,6 +2992,9 @@ msgstr "Rantai Pemikiran"
 msgid "Change avatar"
 msgstr "Ganti avatar"
 
+msgid "Change folder"
+msgstr "Ubah folder"
+
 msgid "Change location"
 msgstr "Ubah lokasi"
 
@@ -2994,6 +3028,9 @@ msgstr "Ubah lokasi worktree"
 
 msgid "Change-failure rate at or below the human-era baseline for two consecutive quarters."
 msgstr "Tingkat kegagalan perubahan sama atau di bawah baseline era manusia selama dua kuartal berturut-turut."
+
+msgid "Changed files"
+msgstr "Berkas yang diubah"
 
 msgid "Changelog"
 msgstr "Changelog"
@@ -3330,6 +3367,9 @@ msgstr "Clone repositorinya, atau impor folder yang sudah ada di host."
 
 msgid "Clone, push, and create PRs."
 msgstr "Klon, push, dan buat PR."
+
+msgid "Cloned into each new workspace"
+msgstr "Diklon ke setiap workspace baru"
 
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
@@ -4241,6 +4281,10 @@ msgstr "Tidak bisa membuat proyek"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Tidak bisa membuat proyek. Coba nama lain atau periksa log."
 
+#. placeholder {0}: errorMessage(result.error)
+msgid "Could not create the project: {0}"
+msgstr "Tidak dapat membuat proyek: {0}"
+
 msgid "Could not delete account"
 msgstr "Tidak bisa menghapus akun"
 
@@ -4635,6 +4679,12 @@ msgstr "Buat PR"
 msgid "Create PR failed: {0}"
 msgstr "Gagal membuat PR: {0}"
 
+msgid "Create project"
+msgstr "Buat proyek"
+
+msgid "Create project with multiple folders"
+msgstr "Buat proyek dengan beberapa folder"
+
 msgid "Create pull request"
 msgstr "Buat pull request"
 
@@ -4753,6 +4803,9 @@ msgstr "Membuat worktree"
 
 msgid "Creating..."
 msgstr "Membuat..."
+
+msgid "Creating…"
+msgstr "Membuat…"
 
 msgid "Creative Manager, Valid"
 msgstr "Manajer Kreatif, Valid"
@@ -4983,6 +5036,9 @@ msgstr "Hapus “{title}”?"
 #. placeholder {0}: organization.name
 msgid "Delete {0}?"
 msgstr "Hapus {0}?"
+
+msgid "Delete {groupName}?"
+msgstr "Hapus {groupName}?"
 
 msgid "Delete {name}?"
 msgstr "Hapus {name}?"
@@ -5621,6 +5677,9 @@ msgstr "Tiap agen berjalan di worktree Git terisolasi sendiri. Tanpa konflik mer
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "Setiap lampiran maksimal {0} MB."
+
+msgid "Each folder runs its own setup, teardown and run commands, in this order."
+msgstr "Setiap folder menjalankan perintah setup, teardown, dan run miliknya sendiri, dalam urutan ini."
 
 msgid "Each in its own new tab"
 msgstr "Masing-masing di tab barunya sendiri"
@@ -6786,6 +6845,9 @@ msgstr "Folder"
 
 msgid "Folder links"
 msgstr "Tautan folder"
+
+msgid "Folder name"
+msgstr "Nama folder"
 
 msgid "Folder view"
 msgstr "Tampilan folder"
@@ -7954,6 +8016,9 @@ msgstr "Item"
 msgid "Its own branch and copy of the files"
 msgstr "Branch dan salinan file tersendiri"
 
+msgid "Its source folders stay on this device as projects of their own."
+msgstr "Folder sumbernya tetap ada di perangkat ini sebagai proyek tersendiri."
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Workspace dan terminalnya tidak tersedia sampai layanan ini dimulai ulang — pakai menu tray Superset > Host Service > Restart."
 
@@ -8474,6 +8539,9 @@ msgstr "Memuat diff…"
 msgid "Loading files..."
 msgstr "Memuat file..."
 
+msgid "Loading folders…"
+msgstr "Memuat folder…"
+
 msgid "Loading fonts..."
 msgstr "Memuat font..."
 
@@ -8629,6 +8697,9 @@ msgstr "Jadikan bawaan"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "Jadikan bawaan — jalankan terminal dan agen baru dengan akun ini."
+
+msgid "Make primary"
+msgstr "Jadikan utama"
 
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "Pastikan perangkat aktif, terhubung ke internet, dan menjalankan Superset."
@@ -9083,6 +9154,9 @@ msgstr "Agen Saya"
 msgid "My Tasks"
 msgstr "Tugas Saya"
 
+msgid "my-project"
+msgstr "my-project"
+
 msgid "Mystery Machinist"
 msgstr "Masinis Misterius"
 
@@ -9309,6 +9383,12 @@ msgstr "pembuat workspace baru"
 
 msgid "New workspace in {name}"
 msgstr "Workspace baru di {name}"
+
+msgid "New workspaces will no longer check its folders out together. Existing workspaces keep their checkouts, and no repository is deleted from disk."
+msgstr "Workspace baru tidak akan lagi melakukan checkout folder-foldernya bersamaan. Workspace yang sudah ada tetap menyimpan checkout-nya, dan tidak ada repositori yang dihapus dari disk."
+
+msgid "New workspaces will stop checking this repository out. Existing workspaces keep it, and nothing is deleted from disk."
+msgstr "Workspace baru tidak akan lagi melakukan checkout repositori ini. Workspace yang sudah ada tetap menyimpannya, dan tidak ada yang dihapus dari disk."
 
 msgid "New-user activation"
 msgstr "Aktivasi pengguna baru"
@@ -11095,6 +11175,9 @@ msgstr "Pilih direktori induk"
 msgid "Pick a project location"
 msgstr "Pilih lokasi proyek"
 
+msgid "Pick a repository on {hostName} to add to this project."
+msgstr "Pilih repositori di {hostName} untuk ditambahkan ke proyek ini."
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Pilih suara atau tambahkan milik Anda sendiri. Audio kustom mendukung .mp3, .wav, dan .ogg."
 
@@ -11391,6 +11474,10 @@ msgstr "Harga tergantung tim dan kasus penggunaan Anda. Hubungi kami dan kami ak
 
 msgid "Primary"
 msgstr "Primer"
+
+msgctxt "badge on a project's primary source folder"
+msgid "Primary"
+msgstr "Utama"
 
 msgid "Primary Key"
 msgstr "Primary Key"
@@ -12011,15 +12098,23 @@ msgstr "Workspace jarak jauh — perangkat offline"
 msgid "Remove"
 msgstr "Hapus"
 
+#. placeholder {0}: folder.name
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "Hapus {0}"
+
+#. placeholder {0}: folder?.folder
+msgid "Remove {0} from this project?"
+msgstr "Hapus {0} dari proyek ini?"
 
 msgid "Remove {label}?"
 msgstr "Hapus {label}?"
 
 msgid "Remove attachment"
 msgstr "Hapus lampiran"
+
+msgid "Remove folder"
+msgstr "Hapus folder"
 
 msgid "Remove from Queue"
 msgstr "Keluarkan dari Antrean"
@@ -12111,6 +12206,9 @@ msgstr "Ganti nama gagal"
 #. placeholder {0}: errorMessage(err)
 msgid "Rename failed: {0}"
 msgstr "Ganti nama gagal: {0}"
+
+msgid "Rename folder"
+msgstr "Ganti nama folder"
 
 msgid "Rename group"
 msgstr "Ganti nama grup"
@@ -12218,6 +12316,9 @@ msgstr "Repositori"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "Repositori yang bisa diakses lewat instalasi GitHub App."
+
+msgid "Repositories checked out into every workspace for this project. The primary is the one single-repository tools use."
+msgstr "Repositori yang di-checkout ke setiap workspace proyek ini. Yang utama adalah yang dipakai alat repositori tunggal."
 
 msgid "Repositories refreshed"
 msgstr "Repositori disegarkan"
@@ -13144,6 +13245,12 @@ msgstr "Pilih proyek untuk melihat pull request."
 msgid "Select a pull request to preview it here."
 msgstr "Pilih pull request untuk melihat pratinjaunya di sini."
 
+msgid "Select a repository to add"
+msgstr "Pilih repositori untuk ditambahkan"
+
+msgid "Select a source folder"
+msgstr "Pilih folder sumber"
+
 msgid "Select a team"
 msgstr "Pilih sebuah tim"
 
@@ -13992,6 +14099,13 @@ msgstr "Sumber"
 
 msgid "Source Available"
 msgstr "Source Available"
+
+#. placeholder {0}: parentProject.name
+msgid "Source folder of {0}"
+msgstr "Folder sumber dari {0}"
+
+msgid "Source folders"
+msgstr "Folder sumber"
 
 msgid "Source path (not an import)"
 msgstr "Path sumber (bukan impor)"
@@ -14939,6 +15053,9 @@ msgstr "Endpoint itu tidak dapat ditemukan."
 msgid "That endpoint is not allowed."
 msgstr "Endpoint itu tidak diizinkan."
 
+msgid "That folder is already in the list"
+msgstr "Folder itu sudah ada di daftar"
+
 msgid "That handle is taken."
 msgstr "Handle itu sudah dipakai."
 
@@ -15149,6 +15266,9 @@ msgstr "Halaman yang Anda cari tidak ada."
 
 msgid "The people behind Superset."
 msgstr "Orang-orang di balik Superset."
+
+msgid "The primary folder can't be removed. Make another folder primary first."
+msgstr "Folder utama tidak dapat dihapus. Jadikan folder lain sebagai utama terlebih dahulu."
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "Checkout proyek apa adanya: file dan branch dibagikan"
@@ -15399,6 +15519,9 @@ msgstr "Ini lebih lama dari biasanya. Sesinya mungkin sudah siap — memuat ulan
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "Ini lebih lama dari biasanya. Workspace-nya mungkin sudah siap — memuat ulang bisa menampilkannya."
 
+msgid "This is the directory the repository is checked out into inside each workspace."
+msgstr "Ini adalah direktori tempat repositori di-checkout di dalam setiap workspace."
+
 msgid "This issue link is invalid."
 msgstr "Tautan issue ini tidak valid."
 
@@ -15455,6 +15578,9 @@ msgstr "Port ini masih dipakai"
 
 msgid "This profile is busy right now"
 msgstr "Profil ini sedang sibuk"
+
+msgid "This project has no folders on {hostName} yet."
+msgstr "Proyek ini belum memiliki folder di {hostName}."
 
 msgid "This project is no longer available on your devices."
 msgstr "Proyek ini sudah tidak tersedia di perangkat Anda."
@@ -16286,6 +16412,9 @@ msgstr "Pakai untuk agen baru"
 msgid "Use global default"
 msgstr "Pakai bawaan global"
 
+msgid "Use letters, digits, dots, dashes or underscores, starting with a letter or digit."
+msgstr "Gunakan huruf, angka, titik, tanda hubung, atau garis bawah, diawali huruf atau angka."
+
 msgid "Use Superset on mobile"
 msgstr "Gunakan Superset di ponsel"
 
@@ -16774,6 +16903,9 @@ msgstr "Tempat tim serius berada"
 
 msgid "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
 msgstr "Tempat sesi dimulai: beranda, halaman perbandingan, dokumentasi, artikel, atau entri changelog. Konten yang berperingkat muncul di sini sebelum muncul di pendaftaran."
+
+msgid "Where the container holding this project's checkouts is created."
+msgstr "Tempat kontainer yang menampung checkout proyek ini dibuat."
 
 msgid "Where the industry is, honestly"
 msgstr "Posisi industri, sejujurnya"

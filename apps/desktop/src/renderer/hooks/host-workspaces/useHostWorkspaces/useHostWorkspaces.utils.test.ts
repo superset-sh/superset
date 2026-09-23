@@ -18,6 +18,7 @@ function makeSnapshot(
 		branch: overrides.id,
 		type: "worktree",
 		worktreePath: `/tmp/${overrides.id}`,
+		rootPath: null,
 		taskId: null,
 		createdByUserId: null,
 		createdAt: 1_700_000_000_000,

@@ -2,6 +2,8 @@ import { useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { GitCompareArrows } from "lucide-react";
 import { memo, useMemo } from "react";
+import { useRepoDirtyCounts } from "../../hooks/useRepoDirtyCounts";
+import { useWorkspaceRepos } from "../../hooks/useWorkspaceRepos";
 import { useWorkspaceGitStatus } from "../../providers/WorkspaceGitStatusProvider";
 import { changesPillStats } from "./changesPillStats";
 import { PRStatusGroup } from "./components/PRStatusGroup";
@@ -41,6 +43,21 @@ export const ChangesControl = memo(function ChangesControl({
 }: ChangesControlProps) {
 	const { t } = useLingui();
 	const status = useWorkspaceGitStatus();
+	const { repos, selected, hasMultipleRepos } = useWorkspaceRepos(workspaceId);
+	const dirtyCounts = useRepoDirtyCounts({
+		workspaceId,
+		repos,
+		enabled: hasMultipleRepos,
+	});
+	// The pill describes the selected folder; the rest of the project would
+	// otherwise change without a trace anywhere in the top bar.
+	const otherFolderChanges = repos.reduce(
+		(total, repo) =>
+			repo.folder === selected?.folder
+				? total
+				: total + (dirtyCounts[repo.folder] ?? 0),
+		0,
+	);
 	const { flowState, onRetry } = usePRFlowState(workspaceId);
 	const stats = useMemo(
 		() => (status.data ? changesPillStats(status.data) : null),
@@ -61,10 +78,11 @@ export const ChangesControl = memo(function ChangesControl({
 			flowState.pr != null);
 	const visibleStats =
 		!hasPr && stats != null && stats.fileCount > 0 ? stats : null;
+	const showsOtherFolders = !hasPr && otherFolderChanges > 0;
 
 	return (
 		<div className="flex h-7 items-stretch divide-x divide-border/60 overflow-hidden rounded-md border border-border/60 bg-muted/30 empty:hidden">
-			{visibleStats && (
+			{(visibleStats || showsOtherFolders) && (
 				<button
 					type="button"
 					onClick={onToggleChanges}
@@ -77,18 +95,26 @@ export const ChangesControl = memo(function ChangesControl({
 					)}
 				>
 					<GitCompareArrows className="size-3.5" />
-					{visibleStats.additions > 0 && (
+					{visibleStats && visibleStats.additions > 0 && (
 						<span className="tabular-nums text-emerald-600 [.dark_&]:text-[#34d399]">
 							+{visibleStats.additions}
 						</span>
 					)}
-					{visibleStats.deletions > 0 && (
+					{visibleStats && visibleStats.deletions > 0 && (
 						<span className="tabular-nums text-red-600 [.dark_&]:text-[#f87171]">
 							−{visibleStats.deletions}
 						</span>
 					)}
-					{visibleStats.additions === 0 && visibleStats.deletions === 0 && (
+					{visibleStats?.additions === 0 && visibleStats.deletions === 0 && (
 						<span className="tabular-nums">{visibleStats.fileCount}</span>
+					)}
+					{showsOtherFolders && (
+						<span
+							title={t({
+								message: `${otherFolderChanges} changed files in other folders`,
+							})}
+							className="size-1.5 shrink-0 rounded-full bg-amber-500"
+						/>
 					)}
 				</button>
 			)}
@@ -97,7 +123,7 @@ export const ChangesControl = memo(function ChangesControl({
 					workspaceId={workspaceId}
 					sync={flowState.sync}
 					onRefresh={onRetry}
-					compact={visibleStats != null}
+					compact={visibleStats != null || showsOtherFolders}
 				/>
 			) : (
 				<PRStatusGroup

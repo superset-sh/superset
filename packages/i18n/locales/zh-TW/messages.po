@@ -38,6 +38,11 @@ msgstr ".sh"
 msgid "· updated {updatedAgo}"
 msgstr "· 更新於{updatedAgo}"
 
+#. placeholder {0}: result.folder.name
+#. placeholder {1}: errorMessage(result.error)
+msgid "\"{0}\" could not be added: {1}. The source folders added before it were kept — remove it or fix it and create again."
+msgstr "無法新增「{0}」：{1}。先前已新增的來源資料夾會保留——請移除該資料夾或修正問題後重新建立。"
+
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "「{0}」已刪除"
@@ -809,6 +814,9 @@ msgstr "{offlineHostCount, plural, one {# 台裝置處於離線狀態，將保�
 msgid "{openCount} open"
 msgstr "{openCount}項已開啟"
 
+msgid "{otherFolderChanges} changed files in other folders"
+msgstr "其他資料夾中有 {otherFolderChanges} 個檔案已變更"
+
 msgid "{partialCount} partial"
 msgstr "{partialCount}項部分開啟"
 
@@ -866,6 +874,9 @@ msgstr "{reason}"
 
 msgid "{received} of {total}"
 msgstr "{received}/{total}"
+
+msgid "{repoCount, plural, one {# source folder} other {# source folders}}"
+msgstr "{repoCount, plural, one {#個來源資料夾} other {#個來源資料夾}}"
 
 msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
 msgstr "{retried, plural, one {正在重試#個自動化} other {正在重試#個自動化}}"
@@ -1378,6 +1389,7 @@ msgstr "操作"
 msgid "Actions"
 msgstr "操作"
 
+#. placeholder {0}: folder.folder
 #. placeholder {0}: page.title
 msgid "Actions for {0}"
 msgstr "{0}的操作"
@@ -1435,6 +1447,9 @@ msgstr "新增專案以檢視GitHub議題。"
 msgid "Add a project to see pull requests."
 msgstr "新增一個專案來檢視拉取請求。"
 
+msgid "Add a repository folder"
+msgstr "新增儲存庫資料夾"
+
 msgid "Add account"
 msgstr "新增帳戶"
 
@@ -1489,6 +1504,9 @@ msgstr "新增檔案、應用等"
 msgid "Add files, apps, and more (@)"
 msgstr "新增檔案、應用等（@）"
 
+msgid "Add folder"
+msgstr "新增資料夾"
+
 #. placeholder {0}: issue.issueNumber
 msgid "Add issue #{0} to workspace"
 msgstr "將議題#{0}新增到工作區"
@@ -1532,6 +1550,12 @@ msgstr "給風險最高又沒測試的程式碼補上測試…"
 msgid "Add tests where they're missing"
 msgstr "給缺測試的地方補測試"
 
+msgid "Add the repositories this project works across as source folders. Every workspace checks out all of them."
+msgstr "將此專案需要用到的儲存庫新增為來源資料夾。每個工作區都會簽出全部儲存庫。"
+
+msgid "Add the repositories this project works across. The first one is the primary."
+msgstr "新增此專案需要用到的儲存庫。第一個是主要資料夾。"
+
 msgid "Add to Dictionary"
 msgstr "新增到詞典"
 
@@ -1543,6 +1567,10 @@ msgstr "新增到工作區"
 
 msgid "Add your own terminal agent to this device."
 msgstr "向此裝置新增你自己的終端代理程式。"
+
+#. placeholder {0}: result.folder
+msgid "Added {0} to this project"
+msgstr "已將 {0} 新增至此專案"
 
 msgid "Added {added} files to {where}"
 msgstr "已向{where}新增{added}個檔案"
@@ -1969,6 +1997,9 @@ msgstr "匿名組裝工"
 
 msgid "another device"
 msgstr "另一臺裝置"
+
+msgid "Another folder in this project already has that name."
+msgstr "此專案中已有相同名稱的資料夾。"
 
 msgid "Answered"
 msgstr "已回答"
@@ -2961,6 +2992,9 @@ msgstr "思維鏈"
 msgid "Change avatar"
 msgstr "更換頭像"
 
+msgid "Change folder"
+msgstr "變更資料夾"
+
 msgid "Change location"
 msgstr "更改位置"
 
@@ -2994,6 +3028,9 @@ msgstr "更改worktree位置"
 
 msgid "Change-failure rate at or below the human-era baseline for two consecutive quarters."
 msgstr "變更失敗率連續兩個季度不高於人類時代的基線。"
+
+msgid "Changed files"
+msgstr "已變更的檔案"
 
 msgid "Changelog"
 msgstr "更新日誌"
@@ -3330,6 +3367,9 @@ msgstr "克隆儲存庫，或匯入主機上已有的資料夾。"
 
 msgid "Clone, push, and create PRs."
 msgstr "複製、推送並建立 PR。"
+
+msgid "Cloned into each new workspace"
+msgstr "複製到每個新工作區"
 
 #. placeholder {0}: result.repoPath
 msgid "Cloned to {0}"
@@ -4241,6 +4281,10 @@ msgstr "無法建立專案"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "無法建立專案。請換一個名稱，或檢視日誌。"
 
+#. placeholder {0}: errorMessage(result.error)
+msgid "Could not create the project: {0}"
+msgstr "無法建立專案：{0}"
+
 msgid "Could not delete account"
 msgstr "無法刪除帳戶"
 
@@ -4635,6 +4679,12 @@ msgstr "建立PR"
 msgid "Create PR failed: {0}"
 msgstr "建立PR失敗：{0}"
 
+msgid "Create project"
+msgstr "建立專案"
+
+msgid "Create project with multiple folders"
+msgstr "建立含多個資料夾的專案"
+
 msgid "Create pull request"
 msgstr "建立拉取請求"
 
@@ -4753,6 +4803,9 @@ msgstr "正在建立worktree"
 
 msgid "Creating..."
 msgstr "正在建立..."
+
+msgid "Creating…"
+msgstr "正在建立…"
 
 msgid "Creative Manager, Valid"
 msgstr "創意經理，Valid"
@@ -4983,6 +5036,9 @@ msgstr "刪除「{title}」？"
 #. placeholder {0}: organization.name
 msgid "Delete {0}?"
 msgstr "刪除{0}？"
+
+msgid "Delete {groupName}?"
+msgstr "刪除 {groupName}？"
 
 msgid "Delete {name}?"
 msgstr "刪除{name}？"
@@ -5621,6 +5677,9 @@ msgstr "每個代理程式都跑在自己隔離的Git worktree裡。沒有合併
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "每個附件最大為{0} MB。"
+
+msgid "Each folder runs its own setup, teardown and run commands, in this order."
+msgstr "每個資料夾會依此順序執行各自的初始化、清理與執行命令。"
 
 msgid "Each in its own new tab"
 msgstr "每條各佔一個新分頁"
@@ -6786,6 +6845,9 @@ msgstr "資料夾"
 
 msgid "Folder links"
 msgstr "資料夾連結"
+
+msgid "Folder name"
+msgstr "資料夾名稱"
 
 msgid "Folder view"
 msgstr "資料夾檢視"
@@ -7954,6 +8016,9 @@ msgstr "條目"
 msgid "Its own branch and copy of the files"
 msgstr "獨立的分支和檔案副本"
 
+msgid "Its source folders stay on this device as projects of their own."
+msgstr "它的來源資料夾會各自成為獨立的專案，保留在此裝置上。"
+
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "在它重啟之前，其工作區和終端都不可用，請使用Superset托盤選單 > 主機服務 > 重啟。"
 
@@ -8474,6 +8539,9 @@ msgstr "正在載入差異…"
 msgid "Loading files..."
 msgstr "正在載入檔案..."
 
+msgid "Loading folders…"
+msgstr "正在載入資料夾…"
+
 msgid "Loading fonts..."
 msgstr "正在載入字型..."
 
@@ -8629,6 +8697,9 @@ msgstr "設為預設"
 
 msgid "Make default — launch new terminals and agents on this account."
 msgstr "設為預設——新終端和代理程式將使用此帳戶啟動。"
+
+msgid "Make primary"
+msgstr "設為主要"
 
 msgid "Make sure the device is awake, online, and running Superset."
 msgstr "請確認裝置未進入睡眠模式、已連上網路且正在執行 Superset。"
@@ -9083,6 +9154,9 @@ msgstr "我的代理程式"
 msgid "My Tasks"
 msgstr "我的任務"
 
+msgid "my-project"
+msgstr "my-project"
+
 msgid "Mystery Machinist"
 msgstr "神秘機械師"
 
@@ -9309,6 +9383,12 @@ msgstr "新增工作區建立者"
 
 msgid "New workspace in {name}"
 msgstr "在 {name} 中新建工作區"
+
+msgid "New workspaces will no longer check its folders out together. Existing workspaces keep their checkouts, and no repository is deleted from disk."
+msgstr "新工作區將不再把它的資料夾一起簽出。現有工作區會保留各自的簽出，磁碟上的儲存庫不會被刪除。"
+
+msgid "New workspaces will stop checking this repository out. Existing workspaces keep it, and nothing is deleted from disk."
+msgstr "新工作區將不再簽出此儲存庫。現有工作區會保留它，磁碟上的內容不會被刪除。"
 
 msgid "New-user activation"
 msgstr "新使用者啟用"
@@ -11095,6 +11175,9 @@ msgstr "請選擇父目錄"
 msgid "Pick a project location"
 msgstr "請選擇專案位置"
 
+msgid "Pick a repository on {hostName} to add to this project."
+msgstr "在 {hostName} 上選擇要新增至此專案的儲存庫。"
+
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "選擇一個聲音或新增自己的。自訂音訊支援.mp3、.wav和.ogg。"
 
@@ -11391,6 +11474,10 @@ msgstr "價格取決於你的團隊規模和使用場景。聯絡我們，我們
 
 msgid "Primary"
 msgstr "主色"
+
+msgctxt "badge on a project's primary source folder"
+msgid "Primary"
+msgstr "主要"
 
 msgid "Primary Key"
 msgstr "主鍵"
@@ -12011,15 +12098,23 @@ msgstr "遠端工作區，裝置離線"
 msgid "Remove"
 msgstr "移除"
 
+#. placeholder {0}: folder.name
 #. placeholder {0}: member.name
 msgid "Remove {0}"
 msgstr "移除{0}"
+
+#. placeholder {0}: folder?.folder
+msgid "Remove {0} from this project?"
+msgstr "要將 {0} 從此專案中移除嗎？"
 
 msgid "Remove {label}?"
 msgstr "移除{label}？"
 
 msgid "Remove attachment"
 msgstr "移除附件"
+
+msgid "Remove folder"
+msgstr "移除資料夾"
 
 msgid "Remove from Queue"
 msgstr "移出佇列"
@@ -12111,6 +12206,9 @@ msgstr "重新命名失敗"
 #. placeholder {0}: errorMessage(err)
 msgid "Rename failed: {0}"
 msgstr "重新命名失敗：{0}"
+
+msgid "Rename folder"
+msgstr "重新命名資料夾"
 
 msgid "Rename group"
 msgstr "重新命名群組"
@@ -12218,6 +12316,9 @@ msgstr "儲存庫"
 
 msgid "Repositories accessible through the GitHub App installation."
 msgstr "通過GitHub App安裝可存取的儲存庫。"
+
+msgid "Repositories checked out into every workspace for this project. The primary is the one single-repository tools use."
+msgstr "為此專案的每個工作區簽出的儲存庫。主要資料夾是單一儲存庫工具所使用的那一個。"
 
 msgid "Repositories refreshed"
 msgstr "儲存庫已重新整理"
@@ -13144,6 +13245,12 @@ msgstr "選擇一個專案來檢視拉取請求。"
 msgid "Select a pull request to preview it here."
 msgstr "選擇一個拉取請求，在這裡預覽。"
 
+msgid "Select a repository to add"
+msgstr "選擇要新增的儲存庫"
+
+msgid "Select a source folder"
+msgstr "選擇來源資料夾"
+
 msgid "Select a team"
 msgstr "選擇團隊"
 
@@ -13992,6 +14099,13 @@ msgstr "來源"
 
 msgid "Source Available"
 msgstr "原始碼可見"
+
+#. placeholder {0}: parentProject.name
+msgid "Source folder of {0}"
+msgstr "{0} 的來源資料夾"
+
+msgid "Source folders"
+msgstr "來源資料夾"
 
 msgid "Source path (not an import)"
 msgstr "原始碼路徑（不是匯入路徑）"
@@ -14939,6 +15053,9 @@ msgstr "無法解析該端點。"
 msgid "That endpoint is not allowed."
 msgstr "不允許該端點。"
 
+msgid "That folder is already in the list"
+msgstr "該資料夾已在清單中"
+
 msgid "That handle is taken."
 msgstr "該使用者名稱已被佔用。"
 
@@ -15149,6 +15266,9 @@ msgstr "你要找的頁面不存在。"
 
 msgid "The people behind Superset."
 msgstr "Superset背後的團隊。"
+
+msgid "The primary folder can't be removed. Make another folder primary first."
+msgstr "無法移除主要資料夾。請先將另一個資料夾設為主要。"
 
 msgid "The project's checkout as it is: files and branch are shared"
 msgstr "按原樣使用專案的簽出: 檔案和分支是共用的"
@@ -15399,6 +15519,9 @@ msgstr "這比平時耗時更久。會話可能已經就緒 — 重新載入即�
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "這比平時耗時更久。工作區可能已經就緒 — 重新載入即可接上。"
 
+msgid "This is the directory the repository is checked out into inside each workspace."
+msgstr "這是儲存庫在每個工作區中簽出的目錄。"
+
 msgid "This issue link is invalid."
 msgstr "此議題連結無效。"
 
@@ -15455,6 +15578,9 @@ msgstr "此埠仍在使用中"
 
 msgid "This profile is busy right now"
 msgstr "此個人檔案目前繁忙"
+
+msgid "This project has no folders on {hostName} yet."
+msgstr "此專案在 {hostName} 上尚未有任何資料夾。"
 
 msgid "This project is no longer available on your devices."
 msgstr "這個專案在你的裝置上已不可用。"
@@ -16286,6 +16412,9 @@ msgstr "用於新代理程式"
 msgid "Use global default"
 msgstr "使用全域性預設值"
 
+msgid "Use letters, digits, dots, dashes or underscores, starting with a letter or digit."
+msgstr "請使用字母、數字、點、破折號或底線，並以字母或數字開頭。"
+
 msgid "Use Superset on mobile"
 msgstr "在手機上使用 Superset"
 
@@ -16774,6 +16903,9 @@ msgstr "認真的團隊都在這裡"
 
 msgid "Where sessions begin: the home page, a compare page, the docs, a post, or a changelog entry. Content that ranks shows up here before it shows up in signups."
 msgstr "工作階段的起點：首頁、比較頁、文件、文章或更新日誌。有排名的內容會先出現在這裡，然後才反映在註冊上。"
+
+msgid "Where the container holding this project's checkouts is created."
+msgstr "建立存放此專案簽出內容之容器的位置。"
 
 msgid "Where the industry is, honestly"
 msgstr "行業實際走到了哪裡"

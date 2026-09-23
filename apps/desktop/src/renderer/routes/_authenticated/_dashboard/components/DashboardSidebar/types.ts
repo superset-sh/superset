@@ -113,6 +113,8 @@ export interface DashboardSidebarHiddenProject {
 export interface DashboardSidebarProject {
 	id: string;
 	name: string;
+	groupId?: string | null;
+	repoCount?: number;
 	githubOwner: string | null;
 	githubRepoName: string | null;
 	iconUrl: string | null;

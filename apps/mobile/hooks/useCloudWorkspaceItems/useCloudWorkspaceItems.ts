@@ -47,6 +47,8 @@ function itemFromCloudRow(cloud: CloudWorkspaceRow): CloudWorkspaceItem {
 		// Agent activity is stamped by the sandbox host; unknown until opened.
 		lastActivityAt: null,
 		worktreePath: "",
+		rootPath: null,
+		repos: [],
 		worktreeExists: true,
 		projectName: null,
 		archivedAt: null,

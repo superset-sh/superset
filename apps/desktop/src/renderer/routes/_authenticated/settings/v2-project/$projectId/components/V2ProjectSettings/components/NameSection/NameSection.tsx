@@ -1,10 +1,13 @@
 import { useLingui } from "@lingui/react/macro";
 import { Input } from "@superset/ui/input";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { HOST_PROJECT_GROUPS_QUERY_PREFIX } from "renderer/hooks/host-projects/useHostProjectGroups";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 
 interface NameSectionProps {
 	projectId: string;
+	groupId: string | null;
 	currentName: string;
 	/** Host serving this project, when there is one. */
 	hostUrl: string | null;
@@ -16,12 +19,14 @@ interface NameSectionProps {
 
 export function NameSection({
 	projectId,
+	groupId,
 	currentName,
 	hostUrl,
 	canRename,
 	onRenamed,
 }: NameSectionProps) {
 	const { t } = useLingui();
+	const queryClient = useQueryClient();
 	const [value, setValue] = useState(currentName);
 
 	useEffect(() => {
@@ -38,8 +43,18 @@ export function NameSection({
 		if (!hostUrl) return;
 		// Renames commit on the host — host.db owns the project name; the
 		// project:changed event updates every open surface.
-		void getHostServiceClientByUrl(hostUrl)
-			.project.update.mutate({ projectId, name: trimmed })
+		const host = getHostServiceClientByUrl(hostUrl);
+		void (
+			groupId
+				? host.projectGroups.rename
+						.mutate({ groupId, name: trimmed })
+						.then(() =>
+							queryClient.invalidateQueries({
+								queryKey: HOST_PROJECT_GROUPS_QUERY_PREFIX,
+							}),
+						)
+				: host.project.update.mutate({ projectId, name: trimmed })
+		)
 			.then(() => onRenamed?.())
 			.catch((err) => {
 				console.warn("[project-rename] host commit failed", err);

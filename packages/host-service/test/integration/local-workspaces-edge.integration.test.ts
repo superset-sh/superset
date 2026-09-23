@@ -703,20 +703,21 @@ describe("local workspaces: sessions and sandbox seed", () => {
 		runSandboxSelfSeed(host.db, identity);
 		runSandboxSelfSeed(host.db, identity);
 		const rows = host.db.select().from(workspaces).all();
-		// One local workspace per checkout: the primary under the cloud
-		// workspace's id, the sibling under an id derived from it.
-		expect(rows).toHaveLength(2);
+		// One workspace over every checkout, exactly as a local multi-repo
+		// workspace is stored.
+		expect(rows).toHaveLength(1);
 		expect(rows.find((row) => row.id === identity.workspaceId)).toMatchObject({
 			type: "local",
 			worktreePath: "/workspace/repo",
+			rootPath: "/workspace",
 			name: "sandbox ws",
 		});
 		expect(
-			rows.find(
+			rows.some(
 				(row) =>
 					row.id === sandboxRepositoryWorkspaceId(identity.workspaceId, "docs"),
 			),
-		).toMatchObject({ type: "local", worktreePath: "/workspace/docs" });
+		).toBe(false);
 		// A sandbox's only workspace can still be retired record-only.
 		const preview = await host.trpc.workspaceCleanup.inspect.query({
 			workspaceId: identity.workspaceId,

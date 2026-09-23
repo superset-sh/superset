@@ -1,12 +1,19 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Label } from "@superset/ui/label";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useMemo, useRef } from "react";
+import { LuFolder } from "react-icons/lu";
 import {
 	PROJECT_ICON_NONE,
 	resolveProjectIconUrl,
 } from "renderer/hooks/host-projects/resolveProjectIconUrl";
+import {
+	findProjectGroupForProject,
+	useHostProjectGroups,
+} from "renderer/hooks/host-projects/useHostProjectGroups";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -26,6 +33,7 @@ import { NameSection } from "./components/NameSection";
 import { NamingInstructionsSection } from "./components/NamingInstructionsSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
+import { SourceFoldersSection } from "./components/SourceFoldersSection";
 import { SparseCheckoutSection } from "./components/SparseCheckoutSection";
 import { V2ScriptsEditor } from "./components/V2ScriptsEditor";
 import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
@@ -44,6 +52,9 @@ export function V2ProjectSettings({
 }: V2ProjectSettingsProps) {
 	const navigate = useNavigate();
 	const { t } = useLingui();
+	const isMultiRepoEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.MULTI_REPO_PROJECTS) ??
+		import.meta.env.DEV;
 	const { machineId } = useLocalHostService();
 	const { currentDeviceName, localHostId, otherHosts } =
 		useWorkspaceHostOptions();
@@ -56,6 +67,23 @@ export function V2ProjectSettings({
 		() => hostProjects.find((item) => item.projectKey === projectId) ?? null,
 		[hostProjects, projectId],
 	);
+
+	const { groups: hostProjectGroups } = useHostProjectGroups({
+		enabled: isMultiRepoEnabled,
+	});
+	const projectGroup = useMemo(
+		() =>
+			findProjectGroupForProject(
+				hostProjectGroups.filter((group) => group.hostId === targetHostId),
+				projectId,
+			),
+		[hostProjectGroups, projectId, targetHostId],
+	);
+	const parentProject =
+		projectGroup && projectGroup.members.length > 1 ? projectGroup : null;
+	const folder =
+		parentProject?.members.find((member) => member.projectId === projectId) ??
+		null;
 
 	const hostOptions = useMemo<HostSelectOption[]>(() => {
 		const options: HostSelectOption[] = [];
@@ -167,12 +195,31 @@ export function V2ProjectSettings({
 		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<header className="mb-8 flex items-center justify-between gap-4">
 				<div className="flex min-w-0 items-center gap-3">
-					<ProjectThumbnail
-						projectName={project.name}
-						iconUrl={iconUrl}
-						color={projectColor}
-					/>
-					<h2 className="truncate text-xl font-semibold">{project.name}</h2>
+					{parentProject ? (
+						<LuFolder className="size-5 shrink-0 text-muted-foreground" />
+					) : (
+						<ProjectThumbnail
+							projectName={projectGroup?.name ?? project.name}
+							iconUrl={iconUrl}
+							color={projectColor}
+						/>
+					)}
+					<div className="min-w-0">
+						{parentProject && (
+							<Link
+								to="/settings/projects/group/$groupId"
+								params={{ groupId: parentProject.id }}
+								className="block truncate text-xs text-muted-foreground hover:text-foreground"
+							>
+								<Trans>Source folder of {parentProject.name}</Trans>
+							</Link>
+						)}
+						<h2 className="truncate text-xl font-semibold">
+							{parentProject
+								? (folder?.folder ?? project.name)
+								: (projectGroup?.name ?? project.name)}
+						</h2>
+					</div>
 				</div>
 				{hasMultipleHosts && targetHostId ? (
 					<HostSelect
@@ -196,18 +243,23 @@ export function V2ProjectSettings({
 						message: "General",
 					})}
 				>
-					<SettingsRow label={t({ message: "Name" })} htmlFor="project-name">
-						<NameSection
-							projectId={projectId}
-							// The targeted host's own name, not the cross-host merged
-							// one — the rename commits to that host, so a newer name
-							// from another replica must not seed (and overwrite) it.
-							currentName={hostProject?.name ?? project.name}
-							hostUrl={targetHostUrl}
-							canRename={canRename}
-							onRenamed={() => refetchHostProject()}
-						/>
-					</SettingsRow>
+					{!parentProject && (
+						<SettingsRow label={t({ message: "Name" })} htmlFor="project-name">
+							<NameSection
+								projectId={projectId}
+								groupId={projectGroup?.id ?? null}
+								// The targeted host's own name, not the cross-host merged
+								// one — the rename commits to that host, so a newer name
+								// from another replica must not seed (and overwrite) it.
+								currentName={
+									projectGroup?.name ?? hostProject?.name ?? project.name
+								}
+								hostUrl={targetHostUrl}
+								canRename={canRename}
+								onRenamed={() => refetchHostProject()}
+							/>
+						</SettingsRow>
+					)}
 					<SettingsRow
 						label={t({
 							message: "Repository",
@@ -216,69 +268,84 @@ export function V2ProjectSettings({
 					>
 						<RepositorySection repoUrl={project.repoUrl} />
 					</SettingsRow>
-					<SettingsRow
-						label={t({ message: "Icon" })}
-						hint={t({
-							message:
-								"Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar.",
-						})}
-					>
-						<IconUploadField
-							projectId={projectId}
-							projectName={project.name}
-							hostUrl={targetHostUrl}
-							iconUrl={iconUrl}
-							hasCustomIcon={Boolean(
-								projectIcon && projectIcon !== PROJECT_ICON_NONE,
-							)}
-							isIconRemoved={projectIcon === PROJECT_ICON_NONE}
-							color={projectColor}
-						/>
-					</SettingsRow>
-				</SettingsSection>
-
-				<SettingsSection
-					title={t({
-						message: "Branches & naming",
-					})}
-					description={t({
-						message:
-							"How branches and workspace names are created for this project.",
-					})}
-				>
-					{targetHostUrl && hostProject && (
+					{!parentProject && (
 						<SettingsRow
-							label={t({
-								message: "Branch prefix",
-							})}
+							label={t({ message: "Icon" })}
 							hint={t({
 								message:
-									"Namespace new branches for this project. Defaults to the host-wide Git setting.",
+									"Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar.",
 							})}
 						>
-							<BranchPrefixSection
+							<IconUploadField
 								projectId={projectId}
+								projectName={project.name}
 								hostUrl={targetHostUrl}
-								mode={hostProject.branchPrefixMode ?? null}
-								customPrefix={hostProject.branchPrefixCustom ?? null}
-								onChanged={() => refetchHostProject()}
+								iconUrl={iconUrl}
+								hasCustomIcon={Boolean(
+									projectIcon && projectIcon !== PROJECT_ICON_NONE,
+								)}
+								isIconRemoved={projectIcon === PROJECT_ICON_NONE}
+								color={projectColor}
 							/>
 						</SettingsRow>
 					)}
-					{targetHostUrl && hostProject && (
-						<NamingInstructionsSection
-							// Remount per project AND per target host: the editor holds
-							// draft text and pending-save state that must not carry
-							// across either boundary (same rule as SparseCheckoutSection).
-							key={`${projectId}:${targetHostId}`}
-							projectId={projectId}
-							hostUrl={targetHostUrl}
-							// Hosts older than this setting omit the field entirely.
-							instructions={hostProject.namingInstructions ?? null}
-							onChanged={() => refetchHostProject()}
-						/>
-					)}
 				</SettingsSection>
+
+				{isMultiRepoEnabled && !parentProject && (
+					<SourceFoldersSection
+						projectId={projectId}
+						groupId={projectGroup?.id ?? null}
+						hostUrl={targetHostUrl}
+						hostName={targetHostName}
+						isRemoteTarget={isRemoteTarget}
+						isProjectSetup={Boolean(hostProject)}
+					/>
+				)}
+
+				{!parentProject && (
+					<SettingsSection
+						title={t({
+							message: "Branches & naming",
+						})}
+						description={t({
+							message:
+								"How branches and workspace names are created for this project.",
+						})}
+					>
+						{targetHostUrl && hostProject && (
+							<SettingsRow
+								label={t({
+									message: "Branch prefix",
+								})}
+								hint={t({
+									message:
+										"Namespace new branches for this project. Defaults to the host-wide Git setting.",
+								})}
+							>
+								<BranchPrefixSection
+									projectId={projectId}
+									hostUrl={targetHostUrl}
+									mode={hostProject.branchPrefixMode ?? null}
+									customPrefix={hostProject.branchPrefixCustom ?? null}
+									onChanged={() => refetchHostProject()}
+								/>
+							</SettingsRow>
+						)}
+						{targetHostUrl && hostProject && (
+							<NamingInstructionsSection
+								// Remount per project AND per target host: the editor holds
+								// draft text and pending-save state that must not carry
+								// across either boundary (same rule as SparseCheckoutSection).
+								key={`${projectId}:${targetHostId}`}
+								projectId={projectId}
+								hostUrl={targetHostUrl}
+								// Hosts older than this setting omit the field entirely.
+								instructions={hostProject.namingInstructions ?? null}
+								onChanged={() => refetchHostProject()}
+							/>
+						)}
+					</SettingsSection>
+				)}
 
 				<SettingsSection
 					title={t({
@@ -305,26 +372,28 @@ export function V2ProjectSettings({
 							onChanged={() => refetchHostProject()}
 						/>
 					</SettingsRow>
-					<SettingsRow
-						label={t({
-							message: "Worktrees",
-						})}
-						hint={t({
-							message:
-								"Base directory for new worktree workspaces on this host.",
-						})}
-					>
-						<WorktreeLocationSection
-							projectId={projectId}
-							currentPath={hostProject?.worktreeBaseDir ?? null}
-							hostUrl={targetHostUrl}
-							hostName={targetHostName}
-							isRemoteTarget={isRemoteTarget}
-							isHostOnline={selectedHost?.isOnline ?? false}
-							isProjectSetup={Boolean(hostProject)}
-							onChanged={() => refetchHostProject()}
-						/>
-					</SettingsRow>
+					{!parentProject && (
+						<SettingsRow
+							label={t({
+								message: "Worktrees",
+							})}
+							hint={t({
+								message:
+									"Base directory for new worktree workspaces on this host.",
+							})}
+						>
+							<WorktreeLocationSection
+								projectId={projectId}
+								currentPath={hostProject?.worktreeBaseDir ?? null}
+								hostUrl={targetHostUrl}
+								hostName={targetHostName}
+								isRemoteTarget={isRemoteTarget}
+								isHostOnline={selectedHost?.isOnline ?? false}
+								isProjectSetup={Boolean(hostProject)}
+								onChanged={() => refetchHostProject()}
+							/>
+						</SettingsRow>
+					)}
 					{targetHostUrl && hostProject && (
 						<div className="pt-4">
 							<div className="mb-3">

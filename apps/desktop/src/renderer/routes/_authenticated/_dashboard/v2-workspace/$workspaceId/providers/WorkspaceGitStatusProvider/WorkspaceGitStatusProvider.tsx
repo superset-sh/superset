@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
+import { useWorkspaceRepos } from "../../hooks/useWorkspaceRepos";
 
 type WorkspaceGitStatus = ReturnType<typeof useGitStatus>;
 
@@ -21,7 +22,8 @@ export function WorkspaceGitStatusProvider({
 	children,
 	workspaceId,
 }: WorkspaceGitStatusProviderProps) {
-	const gitStatus = useGitStatus(workspaceId, true);
+	const { repoArg } = useWorkspaceRepos(workspaceId);
+	const gitStatus = useGitStatus(workspaceId, true, repoArg);
 
 	return (
 		<WorkspaceGitStatusContext.Provider value={gitStatus}>

@@ -29,7 +29,7 @@ class Stream implements AsyncIterable<Batch>, AsyncIterator<Batch> {
 	}
 }
 interface Internals {
-	watched: Map<string, { watcher: FSWatcher }>;
+	watched: Map<string, { workspaceId: string; watcher: FSWatcher }>;
 	pendingBatches: Map<string, unknown>;
 	interest: Map<string, number>;
 	rescan(): Promise<void>;
@@ -59,16 +59,19 @@ for (const failure of ["reject", "end", "subscribe", "git"] as const) {
 		const streams: Stream[] = [];
 		let failSubscribe = failure === "subscribe";
 		let backingOff = false;
+		const service = () => ({
+			watchPath: () => {
+				if (failSubscribe) throw new Error("subscription failed");
+				const stream = new Stream();
+				streams.push(stream);
+				return stream;
+			},
+		});
 		const filesystem = {
-			getServiceForWorkspace: () => ({
-				watchPath: () => {
-					if (failSubscribe) throw new Error("subscription failed");
-					const stream = new Stream();
-					streams.push(stream);
-					return stream;
-				},
-			}),
+			getServiceForPrimaryWorktree: service,
+			getServiceForCheckout: service,
 			refreshWatcherIgnores: async () => false,
+			refreshCheckoutWatcherIgnores: async () => false,
 			isWatchAttachBackingOff: () => backingOff,
 		};
 		const store = new GitStatusStore();
@@ -109,7 +112,11 @@ for (const failure of ["reject", "end", "subscribe", "git"] as const) {
 			});
 		watcher.watchWorkspace(workspaceId);
 		await waitFor(() => states.includes(true));
-		const oldWatcher = internals.watched.get(workspaceId)?.watcher;
+		const entryOf = (id: string) =>
+			[...internals.watched.values()].find(
+				(candidate) => candidate.workspaceId === id,
+			);
+		const oldWatcher = entryOf(workspaceId)?.watcher;
 		if (failure !== "subscribe") {
 			await read();
 			await read();
@@ -134,15 +141,15 @@ for (const failure of ["reject", "end", "subscribe", "git"] as const) {
 		backingOff = true;
 		const attachesBeforeBackoff = streams.length;
 		await internals.rescan();
-		expect(internals.watched.has(workspaceId)).toBe(false);
+		expect(entryOf(workspaceId)).toBeUndefined();
 		expect(streams.length).toBe(attachesBeforeBackoff);
 
 		backingOff = false;
 		await internals.rescan();
-		expect(internals.watched.has(workspaceId)).toBe(true);
+		expect(entryOf(workspaceId)).toBeDefined();
 		// A late error on the replaced watcher must not drop its replacement.
 		oldWatcher?.emit("error", new Error("late old watcher error"));
-		expect(internals.watched.has(workspaceId)).toBe(true);
+		expect(entryOf(workspaceId)).toBeDefined();
 		expect(states.at(-1)).toBe(true);
 		const reattached = computations;
 		await read();

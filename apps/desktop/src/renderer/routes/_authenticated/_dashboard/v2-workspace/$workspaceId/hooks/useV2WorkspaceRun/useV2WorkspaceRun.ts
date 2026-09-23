@@ -20,6 +20,8 @@ import { selectWorkspaceRunDefinition } from "shared/workspace-run-definition";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
+import { useWorkspaceRepos } from "../useWorkspaceRepos";
+import { composeRepoRunCommands } from "./composeRepoRunCommands";
 
 const CTRL_C_INPUT = "\u0003";
 const TERMINAL_GONE_ERROR_MESSAGES = [
@@ -116,12 +118,36 @@ export function useV2WorkspaceRun({
 	);
 
 	// Session workspaces (null projectId) have no project config; only global
-	// terminal presets can define their run.
-	const { data: configRunDefinition } =
-		workspaceTrpc.config.getWorkspaceRunDefinition.useQuery(
-			{ projectId: projectId ?? "" },
-			{ enabled: projectId !== null },
+	// terminal presets can define their run. A project over several source
+	// folders contributes one definition per checkout.
+	const { repos } = useWorkspaceRepos(workspaceId);
+	const runTargets = useMemo(
+		() =>
+			projectId === null
+				? []
+				: repos.length > 0
+					? repos
+					: [{ projectId, folder: "", path: "" }],
+		[projectId, repos],
+	);
+	const repoRunQueries = workspaceTrpc.useQueries((t) =>
+		runTargets.map((repo) =>
+			t.config.getWorkspaceRunDefinition({ projectId: repo.projectId }),
+		),
+	);
+	const configRunDefinition = useMemo(() => {
+		const composed = composeRepoRunCommands(
+			runTargets.map((repo, index) => ({
+				path: repo.path,
+				commands: repoRunQueries[index]?.data?.commands ?? [],
+				...(repoRunQueries[index]?.data?.cwd && {
+					cwd: repoRunQueries[index]?.data?.cwd,
+				}),
+				isPrimary: index === 0,
+			})),
 		);
+		return composed ? { ...composed, projectId } : null;
+	}, [projectId, repoRunQueries, runTargets]);
 
 	const resolvedMatchedPresets = useMemo(
 		() =>

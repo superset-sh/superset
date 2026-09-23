@@ -21,6 +21,8 @@ type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
 export interface SidebarProjectInput {
 	id: string;
 	name: string;
+	groupId?: string | null;
+	repoCount?: number;
 	githubOwner: string | null;
 	githubRepoName: string | null;
 	iconUrl: string | null;

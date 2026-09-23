@@ -106,7 +106,7 @@ describe("round 3: the real worktree watcher feeding the store", () => {
 			}),
 		};
 		const filesystem = {
-			getServiceForWorkspace: () => service,
+			getServiceForPrimaryWorktree: () => service,
 			refreshWatcherIgnores: async () => false,
 			isWatchAttachBackingOff: () => false,
 		};

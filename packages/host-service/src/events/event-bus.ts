@@ -383,7 +383,7 @@ export class EventBus {
 	private getPortLabel(port: DetectedPort): string | null {
 		const labels = getLabelsForWorkspace((workspaceId) => {
 			try {
-				return this.filesystem.resolveWorkspaceRoot(workspaceId);
+				return this.filesystem.resolveWorkspacePrimaryWorktree(workspaceId);
 			} catch {
 				return null;
 			}
