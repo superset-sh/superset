@@ -1,786 +1,705 @@
 import { describe, expect, it } from "bun:test";
+import type { TerminalAgentBinding } from "../terminal-agents/types.ts";
 import {
 	HEARTBEAT_INTERVAL_MS,
 	IDLE_TTL_MS,
 	MAX_CONSECUTIVE_FAILURES,
-	MAX_HOLD_MS,
 	MAX_WATCHERS,
+	type PageWatchApi,
 	type PageWatchDeps,
 	PageWatchManager,
 } from "./page-watch-manager.ts";
-import { MAX_PINGS_PER_THREAD } from "./trigger.ts";
-import type { WatchedThread } from "./types.ts";
+import type { PageWatchAssignment, WatchedThread } from "./types.ts";
 
 const T0 = 1_800_000_000_000;
-
-function humanThread(id: string, at: number): WatchedThread {
+function thread(id: string, at = T0): WatchedThread {
 	return {
 		id,
-		anchorKind: "element",
-		anchor: { path: "div > p", tag: "p" },
-		anchorText: "axis",
+		anchorKind: "page",
+		anchor: null,
+		anchorText: null,
 		resolved: false,
 		version: 1,
 		comments: [
 			{
-				id: `c-${id}`,
-				body: "the axis is wrong",
+				id: `comment-${id}`,
+				body: `${id} 👍🏽 日本語`,
 				authorKind: "human",
-				authorName: "Sarah",
+				authorName: "Human",
 				createdAt: new Date(at),
 			},
 		],
 	};
 }
-
-function harness(
-	options: {
-		threads?: WatchedThread[];
-		listThreads?: (pageId: string) => Promise<WatchedThread[]>;
-		alive?: Set<string>;
-		busy?: Set<string>;
-		agents?: Set<string>;
-		sendToTerminal?: PageWatchDeps["sendToTerminal"];
-		setWatch?: PageWatchDeps["api"]["setWatch"];
-		clearWatch?: PageWatchDeps["api"]["clearWatch"];
-	} = {},
-) {
+function conflict() {
+	return Object.assign(new Error("delivery reserved"), { code: "CONFLICT" });
+}
+function cloud() {
+	const threads = new Map<string, WatchedThread[]>();
+	const owners = new Map<
+		string,
+		{
+			token: string;
+			seenCommentIds: Set<string>;
+			pings: Record<string, number>;
+			reservation?: {
+				id: string;
+				ids: string[];
+				pings: Record<string, number>;
+			};
+			finished?: string;
+		}
+	>();
+	const calls = { claim: 0, renew: 0, reserve: 0, finish: 0, release: 0 };
+	const api: PageWatchApi = {
+		listThreads: async (id) => threads.get(id) ?? [],
+		claimWatch: async ({ id, token }) => {
+			calls.claim++;
+			const old = owners.get(id);
+			if (old?.reservation) throw conflict();
+			const state = {
+				token,
+				seenCommentIds:
+					old?.seenCommentIds ??
+					new Set(
+						(threads.get(id) ?? []).flatMap((t) =>
+							t.comments
+								.filter((c) => c.authorKind === "human")
+								.map((c) => c.id),
+						),
+					),
+				pings: old?.pings ?? {},
+			};
+			owners.set(id, state);
+			return {
+				token,
+				seenCommentIds: [...state.seenCommentIds],
+				pings: { ...state.pings },
+			};
+		},
+		renewWatch: async ({ id, token }) => {
+			calls.renew++;
+			return { current: owners.get(id)?.token === token };
+		},
+		releaseWatch: async ({ id, token }) => {
+			calls.release++;
+			const state = owners.get(id);
+			if (state?.token !== token) return { released: false };
+			if (state.reservation) throw conflict();
+			owners.delete(id);
+			return { released: true };
+		},
+		reserveWatchDelivery: async ({ id, token, commentIds, pings }) => {
+			calls.reserve++;
+			const state = owners.get(id);
+			if (state?.token !== token) return null;
+			if (state.reservation) throw conflict();
+			state.reservation = { id: crypto.randomUUID(), ids: commentIds, pings };
+			return { reservationId: state.reservation.id, leaseMs: 10_000 };
+		},
+		finishWatchDelivery: async ({ id, token, reservationId, delivered }) => {
+			calls.finish++;
+			const state = owners.get(id);
+			if (state?.token !== token) return { current: false };
+			if (state.finished === reservationId) return { current: true };
+			if (state.reservation?.id !== reservationId) return { current: false };
+			if (delivered) {
+				for (const id of state.reservation.ids) state.seenCommentIds.add(id);
+				Object.assign(state.pings, state.reservation.pings);
+			}
+			state.reservation = undefined;
+			state.finished = reservationId;
+			return { current: true };
+		},
+	};
+	return { api, threads, owners, calls };
+}
+function harness(shared = cloud(), overrides: Partial<PageWatchDeps> = {}) {
+	let now = T0;
 	const sent: { terminalId: string; text: string }[] = [];
-	const setWatchCalls: { pageId: string; agentId: string | null }[] = [];
-	const clearWatchCalls: string[] = [];
-	const alive = options.alive ?? new Set(["term-1"]);
-	const busy = options.busy ?? new Set<string>();
-	const agents = options.agents ?? new Set(["term-1", "term-2"]);
-	let sendFails = false;
-	let setWatchFails = false;
-	let clock = T0;
-
-	const manager = new PageWatchManager({
-		api: {
-			listThreads: options.listThreads ?? (async () => options.threads ?? []),
-			setWatch: async (pageId, agentId) => {
-				if (setWatchFails) {
-					throw new Error(
-						"Only the person who created this page can change it",
-					);
-				}
-				setWatchCalls.push({ pageId, agentId });
-				await options.setWatch?.(pageId, agentId);
-			},
-			clearWatch: async (pageId) => {
-				clearWatchCalls.push(pageId);
-				await options.clearWatch?.(pageId);
-			},
-		},
-		sendToTerminal: async ({ terminalId, expectedAgent, text, signal }) => {
-			if (sendFails) throw new Error("terminal gone");
-			await options.sendToTerminal?.({
-				workspaceId: "ws-1",
-				expectedAgent,
+	const events: string[] = [];
+	const alive = new Set(["a", "b"]);
+	const busy = new Set<string>();
+	const agents = new Map<string, TerminalAgentBinding>(
+		["a", "b"].map((terminalId) => [
+			terminalId,
+			{
 				terminalId,
-				text,
-				signal,
-			});
-			signal.throwIfAborted();
-			sent.push({ terminalId, text });
+				workspaceId: `ws-${terminalId}`,
+				agentId: "codex",
+				startedAt: T0,
+				lastEventAt: T0,
+				lastEventType: "Attached",
+			},
+		]),
+	);
+	const send: PageWatchDeps["sendToTerminal"] = async (input) => {
+		input.signal.throwIfAborted();
+		const permit = await input.acquireDelivery();
+		if (!permit?.isValid()) throw new Error("delivery cancelled");
+		sent.push({ terminalId: input.terminalId, text: input.text });
+	};
+	const manager = new PageWatchManager({
+		api: shared.api,
+		sendToTerminal: send,
+		getAgent: (id) => agents.get(id),
+		isTerminalAlive: (id) => alive.has(id),
+		isAgentBusy: (id) => busy.has(id),
+		now: () => now,
+		monotonicNow: () => now - T0,
+		sleep: async (ms) => {
+			now += ms;
 		},
-		isTerminalAlive: (terminalId) => alive.has(terminalId),
-		isAgentBusy: (terminalId) => busy.has(terminalId),
-		getAgent: (terminalId) =>
-			agents.has(terminalId)
-				? {
-						terminalId,
-						workspaceId: "ws-1",
-						agentId: "claude",
-						startedAt: T0,
-						lastEventAt: T0,
-						lastEventType: "Attached",
-					}
-				: undefined,
-		now: () => clock,
-		setIntervalFn: (() => {
-			const handle = { unref() {} };
-			return handle as unknown as ReturnType<typeof setInterval>;
-		}) as unknown as typeof setInterval,
-		clearIntervalFn: (() => {}) as unknown as typeof clearInterval,
+		setIntervalFn: (() => ({ unref() {} })) as unknown as typeof setInterval,
+		clearIntervalFn: (() => {}) as typeof clearInterval,
+		...overrides,
 	});
-
-	const assign = (
-		over: Partial<{
-			pageId: string;
-			terminalId: string;
-			agentId: string | null;
-		}> = {},
-	) =>
+	let terminalExit:
+		| ((input: { eventType: string; terminalId: string }) => void)
+		| undefined;
+	manager.subscribeToTerminalEvents({
+		onTerminalLifecycle: (fn: typeof terminalExit) => {
+			terminalExit = fn;
+			return () => {
+				terminalExit = undefined;
+			};
+		},
+		broadcastPageWatchChanged: ({ workspaceId }: { workspaceId: string }) =>
+			events.push(workspaceId),
+	} as never);
+	const assign = (over: Partial<PageWatchAssignment> = {}) =>
 		manager.assign({
-			pageId: over.pageId ?? "page-1",
-			slug: "report-a1b2c3",
-			title: "Report",
-			workspaceId: "ws-1",
-			terminalId: over.terminalId ?? "term-1",
-			agentId: over.agentId === undefined ? "claude" : over.agentId,
+			pageId: "page",
+			slug: "page",
+			title: "Page",
+			terminalId: "a",
+			workspaceId: "ws-a",
+			agentId: null,
+			...over,
 		});
-
 	return {
 		manager,
-		sent,
-		setWatchCalls,
-		clearWatchCalls,
+		assign,
+		agents,
 		alive,
 		busy,
-		agents,
-		assign,
-		failSends: (value: boolean) => {
-			sendFails = value;
-		},
-		failSetWatch: (value: boolean) => {
-			setWatchFails = value;
-		},
+		events,
+		sent,
+		send,
+		shared,
 		advance: (ms: number) => {
-			clock += ms;
+			now += ms;
 		},
-		at: () => clock,
+		exit: (terminalId: string) =>
+			terminalExit?.({ eventType: "exit", terminalId }),
 	};
 }
 
 describe("PageWatchManager", () => {
-	for (const agentId of [null, "custom:reviewer"]) {
-		it(`uses the captured binding independently of the display label ${agentId}`, async () => {
-			const targets: string[] = [];
-			const h = harness({
-				threads: [humanThread("identity", T0 + 5000)],
-				sendToTerminal: async ({ expectedAgent }) => {
-					targets.push(expectedAgent.agentId);
-				},
-			});
-			await h.assign({ agentId });
-			h.advance(5000);
+	it("keeps the newest intent when initial target validations finish out of order", async () => {
+		const gate = Promise.withResolvers<boolean>();
+		const h = harness(undefined, {
+			isTerminalAlive: (id) => (id === "a" ? gate.promise : true),
+		});
+		const older = h.assign();
+		await h.assign({ terminalId: "b", workspaceId: "ws-b" });
+		gate.resolve(true);
+		await older;
+		expect(h.manager.list()[0]?.terminalId).toBe("b");
+		expect(h.shared.calls.claim).toBe(1);
+	});
+	for (const action of ["unwatch", "stop"] as const)
+		it(`cancels initial target validation on ${action}`, async () => {
+			const gate = Promise.withResolvers<boolean>();
+			const h = harness(undefined, { isTerminalAlive: () => gate.promise });
+			const pending = h.assign();
+			if (action === "unwatch") await h.manager.unwatch("page");
+			else h.manager.stop();
+			gate.resolve(true);
+			await pending;
+			expect(h.shared.calls.claim).toBe(0);
+			expect(h.manager.list()).toEqual([]);
+		});
+	it("rejects a binding returned for a different terminal", async () => {
+		const h = harness();
+		const b = h.agents.get("b");
+		if (!b) throw new Error("Missing fixture");
+		h.agents.set("a", { ...b, workspaceId: "ws-a" });
+		await expect(h.assign()).rejects.toThrow();
+		expect(h.shared.calls.claim).toBe(0);
+	});
+	for (const code of ["FORBIDDEN", "UNAUTHORIZED", "NOT_FOUND"])
+		it(`retires immediately on ${code}`, async () => {
+			const h = harness();
+			await h.assign();
+			h.shared.api.listThreads = async () => {
+				throw Object.assign(new Error(code), { data: { code } });
+			};
 			await h.manager.tick();
-			expect(targets).toEqual(["claude"]);
+			expect(h.manager.list()).toEqual([]);
+		});
+	it("bounds cleanup retries after stopping during an outage", async () => {
+		const h = harness();
+		await h.assign();
+		let attempts = 0;
+		h.shared.api.releaseWatch = async () => {
+			attempts++;
+			throw new Error("offline");
+		};
+		h.manager.stop();
+		for (let i = 0; i < 20; i++) await h.manager.tick();
+		expect(attempts).toBe(MAX_CONSECUTIVE_FAILURES);
+	});
+	it("releases failed pending delivery acknowledgements before unwatch completes cleanup", async () => {
+		const h = harness();
+		await h.assign();
+		const base = h.shared.api.finishWatchDelivery;
+		let offline = true;
+		h.shared.api.finishWatchDelivery = async (input) => {
+			if (offline) throw new Error("offline");
+			return base(input);
+		};
+		h.shared.threads.set("page", [thread("sent")]);
+		await h.manager.tick();
+		await h.manager.unwatch("page");
+		expect(h.shared.owners.size).toBe(1);
+		offline = false;
+		await h.manager.tick();
+		expect(h.shared.owners.size).toBe(0);
+		expect(h.sent).toHaveLength(1);
+	});
+	it("rechecks permission state after waiting for the delivery reservation", async () => {
+		const h = harness();
+		await h.assign();
+		const base = h.shared.api.reserveWatchDelivery;
+		h.shared.api.reserveWatchDelivery = async (input) => {
+			const reservation = await base(input);
+			h.busy.add("a");
+			return reservation;
+		};
+		h.shared.threads.set("page", [thread("held")]);
+		await h.manager.tick();
+		expect(h.sent).toEqual([]);
+		expect(h.shared.owners.get("page")?.reservation).toBeUndefined();
+	});
+	it("expires a watch that remains busy past the idle TTL", async () => {
+		const h = harness();
+		await h.assign();
+		h.busy.add("a");
+		h.shared.threads.set("page", [thread("pending")]);
+		await h.manager.tick();
+		h.advance(IDLE_TTL_MS + 1);
+		await h.manager.tick();
+		expect(h.manager.list()).toEqual([]);
+		expect(h.sent).toEqual([]);
+	});
+	it("throttles quiet polling while continuing ownership heartbeats", async () => {
+		const h = harness();
+		await h.assign();
+		let reads = 0;
+		h.shared.api.listThreads = async () => {
+			reads++;
+			return [];
+		};
+		h.advance(6 * 60_000);
+		await h.manager.tick();
+		expect(reads).toBe(1);
+		h.advance(30_000);
+		await h.manager.tick();
+		expect(reads).toBe(1);
+		expect(h.shared.calls.renew).toBe(2);
+		h.advance(30_000);
+		await h.manager.tick();
+		expect(reads).toBe(2);
+	});
+
+	it("baselines existing comments on the server and delivers new IDs independently of clocks", async () => {
+		const h = harness();
+		h.shared.threads.set("page", [thread("old", T0 + 100000)]);
+		await h.assign();
+		h.shared.threads.get("page")?.push(thread("new", T0 - 100000));
+		await h.manager.tick();
+		await h.manager.tick();
+		expect(h.sent).toHaveLength(1);
+		expect(h.sent[0]?.text).toContain("new 👍🏽 日本語");
+		expect(h.sent[0]?.text).not.toContain("old 👍🏽");
+	});
+	for (const agentId of [null, "custom-reviewer"])
+		it(`does not confuse display label ${agentId} with agent identity`, async () => {
+			const h = harness();
+			await h.assign({ agentId });
+			h.shared.threads.set("page", [thread("new")]);
+			await h.manager.tick();
 			expect(h.sent).toHaveLength(1);
 		});
-	}
-
-	it("serializes cloud assignments and leaves the latest recipient persisted", async () => {
-		const first = Promise.withResolvers<void>();
-		const started = Promise.withResolvers<void>();
-		const cloud: { agentId: string | null } = { agentId: null };
-		let calls = 0;
-		const h = harness({
-			setWatch: async (_, agentId) => {
-				if (++calls === 1) {
-					started.resolve();
-					await first.promise;
-				}
-				cloud.agentId = agentId;
-			},
-		});
-		const pending = h.assign({ agentId: "first" });
-		await started.promise;
-		const latest = h.assign({ terminalId: "term-2", agentId: "latest" });
-		expect(calls).toBe(1);
-		first.resolve();
-		await Promise.all([pending, latest]);
-		expect(h.manager.list()[0]?.terminalId).toBe("term-2");
-		expect(cloud.agentId).toBe("latest");
+	it("rejects wrong-workspace and dead targets before publishing", async () => {
+		const h = harness();
+		await expect(h.assign({ workspaceId: "wrong" })).rejects.toThrow();
+		h.alive.clear();
+		await expect(h.assign()).rejects.toThrow();
+		expect(h.shared.calls.claim).toBe(0);
 	});
-
-	for (const action of ["stop", "unwatch"] as const) {
-		it(`clears a pending cloud assignment after ${action}`, async () => {
-			const gate = Promise.withResolvers<void>();
-			const started = Promise.withResolvers<void>();
-			const cleared = Promise.withResolvers<void>();
-			let cloud = false;
-			const h = harness({
-				setWatch: async () => {
-					started.resolve();
-					await gate.promise;
-					cloud = true;
-				},
-				clearWatch: async () => {
-					cloud = false;
-					cleared.resolve();
-				},
-			});
-			const pending = h.assign();
-			await started.promise;
-			const stopping =
-				action === "stop" ? h.manager.stop() : h.manager.unwatch("page-1");
-			gate.resolve();
-			await Promise.all([pending, stopping, cleared.promise]);
-			expect(h.manager.list()).toEqual([]);
-			expect(cloud).toBe(false);
-		});
-	}
-
-	it("does not let an old heartbeat overwrite reassignment or unwatch", async () => {
+	it("revalidates the target after a slow cloud claim", async () => {
+		const h = harness();
+		const base = h.shared.api.claimWatch;
+		const entered = Promise.withResolvers<void>();
 		const gate = Promise.withResolvers<void>();
-		const started = Promise.withResolvers<void>();
-		let calls = 0;
-		const cloud: { agentId: string | null } = { agentId: null };
-		const h = harness({
-			setWatch: async (_, agentId) => {
-				if (++calls === 2) {
-					started.resolve();
-					await gate.promise;
-				}
-				cloud.agentId = agentId;
-			},
-			clearWatch: async () => {
-				cloud.agentId = null;
-			},
-		});
-		await h.assign({ agentId: "old" });
-		h.advance(HEARTBEAT_INTERVAL_MS);
-		const tick = h.manager.tick();
-		await started.promise;
-		const assignment = h.assign({ terminalId: "term-2", agentId: "new" });
+		h.shared.api.claimWatch = async (input) => {
+			entered.resolve();
+			await gate.promise;
+			return base(input);
+		};
+		const assigning = h.assign();
+		await entered.promise;
+		h.alive.clear();
 		gate.resolve();
-		await Promise.all([tick, assignment]);
-		expect(cloud.agentId).toBe("new");
-		await h.manager.unwatch("page-1");
-		expect(cloud.agentId).toBeNull();
+		await expect(assigning).rejects.toThrow();
+		expect(h.manager.list()).toEqual([]);
+		expect(h.shared.owners.size).toBe(0);
 	});
-
-	it("counts pending assignments toward the watcher cap", async () => {
+	it("notifies both workspaces when reassigning", async () => {
+		const h = harness();
+		await h.assign();
+		h.events.length = 0;
+		await h.assign({ terminalId: "b", workspaceId: "ws-b" });
+		expect(h.events).toEqual(["ws-a", "ws-b"]);
+		expect(h.manager.list("ws-a")).toEqual([]);
+	});
+	it("takes ownership across managers and stale release cannot clear the new owner", async () => {
+		const shared = cloud();
+		const a = harness(shared);
+		const b = harness(shared);
+		await a.assign();
+		await b.assign({ terminalId: "b", workspaceId: "ws-b" });
+		shared.threads.set("page", [thread("new")]);
+		await Promise.all([a.manager.tick(), b.manager.tick()]);
+		expect(a.sent).toEqual([]);
+		expect(b.sent).toHaveLength(1);
+		expect(a.manager.list()).toEqual([]);
+		expect(shared.owners.size).toBe(1);
+	});
+	it("active takeover preserves delivered IDs so the new agent receives only new feedback", async () => {
+		const shared = cloud();
+		const a = harness(shared);
+		const b = harness(shared);
+		await a.assign();
+		shared.threads.set("page", [thread("first")]);
+		await a.manager.tick();
+		await b.assign({ terminalId: "b", workspaceId: "ws-b" });
+		shared.threads.get("page")?.push(thread("second"));
+		await b.manager.tick();
+		expect(b.sent).toHaveLength(1);
+		expect(b.sent[0]?.text).toContain("second");
+		expect(b.sent[0]?.text).not.toContain("first 👍🏽");
+	});
+	it("handles a same-timestamp comment that appears in a later fetch", async () => {
+		const h = harness();
+		await h.assign();
+		h.shared.threads.set("page", [thread("first")]);
+		await h.manager.tick();
+		h.shared.threads.get("page")?.push(thread("second"));
+		await h.manager.tick();
+		expect(h.sent).toHaveLength(2);
+	});
+	it("serializes slow claims and the latest assignment wins", async () => {
+		const h = harness();
+		const base = h.shared.api.claimWatch;
+		const entered = Promise.withResolvers<void>();
 		const gate = Promise.withResolvers<void>();
-		const h = harness({ setWatch: () => gate.promise });
-		const pending = Array.from({ length: MAX_WATCHERS }, (_, index) =>
-			h.assign({ pageId: `page-${index}` }),
-		);
-		try {
-			await expect(h.assign({ pageId: "over-cap" })).rejects.toThrow(
-				"already watching",
-			);
-		} finally {
+		h.shared.api.claimWatch = async (input) => {
+			if (h.shared.calls.claim === 0) {
+				entered.resolve();
+				await gate.promise;
+			}
+			return base(input);
+		};
+		const first = h.assign();
+		await entered.promise;
+		const second = h.assign({ terminalId: "b", workspaceId: "ws-b" });
+		gate.resolve();
+		await Promise.all([first, second]);
+		expect(h.manager.list()[0]?.terminalId).toBe("b");
+		expect(h.shared.owners.size).toBe(1);
+	});
+	for (const action of ["unwatch", "stop", "exit"] as const)
+		it(`does not resurrect pending assignment after ${action}`, async () => {
+			const h = harness();
+			const base = h.shared.api.claimWatch;
+			const entered = Promise.withResolvers<void>();
+			const gate = Promise.withResolvers<void>();
+			h.shared.api.claimWatch = async (input) => {
+				entered.resolve();
+				await gate.promise;
+				return base(input);
+			};
+			const assigning = h.assign();
+			await entered.promise;
+			if (action === "unwatch") await h.manager.unwatch("page");
+			else if (action === "stop") h.manager.stop();
+			else h.exit("a");
 			gate.resolve();
-			await Promise.all(pending);
-		}
-	});
-
-	it("delivers a new human comment to the assigned terminal", async () => {
-		const h = harness({ threads: [humanThread("t1", T0 + 5_000)] });
-		await h.assign();
-		h.advance(5_000);
-		await h.manager.tick();
-
-		expect(h.sent.length).toBe(1);
-		expect(h.sent[0]?.terminalId).toBe("term-1");
-		expect(h.sent[0]?.text).toContain("thread: t1");
-		expect(h.sent[0]?.text).toContain("report-a1b2c3");
-	});
-
-	it("does not redeliver the same comment on the next tick", async () => {
-		const h = harness({ threads: [humanThread("t1", T0 + 5_000)] });
-		await h.assign();
-		h.advance(5_000);
-		await h.manager.tick();
-		h.advance(10_000);
-		await h.manager.tick();
-
-		expect(h.sent.length).toBe(1);
-	});
-
-	it("watches many pages for one agent", async () => {
-		const h = harness({ threads: [humanThread("t1", T0 + 5_000)] });
-		await h.assign({ pageId: "page-1" });
-		await h.assign({ pageId: "page-2" });
-		h.advance(5_000);
-		await h.manager.tick();
-
-		expect(h.manager.list("ws-1").length).toBe(2);
-		expect(h.sent.length).toBe(2);
-	});
-
-	it("isolates all pages at the watcher cap across multiple agents", async () => {
-		const alive = new Set(["term-0", "term-1", "term-2", "term-3"]);
-		const h = harness({
-			alive,
-			agents: alive,
-			listThreads: async (pageId) => [
-				humanThread(`thread-${pageId}`, T0 + 5000),
-			],
+			await assigning;
+			expect(h.manager.list()).toEqual([]);
+			expect(h.shared.owners.size).toBe(0);
 		});
-		for (let index = 0; index < MAX_WATCHERS; index++) {
-			await h.assign({
-				pageId: `page-${index}`,
-				terminalId: `term-${index % 4}`,
-			});
-		}
-		h.advance(5000);
-		await Promise.all([h.manager.tick(), h.manager.tick(), h.manager.tick()]);
-		expect(h.sent).toHaveLength(MAX_WATCHERS);
-		for (let index = 0; index < MAX_WATCHERS; index++) {
-			const messages = h.sent.filter(({ text }) =>
-				text.includes(`thread: thread-page-${index}\n`),
-			);
-			expect(messages).toHaveLength(1);
-			expect(messages[0]?.terminalId).toBe(`term-${index % 4}`);
-		}
+	it("counts pending assignments toward the cap", async () => {
+		const h = harness();
+		const base = h.shared.api.claimWatch;
+		const gate = Promise.withResolvers<void>();
+		h.shared.api.claimWatch = async (input) => {
+			await gate.promise;
+			return base(input);
+		};
+		const pending = Array.from({ length: MAX_WATCHERS }, (_, i) =>
+			h.assign({ pageId: `page-${i}` }),
+		);
+		await Promise.resolve();
+		await Promise.resolve();
+		await expect(h.assign({ pageId: "excess" })).rejects.toThrow(
+			"already watching",
+		);
+		gate.resolve();
+		await Promise.all(pending);
 	});
-
-	it("a stalled page does not delay another agent's feedback", async () => {
+	it("routes twenty pages independently across agents and overlapping ticks", async () => {
+		const h = harness();
+		for (let i = 0; i < MAX_WATCHERS; i++)
+			await h.assign({
+				pageId: `page-${i}`,
+				terminalId: i % 2 ? "a" : "b",
+				workspaceId: i % 2 ? "ws-a" : "ws-b",
+			});
+		for (let i = 0; i < MAX_WATCHERS; i++)
+			h.shared.threads.set(`page-${i}`, [thread(`feedback-${i}`)]);
+		await Promise.all([h.manager.tick(), h.manager.tick()]);
+		expect(h.sent).toHaveLength(MAX_WATCHERS);
+		for (let i = 0; i < MAX_WATCHERS; i++)
+			expect(
+				h.sent.find((sent) => sent.text.includes(`thread: feedback-${i}\n`))
+					?.terminalId,
+			).toBe(i % 2 ? "a" : "b");
+	});
+	it("does not let a stalled page block another page's delivery", async () => {
+		const h = harness();
+		await h.assign();
+		await h.assign({ pageId: "other" });
 		const gate = Promise.withResolvers<WatchedThread[]>();
-		const delivered = Promise.withResolvers<void>();
-		let commentAt = T0 + 5000;
-		const h = harness({
-			alive: new Set(["term-1", "term-2"]),
-			listThreads: (pageId) =>
-				pageId === "page-1"
-					? gate.promise
-					: Promise.resolve([humanThread("independent", commentAt)]),
-			sendToTerminal: async () => {
-				delivered.resolve();
+		h.shared.api.listThreads = (id) =>
+			id === "page" ? gate.promise : Promise.resolve([thread("other")]);
+		const tick = h.manager.tick();
+		for (let i = 0; i < 15; i++) await Promise.resolve();
+		expect(h.sent).toHaveLength(1);
+		gate.resolve([]);
+		await tick;
+	});
+	it("cancels an old fetch after reassignment", async () => {
+		const h = harness();
+		await h.assign();
+		const gate = Promise.withResolvers<WatchedThread[]>();
+		const entered = Promise.withResolvers<void>();
+		h.shared.api.listThreads = async () => {
+			entered.resolve();
+			return gate.promise;
+		};
+		const tick = h.manager.tick();
+		await entered.promise;
+		await h.assign({ terminalId: "b", workspaceId: "ws-b" });
+		gate.resolve([thread("new")]);
+		await tick;
+		expect(h.sent).toHaveLength(0);
+		await h.manager.tick();
+		expect(h.sent[0]?.terminalId).toBe("b");
+	});
+	it("acquires ownership only at the terminal queue head and cancels reassigned work", async () => {
+		const gate = Promise.withResolvers<void>();
+		const entered = Promise.withResolvers<void>();
+		let h: ReturnType<typeof harness>;
+		h = harness(undefined, {
+			sendToTerminal: async (input) => {
+				entered.resolve();
+				await gate.promise;
+				return h.send(input);
 			},
 		});
 		await h.assign();
-		await h.assign({ pageId: "page-2", terminalId: "term-2" });
-		h.advance(5000);
-		const polling = h.manager.tick();
-		let timeout: ReturnType<typeof setTimeout> | undefined;
-		try {
-			await Promise.race([
-				delivered.promise,
-				new Promise((_, reject) => {
-					timeout = setTimeout(
-						() => reject(new Error("unrelated agent blocked by stalled page")),
-						2000,
-					);
-				}),
-			]);
-			commentAt += 5000;
-			h.advance(5000);
-			await new Promise((resolve) => setTimeout(resolve, 0));
-			await h.manager.tick();
-			expect(h.sent.map(({ terminalId }) => terminalId)).toEqual([
-				"term-2",
-				"term-2",
-			]);
-		} finally {
-			clearTimeout(timeout);
-			gate.resolve([]);
-			await polling;
-		}
-		expect(h.sent[0]?.terminalId).toBe("term-2");
+		h.shared.threads.set("page", [thread("new")]);
+		const tick = h.manager.tick();
+		await entered.promise;
+		expect(h.shared.calls.reserve).toBe(0);
+		await h.assign({ terminalId: "b", workspaceId: "ws-b" });
+		gate.resolve();
+		await tick;
+		expect(h.sent).toHaveLength(0);
+		await h.manager.tick();
+		expect(h.sent[0]?.terminalId).toBe("b");
 	});
-
-	it("busy agents retain their own cursors while other agents receive feedback", async () => {
-		const h = harness({
-			alive: new Set(["term-1", "term-2"]),
-			busy: new Set(["term-1"]),
-			listThreads: async (pageId) => [humanThread(pageId, T0 + 5000)],
+	it("does not type into an agent that became busy while queued", async () => {
+		let h: ReturnType<typeof harness>;
+		h = harness(undefined, {
+			sendToTerminal: async (input) => {
+				h.busy.add("a");
+				return h.send(input);
+			},
 		});
 		await h.assign();
-		await h.assign({ pageId: "page-2" });
-		await h.assign({ pageId: "page-3", terminalId: "term-2" });
-		h.advance(5000);
+		h.shared.threads.set("page", [thread("new")]);
 		await h.manager.tick();
-		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual(["term-2"]);
+		expect(h.sent).toHaveLength(0);
+		expect(h.shared.calls.reserve).toBe(0);
+	});
+	it("never forces delivery into a permission prompt even after two minutes", async () => {
+		const h = harness();
+		await h.assign();
+		h.busy.add("a");
+		h.shared.threads.set("page", [thread("new")]);
+		await h.manager.tick();
+		h.advance(180_000);
+		await h.manager.tick();
+		expect(h.sent).toEqual([]);
 		h.busy.clear();
 		await h.manager.tick();
-		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual([
-			"term-2",
-			"term-1",
-			"term-1",
-		]);
-		await h.manager.tick();
-		expect(h.sent).toHaveLength(3);
+		expect(h.sent).toHaveLength(1);
 	});
-
-	it("one agent's failed delivery retries without duplicating another agent's feedback", async () => {
-		let failing = true;
-		const h = harness({
-			alive: new Set(["term-1", "term-2"]),
-			listThreads: async (pageId) => [humanThread(pageId, T0 + 5000)],
-			sendToTerminal: async ({ terminalId }) => {
-				if (terminalId === "term-1" && failing) throw new Error("send failed");
+	it("counts reserve round-trip time against the monotonic lease", async () => {
+		const h = harness();
+		await h.assign();
+		const base = h.shared.api.reserveWatchDelivery;
+		h.shared.api.reserveWatchDelivery = async (input) => {
+			const result = await base(input);
+			h.advance(10_001);
+			return result;
+		};
+		h.shared.threads.set("page", [thread("new")]);
+		await h.manager.tick();
+		expect(h.sent).toHaveLength(0);
+		expect(h.shared.owners.get("page")?.seenCommentIds.size).toBe(0);
+		expect(h.shared.owners.get("page")?.reservation).toBeUndefined();
+	});
+	it("acknowledges a successful send again after a lost response without resending", async () => {
+		const h = harness();
+		await h.assign();
+		const base = h.shared.api.finishWatchDelivery;
+		let lost = true;
+		h.shared.api.finishWatchDelivery = async (input) => {
+			const result = await base(input);
+			if (lost) {
+				lost = false;
+				throw new Error("response lost");
+			}
+			return result;
+		};
+		h.shared.threads.set("page", [thread("new")]);
+		await h.manager.tick();
+		expect(h.sent).toHaveLength(1);
+		await h.manager.tick();
+		expect(h.sent).toHaveLength(1);
+		expect(h.shared.calls.finish).toBe(2);
+	});
+	it("holds new sends until a pending acknowledgement succeeds", async () => {
+		const h = harness();
+		await h.assign();
+		const base = h.shared.api.finishWatchDelivery;
+		let offline = true;
+		h.shared.api.finishWatchDelivery = (input) => {
+			if (offline) return Promise.reject(new Error("offline"));
+			return base(input);
+		};
+		h.shared.threads.set("page", [thread("first")]);
+		await h.manager.tick();
+		h.shared.threads.get("page")?.push(thread("second"));
+		await h.manager.tick();
+		expect(h.sent).toHaveLength(1);
+		offline = false;
+		await h.manager.tick();
+		expect(h.sent).toHaveLength(2);
+	});
+	it("does not retry input that was already staged in the terminal", async () => {
+		const h = harness(undefined, {
+			sendToTerminal: async ({ acquireDelivery }) => {
+				await acquireDelivery();
+				return { inputStaged: true };
 			},
 		});
 		await h.assign();
-		await h.assign({ pageId: "page-2", terminalId: "term-2" });
-		h.advance(5000);
+		h.shared.threads.set("page", [thread("new")]);
 		await h.manager.tick();
-		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual(["term-2"]);
-		failing = false;
-		await h.manager.tick();
-		await h.manager.tick();
-		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual([
-			"term-2",
-			"term-1",
-		]);
+		expect(h.manager.list()).toEqual([]);
+		expect(h.shared.calls.reserve).toBe(1);
+		expect(h.shared.owners.size).toBe(0);
 	});
-
-	it("reassignment during a fetch sends only to the new agent", async () => {
-		const gate = Promise.withResolvers<WatchedThread[]>();
-		const h = harness({
-			alive: new Set(["term-1", "term-2"]),
-			listThreads: async () => gate.promise,
-		});
+	it("counts consecutive heartbeat failures across full poll cycles", async () => {
+		const h = harness();
 		await h.assign();
-		h.advance(5000);
-		const polling = h.manager.tick();
-		await h.assign({ terminalId: "term-2" });
-		gate.resolve([humanThread("reassigned", T0 + 5000)]);
-		await polling;
-		expect(h.sent).toEqual([]);
-		await h.manager.tick();
-		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual(["term-2"]);
-	});
-
-	it("reassignment cancels queued delivery to the old agent", async () => {
-		const entered = Promise.withResolvers<void>();
-		const release = Promise.withResolvers<void>();
-		const h = harness({
-			alive: new Set(["term-1", "term-2"]),
-			threads: [humanThread("queued", T0 + 5000)],
-			sendToTerminal: async ({ terminalId }) => {
-				if (terminalId === "term-1") {
-					entered.resolve();
-					await release.promise;
-				}
-			},
-		});
-		await h.assign();
-		h.advance(5000);
-		const polling = h.manager.tick();
-		await entered.promise;
-		await h.assign({ terminalId: "term-2" });
-		release.resolve();
-		await polling;
-		expect(h.sent).toEqual([]);
-		await h.manager.tick();
-		expect(h.sent.map(({ terminalId }) => terminalId)).toEqual(["term-2"]);
-	});
-
-	it("stopping the manager cancels queued feedback from every page", async () => {
-		const entered = Promise.withResolvers<void>();
-		const release = Promise.withResolvers<void>();
-		let queued = 0;
-		const h = harness({
-			threads: [humanThread("queued", T0 + 5000)],
-			sendToTerminal: async () => {
-				if (++queued === 2) entered.resolve();
-				await release.promise;
-			},
-		});
-		await h.assign();
-		await h.assign({ pageId: "page-2" });
-		h.advance(5000);
-		const polling = h.manager.tick();
-		await entered.promise;
-		h.manager.stop();
-		release.resolve();
-		await polling;
-		expect(h.sent).toEqual([]);
+		h.advance(HEARTBEAT_INTERVAL_MS);
+		h.shared.api.renewWatch = async () => {
+			throw new Error("heartbeat offline");
+		};
+		for (let i = 0; i < MAX_CONSECUTIVE_FAILURES; i++) await h.manager.tick();
 		expect(h.manager.list()).toEqual([]);
 	});
-
-	it("drops every page for a terminal that exits, and clears each cloud row", async () => {
+	it("recovers failure count after a full successful cycle", async () => {
 		const h = harness();
-		await h.assign({ pageId: "page-1" });
-		await h.assign({ pageId: "page-2" });
-		await h.assign({ pageId: "page-3", terminalId: "term-2" });
-		h.alive.add("term-2");
-
-		h.alive.delete("term-1");
+		await h.assign();
+		const base = h.shared.api.listThreads;
+		h.shared.api.listThreads = async () => {
+			throw new Error("offline");
+		};
+		for (let i = 0; i < 4; i++) await h.manager.tick();
+		h.shared.api.listThreads = base;
 		await h.manager.tick();
-
-		expect(h.manager.list().map((w) => w.pageId)).toEqual(["page-3"]);
-		expect(h.clearWatchCalls.sort()).toEqual(["page-1", "page-2"]);
+		h.shared.api.listThreads = async () => {
+			throw new Error("offline");
+		};
+		for (let i = 0; i < 4; i++) await h.manager.tick();
+		expect(h.manager.list()).toHaveLength(1);
 	});
-
-	it("refuses to exceed the watcher cap", async () => {
+	it("caps takeover retries when another delivery stays reserved", async () => {
 		const h = harness();
-		for (let i = 0; i < MAX_WATCHERS; i += 1) {
-			await h.assign({ pageId: `page-${i}` });
-		}
-		await expect(h.assign({ pageId: "one-too-many" })).rejects.toThrow();
-		expect(h.manager.list().length).toBe(MAX_WATCHERS);
+		h.shared.api.claimWatch = async () => {
+			throw conflict();
+		};
+		await expect(h.assign()).rejects.toThrow("reserved");
+		expect(h.manager.list()).toEqual([]);
 	});
-
-	it("lets a reassignment of an existing page through the cap", async () => {
+	it("retries a temporary reservation conflict during takeover", async () => {
 		const h = harness();
-		for (let i = 0; i < MAX_WATCHERS; i += 1) {
-			await h.assign({ pageId: `page-${i}` });
-		}
-		await expect(h.assign({ pageId: "page-0" })).resolves.toBeUndefined();
+		const base = h.shared.api.claimWatch;
+		let attempts = 0;
+		h.shared.api.claimWatch = async (input) => {
+			if (++attempts < 3) throw conflict();
+			return base(input);
+		};
+		await h.assign();
+		expect(attempts).toBe(3);
+		expect(h.manager.list()).toHaveLength(1);
 	});
-
-	it("retires a page that has been quiet past the TTL", async () => {
+	it("drops every page for an exited terminal without disturbing another agent", async () => {
+		const h = harness();
+		await h.assign();
+		await h.assign({ pageId: "second" });
+		await h.assign({ pageId: "other", terminalId: "b", workspaceId: "ws-b" });
+		h.alive.delete("a");
+		await h.manager.tick();
+		expect(h.manager.list().map((entry) => entry.pageId)).toEqual(["other"]);
+		expect(h.shared.owners.size).toBe(1);
+	});
+	it("retires a quiet watch at its TTL", async () => {
 		const h = harness();
 		await h.assign();
 		h.advance(IDLE_TTL_MS + 1);
 		await h.manager.tick();
-
 		expect(h.manager.list()).toEqual([]);
-		expect(h.clearWatchCalls).toEqual(["page-1"]);
 	});
-
-	it("gives up after consecutive failures rather than retrying forever", async () => {
-		let calls = 0;
-		const h = harness({
-			listThreads: async () => {
-				calls += 1;
-				throw new Error("offline");
-			},
-		});
-		await h.assign();
-
-		for (let i = 0; i < MAX_CONSECUTIVE_FAILURES; i += 1) {
-			h.advance(1_000);
-			await h.manager.tick();
-		}
-
-		expect(calls).toBe(MAX_CONSECUTIVE_FAILURES);
-		expect(h.manager.list()).toEqual([]);
-
-		h.advance(1_000);
-		await h.manager.tick();
-		expect(calls).toBe(MAX_CONSECUTIVE_FAILURES);
-	});
-
-	it("recovers its failure count after a success", async () => {
-		let fail = true;
-		const h = harness({
-			listThreads: async () => {
-				if (fail) throw new Error("offline");
-				return [];
-			},
-		});
-		await h.assign();
-
-		for (let i = 0; i < MAX_CONSECUTIVE_FAILURES - 1; i += 1) {
-			h.advance(1_000);
-			await h.manager.tick();
-		}
-		fail = false;
-		h.advance(1_000);
-		await h.manager.tick();
-
-		fail = true;
-		for (let i = 0; i < MAX_CONSECUTIVE_FAILURES - 1; i += 1) {
-			h.advance(1_000);
-			await h.manager.tick();
-		}
-		expect(h.manager.list().length).toBe(1);
-	});
-
-	it("heartbeats no more than once per heartbeat interval", async () => {
+	it("acknowledges capped feedback without sending or wedging future polls", async () => {
 		const h = harness();
 		await h.assign();
-
-		h.advance(1_000);
-		await h.manager.tick();
-		expect(h.setWatchCalls.length).toBe(1);
-
-		h.advance(1_000);
-		await h.manager.tick();
-		expect(h.setWatchCalls.length).toBe(1);
-
-		h.advance(HEARTBEAT_INTERVAL_MS);
-		await h.manager.tick();
-		expect(h.setWatchCalls.length).toBe(2);
-	});
-
-	it("stops touching the cloud once every watcher is gone", async () => {
-		const h = harness();
-		await h.assign();
-		await h.manager.unwatch("page-1");
-
-		const before = h.setWatchCalls.length;
-		h.advance(HEARTBEAT_INTERVAL_MS * 2);
-		await h.manager.tick();
-		expect(h.setWatchCalls.length).toBe(before);
-	});
-
-	it("retries a comment whose delivery failed instead of dropping it", async () => {
-		const h = harness({ threads: [humanThread("t1", T0 + 5_000)] });
-		await h.assign();
-		h.failSends(true);
-		h.advance(5_000);
-		await h.manager.tick();
-		expect(h.sent.length).toBe(0);
-		expect(h.manager.list().length).toBe(1);
-
-		h.failSends(false);
-		h.advance(5_000);
-		await h.manager.tick();
-		expect(h.sent.length).toBe(1);
-		expect(h.sent[0]?.text).toContain("thread: t1");
-	});
-
-	it("gives up after repeated send failures rather than retrying forever", async () => {
-		const h = harness({ threads: [humanThread("t1", T0 + 5_000)] });
-		await h.assign();
-		h.failSends(true);
-		for (let i = 0; i < MAX_CONSECUTIVE_FAILURES; i += 1) {
-			h.advance(5_000);
+		for (let i = 0; i < 7; i++) {
+			const item = thread("same");
+			for (const comment of item.comments) comment.id = `comment-${i}`;
+			h.shared.threads.set("page", [item]);
 			await h.manager.tick();
 		}
-		expect(h.manager.list()).toEqual([]);
-	});
-
-	it("holds delivery while the agent is working", async () => {
-		const h = harness({ threads: [humanThread("t1", T0 + 5_000)] });
-		await h.assign();
-		h.busy.add("term-1");
-		h.advance(5_000);
-		await h.manager.tick();
-		expect(h.sent.length).toBe(0);
-
-		h.advance(5_000);
-		await h.manager.tick();
-		expect(h.sent.length).toBe(0);
-
-		h.busy.delete("term-1");
-		h.advance(5_000);
-		await h.manager.tick();
-		expect(h.sent.length).toBe(1);
-	});
-
-	it("batches everything that arrived while the agent was busy into one send", async () => {
-		const threads = [humanThread("t1", T0 + 1_000)];
-		const h = harness({ listThreads: async () => threads });
-		await h.assign();
-		h.busy.add("term-1");
-		h.advance(5_000);
-		await h.manager.tick();
-
-		threads.push(humanThread("t2", T0 + 6_000));
-		h.advance(5_000);
-		await h.manager.tick();
-		expect(h.sent.length).toBe(0);
-
-		h.busy.delete("term-1");
-		h.advance(5_000);
-		await h.manager.tick();
-		expect(h.sent.length).toBe(1);
-		expect(h.sent[0]?.text).toContain("thread: t1");
-		expect(h.sent[0]?.text).toContain("thread: t2");
-	});
-
-	it("stops holding once the max hold elapses, so a wedged agent still hears", async () => {
-		const h = harness({ threads: [humanThread("t1", T0 + 5_000)] });
-		await h.assign();
-		h.busy.add("term-1");
-		h.advance(5_000);
-		await h.manager.tick();
-		expect(h.sent.length).toBe(0);
-
-		h.advance(MAX_HOLD_MS);
-		await h.manager.tick();
-		expect(h.sent.length).toBe(1);
-	});
-
-	it("refuses to watch a terminal with no agent in it", async () => {
-		const h = harness({ agents: new Set() });
-		await expect(h.assign()).rejects.toThrow();
-		expect(h.manager.list()).toEqual([]);
-	});
-
-	it("refuses to watch a page the cloud will not let this user claim", async () => {
-		const h = harness();
-		h.failSetWatch(true);
-		await expect(h.assign()).rejects.toThrow(
-			"Only the person who created this page can change it",
-		);
-		expect(h.manager.list()).toEqual([]);
-	});
-
-	it("drops a watcher whose agent has gone, without typing into the bare shell", async () => {
-		const h = harness({ threads: [humanThread("t1", T0 + 5_000)] });
-		await h.assign();
-		h.agents.delete("term-1");
-		h.advance(5_000);
-		await h.manager.tick();
-
-		expect(h.sent).toEqual([]);
-		expect(h.manager.list()).toEqual([]);
-	});
-
-	it("does not skip a live thread past a ping-capped one when nothing was sent", async () => {
-		const capped = humanThread("capped", T0 + 9_000);
-		const live = humanThread("live", T0 + 1_000);
-		const h = harness({ listThreads: async () => [live, capped] });
-		await h.assign();
-
-		const entry = h.manager.list()[0];
-		expect(entry).toBeDefined();
-		for (let i = 0; i < MAX_PINGS_PER_THREAD; i += 1) {
-			(
-				h.manager as unknown as {
-					entries: Map<string, { pings: Map<string, number> }>;
-				}
-			).entries
-				.get("page-1")
-				?.pings.set("capped", MAX_PINGS_PER_THREAD);
-		}
-
-		h.busy.add("term-1");
-		h.advance(5_000);
-		await h.manager.tick();
-		expect(h.sent).toEqual([]);
-
-		h.busy.delete("term-1");
-		h.advance(5_000);
-		await h.manager.tick();
-
-		expect(h.sent.length).toBe(1);
-		expect(h.sent[0]?.text).toContain("thread: live");
-	});
-
-	it("does not hold when the agent is idle", async () => {
-		const h = harness({ threads: [humanThread("t1", T0 + 5_000)] });
-		await h.assign();
-		h.advance(5_000);
-		await h.manager.tick();
-		expect(h.sent.length).toBe(1);
-	});
-
-	it("drops a poll whose watcher was stopped while the fetch was in flight", async () => {
-		let release!: () => void;
-		const gate = new Promise<void>((resolve) => {
-			release = resolve;
-		});
-		const h = harness({
-			listThreads: async () => {
-				await gate;
-				return [humanThread("t1", T0 + 5_000)];
-			},
-		});
-		await h.assign();
-		const setWatchesAfterAssign = h.setWatchCalls.length;
-
-		h.advance(HEARTBEAT_INTERVAL_MS + 5_000);
-		const polling = h.manager.tick();
-		await h.manager.unwatch("page-1");
-		release();
-		await polling;
-
-		expect(h.sent).toEqual([]);
-		expect(h.manager.list()).toEqual([]);
-		expect(h.setWatchCalls.length).toBe(setWatchesAfterAssign);
-	});
-
-	it("counts a malformed thread as a failure instead of wedging the tick", async () => {
-		const bad = humanThread("bad", T0 + 5_000);
-		(bad.comments[0] as { createdAt: unknown }).createdAt = "not a date";
-		const h = harness({
-			listThreads: async (pageId) =>
-				pageId === "page-1" ? [bad] : [humanThread("t2", T0 + 5_000)],
-		});
-		await h.assign({ pageId: "page-1" });
-		await h.assign({ pageId: "page-2" });
-
-		h.advance(5_000);
-		await h.manager.tick();
-
-		expect(h.sent.map((s) => s.text.includes("thread: t2"))).toEqual([true]);
-
-		for (let i = 1; i < MAX_CONSECUTIVE_FAILURES; i += 1) {
-			h.advance(5_000);
-			await h.manager.tick();
-		}
-		expect(h.manager.list().map((w) => w.pageId)).toEqual(["page-2"]);
+		expect(h.sent).toHaveLength(5);
+		expect(h.shared.owners.get("page")?.seenCommentIds.size).toBe(7);
 	});
 });

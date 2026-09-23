@@ -168,15 +168,6 @@ export const notificationsRouter = router({
 		const agent = normalizeAgentIdentity(input.agent);
 		const preview = trimOrUndefined(input.preview);
 
-		ctx.eventBus.broadcastAgentLifecycle({
-			workspaceId: terminalSession.originWorkspaceId,
-			eventType,
-			terminalId: input.terminalId,
-			...(agent ? { agent } : {}),
-			...(preview ? { preview } : {}),
-			occurredAt,
-		});
-
 		const prior = ctx.terminalAgentStore.get(input.terminalId);
 		const account =
 			verifyAttributionToken(input.terminalId, input.attributionToken) &&
@@ -203,6 +194,15 @@ export const notificationsRouter = router({
 			...(agent?.agentId ? { agentId: agent.agentId } : {}),
 			...(agent?.sessionId ? { agentSessionId: agent.sessionId } : {}),
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
+			occurredAt,
+		});
+
+		ctx.eventBus.broadcastAgentLifecycle({
+			workspaceId: terminalSession.originWorkspaceId,
+			eventType,
+			terminalId: input.terminalId,
+			...(agent ? { agent } : {}),
+			...(preview ? { preview } : {}),
 			occurredAt,
 		});
 

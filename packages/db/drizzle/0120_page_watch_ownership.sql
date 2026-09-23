@@ -1,0 +1,1 @@
+ALTER TABLE "pages" ADD COLUMN "watch_state" jsonb;

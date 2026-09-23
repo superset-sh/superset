@@ -1438,6 +1438,19 @@ export const desktopNotices = pgTable(
 export type InsertDesktopNotice = typeof desktopNotices.$inferInsert;
 export type SelectDesktopNotice = typeof desktopNotices.$inferSelect;
 
+export interface PageWatchOwnership {
+	token: string;
+	seenCommentIds: string[];
+	pings: Record<string, number>;
+	reservation: {
+		id: string;
+		expiresAt: number;
+		commentIds: string[];
+		pings: Record<string, number>;
+	} | null;
+	lastFinishedReservationId: string | null;
+}
+
 export const pages = pgTable(
 	"pages",
 	{
@@ -1454,6 +1467,7 @@ export const pages = pgTable(
 		visibility: pageVisibility().notNull().default("just_me"),
 		sharedVersion: integer("shared_version"),
 		watchedByAgent: text("watched_by_agent"),
+		watchState: jsonb("watch_state").$type<PageWatchOwnership>(),
 		watchHeartbeatAt: timestamp("watch_heartbeat_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()

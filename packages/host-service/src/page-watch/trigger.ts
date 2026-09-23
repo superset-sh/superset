@@ -1,59 +1,61 @@
 import type { PageWatchEntry, WatchedThread } from "./types.ts";
 
 export const MAX_PINGS_PER_THREAD = 5;
-
+export const MAX_COMMENTS_PER_DELIVERY = 1000;
 const BUSY_EVENT_TYPES = new Set(["Start", "PermissionRequest"]);
 
 export interface TriggerResult {
 	fired: WatchedThread[];
 	suppressed: string[];
-	firedCursor: number;
-	suppressedCursor: number;
+	commentIds: string[];
 	pings: Map<string, number>;
 }
 
 export function agentIsBusy(lastEventType: string | undefined): boolean {
-	if (lastEventType === undefined) return false;
-	return BUSY_EVENT_TYPES.has(lastEventType);
-}
-
-function newestHumanComment(thread: WatchedThread): number {
-	let newest = 0;
-	for (const comment of thread.comments) {
-		if (comment.authorKind !== "human") continue;
-		const at = comment.createdAt.getTime();
-		if (at > newest) newest = at;
-	}
-	return newest;
+	return lastEventType !== undefined && BUSY_EVENT_TYPES.has(lastEventType);
 }
 
 export function selectThreadsToDeliver(
 	threads: WatchedThread[],
-	entry: Pick<PageWatchEntry, "cursor" | "pings">,
+	entry: Pick<PageWatchEntry, "seenCommentIds" | "pings">,
 ): TriggerResult {
-	const pings = new Map(entry.pings);
+	const pings = new Map<string, number>();
 	const fired: WatchedThread[] = [];
 	const suppressed: string[] = [];
-	let firedCursor = 0;
-	let suppressedCursor = 0;
-
+	const commentIds: string[] = [];
 	for (const thread of threads) {
 		if (thread.resolved) continue;
-
-		const newest = newestHumanComment(thread);
-		if (newest <= entry.cursor) continue;
-
-		const seen = pings.get(thread.id) ?? 0;
-		if (seen >= MAX_PINGS_PER_THREAD) {
+		const unseen = thread.comments.filter(
+			(comment) =>
+				comment.authorKind === "human" && !entry.seenCommentIds.has(comment.id),
+		);
+		if (unseen.length === 0) continue;
+		if (
+			commentIds.length &&
+			commentIds.length + unseen.length > MAX_COMMENTS_PER_DELIVERY
+		)
+			break;
+		const selected = unseen.slice(
+			0,
+			MAX_COMMENTS_PER_DELIVERY - commentIds.length,
+		);
+		commentIds.push(...selected.map((comment) => comment.id));
+		const count = entry.pings.get(thread.id) ?? 0;
+		if (count >= MAX_PINGS_PER_THREAD) {
 			suppressed.push(thread.id);
-			if (newest > suppressedCursor) suppressedCursor = newest;
-			continue;
+		} else {
+			pings.set(thread.id, count + 1);
+			fired.push({
+				...thread,
+				comments: thread.comments.filter(
+					(comment) =>
+						comment.authorKind === "agent" ||
+						entry.seenCommentIds.has(comment.id) ||
+						selected.includes(comment),
+				),
+			});
 		}
-
-		pings.set(thread.id, seen + 1);
-		fired.push(thread);
-		if (newest > firedCursor) firedCursor = newest;
+		if (commentIds.length >= MAX_COMMENTS_PER_DELIVERY) break;
 	}
-
-	return { fired, suppressed, firedCursor, suppressedCursor, pings };
+	return { fired, suppressed, commentIds, pings };
 }

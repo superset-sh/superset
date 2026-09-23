@@ -13,9 +13,17 @@ export interface PageWatchEntry extends PageWatchAssignment {
 	abortController: AbortController;
 	agentBinding: TerminalAgentBinding;
 	assignedAt: number;
-	cursor: number;
+	token: string;
+	seenCommentIds: Set<string>;
+	pendingDelivery: {
+		reservationId: string;
+		commentIds: string[];
+		pings: Map<string, number>;
+		delivered: boolean;
+	} | null;
 	lastHumanCommentAt: number;
 	lastHeartbeatAt: number;
+	lastPolledAt: number;
 	failures: number;
 	pings: Map<string, number>;
 	pendingSince: number | null;

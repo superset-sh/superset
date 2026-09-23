@@ -577,6 +577,90 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 	});
 
 	for (const change of [
+		"denied",
+		"expired",
+		"replaced",
+		"write-failed",
+		"accepted",
+	] as const) {
+		test(`delivery reservation is acquired at queue head and ${change} is fenced`, async () => {
+			const terminalId = `e2e-reservation-${randomUUID().slice(0, 8)}`;
+			const session = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+			});
+			assert.ok(!("error" in session));
+			if ("error" in session) return;
+			bindAgent(terminalId);
+			const gate = Promise.withResolvers<void>();
+			session.followUpWriteChain = gate.promise;
+			let acquired = false;
+			let valid = true;
+			let failed = false;
+			const writes: string[] = [];
+			const write = mock.method(session.pty, "write", (data: string) => {
+				if (change === "write-failed" && data === "\r" && !failed) {
+					failed = true;
+					throw new Error("disconnected during submit");
+				}
+				writes.push(data);
+				if (change === "expired") valid = false;
+			});
+			try {
+				const sending = sendAgentMessage({
+					terminalId,
+					workspaceId,
+					db,
+					terminalAgentStore,
+					text: "👍🏽",
+					submit: true,
+					acquireDelivery: async () => {
+						acquired = true;
+						if (change === "denied") return null;
+						if (change === "replaced") bindAgent(terminalId);
+						return { isValid: () => valid };
+					},
+				});
+				await waitFor(() => session.followUpWriteChain !== gate.promise, 5000);
+				assert.equal(acquired, false);
+				assert.deepEqual(writes, []);
+				gate.resolve();
+				const result = await sending;
+				assert.equal(acquired, true);
+				assert.equal("success" in result, change === "accepted");
+				if ("error" in result)
+					assert.equal(
+						result.inputStaged,
+						change === "expired" || change === "write-failed"
+							? true
+							: undefined,
+					);
+				assert.deepEqual(
+					writes,
+					change === "accepted"
+						? ["\x1b[200~👍🏽\x1b[201~", "\r"]
+						: change === "expired" || change === "write-failed"
+							? ["\x1b[200~👍🏽\x1b[201~"]
+							: [],
+				);
+				const next = await sendAgentMessage({
+					terminalId,
+					workspaceId,
+					db,
+					terminalAgentStore,
+					text: "next",
+					submit: true,
+				});
+				assert.deepEqual(next, { success: true });
+			} finally {
+				write.mock.restore();
+				await disposeSessionAndWait(terminalId, db);
+			}
+		});
+	}
+
+	for (const change of [
 		"cancel",
 		"replace",
 		"session",

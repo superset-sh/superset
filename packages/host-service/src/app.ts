@@ -34,7 +34,7 @@ import {
 	runSandboxSelfSeed,
 } from "./runtime/sandbox-self-seed";
 import {
-	isLiveTerminalSession,
+	isAgentTerminalAlive,
 	registerWorkspaceTerminalRoute,
 	sendAgentMessage,
 } from "./terminal/terminal";
@@ -231,17 +231,19 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const pageWatch = new PageWatchManager({
 		api: {
 			listThreads: (pageId) => api.pageComment.list.query({ pageId }),
-			setWatch: async (pageId, agentId) => {
-				await api.page.setWatch.mutate({ id: pageId, agentId });
-			},
-			clearWatch: async (pageId) => {
-				await api.page.clearWatch.mutate({ id: pageId });
-			},
+			claimWatch: (input) => api.page.claimWatch.mutate(input),
+			renewWatch: (input) => api.page.renewWatch.mutate(input),
+			releaseWatch: (input) => api.page.releaseWatch.mutate(input),
+			reserveWatchDelivery: (input) =>
+				api.page.reserveWatchDelivery.mutate(input),
+			finishWatchDelivery: (input) =>
+				api.page.finishWatchDelivery.mutate(input),
 		},
 		sendToTerminal: async ({
 			workspaceId,
 			terminalId,
 			expectedAgent,
+			acquireDelivery,
 			text,
 			signal,
 		}) => {
@@ -251,14 +253,19 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				text,
 				submit: true,
 				expectedAgent,
+				acquireDelivery,
 				signal,
 				terminalAgentStore,
 				db,
 				eventBus,
 			});
-			if ("error" in result) throw new Error(result.error);
+			if ("error" in result) {
+				if (result.inputStaged) return { inputStaged: true } as const;
+				throw new Error(result.error);
+			}
 		},
-		isTerminalAlive: isLiveTerminalSession,
+		isTerminalAlive: (terminalId, workspaceId) =>
+			isAgentTerminalAlive({ terminalId, workspaceId, db, eventBus }),
 		isAgentBusy: (terminalId) =>
 			agentIsBusy(terminalAgentStore.get(terminalId)?.lastEventType),
 		getAgent: (terminalId) => {

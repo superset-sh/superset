@@ -44,6 +44,7 @@ import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
 import { issueAttributionToken } from "../terminal-agents/attribution-token.ts";
 import { sweepAgentBindingsAfterDaemonLoss } from "../terminal-agents/daemon-loss-sweep.ts";
+import { matchesAgentBinding } from "../terminal-agents/matches-agent-binding.ts";
 import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
 import type { TerminalAgentStore } from "../terminal-agents/store.ts";
 import type { TerminalAgentBinding } from "../terminal-agents/types.ts";
@@ -877,6 +878,7 @@ export type TerminalSessionErrorKind =
 	| "TERMINAL_START_FAILED";
 
 export type TerminalSessionError = {
+	inputStaged?: true;
 	kind: TerminalSessionErrorKind;
 	error: string;
 	/** Retained for the attach route and websocket, which branch on it. */
@@ -1146,6 +1148,17 @@ interface SessionMessageInput {
 interface AgentMessageTarget {
 	store: Pick<TerminalAgentStore, "get">;
 	binding: TerminalAgentBinding;
+	acquireDelivery?: () => Promise<{ isValid: () => boolean } | null>;
+}
+
+export async function isAgentTerminalAlive(input: {
+	terminalId: string;
+	workspaceId: string;
+	db: HostDb;
+	eventBus?: EventBus;
+}): Promise<boolean> {
+	const session = await getOrAdoptSession(input);
+	return !("error" in session) && !session.exited;
 }
 
 export function writeFramedInputToSession(input: SessionMessageInput) {
@@ -1155,10 +1168,12 @@ export function writeFramedInputToSession(input: SessionMessageInput) {
 export async function sendAgentMessage({
 	terminalAgentStore,
 	expectedAgent,
+	acquireDelivery,
 	...input
 }: SessionMessageInput & {
 	terminalAgentStore: Pick<TerminalAgentStore, "get">;
 	expectedAgent?: TerminalAgentBinding;
+	acquireDelivery?: AgentMessageTarget["acquireDelivery"];
 }): Promise<{ success: true } | TerminalSessionError> {
 	const binding = expectedAgent ?? terminalAgentStore.get(input.terminalId);
 	if (
@@ -1178,22 +1193,15 @@ export async function sendAgentMessage({
 			error: "Agent does not belong to this workspace",
 		};
 	}
-	return writeSessionMessage(input, { store: terminalAgentStore, binding });
+	return writeSessionMessage(input, {
+		store: terminalAgentStore,
+		binding,
+		acquireDelivery,
+	});
 }
 
 function isCurrentAgent({ store, binding }: AgentMessageTarget): boolean {
-	const current = store.get(binding.terminalId);
-	return (
-		current !== undefined &&
-		current.endedAt === undefined &&
-		current.workspaceId === binding.workspaceId &&
-		current.agentId === binding.agentId &&
-		(binding.launchId !== undefined
-			? current.launchId === binding.launchId
-			: current.startedAt === binding.startedAt) &&
-		(binding.agentSessionId === undefined ||
-			current.agentSessionId === binding.agentSessionId)
-	);
+	return matchesAgentBinding(store.get(binding.terminalId), binding);
 }
 
 async function writeSessionMessage(
@@ -1234,33 +1242,58 @@ async function writeSessionMessage(
 			if (session.exited) {
 				return { kind: "SESSION_EXITED", error: "Terminal session has exited" };
 			}
-			const message = agent ? sanitizePromptForPty(text) : text;
-			const framed =
-				agent || session.modeTracker.isBracketedPasteActive()
-					? `\x1b[200~${message}\x1b[201~`
-					: message;
-			if (!submit) {
-				session.pty.write(framed);
-				return { success: true };
-			}
-			if (text.length > 0) {
-				session.pty.write(framed);
-				await new Promise((r) => setTimeout(r, FOLLOW_UP_ENTER_DELAY_MS));
-				if (session.exited) {
-					return {
-						kind: "SESSION_EXITED",
-						error: "Terminal session has exited",
-					};
-				}
-			}
-			if (signal?.aborted || (agent && !isCurrentAgent(agent))) {
+			const permit = await agent?.acquireDelivery?.();
+			const targetIsCurrent = () =>
+				!signal?.aborted &&
+				(!agent || isCurrentAgent(agent)) &&
+				(!agent?.acquireDelivery || permit?.isValid() === true);
+			if (session.exited || !targetIsCurrent()) {
 				return {
 					kind: "SESSION_NOT_ACTIVE",
 					error: "Terminal input target is no longer current",
 				};
 			}
-			session.pty.write("\r");
-			return { success: true };
+			const message = agent ? sanitizePromptForPty(text) : text;
+			const framed =
+				agent || session.modeTracker.isBracketedPasteActive()
+					? `\x1b[200~${message}\x1b[201~`
+					: message;
+			let inputStaged: true | undefined;
+			try {
+				if (!submit) {
+					inputStaged = true;
+					session.pty.write(framed);
+					return { success: true };
+				}
+				if (text.length > 0) {
+					inputStaged = true;
+					session.pty.write(framed);
+					await new Promise((r) => setTimeout(r, FOLLOW_UP_ENTER_DELAY_MS));
+					if (session.exited) {
+						return {
+							kind: "SESSION_EXITED",
+							error: "Terminal session has exited",
+							inputStaged,
+						};
+					}
+				}
+				if (!targetIsCurrent()) {
+					return {
+						kind: "SESSION_NOT_ACTIVE",
+						error: "Terminal input target is no longer current",
+						inputStaged,
+					};
+				}
+				session.pty.write("\r");
+				return { success: true };
+			} catch (error) {
+				return {
+					kind: "SESSION_NOT_ACTIVE",
+					error:
+						error instanceof Error ? error.message : "Terminal input failed",
+					inputStaged,
+				};
+			}
 		},
 	);
 	session.followUpWriteChain = task.then(
