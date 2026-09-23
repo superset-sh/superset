@@ -10,6 +10,7 @@ import {
 	users,
 	workspacePages,
 } from "@superset/db/schema";
+import { escapeLikePattern } from "@superset/db/utils";
 import { mintPageSlug } from "@superset/shared/page-slug";
 import {
 	fileOriginalKey,
@@ -70,10 +71,6 @@ import {
 import { enqueuePageThumbnail } from "./thumbnail";
 import { watchState } from "./watch";
 import { assertWorkspaceAccess } from "./workspace-access";
-
-function escapeLikePattern(term: string): string {
-	return term.replace(/[\\%_]/g, (char) => `\\${char}`);
-}
 
 function visibilityFilter(userId: string) {
 	return or(

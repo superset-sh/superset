@@ -148,14 +148,9 @@ mock.module(
 	}),
 );
 
-mock.module(
-	"renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces",
-	() => ({
-		useAccessibleV2Workspaces: () => ({
-			all: [{ id: "ws-1", name: "Workspace One" }],
-		}),
-	}),
-);
+mock.module("../../hooks/usePageWorkspaceNames", () => ({
+	usePageWorkspaceNames: () => new Map([["ws-1", "Workspace One"]]),
+}));
 
 const { act, cleanup, render } = await import("@testing-library/react");
 const { PagesView } = await import("./PagesView");

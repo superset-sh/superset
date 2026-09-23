@@ -16,7 +16,7 @@ import {
 import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
 import { usePagesList } from "renderer/routes/_authenticated/_dashboard/hooks/usePagesList";
 import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
-import { useAccessibleV2Workspaces } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
+import { usePageWorkspaceNames } from "../../hooks/usePageWorkspaceNames";
 import { type PageScope, serverScope } from "../../utils/pageScope";
 import { PagesGrid } from "../PagesGrid";
 import { AuthorFilter, type PageAuthorOption } from "./components/AuthorFilter";
@@ -171,20 +171,19 @@ export function PagesView({
 			});
 	}, [countsQuery.data, currentUserId, t]);
 
-	const { all: accessibleWorkspaces } = useAccessibleV2Workspaces();
-	const workspaceOptions = useMemo<PageWorkspaceOption[]>(() => {
-		const names = new Map(
-			accessibleWorkspaces.map((workspace) => [workspace.id, workspace.name]),
-		);
-		return (countsQuery.data?.workspaces ?? [])
-			.filter((row) => names.has(row.workspaceId))
-			.map((row) => ({
-				workspaceId: row.workspaceId,
-				name: names.get(row.workspaceId) ?? row.workspaceId,
-				count: row.count,
-			}))
-			.sort((a, b) => a.name.localeCompare(b.name));
-	}, [countsQuery.data, accessibleWorkspaces]);
+	const workspaceNames = usePageWorkspaceNames();
+	const workspaceOptions = useMemo<PageWorkspaceOption[]>(
+		() =>
+			(countsQuery.data?.workspaces ?? [])
+				.filter((row) => workspaceNames.has(row.workspaceId))
+				.map((row) => ({
+					workspaceId: row.workspaceId,
+					name: workspaceNames.get(row.workspaceId) ?? row.workspaceId,
+					count: row.count,
+				}))
+				.sort((a, b) => a.name.localeCompare(b.name)),
+		[countsQuery.data, workspaceNames],
+	);
 
 	const tabs = useMemo(
 		() =>

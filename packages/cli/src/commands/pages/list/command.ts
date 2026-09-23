@@ -87,7 +87,7 @@ export default command({
 		),
 		search: string()
 			.alias("q")
-			.desc("Only pages whose title or slug contains this text"),
+			.desc("Only pages whose title, slug or description contains this text"),
 		limit: number()
 			.int()
 			.min(1)
@@ -111,7 +111,28 @@ export default command({
 				})
 			: undefined;
 
-		const names = await workspaceNames(ctx);
+		const query = {
+			...(workspaceId ? { workspaceId } : {}),
+			...(options.search ? { search: options.search } : {}),
+			...(options.limit !== undefined ? { limit: options.limit } : {}),
+		};
+
+		const drains = options.limit === undefined && options.cursor === undefined;
+		const result = drains
+			? { items: await fetchAllPages<PageRow>(ctx, query), nextCursor: null }
+			: await fetchPageList<PageRow>(ctx, query, options.cursor);
+
+		// Naming a workspace costs a cloud call and a host call, and the host one
+		// waits on a machine that may be asleep. Under `--quiet` only ids are
+		// printed, and with no linked page there is nothing to name.
+		const quiet = (options as Record<string, unknown>).quiet === true;
+		const wanted =
+			!quiet &&
+			(Boolean(workspaceId && !asked) ||
+				result.items.some((row) => row.workspaceLinks?.length));
+		const names = wanted
+			? await workspaceNames(ctx)
+			: new Map<string, string>();
 
 		if (workspaceId && !asked) {
 			const label = names.get(workspaceId) ?? workspaceId;
@@ -120,19 +141,7 @@ export default command({
 			);
 		}
 
-		const query = {
-			...(workspaceId ? { workspaceId } : {}),
-			...(options.search ? { search: options.search } : {}),
-			...(options.limit !== undefined ? { limit: options.limit } : {}),
-		};
-
-		if (options.limit === undefined && options.cursor === undefined) {
-			return {
-				data: nameLinks(await fetchAllPages<PageRow>(ctx, query), names),
-			};
-		}
-
-		const result = await fetchPageList<PageRow>(ctx, query, options.cursor);
+		if (drains) return { data: nameLinks(result.items, names) };
 		return {
 			data: {
 				items: nameLinks(result.items, names),

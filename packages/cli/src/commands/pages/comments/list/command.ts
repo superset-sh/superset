@@ -1,7 +1,6 @@
 import { boolean, CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../../lib/command";
 import { resolvePageId } from "../../pageId";
-import { fetchAllPages } from "../../pageList";
 import { agentSessionId } from "../agentSession";
 
 interface ThreadComment {
@@ -47,25 +46,13 @@ export default command({
 				...activatedOnly,
 			})) as unknown as Thread[];
 		} else {
-			const pages = await fetchAllPages<{
-				id: string;
-				title: string;
-				slug: string;
-			}>(ctx, options.workspace ? { workspaceId: options.workspace } : {});
-			const perPage = await mapWithConcurrency(pages, 8, async (page) => {
-				const rows = (await ctx.api.pageComment.list.query({
-					pageId: page.id,
-					...activatedOnly,
-				})) as unknown as Thread[];
-				return rows.map((row) => ({
-					...row,
-					pageTitle: page.title,
-					pageSlug: page.slug,
-				}));
-			});
-			threads = perPage
-				.flat()
-				.sort((a, b) => stamp(a.createdAt) - stamp(b.createdAt));
+			// One org-scoped query. Asking page by page was a call per page in the
+			// organization, and it grew with the org rather than with the comments.
+			threads = (await ctx.api.pageComment.listForOrganization.query({
+				...(options.workspace ? { workspaceId: options.workspace } : {}),
+				...activatedOnly,
+				...(options.unresolved ? { unresolvedOnly: true } : {}),
+			})) as unknown as Thread[];
 		}
 
 		if (options.unresolved) {
@@ -113,30 +100,6 @@ export default command({
 			.join("\n\n");
 	},
 });
-
-function stamp(value: string | Date): number {
-	return value instanceof Date ? value.getTime() : Date.parse(value);
-}
-
-async function mapWithConcurrency<T, R>(
-	items: readonly T[],
-	limit: number,
-	work: (item: T) => Promise<R>,
-): Promise<R[]> {
-	const results = new Array<R>(items.length);
-	let next = 0;
-	const workers = Array.from(
-		{ length: Math.min(limit, items.length) },
-		async () => {
-			while (next < items.length) {
-				const index = next++;
-				results[index] = await work(items[index] as T);
-			}
-		},
-	);
-	await Promise.all(workers);
-	return results;
-}
 
 function indent(text: string, prefix: string): string {
 	return text

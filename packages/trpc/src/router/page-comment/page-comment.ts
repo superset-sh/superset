@@ -6,9 +6,10 @@ import {
 	pageVersions,
 	type SelectPage,
 	users,
+	workspacePages,
 } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { protectedProcedure, userError } from "../../trpc";
 import { assertPageReadable } from "../page/access";
 import { requireActiveOrgMembership } from "../utils/active-org";
@@ -21,6 +22,7 @@ import {
 	createPageCommentThreadSchema,
 	deletePageCommentThreadSchema,
 	editPageCommentSchema,
+	listOrganizationPageCommentsSchema,
 	listPageCommentsSchema,
 	replyPageCommentSchema,
 	resolvePageCommentThreadSchema,
@@ -155,6 +157,113 @@ export const pageCommentRouter = {
 					),
 				),
 			);
+		}),
+
+	/**
+	 * One query for the whole organization, so a sweep does not call `list`
+	 * once per page. Visibility is the same rule `page.list` applies, enforced
+	 * in the join rather than by loading each page.
+	 */
+	listForOrganization: protectedProcedure
+		.input(listOrganizationPageCommentsSchema)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const userId = ctx.session.user.id;
+
+			const activatedOnly = ctx.agentCaller
+				? true
+				: (input?.activatedOnly ?? false);
+
+			const readable = and(
+				eq(pages.organizationId, organizationId),
+				or(
+					eq(pages.visibility, "org"),
+					eq(pages.visibility, "everyone"),
+					and(
+						eq(pages.visibility, "just_me"),
+						eq(pages.createdByUserId, userId),
+					),
+				),
+				activatedOnly
+					? isNotNull(pageCommentThreads.agentActivatedAt)
+					: undefined,
+				input?.unresolvedOnly
+					? isNull(pageCommentThreads.resolvedAt)
+					: undefined,
+			);
+
+			let scoped = db
+				.select({
+					thread: pageCommentThreads,
+					version: pageVersions.version,
+					pageTitle: pages.title,
+					pageSlug: pages.slug,
+				})
+				.from(pageCommentThreads)
+				.innerJoin(pages, eq(pages.id, pageCommentThreads.pageId))
+				.innerJoin(
+					pageVersions,
+					eq(pageVersions.id, pageCommentThreads.pageVersionId),
+				)
+				.$dynamic();
+
+			if (input?.workspaceId) {
+				scoped = scoped.innerJoin(
+					workspacePages,
+					and(
+						eq(workspacePages.pageId, pages.id),
+						eq(workspacePages.workspaceId, input.workspaceId),
+					),
+				);
+			}
+
+			const threadRows = await scoped
+				.where(readable)
+				.orderBy(asc(pageCommentThreads.createdAt));
+
+			if (threadRows.length === 0) return [];
+
+			const commentRows = await db
+				.select({
+					comment: pageComments,
+					authorName: users.name,
+					authorImage: users.image,
+				})
+				.from(pageComments)
+				.leftJoin(users, eq(users.id, pageComments.authorUserId))
+				.where(
+					and(
+						inArray(
+							pageComments.threadId,
+							threadRows.map((row) => row.thread.id),
+						),
+						isNull(pageComments.deletedAt),
+					),
+				)
+				.orderBy(asc(pageComments.createdAt));
+
+			const byThread = new Map<string, typeof commentRows>();
+			for (const row of commentRows) {
+				const existing = byThread.get(row.comment.threadId);
+				if (existing) existing.push(row);
+				else byThread.set(row.comment.threadId, [row]);
+			}
+
+			return threadRows.map(({ thread, version, pageTitle, pageSlug }) => ({
+				...shapeThread(
+					thread,
+					version,
+					(byThread.get(thread.id) ?? []).map((row) =>
+						shapeComment(row.comment, {
+							name: row.authorName,
+							image: row.authorImage,
+						}),
+					),
+				),
+				pageId: thread.pageId,
+				pageTitle,
+				pageSlug,
+			}));
 		}),
 
 	create: protectedProcedure
