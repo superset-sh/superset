@@ -21,7 +21,7 @@ export function resolveWriteTarget(filePath: string): string {
 	}
 }
 
-function unwritableLinkError(
+function inaccessibleLinkError(
 	filePath: string,
 	target: string,
 	error: unknown,
@@ -34,7 +34,7 @@ function unwritableLinkError(
 		return error;
 	}
 	return new Error(
-		`${filePath} links to ${target}, which is not writable (${code}). Superset left it alone; point the link at a writable file to have this config managed.`,
+		`${filePath} links to ${target}, which Superset cannot read or write (${code}). The config was left alone; point the link at a writable file to have it managed.`,
 		{ cause: error },
 	);
 }
@@ -62,9 +62,12 @@ export function writeFileIfChanged(
 ): boolean {
 	const target = resolveWriteTarget(filePath);
 
-	const existing = fs.existsSync(target)
-		? fs.readFileSync(target, "utf-8")
-		: null;
+	let existing: string | null;
+	try {
+		existing = fs.existsSync(target) ? fs.readFileSync(target, "utf-8") : null;
+	} catch (error) {
+		throw inaccessibleLinkError(filePath, target, error);
+	}
 	if (existing === content) {
 		try {
 			fs.chmodSync(target, mode);
@@ -84,7 +87,7 @@ export function writeFileIfChanged(
 		} catch {
 			// Best effort.
 		}
-		throw unwritableLinkError(filePath, target, error);
+		throw inaccessibleLinkError(filePath, target, error);
 	}
 	try {
 		fs.chmodSync(target, mode);

@@ -5,6 +5,7 @@ import path from "node:path";
 import { writeFileIfChanged } from "./write-file-if-changed";
 
 const TEST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "superset-wfic-"));
+const REALPATH_FOLLOWS_UNREADABLE_TARGETS = process.platform !== "darwin";
 
 afterEach(() => {
 	fs.rmSync(TEST_DIR, { recursive: true, force: true });
@@ -124,12 +125,34 @@ describe("writeFileIfChanged", () => {
 
 				expect(message).toContain(target);
 				expect(message).toContain(fs.realpathSync(real));
-				expect(message).toContain("is not writable (EACCES)");
+				expect(message).toContain("cannot read or write (EACCES)");
 				expect(fs.lstatSync(target).isSymbolicLink()).toBe(true);
 				expect(fs.readFileSync(real, "utf-8")).toBe("{}");
 			} finally {
 				fs.chmodSync(storeDir, 0o755);
 			}
+		},
+	);
+
+	it.skipIf(!REALPATH_FOLLOWS_UNREADABLE_TARGETS || process.getuid?.() === 0)(
+		"names both paths when the linked target cannot be read",
+		() => {
+			const real = path.join(TEST_DIR, "unreadable.json");
+			fs.writeFileSync(real, "{}", { mode: 0o222 });
+			const target = path.join(TEST_DIR, "settings.json");
+			fs.symlinkSync(real, target);
+
+			let message = "";
+			try {
+				writeFileIfChanged(target, '{"hooks":{}}', 0o644);
+			} catch (error) {
+				message = (error as Error).message;
+			}
+
+			expect(message).toContain(target);
+			expect(message).toContain(fs.realpathSync(real));
+			expect(message).toContain("cannot read or write (EACCES)");
+			expect(fs.lstatSync(target).isSymbolicLink()).toBe(true);
 		},
 	);
 
