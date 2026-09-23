@@ -4,7 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { getInitials } from "@superset/shared/names";
 import { Building2, Check, Globe, Link2, Lock } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../../../ui/avatar";
 import { Button } from "../../../../../ui/button";
 import { Label } from "../../../../../ui/label";
@@ -36,6 +36,7 @@ const LATEST = "latest";
 interface PageSharePopoverProps {
 	page: PageHeaderPage;
 	versions: PageHeaderVersion[];
+	visibility: PageVisibility;
 	editable: boolean;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -47,6 +48,7 @@ interface PageSharePopoverProps {
 export function PageSharePopover({
 	page,
 	versions,
+	visibility,
 	editable,
 	open,
 	onOpenChange,
@@ -57,18 +59,6 @@ export function PageSharePopover({
 	const { t } = useLingui();
 	const [busy, setBusy] = useState(false);
 	const [copied, setCopied] = useState(false);
-	const [pending, setPending] = useState<{
-		pageId: string;
-		value: PageVisibility;
-	} | null>(null);
-	const pendingValue = pending?.pageId === page.id ? pending.value : null;
-	const visibility = pendingValue ?? page.visibility;
-
-	useEffect(() => {
-		if (pendingValue !== null && page.visibility === pendingValue) {
-			setPending(null);
-		}
-	}, [page.visibility, pendingValue]);
 
 	useFramePointerDown(useCallback(() => onOpenChange(false), [onOpenChange]));
 
@@ -88,13 +78,11 @@ export function PageSharePopover({
 
 	const changeVisibility = async (next: PageVisibility) => {
 		if (next === visibility) return;
-		setPending({ pageId: page.id, value: next });
 		if (next !== "just_me") void copyLink();
 		setBusy(true);
 		try {
 			await onSetVisibility(next);
 		} catch (error) {
-			setPending(null);
 			toast.error(
 				errorMessage(
 					error,

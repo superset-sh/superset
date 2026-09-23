@@ -32,6 +32,7 @@ export {
 	RenamePageDialog,
 } from "./components/PageHeader";
 export { useFramePointerDown } from "./hooks/useFramePointerDown";
+export { usePendingVisibility } from "./hooks/usePendingVisibility";
 export {
 	type CommentDraft,
 	type CommentIntent,

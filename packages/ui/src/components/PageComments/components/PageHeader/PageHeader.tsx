@@ -5,6 +5,7 @@ import { Globe, Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../ui/button";
+import { usePendingVisibility } from "../../hooks/usePendingVisibility";
 import { DeletePageDialog } from "./components/DeletePageDialog";
 import { PageSharePopover } from "./components/PageSharePopover";
 import { PageTitleMenu } from "./components/PageTitleMenu";
@@ -44,6 +45,11 @@ export function PageHeader({
 	const [shareOpen, setShareOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [renameOpen, setRenameOpen] = useState(false);
+	const { visibility, setVisibility } = usePendingVisibility(
+		page.id,
+		page.visibility,
+		onSetVisibility,
+	);
 
 	const isOwner =
 		currentUserId !== undefined && currentUserId === page.createdByUserId;
@@ -89,15 +95,21 @@ export function PageHeader({
 					<PageSharePopover
 						page={page}
 						versions={versions}
+						visibility={visibility}
 						editable={isOwner}
 						open={shareOpen}
 						onOpenChange={setShareOpen}
-						onSetVisibility={onSetVisibility}
+						onSetVisibility={setVisibility}
 						onSetSharedVersion={onSetSharedVersion}
 					>
 						<Button size="xs" variant="ghost" className="gap-1.5">
-							{page.visibility === "everyone" ? (
-								<Globe className="size-3.5" />
+							{visibility === "everyone" ? (
+								<>
+									<Globe className="size-3.5" />
+									<span className="sr-only">
+										<Trans>This page is public</Trans>
+									</span>
+								</>
 							) : (
 								<Share2 className="size-3.5" />
 							)}

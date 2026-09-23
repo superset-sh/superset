@@ -15435,6 +15435,9 @@ msgstr "Halaman ini sedang dipublikasikan dari tempat lain — coba lagi"
 msgid "This page is in another organization"
 msgstr "Halaman ini ada di organisasi lain"
 
+msgid "This page is public"
+msgstr "Halaman ini bersifat publik"
+
 msgid "This page isn't here"
 msgstr "Halaman ini tidak ada di sini"
 

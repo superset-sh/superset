@@ -15435,6 +15435,9 @@ msgstr "This page is being published from somewhere else — retry"
 msgid "This page is in another organization"
 msgstr "This page is in another organization"
 
+msgid "This page is public"
+msgstr "This page is public"
+
 msgid "This page isn't here"
 msgstr "This page isn't here"
 

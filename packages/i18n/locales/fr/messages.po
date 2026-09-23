@@ -15435,6 +15435,9 @@ msgstr "Cette page est en cours de publication ailleurs — réessayez"
 msgid "This page is in another organization"
 msgstr "Cette page appartient à une autre organisation"
 
+msgid "This page is public"
+msgstr "Cette page est publique"
+
 msgid "This page isn't here"
 msgstr "Cette page n'est pas ici"
 

@@ -15435,6 +15435,9 @@ msgstr "Trang này đang được xuất bản từ nơi khác — hãy thử l�
 msgid "This page is in another organization"
 msgstr "Trang này thuộc một tổ chức khác"
 
+msgid "This page is public"
+msgstr "Trang này ở chế độ công khai"
+
 msgid "This page isn't here"
 msgstr "Trang này không có ở đây"
 

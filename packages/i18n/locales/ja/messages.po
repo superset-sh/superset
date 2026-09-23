@@ -15435,6 +15435,9 @@ msgstr "このページは別の場所から公開処理中です — 再試行�
 msgid "This page is in another organization"
 msgstr "このページは別の組織にあります"
 
+msgid "This page is public"
+msgstr "このページは公開されています"
+
 msgid "This page isn't here"
 msgstr "このページはありません"
 

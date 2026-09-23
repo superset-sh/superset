@@ -15435,6 +15435,9 @@ msgstr "Bu sayfa başka bir yerden yayımlanıyor — yeniden deneyin"
 msgid "This page is in another organization"
 msgstr "Bu sayfa başka bir kuruluşta"
 
+msgid "This page is public"
+msgstr "Bu sayfa herkese açık"
+
 msgid "This page isn't here"
 msgstr "Bu sayfa burada değil"
 

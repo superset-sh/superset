@@ -15435,6 +15435,9 @@ msgstr "다른 곳에서 이 페이지를 게시하는 중입니다 — 다시 �
 msgid "This page is in another organization"
 msgstr "이 페이지는 다른 조직에 있습니다"
 
+msgid "This page is public"
+msgstr "이 페이지는 공개되어 있습니다"
+
 msgid "This page isn't here"
 msgstr "이 페이지는 여기에 없습니다"
 

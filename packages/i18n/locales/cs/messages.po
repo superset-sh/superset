@@ -15435,6 +15435,9 @@ msgstr "Tato stránka se právě zveřejňuje odjinud — zkuste to znovu"
 msgid "This page is in another organization"
 msgstr "Tato stránka patří do jiné organizace"
 
+msgid "This page is public"
+msgstr "Tato stránka je veřejná"
+
 msgid "This page isn't here"
 msgstr "Tahle stránka tu není"
 
