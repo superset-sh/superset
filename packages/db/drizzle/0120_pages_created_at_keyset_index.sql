@@ -1,0 +1,1 @@
+CREATE INDEX "pages_organization_id_created_at_id_idx" ON "pages" USING btree ("organization_id","created_at" desc,"id" desc);

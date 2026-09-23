@@ -6,7 +6,6 @@ import { Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import {
-	NO_PAGES,
 	type OrgPage,
 	useWorkspacePagesQuery,
 } from "@/screens/(authenticated)/pages/hooks/usePages";
@@ -55,7 +54,7 @@ export function WorkspacePages({
 	workspaceId: string | null;
 }) {
 	const pages = useWorkspacePagesQuery(workspaceId);
-	const items = pages.data ?? NO_PAGES;
+	const items = pages.items;
 
 	if (items.length === 0) return null;
 

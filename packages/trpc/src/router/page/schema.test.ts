@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	listPagesSchema,
 	PAGE_LIST_DEFAULT_LIMIT,
+	PAGE_LIST_MAX_IDS,
 	PAGE_LIST_MAX_LIMIT,
 	publishPageSchema,
 } from "./schema";
@@ -99,40 +100,50 @@ describe("listPagesSchema", () => {
 		).toBe(false);
 	});
 
-	test("refuses an empty search rather than matching everything", () => {
-		expect(listPagesSchema.safeParse({ search: "" }).success).toBe(false);
+	test("treats an empty or blank search as no search, not as match-everything", () => {
+		expect(listPagesSchema.parse({ search: "" })?.search).toBeUndefined();
+		expect(listPagesSchema.parse({ search: "   " })?.search).toBeUndefined();
 	});
 
-	test("keeps the cursor timestamp as Postgres reported it, microseconds and all", () => {
-		const result = listPagesSchema.parse({
-			cursor: { updatedAt: "2026-09-14 10:00:00.123456+00", id: PAGE },
-		});
-		expect(result?.cursor?.updatedAt).toBe("2026-09-14 10:00:00.123456+00");
-	});
-
-	test("refuses half a cursor", () => {
-		expect(listPagesSchema.safeParse({ cursor: { id: PAGE } }).success).toBe(
-			false,
+	test("trims a search so a stray space does not change the query", () => {
+		expect(listPagesSchema.parse({ search: "  report " })?.search).toBe(
+			"report",
 		);
 	});
 
-	test("refuses a timestamp Postgres would reject, rather than passing it to the cast", () => {
+	test("takes the cursor as an opaque string", () => {
+		const cursor = Buffer.from("whatever the server emitted").toString(
+			"base64url",
+		);
+		expect(listPagesSchema.parse({ cursor })?.cursor).toBe(cursor);
+	});
+
+	test("refuses a cursor that is not a string, so the keyset stays private", () => {
 		expect(
 			listPagesSchema.safeParse({
-				cursor: { updatedAt: "not-a-timestamp", id: PAGE },
+				cursor: { updatedAt: "2026-09-14 10:00:00+00", id: PAGE },
 			}).success,
 		).toBe(false);
 	});
 
-	test("accepts the offsets Postgres emits, whole-hour and half-hour alike", () => {
-		for (const updatedAt of [
-			"2026-09-14 10:00:00+00",
-			"2026-09-14 10:00:00.123456+05:30",
-			"2026-09-14 10:00:00.1-08",
-		]) {
-			expect(
-				listPagesSchema.safeParse({ cursor: { updatedAt, id: PAGE } }),
-			).toMatchObject({ success: true });
-		}
+	test("defaults scope to all and refuses one it does not filter on", () => {
+		expect(listPagesSchema.parse({})?.scope).toBe("all");
+		expect(listPagesSchema.safeParse({ scope: "pinned" }).success).toBe(false);
+	});
+
+	test("accepts an ids filter up to the pin cap and refuses more", () => {
+		const ids = Array.from({ length: PAGE_LIST_MAX_IDS }, () => PAGE);
+		expect(listPagesSchema.safeParse({ ids }).success).toBe(true);
+		expect(listPagesSchema.safeParse({ ids: [...ids, PAGE] }).success).toBe(
+			false,
+		);
+	});
+
+	test("accepts an empty ids filter — no pins is not no filter", () => {
+		expect(listPagesSchema.parse({ ids: [] })?.ids).toEqual([]);
+	});
+
+	test("refuses an authorId that is not a uuid", () => {
+		expect(listPagesSchema.safeParse({ authorId: "nope" }).success).toBe(false);
 	});
 });

@@ -1,11 +1,8 @@
-import { CLIError } from "@superset/cli-framework";
+import type { RouterOutputs } from "@superset/trpc";
 import { PAGE_LIST_MAX_LIMIT } from "@superset/trpc/page-schema";
 import type { CliContext } from "../../lib/command";
 
-export interface PageListCursor {
-	updatedAt: string;
-	id: string;
-}
+type PageList = RouterOutputs["page"]["list"];
 
 export interface PageListQuery {
 	workspaceId?: string;
@@ -15,18 +12,19 @@ export interface PageListQuery {
 
 export interface PageListPage<TPage> {
 	items: TPage[];
-	nextCursor: PageListCursor | null;
+	nextCursor: PageList["nextCursor"];
 }
 
 export async function fetchPageList<TPage>(
 	ctx: CliContext,
 	query: PageListQuery,
-	cursor?: PageListCursor,
+	cursor?: string,
 ): Promise<PageListPage<TPage>> {
-	return (await ctx.api.page.list.query({
+	const result = await ctx.api.page.list.query({
 		...query,
 		...(cursor ? { cursor } : {}),
-	})) as unknown as PageListPage<TPage>;
+	});
+	return result as PageListPage<TPage>;
 }
 
 export async function fetchAllPages<TPage>(
@@ -35,38 +33,11 @@ export async function fetchAllPages<TPage>(
 ): Promise<TPage[]> {
 	const batched = { limit: PAGE_LIST_MAX_LIMIT, ...query };
 	const items: TPage[] = [];
-	let cursor: PageListCursor | undefined;
+	let cursor: string | undefined;
 	do {
 		const result = await fetchPageList<TPage>(ctx, batched, cursor);
 		items.push(...result.items);
 		cursor = result.nextCursor ?? undefined;
 	} while (cursor);
 	return items;
-}
-
-export function encodeCursor(cursor: PageListCursor): string {
-	return Buffer.from(
-		JSON.stringify({ updatedAt: cursor.updatedAt, id: cursor.id }),
-	).toString("base64url");
-}
-
-export function decodeCursor(value: string): PageListCursor {
-	const invalid = () =>
-		new CLIError(
-			"Could not read --cursor",
-			"Pass the nextCursor from a previous --json run, or drop the flag to start over",
-		);
-
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
-	} catch {
-		throw invalid();
-	}
-
-	const cursor = parsed as Partial<PageListCursor> | null;
-	if (typeof cursor?.id !== "string" || typeof cursor.updatedAt !== "string") {
-		throw invalid();
-	}
-	return { updatedAt: cursor.updatedAt, id: cursor.id };
 }

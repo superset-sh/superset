@@ -2,12 +2,7 @@ import { number, string, table } from "@superset/cli-framework";
 import { PAGE_LIST_MAX_LIMIT } from "@superset/trpc/page-schema";
 import { type CliContext, command } from "../../../lib/command";
 import { listWorkspacesOnHost } from "../../../lib/host-workspaces";
-import {
-	decodeCursor,
-	encodeCursor,
-	fetchAllPages,
-	fetchPageList,
-} from "../pageList";
+import { fetchAllPages, fetchPageList } from "../pageList";
 import { resolveWorkspaceId } from "../workspaceRef";
 
 interface WorkspaceLink {
@@ -137,15 +132,11 @@ export default command({
 			};
 		}
 
-		const result = await fetchPageList<PageRow>(
-			ctx,
-			query,
-			options.cursor ? decodeCursor(options.cursor) : undefined,
-		);
+		const result = await fetchPageList<PageRow>(ctx, query, options.cursor);
 		return {
 			data: {
 				items: nameLinks(result.items, names),
-				nextCursor: result.nextCursor ? encodeCursor(result.nextCursor) : null,
+				nextCursor: result.nextCursor,
 			},
 		};
 	},

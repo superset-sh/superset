@@ -3,25 +3,21 @@ import { COMPANY } from "@superset/shared/constants";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { LuSearch } from "react-icons/lu";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { FeatureHeader } from "renderer/routes/_authenticated/_dashboard/components/FeatureHeader";
-import { useAllPages } from "renderer/routes/_authenticated/_dashboard/hooks/useAllPages";
+import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
 import {
 	isPaneModifier,
 	useOpenPage,
 } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
 import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
+import { usePagesList } from "renderer/routes/_authenticated/_dashboard/hooks/usePagesList";
 import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
 import { useAccessibleV2Workspaces } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
-import {
-	filterPages,
-	matchesScope,
-	type PageScope,
-	sortPinnedFirst,
-} from "../../utils/filterPages";
+import { type PageScope, serverScope } from "../../utils/pageScope";
 import { PagesGrid } from "../PagesGrid";
 import { AuthorFilter, type PageAuthorOption } from "./components/AuthorFilter";
 import {
@@ -29,8 +25,6 @@ import {
 	WorkspaceFilter,
 } from "./components/WorkspaceFilter";
 import { useCreatePageWithAgent } from "./hooks/useCreatePageWithAgent";
-
-const PAGES_QUERY = pagesListInput();
 
 const TABS: Array<{ value: PageScope }> = [
 	{ value: "all" },
@@ -64,14 +58,66 @@ export function PagesView({
 	const { creatingWithAgent, handleCreateWithAgent } = useCreatePageWithAgent();
 	const { data: session } = authClient.useSession();
 	const utils = cloudTrpc.useUtils();
-	const pages = useAllPages();
-	const { hasNextPage, isFetchNextPageError, fetchNextPage } = pages;
+	const { favoritePageIds, favoritePageIdSet, toggleFavorite } =
+		usePageFavorites();
+	const openPage = useOpenPage();
 
+	// The input answers the keystroke; the URL — and so the query — settles.
+	const [searchInput, setSearchInput] = useState(search);
+	useEffect(() => setSearchInput(search), [search]);
+	const { scheduleSearchNavigation, cancelPendingSearchNavigation } =
+		useDebouncedSearchNavigation(onSearchChange);
+	const handleSearchChange = useCallback(
+		(value: string) => {
+			setSearchInput(value);
+			scheduleSearchNavigation(value);
+		},
+		[scheduleSearchNavigation],
+	);
+
+	const filter = useMemo(
+		() => ({
+			...(search ? { search } : {}),
+			scope: serverScope(scope),
+			...(authorId ? { authorId } : {}),
+			...(workspaceId ? { workspaceId } : {}),
+			...(scope === "pinned" ? { ids: favoritePageIds } : {}),
+		}),
+		[search, scope, authorId, workspaceId, favoritePageIds],
+	);
+
+	const pages = usePagesList(filter);
+	const {
+		items,
+		isFetchingNextPage,
+		isFetchNextPageError,
+		fetchNextPage,
+		scrollRef,
+		sentinelRef,
+	} = pages;
+
+	const countsQuery = cloudTrpc.page.counts.useQuery({
+		...(search ? { search } : {}),
+		...(authorId ? { authorId } : {}),
+		...(workspaceId ? { workspaceId } : {}),
+		pinnedIds: favoritePageIds,
+	});
+	const counts = useMemo(
+		() => ({
+			all: countsQuery.data?.all ?? 0,
+			pinned: countsQuery.data?.pinned ?? 0,
+			team: countsQuery.data?.team ?? 0,
+			mine: countsQuery.data?.mine ?? 0,
+		}),
+		[countsQuery.data],
+	);
+
+	const listInput = useMemo(() => pagesListInput(filter), [filter]);
 	const deletePage = cloudTrpc.page.delete.useMutation({
 		onMutate: async ({ id }) => {
-			await utils.page.list.cancel(PAGES_QUERY);
-			const previous = utils.page.list.getInfiniteData(PAGES_QUERY);
-			utils.page.list.setInfiniteData(PAGES_QUERY, (old) =>
+			await utils.page.list.cancel(listInput);
+			const previous = utils.page.list.getInfiniteData(listInput);
+			utils.page.list.setInfiniteData(listInput, (old) =>
 				old
 					? {
 							...old,
@@ -86,15 +132,14 @@ export function PagesView({
 		},
 		onError: (_error, _variables, context) => {
 			if (context?.previous) {
-				utils.page.list.setInfiniteData(PAGES_QUERY, context.previous);
+				utils.page.list.setInfiniteData(listInput, context.previous);
 			}
 		},
 		onSettled: () => {
-			void utils.page.list.invalidate(PAGES_QUERY);
+			void utils.page.list.invalidate(listInput);
+			void utils.page.counts.invalidate();
 		},
 	});
-	const { favoritePageIdSet, toggleFavorite } = usePageFavorites();
-	const openPage = useOpenPage();
 
 	const tabLabels: Record<PageScope, string> = {
 		all: t({ message: "All" }),
@@ -103,64 +148,43 @@ export function PagesView({
 		mine: t({ message: "Just me" }),
 	};
 
-	const all = pages.items;
-
 	const currentUserId = session?.user.id;
 	const authorOptions = useMemo<PageAuthorOption[]>(() => {
-		const byAuthor = new Map<string, PageAuthorOption>();
-		for (const page of all) {
-			if (!page.createdByUserId || byAuthor.has(page.createdByUserId)) {
-				continue;
-			}
-			byAuthor.set(page.createdByUserId, {
-				userId: page.createdByUserId,
-				name:
-					page.ownerName ||
-					t({
-						message: "Unknown",
-					}),
-				image: page.ownerImage,
-				isCurrentUser: page.createdByUserId === currentUserId,
+		const rows = countsQuery.data?.authors ?? [];
+		return rows
+			.flatMap((row) =>
+				row.userId
+					? [
+							{
+								userId: row.userId,
+								name: row.name || t({ message: "Unknown" }),
+								image: row.image,
+								isCurrentUser: row.userId === currentUserId,
+							},
+						]
+					: [],
+			)
+			.sort((a, b) => {
+				if (a.isCurrentUser !== b.isCurrentUser)
+					return a.isCurrentUser ? -1 : 1;
+				return a.name.localeCompare(b.name);
 			});
-		}
-		return Array.from(byAuthor.values()).sort((a, b) => {
-			if (a.isCurrentUser !== b.isCurrentUser) return a.isCurrentUser ? -1 : 1;
-			return a.name.localeCompare(b.name);
-		});
-	}, [all, currentUserId, t]);
+	}, [countsQuery.data, currentUserId, t]);
 
 	const { all: accessibleWorkspaces } = useAccessibleV2Workspaces();
 	const workspaceOptions = useMemo<PageWorkspaceOption[]>(() => {
 		const names = new Map(
 			accessibleWorkspaces.map((workspace) => [workspace.id, workspace.name]),
 		);
-		const counts = new Map<string, number>();
-		for (const page of all) {
-			for (const link of page.workspaceLinks ?? []) {
-				counts.set(link.workspaceId, (counts.get(link.workspaceId) ?? 0) + 1);
-			}
-		}
-		return Array.from(counts.entries())
-			.filter(([id]) => names.has(id))
-			.map(([id, count]) => ({
-				workspaceId: id,
-				name: names.get(id) ?? id,
-				count,
+		return (countsQuery.data?.workspaces ?? [])
+			.filter((row) => names.has(row.workspaceId))
+			.map((row) => ({
+				workspaceId: row.workspaceId,
+				name: names.get(row.workspaceId) ?? row.workspaceId,
+				count: row.count,
 			}))
 			.sort((a, b) => a.name.localeCompare(b.name));
-	}, [all, accessibleWorkspaces]);
-
-	const counts = useMemo(
-		() => ({
-			all: all.length,
-			pinned: all.filter((page) => favoritePageIdSet.has(page.id)).length,
-			team: all.filter((page) => matchesScope(page, "team", favoritePageIdSet))
-				.length,
-			mine: all.filter((page) => matchesScope(page, "mine", favoritePageIdSet))
-				.length,
-		}),
-		[all, favoritePageIdSet],
-	);
+	}, [countsQuery.data, accessibleWorkspaces]);
 
 	const tabs = useMemo(
 		() =>
@@ -171,39 +195,29 @@ export function PagesView({
 		[counts.pinned, scope],
 	);
 
-	const pinnedEmpty =
-		pages.data !== undefined &&
-		!hasNextPage &&
-		scope === "pinned" &&
-		counts.pinned === 0;
-	const activeScope = pinnedEmpty ? "all" : scope;
-
-	useEffect(() => {
-		if (pinnedEmpty) onScopeChange("all");
-	}, [pinnedEmpty, onScopeChange]);
-
-	const visible = useMemo(
-		() =>
-			sortPinnedFirst(
-				filterPages(all, {
-					search,
-					scope: activeScope,
-					pinnedPageIds: favoritePageIdSet,
-					authorId,
-					workspaceId,
-				}),
-				favoritePageIdSet,
-			),
-		[all, search, activeScope, favoritePageIdSet, authorId, workspaceId],
+	const changeScope = useCallback(
+		(next: PageScope) => {
+			cancelPendingSearchNavigation();
+			onScopeChange(next);
+		},
+		[cancelPendingSearchNavigation, onScopeChange],
 	);
 
-	const orgEmpty = !pages.isPending && !pages.error && all.length === 0;
+	const hasFilters =
+		Boolean(search.trim()) ||
+		scope !== "all" ||
+		authorId !== null ||
+		workspaceId !== null;
+	// From the list, not the counts: those arrive on their own query, and a
+	// zero default while they are in flight would blank a loaded grid.
+	const orgEmpty =
+		!hasFilters && !pages.isPending && !pages.error && items.length === 0;
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
 			<div className="drag h-10 shrink-0" />
 
-			<div className="min-h-0 flex-1 overflow-y-auto">
+			<div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
 				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
 					<FeatureHeader
 						title={<Trans>Pages</Trans>}
@@ -216,8 +230,8 @@ export function PagesView({
 					{!orgEmpty && (
 						<div className="mt-6 flex flex-wrap items-center justify-between gap-2">
 							<Tabs
-								value={activeScope}
-								onValueChange={(value) => onScopeChange(value as PageScope)}
+								value={scope}
+								onValueChange={(value) => changeScope(value as PageScope)}
 							>
 								<TabsList className="h-8 gap-1 bg-transparent p-0">
 									{tabs.map((tab) => (
@@ -240,21 +254,27 @@ export function PagesView({
 									<WorkspaceFilter
 										value={workspaceId}
 										options={workspaceOptions}
-										onChange={onWorkspaceChange}
+										onChange={(value) => {
+											cancelPendingSearchNavigation();
+											onWorkspaceChange(value);
+										}}
 									/>
 								)}
 								{(authorOptions.length > 1 || authorId !== null) && (
 									<AuthorFilter
 										value={authorId}
 										options={authorOptions}
-										onChange={onAuthorChange}
+										onChange={(value) => {
+											cancelPendingSearchNavigation();
+											onAuthorChange(value);
+										}}
 									/>
 								)}
 								<div className="relative w-56">
 									<LuSearch className="-translate-y-1/2 absolute top-1/2 left-2 size-3.5 text-muted-foreground" />
 									<Input
-										value={search}
-										onChange={(event) => onSearchChange(event.target.value)}
+										value={searchInput}
+										onChange={(event) => handleSearchChange(event.target.value)}
 										placeholder={t({
 											message: "Search pages",
 										})}
@@ -265,38 +285,15 @@ export function PagesView({
 						</div>
 					)}
 
-					{isFetchNextPageError && all.length > 0 && (
-						<div className="mt-4 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-1.5 text-destructive text-xs">
-							<span className="flex-1">
-								<Trans>
-									Some pages couldn't load, so this list is incomplete.
-								</Trans>
-							</span>
-							<button
-								type="button"
-								className="underline hover:no-underline"
-								onClick={() => void fetchNextPage()}
-							>
-								<Trans>Retry</Trans>
-							</button>
-						</div>
-					)}
-
 					<PagesGrid
-						pages={visible}
+						pages={items}
 						onCreate={handleCreateWithAgent}
 						isCreating={creatingWithAgent}
 						pinnedPageIds={favoritePageIdSet}
 						currentUserId={session?.user.id}
 						isPending={pages.isPending}
-						error={all.length === 0 ? pages.error?.message : undefined}
-						hasFilters={
-							!orgEmpty &&
-							(Boolean(search.trim()) ||
-								activeScope !== "all" ||
-								authorId !== null ||
-								workspaceId !== null)
-						}
+						error={items.length === 0 ? pages.error?.message : undefined}
+						hasFilters={!orgEmpty && hasFilters}
 						onOpen={(page, event) =>
 							openPage(
 								page,
@@ -313,6 +310,29 @@ export function PagesView({
 							);
 						}}
 					/>
+
+					<div ref={sentinelRef} className="h-1 shrink-0" />
+
+					{isFetchingNextPage && (
+						<p className="py-4 text-center text-muted-foreground text-xs">
+							<Trans>Loading more pages…</Trans>
+						</p>
+					)}
+
+					{isFetchNextPageError && (
+						<div className="mt-2 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-1.5 text-destructive text-xs">
+							<span className="flex-1">
+								<Trans>Could not load more pages.</Trans>
+							</span>
+							<button
+								type="button"
+								className="underline hover:no-underline"
+								onClick={() => void fetchNextPage()}
+							>
+								<Trans>Retry</Trans>
+							</button>
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

@@ -91,19 +91,41 @@ export type CreatePageInput = z.infer<typeof createPageSchema>;
 export const PAGE_LIST_DEFAULT_LIMIT = 50;
 export const PAGE_LIST_MAX_LIMIT = 200;
 
-const POSTGRES_TIMESTAMPTZ_TEXT =
-	/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,6})?[+-]\d{2}(:\d{2}(:\d{2})?)?$/;
+/**
+ * `MAX_FAVORITE_PAGE_IDS` on the desktop, which is where the only unbounded
+ * caller comes from: pins live in renderer storage, so the pinned tab asks for
+ * them by id rather than by a column the server could filter on.
+ */
+export const PAGE_LIST_MAX_IDS = 200;
 
-export const pageListCursorSchema = z.object({
-	updatedAt: z.string().max(64).regex(POSTGRES_TIMESTAMPTZ_TEXT),
-	id: pageFields.id,
-});
+export const PAGE_LIST_SCOPES = ["all", "team", "mine"] as const;
+
+export type PageListScope = (typeof PAGE_LIST_SCOPES)[number];
+
+/**
+ * An empty search is the cleared search box, not a request for pages whose
+ * title contains "". Normalising here rather than at each caller keeps a
+ * client from having to strip the key to get the unfiltered list back.
+ */
+const searchField = z
+	.string()
+	.max(200)
+	.transform((value) => value.trim())
+	.transform((value) => (value.length === 0 ? undefined : value))
+	.optional();
+
+const pageListFilterFields = {
+	workspaceId: pageFields.workspaceId.optional(),
+	search: searchField,
+	scope: z.enum(PAGE_LIST_SCOPES).default("all"),
+	authorId: z.string().uuid().optional(),
+	ids: z.array(pageFields.id).max(PAGE_LIST_MAX_IDS).optional(),
+} as const;
 
 export const listPagesSchema = z
 	.object({
-		workspaceId: pageFields.workspaceId.optional(),
-		search: z.string().min(1).max(200).optional(),
-		cursor: pageListCursorSchema.optional(),
+		...pageListFilterFields,
+		cursor: z.string().max(256).optional(),
 		limit: z
 			.number()
 			.int()
@@ -113,7 +135,22 @@ export const listPagesSchema = z
 	})
 	.optional();
 
-export type PageListCursor = z.infer<typeof pageListCursorSchema>;
+/**
+ * The tab counts. They are a separate query because they are counts over the
+ * whole filtered set, which a paginated list can no longer derive from what it
+ * has loaded.
+ */
+export const pageCountsSchema = z
+	.object({
+		workspaceId: pageListFilterFields.workspaceId,
+		search: pageListFilterFields.search,
+		authorId: pageListFilterFields.authorId,
+		pinnedIds: pageListFilterFields.ids,
+	})
+	.optional();
+
+export type ListPagesInput = z.infer<typeof listPagesSchema>;
+export type PageCountsInput = z.infer<typeof pageCountsSchema>;
 
 const pageRefFieldsSchema = z.object({
 	id: pageFields.id.optional(),

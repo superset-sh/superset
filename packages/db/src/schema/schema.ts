@@ -1469,6 +1469,13 @@ export const pages = pgTable(
 			table.organizationId,
 			desc(table.updatedAt),
 		),
+		// The list keyset orders by (created_at, id). `updated_at` cannot serve it:
+		// the 30s watch heartbeat bumps it, which moves a row across an open cursor.
+		index("pages_organization_id_created_at_id_idx").on(
+			table.organizationId,
+			desc(table.createdAt),
+			desc(table.id),
+		),
 		index("pages_created_by_user_id_idx").on(table.createdByUserId),
 	],
 );

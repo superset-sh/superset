@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { Redirect } from "renderer/components/Redirect";
 import { PagesView } from "./components/PagesView";
-import { isPageScope, type PageScope } from "./utils/filterPages";
+import { isPageScope, type PageScope } from "./utils/pageScope";
 
 export type PagesSearch = {
 	q?: string;

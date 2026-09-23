@@ -4266,6 +4266,9 @@ msgstr "無法載入環境。"
 msgid "Could not load image"
 msgstr "無法載入圖片"
 
+msgid "Could not load more pages."
+msgstr "無法載入更多頁面。"
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "無法載入外掛。請檢查連線後再試一次。"
 
@@ -8455,6 +8458,9 @@ msgstr "正在載入議題…"
 
 msgid "Loading members..."
 msgstr "正在載入成員..."
+
+msgid "Loading more pages…"
+msgstr "正在載入更多頁面…"
 
 msgid "Loading more..."
 msgstr "正在載入更多..."
@@ -13891,9 +13897,6 @@ msgstr "部分檔案超過大小上限，未新增。"
 
 msgid "Some models were priced with a fallback rate"
 msgstr "部分模型按備用費率計價"
-
-msgid "Some pages couldn't load, so this list is incomplete."
-msgstr "部分頁面載入失敗，因此這份清單並不完整。"
 
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"

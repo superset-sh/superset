@@ -4266,6 +4266,9 @@ msgstr "Tidak dapat memuat environment."
 msgid "Could not load image"
 msgstr "Gambar tidak dapat dimuat"
 
+msgid "Could not load more pages."
+msgstr "Tidak dapat memuat halaman lainnya."
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Tidak dapat memuat plugin. Periksa koneksi Anda dan coba lagi."
 
@@ -8455,6 +8458,9 @@ msgstr "Memuat issue…"
 
 msgid "Loading members..."
 msgstr "Memuat anggota..."
+
+msgid "Loading more pages…"
+msgstr "Memuat halaman lainnya…"
 
 msgid "Loading more..."
 msgstr "Memuat lagi..."
@@ -13891,9 +13897,6 @@ msgstr "Sebagian file melebihi ukuran maksimum dan tidak ditambahkan."
 
 msgid "Some models were priced with a fallback rate"
 msgstr "Sebagian model dihitung dengan tarif cadangan"
-
-msgid "Some pages couldn't load, so this list is incomplete."
-msgstr "Beberapa halaman gagal dimuat, sehingga daftar ini tidak lengkap."
 
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"

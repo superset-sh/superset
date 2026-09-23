@@ -4266,6 +4266,9 @@ msgstr "環境を読み込めませんでした。"
 msgid "Could not load image"
 msgstr "画像を読み込めませんでした"
 
+msgid "Could not load more pages."
+msgstr "これ以上ページを読み込めませんでした。"
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "プラグインを読み込めませんでした。接続を確認して再試行してください。"
 
@@ -8455,6 +8458,9 @@ msgstr "Issueを読み込み中…"
 
 msgid "Loading members..."
 msgstr "メンバーを読み込み中..."
+
+msgid "Loading more pages…"
+msgstr "さらにページを読み込み中…"
 
 msgid "Loading more..."
 msgstr "さらに読み込み中..."
@@ -13891,9 +13897,6 @@ msgstr "一部のファイルは最大サイズを超えているため追加さ
 
 msgid "Some models were priced with a fallback rate"
 msgstr "一部のモデルはフォールバックのレートで計算しています"
-
-msgid "Some pages couldn't load, so this list is incomplete."
-msgstr "一部のページを読み込めなかったため、この一覧は不完全です。"
 
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"

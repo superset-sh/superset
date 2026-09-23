@@ -4266,6 +4266,9 @@ msgstr "환경을 불러오지 못했습니다."
 msgid "Could not load image"
 msgstr "이미지를 불러올 수 없음"
 
+msgid "Could not load more pages."
+msgstr "페이지를 더 불러올 수 없습니다."
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "플러그인을 불러오지 못했습니다. 연결을 확인하고 다시 시도하세요."
 
@@ -8455,6 +8458,9 @@ msgstr "이슈 불러오는 중…"
 
 msgid "Loading members..."
 msgstr "멤버 불러오는 중..."
+
+msgid "Loading more pages…"
+msgstr "페이지를 더 불러오는 중…"
 
 msgid "Loading more..."
 msgstr "더 불러오는 중..."
@@ -13891,9 +13897,6 @@ msgstr "일부 파일이 최대 크기를 초과해 추가되지 않았습니다
 
 msgid "Some models were priced with a fallback rate"
 msgstr "일부 모델은 대체 단가로 계산했습니다"
-
-msgid "Some pages couldn't load, so this list is incomplete."
-msgstr "일부 페이지를 불러오지 못해 이 목록은 불완전합니다."
 
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"

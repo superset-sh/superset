@@ -1,5 +1,11 @@
 import type { RouterOutputs } from "@superset/trpc";
-import { type UseQueryResult, useQuery } from "@tanstack/react-query";
+import type { PageListScope } from "@superset/trpc/page-schema";
+import {
+	type UseQueryResult,
+	useInfiniteQuery,
+	useQuery,
+} from "@tanstack/react-query";
+import { useMemo } from "react";
 import { useSession } from "@/lib/auth/client";
 import { apiClient } from "@/lib/trpc/client";
 
@@ -8,50 +14,72 @@ export type PulledPage = RouterOutputs["page"]["pull"];
 
 export const NO_PAGES: OrgPage[] = [];
 
-const PAGES_PER_REQUEST = 200;
+const PAGES_PER_REQUEST = 50;
 
-async function fetchAllPages(
-	filter: { workspaceId?: string },
-	signal?: AbortSignal,
-): Promise<OrgPage[]> {
-	const items: OrgPage[] = [];
-	let cursor: { updatedAt: string; id: string } | undefined;
-	do {
-		const result = await apiClient.page.list.query(
-			{ limit: PAGES_PER_REQUEST, ...filter, ...(cursor ? { cursor } : {}) },
-			{ signal },
-		);
-		items.push(...result.items);
-		cursor = result.nextCursor ?? undefined;
-	} while (cursor);
-	return items;
-}
-
-export function usePagesQuery(): UseQueryResult<OrgPage[]> {
+/** One batch per `onEndReached`, rather than every page up front. */
+export function usePagesQuery(scope: PageListScope = "all") {
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
 
-	return useQuery({
-		queryKey: ["cloud", "page", "list", organizationId],
+	const query = useInfiniteQuery({
+		queryKey: ["cloud", "page", "list", organizationId, scope],
 		enabled: organizationId !== null,
-		queryFn: ({ signal }) => fetchAllPages({}, signal),
+		initialPageParam: undefined as string | undefined,
+		queryFn: ({ pageParam, signal }) =>
+			apiClient.page.list.query(
+				{
+					limit: PAGES_PER_REQUEST,
+					scope,
+					...(pageParam ? { cursor: pageParam } : {}),
+				},
+				{ signal },
+			),
+		getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
 		staleTime: 30_000,
 	});
+
+	const items = useMemo(
+		() => query.data?.pages.flatMap((page) => page.items) ?? NO_PAGES,
+		[query.data],
+	);
+
+	return { ...query, items };
 }
 
-export function useWorkspacePagesQuery(
-	workspaceId: string | null,
-): UseQueryResult<OrgPage[]> {
+export function useWorkspacePagesQuery(workspaceId: string | null) {
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
 
-	return useQuery({
-		queryKey: ["cloud", "page", "list", organizationId, workspaceId],
+	const query = useInfiniteQuery({
+		queryKey: [
+			"cloud",
+			"page",
+			"list",
+			organizationId,
+			"workspace",
+			workspaceId,
+		],
 		enabled: organizationId !== null && workspaceId !== null,
-		queryFn: ({ signal }) =>
-			fetchAllPages({ workspaceId: workspaceId ?? "" }, signal),
+		initialPageParam: undefined as string | undefined,
+		queryFn: ({ pageParam, signal }) =>
+			apiClient.page.list.query(
+				{
+					limit: PAGES_PER_REQUEST,
+					workspaceId: workspaceId ?? "",
+					...(pageParam ? { cursor: pageParam } : {}),
+				},
+				{ signal },
+			),
+		getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
 		staleTime: 30_000,
 	});
+
+	const items = useMemo(
+		() => query.data?.pages.flatMap((page) => page.items) ?? NO_PAGES,
+		[query.data],
+	);
+
+	return { ...query, items };
 }
 
 const PULLED_PAGE_STALE_MS = 5 * 60_000;

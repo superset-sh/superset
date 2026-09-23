@@ -1,10 +1,19 @@
-const PAGES_PER_BATCH = 200;
+import type { PageListScope } from "@superset/trpc/page-schema";
+
+export const PAGES_PER_BATCH = 50;
 
 export interface PagesListFilter {
 	workspaceId?: string;
 	search?: string;
+	scope?: PageListScope;
+	authorId?: string;
+	ids?: string[];
+	limit?: number;
 }
 
-export function pagesListInput(filter: PagesListFilter = {}) {
-	return { limit: PAGES_PER_BATCH, ...filter };
+export function pagesListInput({
+	limit = PAGES_PER_BATCH,
+	...filter
+}: PagesListFilter = {}) {
+	return { limit, ...filter };
 }

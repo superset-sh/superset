@@ -4266,6 +4266,9 @@ msgstr "Nepodařilo se načíst prostředí."
 msgid "Could not load image"
 msgstr "Obrázek se nepodařilo načíst"
 
+msgid "Could not load more pages."
+msgstr "Další stránky se nepodařilo načíst."
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Pluginy se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu."
 
@@ -8455,6 +8458,9 @@ msgstr "Načítám issues…"
 
 msgid "Loading members..."
 msgstr "Načítám členy..."
+
+msgid "Loading more pages…"
+msgstr "Načítání dalších stránek…"
 
 msgid "Loading more..."
 msgstr "Načítám další..."
@@ -13891,9 +13897,6 @@ msgstr "Některé soubory překračují maximální velikost a nebyly přidány.
 
 msgid "Some models were priced with a fallback rate"
 msgstr "U některých modelů byla použita náhradní sazba"
-
-msgid "Some pages couldn't load, so this list is incomplete."
-msgstr "Některé stránky se nepodařilo načíst, takže tento seznam je neúplný."
 
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"

@@ -1,0 +1,1 @@
+export { usePagesList } from "./usePagesList";

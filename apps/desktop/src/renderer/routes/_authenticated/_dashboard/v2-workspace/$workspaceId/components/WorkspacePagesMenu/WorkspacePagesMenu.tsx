@@ -7,12 +7,12 @@ import { ArrowLeft, FileText, LayoutGrid, Plus } from "lucide-react";
 import { type MouseEvent, useCallback, useMemo, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { useAllPages } from "renderer/routes/_authenticated/_dashboard/hooks/useAllPages";
 import {
 	isPaneModifier,
 	useOpenPage,
 } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
 import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
+import { usePagesList } from "renderer/routes/_authenticated/_dashboard/hooks/usePagesList";
 import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
 import type { CreateNewAgentSession } from "../../hooks/useAgentSessionLauncher";
 import { NewPageComposer } from "./components/NewPageComposer";
@@ -22,6 +22,8 @@ import {
 	usePagesMenuSeenStore,
 } from "./stores/pagesMenuSeenStore";
 import { type MenuPage, selectMenuPages } from "./utils/selectMenuPages";
+
+const MENU_PAGE_LIMIT = 200;
 
 interface WorkspacePagesMenuProps {
 	workspaceId: string;
@@ -45,12 +47,15 @@ export function WorkspacePagesMenu({
 	const [open, setOpen] = useState(false);
 	const [composing, setComposing] = useState(false);
 
-	const workspacePagesQuery = useAllPages(
-		{ workspaceId },
+	// This menu orders by publish time, not creation time, so it takes one
+	// large batch rather than the grid's scroll-sized one.
+	const workspacePagesQuery = usePagesList(
+		{ workspaceId, limit: MENU_PAGE_LIMIT },
 		{ staleTime: 60_000 },
 	);
-	const orgPagesQuery = useAllPages(
-		{},
+	// Only the pins, by id — this menu never needed the rest of the org.
+	const pinnedPagesQuery = usePagesList(
+		{ ids: favoritePageIds, limit: MENU_PAGE_LIMIT },
 		{ enabled: open && favoritePageIds.length > 0, staleTime: 60_000 },
 	);
 
@@ -67,11 +72,16 @@ export function WorkspacePagesMenu({
 		() =>
 			selectMenuPages({
 				workspacePages: workspacePagesQuery.items,
-				orgPages: orgPagesQuery.items,
+				orgPages: pinnedPagesQuery.items,
 				favoritePageIds,
 				seenAt,
 			}),
-		[workspacePagesQuery.items, orgPagesQuery.items, favoritePageIds, seenAt],
+		[
+			workspacePagesQuery.items,
+			pinnedPagesQuery.items,
+			favoritePageIds,
+			seenAt,
+		],
 	);
 
 	const handleOpenChange = (next: boolean) => {

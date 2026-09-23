@@ -4266,6 +4266,9 @@ msgstr "无法加载环境。"
 msgid "Could not load image"
 msgstr "无法加载图片"
 
+msgid "Could not load more pages."
+msgstr "无法加载更多页面。"
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "无法加载插件。请检查网络连接后重试。"
 
@@ -8455,6 +8458,9 @@ msgstr "正在加载议题…"
 
 msgid "Loading members..."
 msgstr "正在加载成员..."
+
+msgid "Loading more pages…"
+msgstr "正在加载更多页面…"
 
 msgid "Loading more..."
 msgstr "正在加载更多..."
@@ -13891,9 +13897,6 @@ msgstr "部分文件超过大小上限，未添加。"
 
 msgid "Some models were priced with a fallback rate"
 msgstr "部分模型按兜底费率计价"
-
-msgid "Some pages couldn't load, so this list is incomplete."
-msgstr "部分页面加载失败，因此此列表不完整。"
 
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"

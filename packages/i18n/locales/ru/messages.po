@@ -4266,6 +4266,9 @@ msgstr "Не удалось загрузить окружения."
 msgid "Could not load image"
 msgstr "Не удалось загрузить изображение"
 
+msgid "Could not load more pages."
+msgstr "Не удалось загрузить другие страницы."
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Не удалось загрузить плагины. Проверьте подключение и попробуйте снова."
 
@@ -8455,6 +8458,9 @@ msgstr "Загрузка задач…"
 
 msgid "Loading members..."
 msgstr "Загрузка участников..."
+
+msgid "Loading more pages…"
+msgstr "Загрузка других страниц…"
 
 msgid "Loading more..."
 msgstr "Загружаем ещё..."
@@ -13891,9 +13897,6 @@ msgstr "Некоторые файлы превышают максимальны�
 
 msgid "Some models were priced with a fallback rate"
 msgstr "Для части моделей использована резервная ставка тарификации"
-
-msgid "Some pages couldn't load, so this list is incomplete."
-msgstr "Некоторые страницы не удалось загрузить, поэтому этот список неполный."
 
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"

@@ -4266,6 +4266,9 @@ msgstr "Impossible de charger les environnements."
 msgid "Could not load image"
 msgstr "Impossible de charger l'image"
 
+msgid "Could not load more pages."
+msgstr "Impossible de charger d'autres pages."
+
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Impossible de charger les plugins. Vérifiez votre connexion et réessayez."
 
@@ -8455,6 +8458,9 @@ msgstr "Chargement des issues…"
 
 msgid "Loading members..."
 msgstr "Chargement des membres..."
+
+msgid "Loading more pages…"
+msgstr "Chargement d'autres pages…"
 
 msgid "Loading more..."
 msgstr "Chargement..."
@@ -13891,9 +13897,6 @@ msgstr "Certains fichiers dépassent la taille maximale et n'ont pas été ajout
 
 msgid "Some models were priced with a fallback rate"
 msgstr "Certains modèles ont été valorisés à un tarif de repli"
-
-msgid "Some pages couldn't load, so this list is incomplete."
-msgstr "Certaines pages n'ont pas pu être chargées, cette liste est donc incomplète."
 
 #. placeholder {0}: error.message
 msgid "Some repositories could not be loaded: {0}"
