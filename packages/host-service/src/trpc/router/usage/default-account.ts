@@ -18,6 +18,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { resolveWriteTarget } from "@superset/agent-setup";
 import type { HostDb } from "../../../db/index.ts";
 import { hostSettings } from "../../../db/schema.ts";
 
@@ -89,7 +90,7 @@ export function syncDefaultAccountPointer(
 	try {
 		const dir = join(supersetHomeDir(), "state");
 		mkdirSync(dir, { recursive: true });
-		const pointerPath = defaultAccountPointerPath(agent);
+		const pointerPath = resolveWriteTarget(defaultAccountPointerPath(agent));
 		temporaryPath = temporaryPointerPath(pointerPath);
 		writeFileSync(temporaryPath, selection ?? "");
 		renameSync(temporaryPath, pointerPath);
