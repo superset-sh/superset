@@ -3,13 +3,14 @@ import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { z } from "zod";
 import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
+import { triggersInput } from "./triggers";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_create",
 		annotations: { destructiveHint: false },
 		description:
-			"Schedule a recurring agent run. Provide an RFC 5545 RRULE body for the schedule. Pass v2ProjectId (run in a fresh workspace), v2WorkspaceId (reuse an existing workspace), or neither to run each time in a fresh project-less session workspace — call projects_list or workspaces_list first to get IDs. `agent` is the host-agent instance id (or presetId fallback) that runs the prompt.",
+			"Create an automation that runs an agent on a schedule, on an external event, or both. Provide either `rrule` (a schedule) or `triggers` (the full trigger set, which may include event triggers). Pass v2ProjectId (run in a fresh workspace), v2WorkspaceId (reuse an existing workspace), or neither to run each time in a fresh project-less session workspace — call projects_list or workspaces_list first to get IDs. `agent` is the host-agent instance id (or presetId fallback) that runs the prompt.",
 		inputSchema: {
 			name: z
 				.string()
@@ -53,8 +54,9 @@ export function register(server: McpServer): void {
 				.string()
 				.min(1)
 				.max(500)
+				.optional()
 				.describe(
-					"RFC 5545 RRULE body, no DTSTART prefix. Example: FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0",
+					"RFC 5545 RRULE body, no DTSTART prefix. Example: FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0. Omit when passing `triggers`.",
 				),
 			dtstart: z
 				.string()
@@ -64,7 +66,11 @@ export function register(server: McpServer): void {
 			timezone: z
 				.string()
 				.min(1)
-				.describe("IANA timezone (e.g. America/New_York)."),
+				.optional()
+				.describe(
+					"IANA timezone (e.g. America/New_York). Required with `rrule`.",
+				),
+			triggers: triggersInput,
 			continueAgentSession: z
 				.boolean()
 				.optional()

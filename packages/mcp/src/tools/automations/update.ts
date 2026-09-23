@@ -3,13 +3,14 @@ import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { z } from "zod";
 import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
+import { triggersInput } from "./triggers";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_update",
 		annotations: { destructiveHint: false, idempotentHint: true },
 		description:
-			"Update metadata on an existing automation (name, schedule, agent, host). Only the fields you pass change. Caller must be the automation's owner. Use automations_set_prompt to change the prompt body.",
+			"Update an existing automation (name, schedule, triggers, agent, host). Only the fields you pass change, except `triggers`, which replaces the whole trigger set. Caller must be the automation's owner. Use automations_set_prompt to change the prompt body.",
 		inputSchema: {
 			id: z.string().uuid().describe("Automation UUID."),
 			name: z.string().min(1).max(200).optional(),
@@ -41,6 +42,7 @@ export function register(server: McpServer): void {
 				.optional()
 				.describe("First scheduled fire (ISO 8601)."),
 			timezone: z.string().min(1).optional(),
+			triggers: triggersInput,
 			tags: workspaceTagsInputSchema
 				.optional()
 				.describe(
