@@ -482,7 +482,9 @@ export const pageRouter = {
 				items.push(...batch.items);
 				cursor = batch.nextCursor ?? undefined;
 			} while (cursor);
-			return items;
+			return items.sort(
+				(a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
+			);
 		}),
 
 	listBatch: protectedProcedure
