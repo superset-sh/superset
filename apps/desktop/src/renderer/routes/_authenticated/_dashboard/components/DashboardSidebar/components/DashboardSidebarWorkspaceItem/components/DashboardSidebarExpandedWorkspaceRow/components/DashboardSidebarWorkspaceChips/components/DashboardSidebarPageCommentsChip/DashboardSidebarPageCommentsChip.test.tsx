@@ -12,8 +12,8 @@ if (!alreadyRegistered) GlobalRegistrator.register();
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
 const { cleanup, render } = await import("@testing-library/react");
-const { DashboardSidebarPageCommentsBadge } = await import(
-	"./DashboardSidebarPageCommentsBadge"
+const { DashboardSidebarPageCommentsChip } = await import(
+	"./DashboardSidebarPageCommentsChip"
 );
 
 afterEach(cleanup);
@@ -21,10 +21,10 @@ afterAll(async () => {
 	if (!alreadyRegistered) await GlobalRegistrator.unregister();
 });
 
-describe("DashboardSidebarPageCommentsBadge", () => {
+describe("DashboardSidebarPageCommentsChip", () => {
 	test("renders nothing when no comment is waiting", () => {
 		const { container } = render(
-			<DashboardSidebarPageCommentsBadge count={0} />,
+			<DashboardSidebarPageCommentsChip count={0} />,
 		);
 
 		expect(container.firstElementChild).toBeNull();
@@ -32,27 +32,40 @@ describe("DashboardSidebarPageCommentsBadge", () => {
 
 	test("describes the count without relying on the tooltip", () => {
 		const { container } = render(
-			<DashboardSidebarPageCommentsBadge count={3} />,
+			<DashboardSidebarPageCommentsChip count={3} />,
 		);
 
-		const badge = container.firstElementChild as HTMLElement;
-		expect(badge.querySelector("[aria-hidden='true']")?.textContent).toBe("3");
-		expect(badge.querySelector(".sr-only")?.textContent).toBe(
+		const chip = container.firstElementChild as HTMLElement;
+		expect(chip.querySelector("span[aria-hidden='true']")?.textContent).toBe(
+			"3",
+		);
+		expect(chip.querySelector(".sr-only")?.textContent).toBe(
 			"3 page comments are waiting on an agent here",
 		);
 	});
 
 	test("caps the rendered count but describes the real one", () => {
 		const { container } = render(
-			<DashboardSidebarPageCommentsBadge count={150} />,
+			<DashboardSidebarPageCommentsChip count={150} />,
 		);
 
-		const badge = container.firstElementChild as HTMLElement;
-		expect(badge.querySelector("[aria-hidden='true']")?.textContent).toBe(
+		const chip = container.firstElementChild as HTMLElement;
+		expect(chip.querySelector("span[aria-hidden='true']")?.textContent).toBe(
 			"99+",
 		);
-		expect(badge.querySelector(".sr-only")?.textContent).toBe(
+		expect(chip.querySelector(".sr-only")?.textContent).toBe(
 			"150 page comments are waiting on an agent here",
 		);
+	});
+
+	test("carries the comment icon the other chips' chassis expects", () => {
+		const { container } = render(
+			<DashboardSidebarPageCommentsChip count={1} />,
+		);
+
+		const chip = container.firstElementChild as HTMLElement;
+		expect(chip.className).toContain("rounded-full");
+		expect(chip.className).toContain("bg-muted/60");
+		expect(chip.querySelector("svg")).not.toBeNull();
 	});
 });

@@ -1,10 +1,12 @@
 import { cn } from "@superset/ui/utils";
 import type { MouseEventHandler } from "react";
+import { useWorkspacePageCommentsWaiting } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPageCommentsProvider";
 import { useDashboardSidebarWorkspacePorts } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
 import { useWorkspaceAgentsRowEnabled } from "renderer/stores/workspace-agents-row";
 import type { DashboardSidebarWorkspaceIndentation } from "../../../../../../types";
 import { DashboardSidebarAgentsChip } from "./components/DashboardSidebarAgentsChip";
+import { DashboardSidebarPageCommentsChip } from "./components/DashboardSidebarPageCommentsChip";
 import { DashboardSidebarPortsChip } from "./components/DashboardSidebarPortsChip";
 import { useDashboardSidebarWorkspaceRunningAgents } from "./hooks/useDashboardSidebarWorkspaceRunningAgents";
 
@@ -18,9 +20,9 @@ interface DashboardSidebarWorkspaceChipsProps {
 
 /**
  * Activity line beneath a workspace row, left-aligned with the title: an
- * agents chip and a ports chip. Agent chips appear only when more than one
- * agent is running — a lone agent is the norm for a workspace and showing it
- * adds no signal.
+ * agents chip, a ports chip and a page-comments chip. Agent chips appear only
+ * when more than one agent is running — a lone agent is the norm for a
+ * workspace and showing it adds no signal.
  */
 export function DashboardSidebarWorkspaceChips({
 	workspaceId,
@@ -34,6 +36,7 @@ export function DashboardSidebarWorkspaceChips({
 	const portGroup = useDashboardSidebarWorkspacePorts(workspaceId);
 	const ports = inlineWorkspacePortsEnabled ? (portGroup?.ports ?? []) : [];
 	const runningAgents = useDashboardSidebarWorkspaceRunningAgents(workspaceId);
+	const pageCommentsWaiting = useWorkspacePageCommentsWaiting(workspaceId);
 	// One agent alone is what the pane already shows; the chip earns its
 	// place once there is more than one, or once the one has subagents
 	// running underneath it that the sidebar would otherwise never surface.
@@ -45,7 +48,7 @@ export function DashboardSidebarWorkspaceChips({
 			? runningAgents
 			: [];
 
-	if (ports.length === 0 && agents.length === 0) {
+	if (ports.length === 0 && agents.length === 0 && pageCommentsWaiting === 0) {
 		return null;
 	}
 
@@ -87,6 +90,7 @@ export function DashboardSidebarWorkspaceChips({
 				<DashboardSidebarAgentsChip workspaceId={workspaceId} agents={agents} />
 			)}
 			{ports.length > 0 && <DashboardSidebarPortsChip ports={ports} />}
+			<DashboardSidebarPageCommentsChip count={pageCommentsWaiting} />
 		</div>
 	);
 }

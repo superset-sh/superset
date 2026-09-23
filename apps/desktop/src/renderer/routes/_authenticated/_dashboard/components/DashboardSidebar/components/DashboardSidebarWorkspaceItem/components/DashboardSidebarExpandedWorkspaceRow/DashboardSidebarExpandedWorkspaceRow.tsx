@@ -23,7 +23,6 @@ import { ProjectThumbnail } from "renderer/routes/_authenticated/components/Proj
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
 import type { ActivePaneStatus } from "shared/tabs-types";
-import { useWorkspacePageCommentsWaiting } from "../../../../providers/DashboardSidebarPageCommentsProvider";
 import type {
 	DashboardSidebarWorkspace,
 	DashboardSidebarWorkspaceIndentation,
@@ -31,7 +30,6 @@ import type {
 } from "../../../../types";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
-import { DashboardSidebarPageCommentsBadge } from "./components/DashboardSidebarPageCommentsBadge";
 import { DashboardSidebarWorkspaceChips } from "./components/DashboardSidebarWorkspaceChips";
 
 const PR_STATE_LABEL: Record<
@@ -127,7 +125,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			pendingTransaction,
 		} = workspace;
 		const isPending = pendingTransaction?.type === "insert";
-		const pageCommentsWaiting = useWorkspacePageCommentsWaiting(workspace.id);
 		const localRef = useRef<HTMLDivElement>(null);
 		const navigate = useNavigate();
 		// Drives the name's hover-reveal for keyboard users: the row, not the
@@ -375,7 +372,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							</>
 						)}
 
-						<div className="col-start-2 row-start-1 flex h-5 shrink-0 items-center justify-end gap-1.5">
+						<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center justify-items-end [&>*]:col-start-1 [&>*]:row-start-1">
 							{creationStatusText ? (
 								<span className="text-[11px] text-muted-foreground">
 									{creationStatusText}
@@ -391,7 +388,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									/>
 								)
 							)}
-							<DashboardSidebarPageCommentsBadge count={pageCommentsWaiting} />
 							{!isPending && !isSelected && (
 								<div className="hidden items-center justify-end gap-1.5 group-hover:flex group-focus-within:flex">
 									{shortcutLabel && (

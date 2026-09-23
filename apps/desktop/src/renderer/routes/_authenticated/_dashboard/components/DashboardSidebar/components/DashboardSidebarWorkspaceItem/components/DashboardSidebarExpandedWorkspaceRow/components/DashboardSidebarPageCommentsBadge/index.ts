@@ -1,1 +1,0 @@
-export { DashboardSidebarPageCommentsBadge } from "./DashboardSidebarPageCommentsBadge";
