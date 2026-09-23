@@ -8,7 +8,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import { resolveWriteTarget } from "@superset/agent-setup";
+import { resolveWriteTarget } from "@superset/agent-setup/write-file-if-changed";
 import { CLIError } from "@superset/cli-framework";
 import {
 	builtInThemes,

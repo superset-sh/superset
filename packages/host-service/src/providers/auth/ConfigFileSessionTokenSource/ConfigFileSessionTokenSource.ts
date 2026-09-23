@@ -9,7 +9,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { resolveWriteTarget } from "@superset/agent-setup";
+import { resolveWriteTarget } from "@superset/agent-setup/write-file-if-changed";
 
 const CLIENT_ID = "superset-cli";
 const LOGIN_AGAIN_MESSAGE = "Session expired. Run: superset auth login";

@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { resolveWriteTarget } from "@superset/agent-setup";
+import { resolveWriteTarget } from "@superset/agent-setup/write-file-if-changed";
 import { env } from "./env";
 
 export type SupersetConfig = {

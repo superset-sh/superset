@@ -18,7 +18,6 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { resolveWriteTarget } from "@superset/agent-setup";
 import type { HostDb } from "../../../db/index.ts";
 import { hostSettings } from "../../../db/schema.ts";
 
@@ -36,6 +35,21 @@ const POINTER_NAMES: Record<SwitchableAccountAgent, string> = {
  */
 function supersetHomeDir(): string {
 	return process.env.SUPERSET_HOME_DIR?.trim() || join(homedir(), ".superset");
+}
+
+/**
+ * Mirror of agent-setup's resolveWriteTarget, not imported for the reason
+ * above. Without it, renaming onto a pointer a user symlinked into a
+ * dotfiles repo would replace the link with a regular file.
+ */
+function resolveWriteTarget(filePath: string): string {
+	try {
+		return realpathSync(filePath);
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		if (code !== "ENOENT" && code !== "ELOOP") throw error;
+		return filePath;
+	}
 }
 
 /**
