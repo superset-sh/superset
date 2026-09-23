@@ -1465,12 +1465,6 @@ export const pages = pgTable(
 	},
 	(table) => [
 		uniqueIndex("pages_slug_unique").on(table.slug),
-		index("pages_organization_id_updated_at_idx").on(
-			table.organizationId,
-			desc(table.updatedAt),
-		),
-		// The list keyset orders by (created_at, id). `updated_at` cannot serve it:
-		// the 30s watch heartbeat bumps it, which moves a row across an open cursor.
 		index("pages_organization_id_created_at_id_idx").on(
 			table.organizationId,
 			desc(table.createdAt),

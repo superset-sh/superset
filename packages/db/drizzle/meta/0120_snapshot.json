@@ -1,5 +1,5 @@
 {
-  "id": "60ef1f77-8f48-4241-b80f-53aec6d774df",
+  "id": "fa374306-8070-4c3f-aec6-d4431f1bd163",
   "prevId": "e2dbc465-8d48-4ac6-957e-cf51815f7afe",
   "version": "7",
   "dialect": "postgresql",
@@ -8318,27 +8318,6 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "pages_organization_id_updated_at_idx": {
-          "name": "pages_organization_id_updated_at_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "\"updated_at\" desc",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
