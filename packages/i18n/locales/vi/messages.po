@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# workspace} other {# workspace}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# agent đang chạy vẫn dùng tài khoản trước — việc chuyển chỉ áp dụng cho lần khởi chạy mới.} other {# agent đang chạy vẫn dùng tài khoản trước — việc chuyển chỉ áp dụng cho lần khởi chạy mới.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {Bình luận sẽ được gửi tới agent này} other {Bình luận sẽ được gửi tới các agent này}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1391,10 +1395,6 @@ msgstr "Kích hoạt, mức độ sử dụng sau khi bắt đầu dùng, và li
 msgid "Active"
 msgstr "Đang hoạt động"
 
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "hoạt động {0}"
-
 msgid "Active agent sessions."
 msgstr "Các phiên agent đang hoạt động."
 
@@ -1663,6 +1663,9 @@ msgstr "Agent tự mở bản xem trước, thao tác giao diện và đính kè
 
 msgid "Agents running at once"
 msgstr "Số agent chạy cùng lúc"
+
+msgid "Agents watching this page for comments"
+msgstr "Các agent đang theo dõi bình luận trên trang này"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Tổng hợp mức sử dụng agent của mọi lập trình viên trên bảng xếp hạng Superset — token, chi phí, hành vi cache và những mô hình mọi người thực sự dùng."
@@ -3170,9 +3173,6 @@ msgstr "Chọn thứ cần xóa khỏi trình duyệt trong ứng dụng."
 msgid "Choose when Superset pings you."
 msgstr "Chọn khi nào Superset báo cho bạn."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "Chọn agent theo dõi bình luận của trang này"
-
 msgid "Churn"
 msgstr "Rời bỏ"
 
@@ -3641,9 +3641,6 @@ msgstr "Bình luận"
 
 msgid "Comments could not be loaded"
 msgstr "Không thể tải bình luận"
-
-msgid "Comments go to this agent"
-msgstr "Bình luận sẽ được gửi tới agent này"
 
 msgid "Commit"
 msgstr "Commit"
@@ -4387,9 +4384,6 @@ msgstr "Không thể bắt đầu phiên"
 msgid "Could not stop it"
 msgstr "Không thể dừng"
 
-msgid "Could not stop watching"
-msgstr "Không thể ngừng theo dõi"
-
 msgid "Could not submit prompt. Try again."
 msgstr "Không thể gửi prompt. Hãy thử lại."
 
@@ -4408,9 +4402,6 @@ msgstr "Không thể cập nhật nhánh"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Không xác minh được thông tin đăng nhập: {reason}"
-
-msgid "Could not watch this page"
-msgstr "Không thể theo dõi trang này"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Không xác nhận được trạng thái sao — hãy kiểm tra GitHub CLI (`gh`) đã cài, đã đăng nhập và bạn có kết nối mạng"
@@ -9413,9 +9404,6 @@ msgstr "Chưa cấu hình agent nào trên máy này"
 msgid "No agents match \"{q}\"."
 msgstr "Không có agent nào khớp \"{q}\"."
 
-msgid "No agents running here"
-msgstr "Không có agent nào đang chạy ở đây"
-
 msgid "No agents yet"
 msgstr "Chưa có agent nào"
 
@@ -10024,9 +10012,6 @@ msgstr "Chưa cài gì cả."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "Không có gì đang chạy. Hãy gỡ nó và tạo cái mới."
 
-msgid "Nothing is watching this page"
-msgstr "Chưa có gì theo dõi trang này"
-
 msgid "Nothing lives at {pathname}."
 msgstr "Không có gì ở {pathname}."
 
@@ -10120,6 +10105,9 @@ msgstr "Cũ hơn"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "trên {offScopeHostName} — sẽ không chạy ở đây"
+
+msgid "On a host you can't reach"
+msgstr "Trên một host bạn không kết nối được"
 
 msgid "On click"
 msgstr "Khi nhấp"
@@ -14296,9 +14284,6 @@ msgstr "Dừng phản hồi"
 msgid "Stop Superset here to delete from another device."
 msgstr "Hãy dừng Superset ở đây để xóa từ thiết bị khác."
 
-msgid "Stop watching"
-msgstr "Ngừng theo dõi"
-
 msgid "Stop workspace run command"
 msgstr "Dừng lệnh chạy của workspace"
 
@@ -16538,9 +16523,6 @@ msgstr "Cảnh báo"
 
 msgid "Warning occurred."
 msgstr "Có cảnh báo."
-
-msgid "Watched by an agent in another workspace"
-msgstr "Được một agent ở workspace khác theo dõi"
 
 msgid "Watchers"
 msgstr "Người theo dõi"

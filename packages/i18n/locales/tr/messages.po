@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# çalışma alanı} other {# çalışma alanı}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Çalışan bir ajan hâlâ önceki hesabı kullanıyor — geçiş yalnızca yeni başlatmalar için geçerli.} other {Çalışan # ajan hâlâ önceki hesabı kullanıyor — geçiş yalnızca yeni başlatmalar için geçerli.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {Yorumlar bu ajana gider} other {Yorumlar bu ajanlara gider}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1391,10 +1395,6 @@ msgstr "Aktivasyon, içeri girdikten sonra ne kadar kullandıkları ve geri dön
 msgid "Active"
 msgstr "Etkin"
 
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "etkin {0}"
-
 msgid "Active agent sessions."
 msgstr "Etkin ajan oturumları."
 
@@ -1663,6 +1663,9 @@ msgstr "Ajanlar kendi önizlemelerini yükler, arayüzü kullanır ve işi incel
 
 msgid "Agents running at once"
 msgstr "Aynı anda çalışan ajanlar"
+
+msgid "Agents watching this page for comments"
+msgstr "Bu sayfayı yorumlar için izleyen ajanlar"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset liderlik tablosundaki her geliştiricinin toplam ajan kullanımı — token, maliyet, önbellek davranışı ve insanların gerçekte tercih ettiği modeller."
@@ -3170,9 +3173,6 @@ msgstr "Uygulama içi tarayıcıdan neyin temizleneceğini seçin."
 msgid "Choose when Superset pings you."
 msgstr "Superset'in sizi ne zaman uyaracağını seçin."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "Bu sayfanın yorumlarını hangi ajanın izleyeceğini seç"
-
 msgid "Churn"
 msgstr "Kayıp"
 
@@ -3641,9 +3641,6 @@ msgstr "Yorumlar"
 
 msgid "Comments could not be loaded"
 msgstr "Yorumlar yüklenemedi"
-
-msgid "Comments go to this agent"
-msgstr "Yorumlar bu ajana gider"
 
 msgid "Commit"
 msgstr "Commit et"
@@ -4387,9 +4384,6 @@ msgstr "Oturum başlatılamadı"
 msgid "Could not stop it"
 msgstr "Durdurulamadı"
 
-msgid "Could not stop watching"
-msgstr "İzleme durdurulamadı"
-
 msgid "Could not submit prompt. Try again."
 msgstr "İstem gönderilemedi. Yeniden deneyin."
 
@@ -4408,9 +4402,6 @@ msgstr "Dal güncellenemedi"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Kimlik bilgisi doğrulanamadı: {reason}"
-
-msgid "Could not watch this page"
-msgstr "Bu sayfa izlenemedi"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Yıldız durumu doğrulanamadı — GitHub CLI'nin (`gh`) kurulu ve oturum açmış olduğunu ve ağ bağlantınızın bulunduğunu kontrol edin"
@@ -9413,9 +9404,6 @@ msgstr "Bu makinede yapılandırılmış ajan yok"
 msgid "No agents match \"{q}\"."
 msgstr "\"{q}\" ile eşleşen ajan yok."
 
-msgid "No agents running here"
-msgstr "Burada çalışan ajan yok"
-
 msgid "No agents yet"
 msgstr "Henüz ajan yok"
 
@@ -10024,9 +10012,6 @@ msgstr "Henüz kurulu bir şey yok."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "Hiçbir şey çalışmıyor. Bunu kaldırıp yeni bir tane oluşturun."
 
-msgid "Nothing is watching this page"
-msgstr "Bu sayfayı hiçbir şey izlemiyor"
-
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname} yolunda bir şey yok."
 
@@ -10120,6 +10105,9 @@ msgstr "Daha eski"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "{offScopeHostName} üzerinde — burada çalışmaz"
+
+msgid "On a host you can't reach"
+msgstr "Erişemediğin bir ana makinede"
 
 msgid "On click"
 msgstr "Tıklandığında"
@@ -14296,9 +14284,6 @@ msgstr "Yanıtı durdur"
 msgid "Stop Superset here to delete from another device."
 msgstr "Başka bir cihazdan silmek için Superset'i burada durdurun."
 
-msgid "Stop watching"
-msgstr "İzlemeyi durdur"
-
 msgid "Stop workspace run command"
 msgstr "Çalışma alanı çalıştırma komutunu durdur"
 
@@ -16538,9 +16523,6 @@ msgstr "Uyarı"
 
 msgid "Warning occurred."
 msgstr "Bir uyarı oluştu."
-
-msgid "Watched by an agent in another workspace"
-msgstr "Başka bir çalışma alanındaki bir ajan tarafından izleniyor"
 
 msgid "Watchers"
 msgstr "İzleyenler"

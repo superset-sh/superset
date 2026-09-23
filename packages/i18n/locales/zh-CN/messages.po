@@ -226,6 +226,10 @@ msgstr "{0, plural, one {#个工作区} other {#个工作区}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。} other {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {评论将发送给此智能体} other {评论将发送给这些智能体}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1391,10 +1395,6 @@ msgstr "激活情况、进来之后的使用量，以及他们是否会回来。
 msgid "Active"
 msgstr "启用中"
 
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "活跃{0}"
-
 msgid "Active agent sessions."
 msgstr "活跃的智能体会话。"
 
@@ -1663,6 +1663,9 @@ msgstr "智能体自己加载预览、操作界面，并在标记为待审查之
 
 msgid "Agents running at once"
 msgstr "同时运行的智能体数"
+
+msgid "Agents watching this page for comments"
+msgstr "正在关注此页面评论的智能体"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset 排行榜上所有开发者的智能体使用汇总 —— token、成本、缓存表现，以及大家实际常用的模型。"
@@ -3170,9 +3173,6 @@ msgstr "选择要从应用内浏览器清除的内容。"
 msgid "Choose when Superset pings you."
 msgstr "选择Superset在什么时候通知你。"
 
-msgid "Choose which agent watches this page for comments"
-msgstr "选择由哪个智能体关注此页面的评论"
-
 msgid "Churn"
 msgstr "流失"
 
@@ -3641,9 +3641,6 @@ msgstr "评论"
 
 msgid "Comments could not be loaded"
 msgstr "无法加载评论"
-
-msgid "Comments go to this agent"
-msgstr "评论将发送给此智能体"
 
 msgid "Commit"
 msgstr "提交"
@@ -4387,9 +4384,6 @@ msgstr "无法启动会话"
 msgid "Could not stop it"
 msgstr "无法停止"
 
-msgid "Could not stop watching"
-msgstr "无法停止关注"
-
 msgid "Could not submit prompt. Try again."
 msgstr "无法提交提示词。请重试。"
 
@@ -4408,9 +4402,6 @@ msgstr "无法更新分支"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "无法验证凭据：{reason}"
-
-msgid "Could not watch this page"
-msgstr "无法关注此页面"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "无法确认加星状态，请检查是否已安装并登录GitHub CLI（`gh`），以及网络是否连通"
@@ -9413,9 +9404,6 @@ msgstr "这台机器上没有配置智能体"
 msgid "No agents match \"{q}\"."
 msgstr "没有匹配“{q}”的智能体。"
 
-msgid "No agents running here"
-msgstr "这里没有运行中的智能体"
-
 msgid "No agents yet"
 msgstr "暂无智能体"
 
@@ -10024,9 +10012,6 @@ msgstr "还没有安装任何插件。"
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "没有任何东西在运行。移除它，再建一个。"
 
-msgid "Nothing is watching this page"
-msgstr "没有智能体在关注此页面"
-
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}下没有任何内容。"
 
@@ -10120,6 +10105,9 @@ msgstr "更早"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "在{offScopeHostName}上，不会在这里运行"
+
+msgid "On a host you can't reach"
+msgstr "在你无法连接的主机上"
 
 msgid "On click"
 msgstr "点击时"
@@ -14296,9 +14284,6 @@ msgstr "停止回复"
 msgid "Stop Superset here to delete from another device."
 msgstr "在此停止Superset，然后从其他设备删除。"
 
-msgid "Stop watching"
-msgstr "停止关注"
-
 msgid "Stop workspace run command"
 msgstr "停止工作区运行命令"
 
@@ -16538,9 +16523,6 @@ msgstr "警告"
 
 msgid "Warning occurred."
 msgstr "出现了警告。"
-
-msgid "Watched by an agent in another workspace"
-msgstr "由另一个工作区的智能体关注"
 
 msgid "Watchers"
 msgstr "关注者"

@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# espacio de trabajo} other {# espacios de trabajo}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Un agente en marcha sigue usando la cuenta anterior; el cambio solo se aplica a los nuevos lanzamientos.} other {# agentes en marcha siguen usando la cuenta anterior; el cambio solo se aplica a los nuevos lanzamientos.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {Los comentarios van a este agente} other {Los comentarios van a estos agentes}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1391,10 +1395,6 @@ msgstr "La activación, cuánto lo usan una vez dentro y si vuelven."
 msgid "Active"
 msgstr "Activo"
 
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "activo {0}"
-
 msgid "Active agent sessions."
 msgstr "Sesiones de agente activas."
 
@@ -1663,6 +1663,9 @@ msgstr "Los agentes cargan su propia vista previa, manejan la interfaz y adjunta
 
 msgid "Agents running at once"
 msgstr "Agentes en marcha a la vez"
+
+msgid "Agents watching this page for comments"
+msgstr "Agentes que observan los comentarios de esta página"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Uso agregado de agentes de todos los desarrolladores de la clasificación de Superset: tokens, coste, comportamiento de la caché y qué modelos se usan realmente."
@@ -3170,9 +3173,6 @@ msgstr "Elige qué borrar del navegador integrado."
 msgid "Choose when Superset pings you."
 msgstr "Elige cuándo te avisa Superset."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "Elige qué agente observa los comentarios de esta página"
-
 msgid "Churn"
 msgstr "Abandono"
 
@@ -3641,9 +3641,6 @@ msgstr "Comentarios"
 
 msgid "Comments could not be loaded"
 msgstr "No se pudieron cargar los comentarios"
-
-msgid "Comments go to this agent"
-msgstr "Los comentarios van a este agente"
 
 msgid "Commit"
 msgstr "Hacer commit"
@@ -4387,9 +4384,6 @@ msgstr "No se pudo iniciar la sesión"
 msgid "Could not stop it"
 msgstr "No se pudo detener"
 
-msgid "Could not stop watching"
-msgstr "No se pudo dejar de observar"
-
 msgid "Could not submit prompt. Try again."
 msgstr "No se pudo enviar el prompt. Inténtalo de nuevo."
 
@@ -4408,9 +4402,6 @@ msgstr "No se pudo actualizar la rama"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "No se pudo verificar la credencial: {reason}"
-
-msgid "Could not watch this page"
-msgstr "No se pudo observar esta página"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "No se pudo confirmar el estado de la estrella — comprueba que el CLI de GitHub (`gh`) esté instalado, con la sesión iniciada, y que tengas conexión de red"
@@ -9413,9 +9404,6 @@ msgstr "No hay agentes configurados en esta máquina"
 msgid "No agents match \"{q}\"."
 msgstr "Ningún agente coincide con \"{q}\"."
 
-msgid "No agents running here"
-msgstr "No hay agentes en ejecución aquí"
-
 msgid "No agents yet"
 msgstr "Aún no hay agentes"
 
@@ -10024,9 +10012,6 @@ msgstr "Aún no hay nada instalado."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "No hay nada en ejecución. Quítalo y crea uno nuevo."
 
-msgid "Nothing is watching this page"
-msgstr "Nada está observando esta página"
-
 msgid "Nothing lives at {pathname}."
 msgstr "No hay nada en {pathname}."
 
@@ -10120,6 +10105,9 @@ msgstr "Más antiguo"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "en {offScopeHostName}: no se ejecutará aquí"
+
+msgid "On a host you can't reach"
+msgstr "En un host que no puedes alcanzar"
 
 msgid "On click"
 msgstr "Al hacer clic"
@@ -14296,9 +14284,6 @@ msgstr "Detener la respuesta"
 msgid "Stop Superset here to delete from another device."
 msgstr "Detén Superset aquí para eliminarlo desde otro dispositivo."
 
-msgid "Stop watching"
-msgstr "Dejar de observar"
-
 msgid "Stop workspace run command"
 msgstr "Detener el comando de ejecución del espacio de trabajo"
 
@@ -16538,9 +16523,6 @@ msgstr "Advertencia"
 
 msgid "Warning occurred."
 msgstr "Se produjo una advertencia."
-
-msgid "Watched by an agent in another workspace"
-msgstr "Observada por un agente de otro espacio de trabajo"
 
 msgid "Watchers"
 msgstr "Observadores"

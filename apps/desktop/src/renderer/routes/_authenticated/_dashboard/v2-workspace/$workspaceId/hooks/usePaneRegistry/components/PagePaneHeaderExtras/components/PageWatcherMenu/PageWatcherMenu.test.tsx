@@ -18,33 +18,52 @@ if (!alreadyRegistered) GlobalRegistrator.register();
 const PAGE_ID = "5d3f2a1e-0c7b-4a2d-9f11-6b8c0d4e7a52";
 const WORKSPACE_ID = "ws-local";
 
-type Watcher = { pageId: string; terminalId: string; agentId: string | null };
+interface Row {
+	workspaceId: string;
+	workspaceName: string | null;
+	terminalId: string;
+	agentId: string | null;
+	sessionTitle: string | null;
+	hostId: string;
+}
 type CloudWatch = { watching: boolean; agentId: string | null };
 
-let localWatchers: Watcher[] = [];
+let rows: Row[] = [];
 let cloudWatch: CloudWatch = { watching: false, agentId: null };
+let navigated: Array<{ workspaceId: string; terminalId: string | undefined }> =
+	[];
 
-mock.module("renderer/hooks/host-service/usePageWatchers", () => ({
-	usePageWatchers: () =>
-		new Map(localWatchers.map((watcher) => [watcher.pageId, watcher])),
-}));
-mock.module("renderer/hooks/host-service/useTerminalAgentBindings", () => ({
-	useTerminalAgentBindings: () => new Map(),
+mock.module("renderer/hooks/host-service/usePageWatchersForPage", () => ({
+	usePageWatchersForPage: () => rows,
 }));
 mock.module("renderer/lib/cloud-trpc", () => ({
 	cloudTrpc: {
-		useUtils: () => ({ page: { get: { invalidate: async () => {} } } }),
 		page: { get: { useQuery: () => ({ data: { watch: cloudWatch } }) } },
 	},
 }));
-mock.module("@superset/workspace-client", () => ({
-	workspaceTrpc: {
-		pageWatch: {
-			assign: { useMutation: () => ({ mutate: () => {}, isPending: false }) },
-			unwatch: { useMutation: () => ({ mutate: () => {}, isPending: false }) },
-		},
-	},
+mock.module("@tanstack/react-router", () => ({
+	useNavigate: () => () => Promise.resolve(),
 }));
+mock.module(
+	"renderer/routes/_authenticated/_dashboard/utils/workspace-navigation",
+	() => ({
+		navigateToV2Workspace: (
+			workspaceId: string,
+			_navigate: unknown,
+			options?: { search?: { terminalId?: string } },
+		) => {
+			navigated.push({
+				workspaceId,
+				terminalId: options?.search?.terminalId,
+			});
+			return Promise.resolve();
+		},
+	}),
+);
+mock.module(
+	"renderer/routes/_authenticated/settings/agents/components/V2AgentsSettings/components/AgentIcon",
+	() => ({ AgentIcon: () => null }),
+);
 
 const { act, cleanup, fireEvent, render, within } = await import(
 	"@testing-library/react"
@@ -57,23 +76,35 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
-	localWatchers = [];
+	rows = [];
 	cloudWatch = { watching: false, agentId: null };
+	navigated = [];
 });
 
-async function openMenu() {
+function watcher(overrides: Partial<Row> = {}): Row {
+	return {
+		workspaceId: "ws-a",
+		workspaceName: "Chat UI",
+		terminalId: "term-1",
+		agentId: "codex",
+		sessionTitle: "Page watcher redesign",
+		hostId: "host-1",
+		...overrides,
+	};
+}
+
+async function renderMenu() {
 	let view!: ReturnType<typeof render>;
 	await act(async () => {
 		view = render(
-			<PageWatcherMenu
-				workspaceId={WORKSPACE_ID}
-				pageId={PAGE_ID}
-				pageTitle="Release notes"
-				pageSlug="release-notes"
-			/>,
+			<PageWatcherMenu workspaceId={WORKSPACE_ID} pageId={PAGE_ID} />,
 		);
 	});
-	const ui = within(view.baseElement as HTMLElement);
+	return within(view.baseElement as HTMLElement);
+}
+
+async function openMenu() {
+	const ui = await renderMenu();
 	await act(async () => {
 		fireEvent.pointerDown(
 			ui.getByRole("button"),
@@ -83,58 +114,92 @@ async function openMenu() {
 	return ui;
 }
 
-describe("a page watched by an agent in this workspace", () => {
-	beforeEach(() => {
-		localWatchers = [
-			{ pageId: PAGE_ID, terminalId: "term-1", agentId: "claude" },
-		];
-		cloudWatch = { watching: true, agentId: "claude" };
-	});
-
-	test("names the agent comments reach", async () => {
-		const ui = await openMenu();
-		expect(ui.getByText("Comments go to this agent")).toBeDefined();
-	});
-
-	test("offers to stop watching, because the watcher is ours to stop", async () => {
-		const ui = await openMenu();
-		expect(ui.getByText("Stop watching")).toBeDefined();
+describe("a page nothing is watching", () => {
+	test("shows no control at all, rather than a menu saying so", async () => {
+		const ui = await renderMenu();
+		expect(ui.queryByRole("button")).toBeNull();
 	});
 });
 
-describe("a page watched by an agent in another workspace", () => {
+describe("a page one agent is watching", () => {
+	beforeEach(() => {
+		rows = [watcher()];
+		cloudWatch = { watching: true, agentId: "codex" };
+	});
+
+	test("names the session and the workspace it sits in", async () => {
+		const ui = await openMenu();
+		expect(ui.getByText("Page watcher redesign")).toBeDefined();
+		expect(ui.getByText("Chat UI")).toBeDefined();
+	});
+
+	test("does not put the agent's name on the trigger", async () => {
+		const ui = await renderMenu();
+		expect(ui.getByRole("button").textContent).not.toContain("codex");
+	});
+
+	test("opens that agent's terminal in its own workspace", async () => {
+		const ui = await openMenu();
+		await act(async () => {
+			fireEvent.click(ui.getByText("Page watcher redesign"));
+		});
+		expect(navigated).toEqual([{ workspaceId: "ws-a", terminalId: "term-1" }]);
+	});
+
+	test("falls back to the agent's name when the session has no title", async () => {
+		rows = [watcher({ sessionTitle: null })];
+		const ui = await openMenu();
+		expect(ui.getByText("codex")).toBeDefined();
+	});
+});
+
+describe("a page several agents are watching", () => {
+	beforeEach(() => {
+		rows = [
+			watcher(),
+			watcher({
+				workspaceId: "ws-b",
+				workspaceName: "Onboarding flow",
+				terminalId: "term-2",
+				agentId: "claude",
+				sessionTitle: "Onboarding copy pass",
+				hostId: "host-2",
+			}),
+		];
+		cloudWatch = { watching: true, agentId: "codex" };
+	});
+
+	test("counts them on the trigger", async () => {
+		const ui = await renderMenu();
+		expect(ui.getByRole("button").textContent).toContain("2");
+	});
+
+	test("lists every one of them", async () => {
+		const ui = await openMenu();
+		expect(ui.getByText("Page watcher redesign")).toBeDefined();
+		expect(ui.getByText("Onboarding copy pass")).toBeDefined();
+	});
+});
+
+describe("a watcher on a host this machine cannot reach", () => {
 	beforeEach(() => {
 		cloudWatch = { watching: true, agentId: "codex" };
 	});
 
-	test("says so rather than claiming nothing is watching", async () => {
-		const ui = await openMenu();
-		expect(
-			ui.getByText("Watched by an agent in another workspace"),
-		).toBeDefined();
-		expect(ui.queryByText("Nothing is watching this page")).toBeNull();
+	test("still shows the badge, because comments do reach it", async () => {
+		const ui = await renderMenu();
+		expect(ui.getByRole("button")).toBeDefined();
 	});
 
-	test("names the watching agent on the trigger", async () => {
+	test("says where it is instead of pretending nothing watches", async () => {
 		const ui = await openMenu();
-		expect(ui.getByRole("button").textContent).toContain("codex");
+		expect(ui.getByText("On a host you can't reach")).toBeDefined();
+		expect(ui.getByText("codex")).toBeDefined();
 	});
 
-	test("falls back to a generic name when the agent is unnamed", async () => {
+	test("names it generically when the flag carries no agent", async () => {
 		cloudWatch = { watching: true, agentId: null };
 		const ui = await openMenu();
-		expect(ui.getByRole("button").textContent).toContain("An agent");
-	});
-
-	test("does not offer to stop a watcher it cannot reach", async () => {
-		const ui = await openMenu();
-		expect(ui.queryByText("Stop watching")).toBeNull();
-	});
-});
-
-describe("a page nothing is watching", () => {
-	test("says nothing is watching", async () => {
-		const ui = await openMenu();
-		expect(ui.getByText("Nothing is watching this page")).toBeDefined();
+		expect(ui.getByText("An agent")).toBeDefined();
 	});
 });

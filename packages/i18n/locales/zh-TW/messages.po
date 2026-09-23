@@ -226,6 +226,10 @@ msgstr "{0, plural, one {#個工作區} other {#個工作區}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。} other {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {評論將傳送給此代理程式} other {評論將傳送給這些代理程式}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1391,10 +1395,6 @@ msgstr "啟用情況、進來之後的使用量，以及他們是否會回來。
 msgid "Active"
 msgstr "啟用中"
 
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "活躍{0}"
-
 msgid "Active agent sessions."
 msgstr "活躍的代理程式會話。"
 
@@ -1663,6 +1663,9 @@ msgstr "代理程式自己載入預覽、操作介面，並在標記為待審查
 
 msgid "Agents running at once"
 msgstr "同時執行的代理程式數"
+
+msgid "Agents watching this page for comments"
+msgstr "正在關注此頁面評論的代理程式"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset 排行榜上所有開發者的彙總代理使用量 — tokens、成本、快取行為，以及大家實際選用的模型。"
@@ -3170,9 +3173,6 @@ msgstr "選擇要從應用程式內瀏覽器清除的內容。"
 msgid "Choose when Superset pings you."
 msgstr "選擇Superset在什麼時候通知你。"
 
-msgid "Choose which agent watches this page for comments"
-msgstr "選擇由哪個代理程式關注此頁面的評論"
-
 msgid "Churn"
 msgstr "流失"
 
@@ -3641,9 +3641,6 @@ msgstr "評論"
 
 msgid "Comments could not be loaded"
 msgstr "無法載入留言"
-
-msgid "Comments go to this agent"
-msgstr "評論將傳送給此代理程式"
 
 msgid "Commit"
 msgstr "提交"
@@ -4387,9 +4384,6 @@ msgstr "無法啟動會話"
 msgid "Could not stop it"
 msgstr "無法停止"
 
-msgid "Could not stop watching"
-msgstr "無法停止關注"
-
 msgid "Could not submit prompt. Try again."
 msgstr "無法提交提示詞。請重試。"
 
@@ -4408,9 +4402,6 @@ msgstr "無法更新分支"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "無法驗證憑證：{reason}"
-
-msgid "Could not watch this page"
-msgstr "無法關注此頁面"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "無法確認加星狀態，請檢查是否已安裝並登入GitHub CLI（`gh`），以及網路是否連通"
@@ -9413,9 +9404,6 @@ msgstr "這臺機器上沒有配置代理程式"
 msgid "No agents match \"{q}\"."
 msgstr "沒有匹配「{q}」的代理程式。"
 
-msgid "No agents running here"
-msgstr "這裡沒有執行中的代理程式"
-
 msgid "No agents yet"
 msgstr "暫無代理程式"
 
@@ -10024,9 +10012,6 @@ msgstr "還沒有安裝任何外掛。"
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "沒有任何東西在執行。移除它，再建一個。"
 
-msgid "Nothing is watching this page"
-msgstr "沒有代理程式在關注此頁面"
-
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}下沒有任何內容。"
 
@@ -10120,6 +10105,9 @@ msgstr "更早"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "在{offScopeHostName}上，不會在這裡執行"
+
+msgid "On a host you can't reach"
+msgstr "在你無法連線的主機上"
 
 msgid "On click"
 msgstr "點選時"
@@ -14296,9 +14284,6 @@ msgstr "停止回覆"
 msgid "Stop Superset here to delete from another device."
 msgstr "在此停止Superset，然後從其他裝置刪除。"
 
-msgid "Stop watching"
-msgstr "停止關注"
-
 msgid "Stop workspace run command"
 msgstr "停止工作區執行命令"
 
@@ -16538,9 +16523,6 @@ msgstr "警告"
 
 msgid "Warning occurred."
 msgstr "出現了警告。"
-
-msgid "Watched by an agent in another workspace"
-msgstr "由另一個工作區的代理程式關注"
 
 msgid "Watchers"
 msgstr "關注者"

@@ -226,6 +226,10 @@ msgstr "{0, plural, one {워크스페이스 #개} other {워크스페이스 #개
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.} other {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {댓글은 이 에이전트에게 전달됩니다} other {댓글은 이 에이전트들에게 전달됩니다}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1391,10 +1395,6 @@ msgstr "활성화, 들어온 뒤 얼마나 쓰는지, 그리고 다시 돌아오
 msgid "Active"
 msgstr "활성"
 
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "활성 {0}"
-
 msgid "Active agent sessions."
 msgstr "활성 에이전트 세션입니다."
 
@@ -1663,6 +1663,9 @@ msgstr "에이전트가 직접 미리 보기를 띄우고, UI를 조작하고, �
 
 msgid "Agents running at once"
 msgstr "동시에 실행 중인 에이전트"
+
+msgid "Agents watching this page for comments"
+msgstr "이 페이지의 댓글을 감시 중인 에이전트"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset 리더보드에 참여한 모든 개발자의 에이전트 사용량 집계 — 토큰, 비용, 캐시 동작, 그리고 실제로 많이 쓰이는 모델입니다."
@@ -3170,9 +3173,6 @@ msgstr "인앱 브라우저에서 삭제할 항목을 선택하세요."
 msgid "Choose when Superset pings you."
 msgstr "Superset이 언제 알릴지 선택하세요."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "이 페이지의 댓글을 감시할 에이전트 선택"
-
 msgid "Churn"
 msgstr "이탈"
 
@@ -3641,9 +3641,6 @@ msgstr "댓글"
 
 msgid "Comments could not be loaded"
 msgstr "댓글을 불러올 수 없습니다"
-
-msgid "Comments go to this agent"
-msgstr "댓글은 이 에이전트에게 전달됩니다"
 
 msgid "Commit"
 msgstr "커밋"
@@ -4387,9 +4384,6 @@ msgstr "세션을 시작할 수 없습니다"
 msgid "Could not stop it"
 msgstr "중지할 수 없습니다"
 
-msgid "Could not stop watching"
-msgstr "감시를 중지할 수 없습니다"
-
 msgid "Could not submit prompt. Try again."
 msgstr "프롬프트를 제출할 수 없습니다. 다시 시도하세요."
 
@@ -4408,9 +4402,6 @@ msgstr "브랜치를 업데이트할 수 없습니다"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "자격 증명을 확인하지 못했습니다: {reason}"
-
-msgid "Could not watch this page"
-msgstr "이 페이지를 감시할 수 없습니다"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "스타 상태를 확인하지 못했습니다 — GitHub CLI(`gh`)가 설치되어 로그인되어 있는지, 네트워크에 연결되어 있는지 확인하세요"
@@ -9413,9 +9404,6 @@ msgstr "이 컴퓨터에 구성된 에이전트가 없습니다"
 msgid "No agents match \"{q}\"."
 msgstr "\"{q}\"과(와) 일치하는 에이전트가 없습니다."
 
-msgid "No agents running here"
-msgstr "여기에서 실행 중인 에이전트가 없습니다"
-
 msgid "No agents yet"
 msgstr "아직 에이전트가 없습니다"
 
@@ -10024,9 +10012,6 @@ msgstr "아직 설치된 항목이 없습니다."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "실행 중인 것이 없습니다. 제거하고 새로 만드세요."
 
-msgid "Nothing is watching this page"
-msgstr "이 페이지를 감시하는 에이전트가 없습니다"
-
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}에는 아무것도 없습니다."
 
@@ -10120,6 +10105,9 @@ msgstr "이전"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "{offScopeHostName}에 있음 — 여기서는 실행되지 않습니다"
+
+msgid "On a host you can't reach"
+msgstr "접근할 수 없는 호스트에 있음"
 
 msgid "On click"
 msgstr "클릭 시"
@@ -14296,9 +14284,6 @@ msgstr "응답 중지"
 msgid "Stop Superset here to delete from another device."
 msgstr "다른 기기에서 삭제하려면 여기에서 Superset을 종료하세요."
 
-msgid "Stop watching"
-msgstr "감시 중지"
-
 msgid "Stop workspace run command"
 msgstr "워크스페이스 실행 명령 중지"
 
@@ -16538,9 +16523,6 @@ msgstr "경고"
 
 msgid "Warning occurred."
 msgstr "경고가 발생했습니다."
-
-msgid "Watched by an agent in another workspace"
-msgstr "다른 워크스페이스의 에이전트가 감시 중입니다"
 
 msgid "Watchers"
 msgstr "관찰자"

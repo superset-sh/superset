@@ -8,7 +8,6 @@ import { Share2 } from "lucide-react";
 import { usePageHeaderData } from "renderer/routes/_authenticated/_dashboard/hooks/usePageHeaderData";
 import type { PagePaneData } from "../../../../types";
 import { usePagePaneUi } from "../../hooks/usePagePaneUi";
-import { pagePaneLabel } from "../../utils/pagePaneLabel";
 import { PageWatcherMenu } from "./components/PageWatcherMenu";
 
 interface PagePaneHeaderExtrasProps {
@@ -40,12 +39,7 @@ export function PagePaneHeaderExtras({
 	return (
 		<>
 			{owned ? (
-				<PageWatcherMenu
-					workspaceId={workspaceId}
-					pageId={page?.id}
-					pageTitle={page?.title?.trim() || pagePaneLabel(data)}
-					pageSlug={data.slug}
-				/>
+				<PageWatcherMenu workspaceId={workspaceId} pageId={page?.id} />
 			) : null}
 			<CommentModeButton
 				compact

@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# werkruimte} other {# werkruimtes}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Eén draaiende agent gebruikt nog het vorige account — de wissel geldt alleen voor nieuwe starts.} other {# draaiende agents gebruiken nog het vorige account — de wissel geldt alleen voor nieuwe starts.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {Reacties gaan naar deze agent} other {Reacties gaan naar deze agents}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1391,10 +1395,6 @@ msgstr "Activatie, hoeveel mensen het gebruiken zodra ze binnen zijn, en of ze t
 msgid "Active"
 msgstr "Actief"
 
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "actief {0}"
-
 msgid "Active agent sessions."
 msgstr "Actieve agentsessies."
 
@@ -1663,6 +1663,9 @@ msgstr "Agents laden hun eigen preview, bedienen de UI en voegen screenshotbewij
 
 msgid "Agents running at once"
 msgstr "Agents die tegelijk draaien"
+
+msgid "Agents watching this page for comments"
+msgstr "Agents die deze pagina volgen voor reacties"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Totaal agentgebruik van alle developers op het Superset-leaderboard — tokens, kosten, cachegedrag en welke modellen mensen echt gebruiken."
@@ -3170,9 +3173,6 @@ msgstr "Kies wat je uit de ingebouwde browser wilt wissen."
 msgid "Choose when Superset pings you."
 msgstr "Kies wanneer Superset je een seintje geeft."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "Kies welke agent deze pagina volgt voor reacties"
-
 msgid "Churn"
 msgstr "Opzeggingen"
 
@@ -3641,9 +3641,6 @@ msgstr "Reacties"
 
 msgid "Comments could not be loaded"
 msgstr "Reacties konden niet worden geladen"
-
-msgid "Comments go to this agent"
-msgstr "Reacties gaan naar deze agent"
 
 msgid "Commit"
 msgstr "Committen"
@@ -4387,9 +4384,6 @@ msgstr "Kan sessie niet starten"
 msgid "Could not stop it"
 msgstr "Kon niet worden gestopt"
 
-msgid "Could not stop watching"
-msgstr "Kon niet stoppen met volgen"
-
 msgid "Could not submit prompt. Try again."
 msgstr "Kan prompt niet insturen. Probeer het opnieuw."
 
@@ -4408,9 +4402,6 @@ msgstr "Kan de branch niet bijwerken"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Kon de inloggegevens niet verifiëren: {reason}"
-
-msgid "Could not watch this page"
-msgstr "Kon deze pagina niet volgen"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Kan de sterstatus niet bevestigen — controleer of de GitHub-CLI (`gh`) is geïnstalleerd, of je bent ingelogd en of je een netwerkverbinding hebt"
@@ -9413,9 +9404,6 @@ msgstr "Geen agents geconfigureerd op deze machine"
 msgid "No agents match \"{q}\"."
 msgstr "Geen agents komen overeen met \"{q}\"."
 
-msgid "No agents running here"
-msgstr "Geen agents actief hier"
-
 msgid "No agents yet"
 msgstr "Nog geen agents"
 
@@ -10024,9 +10012,6 @@ msgstr "Nog niets geïnstalleerd."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "Er draait niets. Verwijder deze en maak een nieuwe aan."
 
-msgid "Nothing is watching this page"
-msgstr "Niets volgt deze pagina"
-
 msgid "Nothing lives at {pathname}."
 msgstr "Er staat niets op {pathname}."
 
@@ -10120,6 +10105,9 @@ msgstr "Ouder"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "op {offScopeHostName} — draait hier niet"
+
+msgid "On a host you can't reach"
+msgstr "Op een host die je niet kunt bereiken"
 
 msgid "On click"
 msgstr "Bij klikken"
@@ -14296,9 +14284,6 @@ msgstr "Antwoord stoppen"
 msgid "Stop Superset here to delete from another device."
 msgstr "Stop Superset hier om vanaf een ander apparaat te verwijderen."
 
-msgid "Stop watching"
-msgstr "Stoppen met volgen"
-
 msgid "Stop workspace run command"
 msgstr "Run-commando van werkruimte stoppen"
 
@@ -16538,9 +16523,6 @@ msgstr "Warning"
 
 msgid "Warning occurred."
 msgstr "Er is een waarschuwing opgetreden."
-
-msgid "Watched by an agent in another workspace"
-msgstr "Gevolgd door een agent in een andere werkruimte"
 
 msgid "Watchers"
 msgstr "Watchers"

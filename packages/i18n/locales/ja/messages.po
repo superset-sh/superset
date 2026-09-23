@@ -226,6 +226,10 @@ msgstr "{0, plural, one {#件のワークスペース} other {#件のワーク�
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {実行中の#件のエージェントはまだ以前のアカウントを使用しています。切り替えが適用されるのは新規起動のみです。} other {実行中の#件のエージェントはまだ以前のアカウントを使用しています。切り替えが適用されるのは新規起動のみです。}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {コメントはこのエージェントに送られます} other {コメントはこれらのエージェントに送られます}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1391,10 +1395,6 @@ msgstr "アクティベーション、使い始めてからの利用量、そし
 msgid "Active"
 msgstr "有効"
 
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "アクティブ {0}"
-
 msgid "Active agent sessions."
 msgstr "実行中のエージェントセッション。"
 
@@ -1663,6 +1663,9 @@ msgstr "エージェントが自らプレビューを開き、UIを操作し、�
 
 msgid "Agents running at once"
 msgstr "同時に動かしているエージェント数"
+
+msgid "Agents watching this page for comments"
+msgstr "このページのコメントを監視しているエージェント"
 
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Supersetリーダーボード上の全開発者を横断したエージェント利用の集計 — トークン、コスト、キャッシュの挙動、実際に選ばれているモデル。"
@@ -3170,9 +3173,6 @@ msgstr "アプリ内ブラウザから消去する項目を選択してくださ
 msgid "Choose when Superset pings you."
 msgstr "Supersetから通知するタイミングを選びます。"
 
-msgid "Choose which agent watches this page for comments"
-msgstr "このページのコメントを監視するエージェントを選択"
-
 msgid "Churn"
 msgstr "解約"
 
@@ -3641,9 +3641,6 @@ msgstr "コメント"
 
 msgid "Comments could not be loaded"
 msgstr "コメントを読み込めませんでした"
-
-msgid "Comments go to this agent"
-msgstr "コメントはこのエージェントに送られます"
 
 msgid "Commit"
 msgstr "コミット"
@@ -4387,9 +4384,6 @@ msgstr "セッションを開始できませんでした"
 msgid "Could not stop it"
 msgstr "停止できませんでした"
 
-msgid "Could not stop watching"
-msgstr "監視を停止できませんでした"
-
 msgid "Could not submit prompt. Try again."
 msgstr "プロンプトを送信できませんでした。もう一度お試しください。"
 
@@ -4408,9 +4402,6 @@ msgstr "ブランチを更新できませんでした"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "認証情報を確認できませんでした: {reason}"
-
-msgid "Could not watch this page"
-msgstr "このページを監視できませんでした"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "スター状態を確認できませんでした — GitHub CLI (`gh`) がインストール・サインイン済みで、ネットワーク接続があることを確認してください"
@@ -9413,9 +9404,6 @@ msgstr "このマシンにはエージェントが設定されていません"
 msgid "No agents match \"{q}\"."
 msgstr "「{q}」に一致するエージェントはありません。"
 
-msgid "No agents running here"
-msgstr "ここで実行中のエージェントはありません"
-
 msgid "No agents yet"
 msgstr "エージェントはまだありません"
 
@@ -10024,9 +10012,6 @@ msgstr "まだ何もインストールされていません。"
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "何も実行されていません。削除して新しく作成してください。"
 
-msgid "Nothing is watching this page"
-msgstr "このページを監視しているものはありません"
-
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}には何もありません。"
 
@@ -10120,6 +10105,9 @@ msgstr "それ以前"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "{offScopeHostName}上 — ここでは実行されません"
+
+msgid "On a host you can't reach"
+msgstr "接続できないホスト上"
 
 msgid "On click"
 msgstr "クリック時"
@@ -14296,9 +14284,6 @@ msgstr "応答を停止"
 msgid "Stop Superset here to delete from another device."
 msgstr "別のデバイスから削除するには、ここでSupersetを停止してください。"
 
-msgid "Stop watching"
-msgstr "監視を停止"
-
 msgid "Stop workspace run command"
 msgstr "ワークスペースの実行コマンドを停止"
 
@@ -16538,9 +16523,6 @@ msgstr "警告"
 
 msgid "Warning occurred."
 msgstr "警告が発生しました。"
-
-msgid "Watched by an agent in another workspace"
-msgstr "別のワークスペースのエージェントが監視しています"
 
 msgid "Watchers"
 msgstr "ウォッチャー"
