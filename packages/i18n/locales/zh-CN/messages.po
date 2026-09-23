@@ -779,9 +779,6 @@ msgstr "{months}个月"
 msgid "{months}mo ago"
 msgstr "{months}个月前"
 
-msgid "{myFailedCount} of your automations failed their last run"
-msgstr "你有{myFailedCount}个自动化上次运行失败"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} 是内置的，无法移除"
@@ -2376,17 +2373,11 @@ msgstr "自动化标题"
 msgid "Automations"
 msgstr "自动化"
 
-msgid "Automations ({myFailedCount} failing)"
-msgstr "自动化（{myFailedCount}个失败）"
-
 msgid "Automations & event triggers"
 msgstr "自动化与事件触发"
 
 msgid "Automations require the Pro plan."
 msgstr "自动化需要Pro套餐。"
-
-msgid "Automations, {myFailedCount} failing"
-msgstr "自动化，{myFailedCount}个失败"
 
 msgid "Autonomous"
 msgstr "自主"

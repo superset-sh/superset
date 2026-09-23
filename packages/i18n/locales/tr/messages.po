@@ -779,9 +779,6 @@ msgstr "{months}ay"
 msgid "{months}mo ago"
 msgstr "{months}ay önce"
 
-msgid "{myFailedCount} of your automations failed their last run"
-msgstr "Otomasyonlarınızdan {myFailedCount} tanesi son çalıştırmasında başarısız oldu"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} yerleşiktir ve kaldırılamaz"
@@ -2376,17 +2373,11 @@ msgstr "Otomasyon başlığı"
 msgid "Automations"
 msgstr "Otomasyonlar"
 
-msgid "Automations ({myFailedCount} failing)"
-msgstr "Otomasyonlar ({myFailedCount} başarısız)"
-
 msgid "Automations & event triggers"
 msgstr "Otomasyonlar ve olay tetikleyicileri"
 
 msgid "Automations require the Pro plan."
 msgstr "Otomasyonlar Pro planı gerektirir."
-
-msgid "Automations, {myFailedCount} failing"
-msgstr "Otomasyonlar, {myFailedCount} başarısız"
 
 msgid "Autonomous"
 msgstr "Otonom"

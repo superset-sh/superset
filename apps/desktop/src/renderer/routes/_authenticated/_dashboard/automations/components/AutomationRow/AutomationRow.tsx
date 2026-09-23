@@ -26,10 +26,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { LuEllipsis, LuPlay, LuRotateCw } from "react-icons/lu";
-import type { AutomationLastRun } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import type { ProjectOption } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useCopyAutomationLink } from "../../hooks/useCopyAutomationLink";
+import type { AutomationLastRun } from "../../hooks/useFailedAutomations";
 import { AutomationActionsMenuItems } from "./components/AutomationActionsMenuItems";
 
 type AutomationListItem = RouterOutputs["automation"]["list"][number];

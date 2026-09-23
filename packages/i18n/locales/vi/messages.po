@@ -779,9 +779,6 @@ msgstr "{months} tháng"
 msgid "{months}mo ago"
 msgstr "{months} tháng trước"
 
-msgid "{myFailedCount} of your automations failed their last run"
-msgstr "{myFailedCount} tự động hóa của bạn thất bại ở lần chạy gần nhất"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} là tích hợp sẵn nên không thể gỡ"
@@ -2376,17 +2373,11 @@ msgstr "Tiêu đề tự động hóa"
 msgid "Automations"
 msgstr "Tự động hóa"
 
-msgid "Automations ({myFailedCount} failing)"
-msgstr "Tự động hóa ({myFailedCount} đang lỗi)"
-
 msgid "Automations & event triggers"
 msgstr "Tự động hóa & trigger sự kiện"
 
 msgid "Automations require the Pro plan."
 msgstr "Tự động hóa yêu cầu gói Pro."
-
-msgid "Automations, {myFailedCount} failing"
-msgstr "Tự động hóa, {myFailedCount} đang lỗi"
 
 msgid "Autonomous"
 msgstr "Tự chủ"

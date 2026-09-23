@@ -109,10 +109,6 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["terminal-close-confirm-v1"],
 	],
 	[
-		"src/renderer/stores/automation-failures/store.ts",
-		["automation-failures-v1"],
-	],
-	[
 		"src/renderer/stores/app-version-history/store.ts",
 		["app-version-history-v1"],
 	],

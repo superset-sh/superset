@@ -779,9 +779,6 @@ msgstr "{months} mois"
 msgid "{months}mo ago"
 msgstr "il y a {months} mois"
 
-msgid "{myFailedCount} of your automations failed their last run"
-msgstr "{myFailedCount} de vos automatisations ont échoué lors de leur dernière exécution"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} est intégré et ne peut pas être supprimé"
@@ -2376,17 +2373,11 @@ msgstr "Titre de l'automatisation"
 msgid "Automations"
 msgstr "Automatisations"
 
-msgid "Automations ({myFailedCount} failing)"
-msgstr "Automatisations ({myFailedCount} en échec)"
-
 msgid "Automations & event triggers"
 msgstr "Automatisations et déclencheurs d'événements"
 
 msgid "Automations require the Pro plan."
 msgstr "Les automatisations nécessitent le forfait Pro."
-
-msgid "Automations, {myFailedCount} failing"
-msgstr "Automatisations, {myFailedCount} en échec"
 
 msgid "Autonomous"
 msgstr "Autonome"

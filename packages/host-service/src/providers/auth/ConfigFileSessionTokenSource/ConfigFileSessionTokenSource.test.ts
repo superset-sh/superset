@@ -89,4 +89,66 @@ describe("ConfigFileSessionTokenSource", () => {
 			expiresAt: expect.any(Number),
 		});
 	});
+	test("stops sending a refresh token the server rejected", async () => {
+		const configPath = join(dir, "config.json");
+		writeAuthConfig(configPath);
+		let refreshCalls = 0;
+		globalThis.fetch = (async () => {
+			refreshCalls++;
+			return new Response(JSON.stringify({ error: "invalid_grant" }), {
+				status: 400,
+			});
+		}) as unknown as typeof fetch;
+		const source = new ConfigFileSessionTokenSource({
+			configPath,
+			apiUrl: "https://api.test",
+		});
+
+		for (let i = 0; i < 3; i++) {
+			source.invalidateCache();
+			await expect(source.getSessionToken()).rejects.toThrow("Session expired");
+		}
+		expect(refreshCalls).toBe(1);
+
+		writeFileSync(
+			configPath,
+			JSON.stringify({
+				auth: {
+					accessToken: "at_new_login",
+					refreshToken: "rt_new_login",
+					expiresAt: 0,
+				},
+			}),
+			{ mode: 0o600 },
+		);
+		globalThis.fetch = (async () => {
+			refreshCalls++;
+			return new Response(
+				JSON.stringify({ access_token: "at_refreshed", expires_in: 3600 }),
+			);
+		}) as unknown as typeof fetch;
+
+		expect(await source.getSessionToken()).toBe("at_refreshed");
+		expect(refreshCalls).toBe(2);
+	});
+
+	test("keeps retrying a refresh that failed on the server's side", async () => {
+		const configPath = join(dir, "config.json");
+		writeAuthConfig(configPath);
+		let refreshCalls = 0;
+		globalThis.fetch = (async () => {
+			refreshCalls++;
+			return new Response("", { status: 503 });
+		}) as unknown as typeof fetch;
+		const source = new ConfigFileSessionTokenSource({
+			configPath,
+			apiUrl: "https://api.test",
+		});
+
+		for (let i = 0; i < 2; i++) {
+			source.invalidateCache();
+			await expect(source.getSessionToken()).rejects.toThrow("Session expired");
+		}
+		expect(refreshCalls).toBe(2);
+	});
 });

@@ -42,6 +42,8 @@ export const DEAD_KEYS: DeadKey[] = [
 	{ key: "leaderboard-auto-publish-v1", match: "exact" },
 	// Launch-time "join the leaderboard" prompt removed; joining lives in settings
 	{ key: "leaderboard-asked-v1", match: "exact" },
+	// Sidebar automations failure badge removed; it polled for every window
+	{ key: "automation-failures-v1", match: "exact" },
 ];
 
 function matchesDeadKey(key: string): boolean {

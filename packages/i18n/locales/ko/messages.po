@@ -779,9 +779,6 @@ msgstr "{months}개월"
 msgid "{months}mo ago"
 msgstr "{months}개월 전"
 
-msgid "{myFailedCount} of your automations failed their last run"
-msgstr "내 자동화 {myFailedCount}개가 마지막 실행에 실패했습니다"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name}은(는) 기본 제공이라 제거할 수 없습니다"
@@ -2376,17 +2373,11 @@ msgstr "자동화 제목"
 msgid "Automations"
 msgstr "자동화"
 
-msgid "Automations ({myFailedCount} failing)"
-msgstr "자동화 ({myFailedCount}개 실패)"
-
 msgid "Automations & event triggers"
 msgstr "자동화 및 이벤트 트리거"
 
 msgid "Automations require the Pro plan."
 msgstr "자동화에는 Pro 플랜이 필요합니다."
-
-msgid "Automations, {myFailedCount} failing"
-msgstr "자동화, {myFailedCount}개 실패"
 
 msgid "Autonomous"
 msgstr "자율"

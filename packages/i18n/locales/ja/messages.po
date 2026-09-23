@@ -779,9 +779,6 @@ msgstr "{months}か月"
 msgid "{months}mo ago"
 msgstr "{months}か月前"
 
-msgid "{myFailedCount} of your automations failed their last run"
-msgstr "自分のオートメーションのうち{myFailedCount}件が前回の実行に失敗しました"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} は組み込みのため削除できません"
@@ -2376,17 +2373,11 @@ msgstr "オートメーションのタイトル"
 msgid "Automations"
 msgstr "オートメーション"
 
-msgid "Automations ({myFailedCount} failing)"
-msgstr "オートメーション({myFailedCount}件失敗中)"
-
 msgid "Automations & event triggers"
 msgstr "オートメーションとイベントトリガー"
 
 msgid "Automations require the Pro plan."
 msgstr "オートメーションにはProプランが必要です。"
-
-msgid "Automations, {myFailedCount} failing"
-msgstr "オートメーション、{myFailedCount}件が失敗中"
 
 msgid "Autonomous"
 msgstr "自律"
