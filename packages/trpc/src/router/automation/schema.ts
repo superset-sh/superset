@@ -101,6 +101,17 @@ export const listRunsSchema = z.object({
 	limit: z.number().int().min(1).max(100).default(20),
 });
 
+export const listOrgRunsSchema = z.object({
+	limit: z.number().int().min(1).max(100).default(50),
+	cursor: z
+		.object({ createdAt: z.coerce.date(), id: z.string().uuid() })
+		.optional(),
+	status: z.enum(["all", "failed"]).default("all"),
+	scope: z.enum(["all", "mine"]).default("all"),
+});
+
+export const runPayloadSchema = z.object({ runId: z.string().uuid() });
+
 export const parseRruleSchema = z.object({
 	rrule: rruleBody,
 	timezone: iana,

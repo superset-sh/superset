@@ -1,5 +1,6 @@
 import { db, dbWs } from "@superset/db/client";
 import {
+	automationEvents,
 	automationRuns,
 	automations,
 	automationTriggers,
@@ -14,6 +15,7 @@ import {
 	planAllowsAutomations,
 	planTierFromSubscription,
 } from "@superset/shared/billing";
+import { FAILED_RUN_STATUSES } from "@superset/shared/constants";
 import {
 	describeSchedule,
 	nextOccurrenceAfter,
@@ -21,7 +23,7 @@ import {
 	parseRrule,
 } from "@superset/shared/rrule";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, asc, desc, eq, ilike } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, lt, or } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { planRequiredError, protectedProcedure, userError } from "../../trpc";
@@ -45,8 +47,10 @@ import {
 } from "./helpers";
 import {
 	createAutomationSchema,
+	listOrgRunsSchema,
 	listRunsSchema,
 	parseRruleSchema,
+	runPayloadSchema,
 	setAutomationPromptSchema,
 	updateAutomationSchema,
 } from "./schema";
@@ -983,6 +987,102 @@ export const automationRouter = {
 				.where(eq(automationRuns.automationId, input.automationId))
 				.orderBy(desc(automationRuns.createdAt))
 				.limit(input.limit);
+		}),
+
+	listOrgRuns: protectedProcedure
+		.input(listOrgRunsSchema)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const userId = ctx.session.user.id;
+
+			const rows = await db
+				.select({
+					id: automationRuns.id,
+					automationId: automationRuns.automationId,
+					automationName: automations.name,
+					ownerUserId: automations.ownerUserId,
+					title: automationRuns.title,
+					status: automationRuns.status,
+					error: automationRuns.error,
+					errorCode: automationRuns.errorCode,
+					createdAt: automationRuns.createdAt,
+					scheduledFor: automationRuns.scheduledFor,
+					triggerKind: automationTriggers.kind,
+					v2WorkspaceId: automationRuns.v2WorkspaceId,
+					chatSessionId: automationRuns.chatSessionId,
+					terminalSessionId: automationRuns.terminalSessionId,
+					eventId: automationRuns.eventId,
+				})
+				.from(automationRuns)
+				.innerJoin(automations, eq(automations.id, automationRuns.automationId))
+				.leftJoin(
+					automationTriggers,
+					eq(automationTriggers.id, automationRuns.triggerId),
+				)
+				.where(
+					and(
+						eq(automationRuns.organizationId, organizationId),
+						input.status === "failed"
+							? inArray(automationRuns.status, [...FAILED_RUN_STATUSES])
+							: undefined,
+						input.scope === "mine"
+							? eq(automations.ownerUserId, userId)
+							: undefined,
+						input.cursor
+							? or(
+									lt(automationRuns.createdAt, input.cursor.createdAt),
+									and(
+										eq(automationRuns.createdAt, input.cursor.createdAt),
+										lt(automationRuns.id, input.cursor.id),
+									),
+								)
+							: undefined,
+					),
+				)
+				.orderBy(desc(automationRuns.createdAt), desc(automationRuns.id))
+				.limit(input.limit + 1);
+
+			const hasMore = rows.length > input.limit;
+			const page = hasMore ? rows.slice(0, input.limit) : rows;
+			const last = page.at(-1);
+
+			return {
+				runs: page.map(({ eventId, ...run }) => ({
+					...run,
+					hasPayload: eventId !== null,
+					canRetry: run.ownerUserId === userId,
+				})),
+				nextCursor:
+					hasMore && last ? { createdAt: last.createdAt, id: last.id } : null,
+			};
+		}),
+
+	runPayload: protectedProcedure
+		.input(runPayloadSchema)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+
+			const [row] = await db
+				.select({
+					payload: automationEvents.payload,
+					provider: automationEvents.provider,
+					receivedAt: automationEvents.receivedAt,
+				})
+				.from(automationRuns)
+				.innerJoin(
+					automationEvents,
+					eq(automationEvents.id, automationRuns.eventId),
+				)
+				.where(
+					and(
+						eq(automationRuns.id, input.runId),
+						eq(automationRuns.organizationId, organizationId),
+					),
+				)
+				.limit(1);
+
+			if (!row) return { payload: null, provider: null, receivedAt: null };
+			return row;
 		}),
 
 	/** Most recent run per automation across the caller's active organization. */

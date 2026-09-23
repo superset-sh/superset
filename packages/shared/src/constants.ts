@@ -228,6 +228,11 @@ export const LAUNCHED_TRIGGER_KINDS = [
 	"gmail",
 ] as const satisfies readonly TriggerConfigInput["kind"][];
 
+export const FAILED_RUN_STATUSES = [
+	"skipped_offline",
+	"dispatch_failed",
+] as const;
+
 /**
  * What a cloud workspace sandbox holds in place of a real model API key. The
  * provider's egress proxy substitutes the real one after the request leaves,

@@ -1315,6 +1315,7 @@ export const automationRuns = pgTable(
 			.on(t.triggerId, t.resourceKey)
 			.where(sql`status IN ('dispatching', 'dispatched')`),
 		index("automation_runs_history_idx").on(t.automationId, t.createdAt),
+		index("automation_runs_org_created_idx").on(t.organizationId, t.createdAt),
 		index("automation_runs_status_idx").on(t.status),
 		index("automation_runs_workspace_idx").on(t.v2WorkspaceId),
 	],
