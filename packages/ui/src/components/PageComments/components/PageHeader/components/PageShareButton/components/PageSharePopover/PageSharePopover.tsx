@@ -5,38 +5,41 @@ import { errorMessage } from "@superset/i18n/errors";
 import { getInitials } from "@superset/shared/names";
 import { Building2, Check, Globe, Link2, Lock } from "lucide-react";
 import { type ReactNode, useCallback, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "../../../../../ui/avatar";
-import { Button } from "../../../../../ui/button";
-import { Label } from "../../../../../ui/label";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "../../../../../../../ui/avatar";
+import { Button } from "../../../../../../../ui/button";
+import { Label } from "../../../../../../../ui/label";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "../../../../../ui/popover";
+} from "../../../../../../../ui/popover";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "../../../../../ui/select";
-import { Separator } from "../../../../../ui/separator";
-import { toast } from "../../../../../ui/sonner";
-import { useFramePointerDown } from "../../../../hooks/useFramePointerDown";
-import { relativeTime } from "../../../../utils/relativeTime";
+} from "../../../../../../../ui/select";
+import { Separator } from "../../../../../../../ui/separator";
+import { toast } from "../../../../../../../ui/sonner";
+import { useFramePointerDown } from "../../../../../../hooks/useFramePointerDown";
+import { relativeTime } from "../../../../../../utils/relativeTime";
 import type {
 	PageHeaderActions,
 	PageHeaderPage,
 	PageHeaderVersion,
 	PageVisibility,
-} from "../../types";
+} from "../../../../types";
 
 const LATEST = "latest";
 
 interface PageSharePopoverProps {
 	page: PageHeaderPage;
 	versions: PageHeaderVersion[];
-	visibility: PageVisibility;
 	editable: boolean;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -48,7 +51,6 @@ interface PageSharePopoverProps {
 export function PageSharePopover({
 	page,
 	versions,
-	visibility,
 	editable,
 	open,
 	onOpenChange,
@@ -77,7 +79,7 @@ export function PageSharePopover({
 	};
 
 	const changeVisibility = async (next: PageVisibility) => {
-		if (next === visibility) return;
+		if (next === page.visibility) return;
 		if (next !== "just_me") void copyLink();
 		setBusy(true);
 		try {
@@ -173,7 +175,7 @@ export function PageSharePopover({
 						</p>
 					</div>
 					<Select
-						value={visibility}
+						value={page.visibility}
 						disabled={!editable || busy}
 						onValueChange={(value) =>
 							void changeVisibility(value as PageVisibility)

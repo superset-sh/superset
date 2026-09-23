@@ -1,13 +1,9 @@
 "use client";
 
-import { Trans } from "@lingui/react/macro";
-import { Globe, Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { cn } from "../../../../lib/utils";
-import { Button } from "../../../ui/button";
-import { usePendingVisibility } from "../../hooks/usePendingVisibility";
 import { DeletePageDialog } from "./components/DeletePageDialog";
-import { PageSharePopover } from "./components/PageSharePopover";
+import { PageShareButton } from "./components/PageShareButton";
 import { PageTitleMenu } from "./components/PageTitleMenu";
 import { PageVersionBanner } from "./components/PageVersionBanner";
 import { RenamePageDialog } from "./components/RenamePageDialog";
@@ -45,11 +41,6 @@ export function PageHeader({
 	const [shareOpen, setShareOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [renameOpen, setRenameOpen] = useState(false);
-	const { visibility, setVisibility } = usePendingVisibility(
-		page.id,
-		page.visibility,
-		onSetVisibility,
-	);
 
 	const isOwner =
 		currentUserId !== undefined && currentUserId === page.createdByUserId;
@@ -92,30 +83,15 @@ export function PageHeader({
 
 				<div className="no-drag ml-auto flex shrink-0 items-center gap-1">
 					{trailing}
-					<PageSharePopover
+					<PageShareButton
 						page={page}
 						versions={versions}
-						visibility={visibility}
 						editable={isOwner}
 						open={shareOpen}
 						onOpenChange={setShareOpen}
-						onSetVisibility={setVisibility}
+						onSetVisibility={onSetVisibility}
 						onSetSharedVersion={onSetSharedVersion}
-					>
-						<Button size="xs" variant="ghost" className="gap-1.5">
-							{visibility === "everyone" ? (
-								<>
-									<Globe className="size-3.5" />
-									<span className="sr-only">
-										<Trans>This page is public</Trans>
-									</span>
-								</>
-							) : (
-								<Share2 className="size-3.5" />
-							)}
-							<Trans>Share</Trans>
-						</Button>
-					</PageSharePopover>
+					/>
 				</div>
 
 				<DeletePageDialog

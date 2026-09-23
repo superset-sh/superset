@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { PageVisibility } from "../../components/PageHeader/types";
+import type { PageVisibility } from "../../../../types";
 
 export function usePendingVisibility(
 	pageId: string,

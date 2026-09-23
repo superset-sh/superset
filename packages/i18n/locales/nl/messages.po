@@ -15438,9 +15438,6 @@ msgstr "Deze pagina wordt ergens anders gepubliceerd — probeer opnieuw"
 msgid "This page is in another organization"
 msgstr "Deze pagina hoort bij een andere organisatie"
 
-msgid "This page is public"
-msgstr "Deze pagina is openbaar"
-
 msgid "This page isn't here"
 msgstr "Deze pagina staat hier niet"
 

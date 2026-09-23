@@ -15438,9 +15438,6 @@ msgstr "此頁面正在別處釋出，請重試"
 msgid "This page is in another organization"
 msgstr "這個頁面屬於另一個組織"
 
-msgid "This page is public"
-msgstr "這個頁面已公開"
-
 msgid "This page isn't here"
 msgstr "找不到這個頁面"
 

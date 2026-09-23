@@ -15438,9 +15438,6 @@ msgstr "Эта страница публикуется откуда-то ещё 
 msgid "This page is in another organization"
 msgstr "Эта страница в другой организации"
 
-msgid "This page is public"
-msgstr "Эта страница общедоступна"
-
 msgid "This page isn't here"
 msgstr "Этой страницы здесь нет"
 
