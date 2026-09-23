@@ -85,6 +85,14 @@ test("agent sends reject persisted terminal death even while the memory binding 
 	assert.ok(store.get(terminalId));
 	markTerminalAgentBindingEnded(db, terminalId, "terminal-exited");
 	assert.equal(store.get(terminalId), undefined);
+	store.recordEvent({
+		terminalId,
+		workspaceId,
+		agentId: "codex",
+		eventType: "Stop",
+		occurredAt: Date.now(),
+	});
+	assert.equal(store.get(terminalId), undefined);
 	const result = await sendAgentMessage({
 		terminalId,
 		workspaceId,
