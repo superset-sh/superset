@@ -227,7 +227,6 @@ export function DashboardSidebarHeader({
 		});
 	};
 
-	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
 	const { data: isUsageInSidebarEnabled } =
 		electronTrpc.settings.getShowUsageInSidebar.useQuery();
 
@@ -444,31 +443,29 @@ export function DashboardSidebarHeader({
 						</Tooltip>
 					)}
 
-					{isPagesEnabled && (
-						<Tooltip delayDuration={300}>
-							<TooltipTrigger asChild>
-								<button
-									type="button"
-									onClick={handlePagesClick}
-									aria-label={t({
-										message: "Pages",
-									})}
-									aria-current={isPagesOpen ? "page" : undefined}
-									className={cn(
-										"flex size-7 items-center justify-center rounded-md transition-colors",
-										isPagesOpen
-											? "bg-fill-selected text-muted-foreground"
-											: "text-muted-foreground hover:bg-fill-hover",
-									)}
-								>
-									<LuFileText className="size-3.5" strokeWidth={1.5} />
-								</button>
-							</TooltipTrigger>
-							<TooltipContent side="right">
-								<Trans>Pages</Trans>
-							</TooltipContent>
-						</Tooltip>
-					)}
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={handlePagesClick}
+								aria-label={t({
+									message: "Pages",
+								})}
+								aria-current={isPagesOpen ? "page" : undefined}
+								className={cn(
+									"flex size-7 items-center justify-center rounded-md transition-colors",
+									isPagesOpen
+										? "bg-fill-selected text-muted-foreground"
+										: "text-muted-foreground hover:bg-fill-hover",
+								)}
+							>
+								<LuFileText className="size-3.5" strokeWidth={1.5} />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="right">
+							<Trans>Pages</Trans>
+						</TooltipContent>
+					</Tooltip>
 
 					{isPluginsEnabled && (
 						<Tooltip delayDuration={300}>
@@ -719,30 +716,28 @@ export function DashboardSidebarHeader({
 				</button>
 			)}
 
-			{isPagesEnabled && (
-				<button
-					type="button"
-					onClick={handlePagesClick}
-					aria-label={t({
-						message: "Pages",
-					})}
-					aria-current={isPagesOpen ? "page" : undefined}
-					className={cn(
-						"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
-						isPagesOpen
-							? "bg-fill-selected text-foreground"
-							: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
-					)}
-				>
-					<LuFileText
-						className="size-4 shrink-0 text-muted-foreground"
-						strokeWidth={1.5}
-					/>
-					<span className="flex-1 text-left">
-						<Trans>Pages</Trans>
-					</span>
-				</button>
-			)}
+			<button
+				type="button"
+				onClick={handlePagesClick}
+				aria-label={t({
+					message: "Pages",
+				})}
+				aria-current={isPagesOpen ? "page" : undefined}
+				className={cn(
+					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+					isPagesOpen
+						? "bg-fill-selected text-foreground"
+						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+				)}
+			>
+				<LuFileText
+					className="size-4 shrink-0 text-muted-foreground"
+					strokeWidth={1.5}
+				/>
+				<span className="flex-1 text-left">
+					<Trans>Pages</Trans>
+				</span>
+			</button>
 
 			{isPluginsEnabled && (
 				<button

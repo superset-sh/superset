@@ -314,7 +314,6 @@ function V2WorkspaceContent() {
 		});
 	}, [store]);
 	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
-	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
 	const { createNewAgentSession, focusAgentTerminal } = useAgentSessionLauncher(
 		{ workspaceId, store },
 	);
@@ -405,13 +404,13 @@ function V2WorkspaceContent() {
 		/>
 	);
 
-	const pagesMenu = isPagesEnabled ? (
+	const pagesMenu = (
 		<WorkspacePagesMenu
 			workspaceId={workspaceId}
 			onCreateNewAgentSession={createNewAgentSession}
 			onFocusAgentTerminal={focusAgentTerminal}
 		/>
-	) : null;
+	);
 
 	return (
 		<FileDocumentStoreProvider>

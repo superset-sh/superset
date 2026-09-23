@@ -201,7 +201,6 @@ export const FEATURE_FLAGS = {
 	 * desktop-local; the flag controls visibility, not capability.
 	 */
 	PLUGINS: "plugins",
-	PAGES: "pages",
 	/**
 	 * Lock Screen / Dynamic Island agent card on iOS. Off by default while the
 	 * card is still being worked on; the flag's release conditions decide who

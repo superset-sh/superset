@@ -1,5 +1,3 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useRef } from "react";
 import { env } from "renderer/env.renderer";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
@@ -29,13 +27,12 @@ export function useConsumePageOpenLink({
 	openPagePane,
 	consumeSearch,
 }: UseConsumePageOpenLinkArgs): void {
-	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
 	const { preferences } = useV2UserPreferences();
 	const opensExternally = preferences.pageOpenAction === "external";
 	const consumedRef = useRef<Set<string>>(new Set());
 
 	useEffect(() => {
-		if (!isPagesEnabled || !isLayoutReady || !pageSlug) return;
+		if (!isLayoutReady || !pageSlug) return;
 		const key = `${pageId ?? ""}:${pageSlug}:${focusRequestId ?? ""}`;
 		if (consumedRef.current.has(key)) return;
 		consumedRef.current.add(key);
@@ -51,7 +48,6 @@ export function useConsumePageOpenLink({
 
 		consumeSearch(["pageId", "pageSlug"]);
 	}, [
-		isPagesEnabled,
 		isLayoutReady,
 		pageId,
 		pageSlug,

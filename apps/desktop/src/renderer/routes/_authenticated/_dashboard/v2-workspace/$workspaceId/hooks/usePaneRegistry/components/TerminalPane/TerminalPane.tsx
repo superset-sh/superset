@@ -1,12 +1,10 @@
 import { useLingui } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { OpenFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import "@xterm/xterm/css/xterm.css";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	useCallback,
 	useEffect,
@@ -86,7 +84,6 @@ export function TerminalPane({
 	const filePolicy = useTerminalFilePolicy();
 	const urlPolicy = useTerminalUrlPolicy();
 	const folderPolicy = useTerminalFolderPolicy();
-	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
 	const { preferences } = useV2UserPreferences();
 	const {
 		hoveredLink,
@@ -113,7 +110,6 @@ export function TerminalPane({
 	// are read through a ref.
 	const linkActionDepsRef = useRef<TerminalLinkActionDeps>({
 		store: ctx.store,
-		isPagesEnabled,
 		onOpenFile,
 		onRevealPath,
 		openInExternalEditor,
@@ -122,7 +118,6 @@ export function TerminalPane({
 	});
 	linkActionDepsRef.current = {
 		store: ctx.store,
-		isPagesEnabled,
 		onOpenFile,
 		onRevealPath,
 		openInExternalEditor,
@@ -345,9 +340,7 @@ export function TerminalPane({
 					);
 				},
 				onUrlClick: (event, url) => {
-					const pageSlug = isPagesEnabled
-						? parseSupersetPageUrl(url, env.NEXT_PUBLIC_WEB_URL)
-						: null;
+					const pageSlug = parseSupersetPageUrl(url, env.NEXT_PUBLIC_WEB_URL);
 					if (pageSlug) {
 						event.preventDefault();
 						runUrlLinkAction(
@@ -380,7 +373,6 @@ export function TerminalPane({
 		filePolicy,
 		urlPolicy,
 		folderPolicy,
-		isPagesEnabled,
 		preferences.pageOpenAction,
 	]);
 
@@ -673,7 +665,6 @@ export function TerminalPane({
 					urlPolicy,
 					folderPolicy,
 					worktreePath,
-					isPagesEnabled,
 					preferences.pageOpenAction,
 				)}
 				hoverPosition={hoveredLink}
@@ -694,7 +685,6 @@ function resolveHoverLabel(
 	urlPolicy: ReturnType<typeof useTerminalUrlPolicy>,
 	folderPolicy: FolderClickPolicy,
 	worktreePath: string | undefined,
-	isPagesEnabled: boolean,
 	pageOpenAction: LinkAction,
 ): string | null {
 	if (!hovered) return null;
@@ -704,9 +694,10 @@ function resolveHoverLabel(
 		shiftKey: hovered.shift,
 	};
 	if (hovered.info.kind === "url") {
-		const pageSlug = isPagesEnabled
-			? parseSupersetPageUrl(hovered.info.url, env.NEXT_PUBLIC_WEB_URL)
-			: null;
+		const pageSlug = parseSupersetPageUrl(
+			hovered.info.url,
+			env.NEXT_PUBLIC_WEB_URL,
+		);
 		const action = pageSlug ? pageOpenAction : urlPolicy.getAction(event);
 		return action ? actionLabel(action, "url") : null;
 	}

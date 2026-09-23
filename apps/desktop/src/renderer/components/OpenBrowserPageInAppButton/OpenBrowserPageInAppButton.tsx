@@ -1,10 +1,8 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { CreatePaneInput } from "@superset/panes";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { AppWindow } from "lucide-react";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { env } from "renderer/env.renderer";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { parseSupersetPageUrl } from "renderer/lib/parseSupersetPageUrl";
@@ -25,10 +23,7 @@ export function OpenBrowserPageInAppButton({
 	const { projects } = useHostProjects();
 	const target = getPullRequestTarget(currentUrl, projects);
 	const openPage = useOpenPage();
-	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES);
-	const pageSlug = isPagesEnabled
-		? parseSupersetPageUrl(currentUrl, env.NEXT_PUBLIC_WEB_URL)
-		: null;
+	const pageSlug = parseSupersetPageUrl(currentUrl, env.NEXT_PUBLIC_WEB_URL);
 	if (!target && !pageSlug) return null;
 
 	return (
