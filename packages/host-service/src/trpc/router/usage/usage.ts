@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
-import { daysSinceLaunch } from "@superset/trpc/leaderboard-periods";
+import { MAX_BACKFILL_DAYS } from "@superset/trpc/leaderboard-periods";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
@@ -81,14 +81,7 @@ function getQuota(forceRefresh: boolean): Promise<UsageAccount[]> {
 }
 
 export const leaderboardPayloadInput = z.object({
-	days: z
-		.number()
-		.int()
-		.min(1)
-		.refine(
-			(days) => days <= daysSinceLaunch() + 1,
-			"Beyond the leaderboard's history",
-		),
+	days: z.number().int().min(1).max(MAX_BACKFILL_DAYS),
 });
 
 export const usageRouter = router({

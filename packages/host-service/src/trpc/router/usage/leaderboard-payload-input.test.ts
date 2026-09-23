@@ -1,25 +1,28 @@
 import { describe, expect, test } from "bun:test";
-import { daysSinceLaunch } from "@superset/trpc/leaderboard-periods";
+import {
+	daysSinceLaunch,
+	MAX_BACKFILL_DAYS,
+} from "@superset/trpc/leaderboard-periods";
 import { leaderboardPayloadInput } from "./usage";
 
 const accepts = (days: number) =>
 	leaderboardPayloadInput.safeParse({ days }).success;
 
 describe("leaderboardPayloadInput", () => {
-	test("accepts the widest backfill the join dialog can ask for", () => {
-		expect(accepts(daysSinceLaunch())).toBe(true);
+	test("accepts the widest backfill a client will ask for", () => {
+		expect(accepts(Math.min(daysSinceLaunch(), MAX_BACKFILL_DAYS))).toBe(true);
 	});
 
-	test("still accepts the 30-day window", () => {
+	test("accepts the 30-day window", () => {
 		expect(accepts(30)).toBe(true);
 	});
 
-	test("tolerates a day of host/server clock skew past launch", () => {
-		expect(accepts(daysSinceLaunch() + 1)).toBe(true);
+	test("accepts the ceiling exactly", () => {
+		expect(accepts(MAX_BACKFILL_DAYS)).toBe(true);
 	});
 
-	test("rejects a window reaching before the board existed", () => {
-		expect(accepts(daysSinceLaunch() + 2)).toBe(false);
+	test("rejects past the ceiling", () => {
+		expect(accepts(MAX_BACKFILL_DAYS + 1)).toBe(false);
 	});
 
 	test("rejects a non-window", () => {

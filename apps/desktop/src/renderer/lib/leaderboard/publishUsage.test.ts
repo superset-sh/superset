@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { MAX_BACKFILL_DAYS } from "@superset/trpc/leaderboard-periods";
 import { BACKFILL_DAYS, backfillDays, chunkRows } from "./publishUsage";
 
 const rows = (...days: string[]) => days.map((day) => ({ day }));
@@ -54,5 +55,24 @@ describe("backfillDays", () => {
 		expect(backfillDays("launch", new Date("2026-09-18T12:00:00.000Z"))).toBe(
 			52,
 		);
+	});
+
+	test("the wide range stops at the host's ceiling once launch is older", () => {
+		expect(backfillDays("launch", new Date("2027-09-18T12:00:00.000Z"))).toBe(
+			MAX_BACKFILL_DAYS,
+		);
+	});
+
+	test("never asks the host for a window it would reject", () => {
+		for (const day of [
+			"2026-07-29",
+			"2026-10-26",
+			"2027-01-01",
+			"2030-01-01",
+		]) {
+			expect(
+				backfillDays("launch", new Date(`${day}T12:00:00.000Z`)),
+			).toBeLessThanOrEqual(MAX_BACKFILL_DAYS);
+		}
 	});
 });

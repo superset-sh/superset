@@ -1,5 +1,8 @@
 import type { RouterInputs, RouterOutputs } from "@superset/trpc";
-import { daysSinceLaunch } from "@superset/trpc/leaderboard-periods";
+import {
+	daysSinceLaunch,
+	MAX_BACKFILL_DAYS,
+} from "@superset/trpc/leaderboard-periods";
 import {
 	PUBLISH_MAX_DAYS,
 	PUBLISH_PAYLOAD_VERSION,
@@ -17,7 +20,8 @@ export function backfillDays(
 	range: BackfillRange,
 	now: Date = new Date(),
 ): number {
-	return range === "launch" ? daysSinceLaunch(now) : BACKFILL_DAYS;
+	if (range !== "launch") return BACKFILL_DAYS;
+	return Math.min(daysSinceLaunch(now), MAX_BACKFILL_DAYS);
 }
 
 type PublishInput = RouterInputs["leaderboard"]["publish"];

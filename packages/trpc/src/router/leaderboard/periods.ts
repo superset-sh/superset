@@ -14,6 +14,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const LEADERBOARD_LAUNCH_DAY = "2026-07-29";
 
+export const MAX_BACKFILL_DAYS = 90;
+
 export function isDayKey(value: string): boolean {
 	if (!DAY_KEY.test(value)) return false;
 	const parsed = new Date(`${value}T00:00:00.000Z`);
