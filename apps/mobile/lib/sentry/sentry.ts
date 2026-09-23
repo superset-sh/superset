@@ -12,6 +12,7 @@ export function initSentry() {
 		replaysSessionSampleRate: 0,
 		replaysOnErrorSampleRate: 0,
 		sendDefaultPii: false,
+		enableMetricKit: true,
 		// A phone losing its connection is not a bug, and the volume of it is
 		// what exhausted the quota in August. The request itself is still on the
 		// event as a breadcrumb (breadcrumbsIntegration is on by default), so
