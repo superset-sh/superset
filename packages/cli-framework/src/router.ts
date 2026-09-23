@@ -23,15 +23,14 @@ export function filterByAudience(
 	commands: CliCommand[],
 	audiences: Audience[],
 ): { groups: CliGroup[]; commands: CliCommand[] } {
-	const audienceOf = ({ path, command }: CliCommand): Audience => {
-		if (command.audience) return command.audience;
-		const nearestTaggedGroup = groups
-			.filter((g) => g.audience && isPrefix(g.path, path))
-			.sort((a, b) => b.path.length - a.path.length)[0];
-		return nearestTaggedGroup?.audience ?? "public";
-	};
-	const visibleCommands = commands.filter((c) =>
-		audiences.includes(audienceOf(c)),
+	const hiddenPaths = [
+		...groups.map((g) => ({ path: g.path, audience: g.audience })),
+		...commands.map((c) => ({ path: c.path, audience: c.command.audience })),
+	]
+		.filter((node) => !audiences.includes(node.audience ?? "public"))
+		.map((node) => node.path);
+	const visibleCommands = commands.filter(
+		(c) => !hiddenPaths.some((hidden) => isPrefix(hidden, c.path)),
 	);
 	const visibleGroups = groups.filter((g) =>
 		visibleCommands.some((c) => isPrefix(g.path, c.path)),

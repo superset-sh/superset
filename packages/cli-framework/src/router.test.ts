@@ -33,38 +33,28 @@ describe("filterByAudience", () => {
 		cmd(["plugins", "author", "init"]),
 		cmd(["tasks", "list"]),
 		cmd(["tasks", "purge"], "internal"),
+		cmd(["tasks", "purge", "all"]),
 		cmd(["lab", "try"], "internal"),
 	];
+	const publicView = filterByAudience(groups, commands, ["public"]);
 
-	it("hides internal commands, and groups left empty, for the public audience", () => {
-		const result = filterByAudience(groups, commands, ["public"]);
-		expect(paths(result.commands)).toEqual([
-			"plugins search",
-			"plugins author init",
-			"tasks list",
-		]);
-		expect(paths(result.groups)).toEqual([
-			"plugins",
-			"plugins author",
-			"tasks",
-		]);
+	it("shows only commands with no internal node in their chain", () => {
+		expect(paths(publicView.commands)).toEqual(["tasks list"]);
+		expect(paths(publicView.groups)).toEqual(["tasks"]);
+	});
+
+	it("keeps everything under an internal group internal, even when tagged public", () => {
+		expect(paths(publicView.commands)).not.toContain("plugins search");
+		expect(paths(publicView.commands)).not.toContain("plugins author init");
+	});
+
+	it("hides commands nested under an internal command", () => {
+		expect(paths(publicView.commands)).not.toContain("tasks purge all");
 	});
 
 	it("keeps everything when internal is enabled", () => {
 		const result = filterByAudience(groups, commands, ["internal", "public"]);
 		expect(paths(result.commands)).toEqual(paths(commands));
 		expect(result.groups).toEqual(groups);
-	});
-
-	it("gives an untagged command its nearest group's audience", () => {
-		const result = filterByAudience(groups, commands, ["public"]);
-		expect(paths(result.commands)).not.toContain("plugins list");
-		expect(paths(result.commands)).toContain("plugins author init");
-	});
-
-	it("lets a command's own tag override its group's", () => {
-		const result = filterByAudience(groups, commands, ["public"]);
-		expect(paths(result.commands)).toContain("plugins search");
-		expect(paths(result.commands)).not.toContain("tasks purge");
 	});
 });
