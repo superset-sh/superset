@@ -13478,6 +13478,9 @@ msgstr "Deel ontwerpen en rapporten. Laat je agent de feedback verwerken."
 msgid "Share page"
 msgstr "Pagina delen"
 
+msgid "Share page (public)"
+msgstr "Pagina delen (openbaar)"
+
 msgid "Share this page"
 msgstr "Deze pagina delen"
 

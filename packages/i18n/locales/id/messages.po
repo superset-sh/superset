@@ -13478,6 +13478,9 @@ msgstr "Bagikan desain dan laporan. Biarkan agen Anda menangani masukan."
 msgid "Share page"
 msgstr "Bagikan halaman"
 
+msgid "Share page (public)"
+msgstr "Bagikan halaman (publik)"
+
 msgid "Share this page"
 msgstr "Bagikan halaman ini"
 

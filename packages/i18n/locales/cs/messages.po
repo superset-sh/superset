@@ -13478,6 +13478,9 @@ msgstr "Sdílejte návrhy a zprávy. Zpětnou vazbu nechte na svém agentovi."
 msgid "Share page"
 msgstr "Sdílet stránku"
 
+msgid "Share page (public)"
+msgstr "Sdílet stránku (veřejná)"
+
 msgid "Share this page"
 msgstr "Sdílet tuto stránku"
 

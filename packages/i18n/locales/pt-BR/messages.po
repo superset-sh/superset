@@ -13478,6 +13478,9 @@ msgstr "Compartilhe designs e relatórios. Deixe seu agente cuidar do feedback."
 msgid "Share page"
 msgstr "Compartilhar página"
 
+msgid "Share page (public)"
+msgstr "Compartilhar página (pública)"
+
 msgid "Share this page"
 msgstr "Compartilhar esta página"
 

@@ -13478,6 +13478,9 @@ msgstr "디자인과 보고서를 공유하세요. 피드백 처리는 에이전
 msgid "Share page"
 msgstr "페이지 공유"
 
+msgid "Share page (public)"
+msgstr "페이지 공유(공개)"
+
 msgid "Share this page"
 msgstr "이 페이지 공유"
 

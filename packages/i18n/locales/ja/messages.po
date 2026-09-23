@@ -13478,6 +13478,9 @@ msgstr "デザインやレポートを共有しましょう。フィードバッ
 msgid "Share page"
 msgstr "ページを共有"
 
+msgid "Share page (public)"
+msgstr "ページを共有（公開）"
+
 msgid "Share this page"
 msgstr "このページを共有"
 

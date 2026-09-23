@@ -13478,6 +13478,9 @@ msgstr "分享设计和报告，让你的智能体处理反馈。"
 msgid "Share page"
 msgstr "分享页面"
 
+msgid "Share page (public)"
+msgstr "分享页面（公开）"
+
 msgid "Share this page"
 msgstr "分享此页面"
 

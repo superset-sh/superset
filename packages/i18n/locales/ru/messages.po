@@ -13478,6 +13478,9 @@ msgstr "Делитесь дизайнами и отчётами. Пусть ва
 msgid "Share page"
 msgstr "Поделиться страницей"
 
+msgid "Share page (public)"
+msgstr "Поделиться страницей (публичная)"
+
 msgid "Share this page"
 msgstr "Поделиться этой страницей"
 

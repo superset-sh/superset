@@ -7,7 +7,7 @@ import {
 	PageSharePopover,
 	usePendingVisibility,
 } from "@superset/ui/page-comments";
-import { Share2 } from "lucide-react";
+import { Globe, Share2 } from "lucide-react";
 
 interface PagePaneShareButtonProps {
 	page: PageHeaderPage;
@@ -35,6 +35,11 @@ export function PagePaneShareButton({
 		onSetVisibility,
 	);
 
+	const label =
+		visibility === "everyone"
+			? t({ message: "Share page (public)" })
+			: t({ message: "Share page" });
+
 	return (
 		<PageSharePopover
 			page={page}
@@ -50,14 +55,14 @@ export function PagePaneShareButton({
 				variant="ghost"
 				size="icon"
 				className="size-6 p-0 text-muted-foreground/60 hover:text-muted-foreground"
-				aria-label={t({
-					message: "Share page",
-				})}
-				title={t({
-					message: "Share page",
-				})}
+				aria-label={label}
+				title={label}
 			>
-				<Share2 className="size-3.5" />
+				{visibility === "everyone" ? (
+					<Globe className="size-3.5" />
+				) : (
+					<Share2 className="size-3.5" />
+				)}
 			</Button>
 		</PageSharePopover>
 	);

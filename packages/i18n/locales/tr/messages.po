@@ -13478,6 +13478,9 @@ msgstr "Tasarımları ve raporları paylaşın. Geri bildirimleri ajanınız ele
 msgid "Share page"
 msgstr "Sayfayı paylaş"
 
+msgid "Share page (public)"
+msgstr "Sayfayı paylaş (herkese açık)"
+
 msgid "Share this page"
 msgstr "Bu sayfayı paylaş"
 

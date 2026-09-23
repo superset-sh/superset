@@ -13478,6 +13478,9 @@ msgstr "Udostępniaj projekty i raporty. Pozwól agentowi zająć się opiniami.
 msgid "Share page"
 msgstr "Udostępnij stronę"
 
+msgid "Share page (public)"
+msgstr "Udostępnij stronę (publiczna)"
+
 msgid "Share this page"
 msgstr "Udostępnij tę stronę"
 

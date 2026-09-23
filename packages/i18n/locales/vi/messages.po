@@ -13478,6 +13478,9 @@ msgstr "Chia sẻ thiết kế và báo cáo. Hãy để agent của bạn xử 
 msgid "Share page"
 msgstr "Chia sẻ trang"
 
+msgid "Share page (public)"
+msgstr "Chia sẻ trang (công khai)"
+
 msgid "Share this page"
 msgstr "Chia sẻ trang này"
 

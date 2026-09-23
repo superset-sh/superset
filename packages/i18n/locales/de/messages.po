@@ -13478,6 +13478,9 @@ msgstr "Teile Entwürfe und Berichte. Lass deinen Agenten das Feedback bearbeite
 msgid "Share page"
 msgstr "Seite teilen"
 
+msgid "Share page (public)"
+msgstr "Seite teilen (öffentlich)"
+
 msgid "Share this page"
 msgstr "Diese Seite teilen"
 

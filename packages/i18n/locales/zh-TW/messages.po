@@ -13478,6 +13478,9 @@ msgstr "分享設計和報告，讓你的代理程式處理回饋。"
 msgid "Share page"
 msgstr "分享頁面"
 
+msgid "Share page (public)"
+msgstr "分享頁面（公開）"
+
 msgid "Share this page"
 msgstr "分享此頁面"
 
