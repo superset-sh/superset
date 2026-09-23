@@ -92,6 +92,9 @@ mock.module("@superset/db/client", () => ({
 			}),
 		}),
 	},
+	dbWs: {
+		transaction: () => Promise.reject(new Error("dbWs is stubbed in tests")),
+	},
 }));
 
 const { pluginsRouter } = await import("./plugins");
