@@ -48,14 +48,15 @@ export function useLeaderboardOptIn(period: LeaderboardPeriod = "all") {
 					return false;
 				}
 
+				writeAutoPublishState({
+					handle,
+					lastPublishedAt: 0,
+					lastPayloadHash: null,
+					pendingBackfill: true,
+				});
+
 				let published: number | null = 0;
 				if (activeHostUrl && machineId) {
-					writeAutoPublishState({
-						handle,
-						lastPublishedAt: 0,
-						lastPayloadHash: null,
-						pendingBackfill: true,
-					});
 					try {
 						published = (
 							await publishUsage(activeHostUrl, machineId, launchBackfillDays())
