@@ -154,6 +154,37 @@ describe("probeIdentity", () => {
 		expect(identity.user).toBeNull();
 	});
 
+	test("a url-less probe reads the token response and sends nothing", async () => {
+		globalThis.fetch = (() => {
+			throw new Error("probeIdentity made a request it did not need");
+		}) as unknown as typeof fetch;
+
+		const identity = await probeIdentity(
+			"notion_mcp",
+			connectorMethod(requireConnector("notion_mcp")),
+			"ntn-test",
+			undefined,
+			{
+				workspace_id: "ws-1",
+				workspace_name: "Superset",
+				user_id: "u-9",
+			},
+		);
+
+		expect(identity.account).toEqual({ id: "ws-1", label: "Superset" });
+		expect(identity.user).toEqual({ id: "u-9", label: null });
+	});
+
+	test("a url-less probe without a token response fails loudly", async () => {
+		await expect(
+			probeIdentity(
+				"notion_mcp",
+				connectorMethod(requireConnector("notion_mcp")),
+				"ntn-test",
+			),
+		).rejects.toThrow(/token response/);
+	});
+
 	test("a probe that returns no account id fails loudly", async () => {
 		respond({ team: "Tegon" });
 		await expect(

@@ -398,7 +398,7 @@ export async function probeIdentity(
 	const probe = method.identity;
 
 	let payload: Record<string, unknown>;
-	if (probe.url) {
+	if ("url" in probe) {
 		const url = resolveConnectorTemplate(probe.url, scope);
 		const headers = Object.fromEntries(
 			Object.entries(probe.headers ?? {}).map(([key, value]) => [

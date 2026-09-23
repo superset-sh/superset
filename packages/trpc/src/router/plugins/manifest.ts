@@ -1,3 +1,5 @@
+import { firstPartyManifest } from "@superset/shared/plugins";
+
 export const SUPERSET_EXTENSION = "superset";
 
 /** The marketplace whose manifests we ship and review. */
@@ -187,4 +189,15 @@ export async function credentialFetch(
  */
 export function trustedManifest(marketplace: string): boolean {
 	return marketplace === FIRST_PARTY_MARKETPLACE;
+}
+
+export function installConnector(install: {
+	marketplace: string;
+	pluginName: string;
+	manifest: unknown;
+}): string | undefined {
+	const published = trustedManifest(install.marketplace)
+		? (firstPartyManifest(install.pluginName) as PluginManifest | null)
+		: null;
+	return pluginConnector(published ?? (install.manifest as PluginManifest));
 }

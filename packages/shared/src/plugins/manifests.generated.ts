@@ -104,7 +104,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"notion": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "notion",
-		"version": "1.0.2",
+		"version": "1.0.3",
 		"description": "Search, read, and write your Notion workspace: pages, databases, and comments.",
 		"author": {
 			"name": "Superset",
@@ -128,7 +128,7 @@ export const FIRST_PARTY_MANIFESTS = {
 					"icon": "notion"
 				},
 				"connector": {
-					"slug": "notion"
+					"slug": "notion_mcp"
 				},
 				"mcp": {
 					"type": "streamable-http",
