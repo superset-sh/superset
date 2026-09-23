@@ -7,8 +7,19 @@ const STATS_CACHE_SECONDS = 3600;
 
 export const maxDuration = 60;
 
-const handler = (req: Request) =>
-	fetchRequestHandler({
+// CLI, SDK, and host-service builds before the move to direct PostHog capture
+// still post here; answering before the context is built keeps them from
+// costing an auth lookup each. They ignore the response.
+const RETIRED_PATHS = new Set(["analytics.captureEvent"]);
+
+function isRetiredCall(req: Request): boolean {
+	const paths = new URL(req.url).pathname.slice("/api/trpc/".length).split(",");
+	return paths.every((path) => RETIRED_PATHS.has(path));
+}
+
+const handler = (req: Request) => {
+	if (isRetiredCall(req)) return new Response(null, { status: 204 });
+	return fetchRequestHandler({
 		endpoint: "/api/trpc",
 		req,
 		router: appRouter,
@@ -35,17 +46,20 @@ const handler = (req: Request) =>
 		onError: ({ path, error }) => {
 			// Suppress NOT_FOUND for the known-dead device.heartbeat path (removed in
 			// #4490, old desktop clients gated behind UpdateRequiredPage still call
-			// it) and for public profile lookups, where an unknown handle is normal
-			// crawler traffic. All other NOT_FOUND errors should remain visible.
+			// it), for public profile lookups, where an unknown handle is normal
+			// crawler traffic, and for retired paths batched with live calls. All
+			// other NOT_FOUND errors should remain visible.
 			if (
 				error.code === "NOT_FOUND" &&
 				(path === "device.heartbeat" ||
-					path === "leaderboard.public.participant")
+					path === "leaderboard.public.participant" ||
+					(path !== undefined && RETIRED_PATHS.has(path)))
 			) {
 				return;
 			}
 			console.error(`❌ tRPC error on ${path ?? "<no-path>"}:`, error);
 		},
 	});
+};
 
 export { handler as GET, handler as POST };

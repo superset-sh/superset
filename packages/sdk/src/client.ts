@@ -100,8 +100,10 @@ import {
 	WorkspaceUpdateParams,
 } from "./resources/workspaces";
 import {
+	buildCaptureRequest,
 	buildMethodCalledEvent,
 	isTelemetryEnabled,
+	resolveTelemetryKey,
 	type TelemetryTarget,
 	type TRPCCall,
 } from "./lib/telemetry";
@@ -591,13 +593,12 @@ export class Superset {
 
 	/**
 	 * Issue the request behind a public resource method, unwrap the tRPC
-	 * envelope, and report the call to `analytics.captureEvent` once the
+	 * envelope, and report the call to PostHog once the
 	 * caller's promise settles: success only after the body parsed and the
 	 * envelope unwrapped, failure on transport, HTTP, or parse errors. The
 	 * report never sits in the caller's chain, so it cannot delay, fail, or
 	 * retry the user's call, and it does not force a parse on callers that
-	 * only want `asResponse()`. The capture request goes through `post`, not
-	 * `mutation`, so it is not itself reported.
+	 * only want `asResponse()`.
 	 */
 	private _trackedRequest<Rsp>(
 		call: TRPCCall,
@@ -636,19 +637,24 @@ export class Superset {
 		startedAt: number,
 	): void {
 		try {
-			const event = buildMethodCalledEvent({
-				method: call.method,
-				target,
-				success,
-				durationMs: Date.now() - startedAt,
+			const key = resolveTelemetryKey(this.baseURL);
+			if (!key) return;
+			const { url, init } = buildCaptureRequest({
+				key,
+				event: buildMethodCalledEvent({
+					method: call.method,
+					target,
+					success,
+					durationMs: Date.now() - startedAt,
+				}),
+				credential: this.apiKey,
+				organizationId: this.organizationId,
 			});
-			this.post("/api/trpc/analytics.captureEvent", {
-				body: { json: event },
-				maxRetries: 0,
-				timeout: 10_000,
-			}).catch(() => {
-				// Telemetry is best-effort; never surface failures to the caller.
-			});
+			this.fetch
+				.call(undefined, url, { ...init, signal: AbortSignal.timeout(10_000) })
+				.catch(() => {
+					// Telemetry is best-effort; never surface failures to the caller.
+				});
 		} catch {
 			// Same: a bug in telemetry must not reach the caller.
 		}

@@ -67,7 +67,6 @@ async function detachHead(root: string): Promise<string> {
 function createRecordingApiStub() {
 	const calls: string[] = [];
 	const api = {
-		analytics: { captureEvent: { mutate: async () => {} } },
 		v2Project: {
 			findByGitHubRemote: {
 				query: async () => {

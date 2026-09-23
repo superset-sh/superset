@@ -12,12 +12,7 @@ function clientWith(fetch: (url: URL, init?: RequestInit) => Response) {
 		organizationId: "org",
 		baseURL: "https://api.invalid",
 		maxRetries: 0,
-		fetch: async (url, init) => {
-			const parsed = new URL(String(url));
-			if (parsed.pathname.endsWith("/analytics.captureEvent"))
-				return envelope(null);
-			return fetch(parsed, init);
-		},
+		fetch: async (url, init) => fetch(new URL(String(url)), init),
 	});
 }
 

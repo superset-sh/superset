@@ -26,7 +26,7 @@ const client = new Superset({
 
 ### Telemetry
 
-The SDK reports one `sdk_method_called` event per resource call: the method name (for example `tasks.list`), SDK version, runtime, whether the call succeeded, and how long it took. Request and response data are never included. The report is sent after your call settles and is best-effort, so it cannot slow down or fail a call. Set `SUPERSET_TELEMETRY=0` to turn it off.
+The SDK reports one `sdk_method_called` event per resource call: the method name (for example `tasks.list`), SDK version, runtime, whether the call succeeded, and how long it took. Request and response data are never included, and calls made with an API key are reported without a user, since a key belongs to an organization rather than a person. The report is sent after your call settles and is best-effort, so it cannot slow down or fail a call. Set `SUPERSET_TELEMETRY=0` to turn it off.
 
 ---
 

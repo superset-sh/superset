@@ -319,6 +319,10 @@
 		"./plugins/manifest-schema": {
 			"types": "./src/plugins/manifest-schema.ts",
 			"default": "./src/plugins/manifest-schema.ts"
+		},
+		"./product-telemetry": {
+			"types": "./src/product-telemetry.ts",
+			"default": "./src/product-telemetry.ts"
 		}
 	},
 	"scripts": {

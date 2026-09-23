@@ -4,6 +4,10 @@ import hostServicePackageJson from "@superset/host-service/package.json" with {
 };
 import { getHostId } from "@superset/shared/host-info";
 import {
+	captureTelemetryEvent,
+	resolveTelemetryKey,
+} from "@superset/shared/product-telemetry";
+import {
 	isWorkspaceTagVisibleTo,
 	normalizeWorkspaceTags,
 	visibleWorkspaceTags,
@@ -14,19 +18,16 @@ import type { HostDb } from "../db";
 import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
-import type { ApiClient } from "../types";
 
 export type HostWorkspaceRow = typeof workspaces.$inferSelect;
 
 /**
- * `api`/`organizationId`/`clientMachineId` mirror `HostServiceContext` field
- * names so a full request context satisfies this interface as-is. When `api`
- * is absent the store still works but skips telemetry.
+ * `organizationId`/`clientMachineId` mirror `HostServiceContext` field
+ * names so a full request context satisfies this interface as-is.
  */
 export interface WorkspaceStoreContext {
 	db: HostDb;
 	eventBus: EventBus;
-	api?: ApiClient;
 	organizationId?: string;
 	clientMachineId?: string;
 	/** The acting user; tags they write are theirs (see `workspaceTags`). */
@@ -50,36 +51,36 @@ function fromStoredTagCreator(stored: string): string | null {
 
 /**
  * Workspaces have no cloud mirror since local-first (#5731), so the host
- * relays workspace lifecycle events through `analytics.captureEvent`.
+ * reports their lifecycle itself, as the acting user when one is known.
  */
 function trackWorkspaceEvent(
 	ctx: WorkspaceStoreContext,
 	event: "workspace_created" | "workspace_deleted",
 	row: HostWorkspaceRow,
 ): void {
-	if (!ctx.api) return;
+	const key = resolveTelemetryKey(process.env.SUPERSET_API_URL ?? "");
+	if (!key) return;
 	const clientMachineId = ctx.clientMachineId ?? getHostId();
-	try {
-		void ctx.api.analytics.captureEvent
-			.mutate({
-				source: "host_service",
-				event,
-				properties: {
-					workspace_id: row.id,
-					project_id: row.projectId,
-					organization_id: ctx.organizationId ?? null,
-					host_id: getHostId(),
-					branch: row.branch,
-					type: row.type,
-					host_kind: clientMachineId === getHostId() ? "local" : "remote",
-					client_machine_id: clientMachineId,
-					host_service_version: hostServicePackageJson.version,
-				},
-			})
-			.catch(() => {});
-	} catch {
-		// Telemetry must never fail the workspace operation.
-	}
+	void captureTelemetryEvent({
+		key,
+		event,
+		identity: {
+			distinctId: ctx.userId ?? getHostId(),
+			organizationId: ctx.organizationId ?? null,
+		},
+		properties: {
+			source: "host_service",
+			workspace_id: row.id,
+			project_id: row.projectId,
+			organization_id: ctx.organizationId ?? null,
+			host_id: getHostId(),
+			branch: row.branch,
+			type: row.type,
+			host_kind: clientMachineId === getHostId() ? "local" : "remote",
+			client_machine_id: clientMachineId,
+			host_service_version: hostServicePackageJson.version,
+		},
+	});
 }
 
 /**

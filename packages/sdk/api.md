@@ -100,4 +100,4 @@ Methods:
 
 # Telemetry
 
-Every resource method reports one `sdk_method_called` event (method name, SDK version, runtime, success, duration) to `analytics.captureEvent` after the call settles. It is best-effort and never affects the call itself. Set `SUPERSET_TELEMETRY=0` to opt out.
+Every resource method reports one `sdk_method_called` event (method name, SDK version, runtime, success, duration) to Superset's PostHog project after the call settles. Calls made with an API key are reported anonymously, since a key belongs to an organization rather than a person. It is best-effort and never affects the call itself. Set `SUPERSET_TELEMETRY=0` to opt out.

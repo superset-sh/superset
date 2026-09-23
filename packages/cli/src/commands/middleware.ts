@@ -7,7 +7,9 @@ export default middleware(async (opts) => {
 	const { config, api, bearer, authSource } = await resolveAuth(options.apiKey);
 
 	trackCommandInvoked({
-		api,
+		bearer,
+		authSource,
+		organizationId: config.organizationId,
 		commandPath: opts.commandPath,
 		flags: Object.keys(opts.options).filter(
 			(k) => opts.options[k] !== undefined,

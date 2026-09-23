@@ -102,7 +102,6 @@ export async function createLocalWorkspace(
 		{
 			db: ctx.db,
 			eventBus: ctx.eventBus,
-			api: ctx.api,
 			organizationId: ctx.organizationId,
 			clientMachineId: ctx.clientMachineId,
 			userId: ctx.userId,
