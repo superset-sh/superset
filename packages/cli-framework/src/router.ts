@@ -23,18 +23,18 @@ export function filterByAudience(
 	commands: CliCommand[],
 	audiences: Audience[],
 ): { groups: CliGroup[]; commands: CliCommand[] } {
-	const isEnabled = (audience: Audience | undefined) =>
-		audiences.includes(audience ?? "public");
-	const disabledGroups = groups.filter((g) => !isEnabled(g.audience));
-	const visibleCommands = commands.filter(
-		(c) =>
-			isEnabled(c.command.audience) &&
-			!disabledGroups.some((g) => isPrefix(g.path, c.path)),
+	const audienceOf = ({ path, command }: CliCommand): Audience => {
+		if (command.audience) return command.audience;
+		const nearestTaggedGroup = groups
+			.filter((g) => g.audience && isPrefix(g.path, path))
+			.sort((a, b) => b.path.length - a.path.length)[0];
+		return nearestTaggedGroup?.audience ?? "public";
+	};
+	const visibleCommands = commands.filter((c) =>
+		audiences.includes(audienceOf(c)),
 	);
-	const visibleGroups = groups.filter(
-		(g) =>
-			isEnabled(g.audience) &&
-			visibleCommands.some((c) => isPrefix(g.path, c.path)),
+	const visibleGroups = groups.filter((g) =>
+		visibleCommands.some((c) => isPrefix(g.path, c.path)),
 	);
 	return { groups: visibleGroups, commands: visibleCommands };
 }
