@@ -19,6 +19,10 @@
 		"./config": {
 			"types": "./src/config.ts",
 			"default": "./src/config.ts"
+		},
+		"./write-file-if-changed": {
+			"types": "./src/write-file-if-changed.ts",
+			"default": "./src/write-file-if-changed.ts"
 		}
 	},
 	"scripts": {

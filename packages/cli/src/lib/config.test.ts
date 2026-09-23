@@ -112,4 +112,20 @@ describe("config writes", () => {
 			organizationId: "org_123",
 		});
 	});
+
+	test("writeConfig writes through a symlinked config.json", () => {
+		const dotfiles = realFs.mkdtempSync(join(tmpdir(), "superset-dotfiles-"));
+		const real = join(dotfiles, "superset-config.json");
+		realFs.writeFileSync(real, JSON.stringify({ apiKey: "sk_live_old" }));
+		realFs.rmSync(SUPERSET_CONFIG_PATH, { force: true });
+		nodeFs.symlinkSync(real, SUPERSET_CONFIG_PATH);
+
+		writeConfig({ organizationId: "org_linked" });
+
+		expect(realFs.statSync(SUPERSET_CONFIG_PATH).isSymbolicLink()).toBe(false);
+		expect(nodeFs.lstatSync(SUPERSET_CONFIG_PATH).isSymbolicLink()).toBe(true);
+		expect(JSON.parse(realFs.readFileSync(real, "utf-8"))).toEqual({
+			organizationId: "org_linked",
+		});
+	});
 });

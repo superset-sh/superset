@@ -4,7 +4,7 @@ import { getI18nInstance } from "@superset/i18n/server";
 import type { Metadata } from "next";
 import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
-import { getBlogPosts } from "@/lib/blog";
+import { getListedBlogPosts } from "@/lib/blog";
 import { BlogCard } from "./components/BlogCard";
 import { GridCross } from "./components/GridCross";
 
@@ -50,7 +50,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function BlogPage() {
 	await initServerI18n();
 
-	const posts = getBlogPosts();
+	const posts = getListedBlogPosts();
 
 	return (
 		<main className="relative min-h-screen">

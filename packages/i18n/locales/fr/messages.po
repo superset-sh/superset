@@ -5931,8 +5931,8 @@ msgstr "Tout est scriptable. Créez des espaces de travail et des agents depuis 
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Tout ce que nous avons construit par-dessus les primitives — les originaux Superset, la"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Tout ce que vous avez publié est supprimé, pas masqué. Vous pourrez revenir plus tard et tout sera reconstruit à partir des transcriptions encore présentes sur cette machine — seul votre classement passé est perdu."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Tout ce que vous avez publié est supprimé, pas masqué. Vous pourrez revenir plus tard et tout sera reconstruit à partir des transcriptions encore présentes sur cette machine."
 
 msgid "Existing repo path"
 msgstr "Chemin du dépôt existant"
@@ -6630,6 +6630,9 @@ msgstr "Filtrer par revues"
 
 msgid "Filter by state"
 msgstr "Filtrer par état"
+
+msgid "Filter by workspace: {label}"
+msgstr "Filtrer par espace de travail : {label}"
 
 msgid "Filter hosts"
 msgstr "Filtrer les hôtes"
@@ -13475,8 +13478,8 @@ msgstr "Partagez des maquettes et des rapports. Laissez votre agent traiter les 
 msgid "Share page"
 msgstr "Partager la page"
 
-msgid "Share settings"
-msgstr "Paramètres de partage"
+msgid "Share page (public)"
+msgstr "Partager la page (publique)"
 
 msgid "Share this page"
 msgstr "Partager cette page"
@@ -15435,10 +15438,6 @@ msgstr "Cette page est en cours de publication ailleurs — réessayez"
 msgid "This page is in another organization"
 msgstr "Cette page appartient à une autre organisation"
 
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Cette page est en ligne sur <0>{0}</0>"
-
 msgid "This page isn't here"
 msgstr "Cette page n'est pas ici"
 
@@ -16049,6 +16048,9 @@ msgstr "Variables inconnues : {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Soudeur inconnu"
+
+msgid "Unknown workspace"
+msgstr "Espace de travail inconnu"
 
 msgid "Unlimited"
 msgstr "Illimité"

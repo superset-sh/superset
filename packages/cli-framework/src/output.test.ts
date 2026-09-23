@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
-import { table } from "./output";
+import { formatOutput, table } from "./output";
 
 const URL = "http://localhost:3000/page/schema-history-superset-7njjhq";
 const ROWS = [{ title: "Schema history", url: URL }];
@@ -91,5 +91,46 @@ describe("table", () => {
 		setTTY(true);
 		const out = table([{ id: "not a url" }], ["id"], ["ID"], [30]);
 		expect(out).not.toContain("\x1b]8;;");
+	});
+});
+
+describe("formatOutput --quiet", () => {
+	test("lists the ids inside a paginated envelope", () => {
+		const out = formatOutput(
+			{ data: { items: [{ id: "a" }, { id: "b" }], nextCursor: "tok" } },
+			undefined,
+			{ json: false, quiet: true },
+		);
+		expect(out).toBe("a\nb");
+	});
+
+	test("still lists the ids of a bare array", () => {
+		const out = formatOutput([{ id: "a" }, { id: "b" }], undefined, {
+			json: false,
+			quiet: true,
+		});
+		expect(out).toBe("a\nb");
+	});
+
+	test("leaves an object that merely has items alone", () => {
+		const out = formatOutput({ items: [{ id: "a" }] }, undefined, {
+			json: false,
+			quiet: true,
+		});
+		expect(out).toBe(JSON.stringify({ items: [{ id: "a" }] }));
+	});
+});
+
+describe("formatOutput --json", () => {
+	test("hands the cursor to the caller alongside the rows", () => {
+		const out = formatOutput(
+			{ data: { items: [{ id: "a" }], nextCursor: "tok" } },
+			undefined,
+			{ json: true, quiet: false },
+		);
+		expect(JSON.parse(out)).toEqual({
+			items: [{ id: "a" }],
+			nextCursor: "tok",
+		});
 	});
 });

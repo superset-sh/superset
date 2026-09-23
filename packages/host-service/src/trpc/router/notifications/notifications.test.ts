@@ -557,6 +557,30 @@ it("broadcasts a bounded preview with the lifecycle event", async () => {
 });
 
 describe("login attribution authentication", () => {
+	it("publishes launch events after the binding and account are readable", async () => {
+		const { ctx, terminalAgentStore, broadcastAgentLifecycle } =
+			createContext("workspace-1");
+		const observed: unknown[] = [];
+		broadcastAgentLifecycle.mockImplementation(() => {
+			observed.push(terminalAgentStore.get("terminal-1"));
+		});
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId: "codex" },
+			accountProfile: "",
+			apiKey: true,
+			attributionToken: issueAttributionToken("terminal-1"),
+		});
+		expect(observed).toEqual([
+			expect.objectContaining({
+				agentId: "codex",
+				workspaceId: "workspace-1",
+				account: expect.objectContaining({ identity: "api-env" }),
+			}),
+		]);
+	});
+
 	for (const authorized of [false, true]) {
 		it(`records lifecycle events with ${authorized ? "verified" : "unverified"} attribution`, async () => {
 			const { ctx, terminalAgentStore } = createContext("workspace-1");

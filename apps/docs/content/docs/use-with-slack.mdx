@@ -21,6 +21,20 @@ description: Mention @superset in Slack to file tasks or dispatch coding agents
 2. Click **Connect** to install the Superset Slack app (OAuth)
 3. Mention `@superset` in any channel, or DM the bot, and describe what you want done
 
+## Connected Plugins
+
+The Slack agent can use a linked user's connected Linear and GitHub plugins to read issues and repositories, file or update issues, comment, and open pull requests. It uses a limited tool set; plugin tools cannot delete resources, merge pull requests, or perform bulk writes. If a requested plugin is not connected, the reply offers a **Connect** button.
+
+## Thread Follow-ups
+
+These controls are available when thread follow-ups are enabled for your Slack team:
+
+- Once the agent has replied in a thread, follow-up replies reach it without another mention. Replies sent while it is working are queued for the next turn.
+- Send `!mute` to require mentions in that thread again, or `!unmute` to resume automatic follow-ups. Direct mentions still work in a muted thread.
+- Send `!stop` or `!cancel` in the thread or DM to end the running Slack turn. Work already completed remains in the reply's Changes footer. This does not undo actions or stop coding agents already launched in workspaces.
+
+Without thread follow-ups enabled, continue to mention `@superset` for each channel request.
+
 ## Good First Prompts
 
 ```text

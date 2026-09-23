@@ -4,32 +4,36 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { getInitials } from "@superset/shared/names";
 import { Building2, Check, Globe, Link2, Lock } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "../../../../../ui/avatar";
-import { Button } from "../../../../../ui/button";
-import { Label } from "../../../../../ui/label";
+import { type ReactNode, useCallback, useState } from "react";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "../../../../../../../ui/avatar";
+import { Button } from "../../../../../../../ui/button";
+import { Label } from "../../../../../../../ui/label";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "../../../../../ui/popover";
+} from "../../../../../../../ui/popover";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "../../../../../ui/select";
-import { Separator } from "../../../../../ui/separator";
-import { toast } from "../../../../../ui/sonner";
-import { useFramePointerDown } from "../../../../hooks/useFramePointerDown";
-import { relativeTime } from "../../../../utils/relativeTime";
+} from "../../../../../../../ui/select";
+import { Separator } from "../../../../../../../ui/separator";
+import { toast } from "../../../../../../../ui/sonner";
+import { useFramePointerDown } from "../../../../../../hooks/useFramePointerDown";
+import { relativeTime } from "../../../../../../utils/relativeTime";
 import type {
 	PageHeaderActions,
 	PageHeaderPage,
 	PageHeaderVersion,
 	PageVisibility,
-} from "../../types";
+} from "../../../../types";
 
 const LATEST = "latest";
 
@@ -57,18 +61,6 @@ export function PageSharePopover({
 	const { t } = useLingui();
 	const [busy, setBusy] = useState(false);
 	const [copied, setCopied] = useState(false);
-	const [pending, setPending] = useState<{
-		pageId: string;
-		value: PageVisibility;
-	} | null>(null);
-	const pendingValue = pending?.pageId === page.id ? pending.value : null;
-	const visibility = pendingValue ?? page.visibility;
-
-	useEffect(() => {
-		if (pendingValue !== null && page.visibility === pendingValue) {
-			setPending(null);
-		}
-	}, [page.visibility, pendingValue]);
 
 	useFramePointerDown(useCallback(() => onOpenChange(false), [onOpenChange]));
 
@@ -87,14 +79,12 @@ export function PageSharePopover({
 	};
 
 	const changeVisibility = async (next: PageVisibility) => {
-		if (next === visibility) return;
-		setPending({ pageId: page.id, value: next });
+		if (next === page.visibility) return;
 		if (next !== "just_me") void copyLink();
 		setBusy(true);
 		try {
 			await onSetVisibility(next);
 		} catch (error) {
-			setPending(null);
 			toast.error(
 				errorMessage(
 					error,
@@ -185,7 +175,7 @@ export function PageSharePopover({
 						</p>
 					</div>
 					<Select
-						value={visibility}
+						value={page.visibility}
 						disabled={!editable || busy}
 						onValueChange={(value) =>
 							void changeVisibility(value as PageVisibility)

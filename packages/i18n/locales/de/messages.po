@@ -5931,8 +5931,8 @@ msgstr "Alles ist skriptbar. Starte Arbeitsbereiche und Agenten über die CLI, b
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Alles, was wir auf den Primitives aufgebaut haben — Superset-Originale, die"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Alles, was du veröffentlicht hast, wird gelöscht, nicht ausgeblendet. Du kannst später wieder beitreten, dann wird es aus den Transkripten auf diesem Rechner neu aufgebaut — nur dein bisheriges Ranking geht verloren."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Alles, was du veröffentlicht hast, wird gelöscht, nicht ausgeblendet. Du kannst später wieder beitreten, dann wird es aus den Transkripten auf diesem Rechner neu aufgebaut."
 
 msgid "Existing repo path"
 msgstr "Pfad zum vorhandenen Repo"
@@ -6630,6 +6630,9 @@ msgstr "Nach Reviews filtern"
 
 msgid "Filter by state"
 msgstr "Nach Status filtern"
+
+msgid "Filter by workspace: {label}"
+msgstr "Nach Arbeitsbereich filtern: {label}"
 
 msgid "Filter hosts"
 msgstr "Hosts filtern"
@@ -13475,8 +13478,8 @@ msgstr "Teile Entwürfe und Berichte. Lass deinen Agenten das Feedback bearbeite
 msgid "Share page"
 msgstr "Seite teilen"
 
-msgid "Share settings"
-msgstr "Freigabeeinstellungen"
+msgid "Share page (public)"
+msgstr "Seite teilen (öffentlich)"
 
 msgid "Share this page"
 msgstr "Diese Seite teilen"
@@ -15435,10 +15438,6 @@ msgstr "Diese Seite wird gerade von anderer Stelle veröffentlicht — erneut ve
 msgid "This page is in another organization"
 msgstr "Diese Seite gehört zu einer anderen Organisation"
 
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Diese Seite ist live unter <0>{0}</0>"
-
 msgid "This page isn't here"
 msgstr "Diese Seite gibt es hier nicht"
 
@@ -16049,6 +16048,9 @@ msgstr "Unbekannte Variablen: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Unbekannter Schweißer"
+
+msgid "Unknown workspace"
+msgstr "Unbekannter Arbeitsbereich"
 
 msgid "Unlimited"
 msgstr "Unbegrenzt"

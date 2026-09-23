@@ -5931,8 +5931,8 @@ msgstr "Všechno jde skriptovat. Vytvářejte pracovní prostory a agenty z CLI,
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Vše, co jsme postavili nad primitivy — originály Superset, sada"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Všechno, co jste zveřejnili, se smaže, ne jen skryje. Můžete se později vrátit a znovu se to sestaví z přepisů, které na tomto počítači zůstaly — přijdete jen o dosavadní umístění."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Všechno, co jste zveřejnili, se smaže, ne jen skryje. Můžete se později vrátit a znovu se to sestaví z přepisů, které na tomto počítači zůstaly."
 
 msgid "Existing repo path"
 msgstr "Cesta k existujícímu repozitáři"
@@ -6630,6 +6630,9 @@ msgstr "Filtrovat podle revizí"
 
 msgid "Filter by state"
 msgstr "Filtrovat podle stavu"
+
+msgid "Filter by workspace: {label}"
+msgstr "Filtrovat podle pracovního prostoru: {label}"
 
 msgid "Filter hosts"
 msgstr "Filtrovat hosty"
@@ -13475,8 +13478,8 @@ msgstr "Sdílejte návrhy a zprávy. Zpětnou vazbu nechte na svém agentovi."
 msgid "Share page"
 msgstr "Sdílet stránku"
 
-msgid "Share settings"
-msgstr "Nastavení sdílení"
+msgid "Share page (public)"
+msgstr "Sdílet stránku (veřejná)"
 
 msgid "Share this page"
 msgstr "Sdílet tuto stránku"
@@ -15435,10 +15438,6 @@ msgstr "Tato stránka se právě zveřejňuje odjinud — zkuste to znovu"
 msgid "This page is in another organization"
 msgstr "Tato stránka patří do jiné organizace"
 
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Tato stránka je živá na <0>{0}</0>"
-
 msgid "This page isn't here"
 msgstr "Tahle stránka tu není"
 
@@ -16049,6 +16048,9 @@ msgstr "Neznámé proměnné: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Neznámý svářeč"
+
+msgid "Unknown workspace"
+msgstr "Neznámý pracovní prostor"
 
 msgid "Unlimited"
 msgstr "Neomezeně"

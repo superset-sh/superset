@@ -76,8 +76,8 @@ export function PagesGrid({
 
 	if (pages.length === 0) {
 		return (
-			<Empty className="my-auto min-h-80 items-start border-0 px-0 py-20 text-left max-w-md mx-auto w-full md:px-0 md:py-20">
-				<EmptyHeader className="items-start text-left">
+			<Empty className="my-auto min-h-80 border-0 py-20 md:py-20">
+				<EmptyHeader>
 					<EmptyMedia variant="icon">
 						{hasFilters ? (
 							<LuSearchX className="size-5" />
@@ -103,7 +103,12 @@ export function PagesGrid({
 					</EmptyDescription>
 				</EmptyHeader>
 				{!hasFilters && (
-					<Button size="sm" onClick={onCreate} disabled={isCreating}>
+					<Button
+						size="sm"
+						variant="secondary"
+						onClick={onCreate}
+						disabled={isCreating}
+					>
 						<LuPlus className="size-3.5" />
 						<Trans>Create with AI</Trans>
 					</Button>

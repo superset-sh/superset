@@ -327,6 +327,7 @@ until someone widens it.
 
 ```bash
 superset pages list --workspace <id>     # or omit --workspace for the whole org
+superset pages list --search "Q3 close"  # -q also works; matches title or slug
 superset pages get <page-id-or-slug>
 superset pages versions <page-id-or-slug>
 superset pages pull <page-id-or-slug> --version 2 > v2.html
@@ -334,6 +335,17 @@ superset pages pull <page-id-or-slug> --version 2 > v2.html
 
 `pull` writes HTML to stdout; use it to recover a source file you no longer
 have, or to diff what actually shipped against what you have locally.
+
+`list` returns every page it can see, so reach for `--search` before you reach
+for a pipe into `grep`. Two flags change that: `--limit <1-200>` returns a
+single batch, and `--cursor` continues from where a batch stopped.
+
+They also change the JSON. Under `--json`, a plain `list` is a bare array, but
+passing either flag wraps it as `{ items, nextCursor }`. Feed that `nextCursor`
+back as `--cursor` until it comes back `null`. Parsing the output? Either don't
+pass the flags, or handle the envelope. The other two modes are unaffected: the
+default table looks the same and tells you when there's more, and `--quiet`
+prints ids either way.
 
 `get` carries `workspaceLinks`: the workspace and the path each publish
 resolved against. When you have lost the source, pull it back to that path
