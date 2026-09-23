@@ -120,6 +120,7 @@ mock.module("../PagesGrid", () => ({
 }));
 
 const onScopeChange = mock((_scope: string) => {});
+const onSearchChange = mock((_search: string) => {});
 
 mock.module("./hooks/useCreatePageWithAgent", () => ({
 	useCreatePageWithAgent: () => ({
@@ -152,7 +153,9 @@ mock.module("../../hooks/usePageWorkspaceNames", () => ({
 	usePageWorkspaceNames: () => new Map([["ws-1", "Workspace One"]]),
 }));
 
-const { act, cleanup, render } = await import("@testing-library/react");
+const { act, cleanup, fireEvent, render } = await import(
+	"@testing-library/react"
+);
 const { PagesView } = await import("./PagesView");
 
 function renderView({
@@ -167,7 +170,7 @@ function renderView({
 			scope={scope}
 			authorId={authorId}
 			workspaceId={workspaceId}
-			onSearchChange={mock()}
+			onSearchChange={onSearchChange}
 			onScopeChange={onScopeChange}
 			onAuthorChange={mock()}
 			onWorkspaceChange={mock()}
@@ -178,6 +181,7 @@ function renderView({
 beforeEach(() => {
 	fetchNextPage.mockClear();
 	onScopeChange.mockClear();
+	onSearchChange.mockClear();
 	observed.length = 0;
 	listInput = undefined;
 	countsInput = undefined;
@@ -313,6 +317,34 @@ describe("PagesView counts", () => {
 			renderView({ scope: "mine" });
 		});
 		expect(countsInput).not.toHaveProperty("scope");
+	});
+});
+
+describe("PagesView search", () => {
+	test("does not strand typed text in the box when another filter changes", async () => {
+		const view = await act(async () => renderView());
+		const box = view.getByPlaceholderText("Search pages") as HTMLInputElement;
+
+		await act(async () => {
+			fireEvent.change(box, { target: { value: "quarterly" } });
+		});
+		expect(box.value).toBe("quarterly");
+
+		// Switching tabs inside the debounce window must not drop the pending
+		// search: the box would keep showing text the grid was not filtered by.
+		await act(async () => {
+			const tab = view.getByRole("tab", { name: /Team/ });
+			fireEvent.pointerDown(tab, { button: 0, ctrlKey: false });
+			fireEvent.mouseDown(tab, { button: 0, ctrlKey: false });
+			fireEvent.click(tab);
+		});
+
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 400));
+		});
+
+		expect(onScopeChange).toHaveBeenCalledWith("team");
+		expect(onSearchChange).toHaveBeenCalledWith("quarterly");
 	});
 });
 

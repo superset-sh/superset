@@ -63,9 +63,15 @@ export function PagesView({
 	const openPage = useOpenPage();
 
 	// The input answers the keystroke; the URL — and so the query — settles.
+	//
+	// A pending search is deliberately never cancelled when another filter
+	// changes: every handler here updates the URL through a functional updater,
+	// so a search landing after a scope change composes with it instead of
+	// clobbering it. Cancelling would strand the typed text in the box while the
+	// grid stayed unfiltered.
 	const [searchInput, setSearchInput] = useState(search);
 	useEffect(() => setSearchInput(search), [search]);
-	const { scheduleSearchNavigation, cancelPendingSearchNavigation } =
+	const { scheduleSearchNavigation } =
 		useDebouncedSearchNavigation(onSearchChange);
 	const handleSearchChange = useCallback(
 		(value: string) => {
@@ -194,14 +200,6 @@ export function PagesView({
 		[counts.pinned, scope],
 	);
 
-	const changeScope = useCallback(
-		(next: PageScope) => {
-			cancelPendingSearchNavigation();
-			onScopeChange(next);
-		},
-		[cancelPendingSearchNavigation, onScopeChange],
-	);
-
 	const hasFilters =
 		Boolean(search.trim()) ||
 		scope !== "all" ||
@@ -230,7 +228,7 @@ export function PagesView({
 						<div className="mt-6 flex flex-wrap items-center justify-between gap-2">
 							<Tabs
 								value={scope}
-								onValueChange={(value) => changeScope(value as PageScope)}
+								onValueChange={(value) => onScopeChange(value as PageScope)}
 							>
 								<TabsList className="h-8 gap-1 bg-transparent p-0">
 									{tabs.map((tab) => (
@@ -253,20 +251,14 @@ export function PagesView({
 									<WorkspaceFilter
 										value={workspaceId}
 										options={workspaceOptions}
-										onChange={(value) => {
-											cancelPendingSearchNavigation();
-											onWorkspaceChange(value);
-										}}
+										onChange={onWorkspaceChange}
 									/>
 								)}
 								{(authorOptions.length > 1 || authorId !== null) && (
 									<AuthorFilter
 										value={authorId}
 										options={authorOptions}
-										onChange={(value) => {
-											cancelPendingSearchNavigation();
-											onAuthorChange(value);
-										}}
+										onChange={onAuthorChange}
 									/>
 								)}
 								<div className="relative w-56">

@@ -48,11 +48,20 @@ export function WorkspacePagesMenu({
 	const [composing, setComposing] = useState(false);
 
 	// This menu orders by publish time, not creation time, so it takes one
-	// large batch rather than the grid's scroll-sized one.
-	const workspacePagesQuery = usePagesList(
-		{ workspaceId, limit: MENU_PAGE_LIMIT },
-		{ staleTime: 60_000 },
+	// large batch rather than the grid's scroll-sized one. Built once because
+	// `invalidate` matches a cached query by its input — a different `limit`
+	// here than below and neither a publish nor opening the menu would refresh.
+	const workspaceFilter = useMemo(
+		() => ({ workspaceId, limit: MENU_PAGE_LIMIT }),
+		[workspaceId],
 	);
+	const workspaceListInput = useMemo(
+		() => pagesListInput(workspaceFilter),
+		[workspaceFilter],
+	);
+	const workspacePagesQuery = usePagesList(workspaceFilter, {
+		staleTime: 60_000,
+	});
 	// Only the pins, by id — this menu never needed the rest of the org.
 	const pinnedPagesQuery = usePagesList(
 		{ ids: favoritePageIds, limit: MENU_PAGE_LIMIT },
@@ -64,8 +73,8 @@ export function WorkspacePagesMenu({
 		"page-watch:changed",
 		workspaceId,
 		useCallback(() => {
-			void utils.page.list.invalidate(pagesListInput({ workspaceId }));
-		}, [utils, workspaceId]),
+			void utils.page.list.invalidate(workspaceListInput);
+		}, [utils, workspaceListInput]),
 	);
 
 	const { workspace, pinned, hasNew } = useMemo(
@@ -87,7 +96,7 @@ export function WorkspacePagesMenu({
 	const handleOpenChange = (next: boolean) => {
 		setOpen(next);
 		if (next) {
-			void utils.page.list.invalidate(pagesListInput({ workspaceId }));
+			void utils.page.list.invalidate(workspaceListInput);
 			return;
 		}
 		setComposing(false);
