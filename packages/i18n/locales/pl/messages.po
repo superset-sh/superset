@@ -13478,9 +13478,6 @@ msgstr "Udostępniaj projekty i raporty. Pozwól agentowi zająć się opiniami.
 msgid "Share page"
 msgstr "Udostępnij stronę"
 
-msgid "Share settings"
-msgstr "Ustawienia udostępniania"
-
 msgid "Share this page"
 msgstr "Udostępnij tę stronę"
 
@@ -15437,10 +15434,6 @@ msgstr "Ta strona jest właśnie publikowana z innego miejsca — ponów"
 
 msgid "This page is in another organization"
 msgstr "Ta strona należy do innej organizacji"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Ta strona jest dostępna pod adresem <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Nie ma tu tej strony"

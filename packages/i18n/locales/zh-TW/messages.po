@@ -13478,9 +13478,6 @@ msgstr "分享設計和報告，讓你的代理程式處理回饋。"
 msgid "Share page"
 msgstr "分享頁面"
 
-msgid "Share settings"
-msgstr "分享設定"
-
 msgid "Share this page"
 msgstr "分享此頁面"
 
@@ -15437,10 +15434,6 @@ msgstr "此頁面正在別處釋出，請重試"
 
 msgid "This page is in another organization"
 msgstr "這個頁面屬於另一個組織"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "此頁面已發布在 <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "找不到這個頁面"

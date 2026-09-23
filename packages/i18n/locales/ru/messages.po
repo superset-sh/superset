@@ -13478,9 +13478,6 @@ msgstr "Делитесь дизайнами и отчётами. Пусть ва
 msgid "Share page"
 msgstr "Поделиться страницей"
 
-msgid "Share settings"
-msgstr "Настройки доступа"
-
 msgid "Share this page"
 msgstr "Поделиться этой страницей"
 
@@ -15437,10 +15434,6 @@ msgstr "Эта страница публикуется откуда-то ещё 
 
 msgid "This page is in another organization"
 msgstr "Эта страница в другой организации"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Эта страница опубликована по адресу <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Этой страницы здесь нет"

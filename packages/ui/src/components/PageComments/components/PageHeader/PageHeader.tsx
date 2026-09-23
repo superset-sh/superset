@@ -1,12 +1,11 @@
 "use client";
 
 import { Trans } from "@lingui/react/macro";
-import { Share2 } from "lucide-react";
+import { Globe, Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../ui/button";
 import { DeletePageDialog } from "./components/DeletePageDialog";
-import { PagePublicBanner } from "./components/PagePublicBanner";
 import { PageSharePopover } from "./components/PageSharePopover";
 import { PageTitleMenu } from "./components/PageTitleMenu";
 import { PageVersionBanner } from "./components/PageVersionBanner";
@@ -97,7 +96,11 @@ export function PageHeader({
 						onSetSharedVersion={onSetSharedVersion}
 					>
 						<Button size="xs" variant="ghost" className="gap-1.5">
-							<Share2 className="size-3.5" />
+							{page.visibility === "everyone" ? (
+								<Globe className="size-3.5" />
+							) : (
+								<Share2 className="size-3.5" />
+							)}
 							<Trans>Share</Trans>
 						</Button>
 					</PageSharePopover>
@@ -123,11 +126,6 @@ export function PageHeader({
 				<PageVersionBanner
 					version={previewVersion}
 					onExit={() => onPreviewVersion(null)}
-				/>
-			) : isOwner && page.visibility === "everyone" ? (
-				<PagePublicBanner
-					url={page.url}
-					onOpenShareSettings={() => setShareOpen(true)}
 				/>
 			) : null}
 		</>

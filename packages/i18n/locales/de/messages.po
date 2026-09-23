@@ -13478,9 +13478,6 @@ msgstr "Teile Entwürfe und Berichte. Lass deinen Agenten das Feedback bearbeite
 msgid "Share page"
 msgstr "Seite teilen"
 
-msgid "Share settings"
-msgstr "Freigabeeinstellungen"
-
 msgid "Share this page"
 msgstr "Diese Seite teilen"
 
@@ -15437,10 +15434,6 @@ msgstr "Diese Seite wird gerade von anderer Stelle veröffentlicht — erneut ve
 
 msgid "This page is in another organization"
 msgstr "Diese Seite gehört zu einer anderen Organisation"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Diese Seite ist live unter <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Diese Seite gibt es hier nicht"

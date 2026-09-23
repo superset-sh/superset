@@ -13478,9 +13478,6 @@ msgstr "Sdílejte návrhy a zprávy. Zpětnou vazbu nechte na svém agentovi."
 msgid "Share page"
 msgstr "Sdílet stránku"
 
-msgid "Share settings"
-msgstr "Nastavení sdílení"
-
 msgid "Share this page"
 msgstr "Sdílet tuto stránku"
 
@@ -15437,10 +15434,6 @@ msgstr "Tato stránka se právě zveřejňuje odjinud — zkuste to znovu"
 
 msgid "This page is in another organization"
 msgstr "Tato stránka patří do jiné organizace"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Tato stránka je živá na <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Tahle stránka tu není"

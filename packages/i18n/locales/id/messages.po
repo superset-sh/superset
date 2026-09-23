@@ -13478,9 +13478,6 @@ msgstr "Bagikan desain dan laporan. Biarkan agen Anda menangani masukan."
 msgid "Share page"
 msgstr "Bagikan halaman"
 
-msgid "Share settings"
-msgstr "Pengaturan berbagi"
-
 msgid "Share this page"
 msgstr "Bagikan halaman ini"
 
@@ -15437,10 +15434,6 @@ msgstr "Halaman ini sedang dipublikasikan dari tempat lain — coba lagi"
 
 msgid "This page is in another organization"
 msgstr "Halaman ini ada di organisasi lain"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Halaman ini aktif di <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Halaman ini tidak ada di sini"

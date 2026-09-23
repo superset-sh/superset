@@ -13478,9 +13478,6 @@ msgstr "Deel ontwerpen en rapporten. Laat je agent de feedback verwerken."
 msgid "Share page"
 msgstr "Pagina delen"
 
-msgid "Share settings"
-msgstr "Deelinstellingen"
-
 msgid "Share this page"
 msgstr "Deze pagina delen"
 
@@ -15437,10 +15434,6 @@ msgstr "Deze pagina wordt ergens anders gepubliceerd — probeer opnieuw"
 
 msgid "This page is in another organization"
 msgstr "Deze pagina hoort bij een andere organisatie"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Deze pagina staat live op <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Deze pagina staat hier niet"

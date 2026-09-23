@@ -13478,9 +13478,6 @@ msgstr "디자인과 보고서를 공유하세요. 피드백 처리는 에이전
 msgid "Share page"
 msgstr "페이지 공유"
 
-msgid "Share settings"
-msgstr "공유 설정"
-
 msgid "Share this page"
 msgstr "이 페이지 공유"
 
@@ -15437,10 +15434,6 @@ msgstr "다른 곳에서 이 페이지를 게시하는 중입니다 — 다시 �
 
 msgid "This page is in another organization"
 msgstr "이 페이지는 다른 조직에 있습니다"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "이 페이지는 <0>{0}</0>에서 공개 중입니다"
 
 msgid "This page isn't here"
 msgstr "이 페이지는 여기에 없습니다"

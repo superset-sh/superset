@@ -13478,9 +13478,6 @@ msgstr "Chia sẻ thiết kế và báo cáo. Hãy để agent của bạn xử 
 msgid "Share page"
 msgstr "Chia sẻ trang"
 
-msgid "Share settings"
-msgstr "Cài đặt chia sẻ"
-
 msgid "Share this page"
 msgstr "Chia sẻ trang này"
 
@@ -15437,10 +15434,6 @@ msgstr "Trang này đang được xuất bản từ nơi khác — hãy thử l�
 
 msgid "This page is in another organization"
 msgstr "Trang này thuộc một tổ chức khác"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Trang này đang hoạt động tại <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Trang này không có ở đây"

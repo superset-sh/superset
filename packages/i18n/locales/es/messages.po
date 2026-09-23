@@ -13478,9 +13478,6 @@ msgstr "Comparte diseños e informes. Deja que tu agente se encargue de los come
 msgid "Share page"
 msgstr "Compartir la página"
 
-msgid "Share settings"
-msgstr "Ajustes de uso compartido"
-
 msgid "Share this page"
 msgstr "Compartir esta página"
 
@@ -15437,10 +15434,6 @@ msgstr "Esta página se está publicando desde otro sitio — reinténtalo"
 
 msgid "This page is in another organization"
 msgstr "Esta página está en otra organización"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Esta página está publicada en <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Esta página no está aquí"

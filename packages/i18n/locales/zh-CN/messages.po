@@ -13478,9 +13478,6 @@ msgstr "分享设计和报告，让你的智能体处理反馈。"
 msgid "Share page"
 msgstr "分享页面"
 
-msgid "Share settings"
-msgstr "共享设置"
-
 msgid "Share this page"
 msgstr "分享此页面"
 
@@ -15437,10 +15434,6 @@ msgstr "此页面正在别处发布，请重试"
 
 msgid "This page is in another organization"
 msgstr "这个页面属于另一个组织"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "此页面已发布在 <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "找不到这个页面"
