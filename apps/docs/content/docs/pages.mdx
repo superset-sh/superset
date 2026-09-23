@@ -43,11 +43,33 @@ To publish from the CLI, keep the source inside your workspace and run:
 superset pages publish design.html --title "Onboarding design" --label "First draft"
 ```
 
-The command returns a shareable URL. New pages are visible to your organization by default. For a private draft, add `--visibility just_me` when you first publish.
+The command returns a shareable URL. On the first publish from a workspace, it also attempts to open the page according to **Settings → Links → Pages**. Republishing does not reopen it. Automatic opening is skipped over SSH, in cloud sandboxes, and when publishing without a workspace.
+
+## Find Workspace Pages
+
+Open the Pages menu beside **Run**, above **Files / Changes / Review**. It lists pages published from the workspace, your pinned pages, and **All pages**. Choose **New page**, enter a request, and pick an agent to create it. A blue **New** indicator marks a fresh publish until you close the menu.
+
+The main Pages list shows linked workspace names so you can see where a page came from.
+
+Web links inside a workspace Page follow **Settings → Links** and open outside the Page pane. If no plain-click action is set, a plain click opens a browser pane. Links in standalone Pages in the desktop app open in the system browser.
+
+## Share a Page
+
+Use **Share** to choose who can open the page:
+
+- **Only you**: a private draft.
+- **Anyone in your organization**: members of your organization. This is the default for new pages.
+- **Anyone with the link**: anyone can read it without signing in. Public access does not grant comment or edit permissions, or access to the rest of the version history.
+
+**Shared version** controls whether the link follows the latest publish or stays on a specific version. Anonymous readers can access only that shared version.
+
+For a new page, the CLI accepts `--visibility just_me`, `--visibility org`, or `--visibility everyone`. Republishing preserves visibility unless you explicitly change it. Shared links include the page thumbnail in link previews.
 
 ## Send Feedback Directly to an Agent
 
 Open the page, enter comment mode, and click an element to pin feedback to it. The agent receives the comment along with context identifying the element, so teammates can point to exactly what they want changed.
+
+On iPhone, the comments sheet keeps replies inline. Tap **Reply** to target a thread, or clear the reply target to leave a page-level comment. Resolved threads appear under the resolved-comments disclosure.
 
 Publishing from an agent's Superset terminal automatically sets that session to watch the page for new comments. In the workspace page pane, use the agent menu in the page header to see which agent is watching, select another running agent, or choose **Stop watching**.
 
@@ -73,7 +95,7 @@ superset pages publish design.html --page <page-id> --label "Updated onboarding 
 
 Publishing from outside a workspace works too, but there's no path for a later publish to resolve against: every run creates a separate page unless you pass `--page`. The publish tells you when that happened and prints the command to reuse.
 
-Republishing preserves the page's visibility. You can also inspect version history or retrieve a published version:
+Use the page title menu to preview earlier versions read-only, rename the page, or refresh it. You can also inspect version history or retrieve a published version:
 
 ```bash
 superset pages versions <page-id-or-slug>

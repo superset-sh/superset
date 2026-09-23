@@ -5,7 +5,7 @@ description: Isolated environments for each git branch
 
 ## Core Concept
 
-Each workspace = one git branch. Workspaces are isolated git worktrees with their own directory, terminal, and ports. The exception: [sessions](#sessions), which get a managed scratch folder instead of a branch.
+Each workspace = one git branch. Local project workspaces are isolated git worktrees with their own directory, terminal, and ports. Cloud workspaces use a separate clone. The exception: [sessions](#sessions), which get a managed scratch folder instead of a branch.
 
 <YouTubeVideo id="8PuptrsyNvM" title="Superset Workspaces" thumbnail="/images/branches.png" />
 
@@ -27,6 +27,12 @@ Each workspace gets:
 - Own terminal sessions
 - Workspace-scoped port detection and controls
 
+New local worktrees use `<worktrees path>/<project name>/<branch>` directories. Existing worktrees keep their paths.
+
+### Cloud Workspaces
+
+When cloud workspaces are available to your account, the selected branch is the base for a new `superset/<name>-<id>` working branch. Multi-repository workspaces create the same working branch name in each repository, from that repository's base. You can attach images to the initial prompt; the agent receives them when the workspace starts.
+
 ## Import Worktrees
 
 If you have existing git worktrees on disk, use the **Import** tab in the New Workspace modal to bring them into Superset. Click **Import all** to bulk-import all discovered worktrees at once.
@@ -46,6 +52,8 @@ either `--project <id>` or `--session`; omitting both is an error:
 superset workspaces create --session --local --agent claude --prompt "…"
 ```
 
+On iPhone, choose **No project** in the composer's project picker, or tap **+** beside **No project** on Home. Sending your prompt creates a session on the selected online host.
+
 Automations can run in session mode too; see [Automations](/automations).
 
 ## Pin Workspaces
@@ -55,6 +63,9 @@ Keep active workspaces at the top of the sidebar:
 - Right-click a workspace and choose **Pin to Sidebar** (or **Unpin**)
 - Drag into the **Pinned** section to pin, drag within it to reorder, drag out to unpin
 - Sessions work the same way
+- Pinned project workspaces show a project-name prefix, such as `project/workspace`
+
+If sorting or filtering prevents a sidebar drag, the notice offers an action to restore manual ordering or clear filters.
 
 ## List and Board Views
 

@@ -6,10 +6,10 @@ description: Frequently asked questions
 ## Platforms
 
 **What platforms are supported?**
-macOS (Apple Silicon and Intel) is the supported target. A Linux x64 AppImage ships with each release but is experimental and untested. Windows is planned with no date. The CLI additionally supports Linux x64 and arm64.
+macOS (Apple Silicon and Intel) is the supported target. A Linux x64 AppImage ships with each release but is experimental and untested. Windows is planned with no date. The CLI also supports Linux x64 and arm64.
 
 **Is there a mobile app or web dashboard?**
-A mobile app is in progress, no date yet. There's no supported web dashboard today.
+[Superset for iPhone](https://apps.apple.com/app/id6788926383) is available for iOS 26 or later with Superset Pro and a computer with Remote Access enabled. See [setup](/remote-access#connect-from-an-iphone). Android is not available yet. There's no supported web dashboard today.
 
 **Does it work with GitLab or self-hosted remotes?**
 GitHub is fully supported via the `gh` CLI. Repos with other remotes work locally, but cross-machine project identity is currently tied to GitHub, so the same project can show up twice across devices.
@@ -68,7 +68,7 @@ Yes. Terminals are backed by a background daemon, so running processes and scrol
 ## Remote and Automations
 
 **Why does my host show offline when the machine is up?**
-"Online" means connected to the Superset relay, not "the process is running." Remote access via relay is **off by default**; enable it under **Settings → Security** (or run `superset start --daemon` on CLI hosts). See [Remote Access](/remote-access). The local CLI works regardless of relay state.
+"Online" means connected to the Superset relay, not "the process is running." Remote access via relay is **off by default**; enable it under **Settings → Remote Access** (or run `superset start --daemon` on CLI hosts). See [Remote Access](/remote-access). The local CLI works regardless of relay state.
 
 **Can I open a remote host's ports on my Mac?**
 Not yet; the ports panel shows ports on the host machine. Workaround: `ssh -L 3000:localhost:3000 user@host` or a tailnet.

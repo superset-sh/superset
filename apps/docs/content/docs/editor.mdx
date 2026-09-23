@@ -30,6 +30,20 @@ Ways in:
 
 For longer editing sessions, **⌘O** opens the workspace in your IDE ([IDE Integration](/use-with-ide)).
 
+## Save and Review External Changes
+
+Use **Save** or **⌘S** to write your edits. If an agent or script changes the file while you have unsaved edits, the editor keeps your buffer and shows an external-change banner. Click **Compare** to review the disk and local versions side by side. Saving a conflicted file opens the same review.
+
+- **Keep editing** preserves your unsaved edits without writing to disk.
+- **Reload from disk** replaces your buffer with the disk version. It is unavailable if the file cannot be read.
+- **Overwrite file** replaces the disk version with your edits.
+
+The editor does not autosave or merge simultaneous edits.
+
+## Markdown Links
+
+Web links in Markdown previews follow **Settings → Links**. By default, Shift-click opens a new tab, Cmd/Ctrl-click opens a split browser pane, and Cmd/Ctrl+Shift-click opens the system browser. A plain click keeps you editing.
+
 ## Cross-Workspace Search
 
 The search bar can search across all open workspaces, not just the active one, useful when you're running parallel workstreams and can't remember which branch has the thing.

@@ -13,6 +13,12 @@ Almost always a context mix-up, not data loss. Check, in order:
 
 Your worktrees are still on disk at `~/.superset/worktrees/` either way; Superset only deletes them when you delete a workspace.
 
+If you created your account after using v1, update Superset and relaunch it. Current versions import pre-account workspaces that older v2 releases could miss.
+
+## App Starts Without a Window
+
+If the startup error names a corrupt `tanstack-db.sqlite`, the app can fail before its automatic updater starts. The fix removes this unused database from startup. Install a release containing the fix manually from [superset.sh/download](https://superset.sh/download); if no newer release is available, [contact support](/community) with the startup error.
+
 ## Update Button Does Nothing
 
 If the app quits and reopens on the same version, the updater hit a known race (fixed in recent releases). Download a fresh copy from [superset.sh/download](https://superset.sh/download) once; updates work normally after that.
@@ -62,7 +68,7 @@ Superset detects installed agents automatically, but each agent can be enabled o
 
 The host machine must be online and registered with the relay.
 
-**Fix:** on the host, confirm the toggle in **Settings → Security** is on (desktop) or that `superset start --daemon` is running (CLI). See [Remote Access](/remote-access).
+**Fix:** on the host, confirm the toggle in **Settings → Remote Access** is on (desktop) or that `superset start --daemon` is running (CLI). See [Remote Access](/remote-access).
 
 ## Automation Run Failed While the Device Was Offline
 
