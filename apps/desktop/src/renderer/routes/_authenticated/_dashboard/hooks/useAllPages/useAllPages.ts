@@ -1,16 +1,9 @@
 import { useEffect, useMemo } from "react";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-
-const PAGES_PER_BATCH = 200;
-
-export interface PagesListFilter {
-	workspaceId?: string;
-	search?: string;
-}
-
-export function pagesListInput(filter: PagesListFilter = {}) {
-	return { limit: PAGES_PER_BATCH, ...filter };
-}
+import {
+	type PagesListFilter,
+	pagesListInput,
+} from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
 
 export function useAllPages(
 	filter: PagesListFilter = {},

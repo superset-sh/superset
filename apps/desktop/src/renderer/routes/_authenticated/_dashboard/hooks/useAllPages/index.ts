@@ -1,5 +1,1 @@
-export {
-	type PagesListFilter,
-	pagesListInput,
-	useAllPages,
-} from "./useAllPages";
+export { useAllPages } from "./useAllPages";

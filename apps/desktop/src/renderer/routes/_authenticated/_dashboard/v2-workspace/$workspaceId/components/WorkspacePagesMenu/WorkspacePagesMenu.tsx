@@ -7,15 +7,13 @@ import { ArrowLeft, FileText, LayoutGrid, Plus } from "lucide-react";
 import { type MouseEvent, useCallback, useMemo, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import {
-	pagesListInput,
-	useAllPages,
-} from "renderer/routes/_authenticated/_dashboard/hooks/useAllPages";
+import { useAllPages } from "renderer/routes/_authenticated/_dashboard/hooks/useAllPages";
 import {
 	isPaneModifier,
 	useOpenPage,
 } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
 import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
+import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
 import type { CreateNewAgentSession } from "../../hooks/useAgentSessionLauncher";
 import { NewPageComposer } from "./components/NewPageComposer";
 import { PagesMenuRow } from "./components/PagesMenuRow";

@@ -8,15 +8,13 @@ import { LuSearch } from "react-icons/lu";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { FeatureHeader } from "renderer/routes/_authenticated/_dashboard/components/FeatureHeader";
-import {
-	pagesListInput,
-	useAllPages,
-} from "renderer/routes/_authenticated/_dashboard/hooks/useAllPages";
+import { useAllPages } from "renderer/routes/_authenticated/_dashboard/hooks/useAllPages";
 import {
 	isPaneModifier,
 	useOpenPage,
 } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
 import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
+import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
 import { useAccessibleV2Workspaces } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
 	filterPages,
