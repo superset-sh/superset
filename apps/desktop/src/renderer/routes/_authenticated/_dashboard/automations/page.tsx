@@ -1,4 +1,3 @@
-import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
@@ -35,12 +34,12 @@ import {
 	TableRow,
 } from "@superset/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
+	LuArrowUpRight,
 	LuRotateCw,
 	LuSearch,
 	LuSearchX,
@@ -89,20 +88,10 @@ type AutomationSortField = "name" | "owner" | "schedule" | "status";
 // superset:automate; mentioning it by name loads it (it isn't in the chat
 // slash-command allowlist).
 const AUTOMATION_AGENT_PROMPT =
-	"Help me create a Superset automation. Use the superset:automate skill if it's available, otherwise the `superset` CLI (start with `superset automations --help`). Ask me what should run on a schedule, confirm the cadence, target project, and agent, then create the automation and trigger a first run so we can review the result together.";
+	"Help me create a Superset automation. Use the superset:automate skill if it's available, otherwise the `superset` CLI (start with `superset automations --help`). Ask me what the automation should do and what should fire it — a schedule, or an event like a Slack message, GitHub pull request, or Linear issue. Confirm that, the target project, and the agent, then create the automation and trigger a first run so we can review the result together.";
 
 const DEFAULT_TIMEZONE =
 	Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-
-function settledErrorMessage(result: PromiseSettledResult<unknown>) {
-	return result.status === "rejected" && result.reason instanceof Error
-		? result.reason.message
-		: null;
-}
-
-function settledErrorCode(result: PromiseSettledResult<unknown>) {
-	return result.status === "rejected" ? dispatchErrorCode(result.reason) : null;
-}
 
 function AutomationsPage() {
 	const { t } = useLingui();
@@ -167,64 +156,6 @@ function AutomationsPage() {
 					t({
 						message: "Failed to trigger run",
 					}),
-			);
-		},
-	});
-
-	const retryAllMutation = useMutation({
-		mutationFn: async (targets: AutomationListItem[]) => {
-			const results = await Promise.allSettled(
-				targets.map((a) =>
-					apiTrpcClient.automation.runNow.mutate({ id: a.id }),
-				),
-			);
-			return targets.map((automation, i) => ({
-				automation,
-				result: results[i],
-			}));
-		},
-		onMutate: (targets) => addRetrying(targets.map((a) => a.id)),
-		onSettled: (_data, _error, targets) =>
-			removeRetrying(targets.map((a) => a.id)),
-		onSuccess: (outcomes) => {
-			const failed = outcomes.filter((o) => o.result.status === "rejected");
-			const retried = outcomes.length - failed.length;
-			if (retried > 0) {
-				toast.success(
-					t({
-						message: plural(retried, {
-							one: "Retrying # automation",
-							other: "Retrying # automations",
-						}),
-					}),
-				);
-			}
-			if (failed.length === 0) return;
-			const offline = failed.find(
-				(o) => settledErrorCode(o.result) === "host_offline",
-			);
-			if (offline) {
-				setHostOfflineRun({ hostId: offline.automation.targetHostId });
-			}
-			// The host-offline dialog explains those failures; only toast the rest.
-			const other = failed.filter(
-				(o) => settledErrorCode(o.result) !== "host_offline",
-			);
-			if (other.length === 0) return;
-			const help = runErrorHelp(settledErrorCode(other[0].result));
-			const single =
-				(help ? i18n._(help) : settledErrorMessage(other[0].result)) ??
-				t({
-					message: "Failed to retry automation",
-				});
-			const failedCount = other.length;
-			const totalCount = outcomes.length;
-			toast.error(
-				other.length === 1
-					? single
-					: t({
-							message: `Failed to retry ${failedCount} of ${totalCount} automations`,
-						}),
 			);
 		},
 	});
@@ -301,14 +232,8 @@ function AutomationsPage() {
 		undefined,
 		{},
 	);
-	const { lastRunById, failedIds, markMyFailuresSeen } = useFailedAutomations();
+	const { lastRunById } = useFailedAutomations();
 	const now = useNow(30_000);
-
-	// Opening the page clears the sidebar failure badge; failures that sync in
-	// while it stays open are marked seen too, until a newer run fails.
-	useEffect(() => {
-		markMyFailuresSeen();
-	}, [markMyFailuresSeen]);
 
 	const recentProjects = useRecentProjects();
 
@@ -331,17 +256,6 @@ function AutomationsPage() {
 	);
 	const teamCount = automations.length - mineCount;
 
-	// Only owned automations can be retried; runNow is owner-gated server-side.
-	const failedMine = useMemo(
-		() =>
-			currentUserId
-				? automations.filter(
-						(a) => a.ownerUserId === currentUserId && failedIds.has(a.id),
-					)
-				: [],
-		[automations, currentUserId, failedIds],
-	);
-
 	const tabVisible = useMemo(() => {
 		if (!currentUserId) return automations;
 		return scope === "mine"
@@ -349,22 +263,11 @@ function AutomationsPage() {
 			: automations.filter((a) => a.ownerUserId !== currentUserId);
 	}, [automations, scope, currentUserId]);
 
-	// Clicking the "Failed" stat card narrows the table to failing automations.
-	const [failedOnly, setFailedOnly] = useState(false);
-	const failedInTab = useMemo(
-		() => tabVisible.filter((a) => failedIds.has(a.id)),
-		[tabVisible, failedIds],
-	);
-	// The filter clears itself once nothing is failing anymore.
-	useEffect(() => {
-		if (failedOnly && failedInTab.length === 0) setFailedOnly(false);
-	}, [failedOnly, failedInTab.length]);
 	const visible = useMemo(() => {
-		const base = failedOnly ? failedInTab : tabVisible;
 		const query = search.trim().toLowerCase();
-		if (!query) return base;
-		return base.filter((a) => a.name.toLowerCase().includes(query));
-	}, [failedOnly, failedInTab, tabVisible, search]);
+		if (!query) return tabVisible;
+		return tabVisible.filter((a) => a.name.toLowerCase().includes(query));
+	}, [tabVisible, search]);
 
 	// Counts the latest run per automation, the only run history the cloud
 	// serves for a whole org in one read.
@@ -434,29 +337,6 @@ function AutomationsPage() {
 			return sortDirection === "asc" ? cmp : -cmp;
 		});
 	}, [visible, sortField, sortDirection, usersById]);
-
-	// Default (unsorted) view groups rows Codex-style: failing automations
-	// pinned on top, then soonest run first, paused in their own section.
-	const needsAttention = useMemo(
-		() => visible.filter((a) => failedIds.has(a.id)),
-		[visible, failedIds],
-	);
-	const upNext = useMemo(
-		() =>
-			visible
-				.filter((a) => a.enabled && !failedIds.has(a.id))
-				.slice()
-				.sort((a, b) => {
-					const at = a.nextRunAt ? new Date(a.nextRunAt).getTime() : Infinity;
-					const bt = b.nextRunAt ? new Date(b.nextRunAt).getTime() : Infinity;
-					return at - bt;
-				}),
-		[visible, failedIds],
-	);
-	const pausedVisible = useMemo(
-		() => visible.filter((a) => !a.enabled && !failedIds.has(a.id)),
-		[visible, failedIds],
-	);
 
 	const navigate = useNavigate();
 	const { machineId, activeHostUrl } = useLocalHostService();
@@ -598,20 +478,6 @@ function AutomationsPage() {
 		/>
 	);
 
-	const sectionRow = (label: string, alert = false) => (
-		<TableRow className="border-border/50 hover:bg-transparent">
-			<TableCell
-				colSpan={columnCount}
-				className={cn(
-					"h-8 bg-accent/20 pl-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70",
-					alert && "text-red-600/80 dark:text-red-400/80",
-				)}
-			>
-				{label}
-			</TableCell>
-		</TableRow>
-	);
-
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
 			{/* Window-drag leaf standing in for the hidden TopBar. */}
@@ -625,11 +491,9 @@ function AutomationsPage() {
 						onCreate={handleCreateWithAgent}
 						isCreating={creatingWithAgent}
 						showCreate={!orgEmpty}
-						createMenuLabel={<Trans>New automation</Trans>}
 						createDescription={<Trans>Describe the work to your agent</Trans>}
-						secondaryAction={{
-							label: <Trans>Create manually</Trans>,
-							description: <Trans>Configure the automation yourself</Trans>,
+						primaryAction={{
+							label: <Trans>New automation</Trans>,
 							onSelect: handleCreateManually,
 							disabled: createMutation.isPending,
 						}}
@@ -650,9 +514,12 @@ function AutomationsPage() {
 									active={runStats.active}
 									created7d={runStats.created7d}
 									failed7d={runStats.failed7d}
-									failedFilter={failedOnly}
-									canFilterFailed={failedInTab.length > 0}
-									onToggleFailedFilter={() => setFailedOnly((v) => !v)}
+									onShowFailed={() =>
+										navigate({
+											to: "/automations/runs",
+											search: { status: "failed" },
+										})
+									}
 								/>
 							)}
 						</div>
@@ -688,42 +555,18 @@ function AutomationsPage() {
 							</Tabs>
 							{!tabEmpty && (
 								<div className="flex items-center gap-2">
-									{scope === "mine" && failedMine.length > 0 && (
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<Button
-													type="button"
-													variant="outline"
-													size="sm"
-													className="h-8 gap-1.5 px-3"
-													disabled={retryAllMutation.isPending}
-													onClick={() =>
-														gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
-															retryAllMutation.mutate(failedMine),
-														)
-													}
-												>
-													<LuRotateCw
-														className={cn(
-															"size-4",
-															retryAllMutation.isPending && "animate-spin",
-														)}
-													/>
-													<span>
-														<Trans>Retry all</Trans>
-													</span>
-													<span className="tabular-nums text-xs text-muted-foreground">
-														{failedMine.length}
-													</span>
-												</Button>
-											</TooltipTrigger>
-											<TooltipContent>
-												<Trans>
-													Retry every automation whose last run failed
-												</Trans>
-											</TooltipContent>
-										</Tooltip>
-									)}
+									<Button
+										type="button"
+										variant="ghost"
+										size="sm"
+										className="h-8 gap-1.5 px-3 text-muted-foreground hover:text-foreground"
+										onClick={() => navigate({ to: "/automations/runs" })}
+									>
+										<span>
+											<Trans>All runs</Trans>
+										</span>
+										<LuArrowUpRight className="size-3.5" />
+									</Button>
 									<div className="relative">
 										<LuSearch className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
 										<Input
@@ -899,33 +742,8 @@ function AutomationsPage() {
 													<Trans>No automations match</Trans>
 												</TableCell>
 											</TableRow>
-										) : sortField ? (
-											sortedVisible.map(renderAutomationRow)
 										) : (
-											<>
-												{needsAttention.length > 0 &&
-													sectionRow(
-														t({
-															message: "Needs attention",
-														}),
-														true,
-													)}
-												{needsAttention.map(renderAutomationRow)}
-												{upNext.length > 0 &&
-													sectionRow(
-														t({
-															message: "Up next",
-														}),
-													)}
-												{upNext.map(renderAutomationRow)}
-												{pausedVisible.length > 0 &&
-													sectionRow(
-														t({
-															message: "Paused",
-														}),
-													)}
-												{pausedVisible.map(renderAutomationRow)}
-											</>
+											sortedVisible.map(renderAutomationRow)
 										)}
 									</TableBody>
 								</Table>

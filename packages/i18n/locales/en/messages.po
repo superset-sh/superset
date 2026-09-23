@@ -671,6 +671,9 @@ msgstr "{duration, plural, one {Thought for # second} other {Thought for # secon
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "{entryPath} in this workspace is already published as a page in another organization. Move the file, or publish with that page's id."
 
+msgid "{failed, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{failed, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+
 msgid "{failed, plural, one {# failed} other {# failed}}"
 msgstr "{failed, plural, one {# failed} other {# failed}}"
 
@@ -867,9 +870,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{received} of {total}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · everybody to {operatorTier}"
 
@@ -898,6 +898,9 @@ msgstr "{starCount} stars and counting"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {Started # automation} other {Started # automations}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
@@ -1820,6 +1823,9 @@ msgstr "All repositories"
 msgid "All reviews"
 msgstr "All reviews"
 
+msgid "All runs"
+msgstr "All runs"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "All sessions killed and daemon restarted. The app will use a fresh daemon."
 
@@ -2358,6 +2364,9 @@ msgstr "Automate workspace setup for {projectName}"
 msgid "Automation"
 msgstr "Automation"
 
+msgid "Automation docs"
+msgstr "Automation docs"
+
 msgid "Automation has no instructions"
 msgstr "Automation has no instructions"
 
@@ -2436,6 +2445,9 @@ msgstr "Back"
 
 msgid "Back to About"
 msgstr "Back to About"
+
+msgid "Back to automations"
+msgstr "Back to automations"
 
 msgid "Back to billing"
 msgstr "Back to billing"
@@ -3738,9 +3750,6 @@ msgstr "Configure how tasks sync between Superset and Linear."
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "Configure terminal behavior and reusable terminal scripts"
 
-msgid "Configure the automation yourself"
-msgstr "Configure the automation yourself"
-
 msgid "Configure the in-app browser"
 msgstr "Configure the in-app browser"
 
@@ -4460,6 +4469,12 @@ msgstr "Couldn't load pull requests: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "Couldn't load review comments"
+
+msgid "Couldn't load runs"
+msgstr "Couldn't load runs"
+
+msgid "Couldn't load this run's payload."
+msgstr "Couldn't load this run's payload."
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Couldn't load your profile, so editing is disabled."
@@ -5892,6 +5907,9 @@ msgstr "Every minute"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 
+msgid "Every run so far reached a host."
+msgstr "Every run so far reached a host."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Every star on <0>{repoSlug}</0>, plotted since launch."
 
@@ -6392,12 +6410,6 @@ msgstr "Failed to restore defaults"
 msgid "Failed to resume {0}"
 msgstr "Failed to resume {0}"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "Failed to retry {failedCount} of {totalCount} automations"
-
-msgid "Failed to retry automation"
-msgstr "Failed to retry automation"
-
 msgid "Failed to reveal in Finder"
 msgstr "Failed to reveal in Finder"
 
@@ -6471,6 +6483,9 @@ msgstr "Failed to start agent"
 
 msgid "Failed to start agent session."
 msgstr "Failed to start agent session."
+
+msgid "Failed to start the selected automations"
+msgstr "Failed to start the selected automations"
 
 msgid "Failed to stop workspace run command"
 msgstr "Failed to stop workspace run command"
@@ -6654,9 +6669,6 @@ msgstr "Filter projects…"
 
 msgid "Filter workspaces…"
 msgstr "Filter workspaces…"
-
-msgid "filtering"
-msgstr "filtering"
 
 msgid "Filters"
 msgstr "Filters"
@@ -7349,6 +7361,9 @@ msgstr "Host not found in this organization"
 
 msgid "Host not found in this organization."
 msgstr "Host not found in this organization."
+
+msgid "host offline"
+msgstr "host offline"
 
 msgid "Host service"
 msgstr "Host service"
@@ -9029,6 +9044,9 @@ msgstr "More {kindLower} themes"
 msgid "More actions"
 msgstr "More actions"
 
+msgid "More create options"
+msgstr "More create options"
+
 msgid "More pages"
 msgstr "More pages"
 
@@ -9136,6 +9154,9 @@ msgstr "Need app-level wiring (form state, chart data, app shell)"
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
+
+msgid "Needs a retry"
+msgstr "Needs a retry"
 
 msgid "Needs Action"
 msgstr "Needs Action"
@@ -9667,6 +9688,9 @@ msgstr "No pages match this filter"
 msgid "No pages yet"
 msgstr "No pages yet"
 
+msgid "No payload is stored for this run."
+msgstr "No payload is stored for this run."
+
 msgid "No payment method on file"
 msgstr "No payment method on file"
 
@@ -10028,6 +10052,9 @@ msgstr "Nothing is watching this page"
 
 msgid "Nothing lives at {pathname}."
 msgstr "Nothing lives at {pathname}."
+
+msgid "Nothing needs a retry"
+msgstr "Nothing needs a retry"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
@@ -10644,6 +10671,9 @@ msgstr "Open the run's workspace"
 
 msgid "open the task in a workspace"
 msgstr "open the task in a workspace"
+
+msgid "Open this run's workspace"
+msgstr "Open this run's workspace"
 
 msgid "Open workspace"
 msgstr "Open workspace"
@@ -12479,14 +12509,8 @@ msgstr "Retry"
 msgid "Retry after the connection refreshes."
 msgstr "Retry after the connection refreshes."
 
-msgid "Retry all"
-msgstr "Retry all"
-
 msgid "Retry dictation"
 msgstr "Retry dictation"
-
-msgid "Retry every automation whose last run failed"
-msgstr "Retry every automation whose last run failed"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "Retry in a few seconds; if it persists, restart Superset."
@@ -12566,6 +12590,9 @@ msgstr "Review required"
 
 msgid "Review the result."
 msgstr "Review the result."
+
+msgid "Review these runs in All runs"
+msgstr "Review these runs in All runs"
 
 msgid "Review thread…"
 msgstr "Review thread…"
@@ -12661,6 +12688,9 @@ msgstr "Run 10+ parallel coding agents on your machine"
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Run 10+ parallel coding agents on your machine."
 
+msgid "Run again"
+msgstr "Run again"
+
 msgid "Run automations on data source and comment activity."
 msgstr "Run automations on data source and comment activity."
 
@@ -12754,8 +12784,8 @@ msgstr "Running terminal processes continue, but older output may no longer be a
 msgid "Runs a local command on your machine"
 msgstr "Runs a local command on your machine"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "Runs failed earlier this week, but nothing is failing right now"
+msgid "Runs appear here once an automation fires."
+msgstr "Runs appear here once an automation fires."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "Runs inside the Superset app on that device, so updating it means updating the app there."
@@ -13198,6 +13228,9 @@ msgstr "Select Directory"
 msgid "Select environment"
 msgstr "Select environment"
 
+msgid "Select every run"
+msgstr "Select every run"
+
 msgid "Select IDE"
 msgstr "Select IDE"
 
@@ -13245,6 +13278,9 @@ msgstr "Select repositories"
 
 msgid "Select repository"
 msgstr "Select repository"
+
+msgid "Select run"
+msgstr "Select run"
 
 msgid "Select senders"
 msgstr "Select senders"
@@ -13541,9 +13577,6 @@ msgstr "Show a Usage button in the home sidebar, under Pull requests"
 msgid "Show all {count}"
 msgstr "Show all {count}"
 
-msgid "Show all automations again"
-msgstr "Show all automations again"
-
 msgid "Show all comments"
 msgstr "Show all comments"
 
@@ -13616,9 +13649,6 @@ msgstr "Show more"
 msgid "Show on Sidebar"
 msgstr "Show on Sidebar"
 
-msgid "Show only automations whose last run failed"
-msgstr "Show only automations whose last run failed"
-
 msgid "Show open items"
 msgstr "Show open items"
 
@@ -13654,6 +13684,9 @@ msgstr "Show sessions"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Show status and send notifications for this agent."
+
+msgid "Show the triggering payload"
+msgstr "Show the triggering payload"
 
 msgid "Show translation"
 msgstr "Show translation"
@@ -15081,12 +15114,6 @@ msgstr "The human reads every line before it merges."
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 
-msgid "The last run failed. Click the row to see why."
-msgstr "The last run failed. Click the row to see why."
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "The last run failed. Open its workspace to see why"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "The latest updates, improvements, and new features in Superset."
 
@@ -15805,6 +15832,9 @@ msgstr "Triage new issues"
 
 msgid "triaging 12 new issues…"
 msgstr "triaging 12 new issues…"
+
+msgid "Trigger"
+msgstr "Trigger"
 
 msgid "Trigger alert()"
 msgstr "Trigger alert()"

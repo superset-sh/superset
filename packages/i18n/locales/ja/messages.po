@@ -671,6 +671,9 @@ msgstr "{duration, plural, one {#秒間思考しました} other {#秒間思考�
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "このワークスペースの {entryPath} は、別の組織のページとしてすでに公開されています。ファイルを移動するか、そのページの ID を指定して公開してください。"
 
+msgid "{failed, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{failed, plural, one {#件のオートメーションを開始できませんでした} other {#件のオートメーションを開始できませんでした}}"
+
 msgid "{failed, plural, one {# failed} other {# failed}}"
 msgstr "{failed, plural, one {#件失敗} other {#件失敗}}"
 
@@ -867,9 +870,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{received}/{total}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {#件のオートメーションを再試行中} other {#件のオートメーションを再試行中}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · 全員が{operatorTier}へ"
 
@@ -898,6 +898,9 @@ msgstr "スター{starCount}件、まだ増えています"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars}スター · 今週{perDay}/日 · ピーク{peakPerDay}/日"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {#件のオートメーションを開始しました} other {#件のオートメーションを開始しました}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 件のサブエージェントが実行中}}"
@@ -1820,6 +1823,9 @@ msgstr "すべてのリポジトリ"
 msgid "All reviews"
 msgstr "すべてのレビュー"
 
+msgid "All runs"
+msgstr "すべての実行"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "すべてのセッションを終了し、デーモンを再起動しました。アプリは新しいデーモンを使用します。"
 
@@ -2358,6 +2364,9 @@ msgstr "{projectName}のワークスペースのセットアップを自動化"
 msgid "Automation"
 msgstr "オートメーション"
 
+msgid "Automation docs"
+msgstr "オートメーションのドキュメント"
+
 msgid "Automation has no instructions"
 msgstr "オートメーションに指示がありません"
 
@@ -2436,6 +2445,9 @@ msgstr "戻る"
 
 msgid "Back to About"
 msgstr "会社概要に戻る"
+
+msgid "Back to automations"
+msgstr "オートメーションに戻る"
 
 msgid "Back to billing"
 msgstr "請求に戻る"
@@ -3738,9 +3750,6 @@ msgstr "SupersetとLinearの間でタスクをどう同期するかを設定し�
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "ターミナルの動作と再利用可能なターミナルスクリプトを設定"
 
-msgid "Configure the automation yourself"
-msgstr "自分でオートメーションを設定する"
-
 msgid "Configure the in-app browser"
 msgstr "アプリ内ブラウザを設定"
 
@@ -4460,6 +4469,12 @@ msgstr "プルリクエストを読み込めませんでした: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "レビューコメントを読み込めませんでした"
+
+msgid "Couldn't load runs"
+msgstr "実行履歴を読み込めませんでした"
+
+msgid "Couldn't load this run's payload."
+msgstr "この実行のペイロードを読み込めませんでした。"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "プロフィールを読み込めなかったため、編集は無効です。"
@@ -5892,6 +5907,9 @@ msgstr "毎分"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "すべての目標が次の段に向けて力を発揮しています。直近30日間で計測。"
 
+msgid "Every run so far reached a host."
+msgstr "これまでのすべての実行がホストに到達しました。"
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "<0>{repoSlug}</0>のすべてのスターを、公開時からプロットしています。"
 
@@ -6392,12 +6410,6 @@ msgstr "デフォルトの復元に失敗しました"
 msgid "Failed to resume {0}"
 msgstr "{0}の再開に失敗しました"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "{totalCount}件中{failedCount}件のオートメーションを再試行できませんでした"
-
-msgid "Failed to retry automation"
-msgstr "オートメーションを再試行できませんでした"
-
 msgid "Failed to reveal in Finder"
 msgstr "Finderでの表示に失敗しました"
 
@@ -6471,6 +6483,9 @@ msgstr "エージェントの起動に失敗しました"
 
 msgid "Failed to start agent session."
 msgstr "エージェントセッションの開始に失敗しました。"
+
+msgid "Failed to start the selected automations"
+msgstr "選択したオートメーションを開始できませんでした"
 
 msgid "Failed to stop workspace run command"
 msgstr "ワークスペース実行コマンドの停止に失敗しました"
@@ -6654,9 +6669,6 @@ msgstr "プロジェクトを絞り込み…"
 
 msgid "Filter workspaces…"
 msgstr "ワークスペースを絞り込み…"
-
-msgid "filtering"
-msgstr "フィルター:"
 
 msgid "Filters"
 msgstr "フィルター"
@@ -7349,6 +7361,9 @@ msgstr "この組織にホストが見つかりません"
 
 msgid "Host not found in this organization."
 msgstr "この組織にホストが見つかりません。"
+
+msgid "host offline"
+msgstr "ホストがオフライン"
 
 msgid "Host service"
 msgstr "ホストサービス"
@@ -9029,6 +9044,9 @@ msgstr "他の{kindLower}テーマ"
 msgid "More actions"
 msgstr "その他の操作"
 
+msgid "More create options"
+msgstr "その他の作成オプション"
+
 msgid "More pages"
 msgstr "その他のページ"
 
@@ -9136,6 +9154,9 @@ msgstr "アプリ側の配線が必要です(フォームの状態、チャー�
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "ライブのチャット/ツール呼び出し状態(ToolUIPart、ストリーム)またはアプリシェルが必要です"
+
+msgid "Needs a retry"
+msgstr "再実行が必要"
 
 msgid "Needs Action"
 msgstr "対応が必要"
@@ -9667,6 +9688,9 @@ msgstr "このフィルターに一致するページはありません"
 msgid "No pages yet"
 msgstr "ページはまだありません"
 
+msgid "No payload is stored for this run."
+msgstr "この実行のペイロードは保存されていません。"
+
 msgid "No payment method on file"
 msgstr "登録された支払い方法はありません"
 
@@ -10028,6 +10052,9 @@ msgstr "このページを監視しているものはありません"
 
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}には何もありません。"
+
+msgid "Nothing needs a retry"
+msgstr "再実行が必要なものはありません"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "直近30日に公開された実績はまだありません。このマシンの利用状況が同期されるとランクが表示されます(<0>{handle}</0>として公開)。"
@@ -10644,6 +10671,9 @@ msgstr "実行のワークスペースを開く"
 
 msgid "open the task in a workspace"
 msgstr "タスクをワークスペースで開く"
+
+msgid "Open this run's workspace"
+msgstr "この実行のワークスペースを開く"
 
 msgid "Open workspace"
 msgstr "ワークスペースを開く"
@@ -12479,14 +12509,8 @@ msgstr "再試行"
 msgid "Retry after the connection refreshes."
 msgstr "接続が更新されてから再試行してください。"
 
-msgid "Retry all"
-msgstr "すべて再試行"
-
 msgid "Retry dictation"
 msgstr "音声入力を再試行"
-
-msgid "Retry every automation whose last run failed"
-msgstr "前回の実行が失敗したすべてのオートメーションを再試行"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "数秒後に再試行してください。解消しない場合はSupersetを再起動してください。"
@@ -12566,6 +12590,9 @@ msgstr "レビュー必須"
 
 msgid "Review the result."
 msgstr "結果をレビューする。"
+
+msgid "Review these runs in All runs"
+msgstr "「すべての実行」でこれらの実行を確認"
 
 msgid "Review thread…"
 msgstr "レビュースレッド…"
@@ -12661,6 +12688,9 @@ msgstr "端末上で10以上のコーディングエージェントを並列実�
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "手元のマシンで10以上のコーディングエージェントを並列実行できます。"
 
+msgid "Run again"
+msgstr "再実行"
+
 msgid "Run automations on data source and comment activity."
 msgstr "データソースやコメントの動きに応じてオートメーションを実行します。"
 
@@ -12754,8 +12784,8 @@ msgstr "実行中のターミナルプロセスは継続しますが、アプリ
 msgid "Runs a local command on your machine"
 msgstr "マシン上でローカルコマンドを実行します"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "今週これまでに失敗した実行がありますが、現在失敗しているものはありません"
+msgid "Runs appear here once an automation fires."
+msgstr "オートメーションが起動すると、ここに実行が表示されます。"
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "そのデバイスのSupersetアプリ内で動作しているため、更新するにはそのデバイスのアプリを更新する必要があります。"
@@ -13198,6 +13228,9 @@ msgstr "ディレクトリを選択"
 msgid "Select environment"
 msgstr "環境を選択"
 
+msgid "Select every run"
+msgstr "すべての実行を選択"
+
 msgid "Select IDE"
 msgstr "IDEを選択"
 
@@ -13245,6 +13278,9 @@ msgstr "リポジトリを選択"
 
 msgid "Select repository"
 msgstr "リポジトリを選択"
+
+msgid "Select run"
+msgstr "実行を選択"
 
 msgid "Select senders"
 msgstr "送信者を選択"
@@ -13541,9 +13577,6 @@ msgstr "ホームのサイドバーの「プルリクエスト」の下に「使
 msgid "Show all {count}"
 msgstr "{count}件すべて表示"
 
-msgid "Show all automations again"
-msgstr "すべてのオートメーションを再表示"
-
 msgid "Show all comments"
 msgstr "すべてのコメントを表示"
 
@@ -13616,9 +13649,6 @@ msgstr "もっと見る"
 msgid "Show on Sidebar"
 msgstr "サイドバーに表示"
 
-msgid "Show only automations whose last run failed"
-msgstr "前回の実行が失敗したオートメーションのみ表示"
-
 msgid "Show open items"
 msgstr "オープンな項目を表示"
 
@@ -13654,6 +13684,9 @@ msgstr "セッションを表示"
 
 msgid "Show status and send notifications for this agent."
 msgstr "このエージェントのステータス表示と通知を有効にします。"
+
+msgid "Show the triggering payload"
+msgstr "トリガーのペイロードを表示"
 
 msgid "Show translation"
 msgstr "翻訳を表示"
@@ -15081,12 +15114,6 @@ msgstr "人間がマージ前に全行を読む。"
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "職務の中身が変わります。エンジニアは審美眼のあるタイピストであることをやめ、審美眼のあるディスパッチャーになります。作業を分解し、フリートに割り振り、同じモジュールに触れたエージェント同士の衝突を裁く役です。"
 
-msgid "The last run failed. Click the row to see why."
-msgstr "前回の実行が失敗しました。行をクリックして原因を確認してください。"
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "前回の実行が失敗しました。ワークスペースを開いて原因を確認してください"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Supersetの最新のアップデート、改善、新機能。"
 
@@ -15805,6 +15832,9 @@ msgstr "新規issueをトリアージ"
 
 msgid "triaging 12 new issues…"
 msgstr "新規issue 12件をトリアージ中…"
+
+msgid "Trigger"
+msgstr "トリガー"
 
 msgid "Trigger alert()"
 msgstr "alert()を実行"

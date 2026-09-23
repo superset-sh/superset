@@ -671,6 +671,9 @@ msgstr "{duration, plural, one {Đã suy nghĩ # giây} other {Đã suy nghĩ # 
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "{entryPath} trong workspace này đã được xuất bản thành một trang ở tổ chức khác. Hãy di chuyển tệp hoặc xuất bản kèm id của trang đó."
 
+msgid "{failed, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{failed, plural, one {Không thể khởi chạy # tự động hóa} other {Không thể khởi chạy # tự động hóa}}"
+
 msgid "{failed, plural, one {# failed} other {# failed}}"
 msgstr "{failed, plural, one {# thất bại} other {# thất bại}}"
 
@@ -867,9 +870,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{received} trên {total}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {Đang thử lại # tự động hóa} other {Đang thử lại # tự động hóa}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · tất cả lên {operatorTier}"
 
@@ -898,6 +898,9 @@ msgstr "{starCount} star và còn tăng"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} star · {perDay}/ngày tuần này · {peakPerDay}/ngày lúc cao nhất"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {Đã khởi chạy # tự động hóa} other {Đã khởi chạy # tự động hóa}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# agent con đang chạy}}"
@@ -1820,6 +1823,9 @@ msgstr "Tất cả repository"
 msgid "All reviews"
 msgstr "Tất cả review"
 
+msgid "All runs"
+msgstr "Tất cả lần chạy"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "Đã kết thúc mọi phiên và khởi động lại daemon. Ứng dụng sẽ dùng daemon mới."
 
@@ -2358,6 +2364,9 @@ msgstr "Tự động thiết lập workspace cho {projectName}"
 msgid "Automation"
 msgstr "Tự động hóa"
 
+msgid "Automation docs"
+msgstr "Tài liệu tự động hóa"
+
 msgid "Automation has no instructions"
 msgstr "Tự động hóa không có hướng dẫn"
 
@@ -2436,6 +2445,9 @@ msgstr "Quay lại"
 
 msgid "Back to About"
 msgstr "Quay lại Giới thiệu"
+
+msgid "Back to automations"
+msgstr "Quay lại tự động hóa"
 
 msgid "Back to billing"
 msgstr "Quay lại thanh toán"
@@ -3738,9 +3750,6 @@ msgstr "Cấu hình cách tác vụ đồng bộ giữa Superset và Linear."
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "Cấu hình hành vi terminal và các script terminal dùng lại được"
 
-msgid "Configure the automation yourself"
-msgstr "Tự cấu hình quy trình tự động hóa"
-
 msgid "Configure the in-app browser"
 msgstr "Cấu hình trình duyệt trong ứng dụng"
 
@@ -4460,6 +4469,12 @@ msgstr "Không thể tải pull request: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "Không thể tải bình luận review"
+
+msgid "Couldn't load runs"
+msgstr "Không thể tải các lần chạy"
+
+msgid "Couldn't load this run's payload."
+msgstr "Không thể tải payload của lần chạy này."
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Không tải được hồ sơ của bạn nên chức năng chỉnh sửa đã bị tắt."
@@ -5892,6 +5907,9 @@ msgstr "Mỗi phút"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Mọi mục tiêu đều đang đóng góp cho bậc kế tiếp. Đo trong 30 ngày gần nhất."
 
+msgid "Every run so far reached a host."
+msgstr "Cho đến nay mọi lần chạy đều đã đến được một host."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Mọi star trên <0>{repoSlug}</0>, vẽ từ ngày ra mắt."
 
@@ -6392,12 +6410,6 @@ msgstr "Không thể khôi phục mặc định"
 msgid "Failed to resume {0}"
 msgstr "Không thể resume {0}"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "Không thể thử lại {failedCount} trong {totalCount} tự động hóa"
-
-msgid "Failed to retry automation"
-msgstr "Không thể thử lại tự động hóa"
-
 msgid "Failed to reveal in Finder"
 msgstr "Không thể hiện trong Finder"
 
@@ -6471,6 +6483,9 @@ msgstr "Không thể khởi động agent"
 
 msgid "Failed to start agent session."
 msgstr "Không thể khởi động phiên agent."
+
+msgid "Failed to start the selected automations"
+msgstr "Không thể khởi chạy các tự động hóa đã chọn"
 
 msgid "Failed to stop workspace run command"
 msgstr "Không thể dừng lệnh chạy của workspace"
@@ -6654,9 +6669,6 @@ msgstr "Lọc dự án…"
 
 msgid "Filter workspaces…"
 msgstr "Lọc workspace…"
-
-msgid "filtering"
-msgstr "đang lọc"
 
 msgid "Filters"
 msgstr "Bộ lọc"
@@ -7349,6 +7361,9 @@ msgstr "Không tìm thấy host trong tổ chức này"
 
 msgid "Host not found in this organization."
 msgstr "Không tìm thấy host trong tổ chức này."
+
+msgid "host offline"
+msgstr "host ngoại tuyến"
 
 msgid "Host service"
 msgstr "Dịch vụ máy chủ"
@@ -9029,6 +9044,9 @@ msgstr "Thêm chủ đề {kindLower}"
 msgid "More actions"
 msgstr "Thêm hành động"
 
+msgid "More create options"
+msgstr "Thêm tùy chọn tạo"
+
 msgid "More pages"
 msgstr "Thêm trang"
 
@@ -9136,6 +9154,9 @@ msgstr "Cần đấu nối ở tầng ứng dụng (trạng thái form, dữ li�
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Cần trạng thái chat/tool-call trực tiếp (ToolUIPart, stream) hoặc một app shell"
+
+msgid "Needs a retry"
+msgstr "Cần chạy lại"
 
 msgid "Needs Action"
 msgstr "Cần xử lý"
@@ -9667,6 +9688,9 @@ msgstr "Không có trang nào khớp với bộ lọc này"
 msgid "No pages yet"
 msgstr "Chưa có trang nào"
 
+msgid "No payload is stored for this run."
+msgstr "Không có payload nào được lưu cho lần chạy này."
+
 msgid "No payment method on file"
 msgstr "Chưa có phương thức thanh toán nào được lưu"
 
@@ -10028,6 +10052,9 @@ msgstr "Chưa có gì theo dõi trang này"
 
 msgid "Nothing lives at {pathname}."
 msgstr "Không có gì ở {pathname}."
+
+msgid "Nothing needs a retry"
+msgstr "Không có gì cần chạy lại"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Chưa có gì được công khai trong 30 ngày qua. Thứ hạng của bạn sẽ xuất hiện khi dữ liệu sử dụng từ máy này đồng bộ, công khai dưới tên <0>{handle}</0>."
@@ -10644,6 +10671,9 @@ msgstr "Mở workspace của lần chạy"
 
 msgid "open the task in a workspace"
 msgstr "mở tác vụ trong một workspace"
+
+msgid "Open this run's workspace"
+msgstr "Mở workspace của lần chạy này"
 
 msgid "Open workspace"
 msgstr "Mở workspace"
@@ -12479,14 +12509,8 @@ msgstr "Thử lại"
 msgid "Retry after the connection refreshes."
 msgstr "Thử lại sau khi kết nối được làm mới."
 
-msgid "Retry all"
-msgstr "Thử lại tất cả"
-
 msgid "Retry dictation"
 msgstr "Thử đọc lại"
-
-msgid "Retry every automation whose last run failed"
-msgstr "Thử lại mọi tự động hóa có lần chạy gần nhất thất bại"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "Thử lại sau vài giây; nếu vẫn lỗi, khởi động lại Superset."
@@ -12566,6 +12590,9 @@ msgstr "Cần review"
 
 msgid "Review the result."
 msgstr "Review kết quả."
+
+msgid "Review these runs in All runs"
+msgstr "Xem lại các lần chạy này trong Tất cả lần chạy"
 
 msgid "Review thread…"
 msgstr "Luồng review…"
@@ -12661,6 +12688,9 @@ msgstr "Chạy song song hơn 10 tác tử lập trình trên máy của bạn"
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Chạy hơn 10 agent lập trình song song trên máy của bạn."
 
+msgid "Run again"
+msgstr "Chạy lại"
+
 msgid "Run automations on data source and comment activity."
 msgstr "Chạy tự động hóa theo hoạt động của nguồn dữ liệu và bình luận."
 
@@ -12754,8 +12784,8 @@ msgstr "Các tiến trình terminal đang chạy vẫn tiếp tục, nhưng kế
 msgid "Runs a local command on your machine"
 msgstr "Chạy một lệnh cục bộ trên máy bạn"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "Có lần chạy thất bại đầu tuần này, nhưng hiện không có gì đang lỗi"
+msgid "Runs appear here once an automation fires."
+msgstr "Các lần chạy sẽ xuất hiện ở đây khi một tự động hóa được kích hoạt."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "Chạy bên trong ứng dụng Superset trên thiết bị đó, nên cập nhật nó nghĩa là cập nhật ứng dụng ở đó."
@@ -13198,6 +13228,9 @@ msgstr "Chọn thư mục"
 msgid "Select environment"
 msgstr "Chọn environment"
 
+msgid "Select every run"
+msgstr "Chọn tất cả lần chạy"
+
 msgid "Select IDE"
 msgstr "Chọn IDE"
 
@@ -13245,6 +13278,9 @@ msgstr "Chọn repository"
 
 msgid "Select repository"
 msgstr "Chọn repository"
+
+msgid "Select run"
+msgstr "Chọn lần chạy"
 
 msgid "Select senders"
 msgstr "Chọn người gửi"
@@ -13541,9 +13577,6 @@ msgstr "Hiện nút Mức sử dụng trong thanh bên trang chủ, bên dưới
 msgid "Show all {count}"
 msgstr "Hiện tất cả {count}"
 
-msgid "Show all automations again"
-msgstr "Hiện lại tất cả tự động hóa"
-
 msgid "Show all comments"
 msgstr "Hiển thị tất cả bình luận"
 
@@ -13616,9 +13649,6 @@ msgstr "Hiện thêm"
 msgid "Show on Sidebar"
 msgstr "Hiển thị trên thanh bên"
 
-msgid "Show only automations whose last run failed"
-msgstr "Chỉ hiện tự động hóa có lần chạy gần nhất thất bại"
-
 msgid "Show open items"
 msgstr "Chỉ hiện mục đang mở"
 
@@ -13654,6 +13684,9 @@ msgstr "Hiện phiên"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Hiển thị trạng thái và gửi thông báo cho agent này."
+
+msgid "Show the triggering payload"
+msgstr "Hiển thị payload kích hoạt"
 
 msgid "Show translation"
 msgstr "Xem bản dịch"
@@ -15081,12 +15114,6 @@ msgstr "Con người đọc từng dòng trước khi merge."
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Mô tả công việc thay đổi. Kỹ sư thôi làm thợ gõ phím có gu và trở thành người điều phối có gu: chia nhỏ công việc, phân về các đội agent, phân xử xung đột giữa những agent cùng chạm vào một module."
 
-msgid "The last run failed. Click the row to see why."
-msgstr "Lần chạy gần nhất thất bại. Nhấp vào hàng để xem vì sao."
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "Lần chạy gần nhất thất bại. Mở workspace của nó để xem vì sao"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Các cập nhật, cải tiến và tính năng mới nhất trong Superset."
 
@@ -15805,6 +15832,9 @@ msgstr "Phân loại issue mới"
 
 msgid "triaging 12 new issues…"
 msgstr "đang phân loại 12 issue mới…"
+
+msgid "Trigger"
+msgstr "Trigger"
 
 msgid "Trigger alert()"
 msgstr "Kích hoạt alert()"

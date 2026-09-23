@@ -1,7 +1,6 @@
-import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { SelectAutomationRun, SelectUser } from "@superset/db/schema";
+import type { SelectUser } from "@superset/db/schema";
 import { i18n } from "@superset/i18n";
 import { formatCompactRelativeTime } from "@superset/i18n/format";
 import { useFormat } from "@superset/i18n/react";
@@ -30,6 +29,7 @@ import type { AutomationLastRun } from "renderer/routes/_authenticated/_dashboar
 import type { ProjectOption } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useCopyAutomationLink } from "../../hooks/useCopyAutomationLink";
+import { RUN_STATUS_META } from "../../utils/runStatus";
 import { AutomationActionsMenuItems } from "./components/AutomationActionsMenuItems";
 
 type AutomationListItem = RouterOutputs["automation"]["list"][number];
@@ -52,53 +52,6 @@ interface AutomationRowProps {
 	onToggleEnabled: (automation: AutomationListItem) => void;
 	onDelete: (automation: AutomationListItem) => void;
 }
-
-// A run's terminal success state is workspace creation — say so.
-const LAST_RUN_META: Record<
-	SelectAutomationRun["status"],
-	{ dot: string; label: MessageDescriptor; failed?: boolean }
-> = {
-	dispatched: {
-		dot: "bg-emerald-500",
-		label: msg({
-			message: "created",
-		}),
-	},
-	dispatching: {
-		dot: "bg-amber-500",
-		label: msg({
-			message: "creating",
-		}),
-	},
-	skipped_offline: {
-		dot: "bg-red-500",
-		label: msg({
-			message: "failed",
-		}),
-		failed: true,
-	},
-	dispatch_failed: {
-		dot: "bg-red-500",
-		label: msg({
-			message: "failed",
-		}),
-		failed: true,
-	},
-	// Neither created a workspace, so neither is `failed` — that flag offers to
-	// open one.
-	debounced: {
-		dot: "bg-slate-400",
-		label: msg({
-			message: "superseded",
-		}),
-	},
-	rejected: {
-		dot: "bg-amber-500",
-		label: msg({
-			message: "blocked",
-		}),
-	},
-};
 
 // Both directions come from Intl.RelativeTimeFormat: it renders the compact
 // "3d ago" / "in 2h" shape in every locale, so these need no catalog entries
@@ -185,7 +138,7 @@ export function AutomationRow({
 		/>
 	);
 
-	const lastRunMeta = lastRun ? LAST_RUN_META[lastRun.status] : null;
+	const lastRunMeta = lastRun ? RUN_STATUS_META[lastRun.status] : null;
 	const lastRunClickable = !!lastRun?.v2WorkspaceId;
 
 	return (
@@ -282,12 +235,7 @@ export function AutomationRow({
 						{lastRun && lastRunMeta ? (
 							(() => {
 								const cell = (
-									<span
-										className={cn(
-											"flex items-center gap-1.5",
-											lastRunMeta.failed && "text-red-600 dark:text-red-400",
-										)}
-									>
+									<span className="flex items-center gap-1.5">
 										<span
 											className={cn(
 												"inline-block size-1.5 shrink-0 rounded-full",
@@ -319,27 +267,7 @@ export function AutomationRow({
 												</button>
 											</TooltipTrigger>
 											<TooltipContent>
-												{lastRunMeta.failed ? (
-													<Trans>
-														The last run failed. Open its workspace to see why
-													</Trans>
-												) : (
-													<Trans>Open the run's workspace</Trans>
-												)}
-											</TooltipContent>
-										</Tooltip>
-									);
-								}
-								if (lastRunMeta.failed) {
-									return (
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<span className="block">{cell}</span>
-											</TooltipTrigger>
-											<TooltipContent>
-												<Trans>
-													The last run failed. Click the row to see why.
-												</Trans>
+												<Trans>Open the run's workspace</Trans>
 											</TooltipContent>
 										</Tooltip>
 									);

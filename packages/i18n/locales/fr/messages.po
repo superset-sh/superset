@@ -671,6 +671,9 @@ msgstr "{duration, plural, one {A réfléchi pendant # seconde} other {A réflé
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "{entryPath} de cet espace de travail est déjà publié comme page dans une autre organisation. Déplacez le fichier ou publiez avec l'id de cette page."
 
+msgid "{failed, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{failed, plural, one {# automatisation n'a pas pu être lancée} other {# automatisations n'ont pas pu être lancées}}"
+
 msgid "{failed, plural, one {# failed} other {# failed}}"
 msgstr "{failed, plural, one {# en échec} other {# en échec}}"
 
@@ -867,9 +870,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{received} sur {total}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {Nouvelle tentative pour # automatisation} other {Nouvelle tentative pour # automatisations}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · tout le monde vers {operatorTier}"
 
@@ -898,6 +898,9 @@ msgstr "{starCount} étoiles, et ça continue"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} étoiles · {perDay}/jour cette semaine · {peakPerDay}/jour au pic"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {# automatisation lancée} other {# automatisations lancées}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# sous-agent en cours} other {# sous-agents en cours}}"
@@ -1820,6 +1823,9 @@ msgstr "Tous les dépôts"
 msgid "All reviews"
 msgstr "Toutes les revues"
 
+msgid "All runs"
+msgstr "Toutes les exécutions"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "Toutes les sessions ont été arrêtées et le démon a redémarré. L'application utilisera un démon neuf."
 
@@ -2358,6 +2364,9 @@ msgstr "Automatiser la configuration des espaces de travail pour {projectName}"
 msgid "Automation"
 msgstr "Automatisation"
 
+msgid "Automation docs"
+msgstr "Documentation des automatisations"
+
 msgid "Automation has no instructions"
 msgstr "L'automatisation n'a aucune instruction"
 
@@ -2436,6 +2445,9 @@ msgstr "Retour"
 
 msgid "Back to About"
 msgstr "Retour à À propos"
+
+msgid "Back to automations"
+msgstr "Retour aux automatisations"
 
 msgid "Back to billing"
 msgstr "Retour à la facturation"
@@ -3738,9 +3750,6 @@ msgstr "Configurez la synchronisation des tâches entre Superset et Linear."
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "Configurez le comportement du terminal et les scripts de terminal réutilisables"
 
-msgid "Configure the automation yourself"
-msgstr "Configurez vous-même l’automatisation"
-
 msgid "Configure the in-app browser"
 msgstr "Configurez le navigateur intégré"
 
@@ -4460,6 +4469,12 @@ msgstr "Impossible de charger les pull requests : {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "Impossible de charger les commentaires de revue"
+
+msgid "Couldn't load runs"
+msgstr "Impossible de charger les exécutions"
+
+msgid "Couldn't load this run's payload."
+msgstr "Impossible de charger la charge utile de cette exécution."
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Impossible de charger votre profil, l'édition est désactivée."
@@ -5892,6 +5907,9 @@ msgstr "Chaque minute"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Tous les objectifs contribuent au palier suivant. Mesuré sur les 30 derniers jours."
 
+msgid "Every run so far reached a host."
+msgstr "Toutes les exécutions ont atteint un hôte jusqu'ici."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Chaque étoile sur <0>{repoSlug}</0>, tracée depuis le lancement."
 
@@ -6392,12 +6410,6 @@ msgstr "Échec de la restauration des valeurs par défaut"
 msgid "Failed to resume {0}"
 msgstr "Échec de la reprise de {0}"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "Échec de la nouvelle tentative pour {failedCount} automatisations sur {totalCount}"
-
-msgid "Failed to retry automation"
-msgstr "Échec de la nouvelle tentative de l'automatisation"
-
 msgid "Failed to reveal in Finder"
 msgstr "Échec de l'affichage dans le Finder"
 
@@ -6471,6 +6483,9 @@ msgstr "Échec du démarrage de l'agent"
 
 msgid "Failed to start agent session."
 msgstr "Échec du démarrage de la session d'agent."
+
+msgid "Failed to start the selected automations"
+msgstr "Échec du lancement des automatisations sélectionnées"
 
 msgid "Failed to stop workspace run command"
 msgstr "Échec de l'arrêt de la commande d'exécution de l'espace de travail"
@@ -6654,9 +6669,6 @@ msgstr "Filtrer les projets…"
 
 msgid "Filter workspaces…"
 msgstr "Filtrer les espaces de travail…"
-
-msgid "filtering"
-msgstr "filtrage"
 
 msgid "Filters"
 msgstr "Filtres"
@@ -7349,6 +7361,9 @@ msgstr "Hôte introuvable dans cette organisation"
 
 msgid "Host not found in this organization."
 msgstr "Hôte introuvable dans cette organisation."
+
+msgid "host offline"
+msgstr "hôte hors ligne"
 
 msgid "Host service"
 msgstr "Service d'hôte"
@@ -9029,6 +9044,9 @@ msgstr "Plus de thèmes {kindLower}"
 msgid "More actions"
 msgstr "Plus d'actions"
 
+msgid "More create options"
+msgstr "Plus d'options de création"
+
 msgid "More pages"
 msgstr "Plus de pages"
 
@@ -9136,6 +9154,9 @@ msgstr "Nécessitent un câblage au niveau de l'application (état du formulaire
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Nécessite un état de chat ou d'appel d'outil en direct (ToolUIPart, flux) ou une coquille d'application"
+
+msgid "Needs a retry"
+msgstr "À relancer"
 
 msgid "Needs Action"
 msgstr "Action requise"
@@ -9667,6 +9688,9 @@ msgstr "Aucune page ne correspond à ce filtre"
 msgid "No pages yet"
 msgstr "Aucune page pour le moment"
 
+msgid "No payload is stored for this run."
+msgstr "Aucune charge utile n'est stockée pour cette exécution."
+
 msgid "No payment method on file"
 msgstr "Aucun moyen de paiement enregistré"
 
@@ -10028,6 +10052,9 @@ msgstr "Rien ne surveille cette page"
 
 msgid "Nothing lives at {pathname}."
 msgstr "Il n'y a rien à l'emplacement {pathname}."
+
+msgid "Nothing needs a retry"
+msgstr "Rien à relancer"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Rien de publié sur les 30 derniers jours pour l'instant. Votre rang apparaîtra dès que l'usage de cette machine sera synchronisé, publié sous <0>{handle}</0>."
@@ -10644,6 +10671,9 @@ msgstr "Ouvrir l'espace de travail de l'exécution"
 
 msgid "open the task in a workspace"
 msgstr "ouvrir la tâche dans un espace de travail"
+
+msgid "Open this run's workspace"
+msgstr "Ouvrir l'espace de travail de cette exécution"
 
 msgid "Open workspace"
 msgstr "Ouvrir l'espace de travail"
@@ -12479,14 +12509,8 @@ msgstr "Réessayer"
 msgid "Retry after the connection refreshes."
 msgstr "Réessayez une fois la connexion actualisée."
 
-msgid "Retry all"
-msgstr "Tout réessayer"
-
 msgid "Retry dictation"
 msgstr "Réessayer la dictée"
-
-msgid "Retry every automation whose last run failed"
-msgstr "Réessayer toutes les automatisations dont la dernière exécution a échoué"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "Réessayez dans quelques secondes ; si le problème persiste, redémarrez Superset."
@@ -12566,6 +12590,9 @@ msgstr "Revue requise"
 
 msgid "Review the result."
 msgstr "Passez le résultat en revue."
+
+msgid "Review these runs in All runs"
+msgstr "Examiner ces exécutions dans Toutes les exécutions"
 
 msgid "Review thread…"
 msgstr "Fil de revue…"
@@ -12661,6 +12688,9 @@ msgstr "Exécutez plus de 10 agents de programmation en parallèle sur votre mac
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Exécutez plus de 10 agents de code en parallèle sur votre machine."
 
+msgid "Run again"
+msgstr "Relancer"
+
 msgid "Run automations on data source and comment activity."
 msgstr "Exécutez des automatisations sur l'activité des sources de données et des commentaires."
 
@@ -12754,8 +12784,8 @@ msgstr "Les processus de terminal en cours continuent, mais les sorties plus anc
 msgid "Runs a local command on your machine"
 msgstr "Exécute une commande locale sur votre machine"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "Des exécutions ont échoué plus tôt cette semaine, mais rien n'échoue actuellement"
+msgid "Runs appear here once an automation fires."
+msgstr "Les exécutions apparaissent ici dès qu'une automatisation se déclenche."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "S'exécute dans l'application Superset de cet appareil ; le mettre à jour revient à mettre à jour l'application là-bas."
@@ -13198,6 +13228,9 @@ msgstr "Sélectionner un dossier"
 msgid "Select environment"
 msgstr "Sélectionner un environnement"
 
+msgid "Select every run"
+msgstr "Sélectionner toutes les exécutions"
+
 msgid "Select IDE"
 msgstr "Sélectionner un IDE"
 
@@ -13245,6 +13278,9 @@ msgstr "Sélectionner des dépôts"
 
 msgid "Select repository"
 msgstr "Sélectionner un dépôt"
+
+msgid "Select run"
+msgstr "Sélectionner l'exécution"
 
 msgid "Select senders"
 msgstr "Sélectionner des expéditeurs"
@@ -13541,9 +13577,6 @@ msgstr "Afficher un bouton Utilisation dans la barre latérale d'accueil, sous P
 msgid "Show all {count}"
 msgstr "Afficher les {count}"
 
-msgid "Show all automations again"
-msgstr "Afficher à nouveau toutes les automatisations"
-
 msgid "Show all comments"
 msgstr "Afficher tous les commentaires"
 
@@ -13616,9 +13649,6 @@ msgstr "Afficher plus"
 msgid "Show on Sidebar"
 msgstr "Afficher dans la barre latérale"
 
-msgid "Show only automations whose last run failed"
-msgstr "Afficher uniquement les automatisations dont la dernière exécution a échoué"
-
 msgid "Show open items"
 msgstr "Afficher les éléments ouverts"
 
@@ -13654,6 +13684,9 @@ msgstr "Afficher les sessions"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Afficher le statut et envoyer des notifications pour cet agent."
+
+msgid "Show the triggering payload"
+msgstr "Afficher la charge utile déclenchante"
 
 msgid "Show translation"
 msgstr "Afficher la traduction"
@@ -15081,12 +15114,6 @@ msgstr "L'humain lit chaque ligne avant la fusion."
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "La fiche de poste change. Les ingénieurs cessent d'être des dactylos avec du goût pour devenir des répartiteurs avec du goût : découper le travail, l'acheminer vers des flottes, arbitrer les conflits entre agents qui ont touché le même module."
 
-msgid "The last run failed. Click the row to see why."
-msgstr "La dernière exécution a échoué. Cliquez sur la ligne pour savoir pourquoi."
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "La dernière exécution a échoué. Ouvrez son espace de travail pour savoir pourquoi"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Les dernières mises à jour, améliorations et nouveautés de Superset."
 
@@ -15805,6 +15832,9 @@ msgstr "Trier les nouvelles issues"
 
 msgid "triaging 12 new issues…"
 msgstr "tri de 12 nouvelles issues…"
+
+msgid "Trigger"
+msgstr "Déclencheur"
 
 msgid "Trigger alert()"
 msgstr "Déclencher alert()"

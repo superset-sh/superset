@@ -671,6 +671,9 @@ msgstr "{duration, plural, one {思考了#秒} other {思考了#秒}}"
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "此工作區中的 {entryPath} 已在其他組織中發佈為頁面。請移動該檔案，或使用那個頁面的 id 發佈。"
 
+msgid "{failed, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{failed, plural, one {無法啟動 # 個自動化} other {無法啟動 # 個自動化}}"
+
 msgid "{failed, plural, one {# failed} other {# failed}}"
 msgstr "{failed, plural, one {#項失敗} other {#項失敗}}"
 
@@ -867,9 +870,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{received}/{total}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {正在重試#個自動化} other {正在重試#個自動化}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · 全員晉級{operatorTier}"
 
@@ -898,6 +898,9 @@ msgstr "{starCount}個星標，還在成長"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars}個星標 · 本週{perDay}/天 · 尖峰{peakPerDay}/天"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {已啟動 # 個自動化} other {已啟動 # 個自動化}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 個子代理程式執行中}}"
@@ -1820,6 +1823,9 @@ msgstr "所有儲存庫"
 msgid "All reviews"
 msgstr "所有審查"
 
+msgid "All runs"
+msgstr "所有執行"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "所有會話已終止，守護程式已重啟。應用將使用全新的守護程式。"
 
@@ -2358,6 +2364,9 @@ msgstr "為{projectName}自動化工作區初始化"
 msgid "Automation"
 msgstr "自動化"
 
+msgid "Automation docs"
+msgstr "自動化文件"
+
 msgid "Automation has no instructions"
 msgstr "自動化沒有任何指令"
 
@@ -2436,6 +2445,9 @@ msgstr "返回"
 
 msgid "Back to About"
 msgstr "返回關於頁"
+
+msgid "Back to automations"
+msgstr "返回自動化"
 
 msgid "Back to billing"
 msgstr "返回帳單"
@@ -3738,9 +3750,6 @@ msgstr "配置任務在Superset和Linear之間的同步方式。"
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "配置終端行為和可複用的終端指令碼"
 
-msgid "Configure the automation yourself"
-msgstr "自行設定自動化"
-
 msgid "Configure the in-app browser"
 msgstr "配置應用程式內瀏覽器"
 
@@ -4460,6 +4469,12 @@ msgstr "無法載入拉取請求：{msg}"
 
 msgid "Couldn't load review comments"
 msgstr "無法載入審查評論"
+
+msgid "Couldn't load runs"
+msgstr "無法載入執行紀錄"
+
+msgid "Couldn't load this run's payload."
+msgstr "無法載入此次執行的酬載。"
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "無法載入你的個人檔案，編輯已停用。"
@@ -5892,6 +5907,9 @@ msgstr "每分鐘"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "所有目標都在為下一階發力。以最近 30 天計算。"
 
+msgid "Every run so far reached a host."
+msgstr "目前所有執行都已到達主機。"
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "<0>{repoSlug}</0>的每一個星標，自發布起繪製。"
 
@@ -6392,12 +6410,6 @@ msgstr "恢復預設值失敗"
 msgid "Failed to resume {0}"
 msgstr "恢復{0}失敗"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "{totalCount}個自動化中有{failedCount}個重試失敗"
-
-msgid "Failed to retry automation"
-msgstr "重試自動化失敗"
-
 msgid "Failed to reveal in Finder"
 msgstr "在Finder中顯示失敗"
 
@@ -6471,6 +6483,9 @@ msgstr "啟動代理程式失敗"
 
 msgid "Failed to start agent session."
 msgstr "啟動代理程式會話失敗。"
+
+msgid "Failed to start the selected automations"
+msgstr "無法啟動所選的自動化"
 
 msgid "Failed to stop workspace run command"
 msgstr "停止工作區執行命令失敗"
@@ -6654,9 +6669,6 @@ msgstr "篩選專案…"
 
 msgid "Filter workspaces…"
 msgstr "篩選工作區…"
-
-msgid "filtering"
-msgstr "篩選中"
 
 msgid "Filters"
 msgstr "篩選"
@@ -7349,6 +7361,9 @@ msgstr "在此組織中未找到該主機"
 
 msgid "Host not found in this organization."
 msgstr "在此組織中找不到該主機。"
+
+msgid "host offline"
+msgstr "主機離線"
 
 msgid "Host service"
 msgstr "主機服務"
@@ -9029,6 +9044,9 @@ msgstr "更多{kindLower}主題"
 msgid "More actions"
 msgstr "更多操作"
 
+msgid "More create options"
+msgstr "更多建立選項"
+
 msgid "More pages"
 msgstr "更多頁面"
 
@@ -9136,6 +9154,9 @@ msgstr "需要應用層的接線（表單狀態、圖表資料、應用程式外
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "需要即時的聊天或工具呼叫狀態（ToolUIPart、流），或者應用程式外殼"
+
+msgid "Needs a retry"
+msgstr "需要重試"
 
 msgid "Needs Action"
 msgstr "需要處理"
@@ -9667,6 +9688,9 @@ msgstr "沒有頁面符合此篩選條件"
 msgid "No pages yet"
 msgstr "還沒有頁面"
 
+msgid "No payload is stored for this run."
+msgstr "此次執行未儲存酬載。"
+
 msgid "No payment method on file"
 msgstr "未登記支付方式"
 
@@ -10028,6 +10052,9 @@ msgstr "沒有代理程式在關注此頁面"
 
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}下沒有任何內容。"
+
+msgid "Nothing needs a retry"
+msgstr "沒有需要重試的執行"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "最近 30 天尚未發佈任何資料。這台機器的用量同步後即會顯示你的排名，將以 <0>{handle}</0> 發佈。"
@@ -10644,6 +10671,9 @@ msgstr "開啟這次執行的工作區"
 
 msgid "open the task in a workspace"
 msgstr "在工作區中開啟任務"
+
+msgid "Open this run's workspace"
+msgstr "開啟此次執行的工作區"
 
 msgid "Open workspace"
 msgstr "開啟工作區"
@@ -12479,14 +12509,8 @@ msgstr "重試"
 msgid "Retry after the connection refreshes."
 msgstr "請在連線重新整理後重試。"
 
-msgid "Retry all"
-msgstr "全部重試"
-
 msgid "Retry dictation"
 msgstr "重試語音輸入"
-
-msgid "Retry every automation whose last run failed"
-msgstr "重試所有上次執行失敗的自動化"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "請在幾秒後重試；若問題持續，請重啟Superset。"
@@ -12566,6 +12590,9 @@ msgstr "需要審查"
 
 msgid "Review the result."
 msgstr "審查結果。"
+
+msgid "Review these runs in All runs"
+msgstr "在「所有執行」中檢視這些執行"
 
 msgid "Review thread…"
 msgstr "審查討論…"
@@ -12661,6 +12688,9 @@ msgstr "在您的設備上並行運行 10 多個編程代理"
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "在你的機器上並行執行10個以上的編碼代理程式。"
 
+msgid "Run again"
+msgstr "重新執行"
+
 msgid "Run automations on data source and comment activity."
 msgstr "在資料來源和評論活動上執行自動化。"
 
@@ -12754,8 +12784,8 @@ msgstr "執行中的終端處理程序會繼續，但重啟應用後可能無法
 msgid "Runs a local command on your machine"
 msgstr "在你的機器上執行本地命令"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "本週早些時候有執行失敗，但現在沒有失敗的"
+msgid "Runs appear here once an automation fires."
+msgstr "自動化觸發後，執行會顯示在這裡。"
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "在該裝置的 Superset 應用程式內執行，因此更新它就是更新該裝置上的應用程式。"
@@ -13198,6 +13228,9 @@ msgstr "選擇目錄"
 msgid "Select environment"
 msgstr "選擇環境"
 
+msgid "Select every run"
+msgstr "選擇所有執行"
+
 msgid "Select IDE"
 msgstr "選擇IDE"
 
@@ -13245,6 +13278,9 @@ msgstr "選擇儲存庫"
 
 msgid "Select repository"
 msgstr "選擇儲存庫"
+
+msgid "Select run"
+msgstr "選擇執行"
 
 msgid "Select senders"
 msgstr "選擇發件人"
@@ -13541,9 +13577,6 @@ msgstr "在首頁側邊欄的「拉取請求」下方顯示「用量」按鈕"
 msgid "Show all {count}"
 msgstr "顯示全部{count}條"
 
-msgid "Show all automations again"
-msgstr "重新顯示所有自動化"
-
 msgid "Show all comments"
 msgstr "顯示所有評論"
 
@@ -13616,9 +13649,6 @@ msgstr "顯示更多"
 msgid "Show on Sidebar"
 msgstr "顯示於側邊欄"
 
-msgid "Show only automations whose last run failed"
-msgstr "只顯示上次執行失敗的自動化"
-
 msgid "Show open items"
 msgstr "只顯示開啟的條目"
 
@@ -13654,6 +13684,9 @@ msgstr "顯示會話"
 
 msgid "Show status and send notifications for this agent."
 msgstr "為此代理程式顯示狀態併發送通知。"
+
+msgid "Show the triggering payload"
+msgstr "顯示觸發酬載"
 
 msgid "Show translation"
 msgstr "顯示譯文"
@@ -15081,12 +15114,6 @@ msgstr "合併前人類會逐行閱讀。"
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "崗位描述變了。工程師不再是有品味的打字員，而成了有品味的排程員：拆解工作、分派給代理程式叢集、在兩個改了同一個模組的代理程式之間做裁決。"
 
-msgid "The last run failed. Click the row to see why."
-msgstr "上次執行失敗。點選這一行檢視原因。"
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "上次執行失敗。開啟它的工作區檢視原因"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Superset 的最新更新、改進與新功能。"
 
@@ -15805,6 +15832,9 @@ msgstr "分類新議題"
 
 msgid "triaging 12 new issues…"
 msgstr "正在分類12個新議題…"
+
+msgid "Trigger"
+msgstr "觸發器"
 
 msgid "Trigger alert()"
 msgstr "觸發alert()"

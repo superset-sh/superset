@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
+import { ButtonGroup } from "@superset/ui/button-group";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -11,7 +12,6 @@ import type { ReactNode } from "react";
 import {
 	LuChevronDown,
 	LuCircleHelp,
-	LuPencil,
 	LuPlus,
 	LuSparkles,
 } from "react-icons/lu";
@@ -22,11 +22,9 @@ interface FeatureHeaderProps {
 	onCreate: () => void;
 	isCreating: boolean;
 	showCreate?: boolean;
-	createMenuLabel?: ReactNode;
 	createDescription?: ReactNode;
-	secondaryAction?: {
+	primaryAction?: {
 		label: ReactNode;
-		description?: ReactNode;
 		onSelect: () => void;
 		disabled: boolean;
 	};
@@ -38,9 +36,8 @@ export function FeatureHeader({
 	onCreate,
 	isCreating,
 	showCreate = true,
-	createMenuLabel = <Trans>Create</Trans>,
 	createDescription,
-	secondaryAction,
+	primaryAction,
 }: FeatureHeaderProps) {
 	const { t } = useLingui();
 	return (
@@ -71,51 +68,45 @@ export function FeatureHeader({
 				</Tooltip>
 			</div>
 			{showCreate &&
-				(secondaryAction ? (
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								size="sm"
-								disabled={isCreating && secondaryAction.disabled}
-							>
-								<LuPlus className="size-3.5" />
-								{createMenuLabel}
-								<LuChevronDown className="size-3.5" />
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end" sideOffset={6} className="w-64">
-							<DropdownMenuItem
-								className="items-start gap-2.5 p-2.5"
-								disabled={secondaryAction.disabled}
-								onSelect={secondaryAction.onSelect}
-							>
-								<LuPencil className="mt-0.5 size-4" />
-								<span className="flex min-w-0 flex-col gap-0.5">
-									{secondaryAction.label}
-									{secondaryAction.description && (
-										<span className="text-xs text-muted-foreground">
-											{secondaryAction.description}
-										</span>
-									)}
-								</span>
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								className="items-start gap-2.5 p-2.5"
-								disabled={isCreating}
-								onSelect={onCreate}
-							>
-								<LuSparkles className="mt-0.5 size-4" />
-								<span className="flex min-w-0 flex-col gap-0.5">
-									<Trans>Create with AI</Trans>
-									{createDescription && (
-										<span className="text-xs text-muted-foreground">
-											{createDescription}
-										</span>
-									)}
-								</span>
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
+				(primaryAction ? (
+					<ButtonGroup>
+						<Button
+							size="sm"
+							disabled={primaryAction.disabled}
+							onClick={primaryAction.onSelect}
+						>
+							<LuPlus className="size-3.5" />
+							{primaryAction.label}
+						</Button>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									size="sm"
+									className="px-2"
+									aria-label={t({ message: "More create options" })}
+								>
+									<LuChevronDown className="size-3.5" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end" sideOffset={6} className="w-64">
+								<DropdownMenuItem
+									className="items-start gap-2.5 p-2.5"
+									disabled={isCreating}
+									onSelect={onCreate}
+								>
+									<LuSparkles className="mt-0.5 size-4" />
+									<span className="flex min-w-0 flex-col gap-0.5">
+										<Trans>Create with AI</Trans>
+										{createDescription && (
+											<span className="text-xs text-muted-foreground">
+												{createDescription}
+											</span>
+										)}
+									</span>
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</ButtonGroup>
 				) : (
 					<Button size="sm" disabled={isCreating} onClick={onCreate}>
 						<LuSparkles className="size-3.5" />

@@ -5,11 +5,7 @@ interface AutomationStatCardsProps {
 	active: number;
 	created7d: number;
 	failed7d: number;
-	/** True while the table is narrowed to failing automations. */
-	failedFilter: boolean;
-	/** False when no automation is currently failing (card renders inert). */
-	canFilterFailed: boolean;
-	onToggleFailedFilter: () => void;
+	onShowFailed: () => void;
 }
 
 const CARD = "rounded-lg border border-border px-3.5 py-2.5 text-left";
@@ -21,9 +17,7 @@ export function AutomationStatCards({
 	active,
 	created7d,
 	failed7d,
-	failedFilter,
-	canFilterFailed,
-	onToggleFailedFilter,
+	onShowFailed,
 }: AutomationStatCardsProps) {
 	const { t } = useLingui();
 	const total = created7d + failed7d;
@@ -56,39 +50,19 @@ export function AutomationStatCards({
 			</div>
 			<button
 				type="button"
-				disabled={!canFilterFailed && !failedFilter}
-				onClick={onToggleFailedFilter}
-				title={
-					failedFilter
-						? t({
-								message: "Show all automations again",
-							})
-						: canFilterFailed
-							? t({
-									message: "Show only automations whose last run failed",
-								})
-							: t({
-									message:
-										"Runs failed earlier this week, but nothing is failing right now",
-								})
-				}
+				onClick={onShowFailed}
+				title={t({
+					message: "Review these runs in All runs",
+				})}
 				className={cn(
 					CARD,
-					"transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-					(canFilterFailed || failedFilter) &&
-						"cursor-pointer hover:bg-accent/40",
-					failedFilter && "border-red-500/40 bg-red-500/5",
+					"cursor-pointer transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
 				)}
 			>
 				<p className={LABEL}>
 					<Trans>
 						Failed <span className="text-muted-foreground/60">· 7d</span>
 					</Trans>
-					{failedFilter && (
-						<span className="ml-1.5 text-red-600 dark:text-red-400">
-							<Trans>filtering</Trans>
-						</span>
-					)}
 				</p>
 				<p className={VALUE}>
 					{failed7d}

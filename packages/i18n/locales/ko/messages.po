@@ -671,6 +671,9 @@ msgstr "{duration, plural, one {#초 동안 생각함} other {#초 동안 생각
 msgid "serverError.page.entryPathHeldByAnotherOrganization"
 msgstr "이 워크스페이스의 {entryPath}는 다른 조직에서 이미 페이지로 게시되었습니다. 파일을 옮기거나 해당 페이지 ID로 게시하세요."
 
+msgid "{failed, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{failed, plural, one {자동화 #개를 시작하지 못했습니다} other {자동화 #개를 시작하지 못했습니다}}"
+
 msgid "{failed, plural, one {# failed} other {# failed}}"
 msgstr "{failed, plural, one {#개 실패} other {#개 실패}}"
 
@@ -867,9 +870,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{total} 중 {received}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {자동화 #개를 다시 시도하는 중} other {자동화 #개를 다시 시도하는 중}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · 모두 {operatorTier}로"
 
@@ -898,6 +898,9 @@ msgstr "스타 {starCount}개, 계속 늘어나는 중"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "스타 {stars}개 · 이번 주 {perDay}/일 · 최고 {peakPerDay}/일"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {자동화 #개를 시작했습니다} other {자동화 #개를 시작했습니다}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {서브 에이전트 #개 실행 중}}"
@@ -1820,6 +1823,9 @@ msgstr "모든 리포지토리"
 msgid "All reviews"
 msgstr "모든 리뷰"
 
+msgid "All runs"
+msgstr "모든 실행"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "모든 세션을 종료하고 데몬을 다시 시작했습니다. 앱은 새 데몬을 사용합니다."
 
@@ -2358,6 +2364,9 @@ msgstr "{projectName}의 워크스페이스 설정 자동화"
 msgid "Automation"
 msgstr "자동화"
 
+msgid "Automation docs"
+msgstr "자동화 문서"
+
 msgid "Automation has no instructions"
 msgstr "자동화에 지시 사항이 없습니다"
 
@@ -2436,6 +2445,9 @@ msgstr "뒤로"
 
 msgid "Back to About"
 msgstr "소개로 돌아가기"
+
+msgid "Back to automations"
+msgstr "자동화로 돌아가기"
 
 msgid "Back to billing"
 msgstr "결제로 돌아가기"
@@ -3738,9 +3750,6 @@ msgstr "Superset과 Linear 사이에서 작업을 동기화하는 방식을 설�
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "터미널 동작과 재사용 가능한 터미널 스크립트를 설정합니다"
 
-msgid "Configure the automation yourself"
-msgstr "자동화를 직접 설정하세요"
-
 msgid "Configure the in-app browser"
 msgstr "앱 내 브라우저를 설정합니다"
 
@@ -4460,6 +4469,12 @@ msgstr "풀 리퀘스트를 불러오지 못했습니다: {msg}"
 
 msgid "Couldn't load review comments"
 msgstr "리뷰 코멘트를 불러오지 못했습니다"
+
+msgid "Couldn't load runs"
+msgstr "실행 기록을 불러오지 못했습니다"
+
+msgid "Couldn't load this run's payload."
+msgstr "이 실행의 페이로드를 불러오지 못했습니다."
 
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "프로필을 불러오지 못해 편집이 비활성화되었습니다."
@@ -5892,6 +5907,9 @@ msgstr "1분마다"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "모든 목표가 다음 단계를 향해 제 몫을 하고 있습니다. 최근 30일 기준입니다."
 
+msgid "Every run so far reached a host."
+msgstr "지금까지 모든 실행이 호스트에 도달했습니다."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "출시 이후 <0>{repoSlug}</0>의 모든 스타를 그래프로 나타냈습니다."
 
@@ -6392,12 +6410,6 @@ msgstr "기본값을 복원하지 못했습니다"
 msgid "Failed to resume {0}"
 msgstr "{0}을(를) 재개하지 못했습니다"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "자동화 {totalCount}개 중 {failedCount}개를 다시 시도하지 못했습니다"
-
-msgid "Failed to retry automation"
-msgstr "자동화를 다시 시도하지 못했습니다"
-
 msgid "Failed to reveal in Finder"
 msgstr "Finder에서 표시하지 못했습니다"
 
@@ -6471,6 +6483,9 @@ msgstr "에이전트를 시작하지 못했습니다"
 
 msgid "Failed to start agent session."
 msgstr "에이전트 세션을 시작하지 못했습니다."
+
+msgid "Failed to start the selected automations"
+msgstr "선택한 자동화를 시작하지 못했습니다"
 
 msgid "Failed to stop workspace run command"
 msgstr "워크스페이스 실행 명령을 중지하지 못했습니다"
@@ -6654,9 +6669,6 @@ msgstr "프로젝트 필터…"
 
 msgid "Filter workspaces…"
 msgstr "워크스페이스 필터…"
-
-msgid "filtering"
-msgstr "필터 중"
 
 msgid "Filters"
 msgstr "필터"
@@ -7349,6 +7361,9 @@ msgstr "이 조직에서 호스트를 찾을 수 없습니다"
 
 msgid "Host not found in this organization."
 msgstr "이 조직에서 호스트를 찾을 수 없습니다."
+
+msgid "host offline"
+msgstr "호스트 오프라인"
 
 msgid "Host service"
 msgstr "호스트 서비스"
@@ -9029,6 +9044,9 @@ msgstr "{kindLower} 테마 더 보기"
 msgid "More actions"
 msgstr "추가 작업"
 
+msgid "More create options"
+msgstr "추가 생성 옵션"
+
 msgid "More pages"
 msgstr "더 많은 페이지"
 
@@ -9136,6 +9154,9 @@ msgstr "앱 수준 연결이 필요합니다(폼 상태, 차트 데이터, 앱 �
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "실시간 채팅/툴 호출 상태(ToolUIPart, 스트림)나 앱 셸이 필요합니다"
+
+msgid "Needs a retry"
+msgstr "재시도 필요"
 
 msgid "Needs Action"
 msgstr "조치 필요"
@@ -9667,6 +9688,9 @@ msgstr "이 필터와 일치하는 페이지가 없습니다"
 msgid "No pages yet"
 msgstr "아직 페이지가 없습니다"
 
+msgid "No payload is stored for this run."
+msgstr "이 실행에 저장된 페이로드가 없습니다."
+
 msgid "No payment method on file"
 msgstr "등록된 결제 수단 없음"
 
@@ -10028,6 +10052,9 @@ msgstr "이 페이지를 감시하는 에이전트가 없습니다"
 
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}에는 아무것도 없습니다."
+
+msgid "Nothing needs a retry"
+msgstr "재시도가 필요한 항목이 없습니다"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "최근 30일 동안 게시된 사용량이 아직 없습니다. 이 기기의 사용량이 동기화되면 <0>{handle}</0>(으)로 게시되며 순위가 표시됩니다."
@@ -10644,6 +10671,9 @@ msgstr "실행의 워크스페이스 열기"
 
 msgid "open the task in a workspace"
 msgstr "워크스페이스에서 작업을 열"
+
+msgid "Open this run's workspace"
+msgstr "이 실행의 워크스페이스 열기"
 
 msgid "Open workspace"
 msgstr "워크스페이스 열기"
@@ -12479,14 +12509,8 @@ msgstr "다시 시도"
 msgid "Retry after the connection refreshes."
 msgstr "연결이 새로 고쳐진 뒤 다시 시도하세요."
 
-msgid "Retry all"
-msgstr "모두 다시 시도"
-
 msgid "Retry dictation"
 msgstr "받아쓰기 다시 시도"
-
-msgid "Retry every automation whose last run failed"
-msgstr "마지막 실행이 실패한 모든 자동화를 다시 시도합니다"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "몇 초 후 다시 시도하고, 계속되면 Superset을 재시작하세요."
@@ -12566,6 +12590,9 @@ msgstr "리뷰 필요"
 
 msgid "Review the result."
 msgstr "결과를 리뷰하세요."
+
+msgid "Review these runs in All runs"
+msgstr "'모든 실행'에서 이 실행 검토"
 
 msgid "Review thread…"
 msgstr "리뷰 스레드…"
@@ -12661,6 +12688,9 @@ msgstr "기기에서 10개 이상의 코딩 에이전트를 병렬로 실행"
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "내 머신에서 10개 이상의 코딩 에이전트를 병렬로 실행합니다."
 
+msgid "Run again"
+msgstr "다시 실행"
+
 msgid "Run automations on data source and comment activity."
 msgstr "데이터 소스와 댓글 활동에 따라 자동화를 실행합니다."
 
@@ -12754,8 +12784,8 @@ msgstr "실행 중인 터미널 프로세스는 계속되지만, 앱을 다시 �
 msgid "Runs a local command on your machine"
 msgstr "내 컴퓨터에서 로컬 명령을 실행합니다"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "이번 주 초에 실행이 실패했지만 지금은 실패 중인 항목이 없습니다"
+msgid "Runs appear here once an automation fires."
+msgstr "자동화가 실행되면 여기에 표시됩니다."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "해당 기기의 Superset 앱 안에서 실행되므로, 업데이트하려면 그 기기의 앱을 업데이트해야 합니다."
@@ -13198,6 +13228,9 @@ msgstr "디렉터리 선택"
 msgid "Select environment"
 msgstr "환경 선택"
 
+msgid "Select every run"
+msgstr "모든 실행 선택"
+
 msgid "Select IDE"
 msgstr "IDE 선택"
 
@@ -13245,6 +13278,9 @@ msgstr "리포지토리 선택"
 
 msgid "Select repository"
 msgstr "리포지토리 선택"
+
+msgid "Select run"
+msgstr "실행 선택"
 
 msgid "Select senders"
 msgstr "발신자 선택"
@@ -13541,9 +13577,6 @@ msgstr "홈 사이드바의 풀 리퀘스트 아래에 사용량 버튼을 표�
 msgid "Show all {count}"
 msgstr "{count}개 모두 보기"
 
-msgid "Show all automations again"
-msgstr "모든 자동화 다시 표시"
-
 msgid "Show all comments"
 msgstr "모든 댓글 표시"
 
@@ -13616,9 +13649,6 @@ msgstr "더 보기"
 msgid "Show on Sidebar"
 msgstr "사이드바에 표시"
 
-msgid "Show only automations whose last run failed"
-msgstr "마지막 실행이 실패한 자동화만 표시"
-
 msgid "Show open items"
 msgstr "열린 항목 표시"
 
@@ -13654,6 +13684,9 @@ msgstr "세션 표시"
 
 msgid "Show status and send notifications for this agent."
 msgstr "이 에이전트의 상태를 표시하고 알림을 보냅니다."
+
+msgid "Show the triggering payload"
+msgstr "트리거 페이로드 표시"
 
 msgid "Show translation"
 msgstr "번역 보기"
@@ -15081,12 +15114,6 @@ msgstr "사람이 머지 전에 모든 줄을 읽습니다."
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "직무의 성격이 바뀝니다. 엔지니어는 안목 있는 타자수가 아니라 안목 있는 배차원이 됩니다. 일을 쪼개고, 플릿에 배분하고, 같은 모듈을 건드린 에이전트들 사이의 충돌을 중재합니다."
 
-msgid "The last run failed. Click the row to see why."
-msgstr "마지막 실행이 실패했습니다. 행을 클릭하면 이유를 볼 수 있습니다."
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "마지막 실행이 실패했습니다. 해당 워크스페이스를 열어 이유를 확인하세요"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Superset의 최신 업데이트, 개선 사항, 신규 기능입니다."
 
@@ -15805,6 +15832,9 @@ msgstr "새 이슈 분류"
 
 msgid "triaging 12 new issues…"
 msgstr "새 이슈 12건 분류 중…"
+
+msgid "Trigger"
+msgstr "트리거"
 
 msgid "Trigger alert()"
 msgstr "alert() 실행"
