@@ -9,7 +9,7 @@ import {
 	workspacePages,
 } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, asc, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, or } from "drizzle-orm";
 import { protectedProcedure, userError } from "../../trpc";
 import { assertPageReadable } from "../page/access";
 import { requireActiveOrgMembership } from "../utils/active-org";
@@ -223,23 +223,36 @@ export const pageCommentRouter = {
 
 			if (threadRows.length === 0) return [];
 
-			const commentRows = await db
+			// Selected through the same join as the threads rather than by an id
+			// list: one bind parameter per thread would fail outright past
+			// Postgres' 65535-parameter ceiling, and this query is org-wide.
+			let commentQuery = db
 				.select({
 					comment: pageComments,
 					authorName: users.name,
 					authorImage: users.image,
 				})
 				.from(pageComments)
-				.leftJoin(users, eq(users.id, pageComments.authorUserId))
-				.where(
-					and(
-						inArray(
-							pageComments.threadId,
-							threadRows.map((row) => row.thread.id),
-						),
-						isNull(pageComments.deletedAt),
-					),
+				.innerJoin(
+					pageCommentThreads,
+					eq(pageCommentThreads.id, pageComments.threadId),
 				)
+				.innerJoin(pages, eq(pages.id, pageCommentThreads.pageId))
+				.leftJoin(users, eq(users.id, pageComments.authorUserId))
+				.$dynamic();
+
+			if (input?.workspaceId) {
+				commentQuery = commentQuery.innerJoin(
+					workspacePages,
+					and(
+						eq(workspacePages.pageId, pages.id),
+						eq(workspacePages.workspaceId, input.workspaceId),
+					),
+				);
+			}
+
+			const commentRows = await commentQuery
+				.where(and(readable, isNull(pageComments.deletedAt)))
 				.orderBy(asc(pageComments.createdAt));
 
 			const byThread = new Map<string, typeof commentRows>();

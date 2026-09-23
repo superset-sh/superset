@@ -121,25 +121,28 @@ beforeAll(async () => {
 		})),
 	);
 
-	const [first] = await db
+	// Index 1 specifically: `org` visibility and created by USER, so the
+	// workspace-scoped assertions below have exactly one expected author.
+	const [linked] = await db
 		.select({ id: pages.id })
 		.from(pages)
-		.where(eq(pages.organizationId, ORG))
+		.where(eq(pages.slug, `list-page-${suffix}-1`))
 		.limit(1);
-	if (first) {
-		await db.insert(workspacePages).values({
-			pageId: first.id,
-			workspaceId: WORKSPACE,
-			entryPath: "/index.html",
-		});
-	}
+	if (!linked) throw new Error("failed to find the page to link");
+	await db.insert(workspacePages).values({
+		pageId: linked.id,
+		workspaceId: WORKSPACE,
+		entryPath: "/index.html",
+	});
 });
 
 afterAll(async () => {
 	await db.delete(organizations).where(eq(organizations.id, ORG));
 	await db.delete(users).where(eq(users.id, USER));
 	await db.delete(users).where(eq(users.id, OTHER_USER));
-	await dbWs.$client.end?.();
+	// Guarded: the pooled client is shared, so a sibling integration file that
+	// already closed it must not fail this teardown.
+	await dbWs.$client.end?.().catch(() => {});
 });
 
 describe("page.list keyset", () => {
@@ -253,6 +256,33 @@ describe("page.counts", () => {
 
 		expect(counts.pinned).toBe(ids.length);
 		expect((await caller.page.counts({ pinnedIds: [] })).pinned).toBe(0);
+	});
+
+	test("the author breakdown offers every author, not just the selected one", async () => {
+		const all = await caller.page.counts();
+		const selected = await caller.page.counts({ authorId: OTHER_USER });
+
+		// Narrowing the breakdown by the dimension it offers would collapse the
+		// picker to whatever is already chosen, so you could never switch author.
+		expect(all.authors.length).toBeGreaterThan(1);
+		expect(selected.authors.map((row) => row.userId).sort()).toEqual(
+			all.authors.map((row) => row.userId).sort(),
+		);
+	});
+
+	test("the author breakdown respects the selected workspace", async () => {
+		const counts = await caller.page.counts({ workspaceId: WORKSPACE });
+
+		// Only the linked page is in this workspace, and USER created it — an
+		// author with nothing here would lead to an empty list when picked.
+		expect(counts.authors.map((row) => row.userId)).toEqual([USER]);
+	});
+
+	test("the workspace breakdown is not narrowed by the selected workspace", async () => {
+		const counts = await caller.page.counts({ workspaceId: WORKSPACE });
+		expect(counts.workspaces.map((row) => row.workspaceId)).toContain(
+			WORKSPACE,
+		);
 	});
 
 	test("a search narrows the counts too", async () => {

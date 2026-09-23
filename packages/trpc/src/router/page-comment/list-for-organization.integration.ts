@@ -178,7 +178,9 @@ afterAll(async () => {
 	await db.delete(organizations).where(eq(organizations.id, ORG));
 	await db.delete(users).where(eq(users.id, USER));
 	await db.delete(users).where(eq(users.id, OTHER_USER));
-	await dbWs.$client.end?.();
+	// Guarded: the pooled client is shared, so a sibling integration file that
+	// already closed it must not fail this teardown.
+	await dbWs.$client.end?.().catch(() => {});
 });
 
 describe("pageComment.listForOrganization", () => {

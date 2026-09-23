@@ -499,9 +499,12 @@ export const pageRouter = {
 						)
 				: query.where(and(...filters)));
 
-			// The workspace picker's own counts, so choosing a workspace does not
-			// depend on having downloaded every page to count them. Deliberately
-			// not narrowed by `workspaceId` — that is the option being chosen.
+			// Each picker's own counts, so choosing an option does not depend on
+			// having downloaded every page to count them. A breakdown is never
+			// narrowed by the dimension it offers — that is the choice being made,
+			// and narrowing by it collapses the list to whatever is already
+			// selected — but it is narrowed by every other active filter, or it
+			// offers options that lead to an empty list.
 			const workspaces = await db
 				.select({
 					workspaceId: workspacePages.workspaceId,
@@ -512,9 +515,7 @@ export const pageRouter = {
 				.where(and(...filters))
 				.groupBy(workspacePages.workspaceId);
 
-			// Likewise the author picker: bounded by how many people have published,
-			// not by how many pages there are.
-			const authors = await db
+			let authorsBase = db
 				.select({
 					userId: pages.createdByUserId,
 					name: users.name,
@@ -523,7 +524,28 @@ export const pageRouter = {
 				})
 				.from(pages)
 				.leftJoin(users, eq(users.id, pages.createdByUserId))
-				.where(and(...filters, isNotNull(pages.createdByUserId)))
+				.$dynamic();
+
+			if (input?.workspaceId) {
+				authorsBase = authorsBase.innerJoin(
+					workspacePages,
+					and(
+						eq(workspacePages.pageId, pages.id),
+						eq(workspacePages.workspaceId, input.workspaceId),
+					),
+				);
+			}
+
+			const authors = await authorsBase
+				.where(
+					and(
+						eq(pages.organizationId, organizationId),
+						visibilityFilter(userId),
+						// `authorId` deliberately absent; `search` still applies.
+						...pageFilters({ search: input?.search }),
+						isNotNull(pages.createdByUserId),
+					),
+				)
 				.groupBy(pages.createdByUserId, users.name, users.image);
 
 			return {
