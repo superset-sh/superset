@@ -28,7 +28,7 @@ const reviewNotes = [
 		: null,
 	"",
 	"GUIDELINES WE EXPECT YOU TO CHECK",
-	"Payments (3.1): Superset is sold to organizations. A Pro plan is purchased by the organization on the web and unlocks Superset Mobile for every member. The app sells nothing, has no purchase buttons, and does not link to a purchase page. Free accounts see an informational screen that explains Pro is required and offers a Refresh button.",
+	"Payments (3.1): Superset is sold to organizations. A Pro plan is purchased by the organization on the web and unlocks Superset Mobile for every member. The app sells nothing and has no purchase buttons. Free accounts see an informational screen that explains Pro is required.",
 	"Sign-in (4.8): Sign in with Apple is offered alongside GitHub, Google, and email. Any of them creates a free account instantly, which lands on the Pro-required screen described above; the demo account is the one with a paid workspace.",
 	"Account deletion (5.1.1 v): Settings > Danger Zone > Delete account, in-app, no email or web visit required.",
 	"Code execution (2.5.2): No user or project code is downloaded or executed on the device. The terminal tab renders output streamed from the user's own session and sends keystrokes to it; the agents themselves run on the user's computer or in their cloud workspace.",
@@ -43,7 +43,7 @@ const reviewNotes = [
 module.exports = {
 	configVersion: 0,
 	apple: {
-		version: "1.1.1",
+		version: "1.1.2",
 		copyright: "2026 Superset",
 		categories: ["DEVELOPER_TOOLS", "PRODUCTIVITY"],
 		info: {
