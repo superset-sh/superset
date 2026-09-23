@@ -5928,14 +5928,11 @@ msgstr "包含Pro的全部內容，另加SSO與SAML、SCIM帳號開通、IP限�
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "一切都能指令碼化。用CLI建立工作區和代理程式，用SDK把Superset接進CI，或者讓你的代理程式通過MCP來驅動它。"
 
-msgid "Everything since {launchDate}"
-msgstr "{launchDate} 以來的全部"
-
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "我們在基礎元件之上構建的一切——Superset原創元件、面向代理程式介面的"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
-msgstr "你發佈的所有內容都會被刪除，而不是隱藏。你可以稍後重新加入，並從這台機器上仍保留的記錄中重建完整歷史。"
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "你釋出過的所有內容都會被刪除，而不是隱藏。你之後可以重新加入，屆時會根據此機器上仍保留的記錄重新生成。"
 
 msgid "Existing repo path"
 msgstr "已有儲存庫路徑"
@@ -8115,9 +8112,6 @@ msgstr "大"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "大量持久化終端會增加CPU/記憶體佔用。如果發現變慢，可以考慮終止舊會話。"
-
-msgid "Last {BACKFILL_DAYS} days only"
-msgstr "僅最近 {BACKFILL_DAYS} 天"
 
 msgid "Last 3 months"
 msgstr "最近3個月"
@@ -14978,9 +14972,6 @@ msgstr "關聯的裝置現在連不上"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "最好的代理程式會變。<0/>你的工作流不該變。"
 
-msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
-msgstr "排行榜從 {launchDate} 開始。選擇較大的範圍會從這台機器上仍保留的記錄中重建全部資料，你離開前的排名也會回來。"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "設定儲存庫必須是該環境的儲存庫之一"
 
@@ -16261,9 +16252,6 @@ msgstr "用量資料已過期"
 
 msgid "Usage sections"
 msgstr "用量分區"
-
-msgid "Usage to publish"
-msgstr "要發佈的用量"
 
 msgid "Usage unavailable."
 msgstr "無法獲取用量。"

@@ -5928,14 +5928,11 @@ msgstr "Semua yang ada di Pro ditambah SSO & SAML, provisioning SCIM, pembatasan
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "Semuanya bisa diskrip. Buat workspace dan agen dari CLI, sambungkan Superset ke CI dengan SDK, atau biarkan agen Anda mengendalikannya lewat MCP."
 
-msgid "Everything since {launchDate}"
-msgstr "Semua sejak {launchDate}"
-
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Semua yang kami bangun di atas primitif — orisinal Superset, suite"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
-msgstr "Semua yang kamu publikasikan dihapus, bukan disembunyikan. Kamu bisa bergabung lagi nanti dan membangun ulang seluruh riwayatmu dari transkrip yang masih ada di mesin ini."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Semua yang Anda publikasikan dihapus, bukan disembunyikan. Anda bisa bergabung lagi nanti dan datanya akan dibangun ulang dari transkrip yang masih ada di mesin ini."
 
 msgid "Existing repo path"
 msgstr "Path repo yang sudah ada"
@@ -8115,9 +8112,6 @@ msgstr "Besar"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "Terminal persisten dalam jumlah besar bisa menaikkan penggunaan CPU/memori. Pertimbangkan mematikan sesi lama kalau Anda merasakan perlambatan."
-
-msgid "Last {BACKFILL_DAYS} days only"
-msgstr "Hanya {BACKFILL_DAYS} hari terakhir"
 
 msgid "Last 3 months"
 msgstr "3 bulan terakhir"
@@ -14978,9 +14972,6 @@ msgstr "Perangkat terkait tidak bisa dijangkau saat ini"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Agen terbaik akan berganti.<0/>Alur kerja Anda tidak perlu."
 
-msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
-msgstr "Papan peringkat dimulai pada {launchDate}. Rentang yang lebih luas membangun ulang semuanya dari transkrip yang masih ada di mesin ini, jadi peringkat yang kamu punya sebelum keluar kembali lagi."
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Repositori konfigurasi harus salah satu repositori environment"
 
@@ -16261,9 +16252,6 @@ msgstr "Data penggunaan sudah tidak mutakhir"
 
 msgid "Usage sections"
 msgstr "Bagian penggunaan"
-
-msgid "Usage to publish"
-msgstr "Data penggunaan yang akan dipublikasikan"
 
 msgid "Usage unavailable."
 msgstr "Penggunaan tidak tersedia."

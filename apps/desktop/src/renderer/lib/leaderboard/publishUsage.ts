@@ -10,17 +10,9 @@ import {
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 
-export const BACKFILL_DAYS = 30;
-
 export const PREVIEW_DAYS = 30;
 
-export type BackfillRange = "recent" | "launch";
-
-export function backfillDays(
-	range: BackfillRange,
-	now: Date = new Date(),
-): number {
-	if (range !== "launch") return BACKFILL_DAYS;
+export function launchBackfillDays(now: Date = new Date()): number {
 	return Math.min(daysSinceLaunch(now), MAX_BACKFILL_DAYS);
 }
 
@@ -117,7 +109,7 @@ export async function publishPayload(
 export async function publishUsage(
 	hostUrl: string,
 	machineId: string,
-	days: number = BACKFILL_DAYS,
+	days: number,
 ): Promise<PublishResult> {
 	return await publishPayload(machineId, await buildPayload(hostUrl, days));
 }

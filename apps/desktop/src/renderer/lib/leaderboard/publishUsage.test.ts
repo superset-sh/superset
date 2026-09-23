@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { MAX_BACKFILL_DAYS } from "@superset/trpc/leaderboard-periods";
-import { BACKFILL_DAYS, backfillDays, chunkRows } from "./publishUsage";
+import { chunkRows, launchBackfillDays } from "./publishUsage";
 
 const rows = (...days: string[]) => days.map((day) => ({ day }));
 
@@ -44,21 +44,13 @@ describe("chunkRows", () => {
 	});
 });
 
-describe("backfillDays", () => {
-	test("the narrow range is the unchanged 30-day window", () => {
-		expect(backfillDays("recent", new Date("2026-09-18T12:00:00.000Z"))).toBe(
-			BACKFILL_DAYS,
-		);
+describe("launchBackfillDays", () => {
+	test("reaches launch day", () => {
+		expect(launchBackfillDays(new Date("2026-09-18T12:00:00.000Z"))).toBe(52);
 	});
 
-	test("the wide range reaches launch day", () => {
-		expect(backfillDays("launch", new Date("2026-09-18T12:00:00.000Z"))).toBe(
-			52,
-		);
-	});
-
-	test("the wide range stops at the host's ceiling once launch is older", () => {
-		expect(backfillDays("launch", new Date("2027-09-18T12:00:00.000Z"))).toBe(
+	test("stops at the host's ceiling once launch is older", () => {
+		expect(launchBackfillDays(new Date("2027-09-18T12:00:00.000Z"))).toBe(
 			MAX_BACKFILL_DAYS,
 		);
 	});
@@ -67,11 +59,12 @@ describe("backfillDays", () => {
 		for (const day of [
 			"2026-07-29",
 			"2026-10-26",
+			"2026-10-27",
 			"2027-01-01",
 			"2030-01-01",
 		]) {
 			expect(
-				backfillDays("launch", new Date(`${day}T12:00:00.000Z`)),
+				launchBackfillDays(new Date(`${day}T12:00:00.000Z`)),
 			).toBeLessThanOrEqual(MAX_BACKFILL_DAYS);
 		}
 	});

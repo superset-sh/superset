@@ -5928,14 +5928,11 @@ msgstr "Alles uit Pro plus SSO & SAML, SCIM-provisioning, IP-beperkingen, auditl
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "Alles is scriptbaar. Start werkruimtes en agents vanaf de CLI, koppel Superset aan CI met de SDK, of laat je agent het via MCP aansturen."
 
-msgid "Everything since {launchDate}"
-msgstr "Alles sinds {launchDate}"
-
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Alles wat we boven op de primitives hebben gebouwd — Superset-originelen, de"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
-msgstr "Alles wat je hebt gepubliceerd wordt verwijderd, niet verborgen. Je kunt later opnieuw meedoen en je hele geschiedenis opbouwen uit de transcripties die nog op deze machine staan."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Alles wat je hebt gepubliceerd wordt verwijderd, niet verborgen. Je kunt later opnieuw meedoen; dan wordt het opnieuw opgebouwd uit de transcripten die nog op deze machine staan."
 
 msgid "Existing repo path"
 msgstr "Pad van bestaande repo"
@@ -8115,9 +8112,6 @@ msgstr "Groot"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "Veel blijvende terminals kunnen het CPU- en geheugengebruik verhogen. Beëindig oude sessies als je vertraging merkt."
-
-msgid "Last {BACKFILL_DAYS} days only"
-msgstr "Alleen de laatste {BACKFILL_DAYS} dagen"
 
 msgid "Last 3 months"
 msgstr "Laatste 3 maanden"
@@ -14978,9 +14972,6 @@ msgstr "Het bijbehorende apparaat is nu niet bereikbaar"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "De beste agent verandert.<0/>Jouw workflow niet."
 
-msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
-msgstr "Het klassement begint op {launchDate}. Het ruimere bereik bouwt alles opnieuw op uit de transcripties die nog op deze machine staan, dus de plek die je had voordat je vertrok komt terug."
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "De configuratierepository moet een van de repositories van de omgeving zijn"
 
@@ -16261,9 +16252,6 @@ msgstr "De gebruiksgegevens zijn verouderd"
 
 msgid "Usage sections"
 msgstr "Onderdelen van gebruik"
-
-msgid "Usage to publish"
-msgstr "Te publiceren gebruik"
 
 msgid "Usage unavailable."
 msgstr "Gebruik niet beschikbaar."

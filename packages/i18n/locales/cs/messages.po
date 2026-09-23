@@ -5928,14 +5928,11 @@ msgstr "Všechno z tarifu Pro a k tomu SSO a SAML, provisioning přes SCIM, omez
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "Všechno jde skriptovat. Vytvářejte pracovní prostory a agenty z CLI, zapojte Superset do CI přes SDK nebo ho nechte řídit svého agenta přes MCP."
 
-msgid "Everything since {launchDate}"
-msgstr "Vše od {launchDate}"
-
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Vše, co jsme postavili nad primitivy — originály Superset, sada"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
-msgstr "Vše zveřejněné se smaže, neskryje. Později se můžete znovu připojit a obnovit celou historii z přepisů, které na tomto počítači zůstaly."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Všechno, co jste zveřejnili, se smaže, ne jen skryje. Můžete se později vrátit a znovu se to sestaví z přepisů, které na tomto počítači zůstaly."
 
 msgid "Existing repo path"
 msgstr "Cesta k existujícímu repozitáři"
@@ -8115,9 +8112,6 @@ msgstr "Velké"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "Velké množství trvalých terminálů může zvýšit spotřebu CPU a paměti. Pokud zaznamenáte zpomalení, zvažte ukončení starých relací."
-
-msgid "Last {BACKFILL_DAYS} days only"
-msgstr "Jen posledních {BACKFILL_DAYS} dní"
 
 msgid "Last 3 months"
 msgstr "Poslední 3 měsíce"
@@ -14978,9 +14972,6 @@ msgstr "Přidružené zařízení teď není dostupné"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Nejlepší agent se změní.<0/>Vaše workflow ne."
 
-msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
-msgstr "Žebříček začíná {launchDate}. Širší rozsah obnoví vše z přepisů, které na tomto počítači zůstaly, takže se vrátí i vaše pozice před odchodem."
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Konfigurační repozitář musí být jedním z repozitářů prostředí"
 
@@ -16261,9 +16252,6 @@ msgstr "Údaje o využití jsou zastaralé"
 
 msgid "Usage sections"
 msgstr "Sekce využití"
-
-msgid "Usage to publish"
-msgstr "Využití ke zveřejnění"
 
 msgid "Usage unavailable."
 msgstr "Využití není dostupné."

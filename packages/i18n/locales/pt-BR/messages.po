@@ -5928,14 +5928,11 @@ msgstr "Tudo do Pro mais SSO e SAML, provisionamento SCIM, restrições de IP, l
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "Tudo é scriptável. Crie áreas de trabalho e agentes pela CLI, integre o Superset ao CI com o SDK ou deixe seu agente controlá-lo por MCP."
 
-msgid "Everything since {launchDate}"
-msgstr "Tudo desde {launchDate}"
-
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Tudo o que construímos em cima dos primitivos — os originais do Superset, a suíte"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
-msgstr "Tudo o que você publicou é excluído, não ocultado. Você pode entrar de novo mais tarde e reconstruir todo o seu histórico a partir das transcrições que ainda estão nesta máquina."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Tudo o que você publicou é apagado, não ocultado. Você pode voltar depois e o histórico é reconstruído a partir das transcrições que ainda estiverem nesta máquina."
 
 msgid "Existing repo path"
 msgstr "Caminho do repositório existente"
@@ -8115,9 +8112,6 @@ msgstr "Grande"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "Muitos terminais persistentes podem aumentar o uso de CPU e memória. Considere encerrar sessões antigas se notar lentidão."
-
-msgid "Last {BACKFILL_DAYS} days only"
-msgstr "Apenas os últimos {BACKFILL_DAYS} dias"
 
 msgid "Last 3 months"
 msgstr "Últimos 3 meses"
@@ -14978,9 +14972,6 @@ msgstr "O dispositivo associado não está acessível agora"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "O melhor agente vai mudar.<0/>Seu fluxo de trabalho, não."
 
-msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
-msgstr "O ranking começa em {launchDate}. O intervalo mais amplo reconstrói tudo a partir das transcrições que ainda estão nesta máquina, então a posição que você tinha antes de sair volta."
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "O repositório de configuração deve ser um dos repositórios do ambiente"
 
@@ -16261,9 +16252,6 @@ msgstr "Os dados de uso estão desatualizados"
 
 msgid "Usage sections"
 msgstr "Seções de uso"
-
-msgid "Usage to publish"
-msgstr "Uso a publicar"
 
 msgid "Usage unavailable."
 msgstr "Uso indisponível."

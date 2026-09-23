@@ -5928,14 +5928,11 @@ msgstr "Pro'daki her şeye ek olarak SSO ve SAML, SCIM sağlama, IP kısıtlamal
 msgid "Everything is scriptable. Spawn workspaces and agents from the CLI, wire Superset into CI with the SDK, or let your agent drive it over MCP."
 msgstr "Her şey betiklenebilir. CLI'den çalışma alanı ve ajan başlatın, SDK ile Superset'i CI'ye bağlayın veya ajanınızın MCP üzerinden yönetmesine izin verin."
 
-msgid "Everything since {launchDate}"
-msgstr "{launchDate} tarihinden bu yana her şey"
-
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "İlkellerin üzerine kurduğumuz her şey — Superset özgünleri, ajan arayüzleri için"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and rebuild your whole history from the transcripts still on this machine."
-msgstr "Yayımladığın her şey gizlenmez, silinir. Daha sonra yeniden katılıp tüm geçmişini bu makinede duran transkriptlerden yeniden oluşturabilirsin."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Yayımladığınız her şey gizlenmez, silinir. Daha sonra yeniden katılabilirsiniz ve bu makinede duran kayıtlardan yeniden oluşturulur."
 
 msgid "Existing repo path"
 msgstr "Mevcut depo yolu"
@@ -8115,9 +8112,6 @@ msgstr "Büyük"
 
 msgid "Large numbers of persistent terminals can increase CPU/memory usage. Consider killing old sessions if you notice slowdowns."
 msgstr "Çok sayıda kalıcı terminal CPU/bellek kullanımını artırabilir. Yavaşlama fark ederseniz eski oturumları sonlandırmayı düşünün."
-
-msgid "Last {BACKFILL_DAYS} days only"
-msgstr "Yalnızca son {BACKFILL_DAYS} gün"
 
 msgid "Last 3 months"
 msgstr "Son 3 ay"
@@ -14978,9 +14972,6 @@ msgstr "İlgili cihaza şu anda erişilemiyor"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "En iyi ajan değişecek.<0/>İş akışınız değişmemeli."
 
-msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
-msgstr "Sıralama {launchDate} tarihinde başlıyor. Geniş aralık her şeyi bu makinede duran transkriptlerden yeniden oluşturur, böylece ayrılmadan önceki sıran geri gelir."
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Yapılandırma deposu, ortamın depolarından biri olmalıdır"
 
@@ -16261,9 +16252,6 @@ msgstr "Kullanım verileri güncel değil"
 
 msgid "Usage sections"
 msgstr "Kullanım bölümleri"
-
-msgid "Usage to publish"
-msgstr "Yayımlanacak kullanım"
 
 msgid "Usage unavailable."
 msgstr "Kullanım bilgisi yok."

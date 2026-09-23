@@ -4,14 +4,13 @@ import { formatTokens } from "@superset/shared/format-tokens";
 import { Button } from "@superset/ui/button";
 import { useState } from "react";
 import { LeaderboardJoinDialog } from "renderer/components/LeaderboardJoinDialog";
-import type { BackfillRange } from "renderer/lib/leaderboard";
 import { useLeaderboardJoinPreview } from "renderer/routes/_authenticated/hooks/useLeaderboardJoinPreview";
 import { CardFrame } from "../CardFrame";
 import { StatTile } from "./components/StatTile";
 
 interface LeaderboardOptInPromptProps {
 	hostUrl: string | null;
-	join: (handle: string, range: BackfillRange) => Promise<boolean>;
+	join: (handle: string) => Promise<boolean>;
 	joining: boolean;
 	localTokens: number | null;
 	localTokensLoading: boolean;
@@ -117,8 +116,8 @@ export function LeaderboardOptInPrompt({
 				suggestedHandle={suggestedHandle}
 				isLoading={previewLoading}
 				isJoining={joining}
-				onConfirm={async (handle, range) => {
-					if (await join(handle, range)) setOpen(false);
+				onConfirm={async (handle) => {
+					if (await join(handle)) setOpen(false);
 				}}
 			/>
 		</>

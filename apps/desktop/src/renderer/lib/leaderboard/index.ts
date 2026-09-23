@@ -1,15 +1,13 @@
 export type {
 	Awarded,
-	BackfillRange,
 	LeaderboardFactoryDay,
 	LeaderboardPayload,
 	LeaderboardPayloadDay,
 } from "./publishUsage";
 export {
-	BACKFILL_DAYS,
-	backfillDays,
 	buildPayload,
 	chunkRows,
+	launchBackfillDays,
 	PREVIEW_DAYS,
 	publishPayload,
 	publishUsage,
