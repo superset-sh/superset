@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Event as ParcelWatcherEvent } from "@parcel/watcher";
+import type { NativeWatchEvent } from "./watch-backend";
 import type { InternalWatchEvent } from "./watch-event-coalescing";
 import {
 	coalesceWatchEvents,
@@ -7,9 +7,9 @@ import {
 } from "./watch-event-coalescing";
 
 function createEvent(
-	type: ParcelWatcherEvent["type"],
+	type: NativeWatchEvent["type"],
 	path: string,
-): ParcelWatcherEvent {
+): NativeWatchEvent {
 	return { type, path };
 }
 

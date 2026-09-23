@@ -98,15 +98,8 @@ export async function migrateLegacySidebarFolders(
 		if (normalizeWorkspaceTag(section.tag) != null) continue; // converted
 		if (sessionParked.has(section.sectionId)) continue;
 
-		// A pointer whose workspace no host serves any more is a stale row
-		// (deleted workspace) — it must not hold the folder legacy forever.
-		// The caller only runs this pass once the host fan-out is ready, so
-		// "no row anywhere" means gone, not "not yet answered".
 		const members = io.localRows.filter(
-			(row) =>
-				row.sectionId === section.sectionId &&
-				row.isVisible &&
-				io.hostRowsById.has(row.workspaceId),
+			(row) => row.sectionId === section.sectionId && row.isVisible,
 		);
 		const memberHostRows = members.map((member) =>
 			io.hostRowsById.get(member.workspaceId),

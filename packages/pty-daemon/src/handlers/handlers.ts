@@ -188,6 +188,13 @@ export function handleSubscribe(
 			conn.send(out, snap);
 		}
 	}
+	if (msg.modeSnapshot) {
+		conn.send({
+			type: "replay-complete",
+			id: msg.id,
+			modes: session.modes.snapshot(),
+		});
+	}
 }
 
 export function handleUnsubscribe(conn: Conn, msg: UnsubscribeMessage): void {

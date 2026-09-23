@@ -133,6 +133,7 @@ describe("round 3: the real worktree watcher feeding the store", () => {
 		const filesystem = {
 			getServiceForWorkspace: () => service,
 			refreshWatcherIgnores: async () => false,
+			isWatchAttachBackingOff: () => false,
 		};
 		let attached = false;
 		const watcher = new GitWatcher(

@@ -2,7 +2,7 @@ import type { WorkspaceStore } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useRef } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { PaneViewerData } from "../../types";
+import type { ConsumeSearch, PaneViewerData } from "../../types";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 
 interface UseConsumeAutomationRunLinkArgs {
@@ -10,6 +10,7 @@ interface UseConsumeAutomationRunLinkArgs {
 	workspaceId: string;
 	terminalId: string | undefined;
 	focusRequestId: string | undefined;
+	consumeSearch: ConsumeSearch;
 }
 
 /**
@@ -25,6 +26,7 @@ export function useConsumeAutomationRunLink({
 	workspaceId,
 	terminalId,
 	focusRequestId,
+	consumeSearch,
 }: UseConsumeAutomationRunLinkArgs): void {
 	const consumedRef = useRef<Set<string>>(new Set());
 	const terminalSessionsQuery = workspaceTrpc.terminal.list.useQuery(
@@ -69,6 +71,7 @@ export function useConsumeAutomationRunLink({
 		});
 		if (consumedRef.current.has(key)) return;
 		consumedRef.current.add(key);
+		consumeSearch(["terminalId"]);
 		if (targetTerminalId === null) {
 			console.warn(
 				"[automation-run-link] Ignoring terminal link: not in this workspace and not resumed elsewhere",
@@ -77,7 +80,14 @@ export function useConsumeAutomationRunLink({
 			return;
 		}
 		focusOrAddTerminalPane(store, targetTerminalId);
-	}, [store, terminalId, focusRequestId, targetTerminalId, workspaceId]);
+	}, [
+		store,
+		terminalId,
+		focusRequestId,
+		targetTerminalId,
+		workspaceId,
+		consumeSearch,
+	]);
 }
 
 export function getAutomationRunLinkConsumeKey({

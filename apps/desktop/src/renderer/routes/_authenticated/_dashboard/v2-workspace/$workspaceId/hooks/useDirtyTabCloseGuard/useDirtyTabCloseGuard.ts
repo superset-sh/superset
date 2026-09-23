@@ -1,9 +1,10 @@
 import { useLingui } from "@lingui/react/macro";
-import type { WorkspaceProps } from "@superset/panes";
+import type { WorkspaceProps, WorkspaceStore } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import { useCallback } from "react";
 import { getBaseName } from "renderer/lib/pathBasename";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
+import type { StoreApi } from "zustand";
 import { getDocument } from "../../state/fileDocumentStore";
 import type { FilePaneData, PaneViewerData } from "../../types";
 
@@ -11,7 +12,9 @@ type OnBeforeCloseTab = NonNullable<
 	WorkspaceProps<PaneViewerData>["onBeforeCloseTab"]
 >;
 
-export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
+export function useDirtyTabCloseGuard(
+	store: StoreApi<WorkspaceStore<PaneViewerData>>,
+): OnBeforeCloseTab {
 	const { t } = useLingui();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
@@ -36,6 +39,7 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 						});
 			return new Promise<boolean>((resolve) => {
 				alert({
+					onDismiss: () => resolve(false),
 					title,
 					description: t({
 						message: "Your changes will be lost if you don't save them.",
@@ -52,6 +56,9 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 									if (!doc) continue;
 									const result = await doc.save();
 									if (result.status !== "saved") {
+										store
+											.getState()
+											.setActivePane({ tabId: tab.id, paneId: pane.id });
 										resolve(false);
 										return;
 									}
@@ -84,6 +91,6 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 				});
 			});
 		},
-		[t, workspaceId],
+		[t, workspaceId, store],
 	);
 }

@@ -10,6 +10,7 @@ import {
 	disposeSessionAndWait,
 	disposeSessionsByWorkspaceId,
 	disposeSessionsByWorktreePath,
+	getPendingTerminalWorkspaceId,
 	listLiveTerminalSessions,
 	parseThemeType,
 	renameTerminalSession,
@@ -311,6 +312,29 @@ export const terminalRouter = router({
 					message: "Workspace not found",
 				});
 			}
+
+			const pendingWorkspaceId = getPendingTerminalWorkspaceId(
+				input.terminalId,
+			);
+			if (pendingWorkspaceId && pendingWorkspaceId !== input.workspaceId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Terminal session does not belong to this workspace",
+				});
+			}
+
+			const now = Date.now();
+			ctx.db
+				.insert(terminalSessions)
+				.values({
+					id: input.terminalId,
+					originWorkspaceId: input.workspaceId,
+					status: "disposed",
+					createdAt: now,
+					disposeRequestedAt: now,
+				})
+				.onConflictDoNothing()
+				.run();
 
 			const session = ctx.db.query.terminalSessions
 				.findFirst({ where: eq(terminalSessions.id, input.terminalId) })

@@ -1,7 +1,7 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { useEffect, useRef } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { PaneViewerData } from "../../types";
+import type { ConsumeSearch, PaneViewerData } from "../../types";
 import {
 	openUrlInV2Workspace,
 	type V2WorkspaceUrlOpenTarget,
@@ -12,6 +12,7 @@ interface UseConsumeOpenUrlRequestArgs {
 	url: string | undefined;
 	target: V2WorkspaceUrlOpenTarget | undefined;
 	requestId: string | undefined;
+	consumeSearch: ConsumeSearch;
 }
 
 export function useConsumeOpenUrlRequest({
@@ -19,6 +20,7 @@ export function useConsumeOpenUrlRequest({
 	url,
 	target,
 	requestId,
+	consumeSearch,
 }: UseConsumeOpenUrlRequestArgs): void {
 	const consumedRef = useRef<Set<string>>(new Set());
 
@@ -33,7 +35,8 @@ export function useConsumeOpenUrlRequest({
 		if (consumedRef.current.has(key)) return;
 		consumedRef.current.add(key);
 		openUrlInV2Workspace({ store, target: resolvedTarget, url });
-	}, [store, target, url, requestId]);
+		consumeSearch(["openUrl", "openUrlTarget", "openUrlRequestId"]);
+	}, [store, target, url, requestId, consumeSearch]);
 }
 
 export function getOpenUrlRequestConsumeKey({

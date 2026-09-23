@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import type { HostDb } from "../../db/index.ts";
 import { projects, workspaces } from "../../db/schema.ts";
 import { listGitIgnoredDirs } from "../git/index.ts";
+import { WatchAttachGuard } from "./watch-attach-guard.ts";
 
 export interface WorkspaceFilesystemManagerOptions {
 	db: HostDb;
@@ -32,6 +33,7 @@ export class WorkspaceFilesystemManager {
 		listGitIgnoredDirs,
 		useDefaultIgnores: false,
 	});
+	private readonly watchAttachGuard = new WatchAttachGuard(this.watcherManager);
 	private readonly serviceCache = new Map<string, FsHostService>();
 
 	constructor(options: WorkspaceFilesystemManagerOptions) {
@@ -82,6 +84,10 @@ export class WorkspaceFilesystemManager {
 		);
 	}
 
+	isWatchAttachBackingOff(rootPath: string): boolean {
+		return this.watchAttachGuard.isBackingOff(rootPath);
+	}
+
 	/**
 	 * Swap the workspace's native subscription onto a freshly derived ignore
 	 * set. Required after a directory is UN-ignored — the attach-time prune
@@ -99,7 +105,7 @@ export class WorkspaceFilesystemManager {
 		if (!service) {
 			service = createFsHostService({
 				rootPath,
-				watcherManager: this.watcherManager,
+				watcherManager: this.watchAttachGuard,
 			});
 			this.serviceCache.set(rootPath, service);
 		}
@@ -108,6 +114,6 @@ export class WorkspaceFilesystemManager {
 
 	async close(): Promise<void> {
 		this.serviceCache.clear();
-		await this.watcherManager.close();
+		await this.watchAttachGuard.close();
 	}
 }

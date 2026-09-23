@@ -16,6 +16,7 @@ interface FactoryBackdropProps {
 	halfWidth?: number;
 	glow?: boolean;
 	grid?: boolean;
+	guides?: boolean;
 }
 
 export function FactoryBackdrop({
@@ -23,6 +24,7 @@ export function FactoryBackdrop({
 	halfWidth = 448,
 	glow = true,
 	grid = true,
+	guides = true,
 }: FactoryBackdropProps) {
 	return (
 		<div
@@ -46,10 +48,12 @@ export function FactoryBackdrop({
 					style={{ backgroundImage: furnaceGlow(tint) }}
 				/>
 			)}
-			<div
-				className="absolute inset-0"
-				style={{ backgroundImage: guideLines(halfWidth) }}
-			/>
+			{guides && (
+				<div
+					className="absolute inset-0"
+					style={{ backgroundImage: guideLines(halfWidth) }}
+				/>
+			)}
 			{glow && (
 				<div
 					className="absolute inset-x-0 top-0 h-px"

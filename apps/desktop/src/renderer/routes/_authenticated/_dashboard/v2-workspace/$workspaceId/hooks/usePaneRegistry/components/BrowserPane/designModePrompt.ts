@@ -194,10 +194,8 @@ interface BuildDesignModePromptInput {
 }
 
 /**
- * One-line prompt for the agent terminal. `terminal.writeInput` delivers the
- * text as keystrokes, where an embedded newline would submit early — so the
- * inline part stays single-line and the full multi-line context travels via
- * the referenced files.
+ * One-line prompt for the agent terminal: the inline part stays short and the
+ * full multi-line context travels via the referenced files.
  */
 export function buildDesignModePrompt({
 	payload,

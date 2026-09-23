@@ -35,6 +35,89 @@ afterEach(() => {
 });
 
 describe("readHarnessTranscript", () => {
+	test("preserves a consumed busy-session follow-up in conversation order", () => {
+		// Claude Code 2.1.263: a prompt entered during a tool call is first
+		// queued, then recorded as queued_command when the turn consumes it.
+		const prompt = "Keep the existing API.\nAdd a regression for empty input.";
+		const { worktreePath, sessionId } = seedClaudeSession([
+			JSON.stringify({ type: "user", message: { content: "Fix the parser." } }),
+			JSON.stringify({
+				type: "queue-operation",
+				operation: "enqueue",
+				content: prompt,
+			}),
+			JSON.stringify({
+				type: "queue-operation",
+				operation: "remove",
+				reason: "absorbed_mid_turn",
+				content: prompt,
+			}),
+			JSON.stringify({
+				type: "attachment",
+				attachment: {
+					type: "queued_command",
+					commandMode: "prompt",
+					prompt,
+					source_uuid: "follow-up",
+					origin: { kind: "human" },
+				},
+			}),
+			JSON.stringify({
+				type: "assistant",
+				message: { content: "Kept the API and added the regression." },
+			}),
+		]);
+
+		expect(
+			readHarnessTranscript({
+				agentId: "claude",
+				agentSessionId: sessionId,
+				worktreePath,
+			})?.text,
+		).toBe(
+			`User: Fix the parser.\n\nUser: ${prompt}\n\nAssistant: Kept the API and added the regression.`,
+		);
+	});
+
+	test("excludes unconsumed queue operations and unrelated attachments", () => {
+		const { worktreePath, sessionId } = seedClaudeSession([
+			JSON.stringify({
+				type: "user",
+				message: { content: "Keep this instruction." },
+			}),
+			JSON.stringify({
+				type: "queue-operation",
+				operation: "enqueue",
+				content: "Pending instruction",
+			}),
+			JSON.stringify({
+				type: "queue-operation",
+				operation: "remove",
+				content: "Removed instruction",
+			}),
+			...[
+				undefined,
+				{ type: "other", commandMode: "prompt", prompt: "Unrelated" },
+				{ type: "queued_command", commandMode: "bash", prompt: "echo shell" },
+				{ type: "queued_command", commandMode: "prompt", prompt: "  " },
+				{ type: "queued_command", commandMode: "prompt", prompt: null },
+				{
+					type: "queued_command",
+					commandMode: "prompt",
+					prompt: { text: "Malformed" },
+				},
+			].map((attachment) => JSON.stringify({ type: "attachment", attachment })),
+		]);
+
+		expect(
+			readHarnessTranscript({
+				agentId: "claude",
+				agentSessionId: sessionId,
+				worktreePath,
+			})?.text,
+		).toBe("User: Keep this instruction.");
+	});
+
 	test("reads the conversation out of Claude's own store", () => {
 		const { worktreePath, sessionId } = seedClaudeSession([
 			JSON.stringify({ type: "mode", mode: "normal" }),

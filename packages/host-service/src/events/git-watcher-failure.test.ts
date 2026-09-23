@@ -58,6 +58,7 @@ for (const failure of ["reject", "end", "subscribe", "git"] as const) {
 		};
 		const streams: Stream[] = [];
 		let failSubscribe = failure === "subscribe";
+		let backingOff = false;
 		const filesystem = {
 			getServiceForWorkspace: () => ({
 				watchPath: () => {
@@ -68,6 +69,7 @@ for (const failure of ["reject", "end", "subscribe", "git"] as const) {
 				},
 			}),
 			refreshWatcherIgnores: async () => false,
+			isWatchAttachBackingOff: () => backingOff,
 		};
 		const store = new GitStatusStore();
 		const states: boolean[] = [];
@@ -129,6 +131,13 @@ for (const failure of ["reject", "end", "subscribe", "git"] as const) {
 		expect(computations).toBe(before + 2);
 
 		failSubscribe = false;
+		backingOff = true;
+		const attachesBeforeBackoff = streams.length;
+		await internals.rescan();
+		expect(internals.watched.has(workspaceId)).toBe(false);
+		expect(streams.length).toBe(attachesBeforeBackoff);
+
+		backingOff = false;
 		await internals.rescan();
 		expect(internals.watched.has(workspaceId)).toBe(true);
 		// A late error on the replaced watcher must not drop its replacement.

@@ -25,6 +25,7 @@ export interface BlogPost {
 	relatedSlugs?: string[];
 	faq?: Array<{ question: string; answer: string }>;
 	keywords?: string[];
+	draft?: boolean;
 	content: string;
 }
 

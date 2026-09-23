@@ -568,6 +568,9 @@ msgstr "{closedCount} gesloten"
 msgid "{completed} of {0} checks complete"
 msgstr "{completed} van {0} checks afgerond"
 
+msgid "{completed} of {total} completed"
+msgstr "{completed} van {total} voltooid"
+
 msgid "{configTitle} font size"
 msgstr "Tekengrootte van {configTitle}"
 
@@ -1047,6 +1050,12 @@ msgstr "<0>{primaryFont}</0> is niet geïnstalleerd op dit systeem. Er wordt ter
 msgid "<0>#{0}</0> <1>of {1} on the leaderboard</1>"
 msgstr "<0>#{0}</0> <1>van {1} op de ranglijst</1>"
 
+msgid "<0>Coming soon to</0><1>Google Play</1>"
+msgstr "<0>Binnenkort op</0><1>Google Play</1>"
+
+msgid "<0>Download on the</0><1>App Store</1>"
+msgstr "<0>Download in de</0><1>App Store</1>"
+
 msgid "<0>F3</0> · you are here"
 msgstr "<0>F3</0> · hier sta je nu"
 
@@ -1240,6 +1249,9 @@ msgstr "Een volledige restyling: dichtere rijen, poort- en agentchips onder elke
 
 msgid "A gateway is signed in with an API key."
 msgstr "Een gateway meldt zich aan met een API-sleutel."
+
+msgid "A guilty habit I have is waking up with an idea in the middle of the night and opening the app. By morning it's ready for review."
+msgstr "Ik heb de slechte gewoonte om midden in de nacht wakker te worden met een idee en de app te openen. Tegen de ochtend is het klaar voor review."
 
 msgid "A host must have at least one owner."
 msgstr "Een host moet minstens één eigenaar hebben."
@@ -1787,6 +1799,9 @@ msgstr "Al je gegevens worden na {ACCOUNT_DELETION_GRACE_DAYS} dagen definitief 
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Alle open terminalsessies worden beëindigd en draaiende hostservices worden gestopt. Gebruik “Superset sluiten” als je wilt dat de services blijven draaien voor de volgende keer."
 
+msgid "All pages"
+msgstr "Alle pagina's"
+
 msgid "All plans"
 msgstr "Alle plannen"
 
@@ -1918,6 +1933,9 @@ msgstr "Er staat een update klaar om te installeren."
 
 msgid "Analytics, Ops, and more"
 msgstr "Analyses, beheer en meer"
+
+msgid "Android is on the way. Be first to know when it ships."
+msgstr "Android komt eraan. Hoor het als eerste wanneer het uitkomt."
 
 msgid "Animate the active terminal cursor."
 msgstr "Laat de actieve terminalcursor knipperen."
@@ -2848,6 +2866,9 @@ msgstr "Kan ik mijn eigen API-sleutels gebruiken?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Kun je de tooltips in de hele app standaardiseren?"
 
+msgid "Can’t check {hostName}"
+msgstr "Kan {hostName} niet controleren"
+
 msgid "Can't connect right now"
 msgstr "Verbinden lukt nu even niet"
 
@@ -3220,6 +3241,9 @@ msgstr "Terminalgeschiedenis wissen"
 msgid "Clear terminal history?"
 msgstr "Terminalgeschiedenis wissen?"
 
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "Wis het filter om de zijbalk te herschikken"
+
 msgid "Clear workspace selection"
 msgstr "Werkruimteselectie wissen"
 
@@ -3480,6 +3504,9 @@ msgstr "Cloudsandboxen zijn niet ingeschakeld voor {account}. Vraag het Superset
 
 msgid "Cloud workspace"
 msgstr "Cloudwerkruimte"
+
+msgid "Co-founder & CTO, TrainLoop (YC W25)"
+msgstr "Medeoprichter en CTO, TrainLoop (YC W25)"
 
 msgid "Code"
 msgstr "Code"
@@ -3785,6 +3812,9 @@ msgstr "Slack verbinden"
 
 msgid "Connect Slack to manage tasks from conversations. Mention the bot in any channel or send it a direct message to create and update tasks."
 msgstr "Verbind Slack om taken vanuit gesprekken te beheren. Vermeld de bot in een kanaal of stuur een direct bericht om taken te maken en bij te werken."
+
+msgid "Connect this computer"
+msgstr "Verbind deze computer"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Koppel je GitHub-repository's en synchroniseer pull requests. Volg CI-status en reviews in je hele team."
@@ -4724,6 +4754,9 @@ msgstr "Worktree aanmaken"
 msgid "Creating..."
 msgstr "Aanmaken..."
 
+msgid "Creative Manager, Valid"
+msgstr "Creatief manager, Valid"
+
 msgid "Credentials stay on the server"
 msgstr "Inloggegevens blijven op de server"
 
@@ -5232,6 +5265,9 @@ msgstr "diff in nieuw tabblad"
 msgid "Diff size"
 msgstr "Grootte van diff"
 
+msgid "Digital Product Designer"
+msgstr "Ontwerper van digitale producten"
+
 msgid "Direct"
 msgstr "Direct"
 
@@ -5340,6 +5376,9 @@ msgstr "Discord, GitHub en spreekuren."
 
 msgid "Discover and connect to development servers on your network."
 msgstr "Ontwikkelservers op je netwerk vinden en ermee verbinden."
+
+msgid "Disk version"
+msgstr "Versie op schijf"
 
 msgid "Dismiss"
 msgstr "Sluiten"
@@ -5729,6 +5768,12 @@ msgstr "Auto-merge inschakelen"
 
 msgid "Enable relay access…"
 msgstr "Relaytoegang inschakelen…"
+
+msgid "Enable remote access"
+msgstr "Schakel externe toegang in"
+
+msgid "Enable Remote Access and keep this computer awake with Superset running."
+msgstr "Schakel externe toegang in en houd deze computer wakker met Superset actief."
 
 msgid "Enable skill"
 msgstr "Skill inschakelen"
@@ -6130,6 +6175,9 @@ msgstr "Aanmaken van taak mislukt"
 msgid "Failed to create team"
 msgstr "Aanmaken van team mislukt"
 
+msgid "Failed to create terminal"
+msgstr "Terminal maken mislukt"
+
 msgid "Failed to create thread"
 msgstr "Aanmaken van thread mislukt"
 
@@ -6520,6 +6568,9 @@ msgstr "Dien een ticket in en krijg een geverifieerde, merge-klare PR terug, met
 msgid "File actions"
 msgstr "Bestandsacties"
 
+msgid "File changed on disk"
+msgstr "Bestand op schijf is gewijzigd"
+
 msgid "File is too large to preview"
 msgstr "Bestand is te groot voor een voorbeeld"
 
@@ -6853,14 +6904,20 @@ msgstr "Vooruit"
 msgid "Found 12 tooltip call sites"
 msgstr "12 tooltip-aanroepplekken gevonden"
 
+msgid "Founder & CEO, WowMakers"
+msgstr "Oprichter en CEO, WowMakers"
+
+msgid "Founding Engineer"
+msgstr "Oprichtend engineer"
+
 msgid "Free"
 msgstr "Free"
 
 msgid "Free for everyone"
 msgstr "Gratis voor iedereen"
 
-msgid "Free plan available · No credit card required"
-msgstr "Gratis abonnement beschikbaar · Geen creditcard nodig"
+msgid "Free to start · No credit card required"
+msgstr "Begin gratis · Geen creditcard nodig"
 
 msgid "Frequently<0/>asked questions"
 msgstr "Veelgestelde<0/>vragen"
@@ -6963,6 +7020,12 @@ msgstr "Superset op je Mac"
 
 msgid "Get Superset Pro"
 msgstr "Neem Superset Pro"
+
+msgid "Get the best out of Pro"
+msgstr "Haal het beste uit Pro"
+
+msgid "Get the iPhone app"
+msgstr "Download de iPhone-app"
 
 msgid "Ghost"
 msgstr "Ghost"
@@ -7069,6 +7132,9 @@ msgstr "Naar de volgende pagina"
 msgid "Go to previous page"
 msgstr "Naar de vorige pagina"
 
+msgid "Go to Settings, then Remote Access"
+msgstr "Ga naar Instellingen en dan Externe toegang"
+
 msgid "Go to Slack integration settings"
 msgstr "Naar de instellingen van de Slack-integratie"
 
@@ -7107,6 +7173,9 @@ msgstr "Groepeer nieuwe branches onder een map."
 
 msgid "Growth"
 msgstr "Groei"
+
+msgid "GTM & AI Automation Architect, Mistral AI"
+msgstr "Architect GTM en AI-automatisering, Mistral AI"
 
 msgid "Guide"
 msgstr "Gids"
@@ -7414,6 +7483,15 @@ msgstr "Mensen schrijven elke regel. Tools compileren, linten en klagen. Het toe
 msgid "I already use an IDE like Cursor, is this for me?"
 msgstr "Ik gebruik al een IDE zoals Cursor, is dit iets voor mij?"
 
+msgid "I also love being able to spin up a local worktree environment on my Mac directly from my phone."
+msgstr "Ik vind het ook geweldig dat ik rechtstreeks vanaf mijn telefoon een lokale werkboomomgeving op mijn Mac kan starten."
+
+msgid "I can be in a café with my coffee while the work keeps moving forward."
+msgstr "Ik kan in een café zitten met mijn koffie terwijl het werk gewoon doorgaat."
+
+msgid "I start my morning walks with an idea, and end with a pull request."
+msgstr "Ik begin mijn ochtendwandelingen met een idee en eindig met een pull request."
+
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "Ik sta #{rank} op de ranglijst van {company} met {tokens} tokens aan agentgebruik."
 
@@ -7665,6 +7743,9 @@ msgstr "Installeren mislukt"
 msgid "Install GitHub App"
 msgstr "GitHub App installeren"
 
+msgid "Install on your iPhone"
+msgstr "Installeer op je iPhone"
+
 msgid "Install plugin"
 msgstr "Plugin installeren"
 
@@ -7852,6 +7933,9 @@ msgstr "Issue-URL moet overeenkomen met {repoMismatch}."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "Hij staat mogelijk in sluimerstand"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Mogelijk is die verwijderd, of hoort die bij een andere organisatie."
 
@@ -7872,9 +7956,6 @@ msgstr "Een eigen branch en een eigen kopie van de bestanden"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "De werkruimtes en terminals zijn niet beschikbaar tot de service opnieuw start — gebruik het Superset-menu in de menubalk > Hostservice > Opnieuw starten."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "De werkruimtes verschijnen zodra de host weer verbinding maakt."
 
 msgid "Jane Doe"
 msgstr "Jan Jansen"
@@ -7947,6 +8028,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Docs actueel houden"
+
+msgid "Keep editing"
+msgstr "Verder bewerken"
 
 msgid "Keep waiting"
 msgstr "Blijven wachten"
@@ -8072,6 +8156,9 @@ msgstr "Laatste run"
 msgid "Last seen"
 msgstr "Laatst gezien"
 
+msgid "Last seen {lastSeen}"
+msgstr "Laatst gezien: {lastSeen}"
+
 msgid "Last updated"
 msgstr "Laatst bijgewerkt"
 
@@ -8164,6 +8251,9 @@ msgstr "Team verlaten"
 
 msgid "Leave the leaderboard?"
 msgstr "Ranglijst verlaten?"
+
+msgid "Leave your desk.<0/>Keep building."
+msgstr "Verlaat je bureau.<0/>Blijf bouwen."
 
 msgid "Leaving organization..."
 msgstr "Organisatie verlaten..."
@@ -8843,9 +8933,6 @@ msgstr "Verplichte invoer {input} ontbreekt"
 msgid "Mobile"
 msgstr "Mobiel"
 
-msgid "Mobile (coming soon)"
-msgstr "Mobiel (binnenkort)"
-
 msgid "Mobile app"
 msgstr "Mobiele app"
 
@@ -9099,6 +9186,10 @@ msgstr "Netwerk gewijzigd"
 msgid "Never"
 msgstr "Nooit"
 
+msgctxt "badge on a page published since the menu was last opened"
+msgid "New"
+msgstr "Nieuw"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Nieuwe {providerLabel}-agents gebruiken {accountLabel}."
 
@@ -9153,6 +9244,9 @@ msgstr "Nieuwe groep van werkruimte"
 msgid "New issue"
 msgstr "Nieuwe issue"
 
+msgid "New page"
+msgstr "Nieuwe pagina"
+
 msgid "New password (min 8 characters)"
 msgstr "Nieuw wachtwoord (min. 8 tekens)"
 
@@ -9167,6 +9261,9 @@ msgstr "Nieuwe releases en productupdates."
 
 msgid "New session"
 msgstr "Nieuwe sessie"
+
+msgid "New shell"
+msgstr "Nieuwe shell"
 
 msgid "New stars"
 msgstr "Nieuwe sterren"
@@ -9959,6 +10056,9 @@ msgstr "nu"
 msgid "Now"
 msgstr "Nu"
 
+msgid "Now I open the workspace on my phone, type the one line it's waiting for, and it carries on."
+msgstr "Nu open ik de werkruimte op mijn telefoon, typ ik die ene regel waarop wordt gewacht en gaat het werk verder."
+
 #. placeholder {0}: versions.expected
 #. placeholder {1}: versions.running
 msgid "Now running {0} (was {1}). All sessions preserved."
@@ -10068,6 +10168,9 @@ msgstr "Bij de eerste honderd op het bord"
 msgid "one of the selected repositories"
 msgstr "een van de geselecteerde repository's"
 
+msgid "One step left"
+msgstr "Nog één stap"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Eén werkruimte voor Claude Code, Codex en elke andere coding agent."
 
@@ -10143,6 +10246,9 @@ msgstr "Alleen de auteur van de thread of de eigenaar van de pagina kan hem verw
 msgid "Only you"
 msgstr "Alleen jij"
 
+msgid "Only you can see this page"
+msgstr "Alleen jij kunt deze pagina zien"
+
 msgid "open"
 msgstr "openen"
 
@@ -10190,6 +10296,9 @@ msgstr "Toch openen"
 
 msgid "Open Anywhere"
 msgstr "Overal openen"
+
+msgid "Open App Store"
+msgstr "App Store openen"
 
 msgid "Open as comment pane"
 msgstr "Openen als opmerkingenpaneel"
@@ -10476,6 +10585,9 @@ msgstr "Verzendopties openen"
 msgid "Open Superset"
 msgstr "Superset openen"
 
+msgid "Open Superset on that computer"
+msgstr "Open Superset op die computer"
+
 msgid "Open System Settings"
 msgstr "Systeeminstellingen openen"
 
@@ -10553,9 +10665,6 @@ msgstr "Bestaande werkruimte geopend"
 
 msgid "opened PR #841 for review"
 msgstr "PR #841 geopend voor review"
-
-msgid "Opening TestFlight…"
-msgstr "TestFlight openen…"
 
 msgid "Opening worktree..."
 msgstr "Worktree openen..."
@@ -10729,6 +10838,9 @@ msgstr "Runs 's nachts en in het weekend voltooien onbewaakt en zijn 's ochtends
 msgid "Overview"
 msgstr "Overzicht"
 
+msgid "Overwrite file"
+msgstr "Bestand overschrijven"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Eigendom van {0} — alleen die persoon kan deze automatisering bewerken."
@@ -10849,6 +10961,9 @@ msgstr "Deels verslag, deels weddenschap. De eerste twee punten gebeuren al. De 
 
 msgid "Partial"
 msgstr "Gedeeltelijk"
+
+msgid "Partner, Transpose Platform"
+msgstr "Partner, Transpose Platform"
 
 msgid "Passed"
 msgstr "Geslaagd"
@@ -11848,11 +11963,17 @@ msgstr "Herladen"
 msgid "Reload app"
 msgstr "App herladen"
 
+msgid "Reload from disk"
+msgstr "Opnieuw laden vanaf schijf"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Herlaad Superset om de lijst met werkruimtes te verversen."
 
 msgid "Reload window"
 msgstr "Venster herladen"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Opnieuw laden verwerpt je bewerkingen. Overschrijven vervangt het bestand op schijf."
 
 msgid "Relocate"
 msgstr "Verplaatsen"
@@ -11877,6 +11998,9 @@ msgstr "Externe toegang"
 
 msgid "Remote Access"
 msgstr "Externe toegang"
+
+msgid "Remote Access may be off"
+msgstr "Externe toegang staat mogelijk uit"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Externe MCP-server — verbindt via HTTP"
@@ -12133,6 +12257,9 @@ msgstr "Verplicht"
 
 msgid "Required version: {minimumVersion}+"
 msgstr "Vereiste versie: {minimumVersion}+"
+
+msgid "Requires iOS 26 or later. Included with Superset Pro."
+msgstr "Vereist iOS 26 of nieuwer. Inbegrepen bij Superset Pro."
 
 msgid "Reserved by OS"
 msgstr "Gereserveerd door het OS"
@@ -12597,6 +12724,9 @@ msgstr "Draai werkruimtes overal"
 msgid "Run your agents from the desktop, any terminal, or your phone."
 msgstr "Draai je agents vanaf de desktop, elke terminal of je telefoon."
 
+msgid "Run your agents from your phone."
+msgstr "Draai je agents vanaf je telefoon."
+
 msgid "running"
 msgstr "loopt"
 
@@ -12712,8 +12842,14 @@ msgstr "Opslaan…"
 msgid "Saw the paywall"
 msgstr "Zag de paywall"
 
-msgid "Scale from two agents to 100+"
-msgstr "Schaal van twee agents naar 100+"
+msgid "Scale to 100+ agents"
+msgstr "Schaal op naar meer dan 100 agents"
+
+msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
+msgstr "Scan de QR-code, log in met hetzelfde Superset-account en selecteer deze organisatie."
+
+msgid "Scan to download Superset for iPhone"
+msgstr "Scan om Superset voor iPhone te downloaden"
 
 msgid "Scanning transcript logs…"
 msgstr "Transcriptlogs scannen…"
@@ -13229,6 +13365,9 @@ msgstr "Sessies aanmaken op het web komt binnenkort"
 msgid "Session details"
 msgstr "Sessiedetails"
 
+msgid "Session ended"
+msgstr "Sessie beëindigd"
+
 msgid "Session name"
 msgstr "Sessienaam"
 
@@ -13280,6 +13419,9 @@ msgstr "Instellen"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "{0} instellen"
+
+msgid "Set up an automation"
+msgstr "Stel een automatisering in"
 
 msgid "Set up project on {hostName}"
 msgstr "Project instellen op {hostName}"
@@ -13944,6 +14086,9 @@ msgstr "Stabiliteitsverbeteringen"
 msgid "Stacked"
 msgstr "Gestapeld"
 
+msgid "Staff Software Engineer, Vori"
+msgstr "Staff-software-engineer, Vori"
+
 msgid "Stage all"
 msgstr "Alles stagen"
 
@@ -14022,11 +14167,17 @@ msgstr "Start een werkruimte rechtstreeks vanuit een Linear-ticket. De agent pak
 msgid "Start agent"
 msgstr "Agent starten"
 
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Start agents, volg ze live en review de diff vanaf je telefoon. Je code blijft op je machines."
+
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Start een agent of een terminal om in deze werkruimte te werken."
 
 msgid "Start browsing"
 msgstr "Begin met browsen"
+
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Start coding agents, volg ze live en review de diff vanaf je telefoon. Beschikbaar in de App Store; Android komt binnenkort."
 
 msgid "Start free. Upgrade when your team outgrows it. Enterprise plans for organizations with advanced security and compliance needs."
 msgstr "Begin gratis. Upgrade wanneer je team eruit groeit. Enterprise-plannen voor organisaties met geavanceerde eisen aan security en compliance."
@@ -14049,6 +14200,9 @@ msgstr "Het run-commando van de werkruimte starten of stoppen"
 
 msgid "Start with the work."
 msgstr "Begin bij het werk."
+
+msgid "Start work from anywhere"
+msgstr "Begin overal met werken"
 
 msgid "Start Workspace"
 msgstr "Werkruimte starten"
@@ -14232,6 +14386,9 @@ msgstr "-suite voor agent-UI's en gedeelde app-componenten. Klik op een importpa
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Som van het CPU-gebruik van Superset en de gemonitorde terminalprocesbomen. Boven 100% betekent dat meerdere CPU-cores bezig zijn. Langdurig hoge waarden zorgen meestal voor een trage UI en meer batterijverbruik."
 
+msgid "Summarize the changes in this workspace"
+msgstr "Vat de wijzigingen in deze werkruimte samen"
+
 msgid "Summary"
 msgstr "Samenvatting"
 
@@ -14289,6 +14446,9 @@ msgstr "Superset Design System"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise is Superset voor teams. Neem contact op om te horen wat erbij zit en hoe het voor jouw organisatie kan werken."
 
+msgid "Superset for iPhone"
+msgstr "Superset voor iPhone"
+
 msgid "Superset for your team"
 msgstr "Superset voor je team"
 
@@ -14331,6 +14491,9 @@ msgstr "Superset is de werkbank voor de overgang van F3 naar F4: parallelle agen
 msgid "Superset isn't on Windows yet"
 msgstr "Superset is voorlopig alleen voor Mac"
 
+msgid "Superset may be closed"
+msgstr "Superset is mogelijk gesloten"
+
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset logt je na een herstart mogelijk weer in. Probeer opnieuw uit te loggen."
 
@@ -14339,6 +14502,12 @@ msgstr "Geheugen van Superset"
 
 msgid "Superset memory · last 5 min"
 msgstr "Geheugen van Superset · laatste 5 min"
+
+msgid "Superset mobile gives me the power of my desktop anywhere I go."
+msgstr "Superset mobile geeft me de kracht van mijn desktop, waar ik ook ga."
+
+msgid "Superset Mobile is here"
+msgstr "Superset Mobile is er"
 
 msgid "Superset Mobile is part of Pro"
 msgstr "Superset Mobile hoort bij Pro"
@@ -14380,6 +14549,9 @@ msgstr "Superset werkt met elke CLI-gebaseerde coding agent, waaronder Claude Co
 msgid "superset.sh"
 msgstr "superset.sh"
 
+msgid "Superset's mobile app lets me keep my agents moving and unblock them from anywhere, even when I'm nowhere near my computer."
+msgstr "Met de mobiele app van Superset kan ik mijn agents overal aan het werk houden en blokkades oplossen, zelfs als ik ver van mijn computer ben."
+
 msgid "Supervised"
 msgstr "Begeleid"
 
@@ -14418,6 +14590,9 @@ msgstr "Login wisselen"
 
 msgid "Switch sign-in…"
 msgstr "Login wisselen…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "Schakel over naar handmatige volgorde om de zijbalk te herschikken"
 
 msgid "Switch to Tab 1"
 msgstr "Naar tabblad 1"
@@ -14805,9 +14980,6 @@ msgstr "De beste agent verandert.<0/>Jouw workflow niet."
 
 msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
 msgstr "Het klassement begint op {launchDate}. Het ruimere bereik bouwt alles opnieuw op uit de transcripties die nog op deze machine staan, dus de plek die je had voordat je vertrok komt terug."
-
-msgid "The Codex sign-in"
-msgstr "De Codex-login"
 
 msgid "The config repository must be one of the environment's repositories"
 msgstr "De configuratierepository moet een van de repositories van de omgeving zijn"
@@ -15412,6 +15584,9 @@ msgstr "Dit haalt alle gestagede wijzigingen uit staging en draait ze terug. Ges
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Hiermee worden alle gestagede wijzigingen ge-unstaged en teruggedraaid. Gestagede nieuwe bestanden worden verwijderd. Dit kan niet ongedaan worden gemaakt."
 
+msgid "This workspace"
+msgstr "Deze werkruimte"
+
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Deze werkruimte is mogelijk verwijderd, of je hebt er geen toegang meer toe."
 
@@ -15694,6 +15869,9 @@ msgstr "Zet klusjes om in geplande agents: issue-triage, changelog-concepten, de
 #. placeholder {0}: group.turn.error ? `: ${group.turn.error.message}` : ""
 msgid "Turn failed{0}"
 msgstr "Beurt mislukt{0}"
+
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "Zet “Externe toegang tot dit apparaat via de relay toestaan” aan"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Zet Slack-gesprekken om in taken, laat agents draaien vanuit je werkruimte en houd teamgenoten op de hoogte waar het werk begint."
@@ -16118,6 +16296,12 @@ msgstr "Gebruiken voor nieuwe agents"
 msgid "Use global default"
 msgstr "Globale standaard gebruiken"
 
+msgid "Use Superset on mobile"
+msgstr "Gebruik Superset op je mobiel"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Gebruik Superset op je telefoon met Pro."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Gebruik de desktop-app om parallelle coding agents te draaien."
 
@@ -16336,6 +16520,9 @@ msgstr "wachten op {0} en {1}…"
 msgid "Waiting for Checks"
 msgstr "Wachten op checks"
 
+msgid "Waiting for it to connect…"
+msgstr "Wachten op verbinding…"
+
 msgid "Waiting for Review"
 msgstr "Wachten op review"
 
@@ -16378,11 +16565,17 @@ msgstr "We konden je betaalmethode niet belasten. Werk die bij om dit plan te be
 msgid "We couldn't detect a package manager or environment config."
 msgstr "We konden geen package manager of omgevingsconfiguratie detecteren."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "We konden Superset niet bereiken om te zien of hij online is. Controleer je verbinding en probeer het opnieuw."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "We konden het apparaat niet bereiken. Probeer het zo nog eens."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "We voorspellen geen volledige zelfsturing in 2026 of 2027. De eerlijke onbekenden: of agentreview standhoudt tegen vijandige complexiteit, of specificatie op schaal het lezen van code kan vervangen als vertrouwensanker, en of de rekeneconomie de nachtploeg goedkoper houdt dan de mensen die zij aanvult. F5 staat in de rubric zodat we het herkennen als we het zien, niet als belofte."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "We hebben {hostName} gevonden. Zet daar externe toegang aan om af te ronden."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "We verzamelen alleen analytische cookies zodat we je ervaring kunnen verbeteren."
@@ -16395,6 +16588,9 @@ msgstr "We nemen snel contact op."
 
 msgid "We'll bring you back as soon as we reconnect."
 msgstr "Zodra de verbinding terug is, kun je hier verder."
+
+msgid "We'll email you when Superset for Android is ready."
+msgstr "We mailen je zodra Superset voor Android klaar is."
 
 msgid "We'll get back to you shortly."
 msgstr "We nemen snel contact met je op."
@@ -16508,6 +16704,9 @@ msgstr "Wat bouwers over Superset zeggen"
 msgid "What do you want to do?"
 msgstr "Wat wil je doen?"
 
+msgid "What early users say"
+msgstr "Wat de eerste gebruikers zeggen"
+
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Waarvoor Google ons toont en hoeveel daarvan niet onze eigen naam is."
 
@@ -16528,6 +16727,9 @@ msgstr "Welk probleem wil je oplossen?"
 
 msgid "What should run on a schedule?"
 msgstr "Wat moet er volgens een schema draaien?"
+
+msgid "What should the page show?"
+msgstr "Wat moet de pagina laten zien?"
 
 msgid "What should we build next?"
 msgstr "Wat gaan we hierna bouwen?"
@@ -16642,6 +16844,9 @@ msgstr "Met label"
 
 msgid "with or without attachments"
 msgstr "met of zonder bijlagen"
+
+msgid "With the Superset mobile app, I can address production issues from anywhere."
+msgstr "Met de mobiele app van Superset kan ik overal productieproblemen aanpakken."
 
 msgid "Work email"
 msgstr "Zakelijk e-mailadres"
@@ -16968,6 +17173,9 @@ msgstr "Jouw agents, jouw accounts"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Je browser geeft niet door welke chip je hebt, dus dit is de Apple Silicon-build. Heb je een Intel-Mac, <0>download dan de Intel-build</0>."
+
+msgid "Your changes"
+msgstr "Jouw wijzigingen"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Je wijzigingen gaan verloren als je ze niet opslaat."

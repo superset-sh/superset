@@ -16,6 +16,7 @@ import type { FileUIPart } from "ai";
 import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { TiptapPromptEditor } from "renderer/components/TiptapPromptEditor";
+import { useSendToTerminalAgent } from "renderer/hooks/host-service/useSendToTerminalAgent";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { track } from "renderer/lib/analytics";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
@@ -61,9 +62,8 @@ const draftsByTerminalId = new Map<string, string>();
  * Warp-style rich input overlay for a v2 terminal pane. Reuses the chat
  * composer stack (PromptInput + TiptapPromptEditor) so the overlay looks and
  * behaves like the workspace chat input — multiline editing, @file mentions —
- * but submits into the running agent's PTY instead of a chat session:
- * bracketed paste keeps a multiline prompt one literal block, then a
- * carriage return submits it.
+ * but submits into the running agent's PTY instead of a chat session, through
+ * the host's framed send so a multiline prompt stays one literal block.
  *
  * Submission reads terminalId from props at submit time (via PromptInput's
  * onSubmit), so pane reuse across tab switches — where the same mounted pane
@@ -95,6 +95,7 @@ function TerminalRichInputInner({
 	const { t } = useLingui();
 	const controller = usePromptInputController();
 	const hotkeyText = useHotkeyDisplay("TOGGLE_TERMINAL_RICH_INPUT").text;
+	const { send: sendToTerminalAgent } = useSendToTerminalAgent();
 
 	// Deduped with the page-level workspace.get query; provides the cwd the
 	// mention popover uses to shorten paths.
@@ -170,10 +171,7 @@ function TerminalRichInputInner({
 
 			const text = prepareTerminalSubmission(message.text, attachmentPaths);
 			if (text === null) return;
-			// Bracketed paste keeps the multiline block literal (CLI agents enable
-			// the mode); the trailing "\r" then submits it as one prompt.
-			terminalRuntimeRegistry.paste(terminalId, text, terminalInstanceId);
-			terminalRuntimeRegistry.writeInput(terminalId, "\r", terminalInstanceId);
+			await sendToTerminalAgent({ workspaceId, terminalId, text });
 			terminalRuntimeRegistry.scrollToBottom(terminalId, terminalInstanceId);
 			controller.textInput.clear();
 			track("terminal_rich_input_submitted", {
@@ -183,7 +181,15 @@ function TerminalRichInputInner({
 				attachment_count: attachmentPaths.length,
 			});
 		},
-		[terminalId, terminalInstanceId, controller, workspaceId, cwd, t],
+		[
+			terminalId,
+			terminalInstanceId,
+			controller,
+			workspaceId,
+			cwd,
+			t,
+			sendToTerminalAgent,
+		],
 	);
 
 	// Persist the draft as it changes. terminalId is stable for this provider

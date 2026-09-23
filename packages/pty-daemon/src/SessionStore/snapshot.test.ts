@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { Pty } from "../Pty/index.ts";
+import { TerminalModes } from "../TerminalModes/index.ts";
 import { SessionStore } from "./SessionStore.ts";
 import {
 	clearSnapshot,
@@ -36,6 +37,35 @@ function tmpPath(): string {
 }
 
 describe("handoff snapshot", () => {
+	test("mode state survives eviction and disk handoff midway through a control", () => {
+		const store = new SessionStore({ bufferCap: 32 });
+		const session = store.add("a", fakePty(100, { cols: 80, rows: 24 }));
+		store.appendOutput(session, Buffer.from("\x1b[?2004h\x1b[>3u\x1b[>7u"));
+		store.appendOutput(session, Buffer.alloc(1024, 120));
+		store.appendOutput(session, Buffer.from("\x1b[?200"));
+		const snapshot = serializeSessions({
+			sessions: store.all(),
+			fdIndexBySessionId: new Map([["a", 3]]),
+		});
+		const p = tmpPath();
+		try {
+			writeSnapshot(p, snapshot);
+			const saved = readSnapshot(p).sessions[0];
+			expect(
+				Buffer.from(saved?.buffer ?? []).includes(Buffer.from("\x1b[?2004h")),
+			).toBe(false);
+			if (!saved?.modes) throw new Error("missing mode checkpoint");
+			const restored = new TerminalModes();
+			restored.restore(saved.modes);
+			expect(restored.isEnabled(2004)).toBe(true);
+			restored.feed(Buffer.from("4l\x1b[<u"));
+			expect(restored.isEnabled(2004)).toBe(false);
+			expect(restored.snapshot().keyboard.flags).toBe(3);
+		} finally {
+			clearSnapshot(p);
+		}
+	});
+
 	test("serializeSessions excludes exited sessions", () => {
 		const store = new SessionStore();
 		const _a = store.add("a", fakePty(100, { cols: 80, rows: 24 }));

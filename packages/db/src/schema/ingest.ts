@@ -7,6 +7,8 @@ import {
 	uniqueIndex,
 	uuid,
 } from "drizzle-orm/pg-core";
+import { integrationProvider } from "./schema";
+
 export const ingestSchema = pgSchema("ingest");
 
 /**
@@ -28,7 +30,7 @@ export const webhookEvents = ingestSchema.table(
 		id: uuid().primaryKey().defaultRandom(),
 
 		// Source
-		provider: text().notNull(),
+		provider: integrationProvider().notNull(),
 		eventId: text("event_id").notNull(),
 		eventType: text("event_type"),
 

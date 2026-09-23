@@ -15,8 +15,8 @@ import { WebMcpTools } from "./components/WebMcpTools";
 const TrustedBySection = dynamic(() =>
 	import("./components/TrustedBySection").then((mod) => mod.TrustedBySection),
 );
-const HowItWorksSection = dynamic(() =>
-	import("./components/HowItWorksSection").then((mod) => mod.HowItWorksSection),
+const MobileSection = dynamic(() =>
+	import("./components/MobileSection").then((mod) => mod.MobileSection),
 );
 const FeaturesSection = dynamic(() =>
 	import("./components/FeaturesSection").then((mod) => mod.FeaturesSection),
@@ -56,8 +56,8 @@ export default async function Home() {
 			<ServiceJsonLd />
 			<WebMcpTools />
 			<HeroSection />
+			<MobileSection />
 			<TrustedBySection />
-			<HowItWorksSection />
 			<FeaturesSection />
 			<WallOfLoveSection />
 			<SecuritySection />

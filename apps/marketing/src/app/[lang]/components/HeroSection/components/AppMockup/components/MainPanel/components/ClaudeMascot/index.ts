@@ -1,0 +1,1 @@
+export { ClaudeMascot } from "./ClaudeMascot";

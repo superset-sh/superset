@@ -568,6 +568,9 @@ msgstr "{closedCount}项未开启"
 msgid "{completed} of {0} checks complete"
 msgstr "{0}项检查中已完成{completed}项"
 
+msgid "{completed} of {total} completed"
+msgstr "已完成 {completed}/{total} 项"
+
 msgid "{configTitle} font size"
 msgstr "{configTitle}字号"
 
@@ -1047,6 +1050,12 @@ msgstr "此系统未安装<0>{primaryFont}</0>。将回退到下一个可用字�
 msgid "<0>#{0}</0> <1>of {1} on the leaderboard</1>"
 msgstr "<0>#{0}</0> <1>／排行榜共 {1} 人</1>"
 
+msgid "<0>Coming soon to</0><1>Google Play</1>"
+msgstr "<0>即将上架</0><1>Google Play</1>"
+
+msgid "<0>Download on the</0><1>App Store</1>"
+msgstr "<1>App Store</1><0>下载</0>"
+
 msgid "<0>F3</0> · you are here"
 msgstr "<0>F3</0> · 你在这里"
 
@@ -1240,6 +1249,9 @@ msgstr "整体重做样式：更紧凑的行、每个工作区下方的端口和
 
 msgid "A gateway is signed in with an API key."
 msgstr "网关使用 API 密钥登录。"
+
+msgid "A guilty habit I have is waking up with an idea in the middle of the night and opening the app. By morning it's ready for review."
+msgstr "我有个忍不住的习惯：半夜醒来有了想法，就打开应用。到早上就可以审查了。"
 
 msgid "A host must have at least one owner."
 msgstr "主机必须至少有一位所有者。"
@@ -1787,6 +1799,9 @@ msgstr "你的所有数据将在{ACCOUNT_DELETION_GRACE_DAYS}天后被永久删�
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "所有打开的终端会话都会被结束，正在运行的主机服务也会停止。如果希望服务继续运行以便下次启动，请改用“关闭Superset”。"
 
+msgid "All pages"
+msgstr "所有页面"
+
 msgid "All plans"
 msgstr "全部方案"
 
@@ -1918,6 +1933,9 @@ msgstr "更新已准备好安装。"
 
 msgid "Analytics, Ops, and more"
 msgstr "分析、运营及更多功能"
+
+msgid "Android is on the way. Be first to know when it ships."
+msgstr "Android 版即将到来。发布时第一时间通知你。"
 
 msgid "Animate the active terminal cursor."
 msgstr "让当前终端光标闪烁。"
@@ -2848,6 +2866,9 @@ msgstr "我可以用自己的API密钥吗？"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "能把整个应用的tooltip样式统一一下吗？"
 
+msgid "Can’t check {hostName}"
+msgstr "无法检查{hostName}"
+
 msgid "Can't connect right now"
 msgstr "暂时无法连接"
 
@@ -3220,6 +3241,9 @@ msgstr "清除终端历史"
 msgid "Clear terminal history?"
 msgstr "清除终端历史？"
 
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "清除筛选即可重新排列侧边栏"
+
 msgid "Clear workspace selection"
 msgstr "清除工作区选择"
 
@@ -3480,6 +3504,9 @@ msgstr "{account} 尚未启用云端沙箱。请向 Superset 团队申请访问�
 
 msgid "Cloud workspace"
 msgstr "云端工作区"
+
+msgid "Co-founder & CTO, TrainLoop (YC W25)"
+msgstr "联合创始人兼 CTO，TrainLoop (YC W25)"
 
 msgid "Code"
 msgstr "代码"
@@ -3785,6 +3812,9 @@ msgstr "连接Slack"
 
 msgid "Connect Slack to manage tasks from conversations. Mention the bot in any channel or send it a direct message to create and update tasks."
 msgstr "连接Slack，直接在对话中管理任务。在任意频道提及机器人或给它发私信，即可创建和更新任务。"
+
+msgid "Connect this computer"
+msgstr "连接这台电脑"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "连接你的GitHub仓库并同步拉取请求。跟踪整个团队的CI状态和代码审查。"
@@ -4724,6 +4754,9 @@ msgstr "正在创建worktree"
 msgid "Creating..."
 msgstr "正在创建..."
 
+msgid "Creative Manager, Valid"
+msgstr "创意经理，Valid"
+
 msgid "Credentials stay on the server"
 msgstr "凭据保留在服务器上"
 
@@ -5232,6 +5265,9 @@ msgstr "在新标签页看差异"
 msgid "Diff size"
 msgstr "差异大小"
 
+msgid "Digital Product Designer"
+msgstr "数字产品设计师"
+
 msgid "Direct"
 msgstr "直接访问"
 
@@ -5340,6 +5376,9 @@ msgstr "Discord、GitHub和线上答疑。"
 
 msgid "Discover and connect to development servers on your network."
 msgstr "发现并连接你网络中的开发服务器。"
+
+msgid "Disk version"
+msgstr "磁盘版本"
 
 msgid "Dismiss"
 msgstr "忽略"
@@ -5729,6 +5768,12 @@ msgstr "启用自动合并"
 
 msgid "Enable relay access…"
 msgstr "启用中继访问…"
+
+msgid "Enable remote access"
+msgstr "启用远程访问"
+
+msgid "Enable Remote Access and keep this computer awake with Superset running."
+msgstr "启用远程访问，并保持这台电脑唤醒且 Superset 持续运行。"
 
 msgid "Enable skill"
 msgstr "启用技能"
@@ -6130,6 +6175,9 @@ msgstr "创建任务失败"
 msgid "Failed to create team"
 msgstr "创建团队失败"
 
+msgid "Failed to create terminal"
+msgstr "无法创建终端"
+
 msgid "Failed to create thread"
 msgstr "创建讨论串失败"
 
@@ -6520,6 +6568,9 @@ msgstr "提一个工单，拿回一个已验证、可直接合并的PR，并附�
 msgid "File actions"
 msgstr "文件操作"
 
+msgid "File changed on disk"
+msgstr "磁盘上的文件已更改"
+
 msgid "File is too large to preview"
 msgstr "文件过大，无法预览"
 
@@ -6853,14 +6904,20 @@ msgstr "前进"
 msgid "Found 12 tooltip call sites"
 msgstr "找到12处tooltip调用"
 
+msgid "Founder & CEO, WowMakers"
+msgstr "创始人兼 CEO，WowMakers"
+
+msgid "Founding Engineer"
+msgstr "创始工程师"
+
 msgid "Free"
 msgstr "免费版"
 
 msgid "Free for everyone"
 msgstr "对所有人免费"
 
-msgid "Free plan available · No credit card required"
-msgstr "提供免费套餐 · 无需信用卡"
+msgid "Free to start · No credit card required"
+msgstr "免费开始 · 无需信用卡"
 
 msgid "Frequently<0/>asked questions"
 msgstr "常见<0/>问题"
@@ -6963,6 +7020,12 @@ msgstr "在Mac上获取Superset"
 
 msgid "Get Superset Pro"
 msgstr "获取Superset Pro"
+
+msgid "Get the best out of Pro"
+msgstr "充分利用 Pro"
+
+msgid "Get the iPhone app"
+msgstr "获取 iPhone 应用"
 
 msgid "Ghost"
 msgstr "幽灵"
@@ -7069,6 +7132,9 @@ msgstr "转到下一页"
 msgid "Go to previous page"
 msgstr "转到上一页"
 
+msgid "Go to Settings, then Remote Access"
+msgstr "前往“设置”，然后打开“远程访问”"
+
 msgid "Go to Slack integration settings"
 msgstr "前往Slack集成设置"
 
@@ -7107,6 +7173,9 @@ msgstr "将新分支归入一个文件夹。"
 
 msgid "Growth"
 msgstr "增长"
+
+msgid "GTM & AI Automation Architect, Mistral AI"
+msgstr "GTM 与 AI 自动化架构师，Mistral AI"
 
 msgid "Guide"
 msgstr "指南"
@@ -7414,6 +7483,15 @@ msgstr "每一行都由人写。工具负责编译、检查、报错。键盘就
 msgid "I already use an IDE like Cursor, is this for me?"
 msgstr "我已经在用Cursor这样的IDE，这适合我吗？"
 
+msgid "I also love being able to spin up a local worktree environment on my Mac directly from my phone."
+msgstr "我也很喜欢能直接用手机在 Mac 上启动本地工作树环境。"
+
+msgid "I can be in a café with my coffee while the work keeps moving forward."
+msgstr "我可以在咖啡馆喝咖啡，工作也一直在推进。"
+
+msgid "I start my morning walks with an idea, and end with a pull request."
+msgstr "我带着一个想法开始晨间散步，结束时就有了一个拉取请求。"
+
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "我在{company}排行榜上排第{rank}名，智能体用量{tokens}个token。"
 
@@ -7665,6 +7743,9 @@ msgstr "安装失败"
 msgid "Install GitHub App"
 msgstr "安装GitHub App"
 
+msgid "Install on your iPhone"
+msgstr "在 iPhone 上安装"
+
 msgid "Install plugin"
 msgstr "安装插件"
 
@@ -7852,6 +7933,9 @@ msgstr "议题URL必须匹配{repoMismatch}。"
 msgid "Issue…"
 msgstr "议题…"
 
+msgid "It may be asleep"
+msgstr "设备可能处于睡眠状态"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "它可能已被删除，或属于另一个组织。"
 
@@ -7872,9 +7956,6 @@ msgstr "独立的分支和文件副本"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "在它重启之前，其工作区和终端都不可用，请使用Superset托盘菜单 > 主机服务 > 重启。"
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "重新连接后，其工作区就会出现。"
 
 msgid "Jane Doe"
 msgstr "张三"
@@ -7947,6 +8028,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "让文档保持最新"
+
+msgid "Keep editing"
+msgstr "继续编辑"
 
 msgid "Keep waiting"
 msgstr "继续等待"
@@ -8072,6 +8156,9 @@ msgstr "上次运行"
 msgid "Last seen"
 msgstr "最后在线"
 
+msgid "Last seen {lastSeen}"
+msgstr "上次在线：{lastSeen}"
+
 msgid "Last updated"
 msgstr "最后更新"
 
@@ -8164,6 +8251,9 @@ msgstr "退出团队"
 
 msgid "Leave the leaderboard?"
 msgstr "退出排行榜？"
+
+msgid "Leave your desk.<0/>Keep building."
+msgstr "离开工位，<0/>继续构建。"
 
 msgid "Leaving organization..."
 msgstr "正在退出组织..."
@@ -8843,9 +8933,6 @@ msgstr "缺少必填输入 {input}"
 msgid "Mobile"
 msgstr "移动端"
 
-msgid "Mobile (coming soon)"
-msgstr "移动端（即将推出）"
-
 msgid "Mobile app"
 msgstr "移动应用"
 
@@ -9099,6 +9186,10 @@ msgstr "网络已变更"
 msgid "Never"
 msgstr "从未"
 
+msgctxt "badge on a page published since the menu was last opened"
+msgid "New"
+msgstr "新"
+
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "新的{providerLabel}智能体将使用{accountLabel}。"
 
@@ -9153,6 +9244,9 @@ msgstr "以此工作区新建分组"
 msgid "New issue"
 msgstr "新建议题"
 
+msgid "New page"
+msgstr "新建页面"
+
 msgid "New password (min 8 characters)"
 msgstr "新密码（至少8个字符）"
 
@@ -9167,6 +9261,9 @@ msgstr "新版本与产品更新。"
 
 msgid "New session"
 msgstr "新建会话"
+
+msgid "New shell"
+msgstr "新建 Shell"
 
 msgid "New stars"
 msgstr "新增星标"
@@ -9959,6 +10056,9 @@ msgstr "刚刚"
 msgid "Now"
 msgstr "现在"
 
+msgid "Now I open the workspace on my phone, type the one line it's waiting for, and it carries on."
+msgstr "现在，我在手机上打开工作区，输入它正在等待的那一行，它就会继续工作。"
+
 #. placeholder {0}: versions.expected
 #. placeholder {1}: versions.running
 msgid "Now running {0} (was {1}). All sessions preserved."
@@ -10068,6 +10168,9 @@ msgstr "榜单最早的一百人之一"
 msgid "one of the selected repositories"
 msgstr "所选仓库之一"
 
+msgid "One step left"
+msgstr "还差一步"
+
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "一个工作区，容纳Claude Code、Codex和任何编码智能体。"
 
@@ -10143,6 +10246,9 @@ msgstr "只有讨论串的作者或页面所有者才能删除它"
 msgid "Only you"
 msgstr "仅你自己"
 
+msgid "Only you can see this page"
+msgstr "仅你可见此页面"
+
 msgid "open"
 msgstr "打开"
 
@@ -10190,6 +10296,9 @@ msgstr "仍然打开"
 
 msgid "Open Anywhere"
 msgstr "随处打开"
+
+msgid "Open App Store"
+msgstr "打开 App Store"
 
 msgid "Open as comment pane"
 msgstr "作为评论面板打开"
@@ -10476,6 +10585,9 @@ msgstr "打开发布选项"
 msgid "Open Superset"
 msgstr "打开Superset"
 
+msgid "Open Superset on that computer"
+msgstr "在那台电脑上打开Superset"
+
 msgid "Open System Settings"
 msgstr "打开系统设置"
 
@@ -10553,9 +10665,6 @@ msgstr "已打开现有工作区"
 
 msgid "opened PR #841 for review"
 msgstr "开了PR #841待审查"
-
-msgid "Opening TestFlight…"
-msgstr "正在打开TestFlight…"
 
 msgid "Opening worktree..."
 msgstr "正在打开worktree..."
@@ -10729,6 +10838,9 @@ msgstr "通宵和周末的运行无人值守也能完成，早上即可合并。
 msgid "Overview"
 msgstr "概览"
 
+msgid "Overwrite file"
+msgstr "覆盖文件"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "归{0}所有，只有本人能编辑这个自动化。"
@@ -10849,6 +10961,9 @@ msgstr "一半是记录，一半是下注。前两条已经在发生。其余的
 
 msgid "Partial"
 msgstr "部分开启"
+
+msgid "Partner, Transpose Platform"
+msgstr "合伙人，Transpose Platform"
 
 msgid "Passed"
 msgstr "通过"
@@ -11848,11 +11963,17 @@ msgstr "重新加载"
 msgid "Reload app"
 msgstr "重新加载应用"
 
+msgid "Reload from disk"
+msgstr "从磁盘重新加载"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "重新加载Superset以刷新工作区列表。"
 
 msgid "Reload window"
 msgstr "重新加载窗口"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "重新加载将丢弃你的编辑。覆盖将替换磁盘上的文件。"
 
 msgid "Relocate"
 msgstr "迁移"
@@ -11877,6 +11998,9 @@ msgstr "远程访问"
 
 msgid "Remote Access"
 msgstr "远程访问"
+
+msgid "Remote Access may be off"
+msgstr "远程访问可能已关闭"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "远程MCP服务器，通过HTTP连接"
@@ -12133,6 +12257,9 @@ msgstr "必填"
 
 msgid "Required version: {minimumVersion}+"
 msgstr "所需版本：{minimumVersion}+"
+
+msgid "Requires iOS 26 or later. Included with Superset Pro."
+msgstr "需要 iOS 26 或更高版本。包含在 Superset Pro 中。"
 
 msgid "Reserved by OS"
 msgstr "已被系统占用"
@@ -12597,6 +12724,9 @@ msgstr "在任何地方运行工作区"
 msgid "Run your agents from the desktop, any terminal, or your phone."
 msgstr "在桌面端、任意终端或手机上运行你的智能体。"
 
+msgid "Run your agents from your phone."
+msgstr "在手机上运行你的智能体。"
+
 msgid "running"
 msgstr "运行中"
 
@@ -12712,8 +12842,14 @@ msgstr "正在保存…"
 msgid "Saw the paywall"
 msgstr "看到付费墙"
 
-msgid "Scale from two agents to 100+"
-msgstr "从两个智能体扩到100多个"
+msgid "Scale to 100+ agents"
+msgstr "扩展至 100 多个智能体"
+
+msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
+msgstr "扫描二维码，然后使用同一个 Superset 账号登录并选择此组织。"
+
+msgid "Scan to download Superset for iPhone"
+msgstr "扫码下载 iPhone 版 Superset"
 
 msgid "Scanning transcript logs…"
 msgstr "正在扫描会话记录日志…"
@@ -13229,6 +13365,9 @@ msgstr "网页端创建会话即将推出"
 msgid "Session details"
 msgstr "会话详情"
 
+msgid "Session ended"
+msgstr "会话已结束"
+
 msgid "Session name"
 msgstr "会话名称"
 
@@ -13280,6 +13419,9 @@ msgstr "设置"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "设置 {0}"
+
+msgid "Set up an automation"
+msgstr "设置自动化"
 
 msgid "Set up project on {hostName}"
 msgstr "在{hostName}上设置项目"
@@ -13944,6 +14086,9 @@ msgstr "稳定性改进"
 msgid "Stacked"
 msgstr "堆叠"
 
+msgid "Staff Software Engineer, Vori"
+msgstr "Staff 软件工程师，Vori"
+
 msgid "Stage all"
 msgstr "全部暂存"
 
@@ -14022,11 +14167,17 @@ msgstr "直接从Linear工单启动工作区。智能体接手，并以一个PR�
 msgid "Start agent"
 msgstr "启动代理"
 
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "在手机上启动智能体、实时跟进并审查差异。你的代码始终留在你的机器上。"
+
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "启动一个智能体或终端，开始在此工作区中工作。"
 
 msgid "Start browsing"
 msgstr "开始浏览"
+
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "在手机上启动编程智能体、实时跟进并审查差异。现已上架 App Store；Android 版即将推出。"
 
 msgid "Start free. Upgrade when your team outgrows it. Enterprise plans for organizations with advanced security and compliance needs."
 msgstr "免费开始。团队用不够时再升级。企业方案面向有进阶安全与合规需求的组织。"
@@ -14049,6 +14200,9 @@ msgstr "启动或停止工作区运行命令"
 
 msgid "Start with the work."
 msgstr "从工作本身开始。"
+
+msgid "Start work from anywhere"
+msgstr "随时随地开始工作"
 
 msgid "Start Workspace"
 msgstr "启动工作区"
@@ -14232,6 +14386,9 @@ msgstr "套件，以及共享应用组件。点击任意导入路径即可复制
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Superset与受监控的终端进程树占用的CPU总和。超过100%表示有多个CPU核心处于繁忙状态。持续偏高通常会导致界面卡顿和耗电增加。"
 
+msgid "Summarize the changes in this workspace"
+msgstr "总结此工作区中的更改"
+
 msgid "Summary"
 msgstr "摘要"
 
@@ -14289,6 +14446,9 @@ msgstr "Superset设计系统"
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise是面向团队的Superset。联系我们，了解它包含什么，以及如何适配你的组织。"
 
+msgid "Superset for iPhone"
+msgstr "iPhone 版 Superset"
+
 msgid "Superset for your team"
 msgstr "为你的团队准备的Superset"
 
@@ -14331,6 +14491,9 @@ msgstr "Superset是F3到F4这段过渡期的工作台：隔离工作区里的并
 msgid "Superset isn't on Windows yet"
 msgstr "Superset暂不支持Windows"
 
+msgid "Superset may be closed"
+msgstr "Superset可能已关闭"
+
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "重启后Superset可能会重新登录。请再次尝试退出登录。"
 
@@ -14339,6 +14502,12 @@ msgstr "Superset内存"
 
 msgid "Superset memory · last 5 min"
 msgstr "Superset内存 · 最近5分钟"
+
+msgid "Superset mobile gives me the power of my desktop anywhere I go."
+msgstr "无论走到哪里，Superset 手机版都让我拥有桌面电脑的能力。"
+
+msgid "Superset Mobile is here"
+msgstr "Superset Mobile 来了"
 
 msgid "Superset Mobile is part of Pro"
 msgstr "Superset Mobile属于专业版"
@@ -14380,6 +14549,9 @@ msgstr "Superset支持任何基于CLI的编码智能体，包括Claude Code、Op
 msgid "superset.sh"
 msgstr "superset.sh"
 
+msgid "Superset's mobile app lets me keep my agents moving and unblock them from anywhere, even when I'm nowhere near my computer."
+msgstr "Superset 手机应用让我可以随时随地推动智能体工作、解决它们的阻碍，即使我离电脑很远也没问题。"
+
 msgid "Supervised"
 msgstr "监督"
 
@@ -14418,6 +14590,9 @@ msgstr "切换登录"
 
 msgid "Switch sign-in…"
 msgstr "切换登录…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "切换到手动排序即可重新排列侧边栏"
 
 msgid "Switch to Tab 1"
 msgstr "切换到标签页1"
@@ -14805,9 +14980,6 @@ msgstr "最好的智能体会变。<0/>你的工作流不该变。"
 
 msgid "The board starts on {launchDate}. The wider range rebuilds everything from the transcripts still on this machine, so a rank you had before leaving comes back."
 msgstr "排行榜从 {launchDate} 开始。选择更大的范围会从这台机器上仍保留的记录中重建全部数据，你离开前的排名也会回来。"
-
-msgid "The Codex sign-in"
-msgstr "Codex登录"
 
 msgid "The config repository must be one of the environment's repositories"
 msgstr "配置仓库必须是该环境的仓库之一"
@@ -15412,6 +15584,9 @@ msgstr "这将取消暂存并还原所有已暂存的更改。已暂存的新文
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "这将取消暂存并还原所有已暂存的更改。已暂存的新文件将被删除。此操作无法撤销。"
 
+msgid "This workspace"
+msgstr "此工作区"
+
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "此工作区可能已被移除，或者你不再拥有它的访问权限。"
 
@@ -15694,6 +15869,9 @@ msgstr "把杂活变成定时智能体：议题分类、更新日志草稿、依
 #. placeholder {0}: group.turn.error ? `: ${group.turn.error.message}` : ""
 msgid "Turn failed{0}"
 msgstr "本轮失败{0}"
+
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "开启“允许通过中继远程访问本设备”"
 
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "把Slack对话变成任务，从工作区运行智能体，让队友在工作开始的地方保持同步。"
@@ -16118,6 +16296,12 @@ msgstr "用于新智能体"
 msgid "Use global default"
 msgstr "使用全局默认值"
 
+msgid "Use Superset on mobile"
+msgstr "在手机上使用 Superset"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "通过 Pro 在手机上使用 Superset。"
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "使用桌面应用开始并行运行编码智能体。"
 
@@ -16336,6 +16520,9 @@ msgstr "正在等待 {0} 和 {1}…"
 msgid "Waiting for Checks"
 msgstr "等待检查"
 
+msgid "Waiting for it to connect…"
+msgstr "正在等待连接…"
+
 msgid "Waiting for Review"
 msgstr "等待审查"
 
@@ -16378,11 +16565,17 @@ msgstr "我们无法从你的支付方式扣款。请更新支付方式以保留
 msgid "We couldn't detect a package manager or environment config."
 msgstr "我们没有检测到包管理器或环境配置。"
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "无法连接到Superset以确认它是否在线。请检查网络连接后重试。"
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "暂时无法连接到设备，请稍后重试。"
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "我们不预测2026或2027年实现完全自动驾驶。诚实地讲，未知数有三个：智能体审查能否扛住对抗性的复杂度；规格说明能否在大规模场景下取代读代码，成为信任的锚点；以及算力成本能否让夜班始终比它所增强的人力更便宜。F5写进评分表，是为了在它出现时能认出来，而不是一个承诺。"
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "已找到{hostName}。在那台电脑上开启远程访问即可完成。"
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "我们只收集分析类cookie，用于改进你的使用体验。"
@@ -16395,6 +16588,9 @@ msgstr "我们会尽快与你联系。"
 
 msgid "We'll bring you back as soon as we reconnect."
 msgstr "连接恢复后，我们会立即带你回到工作区。"
+
+msgid "We'll email you when Superset for Android is ready."
+msgstr "Superset Android 版准备就绪时，我们会发邮件通知你。"
 
 msgid "We'll get back to you shortly."
 msgstr "我们会尽快回复你。"
@@ -16508,6 +16704,9 @@ msgstr "开发者怎么评价Superset"
 msgid "What do you want to do?"
 msgstr "你想做什么？"
 
+msgid "What early users say"
+msgstr "早期用户怎么说"
+
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google 为哪些搜索展示我们，其中有多少不是我们自己的名字。"
 
@@ -16528,6 +16727,9 @@ msgstr "你想解决什么问题？"
 
 msgid "What should run on a schedule?"
 msgstr "想让什么定时运行？"
+
+msgid "What should the page show?"
+msgstr "页面应展示什么?"
 
 msgid "What should we build next?"
 msgstr "接下来做点什么？"
@@ -16642,6 +16844,9 @@ msgstr "带标签"
 
 msgid "with or without attachments"
 msgstr "有无附件均可"
+
+msgid "With the Superset mobile app, I can address production issues from anywhere."
+msgstr "有了 Superset 手机应用，我可以随时随地处理生产环境问题。"
 
 msgid "Work email"
 msgstr "工作邮箱"
@@ -16968,6 +17173,9 @@ msgstr "你的智能体，你的账号"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "你的浏览器未报告芯片类型，因此这是 Apple Silicon 版本。如果你使用 Intel Mac，请改为<0>获取 Intel 版本</0>。"
+
+msgid "Your changes"
+msgstr "你的更改"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "如果不保存，你的更改将会丢失。"

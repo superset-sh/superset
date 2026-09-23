@@ -53,11 +53,14 @@ describe("AGENT_MODEL_SUPPORT", () => {
 });
 
 describe("SUPERSET_CHAT_MODELS", () => {
-	it("includes opus 5, fable 5.1, GPT-6 Astra and the GPT-5.6 Codex models", () => {
+	it("includes opus 5, fable 5.1, and the current OpenAI models", () => {
 		const ids = SUPERSET_CHAT_MODELS.map((model) => model.id);
+		expect(ids).toContain("anthropic/claude-opus-5-5");
 		expect(ids).toContain("anthropic/claude-opus-5");
 		expect(ids).toContain("anthropic/claude-fable-5-1");
 		expect(ids).toContain("openai/gpt-6-astra");
+		expect(ids).toContain("openai/gpt-6-sol");
+		expect(ids).toContain("openai/gpt-6-luna");
 		expect(ids).toContain("openai/gpt-5.6-sol");
 		expect(ids).toContain("openai/gpt-5.6-terra");
 		expect(ids).toContain("openai/gpt-5.6-luna");
@@ -118,6 +121,7 @@ describe("buildAgentModelArgs", () => {
 		expect(ids).toContain("claude-fable-5-1");
 		expect(ids).toContain("claude-opus-4-8");
 		expect(ids).toContain("claude-opus-4-7");
+		expect(ids).toContain("claude-opus-5-5");
 		expect(ids).toContain("claude-sonnet-4-6");
 		expect(ids).toContain("claude-haiku-4-5");
 	});
@@ -153,6 +157,10 @@ describe("buildAgentModelArgs", () => {
 		expect(buildAgentModelArgs("claude", "claude-opus-5")).toEqual([
 			"--model",
 			"claude-opus-5",
+		]);
+		expect(buildAgentModelArgs("claude", "claude-opus-5-5")).toEqual([
+			"--model",
+			"claude-opus-5-5",
 		]);
 	});
 
@@ -197,15 +205,14 @@ describe("buildAgentModelArgs", () => {
 		}
 	});
 
-	it("offers GPT-6 Astra in codex's current section", () => {
-		expect(buildAgentModelArgs("codex", "gpt-6-astra")).toEqual([
-			"--model",
-			"gpt-6-astra",
-		]);
+	it("offers the GPT-6 models in codex's current section", () => {
 		const models = getAgentModelSupport("codex")?.models ?? [];
-		expect(models.find((model) => model.id === "gpt-6-astra")?.group).toBe(
-			"Current",
-		);
+		for (const model of ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"]) {
+			expect(buildAgentModelArgs("codex", model)).toEqual(["--model", model]);
+			expect(models.find((option) => option.id === model)?.group).toBe(
+				"Current",
+			);
+		}
 	});
 
 	it("includes opus 5 and the GPT-5.6 models for the other CLIs", () => {
@@ -401,6 +408,21 @@ describe("getAgentEfforts", () => {
 			"ultra",
 		]);
 		expect(getAgentEfforts("codex", "gpt-6-astra").map((e) => e.id)).toEqual([
+			"low",
+			"medium",
+			"high",
+			"xhigh",
+			"max",
+		]);
+		expect(getAgentEfforts("codex", "gpt-6-sol").map((e) => e.id)).toEqual([
+			"low",
+			"medium",
+			"high",
+			"xhigh",
+			"max",
+			"ultra",
+		]);
+		expect(getAgentEfforts("codex", "gpt-6-luna").map((e) => e.id)).toEqual([
 			"low",
 			"medium",
 			"high",

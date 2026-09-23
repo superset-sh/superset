@@ -10,9 +10,11 @@ import { getComparisonPages } from "@/lib/compare";
 import { getAllLegalSlugs, getLegalPage } from "@/lib/legal";
 import { themeListings } from "@/lib/marketplace";
 import { getAllPeople } from "@/lib/people";
+import { isMobileLaunched } from "@/lib/site-flags";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const baseUrl = COMPANY.MARKETING_URL;
+	const isLaunched = await isMobileLaunched();
 
 	const staticPages: MetadataRoute.Sitemap = [
 		{
@@ -21,6 +23,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			changeFrequency: "monthly",
 			priority: 0.8,
 		},
+		...(isLaunched
+			? [
+					{
+						url: `${baseUrl}/mobile`,
+						lastModified: new Date(),
+						changeFrequency: "monthly" as const,
+						priority: 0.8,
+					},
+				]
+			: []),
 		{
 			url: baseUrl,
 			lastModified: new Date(),

@@ -33,12 +33,15 @@ export function getRelayUrl(): string {
 
 export async function getHostAuthToken(options?: {
 	forceRefresh?: boolean;
+	signal?: AbortSignal;
 }): Promise<string> {
 	if (!options?.forceRefresh) {
 		const cached = getJwt();
 		if (cached && !expiresSoon(cached)) return cached;
 	}
-	const result = await authClient.token();
+	const result = await authClient.token({
+		fetchOptions: { signal: options?.signal },
+	});
 	const token = result.data?.token;
 	if (!token) {
 		throw new Error("Not signed in: no JWT available for host access");

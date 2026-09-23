@@ -80,7 +80,8 @@ export interface PaneDefinition<TData> {
 	renderToolbar?(context: RendererContext<TData>): ReactNode;
 	onHeaderClick?(context: RendererContext<TData>): void;
 	onBeforeClose?(pane: Pane<TData>): boolean | Promise<boolean>;
-	onAfterClose?(pane: Pane<TData>): void;
+	onAfterClose?(pane: Pane<TData>, closedPanes: readonly Pane<TData>[]): void;
+	onAfterRemove?(pane: Pane<TData>): void;
 	paneActions?:
 		| PaneActionConfig<TData>[]
 		| ((

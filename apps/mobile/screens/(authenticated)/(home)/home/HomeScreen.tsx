@@ -13,6 +13,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	RefreshControl,
+	ScrollView,
 	useWindowDimensions,
 	View,
 } from "react-native";
@@ -48,6 +49,7 @@ import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
 import { useAgentLiveActivity } from "./hooks/useAgentLiveActivity";
+import { useAppReviewPrompt } from "./hooks/useAppReviewPrompt";
 import { useCloudRepoPrefixes } from "./hooks/useCloudRepoPrefixes";
 import { useFirstPaint } from "./hooks/useFirstPaint";
 import {
@@ -99,7 +101,11 @@ type HomeListItem =
 			workspace: HostWorkspaceItem;
 			cloudStatus?: CloudWorkspaceStatus;
 	  }
-	| { kind: "hostOffline"; hostName: string };
+	| {
+			kind: "hostOffline";
+			hostName: string;
+			lastSeenAt: number | null | undefined;
+	  };
 
 function homeListItemKey(item: HomeListItem): string {
 	switch (item.kind) {
@@ -139,6 +145,7 @@ export function HomeScreen() {
 	const insets = useSafeAreaInsets();
 	const headerHeight = useHeaderHeight();
 	const queryClient = useQueryClient();
+	useAppReviewPrompt();
 	const setTargetKey = useNewSessionPreferencesStore(
 		(state) => state.setTargetKey,
 	);
@@ -187,7 +194,10 @@ export function HomeScreen() {
 		enabled: liveActivityEnabled,
 	});
 	const pullRequests = usePullRequests();
-	const { query: hostsQuery } = useOrgHosts();
+	const { query: hostsQuery, presenceStatus } = useOrgHosts();
+	const presencePending = presenceStatus === "pending";
+	const hostOffline =
+		!cloudScope && !!selectedHost && !selectedHost.isOnline && !presencePending;
 
 	// An answer, not rows: an offline host and a host with no workspaces both
 	// settle. Decoration is not waited on. With no active organization the
@@ -197,7 +207,9 @@ export function HomeScreen() {
 		hasHydrated &&
 		!isLoadingOrganizations &&
 		(!activeOrganizationId || !hostsQuery.isPending) &&
-		(cloudScope ? cloudReady : workspacesReady && projectsReady);
+		(cloudScope
+			? cloudReady
+			: !presencePending && workspacesReady && projectsReady);
 
 	const hasPainted = useFirstPaint(contentReady);
 
@@ -264,8 +276,12 @@ export function HomeScreen() {
 
 		// A machine's rows. When it is offline the whole scope gives way to the
 		// placeholder — Cloud is a chip away rather than stranded above it.
-		if (selectedHost && !selectedHost.isOnline) {
-			items.push({ kind: "hostOffline", hostName: selectedHost.name });
+		if (selectedHost && hostOffline) {
+			items.push({
+				kind: "hostOffline",
+				hostName: selectedHost.name,
+				lastSeenAt: selectedHost.lastSeenAt,
+			});
 			return items;
 		}
 
@@ -356,6 +372,7 @@ export function HomeScreen() {
 		collapsed,
 		collapseHydrated,
 		t,
+		hostOffline,
 	]);
 
 	const composerWorkspaces = useMemo(
@@ -487,7 +504,10 @@ export function HomeScreen() {
 			if (item.kind === "hostOffline") {
 				return (
 					<View className="py-16">
-						<HostOfflineView hostName={item.hostName} />
+						<HostOfflineView
+							hostName={item.hostName}
+							lastSeenAt={item.lastSeenAt}
+						/>
 					</View>
 				);
 			}
@@ -623,7 +643,7 @@ export function HomeScreen() {
 						: undefined,
 				}}
 			/>
-			{!cloudScope && selectedHost && !selectedHost.isOnline ? null : (
+			{selectedHost && hostOffline ? null : (
 				<Stack.Toolbar placement="right">
 					<Stack.Toolbar.Button
 						icon="magnifyingglass"
@@ -637,7 +657,7 @@ export function HomeScreen() {
 					/>
 				</Stack.Toolbar>
 			)}
-			{!cloudScope && selectedHost && !selectedHost.isOnline ? (
+			{selectedHost && hostOffline ? (
 				<View
 					className="bg-background flex-1"
 					style={{
@@ -647,7 +667,19 @@ export function HomeScreen() {
 					}}
 				>
 					{scopeBar}
-					<HostOfflineView hostName={selectedHost.name} />
+					<ScrollView
+						className="flex-1"
+						contentContainerStyle={{
+							flexGrow: 1,
+							paddingTop: 24,
+							paddingBottom: 112,
+						}}
+					>
+						<HostOfflineView
+							hostName={selectedHost.name}
+							lastSeenAt={selectedHost.lastSeenAt}
+						/>
+					</ScrollView>
 				</View>
 			) : (
 				<LegendList

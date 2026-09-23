@@ -76,7 +76,7 @@ interface UseDiffCommentComposerResult {
  *   - tracks the live pierre selection that anchors the composer
  *   - synthesises the composer annotation injected via
  *     useDiffCodeViewItems' `extraAnnotationsByItemId`
- *   - dispatches submit between the existing-terminal writeInput path
+ *   - dispatches submit between the existing-terminal send path
  *     and the host `agents.run`-backed new-session path
  *
  * DiffPane only wires CodeView events; all composer state lives here.
@@ -177,7 +177,7 @@ export function useDiffCommentComposer({
 					return;
 				}
 				// Host bakes the prompt into the launch command (argv/stdin per
-				// the agent config), so no follow-up writeInput here.
+				// the agent config), so no follow-up send here.
 				const result = await onCreateNewAgentSession({
 					configId: input.target.configId,
 					placement: input.target.placement,

@@ -13,11 +13,11 @@ import {
 	markTerminalAgentBindingEnded,
 } from "../../terminal-agents/persistence.ts";
 import {
-	markStaleActiveRows,
 	PORT_SCAN_WARMUP_DELAYS_MS,
+	planMissingTerminalSessions,
 	planPortScanSync,
-	planStaleActiveRows,
 	REAP_INTERVAL_MS,
+	reconcileMissingTerminalSessions,
 	shouldReapRow,
 } from "./reaper.ts";
 
@@ -222,7 +222,7 @@ describe("shouldReapRow", () => {
 	});
 });
 
-describe("planStaleActiveRows", () => {
+describe("planMissingTerminalSessions", () => {
 	const NOW = 1_000_000;
 	const OLD = NOW - 120_000;
 
@@ -237,7 +237,7 @@ describe("planStaleActiveRows", () => {
 	}
 
 	it("marks active rows the daemon no longer owns", () => {
-		const stale = planStaleActiveRows({
+		const stale = planMissingTerminalSessions({
 			aliveIds: new Set(["t-alive"]),
 			rowsById: rows([
 				[
@@ -252,11 +252,11 @@ describe("planStaleActiveRows", () => {
 			isLive: () => false,
 			now: NOW,
 		});
-		expect(stale).toEqual({ exited: ["t-dead"], disposed: [] });
+		expect(stale).toEqual({ recoverable: ["t-dead"], disposed: [] });
 	});
 
 	it("skips rows that are not active", () => {
-		const stale = planStaleActiveRows({
+		const stale = planMissingTerminalSessions({
 			aliveIds: new Set(),
 			rowsById: rows([
 				["t-1", { status: "exited", originWorkspaceId: "ws", createdAt: OLD }],
@@ -268,11 +268,11 @@ describe("planStaleActiveRows", () => {
 			isLive: () => false,
 			now: NOW,
 		});
-		expect(stale).toEqual({ exited: [], disposed: [] });
+		expect(stale).toEqual({ recoverable: [], disposed: [] });
 	});
 
 	it("respects the in-memory live guard against a racy daemon list", () => {
-		const stale = planStaleActiveRows({
+		const stale = planMissingTerminalSessions({
 			aliveIds: new Set(),
 			rowsById: rows([
 				[
@@ -283,11 +283,11 @@ describe("planStaleActiveRows", () => {
 			isLive: (id) => id === "t-attached",
 			now: NOW,
 		});
-		expect(stale).toEqual({ exited: [], disposed: [] });
+		expect(stale).toEqual({ recoverable: [], disposed: [] });
 	});
 
 	it("leaves freshly created rows alone during the spawn grace window", () => {
-		const stale = planStaleActiveRows({
+		const stale = planMissingTerminalSessions({
 			aliveIds: new Set(),
 			rowsById: rows([
 				[
@@ -302,11 +302,11 @@ describe("planStaleActiveRows", () => {
 			isLive: () => false,
 			now: NOW,
 		});
-		expect(stale).toEqual({ exited: ["t-old"], disposed: [] });
+		expect(stale).toEqual({ recoverable: ["t-old"], disposed: [] });
 	});
 
 	it("marks everything stale when the daemon answers with zero sessions", () => {
-		const stale = planStaleActiveRows({
+		const stale = planMissingTerminalSessions({
 			aliveIds: new Set(),
 			rowsById: rows([
 				["t-1", { status: "active", originWorkspaceId: "ws", createdAt: OLD }],
@@ -314,11 +314,11 @@ describe("planStaleActiveRows", () => {
 			isLive: () => false,
 			now: NOW,
 		});
-		expect(stale).toEqual({ exited: ["t-1"], disposed: [] });
+		expect(stale).toEqual({ recoverable: ["t-1"], disposed: [] });
 	});
 
 	it("preserves dispose intent: daemon-lost rows with a pending dispose become disposed", () => {
-		const stale = planStaleActiveRows({
+		const stale = planMissingTerminalSessions({
 			aliveIds: new Set(),
 			rowsById: rows([
 				[
@@ -338,11 +338,14 @@ describe("planStaleActiveRows", () => {
 			isLive: () => false,
 			now: NOW,
 		});
-		expect(stale).toEqual({ exited: ["t-crashed"], disposed: ["t-disposing"] });
+		expect(stale).toEqual({
+			recoverable: ["t-crashed"],
+			disposed: ["t-disposing"],
+		});
 	});
 });
 
-describe("markStaleActiveRows agent bindings", () => {
+describe("reconcileMissingTerminalSessions agent bindings", () => {
 	const OLD = Date.now() - 10 * 60_000;
 
 	function createTestDb(): HostDb {
@@ -449,13 +452,55 @@ describe("markStaleActiveRows agent bindings", () => {
 			.get();
 	}
 
+	it("requires confirmed absence before ending a binding", () => {
+		const db = createTestDb();
+		seed(db, { id: "t-unconfirmed" });
+		expect(
+			reconcileMissingTerminalSessions(db, [], snapshotRows(db), new Set()),
+		).toBe(0);
+		expect(bindingOf(db, "t-unconfirmed")?.endedAt).toBeNull();
+		expect(
+			reconcileMissingTerminalSessions(
+				db,
+				[],
+				snapshotRows(db),
+				new Set(["t-unconfirmed"]),
+			),
+		).toBe(1);
+		expect(statusOf(db, "t-unconfirmed")).toBe("active");
+	});
+
+	it("ignores a session recovered after the reaper snapshot", () => {
+		const db = createTestDb();
+		seed(db, { id: "t-recovered" });
+		const snapshot = snapshotRows(db);
+		db.update(terminalSessions)
+			.set({ createdAt: Date.now() })
+			.where(eq(terminalSessions.id, "t-recovered"))
+			.run();
+		expect(reconcileMissingTerminalSessions(db, [], snapshot)).toBe(0);
+		expect(bindingOf(db, "t-recovered")?.endedAt).toBeNull();
+	});
+
+	it("does not offer resume when disposal arrives after the snapshot", () => {
+		const db = createTestDb();
+		seed(db, { id: "t-disposing" });
+		const snapshot = snapshotRows(db);
+		requestDispose(db, "t-disposing");
+		expect(reconcileMissingTerminalSessions(db, [], snapshot)).toBe(0);
+		expect(bindingOf(db, "t-disposing")?.endReason).toBeNull();
+		expect(
+			findResumeCandidateBinding(db, "ws-1", "t-disposing"),
+		).toBeUndefined();
+	});
+
 	it("leaves a daemon-lost agent session resumable", () => {
 		const db = createTestDb();
 		seed(db, { id: "t-lost" });
 
-		markStaleActiveRows(db, [], new Map());
+		reconcileMissingTerminalSessions(db, [], new Map());
 
-		expect(statusOf(db, "t-lost")).toBe("exited");
+		expect(statusOf(db, "t-lost")).toBe("active");
 		expect(bindingOf(db, "t-lost")?.endReason).toBe("terminal-exited");
 		expect(
 			findResumeCandidateBinding(db, "ws-1", "t-lost")?.agentSessionId,
@@ -466,10 +511,25 @@ describe("markStaleActiveRows agent bindings", () => {
 		const db = createTestDb();
 		seed(db, { id: "t-killed", disposeRequestedAt: OLD });
 
-		markStaleActiveRows(db, [], new Map());
+		reconcileMissingTerminalSessions(db, [], new Map());
 
 		expect(statusOf(db, "t-killed")).toBe("disposed");
+		expect(bindingOf(db, "t-killed")?.endReason).toBe("disposed");
 		expect(findResumeCandidateBinding(db, "ws-1", "t-killed")).toBeUndefined();
+	});
+
+	it("preserves an internal restart candidate through pending-disposal reconciliation", () => {
+		const db = createTestDb();
+		seed(db, {
+			id: "restart",
+			disposeRequestedAt: OLD,
+			binding: { endedAt: OLD, endReason: "terminal-exited" },
+		});
+		reconcileMissingTerminalSessions(db, [], new Map());
+		expect(statusOf(db, "restart")).toBe("disposed");
+		expect(
+			findResumeCandidateBinding(db, "ws-1", "restart")?.agentSessionId,
+		).toBe("sess-1");
 	});
 
 	it("leaves bindings of rows it does not sweep untouched", () => {
@@ -481,30 +541,29 @@ describe("markStaleActiveRows agent bindings", () => {
 		// t-alive is still in the daemon's list and t-fresh is inside the
 		// spawn grace window; only t-stale is condemned. Its sweep is what
 		// proves the policy actually evaluated these rows.
-		expect(markStaleActiveRows(db, [{ id: "t-alive" }], snapshotRows(db))).toBe(
-			1,
-		);
+		expect(
+			reconcileMissingTerminalSessions(
+				db,
+				[{ id: "t-alive" }],
+				snapshotRows(db),
+			),
+		).toBe(1);
 
-		expect(statusOf(db, "t-stale")).toBe("exited");
+		expect(statusOf(db, "t-stale")).toBe("active");
 		expect(statusOf(db, "t-alive")).toBe("active");
 		expect(bindingOf(db, "t-alive")?.endedAt).toBeNull();
 		expect(statusOf(db, "t-fresh")).toBe("active");
 		expect(bindingOf(db, "t-fresh")?.endedAt).toBeNull();
 	});
 
-	it("rolls the row back when the binding write fails, and retries later", () => {
+	it("keeps the session recoverable when the binding write fails, and retries later", () => {
 		const db = createTestDb();
 		seed(db, { id: "t-lost" });
-		// A binding write that fails for any reason (locked db, constraint,
-		// corrupt row). Committing the status flip without the binding stamp
-		// is unrecoverable: the row leaves `active`, so no later sweep, attach
-		// or respawn ever ends the binding again. The sweep fails as a whole
-		// instead (the reap pass logs it) and nothing is committed.
 		db.run(
 			sql`CREATE TRIGGER fail_binding_write BEFORE UPDATE ON terminal_agent_bindings BEGIN SELECT RAISE(ABORT, 'binding write failed'); END`,
 		);
 
-		expect(() => markStaleActiveRows(db, [], new Map())).toThrow(
+		expect(() => reconcileMissingTerminalSessions(db, [], new Map())).toThrow(
 			/binding write failed/,
 		);
 
@@ -513,9 +572,9 @@ describe("markStaleActiveRows agent bindings", () => {
 		expect(bindingOf(db, "t-lost")?.endedAt).toBeNull();
 
 		db.run(sql`DROP TRIGGER fail_binding_write`);
-		expect(markStaleActiveRows(db, [], new Map())).toBe(1);
+		expect(reconcileMissingTerminalSessions(db, [], new Map())).toBe(1);
 
-		expect(statusOf(db, "t-lost")).toBe("exited");
+		expect(statusOf(db, "t-lost")).toBe("active");
 		expect(
 			findResumeCandidateBinding(db, "ws-1", "t-lost")?.agentSessionId,
 		).toBe("sess-1");
@@ -525,7 +584,7 @@ describe("markStaleActiveRows agent bindings", () => {
 		const db = createTestDb();
 		seed(db, { id: "t-swept" });
 
-		expect(markStaleActiveRows(db, [], new Map())).toBe(1);
+		expect(reconcileMissingTerminalSessions(db, [], new Map())).toBe(1);
 		expect(findResumeCandidateBinding(db, "ws-1", "t-swept")).toBeDefined();
 
 		// The user closes the pane a moment later. The dispose route stamps
@@ -555,9 +614,9 @@ describe("markStaleActiveRows agent bindings", () => {
 			binding: { endedAt: OLD, endReason: "disposed" },
 		});
 
-		expect(markStaleActiveRows(db, [], new Map())).toBe(1);
+		expect(reconcileMissingTerminalSessions(db, [], new Map())).toBe(1);
 
-		expect(statusOf(db, "t-pane-closed")).toBe("exited");
+		expect(statusOf(db, "t-pane-closed")).toBe("active");
 		expect(bindingOf(db, "t-pane-closed")?.endReason).toBe("disposed");
 		expect(
 			findResumeCandidateBinding(db, "ws-1", "t-pane-closed"),
@@ -568,22 +627,19 @@ describe("markStaleActiveRows agent bindings", () => {
 		const db = createTestDb();
 		seed(db, { id: "t-no-agent", binding: null });
 
-		expect(markStaleActiveRows(db, [], new Map())).toBe(1);
+		expect(reconcileMissingTerminalSessions(db, [], new Map())).toBe(1);
 
-		expect(statusOf(db, "t-no-agent")).toBe("exited");
+		expect(statusOf(db, "t-no-agent")).toBe("active");
 		expect(bindingOf(db, "t-no-agent")).toBeUndefined();
 	});
 
 	it("sweeps a stale row whose binding never captured a session id", () => {
-		// Such a binding can never be a resume candidate, but the row still has
-		// to leave `active` — that is what stops live-session reads from
-		// offering an agent whose pty is gone.
 		const db = createTestDb();
 		seed(db, { id: "t-idless", binding: { agentSessionId: null } });
 
-		expect(markStaleActiveRows(db, [], new Map())).toBe(1);
+		expect(reconcileMissingTerminalSessions(db, [], new Map())).toBe(1);
 
-		expect(statusOf(db, "t-idless")).toBe("exited");
+		expect(statusOf(db, "t-idless")).toBe("active");
 		expect(bindingOf(db, "t-idless")?.endReason).toBe("terminal-exited");
 		expect(findResumeCandidateBinding(db, "ws-1", "t-idless")).toBeUndefined();
 	});
@@ -595,9 +651,9 @@ describe("markStaleActiveRows agent bindings", () => {
 			binding: { endedAt: OLD, endReason: "detached" },
 		});
 
-		markStaleActiveRows(db, [], new Map());
+		reconcileMissingTerminalSessions(db, [], new Map());
 
-		expect(statusOf(db, "t-detached")).toBe("exited");
+		expect(statusOf(db, "t-detached")).toBe("active");
 		expect(bindingOf(db, "t-detached")?.endReason).toBe("detached");
 		expect(
 			findResumeCandidateBinding(db, "ws-1", "t-detached"),

@@ -2,6 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { usePageComments } from "@superset/cloud-client";
 import { errorMessage } from "@superset/i18n/errors";
 import { pageCommentUser } from "@superset/shared/page-comments";
+import type { PageLinkClick } from "@superset/shared/page-comments-runtime";
 import {
 	AllCommentsButton,
 	CommentProvider,
@@ -15,6 +16,7 @@ import { TRPCClientError } from "@trpc/client";
 import { useEffect, useMemo, useRef } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { PageViewerMessage } from "./components/PageViewerMessage";
 
 const scrollPositions = new Map<string, number>();
@@ -33,6 +35,7 @@ interface PageViewerProps {
 	onCommentsEnabledChange: (enabled: boolean) => void;
 	onResolved?: (page: ResolvedPage) => void;
 	onFramePointerDown?: () => void;
+	onLinkClick?: (click: PageLinkClick) => void;
 	version?: number | null;
 	onExitPreview?: () => void;
 }
@@ -45,6 +48,11 @@ export function PageViewer({
 	onCommentsEnabledChange,
 	onResolved,
 	onFramePointerDown,
+	onLinkClick = (click) => {
+		void electronTrpcClient.external.openUrl
+			.mutate(click.url)
+			.catch(console.error);
+	},
 	version,
 	onExitPreview,
 }: PageViewerProps) {
@@ -144,6 +152,7 @@ export function PageViewer({
 							initialScrollY={scrollPositions.get(scrollKey) ?? 0}
 							onScrollYChange={(y) => scrollPositions.set(scrollKey, y)}
 							onFramePointerDown={onFramePointerDown}
+							onLinkClick={onLinkClick}
 						/>
 					</div>
 					<AllCommentsButton />

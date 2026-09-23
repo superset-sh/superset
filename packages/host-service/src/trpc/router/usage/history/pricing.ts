@@ -8,7 +8,7 @@ import type { UsageAgent } from "../types";
  * Longest-prefix match on the lowercased model id; unknown models fall back
  * to the agent's cheapest rate and mark the result approximate.
  */
-export const PRICING_TABLE_UPDATED = "2026-09-11";
+export const PRICING_TABLE_UPDATED = "2026-09-22";
 
 export interface ModelRate {
 	inputPerM: number;
@@ -33,6 +33,7 @@ const CLAUDE_RATES: Record<string, ModelRate> = {
 	"claude-mythos-5-1": { inputPerM: 10, outputPerM: 50, cacheReadPerM: 0.25 },
 	"claude-fable-5": { inputPerM: 10, outputPerM: 50 },
 	"claude-mythos": { inputPerM: 10, outputPerM: 50 },
+	"claude-opus-5-5": { inputPerM: 4, outputPerM: 20, cacheReadPerM: 0.2 },
 	"claude-opus-5": { inputPerM: 5, outputPerM: 25 },
 	"claude-opus-4-8": { inputPerM: 5, outputPerM: 25 },
 	"claude-opus-4-7": { inputPerM: 5, outputPerM: 25 },
@@ -51,6 +52,8 @@ const CLAUDE_RATES: Record<string, ModelRate> = {
 const CODEX_RATES: Record<string, ModelRate> = {
 	// GPT-6 Astra (2026-09-03): cached input is $1/M, the usual 0.1x.
 	"gpt-6-astra": { inputPerM: 10, outputPerM: 50 },
+	"gpt-6-sol": { inputPerM: 2, outputPerM: 10 },
+	"gpt-6-luna": { inputPerM: 0.1, outputPerM: 0.5 },
 	// Sol's promotional price, published as lasting at least through
 	// 2026-11-21; the bare `gpt-5.6` id follows Sol.
 	"gpt-5.6-sol": { inputPerM: 4, outputPerM: 20 },

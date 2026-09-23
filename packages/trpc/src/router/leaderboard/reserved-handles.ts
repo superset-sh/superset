@@ -17,6 +17,7 @@ const ROUTES = [
 	"marketplace",
 	"mcp-install",
 	"md",
+	"mobile",
 	"parallel-coding-agents",
 	"people",
 	"pricing",

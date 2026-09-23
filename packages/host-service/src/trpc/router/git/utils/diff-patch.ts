@@ -42,6 +42,44 @@ const BASE_ARGS = [
 	`--unified=${PATCH_CONTEXT_LINES}`,
 ];
 
+/**
+ * `git`-level config every diff here is run with, because the renderer parses
+ * this patch text and `@pierre/diffs` recognises a section header only in
+ * git's default `diff --git a/f b/f` shape.
+ *
+ * git otherwise honours whatever the user carries in their own gitconfig:
+ * `diff.mnemonicPrefix` names the prefixes after the sides being compared
+ * (`i/`+`w/` unstaged, `c/`+`i/` staged, `1/`+`2/` for `--no-index`),
+ * `diff.noprefix` drops them, and `diff.srcPrefix`/`diff.dstPrefix` replace
+ * them outright. Any of those put every Staged and Unstaged file behind
+ * "Unable to load diff" (#7596). Comparing two commits is the one case
+ * mnemonic prefixes coincide with `a/`+`b/`, which is why Against base and
+ * Commits kept rendering and made this look like a category-specific bug.
+ *
+ * `core.quotePath=false` is the same defect at git's own default: quoting
+ * escapes a non-ASCII path into `"a/caf\303\251.txt"`, which the header
+ * regex accepts but captures verbatim, so it never equals the raw path the
+ * `-z` status walk reports and the renderer joins the two on.
+ *
+ * `-c` rather than `--default-prefix`, which says the same thing in one flag
+ * but only from git 2.45 and exits non-zero as an unknown option before that.
+ * Unknown config *keys* are ignored by every git, so `srcPrefix`/`dstPrefix`
+ * are harmless no-ops on the older versions where `mnemonicPrefix` and
+ * `noprefix` are the only two knobs that exist.
+ */
+const CONFIG_ARGS = [
+	"-c",
+	"diff.mnemonicPrefix=false",
+	"-c",
+	"diff.noprefix=false",
+	"-c",
+	"diff.srcPrefix=a/",
+	"-c",
+	"diff.dstPrefix=b/",
+	"-c",
+	"core.quotePath=false",
+];
+
 /** Builds the `git diff` argv for a category. Mirrors the ref pairs
  * `loadFileDiffContent` compares file-by-file, so a patch and a hydrated file
  * always describe the same two sides. */
@@ -142,7 +180,10 @@ function runDiff(
 	if (budget.exhausted) return Promise.resolve({ patch: "", truncated: true });
 
 	return new Promise<DiffSection>((resolve, reject) => {
-		const child = spawn("git", args, { ...options, windowsHide: true });
+		const child = spawn("git", [...CONFIG_ARGS, ...args], {
+			...options,
+			windowsHide: true,
+		});
 		const chunks: Buffer[] = [];
 		let stderr = "";
 		let truncated = false;

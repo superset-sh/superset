@@ -211,6 +211,20 @@ path instead (`setImagePasteOverride` in the terminal runtime registry).
 Chosen over a new host endpoint because deployed sandboxes never update
 their baked host-service.
 
+**A URL launcher succeeds and reaches nobody.** The image ships `xdg-utils`
+(`packages/sandbox/bundle/rootfs/usr/local/share/superset/desktop.Aptfile`)
+and `/etc/profile.d/superset.sh` exports `DISPLAY`, so `xdg-open` spawns
+cleanly and exits 0 — on a display no one is looking at. Nothing in the spawn
+result distinguishes that from a browser opening on the user's laptop, so a
+CLI that opens a URL as a side effect (`pages publish` opening the page it
+created, `auth login` opening the consent screen) has to rule the sandbox out
+before spawning rather than react to a failure. `canReachDesktop()` in
+`packages/cli/src/lib/open-url.ts` is that check: `IS_SANDBOX` (set by
+host-service in sandbox-mode PTY env), `SSH_CONNECTION` or `SSH_TTY`. It is
+deliberately not `shouldOpenBrowser()` from `lib/auth.ts`, whose extra TTY
+test is right for an interactive login prompt and wrong for an agent running
+the CLI with piped stdout.
+
 ## Lifecycle
 
 **Delete is not wired.** The generic delete routes to the owning host, which

@@ -469,6 +469,10 @@ export class EventBus {
 					workspaceId,
 					error,
 				});
+				if (state.fsSubscriptions.get(workspaceId)?.dispose === dispose) {
+					state.fsSubscriptions.delete(workspaceId);
+				}
+				dispose();
 				sendMessage(socket, {
 					type: "error",
 					message:

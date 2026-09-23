@@ -13,6 +13,7 @@ import {
 	encodeFrame,
 	FrameDecoder,
 } from "@superset/pty-daemon/protocol";
+import { TerminalModes } from "@superset/pty-daemon/terminal-modes";
 import { DaemonClient, DaemonUnavailableError } from "./DaemonClient.ts";
 
 const sockPath = path.join(
@@ -40,6 +41,139 @@ test("connect + handshake exposes daemon version", async () => {
 	assert.equal(c.protocol, CURRENT_PROTOCOL_VERSION);
 	assert.ok(c.isConnected);
 	await c.dispose();
+});
+
+test("replay waits through silence, restores modes before readiness, and refreshes late subscribers", async () => {
+	const localPath = path.join(
+		os.tmpdir(),
+		`host-mode-replay-${process.pid}.sock`,
+	);
+	const sockets: net.Socket[] = [];
+	const modes = new TerminalModes();
+	modes.feed(Buffer.from("\x1b[?2004h"));
+	let subscriptions = 0;
+	const fake = net.createServer((socket) => {
+		sockets.push(socket);
+		const decoder = new FrameDecoder();
+		socket.on("data", (chunk) => {
+			decoder.push(chunk);
+			for (const frame of decoder.drain()) {
+				const msg = frame.message as {
+					type: string;
+					id: string;
+					replay?: boolean;
+					modeSnapshot?: boolean;
+				};
+				if (msg.type === "hello")
+					socket.write(
+						encodeFrame({
+							type: "hello-ack",
+							protocol: CURRENT_PROTOCOL_VERSION,
+							daemonVersion: "test",
+							supportsModeSnapshots: true,
+						}),
+					);
+				if (msg.type === "subscribe") {
+					subscriptions++;
+					assert.equal(msg.modeSnapshot, true);
+					if (subscriptions === 1)
+						socket.write(
+							encodeFrame(
+								{ type: "output", id: msg.id },
+								Buffer.from("retained output"),
+							),
+						);
+					else {
+						assert.equal(msg.replay, false);
+						socket.write(
+							encodeFrame({
+								type: "replay-complete",
+								id: msg.id,
+								modes: modes.snapshot(),
+							}),
+						);
+					}
+				}
+			}
+		});
+	});
+	await new Promise<void>((resolve) => fake.listen(localPath, resolve));
+	const c = new DaemonClient({ socketPath: localPath });
+	try {
+		await c.connect();
+		const output: string[] = [];
+		let restored = false;
+		c.subscribe(
+			"s",
+			{ replay: true },
+			{
+				onOutput: (chunk) => output.push(chunk.toString()),
+				onExit() {},
+				onReplayComplete(snapshot) {
+					restored = snapshot.decModes.includes(2004);
+				},
+			},
+		);
+		let ready = false;
+		const pending = c.waitForReplay("s").then(() => {
+			assert.equal(restored, true);
+			ready = true;
+		});
+		await new Promise((resolve) => setTimeout(resolve, 650));
+		assert.deepEqual(output, ["retained output"]);
+		assert.equal(ready, false);
+		sockets[0]?.write(
+			encodeFrame({
+				type: "replay-complete",
+				id: "s",
+				modes: modes.snapshot(),
+			}),
+		);
+		await pending;
+		let lateRestored = false;
+		c.subscribe(
+			"s",
+			{ replay: false },
+			{
+				onOutput() {},
+				onExit() {},
+				onReplayComplete(snapshot) {
+					lateRestored = snapshot.decModes.includes(2004);
+				},
+			},
+		);
+		await c.waitForReplay("s");
+		assert.equal(lateRestored, true);
+		assert.deepEqual(output, ["retained output"]);
+		c.subscribe("pending", { replay: false }, { onOutput() {}, onExit() {} });
+		const interrupted = c.waitForReplay("pending");
+		const rejected = assert.rejects(interrupted, DaemonUnavailableError);
+		await c.dispose();
+		await rejected;
+	} finally {
+		await c.dispose();
+		for (const socket of sockets) socket.destroy();
+		await new Promise<void>((resolve) => fake.close(() => resolve()));
+	}
+});
+
+test("a rejected subscription fails replay with the daemon error", async () => {
+	const c = new DaemonClient({ socketPath: sockPath });
+	await c.connect();
+	const unsubscribe = c.subscribe(
+		"missing-mode-session",
+		{ replay: true },
+		{ onOutput() {}, onExit() {} },
+	);
+	try {
+		await assert.rejects(
+			c.waitForReplay("missing-mode-session"),
+			/unknown session/,
+		);
+	} finally {
+		unsubscribe();
+		await c.dispose();
+	}
 });
 
 test("open + subscribe + receive output + close", async () => {
