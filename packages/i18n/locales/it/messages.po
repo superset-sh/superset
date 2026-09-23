@@ -4266,9 +4266,6 @@ msgstr "Impossibile caricare gli ambienti."
 msgid "Could not load image"
 msgstr "Impossibile caricare l'immagine"
 
-msgid "Could not load more pages."
-msgstr "Non è stato possibile caricare altre pagine."
-
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Impossibile caricare i plugin. Controlla la connessione e riprova."
 
@@ -8458,9 +8455,6 @@ msgstr "Caricamento delle issue…"
 
 msgid "Loading members..."
 msgstr "Caricamento dei membri..."
-
-msgid "Loading more pages…"
-msgstr "Caricamento di altre pagine…"
 
 msgid "Loading more..."
 msgstr "Caricamento di altri..."

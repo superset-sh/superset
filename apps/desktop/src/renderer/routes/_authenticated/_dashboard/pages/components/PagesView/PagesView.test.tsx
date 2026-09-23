@@ -242,7 +242,7 @@ describe("PagesView server-side filtering", () => {
 		await act(async () => {
 			renderView();
 		});
-		expect(listInput?.limit).toBe(50);
+		expect(listInput?.limit).toBe(48);
 	});
 });
 
@@ -353,15 +353,14 @@ describe("PagesView empty state", () => {
 		countsData = undefined as never;
 		const view = await act(async () => renderView());
 		expect(gridProps.pages).toHaveLength(1);
-		// The filter bar is hidden only when the organization really has no pages.
 		expect(view.queryByRole("tab", { name: /All/ })).toBeTruthy();
 	});
 
-	test("hides the filters when the organization has no pages at all", async () => {
+	test("keeps the tabs but drops their counts when the organization has no pages", async () => {
 		listResult.data = { pages: [{ items: [], nextCursor: null }] };
 		countsData.all = 0;
 		const view = await act(async () => renderView());
-		expect(view.queryByRole("tab", { name: /All/ })).toBeNull();
+		expect(view.getByRole("tab", { name: /All/ }).textContent).toBe("All");
 	});
 });
 
@@ -375,25 +374,6 @@ describe("PagesView error surfacing", () => {
 		});
 		expect(gridProps.error).toBeUndefined();
 		expect(gridProps.pages).toHaveLength(1);
-	});
-
-	test("retries the failed batch on demand", async () => {
-		listResult.hasNextPage = true;
-		listResult.isFetchNextPageError = true;
-		listResult.error = { message: "network down" };
-		const view = await act(async () => renderView());
-		const retry = view.getByRole("button", { name: "Retry" });
-		fetchNextPage.mockClear();
-		await act(async () => {
-			retry.click();
-		});
-		expect(fetchNextPage).toHaveBeenCalled();
-	});
-
-	test("stays quiet while paging is going fine", async () => {
-		listResult.hasNextPage = true;
-		const view = await act(async () => renderView());
-		expect(view.queryByRole("button", { name: "Retry" })).toBeNull();
 	});
 
 	test("shows the error when the first batch failed and nothing loaded", async () => {

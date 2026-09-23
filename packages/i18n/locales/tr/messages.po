@@ -4266,9 +4266,6 @@ msgstr "Ortamlar yüklenemedi."
 msgid "Could not load image"
 msgstr "Görsel yüklenemedi"
 
-msgid "Could not load more pages."
-msgstr "Daha fazla sayfa yüklenemedi."
-
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Eklentiler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin."
 
@@ -8458,9 +8455,6 @@ msgstr "Issue'lar yükleniyor…"
 
 msgid "Loading members..."
 msgstr "Üyeler yükleniyor..."
-
-msgid "Loading more pages…"
-msgstr "Daha fazla sayfa yükleniyor…"
 
 msgid "Loading more..."
 msgstr "Daha fazlası yükleniyor..."

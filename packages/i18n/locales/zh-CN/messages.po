@@ -4266,9 +4266,6 @@ msgstr "无法加载环境。"
 msgid "Could not load image"
 msgstr "无法加载图片"
 
-msgid "Could not load more pages."
-msgstr "无法加载更多页面。"
-
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "无法加载插件。请检查网络连接后重试。"
 
@@ -8458,9 +8455,6 @@ msgstr "正在加载议题…"
 
 msgid "Loading members..."
 msgstr "正在加载成员..."
-
-msgid "Loading more pages…"
-msgstr "正在加载更多页面…"
 
 msgid "Loading more..."
 msgstr "正在加载更多..."

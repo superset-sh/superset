@@ -4266,9 +4266,6 @@ msgstr "Could not load environments."
 msgid "Could not load image"
 msgstr "Could not load image"
 
-msgid "Could not load more pages."
-msgstr "Could not load more pages."
-
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "Could not load plugins. Check your connection and try again."
 
@@ -8458,9 +8455,6 @@ msgstr "Loading issues…"
 
 msgid "Loading members..."
 msgstr "Loading members..."
-
-msgid "Loading more pages…"
-msgstr "Loading more pages…"
 
 msgid "Loading more..."
 msgstr "Loading more..."

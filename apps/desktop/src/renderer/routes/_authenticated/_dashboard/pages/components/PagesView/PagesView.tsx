@@ -8,6 +8,7 @@ import { LuSearch } from "react-icons/lu";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { FeatureHeader } from "renderer/routes/_authenticated/_dashboard/components/FeatureHeader";
+import { LoadMoreSentinel } from "renderer/routes/_authenticated/_dashboard/components/LoadMoreSentinel";
 import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
 import {
 	isPaneModifier,
@@ -93,14 +94,8 @@ export function PagesView({
 	);
 
 	const pages = usePagesList(filter);
-	const {
-		items,
-		isFetchingNextPage,
-		isFetchNextPageError,
-		fetchNextPage,
-		scrollRef,
-		sentinelRef,
-	} = pages;
+	const { items, hasNextPage, isFetchingNextPage, scrollRef, sentinelRef } =
+		pages;
 
 	const countsQuery = cloudTrpc.page.counts.useQuery({
 		...(search ? { search } : {}),
@@ -221,60 +216,59 @@ export function PagesView({
 						docsUrl={`${COMPANY.DOCS_URL}/pages`}
 						onCreate={handleCreateWithAgent}
 						isCreating={creatingWithAgent}
-						showCreate={!orgEmpty}
 					/>
 
-					{!orgEmpty && (
-						<div className="mt-6 flex flex-wrap items-center justify-between gap-2">
-							<Tabs
-								value={scope}
-								onValueChange={(value) => onScopeChange(value as PageScope)}
-							>
-								<TabsList className="h-8 gap-1 bg-transparent p-0">
-									{tabs.map((tab) => (
-										<TabsTrigger
-											key={tab.value}
-											value={tab.value}
-											className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
-										>
-											<span className="text-sm">{tabLabels[tab.value]}</span>
+					<div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+						<Tabs
+							value={scope}
+							onValueChange={(value) => onScopeChange(value as PageScope)}
+						>
+							<TabsList className="h-8 gap-1 bg-transparent p-0">
+								{tabs.map((tab) => (
+									<TabsTrigger
+										key={tab.value}
+										value={tab.value}
+										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+									>
+										<span className="text-sm">{tabLabels[tab.value]}</span>
+										{!orgEmpty && (
 											<span className="ml-1 text-muted-foreground text-xs tabular-nums">
 												{counts[tab.value]}
 											</span>
-										</TabsTrigger>
-									))}
-								</TabsList>
-							</Tabs>
+										)}
+									</TabsTrigger>
+								))}
+							</TabsList>
+						</Tabs>
 
-							<div className="flex items-center gap-2">
-								{(workspaceOptions.length > 0 || workspaceId !== null) && (
-									<WorkspaceFilter
-										value={workspaceId}
-										options={workspaceOptions}
-										onChange={onWorkspaceChange}
-									/>
-								)}
-								{(authorOptions.length > 1 || authorId !== null) && (
-									<AuthorFilter
-										value={authorId}
-										options={authorOptions}
-										onChange={onAuthorChange}
-									/>
-								)}
-								<div className="relative w-56">
-									<LuSearch className="-translate-y-1/2 absolute top-1/2 left-2 size-3.5 text-muted-foreground" />
-									<Input
-										value={searchInput}
-										onChange={(event) => handleSearchChange(event.target.value)}
-										placeholder={t({
-											message: "Search pages",
-										})}
-										className="h-8 pl-7 text-sm"
-									/>
-								</div>
+						<div className="flex items-center gap-2">
+							{(workspaceOptions.length > 0 || workspaceId !== null) && (
+								<WorkspaceFilter
+									value={workspaceId}
+									options={workspaceOptions}
+									onChange={onWorkspaceChange}
+								/>
+							)}
+							{(authorOptions.length > 1 || authorId !== null) && (
+								<AuthorFilter
+									value={authorId}
+									options={authorOptions}
+									onChange={onAuthorChange}
+								/>
+							)}
+							<div className="relative w-56">
+								<LuSearch className="-translate-y-1/2 absolute top-1/2 left-2 size-3.5 text-muted-foreground" />
+								<Input
+									value={searchInput}
+									onChange={(event) => handleSearchChange(event.target.value)}
+									placeholder={t({
+										message: "Search pages",
+									})}
+									className="h-8 pl-7 text-sm"
+								/>
 							</div>
 						</div>
-					)}
+					</div>
 
 					<PagesGrid
 						pages={items}
@@ -302,28 +296,11 @@ export function PagesView({
 						}}
 					/>
 
-					<div ref={sentinelRef} className="h-1 shrink-0" />
-
-					{isFetchingNextPage && (
-						<p className="py-4 text-center text-muted-foreground text-xs">
-							<Trans>Loading more pages…</Trans>
-						</p>
-					)}
-
-					{isFetchNextPageError && (
-						<div className="mt-2 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-1.5 text-destructive text-xs">
-							<span className="flex-1">
-								<Trans>Could not load more pages.</Trans>
-							</span>
-							<button
-								type="button"
-								className="underline hover:no-underline"
-								onClick={() => void fetchNextPage()}
-							>
-								<Trans>Retry</Trans>
-							</button>
-						</div>
-					)}
+					<LoadMoreSentinel
+						sentinelRef={sentinelRef}
+						hasNextPage={hasNextPage}
+						isFetchingNextPage={isFetchingNextPage}
+					/>
 				</div>
 			</div>
 		</div>

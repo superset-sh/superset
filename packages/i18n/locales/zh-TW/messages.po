@@ -4266,9 +4266,6 @@ msgstr "無法載入環境。"
 msgid "Could not load image"
 msgstr "無法載入圖片"
 
-msgid "Could not load more pages."
-msgstr "無法載入更多頁面。"
-
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "無法載入外掛。請檢查連線後再試一次。"
 
@@ -8458,9 +8455,6 @@ msgstr "正在載入議題…"
 
 msgid "Loading members..."
 msgstr "正在載入成員..."
-
-msgid "Loading more pages…"
-msgstr "正在載入更多頁面…"
 
 msgid "Loading more..."
 msgstr "正在載入更多..."

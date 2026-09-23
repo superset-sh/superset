@@ -4266,9 +4266,6 @@ msgstr "환경을 불러오지 못했습니다."
 msgid "Could not load image"
 msgstr "이미지를 불러올 수 없음"
 
-msgid "Could not load more pages."
-msgstr "페이지를 더 불러올 수 없습니다."
-
 msgid "Could not load plugins. Check your connection and try again."
 msgstr "플러그인을 불러오지 못했습니다. 연결을 확인하고 다시 시도하세요."
 
@@ -8458,9 +8455,6 @@ msgstr "이슈 불러오는 중…"
 
 msgid "Loading members..."
 msgstr "멤버 불러오는 중..."
-
-msgid "Loading more pages…"
-msgstr "페이지를 더 불러오는 중…"
 
 msgid "Loading more..."
 msgstr "더 불러오는 중..."
