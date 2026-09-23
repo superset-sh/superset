@@ -53,7 +53,7 @@ A run marked **created** means Superset created the workspace. It does **not** m
 
 ## Handle offline and duplicate runs
 
-If the target host is offline at dispatch time, the run fails and the schedule advances. Restore the host, inspect the recorded error, and retry the run. Do not assume the missed work was completed later.
+If the target host is offline at dispatch time, the run fails and the schedule advances. Restore the host and inspect the recorded error. Use **Run now** to re-dispatch that automation, or **Retry all** on the **Mine** tab to re-dispatch all your automations whose latest run failed. Do not assume the missed work was completed later.
 
 A retry can occasionally start the job twice. Write prompts that are safe to repeat, especially if a later version opens issues or pull requests.
 
