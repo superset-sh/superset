@@ -103,6 +103,36 @@ describe("writeFileIfChanged", () => {
 		expect(fs.readdirSync(TEST_DIR)).toEqual(["not-a-dir"]);
 	});
 
+	it.skipIf(process.getuid?.() === 0)(
+		"names both paths when the link points into a read-only store",
+		() => {
+			const storeDir = path.join(TEST_DIR, "store");
+			fs.mkdirSync(storeDir);
+			const real = path.join(storeDir, "settings.json");
+			fs.writeFileSync(real, "{}", { mode: 0o444 });
+			fs.chmodSync(storeDir, 0o555);
+			const target = path.join(TEST_DIR, "settings.json");
+			fs.symlinkSync(real, target);
+
+			try {
+				let message = "";
+				try {
+					writeFileIfChanged(target, '{"hooks":{}}', 0o644);
+				} catch (error) {
+					message = (error as Error).message;
+				}
+
+				expect(message).toContain(target);
+				expect(message).toContain(fs.realpathSync(real));
+				expect(message).toContain("is not writable (EACCES)");
+				expect(fs.lstatSync(target).isSymbolicLink()).toBe(true);
+				expect(fs.readFileSync(real, "utf-8")).toBe("{}");
+			} finally {
+				fs.chmodSync(storeDir, 0o755);
+			}
+		},
+	);
+
 	it("cleans up the temp file when the write fails", () => {
 		const target = path.join(TEST_DIR, "missing-dir", "file");
 
