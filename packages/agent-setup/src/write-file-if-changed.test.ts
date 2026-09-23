@@ -5,6 +5,8 @@ import path from "node:path";
 import { writeFileIfChanged } from "./write-file-if-changed";
 
 const TEST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "superset-wfic-"));
+const POSIX_PERMISSIONS_ENFORCED =
+	process.platform !== "win32" && process.getuid?.() !== 0;
 const REALPATH_FOLLOWS_UNREADABLE_TARGETS = process.platform !== "darwin";
 
 afterEach(() => {
@@ -104,7 +106,7 @@ describe("writeFileIfChanged", () => {
 		expect(fs.readdirSync(TEST_DIR)).toEqual(["not-a-dir"]);
 	});
 
-	it.skipIf(process.getuid?.() === 0)(
+	it.skipIf(!POSIX_PERMISSIONS_ENFORCED)(
 		"names both paths when the link points into a read-only store",
 		() => {
 			const storeDir = path.join(TEST_DIR, "store");
@@ -134,25 +136,49 @@ describe("writeFileIfChanged", () => {
 		},
 	);
 
-	it.skipIf(!REALPATH_FOLLOWS_UNREADABLE_TARGETS || process.getuid?.() === 0)(
-		"names both paths when the linked target cannot be read",
+	it.skipIf(
+		!POSIX_PERMISSIONS_ENFORCED || !REALPATH_FOLLOWS_UNREADABLE_TARGETS,
+	)("names both paths when the linked target cannot be read", () => {
+		const real = path.join(TEST_DIR, "unreadable.json");
+		fs.writeFileSync(real, "{}", { mode: 0o222 });
+		const target = path.join(TEST_DIR, "settings.json");
+		fs.symlinkSync(real, target);
+
+		let message = "";
+		try {
+			writeFileIfChanged(target, '{"hooks":{}}', 0o644);
+		} catch (error) {
+			message = (error as Error).message;
+		}
+
+		expect(message).toContain(target);
+		expect(message).toContain(fs.realpathSync(real));
+		expect(message).toContain("cannot read or write (EACCES)");
+		expect(fs.lstatSync(target).isSymbolicLink()).toBe(true);
+	});
+
+	it.skipIf(!POSIX_PERMISSIONS_ENFORCED)(
+		"does not claim a link when only canonicalization changed the path",
 		() => {
-			const real = path.join(TEST_DIR, "unreadable.json");
-			fs.writeFileSync(real, "{}", { mode: 0o222 });
-			const target = path.join(TEST_DIR, "settings.json");
-			fs.symlinkSync(real, target);
+			const storeDir = path.join(TEST_DIR, "store");
+			fs.mkdirSync(storeDir);
+			const target = path.join(storeDir, "settings.json");
+			fs.writeFileSync(target, "{}", { mode: 0o444 });
+			fs.chmodSync(storeDir, 0o555);
 
-			let message = "";
 			try {
-				writeFileIfChanged(target, '{"hooks":{}}', 0o644);
-			} catch (error) {
-				message = (error as Error).message;
-			}
+				let message = "";
+				try {
+					writeFileIfChanged(target, '{"hooks":{}}', 0o644);
+				} catch (error) {
+					message = (error as Error).message;
+				}
 
-			expect(message).toContain(target);
-			expect(message).toContain(fs.realpathSync(real));
-			expect(message).toContain("cannot read or write (EACCES)");
-			expect(fs.lstatSync(target).isSymbolicLink()).toBe(true);
+				expect(message).toContain("EACCES");
+				expect(message).not.toContain("links to");
+			} finally {
+				fs.chmodSync(storeDir, 0o755);
+			}
 		},
 	);
 

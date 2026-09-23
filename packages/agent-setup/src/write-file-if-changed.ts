@@ -27,12 +27,11 @@ function inaccessibleLinkError(
 	error: unknown,
 ): unknown {
 	const code = (error as NodeJS.ErrnoException).code;
-	if (
-		target === filePath ||
-		(code !== "EACCES" && code !== "EPERM" && code !== "EROFS")
-	) {
-		return error;
-	}
+	if (code !== "EACCES" && code !== "EPERM" && code !== "EROFS") return error;
+	const linked = fs
+		.lstatSync(filePath, { throwIfNoEntry: false })
+		?.isSymbolicLink();
+	if (linked !== true) return error;
 	return new Error(
 		`${filePath} links to ${target}, which Superset cannot read or write (${code}). The config was left alone; point the link at a writable file to have it managed.`,
 		{ cause: error },
