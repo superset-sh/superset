@@ -21,9 +21,11 @@ getting unstuck when App Review rejects or stalls it.
 
 Authenticate once per machine: `eas login` (or `EXPO_TOKEN` in CI, with
 `--non-interactive`). Submissions use the App Store Connect API key stored in
-EAS credentials, so no Apple password is needed locally. Keep the demo-account
-credentials in your secret store (1Password) and export them into the shell
-for the metadata push rather than typing them into the command.
+EAS credentials, so no Apple password is needed locally. The demo-account
+credentials live in 1Password; copy them into `APP_REVIEW_EMAIL` and
+`APP_REVIEW_PASSWORD` in the main checkout's root `.env`, which
+`store.config.js` loads. Without them the push blanks the sign-in App Review
+uses.
 
 ```bash
 cd apps/mobile
@@ -39,7 +41,7 @@ eas submit --platform ios --profile production --latest
 #    build. APP_REVIEW_VIDEO_URL is optional but worth it: a two-minute screen
 #    recording of sign-in and the main flows is the single most effective
 #    thing in the notes.
-eas metadata:push   # with APP_REVIEW_EMAIL / APP_REVIEW_PASSWORD / APP_REVIEW_VIDEO_URL exported
+eas metadata:push   # from the main checkout; APP_REVIEW_EMAIL / APP_REVIEW_PASSWORD come from the root .env
 
 # 4. In App Store Connect, attach the processed build to the version and
 #    press "Submit for Review".
