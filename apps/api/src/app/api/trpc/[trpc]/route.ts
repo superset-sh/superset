@@ -10,6 +10,7 @@ export const maxDuration = 60;
 // CLI, SDK, and host-service builds before the move to direct PostHog capture
 // still post here; answering before the context is built keeps them from
 // costing an auth lookup each. They ignore the response.
+// TODO(2026-10-07): drop the short-circuit and let stragglers 404.
 const RETIRED_PATHS = new Set(["analytics.captureEvent"]);
 
 function isRetiredCall(req: Request): boolean {
