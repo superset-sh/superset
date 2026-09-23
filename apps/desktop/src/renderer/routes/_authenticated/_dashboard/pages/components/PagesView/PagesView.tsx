@@ -116,9 +116,9 @@ export function PagesView({
 	const listInput = useMemo(() => pagesListInput(filter), [filter]);
 	const deletePage = cloudTrpc.page.delete.useMutation({
 		onMutate: async ({ id }) => {
-			await utils.page.list.cancel(listInput);
-			const previous = utils.page.list.getInfiniteData(listInput);
-			utils.page.list.setInfiniteData(listInput, (old) =>
+			await utils.page.listPaginated.cancel(listInput);
+			const previous = utils.page.listPaginated.getInfiniteData(listInput);
+			utils.page.listPaginated.setInfiniteData(listInput, (old) =>
 				old
 					? {
 							...old,
@@ -133,11 +133,11 @@ export function PagesView({
 		},
 		onError: (_error, _variables, context) => {
 			if (context?.previous) {
-				utils.page.list.setInfiniteData(listInput, context.previous);
+				utils.page.listPaginated.setInfiniteData(listInput, context.previous);
 			}
 		},
 		onSettled: () => {
-			void utils.page.list.invalidate(listInput);
+			void utils.page.listPaginated.invalidate(listInput);
 			void utils.page.counts.invalidate();
 		},
 	});

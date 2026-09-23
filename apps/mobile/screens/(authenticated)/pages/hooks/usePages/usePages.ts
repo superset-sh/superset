@@ -9,7 +9,7 @@ import { useMemo } from "react";
 import { useSession } from "@/lib/auth/client";
 import { apiClient } from "@/lib/trpc/client";
 
-export type OrgPage = RouterOutputs["page"]["list"]["items"][number];
+export type OrgPage = RouterOutputs["page"]["listPaginated"]["items"][number];
 export type PulledPage = RouterOutputs["page"]["pull"];
 
 export const NO_PAGES: OrgPage[] = [];
@@ -26,7 +26,7 @@ export function usePagesQuery(scope: PageListScope = "all") {
 		enabled: organizationId !== null,
 		initialPageParam: undefined as string | undefined,
 		queryFn: ({ pageParam, signal }) =>
-			apiClient.page.list.query(
+			apiClient.page.listPaginated.query(
 				{
 					limit: PAGES_PER_REQUEST,
 					scope,
@@ -62,7 +62,7 @@ export function useWorkspacePagesQuery(workspaceId: string | null) {
 		enabled: organizationId !== null && workspaceId !== null,
 		initialPageParam: undefined as string | undefined,
 		queryFn: ({ pageParam, signal }) =>
-			apiClient.page.list.query(
+			apiClient.page.listPaginated.query(
 				{
 					limit: PAGES_PER_REQUEST,
 					workspaceId: workspaceId ?? "",

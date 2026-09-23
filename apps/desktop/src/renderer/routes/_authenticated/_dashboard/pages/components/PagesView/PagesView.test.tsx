@@ -77,7 +77,7 @@ function page(id: string, visibility = "org") {
 mock.module("renderer/lib/cloud-trpc", () => ({
 	cloudTrpc: {
 		page: {
-			list: {
+			listPaginated: {
 				useInfiniteQuery: (input: Record<string, unknown>) => {
 					listInput = input;
 					return listResult;
@@ -93,7 +93,7 @@ mock.module("renderer/lib/cloud-trpc", () => ({
 		},
 		useUtils: () => ({
 			page: {
-				list: {
+				listPaginated: {
 					cancel: mock(async () => {}),
 					getInfiniteData: mock(() => undefined),
 					setInfiniteData: mock(),

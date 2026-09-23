@@ -14,10 +14,13 @@ export function usePagesList(
 	filter: PagesListFilter = {},
 	options: { enabled?: boolean; staleTime?: number } = {},
 ) {
-	const query = cloudTrpc.page.list.useInfiniteQuery(pagesListInput(filter), {
-		getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-		...options,
-	});
+	const query = cloudTrpc.page.listPaginated.useInfiniteQuery(
+		pagesListInput(filter),
+		{
+			getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+			...options,
+		},
+	);
 
 	const {
 		hasNextPage,

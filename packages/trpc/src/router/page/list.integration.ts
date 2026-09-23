@@ -47,7 +47,7 @@ const TOTAL = 463;
 
 /** Walks the whole list through the cursor, the way every client does. */
 async function walk(
-	input: Parameters<typeof caller.page.list>[0] = {},
+	input: Parameters<typeof caller.page.listPaginated>[0] = {},
 	onBatch?: (batch: number) => Promise<void>,
 	limit = 200,
 ): Promise<string[]> {
@@ -55,7 +55,7 @@ async function walk(
 	let cursor: string | undefined;
 	let batch = 0;
 	do {
-		const result = await caller.page.list({
+		const result = await caller.page.listPaginated({
 			...input,
 			limit,
 			...(cursor ? { cursor } : {}),
@@ -189,9 +189,9 @@ describe("page.list keyset", () => {
 	}, 30_000);
 
 	test("an unreadable cursor is a BAD_REQUEST, not a crash", async () => {
-		await expect(caller.page.list({ cursor: "not-a-cursor" })).rejects.toThrow(
-			/cursor/i,
-		);
+		await expect(
+			caller.page.listPaginated({ cursor: "not-a-cursor" }),
+		).rejects.toThrow(/cursor/i);
 	});
 });
 
@@ -214,20 +214,20 @@ describe("page.list filters", () => {
 	}, 30_000);
 
 	test("an empty search is the unfiltered list", async () => {
-		const blank = await caller.page.list({ search: "   ", limit: 5 });
-		const none = await caller.page.list({ limit: 5 });
+		const blank = await caller.page.listPaginated({ search: "   ", limit: 5 });
+		const none = await caller.page.listPaginated({ limit: 5 });
 
 		expect(blank.items.map((i) => i.id)).toEqual(none.items.map((i) => i.id));
 	});
 
 	test("ids narrows to the pinned set, and an empty ids returns nothing", async () => {
-		const first = await caller.page.list({ limit: 3 });
+		const first = await caller.page.listPaginated({ limit: 3 });
 		const ids = first.items.map((item) => item.id);
 
-		const pinned = await caller.page.list({ ids, limit: 50 });
+		const pinned = await caller.page.listPaginated({ ids, limit: 50 });
 		expect(pinned.items.map((item) => item.id).sort()).toEqual([...ids].sort());
 
-		const empty = await caller.page.list({ ids: [], limit: 50 });
+		const empty = await caller.page.listPaginated({ ids: [], limit: 50 });
 		expect(empty.items).toEqual([]);
 	});
 
@@ -250,7 +250,7 @@ describe("page.counts", () => {
 	}, 30_000);
 
 	test("pinned counts only the ids it is given", async () => {
-		const first = await caller.page.list({ limit: 4 });
+		const first = await caller.page.listPaginated({ limit: 4 });
 		const ids = first.items.map((item) => item.id);
 		const counts = await caller.page.counts({ pinnedIds: ids });
 

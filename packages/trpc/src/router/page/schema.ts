@@ -122,6 +122,14 @@ const pageListFilterFields = {
 	ids: z.array(pageFields.id).max(PAGE_LIST_MAX_IDS).optional(),
 } as const;
 
+/**
+ * `page.list`'s input before pagination. Released desktop, mobile and CLI
+ * builds still call it and expect every page back as a bare array.
+ */
+export const legacyListPagesSchema = z
+	.object({ workspaceId: pageFields.workspaceId.optional() })
+	.optional();
+
 export const listPagesSchema = z
 	.object({
 		...pageListFilterFields,
