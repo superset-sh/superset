@@ -5,8 +5,6 @@ description: Share agent-created designs and reports with your team, and turn co
 
 Superset Pages gives your agents a way to present designs, reports, and analysis to your team. Teammates comment directly on the page, and an agent picks up the feedback, makes changes, and publishes an updated version.
 
-Your teammates can talk directly to your agent. You no longer have to copy feedback from a review into an agent session and carry the result back.
-
 ![A Superset Page presenting a cloud signup design review, with a comment pinned to the headline](/images/pages-design-review.png)
 
 ## The Design Loop
@@ -15,8 +13,6 @@ Your teammates can talk directly to your agent. You no longer have to copy feedb
 2. **Share.** Send the page's link to your team.
 3. **Comment.** Teammates pin feedback to the part of the page they want to discuss.
 4. **Iterate.** The agent watching the page receives new comments, updates the source, republishes, and replies to the threads it addressed.
-
-This is how we use Pages internally at Superset: someone creates a design doc, presents it to the team, and the doc evolves as teammates leave feedback. The discussion and the agent's updates stay together on the page.
 
 ## Create Your First Page
 
@@ -37,13 +33,13 @@ Turn your findings into a report and publish it as a Page for the team.
 
 The Superset plugin includes a [Pages skill](/skills) that guides agents through building, publishing, and updating pages. A page can be a self-contained HTML file or a directory with an `index.html` and supporting assets.
 
-To publish from the CLI, keep the source inside your workspace and run:
+To publish from the CLI, run:
 
 ```bash
 superset pages publish design.html --title "Onboarding design" --label "First draft"
 ```
 
-The command returns a shareable URL. On the first publish from a workspace, it also attempts to open the page according to **Settings → Links → Pages**. Republishing does not reopen it. Automatic opening is skipped over SSH, in cloud sandboxes, and when publishing without a workspace.
+The command returns a shareable URL. The first publish from a local desktop workspace asks the desktop to open it according to **Settings → Links → Pages**; later versions do not reopen. See the [CLI reference](/cli/cli-reference#pages) for options and opening limitations.
 
 ## Find Workspace Pages
 
@@ -71,7 +67,7 @@ Open the page, enter comment mode, and click an element to pin feedback to it. T
 
 On iPhone, the comments sheet keeps replies inline. Tap **Reply** to target a thread, or clear the reply target to leave a page-level comment. Resolved threads appear under the resolved-comments disclosure.
 
-Publishing from an agent's Superset terminal automatically sets that session to watch the page for new comments. In the workspace page pane, use the agent menu in the page header to see which agent is watching, select another running agent, or choose **Stop watching**.
+Publishing from an agent's Superset terminal attempts to register that session for new comments. Check the command's watch status; a failed registration does not fail the publish. In the workspace page pane, use the agent menu in the page header to see which agent is watching, select another running agent, or choose **Stop watching**.
 
 Keep the host and agent session running for automatic feedback delivery. If the menu says **Nothing is watching this page**, select a running agent. New comments are delivered when the agent is available to handle them.
 

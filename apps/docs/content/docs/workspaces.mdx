@@ -5,7 +5,7 @@ description: Isolated environments for each git branch
 
 ## Core Concept
 
-Each workspace = one git branch. Local project workspaces are isolated git worktrees with their own directory, terminal, and ports. Cloud workspaces use a separate clone. The exception: [sessions](#sessions), which get a managed scratch folder instead of a branch.
+A workspace gives a task its own directory, terminals, and ports. Local project workspaces use isolated git worktrees; cloud workspaces use separate clones. [Sessions](#sessions) use a managed scratch folder without requiring a project.
 
 <YouTubeVideo id="8PuptrsyNvM" title="Superset Workspaces" thumbnail="/images/branches.png" />
 
@@ -21,7 +21,7 @@ In the prompt-first workspace flow, **Link pull request** lets you search by tit
 
 If you type a workspace name yourself, the branch name is derived from it (slugified to kebab-case). Otherwise Superset generates a name from your prompt. Per-project **Naming instructions** (in project settings) steer generated names, e.g. "prefix branches with fix/ or feat/".
 
-Each workspace gets:
+Each new branch-based workspace gets:
 - Own git branch
 - Own working directory
 - Own terminal sessions
@@ -31,7 +31,7 @@ New local worktrees use `<worktrees path>/<project name>/<branch>` directories. 
 
 ### Cloud Workspaces
 
-When cloud workspaces are available to your account, the selected branch is the base for a new `superset/<name>-<id>` working branch. Multi-repository workspaces create the same working branch name in each repository, from that repository's base. You can attach images to the initial prompt; the agent receives them when the workspace starts.
+When cloud workspaces are available to your account, Superset creates a new working branch from the selected base. For multiple repositories, it uses the same working branch name in each. Attach images to the initial prompt to give the agent visual context when it starts.
 
 ## Import Worktrees
 

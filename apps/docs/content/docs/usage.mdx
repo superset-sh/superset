@@ -13,7 +13,7 @@ The **Usage** page (gauge icon in the sidebar) tracks what your agents consume o
 
 The top of **Token usage** shows official subscription quota for every Claude Code and Codex login on this host, refreshed every 5 minutes (use the refresh button to force it). Each account card shows the email, plan, and one meter per quota window, e.g. **Session (5h)** and **Weekly** for Claude, with the fill percentage and time until reset.
 
-Quota comes from the providers' own usage endpoints using your existing sign-ins; Superset never handles credentials. Some plans (org-managed, education) don't expose limits.
+Superset reads quota from the providers' usage endpoints using the agent credentials stored on your host. Some plans (org-managed, education) don't expose limits.
 
 ## Multiple Accounts
 
@@ -41,8 +41,9 @@ Below the meters, the **Token usage** chart estimates spend from the agents' loc
 ## Leaderboard History
 
 Joining or rejoining the leaderboard publishes available local usage history
-since its July 29, 2026 launch. Leaving deletes your published history.
-Rejoining can restore it from session logs still on your machine.
+from the last 90 days, starting no earlier than July 29, 2026. Leaving deletes
+your published history. Rejoining restores only the history within that window
+that is still available in your local session logs.
 
 ## Machine Resources
 
