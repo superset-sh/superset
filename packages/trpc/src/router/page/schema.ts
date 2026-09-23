@@ -122,6 +122,10 @@ const pageListFilterFields = {
 	ids: z.array(pageFields.id).max(PAGE_LIST_MAX_IDS).optional(),
 } as const;
 
+export const legacyListPagesSchema = z
+	.object({ workspaceId: pageFields.workspaceId.optional() })
+	.optional();
+
 export const listPagesSchema = z
 	.object({
 		...pageListFilterFields,

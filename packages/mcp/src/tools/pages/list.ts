@@ -55,7 +55,7 @@ export function register(server: McpServer): void {
 		},
 		handler: async (input, ctx) => {
 			const caller = createMcpCaller(ctx);
-			return caller.page.list({
+			return caller.page.listBatch({
 				...(input?.workspaceId ? { workspaceId: input.workspaceId } : {}),
 				...(input?.search ? { search: input.search } : {}),
 				...(input?.scope ? { scope: input.scope } : {}),

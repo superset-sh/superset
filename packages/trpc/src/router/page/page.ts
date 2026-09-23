@@ -48,8 +48,11 @@ import {
 	clearPageWatchSchema,
 	createPageSchema,
 	deletePageSchema,
+	type ListPagesInput,
+	legacyListPagesSchema,
 	listPagesSchema,
 	PAGE_LIST_DEFAULT_LIMIT,
+	PAGE_LIST_MAX_LIMIT,
 	type PageListScope,
 	pageCountsSchema,
 	pageFields,
@@ -209,6 +212,160 @@ async function latestVersionNumber(pageId: string): Promise<number | null> {
 	return row?.version ?? null;
 }
 
+async function listPageBatch({
+	organizationId,
+	userId,
+	input,
+}: {
+	organizationId: string;
+	userId: string;
+	input: ListPagesInput;
+}) {
+	const limit = input?.limit ?? PAGE_LIST_DEFAULT_LIMIT;
+
+	const latest = db
+		.select({
+			version: pageVersions.version,
+			contentType: pageVersions.contentType,
+			sizeBytes: pageVersions.sizeBytes,
+			publishedAt: pageVersions.createdAt,
+		})
+		.from(pageVersions)
+		.where(eq(pageVersions.pageId, pages.id))
+		.orderBy(desc(pageVersions.version))
+		.limit(1)
+		.as("latest");
+
+	const base = db
+		.select({
+			id: pages.id,
+			slug: pages.slug,
+			title: pages.title,
+			description: pages.description,
+			visibility: pages.visibility,
+			sharedVersion: pages.sharedVersion,
+			createdAt: pages.createdAt,
+			updatedAt: pages.updatedAt,
+			// `::text` keeps the microseconds a JS Date would truncate, which
+			// the keyset comparison needs to be exact.
+			createdAtCursor: sql<string>`${pages.createdAt}::text`,
+			createdByUserId: pages.createdByUserId,
+			ownerName: users.name,
+			ownerImage: users.image,
+			latestVersion: latest.version,
+			contentType: latest.contentType,
+			sizeBytes: latest.sizeBytes,
+			publishedAt: latest.publishedAt,
+		})
+		.from(pages)
+		.leftJoin(users, eq(users.id, pages.createdByUserId))
+		.leftJoinLateral(latest, sql`true`);
+
+	const filters: (SQL | undefined)[] = [
+		eq(pages.organizationId, organizationId),
+		visibilityFilter(userId),
+		...pageFilters(input ?? {}),
+	];
+
+	if (input?.cursor) {
+		const keyset = decodePageCursor(input.cursor);
+		if (!keyset) {
+			throw userError({
+				code: "BAD_REQUEST",
+				message:
+					"That cursor could not be read. Drop it to start from the first page.",
+				i18nKey: "serverError.page.cursorCouldNotBeRead",
+			});
+		}
+		const at = sql`${keyset.createdAt}::timestamptz`;
+		filters.push(
+			or(
+				lt(pages.createdAt, at),
+				and(eq(pages.createdAt, at), lt(pages.id, keyset.id)),
+			),
+		);
+	}
+
+	const scoped = input?.workspaceId
+		? base
+				.innerJoin(workspacePages, eq(workspacePages.pageId, pages.id))
+				.where(
+					and(...filters, eq(workspacePages.workspaceId, input.workspaceId)),
+				)
+		: base.where(and(...filters));
+
+	const rows = await scoped
+		.orderBy(desc(pages.createdAt), desc(pages.id))
+		.limit(limit + 1);
+
+	const pageRows = rows.slice(0, limit);
+	const last = pageRows.at(-1);
+	const nextCursor =
+		rows.length > limit && last
+			? encodePageCursor({ createdAt: last.createdAtCursor, id: last.id })
+			: null;
+
+	const links = pageRows.length
+		? await db
+				.select({
+					pageId: workspacePages.pageId,
+					workspaceId: workspacePages.workspaceId,
+					entryPath: workspacePages.entryPath,
+				})
+				.from(workspacePages)
+				.where(
+					inArray(
+						workspacePages.pageId,
+						pageRows.map((row) => row.id),
+					),
+				)
+				.orderBy(workspacePages.workspaceId)
+		: [];
+
+	const linksByPage = new Map<
+		string,
+		{ workspaceId: string; entryPath: string }[]
+	>();
+	for (const link of links) {
+		const list = linksByPage.get(link.pageId) ?? [];
+		list.push({ workspaceId: link.workspaceId, entryPath: link.entryPath });
+		linksByPage.set(link.pageId, list);
+	}
+
+	const baseUrl = env.USERCONTENT_URL;
+	const items = await Promise.all(
+		pageRows.map(async ({ createdAtCursor: _cursor, ...row }) => {
+			const served = servedVersion(row.sharedVersion, row.latestVersion);
+			const ticket = await mintPageTicket(row);
+			// Version-bound, so it turns daily instead of hourly — the capture
+			// is immutable and the stable URL is what lets it cache.
+			const thumbnailTicket =
+				served === null
+					? undefined
+					: await mintPageTicket(row, { version: served });
+			return {
+				...row,
+				workspaceLinks: linksByPage.get(row.id) ?? [],
+				url: pageUrl(row.slug),
+				viewUrl: pageViewUrl({ baseUrl, pageId: row.id, ticket }),
+				thumbnailUrl:
+					served === null
+						? null
+						: pageThumbnailUrl({
+								baseUrl,
+								pageId: row.id,
+								version: served,
+								ticket: thumbnailTicket,
+							}),
+				thumbnailStorageKey:
+					served === null ? null : pageThumbnailKey(row.id, served),
+			};
+		}),
+	);
+
+	return { items, nextCursor };
+}
+
 export const pageRouter = {
 	assets: pageAssetRouter,
 
@@ -293,13 +450,14 @@ export const pageRouter = {
 			});
 		}),
 
+	/**
+	 * Every page as a bare array — the contract desktop, mobile and CLI builds
+	 * released before `listBatch` still call, so its shape can never change.
+	 */
 	list: protectedProcedure
-		.input(listPagesSchema)
+		.input(legacyListPagesSchema)
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
-			const userId = ctx.session.user.id;
-			const limit = input?.limit ?? PAGE_LIST_DEFAULT_LIMIT;
-
 			if (input?.workspaceId) {
 				await assertWorkspaceAccess({
 					executor: db,
@@ -308,150 +466,41 @@ export const pageRouter = {
 				});
 			}
 
-			const latest = db
-				.select({
-					version: pageVersions.version,
-					contentType: pageVersions.contentType,
-					sizeBytes: pageVersions.sizeBytes,
-					publishedAt: pageVersions.createdAt,
-				})
-				.from(pageVersions)
-				.where(eq(pageVersions.pageId, pages.id))
-				.orderBy(desc(pageVersions.version))
-				.limit(1)
-				.as("latest");
+			const items = [];
+			let cursor: string | undefined;
+			do {
+				const batch = await listPageBatch({
+					organizationId,
+					userId: ctx.session.user.id,
+					input: {
+						workspaceId: input?.workspaceId,
+						scope: "all",
+						limit: PAGE_LIST_MAX_LIMIT,
+						cursor,
+					},
+				});
+				items.push(...batch.items);
+				cursor = batch.nextCursor ?? undefined;
+			} while (cursor);
+			return items;
+		}),
 
-			const base = db
-				.select({
-					id: pages.id,
-					slug: pages.slug,
-					title: pages.title,
-					description: pages.description,
-					visibility: pages.visibility,
-					sharedVersion: pages.sharedVersion,
-					createdAt: pages.createdAt,
-					updatedAt: pages.updatedAt,
-					// `::text` keeps the microseconds a JS Date would truncate, which
-					// the keyset comparison needs to be exact.
-					createdAtCursor: sql<string>`${pages.createdAt}::text`,
-					createdByUserId: pages.createdByUserId,
-					ownerName: users.name,
-					ownerImage: users.image,
-					latestVersion: latest.version,
-					contentType: latest.contentType,
-					sizeBytes: latest.sizeBytes,
-					publishedAt: latest.publishedAt,
-				})
-				.from(pages)
-				.leftJoin(users, eq(users.id, pages.createdByUserId))
-				.leftJoinLateral(latest, sql`true`);
-
-			const filters: (SQL | undefined)[] = [
-				eq(pages.organizationId, organizationId),
-				visibilityFilter(userId),
-				...pageFilters(input ?? {}),
-			];
-
-			if (input?.cursor) {
-				const keyset = decodePageCursor(input.cursor);
-				if (!keyset) {
-					throw userError({
-						code: "BAD_REQUEST",
-						message:
-							"That cursor could not be read. Drop it to start from the first page.",
-						i18nKey: "serverError.page.cursorCouldNotBeRead",
-					});
-				}
-				const at = sql`${keyset.createdAt}::timestamptz`;
-				filters.push(
-					or(
-						lt(pages.createdAt, at),
-						and(eq(pages.createdAt, at), lt(pages.id, keyset.id)),
-					),
-				);
+	listBatch: protectedProcedure
+		.input(listPagesSchema)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			if (input?.workspaceId) {
+				await assertWorkspaceAccess({
+					executor: db,
+					workspaceId: input.workspaceId,
+					organizationId,
+				});
 			}
-
-			const scoped = input?.workspaceId
-				? base
-						.innerJoin(workspacePages, eq(workspacePages.pageId, pages.id))
-						.where(
-							and(
-								...filters,
-								eq(workspacePages.workspaceId, input.workspaceId),
-							),
-						)
-				: base.where(and(...filters));
-
-			const rows = await scoped
-				.orderBy(desc(pages.createdAt), desc(pages.id))
-				.limit(limit + 1);
-
-			const pageRows = rows.slice(0, limit);
-			const last = pageRows.at(-1);
-			const nextCursor =
-				rows.length > limit && last
-					? encodePageCursor({ createdAt: last.createdAtCursor, id: last.id })
-					: null;
-
-			const links = pageRows.length
-				? await db
-						.select({
-							pageId: workspacePages.pageId,
-							workspaceId: workspacePages.workspaceId,
-							entryPath: workspacePages.entryPath,
-						})
-						.from(workspacePages)
-						.where(
-							inArray(
-								workspacePages.pageId,
-								pageRows.map((row) => row.id),
-							),
-						)
-						.orderBy(workspacePages.workspaceId)
-				: [];
-
-			const linksByPage = new Map<
-				string,
-				{ workspaceId: string; entryPath: string }[]
-			>();
-			for (const link of links) {
-				const list = linksByPage.get(link.pageId) ?? [];
-				list.push({ workspaceId: link.workspaceId, entryPath: link.entryPath });
-				linksByPage.set(link.pageId, list);
-			}
-
-			const baseUrl = env.USERCONTENT_URL;
-			const items = await Promise.all(
-				pageRows.map(async ({ createdAtCursor: _cursor, ...row }) => {
-					const served = servedVersion(row.sharedVersion, row.latestVersion);
-					const ticket = await mintPageTicket(row);
-					// Version-bound, so it turns daily instead of hourly — the capture
-					// is immutable and the stable URL is what lets it cache.
-					const thumbnailTicket =
-						served === null
-							? undefined
-							: await mintPageTicket(row, { version: served });
-					return {
-						...row,
-						workspaceLinks: linksByPage.get(row.id) ?? [],
-						url: pageUrl(row.slug),
-						viewUrl: pageViewUrl({ baseUrl, pageId: row.id, ticket }),
-						thumbnailUrl:
-							served === null
-								? null
-								: pageThumbnailUrl({
-										baseUrl,
-										pageId: row.id,
-										version: served,
-										ticket: thumbnailTicket,
-									}),
-						thumbnailStorageKey:
-							served === null ? null : pageThumbnailKey(row.id, served),
-					};
-				}),
-			);
-
-			return { items, nextCursor };
+			return listPageBatch({
+				organizationId,
+				userId: ctx.session.user.id,
+				input,
+			});
 		}),
 
 	counts: protectedProcedure

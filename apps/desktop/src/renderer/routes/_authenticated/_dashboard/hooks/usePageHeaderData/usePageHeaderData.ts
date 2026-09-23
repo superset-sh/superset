@@ -100,7 +100,7 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 			);
 			await Promise.all([
 				utils.page.pull.invalidate(),
-				utils.page.list.invalidate(),
+				utils.page.listBatch.invalidate(),
 			]);
 		},
 		onRefresh: () => {

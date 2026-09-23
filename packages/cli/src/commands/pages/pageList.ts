@@ -2,7 +2,7 @@ import type { RouterOutputs } from "@superset/trpc";
 import { PAGE_LIST_MAX_LIMIT } from "@superset/trpc/page-schema";
 import type { CliContext } from "../../lib/command";
 
-type PageList = RouterOutputs["page"]["list"];
+type PageList = RouterOutputs["page"]["listBatch"];
 
 export interface PageListQuery {
 	workspaceId?: string;
@@ -20,7 +20,7 @@ export async function fetchPageList<TPage>(
 	query: PageListQuery,
 	cursor?: string,
 ): Promise<PageListPage<TPage>> {
-	const result = await ctx.api.page.list.query({
+	const result = await ctx.api.page.listBatch.query({
 		...query,
 		...(cursor ? { cursor } : {}),
 	});

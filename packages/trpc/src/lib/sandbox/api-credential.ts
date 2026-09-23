@@ -33,6 +33,7 @@ export const SANDBOX_ALLOWED_PROCEDURES: ReadonlySet<string> = new Set([
 	"page.create",
 	"page.get",
 	"page.list",
+	"page.listBatch",
 	"page.publish",
 	"page.pull",
 	"page.versions",

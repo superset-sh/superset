@@ -73,7 +73,7 @@ export function WorkspacePagesMenu({
 		"page-watch:changed",
 		workspaceId,
 		useCallback(() => {
-			void utils.page.list.invalidate(workspaceListInput);
+			void utils.page.listBatch.invalidate(workspaceListInput);
 		}, [utils, workspaceListInput]),
 	);
 
@@ -96,7 +96,7 @@ export function WorkspacePagesMenu({
 	const handleOpenChange = (next: boolean) => {
 		setOpen(next);
 		if (next) {
-			void utils.page.list.invalidate(workspaceListInput);
+			void utils.page.listBatch.invalidate(workspaceListInput);
 			return;
 		}
 		setComposing(false);

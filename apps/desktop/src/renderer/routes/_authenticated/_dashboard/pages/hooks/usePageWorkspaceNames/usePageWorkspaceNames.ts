@@ -5,7 +5,7 @@ import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/Host
 /**
  * Workspace names for the pages workspace filter, and nothing else.
  *
- * `page.list` returns workspace ids: names live in each host's SQLite and in
+ * `page.listBatch` returns workspace ids: names live in each host's SQLite and in
  * `cloud_workspaces`, never anywhere the server could join them. Both sources
  * here are already shared — the host fan-out runs once in its provider, the
  * cloud list is one query — so this adds no fetching of its own.
