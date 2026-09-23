@@ -82,7 +82,7 @@ export function PageWatcherMenu({ workspaceId, pageId }: PageWatcherMenuProps) {
 					{watchers.length > 1 ? <span>{watchers.length}</span> : null}
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-72">
+			<DropdownMenuContent align="end" className="w-80">
 				<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
 					<Plural
 						value={Math.max(watchers.length, 1)}
@@ -122,12 +122,12 @@ export function PageWatcherMenu({ workspaceId, pageId }: PageWatcherMenuProps) {
 									presetId={watcher.agentId ?? ""}
 									className="size-4"
 								/>
-								<span className="truncate text-sm">
+								<span className="min-w-0 flex-1 truncate text-sm">
 									{watcher.sessionTitle ??
 										watcher.agentId ??
 										watcher.terminalId.slice(0, 8)}
 								</span>
-								<span className="ml-auto shrink-0 truncate text-muted-foreground text-xs">
+								<span className="max-w-[50%] shrink-0 truncate text-muted-foreground text-xs">
 									{watcher.workspaceName}
 								</span>
 								{navigable ? (
