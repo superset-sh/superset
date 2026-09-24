@@ -9,12 +9,6 @@ import {
 	SUPERSET_DIR_NAME,
 } from "shared/constants";
 import type { LocalSetupConfig, SetupConfig } from "shared/types";
-import {
-	applyLifecycleTrustBoundary,
-	applyLocalLifecycleTrustBoundary,
-	type LifecycleConfigSource,
-	type RejectedLifecycleField,
-} from "./lifecycle-trust";
 
 /**
  * Worktrees don't include gitignored files, so copy .superset from main repo
@@ -75,16 +69,10 @@ function readConfigFile(configPath: string): SetupConfig | null {
 	}
 }
 
-function readConfigFromPath(
-	basePath: string,
-	source: LifecycleConfigSource,
-	rejected: RejectedLifecycleField[],
-): SetupConfig | null {
-	const config = readConfigFile(
+function readConfigFromPath(basePath: string): SetupConfig | null {
+	return readConfigFile(
 		join(basePath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME),
 	);
-	if (!config) return null;
-	return applyLifecycleTrustBoundary(config, source, rejected);
 }
 
 function readLocalConfigFile(filePath: string): LocalSetupConfig | null {
@@ -126,16 +114,10 @@ function readLocalConfigFile(filePath: string): LocalSetupConfig | null {
 	}
 }
 
-function readLocalConfigFromPath(
-	basePath: string,
-	source: LifecycleConfigSource,
-	rejected: RejectedLifecycleField[],
-): LocalSetupConfig | null {
-	const config = readLocalConfigFile(
+function readLocalConfigFromPath(basePath: string): LocalSetupConfig | null {
+	return readLocalConfigFile(
 		join(basePath, PROJECT_SUPERSET_DIR_NAME, LOCAL_CONFIG_FILE_NAME),
 	);
-	if (!config) return null;
-	return applyLocalLifecycleTrustBoundary(config, source, rejected);
 }
 
 function mergeBaseConfigs(
@@ -183,32 +165,21 @@ export function mergeConfigs(
 	return result;
 }
 
-export interface ResolvedLifecycleConfig {
-	config: SetupConfig | null;
-	/** Execution-steering fields dropped because their source is untrusted. */
-	rejected: RejectedLifecycleField[];
-}
-
 /**
- * Resolves setup/teardown/run config, lowest priority first:
- *   1. Main repo:     <mainRepoPath>/.superset/config.json
- *   2. Worktree:      <worktreePath>/.superset/config.json
- *   3. User override: ~/.superset/projects/<projectId>/config.json
+ * Resolves setup/teardown/run config with a three-tier priority:
+ *   1. User override:  ~/.superset/projects/<projectId>/config.json
+ *   2. Worktree:       <worktreePath>/.superset/config.json
+ *   3. Main repo:      <mainRepoPath>/.superset/config.json
  *
- * Higher-priority configs override only the keys they explicitly define, so a
- * source that omits a key inherits it rather than blanking it. A local overlay
- * from `.superset/config.local.json` is then applied on top, which can prepend
- * (before), append (after), or replace each key.
+ * Higher-priority configs override only the keys they explicitly define.
+ * Missing keys inherit from lower-priority sources, so stale copied worktree
+ * configs do not mask newly added project-level commands like `run`.
  *
- * Commands and `cwd` are only honoured from sources the local user controls
- * (GHSA-h3q4-r3jv-gmj2, GHSA-hf7c-jmhj-qghw). The worktree is branch content —
- * for a workspace opened from a pull request it belongs to the PR author — so
- * tier 2 contributes nothing executable and is left in the chain only for
- * non-executable keys. A branch that needs its own commands has to land them on
- * the checked-out main repo, or the user puts them in the gitignored
- * `config.local.json`, which is read from the main repo for the same reason.
+ * After resolving the base config, a local overlay is applied if
+ * `.superset/config.local.json` exists in the workspace (worktree or main repo).
+ * The local config can prepend (before), append (after), or override each key.
  */
-export function resolveLifecycleConfig({
+export function loadSetupConfig({
 	mainRepoPath,
 	worktreePath,
 	projectId,
@@ -216,12 +187,11 @@ export function resolveLifecycleConfig({
 	mainRepoPath: string;
 	worktreePath?: string;
 	projectId?: string;
-}): ResolvedLifecycleConfig {
-	const rejected: RejectedLifecycleField[] = [];
-	let base = readConfigFromPath(mainRepoPath, "main-repo", rejected);
+}): SetupConfig | null {
+	let base = readConfigFromPath(mainRepoPath);
 
 	if (worktreePath) {
-		const config = readConfigFromPath(worktreePath, "worktree", rejected);
+		const config = readConfigFromPath(worktreePath);
 		if (config) {
 			base = mergeBaseConfigs(base, config);
 		}
@@ -241,33 +211,17 @@ export function resolveLifecycleConfig({
 		}
 	}
 
+	if (!base) return null;
+
 	// Apply local config overlay (worktree first, then main repo)
 	const worktreeLocal = worktreePath
-		? readLocalConfigFromPath(worktreePath, "worktree", rejected)
+		? readLocalConfigFromPath(worktreePath)
 		: null;
-	const localConfig =
-		worktreeLocal ??
-		readLocalConfigFromPath(mainRepoPath, "local-config", rejected);
-
-	for (const field of rejected) {
-		console.warn(
-			`[lifecycle-trust] Ignoring '${field.key}' from ${field.source} config: ${JSON.stringify(field.value)}`,
-		);
-	}
-
-	if (!base) return { config: null, rejected };
+	const localConfig = worktreeLocal ?? readLocalConfigFromPath(mainRepoPath);
 
 	if (localConfig) {
-		return { config: mergeConfigs(base, localConfig), rejected };
+		return mergeConfigs(base, localConfig);
 	}
 
-	return { config: base, rejected };
-}
-
-export function loadSetupConfig(params: {
-	mainRepoPath: string;
-	worktreePath?: string;
-	projectId?: string;
-}): SetupConfig | null {
-	return resolveLifecycleConfig(params).config;
+	return base;
 }

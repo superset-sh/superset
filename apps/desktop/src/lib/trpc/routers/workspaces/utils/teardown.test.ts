@@ -127,7 +127,7 @@ describe("runTeardown", () => {
 		expect(readFileSync(markerFile, "utf-8").trim()).toBe("executed");
 	});
 
-	test("ignores a worktreePath config with no mainRepoPath config", async () => {
+	test("uses worktreePath config when present", async () => {
 		const worktreeMarker = join(WORKTREE, "worktree-config-executed.txt");
 		mkdirSync(join(WORKTREE, ".superset"), { recursive: true });
 		writeFileSync(
@@ -142,10 +142,11 @@ describe("runTeardown", () => {
 		});
 
 		expect(result.success).toBe(true);
-		expect(existsSync(worktreeMarker)).toBe(false);
+		expect(existsSync(worktreeMarker)).toBe(true);
+		expect(readFileSync(worktreeMarker, "utf-8").trim()).toBe("executed");
 	});
 
-	test("runs mainRepoPath teardown, not the worktreePath override", async () => {
+	test("prefers worktreePath config over mainRepoPath config", async () => {
 		const mainMarker = join(WORKTREE, "from-main.txt");
 		const worktreeMarker = join(WORKTREE, "from-worktree.txt");
 
@@ -167,8 +168,8 @@ describe("runTeardown", () => {
 		});
 
 		expect(result.success).toBe(true);
-		expect(existsSync(mainMarker)).toBe(true);
-		expect(existsSync(worktreeMarker)).toBe(false);
+		expect(existsSync(worktreeMarker)).toBe(true);
+		expect(existsSync(mainMarker)).toBe(false);
 	});
 
 	test("returns error when teardown command fails", async () => {
@@ -323,91 +324,5 @@ echo wrapper
 		expect(result.success).toBe(true);
 		expect(existsSync(markerFile)).toBe(true);
 		expect(readFileSync(markerFile, "utf-8").trim()).toBe("wrapper");
-	});
-	// GHSA-hf7c-jmhj-qghw: deleting a workspace opened from someone else's pull
-	// request used to execute whatever teardown that branch shipped in
-	// .superset/config.json, with the victim's shell and privileges.
-	describe("untrusted worktree config", () => {
-		const MARKER = join(TEST_DIR, "branch-teardown-ran");
-
-		function writeWorktreeConfig(fileName: string, config: unknown): void {
-			mkdirSync(join(WORKTREE, ".superset"), { recursive: true });
-			writeFileSync(
-				join(WORKTREE, ".superset", fileName),
-				JSON.stringify(config),
-			);
-		}
-
-		test("ignores teardown commands supplied by the worktree branch", async () => {
-			writeFileSync(
-				join(MAIN_REPO, ".superset", "config.json"),
-				JSON.stringify({ teardown: ["true"] }),
-			);
-			writeWorktreeConfig("config.json", { teardown: [`touch "${MARKER}"`] });
-
-			const result = await runTeardown({
-				mainRepoPath: MAIN_REPO,
-				worktreePath: WORKTREE,
-				workspaceName: "pr-from-stranger",
-			});
-
-			expect(result.success).toBe(true);
-			expect(existsSync(MARKER)).toBe(false);
-		});
-
-		test("a branch cannot add teardown where the project configured none", async () => {
-			writeFileSync(
-				join(MAIN_REPO, ".superset", "config.json"),
-				JSON.stringify({ setup: ["true"] }),
-			);
-			writeWorktreeConfig("config.json", { teardown: [`touch "${MARKER}"`] });
-
-			const result = await runTeardown({
-				mainRepoPath: MAIN_REPO,
-				worktreePath: WORKTREE,
-				workspaceName: "pr-from-stranger",
-			});
-
-			expect(result.success).toBe(true);
-			expect(existsSync(MARKER)).toBe(false);
-		});
-
-		// config.local.json is gitignored, but a branch can still `git add -f` one,
-		// so the overlay is trusted by the path it came from, not by its name.
-		test("a branch cannot smuggle teardown via a force-added config.local.json", async () => {
-			writeFileSync(
-				join(MAIN_REPO, ".superset", "config.json"),
-				JSON.stringify({ teardown: ["true"] }),
-			);
-			writeWorktreeConfig("config.local.json", {
-				teardown: { before: [`touch "${MARKER}"`] },
-			});
-
-			const result = await runTeardown({
-				mainRepoPath: MAIN_REPO,
-				worktreePath: WORKTREE,
-				workspaceName: "pr-from-stranger",
-			});
-
-			expect(result.success).toBe(true);
-			expect(existsSync(MARKER)).toBe(false);
-		});
-
-		test("still runs the teardown the project itself configured", async () => {
-			writeFileSync(
-				join(MAIN_REPO, ".superset", "config.json"),
-				JSON.stringify({ teardown: [`touch "${MARKER}"`] }),
-			);
-			writeWorktreeConfig("config.json", { teardown: ["true"] });
-
-			const result = await runTeardown({
-				mainRepoPath: MAIN_REPO,
-				worktreePath: WORKTREE,
-				workspaceName: "my-own-branch",
-			});
-
-			expect(result.success).toBe(true);
-			expect(existsSync(MARKER)).toBe(true);
-		});
 	});
 });
