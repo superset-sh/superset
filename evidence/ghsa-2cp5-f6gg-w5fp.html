@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GHSA-2cp5-f6gg-w5fp — OAuth state not bound to the browser</title>
+<style>
+  :root {
+    --bg: #0c0d10;
+    --panel: #141619;
+    --panel-2: #191c20;
+    --line: #262a30;
+    --text: #e6e8ec;
+    --muted: #9aa3ae;
+    --dim: #6d7681;
+    --bad: #ff6b6b;
+    --bad-bg: #2a1518;
+    --good: #4ade80;
+    --good-bg: #122019;
+    --accent: #7aa2f7;
+    --warn: #e5b567;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 56px 24px 96px; }
+  header { border-bottom: 1px solid var(--line); padding-bottom: 28px; margin-bottom: 36px; }
+  .eyebrow {
+    font: 600 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+    color: var(--dim); margin-bottom: 14px;
+  }
+  h1 { font-size: 30px; line-height: 1.25; margin: 0 0 16px; letter-spacing: -.02em; }
+  .ids { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .chip {
+    font: 600 12px/1 var(--mono); padding: 7px 11px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--muted);
+  }
+  .chip.verdict-bad { color: var(--bad); border-color: #4a2227; background: var(--bad-bg); }
+  .chip.verdict-good { color: var(--good); border-color: #1f4030; background: var(--good-bg); }
+  .lede { color: var(--muted); font-size: 16px; margin: 0; }
+  h2 {
+    font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+    margin: 48px 0 16px; font-family: var(--mono); font-weight: 600;
+  }
+  h3 { font-size: 16px; margin: 28px 0 10px; }
+  h4 { font-size: 13px; margin: 0 0 8px; color: var(--muted); font-weight: 600; }
+  p { margin: 0 0 14px; }
+  code { font-family: var(--mono); font-size: .92em; }
+  p code, li code, td code {
+    background: var(--panel-2); border: 1px solid var(--line);
+    padding: 1px 5px; border-radius: 4px; color: #cdd3db;
+  }
+  pre {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 18px; overflow-x: auto; margin: 0;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: #c6cbd3;
+    tab-size: 2; -moz-tab-size: 2;
+  }
+  pre .bad { color: var(--bad); font-weight: 600; display: inline-block; }
+  pre .good { color: var(--good); font-weight: 600; display: inline-block; }
+  pre .dim { color: var(--dim); display: inline-block; }
+  .proof { border-radius: 12px; overflow: hidden; border: 1px solid var(--line); margin-bottom: 20px; }
+  .proof > .hd {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 11px 16px; background: var(--panel-2); border-bottom: 1px solid var(--line);
+    font: 600 12px/1.4 var(--mono);
+  }
+  .proof.bad > .hd { background: var(--bad-bg); color: var(--bad); }
+  .proof.good > .hd { background: var(--good-bg); color: var(--good); }
+  .proof > .hd .file { margin-left: auto; color: var(--dim); font-weight: 400; }
+  .proof pre { border: 0; border-radius: 0; background: var(--panel); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font: 600 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+  td.was-bad { color: var(--bad); }
+  td.was-ok { color: var(--muted); }
+  ul { margin: 0 0 14px; padding-left: 20px; }
+  li { margin-bottom: 7px; }
+  .tgroup { margin-bottom: 18px; }
+  ul.tests { list-style: none; padding: 0; margin: 0; }
+  ul.tests li {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    padding: 7px 12px; border: 1px solid var(--line); border-radius: 7px;
+    background: var(--panel); margin-bottom: 6px; font-size: 13.5px; color: #cdd3db;
+  }
+  .tick { font: 700 10px/1 var(--mono); color: var(--good); letter-spacing: .08em; }
+  .redtag {
+    font: 600 10px/1 var(--mono); color: var(--bad); border: 1px solid #4a2227;
+    background: var(--bad-bg); padding: 3px 6px; border-radius: 4px; margin-left: auto;
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--panel); }
+  .card .k { font: 600 10px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
+  .card .v { font-size: 14px; color: #cdd3db; }
+  .note {
+    border-left: 2px solid var(--warn); background: #1c1813; color: #d8cfbd;
+    padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 14px; font-size: 14px;
+  }
+  footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--dim); font-size: 13px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Security advisory &middot; Fix report</div>
+  <h1>OAuth callbacks trusted the state, not the browser</h1>
+  <div class="ids">
+    <span class="chip">GHSA-2cp5-f6gg-w5fp</span>
+    <span class="chip verdict-bad">Confirmed &middot; reproduced live</span>
+    <span class="chip verdict-good">Fixed &middot; proved closed</span>
+    <span class="chip">9 callbacks &middot; 7 were vulnerable</span>
+    <span class="chip">branch superset/p0-2-oauth-state-binding-fix-499ab9f8</span>
+  </div>
+  <p class="lede">An integration connect route minted a signed OAuth state that named an
+  organization and bound nothing to the browser holding it, so whoever finished the flow
+  handed their grant to whoever started it. Now minting the state and binding it to the asking
+  browser is one shared operation, and every callback refuses a state the answering request's
+  cookie does not carry.</p>
+</header>
+
+<h2>The attack</h2>
+<p>The signed state carries <code>{ organizationId, userId, timestamp }</code> and an HMAC, and
+<code>resolveCallback</code> read the identity straight out of it — verifying only that the named
+user was still a member of the named org, which is trivially true for an attacker's own state.
+So an attacker signs up (a free signup auto-creates a personal org), hits a connect route for
+<em>their own</em> organization to mint a valid state, and sends the provider's authorize URL to
+a victim. The victim approves in their own browser, under their own session, against their own
+GitHub org or mailbox or Slack workspace — and the provider redirects to a callback that reads
+the attacker's state, writes the installation or connection row against the
+<strong>attacker's</strong> organization, and records the attacker as the connecting user. For
+GitHub that means <code>githubInstallations</code> lands on the attacker's org and
+<code>installationTokenFor</code> will mint tokens for the victim's repositories inside it. No
+signature forgery, no session theft, no provider secret — the attacker only needs a state that
+is genuinely theirs and a victim willing to click Approve.</p>
+
+<div class="grid">
+  <div class="card"><div class="k">Root cause</div><div class="v"><code>createSignedState</code> binds the state to no browser; <code>resolveCallback</code> derives org + user from it and checks membership only.</div></div>
+  <div class="card"><div class="k">Vulnerable</div><div class="v"><code>github</code>, <code>integrations/{google, linear, notion, slack, microsoft-teams, microsoft-teams/identity}</code></div></div>
+  <div class="card"><div class="k">Already safe</div><div class="v"><code>connectors/callback/[connector]</code> and <code>integrations/sentry</code> — both bound state to a cookie by hand.</div></div>
+</div>
+
+<h2>BEFORE — the exploit succeeding</h2>
+<p>Driven live against a local web+API stack: two synthetic accounts signed up in two separate
+Chrome profiles over CDP, so A and B have genuinely independent cookie jars. A starts a connect
+flow for A's org and the state is captured out of the redirect. B — a different account, a
+different browser — then completes the callback with A's state. Note line 1: <strong>the connect
+response sets no state cookie at all</strong>, which is the whole bug.</p>
+
+<div class="proof bad">
+  <div class="hd">RESULT: VULNERABLE — B approved, A owns the connection<span class="file">evidence/before-installation-owner.txt</span></div>
+  <pre>GHSA-2cp5-f6gg-w5fp — BEFORE the fix
+run at 2026-09-24T22:03:50.274Z  (commit 2131a71)
+
+browser session A  user=8c82cb64-a2fc-4d0b-8278-3142d3c49dc9  attacker+1790287409832@synthetic.test
+                   org =613effc2-b9bf-4adf-88ba-459bfd437fee  &quot;Synthetic Attacker A&#x27;s Team&quot;   &lt;- ATTACKER&#x27;s org
+browser session B  user=5764f48c-d21d-4380-b2d2-4c009fa4d603  victim+1790287409832@synthetic.test
+                   org =6b8a8aeb-3fac-47cc-a682-e543d3b7bae4  &quot;Synthetic Victim B&#x27;s Team&quot;   &lt;- VICTIM&#x27;s org
+
+1. session A  GET http://localhost:3001/api/integrations/notion/connect?organizationId=613effc2-b9bf-4adf-88ba-459bfd437fee
+   -&gt; 302 https://api.notion.com/v1/oauth/authorize?client_id=synthetic-notion-client-id&amp;redirect_uri=http%3A%2F%2Flocal...
+   signed state minted for A: eyJvcmdhbml6YXRpb25JZCI6IjYxM2VmZmMyLWI5YmYtNGFk...
+<span class="bad">   state cookie set on A: []</span>
+
+2. session B  GET http://localhost:3001/api/integrations/notion/callback?code=synthetic-authorization-code&amp;state=e...
+   B&#x27;s cookies for the API before: [&quot;better-auth.session_data&quot;,&quot;better-auth.session_token&quot;,&quot;ph_superset&quot;]
+   landed on: http://localhost:3000/integrations/notion
+
+3. connections rows for connector &#x27;notion&#x27; after B approved:
+   id=7691891b-5ebd-457e-8a11-67713efc8819
+<span class="bad">     organization_id      = 613effc2-b9bf-4adf-88ba-459bfd437fee  &lt;- ATTACKER org A</span>
+     connected_by_user_id = 8c82cb64-a2fc-4d0b-8278-3142d3c49dc9
+     external_account     = synthetic-workspace-id &quot;Synthetic Notion Workspace&quot;
+
+<span class="bad">RESULT: VULNERABLE. B&#x27;s approval was recorded against A&#x27;s organization.</span></pre>
+</div>
+
+<h2>AFTER — blocked, and the honest flow still works</h2>
+<p>Same drive against the fix. A's connect response now sets <code>notion_oauth_state</code>
+holding exactly the state it handed the provider; B carries no such cookie, so the callback
+refuses before it ever reaches the token exchange and <strong>no row is written</strong>.</p>
+
+<div class="proof good">
+  <div class="hd">RESULT: BLOCKED — state/cookie mismatch, nothing written<span class="file">evidence/after-installation-blocked.txt</span></div>
+  <pre>GHSA-2cp5-f6gg-w5fp — AFTER the fix
+run at 2026-09-24T22:12:34.128Z  (commit 2131a71)
+
+browser session A  user=4e362e59-d5fb-4baa-8728-c82939b9c2be  attacker+1790287932598@synthetic.test
+                   org =cb40c5c7-6248-44e0-bbd5-74b093c2dd9f  &quot;Synthetic Attacker A&#x27;s Team&quot;   &lt;- ATTACKER&#x27;s org
+browser session B  user=1ba39505-5718-4d46-b18f-966685fde11d  victim+1790287932598@synthetic.test
+                   org =3fff805f-5257-4a0f-8d81-f6b4a677878b  &quot;Synthetic Victim B&#x27;s Team&quot;   &lt;- VICTIM&#x27;s org
+
+1. session A  GET http://localhost:3001/api/integrations/notion/connect?organizationId=cb40c5c7-6248-44e0-bbd5-74b093c2dd9f
+   -&gt; 302 https://api.notion.com/v1/oauth/authorize?client_id=synthetic-notion-client-id&amp;redirect_uri=http%3A%2F%2Flocal...
+   signed state minted for A: eyJvcmdhbml6YXRpb25JZCI6ImNiNDBjNWM3LTYyNDgtNDRl...
+   state cookie on A for this flow: notion_oauth_state (httpOnly=true, sameSite=Lax, path=/api/integrations/notion)
+<span class="good">   and it holds exactly that state: true</span>
+
+2. session B  GET http://localhost:3001/api/integrations/notion/callback?code=synthetic-authorization-code&amp;state=e...
+   B&#x27;s cookies for this flow&#x27;s path: [&quot;ph_superset&quot;,&quot;better-auth.session_token&quot;,&quot;better-auth.session_data&quot;]
+<span class="good">   B holds no state cookie for the flow: true</span>
+<span class="good">   landed on: http://localhost:3000/integrations/notion?error=invalid_state</span>
+
+3. connections rows for connector &#x27;notion&#x27; after B approved:
+<span class="good">   (none)</span>
+
+<span class="good">RESULT: BLOCKED. Nothing was written; the callback refused A&#x27;s state in B&#x27;s browser (landed on error=invalid_state).</span></pre>
+</div>
+
+<p>And the flow a real user actually performs — start and finish in one browser — still connects:</p>
+
+<div class="proof good">
+  <div class="hd">RESULT: OK — normal same-browser flow connects<span class="file">evidence/after-normal-flow-ok.txt</span></div>
+  <pre>GHSA-2cp5-f6gg-w5fp — AFTER the fix: normal same-browser flow
+run at 2026-09-24T22:12:40.914Z
+
+1. session A  GET http://localhost:3001/api/integrations/notion/connect?organizationId=cb40c5c7-6248-44e0-bbd5-74b093c2dd9f
+   -&gt; 302 to the provider with state eyJvcmdhbml6YXRpb25JZCI6ImNiNDBjNWM3LTYy...
+<span class="good">   cookie notion_oauth_state holds the same state: true</span>
+
+2. session A  GET the callback in the SAME browser
+   landed on: http://localhost:3000/integrations/notion
+
+3. connections rows for connector &#x27;notion&#x27;:
+   id=3e3dfcf1-7b68-426d-9e36-e4d6051c86e2  organization_id=cb40c5c7-6248-44e0-bbd5-74b093c2dd9f  &lt;- org A (the browser that started AND finished)
+     connected_by_user_id = 4e362e59-d5fb-4baa-8728-c82939b9c2be
+
+<span class="good">RESULT: OK. The same-browser flow still connects.</span></pre>
+</div>
+
+<div class="note"><strong>How the live drive was possible without provider secrets.</strong> A
+throwaway Neon project (created empty, migrated from scratch, deleted after), a <code>.env</code>
+built from <code>.env.local.example</code>'s fake placeholders, and a local stand-in for
+<code>api.notion.com</code> on 127.0.0.1. Notion is the one flow whose DB write needs a single
+provider call, which is why it is the one driven end to end — the vulnerable code path
+(<code>resolveCallback</code>) is shared by all nine callbacks. No production database, no real
+customer data, no real provider credentials.</div>
+
+<h2>The fix</h2>
+<p>Not a check copy-pasted into seven files. Minting a state <em>is</em> binding it: a single
+<code>beginOAuthFlow</code> signs the state and sets it in an HttpOnly, SameSite=Lax cookie scoped
+to that flow's own path, and <code>resolveCallback</code> takes the cookie as a <strong>required
+option</strong> and refuses any callback whose <code>state</code> the request's cookie does not
+carry. Every exit — the preamble's, and the route's own through <code>exit</code>/<code>fail</code>
+— expires that cookie, so a callback that ended early leaves no live state behind for the rest of
+its TTL.</p>
+
+<pre>// apps/api/src/lib/integrations/oauthFlow.ts
+
+export async function beginOAuthFlow(
+	options: BeginOAuthFlowOptions,
+): Promise&lt;Response&gt; {
+	const state = createSignedState(options.payload);
+	const headers = new Headers({ Location: await options.authorizeUrl(state) });
+	headers.append(&quot;Set-Cookie&quot;, setStateCookie(options.cookie, state));
+	for (const stale of options.clear ?? []) {
+		headers.append(&quot;Set-Cookie&quot;, clearStateCookie(stale));
+	}
+	return new Response(null, { status: 302, headers });
+}
+
+// apps/api/src/lib/integrations/resolveCallback.ts
+
+	// The state proves who asked, the cookie proves who is answering. Without
+	// the second half, a grant a victim approves pairs with a state an attacker
+	// minted and the connection lands in the attacker&#x27;s organization
+	// (GHSA-2cp5-f6gg-w5fp).
+	const bound = readStateCookie(request, options.cookie);
+	const state = options.stateInCookieOnly
+		? bound
+		: url.searchParams.get(&quot;state&quot;);
+	if (!state) {
+		return fail(options.stateInCookieOnly ? &quot;invalid_state&quot; : &quot;missing_params&quot;);
+	}
+	if (!options.stateInCookieOnly &amp;&amp; state !== bound) {
+		console.error(&quot;[integrations] callback state is not bound to this browser&quot;);
+		return fail(&quot;invalid_state&quot;);
+	}</pre>
+
+<h3>Bound by default</h3>
+<ul>
+  <li><code>requireOrgMember</code> no longer returns a state token at all, so a new connect route
+  <em>cannot</em> mint an unbound one by accident.</li>
+  <li><code>resolveCallback</code>'s <code>cookie</code> option is required, so a new callback
+  cannot resolve an identity without naming one.</li>
+  <li>One <code>STATE_COOKIES</code> registry holds every flow's cookie name and path, so the route
+  that starts a flow and the route that finishes it cannot drift apart. A test asserts the names
+  are unique.</li>
+  <li>The two routes that already did this by hand were refactored onto the same helper, so all
+  nine callbacks share one implementation.</li>
+  <li>Microsoft Teams is the one two-leg flow: its consent callback mints the sign-in leg's state
+  itself, so that redirect sets the identity cookie and retires the consent cookie in the same
+  response (<code>clear: [...]</code>).</li>
+</ul>
+
+<h3>Routes covered</h3>
+<table>
+  <thead><tr><th>Route</th><th>Changed</th><th>Before</th></tr></thead>
+  <tbody><tr><td><code>github</code></td><td>callback + install</td><td class="was-bad">was unbound</td></tr><tr><td><code>integrations/google</code></td><td>callback + connect</td><td class="was-bad">was unbound</td></tr><tr><td><code>integrations/linear</code></td><td>callback + connect</td><td class="was-bad">was unbound</td></tr><tr><td><code>integrations/notion</code></td><td>callback + connect</td><td class="was-bad">was unbound</td></tr><tr><td><code>integrations/slack</code></td><td>callback + connect</td><td class="was-bad">was unbound</td></tr><tr><td><code>integrations/microsoft-teams</code></td><td>callback + connect</td><td class="was-bad">was unbound</td></tr><tr><td><code>integrations/microsoft-teams/identity</code></td><td>callback + the redirect that starts it</td><td class="was-bad">was unbound</td></tr><tr><td><code>integrations/sentry</code></td><td>callback + connect</td><td class="was-ok">hand-rolled, refactored onto the helper</td></tr><tr><td><code>connectors/callback/[connector]</code></td><td>callback + connect</td><td class="was-ok">hand-rolled, refactored onto the helper</td></tr></tbody>
+</table>
+
+<h3>Files</h3>
+<ul>
+  <li><strong>New:</strong> <code>apps/api/src/lib/integrations/oauthFlow.ts</code> — the registry,
+  <code>beginOAuthFlow</code>, <code>exitOAuthFlow</code>, cookie read/set/clear.</li>
+  <li><strong>Changed:</strong> <code>resolveCallback.ts</code> (required cookie + mismatch refusal
+  + clearing exits), <code>requireOrgMember.ts</code> (no state token).</li>
+  <li><strong>Changed:</strong> 7 connect routes, the Teams identity redirect, and 9 callback
+  routes under <code>apps/api/src/app/api/</code>.</li>
+  <li><strong>Tests:</strong> <code>oauthFlow.test.ts</code>, <code>resolveCallback.test.ts</code>
+  (co-located).</li>
+</ul>
+
+<h2>Regression tests</h2>
+<p>The tests sit on the shared guard, so all nine callbacks inherit the coverage. Three of them
+fail against the pre-fix state handling and pass against the fix — verified by removing the two
+comparison lines from <code>resolveCallback</code>, i.e. exactly what <code>main</code> does today.</p>
+
+<div class="proof good">
+  <div class="hd">bun test src/lib/integrations — red on old behaviour, green on the fix<span class="file">evidence/regression-test-red-green.txt</span></div>
+  <pre>GHSA-2cp5-f6gg-w5fp — regression test: red on the old behaviour, green on the fix
+run at 2026-09-24T22:10:37Z
+
+Tests: apps/api/src/lib/integrations/resolveCallback.test.ts
+       apps/api/src/lib/integrations/oauthFlow.test.ts
+Command: bun test src/lib/integrations   (from apps/api)
+
+## RED — pre-fix state handling
+The two lines that compare the query state against the request&#x27;s state cookie
+were removed from resolveCallback, which is exactly what main does today.
+
+<span class="bad">(fail) resolveCallback state binding &gt; refuses a state the answering browser does not carry [5.03ms]</span>
+<span class="bad">(fail) resolveCallback state binding &gt; refuses a state that is not the one this browser was given [0.63ms]</span>
+<span class="bad">(fail) resolveCallback state binding &gt; refuses a state bound under another flow&#x27;s cookie [0.44ms]</span>
+
+  7 pass
+<span class="bad">  3 fail</span>
+
+## GREEN — with the fix in place
+
+<span class="good">18 pass</span>
+<span class="good"> 0 fail</span>
+Ran 18 tests across 2 files. [112.00ms]</pre>
+</div>
+
+<div class="tgroup"><h4>resolveCallback state binding</h4><ul class="tests"><li><span class="tick">PASS</span>refuses a state the answering browser does not carry<span class="redtag">red before fix</span></li><li><span class="tick">PASS</span>refuses a state that is not the one this browser was given<span class="redtag">red before fix</span></li><li><span class="tick">PASS</span>refuses a state bound under another flow&#x27;s cookie<span class="redtag">red before fix</span></li><li><span class="tick">PASS</span>accepts the state the request&#x27;s cookie carries</li><li><span class="tick">PASS</span>still refuses a matching pair whose signer is not us</li><li><span class="tick">PASS</span>still refuses a bound state whose membership is gone</li></ul></div><div class="tgroup"><h4>resolveCallback cookie lifetime</h4><ul class="tests"><li><span class="tick">PASS</span>expires the state cookie on a refusal</li><li><span class="tick">PASS</span>expires the state cookie on the route&#x27;s own exits</li></ul></div><div class="tgroup"><h4>resolveCallback for a provider that returns no state</h4><ul class="tests"><li><span class="tick">PASS</span>reads the identity from the cookie alone</li><li><span class="tick">PASS</span>refuses a browser that carries no state for the flow</li></ul></div><div class="tgroup"><h4>beginOAuthFlow</h4><ul class="tests"><li><span class="tick">PASS</span>binds the state it hands the provider to the asking browser</li><li><span class="tick">PASS</span>the cookie is HttpOnly, SameSite=Lax and scoped to the flow</li><li><span class="tick">PASS</span>retires a preceding leg&#x27;s cookie in the same redirect</li><li><span class="tick">PASS</span>every flow has its own cookie name</li></ul></div><div class="tgroup"><h4>state cookie / exitOAuthFlow</h4><ul class="tests"><li><span class="tick">PASS</span>round-trips a state through a Cookie header</li><li><span class="tick">PASS</span>reads nothing when the browser carries no state for this flow</li><li><span class="tick">PASS</span>clearing expires it on the same path</li><li><span class="tick">PASS</span>redirects and expires the one-shot cookie</li></ul></div>
+
+<h2>Checks</h2>
+<div class="grid">
+  <div class="card"><div class="k">Unit tests</div><div class="v"><code>bun test src</code> in apps/api — <strong>218 pass, 0 fail</strong></div></div>
+  <div class="card"><div class="k">Typecheck</div><div class="v"><code>turbo typecheck</code> — <strong>42/42 tasks pass</strong></div></div>
+  <div class="card"><div class="k">Lint</div><div class="v"><code>scripts/lint.sh</code> on the changed paths — clean</div></div>
+  <div class="card"><div class="k">Live drive</div><div class="v">BEFORE vulnerable &rarr; AFTER blocked, normal flow OK</div></div>
+</div>
+
+<h2>Residual risk</h2>
+<ul>
+  <li><strong>In-flight flows break once on deploy.</strong> A user mid-authorization when this
+  ships has no state cookie and will be refused with <code>invalid_state</code>; retrying from the
+  connect page works. The two pre-existing cookie names are preserved, so only the seven newly
+  bound flows are affected, for at most the 10-minute state TTL.</li>
+  <li><strong>The cookie is the binding, so it inherits cookie limits.</strong> SameSite=Lax is
+  correct for a top-level provider redirect, but a browser that blocks the first-party cookie, or
+  a user who completes the flow in a different browser or a private window from the one that
+  started it, will legitimately be refused. That is the intended trade.</li>
+  <li><strong>Sentry and connector app-installs are bound by the cookie alone</strong>
+  (<code>stateInCookieOnly</code>) because those providers return no state of ours. Holding the
+  cookie <em>is</em> the proof there; there is no second factor to cross-check against.</li>
+  <li><strong>Only the Notion flow was driven end to end live.</strong> The other eight share the
+  same <code>resolveCallback</code> guard and are covered by the unit tests, but their
+  provider-specific legs were not exercised against a real provider.</li>
+  <li><strong>Out of scope, unchanged:</strong> <code>github/user/callback</code> (a
+  desktop-initiated flow with its own state handling) and the plugin OAuth state path were not
+  part of this advisory and were not touched.</li>
+</ul>
+
+<footer>
+  Branch <code>superset/p0-2-oauth-state-binding-fix-499ab9f8</code> &middot; commits
+  <code>d1a3984</code> (fix + tests), <code>ab0f2f1</code> (sandbox notes). No PR opened.
+  Full evidence, including CDP screenshots of both browser sessions and the reproducible drive
+  scripts, is in <code>evidence/</code> on the branch.
+</footer>
+
+</div>
+</body>
+</html>
