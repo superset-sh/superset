@@ -27,6 +27,12 @@ If you want built-in AI and one polished interface, Warp is the obvious candidat
 That is where Superset stands apart. It is not trying to be the best general-purpose terminal emulator. It is a local-first workspace for running coding agents in parallel, not a classic terminal, and that is exactly why it stands out for parallel coding workflows.
 
 
+## Keep Your CLI Agent, Add a Visual Workspace
+
+Superset is also useful when you run one agent at a time. Give a task its own workspace, use your existing CLI agent in the terminal, and inspect its diff or browser preview alongside it. Separate workspaces give unfinished tasks a place to return to across projects.
+
+Try it with a small fix before adding parallel agents: [download Superset](/download), launch your usual agent, review the patch, then switch away and return. Evaluate how easily you can find the task and continue reviewing it. The [terminal guide](https://docs.superset.sh/terminal-integration) explains session persistence, and the [workspace walkthrough](/blog/parallel-coding-agents-guide) covers adding independent tasks.
+
 ## Which part actually edits files and runs commands?
 
 A terminal displays a shell session. The coding agent running in that session supplies the model interaction, file-editing tools, command execution, and permission controls. Choosing a terminal does not determine the agent's correctness or permissions.
@@ -43,7 +49,7 @@ This article is published by Superset. The recommendations describe workflow fit
 
 | Tool | Best for | AI model | Working-directory isolation | Main tradeoff |
 |---|---|---|---|---|
-| **Superset** | Running many coding agents in parallel | Bring your own agents plus Superset Chat | Yes - one Git worktree per task | Not a classic SSH-first or shell-first terminal emulator |
+| **Superset** | Organizing, reviewing, and returning to CLI-agent tasks | Bring your own agents plus Superset Chat | Yes - one Git worktree per task | Not a classic SSH-first or shell-first terminal emulator |
 | **Warp** | One app for terminal + built-in AI | Built-in agents plus third-party CLI agents | Partially - agent support without automatic worktree isolation per task | More opinionated workflow and cloud-connected AI features |
 | **iTerm2** | macOS power users who want a mature terminal | None built in | No - use manual Git worktrees or tmux | Great terminal, no agent orchestration layer |
 | **Ghostty** | Fast, modern, native-feeling daily driver | None built in | No - pair with Git worktrees or zellij/tmux | Focused on terminal quality, not AI workflow management |
@@ -76,7 +82,7 @@ That means many developers will end up using two tools:
 
 ### Superset
 
-Superset is the right choice when your main problem is not "which terminal feels best?" but "how do I run several coding agents at once without branch chaos?"
+Superset fits developers who want a visual home for their existing CLI-agent work, from one unfinished task to several independent agents.
 
 Its core idea is simple: every task gets its own Git worktree, its own branch, and its own agent session. That separates working files for review; it does not prevent merge conflicts or sandbox agent processes. Around that, Superset now adds a built-in chat panel, diff/file editing, browser preview for docs and dev servers, and MCP tooling. It is strongest when you are dispatching independent work like tests, refactors, docs, or bug fixes across the same repository.
 
@@ -130,7 +136,7 @@ Choose based on your primary bottleneck:
 
 - If your bottleneck is terminal polish, use Ghostty, iTerm2, kitty, Alacritty, or WezTerm.
 - If your bottleneck is built-in AI inside the terminal, use Warp.
-- If your bottleneck is coordinating many agents on one repository, use Superset.
+- If your bottleneck is organizing agent tasks and reviewing their output, use Superset.
 
 That last category matters more than it sounds. Once you are running more than one agent on the same repo, the terminal itself matters less than branch isolation, review flow, and session management.
 
