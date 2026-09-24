@@ -536,3 +536,39 @@ shared memory there.
 
 **What we did:** `superset-desktop-init` remounts `/dev/shm` at 50% of RAM
 at boot, after which four windows open without a crash.
+
+## Standing the dev stack up inside a cloud workspace
+
+**The app assumes:** a contributor follows `DEVELOPMENT.md` — `docker compose`
+brings up Postgres, the neon-http proxy and Redis, `.env` names them, and
+`bun run dev` reads that `.env`.
+
+**A sandbox is:** a box where each of those four steps has a different answer.
+Found while reproducing a security advisory end-to-end (2026-09-24); all four
+cost a debugging session.
+
+- **The Docker daemon is not running, and the socket is root-owned.** `docker`
+  is installed and `sudo dockerd` does come up (nftables and ip6tables warnings
+  in its log are noise — it reaches "Daemon has completed initialization"),
+  after which `/var/run/docker.sock` still needs opening to the `ubuntu` user.
+  Nothing starts it for you.
+- **The sandbox exports a `DATABASE_URL` that beats `.env`.** The ambient
+  process env carries the *production* Neon URL, and dotenv-loaded tools take
+  the inherited variable over the file — which is why `setup.local.sh` exports
+  the local one before calling `db:migrate`. Any command you run by hand
+  (`drizzle-kit`, a seed script, a one-off `bun run`) goes to production unless
+  you export it too. Pin it explicitly in every shell.
+- **`drizzle-kit migrate` cannot replay the migration history onto a fresh
+  Postgres 17.** `0122` and `0125` rename NOT NULL constraints by name
+  (`..._swap_id_not_null`), and Postgres 17 does not catalogue NOT NULL
+  constraints under a name, so the statement fails on a database that was
+  created rather than grown. The lineage works against Neon, which is what CI
+  and production use. To get a local database, apply the history from a patched
+  copy of `packages/db/drizzle` (never edit the real one) with those renames
+  commented out. `drizzle-kit push` is not a substitute — it creates neither
+  schema and orders views before the tables they select from.
+- **The neon-http proxy needs a table that lives in the database it proxies.**
+  `local-neon-http-proxy` looks up `neon_control_plane.endpoints` in `main` and
+  answers every query with `Control plane request failed` if it is missing. The
+  image creates it on the database's first start, so dropping and recreating
+  `main` takes it with it; recreate the schema and table by hand afterwards.

@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 import { auth, type Session } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import * as authSchema from "@superset/db/schema/auth";
+import { isFirstPartyOAuthClient } from "@superset/shared/auth";
 import { SANDBOX_API_CREDENTIAL_HEADER } from "@superset/shared/sandbox-gate";
 import { createTRPCContext } from "@superset/trpc";
 import {
@@ -13,8 +14,6 @@ import { eq } from "drizzle-orm";
 import { env } from "@/env";
 
 const apiUrl = env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
-
-const TRUSTED_API_CLIENTS = new Set(["superset-cli"]);
 
 function looksLikeJwt(token: string): boolean {
 	const parts = token.split(".");
@@ -42,9 +41,7 @@ async function sessionFromOAuthBearer(
 		return null;
 	}
 
-	const authorizedClientId =
-		typeof payload.azp === "string" ? payload.azp : null;
-	if (authorizedClientId && !TRUSTED_API_CLIENTS.has(authorizedClientId)) {
+	if (payload.azp && !isFirstPartyOAuthClient(payload.azp)) {
 		return null;
 	}
 
