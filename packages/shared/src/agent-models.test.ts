@@ -142,8 +142,10 @@ describe("buildAgentModelArgs", () => {
 		const groupOf = (id: string) =>
 			models.find((model) => model.id === id)?.group;
 		expect(groupOf("gpt-5.6-sol")).toBe("Current");
-		expect(groupOf("gpt-5.4")).toBe("Retiring 2026-08-31");
-		expect(groupOf("gpt-5.3-codex")).toBe("Retiring 2026-08-31");
+		expect(groupOf("gpt-5.5")).toBe("Retiring 2026-10-14");
+		// Retired 2026-08-31 and gone from the live catalog since.
+		expect(groupOf("gpt-5.4")).toBeUndefined();
+		expect(groupOf("gpt-5.3-codex")).toBeUndefined();
 	});
 
 	it("passes a pinned legacy claude model through to the CLI flag", () => {
@@ -215,7 +217,7 @@ describe("buildAgentModelArgs", () => {
 		}
 	});
 
-	it("includes opus 5 and the GPT-5.6 models for the other CLIs", () => {
+	it("includes opus 5 and the current GPT models for the other CLIs", () => {
 		for (const model of [
 			"claude-opus-5-high",
 			"gpt-5.6-terra-medium",
@@ -228,6 +230,9 @@ describe("buildAgentModelArgs", () => {
 		}
 		for (const model of [
 			"anthropic/claude-opus-5",
+			"openai/gpt-6-astra",
+			"openai/gpt-6-sol",
+			"openai/gpt-6-luna",
 			"openai/gpt-5.6-sol",
 			"openai/gpt-5.6-terra",
 			"openai/gpt-5.6-luna",
@@ -259,6 +264,10 @@ describe("buildAgentModelArgs", () => {
 		expect(buildAgentModelArgs("omp", "openai-codex/gpt-5.6-sol")).toEqual([
 			"--model",
 			"openai-codex/gpt-5.6-sol",
+		]);
+		expect(buildAgentModelArgs("omp", "openai-codex/gpt-6-astra")).toEqual([
+			"--model",
+			"openai-codex/gpt-6-astra",
 		]);
 	});
 });
@@ -413,6 +422,7 @@ describe("getAgentEfforts", () => {
 			"high",
 			"xhigh",
 			"max",
+			"ultra",
 		]);
 		expect(getAgentEfforts("codex", "gpt-6-sol").map((e) => e.id)).toEqual([
 			"low",
