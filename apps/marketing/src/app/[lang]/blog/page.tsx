@@ -52,6 +52,9 @@ export default async function BlogPage() {
 
 	const posts = getListedBlogPosts();
 	const guides = [
+		"change-ui-with-your-coding-agent",
+		"send-pr-feedback-to-your-agent",
+		"review-agent-work-with-pages",
 		"parallel-coding-agents-guide",
 		"scheduled-agent-maintenance",
 	].flatMap((slug) => {

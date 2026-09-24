@@ -2981,9 +2981,6 @@ msgstr "Changelog"
 msgid "Changes"
 msgstr "変更"
 
-msgid "Changes are isolated"
-msgstr "変更は分離される"
-
 msgid "Changes open target"
 msgstr "変更ビューの開き先"
 
@@ -3259,6 +3256,9 @@ msgstr "<0>テーマをインポート</0>をクリックし、ダウンロー�
 
 msgid "Click a terminal script to edit its details."
 msgstr "ターミナルスクリプトをクリックして詳細を編集します。"
+
+msgid "Click an element in your preview and describe the change. Your agent receives the element context and a screenshot when available."
+msgstr "プレビュー内の要素をクリックして、変更内容を説明します。エージェントには要素のコンテキストと、取得できた場合はスクリーンショットが送られます。"
 
 msgid "Click here if not redirected"
 msgstr "リダイレクトされない場合はこちらをクリック"
@@ -5583,9 +5583,6 @@ msgstr "例: engineering"
 msgid "e.g. Engineering"
 msgstr "例: Engineering"
 
-msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
-msgstr "各エージェントは独立したGitワークツリーで動きます。マージコンフリクトもなく、互いの変更を踏むこともありません。準備ができたらレビューしてマージするだけです。"
-
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "添付ファイルは1件あたり最大{0} MBです。"
@@ -7055,6 +7052,9 @@ msgstr "GitHubユーザー名…"
 msgid "Give me an example"
 msgstr "例を挙げて"
 
+msgid "Give your coding agent feedback where you work"
+msgstr "作業している場所からコーディングエージェントにフィードバック"
+
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "どこで使うキーか分かる名前を付けてください。"
 
@@ -7991,6 +7991,9 @@ msgstr "ドキュメントを最新に保つ"
 msgid "Keep editing"
 msgstr "編集を続ける"
 
+msgid "Keep track of parallel tasks"
+msgstr "並行するタスクを把握する"
+
 msgid "Keep waiting"
 msgstr "待ち続ける"
 
@@ -8189,6 +8192,9 @@ msgstr "退出して削除"
 
 msgid "Leave comment mode"
 msgstr "コメントモードを終了"
+
+msgid "Leave feedback on the work itself"
+msgstr "成果物に直接フィードバックを残す"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "空欄にすると、ターミナルが報告する名前に戻ります。"
@@ -9199,6 +9205,9 @@ msgstr "ワークスペースから新規グループ"
 
 msgid "New issue"
 msgstr "新規issue"
+
+msgid "New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together."
+msgstr "新しいローカルのブランチベースのワークスペースでは、個別の Git ワークツリーを使用します。各タスクの変更を確認してから、テストとマージを行ってください。"
 
 msgid "New page"
 msgstr "新しいページ"
@@ -12493,6 +12502,9 @@ msgstr "レビューとCIの待ち行列が、エージェントの生んだ余�
 msgid "Review becomes the bottleneck"
 msgstr "レビューがボトルネックになる"
 
+msgid "Review changes in separate workspaces"
+msgstr "個別のワークスペースで変更をレビューする"
+
 msgid "Review Dismissed"
 msgstr "レビューが却下されました"
 
@@ -12794,9 +12806,6 @@ msgstr "保存中…"
 
 msgid "Saw the paywall"
 msgstr "ペイウォールを表示"
-
-msgid "Scale to 100+ agents"
-msgstr "100以上のエージェントに拡張"
 
 msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
 msgstr "QRコードをスキャンし、同じSupersetアカウントでサインインして、この組織を選択してください。"
@@ -13157,6 +13166,9 @@ msgstr "IDEを選択"
 msgid "Select issue"
 msgstr "issueを選択"
 
+msgid "Select lines in a PR diff and write your feedback. Send it to a running agent or start a session in a workspace for that PR."
+msgstr "PR の差分で行を選択し、フィードバックを書きます。実行中のエージェントに送るか、その PR のワークスペースでセッションを開始できます。"
+
 msgid "Select method"
 msgstr "方法を選択"
 
@@ -13235,8 +13247,14 @@ msgstr "送信"
 msgid "Send a message to start a {harness} session"
 msgstr "メッセージを送って{harness}セッションを開始"
 
+msgid "Send a UI change to your agent"
+msgstr "UI の変更依頼をエージェントに送る"
+
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "{organizationName}への招待を送ります。48時間で失効します。"
+
+msgid "Send code review feedback to your agent"
+msgstr "コードレビューのフィードバックをエージェントに送る"
 
 msgid "Send Invitation"
 msgstr "招待を送信"
@@ -13424,6 +13442,9 @@ msgstr "濃さはこの開発者の最も活動量が多い日を基準にして
 
 msgid "Share"
 msgstr "共有"
+
+msgid "Share an agent-created report or design as a Page. Pin a comment where you want a change, and the watching agent can publish an updated version."
+msgstr "エージェントが作成したレポートやデザインをページとして共有します。変更したい場所にコメントを固定すると、ページを監視しているエージェントが更新版を公開できます。"
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "デザインやレポートを共有しましょう。フィードバックへの対応はエージェントに任せられます。"
@@ -15785,11 +15806,20 @@ msgstr "もう一度試すか、Superset のトレイメニューからホスト
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "もう一度お試しください。問題が続く場合はSupersetを再読み込みしてください。"
 
+msgid "Try Design Mode"
+msgstr "デザインモードを試す"
+
 msgid "Try early access features and previews."
 msgstr "早期アクセス機能とプレビューを試します。"
 
 msgid "Try it"
 msgstr "試してみる"
+
+msgid "Try Pages"
+msgstr "ページを試す"
+
+msgid "Try PR review"
+msgstr "PR レビューを試す"
 
 msgid "Try Superset v2"
 msgstr "Superset v2を試す"

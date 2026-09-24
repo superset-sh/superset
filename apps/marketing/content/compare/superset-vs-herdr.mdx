@@ -2,7 +2,7 @@
 title: "Superset vs Herdr (2026): Agent Workspace vs Agent Runtime"
 description: "Compare Superset and Herdr for persistent CLI-agent workflows. Bring terminals, diff review, and browser previews together in a visual workspace."
 date: 2026-08-07
-lastUpdated: 2026-09-23
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - herdr
@@ -61,6 +61,12 @@ Superset adds a desktop interface around real terminal sessions. Herdr's termina
 ### Review and the Rest of the Loop
 
 In Superset, inspect the patch, edit a file, and open the running app beside the agent that made the change. Use [agent status and notifications](https://docs.superset.sh/agent-status) to decide which task needs attention; notification support varies by agent. Scheduled automations let you repeat a task once its setup and review steps are established. These additions can be useful with a single agent as well as several parallel tasks.
+
+### Give Feedback Where You See the Work
+
+For a UI change, [select an element in the browser preview](/blog/change-ui-with-your-coding-agent) and send your request to an agent with its element context and a screenshot when available. During review, [select lines in a PR diff](/blog/send-pr-feedback-to-your-agent) and send feedback to an agent in the PR's workspace.
+
+For work you need to discuss with teammates, [publish a report or design as a Page](/blog/review-agent-work-with-pages). They can pin feedback to an element, and a watching agent can update the page. These are concrete reasons to add a visual workspace around your CLI sessions.
 
 ### Persistence and Remote
 

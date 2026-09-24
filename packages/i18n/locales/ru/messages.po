@@ -2981,9 +2981,6 @@ msgstr "Changelog"
 msgid "Changes"
 msgstr "Изменения"
 
-msgid "Changes are isolated"
-msgstr "Изменения изолированы"
-
 msgid "Changes open target"
 msgstr "Куда открывать изменения"
 
@@ -3259,6 +3256,9 @@ msgstr "Нажмите <0>Импорт темы</0> и выберите скач
 
 msgid "Click a terminal script to edit its details."
 msgstr "Нажмите на скрипт терминала, чтобы изменить его."
+
+msgid "Click an element in your preview and describe the change. Your agent receives the element context and a screenshot when available."
+msgstr "Нажмите на элемент в предпросмотре и опишите изменение. Агент получит контекст элемента и снимок экрана, если он доступен."
 
 msgid "Click here if not redirected"
 msgstr "Нажмите здесь, если переход не произошёл"
@@ -5583,9 +5583,6 @@ msgstr "например: engineering"
 msgid "e.g. Engineering"
 msgstr "например: Разработка"
 
-msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
-msgstr "Каждый агент работает в собственном изолированном Git worktree. Никаких конфликтов слияния и наступаний на чужие изменения. Проверяйте и объединяйте работу, когда будете готовы."
-
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "Каждое вложение — не более {0} МБ."
@@ -7055,6 +7052,9 @@ msgstr "Имя пользователя GitHub…"
 msgid "Give me an example"
 msgstr "Приведи пример"
 
+msgid "Give your coding agent feedback where you work"
+msgstr "Давайте агенту для программирования обратную связь там, где работаете"
+
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Дайте ключу понятное название, чтобы помнить, где он используется."
 
@@ -7991,6 +7991,9 @@ msgstr "Держать документацию актуальной"
 msgid "Keep editing"
 msgstr "Продолжить редактирование"
 
+msgid "Keep track of parallel tasks"
+msgstr "Следите за параллельными задачами"
+
 msgid "Keep waiting"
 msgstr "Продолжить ждать"
 
@@ -8189,6 +8192,9 @@ msgstr "Выйти и удалить"
 
 msgid "Leave comment mode"
 msgstr "Выйти из режима комментариев"
+
+msgid "Leave feedback on the work itself"
+msgstr "Оставляйте отзывы прямо на результате работы"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Оставьте поле пустым, чтобы вернуть имя, которое сообщает терминал."
@@ -9199,6 +9205,9 @@ msgstr "Новая группа из рабочей области"
 
 msgid "New issue"
 msgstr "Новая задача"
+
+msgid "New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together."
+msgstr "Новые локальные рабочие области на основе веток используют отдельные рабочие деревья Git. Просмотрите изменения каждой задачи, прежде чем тестировать и объединять их."
 
 msgid "New page"
 msgstr "Новая страница"
@@ -12493,6 +12502,9 @@ msgstr "Очереди ревью и CI съедают выигрыш, кото�
 msgid "Review becomes the bottleneck"
 msgstr "Ревью становится узким местом"
 
+msgid "Review changes in separate workspaces"
+msgstr "Проверяйте изменения в отдельных рабочих областях"
+
 msgid "Review Dismissed"
 msgstr "Ревью отклонено"
 
@@ -12794,9 +12806,6 @@ msgstr "Сохранение…"
 
 msgid "Saw the paywall"
 msgstr "Показ пейволла"
-
-msgid "Scale to 100+ agents"
-msgstr "Масштабируйте до 100+ агентов"
 
 msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
 msgstr "Отсканируйте QR-код, войдите в тот же аккаунт Superset и выберите эту организацию."
@@ -13157,6 +13166,9 @@ msgstr "Выбрать IDE"
 msgid "Select issue"
 msgstr "Выбрать задачу"
 
+msgid "Select lines in a PR diff and write your feedback. Send it to a running agent or start a session in a workspace for that PR."
+msgstr "Выделите строки в diff PR и напишите замечания. Отправьте их работающему агенту или начните сеанс в рабочей области для этого PR."
+
 msgid "Select method"
 msgstr "Выберите способ"
 
@@ -13235,8 +13247,14 @@ msgstr "Отправить"
 msgid "Send a message to start a {harness} session"
 msgstr "Отправьте сообщение, чтобы начать сессию {harness}"
 
+msgid "Send a UI change to your agent"
+msgstr "Отправьте агенту запрос на изменение интерфейса"
+
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "Отправьте приглашение в {organizationName}. Действует 48 часов."
+
+msgid "Send code review feedback to your agent"
+msgstr "Отправьте агенту замечания по проверке кода"
 
 msgid "Send Invitation"
 msgstr "Отправить приглашение"
@@ -13424,6 +13442,9 @@ msgstr "Насыщенность цвета отсчитывается от са
 
 msgid "Share"
 msgstr "Поделиться"
+
+msgid "Share an agent-created report or design as a Page. Pin a comment where you want a change, and the watching agent can publish an updated version."
+msgstr "Поделитесь отчётом или макетом, созданным агентом, в виде страницы. Закрепите комментарий там, где нужно изменение, и агент, следящий за страницей, сможет опубликовать обновлённую версию."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Делитесь дизайнами и отчётами. Пусть ваш агент обработает отзывы."
@@ -15785,11 +15806,20 @@ msgstr "Попробуйте ещё раз или перезапустите с�
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Повторите. Если проблема сохраняется, перезагрузите Superset."
 
+msgid "Try Design Mode"
+msgstr "Попробовать режим дизайна"
+
 msgid "Try early access features and previews."
 msgstr "Попробуйте ранние функции и предварительные версии."
 
 msgid "Try it"
 msgstr "Попробуйте"
+
+msgid "Try Pages"
+msgstr "Попробовать страницы"
+
+msgid "Try PR review"
+msgstr "Попробовать проверку PR"
 
 msgid "Try Superset v2"
 msgstr "Попробовать Superset v2"

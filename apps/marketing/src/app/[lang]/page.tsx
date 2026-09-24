@@ -11,6 +11,7 @@ import {
 import { FAQ_ITEMS } from "./components/FAQSection";
 import { HeroSection } from "./components/HeroSection";
 import { WebMcpTools } from "./components/WebMcpTools";
+import { WorkflowSection } from "./components/WorkflowSection";
 
 // Lazy load below-fold sections to reduce initial JS bundle (~304 KiB unused JS)
 const TrustedBySection = dynamic(() =>
@@ -60,6 +61,7 @@ export default async function Home() {
 			<HeroSection />
 			<MobileSection />
 			<TrustedBySection />
+			<WorkflowSection />
 			<FeaturesSection />
 			<WallOfLoveSection />
 			<SecuritySection />

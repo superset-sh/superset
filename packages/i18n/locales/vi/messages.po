@@ -2981,9 +2981,6 @@ msgstr "Changelog"
 msgid "Changes"
 msgstr "Thay đổi"
 
-msgid "Changes are isolated"
-msgstr "Thay đổi được tách biệt"
-
 msgid "Changes open target"
 msgstr "Vị trí mở thay đổi"
 
@@ -3259,6 +3256,9 @@ msgstr "Nhấp <0>Import Theme</0> và chọn tệp vừa tải."
 
 msgid "Click a terminal script to edit its details."
 msgstr "Nhấp vào một script terminal để sửa chi tiết."
+
+msgid "Click an element in your preview and describe the change. Your agent receives the element context and a screenshot when available."
+msgstr "Nhấp vào một phần tử trong bản xem trước và mô tả thay đổi. Tác nhân sẽ nhận ngữ cảnh của phần tử và ảnh chụp màn hình nếu có."
 
 msgid "Click here if not redirected"
 msgstr "Nhấp vào đây nếu không được chuyển hướng"
@@ -5583,9 +5583,6 @@ msgstr "ví dụ engineering"
 msgid "e.g. Engineering"
 msgstr "ví dụ Engineering"
 
-msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
-msgstr "Mỗi agent chạy trong git worktree tách biệt của riêng nó. Không xung đột merge, không giẫm lên thay đổi của nhau. Review và merge khi bạn sẵn sàng."
-
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "Mỗi tệp đính kèm tối đa {0} MB."
@@ -7055,6 +7052,9 @@ msgstr "Tên người dùng GitHub…"
 msgid "Give me an example"
 msgstr "Cho tôi một ví dụ"
 
+msgid "Give your coding agent feedback where you work"
+msgstr "Gửi phản hồi cho tác nhân lập trình ngay tại nơi bạn làm việc"
+
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Đặt tên gợi nhớ để biết khóa này dùng ở đâu."
 
@@ -7991,6 +7991,9 @@ msgstr "Giữ tài liệu luôn mới"
 msgid "Keep editing"
 msgstr "Tiếp tục chỉnh sửa"
 
+msgid "Keep track of parallel tasks"
+msgstr "Theo dõi các tác vụ song song"
+
 msgid "Keep waiting"
 msgstr "Tiếp tục chờ"
 
@@ -8189,6 +8192,9 @@ msgstr "Rời và xóa"
 
 msgid "Leave comment mode"
 msgstr "Thoát chế độ bình luận"
+
+msgid "Leave feedback on the work itself"
+msgstr "Để lại phản hồi ngay trên kết quả công việc"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Để trống để quay lại tên do terminal báo cáo."
@@ -9199,6 +9205,9 @@ msgstr "Nhóm mới từ workspace"
 
 msgid "New issue"
 msgstr "Issue mới"
+
+msgid "New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together."
+msgstr "Các không gian làm việc cục bộ mới dựa trên nhánh sử dụng cây làm việc Git riêng biệt. Kiểm tra thay đổi của từng tác vụ trước khi chạy thử và hợp nhất chúng."
 
 msgid "New page"
 msgstr "Trang mới"
@@ -12493,6 +12502,9 @@ msgstr "Hàng đợi review và CI ăn mất phần lợi mà agent tạo ra."
 msgid "Review becomes the bottleneck"
 msgstr "Review trở thành nút thắt"
 
+msgid "Review changes in separate workspaces"
+msgstr "Xem xét thay đổi trong các không gian làm việc riêng biệt"
+
 msgid "Review Dismissed"
 msgstr "Review đã bị bỏ qua"
 
@@ -12794,9 +12806,6 @@ msgstr "Đang lưu…"
 
 msgid "Saw the paywall"
 msgstr "Đã thấy paywall"
-
-msgid "Scale to 100+ agents"
-msgstr "Mở rộng lên hơn 100 tác nhân"
 
 msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
 msgstr "Quét mã QR, sau đó đăng nhập bằng cùng tài khoản Superset và chọn tổ chức này."
@@ -13157,6 +13166,9 @@ msgstr "Chọn IDE"
 msgid "Select issue"
 msgstr "Chọn issue"
 
+msgid "Select lines in a PR diff and write your feedback. Send it to a running agent or start a session in a workspace for that PR."
+msgstr "Chọn các dòng trong bản so sánh thay đổi của PR và viết phản hồi. Gửi phản hồi cho tác nhân đang chạy hoặc bắt đầu một phiên trong không gian làm việc dành cho PR đó."
+
 msgid "Select method"
 msgstr "Chọn phương thức"
 
@@ -13235,8 +13247,14 @@ msgstr "Gửi"
 msgid "Send a message to start a {harness} session"
 msgstr "Gửi một tin nhắn để bắt đầu phiên {harness}"
 
+msgid "Send a UI change to your agent"
+msgstr "Gửi yêu cầu thay đổi giao diện cho tác nhân"
+
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "Gửi lời mời tham gia {organizationName}. Hết hạn sau 48 giờ."
+
+msgid "Send code review feedback to your agent"
+msgstr "Gửi phản hồi rà soát mã cho tác nhân"
 
 msgid "Send Invitation"
 msgstr "Gửi lời mời"
@@ -13424,6 +13442,9 @@ msgstr "Độ đậm được tính theo ngày bận rộn nhất của nhà ph�
 
 msgid "Share"
 msgstr "Chia sẻ"
+
+msgid "Share an agent-created report or design as a Page. Pin a comment where you want a change, and the watching agent can publish an updated version."
+msgstr "Chia sẻ báo cáo hoặc thiết kế do tác nhân tạo dưới dạng trang. Ghim bình luận vào nơi bạn muốn thay đổi, rồi tác nhân đang theo dõi có thể xuất bản phiên bản cập nhật."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Chia sẻ thiết kế và báo cáo. Hãy để agent của bạn xử lý phản hồi."
@@ -15785,11 +15806,20 @@ msgstr "Thử lại hoặc khởi động lại dịch vụ máy chủ từ menu
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Hãy thử lại. Nếu vẫn lỗi, tải lại Superset."
 
+msgid "Try Design Mode"
+msgstr "Thử chế độ thiết kế"
+
 msgid "Try early access features and previews."
 msgstr "Dùng thử các tính năng và bản xem trước sớm."
 
 msgid "Try it"
 msgstr "Thử ngay"
+
+msgid "Try Pages"
+msgstr "Thử tính năng trang"
+
+msgid "Try PR review"
+msgstr "Thử rà soát PR"
 
 msgid "Try Superset v2"
 msgstr "Dùng thử Superset v2"

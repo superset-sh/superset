@@ -2981,9 +2981,6 @@ msgstr "更新日志"
 msgid "Changes"
 msgstr "更改"
 
-msgid "Changes are isolated"
-msgstr "改动彼此隔离"
-
 msgid "Changes open target"
 msgstr "更改视图打开位置"
 
@@ -3259,6 +3256,9 @@ msgstr "点击<0>导入主题</0>，选择下载好的文件。"
 
 msgid "Click a terminal script to edit its details."
 msgstr "点击终端脚本以编辑其详情。"
+
+msgid "Click an element in your preview and describe the change. Your agent receives the element context and a screenshot when available."
+msgstr "在预览中点击一个元素并描述所需的修改。智能体会收到元素上下文，以及可用的截图。"
 
 msgid "Click here if not redirected"
 msgstr "如果没有自动跳转，请点击这里"
@@ -5583,9 +5583,6 @@ msgstr "例如：engineering"
 msgid "e.g. Engineering"
 msgstr "例如：工程"
 
-msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
-msgstr "每个智能体都跑在自己隔离的Git worktree里。没有合并冲突，也不会互相覆盖改动。等你准备好了再审查和合并。"
-
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "每个附件最大为{0} MB。"
@@ -7055,6 +7052,9 @@ msgstr "GitHub用户名…"
 msgid "Give me an example"
 msgstr "给我一个示例"
 
+msgid "Give your coding agent feedback where you work"
+msgstr "在工作界面中向编程智能体提供反馈"
+
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "给密钥起一个描述性的名称，方便记住它用在哪里。"
 
@@ -7991,6 +7991,9 @@ msgstr "让文档保持最新"
 msgid "Keep editing"
 msgstr "继续编辑"
 
+msgid "Keep track of parallel tasks"
+msgstr "跟踪并行任务"
+
 msgid "Keep waiting"
 msgstr "继续等待"
 
@@ -8189,6 +8192,9 @@ msgstr "退出并删除"
 
 msgid "Leave comment mode"
 msgstr "退出评论模式"
+
+msgid "Leave feedback on the work itself"
+msgstr "直接在工作成果上留下反馈"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "留空即可恢复终端报告的名称。"
@@ -9199,6 +9205,9 @@ msgstr "以此工作区新建分组"
 
 msgid "New issue"
 msgstr "新建议题"
+
+msgid "New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together."
+msgstr "新建的本地分支工作区使用独立的 Git 工作树。先检查每个任务的修改，再测试并合并。"
 
 msgid "New page"
 msgstr "新建页面"
@@ -12493,6 +12502,9 @@ msgstr "审查和CI排队把智能体带来的收益吃掉了。"
 msgid "Review becomes the bottleneck"
 msgstr "审查成为瓶颈"
 
+msgid "Review changes in separate workspaces"
+msgstr "在独立工作区中审查修改"
+
 msgid "Review Dismissed"
 msgstr "审查已忽略"
 
@@ -12794,9 +12806,6 @@ msgstr "正在保存…"
 
 msgid "Saw the paywall"
 msgstr "看到付费墙"
-
-msgid "Scale to 100+ agents"
-msgstr "扩展至 100 多个智能体"
 
 msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
 msgstr "扫描二维码，然后使用同一个 Superset 账号登录并选择此组织。"
@@ -13157,6 +13166,9 @@ msgstr "选择IDE"
 msgid "Select issue"
 msgstr "选择议题"
 
+msgid "Select lines in a PR diff and write your feedback. Send it to a running agent or start a session in a workspace for that PR."
+msgstr "在 PR 差异视图中选择代码行并写下反馈。将反馈发送给正在运行的智能体，或在该 PR 的工作区中启动会话。"
+
 msgid "Select method"
 msgstr "选择方式"
 
@@ -13235,8 +13247,14 @@ msgstr "发送"
 msgid "Send a message to start a {harness} session"
 msgstr "发送消息以开始{harness}会话"
 
+msgid "Send a UI change to your agent"
+msgstr "向智能体发送界面修改请求"
+
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "发送加入{organizationName}的邀请。48小时后过期。"
+
+msgid "Send code review feedback to your agent"
+msgstr "向智能体发送代码审查反馈"
 
 msgid "Send Invitation"
 msgstr "发送邀请"
@@ -13424,6 +13442,9 @@ msgstr "深浅以该开发者最忙的一天为基准"
 
 msgid "Share"
 msgstr "分享"
+
+msgid "Share an agent-created report or design as a Page. Pin a comment where you want a change, and the watching agent can publish an updated version."
+msgstr "将智能体生成的报告或设计作为页面分享。在需要修改的位置固定评论，正在关注该页面的智能体就可以发布更新版本。"
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "分享设计和报告，让你的智能体处理反馈。"
@@ -15785,11 +15806,20 @@ msgstr "请重试，或从 Superset 托盘菜单重启主机服务。"
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "请重试。如果问题持续，请重新加载Superset。"
 
+msgid "Try Design Mode"
+msgstr "试用设计模式"
+
 msgid "Try early access features and previews."
 msgstr "试用抢先体验功能和预览版。"
 
 msgid "Try it"
 msgstr "试试看"
+
+msgid "Try Pages"
+msgstr "试用页面"
+
+msgid "Try PR review"
+msgstr "试用 PR 审查"
 
 msgid "Try Superset v2"
 msgstr "试用Superset v2"

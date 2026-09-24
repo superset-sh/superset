@@ -2981,9 +2981,6 @@ msgstr "변경 로그"
 msgid "Changes"
 msgstr "변경"
 
-msgid "Changes are isolated"
-msgstr "변경은 격리됩니다"
-
 msgid "Changes open target"
 msgstr "변경 사항 열기 대상"
 
@@ -3259,6 +3256,9 @@ msgstr "<0>테마 가져오기</0>를 클릭하고 다운로드한 파일을 선
 
 msgid "Click a terminal script to edit its details."
 msgstr "터미널 스크립트를 클릭하면 세부 정보를 편집합니다."
+
+msgid "Click an element in your preview and describe the change. Your agent receives the element context and a screenshot when available."
+msgstr "미리보기에서 요소를 클릭하고 변경 사항을 설명하세요. 에이전트는 요소의 맥락을 전달받으며, 스크린샷이 있으면 함께 전달받습니다."
 
 msgid "Click here if not redirected"
 msgstr "이동하지 않으면 여기를 클릭하세요"
@@ -5583,9 +5583,6 @@ msgstr "예: engineering"
 msgid "e.g. Engineering"
 msgstr "예: Engineering"
 
-msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
-msgstr "각 에이전트가 격리된 자체 Git worktree에서 실행됩니다. 머지 충돌도, 서로의 변경을 건드리는 일도 없습니다. 준비되면 리뷰하고 머지하세요."
-
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "첨부 파일은 각각 최대 {0} MB입니다."
@@ -7055,6 +7052,9 @@ msgstr "GitHub 사용자 이름…"
 msgid "Give me an example"
 msgstr "예시를 보여주세요"
 
+msgid "Give your coding agent feedback where you work"
+msgstr "작업 중인 곳에서 코딩 에이전트에게 피드백을 주세요"
+
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "어디에 사용하는 키인지 알 수 있도록 설명이 담긴 이름을 지정하세요."
 
@@ -7991,6 +7991,9 @@ msgstr "문서 최신 상태 유지"
 msgid "Keep editing"
 msgstr "계속 편집"
 
+msgid "Keep track of parallel tasks"
+msgstr "병렬 작업 현황을 확인하세요"
+
 msgid "Keep waiting"
 msgstr "계속 기다리기"
 
@@ -8189,6 +8192,9 @@ msgstr "나가고 삭제"
 
 msgid "Leave comment mode"
 msgstr "댓글 모드 나가기"
+
+msgid "Leave feedback on the work itself"
+msgstr "작업 결과물에 직접 피드백을 남기세요"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "비워 두면 터미널이 보고하는 이름으로 돌아갑니다."
@@ -9199,6 +9205,9 @@ msgstr "워크스페이스로 새 그룹 만들기"
 
 msgid "New issue"
 msgstr "새 이슈"
+
+msgid "New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together."
+msgstr "새 로컬 브랜치 기반 워크스페이스는 별도의 Git 작업 트리를 사용합니다. 각 작업의 변경 사항을 검토한 뒤 테스트하고 병합하세요."
 
 msgid "New page"
 msgstr "새 페이지"
@@ -12493,6 +12502,9 @@ msgstr "리뷰와 CI 대기열이 에이전트가 만든 이득을 깎아먹습�
 msgid "Review becomes the bottleneck"
 msgstr "리뷰가 병목이 됩니다"
 
+msgid "Review changes in separate workspaces"
+msgstr "별도의 워크스페이스에서 변경 사항을 검토하세요"
+
 msgid "Review Dismissed"
 msgstr "리뷰 무시됨"
 
@@ -12794,9 +12806,6 @@ msgstr "저장하는 중…"
 
 msgid "Saw the paywall"
 msgstr "페이월 조회"
-
-msgid "Scale to 100+ agents"
-msgstr "100개 이상의 에이전트로 확장"
 
 msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
 msgstr "QR 코드를 스캔한 후 동일한 Superset 계정으로 로그인하고 이 조직을 선택하세요."
@@ -13157,6 +13166,9 @@ msgstr "IDE 선택"
 msgid "Select issue"
 msgstr "이슈 선택"
 
+msgid "Select lines in a PR diff and write your feedback. Send it to a running agent or start a session in a workspace for that PR."
+msgstr "PR 변경 내역에서 줄을 선택하고 피드백을 작성하세요. 실행 중인 에이전트에게 보내거나 해당 PR의 워크스페이스에서 세션을 시작할 수 있습니다."
+
 msgid "Select method"
 msgstr "방식 선택"
 
@@ -13235,8 +13247,14 @@ msgstr "보내기"
 msgid "Send a message to start a {harness} session"
 msgstr "메시지를 보내 {harness} 세션을 시작하세요"
 
+msgid "Send a UI change to your agent"
+msgstr "에이전트에게 UI 변경 요청을 보내세요"
+
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "{organizationName}에 참여하도록 초대를 보냅니다. 48시간 후 만료됩니다."
+
+msgid "Send code review feedback to your agent"
+msgstr "에이전트에게 코드 리뷰 피드백을 보내세요"
 
 msgid "Send Invitation"
 msgstr "초대 보내기"
@@ -13424,6 +13442,9 @@ msgstr "색의 진하기는 이 개발자의 가장 바빴던 날을 기준으�
 
 msgid "Share"
 msgstr "공유"
+
+msgid "Share an agent-created report or design as a Page. Pin a comment where you want a change, and the watching agent can publish an updated version."
+msgstr "에이전트가 만든 보고서나 디자인을 페이지로 공유하세요. 변경할 위치에 댓글을 고정하면 페이지를 지켜보는 에이전트가 업데이트된 버전을 게시할 수 있습니다."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "디자인과 보고서를 공유하세요. 피드백 처리는 에이전트에게 맡기세요."
@@ -15785,11 +15806,20 @@ msgstr "다시 시도하거나 Superset 트레이 메뉴에서 호스트 서비�
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "다시 시도하세요. 문제가 계속되면 Superset을 다시 불러오세요."
 
+msgid "Try Design Mode"
+msgstr "디자인 모드 사용해 보기"
+
 msgid "Try early access features and previews."
 msgstr "얼리 액세스 기능과 미리보기를 사용해 보세요."
 
 msgid "Try it"
 msgstr "사용해 보기"
+
+msgid "Try Pages"
+msgstr "페이지 사용해 보기"
+
+msgid "Try PR review"
+msgstr "PR 리뷰 사용해 보기"
 
 msgid "Try Superset v2"
 msgstr "Superset v2 사용해 보기"

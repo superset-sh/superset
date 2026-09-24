@@ -2981,9 +2981,6 @@ msgstr "Değişiklik günlüğü"
 msgid "Changes"
 msgstr "Değişiklikler"
 
-msgid "Changes are isolated"
-msgstr "Değişiklikler yalıtılmıştır"
-
 msgid "Changes open target"
 msgstr "Değişiklikleri açma hedefi"
 
@@ -3259,6 +3256,9 @@ msgstr "<0>Temayı İçe Aktar</0> seçeneğine tıklayın ve indirdiğiniz dosy
 
 msgid "Click a terminal script to edit its details."
 msgstr "Ayrıntılarını düzenlemek için bir terminal betiğine tıklayın."
+
+msgid "Click an element in your preview and describe the change. Your agent receives the element context and a screenshot when available."
+msgstr "Önizlemede bir öğeye tıklayın ve değişikliği açıklayın. Ajanınız öğenin bağlamını ve varsa ekran görüntüsünü alır."
 
 msgid "Click here if not redirected"
 msgstr "Yönlendirilmediyseniz buraya tıklayın"
@@ -5583,9 +5583,6 @@ msgstr "örn. muhendislik"
 msgid "e.g. Engineering"
 msgstr "örn. Mühendislik"
 
-msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
-msgstr "Her ajan kendi yalıtılmış Git worktree'sinde çalışır. Birleştirme çakışması yok, birbirinin değişikliklerine dokunma yok. Hazır olduğunuzda inceleyip birleştirin."
-
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "Her ek en fazla {0} MB olabilir."
@@ -7055,6 +7052,9 @@ msgstr "GitHub kullanıcı adı…"
 msgid "Give me an example"
 msgstr "Bana bir örnek ver"
 
+msgid "Give your coding agent feedback where you work"
+msgstr "Kodlama ajanınıza çalıştığınız yerde geri bildirim verin"
+
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Nerede kullanıldığını hatırlamak için anahtarınıza açıklayıcı bir ad verin."
 
@@ -7991,6 +7991,9 @@ msgstr "Belgeleri güncel tut"
 msgid "Keep editing"
 msgstr "Düzenlemeye devam et"
 
+msgid "Keep track of parallel tasks"
+msgstr "Paralel görevleri takip edin"
+
 msgid "Keep waiting"
 msgstr "Beklemeye devam et"
 
@@ -8189,6 +8192,9 @@ msgstr "Ayrıl ve sil"
 
 msgid "Leave comment mode"
 msgstr "Yorum modundan çık"
+
+msgid "Leave feedback on the work itself"
+msgstr "Geri bildirimi doğrudan çalışmanın üzerine bırakın"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Terminalin bildirdiği ada dönmek için boş bırakın."
@@ -9199,6 +9205,9 @@ msgstr "Çalışma alanından yeni grup"
 
 msgid "New issue"
 msgstr "Yeni issue"
+
+msgid "New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together."
+msgstr "Yeni yerel, dal tabanlı çalışma alanları ayrı Git çalışma ağaçları kullanır. Her görevin değişikliklerini test edip birleştirmeden önce inceleyin."
 
 msgid "New page"
 msgstr "Yeni sayfa"
@@ -12493,6 +12502,9 @@ msgstr "İnceleme ve CI kuyrukları, ajanların yarattığı kazancı yiyor."
 msgid "Review becomes the bottleneck"
 msgstr "İnceleme darboğaz hâline gelir"
 
+msgid "Review changes in separate workspaces"
+msgstr "Değişiklikleri ayrı çalışma alanlarında inceleyin"
+
 msgid "Review Dismissed"
 msgstr "İnceleme yok sayıldı"
 
@@ -12794,9 +12806,6 @@ msgstr "Kaydediliyor…"
 
 msgid "Saw the paywall"
 msgstr "Ödeme duvarını gördü"
-
-msgid "Scale to 100+ agents"
-msgstr "100’den fazla ajana ölçekleyin"
 
 msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
 msgstr "QR kodunu tarayın, ardından aynı Superset hesabıyla oturum açıp bu kuruluşu seçin."
@@ -13157,6 +13166,9 @@ msgstr "IDE seçin"
 msgid "Select issue"
 msgstr "Issue seç"
 
+msgid "Select lines in a PR diff and write your feedback. Send it to a running agent or start a session in a workspace for that PR."
+msgstr "Bir PR fark görünümünde satırları seçin ve geri bildiriminizi yazın. Çalışan bir ajana gönderin veya bu PR için bir çalışma alanında oturum başlatın."
+
 msgid "Select method"
 msgstr "Yöntem seçin"
 
@@ -13235,8 +13247,14 @@ msgstr "Gönder"
 msgid "Send a message to start a {harness} session"
 msgstr "{harness} oturumu başlatmak için bir mesaj gönderin"
 
+msgid "Send a UI change to your agent"
+msgstr "Ajanınıza bir arayüz değişikliği gönderin"
+
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "{organizationName} kuruluşuna katılmak için davet gönderin. 48 saat içinde sona erer."
+
+msgid "Send code review feedback to your agent"
+msgstr "Ajanınıza kod inceleme geri bildirimi gönderin"
 
 msgid "Send Invitation"
 msgstr "Davet gönder"
@@ -13424,6 +13442,9 @@ msgstr "Renk koyuluğu bu geliştiricinin en yoğun gününe göredir"
 
 msgid "Share"
 msgstr "Paylaş"
+
+msgid "Share an agent-created report or design as a Page. Pin a comment where you want a change, and the watching agent can publish an updated version."
+msgstr "Bir ajanın oluşturduğu raporu veya tasarımı sayfa olarak paylaşın. Değişiklik istediğiniz yere bir yorum sabitleyin; sayfayı izleyen ajan güncellenmiş bir sürüm yayımlayabilir."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Tasarımları ve raporları paylaşın. Geri bildirimleri ajanınız ele alsın."
@@ -15785,11 +15806,20 @@ msgstr "Tekrar deneyin veya sistem tepsisindeki Superset menüsünden ana makine
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Yeniden deneyin. Sorun sürerse Superset'i yeniden yükleyin."
 
+msgid "Try Design Mode"
+msgstr "Tasarım modunu deneyin"
+
 msgid "Try early access features and previews."
 msgstr "Erken erişim özelliklerini ve önizlemeleri deneyin."
 
 msgid "Try it"
 msgstr "Deneyin"
+
+msgid "Try Pages"
+msgstr "Sayfaları deneyin"
+
+msgid "Try PR review"
+msgstr "PR incelemesini deneyin"
 
 msgid "Try Superset v2"
 msgstr "Superset v2'yi deneyin"
