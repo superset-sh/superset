@@ -1,4 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import { ChevronRight } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
@@ -15,7 +15,6 @@ export function WorkspacePullRequests({
 }: {
 	workspaceId: string | null;
 }) {
-	const { t } = useLingui();
 	const pullRequests = useWorkspacePullRequests(workspaceId);
 
 	if (pullRequests.length === 0) return null;
@@ -30,9 +29,6 @@ export function WorkspacePullRequests({
 				return (
 					<Pressable
 						key={pullRequest.key}
-						accessibilityLabel={t({
-							message: `Pull request #${pullRequest.prNumber}`,
-						})}
 						accessibilityRole="link"
 						onPress={() => openUrl(pullRequest.url)}
 						className={
