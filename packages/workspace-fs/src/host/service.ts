@@ -170,6 +170,7 @@ export function createFsHostService(
 	return {
 		async listDirectory(input, options) {
 			const entries = await listDirectory({
+				rootPath,
 				absolutePath: input.absolutePath,
 				signal: options?.signal,
 			});
@@ -188,6 +189,7 @@ export function createFsHostService(
 
 		async getMetadata(input) {
 			return await getMetadata({
+				rootPath,
 				absolutePath: input.absolutePath,
 			});
 		},

@@ -3,11 +3,10 @@
  * defend against. A passing test = defense holds; a failing test = real
  * bug worth fixing.
  *
- * The filesystem section also pins the intended sandbox policy in both
- * directions: reads are host-wide (viewing files a terminal/agent referenced
- * outside the workspace), mutations are confined to the workspace root. An
- * "allows" test failing means the read policy regressed, not that a defense
- * appeared.
+ * The filesystem section pins the sandbox policy for workspace-scoped
+ * operations: reads and mutations alike are confined to the workspace root.
+ * Host-wide browsing lives on the separate browseHost/statPath procedures.
+ * See GHSA-6223-9p9j-gwf2, which overruled the previous host-wide read policy.
  *
  * Categories:
  *   - sandbox / path traversal in workspace-fs operations
@@ -33,7 +32,7 @@ import { projects, workspaces } from "../../src/db/schema";
 import { createTestHost, type TestHost } from "../helpers/createTestHost";
 import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
 
-describe("bug-hunt: filesystem sandbox (mutations confined, reads host-wide)", () => {
+describe("bug-hunt: filesystem sandbox (reads and mutations confined)", () => {
 	let host: TestHost;
 	let repo: GitFixture;
 	const projectId = randomUUID();
@@ -76,17 +75,18 @@ describe("bug-hunt: filesystem sandbox (mutations confined, reads host-wide)", (
 		expect(existsSync(escapeWritePath)).toBe(false);
 	});
 
-	test("readFile allows viewing paths outside the workspace root", async () => {
+	// GHSA-6223-9p9j-gwf2: this used to be an "allows" test.
+	test("readFile rejects viewing paths outside the workspace root", async () => {
 		const sibling = join(repo.repoPath, "..", `outside-read-${randomUUID()}`);
 		writeFileSync(sibling, "outside content");
 		try {
-			const result = await host.trpc.filesystem.readFile.query({
-				workspaceId,
-				absolutePath: sibling,
-				encoding: "utf8",
-			});
-			expect(result.kind).toBe("text");
-			expect(result.content).toBe("outside content");
+			await expect(
+				host.trpc.filesystem.readFile.query({
+					workspaceId,
+					absolutePath: sibling,
+					encoding: "utf8",
+				}),
+			).rejects.toThrow();
 		} finally {
 			rmSync(sibling, { force: true });
 		}
@@ -162,14 +162,23 @@ describe("bug-hunt: filesystem sandbox (mutations confined, reads host-wide)", (
 		}
 	});
 
-	test("listDirectory allows absolute paths outside workspace root", async () => {
+	// GHSA-6223-9p9j-gwf2: this used to be an "allows" test.
+	test("listDirectory rejects absolute paths outside workspace root", async () => {
+		await expect(
+			host.trpc.filesystem.listDirectory.query({
+				workspaceId,
+				absolutePath: join(repo.repoPath, ".."),
+			}),
+		).rejects.toThrow();
+	});
+
+	test("listDirectory still enumerates the workspace root itself", async () => {
+		writeFileSync(join(repo.repoPath, "inside.txt"), "inside");
 		const { entries } = await host.trpc.filesystem.listDirectory.query({
 			workspaceId,
-			absolutePath: join(repo.repoPath, ".."),
+			absolutePath: repo.repoPath,
 		});
-		expect(entries.some((entry) => entry.absolutePath === repo.repoPath)).toBe(
-			true,
-		);
+		expect(entries.some((entry) => entry.name === "inside.txt")).toBe(true);
 	});
 });
 
