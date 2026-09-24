@@ -2,7 +2,7 @@
 
 <img width="full" alt="Claude and OpenCode working in parallel Superset workspaces with live diffs" src="apps/marketing/public/images/readme-hero.gif" />
 
-### Run 100+ Coding Agents in Parallel
+### A workspace for your CLI coding agents
 
 <details>
 <summary>🌐 Read this in other languages</summary>
@@ -20,8 +20,8 @@
 
 <br />
 
-Claude Code, Codex, or any CLI agent, each in its own isolated worktree.<br />
-Spend your time shipping, not waiting.
+Run Claude Code, Codex, or another CLI agent in persistent terminals.<br />
+Review its changes and preview your app in the same workspace.
 
 <br />
 
@@ -32,18 +32,19 @@ Spend your time shipping, not waiting.
 
 </div>
 
-## Code 10x Faster With No Switching Cost
+## Keep your agent and review its work
 
-Superset runs CLI-based coding agents in parallel across isolated git worktrees, with built-in terminal, review, and open-in-editor workflows.
+Superset is a desktop workspace for developers using CLI coding agents. Start with one task: run your agent, inspect its diff, and preview the result beside the terminal. Keep using your existing agent subscriptions and open the workspace in your preferred editor when you need it.
 
-- **Run multiple agents simultaneously** without context switching overhead
-- **Isolate each task** in its own git worktree so agents don't interfere with each other
-- **Monitor all your agents** from one place and get notified when they need attention
-- **Review and edit changes quickly** with the built-in diff viewer and editor
-- **Open any workspace where you need it** with one-click handoff to your editor or terminal
-- **Reach your workspaces from anywhere** via remote hosts, the CLI, the SDK, or MCP
+For independent tasks, create separate Git worktrees with their own branches and terminals. Worktrees separate working files; they do not sandbox processes or prevent merge conflicts.
 
-Wait less, ship more.
+## Try a workflow
+
+| What you want to do | How it works | Walkthrough |
+|:---|:---|:---|
+| Change something in your app's UI | In the browser pane, use **Design** to select an element and send your requested change to an agent with element context. | [Design Mode](https://superset.sh/blog/change-ui-with-your-coding-agent) · [Docs](https://docs.superset.sh/browser#design-mode) |
+| Ask an agent to fix a PR | Open **Pull requests → Code**, select diff lines, and send feedback to a running or new agent session. Posting to GitHub is optional. | [PR feedback](https://superset.sh/blog/send-pr-feedback-to-your-agent) · [Docs](https://docs.superset.sh/pull-requests#comment-straight-to-an-agent) |
+| Review a report with your team | Ask an agent to publish a Page. Teammates pin comments, and a watching agent can revise it at the same link. Keep its host and session running for feedback delivery. | [Pages](https://superset.sh/blog/review-agent-work-with-pages) · [Docs](https://docs.superset.sh/pages) |
 
 ## Features
 
@@ -69,7 +70,7 @@ Requires **Superset Pro**, **iOS 26 or later**, and a connected computer with **
 
 ### Parallel Workspaces
 
-Run 100+ coding agents at once, each in its own git worktree with its own branch, terminal, and environment. Compare the results and merge the winner.
+Run independent tasks in separate Git worktrees, each with its own branch and terminal. Review each result before merging, or try two approaches to the same problem and keep the one you prefer.
 
 [Docs →](https://docs.superset.sh/workspaces)
 
@@ -274,7 +275,7 @@ Download the desktop app:
 - **Windows**: not yet available
 - [All builds](https://github.com/superset-sh/superset/releases/latest)
 
-All you need installed is [Git](https://git-scm.com/). [gh](https://cli.github.com/) is optional and unlocks the PR workflows; Superset offers to install it for you.
+All you need installed is [Git](https://git-scm.com/). [gh](https://cli.github.com/) is optional and enables the PR workflows; Superset offers to install it for you.
 
 ## Development
 
