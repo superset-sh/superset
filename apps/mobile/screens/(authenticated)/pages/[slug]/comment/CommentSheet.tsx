@@ -41,7 +41,11 @@ export function CommentSheet() {
 
 	const post = async (text: string, intent?: CommentIntent) => {
 		const { anchor, version } = pick;
-		if (!anchor || version === null || inFlight.current) return;
+		// Resolving here would read as success to the composer, which clears the
+		// draft on it — nothing was sent, so this has to reject.
+		if (!anchor || version === null || inFlight.current) {
+			throw new Error(t({ message: "Try again" }));
+		}
 		inFlight.current = true;
 		try {
 			await store.createThread({
@@ -57,6 +61,7 @@ export function CommentSheet() {
 	};
 
 	const postQuick = async (text: string, intent?: CommentIntent) => {
+		if (inFlight.current) return;
 		try {
 			await post(text, intent);
 		} catch (error) {
