@@ -47,13 +47,13 @@ msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at a
 msgstr "\"{0}\"이(가) GitHub에서 닫힘으로 표시됩니다. 언제든 여기에서 다시 열 수 있습니다."
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. Checks haven't passed yet — this overrides them. This can't be undone from here."
 msgstr "\"{0}\"이(가) {2} 방식으로 {1}에 머지됩니다. 검사가 아직 통과하지 않았지만 이를 무시하고 진행합니다. 여기에서는 되돌릴 수 없습니다."
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. This can't be undone from here."
 msgstr "\"{0}\"이(가) {2} 방식으로 {1}에 머지됩니다. 여기에서는 되돌릴 수 없습니다."
@@ -370,6 +370,10 @@ msgstr "{0} 설치됨"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0}은(는) 이미 \"{1}\"에 지정되어 있습니다."
+
+#. placeholder {0}: params?.repoFullName
+msgid "{0} is not a repository the GitHub App is installed on"
+msgstr "{0}은(는) GitHub App이 설치된 리포지토리가 아닙니다"
 
 #. placeholder {0}: host.name
 msgid "{0} is offline"
@@ -11570,7 +11574,7 @@ msgstr "<0>{handle}</0>(으)로 게시 중입니다. 토큰 수와 모델 이름
 msgid "Pull request"
 msgstr "풀 리퀘스트"
 
-#. placeholder {0}: data.prNumber
+#. placeholder {0}: data.number
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "풀 리퀘스트 #{0}"

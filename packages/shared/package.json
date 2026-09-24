@@ -84,6 +84,10 @@
 			"types": "./src/sandbox-contract.ts",
 			"default": "./src/sandbox-contract.ts"
 		},
+		"./pull-request": {
+			"types": "./src/pull-request.ts",
+			"default": "./src/pull-request.ts"
+		},
 		"./sandbox-gate": {
 			"types": "./src/sandbox-gate.ts",
 			"default": "./src/sandbox-gate.ts"

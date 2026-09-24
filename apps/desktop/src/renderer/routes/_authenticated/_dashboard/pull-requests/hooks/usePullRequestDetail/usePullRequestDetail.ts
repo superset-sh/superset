@@ -1,11 +1,11 @@
-import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
+import type { RouterOutputs } from "@superset/trpc";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { inferRouterOutputs } from "@trpc/server";
 import { useCallback } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { fromHostPullRequestContent } from "../../utils/fromHostPullRequestContent";
 
 export type PullRequestDetail =
-	inferRouterOutputs<HostServiceAppRouter>["pullRequests"]["getContent"];
+	RouterOutputs["integration"]["github"]["getPullRequest"];
 
 interface PullRequestDetailKey {
 	projectId: string | null;
@@ -37,7 +37,11 @@ export function usePullRequestDetail({
 		queryFn: async () => {
 			if (!hostUrl || !projectId || prNumber === null) return null;
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.getContent.query({ projectId, prNumber });
+			const content = await client.pullRequests.getContent.query({
+				projectId,
+				prNumber,
+			});
+			return fromHostPullRequestContent(content);
 		},
 		enabled: enabled && !!hostUrl && !!projectId && prNumber !== null,
 		staleTime: 30_000,

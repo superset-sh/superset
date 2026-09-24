@@ -9,6 +9,7 @@ import { CgLaptop } from "react-icons/cg";
 import { LuLaptop, LuMonitor } from "react-icons/lu";
 import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import { useFocusVisible } from "renderer/hooks/useFocusVisible";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { V2WorkspaceContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu";
 import { WorkspaceStateGlyph } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/WorkspaceStateGlyph";
@@ -186,9 +187,14 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 								event.stopPropagation();
 								if (!workspace.pr) return;
 								// Opens the PR pane inside the workspace instead of GitHub.
+								const ref = pullRequestRefFromUrl(workspace.pr.url);
+								if (!ref) {
+									window.open(workspace.pr.url, "_blank");
+									return;
+								}
 								usePullRequestPaneIntent.getState().request({
 									workspaceId: workspace.id,
-									prNumber: workspace.pr.prNumber,
+									...ref,
 								});
 								void navigateToV2Workspace(workspace.id, navigate);
 							}}
