@@ -476,6 +476,39 @@ and provider. Keep the workspace id on both sides: a provisioning failure is
 recorded against the API and a runtime failure against the sandbox, and that id
 is the only thing that joins the two halves of one broken workspace.
 
+## Running this repo's own dev stack inside a sandbox
+
+Reproducing an app bug end to end from a cloud workspace means bringing up
+`apps/web` + `apps/api` inside the sandbox. Three of the documented ways to do
+that do not exist there (found driving GHSA-2cp5-f6gg-w5fp, 2026-09-24).
+
+**The app assumes:** `./.superset/setup.local.sh` can stand up Postgres,
+neon-proxy and Redis with `docker compose`, which is the whole point of the
+zero-credential local path in `DEVELOPMENT.md`.
+
+**A sandbox is:** a container with no Docker daemon — `/var/run/docker.sock`
+does not exist. Nothing in the local stack comes up.
+
+**What we did:** created a throwaway Neon project, migrated it from scratch and
+pointed a `.env` built from `.env.local.example` at it. Never the workspace's
+own `.env`: it carries real provider secrets, and its `DATABASE_URL` is a live
+branch.
+
+**Postgres over TCP is not reachable either.** `bun run db:migrate`
+(drizzle-kit, node-postgres, port 5432) fails against Neon with `password
+authentication failed for user 'neondb_owner'` while the *same* credentials
+work over Neon's HTTP and WebSocket drivers — so the error names the wrong
+cause and costs an hour. Apply migrations through
+`drizzle-orm/neon-serverless/migrator` instead; the HTTP driver alone cannot,
+because drizzle runs every pending migration in one multi-statement
+transaction.
+
+**`/etc/hosts` is read-only, even under sudo.** Pointing a provider hostname at
+a local stand-in — the usual way to drive an OAuth callback without a real
+provider secret — has to go through the resolver instead: a `--require`
+preload patching `dns.lookup` for Node, `--host-resolver-rules` for Chrome.
+Binding 443 and using sudo otherwise work.
+
 ## Shared memory is 64 MB
 
 **The app assumes:** `/dev/shm` is sized like a desktop (half of RAM). Chromium
