@@ -16,6 +16,7 @@ import {
 import { resolveOrganization } from "../../lib/resolve-org";
 
 export default command({
+	sandbox: false,
 	description: "Start the host service",
 	options: {
 		daemon: boolean().desc("Run in background"),

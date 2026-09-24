@@ -32,6 +32,7 @@ export interface RunOptions {
 	globals?: Record<string, GenericBuilderInternals>;
 	help?: HelpBranding;
 	audiences?: Audience[];
+	sandbox?: boolean;
 }
 
 export async function run(opts: RunOptions): Promise<void> {
@@ -247,6 +248,7 @@ async function execute(
 		loaded.groups,
 		loaded.commands,
 		opts.audiences ?? ["public"],
+		opts.sandbox ?? false,
 	);
 	const { root, commandMap } = buildTree(visible.groups, visible.commands);
 

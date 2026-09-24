@@ -62,5 +62,6 @@ export async function runDev(argv: string[]): Promise<void> {
 		globals: config.globals,
 		help: config.help,
 		audiences: config.audiences?.(),
+		sandbox: config.sandbox?.(),
 	});
 }

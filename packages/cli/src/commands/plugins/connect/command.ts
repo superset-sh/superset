@@ -13,6 +13,7 @@ import {
 } from "../../../lib/plugins/inputs";
 
 export default command({
+	sandbox: false,
 	description: "Connect an account to an installed plugin",
 	args: [
 		positional("plugin")

@@ -4,6 +4,7 @@ import { resolvePluginRef } from "../../../lib/plugins/host";
 import { removePlugin } from "../../../lib/plugins/install";
 
 export default command({
+	sandbox: false,
 	description: "Uninstall a plugin and drop its skills",
 	aliases: ["remove"],
 	args: [
