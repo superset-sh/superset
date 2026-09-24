@@ -17117,6 +17117,10 @@ msgstr "你的程式碼預設留在本地，連線哪些服務由你明確決定
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "下載將自動開始。若未開始，請由此取得。"
 
+#. placeholder {0}: params?.repositories
+msgid "Your GitHub account cannot reach {0}. Connect GitHub in Settings, or ask for access on GitHub."
+msgstr "你的 GitHub 帳號無法存取 {0}。請在設定中連接 GitHub，或在 GitHub 上申請存取權限。"
+
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "你的 GitHub 帳戶無法存取此環境中的某個儲存庫"
 

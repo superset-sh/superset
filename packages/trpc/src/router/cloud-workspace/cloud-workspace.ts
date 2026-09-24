@@ -14,8 +14,8 @@ import { z } from "zod";
 import { env } from "../../env";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import {
-	githubRepositoriesOutOfReach,
-	githubUserTokenFor,
+	assertRepositoriesReachable,
+	reachableRepositories,
 } from "../../lib/github-user";
 import { nudge } from "../../lib/realtime";
 import {
@@ -33,6 +33,7 @@ import {
 	SandboxUnavailableError,
 	wakeSandbox,
 	workspaceBranchName,
+	workspaceRepositoryRows,
 } from "../../lib/sandbox";
 import { jwtProcedure, userError } from "../../trpc";
 import {
@@ -72,6 +73,16 @@ async function loadReadyWorkspace(
 	}
 	await assertCloudAccess(ctx);
 	assertMember(ctx.organizationIds, row.organizationId);
+	// Membership is enough to *address* a workspace; reaching into one is a
+	// GitHub entitlement. Everything downstream of here mints the gate ticket,
+	// and that ticket is terminals, git and files on a box with these
+	// repositories already checked out — so who may open it is decided by who
+	// may read what is on its disk, not by who created it.
+	await assertRepositoriesReachable({
+		userId: ctx.userId,
+		organizationId: row.organizationId,
+		repositories: await workspaceRepositoryRows(row.id),
+	});
 	if (row.status !== "ready") {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
@@ -128,10 +139,12 @@ export const cloudWorkspaceRouter = {
 		.query(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
-			const rows = await db
+			const all = await db
 				.select({
 					cloudWorkspaceId: cloudWorkspaceRepositories.cloudWorkspaceId,
 					repositoryId: githubRepositories.id,
+					repoId: githubRepositories.repoId,
+					isPrivate: githubRepositories.isPrivate,
 					fullName: githubRepositories.fullName,
 					path: cloudWorkspaceRepositories.path,
 					hooksRepositoryId: environments.hooksRepositoryId,
@@ -151,6 +164,13 @@ export const cloudWorkspaceRouter = {
 				)
 				.where(eq(cloudWorkspaces.organizationId, input.organizationId))
 				.orderBy(asc(githubRepositories.fullName));
+			// `fullName` names a private repository, so this listing is narrowed
+			// the same way the repository list itself is.
+			const rows = await reachableRepositories({
+				userId: ctx.userId,
+				organizationId: input.organizationId,
+				repositories: all,
+			});
 			const primaryByWorkspace = new Map<string, string>();
 			for (const workspaceId of new Set(rows.map((r) => r.cloudWorkspaceId))) {
 				const own = rows.filter((r) => r.cloudWorkspaceId === workspaceId);
@@ -160,11 +180,18 @@ export const cloudWorkspaceRouter = {
 				);
 				if (primary) primaryByWorkspace.set(workspaceId, primary.id);
 			}
-			return rows.map(({ hooksRepositoryId: _hooks, ...row }) => ({
-				...row,
-				primary:
-					primaryByWorkspace.get(row.cloudWorkspaceId) === row.repositoryId,
-			}));
+			return rows.map(
+				({
+					hooksRepositoryId: _hooks,
+					repoId: _repoId,
+					isPrivate: _isPrivate,
+					...row
+				}) => ({
+					...row,
+					primary:
+						primaryByWorkspace.get(row.cloudWorkspaceId) === row.repositoryId,
+				}),
+			);
 		}),
 
 	listBranches: jwtProcedure
@@ -180,6 +207,7 @@ export const cloudWorkspaceRouter = {
 			assertMember(ctx.organizationIds, input.organizationId);
 			const [repo] = await loadRepositories({
 				organizationId: input.organizationId,
+				userId: ctx.userId,
 				repositoryIds: [input.repositoryId],
 			}).catch(() => []);
 			if (!repo) return { defaultBranch: null, items: [] };
@@ -272,22 +300,17 @@ export const cloudWorkspaceRouter = {
 				environment.hooksRepositoryId,
 			) as (typeof repositories)[number];
 			const branch = input.branch ?? primary.defaultBranch;
-			// A connected person's workspace acts as them on GitHub, so a
-			// repository they cannot see would fail to clone later; say so now.
-			const githubToken = await githubUserTokenFor(ctx.userId);
-			if (githubToken) {
-				const outOfReach = await githubRepositoriesOutOfReach({
-					token: githubToken,
-					repositories,
-				});
-				if (outOfReach.length > 0) {
-					throw userError({
-						code: "FORBIDDEN",
-						message: `Your GitHub account cannot reach ${outOfReach.join(", ")}`,
-						i18nKey: "serverError.cloudWorkspace.githubRepositoryOutOfReach",
-					});
-				}
-			}
+			// The box clones with the App's installation token when the creator has
+			// connected no GitHub account of their own, which reaches every
+			// repository of the installation — including an owner's private ones.
+			// So entitlement is checked here rather than left to the clone: an
+			// unconnected caller proves nothing and is refused, where this used to
+			// skip the check entirely for exactly them.
+			await assertRepositoriesReachable({
+				userId: ctx.userId,
+				organizationId: input.organizationId,
+				repositories,
+			});
 
 			// The id is generated here rather than by the database so the sandbox
 			// name can be derived before the insert. A placeholder would briefly

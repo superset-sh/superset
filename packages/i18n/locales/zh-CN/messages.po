@@ -17117,6 +17117,10 @@ msgstr "你的代码默认留在本地，连接哪些服务由你明确决定。
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "下载将自动开始。如果没有，请点此获取。"
 
+#. placeholder {0}: params?.repositories
+msgid "Your GitHub account cannot reach {0}. Connect GitHub in Settings, or ask for access on GitHub."
+msgstr "你的 GitHub 账号无法访问 {0}。请在设置中连接 GitHub，或在 GitHub 上申请访问权限。"
+
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "你的 GitHub 账户无法访问此环境中的某个仓库"
 

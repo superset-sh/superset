@@ -17117,6 +17117,10 @@ msgstr "Code của bạn mặc định ở lại cục bộ, với quyền kiể
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Quá trình tải xuống sẽ tự động bắt đầu. Nếu không, hãy tải tại đây."
 
+#. placeholder {0}: params?.repositories
+msgid "Your GitHub account cannot reach {0}. Connect GitHub in Settings, or ask for access on GitHub."
+msgstr "Tài khoản GitHub của bạn không thể truy cập {0}. Hãy kết nối GitHub trong Settings, hoặc yêu cầu quyền truy cập trên GitHub."
+
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Tài khoản GitHub của bạn không truy cập được một repository trong environment này"
 

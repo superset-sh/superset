@@ -17117,6 +17117,10 @@ msgstr "Kodunuz varsayılan olarak yerelde kalır; bağlı hizmetler üzerinde a
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "İndirme otomatik olarak başlıyor. Başlamadıysa buradan indirin."
 
+#. placeholder {0}: params?.repositories
+msgid "Your GitHub account cannot reach {0}. Connect GitHub in Settings, or ask for access on GitHub."
+msgstr "GitHub hesabınız {0} deposuna erişemiyor. Ayarlar'dan GitHub'ı bağlayın veya GitHub'da erişim isteyin."
+
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "GitHub hesabın bu ortamdaki bir depoya erişemiyor"
 

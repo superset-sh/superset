@@ -2,28 +2,43 @@ import { db } from "@superset/db/client";
 import { githubInstallations, githubRepositories } from "@superset/db/schema";
 import { findProviderIdentity } from "@superset/db/utils";
 import { desc, eq } from "drizzle-orm";
+import { reachableRepositories } from "../../../lib/github-user";
 import { installationOctokit } from "../../../lib/sandbox/clone-token";
 import type { TriggerOptionSource } from "../trigger-options";
 
-/** The synced repositories of the organization's installation, newest first. */
-export async function listGithubRepositories(organizationId: string) {
+/**
+ * The synced repositories of the organization's installation that `userId` may
+ * read, newest first.
+ *
+ * The one read of the repositories table on the query paths, so a caller's
+ * private repositories are gated once here rather than at each procedure —
+ * membership in the Superset organization is not access to the owner's GitHub.
+ */
+export async function listGithubRepositories(
+	organizationId: string,
+	userId: string,
+) {
 	const installation = await db.query.githubInstallations.findFirst({
 		where: eq(githubInstallations.organizationId, organizationId),
 		columns: { id: true },
 	});
 	if (!installation) return [];
-	return db.query.githubRepositories.findMany({
+	const rows = await db.query.githubRepositories.findMany({
 		where: eq(githubRepositories.installationId, installation.id),
 		orderBy: [desc(githubRepositories.updatedAt)],
 	});
+	return reachableRepositories({ userId, organizationId, repositories: rows });
 }
 
 /**
  * repoId is GitHub's numeric id, which is what the matcher compares against —
  * a full name would stop matching the moment someone renames the repo.
  */
-const repositories: TriggerOptionSource = async ({ organizationId }) => {
-	const list = await listGithubRepositories(organizationId);
+const repositories: TriggerOptionSource = async ({
+	organizationId,
+	userId,
+}) => {
+	const list = await listGithubRepositories(organizationId, userId);
 	return list.map((repo) => {
 		// Name as the label, owner as the muted hint beside it — every repo in
 		// one installation shares the owner, so repeating it per row is noise.
@@ -63,7 +78,7 @@ function isPermissionError(error: unknown): boolean {
  * members; user installations list the collaborators of the synced
  * repositories, deduplicated.
  */
-const people: TriggerOptionSource = async ({ organizationId }) => {
+const people: TriggerOptionSource = async ({ organizationId, userId }) => {
 	const installation = await db.query.githubInstallations.findFirst({
 		where: eq(githubInstallations.organizationId, organizationId),
 		columns: {
@@ -87,10 +102,10 @@ const people: TriggerOptionSource = async ({ organizationId }) => {
 				}),
 			);
 		} else {
-			const repositories = await db.query.githubRepositories.findMany({
-				where: eq(githubRepositories.installationId, installation.id),
-				columns: { owner: true, name: true },
-			});
+			// A user installation has no members to list, so the people come from
+			// the repositories — which means only the ones this caller may read,
+			// or a private repository's collaborators would leak through here.
+			const repositories = await listGithubRepositories(organizationId, userId);
 			for (const repository of repositories) {
 				if (seen.size >= MAX_PEOPLE) break;
 				await collect(seen, (page) =>
