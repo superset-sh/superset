@@ -58,22 +58,15 @@ interface RetentionTarget {
 	receivedAt: SQL;
 }
 
-/**
- * automation_events is still absent, and is now the unbounded one: 55M rows and
- * 245 GB as of 2026-09-19, growing ~2.3M rows a day with nothing removing them.
- * The us-east-1 restore this entry once deferred to never happened.
- *
- * Adding it here is not a one-line change. It needs two index builds that take
- * write locks on live ingest tables — one on automation_events itself, and one
- * on automation_runs.event_id, which its ON DELETE SET NULL foreign key would
- * otherwise resolve by scanning — and at this size those have to be built
- * CONCURRENTLY, which drizzle's transactional migrator cannot do. It wants the
- * same swap this table just had, not a deletion loop bolted onto a 245 GB heap.
- */
 const TARGETS: RetentionTarget[] = [
 	{
 		label: "webhook_events",
 		relation: sql`ingest.webhook_events`,
+		receivedAt: sql`received_at`,
+	},
+	{
+		label: "automation_events",
+		relation: sql`automation_events`,
 		receivedAt: sql`received_at`,
 	},
 ];
@@ -110,15 +103,16 @@ async function deleteAgedRows(
 }
 
 /**
- * Bounds the event log by age.
+ * Bounds the two event logs by age.
  *
- * Deleting rather than partitioning because the dedup index has to stay on
- * (provider, event_id): a unique index on a partitioned table must contain the
- * partition key, and adding received_at to it would mean a redelivery no longer
- * conflicts. What makes deletion viable is the window, not the method — at two
- * days the table and its indexes stay in cache, so a batch is index
- * maintenance against warm pages. At thirty days it was not, and each delete
- * cost more than the insert it undid.
+ * Deleting rather than partitioning because each dedup index has to stay as it
+ * is — (provider, event_id) on one, (integration_connection_id, provider,
+ * external_event_id) on the other: a unique index on a partitioned table must
+ * contain the partition key, and adding received_at to it would mean a
+ * redelivery no longer conflicts. What makes deletion viable is the window,
+ * not the method — at two days a table and its indexes stay in cache, so a
+ * batch is index maintenance against warm pages. At thirty days it was not,
+ * and each delete cost more than the insert it undid.
  *
  * webhook_payloads needs no equivalent: its rows are keyed by received_at and
  * whole day partitions are dropped, which returns the space outright instead of

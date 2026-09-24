@@ -1244,12 +1244,9 @@ export const automationEvents = pgTable(
 			t.receivedAt,
 		),
 		index("automation_events_resource_idx").on(t.resourceKey),
-		// The pruner scans oldest-first for rows that still have a body. Without
-		// this the planner walks automation_events_org_received_idx end to end and
-		// sorts, per batch. Partial, so it shrinks as the backlog drains.
-		index("automation_events_prunable_idx")
-			.on(t.receivedAt)
-			.where(sql`${t.payload} IS NOT NULL`),
+		// Retention deletes oldest-first. Without this the planner walks
+		// automation_events_org_received_idx end to end and sorts, per batch.
+		index("automation_events_received_at_idx").on(t.receivedAt),
 	],
 );
 
@@ -1319,6 +1316,9 @@ export const automationRuns = pgTable(
 		index("automation_runs_history_idx").on(t.automationId, t.createdAt),
 		index("automation_runs_status_idx").on(t.status),
 		index("automation_runs_workspace_idx").on(t.v2WorkspaceId),
+		// ON DELETE SET NULL on event_id resolves through this; without it every
+		// automation_events row deleted by retention scans this table.
+		index("automation_runs_event_idx").on(t.eventId),
 	],
 );
 
