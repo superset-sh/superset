@@ -18,7 +18,6 @@ describe("publishResult", () => {
 			unanchored: false,
 			watching: false,
 			watchNote: null,
-			openNote: null,
 		});
 		expect(message).toBe(`Published "Q3 Report" v3\n${PAGE.url}`);
 		expect(data.assets).toEqual({ uploaded: 0, reused: 0 });
@@ -39,7 +38,6 @@ describe("publishResult", () => {
 			unanchored: false,
 			watching: true,
 			watchNote: "Watching for comments — they will be sent to this session",
-			openNote: "Could not open the page: no display",
 		});
 		expect(message.split("\n")).toEqual([
 			'Published "Q3 Report" v3',
@@ -48,14 +46,12 @@ describe("publishResult", () => {
 			"demo.mov may not play in every browser",
 			'Outside the workspace, so this page is keyed as "~external/report/index.html"',
 			"Watching for comments — they will be sent to this session",
-			"Could not open the page: no display",
 		]);
 		expect(data.watching).toBe(true);
 		expect(data.assets).toEqual({ uploaded: 1, reused: 1 });
-		expect(data.openNote).toBe("Could not open the page: no display");
 	});
 
-	test("open/watch failures land in data, not just the message", () => {
+	test("watch failures land in data, not just the message", () => {
 		const { data } = publishResult({
 			page: PAGE,
 			path: "report.html",
@@ -64,12 +60,10 @@ describe("publishResult", () => {
 			unanchored: false,
 			watching: false,
 			watchNote: "Not watching for comments: could not reach the host",
-			openNote: null,
 		});
 		expect(data.watchNote).toBe(
 			"Not watching for comments: could not reach the host",
 		);
-		expect(data.openNote).toBeUndefined();
 	});
 
 	test("unanchored publish: says how to reach this page again", () => {
@@ -81,7 +75,6 @@ describe("publishResult", () => {
 			unanchored: true,
 			watching: false,
 			watchNote: null,
-			openNote: null,
 		});
 		expect(message.split("\n")).toEqual([
 			'Published "Q3 Report" v3',
@@ -102,7 +95,6 @@ describe("publishResult", () => {
 			unanchored: true,
 			watching: false,
 			watchNote: null,
-			openNote: null,
 		});
 		expect(data.republish).toBe(
 			"superset pages publish reports/q3.html --page p1",
@@ -118,7 +110,6 @@ describe("publishResult", () => {
 			unanchored: true,
 			watching: false,
 			watchNote: null,
-			openNote: null,
 		});
 		expect(data.republish).toBe(
 			'superset pages publish "my reports/q3.html" --page p1',
@@ -134,7 +125,6 @@ describe("publishResult", () => {
 			unanchored: false,
 			watching: false,
 			watchNote: null,
-			openNote: null,
 		});
 		expect(message).not.toContain("--page");
 		expect(data.republish).toBeUndefined();
@@ -149,7 +139,6 @@ describe("publishResult", () => {
 			unanchored: false,
 			watching: false,
 			watchNote: null,
-			openNote: null,
 		});
 		expect(message).toContain("1 asset");
 		expect(message).not.toContain("unchanged");

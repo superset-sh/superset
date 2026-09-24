@@ -6,15 +6,13 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, FileText, LayoutGrid, Plus } from "lucide-react";
 import { type MouseEvent, useCallback, useMemo, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import {
-	isPaneModifier,
-	useOpenPage,
-} from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
 import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
 import { usePagesList } from "renderer/routes/_authenticated/_dashboard/hooks/usePagesList";
 import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
 import type { CreateNewAgentSession } from "../../hooks/useAgentSessionLauncher";
+import type { PagePaneData } from "../../types";
 import { NewPageComposer } from "./components/NewPageComposer";
 import { PagesMenuRow } from "./components/PagesMenuRow";
 import {
@@ -27,18 +25,20 @@ const MENU_PAGE_LIMIT = 200;
 
 interface WorkspacePagesMenuProps {
 	workspaceId: string;
+	onOpenPage: (page: PagePaneData) => void;
 	onCreateNewAgentSession: CreateNewAgentSession;
 	onFocusAgentTerminal: (terminalId: string) => void;
 }
 
 export function WorkspacePagesMenu({
 	workspaceId,
+	onOpenPage,
 	onCreateNewAgentSession,
 	onFocusAgentTerminal,
 }: WorkspacePagesMenuProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const openPage = useOpenPage();
+	const { preferences } = useV2UserPreferences();
 	const utils = cloudTrpc.useUtils();
 	const { favoritePageIds } = usePageFavorites();
 	const seenAt = usePagesMenuSeenAt(workspaceId);
@@ -105,10 +105,15 @@ export function WorkspacePagesMenu({
 
 	const handleOpenPage = (page: MenuPage, event: MouseEvent) => {
 		handleOpenChange(false);
-		openPage(
-			{ id: page.id, slug: page.slug, title: page.title },
-			isPaneModifier(event) ? { inPane: true } : undefined,
-		);
+		const inPane =
+			event.metaKey ||
+			event.ctrlKey ||
+			preferences.pageOpenAction !== "external";
+		if (inPane) {
+			onOpenPage({ pageId: page.id, slug: page.slug, title: page.title });
+			return;
+		}
+		void navigate({ to: "/pages/$slug", params: { slug: page.slug } });
 	};
 
 	return (

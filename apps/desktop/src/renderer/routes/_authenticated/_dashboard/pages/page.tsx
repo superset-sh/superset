@@ -61,6 +61,9 @@ function PagesPage() {
 					replace: true,
 				})
 			}
+			onOpenPage={(page) =>
+				navigate({ to: "/pages/$slug", params: { slug: page.slug } })
+			}
 		/>
 	);
 }

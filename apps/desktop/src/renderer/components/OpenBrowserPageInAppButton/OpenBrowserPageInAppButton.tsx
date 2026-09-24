@@ -6,7 +6,6 @@ import { AppWindow } from "lucide-react";
 import { env } from "renderer/env.renderer";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { parseSupersetPageUrl } from "renderer/lib/parseSupersetPageUrl";
-import { useOpenPage } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
 import { usePullRequestsSplitViewStore } from "renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsSplitViewStore";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { getPullRequestTarget } from "./utils/getPullRequestTarget";
@@ -22,7 +21,6 @@ export function OpenBrowserPageInAppButton({
 	const navigate = useNavigate();
 	const { projects } = useHostProjects();
 	const target = getPullRequestTarget(currentUrl, projects);
-	const openPage = useOpenPage();
 	const pageSlug = parseSupersetPageUrl(currentUrl, env.NEXT_PUBLIC_WEB_URL);
 	if (!target && !pageSlug) return null;
 
@@ -48,7 +46,10 @@ export function OpenBrowserPageInAppButton({
 							return;
 						}
 						if (pageSlug) {
-							openPage({ slug: pageSlug });
+							void navigate({
+								to: "/pages/$slug",
+								params: { slug: pageSlug },
+							});
 							return;
 						}
 						if (!target) return;

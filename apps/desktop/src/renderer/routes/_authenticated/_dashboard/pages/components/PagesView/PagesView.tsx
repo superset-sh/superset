@@ -10,10 +10,6 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { FeatureHeader } from "renderer/routes/_authenticated/_dashboard/components/FeatureHeader";
 import { LoadMoreSentinel } from "renderer/routes/_authenticated/_dashboard/components/LoadMoreSentinel";
 import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
-import {
-	isPaneModifier,
-	useOpenPage,
-} from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
 import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
 import { usePagesList } from "renderer/routes/_authenticated/_dashboard/hooks/usePagesList";
 import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
@@ -43,6 +39,7 @@ interface PagesViewProps {
 	onScopeChange: (scope: PageScope) => void;
 	onAuthorChange: (authorId: string | null) => void;
 	onWorkspaceChange: (workspaceId: string | null) => void;
+	onOpenPage: (page: { slug: string }) => void;
 }
 
 export function PagesView({
@@ -54,6 +51,7 @@ export function PagesView({
 	onScopeChange,
 	onAuthorChange,
 	onWorkspaceChange,
+	onOpenPage,
 }: PagesViewProps) {
 	const { t } = useLingui();
 	const { creatingWithAgent, handleCreateWithAgent } = useCreatePageWithAgent();
@@ -61,7 +59,6 @@ export function PagesView({
 	const utils = cloudTrpc.useUtils();
 	const { favoritePageIds, favoritePageIdSet, toggleFavorite } =
 		usePageFavorites();
-	const openPage = useOpenPage();
 
 	// The input answers the keystroke; the URL — and so the query — settles.
 	//
@@ -279,12 +276,7 @@ export function PagesView({
 						isPending={pages.isPending}
 						error={items.length === 0 ? pages.error?.message : undefined}
 						hasFilters={!orgEmpty && hasFilters}
-						onOpen={(page, event) =>
-							openPage(
-								page,
-								isPaneModifier(event) ? { inPane: true } : undefined,
-							)
-						}
+						onOpen={onOpenPage}
 						onTogglePin={toggleFavorite}
 						onDelete={async (pageId) => {
 							await deletePage.mutateAsync({ id: pageId });
