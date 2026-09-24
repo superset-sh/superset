@@ -1136,14 +1136,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — zapomenout tento web"
 
-msgid "1 hour"
-msgstr "1 hodina"
-
 msgid "1 user"
 msgstr "1 uživatel"
-
-msgid "10 minutes"
-msgstr "10 minut"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ souběžných proudů práce bez ztráty přehledu"
@@ -1151,17 +1145,11 @@ msgstr "10+ souběžných proudů práce bez ztráty přehledu"
 msgid "100% (retain everything)"
 msgstr "100 % (udržet vše)"
 
-msgid "15 minutes"
-msgstr "15 minut"
-
 msgid "1d ago"
 msgstr "před 1 d"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 agenti · 14 změněných souborů"
-
-msgid "2 hours"
-msgstr "2 hodiny"
 
 msgid "2021 to 2023"
 msgstr "2021 až 2023"
@@ -1187,9 +1175,6 @@ msgstr "3 změněné soubory, 2 testy prošly"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ souběžné proudy práce na inženýra"
 
-msgid "30 minutes"
-msgstr "30 minut"
-
 msgid "30D"
 msgstr "30 d"
 
@@ -1204,9 +1189,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 souborů · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 minut"
 
 msgid "55 call sites pass {code}"
 msgstr "55 míst volání předává {code}"
@@ -1986,9 +1968,6 @@ msgstr "Anthropic tento API klíč odmítl."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic tento token odmítl."
 
-msgid "Any calendar"
-msgstr "Jakýkoli kalendář"
-
 msgid "Any channel"
 msgstr "Jakýkoli kanál"
 
@@ -2033,9 +2012,6 @@ msgstr "Jakýkoli tým"
 
 msgid "Any thread event"
 msgstr "Jakákoli událost vlákna"
-
-msgid "anyone"
-msgstr "kdokoli"
 
 msgid "Anyone"
 msgstr "Kdokoli"
@@ -2621,9 +2597,6 @@ msgstr "Výchozí je čip s okrajem (styl preset/HotkeyTooltip); šipka se zapí
 
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Vypůjčeno z toho, jak se známkují samořídící auta, a použito na to, jak vzniká software. Zajímavý skok je z F3 na F4: od agentů, kterým delegujete, k továrně, kterou řídíte."
-
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Je potřeba přístup ke Kalendáři i Gmailu. Až se objeví dotaz, povolte prosím obojí."
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Spodní drawer, na dotykových zařízeních ovladatelný přejetím prstem."
@@ -3766,8 +3739,8 @@ msgstr "Připojit {name}"
 msgid "Connect a device"
 msgstr "Připojit zařízení"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Připojte účet Google. Jeho kalendáře a schránka jsou jen ke čtení a spouštěče běží pod tím, kdo účet připojil."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Připojte účet Google. Jeho schránka je pouze pro čtení a spouštěče se spouštějí za osobu, která ho připojila."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Pro diktování připojte mikrofon"
@@ -5848,23 +5821,8 @@ msgstr "esc zavře"
 msgid "esc to exit"
 msgstr "esc pro ukončení"
 
-msgid "Event cancelled"
-msgstr "Událost zrušena"
-
-msgid "Event created"
-msgstr "Událost vytvořena"
-
-msgid "Event ended"
-msgstr "Událost skončila"
-
-msgid "Event starting soon"
-msgstr "Událost brzy začne"
-
 msgid "Event triggered"
 msgstr "Spuštěno událostí"
-
-msgid "Event updated"
-msgstr "Událost upravena"
 
 msgid "Every {day}"
 msgstr "Každý týden: {day}"
@@ -7102,6 +7060,9 @@ msgstr "Pojmenujte klíč popisně, ať víte, kde se používá."
 
 msgid "Globe"
 msgstr "Zeměkoule"
+
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Je vyžadován přístup ke Gmailu. Povolte ho prosím, až budete vyzváni."
 
 msgid "Go back"
 msgstr "Zpět"
@@ -13166,9 +13127,6 @@ msgstr "Vyberte větev"
 msgid "Select branch..."
 msgstr "Vyberte větev..."
 
-msgid "Select calendars"
-msgstr "Vyberte kalendáře"
-
 msgid "Select channels"
 msgstr "Vyberte kanály"
 
@@ -13939,9 +13897,6 @@ msgstr "Některé spouštěče potřebují další nastavení"
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Někdo jiný už {entryPath} z tohoto workspace publikoval. Publikuj s výslovným ID stránky a přidej verzi k jeho stránce, nebo soubor přesuň."
-
-msgid "someone external"
-msgstr "někdo externí"
 
 msgid "Something went wrong"
 msgstr "Něco se pokazilo"
@@ -15605,9 +15560,6 @@ msgstr "Časové období"
 msgid "Title"
 msgstr "Název"
 
-msgid "Title contains..."
-msgstr "Název obsahuje..."
-
 msgid "To"
 msgstr "Do"
 
@@ -15797,11 +15749,11 @@ msgstr "třídí 12 nových issues…"
 msgid "Trigger alert()"
 msgstr "Spustit alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Spouštějte automatizace z Google Kalendáře a Gmailu: vytvoření, úprava, zrušení, blížící se začátek nebo konec události a příchod e-mailu do připojené schránky."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Spouštějte automatizace z Gmailu: e-maily doručené do připojené schránky."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Spouštějte automatizace z Google Kalendáře a Gmailu."
+msgid "Trigger automations from Gmail."
+msgstr "Spouštějte automatizace z Gmailu."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Spouštějte automatizace ze zpráv v kanálech Teams."
@@ -15875,9 +15827,6 @@ msgstr "Napište zprávu..."
 
 msgid "Type a task for Claude…"
 msgstr "Zadejte úkol pro Claude…"
-
-msgid "Type an email, press Enter"
-msgstr "Zadejte e-mail a stiskněte Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "Sem pište, co se má odeslat do terminálu"

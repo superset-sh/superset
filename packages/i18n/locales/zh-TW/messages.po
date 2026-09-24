@@ -1136,14 +1136,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1個cookie——忘記此站點"
 
-msgid "1 hour"
-msgstr "1小時"
-
 msgid "1 user"
 msgstr "1個使用者"
-
-msgid "10 minutes"
-msgstr "10分鐘"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10條以上並行工作流且不丟狀態"
@@ -1151,17 +1145,11 @@ msgstr "10條以上並行工作流且不丟狀態"
 msgid "100% (retain everything)"
 msgstr "100%（全部留存）"
 
-msgid "15 minutes"
-msgstr "15分鐘"
-
 msgid "1d ago"
 msgstr "1天前"
 
 msgid "2 agents · 14 files changed"
 msgstr "2個代理程式 · 14個檔案已更改"
-
-msgid "2 hours"
-msgstr "2小時"
 
 msgid "2021 to 2023"
 msgstr "2021至2023"
@@ -1187,9 +1175,6 @@ msgstr "3個檔案已更改，2個測試通過"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "每位工程師3條以上並行工作流"
 
-msgid "30 minutes"
-msgstr "30分鐘"
-
 msgid "30D"
 msgstr "30天"
 
@@ -1204,9 +1189,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 files · +82 −172"
-
-msgid "5 minutes"
-msgstr "5分鐘"
 
 msgid "55 call sites pass {code}"
 msgstr "55 個呼叫位置傳入 {code}"
@@ -1986,9 +1968,6 @@ msgstr "Anthropic拒絕了此API金鑰。"
 msgid "Anthropic rejected this token."
 msgstr "Anthropic拒絕了此權杖。"
 
-msgid "Any calendar"
-msgstr "任意日曆"
-
 msgid "Any channel"
 msgstr "任意頻道"
 
@@ -2033,9 +2012,6 @@ msgstr "任意團隊"
 
 msgid "Any thread event"
 msgstr "任意討論事件"
-
-msgid "anyone"
-msgstr "任何人"
 
 msgid "Anyone"
 msgstr "任何人"
@@ -2621,9 +2597,6 @@ msgstr "帶邊框的chip是預設樣式（預設欄/HotkeyTooltip的樣式）；
 
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "借用自動駕駛汽車的分級方式，用來衡量軟體的構建方式。有意思的躍遷是F3到F4：從你委派的代理程式，變成你指揮的工廠。"
-
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "日曆和Gmail的存取權限都是必需的。請在詢問時全部允許。"
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "底部抽屜，在觸控螢幕裝置上便於滑動操作。"
@@ -3766,8 +3739,8 @@ msgstr "連線 {name}"
 msgid "Connect a device"
 msgstr "連線裝置"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "連線一個Google帳戶。它的日曆和電子郵件均為唯讀，觸發器以連線者的身份執行。"
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "連結一個 Google 帳號。其信箱為唯讀，觸發器以連結者的身分執行。"
 
 msgid "Connect a microphone to use dictation"
 msgstr "請連線麥克風以使用語音輸入"
@@ -5848,23 +5821,8 @@ msgstr "按esc關閉"
 msgid "esc to exit"
 msgstr "esc退出"
 
-msgid "Event cancelled"
-msgstr "日程已取消"
-
-msgid "Event created"
-msgstr "日程已建立"
-
-msgid "Event ended"
-msgstr "日程已結束"
-
-msgid "Event starting soon"
-msgstr "日程即將開始"
-
 msgid "Event triggered"
 msgstr "事件觸發"
-
-msgid "Event updated"
-msgstr "日程已更新"
 
 msgid "Every {day}"
 msgstr "每{day}"
@@ -7102,6 +7060,9 @@ msgstr "給金鑰起一個描述性的名稱，方便記住它用在哪裡。"
 
 msgid "Globe"
 msgstr "地球"
+
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "需要 Gmail 存取權限。請在系統詢問時允許。"
 
 msgid "Go back"
 msgstr "返回"
@@ -13166,9 +13127,6 @@ msgstr "選擇分支"
 msgid "Select branch..."
 msgstr "選擇分支..."
 
-msgid "Select calendars"
-msgstr "選擇日曆"
-
 msgid "Select channels"
 msgstr "選擇頻道"
 
@@ -13939,9 +13897,6 @@ msgstr "部分觸發器需要額外配置"
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "其他人已發佈此工作區中的 {entryPath}。使用明確的頁面 id 發佈以為其頁面新增版本，或移動該檔案。"
-
-msgid "someone external"
-msgstr "外部人員"
 
 msgid "Something went wrong"
 msgstr "出了點問題"
@@ -15605,9 +15560,6 @@ msgstr "時間範圍"
 msgid "Title"
 msgstr "標題"
 
-msgid "Title contains..."
-msgstr "標題包含..."
-
 msgid "To"
 msgstr "到"
 
@@ -15797,11 +15749,11 @@ msgstr "正在分類12個新議題…"
 msgid "Trigger alert()"
 msgstr "觸發alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "用Google日曆和Gmail觸發自動化：日程被建立、更新、取消、即將開始或已結束，以及所連線的收件匣收到郵件。"
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "從 Gmail 觸發自動化：送達已連結收件匣的郵件。"
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "用Google日曆和Gmail觸發自動化。"
+msgid "Trigger automations from Gmail."
+msgstr "從 Gmail 觸發自動化。"
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "用Teams頻道訊息觸發自動化。"
@@ -15875,9 +15827,6 @@ msgstr "輸入訊息..."
 
 msgid "Type a task for Claude…"
 msgstr "給Claude寫個任務…"
-
-msgid "Type an email, press Enter"
-msgstr "輸入電子郵件後按 Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "在此輸入以傳送到終端"

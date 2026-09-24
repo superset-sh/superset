@@ -314,15 +314,7 @@ const INTEGRATION_KEYWORDS: Record<IntegrationProvider, string[]> = {
 		"communication",
 	],
 	sentry: ["errors", "issues", "monitoring", "alerts", "triage"],
-	google: [
-		"calendar",
-		"gmail",
-		"email",
-		"mail",
-		"events",
-		"triggers",
-		"automations",
-	],
+	google: ["gmail", "email", "mail", "triggers", "automations"],
 };
 
 const INTEGRATION_SEARCH_ITEMS: SettingsItem[] = INTEGRATIONS.map(

@@ -1136,14 +1136,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1件のCookie — このサイトを削除"
 
-msgid "1 hour"
-msgstr "1時間"
-
 msgid "1 user"
 msgstr "1ユーザー"
-
-msgid "10 minutes"
-msgstr "10分"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "状態を取りこぼさない10以上の並行ワークストリーム"
@@ -1151,17 +1145,11 @@ msgstr "状態を取りこぼさない10以上の並行ワークストリーム"
 msgid "100% (retain everything)"
 msgstr "100%（全て維持）"
 
-msgid "15 minutes"
-msgstr "15分"
-
 msgid "1d ago"
 msgstr "1日前"
 
 msgid "2 agents · 14 files changed"
 msgstr "2エージェント · 14ファイル変更"
-
-msgid "2 hours"
-msgstr "2時間"
 
 msgid "2021 to 2023"
 msgstr "2021年〜2023年"
@@ -1187,9 +1175,6 @@ msgstr "3ファイル変更、2件のテストが成功"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "エンジニア1人あたり3つ以上の並行ワークストリーム"
 
-msgid "30 minutes"
-msgstr "30分"
-
 msgid "30D"
 msgstr "30日"
 
@@ -1204,9 +1189,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45ファイル · +82 −172"
-
-msgid "5 minutes"
-msgstr "5分"
 
 msgid "55 call sites pass {code}"
 msgstr "55か所の呼び出し元が{code}を渡しています"
@@ -1986,9 +1968,6 @@ msgstr "AnthropicがこのAPIキーを拒否しました。"
 msgid "Anthropic rejected this token."
 msgstr "Anthropicがこのトークンを拒否しました。"
 
-msgid "Any calendar"
-msgstr "すべてのカレンダー"
-
 msgid "Any channel"
 msgstr "すべてのチャンネル"
 
@@ -2033,9 +2012,6 @@ msgstr "すべてのチーム"
 
 msgid "Any thread event"
 msgstr "すべてのスレッドイベント"
-
-msgid "anyone"
-msgstr "誰でも"
 
 msgid "Anyone"
 msgstr "全員"
@@ -2621,9 +2597,6 @@ msgstr "枠線付きチップがデフォルト(プリセット/HotkeyTooltipの
 
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "自動運転車の等級付けを借りて、ソフトウェアの作られ方に当てはめました。面白いのはF3からF4への飛躍です。仕事を任せるエージェントから、指揮する工場へ。"
-
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "CalendarとGmailの両方へのアクセスが必要です。確認画面では両方を許可してください。"
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "下部ドロワー。タッチデバイスではスワイプで操作できます。"
@@ -3766,8 +3739,8 @@ msgstr "{name} を接続"
 msgid "Connect a device"
 msgstr "デバイスを接続"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Googleアカウントを接続します。カレンダーとメールボックスは読み取り専用で、トリガーは接続した本人として実行されます。"
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Google アカウントを接続します。メールボックスは読み取り専用で、トリガーは接続した本人に対して実行されます。"
 
 msgid "Connect a microphone to use dictation"
 msgstr "音声入力を使うにはマイクを接続してください"
@@ -5848,23 +5821,8 @@ msgstr "escで閉じる"
 msgid "esc to exit"
 msgstr "escで終了"
 
-msgid "Event cancelled"
-msgstr "予定をキャンセル"
-
-msgid "Event created"
-msgstr "予定を作成"
-
-msgid "Event ended"
-msgstr "予定が終了"
-
-msgid "Event starting soon"
-msgstr "予定がまもなく開始"
-
 msgid "Event triggered"
 msgstr "イベントトリガー"
-
-msgid "Event updated"
-msgstr "予定を更新"
 
 msgid "Every {day}"
 msgstr "毎週{day}"
@@ -7102,6 +7060,9 @@ msgstr "どこで使うキーか分かる名前を付けてください。"
 
 msgid "Globe"
 msgstr "地球"
+
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Gmail へのアクセスが必要です。求められたら許可してください。"
 
 msgid "Go back"
 msgstr "戻る"
@@ -13166,9 +13127,6 @@ msgstr "ブランチを選択"
 msgid "Select branch..."
 msgstr "ブランチを選択..."
 
-msgid "Select calendars"
-msgstr "カレンダーを選択"
-
 msgid "Select channels"
 msgstr "チャンネルを選択"
 
@@ -13939,9 +13897,6 @@ msgstr "一部のトリガーには追加の設定が必要です"
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "このワークスペースの {entryPath} は、他の人がすでに公開しています。ページ ID を明示して相手のページにバージョンを追加するか、ファイルを移動してください。"
-
-msgid "someone external"
-msgstr "社外の人"
 
 msgid "Something went wrong"
 msgstr "問題が発生しました"
@@ -15605,9 +15560,6 @@ msgstr "期間"
 msgid "Title"
 msgstr "タイトル"
 
-msgid "Title contains..."
-msgstr "タイトルに含む..."
-
 msgid "To"
 msgstr "移動先"
 
@@ -15797,11 +15749,11 @@ msgstr "新規issue 12件をトリアージ中…"
 msgid "Trigger alert()"
 msgstr "alert()を実行"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Google CalendarとGmailからオートメーションを起動します。予定の作成・更新・キャンセル・開始間近・終了、そして接続した受信トレイへのメール着信に対応します。"
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Gmail から自動化をトリガー: 接続した受信トレイに届いたメール。"
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Google CalendarとGmailからオートメーションを起動します。"
+msgid "Trigger automations from Gmail."
+msgstr "Gmail から自動化をトリガーします。"
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Teamsのチャンネルメッセージからオートメーションを起動します。"
@@ -15875,9 +15827,6 @@ msgstr "メッセージを入力..."
 
 msgid "Type a task for Claude…"
 msgstr "Claudeへのタスクを入力…"
-
-msgid "Type an email, press Enter"
-msgstr "メールアドレスを入力してEnter"
 
 msgid "Type here to send to the terminal"
 msgstr "ここに入力してターミナルに送信"

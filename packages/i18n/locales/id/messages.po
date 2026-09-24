@@ -1136,14 +1136,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — lupakan situs ini"
 
-msgid "1 hour"
-msgstr "1 jam"
-
 msgid "1 user"
 msgstr "1 pengguna"
-
-msgid "10 minutes"
-msgstr "10 menit"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ alur kerja bersamaan tanpa kehilangan konteks"
@@ -1151,17 +1145,11 @@ msgstr "10+ alur kerja bersamaan tanpa kehilangan konteks"
 msgid "100% (retain everything)"
 msgstr "100% (mempertahankan semua)"
 
-msgid "15 minutes"
-msgstr "15 menit"
-
 msgid "1d ago"
 msgstr "1h lalu"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 agen · 14 file berubah"
-
-msgid "2 hours"
-msgstr "2 jam"
 
 msgid "2021 to 2023"
 msgstr "2021 sampai 2023"
@@ -1187,9 +1175,6 @@ msgstr "3 file berubah, 2 tes lulus"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ alur kerja bersamaan per engineer"
 
-msgid "30 minutes"
-msgstr "30 menit"
-
 msgid "30D"
 msgstr "30H"
 
@@ -1204,9 +1189,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 file · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 menit"
 
 msgid "55 call sites pass {code}"
 msgstr "55 titik pemanggilan meneruskan {code}"
@@ -1986,9 +1968,6 @@ msgstr "Anthropic menolak kunci API ini."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic menolak token ini."
 
-msgid "Any calendar"
-msgstr "Kalender mana pun"
-
 msgid "Any channel"
 msgstr "Channel mana pun"
 
@@ -2033,9 +2012,6 @@ msgstr "Tim mana pun"
 
 msgid "Any thread event"
 msgstr "Event thread apa pun"
-
-msgid "anyone"
-msgstr "siapa pun"
 
 msgid "Anyone"
 msgstr "Siapa pun"
@@ -2621,9 +2597,6 @@ msgstr "Chip bergaris adalah bawaannya (gaya preset/HotkeyTooltip); panah bersif
 
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Dipinjam dari cara mobil swakemudi dinilai, diterapkan pada cara perangkat lunak dibangun. Lompatan yang menarik adalah F3 ke F4: dari agen yang Anda beri delegasi, menjadi pabrik yang Anda arahkan."
-
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Akses Calendar dan Gmail keduanya diperlukan. Izinkan keduanya saat diminta."
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Laci bawah, ramah geser di perangkat sentuh."
@@ -3766,8 +3739,8 @@ msgstr "Hubungkan {name}"
 msgid "Connect a device"
 msgstr "Hubungkan perangkat"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Hubungkan sebuah akun Google. Kalender dan kotak suratnya bersifat baca-saja, dan pemicunya berjalan atas nama orang yang menghubungkannya."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Hubungkan akun Google. Kotak suratnya hanya-baca, dan pemicu berjalan untuk orang yang menghubungkannya."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Hubungkan mikrofon untuk memakai dikte"
@@ -5848,23 +5821,8 @@ msgstr "esc untuk menutup"
 msgid "esc to exit"
 msgstr "esc untuk keluar"
 
-msgid "Event cancelled"
-msgstr "Acara dibatalkan"
-
-msgid "Event created"
-msgstr "Acara dibuat"
-
-msgid "Event ended"
-msgstr "Acara berakhir"
-
-msgid "Event starting soon"
-msgstr "Acara segera dimulai"
-
 msgid "Event triggered"
 msgstr "Dipicu event"
-
-msgid "Event updated"
-msgstr "Acara diperbarui"
 
 msgid "Every {day}"
 msgstr "Setiap {day}"
@@ -7102,6 +7060,9 @@ msgstr "Beri nama deskriptif agar Anda ingat kunci ini dipakai di mana."
 
 msgid "Globe"
 msgstr "Globe"
+
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Akses Gmail diperlukan. Izinkan saat diminta."
 
 msgid "Go back"
 msgstr "Kembali"
@@ -13166,9 +13127,6 @@ msgstr "Pilih branch"
 msgid "Select branch..."
 msgstr "Pilih branch..."
 
-msgid "Select calendars"
-msgstr "Pilih kalender"
-
 msgid "Select channels"
 msgstr "Pilih channel"
 
@@ -13939,9 +13897,6 @@ msgstr "Sebagian pemicu perlu konfigurasi tambahan"
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Orang lain sudah menerbitkan {entryPath} dari workspace ini. Terbitkan dengan id halaman yang eksplisit untuk menambahkan versi ke halaman mereka, atau pindahkan berkasnya."
-
-msgid "someone external"
-msgstr "seseorang dari luar"
 
 msgid "Something went wrong"
 msgstr "Terjadi kesalahan"
@@ -15605,9 +15560,6 @@ msgstr "Rentang waktu"
 msgid "Title"
 msgstr "Judul"
 
-msgid "Title contains..."
-msgstr "Judul mengandung..."
-
 msgid "To"
 msgstr "Ke"
 
@@ -15797,11 +15749,11 @@ msgstr "mentriase 12 issue baru…"
 msgid "Trigger alert()"
 msgstr "Picu alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Picu otomatisasi dari Google Calendar dan Gmail: acara dibuat, diperbarui, dibatalkan, segera dimulai atau berakhir, dan email yang masuk ke kotak masuk yang terhubung."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Picu otomatisasi dari Gmail: email yang masuk ke kotak masuk yang terhubung."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Picu otomatisasi dari Google Calendar dan Gmail."
+msgid "Trigger automations from Gmail."
+msgstr "Picu otomatisasi dari Gmail."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Picu otomatisasi dari pesan channel Teams."
@@ -15875,9 +15827,6 @@ msgstr "Ketik pesan..."
 
 msgid "Type a task for Claude…"
 msgstr "Ketik tugas untuk Claude…"
-
-msgid "Type an email, press Enter"
-msgstr "Ketik email, tekan Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "Ketik di sini untuk mengirim ke terminal"

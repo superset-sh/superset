@@ -1136,14 +1136,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 Cookie — diese Website vergessen"
 
-msgid "1 hour"
-msgstr "1 Stunde"
-
 msgid "1 user"
 msgstr "1 Nutzer"
-
-msgid "10 minutes"
-msgstr "10 Minuten"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ parallele Arbeitsstränge ohne Kontrollverlust"
@@ -1151,17 +1145,11 @@ msgstr "10+ parallele Arbeitsstränge ohne Kontrollverlust"
 msgid "100% (retain everything)"
 msgstr "100 % (alles behalten)"
 
-msgid "15 minutes"
-msgstr "15 Minuten"
-
 msgid "1d ago"
 msgstr "vor 1 Tag"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 Agenten · 14 Dateien geändert"
-
-msgid "2 hours"
-msgstr "2 Stunden"
 
 msgid "2021 to 2023"
 msgstr "2021 bis 2023"
@@ -1187,9 +1175,6 @@ msgstr "3 Dateien geändert, 2 Tests bestanden"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ parallele Arbeitsstränge pro Ingenieur"
 
-msgid "30 minutes"
-msgstr "30 Minuten"
-
 msgid "30D"
 msgstr "30T"
 
@@ -1204,9 +1189,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 Dateien · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 Minuten"
 
 msgid "55 call sites pass {code}"
 msgstr "55 Aufrufstellen übergeben {code}"
@@ -1986,9 +1968,6 @@ msgstr "Anthropic hat diesen API-Schlüssel abgelehnt."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic hat diesen Token abgelehnt."
 
-msgid "Any calendar"
-msgstr "Beliebiger Kalender"
-
 msgid "Any channel"
 msgstr "Beliebiger Channel"
 
@@ -2033,9 +2012,6 @@ msgstr "Beliebiges Team"
 
 msgid "Any thread event"
 msgstr "Beliebiges Thread-Ereignis"
-
-msgid "anyone"
-msgstr "beliebige Person"
 
 msgid "Anyone"
 msgstr "Beliebige Person"
@@ -2621,9 +2597,6 @@ msgstr "Der umrandete Chip ist Standard (der Preset-/HotkeyTooltip-Stil); der Pf
 
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Übernommen davon, wie selbstfahrende Autos bewertet werden, angewandt darauf, wie Software entsteht. Der spannende Sprung ist F3 zu F4: von Agenten, an die du delegierst, zu einer Fabrik, die du dirigierst."
-
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Es wird Zugriff auf Calendar und Gmail benötigt. Bitte erlaube beides, wenn du gefragt wirst."
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Drawer von unten, wischfreundlich auf Touch-Geräten."
@@ -3766,8 +3739,8 @@ msgstr "{name} verbinden"
 msgid "Connect a device"
 msgstr "Gerät verbinden"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Verbinde ein Google-Konto. Kalender und Postfach werden nur gelesen, und Trigger laufen unter der Person, die es verbunden hat."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Verbinde ein Google-Konto. Sein Postfach ist schreibgeschützt, und Trigger laufen für die Person, die es verbunden hat."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Schließe ein Mikrofon an, um zu diktieren"
@@ -5848,23 +5821,8 @@ msgstr "esc zum Schließen"
 msgid "esc to exit"
 msgstr "esc zum Beenden"
 
-msgid "Event cancelled"
-msgstr "Termin abgesagt"
-
-msgid "Event created"
-msgstr "Termin erstellt"
-
-msgid "Event ended"
-msgstr "Termin beendet"
-
-msgid "Event starting soon"
-msgstr "Termin beginnt bald"
-
 msgid "Event triggered"
 msgstr "Ereignis ausgelöst"
-
-msgid "Event updated"
-msgstr "Termin aktualisiert"
 
 msgid "Every {day}"
 msgstr "Jeden {day}"
@@ -7102,6 +7060,9 @@ msgstr "Gib deinem Schlüssel einen sprechenden Namen, damit du weißt, wo er ge
 
 msgid "Globe"
 msgstr "Globus"
+
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Gmail-Zugriff ist erforderlich. Bitte erlaube ihn, wenn du danach gefragt wirst."
 
 msgid "Go back"
 msgstr "Zurück"
@@ -13166,9 +13127,6 @@ msgstr "Branch auswählen"
 msgid "Select branch..."
 msgstr "Branch auswählen..."
 
-msgid "Select calendars"
-msgstr "Kalender auswählen"
-
 msgid "Select channels"
 msgstr "Channels auswählen"
 
@@ -13939,9 +13897,6 @@ msgstr "Einige Trigger brauchen weitere Konfiguration"
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Jemand anderes hat {entryPath} aus diesem Workspace bereits veröffentlicht. Veröffentliche mit einer ausdrücklichen Seiten-ID, um eine Version zu dessen Seite hinzuzufügen, oder verschiebe die Datei."
-
-msgid "someone external"
-msgstr "jemand Externes"
 
 msgid "Something went wrong"
 msgstr "Etwas ist schiefgelaufen"
@@ -15605,9 +15560,6 @@ msgstr "Zeitraum"
 msgid "Title"
 msgstr "Titel"
 
-msgid "Title contains..."
-msgstr "Titel enthält..."
-
 msgid "To"
 msgstr "Nach"
 
@@ -15797,11 +15749,11 @@ msgstr "12 neue Issues werden triagiert…"
 msgid "Trigger alert()"
 msgstr "alert() auslösen"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Löse Automatisierungen aus Google Calendar und Gmail aus: erstellte, geänderte, abgesagte, bald beginnende oder beendete Termine sowie E-Mails, die im verbundenen Postfach eintreffen."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Automatisierungen aus Gmail auslösen: E-Mails, die im verbundenen Postfach eintreffen."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Automatisierungen aus Google Calendar und Gmail auslösen."
+msgid "Trigger automations from Gmail."
+msgstr "Automatisierungen aus Gmail auslösen."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Automatisierungen aus Nachrichten in Teams-Kanälen auslösen."
@@ -15875,9 +15827,6 @@ msgstr "Nachricht schreiben..."
 
 msgid "Type a task for Claude…"
 msgstr "Gib Claude eine Aufgabe…"
-
-msgid "Type an email, press Enter"
-msgstr "E-Mail eingeben, Enter drücken"
 
 msgid "Type here to send to the terminal"
 msgstr "Hier tippen, um an das Terminal zu senden"

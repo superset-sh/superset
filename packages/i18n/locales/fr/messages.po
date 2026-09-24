@@ -1136,14 +1136,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — oublier ce site"
 
-msgid "1 hour"
-msgstr "1 heure"
-
 msgid "1 user"
 msgstr "1 utilisateur"
-
-msgid "10 minutes"
-msgstr "10 minutes"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10 chantiers simultanés ou plus sans perte d'état"
@@ -1151,17 +1145,11 @@ msgstr "10 chantiers simultanés ou plus sans perte d'état"
 msgid "100% (retain everything)"
 msgstr "100 % (tout conserver)"
 
-msgid "15 minutes"
-msgstr "15 minutes"
-
 msgid "1d ago"
 msgstr "il y a 1 j"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 agents · 14 fichiers modifiés"
-
-msgid "2 hours"
-msgstr "2 heures"
 
 msgid "2021 to 2023"
 msgstr "De 2021 à 2023"
@@ -1187,9 +1175,6 @@ msgstr "3 fichiers modifiés, 2 tests réussis"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3 chantiers simultanés ou plus par ingénieur"
 
-msgid "30 minutes"
-msgstr "30 minutes"
-
 msgid "30D"
 msgstr "30 J"
 
@@ -1204,9 +1189,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 fichiers · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 minutes"
 
 msgid "55 call sites pass {code}"
 msgstr "55 sites d'appel passent {code}"
@@ -1986,9 +1968,6 @@ msgstr "Anthropic a rejeté cette clé API."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic a rejeté ce jeton."
 
-msgid "Any calendar"
-msgstr "Tout agenda"
-
 msgid "Any channel"
 msgstr "Tout canal"
 
@@ -2033,9 +2012,6 @@ msgstr "Toute équipe"
 
 msgid "Any thread event"
 msgstr "Tout événement de fil"
-
-msgid "anyone"
-msgstr "n'importe qui"
 
 msgid "Anyone"
 msgstr "N'importe qui"
@@ -2621,9 +2597,6 @@ msgstr "La puce bordée est la valeur par défaut (le style preset/HotkeyTooltip
 
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Empruntée à la façon dont on note les voitures autonomes, appliquée à la façon dont on fabrique du logiciel. Le saut intéressant est F3 vers F4 : des agents à qui l'on délègue à une usine que l'on dirige."
-
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "L'accès à Calendar et à Gmail est requis. Veuillez autoriser les deux lorsque cela vous est demandé."
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Tiroir inférieur, adapté au balayage sur les appareils tactiles."
@@ -3766,8 +3739,8 @@ msgstr "Connecter {name}"
 msgid "Connect a device"
 msgstr "Connecter un appareil"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Connectez un compte Google. Ses agendas et sa boîte mail sont en lecture seule, et les déclencheurs s'exécutent pour la personne qui l'a connecté."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Connectez un compte Google. Sa boîte mail est en lecture seule, et les déclencheurs s’exécutent pour la personne qui l’a connecté."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Connectez un microphone pour utiliser la dictée"
@@ -5848,23 +5821,8 @@ msgstr "esc pour fermer"
 msgid "esc to exit"
 msgstr "esc pour quitter"
 
-msgid "Event cancelled"
-msgstr "Événement annulé"
-
-msgid "Event created"
-msgstr "Événement créé"
-
-msgid "Event ended"
-msgstr "Événement terminé"
-
-msgid "Event starting soon"
-msgstr "Événement sur le point de commencer"
-
 msgid "Event triggered"
 msgstr "Événement déclenché"
-
-msgid "Event updated"
-msgstr "Événement mis à jour"
 
 msgid "Every {day}"
 msgstr "Chaque {day}"
@@ -7102,6 +7060,9 @@ msgstr "Donnez à votre clé un nom explicite pour vous rappeler où elle est ut
 
 msgid "Globe"
 msgstr "Globe"
+
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "L’accès à Gmail est requis. Veuillez l’autoriser lorsqu’il vous est demandé."
 
 msgid "Go back"
 msgstr "Revenir en arrière"
@@ -13166,9 +13127,6 @@ msgstr "Sélectionner une branche"
 msgid "Select branch..."
 msgstr "Sélectionner une branche..."
 
-msgid "Select calendars"
-msgstr "Sélectionner des agendas"
-
 msgid "Select channels"
 msgstr "Sélectionner des canaux"
 
@@ -13939,9 +13897,6 @@ msgstr "Certains déclencheurs nécessitent une configuration supplémentaire"
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Quelqu'un d'autre a déjà publié {entryPath} depuis cet espace de travail. Publiez avec un id de page explicite pour ajouter une version à sa page, ou déplacez le fichier."
-
-msgid "someone external"
-msgstr "une personne externe"
 
 msgid "Something went wrong"
 msgstr "Une erreur est survenue"
@@ -15605,9 +15560,6 @@ msgstr "Période"
 msgid "Title"
 msgstr "Titre"
 
-msgid "Title contains..."
-msgstr "Le titre contient..."
-
 msgid "To"
 msgstr "Vers"
 
@@ -15797,11 +15749,11 @@ msgstr "tri de 12 nouvelles issues…"
 msgid "Trigger alert()"
 msgstr "Déclencher alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Déclenchez des automatisations depuis Google Calendar et Gmail : événements créés, mis à jour, annulés, sur le point de commencer ou terminés, et e-mails arrivant dans la boîte de réception connectée."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Déclenchez des automatisations depuis Gmail : e-mails arrivant dans la boîte de réception connectée."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Déclenchez des automatisations depuis Google Calendar et Gmail."
+msgid "Trigger automations from Gmail."
+msgstr "Déclenchez des automatisations depuis Gmail."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Déclenchez des automatisations depuis les messages de canaux Teams."
@@ -15875,9 +15827,6 @@ msgstr "Écrire un message..."
 
 msgid "Type a task for Claude…"
 msgstr "Décrivez une tâche pour Claude…"
-
-msgid "Type an email, press Enter"
-msgstr "Saisissez un e-mail, appuyez sur Entrée"
 
 msgid "Type here to send to the terminal"
 msgstr "Tapez ici pour envoyer au terminal"

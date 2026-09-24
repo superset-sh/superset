@@ -1136,14 +1136,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — quên trang này"
 
-msgid "1 hour"
-msgstr "1 giờ"
-
 msgid "1 user"
 msgstr "1 người dùng"
-
-msgid "10 minutes"
-msgstr "10 phút"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ luồng công việc đồng thời mà không rớt trạng thái"
@@ -1151,17 +1145,11 @@ msgstr "10+ luồng công việc đồng thời mà không rớt trạng thái"
 msgid "100% (retain everything)"
 msgstr "100% (giữ toàn bộ)"
 
-msgid "15 minutes"
-msgstr "15 phút"
-
 msgid "1d ago"
 msgstr "1 ngày trước"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 agent · 14 tệp thay đổi"
-
-msgid "2 hours"
-msgstr "2 giờ"
 
 msgid "2021 to 2023"
 msgstr "2021 đến 2023"
@@ -1187,9 +1175,6 @@ msgstr "3 tệp thay đổi, 2 test đã qua"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ luồng công việc đồng thời trên mỗi kỹ sư"
 
-msgid "30 minutes"
-msgstr "30 phút"
-
 msgid "30D"
 msgstr "30N"
 
@@ -1204,9 +1189,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 tệp · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 phút"
 
 msgid "55 call sites pass {code}"
 msgstr "55 vị trí gọi truyền {code}"
@@ -1986,9 +1968,6 @@ msgstr "Anthropic đã từ chối khóa API này."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic đã từ chối token này."
 
-msgid "Any calendar"
-msgstr "Lịch bất kỳ"
-
 msgid "Any channel"
 msgstr "Kênh bất kỳ"
 
@@ -2033,9 +2012,6 @@ msgstr "Nhóm bất kỳ"
 
 msgid "Any thread event"
 msgstr "Sự kiện luồng bất kỳ"
-
-msgid "anyone"
-msgstr "bất kỳ ai"
 
 msgid "Anyone"
 msgstr "Bất kỳ ai"
@@ -2621,9 +2597,6 @@ msgstr "Chip có viền là mặc định (kiểu của preset/HotkeyTooltip); m
 
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Mượn từ cách chấm mức tự lái của ô tô, áp vào cách phần mềm được xây. Bước nhảy đáng chú ý là F3 sang F4: từ những agent bạn giao việc, sang một nhà máy bạn chỉ đạo."
-
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Cần cả quyền Calendar và Gmail. Vui lòng cho phép cả hai khi được hỏi."
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Ngăn kéo dưới đáy, vuốt tiện trên thiết bị cảm ứng."
@@ -3766,8 +3739,8 @@ msgstr "Kết nối {name}"
 msgid "Connect a device"
 msgstr "Kết nối một thiết bị"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Kết nối một tài khoản Google. Lịch và hộp thư của tài khoản chỉ được đọc, và các trigger chạy dưới danh nghĩa người đã kết nối."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Kết nối tài khoản Google. Hộp thư chỉ ở chế độ đọc và các trình kích hoạt chạy cho người đã kết nối."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Kết nối micro để dùng đọc chính tả"
@@ -5848,23 +5821,8 @@ msgstr "esc để đóng"
 msgid "esc to exit"
 msgstr "esc để thoát"
 
-msgid "Event cancelled"
-msgstr "Sự kiện bị hủy"
-
-msgid "Event created"
-msgstr "Sự kiện được tạo"
-
-msgid "Event ended"
-msgstr "Sự kiện kết thúc"
-
-msgid "Event starting soon"
-msgstr "Sự kiện sắp bắt đầu"
-
 msgid "Event triggered"
 msgstr "Sự kiện kích hoạt"
-
-msgid "Event updated"
-msgstr "Sự kiện được cập nhật"
 
 msgid "Every {day}"
 msgstr "{day} hằng tuần"
@@ -7102,6 +7060,9 @@ msgstr "Đặt tên gợi nhớ để biết khóa này dùng ở đâu."
 
 msgid "Globe"
 msgstr "Quả địa cầu"
+
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Cần quyền truy cập Gmail. Vui lòng cho phép khi được hỏi."
 
 msgid "Go back"
 msgstr "Quay lại"
@@ -13166,9 +13127,6 @@ msgstr "Chọn nhánh"
 msgid "Select branch..."
 msgstr "Chọn nhánh..."
 
-msgid "Select calendars"
-msgstr "Chọn lịch"
-
 msgid "Select channels"
 msgstr "Chọn kênh"
 
@@ -13939,9 +13897,6 @@ msgstr "Một số trigger cần cấu hình thêm"
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Người khác đã xuất bản {entryPath} từ workspace này. Hãy xuất bản kèm id trang cụ thể để thêm phiên bản vào trang của họ, hoặc di chuyển tệp."
-
-msgid "someone external"
-msgstr "người bên ngoài"
 
 msgid "Something went wrong"
 msgstr "Đã xảy ra lỗi"
@@ -15605,9 +15560,6 @@ msgstr "Khoảng thời gian"
 msgid "Title"
 msgstr "Tiêu đề"
 
-msgid "Title contains..."
-msgstr "Tiêu đề chứa..."
-
 msgid "To"
 msgstr "Đến"
 
@@ -15797,11 +15749,11 @@ msgstr "đang phân loại 12 issue mới…"
 msgid "Trigger alert()"
 msgstr "Kích hoạt alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Kích hoạt tự động hóa từ Google Calendar và Gmail: sự kiện được tạo, cập nhật, hủy, sắp bắt đầu hoặc đã kết thúc, và email đến hộp thư đã kết nối."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Kích hoạt tự động hóa từ Gmail: email đến hộp thư đã kết nối."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Kích hoạt tự động hóa từ Google Calendar và Gmail."
+msgid "Trigger automations from Gmail."
+msgstr "Kích hoạt tự động hóa từ Gmail."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Kích hoạt tự động hóa từ tin nhắn kênh Teams."
@@ -15875,9 +15827,6 @@ msgstr "Nhập tin nhắn..."
 
 msgid "Type a task for Claude…"
 msgstr "Nhập một tác vụ cho Claude…"
-
-msgid "Type an email, press Enter"
-msgstr "Nhập email, nhấn Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "Nhập ở đây để gửi tới terminal"

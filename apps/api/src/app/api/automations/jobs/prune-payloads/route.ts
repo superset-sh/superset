@@ -31,26 +31,6 @@ const MAX_ROWS_PER_RUN = 50_000;
 /** Well inside the function timeout, so a run ends by choice rather than by kill. */
 const TIME_BUDGET_MS = 20_000;
 
-/**
- * google_calendar is excluded outright. Its ingest path reads the most recent
- * payload for a resource back to diff a calendar event against its previous
- * state (apps/api/src/app/api/integrations/google/lib/syncCalendar.ts), and
- * that row can be arbitrarily old — an event nobody has touched in months is
- * exactly the one whose previous state still matters. It is also 2,251 rows
- * and 2.5MB, so keeping all of it costs nothing worth measuring.
- */
-const PAYLOAD_READBACK_PROVIDERS = ["google_calendar"];
-
-/**
- * Built as an explicit list rather than passing the array as one bind
- * parameter: drizzle sends a JS array as a record, and Postgres will not cast
- * that to text[], so `<> ALL($1)` fails on every run.
- */
-const excludedProviders = sql.join(
-	PAYLOAD_READBACK_PROVIDERS.map((provider) => sql`${provider}`),
-	sql`, `,
-);
-
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
 	const rejected = await verifyQstashRequest(
@@ -76,7 +56,6 @@ export async function POST(request: Request): Promise<Response> {
 				FROM automation_events
 				WHERE payload IS NOT NULL
 				  AND received_at < now() - ${`${RETAIN_DAYS} days`}::interval
-				  AND provider NOT IN (${excludedProviders})
 				  -- A row still awaiting its handoff is re-dispatched from
 				  -- dispatch_input rather than payload, but leaving it whole
 				  -- keeps the sweep's inputs untouched for the cost of a few rows.

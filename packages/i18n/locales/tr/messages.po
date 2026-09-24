@@ -1136,14 +1136,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 çerez — bu siteyi unut"
 
-msgid "1 hour"
-msgstr "1 saat"
-
 msgid "1 user"
 msgstr "1 kullanıcı"
-
-msgid "10 minutes"
-msgstr "10 dakika"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "Durum kaybı olmadan 10+ eşzamanlı iş akışı"
@@ -1151,17 +1145,11 @@ msgstr "Durum kaybı olmadan 10+ eşzamanlı iş akışı"
 msgid "100% (retain everything)"
 msgstr "%100 (her şeyi elde tutma)"
 
-msgid "15 minutes"
-msgstr "15 dakika"
-
 msgid "1d ago"
 msgstr "1g önce"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 ajan · 14 dosya değişti"
-
-msgid "2 hours"
-msgstr "2 saat"
 
 msgid "2021 to 2023"
 msgstr "2021 - 2023"
@@ -1187,9 +1175,6 @@ msgstr "3 dosya değişti, 2 test geçiyor"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "Mühendis başına 3+ eşzamanlı iş akışı"
 
-msgid "30 minutes"
-msgstr "30 dakika"
-
 msgid "30D"
 msgstr "30G"
 
@@ -1204,9 +1189,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 dosya · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 dakika"
 
 msgid "55 call sites pass {code}"
 msgstr "55 çağrı noktası {code} geçiriyor"
@@ -1986,9 +1968,6 @@ msgstr "Anthropic bu API anahtarını reddetti."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic bu token'ı reddetti."
 
-msgid "Any calendar"
-msgstr "Tüm takvimler"
-
 msgid "Any channel"
 msgstr "Tüm kanallar"
 
@@ -2033,9 +2012,6 @@ msgstr "Tüm takımlar"
 
 msgid "Any thread event"
 msgstr "Tüm konu olayları"
-
-msgid "anyone"
-msgstr "herkes"
 
 msgid "Anyone"
 msgstr "Herkes"
@@ -2621,9 +2597,6 @@ msgstr "Çerçeveli çip varsayılandır (preset/HotkeyTooltip stili); ok, showA
 
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Otonom araçların notlandırılma biçiminden ödünç alındı, yazılımın üretilme biçimine uygulandı. İlginç sıçrama F3'ten F4'e: iş devrettiğiniz ajanlardan yönettiğiniz bir fabrikaya."
-
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Hem Calendar hem de Gmail erişimi gereklidir. Lütfen sorulduğunda ikisine de izin verin."
 
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Alt çekmece, dokunmatik cihazlarda kaydırmaya uygun."
@@ -3766,8 +3739,8 @@ msgstr "{name} bağla"
 msgid "Connect a device"
 msgstr "Cihaz bağla"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Bir Google hesabı bağlayın. Takvimleri ve posta kutusu salt okunurdur ve tetikleyiciler hesabı bağlayan kişi adına çalışır."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Bir Google hesabı bağlayın. Posta kutusu salt okunurdur ve tetikleyiciler hesabı bağlayan kişi için çalışır."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Sesle yazmak için bir mikrofon bağlayın"
@@ -5848,23 +5821,8 @@ msgstr "kapatmak için esc"
 msgid "esc to exit"
 msgstr "çıkmak için esc"
 
-msgid "Event cancelled"
-msgstr "Etkinlik iptal edildi"
-
-msgid "Event created"
-msgstr "Etkinlik oluşturuldu"
-
-msgid "Event ended"
-msgstr "Etkinlik sona erdi"
-
-msgid "Event starting soon"
-msgstr "Etkinlik yakında başlıyor"
-
 msgid "Event triggered"
 msgstr "Olay tetiklendi"
-
-msgid "Event updated"
-msgstr "Etkinlik güncellendi"
 
 msgid "Every {day}"
 msgstr "Her {day}"
@@ -7102,6 +7060,9 @@ msgstr "Nerede kullanıldığını hatırlamak için anahtarınıza açıklayıc
 
 msgid "Globe"
 msgstr "Küre"
+
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Gmail erişimi gerekli. İstendiğinde lütfen izin verin."
 
 msgid "Go back"
 msgstr "Geri git"
@@ -13166,9 +13127,6 @@ msgstr "Dal seçin"
 msgid "Select branch..."
 msgstr "Dal seçin..."
 
-msgid "Select calendars"
-msgstr "Takvimleri seç"
-
 msgid "Select channels"
 msgstr "Kanalları seç"
 
@@ -13939,9 +13897,6 @@ msgstr "Bazı tetikleyiciler ek yapılandırma gerektiriyor"
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Bu çalışma alanından {entryPath} dosyasını başkası zaten yayımlamış. Onun sayfasına sürüm eklemek için açık bir sayfa kimliğiyle yayımla ya da dosyayı taşı."
-
-msgid "someone external"
-msgstr "dışarıdan biri"
 
 msgid "Something went wrong"
 msgstr "Bir şeyler ters gitti"
@@ -15605,9 +15560,6 @@ msgstr "Zaman aralığı"
 msgid "Title"
 msgstr "Başlık"
 
-msgid "Title contains..."
-msgstr "Başlık şunu içerir..."
-
 msgid "To"
 msgstr "Hedef"
 
@@ -15797,11 +15749,11 @@ msgstr "12 yeni issue sınıflandırılıyor…"
 msgid "Trigger alert()"
 msgstr "alert() tetikle"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Otomasyonları Google Calendar ve Gmail'den tetikleyin: etkinlik oluşturma, güncelleme, iptal etme, yakında başlama veya bitme ve bağlı gelen kutusuna e-posta gelmesi."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Gmail’den otomasyonları tetikleyin: bağlı gelen kutusuna ulaşan e-postalar."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Otomasyonları Google Calendar ve Gmail'den tetikleyin."
+msgid "Trigger automations from Gmail."
+msgstr "Gmail’den otomasyonları tetikleyin."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Otomasyonları Teams kanal mesajlarından tetikleyin."
@@ -15875,9 +15827,6 @@ msgstr "Bir mesaj yazın..."
 
 msgid "Type a task for Claude…"
 msgstr "Claude için bir görev yazın…"
-
-msgid "Type an email, press Enter"
-msgstr "E-posta yazın, Enter'a basın"
 
 msgid "Type here to send to the terminal"
 msgstr "Terminale göndermek için buraya yazın"
