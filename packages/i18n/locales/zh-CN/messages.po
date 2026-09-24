@@ -2068,6 +2068,9 @@ msgstr "应用显示语言"
 msgid "App display language. Auto follows your system language."
 msgstr "应用显示语言。自动模式会跟随你的系统语言。"
 
+msgid "App icon"
+msgstr "应用图标"
+
 msgid "Appearance"
 msgstr "外观"
 
@@ -2650,6 +2653,9 @@ msgstr "分支..."
 
 msgid "brand"
 msgstr "品牌"
+
+msgid "Brand assets"
+msgstr "品牌素材"
 
 msgid "breadcrumb"
 msgstr "面包屑导航"
@@ -3644,6 +3650,9 @@ msgstr "来自公开邀请链接的社区规模，每半小时刷新。"
 msgid "Company"
 msgstr "公司"
 
+msgid "Company boilerplate, latest news, brand assets, and press contact for Superset."
+msgstr "Superset 的公司简介、最新动态、品牌素材和媒体联系方式。"
+
 msgid "Company email"
 msgstr "公司邮箱"
 
@@ -3938,6 +3947,9 @@ msgstr "继续"
 
 msgid "Continue or fork session"
 msgstr "继续或分叉会话"
+
+msgid "Continue the same workspace from your iPhone"
+msgstr "在 iPhone 上继续同一个工作区"
 
 msgid "Continue the session the last run left"
 msgstr "继续上次运行留下的会话"
@@ -5453,6 +5465,9 @@ msgstr "下载图片"
 msgid "Download Manually"
 msgstr "手动下载"
 
+msgid "Download our logos and product images for use in coverage of Superset."
+msgstr "下载我们的标志和产品图片，用于报道 Superset。"
+
 msgid "Download starter"
 msgstr "下载模板"
 
@@ -5881,6 +5896,9 @@ msgstr "一切都能脚本化。用CLI创建工作区和智能体，用SDK把Sup
 
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "我们在基础组件之上构建的一切——Superset原创组件、面向智能体界面的"
+
+msgid "Everything you need to write about Superset: our company description, latest news, logos, product images, and who to contact."
+msgstr "报道 Superset 所需的一切：公司简介、最新动态、标志、产品图片以及联系方式。"
 
 msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
 msgstr "你发布过的所有内容都会被删除，而不是隐藏。你之后可以重新加入，届时会根据此机器上仍保留的记录重新生成。"
@@ -6747,6 +6765,9 @@ msgstr "要检出到新worktree的文件夹，每行一个，相对于仓库根�
 msgid "FOLLOW ON X"
 msgstr "在X上关注"
 
+msgid "Follow terminal sessions live"
+msgstr "实时跟进终端会话"
+
 msgid "FOLLOW US"
 msgstr "关注我们"
 
@@ -6776,6 +6797,9 @@ msgstr "面向刚上手的个人用户"
 
 msgid "For organizations with advanced needs"
 msgstr "面向有进阶需求的组织"
+
+msgid "For press inquiries and interview requests, email us."
+msgstr "媒体咨询和采访请求，请发邮件给我们。"
 
 msgid "For questions about billing, <0>contact us</0>."
 msgstr "如有账单相关问题，请<0>联系我们</0>。"
@@ -8140,6 +8164,9 @@ msgstr "最新"
 msgid "Latest (v{latestVersion})"
 msgstr "最新（v{latestVersion}）"
 
+msgid "Latest news"
+msgstr "最新动态"
+
 msgid "Launch"
 msgstr "启动"
 
@@ -8548,6 +8575,9 @@ msgstr "客户留存 — 按月"
 msgid "Logo updated"
 msgstr "Logo已更新"
 
+msgid "Logos"
+msgstr "标志"
+
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "长周期可靠性越过了一个门槛。傍晚6点派出去的活儿，早上9点常常已经可以合并，以至于不排夜班就像让工厂空转。"
 
@@ -8729,6 +8759,9 @@ msgstr "正在测量资源占用…"
 #. placeholder {0}: selectedConfig.label
 msgid "Measuring the context to send to {0}…"
 msgstr "正在统计要发送给 {0} 的上下文…"
+
+msgid "Media kit"
+msgstr "媒体资料包"
 
 msgid "Median ticket-to-production time under one day for routine work."
 msgstr "常规工作从工单到上线的中位耗时不足一天。"
@@ -11283,6 +11316,9 @@ msgstr "在任意终端上按⌘I，在真正的编辑器里撰写，支持多�
 msgid "Press a key…"
 msgstr "请按一个键…"
 
+msgid "Press contact"
+msgstr "媒体联系"
+
 msgid "Preview"
 msgstr "预览"
 
@@ -11400,6 +11436,9 @@ msgstr "处理中..."
 msgid "Product"
 msgstr "产品"
 
+msgid "Product images"
+msgstr "产品图片"
+
 msgid "Production run"
 msgstr "生产运行"
 
@@ -11490,6 +11529,9 @@ msgstr "提示词"
 
 msgid "Prompt a coding agent to build what you want to see in Superset. If we like your prompt, we'll run it and merge the result."
 msgstr "用提示词让编码智能体实现你想在Superset中看到的功能。如果我们喜欢你的提示词，就会运行它并合并结果。"
+
+msgid "Prompt agents and answer their questions"
+msgstr "向智能体发送提示并回答它们的问题"
 
 msgid "Prompt command is only available for terminal agents."
 msgstr "提示词命令仅适用于终端智能体。"
@@ -12517,6 +12559,9 @@ msgstr "已请求审查"
 
 msgid "Review required"
 msgstr "需要审查"
+
+msgid "Review syntax-highlighted diffs"
+msgstr "审查带语法高亮的差异"
 
 msgid "Review the result."
 msgstr "审查结果。"
@@ -14352,6 +14397,9 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
+msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel. In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers adopting it before it was even available in Japanese, and Asia as a whole now accounts for more users than the US. Superset is used by engineers at Netflix, Microsoft, NVIDIA, DoorDash, Wix, and Mistral AI globally, and across Asia at ByteDance, Toss, Kakao, Grab, LINE, and Rakuten. It has 14k+ GitHub stars, hit #1 on Product Hunt, and recently launched full Japanese language support."
+msgstr "Superset（YC S26）是面向 AI 智能体时代的开源 IDE，工程师可以在其中并行运行数百个 Claude Code、Codex 等编程智能体。不到一年时间，来自 176 个国家的超过 130,000 名开发者运行过 Superset，并创建了超过 150 万个智能体工作区。日本是仅次于美国的第二大市场，在 Superset 支持日语之前就已有超过 12,000 名开发者采用，而整个亚洲的用户数如今已超过美国。在全球范围内，Netflix、Microsoft、NVIDIA、DoorDash、Wix 和 Mistral AI 的工程师都在使用 Superset；在亚洲，ByteDance、Toss、Kakao、Grab、LINE 和 Rakuten 的工程师也在使用。Superset 在 GitHub 上拥有 14k+ 星标，曾登上 Product Hunt 第一名，并于近期全面支持日语。"
+
 msgid "Superset | Company Dashboard"
 msgstr "Superset | 公司仪表板"
 
@@ -14393,6 +14441,12 @@ msgstr "Superset Enterprise是面向团队的Superset。联系我们，了解它
 
 msgid "Superset for iPhone"
 msgstr "iPhone 版 Superset"
+
+msgid "Superset for iPhone page"
+msgstr "iPhone 版 Superset 页面"
+
+msgid "Superset for press"
+msgstr "面向媒体的 Superset"
 
 msgid "Superset for your team"
 msgstr "为你的团队准备的Superset"
@@ -14448,6 +14502,9 @@ msgstr "Superset内存"
 msgid "Superset memory · last 5 min"
 msgstr "Superset内存 · 最近5分钟"
 
+msgid "Superset Mobile code diff on iPhone"
+msgstr "iPhone 上的 Superset Mobile 代码差异"
+
 msgid "Superset mobile gives me the power of my desktop anywhere I go."
 msgstr "无论走到哪里，Superset 手机版都让我拥有桌面电脑的能力。"
 
@@ -14457,8 +14514,17 @@ msgstr "Superset Mobile 来了"
 msgid "Superset Mobile is part of Pro"
 msgstr "Superset Mobile属于专业版"
 
+msgid "Superset Mobile launches on iPhone"
+msgstr "Superset Mobile 登陆 iPhone"
+
+msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
+msgstr "借助 Superset Mobile，开发者可以在 iPhone 上继续使用他们在电脑上已经在用的 Superset 工作区。"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile在你连接的电脑上运行智能体。"
+
+msgid "Superset Mobile terminal on iPhone"
+msgstr "iPhone 上的 Superset Mobile 终端"
 
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile、云工作区、自动化和优先支持。"
@@ -14913,6 +14979,9 @@ msgstr "智能体从工单一路负责到差异。人类审查结果，而不是
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "这个自动化原本要运行的智能体在它的主机上已不存在，该主机的智能体可能被重置或删除了。请在自动化的设置中重新选择一个智能体。"
+
+msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
+msgstr "该应用可免费下载。需要 iOS 26 或更高版本以及 Superset Pro。接下来将推出 Android 版。"
 
 msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
 msgstr "应用版本为 {appVersion}，但连接的是由其他程序（可能是旧版 CLI 或另一个 Superset 版本）启动的主机服务。重启会将其替换为此应用自带的副本。"
@@ -16405,6 +16474,9 @@ msgstr "在GitHub上查看"
 msgid "VIEW ON GITHUB"
 msgstr "在GitHub上查看"
 
+msgid "View on the App Store"
+msgstr "在 App Store 查看"
+
 msgid "View open roles"
 msgstr "查看空缺职位"
 
@@ -16782,6 +16854,12 @@ msgstr "有无附件均可"
 
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "有了 Superset 手机应用，我可以随时随地处理生产环境问题。"
+
+msgid "Wordmark, black"
+msgstr "文字标志，黑色"
+
+msgid "Wordmark, white"
+msgstr "文字标志，白色"
 
 msgid "Work email"
 msgstr "工作邮箱"
