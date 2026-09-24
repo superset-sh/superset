@@ -30,6 +30,8 @@ import piIcon from "./pi.svg";
 import piWhiteIcon from "./pi-white.svg";
 import polygraphIcon from "./polygraph.svg";
 import polygraphWhiteIcon from "./polygraph-white.svg";
+import primeAgentIcon from "./prime-agent.svg";
+import primeAgentWhiteIcon from "./prime-agent-white.svg";
 import supersetIcon from "./superset.svg";
 import vibeIcon from "./vibe.svg";
 
@@ -55,6 +57,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	omp: { light: piIcon, dark: piWhiteIcon },
 	pi: { light: piIcon, dark: piWhiteIcon },
 	polygraph: { light: polygraphIcon, dark: polygraphWhiteIcon },
+	"prime-agent": { light: primeAgentIcon, dark: primeAgentWhiteIcon },
 	superset: { light: supersetIcon, dark: supersetIcon },
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	"cursor-composer": { light: cursorAgentIcon, dark: cursorAgentIcon },
@@ -117,6 +120,8 @@ export {
 	piWhiteIcon,
 	polygraphIcon,
 	polygraphWhiteIcon,
+	primeAgentIcon,
+	primeAgentWhiteIcon,
 	supersetIcon,
 	vibeIcon,
 };

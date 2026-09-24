@@ -75,6 +75,21 @@ describe("buildAgentPromptCommand", () => {
 	});
 });
 
+describe("Prime Agent registration", () => {
+	it("launches a task in the interactive session", () => {
+		expect(AGENT_TYPES).toContain("prime-agent");
+		expect(AGENT_LABELS["prime-agent"]).toBe("Prime Agent");
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "prime-1234",
+			agent: "prime-agent",
+		});
+		expect(command).toStartWith(
+			"prime-agent \"$(cat <<'SUPERSET_PROMPT_prime1234'",
+		);
+	});
+});
+
 describe("vibe agent registration", () => {
 	it("is a registered terminal agent with the right label", () => {
 		expect(AGENT_TYPES).toContain("vibe");

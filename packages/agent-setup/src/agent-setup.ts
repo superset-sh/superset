@@ -36,6 +36,8 @@ import {
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
 	createPiExtension,
+	createPrimeAgentExtension,
+	createPrimeAgentWrapper,
 	createVibeHooksToml,
 	createVibeWrapper,
 	removeAmpPlugin,
@@ -110,6 +112,9 @@ const AGENT_SETUP_DEFINITIONS: Record<
 	pi: {
 		setup: [createPiExtension],
 		teardown: [removePiExtension],
+	},
+	"prime-agent": {
+		setup: [createPrimeAgentExtension, createPrimeAgentWrapper],
 	},
 	"cursor-agent": {
 		setup: [

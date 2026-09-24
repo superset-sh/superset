@@ -144,6 +144,12 @@ export {
 	removePiExtension,
 } from "./agent-wrappers-pi";
 export {
+	createPrimeAgentExtension,
+	createPrimeAgentWrapper,
+	getPrimeAgentExtensionContent,
+	getPrimeAgentExtensionPath,
+} from "./agent-wrappers-prime-agent";
+export {
 	createVibeHooksToml,
 	createVibeWrapper,
 	getVibeHooksTomlContent,

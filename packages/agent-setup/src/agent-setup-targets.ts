@@ -21,6 +21,7 @@ export const AGENT_SETUP_TARGETS = [
 	{ id: "opencode", managedBinary: true },
 	{ id: "omp" },
 	{ id: "pi" },
+	{ id: "prime-agent", managedBinary: true },
 	{ id: "cursor-agent" },
 	{ id: "gemini", managedBinary: true },
 	{ id: "mastracode", managedBinary: true },
