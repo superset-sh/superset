@@ -69,7 +69,7 @@ Preview running dev servers in a browser pane. Ports are detected per workspace,
 
 ## Run independent tasks
 
-Give each task a Git worktree with its own branch and terminals. Monitor agent status from the sidebar and return to persistent sessions. Worktrees separate working files; they do not sandbox processes or prevent merge conflicts.
+Give each task a Git worktree with its own branch and terminals. Worktrees separate working files; they do not sandbox processes or prevent merge conflicts.
 
 [Workspace docs](https://docs.superset.sh/workspaces) · [Terminal docs](https://docs.superset.sh/terminal-integration) · [Agent status](https://docs.superset.sh/agent-integration)
 
@@ -78,7 +78,7 @@ Give each task a Git worktree with its own branch and terminals. Monitor agent s
 
 ### Parallel Workspaces
 
-Run independent tasks in separate Git worktrees, each with its own branch and terminal. Review each result before merging, or try two approaches to the same problem and keep the one you prefer.
+Review each result before merging, or try two approaches to the same problem and keep the one you prefer.
 
 [Docs →](https://docs.superset.sh/workspaces)
 
@@ -114,7 +114,7 @@ Jump to any workspace, action, or setting from one search box.
 
 Connect another machine to reach its workspaces remotely, or schedule an agent to work on a recurring task. The CLI, SDK, and MCP server also let agents and scripts manage workspaces.
 
-On iPhone, continue terminal sessions and review changes on a connected computer. Mobile requires **Superset Pro**, **iOS 26 or later**, and a computer with **Remote Access enabled**.
+Mobile requires **Superset Pro**, **iOS 26 or later**, and a computer with **Remote Access enabled**.
 
 [Remote access](https://docs.superset.sh/remote-access) · [Automations](https://docs.superset.sh/automations) · [iPhone](https://superset.sh/mobile) · [CLI](https://docs.superset.sh/cli/getting-started)
 
@@ -124,8 +124,6 @@ On iPhone, continue terminal sessions and review changes on a connected computer
 ### Superset for iPhone
 
 Remotely control Claude Code, Codex, and other terminal agents running on your connected computer. Pick up the same workspaces and terminal sessions, send follow-up prompts, review diffs, and merge PRs from your iPhone.
-
-Requires **Superset Pro**, **iOS 26 or later**, and a connected computer with **Remote Access enabled**.
 
 [**Download on the App Store**](https://apps.apple.com/us/app/id6788926383) &nbsp;&bull;&nbsp; [Learn more →](https://superset.sh/mobile)
 
@@ -160,7 +158,6 @@ Script it from any shell: create workspaces, launch agents, read their terminals
 ## Customize your workflow
 
 - **[Built-in skills](https://docs.superset.sh/skills)**: agents come pre-loaded with `superset:*` skills (orchestrate parallel agents, schedule automations, file feedback, diagnose issues), provisioned automatically at launch
-- **[Model picker & custom agents](https://docs.superset.sh/agent-integration)**: choose a model and reasoning effort at launch, and add any terminal agent with its own icon
 - **[Workspace setup scripts](https://docs.superset.sh/setup-teardown-scripts)**: automate env setup, dependency installs, and dev servers per workspace
 - **[Terminal presets](https://docs.superset.sh/terminal-presets)**: save agent and shell layouts and open them with one keystroke
 - **[Slack & Linear](https://docs.superset.sh/use-with-linear)**: spin up workspaces from Slack messages or Linear issues
@@ -172,7 +169,7 @@ Script it from any shell: create workspaces, launch agents, read their terminals
 
 ## Supported Agents
 
-Use Claude Code, Codex, OpenCode, Cursor Agent, or another CLI coding agent. You can configure launch commands and add custom agents in **Settings → Agents**.
+Use Claude Code, Codex, OpenCode, Cursor Agent, or another CLI coding agent.
 
 <details>
 <summary>Browse supported agents</summary>
@@ -205,14 +202,11 @@ Use Claude Code, Codex, OpenCode, Cursor Agent, or another CLI coding agent. You
 
 </details>
 
-If it runs in a terminal, it runs on Superset
-
 Agents get more than a terminal:
 
 - **Model picker**: choose a model and reasoning effort when you launch an agent
 - **Per-agent settings**: tune launch commands, prompt templates, and model overrides in Settings → Agents
 - **Custom agents**: add any terminal agent with its own icon and it works like a built-in
-- **Status and notifications**: working indicators, completion chimes, and dock badges when an agent needs you
 - **Built-in chat**: talk to models in a chat pane, with inline tool approvals and plan review
 
 ## More Than a Desktop App
@@ -233,8 +227,6 @@ curl -fsSL https://superset.sh/cli/install.sh | sh
 # or
 brew install superset-sh/tap/superset
 ```
-
-[Download Superset for iPhone on the App Store](https://apps.apple.com/app/id6788926383) to check on your agents from your phone.
 
 ## Development
 
@@ -276,8 +268,6 @@ Configure workspace setup, teardown, and run scripts in `.superset/config.json`.
 }
 ```
 
-Keyboard shortcuts are customizable via **Settings → Keyboard Shortcuts** (⌘/); see the [full shortcut list](https://docs.superset.sh/keyboard-shortcuts).
-
 ## Tech Stack
 
 <details>
@@ -300,7 +290,6 @@ Keyboard shortcuts are customizable via **Settings → Keyboard Shortcuts** (⌘
 
 ## Private by Default
 
-- **Source Available**: full source is on GitHub under Elastic License 2.0 (ELv2).
 - **Explicit Connections**: you choose which agents, providers, and integrations to connect.
 
 ## Contributing
