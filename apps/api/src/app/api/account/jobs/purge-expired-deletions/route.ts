@@ -18,12 +18,14 @@ const PATH = "/api/account/jobs/purge-expired-deletions";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Ceiling per run. A few accounts a day expire in steady state, so this is
- * only a brake on a backlog: each purge is a handful of PostHog and Stripe
- * calls, and the QStash schedule (daily, kept in the Upstash console, not in
- * this repo) picks up whatever a run leaves.
+ * Ceiling on purge attempts per run. A few accounts a day expire in steady
+ * state, so this is only a brake on a backlog: each purge is a handful of
+ * PostHog and Stripe calls, and the QStash schedule (daily, kept in the
+ * Upstash console, not in this repo) picks up whatever a run leaves. Counts
+ * attempts rather than rows selected because a sole-owner skip stays in the
+ * selection forever and, being oldest, would otherwise fill it.
  */
-const MAX_ACCOUNTS_PER_RUN = 50;
+const MAX_ATTEMPTS_PER_RUN = 50;
 
 /** Stays inside maxDuration so a run ends by choice rather than by kill. */
 const TIME_BUDGET_MS = 240_000;
@@ -53,8 +55,7 @@ export async function POST(request: Request): Promise<Response> {
 		.select({ id: users.id })
 		.from(users)
 		.where(and(isNull(users.deletedAt), lt(users.deletionRequestedAt, cutoff)))
-		.orderBy(asc(users.deletionRequestedAt))
-		.limit(MAX_ACCOUNTS_PER_RUN);
+		.orderBy(asc(users.deletionRequestedAt));
 
 	const deadline = Date.now() + TIME_BUDGET_MS;
 	const purged: string[] = [];
@@ -64,6 +65,7 @@ export async function POST(request: Request): Promise<Response> {
 	let outOfTime = false;
 
 	for (const { id } of expired) {
+		if (purged.length + failed.length >= MAX_ATTEMPTS_PER_RUN) break;
 		if (Date.now() > deadline) {
 			outOfTime = true;
 			break;

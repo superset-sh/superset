@@ -52,10 +52,7 @@ mock.module("@superset/db/client", () => ({
 								b.deletionRequestedAt.getTime(),
 						);
 					return {
-						orderBy: () => ({
-							limit: async (limit: number) =>
-								matching.slice(0, limit).map(({ id }) => ({ id })),
-						}),
+						orderBy: async () => matching.map(({ id }) => ({ id })),
 					};
 				},
 			}),
@@ -206,6 +203,35 @@ describe("POST /api/account/jobs/purge-expired-deletions", () => {
 
 		expect(await run()).toMatchObject({ purged: [], failed: [] });
 		expect(purges).toEqual([]);
+	});
+
+	test("sole-owner skips do not use up the attempt cap", async () => {
+		fakeUsers = Array.from({ length: 60 }, (_, index) => ({
+			id: `owner-${index}`,
+			deletionRequestedAt: daysAgo(90 - index),
+			deletedAt: null,
+		}));
+		for (const user of fakeUsers) soleOwnerOf.set(user.id, `org-${user.id}`);
+		fakeUsers.push({
+			id: "newest",
+			deletionRequestedAt: daysAgo(31),
+			deletedAt: null,
+		});
+
+		expect(await run()).toMatchObject({ purged: ["newest"], failed: [] });
+	});
+
+	test("stops after the attempt cap and leaves the rest for the next run", async () => {
+		fakeUsers = Array.from({ length: 51 }, (_, index) => ({
+			id: `user-${index}`,
+			deletionRequestedAt: daysAgo(90 - index),
+			deletedAt: null,
+		}));
+
+		const first = await run();
+		expect(first.purged).toHaveLength(50);
+		expect(first.purged).not.toContain("user-50");
+		expect((await run()).purged).toEqual(["user-50"]);
 	});
 
 	test("yields when another run holds the lock", async () => {
