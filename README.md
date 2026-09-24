@@ -4,14 +4,10 @@
 
 ### A workspace for your CLI coding agents
 
-
 Run Claude Code, Codex, or another CLI agent in persistent terminals.<br />
 Review its changes and preview your app in the same workspace.
 
-
 [**Download for macOS**](https://github.com/superset-sh/superset/releases/latest) &nbsp;&bull;&nbsp; [Documentation](https://docs.superset.sh) &nbsp;&bull;&nbsp; [Changelog](https://github.com/superset-sh/superset/releases) &nbsp;&bull;&nbsp; [Discord](https://discord.gg/cZeD9WYcV7)
-
-</div>
 
 Keep your existing agent subscriptions. Open the workspace in your preferred editor when you need it.
 
@@ -20,6 +16,8 @@ Keep your existing agent subscriptions. Open the workspace in your preferred edi
 </p>
 
 [First task](#start-with-one-task) · [Review and revise](#review-and-revise) · [Parallel tasks](#run-independent-tasks) · [Remote and scheduled work](#work-across-devices-and-on-a-schedule) · [Agents](#supported-agents) · [Install](#install) · [Contributing](#contributing)
+
+</div>
 
 ## Install
 
