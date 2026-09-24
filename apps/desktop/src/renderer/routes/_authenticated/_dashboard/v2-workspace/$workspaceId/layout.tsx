@@ -23,6 +23,7 @@ import { WorkspaceProvider } from "../providers/WorkspaceProvider";
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspace/$workspaceId",
 )({
+	remountDeps: ({ params }) => ({ workspaceId: params.workspaceId }),
 	component: V2WorkspaceLayout,
 });
 

@@ -44,15 +44,13 @@ export function useWorkspaceHostTarget(
 	return useMemo(() => {
 		if (!workspaceId) return { status: "loading" };
 		if (sandbox) {
-			return sandbox.running
-				? {
-						status: "ready",
-						kind: "sandbox",
-						hostId: workspaceId,
-						url: sandbox.url,
-						desktopUrl: sandbox.desktopUrl,
-					}
-				: { status: "loading" };
+			return {
+				status: "ready",
+				kind: "sandbox",
+				hostId: workspaceId,
+				url: sandbox.url,
+				desktopUrl: sandbox.desktopUrl,
+			};
 		}
 		if (!match) {
 			return isReady && sandboxesReady

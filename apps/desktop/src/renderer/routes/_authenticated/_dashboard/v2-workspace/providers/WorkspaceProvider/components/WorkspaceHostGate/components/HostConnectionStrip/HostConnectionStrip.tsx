@@ -4,7 +4,8 @@ import { cn } from "@superset/ui/utils";
 import { Link } from "@tanstack/react-router";
 
 interface HostConnectionStripProps {
-	hostId: string;
+	/** Null for a host with no settings page, like a cloud workspace's box. */
+	settingsHostId: string | null;
 	hostName: string;
 	detail: string;
 	isAccessDenied: boolean;
@@ -19,7 +20,7 @@ interface HostConnectionStripProps {
 
 /** Persistent, nonmodal connection status. Recovery advice opens only on request. */
 export function HostConnectionStrip({
-	hostId,
+	settingsHostId,
 	hostName,
 	detail,
 	isAccessDenied,
@@ -77,13 +78,15 @@ export function HostConnectionStrip({
 						<p className="select-text leading-relaxed text-muted-foreground">
 							{detail}
 						</p>
-						<Link
-							to="/settings/hosts/$hostId"
-							params={{ hostId }}
-							className="inline-block font-medium underline underline-offset-4"
-						>
-							{t({ message: "Host settings" })}
-						</Link>
+						{settingsHostId ? (
+							<Link
+								to="/settings/hosts/$hostId"
+								params={{ hostId: settingsHostId }}
+								className="inline-block font-medium underline underline-offset-4"
+							>
+								{t({ message: "Host settings" })}
+							</Link>
+						) : null}
 					</PopoverContent>
 				</Popover>
 				<button

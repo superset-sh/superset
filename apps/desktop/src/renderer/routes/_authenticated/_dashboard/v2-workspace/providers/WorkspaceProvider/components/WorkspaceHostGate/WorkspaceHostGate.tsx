@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import type { HostShapedWorkspace } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useHostReachability } from "../../../../hooks/useHostReachability";
 import { LOCAL_HOST_SERVICE_DETAIL } from "../../utils/localHostServiceDetail";
 import { HostConnectionStrip } from "./components/HostConnectionStrip";
@@ -32,6 +33,10 @@ export function WorkspaceHostGate({
 		retry,
 	} = useHostReachability(hostUrl);
 	const { hosts: hostRows } = useKnownHosts();
+	const { targets: sandboxes } = useSandboxAccess();
+	const isSandbox = sandboxes.some(
+		(sandbox) => sandbox.workspaceId === workspace.hostId,
+	);
 
 	const hostRow =
 		hostRows.find(
@@ -39,13 +44,14 @@ export function WorkspaceHostGate({
 				host.organizationId === workspace.organizationId &&
 				host.machineId === workspace.hostId,
 		) ?? null;
-	const hostName =
-		hostRow?.name ??
-		(workspace.hostId === machineId
-			? t({ message: "This device" })
-			: t({
-					message: "Unknown host",
-				}));
+	const hostName = isSandbox
+		? t({ message: "Cloud workspace" })
+		: (hostRow?.name ??
+			(workspace.hostId === machineId
+				? t({ message: "This device" })
+				: t({
+						message: "Unknown host",
+					})));
 
 	// The wrapper renders unconditionally — dropping it when the host is
 	// reachable would move `children` in the tree and remount the whole
@@ -55,7 +61,7 @@ export function WorkspaceHostGate({
 			<div className="flex min-h-0 min-w-0 flex-1">{children}</div>
 			{isDegraded || isAccessDenied ? (
 				<HostConnectionStrip
-					hostId={workspace.hostId}
+					settingsHostId={isSandbox ? null : workspace.hostId}
 					hostName={hostName}
 					isAccessDenied={isAccessDenied}
 					detail={
