@@ -28,6 +28,10 @@
 			"types": "./src/router/page/thumbnail.ts",
 			"default": "./src/router/page/thumbnail.ts"
 		},
+		"./page-preview": {
+			"types": "./src/router/page/preview.ts",
+			"default": "./src/router/page/preview.ts"
+		},
 		"./file-sweep": {
 			"types": "./src/lib/files/sweep.ts",
 			"default": "./src/lib/files/sweep.ts"
