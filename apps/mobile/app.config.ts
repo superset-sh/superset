@@ -11,17 +11,6 @@ config({
 	quiet: true,
 });
 
-// `superset` stays in the dev variant's scheme list because the API's
-// trustedOrigins allows only that one, so OAuth has to come back to it.
-const devVariant = process.env.APP_VARIANT === "development";
-const bundleIdentifier = devVariant
-	? "sh.superset.mobile.dev"
-	: "sh.superset.mobile";
-// An app group belongs to the team that registered it, so a build signed by
-// someone else's team needs its own. `AgentActivityAttributes.appGroup`
-// derives it from the bundle id by this same rule, so the two cannot drift.
-const appGroup = `group.${bundleIdentifier}`;
-
 const SIGNED_BUILD_PROFILES = ["preview", "production"];
 const signedUpdates = process.env.MOBILE_SIGNED_UPDATES === "1";
 if (
@@ -35,7 +24,7 @@ if (
 
 export default ({ config }: ConfigContext) => ({
 	...config,
-	name: devVariant ? "Superset Dev" : "Superset",
+	name: "Superset",
 	slug: "superset",
 	locales: Object.fromEntries(
 		SUPPORTED_LOCALES.map((locale) => [locale, `./locales/${locale}.json`]),
@@ -44,7 +33,7 @@ export default ({ config }: ConfigContext) => ({
 	orientation: "portrait",
 	icon: "./assets/icon.png",
 	userInterfaceStyle: "dark",
-	scheme: devVariant ? ["superset", "superset-dev"] : "superset",
+	scheme: "superset",
 	runtimeVersion: { policy: "fingerprint" as const },
 	updates: {
 		url: "https://u.expo.dev/fa9332a8-896a-4d2a-be5b-d82469b46e5d",
@@ -55,20 +44,15 @@ export default ({ config }: ConfigContext) => ({
 	},
 	ios: {
 		supportsTablet: false,
-		// Sign in with Apple is dropped for the dev variant: the API pins one
-		// audience, so it rejects a token from any other bundle id.
-		appleTeamId:
-			devVariant && process.env.APPLE_DEV_TEAM_ID
-				? process.env.APPLE_DEV_TEAM_ID
-				: "NV9657CS5A",
+		appleTeamId: "NV9657CS5A",
 		// Shared with the AgentActivity widget extension: the Live Activity
 		// sandbox has no network, so project icons are cached here by the app
 		// and read back by the extension from disk.
 		entitlements: {
-			"com.apple.security.application-groups": [appGroup],
+			"com.apple.security.application-groups": ["group.sh.superset.mobile"],
 		},
-		bundleIdentifier,
-		usesAppleSignIn: !devVariant,
+		bundleIdentifier: "sh.superset.mobile",
+		usesAppleSignIn: true,
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
 			NSSupportsLiveActivities: true,

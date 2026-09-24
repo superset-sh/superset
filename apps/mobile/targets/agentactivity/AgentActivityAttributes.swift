@@ -7,14 +7,7 @@ import Foundation
 struct AgentActivityAttributes: ActivityAttributes {
 	/// The App Group both targets read and write. The Live Activity sandbox
 	/// has no network, so project icons arrive as files, never as URLs.
-	/// Derived, not literal: an app group belongs to the team that registered
-	/// it, so a side-by-side build signed by another team carries its own, and
-	/// `app.config.ts` entitles it by this same rule.
-	static let appGroup: String = {
-		let id = Bundle.main.bundleIdentifier ?? "sh.superset.mobile"
-		let app = id.hasSuffix(".widget") ? String(id.dropLast(7)) : id
-		return "group.\(app)"
-	}()
+	static let appGroup = "group.sh.superset.mobile"
 
 	struct AgentRow: Codable, Hashable, Identifiable {
 		/// Terminal id. Identity for ForEach, and the tab the link selects.

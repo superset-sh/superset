@@ -8,8 +8,7 @@
 			"developmentClient": true,
 			"distribution": "internal",
 			"environment": "development",
-			"channel": "development",
-			"env": { "APP_VARIANT": "development" }
+			"channel": "development"
 		},
 		"preview": {
 			"distribution": "internal",
