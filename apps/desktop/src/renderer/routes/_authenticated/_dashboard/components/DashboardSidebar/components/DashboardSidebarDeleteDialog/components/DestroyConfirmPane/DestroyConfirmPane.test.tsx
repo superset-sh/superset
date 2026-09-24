@@ -168,3 +168,33 @@ test("opening from an agent input focuses the native action without intercepting
 		input.remove();
 	}
 });
+
+describe("DestroyConfirmPane long workspace name", () => {
+	test("title carries wrapping classes so an unbreakable name cannot push the footer out of view", () => {
+		// happy-dom has no layout engine: this asserts the markup shape only.
+		// Real overflow verification needs CDP against the running desktop app.
+		const longName = `my_very_long_workspace_name_${"x".repeat(200)}`;
+		render(
+			<DestroyConfirmPane
+				open
+				onOpenChange={() => {}}
+				workspaceName={longName}
+				deleteBranch={false}
+				onDeleteBranchChange={() => {}}
+				hasChanges={false}
+				hasUnpushedCommits={false}
+				canConfirm
+				blockingReason={null}
+				onConfirm={() => {}}
+				confirmLabel="Delete"
+			/>,
+		);
+		const dialog = within(document.body).getByRole("alertdialog");
+		const title = dialog.querySelector('[data-slot="alert-dialog-title"]');
+		expect(title).toBeTruthy();
+		expect(title?.className).toMatch(/\bmin-w-0\b/);
+		expect(title?.className).toMatch(/\bbreak-words\b/);
+		expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeTruthy();
+		expect(within(dialog).getByRole("button", { name: "Delete" })).toBeTruthy();
+	});
+});

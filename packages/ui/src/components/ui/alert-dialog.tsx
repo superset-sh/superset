@@ -15,8 +15,14 @@ import { buttonVariants } from "./button";
 // `max-h-[calc(100vh-2rem)]` + `overflow-y-auto` keep the footer reachable
 // when content (e.g. a long workspace name) would otherwise push action
 // buttons off-screen.
+// `overflow-x-hidden` is the horizontal backstop for the same case: a grid
+// item's automatic minimum is its min-content width, so one unbreakable
+// token (underscores, camelCase, long slug) sizes the implicit column past
+// the dialog width and — since overflow-y: auto forces computed overflow-x
+// to auto — clips the title and pushes the right-aligned footer out of view.
+// `min-w-0` + `break-words` on title/description let the text wrap instead.
 export const alertDialogContentClassName =
-	"bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] max-h-[calc(100vh-2rem)] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 select-text sm:max-w-lg";
+	"bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] max-h-[calc(100vh-2rem)] overflow-y-auto overflow-x-hidden translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 select-text sm:max-w-lg";
 
 function AlertDialog({
 	...props
@@ -93,6 +99,9 @@ function EnterEnabledAlertDialogContent({
 	);
 }
 
+export const alertDialogHeaderClassName =
+	"flex min-w-0 flex-col gap-2 text-center sm:text-left";
+
 function AlertDialogHeader({
 	className,
 	...props
@@ -100,7 +109,7 @@ function AlertDialogHeader({
 	return (
 		<div
 			data-slot="alert-dialog-header"
-			className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+			className={cn(alertDialogHeaderClassName, className)}
 			{...props}
 		/>
 	);
@@ -122,6 +131,9 @@ function AlertDialogFooter({
 	);
 }
 
+export const alertDialogTitleClassName =
+	"min-w-0 text-lg font-semibold break-words";
+
 function AlertDialogTitle({
 	className,
 	...props
@@ -129,11 +141,14 @@ function AlertDialogTitle({
 	return (
 		<AlertDialogPrimitive.Title
 			data-slot="alert-dialog-title"
-			className={cn("text-lg font-semibold", className)}
+			className={cn(alertDialogTitleClassName, className)}
 			{...props}
 		/>
 	);
 }
+
+export const alertDialogDescriptionClassName =
+	"min-w-0 text-muted-foreground text-sm break-words";
 
 function AlertDialogDescription({
 	className,
@@ -142,7 +157,7 @@ function AlertDialogDescription({
 	return (
 		<AlertDialogPrimitive.Description
 			data-slot="alert-dialog-description"
-			className={cn("text-muted-foreground text-sm", className)}
+			className={cn(alertDialogDescriptionClassName, className)}
 			{...props}
 		/>
 	);
