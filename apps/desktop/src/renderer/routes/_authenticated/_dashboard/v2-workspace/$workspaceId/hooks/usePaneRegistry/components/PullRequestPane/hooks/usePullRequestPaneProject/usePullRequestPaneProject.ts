@@ -15,6 +15,8 @@ export function usePullRequestPaneProject(explicitProjectId?: string) {
 		hostId: isWorkspaceProject ? workspace.hostId : target.hostId,
 		hostUrl: isWorkspaceProject ? workspaceHostUrl : targetHostUrl,
 		isReady: isWorkspaceProject || target.isReady,
-		hasProject: isWorkspaceProject ? projectId !== null : !!target.project,
+		hasProject: isWorkspaceProject
+			? workspace.type !== "session"
+			: !!target.project,
 	};
 }

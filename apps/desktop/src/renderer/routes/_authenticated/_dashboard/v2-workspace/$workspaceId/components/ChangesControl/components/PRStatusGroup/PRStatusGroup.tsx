@@ -52,7 +52,7 @@ interface PRStatusGroupProps {
  * with a dropdown for merge actions (open, non-draft PRs), marking a draft
  * ready for review, the PR summary pane, and a GitHub link.
  * Clicking the badge toggles the Changes pane; the PR pane lives in the
- * menu (hidden for session workspaces — null projectId — since the PR
+ * menu (hidden for session workspaces, since the PR
  * content query is project-scoped). Hovering surfaces a rich detail popover (title,
  * branch, CI summary, last activity).
  *
@@ -70,7 +70,7 @@ export function PRStatusGroup({
 }: PRStatusGroupProps) {
 	const { t } = useLingui();
 	const { workspace } = useWorkspace();
-	const projectId = workspace.projectId;
+	const isSession = workspace.type === "session";
 	const pr =
 		state.kind === "pr-exists"
 			? state.pr
@@ -338,7 +338,7 @@ export function PRStatusGroup({
 							<DropdownMenuSeparator />
 						</>
 					)}
-					{projectId != null && (
+					{!isSession && (
 						<DropdownMenuItem
 							className="text-xs"
 							onClick={() => onOpenPullRequest(pr.number)}
