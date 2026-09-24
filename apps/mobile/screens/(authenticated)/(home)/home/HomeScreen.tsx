@@ -49,6 +49,7 @@ import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
 import { useAgentLiveActivity } from "./hooks/useAgentLiveActivity";
+import { useAppReviewPrompt } from "./hooks/useAppReviewPrompt";
 import { useCloudRepoPrefixes } from "./hooks/useCloudRepoPrefixes";
 import { useFirstPaint } from "./hooks/useFirstPaint";
 import {
@@ -144,6 +145,7 @@ export function HomeScreen() {
 	const insets = useSafeAreaInsets();
 	const headerHeight = useHeaderHeight();
 	const queryClient = useQueryClient();
+	useAppReviewPrompt();
 	const setTargetKey = useNewSessionPreferencesStore(
 		(state) => state.setTargetKey,
 	);

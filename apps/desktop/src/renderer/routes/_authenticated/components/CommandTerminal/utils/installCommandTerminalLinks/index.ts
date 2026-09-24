@@ -1,0 +1,1 @@
+export { installCommandTerminalLinks } from "./installCommandTerminalLinks";

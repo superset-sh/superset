@@ -2,7 +2,7 @@
 title: "Git Worktrees for AI Coding Agents: The Parallel Workflow"
 description: "How Git worktrees let you run multiple AI coding agents in parallel without collisions. Learn the workflow, the tradeoffs, and the tools that automate it."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-22
 type: "tutorial"
 competitors:
   - git-worktrees
@@ -15,7 +15,7 @@ keywords:
   - visual studio code git worktree
 ---
 
-If you run more than one AI coding agent on the same repository, the single most useful tool you can learn is the Git worktree. It is the clean, native way to give each agent its own isolated place to work, so parallel changes never collide. This guide explains what worktrees are, why they matter for agents, the exact workflow, and the tools that automate it. For the workflow around worktrees, see the complete guide to [parallel coding agents](/parallel-coding-agents).
+If you run more than one AI coding agent on the same repository, the single most useful tool you can learn is the Git worktree. It is the clean, native way to give each agent its own isolated place to work, so agents edit separate working directories. This guide explains what worktrees are, why they matter for agents, the exact workflow, and the tools that automate it. For the workflow around worktrees, see the complete guide to [parallel coding agents](/parallel-coding-agents).
 
 ---
 
@@ -25,8 +25,8 @@ A Git worktree is an additional working directory attached to the same repositor
 
 ```bash
 # from your repo
-git worktree add ../myrepo-feature-a feature-a
-git worktree add ../myrepo-bugfix    bugfix-123
+git worktree add -b feature-a ../myrepo-feature-a HEAD
+git worktree add -b bugfix-123 ../myrepo-bugfix HEAD
 ```
 
 Now `feature-a` and `bugfix-123` each have their own directory. Edits in one do not touch the other, and both share the same `.git` data. When you are done, you remove the worktree and keep the branch.
@@ -36,9 +36,9 @@ Now `feature-a` and `bugfix-123` each have their own directory. Edits in one do 
 AI coding agents edit files and run commands autonomously. Run two agents in the same directory and they overwrite each other's work, fight over the branch, and produce a tangled mess. Worktrees solve this cleanly:
 
 - **Isolation:** each agent gets its own directory and branch
-- **Parallelism:** many agents run at once without collisions
+- **Parallelism:** agents edit separate working copies
 - **Reviewability:** each worktree produces its own diff you can review independently
-- **Safety:** a bad run is contained to one worktree, not your main checkout
+- **Scope:** each change has a separate working copy; a worktree is not a security sandbox
 
 ![One repository fanning out into a Git worktree per agent, each on its own branch, producing independent diffs that converge into review and merge](/images/guides/worktree-isolation.svg)
 
@@ -66,6 +66,12 @@ Each worktree produces its own diff. Review them one at a time and merge the one
 
 Remove finished worktrees with `git worktree remove`. The branch stays; only the extra directory goes.
 
+## What isolation does not cover
+
+Worktrees share your machine and usually its credentials. They do not isolate databases, port numbers, provider quotas, or external services. Give previews distinct ports, separate writable test data, and run checks on the combined branches before accepting the result.
+
+A Git merge can succeed while the application fails: one branch might rename an API field that another branch expects. Review contracts as well as textual conflicts. The [three-task walkthrough](/blog/parallel-coding-agents-guide) includes scoped prompts and the review sequence.
+
 ## Doing It Manually vs Automatically
 
 You can run this whole workflow by hand with `git worktree`, tmux, and discipline. It works, and for two or three occasional agents it may be all you need. The friction grows with scale: creating, tracking, and cleaning up worktrees, launching agents, managing ports for dev servers, and reviewing many diffs becomes real overhead.
@@ -90,11 +96,11 @@ To go deeper, see [How to Run Multiple Claude Code Agents in Parallel](/compare/
 
 ### What is a Git worktree used for?
 
-A Git worktree lets you check out multiple branches at once, each in its own directory sharing the same repository. For AI coding, it gives each agent an isolated place to work so parallel changes do not collide.
+A Git worktree lets you check out multiple branches at once, each in its own directory sharing the same repository. For AI coding, it gives each agent an isolated place to work so agents do not edit the same working copy.
 
 ### How do I run multiple AI agents without conflicts?
 
-Give each agent its own Git worktree and branch so they never share a working directory. Do it manually with `git worktree add`, or automatically with a workspace like Superset that creates a worktree per task.
+Give each independent writer its own Git worktree and branch. This prevents shared-checkout edits, but merging can still introduce conflicts or incompatible behavior. Do it manually with `git worktree add`, or automatically with a workspace like Superset that creates a worktree per task.
 
 ### Do AI coding tools use Git worktrees?
 

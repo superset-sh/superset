@@ -5926,8 +5926,8 @@ msgstr "一切都能脚本化。用CLI创建工作区和智能体，用SDK把Sup
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "我们在基础组件之上构建的一切——Superset原创组件、面向智能体界面的"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "你发布过的所有内容都会被删除，而不是隐藏。你之后可以重新加入，届时会根据此机器上仍保留的记录重新生成，只有过往排名会丢失。"
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "你发布过的所有内容都会被删除，而不是隐藏。你之后可以重新加入，届时会根据此机器上仍保留的记录重新生成。"
 
 msgid "Existing repo path"
 msgstr "已有仓库路径"
@@ -6625,6 +6625,9 @@ msgstr "按审查筛选"
 
 msgid "Filter by state"
 msgstr "按状态筛选"
+
+msgid "Filter by workspace: {label}"
+msgstr "按工作区筛选：{label}"
 
 msgid "Filter hosts"
 msgstr "筛选主机"
@@ -13467,8 +13470,8 @@ msgstr "分享设计和报告，让你的智能体处理反馈。"
 msgid "Share page"
 msgstr "分享页面"
 
-msgid "Share settings"
-msgstr "共享设置"
+msgid "Share page (public)"
+msgstr "分享页面（公开）"
 
 msgid "Share this page"
 msgstr "分享此页面"
@@ -14961,9 +14964,6 @@ msgstr "关联的设备现在连不上"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "最好的智能体会变。<0/>你的工作流不该变。"
 
-msgid "The Codex sign-in"
-msgstr "Codex登录"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "配置仓库必须是该环境的仓库之一"
 
@@ -15426,10 +15426,6 @@ msgstr "此页面正在别处发布，请重试"
 
 msgid "This page is in another organization"
 msgstr "这个页面属于另一个组织"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "此页面已发布在 <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "找不到这个页面"
@@ -16041,6 +16037,9 @@ msgstr "未知变量：{unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "未知焊工"
+
+msgid "Unknown workspace"
+msgstr "未知工作区"
 
 msgid "Unlimited"
 msgstr "无限"

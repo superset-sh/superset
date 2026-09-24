@@ -72,6 +72,7 @@ export interface SupersetChatModel extends AgentModelOption {
  * Canonical model catalog served by the cloud `tRPC chat.getModels`.
  */
 export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
+	{ id: "anthropic/claude-opus-5-5", label: "Opus 5.5", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-5", label: "Opus 5", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-4-8", label: "Opus 4.8", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-4-7", label: "Opus 4.7", provider: "Anthropic" },
@@ -92,6 +93,8 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 		provider: "Anthropic",
 	},
 	{ id: "openai/gpt-6-astra", label: "GPT-6 Astra", provider: "OpenAI" },
+	{ id: "openai/gpt-6-sol", label: "GPT-6 Sol", provider: "OpenAI" },
+	{ id: "openai/gpt-6-luna", label: "GPT-6 Luna", provider: "OpenAI" },
 	{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol", provider: "OpenAI" },
 	{
 		id: "openai/gpt-5.6-terra",
@@ -128,6 +131,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			{ id: "haiku", label: "Haiku", group: LATEST_GROUP },
 			{ id: "claude-fable-5-1", label: "Fable 5.1", group: PINNED_GROUP },
 			{ id: "claude-fable-5", label: "Fable 5", group: PINNED_GROUP },
+			{ id: "claude-opus-5-5", label: "Opus 5.5", group: PINNED_GROUP },
 			{ id: "claude-opus-5", label: "Opus 5", group: PINNED_GROUP },
 			{ id: "claude-sonnet-5", label: "Sonnet 5", group: PINNED_GROUP },
 			{ id: "claude-opus-4-8", label: "Opus 4.8", group: PINNED_GROUP },
@@ -142,11 +146,11 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "codex",
 		modelFlag: "--model",
 		models: [
-			// GPT-6 Astra is the slug Codex's model docs publish (2026-09-03) and
-			// the API's only GPT-6 id. OpenAI is enabling it account by account,
-			// so it shows up in a login's live catalog (`codex app-server` →
-			// `model/list`) only once that account has access.
+			// Availability is account-dependent; ids are verified against Codex's
+			// live catalog (`codex app-server` → `model/list`).
 			{ id: "gpt-6-astra", label: "GPT-6 Astra", group: CURRENT_GROUP },
+			{ id: "gpt-6-sol", label: "GPT-6 Sol", group: CURRENT_GROUP },
+			{ id: "gpt-6-luna", label: "GPT-6 Luna", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-luna", label: "GPT-5.6 Luna", group: CURRENT_GROUP },
@@ -519,18 +523,25 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 			{ id: "medium", label: "Medium" },
 			{ id: "high", label: "High" },
 			{ id: "xhigh", label: "xHigh" },
-			// Per-model support taken from Codex's own model catalog
-			// (`supported_reasoning_levels`, codex-cli 0.149.1): every GPT-5.6
-			// model takes `max`, and `ultra` — max reasoning plus automatic
-			// task delegation — is Sol and Terra only. GPT-6 Astra documents
-			// `max` (API `reasoning.effort`); `ultra` stays off until its live
-			// catalog entry confirms it.
+			// Per-model support comes from Codex's live model catalog. GPT-6 Sol
+			// supports `ultra`; GPT-6 Luna supports up to `max`.
 			{
 				id: "max",
 				label: "Max",
-				models: ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+				models: [
+					"gpt-6-astra",
+					"gpt-6-sol",
+					"gpt-6-luna",
+					"gpt-5.6-sol",
+					"gpt-5.6-terra",
+					"gpt-5.6-luna",
+				],
 			},
-			{ id: "ultra", label: "Ultra", models: ["gpt-5.6-sol", "gpt-5.6-terra"] },
+			{
+				id: "ultra",
+				label: "Ultra",
+				models: ["gpt-6-sol", "gpt-5.6-sol", "gpt-5.6-terra"],
+			},
 		],
 	},
 	{

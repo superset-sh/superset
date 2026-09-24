@@ -2,27 +2,23 @@ import { LegendList } from "@legendapp/list/react-native";
 import { useLingui } from "@lingui/react/macro";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { RefreshControl, View } from "react-native";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { PageRow } from "./components/PageRow";
-import { NO_PAGES, type OrgPage, usePagesQuery } from "./hooks/usePages";
-import { matchesScope, usePagesFilterStore } from "./stores/pagesFilterStore";
+import { type OrgPage, usePagesQuery } from "./hooks/usePages";
+import { usePagesFilterStore } from "./stores/pagesFilterStore";
 
 export function PagesScreen() {
 	const { t } = useLingui();
 	const router = useRouter();
 	const [refreshing, setRefreshing] = useState(false);
-	const pages = usePagesQuery();
 	const scope = usePagesFilterStore((state) => state.scope);
 	const hasHydrated = usePagesFilterStore((state) => state.hasHydrated);
+	const pages = usePagesQuery(scope);
 	const offline = pages.status === "pending" && pages.fetchStatus === "paused";
-
-	const visible = useMemo(
-		() => (pages.data ?? NO_PAGES).filter((page) => matchesScope(page, scope)),
-		[pages.data, scope],
-	);
+	const visible = pages.items;
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
@@ -68,6 +64,12 @@ export function PagesScreen() {
 				extraData={renderItem}
 				keyExtractor={(page) => page.id}
 				renderItem={renderItem}
+				onEndReachedThreshold={0.5}
+				onEndReached={() => {
+					if (pages.hasNextPage && !pages.isFetchingNextPage) {
+						void pages.fetchNextPage();
+					}
+				}}
 				refreshControl={
 					<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
 				}

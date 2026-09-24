@@ -5926,8 +5926,8 @@ msgstr "すべてスクリプトから操作できます。CLIでワークスペ
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "プリミティブの上に作ったもの一式 — Superset独自のコンポーネント、エージェントUI向けの"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "公開したものはすべて削除され、非表示になるわけではありません。後で再参加すれば、このマシンに残っているトランスクリプトから再構築されます — 失われるのは過去のランキングのみです。"
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "公開したものはすべて削除され、非表示になるわけではありません。後で再参加すれば、このマシンに残っているトランスクリプトから再構築されます。"
 
 msgid "Existing repo path"
 msgstr "既存リポジトリのパス"
@@ -6625,6 +6625,9 @@ msgstr "レビューで絞り込む"
 
 msgid "Filter by state"
 msgstr "状態で絞り込む"
+
+msgid "Filter by workspace: {label}"
+msgstr "ワークスペースで絞り込み: {label}"
 
 msgid "Filter hosts"
 msgstr "ホストを絞り込み"
@@ -13467,8 +13470,8 @@ msgstr "デザインやレポートを共有しましょう。フィードバッ
 msgid "Share page"
 msgstr "ページを共有"
 
-msgid "Share settings"
-msgstr "共有設定"
+msgid "Share page (public)"
+msgstr "ページを共有（公開）"
 
 msgid "Share this page"
 msgstr "このページを共有"
@@ -14961,9 +14964,6 @@ msgstr "関連デバイスに現在接続できません"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "最良のエージェントは変わります。<0/>ワークフローは変わるべきではありません。"
 
-msgid "The Codex sign-in"
-msgstr "Codexのサインイン"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "設定リポジトリは環境のリポジトリのいずれかである必要があります"
 
@@ -15426,10 +15426,6 @@ msgstr "このページは別の場所から公開処理中です — 再試行�
 
 msgid "This page is in another organization"
 msgstr "このページは別の組織にあります"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "このページは <0>{0}</0> で公開中です"
 
 msgid "This page isn't here"
 msgstr "このページはありません"
@@ -16041,6 +16037,9 @@ msgstr "不明な変数: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "正体不明の溶接工"
+
+msgid "Unknown workspace"
+msgstr "不明なワークスペース"
 
 msgid "Unlimited"
 msgstr "無制限"

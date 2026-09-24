@@ -165,24 +165,22 @@ export class TerminalAgentStore extends EventEmitter {
 			return;
 		}
 
-		const existing = this.byTerminal.get(terminalId);
+		const ended = this.persistence?.getEnded?.(terminalId);
+		const existing = ended ? undefined : this.byTerminal.get(terminalId);
 		if (!agentId && !existing) return;
 
 		// A late event for a dead terminal must not resurrect its ended row
 		// (the upsert would clear the resume state). Revive only on a fresh
 		// session start, a different agent session id, or an event well past
 		// the end (an agent without SessionStart hooks launched later).
-		if (!existing && this.persistence?.getEnded) {
-			const ended = this.persistence.getEnded(terminalId);
-			if (
-				ended !== undefined &&
-				eventType !== "Attached" &&
-				(agentSessionId === undefined ||
-					agentSessionId === ended.agentSessionId) &&
-				occurredAt - ended.endedAt <= END_STRAGGLER_WINDOW_MS
-			) {
-				return;
-			}
+		if (
+			ended !== undefined &&
+			eventType !== "Attached" &&
+			(agentSessionId === undefined ||
+				agentSessionId === ended.agentSessionId) &&
+			occurredAt - ended.endedAt <= END_STRAGGLER_WINDOW_MS
+		) {
+			return;
 		}
 
 		const nextAgentId = agentId ?? existing?.agentId;
@@ -414,6 +412,7 @@ export class TerminalAgentStore extends EventEmitter {
 	}
 
 	get(terminalId: string): TerminalAgentBinding | undefined {
+		if (this.persistence?.getEnded?.(terminalId)) return undefined;
 		const binding = this.byTerminal.get(terminalId);
 		return binding && this.withRuntimeState(binding);
 	}

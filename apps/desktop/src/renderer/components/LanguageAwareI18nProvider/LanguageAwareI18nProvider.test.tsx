@@ -9,6 +9,11 @@ import {
 } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
+const realAuthClientModule = { ...(await import("renderer/lib/auth-client")) };
+const realPostHogModule = { ...(await import("renderer/lib/posthog")) };
+const registerLocale = mock();
+const people = { set: mock() };
+
 // happy-dom is process-wide; unregister in afterAll so the shared mock
 // document is restored for the other renderer suites.
 const alreadyRegistered = GlobalRegistrator.isRegistered;
@@ -42,10 +47,23 @@ mock.module("renderer/lib/electron-trpc", () => ({
 // The tagger renders alongside the provider's children and pulls in auth and
 // PostHog — irrelevant to locale resolution, stubbed out here.
 mock.module("renderer/lib/auth-client", () => ({
-	authClient: { useSession: () => ({ data: null }) },
+	...realAuthClientModule,
+	authClient: new Proxy(realAuthClientModule.authClient, {
+		get(target, property, receiver) {
+			if (property === "useSession") return () => ({ data: null });
+			return Reflect.get(target, property, receiver);
+		},
+	}),
 }));
 mock.module("renderer/lib/posthog", () => ({
-	posthog: { register: mock(), people: { set: mock() } },
+	...realPostHogModule,
+	posthog: new Proxy(realPostHogModule.posthog, {
+		get(target, property, receiver) {
+			if (property === "register") return registerLocale;
+			if (property === "people") return people;
+			return Reflect.get(target, property, receiver);
+		},
+	}),
 }));
 
 const originalNavigator = Object.getOwnPropertyDescriptor(
@@ -91,6 +109,8 @@ afterEach(() => {
 	}
 });
 afterAll(async () => {
+	mock.module("renderer/lib/auth-client", () => realAuthClientModule);
+	mock.module("renderer/lib/posthog", () => realPostHogModule);
 	if (!alreadyRegistered) await GlobalRegistrator.unregister();
 });
 

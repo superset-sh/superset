@@ -4,7 +4,7 @@ import { toast } from "@superset/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { BACKFILL_DAYS, publishUsage } from "renderer/lib/leaderboard";
+import { launchBackfillDays, publishUsage } from "renderer/lib/leaderboard";
 import {
 	clearAutoPublishState,
 	writeAutoPublishState,
@@ -48,16 +48,24 @@ export function useLeaderboardOptIn(period: LeaderboardPeriod = "all") {
 					return false;
 				}
 
+				writeAutoPublishState({
+					handle,
+					lastPublishedAt: 0,
+					lastPayloadHash: null,
+					pendingBackfill: true,
+				});
+
 				let published: number | null = 0;
 				if (activeHostUrl && machineId) {
 					try {
 						published = (
-							await publishUsage(activeHostUrl, machineId, BACKFILL_DAYS)
+							await publishUsage(activeHostUrl, machineId, launchBackfillDays())
 						).days;
 						writeAutoPublishState({
 							handle,
 							lastPublishedAt: Date.now(),
 							lastPayloadHash: null,
+							pendingBackfill: false,
 						});
 					} catch {
 						published = null;

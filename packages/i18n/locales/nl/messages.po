@@ -5926,8 +5926,8 @@ msgstr "Alles is scriptbaar. Start werkruimtes en agents vanaf de CLI, koppel Su
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Alles wat we boven op de primitives hebben gebouwd — Superset-originelen, de"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Alles wat je hebt gepubliceerd wordt verwijderd, niet verborgen. Je kunt later opnieuw meedoen; dan wordt het opnieuw opgebouwd uit de transcripten die nog op deze machine staan — alleen je eerdere positie gaat verloren."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Alles wat je hebt gepubliceerd wordt verwijderd, niet verborgen. Je kunt later opnieuw meedoen; dan wordt het opnieuw opgebouwd uit de transcripten die nog op deze machine staan."
 
 msgid "Existing repo path"
 msgstr "Pad van bestaande repo"
@@ -6625,6 +6625,9 @@ msgstr "Filteren op reviews"
 
 msgid "Filter by state"
 msgstr "Filteren op status"
+
+msgid "Filter by workspace: {label}"
+msgstr "Filteren op werkruimte: {label}"
 
 msgid "Filter hosts"
 msgstr "Hosts filteren"
@@ -13467,8 +13470,8 @@ msgstr "Deel ontwerpen en rapporten. Laat je agent de feedback verwerken."
 msgid "Share page"
 msgstr "Pagina delen"
 
-msgid "Share settings"
-msgstr "Deelinstellingen"
+msgid "Share page (public)"
+msgstr "Pagina delen (openbaar)"
 
 msgid "Share this page"
 msgstr "Deze pagina delen"
@@ -14961,9 +14964,6 @@ msgstr "Het bijbehorende apparaat is nu niet bereikbaar"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "De beste agent verandert.<0/>Jouw workflow niet."
 
-msgid "The Codex sign-in"
-msgstr "De Codex-login"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "De configuratierepository moet een van de repositories van de omgeving zijn"
 
@@ -15426,10 +15426,6 @@ msgstr "Deze pagina wordt ergens anders gepubliceerd — probeer opnieuw"
 
 msgid "This page is in another organization"
 msgstr "Deze pagina hoort bij een andere organisatie"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Deze pagina staat live op <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Deze pagina staat hier niet"
@@ -16041,6 +16037,9 @@ msgstr "Onbekende variabelen: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Onbekende Lasser"
+
+msgid "Unknown workspace"
+msgstr "Onbekende werkruimte"
 
 msgid "Unlimited"
 msgstr "Onbeperkt"

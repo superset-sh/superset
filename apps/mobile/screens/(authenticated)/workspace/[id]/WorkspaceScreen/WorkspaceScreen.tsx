@@ -43,7 +43,6 @@ import {
 import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { useAgentIconUris } from "@/screens/(authenticated)/hooks/useAgentIconUris";
-import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { useSlashCommands } from "@/screens/(authenticated)/hooks/useSlashCommands";
 import { workspaceDraftKey } from "@/screens/(authenticated)/stores/composerDraftsStore";
@@ -416,7 +415,6 @@ export function WorkspaceScreen() {
 	const markTerminalSeen = useTerminalSeenStore(
 		(state) => state.markTerminalSeen,
 	);
-	const requestAppReview = useAppReviewPrompt();
 	const activeRow = rows.find((row) => row.terminalId === activeTerminalId);
 	const slashCommands = useSlashCommands({
 		machineId: host?.machineId ?? null,
@@ -428,8 +426,7 @@ export function WorkspaceScreen() {
 		if (activeRow?.attention !== "review") return;
 		if (activeRow.lastEventAt === null) return;
 		markTerminalSeen(activeRow.terminalId, activeRow.lastEventAt);
-		requestAppReview("session_completed");
-	}, [activeRow, markTerminalSeen, requestAppReview]);
+	}, [activeRow, markTerminalSeen]);
 
 	// Brand marks as file URIs: the composer draws them, and neither SwiftUI nor
 	// the bridge can read a Metro asset reference.

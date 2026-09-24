@@ -3,9 +3,14 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { Redirect } from "renderer/components/Redirect";
 import { PagesView } from "./components/PagesView";
-import { isPageScope, type PageScope } from "./utils/filterPages";
+import { isPageScope, type PageScope } from "./utils/pageScope";
 
-export type PagesSearch = { q?: string; scope?: PageScope; author?: string };
+export type PagesSearch = {
+	q?: string;
+	scope?: PageScope;
+	author?: string;
+	workspace?: string;
+};
 
 export const Route = createFileRoute("/_authenticated/_dashboard/pages/")({
 	component: PagesPage,
@@ -16,11 +21,15 @@ export const Route = createFileRoute("/_authenticated/_dashboard/pages/")({
 			typeof search.author === "string" && search.author
 				? search.author
 				: undefined,
+		workspace:
+			typeof search.workspace === "string" && search.workspace
+				? search.workspace
+				: undefined,
 	}),
 });
 
 function PagesPage() {
-	const { q, scope, author } = Route.useSearch();
+	const { q, scope, author, workspace } = Route.useSearch();
 	const navigate = useNavigate({ from: Route.fullPath });
 	const isEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES);
 
@@ -32,6 +41,7 @@ function PagesPage() {
 			search={q ?? ""}
 			scope={scope ?? "all"}
 			authorId={author ?? null}
+			workspaceId={workspace ?? null}
 			onSearchChange={(value) =>
 				navigate({
 					search: (prev) => ({ ...prev, q: value || undefined }),
@@ -50,6 +60,12 @@ function PagesPage() {
 			onAuthorChange={(value) =>
 				navigate({
 					search: (prev) => ({ ...prev, author: value ?? undefined }),
+					replace: true,
+				})
+			}
+			onWorkspaceChange={(value) =>
+				navigate({
+					search: (prev) => ({ ...prev, workspace: value ?? undefined }),
 					replace: true,
 				})
 			}

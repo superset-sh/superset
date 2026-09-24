@@ -5926,8 +5926,8 @@ msgstr "Всё скриптуется. Поднимайте рабочие об�
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Всё, что мы построили поверх примитивов, — оригиналы Superset, набор"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Всё опубликованное удаляется, а не скрывается. Вы можете вернуться позже, и данные соберутся заново из расшифровок, оставшихся на этой машине — потеряется только прошлое место в рейтинге."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Всё опубликованное удаляется, а не скрывается. Вы можете вернуться позже, и данные соберутся заново из расшифровок, оставшихся на этой машине."
 
 msgid "Existing repo path"
 msgstr "Путь к существующему репозиторию"
@@ -6625,6 +6625,9 @@ msgstr "Фильтр по ревью"
 
 msgid "Filter by state"
 msgstr "Фильтр по состоянию"
+
+msgid "Filter by workspace: {label}"
+msgstr "Фильтр по рабочей области: {label}"
 
 msgid "Filter hosts"
 msgstr "Фильтр хостов"
@@ -13467,8 +13470,8 @@ msgstr "Делитесь дизайнами и отчётами. Пусть ва
 msgid "Share page"
 msgstr "Поделиться страницей"
 
-msgid "Share settings"
-msgstr "Настройки доступа"
+msgid "Share page (public)"
+msgstr "Поделиться страницей (публичная)"
 
 msgid "Share this page"
 msgstr "Поделиться этой страницей"
@@ -14961,9 +14964,6 @@ msgstr "Связанное устройство сейчас недоступн�
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Лучший агент будет меняться.<0/>Ваш процесс — нет."
 
-msgid "The Codex sign-in"
-msgstr "Вход в Codex"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Репозиторий конфигурации должен быть одним из репозиториев окружения"
 
@@ -15426,10 +15426,6 @@ msgstr "Эта страница публикуется откуда-то ещё 
 
 msgid "This page is in another organization"
 msgstr "Эта страница в другой организации"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Эта страница опубликована по адресу <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Этой страницы здесь нет"
@@ -16041,6 +16037,9 @@ msgstr "Неизвестные переменные: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Неизвестный сварщик"
+
+msgid "Unknown workspace"
+msgstr "Неизвестная рабочая область"
 
 msgid "Unlimited"
 msgstr "Без ограничений"

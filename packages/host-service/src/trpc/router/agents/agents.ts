@@ -26,7 +26,7 @@ import { hostAgentConfigs, workspaces } from "../../../db/schema";
 import { hasHarnessSession } from "../../../terminal/harness-transcript";
 import {
 	createTerminalSessionInternal,
-	writeFramedInputToSession,
+	sendAgentMessage,
 } from "../../../terminal/terminal";
 import type { TerminalAgentStore } from "../../../terminal-agents";
 import type { HostServiceContext } from "../../../types";
@@ -674,12 +674,11 @@ async function continueTerminalAgent(
 	const target = continuationTarget(ctx.db, ctx.terminalAgentStore, input);
 	if (!target) return null;
 
-	const sent = await writeFramedInputToSession({
+	const sent = await sendAgentMessage({
 		terminalId: target.terminalId,
 		workspaceId: input.workspaceId,
-		// The prompt embeds third-party content (an email body, a PR title); a
-		// paste-end sequence inside it would close the frame and inject keys.
-		text: sanitizePromptForPty(input.prompt),
+		text: input.prompt,
+		terminalAgentStore: ctx.terminalAgentStore,
 		submit: true,
 		db: ctx.db,
 		eventBus: ctx.eventBus,

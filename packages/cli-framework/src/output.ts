@@ -45,6 +45,8 @@ function isResultWithMessage(result: unknown): result is { message: string } {
 }
 
 function extractIds(data: unknown): string {
+	if (isPaginatedEnvelope(data)) return extractIds(data.items);
+
 	if (Array.isArray(data)) {
 		return data
 			.map((item) => {
@@ -61,6 +63,16 @@ function extractIds(data: unknown): string {
 	}
 
 	return JSON.stringify(data);
+}
+
+function isPaginatedEnvelope(data: unknown): data is { items: unknown[] } {
+	return (
+		typeof data === "object" &&
+		data !== null &&
+		"items" in data &&
+		"nextCursor" in data &&
+		Array.isArray((data as { items: unknown }).items)
+	);
 }
 
 const URL_CELL = /^https?:\/\/\S+$/;

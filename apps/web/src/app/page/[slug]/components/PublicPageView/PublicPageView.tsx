@@ -34,7 +34,7 @@ export function PublicPageView({
 					{signedIn ? (
 						<OpenInSupersetButton slug={slug} />
 					) : (
-						<Button asChild size="xs" variant="ghost">
+						<Button asChild size="xs">
 							<Link
 								href={{
 									pathname: "/sign-in",

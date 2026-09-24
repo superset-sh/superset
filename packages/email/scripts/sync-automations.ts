@@ -71,6 +71,24 @@ function template(alias: string, variables?: Record<string, unknown>) {
 
 const desired: DesiredAutomation[] = [
 	{
+		// Every signup's welcome email; stopping this stops them all. It has its
+		// own event because `user.signed_up` is withheld from the A/B control arm.
+		name: "welcome",
+		steps: [
+			{
+				key: "start",
+				type: "trigger",
+				config: { eventName: "user.welcome" },
+			},
+			{
+				key: "send_welcome",
+				type: "send_email",
+				config: { template: template("activation-00-welcome") },
+			},
+		],
+		connections: [{ from: "start", to: "send_welcome", type: "default" }],
+	},
+	{
 		name: "pro-cancellation-feedback",
 		steps: [
 			{

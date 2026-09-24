@@ -7,6 +7,7 @@ import {
 	v2UsersHosts,
 	v2Workspaces,
 } from "@superset/db/schema";
+import { escapeLikePattern } from "@superset/db/utils";
 import type { DraftTrigger } from "@superset/shared/automation-triggers";
 import {
 	AUTOMATIONS_REQUIRED_PLAN,
@@ -72,10 +73,6 @@ async function requireAutomationsPlan(
 		});
 	}
 	return organizationId;
-}
-
-function escapeLikePattern(value: string): string {
-	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
 }
 
 async function verifyHostAccess(

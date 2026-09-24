@@ -17,7 +17,6 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { posthog } from "@/lib/posthog";
 import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
-import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
 import { PullRequestCard } from "./components/PullRequestCard";
 import { PullRequestDescription } from "./components/PullRequestDescription";
 import { PullRequestHeader } from "./components/PullRequestHeader";
@@ -55,7 +54,6 @@ export function PullRequestScreen() {
 		});
 	}, [workspaceId, pullNumber]);
 
-	const requestAppReview = useAppReviewPrompt();
 	const merge = useMergePullRequest({
 		workspaceId,
 		owner,
@@ -63,7 +61,6 @@ export function PullRequestScreen() {
 		pullNumber,
 		onMerged: () => {
 			void refetch();
-			requestAppReview("pr_merged");
 		},
 	});
 	const actions = usePullRequestActions({

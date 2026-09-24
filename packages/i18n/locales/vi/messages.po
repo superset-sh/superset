@@ -5926,8 +5926,8 @@ msgstr "Mọi thứ đều viết script được. Tạo workspace và agent t�
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Mọi thứ chúng tôi dựng trên nền các primitive — thành phần riêng của Superset, bộ"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Mọi thứ bạn đã đăng sẽ bị xóa, không phải ẩn đi. Bạn có thể tham gia lại sau và dữ liệu sẽ được dựng lại từ các transcript còn trên máy này — chỉ mất thứ hạng cũ."
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Mọi thứ bạn đã đăng sẽ bị xóa, không phải ẩn đi. Bạn có thể tham gia lại sau và dữ liệu sẽ được dựng lại từ các transcript còn trên máy này."
 
 msgid "Existing repo path"
 msgstr "Đường dẫn repo có sẵn"
@@ -6625,6 +6625,9 @@ msgstr "Lọc theo review"
 
 msgid "Filter by state"
 msgstr "Lọc theo trạng thái"
+
+msgid "Filter by workspace: {label}"
+msgstr "Lọc theo workspace: {label}"
 
 msgid "Filter hosts"
 msgstr "Lọc host"
@@ -13467,8 +13470,8 @@ msgstr "Chia sẻ thiết kế và báo cáo. Hãy để agent của bạn xử 
 msgid "Share page"
 msgstr "Chia sẻ trang"
 
-msgid "Share settings"
-msgstr "Cài đặt chia sẻ"
+msgid "Share page (public)"
+msgstr "Chia sẻ trang (công khai)"
 
 msgid "Share this page"
 msgstr "Chia sẻ trang này"
@@ -14961,9 +14964,6 @@ msgstr "Hiện không kết nối được tới thiết bị liên quan"
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Agent tốt nhất sẽ thay đổi.<0/>Quy trình của bạn thì không."
 
-msgid "The Codex sign-in"
-msgstr "Lần đăng nhập Codex"
-
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Repository cấu hình phải là một trong các repository của environment"
 
@@ -15426,10 +15426,6 @@ msgstr "Trang này đang được xuất bản từ nơi khác — hãy thử l�
 
 msgid "This page is in another organization"
 msgstr "Trang này thuộc một tổ chức khác"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Trang này đang hoạt động tại <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Trang này không có ở đây"
@@ -16041,6 +16037,9 @@ msgstr "Biến không xác định: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Thợ hàn vô danh"
+
+msgid "Unknown workspace"
+msgstr "Workspace không xác định"
 
 msgid "Unlimited"
 msgstr "Không giới hạn"

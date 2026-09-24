@@ -20,6 +20,7 @@ export function readAutoPublishState(handle: string): AutoPublishState {
 				typeof parsed.lastPayloadHash === "string"
 					? parsed.lastPayloadHash
 					: null,
+			pendingBackfill: parsed.pendingBackfill === true,
 		};
 	} catch {
 		return INITIAL_AUTO_PUBLISH_STATE;

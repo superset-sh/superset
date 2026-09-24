@@ -13,7 +13,7 @@ A factory doesn't prove itself with a prototype. Anyone can build one good car b
 
 We've spent two years arguing that software is heading that way. We wrote down what the levels look like in [Factory 2026](/factory-2026) and what our own path to 100 parallel agents looks like in [our 2026 roadmap](/blog/roadmap-to-100-agents). What we never did was put a number on ourselves and let it be checked.
 
-So: **by August 2028, we expect the factory to be running on our leaderboard: more than one in five developers at the top tier, and the median developer at the tier below it.** Ten or more agent workstreams at once, ten agent-written PRs merging every week, for a fifth of the board. Today that number is zero.
+So: **by August 2028, we expect the factory to be running on our leaderboard: more than one in five developers at the top tier, and the median developer at the tier below it.** Ten or more agent workstreams at once, ten agent-written PRs merging every week, for a fifth of the board. On August 27, 2026, that number was zero.
 
 This post is that prediction, the instrument we're measuring it with, and the first run, which starts in September and asks for something much smaller than ten agents.
 
@@ -23,7 +23,7 @@ This post is that prediction, the instrument we're measuring it with, and the fi
 
 A production run is a fixed window where we all push one number and see what actually moves.
 
-Not a demo. Not a launch week. Everyone on the board works the same way for a month, we measure the same things, and at the end we know whether the thing we claim about software development is true for us, before we claim it about anyone else.
+For one month, everyone on the board works toward the same target. We measure the results to test our claims about software development against our own work.
 
 Predictions that can't be checked are marketing. This one has a date, a metric, and a public scoreboard. If we're wrong, the [leaderboard](/leaderboard) will say so in front of everybody, which is the point.
 
@@ -56,7 +56,7 @@ The tier is the **minimum** across all five, not an average. Ten parallel sessio
 
 Cost is graded on dollars per merged PR rather than on spend, because spend is about to get trivially easy, and grading it would grade the calendar. Efficiency doesn't: closing the gap from $15 a change to $3.50 takes fewer wasted sessions, not a bigger budget.
 
-None of your work leaves your machine. Not your prompts, not your file paths, not repo or branch names, not PR titles or numbers. The payload is five numbers a day, plus whatever handle you choose to publish under.
+The leaderboard payload contains five aggregate numbers a day and your chosen handle. It does not include prompts, file paths, repo or branch names, or PR titles or numbers.
 
 > **A note on this being wrong.** These thresholds are calibration guesses. The parallelism numbers are quoted from Factory 2026, but the token and PR floors are our best estimates and they will move as we see real data. The Output axis is the weakest of them today: PR sync is GitHub-only, it sees work inside Superset workspaces and nothing outside them, and a merge observed while the app is closed can go unrecorded. We'd rather ship an instrument that undercounts and fix it in public than wait for a perfect one. Expect this to change. We'll say so when it does.
 
@@ -137,11 +137,11 @@ The bottom drains steadily; the top tier stays near zero for a year and a half b
 | Feb 2028 | 27% | 33% | 31% | 9% |
 | Aug 2028 | 13% | 25% | 40% | 22% |
 
-That first row is real. One person out of the 320 developers ranked on the board on 27 August 2026 was above the bottom tier, and we're publishing it rather than quietly recalibrating until the chart looks better.
+That first row is real. One person out of the 320 developers ranked on the board on 27 August 2026 was above the bottom tier, and we're publishing it without recalibrating to make the chart look better.
 
-Some of that gap is the instrument. Output is conjunctive with the other three axes, and Output is the axis that currently can't see most people's merged PRs, so developers who are genuinely running four or five agents in parallel are reading as Button pushers because the sync never observed their work landing. Fixing that measurement is on us and it's the first thing we're doing. Some of the gap is real, though, and no amount of instrument work will move it. Telling those two apart is most of what September is for.
+Some of that gap is the instrument. Output must pass alongside the other four axes, and Output is the axis that currently can't see most people's merged PRs, so developers who are genuinely running four or five agents in parallel are reading as Button pushers because the sync never observed their work landing. Fixing that measurement is on us and it's the first thing we're doing. Some of the gap is real, though, and no amount of instrument work will move it. Telling those two apart is most of what September is for.
 
-One rule holds this together: **the floors never move to chase that curve.** If we lowered thresholds to make the distribution look healthy, a 2028 Henry Ford would mean exactly what a 2026 Henry Ford meant, and there'd be no progress to show, just a ranking. The numbers stay put. The distribution moves because people change.
+One rule holds this together: **the floors never move to chase that curve.** If we lowered thresholds to make the distribution look healthy, a 2028 Henry Ford would no longer mean what a 2026 Henry Ford meant, and there'd be no progress to show, just a ranking. The numbers stay put. The distribution moves because people change.
 
 Which is also what makes the prediction falsifiable. If eighteen months from now the observed doubling time is twenty months instead of seven, we were wrong, and the same scoreboard that made the claim will be the thing that disproves it.
 
@@ -151,9 +151,9 @@ The table above says Operator becomes the board's median tier sometime in mid 20
 
 **The September production run has one goal: everybody on the board reaches Operator.**
 
-That's it. Not Henry Ford. Not ten agents. For thirty days, five small numbers:
+For thirty days, the target is:
 
-- **Two agents at once.** Not ten. Two, often enough that it's your median rather than your best afternoon.
+- **Two agents at once.** Often enough that it's your median rather than your best afternoon.
 - **2.5M tokens per session.** Give a session a whole task instead of a question.
 - **One merged agent PR a week.** Four in the month. The work has to land.
 - **Ten active days.** A third of the month.
@@ -163,7 +163,7 @@ Clear all five inside the window and you get three things: a dated, numbered Run
 
 We picked a tiny goal on purpose. Operator is the smallest tier by the numbers and the hardest one by everything else, because it's the only rung where you give up something you're currently good at. Going from two agents to three is logistics. Going from one to two is deciding you're no longer going to watch. Every tier above it is a variation on that same move. You can't get to ten streams without first getting comfortable not watching two.
 
-There's a version of this that's just a leaderboard with badges on it, and that version is worthless. The reason to run it as a fixed month with one shared target is that we find out something we don't currently know: whether the bottleneck to running more agents is the tooling, which is our problem to fix, or the habit, which is yours. We think it's mostly ours. September is how we find out.
+One month with a shared target should help us distinguish limits in the tooling from the difficulty of changing work habits. We think the tooling is the larger problem. September is how we test that.
 
 The board is [public](/leaderboard). Opt in from the desktop app, and your tier and progress show up alongside everyone else's. If you'd rather compete without a name attached, you can publish privately and still see where you land.
 

@@ -24,6 +24,17 @@ export const listPageCommentsSchema = z.object({
 	activatedOnly: z.boolean().optional(),
 });
 
+/**
+ * Every thread in the organization, for a caller that would otherwise ask
+ * page by page. `workspaceId` narrows to the pages published from one
+ * workspace, matching `page.list`.
+ */
+export const listOrganizationPageCommentsSchema = z.object({
+	workspaceId: z.string().uuid().optional(),
+	activatedOnly: z.boolean().optional(),
+	unresolvedOnly: z.boolean().optional(),
+});
+
 export const createPageCommentThreadSchema = z
 	.object({
 		pageId: z.string().uuid(),
