@@ -71,7 +71,7 @@ describe("loadSetupConfig", () => {
 		expect(config).toBeNull();
 	});
 
-	test("prefers worktree config over main repo config", () => {
+	test("ignores worktree commands in favour of main repo config", () => {
 		const mainConfig = { setup: ["./.superset/setup.sh"] };
 		const worktreeConfig = { setup: ["scripts/setup-worktree.sh"] };
 
@@ -90,10 +90,10 @@ describe("loadSetupConfig", () => {
 			mainRepoPath: MAIN_REPO,
 			worktreePath: WORKTREE,
 		});
-		expect(config).toEqual(worktreeConfig);
+		expect(config).toEqual(mainConfig);
 	});
 
-	test("worktree config inherits missing keys from main repo config", () => {
+	test("worktree config cannot replace main repo commands", () => {
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
 			JSON.stringify({
@@ -115,7 +115,7 @@ describe("loadSetupConfig", () => {
 			worktreePath: WORKTREE,
 		});
 		expect(config).toEqual({
-			setup: ["scripts/setup-worktree.sh"],
+			setup: ["./.superset/setup.sh"],
 			run: ["bun dev"],
 		});
 	});
@@ -402,7 +402,7 @@ describe("config.local.json", () => {
 		});
 	});
 
-	test("worktree local config takes priority over main repo local config", () => {
+	test("worktree local config is ignored in favour of main repo local config", () => {
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
 			JSON.stringify({ setup: ["team-setup.sh"] }),
@@ -423,7 +423,7 @@ describe("config.local.json", () => {
 			worktreePath: WORKTREE,
 		});
 		expect(config).toEqual({
-			setup: ["team-setup.sh", "worktree-extra.sh"],
+			setup: ["team-setup.sh", "main-extra.sh"],
 		});
 	});
 
