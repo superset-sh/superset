@@ -4357,6 +4357,9 @@ msgstr "세션을 시작할 수 없습니다"
 msgid "Could not stop it"
 msgstr "중지할 수 없습니다"
 
+msgid "Could not stop watching"
+msgstr "감시를 중지할 수 없습니다"
+
 msgid "Could not submit prompt. Try again."
 msgstr "프롬프트를 제출할 수 없습니다. 다시 시도하세요."
 
@@ -14244,6 +14247,9 @@ msgstr "응답 중지"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "다른 기기에서 삭제하려면 여기에서 Superset을 종료하세요."
+
+msgid "Stop watching"
+msgstr "감시 중지"
 
 msgid "Stop workspace run command"
 msgstr "워크스페이스 실행 명령 중지"

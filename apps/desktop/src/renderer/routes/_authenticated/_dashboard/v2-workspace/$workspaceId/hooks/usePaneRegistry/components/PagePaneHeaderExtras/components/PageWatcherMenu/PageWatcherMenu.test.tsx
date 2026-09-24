@@ -25,6 +25,7 @@ interface Row {
 	agentId: string | null;
 	sessionTitle: string | null;
 	hostId: string;
+	hostUrl: string;
 }
 type CloudWatch = { watching: boolean; agentId: string | null };
 
@@ -32,6 +33,7 @@ let rows: Row[] = [];
 let cloudWatch: CloudWatch = { watching: false, agentId: null };
 let navigated: Array<{ workspaceId: string; terminalId: string | undefined }> =
 	[];
+let unwatched: Array<{ hostUrl: string; pageId: string }> = [];
 
 mock.module("renderer/hooks/host-service/usePageWatchersForPage", () => ({
 	usePageWatchersForPage: () => rows,
@@ -39,7 +41,22 @@ mock.module("renderer/hooks/host-service/usePageWatchersForPage", () => ({
 mock.module("renderer/lib/cloud-trpc", () => ({
 	cloudTrpc: {
 		page: { get: { useQuery: () => ({ data: { watch: cloudWatch } }) } },
+		useUtils: () => ({
+			page: { get: { invalidate: () => Promise.resolve() } },
+		}),
 	},
+}));
+mock.module("renderer/lib/host-service-client", () => ({
+	getHostServiceClientByUrl: (hostUrl: string) => ({
+		pageWatch: {
+			unwatch: {
+				mutate: ({ pageId }: { pageId: string }) => {
+					unwatched.push({ hostUrl, pageId });
+					return Promise.resolve({ pageId });
+				},
+			},
+		},
+	}),
 }));
 mock.module("@tanstack/react-router", () => ({
 	useNavigate: () => () => Promise.resolve(),
@@ -68,6 +85,9 @@ mock.module(
 const { act, cleanup, fireEvent, render, within } = await import(
 	"@testing-library/react"
 );
+const { QueryClient, QueryClientProvider } = await import(
+	"@tanstack/react-query"
+);
 const { PageWatcherMenu } = await import("./PageWatcherMenu");
 
 afterEach(cleanup);
@@ -79,6 +99,7 @@ beforeEach(() => {
 	rows = [];
 	cloudWatch = { watching: false, agentId: null };
 	navigated = [];
+	unwatched = [];
 });
 
 function watcher(overrides: Partial<Row> = {}): Row {
@@ -89,6 +110,7 @@ function watcher(overrides: Partial<Row> = {}): Row {
 		agentId: "codex",
 		sessionTitle: "Page watcher redesign",
 		hostId: "host-1",
+		hostUrl: "http://host-1",
 		...overrides,
 	};
 }
@@ -97,7 +119,9 @@ async function renderMenu() {
 	let view!: ReturnType<typeof render>;
 	await act(async () => {
 		view = render(
-			<PageWatcherMenu workspaceId={WORKSPACE_ID} pageId={PAGE_ID} />,
+			<QueryClientProvider client={new QueryClient()}>
+				<PageWatcherMenu workspaceId={WORKSPACE_ID} pageId={PAGE_ID} />
+			</QueryClientProvider>,
 		);
 	});
 	return within(view.baseElement as HTMLElement);
@@ -151,6 +175,24 @@ describe("a page one agent is watching", () => {
 		const ui = await openMenu();
 		expect(ui.getByText("codex")).toBeDefined();
 	});
+
+	test("the x stops it watching on its own host instead of opening it", async () => {
+		const ui = await openMenu();
+		await act(async () => {
+			fireEvent.click(ui.getByRole("button", { name: "Stop watching" }));
+		});
+		expect(unwatched).toEqual([{ hostUrl: "http://host-1", pageId: PAGE_ID }]);
+		expect(navigated).toEqual([]);
+	});
+
+	test("keeps the x reachable when its workspace is not on this machine", async () => {
+		rows = [watcher({ workspaceName: null })];
+		const ui = await openMenu();
+		await act(async () => {
+			fireEvent.click(ui.getByRole("button", { name: "Stop watching" }));
+		});
+		expect(unwatched).toEqual([{ hostUrl: "http://host-1", pageId: PAGE_ID }]);
+	});
 });
 
 describe("a page several agents are watching", () => {
@@ -164,9 +206,20 @@ describe("a page several agents are watching", () => {
 				agentId: "claude",
 				sessionTitle: "Onboarding copy pass",
 				hostId: "host-2",
+				hostUrl: "http://host-2",
 			}),
 		];
 		cloudWatch = { watching: true, agentId: "codex" };
+	});
+
+	test("stops only the one whose x was clicked", async () => {
+		const ui = await openMenu();
+		await act(async () => {
+			fireEvent.click(
+				ui.getAllByRole("button", { name: "Stop watching" })[1] as HTMLElement,
+			);
+		});
+		expect(unwatched).toEqual([{ hostUrl: "http://host-2", pageId: PAGE_ID }]);
 	});
 
 	test("counts them on the trigger", async () => {

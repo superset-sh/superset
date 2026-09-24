@@ -4357,6 +4357,9 @@ msgstr "无法启动会话"
 msgid "Could not stop it"
 msgstr "无法停止"
 
+msgid "Could not stop watching"
+msgstr "无法停止关注"
+
 msgid "Could not submit prompt. Try again."
 msgstr "无法提交提示词。请重试。"
 
@@ -14244,6 +14247,9 @@ msgstr "停止回复"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "在此停止Superset，然后从其他设备删除。"
+
+msgid "Stop watching"
+msgstr "停止关注"
 
 msgid "Stop workspace run command"
 msgstr "停止工作区运行命令"

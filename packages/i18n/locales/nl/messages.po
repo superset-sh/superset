@@ -4357,6 +4357,9 @@ msgstr "Kan sessie niet starten"
 msgid "Could not stop it"
 msgstr "Kon niet worden gestopt"
 
+msgid "Could not stop watching"
+msgstr "Kon niet stoppen met volgen"
+
 msgid "Could not submit prompt. Try again."
 msgstr "Kan prompt niet insturen. Probeer het opnieuw."
 
@@ -14244,6 +14247,9 @@ msgstr "Antwoord stoppen"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Stop Superset hier om vanaf een ander apparaat te verwijderen."
+
+msgid "Stop watching"
+msgstr "Stoppen met volgen"
 
 msgid "Stop workspace run command"
 msgstr "Run-commando van werkruimte stoppen"

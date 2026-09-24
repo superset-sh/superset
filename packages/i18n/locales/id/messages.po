@@ -4357,6 +4357,9 @@ msgstr "Tidak bisa memulai sesi"
 msgid "Could not stop it"
 msgstr "Tidak bisa dihentikan"
 
+msgid "Could not stop watching"
+msgstr "Tidak bisa berhenti memantau"
+
 msgid "Could not submit prompt. Try again."
 msgstr "Tidak bisa mengirim prompt. Coba lagi."
 
@@ -14244,6 +14247,9 @@ msgstr "Hentikan respons"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Hentikan Superset di sini untuk menghapus dari perangkat lain."
+
+msgid "Stop watching"
+msgstr "Berhenti memantau"
 
 msgid "Stop workspace run command"
 msgstr "Hentikan perintah run workspace"

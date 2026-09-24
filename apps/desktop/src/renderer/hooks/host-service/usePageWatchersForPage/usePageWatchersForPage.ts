@@ -14,6 +14,7 @@ export interface PageWatcherRow {
 	agentId: string | null;
 	sessionTitle: string | null;
 	hostId: string;
+	hostUrl: string;
 }
 
 export function getHostPageWatchersQueryKey(hostUrl: string) {
@@ -111,6 +112,7 @@ export function usePageWatchersForPage({
 					agentId: watcher.agentId,
 					sessionTitle: watcher.sessionTitle,
 					hostId: target.hostId,
+					hostUrl: target.hostUrl,
 				});
 			}
 		}

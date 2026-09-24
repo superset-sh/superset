@@ -4357,6 +4357,9 @@ msgstr "No se pudo iniciar la sesión"
 msgid "Could not stop it"
 msgstr "No se pudo detener"
 
+msgid "Could not stop watching"
+msgstr "No se pudo dejar de observar"
+
 msgid "Could not submit prompt. Try again."
 msgstr "No se pudo enviar el prompt. Inténtalo de nuevo."
 
@@ -14244,6 +14247,9 @@ msgstr "Detener la respuesta"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Detén Superset aquí para eliminarlo desde otro dispositivo."
+
+msgid "Stop watching"
+msgstr "Dejar de observar"
 
 msgid "Stop workspace run command"
 msgstr "Detener el comando de ejecución del espacio de trabajo"

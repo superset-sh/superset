@@ -4357,6 +4357,9 @@ msgstr "Impossibile avviare la sessione"
 msgid "Could not stop it"
 msgstr "Impossibile arrestarlo"
 
+msgid "Could not stop watching"
+msgstr "Impossibile smettere di osservare"
+
 msgid "Could not submit prompt. Try again."
 msgstr "Impossibile inviare il prompt. Riprova."
 
@@ -14244,6 +14247,9 @@ msgstr "Interrompi la risposta"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Chiudi Superset qui per eliminarlo da un altro dispositivo."
+
+msgid "Stop watching"
+msgstr "Smetti di osservare"
 
 msgid "Stop workspace run command"
 msgstr "Arresta il comando di esecuzione del workspace"

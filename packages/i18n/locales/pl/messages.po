@@ -4357,6 +4357,9 @@ msgstr "Nie udało się uruchomić sesji"
 msgid "Could not stop it"
 msgstr "Nie udało się zatrzymać"
 
+msgid "Could not stop watching"
+msgstr "Nie udało się przestać obserwować"
+
 msgid "Could not submit prompt. Try again."
 msgstr "Nie udało się wysłać promptu. Spróbuj ponownie."
 
@@ -14244,6 +14247,9 @@ msgstr "Zatrzymaj odpowiedź"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Zatrzymaj tutaj Superset, aby usunąć hosta z innego urządzenia."
+
+msgid "Stop watching"
+msgstr "Przestań obserwować"
 
 msgid "Stop workspace run command"
 msgstr "Zatrzymaj polecenie uruchamiania obszaru roboczego"

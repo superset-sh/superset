@@ -4357,6 +4357,9 @@ msgstr "Could not start session"
 msgid "Could not stop it"
 msgstr "Could not stop it"
 
+msgid "Could not stop watching"
+msgstr "Could not stop watching"
+
 msgid "Could not submit prompt. Try again."
 msgstr "Could not submit prompt. Try again."
 
@@ -14244,6 +14247,9 @@ msgstr "Stop response"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Stop Superset here to delete from another device."
+
+msgid "Stop watching"
+msgstr "Stop watching"
 
 msgid "Stop workspace run command"
 msgstr "Stop workspace run command"

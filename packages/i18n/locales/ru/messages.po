@@ -4357,6 +4357,9 @@ msgstr "Не удалось запустить сессию"
 msgid "Could not stop it"
 msgstr "Не удалось остановить"
 
+msgid "Could not stop watching"
+msgstr "Не удалось прекратить отслеживание"
+
 msgid "Could not submit prompt. Try again."
 msgstr "Не удалось отправить промпт. Повторите."
 
@@ -14244,6 +14247,9 @@ msgstr "Остановить ответ"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Остановите Superset здесь, чтобы удалить с другого устройства."
+
+msgid "Stop watching"
+msgstr "Прекратить отслеживание"
 
 msgid "Stop workspace run command"
 msgstr "Остановить команду запуска рабочей области"

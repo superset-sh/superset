@@ -4357,6 +4357,9 @@ msgstr "Relaci se nepodařilo spustit"
 msgid "Could not stop it"
 msgstr "Nepodařilo se ho zastavit"
 
+msgid "Could not stop watching"
+msgstr "Nepodařilo se přestat sledovat"
+
 msgid "Could not submit prompt. Try again."
 msgstr "Prompt se nepodařilo odeslat. Zkuste to znovu."
 
@@ -14244,6 +14247,9 @@ msgstr "Zastavit odpověď"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Ukončete tady Superset, ať ho smažete z jiného zařízení."
+
+msgid "Stop watching"
+msgstr "Přestat sledovat"
 
 msgid "Stop workspace run command"
 msgstr "Zastavit spouštěcí příkaz pracovního prostoru"

@@ -1,4 +1,5 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -9,14 +10,18 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { useFramePointerDown } from "@superset/ui/page-comments";
+import { toast } from "@superset/ui/sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowUpRight, Bot } from "lucide-react";
+import { Bot } from "lucide-react";
 import { useCallback, useState } from "react";
+import { HiMiniXMark } from "react-icons/hi2";
 import {
 	type PageWatcherRow,
 	usePageWatchersForPage,
 } from "renderer/hooks/host-service/usePageWatchersForPage";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { AgentIcon } from "renderer/routes/_authenticated/settings/agents/components/V2AgentsSettings/components/AgentIcon";
 
@@ -32,7 +37,26 @@ export function PageWatcherMenu({ workspaceId, pageId }: PageWatcherMenuProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
 	const watchers = usePageWatchersForPage({ pageId, workspaceId });
+	const queryClient = useQueryClient();
+	const cloudUtils = cloudTrpc.useUtils();
 	const [menuOpen, setMenuOpen] = useState(false);
+
+	const unwatch = useMutation({
+		mutationFn: async (watcher: PageWatcherRow) =>
+			await getHostServiceClientByUrl(watcher.hostUrl).pageWatch.unwatch.mutate(
+				{ pageId: pageId ?? "" },
+			),
+		onSettled: () => {
+			void queryClient.invalidateQueries({
+				queryKey: ["page-watchers-by-host"],
+			});
+			if (pageId) void cloudUtils.page.get.invalidate({ id: pageId });
+		},
+		onError: (error) =>
+			toast.error(t({ message: "Could not stop watching" }), {
+				description: errorMessage(error),
+			}),
+	});
 
 	useFramePointerDown(useCallback(() => setMenuOpen(false), []));
 
@@ -114,9 +138,12 @@ export function PageWatcherMenu({ workspaceId, pageId }: PageWatcherMenuProps) {
 						return (
 							<DropdownMenuItem
 								key={`${watcher.hostId}:${watcher.terminalId}`}
-								onSelect={navigable ? () => open(watcher) : undefined}
-								disabled={!navigable}
-								className="gap-2"
+								onSelect={
+									navigable
+										? () => open(watcher)
+										: (event) => event.preventDefault()
+								}
+								className="group gap-2"
 							>
 								<AgentIcon
 									presetId={watcher.agentId ?? ""}
@@ -130,9 +157,23 @@ export function PageWatcherMenu({ workspaceId, pageId }: PageWatcherMenuProps) {
 								<span className="max-w-[50%] shrink-0 truncate text-muted-foreground text-xs">
 									{watcher.workspaceName}
 								</span>
-								{navigable ? (
-									<ArrowUpRight className="size-3 shrink-0 text-muted-foreground" />
-								) : null}
+								<button
+									type="button"
+									aria-label={t({ message: "Stop watching" })}
+									title={t({ message: "Stop watching" })}
+									disabled={
+										unwatch.isPending &&
+										unwatch.variables?.terminalId === watcher.terminalId
+									}
+									className="flex shrink-0 items-center justify-center text-muted-foreground opacity-0 hover:text-foreground disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100 group-focus:opacity-100"
+									onClick={(event) => {
+										event.preventDefault();
+										event.stopPropagation();
+										unwatch.mutate(watcher);
+									}}
+								>
+									<HiMiniXMark className="size-3.5" />
+								</button>
 							</DropdownMenuItem>
 						);
 					})

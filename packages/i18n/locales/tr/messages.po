@@ -4357,6 +4357,9 @@ msgstr "Oturum başlatılamadı"
 msgid "Could not stop it"
 msgstr "Durdurulamadı"
 
+msgid "Could not stop watching"
+msgstr "İzleme durdurulamadı"
+
 msgid "Could not submit prompt. Try again."
 msgstr "İstem gönderilemedi. Yeniden deneyin."
 
@@ -14244,6 +14247,9 @@ msgstr "Yanıtı durdur"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Başka bir cihazdan silmek için Superset'i burada durdurun."
+
+msgid "Stop watching"
+msgstr "İzlemeyi durdur"
 
 msgid "Stop workspace run command"
 msgstr "Çalışma alanı çalıştırma komutunu durdur"

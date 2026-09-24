@@ -4357,6 +4357,9 @@ msgstr "Sitzung konnte nicht gestartet werden"
 msgid "Could not stop it"
 msgstr "Konnte nicht beendet werden"
 
+msgid "Could not stop watching"
+msgstr "Beobachten ließ sich nicht beenden"
+
 msgid "Could not submit prompt. Try again."
 msgstr "Prompt konnte nicht eingereicht werden. Versuche es erneut."
 
@@ -14244,6 +14247,9 @@ msgstr "Antwort stoppen"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Beende Superset hier, um von einem anderen Gerät aus zu löschen."
+
+msgid "Stop watching"
+msgstr "Nicht mehr beobachten"
 
 msgid "Stop workspace run command"
 msgstr "Run-Befehl des Arbeitsbereichs stoppen"
