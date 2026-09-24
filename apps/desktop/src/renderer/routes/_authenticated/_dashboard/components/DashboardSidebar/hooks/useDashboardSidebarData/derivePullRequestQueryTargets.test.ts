@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import {
 	derivePullRequestQueryTargets,
 	getDashboardSidebarPullRequestQueryKey,
@@ -46,6 +47,26 @@ describe("getDashboardSidebarPullRequestQueryKey", () => {
 			makeTarget({ hostUrl: "http://127.0.0.1:53875" }),
 		);
 		expect(after).toEqual(before);
+	});
+
+	it("is stable when a remote host goes offline and its URL goes null", () => {
+		// A key that encodes reachability blanks every PR chip on the host the
+		// moment the relay socket flaps.
+		const online = getDashboardSidebarPullRequestQueryKey(
+			makeTarget({
+				machineId: "machine-remote",
+				hostType: "remote-device",
+				hostUrl: `${RELAY_URL}/hosts/${buildHostRoutingKey("org-1", "machine-remote")}`,
+			}),
+		);
+		const offline = getDashboardSidebarPullRequestQueryKey(
+			makeTarget({
+				machineId: "machine-remote",
+				hostType: "remote-device",
+				hostUrl: null,
+			}),
+		);
+		expect(offline).toEqual(online);
 	});
 
 	it("differs across hosts and across orgs on the same machine", () => {
@@ -102,7 +123,7 @@ describe("derivePullRequestQueryTargets", () => {
 		expect(targets[0]?.machineId).toBe(MACHINE_ID);
 	});
 
-	it("omits offline remote hosts", () => {
+	it("keeps offline remote hosts with a null URL", () => {
 		const targets = derivePullRequestQueryTargets({
 			activeHostUrl: LOCAL_HOST_URL,
 			hosts: [
@@ -114,8 +135,39 @@ describe("derivePullRequestQueryTargets", () => {
 			],
 			machineId: MACHINE_ID,
 			relayUrl: RELAY_URL,
+			workspaces: [
+				{ id: "ws-r2", hostId: "machine-remote" },
+				{ id: "ws-r1", hostId: "machine-remote" },
+			],
+		});
+		expect(targets).toHaveLength(1);
+		expect(targets[0]).toEqual({
+			organizationId: "org-1",
+			machineId: "machine-remote",
+			hostType: "remote-device",
+			hostUrl: null,
+			workspaceIds: ["ws-r1", "ws-r2"],
+		});
+	});
+
+	it("routes online remote hosts through the relay", () => {
+		const targets = derivePullRequestQueryTargets({
+			activeHostUrl: LOCAL_HOST_URL,
+			hosts: [
+				{
+					organizationId: "org-1",
+					machineId: "machine-remote",
+					isOnline: true,
+				},
+			],
+			machineId: MACHINE_ID,
+			relayUrl: RELAY_URL,
 			workspaces: [{ id: "ws-r", hostId: "machine-remote" }],
 		});
-		expect(targets).toHaveLength(0);
+		expect(targets).toHaveLength(1);
+		expect(targets[0]?.hostType).toBe("remote-device");
+		expect(targets[0]?.hostUrl).toBe(
+			`${RELAY_URL}/hosts/${buildHostRoutingKey("org-1", "machine-remote")}`,
+		);
 	});
 });
