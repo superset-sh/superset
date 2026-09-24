@@ -253,6 +253,13 @@
       "when": 1789230415434,
       "tag": "0035_local_workspaces",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1790290222356,
+      "tag": "0036_binding_transcript_path",
+      "breakpoints": true
     }
   ]
 }

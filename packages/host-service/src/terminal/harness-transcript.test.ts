@@ -1,12 +1,24 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	realpathSync,
+	rmSync,
+	symlinkSync,
+	truncateSync,
+	writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+	claudeProjectDirName,
 	hasHarnessSession,
 	readFileTail,
 	readHarnessTranscript,
 } from "./harness-transcript";
+
+const BUDGET = 36_000;
 
 /**
  * The adapter reads from `~/.claude/projects/<encoded cwd>/`, so the fixture
@@ -14,19 +26,66 @@ import {
  */
 const created: string[] = [];
 
-function seedClaudeSession(lines: string[]): {
+function seedClaudeSession(
+	lines: string[],
+	worktreePrefix = "handoff-fixture-",
+): {
 	worktreePath: string;
 	sessionId: string;
 } {
-	const worktreePath = mkdtempSync(join(tmpdir(), "handoff-fixture-"));
+	const worktreePath = realpathSync(
+		mkdtempSync(join(tmpdir(), worktreePrefix)),
+	);
 	const sessionId = "11111111-2222-4333-8444-555555555555";
-	const encoded = worktreePath.replaceAll(/[/.]/g, "-");
-	const dir = join(homedir(), ".claude", "projects", encoded);
+	const dir = join(
+		homedir(),
+		".claude",
+		"projects",
+		claudeProjectDirName(worktreePath),
+	);
 	mkdirSync(dir, { recursive: true });
 	writeFileSync(join(dir, `${sessionId}.jsonl`), `${lines.join("\n")}\n`);
 	created.push(dir, worktreePath);
 	return { worktreePath, sessionId };
 }
+
+/** A session under a throwaway CLAUDE_CONFIG_DIR, so ~/.claude is untouched. */
+function seedPinnedSession(
+	body: string,
+	worktreePath = "/nonexistent/worktree",
+): {
+	env: { CLAUDE_CONFIG_DIR: string };
+	read: (maxChars?: number) => string | undefined;
+} {
+	const configDir = mkdtempSync(join(tmpdir(), "claude-config-"));
+	created.push(configDir);
+	const dir = join(configDir, "projects", claudeProjectDirName(worktreePath));
+	mkdirSync(dir, { recursive: true });
+	writeFileSync(join(dir, "session.jsonl"), body);
+	const env = { CLAUDE_CONFIG_DIR: configDir };
+	return {
+		env,
+		read: (maxChars = BUDGET) =>
+			readHarnessTranscript({
+				agentId: "claude",
+				agentSessionId: "session",
+				worktreePath,
+				env,
+				maxChars,
+			})?.text,
+	};
+}
+
+const userLine = (content: string) =>
+	JSON.stringify({ type: "user", message: { role: "user", content } });
+const toolResultLine = (bytes: number) =>
+	JSON.stringify({
+		type: "user",
+		message: {
+			role: "user",
+			content: [{ type: "tool_result", content: "x".repeat(bytes) }],
+		},
+	});
 
 afterEach(() => {
 	for (const path of created.splice(0)) {
@@ -73,6 +132,7 @@ describe("readHarnessTranscript", () => {
 				agentId: "claude",
 				agentSessionId: sessionId,
 				worktreePath,
+				maxChars: BUDGET,
 			})?.text,
 		).toBe(
 			`User: Fix the parser.\n\nUser: ${prompt}\n\nAssistant: Kept the API and added the regression.`,
@@ -114,6 +174,7 @@ describe("readHarnessTranscript", () => {
 				agentId: "claude",
 				agentSessionId: sessionId,
 				worktreePath,
+				maxChars: BUDGET,
 			})?.text,
 		).toBe("User: Keep this instruction.");
 	});
@@ -141,6 +202,7 @@ describe("readHarnessTranscript", () => {
 			agentId: "claude",
 			agentSessionId: sessionId,
 			worktreePath,
+			maxChars: BUDGET,
 		});
 
 		expect(result?.harness).toBe("claude");
@@ -162,6 +224,7 @@ describe("readHarnessTranscript", () => {
 			agentId: "claude",
 			agentSessionId: sessionId,
 			worktreePath,
+			maxChars: BUDGET,
 		});
 		expect(result?.text).toBe("User: first");
 	});
@@ -177,9 +240,9 @@ describe("readHarnessTranscript", () => {
 		expect(tail?.length).toBe(100);
 	});
 
-	test("reads only the tail of a very large session file", () => {
-		// A long session's JSONL runs to megabytes; the host must not load and
-		// parse all of it to answer one handoff.
+	test("stops reading once the budget is filled", () => {
+		// A long session's JSONL runs to megabytes; the host must not parse
+		// more of it than the handoff can send.
 		const filler = Array.from({ length: 80_000 }, (_, i) =>
 			JSON.stringify({
 				type: "assistant",
@@ -201,11 +264,156 @@ describe("readHarnessTranscript", () => {
 			agentId: "claude",
 			agentSessionId: sessionId,
 			worktreePath,
+			maxChars: BUDGET,
 		});
 		expect(result?.text).toContain("the newest thing said");
-		// The oldest turns fall off the front rather than being parsed.
 		expect(result?.text).not.toContain("old turn 0\n");
 		expect(result?.text).not.toContain("old turn 1000\n");
+	});
+
+	test("keeps early turns that fit the budget behind megabytes of tool output", () => {
+		// Tool results and screenshots are most of a real session file: a
+		// 48 MB session with 25k characters of conversation handed over only
+		// its last six turns when the read stopped at a fixed 4 MB tail.
+		const screenshot = "A".repeat(512 * 1024);
+		const toolResults = Array.from({ length: 24 }, () =>
+			JSON.stringify({
+				type: "user",
+				message: {
+					role: "user",
+					content: [
+						{
+							type: "tool_result",
+							content: [{ type: "image", source: { data: screenshot } }],
+						},
+					],
+				},
+			}),
+		);
+		const { worktreePath, sessionId } = seedClaudeSession([
+			JSON.stringify({
+				type: "user",
+				message: { role: "user", content: "the original request" },
+			}),
+			...toolResults,
+			JSON.stringify({
+				type: "assistant",
+				message: { role: "assistant", content: "done" },
+			}),
+		]);
+
+		expect(
+			readHarnessTranscript({
+				agentId: "claude",
+				agentSessionId: sessionId,
+				worktreePath,
+				maxChars: BUDGET,
+			})?.text,
+		).toBe("User: the original request\n\nAssistant: done");
+	});
+
+	test("finds a session whose worktree path holds characters beyond / and .", () => {
+		const { worktreePath, sessionId } = seedClaudeSession(
+			[
+				JSON.stringify({
+					type: "user",
+					message: { role: "user", content: "the whole conversation" },
+				}),
+			],
+			"mason@feature_x branch-",
+		);
+
+		expect(
+			readHarnessTranscript({
+				agentId: "claude",
+				agentSessionId: sessionId,
+				worktreePath,
+				maxChars: BUDGET,
+			})?.text,
+		).toBe("User: the whole conversation");
+	});
+
+	test("keeps what it already read when a wider read fails", () => {
+		// Electron's V8 cannot hold a string past ~512 MB, so widening over a
+		// very large session throws where the narrower read had succeeded.
+		const { read } = seedPinnedSession(
+			`${[userLine("early"), toolResultLine(5 * 1024 * 1024), userLine("late")].join("\n")}\n`,
+		);
+		const realOpen = fs.openSync;
+		let opens = 0;
+		const open = spyOn(fs, "openSync").mockImplementation(((
+			...args: Parameters<typeof fs.openSync>
+		) => {
+			if (++opens > 1) throw new Error("ERR_STRING_TOO_LONG");
+			return realOpen(...args);
+		}) as typeof fs.openSync);
+		try {
+			expect(read()).toBe("User: late");
+		} finally {
+			open.mockRestore();
+		}
+	});
+
+	test("drops a first line the tail cut inside a multi-byte character", () => {
+		// Three filler lengths put the 4 MB cut on each byte of a 3-byte char.
+		const cjk = "中".repeat(2_000);
+		for (const shift of [0, 1, 2]) {
+			const { read } = seedPinnedSession(
+				`${[
+					userLine("before the cut"),
+					userLine(cjk),
+					toolResultLine(4 * 1024 * 1024 - 3_000 + shift),
+					userLine("after the cut"),
+				].join("\n")}\n`,
+			);
+			expect(read(10)).toBe("User: after the cut");
+		}
+	});
+
+	test("reads no stale bytes when the file shrinks between stat and read", () => {
+		const dir = mkdtempSync(join(tmpdir(), "tail-fixture-"));
+		created.push(dir);
+		const path = join(dir, "live.jsonl");
+		writeFileSync(path, "y".repeat(10_000));
+		const realRead = fs.readSync;
+		const readSpy = spyOn(fs, "readSync").mockImplementation(((
+			...args: Parameters<typeof fs.readSync>
+		) => {
+			truncateSync(path, 0);
+			return realRead(...args);
+		}) as typeof fs.readSync);
+		try {
+			expect(readFileTail(path, 4_096)).toBe("");
+		} finally {
+			readSpy.mockRestore();
+		}
+	});
+
+	test("finds the session of a worktree reached through a symlink", () => {
+		// Claude files a session under its resolved working directory.
+		const real = realpathSync(mkdtempSync(join(tmpdir(), "real-worktree-")));
+		const link = `${real}-link`;
+		symlinkSync(real, link);
+		created.push(real, link);
+		const { env } = seedPinnedSession(`${userLine("via link")}\n`, real);
+
+		expect(
+			readHarnessTranscript({
+				agentId: "claude",
+				agentSessionId: "session",
+				worktreePath: link,
+				env,
+				maxChars: BUDGET,
+			})?.text,
+		).toBe("User: via link");
+		expect(
+			hasHarnessSession({
+				agentId: "claude",
+				sessionId: "session",
+				worktreePath: link,
+				env,
+			}),
+		).toBe(true);
 	});
 
 	test("declines harnesses with no store, so the PTY stream is used", () => {
@@ -221,6 +429,7 @@ describe("readHarnessTranscript", () => {
 				agentId: "codex",
 				agentSessionId: sessionId,
 				worktreePath,
+				maxChars: BUDGET,
 			}),
 		).toBeNull();
 	});
@@ -231,6 +440,7 @@ describe("readHarnessTranscript", () => {
 				agentId: "claude",
 				agentSessionId: null,
 				worktreePath: "/tmp",
+				maxChars: BUDGET,
 			}),
 		).toBeNull();
 	});
@@ -241,8 +451,145 @@ describe("readHarnessTranscript", () => {
 				agentId: "claude",
 				agentSessionId: "../../../../etc/passwd",
 				worktreePath: "/tmp",
+				maxChars: BUDGET,
 			}),
 		).toBeNull();
+	});
+});
+
+describe("Claude transcript lookup order", () => {
+	const sessionId = "33333333-4444-4555-8666-777788889999";
+
+	function seedConfig(files: Record<string, string>): string {
+		const configDir = mkdtempSync(join(tmpdir(), "claude-lookup-"));
+		created.push(configDir);
+		for (const [relative, body] of Object.entries(files)) {
+			const path = join(configDir, relative);
+			mkdirSync(join(path, ".."), { recursive: true });
+			writeFileSync(path, body);
+		}
+		return configDir;
+	}
+
+	function read(input: {
+		configDir: string;
+		worktreePath?: string | null;
+		transcriptPath?: string | null;
+	}) {
+		return readHarnessTranscript({
+			agentId: "claude",
+			agentSessionId: sessionId,
+			worktreePath: input.worktreePath ?? null,
+			transcriptPath: input.transcriptPath,
+			env: { CLAUDE_CONFIG_DIR: input.configDir },
+			maxChars: BUDGET,
+		})?.text;
+	}
+
+	test("prefers the path Claude's hook reported over the encoded directory", () => {
+		const worktreePath = "/work/tree";
+		const configDir = seedConfig({
+			[`projects/${claudeProjectDirName(worktreePath)}/${sessionId}.jsonl`]: `${userLine("from the encoded dir")}\n`,
+			[`moved-store/${sessionId}.jsonl`]: `${userLine("from the reported path")}\n`,
+		});
+
+		expect(
+			read({
+				configDir,
+				worktreePath,
+				transcriptPath: join(configDir, "moved-store", `${sessionId}.jsonl`),
+			}),
+		).toBe("User: from the reported path");
+	});
+
+	test("ignores a reported path that does not name this session", () => {
+		const worktreePath = "/work/tree";
+		const configDir = seedConfig({
+			[`projects/${claudeProjectDirName(worktreePath)}/${sessionId}.jsonl`]: `${userLine("the bound session")}\n`,
+			"projects/other/00000000-0000-4000-8000-000000000000.jsonl": `${userLine("an earlier session")}\n`,
+		});
+
+		for (const transcriptPath of [
+			join(
+				configDir,
+				"projects/other/00000000-0000-4000-8000-000000000000.jsonl",
+			),
+			`projects/${claudeProjectDirName(worktreePath)}/${sessionId}.jsonl`,
+			join(configDir, "missing", `${sessionId}.jsonl`),
+		]) {
+			expect(read({ configDir, worktreePath, transcriptPath })).toBe(
+				"User: the bound session",
+			);
+		}
+	});
+
+	test("finds the session by id when neither the report nor the encoding does", () => {
+		// An agent started in a subdirectory, a CLAUDE_CODE_PROJECT_DIR_NAME
+		// override, or a future naming scheme all file it somewhere else.
+		const configDir = seedConfig({
+			[`projects/-work-tree-packages-api/${sessionId}.jsonl`]: `${userLine("started in a subdirectory")}\n`,
+		});
+
+		expect(read({ configDir, worktreePath: "/work/tree" })).toBe(
+			"User: started in a subdirectory",
+		);
+		expect(read({ configDir })).toBe("User: started in a subdirectory");
+		expect(
+			hasHarnessSession({
+				agentId: "claude",
+				sessionId,
+				worktreePath: null,
+				env: { CLAUDE_CONFIG_DIR: configDir },
+			}),
+		).toBe(true);
+	});
+
+	test("declines when no lookup finds the session", () => {
+		const configDir = seedConfig({
+			"projects/-work-tree/00000000-0000-4000-8000-000000000000.jsonl": "{}\n",
+		});
+		expect(read({ configDir, worktreePath: "/work/tree" })).toBeUndefined();
+		expect(
+			hasHarnessSession({
+				agentId: "claude",
+				sessionId,
+				worktreePath: "/work/tree",
+				env: { CLAUDE_CONFIG_DIR: configDir },
+			}),
+		).toBe(false);
+	});
+});
+
+describe("claudeProjectDirName", () => {
+	// Expected values come from Claude Code 2.1.282's own encoder.
+	test("replaces every non-alphanumeric character", () => {
+		expect(
+			claudeProjectDirName(
+				"/Users/mason/.superset/worktrees/Super set/mason@feat_x",
+			),
+		).toBe("-Users-mason--superset-worktrees-Super-set-mason-feat-x");
+	});
+
+	test("encodes each UTF-16 code unit of a normalized path", () => {
+		// Claude Code NFC-normalizes the path first: "e" + U+0301 is one "-".
+		expect(claudeProjectDirName("/p/a_b c@\u00e9\u4e2d\u{1F600}")).toBe(
+			"-p-a-b-c-----",
+		);
+		expect(claudeProjectDirName("/p/nfd-e\u0301x")).toBe("-p-nfd--x");
+	});
+
+	test("hashes only a name longer than 200 characters", () => {
+		expect(claudeProjectDirName(`/${"a".repeat(199)}`)).toHaveLength(200);
+		expect(claudeProjectDirName(`/${"a".repeat(200)}`)).toMatch(
+			/^-a{199}-[0-9a-z]+$/,
+		);
+	});
+
+	test("truncates a long path and appends Claude's hash of it", () => {
+		const path = `/Users/mason/.superset/worktrees/${"a".repeat(180)}/feature_x`;
+		const name = claudeProjectDirName(path);
+		expect(name).toHaveLength(207);
+		expect(name.endsWith("aaaaaaaaaa-2d2ous")).toBe(true);
 	});
 });
 
@@ -275,14 +622,12 @@ describe("hasHarnessSession", () => {
 		// would call a live session missing and refuse a fork that works.
 		const configDir = mkdtempSync(join(tmpdir(), "claude-config-"));
 		created.push(configDir);
-		const worktreePath = mkdtempSync(join(tmpdir(), "pinned-worktree-"));
+		const worktreePath = realpathSync(
+			mkdtempSync(join(tmpdir(), "pinned-worktree-")),
+		);
 		created.push(worktreePath);
 		const sessionId = "22222222-3333-4444-8555-666677778888";
-		const dir = join(
-			configDir,
-			"projects",
-			worktreePath.replaceAll(/[/.]/g, "-"),
-		);
+		const dir = join(configDir, "projects", claudeProjectDirName(worktreePath));
 		mkdirSync(dir, { recursive: true });
 		writeFileSync(
 			join(dir, `${sessionId}.jsonl`),
@@ -299,6 +644,7 @@ describe("hasHarnessSession", () => {
 				agentSessionId: sessionId,
 				worktreePath,
 				env,
+				maxChars: BUDGET,
 			})?.text,
 		).toBe("User: pinned");
 

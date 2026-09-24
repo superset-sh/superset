@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
-import { workspaces } from "../../../db/schema";
+import { terminalAgentBindings, workspaces } from "../../../db/schema";
 import type { EventBus } from "../../../events";
 import {
 	hasHarnessSession,
@@ -393,6 +393,8 @@ const agentDefinitionIdSchema = z.union([
 
 const GET_OR_CREATE_TIMEOUT_MS = 10_000;
 
+const MAX_AGENT_TRANSCRIPT_CHARS = 400_000;
+
 export const terminalAgentsRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
 		return ctx.terminalAgentStore.list();
@@ -496,20 +498,33 @@ export const terminalAgentsRouter = router({
 				.from(workspaces)
 				.where(eq(workspaces.id, input.workspaceId))
 				.get()?.path;
+			const transcriptPath = ctx.db
+				.select({ path: terminalAgentBindings.transcriptPath })
+				.from(terminalAgentBindings)
+				.where(eq(terminalAgentBindings.terminalId, input.terminalId))
+				.get()?.path;
 			const config = resolveHostAgentConfig(
 				ctx.db,
 				binding.definitionId ?? binding.agentId,
 			);
-			return readHarnessTranscript({
+			const transcript = readHarnessTranscript({
 				agentId: binding.agentId,
 				agentSessionId: binding.agentSessionId,
 				worktreePath,
+				transcriptPath,
 				// A pinned provider account keeps its transcript under its own
 				// config directory.
 				env: config
 					? resolveDefaultAccountEnv(ctx.db, config.presetId)
 					: undefined,
+				maxChars: MAX_AGENT_TRANSCRIPT_CHARS,
 			});
+			return transcript
+				? {
+						...transcript,
+						text: transcript.text.slice(-MAX_AGENT_TRANSCRIPT_CHARS),
+					}
+				: null;
 		}),
 
 	/** See {@link findResumedSuccessor}. */

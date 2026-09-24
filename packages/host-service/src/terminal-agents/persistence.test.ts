@@ -11,6 +11,7 @@ import {
 	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
 	markTerminalAgentBindingEnded,
+	recordTerminalAgentTranscriptPath,
 	SqliteTerminalAgentBindingPersistence,
 	seedEndedTerminalAgentBinding,
 	unclaimResumeCandidateBinding,
@@ -545,4 +546,78 @@ it("does not hydrate a live binding with pending disposal intent", () => {
 		.where(eq(terminalSessions.id, "pending"))
 		.run();
 	expect(new SqliteTerminalAgentBindingPersistence(db).load()).toEqual([]);
+});
+
+describe("recordTerminalAgentTranscriptPath", () => {
+	function transcriptPathOf(db: HostDb, terminalId: string) {
+		return db
+			.select({ path: terminalAgentBindings.transcriptPath })
+			.from(terminalAgentBindings)
+			.where(eq(terminalAgentBindings.terminalId, terminalId))
+			.get()?.path;
+	}
+
+	it("stores the path only for the session the binding names", () => {
+		const db = createTestDb();
+		seedSession(db, { id: "t-1", status: "active", workspaceId: "ws-1" });
+		db.update(terminalAgentBindings)
+			.set({ agentSessionId: "current" })
+			.where(eq(terminalAgentBindings.terminalId, "t-1"))
+			.run();
+
+		recordTerminalAgentTranscriptPath(db, {
+			terminalId: "t-1",
+			agentSessionId: "previous",
+			transcriptPath: "/home/a/.claude/projects/x/previous.jsonl",
+		});
+		expect(transcriptPathOf(db, "t-1")).toBeNull();
+
+		recordTerminalAgentTranscriptPath(db, {
+			terminalId: "t-1",
+			agentSessionId: "current",
+			transcriptPath: "/home/a/.claude/projects/x/current.jsonl",
+		});
+		expect(transcriptPathOf(db, "t-1")).toBe(
+			"/home/a/.claude/projects/x/current.jsonl",
+		);
+	});
+
+	it("survives the upsert every later hook event performs", () => {
+		const db = createTestDb();
+		const store = new TerminalAgentStore(
+			new SqliteTerminalAgentBindingPersistence(db),
+		);
+		db.insert(terminalSessions)
+			.values({
+				id: "t-1",
+				status: "active",
+				originWorkspaceId: "ws-1",
+				createdAt: 1,
+			})
+			.run();
+		store.recordEvent({
+			terminalId: "t-1",
+			workspaceId: "ws-1",
+			eventType: "Start",
+			agentId: "claude",
+			agentSessionId: "s-1",
+			occurredAt: 1,
+		});
+		recordTerminalAgentTranscriptPath(db, {
+			terminalId: "t-1",
+			agentSessionId: "s-1",
+			transcriptPath: "/home/a/.claude/projects/x/s-1.jsonl",
+		});
+		store.recordEvent({
+			terminalId: "t-1",
+			workspaceId: "ws-1",
+			eventType: "Stop",
+			agentId: "claude",
+			agentSessionId: "s-1",
+			occurredAt: 2,
+		});
+		expect(transcriptPathOf(db, "t-1")).toBe(
+			"/home/a/.claude/projects/x/s-1.jsonl",
+		);
+	});
 });

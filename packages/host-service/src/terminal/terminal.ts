@@ -1408,6 +1408,7 @@ export async function transcriptSession({
 		eventBus,
 	});
 	if ("error" in session) return session;
+	const budget = maxChars ?? TERMINAL_HANDOFF_MAX_CHARS;
 
 	// The harness's own store first when it keeps one: same conversation,
 	// already structured, without redraw artefacts or a retention ceiling.
@@ -1420,6 +1421,7 @@ export async function transcriptSession({
 			agentSessionId: terminalAgentBindings.agentSessionId,
 			definitionId: terminalAgentBindings.definitionId,
 			endedAt: terminalAgentBindings.endedAt,
+			transcriptPath: terminalAgentBindings.transcriptPath,
 		})
 		.from(terminalAgentBindings)
 		.where(eq(terminalAgentBindings.terminalId, terminalId))
@@ -1435,15 +1437,14 @@ export async function transcriptSession({
 				agentId: binding?.agentId,
 				agentSessionId: binding?.agentSessionId,
 				worktreePath,
+				transcriptPath: binding?.transcriptPath,
 				env: agentLaunchEnv(db, binding?.definitionId),
+				maxChars: budget,
 			});
 	if (harness) {
 		return {
 			success: true,
-			text: boundTranscriptText(
-				harness.text,
-				maxChars ?? TERMINAL_HANDOFF_MAX_CHARS,
-			),
+			text: boundTranscriptText(harness.text, budget),
 			source: "harness",
 			streamBytes: 0,
 		};
@@ -1456,10 +1457,7 @@ export async function transcriptSession({
 			new TextDecoder().decode(raw),
 			{ cols: screen.cols, rows: screen.rows },
 		);
-		const text = boundTranscriptText(
-			reconstructed,
-			maxChars ?? TERMINAL_HANDOFF_MAX_CHARS,
-		);
+		const text = boundTranscriptText(reconstructed, budget);
 		if (text.trim()) {
 			return {
 				success: true,

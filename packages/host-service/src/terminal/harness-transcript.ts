@@ -4,10 +4,11 @@ import {
 	openSync,
 	readdirSync,
 	readSync,
+	realpathSync,
 	statSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, isAbsolute, join } from "node:path";
 import Database from "better-sqlite3";
 
 /**
@@ -20,15 +21,19 @@ import Database from "better-sqlite3";
  * prefer it where it exists and fall back to the stream everywhere else.
  */
 
-/** Newest turns first would invert the conversation; keep source order. */
-const MAX_HARNESS_TRANSCRIPT_CHARS = 400_000;
 /**
- * Bytes read off the end of a session file. A long-running session's JSONL
- * runs to megabytes (this repo's own dev session reached 3.9 MB), and the
- * host must not load, split, and parse all of it on the event loop to answer
- * one handoff. Generous next to the character cap the turns are trimmed to.
+ * First bite off the end of a session file. Tool results and screenshots make
+ * up most of a Claude JSONL, so a fixed tail can hold only a handful of turns
+ * of a session whose whole conversation fits the budget; the read widens from
+ * here until the budget is met or the file runs out.
  */
-const MAX_HARNESS_SOURCE_BYTES = 4 * 1024 * 1024;
+const INITIAL_HARNESS_SOURCE_BYTES = 4 * 1024 * 1024;
+/**
+ * The read runs synchronously on the host's event loop, so it stops widening
+ * here. Past it the oldest turns go unread rather than the host stalling for
+ * seconds on a session of hundreds of megabytes.
+ */
+const MAX_HARNESS_SOURCE_BYTES = 128 * 1024 * 1024;
 
 export interface HarnessTranscript {
 	text: string;
@@ -37,18 +42,104 @@ export interface HarnessTranscript {
 }
 
 /**
- * Claude Code stores one JSONL file per session under a directory named after
- * the working directory with every `/` and `.` replaced by `-`.
+ * Claude Code names a session's project directory after its working directory
+ * (resolved through symlinks, NFC-normalized) with every non-alphanumeric
+ * UTF-16 code unit replaced by `-`, and past 200 characters truncates it and
+ * appends a hash of the full path.
  */
-function claudeTranscriptPath(
-	worktreePath: string,
-	sessionId: string,
+const CLAUDE_PROJECT_DIR_MAX_LENGTH = 200;
+
+function claudeProjectPathHash(path: string): string {
+	let hash = 0;
+	for (let i = 0; i < path.length; i++) {
+		hash = ((hash << 5) - hash + path.charCodeAt(i)) | 0;
+	}
+	return Math.abs(hash).toString(36);
+}
+
+export function claudeProjectDirName(worktreePath: string): string {
+	const path = worktreePath.normalize("NFC");
+	const encoded = path.replaceAll(/[^a-zA-Z0-9]/g, "-");
+	if (encoded.length <= CLAUDE_PROJECT_DIR_MAX_LENGTH) return encoded;
+	return `${encoded.slice(0, CLAUDE_PROJECT_DIR_MAX_LENGTH)}-${claudeProjectPathHash(path)}`;
+}
+
+function claudeProjectDir(configDir: string, worktreePath: string): string {
+	let resolved = worktreePath;
+	try {
+		resolved = realpathSync(worktreePath);
+	} catch {}
+	return join(configDir, "projects", claudeProjectDirName(resolved));
+}
+
+const SESSION_ID_PATTERN = /^[\w-]+$/;
+/** Project directories scanned when looking a session up by id alone. */
+const MAX_CLAUDE_PROJECT_DIRS_SCANNED = 5000;
+
+type ClaudeTranscriptSource = "reported" | "encoded" | "search";
+
+/**
+ * Where Claude keeps a session's JSONL, most trustworthy answer first:
+ *
+ * 1. The path Claude's own hook reported (`transcript_path`), which is right
+ *    however Claude lays out its store.
+ * 2. The directory Claude's current naming scheme gives the worktree.
+ * 3. Any project directory holding `<session id>.jsonl`. Session ids are
+ *    UUIDs, so a match anywhere is the session, wherever the agent started
+ *    and however a future Claude names the directory.
+ */
+function resolveClaudeTranscript(input: {
+	sessionId: string;
+	configDir: string;
+	worktreePath: string | null | undefined;
+	reportedPath: string | null | undefined;
+}): { path: string; source: ClaudeTranscriptSource } | null {
+	const { sessionId, configDir, worktreePath, reportedPath } = input;
+	if (!SESSION_ID_PATTERN.test(sessionId)) return null;
+	const fileName = `${sessionId}.jsonl`;
+
+	if (
+		reportedPath &&
+		isAbsolute(reportedPath) &&
+		basename(reportedPath) === fileName &&
+		isFile(reportedPath)
+	) {
+		return { path: reportedPath, source: "reported" };
+	}
+
+	if (worktreePath) {
+		const encoded = join(claudeProjectDir(configDir, worktreePath), fileName);
+		if (isFile(encoded)) return { path: encoded, source: "encoded" };
+	}
+
+	const found = findClaudeSessionFile(configDir, fileName);
+	return found ? { path: found, source: "search" } : null;
+}
+
+function findClaudeSessionFile(
 	configDir: string,
+	fileName: string,
 ): string | null {
-	if (!/^[\w-]+$/.test(sessionId)) return null;
-	const encoded = worktreePath.replaceAll(/[/.]/g, "-");
-	const path = join(configDir, "projects", encoded, `${sessionId}.jsonl`);
-	return existsSync(path) ? path : null;
+	const projectsDir = join(configDir, "projects");
+	let entries: string[];
+	try {
+		entries = readdirSync(projectsDir);
+	} catch {
+		return null;
+	}
+	for (const entry of entries.slice(0, MAX_CLAUDE_PROJECT_DIRS_SCANNED)) {
+		const candidate = join(projectsDir, entry, fileName);
+		if (isFile(candidate)) return candidate;
+	}
+	return null;
+}
+
+function isFile(path: string): boolean {
+	try {
+		return statSync(path).isFile();
+	} catch {
+		return false;
+	}
 }
 
 /**
@@ -119,16 +210,7 @@ function textOf(event: ClaudeEvent): string | null {
 	return parts.length > 0 ? parts.join("\n") : null;
 }
 
-function readClaudeTranscript(
-	worktreePath: string,
-	sessionId: string,
-	configDir: string,
-): string | null {
-	const path = claudeTranscriptPath(worktreePath, sessionId, configDir);
-	if (!path) return null;
-	const raw = readFileTail(path, MAX_HARNESS_SOURCE_BYTES);
-	if (raw === null) return null;
-
+function parseClaudeTurns(raw: string): string[] {
 	const turns: string[] = [];
 	for (const line of raw.split("\n")) {
 		if (!line) continue;
@@ -136,7 +218,7 @@ function readClaudeTranscript(
 		try {
 			event = JSON.parse(line) as ClaudeEvent;
 		} catch {
-			continue; // a partially written final line while the session runs
+			continue; // a partially written final line, or one the tail cut
 		}
 		// Claude records consumed busy-session prompts as attachments. Queue
 		// operations alone can describe input the user later removes.
@@ -157,12 +239,33 @@ function readClaudeTranscript(
 		if (!text) continue;
 		turns.push(`${event.type === "user" ? "User" : "Assistant"}: ${text}`);
 	}
-	if (turns.length === 0) return null;
+	return turns;
+}
 
-	const joined = turns.join("\n\n");
-	return joined.length > MAX_HARNESS_TRANSCRIPT_CHARS
-		? joined.slice(-MAX_HARNESS_TRANSCRIPT_CHARS)
-		: joined;
+function readClaudeTranscript(path: string, maxChars: number): string | null {
+	let size: number;
+	try {
+		size = statSync(path).size;
+	} catch {
+		return null;
+	}
+
+	let window = INITIAL_HARNESS_SOURCE_BYTES;
+	let joined = "";
+	while (true) {
+		const raw = readFileTail(path, window);
+		if (raw === null) break;
+		joined = parseClaudeTurns(raw).join("\n\n");
+		if (
+			joined.length >= maxChars ||
+			window >= size ||
+			window >= MAX_HARNESS_SOURCE_BYTES
+		) {
+			break;
+		}
+		window = Math.min(window * 4, MAX_HARNESS_SOURCE_BYTES);
+	}
+	return joined || null;
 }
 
 /**
@@ -173,17 +276,35 @@ export function readHarnessTranscript(input: {
 	agentId: string | null | undefined;
 	agentSessionId: string | null | undefined;
 	worktreePath: string | null | undefined;
+	/** Where the harness's own hook said it writes this session, if it did. */
+	transcriptPath?: string | null;
 	/** The launch env, so a pinned provider account is read from its own dir. */
 	env?: HarnessEnv;
+	/** Characters of conversation wanted; older turns are read only to fill it. */
+	maxChars: number;
 }): HarnessTranscript | null {
-	const { agentId, agentSessionId, worktreePath } = input;
-	if (!agentId || !agentSessionId || !worktreePath) return null;
-	if (agentId !== "claude") return null;
-	const text = readClaudeTranscript(
-		worktreePath,
-		agentSessionId,
-		claudeConfigDir(input.env),
-	);
+	const { agentId, agentSessionId } = input;
+	if (agentId !== "claude" || !agentSessionId) return null;
+	const resolved = resolveClaudeTranscript({
+		sessionId: agentSessionId,
+		configDir: claudeConfigDir(input.env),
+		worktreePath: input.worktreePath,
+		reportedPath: input.transcriptPath,
+	});
+	if (!resolved) {
+		// A bound Claude session with no file anywhere means Claude moved its
+		// store: the handoff silently degrades to the terminal's last moments.
+		console.warn(
+			`[harness-transcript] no transcript for claude session ${agentSessionId}; falling back to the terminal stream`,
+		);
+		return null;
+	}
+	if (resolved.source !== "reported") {
+		console.info(
+			`[harness-transcript] claude session ${agentSessionId} found by ${resolved.source} lookup`,
+		);
+	}
+	const text = readClaudeTranscript(resolved.path, input.maxChars);
 	return text ? { text, harness: "claude" } : null;
 }
 
@@ -202,32 +323,34 @@ export function hasHarnessSession(input: {
 	agentId: string | null | undefined;
 	sessionId: string | null | undefined;
 	worktreePath: string | null | undefined;
+	/** Where the harness's own hook said it writes this session, if it did. */
+	transcriptPath?: string | null;
 	/** The launch env, so a pinned provider account is read from its own dir. */
 	env?: HarnessEnv;
 }): boolean | null {
 	const { agentId, sessionId, worktreePath } = input;
 	if (!agentId || !sessionId) return null;
-	if (!/^[\w-]+$/.test(sessionId)) return null;
+	if (!SESSION_ID_PATTERN.test(sessionId)) return null;
 
 	try {
 		switch (agentId) {
 			case "claude": {
-				if (!worktreePath) return null;
 				const configDir = claudeConfigDir(input.env);
 				if (!existsSync(configDir)) return null;
-				// Only a project directory we can see makes an absent session
-				// file evidence. The agent may have been started in a
-				// subdirectory, or Claude may encode the path differently than
-				// this does, and neither means the session is gone.
-				const projectDir = join(
+				const found = resolveClaudeTranscript({
+					sessionId,
 					configDir,
-					"projects",
-					worktreePath.replaceAll(/[/.]/g, "-"),
-				);
-				if (!existsSync(projectDir)) return null;
-				return (
-					claudeTranscriptPath(worktreePath, sessionId, configDir) !== null
-				);
+					worktreePath,
+					reportedPath: input.transcriptPath,
+				});
+				if (found) return true;
+				// Only a project directory we can see makes an absent session
+				// file evidence; without one, Claude may keep it somewhere we do
+				// not know to look.
+				if (!worktreePath) return null;
+				return existsSync(claudeProjectDir(configDir, worktreePath))
+					? false
+					: null;
 			}
 			case "codex":
 				return hasCodexRollout(sessionId, codexHome(input.env));
