@@ -133,7 +133,7 @@ export const githubRouter = router({
 	}),
 
 	/**
-	 * Everything one pull request view needs, in a single round trip.
+	 * Everything one pull request view needs.
 	 *
 	 * Deliberately GraphQL and deliberately live: mergeability, per-viewer
 	 * capabilities, reviewer states and whether a check is required exist
@@ -164,9 +164,9 @@ export const githubRouter = router({
 
 			// Both connections page at 100; anything past the first page must be
 			// fetched before grading, or a failing check or open thread there is
-			// silently invisible. Review requests come from REST: GraphQL's Team
-			// fields need the read:org scope, which tokens minted by editors and
-			// GitHub Desktop lack, and one team reviewer failed the whole query.
+			// silently invisible. Review requests come from REST because every
+			// GraphQL Team field needs the read:org scope, which tokens minted by
+			// editors and GitHub Desktop lack.
 			const [restThreads, restContexts, requested] = await Promise.all([
 				drainReviewThreads(octokit, input, pr.reviewThreads?.pageInfo),
 				drainCheckContexts(
@@ -194,7 +194,7 @@ export const githubRouter = router({
 			for (const user of requested.data.users) {
 				reviewers.set(user.login, {
 					login: user.login,
-					avatarUrl: user.avatar_url ?? null,
+					avatarUrl: user.avatar_url,
 					isTeam: false,
 					state: "REQUESTED",
 				});
@@ -486,8 +486,8 @@ async function pullRequestNodeId(
 }
 
 /**
- * One round trip for the whole view. `isRequired` is asked per pull request
- * because a check is only required relative to the branch rules it runs under.
+ * `isRequired` is asked per pull request because a check is only required
+ * relative to the branch rules it runs under.
  */
 const PULL_REQUEST_DETAIL_QUERY = `
 query($owner: String!, $name: String!, $number: Int!) {
