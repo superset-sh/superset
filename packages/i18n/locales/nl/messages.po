@@ -7181,7 +7181,7 @@ msgid "Guide"
 msgstr "Gids"
 
 msgid "Guides"
-msgstr "Handleidingen"
+msgstr "Gidsen"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
 msgstr "Stuurt de door AI gegenereerde namen van werkruimtes en branches voor dit project. Leeg gebruikt de standaardnaamgeving."

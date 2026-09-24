@@ -5878,7 +5878,7 @@ msgid "Every {day} at {time}"
 msgstr "W każdy {day} o {time}"
 
 msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
-msgstr "Każdy agent działa we własnym worktree i gałęzi Git, dzięki czemu pliki robocze pozostają oddzielone. Podczas scalania zmian nadal mogą wystąpić konflikty. Wszystko monitorujesz, przeglądasz i scalasz z jednego okna."
+msgstr "Każdy agent działa we własnym worktree i na własnej gałęzi Git, dzięki czemu pliki robocze pozostają oddzielone. Podczas scalania zmian nadal mogą wystąpić konflikty. Wszystko monitorujesz, przeglądasz i scalasz z jednego okna."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Każda oś pracuje na następny poziom. Utrzymaj to, a poziom przyjdzie sam."
