@@ -27,7 +27,7 @@ function PageCard({ page }: { page: OrgPage }) {
 				})
 			}
 		>
-			<View className="bg-secondary aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl">
+			<View className="bg-secondary aspect-[40/21] w-full items-center justify-center overflow-hidden rounded-xl">
 				{page.thumbnailUrl ? (
 					<Image
 						source={{ uri: page.thumbnailUrl }}
