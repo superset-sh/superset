@@ -45,8 +45,6 @@ mock.module("../../env", () => ({
 		POSTHOG_API_KEY: "phx_test",
 	},
 }));
-mock.module("../../lib/analytics", () => ({ posthog: { capture: () => {} } }));
-mock.module("@superset/auth/server", () => ({ auth: {} }));
 
 mock.module("@superset/db/client", () => {
 	const tx = {
@@ -149,29 +147,12 @@ mock.module("@superset/auth/stripe", () => ({
 	},
 }));
 
-const { adminRouter } = await import("./admin");
-const { createCallerFactory, createTRPCContext, createTRPCRouter } =
-	await import("../../trpc");
-
-const caller = createCallerFactory(createTRPCRouter({ admin: adminRouter }))(
-	createTRPCContext({
-		session: {
-			user: {
-				id: "admin",
-				email: "admin@superset.sh",
-				deletionRequestedAt: null,
-			},
-			session: { activeOrganizationId: null },
-		} as never,
-		auth: {} as never,
-		headers: new Headers(),
-	}),
-);
-const purge = () => caller.admin.deleteUser({ userId: USER_ID });
+const { purgeAccount } = await import("./purgeAccount");
+const purge = () => purgeAccount(USER_ID);
 
 const realFetch = globalThis.fetch;
 
-describe("admin.deleteUser", () => {
+describe("purgeAccount", () => {
 	beforeEach(() => {
 		organizations = [];
 		customers = new Map();
@@ -204,7 +185,7 @@ describe("admin.deleteUser", () => {
 			charges: [{ status: "failed" }],
 		});
 
-		expect(await purge()).toEqual({ success: true });
+		await purge();
 
 		expect(posthogRequests).toHaveLength(1);
 		const [request] = posthogRequests;
@@ -284,7 +265,7 @@ describe("admin.deleteUser", () => {
 				{ status: 202 },
 			);
 
-		expect(await purge()).toEqual({ success: true });
+		await purge();
 		expect(log).toEqual([
 			"posthog.delete",
 			"charges.list cus_gone",
