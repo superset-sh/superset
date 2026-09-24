@@ -1,22 +1,8 @@
 <div align="center">
 
-<img width="full" alt="Claude and OpenCode working in parallel Superset workspaces with live diffs" src="apps/marketing/public/images/readme-hero.gif" />
+# Superset
 
 ### A workspace for your CLI coding agents
-
-<details>
-<summary>🌐 Read this in other languages</summary>
-<br />
-
-[English](README.md) | [日本語](readme/README.ja.md) | [简体中文](readme/README.zh-CN.md) | [繁體中文](readme/README.zh-TW.md) | [한국어](readme/README.ko.md) | [Français](readme/README.fr.md) | [Español](readme/README.es.md) | [Deutsch](readme/README.de.md) | [Português](readme/README.pt-BR.md) | [Italiano](readme/README.it.md) | [Русский](readme/README.ru.md) | [Türkçe](readme/README.tr.md) | [Polski](readme/README.pl.md) | [Nederlands](readme/README.nl.md) | [Bahasa Indonesia](readme/README.id.md) | [Čeština](readme/README.cs.md) | [Tiếng Việt](readme/README.vi.md)
-
-</details>
-
-[![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
-[![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
-[![License](https://img.shields.io/badge/license-Elastic%20License%202.0-blue?style=flat)](LICENSE.md)
-[![Twitter](https://img.shields.io/badge/@superset__sh-555?logo=x)](https://x.com/superset_sh)
-[![Discord](https://img.shields.io/badge/Discord-555?logo=discord)](https://discord.gg/cZeD9WYcV7)
 
 <br />
 
@@ -27,44 +13,85 @@ Review its changes and preview your app in the same workspace.
 
 [**Download for macOS**](https://github.com/superset-sh/superset/releases/latest) &nbsp;&bull;&nbsp; [Documentation](https://docs.superset.sh) &nbsp;&bull;&nbsp; [Changelog](https://github.com/superset-sh/superset/releases) &nbsp;&bull;&nbsp; [Discord](https://discord.gg/cZeD9WYcV7)
 
-<br />
-
-
 </div>
 
-## Keep your agent and review its work
+Superset gives developers using CLI coding agents persistent terminals, code review, and browser previews beside each task. Keep your existing agent subscriptions and open the workspace in your preferred editor when you need it.
 
-Superset is a desktop workspace for developers using CLI coding agents. Start with one task: run your agent, inspect its diff, and preview the result beside the terminal. Keep using your existing agent subscriptions and open the workspace in your preferred editor when you need it.
+<img width="800" alt="Claude and OpenCode working in parallel Superset workspaces with live diffs" src="apps/marketing/public/images/readme-hero.gif" />
 
-For independent tasks, create separate Git worktrees with their own branches and terminals. Worktrees separate working files; they do not sandbox processes or prevent merge conflicts.
+[First task](#start-with-one-task) · [Review and revise](#review-and-revise) · [Parallel tasks](#run-independent-tasks) · [Remote and scheduled work](#work-across-devices-and-on-a-schedule) · [Agents](#supported-agents) · [Install](#install) · [Contributing](#contributing)
 
-## Try a workflow
+## Install
 
-| What you want to do | How it works | Walkthrough |
-|:---|:---|:---|
-| Change something in your app's UI | In the browser pane, use **Design** to select an element and send your requested change to an agent with element context. | [Design Mode](https://superset.sh/blog/change-ui-with-your-coding-agent) · [Docs](https://docs.superset.sh/browser#design-mode) |
-| Ask an agent to fix a PR | Open **Pull requests → Code**, select diff lines, and send feedback to a running or new agent session. Posting to GitHub is optional. | [PR feedback](https://superset.sh/blog/send-pr-feedback-to-your-agent) · [Docs](https://docs.superset.sh/pull-requests#comment-straight-to-an-agent) |
-| Review a report with your team | Ask an agent to publish a Page. Teammates pin comments, and a watching agent can revise it at the same link. Keep its host and session running for feedback delivery. | [Pages](https://superset.sh/blog/review-agent-work-with-pages) · [Docs](https://docs.superset.sh/pages) |
+Download the desktop app:
 
-## Features
+- **macOS**: [Apple Silicon (.dmg)](https://github.com/superset-sh/superset/releases/latest/download/Superset-arm64.dmg) · [Intel (.dmg)](https://github.com/superset-sh/superset/releases/latest/download/Superset-x64.dmg)
+- **Linux**: [x64 AppImage](https://github.com/superset-sh/superset/releases/latest/download/Superset-x86_64.AppImage) (experimental; macOS is the primary target)
+- **Windows**: not yet available
+- [All builds](https://github.com/superset-sh/superset/releases/latest)
+
+All you need installed is [Git](https://git-scm.com/). [gh](https://cli.github.com/) is optional and enables the PR workflows; Superset offers to install it for you.
+
+## Start with one task
+
+1. [Install Superset](#install) and add a repository from your computer or clone one.
+2. Create a workspace, choose your CLI agent, and describe a small change you want to make.
+3. Inspect its patch in **Changes**, run the relevant tests, and preview your app in the browser pane before committing.
+
+For a walkthrough of workspace creation and review, see [Your First Parallel Session](https://docs.superset.sh/first-workspace).
+
+## Review and revise
+
+- **Change your app's UI.** Use **Design** in the browser pane to select an element and send your requested change to an agent with element context. [Walkthrough](https://superset.sh/blog/change-ui-with-your-coding-agent) · [Design Mode docs](https://docs.superset.sh/browser#design-mode)
+- **Ask an agent to fix a PR.** Open **Pull requests → Code**, select diff lines, and send feedback to a running or new agent session. Posting to GitHub is optional. [Walkthrough](https://superset.sh/blog/send-pr-feedback-to-your-agent) · [PR docs](https://docs.superset.sh/pull-requests#comment-straight-to-an-agent)
+- **Review a report with your team.** Ask an agent to publish a Page. Teammates pin comments, and a watching agent can revise it at the same link. Keep its host and session running for feedback delivery. [Walkthrough](https://superset.sh/blog/review-agent-work-with-pages) · [Pages docs](https://docs.superset.sh/pages)
+
+<details>
+<summary>See the diff viewer and browser previews</summary>
 
 <table>
 <tr>
 <td width="50%" valign="middle">
 
-### Superset for iPhone
+### Built-in Diff Viewer
 
-Remotely control Claude Code, Codex, and other terminal agents running on your connected computer. Pick up the same workspaces and terminal sessions, send follow-up prompts, review diffs, and merge PRs from your iPhone.
+Inspect, comment on, and edit agent changes without leaving the app, then commit and push when it's ready.
 
-Requires **Superset Pro**, **iOS 26 or later**, and a connected computer with **Remote Access enabled**.
-
-[**Download on the App Store**](https://apps.apple.com/us/app/id6788926383) &nbsp;&bull;&nbsp; [Learn more →](https://superset.sh/mobile)
+[Docs →](https://docs.superset.sh/diff-viewer)
 
 </td>
-<td width="50%" align="center">
-  <a href="https://superset.sh/mobile"><img src="apps/marketing/public/images/readme/mobile-desktop.png" alt="Superset desktop with an iPhone terminal session overlaid on the right" width="100%" /></a>
+<td width="50%">
+  <a href="https://docs.superset.sh/diff-viewer"><img src="apps/marketing/public/images/readme/diff-viewer.png" alt="Reviewing an agent's changes in the diff viewer" width="100%" /></a>
 </td>
 </tr>
+<tr>
+<td width="50%" valign="middle">
+
+### In-App Browser & Ports
+
+Preview running dev servers in a browser pane. Ports are detected per workspace, so every worktree gets its own preview.
+
+[Docs →](https://docs.superset.sh/browser)
+
+</td>
+<td width="50%">
+  <a href="https://docs.superset.sh/browser"><img src="apps/marketing/public/images/readme/browser-ports.png" alt="In-app browser previewing a dev server with detected ports" width="100%" /></a>
+</td>
+</tr>
+</table>
+
+</details>
+
+## Run independent tasks
+
+Give each task a Git worktree with its own branch and terminals. Monitor agent status from the sidebar and return to persistent sessions. Worktrees separate working files; they do not sandbox processes or prevent merge conflicts.
+
+[Workspace docs](https://docs.superset.sh/workspaces) · [Terminal docs](https://docs.superset.sh/terminal-integration) · [Agent status](https://docs.superset.sh/agent-integration)
+
+<details>
+<summary>See workspaces, monitoring, terminals, and the command palette</summary>
+
+<table>
 <tr>
 <td width="50%" valign="middle">
 
@@ -110,29 +137,47 @@ Tabs, infinite splits, presets, and persistent sessions that survive restarts. P
 <tr>
 <td width="50%" valign="middle">
 
-### Built-in Diff Viewer
+### Command Palette
 
-Inspect, comment on, and edit agent changes without leaving the app, then commit and push when it's ready.
+Jump to any workspace, action, or setting from one search box.
 
-[Docs →](https://docs.superset.sh/diff-viewer)
+[Docs →](https://docs.superset.sh/keyboard-shortcuts)
 
 </td>
 <td width="50%">
-  <a href="https://docs.superset.sh/diff-viewer"><img src="apps/marketing/public/images/readme/diff-viewer.png" alt="Reviewing an agent's changes in the diff viewer" width="100%" /></a>
+  <a href="https://docs.superset.sh/keyboard-shortcuts"><img src="apps/marketing/public/images/readme/command-palette.gif" alt="Typing in the command palette and filtering workspace actions live" width="100%" /></a>
 </td>
 </tr>
+</table>
+
+</details>
+
+## Work across devices and on a schedule
+
+Connect another machine to reach its workspaces remotely, or schedule an agent to work on a recurring task. The CLI, SDK, and MCP server also let agents and scripts manage workspaces.
+
+On iPhone, continue terminal sessions and review changes on a connected computer. Mobile requires **Superset Pro**, **iOS 26 or later**, and a computer with **Remote Access enabled**.
+
+[Remote access](https://docs.superset.sh/remote-access) · [Automations](https://docs.superset.sh/automations) · [iPhone](https://superset.sh/mobile) · [CLI](https://docs.superset.sh/cli/getting-started)
+
+<details>
+<summary>See mobile, automations, remote access, and the CLI</summary>
+
+<table>
 <tr>
 <td width="50%" valign="middle">
 
-### In-App Browser & Ports
+### Superset for iPhone
 
-Preview running dev servers in a browser pane. Ports are detected per workspace, so every worktree gets its own preview.
+Remotely control Claude Code, Codex, and other terminal agents running on your connected computer. Pick up the same workspaces and terminal sessions, send follow-up prompts, review diffs, and merge PRs from your iPhone.
 
-[Docs →](https://docs.superset.sh/browser)
+Requires **Superset Pro**, **iOS 26 or later**, and a connected computer with **Remote Access enabled**.
+
+[**Download on the App Store**](https://apps.apple.com/us/app/id6788926383) &nbsp;&bull;&nbsp; [Learn more →](https://superset.sh/mobile)
 
 </td>
-<td width="50%">
-  <a href="https://docs.superset.sh/browser"><img src="apps/marketing/public/images/readme/browser-ports.png" alt="In-app browser previewing a dev server with detected ports" width="100%" /></a>
+<td width="50%" align="center">
+  <a href="https://superset.sh/mobile"><img src="apps/marketing/public/images/readme/mobile-desktop.png" alt="Superset desktop with an iPhone terminal session overlaid on the right" width="100%" /></a>
 </td>
 </tr>
 <tr>
@@ -177,23 +222,11 @@ Script it from any shell: create workspaces, launch agents, read their terminals
   <a href="https://docs.superset.sh/cli/getting-started"><img src="apps/marketing/public/images/readme/cli-demo.gif" alt="Creating a workspace and launching an agent from the Superset CLI" width="100%" /></a>
 </td>
 </tr>
-<tr>
-<td width="50%" valign="middle">
-
-### Command Palette
-
-Jump to any workspace, action, or setting from one search box.
-
-[Docs →](https://docs.superset.sh/keyboard-shortcuts)
-
-</td>
-<td width="50%">
-  <a href="https://docs.superset.sh/keyboard-shortcuts"><img src="apps/marketing/public/images/readme/command-palette.gif" alt="Typing in the command palette and filtering workspace actions live" width="100%" /></a>
-</td>
-</tr>
 </table>
 
-**Also in the box:**
+</details>
+
+## Customize your workflow
 
 - **[Built-in skills](https://docs.superset.sh/skills)**: agents come pre-loaded with `superset:*` skills (orchestrate parallel agents, schedule automations, file feedback, diagnose issues), provisioned automatically at launch
 - **[Model picker & custom agents](https://docs.superset.sh/agent-integration)**: choose a model and reasoning effort at launch, and add any terminal agent with its own icon
@@ -208,7 +241,10 @@ Jump to any workspace, action, or setting from one search box.
 
 ## Supported Agents
 
-Superset works with any CLI-based coding agent, including:
+Use Claude Code, Codex, OpenCode, Cursor Agent, or another CLI coding agent. You can configure launch commands and add custom agents in **Settings → Agents**.
+
+<details>
+<summary>Browse supported agents</summary>
 
 | Agent | Status |
 |:------|:-------|
@@ -234,6 +270,9 @@ Superset works with any CLI-based coding agent, including:
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/pi-white.svg" /><img height="16" align="top" alt="Pi" src="packages/ui/src/assets/icons/preset-icons/pi.svg" /></picture> &nbsp;[Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/polygraph-white.svg" /><img height="16" align="top" alt="Polygraph" src="packages/ui/src/assets/icons/preset-icons/polygraph.svg" /></picture> &nbsp;[Polygraph](https://trypolygraph.com/) | Fully supported |
 | Any other CLI agent | Works without configuration |
+
+
+</details>
 
 If it runs in a terminal, it runs on Superset
 
@@ -265,17 +304,6 @@ brew install superset-sh/tap/superset
 ```
 
 [Download Superset for iPhone on the App Store](https://apps.apple.com/app/id6788926383) to check on your agents from your phone.
-
-## Install
-
-Download the desktop app:
-
-- **macOS**: [Apple Silicon (.dmg)](https://github.com/superset-sh/superset/releases/latest/download/Superset-arm64.dmg) · [Intel (.dmg)](https://github.com/superset-sh/superset/releases/latest/download/Superset-x64.dmg)
-- **Linux**: [x64 AppImage](https://github.com/superset-sh/superset/releases/latest/download/Superset-x86_64.AppImage) (experimental; macOS is the primary target)
-- **Windows**: not yet available
-- [All builds](https://github.com/superset-sh/superset/releases/latest)
-
-All you need installed is [Git](https://git-scm.com/). [gh](https://cli.github.com/) is optional and enables the PR workflows; Superset offers to install it for you.
 
 ## Development
 
@@ -321,6 +349,9 @@ Keyboard shortcuts are customizable via **Settings → Keyboard Shortcuts** (⌘
 
 ## Tech Stack
 
+<details>
+<summary>Browse the implementation stack</summary>
+
 <p>
   <a href="https://www.electronjs.org/"><img src="https://img.shields.io/badge/Electron-191970?logo=Electron&logoColor=white" alt="Electron" /></a>
   <a href="https://reactjs.org/"><img src="https://img.shields.io/badge/React-%2320232a.svg?logo=react&logoColor=%2361DAFB" alt="React" /></a>
@@ -334,6 +365,8 @@ Keyboard shortcuts are customizable via **Settings → Keyboard Shortcuts** (⌘
   <a href="https://trpc.io/"><img src="https://img.shields.io/badge/tRPC-2596BE?logo=trpc&logoColor=white" alt="tRPC" /></a>
 </p>
 
+</details>
+
 ## Private by Default
 
 - **Source Available**: full source is on GitHub under Elastic License 2.0 (ELv2).
@@ -346,6 +379,20 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get 
 <a href="https://github.com/superset-sh/superset/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
 </a>
+
+[![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
+[![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
+[![License](https://img.shields.io/badge/license-Elastic%20License%202.0-blue?style=flat)](LICENSE.md)
+[![Twitter](https://img.shields.io/badge/@superset__sh-555?logo=x)](https://x.com/superset_sh)
+[![Discord](https://img.shields.io/badge/Discord-555?logo=discord)](https://discord.gg/cZeD9WYcV7)
+
+<details>
+<summary>🌐 Read this in other languages</summary>
+<br />
+
+[English](README.md) | [日本語](readme/README.ja.md) | [简体中文](readme/README.zh-CN.md) | [繁體中文](readme/README.zh-TW.md) | [한국어](readme/README.ko.md) | [Français](readme/README.fr.md) | [Español](readme/README.es.md) | [Deutsch](readme/README.de.md) | [Português](readme/README.pt-BR.md) | [Italiano](readme/README.it.md) | [Русский](readme/README.ru.md) | [Türkçe](readme/README.tr.md) | [Polski](readme/README.pl.md) | [Nederlands](readme/README.nl.md) | [Bahasa Indonesia](readme/README.id.md) | [Čeština](readme/README.cs.md) | [Tiếng Việt](readme/README.vi.md)
+
+</details>
 
 ## Community
 
