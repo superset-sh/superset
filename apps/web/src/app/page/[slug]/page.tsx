@@ -67,7 +67,14 @@ export async function generateMetadata({
 	if (shared) {
 		const description = shared.description ?? undefined;
 		const images = shared.thumbnailUrl
-			? [{ url: shared.thumbnailUrl, width: 1280, height: 880 }]
+			? [
+					{
+						url: shared.thumbnailUrl,
+						width: 1280,
+						height: 880,
+						alt: shared.title,
+					},
+				]
 			: undefined;
 		return {
 			title: shared.title,
