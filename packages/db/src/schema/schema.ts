@@ -752,7 +752,9 @@ export const cloudWorkspaces = pgTable(
 		// never to display one — a rename lands on the sandbox and leaves these
 		// behind.
 		name: text().notNull(),
+		/** The branch the sandbox works on, cut from `baseBranch` at create. */
 		branch: text().notNull(),
+		baseBranch: text("base_branch").notNull(),
 		provider: text().notNull().default("vercel"),
 		providerSandboxId: text("provider_sandbox_id").notNull(),
 		sandboxUrl: text("sandbox_url"),
