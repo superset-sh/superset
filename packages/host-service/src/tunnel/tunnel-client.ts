@@ -5,7 +5,6 @@ import {
 	type StreamDial,
 	type StreamDialFailed,
 } from "@superset/shared/tunnel-protocol";
-import { resolveUpstreamUrl } from "@superset/shared/upstream-url";
 import ReconnectingWebSocket from "partysocket/ws";
 
 import { reportTunnelRescue } from "../sentry";
@@ -200,11 +199,6 @@ export class TunnelClient {
 		this.control = null;
 	}
 
-	/** The only origin this host ever proxies to: its own host-service. */
-	private localOrigin(scheme: "http" | "ws"): string {
-		return `${scheme}://127.0.0.1:${this.options.localPort}`;
-	}
-
 	private dialUrl(ticket: string): string {
 		const url = new URL("/v2/dial", toWs(this.relayUrl));
 		url.searchParams.set("hostId", this.options.hostId);
@@ -218,12 +212,8 @@ export class TunnelClient {
 			return;
 		}
 
-		const localUrl = resolveUpstreamUrl(this.localOrigin("ws"), dial.path);
-		if (!localUrl) {
-			console.warn("[host-service:tunnel] refusing dial path off-origin");
-			this.reportDialFailed(dial.ticket);
-			return;
-		}
+		const localUrl = new URL(`ws://127.0.0.1:${this.options.localPort}`);
+		localUrl.pathname = dial.path;
 		localUrl.searchParams.set("token", this.options.hostServiceSecret);
 		if (dial.query) {
 			for (const [key, value] of new URLSearchParams(dial.query)) {
@@ -348,17 +338,6 @@ export class TunnelClient {
 			relayWs.close(1011, "Missing request header");
 			return;
 		}
-		// The relay chooses this path, and the secret below is what the box
-		// guards; a path that can move the origin is refused, never repaired.
-		const upstream = resolveUpstreamUrl(this.localOrigin("http"), header.path);
-		if (!upstream) {
-			console.warn("[host-service:tunnel] refusing request path off-origin");
-			relayWs.send(
-				JSON.stringify({ type: "http:response", status: 400, headers: {} }),
-			);
-			relayWs.send('{"type":"http:end"}');
-			return;
-		}
 		try {
 			const size = chunks.reduce((n, c) => n + c.byteLength, 0);
 			const body = new Uint8Array(size);
@@ -367,14 +346,17 @@ export class TunnelClient {
 				body.set(chunk, offset);
 				offset += chunk.byteLength;
 			}
-			const response = await fetch(upstream, {
-				method: header.method,
-				headers: {
-					...header.headers,
-					Authorization: `Bearer ${this.options.hostServiceSecret}`,
+			const response = await fetch(
+				`http://127.0.0.1:${this.options.localPort}${header.path}`,
+				{
+					method: header.method,
+					headers: {
+						...header.headers,
+						Authorization: `Bearer ${this.options.hostServiceSecret}`,
+					},
+					body: size > 0 ? body : undefined,
 				},
-				body: size > 0 ? body : undefined,
-			});
+			);
 			const responseHeaders: Record<string, string> = {};
 			for (const [key, value] of response.headers.entries()) {
 				if (!STRIPPED_RESPONSE_HEADERS.has(key.toLowerCase())) {

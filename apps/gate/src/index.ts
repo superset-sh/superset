@@ -5,7 +5,6 @@ import {
 	sandboxHostSecret,
 	verifySandboxGateTicket,
 } from "@superset/shared/sandbox-gate";
-import { resolveUpstreamUrl } from "@superset/shared/upstream-url";
 import { assertEnv, type SandboxGateEnv } from "./env";
 
 /**
@@ -36,10 +35,6 @@ function refused(): Response {
 	return new Response(null, { status: 401, headers: CORS_HEADERS });
 }
 
-function badTarget(): Response {
-	return new Response(null, { status: 400, headers: CORS_HEADERS });
-}
-
 export default {
 	async fetch(request, env) {
 		assertEnv(env);
@@ -65,19 +60,11 @@ export default {
 			}
 		}
 
-		// The ticket names the box this request may reach. The request target
-		// is the attacker's half of the call and must not be able to move it,
-		// because the host secret goes out on the next line.
-		const upstream = resolveUpstreamUrl(
-			claims.target,
-			`${url.pathname}${url.search}`,
-		);
-		if (!upstream) return badTarget();
-
 		const hostSecret = await sandboxHostSecret(
 			env.SANDBOX_GATE_SECRET,
 			claims.workspaceId,
 		);
+		const upstream = new URL(`${url.pathname}${url.search}`, claims.target);
 		if (upstream.searchParams.has(SANDBOX_GATE_TICKET_PARAM)) {
 			upstream.searchParams.set(SANDBOX_GATE_TICKET_PARAM, hostSecret);
 		}

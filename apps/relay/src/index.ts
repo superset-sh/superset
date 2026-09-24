@@ -4,7 +4,6 @@ import {
 	parseHostRoutingKey,
 } from "@superset/shared/host-routing";
 import { RELAY_CLOSE } from "@superset/shared/tunnel-protocol";
-import { isOriginFormTarget } from "@superset/shared/upstream-url";
 import { type AuthContext, verifyJWT } from "@superset/shared/verify-jwt";
 import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
@@ -264,7 +263,6 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 	const hostId = c.get("hostId");
 	const url = new URL(c.req.url);
 	const path = pathAfterHost(c) || "/";
-	if (!isOriginFormTarget(path)) return c.json({ error: "Invalid path" }, 400);
 	const query = url.search.slice(1);
 
 	const headers = buildUpstreamHeaders(c.req.raw.headers, c.get("auth").sub);
@@ -316,7 +314,7 @@ app.get("/hosts/:hostId/*", async (c) => {
 	const hostId = c.get("hostId");
 	const url = new URL(c.req.url);
 	const path = pathAfterHost(c) || "/";
-	if (!isOriginFormTarget(path)) return c.json({ error: "Invalid path" }, 400);
+	if (path.startsWith("//")) return c.json({ error: "Invalid path" }, 400);
 	const query = url.search.slice(1);
 	const ticket = crypto.randomUUID();
 
